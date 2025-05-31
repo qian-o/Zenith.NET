@@ -1,0 +1,12 @@
+﻿<Project>
+
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageVersion Include="Roslynator.Analyzers" Version="4.13.1" />
+        <PackageVersion Include="Slangc.NET" Version="2025.10.0" />
+    </ItemGroup>
+
+</Project>

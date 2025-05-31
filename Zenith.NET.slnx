@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Project Path="sources/Zenith.NET.DirectX12/Zenith.NET.DirectX12.csproj" Id="c05cdb44-1cfe-463f-ae6e-ee2d7afc6f9a" />
+  <Project Path="sources/Zenith.NET.Metal/Zenith.NET.Metal.csproj" Id="226c9b8f-3a89-47e8-9bc1-ce08e4776912" />
+  <Project Path="sources/Zenith.NET.Vulkan/Zenith.NET.Vulkan.csproj" Id="ac82f1b2-74df-4fed-8f59-7c601b7ca5ea" />
+  <Project Path="sources/Zenith.NET/Zenith.NET.csproj" Id="e35ccfda-029b-480c-9fe3-8dcad5efa71a" />
+</Solution>
