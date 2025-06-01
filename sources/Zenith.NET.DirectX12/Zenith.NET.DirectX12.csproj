@@ -1,3 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+    <ItemGroup>
+        <ProjectReference Include="..\Zenith.NET\Zenith.NET.csproj" />
+    </ItemGroup>
+
 </Project>
