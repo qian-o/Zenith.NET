@@ -1,7 +1,15 @@
 ﻿namespace Zenith.NET;
 
-public struct SwapChainDesc
+public record struct SwapChainDesc
 {
+    public SwapChainDesc()
+    {
+        Surface = null!;
+        ColorTargetFormat = PixelFormat.R8G8B8A8UNorm;
+        DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt;
+        VerticalSync = false;
+    }
+
     /// <summary>
     /// The surface to present to.
     /// </summary>
