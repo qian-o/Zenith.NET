@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET.Enums;
+﻿namespace Zenith.NET;
 
 public enum PixelFormat
 {

@@ -1,6 +1,4 @@
-﻿using Zenith.NET.Enums;
-
-namespace Zenith.NET.Structs;
+﻿namespace Zenith.NET;
 
 public struct SwapChainDesc
 {

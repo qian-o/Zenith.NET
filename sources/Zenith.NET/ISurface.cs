@@ -1,6 +1,4 @@
-﻿using Zenith.NET.Enums;
-
-namespace Zenith.NET;
+﻿namespace Zenith.NET;
 
 public interface ISurface
 {
