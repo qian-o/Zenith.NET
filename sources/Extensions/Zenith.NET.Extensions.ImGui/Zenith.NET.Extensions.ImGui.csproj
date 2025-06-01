@@ -1,3 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+    <ItemGroup>
+        <PackageReference Include="Hexa.NET.ImGui" />
+    </ItemGroup>
+
 </Project>
