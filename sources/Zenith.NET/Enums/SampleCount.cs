@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public enum TextureSampleCount
+public enum SampleCount
 {
     /// <summary>
     /// 1 sample (no multisampling).

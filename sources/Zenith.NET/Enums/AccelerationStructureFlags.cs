@@ -1,7 +1,7 @@
 ﻿namespace Zenith.NET;
 
 [Flags]
-public enum ASBuildOptions
+public enum AccelerationStructureFlags
 {
     None = 0,
 

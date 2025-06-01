@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public enum BlendFactor
+public enum Blend
 {
     /// <summary>
     /// Each component is multiplied by 0.

@@ -1,7 +1,7 @@
 ﻿namespace Zenith.NET;
 
 [Flags]
-public enum ASGeometryOptions
+public enum GeometryFlags
 {
     None = 0,
 

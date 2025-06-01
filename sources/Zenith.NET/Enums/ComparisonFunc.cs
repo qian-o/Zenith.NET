@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public enum ComparisonFunction
+public enum ComparisonFunc
 {
     /// <summary>
     /// The comparison never succeeds.

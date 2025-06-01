@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public enum StencilOperation
+public enum StencilOp
 {
     /// <summary>
     /// Keep the existing value.

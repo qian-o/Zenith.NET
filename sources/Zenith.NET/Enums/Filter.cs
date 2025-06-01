@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public enum SamplerFilter
+public enum Filter
 {
     /// <summary>
     /// Point sampling is used for minification, magnification, and mip-level sampling.

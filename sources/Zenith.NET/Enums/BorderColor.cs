@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public enum SamplerBorderColor
+public enum BorderColor
 {
     /// <summary>
     /// Transparent Black (0, 0, 0, 0)

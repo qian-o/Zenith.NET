@@ -1,7 +1,7 @@
 ﻿namespace Zenith.NET;
 
 [Flags]
-public enum ASInstanceOptions
+public enum InstanceFlags
 {
     None = 0,
 
