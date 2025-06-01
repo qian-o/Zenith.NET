@@ -1,7 +1,7 @@
 ﻿namespace Zenith.NET;
 
 [Flags]
-public enum TextureUsage
+public enum TextureUsageFlags
 {
     None = 0,
 

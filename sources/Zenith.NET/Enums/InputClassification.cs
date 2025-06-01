@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public enum VertexStepFunction
+public enum InputClassification
 {
     /// <summary>
     /// Input data is per-vertex data.

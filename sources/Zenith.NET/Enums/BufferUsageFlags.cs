@@ -1,7 +1,7 @@
 ﻿namespace Zenith.NET;
 
 [Flags]
-public enum BufferUsage
+public enum BufferUsageFlags
 {
     None = 0,
 

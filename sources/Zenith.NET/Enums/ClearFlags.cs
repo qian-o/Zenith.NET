@@ -1,7 +1,7 @@
 ﻿namespace Zenith.NET;
 
 [Flags]
-public enum ClearOptions
+public enum ClearFlags
 {
     None = 0,
 
