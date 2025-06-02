@@ -14,9 +14,9 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes = 0) where T : unmanaged
     {
-        if (data.Length is 0)
+        if (data.IsEmpty)
         {
-            return;
+            throw new ArgumentException("Data cannot be empty.", nameof(data));
         }
 
         if ((uint)(data.Length * Unsafe.SizeOf<T>()) + offsetInBytes > Desc.SizeInBytes)
