@@ -10,6 +10,8 @@
 
         <AnalysisLevel>latest</AnalysisLevel>
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+        <LangVersion>preview</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
