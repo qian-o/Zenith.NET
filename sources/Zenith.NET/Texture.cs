@@ -4,6 +4,9 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 {
     public TextureDesc Desc { get; } = desc;
 
+    /// <summary>
+    /// Uploads data to the texture immediately, blocking until the operation is complete.
+    /// </summary>
     public void Upload<T>(ReadOnlySpan<T> data,
                           TexturePosition position,
                           uint width,

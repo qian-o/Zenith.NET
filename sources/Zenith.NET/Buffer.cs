@@ -12,6 +12,9 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
     /// </summary>
     public abstract nint SharedPointer { get; }
 
+    /// <summary>
+    /// Uploads data to the buffer immediately, blocking until the operation is complete.
+    /// </summary>
     public void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes = 0) where T : unmanaged
     {
         if (data.IsEmpty)
