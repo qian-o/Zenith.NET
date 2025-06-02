@@ -6,7 +6,7 @@ public record struct BufferDesc : IDesc
     {
         SizeInBytes = 0;
         StructureStrideInBytes = 0;
-        Flags = BufferUsageFlags.Dynamic;
+        Flags = BufferUsageFlags.None;
     }
 
     /// <summary>

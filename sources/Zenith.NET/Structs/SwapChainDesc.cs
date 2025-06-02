@@ -46,7 +46,8 @@ public record struct SwapChainDesc : IDesc
             return false;
         }
 
-        if (DepthStencilTargetFormat.HasValue && DepthStencilTargetFormat.Value is not PixelFormat.D24UNormS8UInt or PixelFormat.D32FloatS8UInt)
+        if (DepthStencilTargetFormat.HasValue
+            && DepthStencilTargetFormat.Value is not PixelFormat.D24UNormS8UInt or PixelFormat.D32FloatS8UInt)
         {
             return false;
         }
