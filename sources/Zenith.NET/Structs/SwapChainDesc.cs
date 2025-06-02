@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct SwapChainDesc
+public record struct SwapChainDesc : IDesc
 {
     public SwapChainDesc()
     {
@@ -29,4 +29,28 @@ public record struct SwapChainDesc
     /// Vertical synchronization.
     /// </summary>
     public bool VerticalSync { get; set; }
+
+    public readonly bool Validate()
+    {
+        if (Surface is null)
+        {
+            return false;
+        }
+
+        if (ColorTargetFormat is not PixelFormat.R8G8B8A8UNorm
+            or PixelFormat.R8G8B8A8UNormSRgb
+            or PixelFormat.R16G16B16A16Float
+            or PixelFormat.B8G8R8A8UNorm
+            or PixelFormat.B8G8R8A8UNormSRgb)
+        {
+            return false;
+        }
+
+        if (DepthStencilTargetFormat.HasValue && DepthStencilTargetFormat.Value is not PixelFormat.D24UNormS8UInt or PixelFormat.D32FloatS8UInt)
+        {
+            return false;
+        }
+
+        return true;
+    }
 }
