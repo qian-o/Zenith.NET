@@ -24,8 +24,6 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
             throw new ArgumentOutOfRangeException(nameof(data), "Data exceeds buffer size.");
         }
 
-        UploadImpl(data, offsetInBytes);
+        // TODO: Use the internal Copy queue to upload data and wait for completion.
     }
-
-    protected abstract void UploadImpl<T>(ReadOnlySpan<T> data, uint offsetInBytes) where T : unmanaged;
 }
