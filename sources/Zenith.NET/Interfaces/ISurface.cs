@@ -1,4 +1,6 @@
-﻿namespace Zenith.NET;
+﻿using System.Numerics;
+
+namespace Zenith.NET;
 
 public interface ISurface
 {
@@ -6,7 +8,5 @@ public interface ISurface
 
     nint[] Handles { get; }
 
-    uint Width { get; }
-
-    uint Height { get; }
+    Vector2 Size { get; }
 }
