@@ -20,10 +20,10 @@ public record struct TexturePosition
     public uint Z { get; set; }
 
     /// <summary>
-    /// Indicates the face of the cube map texture.
+    /// Indicates the face index of the texture.
     /// Only applicable for cube map textures such as <see cref="TextureType.TextureCube"/> or <see cref="TextureType.TextureCubeArray"/>.
     /// </summary>
-    public CubeMapFace Face { get; set; }
+    public uint FaceIndex { get; set; }
 
     /// <summary>
     /// Indicates the array layer of the texture.

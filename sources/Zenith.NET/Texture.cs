@@ -69,6 +69,11 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
             {
                 throw new ArgumentOutOfRangeException($"{nameof(position)}, {nameof(width)}, {nameof(height)}", "Width or height exceeds texture dimensions.");
             }
+
+            if (position.FaceIndex >= 6)
+            {
+                throw new ArgumentOutOfRangeException(nameof(position), "Face index must be between 0 and 5 for cube textures.");
+            }
         }
 
         if (Desc.Type is TextureType.Texture1DArray or TextureType.Texture2DArray or TextureType.TextureCubeArray
