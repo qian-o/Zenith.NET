@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public enum CubeMapFace
+public enum CubeMapFace : uint
 {
     /// <summary>
     /// Positive X face of the cube map.
