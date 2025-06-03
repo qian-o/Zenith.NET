@@ -2,6 +2,16 @@
 
 public record struct TexturePosition
 {
+    public TexturePosition()
+    {
+        X = 0;
+        Y = 0;
+        Z = 0;
+        FaceIndex = 0;
+        ArrayLayer = 0;
+        MipLevel = 0;
+    }
+
     /// <summary>
     /// X coordinate of the texture position.
     /// </summary>
