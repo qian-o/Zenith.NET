@@ -21,7 +21,7 @@ public record struct OutputDesc : IDesc
 
     public readonly bool Validate()
     {
-        if (ColorAttachments is null || ColorAttachments.Length is 0)
+        if (ColorAttachments is null)
         {
             return false;
         }
