@@ -2,6 +2,20 @@
 
 public record struct SamplerDesc : IDesc
 {
+    public SamplerDesc()
+    {
+        U = AddressMode.Wrap;
+        V = AddressMode.Wrap;
+        W = AddressMode.Wrap;
+        Filter = Filter.MinPointMagPointMipPoint;
+        ComparisonFunc = ComparisonFunc.Never;
+        MaxAnisotropy = 0;
+        MinLod = 0.0f;
+        MaxLod = float.MaxValue;
+        LodBias = 0.0f;
+        BorderColor = BorderColor.TransparentBlack;
+    }
+
     /// <summary>
     /// Mode to use for the U (or S) coordinate.
     /// </summary>

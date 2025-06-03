@@ -2,6 +2,13 @@
 
 public record struct BufferDesc : IDesc
 {
+    public BufferDesc()
+    {
+        SizeInBytes = 0;
+        StructureStrideInBytes = 1;
+        Flags = BufferUsageFlags.None;
+    }
+
     /// <summary>
     /// The desired capacity, in bytes.
     /// </summary>

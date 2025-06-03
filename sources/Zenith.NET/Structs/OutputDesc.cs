@@ -4,6 +4,13 @@ namespace Zenith.NET;
 
 public record struct OutputDesc : IDesc
 {
+    public OutputDesc()
+    {
+        ColorAttachments = [];
+        DepthStencilAttachment = null;
+        SampleCount = SampleCount.Count1;
+    }
+
     /// <summary>
     /// Color attachment formats.
     /// </summary>

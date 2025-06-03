@@ -2,6 +2,19 @@
 
 public record struct TextureDesc : IDesc
 {
+    public TextureDesc()
+    {
+        Type = TextureType.Texture1D;
+        Format = PixelFormat.R8UNorm;
+        Width = 0;
+        Height = 0;
+        Depth = 0;
+        ArrayLayers = 1;
+        MipLevels = 1;
+        SampleCount = SampleCount.Count1;
+        Flags = TextureUsageFlags.None;
+    }
+
     /// <summary>
     /// The type of the texture.
     /// </summary>
