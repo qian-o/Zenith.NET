@@ -67,7 +67,7 @@ public record struct SurfaceDesc : IDesc
             return false;
         }
 
-        if (Handles.Any(handle => handle is 0))
+        if (Handles.Any(static item => item is 0))
         {
             return false;
         }
