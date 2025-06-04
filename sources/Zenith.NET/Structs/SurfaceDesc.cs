@@ -4,7 +4,7 @@ public record struct SurfaceDesc : IDesc
 {
     public SurfaceDesc()
     {
-        SurfaceType = SurfaceType.Win32;
+        Type = SurfaceType.Win32;
         Handles = [];
         Width = 0;
         Height = 0;
@@ -13,7 +13,7 @@ public record struct SurfaceDesc : IDesc
     /// <summary>
     /// The surface type.
     /// </summary>
-    public SurfaceType SurfaceType { get; set; }
+    public SurfaceType Type { get; set; }
 
     /// <summary>
     /// Surface native handles.
@@ -37,32 +37,32 @@ public record struct SurfaceDesc : IDesc
             return false;
         }
 
-        if (SurfaceType is SurfaceType.Win32 && Handles.Length is not 1)
+        if (Type is SurfaceType.Win32 && Handles.Length is not 1)
         {
             return false;
         }
 
-        if (SurfaceType is SurfaceType.Wayland && Handles.Length is not 2)
+        if (Type is SurfaceType.Wayland && Handles.Length is not 2)
         {
             return false;
         }
 
-        if (SurfaceType is SurfaceType.Xlib && Handles.Length is not 2)
+        if (Type is SurfaceType.Xlib && Handles.Length is not 2)
         {
             return false;
         }
 
-        if (SurfaceType is SurfaceType.Android && Handles.Length is not 1)
+        if (Type is SurfaceType.Android && Handles.Length is not 1)
         {
             return false;
         }
 
-        if (SurfaceType is SurfaceType.IOS && Handles.Length is not 1)
+        if (Type is SurfaceType.IOS && Handles.Length is not 1)
         {
             return false;
         }
 
-        if (SurfaceType is SurfaceType.MacOS && Handles.Length is not 1)
+        if (Type is SurfaceType.MacOS && Handles.Length is not 1)
         {
             return false;
         }
@@ -84,7 +84,7 @@ public record struct SurfaceDesc : IDesc
     {
         return new()
         {
-            SurfaceType = SurfaceType.Win32,
+            Type = SurfaceType.Win32,
             Handles = [hwnd],
             Width = width,
             Height = height
@@ -95,7 +95,7 @@ public record struct SurfaceDesc : IDesc
     {
         return new()
         {
-            SurfaceType = SurfaceType.Wayland,
+            Type = SurfaceType.Wayland,
             Handles = [display, surface],
             Width = width,
             Height = height
@@ -106,7 +106,7 @@ public record struct SurfaceDesc : IDesc
     {
         return new()
         {
-            SurfaceType = SurfaceType.Xlib,
+            Type = SurfaceType.Xlib,
             Handles = [display, window],
             Width = width,
             Height = height
@@ -117,7 +117,7 @@ public record struct SurfaceDesc : IDesc
     {
         return new()
         {
-            SurfaceType = SurfaceType.Android,
+            Type = SurfaceType.Android,
             Handles = [nativeWindow],
             Width = width,
             Height = height
@@ -128,7 +128,7 @@ public record struct SurfaceDesc : IDesc
     {
         return new()
         {
-            SurfaceType = SurfaceType.IOS,
+            Type = SurfaceType.IOS,
             Handles = [view],
             Width = width,
             Height = height
@@ -139,7 +139,7 @@ public record struct SurfaceDesc : IDesc
     {
         return new()
         {
-            SurfaceType = SurfaceType.MacOS,
+            Type = SurfaceType.MacOS,
             Handles = [view],
             Width = width,
             Height = height

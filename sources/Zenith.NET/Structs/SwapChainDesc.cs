@@ -6,7 +6,7 @@ public record struct SwapChainDesc : IDesc
 {
     public SwapChainDesc()
     {
-        Surface = default;
+        Surface = new();
         ColorTargetFormat = PixelFormat.R8G8B8A8UNorm;
         DepthStencilTargetFormat = null;
         VerticalSync = true;
