@@ -6,7 +6,7 @@ public record struct SwapChainDesc : IDesc
 {
     public SwapChainDesc()
     {
-        Surface = null!;
+        Surface = default;
         ColorTargetFormat = PixelFormat.R8G8B8A8UNorm;
         DepthStencilTargetFormat = null;
         VerticalSync = true;
@@ -15,7 +15,7 @@ public record struct SwapChainDesc : IDesc
     /// <summary>
     /// The surface to present to.
     /// </summary>
-    public ISurface Surface { get; set; }
+    public SurfaceDesc Surface { get; set; }
 
     /// <summary>
     /// The pixel format of the color target.
@@ -34,7 +34,7 @@ public record struct SwapChainDesc : IDesc
 
     public readonly bool Validate()
     {
-        if (Surface is null)
+        if (!Surface.Validate())
         {
             return false;
         }
