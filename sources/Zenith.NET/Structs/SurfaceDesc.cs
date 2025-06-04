@@ -10,12 +10,24 @@ public record struct SurfaceDesc : IDesc
         Height = 0;
     }
 
+    /// <summary>
+    /// The surface type.
+    /// </summary>
     public SurfaceType SurfaceType { get; set; }
 
+    /// <summary>
+    /// Surface native handles.
+    /// </summary>
     public nint[] Handles { get; set; }
 
+    /// <summary>
+    /// The width of the surface.
+    /// </summary>
     public uint Width { get; set; }
 
+    /// <summary>
+    /// The height of the surface.
+    /// </summary>
     public uint Height { get; set; }
 
     public readonly bool Validate()
@@ -51,6 +63,11 @@ public record struct SurfaceDesc : IDesc
         }
 
         if (SurfaceType is SurfaceType.MacOS && Handles.Length is not 1)
+        {
+            return false;
+        }
+
+        if (Handles.Any(handle => handle is 0))
         {
             return false;
         }
