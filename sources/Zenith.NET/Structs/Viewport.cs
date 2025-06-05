@@ -12,15 +12,33 @@ public record struct Viewport
         MaxDepth = 1;
     }
 
+    /// <summary>
+    /// The X coordinate of the upper-left corner of the viewport, in pixels.
+    /// </summary>
     public float X { get; set; }
 
+    /// <summary>
+    /// The Y coordinate of the upper-left corner of the viewport, in pixels.
+    /// </summary>
     public float Y { get; set; }
 
+    /// <summary>
+    /// The width of the viewport, in pixels.
+    /// </summary>
     public float Width { get; set; }
 
+    /// <summary>
+    /// The height of the viewport, in pixels.
+    /// </summary>
     public float Height { get; set; }
 
+    /// <summary>
+    /// The minimum depth of the viewport. Typically ranges from 0.0 (near plane) to 1.0 (far plane).
+    /// </summary>
     public float MinDepth { get; set; }
 
+    /// <summary>
+    /// The maximum depth of the viewport. Typically ranges from 0.0 (near plane) to 1.0 (far plane).
+    /// </summary>
     public float MaxDepth { get; set; }
 }
