@@ -53,12 +53,12 @@ public record struct DepthStencilStateDesc : IDesc
     /// <summary>
     /// Describes stencil operations and comparison for front-facing polygons.
     /// </summary>
-    public DepthStencilOperationDesc FrontFace { get; set; }
+    public DepthStencilOpStateDesc FrontFace { get; set; }
 
     /// <summary>
     /// Describes stencil operations and comparison for back-facing polygons.
     /// </summary>
-    public DepthStencilOperationDesc BackFace { get; set; }
+    public DepthStencilOpStateDesc BackFace { get; set; }
 
     /// <summary>
     /// Validates the current <see cref="DepthStencilStateDesc"/> instance.
@@ -66,6 +66,21 @@ public record struct DepthStencilStateDesc : IDesc
     /// <returns><c>true</c> if the descriptor is valid; otherwise, <c>false</c>.</returns>
     public readonly bool Validate()
     {
+        if (!Enum.IsDefined(DepthFunc))
+        {
+            return false;
+        }
+
+        if (!FrontFace.Validate())
+        {
+            return false;
+        }
+
+        if (!BackFace.Validate())
+        {
+            return false;
+        }
+
         return true;
     }
 }

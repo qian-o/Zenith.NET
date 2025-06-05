@@ -67,6 +67,21 @@ public record struct RasterizerStateDesc : IDesc
     /// <returns><c>true</c> if the descriptor is valid; otherwise, <c>false</c>.</returns>
     public readonly bool Validate()
     {
+        if (!Enum.IsDefined(CullMode))
+        {
+            return false;
+        }
+
+        if (!Enum.IsDefined(FillMode))
+        {
+            return false;
+        }
+
+        if (!Enum.IsDefined(FrontFace))
+        {
+            return false;
+        }
+
         return true;
     }
 }

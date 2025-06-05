@@ -72,6 +72,16 @@ public record struct TextureDesc : IDesc
     /// <returns><c>true</c> if valid; otherwise, <c>false</c>.</returns>
     public readonly bool Validate()
     {
+        if (!Enum.IsDefined(Type))
+        {
+            return false;
+        }
+
+        if (!Enum.IsDefined(Format))
+        {
+            return false;
+        }
+
         if (Type is TextureType.Texture1D or TextureType.Texture1DArray && Width is 0)
         {
             return false;
@@ -99,6 +109,11 @@ public record struct TextureDesc : IDesc
         }
 
         if (MipLevels is 0)
+        {
+            return false;
+        }
+
+        if (!Enum.IsDefined(SampleCount))
         {
             return false;
         }

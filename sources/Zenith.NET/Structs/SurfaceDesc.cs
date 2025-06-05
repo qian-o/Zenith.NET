@@ -63,6 +63,11 @@ public record struct SurfaceDesc : IDesc
     /// <returns><c>true</c> if valid; otherwise, <c>false</c>.</returns>
     public readonly bool Validate()
     {
+        if (!Enum.IsDefined(Type))
+        {
+            return false;
+        }
+
         if (Handles is null)
         {
             return false;

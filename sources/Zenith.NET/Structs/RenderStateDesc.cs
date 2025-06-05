@@ -51,6 +51,21 @@ public record struct RenderStateDesc : IDesc
     /// <returns><c>true</c> if the descriptor is valid; otherwise, <c>false</c>.</returns>
     public readonly bool Validate()
     {
+        if (!RasterizerState.Validate())
+        {
+            return false;
+        }
+
+        if (!DepthStencilState.Validate())
+        {
+            return false;
+        }
+
+        if (!BlendState.Validate())
+        {
+            return false;
+        }
+
         return true;
     }
 }

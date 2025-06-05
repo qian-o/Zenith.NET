@@ -78,6 +78,36 @@ public record struct SamplerDesc : IDesc
     /// <returns><c>true</c> if valid; otherwise, <c>false</c>.</returns>
     public readonly bool Validate()
     {
-        return MinLod <= MaxLod;
+        if (!Enum.IsDefined(U))
+        {
+            return false;
+        }
+
+        if (!Enum.IsDefined(V))
+        {
+            return false;
+        }
+
+        if (!Enum.IsDefined(W))
+        {
+            return false;
+        }
+
+        if (!Enum.IsDefined(Filter))
+        {
+            return false;
+        }
+
+        if (!Enum.IsDefined(ComparisonFunc))
+        {
+            return false;
+        }
+
+        if (MinLod > MaxLod)
+        {
+            return false;
+        }
+
+        return true;
     }
 }

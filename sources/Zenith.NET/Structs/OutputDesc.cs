@@ -43,7 +43,17 @@ public record struct OutputDesc : IDesc
             return false;
         }
 
+        if (ColorAttachments.Any(static item => !Enum.IsDefined(item)))
+        {
+            return false;
+        }
+
         if (Validation.IsValidDepthStencilFormat(DepthStencilAttachment))
+        {
+            return false;
+        }
+
+        if (!Enum.IsDefined(SampleCount))
         {
             return false;
         }

@@ -66,6 +66,36 @@ public record struct BlendStateRenderTargetDesc : IDesc
     /// <returns><c>true</c> if the descriptor is valid; otherwise, <c>false</c>.</returns>
     public readonly bool Validate()
     {
+        if (!Enum.IsDefined(SrcBlend))
+        {
+            return false;
+        }
+
+        if (!Enum.IsDefined(DestBlend))
+        {
+            return false;
+        }
+
+        if (!Enum.IsDefined(BlendOp))
+        {
+            return false;
+        }
+
+        if (!Enum.IsDefined(SrcBlendAlpha))
+        {
+            return false;
+        }
+
+        if (!Enum.IsDefined(DestBlendAlpha))
+        {
+            return false;
+        }
+
+        if (!Enum.IsDefined(BlendOpAlpha))
+        {
+            return false;
+        }
+
         return true;
     }
 }

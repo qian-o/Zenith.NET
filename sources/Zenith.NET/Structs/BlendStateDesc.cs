@@ -80,6 +80,13 @@ public record struct BlendStateDesc : IDesc
     /// <returns><c>true</c> if the descriptor is valid; otherwise, <c>false</c>.</returns>
     public readonly bool Validate()
     {
-        return true;
+        return RenderTarget0.Validate()
+               && RenderTarget1.Validate()
+               && RenderTarget2.Validate()
+               && RenderTarget3.Validate()
+               && RenderTarget4.Validate()
+               && RenderTarget5.Validate()
+               && RenderTarget6.Validate()
+               && RenderTarget7.Validate();
     }
 }
