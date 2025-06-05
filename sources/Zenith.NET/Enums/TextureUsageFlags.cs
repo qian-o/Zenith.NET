@@ -6,6 +6,9 @@
 [Flags]
 public enum TextureUsageFlags
 {
+    /// <summary>
+    /// No flags are set.
+    /// </summary>
     None = 0,
 
     /// <summary>

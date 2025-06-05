@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <NoWarn>IDE0130</NoWarn>
     </PropertyGroup>
 

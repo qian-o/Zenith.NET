@@ -6,6 +6,9 @@
 [Flags]
 public enum ColorComponentFlags
 {
+    /// <summary>
+    /// No flags are set.
+    /// </summary>
     None = 0,
 
     /// <summary>

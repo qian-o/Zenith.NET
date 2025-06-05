@@ -7,6 +7,9 @@
 [Flags]
 public enum ShaderStageFlags
 {
+    /// <summary>
+    /// No flags are set.
+    /// </summary>
     None = 0,
 
     /// <summary>

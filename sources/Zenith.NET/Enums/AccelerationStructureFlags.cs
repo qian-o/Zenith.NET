@@ -6,6 +6,9 @@
 [Flags]
 public enum AccelerationStructureFlags
 {
+    /// <summary>
+    /// No flags are set.
+    /// </summary>
     None = 0,
 
     /// <summary>

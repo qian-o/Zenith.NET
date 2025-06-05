@@ -111,6 +111,13 @@ public record struct SurfaceDesc : IDesc
         return true;
     }
 
+    /// <summary>
+    /// Creates a <see cref="SurfaceDesc"/> for a Win32 window surface.
+    /// </summary>
+    /// <param name="hwnd">The handle to the Win32 window.</param>
+    /// <param name="width">The width of the surface, in pixels.</param>
+    /// <param name="height">The height of the surface, in pixels.</param>
+    /// <returns>A configured <see cref="SurfaceDesc"/> instance for Win32.</returns>
     public static SurfaceDesc CreateWin32(nint hwnd, uint width, uint height)
     {
         return new()
@@ -122,6 +129,14 @@ public record struct SurfaceDesc : IDesc
         };
     }
 
+    /// <summary>
+    /// Creates a <see cref="SurfaceDesc"/> for a Wayland surface.
+    /// </summary>
+    /// <param name="display">The handle to the Wayland display.</param>
+    /// <param name="surface">The handle to the Wayland surface.</param>
+    /// <param name="width">The width of the surface, in pixels.</param>
+    /// <param name="height">The height of the surface, in pixels.</param>
+    /// <returns>A configured <see cref="SurfaceDesc"/> instance for Wayland.</returns>
     public static SurfaceDesc CreateWayland(nint display, nint surface, uint width, uint height)
     {
         return new()
@@ -133,6 +148,14 @@ public record struct SurfaceDesc : IDesc
         };
     }
 
+    /// <summary>
+    /// Creates a <see cref="SurfaceDesc"/> for an Xlib window surface.
+    /// </summary>
+    /// <param name="display">The handle to the Xlib display.</param>
+    /// <param name="window">The handle to the Xlib window.</param>
+    /// <param name="width">The width of the surface, in pixels.</param>
+    /// <param name="height">The height of the surface, in pixels.</param>
+    /// <returns>A configured <see cref="SurfaceDesc"/> instance for Xlib.</returns>
     public static SurfaceDesc CreateXlib(nint display, nint window, uint width, uint height)
     {
         return new()
@@ -144,6 +167,13 @@ public record struct SurfaceDesc : IDesc
         };
     }
 
+    /// <summary>
+    /// Creates a <see cref="SurfaceDesc"/> for an Android native window surface.
+    /// </summary>
+    /// <param name="nativeWindow">The handle to the Android native window.</param>
+    /// <param name="width">The width of the surface, in pixels.</param>
+    /// <param name="height">The height of the surface, in pixels.</param>
+    /// <returns>A configured <see cref="SurfaceDesc"/> instance for Android.</returns>
     public static SurfaceDesc CreateAndroid(nint nativeWindow, uint width, uint height)
     {
         return new()
@@ -155,6 +185,13 @@ public record struct SurfaceDesc : IDesc
         };
     }
 
+    /// <summary>
+    /// Creates a <see cref="SurfaceDesc"/> for an iOS native view surface.
+    /// </summary>
+    /// <param name="view">The handle to the iOS native view.</param>
+    /// <param name="width">The width of the surface, in pixels.</param>
+    /// <param name="height">The height of the surface, in pixels.</param>
+    /// <returns>A configured <see cref="SurfaceDesc"/> instance for iOS.</returns>
     public static SurfaceDesc CreateIOS(nint view, uint width, uint height)
     {
         return new()
@@ -166,6 +203,13 @@ public record struct SurfaceDesc : IDesc
         };
     }
 
+    /// <summary>
+    /// Creates a <see cref="SurfaceDesc"/> for a macOS native view surface.
+    /// </summary>
+    /// <param name="view">The handle to the macOS native view.</param>
+    /// <param name="width">The width of the surface, in pixels.</param>
+    /// <param name="height">The height of the surface, in pixels.</param>
+    /// <returns>A configured <see cref="SurfaceDesc"/> instance for macOS.</returns>
     public static SurfaceDesc CreateMacOS(nint view, uint width, uint height)
     {
         return new()

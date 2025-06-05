@@ -6,6 +6,9 @@
 [Flags]
 public enum ClearFlags
 {
+    /// <summary>
+    /// No flags are set.
+    /// </summary>
     None = 0,
 
     /// <summary>
