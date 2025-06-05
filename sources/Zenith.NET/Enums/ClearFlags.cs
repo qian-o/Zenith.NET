@@ -1,5 +1,8 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies which buffers to clear during a clear operation.
+/// </summary>
 [Flags]
 public enum ClearFlags
 {

@@ -1,5 +1,8 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies the border color used when sampling textures outside their bounds.
+/// </summary>
 public enum BorderColor
 {
     /// <summary>

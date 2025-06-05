@@ -1,5 +1,8 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies the type of resource to be bound in a shader or pipeline.
+/// </summary>
 public enum ResourceType
 {
     /// <summary>

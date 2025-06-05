@@ -2,8 +2,14 @@
 
 namespace Zenith.NET;
 
+/// <summary>
+/// Describes a swap chain, including the presentation surface, color and depth/stencil formats, and vertical sync setting.
+/// </summary>
 public record struct SwapChainDesc : IDesc
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SwapChainDesc"/> struct with default values.
+    /// </summary>
     public SwapChainDesc()
     {
         Surface = new();
@@ -23,15 +29,19 @@ public record struct SwapChainDesc : IDesc
     public PixelFormat ColorTargetFormat { get; set; }
 
     /// <summary>
-    /// The pixel format of the depth stencil target.
+    /// The pixel format of the depth/stencil target.
     /// </summary>
     public PixelFormat? DepthStencilTargetFormat { get; set; }
 
     /// <summary>
-    /// Vertical synchronization.
+    /// Indicates whether vertical synchronization is enabled.
     /// </summary>
     public bool VerticalSync { get; set; }
 
+    /// <summary>
+    /// Validates the current <see cref="SwapChainDesc"/> instance.
+    /// </summary>
+    /// <returns><c>true</c> if valid; otherwise, <c>false</c>.</returns>
     public readonly bool Validate()
     {
         if (!Surface.Validate())

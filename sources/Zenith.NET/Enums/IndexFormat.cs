@@ -1,5 +1,8 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies the data format for index buffers.
+/// </summary>
 public enum IndexFormat
 {
     /// <summary>

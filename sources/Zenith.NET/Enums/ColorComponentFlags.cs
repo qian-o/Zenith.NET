@@ -1,5 +1,8 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies which color components will be written to during rendering.
+/// </summary>
 [Flags]
 public enum ColorComponentFlags
 {

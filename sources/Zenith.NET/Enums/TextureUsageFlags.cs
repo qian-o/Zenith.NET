@@ -1,27 +1,30 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies intended usages for a texture resource.
+/// </summary>
 [Flags]
 public enum TextureUsageFlags
 {
     None = 0,
 
     /// <summary>
-    /// A Texture can be used as a shader resource.
+    /// The texture can be used as a shader resource (readable in shaders).
     /// </summary>
     ShaderResource = 1 << 0,
 
     /// <summary>
-    /// A Texture can be used as an unordered-access resource.
+    /// The texture can be used as an unordered-access resource (read/write in compute or pixel shaders).
     /// </summary>
     UnorderedAccess = 1 << 1,
 
     /// <summary>
-    /// A Texture can be used as a render target.
+    /// The texture can be used as a render target (color attachment for rendering).
     /// </summary>
     RenderTarget = 1 << 2,
 
     /// <summary>
-    /// A Texture can be used as a depth-stencil buffer.
+    /// The texture can be used as a depth-stencil buffer.
     /// </summary>
     DepthStencil = 1 << 3
 }

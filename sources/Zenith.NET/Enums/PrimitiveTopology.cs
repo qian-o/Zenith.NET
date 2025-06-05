@@ -1,5 +1,8 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies how the input assembler interprets vertex data for drawing primitives.
+/// </summary>
 public enum PrimitiveTopology
 {
     /// <summary>

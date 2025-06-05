@@ -1,5 +1,9 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies shader stages for pipeline configuration and resource binding.
+/// Supports both traditional graphics and ray tracing shader stages.
+/// </summary>
 [Flags]
 public enum ShaderStageFlags
 {
@@ -11,12 +15,12 @@ public enum ShaderStageFlags
     Vertex = 1 << 0,
 
     /// <summary>
-    /// The hull shader stage.
+    /// The hull (tessellation control) shader stage.
     /// </summary>
     Hull = 1 << 1,
 
     /// <summary>
-    /// The domain shader stage.
+    /// The domain (tessellation evaluation) shader stage.
     /// </summary>
     Domain = 1 << 2,
 
@@ -26,7 +30,7 @@ public enum ShaderStageFlags
     Geometry = 1 << 3,
 
     /// <summary>
-    /// The pixel shader stage.
+    /// The pixel (fragment) shader stage.
     /// </summary>
     Pixel = 1 << 4,
 
@@ -36,32 +40,32 @@ public enum ShaderStageFlags
     Compute = 1 << 5,
 
     /// <summary>
-    /// The ray generation shader stage.
+    /// The ray generation shader stage (ray tracing).
     /// </summary>
     RayGeneration = 1 << 6,
 
     /// <summary>
-    /// The miss shader stage.
+    /// The miss shader stage (ray tracing).
     /// </summary>
     Miss = 1 << 7,
 
     /// <summary>
-    /// The closest hit shader stage.
+    /// The closest hit shader stage (ray tracing).
     /// </summary>
     ClosestHit = 1 << 8,
 
     /// <summary>
-    /// The any hit shader stage.
+    /// The any hit shader stage (ray tracing).
     /// </summary>
     AnyHit = 1 << 9,
 
     /// <summary>
-    /// The intersection shader stage.
+    /// The intersection shader stage (ray tracing).
     /// </summary>
     Intersection = 1 << 10,
 
     /// <summary>
-    /// The callable shader stage.
+    /// The callable shader stage (ray tracing).
     /// </summary>
     Callable = 1 << 11
 }

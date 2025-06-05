@@ -1,5 +1,8 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies the semantic meaning of a vertex element.
+/// </summary>
 public enum ElementSemanticType
 {
     /// <summary>
@@ -43,7 +46,7 @@ public enum ElementSemanticType
     BlendWeight,
 
     /// <summary>
-    /// Auxiliary value to count all semantics
+    /// Auxiliary value to count all semantics.
     /// </summary>
     Count
 }

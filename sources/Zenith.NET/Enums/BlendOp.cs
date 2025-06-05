@@ -1,5 +1,8 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies the operation used to combine source and destination colors in blending.
+/// </summary>
 public enum BlendOp
 {
     /// <summary>

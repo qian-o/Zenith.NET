@@ -1,5 +1,8 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies intended usages for a buffer resource.
+/// </summary>
 [Flags]
 public enum BufferUsageFlags
 {
@@ -36,7 +39,7 @@ public enum BufferUsageFlags
     AccelerationStructure = 1 << 5,
 
     /// <summary>
-    /// Indirect buffer.
+    /// Indicates the buffer is used for indirect commands.
     /// </summary>
     IndirectBuffer = 1 << 6,
 

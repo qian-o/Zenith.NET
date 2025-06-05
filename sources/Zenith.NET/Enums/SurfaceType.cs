@@ -1,34 +1,37 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies the type of native surface for rendering or presentation.
+/// </summary>
 public enum SurfaceType
 {
     /// <summary>
-    /// Windows platform.
+    /// Win32 window surface.
     /// </summary>
     Win32,
 
     /// <summary>
-    /// Linux Wayland platform.
+    /// Wayland surface.
     /// </summary>
     Wayland,
 
     /// <summary>
-    /// Linux Xlib platform.
+    /// Xlib window surface.
     /// </summary>
     Xlib,
 
     /// <summary>
-    /// Android platform.
+    /// Android native window surface.
     /// </summary>
     Android,
 
     /// <summary>
-    /// IOS platform.
+    /// iOS native view surface.
     /// </summary>
     IOS,
 
     /// <summary>
-    /// MacOS platform.
+    /// macOS native view surface.
     /// </summary>
     MacOS
 }

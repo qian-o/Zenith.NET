@@ -1,5 +1,8 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies how texture coordinates outside the [0.0, 1.0] range are handled.
+/// </summary>
 public enum AddressMode
 {
     /// <summary>

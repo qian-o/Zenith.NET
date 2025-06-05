@@ -1,5 +1,8 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies the type of hit group used in ray tracing pipelines.
+/// </summary>
 public enum HitGroupType
 {
     /// <summary>

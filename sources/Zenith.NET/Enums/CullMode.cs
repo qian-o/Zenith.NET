@@ -1,16 +1,22 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies which faces of a primitive are culled during rasterization.
+/// </summary>
 public enum CullMode
 {
+    /// <summary>
+    /// No culling is performed.
+    /// </summary>
     None,
 
     /// <summary>
-    /// The back face.
+    /// Cull front-facing primitives.
     /// </summary>
-    Back,
+    Front,
 
     /// <summary>
-    /// The front face.
+    /// Cull back-facing primitives.
     /// </summary>
-    Front
+    Back
 }

@@ -1,5 +1,8 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies options for building and updating acceleration structures used in ray tracing.
+/// </summary>
 [Flags]
 public enum AccelerationStructureFlags
 {

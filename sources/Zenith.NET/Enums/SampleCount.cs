@@ -1,5 +1,8 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies the number of samples per pixel for multisampling.
+/// </summary>
 public enum SampleCount
 {
     /// <summary>

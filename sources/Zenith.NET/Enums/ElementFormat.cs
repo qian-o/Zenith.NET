@@ -1,199 +1,202 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies the data format of a vertex element.
+/// </summary>
 public enum ElementFormat
 {
     /// <summary>
-    /// One unsigned 8-bit value.
+    /// Unsigned 8-bit integer, 1 component.
     /// </summary>
     UByte1,
 
     /// <summary>
-    /// Two unsigned 8-bit values.
+    /// Unsigned 8-bit integer, 2 components.
     /// </summary>
     UByte2,
 
     /// <summary>
-    /// Four unsigned 8-bit values.
+    /// Unsigned 8-bit integer, 4 components.
     /// </summary>
     UByte4,
 
     /// <summary>
-    /// One signed 8-bit value.
+    /// Signed 8-bit integer, 1 component.
     /// </summary>
     Byte1,
 
     /// <summary>
-    /// Two signed 8-bit values.
+    /// Signed 8-bit integer, 2 components.
     /// </summary>
     Byte2,
 
     /// <summary>
-    /// Four signed 8-bit values.
+    /// Signed 8-bit integer, 4 components.
     /// </summary>
     Byte4,
 
     /// <summary>
-    /// One unsigned normalized 8-bit value.
+    /// Unsigned normalized 8-bit integer, 1 component.
     /// </summary>
     UByte1Normalized,
 
     /// <summary>
-    /// Two unsigned normalized 8-bit values.
+    /// Unsigned normalized 8-bit integer, 2 components.
     /// </summary>
     UByte2Normalized,
 
     /// <summary>
-    /// Four unsigned normalized 8-bit values.
+    /// Unsigned normalized 8-bit integer, 4 components.
     /// </summary>
     UByte4Normalized,
 
     /// <summary>
-    /// One signed normalized 8-bit value.
+    /// Signed normalized 8-bit integer, 1 component.
     /// </summary>
     Byte1Normalized,
 
     /// <summary>
-    /// Two signed normalized 8-bit values.
+    /// Signed normalized 8-bit integer, 2 components.
     /// </summary>
     Byte2Normalized,
 
     /// <summary>
-    /// Four signed normalized 8-bit values.
+    /// Signed normalized 8-bit integer, 4 components.
     /// </summary>
     Byte4Normalized,
 
     /// <summary>
-    /// One unsigned 16-bit value.
+    /// Unsigned 16-bit integer, 1 component.
     /// </summary>
     UShort1,
 
     /// <summary>
-    /// Two unsigned 16-bit values.
+    /// Unsigned 16-bit integer, 2 components.
     /// </summary>
     UShort2,
 
     /// <summary>
-    /// Four unsigned 16-bit values.
+    /// Unsigned 16-bit integer, 4 components.
     /// </summary>
     UShort4,
 
     /// <summary>
-    /// One signed 16-bit value.
+    /// Signed 16-bit integer, 1 component.
     /// </summary>
     Short1,
 
     /// <summary>
-    /// Two signed 16-bit values.
+    /// Signed 16-bit integer, 2 components.
     /// </summary>
     Short2,
 
     /// <summary>
-    /// Four signed 16-bit values.
+    /// Signed 16-bit integer, 4 components.
     /// </summary>
     Short4,
 
     /// <summary>
-    /// One unsigned normalized 16-bit value.
+    /// Unsigned normalized 16-bit integer, 1 component.
     /// </summary>
     UShort1Normalized,
 
     /// <summary>
-    /// Two unsigned normalized 16-bit values.
+    /// Unsigned normalized 16-bit integer, 2 components.
     /// </summary>
     UShort2Normalized,
 
     /// <summary>
-    /// Four unsigned normalized 16-bit values.
+    /// Unsigned normalized 16-bit integer, 4 components.
     /// </summary>
     UShort4Normalized,
 
     /// <summary>
-    /// One signed normalized 16-bit value.
+    /// Signed normalized 16-bit integer, 1 component.
     /// </summary>
     Short1Normalized,
 
     /// <summary>
-    /// Two signed normalized 16-bit values.
+    /// Signed normalized 16-bit integer, 2 components.
     /// </summary>
     Short2Normalized,
 
     /// <summary>
-    /// Four signed normalized 16-bit values.
+    /// Signed normalized 16-bit integer, 4 components.
     /// </summary>
     Short4Normalized,
 
     /// <summary>
-    /// One half-precision floating-point value.
+    /// Half-precision (16-bit) floating point, 1 component.
     /// </summary>
     Half1,
 
     /// <summary>
-    /// Two half-precision floating-point values.
+    /// Half-precision (16-bit) floating point, 2 components.
     /// </summary>
     Half2,
 
     /// <summary>
-    /// Four half-precision floating-point values.
+    /// Half-precision (16-bit) floating point, 4 components.
     /// </summary>
     Half4,
 
     /// <summary>
-    /// A single-component, 32-bit floating-point format that supports 32 bits for the red channel.
+    /// 32-bit floating point, 1 component.
     /// </summary>
     Float1,
 
     /// <summary>
-    /// A two-component, 64-bit floating-point format that supports 32 bits for the red channel and 32 bits for the green channel.
+    /// 32-bit floating point, 2 components.
     /// </summary>
     Float2,
 
     /// <summary>
-    /// A three-component, 96-bit floating-point format that supports 32 bits per color channel.
+    /// 32-bit floating point, 3 components.
     /// </summary>
     Float3,
 
     /// <summary>
-    /// A four-component, 128-bit floating-point format that supports 32 bits per channel including alpha.
+    /// 32-bit floating point, 4 components.
     /// </summary>
     Float4,
 
     /// <summary>
-    /// One unsigned 32-bit integer value.
+    /// Unsigned 32-bit integer, 1 component.
     /// </summary>
     UInt1,
 
     /// <summary>
-    /// Two unsigned 32-bit integer values.
+    /// Unsigned 32-bit integer, 2 components.
     /// </summary>
     UInt2,
 
     /// <summary>
-    /// Three unsigned 32-bit integer values.
+    /// Unsigned 32-bit integer, 3 components.
     /// </summary>
     UInt3,
 
     /// <summary>
-    /// Four unsigned 32-bit integer values.
+    /// Unsigned 32-bit integer, 4 components.
     /// </summary>
     UInt4,
 
     /// <summary>
-    /// One signed 32-bit integer value.
+    /// Signed 32-bit integer, 1 component.
     /// </summary>
     Int1,
 
     /// <summary>
-    /// Two signed 32-bit integer values.
+    /// Signed 32-bit integer, 2 components.
     /// </summary>
     Int2,
 
     /// <summary>
-    /// Three signed 32-bit integer values.
+    /// Signed 32-bit integer, 3 components.
     /// </summary>
     Int3,
 
     /// <summary>
-    /// Four signed 32-bit integer values.
+    /// Signed 32-bit integer, 4 components.
     /// </summary>
     Int4
 }

@@ -1,7 +1,13 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Describes a single attachment of a framebuffer, including the target texture and its subresource selection.
+/// </summary>
 public record struct FrameBufferAttachmentDesc : IDesc
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FrameBufferAttachmentDesc"/> struct with default values.
+    /// </summary>
     public FrameBufferAttachmentDesc()
     {
         Target = null!;
@@ -16,12 +22,12 @@ public record struct FrameBufferAttachmentDesc : IDesc
     public Texture Target { get; set; }
 
     /// <summary>
-    /// The face index to render to.
+    /// The face index to render to. Only applicable for cube or cube array textures.
     /// </summary>
     public uint FaceIndex { get; set; }
 
     /// <summary>
-    /// The array layer to render to.
+    /// The array layer to render to. Only applicable for array textures.
     /// </summary>
     public uint ArrayLayer { get; set; }
 
@@ -30,6 +36,10 @@ public record struct FrameBufferAttachmentDesc : IDesc
     /// </summary>
     public uint MipLevel { get; set; }
 
+    /// <summary>
+    /// Validates the current <see cref="FrameBufferAttachmentDesc"/> instance.
+    /// </summary>
+    /// <returns><c>true</c> if valid; otherwise, <c>false</c>.</returns>
     public readonly bool Validate()
     {
         if (Target is null)

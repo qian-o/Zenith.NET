@@ -2,8 +2,14 @@
 
 namespace Zenith.NET;
 
+/// <summary>
+/// Describes clear values for color, depth, and stencil buffers used during render target or depth/stencil clears.
+/// </summary>
 public record struct ClearValue
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ClearValue"/> struct with default values.
+    /// </summary>
     public ClearValue()
     {
         ColorValues = [];

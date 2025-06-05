@@ -1,5 +1,8 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies the format of pixel data for textures, render targets, and other resources.
+/// </summary>
 public enum PixelFormat
 {
     /// <summary>
@@ -48,12 +51,12 @@ public enum PixelFormat
     R16Float,
 
     /// <summary>
-    /// Single-channel, 32-bit unsigned integer
+    /// Single-channel, 32-bit unsigned integer.
     /// </summary>
     R32UInt,
 
     /// <summary>
-    /// Single-channel, 32-bit signed integer
+    /// Single-channel, 32-bit signed integer.
     /// </summary>
     R32SInt,
 
@@ -63,154 +66,152 @@ public enum PixelFormat
     R32Float,
 
     /// <summary>
-    /// RG component order. Each component is an 8-bit unsigned normalized integer.
+    /// RG, 8-bit unsigned normalized integers per component.
     /// </summary>
     R8G8UNorm,
 
     /// <summary>
-    /// RG component order. Each component is an 8-bit signed normalized integer.
+    /// RG, 8-bit signed normalized integers per component.
     /// </summary>
     R8G8SNorm,
 
     /// <summary>
-    /// RG component order. Each component is an 8-bit unsigned integer.
+    /// RG, 8-bit unsigned integers per component.
     /// </summary>
     R8G8UInt,
 
     /// <summary>
-    /// RG component order. Each component is an 8-bit signed integer.
+    /// RG, 8-bit signed integers per component.
     /// </summary>
     R8G8SInt,
 
     /// <summary>
-    /// RG component order. Each component is a 16-bit unsigned normalized integer.
+    /// RG, 16-bit unsigned normalized integers per component.
     /// </summary>
     R16G16UNorm,
 
     /// <summary>
-    /// RG component order. Each component is a 16-bit signed normalized integer.
+    /// RG, 16-bit signed normalized integers per component.
     /// </summary>
     R16G16SNorm,
 
     /// <summary>
-    /// RG component order. Each component is a 16-bit unsigned integer.
+    /// RG, 16-bit unsigned integers per component.
     /// </summary>
     R16G16UInt,
 
     /// <summary>
-    /// RG component order. Each component is a 16-bit signed integer.
+    /// RG, 16-bit signed integers per component.
     /// </summary>
     R16G16SInt,
 
     /// <summary>
-    /// RG component order. Each component is a 16-bit signed floating-point value.
+    /// RG, 16-bit floating-point values per component.
     /// </summary>
     R16G16Float,
 
     /// <summary>
-    /// RG component order. Each component is a 32-bit unsigned integer.
+    /// RG, 32-bit unsigned integers per component.
     /// </summary>
     R32G32UInt,
 
     /// <summary>
-    /// RG component order. Each component is a 32-bit signed integer.
+    /// RG, 32-bit signed integers per component.
     /// </summary>
     R32G32SInt,
 
     /// <summary>
-    /// RG component order. Each component is a 32-bit signed floating-point value.
+    /// RG, 32-bit floating-point values per component.
     /// </summary>
     R32G32Float,
 
     /// <summary>
-    /// RGB component order. Each component is a 32-bit unsigned integer.
+    /// RGB, 32-bit unsigned integers per component.
     /// </summary>
     R32G32B32UInt,
 
     /// <summary>
-    /// RGB component order. Each component is a 32-bit signed integer.
+    /// RGB, 32-bit signed integers per component.
     /// </summary>
     R32G32B32SInt,
 
     /// <summary>
-    /// RGB component order. Each component is a 32-bit signed floating-point value.
+    /// RGB, 32-bit floating-point values per component.
     /// </summary>
     R32G32B32Float,
 
     /// <summary>
-    /// RGBA component order. Each component is an 8-bit unsigned normalized integer.
+    /// RGBA, 8-bit unsigned normalized integers per component.
     /// </summary>
     R8G8B8A8UNorm,
 
     /// <summary>
-    /// RGBA component order. Each component is an 8-bit unsigned normalized integer.
-    /// This is an sRGB format.
+    /// RGBA, 8-bit unsigned normalized integers per component (sRGB format).
     /// </summary>
     R8G8B8A8UNormSRgb,
 
     /// <summary>
-    /// RGBA component order. Each component is an 8-bit signed normalized integer.
+    /// RGBA, 8-bit signed normalized integers per component.
     /// </summary>
     R8G8B8A8SNorm,
 
     /// <summary>
-    /// RGBA component order. Each component is an 8-bit unsigned integer.
+    /// RGBA, 8-bit unsigned integers per component.
     /// </summary>
     R8G8B8A8UInt,
 
     /// <summary>
-    /// RGBA component order. Each component is an 8-bit signed integer.
+    /// RGBA, 8-bit signed integers per component.
     /// </summary>
     R8G8B8A8SInt,
 
     /// <summary>
-    /// RGBA component order. Each component is a 16-bit unsigned normalized integer.
+    /// RGBA, 16-bit unsigned normalized integers per component.
     /// </summary>
     R16G16B16A16UNorm,
 
     /// <summary>
-    /// RGBA component order. Each component is a 16-bit signed normalized integer.
+    /// RGBA, 16-bit signed normalized integers per component.
     /// </summary>
     R16G16B16A16SNorm,
 
     /// <summary>
-    /// RGBA component order. Each component is a 16-bit unsigned integer.
+    /// RGBA, 16-bit unsigned integers per component.
     /// </summary>
     R16G16B16A16UInt,
 
     /// <summary>
-    /// RGBA component order. Each component is a 16-bit signed integer.
+    /// RGBA, 16-bit signed integers per component.
     /// </summary>
     R16G16B16A16SInt,
 
     /// <summary>
-    /// RGBA component order. Each component is a 16-bit floating-point value.
+    /// RGBA, 16-bit floating-point values per component.
     /// </summary>
     R16G16B16A16Float,
 
     /// <summary>
-    /// RGBA component order. Each component is a 32-bit unsigned integer.
+    /// RGBA, 32-bit unsigned integers per component.
     /// </summary>
     R32G32B32A32UInt,
 
     /// <summary>
-    /// RGBA component order. Each component is a 32-bit signed integer.
+    /// RGBA, 32-bit signed integers per component.
     /// </summary>
     R32G32B32A32SInt,
 
     /// <summary>
-    /// RGBA component order. Each component is a 32-bit signed floating-point value.
+    /// RGBA, 32-bit floating-point values per component.
     /// </summary>
     R32G32B32A32Float,
 
     /// <summary>
-    /// BGRA component order. Each component is an 8-bit unsigned normalized integer.
+    /// BGRA, 8-bit unsigned normalized integers per component.
     /// </summary>
     B8G8R8A8UNorm,
 
     /// <summary>
-    /// BGRA component order. Each component is an 8-bit unsigned normalized integer.
-    /// This is an sRGB format.
+    /// BGRA, 8-bit unsigned normalized integers per component (sRGB format).
     /// </summary>
     B8G8R8A8UNormSRgb,
 
@@ -220,8 +221,7 @@ public enum PixelFormat
     BC1UNorm,
 
     /// <summary>
-    /// BC1 block compressed format with a single-bit alpha channel.
-    /// This is an sRGB format.
+    /// BC1 block compressed format with a single-bit alpha channel (sRGB format).
     /// </summary>
     BC1UNormSRgb,
 
@@ -231,8 +231,7 @@ public enum PixelFormat
     BC2UNorm,
 
     /// <summary>
-    /// BC2 block compressed format.
-    /// This is an sRGB format.
+    /// BC2 block compressed format (sRGB format).
     /// </summary>
     BC2UNormSRgb,
 
@@ -242,8 +241,7 @@ public enum PixelFormat
     BC3UNorm,
 
     /// <summary>
-    /// BC3 block compressed format.
-    /// This is an sRGB format.
+    /// BC3 block compressed format (sRGB format).
     /// </summary>
     BC3UNormSRgb,
 
@@ -273,20 +271,17 @@ public enum PixelFormat
     BC7UNorm,
 
     /// <summary>
-    /// BC7 block compressed format.
-    /// This is an sRGB format.
+    /// BC7 block compressed format (sRGB format).
     /// </summary>
     BC7UNormSRgb,
 
     /// <summary>
-    /// A depth-stencil format where the depth is stored in a 24-bit unsigned normalized integer, and the stencil is stored
-    /// in an 8-bit unsigned integer.
+    /// Depth-stencil format: 24-bit unsigned normalized depth, 8-bit unsigned integer stencil.
     /// </summary>
     D24UNormS8UInt,
 
     /// <summary>
-    /// A depth-stencil format where the depth is stored in a 32-bit signed floating-point value, and the stencil is stored
-    /// in an 8-bit unsigned integer.
+    /// Depth-stencil format: 32-bit floating-point depth, 8-bit unsigned integer stencil.
     /// </summary>
     D32FloatS8UInt
 }

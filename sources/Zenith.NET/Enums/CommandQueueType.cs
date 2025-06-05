@@ -1,19 +1,22 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies the type of command queue for submitting GPU work.
+/// </summary>
 public enum CommandQueueType
 {
     /// <summary>
-    /// The graphics command processor.
+    /// Direct queue for general rendering and compute commands.
     /// </summary>
-    Graphics,
+    Direct,
 
     /// <summary>
-    /// The compute command processor.
+    /// Queue for compute-only commands.
     /// </summary>
     Compute,
 
     /// <summary>
-    /// The copy command processor.
+    /// Queue for copy/transfer commands.
     /// </summary>
     Copy
 }

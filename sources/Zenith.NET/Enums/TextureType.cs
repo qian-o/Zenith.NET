@@ -1,39 +1,42 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies the dimensionality and array-ness of a texture resource.
+/// </summary>
 public enum TextureType
 {
     /// <summary>
-    ///  A one-dimensional Texture.
+    /// A one-dimensional texture.
     /// </summary>
     Texture1D,
 
     /// <summary>
-    /// A one-dimensional Texture array.
+    /// A one-dimensional texture array.
     /// </summary>
     Texture1DArray,
 
     /// <summary>
-    /// A two-dimensional Texture.
+    /// A two-dimensional texture.
     /// </summary>
     Texture2D,
 
     /// <summary>
-    /// A two-dimensional Texture array.
+    /// A two-dimensional texture array.
     /// </summary>
     Texture2DArray,
 
     /// <summary>
-    /// A three-dimensional Texture.
+    /// A three-dimensional texture.
     /// </summary>
     Texture3D,
 
     /// <summary>
-    /// A cube Texture.
+    /// A cube texture.
     /// </summary>
     TextureCube,
 
     /// <summary>
-    /// A cube Texture array.
+    /// A cube texture array.
     /// </summary>
     TextureCubeArray
 }

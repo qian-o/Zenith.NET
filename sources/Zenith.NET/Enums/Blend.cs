@@ -1,5 +1,8 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies the blend factor used in blending operations for each color component.
+/// </summary>
 public enum Blend
 {
     /// <summary>

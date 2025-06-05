@@ -1,7 +1,13 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Describes a rectangular region of a render target, including its position, size, and depth range.
+/// </summary>
 public record struct Viewport
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Viewport"/> struct with default values.
+    /// </summary>
     public Viewport()
     {
         X = 0;

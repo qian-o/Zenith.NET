@@ -1,44 +1,47 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies the operation to perform on stencil buffer values during stencil testing.
+/// </summary>
 public enum StencilOp
 {
     /// <summary>
-    /// Keep the existing value.
+    /// Keep the current value.
     /// </summary>
     Keep,
 
     /// <summary>
-    /// Sets the value to 0.
+    /// Set the value to zero.
     /// </summary>
     Zero,
 
     /// <summary>
-    /// Replaces the existing value with the reference value.
+    /// Replace the value with the reference value.
     /// </summary>
     Replace,
 
     /// <summary>
-    /// Increments the existing value and clamps it to the maximum representable unsigned value.
+    /// Increment the value and clamp.
     /// </summary>
     IncrementAndClamp,
 
     /// <summary>
-    /// Decrements the existing value and clamps it to 0.
+    /// Decrement the value and clamp.
     /// </summary>
     DecrementAndClamp,
 
     /// <summary>
-    /// Bitwise-inverts the existing value.
+    /// Invert the current value.
     /// </summary>
     Invert,
 
     /// <summary>
-    /// Increments the existing value and wraps it to 0 when it exceeds the maximum representable unsigned value.
+    /// Increment the value and wrap.
     /// </summary>
     IncrementAndWrap,
 
     /// <summary>
-    /// Decrements the existing value and wraps it to the maximum representable unsigned value if it would be reduced below 0.
+    /// Decrement the value and wrap.
     /// </summary>
     DecrementAndWrap
 }

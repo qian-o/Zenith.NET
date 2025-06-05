@@ -1,5 +1,8 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies the texture sampling method for minification, magnification, and mipmapping.
+/// </summary>
 public enum Filter
 {
     /// <summary>
@@ -13,7 +16,7 @@ public enum Filter
     MinPointMagPointMipLinear,
 
     /// <summary>
-    /// Point sampling is used for minification and mip-level sampling; linear interpolation is used for mip-level sampling.
+    /// Point sampling is used for minification and mip-level sampling; linear interpolation is used for magnification.
     /// </summary>
     MinPointMagLinearMipPoint,
 
@@ -23,7 +26,7 @@ public enum Filter
     MinPointMagLinearMipLinear,
 
     /// <summary>
-    /// Linear interpolation is used for minifcation; point sampling is used for magnification and mip-level sampling.
+    /// Linear interpolation is used for minification; point sampling is used for magnification and mip-level sampling.
     /// </summary>
     MinLinearMagPointMipPoint,
 
@@ -33,7 +36,7 @@ public enum Filter
     MinLinearMagPointMipLinear,
 
     /// <summary>
-    /// Linear interpolation is used for minification and magnification, and point sampling is used for mip-level sampling.
+    /// Linear interpolation is used for minification and magnification; point sampling is used for mip-level sampling.
     /// </summary>
     MinLinearMagLinearMipPoint,
 

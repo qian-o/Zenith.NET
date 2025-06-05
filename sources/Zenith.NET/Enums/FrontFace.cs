@@ -1,5 +1,8 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies the winding order that determines the front face of a primitive.
+/// </summary>
 public enum FrontFace
 {
     /// <summary>

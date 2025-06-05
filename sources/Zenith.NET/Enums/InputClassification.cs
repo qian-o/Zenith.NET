@@ -1,5 +1,8 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies how input data is classified for the input assembler stage.
+/// </summary>
 public enum InputClassification
 {
     /// <summary>

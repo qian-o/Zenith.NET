@@ -1,44 +1,47 @@
 ﻿namespace Zenith.NET;
 
+/// <summary>
+/// Specifies a function used to compare source and destination data, typically for depth or stencil testing.
+/// </summary>
 public enum ComparisonFunc
 {
     /// <summary>
-    /// The comparison never succeeds.
+    /// Never passes the comparison.
     /// </summary>
     Never,
 
     /// <summary>
-    /// The comparison succeeds when the new value is less than the existing value.
+    /// Passes if the source data is less than the destination data.
     /// </summary>
     Less,
 
     /// <summary>
-    /// The comparison succeeds when the new value is equal to the existing value.
+    /// Passes if the source data is equal to the destination data.
     /// </summary>
     Equal,
 
     /// <summary>
-    /// The comparison succeeds when the new value is less than or equal to the existing value.
+    /// Passes if the source data is less than or equal to the destination data.
     /// </summary>
     LessEqual,
 
     /// <summary>
-    /// The comparison succeeds when the new value is greater than the existing value.
+    /// Passes if the source data is greater than the destination data.
     /// </summary>
     Greater,
 
     /// <summary>
-    /// The comparison succeeds when the new value is not equal to the existing value.
+    /// Passes if the source data is not equal to the destination data.
     /// </summary>
     NotEqual,
 
     /// <summary>
-    /// The comparison succeeds when the new value is greater than or equal to the existing value.
+    /// Passes if the source data is greater than or equal to the destination data.
     /// </summary>
     GreaterEqual,
 
     /// <summary>
-    /// The comparison always succeeds.
+    /// Always passes the comparison.
     /// </summary>
     Always
 }
