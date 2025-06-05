@@ -12,7 +12,7 @@ public record struct ShaderDesc : IDesc
     {
         ShaderBytes = [];
         EntryPoint = string.Empty;
-        Flags = ShaderStageFlags.None;
+        Stage = ShaderStageFlags.None;
     }
 
     /// <summary>
@@ -26,9 +26,9 @@ public record struct ShaderDesc : IDesc
     public string EntryPoint { get; set; }
 
     /// <summary>
-    /// The shader stage(s) this module is intended for.
+    /// The shader stage flags indicating which stages this shader is applicable to.
     /// </summary>
-    public ShaderStageFlags Flags { get; set; }
+    public ShaderStageFlags Stage { get; set; }
 
     /// <summary>
     /// Validates the current <see cref="ShaderDesc"/> instance.
@@ -46,12 +46,12 @@ public record struct ShaderDesc : IDesc
             return false;
         }
 
-        if (!Enum.IsDefined(Flags))
+        if (!Enum.IsDefined(Stage))
         {
             return false;
         }
 
-        if (Flags is ShaderStageFlags.None)
+        if (Stage is ShaderStageFlags.None)
         {
             return false;
         }
