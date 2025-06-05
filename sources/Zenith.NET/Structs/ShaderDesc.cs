@@ -46,12 +46,12 @@ public record struct ShaderDesc : IDesc
             return false;
         }
 
-        if (!Enum.IsDefined(Stage))
+        if (Stage is ShaderStageFlags.None)
         {
             return false;
         }
 
-        if (Stage is ShaderStageFlags.None)
+        if (!Enum.IsDefined(Stage))
         {
             return false;
         }
