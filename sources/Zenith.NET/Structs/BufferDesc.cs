@@ -11,7 +11,7 @@ public record struct BufferDesc : IDesc
     public BufferDesc()
     {
         SizeInBytes = 0;
-        StructureStrideInBytes = 1;
+        StrideInBytes = 1;
         Flags = BufferUsageFlags.None;
     }
 
@@ -23,7 +23,7 @@ public record struct BufferDesc : IDesc
     /// <summary>
     /// The byte stride of the structure. Set to 1 if the buffer is not structured.
     /// </summary>
-    public uint StructureStrideInBytes { get; set; }
+    public uint StrideInBytes { get; set; }
 
     /// <summary>
     /// Indicates the intended usage of the buffer.
@@ -41,7 +41,7 @@ public record struct BufferDesc : IDesc
             return false;
         }
 
-        if (StructureStrideInBytes is 0)
+        if (StrideInBytes is 0)
         {
             return false;
         }
