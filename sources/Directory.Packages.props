@@ -7,7 +7,7 @@
     <ItemGroup>
         <PackageVersion Include="Hexa.NET.ImGui" Version="2.2.7" />
         <PackageVersion Include="Roslynator.Analyzers" Version="4.13.1" />
-        <PackageVersion Include="Slangc.NET" Version="2025.10.1" />
+        <PackageVersion Include="Slangc.NET" Version="2025.10.2" />
     </ItemGroup>
 
 </Project>
