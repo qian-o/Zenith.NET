@@ -63,7 +63,7 @@ public record struct BlendStateRenderTargetDesc : IDesc
     /// <summary>
     /// Validates the current <see cref="BlendStateRenderTargetDesc"/> instance.
     /// </summary>
-    /// <returns><c>true</c> if the descriptor is valid; otherwise, <c>false</c>.</returns>
+    /// <returns><c>true</c> if valid; otherwise, <c>false</c>.</returns>
     public readonly bool Validate()
     {
         if (!Enum.IsDefined(SrcBlend))

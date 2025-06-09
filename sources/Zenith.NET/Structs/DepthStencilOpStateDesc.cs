@@ -39,7 +39,7 @@ public record struct DepthStencilOpStateDesc : IDesc
     /// <summary>
     /// Validates the current <see cref="DepthStencilOpStateDesc"/> instance.
     /// </summary>
-    /// <returns><c>true</c> if the descriptor is valid; otherwise, <c>false</c>.</returns>
+    /// <returns><c>true</c> if valid; otherwise, <c>false</c>.</returns>
     public readonly bool Validate()
     {
         if (!Enum.IsDefined(StencilFailOp))
