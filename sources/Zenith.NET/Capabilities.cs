@@ -6,11 +6,6 @@
 public abstract class Capabilities
 {
     /// <summary>
-    /// Gets a value indicating whether ray query is supported.
-    /// </summary>
-    public abstract bool IsRayQuerySupported { get; }
-
-    /// <summary>
     /// Gets a value indicating whether ray tracing is supported.
     /// </summary>
     public abstract bool IsRayTracingSupported { get; }

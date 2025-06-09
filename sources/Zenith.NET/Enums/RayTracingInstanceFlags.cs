@@ -4,7 +4,7 @@
 /// Specifies options for instances in top-level acceleration structures.
 /// </summary>
 [Flags]
-public enum InstanceFlags
+public enum RayTracingInstanceFlags
 {
     /// <summary>
     /// No flags are set.

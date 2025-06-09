@@ -5,12 +5,12 @@ namespace Zenith.NET;
 /// <summary>
 /// Describes a set of triangles for use in acceleration structures, including vertex and index data, format, and transform.
 /// </summary>
-public record struct TrianglesDesc : IGeometryDesc
+public record struct RayTracingTrianglesDesc : IRayTracingGeometryDesc
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="TrianglesDesc"/> struct with default values.
+    /// Initializes a new instance of the <see cref="RayTracingTrianglesDesc"/> struct with default values.
     /// </summary>
-    public TrianglesDesc()
+    public RayTracingTrianglesDesc()
     {
         VertexBuffer = null!;
         VertexFormat = PixelFormat.R32G32B32A32Float;
@@ -22,7 +22,7 @@ public record struct TrianglesDesc : IGeometryDesc
         IndexCount = 0;
         IndexOffsetInBytes = 0;
         Transform = Matrix4x4.Identity;
-        Flags = GeometryFlags.None;
+        Flags = RayTracingGeometryFlags.None;
     }
 
     /// <summary>
@@ -79,10 +79,10 @@ public record struct TrianglesDesc : IGeometryDesc
     /// <summary>
     /// Gets or sets the geometry flags that specify options for the triangles in acceleration structures.
     /// </summary>
-    public GeometryFlags Flags { get; set; }
+    public RayTracingGeometryFlags Flags { get; set; }
 
     /// <summary>
-    /// Validates the current <see cref="TrianglesDesc"/> instance.
+    /// Validates the current <see cref="RayTracingTrianglesDesc"/> instance.
     /// </summary>
     /// <returns><c>true</c> if valid; otherwise, <c>false</c>.</returns>
     public readonly bool Validate()

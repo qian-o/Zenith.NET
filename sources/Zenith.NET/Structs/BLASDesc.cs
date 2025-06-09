@@ -16,9 +16,9 @@ public record struct BLASDesc : IDesc
 
     /// <summary>
     /// Gets or sets the array of geometry descriptors that define the contents of the BLAS.
-    /// Each geometry must implement <see cref="IGeometryDesc"/> and be valid.
+    /// Each geometry must implement <see cref="IRayTracingGeometryDesc"/> and be valid.
     /// </summary>
-    public IGeometryDesc[] Geometries { get; set; }
+    public IRayTracingGeometryDesc[] Geometries { get; set; }
 
     /// <summary>
     /// Validates the current <see cref="BLASDesc"/> instance.

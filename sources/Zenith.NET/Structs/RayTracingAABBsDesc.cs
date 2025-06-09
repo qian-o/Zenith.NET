@@ -3,18 +3,18 @@
 /// <summary>
 /// Describes a set of axis-aligned bounding boxes (AABBs) for use in acceleration structures.
 /// </summary>
-public record struct AABBsDesc : IGeometryDesc
+public record struct RayTracingAABBsDesc : IRayTracingGeometryDesc
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="AABBsDesc"/> struct with default values.
+    /// Initializes a new instance of the <see cref="RayTracingAABBsDesc"/> struct with default values.
     /// </summary>
-    public AABBsDesc()
+    public RayTracingAABBsDesc()
     {
         Buffer = null!;
         Count = 0;
         StrideInBytes = 0;
         OffsetInBytes = 0;
-        Flags = GeometryFlags.None;
+        Flags = RayTracingGeometryFlags.None;
     }
 
     /// <summary>
@@ -40,10 +40,10 @@ public record struct AABBsDesc : IGeometryDesc
     /// <summary>
     /// Gets or sets the geometry flags that specify options for the AABBs in acceleration structures.
     /// </summary>
-    public GeometryFlags Flags { get; set; }
+    public RayTracingGeometryFlags Flags { get; set; }
 
     /// <summary>
-    /// Validates the current <see cref="AABBsDesc"/> instance.
+    /// Validates the current <see cref="RayTracingAABBsDesc"/> instance.
     /// </summary>
     /// <returns><c>true</c> if valid; otherwise, <c>false</c>.</returns>
     public readonly bool Validate()

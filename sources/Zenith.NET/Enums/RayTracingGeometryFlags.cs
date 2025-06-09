@@ -4,7 +4,7 @@
 /// Specifies options for geometry in acceleration structures.
 /// </summary>
 [Flags]
-public enum GeometryFlags
+public enum RayTracingGeometryFlags
 {
     /// <summary>
     /// No flags are set.
