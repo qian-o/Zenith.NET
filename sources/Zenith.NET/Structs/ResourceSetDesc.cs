@@ -54,7 +54,7 @@ public record struct ResourceSetDesc : IDesc
 
                 ResourceType.Sampler => static resource => resource is Sampler,
 
-                ResourceType.AccelerationStructure => static resource => resource is Buffer,
+                ResourceType.AccelerationStructure => static resource => resource is TLAS,
 
                 _ => _ => false
             };
