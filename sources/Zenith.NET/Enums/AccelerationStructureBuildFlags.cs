@@ -4,7 +4,7 @@
 /// Specifies options for building and updating acceleration structures used in ray tracing.
 /// </summary>
 [Flags]
-public enum AccelerationStructureFlags
+public enum AccelerationStructureBuildFlags
 {
     /// <summary>
     /// No flags are set.
