@@ -62,11 +62,6 @@ public record struct RayTracingInstanceDesc : IDesc
             return false;
         }
 
-        if (!Enum.IsDefined(Flags))
-        {
-            return false;
-        }
-
         return true;
     }
 }
