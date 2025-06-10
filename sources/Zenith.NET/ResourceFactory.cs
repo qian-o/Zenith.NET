@@ -20,5 +20,11 @@ public abstract class ResourceFactory(GraphicsContext context)
 
     public abstract ResourceSet CreateResourceSet(ResourceSetDesc desc);
 
+    public abstract GraphicsPipeline CreateGraphicsPipeline(GraphicsPipelineDesc desc);
+
+    public abstract ComputePipeline CreateComputePipeline(ComputePipelineDesc desc);
+
+    public abstract RayTracingPipeline CreateRayTracingPipeline(RayTracingPipelineDesc desc);
+
     public abstract CommandQueue CreateCommandQueue(CommandQueueType type);
 }
