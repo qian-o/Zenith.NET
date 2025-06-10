@@ -2,7 +2,6 @@
 
 public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
 {
-    #region Command Buffer Management
     public abstract void Begin();
 
     public abstract void End();
@@ -13,5 +12,4 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     {
         queue.Submit(this);
     }
-    #endregion
 }
