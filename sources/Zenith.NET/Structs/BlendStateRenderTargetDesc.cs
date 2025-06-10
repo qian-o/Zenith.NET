@@ -1,13 +1,7 @@
 ﻿namespace Zenith.NET;
 
-/// <summary>
-/// Describes the blend state for a single render target, including blend factors, blend operations, and write masks.
-/// </summary>
 public record struct BlendStateRenderTargetDesc : IDesc
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BlendStateRenderTargetDesc"/> struct with default values.
-    /// </summary>
     public BlendStateRenderTargetDesc()
     {
         BlendEnable = false;
@@ -20,50 +14,22 @@ public record struct BlendStateRenderTargetDesc : IDesc
         Flags = ColorComponentFlags.All;
     }
 
-    /// <summary>
-    /// Enables or disables blending for this render target.
-    /// </summary>
     public bool BlendEnable { get; set; }
 
-    /// <summary>
-    /// The blend factor applied to the source color.
-    /// </summary>
     public Blend SrcBlend { get; set; }
 
-    /// <summary>
-    /// The blend factor applied to the destination color.
-    /// </summary>
     public Blend DestBlend { get; set; }
 
-    /// <summary>
-    /// The operation used to combine the source and destination colors.
-    /// </summary>
     public BlendOp BlendOp { get; set; }
 
-    /// <summary>
-    /// The blend factor applied to the source alpha.
-    /// </summary>
     public Blend SrcBlendAlpha { get; set; }
 
-    /// <summary>
-    /// The blend factor applied to the destination alpha.
-    /// </summary>
     public Blend DestBlendAlpha { get; set; }
 
-    /// <summary>
-    /// The operation used to combine the source and destination alpha values.
-    /// </summary>
     public BlendOp BlendOpAlpha { get; set; }
 
-    /// <summary>
-    /// Specifies which color components will be written to during rendering.
-    /// </summary>
     public ColorComponentFlags Flags { get; set; }
 
-    /// <summary>
-    /// Validates the current <see cref="BlendStateRenderTargetDesc"/> instance.
-    /// </summary>
-    /// <returns><c>true</c> if valid; otherwise, <c>false</c>.</returns>
     public readonly bool Validate()
     {
         if (!Enum.IsDefined(SrcBlend))

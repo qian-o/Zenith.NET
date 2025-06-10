@@ -1,33 +1,17 @@
 ﻿namespace Zenith.NET;
 
-/// <summary>
-/// Describes a set of GPU resources to be bound together, including the associated resource layout and resource array.
-/// </summary>
 public record struct ResourceSetDesc : IDesc
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ResourceSetDesc"/> struct with default values.
-    /// </summary>
     public ResourceSetDesc()
     {
         Layout = null!;
         Resources = [];
     }
 
-    /// <summary>
-    /// The resource layout that defines the expected types and arrangement of resources.
-    /// </summary>
     public ResourceLayout Layout { get; set; }
 
-    /// <summary>
-    /// The array of resources to be bound according to the layout.
-    /// </summary>
     public GraphicsResource[] Resources { get; set; }
 
-    /// <summary>
-    /// Validates the current <see cref="ResourceSetDesc"/> instance.
-    /// </summary>
-    /// <returns><c>true</c> if valid; otherwise, <c>false</c>.</returns>
     public readonly bool Validate()
     {
         if (Layout is null)
@@ -54,7 +38,7 @@ public record struct ResourceSetDesc : IDesc
 
                 ResourceType.Sampler => static resource => resource is Sampler,
 
-                ResourceType.AccelerationStructure => static resource => resource is TLAS,
+                ResourceType.AccelerationStructure => static resource => resource is TopLevelAccelerationStructure,
 
                 _ => _ => false
             };

@@ -1,31 +1,14 @@
 ﻿namespace Zenith.NET;
 
-/// <summary>
-/// Represents a texture resource, providing methods for data upload and access to its description.
-/// </summary>
 public abstract class Texture(GraphicsContext context, TextureDesc desc) : GraphicsResource(context)
 {
-    /// <summary>
-    /// Gets the texture description.
-    /// </summary>
     public TextureDesc Desc { get; } = desc;
 
-    /// <summary>
-    /// Uploads data to the texture immediately, blocking until the operation is complete.
-    /// </summary>
-    /// <typeparam name="T">The type of data to upload. Must be unmanaged.</typeparam>
-    /// <param name="data">The data to upload.</param>
-    /// <param name="position">The position within the texture to start uploading.</param>
-    /// <param name="width">The width of the region to upload.</param>
-    /// <param name="height">The height of the region to upload.</param>
-    /// <param name="depth">The depth of the region to upload.</param>
-    /// <exception cref="ArgumentException">Thrown if data is empty or dimensions are invalid.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown if the upload region exceeds texture bounds.</exception>
     public void Upload<T>(ReadOnlySpan<T> data,
-                          TexturePosition position,
-                          uint width,
-                          uint height,
-                          uint depth) where T : unmanaged
+TexturePosition position,
+uint width,
+uint height,
+uint depth) where T : unmanaged
     {
         if (data.IsEmpty)
         {
