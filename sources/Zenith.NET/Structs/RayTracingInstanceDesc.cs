@@ -6,7 +6,7 @@ public record struct RayTracingInstanceDesc : IDesc
 {
     public RayTracingInstanceDesc()
     {
-        BLAS = null!;
+        AccelerationStructure = null!;
         InstanceID = 0;
         InstanceMask = 0xFF;
         InstanceContributionToHitGroupIndex = 0;
@@ -14,7 +14,7 @@ public record struct RayTracingInstanceDesc : IDesc
         Flags = RayTracingInstanceFlags.None;
     }
 
-    public BottomLevelAccelerationStructure BLAS { get; set; }
+    public BottomLevelAccelerationStructure AccelerationStructure { get; set; }
 
     public uint InstanceID { get; set; }
 
@@ -28,11 +28,6 @@ public record struct RayTracingInstanceDesc : IDesc
 
     public readonly bool Validate()
     {
-        if (BLAS is null)
-        {
-            return false;
-        }
-
-        return true;
+        return AccelerationStructure is not null;
     }
 }
