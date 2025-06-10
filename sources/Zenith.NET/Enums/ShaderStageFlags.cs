@@ -21,11 +21,9 @@ public enum ShaderStageFlags
 
     Miss = 1 << 7,
 
-    ClosestHit = 1 << 8,
+    AnyHit = 1 << 8,
 
-    AnyHit = 1 << 9,
+    Intersection = 1 << 9,
 
-    Intersection = 1 << 10,
-
-    Callable = 1 << 11
+    ClosestHit = 1 << 10
 }
