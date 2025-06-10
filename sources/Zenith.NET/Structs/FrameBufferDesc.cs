@@ -1,4 +1,6 @@
-﻿namespace Zenith.NET;
+﻿using Zenith.NET.Helpers;
+
+namespace Zenith.NET;
 
 public record struct FrameBufferDesc : IDesc
 {
@@ -14,12 +16,7 @@ public record struct FrameBufferDesc : IDesc
 
     public readonly bool Validate()
     {
-        if (ColorTargets is null)
-        {
-            return false;
-        }
-
-        if (ColorTargets.Any(static item => !item.Validate()))
+        if (!Validation.IsAllValidDescs(ColorTargets, emptyAllowed: true))
         {
             return false;
         }

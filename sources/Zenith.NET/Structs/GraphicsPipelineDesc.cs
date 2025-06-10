@@ -1,4 +1,6 @@
-﻿namespace Zenith.NET;
+﻿using Zenith.NET.Helpers;
+
+namespace Zenith.NET;
 
 public record struct GraphicsPipelineDesc : IDesc
 {
@@ -36,7 +38,7 @@ public record struct GraphicsPipelineDesc : IDesc
             return false;
         }
 
-        if (InputLayouts is null || InputLayouts.Length is 0)
+        if (!Validation.IsAllValidDescs(InputLayouts))
         {
             return false;
         }

@@ -1,4 +1,6 @@
-﻿namespace Zenith.NET;
+﻿using Zenith.NET.Helpers;
+
+namespace Zenith.NET;
 
 public record struct InputLayoutDesc : IDesc
 {
@@ -14,12 +16,7 @@ public record struct InputLayoutDesc : IDesc
 
     public readonly bool Validate()
     {
-        if (Elements is null || Elements.Length is 0)
-        {
-            return false;
-        }
-
-        if (Elements.Any(static item => !item.Validate()))
+        if (!Validation.IsAllValidDescs(Elements))
         {
             return false;
         }

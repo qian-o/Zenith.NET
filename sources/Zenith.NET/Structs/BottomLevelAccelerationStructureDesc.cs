@@ -1,4 +1,6 @@
-﻿namespace Zenith.NET;
+﻿using Zenith.NET.Helpers;
+
+namespace Zenith.NET;
 
 public record struct BottomLevelAccelerationStructureDesc : IDesc
 {
@@ -14,16 +16,6 @@ public record struct BottomLevelAccelerationStructureDesc : IDesc
 
     public readonly bool Validate()
     {
-        if (Geometries is null || Geometries.Length is 0)
-        {
-            return false;
-        }
-
-        if (Geometries.Any(static item => !item.Validate()))
-        {
-            return false;
-        }
-
-        return true;
+        return Validation.IsAllValidDescs(Geometries);
     }
 }
