@@ -5,9 +5,12 @@ public record struct BottomLevelAccelerationStructureDesc : IDesc
     public BottomLevelAccelerationStructureDesc()
     {
         Geometries = [];
+        Flags = AccelerationStructureBuildFlags.None;
     }
 
     public IRayTracingGeometryDesc[] Geometries { get; set; }
+
+    public AccelerationStructureBuildFlags Flags { get; set; }
 
     public readonly bool Validate()
     {
