@@ -2,9 +2,9 @@
 
 namespace Zenith.NET;
 
-public record struct RenderStateDesc : IDesc
+public record struct RenderStatesDesc : IDesc
 {
-    public RenderStateDesc()
+    public RenderStatesDesc()
     {
         RasterizerState = new();
         DepthStencilState = new();
