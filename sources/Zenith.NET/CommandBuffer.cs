@@ -6,9 +6,12 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public abstract void End();
 
-    public abstract void Reset();
+    public virtual void Reset()
+    {
+        Context.Uploader!.Release(this);
+    }
 
-    public void Submit()
+    public virtual void Submit()
     {
         queue.Submit(this);
     }
