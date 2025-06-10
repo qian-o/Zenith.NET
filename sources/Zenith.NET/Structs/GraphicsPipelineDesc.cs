@@ -38,7 +38,7 @@ public record struct GraphicsPipelineDesc : IDesc
             return false;
         }
 
-        if (!Validation.IsAllValidDescs(InputLayouts))
+        if (!Validation.IsValidDescs(InputLayouts))
         {
             return false;
         }

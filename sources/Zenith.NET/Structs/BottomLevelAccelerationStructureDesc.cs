@@ -16,6 +16,6 @@ public record struct BottomLevelAccelerationStructureDesc : IDesc
 
     public readonly bool Validate()
     {
-        return Validation.IsAllValidDescs(Geometries);
+        return Validation.IsValidDescs(Geometries);
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace Zenith.NET;
+﻿using Zenith.NET.Helpers;
+
+namespace Zenith.NET;
 
 public record struct ShaderDesc : IDesc
 {
@@ -17,7 +19,7 @@ public record struct ShaderDesc : IDesc
 
     public readonly bool Validate()
     {
-        if (ShaderBytes is null || ShaderBytes.Length is 0)
+        if (Validation.IsNullOrEmpty(ShaderBytes))
         {
             return false;
         }

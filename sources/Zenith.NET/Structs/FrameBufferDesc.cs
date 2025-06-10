@@ -16,7 +16,7 @@ public record struct FrameBufferDesc : IDesc
 
     public readonly bool Validate()
     {
-        if (!Validation.IsAllValidDescs(ColorTargets, emptyAllowed: true))
+        if (!Validation.IsValidDescs(ColorTargets, emptyAllowed: true))
         {
             return false;
         }

@@ -2,7 +2,12 @@
 
 internal static class Validation
 {
-    public static bool IsAllValidDescs<T>(T[]? descs, bool emptyAllowed = false) where T : IDesc
+    public static bool IsNullOrEmpty<T>(T[]? array)
+    {
+        return array is null || array.Length is 0;
+    }
+
+    public static bool IsValidDescs<T>(T[]? descs, bool emptyAllowed = false) where T : IDesc
     {
         if (descs is null)
         {

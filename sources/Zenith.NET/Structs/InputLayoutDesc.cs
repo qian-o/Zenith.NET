@@ -16,7 +16,7 @@ public record struct InputLayoutDesc : IDesc
 
     public readonly bool Validate()
     {
-        if (!Validation.IsAllValidDescs(Elements))
+        if (!Validation.IsValidDescs(Elements))
         {
             return false;
         }

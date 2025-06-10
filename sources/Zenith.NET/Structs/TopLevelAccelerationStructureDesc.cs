@@ -16,6 +16,6 @@ public record struct TopLevelAccelerationStructureDesc : IDesc
 
     public readonly bool Validate()
     {
-        return Validation.IsAllValidDescs(Instances);
+        return Validation.IsValidDescs(Instances);
     }
 }

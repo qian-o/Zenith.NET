@@ -13,6 +13,6 @@ public record struct ResourceLayoutDesc : IDesc
 
     public readonly bool Validate()
     {
-        return Validation.IsAllValidDescs(Elements);
+        return Validation.IsValidDescs(Elements);
     }
 }
