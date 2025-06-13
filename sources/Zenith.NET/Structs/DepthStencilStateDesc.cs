@@ -2,18 +2,6 @@
 
 public record struct DepthStencilStateDesc : IDesc
 {
-    public DepthStencilStateDesc()
-    {
-        DepthEnable = true;
-        DepthWriteEnable = true;
-        DepthFunc = ComparisonFunc.LessEqual;
-        StencilEnable = false;
-        StencilReadMask = byte.MaxValue;
-        StencilWriteMask = byte.MaxValue;
-        FrontFace = new();
-        BackFace = new();
-    }
-
     public bool DepthEnable { get; set; }
 
     public bool DepthWriteEnable { get; set; }

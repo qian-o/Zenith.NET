@@ -4,12 +4,6 @@ namespace Zenith.NET;
 
 public record struct InputLayoutDesc : IDesc
 {
-    public InputLayoutDesc()
-    {
-        Elements = [];
-        StrideInBytes = 1;
-    }
-
     public InputElementDesc[] Elements { get; set; }
 
     public uint StrideInBytes { get; set; }

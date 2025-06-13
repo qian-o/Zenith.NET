@@ -4,13 +4,6 @@ namespace Zenith.NET;
 
 public record struct ShaderDesc : IDesc
 {
-    public ShaderDesc()
-    {
-        ShaderBytes = [];
-        EntryPoint = string.Empty;
-        Stage = ShaderStageFlags.None;
-    }
-
     public byte[] ShaderBytes { get; set; }
 
     public string EntryPoint { get; set; }

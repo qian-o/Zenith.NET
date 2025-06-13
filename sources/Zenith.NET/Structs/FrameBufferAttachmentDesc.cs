@@ -2,14 +2,6 @@
 
 public record struct FrameBufferAttachmentDesc : IDesc
 {
-    public FrameBufferAttachmentDesc()
-    {
-        Target = null!;
-        FaceIndex = 0;
-        ArrayLayer = 0;
-        MipLevel = 0;
-    }
-
     public Texture Target { get; set; }
 
     public uint FaceIndex { get; set; }

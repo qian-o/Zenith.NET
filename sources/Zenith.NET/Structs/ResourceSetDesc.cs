@@ -2,12 +2,6 @@
 
 public record struct ResourceSetDesc : IDesc
 {
-    public ResourceSetDesc()
-    {
-        Layout = null!;
-        Resources = [];
-    }
-
     public ResourceLayout Layout { get; set; }
 
     public GraphicsResource[] Resources { get; set; }

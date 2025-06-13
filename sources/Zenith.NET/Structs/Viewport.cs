@@ -2,16 +2,6 @@
 
 public record struct Viewport
 {
-    public Viewport()
-    {
-        X = 0;
-        Y = 0;
-        Width = 0;
-        Height = 0;
-        MinDepth = 0;
-        MaxDepth = 1;
-    }
-
     public float X { get; set; }
 
     public float Y { get; set; }

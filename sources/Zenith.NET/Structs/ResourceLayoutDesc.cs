@@ -4,11 +4,6 @@ namespace Zenith.NET;
 
 public record struct ResourceLayoutDesc : IDesc
 {
-    public ResourceLayoutDesc()
-    {
-        Elements = [];
-    }
-
     public ResourceElementDesc[] Elements { get; set; }
 
     public readonly bool Validate()

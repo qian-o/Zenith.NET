@@ -2,16 +2,6 @@
 
 public record struct TexturePosition
 {
-    public TexturePosition()
-    {
-        X = 0;
-        Y = 0;
-        Z = 0;
-        FaceIndex = 0;
-        ArrayLayer = 0;
-        MipLevel = 0;
-    }
-
     public uint X { get; set; }
 
     public uint Y { get; set; }

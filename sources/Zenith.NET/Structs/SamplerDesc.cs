@@ -2,20 +2,6 @@
 
 public record struct SamplerDesc : IDesc
 {
-    public SamplerDesc()
-    {
-        U = AddressMode.Wrap;
-        V = AddressMode.Wrap;
-        W = AddressMode.Wrap;
-        Filter = Filter.MinPointMagPointMipPoint;
-        ComparisonFunc = ComparisonFunc.Never;
-        MaxAnisotropy = 0;
-        MinLod = 0.0f;
-        MaxLod = float.MaxValue;
-        LodBias = 0.0f;
-        BorderColor = BorderColor.TransparentBlack;
-    }
-
     public AddressMode U { get; set; }
 
     public AddressMode V { get; set; }

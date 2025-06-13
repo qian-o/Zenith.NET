@@ -4,16 +4,6 @@ namespace Zenith.NET;
 
 public record struct GraphicsPipelineDesc : IDesc
 {
-    public GraphicsPipelineDesc()
-    {
-        RenderStates = new();
-        Shaders = new();
-        InputLayouts = [];
-        ResourceLayouts = [];
-        PrimitiveTopology = PrimitiveTopology.TriangleList;
-        Outputs = new();
-    }
-
     public RenderStatesDesc RenderStates { get; set; }
 
     public GraphicsShadersDesc Shaders { get; set; }

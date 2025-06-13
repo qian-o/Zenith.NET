@@ -4,14 +4,6 @@ namespace Zenith.NET;
 
 public record struct SwapChainDesc : IDesc
 {
-    public SwapChainDesc()
-    {
-        Surface = new();
-        ColorTargetFormat = PixelFormat.R8G8B8A8UNorm;
-        DepthStencilTargetFormat = null;
-        VerticalSync = true;
-    }
-
     public SurfaceDesc Surface { get; set; }
 
     public PixelFormat ColorTargetFormat { get; set; }

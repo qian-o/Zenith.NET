@@ -2,15 +2,6 @@
 
 public record struct GraphicsShadersDesc : IDesc
 {
-    public GraphicsShadersDesc()
-    {
-        Vertex = null!;
-        Hull = null;
-        Domain = null;
-        Geometry = null;
-        Pixel = null!;
-    }
-
     public Shader Vertex { get; set; }
 
     public Shader? Hull { get; set; }

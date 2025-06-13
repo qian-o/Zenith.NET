@@ -4,13 +4,6 @@ namespace Zenith.NET;
 
 public record struct OutputDesc : IDesc
 {
-    public OutputDesc()
-    {
-        ColorAttachments = [];
-        DepthStencilAttachment = null;
-        SampleCount = SampleCount.Count1;
-    }
-
     public PixelFormat[] ColorAttachments { get; set; }
 
     public PixelFormat? DepthStencilAttachment { get; set; }

@@ -2,15 +2,6 @@
 
 public record struct HitGroupDesc : IDesc
 {
-    public HitGroupDesc()
-    {
-        Type = HitGroupType.Triangles;
-        Name = string.Empty;
-        AnyHit = null;
-        Intersection = null;
-        ClosestHit = null;
-    }
-
     public HitGroupType Type { get; set; }
 
     public string Name { get; set; }

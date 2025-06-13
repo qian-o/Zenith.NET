@@ -4,16 +4,6 @@ namespace Zenith.NET;
 
 public record struct RayTracingPipelineDesc : IDesc
 {
-    public RayTracingPipelineDesc()
-    {
-        Shaders = new();
-        HitGroups = [];
-        ResourceLayouts = [];
-        MaxTraceRecursionDepth = 6;
-        MaxPayloadSizeInBytes = 256;
-        MaxAttributeSizeInBytes = 32;
-    }
-
     public RayTracingShadersDesc Shaders { get; set; }
 
     public HitGroupDesc[] HitGroups { get; set; }

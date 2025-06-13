@@ -2,13 +2,6 @@
 
 public record struct BufferDesc : IDesc
 {
-    public BufferDesc()
-    {
-        SizeInBytes = 0;
-        StrideInBytes = 1;
-        Flags = BufferUsageFlags.None;
-    }
-
     public uint SizeInBytes { get; set; }
 
     public uint StrideInBytes { get; set; }

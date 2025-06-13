@@ -2,18 +2,6 @@
 
 public record struct BlendStateRenderTargetDesc : IDesc
 {
-    public BlendStateRenderTargetDesc()
-    {
-        BlendEnable = false;
-        SrcBlend = Blend.One;
-        DestBlend = Blend.Zero;
-        BlendOp = BlendOp.Add;
-        SrcBlendAlpha = Blend.One;
-        DestBlendAlpha = Blend.Zero;
-        BlendOpAlpha = BlendOp.Add;
-        Flags = ColorComponentFlags.All;
-    }
-
     public bool BlendEnable { get; set; }
 
     public Blend SrcBlend { get; set; }

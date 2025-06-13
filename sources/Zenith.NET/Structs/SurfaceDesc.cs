@@ -2,14 +2,6 @@
 
 public record struct SurfaceDesc : IDesc
 {
-    public SurfaceDesc()
-    {
-        Type = SurfaceType.Win32;
-        Handles = [];
-        Width = 0;
-        Height = 0;
-    }
-
     public SurfaceType Type { get; set; }
 
     public nint[] Handles { get; set; }

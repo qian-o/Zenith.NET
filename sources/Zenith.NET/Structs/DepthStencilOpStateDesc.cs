@@ -2,14 +2,6 @@
 
 public record struct DepthStencilOpStateDesc : IDesc
 {
-    public DepthStencilOpStateDesc()
-    {
-        StencilFailOp = StencilOp.Keep;
-        StencilDepthFailOp = StencilOp.Keep;
-        StencilPassOp = StencilOp.Keep;
-        StencilFunc = ComparisonFunc.Always;
-    }
-
     public StencilOp StencilFailOp { get; set; }
 
     public StencilOp StencilDepthFailOp { get; set; }

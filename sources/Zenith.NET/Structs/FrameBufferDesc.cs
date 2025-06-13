@@ -4,12 +4,6 @@ namespace Zenith.NET;
 
 public record struct FrameBufferDesc : IDesc
 {
-    public FrameBufferDesc()
-    {
-        ColorTargets = [];
-        DepthStencilTarget = null;
-    }
-
     public FrameBufferAttachmentDesc[] ColorTargets { get; set; }
 
     public FrameBufferAttachmentDesc? DepthStencilTarget { get; set; }

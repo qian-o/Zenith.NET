@@ -4,21 +4,6 @@ namespace Zenith.NET;
 
 public record struct RayTracingTrianglesDesc : IRayTracingGeometryDesc
 {
-    public RayTracingTrianglesDesc()
-    {
-        VertexBuffer = null!;
-        VertexFormat = PixelFormat.R32G32B32A32Float;
-        VertexCount = 0;
-        VertexStrideInBytes = 1;
-        VertexOffsetInBytes = 0;
-        IndexBuffer = null;
-        IndexFormat = IndexFormat.UInt32;
-        IndexCount = 0;
-        IndexOffsetInBytes = 0;
-        Transform = Matrix4x4.Identity;
-        Flags = RayTracingGeometryFlags.None;
-    }
-
     public Buffer VertexBuffer { get; set; }
 
     public PixelFormat VertexFormat { get; set; }

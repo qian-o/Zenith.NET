@@ -2,20 +2,6 @@
 
 public record struct BlendStateDesc : IDesc
 {
-    public BlendStateDesc()
-    {
-        AlphaToCoverageEnable = false;
-        IndependentBlendEnable = false;
-        RenderTarget0 = new();
-        RenderTarget1 = new();
-        RenderTarget2 = new();
-        RenderTarget3 = new();
-        RenderTarget4 = new();
-        RenderTarget5 = new();
-        RenderTarget6 = new();
-        RenderTarget7 = new();
-    }
-
     public bool AlphaToCoverageEnable { get; set; }
 
     public bool IndependentBlendEnable { get; set; }

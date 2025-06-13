@@ -2,15 +2,6 @@
 
 public record struct RayTracingAABBsDesc : IRayTracingGeometryDesc
 {
-    public RayTracingAABBsDesc()
-    {
-        Buffer = null!;
-        Count = 0;
-        StrideInBytes = 0;
-        OffsetInBytes = 0;
-        Flags = RayTracingGeometryFlags.None;
-    }
-
     public Buffer Buffer { get; set; }
 
     public uint Count { get; set; }

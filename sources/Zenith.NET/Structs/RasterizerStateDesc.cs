@@ -2,18 +2,6 @@
 
 public record struct RasterizerStateDesc : IDesc
 {
-    public RasterizerStateDesc()
-    {
-        CullMode = CullMode.Back;
-        FillMode = FillMode.Solid;
-        FrontFace = FrontFace.CounterClockwise;
-        DepthBias = 0;
-        DepthBiasClamp = 0.0f;
-        SlopeScaledDepthBias = 0.0f;
-        DepthClipEnable = true;
-        ScissorEnable = false;
-    }
-
     public CullMode CullMode { get; set; }
 
     public FillMode FillMode { get; set; }

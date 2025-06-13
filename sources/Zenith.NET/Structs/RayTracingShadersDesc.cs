@@ -2,15 +2,6 @@
 
 public record struct RayTracingShadersDesc : IDesc
 {
-    public RayTracingShadersDesc()
-    {
-        RayGeneration = null!;
-        Miss = [];
-        AnyHit = [];
-        Intersection = [];
-        ClosestHit = [];
-    }
-
     public Shader RayGeneration { get; set; }
 
     public Shader[] Miss { get; set; }

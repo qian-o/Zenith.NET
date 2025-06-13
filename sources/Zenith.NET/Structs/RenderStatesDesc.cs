@@ -4,15 +4,6 @@ namespace Zenith.NET;
 
 public record struct RenderStatesDesc : IDesc
 {
-    public RenderStatesDesc()
-    {
-        RasterizerState = new();
-        DepthStencilState = new();
-        BlendState = new();
-        StencilReference = 0;
-        BlendFactor = null;
-    }
-
     public RasterizerStateDesc RasterizerState { get; set; }
 
     public DepthStencilStateDesc DepthStencilState { get; set; }
