@@ -53,4 +53,19 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
     protected abstract void WaitIdleImpl();
 
     protected abstract void SubmitImpl(CommandBuffer commandBuffer);
+
+    protected override void Destroy()
+    {
+        foreach (CommandBuffer commandBuffer in available)
+        {
+            commandBuffer.Dispose();
+        }
+        available.Clear();
+
+        foreach (CommandBuffer commandBuffer in execution)
+        {
+            commandBuffer.Dispose();
+        }
+        execution.Clear();
+    }
 }

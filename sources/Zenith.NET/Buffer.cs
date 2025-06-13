@@ -8,7 +8,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public abstract nint SharedPointer { get; }
 
-    public void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes = 0) where T : unmanaged
+    public void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes = 0)
     {
         if (data.IsEmpty)
         {

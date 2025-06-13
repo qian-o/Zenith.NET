@@ -4,11 +4,7 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 {
     public TextureDesc Desc { get; } = desc;
 
-    public void Upload<T>(ReadOnlySpan<T> data,
-                          TexturePosition position,
-                          uint width,
-                          uint height,
-                          uint depth) where T : unmanaged
+    public void Upload<T>(ReadOnlySpan<T> data, TexturePosition position, uint width, uint height, uint depth)
     {
         if (data.IsEmpty)
         {
