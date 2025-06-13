@@ -73,7 +73,7 @@ public record struct SurfaceDesc : IDesc
         return true;
     }
 
-    public static SurfaceDesc CreateWin32(nint hwnd, uint width, uint height)
+    public static SurfaceDesc Win32(nint hwnd, uint width, uint height)
     {
         return new()
         {
@@ -84,7 +84,7 @@ public record struct SurfaceDesc : IDesc
         };
     }
 
-    public static SurfaceDesc CreateWayland(nint display, nint surface, uint width, uint height)
+    public static SurfaceDesc Wayland(nint display, nint surface, uint width, uint height)
     {
         return new()
         {
@@ -95,7 +95,7 @@ public record struct SurfaceDesc : IDesc
         };
     }
 
-    public static SurfaceDesc CreateXlib(nint display, nint window, uint width, uint height)
+    public static SurfaceDesc Xlib(nint display, nint window, uint width, uint height)
     {
         return new()
         {
@@ -106,7 +106,7 @@ public record struct SurfaceDesc : IDesc
         };
     }
 
-    public static SurfaceDesc CreateAndroid(nint nativeWindow, uint width, uint height)
+    public static SurfaceDesc Android(nint nativeWindow, uint width, uint height)
     {
         return new()
         {
@@ -117,7 +117,7 @@ public record struct SurfaceDesc : IDesc
         };
     }
 
-    public static SurfaceDesc CreateIOS(nint view, uint width, uint height)
+    public static SurfaceDesc IOS(nint view, uint width, uint height)
     {
         return new()
         {
@@ -128,7 +128,7 @@ public record struct SurfaceDesc : IDesc
         };
     }
 
-    public static SurfaceDesc CreateMacOS(nint view, uint width, uint height)
+    public static SurfaceDesc MacOS(nint view, uint width, uint height)
     {
         return new()
         {
