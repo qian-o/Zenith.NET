@@ -25,10 +25,7 @@ public record struct InputLayoutDesc : IDesc
 
     public InputLayoutDesc Add(InputElementDesc element)
     {
-        if (element.OffsetInBytes is InputElementDesc.AppendAligned)
-        {
-            element.OffsetInBytes = (int)StrideInBytes;
-        }
+        element.OffsetInBytes = StrideInBytes;
 
         Elements = [.. Elements, element];
 

@@ -14,6 +14,31 @@ public record struct RayTracingShadersDesc : IDesc
 
     public readonly bool Validate()
     {
-        return RayGeneration is not null;
+        if (RayGeneration is null)
+        {
+            return false;
+        }
+
+        if (Miss is null)
+        {
+            return false;
+        }
+
+        if (AnyHit is null)
+        {
+            return false;
+        }
+
+        if (Intersection is null)
+        {
+            return false;
+        }
+
+        if (ClosestHit is null)
+        {
+            return false;
+        }
+
+        return true;
     }
 }

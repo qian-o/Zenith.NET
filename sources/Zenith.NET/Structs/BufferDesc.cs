@@ -20,11 +20,6 @@ public record struct BufferDesc : IDesc
             return false;
         }
 
-        if (Flags is BufferUsageFlags.None)
-        {
-            return false;
-        }
-
         return true;
     }
 }
