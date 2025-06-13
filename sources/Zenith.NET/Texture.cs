@@ -5,10 +5,10 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
     public TextureDesc Desc { get; } = desc;
 
     public void Upload<T>(ReadOnlySpan<T> data,
-TexturePosition position,
-uint width,
-uint height,
-uint depth) where T : unmanaged
+                          TexturePosition position,
+                          uint width,
+                          uint height,
+                          uint depth) where T : unmanaged
     {
         if (data.IsEmpty)
         {
@@ -84,6 +84,13 @@ uint depth) where T : unmanaged
             throw new ArgumentOutOfRangeException(nameof(position), "Mip level exceeds texture mip levels.");
         }
 
-        // TODO: Use the internal Copy queue to upload data and wait for completion.
+        CommandBuffer commandBuffer = Context.Copy!.CommandBuffer();
+
+        commandBuffer.Begin();
+        commandBuffer.UpdateTexture(this, data, position, width, height, depth);
+        commandBuffer.End();
+        commandBuffer.Submit();
+
+        Context.Copy.WaitIdle();
     }
 }

@@ -20,6 +20,13 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
             throw new ArgumentOutOfRangeException(nameof(data), "Data exceeds buffer size.");
         }
 
-        // TODO: Use the internal Copy queue to upload data and wait for completion.
+        CommandBuffer commandBuffer = Context.Copy!.CommandBuffer();
+
+        commandBuffer.Begin();
+        commandBuffer.UpdateBuffer(this, data, offsetInBytes);
+        commandBuffer.End();
+        commandBuffer.Submit();
+
+        Context.Copy.WaitIdle();
     }
 }
