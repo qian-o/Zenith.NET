@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 
 namespace Zenith.NET;
 
@@ -78,7 +77,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public abstract void EndRendering();
 
-    public abstract void SetScissors(Vector2[] offsets, Vector2[] extents);
+    public abstract void SetScissors(Scissor[] scissors);
 
     public abstract void SetViewports(Viewport[] viewports);
     #endregion
