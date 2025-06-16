@@ -2,34 +2,29 @@
 
 public abstract class GraphicsContext : DisposableObject
 {
-    public abstract string Device { get; }
-
-    public abstract Backend Backend { get; }
-
-    public abstract Capabilities Capabilities { get; }
-
-    public abstract ResourceFactory Factory { get; }
-
-    internal BufferUploader? Uploader { get; private set; }
-
-    internal CommandQueue? Copy { get; private set; }
-
-    public void CreateDevice(bool useDebugLayer = false)
+    protected GraphicsContext(bool useDebugLayer)
     {
-        CreateDeviceImpl(useDebugLayer);
+        CreateDevice(useDebugLayer);
 
         Uploader = new(this);
         Copy = Factory.CreateCommandQueue(CommandQueueType.Copy);
     }
 
+    public abstract Backend Backend { get; }
+
+    public abstract Driver Driver { get; }
+
+    public abstract ResourceFactory Factory { get; }
+
+    internal BufferUploader Uploader { get; }
+
+    internal CommandQueue Copy { get; }
+
     protected override void Destroy()
     {
-        Uploader?.Dispose();
-        Uploader = null;
-
-        Copy?.Dispose();
-        Copy = null;
+        Uploader.Dispose();
+        Copy.Dispose();
     }
 
-    protected abstract void CreateDeviceImpl(bool useDebugLayer);
+    protected abstract void CreateDevice(bool useDebugLayer);
 }
