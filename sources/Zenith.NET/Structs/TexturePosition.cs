@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct TexturePosition
+public struct TexturePosition
 {
     public uint X { get; set; }
 

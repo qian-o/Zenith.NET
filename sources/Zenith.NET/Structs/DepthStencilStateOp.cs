@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct DepthStencilOpStateDesc
+public struct DepthStencilStateOp
 {
     public StencilOp StencilFailOp { get; set; }
 

@@ -2,7 +2,7 @@
 
 namespace Zenith.NET;
 
-public record struct RayTracingInstanceDesc
+public struct RayTracingInstance
 {
     public BottomLevelAccelerationStructure AccelerationStructure { get; set; }
 

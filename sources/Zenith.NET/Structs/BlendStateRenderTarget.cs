@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct BlendStateRenderTargetDesc
+public struct BlendStateRenderTarget
 {
     public bool BlendEnable { get; set; }
 

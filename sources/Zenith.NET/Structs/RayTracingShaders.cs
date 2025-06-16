@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct RayTracingShadersDesc
+public struct RayTracingShaders
 {
     public Shader RayGeneration { get; set; }
 

@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct FrameBufferAttachmentDesc
+public struct FrameBufferAttachment
 {
     public Texture Target { get; set; }
 

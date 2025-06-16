@@ -10,7 +10,7 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 
     public abstract void Resize(uint width, uint height);
 
-    public void Refresh(SurfaceDesc surface)
+    public void Refresh(Surface surface)
     {
         Desc = (Desc with
         {

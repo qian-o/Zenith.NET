@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct BufferDesc
+public struct BufferDesc
 {
     public uint SizeInBytes { get; set; }
 

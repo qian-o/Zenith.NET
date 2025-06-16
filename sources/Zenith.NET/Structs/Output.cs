@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct OutputDesc
+public struct Output
 {
     public PixelFormat[] ColorAttachments { get; set; }
 

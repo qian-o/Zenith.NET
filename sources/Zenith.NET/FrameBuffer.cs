@@ -12,5 +12,5 @@ public abstract class FrameBuffer(GraphicsContext context, FrameBufferDesc desc)
 
     public abstract uint Height { get; }
 
-    public abstract OutputDesc Output { get; }
+    public abstract Output Output { get; }
 }

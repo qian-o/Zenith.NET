@@ -1,8 +1,8 @@
 ﻿namespace Zenith.NET;
 
-public record struct FrameBufferDesc
+public struct FrameBufferDesc
 {
-    public FrameBufferAttachmentDesc[] ColorTargets { get; set; }
+    public FrameBufferAttachment[] ColorTargets { get; set; }
 
-    public FrameBufferAttachmentDesc? DepthStencilTarget { get; set; }
+    public FrameBufferAttachment? DepthStencilTarget { get; set; }
 }

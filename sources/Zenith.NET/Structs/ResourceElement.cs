@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct ResourceElementDesc
+public struct ResourceElement
 {
     public ResourceType Type { get; set; }
 

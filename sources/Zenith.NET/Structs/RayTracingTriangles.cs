@@ -2,7 +2,7 @@
 
 namespace Zenith.NET;
 
-public record struct RayTracingTrianglesDesc : IRayTracingGeometry
+public struct RayTracingTriangles : IRayTracingGeometry
 {
     public Buffer VertexBuffer { get; set; }
 

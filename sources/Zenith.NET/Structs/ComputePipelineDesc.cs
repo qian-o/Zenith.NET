@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct ComputePipelineDesc
+public struct ComputePipelineDesc
 {
     public Shader Shader { get; set; }
 

@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct ResourceLayoutDesc
+public struct ResourceLayoutDesc
 {
-    public ResourceElementDesc[] Elements { get; set; }
+    public ResourceElement[] Elements { get; set; }
 }

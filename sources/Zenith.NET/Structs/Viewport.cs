@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct Viewport
+public struct Viewport
 {
     public float X { get; set; }
 

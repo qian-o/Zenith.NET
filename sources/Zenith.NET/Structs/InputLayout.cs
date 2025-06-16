@@ -1,12 +1,12 @@
 ﻿namespace Zenith.NET;
 
-public record struct InputLayoutDesc
+public struct InputLayout
 {
-    public InputElementDesc[] Elements { get; set; }
+    public InputElement[] Elements { get; set; }
 
     public uint StrideInBytes { get; set; }
 
-    public InputLayoutDesc Add(InputElementDesc element)
+    public InputLayout Add(InputElement element)
     {
         element.OffsetInBytes = StrideInBytes;
 

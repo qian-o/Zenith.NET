@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct IndirectDrawArgs
+public struct IndirectDrawArgs
 {
     public uint VertexCount { get; set; }
 

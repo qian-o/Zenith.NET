@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct SamplerDesc
+public struct SamplerDesc
 {
     public AddressMode U { get; set; }
 

@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct HitGroupDesc
+public struct HitGroup
 {
     public HitGroupType Type { get; set; }
 

@@ -1,10 +1,10 @@
 ﻿namespace Zenith.NET;
 
-public record struct RayTracingPipelineDesc
+public struct RayTracingPipelineDesc
 {
-    public RayTracingShadersDesc Shaders { get; set; }
+    public RayTracingShaders Shaders { get; set; }
 
-    public HitGroupDesc[] HitGroups { get; set; }
+    public HitGroup[] HitGroups { get; set; }
 
     public ResourceLayout[] ResourceLayouts { get; set; }
 

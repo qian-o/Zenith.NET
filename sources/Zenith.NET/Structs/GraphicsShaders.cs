@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct GraphicsShadersDesc
+public struct GraphicsShaders
 {
     public Shader Vertex { get; set; }
 

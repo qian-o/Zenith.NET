@@ -2,7 +2,7 @@
 
 namespace Zenith.NET;
 
-public record struct ClearValue
+public struct ClearValue
 {
     public Vector4[] ColorValues { get; set; }
 

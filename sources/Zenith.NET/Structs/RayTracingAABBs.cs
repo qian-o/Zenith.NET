@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct RayTracingAABBsDesc : IRayTracingGeometry
+public struct RayTracingAABBs : IRayTracingGeometry
 {
     public Buffer Buffer { get; set; }
 

@@ -1,8 +1,8 @@
 ﻿namespace Zenith.NET;
 
-public record struct SwapChainDesc
+public struct SwapChainDesc
 {
-    public SurfaceDesc Surface { get; set; }
+    public Surface Surface { get; set; }
 
     public PixelFormat ColorTargetFormat { get; set; }
 

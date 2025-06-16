@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct RasterizerStateDesc
+public struct RasterizerState
 {
     public CullMode CullMode { get; set; }
 
