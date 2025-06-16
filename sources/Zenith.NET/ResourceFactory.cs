@@ -59,11 +59,6 @@ public abstract class ResourceFactory(GraphicsContext context)
         return CreateRayTracingPipelineImpl(desc);
     }
 
-    public CommandQueue CreateCommandQueue(CommandQueueType type)
-    {
-        return CreateCommandQueueImpl(type);
-    }
-
     protected abstract SwapChain CreateSwapChainImpl(SwapChainDesc desc);
 
     protected abstract FrameBuffer CreateFrameBufferImpl(FrameBufferDesc desc);
@@ -85,6 +80,4 @@ public abstract class ResourceFactory(GraphicsContext context)
     protected abstract ComputePipeline CreateComputePipelineImpl(ComputePipelineDesc desc);
 
     protected abstract RayTracingPipeline CreateRayTracingPipelineImpl(RayTracingPipelineDesc desc);
-
-    protected abstract CommandQueue CreateCommandQueueImpl(CommandQueueType type);
 }
