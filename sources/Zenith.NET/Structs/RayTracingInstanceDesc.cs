@@ -2,7 +2,7 @@
 
 namespace Zenith.NET;
 
-public record struct RayTracingInstanceDesc : IDesc
+public record struct RayTracingInstanceDesc
 {
     public BottomLevelAccelerationStructure AccelerationStructure { get; set; }
 
@@ -15,9 +15,4 @@ public record struct RayTracingInstanceDesc : IDesc
     public Matrix4x4 Transform { get; set; }
 
     public RayTracingInstanceFlags Flags { get; set; }
-
-    public readonly bool Validate()
-    {
-        return AccelerationStructure is not null;
-    }
 }

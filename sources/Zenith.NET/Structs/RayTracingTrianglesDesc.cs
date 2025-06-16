@@ -2,7 +2,7 @@
 
 namespace Zenith.NET;
 
-public record struct RayTracingTrianglesDesc : IRayTracingGeometryDesc
+public record struct RayTracingTrianglesDesc : IRayTracingGeometry
 {
     public Buffer VertexBuffer { get; set; }
 
@@ -25,42 +25,4 @@ public record struct RayTracingTrianglesDesc : IRayTracingGeometryDesc
     public Matrix4x4 Transform { get; set; }
 
     public RayTracingGeometryFlags Flags { get; set; }
-
-    public readonly bool Validate()
-    {
-        if (VertexBuffer is null)
-        {
-            return false;
-        }
-
-        if (!Enum.IsDefined(VertexFormat))
-        {
-            return false;
-        }
-
-        if (VertexCount is 0)
-        {
-            return false;
-        }
-
-        if (VertexStrideInBytes is 0)
-        {
-            return false;
-        }
-
-        if (IndexBuffer is not null)
-        {
-            if (!Enum.IsDefined(IndexFormat))
-            {
-                return false;
-            }
-
-            if (IndexCount is 0)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
 }

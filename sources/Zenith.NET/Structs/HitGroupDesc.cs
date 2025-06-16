@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct HitGroupDesc : IDesc
+public record struct HitGroupDesc
 {
     public HitGroupType Type { get; set; }
 
@@ -11,19 +11,4 @@ public record struct HitGroupDesc : IDesc
     public string? Intersection { get; set; }
 
     public string? ClosestHit { get; set; }
-
-    public readonly bool Validate()
-    {
-        if (!Enum.IsDefined(Type))
-        {
-            return false;
-        }
-
-        if (string.IsNullOrEmpty(Name))
-        {
-            return false;
-        }
-
-        return true;
-    }
 }

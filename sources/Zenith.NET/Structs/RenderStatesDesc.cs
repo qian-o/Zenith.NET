@@ -2,7 +2,7 @@
 
 namespace Zenith.NET;
 
-public record struct RenderStatesDesc : IDesc
+public record struct RenderStatesDesc
 {
     public RasterizerStateDesc RasterizerState { get; set; }
 
@@ -13,24 +13,4 @@ public record struct RenderStatesDesc : IDesc
     public int StencilReference { get; set; }
 
     public Vector4? BlendFactor { get; set; }
-
-    public readonly bool Validate()
-    {
-        if (!RasterizerState.Validate())
-        {
-            return false;
-        }
-
-        if (!DepthStencilState.Validate())
-        {
-            return false;
-        }
-
-        if (!BlendState.Validate())
-        {
-            return false;
-        }
-
-        return true;
-    }
 }

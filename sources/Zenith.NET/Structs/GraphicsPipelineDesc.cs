@@ -1,8 +1,6 @@
-﻿using Zenith.NET.Helpers;
+﻿namespace Zenith.NET;
 
-namespace Zenith.NET;
-
-public record struct GraphicsPipelineDesc : IDesc
+public record struct GraphicsPipelineDesc
 {
     public RenderStatesDesc RenderStates { get; set; }
 
@@ -15,39 +13,4 @@ public record struct GraphicsPipelineDesc : IDesc
     public PrimitiveTopology PrimitiveTopology { get; set; }
 
     public OutputDesc Outputs { get; set; }
-
-    public readonly bool Validate()
-    {
-        if (!RenderStates.Validate())
-        {
-            return false;
-        }
-
-        if (!Shaders.Validate())
-        {
-            return false;
-        }
-
-        if (!Validation.IsValidDescs(InputLayouts))
-        {
-            return false;
-        }
-
-        if (ResourceLayouts is null)
-        {
-            return false;
-        }
-
-        if (!Enum.IsDefined(PrimitiveTopology))
-        {
-            return false;
-        }
-
-        if (!Outputs.Validate())
-        {
-            return false;
-        }
-
-        return true;
-    }
 }

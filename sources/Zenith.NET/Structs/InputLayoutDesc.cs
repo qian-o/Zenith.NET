@@ -1,27 +1,10 @@
-﻿using Zenith.NET.Helpers;
+﻿namespace Zenith.NET;
 
-namespace Zenith.NET;
-
-public record struct InputLayoutDesc : IDesc
+public record struct InputLayoutDesc
 {
     public InputElementDesc[] Elements { get; set; }
 
     public uint StrideInBytes { get; set; }
-
-    public readonly bool Validate()
-    {
-        if (!Validation.IsValidDescs(Elements))
-        {
-            return false;
-        }
-
-        if (StrideInBytes is 0)
-        {
-            return false;
-        }
-
-        return true;
-    }
 
     public InputLayoutDesc Add(InputElementDesc element)
     {

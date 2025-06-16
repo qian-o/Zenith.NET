@@ -12,11 +12,6 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 
     public void Refresh(SurfaceDesc surface)
     {
-        if (!surface.Validate())
-        {
-            throw new ArgumentException("Invalid surface description.", nameof(surface));
-        }
-
         Desc = (Desc with
         {
             Surface = surface

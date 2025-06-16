@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct RasterizerStateDesc : IDesc
+public record struct RasterizerStateDesc
 {
     public CullMode CullMode { get; set; }
 
@@ -17,24 +17,4 @@ public record struct RasterizerStateDesc : IDesc
     public bool DepthClipEnable { get; set; }
 
     public bool ScissorEnable { get; set; }
-
-    public readonly bool Validate()
-    {
-        if (!Enum.IsDefined(CullMode))
-        {
-            return false;
-        }
-
-        if (!Enum.IsDefined(FillMode))
-        {
-            return false;
-        }
-
-        if (!Enum.IsDefined(FrontFace))
-        {
-            return false;
-        }
-
-        return true;
-    }
 }

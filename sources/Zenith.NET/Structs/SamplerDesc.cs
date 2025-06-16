@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct SamplerDesc : IDesc
+public record struct SamplerDesc
 {
     public AddressMode U { get; set; }
 
@@ -21,39 +21,4 @@ public record struct SamplerDesc : IDesc
     public float LodBias { get; set; }
 
     public BorderColor BorderColor { get; set; }
-
-    public readonly bool Validate()
-    {
-        if (!Enum.IsDefined(U))
-        {
-            return false;
-        }
-
-        if (!Enum.IsDefined(V))
-        {
-            return false;
-        }
-
-        if (!Enum.IsDefined(W))
-        {
-            return false;
-        }
-
-        if (!Enum.IsDefined(Filter))
-        {
-            return false;
-        }
-
-        if (!Enum.IsDefined(ComparisonFunc))
-        {
-            return false;
-        }
-
-        if (MinLod > MaxLod)
-        {
-            return false;
-        }
-
-        return true;
-    }
 }

@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct GraphicsShadersDesc : IDesc
+public record struct GraphicsShadersDesc
 {
     public Shader Vertex { get; set; }
 
@@ -11,19 +11,4 @@ public record struct GraphicsShadersDesc : IDesc
     public Shader? Geometry { get; set; }
 
     public Shader Pixel { get; set; }
-
-    public readonly bool Validate()
-    {
-        if (Vertex is null)
-        {
-            return false;
-        }
-
-        if (Pixel is null)
-        {
-            return false;
-        }
-
-        return true;
-    }
 }

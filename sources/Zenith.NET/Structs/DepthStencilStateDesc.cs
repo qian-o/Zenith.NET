@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct DepthStencilStateDesc : IDesc
+public record struct DepthStencilStateDesc
 {
     public bool DepthEnable { get; set; }
 
@@ -17,24 +17,4 @@ public record struct DepthStencilStateDesc : IDesc
     public DepthStencilOpStateDesc FrontFace { get; set; }
 
     public DepthStencilOpStateDesc BackFace { get; set; }
-
-    public readonly bool Validate()
-    {
-        if (!Enum.IsDefined(DepthFunc))
-        {
-            return false;
-        }
-
-        if (!FrontFace.Validate())
-        {
-            return false;
-        }
-
-        if (!BackFace.Validate())
-        {
-            return false;
-        }
-
-        return true;
-    }
 }

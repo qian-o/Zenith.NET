@@ -1,25 +1,10 @@
 ﻿namespace Zenith.NET;
 
-public record struct BufferDesc : IDesc
+public record struct BufferDesc
 {
     public uint SizeInBytes { get; set; }
 
     public uint StrideInBytes { get; set; }
 
     public BufferUsageFlags Flags { get; set; }
-
-    public readonly bool Validate()
-    {
-        if (SizeInBytes is 0)
-        {
-            return false;
-        }
-
-        if (StrideInBytes is 0)
-        {
-            return false;
-        }
-
-        return true;
-    }
 }

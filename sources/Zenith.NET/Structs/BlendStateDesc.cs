@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct BlendStateDesc : IDesc
+public record struct BlendStateDesc
 {
     public bool AlphaToCoverageEnable { get; set; }
 
@@ -21,16 +21,4 @@ public record struct BlendStateDesc : IDesc
     public BlendStateRenderTargetDesc RenderTarget6 { get; set; }
 
     public BlendStateRenderTargetDesc RenderTarget7 { get; set; }
-
-    public readonly bool Validate()
-    {
-        return RenderTarget0.Validate()
-               && RenderTarget1.Validate()
-               && RenderTarget2.Validate()
-               && RenderTarget3.Validate()
-               && RenderTarget4.Validate()
-               && RenderTarget5.Validate()
-               && RenderTarget6.Validate()
-               && RenderTarget7.Validate();
-    }
 }

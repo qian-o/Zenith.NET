@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct BlendStateRenderTargetDesc : IDesc
+public record struct BlendStateRenderTargetDesc
 {
     public bool BlendEnable { get; set; }
 
@@ -17,39 +17,4 @@ public record struct BlendStateRenderTargetDesc : IDesc
     public BlendOp BlendOpAlpha { get; set; }
 
     public ColorComponentFlags Flags { get; set; }
-
-    public readonly bool Validate()
-    {
-        if (!Enum.IsDefined(SrcBlend))
-        {
-            return false;
-        }
-
-        if (!Enum.IsDefined(DestBlend))
-        {
-            return false;
-        }
-
-        if (!Enum.IsDefined(BlendOp))
-        {
-            return false;
-        }
-
-        if (!Enum.IsDefined(SrcBlendAlpha))
-        {
-            return false;
-        }
-
-        if (!Enum.IsDefined(DestBlendAlpha))
-        {
-            return false;
-        }
-
-        if (!Enum.IsDefined(BlendOpAlpha))
-        {
-            return false;
-        }
-
-        return true;
-    }
 }

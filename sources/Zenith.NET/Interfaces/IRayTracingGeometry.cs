@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public interface IRayTracingGeometryDesc : IDesc
+public interface IRayTracingGeometry
 {
     RayTracingGeometryFlags Flags { get; set; }
 }
