@@ -37,6 +37,8 @@ public abstract class GraphicsContext : DisposableObject
 
     internal BufferUploader Uploader { get; }
 
+    public event EventHandler<DebugCallbackArgs>? DebugCallback;
+
     protected override void Destroy()
     {
         Direct.Dispose();
