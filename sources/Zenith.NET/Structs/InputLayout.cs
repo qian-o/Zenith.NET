@@ -66,7 +66,7 @@ public struct InputLayout
             ElementFormat.UInt4 or
             ElementFormat.Int4 => 16,
 
-            _ => throw new ArgumentOutOfRangeException(nameof(format), $"Unsupported format: {format}")
+            _ => 0
         };
     }
 }
