@@ -4,80 +4,25 @@ public abstract class ResourceFactory(GraphicsContext context)
 {
     public GraphicsContext Context { get; } = context;
 
-    public SwapChain CreateSwapChain(SwapChainDesc desc)
-    {
-        return CreateSwapChainImpl(desc);
-    }
+    public abstract SwapChain CreateSwapChain(SwapChainDesc desc);
 
-    public FrameBuffer CreateFrameBuffer(FrameBufferDesc desc)
-    {
-        return CreateFrameBufferImpl(desc);
-    }
+    public abstract FrameBuffer CreateFrameBuffer(FrameBufferDesc desc);
 
-    public Buffer CreateBuffer(BufferDesc desc)
-    {
-        return CreateBufferImpl(desc);
-    }
+    public abstract Buffer CreateBuffer(BufferDesc desc);
 
-    public Texture CreateTexture(TextureDesc desc)
-    {
-        return CreateTextureImpl(desc);
-    }
+    public abstract Texture CreateTexture(TextureDesc desc);
 
-    public Sampler CreateSampler(SamplerDesc desc)
-    {
-        return CreateSamplerImpl(desc);
-    }
+    public abstract Sampler CreateSampler(SamplerDesc desc);
 
-    public Shader CreateShader(ShaderDesc desc)
-    {
-        return CreateShaderImpl(desc);
-    }
+    public abstract Shader CreateShader(ShaderDesc desc);
 
-    public ResourceLayout CreateResourceLayout(ResourceLayoutDesc desc)
-    {
-        return CreateResourceLayoutImpl(desc);
-    }
+    public abstract ResourceLayout CreateResourceLayout(ResourceLayoutDesc desc);
 
-    public ResourceSet CreateResourceSet(ResourceSetDesc desc)
-    {
-        return CreateResourceSetImpl(desc);
-    }
+    public abstract ResourceSet CreateResourceSet(ResourceSetDesc desc);
 
-    public GraphicsPipeline CreateGraphicsPipeline(GraphicsPipelineDesc desc)
-    {
-        return CreateGraphicsPipelineImpl(desc);
-    }
+    public abstract GraphicsPipeline CreateGraphicsPipeline(GraphicsPipelineDesc desc);
 
-    public ComputePipeline CreateComputePipeline(ComputePipelineDesc desc)
-    {
-        return CreateComputePipelineImpl(desc);
-    }
+    public abstract ComputePipeline CreateComputePipeline(ComputePipelineDesc desc);
 
-    public RayTracingPipeline CreateRayTracingPipeline(RayTracingPipelineDesc desc)
-    {
-        return CreateRayTracingPipelineImpl(desc);
-    }
-
-    protected abstract SwapChain CreateSwapChainImpl(SwapChainDesc desc);
-
-    protected abstract FrameBuffer CreateFrameBufferImpl(FrameBufferDesc desc);
-
-    protected abstract Buffer CreateBufferImpl(BufferDesc desc);
-
-    protected abstract Texture CreateTextureImpl(TextureDesc desc);
-
-    protected abstract Sampler CreateSamplerImpl(SamplerDesc desc);
-
-    protected abstract Shader CreateShaderImpl(ShaderDesc desc);
-
-    protected abstract ResourceLayout CreateResourceLayoutImpl(ResourceLayoutDesc desc);
-
-    protected abstract ResourceSet CreateResourceSetImpl(ResourceSetDesc desc);
-
-    protected abstract GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc);
-
-    protected abstract ComputePipeline CreateComputePipelineImpl(ComputePipelineDesc desc);
-
-    protected abstract RayTracingPipeline CreateRayTracingPipelineImpl(RayTracingPipelineDesc desc);
+    public abstract RayTracingPipeline CreateRayTracingPipeline(RayTracingPipelineDesc desc);
 }

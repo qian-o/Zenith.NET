@@ -42,6 +42,7 @@ public abstract class GraphicsContext : DisposableObject
         Direct.Dispose();
         Compute.Dispose();
         Copy.Dispose();
+
         Uploader.Dispose();
     }
 

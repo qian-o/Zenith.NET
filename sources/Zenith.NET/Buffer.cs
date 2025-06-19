@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-
-namespace Zenith.NET;
+﻿namespace Zenith.NET;
 
 public abstract class Buffer(GraphicsContext context, BufferDesc desc) : GraphicsResource(context)
 {
@@ -10,16 +8,6 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes = 0)
     {
-        if (data.IsEmpty)
-        {
-            throw new ArgumentException("Data cannot be empty.", nameof(data));
-        }
-
-        if ((uint)(data.Length * Unsafe.SizeOf<T>()) + offsetInBytes > Desc.SizeInBytes)
-        {
-            throw new ArgumentOutOfRangeException(nameof(data), "Data exceeds buffer size.");
-        }
-
         CommandBuffer commandBuffer = Context.Copy!.CommandBuffer();
 
         commandBuffer.Begin();
