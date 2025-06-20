@@ -1,8 +1,8 @@
 ﻿namespace Zenith.NET;
 
-public struct ComputePipelineDesc
+public record struct ComputePipelineDesc
 {
-    public Shader Shader { get; set; }
+    public Shader Shader;
 
-    public ResourceLayout[] ResourceLayouts { get; set; }
+    public ResourceLayout[] ResourceLayouts;
 }

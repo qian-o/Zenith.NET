@@ -1,12 +1,12 @@
 ﻿namespace Zenith.NET;
 
-public struct FrameBufferAttachment
+public record struct FrameBufferAttachment
 {
-    public Texture Target { get; set; }
+    public Texture Target;
 
-    public uint FaceIndex { get; set; }
+    public uint FaceIndex;
 
-    public uint ArrayLayer { get; set; }
+    public uint ArrayLayer;
 
-    public uint MipLevel { get; set; }
+    public uint MipLevel;
 }

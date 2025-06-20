@@ -2,27 +2,27 @@
 
 namespace Zenith.NET;
 
-public struct RayTracingTriangles : IRayTracingGeometry
+public record struct RayTracingTriangles
 {
-    public Buffer VertexBuffer { get; set; }
+    public Buffer VertexBuffer;
 
-    public PixelFormat VertexFormat { get; set; }
+    public PixelFormat VertexFormat;
 
-    public uint VertexCount { get; set; }
+    public uint VertexCount;
 
-    public uint VertexStrideInBytes { get; set; }
+    public uint VertexStrideInBytes;
 
-    public uint VertexOffsetInBytes { get; set; }
+    public uint VertexOffsetInBytes;
 
-    public Buffer? IndexBuffer { get; set; }
+    public Buffer? IndexBuffer;
 
-    public IndexFormat IndexFormat { get; set; }
+    public IndexFormat IndexFormat;
 
-    public uint IndexCount { get; set; }
+    public uint IndexCount;
 
-    public uint IndexOffsetInBytes { get; set; }
+    public uint IndexOffsetInBytes;
 
-    public Matrix4x4 Transform { get; set; }
+    public Matrix4x4 Transform;
 
-    public RayTracingGeometryFlags Flags { get; set; }
+    public RayTracingGeometryFlags Flags;
 }

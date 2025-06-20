@@ -1,16 +1,16 @@
 ﻿namespace Zenith.NET;
 
-public struct GraphicsPipelineDesc
+public record struct GraphicsPipelineDesc
 {
-    public RenderStates RenderStates { get; set; }
+    public RenderStates RenderStates;
 
-    public GraphicsShaders Shaders { get; set; }
+    public GraphicsShaders Shaders;
 
-    public InputLayout[] InputLayouts { get; set; }
+    public InputLayout[] InputLayouts;
 
-    public ResourceLayout[] ResourceLayouts { get; set; }
+    public ResourceLayout[] ResourceLayouts;
 
-    public PrimitiveTopology PrimitiveTopology { get; set; }
+    public PrimitiveTopology PrimitiveTopology;
 
-    public Output Outputs { get; set; }
+    public Output Outputs;
 }

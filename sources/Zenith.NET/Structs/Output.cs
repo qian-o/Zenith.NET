@@ -1,10 +1,10 @@
 ﻿namespace Zenith.NET;
 
-public struct Output
+public record struct Output
 {
-    public PixelFormat[] ColorAttachments { get; set; }
+    public PixelFormat[] ColorAttachments;
 
-    public PixelFormat? DepthStencilAttachment { get; set; }
+    public PixelFormat? DepthStencilAttachment;
 
-    public SampleCount SampleCount { get; set; }
+    public SampleCount SampleCount;
 }

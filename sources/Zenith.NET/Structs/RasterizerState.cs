@@ -1,20 +1,20 @@
 ﻿namespace Zenith.NET;
 
-public struct RasterizerState
+public record struct RasterizerState
 {
-    public CullMode CullMode { get; set; }
+    public CullMode CullMode;
 
-    public FillMode FillMode { get; set; }
+    public FillMode FillMode;
 
-    public FrontFace FrontFace { get; set; }
+    public FrontFace FrontFace;
 
-    public int DepthBias { get; set; }
+    public int DepthBias;
 
-    public float DepthBiasClamp { get; set; }
+    public float DepthBiasClamp;
 
-    public float SlopeScaledDepthBias { get; set; }
+    public float SlopeScaledDepthBias;
 
-    public bool DepthClipEnable { get; set; }
+    public bool DepthClipEnable;
 
-    public bool ScissorEnable { get; set; }
+    public bool ScissorEnable;
 }

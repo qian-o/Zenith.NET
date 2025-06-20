@@ -1,10 +1,10 @@
 ﻿namespace Zenith.NET;
 
-public struct ShaderDesc
+public record struct ShaderDesc
 {
-    public byte[] ShaderBytes { get; set; }
+    public byte[] ShaderBytes;
 
-    public string EntryPoint { get; set; }
+    public string EntryPoint;
 
-    public ShaderStageFlags Stage { get; set; }
+    public ShaderStageFlags Stage;
 }

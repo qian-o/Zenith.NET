@@ -1,22 +1,22 @@
 ﻿namespace Zenith.NET;
 
-public struct TextureDesc
+public record struct TextureDesc
 {
-    public TextureType Type { get; set; }
+    public TextureType Type;
 
-    public PixelFormat Format { get; set; }
+    public PixelFormat Format;
 
-    public uint Width { get; set; }
+    public uint Width;
 
-    public uint Height { get; set; }
+    public uint Height;
 
-    public uint Depth { get; set; }
+    public uint Depth;
 
-    public uint ArrayLayers { get; set; }
+    public uint ArrayLayers;
 
-    public uint MipLevels { get; set; }
+    public uint MipLevels;
 
-    public SampleCount SampleCount { get; set; }
+    public SampleCount SampleCount;
 
-    public TextureUsageFlags Flags { get; set; }
+    public TextureUsageFlags Flags;
 }

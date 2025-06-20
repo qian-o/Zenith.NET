@@ -1,20 +1,20 @@
 ﻿namespace Zenith.NET;
 
-public struct BlendStateRenderTarget
+public record struct BlendStateRenderTarget
 {
-    public bool BlendEnable { get; set; }
+    public bool BlendEnable;
 
-    public Blend SrcBlend { get; set; }
+    public Blend SrcBlend;
 
-    public Blend DestBlend { get; set; }
+    public Blend DestBlend;
 
-    public BlendOp BlendOp { get; set; }
+    public BlendOp BlendOp;
 
-    public Blend SrcBlendAlpha { get; set; }
+    public Blend SrcBlendAlpha;
 
-    public Blend DestBlendAlpha { get; set; }
+    public Blend DestBlendAlpha;
 
-    public BlendOp BlendOpAlpha { get; set; }
+    public BlendOp BlendOpAlpha;
 
-    public ColorComponentFlags Flags { get; set; }
+    public ColorComponentFlags Flags;
 }

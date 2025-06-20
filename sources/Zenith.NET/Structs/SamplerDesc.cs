@@ -1,24 +1,24 @@
 ﻿namespace Zenith.NET;
 
-public struct SamplerDesc
+public record struct SamplerDesc
 {
-    public AddressMode U { get; set; }
+    public AddressMode U;
 
-    public AddressMode V { get; set; }
+    public AddressMode V;
 
-    public AddressMode W { get; set; }
+    public AddressMode W;
 
-    public Filter Filter { get; set; }
+    public Filter Filter;
 
-    public ComparisonFunc ComparisonFunc { get; set; }
+    public ComparisonFunc ComparisonFunc;
 
-    public uint MaxAnisotropy { get; set; }
+    public uint MaxAnisotropy;
 
-    public float MinLod { get; set; }
+    public float MinLod;
 
-    public float MaxLod { get; set; }
+    public float MaxLod;
 
-    public float LodBias { get; set; }
+    public float LodBias;
 
-    public BorderColor BorderColor { get; set; }
+    public BorderColor BorderColor;
 }

@@ -1,14 +1,14 @@
 ﻿namespace Zenith.NET;
 
-public struct RayTracingShaders
+public record struct RayTracingShaders
 {
-    public Shader RayGeneration { get; set; }
+    public Shader RayGeneration;
 
-    public Shader[] Miss { get; set; }
+    public Shader[] Miss;
 
-    public Shader[] AnyHit { get; set; }
+    public Shader[] AnyHit;
 
-    public Shader[] Intersection { get; set; }
+    public Shader[] Intersection;
 
-    public Shader[] ClosestHit { get; set; }
+    public Shader[] ClosestHit;
 }

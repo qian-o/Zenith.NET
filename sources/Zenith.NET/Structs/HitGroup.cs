@@ -1,14 +1,14 @@
 ﻿namespace Zenith.NET;
 
-public struct HitGroup
+public record struct HitGroup
 {
-    public HitGroupType Type { get; set; }
+    public HitGroupType Type;
 
-    public string Name { get; set; }
+    public string Name;
 
-    public string? AnyHit { get; set; }
+    public string? AnyHit;
 
-    public string? Intersection { get; set; }
+    public string? Intersection;
 
-    public string? ClosestHit { get; set; }
+    public string? ClosestHit;
 }

@@ -1,16 +1,16 @@
 ﻿namespace Zenith.NET;
 
-public struct Viewport
+public record struct Viewport
 {
-    public float X { get; set; }
+    public float X;
 
-    public float Y { get; set; }
+    public float Y;
 
-    public float Width { get; set; }
+    public float Width;
 
-    public float Height { get; set; }
+    public float Height;
 
-    public float MinDepth { get; set; }
+    public float MinDepth;
 
-    public float MaxDepth { get; set; }
+    public float MaxDepth;
 }

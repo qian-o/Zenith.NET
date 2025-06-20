@@ -1,12 +1,12 @@
 ﻿namespace Zenith.NET;
 
-public struct Scissor
+public record struct Scissor
 {
-    public int X { get; set; }
+    public int X;
 
-    public int Y { get; set; }
+    public int Y;
 
-    public uint Width { get; set; }
+    public uint Width;
 
-    public uint Height { get; set; }
+    public uint Height;
 }

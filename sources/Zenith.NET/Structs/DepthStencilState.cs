@@ -1,20 +1,20 @@
 ﻿namespace Zenith.NET;
 
-public struct DepthStencilState
+public record struct DepthStencilState
 {
-    public bool DepthEnable { get; set; }
+    public bool DepthEnable;
 
-    public bool DepthWriteEnable { get; set; }
+    public bool DepthWriteEnable;
 
-    public ComparisonFunc DepthFunc { get; set; }
+    public ComparisonFunc DepthFunc;
 
-    public bool StencilEnable { get; set; }
+    public bool StencilEnable;
 
-    public byte StencilReadMask { get; set; }
+    public byte StencilReadMask;
 
-    public byte StencilWriteMask { get; set; }
+    public byte StencilWriteMask;
 
-    public DepthStencilStateOp FrontFace { get; set; }
+    public DepthStencilStateOp FrontFace;
 
-    public DepthStencilStateOp BackFace { get; set; }
+    public DepthStencilStateOp BackFace;
 }

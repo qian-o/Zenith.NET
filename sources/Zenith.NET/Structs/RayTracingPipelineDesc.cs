@@ -1,16 +1,16 @@
 ﻿namespace Zenith.NET;
 
-public struct RayTracingPipelineDesc
+public record struct RayTracingPipelineDesc
 {
-    public RayTracingShaders Shaders { get; set; }
+    public RayTracingShaders Shaders;
 
-    public HitGroup[] HitGroups { get; set; }
+    public HitGroup[] HitGroups;
 
-    public ResourceLayout[] ResourceLayouts { get; set; }
+    public ResourceLayout[] ResourceLayouts;
 
-    public uint MaxTraceRecursionDepth { get; set; }
+    public uint MaxTraceRecursionDepth;
 
-    public uint MaxPayloadSizeInBytes { get; set; }
+    public uint MaxPayloadSizeInBytes;
 
-    public uint MaxAttributeSizeInBytes { get; set; }
+    public uint MaxAttributeSizeInBytes;
 }

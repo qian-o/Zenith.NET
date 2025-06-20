@@ -1,12 +1,12 @@
 ﻿namespace Zenith.NET;
 
-public struct ResourceElement
+public record struct ResourceElement
 {
-    public ResourceType Type { get; set; }
+    public ResourceType Type;
 
-    public uint Index { get; set; }
+    public uint Index;
 
-    public uint Count { get; set; }
+    public uint Count;
 
-    public ShaderStageFlags StageFlags { get; set; }
+    public ShaderStageFlags StageFlags;
 }

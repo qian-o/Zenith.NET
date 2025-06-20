@@ -1,14 +1,14 @@
 ﻿namespace Zenith.NET;
 
-public struct Surface
+public record struct Surface
 {
-    public SurfaceType Type { get; set; }
+    public SurfaceType Type;
 
-    public nint[] Handles { get; set; }
+    public nint[] Handles;
 
-    public uint Width { get; set; }
+    public uint Width;
 
-    public uint Height { get; set; }
+    public uint Height;
 
     public static Surface Win32(nint hwnd, uint width, uint height)
     {

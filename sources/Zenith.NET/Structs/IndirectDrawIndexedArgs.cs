@@ -1,14 +1,14 @@
 ﻿namespace Zenith.NET;
 
-public struct IndirectDrawIndexedArgs
+public record struct IndirectDrawIndexedArgs
 {
-    public uint IndexCount { get; set; }
+    public uint IndexCount;
 
-    public uint InstanceCount { get; set; }
+    public uint InstanceCount;
 
-    public uint FirstIndex { get; set; }
+    public uint FirstIndex;
 
-    public int VertexOffset { get; set; }
+    public int VertexOffset;
 
-    public uint FirstInstance { get; set; }
+    public uint FirstInstance;
 }

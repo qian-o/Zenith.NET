@@ -2,13 +2,13 @@
 
 namespace Zenith.NET;
 
-public struct ClearValue
+public record struct ClearValue
 {
-    public Vector4[] ColorValues { get; set; }
+    public Vector4[] ColorValues;
 
-    public float Depth { get; set; }
+    public float Depth;
 
-    public byte Stencil { get; set; }
+    public byte Stencil;
 
-    public ClearFlags Flags { get; set; }
+    public ClearFlags Flags;
 }

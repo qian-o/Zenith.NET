@@ -1,14 +1,14 @@
 ﻿namespace Zenith.NET;
 
-public struct RayTracingAABBs : IRayTracingGeometry
+public record struct RayTracingAABBs
 {
-    public Buffer Buffer { get; set; }
+    public Buffer Buffer;
 
-    public uint Count { get; set; }
+    public uint Count;
 
-    public uint StrideInBytes { get; set; }
+    public uint StrideInBytes;
 
-    public uint OffsetInBytes { get; set; }
+    public uint OffsetInBytes;
 
-    public RayTracingGeometryFlags Flags { get; set; }
+    public RayTracingGeometryFlags Flags;
 }

@@ -1,12 +1,12 @@
 ﻿namespace Zenith.NET;
 
-public struct InputElement
+public record struct InputElement
 {
-    public ElementFormat Format { get; set; }
+    public ElementFormat Format;
 
-    public ElementSemanticType Type { get; set; }
+    public ElementSemanticType Type;
 
-    public uint Index { get; set; }
+    public uint Index;
 
-    public uint OffsetInBytes { get; set; }
+    public uint OffsetInBytes;
 }

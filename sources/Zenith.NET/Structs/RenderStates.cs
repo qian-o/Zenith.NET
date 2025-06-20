@@ -2,15 +2,15 @@
 
 namespace Zenith.NET;
 
-public struct RenderStates
+public record struct RenderStates
 {
-    public RasterizerState RasterizerState { get; set; }
+    public RasterizerState RasterizerState;
 
-    public DepthStencilState DepthStencilState { get; set; }
+    public DepthStencilState DepthStencilState;
 
-    public BlendState BlendState { get; set; }
+    public BlendState BlendState;
 
-    public int StencilReference { get; set; }
+    public int StencilReference;
 
-    public Vector4? BlendFactor { get; set; }
+    public Vector4? BlendFactor;
 }

@@ -1,10 +1,10 @@
 ﻿namespace Zenith.NET;
 
-public struct InputLayout
+public record struct InputLayout
 {
-    public InputElement[] Elements { get; set; }
+    public InputElement[] Elements;
 
-    public uint StrideInBytes { get; set; }
+    public uint StrideInBytes;
 
     public InputLayout Add(InputElement element)
     {

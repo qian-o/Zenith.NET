@@ -1,10 +1,10 @@
 ﻿namespace Zenith.NET;
 
-public struct BufferDesc
+public record struct BufferDesc
 {
-    public uint SizeInBytes { get; set; }
+    public uint SizeInBytes;
 
-    public uint StrideInBytes { get; set; }
+    public uint StrideInBytes;
 
-    public BufferUsageFlags Flags { get; set; }
+    public BufferUsageFlags Flags;
 }

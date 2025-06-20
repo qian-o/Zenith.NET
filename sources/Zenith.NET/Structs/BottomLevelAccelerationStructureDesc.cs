@@ -1,8 +1,8 @@
 ﻿namespace Zenith.NET;
 
-public struct BottomLevelAccelerationStructureDesc
+public record struct BottomLevelAccelerationStructureDesc
 {
-    public IRayTracingGeometry[] Geometries { get; set; }
+    public RayTracingGeometry[] Geometries;
 
-    public AccelerationStructureBuildFlags Flags { get; set; }
+    public AccelerationStructureBuildFlags Flags;
 }
