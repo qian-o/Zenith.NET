@@ -2,7 +2,9 @@
 
 public abstract class FrameBuffer(GraphicsContext context, FrameBufferDesc desc) : GraphicsResource(context)
 {
-    public FrameBufferDesc Desc { get; } = desc;
+    private FrameBufferDesc desc = desc;
+
+    public ref readonly FrameBufferDesc Desc => ref desc;
 
     public abstract uint ColorAttachmentCount { get; }
 

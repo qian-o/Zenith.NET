@@ -2,5 +2,7 @@
 
 public abstract class Sampler(GraphicsContext context, SamplerDesc desc) : GraphicsResource(context)
 {
-    public SamplerDesc Desc { get; } = desc;
+    private SamplerDesc desc = desc;
+
+    public ref readonly SamplerDesc Desc => ref desc;
 }

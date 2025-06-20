@@ -2,7 +2,9 @@
 
 public abstract class Buffer(GraphicsContext context, BufferDesc desc) : GraphicsResource(context)
 {
-    public BufferDesc Desc { get; } = desc;
+    private BufferDesc desc = desc;
+
+    public ref readonly BufferDesc Desc => ref desc;
 
     public abstract nint SharedPointer { get; }
 

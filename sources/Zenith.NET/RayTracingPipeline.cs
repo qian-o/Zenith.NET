@@ -2,5 +2,7 @@
 
 public abstract class RayTracingPipeline(GraphicsContext context, RayTracingPipelineDesc desc) : Pipeline(context)
 {
-    public RayTracingPipelineDesc Desc { get; } = desc;
+    private RayTracingPipelineDesc desc = desc;
+
+    public ref readonly RayTracingPipelineDesc Desc => ref desc;
 }

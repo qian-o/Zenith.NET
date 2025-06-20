@@ -2,5 +2,7 @@
 
 public abstract class TopLevelAccelerationStructure(GraphicsContext context, TopLevelAccelerationStructureDesc desc) : GraphicsResource(context)
 {
-    public TopLevelAccelerationStructureDesc Desc { get; } = desc;
+    private TopLevelAccelerationStructureDesc desc = desc;
+
+    public ref readonly TopLevelAccelerationStructureDesc Desc => ref desc;
 }

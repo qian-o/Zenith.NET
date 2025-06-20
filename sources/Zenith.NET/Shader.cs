@@ -2,5 +2,7 @@
 
 public abstract class Shader(GraphicsContext context, ShaderDesc desc) : GraphicsResource(context)
 {
-    public ShaderDesc Desc { get; } = desc;
+    private ShaderDesc desc = desc;
+
+    public ref readonly ShaderDesc Desc => ref desc;
 }

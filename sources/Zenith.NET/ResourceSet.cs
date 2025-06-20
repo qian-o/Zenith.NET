@@ -2,5 +2,7 @@
 
 public abstract class ResourceSet(GraphicsContext context, ResourceSetDesc desc) : GraphicsResource(context)
 {
-    public ResourceSetDesc Desc { get; } = desc;
+    private ResourceSetDesc desc = desc;
+
+    public ref readonly ResourceSetDesc Desc => ref desc;
 }

@@ -2,5 +2,7 @@
 
 public abstract class ResourceLayout(GraphicsContext context, ResourceLayoutDesc desc) : GraphicsResource(context)
 {
-    public ResourceLayoutDesc Desc { get; } = desc;
+    private ResourceLayoutDesc desc = desc;
+
+    public ref readonly ResourceLayoutDesc Desc => ref desc;
 }

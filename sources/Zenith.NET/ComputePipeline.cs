@@ -2,5 +2,7 @@
 
 public abstract class ComputePipeline(GraphicsContext context, ComputePipelineDesc desc) : Pipeline(context)
 {
-    public ComputePipelineDesc Desc { get; } = desc;
+    private ComputePipelineDesc desc = desc;
+
+    public ref readonly ComputePipelineDesc Desc => ref desc;
 }

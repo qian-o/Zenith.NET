@@ -2,7 +2,9 @@
 
 public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : GraphicsResource(context)
 {
-    public SwapChainDesc Desc { get; private set; } = desc;
+    private SwapChainDesc desc = desc;
+
+    public ref readonly SwapChainDesc Desc => ref desc;
 
     public abstract FrameBuffer FrameBuffer { get; }
 
@@ -12,7 +14,7 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 
     public void Refresh(Surface surface)
     {
-        Desc = (Desc with
+        desc = (desc with
         {
             Surface = surface
         });

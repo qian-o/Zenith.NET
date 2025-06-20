@@ -2,5 +2,7 @@
 
 public abstract class BottomLevelAccelerationStructure(GraphicsContext context, BottomLevelAccelerationStructureDesc desc) : GraphicsResource(context)
 {
-    public BottomLevelAccelerationStructureDesc Desc { get; } = desc;
+    private BottomLevelAccelerationStructureDesc desc = desc;
+
+    public ref readonly BottomLevelAccelerationStructureDesc Desc => ref desc;
 }
