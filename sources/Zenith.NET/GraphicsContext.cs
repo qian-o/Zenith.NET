@@ -39,6 +39,11 @@ public abstract class GraphicsContext : DisposableObject
 
     public event EventHandler<DebugCallbackArgs>? DebugCallback;
 
+    internal void PublishDebugCallback(MessageCategory category, MessageSeverity severity, string message)
+    {
+        DebugCallback?.Invoke(this, new(category, severity, message));
+    }
+
     protected override void Destroy()
     {
         Direct.Dispose();

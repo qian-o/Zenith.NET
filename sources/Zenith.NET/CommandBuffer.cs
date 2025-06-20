@@ -27,9 +27,26 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     {
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 
+        if (Context.UseDebugLayer)
+        {
+            if (sizeInBytes is 0)
+            {
+                Context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             "Attempted to update a buffer with zero size.");
+            }
+
+            if (offsetInBytes + sizeInBytes > buffer.Desc.SizeInBytes)
+            {
+                Context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             "Buffer update exceeds buffer size.");
+            }
+        }
+
         Buffer temporary = Context.Uploader!.Buffer(this, sizeInBytes);
 
-        temporary.Upload(data, offsetInBytes);
+        temporary.Upload(data, 0);
 
         CopyBuffer(temporary, buffer, sizeInBytes, 0, offsetInBytes);
     }
@@ -42,12 +59,49 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     #endregion
 
     #region Texture Operations
-    public abstract void UpdateTexture<T>(Texture texture,
-                                          ReadOnlySpan<T> data,
-                                          TexturePosition position,
-                                          uint width,
-                                          uint height,
-                                          uint depth);
+    public void UpdateTexture<T>(Texture texture,
+                                 ReadOnlySpan<T> data,
+                                 TexturePosition position,
+                                 uint width,
+                                 uint height,
+                                 uint depth)
+    {
+        uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
+
+        if (Context.UseDebugLayer)
+        {
+            if (sizeInBytes is 0)
+            {
+                Context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             "Attempted to update a texture with zero size.");
+            }
+
+            if (position.X + width > texture.Desc.Width ||
+                position.Y + height > texture.Desc.Height ||
+                position.Z + depth > texture.Desc.Depth)
+            {
+                Context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             "Texture update exceeds texture dimensions.");
+            }
+        }
+
+        Buffer temporary = Context.Uploader!.Buffer(this, sizeInBytes);
+
+        temporary.Upload(data, 0);
+
+        CopyTexture(temporary, sizeInBytes, 0, texture, position, width, height, depth);
+    }
+
+    public abstract void CopyTexture(Buffer source,
+                                     uint sizeInBytes,
+                                     uint offsetInBytes,
+                                     Texture destination,
+                                     TexturePosition destinationPosition,
+                                     uint width,
+                                     uint height,
+                                     uint depth);
 
     public abstract void CopyTexture(Texture source,
                                      TexturePosition sourcePosition,
