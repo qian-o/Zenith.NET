@@ -35,9 +35,9 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        execution.Enqueue(commandBuffer);
-
         SubmitImpl(commandBuffer);
+
+        execution.Enqueue(commandBuffer);
     }
 
     protected abstract CommandBuffer CreateCommandBuffer();
