@@ -17,15 +17,9 @@ internal class BufferUploader(GraphicsContext context) : DisposableObject
             used[commandBuffer] = buffers = [];
         }
 
-        Buffer? buffer;
+        Buffer? buffer = available.FirstOrDefault(item => item.Desc.SizeInBytes >= sizeInBytes);
 
-        if (available.FindIndex(item => item.Desc.SizeInBytes >= sizeInBytes) is int index && index is not -1)
-        {
-            buffer = available[index];
-
-            available.RemoveAt(index);
-        }
-        else
+        if (buffer is null || !available.Remove(buffer))
         {
             sizeInBytes = Math.Max(sizeInBytes, MinBufferSize);
 
