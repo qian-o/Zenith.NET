@@ -31,23 +31,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     {
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 
-        if (Context.UseDebugLayer)
-        {
-            if (sizeInBytes is 0)
-            {
-                Context.PublishDebugCallback(MessageCategory.System,
-                                             MessageSeverity.Error,
-                                             "Attempted to update a buffer with zero size.");
-            }
-
-            if (offsetInBytes + sizeInBytes > buffer.Desc.SizeInBytes)
-            {
-                Context.PublishDebugCallback(MessageCategory.System,
-                                             MessageSeverity.Error,
-                                             "Buffer update exceeds buffer size.");
-            }
-        }
-
         Buffer temporary = Context.Uploader!.Buffer(this, sizeInBytes);
 
         temporary.Upload(data, 0);
@@ -71,25 +54,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
                                  uint depth)
     {
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
-
-        if (Context.UseDebugLayer)
-        {
-            if (sizeInBytes is 0)
-            {
-                Context.PublishDebugCallback(MessageCategory.System,
-                                             MessageSeverity.Error,
-                                             "Attempted to update a texture with zero size.");
-            }
-
-            if (position.X + width > texture.Desc.Width ||
-                position.Y + height > texture.Desc.Height ||
-                position.Z + depth > texture.Desc.Depth)
-            {
-                Context.PublishDebugCallback(MessageCategory.System,
-                                             MessageSeverity.Error,
-                                             "Texture update exceeds texture dimensions.");
-            }
-        }
 
         Buffer temporary = Context.Uploader!.Buffer(this, sizeInBytes);
 
