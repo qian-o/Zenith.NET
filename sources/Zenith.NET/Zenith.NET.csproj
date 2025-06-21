@@ -1,3 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+    <PropertyGroup>
+        <NoWarn>IDE0130</NoWarn>
+    </PropertyGroup>
+
 </Project>
