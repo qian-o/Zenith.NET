@@ -17,21 +17,15 @@ internal class BufferUploader(GraphicsContext context) : DisposableObject
             used[commandBuffer] = buffers = [];
         }
 
-        Buffer? buffer = null;
+        Buffer? buffer;
 
-        foreach (Buffer item in available)
+        if (available.FindIndex(item => item.Desc.SizeInBytes >= sizeInBytes) is int index && index is not -1)
         {
-            if (item.Desc.SizeInBytes >= sizeInBytes)
-            {
-                buffer = item;
+            buffer = available[index];
 
-                available.Remove(item);
-
-                break;
-            }
+            available.RemoveAt(index);
         }
-
-        if (buffer is null)
+        else
         {
             sizeInBytes = Math.Max(sizeInBytes, MinBufferSize);
 
@@ -52,11 +46,9 @@ internal class BufferUploader(GraphicsContext context) : DisposableObject
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        if (used.TryGetValue(commandBuffer, out Buffer[]? buffers))
+        if (used.Remove(commandBuffer, out Buffer[]? buffers))
         {
             available.AddRange(buffers);
-
-            used.Remove(commandBuffer);
         }
     }
 
