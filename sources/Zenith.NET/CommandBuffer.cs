@@ -11,15 +11,19 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public abstract void End();
 
-    public virtual void Reset()
-    {
-        Context.Uploader!.Release(this);
-    }
-
-    public virtual void Submit()
+    public void Submit()
     {
         Queue.Submit(this);
     }
+
+    public void Reset()
+    {
+        Context.Uploader!.Release(this);
+
+        ResetImpl();
+    }
+
+    protected abstract void ResetImpl();
     #endregion
 
     #region Buffer Operations

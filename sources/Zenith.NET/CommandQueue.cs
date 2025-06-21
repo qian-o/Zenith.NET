@@ -3,8 +3,8 @@
 public abstract class CommandQueue(GraphicsContext context, CommandQueueType type) : GraphicsResource(context)
 {
     private readonly Lock @lock = new();
-    private readonly List<CommandBuffer> available = [];
-    private readonly List<CommandBuffer> execution = [];
+    private readonly Queue<CommandBuffer> available = [];
+    private readonly Queue<CommandBuffer> execution = [];
 
     public CommandQueueType Type { get; } = type;
 
@@ -12,21 +12,7 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        CommandBuffer commandBuffer;
-
-        if (available.Count > 0)
-        {
-            commandBuffer = available[0];
-            commandBuffer.Reset();
-
-            available.RemoveAt(0);
-        }
-        else
-        {
-            commandBuffer = CreateCommandBuffer();
-        }
-
-        return commandBuffer;
+        return available.Count is 0 ? CreateCommandBuffer() : available.Dequeue();
     }
 
     public void WaitIdle()
@@ -35,7 +21,13 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
         WaitIdleImpl();
 
-        available.AddRange(execution);
+        foreach (CommandBuffer commandBuffer in execution)
+        {
+            commandBuffer.Reset();
+
+            available.Enqueue(commandBuffer);
+        }
+
         execution.Clear();
     }
 
@@ -43,9 +35,9 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        SubmitImpl(commandBuffer);
+        execution.Enqueue(commandBuffer);
 
-        execution.Add(commandBuffer);
+        SubmitImpl(commandBuffer);
     }
 
     protected abstract CommandBuffer CreateCommandBuffer();
