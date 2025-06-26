@@ -4,7 +4,7 @@ namespace Zenith.NET;
 
 public record struct RayTracingTriangles
 {
-    public Buffer VertexBuffer;
+    public IBufferResource VertexBuffer;
 
     public PixelFormat VertexFormat;
 
@@ -14,7 +14,7 @@ public record struct RayTracingTriangles
 
     public uint VertexOffsetInBytes;
 
-    public Buffer? IndexBuffer;
+    public IBufferResource? IndexBuffer;
 
     public IndexFormat IndexFormat;
 

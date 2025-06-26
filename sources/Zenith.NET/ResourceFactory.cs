@@ -54,6 +54,16 @@ public abstract class ResourceFactory(GraphicsContext context)
         return CreateTextureImpl(desc);
     }
 
+    public TextureSubresource CreateTextureSubresource(TextureSubresourceDesc desc)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("TextureSubresource validation is not implemented yet.");
+        }
+
+        return CreateTextureSubresourceImpl(desc);
+    }
+
     public Sampler CreateSampler(SamplerDesc desc)
     {
         if (Context.UseDebugLayer)
@@ -133,6 +143,8 @@ public abstract class ResourceFactory(GraphicsContext context)
     protected abstract BufferSubresource CreateBufferSubresourceImpl(BufferSubresourceDesc desc);
 
     protected abstract Texture CreateTextureImpl(TextureDesc desc);
+
+    protected abstract TextureSubresource CreateTextureSubresourceImpl(TextureSubresourceDesc desc);
 
     protected abstract Sampler CreateSamplerImpl(SamplerDesc desc);
 
