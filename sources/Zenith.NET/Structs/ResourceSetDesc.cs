@@ -4,5 +4,5 @@ public record struct ResourceSetDesc
 {
     public ResourceLayout Layout;
 
-    public GraphicsResource[] Resources;
+    public IBindableResource[] Resources;
 }

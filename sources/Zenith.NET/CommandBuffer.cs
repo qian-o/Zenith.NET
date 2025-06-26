@@ -18,7 +18,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Reset()
     {
-        Context.Uploader!.Release(this);
+        Context.Uploader.Release(this);
 
         ResetImpl();
     }
@@ -27,62 +27,68 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     #endregion
 
     #region Buffer Operations
-    public void UpdateBuffer<T>(Buffer buffer, ReadOnlySpan<T> data, uint offsetInBytes = 0)
+    public void UpdateBuffer<T>(ReadOnlySpan<T> data,
+                                IBufferResource buffer,
+                                uint offsetInBytes)
     {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Buffer upload validation is not implemented yet.");
+        }
+
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 
-        Buffer temporary = Context.Uploader!.Buffer(this, sizeInBytes);
-
+        Buffer temporary = Context.Uploader.Buffer(this, sizeInBytes);
         temporary.Upload(data, 0);
 
-        CopyBuffer(temporary, buffer, sizeInBytes, 0, offsetInBytes);
+        CopyBuffer(temporary, 0, buffer, offsetInBytes, sizeInBytes);
     }
 
-    public abstract void CopyBuffer(Buffer source,
-                                    Buffer destination,
-                                    uint sizeInBytes = 0,
-                                    uint sourceOffsetInBytes = 0,
-                                    uint destinationOffsetInBytes = 0);
+    public abstract void CopyBuffer(IBufferResource source,
+                                    uint sourceOffsetInBytes,
+                                    IBufferResource destination,
+                                    uint destinationOffsetInBytes,
+                                    uint sizeInBytes);
     #endregion
 
     #region Texture Operations
-    public void UpdateTexture<T>(Texture texture,
-                                 ReadOnlySpan<T> data,
-                                 TexturePosition position,
-                                 uint width,
-                                 uint height,
-                                 uint depth)
+    public void UpdateTexture<T>(ReadOnlySpan<T> data,
+                                 ITextureResource texture,
+                                 TextureSlice slice,
+                                 TextureOffset offset,
+                                 TextureExtent extent)
     {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Texture upload validation is not implemented yet.");
+        }
+
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 
-        Buffer temporary = Context.Uploader!.Buffer(this, sizeInBytes);
-
+        Buffer temporary = Context.Uploader.Buffer(this, sizeInBytes);
         temporary.Upload(data, 0);
 
-        CopyTexture(temporary, sizeInBytes, 0, texture, position, width, height, depth);
+        CopyTexture(temporary, 0, sizeInBytes, texture, slice, offset, extent);
     }
 
-    public abstract void CopyTexture(Buffer source,
-                                     uint sizeInBytes,
+    public abstract void CopyTexture(IBufferResource buffer,
                                      uint offsetInBytes,
-                                     Texture destination,
-                                     TexturePosition destinationPosition,
-                                     uint width,
-                                     uint height,
-                                     uint depth);
+                                     uint sizeInBytes,
+                                     ITextureResource texture,
+                                     TextureSlice slice,
+                                     TextureOffset offset,
+                                     TextureExtent extent);
 
-    public abstract void CopyTexture(Texture source,
-                                     TexturePosition sourcePosition,
-                                     Texture destination,
-                                     TexturePosition destinationPosition,
-                                     uint width,
-                                     uint height,
-                                     uint depth);
+    public abstract void CopyTexture(ITextureResource source,
+                                     TextureOffset sourceOffset,
+                                     ITextureResource destination,
+                                     TextureOffset destinationOffset,
+                                     TextureExtent extent);
 
-    public abstract void ResolveTexture(Texture source,
-                                        TexturePosition sourcePosition,
-                                        Texture destination,
-                                        TexturePosition destinationPosition);
+    public abstract void ResolveTexture(ITextureResource source,
+                                        TextureOffset sourceOffset,
+                                        ITextureResource destination,
+                                        TextureOffset destinationOffset);
     #endregion
 
     #region Acceleration Structure Operations
@@ -158,6 +164,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected override void Destroy()
     {
-        Context.Uploader!.Release(this);
+        Context.Uploader.Release(this);
     }
 }

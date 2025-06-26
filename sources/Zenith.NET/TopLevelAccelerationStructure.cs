@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public abstract class TopLevelAccelerationStructure(GraphicsContext context, TopLevelAccelerationStructureDesc desc) : GraphicsResource(context)
+public abstract class TopLevelAccelerationStructure(GraphicsContext context, TopLevelAccelerationStructureDesc desc) : GraphicsResource(context), IBindableResource
 {
     private TopLevelAccelerationStructureDesc desc = desc;
 

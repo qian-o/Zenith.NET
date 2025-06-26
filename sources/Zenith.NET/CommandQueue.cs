@@ -21,14 +21,12 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
         WaitIdleImpl();
 
-        foreach (CommandBuffer commandBuffer in execution)
+        while (execution.TryDequeue(out CommandBuffer? commandBuffer))
         {
             commandBuffer.Reset();
 
             available.Enqueue(commandBuffer);
         }
-
-        execution.Clear();
     }
 
     internal void Submit(CommandBuffer commandBuffer)
@@ -48,16 +46,14 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
     protected override void Destroy()
     {
-        foreach (CommandBuffer commandBuffer in available)
+        while (available.TryDequeue(out CommandBuffer? commandBuffer))
         {
             commandBuffer.Dispose();
         }
-        available.Clear();
 
-        foreach (CommandBuffer commandBuffer in execution)
+        while (execution.TryDequeue(out CommandBuffer? commandBuffer))
         {
             commandBuffer.Dispose();
         }
-        execution.Clear();
     }
 }

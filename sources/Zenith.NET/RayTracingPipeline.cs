@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public abstract class RayTracingPipeline(GraphicsContext context, RayTracingPipelineDesc desc) : Pipeline(context)
+public abstract class RayTracingPipeline(GraphicsContext context, RayTracingPipelineDesc desc) : GraphicsResource(context), IPipeline
 {
     private RayTracingPipelineDesc desc = desc;
 
