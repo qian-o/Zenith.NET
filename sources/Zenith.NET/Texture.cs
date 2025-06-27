@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public abstract class Texture(GraphicsContext context, TextureDesc desc) : GraphicsResource(context), IBindableResource, ITexture
+public abstract class Texture(GraphicsContext context, TextureDesc desc) : GraphicsResource(context), ITexture
 {
     private TextureDesc desc = desc;
 
