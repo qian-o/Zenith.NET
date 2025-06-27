@@ -8,87 +8,60 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
-            throw new NotImplementedException("SwapChain validation is not implemented yet.");
         }
 
         return CreateSwapChainImpl(desc);
-    }
-
-    public FrameBuffer CreateFrameBuffer(FrameBufferDesc desc)
-    {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("FrameBuffer validation is not implemented yet.");
-        }
-
-        return CreateFrameBufferImpl(desc);
     }
 
     public Buffer CreateBuffer(BufferDesc desc)
     {
         if (Context.UseDebugLayer)
         {
-            throw new NotImplementedException("Buffer validation is not implemented yet.");
         }
 
         return CreateBufferImpl(desc);
     }
 
-    public BufferSubresource CreateBufferSubresource(BufferSubresourceDesc desc)
+    public BufferView CreateBufferView(BufferViewDesc desc)
     {
         if (Context.UseDebugLayer)
         {
-            throw new NotImplementedException("BufferSubresource validation is not implemented yet.");
         }
 
-        return CreateBufferSubresourceImpl(desc);
+        return CreateBufferViewImpl(desc);
     }
 
     public Texture CreateTexture(TextureDesc desc)
     {
         if (Context.UseDebugLayer)
         {
-            throw new NotImplementedException("Texture validation is not implemented yet.");
         }
 
         return CreateTextureImpl(desc);
     }
 
-    public TextureSubresource CreateTextureSubresource(TextureSubresourceDesc desc)
+    public TextureView CreateTextureView(TextureViewDesc desc)
     {
         if (Context.UseDebugLayer)
         {
-            throw new NotImplementedException("TextureSubresource validation is not implemented yet.");
         }
 
-        return CreateTextureSubresourceImpl(desc);
+        return CreateTextureViewImpl(desc);
     }
 
     public Sampler CreateSampler(SamplerDesc desc)
     {
         if (Context.UseDebugLayer)
         {
-            throw new NotImplementedException("Sampler validation is not implemented yet.");
         }
 
         return CreateSamplerImpl(desc);
-    }
-
-    public Shader CreateShader(ShaderDesc desc)
-    {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Shader validation is not implemented yet.");
-        }
-
-        return CreateShaderImpl(desc);
     }
 
     public ResourceLayout CreateResourceLayout(ResourceLayoutDesc desc)
     {
         if (Context.UseDebugLayer)
         {
-            throw new NotImplementedException("ResourceLayout validation is not implemented yet.");
         }
 
         return CreateResourceLayoutImpl(desc);
@@ -98,17 +71,33 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
-            throw new NotImplementedException("ResourceSet validation is not implemented yet.");
         }
 
         return CreateResourceSetImpl(desc);
+    }
+
+    public FrameBuffer CreateFrameBuffer(FrameBufferDesc desc)
+    {
+        if (Context.UseDebugLayer)
+        {
+        }
+
+        return CreateFrameBufferImpl(desc);
+    }
+
+    public Shader CreateShader(ShaderDesc desc)
+    {
+        if (Context.UseDebugLayer)
+        {
+        }
+
+        return CreateShaderImpl(desc);
     }
 
     public GraphicsPipeline CreateGraphicsPipeline(GraphicsPipelineDesc desc)
     {
         if (Context.UseDebugLayer)
         {
-            throw new NotImplementedException("GraphicsPipeline validation is not implemented yet.");
         }
 
         return CreateGraphicsPipelineImpl(desc);
@@ -118,7 +107,6 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
-            throw new NotImplementedException("ComputePipeline validation is not implemented yet.");
         }
 
         return CreateComputePipelineImpl(desc);
@@ -128,7 +116,6 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
-            throw new NotImplementedException("RayTracingPipeline validation is not implemented yet.");
         }
 
         return CreateRayTracingPipelineImpl(desc);
@@ -136,23 +123,23 @@ public abstract class ResourceFactory(GraphicsContext context)
 
     protected abstract SwapChain CreateSwapChainImpl(SwapChainDesc desc);
 
-    protected abstract FrameBuffer CreateFrameBufferImpl(FrameBufferDesc desc);
-
     protected abstract Buffer CreateBufferImpl(BufferDesc desc);
 
-    protected abstract BufferSubresource CreateBufferSubresourceImpl(BufferSubresourceDesc desc);
+    protected abstract BufferView CreateBufferViewImpl(BufferViewDesc desc);
 
     protected abstract Texture CreateTextureImpl(TextureDesc desc);
 
-    protected abstract TextureSubresource CreateTextureSubresourceImpl(TextureSubresourceDesc desc);
+    protected abstract TextureView CreateTextureViewImpl(TextureViewDesc desc);
 
     protected abstract Sampler CreateSamplerImpl(SamplerDesc desc);
-
-    protected abstract Shader CreateShaderImpl(ShaderDesc desc);
 
     protected abstract ResourceLayout CreateResourceLayoutImpl(ResourceLayoutDesc desc);
 
     protected abstract ResourceSet CreateResourceSetImpl(ResourceSetDesc desc);
+
+    protected abstract FrameBuffer CreateFrameBufferImpl(FrameBufferDesc desc);
+
+    protected abstract Shader CreateShaderImpl(ShaderDesc desc);
 
     protected abstract GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc);
 

@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public abstract class DisposableObject : IDisposable
+public abstract class DisposableObject : IDisposableObject
 {
     private volatile uint isDisposed;
 

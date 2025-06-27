@@ -1,14 +1,14 @@
 ﻿namespace Zenith.NET;
 
-public record struct TextureSubresourceDesc
+public record struct TextureViewDesc
 {
     public Texture Texture;
-
-    public TextureType Type;
 
     public uint MipLevel;
 
     public uint FirstLayer;
 
     public uint LayerCount;
+
+    public TextureUsageFlags? Flags;
 }

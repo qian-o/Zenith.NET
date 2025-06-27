@@ -1,10 +1,10 @@
 ﻿namespace Zenith.NET;
 
-public abstract class TextureSubresource(GraphicsContext context, TextureSubresourceDesc desc) : GraphicsResource(context), IBindableResource, ITextureResource
+public abstract class TextureView(GraphicsContext context, TextureViewDesc desc) : GraphicsResource(context), ITexture
 {
-    private TextureSubresourceDesc desc = desc;
+    private TextureViewDesc desc = desc;
 
-    public ref readonly TextureSubresourceDesc Desc => ref desc;
+    public ref readonly TextureViewDesc Desc => ref desc;
 
     public void Upload<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent)
     {

@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public interface ITextureResource
+public interface ITexture : IBindableResource, IDisposableObject
 {
     void Upload<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent);
 }

@@ -1,7 +1,7 @@
 <Solution>
   <Folder Name="/Extensions/">
     <Project Path="sources/Extensions/Zenith.NET.Extensions.ImGui/Zenith.NET.Extensions.ImGui.csproj" Id="2d092843-bf32-420b-94f9-4a6ce9a23b7c" />
-    <Project Path="sources/Extensions/Zenith.NET.Extensions.SlangCompiler/Zenith.NET.Extensions.SlangCompiler.csproj" Id="23822758-c92b-4f72-a6c0-66391cc74e84" />
+    <Project Path="sources/Extensions/Zenith.NET.Extensions.Slang/Zenith.NET.Extensions.Slang.csproj" Id="e4d4df69-7b50-489f-8d74-00366efe5915" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="sources/Directory.Build.props" />

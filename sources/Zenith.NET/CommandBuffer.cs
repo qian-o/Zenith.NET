@@ -28,7 +28,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     #region Buffer Operations
     public void UpdateBuffer<T>(ReadOnlySpan<T> data,
-                                IBufferResource buffer,
+                                IBuffer buffer,
                                 uint offsetInBytes)
     {
         if (Context.UseDebugLayer)
@@ -44,16 +44,16 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CopyBuffer(temporary, 0, buffer, offsetInBytes, sizeInBytes);
     }
 
-    public abstract void CopyBuffer(IBufferResource source,
+    public abstract void CopyBuffer(IBuffer source,
                                     uint sourceOffsetInBytes,
-                                    IBufferResource destination,
+                                    IBuffer destination,
                                     uint destinationOffsetInBytes,
                                     uint sizeInBytes);
     #endregion
 
     #region Texture Operations
     public void UpdateTexture<T>(ReadOnlySpan<T> data,
-                                 ITextureResource texture,
+                                 ITexture texture,
                                  TextureSlice slice,
                                  TextureOffset offset,
                                  TextureExtent extent)
@@ -71,23 +71,23 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CopyTexture(temporary, 0, sizeInBytes, texture, slice, offset, extent);
     }
 
-    public abstract void CopyTexture(IBufferResource buffer,
+    public abstract void CopyTexture(IBuffer buffer,
                                      uint offsetInBytes,
                                      uint sizeInBytes,
-                                     ITextureResource texture,
+                                     ITexture texture,
                                      TextureSlice slice,
                                      TextureOffset offset,
                                      TextureExtent extent);
 
-    public abstract void CopyTexture(ITextureResource source,
+    public abstract void CopyTexture(ITexture source,
                                      TextureOffset sourceOffset,
-                                     ITextureResource destination,
+                                     ITexture destination,
                                      TextureOffset destinationOffset,
                                      TextureExtent extent);
 
-    public abstract void ResolveTexture(ITextureResource source,
+    public abstract void ResolveTexture(ITexture source,
                                         TextureOffset sourceOffset,
-                                        ITextureResource destination,
+                                        ITexture destination,
                                         TextureOffset destinationOffset);
     #endregion
 
