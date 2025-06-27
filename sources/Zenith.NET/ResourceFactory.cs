@@ -34,14 +34,14 @@ public abstract class ResourceFactory(GraphicsContext context)
         return CreateBufferImpl(desc);
     }
 
-    public BufferSubresource CreateBufferSubresource(BufferSubresourceDesc desc)
+    public BufferView CreateBufferView(BufferViewDesc desc)
     {
         if (Context.UseDebugLayer)
         {
-            throw new NotImplementedException("BufferSubresource validation is not implemented yet.");
+            throw new NotImplementedException("BufferView validation is not implemented yet.");
         }
 
-        return CreateBufferSubresourceImpl(desc);
+        return CreateBufferViewImpl(desc);
     }
 
     public Texture CreateTexture(TextureDesc desc)
@@ -54,14 +54,14 @@ public abstract class ResourceFactory(GraphicsContext context)
         return CreateTextureImpl(desc);
     }
 
-    public TextureSubresource CreateTextureSubresource(TextureSubresourceDesc desc)
+    public TextureView CreateTextureView(TextureViewDesc desc)
     {
         if (Context.UseDebugLayer)
         {
-            throw new NotImplementedException("TextureSubresource validation is not implemented yet.");
+            throw new NotImplementedException("TextureView validation is not implemented yet.");
         }
 
-        return CreateTextureSubresourceImpl(desc);
+        return CreateTextureViewImpl(desc);
     }
 
     public Sampler CreateSampler(SamplerDesc desc)
@@ -140,11 +140,11 @@ public abstract class ResourceFactory(GraphicsContext context)
 
     protected abstract Buffer CreateBufferImpl(BufferDesc desc);
 
-    protected abstract BufferSubresource CreateBufferSubresourceImpl(BufferSubresourceDesc desc);
+    protected abstract BufferView CreateBufferViewImpl(BufferViewDesc desc);
 
     protected abstract Texture CreateTextureImpl(TextureDesc desc);
 
-    protected abstract TextureSubresource CreateTextureSubresourceImpl(TextureSubresourceDesc desc);
+    protected abstract TextureView CreateTextureViewImpl(TextureViewDesc desc);
 
     protected abstract Sampler CreateSamplerImpl(SamplerDesc desc);
 

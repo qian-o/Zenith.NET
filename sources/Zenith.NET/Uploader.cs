@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-internal class BufferUploader(GraphicsContext context) : DisposableObject
+internal class Uploader(GraphicsContext context) : DisposableObject
 {
     private const uint MinBufferSize = 1024 * 4;
 

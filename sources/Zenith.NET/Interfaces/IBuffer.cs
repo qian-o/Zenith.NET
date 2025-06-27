@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public interface IBufferResource
+public interface IBuffer
 {
     nint Pointer { get; }
 

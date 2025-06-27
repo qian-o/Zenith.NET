@@ -1,10 +1,10 @@
 ﻿namespace Zenith.NET;
 
-public abstract class BufferSubresource(GraphicsContext context, BufferSubresourceDesc desc) : GraphicsResource(context), IBindableResource, IBufferResource
+public abstract class BufferView(GraphicsContext context, BufferViewDesc desc) : GraphicsResource(context), IBindableResource, IBuffer
 {
-    private BufferSubresourceDesc desc = desc;
+    private BufferViewDesc desc = desc;
 
-    public ref readonly BufferSubresourceDesc Desc => ref desc;
+    public ref readonly BufferViewDesc Desc => ref desc;
 
     public abstract nint Pointer { get; }
 

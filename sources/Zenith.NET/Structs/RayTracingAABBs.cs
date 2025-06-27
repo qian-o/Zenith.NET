@@ -2,7 +2,7 @@
 
 public record struct RayTracingAABBs
 {
-    public IBufferResource Buffer;
+    public IBuffer Buffer;
 
     public uint Count;
 

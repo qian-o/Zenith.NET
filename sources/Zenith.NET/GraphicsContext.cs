@@ -35,7 +35,7 @@ public abstract class GraphicsContext : DisposableObject
 
     public CommandQueue Copy { get; }
 
-    internal BufferUploader Uploader { get; }
+    internal Uploader Uploader { get; }
 
     public event EventHandler<DebugCallbackArgs>? DebugCallback;
 
