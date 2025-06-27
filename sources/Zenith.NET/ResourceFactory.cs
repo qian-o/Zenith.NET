@@ -4,7 +4,7 @@ public abstract class ResourceFactory(GraphicsContext context)
 {
     public GraphicsContext Context { get; } = context;
 
-    internal Validator Validator { get; } = new(context);
+    internal ResourceValidator Validator { get; } = new(context);
 
     public SwapChain CreateSwapChain(SwapChainDesc desc)
     {
