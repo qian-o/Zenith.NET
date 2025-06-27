@@ -20,6 +20,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Validator.ValidateBufferDesc(desc);
         }
 
         return CreateBufferImpl(desc);
@@ -29,6 +30,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Validator.ValidateBufferViewDesc(desc);
         }
 
         return CreateBufferViewImpl(desc);

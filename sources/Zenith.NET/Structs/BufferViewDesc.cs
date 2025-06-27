@@ -7,6 +7,4 @@ public record struct BufferViewDesc
     public uint OffsetInBytes;
 
     public uint SizeInBytes;
-
-    public BufferUsageFlags? Flags;
 }

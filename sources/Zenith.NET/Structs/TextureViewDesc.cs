@@ -9,6 +9,4 @@ public record struct TextureViewDesc
     public uint FirstLayer;
 
     public uint LayerCount;
-
-    public TextureUsageFlags? Flags;
 }

@@ -32,6 +32,49 @@ internal class ResourceValidator(GraphicsContext context)
         }
     }
 
+    public void ValidateBufferDesc(BufferDesc desc)
+    {
+        if (desc.SizeInBytes is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Buffer size must be greater than zero.");
+        }
+
+        if (desc.StrideInBytes is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Warning, "Buffer stride is zero. This may lead to unexpected behavior, especially when using structured buffers. Consider setting a non-zero stride.");
+        }
+
+        if (desc.Flags is BufferUsageFlags.None)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Buffer usage flags cannot be None. At least one flag must be set.");
+        }
+    }
+
+    public void ValidateBufferViewDesc(BufferViewDesc desc)
+    {
+        if (desc.Buffer?.IsDisposed is not false)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Buffer view must reference a valid buffer that is not disposed.");
+        }
+        else
+        {
+            if (desc.OffsetInBytes + desc.SizeInBytes > desc.Buffer.Desc.SizeInBytes)
+            {
+                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Buffer view size exceeds the buffer size. Ensure that OffsetInBytes + SizeInBytes does not exceed the buffer's SizeInBytes.");
+            }
+
+            if (desc.SizeInBytes is 0)
+            {
+                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Buffer view size must be greater than zero.");
+            }
+
+            if (desc.SizeInBytes % desc.Buffer.Desc.StrideInBytes is not 0)
+            {
+                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Warning, "Buffer view size is not a multiple of the buffer's stride. This may lead to unexpected behavior, especially when using structured buffers.");
+            }
+        }
+    }
+
     private void ValidateSurface(Surface surface)
     {
         if (!Enum.IsDefined(surface.Type))
