@@ -60,6 +60,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Validator.ValidateSamplerDesc(desc);
         }
 
         return CreateSamplerImpl(desc);

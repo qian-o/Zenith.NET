@@ -145,6 +145,59 @@ internal class ResourceValidator(GraphicsContext context)
         }
     }
 
+    public void ValidateSamplerDesc(SamplerDesc desc)
+    {
+        if (!Enum.IsDefined(desc.U))
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid U address mode: {desc.U}. Supported modes are: {string.Join(", ", Enum.GetNames<AddressMode>())}.");
+        }
+
+        if (!Enum.IsDefined(desc.V))
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid V address mode: {desc.V}. Supported modes are: {string.Join(", ", Enum.GetNames<AddressMode>())}.");
+        }
+
+        if (!Enum.IsDefined(desc.W))
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid W address mode: {desc.W}. Supported modes are: {string.Join(", ", Enum.GetNames<AddressMode>())}.");
+        }
+
+        if (!Enum.IsDefined(desc.Filter))
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid filter: {desc.Filter}. Supported filters are: {string.Join(", ", Enum.GetNames<Filter>())}.");
+        }
+
+        if (!Enum.IsDefined(desc.ComparisonFunc))
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid comparison function: {desc.ComparisonFunc}. Supported functions are: {string.Join(", ", Enum.GetNames<ComparisonFunc>())}.");
+        }
+
+        if (desc.MaxAnisotropy is not 1 and not 2 and not 4 and not 8 and not 16)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid max anisotropy: {desc.MaxAnisotropy}. Supported values are: 1, 2, 4, 8, or 16.");
+        }
+
+        if (desc.MinLod < 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "MinLod must be greater than or equal to zero.");
+        }
+
+        if (desc.MaxLod < desc.MinLod)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "MaxLod must be greater than or equal to MinLod.");
+        }
+
+        if (desc.LodBias < -16 || desc.LodBias > 16)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "LodBias must be between -16 and 16.");
+        }
+
+        if (!Enum.IsDefined(desc.BorderColor))
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid border color: {desc.BorderColor}. Supported colors are: {string.Join(", ", Enum.GetNames<BorderColor>())}.");
+        }
+    }
+
     private void ValidateSurface(Surface surface)
     {
         if (!Enum.IsDefined(surface.Type))
