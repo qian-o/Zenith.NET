@@ -9,15 +9,15 @@ public enum BufferUsageFlags
 
     IndexBuffer = 1 << 1,
 
-    ConstantBuffer = 1 << 2,
+    IndirectBuffer = 1 << 2,
 
-    ShaderResource = 1 << 3,
+    ConstantBuffer = 1 << 3,
 
-    UnorderedAccess = 1 << 4,
+    AccelerationStructure = 1 << 4,
 
-    AccelerationStructure = 1 << 5,
+    ShaderReadOnly = 1 << 5,
 
-    IndirectBuffer = 1 << 6,
+    ShaderReadWrite = 1 << 6,
 
     Dynamic = 1 << 7
 }

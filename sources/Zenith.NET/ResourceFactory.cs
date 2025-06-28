@@ -40,6 +40,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Validator.ValidateTextureDesc(desc);
         }
 
         return CreateTextureImpl(desc);
@@ -49,6 +50,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Validator.ValidateTextureViewDesc(desc);
         }
 
         return CreateTextureViewImpl(desc);

@@ -5,11 +5,11 @@ public enum TextureUsageFlags
 {
     None = 0,
 
-    ShaderResource = 1 << 0,
+    RenderTarget = 1 << 0,
 
-    UnorderedAccess = 1 << 1,
+    DepthStencil = 1 << 1,
 
-    RenderTarget = 1 << 2,
+    ShaderReadOnly = 1 << 2,
 
-    DepthStencil = 1 << 3
+    ShaderReadWrite = 1 << 3
 }
