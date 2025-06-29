@@ -70,6 +70,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Validator.ValidateResourceLayoutDesc(desc);
         }
 
         return CreateResourceLayoutImpl(desc);
@@ -79,6 +80,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Validator.ValidateResourceSetDesc(desc);
         }
 
         return CreateResourceSetImpl(desc);

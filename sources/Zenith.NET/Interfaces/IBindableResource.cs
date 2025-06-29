@@ -1,3 +1,3 @@
 ﻿namespace Zenith.NET;
 
-public interface IBindableResource;
+public interface IBindableResource : IDisposableObject;

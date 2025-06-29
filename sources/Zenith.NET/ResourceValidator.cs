@@ -79,8 +79,6 @@ internal class ResourceValidator(GraphicsContext context)
         if (!Enum.IsDefined(desc.Type))
         {
             context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid texture type: {desc.Type}. Supported types are: {string.Join(", ", Enum.GetNames<TextureType>())}.");
-
-            return;
         }
 
         if (desc.Type is TextureType.Texture1D or TextureType.Texture1DArray && desc.Width is 0)
@@ -198,13 +196,108 @@ internal class ResourceValidator(GraphicsContext context)
         }
     }
 
+    public void ValidateResourceLayoutDesc(ResourceLayoutDesc desc)
+    {
+        if (desc.Elements is null || desc.Elements.Length is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Resource layout must have at least one element.");
+
+            return;
+        }
+
+        for (int i = 0; i < desc.Elements.Length; i++)
+        {
+            ResourceElement element = desc.Elements[i];
+
+            if (!Enum.IsDefined(element.Type))
+            {
+                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid resource element type at index {i}: {element.Type}. Supported types are: {string.Join(", ", Enum.GetNames<ResourceType>())}.");
+            }
+
+            if (element.Count is 0)
+            {
+                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Resource element count at index {i} must be greater than zero.");
+            }
+        }
+    }
+
+    public void ValidateResourceSetDesc(ResourceSetDesc desc)
+    {
+        if (desc.Layout?.IsDisposed is not false)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Resource set must reference a valid resource layout that is not disposed.");
+
+            return;
+        }
+
+        if (desc.Resources is null || desc.Resources.Length is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Resource set must have at least one resource.");
+
+            return;
+        }
+
+        ResourceType[] types = [.. desc.Layout.Desc.Elements.SelectMany(static item => Enumerable.Repeat(item.Type, (int)item.Count))];
+
+        if (desc.Resources.Length != types.Length)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Resource set must have exactly {types.Length} resources to match the layout. Provided: {desc.Resources.Length}.");
+
+            return;
+        }
+
+        for (int i = 0; i < desc.Resources.Length; i++)
+        {
+            IBindableResource? resource = desc.Resources[i];
+
+            if (resource?.IsDisposed is not false)
+            {
+                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Resource at index {i} is null. All resources must be valid.");
+
+                continue;
+            }
+
+            switch (types[i])
+            {
+                case ResourceType.ConstantBuffer:
+                case ResourceType.StructuredBuffer:
+                case ResourceType.StructuredBufferReadWrite:
+                    if (resource is not IBuffer)
+                    {
+                        context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Resource at index {i} is not a valid buffer.");
+                    }
+                    break;
+                case ResourceType.Texture:
+                case ResourceType.TextureReadWrite:
+                    if (resource is not ITexture)
+                    {
+                        context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Resource at index {i} is not a valid texture.");
+                    }
+                    break;
+                case ResourceType.Sampler:
+                    if (resource is not Sampler)
+                    {
+                        context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Resource at index {i} is not a valid sampler.");
+                    }
+                    break;
+                case ResourceType.AccelerationStructure:
+                    if (resource is not TopLevelAccelerationStructure)
+                    {
+                        context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Resource at index {i} is not a valid acceleration structure.");
+                    }
+                    break;
+                default:
+                    context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid resource type at index {i}: {types[i]}. Supported types are: {string.Join(", ", Enum.GetNames<ResourceType>())}.");
+                    break;
+            }
+        }
+    }
+
     private void ValidateSurface(Surface surface)
     {
         if (!Enum.IsDefined(surface.Type))
         {
             context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid surface type: {surface.Type}. Supported types are: {string.Join(", ", Enum.GetNames<SurfaceType>())}.");
-
-            return;
         }
 
         if (surface.Handles is null)

@@ -6,7 +6,7 @@ public abstract class BufferView(GraphicsContext context, BufferViewDesc desc) :
 
     public ref readonly BufferViewDesc Desc => ref desc;
 
-    public abstract nint Pointer { get; }
+    public nint Pointer { get; } = desc.Buffer.Pointer is not 0 ? (nint)(desc.Buffer.Pointer + desc.OffsetInBytes) : 0;
 
     public void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes)
     {
