@@ -185,7 +185,7 @@ internal class ResourceValidator(GraphicsContext context)
             context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "MaxLod must be greater than or equal to MinLod.");
         }
 
-        if (desc.LodBias < -16 || desc.LodBias > 16)
+        if (desc.LodBias is < -16 or > 16)
         {
             context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "LodBias must be between -16 and 16.");
         }
