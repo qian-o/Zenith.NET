@@ -17,6 +17,13 @@ internal class ResourceValidator(GraphicsContext context)
         PixelFormat.D32FloatS8UInt
     ];
 
+    private static readonly TextureType[] arrayTextureTypes =
+    [
+        TextureType.Texture1DArray,
+        TextureType.Texture2DArray,
+        TextureType.TextureCubeArray
+    ];
+
     public void ValidateSwapChainDesc(SwapChainDesc desc)
     {
         ValidateSurface(desc.Surface);
@@ -97,7 +104,7 @@ internal class ResourceValidator(GraphicsContext context)
             context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Texture width and height must be equal and greater than zero for cube textures.");
         }
 
-        if (desc.Type is TextureType.Texture1DArray or TextureType.Texture2DArray or TextureType.TextureCubeArray)
+        if (arrayTextureTypes.Contains(desc.Type))
         {
             if (desc.Layers is 0)
             {
@@ -618,7 +625,7 @@ internal class ResourceValidator(GraphicsContext context)
             context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid face index: {slice.Face}. It must be 0 for non-cube textures.");
         }
 
-        if (type is TextureType.Texture1DArray or TextureType.Texture2DArray or TextureType.TextureCubeArray)
+        if (arrayTextureTypes.Contains(type))
         {
             if (slice.Layer >= layers)
             {
