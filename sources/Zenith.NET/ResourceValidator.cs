@@ -68,9 +68,9 @@ internal class ResourceValidator(GraphicsContext context)
             context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Buffer view size exceeds the buffer's size. Ensure that OffsetInBytes + SizeInBytes does not exceed the buffer's SizeInBytes ({desc.Buffer.Desc.SizeInBytes}).");
         }
 
-        if (desc.SizeInBytes % desc.Buffer.Desc.StrideInBytes is not 0)
+        if (desc.StrideInBytes is 0)
         {
-            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Warning, "Buffer view size is not a multiple of the buffer's stride. This may lead to unexpected behavior, especially when using structured buffers.");
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Warning, "Buffer view stride is zero. This may lead to unexpected behavior, especially when using structured buffers. Consider setting a non-zero stride.");
         }
     }
 
