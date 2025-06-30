@@ -401,9 +401,58 @@ internal class ResourceValidator(GraphicsContext context)
         ValidateTextureSlice(attachment.Target, attachment.Slice);
     }
 
-    private void ValidateTextureSlice(ITexture texture, TextureSlice slice)
+    private void ValidateTextureSlice(ITexture iTexture, TextureSlice slice)
     {
         TextureType type;
+        uint layers;
+        uint mipLevels;
 
+        if (iTexture is Texture texture)
+        {
+            type = texture.Desc.Type;
+            layers = texture.Desc.Layers;
+            mipLevels = texture.Desc.MipLevels;
+        }
+        else if (iTexture is TextureView textureView)
+        {
+            type = textureView.Desc.Texture.Desc.Type;
+            layers = textureView.Desc.LayerCount;
+            mipLevels = textureView.Desc.MipLevelCount;
+        }
+        else
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Invalid texture type for slice validation. Expected Texture or TextureView.");
+
+            return;
+        }
+
+        if (type is TextureType.TextureCube or TextureType.TextureCubeArray)
+        {
+            if (slice.Face >= 6)
+            {
+                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid face index: {slice.Face}. It must be between 0 and 5 for cube textures.");
+            }
+        }
+        else if (slice.Face is not 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid face index: {slice.Face}. It must be 0 for non-cube textures.");
+        }
+
+        if (type is TextureType.Texture1DArray or TextureType.Texture2DArray or TextureType.TextureCubeArray)
+        {
+            if (slice.Layer >= layers)
+            {
+                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid layer index: {slice.Layer}. It must be less than the number of layers ({layers}) for array textures.");
+            }
+        }
+        else if (slice.Layer is not 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid layer index: {slice.Layer}. It must be 0 for non-array textures.");
+        }
+
+        if (slice.MipLevel >= mipLevels)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid mip level: {slice.MipLevel}. It must be less than the number of mip levels ({mipLevels}).");
+        }
     }
 }
