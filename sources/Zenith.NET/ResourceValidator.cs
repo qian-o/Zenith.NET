@@ -23,12 +23,12 @@ internal class ResourceValidator(GraphicsContext context)
 
         if (!swapChainFormats.Contains(desc.ColorTargetFormat))
         {
-            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid color target format: {desc.ColorTargetFormat}. Supported formats are: {string.Join(", ", swapChainFormats.Select(f => f.ToString()))}.");
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid color target format: {desc.ColorTargetFormat}. Supported formats are: {string.Join(", ", swapChainFormats.Select(static item => item.ToString()))}.");
         }
 
         if (desc.DepthStencilTargetFormat.HasValue && !depthStencilFormats.Contains(desc.DepthStencilTargetFormat.Value))
         {
-            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid depth-stencil target format: {desc.DepthStencilTargetFormat.Value}. Supported formats are: {string.Join(", ", depthStencilFormats.Select(f => f.ToString()))}.");
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid depth-stencil target format: {desc.DepthStencilTargetFormat.Value}. Supported formats are: {string.Join(", ", depthStencilFormats.Select(static item => item.ToString()))}.");
         }
     }
 
@@ -345,7 +345,99 @@ internal class ResourceValidator(GraphicsContext context)
 
     public void ValidateGraphicsPipelineDesc(GraphicsPipelineDesc desc)
     {
-        ValidateRenderStates(desc.RenderStates);
+        // RenderStates
+        {
+            RenderStates renderStates = desc.RenderStates;
+
+            // RasterizerState
+            {
+                RasterizerState rasterizerState = renderStates.RasterizerState;
+
+                ValidateDefinedEnum(rasterizerState.CullMode, "cull mode");
+
+                ValidateDefinedEnum(rasterizerState.FillMode, "fill mode");
+
+                ValidateDefinedEnum(rasterizerState.FrontFace, "front face");
+
+                if (rasterizerState.DepthBias < 0)
+                {
+                    context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Depth bias must be greater than or equal to zero.");
+                }
+
+                if (rasterizerState.DepthBiasClamp < 0)
+                {
+                    context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Depth bias clamp must be greater than or equal to zero.");
+                }
+
+                if (rasterizerState.SlopeScaledDepthBias < 0)
+                {
+                    context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Slope scaled depth bias must be greater than or equal to zero.");
+                }
+            }
+
+            // DepthStencilState
+            {
+                DepthStencilState depthStencilState = renderStates.DepthStencilState;
+
+                ValidateDefinedEnum(depthStencilState.DepthFunc, "depth function");
+
+                ValidateDepthStencilStateOp(depthStencilState.FrontFace);
+
+                ValidateDepthStencilStateOp(depthStencilState.BackFace);
+            }
+
+            // BlendState
+            {
+                BlendState blendState = renderStates.BlendState;
+
+                foreach (BlendStateRenderTarget renderTarget in (BlendStateRenderTarget[])(blendState.IndependentBlendEnable ? [blendState.RenderTarget0, blendState.RenderTarget1, blendState.RenderTarget2, blendState.RenderTarget3, blendState.RenderTarget4, blendState.RenderTarget5, blendState.RenderTarget6, blendState.RenderTarget7] : [blendState.RenderTarget0]))
+                {
+                    ValidateBlendStateRenderTarget(renderTarget);
+                }
+            }
+        }
+
+        // Shaders
+        {
+            GraphicsShaders shaders = desc.Shaders;
+
+            if (shaders.Vertex?.IsDisposed is not false)
+            {
+                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Vertex shader must reference a valid shader that is not disposed.");
+            }
+
+            if (shaders.Hull?.IsDisposed is true)
+            {
+                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Hull shader must reference a valid shader that is not disposed.");
+            }
+
+            if (shaders.Domain?.IsDisposed is true)
+            {
+                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Domain shader must reference a valid shader that is not disposed.");
+            }
+
+            if (shaders.Geometry?.IsDisposed is true)
+            {
+                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Geometry shader must reference a valid shader that is not disposed.");
+            }
+
+            if (shaders.Pixel?.IsDisposed is not false)
+            {
+                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Pixel shader must reference a valid shader that is not disposed.");
+            }
+        }
+
+        if (desc.InputLayouts is null || desc.InputLayouts.Length is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Graphics pipeline must have at least one input layout.");
+        }
+
+        if (desc.ResourceLayouts is null)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Graphics pipeline resource layouts cannot be null.");
+        }
+
+        ValidateOutput(desc.Outputs);
     }
 
     public void ValidateComputePipelineDesc(ComputePipelineDesc desc)
@@ -424,43 +516,58 @@ internal class ResourceValidator(GraphicsContext context)
         ValidateTextureSlice(type, layers, mipLevels, attachment.Slice);
     }
 
-    #region Graphics Pipeline Validation
-    private void ValidateRenderStates(RenderStates renderStates)
+    private void ValidateDepthStencilStateOp(DepthStencilStateOp stateOp)
     {
-        // RasterizerState
+        ValidateDefinedEnum(stateOp.StencilFailOp, "stencil fail operation");
+
+        ValidateDefinedEnum(stateOp.StencilDepthFailOp, "stencil depth fail operation");
+
+        ValidateDefinedEnum(stateOp.StencilPassOp, "stencil pass operation");
+
+        ValidateDefinedEnum(stateOp.StencilFunc, "stencil function");
+    }
+
+    private void ValidateBlendStateRenderTarget(BlendStateRenderTarget renderTarget)
+    {
+        ValidateDefinedEnum(renderTarget.SrcBlend, "source blend");
+
+        ValidateDefinedEnum(renderTarget.DestBlend, "destination blend");
+
+        ValidateDefinedEnum(renderTarget.BlendOp, "blend operation");
+
+        ValidateDefinedEnum(renderTarget.SrcBlendAlpha, "source blend alpha");
+
+        ValidateDefinedEnum(renderTarget.DestBlendAlpha, "destination blend alpha");
+
+        ValidateDefinedEnum(renderTarget.BlendOpAlpha, "blend operation alpha");
+    }
+
+    private void ValidateOutput(Output output)
+    {
+        if (output.ColorAttachments is null)
         {
-            RasterizerState rasterizerState = renderStates.RasterizerState;
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Output color attachments cannot be null.");
 
-            ValidateDefinedEnum(rasterizerState.CullMode, "cull mode");
-
-            ValidateDefinedEnum(rasterizerState.FillMode, "fill mode");
-
-            ValidateDefinedEnum(rasterizerState.FrontFace, "front face");
-
-            if (rasterizerState.DepthBias < 0)
-            {
-                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Depth bias must be greater than or equal to zero.");
-            }
-
-            if (rasterizerState.DepthBiasClamp < 0)
-            {
-                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Depth bias clamp must be greater than or equal to zero.");
-            }
-
-            if (rasterizerState.SlopeScaledDepthBias < 0)
-            {
-                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Slope scaled depth bias must be greater than or equal to zero.");
-            }
+            return;
         }
 
-        // DepthStencilState
+        if (output.ColorAttachments.Length is 0 && output.DepthStencilAttachment is null)
         {
-            DepthStencilState depthStencilState = renderStates.DepthStencilState;
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Output must have at least one color attachment or a depth-stencil attachment.");
 
-            ValidateDefinedEnum(depthStencilState.DepthFunc, "depth function");
+            return;
+        }
+
+        if (output.ColorAttachments.Length > 8)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Output cannot have more than 8 color attachments.");
+        }
+
+        if (output.DepthStencilAttachment is not null && !depthStencilFormats.Contains(output.DepthStencilAttachment.Value))
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid depth-stencil attachment format: {output.DepthStencilAttachment.Value}. Supported formats are: {string.Join(", ", depthStencilFormats.Select(static item => item.ToString()))}.");
         }
     }
-    #endregion
 
     #region Universal Validation
     private void ValidateDefinedEnum<TEnum>(TEnum value, string name) where TEnum : struct, Enum
