@@ -110,6 +110,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Validator.ValidateGraphicsPipelineDesc(desc);
         }
 
         return CreateGraphicsPipelineImpl(desc);
@@ -119,6 +120,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Validator.ValidateComputePipelineDesc(desc);
         }
 
         return CreateComputePipelineImpl(desc);
@@ -128,6 +130,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Validator.ValidateRayTracingPipelineDesc(desc);
         }
 
         return CreateRayTracingPipelineImpl(desc);

@@ -76,10 +76,9 @@ internal class ResourceValidator(GraphicsContext context)
 
     public void ValidateTextureDesc(TextureDesc desc)
     {
-        if (!Enum.IsDefined(desc.Type))
-        {
-            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid texture type: {desc.Type}. Supported types are: {string.Join(", ", Enum.GetNames<TextureType>())}.");
-        }
+        ValidateDefinedEnum(desc.Type, "texture type");
+
+        ValidateDefinedEnum(desc.Format, "texture format");
 
         if (desc.Type is TextureType.Texture1D or TextureType.Texture1DArray && desc.Width is 0)
         {
@@ -115,10 +114,7 @@ internal class ResourceValidator(GraphicsContext context)
             context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Texture mip levels must be greater than zero.");
         }
 
-        if (!Enum.IsDefined(desc.SampleCount))
-        {
-            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid sample count: {desc.SampleCount}. Supported sample counts are: {string.Join(", ", Enum.GetNames<SampleCount>())}.");
-        }
+        ValidateDefinedEnum(desc.SampleCount, "sample count");
     }
 
     public void ValidateTextureViewDesc(TextureViewDesc desc)
@@ -161,30 +157,15 @@ internal class ResourceValidator(GraphicsContext context)
 
     public void ValidateSamplerDesc(SamplerDesc desc)
     {
-        if (!Enum.IsDefined(desc.U))
-        {
-            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid U address mode: {desc.U}. Supported modes are: {string.Join(", ", Enum.GetNames<AddressMode>())}.");
-        }
+        ValidateDefinedEnum(desc.U, "U address mode");
 
-        if (!Enum.IsDefined(desc.V))
-        {
-            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid V address mode: {desc.V}. Supported modes are: {string.Join(", ", Enum.GetNames<AddressMode>())}.");
-        }
+        ValidateDefinedEnum(desc.V, "V address mode");
 
-        if (!Enum.IsDefined(desc.W))
-        {
-            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid W address mode: {desc.W}. Supported modes are: {string.Join(", ", Enum.GetNames<AddressMode>())}.");
-        }
+        ValidateDefinedEnum(desc.W, "W address mode");
 
-        if (!Enum.IsDefined(desc.Filter))
-        {
-            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid filter: {desc.Filter}. Supported filters are: {string.Join(", ", Enum.GetNames<Filter>())}.");
-        }
+        ValidateDefinedEnum(desc.Filter, "filter");
 
-        if (!Enum.IsDefined(desc.ComparisonFunc))
-        {
-            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid comparison function: {desc.ComparisonFunc}. Supported functions are: {string.Join(", ", Enum.GetNames<ComparisonFunc>())}.");
-        }
+        ValidateDefinedEnum(desc.ComparisonFunc, "comparison function");
 
         if (desc.MaxAnisotropy is not 1 and not 2 and not 4 and not 8 and not 16)
         {
@@ -206,10 +187,7 @@ internal class ResourceValidator(GraphicsContext context)
             context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "LodBias must be between -16 and 16.");
         }
 
-        if (!Enum.IsDefined(desc.BorderColor))
-        {
-            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid border color: {desc.BorderColor}. Supported colors are: {string.Join(", ", Enum.GetNames<BorderColor>())}.");
-        }
+        ValidateDefinedEnum(desc.BorderColor, "border color");
     }
 
     public void ValidateResourceLayoutDesc(ResourceLayoutDesc desc)
@@ -230,10 +208,7 @@ internal class ResourceValidator(GraphicsContext context)
         {
             ResourceElement element = desc.Elements[i];
 
-            if (!Enum.IsDefined(element.Type))
-            {
-                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid resource element type at index {i}: {element.Type}. Supported types are: {string.Join(", ", Enum.GetNames<ResourceType>())}.");
-            }
+            ValidateDefinedEnum(element.Type, $"resource element type at index {i}");
 
             if (element.Count is 0)
             {
@@ -365,18 +340,27 @@ internal class ResourceValidator(GraphicsContext context)
             context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Shader entry point must not be null or empty.");
         }
 
-        if (!Enum.IsDefined(desc.Stage))
-        {
-            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid shader stage: {desc.Stage}. Supported stages are: {string.Join(", ", Enum.GetNames<ShaderStageFlags>())}.");
-        }
+        ValidateDefinedEnum(desc.Stage, "shader stage");
+    }
+
+    public void ValidateGraphicsPipelineDesc(GraphicsPipelineDesc desc)
+    {
+        ValidateRenderStates(desc.RenderStates);
+    }
+
+    public void ValidateComputePipelineDesc(ComputePipelineDesc desc)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void ValidateRayTracingPipelineDesc(RayTracingPipelineDesc desc)
+    {
+        throw new NotImplementedException();
     }
 
     private void ValidateSurface(Surface surface)
     {
-        if (!Enum.IsDefined(surface.Type))
-        {
-            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid surface type: {surface.Type}. Supported types are: {string.Join(", ", Enum.GetNames<SurfaceType>())}.");
-        }
+        ValidateDefinedEnum(surface.Type, "surface type");
 
         if (surface.Handles is null)
         {
@@ -440,6 +424,55 @@ internal class ResourceValidator(GraphicsContext context)
         ValidateTextureSlice(type, layers, mipLevels, attachment.Slice);
     }
 
+    #region Graphics Pipeline Validation
+    private void ValidateRenderStates(RenderStates renderStates)
+    {
+        // RasterizerState
+        {
+            RasterizerState rasterizerState = renderStates.RasterizerState;
+
+            ValidateDefinedEnum(rasterizerState.CullMode, "cull mode");
+
+            ValidateDefinedEnum(rasterizerState.FillMode, "fill mode");
+
+            ValidateDefinedEnum(rasterizerState.FrontFace, "front face");
+
+            if (rasterizerState.DepthBias < 0)
+            {
+                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Depth bias must be greater than or equal to zero.");
+            }
+
+            if (rasterizerState.DepthBiasClamp < 0)
+            {
+                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Depth bias clamp must be greater than or equal to zero.");
+            }
+
+            if (rasterizerState.SlopeScaledDepthBias < 0)
+            {
+                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Slope scaled depth bias must be greater than or equal to zero.");
+            }
+        }
+
+        // DepthStencilState
+        {
+            DepthStencilState depthStencilState = renderStates.DepthStencilState;
+
+            ValidateDefinedEnum(depthStencilState.DepthFunc, "depth function");
+        }
+    }
+    #endregion
+
+    #region Universal Validation
+    private void ValidateDefinedEnum<TEnum>(TEnum value, string name) where TEnum : struct, Enum
+    {
+        if (!Enum.IsDefined(value))
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid {name}: {value}. Supported values are: {string.Join(", ", Enum.GetNames<TEnum>())}.");
+        }
+    }
+    #endregion
+
+    #region Universal Texture Validation
     private void ObtainTextureValues(ITexture iTexture, out TextureType type, out uint layers, out uint mipLevels)
     {
         if (iTexture is Texture texture)
@@ -495,4 +528,5 @@ internal class ResourceValidator(GraphicsContext context)
             context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid mip level: {slice.MipLevel}. It must be less than the number of mip levels ({mipLevels}).");
         }
     }
+    #endregion
 }
