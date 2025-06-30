@@ -346,6 +346,31 @@ internal class ResourceValidator(GraphicsContext context)
         }
     }
 
+    public void ValidateShaderDesc(ShaderDesc desc)
+    {
+        if (desc.ShaderBytes is null)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Shader bytecode cannot be null.");
+
+            return;
+        }
+
+        if (desc.ShaderBytes.Length is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Shader bytecode must not be empty.");
+        }
+
+        if (string.IsNullOrEmpty(desc.EntryPoint))
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Shader entry point must not be null or empty.");
+        }
+
+        if (!Enum.IsDefined(desc.Stage))
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid shader stage: {desc.Stage}. Supported stages are: {string.Join(", ", Enum.GetNames<ShaderStageFlags>())}.");
+        }
+    }
+
     private void ValidateSurface(Surface surface)
     {
         if (!Enum.IsDefined(surface.Type))

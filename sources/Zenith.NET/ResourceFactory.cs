@@ -100,6 +100,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Validator.ValidateShaderDesc(desc);
         }
 
         return CreateShaderImpl(desc);
