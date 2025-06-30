@@ -90,6 +90,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Validator.ValidateFrameBufferDesc(desc);
         }
 
         return CreateFrameBufferImpl(desc);

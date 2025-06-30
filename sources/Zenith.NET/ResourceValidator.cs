@@ -198,11 +198,16 @@ internal class ResourceValidator(GraphicsContext context)
 
     public void ValidateResourceLayoutDesc(ResourceLayoutDesc desc)
     {
-        if (desc.Elements is null || desc.Elements.Length is 0)
+        if (desc.Elements is null)
         {
-            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Resource layout must have at least one element.");
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Resource layout elements cannot be null.");
 
             return;
+        }
+
+        if (desc.Elements.Length is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Resource layout must have at least one element.");
         }
 
         for (int i = 0; i < desc.Elements.Length; i++)
@@ -230,9 +235,9 @@ internal class ResourceValidator(GraphicsContext context)
             return;
         }
 
-        if (desc.Resources is null || desc.Resources.Length is 0)
+        if (desc.Resources is null)
         {
-            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Resource set must have at least one resource.");
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Resource set resources cannot be null.");
 
             return;
         }
@@ -293,6 +298,38 @@ internal class ResourceValidator(GraphicsContext context)
         }
     }
 
+    public void ValidateFrameBufferDesc(FrameBufferDesc desc)
+    {
+        if (desc.ColorTargets is null)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Frame buffer color targets cannot be null.");
+
+            return;
+        }
+
+        if (desc.ColorTargets.Length is 0 && desc.DepthStencilTarget is null)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Frame buffer must have at least one color target or a depth-stencil target.");
+
+            return;
+        }
+
+        if (desc.ColorTargets.Length > 8)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Frame buffer cannot have more than 8 color targets.");
+        }
+
+        foreach (FrameBufferAttachment frameBufferAttachment in desc.ColorTargets)
+        {
+            ValidateFrameBufferAttachment(frameBufferAttachment);
+        }
+
+        if (desc.DepthStencilTarget is not null)
+        {
+            ValidateFrameBufferAttachment(desc.DepthStencilTarget.Value);
+        }
+    }
+
     private void ValidateSurface(Surface surface)
     {
         if (!Enum.IsDefined(surface.Type))
@@ -341,5 +378,22 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Surface width and height must be greater than zero.");
         }
+    }
+
+    private void ValidateFrameBufferAttachment(FrameBufferAttachment attachment)
+    {
+        if (attachment.Target?.IsDisposed is not false)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Frame buffer attachment must reference a valid texture that is not disposed.");
+
+            return;
+        }
+
+        ValidateTextureSlice(attachment.Target, attachment.Slice);
+    }
+
+    private void ValidateTextureSlice(ITexture texture, TextureSlice slice)
+    {
+        throw new NotImplementedException("Texture slice validation is not implemented yet. This method should check if the slice parameters are valid for the given texture type and dimensions.");
     }
 }
