@@ -98,9 +98,16 @@ internal class ResourceValidator(GraphicsContext context)
             context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Texture width and height must be equal and greater than zero for cube textures.");
         }
 
-        if (desc.Layers is 0)
+        if (desc.Type is TextureType.Texture1DArray or TextureType.Texture2DArray or TextureType.TextureCubeArray)
         {
-            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Texture layers must be greater than zero.");
+            if (desc.Layers is 0)
+            {
+                context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Texture layers must be greater than zero.");
+            }
+        }
+        else if (desc.Layers is not 1)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Texture layers must be 1 for non-array textures.");
         }
 
         if (desc.MipLevels is 0)
@@ -398,15 +405,18 @@ internal class ResourceValidator(GraphicsContext context)
             return;
         }
 
-        ValidateTextureSlice(attachment.Target, attachment.Slice);
+        ObtainTextureValues(attachment.Target, out TextureType type, out uint layers, out uint mipLevels);
+
+        if (type is not TextureType.Texture2D or TextureType.Texture2DArray)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid texture type for frame buffer attachment: {type}. Only Texture2D and Texture2DArray are supported.");
+        }
+
+        ValidateTextureSlice(type, layers, mipLevels, attachment.Slice);
     }
 
-    private void ValidateTextureSlice(ITexture iTexture, TextureSlice slice)
+    private void ObtainTextureValues(ITexture iTexture, out TextureType type, out uint layers, out uint mipLevels)
     {
-        TextureType type;
-        uint layers;
-        uint mipLevels;
-
         if (iTexture is Texture texture)
         {
             type = texture.Desc.Type;
@@ -421,11 +431,16 @@ internal class ResourceValidator(GraphicsContext context)
         }
         else
         {
+            type = default;
+            layers = default;
+            mipLevels = default;
+
             context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Invalid texture type for slice validation. Expected Texture or TextureView.");
-
-            return;
         }
+    }
 
+    private void ValidateTextureSlice(TextureType type, uint layers, uint mipLevels, TextureSlice slice)
+    {
         if (type is TextureType.TextureCube or TextureType.TextureCubeArray)
         {
             if (slice.Face >= 6)
