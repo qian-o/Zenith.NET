@@ -449,7 +449,15 @@ internal class ResourceValidator(GraphicsContext context)
 
     public void ValidateComputePipelineDesc(ComputePipelineDesc desc)
     {
-        throw new NotImplementedException();
+        if (desc.Shader?.IsDisposed is not false)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Compute pipeline must reference a valid shader that is not disposed.");
+        }
+
+        if (desc.ResourceLayouts is null)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Compute pipeline resource layouts cannot be null.");
+        }
     }
 
     public void ValidateRayTracingPipelineDesc(RayTracingPipelineDesc desc)
