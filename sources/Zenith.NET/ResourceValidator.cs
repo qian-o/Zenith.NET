@@ -123,11 +123,6 @@ internal class ResourceValidator(GraphicsContext context)
             return;
         }
 
-        if (desc.MipLevel >= desc.Texture.Desc.MipLevels)
-        {
-            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid mip level: {desc.MipLevel}. It must be less than the texture's mip levels ({desc.Texture.Desc.MipLevels}).");
-        }
-
         if (desc.FirstLayer >= desc.Texture.Desc.Layers)
         {
             context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid first layer: {desc.FirstLayer}. It must be less than the texture's layers ({desc.Texture.Desc.Layers}).");
@@ -140,6 +135,20 @@ internal class ResourceValidator(GraphicsContext context)
         else if (desc.FirstLayer + desc.LayerCount > desc.Texture.Desc.Layers)
         {
             context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Texture view layer count exceeds the texture's layers. Ensure that FirstLayer + LayerCount does not exceed the texture's Layers ({desc.Texture.Desc.Layers}).");
+        }
+
+        if (desc.FirstMipLevel >= desc.Texture.Desc.MipLevels)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Invalid first mip level: {desc.FirstMipLevel}. It must be less than the texture's mip levels ({desc.Texture.Desc.MipLevels}).");
+        }
+
+        if (desc.MipLevelCount is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, "Texture view mip level count must be greater than zero.");
+        }
+        else if (desc.FirstMipLevel + desc.MipLevelCount > desc.Texture.Desc.MipLevels)
+        {
+            context.PublishDebugCallback(MessageCategory.System, MessageSeverity.Error, $"Texture view mip level count exceeds the texture's mip levels. Ensure that FirstMipLevel + MipLevelCount does not exceed the texture's MipLevels ({desc.Texture.Desc.MipLevels}).");
         }
     }
 
@@ -394,6 +403,7 @@ internal class ResourceValidator(GraphicsContext context)
 
     private void ValidateTextureSlice(ITexture texture, TextureSlice slice)
     {
-        throw new NotImplementedException("Texture slice validation is not implemented yet. This method should check if the slice parameters are valid for the given texture type and dimensions.");
+        TextureType type;
+
     }
 }

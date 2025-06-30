@@ -8,11 +8,6 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public void Upload<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Texture upload validation is not implemented yet.");
-        }
-
         CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
 
         commandBuffer.Begin();
