@@ -19,6 +19,7 @@ public abstract class GraphicsContext : DisposableObject
         Compute = compute;
         Copy = copy;
         Uploader = new(this);
+        Validator = new(this);
     }
 
     public Backend Backend { get; }
@@ -36,6 +37,8 @@ public abstract class GraphicsContext : DisposableObject
     public CommandQueue Copy { get; }
 
     internal Uploader Uploader { get; }
+
+    internal ResourceValidator Validator { get; }
 
     public event EventHandler<DebugCallbackArgs>? DebugCallback;
 

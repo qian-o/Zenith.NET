@@ -4,13 +4,11 @@ public abstract class ResourceFactory(GraphicsContext context)
 {
     public GraphicsContext Context { get; } = context;
 
-    internal ResourceValidator Validator { get; } = new(context);
-
     public SwapChain CreateSwapChain(SwapChainDesc desc)
     {
         if (Context.UseDebugLayer)
         {
-            Validator.ValidateSwapChainDesc(desc);
+            Context.Validator.ValidateSwapChainDesc(desc);
         }
 
         return CreateSwapChainImpl(desc);
@@ -20,7 +18,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
-            Validator.ValidateBufferDesc(desc);
+            Context.Validator.ValidateBufferDesc(desc);
         }
 
         return CreateBufferImpl(desc);
@@ -30,7 +28,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
-            Validator.ValidateBufferViewDesc(desc);
+            Context.Validator.ValidateBufferViewDesc(desc);
         }
 
         return CreateBufferViewImpl(desc);
@@ -40,7 +38,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
-            Validator.ValidateTextureDesc(desc);
+            Context.Validator.ValidateTextureDesc(desc);
         }
 
         return CreateTextureImpl(desc);
@@ -50,7 +48,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
-            Validator.ValidateTextureViewDesc(desc);
+            Context.Validator.ValidateTextureViewDesc(desc);
         }
 
         return CreateTextureViewImpl(desc);
@@ -60,7 +58,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
-            Validator.ValidateSamplerDesc(desc);
+            Context.Validator.ValidateSamplerDesc(desc);
         }
 
         return CreateSamplerImpl(desc);
@@ -70,7 +68,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
-            Validator.ValidateResourceLayoutDesc(desc);
+            Context.Validator.ValidateResourceLayoutDesc(desc);
         }
 
         return CreateResourceLayoutImpl(desc);
@@ -80,7 +78,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
-            Validator.ValidateResourceSetDesc(desc);
+            Context.Validator.ValidateResourceSetDesc(desc);
         }
 
         return CreateResourceSetImpl(desc);
@@ -90,7 +88,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
-            Validator.ValidateFrameBufferDesc(desc);
+            Context.Validator.ValidateFrameBufferDesc(desc);
         }
 
         return CreateFrameBufferImpl(desc);
@@ -100,7 +98,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
-            Validator.ValidateShaderDesc(desc);
+            Context.Validator.ValidateShaderDesc(desc);
         }
 
         return CreateShaderImpl(desc);
@@ -110,7 +108,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
-            Validator.ValidateGraphicsPipelineDesc(desc);
+            Context.Validator.ValidateGraphicsPipelineDesc(desc);
         }
 
         return CreateGraphicsPipelineImpl(desc);
@@ -120,7 +118,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
-            Validator.ValidateComputePipelineDesc(desc);
+            Context.Validator.ValidateComputePipelineDesc(desc);
         }
 
         return CreateComputePipelineImpl(desc);
@@ -130,7 +128,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
-            Validator.ValidateRayTracingPipelineDesc(desc);
+            Context.Validator.ValidateRayTracingPipelineDesc(desc);
         }
 
         return CreateRayTracingPipelineImpl(desc);
