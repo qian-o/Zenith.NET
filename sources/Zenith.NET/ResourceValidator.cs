@@ -333,20 +333,20 @@ internal class ResourceValidator(GraphicsContext context)
                 case ResourceType.ConstantBuffer:
                 case ResourceType.StructuredBuffer:
                 case ResourceType.StructuredBufferReadWrite:
-                    if (resource is not IBuffer)
+                    if (resource is not Buffer or BufferView)
                     {
                         context.PublishDebugCallback(MessageCategory.System,
                                                      MessageSeverity.Error,
-                                                     $"Resource at index {i} must be a buffer for resource type '{types[i]}'.");
+                                                     $"Resource at index {i} must be a buffer or buffer view for resource type '{types[i]}'.");
                     }
                     break;
                 case ResourceType.Texture:
                 case ResourceType.TextureReadWrite:
-                    if (resource is not ITexture)
+                    if (resource is not Texture or TextureView)
                     {
                         context.PublishDebugCallback(MessageCategory.System,
                                                      MessageSeverity.Error,
-                                                     $"Resource at index {i} must be a texture for resource type '{types[i]}'.");
+                                                     $"Resource at index {i} must be a texture or texture view for resource type '{types[i]}'.");
                     }
                     break;
                 case ResourceType.Sampler:
