@@ -32,16 +32,14 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Invalid swap chain color target format '{desc.ColorTargetFormat}'. " +
-                                         $"Supported formats are: {string.Join(", ", swapChainFormats.Select(static item => item.ToString()))}.");
+                                         $"Color target format '{desc.ColorTargetFormat}' is not supported. Valid formats: {string.Join(", ", swapChainFormats.Select(static item => item.ToString()))}.");
         }
 
         if (desc.DepthStencilTargetFormat.HasValue && !depthStencilFormats.Contains(desc.DepthStencilTargetFormat.Value))
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Invalid swap chain depth-stencil target format '{desc.DepthStencilTargetFormat.Value}'. " +
-                                         $"Supported formats are: {string.Join(", ", depthStencilFormats.Select(static item => item.ToString()))}.");
+                                         $"Depth-stencil target format '{desc.DepthStencilTargetFormat.Value}' is not supported. Valid formats: {string.Join(", ", depthStencilFormats.Select(static item => item.ToString()))}.");
         }
     }
 
@@ -51,15 +49,14 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Buffer size must be greater than zero. A buffer with zero size cannot be created.");
+                                         "Buffer size must be greater than 0 bytes.");
         }
 
         if (desc.StrideInBytes is 0)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Warning,
-                                         "Buffer stride is zero. This may lead to unexpected behavior when using structured buffers. " +
-                                         "Consider setting a non-zero stride that matches your data structure size.");
+                                         "Buffer stride is 0 bytes. This may cause issues with structured buffers.");
         }
     }
 
@@ -69,8 +66,7 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Buffer view must reference a valid buffer that is not null and not disposed. " +
-                                         "Ensure the buffer exists and has not been disposed before creating the view.");
+                                         "Buffer view requires a valid, non-disposed buffer.");
 
             return;
         }
@@ -79,31 +75,27 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Buffer view offset ({desc.OffsetInBytes} bytes) must be less than the buffer's total size ({desc.Buffer.Desc.SizeInBytes} bytes). " +
-                                         $"Valid range is 0 to {desc.Buffer.Desc.SizeInBytes - 1}.");
+                                         $"Buffer view offset ({desc.OffsetInBytes} bytes) exceeds buffer size ({desc.Buffer.Desc.SizeInBytes} bytes).");
         }
 
         if (desc.SizeInBytes is 0)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Buffer view size must be greater than zero. A view with zero size cannot be created.");
+                                         "Buffer view size must be greater than 0 bytes.");
         }
         else if (desc.OffsetInBytes + desc.SizeInBytes > desc.Buffer.Desc.SizeInBytes)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Buffer view range exceeds buffer bounds. View range [{desc.OffsetInBytes}, {desc.OffsetInBytes + desc.SizeInBytes}) " +
-                                         $"exceeds buffer size ({desc.Buffer.Desc.SizeInBytes} bytes). " +
-                                         $"Ensure that OffsetInBytes + SizeInBytes ≤ {desc.Buffer.Desc.SizeInBytes}.");
+                                         $"Buffer view range [{desc.OffsetInBytes}, {desc.OffsetInBytes + desc.SizeInBytes}) exceeds buffer bounds [0, {desc.Buffer.Desc.SizeInBytes}).");
         }
 
         if (desc.StrideInBytes is 0)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Warning,
-                                         "Buffer view stride is zero. This may lead to unexpected behavior when using structured buffers. " +
-                                         "Consider setting a non-zero stride that matches your data structure size.");
+                                         "Buffer view stride is 0 bytes. This may cause issues with structured buffers.");
         }
     }
 
@@ -117,29 +109,25 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Texture width must be greater than zero for 1D textures. " +
-                                         "Specify a valid width for the texture dimensions.");
+                                         "1D texture width must be greater than 0.");
         }
         else if (desc.Type is TextureType.Texture2D or TextureType.Texture2DArray && (desc.Width is 0 || desc.Height is 0))
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Texture width ({desc.Width}) and height ({desc.Height}) must both be greater than zero for 2D textures. " +
-                                         "Specify valid dimensions for both width and height.");
+                                         "2D texture dimensions must be greater than 0.");
         }
         else if (desc.Type is TextureType.Texture3D && (desc.Width is 0 || desc.Height is 0 || desc.Depth is 0))
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Texture width ({desc.Width}), height ({desc.Height}), and depth ({desc.Depth}) must all be greater than zero for 3D textures. " +
-                                         "Specify valid dimensions for all three axes.");
+                                         "3D texture dimensions must be greater than 0.");
         }
         else if (desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray && (desc.Width is 0 || desc.Height is 0 || desc.Width != desc.Height))
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Cube texture dimensions are invalid. Width ({desc.Width}) and height ({desc.Height}) must be equal and greater than zero. " +
-                                         "Cube textures require square faces.");
+                                         "Cube texture must have equal width and height greater than 0.");
         }
 
         if (arrayTextureTypes.Contains(desc.Type))
@@ -148,27 +136,24 @@ internal class ResourceValidator(GraphicsContext context)
             {
                 context.PublishDebugCallback(MessageCategory.System,
                                              MessageSeverity.Error,
-                                             $"Texture array layers must be greater than zero for {desc.Type}. " +
-                                             "Specify at least one layer for the texture array.");
+                                             "Array texture must have at least 1 layer.");
             }
         }
         else if (desc.Layers is not 1)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Non-array texture type '{desc.Type}' must have exactly 1 layer, but {desc.Layers} layers were specified. " +
-                                         "Set Layers to 1 for non-array textures.");
+                                         "Non-array texture must have exactly 1 layer.");
         }
 
         if (desc.MipLevels is 0)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Texture mip levels must be greater than zero. " +
-                                         "Specify at least 1 mip level (the base level) for the texture.");
+                                         "Texture must have at least 1 mip level.");
         }
 
-        ValidateDefinedEnum(desc.SampleCount, "texture sample count");
+        ValidateDefinedEnum(desc.SampleCount, "sample count");
     }
 
     public void ValidateTextureViewDesc(TextureViewDesc desc)
@@ -177,8 +162,7 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Texture view must reference a valid texture that is not null and not disposed. " +
-                                         "Ensure the texture exists and has not been disposed before creating the view.");
+                                         "Texture view requires a valid, non-disposed texture.");
 
             return;
         }
@@ -187,96 +171,84 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Texture view first layer index ({desc.FirstLayer}) must be less than the texture's total layer count ({desc.Texture.Desc.Layers}). " +
-                                         $"Valid range is 0 to {desc.Texture.Desc.Layers - 1}.");
+                                         $"Texture view first layer ({desc.FirstLayer}) exceeds texture layer count ({desc.Texture.Desc.Layers}).");
         }
 
         if (desc.LayerCount is 0)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Texture view layer count must be greater than zero. " +
-                                         "Specify at least one layer to include in the view.");
+                                         "Texture view must include at least 1 layer.");
         }
         else if (desc.FirstLayer + desc.LayerCount > desc.Texture.Desc.Layers)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Texture view layer range exceeds texture bounds. View range [{desc.FirstLayer}, {desc.FirstLayer + desc.LayerCount}) " +
-                                         $"exceeds texture layer count ({desc.Texture.Desc.Layers}). " +
-                                         $"Ensure that FirstLayer + LayerCount ≤ {desc.Texture.Desc.Layers}.");
+                                         $"Texture view layer range [{desc.FirstLayer}, {desc.FirstLayer + desc.LayerCount}) exceeds texture layer bounds [0, {desc.Texture.Desc.Layers}).");
         }
 
         if (desc.FirstMipLevel >= desc.Texture.Desc.MipLevels)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Texture view first mip level ({desc.FirstMipLevel}) must be less than the texture's total mip levels ({desc.Texture.Desc.MipLevels}). " +
-                                         $"Valid range is 0 to {desc.Texture.Desc.MipLevels - 1}.");
+                                         $"Texture view first mip level ({desc.FirstMipLevel}) exceeds texture mip level count ({desc.Texture.Desc.MipLevels}).");
         }
 
         if (desc.MipLevelCount is 0)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Texture view mip level count must be greater than zero. " +
-                                         "Specify at least one mip level to include in the view.");
+                                         "Texture view must include at least 1 mip level.");
         }
         else if (desc.FirstMipLevel + desc.MipLevelCount > desc.Texture.Desc.MipLevels)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Texture view mip level range exceeds texture bounds. View range [{desc.FirstMipLevel}, {desc.FirstMipLevel + desc.MipLevelCount}) " +
-                                         $"exceeds texture mip levels ({desc.Texture.Desc.MipLevels}). " +
-                                         $"Ensure that FirstMipLevel + MipLevelCount ≤ {desc.Texture.Desc.MipLevels}.");
+                                         $"Texture view mip level range [{desc.FirstMipLevel}, {desc.FirstMipLevel + desc.MipLevelCount}) exceeds texture mip level bounds [0, {desc.Texture.Desc.MipLevels}).");
         }
     }
 
     public void ValidateSamplerDesc(SamplerDesc desc)
     {
-        ValidateDefinedEnum(desc.U, "texture U (horizontal) address mode");
+        ValidateDefinedEnum(desc.U, "U address mode");
 
-        ValidateDefinedEnum(desc.V, "texture V (vertical) address mode");
+        ValidateDefinedEnum(desc.V, "V address mode");
 
-        ValidateDefinedEnum(desc.W, "texture W (depth) address mode");
+        ValidateDefinedEnum(desc.W, "W address mode");
 
-        ValidateDefinedEnum(desc.Filter, "texture filter mode");
+        ValidateDefinedEnum(desc.Filter, "filter");
 
-        ValidateDefinedEnum(desc.ComparisonFunc, "texture comparison function");
+        ValidateDefinedEnum(desc.ComparisonFunc, "comparison function");
 
         if (desc.MaxAnisotropy is not 1 and not 2 and not 4 and not 8 and not 16)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Invalid max anisotropy value '{desc.MaxAnisotropy}'. " +
-                                         "Supported values are: 1, 2, 4, 8, or 16. These values represent the maximum anisotropic filtering level.");
+                                         $"Max anisotropy must be 1, 2, 4, 8, or 16. Got: {desc.MaxAnisotropy}.");
         }
 
         if (desc.MinLod < 0)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Sampler MinLod ({desc.MinLod}) must be greater than or equal to zero. " +
-                                         "Negative LOD values are not supported.");
+                                         "Min LOD must be non-negative.");
         }
 
         if (desc.MaxLod < desc.MinLod)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Sampler MaxLod ({desc.MaxLod}) must be greater than or equal to MinLod ({desc.MinLod}). " +
-                                         "The LOD range must be valid with MaxLod ≥ MinLod.");
+                                         $"Max LOD ({desc.MaxLod}) must be greater than or equal to Min LOD ({desc.MinLod}).");
         }
 
         if (desc.LodBias is < -16 or > 16)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Sampler LodBias ({desc.LodBias}) must be within the range [-16, 16]. " +
-                                         "This range represents the maximum LOD bias supported by most hardware.");
+                                         $"LOD bias must be in range [-16, 16]. Got: {desc.LodBias}.");
         }
 
-        ValidateDefinedEnum(desc.BorderColor, "sampler border color");
+        ValidateDefinedEnum(desc.BorderColor, "border color");
     }
 
     public void ValidateResourceLayoutDesc(ResourceLayoutDesc desc)
@@ -285,8 +257,7 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Resource layout elements array cannot be null. " +
-                                         "Provide a valid array of resource elements, even if empty.");
+                                         "Resource layout elements cannot be null.");
 
             return;
         }
@@ -295,22 +266,20 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Resource layout must have at least one element. " +
-                                         "Define the resources that will be bound to this layout.");
+                                         "Resource layout must contain at least 1 element.");
         }
 
         for (int i = 0; i < desc.Elements.Length; i++)
         {
             ResourceElement element = desc.Elements[i];
 
-            ValidateDefinedEnum(element.Type, $"resource element type at binding index {i}");
+            ValidateDefinedEnum(element.Type, $"resource element type at index {i}");
 
             if (element.Count is 0)
             {
                 context.PublishDebugCallback(MessageCategory.System,
                                              MessageSeverity.Error,
-                                             $"Resource element at binding index {i} has a count of zero. " +
-                                             "Each element must have a count of at least 1 to represent valid resources.");
+                                             $"Resource element at index {i} must have count greater than 0.");
             }
         }
     }
@@ -321,8 +290,7 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Resource set must reference a valid resource layout that is not null and not disposed. " +
-                                         "Ensure the layout exists and has not been disposed before creating the resource set.");
+                                         "Resource set requires a valid, non-disposed resource layout.");
 
             return;
         }
@@ -331,8 +299,7 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Resource set resources array cannot be null. " +
-                                         "Provide a valid array of resources matching the layout requirements.");
+                                         "Resource set resources cannot be null.");
 
             return;
         }
@@ -343,8 +310,7 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Resource set has incorrect number of resources. Expected {types.Length} resources based on the layout, " +
-                                         $"but {desc.Resources.Length} were provided. The resource count must exactly match the layout definition.");
+                                         $"Resource set requires exactly {types.Length} resources to match layout. Got: {desc.Resources.Length}.");
 
             return;
         }
@@ -357,8 +323,7 @@ internal class ResourceValidator(GraphicsContext context)
             {
                 context.PublishDebugCallback(MessageCategory.System,
                                              MessageSeverity.Error,
-                                             $"Resource at binding slot {i} is null or disposed. " +
-                                             $"All resources must be valid, non-null, and not disposed. Expected resource type: {types[i]}.");
+                                             $"Resource at index {i} must be valid and non-disposed.");
 
                 continue;
             }
@@ -368,22 +333,20 @@ internal class ResourceValidator(GraphicsContext context)
                 case ResourceType.ConstantBuffer:
                 case ResourceType.StructuredBuffer:
                 case ResourceType.StructuredBufferReadWrite:
-                    if (resource is not Buffer and not BufferView)
+                    if (resource is not IBuffer)
                     {
                         context.PublishDebugCallback(MessageCategory.System,
                                                      MessageSeverity.Error,
-                                                     $"Resource at binding slot {i} is not a valid buffer resource. " +
-                                                     $"Expected Buffer or BufferView for resource type '{types[i]}', but got '{resource.GetType().Name}'.");
+                                                     $"Resource at index {i} must be a buffer for resource type '{types[i]}'.");
                     }
                     break;
                 case ResourceType.Texture:
                 case ResourceType.TextureReadWrite:
-                    if (resource is not Texture and not TextureView)
+                    if (resource is not ITexture)
                     {
                         context.PublishDebugCallback(MessageCategory.System,
                                                      MessageSeverity.Error,
-                                                     $"Resource at binding slot {i} is not a valid texture resource. " +
-                                                     $"Expected Texture or TextureView for resource type '{types[i]}', but got '{resource.GetType().Name}'.");
+                                                     $"Resource at index {i} must be a texture for resource type '{types[i]}'.");
                     }
                     break;
                 case ResourceType.Sampler:
@@ -391,8 +354,7 @@ internal class ResourceValidator(GraphicsContext context)
                     {
                         context.PublishDebugCallback(MessageCategory.System,
                                                      MessageSeverity.Error,
-                                                     $"Resource at binding slot {i} is not a valid sampler. " +
-                                                     $"Expected Sampler for resource type '{types[i]}', but got '{resource.GetType().Name}'.");
+                                                     $"Resource at index {i} must be a sampler for resource type '{types[i]}'.");
                     }
                     break;
                 case ResourceType.AccelerationStructure:
@@ -400,15 +362,13 @@ internal class ResourceValidator(GraphicsContext context)
                     {
                         context.PublishDebugCallback(MessageCategory.System,
                                                      MessageSeverity.Error,
-                                                     $"Resource at binding slot {i} is not a valid acceleration structure. " +
-                                                     $"Expected TopLevelAccelerationStructure for resource type '{types[i]}', but got '{resource.GetType().Name}'.");
+                                                     $"Resource at index {i} must be a top-level acceleration structure for resource type '{types[i]}'.");
                     }
                     break;
                 default:
                     context.PublishDebugCallback(MessageCategory.System,
                                                  MessageSeverity.Error,
-                                                 $"Unknown resource type '{types[i]}' at binding slot {i}. " +
-                                                 $"Supported resource types are: {string.Join(", ", Enum.GetNames<ResourceType>())}.");
+                                                 $"Resource type '{types[i]}' at index {i} is not recognized. Valid types: {string.Join(", ", Enum.GetNames<ResourceType>())}.");
                     break;
             }
         }
@@ -420,8 +380,7 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Frame buffer color targets array cannot be null. " +
-                                         "Provide a valid array of color targets, even if empty.");
+                                         "Frame buffer color targets cannot be null.");
 
             return;
         }
@@ -430,8 +389,7 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Frame buffer must have at least one render target. " +
-                                         "Provide either one or more color targets, or a depth-stencil target, or both.");
+                                         "Frame buffer must have at least 1 color target or a depth-stencil target.");
 
             return;
         }
@@ -440,13 +398,12 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Frame buffer has too many color targets ({desc.ColorTargets.Length}). " +
-                                         "Maximum supported color targets is 8. This is a hardware limitation on most GPUs.");
+                                         $"Frame buffer supports up to 8 color targets. Got: {desc.ColorTargets.Length}.");
         }
 
         for (int i = 0; i < desc.ColorTargets.Length; i++)
         {
-            ValidateFrameBufferAttachment(desc.ColorTargets[i], $"color target at attachment slot {i}");
+            ValidateFrameBufferAttachment(desc.ColorTargets[i], $"color target at index {i}");
         }
 
         if (desc.DepthStencilTarget is not null)
@@ -461,8 +418,7 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Shader bytecode cannot be null. " +
-                                         "Provide valid compiled shader bytecode.");
+                                         "Shader bytecode cannot be null.");
 
             return;
         }
@@ -471,16 +427,14 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Shader bytecode is empty. " +
-                                         "Provide valid compiled shader bytecode with non-zero length.");
+                                         "Shader bytecode cannot be empty.");
         }
 
         if (string.IsNullOrEmpty(desc.EntryPoint))
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Shader entry point name is missing. " +
-                                         "Specify the function name that serves as the shader's entry point (e.g., 'main', 'VSMain', etc.).");
+                                         "Shader entry point must be specified.");
         }
 
         ValidateDefinedEnum(desc.Stage, "shader stage");
@@ -496,34 +450,31 @@ internal class ResourceValidator(GraphicsContext context)
             {
                 RasterizerState rasterizerState = renderStates.RasterizerState;
 
-                ValidateDefinedEnum(rasterizerState.CullMode, "rasterizer cull mode");
+                ValidateDefinedEnum(rasterizerState.CullMode, "cull mode");
 
-                ValidateDefinedEnum(rasterizerState.FillMode, "rasterizer fill mode");
+                ValidateDefinedEnum(rasterizerState.FillMode, "fill mode");
 
-                ValidateDefinedEnum(rasterizerState.FrontFace, "rasterizer front face winding order");
+                ValidateDefinedEnum(rasterizerState.FrontFace, "front face");
 
                 if (rasterizerState.DepthBias < 0)
                 {
                     context.PublishDebugCallback(MessageCategory.System,
                                                  MessageSeverity.Error,
-                                                 $"Rasterizer depth bias ({rasterizerState.DepthBias}) must be greater than or equal to zero. " +
-                                                 "Negative depth bias values are not supported.");
+                                                 "Depth bias must be non-negative.");
                 }
 
                 if (rasterizerState.DepthBiasClamp < 0)
                 {
                     context.PublishDebugCallback(MessageCategory.System,
                                                  MessageSeverity.Error,
-                                                 $"Rasterizer depth bias clamp ({rasterizerState.DepthBiasClamp}) must be greater than or equal to zero. " +
-                                                 "This value limits the maximum depth bias applied.");
+                                                 "Depth bias clamp must be non-negative.");
                 }
 
                 if (rasterizerState.SlopeScaledDepthBias < 0)
                 {
                     context.PublishDebugCallback(MessageCategory.System,
                                                  MessageSeverity.Error,
-                                                 $"Rasterizer slope scaled depth bias ({rasterizerState.SlopeScaledDepthBias}) must be greater than or equal to zero. " +
-                                                 "This value scales the depth bias based on polygon slope.");
+                                                 "Slope scaled depth bias must be non-negative.");
                 }
             }
 
@@ -531,25 +482,22 @@ internal class ResourceValidator(GraphicsContext context)
             {
                 DepthStencilState depthStencilState = renderStates.DepthStencilState;
 
-                ValidateDefinedEnum(depthStencilState.DepthFunc, "depth comparison function");
+                ValidateDefinedEnum(depthStencilState.DepthFunc, "depth function");
 
-                ValidateDepthStencilStateOp(depthStencilState.FrontFace, "front-facing polygons");
+                ValidateDepthStencilStateOp(depthStencilState.FrontFace, "front face");
 
-                ValidateDepthStencilStateOp(depthStencilState.BackFace, "back-facing polygons");
+                ValidateDepthStencilStateOp(depthStencilState.BackFace, "back face");
             }
 
             // BlendState
             {
                 BlendState blendState = renderStates.BlendState;
 
-                BlendStateRenderTarget[] renderTargets = blendState.IndependentBlendEnable
-                    ? [blendState.RenderTarget0, blendState.RenderTarget1, blendState.RenderTarget2, blendState.RenderTarget3,
-                       blendState.RenderTarget4, blendState.RenderTarget5, blendState.RenderTarget6, blendState.RenderTarget7]
-                    : [blendState.RenderTarget0];
+                BlendStateRenderTarget[] renderTargets = blendState.IndependentBlendEnable ? [blendState.RenderTarget0, blendState.RenderTarget1, blendState.RenderTarget2, blendState.RenderTarget3, blendState.RenderTarget4, blendState.RenderTarget5, blendState.RenderTarget6, blendState.RenderTarget7] : [blendState.RenderTarget0];
 
                 for (int i = 0; i < renderTargets.Length; i++)
                 {
-                    ValidateBlendStateRenderTarget(renderTargets[i], $"blend state render target {i}");
+                    ValidateBlendStateRenderTarget(renderTargets[i], $"render target at index {i}");
                 }
             }
         }
@@ -562,12 +510,12 @@ internal class ResourceValidator(GraphicsContext context)
 
             if (shaders.Hull is not null)
             {
-                ValidateShader(shaders.Hull, "Hull (tessellation control) shader");
+                ValidateShader(shaders.Hull, "Hull shader");
             }
 
             if (shaders.Domain is not null)
             {
-                ValidateShader(shaders.Domain, "Domain (tessellation evaluation) shader");
+                ValidateShader(shaders.Domain, "Domain shader");
             }
 
             if (shaders.Geometry is not null)
@@ -575,15 +523,14 @@ internal class ResourceValidator(GraphicsContext context)
                 ValidateShader(shaders.Geometry, "Geometry shader");
             }
 
-            ValidateShader(shaders.Pixel, "Pixel (fragment) shader");
+            ValidateShader(shaders.Pixel, "Pixel shader");
         }
 
         if (desc.InputLayouts is null || desc.InputLayouts.Length is 0)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Graphics pipeline must have at least one input layout. " +
-                                         "Define the vertex input layout that describes how vertex data is organized.");
+                                         "Graphics pipeline must specify at least 1 input layout.");
         }
 
         ValidateResourceLayouts(desc.ResourceLayouts);
@@ -597,8 +544,7 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Compute pipeline must reference a valid compute shader that is not null and not disposed. " +
-                                         "Ensure the compute shader exists and has not been disposed.");
+                                         "Compute pipeline requires a valid, non-disposed shader.");
         }
 
         ValidateResourceLayouts(desc.ResourceLayouts);
@@ -612,21 +558,20 @@ internal class ResourceValidator(GraphicsContext context)
 
             ValidateShader(shaders.RayGeneration, "Ray generation shader");
 
-            ValidateShaders(shaders.Miss, "Miss shader array");
+            ValidateShaders(shaders.Miss, "Miss shaders");
 
-            ValidateShaders(shaders.AnyHit, "Any-hit shader array");
+            ValidateShaders(shaders.AnyHit, "Any-hit shaders");
 
-            ValidateShaders(shaders.Intersection, "Intersection shader array");
+            ValidateShaders(shaders.Intersection, "Intersection shaders");
 
-            ValidateShaders(shaders.ClosestHit, "Closest-hit shader array");
+            ValidateShaders(shaders.ClosestHit, "Closest-hit shaders");
         }
 
         if (desc.HitGroups is null)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Ray tracing pipeline hit groups array cannot be null. " +
-                                         "Provide a valid array of hit groups that define shader combinations for ray-triangle intersections.");
+                                         "Ray tracing pipeline hit groups cannot be null.");
         }
         else
         {
@@ -640,8 +585,7 @@ internal class ResourceValidator(GraphicsContext context)
                 {
                     context.PublishDebugCallback(MessageCategory.System,
                                                  MessageSeverity.Error,
-                                                 $"Hit group at index {i} has an empty or null name. " +
-                                                 "Each hit group must have a unique, non-empty name for shader table indexing.");
+                                                 $"Hit group at index {i} must have a name.");
                 }
             }
 
@@ -649,14 +593,9 @@ internal class ResourceValidator(GraphicsContext context)
 
             if (hitGroupNames.Distinct().Count() != hitGroupNames.Length)
             {
-                var duplicates = hitGroupNames.GroupBy(static x => x)
-                                              .Where(static g => g.Count() > 1)
-                                              .Select(static g => g.Key);
-
                 context.PublishDebugCallback(MessageCategory.System,
                                              MessageSeverity.Error,
-                                             $"Ray tracing pipeline contains duplicate hit group names: {string.Join(", ", duplicates)}. " +
-                                             "Each hit group must have a unique name for proper shader table addressing.");
+                                             "Hit group names must be unique.");
             }
         }
 
@@ -666,24 +605,21 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Max trace recursion depth ({desc.MaxTraceRecursionDepth}) exceeds the maximum supported value of 31. " +
-                                         "This is a hardware limitation for ray tracing recursion depth.");
+                                         $"Max trace recursion depth must not exceed 31. Got: {desc.MaxTraceRecursionDepth}.");
         }
 
         if (desc.MaxPayloadSizeInBytes % 4 is not 0)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Max payload size ({desc.MaxPayloadSizeInBytes} bytes) must be a multiple of 4. " +
-                                         "Ray tracing payloads must be aligned to 4-byte boundaries.");
+                                         $"Max payload size must be a multiple of 4 bytes. Got: {desc.MaxPayloadSizeInBytes}.");
         }
 
         if (desc.MaxAttributeSizeInBytes % 4 is not 0 or > 32)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Max attribute size ({desc.MaxAttributeSizeInBytes} bytes) must be a multiple of 4 and not exceed 32 bytes. " +
-                                         "This is a hardware limitation for ray-triangle intersection attributes.");
+                                         $"Max attribute size must be a multiple of 4 bytes and not exceed 32 bytes. Got: {desc.MaxAttributeSizeInBytes}.");
         }
     }
 
@@ -695,52 +631,60 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Surface handles array cannot be null. " +
-                                         "Provide the platform-specific window/surface handles required for presentation.");
+                                         "Surface handles cannot be null.");
 
             return;
         }
 
-        string expectedHandles = surface.Type switch
-        {
-            SurfaceType.Win32 => "1 handle (HWND)",
-            SurfaceType.Wayland => "2 handles (display, surface)",
-            SurfaceType.Xlib => "2 handles (display, window)",
-            SurfaceType.Android => "1 handle (ANativeWindow)",
-            SurfaceType.IOS => "1 handle (UIView/CAMetalLayer)",
-            SurfaceType.MacOS => "1 handle (NSView/CAMetalLayer)",
-            _ => "unknown number of handles"
-        };
-
-        int expectedCount = surface.Type switch
-        {
-            SurfaceType.Win32 or SurfaceType.Android or SurfaceType.IOS or SurfaceType.MacOS => 1,
-            SurfaceType.Wayland or SurfaceType.Xlib => 2,
-            _ => -1
-        };
-
-        if (expectedCount != -1 && surface.Handles.Length != expectedCount)
+        if (surface.Type is SurfaceType.Win32 && surface.Handles.Length is not 1)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Surface type '{surface.Type}' requires exactly {expectedHandles}, but {surface.Handles.Length} were provided. " +
-                                         "Ensure you provide the correct number of platform-specific handles.");
+                                         "Win32 surface requires exactly 1 handle (HWND).");
+        }
+        else if (surface.Type is SurfaceType.Wayland && surface.Handles.Length is not 2)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Wayland surface requires exactly 2 handles (display and surface).");
+        }
+        else if (surface.Type is SurfaceType.Xlib && surface.Handles.Length is not 2)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Xlib surface requires exactly 2 handles (display and window).");
+        }
+        else if (surface.Type is SurfaceType.Android && surface.Handles.Length is not 1)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Android surface requires exactly 1 handle (native window).");
+        }
+        else if (surface.Type is SurfaceType.IOS && surface.Handles.Length is not 1)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "iOS surface requires exactly 1 handle (view).");
+        }
+        else if (surface.Type is SurfaceType.MacOS && surface.Handles.Length is not 1)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "MacOS surface requires exactly 1 handle (view).");
         }
 
         if (surface.Handles.Any(static item => item is 0))
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Surface handles contain null (zero) values. " +
-                                         "All platform handles must be valid, non-zero pointers.");
+                                         "Surface handles cannot contain null pointers.");
         }
 
         if (surface.Width is 0 || surface.Height is 0)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Surface dimensions are invalid. Width ({surface.Width}) and height ({surface.Height}) must both be greater than zero. " +
-                                         "Specify valid window/surface dimensions.");
+                                         "Surface dimensions must be greater than 0.");
         }
     }
 
@@ -750,20 +694,18 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Frame buffer {name} references an invalid texture. " +
-                                         "The texture must be valid, non-null, and not disposed.");
+                                         $"Frame buffer {name} requires a valid, non-disposed texture.");
 
             return;
         }
 
         ObtainTextureValues(attachment.Target, out TextureType type, out uint layers, out uint mipLevels, name);
 
-        if (type is not TextureType.Texture2D and not TextureType.Texture2DArray)
+        if (type is not TextureType.Texture2D or TextureType.Texture2DArray)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Frame buffer {name} has invalid texture type '{type}'. " +
-                                         "Only Texture2D and Texture2DArray are supported as frame buffer attachments.");
+                                         $"Frame buffer {name} must use Texture2D or Texture2DArray. Got: {type}.");
         }
 
         ValidateTextureSlice(type, layers, mipLevels, attachment.Slice, name);
@@ -771,26 +713,26 @@ internal class ResourceValidator(GraphicsContext context)
 
     private void ValidateDepthStencilStateOp(DepthStencilStateOp stateOp, string name)
     {
-        ValidateDefinedEnum(stateOp.StencilFailOp, $"stencil fail operation for {name}");
+        ValidateDefinedEnum(stateOp.StencilFailOp, $"{name} stencil fail operation");
 
-        ValidateDefinedEnum(stateOp.StencilDepthFailOp, $"stencil depth fail operation for {name}");
+        ValidateDefinedEnum(stateOp.StencilDepthFailOp, $"{name} stencil depth fail operation");
 
-        ValidateDefinedEnum(stateOp.StencilPassOp, $"stencil pass operation for {name}");
+        ValidateDefinedEnum(stateOp.StencilPassOp, $"{name} stencil pass operation");
 
-        ValidateDefinedEnum(stateOp.StencilFunc, $"stencil comparison function for {name}");
+        ValidateDefinedEnum(stateOp.StencilFunc, $"{name} stencil function");
     }
 
     private void ValidateBlendStateRenderTarget(BlendStateRenderTarget renderTarget, string name)
     {
-        ValidateDefinedEnum(renderTarget.SrcBlend, $"{name} source color blend factor");
+        ValidateDefinedEnum(renderTarget.SrcBlend, $"{name} source blend");
 
-        ValidateDefinedEnum(renderTarget.DestBlend, $"{name} destination color blend factor");
+        ValidateDefinedEnum(renderTarget.DestBlend, $"{name} destination blend");
 
-        ValidateDefinedEnum(renderTarget.BlendOp, $"{name} color blend operation");
+        ValidateDefinedEnum(renderTarget.BlendOp, $"{name} blend operation");
 
-        ValidateDefinedEnum(renderTarget.SrcBlendAlpha, $"{name} source alpha blend factor");
+        ValidateDefinedEnum(renderTarget.SrcBlendAlpha, $"{name} source alpha blend");
 
-        ValidateDefinedEnum(renderTarget.DestBlendAlpha, $"{name} destination alpha blend factor");
+        ValidateDefinedEnum(renderTarget.DestBlendAlpha, $"{name} destination alpha blend");
 
         ValidateDefinedEnum(renderTarget.BlendOpAlpha, $"{name} alpha blend operation");
     }
@@ -801,8 +743,7 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"{name} cannot be null. " +
-                                         "Provide a valid array of shaders, even if empty.");
+                                         $"{name} cannot be null.");
 
             return;
         }
@@ -819,8 +760,7 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Pipeline resource layouts array cannot be null. " +
-                                         "Provide a valid array of resource layouts that define the pipeline's resource bindings.");
+                                         "Resource layouts cannot be null.");
 
             return;
         }
@@ -833,8 +773,7 @@ internal class ResourceValidator(GraphicsContext context)
             {
                 context.PublishDebugCallback(MessageCategory.System,
                                              MessageSeverity.Error,
-                                             $"Resource layout at set index {i} is null or disposed. " +
-                                             $"All resource layouts must be valid, non-null, and not disposed.");
+                                             $"Resource layout at index {i} must be valid and non-disposed.");
             }
         }
     }
@@ -845,8 +784,7 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Pipeline output color attachments array cannot be null. " +
-                                         "Provide a valid array of color attachment formats, even if empty.");
+                                         "Output color attachments cannot be null.");
 
             return;
         }
@@ -855,8 +793,7 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Pipeline output must have at least one render target. " +
-                                         "Specify either one or more color attachment formats, or a depth-stencil format, or both.");
+                                         "Output must have at least 1 color attachment or a depth-stencil attachment.");
 
             return;
         }
@@ -865,16 +802,14 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Pipeline output has too many color attachments ({output.ColorAttachments.Length}). " +
-                                         "Maximum supported color attachments is 8. This is a hardware limitation on most GPUs.");
+                                         $"Output supports up to 8 color attachments. Got: {output.ColorAttachments.Length}.");
         }
 
         if (output.DepthStencilAttachment is not null && !depthStencilFormats.Contains(output.DepthStencilAttachment.Value))
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Pipeline output depth-stencil format '{output.DepthStencilAttachment.Value}' is not supported. " +
-                                         $"Supported depth-stencil formats are: {string.Join(", ", depthStencilFormats.Select(static item => item.ToString()))}.");
+                                         $"Depth-stencil attachment format '{output.DepthStencilAttachment.Value}' is not supported. Valid formats: {string.Join(", ", depthStencilFormats.Select(static item => item.ToString()))}.");
         }
     }
 
@@ -885,8 +820,7 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Invalid {name} value '{value}'. " +
-                                         $"Valid values are: {string.Join(", ", Enum.GetNames<TEnum>())}.");
+                                         $"Invalid {name} value '{value}'. Valid values: {string.Join(", ", Enum.GetNames<TEnum>())}.");
         }
     }
 
@@ -896,8 +830,7 @@ internal class ResourceValidator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"{name} is required but is null or disposed. " +
-                                         "Ensure the shader is created and not disposed before using it in a pipeline.");
+                                         $"{name} must be valid and non-disposed.");
         }
     }
     #endregion
@@ -929,8 +862,7 @@ internal class ResourceValidator(GraphicsContext context)
 
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Unexpected texture type in {name}. " +
-                                         $"Expected Texture or TextureView, but got '{iTexture.GetType().Name}'.");
+                                         $"Cannot validate texture slice for {name}: expected Texture or TextureView.");
         }
     }
 
@@ -946,16 +878,14 @@ internal class ResourceValidator(GraphicsContext context)
             {
                 context.PublishDebugCallback(MessageCategory.System,
                                              MessageSeverity.Error,
-                                             $"Invalid cube face index {slice.Face} for {name}. " +
-                                             $"Cube textures have 6 faces (0-5). Valid range is 0 to 5.");
+                                             $"Face index {slice.Face} is invalid for {name}. Cube textures have 6 faces (0-5).");
             }
         }
         else if (slice.Face is not 0)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Invalid face index {slice.Face} for {name} with texture type '{type}'. " +
-                                         "Only TextureCube and TextureCubeArray support multiple faces. Use Face = 0 for other texture types.");
+                                         $"Face index must be 0 for non-cube texture {name}.");
         }
 
         if (arrayTextureTypes.Contains(type))
@@ -964,24 +894,21 @@ internal class ResourceValidator(GraphicsContext context)
             {
                 context.PublishDebugCallback(MessageCategory.System,
                                              MessageSeverity.Error,
-                                             $"Invalid layer index {slice.Layer} for {name}. " +
-                                             $"The texture has {layers} layers. Valid range is 0 to {layers - 1}.");
+                                             $"Layer index {slice.Layer} exceeds layer count ({layers}) for {name}.");
             }
         }
         else if (slice.Layer is not 0)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Invalid layer index {slice.Layer} for {name} with texture type '{type}'. " +
-                                         "Only array texture types support multiple layers. Use Layer = 0 for non-array textures.");
+                                         $"Layer index must be 0 for non-array texture {name}.");
         }
 
         if (slice.MipLevel >= mipLevels)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Invalid mip level {slice.MipLevel} for {name}. " +
-                                         $"The texture has {mipLevels} mip levels. Valid range is 0 to {mipLevels - 1}.");
+                                         $"Mip level {slice.MipLevel} exceeds mip level count ({mipLevels}) for {name}.");
         }
     }
     #endregion
