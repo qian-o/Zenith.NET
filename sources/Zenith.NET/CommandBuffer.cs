@@ -6,30 +6,49 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 {
     protected CommandQueue Queue { get; } = queue;
 
-    #region State Management
-    public abstract void Begin();
+    public void Begin()
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Command buffer validation is not implemented yet.");
+        }
 
-    public abstract void End();
+        BeginImpl();
+    }
+
+    public void End()
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Command buffer validation is not implemented yet.");
+        }
+
+        EndImpl();
+    }
 
     public void Submit()
     {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Command buffer submission validation is not implemented yet.");
+        }
+
         Queue.Submit(this);
     }
 
     public void Reset()
     {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Command buffer reset validation is not implemented yet.");
+        }
+
         Context.Uploader.Release(this);
 
         ResetImpl();
     }
 
-    protected abstract void ResetImpl();
-    #endregion
-
-    #region Buffer Operations
-    public void UpdateBuffer<T>(ReadOnlySpan<T> data,
-                                IBuffer buffer,
-                                uint offsetInBytes)
+    public void UpdateBuffer<T>(ReadOnlySpan<T> data, IBuffer buffer, uint offsetInBytes)
     {
         if (Context.UseDebugLayer)
         {
@@ -41,22 +60,20 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         Buffer temporary = Context.Uploader.Buffer(this, sizeInBytes);
         temporary.Upload(data, 0);
 
-        CopyBuffer(temporary, 0, buffer, offsetInBytes, sizeInBytes);
+        CopyBufferImpl(temporary, 0, buffer, offsetInBytes, sizeInBytes);
     }
 
-    public abstract void CopyBuffer(IBuffer source,
-                                    uint sourceOffsetInBytes,
-                                    IBuffer destination,
-                                    uint destinationOffsetInBytes,
-                                    uint sizeInBytes);
-    #endregion
+    public void CopyBuffer(IBuffer src, uint srcOffsetInBytes, IBuffer dest, uint destOffsetInBytes, uint sizeInBytes)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Buffer copy validation is not implemented yet.");
+        }
 
-    #region Texture Operations
-    public void UpdateTexture<T>(ReadOnlySpan<T> data,
-                                 ITexture texture,
-                                 TextureSlice slice,
-                                 TextureOffset offset,
-                                 TextureExtent extent)
+        CopyBufferImpl(src, srcOffsetInBytes, dest, destOffsetInBytes, sizeInBytes);
+    }
+
+    public void UpdateTexture<T>(ReadOnlySpan<T> data, ITexture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent)
     {
         if (Context.UseDebugLayer)
         {
@@ -68,102 +85,355 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         Buffer temporary = Context.Uploader.Buffer(this, sizeInBytes);
         temporary.Upload(data, 0);
 
-        CopyTexture(temporary, 0, sizeInBytes, texture, slice, offset, extent);
+        CopyTextureImpl(temporary, 0, sizeInBytes, texture, slice, offset, extent);
     }
 
-    public abstract void CopyTexture(IBuffer buffer,
-                                     uint offsetInBytes,
-                                     uint sizeInBytes,
-                                     ITexture texture,
-                                     TextureSlice slice,
-                                     TextureOffset offset,
-                                     TextureExtent extent);
+    public void CopyTexture(IBuffer buffer, uint offsetInBytes, uint sizeInBytes, ITexture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Texture copy validation is not implemented yet.");
+        }
 
-    public abstract void CopyTexture(ITexture source,
-                                     TextureOffset sourceOffset,
-                                     ITexture destination,
-                                     TextureOffset destinationOffset,
-                                     TextureExtent extent);
+        CopyTextureImpl(buffer, offsetInBytes, sizeInBytes, texture, slice, offset, extent);
+    }
 
-    public abstract void ResolveTexture(ITexture source,
-                                        TextureOffset sourceOffset,
-                                        ITexture destination,
-                                        TextureOffset destinationOffset);
-    #endregion
+    public void CopyTexture(ITexture src, TextureOffset srcOffset, ITexture dest, TextureOffset destOffset, TextureExtent extent)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Texture copy validation is not implemented yet.");
+        }
 
-    #region Acceleration Structure Operations
-    public abstract BottomLevelAccelerationStructure BuildAccelerationStructure(BottomLevelAccelerationStructureDesc desc);
+        CopyTextureImpl(src, srcOffset, dest, destOffset, extent);
+    }
 
-    public abstract TopLevelAccelerationStructure BuildAccelerationStructure(TopLevelAccelerationStructureDesc desc);
+    public void ResolveTexture(ITexture src, TextureOffset srcOffset, ITexture dest, TextureOffset destOffset)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Texture resolve validation is not implemented yet.");
+        }
 
-    public abstract void UpdateAccelerationStructure(TopLevelAccelerationStructure accelerationStructure,
-                                                     TopLevelAccelerationStructureDesc newDesc);
-    #endregion
+        ResolveTextureImpl(src, srcOffset, dest, destOffset);
+    }
 
-    #region Rendering Operations
-    public abstract void BeginRendering(FrameBuffer frameBuffer, ClearValue clearValue);
+    public BottomLevelAccelerationStructure BuildAccelerationStructure(BottomLevelAccelerationStructureDesc desc)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Acceleration structure validation is not implemented yet.");
+        }
 
-    public abstract void EndRendering();
+        return BuildAccelerationStructureImpl(desc);
+    }
 
-    public abstract void SetScissors(Scissor[] scissors);
+    public TopLevelAccelerationStructure BuildAccelerationStructure(TopLevelAccelerationStructureDesc desc)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Acceleration structure validation is not implemented yet.");
+        }
 
-    public abstract void SetViewports(Viewport[] viewports);
-    #endregion
+        return BuildAccelerationStructureImpl(desc);
+    }
 
-    #region Pipeline Operations
-    public abstract void SetGraphicsPipeline(GraphicsPipeline pipeline);
+    public void UpdateAccelerationStructure(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Acceleration structure update validation is not implemented yet.");
+        }
 
-    public abstract void SetComputePipeline(ComputePipeline pipeline);
+        UpdateAccelerationStructureImpl(accelerationStructure, newDesc);
+    }
 
-    public abstract void SetRayTracingPipeline(RayTracingPipeline pipeline);
-    #endregion
+    public void BeginRendering(FrameBuffer frameBuffer, ClearValue clearValue)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Rendering validation is not implemented yet.");
+        }
 
-    #region Resource Binding Operations
-    public abstract void PrepareResources(ResourceSet[] resourceSets);
+        BeginRenderingImpl(frameBuffer, clearValue);
+    }
 
-    public abstract void SetVertexBuffer(uint slot, Buffer buffer, uint offset = 0);
+    public void EndRendering()
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Rendering validation is not implemented yet.");
+        }
 
-    public abstract void SetVertexBuffers(Buffer[] buffers, uint[] offsets);
+        EndRenderingImpl();
+    }
 
-    public abstract void SetIndexBuffer(Buffer buffer, IndexFormat format = IndexFormat.UInt16, uint offset = 0);
+    public void SetScissors(Scissor[] scissors)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Scissor validation is not implemented yet.");
+        }
 
-    public abstract void SetResourceSet(uint slot, ResourceSet resourceSet);
-    #endregion
+        SetScissorsImpl(scissors);
+    }
 
-    #region Drawing Operations
-    public abstract void Draw(uint vertexCount, uint instanceCount, uint firstVertex = 0, uint firstInstance = 0);
+    public void SetViewports(Viewport[] viewports)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Viewport validation is not implemented yet.");
+        }
 
-    public abstract void DrawIndirect(Buffer argBuffer, uint offset, uint drawCount);
+        SetViewportsImpl(viewports);
+    }
 
-    public abstract void DrawIndexed(uint indexCount,
-                                     uint instanceCount,
-                                     uint firstIndex = 0,
-                                     int vertexOffset = 0,
-                                     uint firstInstance = 0);
+    public void SetGraphicsPipeline(GraphicsPipeline pipeline)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Graphics pipeline validation is not implemented yet.");
+        }
 
-    public abstract void DrawIndexedIndirect(Buffer argBuffer, uint offset, uint drawCount);
-    #endregion
+        SetGraphicsPipelineImpl(pipeline);
+    }
 
-    #region Compute Operations
-    public abstract void Dispatch(uint groupCountX, uint groupCountY, uint groupCountZ);
+    public void SetComputePipeline(ComputePipeline pipeline)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Compute pipeline validation is not implemented yet.");
+        }
 
-    public abstract void DispatchIndirect(Buffer argBuffer, uint offset);
-    #endregion
+        SetComputePipelineImpl(pipeline);
+    }
 
-    #region Ray Tracing Operations
-    public abstract void DispatchRays(uint width, uint height, uint depth);
-    #endregion
+    public void SetRayTracingPipeline(RayTracingPipeline pipeline)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Ray tracing pipeline validation is not implemented yet.");
+        }
 
-    #region Debugging
-    public abstract void BeginDebugEvent(string label);
+        SetRayTracingPipelineImpl(pipeline);
+    }
 
-    public abstract void EndDebugEvent();
+    public void SetVertexBuffer(uint slot, IBuffer buffer, uint offset)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Vertex buffer validation is not implemented yet.");
+        }
 
-    public abstract void InsertDebugMarker(string label);
-    #endregion
+        SetVertexBufferImpl(slot, buffer, offset);
+    }
+
+    public void SetVertexBuffers(IBuffer[] buffers, uint[] offsets)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Vertex buffers validation is not implemented yet.");
+        }
+
+        SetVertexBuffersImpl(buffers, offsets);
+    }
+
+    public void SetIndexBuffer(IBuffer buffer, IndexFormat format, uint offset)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Index buffer validation is not implemented yet.");
+        }
+
+        SetIndexBufferImpl(buffer, format, offset);
+    }
+
+    public void PrepareResourceSets(ResourceSet[] sets)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Resource set preparation validation is not implemented yet.");
+        }
+
+        PrepareResourceSetsImpl(sets);
+    }
+
+    public void BindResourceSet(uint slot, ResourceSet set)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Resource set validation is not implemented yet.");
+        }
+
+        BindResourceSetImpl(slot, set);
+    }
+
+    public void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Draw validation is not implemented yet.");
+        }
+
+        DrawImpl(vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
+    public void DrawIndirect(IBuffer argBuffer, uint offset, uint drawCount)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Indirect draw validation is not implemented yet.");
+        }
+
+        DrawIndirectImpl(argBuffer, offset, drawCount);
+    }
+
+    public void DrawIndexed(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Indexed draw validation is not implemented yet.");
+        }
+
+        DrawIndexedImpl(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+    }
+
+    public void DrawIndexedIndirect(IBuffer argBuffer, uint offset, uint drawCount)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Indirect indexed draw validation is not implemented yet.");
+        }
+
+        DrawIndexedIndirectImpl(argBuffer, offset, drawCount);
+    }
+
+    public void Dispatch(uint groupCountX, uint groupCountY, uint groupCountZ)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Dispatch validation is not implemented yet.");
+        }
+
+        DispatchImpl(groupCountX, groupCountY, groupCountZ);
+    }
+
+    public void DispatchIndirect(IBuffer argBuffer, uint offset)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Indirect dispatch validation is not implemented yet.");
+        }
+
+        DispatchIndirectImpl(argBuffer, offset);
+    }
+
+    public void DispatchRays(uint width, uint height, uint depth)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Ray dispatch validation is not implemented yet.");
+        }
+
+        DispatchRaysImpl(width, height, depth);
+    }
+
+    public void BeginDebugEvent(string label)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Debug event validation is not implemented yet.");
+        }
+
+        BeginDebugEventImpl(label);
+    }
+
+    public void EndDebugEvent()
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Debug event validation is not implemented yet.");
+        }
+
+        EndDebugEventImpl();
+    }
+
+    public void InsertDebugMarker(string label)
+    {
+        if (Context.UseDebugLayer)
+        {
+            throw new NotImplementedException("Debug marker validation is not implemented yet.");
+        }
+
+        InsertDebugMarkerImpl(label);
+    }
 
     protected override void Destroy()
     {
         Context.Uploader.Release(this);
     }
+
+    protected abstract void BeginImpl();
+
+    protected abstract void EndImpl();
+
+    protected abstract void ResetImpl();
+
+    protected abstract void CopyBufferImpl(IBuffer src, uint srcOffsetInBytes, IBuffer dest, uint destOffsetInBytes, uint sizeInBytes);
+
+    protected abstract void CopyTextureImpl(IBuffer buffer, uint offsetInBytes, uint sizeInBytes, ITexture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent);
+
+    protected abstract void CopyTextureImpl(ITexture src, TextureOffset srcOffset, ITexture dest, TextureOffset destOffset, TextureExtent extent);
+
+    protected abstract void ResolveTextureImpl(ITexture src, TextureOffset srcOffset, ITexture dest, TextureOffset destOffset);
+
+    protected abstract BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc);
+
+    protected abstract TopLevelAccelerationStructure BuildAccelerationStructureImpl(TopLevelAccelerationStructureDesc desc);
+
+    protected abstract void UpdateAccelerationStructureImpl(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc);
+
+    protected abstract void BeginRenderingImpl(FrameBuffer frameBuffer, ClearValue clearValue);
+
+    protected abstract void EndRenderingImpl();
+
+    protected abstract void SetScissorsImpl(Scissor[] scissors);
+
+    protected abstract void SetViewportsImpl(Viewport[] viewports);
+
+    protected abstract void SetGraphicsPipelineImpl(GraphicsPipeline pipeline);
+
+    protected abstract void SetComputePipelineImpl(ComputePipeline pipeline);
+
+    protected abstract void SetRayTracingPipelineImpl(RayTracingPipeline pipeline);
+
+    protected abstract void SetVertexBufferImpl(uint slot, IBuffer buffer, uint offset);
+
+    protected abstract void SetVertexBuffersImpl(IBuffer[] buffers, uint[] offsets);
+
+    protected abstract void SetIndexBufferImpl(IBuffer buffer, IndexFormat format, uint offset);
+
+    protected abstract void PrepareResourceSetsImpl(ResourceSet[] sets);
+
+    protected abstract void BindResourceSetImpl(uint slot, ResourceSet set);
+
+    protected abstract void DrawImpl(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
+
+    protected abstract void DrawIndirectImpl(IBuffer argBuffer, uint offset, uint drawCount);
+
+    protected abstract void DrawIndexedImpl(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance);
+
+    protected abstract void DrawIndexedIndirectImpl(IBuffer argBuffer, uint offset, uint drawCount);
+
+    protected abstract void DispatchImpl(uint groupCountX, uint groupCountY, uint groupCountZ);
+
+    protected abstract void DispatchIndirectImpl(IBuffer argBuffer, uint offset);
+
+    protected abstract void DispatchRaysImpl(uint width, uint height, uint depth);
+
+    protected abstract void BeginDebugEventImpl(string label);
+
+    protected abstract void EndDebugEventImpl();
+
+    protected abstract void InsertDebugMarkerImpl(string label);
 }
