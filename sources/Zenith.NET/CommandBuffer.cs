@@ -212,34 +212,24 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         SetRayTracingPipelineImpl(pipeline);
     }
 
-    public void SetVertexBuffer(uint slot, IBuffer buffer, uint offset)
+    public void SetVertexBuffer(uint slot, IBuffer buffer, uint offsetInBytes)
     {
         if (Context.UseDebugLayer)
         {
             throw new NotImplementedException("Vertex buffer validation is not implemented yet.");
         }
 
-        SetVertexBufferImpl(slot, buffer, offset);
+        SetVertexBufferImpl(slot, buffer, offsetInBytes);
     }
 
-    public void SetVertexBuffers(IBuffer[] buffers, uint[] offsets)
-    {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Vertex buffers validation is not implemented yet.");
-        }
-
-        SetVertexBuffersImpl(buffers, offsets);
-    }
-
-    public void SetIndexBuffer(IBuffer buffer, IndexFormat format, uint offset)
+    public void SetIndexBuffer(IndexFormat format, IBuffer buffer, uint offsetInBytes)
     {
         if (Context.UseDebugLayer)
         {
             throw new NotImplementedException("Index buffer validation is not implemented yet.");
         }
 
-        SetIndexBufferImpl(buffer, format, offset);
+        SetIndexBufferImpl(format, buffer, offsetInBytes);
     }
 
     public void PrepareResourceSets(ResourceSet[] sets)
@@ -272,14 +262,14 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         DrawImpl(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
-    public void DrawIndirect(IBuffer argBuffer, uint offset, uint drawCount)
+    public void DrawIndirect(IBuffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
         if (Context.UseDebugLayer)
         {
             throw new NotImplementedException("Indirect draw validation is not implemented yet.");
         }
 
-        DrawIndirectImpl(argBuffer, offset, drawCount);
+        DrawIndirectImpl(indirectBuffer, offsetInBytes, drawCount);
     }
 
     public void DrawIndexed(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
@@ -292,14 +282,14 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         DrawIndexedImpl(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
-    public void DrawIndexedIndirect(IBuffer argBuffer, uint offset, uint drawCount)
+    public void DrawIndexedIndirect(IBuffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
         if (Context.UseDebugLayer)
         {
             throw new NotImplementedException("Indirect indexed draw validation is not implemented yet.");
         }
 
-        DrawIndexedIndirectImpl(argBuffer, offset, drawCount);
+        DrawIndexedIndirectImpl(indirectBuffer, offsetInBytes, drawCount);
     }
 
     public void Dispatch(uint groupCountX, uint groupCountY, uint groupCountZ)
@@ -312,14 +302,14 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         DispatchImpl(groupCountX, groupCountY, groupCountZ);
     }
 
-    public void DispatchIndirect(IBuffer argBuffer, uint offset)
+    public void DispatchIndirect(IBuffer indirectBuffer, uint offsetInBytes)
     {
         if (Context.UseDebugLayer)
         {
             throw new NotImplementedException("Indirect dispatch validation is not implemented yet.");
         }
 
-        DispatchIndirectImpl(argBuffer, offset);
+        DispatchIndirectImpl(indirectBuffer, offsetInBytes);
     }
 
     public void DispatchRays(uint width, uint height, uint depth)
@@ -401,11 +391,9 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void SetRayTracingPipelineImpl(RayTracingPipeline pipeline);
 
-    protected abstract void SetVertexBufferImpl(uint slot, IBuffer buffer, uint offset);
+    protected abstract void SetVertexBufferImpl(uint slot, IBuffer buffer, uint offsetInBytes);
 
-    protected abstract void SetVertexBuffersImpl(IBuffer[] buffers, uint[] offsets);
-
-    protected abstract void SetIndexBufferImpl(IBuffer buffer, IndexFormat format, uint offset);
+    protected abstract void SetIndexBufferImpl(IndexFormat format, IBuffer buffer, uint offsetInBytes);
 
     protected abstract void PrepareResourceSetsImpl(ResourceSet[] sets);
 
@@ -413,15 +401,15 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void DrawImpl(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
 
-    protected abstract void DrawIndirectImpl(IBuffer argBuffer, uint offset, uint drawCount);
+    protected abstract void DrawIndirectImpl(IBuffer indirectBuffer, uint offsetInBytes, uint drawCount);
 
     protected abstract void DrawIndexedImpl(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance);
 
-    protected abstract void DrawIndexedIndirectImpl(IBuffer argBuffer, uint offset, uint drawCount);
+    protected abstract void DrawIndexedIndirectImpl(IBuffer indirectBuffer, uint offsetInBytes, uint drawCount);
 
     protected abstract void DispatchImpl(uint groupCountX, uint groupCountY, uint groupCountZ);
 
-    protected abstract void DispatchIndirectImpl(IBuffer argBuffer, uint offset);
+    protected abstract void DispatchIndirectImpl(IBuffer indirectBuffer, uint offsetInBytes);
 
     protected abstract void DispatchRaysImpl(uint width, uint height, uint depth);
 
