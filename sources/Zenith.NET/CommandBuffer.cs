@@ -120,22 +120,16 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public BottomLevelAccelerationStructure BuildAccelerationStructure(BottomLevelAccelerationStructureDesc desc)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Acceleration structure validation is not implemented yet.");
-        }
-
-        return BuildAccelerationStructureImpl(desc);
+        return Context.UseDebugLayer
+            ? throw new NotImplementedException("Acceleration structure validation is not implemented yet.")
+            : BuildAccelerationStructureImpl(desc);
     }
 
     public TopLevelAccelerationStructure BuildAccelerationStructure(TopLevelAccelerationStructureDesc desc)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Acceleration structure validation is not implemented yet.");
-        }
-
-        return BuildAccelerationStructureImpl(desc);
+        return Context.UseDebugLayer
+            ? throw new NotImplementedException("Acceleration structure validation is not implemented yet.")
+            : BuildAccelerationStructureImpl(desc);
     }
 
     public void UpdateAccelerationStructure(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)

@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-internal class ResourceValidator(GraphicsContext context)
+internal class Validator(GraphicsContext context)
 {
     private static readonly PixelFormat[] swapChainFormats =
     [

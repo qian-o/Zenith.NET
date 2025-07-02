@@ -38,7 +38,7 @@ public abstract class GraphicsContext : DisposableObject
 
     internal Uploader Uploader { get; }
 
-    internal ResourceValidator Validator { get; }
+    internal Validator Validator { get; }
 
     public event EventHandler<DebugCallbackArgs>? DebugCallback;
 
