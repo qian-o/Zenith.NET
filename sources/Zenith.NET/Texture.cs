@@ -11,7 +11,7 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
         CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
 
         commandBuffer.Begin();
-        commandBuffer.UpdateTexture(data, this, slice, offset, extent);
+        commandBuffer.UploadTexture(data, this, slice, offset, extent);
         commandBuffer.End();
         commandBuffer.Submit();
 

@@ -13,7 +13,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
         CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
 
         commandBuffer.Begin();
-        commandBuffer.UpdateBuffer(data, this, offsetInBytes);
+        commandBuffer.UploadBuffer(data, this, offsetInBytes);
         commandBuffer.End();
         commandBuffer.Submit();
 

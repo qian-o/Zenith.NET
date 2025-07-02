@@ -48,7 +48,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         ResetImpl();
     }
 
-    public void UpdateBuffer<T>(ReadOnlySpan<T> data, IBuffer buffer, uint offsetInBytes)
+    public void UploadBuffer<T>(ReadOnlySpan<T> data, IBuffer buffer, uint offsetInBytes)
     {
         if (Context.UseDebugLayer)
         {
@@ -73,7 +73,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CopyBufferImpl(src, srcOffsetInBytes, dest, destOffsetInBytes, sizeInBytes);
     }
 
-    public void UpdateTexture<T>(ReadOnlySpan<T> data, ITexture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent)
+    public void UploadTexture<T>(ReadOnlySpan<T> data, ITexture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent)
     {
         if (Context.UseDebugLayer)
         {
@@ -118,28 +118,28 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         ResolveTextureImpl(src, srcOffset, dest, destOffset);
     }
 
-    public BottomLevelAccelerationStructure BuildAccelerationStructure(BottomLevelAccelerationStructureDesc desc)
+    public BottomLevelAccelerationStructure BuildBottomLevelAccelerationStructure(BottomLevelAccelerationStructureDesc desc)
     {
         return Context.UseDebugLayer
             ? throw new NotImplementedException("Acceleration structure validation is not implemented yet.")
-            : BuildAccelerationStructureImpl(desc);
+            : BuildBottomLevelAccelerationStructureImpl(desc);
     }
 
-    public TopLevelAccelerationStructure BuildAccelerationStructure(TopLevelAccelerationStructureDesc desc)
+    public TopLevelAccelerationStructure BuildTopLevelAccelerationStructure(TopLevelAccelerationStructureDesc desc)
     {
         return Context.UseDebugLayer
             ? throw new NotImplementedException("Acceleration structure validation is not implemented yet.")
-            : BuildAccelerationStructureImpl(desc);
+            : BuildTopLevelAccelerationStructureImpl(desc);
     }
 
-    public void UpdateAccelerationStructure(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
+    public void UpdateTopLevelAccelerationStructure(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
     {
         if (Context.UseDebugLayer)
         {
             throw new NotImplementedException("Acceleration structure update validation is not implemented yet.");
         }
 
-        UpdateAccelerationStructureImpl(accelerationStructure, newDesc);
+        UpdateTopLevelAccelerationStructureImpl(accelerationStructure, newDesc);
     }
 
     public void BeginRendering(FrameBuffer frameBuffer, ClearValue clearValue)
@@ -212,24 +212,24 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         SetRayTracingPipelineImpl(pipeline);
     }
 
-    public void SetVertexBuffer(uint slot, IBuffer buffer, uint offsetInBytes)
+    public void SetVertexBuffer(IBuffer buffer, uint offsetInBytes, uint slot)
     {
         if (Context.UseDebugLayer)
         {
             throw new NotImplementedException("Vertex buffer validation is not implemented yet.");
         }
 
-        SetVertexBufferImpl(slot, buffer, offsetInBytes);
+        SetVertexBufferImpl(buffer, offsetInBytes, slot);
     }
 
-    public void SetIndexBuffer(IndexFormat format, IBuffer buffer, uint offsetInBytes)
+    public void SetIndexBuffer(IBuffer buffer, uint offsetInBytes, IndexFormat format)
     {
         if (Context.UseDebugLayer)
         {
             throw new NotImplementedException("Index buffer validation is not implemented yet.");
         }
 
-        SetIndexBufferImpl(format, buffer, offsetInBytes);
+        SetIndexBufferImpl(buffer, offsetInBytes, format);
     }
 
     public void PrepareResourceSets(ResourceSet[] sets)
@@ -242,14 +242,14 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         PrepareResourceSetsImpl(sets);
     }
 
-    public void BindResourceSet(uint slot, ResourceSet set)
+    public void BindResourceSet(ResourceSet set, uint slot)
     {
         if (Context.UseDebugLayer)
         {
             throw new NotImplementedException("Resource set validation is not implemented yet.");
         }
 
-        BindResourceSetImpl(slot, set);
+        BindResourceSetImpl(set, slot);
     }
 
     public void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
@@ -371,11 +371,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void ResolveTextureImpl(ITexture src, TextureOffset srcOffset, ITexture dest, TextureOffset destOffset);
 
-    protected abstract BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc);
+    protected abstract BottomLevelAccelerationStructure BuildBottomLevelAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc);
 
-    protected abstract TopLevelAccelerationStructure BuildAccelerationStructureImpl(TopLevelAccelerationStructureDesc desc);
+    protected abstract TopLevelAccelerationStructure BuildTopLevelAccelerationStructureImpl(TopLevelAccelerationStructureDesc desc);
 
-    protected abstract void UpdateAccelerationStructureImpl(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc);
+    protected abstract void UpdateTopLevelAccelerationStructureImpl(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc);
 
     protected abstract void BeginRenderingImpl(FrameBuffer frameBuffer, ClearValue clearValue);
 
@@ -391,13 +391,13 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void SetRayTracingPipelineImpl(RayTracingPipeline pipeline);
 
-    protected abstract void SetVertexBufferImpl(uint slot, IBuffer buffer, uint offsetInBytes);
+    protected abstract void SetVertexBufferImpl(IBuffer buffer, uint offsetInBytes, uint slot);
 
-    protected abstract void SetIndexBufferImpl(IndexFormat format, IBuffer buffer, uint offsetInBytes);
+    protected abstract void SetIndexBufferImpl(IBuffer buffer, uint offsetInBytes, IndexFormat format);
 
     protected abstract void PrepareResourceSetsImpl(ResourceSet[] sets);
 
-    protected abstract void BindResourceSetImpl(uint slot, ResourceSet set);
+    protected abstract void BindResourceSetImpl(ResourceSet set, uint slot);
 
     protected abstract void DrawImpl(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
 
