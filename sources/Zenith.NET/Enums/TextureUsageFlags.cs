@@ -9,7 +9,7 @@ public enum TextureUsageFlags
 
     DepthStencil = 1 << 1,
 
-    ShaderReadOnly = 1 << 2,
+    ShaderResource = 1 << 2,
 
-    ShaderReadWrite = 1 << 3
+    UnorderedAccess = 1 << 3
 }
