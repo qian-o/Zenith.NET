@@ -13,11 +13,11 @@ public enum BufferUsageFlags
 
     ConstantBuffer = 1 << 3,
 
-    AccelerationStructure = 1 << 4,
+    StructuredBuffer = 1 << 4,
 
-    ShaderReadOnly = 1 << 5,
+    RWStructuredBuffer = 1 << 5,
 
-    ShaderReadWrite = 1 << 6,
+    AccelerationStructure = 1 << 6,
 
     Dynamic = 1 << 7
 }
