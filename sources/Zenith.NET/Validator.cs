@@ -341,7 +341,11 @@ internal class Validator(GraphicsContext context)
                     }
                     else
                     {
-                        ObtainBufferValues((IBuffer)resource, out _, out _, out BufferUsageFlags flags, $"resource at index {i}");
+                        ObtainBufferValues((IBuffer)resource,
+                                           out _,
+                                           out _,
+                                           out BufferUsageFlags flags,
+                                           $"resource at index {i}");
 
                         BufferUsageFlags requestFlag = types[i] switch
                         {
@@ -370,6 +374,7 @@ internal class Validator(GraphicsContext context)
                     else
                     {
                         ObtainTextureValues((ITexture)resource,
+                                            out _,
                                             out _,
                                             out _,
                                             out _,
@@ -447,28 +452,28 @@ internal class Validator(GraphicsContext context)
                                          $"Frame buffer supports up to 8 color targets. Got: {desc.ColorTargets.Length}.");
         }
 
-        PixelFormat? targetFormat = null;
         uint? targetWidth = null;
         uint? targetHeight = null;
+        SampleCount? sampleCount = null;
 
         for (int i = 0; i < desc.ColorTargets.Length; i++)
         {
             ValidateFrameBufferAttachment(desc.ColorTargets[i],
-                                          ref targetFormat,
+                                          null,
                                           ref targetWidth,
                                           ref targetHeight,
+                                          ref sampleCount,
                                           TextureUsageFlags.RenderTarget,
                                           $"color target at index {i}");
         }
 
         if (desc.DepthStencilTarget is not null)
         {
-            targetFormat = null;
-
             ValidateFrameBufferAttachment(desc.DepthStencilTarget.Value,
-                                          ref targetFormat,
+                                          depthStencilFormats,
                                           ref targetWidth,
                                           ref targetHeight,
+                                          ref sampleCount,
                                           TextureUsageFlags.DepthStencil,
                                           "depth-stencil target");
         }
@@ -751,9 +756,10 @@ internal class Validator(GraphicsContext context)
     }
 
     private void ValidateFrameBufferAttachment(FrameBufferAttachment attachment,
-                                               ref PixelFormat? targetFormat,
+                                               PixelFormat[]? targetFormats,
                                                ref uint? targetWidth,
                                                ref uint? targetHeight,
+                                               ref SampleCount? targetSampleCount,
                                                TextureUsageFlags targetFlag,
                                                string name)
     {
@@ -774,6 +780,7 @@ internal class Validator(GraphicsContext context)
                             out _,
                             out uint layers,
                             out uint mipLevels,
+                            out SampleCount sampleCount,
                             out TextureUsageFlags flags,
                             name);
 
@@ -784,15 +791,11 @@ internal class Validator(GraphicsContext context)
                                          $"Frame buffer {name} must use Texture2D or Texture2DArray. Got: {type}.");
         }
 
-        if (targetFormat.HasValue && targetFormat.Value != format)
+        if (targetFormats?.Contains(format) is false)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Frame buffer {name} texture format '{format}' does not match expected format '{targetFormat.Value}'.");
-        }
-        else
-        {
-            targetFormat = format;
+                                         $"Frame buffer {name} texture format '{format}' is not supported. Valid formats: {string.Join(", ", targetFormats.Select(static item => item.ToString()))}.");
         }
 
         if (targetWidth.HasValue && targetWidth.Value != width)
@@ -815,6 +818,17 @@ internal class Validator(GraphicsContext context)
         else
         {
             targetHeight = height;
+        }
+
+        if (targetSampleCount.HasValue && targetSampleCount.Value != sampleCount)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Frame buffer {name} texture sample count ({sampleCount}) does not match expected sample count ({targetSampleCount.Value}).");
+        }
+        else
+        {
+            targetSampleCount = sampleCount;
         }
 
         if (!flags.HasFlag(targetFlag))
@@ -992,6 +1006,7 @@ internal class Validator(GraphicsContext context)
                                      out uint depth,
                                      out uint layers,
                                      out uint mipLevels,
+                                     out SampleCount sampleCount,
                                      out TextureUsageFlags flags,
                                      string name)
     {
@@ -1004,6 +1019,7 @@ internal class Validator(GraphicsContext context)
             depth = texture.Desc.Depth;
             layers = texture.Desc.Layers;
             mipLevels = texture.Desc.MipLevels;
+            sampleCount = texture.Desc.SampleCount;
             flags = texture.Desc.Flags;
         }
         else if (iTexture is TextureView textureView)
@@ -1015,6 +1031,7 @@ internal class Validator(GraphicsContext context)
             depth = textureView.Desc.Texture.Desc.Depth;
             layers = textureView.Desc.LayerCount;
             mipLevels = textureView.Desc.MipLevelCount;
+            sampleCount = textureView.Desc.Texture.Desc.SampleCount;
             flags = textureView.Desc.Texture.Desc.Flags;
         }
         else
@@ -1026,6 +1043,7 @@ internal class Validator(GraphicsContext context)
             depth = default;
             layers = default;
             mipLevels = default;
+            sampleCount = default;
             flags = default;
 
             context.PublishDebugCallback(MessageCategory.System,
