@@ -8,6 +8,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Context.Validator.ValidateSwapChainDesc(desc);
         }
 
         return CreateSwapChainImpl(desc);
@@ -17,6 +18,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Context.Validator.ValidateBufferDesc(desc);
         }
 
         return CreateBufferImpl(desc);
@@ -26,6 +28,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Context.Validator.ValidateBufferViewDesc(desc);
         }
 
         return CreateBufferViewImpl(desc);
@@ -35,6 +38,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Context.Validator.ValidateTextureDesc(desc);
         }
 
         return CreateTextureImpl(desc);
@@ -44,6 +48,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Context.Validator.ValidateTextureViewDesc(desc);
         }
 
         return CreateTextureViewImpl(desc);
@@ -53,6 +58,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Context.Validator.ValidateSamplerDesc(desc);
         }
 
         return CreateSamplerImpl(desc);
@@ -62,6 +68,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Context.Validator.ValidateResourceLayoutDesc(desc);
         }
 
         return CreateResourceLayoutImpl(desc);
@@ -71,6 +78,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Context.Validator.ValidateResourceSetDesc(desc);
         }
 
         return CreateResourceSetImpl(desc);
@@ -80,6 +88,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Context.Validator.ValidateFrameBufferDesc(desc);
         }
 
         return CreateFrameBufferImpl(desc);
@@ -89,6 +98,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Context.Validator.ValidateShaderDesc(desc);
         }
 
         return CreateShaderImpl(desc);
@@ -98,6 +108,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Context.Validator.ValidateGraphicsPipelineDesc(desc);
         }
 
         return CreateGraphicsPipelineImpl(desc);
@@ -107,6 +118,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Context.Validator.ValidateComputePipelineDesc(desc);
         }
 
         return CreateComputePipelineImpl(desc);
@@ -116,6 +128,7 @@ public abstract class ResourceFactory(GraphicsContext context)
     {
         if (Context.UseDebugLayer)
         {
+            Context.Validator.ValidateRayTracingPipelineDesc(desc);
         }
 
         return CreateRayTracingPipelineImpl(desc);

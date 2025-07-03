@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public enum ElementSemanticType
+public enum ElementSemantic
 {
     Position,
 

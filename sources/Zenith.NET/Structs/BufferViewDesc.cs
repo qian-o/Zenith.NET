@@ -8,5 +8,5 @@ public record struct BufferViewDesc
 
     public uint SizeInBytes;
 
-    public BufferUsageFlags? Flags;
+    public uint StrideInBytes;
 }

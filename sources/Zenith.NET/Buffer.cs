@@ -10,15 +10,10 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Buffer upload validation is not implemented yet.");
-        }
-
         CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
 
         commandBuffer.Begin();
-        commandBuffer.UpdateBuffer(data, this, offsetInBytes);
+        commandBuffer.UploadBuffer(data, this, offsetInBytes);
         commandBuffer.End();
         commandBuffer.Submit();
 

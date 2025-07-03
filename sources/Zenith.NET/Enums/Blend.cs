@@ -6,21 +6,21 @@ public enum Blend
 
     One,
 
-    SourceAlpha,
+    SrcAlpha,
 
-    InverseSourceAlpha,
+    InverseSrcAlpha,
 
-    DestinationAlpha,
+    DestAlpha,
 
-    InverseDestinationAlpha,
+    InverseDestAlpha,
 
-    SourceColor,
+    SrcColor,
 
-    InverseSourceColor,
+    InverseSrcColor,
 
-    DestinationColor,
+    DestColor,
 
-    InverseDestinationColor,
+    InverseDestColor,
 
     BlendFactor,
 
