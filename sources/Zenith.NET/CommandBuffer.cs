@@ -6,6 +6,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 {
     protected CommandQueue Queue { get; } = queue;
 
+    protected CommandBufferState State { get; private set; } = CommandBufferState.Idle;
+
     public void Begin()
     {
         if (Context.UseDebugLayer)
@@ -14,6 +16,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         }
 
         BeginImpl();
+
+        State = CommandBufferState.Recording;
     }
 
     public void End()
@@ -24,6 +28,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         }
 
         EndImpl();
+
+        State = CommandBufferState.Completed;
     }
 
     public void Submit()
@@ -34,6 +40,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         }
 
         Queue.Submit(this);
+
+        State = CommandBufferState.Submitted;
     }
 
     public void Reset()
@@ -46,6 +54,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         Context.Uploader.Release(this);
 
         ResetImpl();
+
+        State = CommandBufferState.Idle;
     }
 
     public void UploadBuffer<T>(ReadOnlySpan<T> data, IBuffer buffer, uint offsetInBytes)
