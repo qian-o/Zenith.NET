@@ -49,10 +49,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void CopyBuffer(IBuffer src, uint srcOffsetInBytes, IBuffer dest, uint destOffsetInBytes, uint sizeInBytes)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Buffer copy validation is not implemented yet.");
-        }
+        Context.Validator?.ValidateCopyBuffer(this, src, srcOffsetInBytes, dest, destOffsetInBytes, sizeInBytes);
 
         CopyBufferImpl(src, srcOffsetInBytes, dest, destOffsetInBytes, sizeInBytes);
     }

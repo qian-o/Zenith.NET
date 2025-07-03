@@ -1,4 +1,6 @@
-﻿namespace Zenith.NET;
+﻿using System.Runtime.CompilerServices;
+
+namespace Zenith.NET;
 
 internal class Validator(GraphicsContext context)
 {
@@ -348,7 +350,7 @@ internal class Validator(GraphicsContext context)
                                            out BufferUsageFlags flags,
                                            $"resource at index {i}");
 
-                        BufferUsageFlags requestFlag = types[i] switch
+                        BufferUsageFlags requestedFlag = types[i] switch
                         {
                             ResourceType.ConstantBuffer => BufferUsageFlags.Constant,
                             ResourceType.StructuredBuffer => BufferUsageFlags.ShaderResource,
@@ -356,11 +358,11 @@ internal class Validator(GraphicsContext context)
                             _ => BufferUsageFlags.None
                         };
 
-                        if (!flags.HasFlag(requestFlag))
+                        if (!flags.HasFlag(requestedFlag))
                         {
                             context.PublishDebugCallback(MessageCategory.System,
                                                          MessageSeverity.Warning,
-                                                         $"Resource at index {i} must have usage flag '{requestFlag}' for resource type '{types[i]}'. Got: {flags}.");
+                                                         $"Resource at index {i} must have usage flag '{requestedFlag}' for resource type '{types[i]}'. Got: {flags}.");
                         }
                     }
                     break;
@@ -386,18 +388,18 @@ internal class Validator(GraphicsContext context)
                                             out TextureUsageFlags flags,
                                             $"resource at index {i}");
 
-                        TextureUsageFlags requestFlag = types[i] switch
+                        TextureUsageFlags requestedFlag = types[i] switch
                         {
                             ResourceType.Texture => TextureUsageFlags.ShaderResource,
                             ResourceType.TextureReadWrite => TextureUsageFlags.UnorderedAccess,
                             _ => TextureUsageFlags.None
                         };
 
-                        if (!flags.HasFlag(requestFlag))
+                        if (!flags.HasFlag(requestedFlag))
                         {
                             context.PublishDebugCallback(MessageCategory.System,
                                                          MessageSeverity.Warning,
-                                                         $"Resource at index {i} must have usage flag '{requestFlag}' for resource type '{types[i]}'. Got: {flags}.");
+                                                         $"Resource at index {i} must have usage flag '{requestedFlag}' for resource type '{types[i]}'. Got: {flags}.");
                         }
                     }
                     break;
@@ -1035,6 +1037,78 @@ internal class Validator(GraphicsContext context)
     {
         if (commandBuffer.State is not CommandBufferState.Recording)
         {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Command buffer must be in Recording state to upload buffer. Current state: {commandBuffer.State}.");
+        }
+
+        if (buffer.IsDisposed)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Cannot upload to a disposed buffer.");
+
+            return;
+        }
+
+        ObtainBufferValues(buffer,
+                           out uint sizeInBytes,
+                           out _,
+                           out _,
+                           "buffer for upload");
+
+        uint requestedSize = (uint)((data.Length * Unsafe.SizeOf<T>()) + offsetInBytes);
+
+        if (requestedSize > sizeInBytes)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Upload size ({requestedSize} bytes) exceeds buffer size ({sizeInBytes} bytes).");
+        }
+    }
+
+    public void ValidateCopyBuffer(CommandBuffer commandBuffer, IBuffer src, uint srcOffsetInBytes, IBuffer dest, uint destOffsetInBytes, uint sizeInBytes)
+    {
+        if (commandBuffer.State is not CommandBufferState.Recording)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Command buffer must be in Recording state to copy buffer. Current state: {commandBuffer.State}.");
+        }
+
+        if (src.IsDisposed || dest.IsDisposed)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Cannot copy to or from a disposed buffer.");
+
+            return;
+        }
+
+        ObtainBufferValues(src,
+                           out uint srcSizeInBytes,
+                           out _,
+                           out _,
+                           "source buffer for copy");
+
+        ObtainBufferValues(dest,
+                           out uint destSizeInBytes,
+                           out _,
+                           out _,
+                           "destination buffer for copy");
+
+        if (srcOffsetInBytes + sizeInBytes > srcSizeInBytes)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Source buffer copy range exceeds source buffer size. Source size: {srcSizeInBytes} bytes, requested range: {srcOffsetInBytes} + {sizeInBytes} bytes.");
+        }
+
+        if (destOffsetInBytes + sizeInBytes > destSizeInBytes)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Destination buffer copy range exceeds destination buffer size. Destination size: {destSizeInBytes} bytes, requested range: {destOffsetInBytes} + {sizeInBytes} bytes.");
         }
     }
     #endregion
