@@ -35,14 +35,14 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         State = CommandBufferState.Submitted;
     }
 
-    public void UploadBuffer<T>(ReadOnlySpan<T> data, IBuffer buffer, uint offsetInBytes)
+    public void UploadBuffer<T>(IBuffer buffer, uint offsetInBytes, ReadOnlySpan<T> data)
     {
-        Context.Validator?.ValidateUploadBuffer(this, data, buffer, offsetInBytes);
+        Context.Validator?.ValidateUploadBuffer(this, buffer, offsetInBytes, data);
 
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 
         Buffer temporary = Context.Uploader.Buffer(this, sizeInBytes);
-        temporary.Upload(data, 0);
+        temporary.Upload(0, data);
 
         CopyBufferImpl(temporary, 0, buffer, offsetInBytes, sizeInBytes);
     }
@@ -54,7 +54,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CopyBufferImpl(src, srcOffsetInBytes, dest, destOffsetInBytes, sizeInBytes);
     }
 
-    public void UploadTexture<T>(ReadOnlySpan<T> data, ITexture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent)
+    public void UploadTexture<T>(ITexture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data)
     {
         if (Context.UseDebugLayer)
         {
@@ -64,7 +64,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 
         Buffer temporary = Context.Uploader.Buffer(this, sizeInBytes);
-        temporary.Upload(data, 0);
+        temporary.Upload(0, data);
 
         CopyTextureImpl(temporary, 0, sizeInBytes, texture, slice, offset, extent);
     }

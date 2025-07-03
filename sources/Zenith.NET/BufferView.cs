@@ -8,8 +8,8 @@ public abstract class BufferView(GraphicsContext context, BufferViewDesc desc) :
 
     public nint Pointer { get; } = desc.Buffer.Pointer is not 0 ? (nint)(desc.Buffer.Pointer + desc.OffsetInBytes) : 0;
 
-    public void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes)
+    public void Upload<T>(uint offsetInBytes, ReadOnlySpan<T> data)
     {
-        Desc.Buffer.Upload(data, Desc.OffsetInBytes + offsetInBytes);
+        Desc.Buffer.Upload(Desc.OffsetInBytes + offsetInBytes, data);
     }
 }

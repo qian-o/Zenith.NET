@@ -8,12 +8,12 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public abstract nint Pointer { get; }
 
-    public void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes)
+    public void Upload<T>(uint offsetInBytes, ReadOnlySpan<T> data)
     {
         CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
 
         commandBuffer.Begin();
-        commandBuffer.UploadBuffer(data, this, offsetInBytes);
+        commandBuffer.UploadBuffer(this, offsetInBytes, data);
         commandBuffer.End();
         commandBuffer.Submit();
 

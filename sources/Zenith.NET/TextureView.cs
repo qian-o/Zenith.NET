@@ -6,7 +6,7 @@ public abstract class TextureView(GraphicsContext context, TextureViewDesc desc)
 
     public ref readonly TextureViewDesc Desc => ref desc;
 
-    public void Upload<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent)
+    public void Upload<T>(TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data)
     {
         slice = new()
         {
@@ -15,6 +15,6 @@ public abstract class TextureView(GraphicsContext context, TextureViewDesc desc)
             MipLevel = Desc.FirstMipLevel + slice.MipLevel
         };
 
-        Desc.Texture.Upload(data, slice, offset, extent);
+        Desc.Texture.Upload(slice, offset, extent, data);
     }
 }

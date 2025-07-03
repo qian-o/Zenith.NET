@@ -4,5 +4,5 @@ public interface IBuffer : IBindableResource
 {
     nint Pointer { get; }
 
-    void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes);
+    void Upload<T>(uint offsetInBytes, ReadOnlySpan<T> data);
 }

@@ -1033,7 +1033,7 @@ internal class Validator(GraphicsContext context)
         }
     }
 
-    public void ValidateUploadBuffer<T>(CommandBuffer commandBuffer, ReadOnlySpan<T> data, IBuffer buffer, uint offsetInBytes)
+    public void ValidateUploadBuffer<T>(CommandBuffer commandBuffer, IBuffer buffer, uint offsetInBytes, ReadOnlySpan<T> data)
     {
         if (commandBuffer.State is not CommandBufferState.Recording)
         {
@@ -1051,13 +1051,22 @@ internal class Validator(GraphicsContext context)
             return;
         }
 
+        if (data.IsEmpty)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Upload data cannot be empty.");
+
+            return;
+        }
+
         ObtainBufferValues(buffer,
                            out uint sizeInBytes,
                            out _,
                            out _,
                            "buffer for upload");
 
-        uint requestedSize = (uint)((data.Length * Unsafe.SizeOf<T>()) + offsetInBytes);
+        uint requestedSize = offsetInBytes + (uint)(data.Length * Unsafe.SizeOf<T>());
 
         if (requestedSize > sizeInBytes)
         {
@@ -1081,6 +1090,15 @@ internal class Validator(GraphicsContext context)
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
                                          "Cannot copy to or from a disposed buffer.");
+
+            return;
+        }
+
+        if (sizeInBytes is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Copy size must be greater than 0.");
 
             return;
         }
