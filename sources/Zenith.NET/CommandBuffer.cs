@@ -4,15 +4,15 @@ namespace Zenith.NET;
 
 public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
 {
-    protected CommandQueue Queue { get; } = queue;
+    public CommandQueue Queue { get; } = queue;
 
-    protected CommandBufferState State { get; private set; } = CommandBufferState.Idle;
+    public CommandBufferState State { get; private set; } = CommandBufferState.Idle;
 
     public void Begin()
     {
         if (Context.UseDebugLayer)
         {
-            throw new NotImplementedException("Command buffer validation is not implemented yet.");
+            Context.Validator.ValidateBegin(this);
         }
 
         BeginImpl();

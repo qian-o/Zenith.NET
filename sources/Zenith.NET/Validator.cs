@@ -702,6 +702,16 @@ internal class Validator(GraphicsContext context)
         }
     }
 
+    public void ValidateBegin(CommandBuffer commandBuffer)
+    {
+        if (commandBuffer.State is not CommandBufferState.Idle)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Command buffer must be in Idle state to begin recording.");
+        }
+    }
+
     private void ValidateSurface(Surface surface)
     {
         ValidateDefinedEnum(surface.Type, "surface type");
