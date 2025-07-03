@@ -56,10 +56,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void UploadTexture<T>(ITexture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Texture upload validation is not implemented yet.");
-        }
+        Context.Validator?.ValidateUploadTexture(this, texture, slice, offset, extent, data);
 
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 

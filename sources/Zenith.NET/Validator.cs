@@ -19,6 +19,29 @@ internal class Validator(GraphicsContext context)
         PixelFormat.D32FloatS8UInt
     ];
 
+    private static readonly TextureType[] oneDimensionalTextureTypes =
+    [
+        TextureType.Texture1D,
+        TextureType.Texture1DArray
+    ];
+
+    private static readonly TextureType[] twoDimensionalTextureTypes =
+    [
+        TextureType.Texture2D,
+        TextureType.Texture2DArray
+    ];
+
+    private static readonly TextureType[] threeDimensionalTextureTypes =
+    [
+        TextureType.Texture3D
+    ];
+
+    private static readonly TextureType[] cubeTextureTypes =
+    [
+        TextureType.TextureCube,
+        TextureType.TextureCubeArray
+    ];
+
     private static readonly TextureType[] arrayTextureTypes =
     [
         TextureType.Texture1DArray,
@@ -108,29 +131,62 @@ internal class Validator(GraphicsContext context)
 
         ValidateDefinedEnum(desc.Format, "texture format");
 
-        if (desc.Type is TextureType.Texture1D or TextureType.Texture1DArray && desc.Width is 0)
+        if (oneDimensionalTextureTypes.Contains(desc.Type))
         {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         "1D texture width must be greater than 0.");
+            if (desc.Width is 0)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             "1D texture width must be greater than 0.");
+            }
+
+            if (desc.Height is not 1 || desc.Depth is not 1)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             "1D texture must have height and depth of 1.");
+            }
         }
-        else if (desc.Type is TextureType.Texture2D or TextureType.Texture2DArray && (desc.Width is 0 || desc.Height is 0))
+        else if (twoDimensionalTextureTypes.Contains(desc.Type))
         {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         "2D texture dimensions must be greater than 0.");
+            if (desc.Width is 0 || desc.Height is 0)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             "2D texture dimensions must be greater than 0.");
+            }
+
+            if (desc.Depth is not 1)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             "2D texture must have depth of 1.");
+            }
         }
-        else if (desc.Type is TextureType.Texture3D && (desc.Width is 0 || desc.Height is 0 || desc.Depth is 0))
+        else if (threeDimensionalTextureTypes.Contains(desc.Type))
         {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         "3D texture dimensions must be greater than 0.");
+            if (desc.Width is 0 || desc.Height is 0 || desc.Depth is 0)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             "3D texture dimensions must be greater than 0.");
+            }
         }
-        else if (desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray && (desc.Width is 0 || desc.Height is 0 || desc.Width != desc.Height))
+        else if (cubeTextureTypes.Contains(desc.Type))
         {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         "Cube texture must have equal width and height greater than 0.");
+            if (desc.Width is 0 || desc.Height is 0 || desc.Width != desc.Height)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             "Cube texture must have equal width and height greater than 0.");
+            }
+
+            if (desc.Depth is not 1)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             "Cube texture must have depth of 1.");
+            }
         }
 
         if (arrayTextureTypes.Contains(desc.Type))
@@ -1035,12 +1091,7 @@ internal class Validator(GraphicsContext context)
 
     public void ValidateUploadBuffer<T>(CommandBuffer commandBuffer, IBuffer buffer, uint offsetInBytes, ReadOnlySpan<T> data)
     {
-        if (commandBuffer.State is not CommandBufferState.Recording)
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         $"Command buffer must be in Recording state to upload buffer. Current state: {commandBuffer.State}.");
-        }
+        ValidateRecordingState(commandBuffer, "UploadBuffer");
 
         if (buffer.IsDisposed)
         {
@@ -1078,12 +1129,7 @@ internal class Validator(GraphicsContext context)
 
     public void ValidateCopyBuffer(CommandBuffer commandBuffer, IBuffer src, uint srcOffsetInBytes, IBuffer dest, uint destOffsetInBytes, uint sizeInBytes)
     {
-        if (commandBuffer.State is not CommandBufferState.Recording)
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         $"Command buffer must be in Recording state to copy buffer. Current state: {commandBuffer.State}.");
-        }
+        ValidateRecordingState(commandBuffer, "CopyBuffer");
 
         if (src.IsDisposed || dest.IsDisposed)
         {
@@ -1127,6 +1173,55 @@ internal class Validator(GraphicsContext context)
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
                                          $"Destination buffer copy range exceeds destination buffer size. Destination size: {destSizeInBytes} bytes, requested range: {destOffsetInBytes} + {sizeInBytes} bytes.");
+        }
+    }
+
+    public void ValidateUploadTexture<T>(CommandBuffer commandBuffer, ITexture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data)
+    {
+        ValidateRecordingState(commandBuffer, "UploadTexture");
+
+        if (texture.IsDisposed)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Cannot upload to a disposed texture.");
+
+            return;
+        }
+
+        if (data.IsEmpty)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Upload data cannot be empty.");
+
+            return;
+        }
+
+        ObtainTextureValues(texture,
+                            out TextureType type,
+                            out _,
+                            out uint width,
+                            out uint height,
+                            out uint depth,
+                            out uint layers,
+                            out uint mipLevels,
+                            out _,
+                            out _,
+                            "texture for upload");
+
+        ValidateTextureSlice(type, layers, mipLevels, slice, "texture slice for upload");
+
+        throw new NotImplementedException("Texture upload validation is not fully implemented yet.");
+    }
+
+    private void ValidateRecordingState(CommandBuffer commandBuffer, string name)
+    {
+        if (commandBuffer.State is not CommandBufferState.Recording)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"{name}: Command buffer must be in Recording state to perform this operation. Current state: {commandBuffer.State}.");
         }
     }
     #endregion
