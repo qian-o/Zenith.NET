@@ -607,12 +607,7 @@ internal class Validator(GraphicsContext context)
 
     public void ValidateComputePipelineDesc(ComputePipelineDesc desc)
     {
-        if (desc.Shader?.IsDisposed is not false)
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         "Compute pipeline requires a valid, non-disposed shader.");
-        }
+        ValidateShader(desc.Shader, "Compute shader");
 
         ValidateResourceLayouts(desc.ResourceLayouts);
     }
