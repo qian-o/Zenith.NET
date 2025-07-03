@@ -593,11 +593,28 @@ internal class Validator(GraphicsContext context)
             ValidateShader(shaders.Pixel, "Pixel shader");
         }
 
-        if (desc.InputLayouts is null || desc.InputLayouts.Length is 0)
+        // InputLayouts
         {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         "Graphics pipeline must specify at least 1 input layout.");
+            if (desc.InputLayouts is null)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             "Input layouts cannot be null.");
+
+                return;
+            }
+
+            if (desc.InputLayouts.Length is 0)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             "Graphics pipeline must have at least 1 input layout.");
+            }
+
+            for (int i = 0; i < desc.InputLayouts.Length; i++)
+            {
+                ValidateInputLayout(desc.InputLayouts[i], $"input layout at index {i}");
+            }
         }
 
         ValidateResourceLayouts(desc.ResourceLayouts);
@@ -876,6 +893,41 @@ internal class Validator(GraphicsContext context)
         for (int i = 0; i < shaders.Length; i++)
         {
             ValidateShader(shaders[i], $"{name} at index {i}");
+        }
+    }
+
+    private void ValidateInputLayout(InputLayout inputLayout, string name)
+    {
+        if (inputLayout.Elements is null)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"{name} elements cannot be null.");
+
+            return;
+        }
+
+        if (inputLayout.Elements.Length is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"{name} must contain at least 1 element.");
+        }
+
+        for (int i = 0; i < inputLayout.Elements.Length; i++)
+        {
+            InputElement inputElement = inputLayout.Elements[i];
+
+            ValidateDefinedEnum(inputElement.Format, $"input element format at index {i}");
+
+            ValidateDefinedEnum(inputElement.Semantic, $"input element semantic at index {i}");
+        }
+
+        if (inputLayout.StrideInBytes is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"{name} stride must be greater than 0.");
         }
     }
 

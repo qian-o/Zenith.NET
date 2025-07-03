@@ -10,7 +10,16 @@ public record struct InputLayout
     {
         element.OffsetInBytes = StrideInBytes;
 
-        Elements = [.. Elements, element];
+        if (Elements is null)
+        {
+            Elements = [element];
+        }
+        else
+        {
+            Array.Resize(ref Elements, Elements.Length + 1);
+
+            Elements[^1] = element;
+        }
 
         StrideInBytes += GetFormatSizeInBytes(element.Format);
 

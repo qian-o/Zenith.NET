@@ -4,7 +4,7 @@ public record struct InputElement
 {
     public ElementFormat Format;
 
-    public ElementSemanticType Type;
+    public ElementSemantic Semantic;
 
     public uint Index;
 
