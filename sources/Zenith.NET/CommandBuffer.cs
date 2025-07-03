@@ -37,10 +37,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void UploadBuffer<T>(ReadOnlySpan<T> data, IBuffer buffer, uint offsetInBytes)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Buffer upload validation is not implemented yet.");
-        }
+        Context.Validator?.ValidateUploadBuffer(this, data, buffer, offsetInBytes);
 
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 

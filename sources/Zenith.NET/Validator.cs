@@ -702,39 +702,6 @@ internal class Validator(GraphicsContext context)
                                          $"Max attribute size must be a multiple of 4 bytes and not exceed 32 bytes. Got: {desc.MaxAttributeSizeInBytes}.");
         }
     }
-    #endregion
-
-    #region CommandBuffer Validation
-    public void ValidateBegin(CommandBuffer commandBuffer)
-    {
-        if (commandBuffer.State is not CommandBufferState.Idle)
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         $"Command buffer must be in Idle state to begin recording. Current state: {commandBuffer.State}.");
-        }
-    }
-
-    public void ValidateEnd(CommandBuffer commandBuffer)
-    {
-        if (commandBuffer.State is not CommandBufferState.Recording)
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         $"Command buffer must be in Recording state to end recording. Current state: {commandBuffer.State}.");
-        }
-    }
-
-    public void ValidateSubmit(CommandBuffer commandBuffer)
-    {
-        if (commandBuffer.State is not CommandBufferState.Completed)
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         $"Command buffer must be in Completed state to submit. Current state: {commandBuffer.State}.");
-        }
-    }
-    #endregion
 
     private void ValidateSurface(Surface surface)
     {
@@ -930,6 +897,16 @@ internal class Validator(GraphicsContext context)
         }
     }
 
+    private void ValidateShader(Shader? shader, string name)
+    {
+        if (shader?.IsDisposed is not false)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"{name} must be valid and non-disposed.");
+        }
+    }
+
     private void ValidateInputLayout(InputLayout inputLayout, string name)
     {
         if (inputLayout.Elements is null)
@@ -1021,6 +998,46 @@ internal class Validator(GraphicsContext context)
                                          $"Depth-stencil attachment format '{output.DepthStencilAttachment.Value}' is not supported. Valid formats: {string.Join(", ", depthStencilFormats.Select(static item => item.ToString()))}.");
         }
     }
+    #endregion
+
+    #region CommandBuffer Validation
+    public void ValidateBegin(CommandBuffer commandBuffer)
+    {
+        if (commandBuffer.State is not CommandBufferState.Idle)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Command buffer must be in Idle state to begin recording. Current state: {commandBuffer.State}.");
+        }
+    }
+
+    public void ValidateEnd(CommandBuffer commandBuffer)
+    {
+        if (commandBuffer.State is not CommandBufferState.Recording)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Command buffer must be in Recording state to end recording. Current state: {commandBuffer.State}.");
+        }
+    }
+
+    public void ValidateSubmit(CommandBuffer commandBuffer)
+    {
+        if (commandBuffer.State is not CommandBufferState.Completed)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Command buffer must be in Completed state to submit. Current state: {commandBuffer.State}.");
+        }
+    }
+
+    public void ValidateUploadBuffer<T>(CommandBuffer commandBuffer, ReadOnlySpan<T> data, IBuffer buffer, uint offsetInBytes)
+    {
+        if (commandBuffer.State is not CommandBufferState.Recording)
+        {
+        }
+    }
+    #endregion
 
     #region Universal Validation
     private void ValidateDefinedEnum<TEnum>(TEnum value, string name) where TEnum : struct, Enum
@@ -1030,16 +1047,6 @@ internal class Validator(GraphicsContext context)
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
                                          $"Invalid {name} value '{value}'. Valid values: {string.Join(", ", Enum.GetNames<TEnum>())}.");
-        }
-    }
-
-    private void ValidateShader(Shader? shader, string name)
-    {
-        if (shader?.IsDisposed is not false)
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         $"{name} must be valid and non-disposed.");
         }
     }
     #endregion
