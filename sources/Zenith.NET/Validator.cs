@@ -401,14 +401,30 @@ internal class Validator(GraphicsContext context)
                                          $"Frame buffer supports up to 8 color targets. Got: {desc.ColorTargets.Length}.");
         }
 
+        PixelFormat? targetFormat = null;
+        uint? targetWidth = null;
+        uint? targetHeight = null;
+
         for (int i = 0; i < desc.ColorTargets.Length; i++)
         {
-            ValidateFrameBufferAttachment(desc.ColorTargets[i], $"color target at index {i}");
+            ValidateFrameBufferAttachment(desc.ColorTargets[i],
+                                          ref targetFormat,
+                                          ref targetWidth,
+                                          ref targetHeight,
+                                          TextureUsageFlags.RenderTarget,
+                                          $"color target at index {i}");
         }
 
         if (desc.DepthStencilTarget is not null)
         {
-            ValidateFrameBufferAttachment(desc.DepthStencilTarget.Value, "depth-stencil target");
+            targetFormat = null;
+
+            ValidateFrameBufferAttachment(desc.DepthStencilTarget.Value,
+                                          ref targetFormat,
+                                          ref targetWidth,
+                                          ref targetHeight,
+                                          TextureUsageFlags.DepthStencil,
+                                          "depth-stencil target");
         }
     }
 
@@ -688,7 +704,12 @@ internal class Validator(GraphicsContext context)
         }
     }
 
-    private void ValidateFrameBufferAttachment(FrameBufferAttachment attachment, string name)
+    private void ValidateFrameBufferAttachment(FrameBufferAttachment attachment,
+                                               ref PixelFormat? targetFormat,
+                                               ref uint? targetWidth,
+                                               ref uint? targetHeight,
+                                               TextureUsageFlags targetFlag,
+                                               string name)
     {
         if (attachment.Target?.IsDisposed is not false)
         {
@@ -699,13 +720,62 @@ internal class Validator(GraphicsContext context)
             return;
         }
 
-        ObtainTextureValues(attachment.Target, out TextureType type, out uint layers, out uint mipLevels, name);
+        ObtainTextureValues(attachment.Target,
+                            out TextureType type,
+                            out PixelFormat format,
+                            out uint width,
+                            out uint height,
+                            out _,
+                            out uint layers,
+                            out uint mipLevels,
+                            out TextureUsageFlags flags,
+                            name);
 
         if (type is not TextureType.Texture2D or TextureType.Texture2DArray)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
                                          $"Frame buffer {name} must use Texture2D or Texture2DArray. Got: {type}.");
+        }
+
+        if (targetFormat.HasValue && targetFormat.Value != format)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Frame buffer {name} texture format '{format}' does not match expected format '{targetFormat.Value}'.");
+        }
+        else
+        {
+            targetFormat = format;
+        }
+
+        if (targetWidth.HasValue && targetWidth.Value != width)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Frame buffer {name} texture width ({width}) does not match expected width ({targetWidth.Value}).");
+        }
+        else
+        {
+            targetWidth = width;
+        }
+
+        if (targetHeight.HasValue && targetHeight.Value != height)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Frame buffer {name} texture height ({height}) does not match expected height ({targetHeight.Value}).");
+        }
+        else
+        {
+            targetHeight = height;
+        }
+
+        if (!flags.HasFlag(targetFlag))
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Frame buffer {name} texture must have usage flag '{targetFlag}'. Got: {flags}.");
         }
 
         ValidateTextureSlice(type, layers, mipLevels, attachment.Slice, name);
@@ -838,27 +908,47 @@ internal class Validator(GraphicsContext context)
     #region Universal Texture Validation
     private void ObtainTextureValues(ITexture iTexture,
                                      out TextureType type,
+                                     out PixelFormat format,
+                                     out uint width,
+                                     out uint height,
+                                     out uint depth,
                                      out uint layers,
                                      out uint mipLevels,
+                                     out TextureUsageFlags flags,
                                      string name)
     {
         if (iTexture is Texture texture)
         {
             type = texture.Desc.Type;
+            format = texture.Desc.Format;
+            width = texture.Desc.Width;
+            height = texture.Desc.Height;
+            depth = texture.Desc.Depth;
             layers = texture.Desc.Layers;
             mipLevels = texture.Desc.MipLevels;
+            flags = texture.Desc.Flags;
         }
         else if (iTexture is TextureView textureView)
         {
             type = textureView.Desc.Texture.Desc.Type;
+            format = textureView.Desc.Texture.Desc.Format;
+            width = textureView.Desc.Texture.Desc.Width;
+            height = textureView.Desc.Texture.Desc.Height;
+            depth = textureView.Desc.Texture.Desc.Depth;
             layers = textureView.Desc.LayerCount;
             mipLevels = textureView.Desc.MipLevelCount;
+            flags = textureView.Desc.Texture.Desc.Flags;
         }
         else
         {
             type = default;
+            format = default;
+            width = default;
+            height = default;
+            depth = default;
             layers = default;
             mipLevels = default;
+            flags = default;
 
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
