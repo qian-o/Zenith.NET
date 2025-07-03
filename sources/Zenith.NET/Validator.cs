@@ -339,6 +339,25 @@ internal class Validator(GraphicsContext context)
                                                      MessageSeverity.Error,
                                                      $"Resource at index {i} must be a buffer or buffer view for resource type '{types[i]}'.");
                     }
+                    else
+                    {
+                        ObtainBufferValues((IBuffer)resource, out _, out _, out BufferUsageFlags flags, $"resource at index {i}");
+
+                        BufferUsageFlags requestFlag = types[i] switch
+                        {
+                            ResourceType.ConstantBuffer => BufferUsageFlags.Constant,
+                            ResourceType.StructuredBuffer => BufferUsageFlags.ShaderResource,
+                            ResourceType.StructuredBufferReadWrite => BufferUsageFlags.UnorderedAccess,
+                            _ => BufferUsageFlags.None
+                        };
+
+                        if (!flags.HasFlag(requestFlag))
+                        {
+                            context.PublishDebugCallback(MessageCategory.System,
+                                                         MessageSeverity.Warning,
+                                                         $"Resource at index {i} must have usage flag '{requestFlag}' for resource type '{types[i]}'. Got: {flags}.");
+                        }
+                    }
                     break;
                 case ResourceType.Texture:
                 case ResourceType.TextureReadWrite:
@@ -347,6 +366,33 @@ internal class Validator(GraphicsContext context)
                         context.PublishDebugCallback(MessageCategory.System,
                                                      MessageSeverity.Error,
                                                      $"Resource at index {i} must be a texture or texture view for resource type '{types[i]}'.");
+                    }
+                    else
+                    {
+                        ObtainTextureValues((ITexture)resource,
+                                            out _,
+                                            out _,
+                                            out _,
+                                            out _,
+                                            out _,
+                                            out _,
+                                            out _,
+                                            out TextureUsageFlags flags,
+                                            $"resource at index {i}");
+
+                        TextureUsageFlags requestFlag = types[i] switch
+                        {
+                            ResourceType.Texture => TextureUsageFlags.ShaderResource,
+                            ResourceType.TextureReadWrite => TextureUsageFlags.UnorderedAccess,
+                            _ => TextureUsageFlags.None
+                        };
+
+                        if (!flags.HasFlag(requestFlag))
+                        {
+                            context.PublishDebugCallback(MessageCategory.System,
+                                                         MessageSeverity.Warning,
+                                                         $"Resource at index {i} must have usage flag '{requestFlag}' for resource type '{types[i]}'. Got: {flags}.");
+                        }
                     }
                     break;
                 case ResourceType.Sampler:
@@ -901,6 +947,38 @@ internal class Validator(GraphicsContext context)
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
                                          $"{name} must be valid and non-disposed.");
+        }
+    }
+    #endregion
+
+    #region Universal Buffer Validation
+    private void ObtainBufferValues(IBuffer iBuffer,
+                                    out uint sizeInBytes,
+                                    out uint strideInBytes,
+                                    out BufferUsageFlags flags,
+                                    string name)
+    {
+        if (iBuffer is Buffer buffer)
+        {
+            sizeInBytes = buffer.Desc.SizeInBytes;
+            strideInBytes = buffer.Desc.StrideInBytes;
+            flags = buffer.Desc.Flags;
+        }
+        else if (iBuffer is BufferView bufferView)
+        {
+            sizeInBytes = bufferView.Desc.SizeInBytes;
+            strideInBytes = bufferView.Desc.StrideInBytes;
+            flags = bufferView.Desc.Buffer.Desc.Flags;
+        }
+        else
+        {
+            sizeInBytes = default;
+            strideInBytes = default;
+            flags = default;
+
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Cannot validate buffer slice for {name}: expected Buffer or BufferView.");
         }
     }
     #endregion
