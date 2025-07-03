@@ -944,9 +944,7 @@ internal class Validator(GraphicsContext context)
 
         for (int i = 0; i < resourceLayouts.Length; i++)
         {
-            ResourceLayout? resourceLayout = resourceLayouts[i];
-
-            if (resourceLayout?.IsDisposed is not false)
+            if (resourceLayouts[i]?.IsDisposed is not false)
             {
                 context.PublishDebugCallback(MessageCategory.System,
                                              MessageSeverity.Error,
