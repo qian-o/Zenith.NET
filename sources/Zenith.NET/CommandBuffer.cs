@@ -86,14 +86,14 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CopyTextureImpl(src, srcOffset, dest, destOffset, extent);
     }
 
-    public void ResolveTexture(ITexture src, TextureOffset srcOffset, ITexture dest, TextureOffset destOffset)
+    public void ResolveTexture(ITexture src, TextureSlice srcSlice, ITexture dest, TextureSlice destSlice)
     {
         if (Context.UseDebugLayer)
         {
             throw new NotImplementedException("Texture resolve validation is not implemented yet.");
         }
 
-        ResolveTextureImpl(src, srcOffset, dest, destOffset);
+        ResolveTextureImpl(src, srcSlice, dest, destSlice);
     }
 
     public BottomLevelAccelerationStructure BuildBottomLevelAccelerationStructure(BottomLevelAccelerationStructureDesc desc)
@@ -356,7 +356,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void CopyTextureImpl(ITexture src, TextureOffset srcOffset, ITexture dest, TextureOffset destOffset, TextureExtent extent);
 
-    protected abstract void ResolveTextureImpl(ITexture src, TextureOffset srcOffset, ITexture dest, TextureOffset destOffset);
+    protected abstract void ResolveTextureImpl(ITexture src, TextureSlice srcSlice, ITexture dest, TextureSlice destSlice);
 
     protected abstract BottomLevelAccelerationStructure BuildBottomLevelAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc);
 

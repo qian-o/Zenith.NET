@@ -19,29 +19,6 @@ internal class Validator(GraphicsContext context)
         PixelFormat.D32FloatS8UInt
     ];
 
-    private static readonly TextureType[] oneDimensionalTextureTypes =
-    [
-        TextureType.Texture1D,
-        TextureType.Texture1DArray
-    ];
-
-    private static readonly TextureType[] twoDimensionalTextureTypes =
-    [
-        TextureType.Texture2D,
-        TextureType.Texture2DArray
-    ];
-
-    private static readonly TextureType[] threeDimensionalTextureTypes =
-    [
-        TextureType.Texture3D
-    ];
-
-    private static readonly TextureType[] cubeTextureTypes =
-    [
-        TextureType.TextureCube,
-        TextureType.TextureCubeArray
-    ];
-
     private static readonly TextureType[] arrayTextureTypes =
     [
         TextureType.Texture1DArray,
@@ -131,7 +108,7 @@ internal class Validator(GraphicsContext context)
 
         ValidateDefinedEnum(desc.Format, "texture format");
 
-        if (oneDimensionalTextureTypes.Contains(desc.Type))
+        if (desc.Type is TextureType.Texture1D or TextureType.Texture1DArray)
         {
             if (desc.Width is 0)
             {
@@ -147,7 +124,7 @@ internal class Validator(GraphicsContext context)
                                              "1D texture must have height and depth of 1.");
             }
         }
-        else if (twoDimensionalTextureTypes.Contains(desc.Type))
+        else if (desc.Type is TextureType.Texture2D or TextureType.Texture2DArray)
         {
             if (desc.Width is 0 || desc.Height is 0)
             {
@@ -163,7 +140,7 @@ internal class Validator(GraphicsContext context)
                                              "2D texture must have depth of 1.");
             }
         }
-        else if (threeDimensionalTextureTypes.Contains(desc.Type))
+        else if (desc.Type is TextureType.Texture3D)
         {
             if (desc.Width is 0 || desc.Height is 0 || desc.Depth is 0)
             {
@@ -172,7 +149,7 @@ internal class Validator(GraphicsContext context)
                                              "3D texture dimensions must be greater than 0.");
             }
         }
-        else if (cubeTextureTypes.Contains(desc.Type))
+        else if (desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray)
         {
             if (desc.Width is 0 || desc.Height is 0 || desc.Width != desc.Height)
             {
@@ -1089,7 +1066,10 @@ internal class Validator(GraphicsContext context)
         }
     }
 
-    public void ValidateUploadBuffer<T>(CommandBuffer commandBuffer, IBuffer buffer, uint offsetInBytes, ReadOnlySpan<T> data)
+    public void ValidateUploadBuffer<T>(CommandBuffer commandBuffer,
+                                        IBuffer buffer,
+                                        uint offsetInBytes,
+                                        ReadOnlySpan<T> data)
     {
         ValidateRecordingState(commandBuffer, "UploadBuffer");
 
@@ -1127,7 +1107,12 @@ internal class Validator(GraphicsContext context)
         }
     }
 
-    public void ValidateCopyBuffer(CommandBuffer commandBuffer, IBuffer src, uint srcOffsetInBytes, IBuffer dest, uint destOffsetInBytes, uint sizeInBytes)
+    public void ValidateCopyBuffer(CommandBuffer commandBuffer,
+                                   IBuffer src,
+                                   uint srcOffsetInBytes,
+                                   IBuffer dest,
+                                   uint destOffsetInBytes,
+                                   uint sizeInBytes)
     {
         ValidateRecordingState(commandBuffer, "CopyBuffer");
 
@@ -1176,7 +1161,12 @@ internal class Validator(GraphicsContext context)
         }
     }
 
-    public void ValidateUploadTexture<T>(CommandBuffer commandBuffer, ITexture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data)
+    public void ValidateUploadTexture<T>(CommandBuffer commandBuffer,
+                                         ITexture texture,
+                                         TextureSlice slice,
+                                         TextureOffset offset,
+                                         TextureExtent extent,
+                                         ReadOnlySpan<T> data)
     {
         ValidateRecordingState(commandBuffer, "UploadTexture");
 
@@ -1212,7 +1202,7 @@ internal class Validator(GraphicsContext context)
 
         ValidateTextureSlice(type, layers, mipLevels, slice, "texture slice for upload");
 
-        throw new NotImplementedException("Texture upload validation is not fully implemented yet.");
+        ValidateTextureRange(width, height, depth, offset, extent, "texture offset and extent for upload");
     }
 
     private void ValidateRecordingState(CommandBuffer commandBuffer, string name)
@@ -1368,6 +1358,67 @@ internal class Validator(GraphicsContext context)
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
                                          $"Mip level {slice.MipLevel} exceeds mip level count ({mipLevels}) for {name}.");
+        }
+    }
+
+    private void ValidateTextureRange(uint width,
+                                      uint height,
+                                      uint depth,
+                                      TextureOffset offset,
+                                      TextureExtent extent,
+                                      string name)
+    {
+        if (offset.X >= width)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Offset X ({offset.X}) exceeds texture width ({width}) for {name}.");
+        }
+
+        if (offset.Y >= height)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Offset Y ({offset.Y}) exceeds texture height ({height}) for {name}.");
+        }
+
+        if (offset.Z >= depth)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Offset Z ({offset.Z}) exceeds texture depth ({depth}) for {name}.");
+        }
+
+        if (extent.Width is 0 || extent.Height is 0 || extent.Depth is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Extent must have non-zero dimensions for {name}. Got: {extent}.");
+        }
+
+        uint requestedWidth = offset.X + extent.Width;
+        uint requestedHeight = offset.Y + extent.Height;
+        uint requestedDepth = offset.Z + extent.Depth;
+
+        if (requestedWidth > width)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Requested width ({requestedWidth}) exceeds texture width ({width}) for {name}.");
+        }
+
+        if (requestedHeight > height)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Requested height ({requestedHeight}) exceeds texture height ({height}) for {name}.");
+        }
+
+        if (requestedDepth > depth)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Requested depth ({requestedDepth}) exceeds texture depth ({depth}) for {name}.");
         }
     }
     #endregion
