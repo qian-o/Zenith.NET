@@ -19,7 +19,7 @@ public abstract class GraphicsContext : DisposableObject
         Compute = compute;
         Copy = copy;
         Uploader = new(this);
-        Validator = new(this);
+        Validator = useDebugLayer ? new(this) : null;
     }
 
     public Backend Backend { get; }
@@ -38,7 +38,7 @@ public abstract class GraphicsContext : DisposableObject
 
     internal Uploader Uploader { get; }
 
-    internal Validator Validator { get; }
+    internal Validator? Validator { get; }
 
     public event EventHandler<DebugCallbackArgs>? DebugCallback;
 

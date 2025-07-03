@@ -10,10 +10,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Begin()
     {
-        if (Context.UseDebugLayer)
-        {
-            Context.Validator.ValidateBegin(this);
-        }
+        Context.Validator?.ValidateBegin(this);
 
         BeginImpl();
 
@@ -22,10 +19,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void End()
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Command buffer validation is not implemented yet.");
-        }
+        Context.Validator?.ValidateEnd(this);
 
         EndImpl();
 
@@ -34,28 +28,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Submit()
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Command buffer submission validation is not implemented yet.");
-        }
+        Context.Validator?.ValidateSubmit(this);
 
         Queue.Submit(this);
 
         State = CommandBufferState.Submitted;
-    }
-
-    public void Reset()
-    {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Command buffer reset validation is not implemented yet.");
-        }
-
-        Context.Uploader.Release(this);
-
-        ResetImpl();
-
-        State = CommandBufferState.Idle;
     }
 
     public void UploadBuffer<T>(ReadOnlySpan<T> data, IBuffer buffer, uint offsetInBytes)
@@ -360,6 +337,15 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         }
 
         InsertDebugMarkerImpl(label);
+    }
+
+    internal void Reset()
+    {
+        Context.Uploader.Release(this);
+
+        ResetImpl();
+
+        State = CommandBufferState.Idle;
     }
 
     protected override void Destroy()

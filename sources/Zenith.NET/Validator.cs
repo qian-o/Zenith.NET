@@ -24,6 +24,7 @@ internal class Validator(GraphicsContext context)
         TextureType.TextureCubeArray
     ];
 
+    #region ResourceFactory
     public void ValidateSwapChainDesc(SwapChainDesc desc)
     {
         ValidateSurface(desc.Surface);
@@ -701,16 +702,39 @@ internal class Validator(GraphicsContext context)
                                          $"Max attribute size must be a multiple of 4 bytes and not exceed 32 bytes. Got: {desc.MaxAttributeSizeInBytes}.");
         }
     }
+    #endregion
 
+    #region CommandBuffer Validation
     public void ValidateBegin(CommandBuffer commandBuffer)
     {
         if (commandBuffer.State is not CommandBufferState.Idle)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         "Command buffer must be in Idle state to begin recording.");
+                                         $"Command buffer must be in Idle state to begin recording. Current state: {commandBuffer.State}.");
         }
     }
+
+    public void ValidateEnd(CommandBuffer commandBuffer)
+    {
+        if (commandBuffer.State is not CommandBufferState.Recording)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Command buffer must be in Recording state to end recording. Current state: {commandBuffer.State}.");
+        }
+    }
+
+    public void ValidateSubmit(CommandBuffer commandBuffer)
+    {
+        if (commandBuffer.State is not CommandBufferState.Completed)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Command buffer must be in Completed state to submit. Current state: {commandBuffer.State}.");
+        }
+    }
+    #endregion
 
     private void ValidateSurface(Surface surface)
     {
