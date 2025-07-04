@@ -1396,29 +1396,25 @@ internal class Validator(GraphicsContext context)
                                          $"Extent must have non-zero dimensions for {name}. Got: {extent}.");
         }
 
-        uint requestedWidth = offset.X + extent.Width;
-        uint requestedHeight = offset.Y + extent.Height;
-        uint requestedDepth = offset.Z + extent.Depth;
-
-        if (requestedWidth > width)
+        if (offset.X + extent.Width > width)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Requested width ({requestedWidth}) exceeds texture width ({width}) for {name}.");
+                                         $"Offset X ({offset.X}) + extent width ({extent.Width}) exceeds texture width ({width}) for {name}.");
         }
 
-        if (requestedHeight > height)
+        if (offset.Y + extent.Height > height)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Requested height ({requestedHeight}) exceeds texture height ({height}) for {name}.");
+                                         $"Offset Y ({offset.Y}) + extent height ({extent.Height}) exceeds texture height ({height}) for {name}.");
         }
 
-        if (requestedDepth > depth)
+        if (offset.Z + extent.Depth > depth)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"Requested depth ({requestedDepth}) exceeds texture depth ({depth}) for {name}.");
+                                         $"Offset Z ({offset.Z}) + extent depth ({extent.Depth}) exceeds texture depth ({depth}) for {name}.");
         }
     }
     #endregion
