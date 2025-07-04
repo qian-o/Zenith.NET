@@ -1264,6 +1264,59 @@ internal class Validator(GraphicsContext context)
         ValidateTextureRange(width, height, depth, destOffset, destExtent, "destination texture offset and extent for copy");
     }
 
+    public void ValidateCopyTexture(CommandBuffer commandBuffer,
+                                    ITexture src,
+                                    TextureSlice srcSlice,
+                                    TextureOffset srcOffset,
+                                    ITexture dest,
+                                    TextureSlice destSlice,
+                                    TextureOffset destOffset,
+                                    TextureExtent extent)
+    {
+        ValidateRecordingState(commandBuffer, "CopyTexture");
+
+        if (src.IsDisposed || dest.IsDisposed)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Cannot copy to or from a disposed resource.");
+
+            return;
+        }
+
+        ObtainTextureValues(src,
+                            out TextureType srcType,
+                            out _,
+                            out uint srcWidth,
+                            out uint srcHeight,
+                            out uint srcDepth,
+                            out uint srcLayers,
+                            out uint srcMipLevels,
+                            out _,
+                            out _,
+                            "source texture for copy");
+
+        ObtainTextureValues(dest,
+                            out TextureType destType,
+                            out _,
+                            out uint destWidth,
+                            out uint destHeight,
+                            out uint destDepth,
+                            out uint destLayers,
+                            out uint destMipLevels,
+                            out _,
+                            out _,
+                            "destination texture for copy");
+
+        ValidateTextureSlice(srcType, srcLayers, srcMipLevels, srcSlice, "source texture slice for copy");
+
+        ValidateTextureRange(srcWidth, srcHeight, srcDepth, srcOffset, extent, "source texture offset and extent for copy");
+
+        ValidateTextureSlice(destType, destLayers, destMipLevels, destSlice, "destination texture slice for copy");
+
+        ValidateTextureRange(destWidth, destHeight, destDepth, destOffset, extent, "destination texture offset and extent for copy");
+    }
+
     private void ValidateRecordingState(CommandBuffer commandBuffer, string name)
     {
         if (commandBuffer.State is not CommandBufferState.Recording)
