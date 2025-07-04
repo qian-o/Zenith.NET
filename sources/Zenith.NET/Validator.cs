@@ -1179,6 +1179,15 @@ internal class Validator(GraphicsContext context)
             return;
         }
 
+        if (extent.Width is 0 || extent.Height is 0 || extent.Depth is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Texture extent must have non-zero width, height, and depth.");
+
+            return;
+        }
+
         if (data.IsEmpty)
         {
             context.PublishDebugCallback(MessageCategory.System,
@@ -1234,6 +1243,15 @@ internal class Validator(GraphicsContext context)
             return;
         }
 
+        if (destExtent.Width is 0 || destExtent.Height is 0 || destExtent.Depth is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Destination texture extent must have non-zero width, height, and depth.");
+
+            return;
+        }
+
         ObtainBufferValues(src,
                            out uint srcBufferSizeInBytes,
                            out _,
@@ -1280,6 +1298,15 @@ internal class Validator(GraphicsContext context)
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
                                          "Cannot copy to or from a disposed resource.");
+
+            return;
+        }
+
+        if (extent.Width is 0 || extent.Height is 0 || extent.Depth is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Texture extent must have non-zero width, height, and depth.");
 
             return;
         }
@@ -1480,34 +1507,6 @@ internal class Validator(GraphicsContext context)
                                       TextureExtent extent,
                                       string name)
     {
-        if (offset.X >= width)
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         $"Offset X ({offset.X}) exceeds texture width ({width}) for {name}.");
-        }
-
-        if (offset.Y >= height)
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         $"Offset Y ({offset.Y}) exceeds texture height ({height}) for {name}.");
-        }
-
-        if (offset.Z >= depth)
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         $"Offset Z ({offset.Z}) exceeds texture depth ({depth}) for {name}.");
-        }
-
-        if (extent.Width is 0 || extent.Height is 0 || extent.Depth is 0)
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         $"Extent must have non-zero dimensions for {name}. Got: {extent}.");
-        }
-
         if (offset.X + extent.Width > width)
         {
             context.PublishDebugCallback(MessageCategory.System,
