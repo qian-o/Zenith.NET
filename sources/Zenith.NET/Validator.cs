@@ -1038,17 +1038,32 @@ internal class Validator(GraphicsContext context)
     #region CommandBuffer Validation
     public void ValidateBegin(CommandBuffer commandBuffer)
     {
-        ValidateCommandBufferState(commandBuffer, CommandBufferState.Idle, "Begin");
+        if (commandBuffer.State is not CommandBufferState.Idle)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Command buffer can only be started when in Idle state. Current state: {commandBuffer.State}.");
+        }
     }
 
     public void ValidateEnd(CommandBuffer commandBuffer)
     {
-        ValidateCommandBufferState(commandBuffer, CommandBufferState.Recording, "End");
+        if (commandBuffer.State is not CommandBufferState.Recording)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Command buffer can only be ended when in Recording state. Current state: {commandBuffer.State}.");
+        }
     }
 
     public void ValidateSubmit(CommandBuffer commandBuffer)
     {
-        ValidateCommandBufferState(commandBuffer, CommandBufferState.Completed, "Submit");
+        if (commandBuffer.State is not CommandBufferState.Completed)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Command buffer can only be submitted when in Completed state. Current state: {commandBuffer.State}.");
+        }
     }
 
     public void ValidateUploadBuffer<T>(CommandBuffer commandBuffer,
@@ -1056,7 +1071,7 @@ internal class Validator(GraphicsContext context)
                                         uint offsetInBytes,
                                         ReadOnlySpan<T> data)
     {
-        ValidateCommandBufferState(commandBuffer, CommandBufferState.Recording, "UploadBuffer");
+        ValidateRecordingState(commandBuffer, "UploadBuffer");
 
         if (buffer.IsDisposed)
         {
@@ -1099,7 +1114,7 @@ internal class Validator(GraphicsContext context)
                                    uint destOffsetInBytes,
                                    uint sizeInBytes)
     {
-        ValidateCommandBufferState(commandBuffer, CommandBufferState.Recording, "CopyBuffer");
+        ValidateRecordingState(commandBuffer, "CopyBuffer");
 
         if (src.IsDisposed || dest.IsDisposed)
         {
@@ -1153,7 +1168,7 @@ internal class Validator(GraphicsContext context)
                                          TextureExtent extent,
                                          ReadOnlySpan<T> data)
     {
-        ValidateCommandBufferState(commandBuffer, CommandBufferState.Recording, "UploadTexture");
+        ValidateRecordingState(commandBuffer, "UploadTexture");
 
         if (texture.IsDisposed)
         {
@@ -1208,7 +1223,7 @@ internal class Validator(GraphicsContext context)
                                     TextureOffset destOffset,
                                     TextureExtent destExtent)
     {
-        ValidateCommandBufferState(commandBuffer, CommandBufferState.Recording, "CopyTexture");
+        ValidateRecordingState(commandBuffer, "CopyTexture");
 
         if (src.IsDisposed || dest.IsDisposed)
         {
@@ -1276,7 +1291,7 @@ internal class Validator(GraphicsContext context)
                                     TextureOffset destOffset,
                                     TextureExtent extent)
     {
-        ValidateCommandBufferState(commandBuffer, CommandBufferState.Recording, "CopyTexture");
+        ValidateRecordingState(commandBuffer, "CopyTexture");
 
         if (src.IsDisposed || dest.IsDisposed)
         {
@@ -1335,9 +1350,9 @@ internal class Validator(GraphicsContext context)
                                          ITexture dest,
                                          TextureSlice destSlice)
     {
-        ValidateCommandQueueType(commandBuffer.Queue, CommandQueueType.Direct, "ResolveTexture");
+        ValidateDirectQueue(commandBuffer, "ResolveTexture");
 
-        ValidateCommandBufferState(commandBuffer, CommandBufferState.Recording, "ResolveTexture");
+        ValidateRecordingState(commandBuffer, "ResolveTexture");
 
         if (src.IsDisposed || dest.IsDisposed)
         {
@@ -1391,23 +1406,23 @@ internal class Validator(GraphicsContext context)
         }
     }
 
-    private void ValidateCommandQueueType(CommandQueue commandQueue, CommandQueueType expectedType, string name)
+    private void ValidateDirectQueue(CommandBuffer commandBuffer, string operationName)
     {
-        if (commandQueue.Type != expectedType)
+        if (commandBuffer.Queue.Type is not CommandQueueType.Direct)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"{name}: Command queue must be of type {expectedType} to perform this operation. Current type: {commandQueue.Type}.");
+                                         $"{operationName} can only be performed on the direct command queue. Current queue type: {commandBuffer.Queue.Type}.");
         }
     }
 
-    private void ValidateCommandBufferState(CommandBuffer commandBuffer, CommandBufferState expectedState, string name)
+    private void ValidateRecordingState(CommandBuffer commandBuffer, string operationName)
     {
-        if (commandBuffer.State != expectedState)
+        if (commandBuffer.State is not CommandBufferState.Recording)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"{name}: Command buffer must be in {expectedState} state to perform this operation. Current state: {commandBuffer.State}.");
+                                         $"{operationName} can only be performed when the command buffer is in the recording state. Current state: {commandBuffer.State}.");
         }
     }
     #endregion
