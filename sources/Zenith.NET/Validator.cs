@@ -1501,6 +1501,48 @@ internal class Validator(GraphicsContext context)
         }
     }
 
+    public void ValidateSetGraphicsPipeline(CommandBuffer commandBuffer, GraphicsPipeline pipeline)
+    {
+        ValidateNotCopyQueue(commandBuffer, nameof(CommandBuffer.SetGraphicsPipeline));
+
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetGraphicsPipeline));
+
+        if (pipeline?.IsDisposed is not false)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Graphics pipeline must be a valid, non-disposed graphics pipeline.");
+        }
+    }
+
+    public void ValidateSetComputePipeline(CommandBuffer commandBuffer, ComputePipeline pipeline)
+    {
+        ValidateNotCopyQueue(commandBuffer, nameof(CommandBuffer.SetComputePipeline));
+
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetComputePipeline));
+
+        if (pipeline?.IsDisposed is not false)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Compute pipeline must be a valid, non-disposed compute pipeline.");
+        }
+    }
+
+    public void ValidateSetRayTracingPipeline(CommandBuffer commandBuffer, RayTracingPipeline pipeline)
+    {
+        ValidateNotCopyQueue(commandBuffer, nameof(CommandBuffer.SetRayTracingPipeline));
+
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetRayTracingPipeline));
+
+        if (pipeline?.IsDisposed is not false)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Ray tracing pipeline must be a valid, non-disposed ray tracing pipeline.");
+        }
+    }
+
     private void ValidateDirectQueue(CommandBuffer commandBuffer, string name)
     {
         if (commandBuffer.Queue.Type is not CommandQueueType.Direct)

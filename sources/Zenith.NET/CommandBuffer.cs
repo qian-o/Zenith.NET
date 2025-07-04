@@ -146,10 +146,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetGraphicsPipeline(GraphicsPipeline pipeline)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Graphics pipeline validation is not implemented yet.");
-        }
+        Context.Validator?.ValidateSetGraphicsPipeline(this, pipeline);
 
         SetGraphicsPipelineImpl(pipeline);
 
@@ -158,10 +155,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetComputePipeline(ComputePipeline pipeline)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Compute pipeline validation is not implemented yet.");
-        }
+        Context.Validator?.ValidateSetComputePipeline(this, pipeline);
 
         SetComputePipelineImpl(pipeline);
 
@@ -170,10 +164,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetRayTracingPipeline(RayTracingPipeline pipeline)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Ray tracing pipeline validation is not implemented yet.");
-        }
+        Context.Validator?.ValidateSetRayTracingPipeline(this, pipeline);
 
         SetRayTracingPipelineImpl(pipeline);
 
