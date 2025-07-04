@@ -1406,6 +1406,27 @@ internal class Validator(GraphicsContext context)
         }
     }
 
+    public void ValidateBuildBottomLevelAccelerationStructure(CommandBuffer commandBuffer, BottomLevelAccelerationStructureDesc desc)
+    {
+        ValidateNotCopyQueue(commandBuffer, "BuildBottomLevelAccelerationStructure");
+
+        ValidateRecordingState(commandBuffer, "BuildBottomLevelAccelerationStructure");
+    }
+
+    public void ValidateBuildTopLevelAccelerationStructure(CommandBuffer commandBuffer, TopLevelAccelerationStructureDesc desc)
+    {
+        ValidateNotCopyQueue(commandBuffer, "BuildTopLevelAccelerationStructure");
+
+        ValidateRecordingState(commandBuffer, "BuildTopLevelAccelerationStructure");
+    }
+
+    public void ValidateUpdateTopLevelAccelerationStructure(CommandBuffer commandBuffer, TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
+    {
+        ValidateDirectQueue(commandBuffer, "UpdateTopLevelAccelerationStructure");
+
+        ValidateRecordingState(commandBuffer, "UpdateTopLevelAccelerationStructure");
+    }
+
     private void ValidateDirectQueue(CommandBuffer commandBuffer, string operationName)
     {
         if (commandBuffer.Queue.Type is not CommandQueueType.Direct)
@@ -1413,6 +1434,16 @@ internal class Validator(GraphicsContext context)
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
                                          $"{operationName} can only be performed on the direct command queue. Current queue type: {commandBuffer.Queue.Type}.");
+        }
+    }
+
+    private void ValidateNotCopyQueue(CommandBuffer commandBuffer, string operationName)
+    {
+        if (commandBuffer.Queue.Type is CommandQueueType.Copy)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"{operationName} cannot be performed on the copy command queue. Current queue type: {commandBuffer.Queue.Type}.");
         }
     }
 
