@@ -1005,7 +1005,7 @@ internal class Validator(GraphicsContext context)
                                         uint offsetInBytes,
                                         ReadOnlySpan<T> data)
     {
-        ValidateRecordingState(commandBuffer, "UploadBuffer");
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.UploadBuffer));
 
         if (buffer?.IsDisposed is not false)
         {
@@ -1048,7 +1048,7 @@ internal class Validator(GraphicsContext context)
                                    uint destOffsetInBytes,
                                    uint sizeInBytes)
     {
-        ValidateRecordingState(commandBuffer, "CopyBuffer");
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.CopyBuffer));
 
         if (src?.IsDisposed is not false || dest?.IsDisposed is not false)
         {
@@ -1102,7 +1102,7 @@ internal class Validator(GraphicsContext context)
                                          TextureExtent extent,
                                          ReadOnlySpan<T> data)
     {
-        ValidateRecordingState(commandBuffer, "UploadTexture");
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.UploadTexture));
 
         if (texture?.IsDisposed is not false)
         {
@@ -1157,7 +1157,7 @@ internal class Validator(GraphicsContext context)
                                     TextureOffset destOffset,
                                     TextureExtent destExtent)
     {
-        ValidateRecordingState(commandBuffer, "CopyTexture");
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.CopyTexture));
 
         if (src?.IsDisposed is not false || dest?.IsDisposed is not false)
         {
@@ -1225,7 +1225,7 @@ internal class Validator(GraphicsContext context)
                                     TextureOffset destOffset,
                                     TextureExtent extent)
     {
-        ValidateRecordingState(commandBuffer, "CopyTexture");
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.CopyTexture));
 
         if (src?.IsDisposed is not false || dest?.IsDisposed is not false)
         {
@@ -1284,9 +1284,9 @@ internal class Validator(GraphicsContext context)
                                        ITexture dest,
                                        TextureSlice destSlice)
     {
-        ValidateDirectQueue(commandBuffer, "ResolveTexture");
+        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.ResolveTexture));
 
-        ValidateRecordingState(commandBuffer, "ResolveTexture");
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.ResolveTexture));
 
         if (src?.IsDisposed is not false || dest?.IsDisposed is not false)
         {
@@ -1343,9 +1343,9 @@ internal class Validator(GraphicsContext context)
     public void ValidateBuildBottomLevelAccelerationStructure(CommandBuffer commandBuffer,
                                                               BottomLevelAccelerationStructureDesc desc)
     {
-        ValidateNotCopyQueue(commandBuffer, "BuildBottomLevelAccelerationStructure");
+        ValidateNotCopyQueue(commandBuffer, nameof(CommandBuffer.BuildBottomLevelAccelerationStructure));
 
-        ValidateRecordingState(commandBuffer, "BuildBottomLevelAccelerationStructure");
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.BuildBottomLevelAccelerationStructure));
 
         if (desc.Geometries is null)
         {
@@ -1372,9 +1372,9 @@ internal class Validator(GraphicsContext context)
     public void ValidateBuildTopLevelAccelerationStructure(CommandBuffer commandBuffer,
                                                            TopLevelAccelerationStructureDesc desc)
     {
-        ValidateNotCopyQueue(commandBuffer, "BuildTopLevelAccelerationStructure");
+        ValidateNotCopyQueue(commandBuffer, nameof(CommandBuffer.BuildTopLevelAccelerationStructure));
 
-        ValidateRecordingState(commandBuffer, "BuildTopLevelAccelerationStructure");
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.BuildTopLevelAccelerationStructure));
 
         if (desc.Instances is null)
         {
@@ -1402,9 +1402,9 @@ internal class Validator(GraphicsContext context)
                                                             TopLevelAccelerationStructure accelerationStructure,
                                                             TopLevelAccelerationStructureDesc newDesc)
     {
-        ValidateDirectQueue(commandBuffer, "UpdateTopLevelAccelerationStructure");
+        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.UpdateTopLevelAccelerationStructure));
 
-        ValidateRecordingState(commandBuffer, "UpdateTopLevelAccelerationStructure");
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.UpdateTopLevelAccelerationStructure));
 
         if (newDesc.Instances is null)
         {
@@ -1432,9 +1432,9 @@ internal class Validator(GraphicsContext context)
 
     public void ValidateBeginRendering(CommandBuffer commandBuffer, FrameBuffer frameBuffer, ClearValue clearValue)
     {
-        ValidateDirectQueue(commandBuffer, "BeginRendering");
+        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.BeginRendering));
 
-        ValidateRecordingState(commandBuffer, "BeginRendering");
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.BeginRendering));
 
         if (frameBuffer?.IsDisposed is not false)
         {
@@ -1455,18 +1455,18 @@ internal class Validator(GraphicsContext context)
 
     public void ValidateEndRendering(CommandBuffer commandBuffer)
     {
-        ValidateDirectQueue(commandBuffer, "EndRendering");
+        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.EndRendering));
 
-        ValidateRecordingState(commandBuffer, "EndRendering");
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.EndRendering));
     }
 
     public void ValidateSetScissors(CommandBuffer commandBuffer, Scissor[] scissors)
     {
-        ValidateDirectQueue(commandBuffer, "SetScissors");
+        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.SetScissors));
 
-        ValidateRecordingState(commandBuffer, "SetScissors");
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetScissors));
 
-        ValidateCurrentFrameBuffer(commandBuffer, "SetScissors");
+        ValidateCurrentFrameBuffer(commandBuffer, nameof(CommandBuffer.SetScissors));
 
         if (scissors is null)
         {
@@ -1478,11 +1478,11 @@ internal class Validator(GraphicsContext context)
 
     public void ValidateSetViewports(CommandBuffer commandBuffer, Viewport[] viewports)
     {
-        ValidateDirectQueue(commandBuffer, "SetViewports");
+        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.SetViewports));
 
-        ValidateRecordingState(commandBuffer, "SetViewports");
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetViewports));
 
-        ValidateCurrentFrameBuffer(commandBuffer, "SetViewports");
+        ValidateCurrentFrameBuffer(commandBuffer, nameof(CommandBuffer.SetViewports));
 
         if (viewports is null)
         {
@@ -1528,7 +1528,7 @@ internal class Validator(GraphicsContext context)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"{name} requires a current frame buffer to be set. Use CommandBuffer.BeginRendering() to set it.");
+                                         $"{name} requires a current frame buffer to be set. Please call {nameof(CommandBuffer.BeginRendering)} first.");
         }
     }
 
