@@ -66,8 +66,12 @@ internal class Validator(GraphicsContext context)
 
     public void ValidateBufferViewDesc(BufferViewDesc desc)
     {
-        if (!ValidateObject(desc.Buffer, "buffer"))
+        if (desc.Buffer?.IsDisposed is not false)
         {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Buffer view must reference a valid buffer.");
+
             return;
         }
 
@@ -191,8 +195,12 @@ internal class Validator(GraphicsContext context)
 
     public void ValidateTextureViewDesc(TextureViewDesc desc)
     {
-        if (!ValidateObject(desc.Texture, "texture"))
+        if (desc.Texture?.IsDisposed is not false)
         {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Texture view must reference a valid texture.");
+
             return;
         }
 
@@ -315,13 +323,21 @@ internal class Validator(GraphicsContext context)
 
     public void ValidateResourceSetDesc(ResourceSetDesc desc)
     {
-        if (!ValidateObject(desc.Layout, "resource layout"))
+        if (desc.Layout?.IsDisposed is not false)
         {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Resource set must reference a valid resource layout.");
+
             return;
         }
 
-        if (!ValidateObjects(desc.Resources, "resource set resources"))
+        if (desc.Resources is null)
         {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Resource set resources cannot be null.");
+
             return;
         }
 
@@ -585,24 +601,15 @@ internal class Validator(GraphicsContext context)
         {
             GraphicsShaders shaders = desc.Shaders;
 
-            ValidateObject(shaders.Vertex, "Vertex shader");
+            ValidateObject(shaders.Vertex, false, "Vertex shader");
 
-            if (shaders.Hull is not null)
-            {
-                ValidateObject(shaders.Hull, "Hull shader");
-            }
+            ValidateObject(shaders.Hull, true, "Hull shader");
 
-            if (shaders.Domain is not null)
-            {
-                ValidateObject(shaders.Domain, "Domain shader");
-            }
+            ValidateObject(shaders.Domain, true, "Domain shader");
 
-            if (shaders.Geometry is not null)
-            {
-                ValidateObject(shaders.Geometry, "Geometry shader");
-            }
+            ValidateObject(shaders.Geometry, true, "Geometry shader");
 
-            ValidateObject(shaders.Pixel, "Pixel shader");
+            ValidateObject(shaders.Pixel, false, "Pixel shader");
         }
 
         // InputLayouts
@@ -636,7 +643,7 @@ internal class Validator(GraphicsContext context)
 
     public void ValidateComputePipelineDesc(ComputePipelineDesc desc)
     {
-        ValidateObject(desc.Shader, "Compute shader");
+        ValidateObject(desc.Shader, false, "Compute shader");
 
         ValidateObjects(desc.ResourceLayouts, "resource layouts");
     }
@@ -647,7 +654,7 @@ internal class Validator(GraphicsContext context)
         {
             RayTracingShaders shaders = desc.Shaders;
 
-            ValidateObject(shaders.RayGeneration, "Ray generation shader");
+            ValidateObject(shaders.RayGeneration, false, "Ray generation shader");
 
             ValidateObjects(shaders.Miss, "Miss shaders");
 
@@ -787,8 +794,12 @@ internal class Validator(GraphicsContext context)
                                                TextureUsageFlags targetFlag,
                                                string name)
     {
-        if (!ValidateObject(attachment.Target, name))
+        if (attachment.Target?.IsDisposed is not false)
         {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Frame buffer {name} must reference a valid texture.");
+
             return;
         }
 
@@ -996,8 +1007,12 @@ internal class Validator(GraphicsContext context)
     {
         ValidateRecordingState(commandBuffer, "UploadBuffer");
 
-        if (!ValidateObject(buffer, "buffer for upload"))
+        if (buffer?.IsDisposed is not false)
         {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Buffer for upload must be a valid, non-disposed buffer.");
+
             return;
         }
 
@@ -1035,8 +1050,12 @@ internal class Validator(GraphicsContext context)
     {
         ValidateRecordingState(commandBuffer, "CopyBuffer");
 
-        if (!ValidateObject(src, "buffer for copy source") || !ValidateObject(dest, "buffer for copy destination"))
+        if (src?.IsDisposed is not false || dest?.IsDisposed is not false)
         {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Source and destination buffers for copy must be valid, non-disposed buffers.");
+
             return;
         }
 
@@ -1085,8 +1104,12 @@ internal class Validator(GraphicsContext context)
     {
         ValidateRecordingState(commandBuffer, "UploadTexture");
 
-        if (!ValidateObject(texture, "texture for upload"))
+        if (texture?.IsDisposed is not false)
         {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Texture for upload must be a valid, non-disposed texture.");
+
             return;
         }
 
@@ -1136,8 +1159,12 @@ internal class Validator(GraphicsContext context)
     {
         ValidateRecordingState(commandBuffer, "CopyTexture");
 
-        if (!ValidateObject(src, "source buffer for copy") || !ValidateObject(dest, "destination texture for copy"))
+        if (src?.IsDisposed is not false || dest?.IsDisposed is not false)
         {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Source buffer and destination texture for copy must be valid, non-disposed resources.");
+
             return;
         }
 
@@ -1200,8 +1227,12 @@ internal class Validator(GraphicsContext context)
     {
         ValidateRecordingState(commandBuffer, "CopyTexture");
 
-        if (!ValidateObject(src, "source texture for copy") || !ValidateObject(dest, "destination texture for copy"))
+        if (src?.IsDisposed is not false || dest?.IsDisposed is not false)
         {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Source and destination textures for copy must be valid, non-disposed textures.");
+
             return;
         }
 
@@ -1257,8 +1288,12 @@ internal class Validator(GraphicsContext context)
 
         ValidateRecordingState(commandBuffer, "ResolveTexture");
 
-        if (!ValidateObject(src, "source texture for resolve") || !ValidateObject(dest, "destination texture for resolve"))
+        if (src?.IsDisposed is not false || dest?.IsDisposed is not false)
         {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Source and destination textures for resolve must be valid, non-disposed textures.");
+
             return;
         }
 
@@ -1401,8 +1436,12 @@ internal class Validator(GraphicsContext context)
 
         ValidateRecordingState(commandBuffer, "BeginRendering");
 
-        if (!ValidateObject(frameBuffer, "frame buffer"))
+        if (frameBuffer?.IsDisposed is not false)
         {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Frame buffer for rendering must be a valid, non-disposed frame buffer.");
+
             return;
         }
 
@@ -1501,8 +1540,12 @@ internal class Validator(GraphicsContext context)
         {
             RayTracingTriangles triangles = geometry.Triangles;
 
-            if (!ValidateObject(triangles.VertexBuffer, $"{name} vertex buffer"))
+            if (triangles.VertexBuffer?.IsDisposed is not false)
             {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             $"{name} vertex buffer must be a valid, non-disposed buffer.");
+
                 return;
             }
 
@@ -1537,8 +1580,12 @@ internal class Validator(GraphicsContext context)
 
             if (triangles.IndexBuffer is not null)
             {
-                if (!ValidateObject(triangles.IndexBuffer, $"{name} index buffer"))
+                if (triangles.IndexBuffer.IsDisposed)
                 {
+                    context.PublishDebugCallback(MessageCategory.System,
+                                                 MessageSeverity.Error,
+                                                 $"{name} index buffer must be a valid, non-disposed buffer.");
+
                     return;
                 }
 
@@ -1571,8 +1618,12 @@ internal class Validator(GraphicsContext context)
         {
             RayTracingAABBs aabbs = geometry.AABBs;
 
-            if (!ValidateObject(aabbs.Buffer, $"{name} AABB buffer"))
+            if (aabbs.Buffer?.IsDisposed is not false)
             {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             $"{name} AABB buffer must be a valid, non-disposed buffer.");
+
                 return;
             }
 
@@ -1607,8 +1658,12 @@ internal class Validator(GraphicsContext context)
 
     private void ValidateRayTracingInstance(RayTracingInstance instance, string name)
     {
-        if (!ValidateObject(instance.AccelerationStructure, "acceleration structure"))
+        if (instance.AccelerationStructure?.IsDisposed is not false)
         {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"{name} acceleration structure must be a valid, non-disposed acceleration structure.");
+
             return;
         }
 
@@ -1627,7 +1682,7 @@ internal class Validator(GraphicsContext context)
     #endregion
 
     #region Universal Validation
-    private bool ValidateObjects<TObject>(TObject[]? objects, string name) where TObject : IDisposableObject
+    private void ValidateObjects<TObject>(TObject[]? objects, string name) where TObject : IDisposableObject
     {
         if (objects is null)
         {
@@ -1635,32 +1690,32 @@ internal class Validator(GraphicsContext context)
                                          MessageSeverity.Error,
                                          $"{name} cannot be null.");
 
-            return false;
+            return;
         }
 
         for (int i = 0; i < objects.Length; i++)
         {
-            if (!ValidateObject(objects[i], $"{name} at index {i}"))
-            {
-                return false;
-            }
+            ValidateObject(objects[i], false, $"{name} at index {i}");
         }
-
-        return true;
     }
 
-    private bool ValidateObject<TObject>(TObject? @object, string name) where TObject : IDisposableObject
+    private void ValidateObject<TObject>(TObject? @object, bool canBeNull, string name) where TObject : IDisposableObject
     {
-        if (@object?.IsDisposed is not false)
+        if (@object is null)
+        {
+            if (!canBeNull)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             $"{name} cannot be null.");
+            }
+        }
+        else if (@object.IsDisposed)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"{name} cannot be null or disposed.");
-
-            return false;
+                                         $"{name} must be a valid, non-disposed object.");
         }
-
-        return true;
     }
 
     private void ValidateDefinedEnum<TEnum>(TEnum value, string name) where TEnum : struct, Enum
