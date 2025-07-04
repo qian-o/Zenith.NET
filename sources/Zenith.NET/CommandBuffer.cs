@@ -8,6 +8,10 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public CommandBufferState State { get; private set; } = CommandBufferState.Idle;
 
+    public FrameBuffer? CurrentFrameBuffer { get; private set; }
+
+    public GraphicsResource? CurrentPipeline { get; private set; }
+
     public void Begin()
     {
         Context.Validator?.ValidateBegin(this);
@@ -110,40 +114,32 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void BeginRendering(FrameBuffer frameBuffer, ClearValue clearValue)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Rendering validation is not implemented yet.");
-        }
+        Context.Validator?.ValidateBeginRendering(this, frameBuffer, clearValue);
 
         BeginRenderingImpl(frameBuffer, clearValue);
+
+        CurrentFrameBuffer = frameBuffer;
     }
 
     public void EndRendering()
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Rendering validation is not implemented yet.");
-        }
+        Context.Validator?.ValidateEndRendering(this);
 
         EndRenderingImpl();
+
+        CurrentFrameBuffer = null;
     }
 
     public void SetScissors(Scissor[] scissors)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Scissor validation is not implemented yet.");
-        }
+        Context.Validator?.ValidateSetScissors(this, scissors);
 
         SetScissorsImpl(scissors);
     }
 
     public void SetViewports(Viewport[] viewports)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Viewport validation is not implemented yet.");
-        }
+        Context.Validator?.ValidateSetViewports(this, viewports);
 
         SetViewportsImpl(viewports);
     }
@@ -156,6 +152,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         }
 
         SetGraphicsPipelineImpl(pipeline);
+
+        CurrentPipeline = pipeline;
     }
 
     public void SetComputePipeline(ComputePipeline pipeline)
@@ -166,6 +164,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         }
 
         SetComputePipelineImpl(pipeline);
+
+        CurrentPipeline = pipeline;
     }
 
     public void SetRayTracingPipeline(RayTracingPipeline pipeline)
@@ -176,6 +176,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         }
 
         SetRayTracingPipelineImpl(pipeline);
+
+        CurrentPipeline = pipeline;
     }
 
     public void SetVertexBuffer(IBuffer buffer, uint offsetInBytes, uint slot)
@@ -325,6 +327,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         ResetImpl();
 
         State = CommandBufferState.Idle;
+        CurrentFrameBuffer = null;
+        CurrentPipeline = null;
     }
 
     protected override void Destroy()
@@ -335,8 +339,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     protected abstract void BeginImpl();
 
     protected abstract void EndImpl();
-
-    protected abstract void ResetImpl();
 
     protected abstract void CopyBufferImpl(IBuffer src, uint srcOffsetInBytes, IBuffer dest, uint destOffsetInBytes, uint sizeInBytes);
 
@@ -393,4 +395,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     protected abstract void EndDebugEventImpl();
 
     protected abstract void InsertDebugMarkerImpl(string label);
+
+    protected abstract void ResetImpl();
 }

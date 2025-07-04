@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace Zenith.NET;
 
@@ -1406,54 +1407,349 @@ internal class Validator(GraphicsContext context)
         }
     }
 
-    public void ValidateBuildBottomLevelAccelerationStructure(CommandBuffer commandBuffer, BottomLevelAccelerationStructureDesc desc)
+    public void ValidateBuildBottomLevelAccelerationStructure(CommandBuffer commandBuffer,
+                                                              BottomLevelAccelerationStructureDesc desc)
     {
         ValidateNotCopyQueue(commandBuffer, "BuildBottomLevelAccelerationStructure");
 
         ValidateRecordingState(commandBuffer, "BuildBottomLevelAccelerationStructure");
+
+        if (desc.Geometries is null)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Bottom-level acceleration structure geometries cannot be null.");
+
+            return;
+        }
+
+        if (desc.Geometries.Length is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Bottom-level acceleration structure must have at least 1 geometry.");
+        }
+
+        for (int i = 0; i < desc.Geometries.Length; i++)
+        {
+            ValidateRayTracingGeometry(desc.Geometries[i], $"geometry at index {i}");
+        }
     }
 
-    public void ValidateBuildTopLevelAccelerationStructure(CommandBuffer commandBuffer, TopLevelAccelerationStructureDesc desc)
+    public void ValidateBuildTopLevelAccelerationStructure(CommandBuffer commandBuffer,
+                                                           TopLevelAccelerationStructureDesc desc)
     {
         ValidateNotCopyQueue(commandBuffer, "BuildTopLevelAccelerationStructure");
 
         ValidateRecordingState(commandBuffer, "BuildTopLevelAccelerationStructure");
+
+        if (desc.Instances is null)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Top-level acceleration structure instances cannot be null.");
+
+            return;
+        }
+
+        if (desc.Instances.Length is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Top-level acceleration structure must have at least 1 instance.");
+        }
+
+        for (int i = 0; i < desc.Instances.Length; i++)
+        {
+            ValidateRayTracingInstance(desc.Instances[i], $"instance at index {i}");
+        }
     }
 
-    public void ValidateUpdateTopLevelAccelerationStructure(CommandBuffer commandBuffer, TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
+    public void ValidateUpdateTopLevelAccelerationStructure(CommandBuffer commandBuffer,
+                                                            TopLevelAccelerationStructure accelerationStructure,
+                                                            TopLevelAccelerationStructureDesc newDesc)
     {
         ValidateDirectQueue(commandBuffer, "UpdateTopLevelAccelerationStructure");
 
         ValidateRecordingState(commandBuffer, "UpdateTopLevelAccelerationStructure");
+
+        if (newDesc.Instances is null)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "New top-level acceleration structure instances cannot be null.");
+
+            return;
+        }
+
+        if (newDesc.Instances.Length != accelerationStructure.Desc.Instances.Length)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"New top-level acceleration structure must have the same number of instances as the existing one. Existing: {accelerationStructure.Desc.Instances.Length}, New: {newDesc.Instances.Length}.");
+
+            return;
+        }
+
+        for (int i = 0; i < newDesc.Instances.Length; i++)
+        {
+            ValidateRayTracingInstance(newDesc.Instances[i], $"instance at index {i}");
+        }
     }
 
-    private void ValidateDirectQueue(CommandBuffer commandBuffer, string operationName)
+    public void ValidateBeginRendering(CommandBuffer commandBuffer, FrameBuffer frameBuffer, ClearValue clearValue)
+    {
+        ValidateDirectQueue(commandBuffer, "BeginRendering");
+
+        ValidateRecordingState(commandBuffer, "BeginRendering");
+
+        if (frameBuffer?.IsDisposed is not false)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Cannot begin rendering with a disposed frame buffer.");
+
+            return;
+        }
+
+        if (clearValue.ColorValues is null)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Clear value color values cannot be null.");
+        }
+    }
+
+    public void ValidateEndRendering(CommandBuffer commandBuffer)
+    {
+        ValidateDirectQueue(commandBuffer, "EndRendering");
+
+        ValidateRecordingState(commandBuffer, "EndRendering");
+    }
+
+    public void ValidateSetScissors(CommandBuffer commandBuffer, Scissor[] scissors)
+    {
+        ValidateDirectQueue(commandBuffer, "SetScissors");
+
+        ValidateRecordingState(commandBuffer, "SetScissors");
+
+        ValidateCurrentFrameBuffer(commandBuffer, "SetScissors");
+
+        if (scissors is null)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Scissors cannot be null.");
+        }
+    }
+
+    public void ValidateSetViewports(CommandBuffer commandBuffer, Viewport[] viewports)
+    {
+        ValidateDirectQueue(commandBuffer, "SetViewports");
+
+        ValidateRecordingState(commandBuffer, "SetViewports");
+
+        ValidateCurrentFrameBuffer(commandBuffer, "SetViewports");
+
+        if (viewports is null)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Viewports cannot be null.");
+        }
+    }
+
+    private void ValidateDirectQueue(CommandBuffer commandBuffer, string name)
     {
         if (commandBuffer.Queue.Type is not CommandQueueType.Direct)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"{operationName} can only be performed on the direct command queue. Current queue type: {commandBuffer.Queue.Type}.");
+                                         $"{name} can only be performed on the direct command queue. Current queue type: {commandBuffer.Queue.Type}.");
         }
     }
 
-    private void ValidateNotCopyQueue(CommandBuffer commandBuffer, string operationName)
+    private void ValidateNotCopyQueue(CommandBuffer commandBuffer, string name)
     {
         if (commandBuffer.Queue.Type is CommandQueueType.Copy)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"{operationName} cannot be performed on the copy command queue. Current queue type: {commandBuffer.Queue.Type}.");
+                                         $"{name} cannot be performed on the copy command queue. Current queue type: {commandBuffer.Queue.Type}.");
         }
     }
 
-    private void ValidateRecordingState(CommandBuffer commandBuffer, string operationName)
+    private void ValidateRecordingState(CommandBuffer commandBuffer, string name)
     {
         if (commandBuffer.State is not CommandBufferState.Recording)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"{operationName} can only be performed when the command buffer is in the recording state. Current state: {commandBuffer.State}.");
+                                         $"{name} can only be performed when the command buffer is in the recording state. Current state: {commandBuffer.State}.");
+        }
+    }
+
+    private void ValidateCurrentFrameBuffer(CommandBuffer commandBuffer, string name)
+    {
+        if (commandBuffer.CurrentFrameBuffer is null)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"{name} requires a current frame buffer to be set. Use CommandBuffer.BeginRendering() to set it.");
+        }
+        else if (commandBuffer.CurrentFrameBuffer.IsDisposed)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"{name} cannot be performed with a disposed frame buffer.");
+        }
+    }
+
+    private void ValidateRayTracingGeometry(RayTracingGeometry geometry, string name)
+    {
+        ValidateDefinedEnum(geometry.Type, $"{name} type");
+
+        if (geometry.Type is RayTracingGeometryType.Triangles)
+        {
+            RayTracingTriangles triangles = geometry.Triangles;
+
+            if (triangles.VertexBuffer?.IsDisposed is not false)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             $"{name} requires a valid, non-disposed vertex buffer.");
+
+                return;
+            }
+
+            ObtainBufferValues(triangles.VertexBuffer,
+                               out _,
+                               out _,
+                               out BufferUsageFlags vertexFlags,
+                               $"{name} vertex buffer");
+
+            if (!vertexFlags.HasFlag(BufferUsageFlags.AccelerationStructure))
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Warning,
+                                             $"{name} vertex buffer should have BufferUsageFlags.AccelerationStructure. Current flags: {vertexFlags}.");
+            }
+
+            ValidateDefinedEnum(triangles.VertexFormat, $"{name} vertex format");
+
+            if (triangles.VertexCount is 0)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             $"{name} must have at least 1 vertex.");
+            }
+
+            if (triangles.VertexStrideInBytes is 0)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             $"{name} vertex stride must be greater than 0.");
+            }
+
+            if (triangles.IndexBuffer is not null)
+            {
+                if (triangles.IndexBuffer.IsDisposed)
+                {
+                    context.PublishDebugCallback(MessageCategory.System,
+                                                 MessageSeverity.Error,
+                                                 $"{name} requires a valid, non-disposed index buffer.");
+
+                    return;
+                }
+
+                ObtainBufferValues(triangles.IndexBuffer,
+                                   out _,
+                                   out _,
+                                   out BufferUsageFlags indexFlags,
+                                   $"{name} index buffer");
+
+                if (!indexFlags.HasFlag(BufferUsageFlags.AccelerationStructure))
+                {
+                    context.PublishDebugCallback(MessageCategory.System,
+                                                 MessageSeverity.Warning,
+                                                 $"{name} index buffer should have BufferUsageFlags.AccelerationStructure. Current flags: {indexFlags}.");
+                }
+
+                ValidateDefinedEnum(triangles.IndexFormat, $"{name} index format");
+
+                if (triangles.IndexCount is 0)
+                {
+                    context.PublishDebugCallback(MessageCategory.System,
+                                                 MessageSeverity.Error,
+                                                 $"{name} must have at least 1 index.");
+                }
+
+                ValidateTransform(triangles.Transform, $"{name} transform");
+            }
+        }
+        else if (geometry.Type is RayTracingGeometryType.AABBs)
+        {
+            RayTracingAABBs aabbs = geometry.AABBs;
+
+            if (aabbs.Buffer?.IsDisposed is not false)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             $"{name} requires a valid, non-disposed AABB buffer.");
+
+                return;
+            }
+
+            ObtainBufferValues(aabbs.Buffer,
+                               out _,
+                               out _,
+                               out BufferUsageFlags aabbFlags,
+                               $"{name} AABB buffer");
+
+            if (!aabbFlags.HasFlag(BufferUsageFlags.AccelerationStructure))
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Warning,
+                                             $"{name} AABB buffer should have BufferUsageFlags.AccelerationStructure. Current flags: {aabbFlags}.");
+            }
+
+            if (aabbs.Count is 0)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             $"{name} must have at least 1 AABB.");
+            }
+
+            if (aabbs.StrideInBytes is 0)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             $"{name} AABB stride must be greater than 0.");
+            }
+        }
+    }
+
+    private void ValidateRayTracingInstance(RayTracingInstance instance, string name)
+    {
+        if (instance.AccelerationStructure?.IsDisposed is not false)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"{name} requires a valid, non-disposed acceleration structure.");
+
+            return;
+        }
+
+        ValidateTransform(instance.Transform, $"{name} transform");
+    }
+
+    private void ValidateTransform(Matrix4x4 matrix, string name)
+    {
+        if (matrix.M11 is 0 && matrix.M22 is 0 && matrix.M33 is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Warning,
+                                         $"{name} has a zero scale transform. This will make the instance invisible in the scene.");
         }
     }
     #endregion
