@@ -354,7 +354,16 @@ internal class Validator(GraphicsContext context)
 
         for (int i = 0; i < desc.Resources.Length; i++)
         {
-            IBindableResource resource = desc.Resources[i];
+            IBindableResource? resource = desc.Resources[i];
+
+            if (resource?.IsDisposed is not false)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             $"Resource at index {i} must reference a valid, non-disposed resource of type '{types[i]}'.");
+
+                continue;
+            }
 
             switch (types[i])
             {
