@@ -1344,11 +1344,11 @@ internal class Validator(GraphicsContext context)
         ValidateTextureRange(destWidth, destHeight, destDepth, destOffset, extent, "destination texture offset and extent for copy");
     }
 
-    internal void ValidateResolveTexture(CommandBuffer commandBuffer,
-                                         ITexture src,
-                                         TextureSlice srcSlice,
-                                         ITexture dest,
-                                         TextureSlice destSlice)
+    public void ValidateResolveTexture(CommandBuffer commandBuffer,
+                                       ITexture src,
+                                       TextureSlice srcSlice,
+                                       ITexture dest,
+                                       TextureSlice destSlice)
     {
         ValidateDirectQueue(commandBuffer, "ResolveTexture");
 
