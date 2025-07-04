@@ -562,22 +562,22 @@ internal class Validator(GraphicsContext context)
                 if (rasterizerState.DepthBias < 0)
                 {
                     context.PublishDebugCallback(MessageCategory.System,
-                                                 MessageSeverity.Error,
-                                                 "Depth bias must be non-negative.");
+                                                 MessageSeverity.Warning,
+                                                 "Depth bias is negative. This may cause rendering artifacts.");
                 }
 
                 if (rasterizerState.DepthBiasClamp < 0)
                 {
                     context.PublishDebugCallback(MessageCategory.System,
-                                                 MessageSeverity.Error,
-                                                 "Depth bias clamp must be non-negative.");
+                                                 MessageSeverity.Warning,
+                                                 "Depth bias clamp is negative. This may cause rendering artifacts.");
                 }
 
                 if (rasterizerState.SlopeScaledDepthBias < 0)
                 {
                     context.PublishDebugCallback(MessageCategory.System,
-                                                 MessageSeverity.Error,
-                                                 "Slope scaled depth bias must be non-negative.");
+                                                 MessageSeverity.Warning,
+                                                 "Slope scaled depth bias is negative. This may cause rendering artifacts.");
                 }
             }
 
