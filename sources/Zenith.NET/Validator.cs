@@ -1205,6 +1205,65 @@ internal class Validator(GraphicsContext context)
         ValidateTextureRange(width, height, depth, offset, extent, "texture offset and extent for upload");
     }
 
+    public void ValidateCopyTexture(CommandBuffer commandBuffer,
+                                    IBuffer src,
+                                    uint srcOffsetInBytes,
+                                    uint srcSizeInBytes,
+                                    ITexture dest,
+                                    TextureSlice destSlice,
+                                    TextureOffset destOffset,
+                                    TextureExtent destExtent)
+    {
+        ValidateRecordingState(commandBuffer, "CopyTexture");
+
+        if (src.IsDisposed || dest.IsDisposed)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Cannot copy to or from a disposed resource.");
+
+            return;
+        }
+
+        if (srcSizeInBytes is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Source size must be greater than 0.");
+
+            return;
+        }
+
+        ObtainBufferValues(src,
+                           out uint srcBufferSizeInBytes,
+                           out _,
+                           out _,
+                           "source buffer for copy");
+
+        ObtainTextureValues(dest,
+                            out TextureType type,
+                            out _,
+                            out uint width,
+                            out uint height,
+                            out uint depth,
+                            out uint layers,
+                            out uint mipLevels,
+                            out _,
+                            out _,
+                            "destination texture for copy");
+
+        if (srcOffsetInBytes + srcSizeInBytes > srcBufferSizeInBytes)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Source buffer copy range exceeds source buffer size. Source size: {srcBufferSizeInBytes} bytes, requested range: {srcOffsetInBytes} + {srcSizeInBytes} bytes.");
+        }
+
+        ValidateTextureSlice(type, layers, mipLevels, destSlice, "destination texture slice for copy");
+
+        ValidateTextureRange(width, height, depth, destOffset, destExtent, "destination texture offset and extent for copy");
+    }
+
     private void ValidateRecordingState(CommandBuffer commandBuffer, string name)
     {
         if (commandBuffer.State is not CommandBufferState.Recording)

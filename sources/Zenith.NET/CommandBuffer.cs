@@ -66,14 +66,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CopyTextureImpl(temporary, 0, sizeInBytes, texture, slice, offset, extent);
     }
 
-    public void CopyTexture(IBuffer buffer, uint offsetInBytes, uint sizeInBytes, ITexture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent)
+    public void CopyTexture(IBuffer src, uint srcOffsetInBytes, uint srcSizeInBytes, ITexture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Texture copy validation is not implemented yet.");
-        }
+        Context.Validator?.ValidateCopyTexture(this, src, srcOffsetInBytes, srcSizeInBytes, dest, destSlice, destOffset, destExtent);
 
-        CopyTextureImpl(buffer, offsetInBytes, sizeInBytes, texture, slice, offset, extent);
+        CopyTextureImpl(src, srcOffsetInBytes, srcSizeInBytes, dest, destSlice, destOffset, destExtent);
     }
 
     public void CopyTexture(ITexture src, TextureOffset srcOffset, ITexture dest, TextureOffset destOffset, TextureExtent extent)
@@ -352,7 +349,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void CopyBufferImpl(IBuffer src, uint srcOffsetInBytes, IBuffer dest, uint destOffsetInBytes, uint sizeInBytes);
 
-    protected abstract void CopyTextureImpl(IBuffer buffer, uint offsetInBytes, uint sizeInBytes, ITexture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent);
+    protected abstract void CopyTextureImpl(IBuffer src, uint srcOffsetInBytes, uint srcSizeInBytes, ITexture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent);
 
     protected abstract void CopyTextureImpl(ITexture src, TextureOffset srcOffset, ITexture dest, TextureOffset destOffset, TextureExtent extent);
 
