@@ -1038,32 +1038,17 @@ internal class Validator(GraphicsContext context)
     #region CommandBuffer Validation
     public void ValidateBegin(CommandBuffer commandBuffer)
     {
-        if (commandBuffer.State is not CommandBufferState.Idle)
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         $"Command buffer must be in Idle state to begin recording. Current state: {commandBuffer.State}.");
-        }
+        ValidateCommandBufferState(commandBuffer, CommandBufferState.Idle, "Begin");
     }
 
     public void ValidateEnd(CommandBuffer commandBuffer)
     {
-        if (commandBuffer.State is not CommandBufferState.Recording)
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         $"Command buffer must be in Recording state to end recording. Current state: {commandBuffer.State}.");
-        }
+        ValidateCommandBufferState(commandBuffer, CommandBufferState.Recording, "End");
     }
 
     public void ValidateSubmit(CommandBuffer commandBuffer)
     {
-        if (commandBuffer.State is not CommandBufferState.Completed)
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         $"Command buffer must be in Completed state to submit. Current state: {commandBuffer.State}.");
-        }
+        ValidateCommandBufferState(commandBuffer, CommandBufferState.Completed, "Submit");
     }
 
     public void ValidateUploadBuffer<T>(CommandBuffer commandBuffer,
@@ -1071,7 +1056,7 @@ internal class Validator(GraphicsContext context)
                                         uint offsetInBytes,
                                         ReadOnlySpan<T> data)
     {
-        ValidateRecordingState(commandBuffer, "UploadBuffer");
+        ValidateCommandBufferState(commandBuffer, CommandBufferState.Recording, "UploadBuffer");
 
         if (buffer.IsDisposed)
         {
@@ -1114,7 +1099,7 @@ internal class Validator(GraphicsContext context)
                                    uint destOffsetInBytes,
                                    uint sizeInBytes)
     {
-        ValidateRecordingState(commandBuffer, "CopyBuffer");
+        ValidateCommandBufferState(commandBuffer, CommandBufferState.Recording, "CopyBuffer");
 
         if (src.IsDisposed || dest.IsDisposed)
         {
@@ -1168,7 +1153,7 @@ internal class Validator(GraphicsContext context)
                                          TextureExtent extent,
                                          ReadOnlySpan<T> data)
     {
-        ValidateRecordingState(commandBuffer, "UploadTexture");
+        ValidateCommandBufferState(commandBuffer, CommandBufferState.Recording, "UploadTexture");
 
         if (texture.IsDisposed)
         {
@@ -1223,7 +1208,7 @@ internal class Validator(GraphicsContext context)
                                     TextureOffset destOffset,
                                     TextureExtent destExtent)
     {
-        ValidateRecordingState(commandBuffer, "CopyTexture");
+        ValidateCommandBufferState(commandBuffer, CommandBufferState.Recording, "CopyTexture");
 
         if (src.IsDisposed || dest.IsDisposed)
         {
@@ -1291,7 +1276,7 @@ internal class Validator(GraphicsContext context)
                                     TextureOffset destOffset,
                                     TextureExtent extent)
     {
-        ValidateRecordingState(commandBuffer, "CopyTexture");
+        ValidateCommandBufferState(commandBuffer, CommandBufferState.Recording, "CopyTexture");
 
         if (src.IsDisposed || dest.IsDisposed)
         {
@@ -1344,13 +1329,85 @@ internal class Validator(GraphicsContext context)
         ValidateTextureRange(destWidth, destHeight, destDepth, destOffset, extent, "destination texture offset and extent for copy");
     }
 
-    private void ValidateRecordingState(CommandBuffer commandBuffer, string name)
+    internal void ValidateResolveTexture(CommandBuffer commandBuffer,
+                                         ITexture src,
+                                         TextureSlice srcSlice,
+                                         ITexture dest,
+                                         TextureSlice destSlice)
     {
-        if (commandBuffer.State is not CommandBufferState.Recording)
+        ValidateCommandQueueType(commandBuffer.Queue, CommandQueueType.Direct, "ResolveTexture");
+
+        ValidateCommandBufferState(commandBuffer, CommandBufferState.Recording, "ResolveTexture");
+
+        if (src.IsDisposed || dest.IsDisposed)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"{name}: Command buffer must be in Recording state to perform this operation. Current state: {commandBuffer.State}.");
+                                         "Cannot resolve to or from a disposed resource.");
+
+            return;
+        }
+
+        ObtainTextureValues(src,
+                            out TextureType srcType,
+                            out _,
+                            out _,
+                            out _,
+                            out _,
+                            out uint srcLayers,
+                            out uint srcMipLevels,
+                            out SampleCount srcSampleCount,
+                            out _,
+                            "source texture for resolve");
+
+        ObtainTextureValues(dest,
+                            out TextureType destType,
+                            out _,
+                            out _,
+                            out _,
+                            out _,
+                            out uint destLayers,
+                            out uint destMipLevels,
+                            out SampleCount destSampleCount,
+                            out _,
+                            "destination texture for resolve");
+
+        ValidateTextureSlice(srcType, srcLayers, srcMipLevels, srcSlice, "source texture slice for resolve");
+
+        ValidateTextureSlice(destType, destLayers, destMipLevels, destSlice, "destination texture slice for resolve");
+
+        if (srcSampleCount is SampleCount.Count1)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Source texture for resolve must have a sample count greater than 1.");
+        }
+
+        if (destSampleCount is not SampleCount.Count1)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Destination texture for resolve must have a sample count of 1.");
+        }
+    }
+
+    private void ValidateCommandQueueType(CommandQueue commandQueue, CommandQueueType expectedType, string name)
+    {
+        if (commandQueue.Type != expectedType)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"{name}: Command queue must be of type {expectedType} to perform this operation. Current type: {commandQueue.Type}.");
+        }
+    }
+
+    private void ValidateCommandBufferState(CommandBuffer commandBuffer, CommandBufferState expectedState, string name)
+    {
+        if (commandBuffer.State != expectedState)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"{name}: Command buffer must be in {expectedState} state to perform this operation. Current state: {commandBuffer.State}.");
         }
     }
     #endregion

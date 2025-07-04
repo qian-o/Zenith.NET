@@ -82,10 +82,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void ResolveTexture(ITexture src, TextureSlice srcSlice, ITexture dest, TextureSlice destSlice)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Texture resolve validation is not implemented yet.");
-        }
+        Context.Validator?.ValidateResolveTexture(this, src, srcSlice, dest, destSlice);
 
         ResolveTextureImpl(src, srcSlice, dest, destSlice);
     }
