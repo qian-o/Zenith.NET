@@ -1503,7 +1503,7 @@ internal class Validator(GraphicsContext context)
 
     public void ValidateSetGraphicsPipeline(CommandBuffer commandBuffer, GraphicsPipeline pipeline)
     {
-        ValidateNotCopyQueue(commandBuffer, nameof(CommandBuffer.SetGraphicsPipeline));
+        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.SetGraphicsPipeline));
 
         ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetGraphicsPipeline));
 
