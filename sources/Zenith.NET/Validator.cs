@@ -1475,8 +1475,6 @@ internal class Validator(GraphicsContext context)
 
         ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetScissors));
 
-        ValidateCurrentFrameBuffer(commandBuffer, nameof(CommandBuffer.SetScissors));
-
         if (scissors is null)
         {
             context.PublishDebugCallback(MessageCategory.System,
@@ -1490,8 +1488,6 @@ internal class Validator(GraphicsContext context)
         ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.SetViewports));
 
         ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetViewports));
-
-        ValidateCurrentFrameBuffer(commandBuffer, nameof(CommandBuffer.SetViewports));
 
         if (viewports is null)
         {
@@ -1543,61 +1539,13 @@ internal class Validator(GraphicsContext context)
         }
     }
 
-    public void ValidateSetVertexBuffer(CommandBuffer commandBuffer, IBuffer buffer, uint offsetInBytes, uint slot)
-    {
-        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.SetVertexBuffer));
-
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetVertexBuffer));
-
-        if (buffer?.IsDisposed is not false)
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         "Vertex buffer must be a valid, non-disposed buffer.");
-
-            return;
-        }
-
-        ObtainBufferValues(buffer,
-                           out uint sizeInBytes,
-                           out uint strideInBytes,
-                           out BufferUsageFlags flags,
-                           "vertex buffer");
-
-        if (offsetInBytes > sizeInBytes)
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         $"Vertex buffer offset ({offsetInBytes} bytes) exceeds buffer size ({sizeInBytes} bytes).");
-        }
-
-        if (strideInBytes is 0)
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         "Vertex buffer stride must be greater than 0.");
-        }
-
-        if (!flags.HasFlag(BufferUsageFlags.Vertex))
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Warning,
-                                         $"Vertex buffer should have BufferUsageFlags.Vertex. Current flags: {flags}.");
-        }
-
-        if (slot >= 32)
-        {
-            context.PublishDebugCallback(MessageCategory.System,
-                                         MessageSeverity.Error,
-                                         $"Vertex buffer slot {slot} is out of range. Valid slots are 0-31.");
-        }
-    }
-
     public void ValidateSetIndexBuffer(CommandBuffer commandBuffer, IBuffer buffer, uint offsetInBytes, IndexFormat format)
     {
         ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.SetIndexBuffer));
 
         ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetIndexBuffer));
+
+        ValidateCurrentPipeline<GraphicsPipeline>(commandBuffer, nameof(CommandBuffer.SetIndexBuffer));
 
         if (buffer?.IsDisposed is not false)
         {
@@ -1631,14 +1579,105 @@ internal class Validator(GraphicsContext context)
         ValidateDefinedEnum(format, "index format");
     }
 
-    public void ValidatePrepareResourceSets(CommandBuffer commandBuffer, ResourceSet[] sets)
+    public void ValidateSetVertexBuffers(CommandBuffer commandBuffer, IBuffer[] buffers, uint[] offsetsInBytes)
     {
-        throw new NotImplementedException();
+        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.SetVertexBuffers));
+
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetVertexBuffers));
+
+        ValidateCurrentPipeline<GraphicsPipeline>(commandBuffer, nameof(CommandBuffer.SetVertexBuffers));
+
+        if (buffers is null || offsetsInBytes is null)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Vertex buffers and offsets cannot be null.");
+
+            return;
+        }
+
+        if (buffers.Length is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Vertex buffers must contain at least 1 buffer.");
+
+            return;
+        }
+
+        if (buffers.Length != offsetsInBytes.Length)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Vertex buffers and offsets must have the same length.");
+
+            return;
+        }
+
+        for (int i = 0; i < buffers.Length; i++)
+        {
+            IBuffer buffer = buffers[i];
+            uint offset = offsetsInBytes[i];
+
+            if (buffer?.IsDisposed is not false)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             $"Vertex buffer at index {i} must be a valid, non-disposed buffer.");
+
+                continue;
+            }
+
+            ObtainBufferValues(buffer,
+                               out uint sizeInBytes,
+                               out _,
+                               out BufferUsageFlags flags,
+                               $"vertex buffer at index {i}");
+
+            if (offset > sizeInBytes)
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Error,
+                                             $"Vertex buffer at index {i} offset ({offset} bytes) exceeds buffer size ({sizeInBytes} bytes).");
+            }
+
+            if (!flags.HasFlag(BufferUsageFlags.Vertex))
+            {
+                context.PublishDebugCallback(MessageCategory.System,
+                                             MessageSeverity.Warning,
+                                             $"Vertex buffer at index {i} should have BufferUsageFlags.Vertex. Current flags: {flags}.");
+            }
+        }
     }
 
-    public void ValidateBindResourceSet(CommandBuffer commandBuffer, ResourceSet set, uint slot)
+    public void ValidatePrepareResourceSets(CommandBuffer commandBuffer, ResourceSet[] sets)
     {
-        throw new NotImplementedException();
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.PrepareResourceSets));
+
+        if (commandBuffer.CurrentFrameBuffer is not null)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Resource sets cannot be prepared while a frame buffer is active. End the frame buffer before preparing resource sets.");
+        }
+
+        ValidateObjects(sets, "resource sets");
+    }
+
+    public void ValidateBindResourceSets(CommandBuffer commandBuffer, ResourceSet[] sets)
+    {
+        ValidateNotCopyQueue(commandBuffer, nameof(CommandBuffer.BindResourceSets));
+
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.BindResourceSets));
+
+        if (commandBuffer.CurrentPipeline is null)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Cannot bind resource set when no pipeline is set. Set a pipeline before binding resource sets.");
+        }
+
+        ValidateObjects(sets, "resource sets");
     }
 
     private void ValidateDirectQueue(CommandBuffer commandBuffer, string name)
@@ -1671,13 +1710,13 @@ internal class Validator(GraphicsContext context)
         }
     }
 
-    private void ValidateCurrentFrameBuffer(CommandBuffer commandBuffer, string name)
+    private void ValidateCurrentPipeline<TPipeline>(CommandBuffer commandBuffer, string name) where TPipeline : GraphicsResource
     {
-        if (commandBuffer.CurrentFrameBuffer is null)
+        if (commandBuffer.CurrentPipeline is not TPipeline)
         {
             context.PublishDebugCallback(MessageCategory.System,
                                          MessageSeverity.Error,
-                                         $"{name} requires a current frame buffer to be set. Please call {nameof(CommandBuffer.BeginRendering)} first.");
+                                         $"{name} can only be performed when the current pipeline is of type {typeof(TPipeline).Name}. Current pipeline type: {commandBuffer.CurrentPipeline?.GetType().Name ?? "null"}.");
         }
     }
 

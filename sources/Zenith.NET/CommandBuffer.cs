@@ -171,18 +171,18 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CurrentPipeline = pipeline;
     }
 
-    public void SetVertexBuffer(IBuffer buffer, uint offsetInBytes, uint slot)
-    {
-        Context.Validator?.ValidateSetVertexBuffer(this, buffer, offsetInBytes, slot);
-
-        SetVertexBufferImpl(buffer, offsetInBytes, slot);
-    }
-
     public void SetIndexBuffer(IBuffer buffer, uint offsetInBytes, IndexFormat format)
     {
         Context.Validator?.ValidateSetIndexBuffer(this, buffer, offsetInBytes, format);
 
         SetIndexBufferImpl(buffer, offsetInBytes, format);
+    }
+
+    public void SetVertexBuffers(IBuffer[] buffers, uint[] offsetsInBytes)
+    {
+        Context.Validator?.ValidateSetVertexBuffers(this, buffers, offsetsInBytes);
+
+        SetVertexBuffersImpl(buffers, offsetsInBytes);
     }
 
     public void PrepareResourceSets(ResourceSet[] sets)
@@ -192,11 +192,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         PrepareResourceSetsImpl(sets);
     }
 
-    public void BindResourceSet(ResourceSet set, uint slot)
+    public void BindResourceSets(ResourceSet[] sets)
     {
-        Context.Validator?.ValidateBindResourceSet(this, set, slot);
+        Context.Validator?.ValidateBindResourceSets(this, sets);
 
-        BindResourceSetImpl(set, slot);
+        BindResourceSetsImpl(sets);
     }
 
     public void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
@@ -347,13 +347,13 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void SetRayTracingPipelineImpl(RayTracingPipeline pipeline);
 
-    protected abstract void SetVertexBufferImpl(IBuffer buffer, uint offsetInBytes, uint slot);
-
     protected abstract void SetIndexBufferImpl(IBuffer buffer, uint offsetInBytes, IndexFormat format);
+
+    protected abstract void SetVertexBuffersImpl(IBuffer[] buffers, uint[] offsetsInBytes);
 
     protected abstract void PrepareResourceSetsImpl(ResourceSet[] sets);
 
-    protected abstract void BindResourceSetImpl(ResourceSet set, uint slot);
+    protected abstract void BindResourceSetsImpl(ResourceSet[] sets);
 
     protected abstract void DrawImpl(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
 
