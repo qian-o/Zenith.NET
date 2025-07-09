@@ -173,40 +173,28 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetVertexBuffer(IBuffer buffer, uint offsetInBytes, uint slot)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Vertex buffer validation is not implemented yet.");
-        }
+        Context.Validator?.ValidateSetVertexBuffer(this, buffer, offsetInBytes, slot);
 
         SetVertexBufferImpl(buffer, offsetInBytes, slot);
     }
 
     public void SetIndexBuffer(IBuffer buffer, uint offsetInBytes, IndexFormat format)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Index buffer validation is not implemented yet.");
-        }
+        Context.Validator?.ValidateSetIndexBuffer(this, buffer, offsetInBytes, format);
 
         SetIndexBufferImpl(buffer, offsetInBytes, format);
     }
 
     public void PrepareResourceSets(ResourceSet[] sets)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Resource set preparation validation is not implemented yet.");
-        }
+        Context.Validator?.ValidatePrepareResourceSets(this, sets);
 
         PrepareResourceSetsImpl(sets);
     }
 
     public void BindResourceSet(ResourceSet set, uint slot)
     {
-        if (Context.UseDebugLayer)
-        {
-            throw new NotImplementedException("Resource set validation is not implemented yet.");
-        }
+        Context.Validator?.ValidateBindResourceSet(this, set, slot);
 
         BindResourceSetImpl(set, slot);
     }

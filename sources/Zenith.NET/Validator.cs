@@ -1543,6 +1543,104 @@ internal class Validator(GraphicsContext context)
         }
     }
 
+    public void ValidateSetVertexBuffer(CommandBuffer commandBuffer, IBuffer buffer, uint offsetInBytes, uint slot)
+    {
+        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.SetVertexBuffer));
+
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetVertexBuffer));
+
+        if (buffer?.IsDisposed is not false)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Vertex buffer must be a valid, non-disposed buffer.");
+
+            return;
+        }
+
+        ObtainBufferValues(buffer,
+                           out uint sizeInBytes,
+                           out uint strideInBytes,
+                           out BufferUsageFlags flags,
+                           "vertex buffer");
+
+        if (offsetInBytes > sizeInBytes)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Vertex buffer offset ({offsetInBytes} bytes) exceeds buffer size ({sizeInBytes} bytes).");
+        }
+
+        if (strideInBytes is 0)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Vertex buffer stride must be greater than 0.");
+        }
+
+        if (!flags.HasFlag(BufferUsageFlags.Vertex))
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Warning,
+                                         $"Vertex buffer should have BufferUsageFlags.Vertex. Current flags: {flags}.");
+        }
+
+        if (slot >= 32)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Vertex buffer slot {slot} is out of range. Valid slots are 0-31.");
+        }
+    }
+
+    public void ValidateSetIndexBuffer(CommandBuffer commandBuffer, IBuffer buffer, uint offsetInBytes, IndexFormat format)
+    {
+        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.SetIndexBuffer));
+
+        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetIndexBuffer));
+
+        if (buffer?.IsDisposed is not false)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         "Index buffer must be a valid, non-disposed buffer.");
+
+            return;
+        }
+
+        ObtainBufferValues(buffer,
+                           out uint sizeInBytes,
+                           out _,
+                           out BufferUsageFlags flags,
+                           "index buffer");
+
+        if (offsetInBytes > sizeInBytes)
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Error,
+                                         $"Index buffer offset ({offsetInBytes} bytes) exceeds buffer size ({sizeInBytes} bytes).");
+        }
+
+        if (!flags.HasFlag(BufferUsageFlags.Index))
+        {
+            context.PublishDebugCallback(MessageCategory.System,
+                                         MessageSeverity.Warning,
+                                         $"Index buffer should have BufferUsageFlags.Index. Current flags: {flags}.");
+        }
+
+        ValidateDefinedEnum(format, "index format");
+    }
+
+    public void ValidatePrepareResourceSets(CommandBuffer commandBuffer, ResourceSet[] sets)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void ValidateBindResourceSet(CommandBuffer commandBuffer, ResourceSet set, uint slot)
+    {
+        throw new NotImplementedException();
+    }
+
     private void ValidateDirectQueue(CommandBuffer commandBuffer, string name)
     {
         if (commandBuffer.Queue.Type is not CommandQueueType.Direct)
