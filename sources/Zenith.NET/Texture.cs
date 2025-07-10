@@ -6,6 +6,8 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public ref readonly TextureDesc Desc => ref desc;
 
+    public abstract TextureView View { get; }
+
     public void Upload<T>(TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data)
     {
         CommandBuffer commandBuffer = Context.Copy.CommandBuffer();

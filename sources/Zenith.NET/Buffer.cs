@@ -6,7 +6,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public ref readonly BufferDesc Desc => ref desc;
 
-    public abstract nint Pointer { get; }
+    public abstract BufferView View { get; }
 
     public void Upload<T>(uint offsetInBytes, ReadOnlySpan<T> data)
     {
