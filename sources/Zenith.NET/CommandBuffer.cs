@@ -10,7 +10,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public FrameBuffer? CurrentFrameBuffer { get; private set; }
 
-    public GraphicsResource? CurrentPipeline { get; private set; }
+    public Pipeline? CurrentPipeline { get; private set; }
 
     public void Begin()
     {
