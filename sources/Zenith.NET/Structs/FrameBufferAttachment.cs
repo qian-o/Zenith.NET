@@ -2,7 +2,7 @@
 
 public record struct FrameBufferAttachment
 {
-    public ITexture Target;
+    public Texture Target;
 
     public TextureSlice Slice;
 }

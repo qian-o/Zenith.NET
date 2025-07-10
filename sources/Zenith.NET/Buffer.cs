@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public abstract class Buffer(GraphicsContext context, BufferDesc desc) : GraphicsResource(context), IBuffer
+public abstract class Buffer(GraphicsContext context, BufferDesc desc) : GraphicsResource(context), IBindableResource
 {
     private BufferDesc desc = desc;
 

@@ -5,9 +5,9 @@ public abstract class GraphicsContext : DisposableObject
     protected GraphicsContext(Backend backend, bool useDebugLayer)
     {
         Backend = backend;
-        UseDebugLayer = useDebugLayer;
 
-        Initialize(out Driver driver,
+        Initialize(useDebugLayer,
+                   out Driver driver,
                    out ResourceFactory factory,
                    out CommandQueue direct,
                    out CommandQueue compute,
@@ -18,14 +18,13 @@ public abstract class GraphicsContext : DisposableObject
         Direct = direct;
         Compute = compute;
         Copy = copy;
+
         Uploader = new(this);
     }
 
     public event EventHandler<DebugCallbackArgs>? DebugCallback;
 
     public Backend Backend { get; }
-
-    public bool UseDebugLayer { get; }
 
     public Driver Driver { get; }
 
@@ -39,7 +38,7 @@ public abstract class GraphicsContext : DisposableObject
 
     internal Uploader Uploader { get; }
 
-    internal void PublishDebugCallback(MessageSeverity severity, string message)
+    protected void PublishDebugCallback(MessageSeverity severity, string message)
     {
         DebugCallback?.Invoke(this, new(severity, message));
     }
@@ -53,7 +52,8 @@ public abstract class GraphicsContext : DisposableObject
         Uploader.Dispose();
     }
 
-    protected abstract void Initialize(out Driver driver,
+    protected abstract void Initialize(bool useDebugLayer,
+                                       out Driver driver,
                                        out ResourceFactory factory,
                                        out CommandQueue direct,
                                        out CommandQueue compute,

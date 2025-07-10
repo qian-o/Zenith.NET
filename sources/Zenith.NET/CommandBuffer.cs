@@ -16,7 +16,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public abstract void Submit();
 
-    public void UploadBuffer<T>(IBuffer buffer, uint offsetInBytes, ReadOnlySpan<T> data)
+    public void UploadBuffer<T>(Buffer buffer, uint offsetInBytes, ReadOnlySpan<T> data)
     {
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 
@@ -26,9 +26,9 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CopyBuffer(temporary, 0, buffer, offsetInBytes, sizeInBytes);
     }
 
-    public abstract void CopyBuffer(IBuffer src, uint srcOffsetInBytes, IBuffer dest, uint destOffsetInBytes, uint sizeInBytes);
+    public abstract void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes);
 
-    public void UploadTexture<T>(ITexture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data)
+    public void UploadTexture<T>(Texture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data)
     {
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 
@@ -38,11 +38,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CopyTexture(temporary, 0, sizeInBytes, texture, slice, offset, extent);
     }
 
-    public abstract void CopyTexture(IBuffer src, uint srcOffsetInBytes, uint srcSizeInBytes, ITexture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent);
+    public abstract void CopyTexture(Buffer src, uint srcOffsetInBytes, uint srcSizeInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent);
 
-    public abstract void CopyTexture(ITexture src, TextureSlice srcSlice, TextureOffset srcOffset, ITexture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent);
+    public abstract void CopyTexture(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent);
 
-    public abstract void ResolveTexture(ITexture src, TextureSlice srcSlice, ITexture dest, TextureSlice destSlice);
+    public abstract void ResolveTexture(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice);
 
     public abstract BottomLevelAccelerationStructure BuildBottomLevelAccelerationStructure(BottomLevelAccelerationStructureDesc desc);
 
@@ -64,9 +64,9 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public abstract void SetRayTracingPipeline(RayTracingPipeline pipeline);
 
-    public abstract void SetIndexBuffer(IBuffer buffer, uint offsetInBytes, IndexFormat format);
+    public abstract void SetIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat format);
 
-    public abstract void SetVertexBuffers(IBuffer[] buffers, uint[] offsetsInBytes);
+    public abstract void SetVertexBuffers(Buffer[] buffers, uint[] offsetsInBytes);
 
     public abstract void PrepareResourceSets(ResourceSet[] sets);
 
@@ -74,15 +74,15 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public abstract void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
 
-    public abstract void DrawIndirect(IBuffer indirectBuffer, uint offsetInBytes, uint drawCount);
+    public abstract void DrawIndirect(Buffer indirectBuffer, uint offsetInBytes, uint drawCount);
 
     public abstract void DrawIndexed(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance);
 
-    public abstract void DrawIndexedIndirect(IBuffer indirectBuffer, uint offsetInBytes, uint drawCount);
+    public abstract void DrawIndexedIndirect(Buffer indirectBuffer, uint offsetInBytes, uint drawCount);
 
     public abstract void Dispatch(uint groupCountX, uint groupCountY, uint groupCountZ);
 
-    public abstract void DispatchIndirect(IBuffer indirectBuffer, uint offsetInBytes);
+    public abstract void DispatchIndirect(Buffer indirectBuffer, uint offsetInBytes);
 
     public abstract void DispatchRays(uint width, uint height, uint depth);
 
