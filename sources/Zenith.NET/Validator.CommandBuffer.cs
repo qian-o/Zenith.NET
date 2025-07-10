@@ -5,7 +5,7 @@ namespace Zenith.NET;
 
 internal partial class Validator
 {
-    public void ValidateBegin(CommandBuffer commandBuffer)
+    public void Begin(CommandBuffer commandBuffer)
     {
         if (commandBuffer.State is not CommandBufferState.Idle)
         {
@@ -15,7 +15,7 @@ internal partial class Validator
         }
     }
 
-    public void ValidateEnd(CommandBuffer commandBuffer)
+    public void End(CommandBuffer commandBuffer)
     {
         if (commandBuffer.State is not CommandBufferState.Recording)
         {
@@ -25,7 +25,7 @@ internal partial class Validator
         }
     }
 
-    public void ValidateSubmit(CommandBuffer commandBuffer)
+    public void Submit(CommandBuffer commandBuffer)
     {
         if (commandBuffer.State is not CommandBufferState.Completed)
         {
@@ -35,12 +35,12 @@ internal partial class Validator
         }
     }
 
-    public void ValidateUploadBuffer<T>(CommandBuffer commandBuffer,
+    public void UploadBuffer<T>(CommandBuffer commandBuffer,
                                         IBuffer buffer,
                                         uint offsetInBytes,
                                         ReadOnlySpan<T> data)
     {
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.UploadBuffer));
+        RecordingState(commandBuffer, nameof(CommandBuffer.UploadBuffer));
 
         if (buffer?.IsDisposed is not false)
         {
@@ -76,14 +76,14 @@ internal partial class Validator
         }
     }
 
-    public void ValidateCopyBuffer(CommandBuffer commandBuffer,
+    public void CopyBuffer(CommandBuffer commandBuffer,
                                    IBuffer src,
                                    uint srcOffsetInBytes,
                                    IBuffer dest,
                                    uint destOffsetInBytes,
                                    uint sizeInBytes)
     {
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.CopyBuffer));
+        RecordingState(commandBuffer, nameof(CommandBuffer.CopyBuffer));
 
         if (src?.IsDisposed is not false || dest?.IsDisposed is not false)
         {
@@ -130,14 +130,14 @@ internal partial class Validator
         }
     }
 
-    public void ValidateUploadTexture<T>(CommandBuffer commandBuffer,
+    public void UploadTexture<T>(CommandBuffer commandBuffer,
                                          ITexture texture,
                                          TextureSlice slice,
                                          TextureOffset offset,
                                          TextureExtent extent,
                                          ReadOnlySpan<T> data)
     {
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.UploadTexture));
+        RecordingState(commandBuffer, nameof(CommandBuffer.UploadTexture));
 
         if (texture?.IsDisposed is not false)
         {
@@ -178,12 +178,12 @@ internal partial class Validator
                             out _,
                             "texture for upload");
 
-        ValidateTextureSlice(type, layers, mipLevels, slice, "texture slice for upload");
+        TextureSlice(type, layers, mipLevels, slice, "texture slice for upload");
 
-        ValidateTextureRange(width, height, depth, offset, extent, "texture offset and extent for upload");
+        TextureRange(width, height, depth, offset, extent, "texture offset and extent for upload");
     }
 
-    public void ValidateCopyTexture(CommandBuffer commandBuffer,
+    public void CopyTexture(CommandBuffer commandBuffer,
                                     IBuffer src,
                                     uint srcOffsetInBytes,
                                     uint srcSizeInBytes,
@@ -192,7 +192,7 @@ internal partial class Validator
                                     TextureOffset destOffset,
                                     TextureExtent destExtent)
     {
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.CopyTexture));
+        RecordingState(commandBuffer, nameof(CommandBuffer.CopyTexture));
 
         if (src?.IsDisposed is not false || dest?.IsDisposed is not false)
         {
@@ -246,12 +246,12 @@ internal partial class Validator
                                          $"Source buffer copy range exceeds source buffer size. Source size: {srcBufferSizeInBytes} bytes, requested range: {srcOffsetInBytes} + {srcSizeInBytes} bytes.");
         }
 
-        ValidateTextureSlice(type, layers, mipLevels, destSlice, "destination texture slice for copy");
+        TextureSlice(type, layers, mipLevels, destSlice, "destination texture slice for copy");
 
-        ValidateTextureRange(width, height, depth, destOffset, destExtent, "destination texture offset and extent for copy");
+        TextureRange(width, height, depth, destOffset, destExtent, "destination texture offset and extent for copy");
     }
 
-    public void ValidateCopyTexture(CommandBuffer commandBuffer,
+    public void CopyTexture(CommandBuffer commandBuffer,
                                     ITexture src,
                                     TextureSlice srcSlice,
                                     TextureOffset srcOffset,
@@ -260,7 +260,7 @@ internal partial class Validator
                                     TextureOffset destOffset,
                                     TextureExtent extent)
     {
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.CopyTexture));
+        RecordingState(commandBuffer, nameof(CommandBuffer.CopyTexture));
 
         if (src?.IsDisposed is not false || dest?.IsDisposed is not false)
         {
@@ -304,24 +304,24 @@ internal partial class Validator
                             out _,
                             "destination texture for copy");
 
-        ValidateTextureSlice(srcType, srcLayers, srcMipLevels, srcSlice, "source texture slice for copy");
+        TextureSlice(srcType, srcLayers, srcMipLevels, srcSlice, "source texture slice for copy");
 
-        ValidateTextureRange(srcWidth, srcHeight, srcDepth, srcOffset, extent, "source texture offset and extent for copy");
+        TextureRange(srcWidth, srcHeight, srcDepth, srcOffset, extent, "source texture offset and extent for copy");
 
-        ValidateTextureSlice(destType, destLayers, destMipLevels, destSlice, "destination texture slice for copy");
+        TextureSlice(destType, destLayers, destMipLevels, destSlice, "destination texture slice for copy");
 
-        ValidateTextureRange(destWidth, destHeight, destDepth, destOffset, extent, "destination texture offset and extent for copy");
+        TextureRange(destWidth, destHeight, destDepth, destOffset, extent, "destination texture offset and extent for copy");
     }
 
-    public void ValidateResolveTexture(CommandBuffer commandBuffer,
+    public void ResolveTexture(CommandBuffer commandBuffer,
                                        ITexture src,
                                        TextureSlice srcSlice,
                                        ITexture dest,
                                        TextureSlice destSlice)
     {
-        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.ResolveTexture));
+        DirectQueue(commandBuffer, nameof(CommandBuffer.ResolveTexture));
 
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.ResolveTexture));
+        RecordingState(commandBuffer, nameof(CommandBuffer.ResolveTexture));
 
         if (src?.IsDisposed is not false || dest?.IsDisposed is not false)
         {
@@ -356,9 +356,9 @@ internal partial class Validator
                             out _,
                             "destination texture for resolve");
 
-        ValidateTextureSlice(srcType, srcLayers, srcMipLevels, srcSlice, "source texture slice for resolve");
+        TextureSlice(srcType, srcLayers, srcMipLevels, srcSlice, "source texture slice for resolve");
 
-        ValidateTextureSlice(destType, destLayers, destMipLevels, destSlice, "destination texture slice for resolve");
+        TextureSlice(destType, destLayers, destMipLevels, destSlice, "destination texture slice for resolve");
 
         if (srcSampleCount is SampleCount.Count1)
         {
@@ -375,12 +375,12 @@ internal partial class Validator
         }
     }
 
-    public void ValidateBuildBottomLevelAccelerationStructure(CommandBuffer commandBuffer,
+    public void BuildBottomLevelAccelerationStructure(CommandBuffer commandBuffer,
                                                               BottomLevelAccelerationStructureDesc desc)
     {
-        ValidateNotCopyQueue(commandBuffer, nameof(CommandBuffer.BuildBottomLevelAccelerationStructure));
+        NotCopyQueue(commandBuffer, nameof(CommandBuffer.BuildBottomLevelAccelerationStructure));
 
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.BuildBottomLevelAccelerationStructure));
+        RecordingState(commandBuffer, nameof(CommandBuffer.BuildBottomLevelAccelerationStructure));
 
         if (desc.Geometries is null)
         {
@@ -400,16 +400,16 @@ internal partial class Validator
 
         for (int i = 0; i < desc.Geometries.Length; i++)
         {
-            ValidateRayTracingGeometry(desc.Geometries[i], $"geometry at index {i}");
+            RayTracingGeometry(desc.Geometries[i], $"geometry at index {i}");
         }
     }
 
-    public void ValidateBuildTopLevelAccelerationStructure(CommandBuffer commandBuffer,
+    public void BuildTopLevelAccelerationStructure(CommandBuffer commandBuffer,
                                                            TopLevelAccelerationStructureDesc desc)
     {
-        ValidateNotCopyQueue(commandBuffer, nameof(CommandBuffer.BuildTopLevelAccelerationStructure));
+        NotCopyQueue(commandBuffer, nameof(CommandBuffer.BuildTopLevelAccelerationStructure));
 
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.BuildTopLevelAccelerationStructure));
+        RecordingState(commandBuffer, nameof(CommandBuffer.BuildTopLevelAccelerationStructure));
 
         if (desc.Instances is null)
         {
@@ -429,17 +429,17 @@ internal partial class Validator
 
         for (int i = 0; i < desc.Instances.Length; i++)
         {
-            ValidateRayTracingInstance(desc.Instances[i], $"instance at index {i}");
+            RayTracingInstance(desc.Instances[i], $"instance at index {i}");
         }
     }
 
-    public void ValidateUpdateTopLevelAccelerationStructure(CommandBuffer commandBuffer,
+    public void UpdateTopLevelAccelerationStructure(CommandBuffer commandBuffer,
                                                             TopLevelAccelerationStructure accelerationStructure,
                                                             TopLevelAccelerationStructureDesc newDesc)
     {
-        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.UpdateTopLevelAccelerationStructure));
+        DirectQueue(commandBuffer, nameof(CommandBuffer.UpdateTopLevelAccelerationStructure));
 
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.UpdateTopLevelAccelerationStructure));
+        RecordingState(commandBuffer, nameof(CommandBuffer.UpdateTopLevelAccelerationStructure));
 
         if (newDesc.Instances is null)
         {
@@ -461,15 +461,15 @@ internal partial class Validator
 
         for (int i = 0; i < newDesc.Instances.Length; i++)
         {
-            ValidateRayTracingInstance(newDesc.Instances[i], $"instance at index {i}");
+            RayTracingInstance(newDesc.Instances[i], $"instance at index {i}");
         }
     }
 
-    public void ValidateBeginRendering(CommandBuffer commandBuffer, FrameBuffer frameBuffer, ClearValue clearValue)
+    public void BeginRendering(CommandBuffer commandBuffer, FrameBuffer frameBuffer, ClearValue clearValue)
     {
-        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.BeginRendering));
+        DirectQueue(commandBuffer, nameof(CommandBuffer.BeginRendering));
 
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.BeginRendering));
+        RecordingState(commandBuffer, nameof(CommandBuffer.BeginRendering));
 
         if (frameBuffer?.IsDisposed is not false)
         {
@@ -488,18 +488,18 @@ internal partial class Validator
         }
     }
 
-    public void ValidateEndRendering(CommandBuffer commandBuffer)
+    public void EndRendering(CommandBuffer commandBuffer)
     {
-        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.EndRendering));
+        DirectQueue(commandBuffer, nameof(CommandBuffer.EndRendering));
 
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.EndRendering));
+        RecordingState(commandBuffer, nameof(CommandBuffer.EndRendering));
     }
 
-    public void ValidateSetScissors(CommandBuffer commandBuffer, Scissor[] scissors)
+    public void SetScissors(CommandBuffer commandBuffer, Scissor[] scissors)
     {
-        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.SetScissors));
+        DirectQueue(commandBuffer, nameof(CommandBuffer.SetScissors));
 
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetScissors));
+        RecordingState(commandBuffer, nameof(CommandBuffer.SetScissors));
 
         if (scissors is null)
         {
@@ -509,11 +509,11 @@ internal partial class Validator
         }
     }
 
-    public void ValidateSetViewports(CommandBuffer commandBuffer, Viewport[] viewports)
+    public void SetViewports(CommandBuffer commandBuffer, Viewport[] viewports)
     {
-        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.SetViewports));
+        DirectQueue(commandBuffer, nameof(CommandBuffer.SetViewports));
 
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetViewports));
+        RecordingState(commandBuffer, nameof(CommandBuffer.SetViewports));
 
         if (viewports is null)
         {
@@ -523,11 +523,11 @@ internal partial class Validator
         }
     }
 
-    public void ValidateSetGraphicsPipeline(CommandBuffer commandBuffer, GraphicsPipeline pipeline)
+    public void SetGraphicsPipeline(CommandBuffer commandBuffer, GraphicsPipeline pipeline)
     {
-        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.SetGraphicsPipeline));
+        DirectQueue(commandBuffer, nameof(CommandBuffer.SetGraphicsPipeline));
 
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetGraphicsPipeline));
+        RecordingState(commandBuffer, nameof(CommandBuffer.SetGraphicsPipeline));
 
         if (pipeline?.IsDisposed is not false)
         {
@@ -537,11 +537,11 @@ internal partial class Validator
         }
     }
 
-    public void ValidateSetComputePipeline(CommandBuffer commandBuffer, ComputePipeline pipeline)
+    public void SetComputePipeline(CommandBuffer commandBuffer, ComputePipeline pipeline)
     {
-        ValidateNotCopyQueue(commandBuffer, nameof(CommandBuffer.SetComputePipeline));
+        NotCopyQueue(commandBuffer, nameof(CommandBuffer.SetComputePipeline));
 
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetComputePipeline));
+        RecordingState(commandBuffer, nameof(CommandBuffer.SetComputePipeline));
 
         if (pipeline?.IsDisposed is not false)
         {
@@ -551,11 +551,11 @@ internal partial class Validator
         }
     }
 
-    public void ValidateSetRayTracingPipeline(CommandBuffer commandBuffer, RayTracingPipeline pipeline)
+    public void SetRayTracingPipeline(CommandBuffer commandBuffer, RayTracingPipeline pipeline)
     {
-        ValidateNotCopyQueue(commandBuffer, nameof(CommandBuffer.SetRayTracingPipeline));
+        NotCopyQueue(commandBuffer, nameof(CommandBuffer.SetRayTracingPipeline));
 
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetRayTracingPipeline));
+        RecordingState(commandBuffer, nameof(CommandBuffer.SetRayTracingPipeline));
 
         if (pipeline?.IsDisposed is not false)
         {
@@ -565,13 +565,13 @@ internal partial class Validator
         }
     }
 
-    public void ValidateSetIndexBuffer(CommandBuffer commandBuffer, IBuffer buffer, uint offsetInBytes, IndexFormat format)
+    public void SetIndexBuffer(CommandBuffer commandBuffer, IBuffer buffer, uint offsetInBytes, IndexFormat format)
     {
-        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.SetIndexBuffer));
+        DirectQueue(commandBuffer, nameof(CommandBuffer.SetIndexBuffer));
 
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetIndexBuffer));
+        RecordingState(commandBuffer, nameof(CommandBuffer.SetIndexBuffer));
 
-        ValidateCurrentPipeline<GraphicsPipeline>(commandBuffer, nameof(CommandBuffer.SetIndexBuffer));
+        CurrentPipeline<GraphicsPipeline>(commandBuffer, nameof(CommandBuffer.SetIndexBuffer));
 
         if (buffer?.IsDisposed is not false)
         {
@@ -602,16 +602,16 @@ internal partial class Validator
                                          $"Index buffer should have BufferUsageFlags.Index. Current flags: {flags}.");
         }
 
-        ValidateDefinedEnum(format, "index format");
+        DefinedEnum(format, "index format");
     }
 
-    public void ValidateSetVertexBuffers(CommandBuffer commandBuffer, IBuffer[] buffers, uint[] offsetsInBytes)
+    public void SetVertexBuffers(CommandBuffer commandBuffer, IBuffer[] buffers, uint[] offsetsInBytes)
     {
-        ValidateDirectQueue(commandBuffer, nameof(CommandBuffer.SetVertexBuffers));
+        DirectQueue(commandBuffer, nameof(CommandBuffer.SetVertexBuffers));
 
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.SetVertexBuffers));
+        RecordingState(commandBuffer, nameof(CommandBuffer.SetVertexBuffers));
 
-        ValidateCurrentPipeline<GraphicsPipeline>(commandBuffer, nameof(CommandBuffer.SetVertexBuffers));
+        CurrentPipeline<GraphicsPipeline>(commandBuffer, nameof(CommandBuffer.SetVertexBuffers));
 
         if (buffers is null || offsetsInBytes is null)
         {
@@ -676,9 +676,9 @@ internal partial class Validator
         }
     }
 
-    public void ValidatePrepareResourceSets(CommandBuffer commandBuffer, ResourceSet[] sets)
+    public void PrepareResourceSets(CommandBuffer commandBuffer, ResourceSet[] sets)
     {
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.PrepareResourceSets));
+        RecordingState(commandBuffer, nameof(CommandBuffer.PrepareResourceSets));
 
         if (commandBuffer.CurrentFrameBuffer is not null)
         {
@@ -687,14 +687,14 @@ internal partial class Validator
                                          "Resource sets cannot be prepared while a frame buffer is active. End the frame buffer before preparing resource sets.");
         }
 
-        ValidateObjects(sets, "resource sets");
+        Objects(sets, "resource sets");
     }
 
-    public void ValidateBindResourceSets(CommandBuffer commandBuffer, ResourceSet[] sets)
+    public void BindResourceSets(CommandBuffer commandBuffer, ResourceSet[] sets)
     {
-        ValidateNotCopyQueue(commandBuffer, nameof(CommandBuffer.BindResourceSets));
+        NotCopyQueue(commandBuffer, nameof(CommandBuffer.BindResourceSets));
 
-        ValidateRecordingState(commandBuffer, nameof(CommandBuffer.BindResourceSets));
+        RecordingState(commandBuffer, nameof(CommandBuffer.BindResourceSets));
 
         if (commandBuffer.CurrentPipeline is null)
         {
@@ -703,10 +703,10 @@ internal partial class Validator
                                          "Cannot bind resource set when no pipeline is set. Set a pipeline before binding resource sets.");
         }
 
-        ValidateObjects(sets, "resource sets");
+        Objects(sets, "resource sets");
     }
 
-    private void ValidateDirectQueue(CommandBuffer commandBuffer, string name)
+    private void DirectQueue(CommandBuffer commandBuffer, string name)
     {
         if (commandBuffer.Queue.Type is not CommandQueueType.Direct)
         {
@@ -716,7 +716,7 @@ internal partial class Validator
         }
     }
 
-    private void ValidateNotCopyQueue(CommandBuffer commandBuffer, string name)
+    private void NotCopyQueue(CommandBuffer commandBuffer, string name)
     {
         if (commandBuffer.Queue.Type is CommandQueueType.Copy)
         {
@@ -726,7 +726,7 @@ internal partial class Validator
         }
     }
 
-    private void ValidateRecordingState(CommandBuffer commandBuffer, string name)
+    private void RecordingState(CommandBuffer commandBuffer, string name)
     {
         if (commandBuffer.State is not CommandBufferState.Recording)
         {
@@ -736,7 +736,7 @@ internal partial class Validator
         }
     }
 
-    private void ValidateCurrentPipeline<TPipeline>(CommandBuffer commandBuffer, string name) where TPipeline : GraphicsResource
+    private void CurrentPipeline<TPipeline>(CommandBuffer commandBuffer, string name) where TPipeline : GraphicsResource
     {
         if (commandBuffer.CurrentPipeline is not TPipeline)
         {
@@ -746,9 +746,9 @@ internal partial class Validator
         }
     }
 
-    private void ValidateRayTracingGeometry(RayTracingGeometry geometry, string name)
+    private void RayTracingGeometry(RayTracingGeometry geometry, string name)
     {
-        ValidateDefinedEnum(geometry.Type, $"{name} type");
+        DefinedEnum(geometry.Type, $"{name} type");
 
         if (geometry.Type is RayTracingGeometryType.Triangles)
         {
@@ -776,7 +776,7 @@ internal partial class Validator
                                              $"{name} vertex buffer should have BufferUsageFlags.AccelerationStructure. Current flags: {vertexFlags}.");
             }
 
-            ValidateDefinedEnum(triangles.VertexFormat, $"{name} vertex format");
+            DefinedEnum(triangles.VertexFormat, $"{name} vertex format");
 
             if (triangles.VertexCount is 0)
             {
@@ -816,7 +816,7 @@ internal partial class Validator
                                                  $"{name} index buffer should have BufferUsageFlags.AccelerationStructure. Current flags: {indexFlags}.");
                 }
 
-                ValidateDefinedEnum(triangles.IndexFormat, $"{name} index format");
+                DefinedEnum(triangles.IndexFormat, $"{name} index format");
 
                 if (triangles.IndexCount is 0)
                 {
@@ -825,7 +825,7 @@ internal partial class Validator
                                                  $"{name} must have at least 1 index.");
                 }
 
-                ValidateTransform(triangles.Transform, $"{name} transform");
+                Transform(triangles.Transform, $"{name} transform");
             }
         }
         else if (geometry.Type is RayTracingGeometryType.AABBs)
@@ -870,7 +870,7 @@ internal partial class Validator
         }
     }
 
-    private void ValidateRayTracingInstance(RayTracingInstance instance, string name)
+    private void RayTracingInstance(RayTracingInstance instance, string name)
     {
         if (instance.AccelerationStructure?.IsDisposed is not false)
         {
@@ -881,10 +881,10 @@ internal partial class Validator
             return;
         }
 
-        ValidateTransform(instance.Transform, $"{name} transform");
+        Transform(instance.Transform, $"{name} transform");
     }
 
-    private void ValidateTransform(Matrix4x4 matrix, string name)
+    private void Transform(Matrix4x4 matrix, string name)
     {
         if (matrix.M11 is 0 && matrix.M22 is 0 && matrix.M33 is 0)
         {

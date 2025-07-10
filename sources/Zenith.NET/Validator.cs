@@ -24,7 +24,7 @@ internal partial class Validator(GraphicsContext context)
         TextureType.TextureCubeArray
     ];
 
-    private void ValidateObjects<TObject>(TObject[]? objects, string name) where TObject : IDisposableObject
+    private void Objects<TObject>(TObject[]? objects, string name) where TObject : IDisposableObject
     {
         if (objects is null)
         {
@@ -37,11 +37,11 @@ internal partial class Validator(GraphicsContext context)
 
         for (int i = 0; i < objects.Length; i++)
         {
-            ValidateObject(objects[i], false, $"{name} at index {i}");
+            Object(objects[i], false, $"{name} at index {i}");
         }
     }
 
-    private void ValidateObject<TObject>(TObject? @object, bool canBeNull, string name) where TObject : IDisposableObject
+    private void Object<TObject>(TObject? @object, bool canBeNull, string name) where TObject : IDisposableObject
     {
         if (@object is null)
         {
@@ -60,7 +60,7 @@ internal partial class Validator(GraphicsContext context)
         }
     }
 
-    private void ValidateDefinedEnum<TEnum>(TEnum value, string name) where TEnum : struct, Enum
+    private void DefinedEnum<TEnum>(TEnum value, string name) where TEnum : struct, Enum
     {
         if (!Enum.IsDefined(value))
         {
@@ -154,11 +154,11 @@ internal partial class Validator(GraphicsContext context)
         }
     }
 
-    private void ValidateTextureSlice(TextureType type,
-                                      uint layers,
-                                      uint mipLevels,
-                                      TextureSlice slice,
-                                      string name)
+    private void TextureSlice(TextureType type,
+                              uint layers,
+                              uint mipLevels,
+                              TextureSlice slice,
+                              string name)
     {
         if (type is TextureType.TextureCube or TextureType.TextureCubeArray)
         {
@@ -200,12 +200,12 @@ internal partial class Validator(GraphicsContext context)
         }
     }
 
-    private void ValidateTextureRange(uint width,
-                                      uint height,
-                                      uint depth,
-                                      TextureOffset offset,
-                                      TextureExtent extent,
-                                      string name)
+    private void TextureRange(uint width,
+                              uint height,
+                              uint depth,
+                              TextureOffset offset,
+                              TextureExtent extent,
+                              string name)
     {
         if (offset.X + extent.Width > width)
         {

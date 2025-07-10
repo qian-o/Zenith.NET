@@ -14,7 +14,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Begin()
     {
-        Context.Validator?.ValidateBegin(this);
+        Context.Validator?.Begin(this);
 
         BeginImpl();
 
@@ -23,7 +23,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void End()
     {
-        Context.Validator?.ValidateEnd(this);
+        Context.Validator?.End(this);
 
         EndImpl();
 
@@ -32,7 +32,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Submit()
     {
-        Context.Validator?.ValidateSubmit(this);
+        Context.Validator?.Submit(this);
 
         Queue.Submit(this);
 
@@ -41,7 +41,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void UploadBuffer<T>(IBuffer buffer, uint offsetInBytes, ReadOnlySpan<T> data)
     {
-        Context.Validator?.ValidateUploadBuffer(this, buffer, offsetInBytes, data);
+        Context.Validator?.UploadBuffer(this, buffer, offsetInBytes, data);
 
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 
@@ -53,14 +53,14 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void CopyBuffer(IBuffer src, uint srcOffsetInBytes, IBuffer dest, uint destOffsetInBytes, uint sizeInBytes)
     {
-        Context.Validator?.ValidateCopyBuffer(this, src, srcOffsetInBytes, dest, destOffsetInBytes, sizeInBytes);
+        Context.Validator?.CopyBuffer(this, src, srcOffsetInBytes, dest, destOffsetInBytes, sizeInBytes);
 
         CopyBufferImpl(src, srcOffsetInBytes, dest, destOffsetInBytes, sizeInBytes);
     }
 
     public void UploadTexture<T>(ITexture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data)
     {
-        Context.Validator?.ValidateUploadTexture(this, texture, slice, offset, extent, data);
+        Context.Validator?.UploadTexture(this, texture, slice, offset, extent, data);
 
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 
@@ -72,49 +72,49 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void CopyTexture(IBuffer src, uint srcOffsetInBytes, uint srcSizeInBytes, ITexture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent)
     {
-        Context.Validator?.ValidateCopyTexture(this, src, srcOffsetInBytes, srcSizeInBytes, dest, destSlice, destOffset, destExtent);
+        Context.Validator?.CopyTexture(this, src, srcOffsetInBytes, srcSizeInBytes, dest, destSlice, destOffset, destExtent);
 
         CopyTextureImpl(src, srcOffsetInBytes, srcSizeInBytes, dest, destSlice, destOffset, destExtent);
     }
 
     public void CopyTexture(ITexture src, TextureSlice srcSlice, TextureOffset srcOffset, ITexture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent)
     {
-        Context.Validator?.ValidateCopyTexture(this, src, srcSlice, srcOffset, dest, destSlice, destOffset, extent);
+        Context.Validator?.CopyTexture(this, src, srcSlice, srcOffset, dest, destSlice, destOffset, extent);
 
         CopyTextureImpl(src, srcSlice, srcOffset, dest, destSlice, destOffset, extent);
     }
 
     public void ResolveTexture(ITexture src, TextureSlice srcSlice, ITexture dest, TextureSlice destSlice)
     {
-        Context.Validator?.ValidateResolveTexture(this, src, srcSlice, dest, destSlice);
+        Context.Validator?.ResolveTexture(this, src, srcSlice, dest, destSlice);
 
         ResolveTextureImpl(src, srcSlice, dest, destSlice);
     }
 
     public BottomLevelAccelerationStructure BuildBottomLevelAccelerationStructure(BottomLevelAccelerationStructureDesc desc)
     {
-        Context.Validator?.ValidateBuildBottomLevelAccelerationStructure(this, desc);
+        Context.Validator?.BuildBottomLevelAccelerationStructure(this, desc);
 
         return BuildBottomLevelAccelerationStructureImpl(desc);
     }
 
     public TopLevelAccelerationStructure BuildTopLevelAccelerationStructure(TopLevelAccelerationStructureDesc desc)
     {
-        Context.Validator?.ValidateBuildTopLevelAccelerationStructure(this, desc);
+        Context.Validator?.BuildTopLevelAccelerationStructure(this, desc);
 
         return BuildTopLevelAccelerationStructureImpl(desc);
     }
 
     public void UpdateTopLevelAccelerationStructure(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
     {
-        Context.Validator?.ValidateUpdateTopLevelAccelerationStructure(this, accelerationStructure, newDesc);
+        Context.Validator?.UpdateTopLevelAccelerationStructure(this, accelerationStructure, newDesc);
 
         UpdateTopLevelAccelerationStructureImpl(accelerationStructure, newDesc);
     }
 
     public void BeginRendering(FrameBuffer frameBuffer, ClearValue clearValue)
     {
-        Context.Validator?.ValidateBeginRendering(this, frameBuffer, clearValue);
+        Context.Validator?.BeginRendering(this, frameBuffer, clearValue);
 
         BeginRenderingImpl(frameBuffer, clearValue);
 
@@ -123,7 +123,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void EndRendering()
     {
-        Context.Validator?.ValidateEndRendering(this);
+        Context.Validator?.EndRendering(this);
 
         EndRenderingImpl();
 
@@ -132,21 +132,21 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetScissors(Scissor[] scissors)
     {
-        Context.Validator?.ValidateSetScissors(this, scissors);
+        Context.Validator?.SetScissors(this, scissors);
 
         SetScissorsImpl(scissors);
     }
 
     public void SetViewports(Viewport[] viewports)
     {
-        Context.Validator?.ValidateSetViewports(this, viewports);
+        Context.Validator?.SetViewports(this, viewports);
 
         SetViewportsImpl(viewports);
     }
 
     public void SetGraphicsPipeline(GraphicsPipeline pipeline)
     {
-        Context.Validator?.ValidateSetGraphicsPipeline(this, pipeline);
+        Context.Validator?.SetGraphicsPipeline(this, pipeline);
 
         SetGraphicsPipelineImpl(pipeline);
 
@@ -155,7 +155,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetComputePipeline(ComputePipeline pipeline)
     {
-        Context.Validator?.ValidateSetComputePipeline(this, pipeline);
+        Context.Validator?.SetComputePipeline(this, pipeline);
 
         SetComputePipelineImpl(pipeline);
 
@@ -164,7 +164,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetRayTracingPipeline(RayTracingPipeline pipeline)
     {
-        Context.Validator?.ValidateSetRayTracingPipeline(this, pipeline);
+        Context.Validator?.SetRayTracingPipeline(this, pipeline);
 
         SetRayTracingPipelineImpl(pipeline);
 
@@ -173,28 +173,28 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetIndexBuffer(IBuffer buffer, uint offsetInBytes, IndexFormat format)
     {
-        Context.Validator?.ValidateSetIndexBuffer(this, buffer, offsetInBytes, format);
+        Context.Validator?.SetIndexBuffer(this, buffer, offsetInBytes, format);
 
         SetIndexBufferImpl(buffer, offsetInBytes, format);
     }
 
     public void SetVertexBuffers(IBuffer[] buffers, uint[] offsetsInBytes)
     {
-        Context.Validator?.ValidateSetVertexBuffers(this, buffers, offsetsInBytes);
+        Context.Validator?.SetVertexBuffers(this, buffers, offsetsInBytes);
 
         SetVertexBuffersImpl(buffers, offsetsInBytes);
     }
 
     public void PrepareResourceSets(ResourceSet[] sets)
     {
-        Context.Validator?.ValidatePrepareResourceSets(this, sets);
+        Context.Validator?.PrepareResourceSets(this, sets);
 
         PrepareResourceSetsImpl(sets);
     }
 
     public void BindResourceSets(ResourceSet[] sets)
     {
-        Context.Validator?.ValidateBindResourceSets(this, sets);
+        Context.Validator?.BindResourceSets(this, sets);
 
         BindResourceSetsImpl(sets);
     }

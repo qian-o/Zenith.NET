@@ -2,9 +2,9 @@
 
 internal partial class Validator
 {
-    public void ValidateSwapChainDesc(SwapChainDesc desc)
+    public void SwapChainDesc(SwapChainDesc desc)
     {
-        ValidateSurface(desc.Surface);
+        Surface(desc.Surface);
 
         if (!swapChainFormats.Contains(desc.ColorTargetFormat))
         {
@@ -21,7 +21,7 @@ internal partial class Validator
         }
     }
 
-    public void ValidateBufferDesc(BufferDesc desc)
+    public void BufferDesc(BufferDesc desc)
     {
         if (desc.SizeInBytes is 0)
         {
@@ -38,7 +38,7 @@ internal partial class Validator
         }
     }
 
-    public void ValidateBufferViewDesc(BufferViewDesc desc)
+    public void BufferViewDesc(BufferViewDesc desc)
     {
         if (desc.Buffer?.IsDisposed is not false)
         {
@@ -77,11 +77,11 @@ internal partial class Validator
         }
     }
 
-    public void ValidateTextureDesc(TextureDesc desc)
+    public void TextureDesc(TextureDesc desc)
     {
-        ValidateDefinedEnum(desc.Type, "texture type");
+        DefinedEnum(desc.Type, "texture type");
 
-        ValidateDefinedEnum(desc.Format, "texture format");
+        DefinedEnum(desc.Format, "texture format");
 
         if (desc.Type is TextureType.Texture1D or TextureType.Texture1DArray)
         {
@@ -164,10 +164,10 @@ internal partial class Validator
                                          "Texture must have at least 1 mip level.");
         }
 
-        ValidateDefinedEnum(desc.SampleCount, "sample count");
+        DefinedEnum(desc.SampleCount, "sample count");
     }
 
-    public void ValidateTextureViewDesc(TextureViewDesc desc)
+    public void TextureViewDesc(TextureViewDesc desc)
     {
         if (desc.Texture?.IsDisposed is not false)
         {
@@ -219,17 +219,17 @@ internal partial class Validator
         }
     }
 
-    public void ValidateSamplerDesc(SamplerDesc desc)
+    public void SamplerDesc(SamplerDesc desc)
     {
-        ValidateDefinedEnum(desc.U, "U address mode");
+        DefinedEnum(desc.U, "U address mode");
 
-        ValidateDefinedEnum(desc.V, "V address mode");
+        DefinedEnum(desc.V, "V address mode");
 
-        ValidateDefinedEnum(desc.W, "W address mode");
+        DefinedEnum(desc.W, "W address mode");
 
-        ValidateDefinedEnum(desc.Filter, "filter");
+        DefinedEnum(desc.Filter, "filter");
 
-        ValidateDefinedEnum(desc.ComparisonFunc, "comparison function");
+        DefinedEnum(desc.ComparisonFunc, "comparison function");
 
         if (desc.MaxAnisotropy is not 1 and not 2 and not 4 and not 8 and not 16)
         {
@@ -259,10 +259,10 @@ internal partial class Validator
                                          $"LOD bias must be in range [-16, 16]. Got: {desc.LodBias}.");
         }
 
-        ValidateDefinedEnum(desc.BorderColor, "border color");
+        DefinedEnum(desc.BorderColor, "border color");
     }
 
-    public void ValidateResourceLayoutDesc(ResourceLayoutDesc desc)
+    public void ResourceLayoutDesc(ResourceLayoutDesc desc)
     {
         if (desc.Elements is null)
         {
@@ -284,7 +284,7 @@ internal partial class Validator
         {
             ResourceElement element = desc.Elements[i];
 
-            ValidateDefinedEnum(element.Type, $"resource element type at index {i}");
+            DefinedEnum(element.Type, $"resource element type at index {i}");
 
             if (element.Count is 0)
             {
@@ -295,7 +295,7 @@ internal partial class Validator
         }
     }
 
-    public void ValidateResourceSetDesc(ResourceSetDesc desc)
+    public void ResourceSetDesc(ResourceSetDesc desc)
     {
         if (desc.Layout?.IsDisposed is not false)
         {
@@ -436,7 +436,7 @@ internal partial class Validator
         }
     }
 
-    public void ValidateFrameBufferDesc(FrameBufferDesc desc)
+    public void FrameBufferDesc(FrameBufferDesc desc)
     {
         if (desc.ColorTargets is null)
         {
@@ -469,7 +469,7 @@ internal partial class Validator
 
         for (int i = 0; i < desc.ColorTargets.Length; i++)
         {
-            ValidateFrameBufferAttachment(desc.ColorTargets[i],
+            FrameBufferAttachment(desc.ColorTargets[i],
                                           null,
                                           ref targetWidth,
                                           ref targetHeight,
@@ -480,7 +480,7 @@ internal partial class Validator
 
         if (desc.DepthStencilTarget is not null)
         {
-            ValidateFrameBufferAttachment(desc.DepthStencilTarget.Value,
+            FrameBufferAttachment(desc.DepthStencilTarget.Value,
                                           depthStencilFormats,
                                           ref targetWidth,
                                           ref targetHeight,
@@ -490,7 +490,7 @@ internal partial class Validator
         }
     }
 
-    public void ValidateShaderDesc(ShaderDesc desc)
+    public void ShaderDesc(ShaderDesc desc)
     {
         if (desc.ShaderBytes is null)
         {
@@ -515,10 +515,10 @@ internal partial class Validator
                                          "Shader entry point must be specified.");
         }
 
-        ValidateDefinedEnum(desc.Stage, "shader stage");
+        DefinedEnum(desc.Stage, "shader stage");
     }
 
-    public void ValidateGraphicsPipelineDesc(GraphicsPipelineDesc desc)
+    public void GraphicsPipelineDesc(GraphicsPipelineDesc desc)
     {
         // RenderStates
         {
@@ -528,11 +528,11 @@ internal partial class Validator
             {
                 RasterizerState rasterizerState = renderStates.RasterizerState;
 
-                ValidateDefinedEnum(rasterizerState.CullMode, "cull mode");
+                DefinedEnum(rasterizerState.CullMode, "cull mode");
 
-                ValidateDefinedEnum(rasterizerState.FillMode, "fill mode");
+                DefinedEnum(rasterizerState.FillMode, "fill mode");
 
-                ValidateDefinedEnum(rasterizerState.FrontFace, "front face");
+                DefinedEnum(rasterizerState.FrontFace, "front face");
 
                 if (rasterizerState.DepthBias < 0)
                 {
@@ -560,11 +560,11 @@ internal partial class Validator
             {
                 DepthStencilState depthStencilState = renderStates.DepthStencilState;
 
-                ValidateDefinedEnum(depthStencilState.DepthFunc, "depth function");
+                DefinedEnum(depthStencilState.DepthFunc, "depth function");
 
-                ValidateDepthStencilStateOp(depthStencilState.FrontFace, "front face");
+                DepthStencilStateOp(depthStencilState.FrontFace, "front face");
 
-                ValidateDepthStencilStateOp(depthStencilState.BackFace, "back face");
+                DepthStencilStateOp(depthStencilState.BackFace, "back face");
             }
 
             // BlendState
@@ -575,7 +575,7 @@ internal partial class Validator
 
                 for (int i = 0; i < renderTargets.Length; i++)
                 {
-                    ValidateBlendStateRenderTarget(renderTargets[i], $"render target at index {i}");
+                    BlendStateRenderTarget(renderTargets[i], $"render target at index {i}");
                 }
             }
         }
@@ -584,15 +584,15 @@ internal partial class Validator
         {
             GraphicsShaders shaders = desc.Shaders;
 
-            ValidateObject(shaders.Vertex, false, "Vertex shader");
+            Object(shaders.Vertex, false, "Vertex shader");
 
-            ValidateObject(shaders.Hull, true, "Hull shader");
+            Object(shaders.Hull, true, "Hull shader");
 
-            ValidateObject(shaders.Domain, true, "Domain shader");
+            Object(shaders.Domain, true, "Domain shader");
 
-            ValidateObject(shaders.Geometry, true, "Geometry shader");
+            Object(shaders.Geometry, true, "Geometry shader");
 
-            ValidateObject(shaders.Pixel, false, "Pixel shader");
+            Object(shaders.Pixel, false, "Pixel shader");
         }
 
         // InputLayouts
@@ -615,37 +615,37 @@ internal partial class Validator
 
             for (int i = 0; i < desc.InputLayouts.Length; i++)
             {
-                ValidateInputLayout(desc.InputLayouts[i], $"input layout at index {i}");
+                InputLayout(desc.InputLayouts[i], $"input layout at index {i}");
             }
         }
 
-        ValidateObjects(desc.ResourceLayouts, "resource layouts");
+        Objects(desc.ResourceLayouts, "resource layouts");
 
-        ValidateOutput(desc.Outputs);
+        Output(desc.Outputs);
     }
 
-    public void ValidateComputePipelineDesc(ComputePipelineDesc desc)
+    public void ComputePipelineDesc(ComputePipelineDesc desc)
     {
-        ValidateObject(desc.Shader, false, "Compute shader");
+        Object(desc.Shader, false, "Compute shader");
 
-        ValidateObjects(desc.ResourceLayouts, "resource layouts");
+        Objects(desc.ResourceLayouts, "resource layouts");
     }
 
-    public void ValidateRayTracingPipelineDesc(RayTracingPipelineDesc desc)
+    public void RayTracingPipelineDesc(RayTracingPipelineDesc desc)
     {
         // Shaders
         {
             RayTracingShaders shaders = desc.Shaders;
 
-            ValidateObject(shaders.RayGeneration, false, "Ray generation shader");
+            Object(shaders.RayGeneration, false, "Ray generation shader");
 
-            ValidateObjects(shaders.Miss, "Miss shaders");
+            Objects(shaders.Miss, "Miss shaders");
 
-            ValidateObjects(shaders.AnyHit, "Any-hit shaders");
+            Objects(shaders.AnyHit, "Any-hit shaders");
 
-            ValidateObjects(shaders.Intersection, "Intersection shaders");
+            Objects(shaders.Intersection, "Intersection shaders");
 
-            ValidateObjects(shaders.ClosestHit, "Closest-hit shaders");
+            Objects(shaders.ClosestHit, "Closest-hit shaders");
         }
 
         if (desc.HitGroups is null)
@@ -660,7 +660,7 @@ internal partial class Validator
             {
                 HitGroup hitGroup = desc.HitGroups[i];
 
-                ValidateDefinedEnum(hitGroup.Type, $"hit group type at index {i}");
+                DefinedEnum(hitGroup.Type, $"hit group type at index {i}");
 
                 if (string.IsNullOrEmpty(hitGroup.Name))
                 {
@@ -680,7 +680,7 @@ internal partial class Validator
             }
         }
 
-        ValidateObjects(desc.ResourceLayouts, "resource layouts");
+        Objects(desc.ResourceLayouts, "resource layouts");
 
         if (desc.MaxTraceRecursionDepth > 31)
         {
@@ -704,9 +704,9 @@ internal partial class Validator
         }
     }
 
-    private void ValidateSurface(Surface surface)
+    private void Surface(Surface surface)
     {
-        ValidateDefinedEnum(surface.Type, "surface type");
+        DefinedEnum(surface.Type, "surface type");
 
         if (surface.Handles is null)
         {
@@ -769,13 +769,13 @@ internal partial class Validator
         }
     }
 
-    private void ValidateFrameBufferAttachment(FrameBufferAttachment attachment,
-                                               PixelFormat[]? targetFormats,
-                                               ref uint? targetWidth,
-                                               ref uint? targetHeight,
-                                               ref SampleCount? targetSampleCount,
-                                               TextureUsageFlags targetFlag,
-                                               string name)
+    private void FrameBufferAttachment(FrameBufferAttachment attachment,
+                                       PixelFormat[]? targetFormats,
+                                       ref uint? targetWidth,
+                                       ref uint? targetHeight,
+                                       ref SampleCount? targetSampleCount,
+                                       TextureUsageFlags targetFlag,
+                                       string name)
     {
         if (attachment.Target?.IsDisposed is not false)
         {
@@ -852,36 +852,36 @@ internal partial class Validator
                                          $"Frame buffer {name} texture must have usage flag '{targetFlag}'. Got: {flags}.");
         }
 
-        ValidateTextureSlice(type, layers, mipLevels, attachment.Slice, name);
+        TextureSlice(type, layers, mipLevels, attachment.Slice, name);
     }
 
-    private void ValidateDepthStencilStateOp(DepthStencilStateOp stateOp, string name)
+    private void DepthStencilStateOp(DepthStencilStateOp stateOp, string name)
     {
-        ValidateDefinedEnum(stateOp.StencilFailOp, $"{name} stencil fail operation");
+        DefinedEnum(stateOp.StencilFailOp, $"{name} stencil fail operation");
 
-        ValidateDefinedEnum(stateOp.StencilDepthFailOp, $"{name} stencil depth fail operation");
+        DefinedEnum(stateOp.StencilDepthFailOp, $"{name} stencil depth fail operation");
 
-        ValidateDefinedEnum(stateOp.StencilPassOp, $"{name} stencil pass operation");
+        DefinedEnum(stateOp.StencilPassOp, $"{name} stencil pass operation");
 
-        ValidateDefinedEnum(stateOp.StencilFunc, $"{name} stencil function");
+        DefinedEnum(stateOp.StencilFunc, $"{name} stencil function");
     }
 
-    private void ValidateBlendStateRenderTarget(BlendStateRenderTarget renderTarget, string name)
+    private void BlendStateRenderTarget(BlendStateRenderTarget renderTarget, string name)
     {
-        ValidateDefinedEnum(renderTarget.SrcBlend, $"{name} source blend");
+        DefinedEnum(renderTarget.SrcBlend, $"{name} source blend");
 
-        ValidateDefinedEnum(renderTarget.DestBlend, $"{name} destination blend");
+        DefinedEnum(renderTarget.DestBlend, $"{name} destination blend");
 
-        ValidateDefinedEnum(renderTarget.BlendOp, $"{name} blend operation");
+        DefinedEnum(renderTarget.BlendOp, $"{name} blend operation");
 
-        ValidateDefinedEnum(renderTarget.SrcBlendAlpha, $"{name} source alpha blend");
+        DefinedEnum(renderTarget.SrcBlendAlpha, $"{name} source alpha blend");
 
-        ValidateDefinedEnum(renderTarget.DestBlendAlpha, $"{name} destination alpha blend");
+        DefinedEnum(renderTarget.DestBlendAlpha, $"{name} destination alpha blend");
 
-        ValidateDefinedEnum(renderTarget.BlendOpAlpha, $"{name} alpha blend operation");
+        DefinedEnum(renderTarget.BlendOpAlpha, $"{name} alpha blend operation");
     }
 
-    private void ValidateInputLayout(InputLayout inputLayout, string name)
+    private void InputLayout(InputLayout inputLayout, string name)
     {
         if (inputLayout.Elements is null)
         {
@@ -903,9 +903,9 @@ internal partial class Validator
         {
             InputElement inputElement = inputLayout.Elements[i];
 
-            ValidateDefinedEnum(inputElement.Format, $"input element format at index {i}");
+            DefinedEnum(inputElement.Format, $"input element format at index {i}");
 
-            ValidateDefinedEnum(inputElement.Semantic, $"input element semantic at index {i}");
+            DefinedEnum(inputElement.Semantic, $"input element semantic at index {i}");
         }
 
         if (inputLayout.StrideInBytes is 0)
@@ -916,7 +916,7 @@ internal partial class Validator
         }
     }
 
-    private void ValidateOutput(Output output)
+    private void Output(Output output)
     {
         if (output.ColorAttachments is null)
         {
