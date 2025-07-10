@@ -19,8 +19,9 @@ public abstract class GraphicsContext : DisposableObject
         Compute = compute;
         Copy = copy;
         Uploader = new(this);
-        Validator = useDebugLayer ? new(this) : null;
     }
+
+    public event EventHandler<DebugCallbackArgs>? DebugCallback;
 
     public Backend Backend { get; }
 
@@ -38,13 +39,9 @@ public abstract class GraphicsContext : DisposableObject
 
     internal Uploader Uploader { get; }
 
-    internal Validator? Validator { get; }
-
-    public event EventHandler<DebugCallbackArgs>? DebugCallback;
-
-    internal void PublishDebugCallback(MessageCategory category, MessageSeverity severity, string message)
+    internal void PublishDebugCallback(MessageSeverity severity, string message)
     {
-        DebugCallback?.Invoke(this, new(category, severity, message));
+        DebugCallback?.Invoke(this, new(severity, message));
     }
 
     protected override void Destroy()
