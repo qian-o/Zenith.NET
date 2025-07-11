@@ -8,6 +8,8 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public abstract BufferView View { get; }
 
+    public abstract nint SharedPointer { get; }
+
     public void Upload<T>(uint offsetInBytes, ReadOnlySpan<T> data)
     {
         CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
