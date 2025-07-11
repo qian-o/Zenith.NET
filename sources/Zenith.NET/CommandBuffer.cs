@@ -21,7 +21,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 
         Buffer temporary = Context.Uploader.Buffer(this, sizeInBytes);
-        temporary.Upload(0, data);
+        temporary.Upload(data, 0);
 
         CopyBuffer(temporary, 0, buffer, offsetInBytes, sizeInBytes);
     }
@@ -33,7 +33,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 
         Buffer temporary = Context.Uploader.Buffer(this, sizeInBytes);
-        temporary.Upload(0, data);
+        temporary.Upload(data, 0);
 
         CopyTexture(temporary, 0, sizeInBytes, texture, slice, offset, extent);
     }
