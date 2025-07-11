@@ -6,9 +6,9 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 {
     public CommandQueue Queue { get; } = queue;
 
-    public FrameBuffer? CurrentFrameBuffer { get; }
+    public FrameBuffer? CurrentFrameBuffer { get; private set; }
 
-    public Pipeline? CurrentPipeline { get; }
+    public Pipeline? CurrentPipeline { get; private set; }
 
     public abstract void Begin();
 
@@ -50,19 +50,44 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public abstract void UpdateTopLevelAccelerationStructure(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc);
 
-    public abstract void BeginRendering(FrameBuffer frameBuffer, ClearValue clearValue);
+    public void BeginRendering(FrameBuffer frameBuffer, ClearValue clearValue)
+    {
+        BeginRenderingImpl(frameBuffer, clearValue);
 
-    public abstract void EndRendering();
+        CurrentFrameBuffer = frameBuffer;
+    }
+
+    public void EndRendering()
+    {
+        EndRenderingImpl();
+
+        CurrentFrameBuffer = null;
+    }
 
     public abstract void SetScissors(Scissor[] scissors);
 
     public abstract void SetViewports(Viewport[] viewports);
 
-    public abstract void SetGraphicsPipeline(GraphicsPipeline pipeline);
+    public void SetGraphicsPipeline(GraphicsPipeline pipeline)
+    {
+        SetGraphicsPipelineImpl(pipeline);
 
-    public abstract void SetComputePipeline(ComputePipeline pipeline);
+        CurrentPipeline = pipeline;
+    }
 
-    public abstract void SetRayTracingPipeline(RayTracingPipeline pipeline);
+    public void SetComputePipeline(ComputePipeline pipeline)
+    {
+        SetComputePipelineImpl(pipeline);
+
+        CurrentPipeline = pipeline;
+    }
+
+    public void SetRayTracingPipeline(RayTracingPipeline pipeline)
+    {
+        SetRayTracingPipelineImpl(pipeline);
+
+        CurrentPipeline = pipeline;
+    }
 
     public abstract void SetIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat format);
 
@@ -103,6 +128,16 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     {
         Context.Uploader.Release(this);
     }
+
+    protected abstract void BeginRenderingImpl(FrameBuffer frameBuffer, ClearValue clearValue);
+
+    protected abstract void EndRenderingImpl();
+
+    protected abstract void SetGraphicsPipelineImpl(GraphicsPipeline pipeline);
+
+    protected abstract void SetComputePipelineImpl(ComputePipeline pipeline);
+
+    protected abstract void SetRayTracingPipelineImpl(RayTracingPipeline pipeline);
 
     protected abstract void ResetImpl();
 }
