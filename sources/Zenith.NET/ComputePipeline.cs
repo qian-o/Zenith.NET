@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public abstract class ComputePipeline(GraphicsContext context, ComputePipelineDesc desc) : GraphicsResource(context)
+public abstract class ComputePipeline(GraphicsContext context, ComputePipelineDesc desc) : Pipeline(context)
 {
     private ComputePipelineDesc desc = desc;
 
