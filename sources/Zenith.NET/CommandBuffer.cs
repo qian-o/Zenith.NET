@@ -4,8 +4,6 @@ namespace Zenith.NET;
 
 public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
 {
-    public CommandQueue Queue { get; } = queue;
-
     public FrameBuffer? CurrentFrameBuffer { get; private set; }
 
     public Pipeline? CurrentPipeline { get; private set; }
@@ -14,7 +12,10 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public abstract void End();
 
-    public abstract void Submit();
+    public void Submit()
+    {
+        queue.Submit(this);
+    }
 
     public void UploadBuffer<T>(Buffer buffer, uint offsetInBytes, ReadOnlySpan<T> data)
     {
