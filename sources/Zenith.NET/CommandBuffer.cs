@@ -17,7 +17,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         queue.Submit(this);
     }
 
-    public void UploadBuffer<T>(Buffer buffer, uint offsetInBytes, ReadOnlySpan<T> data)
+    public void Upload<T>(Buffer buffer, uint offsetInBytes, ReadOnlySpan<T> data)
     {
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 
@@ -27,76 +27,69 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CopyBuffer(temporary, 0, buffer, offsetInBytes, sizeInBytes);
     }
 
-    public abstract void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes);
-
-    public void UploadTexture<T>(Texture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data)
+    public void Upload<T>(Texture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data)
     {
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 
         Buffer temporary = Context.Uploader.Buffer(this, sizeInBytes);
         temporary.Upload(data, 0);
 
-        CopyTexture(temporary, 0, sizeInBytes, texture, slice, offset, extent);
+        CopyBufferToTexture(temporary, 0, texture, slice, offset, extent);
     }
 
-    public abstract void CopyTexture(Buffer src, uint srcOffsetInBytes, uint srcSizeInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent);
+    public abstract void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes);
 
     public abstract void CopyTexture(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent);
 
+    public abstract void CopyBufferToTexture(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent);
+
+    public abstract void CopyTextureToBuffer(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes);
+
     public abstract void ResolveTexture(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice);
 
-    public abstract BottomLevelAccelerationStructure BuildBottomLevelAccelerationStructure(BottomLevelAccelerationStructureDesc desc);
+    public abstract BottomLevelAccelerationStructure BuildAccelerationStructure(BottomLevelAccelerationStructureDesc desc);
 
-    public abstract TopLevelAccelerationStructure BuildTopLevelAccelerationStructure(TopLevelAccelerationStructureDesc desc);
+    public abstract TopLevelAccelerationStructure BuildAccelerationStructure(TopLevelAccelerationStructureDesc desc);
 
-    public abstract void UpdateTopLevelAccelerationStructure(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc);
-
-    public void BeginRendering(FrameBuffer frameBuffer, ClearValue clearValue)
-    {
-        BeginRenderingImpl(frameBuffer, clearValue);
-
-        CurrentFrameBuffer = frameBuffer;
-    }
-
-    public void EndRendering()
-    {
-        EndRenderingImpl();
-
-        CurrentFrameBuffer = null;
-    }
+    public abstract void UpdateAccelerationStructure(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc);
 
     public abstract void SetScissors(Scissor[] scissors);
 
     public abstract void SetViewports(Viewport[] viewports);
 
-    public void SetGraphicsPipeline(GraphicsPipeline pipeline)
+    public void BindFrameBuffer(FrameBuffer frameBuffer, ClearValue clearValue)
     {
-        SetGraphicsPipelineImpl(pipeline);
+        BindFrameBufferImpl(frameBuffer, clearValue);
+
+        CurrentFrameBuffer = frameBuffer;
+    }
+
+    public void BindPipeline(GraphicsPipeline pipeline)
+    {
+        BindPipelineImpl(pipeline);
 
         CurrentPipeline = pipeline;
     }
 
-    public void SetComputePipeline(ComputePipeline pipeline)
+    public void BindPipeline(ComputePipeline pipeline)
     {
-        SetComputePipelineImpl(pipeline);
+        BindPipelineImpl(pipeline);
 
         CurrentPipeline = pipeline;
     }
 
-    public void SetRayTracingPipeline(RayTracingPipeline pipeline)
+    public void BindPipeline(RayTracingPipeline pipeline)
     {
-        SetRayTracingPipelineImpl(pipeline);
+        BindPipelineImpl(pipeline);
 
         CurrentPipeline = pipeline;
     }
-
-    public abstract void SetIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat format);
-
-    public abstract void SetVertexBuffers(Buffer[] buffers, uint[] offsetsInBytes);
-
-    public abstract void PrepareResourceSets(ResourceSet[] sets);
 
     public abstract void BindResourceSets(ResourceSet[] sets);
+
+    public abstract void BindVertexBuffers(Buffer[] buffers, uint[] offsetsInBytes);
+
+    public abstract void BindIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat format);
 
     public abstract void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
 
@@ -120,25 +113,29 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     internal void Reset()
     {
+        ResetImpl();
+
         Context.Uploader.Release(this);
 
-        ResetImpl();
+        CurrentFrameBuffer = null;
+        CurrentPipeline = null;
     }
 
     protected override void Destroy()
     {
         Context.Uploader.Release(this);
+
+        CurrentFrameBuffer = null;
+        CurrentPipeline = null;
     }
 
-    protected abstract void BeginRenderingImpl(FrameBuffer frameBuffer, ClearValue clearValue);
+    protected abstract void BindFrameBufferImpl(FrameBuffer frameBuffer, ClearValue clearValue);
 
-    protected abstract void EndRenderingImpl();
+    protected abstract void BindPipelineImpl(GraphicsPipeline pipeline);
 
-    protected abstract void SetGraphicsPipelineImpl(GraphicsPipeline pipeline);
+    protected abstract void BindPipelineImpl(ComputePipeline pipeline);
 
-    protected abstract void SetComputePipelineImpl(ComputePipeline pipeline);
-
-    protected abstract void SetRayTracingPipelineImpl(RayTracingPipeline pipeline);
+    protected abstract void BindPipelineImpl(RayTracingPipeline pipeline);
 
     protected abstract void ResetImpl();
 }

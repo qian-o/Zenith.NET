@@ -11,12 +11,12 @@ public abstract class GraphicsResource(GraphicsContext context) : DisposableObje
             {
                 field = value;
 
-                NameChanged(value);
+                OnNameChanged(value);
             }
         }
     } = string.Empty;
 
     protected GraphicsContext Context => context;
 
-    protected abstract void NameChanged(string name);
+    protected abstract void OnNameChanged(string name);
 }
