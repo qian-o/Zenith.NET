@@ -6,7 +6,11 @@
 
     <ItemGroup>
         <PackageVersion Include="Hexa.NET.ImGui" Version="2.2.8.5" />
+        <PackageVersion Include="Hexa.NET.ImGuizmo" Version="2.2.8.4" />
+        <PackageVersion Include="Hexa.NET.ImNodes" Version="2.2.8.4" />
+        <PackageVersion Include="Hexa.NET.ImPlot" Version="2.2.8.4" />
         <PackageVersion Include="Roslynator.Analyzers" Version="4.14.0" />
+        <PackageVersion Include="SkiaSharp" Version="3.119.0" />
         <PackageVersion Include="Slangc.NET" Version="2025.14.3" />
     </ItemGroup>
 

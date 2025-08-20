@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Extensions/">
     <Project Path="sources/Extensions/Zenith.NET.Extensions.ImGui/Zenith.NET.Extensions.ImGui.csproj" Id="2d092843-bf32-420b-94f9-4a6ce9a23b7c" />
+    <Project Path="sources/Extensions/Zenith.NET.Extensions.Skia/Zenith.NET.Extensions.Skia.csproj" Id="5b71247f-2291-4623-a65c-a9c5372816e8" />
     <Project Path="sources/Extensions/Zenith.NET.Extensions.Slang/Zenith.NET.Extensions.Slang.csproj" Id="e4d4df69-7b50-489f-8d74-00366efe5915" />
   </Folder>
   <Folder Name="/Solution Items/">
