@@ -1,4 +1,6 @@
-﻿namespace Zenith.NET;
+﻿using System.Runtime.CompilerServices;
+
+namespace Zenith.NET;
 
 public abstract class Buffer(GraphicsContext context, BufferDesc desc) : GraphicsResource(context), IBindableResource
 {
@@ -24,5 +26,28 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
         commandBuffer.Submit();
 
         Context.Copy.WaitIdle();
+    }
+
+    protected void DownloadInternal<T>(Span<T> data, uint offsetInBytes)
+    {
+        uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
+
+        using Buffer buffer = Context.Factory.CreateBuffer(new()
+        {
+            SizeInBytes = sizeInBytes,
+            StrideInBytes = 1,
+            Flags = BufferUsageFlags.Dynamic
+        });
+
+        CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
+
+        commandBuffer.Begin();
+        commandBuffer.CopyBuffer(this, offsetInBytes, buffer, 0, sizeInBytes);
+        commandBuffer.End();
+        commandBuffer.Submit();
+
+        Context.Copy.WaitIdle();
+
+        buffer.Download(data, 0);
     }
 }
