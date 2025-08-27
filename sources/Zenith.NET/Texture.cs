@@ -8,15 +8,7 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public abstract TextureView View { get; }
 
-    public void Upload<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent)
-    {
-        CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
+    public abstract void Upload<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent);
 
-        commandBuffer.Begin();
-        commandBuffer.Upload(this, slice, offset, extent, data);
-        commandBuffer.End();
-        commandBuffer.Submit();
-
-        Context.Copy.WaitIdle();
-    }
+    public abstract void Download<T>(Span<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent);
 }

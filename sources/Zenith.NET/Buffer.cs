@@ -10,17 +10,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public abstract nint SharedPointer { get; }
 
-    public void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes)
-    {
-        CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
+    public abstract void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes);
 
-        commandBuffer.Begin();
-        commandBuffer.Upload(this, offsetInBytes, data);
-        commandBuffer.End();
-        commandBuffer.Submit();
-
-        Context.Copy.WaitIdle();
-    }
-
-    public abstract ReadOnlySpan<T> Download<T>(int length, uint offsetInBytes);
+    public abstract void Download<T>(Span<T> data, uint offsetInBytes);
 }
