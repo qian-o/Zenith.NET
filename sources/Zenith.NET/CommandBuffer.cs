@@ -162,9 +162,25 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         BindIndexBufferImpl(buffer, offsetInBytes, format);
     }
 
-    public abstract void SetScissors(Scissor[] scissors);
+    public void SetScissors(Scissor[] scissors)
+    {
+        if (CurrentFrameBuffer is null)
+        {
+            return;
+        }
 
-    public abstract void SetViewports(Viewport[] viewports);
+        SetScissorsImpl(scissors);
+    }
+
+    public void SetViewports(Viewport[] viewports)
+    {
+        if (CurrentFrameBuffer is null)
+        {
+            return;
+        }
+
+        SetViewportsImpl(viewports);
+    }
 
     public void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
     {
@@ -305,6 +321,10 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     protected abstract void BindVertexBuffersImpl(Buffer[] buffers, uint[] offsetsInBytes);
 
     protected abstract void BindIndexBufferImpl(Buffer buffer, uint offsetInBytes, IndexFormat format);
+
+    protected abstract void SetScissorsImpl(Scissor[] scissors);
+
+    protected abstract void SetViewportsImpl(Viewport[] viewports);
 
     protected abstract void DrawImpl(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
 
