@@ -12,7 +12,12 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public abstract void Begin();
 
-    public abstract void End();
+    public void End()
+    {
+        EnsureRenderingEnded();
+
+        EndImpl();
+    }
 
     public void Submit()
     {
@@ -39,21 +44,61 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CopyBufferToTexture(temporary, 0, texture, slice, offset, extent);
     }
 
-    public abstract void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes);
+    public void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes)
+    {
+        EnsureRenderingEnded();
 
-    public abstract void CopyTexture(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent);
+        CopyBufferImpl(src, srcOffsetInBytes, dest, destOffsetInBytes, sizeInBytes);
+    }
 
-    public abstract void CopyBufferToTexture(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent);
+    public void CopyTexture(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent)
+    {
+        EnsureRenderingEnded();
 
-    public abstract void CopyTextureToBuffer(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes);
+        CopyTextureImpl(src, srcSlice, srcOffset, dest, destSlice, destOffset, extent);
+    }
 
-    public abstract void ResolveTexture(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice);
+    public void CopyBufferToTexture(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent)
+    {
+        EnsureRenderingEnded();
 
-    public abstract BottomLevelAccelerationStructure BuildAccelerationStructure(BottomLevelAccelerationStructureDesc desc);
+        CopyBufferToTextureImpl(src, srcOffsetInBytes, dest, destSlice, destOffset, destExtent);
+    }
 
-    public abstract TopLevelAccelerationStructure BuildAccelerationStructure(TopLevelAccelerationStructureDesc desc);
+    public void CopyTextureToBuffer(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes)
+    {
+        EnsureRenderingEnded();
 
-    public abstract void UpdateAccelerationStructure(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc);
+        CopyTextureToBufferImpl(src, srcSlice, srcOffset, srcExtent, dest, destOffsetInBytes);
+    }
+
+    public void ResolveTexture(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice)
+    {
+        EnsureRenderingEnded();
+
+        ResolveTextureImpl(src, srcSlice, dest, destSlice);
+    }
+
+    public BottomLevelAccelerationStructure BuildAccelerationStructure(BottomLevelAccelerationStructureDesc desc)
+    {
+        EnsureRenderingEnded();
+
+        return BuildAccelerationStructureImpl(desc);
+    }
+
+    public TopLevelAccelerationStructure BuildAccelerationStructure(TopLevelAccelerationStructureDesc desc)
+    {
+        EnsureRenderingEnded();
+
+        return BuildAccelerationStructureImpl(desc);
+    }
+
+    public void UpdateAccelerationStructure(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
+    {
+        EnsureRenderingEnded();
+
+        UpdateAccelerationStructureImpl(accelerationStructure, newDesc);
+    }
 
     public abstract void SetScissors(Scissor[] scissors);
 
@@ -213,8 +258,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     internal void Reset()
     {
-        EnsureRenderingEnded();
-
         ResetImpl();
 
         Context.Uploader.Release(this);
@@ -230,6 +273,24 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CurrentFrameBuffer = null;
         CurrentPipeline = null;
     }
+
+    protected abstract void EndImpl();
+
+    protected abstract void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes);
+
+    protected abstract void CopyTextureImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent);
+
+    protected abstract void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent);
+
+    protected abstract void CopyTextureToBufferImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes);
+
+    protected abstract void ResolveTextureImpl(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice);
+
+    protected abstract BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc);
+
+    protected abstract TopLevelAccelerationStructure BuildAccelerationStructureImpl(TopLevelAccelerationStructureDesc desc);
+
+    protected abstract void UpdateAccelerationStructureImpl(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc);
 
     protected abstract void BindFrameBufferImpl(FrameBuffer frameBuffer, ClearValue clearValue);
 
@@ -259,11 +320,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void DispatchRaysImpl(uint width, uint height, uint depth);
 
+    protected abstract void ResetImpl();
+
     protected abstract void BeginRenderingImpl();
 
     protected abstract void EndRenderingImpl();
-
-    protected abstract void ResetImpl();
 
     private void EnsureRenderingBegan()
     {
