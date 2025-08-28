@@ -109,10 +109,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CurrentFrameBuffer = frameBuffer;
     }
 
-    public abstract void SetScissors(Scissor[] scissors);
-
-    public abstract void SetViewports(Viewport[] viewports);
-
     public void BindPipeline(GraphicsPipeline pipeline)
     {
         BindPipelineImpl(pipeline);
@@ -165,6 +161,10 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         BindIndexBufferImpl(buffer, offsetInBytes, format);
     }
+
+    public abstract void SetScissors(Scissor[] scissors);
+
+    public abstract void SetViewports(Viewport[] viewports);
 
     public void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
     {
