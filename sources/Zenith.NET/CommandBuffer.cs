@@ -4,6 +4,8 @@ namespace Zenith.NET;
 
 public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
 {
+    private bool isRendering;
+
     public FrameBuffer? CurrentFrameBuffer { get; private set; }
 
     public Pipeline? CurrentPipeline { get; private set; }
@@ -59,6 +61,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void BindFrameBuffer(FrameBuffer frameBuffer, ClearValue clearValue)
     {
+        EnsureRenderingEnded();
+
         BindFrameBufferImpl(frameBuffer, clearValue);
 
         CurrentFrameBuffer = frameBuffer;
@@ -85,25 +89,121 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CurrentPipeline = pipeline;
     }
 
-    public abstract void BindResourceSets(ResourceSet[] sets);
+    public void BindResourceSets(ResourceSet[] sets)
+    {
+        if (CurrentPipeline is null)
+        {
+            return;
+        }
 
-    public abstract void BindVertexBuffers(Buffer[] buffers, uint[] offsetsInBytes);
+        EnsureRenderingEnded();
 
-    public abstract void BindIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat format);
+        BindResourceSetsImpl(sets);
+    }
 
-    public abstract void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
+    public void BindVertexBuffers(Buffer[] buffers, uint[] offsetsInBytes)
+    {
+        if (CurrentPipeline is not GraphicsPipeline)
+        {
+            return;
+        }
 
-    public abstract void DrawIndirect(Buffer indirectBuffer, uint offsetInBytes, uint drawCount);
+        BindVertexBuffersImpl(buffers, offsetsInBytes);
+    }
 
-    public abstract void DrawIndexed(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance);
+    public void BindIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat format)
+    {
+        if (CurrentPipeline is not GraphicsPipeline)
+        {
+            return;
+        }
 
-    public abstract void DrawIndexedIndirect(Buffer indirectBuffer, uint offsetInBytes, uint drawCount);
+        BindIndexBufferImpl(buffer, offsetInBytes, format);
+    }
 
-    public abstract void Dispatch(uint groupCountX, uint groupCountY, uint groupCountZ);
+    public void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
+    {
+        if (CurrentPipeline is not GraphicsPipeline)
+        {
+            return;
+        }
 
-    public abstract void DispatchIndirect(Buffer indirectBuffer, uint offsetInBytes);
+        EnsureRenderingBegan();
 
-    public abstract void DispatchRays(uint width, uint height, uint depth);
+        DrawImpl(vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
+    public void DrawIndirect(Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
+    {
+        if (CurrentPipeline is not GraphicsPipeline)
+        {
+            return;
+        }
+
+        EnsureRenderingBegan();
+
+        DrawIndirectImpl(indirectBuffer, offsetInBytes, drawCount);
+    }
+
+    public void DrawIndexed(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
+    {
+        if (CurrentPipeline is not GraphicsPipeline)
+        {
+            return;
+        }
+
+        EnsureRenderingBegan();
+
+        DrawIndexedImpl(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+    }
+
+    public void DrawIndexedIndirect(Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
+    {
+        if (CurrentPipeline is not GraphicsPipeline)
+        {
+            return;
+        }
+
+        EnsureRenderingBegan();
+
+        DrawIndexedIndirectImpl(indirectBuffer, offsetInBytes, drawCount);
+    }
+
+    public void Dispatch(uint groupCountX, uint groupCountY, uint groupCountZ)
+    {
+        if (CurrentPipeline is not ComputePipeline)
+        {
+            return;
+        }
+
+        EnsureRenderingEnded();
+
+        DispatchImpl(groupCountX, groupCountY, groupCountZ);
+    }
+
+    public void DispatchIndirect(Buffer indirectBuffer, uint offsetInBytes)
+    {
+        if (CurrentPipeline is not ComputePipeline)
+        {
+            return;
+        }
+
+        EnsureRenderingEnded();
+
+        DispatchIndirectImpl(indirectBuffer, offsetInBytes);
+    }
+
+    public void DispatchRays(uint width, uint height, uint depth)
+    {
+        if (CurrentPipeline is not RayTracingPipeline)
+        {
+            return;
+        }
+
+        EnsureRenderingEnded();
+
+        DispatchRaysImpl(width, height, depth);
+    }
 
     public abstract void BeginDebugEvent(string label);
 
@@ -113,6 +213,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     internal void Reset()
     {
+        EnsureRenderingEnded();
+
         ResetImpl();
 
         Context.Uploader.Release(this);
@@ -137,5 +239,49 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void BindPipelineImpl(RayTracingPipeline pipeline);
 
+    protected abstract void BindResourceSetsImpl(ResourceSet[] sets);
+
+    protected abstract void BindVertexBuffersImpl(Buffer[] buffers, uint[] offsetsInBytes);
+
+    protected abstract void BindIndexBufferImpl(Buffer buffer, uint offsetInBytes, IndexFormat format);
+
+    protected abstract void DrawImpl(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
+
+    protected abstract void DrawIndirectImpl(Buffer indirectBuffer, uint offsetInBytes, uint drawCount);
+
+    protected abstract void DrawIndexedImpl(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance);
+
+    protected abstract void DrawIndexedIndirectImpl(Buffer indirectBuffer, uint offsetInBytes, uint drawCount);
+
+    protected abstract void DispatchImpl(uint groupCountX, uint groupCountY, uint groupCountZ);
+
+    protected abstract void DispatchIndirectImpl(Buffer indirectBuffer, uint offsetInBytes);
+
+    protected abstract void DispatchRaysImpl(uint width, uint height, uint depth);
+
+    protected abstract void BeginRenderingImpl();
+
+    protected abstract void EndRenderingImpl();
+
     protected abstract void ResetImpl();
+
+    private void EnsureRenderingBegan()
+    {
+        if (!isRendering && CurrentFrameBuffer is not null)
+        {
+            BeginRenderingImpl();
+
+            isRendering = true;
+        }
+    }
+
+    private void EnsureRenderingEnded()
+    {
+        if (isRendering)
+        {
+            EndRenderingImpl();
+
+            isRendering = false;
+        }
+    }
 }
