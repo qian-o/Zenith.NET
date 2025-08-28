@@ -100,10 +100,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         UpdateAccelerationStructureImpl(accelerationStructure, newDesc);
     }
 
-    public abstract void SetScissors(Scissor[] scissors);
-
-    public abstract void SetViewports(Viewport[] viewports);
-
     public void BindFrameBuffer(FrameBuffer frameBuffer, ClearValue clearValue)
     {
         EnsureRenderingEnded();
@@ -112,6 +108,10 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         CurrentFrameBuffer = frameBuffer;
     }
+
+    public abstract void SetScissors(Scissor[] scissors);
+
+    public abstract void SetViewports(Viewport[] viewports);
 
     public void BindPipeline(GraphicsPipeline pipeline)
     {
