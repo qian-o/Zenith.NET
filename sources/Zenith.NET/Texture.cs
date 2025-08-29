@@ -30,7 +30,7 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
     {
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 
-        using Buffer buffer = Context.Factory.CreateBuffer(new()
+        using Buffer buffer = Context.CreateBuffer(new()
         {
             SizeInBytes = sizeInBytes,
             StrideInBytes = 1,

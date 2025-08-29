@@ -32,7 +32,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
     {
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 
-        using Buffer buffer = Context.Factory.CreateBuffer(new()
+        using Buffer buffer = Context.CreateBuffer(new()
         {
             SizeInBytes = sizeInBytes,
             StrideInBytes = 1,
