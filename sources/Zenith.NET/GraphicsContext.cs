@@ -2,8 +2,6 @@
 
 public abstract class GraphicsContext : DisposableObject
 {
-    public event EventHandler<DebugCallbackArgs>? DebugCallback;
-
     protected GraphicsContext(Backend backend, bool useDebugLayer)
     {
         Backend = backend;
@@ -33,6 +31,8 @@ public abstract class GraphicsContext : DisposableObject
     public CommandQueue Copy { get; }
 
     internal Uploader Uploader { get; }
+
+    public event EventHandler<DebugCallbackArgs>? DebugCallback;
 
     public abstract SwapChain CreateSwapChain(SwapChainDesc desc);
 
