@@ -11,7 +11,7 @@
         <PackageVersion Include="Hexa.NET.ImPlot" Version="2.2.8.4" />
         <PackageVersion Include="Roslynator.Analyzers" Version="4.14.0" />
         <PackageVersion Include="SkiaSharp" Version="3.119.0" />
-        <PackageVersion Include="Slangc.NET" Version="2025.15.0" />
+        <PackageVersion Include="Slangc.NET" Version="2025.15.1" />
     </ItemGroup>
 
 </Project>
