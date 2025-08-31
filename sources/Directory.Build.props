@@ -1,15 +1,17 @@
 ﻿<Project>
 
     <PropertyGroup>
-        <IsAotCompatible>true</IsAotCompatible>
-        <TargetFramework>net9.0</TargetFramework>
+        <StandardTargetFramework>net9.0</StandardTargetFramework>
+    </PropertyGroup>
 
+    <PropertyGroup>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-
-        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+        <IsAotCompatible>true</IsAotCompatible>
 
         <LangVersion>preview</LangVersion>
+
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     </PropertyGroup>
 
     <ItemGroup>

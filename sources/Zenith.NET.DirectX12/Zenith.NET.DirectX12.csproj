@@ -1,9 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <TargetFramework>$(StandardTargetFramework)</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
-    
+
     <ItemGroup>
         <ProjectReference Include="..\Zenith.NET\Zenith.NET.csproj" />
     </ItemGroup>

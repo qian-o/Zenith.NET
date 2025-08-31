@@ -1,15 +1,18 @@
 <Solution>
   <Folder Name="/Extensions/">
-    <Project Path="sources/Extensions/Zenith.NET.Extensions.ImGui/Zenith.NET.Extensions.ImGui.csproj" Id="2d092843-bf32-420b-94f9-4a6ce9a23b7c" />
-    <Project Path="sources/Extensions/Zenith.NET.Extensions.Skia/Zenith.NET.Extensions.Skia.csproj" Id="5b71247f-2291-4623-a65c-a9c5372816e8" />
-    <Project Path="sources/Extensions/Zenith.NET.Extensions.Slang/Zenith.NET.Extensions.Slang.csproj" Id="e4d4df69-7b50-489f-8d74-00366efe5915" />
+    <Project Path="sources/Extensions/Zenith.NET.Extensions.ImGui/Zenith.NET.Extensions.ImGui.csproj" />
+    <Project Path="sources/Extensions/Zenith.NET.Extensions.Skia/Zenith.NET.Extensions.Skia.csproj" />
+    <Project Path="sources/Extensions/Zenith.NET.Extensions.Slang/Zenith.NET.Extensions.Slang.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="sources/Directory.Build.props" />
     <File Path="sources/Directory.Packages.props" />
   </Folder>
-  <Project Path="sources/Zenith.NET.DirectX12/Zenith.NET.DirectX12.csproj" Id="c05cdb44-1cfe-463f-ae6e-ee2d7afc6f9a" />
-  <Project Path="sources/Zenith.NET.Metal/Zenith.NET.Metal.csproj" Id="226c9b8f-3a89-47e8-9bc1-ce08e4776912" />
-  <Project Path="sources/Zenith.NET.Vulkan/Zenith.NET.Vulkan.csproj" Id="ac82f1b2-74df-4fed-8f59-7c601b7ca5ea" />
-  <Project Path="sources/Zenith.NET/Zenith.NET.csproj" Id="e35ccfda-029b-480c-9fe3-8dcad5efa71a" />
+  <Folder Name="/Views/">
+    <Project Path="sources/Views/Zenith.NET.Views.WPF/Zenith.NET.Views.WPF.csproj" />
+  </Folder>
+  <Project Path="sources/Zenith.NET.DirectX12/Zenith.NET.DirectX12.csproj" />
+  <Project Path="sources/Zenith.NET.Metal/Zenith.NET.Metal.csproj" />
+  <Project Path="sources/Zenith.NET.Vulkan/Zenith.NET.Vulkan.csproj" />
+  <Project Path="sources/Zenith.NET/Zenith.NET.csproj" />
 </Solution>

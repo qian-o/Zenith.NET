@@ -1,6 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <TargetFramework>$(StandardTargetFramework)</TargetFramework>
+    </PropertyGroup>
+
+    <PropertyGroup>
         <NoWarn>IDE0130</NoWarn>
     </PropertyGroup>
 
