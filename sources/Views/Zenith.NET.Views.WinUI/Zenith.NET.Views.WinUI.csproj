@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>$(StandardTargetFramework);$(StandardTargetFramework)-windows10.0.19041.0</TargetFrameworks>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Zenith.NET\Zenith.NET.csproj" />
+    </ItemGroup>
+
+    <Choose>
+        <When Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+            <ItemGroup>
+                <PackageReference Include="Microsoft.WindowsAppSDK" />
+            </ItemGroup>
+        </When>
+        <Otherwise>
+            <ItemGroup>
+                <PackageReference Include="Uno.WinUI" />
+            </ItemGroup>
+        </Otherwise>
+    </Choose>
+
+</Project>
