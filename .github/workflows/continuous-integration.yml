@@ -18,9 +18,6 @@ jobs:
         with:
           dotnet-version: 9.0.x
           
-      - name: Restore dependencies
-        run: dotnet restore /p:EnableWindowsTargeting=true
-        
       - name: Build
-        run: dotnet build --no-restore /p:EnableWindowsTargeting=true
+        run: dotnet build /p:EnableWindowsTargeting=true
     
