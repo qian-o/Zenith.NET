@@ -2,16 +2,13 @@
 
     <PropertyGroup>
         <StandardTargetFramework>net9.0</StandardTargetFramework>
-    </PropertyGroup>
 
-    <PropertyGroup>
         <Nullable>enable</Nullable>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <IsAotCompatible>true</IsAotCompatible>
-
         <LangVersion>preview</LangVersion>
-
+        <ImplicitUsings>enable</ImplicitUsings>
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+        <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>
 
     <ItemGroup>
