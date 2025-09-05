@@ -2,6 +2,8 @@
 
 public record struct GraphicsPipelineDesc
 {
+    public RenderStates RenderStates;
+
     public Shader Vertex;
 
     public Shader? Hull;
@@ -13,8 +15,6 @@ public record struct GraphicsPipelineDesc
     public Shader Pixel;
 
     public ResourceLayout[] ResourceLayouts;
-
-    public RenderStates RenderStates;
 
     public InputLayout[] InputLayouts;
 

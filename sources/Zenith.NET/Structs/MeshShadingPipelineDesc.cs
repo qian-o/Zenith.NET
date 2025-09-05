@@ -2,6 +2,8 @@
 
 public record struct MeshShadingPipelineDesc
 {
+    public RenderStates RenderStates;
+
     public Shader? Amplification;
 
     public Shader Mesh;
@@ -9,8 +11,6 @@ public record struct MeshShadingPipelineDesc
     public Shader Pixel;
 
     public ResourceLayout[] ResourceLayouts;
-
-    public RenderStates RenderStates;
 
     public PrimitiveTopology PrimitiveTopology;
 
