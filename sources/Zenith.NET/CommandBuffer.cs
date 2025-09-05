@@ -130,6 +130,13 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CurrentPipeline = pipeline;
     }
 
+    public void BindPipeline(MeshShadingPipeline pipeline)
+    {
+        BindPipelineImpl(pipeline);
+
+        CurrentPipeline = pipeline;
+    }
+
     public void BindResourceSets(ResourceSet[] sets)
     {
         if (CurrentPipeline is null)
@@ -266,6 +273,30 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         DispatchRaysImpl(width, height, depth);
     }
 
+    public void DispatchMesh(uint groupCountX, uint groupCountY, uint groupCountZ)
+    {
+        if (CurrentPipeline is not MeshShadingPipeline)
+        {
+            return;
+        }
+
+        EnsureRenderingBegan();
+
+        DispatchMeshImpl(groupCountX, groupCountY, groupCountZ);
+    }
+
+    public void DispatchMeshIndirect(Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount)
+    {
+        if (CurrentPipeline is not MeshShadingPipeline)
+        {
+            return;
+        }
+
+        EnsureRenderingBegan();
+
+        DispatchMeshIndirectImpl(indirectBuffer, offsetInBytes, dispatchCount);
+    }
+
     public abstract void BeginDebugEvent(string label);
 
     public abstract void EndDebugEvent();
@@ -316,6 +347,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void BindPipelineImpl(RayTracingPipeline pipeline);
 
+    protected abstract void BindPipelineImpl(MeshShadingPipeline pipeline);
+
     protected abstract void BindResourceSetsImpl(ResourceSet[] sets);
 
     protected abstract void BindVertexBuffersImpl(Buffer[] buffers, uint[] offsetsInBytes);
@@ -339,6 +372,10 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     protected abstract void DispatchIndirectImpl(Buffer indirectBuffer, uint offsetInBytes);
 
     protected abstract void DispatchRaysImpl(uint width, uint height, uint depth);
+
+    protected abstract void DispatchMeshImpl(uint groupCountX, uint groupCountY, uint groupCountZ);
+
+    protected abstract void DispatchMeshIndirectImpl(Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount);
 
     protected abstract void ResetImpl();
 
