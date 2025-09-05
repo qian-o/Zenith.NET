@@ -2,7 +2,15 @@
 
 public record struct RayTracingPipelineDesc
 {
-    public RayTracingShaders Shaders;
+    public Shader RayGeneration;
+
+    public Shader[] Miss;
+
+    public Shader[] AnyHit;
+
+    public Shader[] Intersection;
+
+    public Shader[] ClosestHit;
 
     public HitGroup[] HitGroups;
 

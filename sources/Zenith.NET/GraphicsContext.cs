@@ -60,6 +60,8 @@ public abstract class GraphicsContext : DisposableObject
 
     public abstract RayTracingPipeline CreateRayTracingPipeline(RayTracingPipelineDesc desc);
 
+    public abstract MeshShadingPipeline CreateMeshShadingPipeline(MeshShadingPipelineDesc desc);
+
     protected void PublishDebugCallback(MessageSeverity severity, string message)
     {
         DebugCallback?.Invoke(this, new(severity, message));
