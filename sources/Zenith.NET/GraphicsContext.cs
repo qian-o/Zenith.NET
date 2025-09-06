@@ -2,17 +2,19 @@
 
 public abstract class GraphicsContext : DisposableObject
 {
-    protected GraphicsContext(Backend backend, bool useDebugLayer)
+    protected GraphicsContext(Backend backend, bool useValidationLayer)
     {
         Backend = backend;
 
-        Initialize(useDebugLayer,
+        Initialize(useValidationLayer,
                    out Capabilities capabilities,
+                   out ValidationLayer? validationLayer,
                    out CommandQueue direct,
                    out CommandQueue compute,
                    out CommandQueue copy);
 
         Capabilities = capabilities;
+        ValidationLayer = validationLayer;
         Direct = direct;
         Compute = compute;
         Copy = copy;
@@ -24,6 +26,8 @@ public abstract class GraphicsContext : DisposableObject
 
     public Capabilities Capabilities { get; }
 
+    public ValidationLayer? ValidationLayer { get; }
+
     public CommandQueue Direct { get; }
 
     public CommandQueue Compute { get; }
@@ -31,8 +35,6 @@ public abstract class GraphicsContext : DisposableObject
     public CommandQueue Copy { get; }
 
     internal Uploader Uploader { get; }
-
-    public event EventHandler<DebugCallbackArgs>? DebugCallback;
 
     public abstract SwapChain CreateSwapChain(SwapChainDesc desc);
 
@@ -62,13 +64,9 @@ public abstract class GraphicsContext : DisposableObject
 
     public abstract MeshShadingPipeline CreateMeshShadingPipeline(MeshShadingPipelineDesc desc);
 
-    protected void PublishDebugCallback(MessageSeverity severity, string message)
-    {
-        DebugCallback?.Invoke(this, new(severity, message));
-    }
-
     protected override void Destroy()
     {
+        ValidationLayer?.Dispose();
         Direct.Dispose();
         Compute.Dispose();
         Copy.Dispose();
@@ -76,8 +74,9 @@ public abstract class GraphicsContext : DisposableObject
         Uploader.Dispose();
     }
 
-    protected abstract void Initialize(bool useDebugLayer,
+    protected abstract void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
+                                       out ValidationLayer? validationLayer,
                                        out CommandQueue direct,
                                        out CommandQueue compute,
                                        out CommandQueue copy);
