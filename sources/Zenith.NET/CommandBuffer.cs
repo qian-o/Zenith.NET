@@ -81,6 +81,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public BottomLevelAccelerationStructure BuildAccelerationStructure(BottomLevelAccelerationStructureDesc desc)
     {
+        Context.ValidationLayer?.ValidateDesc(desc);
+
         EnsureRenderingEnded();
 
         return BuildAccelerationStructureImpl(desc);
@@ -88,6 +90,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public TopLevelAccelerationStructure BuildAccelerationStructure(TopLevelAccelerationStructureDesc desc)
     {
+        Context.ValidationLayer?.ValidateDesc(desc);
+
         EnsureRenderingEnded();
 
         return BuildAccelerationStructureImpl(desc);
@@ -95,6 +99,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void UpdateAccelerationStructure(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
     {
+        Context.ValidationLayer?.ValidateDesc(accelerationStructure.Desc, newDesc);
+
         EnsureRenderingEnded();
 
         UpdateAccelerationStructureImpl(accelerationStructure, newDesc);

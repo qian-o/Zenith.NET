@@ -36,33 +36,103 @@ public abstract class GraphicsContext : DisposableObject
 
     internal Uploader Uploader { get; }
 
-    public abstract SwapChain CreateSwapChain(SwapChainDesc desc);
+    public SwapChain CreateSwapChain(SwapChainDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
 
-    public abstract FrameBuffer CreateFrameBuffer(FrameBufferDesc desc);
+        return CreateSwapChainImpl(desc);
+    }
 
-    public abstract Shader CreateShader(ShaderDesc desc);
+    public FrameBuffer CreateFrameBuffer(FrameBufferDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
 
-    public abstract Buffer CreateBuffer(BufferDesc desc);
+        return CreateFrameBufferImpl(desc);
+    }
 
-    public abstract BufferView CreateBufferView(BufferViewDesc desc);
+    public Shader CreateShader(ShaderDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
 
-    public abstract Texture CreateTexture(TextureDesc desc);
+        return CreateShaderImpl(desc);
+    }
 
-    public abstract TextureView CreateTextureView(TextureViewDesc desc);
+    public Buffer CreateBuffer(BufferDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
 
-    public abstract Sampler CreateSampler(SamplerDesc desc);
+        return CreateBufferImpl(desc);
+    }
 
-    public abstract ResourceLayout CreateResourceLayout(ResourceLayoutDesc desc);
+    public BufferView CreateBufferView(BufferViewDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
 
-    public abstract ResourceSet CreateResourceSet(ResourceSetDesc desc);
+        return CreateBufferViewImpl(desc);
+    }
 
-    public abstract GraphicsPipeline CreateGraphicsPipeline(GraphicsPipelineDesc desc);
+    public Texture CreateTexture(TextureDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
 
-    public abstract ComputePipeline CreateComputePipeline(ComputePipelineDesc desc);
+        return CreateTextureImpl(desc);
+    }
 
-    public abstract RayTracingPipeline CreateRayTracingPipeline(RayTracingPipelineDesc desc);
+    public TextureView CreateTextureView(TextureViewDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
 
-    public abstract MeshShadingPipeline CreateMeshShadingPipeline(MeshShadingPipelineDesc desc);
+        return CreateTextureViewImpl(desc);
+    }
+
+    public Sampler CreateSampler(SamplerDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
+
+        return CreateSamplerImpl(desc);
+    }
+
+    public ResourceLayout CreateResourceLayout(ResourceLayoutDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
+
+        return CreateResourceLayoutImpl(desc);
+    }
+
+    public ResourceSet CreateResourceSet(ResourceSetDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
+
+        return CreateResourceSetImpl(desc);
+    }
+
+    public GraphicsPipeline CreateGraphicsPipeline(GraphicsPipelineDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
+
+        return CreateGraphicsPipelineImpl(desc);
+    }
+
+    public ComputePipeline CreateComputePipeline(ComputePipelineDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
+
+        return CreateComputePipelineImpl(desc);
+    }
+
+    public RayTracingPipeline CreateRayTracingPipeline(RayTracingPipelineDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
+
+        return CreateRayTracingPipelineImpl(desc);
+    }
+
+    public MeshShadingPipeline CreateMeshShadingPipeline(MeshShadingPipelineDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
+
+        return CreateMeshShadingPipelineImpl(desc);
+    }
 
     protected override void Destroy()
     {
@@ -80,4 +150,32 @@ public abstract class GraphicsContext : DisposableObject
                                        out CommandQueue direct,
                                        out CommandQueue compute,
                                        out CommandQueue copy);
+
+    protected abstract SwapChain CreateSwapChainImpl(SwapChainDesc desc);
+
+    protected abstract FrameBuffer CreateFrameBufferImpl(FrameBufferDesc desc);
+
+    protected abstract Shader CreateShaderImpl(ShaderDesc desc);
+
+    protected abstract Buffer CreateBufferImpl(BufferDesc desc);
+
+    protected abstract BufferView CreateBufferViewImpl(BufferViewDesc desc);
+
+    protected abstract Texture CreateTextureImpl(TextureDesc desc);
+
+    protected abstract TextureView CreateTextureViewImpl(TextureViewDesc desc);
+
+    protected abstract Sampler CreateSamplerImpl(SamplerDesc desc);
+
+    protected abstract ResourceLayout CreateResourceLayoutImpl(ResourceLayoutDesc desc);
+
+    protected abstract ResourceSet CreateResourceSetImpl(ResourceSetDesc desc);
+
+    protected abstract GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc);
+
+    protected abstract ComputePipeline CreateComputePipelineImpl(ComputePipelineDesc desc);
+
+    protected abstract RayTracingPipeline CreateRayTracingPipelineImpl(RayTracingPipelineDesc desc);
+
+    protected abstract MeshShadingPipeline CreateMeshShadingPipelineImpl(MeshShadingPipelineDesc desc);
 }
