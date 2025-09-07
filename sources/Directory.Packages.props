@@ -12,7 +12,7 @@
         <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.7.250606001" />
         <PackageVersion Include="Roslynator.Analyzers" Version="4.14.0" />
         <PackageVersion Include="SkiaSharp" Version="3.119.0" />
-        <PackageVersion Include="Slangc.NET" Version="2025.15.1" />
+        <PackageVersion Include="Slangc.NET" Version="2025.16.0" />
         <PackageVersion Include="Uno.WinUI" Version="6.2.58" />
     </ItemGroup>
 
