@@ -93,9 +93,4 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         throw new NotImplementedException();
     }
-
-    //private void OnValidationMessage(MessageSeverity severity, string message)
-    //{
-    //    OnValidationMessage(new(MessageSource.Framework, severity, message));
-    //}
 }
