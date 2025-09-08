@@ -9,6 +9,7 @@
     <File Path="sources/Directory.Packages.props" />
   </Folder>
   <Folder Name="/Views/">
+    <Project Path="sources/Views/Zenith.NET.Views.Maui/Zenith.NET.Views.Maui.csproj" />
     <Project Path="sources/Views/Zenith.NET.Views.WinUI/Zenith.NET.Views.WinUI.csproj" />
     <Project Path="sources/Views/Zenith.NET.Views.WPF/Zenith.NET.Views.WPF.csproj" />
   </Folder>

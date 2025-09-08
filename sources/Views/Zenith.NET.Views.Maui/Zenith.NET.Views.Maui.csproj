@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>$(StandardTargetFramework)-android;$(StandardTargetFramework)-ios;$(StandardTargetFramework)-maccatalyst;$(StandardTargetFramework)-windows</TargetFrameworks>
+        <UseMaui>true</UseMaui>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Zenith.NET\Zenith.NET.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Maui.Controls" />
+    </ItemGroup>
+
+</Project>
