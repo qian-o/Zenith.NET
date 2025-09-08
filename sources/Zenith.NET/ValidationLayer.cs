@@ -349,54 +349,54 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         }
 
         int i = 0;
-        foreach (var item in desc.Resources)
+        foreach (IBindableResource resource in desc.Resources)
         {
             switch (desc.Layout.Desc.Bindings[i++].Type)
             {
                 case ResourceType.ConstantBuffer:
-                    if (item is not Buffer or BufferView)
+                    if (resource is not Buffer or BufferView)
                     {
                         Report(MessageSeverity.Error, "ResourceSetDesc.Resources item must be a Buffer or BufferView for ConstantBuffer binding.");
                     }
                     break;
 
                 case ResourceType.StructuredBuffer:
-                    if (item is not Buffer and not BufferView)
+                    if (resource is not Buffer or BufferView)
                     {
                         Report(MessageSeverity.Error, "ResourceSetDesc.Resources item must be a Buffer or BufferView for StructuredBuffer binding.");
                     }
                     break;
 
                 case ResourceType.StructuredBufferReadWrite:
-                    if (item is not Buffer and not BufferView)
+                    if (resource is not Buffer or BufferView)
                     {
                         Report(MessageSeverity.Error, "ResourceSetDesc.Resources item must be a Buffer or BufferView for StructuredBufferReadWrite binding.");
                     }
                     break;
 
                 case ResourceType.Texture:
-                    if (item is not Texture or TextureView)
+                    if (resource is not Texture or TextureView)
                     {
                         Report(MessageSeverity.Error, "ResourceSetDesc.Resources item must be a Texture or TextureView for Texture binding.");
                     }
                     break;
 
                 case ResourceType.TextureReadWrite:
-                    if (item is not Texture or TextureView)
+                    if (resource is not Texture or TextureView)
                     {
                         Report(MessageSeverity.Error, "ResourceSetDesc.Resources item must be a Texture or TextureView for TextureReadWrite binding.");
                     }
                     break;
 
                 case ResourceType.Sampler:
-                    if (item is not Sampler)
+                    if (resource is not Sampler)
                     {
                         Report(MessageSeverity.Error, "ResourceSetDesc.Resources item must be a Sampler for Sampler binding.");
                     }
                     break;
 
                 case ResourceType.AccelerationStructure:
-                    if (item is not TopLevelAccelerationStructure)
+                    if (resource is not TopLevelAccelerationStructure)
                     {
                         Report(MessageSeverity.Error, "ResourceSetDesc.Resources item must be a TopLevelAccelerationStructure for AccelerationStructure binding.");
                     }
