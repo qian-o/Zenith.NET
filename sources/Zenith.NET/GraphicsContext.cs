@@ -8,16 +8,16 @@ public abstract class GraphicsContext : DisposableObject
 
         Initialize(useValidationLayer,
                    out Capabilities capabilities,
-                   out ValidationLayer? validationLayer,
                    out CommandQueue direct,
                    out CommandQueue compute,
-                   out CommandQueue copy);
+                   out CommandQueue copy,
+                   out ValidationLayer? validationLayer);
 
         Capabilities = capabilities;
-        ValidationLayer = validationLayer;
         Direct = direct;
         Compute = compute;
         Copy = copy;
+        ValidationLayer = validationLayer;
 
         Uploader = new(this);
     }
@@ -26,15 +26,17 @@ public abstract class GraphicsContext : DisposableObject
 
     public Capabilities Capabilities { get; }
 
-    public ValidationLayer? ValidationLayer { get; }
-
     public CommandQueue Direct { get; }
 
     public CommandQueue Compute { get; }
 
     public CommandQueue Copy { get; }
 
+    internal ValidationLayer? ValidationLayer { get; }
+
     internal Uploader Uploader { get; }
+
+    public event EventHandler<ValidationMessageArgs>? ValidationMessage;
 
     public SwapChain CreateSwapChain(SwapChainDesc desc)
     {
@@ -136,20 +138,20 @@ public abstract class GraphicsContext : DisposableObject
 
     protected override void Destroy()
     {
-        ValidationLayer?.Dispose();
         Direct.Dispose();
         Compute.Dispose();
         Copy.Dispose();
+        ValidationLayer?.Dispose();
 
         Uploader.Dispose();
     }
 
     protected abstract void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
-                                       out ValidationLayer? validationLayer,
                                        out CommandQueue direct,
                                        out CommandQueue compute,
-                                       out CommandQueue copy);
+                                       out CommandQueue copy,
+                                       out ValidationLayer? validationLayer);
 
     protected abstract SwapChain CreateSwapChainImpl(SwapChainDesc desc);
 
@@ -178,4 +180,9 @@ public abstract class GraphicsContext : DisposableObject
     protected abstract RayTracingPipeline CreateRayTracingPipelineImpl(RayTracingPipelineDesc desc);
 
     protected abstract MeshShadingPipeline CreateMeshShadingPipelineImpl(MeshShadingPipelineDesc desc);
+
+    internal void OnValidationMessage(ValidationMessageArgs args)
+    {
+        ValidationMessage?.Invoke(this, args);
+    }
 }
