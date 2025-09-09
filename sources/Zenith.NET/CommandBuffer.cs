@@ -110,7 +110,15 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     {
         EnsureRenderingEnded();
 
+        Scissor[] scissors = new Scissor[frameBuffer.ColorAttachmentCount];
+        Viewport[] viewports = new Viewport[frameBuffer.ColorAttachmentCount];
+
+        Array.Fill(scissors, new() { Width = frameBuffer.Width, Height = frameBuffer.Height });
+        Array.Fill(viewports, new() { Width = frameBuffer.Width, Height = frameBuffer.Height, MaxDepth = 1 });
+
         BindFrameBufferImpl(frameBuffer, clearValue);
+        SetScissorsImpl(scissors);
+        SetViewportsImpl(viewports);
 
         CurrentFrameBuffer = frameBuffer;
     }
