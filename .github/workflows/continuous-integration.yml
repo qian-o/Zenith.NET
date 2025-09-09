@@ -30,4 +30,4 @@ jobs:
         run: dotnet workload install maui
 
       - name: Build
-        run: dotnet build ${{ matrix.build-args }}
+        run: dotnet build -c Release ${{ matrix.build-args }}
