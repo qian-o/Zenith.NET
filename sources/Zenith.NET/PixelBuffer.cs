@@ -6,5 +6,7 @@ public abstract class PixelBuffer
 
     public abstract uint SizeInBytes { get; }
 
-    public abstract void Invalidate();
+    public abstract void Lock();
+
+    public abstract void Unlock();
 }
