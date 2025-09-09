@@ -1,15 +1,49 @@
 ﻿<Project>
 
+    <!-- Build Configuration -->
     <PropertyGroup>
         <StandardTargetFramework>net9.0</StandardTargetFramework>
-
-        <Nullable>enable</Nullable>
         <LangVersion>preview</LangVersion>
+        <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-
         <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>
+
+    <!-- Release Configuration -->
+    <Choose>
+        <When Condition="'$(Configuration)' == 'Release'">
+            <PropertyGroup>
+                <!-- Package Generation -->
+                <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+                <PackageOutputPath>$(MSBuildThisFileDirectory)..\.nuget</PackageOutputPath>
+
+                <!-- Package Metadata -->
+                <Version>0.0.1</Version>
+                <Authors>qian-o</Authors>
+                <Copyright>Copyright (c) 2025 qian-o</Copyright>
+
+                <!-- Repository Information -->
+                <RepositoryType>Git</RepositoryType>
+                <RepositoryUrl>https://github.com/qian-o/Zenith.NET.git</RepositoryUrl>
+
+                <!-- Package Content -->
+                <PackageLicenseFile>LICENSE</PackageLicenseFile>
+                <PackageReadmeFile>README.md</PackageReadmeFile>
+
+                <!-- Debug Symbols & Source Link -->
+                <IncludeSymbols>true</IncludeSymbols>
+                <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+                <PublishRepositoryUrl>true</PublishRepositoryUrl>
+            </PropertyGroup>
+
+            <!-- Package Files -->
+            <ItemGroup>
+                <None Include="$(MSBuildThisFileDirectory)..\LICENSE" Pack="true" PackagePath="\" />
+                <None Include="$(MSBuildThisFileDirectory)..\README.md" Pack="true" PackagePath="\" />
+            </ItemGroup>
+        </When>
+    </Choose>
 
     <ItemGroup>
         <PackageReference Include="Roslynator.Analyzers">
