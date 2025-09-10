@@ -407,7 +407,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     internal void ValidateDesc(GraphicsPipelineDesc desc)
     {
-        throw new NotImplementedException();
+        RenderStatesAreValid("GraphicsPipelineDesc", desc.RenderStates);
     }
 
     internal void ValidateDesc(ComputePipelineDesc desc)
@@ -422,7 +422,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     internal void ValidateDesc(MeshShadingPipelineDesc desc)
     {
-        throw new NotImplementedException();
+        RenderStatesAreValid("MeshShadingPipelineDesc", desc.RenderStates);
     }
 
     internal void ValidateDesc(BottomLevelAccelerationStructureDesc desc)
@@ -438,6 +438,24 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     internal void ValidateDesc(TopLevelAccelerationStructureDesc oldDesc, TopLevelAccelerationStructureDesc newDesc)
     {
         throw new NotImplementedException();
+    }
+
+    private void RenderStatesAreValid(string descName, RenderStates renderStates)
+    {
+        if (!Enum.IsDefined(renderStates.RasterizerState.CullMode))
+        {
+            Report(MessageSeverity.Error, $"{descName}.RenderStates.RasterizerState.CullMode has an invalid value '{renderStates.RasterizerState.CullMode}'.");
+        }
+
+        if (!Enum.IsDefined(renderStates.RasterizerState.FillMode))
+        {
+            Report(MessageSeverity.Error, $"{descName}.RenderStates.RasterizerState.FillMode has an invalid value '{renderStates.RasterizerState.FillMode}'.");
+        }
+
+        if (!Enum.IsDefined(renderStates.RasterizerState.FrontFace))
+        {
+            Report(MessageSeverity.Error, $"{descName}.RenderStates.RasterizerState.FrontFace has an invalid value '{renderStates.RasterizerState.FrontFace}'.");
+        }
     }
 
     private void Report(MessageSeverity severity, string message)
