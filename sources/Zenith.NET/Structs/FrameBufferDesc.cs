@@ -2,7 +2,7 @@
 
 public record struct FrameBufferDesc
 {
-    public FrameBufferAttachment[] ColorTargets;
+    public FrameBufferAttachment[] ColorAttachments;
 
-    public FrameBufferAttachment? DepthStencilTarget;
+    public FrameBufferAttachment? DepthStencilAttachment;
 }

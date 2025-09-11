@@ -30,12 +30,20 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 {
                     InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles must have exactly one handle for SurfaceType.Win32.");
                 }
+                else if (desc.Surface.Handles[0] is 0)
+                {
+                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles[0] must be a valid handle for SurfaceType.Win32.");
+                }
                 break;
 
             case SurfaceType.Wayland:
                 if (desc.Surface.Handles.Length is not 2)
                 {
                     InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles must have exactly two handles for SurfaceType.Wayland.");
+                }
+                else if (desc.Surface.Handles[0] is 0 || desc.Surface.Handles[1] is 0)
+                {
+                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles must be valid handles for SurfaceType.Wayland.");
                 }
                 break;
 
@@ -44,12 +52,20 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 {
                     InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles must have exactly two handles for SurfaceType.Xlib.");
                 }
+                else if (desc.Surface.Handles[0] is 0 || desc.Surface.Handles[1] is 0)
+                {
+                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles must be valid handles for SurfaceType.Xlib.");
+                }
                 break;
 
             case SurfaceType.Android:
                 if (desc.Surface.Handles.Length is not 1)
                 {
                     InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles must have exactly one handle for SurfaceType.Android.");
+                }
+                else if (desc.Surface.Handles[0] is 0)
+                {
+                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles[0] must be a valid handle for SurfaceType.Android.");
                 }
                 break;
 
@@ -58,12 +74,20 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 {
                     InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles must have exactly one handle for SurfaceType.IOS.");
                 }
+                else if (desc.Surface.Handles[0] is 0)
+                {
+                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles[0] must be a valid handle for SurfaceType.IOS.");
+                }
                 break;
 
             case SurfaceType.MacOS:
                 if (desc.Surface.Handles.Length is not 1)
                 {
                     InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles must have exactly one handle for SurfaceType.MacOS.");
+                }
+                else if (desc.Surface.Handles[0] is 0)
+                {
+                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles[0] must be a valid handle for SurfaceType.MacOS.");
                 }
                 break;
 
@@ -72,8 +96,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 {
                     InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles must have exactly one handle for SurfaceType.PixelBuffer.");
                 }
-
-                if (GCHandle.FromIntPtr(desc.Surface.Handles[0]).Target is not PixelBuffer)
+                else if (desc.Surface.Handles[0] is 0 || GCHandle.FromIntPtr(desc.Surface.Handles[0]).Target is not PixelBuffer)
                 {
                     InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles[0] must be a valid PixelBuffer handle for SurfaceType.PixelBuffer.");
                 }
@@ -97,24 +120,24 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     internal void ValidateDesc(FrameBufferDesc desc)
     {
-        if (desc.ColorTargets is null)
+        if (desc.ColorAttachments is null)
         {
-            InternalReport(MessageSeverity.Error, "FrameBufferDesc.ColorTargets must not be null.");
+            InternalReport(MessageSeverity.Error, "FrameBufferDesc.ColorAttachments must not be null.");
 
             return;
         }
 
-        for (int i = 0; i < desc.ColorTargets.Length; i++)
+        for (int i = 0; i < desc.ColorAttachments.Length; i++)
         {
-            CheckFrameBufferAttachment($"FrameBufferDesc.ColorTargets[{i}]", desc.ColorTargets[i]);
+            CheckFrameBufferAttachment($"FrameBufferDesc.ColorAttachments[{i}]", desc.ColorAttachments[i]);
         }
 
-        if (desc.DepthStencilTarget is not null)
+        if (desc.DepthStencilAttachment is not null)
         {
-            CheckFrameBufferAttachment("FrameBufferDesc.DepthStencilTarget", desc.DepthStencilTarget.Value);
+            CheckFrameBufferAttachment("FrameBufferDesc.DepthStencilAttachment", desc.DepthStencilAttachment.Value);
         }
 
-        if (desc.ColorTargets.Length is 0 && desc.DepthStencilTarget is null)
+        if (desc.ColorAttachments.Length is 0 && desc.DepthStencilAttachment is null)
         {
             InternalReport(MessageSeverity.Warning, "FrameBufferDesc has no attachments.");
         }
@@ -492,7 +515,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         if (desc.ResourceLayouts is null)
         {
-            InternalReport(MessageSeverity.Error, "GraphicsPipelineDesc.ResourceLayouts must not be null.");
+            InternalReport(MessageSeverity.Error, "ComputePipelineDesc.ResourceLayouts must not be null.");
         }
 
         if (desc.ThreadGroupSizeX is 0 || desc.ThreadGroupSizeY is 0 || desc.ThreadGroupSizeZ is 0)
@@ -570,7 +593,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         if (desc.ResourceLayouts is null)
         {
-            InternalReport(MessageSeverity.Error, "GraphicsPipelineDesc.ResourceLayouts must not be null.");
+            InternalReport(MessageSeverity.Error, "MeshShadingPipelineDesc.ResourceLayouts must not be null.");
         }
 
         CheckOutput("MeshShadingPipelineDesc.Output", desc.Output);
