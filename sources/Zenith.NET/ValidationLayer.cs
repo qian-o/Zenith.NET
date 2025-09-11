@@ -4,6 +4,21 @@ namespace Zenith.NET;
 
 public abstract class ValidationLayer(GraphicsContext context) : GraphicsResource(context)
 {
+    private static class ValidationConstants
+    {
+        public const int CubeMapFaceCount = 6;
+
+        public const int MaxTraceRecursionDepth = 31;
+
+        public const int MaxInstanceId = 16777215;
+
+        public const int MaxHitGroupIndex = 65535;
+
+        public const int IndexSizeUInt16 = 2;
+
+        public const int IndexSizeUInt32 = 4;
+    }
+
     private static class ValidationMessages
     {
         public const string MustNotBeNull = "{0} must not be null.";
@@ -39,6 +54,10 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         public const string IsZeroWarning = "{0} is zero, which may be valid for some {1} but could indicate an issue.";
 
         public const string IsSetToNoneWarning = "{0} is set to None, which may be valid but could indicate an issue.";
+
+        public const string HasUnsupportedSurfaceType = "{0} has unsupported SurfaceType '{1}'.";
+
+        public const string InstanceCountMustRemainSame = "When updating a TopLevelAccelerationStructure, the number of instances must remain the same.";
     }
 
     protected void Report(MessageSource source, MessageSeverity severity, string message)
@@ -135,7 +154,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 break;
 
             default:
-                ReportFrameworkMessage(MessageSeverity.Error, $"SwapChainDesc.Surface has unsupported SurfaceType '{desc.Surface.Type}'.");
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasUnsupportedSurfaceType, "SwapChainDesc.Surface", desc.Surface.Type));
                 break;
         }
 
@@ -183,9 +202,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 return;
             }
 
-            if (frameBufferAttachment.Slice.Face is >= 6)
+            if (frameBufferAttachment.Slice.Face >= ValidationConstants.CubeMapFaceCount)
             {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.Face", "6"));
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.Face", ValidationConstants.CubeMapFaceCount));
             }
 
             if (frameBufferAttachment.Slice.Layer >= frameBufferAttachment.Target.Desc.Layers)
@@ -577,9 +596,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.ResourceLayouts"));
         }
 
-        if (desc.MaxTraceRecursionDepth > 31)
+        if (desc.MaxTraceRecursionDepth > ValidationConstants.MaxTraceRecursionDepth)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, "RayTracingPipelineDesc.MaxTraceRecursionDepth", "31"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, "RayTracingPipelineDesc.MaxTraceRecursionDepth", ValidationConstants.MaxTraceRecursionDepth));
         }
 
         if (desc.MaxPayloadSizeInBytes is 0)
@@ -681,8 +700,8 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
                         uint indexSizeInBytes = triangles.IndexFormat switch
                         {
-                            IndexFormat.UInt16 => 2,
-                            IndexFormat.UInt32 => 4,
+                            IndexFormat.UInt16 => ValidationConstants.IndexSizeUInt16,
+                            IndexFormat.UInt32 => ValidationConstants.IndexSizeUInt32,
                             _ => 0
                         };
 
@@ -751,14 +770,14 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 return;
             }
 
-            if (rayTracingInstance.InstanceID > 16777215)
+            if (rayTracingInstance.InstanceID > ValidationConstants.MaxInstanceId)
             {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, $"{name}.InstanceID", "16777215"));
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, $"{name}.InstanceID", ValidationConstants.MaxInstanceId));
             }
 
-            if (rayTracingInstance.InstanceContributionToHitGroupIndex > 65535)
+            if (rayTracingInstance.InstanceContributionToHitGroupIndex > ValidationConstants.MaxHitGroupIndex)
             {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, $"{name}.InstanceContributionToHitGroupIndex", "65535"));
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, $"{name}.InstanceContributionToHitGroupIndex", ValidationConstants.MaxHitGroupIndex));
             }
         }
     }
@@ -774,7 +793,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         if (oldDesc.Instances.Length != newDesc.Instances.Length)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, "When updating a TopLevelAccelerationStructure, the number of instances must remain the same.");
+            ReportFrameworkMessage(MessageSeverity.Error, ValidationMessages.InstanceCountMustRemainSame);
         }
     }
 
