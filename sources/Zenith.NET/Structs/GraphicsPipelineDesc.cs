@@ -20,5 +20,5 @@ public record struct GraphicsPipelineDesc
 
     public PrimitiveTopology PrimitiveTopology;
 
-    public Output Outputs;
+    public Output Output;
 }

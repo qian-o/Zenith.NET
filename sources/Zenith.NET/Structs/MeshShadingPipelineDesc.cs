@@ -14,5 +14,5 @@ public record struct MeshShadingPipelineDesc
 
     public PrimitiveTopology PrimitiveTopology;
 
-    public Output Outputs;
+    public Output Output;
 }
