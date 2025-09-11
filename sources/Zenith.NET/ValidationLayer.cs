@@ -4,21 +4,59 @@ namespace Zenith.NET;
 
 public abstract class ValidationLayer(GraphicsContext context) : GraphicsResource(context)
 {
+    private static class ValidationMessages
+    {
+        public const string MustNotBeNull = "{0} must not be null.";
+
+        public const string MustBeGreaterThanZero = "{0} must be greater than zero.";
+
+        public const string MustHaveExactlyNHandles = "{0} must have exactly {1} handle(s) for {2}.";
+
+        public const string MustBeValidHandle = "{0} must be a valid handle for {1}.";
+
+        public const string MustBeValidHandles = "{0} must be valid handles for {1}.";
+
+        public const string HasInvalidValue = "{0} has an invalid value '{1}'.";
+
+        public const string MustNotBeNullOrEmpty = "{0} must not be null or empty.";
+
+        public const string MustNotBeNullOrWhitespace = "{0} must not be null or whitespace.";
+
+        public const string MustBeLessThan = "{0} must be less than {1}.";
+
+        public const string MustBeLessThanOrEqualTo = "{0} must be less than or equal to {1}.";
+
+        public const string MustBeWithinBounds = "{0} must be greater than zero and within the bounds of {1}.";
+
+        public const string LengthMustMatch = "{0} length must match {1}.";
+
+        public const string MustBeOfType = "{0} item must be a {1} for {2} binding.";
+
+        public const string MustBeValidPixelBufferHandle = "{0} must be a valid PixelBuffer handle for {1}.";
+
+        public const string HasNoAttachments = "{0} has no attachments.";
+
+        public const string HasNoBindings = "{0} has no bindings.";
+
+        public const string HasNoInputLayouts = "{0} has no input layouts, which may be valid for pipelines without vertex input but could indicate an issue.";
+
+        public const string HasNoInputElements = "{0} has no input elements, which may be valid for pipelines without vertex input but could indicate an issue.";
+
+        public const string IsZeroWarning = "{0} is zero, which may be valid for some {1} but could indicate an issue.";
+
+        public const string IsSetToNoneWarning = "{0} is set to None, which may be valid but could indicate an issue.";
+    }
+
     protected void Report(MessageSource source, MessageSeverity severity, string message)
     {
         Context.OnValidationMessage(new(source, severity, message));
-    }
-
-    internal void InternalReport(MessageSeverity severity, string message)
-    {
-        Report(MessageSource.Framework, severity, message);
     }
 
     internal void ValidateDesc(SwapChainDesc desc)
     {
         if (desc.Surface.Handles is null)
         {
-            InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface must have valid handles.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "SwapChainDesc.Surface.Handles"));
 
             return;
         }
@@ -28,93 +66,93 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             case SurfaceType.Win32:
                 if (desc.Surface.Handles.Length is not 1)
                 {
-                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles must have exactly one handle for SurfaceType.Win32.");
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "one", "SurfaceType.Win32"));
                 }
                 else if (desc.Surface.Handles[0] is 0)
                 {
-                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles[0] must be a valid handle for SurfaceType.Win32.");
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.Win32"));
                 }
                 break;
 
             case SurfaceType.Wayland:
                 if (desc.Surface.Handles.Length is not 2)
                 {
-                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles must have exactly two handles for SurfaceType.Wayland.");
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "two", "SurfaceType.Wayland"));
                 }
                 else if (desc.Surface.Handles[0] is 0 || desc.Surface.Handles[1] is 0)
                 {
-                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles must be valid handles for SurfaceType.Wayland.");
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidHandles, "SwapChainDesc.Surface.Handles", "SurfaceType.Wayland"));
                 }
                 break;
 
             case SurfaceType.Xlib:
                 if (desc.Surface.Handles.Length is not 2)
                 {
-                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles must have exactly two handles for SurfaceType.Xlib.");
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "two", "SurfaceType.Xlib"));
                 }
                 else if (desc.Surface.Handles[0] is 0 || desc.Surface.Handles[1] is 0)
                 {
-                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles must be valid handles for SurfaceType.Xlib.");
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidHandles, "SwapChainDesc.Surface.Handles", "SurfaceType.Xlib"));
                 }
                 break;
 
             case SurfaceType.Android:
                 if (desc.Surface.Handles.Length is not 1)
                 {
-                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles must have exactly one handle for SurfaceType.Android.");
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "one", "SurfaceType.Android"));
                 }
                 else if (desc.Surface.Handles[0] is 0)
                 {
-                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles[0] must be a valid handle for SurfaceType.Android.");
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.Android"));
                 }
                 break;
 
             case SurfaceType.IOS:
                 if (desc.Surface.Handles.Length is not 1)
                 {
-                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles must have exactly one handle for SurfaceType.IOS.");
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "one", "SurfaceType.IOS"));
                 }
                 else if (desc.Surface.Handles[0] is 0)
                 {
-                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles[0] must be a valid handle for SurfaceType.IOS.");
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.IOS"));
                 }
                 break;
 
             case SurfaceType.MacOS:
                 if (desc.Surface.Handles.Length is not 1)
                 {
-                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles must have exactly one handle for SurfaceType.MacOS.");
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "one", "SurfaceType.MacOS"));
                 }
                 else if (desc.Surface.Handles[0] is 0)
                 {
-                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles[0] must be a valid handle for SurfaceType.MacOS.");
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.MacOS"));
                 }
                 break;
 
             case SurfaceType.PixelBuffer:
                 if (desc.Surface.Handles.Length is not 1)
                 {
-                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles must have exactly one handle for SurfaceType.PixelBuffer.");
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "one", "SurfaceType.PixelBuffer"));
                 }
                 else if (desc.Surface.Handles[0] is 0 || GCHandle.FromIntPtr(desc.Surface.Handles[0]).Target is not PixelBuffer)
                 {
-                    InternalReport(MessageSeverity.Error, "SwapChainDesc.Surface.Handles[0] must be a valid PixelBuffer handle for SurfaceType.PixelBuffer.");
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidPixelBufferHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.PixelBuffer"));
                 }
                 break;
 
             default:
-                InternalReport(MessageSeverity.Error, $"SwapChainDesc.Surface has unsupported SurfaceType '{desc.Surface.Type}'.");
+                ReportFrameworkMessage(MessageSeverity.Error, $"SwapChainDesc.Surface has unsupported SurfaceType '{desc.Surface.Type}'.");
                 break;
         }
 
         if (!Enum.IsDefined(desc.ColorTargetFormat))
         {
-            InternalReport(MessageSeverity.Error, $"SwapChainDesc.ColorTargetFormat has an invalid value '{desc.ColorTargetFormat}'.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "SwapChainDesc.ColorTargetFormat", desc.ColorTargetFormat));
         }
 
         if (desc.DepthStencilTargetFormat is not null && !Enum.IsDefined(desc.DepthStencilTargetFormat.Value))
         {
-            InternalReport(MessageSeverity.Error, $"SwapChainDesc.DepthStencilTargetFormat has an invalid value '{desc.DepthStencilTargetFormat.Value}'.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "SwapChainDesc.DepthStencilTargetFormat", desc.DepthStencilTargetFormat.Value));
         }
     }
 
@@ -122,7 +160,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         if (desc.ColorAttachments is null)
         {
-            InternalReport(MessageSeverity.Error, "FrameBufferDesc.ColorAttachments must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "FrameBufferDesc.ColorAttachments"));
 
             return;
         }
@@ -139,31 +177,31 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         if (desc.ColorAttachments.Length is 0 && desc.DepthStencilAttachment is null)
         {
-            InternalReport(MessageSeverity.Warning, "FrameBufferDesc has no attachments.");
+            ReportFrameworkMessage(MessageSeverity.Warning, string.Format(ValidationMessages.HasNoAttachments, "FrameBufferDesc"));
         }
 
         void CheckFrameBufferAttachment(string name, FrameBufferAttachment frameBufferAttachment)
         {
             if (frameBufferAttachment.Target is null)
             {
-                InternalReport(MessageSeverity.Error, $"{name}.Target must not be null.");
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, $"{name}.Target"));
 
                 return;
             }
 
             if (frameBufferAttachment.Slice.Face is >= 6)
             {
-                InternalReport(MessageSeverity.Error, $"{name}.Slice.Face must be less than 6.");
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.Face", "6"));
             }
 
             if (frameBufferAttachment.Slice.Layer >= frameBufferAttachment.Target.Desc.Layers)
             {
-                InternalReport(MessageSeverity.Error, $"{name}.Slice.Layer must be less than the number of layers in the texture.");
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.Layer", "the number of layers in the texture"));
             }
 
             if (frameBufferAttachment.Slice.MipLevel >= frameBufferAttachment.Target.Desc.MipLevels)
             {
-                InternalReport(MessageSeverity.Error, $"{name}.Slice.MipLevel must be less than the number of mip levels in the texture.");
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.MipLevel", "the number of mip levels in the texture"));
             }
         }
     }
@@ -172,17 +210,17 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         if (desc.ShaderBytes is null || desc.ShaderBytes.Length is 0)
         {
-            InternalReport(MessageSeverity.Error, "ShaderDesc.ShaderBytes must not be null or empty.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNullOrEmpty, "ShaderDesc.ShaderBytes"));
         }
 
         if (string.IsNullOrWhiteSpace(desc.EntryPoint))
         {
-            InternalReport(MessageSeverity.Error, "ShaderDesc.EntryPoint must not be null or whitespace.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNullOrWhitespace, "ShaderDesc.EntryPoint"));
         }
 
         if (!Enum.IsDefined(desc.Stage))
         {
-            InternalReport(MessageSeverity.Error, $"ShaderDesc.Stage has an invalid value '{desc.Stage}'.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "ShaderDesc.Stage", desc.Stage));
         }
     }
 
@@ -190,17 +228,17 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         if (desc.SizeInBytes is 0)
         {
-            InternalReport(MessageSeverity.Error, "BufferDesc.SizeInBytes must be greater than zero.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "BufferDesc.SizeInBytes"));
         }
 
         if (desc.StrideInBytes is 0)
         {
-            InternalReport(MessageSeverity.Warning, "BufferDesc.StrideInBytes is zero, which may be valid for some buffer types but could indicate an issue.");
+            ReportFrameworkMessage(MessageSeverity.Warning, string.Format(ValidationMessages.IsZeroWarning, "BufferDesc.StrideInBytes", "buffer types"));
         }
 
         if (desc.Flags is BufferUsageFlags.None)
         {
-            InternalReport(MessageSeverity.Warning, "BufferDesc.Flags is set to None, which may be valid but could indicate an issue.");
+            ReportFrameworkMessage(MessageSeverity.Warning, string.Format(ValidationMessages.IsSetToNoneWarning, "BufferDesc.Flags"));
         }
     }
 
@@ -208,24 +246,24 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         if (desc.Buffer is null)
         {
-            InternalReport(MessageSeverity.Error, "BufferViewDesc.Buffer must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "BufferViewDesc.Buffer"));
 
             return;
         }
 
         if (desc.OffsetInBytes >= desc.Buffer.Desc.SizeInBytes)
         {
-            InternalReport(MessageSeverity.Error, "BufferViewDesc.OffsetInBytes must be less than the size of the buffer.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, "BufferViewDesc.OffsetInBytes", "the size of the buffer"));
         }
 
         if (desc.SizeInBytes is 0 || desc.OffsetInBytes + desc.SizeInBytes > desc.Buffer.Desc.SizeInBytes)
         {
-            InternalReport(MessageSeverity.Error, "BufferViewDesc.SizeInBytes must be greater than zero and within the bounds of the buffer.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "BufferViewDesc.SizeInBytes", "the buffer"));
         }
 
         if (desc.StrideInBytes is 0)
         {
-            InternalReport(MessageSeverity.Warning, "BufferViewDesc.StrideInBytes is zero, which may be valid for some buffer views but could indicate an issue.");
+            ReportFrameworkMessage(MessageSeverity.Warning, string.Format(ValidationMessages.IsZeroWarning, "BufferViewDesc.StrideInBytes", "buffer views"));
         }
     }
 
@@ -233,37 +271,37 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         if (!Enum.IsDefined(desc.Type))
         {
-            InternalReport(MessageSeverity.Error, $"TextureDesc.Type has an invalid value '{desc.Type}'.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "TextureDesc.Type", desc.Type));
         }
 
         if (!Enum.IsDefined(desc.Format))
         {
-            InternalReport(MessageSeverity.Error, $"TextureDesc.Format has an invalid value '{desc.Format}'.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "TextureDesc.Format", desc.Format));
         }
 
         if (desc.Width is 0 || desc.Height is 0 || desc.Depth is 0)
         {
-            InternalReport(MessageSeverity.Error, "TextureDesc dimensions (Width, Height, Depth) must be greater than zero.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "TextureDesc dimensions (Width, Height, Depth)"));
         }
 
         if (desc.Layers is 0)
         {
-            InternalReport(MessageSeverity.Error, "TextureDesc.Layers must be greater than zero.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "TextureDesc.Layers"));
         }
 
         if (desc.MipLevels is 0)
         {
-            InternalReport(MessageSeverity.Error, "TextureDesc.MipLevels must be greater than zero.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "TextureDesc.MipLevels"));
         }
 
         if (!Enum.IsDefined(desc.SampleCount))
         {
-            InternalReport(MessageSeverity.Error, $"TextureDesc.SampleCount has an invalid value '{desc.SampleCount}'.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "TextureDesc.SampleCount", desc.SampleCount));
         }
 
         if (desc.Flags is TextureUsageFlags.None)
         {
-            InternalReport(MessageSeverity.Warning, "TextureDesc.Flags is set to None, which may be valid but could indicate an issue.");
+            ReportFrameworkMessage(MessageSeverity.Warning, string.Format(ValidationMessages.IsSetToNoneWarning, "TextureDesc.Flags"));
         }
     }
 
@@ -271,29 +309,29 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         if (desc.Texture is null)
         {
-            InternalReport(MessageSeverity.Error, "TextureViewDesc.Texture must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "TextureViewDesc.Texture"));
 
             return;
         }
 
         if (desc.FirstLayer >= desc.Texture.Desc.Layers)
         {
-            InternalReport(MessageSeverity.Error, "TextureViewDesc.FirstLayer must be less than the number of layers in the texture.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, "TextureViewDesc.FirstLayer", "the number of layers in the texture"));
         }
 
         if (desc.LayerCount is 0 || desc.FirstLayer + desc.LayerCount > desc.Texture.Desc.Layers)
         {
-            InternalReport(MessageSeverity.Error, "TextureViewDesc.LayerCount must be greater than zero and within the bounds of the texture layers.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "TextureViewDesc.LayerCount", "the texture layers"));
         }
 
         if (desc.FirstMipLevel >= desc.Texture.Desc.MipLevels)
         {
-            InternalReport(MessageSeverity.Error, "TextureViewDesc.FirstMipLevel must be less than the number of mip levels in the texture.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, "TextureViewDesc.FirstMipLevel", "the number of mip levels in the texture"));
         }
 
         if (desc.MipLevelCount is 0 || desc.FirstMipLevel + desc.MipLevelCount > desc.Texture.Desc.MipLevels)
         {
-            InternalReport(MessageSeverity.Error, "TextureViewDesc.MipLevelCount must be greater than zero and within the bounds of the texture mip levels.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "TextureViewDesc.MipLevelCount", "the texture mip levels"));
         }
     }
 
@@ -301,37 +339,37 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         if (!Enum.IsDefined(desc.U))
         {
-            InternalReport(MessageSeverity.Error, $"SamplerDesc.U has an invalid value '{desc.U}'.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "SamplerDesc.U", desc.U));
         }
 
         if (!Enum.IsDefined(desc.V))
         {
-            InternalReport(MessageSeverity.Error, $"SamplerDesc.V has an invalid value '{desc.V}'.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "SamplerDesc.V", desc.V));
         }
 
         if (!Enum.IsDefined(desc.W))
         {
-            InternalReport(MessageSeverity.Error, $"SamplerDesc.W has an invalid value '{desc.W}'.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "SamplerDesc.W", desc.W));
         }
 
         if (!Enum.IsDefined(desc.Filter))
         {
-            InternalReport(MessageSeverity.Error, $"SamplerDesc.Filter has an invalid value '{desc.Filter}'.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "SamplerDesc.Filter", desc.Filter));
         }
 
         if (!Enum.IsDefined(desc.ComparisonFunc))
         {
-            InternalReport(MessageSeverity.Error, $"SamplerDesc.ComparisonFunc has an invalid value '{desc.ComparisonFunc}'.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "SamplerDesc.ComparisonFunc", desc.ComparisonFunc));
         }
 
         if (desc.MinLod > desc.MaxLod)
         {
-            InternalReport(MessageSeverity.Error, "SamplerDesc.MinLod must be less than or equal to MaxLod.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, "SamplerDesc.MinLod", "MaxLod"));
         }
 
         if (!Enum.IsDefined(desc.BorderColor))
         {
-            InternalReport(MessageSeverity.Error, $"SamplerDesc.BorderColor has an invalid value '{desc.BorderColor}'.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "SamplerDesc.BorderColor", desc.BorderColor));
         }
     }
 
@@ -339,7 +377,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         if (desc.Bindings is null)
         {
-            InternalReport(MessageSeverity.Error, "ResourceLayoutDesc.Bindings must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceLayoutDesc.Bindings"));
 
             return;
         }
@@ -348,13 +386,13 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         {
             if (!Enum.IsDefined(binding.Type))
             {
-                InternalReport(MessageSeverity.Error, $"ResourceLayoutBinding.Type has an invalid value '{binding.Type}'.");
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "ResourceLayoutBinding.Type", binding.Type));
             }
         }
 
         if (desc.Bindings.Length is 0)
         {
-            InternalReport(MessageSeverity.Warning, "ResourceLayoutDesc has no bindings.");
+            ReportFrameworkMessage(MessageSeverity.Warning, string.Format(ValidationMessages.HasNoBindings, "ResourceLayoutDesc"));
         }
     }
 
@@ -362,21 +400,21 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         if (desc.Layout is null)
         {
-            InternalReport(MessageSeverity.Error, "ResourceSetDesc.Layout must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceSetDesc.Layout"));
 
             return;
         }
 
         if (desc.Resources is null)
         {
-            InternalReport(MessageSeverity.Error, "ResourceSetDesc.Resources must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceSetDesc.Resources"));
 
             return;
         }
 
         if (desc.Resources.Length != desc.Layout.Desc.Bindings.Length)
         {
-            InternalReport(MessageSeverity.Error, "ResourceSetDesc.Resources length must match the number of bindings in the layout.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.LengthMustMatch, "ResourceSetDesc.Resources", "the number of bindings in the layout"));
 
             return;
         }
@@ -389,49 +427,49 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 case ResourceType.ConstantBuffer:
                     if (resource is not Buffer or BufferView)
                     {
-                        InternalReport(MessageSeverity.Error, "ResourceSetDesc.Resources item must be a Buffer or BufferView for ConstantBuffer binding.");
+                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Buffer or BufferView", "ConstantBuffer"));
                     }
                     break;
 
                 case ResourceType.StructuredBuffer:
                     if (resource is not Buffer or BufferView)
                     {
-                        InternalReport(MessageSeverity.Error, "ResourceSetDesc.Resources item must be a Buffer or BufferView for StructuredBuffer binding.");
+                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Buffer or BufferView", "StructuredBuffer"));
                     }
                     break;
 
                 case ResourceType.StructuredBufferReadWrite:
                     if (resource is not Buffer or BufferView)
                     {
-                        InternalReport(MessageSeverity.Error, "ResourceSetDesc.Resources item must be a Buffer or BufferView for StructuredBufferReadWrite binding.");
+                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Buffer or BufferView", "StructuredBufferReadWrite"));
                     }
                     break;
 
                 case ResourceType.Texture:
                     if (resource is not Texture or TextureView)
                     {
-                        InternalReport(MessageSeverity.Error, "ResourceSetDesc.Resources item must be a Texture or TextureView for Texture binding.");
+                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Texture or TextureView", "Texture"));
                     }
                     break;
 
                 case ResourceType.TextureReadWrite:
                     if (resource is not Texture or TextureView)
                     {
-                        InternalReport(MessageSeverity.Error, "ResourceSetDesc.Resources item must be a Texture or TextureView for TextureReadWrite binding.");
+                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Texture or TextureView", "TextureReadWrite"));
                     }
                     break;
 
                 case ResourceType.Sampler:
                     if (resource is not Sampler)
                     {
-                        InternalReport(MessageSeverity.Error, "ResourceSetDesc.Resources item must be a Sampler for Sampler binding.");
+                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Sampler", "Sampler"));
                     }
                     break;
 
                 case ResourceType.AccelerationStructure:
                     if (resource is not TopLevelAccelerationStructure)
                     {
-                        InternalReport(MessageSeverity.Error, "ResourceSetDesc.Resources item must be a TopLevelAccelerationStructure for AccelerationStructure binding.");
+                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "TopLevelAccelerationStructure", "AccelerationStructure"));
                     }
                     break;
             }
@@ -444,26 +482,26 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         if (desc.Vertex is null)
         {
-            InternalReport(MessageSeverity.Error, "GraphicsPipelineDesc.Vertex must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.Vertex"));
         }
 
         if (desc.Pixel is null)
         {
-            InternalReport(MessageSeverity.Error, "GraphicsPipelineDesc.Pixel must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.Pixel"));
         }
 
         if (desc.ResourceLayouts is null)
         {
-            InternalReport(MessageSeverity.Error, "GraphicsPipelineDesc.ResourceLayouts must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.ResourceLayouts"));
         }
 
         if (desc.InputLayouts is null)
         {
-            InternalReport(MessageSeverity.Error, "GraphicsPipelineDesc.InputLayouts must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.InputLayouts"));
         }
         else if (desc.InputLayouts.Length is 0)
         {
-            InternalReport(MessageSeverity.Warning, "GraphicsPipelineDesc has no input layouts, which may be valid for pipelines without vertex input but could indicate an issue.");
+            ReportFrameworkMessage(MessageSeverity.Warning, string.Format(ValidationMessages.HasNoInputLayouts, "GraphicsPipelineDesc"));
         }
         else
         {
@@ -479,14 +517,14 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         {
             if (inputLayout.Elements is null)
             {
-                InternalReport(MessageSeverity.Error, $"{name}.Elements must not be null.");
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, $"{name}.Elements"));
 
                 return;
             }
 
             if (inputLayout.Elements.Length is 0)
             {
-                InternalReport(MessageSeverity.Warning, $"{name} has no input elements, which may be valid for pipelines without vertex input but could indicate an issue.");
+                ReportFrameworkMessage(MessageSeverity.Warning, string.Format(ValidationMessages.HasNoInputElements, name));
             }
             else
             {
@@ -494,12 +532,12 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 {
                     if (!Enum.IsDefined(element.Format))
                     {
-                        InternalReport(MessageSeverity.Error, $"{name}.Elements has an invalid ElementFormat '{element.Format}'.");
+                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.Elements.ElementFormat", element.Format));
                     }
 
                     if (!Enum.IsDefined(element.Semantic))
                     {
-                        InternalReport(MessageSeverity.Error, $"{name}.Elements has an invalid ElementSemantic '{element.Semantic}'.");
+                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.Elements.ElementSemantic", element.Semantic));
                     }
                 }
             }
@@ -510,17 +548,17 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         if (desc.Compute is null)
         {
-            InternalReport(MessageSeverity.Error, "ComputePipelineDesc.Compute must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ComputePipelineDesc.Compute"));
         }
 
         if (desc.ResourceLayouts is null)
         {
-            InternalReport(MessageSeverity.Error, "ComputePipelineDesc.ResourceLayouts must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ComputePipelineDesc.ResourceLayouts"));
         }
 
         if (desc.ThreadGroupSizeX is 0 || desc.ThreadGroupSizeY is 0 || desc.ThreadGroupSizeZ is 0)
         {
-            InternalReport(MessageSeverity.Error, "ComputePipelineDesc thread group sizes (ThreadGroupSizeX, ThreadGroupSizeY, ThreadGroupSizeZ) must be greater than zero.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "ComputePipelineDesc thread group sizes (ThreadGroupSizeX, ThreadGroupSizeY, ThreadGroupSizeZ)"));
         }
     }
 
@@ -528,52 +566,52 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         if (desc.RayGeneration is null)
         {
-            InternalReport(MessageSeverity.Error, "RayTracingPipelineDesc.RayGeneration must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.RayGeneration"));
         }
 
         if (desc.Miss is null)
         {
-            InternalReport(MessageSeverity.Error, "RayTracingPipelineDesc.Miss must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.Miss"));
         }
 
         if (desc.AnyHit is null)
         {
-            InternalReport(MessageSeverity.Error, "RayTracingPipelineDesc.AnyHit must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.AnyHit"));
         }
 
         if (desc.Intersection is null)
         {
-            InternalReport(MessageSeverity.Error, "RayTracingPipelineDesc.Intersection must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.Intersection"));
         }
 
         if (desc.ClosestHit is null)
         {
-            InternalReport(MessageSeverity.Error, "RayTracingPipelineDesc.ClosestHit must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.ClosestHit"));
         }
 
         if (desc.HitGroups is null)
         {
-            InternalReport(MessageSeverity.Error, "RayTracingPipelineDesc.HitGroups must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.HitGroups"));
         }
 
         if (desc.ResourceLayouts is null)
         {
-            InternalReport(MessageSeverity.Error, "RayTracingPipelineDesc.ResourceLayouts must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.ResourceLayouts"));
         }
 
         if (desc.MaxTraceRecursionDepth > 31)
         {
-            InternalReport(MessageSeverity.Error, "RayTracingPipelineDesc.MaxTraceRecursionDepth must be less than or equal to 31.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, "RayTracingPipelineDesc.MaxTraceRecursionDepth", "31"));
         }
 
         if (desc.MaxPayloadSizeInBytes is 0)
         {
-            InternalReport(MessageSeverity.Error, "RayTracingPipelineDesc.MaxPayloadSizeInBytes must be greater than zero.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "RayTracingPipelineDesc.MaxPayloadSizeInBytes"));
         }
 
         if (desc.MaxAttributeSizeInBytes is 0)
         {
-            InternalReport(MessageSeverity.Error, "RayTracingPipelineDesc.MaxAttributeSizeInBytes must be greater than zero.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "RayTracingPipelineDesc.MaxAttributeSizeInBytes"));
         }
     }
 
@@ -583,17 +621,17 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         if (desc.Mesh is null)
         {
-            InternalReport(MessageSeverity.Error, "MeshShadingPipelineDesc.Mesh must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "MeshShadingPipelineDesc.Mesh"));
         }
 
         if (desc.Pixel is null)
         {
-            InternalReport(MessageSeverity.Error, "MeshShadingPipelineDesc.Pixel must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "MeshShadingPipelineDesc.Pixel"));
         }
 
         if (desc.ResourceLayouts is null)
         {
-            InternalReport(MessageSeverity.Error, "MeshShadingPipelineDesc.ResourceLayouts must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "MeshShadingPipelineDesc.ResourceLayouts"));
         }
 
         CheckOutput("MeshShadingPipelineDesc.Output", desc.Output);
@@ -618,22 +656,22 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         if (!Enum.IsDefined(renderStates.RasterizerState.CullMode))
         {
-            InternalReport(MessageSeverity.Error, $"{name}.RenderStates.RasterizerState.CullMode has an invalid value '{renderStates.RasterizerState.CullMode}'.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.RenderStates.RasterizerState.CullMode", renderStates.RasterizerState.CullMode));
         }
 
         if (!Enum.IsDefined(renderStates.RasterizerState.FillMode))
         {
-            InternalReport(MessageSeverity.Error, $"{name}.RenderStates.RasterizerState.FillMode has an invalid value '{renderStates.RasterizerState.FillMode}'.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.RenderStates.RasterizerState.FillMode", renderStates.RasterizerState.FillMode));
         }
 
         if (!Enum.IsDefined(renderStates.RasterizerState.FrontFace))
         {
-            InternalReport(MessageSeverity.Error, $"{name}.RenderStates.RasterizerState.FrontFace has an invalid value '{renderStates.RasterizerState.FrontFace}'.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.RenderStates.RasterizerState.FrontFace", renderStates.RasterizerState.FrontFace));
         }
 
         if (!Enum.IsDefined(renderStates.DepthStencilState.DepthFunc))
         {
-            InternalReport(MessageSeverity.Error, $"{name}.RenderStates.DepthStencilState.DepthFunc has an invalid value '{renderStates.DepthStencilState.DepthFunc}'.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.RenderStates.DepthStencilState.DepthFunc", renderStates.DepthStencilState.DepthFunc));
         }
 
         CheckDepthStencilStateOp($"{name}.RenderStates.DepthStencilState.FrontFace", renderStates.DepthStencilState.FrontFace);
@@ -652,22 +690,22 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         {
             if (!Enum.IsDefined(depthStencilStateOp.StencilFailOp))
             {
-                InternalReport(MessageSeverity.Error, $"{name}.StencilFailOp has an invalid value '{depthStencilStateOp.StencilFailOp}'.");
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.StencilFailOp", depthStencilStateOp.StencilFailOp));
             }
 
             if (!Enum.IsDefined(depthStencilStateOp.StencilDepthFailOp))
             {
-                InternalReport(MessageSeverity.Error, $"{name}.StencilDepthFailOp has an invalid value '{depthStencilStateOp.StencilDepthFailOp}'.");
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.StencilDepthFailOp", depthStencilStateOp.StencilDepthFailOp));
             }
 
             if (!Enum.IsDefined(depthStencilStateOp.StencilPassOp))
             {
-                InternalReport(MessageSeverity.Error, $"{name}.StencilPassOp has an invalid value '{depthStencilStateOp.StencilPassOp}'.");
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.StencilPassOp", depthStencilStateOp.StencilPassOp));
             }
 
             if (!Enum.IsDefined(depthStencilStateOp.StencilFunc))
             {
-                InternalReport(MessageSeverity.Error, $"{name}.StencilFunc has an invalid value '{depthStencilStateOp.StencilFunc}'.");
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.StencilFunc", depthStencilStateOp.StencilFunc));
             }
         }
 
@@ -675,32 +713,32 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         {
             if (!Enum.IsDefined(blendStateRenderTarget.SrcBlend))
             {
-                InternalReport(MessageSeverity.Error, $"{name}.SrcBlend has an invalid value '{blendStateRenderTarget.SrcBlend}'.");
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.SrcBlend", blendStateRenderTarget.SrcBlend));
             }
 
             if (!Enum.IsDefined(blendStateRenderTarget.DestBlend))
             {
-                InternalReport(MessageSeverity.Error, $"{name}.DestBlend has an invalid value '{blendStateRenderTarget.DestBlend}'.");
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.DestBlend", blendStateRenderTarget.DestBlend));
             }
 
             if (!Enum.IsDefined(blendStateRenderTarget.BlendOp))
             {
-                InternalReport(MessageSeverity.Error, $"{name}.BlendOp has an invalid value '{blendStateRenderTarget.BlendOp}'.");
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.BlendOp", blendStateRenderTarget.BlendOp));
             }
 
             if (!Enum.IsDefined(blendStateRenderTarget.SrcBlendAlpha))
             {
-                InternalReport(MessageSeverity.Error, $"{name}.SrcBlendAlpha has an invalid value '{blendStateRenderTarget.SrcBlendAlpha}'.");
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.SrcBlendAlpha", blendStateRenderTarget.SrcBlendAlpha));
             }
 
             if (!Enum.IsDefined(blendStateRenderTarget.DestBlendAlpha))
             {
-                InternalReport(MessageSeverity.Error, $"{name}.DestBlendAlpha has an invalid value '{blendStateRenderTarget.DestBlendAlpha}'.");
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.DestBlendAlpha", blendStateRenderTarget.DestBlendAlpha));
             }
 
             if (!Enum.IsDefined(blendStateRenderTarget.BlendOpAlpha))
             {
-                InternalReport(MessageSeverity.Error, $"{name}.BlendOpAlpha has an invalid value '{blendStateRenderTarget.BlendOpAlpha}'.");
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.BlendOpAlpha", blendStateRenderTarget.BlendOpAlpha));
             }
         }
     }
@@ -709,7 +747,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         if (output.ColorAttachments is null)
         {
-            InternalReport(MessageSeverity.Error, $"{name}.ColorAttachments must not be null.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, $"{name}.ColorAttachments"));
 
             return;
         }
@@ -718,19 +756,23 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         {
             if (!Enum.IsDefined(output.ColorAttachments[i]))
             {
-                InternalReport(MessageSeverity.Error, $"{name}.ColorAttachments[{i}] has an invalid value '{output.ColorAttachments[i]}'.");
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.ColorAttachments[{i}]", output.ColorAttachments[i]));
             }
         }
 
         if (output.DepthStencilAttachment is not null && !Enum.IsDefined(output.DepthStencilAttachment.Value))
         {
-            InternalReport(MessageSeverity.Error, $"{name}.DepthStencilAttachment has an invalid value '{output.DepthStencilAttachment.Value}'.");
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.DepthStencilAttachment", output.DepthStencilAttachment.Value));
         }
-
 
         if (output.ColorAttachments.Length is 0 && output.DepthStencilAttachment is null)
         {
-            InternalReport(MessageSeverity.Warning, $"{name} has no attachments, which may be valid for pipelines without output but could indicate an issue.");
+            ReportFrameworkMessage(MessageSeverity.Warning, string.Format(ValidationMessages.HasNoAttachments, name));
         }
+    }
+
+    private void ReportFrameworkMessage(MessageSeverity severity, string message)
+    {
+        Report(MessageSource.Framework, severity, message);
     }
 }
