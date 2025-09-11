@@ -9,6 +9,11 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         Context.OnValidationMessage(new(source, severity, message));
     }
 
+    internal void InternalReport(MessageSeverity severity, string message)
+    {
+        Report(MessageSource.Framework, severity, message);
+    }
+
     internal void ValidateDesc(SwapChainDesc desc)
     {
         if (desc.Surface.Handles is null)
@@ -704,10 +709,5 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         {
             InternalReport(MessageSeverity.Warning, $"{name} has no attachments, which may be valid for pipelines without output but could indicate an issue.");
         }
-    }
-
-    private void InternalReport(MessageSeverity severity, string message)
-    {
-        Report(MessageSource.Framework, severity, message);
     }
 }
