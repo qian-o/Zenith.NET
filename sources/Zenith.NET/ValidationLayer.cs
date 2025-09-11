@@ -36,12 +36,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         public const string HasNoAttachments = "{0} has no attachments.";
 
-        public const string HasNoBindings = "{0} has no bindings.";
-
-        public const string HasNoInputLayouts = "{0} has no input layouts, which may be valid for pipelines without vertex input but could indicate an issue.";
-
-        public const string HasNoInputElements = "{0} has no input elements, which may be valid for pipelines without vertex input but could indicate an issue.";
-
         public const string IsZeroWarning = "{0} is zero, which may be valid for some {1} but could indicate an issue.";
 
         public const string IsSetToNoneWarning = "{0} is set to None, which may be valid but could indicate an issue.";
@@ -375,9 +369,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     internal void ValidateDesc(ResourceLayoutDesc desc)
     {
-        if (desc.Bindings is null)
+        if (desc.Bindings is null || desc.Bindings.Length is 0)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceLayoutDesc.Bindings"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNullOrEmpty, "ResourceLayoutDesc.Bindings"));
 
             return;
         }
@@ -388,11 +382,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             {
                 ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "ResourceLayoutBinding.Type", binding.Type));
             }
-        }
-
-        if (desc.Bindings.Length is 0)
-        {
-            ReportFrameworkMessage(MessageSeverity.Warning, string.Format(ValidationMessages.HasNoBindings, "ResourceLayoutDesc"));
         }
     }
 
@@ -495,13 +484,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.ResourceLayouts"));
         }
 
-        if (desc.InputLayouts is null)
+        if (desc.InputLayouts is null || desc.InputLayouts.Length is 0)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.InputLayouts"));
-        }
-        else if (desc.InputLayouts.Length is 0)
-        {
-            ReportFrameworkMessage(MessageSeverity.Warning, string.Format(ValidationMessages.HasNoInputLayouts, "GraphicsPipelineDesc"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNullOrEmpty, "GraphicsPipelineDesc.InputLayouts"));
         }
         else
         {
@@ -515,30 +500,23 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         void CheckInputLayout(string name, InputLayout inputLayout)
         {
-            if (inputLayout.Elements is null)
+            if (inputLayout.Elements is null || inputLayout.Elements.Length is 0)
             {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, $"{name}.Elements"));
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNullOrEmpty, $"{name}.Elements"));
 
                 return;
             }
 
-            if (inputLayout.Elements.Length is 0)
+            foreach (InputElement element in inputLayout.Elements)
             {
-                ReportFrameworkMessage(MessageSeverity.Warning, string.Format(ValidationMessages.HasNoInputElements, name));
-            }
-            else
-            {
-                foreach (InputElement element in inputLayout.Elements)
+                if (!Enum.IsDefined(element.Format))
                 {
-                    if (!Enum.IsDefined(element.Format))
-                    {
-                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.Elements.ElementFormat", element.Format));
-                    }
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.Elements.ElementFormat", element.Format));
+                }
 
-                    if (!Enum.IsDefined(element.Semantic))
-                    {
-                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.Elements.ElementSemantic", element.Semantic));
-                    }
+                if (!Enum.IsDefined(element.Semantic))
+                {
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.Elements.ElementSemantic", element.Semantic));
                 }
             }
         }
@@ -639,17 +617,45 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     internal void ValidateDesc(BottomLevelAccelerationStructureDesc desc)
     {
-        throw new NotImplementedException();
+        if (desc.Geometries is null || desc.Geometries.Length is 0)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNullOrEmpty, "BottomLevelAccelerationStructureDesc.Geometries"));
+
+            return;
+        }
+
+        for (int i = 0; i < desc.Geometries.Length; i++)
+        {
+        }
     }
 
     internal void ValidateDesc(TopLevelAccelerationStructureDesc desc)
     {
-        throw new NotImplementedException();
+        if (desc.Instances is null || desc.Instances.Length is 0)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNullOrEmpty, "TopLevelAccelerationStructureDesc.Instances"));
+
+            return;
+        }
+
+        for (int i = 0; i < desc.Instances.Length; i++)
+        {
+        }
     }
 
     internal void ValidateDesc(TopLevelAccelerationStructureDesc oldDesc, TopLevelAccelerationStructureDesc newDesc)
     {
-        throw new NotImplementedException();
+        ValidateDesc(newDesc);
+
+        if (newDesc.Instances is null)
+        {
+            return;
+        }
+
+        if (oldDesc.Instances.Length != newDesc.Instances.Length)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, "When updating a TopLevelAccelerationStructure, the number of instances must remain the same.");
+        }
     }
 
     private void CheckRenderStates(string name, RenderStates renderStates)
