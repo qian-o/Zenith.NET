@@ -626,6 +626,105 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         for (int i = 0; i < desc.Geometries.Length; i++)
         {
+            CheckRayTracingGeometry($"BottomLevelAccelerationStructureDesc.Geometries[{i}]", desc.Geometries[i]);
+        }
+
+        void CheckRayTracingGeometry(string name, RayTracingGeometry rayTracingGeometry)
+        {
+            switch (rayTracingGeometry.Type)
+            {
+                case RayTracingGeometryType.Triangles:
+                    {
+                        RayTracingTriangles triangles = rayTracingGeometry.Triangles;
+
+                        if (triangles.VertexBuffer is null)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, $"{name}.Triangles.VertexBuffer"));
+
+                            break;
+                        }
+
+                        if (!Enum.IsDefined(triangles.VertexFormat))
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.Triangles.VertexFormat", triangles.VertexFormat));
+                        }
+
+                        if (triangles.VertexCount is 0)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, $"{name}.Triangles.VertexCount"));
+                        }
+
+                        if (triangles.VertexStrideInBytes is 0)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, $"{name}.Triangles.VertexStrideInBytes"));
+                        }
+
+                        if (triangles.VertexOffsetInBytes + (triangles.VertexCount * triangles.VertexStrideInBytes) > triangles.VertexBuffer.Desc.SizeInBytes)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, $"{name}.Triangles.VertexCount", "the vertex buffer"));
+                        }
+
+                        if (triangles.IndexBuffer is null)
+                        {
+                            break;
+                        }
+
+                        if (!Enum.IsDefined(triangles.IndexFormat))
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.Triangles.IndexFormat", triangles.IndexFormat));
+                        }
+
+                        if (triangles.IndexCount is 0)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, $"{name}.Triangles.IndexCount"));
+                        }
+
+                        uint indexSizeInBytes = triangles.IndexFormat switch
+                        {
+                            IndexFormat.UInt16 => 2,
+                            IndexFormat.UInt32 => 4,
+                            _ => 0
+                        };
+
+                        if (triangles.IndexOffsetInBytes + (triangles.IndexCount * indexSizeInBytes) > triangles.IndexBuffer.Desc.SizeInBytes)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, $"{name}.Triangles.IndexCount", "the index buffer"));
+                        }
+                    }
+                    break;
+
+                case RayTracingGeometryType.AABBs:
+                    {
+                        RayTracingAABBs aABBs = rayTracingGeometry.AABBs;
+
+                        if (aABBs.Buffer is null)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, $"{name}.AABBs.Buffer"));
+
+                            break;
+                        }
+
+                        if (aABBs.Count is 0)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, $"{name}.AABBs.Count"));
+                        }
+
+                        if (aABBs.StrideInBytes is 0)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, $"{name}.AABBs.StrideInBytes"));
+                        }
+
+                        if (aABBs.OffsetInBytes + (aABBs.Count * aABBs.StrideInBytes) > aABBs.Buffer.Desc.SizeInBytes)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, $"{name}.AABBs.Count", "the AABBs buffer"));
+                        }
+                    }
+                    break;
+
+                default:
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.Type", rayTracingGeometry.Type));
+                    break;
+            }
         }
     }
 
@@ -640,6 +739,27 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         for (int i = 0; i < desc.Instances.Length; i++)
         {
+            CheckRayTracingInstance($"TopLevelAccelerationStructureDesc.Instances[{i}]", desc.Instances[i]);
+        }
+
+        void CheckRayTracingInstance(string name, RayTracingInstance rayTracingInstance)
+        {
+            if (rayTracingInstance.AccelerationStructure is null)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, $"{name}.AccelerationStructure"));
+
+                return;
+            }
+
+            if (rayTracingInstance.InstanceID > 16777215)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, $"{name}.InstanceID", "16777215"));
+            }
+
+            if (rayTracingInstance.InstanceContributionToHitGroupIndex > 65535)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, $"{name}.InstanceContributionToHitGroupIndex", "65535"));
+            }
         }
     }
 
