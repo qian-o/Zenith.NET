@@ -311,6 +311,42 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         DispatchMeshIndirectImpl(indirectBuffer, offsetInBytes, dispatchCount);
     }
 
+    public void BeginQuery(QueryHeap queryHeap, uint index)
+    {
+        if (queryHeap.Desc.Type is QueryType.Timestamp)
+        {
+            return;
+        }
+
+        EnsureRenderingEnded();
+
+        BeginQueryImpl(queryHeap, index);
+    }
+
+    public void EndQuery(QueryHeap queryHeap, uint index)
+    {
+        if (queryHeap.Desc.Type is QueryType.Timestamp)
+        {
+            return;
+        }
+
+        EnsureRenderingEnded();
+
+        EndQueryImpl(queryHeap, index);
+    }
+
+    public void WriteTimestamp(QueryHeap queryHeap, uint index)
+    {
+        if (queryHeap.Desc.Type is not QueryType.Timestamp)
+        {
+            return;
+        }
+
+        EnsureRenderingEnded();
+
+        WriteTimestampImpl(queryHeap, index);
+    }
+
     public abstract void BeginDebugEvent(string label);
 
     public abstract void EndDebugEvent();
@@ -390,6 +426,12 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     protected abstract void DispatchMeshImpl(uint groupCountX, uint groupCountY, uint groupCountZ);
 
     protected abstract void DispatchMeshIndirectImpl(Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount);
+
+    protected abstract void BeginQueryImpl(QueryHeap queryHeap, uint index);
+
+    protected abstract void EndQueryImpl(QueryHeap queryHeap, uint index);
+
+    protected abstract void WriteTimestampImpl(QueryHeap queryHeap, uint index);
 
     protected abstract void ResetImpl();
 
