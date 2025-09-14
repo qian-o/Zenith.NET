@@ -634,6 +634,19 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         CheckOutput("MeshShadingPipelineDesc.Output", desc.Output);
     }
 
+    internal void ValidateDesc(QueryHeapDesc desc)
+    {
+        if (!Enum.IsDefined(desc.Type))
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "QueryHeapDesc.Type", desc.Type));
+        }
+
+        if (desc.Count is 0)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "QueryHeapDesc.Count"));
+        }
+    }
+
     internal void ValidateDesc(BottomLevelAccelerationStructureDesc desc)
     {
         if (desc.Geometries is null || desc.Geometries.Length is 0)

@@ -136,6 +136,13 @@ public abstract class GraphicsContext : DisposableObject
         return CreateMeshShadingPipelineImpl(desc);
     }
 
+    public QueryHeap CreateQueryHeap(QueryHeapDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
+
+        return CreateQueryHeapImpl(desc);
+    }
+
     protected override void Destroy()
     {
         Direct.Dispose();
@@ -180,6 +187,8 @@ public abstract class GraphicsContext : DisposableObject
     protected abstract RayTracingPipeline CreateRayTracingPipelineImpl(RayTracingPipelineDesc desc);
 
     protected abstract MeshShadingPipeline CreateMeshShadingPipelineImpl(MeshShadingPipelineDesc desc);
+
+    protected abstract QueryHeap CreateQueryHeapImpl(QueryHeapDesc desc);
 
     internal void OnValidationMessage(ValidationMessageArgs args)
     {
