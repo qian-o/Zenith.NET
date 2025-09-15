@@ -30,7 +30,7 @@
                 <PackageIcon></PackageIcon>
                 <PackageLicenseFile>LICENSE</PackageLicenseFile>
                 <PackageReadmeFile>README.md</PackageReadmeFile>
-                <PackageTags>C#,DirectX12,Metal,Vulkan,ImGui,Skia,Slang,Avalonia,Maui,Uno,WinUI,WPF,Computer-Graphics,Game-Development,GPU,Cross-Platform</PackageTags>
+                <PackageTags>C#;DirectX12;Metal;Vulkan;ImGui;Skia;Slang;Avalonia;Maui;Uno;WinUI;WPF;GPU;Computer Graphics;Cross Platform</PackageTags>
                 <PackageReleaseNotes></PackageReleaseNotes>
 
                 <!-- Debug Symbols & Source Link -->
