@@ -8,5 +8,7 @@ public abstract class Capabilities
 
     public abstract Version DriverVersion { get; }
 
-    public abstract bool SupportsRayTracing { get; }
+    public abstract bool RayTracingSupported { get; }
+
+    public abstract bool MeshShaderSupported { get; }
 }
