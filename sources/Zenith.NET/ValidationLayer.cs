@@ -147,7 +147,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 {
                     ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "one", "SurfaceType.PixelBuffer"));
                 }
-                else if (desc.Surface.Handles[0] is 0 || GCHandle.FromIntPtr(desc.Surface.Handles[0]).Target is not PixelBuffer)
+                else if (desc.Surface.Handles[0] is 0 || GCHandle.FromIntPtr(desc.Surface.Handles[0]).Target is not IPixelBuffer)
                 {
                     ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidPixelBufferHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.PixelBuffer"));
                 }
