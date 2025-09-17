@@ -13,6 +13,11 @@
         <PackageVersion Include="Microsoft.Maui.Controls" Version="9.0.110" />
         <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.8.250907003" />
         <PackageVersion Include="Roslynator.Analyzers" Version="4.14.0" />
+        <PackageVersion Include="Silk.NET.Direct3D12" Version="2.22.0" />
+        <PackageVersion Include="Silk.NET.Vulkan" Version="2.22.0" />
+        <PackageVersion Include="Silk.NET.Vulkan.Extensions.EXT" Version="2.22.0" />
+        <PackageVersion Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.22.0" />
+        <PackageVersion Include="Silk.NET.Vulkan.Extensions.MVK" Version="2.22.0" />
         <PackageVersion Include="SkiaSharp" Version="3.119.0" />
         <PackageVersion Include="Slangc.NET" Version="2025.16.1" />
         <PackageVersion Include="Uno.WinUI" Version="6.2.58" />

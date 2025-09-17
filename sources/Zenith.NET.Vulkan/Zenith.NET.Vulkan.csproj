@@ -9,4 +9,11 @@
         <ProjectReference Include="..\Zenith.NET\Zenith.NET.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="Silk.NET.Vulkan" />
+        <PackageReference Include="Silk.NET.Vulkan.Extensions.EXT" />
+        <PackageReference Include="Silk.NET.Vulkan.Extensions.KHR" />
+        <PackageReference Include="Silk.NET.Vulkan.Extensions.MVK" />
+    </ItemGroup>
+
 </Project>

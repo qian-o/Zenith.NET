@@ -9,4 +9,8 @@
         <ProjectReference Include="..\Zenith.NET\Zenith.NET.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="Silk.NET.Direct3D12" />
+    </ItemGroup>
+
 </Project>
