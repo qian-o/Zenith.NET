@@ -104,6 +104,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         EnsureRenderingEnded();
 
         UpdateAccelerationStructureImpl(accelerationStructure, newDesc);
+
+        accelerationStructure.Refresh(newDesc);
     }
 
     public void BindFrameBuffer(FrameBuffer frameBuffer, ClearValue clearValue)
