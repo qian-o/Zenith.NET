@@ -2,12 +2,14 @@
 
     <!-- Build Configuration -->
     <PropertyGroup>
-        <StandardTargetFramework>net9.0</StandardTargetFramework>
-        <LangVersion>preview</LangVersion>
+        <!-- Target & Compatibility -->
+        <StandardTargetFramework>net10.0</StandardTargetFramework>
+        <IsAotCompatible>true</IsAotCompatible>
+
+        <!-- Code Style & Language Features -->
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-        <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>
 
     <!-- Release Configuration -->
