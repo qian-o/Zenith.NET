@@ -349,11 +349,27 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         WriteTimestampImpl(queryHeap, index);
     }
 
-    public abstract void BeginDebugEvent(string label);
+    public void BeginDebugEvent(string label)
+    {
+        if (string.IsNullOrWhiteSpace(label))
+        {
+            return;
+        }
+
+        BeginDebugEventImpl(label);
+    }
 
     public abstract void EndDebugEvent();
 
-    public abstract void InsertDebugMarker(string label);
+    public void InsertDebugMarker(string label)
+    {
+        if (string.IsNullOrWhiteSpace(label))
+        {
+            return;
+        }
+
+        InsertDebugMarkerImpl(label);
+    }
 
     internal void Reset()
     {
@@ -434,6 +450,10 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     protected abstract void EndQueryImpl(QueryHeap queryHeap, uint index);
 
     protected abstract void WriteTimestampImpl(QueryHeap queryHeap, uint index);
+
+    protected abstract void BeginDebugEventImpl(string label);
+
+    protected abstract void InsertDebugMarkerImpl(string label);
 
     protected abstract void ResetImpl();
 
