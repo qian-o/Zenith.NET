@@ -19,7 +19,7 @@
         <PackageVersion Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.22.0" />
         <PackageVersion Include="Silk.NET.Vulkan.Extensions.MVK" Version="2.22.0" />
         <PackageVersion Include="SkiaSharp" Version="3.119.0" />
-        <PackageVersion Include="Slangc.NET" Version="2025.16.1" />
+        <PackageVersion Include="Slangc.NET" Version="2025.17.0" />
         <PackageVersion Include="Uno.WinUI" Version="6.2.58" />
     </ItemGroup>
 
