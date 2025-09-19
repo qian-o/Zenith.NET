@@ -11,12 +11,15 @@ public abstract class GraphicsResource(GraphicsContext context) : DisposableObje
             {
                 field = value;
 
-                NameChanged(value);
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    SetResourceName(value);
+                }
             }
         }
     } = string.Empty;
 
     protected GraphicsContext Context => context;
 
-    protected abstract void NameChanged(string name);
+    protected abstract void SetResourceName(string name);
 }

@@ -21,7 +21,7 @@ internal class Uploader(GraphicsContext context) : DisposableObject
         {
             sizeInBytes = Math.Max(sizeInBytes, MinBufferSize);
 
-            buffer = context.Factory.CreateBuffer(new()
+            buffer = context.CreateBuffer(new()
             {
                 SizeInBytes = sizeInBytes,
                 StrideInBytes = 1,

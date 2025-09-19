@@ -1,7 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+    <PropertyGroup>
+        <TargetFramework>$(StandardTargetFramework)</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Zenith.NET\Zenith.NET.csproj" />
+    </ItemGroup>
+
     <ItemGroup>
         <PackageReference Include="Hexa.NET.ImGui" />
+        <PackageReference Include="Hexa.NET.ImGuizmo" />
+        <PackageReference Include="Hexa.NET.ImNodes" />
+        <PackageReference Include="Hexa.NET.ImPlot" />
     </ItemGroup>
 
 </Project>

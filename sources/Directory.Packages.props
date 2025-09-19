@@ -5,9 +5,22 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageVersion Include="Hexa.NET.ImGui" Version="2.2.7" />
-        <PackageVersion Include="Roslynator.Analyzers" Version="4.13.1" />
-        <PackageVersion Include="Slangc.NET" Version="2025.12.0" />
+        <PackageVersion Include="Avalonia" Version="11.3.6" />
+        <PackageVersion Include="Hexa.NET.ImGui" Version="2.2.8.5" />
+        <PackageVersion Include="Hexa.NET.ImGuizmo" Version="2.2.8.4" />
+        <PackageVersion Include="Hexa.NET.ImNodes" Version="2.2.8.4" />
+        <PackageVersion Include="Hexa.NET.ImPlot" Version="2.2.8.4" />
+        <PackageVersion Include="Microsoft.Maui.Controls" Version="9.0.110" />
+        <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.8.250907003" />
+        <PackageVersion Include="Roslynator.Analyzers" Version="4.14.0" />
+        <PackageVersion Include="Silk.NET.Direct3D12" Version="2.22.0" />
+        <PackageVersion Include="Silk.NET.Vulkan" Version="2.22.0" />
+        <PackageVersion Include="Silk.NET.Vulkan.Extensions.EXT" Version="2.22.0" />
+        <PackageVersion Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.22.0" />
+        <PackageVersion Include="Silk.NET.Vulkan.Extensions.MVK" Version="2.22.0" />
+        <PackageVersion Include="SkiaSharp" Version="3.119.0" />
+        <PackageVersion Include="Slangc.NET" Version="2025.17.0" />
+        <PackageVersion Include="Uno.WinUI" Version="6.2.58" />
     </ItemGroup>
 
 </Project>

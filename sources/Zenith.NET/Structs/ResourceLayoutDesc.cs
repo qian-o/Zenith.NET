@@ -2,5 +2,5 @@
 
 public record struct ResourceLayoutDesc
 {
-    public ResourceElement[] Elements;
+    public ResourceBinding[] Bindings;
 }

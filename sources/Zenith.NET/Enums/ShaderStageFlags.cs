@@ -25,5 +25,9 @@ public enum ShaderStageFlags
 
     Intersection = 1 << 9,
 
-    ClosestHit = 1 << 10
+    ClosestHit = 1 << 10,
+
+    Amplification = 1 << 11,
+
+    Mesh = 1 << 12
 }

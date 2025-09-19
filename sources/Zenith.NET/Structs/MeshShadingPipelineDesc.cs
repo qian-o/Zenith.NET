@@ -1,22 +1,16 @@
 ﻿namespace Zenith.NET;
 
-public record struct GraphicsPipelineDesc
+public record struct MeshShadingPipelineDesc
 {
     public RenderStates RenderStates;
 
-    public Shader Vertex;
+    public Shader? Amplification;
 
-    public Shader? Hull;
-
-    public Shader? Domain;
-
-    public Shader? Geometry;
+    public Shader Mesh;
 
     public Shader Pixel;
 
     public ResourceLayout[] ResourceLayouts;
-
-    public InputLayout[] InputLayouts;
 
     public PrimitiveTopology PrimitiveTopology;
 

@@ -1,11 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <TargetFramework>$(StandardTargetFramework)</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\Zenith.NET\Zenith.NET.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Silk.NET.Vulkan" />
+        <PackageReference Include="Silk.NET.Vulkan.Extensions.EXT" />
+        <PackageReference Include="Silk.NET.Vulkan.Extensions.KHR" />
+        <PackageReference Include="Silk.NET.Vulkan.Extensions.MVK" />
     </ItemGroup>
 
 </Project>
