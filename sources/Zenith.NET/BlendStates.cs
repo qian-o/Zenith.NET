@@ -4,6 +4,8 @@ public static class BlendStates
 {
     public static readonly BlendState Default = new()
     {
+        AlphaToCoverageEnable = false,
+        IndependentBlendEnable = false,
         RenderTarget0 = new()
         {
             SrcBlend = Blend.One,
