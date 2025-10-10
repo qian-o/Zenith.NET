@@ -12,6 +12,10 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public abstract nint SharedPointer { get; }
 
+    public abstract MappedResource Map();
+
+    public abstract void Unmap();
+
     public abstract void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes) where T : unmanaged;
 
     public abstract void Download<T>(Span<T> data, uint offsetInBytes) where T : unmanaged;

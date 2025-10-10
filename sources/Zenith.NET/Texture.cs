@@ -10,6 +10,10 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public abstract TextureView View { get; }
 
+    public abstract MappedResource Map(TextureSlice slice);
+
+    public abstract void Unmap();
+
     public abstract void Upload<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent) where T : unmanaged;
 
     public abstract void Download<T>(Span<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent) where T : unmanaged;
