@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-
-namespace Zenith.NET;
+﻿namespace Zenith.NET;
 
 public abstract class Texture(GraphicsContext context, TextureDesc desc) : GraphicsResource(context), IBindableResource
 {
@@ -13,43 +11,4 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
     public abstract MappedResource Map(TextureSlice slice);
 
     public abstract void Unmap();
-
-    public abstract void Upload<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent) where T : unmanaged;
-
-    public abstract void Download<T>(Span<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent) where T : unmanaged;
-
-    protected void UploadInternal<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent) where T : unmanaged
-    {
-        CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
-
-        commandBuffer.Begin();
-        commandBuffer.Upload(this, slice, offset, extent, data);
-        commandBuffer.End();
-        commandBuffer.Submit();
-
-        Context.Copy.WaitIdle();
-    }
-
-    protected void DownloadInternal<T>(Span<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent) where T : unmanaged
-    {
-        uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
-
-        using Buffer buffer = Context.CreateBuffer(new()
-        {
-            SizeInBytes = sizeInBytes,
-            StrideInBytes = 1,
-            Flags = BufferUsageFlags.Dynamic
-        });
-
-        CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
-
-        commandBuffer.Begin();
-        commandBuffer.CopyTextureToBuffer(this, slice, offset, extent, buffer, 0);
-        commandBuffer.End();
-        commandBuffer.Submit();
-
-        Context.Copy.WaitIdle();
-
-        buffer.Download(data, 0);
-    }
 }

@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-
-namespace Zenith.NET;
+﻿namespace Zenith.NET;
 
 public abstract class Buffer(GraphicsContext context, BufferDesc desc) : GraphicsResource(context), IBindableResource
 {
@@ -10,48 +8,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public abstract BufferView View { get; }
 
-    public abstract nint SharedPointer { get; }
-
     public abstract MappedResource Map();
 
     public abstract void Unmap();
-
-    public abstract void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes) where T : unmanaged;
-
-    public abstract void Download<T>(Span<T> data, uint offsetInBytes) where T : unmanaged;
-
-    protected void UploadInternal<T>(ReadOnlySpan<T> data, uint offsetInBytes) where T : unmanaged
-    {
-        CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
-
-        commandBuffer.Begin();
-        commandBuffer.Upload(this, offsetInBytes, data);
-        commandBuffer.End();
-        commandBuffer.Submit();
-
-        Context.Copy.WaitIdle();
-    }
-
-    protected void DownloadInternal<T>(Span<T> data, uint offsetInBytes) where T : unmanaged
-    {
-        uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
-
-        using Buffer buffer = Context.CreateBuffer(new()
-        {
-            SizeInBytes = sizeInBytes,
-            StrideInBytes = 1,
-            Flags = BufferUsageFlags.Dynamic
-        });
-
-        CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
-
-        commandBuffer.Begin();
-        commandBuffer.CopyBuffer(this, offsetInBytes, buffer, 0, sizeInBytes);
-        commandBuffer.End();
-        commandBuffer.Submit();
-
-        Context.Copy.WaitIdle();
-
-        buffer.Download(data, 0);
-    }
 }
