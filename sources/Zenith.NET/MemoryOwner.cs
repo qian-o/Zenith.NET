@@ -7,7 +7,7 @@ public unsafe class MemoryOwner : DisposableObject
     private readonly List<nint> allocations = [];
     private readonly Lock @lock = new();
 
-    internal nint Alloc<T>(ReadOnlySpan<T> data) where T : unmanaged
+    internal nint Native<T>(ReadOnlySpan<T> data) where T : unmanaged
     {
         void* ptr = Alloc((uint)(data.Length * sizeof(T)));
 
