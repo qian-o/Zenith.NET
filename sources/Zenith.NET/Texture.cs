@@ -10,11 +10,11 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public abstract TextureView View { get; }
 
-    public abstract void Upload<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent);
+    public abstract void Upload<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent) where T : unmanaged;
 
-    public abstract void Download<T>(Span<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent);
+    public abstract void Download<T>(Span<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent) where T : unmanaged;
 
-    protected void UploadInternal<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent)
+    protected void UploadInternal<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent) where T : unmanaged
     {
         CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
 
@@ -26,7 +26,7 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
         Context.Copy.WaitIdle();
     }
 
-    protected void DownloadInternal<T>(Span<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent)
+    protected void DownloadInternal<T>(Span<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent) where T : unmanaged
     {
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 

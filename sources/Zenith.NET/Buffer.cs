@@ -12,11 +12,11 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public abstract nint SharedPointer { get; }
 
-    public abstract void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes);
+    public abstract void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes) where T : unmanaged;
 
-    public abstract void Download<T>(Span<T> data, uint offsetInBytes);
+    public abstract void Download<T>(Span<T> data, uint offsetInBytes) where T : unmanaged;
 
-    protected void UploadInternal<T>(ReadOnlySpan<T> data, uint offsetInBytes)
+    protected void UploadInternal<T>(ReadOnlySpan<T> data, uint offsetInBytes) where T : unmanaged
     {
         CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
 
@@ -28,7 +28,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
         Context.Copy.WaitIdle();
     }
 
-    protected void DownloadInternal<T>(Span<T> data, uint offsetInBytes)
+    protected void DownloadInternal<T>(Span<T> data, uint offsetInBytes) where T : unmanaged
     {
         uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
 
