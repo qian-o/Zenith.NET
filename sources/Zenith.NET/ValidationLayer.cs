@@ -1,6 +1,4 @@
-﻿using System.Runtime.InteropServices;
-
-namespace Zenith.NET;
+﻿namespace Zenith.NET;
 
 public abstract class ValidationLayer(GraphicsContext context) : GraphicsResource(context)
 {
@@ -46,8 +44,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         public const string LengthMustMatch = "{0} length must match {1}.";
 
         public const string MustBeOfType = "{0} item must be a {1} for {2} binding.";
-
-        public const string MustBeValidPixelBufferHandle = "{0} must be a valid PixelBuffer handle for {1}.";
 
         public const string HasNoAttachments = "{0} has no attachments.";
 
@@ -139,17 +135,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 else if (desc.Surface.Handles[0] is 0)
                 {
                     ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.MacOS"));
-                }
-                break;
-
-            case SurfaceType.PixelBuffer:
-                if (desc.Surface.Handles.Length is not 1)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "one", "SurfaceType.PixelBuffer"));
-                }
-                else if (desc.Surface.Handles[0] is 0 || GCHandle.FromIntPtr(desc.Surface.Handles[0]).Target is not IPixelBuffer)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidPixelBufferHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.PixelBuffer"));
                 }
                 break;
 

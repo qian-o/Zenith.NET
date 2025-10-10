@@ -8,7 +8,19 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public abstract TextureView View { get; }
 
-    public abstract MappedResource Map(TextureSlice slice);
+    public abstract MappedMemory Map(TextureSlice slice);
 
     public abstract void Unmap();
+
+    public void Upload<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent) where T : unmanaged
+    {
+        CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
+
+        commandBuffer.Begin();
+        commandBuffer.Upload(this, slice, offset, extent, data);
+        commandBuffer.End();
+        commandBuffer.Submit();
+
+        Context.Copy.WaitIdle();
+    }
 }

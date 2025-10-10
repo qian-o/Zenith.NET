@@ -75,15 +75,4 @@ public record struct Surface
             Height = height
         };
     }
-
-    public static Surface PixelBuffer(nint pixelBuffer, uint width, uint height)
-    {
-        return new()
-        {
-            Type = SurfaceType.PixelBuffer,
-            Handles = [pixelBuffer],
-            Width = width,
-            Height = height
-        };
-    }
 }

@@ -1,8 +1,8 @@
 ﻿namespace Zenith.NET;
 
-public readonly struct MappedResource(nint data, uint sizeInBytes, uint rowPitch, uint slicePitch)
+public readonly struct MappedMemory(nint pointer, uint sizeInBytes, uint rowPitch, uint slicePitch)
 {
-    public readonly nint Data = data;
+    public readonly nint Pointer = pointer;
 
     public readonly uint SizeInBytes = sizeInBytes;
 

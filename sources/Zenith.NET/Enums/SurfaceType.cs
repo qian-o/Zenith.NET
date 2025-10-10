@@ -12,7 +12,5 @@ public enum SurfaceType
 
     IOS,
 
-    MacOS,
-
-    PixelBuffer
+    MacOS
 }
