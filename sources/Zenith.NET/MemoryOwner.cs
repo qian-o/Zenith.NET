@@ -18,8 +18,6 @@ public unsafe class MemoryOwner : DisposableObject
 
     protected override void Destroy()
     {
-        using Lock.Scope _ = @lock.EnterScope();
-
         foreach (nint ptr in allocations)
         {
             NativeMemory.Free((void*)ptr);
