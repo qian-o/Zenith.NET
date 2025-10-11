@@ -15,7 +15,7 @@ public static class MemoryMarshal
 
     public static nint StringToNative(MemoryOwner owner, string value, StringEncoding encoding)
     {
-        byte[] bytes = encoding switch
+        byte[] values = encoding switch
         {
             StringEncoding.Ansi => Encoding.Default.GetBytes(value + '\0'),
             StringEncoding.Uni => Encoding.Unicode.GetBytes(value + '\0'),
@@ -23,42 +23,42 @@ public static class MemoryMarshal
             _ => []
         };
 
-        return owner.Native(bytes);
+        return owner.Native(values);
     }
 
     public static nint StringArrayToNative(MemoryOwner owner, string[] values, StringEncoding encoding)
     {
-        nint[] ptrs = new nint[values.Length];
+        nint[] pointers = new nint[values.Length];
 
         for (int i = 0; i < values.Length; i++)
         {
-            ptrs[i] = StringToNative(owner, values[i], encoding);
+            pointers[i] = StringToNative(owner, values[i], encoding);
         }
 
-        return owner.Native(ptrs);
+        return owner.Native(pointers);
     }
 
-    public static string StringFromNative(nint ptr, StringEncoding encoding)
+    public static string StringFromNative(nint pointer, StringEncoding encoding)
     {
         return encoding switch
         {
-            StringEncoding.Ansi => Marshal.PtrToStringAnsi(ptr) ?? string.Empty,
-            StringEncoding.Uni => Marshal.PtrToStringUni(ptr) ?? string.Empty,
-            StringEncoding.UTF8 => Marshal.PtrToStringUTF8(ptr) ?? string.Empty,
+            StringEncoding.Ansi => Marshal.PtrToStringAnsi(pointer) ?? string.Empty,
+            StringEncoding.Uni => Marshal.PtrToStringUni(pointer) ?? string.Empty,
+            StringEncoding.UTF8 => Marshal.PtrToStringUTF8(pointer) ?? string.Empty,
             _ => string.Empty
         };
     }
 
-    public static string[] StringArrayFromNative(nint ptr, uint length, StringEncoding encoding)
+    public static string[] StringArrayFromNative(nint pointer, uint length, StringEncoding encoding)
     {
-        nint[] ptrs = new nint[length];
-        Marshal.Copy(ptr, ptrs, 0, (int)length);
+        nint[] pointers = new nint[length];
+        Marshal.Copy(pointer, pointers, 0, (int)length);
 
         string[] values = new string[length];
 
         for (uint i = 0; i < length; i++)
         {
-            values[i] = StringFromNative(ptrs[i], encoding);
+            values[i] = StringFromNative(pointers[i], encoding);
         }
 
         return values;

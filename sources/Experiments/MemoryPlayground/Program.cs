@@ -1,9 +1,12 @@
 ﻿using Zenith.NET;
 
+string[] values = ["Hello, World!", "你好，世界！", "こんにちは、世界！"];
+
 using MemoryOwner owner = new();
 
-nint ptr = MemoryMarshal.StringToNative(owner, "Hello, World!", StringEncoding.UTF8);
+nint pointer = MemoryMarshal.StringArrayToNative(owner, values, StringEncoding.UTF8);
 
-string str = MemoryMarshal.StringFromNative(ptr, StringEncoding.UTF8);
-
-Console.WriteLine(str);
+foreach (string value in MemoryMarshal.StringArrayFromNative(pointer, (uint)values.Length, StringEncoding.UTF8))
+{
+    Console.WriteLine(value);
+}
