@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Experiments/">
+    <Project Path="sources/Experiments/MemoryPlayground/MemoryPlayground.csproj" Id="5e72cb29-02e8-4b50-9aec-315a2d4018da" />
+  </Folder>
   <Folder Name="/Extensions/">
     <Project Path="sources/Extensions/Zenith.NET.Extensions.ImGui/Zenith.NET.Extensions.ImGui.csproj" />
     <Project Path="sources/Extensions/Zenith.NET.Extensions.Skia/Zenith.NET.Extensions.Skia.csproj" />

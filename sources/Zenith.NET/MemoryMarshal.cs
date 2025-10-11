@@ -38,7 +38,7 @@ public static class MemoryMarshal
         return owner.Native(ptrs);
     }
 
-    public static string NativeToString(nint ptr, StringEncoding encoding)
+    public static string StringFromNative(nint ptr, StringEncoding encoding)
     {
         return encoding switch
         {
@@ -49,7 +49,7 @@ public static class MemoryMarshal
         };
     }
 
-    public static string[] NativeToStringArray(nint ptr, uint length, StringEncoding encoding)
+    public static string[] StringArrayFromNative(nint ptr, uint length, StringEncoding encoding)
     {
         nint[] ptrs = new nint[length];
         Marshal.Copy(ptr, ptrs, 0, (int)length);
@@ -58,7 +58,7 @@ public static class MemoryMarshal
 
         for (uint i = 0; i < length; i++)
         {
-            values[i] = NativeToString(ptrs[i], encoding);
+            values[i] = StringFromNative(ptrs[i], encoding);
         }
 
         return values;
