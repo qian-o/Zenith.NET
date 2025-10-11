@@ -243,4 +243,13 @@ public static class ZenithHelpers
 
         return (layerIndex * desc.MipLevels * facesPerMip) + (slice.MipLevel * facesPerMip) + faceIndex;
     }
+
+    public static uint GetSubresourceSizeInBytes(TextureDesc desc, TextureSlice slice)
+    {
+        uint depth = IsTexture3D(desc.Type) ? desc.Depth : 1u;
+
+        GetMipDimensions(desc.Width, desc.Height, depth, slice.MipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth);
+
+        return GetSlicePitch(mipWidth, mipHeight, desc.Format) * mipDepth;
+    }
 }
