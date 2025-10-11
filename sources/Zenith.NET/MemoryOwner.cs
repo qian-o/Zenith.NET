@@ -4,26 +4,26 @@ namespace Zenith.NET;
 
 public unsafe class MemoryOwner : DisposableObject
 {
-    private readonly List<nint> allocations = [];
+    private readonly List<nint> pointers = [];
 
     internal nint Native<T>(ReadOnlySpan<T> data) where T : unmanaged
     {
-        nint ptr = (nint)NativeMemory.Alloc((uint)(data.Length * sizeof(T)));
+        nint pointer = (nint)NativeMemory.Alloc((uint)(data.Length * sizeof(T)));
 
-        data.CopyTo(new Span<T>((void*)ptr, data.Length));
+        data.CopyTo(new Span<T>((void*)pointer, data.Length));
 
-        allocations.Add(ptr);
+        pointers.Add(pointer);
 
-        return ptr;
+        return pointer;
     }
 
     protected override void Destroy()
     {
-        foreach (nint ptr in allocations)
+        foreach (nint pointer in pointers)
         {
-            NativeMemory.Free((void*)ptr);
+            NativeMemory.Free((void*)pointer);
         }
 
-        allocations.Clear();
+        pointers.Clear();
     }
 }
