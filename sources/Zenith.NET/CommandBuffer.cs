@@ -36,12 +36,10 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Upload<T>(Texture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data) where T : unmanaged
     {
-        uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
+        Texture temporary = Context.Uploader.Texture(this, texture.Desc.Format, extent.Width, extent.Height, extent.Depth);
+        temporary.Upload(data, default, default, extent);
 
-        Buffer temporary = Context.Uploader.Buffer(this, sizeInBytes);
-        // temporary.Upload(data, 0);
-
-        CopyBufferToTexture(temporary, 0, texture, slice, default, new() { Width = texture.Desc.Width, Height = texture.Desc.Height, Depth = texture.Desc.Depth });
+        CopyTexture(temporary, default, default, texture, slice, offset, extent);
     }
 
     public void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes)

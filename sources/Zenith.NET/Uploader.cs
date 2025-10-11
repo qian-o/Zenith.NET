@@ -34,6 +34,11 @@ internal class Uploader(GraphicsContext context) : DisposableObject
         return buffer;
     }
 
+    public Texture Texture(CommandBuffer commandBuffer, PixelFormat format, uint width, uint height, uint depth)
+    {
+        throw new NotImplementedException();
+    }
+
     public void Release(CommandBuffer commandBuffer)
     {
         using Lock.Scope _ = @lock.EnterScope();
