@@ -216,18 +216,33 @@ public static class ZenithHelpers
         return GetRowPitch(width, format) * GetNumRows(height, format);
     }
 
+    public static bool IsTexture1D(TextureType type)
+    {
+        return type is TextureType.Texture1D or TextureType.Texture1DArray;
+    }
+
+    public static bool IsTexture2D(TextureType type)
+    {
+        return type is TextureType.Texture2D or TextureType.Texture2DArray or TextureType.TextureCube or TextureType.TextureCubeArray;
+    }
+
+    public static bool IsTextureCube(TextureType type)
+    {
+        return type is TextureType.TextureCube or TextureType.TextureCubeArray;
+    }
+
+    public static bool IsTextureArray(TextureType type)
+    {
+        return type is TextureType.Texture1DArray or TextureType.Texture2DArray or TextureType.TextureCubeArray;
+    }
+
     public static uint GetSubresourceCount(TextureDesc desc)
     {
-        uint plane = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : desc.Depth;
-
-        return desc.Layers * desc.MipLevels * plane;
+        return IsTextureArray(desc.Type) ? desc.Layers * desc.MipLevels : desc.MipLevels;
     }
 
     public static uint GetSubresourceIndex(TextureDesc desc, TextureSlice slice)
     {
-        uint plane = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : desc.Depth;
-        uint layer = plane * desc.MipLevels;
-
-        return (slice.Layer * layer) + (slice.MipLevel * plane) + slice.Face;
+        return IsTextureArray(desc.Type) ? (slice.Layer * desc.MipLevels) + slice.MipLevel : slice.MipLevel;
     }
 }

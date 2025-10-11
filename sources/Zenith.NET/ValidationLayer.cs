@@ -4,8 +4,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 {
     private static class ValidationConstants
     {
-        public const int CubeMapFaceCount = 6;
-
         public const int MaxTraceRecursionDepth = 31;
 
         public const int MaxInstanceId = 16777215;
@@ -185,11 +183,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, $"{name}.Target"));
 
                 return;
-            }
-
-            if (frameBufferAttachment.Slice.Face >= ValidationConstants.CubeMapFaceCount)
-            {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.Face", ValidationConstants.CubeMapFaceCount));
             }
 
             if (frameBufferAttachment.Slice.Layer >= frameBufferAttachment.Target.Desc.Layers)
