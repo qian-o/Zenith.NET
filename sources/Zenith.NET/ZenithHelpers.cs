@@ -9,20 +9,9 @@ public static class ZenithHelpers
         return (size + alignment - T.One) & ~(alignment - T.One);
     }
 
-    public static uint GetMipLevels(uint width, uint height)
-    {
-        return (uint)MathF.Floor(MathF.Log2(MathF.Max(width, height))) + 1;
-    }
-
     public static uint GetMipLevels(uint width, uint height, uint depth)
     {
         return (uint)MathF.Floor(MathF.Log2(MathF.Max(MathF.Max(width, height), depth))) + 1;
-    }
-
-    public static void GetMipDimensions(uint width, uint height, uint mipLevel, out uint mipWidth, out uint mipHeight)
-    {
-        mipWidth = Math.Max(1, width >> (int)mipLevel);
-        mipHeight = Math.Max(1, height >> (int)mipLevel);
     }
 
     public static void GetMipDimensions(uint width, uint height, uint depth, uint mipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth)
@@ -230,25 +219,20 @@ public static class ZenithHelpers
     public static uint GetSubresourceCount(TextureDesc desc)
     {
         uint facesPerMip = IsTextureCube(desc.Type) ? 6u : 1u;
-        uint layerCount = IsTextureArray(desc.Type) ? desc.Layers : 1u;
 
-        return layerCount * desc.MipLevels * facesPerMip;
+        return desc.Layers * desc.MipLevels * facesPerMip;
     }
 
     public static uint GetSubresourceIndex(TextureDesc desc, TextureSlice slice)
     {
         uint facesPerMip = IsTextureCube(desc.Type) ? 6u : 1u;
-        uint layerIndex = IsTextureArray(desc.Type) ? slice.Layer : 0u;
-        uint faceIndex = IsTextureCube(desc.Type) ? slice.Face : 0u;
 
-        return (layerIndex * desc.MipLevels * facesPerMip) + (slice.MipLevel * facesPerMip) + faceIndex;
+        return (slice.Layer * desc.MipLevels * facesPerMip) + (slice.MipLevel * facesPerMip) + slice.Face;
     }
 
     public static uint GetSubresourceSizeInBytes(TextureDesc desc, TextureSlice slice)
     {
-        uint depth = IsTexture3D(desc.Type) ? desc.Depth : 1u;
-
-        GetMipDimensions(desc.Width, desc.Height, depth, slice.MipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth);
+        GetMipDimensions(desc.Width, desc.Height, desc.Depth, slice.MipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth);
 
         return GetSlicePitch(mipWidth, mipHeight, desc.Format) * mipDepth;
     }
