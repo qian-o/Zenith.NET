@@ -226,6 +226,11 @@ public static class ZenithHelpers
         return type is TextureType.Texture2D or TextureType.Texture2DArray or TextureType.TextureCube or TextureType.TextureCubeArray;
     }
 
+    public static bool IsTexture3D(TextureType type)
+    {
+        return type is TextureType.Texture3D;
+    }
+
     public static bool IsTextureCube(TextureType type)
     {
         return type is TextureType.TextureCube or TextureType.TextureCubeArray;
@@ -238,15 +243,18 @@ public static class ZenithHelpers
 
     public static uint GetSubresourceCount(TextureDesc desc)
     {
-        uint sliceNum = IsTextureCube(desc.Type) ? 6u : 1u;
+        uint facesPerMip = IsTextureCube(desc.Type) ? 6u : 1u;
+        uint layerCount = IsTextureArray(desc.Type) ? desc.Layers : 1u;
 
-        return IsTextureArray(desc.Type) ? desc.Layers * desc.MipLevels * sliceNum : desc.MipLevels * sliceNum;
+        return layerCount * desc.MipLevels * facesPerMip;
     }
 
     public static uint GetSubresourceIndex(TextureDesc desc, TextureSlice slice)
     {
-        uint sliceNum = IsTextureCube(desc.Type) ? 6u : 1u;
+        uint facesPerMip = IsTextureCube(desc.Type) ? 6u : 1u;
+        uint layerIndex = IsTextureArray(desc.Type) ? slice.Layer : 0u;
+        uint faceIndex = IsTextureCube(desc.Type) ? slice.Face : 0u;
 
-        return IsTextureArray(desc.Type) ? (slice.Layer * desc.MipLevels * sliceNum) + (slice.MipLevel * sliceNum) + slice.Face : (slice.MipLevel * sliceNum) + slice.Face;
+        return (layerIndex * desc.MipLevels * facesPerMip) + (slice.MipLevel * facesPerMip) + faceIndex;
     }
 }
