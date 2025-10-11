@@ -5,13 +5,14 @@ namespace Zenith.NET;
 public unsafe class MemoryOwner : DisposableObject
 {
     private readonly List<nint> allocations = [];
-    private readonly Lock @lock = new();
 
     internal nint Native<T>(ReadOnlySpan<T> data) where T : unmanaged
     {
-        void* ptr = Alloc((uint)(data.Length * sizeof(T)));
+        void* ptr = NativeMemory.Alloc((uint)(data.Length * sizeof(T)));
 
         data.CopyTo(new Span<T>(ptr, data.Length));
+
+        allocations.Add((nint)ptr);
 
         return (nint)ptr;
     }
@@ -24,16 +25,5 @@ public unsafe class MemoryOwner : DisposableObject
         }
 
         allocations.Clear();
-    }
-
-    private void* Alloc(uint sizeInBytes)
-    {
-        using Lock.Scope _ = @lock.EnterScope();
-
-        void* ptr = NativeMemory.Alloc(sizeInBytes);
-
-        allocations.Add((nint)ptr);
-
-        return ptr;
     }
 }
