@@ -238,11 +238,15 @@ public static class ZenithHelpers
 
     public static uint GetSubresourceCount(TextureDesc desc)
     {
-        return IsTextureArray(desc.Type) ? desc.Layers * desc.MipLevels : desc.MipLevels;
+        uint sliceNum = IsTextureCube(desc.Type) ? 6u : 1u;
+
+        return IsTextureArray(desc.Type) ? desc.Layers * desc.MipLevels * sliceNum : desc.MipLevels * sliceNum;
     }
 
     public static uint GetSubresourceIndex(TextureDesc desc, TextureSlice slice)
     {
-        return IsTextureArray(desc.Type) ? (slice.Layer * desc.MipLevels) + slice.MipLevel : slice.MipLevel;
+        uint sliceNum = IsTextureCube(desc.Type) ? 6u : 1u;
+
+        return IsTextureArray(desc.Type) ? (slice.Layer * desc.MipLevels * sliceNum) + (slice.MipLevel * sliceNum) + slice.Face : (slice.MipLevel * sliceNum) + slice.Face;
     }
 }

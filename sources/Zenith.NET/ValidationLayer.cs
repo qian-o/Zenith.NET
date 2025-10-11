@@ -4,6 +4,8 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 {
     private static class ValidationConstants
     {
+        public const int CubeMapFaceCount = 6;
+
         public const int MaxTraceRecursionDepth = 31;
 
         public const int MaxInstanceId = 16777215;
@@ -193,6 +195,11 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             if (frameBufferAttachment.Slice.MipLevel >= frameBufferAttachment.Target.Desc.MipLevels)
             {
                 ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.MipLevel", "the number of mip levels in the texture"));
+            }
+
+            if (frameBufferAttachment.Slice.Face >= ValidationConstants.CubeMapFaceCount)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.Face", ValidationConstants.CubeMapFaceCount));
             }
         }
     }
