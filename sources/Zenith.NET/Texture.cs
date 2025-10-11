@@ -14,13 +14,27 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public void Upload<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent) where T : unmanaged
     {
-        CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
+        if (offset.X is 0 && offset.Y is 0 && offset.Z is 0)
+        {
+            MappedMemory mappedMemory = Map(slice);
 
-        commandBuffer.Begin();
-        commandBuffer.Upload(this, slice, offset, extent, data);
-        commandBuffer.End();
-        commandBuffer.Submit();
+            unsafe
+            {
+                data.CopyTo(new Span<T>((void*)mappedMemory.Pointer, data.Length));
+            }
 
-        Context.Copy.WaitIdle();
+            Unmap();
+        }
+        else
+        {
+            CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
+
+            commandBuffer.Begin();
+            commandBuffer.Upload(this, slice, offset, extent, data);
+            commandBuffer.End();
+            commandBuffer.Submit();
+
+            Context.Copy.WaitIdle();
+        }
     }
 }
