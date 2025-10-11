@@ -8,13 +8,13 @@ public unsafe class MemoryOwner : DisposableObject
 
     internal nint Native<T>(ReadOnlySpan<T> data) where T : unmanaged
     {
-        void* ptr = NativeMemory.Alloc((uint)(data.Length * sizeof(T)));
+        nint ptr = (nint)NativeMemory.Alloc((uint)(data.Length * sizeof(T)));
 
-        data.CopyTo(new Span<T>(ptr, data.Length));
+        data.CopyTo(new Span<T>((void*)ptr, data.Length));
 
-        allocations.Add((nint)ptr);
+        allocations.Add(ptr);
 
-        return (nint)ptr;
+        return ptr;
     }
 
     protected override void Destroy()
