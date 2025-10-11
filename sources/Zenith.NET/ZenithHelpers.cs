@@ -189,26 +189,12 @@ public static class ZenithHelpers
 
     public static uint GetRowPitch(uint width, PixelFormat format)
     {
-        if (IsCompressed(format))
-        {
-            return (width + 3) / 4 * GetSizeInBytes(format);
-        }
-        else
-        {
-            return width * GetSizeInBytes(format);
-        }
+        return IsCompressed(format) ? (width + 3) / 4 * GetSizeInBytes(format) : width * GetSizeInBytes(format);
     }
 
     public static uint GetNumRows(uint height, PixelFormat format)
     {
-        if (IsCompressed(format))
-        {
-            return (height + 3) / 4;
-        }
-        else
-        {
-            return height;
-        }
+        return IsCompressed(format) ? (height + 3) / 4 : height;
     }
 
     public static uint GetSlicePitch(uint width, uint height, PixelFormat format)
