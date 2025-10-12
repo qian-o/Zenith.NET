@@ -18,10 +18,7 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
         {
             MappedMemory mappedMemory = Map(slice);
 
-            unsafe
-            {
-                data.CopyTo(new Span<T>((void*)mappedMemory.Pointer, data.Length));
-            }
+            MemoryMarshal.Copy(data, mappedMemory.Pointer);
 
             Unmap();
         }

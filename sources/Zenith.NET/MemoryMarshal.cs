@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Zenith.NET;
 
-public static class MemoryMarshal
+public unsafe static class MemoryMarshal
 {
     public static nint Alloc<T>(MemoryOwner owner, uint length) where T : unmanaged
     {
@@ -51,8 +51,7 @@ public static class MemoryMarshal
 
     public static string[] StringArrayFromNative(nint pointer, uint length, StringEncoding encoding)
     {
-        nint[] pointers = new nint[length];
-        Marshal.Copy(pointer, pointers, 0, (int)length);
+        nint* pointers = (nint*)pointer;
 
         string[] values = new string[length];
 
@@ -62,5 +61,15 @@ public static class MemoryMarshal
         }
 
         return values;
+    }
+
+    public static void Copy<T>(ReadOnlySpan<T> source, nint destination) where T : unmanaged
+    {
+        source.CopyTo(new Span<T>((void*)destination, source.Length));
+    }
+
+    public static void Copy<T>(nint source, Span<T> destination) where T : unmanaged
+    {
+        new ReadOnlySpan<T>((void*)source, destination.Length).CopyTo(destination);
     }
 }

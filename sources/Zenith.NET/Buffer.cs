@@ -19,10 +19,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
         {
             MappedMemory mappedMemory = Map();
 
-            unsafe
-            {
-                data.CopyTo(new Span<T>((void*)(mappedMemory.Pointer + offsetInBytes), data.Length));
-            }
+            MemoryMarshal.Copy(data, (nint)(mappedMemory.Pointer + offsetInBytes));
 
             Unmap();
         }
