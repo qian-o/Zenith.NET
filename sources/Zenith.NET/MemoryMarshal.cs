@@ -3,14 +3,11 @@ using System.Text;
 
 namespace Zenith.NET;
 
-public unsafe static class MemoryMarshal
+public static unsafe class MemoryMarshal
 {
     public static nint Alloc<T>(MemoryOwner owner, uint length) where T : unmanaged
     {
-        T[] values = new T[length];
-        Array.Fill(values, default);
-
-        return owner.Native(values);
+        return owner.Native(new T[length]);
     }
 
     public static nint StringToNative(MemoryOwner owner, string value, StringEncoding encoding)

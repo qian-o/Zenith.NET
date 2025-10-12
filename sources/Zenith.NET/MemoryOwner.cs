@@ -10,7 +10,7 @@ public unsafe class MemoryOwner : DisposableObject
     {
         nint pointer = (nint)NativeMemory.Alloc((uint)(data.Length * sizeof(T)));
 
-        data.CopyTo(new Span<T>((void*)pointer, data.Length));
+        MemoryMarshal.Copy(data, pointer);
 
         pointers.Add(pointer);
 
