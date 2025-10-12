@@ -9,4 +9,6 @@
         <ProjectReference Include="..\..\Zenith.NET\Zenith.NET.csproj" />
     </ItemGroup>
 
+    <Import Project="..\..\Release.Package.props" />
+
 </Project>

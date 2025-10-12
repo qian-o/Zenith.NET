@@ -13,4 +13,6 @@
         <PackageReference Include="Silk.NET.Direct3D12" />
     </ItemGroup>
 
+    <Import Project="..\Release.Package.props" />
+
 </Project>

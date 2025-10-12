@@ -16,4 +16,6 @@
         <PackageReference Include="Silk.NET.Vulkan.Extensions.MVK" />
     </ItemGroup>
 
+    <Import Project="..\Release.Package.props" />
+
 </Project>

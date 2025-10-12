@@ -12,4 +12,6 @@
         <PackageReference Include="Avalonia" />
     </ItemGroup>
 
+    <Import Project="..\..\Release.Package.props" />
+
 </Project>

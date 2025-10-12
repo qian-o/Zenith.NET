@@ -6,4 +6,6 @@
         <NoWarn>IDE0130</NoWarn>
     </PropertyGroup>
 
+    <Import Project="..\Release.Package.props" />
+
 </Project>

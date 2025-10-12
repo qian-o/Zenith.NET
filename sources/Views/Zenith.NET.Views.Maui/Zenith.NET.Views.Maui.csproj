@@ -14,4 +14,6 @@
         <PackageReference Include="Microsoft.Maui.Controls" />
     </ItemGroup>
 
+    <Import Project="..\..\Release.Package.props" />
+
 </Project>
