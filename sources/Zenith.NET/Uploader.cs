@@ -2,6 +2,11 @@
 
 internal class Uploader(GraphicsContext context) : DisposableObject
 {
+    private const uint MinBufferSizeInBytes = 4096;
+    private const uint MinTextureWidth = 256;
+    private const uint MinTextureHeight = 256;
+    private const uint MinTextureDepth = 32;
+
     private readonly Lock @lock = new();
     private readonly List<Buffer> availableBuffer = [];
     private readonly Dictionary<CommandBuffer, Buffer[]> usedBuffer = [];
@@ -21,7 +26,7 @@ internal class Uploader(GraphicsContext context) : DisposableObject
         {
             buffer = context.CreateBuffer(new()
             {
-                SizeInBytes = sizeInBytes,
+                SizeInBytes = Math.Max(sizeInBytes, MinBufferSizeInBytes),
                 StrideInBytes = 1,
                 Flags = BufferUsageFlags.Dynamic
             });
@@ -45,11 +50,11 @@ internal class Uploader(GraphicsContext context) : DisposableObject
         {
             texture = context.CreateTexture(new()
             {
-                Type = depth > 1 ? TextureType.Texture3D : TextureType.Texture2D,
+                Type = TextureType.Texture3D,
                 Format = format,
-                Width = width,
-                Height = height,
-                Depth = depth,
+                Width = Math.Max(width, MinTextureWidth),
+                Height = Math.Max(height, MinTextureHeight),
+                Depth = Math.Max(depth, MinTextureDepth),
                 MipLevels = 1,
                 SampleCount = SampleCount.Count1,
                 Flags = TextureUsageFlags.Dynamic
