@@ -21,7 +21,7 @@ foreach (Backend backend in Enum.GetValues<Backend>())
     }
     catch (Exception)
     {
-        Console.WriteLine($"Backend {backend} is NOT supported.");
+        Console.WriteLine($"Backend {backend} is not supported.");
     }
 
     Console.WriteLine();
