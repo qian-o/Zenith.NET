@@ -69,4 +69,9 @@ public static unsafe class MemoryMarshal
     {
         new ReadOnlySpan<T>((void*)source, destination.Length).CopyTo(destination);
     }
+
+    public static void Copy<T>(nint source, nint destination, uint length) where T : unmanaged
+    {
+        new ReadOnlySpan<T>((void*)source, (int)length).CopyTo(new Span<T>((void*)destination, (int)length));
+    }
 }
