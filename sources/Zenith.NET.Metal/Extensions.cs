@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET.Metal;
+﻿namespace Zenith.NET;
 
 public static class Extensions
 {

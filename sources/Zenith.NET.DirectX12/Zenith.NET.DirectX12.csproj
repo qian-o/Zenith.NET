@@ -3,6 +3,7 @@
     <PropertyGroup>
         <TargetFramework>$(StandardTargetFramework)</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <NoWarn>IDE0130</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

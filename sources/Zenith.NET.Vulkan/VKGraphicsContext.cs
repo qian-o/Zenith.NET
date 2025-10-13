@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET.Vulkan;
+﻿namespace Zenith.NET;
 
 internal class VKGraphicsContext(bool useValidationLayer) : GraphicsContext(Backend.Vulkan, useValidationLayer)
 {

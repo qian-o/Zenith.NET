@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET.DirectX12;
+﻿namespace Zenith.NET;
 
 public static class Extensions
 {

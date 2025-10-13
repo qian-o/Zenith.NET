@@ -1,8 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>$(StandardTargetFramework)-ios;$(StandardTargetFramework)-maccatalyst</TargetFrameworks>
+        <TargetFramework>$(StandardTargetFramework)</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <NoWarn>IDE0130</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
