@@ -7,10 +7,10 @@ public static unsafe class MemoryMarshal
 {
     public static nint Alloc<T>(MemoryOwner owner, uint length) where T : unmanaged
     {
-        return owner.Native(new T[length]);
+        return owner.Unmanaged(new T[length]);
     }
 
-    public static nint StringToNative(MemoryOwner owner, string value, StringEncoding encoding)
+    public static nint StringToUnmanaged(MemoryOwner owner, string value, StringEncoding encoding)
     {
         byte[] values = encoding switch
         {
@@ -20,22 +20,22 @@ public static unsafe class MemoryMarshal
             _ => []
         };
 
-        return owner.Native(values);
+        return owner.Unmanaged(values);
     }
 
-    public static nint StringArrayToNative(MemoryOwner owner, string[] values, StringEncoding encoding)
+    public static nint StringArrayToUnmanaged(MemoryOwner owner, string[] values, StringEncoding encoding)
     {
         nint[] pointers = new nint[values.Length];
 
         for (int i = 0; i < values.Length; i++)
         {
-            pointers[i] = StringToNative(owner, values[i], encoding);
+            pointers[i] = StringToUnmanaged(owner, values[i], encoding);
         }
 
-        return owner.Native(pointers);
+        return owner.Unmanaged(pointers);
     }
 
-    public static string StringFromNative(nint pointer, StringEncoding encoding)
+    public static string StringFromUnmanaged(nint pointer, StringEncoding encoding)
     {
         return encoding switch
         {
@@ -46,7 +46,7 @@ public static unsafe class MemoryMarshal
         };
     }
 
-    public static string[] StringArrayFromNative(nint pointer, uint length, StringEncoding encoding)
+    public static string[] StringArrayFromUnmanaged(nint pointer, uint length, StringEncoding encoding)
     {
         nint* pointers = (nint*)pointer;
 
@@ -54,7 +54,7 @@ public static unsafe class MemoryMarshal
 
         for (uint i = 0; i < length; i++)
         {
-            values[i] = StringFromNative(pointers[i], encoding);
+            values[i] = StringFromUnmanaged(pointers[i], encoding);
         }
 
         return values;
