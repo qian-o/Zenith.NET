@@ -10,7 +10,5 @@ public enum SurfaceType
 
     Android,
 
-    IOS,
-
-    MacOS
+    Apple
 }

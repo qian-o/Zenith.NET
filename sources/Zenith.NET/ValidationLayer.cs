@@ -116,25 +116,14 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 }
                 break;
 
-            case SurfaceType.IOS:
+            case SurfaceType.Apple:
                 if (desc.Surface.Handles.Length is not 1)
                 {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "one", "SurfaceType.IOS"));
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "one", "SurfaceType.Apple"));
                 }
                 else if (desc.Surface.Handles[0] is 0)
                 {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.IOS"));
-                }
-                break;
-
-            case SurfaceType.MacOS:
-                if (desc.Surface.Handles.Length is not 1)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "one", "SurfaceType.MacOS"));
-                }
-                else if (desc.Surface.Handles[0] is 0)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.MacOS"));
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.Apple"));
                 }
                 break;
 

@@ -4,6 +4,7 @@
         <TargetFrameworks>$(StandardTargetFramework)-android;$(StandardTargetFramework)-ios;$(StandardTargetFramework)-maccatalyst</TargetFrameworks>
         <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);$(StandardTargetFramework)-windows10.0.19041.0</TargetFrameworks>
         <UseMaui>true</UseMaui>
+        <SingleProject>true</SingleProject>
     </PropertyGroup>
 
     <ItemGroup>
