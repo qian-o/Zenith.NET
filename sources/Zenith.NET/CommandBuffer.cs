@@ -24,7 +24,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Upload<T>(Buffer buffer, uint offsetInBytes, ReadOnlySpan<T> data) where T : unmanaged
     {
-        uint sizeInBytes = MemoryMarshal.SizeInBytes(data);
+        uint sizeInBytes = MemoryMarshal.SizeInBytes<T>((uint)data.Length);
 
         Buffer temporary = Context.Uploader.Buffer(this, sizeInBytes);
         temporary.Upload(data, 0);

@@ -5,14 +5,14 @@ namespace Zenith.NET;
 
 public static unsafe class MemoryMarshal
 {
-    public static nint Alloc<T>(MemoryOwner owner, uint length) where T : unmanaged
+    public static nint Allocate<T>(MemoryOwner owner, uint length) where T : unmanaged
     {
         return owner.Native(new T[length]);
     }
 
-    public static uint SizeInBytes<T>(ReadOnlySpan<T> source) where T : unmanaged
+    public static uint SizeInBytes<T>(uint length) where T : unmanaged
     {
-        return (uint)(source.Length * sizeof(T));
+        return (uint)(length * sizeof(T));
     }
 
     public static void Copy<T>(ReadOnlySpan<T> source, nint destination) where T : unmanaged

@@ -8,7 +8,7 @@ public unsafe class MemoryOwner : DisposableObject
 
     internal nint Native<T>(ReadOnlySpan<T> data) where T : unmanaged
     {
-        nint pointer = (nint)NativeMemory.Alloc(MemoryMarshal.SizeInBytes(data));
+        nint pointer = (nint)NativeMemory.Alloc(MemoryMarshal.SizeInBytes<T>((uint)data.Length));
 
         MemoryMarshal.Copy(data, pointer);
 
