@@ -2,4 +2,4 @@
 
 namespace Zenith.NET.Views;
 
-public class ZenithView: MTKView;
+public class ZenithView : MTKView;
