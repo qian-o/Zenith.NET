@@ -6,7 +6,7 @@ public unsafe class MemoryOwner : DisposableObject
 {
     private readonly List<nint> pointers = [];
 
-    internal nint Unmanaged<T>(ReadOnlySpan<T> data) where T : unmanaged
+    internal nint Native<T>(ReadOnlySpan<T> data) where T : unmanaged
     {
         nint pointer = (nint)NativeMemory.Alloc((uint)(data.Length * sizeof(T)));
 
