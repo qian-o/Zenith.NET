@@ -10,6 +10,11 @@ public static unsafe class MemoryMarshal
         return owner.Native(new T[length]);
     }
 
+    public static uint SizeInBytes<T>(ReadOnlySpan<T> source) where T : unmanaged
+    {
+        return (uint)(source.Length * sizeof(T));
+    }
+
     public static void Copy<T>(ReadOnlySpan<T> source, nint destination) where T : unmanaged
     {
         source.CopyTo(new Span<T>((void*)destination, source.Length));

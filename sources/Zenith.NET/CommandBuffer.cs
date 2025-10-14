@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-
-namespace Zenith.NET;
+﻿namespace Zenith.NET;
 
 public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
 {
@@ -26,7 +24,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Upload<T>(Buffer buffer, uint offsetInBytes, ReadOnlySpan<T> data) where T : unmanaged
     {
-        uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
+        uint sizeInBytes = MemoryMarshal.SizeInBytes(data);
 
         Buffer temporary = Context.Uploader.Buffer(this, sizeInBytes);
         temporary.Upload(data, 0);
