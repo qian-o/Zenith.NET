@@ -2,19 +2,25 @@
 name: Feature request
 about: Suggest an idea for this project
 title: ''
-labels: ''
+labels: enhancement
 assignees: ''
+---
+
+# Feature Type
+Please select the type of feature you are requesting (choose one):
+- [ ] Graphics Backend (e.g., DirectX12, Metal, Vulkan)
+- [ ] Extension
+- [ ] View
+
+# Description
+Describe the feature you would like to see.
+
+# Benefit
+Explain how this feature will benefit the project or its users. What new capabilities or improvements will it bring?
+
+# Additional Context
+Add any other context, code examples, or references that may help us understand your request.
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
-
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
-
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
-
-**Additional context**
-Add any other context or screenshots about the feature request here.
+**__Please make sure your request is clear and provides enough detail for us to evaluate and discuss!__**
