@@ -9,19 +9,19 @@ public static class ZenithHelpers
         return (size + alignment - T.One) & ~(alignment - T.One);
     }
 
-    public static uint GetMipLevels(uint width, uint height, uint depth)
+    public static uint MipLevels(uint width, uint height, uint depth)
     {
         return (uint)MathF.Floor(MathF.Log2(MathF.Max(MathF.Max(width, height), depth))) + 1;
     }
 
-    public static void GetMipDimensions(uint width, uint height, uint depth, uint mipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth)
+    public static void MipDimensions(uint width, uint height, uint depth, uint mipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth)
     {
         mipWidth = Math.Max(1, width >> (int)mipLevel);
         mipHeight = Math.Max(1, height >> (int)mipLevel);
         mipDepth = Math.Max(1, depth >> (int)mipLevel);
     }
 
-    public static uint GetSizeInBytes(ElementFormat format)
+    public static uint SizeInBytes(ElementFormat format)
     {
         return format switch
         {
@@ -74,7 +74,7 @@ public static class ZenithHelpers
         };
     }
 
-    public static uint GetSizeInBytes(PixelFormat format)
+    public static uint SizeInBytes(PixelFormat format)
     {
         return format switch
         {
@@ -176,19 +176,19 @@ public static class ZenithHelpers
         };
     }
 
-    public static uint GetRowPitch(uint width, PixelFormat format)
+    public static uint RowPitch(uint width, PixelFormat format)
     {
-        return IsCompressed(format) ? (width + 3) / 4 * GetSizeInBytes(format) : width * GetSizeInBytes(format);
+        return IsCompressed(format) ? (width + 3) / 4 * SizeInBytes(format) : width * SizeInBytes(format);
     }
 
-    public static uint GetNumRows(uint height, PixelFormat format)
+    public static uint NumRows(uint height, PixelFormat format)
     {
         return IsCompressed(format) ? (height + 3) / 4 : height;
     }
 
-    public static uint GetSlicePitch(uint width, uint height, PixelFormat format)
+    public static uint SlicePitch(uint width, uint height, PixelFormat format)
     {
-        return GetRowPitch(width, format) * GetNumRows(height, format);
+        return RowPitch(width, format) * NumRows(height, format);
     }
 
     public static bool IsTexture1D(TextureType type)
@@ -216,24 +216,24 @@ public static class ZenithHelpers
         return type is TextureType.Texture1DArray or TextureType.Texture2DArray or TextureType.TextureCubeArray;
     }
 
-    public static uint GetSubresourceCount(TextureDesc desc)
+    public static uint SubresourceCount(TextureDesc desc)
     {
         uint facesPerMip = IsTextureCube(desc.Type) ? 6u : 1u;
 
         return desc.Layers * desc.MipLevels * facesPerMip;
     }
 
-    public static uint GetSubresourceIndex(TextureDesc desc, TextureSlice slice)
+    public static uint SubresourceIndex(TextureDesc desc, TextureSlice slice)
     {
         uint facesPerMip = IsTextureCube(desc.Type) ? 6u : 1u;
 
         return (slice.Layer * desc.MipLevels * facesPerMip) + (slice.MipLevel * facesPerMip) + slice.Face;
     }
 
-    public static uint GetSubresourceSizeInBytes(TextureDesc desc, TextureSlice slice)
+    public static uint SubresourceSizeInBytes(TextureDesc desc, TextureSlice slice)
     {
-        GetMipDimensions(desc.Width, desc.Height, desc.Depth, slice.MipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth);
+        MipDimensions(desc.Width, desc.Height, desc.Depth, slice.MipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth);
 
-        return GetSlicePitch(mipWidth, mipHeight, desc.Format) * mipDepth;
+        return SlicePitch(mipWidth, mipHeight, desc.Format) * mipDepth;
     }
 }
