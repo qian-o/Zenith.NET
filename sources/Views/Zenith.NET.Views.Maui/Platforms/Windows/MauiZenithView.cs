@@ -2,7 +2,7 @@
 
 namespace Zenith.NET.Views;
 
-internal partial class MauiZenithView(ZenithViewHandler handler) : SwapChainPanel
+internal partial class MauiZenithView(ZenithViewHandler handler) : Control
 {
     public ZenithView ZenithView => handler.VirtualView;
 }
