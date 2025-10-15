@@ -10,8 +10,8 @@
         <PackageVersion Include="Hexa.NET.ImGuizmo" Version="2.2.9" />
         <PackageVersion Include="Hexa.NET.ImNodes" Version="2.2.9" />
         <PackageVersion Include="Hexa.NET.ImPlot" Version="2.2.9" />
-        <PackageVersion Include="Microsoft.Maui.Controls" Version="9.0.110" />
-        <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.8.250916003" />
+        <PackageVersion Include="Microsoft.Maui.Controls" Version="9.0.111" />
+        <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.8.251003001" />
         <PackageVersion Include="Roslynator.Analyzers" Version="4.14.1" />
         <PackageVersion Include="Silk.NET.Direct3D12" Version="2.22.0" />
         <PackageVersion Include="Silk.NET.Vulkan" Version="2.22.0" />
@@ -19,7 +19,7 @@
         <PackageVersion Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.22.0" />
         <PackageVersion Include="Silk.NET.Vulkan.Extensions.MVK" Version="2.22.0" />
         <PackageVersion Include="SkiaSharp" Version="3.119.1" />
-        <PackageVersion Include="Slangc.NET" Version="2025.18.2" />
+        <PackageVersion Include="Slangc.NET" Version="2025.19.0" />
         <PackageVersion Include="Uno.WinUI" Version="6.3.62" />
     </ItemGroup>
 
