@@ -1,4 +1,4 @@
-namespace Zenith.NET.Views;
+﻿namespace Zenith.NET.Views;
 
 public static class Extensions
 {

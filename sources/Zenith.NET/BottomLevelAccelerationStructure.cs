@@ -1,4 +1,4 @@
-namespace Zenith.NET;
+﻿namespace Zenith.NET;
 
 public abstract class BottomLevelAccelerationStructure(GraphicsContext context, BottomLevelAccelerationStructureDesc desc) : GraphicsResource(context)
 {

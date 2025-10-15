@@ -1,4 +1,4 @@
-namespace Zenith.NET;
+﻿namespace Zenith.NET;
 
 public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : GraphicsResource(context)
 {

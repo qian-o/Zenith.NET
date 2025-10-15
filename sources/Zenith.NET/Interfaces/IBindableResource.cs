@@ -1,3 +1,3 @@
-namespace Zenith.NET;
+﻿namespace Zenith.NET;
 
 public interface IBindableResource;

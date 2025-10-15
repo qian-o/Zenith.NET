@@ -1,4 +1,4 @@
-using Zenith.NET;
+﻿using Zenith.NET;
 
 string[] values = ["Hello, World!", "你好，世界！", "こんにちは、世界！"];
 

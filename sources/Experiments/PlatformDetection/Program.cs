@@ -1,4 +1,4 @@
-using Zenith.NET;
+﻿using Zenith.NET;
 
 foreach (Backend backend in Enum.GetValues<Backend>())
 {

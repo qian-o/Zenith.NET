@@ -1,4 +1,4 @@
-namespace Zenith.NET;
+﻿namespace Zenith.NET;
 
 public abstract class ResourceLayout(GraphicsContext context, ResourceLayoutDesc desc) : GraphicsResource(context)
 {

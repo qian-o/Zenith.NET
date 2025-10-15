@@ -1,4 +1,4 @@
-using Microsoft.Maui.Handlers;
+﻿using Microsoft.Maui.Handlers;
 
 namespace Zenith.NET.Views;
 

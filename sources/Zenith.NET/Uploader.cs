@@ -1,4 +1,4 @@
-namespace Zenith.NET;
+﻿namespace Zenith.NET;
 
 internal class Uploader(GraphicsContext context) : DisposableObject
 {

@@ -1,4 +1,4 @@
-namespace Zenith.NET;
+﻿namespace Zenith.NET;
 
 public abstract class ComputePipeline(GraphicsContext context, ComputePipelineDesc desc) : Pipeline(context)
 {

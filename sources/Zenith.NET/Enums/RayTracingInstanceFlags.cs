@@ -1,4 +1,4 @@
-namespace Zenith.NET;
+﻿namespace Zenith.NET;
 
 [Flags]
 public enum RayTracingInstanceFlags
