@@ -4,7 +4,10 @@ title: "Bug Report: "
 labels: ["bug", "needs-triage"]
 type: Bug
 body:
-- type: markdown
-  attributes:
-    value: |
-      Thank you for reporting a bug! Please make sure you are using the latest version of Zenith.NET. Older versions may restrict the supported .NET version and cause unexpected issues.
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Describe the bug
+      description: In a few sentences, please enter a short, clear description of the bug.
+      placeholder: E.g. When clicking on a togggle button, '...' happens instead of '...' when '...' is enabled.
