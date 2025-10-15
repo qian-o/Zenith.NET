@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET;
+namespace Zenith.NET;
 
 public abstract class MeshShadingPipeline(GraphicsContext context, MeshShadingPipelineDesc desc) : Pipeline(context)
 {

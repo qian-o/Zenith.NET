@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET;
+namespace Zenith.NET;
 
 internal class DXGraphicsContext(bool useValidationLayer) : GraphicsContext(Backend.DirectX12, useValidationLayer)
 {

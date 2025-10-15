@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET;
+namespace Zenith.NET;
 
 public abstract class Shader(GraphicsContext context, ShaderDesc desc) : GraphicsResource(context)
 {

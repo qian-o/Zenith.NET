@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET;
+namespace Zenith.NET;
 
 public abstract class Texture(GraphicsContext context, TextureDesc desc) : GraphicsResource(context), IBindableResource
 {

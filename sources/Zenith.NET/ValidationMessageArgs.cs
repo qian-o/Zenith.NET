@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET;
+namespace Zenith.NET;
 
 public class ValidationMessageArgs(MessageSource source, MessageSeverity severity, string message) : EventArgs
 {

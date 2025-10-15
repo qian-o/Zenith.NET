@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET;
+namespace Zenith.NET;
 
 public abstract class Sampler(GraphicsContext context, SamplerDesc desc) : GraphicsResource(context), IBindableResource
 {

@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET;
+namespace Zenith.NET;
 
 public abstract class ValidationLayer(GraphicsContext context) : GraphicsResource(context)
 {

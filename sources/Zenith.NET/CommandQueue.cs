@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET;
+namespace Zenith.NET;
 
 public abstract class CommandQueue(GraphicsContext context, CommandQueueType type) : GraphicsResource(context)
 {

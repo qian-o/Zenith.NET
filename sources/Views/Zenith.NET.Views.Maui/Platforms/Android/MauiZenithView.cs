@@ -1,4 +1,4 @@
-﻿using Android.Graphics;
+using Android.Graphics;
 using Android.Runtime;
 using Android.Views;
 
