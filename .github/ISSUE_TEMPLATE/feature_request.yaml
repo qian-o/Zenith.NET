@@ -1,0 +1,112 @@
+﻿name: Feature Proposal
+description: Suggest a new feature
+title: "Proposal: "
+labels: ["feature proposal", "needs-triage"]
+type: Feature
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is a template for new feature or API proposals for Zenith.NET. Please search the existing issues
+        and discussions first to see if someone else has made a similar proposal.
+
+        Use this form if you have a concrete idea of what to propose. For example, you can use this to propose:
+        - A new API on an existing graphics context
+        - A new graphics backend support
+        - An idea for a new extension or view integration
+        - Core library enhancements
+
+        It's fine if you don't have all the details: you can start with the Summary and Rationale.
+  
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Title
+      description: Please enter a short, clear title for your feature or API proposal.
+      placeholder: |
+        e.g. "Add ray tracing support to DirectX12 Backend"
+        e.g. "Add new Buffer.CreateStructured method for structured buffers"
+  
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Summary
+      description: Include 1-2 sentences summarizing your feature or API proposal
+      placeholder: Provide a concise summary of what you're proposing and why it's needed.
+  
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Rationale
+      description: |
+        Create a list that describes WHY the feature should be added to Zenith.NET for all developers and users.
+        Proposals often have multiple motives for why we should do the work, so list each one as a separate bullet.
+      placeholder: |
+        * {First reason for why we should consider this proposal}
+        * {Second reason for why we should consider this proposal}
+        * {etc}
+  
+  - type: textarea
+    attributes:
+      label: Scope
+      description: |
+        Please include a list of what the feature should and shouldn't do by filling in the table below.
+        'Must' implies that the feature should not ship without this capability.  
+        'Should' is something we should push hard for, but is not absolutely required to ship.
+        'Could' is a nice-to-have; a good stretch goal that isn't painful if we don't achieve it.
+        'Won't' is a clear statement that the proposal/feature will intentionally not have that capability.
+      value: |
+        | Capability | Priority |
+        | :---------- | :------- |
+        | This proposal will allow developers to accomplish W | Must   |
+        | This proposal will allow developers to accomplish X  | Should |
+        | This proposal will allow developers to accomplish Y | Could  |
+        | This proposal will allow developers to accomplish Z  | Won't  |
+  
+  - type: dropdown
+    validations:
+      required: true
+    attributes:
+      label: Feature Area
+      description: Which area of Zenith.NET does this proposal affect?
+      options:
+        - "Core Library"
+        - "Graphics Backend"
+        - "Extensions"
+        - "Views"
+        - "Other"
+  
+  - type: textarea
+    attributes:
+      label: Important Notes
+      description: |
+        Please include any other important details.
+        This could include one or more of:
+        - usage examples
+        - an API proposal (C# code is preferred)
+        - design mockups or example screenshots
+        - other implementation notes
+      placeholder: |
+        Include code examples, API designs, or implementation details here...
+        
+        ```csharp
+        // Example API usage
+        var buffer = context.CreateBuffer(new BufferDesc
+        {
+            // ...
+        });
+        ```
+  
+  - type: textarea
+    attributes:
+      label: Open Questions
+      description: |
+        Please list any open issues that you think still need to be addressed.
+        These could include areas you think would benefit from community or Zenith.NET team input.
+      placeholder: |
+        - How should this interact with existing APIs?
+        - What are the performance implications?
+        - Are there platform-specific considerations?
