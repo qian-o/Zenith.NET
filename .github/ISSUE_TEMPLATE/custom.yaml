@@ -1,8 +1,7 @@
 ﻿name: General Issue
 description: For issues that do not fit other templates
-title: ""
+title: "General Issue: "
 labels: ["needs-triage"]
-type: General
 body:
   - type: markdown
     attributes:

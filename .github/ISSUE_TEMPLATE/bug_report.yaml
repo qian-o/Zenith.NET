@@ -59,16 +59,11 @@ body:
       label: Operating System
       description: Which operating system are you using?
       options:
-        - "Windows 11"
-        - "Windows 10"
-        - "macOS 14 (Sonoma)"
-        - "macOS 13 (Ventura)"
-        - "macOS 12 (Monterey)"
-        - "iOS 17"
-        - "iOS 16"
-        - "Android 14"
-        - "Android 13"
-        - "Android 12"
+        - "Windows"
+        - "macOS"
+        - "iOS"
+        - "Android"
+        - "Linux"
         - "Other"
 
   - type: dropdown

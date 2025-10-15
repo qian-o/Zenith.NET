@@ -2,7 +2,6 @@
 description: Suggest a new feature
 title: "Proposal: "
 labels: ["feature proposal", "needs-triage"]
-type: Feature
 body:
   - type: markdown
     attributes:
