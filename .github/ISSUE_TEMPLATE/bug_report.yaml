@@ -4,7 +4,7 @@ title: "Bug Report: "
 labels: ["bug", "needs-triage"]
 type: Bug
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Thank you for reporting a bug! Please make sure you are using the latest version of Zenith.NET. Older versions may restrict the supported .NET version and cause unexpected issues.
+- type: markdown
+  attributes:
+    value: |
+      Thank you for reporting a bug! Please make sure you are using the latest version of Zenith.NET. Older versions may restrict the supported .NET version and cause unexpected issues.
