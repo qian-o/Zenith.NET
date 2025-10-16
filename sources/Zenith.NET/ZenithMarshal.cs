@@ -14,7 +14,7 @@ public static unsafe class ZenithMarshal
         {
             nint pointer = (nint)NativeMemory.Alloc((uint)(Unsafe.SizeOf<T>() * data.Length));
 
-            Copy(data, pointer);
+            data.CopyTo(new Span<T>((void*)pointer, data.Length));
 
             pointers.Add(pointer);
 
@@ -35,21 +35,6 @@ public static unsafe class ZenithMarshal
     public static nint Allocate<T>(Owner owner, uint length) where T : unmanaged
     {
         return owner.Native(new T[length]);
-    }
-
-    public static void Copy<T>(ReadOnlySpan<T> source, nint destination) where T : unmanaged
-    {
-        source.CopyTo(new Span<T>((void*)destination, source.Length));
-    }
-
-    public static void Copy<T>(nint source, Span<T> destination) where T : unmanaged
-    {
-        new ReadOnlySpan<T>((void*)source, destination.Length).CopyTo(destination);
-    }
-
-    public static void Copy<T>(nint source, nint destination, uint length) where T : unmanaged
-    {
-        new ReadOnlySpan<T>((void*)source, (int)length).CopyTo(new Span<T>((void*)destination, (int)length));
     }
 
     public static nint StringToPointer(Owner owner, string value, StringEncoding encoding)
