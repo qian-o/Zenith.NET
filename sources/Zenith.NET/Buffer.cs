@@ -19,7 +19,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
         {
             MappedMemory mappedMemory = Map();
 
-            MemoryMarshal.Copy(data, (nint)(mappedMemory.Pointer + offsetInBytes));
+            ZenithMarshal.Copy(data, (nint)(mappedMemory.Pointer + offsetInBytes));
 
             Unmap();
         }

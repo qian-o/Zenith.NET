@@ -2,7 +2,7 @@
 
 namespace Zenith.NET;
 
-public static class ZenithHelpers
+public static class ZenithHelper
 {
     public static T Align<T>(T size, T alignment) where T : INumberBase<T>, IBitwiseOperators<T, T, T>
     {

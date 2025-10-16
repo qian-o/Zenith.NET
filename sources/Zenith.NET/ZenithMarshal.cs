@@ -1,11 +1,38 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Zenith.NET;
 
-public static unsafe class MemoryMarshal
+public static unsafe class ZenithMarshal
 {
-    public static nint Allocate<T>(MemoryOwner owner, uint length) where T : unmanaged
+    public class Owner : DisposableObject
+    {
+        private readonly List<nint> pointers = [];
+
+        internal nint Native<T>(ReadOnlySpan<T> data) where T : unmanaged
+        {
+            nint pointer = (nint)NativeMemory.Alloc((uint)(Unsafe.SizeOf<T>() * data.Length));
+
+            Copy(data, pointer);
+
+            pointers.Add(pointer);
+
+            return pointer;
+        }
+
+        protected override void Destroy()
+        {
+            foreach (nint pointer in pointers)
+            {
+                NativeMemory.Free((void*)pointer);
+            }
+
+            pointers.Clear();
+        }
+    }
+
+    public static nint Allocate<T>(Owner owner, uint length) where T : unmanaged
     {
         return owner.Native(new T[length]);
     }
@@ -25,7 +52,7 @@ public static unsafe class MemoryMarshal
         new ReadOnlySpan<T>((void*)source, (int)length).CopyTo(new Span<T>((void*)destination, (int)length));
     }
 
-    public static nint StringToPointer(MemoryOwner owner, string value, StringEncoding encoding)
+    public static nint StringToPointer(Owner owner, string value, StringEncoding encoding)
     {
         byte[] values = encoding switch
         {
@@ -38,7 +65,7 @@ public static unsafe class MemoryMarshal
         return owner.Native(values);
     }
 
-    public static nint StringArrayToPointer(MemoryOwner owner, string[] values, StringEncoding encoding)
+    public static nint StringArrayToPointer(Owner owner, string[] values, StringEncoding encoding)
     {
         nint[] pointers = new nint[values.Length];
 

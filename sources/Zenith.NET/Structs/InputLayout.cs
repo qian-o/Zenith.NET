@@ -21,7 +21,7 @@ public record struct InputLayout
             Elements[^1] = element;
         }
 
-        StrideInBytes += ZenithHelpers.SizeInBytes(element.Format);
+        StrideInBytes += ZenithHelper.SizeInBytes(element.Format);
 
         return this;
     }

@@ -18,7 +18,7 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
         {
             MappedMemory mappedMemory = Map(slice);
 
-            MemoryMarshal.Copy(data, mappedMemory.Pointer);
+            ZenithMarshal.Copy(data, mappedMemory.Pointer);
 
             Unmap();
         }
