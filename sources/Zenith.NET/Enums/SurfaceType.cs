@@ -10,5 +10,7 @@ public enum SurfaceType
 
     Android,
 
-    Apple
+    Apple,
+
+    D3D11Interop
 }

@@ -13,7 +13,9 @@
         <PackageVersion Include="Microsoft.Maui.Controls" Version="9.0.111" />
         <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.8.251003001" />
         <PackageVersion Include="Roslynator.Analyzers" Version="4.14.1" />
+        <PackageVersion Include="Silk.NET.Direct3D11" Version="2.22.0" />
         <PackageVersion Include="Silk.NET.Direct3D12" Version="2.22.0" />
+        <PackageVersion Include="Silk.NET.Direct3D9" Version="2.22.0" />
         <PackageVersion Include="Silk.NET.Vulkan" Version="2.22.0" />
         <PackageVersion Include="Silk.NET.Vulkan.Extensions.EXT" Version="2.22.0" />
         <PackageVersion Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.22.0" />

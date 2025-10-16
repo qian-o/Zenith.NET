@@ -15,6 +15,10 @@
         <PackageReference Include="Microsoft.Maui.Controls" />
     </ItemGroup>
 
+    <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+        <PackageReference Include="Silk.NET.Direct3D11" />
+    </ItemGroup>
+
     <Import Project="..\..\Release.Package.props" />
 
 </Project>

@@ -64,4 +64,15 @@ public record struct Surface
             Height = height
         };
     }
+
+    public static Surface D3D11Interop(nint sharedHandle, uint width, uint height)
+    {
+        return new()
+        {
+            Type = SurfaceType.D3D11Interop,
+            Handles = [sharedHandle],
+            Width = width,
+            Height = height
+        };
+    }
 }
