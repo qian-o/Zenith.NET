@@ -6,7 +6,7 @@ namespace Zenith.NET;
 
 public static unsafe class ZenithMarshal
 {
-    public class Owner : DisposableObject
+    public class Scope : DisposableObject
     {
         private readonly List<nint> pointers = [];
 
@@ -32,12 +32,12 @@ public static unsafe class ZenithMarshal
         }
     }
 
-    public static nint Allocate<T>(Owner owner, uint length) where T : unmanaged
+    public static nint Allocate<T>(Scope scope, uint length) where T : unmanaged
     {
-        return owner.Native(new T[length]);
+        return scope.Native(new T[length]);
     }
 
-    public static nint StringToPointer(Owner owner, string value, StringEncoding encoding)
+    public static nint StringToPointer(Scope scope, string value, StringEncoding encoding)
     {
         byte[] values = encoding switch
         {
@@ -47,19 +47,19 @@ public static unsafe class ZenithMarshal
             _ => []
         };
 
-        return owner.Native(values);
+        return scope.Native(values);
     }
 
-    public static nint StringArrayToPointer(Owner owner, string[] values, StringEncoding encoding)
+    public static nint StringArrayToPointer(Scope scope, string[] values, StringEncoding encoding)
     {
         nint[] pointers = new nint[values.Length];
 
         for (int i = 0; i < values.Length; i++)
         {
-            pointers[i] = StringToPointer(owner, values[i], encoding);
+            pointers[i] = StringToPointer(scope, values[i], encoding);
         }
 
-        return owner.Native(pointers);
+        return scope.Native(pointers);
     }
 
     public static string StringFromPointer(nint pointer, StringEncoding encoding)
