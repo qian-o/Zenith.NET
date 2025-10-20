@@ -1,6 +1,7 @@
 ﻿<Project>
 
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <PackageOutputPath>$(MSBuildThisFileDirectory)..\.nuget</PackageOutputPath>
 
         <!-- Package Metadata -->
