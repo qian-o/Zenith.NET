@@ -1,6 +1,19 @@
 ﻿# Zenith.NET
 
-A cross-platform, easy-to-use graphics and compute library for the .NET platform. It provides a unified programming interface for GPUs, simplifying the development of graphics rendering and general-purpose compute tasks.
+Modern, cross-platform graphics and compute library for .NET. It provides a unified GPU programming interface to simplify graphics rendering and general-purpose compute workflows.
+
+> Status: Work in progress (pre-release)
+
+## Overview
+
+Zenith.NET targets modern .NET (including .NET 9) and integrates with multiple UI frameworks (including .NET MAUI) to enable portable, high-performance rendering across platforms.
+
+### Highlights
+- Unified, backend-agnostic GPU API surface
+- Multiple graphics backends (DirectX12, Metal, Vulkan)
+- View integrations across popular .NET UI frameworks
+- Designed for performance and ease of integration
+- Cross-platform support, consistent developer experience
 
 ## Graphics Backends
 
@@ -25,5 +38,12 @@ Zenith.NET supports multiple .NET UI frameworks, and its rendering capabilities 
 | WinUI (Uno) | supported      |                      | supported | supported | supported |
 | WPF         |                | supported            | supported |           | supported |
 
-- CPU Pixel Copy: Generate/receive a pixel buffer on the CPU, then copy the pixel data to a UI control for display.
-- Native GPU Rendering: Render directly within the target platform's GPU context without intermediate pixel buffer copies.
+Note: The CPU Pixel Copy and Native GPU Rendering columns indicate internal capabilities only. Selection is automatic and depends on the framework/platform integration.
+
+## Status and Roadmap
+
+The project is under active development. Planned items include:
+- Initial backend bring-up for DirectX12, Metal, and Vulkan
+- Expanding native GPU rendering integrations across supported UI frameworks
+- Samples and documentation, including .NET MAUI usage
+- Performance tuning and validation across platforms
