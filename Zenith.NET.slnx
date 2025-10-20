@@ -1,4 +1,4 @@
-﻿<Solution>
+<Solution>
   <Folder Name="/Experiments/">
     <Project Path="sources/Experiments/MemoryPlayground/MemoryPlayground.csproj" Id="5e72cb29-02e8-4b50-9aec-315a2d4018da" />
     <Project Path="sources/Experiments/PlatformDetection/PlatformDetection.csproj" Id="2d83a8a8-a0f3-40a6-8db1-ce34d9a3f90e" />
@@ -16,6 +16,7 @@
   <Folder Name="/Views/">
     <Project Path="sources/Views/Zenith.NET.Views.Avalonia/Zenith.NET.Views.Avalonia.csproj" />
     <Project Path="sources/Views/Zenith.NET.Views.Maui/Zenith.NET.Views.Maui.csproj" />
+    <Project Path="sources/Views/Zenith.NET.Views.WinForms/Zenith.NET.Views.WinForms.csproj" Id="c7e84402-7e65-4016-8fe2-3438ef27f201" />
     <Project Path="sources/Views/Zenith.NET.Views.WinUI/Zenith.NET.Views.WinUI.csproj" />
     <Project Path="sources/Views/Zenith.NET.Views.WPF/Zenith.NET.Views.WPF.csproj" />
   </Folder>
