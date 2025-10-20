@@ -14,7 +14,7 @@ Zenith.NET supports multiple graphics APIs covering mainstream rendering technol
 
 ## View Backends
 
-Zenith.NET supports multiple .NET UI frameworks, and its rendering capabilities can be seamlessly integrated into different types of applications. The table below is sorted alphabetically by framework name.
+Zenith.NET supports multiple .NET UI frameworks, and its rendering capabilities can be seamlessly integrated into different types of applications.
 
 | Framework   | CPU Pixel Copy | Native GPU Rendering | DirectX12 | Metal     | Vulkan    |
 | :---------: | :------------: | :------------------: | :-------: | :-------: | :-------: |
