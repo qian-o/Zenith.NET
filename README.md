@@ -38,7 +38,4 @@ Zenith.NET supports multiple .NET UI frameworks, and its rendering capabilities 
 | WinUI (Uno) | supported      |                      | supported | supported | supported |
 | WPF         |                | supported            | supported |           | supported |
 
-Notes:
-- The CPU Pixel Copy and Native GPU Rendering columns indicate internal capabilities only. Selection is automatic and depends on the framework/platform integration.
-- "Minimum Version" is the baseline supported by the backend; newer API versions and feature levels are expected to work where available.
-- "supported" means implemented or actively validated; "planned" indicates roadmap intent and may not be available yet.
+Note: The CPU Pixel Copy and Native GPU Rendering columns indicate internal capabilities only. Selection is automatic and depends on the framework/platform integration.
