@@ -39,11 +39,3 @@ Zenith.NET supports multiple .NET UI frameworks, and its rendering capabilities 
 | WPF         |                | supported            | supported |           | supported |
 
 Note: The CPU Pixel Copy and Native GPU Rendering columns indicate internal capabilities only. Selection is automatic and depends on the framework/platform integration.
-
-## Status and Roadmap
-
-The project is under active development. Planned items include:
-- Initial backend bring-up for DirectX12, Metal, and Vulkan
-- Expanding native GPU rendering integrations across supported UI frameworks
-- Samples and documentation, including .NET MAUI usage
-- Performance tuning and validation across platforms
