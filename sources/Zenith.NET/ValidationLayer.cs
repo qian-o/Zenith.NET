@@ -55,6 +55,8 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         public const string MustBeOfType = "{0} item must be a {1} for {2} binding.";
 
+        public const string MustBeOneOf = "{0} must be one of: {1}.";
+
         public const string InstanceCountMustRemainSame = "When updating a TopLevelAccelerationStructure, the number of instances must remain the same.";
     }
 
@@ -597,7 +599,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             {
                 if (desc.ResourceLayouts[i].IsDisposed)
                 {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"GraphicsPipelineDesc.ResourceLayouts[{i}]"));
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"ComputePipelineDesc.ResourceLayouts[{i}]"));
                 }
             }
         }
@@ -755,6 +757,11 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                     ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"MeshShadingPipelineDesc.ResourceLayouts[{i}]"));
                 }
             }
+        }
+
+        if (desc.PrimitiveTopology is not (PrimitiveTopology.LineList or PrimitiveTopology.TriangleList))
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOneOf, "MeshShadingPipelineDesc.PrimitiveTopology", "LineList, TriangleList"));
         }
 
         CheckOutput("MeshShadingPipelineDesc.Output", desc.Output);
