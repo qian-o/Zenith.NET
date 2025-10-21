@@ -19,11 +19,11 @@ Zenith.NET targets modern .NET (including .NET 9) and integrates with multiple U
 
 Zenith.NET supports multiple graphics APIs covering mainstream rendering technologies, making it easy to choose the right backend based on your needs.
 
-| API       | Supported |
-| :-------: | :-------: |
-| DirectX12 | planned   |
-| Metal     | planned   |
-| Vulkan    | planned   |
+| API       | Minimum Version | Supported |
+| :-------: | :-------------: | :-------: |
+| DirectX12 | 12_0+           | planned   |
+| Metal     | 3.0+            | planned   |
+| Vulkan    | 1.3+            | planned   |
 
 ## View Backends
 
@@ -38,4 +38,7 @@ Zenith.NET supports multiple .NET UI frameworks, and its rendering capabilities 
 | WinUI (Uno) | supported      |                      | supported | supported | supported |
 | WPF         |                | supported            | supported |           | supported |
 
-Note: The CPU Pixel Copy and Native GPU Rendering columns indicate internal capabilities only. Selection is automatic and depends on the framework/platform integration.
+Notes:
+- The CPU Pixel Copy and Native GPU Rendering columns indicate internal capabilities only. Selection is automatic and depends on the framework/platform integration.
+- "Minimum Version" is the baseline supported by the backend; newer API versions and feature levels are expected to work where available.
+- "supported" means implemented or actively validated; "planned" indicates roadmap intent and may not be available yet.
