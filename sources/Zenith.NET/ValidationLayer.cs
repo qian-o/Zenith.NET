@@ -21,37 +21,39 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         public const string MustNotBeNull = "{0} must not be null.";
 
-        public const string MustBeGreaterThanZero = "{0} must be greater than zero.";
-
         public const string MustHaveExactlyNHandles = "{0} must have exactly {1} handle(s) for {2}.";
 
         public const string MustBeValidHandle = "{0} must be a valid handle for {1}.";
 
         public const string MustBeValidHandles = "{0} must be valid handles for {1}.";
 
+        public const string HasUnsupportedSurfaceType = "{0} has unsupported SurfaceType '{1}'.";
+
         public const string HasInvalidValue = "{0} has an invalid value '{1}'.";
+
+        public const string HasNoAttachments = "{0} has no attachments.";
+
+        public const string MustNotBeDisposed = "{0} must not be disposed.";
+
+        public const string MustBeLessThan = "{0} must be less than {1}.";
 
         public const string MustNotBeNullOrEmpty = "{0} must not be null or empty.";
 
         public const string MustNotBeNullOrWhitespace = "{0} must not be null or whitespace.";
 
-        public const string MustBeLessThan = "{0} must be less than {1}.";
-
-        public const string MustBeLessThanOrEqualTo = "{0} must be less than or equal to {1}.";
-
-        public const string MustBeWithinBounds = "{0} must be greater than zero and within the bounds of {1}.";
-
-        public const string LengthMustMatch = "{0} length must match {1}.";
-
-        public const string MustBeOfType = "{0} item must be a {1} for {2} binding.";
-
-        public const string HasNoAttachments = "{0} has no attachments.";
+        public const string MustBeGreaterThanZero = "{0} must be greater than zero.";
 
         public const string IsZeroWarning = "{0} is zero, which may be valid for some {1} but could indicate an issue.";
 
         public const string IsSetToNoneWarning = "{0} is set to None, which may be valid but could indicate an issue.";
 
-        public const string HasUnsupportedSurfaceType = "{0} has unsupported SurfaceType '{1}'.";
+        public const string MustBeWithinBounds = "{0} must be greater than zero and within the bounds of {1}.";
+
+        public const string MustBeLessThanOrEqualTo = "{0} must be less than or equal to {1}.";
+
+        public const string LengthMustMatch = "{0} length must match {1}.";
+
+        public const string MustBeOfType = "{0} item must be a {1} for {2} binding.";
 
         public const string InstanceCountMustRemainSame = "When updating a TopLevelAccelerationStructure, the number of instances must remain the same.";
     }
@@ -172,6 +174,13 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             if (frameBufferAttachment.Target is null)
             {
                 ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, $"{name}.Target"));
+
+                return;
+            }
+
+            if (frameBufferAttachment.Target.IsDisposed)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"{name}.Target"));
 
                 return;
             }
@@ -666,9 +675,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                         }
 
                         if (triangles.VertexOffsetInBytes + (triangles.VertexCount * triangles.VertexStrideInBytes) > triangles.VertexBuffer.Desc.SizeInBytes)
-                        {
-                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, $"{name}.Triangles.VertexCount", "the vertex buffer"));
-                        }
+						{
+							ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, $"{name}.Triangles.VertexCount", "the vertex buffer"));
+						}
 
                         if (triangles.IndexBuffer is null)
                         {
