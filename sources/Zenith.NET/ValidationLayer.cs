@@ -21,7 +21,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         public const string MustNotBeNull = "{0} must not be null.";
 
-        public const string MustHaveExactlyNHandles = "{0} must have exactly {1} handle(s) for {2}.";
+        public const string MustHaveExactlyNHandles = "{0} must have exactly {1} handles for {2}.";
 
         public const string MustBeValidHandle = "{0} must be a valid handle for {1}.";
 
@@ -79,7 +79,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             case SurfaceType.Win32:
                 if (desc.Surface.Handles.Length is not 1)
                 {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "one", "SurfaceType.Win32"));
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", 1, "SurfaceType.Win32"));
                 }
                 else if (desc.Surface.Handles[0] is 0)
                 {
@@ -90,7 +90,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             case SurfaceType.Wayland:
                 if (desc.Surface.Handles.Length is not 2)
                 {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "two", "SurfaceType.Wayland"));
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", 2, "SurfaceType.Wayland"));
                 }
                 else if (desc.Surface.Handles[0] is 0 || desc.Surface.Handles[1] is 0)
                 {
@@ -101,7 +101,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             case SurfaceType.Xlib:
                 if (desc.Surface.Handles.Length is not 2)
                 {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "two", "SurfaceType.Xlib"));
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", 2, "SurfaceType.Xlib"));
                 }
                 else if (desc.Surface.Handles[0] is 0 || desc.Surface.Handles[1] is 0)
                 {
@@ -112,7 +112,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             case SurfaceType.Android:
                 if (desc.Surface.Handles.Length is not 1)
                 {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "one", "SurfaceType.Android"));
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", 1, "SurfaceType.Android"));
                 }
                 else if (desc.Surface.Handles[0] is 0)
                 {
@@ -123,7 +123,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             case SurfaceType.Apple:
                 if (desc.Surface.Handles.Length is not 1)
                 {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "one", "SurfaceType.Apple"));
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", 1, "SurfaceType.Apple"));
                 }
                 else if (desc.Surface.Handles[0] is 0)
                 {
@@ -426,10 +426,25 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             return;
         }
 
-        int i = 0;
-        foreach (IBindableResource resource in desc.Resources)
+        for (int i = 0; i < desc.Resources.Length; i++)
         {
-            switch (desc.Layout.Desc.Bindings[i++].Type)
+            IBindableResource resource = desc.Resources[i];
+
+            if (resource is null)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceSetDesc.Resources"));
+
+                continue;
+            }
+
+            if (resource.IsDisposed)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ResourceSetDesc.Resources"));
+
+                continue;
+            }
+
+            switch (desc.Layout.Desc.Bindings[i].Type)
             {
                 case ResourceType.ConstantBuffer:
                     if (resource is not Buffer or BufferView)
@@ -479,11 +494,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                         ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "TopLevelAccelerationStructure", "AccelerationStructure"));
                     }
                     break;
-            }
-
-            if (resource.IsDisposed)
-            {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ResourceSetDesc.Resources"));
             }
         }
     }
