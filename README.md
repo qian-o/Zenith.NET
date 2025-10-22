@@ -1,23 +1,23 @@
 ﻿# Zenith.NET
 
-Modern, cross-platform graphics and compute library for .NET. It provides a unified GPU programming interface to simplify graphics rendering and general-purpose compute workflows.
+A modern, cross-platform graphics and compute library for .NET. It provides a unified GPU programming interface to simplify rendering and general-purpose compute workflows.
 
 > Status: Work in progress (pre-release)
 
 ## Overview
 
-Zenith.NET targets modern .NET (including .NET 9) and integrates with multiple UI frameworks (including .NET MAUI) to enable portable, high-performance rendering across platforms.
+Zenith.NET targets modern .NET (including .NET 9.0) and integrates with multiple UI frameworks (such as .NET MAUI) to enable portable, high-performance rendering across platforms.
 
 ### Highlights
-- Unified, backend-agnostic GPU API surface
+- Unified, backend-agnostic GPU API
 - Multiple graphics backends (DirectX12, Metal, Vulkan)
-- View integrations across popular .NET UI frameworks
-- Designed for performance and ease of integration
-- Cross-platform support, consistent developer experience
+- First-class integrations with popular .NET UI frameworks
+- Designed for performance and easy integration
+- Consistent, cross-platform developer experience
 
 ## Graphics Backends
 
-Zenith.NET supports multiple graphics APIs covering mainstream rendering technologies, making it easy to choose the right backend based on your needs.
+Zenith.NET supports multiple graphics APIs that cover mainstream rendering technologies, making it easy to choose the right backend for your scenario.
 
 | API       | Minimum Version | Supported |
 | :-------: | :-------------: | :-------: |
@@ -25,7 +25,7 @@ Zenith.NET supports multiple graphics APIs covering mainstream rendering technol
 | Metal     | 3.0+            | planned   |
 | Vulkan    | 1.3+            | planned   |
 
-## View Backends
+## UI Framework Integrations
 
 Zenith.NET supports multiple .NET UI frameworks, and its rendering capabilities can be seamlessly integrated into different types of applications.
 
@@ -38,4 +38,4 @@ Zenith.NET supports multiple .NET UI frameworks, and its rendering capabilities 
 | WinUI (Uno) | supported      |                      | supported | supported | supported |
 | WPF         |                | supported            | supported |           | supported |
 
-Note: The CPU Pixel Copy and Native GPU Rendering columns indicate internal capabilities only. Selection is automatic and depends on the framework/platform integration.
+Note: "CPU Pixel Copy" and "Native GPU Rendering" are two ways to present frames in a UI view. The former copies pixel data on the CPU; the latter renders directly to the view using the GPU.
