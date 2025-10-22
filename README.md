@@ -19,11 +19,11 @@ Zenith.NET targets modern .NET (including .NET 9.0) and integrates with multiple
 
 Zenith.NET supports multiple graphics APIs that cover mainstream rendering technologies, making it easy to choose the right backend for your scenario.
 
-| API       | Minimum Version | Supported |
-| :-------: | :-------------: | :-------: |
-| DirectX12 | 12_2            | planned   |
-| Metal     | 3.0             | planned   |
-| Vulkan    | 1.3             | planned   |
+| API       | Version | Supported |
+| :-------: | :-----: | :-------: |
+| DirectX12 | 12.2    | planned   |
+| Metal     | 3.0     | planned   |
+| Vulkan    | 1.3     | planned   |
 
 ## UI Framework Integrations
 
