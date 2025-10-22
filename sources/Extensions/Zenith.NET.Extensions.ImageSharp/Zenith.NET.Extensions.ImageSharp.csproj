@@ -5,13 +5,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Zenith.NET\Zenith.NET.csproj" />
+        <ProjectReference Include="..\..\Zenith.NET\Zenith.NET.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Silk.NET.Direct3D12" />
+        <PackageReference Include="SixLabors.ImageSharp" />
     </ItemGroup>
 
-    <Import Project="..\Release.Package.props" />
+    <Import Project="..\..\Release.Package.props" />
 
 </Project>
