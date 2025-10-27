@@ -21,7 +21,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
             unsafe
             {
-                data.CopyTo(new Span<T>((void*)(mappedMemory.Pointer + offsetInBytes), data.Length));
+                data.CopyTo(new((void*)(mappedMemory.Pointer + offsetInBytes), data.Length));
             }
 
             Unmap();

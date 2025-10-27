@@ -14,7 +14,7 @@ public static unsafe class ZenithMarshal
         {
             nint pointer = (nint)NativeMemory.Alloc((uint)(Unsafe.SizeOf<T>() * data.Length));
 
-            data.CopyTo(new Span<T>((void*)pointer, data.Length));
+            data.CopyTo(new((void*)pointer, data.Length));
 
             pointers.Add(pointer);
 

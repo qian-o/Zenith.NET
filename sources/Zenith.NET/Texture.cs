@@ -14,13 +14,27 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public void Upload<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent) where T : unmanaged
     {
-        if (offset.X is 0 && offset.Y is 0 && offset.Z is 0)
+        if (desc.Flags.HasFlag(TextureUsageFlags.Dynamic))
         {
             MappedMemory mappedMemory = Map(slice);
 
             unsafe
             {
-                data.CopyTo(new Span<T>((void*)mappedMemory.Pointer, data.Length));
+                uint offsetInBytes = (offset.Z * mappedMemory.SlicePitch) + (offset.Y * mappedMemory.RowPitch) + (offset.X * ZenithHelper.SizeInBytes(desc.Format));
+
+                for (uint z = 0; z < extent.Depth; z++)
+                {
+                    uint zSourceOffset = z * extent.Height * extent.Width;
+                    uint zDestinationOffset = offsetInBytes + (z * mappedMemory.SlicePitch);
+
+                    for (uint y = 0; y < extent.Height; y++)
+                    {
+                        uint sourceOffset = zSourceOffset + (y * extent.Width);
+                        uint destinationOffset = zDestinationOffset + (y * mappedMemory.RowPitch);
+
+                        data.Slice((int)sourceOffset, (int)extent.Width).CopyTo(new((void*)(mappedMemory.Pointer + destinationOffset), (int)extent.Width));
+                    }
+                }
             }
 
             Unmap();
