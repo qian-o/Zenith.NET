@@ -20,19 +20,22 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
             unsafe
             {
-                uint offsetInBytes = (offset.Z * mappedMemory.SlicePitch) + (offset.Y * mappedMemory.RowPitch) + (offset.X * ZenithHelper.SizeInBytes(desc.Format));
+                byte* destination = (byte*)mappedMemory.Pointer
+                                    + (offset.Z * mappedMemory.SlicePitch)
+                                    + (offset.Y * mappedMemory.RowPitch)
+                                    + (offset.X * ZenithHelper.SizeInBytes(desc.Format));
 
                 for (uint z = 0; z < extent.Depth; z++)
                 {
-                    uint zSourceOffset = z * extent.Height * extent.Width;
-                    uint zDestinationOffset = offsetInBytes + (z * mappedMemory.SlicePitch);
+                    uint sourceOffset = z * extent.Height * extent.Width;
+                    uint destinationOffset = z * mappedMemory.SlicePitch;
 
                     for (uint y = 0; y < extent.Height; y++)
                     {
-                        uint sourceOffset = zSourceOffset + (y * extent.Width);
-                        uint destinationOffset = zDestinationOffset + (y * mappedMemory.RowPitch);
+                        sourceOffset += y * extent.Width;
+                        destinationOffset += y * mappedMemory.RowPitch;
 
-                        data.Slice((int)sourceOffset, (int)extent.Width).CopyTo(new((void*)(mappedMemory.Pointer + destinationOffset), (int)extent.Width));
+                        data.Slice((int)sourceOffset, (int)extent.Width).CopyTo(new(destination + destinationOffset, (int)extent.Width));
                     }
                 }
             }
