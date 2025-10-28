@@ -41,7 +41,6 @@ public static unsafe class ZenithMarshal
     {
         byte[] values = encoding switch
         {
-            StringEncoding.Ansi => Encoding.Default.GetBytes(value + '\0'),
             StringEncoding.Uni => Encoding.Unicode.GetBytes(value + '\0'),
             StringEncoding.UTF8 => Encoding.UTF8.GetBytes(value + '\0'),
             _ => []
@@ -66,7 +65,6 @@ public static unsafe class ZenithMarshal
     {
         return encoding switch
         {
-            StringEncoding.Ansi => Marshal.PtrToStringAnsi(pointer) ?? string.Empty,
             StringEncoding.Uni => Marshal.PtrToStringUni(pointer) ?? string.Empty,
             StringEncoding.UTF8 => Marshal.PtrToStringUTF8(pointer) ?? string.Empty,
             _ => string.Empty
