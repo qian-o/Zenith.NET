@@ -16,6 +16,11 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
     {
         if (desc.Flags.HasFlag(TextureUsageFlags.Dynamic))
         {
+            if (data.Length != extent.Width * extent.Height * extent.Depth)
+            {
+                return;
+            }
+
             MappedMemory mappedMemory = Map(slice);
 
             unsafe
