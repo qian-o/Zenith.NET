@@ -37,10 +37,10 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
                     for (uint y = 0; y < extent.Height; y++)
                     {
-                        sourceOffset += y * extent.Width;
-                        destinationOffset += y * mappedMemory.RowPitch;
+                        uint sourceRowOffset = sourceOffset + (y * extent.Width);
+                        uint destinationRowOffset = destinationOffset + (y * mappedMemory.RowPitch);
 
-                        data.Slice((int)sourceOffset, (int)extent.Width).CopyTo(new(destination + destinationOffset, (int)extent.Width));
+                        data.Slice((int)sourceRowOffset, (int)extent.Width).CopyTo(new(destination + destinationRowOffset, (int)extent.Width));
                     }
                 }
             }
