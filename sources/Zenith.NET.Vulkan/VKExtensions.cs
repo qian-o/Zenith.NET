@@ -1,12 +1,17 @@
-﻿namespace Zenith.NET;
+﻿using System.Diagnostics;
+
+namespace Zenith.NET;
 
 internal static class VKExtensions
 {
     extension(VkResult result)
     {
-        public bool IsSuccess()
+        public void Success()
         {
-            return result is VkResult.Success;
+            if (result is not VkResult.Success)
+            {
+                Debug.WriteLine($"Vulkan call failed with error: {result}");
+            }
         }
     }
 }
