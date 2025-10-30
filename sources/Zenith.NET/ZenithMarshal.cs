@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Zenith.NET;
@@ -12,7 +11,7 @@ public static unsafe class ZenithMarshal
 
         internal nint Native<T>(ReadOnlySpan<T> data) where T : unmanaged
         {
-            nint pointer = (nint)NativeMemory.Alloc((uint)(Unsafe.SizeOf<T>() * data.Length));
+            nint pointer = (nint)NativeMemory.Alloc((uint)(sizeof(T) * data.Length));
 
             data.CopyTo(new((void*)pointer, data.Length));
 
