@@ -65,10 +65,10 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         // Create instance
         {
             uint extensionCount = 0;
-            Vk.EnumerateInstanceExtensionProperties((byte*)null, &extensionCount, (ExtensionProperties*)null);
+            Vk.EnumerateInstanceExtensionProperties((byte*)null, &extensionCount, (ExtensionProperties*)null).IsSuccess();
 
             ExtensionProperties* availableExtensions = (ExtensionProperties*)ZenithMarshal.Allocate<ExtensionProperties>(scope, extensionCount);
-            Vk.EnumerateInstanceExtensionProperties((byte*)null, &extensionCount, availableExtensions);
+            Vk.EnumerateInstanceExtensionProperties((byte*)null, &extensionCount, availableExtensions).IsSuccess();
 
             string[] instanceExtensions = [.. new ReadOnlySpan<ExtensionProperties>(availableExtensions, (int)extensionCount).ToArray().Select(static item => ZenithMarshal.StringFromPointer((nint)item.ExtensionName, StringEncoding.UTF8))];
             instanceExtensions = [.. instanceExtensions.Intersect(InstanceExtensions)];
@@ -94,10 +94,10 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             if (useValidationLayer)
             {
                 uint layerCount = 0;
-                Vk.EnumerateInstanceLayerProperties(&layerCount, (LayerProperties*)null);
+                Vk.EnumerateInstanceLayerProperties(&layerCount, (LayerProperties*)null).IsSuccess();
 
                 LayerProperties* availableLayers = (LayerProperties*)ZenithMarshal.Allocate<LayerProperties>(scope, layerCount);
-                Vk.EnumerateInstanceLayerProperties(&layerCount, availableLayers);
+                Vk.EnumerateInstanceLayerProperties(&layerCount, availableLayers).IsSuccess();
 
                 string[] validationLayers = [.. new ReadOnlySpan<LayerProperties>(availableLayers, (int)layerCount).ToArray().Select(static item => ZenithMarshal.StringFromPointer((nint)item.LayerName, StringEncoding.UTF8))];
                 validationLayers = [.. validationLayers.Intersect(InstanceLayers)];
@@ -106,7 +106,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                 createInfo.PpEnabledLayerNames = (byte**)ZenithMarshal.StringArrayToPointer(scope, validationLayers, StringEncoding.UTF8);
             }
 
-            Vk.CreateInstance(&createInfo, null, (VkInstance*)Unsafe.AsPointer(ref Instance));
+            Vk.CreateInstance(&createInfo, null, (VkInstance*)Unsafe.AsPointer(ref Instance)).IsSuccess();
 
             LamdaNativeContext context = new((proc) => Vk.GetInstanceProcAddr(Instance, (byte*)ZenithMarshal.StringToPointer(scope, proc, StringEncoding.UTF8)));
 
