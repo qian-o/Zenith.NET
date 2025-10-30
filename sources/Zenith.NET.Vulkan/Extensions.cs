@@ -1,6 +1,6 @@
-﻿namespace Zenith.NET.Vulkan;
+﻿namespace Zenith.NET;
 
-public static class VKGraphicsContextExtensions
+public static class Extensions
 {
     extension(GraphicsContext)
     {

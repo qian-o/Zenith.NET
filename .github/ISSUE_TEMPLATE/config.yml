@@ -1,0 +1,11 @@
+﻿blank_issues_enabled: false
+contact_links:
+  - name: Questions about Zenith.NET?
+    url: https://github.com/qian-o/Zenith.NET/discussions
+    about: I have a question about how to use Zenith.NET or need help with graphics programming.
+  - name: Documentation
+    url: https://github.com/qian-o/Zenith.NET/wiki
+    about: Check out the documentation and examples for Zenith.NET.
+  - name: Feature Discussions
+    url: https://github.com/qian-o/Zenith.NET/discussions/categories/ideas
+    about: Discuss new ideas and features for Zenith.NET with the community.

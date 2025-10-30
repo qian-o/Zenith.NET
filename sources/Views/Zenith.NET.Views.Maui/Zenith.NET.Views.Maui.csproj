@@ -4,6 +4,7 @@
         <TargetFrameworks>$(StandardTargetFramework)-android;$(StandardTargetFramework)-ios;$(StandardTargetFramework)-maccatalyst</TargetFrameworks>
         <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);$(StandardTargetFramework)-windows10.0.19041.0</TargetFrameworks>
         <UseMaui>true</UseMaui>
+        <SingleProject>true</SingleProject>
     </PropertyGroup>
 
     <ItemGroup>
@@ -13,5 +14,11 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Maui.Controls" />
     </ItemGroup>
+
+    <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+        <PackageReference Include="Silk.NET.Direct3D11" />
+    </ItemGroup>
+
+    <Import Project="..\..\Release.Package.props" />
 
 </Project>

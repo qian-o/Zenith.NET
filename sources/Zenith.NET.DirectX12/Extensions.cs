@@ -1,6 +1,6 @@
-﻿namespace Zenith.NET.DirectX12;
+﻿namespace Zenith.NET;
 
-public static class DXGraphicsContextExtensions
+public static class Extensions
 {
     extension(GraphicsContext)
     {

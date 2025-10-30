@@ -54,34 +54,23 @@ public record struct Surface
         };
     }
 
-    public static Surface IOS(nint view, uint width, uint height)
+    public static Surface Apple(nint layer, uint width, uint height)
     {
         return new()
         {
-            Type = SurfaceType.IOS,
-            Handles = [view],
+            Type = SurfaceType.Apple,
+            Handles = [layer],
             Width = width,
             Height = height
         };
     }
 
-    public static Surface MacOS(nint view, uint width, uint height)
+    public static Surface D3D11Interop(nint sharedHandle, uint width, uint height)
     {
         return new()
         {
-            Type = SurfaceType.MacOS,
-            Handles = [view],
-            Width = width,
-            Height = height
-        };
-    }
-
-    public static Surface PixelBuffer(nint pixelBuffer, uint width, uint height)
-    {
-        return new()
-        {
-            Type = SurfaceType.PixelBuffer,
-            Handles = [pixelBuffer],
+            Type = SurfaceType.D3D11Interop,
+            Handles = [sharedHandle],
             Width = width,
             Height = height
         };

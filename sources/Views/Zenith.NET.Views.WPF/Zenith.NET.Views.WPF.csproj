@@ -9,4 +9,11 @@
         <ProjectReference Include="..\..\Zenith.NET\Zenith.NET.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="Silk.NET.Direct3D11" />
+        <PackageReference Include="Silk.NET.Direct3D9" />
+    </ItemGroup>
+
+    <Import Project="..\..\Release.Package.props" />
+
 </Project>

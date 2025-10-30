@@ -1,0 +1,109 @@
+﻿name: Bug report
+description: Create a report to help us improve
+title: "Bug Report: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! Please make sure you are using the latest version of Zenith.NET. Older versions may restrict the supported .NET version and cause unexpected issues.
+
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Describe the bug
+      description: In a few sentences, please enter a short, clear description of the bug.
+      placeholder: E.g. When initializing a DirectX12 context, an exception is thrown instead of creating the context successfully when using integrated graphics.
+
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Why is this important?
+      description: Please provide the impact/scenario of this issue to yourself or the end-user of an application. What is it that is trying to be accomplished that this bug prevents from happening?
+      placeholder: E.g. My application needs to render graphics using DirectX12, but this bug prevents initialization on certain hardware configurations, blocking users from running the application.
+
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Steps to reproduce the bug
+      description: Please provide any required setup and steps to reproduce the behavior. It is best if you can create a minimal example that reproduces the issue.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. See issue
+
+  - type: textarea
+    attributes:
+      label: Actual behavior
+      description: Please provide a description of what does happen when you follow the repro steps above
+      placeholder: Exception is thrown during initialization.
+
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: Please provide a description of what you expected to happen
+      placeholder: DirectX12 context should initialize successfully.
+
+  - type: textarea
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots here to help explain your problem
+
+  - type: dropdown
+    validations:
+      required: true
+    attributes:
+      label: Operating System
+      description: Which operating system are you using?
+      options:
+        - "Windows"
+        - "macOS"
+        - "iOS"
+        - "Android"
+        - "Linux"
+        - "Other"
+
+  - type: dropdown
+    validations:
+      required: true
+    attributes:
+      label: Graphics API
+      description: Which graphics API are you using?
+      options:
+        - "DirectX12"
+        - "Metal"
+        - "Vulkan"
+        - "Not applicable"
+
+  - type: dropdown
+    validations:
+      required: true
+    attributes:
+      label: Device Type
+      description: What type of device are you using?
+      options:
+        - "Desktop PC"
+        - "Laptop"
+        - "Mac"
+        - "iPhone"
+        - "iPad"
+        - "Android Phone"
+        - "Android Tablet"
+        - "Other"
+
+  - type: input
+    validations:
+      required: true
+    attributes:
+      label: Zenith.NET Version
+      description: Which version of Zenith.NET are you using?
+      placeholder: e.g. 1.0.0
+
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here. You can also attach relevant code snippets, logs, or files.
+      placeholder: Any additional information that might help us understand and fix the issue.

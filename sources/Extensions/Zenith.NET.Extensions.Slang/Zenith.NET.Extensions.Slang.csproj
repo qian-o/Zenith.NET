@@ -12,4 +12,6 @@
         <PackageReference Include="Slangc.NET" />
     </ItemGroup>
 
+    <Import Project="..\..\Release.Package.props" />
+
 </Project>

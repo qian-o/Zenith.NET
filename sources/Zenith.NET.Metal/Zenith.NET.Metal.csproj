@@ -1,12 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>$(StandardTargetFramework)-ios;$(StandardTargetFramework)-maccatalyst</TargetFrameworks>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <TargetFramework>$(StandardTargetFramework)</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\Zenith.NET\Zenith.NET.csproj" />
     </ItemGroup>
+
+    <Import Project="..\Release.Package.props" />
 
 </Project>

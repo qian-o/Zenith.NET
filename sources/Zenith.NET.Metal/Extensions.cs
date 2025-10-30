@@ -1,6 +1,6 @@
-﻿namespace Zenith.NET.Metal;
+﻿namespace Zenith.NET;
 
-public static class MTLGraphicsContextExtensions
+public static class Extensions
 {
     extension(GraphicsContext)
     {

@@ -2,7 +2,6 @@
 
     <PropertyGroup>
         <TargetFramework>$(StandardTargetFramework)</TargetFramework>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
@@ -12,5 +11,7 @@
     <ItemGroup>
         <PackageReference Include="Silk.NET.Direct3D12" />
     </ItemGroup>
+
+    <Import Project="..\Release.Package.props" />
 
 </Project>

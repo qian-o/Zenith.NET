@@ -1,0 +1,49 @@
+﻿name: Feature Request
+description: Suggest a new feature
+title: "Feature Request: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a new feature! Please search existing issues first to see if someone else has made a similar request.
+  
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Feature Description
+      description: Describe the feature you would like to see added
+      placeholder: Please provide a clear description of what you want to be implemented...
+  
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Why is this needed?
+      description: Explain why this feature would be useful and what problem it solves
+      placeholder: Describe the use case and benefits of this feature...
+  
+  - type: dropdown
+    validations:
+      required: true
+    attributes:
+      label: Feature Area
+      description: Which area of Zenith.NET does this affect?
+      options:
+        - "Core Library"
+        - "Graphics Backend"
+        - "Extensions"
+        - "Views"
+        - "Other"
+  
+  - type: textarea
+    attributes:
+      label: Additional Context
+      description: Add any other context, code examples, or references
+      placeholder: |
+        You can include:
+        - Code examples or API ideas
+        - Screenshots or mockups
+        - Links to related issues
+        - Any other relevant information

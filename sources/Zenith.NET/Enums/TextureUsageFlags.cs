@@ -11,5 +11,7 @@ public enum TextureUsageFlags
 
     ShaderResource = 1 << 2,
 
-    UnorderedAccess = 1 << 3
+    UnorderedAccess = 1 << 3,
+
+    Dynamic = 1 << 4
 }

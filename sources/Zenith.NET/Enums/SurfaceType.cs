@@ -10,9 +10,7 @@ public enum SurfaceType
 
     Android,
 
-    IOS,
+    Apple,
 
-    MacOS,
-
-    PixelBuffer
+    D3D11Interop
 }

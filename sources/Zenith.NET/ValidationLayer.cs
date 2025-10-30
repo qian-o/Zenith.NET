@@ -1,6 +1,4 @@
-﻿using System.Runtime.InteropServices;
-
-namespace Zenith.NET;
+﻿namespace Zenith.NET;
 
 public abstract class ValidationLayer(GraphicsContext context) : GraphicsResource(context)
 {
@@ -23,39 +21,41 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         public const string MustNotBeNull = "{0} must not be null.";
 
-        public const string MustBeGreaterThanZero = "{0} must be greater than zero.";
-
-        public const string MustHaveExactlyNHandles = "{0} must have exactly {1} handle(s) for {2}.";
+        public const string MustHaveExactlyNHandles = "{0} must have exactly {1} handles for {2}.";
 
         public const string MustBeValidHandle = "{0} must be a valid handle for {1}.";
 
         public const string MustBeValidHandles = "{0} must be valid handles for {1}.";
 
+        public const string HasUnsupportedSurfaceType = "{0} has unsupported SurfaceType '{1}'.";
+
         public const string HasInvalidValue = "{0} has an invalid value '{1}'.";
+
+        public const string HasNoAttachments = "{0} has no attachments.";
+
+        public const string MustNotBeDisposed = "{0} must not be disposed.";
+
+        public const string MustBeLessThan = "{0} must be less than {1}.";
 
         public const string MustNotBeNullOrEmpty = "{0} must not be null or empty.";
 
         public const string MustNotBeNullOrWhitespace = "{0} must not be null or whitespace.";
 
-        public const string MustBeLessThan = "{0} must be less than {1}.";
-
-        public const string MustBeLessThanOrEqualTo = "{0} must be less than or equal to {1}.";
-
-        public const string MustBeWithinBounds = "{0} must be greater than zero and within the bounds of {1}.";
-
-        public const string LengthMustMatch = "{0} length must match {1}.";
-
-        public const string MustBeOfType = "{0} item must be a {1} for {2} binding.";
-
-        public const string MustBeValidPixelBufferHandle = "{0} must be a valid PixelBuffer handle for {1}.";
-
-        public const string HasNoAttachments = "{0} has no attachments.";
+        public const string MustBeGreaterThanZero = "{0} must be greater than zero.";
 
         public const string IsZeroWarning = "{0} is zero, which may be valid for some {1} but could indicate an issue.";
 
         public const string IsSetToNoneWarning = "{0} is set to None, which may be valid but could indicate an issue.";
 
-        public const string HasUnsupportedSurfaceType = "{0} has unsupported SurfaceType '{1}'.";
+        public const string MustBeWithinBounds = "{0} must be greater than zero and within the bounds of {1}.";
+
+        public const string MustBeLessThanOrEqualTo = "{0} must be less than or equal to {1}.";
+
+        public const string LengthMustMatch = "{0} length must match {1}.";
+
+        public const string MustBeOfType = "{0} item must be a {1} for {2} binding.";
+
+        public const string MustBeOneOf = "{0} must be one of: {1}.";
 
         public const string InstanceCountMustRemainSame = "When updating a TopLevelAccelerationStructure, the number of instances must remain the same.";
     }
@@ -79,7 +79,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             case SurfaceType.Win32:
                 if (desc.Surface.Handles.Length is not 1)
                 {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "one", "SurfaceType.Win32"));
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", 1, "SurfaceType.Win32"));
                 }
                 else if (desc.Surface.Handles[0] is 0)
                 {
@@ -90,7 +90,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             case SurfaceType.Wayland:
                 if (desc.Surface.Handles.Length is not 2)
                 {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "two", "SurfaceType.Wayland"));
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", 2, "SurfaceType.Wayland"));
                 }
                 else if (desc.Surface.Handles[0] is 0 || desc.Surface.Handles[1] is 0)
                 {
@@ -101,7 +101,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             case SurfaceType.Xlib:
                 if (desc.Surface.Handles.Length is not 2)
                 {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "two", "SurfaceType.Xlib"));
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", 2, "SurfaceType.Xlib"));
                 }
                 else if (desc.Surface.Handles[0] is 0 || desc.Surface.Handles[1] is 0)
                 {
@@ -112,7 +112,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             case SurfaceType.Android:
                 if (desc.Surface.Handles.Length is not 1)
                 {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "one", "SurfaceType.Android"));
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", 1, "SurfaceType.Android"));
                 }
                 else if (desc.Surface.Handles[0] is 0)
                 {
@@ -120,36 +120,14 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 }
                 break;
 
-            case SurfaceType.IOS:
+            case SurfaceType.Apple:
                 if (desc.Surface.Handles.Length is not 1)
                 {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "one", "SurfaceType.IOS"));
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", 1, "SurfaceType.Apple"));
                 }
                 else if (desc.Surface.Handles[0] is 0)
                 {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.IOS"));
-                }
-                break;
-
-            case SurfaceType.MacOS:
-                if (desc.Surface.Handles.Length is not 1)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "one", "SurfaceType.MacOS"));
-                }
-                else if (desc.Surface.Handles[0] is 0)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.MacOS"));
-                }
-                break;
-
-            case SurfaceType.PixelBuffer:
-                if (desc.Surface.Handles.Length is not 1)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", "one", "SurfaceType.PixelBuffer"));
-                }
-                else if (desc.Surface.Handles[0] is 0 || GCHandle.FromIntPtr(desc.Surface.Handles[0]).Target is not IPixelBuffer)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidPixelBufferHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.PixelBuffer"));
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.Apple"));
                 }
                 break;
 
@@ -202,9 +180,11 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 return;
             }
 
-            if (frameBufferAttachment.Slice.Face >= ValidationConstants.CubeMapFaceCount)
+            if (frameBufferAttachment.Target.IsDisposed)
             {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.Face", ValidationConstants.CubeMapFaceCount));
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"{name}.Target"));
+
+                return;
             }
 
             if (frameBufferAttachment.Slice.Layer >= frameBufferAttachment.Target.Desc.Layers)
@@ -215,6 +195,11 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             if (frameBufferAttachment.Slice.MipLevel >= frameBufferAttachment.Target.Desc.MipLevels)
             {
                 ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.MipLevel", "the number of mip levels in the texture"));
+            }
+
+            if (frameBufferAttachment.Slice.Face >= ValidationConstants.CubeMapFaceCount)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.Face", ValidationConstants.CubeMapFaceCount));
             }
         }
     }
@@ -260,6 +245,13 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         if (desc.Buffer is null)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "BufferViewDesc.Buffer"));
+
+            return;
+        }
+
+        if (desc.Buffer.IsDisposed)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "BufferViewDesc.Buffer"));
 
             return;
         }
@@ -323,6 +315,13 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         if (desc.Texture is null)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "TextureViewDesc.Texture"));
+
+            return;
+        }
+
+        if (desc.Texture.IsDisposed)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "TextureViewDesc.Texture"));
 
             return;
         }
@@ -427,10 +426,25 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             return;
         }
 
-        int i = 0;
-        foreach (IBindableResource resource in desc.Resources)
+        for (int i = 0; i < desc.Resources.Length; i++)
         {
-            switch (desc.Layout.Desc.Bindings[i++].Type)
+            IBindableResource resource = desc.Resources[i];
+
+            if (resource is null)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceSetDesc.Resources"));
+
+                continue;
+            }
+
+            if (resource.IsDisposed)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ResourceSetDesc.Resources"));
+
+                continue;
+            }
+
+            switch (desc.Layout.Desc.Bindings[i].Type)
             {
                 case ResourceType.ConstantBuffer:
                     if (resource is not Buffer or BufferView)
@@ -492,15 +506,48 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.Vertex"));
         }
+        else if (desc.Vertex.IsDisposed)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "GraphicsPipelineDesc.Vertex"));
+        }
+
+        if (desc.Hull?.IsDisposed is true)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "GraphicsPipelineDesc.Hull"));
+        }
+
+        if (desc.Domain?.IsDisposed is true)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "GraphicsPipelineDesc.Domain"));
+        }
+
+        if (desc.Geometry?.IsDisposed is true)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "GraphicsPipelineDesc.Geometry"));
+        }
 
         if (desc.Pixel is null)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.Pixel"));
         }
+        else if (desc.Pixel.IsDisposed)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "GraphicsPipelineDesc.Pixel"));
+        }
 
         if (desc.ResourceLayouts is null)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.ResourceLayouts"));
+        }
+        else
+        {
+            for (int i = 0; i < desc.ResourceLayouts.Length; i++)
+            {
+                if (desc.ResourceLayouts[i].IsDisposed)
+                {
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"GraphicsPipelineDesc.ResourceLayouts[{i}]"));
+                }
+            }
         }
 
         if (desc.InputLayouts is null || desc.InputLayouts.Length is 0)
@@ -547,10 +594,24 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ComputePipelineDesc.Compute"));
         }
+        else if (desc.Compute.IsDisposed)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ComputePipelineDesc.Compute"));
+        }
 
         if (desc.ResourceLayouts is null)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ComputePipelineDesc.ResourceLayouts"));
+        }
+        else
+        {
+            for (int i = 0; i < desc.ResourceLayouts.Length; i++)
+            {
+                if (desc.ResourceLayouts[i].IsDisposed)
+                {
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"ComputePipelineDesc.ResourceLayouts[{i}]"));
+                }
+            }
         }
 
         if (desc.ThreadGroupSizeX is 0 || desc.ThreadGroupSizeY is 0 || desc.ThreadGroupSizeZ is 0)
@@ -565,25 +626,69 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.RayGeneration"));
         }
+        else if (desc.RayGeneration.IsDisposed)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "RayTracingPipelineDesc.RayGeneration"));
+        }
 
         if (desc.Miss is null)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.Miss"));
+        }
+        else
+        {
+            for (int i = 0; i < desc.Miss.Length; i++)
+            {
+                if (desc.Miss[i].IsDisposed)
+                {
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"RayTracingPipelineDesc.Miss[{i}]"));
+                }
+            }
         }
 
         if (desc.AnyHit is null)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.AnyHit"));
         }
+        else
+        {
+            for (int i = 0; i < desc.AnyHit.Length; i++)
+            {
+                if (desc.AnyHit[i].IsDisposed)
+                {
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"RayTracingPipelineDesc.AnyHit[{i}]"));
+                }
+            }
+        }
 
         if (desc.Intersection is null)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.Intersection"));
         }
+        else
+        {
+            for (int i = 0; i < desc.Intersection.Length; i++)
+            {
+                if (desc.Intersection[i].IsDisposed)
+                {
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"RayTracingPipelineDesc.Intersection[{i}]"));
+                }
+            }
+        }
 
         if (desc.ClosestHit is null)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.ClosestHit"));
+        }
+        else
+        {
+            for (int i = 0; i < desc.ClosestHit.Length; i++)
+            {
+                if (desc.ClosestHit[i].IsDisposed)
+                {
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"RayTracingPipelineDesc.ClosestHit[{i}]"));
+                }
+            }
         }
 
         if (desc.HitGroups is null)
@@ -594,6 +699,16 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         if (desc.ResourceLayouts is null)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.ResourceLayouts"));
+        }
+        else
+        {
+            for (int i = 0; i < desc.ResourceLayouts.Length; i++)
+            {
+                if (desc.ResourceLayouts[i].IsDisposed)
+                {
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"RayTracingPipelineDesc.ResourceLayouts[{i}]"));
+                }
+            }
         }
 
         if (desc.MaxTraceRecursionDepth > ValidationConstants.MaxTraceRecursionDepth)
@@ -616,19 +731,47 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         CheckRenderStates("MeshShadingPipelineDesc", desc.RenderStates);
 
+        if (desc.Amplification?.IsDisposed is true)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "MeshShadingPipelineDesc.Amplification"));
+        }
+
         if (desc.Mesh is null)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "MeshShadingPipelineDesc.Mesh"));
+        }
+        else if (desc.Mesh.IsDisposed)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "MeshShadingPipelineDesc.Mesh"));
         }
 
         if (desc.Pixel is null)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "MeshShadingPipelineDesc.Pixel"));
         }
+        else if (desc.Pixel.IsDisposed)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "MeshShadingPipelineDesc.Pixel"));
+        }
 
         if (desc.ResourceLayouts is null)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "MeshShadingPipelineDesc.ResourceLayouts"));
+        }
+        else
+        {
+            for (int i = 0; i < desc.ResourceLayouts.Length; i++)
+            {
+                if (desc.ResourceLayouts[i].IsDisposed)
+                {
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"MeshShadingPipelineDesc.ResourceLayouts[{i}]"));
+                }
+            }
+        }
+
+        if (desc.PrimitiveTopology is not PrimitiveTopology.LineList or PrimitiveTopology.TriangleList)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOneOf, "MeshShadingPipelineDesc.PrimitiveTopology", "LineList, TriangleList"));
         }
 
         CheckOutput("MeshShadingPipelineDesc.Output", desc.Output);
@@ -676,6 +819,13 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                             break;
                         }
 
+                        if (triangles.VertexBuffer.IsDisposed)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"{name}.Triangles.VertexBuffer"));
+
+                            break;
+                        }
+
                         if (!Enum.IsDefined(triangles.VertexFormat))
                         {
                             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.Triangles.VertexFormat", triangles.VertexFormat));
@@ -698,6 +848,13 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
                         if (triangles.IndexBuffer is null)
                         {
+                            break;
+                        }
+
+                        if (triangles.IndexBuffer.IsDisposed)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"{name}.Triangles.IndexBuffer"));
+
                             break;
                         }
 
@@ -732,6 +889,13 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                         if (aABBs.Buffer is null)
                         {
                             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, $"{name}.AABBs.Buffer"));
+
+                            break;
+                        }
+
+                        if (aABBs.Buffer.IsDisposed)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"{name}.AABBs.Buffer"));
 
                             break;
                         }
@@ -779,6 +943,13 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             if (rayTracingInstance.AccelerationStructure is null)
             {
                 ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, $"{name}.AccelerationStructure"));
+
+                return;
+            }
+
+            if (rayTracingInstance.AccelerationStructure.IsDisposed)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"{name}.AccelerationStructure"));
 
                 return;
             }

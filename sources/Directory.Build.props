@@ -1,52 +1,18 @@
 ﻿<Project>
 
-    <!-- Build Configuration -->
     <PropertyGroup>
         <!-- Target & Compatibility -->
-        <StandardTargetFramework>net10.0</StandardTargetFramework>
+        <StandardTargetFramework>net9.0</StandardTargetFramework>
+        <LangVersion>preview</LangVersion>
         <IsAotCompatible>true</IsAotCompatible>
 
         <!-- Code Style & Language Features -->
+        <NoWarn>IDE0130</NoWarn>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     </PropertyGroup>
-
-    <!-- Release Configuration -->
-    <Choose>
-        <When Condition="'$(Configuration)' == 'Release'">
-            <PropertyGroup>
-                <PackageOutputPath>$(MSBuildThisFileDirectory)..\.nuget</PackageOutputPath>
-
-                <!-- Package Metadata -->
-                <Version>0.0.1</Version>
-                <Authors>qian-o</Authors>
-                <Copyright>Copyright (c) 2025 qian-o</Copyright>
-                <Description></Description>
-
-                <!-- Repository Information -->
-                <RepositoryType>Git</RepositoryType>
-                <RepositoryUrl>https://github.com/qian-o/Zenith.NET.git</RepositoryUrl>
-
-                <!-- Package Content -->
-                <PackageIcon></PackageIcon>
-                <PackageLicenseFile>LICENSE</PackageLicenseFile>
-                <PackageReadmeFile>README.md</PackageReadmeFile>
-                <PackageTags>C#;DirectX12;Metal;Vulkan;ImGui;Skia;Slang;Avalonia;Maui;Uno;WinUI;WPF;GPU;Computer Graphics;Cross Platform</PackageTags>
-                <PackageReleaseNotes></PackageReleaseNotes>
-
-                <!-- Debug Symbols & Source Link -->
-                <IncludeSymbols>true</IncludeSymbols>
-                <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-                <PublishRepositoryUrl>true</PublishRepositoryUrl>
-            </PropertyGroup>
-
-            <ItemGroup>
-                <None Include="$(MSBuildThisFileDirectory)..\LICENSE" Pack="true" PackagePath="\" />
-                <None Include="$(MSBuildThisFileDirectory)..\README.md" Pack="true" PackagePath="\" />
-            </ItemGroup>
-        </When>
-    </Choose>
 
     <ItemGroup>
         <PackageReference Include="Roslynator.Analyzers">

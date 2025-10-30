@@ -24,9 +24,9 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         queue.Submit(this);
     }
 
-    public void Upload<T>(Buffer buffer, uint offsetInBytes, ReadOnlySpan<T> data)
+    public void Upload<T>(Buffer buffer, uint offsetInBytes, ReadOnlySpan<T> data) where T : unmanaged
     {
-        uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
+        uint sizeInBytes = (uint)(Unsafe.SizeOf<T>() * data.Length);
 
         Buffer temporary = Context.Uploader.Buffer(this, sizeInBytes);
         temporary.Upload(data, 0);
@@ -34,14 +34,12 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CopyBuffer(temporary, 0, buffer, offsetInBytes, sizeInBytes);
     }
 
-    public void Upload<T>(Texture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data)
+    public void Upload<T>(Texture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data) where T : unmanaged
     {
-        uint sizeInBytes = (uint)(data.Length * Unsafe.SizeOf<T>());
+        Texture temporary = Context.Uploader.Texture(this, texture.Desc.Format, extent.Width, extent.Height, extent.Depth);
+        temporary.Upload(data, default, default, extent);
 
-        Buffer temporary = Context.Uploader.Buffer(this, sizeInBytes);
-        temporary.Upload(data, 0);
-
-        CopyBufferToTexture(temporary, 0, texture, slice, offset, extent);
+        CopyTexture(temporary, default, default, texture, slice, offset, extent);
     }
 
     public void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes)
@@ -56,20 +54,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         EnsureRenderingEnded();
 
         CopyTextureImpl(src, srcSlice, srcOffset, dest, destSlice, destOffset, extent);
-    }
-
-    public void CopyBufferToTexture(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent)
-    {
-        EnsureRenderingEnded();
-
-        CopyBufferToTextureImpl(src, srcOffsetInBytes, dest, destSlice, destOffset, destExtent);
-    }
-
-    public void CopyTextureToBuffer(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes)
-    {
-        EnsureRenderingEnded();
-
-        CopyTextureToBufferImpl(src, srcSlice, srcOffset, srcExtent, dest, destOffsetInBytes);
     }
 
     public void ResolveTexture(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice)
@@ -394,10 +378,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     protected abstract void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes);
 
     protected abstract void CopyTextureImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent);
-
-    protected abstract void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent);
-
-    protected abstract void CopyTextureToBufferImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes);
 
     protected abstract void ResolveTextureImpl(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice);
 
