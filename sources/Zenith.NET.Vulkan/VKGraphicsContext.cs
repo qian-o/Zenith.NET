@@ -407,8 +407,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         graphics = new VKCommandQueue(this, CommandQueueType.Graphics, GraphicsQueue);
         compute = new VKCommandQueue(this, CommandQueueType.Compute, ComputeQueue);
         copy = new VKCommandQueue(this, CommandQueueType.Copy, CopyQueue);
-
-        throw new NotImplementedException();
+        validationLayer = useValidationLayer ? new VKValidationLayer(this) : null;
     }
 
     protected override SwapChain CreateSwapChainImpl(SwapChainDesc desc)
@@ -484,5 +483,17 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
     protected override QueryHeap CreateQueryHeapImpl(QueryHeapDesc desc)
     {
         throw new NotImplementedException();
+    }
+
+    protected override void Destroy()
+    {
+        Vk.DeviceWaitIdle(Device);
+
+        base.Destroy();
+
+        Vk.DestroyDevice(Device, null);
+        Vk.DestroyInstance(Instance, null);
+
+        Vk.Dispose();
     }
 }
