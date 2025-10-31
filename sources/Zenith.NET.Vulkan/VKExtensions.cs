@@ -16,6 +16,7 @@ internal static class VKExtensions
         }
     }
 
+    #region Enums
     extension(ShaderStageFlags shaderStageFlags)
     {
         public VkShaderStageFlags Vulkan()
@@ -90,12 +91,29 @@ internal static class VKExtensions
             return result;
         }
     }
+    #endregion
+
+    extension(Shader shader)
+    {
+        public VKShader Vulkan()
+        {
+            return (VKShader)shader;
+        }
+    }
 
     extension(Buffer buffer)
     {
         public VKBuffer Vulkan()
         {
             return (VKBuffer)buffer;
+        }
+    }
+
+    extension(BufferView bufferView)
+    {
+        public VKBufferView Vulkan()
+        {
+            return (VKBufferView)bufferView;
         }
     }
 }
