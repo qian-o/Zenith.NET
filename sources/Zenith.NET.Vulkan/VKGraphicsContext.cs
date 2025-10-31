@@ -403,6 +403,11 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             MeshShader = enabledExtensions.Contains(ExtMeshShader.ExtensionName) ? new(context) : null;
         }
 
+        capabilities = new VKCapabilities(this);
+        graphics = new VKCommandQueue(this, CommandQueueType.Graphics, GraphicsQueue);
+        compute = new VKCommandQueue(this, CommandQueueType.Compute, ComputeQueue);
+        copy = new VKCommandQueue(this, CommandQueueType.Copy, CopyQueue);
+
         throw new NotImplementedException();
     }
 
