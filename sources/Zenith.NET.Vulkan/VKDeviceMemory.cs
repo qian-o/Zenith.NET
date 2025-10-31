@@ -41,6 +41,8 @@ internal unsafe class VKDeviceMemory : GraphicsResource
         }
 
         Context.Vk.AllocateMemory(Context.Device, &allocateInfo, null, (DeviceMemory*)Unsafe.AsPointer(ref DeviceMemory)).Success();
+
+        Context.Vk.BindBufferMemory(Context.Device, buffer.Buffer, DeviceMemory, 0).Success();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;

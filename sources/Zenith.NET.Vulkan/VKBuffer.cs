@@ -7,6 +7,8 @@ internal unsafe class VKBuffer : Buffer
 {
     public VkBuffer Buffer;
 
+    public ulong DeviceAddress;
+
     public VKBuffer(GraphicsContext context, BufferDesc desc) : base(context, desc)
     {
         using ZenithMarshal.Scope scope = new();
@@ -59,6 +61,14 @@ internal unsafe class VKBuffer : Buffer
         Context.Vk.CreateBuffer(Context.Device, &createInfo, null, (VkBuffer*)Unsafe.AsPointer(ref Buffer)).Success();
 
         DeviceMemory = new(Context, this);
+
+        BufferDeviceAddressInfo addressInfo = new()
+        {
+            SType = StructureType.BufferDeviceAddressInfo,
+            Buffer = Buffer
+        };
+
+        DeviceAddress = Context.Vk.GetBufferDeviceAddress(Context.Device, &addressInfo);
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
@@ -82,17 +92,6 @@ internal unsafe class VKBuffer : Buffer
     public override void Unmap()
     {
         Context.Vk.UnmapMemory(Context.Device, DeviceMemory.DeviceMemory);
-    }
-
-    public ulong GetDeviceAddress()
-    {
-        BufferDeviceAddressInfo addressInfo = new()
-        {
-            SType = StructureType.BufferDeviceAddressInfo,
-            Buffer = Buffer
-        };
-
-        return Context.Vk.GetBufferDeviceAddress(Context.Device, &addressInfo);
     }
 
     protected override void SetResourceName(string name)
