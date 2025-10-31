@@ -487,7 +487,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override void Destroy()
     {
-        Vk.DeviceWaitIdle(Device);
+        Vk.DeviceWaitIdle(Device).Success();
 
         base.Destroy();
 
