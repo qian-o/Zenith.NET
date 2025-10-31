@@ -2,7 +2,7 @@
 
 public enum CommandQueueType
 {
-    Direct,
+    Graphics,
 
     Compute,
 

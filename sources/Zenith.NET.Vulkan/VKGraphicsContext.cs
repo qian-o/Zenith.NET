@@ -56,7 +56,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
-                                       out CommandQueue direct,
+                                       out CommandQueue graphics,
                                        out CommandQueue compute,
                                        out CommandQueue copy,
                                        out ValidationLayer? validationLayer)
