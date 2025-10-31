@@ -422,7 +422,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override Shader CreateShaderImpl(ShaderDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKShader(this, desc);
     }
 
     protected override Buffer CreateBufferImpl(BufferDesc desc)

@@ -1,0 +1,1 @@
+﻿global using VkShaderStageFlags = Silk.NET.Vulkan.ShaderStageFlags;
