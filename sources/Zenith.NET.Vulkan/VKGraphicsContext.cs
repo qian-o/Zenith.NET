@@ -78,6 +78,25 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public ExtMeshShader? MeshShader { get; private set; }
 
+    public uint FindMemoryTypeIndex(uint memoryTypeBits, MemoryPropertyFlags flags)
+    {
+        PhysicalDeviceMemoryProperties properties;
+        Vk.GetPhysicalDeviceMemoryProperties(PhysicalDevice, &properties);
+
+        uint index = 0;
+        foreach (MemoryType memoryType in properties.MemoryTypes.AsSpan())
+        {
+            if ((memoryTypeBits & (1 << (int)index)) is not 0 && memoryType.PropertyFlags.HasFlag(flags))
+            {
+                break;
+            }
+
+            index++;
+        }
+
+        return index;
+    }
+
     protected override void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
                                        out CommandQueue graphics,
