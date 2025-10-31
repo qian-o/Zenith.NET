@@ -36,7 +36,9 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         ExtMeshShader.ExtensionName
     ];
 
-    public VkInstance Instance;
+    public Instance Instance;
+
+    public PhysicalDevice PhysicalDevice;
 
     public Vk Vk { get; } = Vk.GetApi();
 
@@ -68,13 +70,13 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             uint extensionCount = 0;
             Vk.EnumerateInstanceExtensionProperties((byte*)null, &extensionCount, (ExtensionProperties*)null).Success();
 
-            ExtensionProperties* availableExtensions = (ExtensionProperties*)ZenithMarshal.Allocate<ExtensionProperties>(scope, extensionCount);
-            Vk.EnumerateInstanceExtensionProperties((byte*)null, &extensionCount, availableExtensions).Success();
+            ExtensionProperties* extensions = (ExtensionProperties*)ZenithMarshal.Allocate<ExtensionProperties>(scope, extensionCount);
+            Vk.EnumerateInstanceExtensionProperties((byte*)null, &extensionCount, extensions).Success();
 
-            string[] instanceExtensions = [.. new ReadOnlySpan<ExtensionProperties>(availableExtensions, (int)extensionCount).ToArray().Select(static item => ZenithMarshal.StringFromPointer((nint)item.ExtensionName, StringEncoding.UTF8))];
-            instanceExtensions = [.. instanceExtensions.Intersect(InstanceExtensions)];
+            string[] enabledExtensions = [.. new ReadOnlySpan<ExtensionProperties>(extensions, (int)extensionCount).ToArray().Select(static item => ZenithMarshal.StringFromPointer((nint)item.ExtensionName, StringEncoding.UTF8))];
+            enabledExtensions = [.. enabledExtensions.Intersect(InstanceExtensions)];
 
-            ApplicationInfo ApplicationInfo = new()
+            ApplicationInfo applicationInfo = new()
             {
                 SType = StructureType.ApplicationInfo,
                 PApplicationName = (byte*)ZenithMarshal.StringToPointer(scope, AppDomain.CurrentDomain.FriendlyName, StringEncoding.UTF8),
@@ -87,9 +89,9 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             InstanceCreateInfo createInfo = new()
             {
                 SType = StructureType.InstanceCreateInfo,
-                PApplicationInfo = &ApplicationInfo,
-                EnabledExtensionCount = (uint)instanceExtensions.Length,
-                PpEnabledExtensionNames = (byte**)ZenithMarshal.StringArrayToPointer(scope, instanceExtensions, StringEncoding.UTF8)
+                PApplicationInfo = &applicationInfo,
+                EnabledExtensionCount = (uint)enabledExtensions.Length,
+                PpEnabledExtensionNames = (byte**)ZenithMarshal.StringArrayToPointer(scope, enabledExtensions, StringEncoding.UTF8)
             };
 
             if (useValidationLayer)
@@ -97,27 +99,94 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                 uint layerCount = 0;
                 Vk.EnumerateInstanceLayerProperties(&layerCount, (LayerProperties*)null).Success();
 
-                LayerProperties* availableLayers = (LayerProperties*)ZenithMarshal.Allocate<LayerProperties>(scope, layerCount);
-                Vk.EnumerateInstanceLayerProperties(&layerCount, availableLayers).Success();
+                LayerProperties* layers = (LayerProperties*)ZenithMarshal.Allocate<LayerProperties>(scope, layerCount);
+                Vk.EnumerateInstanceLayerProperties(&layerCount, layers).Success();
 
-                string[] validationLayers = [.. new ReadOnlySpan<LayerProperties>(availableLayers, (int)layerCount).ToArray().Select(static item => ZenithMarshal.StringFromPointer((nint)item.LayerName, StringEncoding.UTF8))];
-                validationLayers = [.. validationLayers.Intersect(InstanceLayers)];
+                string[] enabledLayers = [.. new ReadOnlySpan<LayerProperties>(layers, (int)layerCount).ToArray().Select(static item => ZenithMarshal.StringFromPointer((nint)item.LayerName, StringEncoding.UTF8))];
+                enabledLayers = [.. enabledLayers.Intersect(InstanceLayers)];
 
-                createInfo.EnabledLayerCount = (uint)validationLayers.Length;
-                createInfo.PpEnabledLayerNames = (byte**)ZenithMarshal.StringArrayToPointer(scope, validationLayers, StringEncoding.UTF8);
+                createInfo.EnabledLayerCount = (uint)enabledLayers.Length;
+                createInfo.PpEnabledLayerNames = (byte**)ZenithMarshal.StringArrayToPointer(scope, enabledLayers, StringEncoding.UTF8);
             }
 
-            Vk.CreateInstance(&createInfo, null, (VkInstance*)Unsafe.AsPointer(ref Instance)).Success();
+            Vk.CreateInstance(&createInfo, null, (Instance*)Unsafe.AsPointer(ref Instance)).Success();
 
             LamdaNativeContext context = new((proc) => Vk.GetInstanceProcAddr(Instance, (byte*)ZenithMarshal.StringToPointer(scope, proc, StringEncoding.UTF8)));
 
-            DebugUtils = instanceExtensions.Contains(ExtDebugUtils.ExtensionName) ? new(context) : null;
-            Surface = instanceExtensions.Contains(KhrSurface.ExtensionName) ? new(context) : null;
-            Win32Surface = instanceExtensions.Contains(KhrWin32Surface.ExtensionName) ? new(context) : null;
-            WaylandSurface = instanceExtensions.Contains(KhrWaylandSurface.ExtensionName) ? new(context) : null;
-            XlibSurface = instanceExtensions.Contains(KhrXlibSurface.ExtensionName) ? new(context) : null;
-            AndroidSurface = instanceExtensions.Contains(KhrAndroidSurface.ExtensionName) ? new(context) : null;
-            MetalSurface = instanceExtensions.Contains(ExtMetalSurface.ExtensionName) ? new(context) : null;
+            DebugUtils = enabledExtensions.Contains(ExtDebugUtils.ExtensionName) ? new(context) : null;
+            Surface = enabledExtensions.Contains(KhrSurface.ExtensionName) ? new(context) : null;
+            Win32Surface = enabledExtensions.Contains(KhrWin32Surface.ExtensionName) ? new(context) : null;
+            WaylandSurface = enabledExtensions.Contains(KhrWaylandSurface.ExtensionName) ? new(context) : null;
+            XlibSurface = enabledExtensions.Contains(KhrXlibSurface.ExtensionName) ? new(context) : null;
+            AndroidSurface = enabledExtensions.Contains(KhrAndroidSurface.ExtensionName) ? new(context) : null;
+            MetalSurface = enabledExtensions.Contains(ExtMetalSurface.ExtensionName) ? new(context) : null;
+        }
+
+        // Select physical device and create logical device
+        {
+            uint physicalDeviceCount = 0;
+            Vk.EnumeratePhysicalDevices(Instance, &physicalDeviceCount, (PhysicalDevice*)null).Success();
+
+            PhysicalDevice* physicalDevices = (PhysicalDevice*)ZenithMarshal.Allocate<PhysicalDevice>(scope, physicalDeviceCount);
+            Vk.EnumeratePhysicalDevices(Instance, &physicalDeviceCount, physicalDevices).Success();
+
+            ulong bestScore = 0;
+            foreach (PhysicalDevice physicalDevice in new ReadOnlySpan<PhysicalDevice>(physicalDevices, (int)physicalDeviceCount))
+            {
+                PhysicalDeviceProperties properties;
+                Vk.GetPhysicalDeviceProperties(physicalDevice, &properties);
+
+                PhysicalDeviceFeatures features;
+                Vk.GetPhysicalDeviceFeatures(physicalDevice, &features);
+
+                if (properties.ApiVersion < Vk.Version13)
+                {
+                    continue;
+                }
+
+                ulong score = 0;
+
+                if (properties.DeviceType == PhysicalDeviceType.DiscreteGpu)
+                {
+                    score += 1000;
+                }
+                else if (properties.DeviceType == PhysicalDeviceType.IntegratedGpu)
+                {
+                    score += 500;
+                }
+                else if (properties.DeviceType == PhysicalDeviceType.VirtualGpu)
+                {
+                    score += 250;
+                }
+
+                score += properties.Limits.MaxImageDimension2D / 1000;
+                score += properties.Limits.MaxMemoryAllocationCount / 1000;
+                score += properties.Limits.MaxComputeSharedMemorySize / 1024;
+                score += properties.Limits.MaxComputeWorkGroupInvocations / 64;
+                score += properties.Limits.MaxComputeWorkGroupCount[0] / 1024;
+                score += properties.Limits.MaxComputeWorkGroupCount[1] / 1024;
+                score += properties.Limits.MaxComputeWorkGroupCount[2] / 1024;
+                score += properties.Limits.MaxComputeWorkGroupSize[0] / 64;
+                score += properties.Limits.MaxComputeWorkGroupSize[1] / 64;
+                score += properties.Limits.MaxComputeWorkGroupSize[2] / 64;
+                score += properties.Limits.MaxDescriptorSetUniformBuffers / 16;
+                score += properties.Limits.MaxDescriptorSetStorageBuffers / 16;
+                score += properties.Limits.MaxDescriptorSetSampledImages / 16;
+                score += properties.Limits.MaxDescriptorSetStorageImages / 16;
+                score += properties.Limits.MaxDescriptorSetInputAttachments / 16;
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+
+                    PhysicalDevice = physicalDevice;
+                }
+            }
+
+            if (PhysicalDevice.Handle is 0)
+            {
+                throw new NotSupportedException("No suitable Vulkan physical device found.");
+            }
         }
 
         throw new NotImplementedException();
