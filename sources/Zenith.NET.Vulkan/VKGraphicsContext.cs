@@ -170,15 +170,15 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
                 if (properties.DeviceType == PhysicalDeviceType.DiscreteGpu)
                 {
-                    score += 1000;
+                    score += 100000;
                 }
                 else if (properties.DeviceType == PhysicalDeviceType.IntegratedGpu)
                 {
-                    score += 500;
+                    score += 10000;
                 }
                 else if (properties.DeviceType == PhysicalDeviceType.VirtualGpu)
                 {
-                    score += 250;
+                    score += 1000;
                 }
 
                 score += properties.Limits.MaxImageDimension2D / 1000;
