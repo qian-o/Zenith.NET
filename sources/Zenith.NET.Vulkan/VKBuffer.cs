@@ -69,11 +69,21 @@ internal unsafe class VKBuffer : Buffer
         };
 
         DeviceAddress = Context.Vk.GetBufferDeviceAddress(Context.Device, &addressInfo);
+
+        View = new VKBufferView(Context, new()
+        {
+            Buffer = this,
+            OffsetInBytes = 0,
+            SizeInBytes = desc.SizeInBytes,
+            StrideInBytes = desc.StrideInBytes
+        });
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
     public VKDeviceMemory DeviceMemory { get; }
+
+    public override BufferView View { get; }
 
     public override MappedMemory Map()
     {
@@ -111,6 +121,8 @@ internal unsafe class VKBuffer : Buffer
 
     protected override void Destroy()
     {
+        base.Destroy();
+
         DeviceMemory.Dispose();
 
         Context.Vk.DestroyBuffer(Context.Device, Buffer, null);
