@@ -40,6 +40,14 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public PhysicalDevice PhysicalDevice;
 
+    public Device Device;
+
+    public Queue GraphicsQueue;
+
+    public Queue ComputeQueue;
+
+    public Queue CopyQueue;
+
     public Vk Vk { get; } = Vk.GetApi();
 
     public ExtDebugUtils? DebugUtils { get; private set; }
@@ -55,6 +63,20 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
     public KhrAndroidSurface? AndroidSurface { get; private set; }
 
     public ExtMetalSurface? MetalSurface { get; private set; }
+
+    public uint[] QueueFamilyIndices { get; private set; } = [];
+
+    public KhrSwapchain? Swapchain { get; private set; }
+
+    public KhrExternalMemoryWin32? ExternalMemoryWin32 { get; private set; }
+
+    public KhrRayTracingPipeline? RayTracingPipeline { get; private set; }
+
+    public KhrAccelerationStructure? AccelerationStructure { get; private set; }
+
+    public KhrDeferredHostOperations? DeferredHostOperations { get; private set; }
+
+    public ExtMeshShader? MeshShader { get; private set; }
 
     protected override void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
@@ -169,11 +191,6 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                 score += properties.Limits.MaxComputeWorkGroupSize[0] / 64;
                 score += properties.Limits.MaxComputeWorkGroupSize[1] / 64;
                 score += properties.Limits.MaxComputeWorkGroupSize[2] / 64;
-                score += properties.Limits.MaxDescriptorSetUniformBuffers / 16;
-                score += properties.Limits.MaxDescriptorSetStorageBuffers / 16;
-                score += properties.Limits.MaxDescriptorSetSampledImages / 16;
-                score += properties.Limits.MaxDescriptorSetStorageImages / 16;
-                score += properties.Limits.MaxDescriptorSetInputAttachments / 16;
 
                 if (score > bestScore)
                 {
@@ -187,6 +204,203 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             {
                 throw new NotSupportedException("No suitable Vulkan physical device found.");
             }
+
+            uint graphicsQueueFamilyIndex = 0;
+            uint graphicsQueueFamilyCount = 0;
+
+            uint computeQueueFamilyIndex = 0;
+            uint computeQueueFamilyCount = 0;
+
+            uint copyQueueFamilyIndex = 0;
+            uint copyQueueFamilyCount = 0;
+
+            uint queueFamilyCount = 0;
+            Vk.GetPhysicalDeviceQueueFamilyProperties(PhysicalDevice, &queueFamilyCount, (QueueFamilyProperties*)null);
+
+            QueueFamilyProperties* queueFamilies = (QueueFamilyProperties*)ZenithMarshal.Allocate<QueueFamilyProperties>(scope, queueFamilyCount);
+            Vk.GetPhysicalDeviceQueueFamilyProperties(PhysicalDevice, &queueFamilyCount, queueFamilies);
+
+            uint index = 0;
+            foreach (QueueFamilyProperties queueFamilyProperties in new ReadOnlySpan<QueueFamilyProperties>(queueFamilies, (int)queueFamilyCount))
+            {
+                if (queueFamilyProperties.QueueFlags.HasFlag(QueueFlags.GraphicsBit) && queueFamilyProperties.QueueCount > graphicsQueueFamilyCount)
+                {
+                    graphicsQueueFamilyIndex = index;
+                    graphicsQueueFamilyCount = queueFamilyProperties.QueueCount;
+                }
+                else if (queueFamilyProperties.QueueFlags.HasFlag(QueueFlags.ComputeBit) && queueFamilyProperties.QueueCount > computeQueueFamilyCount)
+                {
+                    computeQueueFamilyIndex = index;
+                    computeQueueFamilyCount = queueFamilyProperties.QueueCount;
+                }
+                else if (queueFamilyProperties.QueueFlags.HasFlag(QueueFlags.TransferBit) && queueFamilyProperties.QueueCount > copyQueueFamilyCount)
+                {
+                    copyQueueFamilyIndex = index;
+                    copyQueueFamilyCount = queueFamilyProperties.QueueCount;
+                }
+
+                index++;
+            }
+
+            HashSet<uint> queueFamilyIndices = [graphicsQueueFamilyIndex, computeQueueFamilyIndex, copyQueueFamilyIndex];
+
+            uint queueCreateInfoCount;
+            DeviceQueueCreateInfo* queueCreateInfos;
+            Func<(Queue GraphicsQueue, Queue ComputeQueue, Queue CopyQueue, uint[] QueueFamilyIndices)> getQueues;
+            if (queueFamilyIndices.Count is 3)
+            {
+                queueCreateInfoCount = 3;
+
+                float* queuePriorities = (float*)ZenithMarshal.Allocate<float>(scope, 1);
+                queuePriorities[0] = 1.0f;
+
+                queueCreateInfos = (DeviceQueueCreateInfo*)ZenithMarshal.Allocate<DeviceQueueCreateInfo>(scope, 3);
+
+                queueCreateInfos[0] = new()
+                {
+                    SType = StructureType.DeviceQueueCreateInfo,
+                    QueueFamilyIndex = graphicsQueueFamilyIndex,
+                    QueueCount = 1,
+                    PQueuePriorities = queuePriorities
+                };
+
+                queueCreateInfos[1] = new()
+                {
+                    SType = StructureType.DeviceQueueCreateInfo,
+                    QueueFamilyIndex = computeQueueFamilyIndex,
+                    QueueCount = 1,
+                    PQueuePriorities = queuePriorities
+                };
+
+                queueCreateInfos[2] = new()
+                {
+                    SType = StructureType.DeviceQueueCreateInfo,
+                    QueueFamilyIndex = copyQueueFamilyIndex,
+                    QueueCount = 1,
+                    PQueuePriorities = queuePriorities
+                };
+
+                getQueues = () =>
+                {
+                    Queue graphicsQueue = default;
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, (Queue*)Unsafe.AsPointer(ref graphicsQueue));
+
+                    Queue computeQueue = default;
+                    Vk.GetDeviceQueue(Device, computeQueueFamilyIndex, 0, (Queue*)Unsafe.AsPointer(ref computeQueue));
+
+                    Queue copyQueue = default;
+                    Vk.GetDeviceQueue(Device, copyQueueFamilyIndex, 0, (Queue*)Unsafe.AsPointer(ref copyQueue));
+
+                    return (graphicsQueue, computeQueue, copyQueue, [graphicsQueueFamilyIndex, computeQueueFamilyIndex, copyQueueFamilyIndex]);
+                };
+            }
+            else if (graphicsQueueFamilyCount >= 3)
+            {
+                queueCreateInfoCount = 1;
+
+                float* queuePriorities = (float*)ZenithMarshal.Allocate<float>(scope, 3);
+                queuePriorities[0] = 1.0f;
+                queuePriorities[1] = 1.0f;
+                queuePriorities[2] = 1.0f;
+
+                queueCreateInfos = (DeviceQueueCreateInfo*)ZenithMarshal.Allocate<DeviceQueueCreateInfo>(scope, 1);
+                queueCreateInfos[0] = new()
+                {
+                    SType = StructureType.DeviceQueueCreateInfo,
+                    QueueFamilyIndex = graphicsQueueFamilyIndex,
+                    QueueCount = 3,
+                    PQueuePriorities = queuePriorities
+                };
+
+                getQueues = () =>
+                {
+                    Queue graphicsQueue = default;
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, (Queue*)Unsafe.AsPointer(ref graphicsQueue));
+
+                    Queue computeQueue = default;
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 1, (Queue*)Unsafe.AsPointer(ref computeQueue));
+
+                    Queue copyQueue = default;
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 2, (Queue*)Unsafe.AsPointer(ref copyQueue));
+
+                    return (graphicsQueue, computeQueue, copyQueue, [graphicsQueueFamilyIndex]);
+                };
+            }
+            else
+            {
+                queueCreateInfoCount = 1;
+
+                float* queuePriorities = (float*)ZenithMarshal.Allocate<float>(scope, 1);
+                queuePriorities[0] = 1.0f;
+
+                queueCreateInfos = (DeviceQueueCreateInfo*)ZenithMarshal.Allocate<DeviceQueueCreateInfo>(scope, 1);
+                queueCreateInfos[0] = new()
+                {
+                    SType = StructureType.DeviceQueueCreateInfo,
+                    QueueFamilyIndex = graphicsQueueFamilyIndex,
+                    QueueCount = 1,
+                    PQueuePriorities = queuePriorities
+                };
+
+                getQueues = () =>
+                {
+                    Queue graphicsQueue = default;
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, (Queue*)Unsafe.AsPointer(ref graphicsQueue));
+
+                    return (graphicsQueue, graphicsQueue, graphicsQueue, [graphicsQueueFamilyIndex]);
+                };
+            }
+
+            uint extensionCount = 0;
+            Vk.EnumerateDeviceExtensionProperties(PhysicalDevice, (byte*)null, &extensionCount, (ExtensionProperties*)null).Success();
+
+            ExtensionProperties* extensions = (ExtensionProperties*)ZenithMarshal.Allocate<ExtensionProperties>(scope, extensionCount);
+            Vk.EnumerateDeviceExtensionProperties(PhysicalDevice, (byte*)null, &extensionCount, extensions).Success();
+
+            string[] enabledExtensions = [.. new ReadOnlySpan<ExtensionProperties>(extensions, (int)extensionCount).ToArray().Select(static item => ZenithMarshal.StringFromPointer((nint)item.ExtensionName, StringEncoding.UTF8))];
+            enabledExtensions = [.. enabledExtensions.Intersect(DeviceExtensions)];
+
+            DeviceCreateInfo createInfo = new()
+            {
+                SType = StructureType.DeviceCreateInfo,
+                QueueCreateInfoCount = queueCreateInfoCount,
+                PQueueCreateInfos = queueCreateInfos,
+                EnabledExtensionCount = (uint)enabledExtensions.Length,
+                PpEnabledExtensionNames = (byte**)ZenithMarshal.StringArrayToPointer(scope, enabledExtensions, StringEncoding.UTF8)
+            };
+
+            createInfo.AddNext(out PhysicalDeviceFeatures2 features2)
+                      .AddNext(out PhysicalDeviceVulkan13Features _)
+                      .AddNext(out PhysicalDeviceVulkan12Features _)
+                      .AddNext(out PhysicalDeviceVulkan11Features _);
+
+            if (enabledExtensions.Contains(KhrRayQuery.ExtensionName) || enabledExtensions.Contains(KhrRayTracingPipeline.ExtensionName))
+            {
+                createInfo.AddNext(out PhysicalDeviceRayQueryFeaturesKHR _)
+                          .AddNext(out PhysicalDeviceRayTracingPipelineFeaturesKHR _)
+                          .AddNext(out PhysicalDeviceAccelerationStructureFeaturesKHR _);
+            }
+
+            if (enabledExtensions.Contains(ExtMeshShader.ExtensionName))
+            {
+                createInfo.AddNext(out PhysicalDeviceMeshShaderFeaturesEXT _)
+                          .AddNext(out PhysicalDeviceFragmentShadingRateFeaturesKHR _);
+            }
+
+            Vk.GetPhysicalDeviceFeatures2(PhysicalDevice, &features2);
+
+            Vk.CreateDevice(PhysicalDevice, &createInfo, null, (Device*)Unsafe.AsPointer(ref Device)).Success();
+
+            (GraphicsQueue, ComputeQueue, CopyQueue, QueueFamilyIndices) = getQueues();
+
+            LamdaNativeContext context = new((proc) => Vk.GetDeviceProcAddr(Device, (byte*)ZenithMarshal.StringToPointer(scope, proc, StringEncoding.UTF8)));
+
+            Swapchain = enabledExtensions.Contains(KhrSwapchain.ExtensionName) ? new(context) : null;
+            ExternalMemoryWin32 = enabledExtensions.Contains(KhrExternalMemoryWin32.ExtensionName) ? new(context) : null;
+            RayTracingPipeline = enabledExtensions.Contains(KhrRayTracingPipeline.ExtensionName) ? new(context) : null;
+            AccelerationStructure = enabledExtensions.Contains(KhrAccelerationStructure.ExtensionName) ? new(context) : null;
+            DeferredHostOperations = enabledExtensions.Contains(KhrDeferredHostOperations.ExtensionName) ? new(context) : null;
+            MeshShader = enabledExtensions.Contains(ExtMeshShader.ExtensionName) ? new(context) : null;
         }
 
         throw new NotImplementedException();
