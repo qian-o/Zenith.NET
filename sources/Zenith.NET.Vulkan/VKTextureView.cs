@@ -1,18 +1,34 @@
-﻿namespace Zenith.NET;
+﻿using Silk.NET.Vulkan;
+
+namespace Zenith.NET;
 
 internal unsafe class VKTextureView : TextureView
 {
+    public ImageView ImageView;
+
     public VKTextureView(GraphicsContext context, TextureViewDesc desc) : base(context, desc)
     {
     }
 
+    public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
+
     protected override void SetResourceName(string name)
     {
-        throw new NotImplementedException();
+        using ZenithMarshal.Scope scope = new();
+
+        DebugUtilsObjectNameInfoEXT nameInfo = new()
+        {
+            SType = StructureType.DebugUtilsObjectNameInfoExt,
+            ObjectType = ObjectType.ImageView,
+            ObjectHandle = ImageView.Handle,
+            PObjectName = (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8)
+        };
+
+        Context.DebugUtils?.SetDebugUtilsObjectName(Context.Device, &nameInfo).Success();
     }
 
     protected override void Destroy()
     {
-        throw new NotImplementedException();
+        Context.Vk.DestroyImageView(Context.Device, ImageView, null);
     }
 }
