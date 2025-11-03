@@ -6,8 +6,6 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public ref readonly BufferDesc Desc => ref desc;
 
-    public abstract BufferView View { get; }
-
     public abstract MappedMemory Map();
 
     public abstract void Unmap();
@@ -36,10 +34,5 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
             Context.Copy.WaitIdle();
         }
-    }
-
-    protected override void Destroy()
-    {
-        View.Dispose();
     }
 }

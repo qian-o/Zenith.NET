@@ -6,8 +6,6 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public ref readonly TextureDesc Desc => ref desc;
 
-    public abstract TextureView View { get; }
-
     public abstract MappedMemory Map(TextureSlice slice);
 
     public abstract void Unmap();
@@ -58,10 +56,5 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
             Context.Copy.WaitIdle();
         }
-    }
-
-    protected override void Destroy()
-    {
-        View.Dispose();
     }
 }

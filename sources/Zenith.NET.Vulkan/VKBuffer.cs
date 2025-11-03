@@ -70,7 +70,7 @@ internal unsafe class VKBuffer : Buffer
 
         DeviceAddress = Context.Vk.GetBufferDeviceAddress(Context.Device, &addressInfo);
 
-        View = new VKBufferView(Context, new()
+        View = new(Context, new()
         {
             Buffer = this,
             OffsetInBytes = 0,
@@ -83,7 +83,7 @@ internal unsafe class VKBuffer : Buffer
 
     public VKDeviceMemory DeviceMemory { get; }
 
-    public override BufferView View { get; }
+    public VKBufferView View { get; }
 
     public override MappedMemory Map()
     {
@@ -121,7 +121,7 @@ internal unsafe class VKBuffer : Buffer
 
     protected override void Destroy()
     {
-        base.Destroy();
+        View.Dispose();
 
         DeviceMemory.Dispose();
 

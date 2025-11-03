@@ -456,12 +456,12 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override Texture CreateTextureImpl(TextureDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKTexture(this, desc);
     }
 
     protected override TextureView CreateTextureViewImpl(TextureViewDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKTextureView(this, desc);
     }
 
     protected override Sampler CreateSamplerImpl(SamplerDesc desc)
