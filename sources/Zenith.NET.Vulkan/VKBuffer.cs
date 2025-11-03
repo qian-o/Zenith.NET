@@ -19,7 +19,7 @@ internal unsafe class VKBuffer : Buffer
         BufferCreateInfo createInfo = new()
         {
             SType = StructureType.BufferCreateInfo,
-            Size = desc.SizeInBytes,
+            Size = Desc.SizeInBytes,
             Usage = VkBufferUsageFlags.TransferSrcBit
                     | VkBufferUsageFlags.TransferDstBit
                     | VkBufferUsageFlags.ShaderDeviceAddressBit,
@@ -28,32 +28,32 @@ internal unsafe class VKBuffer : Buffer
             PQueueFamilyIndices = queueFamilyIndices
         };
 
-        if (desc.Flags.HasFlag(BufferUsageFlags.Vertex))
+        if (Desc.Flags.HasFlag(BufferUsageFlags.Vertex))
         {
             createInfo.Usage |= VkBufferUsageFlags.VertexBufferBit;
         }
 
-        if (desc.Flags.HasFlag(BufferUsageFlags.Index))
+        if (Desc.Flags.HasFlag(BufferUsageFlags.Index))
         {
             createInfo.Usage |= VkBufferUsageFlags.IndexBufferBit;
         }
 
-        if (desc.Flags.HasFlag(BufferUsageFlags.Indirect))
+        if (Desc.Flags.HasFlag(BufferUsageFlags.Indirect))
         {
             createInfo.Usage |= VkBufferUsageFlags.IndirectBufferBit;
         }
 
-        if (desc.Flags.HasFlag(BufferUsageFlags.AccelerationStructure))
+        if (Desc.Flags.HasFlag(BufferUsageFlags.AccelerationStructure))
         {
             createInfo.Usage |= VkBufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr;
         }
 
-        if (desc.Flags.HasFlag(BufferUsageFlags.Constant))
+        if (Desc.Flags.HasFlag(BufferUsageFlags.Constant))
         {
             createInfo.Usage |= VkBufferUsageFlags.UniformBufferBit;
         }
 
-        if (desc.Flags.HasFlag(BufferUsageFlags.ShaderResource) || desc.Flags.HasFlag(BufferUsageFlags.UnorderedAccess))
+        if (Desc.Flags.HasFlag(BufferUsageFlags.ShaderResource) || Desc.Flags.HasFlag(BufferUsageFlags.UnorderedAccess))
         {
             createInfo.Usage |= VkBufferUsageFlags.StorageBufferBit;
         }
@@ -74,8 +74,8 @@ internal unsafe class VKBuffer : Buffer
         {
             Buffer = this,
             OffsetInBytes = 0,
-            SizeInBytes = desc.SizeInBytes,
-            StrideInBytes = desc.StrideInBytes
+            SizeInBytes = Desc.SizeInBytes,
+            StrideInBytes = Desc.StrideInBytes
         });
     }
 

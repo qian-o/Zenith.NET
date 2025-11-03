@@ -8,9 +8,9 @@ internal class VKBufferView : BufferView
     {
         BufferInfo = new()
         {
-            Buffer = desc.Buffer.Vulkan().Buffer,
-            Offset = desc.OffsetInBytes,
-            Range = desc.SizeInBytes
+            Buffer = Desc.Buffer.Vulkan().Buffer,
+            Offset = Desc.OffsetInBytes,
+            Range = Desc.SizeInBytes
         };
     }
 
