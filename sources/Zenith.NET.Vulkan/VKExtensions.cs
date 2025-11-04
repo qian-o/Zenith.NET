@@ -55,4 +55,12 @@ internal static class VKExtensions
             return (VKTextureView)textureView;
         }
     }
+
+    extension(Sampler sampler)
+    {
+        public VKSampler Vulkan()
+        {
+            return (VKSampler)sampler;
+        }
+    }
 }

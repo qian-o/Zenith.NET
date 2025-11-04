@@ -466,7 +466,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override Sampler CreateSamplerImpl(SamplerDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKSampler(this, desc);
     }
 
     protected override ResourceLayout CreateResourceLayoutImpl(ResourceLayoutDesc desc)
