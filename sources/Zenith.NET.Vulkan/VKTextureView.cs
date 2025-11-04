@@ -26,9 +26,25 @@ internal unsafe class VKTextureView : TextureView
         };
 
         context.Vk.CreateImageView(context.Device, &createInfo, null, (ImageView*)Unsafe.AsPointer(ref ImageView)).Success();
+
+        SrvImageInfo = new()
+        {
+            ImageView = ImageView,
+            ImageLayout = ImageLayout.ShaderReadOnlyOptimal
+        };
+
+        UavImageInfo = new()
+        {
+            ImageView = ImageView,
+            ImageLayout = ImageLayout.General
+        };
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
+
+    public DescriptorImageInfo SrvImageInfo { get; }
+
+    public DescriptorImageInfo UavImageInfo { get; }
 
     protected override void SetResourceName(string name)
     {
