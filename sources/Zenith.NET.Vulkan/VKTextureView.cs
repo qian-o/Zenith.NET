@@ -1,4 +1,5 @@
-﻿using Silk.NET.Vulkan;
+﻿using System.Runtime.CompilerServices;
+using Silk.NET.Vulkan;
 
 namespace Zenith.NET;
 
@@ -8,6 +9,23 @@ internal unsafe class VKTextureView : TextureView
 
     public VKTextureView(VKGraphicsContext context, TextureViewDesc desc) : base(context, desc)
     {
+        ImageViewCreateInfo createInfo = new()
+        {
+            SType = StructureType.ImageViewCreateInfo,
+            Image = desc.Texture.Vulkan().Image,
+            ViewType = VKFormats.Vulkan(desc.Texture.Desc.Type).ImageViewType,
+            Format = VKFormats.Vulkan(desc.Texture.Desc.Format),
+            SubresourceRange = new()
+            {
+                AspectMask = VKFormats.Vulkan(desc.Texture.Desc.Flags).ImageAspectFlags,
+                BaseMipLevel = desc.FirstMipLevel,
+                LevelCount = desc.MipLevelCount,
+                BaseArrayLayer = desc.FirstLayer,
+                LayerCount = desc.LayerCount
+            }
+        };
+
+        context.Vk.CreateImageView(context.Device, &createInfo, null, (ImageView*)Unsafe.AsPointer(ref ImageView)).Success();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;

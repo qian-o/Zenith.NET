@@ -113,9 +113,9 @@ internal static class VKFormats
         return result;
     }
 
-    public static ImageType Vulkan(TextureType textureType)
+    public static (ImageType ImageType, ImageViewType ImageViewType) Vulkan(TextureType textureType)
     {
-        return textureType switch
+        ImageType imageType = textureType switch
         {
             TextureType.Texture1D or
             TextureType.Texture1DArray => ImageType.Type1D,
@@ -129,6 +129,20 @@ internal static class VKFormats
 
             _ => ImageType.Type1D
         };
+
+        ImageViewType imageViewType = textureType switch
+        {
+            TextureType.Texture1D => ImageViewType.Type1D,
+            TextureType.Texture1DArray => ImageViewType.Type1DArray,
+            TextureType.Texture2D => ImageViewType.Type2D,
+            TextureType.Texture2DArray => ImageViewType.Type2DArray,
+            TextureType.Texture3D => ImageViewType.Type3D,
+            TextureType.TextureCube => ImageViewType.TypeCube,
+            TextureType.TextureCubeArray => ImageViewType.TypeCubeArray,
+            _ => ImageViewType.Type1D
+        };
+
+        return (imageType, imageViewType);
     }
 
     public static Format Vulkan(PixelFormat pixelFormat)
@@ -227,30 +241,41 @@ internal static class VKFormats
         };
     }
 
-    public static ImageUsageFlags Vulkan(TextureUsageFlags textureUsageFlags)
+    public static (ImageUsageFlags ImageUsageFlags, ImageAspectFlags ImageAspectFlags) Vulkan(TextureUsageFlags textureUsageFlags)
     {
-        ImageUsageFlags result = ImageUsageFlags.TransferSrcBit | ImageUsageFlags.TransferDstBit;
+        ImageUsageFlags imageUsageFlags = ImageUsageFlags.TransferSrcBit | ImageUsageFlags.TransferDstBit;
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.RenderTarget))
         {
-            result |= ImageUsageFlags.ColorAttachmentBit;
+            imageUsageFlags |= ImageUsageFlags.ColorAttachmentBit;
         }
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.DepthStencil))
         {
-            result |= ImageUsageFlags.DepthStencilAttachmentBit;
+            imageUsageFlags |= ImageUsageFlags.DepthStencilAttachmentBit;
         }
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.ShaderResource))
         {
-            result |= ImageUsageFlags.SampledBit;
+            imageUsageFlags |= ImageUsageFlags.SampledBit;
         }
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.UnorderedAccess))
         {
-            result |= ImageUsageFlags.StorageBit;
+            imageUsageFlags |= ImageUsageFlags.StorageBit;
         }
 
-        return result;
+        ImageAspectFlags imageAspectFlags = ImageAspectFlags.None;
+
+        if (textureUsageFlags.HasFlag(TextureUsageFlags.DepthStencil))
+        {
+            imageAspectFlags |= ImageAspectFlags.DepthBit | ImageAspectFlags.StencilBit;
+        }
+        else
+        {
+            imageAspectFlags |= ImageAspectFlags.ColorBit;
+        }
+
+        return (imageUsageFlags, imageAspectFlags);
     }
 }

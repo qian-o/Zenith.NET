@@ -18,7 +18,7 @@ internal unsafe class VKTexture : Texture
         {
             SType = StructureType.ImageCreateInfo,
             Flags = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? ImageCreateFlags.CreateCubeCompatibleBit : ImageCreateFlags.None,
-            ImageType = VKFormats.Vulkan(desc.Type),
+            ImageType = VKFormats.Vulkan(desc.Type).ImageType,
             Format = VKFormats.Vulkan(desc.Format),
             Extent = new()
             {
@@ -30,7 +30,7 @@ internal unsafe class VKTexture : Texture
             ArrayLayers = desc.Layers,
             Samples = VKFormats.Vulkan(desc.SampleCount),
             Tiling = desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? ImageTiling.Linear : ImageTiling.Optimal,
-            Usage = VKFormats.Vulkan(desc.Flags),
+            Usage = VKFormats.Vulkan(desc.Flags).ImageUsageFlags,
             SharingMode = context.QueueFamilyIndices.Length is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
             QueueFamilyIndexCount = (uint)context.QueueFamilyIndices.Length,
             PQueueFamilyIndices = queueFamilyIndices

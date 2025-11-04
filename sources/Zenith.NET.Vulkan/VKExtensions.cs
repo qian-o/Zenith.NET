@@ -39,4 +39,20 @@ internal static class VKExtensions
             return (VKBufferView)bufferView;
         }
     }
+
+    extension(Texture texture)
+    {
+        public VKTexture Vulkan()
+        {
+            return (VKTexture)texture;
+        }
+    }
+
+    extension(TextureView textureView)
+    {
+        public VKTextureView Vulkan()
+        {
+            return (VKTextureView)textureView;
+        }
+    }
 }
