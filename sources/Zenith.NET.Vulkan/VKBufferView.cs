@@ -4,13 +4,13 @@ namespace Zenith.NET;
 
 internal class VKBufferView : BufferView
 {
-    public VKBufferView(GraphicsContext context, BufferViewDesc desc) : base(context, desc)
+    public VKBufferView(VKGraphicsContext context, BufferViewDesc desc) : base(context, desc)
     {
         BufferInfo = new()
         {
-            Buffer = Desc.Buffer.Vulkan().Buffer,
-            Offset = Desc.OffsetInBytes,
-            Range = Desc.SizeInBytes
+            Buffer = desc.Buffer.Vulkan().Buffer,
+            Offset = desc.OffsetInBytes,
+            Range = desc.SizeInBytes
         };
     }
 

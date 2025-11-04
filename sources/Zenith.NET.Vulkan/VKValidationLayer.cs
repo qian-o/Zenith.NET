@@ -7,7 +7,7 @@ internal unsafe class VKValidationLayer : ValidationLayer
 {
     private readonly DebugUtilsMessengerEXT messenger;
 
-    public VKValidationLayer(GraphicsContext context) : base(context)
+    public VKValidationLayer(VKGraphicsContext context) : base(context)
     {
         DebugUtilsMessengerCreateInfoEXT createInfo = new()
         {
@@ -22,7 +22,7 @@ internal unsafe class VKValidationLayer : ValidationLayer
             PfnUserCallback = new(UserCallback)
         };
 
-        Context.DebugUtils?.CreateDebugUtilsMessenger(Context.Instance, &createInfo, null, (DebugUtilsMessengerEXT*)Unsafe.AsPointer(ref messenger)).Success();
+        context.DebugUtils?.CreateDebugUtilsMessenger(context.Instance, &createInfo, null, (DebugUtilsMessengerEXT*)Unsafe.AsPointer(ref messenger)).Success();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;

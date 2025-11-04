@@ -7,21 +7,21 @@ internal unsafe class VKShader : Shader
 {
     public ShaderModule ShaderModule;
 
-    public VKShader(GraphicsContext context, ShaderDesc desc) : base(context, desc)
+    public VKShader(VKGraphicsContext context, ShaderDesc desc) : base(context, desc)
     {
         using ZenithMarshal.Scope scope = new();
 
-        byte* code = (byte*)ZenithMarshal.Allocate<byte>(scope, (uint)Desc.ShaderBytes.Length);
-        Desc.ShaderBytes.CopyTo(new Span<byte>(code, Desc.ShaderBytes.Length));
+        byte* code = (byte*)ZenithMarshal.Allocate<byte>(scope, (uint)desc.ShaderBytes.Length);
+        desc.ShaderBytes.CopyTo(new Span<byte>(code, desc.ShaderBytes.Length));
 
         ShaderModuleCreateInfo createInfo = new()
         {
             SType = StructureType.ShaderModuleCreateInfo,
-            CodeSize = (uint)Desc.ShaderBytes.Length,
+            CodeSize = (uint)desc.ShaderBytes.Length,
             PCode = (uint*)code
         };
 
-        Context.Vk.CreateShaderModule(Context.Device, &createInfo, null, (ShaderModule*)Unsafe.AsPointer(ref ShaderModule)).Success();
+        context.Vk.CreateShaderModule(context.Device, &createInfo, null, (ShaderModule*)Unsafe.AsPointer(ref ShaderModule)).Success();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;

@@ -2,7 +2,7 @@
 
 namespace Zenith.NET;
 
-internal unsafe class VKCommandQueue(GraphicsContext context, CommandQueueType type, Queue queue) : CommandQueue(context, type)
+internal unsafe class VKCommandQueue(VKGraphicsContext context, CommandQueueType type, Queue queue) : CommandQueue(context, type)
 {
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 

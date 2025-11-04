@@ -9,26 +9,26 @@ internal unsafe class VKBuffer : Buffer
 
     public ulong DeviceAddress;
 
-    public VKBuffer(GraphicsContext context, BufferDesc desc) : base(context, desc)
+    public VKBuffer(VKGraphicsContext context, BufferDesc desc) : base(context, desc)
     {
         using ZenithMarshal.Scope scope = new();
 
-        uint* queueFamilyIndices = (uint*)ZenithMarshal.Allocate<uint>(scope, (uint)Context.QueueFamilyIndices.Length);
-        Context.QueueFamilyIndices.CopyTo(new Span<uint>(queueFamilyIndices, Context.QueueFamilyIndices.Length));
+        uint* queueFamilyIndices = (uint*)ZenithMarshal.Allocate<uint>(scope, (uint)context.QueueFamilyIndices.Length);
+        context.QueueFamilyIndices.CopyTo(new Span<uint>(queueFamilyIndices, context.QueueFamilyIndices.Length));
 
         BufferCreateInfo createInfo = new()
         {
             SType = StructureType.BufferCreateInfo,
-            Size = Desc.SizeInBytes,
-            Usage = VKFormats.Vulkan(Desc.Flags),
-            SharingMode = Context.QueueFamilyIndices.Length is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
-            QueueFamilyIndexCount = (uint)Context.QueueFamilyIndices.Length,
+            Size = desc.SizeInBytes,
+            Usage = VKFormats.Vulkan(desc.Flags),
+            SharingMode = context.QueueFamilyIndices.Length is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
+            QueueFamilyIndexCount = (uint)context.QueueFamilyIndices.Length,
             PQueueFamilyIndices = queueFamilyIndices
         };
 
-        Context.Vk.CreateBuffer(Context.Device, &createInfo, null, (VkBuffer*)Unsafe.AsPointer(ref Buffer)).Success();
+        context.Vk.CreateBuffer(context.Device, &createInfo, null, (VkBuffer*)Unsafe.AsPointer(ref Buffer)).Success();
 
-        DeviceMemory = new(Context, this);
+        DeviceMemory = new(context, this);
 
         BufferDeviceAddressInfo addressInfo = new()
         {
@@ -36,14 +36,14 @@ internal unsafe class VKBuffer : Buffer
             Buffer = Buffer
         };
 
-        DeviceAddress = Context.Vk.GetBufferDeviceAddress(Context.Device, &addressInfo);
+        DeviceAddress = context.Vk.GetBufferDeviceAddress(context.Device, &addressInfo);
 
-        View = new(Context, new()
+        View = new(context, new()
         {
             Buffer = this,
             OffsetInBytes = 0,
-            SizeInBytes = Desc.SizeInBytes,
-            StrideInBytes = Desc.StrideInBytes
+            SizeInBytes = desc.SizeInBytes,
+            StrideInBytes = desc.StrideInBytes
         });
     }
 

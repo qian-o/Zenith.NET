@@ -7,7 +7,7 @@ internal unsafe class VKDeviceMemory : GraphicsResource
 {
     public DeviceMemory DeviceMemory;
 
-    public VKDeviceMemory(GraphicsContext context, VKBuffer buffer) : base(context)
+    public VKDeviceMemory(VKGraphicsContext context, VKBuffer buffer) : base(context)
     {
         BufferMemoryRequirementsInfo2 requirementsInfo2 = new()
         {
@@ -22,13 +22,13 @@ internal unsafe class VKDeviceMemory : GraphicsResource
 
         requirements2.AddNext(out MemoryDedicatedRequirements dedicatedRequirements);
 
-        Context.Vk.GetBufferMemoryRequirements2(Context.Device, &requirementsInfo2, &requirements2);
+        context.Vk.GetBufferMemoryRequirements2(context.Device, &requirementsInfo2, &requirements2);
 
         MemoryAllocateInfo allocateInfo = new()
         {
             SType = StructureType.MemoryAllocateInfo,
             AllocationSize = requirements2.MemoryRequirements.Size,
-            MemoryTypeIndex = Context.FindMemoryTypeIndex(requirements2.MemoryRequirements.MemoryTypeBits, buffer.Desc.Flags.HasFlag(BufferUsageFlags.Dynamic) ? MemoryPropertyFlags.HostVisibleBit : MemoryPropertyFlags.DeviceLocalBit)
+            MemoryTypeIndex = context.FindMemoryTypeIndex(requirements2.MemoryRequirements.MemoryTypeBits, buffer.Desc.Flags.HasFlag(BufferUsageFlags.Dynamic) ? MemoryPropertyFlags.HostVisibleBit : MemoryPropertyFlags.DeviceLocalBit)
         };
 
         allocateInfo.AddNext(out MemoryAllocateFlagsInfo flagsInfo);
@@ -40,9 +40,13 @@ internal unsafe class VKDeviceMemory : GraphicsResource
             dedicatedAllocateInfo.Buffer = buffer.Buffer;
         }
 
-        Context.Vk.AllocateMemory(Context.Device, &allocateInfo, null, (DeviceMemory*)Unsafe.AsPointer(ref DeviceMemory)).Success();
+        context.Vk.AllocateMemory(context.Device, &allocateInfo, null, (DeviceMemory*)Unsafe.AsPointer(ref DeviceMemory)).Success();
 
-        Context.Vk.BindBufferMemory(Context.Device, buffer.Buffer, DeviceMemory, 0).Success();
+        context.Vk.BindBufferMemory(context.Device, buffer.Buffer, DeviceMemory, 0).Success();
+    }
+
+    public VKDeviceMemory(VKGraphicsContext context, VKTexture texture) : base(context)
+    {
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;

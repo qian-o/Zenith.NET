@@ -6,7 +6,7 @@ internal unsafe class VKTextureView : TextureView
 {
     public ImageView ImageView;
 
-    public VKTextureView(GraphicsContext context, TextureViewDesc desc) : base(context, desc)
+    public VKTextureView(VKGraphicsContext context, TextureViewDesc desc) : base(context, desc)
     {
     }
 

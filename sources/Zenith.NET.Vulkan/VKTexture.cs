@@ -7,36 +7,38 @@ internal unsafe class VKTexture : Texture
 {
     public Image Image;
 
-    public VKTexture(GraphicsContext context, TextureDesc desc) : base(context, desc)
+    public VKTexture(VKGraphicsContext context, TextureDesc desc) : base(context, desc)
     {
         using ZenithMarshal.Scope scope = new();
 
-        uint* queueFamilyIndices = (uint*)ZenithMarshal.Allocate<uint>(scope, (uint)Context.QueueFamilyIndices.Length);
-        Context.QueueFamilyIndices.CopyTo(new Span<uint>(queueFamilyIndices, Context.QueueFamilyIndices.Length));
+        uint* queueFamilyIndices = (uint*)ZenithMarshal.Allocate<uint>(scope, (uint)context.QueueFamilyIndices.Length);
+        context.QueueFamilyIndices.CopyTo(new Span<uint>(queueFamilyIndices, context.QueueFamilyIndices.Length));
 
         ImageCreateInfo createInfo = new()
         {
             SType = StructureType.ImageCreateInfo,
-            Flags = Desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? ImageCreateFlags.CreateCubeCompatibleBit : ImageCreateFlags.None,
-            ImageType = VKFormats.Vulkan(Desc.Type),
-            Format = VKFormats.Vulkan(Desc.Format),
+            Flags = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? ImageCreateFlags.CreateCubeCompatibleBit : ImageCreateFlags.None,
+            ImageType = VKFormats.Vulkan(desc.Type),
+            Format = VKFormats.Vulkan(desc.Format),
             Extent = new()
             {
-                Width = Desc.Width,
-                Height = Desc.Height,
-                Depth = Desc.Depth
+                Width = desc.Width,
+                Height = desc.Height,
+                Depth = desc.Depth
             },
-            MipLevels = Desc.MipLevels,
-            ArrayLayers = Desc.Layers,
-            Samples = VKFormats.Vulkan(Desc.SampleCount),
-            Tiling = Desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? ImageTiling.Linear : ImageTiling.Optimal,
-            Usage = VKFormats.Vulkan(Desc.Flags),
-            SharingMode = Context.QueueFamilyIndices.Length is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
-            QueueFamilyIndexCount = (uint)Context.QueueFamilyIndices.Length,
+            MipLevels = desc.MipLevels,
+            ArrayLayers = desc.Layers,
+            Samples = VKFormats.Vulkan(desc.SampleCount),
+            Tiling = desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? ImageTiling.Linear : ImageTiling.Optimal,
+            Usage = VKFormats.Vulkan(desc.Flags),
+            SharingMode = context.QueueFamilyIndices.Length is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
+            QueueFamilyIndexCount = (uint)context.QueueFamilyIndices.Length,
             PQueueFamilyIndices = queueFamilyIndices
         };
 
-        Context.Vk.CreateImage(Context.Device, &createInfo, null, (Image*)Unsafe.AsPointer(ref Image)).Success();
+        context.Vk.CreateImage(context.Device, &createInfo, null, (Image*)Unsafe.AsPointer(ref Image)).Success();
+
+        DeviceMemory = new(Context, this);
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
