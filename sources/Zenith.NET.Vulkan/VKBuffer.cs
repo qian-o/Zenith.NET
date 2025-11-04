@@ -20,43 +20,11 @@ internal unsafe class VKBuffer : Buffer
         {
             SType = StructureType.BufferCreateInfo,
             Size = Desc.SizeInBytes,
-            Usage = VkBufferUsageFlags.TransferSrcBit
-                    | VkBufferUsageFlags.TransferDstBit
-                    | VkBufferUsageFlags.ShaderDeviceAddressBit,
+            Usage = VKFormats.Vulkan(Desc.Flags),
             SharingMode = Context.QueueFamilyIndices.Length is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
             QueueFamilyIndexCount = (uint)Context.QueueFamilyIndices.Length,
             PQueueFamilyIndices = queueFamilyIndices
         };
-
-        if (Desc.Flags.HasFlag(BufferUsageFlags.Vertex))
-        {
-            createInfo.Usage |= VkBufferUsageFlags.VertexBufferBit;
-        }
-
-        if (Desc.Flags.HasFlag(BufferUsageFlags.Index))
-        {
-            createInfo.Usage |= VkBufferUsageFlags.IndexBufferBit;
-        }
-
-        if (Desc.Flags.HasFlag(BufferUsageFlags.Indirect))
-        {
-            createInfo.Usage |= VkBufferUsageFlags.IndirectBufferBit;
-        }
-
-        if (Desc.Flags.HasFlag(BufferUsageFlags.AccelerationStructure))
-        {
-            createInfo.Usage |= VkBufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr;
-        }
-
-        if (Desc.Flags.HasFlag(BufferUsageFlags.Constant))
-        {
-            createInfo.Usage |= VkBufferUsageFlags.UniformBufferBit;
-        }
-
-        if (Desc.Flags.HasFlag(BufferUsageFlags.ShaderResource) || Desc.Flags.HasFlag(BufferUsageFlags.UnorderedAccess))
-        {
-            createInfo.Usage |= VkBufferUsageFlags.StorageBufferBit;
-        }
 
         Context.Vk.CreateBuffer(Context.Device, &createInfo, null, (VkBuffer*)Unsafe.AsPointer(ref Buffer)).Success();
 

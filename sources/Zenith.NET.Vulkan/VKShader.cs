@@ -31,7 +31,7 @@ internal unsafe class VKShader : Shader
         return new()
         {
             SType = StructureType.PipelineShaderStageCreateInfo,
-            Stage = Desc.Stage.Vulkan(),
+            Stage = VKFormats.Vulkan(Desc.Stage),
             Module = ShaderModule,
             PName = (byte*)ZenithMarshal.StringToPointer(scope, Desc.EntryPoint, StringEncoding.UTF8)
         };
