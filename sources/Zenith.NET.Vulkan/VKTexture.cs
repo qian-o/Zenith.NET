@@ -38,7 +38,7 @@ internal unsafe class VKTexture : Texture
 
         context.Vk.CreateImage(context.Device, &createInfo, null, (Image*)Unsafe.AsPointer(ref Image)).Success();
 
-        DeviceMemory = new(Context, this);
+        DeviceMemory = new(context, this);
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
