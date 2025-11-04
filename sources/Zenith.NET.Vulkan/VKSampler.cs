@@ -11,6 +11,21 @@ internal unsafe class VKSampler : Sampler
     {
         SamplerCreateInfo createInfo = new()
         {
+            SType = StructureType.SamplerCreateInfo,
+            MagFilter = VKFormats.Vulkan(desc.Filter).MagFilter,
+            MinFilter = VKFormats.Vulkan(desc.Filter).MinFilter,
+            MipmapMode = VKFormats.Vulkan(desc.Filter).MipmapMode,
+            AddressModeU = VKFormats.Vulkan(desc.U),
+            AddressModeV = VKFormats.Vulkan(desc.V),
+            AddressModeW = VKFormats.Vulkan(desc.W),
+            MipLodBias = desc.LodBias,
+            AnisotropyEnable = desc.Filter is Filter.Anisotropic,
+            MaxAnisotropy = desc.MaxAnisotropy,
+            CompareEnable = desc.ComparisonFunc is not ComparisonFunc.Never,
+            CompareOp = VKFormats.Vulkan(desc.ComparisonFunc),
+            MinLod = desc.MinLod,
+            MaxLod = desc.MaxLod,
+            BorderColor = VKFormats.Vulkan(desc.BorderColor)
         };
 
         context.Vk.CreateSampler(context.Device, &createInfo, null, (VkSampler*)Unsafe.AsPointer(ref Sampler)).Success();

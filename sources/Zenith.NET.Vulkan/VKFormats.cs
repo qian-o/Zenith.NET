@@ -278,4 +278,92 @@ internal static class VKFormats
 
         return (imageUsageFlags, imageAspectFlags);
     }
+
+    public static (VkFilter MagFilter, VkFilter MinFilter, SamplerMipmapMode MipmapMode) Vulkan(Filter filter)
+    {
+        VkFilter magFilter = VkFilter.Nearest;
+        VkFilter minFilter = VkFilter.Nearest;
+        SamplerMipmapMode mipmapMode = SamplerMipmapMode.Nearest;
+
+        switch (filter)
+        {
+            case Filter.MinPointMagPointMipPoint:
+                magFilter = VkFilter.Nearest;
+                minFilter = VkFilter.Nearest;
+                mipmapMode = SamplerMipmapMode.Nearest;
+                break;
+
+            case Filter.MinPointMagPointMipLinear:
+                magFilter = VkFilter.Nearest;
+                minFilter = VkFilter.Nearest;
+                mipmapMode = SamplerMipmapMode.Linear;
+                break;
+
+            case Filter.MinPointMagLinearMipPoint:
+                magFilter = VkFilter.Linear;
+                minFilter = VkFilter.Nearest;
+                mipmapMode = SamplerMipmapMode.Nearest;
+                break;
+
+            case Filter.MinPointMagLinearMipLinear:
+                magFilter = VkFilter.Linear;
+                minFilter = VkFilter.Nearest;
+                mipmapMode = SamplerMipmapMode.Linear;
+                break;
+
+            case Filter.MinLinearMagPointMipPoint:
+                magFilter = VkFilter.Nearest;
+                minFilter = VkFilter.Linear;
+                mipmapMode = SamplerMipmapMode.Nearest;
+                break;
+
+            case Filter.MinLinearMagPointMipLinear:
+                magFilter = VkFilter.Nearest;
+                minFilter = VkFilter.Linear;
+                mipmapMode = SamplerMipmapMode.Linear;
+                break;
+
+            case Filter.MinLinearMagLinearMipPoint:
+                magFilter = VkFilter.Linear;
+                minFilter = VkFilter.Linear;
+                mipmapMode = SamplerMipmapMode.Nearest;
+                break;
+
+            case Filter.MinLinearMagLinearMipLinear:
+                magFilter = VkFilter.Linear;
+                minFilter = VkFilter.Linear;
+                mipmapMode = SamplerMipmapMode.Linear;
+                break;
+
+            case Filter.Anisotropic:
+                magFilter = VkFilter.Linear;
+                minFilter = VkFilter.Linear;
+                mipmapMode = SamplerMipmapMode.Linear;
+                break;
+        }
+
+        return (magFilter, minFilter, mipmapMode);
+    }
+
+    public static SamplerAddressMode Vulkan(AddressMode addressMode)
+    {
+        return addressMode switch
+        {
+            AddressMode.Wrap => SamplerAddressMode.Repeat,
+            AddressMode.Mirror => SamplerAddressMode.MirroredRepeat,
+            AddressMode.Clamp => SamplerAddressMode.ClampToEdge,
+            AddressMode.Border => SamplerAddressMode.ClampToBorder,
+            _ => SamplerAddressMode.Repeat
+        };
+    }
+
+    public static CompareOp Vulkan(ComparisonFunc comparisonFunc)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static VkBorderColor Vulkan(BorderColor borderColor)
+    {
+        throw new NotImplementedException();
+    }
 }
