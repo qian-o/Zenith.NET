@@ -279,70 +279,70 @@ internal static class VKFormats
         return (imageUsageFlags, imageAspectFlags);
     }
 
-    public static (VkFilter MagFilter, VkFilter MinFilter, SamplerMipmapMode MipmapMode) Vulkan(Filter filter)
+    public static (VkFilter MinFilter, VkFilter MagFilter, SamplerMipmapMode MipmapMode) Vulkan(Filter filter)
     {
-        VkFilter magFilter = VkFilter.Nearest;
         VkFilter minFilter = VkFilter.Nearest;
+        VkFilter magFilter = VkFilter.Nearest;
         SamplerMipmapMode mipmapMode = SamplerMipmapMode.Nearest;
 
         switch (filter)
         {
             case Filter.MinPointMagPointMipPoint:
-                magFilter = VkFilter.Nearest;
                 minFilter = VkFilter.Nearest;
+                magFilter = VkFilter.Nearest;
                 mipmapMode = SamplerMipmapMode.Nearest;
                 break;
 
             case Filter.MinPointMagPointMipLinear:
-                magFilter = VkFilter.Nearest;
                 minFilter = VkFilter.Nearest;
+                magFilter = VkFilter.Nearest;
                 mipmapMode = SamplerMipmapMode.Linear;
                 break;
 
             case Filter.MinPointMagLinearMipPoint:
-                magFilter = VkFilter.Linear;
                 minFilter = VkFilter.Nearest;
+                magFilter = VkFilter.Linear;
                 mipmapMode = SamplerMipmapMode.Nearest;
                 break;
 
             case Filter.MinPointMagLinearMipLinear:
-                magFilter = VkFilter.Linear;
                 minFilter = VkFilter.Nearest;
+                magFilter = VkFilter.Linear;
                 mipmapMode = SamplerMipmapMode.Linear;
                 break;
 
             case Filter.MinLinearMagPointMipPoint:
-                magFilter = VkFilter.Nearest;
                 minFilter = VkFilter.Linear;
+                magFilter = VkFilter.Nearest;
                 mipmapMode = SamplerMipmapMode.Nearest;
                 break;
 
             case Filter.MinLinearMagPointMipLinear:
-                magFilter = VkFilter.Nearest;
                 minFilter = VkFilter.Linear;
+                magFilter = VkFilter.Nearest;
                 mipmapMode = SamplerMipmapMode.Linear;
                 break;
 
             case Filter.MinLinearMagLinearMipPoint:
-                magFilter = VkFilter.Linear;
                 minFilter = VkFilter.Linear;
+                magFilter = VkFilter.Linear;
                 mipmapMode = SamplerMipmapMode.Nearest;
                 break;
 
             case Filter.MinLinearMagLinearMipLinear:
-                magFilter = VkFilter.Linear;
                 minFilter = VkFilter.Linear;
+                magFilter = VkFilter.Linear;
                 mipmapMode = SamplerMipmapMode.Linear;
                 break;
 
             case Filter.Anisotropic:
-                magFilter = VkFilter.Linear;
                 minFilter = VkFilter.Linear;
+                magFilter = VkFilter.Linear;
                 mipmapMode = SamplerMipmapMode.Linear;
                 break;
         }
 
-        return (magFilter, minFilter, mipmapMode);
+        return (minFilter, magFilter, mipmapMode);
     }
 
     public static SamplerAddressMode Vulkan(AddressMode addressMode)
@@ -359,11 +359,28 @@ internal static class VKFormats
 
     public static CompareOp Vulkan(ComparisonFunc comparisonFunc)
     {
-        throw new NotImplementedException();
+        return comparisonFunc switch
+        {
+            ComparisonFunc.Never => CompareOp.Never,
+            ComparisonFunc.Less => CompareOp.Less,
+            ComparisonFunc.Equal => CompareOp.Equal,
+            ComparisonFunc.LessEqual => CompareOp.LessOrEqual,
+            ComparisonFunc.Greater => CompareOp.Greater,
+            ComparisonFunc.NotEqual => CompareOp.NotEqual,
+            ComparisonFunc.GreaterEqual => CompareOp.GreaterOrEqual,
+            ComparisonFunc.Always => CompareOp.Always,
+            _ => CompareOp.Never
+        };
     }
 
     public static VkBorderColor Vulkan(BorderColor borderColor)
     {
-        throw new NotImplementedException();
+        return borderColor switch
+        {
+            BorderColor.TransparentBlack => VkBorderColor.FloatTransparentBlack,
+            BorderColor.OpaqueBlack => VkBorderColor.FloatOpaqueBlack,
+            BorderColor.OpaqueWhite => VkBorderColor.FloatOpaqueWhite,
+            _ => VkBorderColor.FloatTransparentBlack
+        };
     }
 }
