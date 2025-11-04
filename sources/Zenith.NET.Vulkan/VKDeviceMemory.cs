@@ -47,6 +47,37 @@ internal unsafe class VKDeviceMemory : GraphicsResource
 
     public VKDeviceMemory(VKGraphicsContext context, VKTexture texture) : base(context)
     {
+        ImageMemoryRequirementsInfo2 requirementsInfo2 = new()
+        {
+            SType = StructureType.ImageMemoryRequirementsInfo2,
+            Image = texture.Image
+        };
+
+        MemoryRequirements2 requirements2 = new()
+        {
+            SType = StructureType.MemoryRequirements2
+        };
+
+        requirements2.AddNext(out MemoryDedicatedRequirements dedicatedRequirements);
+
+        context.Vk.GetImageMemoryRequirements2(context.Device, &requirementsInfo2, &requirements2);
+
+        MemoryAllocateInfo allocateInfo = new()
+        {
+            SType = StructureType.MemoryAllocateInfo,
+            AllocationSize = requirements2.MemoryRequirements.Size,
+            MemoryTypeIndex = context.FindMemoryTypeIndex(requirements2.MemoryRequirements.MemoryTypeBits, texture.Desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? MemoryPropertyFlags.HostVisibleBit : MemoryPropertyFlags.DeviceLocalBit)
+        };
+
+        if (dedicatedRequirements.PrefersDedicatedAllocation || dedicatedRequirements.RequiresDedicatedAllocation)
+        {
+            allocateInfo.AddNext(out MemoryDedicatedAllocateInfo dedicatedAllocateInfo);
+            dedicatedAllocateInfo.Image = texture.Image;
+        }
+
+        context.Vk.AllocateMemory(context.Device, &allocateInfo, null, (DeviceMemory*)Unsafe.AsPointer(ref DeviceMemory)).Success();
+
+        context.Vk.BindImageMemory(context.Device, texture.Image, DeviceMemory, 0).Success();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
