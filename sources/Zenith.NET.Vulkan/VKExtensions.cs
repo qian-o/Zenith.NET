@@ -16,6 +16,14 @@ internal static class VKExtensions
         }
     }
 
+    extension(SwapChain swapChain)
+    {
+        public VKSwapChain Vulkan()
+        {
+            return (VKSwapChain)swapChain;
+        }
+    }
+
 
     extension(FrameBuffer frameBuffer)
     {
