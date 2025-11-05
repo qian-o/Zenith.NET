@@ -51,7 +51,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         public const string MustBeLessThanOrEqualTo = "{0} must be less than or equal to {1}.";
 
-        public const string LengthMustMatch = "{0} length must match {1}.";
+        public const string HasInsufficientResources = "{0} has insufficient resources: requires at least {1} to satisfy the layout up to binding index {2}, but only {3} provided.";
 
         public const string MustBeOfType = "{0} item must be a {1} for {2} binding.";
 
@@ -419,82 +419,89 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             return;
         }
 
-        if (desc.Resources.Length != desc.Layout.Desc.Bindings.Length)
+        uint offset = 0;
+
+        for (int i = 0; i < desc.Layout.Desc.Bindings.Length; i++)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.LengthMustMatch, "ResourceSetDesc.Resources", "the number of bindings in the layout"));
+            ResourceBinding binding = desc.Layout.Desc.Bindings[i];
 
-            return;
-        }
-
-        for (int i = 0; i < desc.Resources.Length; i++)
-        {
-            IBindableResource resource = desc.Resources[i];
-
-            if (resource is null)
+            if (offset + binding.Count > (uint)desc.Resources.Length)
             {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceSetDesc.Resources"));
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInsufficientResources, "ResourceSetDesc.Resources", offset + binding.Count, i, desc.Resources.Length));
 
-                continue;
+                break;
             }
 
-            if (resource.IsDisposed)
+            foreach (IBindableResource resource in desc.Resources[(int)offset..(int)(offset + binding.Count)])
             {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ResourceSetDesc.Resources"));
+                if (resource is null)
+                {
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceSetDesc.Resources"));
 
-                continue;
+                    continue;
+                }
+
+                if (resource.IsDisposed)
+                {
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ResourceSetDesc.Resources"));
+
+                    continue;
+                }
+
+                switch (binding.Type)
+                {
+                    case ResourceType.ConstantBuffer:
+                        if (resource is not Buffer or BufferView)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Buffer or BufferView", "ConstantBuffer"));
+                        }
+                        break;
+
+                    case ResourceType.StructuredBuffer:
+                        if (resource is not Buffer or BufferView)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Buffer or BufferView", "StructuredBuffer"));
+                        }
+                        break;
+
+                    case ResourceType.StructuredBufferReadWrite:
+                        if (resource is not Buffer or BufferView)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Buffer or BufferView", "StructuredBufferReadWrite"));
+                        }
+                        break;
+
+                    case ResourceType.Texture:
+                        if (resource is not Texture or TextureView)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Texture or TextureView", "Texture"));
+                        }
+                        break;
+
+                    case ResourceType.TextureReadWrite:
+                        if (resource is not Texture or TextureView)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Texture or TextureView", "TextureReadWrite"));
+                        }
+                        break;
+
+                    case ResourceType.Sampler:
+                        if (resource is not Sampler)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Sampler", "Sampler"));
+                        }
+                        break;
+
+                    case ResourceType.AccelerationStructure:
+                        if (resource is not TopLevelAccelerationStructure)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "TopLevelAccelerationStructure", "AccelerationStructure"));
+                        }
+                        break;
+                }
             }
 
-            switch (desc.Layout.Desc.Bindings[i].Type)
-            {
-                case ResourceType.ConstantBuffer:
-                    if (resource is not Buffer or BufferView)
-                    {
-                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Buffer or BufferView", "ConstantBuffer"));
-                    }
-                    break;
-
-                case ResourceType.StructuredBuffer:
-                    if (resource is not Buffer or BufferView)
-                    {
-                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Buffer or BufferView", "StructuredBuffer"));
-                    }
-                    break;
-
-                case ResourceType.StructuredBufferReadWrite:
-                    if (resource is not Buffer or BufferView)
-                    {
-                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Buffer or BufferView", "StructuredBufferReadWrite"));
-                    }
-                    break;
-
-                case ResourceType.Texture:
-                    if (resource is not Texture or TextureView)
-                    {
-                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Texture or TextureView", "Texture"));
-                    }
-                    break;
-
-                case ResourceType.TextureReadWrite:
-                    if (resource is not Texture or TextureView)
-                    {
-                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Texture or TextureView", "TextureReadWrite"));
-                    }
-                    break;
-
-                case ResourceType.Sampler:
-                    if (resource is not Sampler)
-                    {
-                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Sampler", "Sampler"));
-                    }
-                    break;
-
-                case ResourceType.AccelerationStructure:
-                    if (resource is not TopLevelAccelerationStructure)
-                    {
-                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "TopLevelAccelerationStructure", "AccelerationStructure"));
-                    }
-                    break;
-            }
+            offset += binding.Count;
         }
     }
 
