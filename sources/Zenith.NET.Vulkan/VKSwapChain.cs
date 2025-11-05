@@ -39,7 +39,7 @@ internal unsafe class VKSwapChain : SwapChain
             PImageIndices = (uint*)Unsafe.AsPointer(ref Index)
         };
 
-        Context.Swapchain?.QueuePresent(Context.GraphicsQueue, &presentInfo);
+        Context.Swapchain?.QueuePresent(Context.GraphicsQueue, &presentInfo).Success();
 
         AcquireNextImage();
     }
