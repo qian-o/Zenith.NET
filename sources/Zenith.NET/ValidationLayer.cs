@@ -419,89 +419,113 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             return;
         }
 
-        uint offset = 0;
+        uint resourceStartIndex = 0;
 
         for (int i = 0; i < desc.Layout.Desc.Bindings.Length; i++)
         {
             ResourceBinding binding = desc.Layout.Desc.Bindings[i];
 
-            if (offset + binding.Count > (uint)desc.Resources.Length)
+            if (resourceStartIndex + binding.Count > (uint)desc.Resources.Length)
             {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInsufficientResources, "ResourceSetDesc.Resources", offset + binding.Count, i, desc.Resources.Length));
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInsufficientResources, "ResourceSetDesc.Resources", resourceStartIndex + binding.Count, i, desc.Resources.Length));
 
                 break;
             }
 
-            foreach (IBindableResource resource in desc.Resources[(int)offset..(int)(offset + binding.Count)])
+            switch (binding.Type)
             {
-                if (resource is null)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceSetDesc.Resources"));
+                case ResourceType.ConstantBuffer:
+                    for (uint j = 0; j < binding.Count; j++)
+                    {
+                        IBindableResource resource = desc.Resources[(int)(resourceStartIndex + j)];
 
-                    continue;
-                }
+                        CheckResource<Buffer, BufferView>("ConstantBuffer", resource);
+                    }
+                    break;
 
-                if (resource.IsDisposed)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ResourceSetDesc.Resources"));
+                case ResourceType.StructuredBuffer:
+                    for (uint j = 0; j < binding.Count; j++)
+                    {
+                        IBindableResource resource = desc.Resources[(int)(resourceStartIndex + j)];
 
-                    continue;
-                }
+                        CheckResource<Buffer, BufferView>("StructuredBuffer", resource);
+                    }
+                    break;
 
-                switch (binding.Type)
-                {
-                    case ResourceType.ConstantBuffer:
-                        if (resource is not Buffer or BufferView)
-                        {
-                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Buffer or BufferView", "ConstantBuffer"));
-                        }
-                        break;
+                case ResourceType.StructuredBufferReadWrite:
+                    for (uint j = 0; j < binding.Count; j++)
+                    {
+                        IBindableResource resource = desc.Resources[(int)(resourceStartIndex + j)];
 
-                    case ResourceType.StructuredBuffer:
-                        if (resource is not Buffer or BufferView)
-                        {
-                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Buffer or BufferView", "StructuredBuffer"));
-                        }
-                        break;
+                        CheckResource<Buffer, BufferView>("StructuredBufferReadWrite", resource);
+                    }
+                    break;
 
-                    case ResourceType.StructuredBufferReadWrite:
-                        if (resource is not Buffer or BufferView)
-                        {
-                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Buffer or BufferView", "StructuredBufferReadWrite"));
-                        }
-                        break;
+                case ResourceType.Texture:
+                    for (uint j = 0; j < binding.Count; j++)
+                    {
+                        IBindableResource resource = desc.Resources[(int)(resourceStartIndex + j)];
 
-                    case ResourceType.Texture:
-                        if (resource is not Texture or TextureView)
-                        {
-                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Texture or TextureView", "Texture"));
-                        }
-                        break;
+                        CheckResource<Texture, TextureView>("Texture", resource);
+                    }
+                    break;
 
-                    case ResourceType.TextureReadWrite:
-                        if (resource is not Texture or TextureView)
-                        {
-                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Texture or TextureView", "TextureReadWrite"));
-                        }
-                        break;
+                case ResourceType.TextureReadWrite:
+                    for (uint j = 0; j < binding.Count; j++)
+                    {
+                        IBindableResource resource = desc.Resources[(int)(resourceStartIndex + j)];
 
-                    case ResourceType.Sampler:
-                        if (resource is not Sampler)
-                        {
-                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Sampler", "Sampler"));
-                        }
-                        break;
+                        CheckResource<Texture, TextureView>("TextureReadWrite", resource);
+                    }
+                    break;
 
-                    case ResourceType.AccelerationStructure:
-                        if (resource is not TopLevelAccelerationStructure)
-                        {
-                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "TopLevelAccelerationStructure", "AccelerationStructure"));
-                        }
-                        break;
-                }
+                case ResourceType.Sampler:
+                    for (uint j = 0; j < binding.Count; j++)
+                    {
+                        IBindableResource resource = desc.Resources[(int)(resourceStartIndex + j)];
+
+                        CheckResource<Sampler, Sampler>("Sampler", resource);
+                    }
+                    break;
+
+                case ResourceType.AccelerationStructure:
+                    for (uint j = 0; j < binding.Count; j++)
+                    {
+                        IBindableResource resource = desc.Resources[(int)(resourceStartIndex + j)];
+
+                        CheckResource<TopLevelAccelerationStructure, TopLevelAccelerationStructure>("AccelerationStructure", resource);
+                    }
+                    break;
             }
 
-            offset += binding.Count;
+            resourceStartIndex += binding.Count;
+        }
+
+        void CheckResource<T1, T2>(string name, IBindableResource resource) where T1 : IBindableResource where T2 : IBindableResource
+        {
+            if (resource is null)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceSetDesc.Resources"));
+
+                return;
+            }
+
+            if (resource.IsDisposed)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ResourceSetDesc.Resources"));
+
+                return;
+            }
+
+            if (resource is not T1 or T2)
+            {
+                string typeName1 = typeof(T1).Name;
+                string typeName2 = typeof(T2).Name;
+
+                string typeNames = typeName1 == typeName2 ? typeName1 : $"{typeName1} or {typeName2}";
+
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", typeNames, name));
+            }
         }
     }
 

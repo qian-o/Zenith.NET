@@ -12,21 +12,21 @@ internal unsafe class VKResourceSet : ResourceSet
 
         DescriptorToken = context.DescriptorAllocator.Allocate(desc.Layout.Vulkan());
 
-        WriteDescriptorSet* descriptorWrites = (WriteDescriptorSet*)ZenithMarshal.Allocate<WriteDescriptorSet>(scope, (uint)desc.Resources.Length);
+        WriteDescriptorSet* descriptorWrites = (WriteDescriptorSet*)ZenithMarshal.Allocate<WriteDescriptorSet>(scope, (uint)desc.Layout.Desc.Bindings.Length);
 
-        uint offset = 0;
+        uint resourceStartIndex = 0;
 
         for (int i = 0; i < desc.Layout.Desc.Bindings.Length; i++)
         {
             ResourceBinding binding = desc.Layout.Desc.Bindings[i];
 
-            IBindableResource[] resources = desc.Resources[(int)offset..(int)(offset + binding.Count)];
-
             descriptorWrites[i] = new()
             {
                 SType = StructureType.WriteDescriptorSet,
+                PNext = null,
                 DstSet = DescriptorToken.DescriptorSet,
                 DstBinding = binding.Index,
+                DstArrayElement = 0,
                 DescriptorCount = binding.Count,
                 DescriptorType = VKFormats.Vulkan(binding.Type)
             };
@@ -37,84 +37,97 @@ internal unsafe class VKResourceSet : ResourceSet
                 case ResourceType.StructuredBuffer:
                 case ResourceType.StructuredBufferReadWrite:
                     {
-                        DescriptorBufferInfo* infos = (DescriptorBufferInfo*)ZenithMarshal.Allocate<DescriptorBufferInfo>(scope, (uint)resources.Length);
+                        DescriptorBufferInfo* infos = (DescriptorBufferInfo*)ZenithMarshal.Allocate<DescriptorBufferInfo>(scope, binding.Count);
 
-                        for (int j = 0; j < resources.Length; j++)
+                        for (uint j = 0; j < binding.Count; j++)
                         {
-                            if (resources[j] is Buffer buffer)
+                            IBindableResource resource = desc.Resources[(int)(resourceStartIndex + j)];
+
+                            if (resource is Buffer buffer)
                             {
                                 infos[j] = buffer.Vulkan().View.BufferInfo;
                             }
-                            else if (resources[j] is BufferView bufferView)
+                            else if (resource is BufferView bufferView)
                             {
                                 infos[j] = bufferView.Vulkan().BufferInfo;
                             }
                         }
+
+                        descriptorWrites[i].PBufferInfo = infos;
                     }
                     break;
 
                 case ResourceType.Texture:
                 case ResourceType.TextureReadWrite:
                     {
-                        DescriptorImageInfo* infos = (DescriptorImageInfo*)ZenithMarshal.Allocate<DescriptorImageInfo>(scope, (uint)resources.Length);
+                        bool isSrv = binding.Type is ResourceType.Texture;
 
-                        for (int j = 0; j < resources.Length; j++)
+                        DescriptorImageInfo* infos = (DescriptorImageInfo*)ZenithMarshal.Allocate<DescriptorImageInfo>(scope, binding.Count);
+
+                        for (uint j = 0; j < binding.Count; j++)
                         {
-                            if (binding.Type is ResourceType.Texture)
+                            IBindableResource resource = desc.Resources[(int)(resourceStartIndex + j)];
+
+                            if (isSrv)
                             {
-                                if (resources[j] is Texture texture)
+                                if (resource is Texture texture)
                                 {
                                     infos[j] = texture.Vulkan().View.SrvImageInfo;
                                 }
-                                else if (resources[j] is TextureView textureView)
+                                else if (resource is TextureView textureView)
                                 {
                                     infos[j] = textureView.Vulkan().SrvImageInfo;
                                 }
                             }
                             else
                             {
-                                if (resources[j] is Texture texture)
+                                if (resource is Texture texture)
                                 {
                                     infos[j] = texture.Vulkan().View.UavImageInfo;
                                 }
-                                else if (resources[j] is TextureView textureView)
+                                else if (resource is TextureView textureView)
                                 {
                                     infos[j] = textureView.Vulkan().UavImageInfo;
                                 }
                             }
                         }
+
+                        descriptorWrites[i].PImageInfo = infos;
                     }
                     break;
 
                 case ResourceType.Sampler:
                     {
-                        DescriptorImageInfo* infos = (DescriptorImageInfo*)ZenithMarshal.Allocate<DescriptorImageInfo>(scope, (uint)resources.Length);
+                        DescriptorImageInfo* infos = (DescriptorImageInfo*)ZenithMarshal.Allocate<DescriptorImageInfo>(scope, binding.Count);
 
-                        for (int j = 0; j < resources.Length; j++)
+                        for (uint j = 0; j < binding.Count; j++)
                         {
-                            if (resources[j] is Sampler sampler)
+                            IBindableResource resource = desc.Resources[(int)(resourceStartIndex + j)];
+
+                            if (resource is Sampler sampler)
                             {
                                 infos[j] = new() { Sampler = sampler.Vulkan().Sampler };
                             }
                         }
+
+                        descriptorWrites[i].PImageInfo = infos;
                     }
                     break;
 
                 case ResourceType.AccelerationStructure:
                     {
-                        // TODO: Implement
+                        // TODO: Implement if/when AS resources are supported:
+                        // - Allocate WriteDescriptorSetAccelerationStructureKHR
+                        // - Fill with acceleration structure handles
+                        // - Set descriptorWrites[i].PNext to that struct
                     }
                     break;
             }
 
-            offset += binding.Count;
+            resourceStartIndex += binding.Count;
         }
 
-        context.Vk.UpdateDescriptorSets(context.Device,
-                                        (uint)desc.Resources.Length,
-                                        descriptorWrites,
-                                        0,
-                                        (CopyDescriptorSet*)null);
+        context.Vk.UpdateDescriptorSets(context.Device, (uint)desc.Layout.Desc.Bindings.Length, descriptorWrites, 0, (CopyDescriptorSet*)null);
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
