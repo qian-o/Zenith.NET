@@ -2,7 +2,7 @@
 
 internal unsafe class VKResourceSet : ResourceSet
 {
-    public VKResourceSet(GraphicsContext context, ResourceSetDesc desc) : base(context, desc)
+    public VKResourceSet(VKGraphicsContext context, ResourceSetDesc desc) : base(context, desc)
     {
     }
 
