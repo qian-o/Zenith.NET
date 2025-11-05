@@ -255,6 +255,12 @@ internal unsafe class VKSwapChain : SwapChain
             };
 
             Context.Swapchain?.CreateSwapchain(Context.Device, &createInfo, null, (SwapchainKHR*)Unsafe.AsPointer(ref Swapchain)).Success();
+
+            swapChainFrameBuffer.CreateFrameBuffers(createInfo.ImageExtent.Width, createInfo.ImageExtent.Height);
+        }
+        else
+        {
+            swapChainFrameBuffer.CreateFrameBuffers(Desc.Surface.Width, Desc.Surface.Height);
         }
     }
 
@@ -262,6 +268,8 @@ internal unsafe class VKSwapChain : SwapChain
     {
         if (Swapchain.Handle is not 0)
         {
+            swapChainFrameBuffer.DestroyFrameBuffers();
+
             Context.Swapchain?.DestroySwapchain(Context.Device, Swapchain, null);
 
             Swapchain = default;
