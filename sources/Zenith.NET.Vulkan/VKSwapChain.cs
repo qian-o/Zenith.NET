@@ -139,11 +139,7 @@ internal unsafe class VKSwapChain : SwapChain
     {
         DestroySwapChain();
 
-        if (Desc.Surface.Type is SurfaceType.D3D11Interop)
-        {
-            // D3D11 interop swapchain creation not implemented
-        }
-        else
+        if (Desc.Surface.Type is not SurfaceType.D3D11Interop)
         {
             using ZenithMarshal.Scope scope = new();
 
@@ -215,13 +211,17 @@ internal unsafe class VKSwapChain : SwapChain
                 MinImageCount = minImageCount,
                 ImageFormat = surfaceFormat.Format,
                 ImageColorSpace = surfaceFormat.ColorSpace,
-                ImageExtent = new() { Width = Desc.Surface.Width, Height = Desc.Surface.Height },
+                ImageExtent = new()
+                {
+                    Width = uint.Clamp(capabilities.MinImageExtent.Width, Desc.Surface.Width, capabilities.MaxImageExtent.Width),
+                    Height = uint.Clamp(capabilities.MinImageExtent.Height, Desc.Surface.Height, capabilities.MaxImageExtent.Height)
+                },
                 ImageArrayLayers = 1,
                 ImageUsage = ImageUsageFlags.ColorAttachmentBit,
                 ImageSharingMode = Context.QueueFamilyIndices.Length is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
                 QueueFamilyIndexCount = (uint)Context.QueueFamilyIndices.Length,
                 PQueueFamilyIndices = queueFamilyIndices,
-                CompositeAlpha = CompositeAlphaFlagsKHR.OpaqueBitKhr,
+                CompositeAlpha = capabilities.SupportedCompositeAlpha.HasFlag(CompositeAlphaFlagsKHR.OpaqueBitKhr) ? CompositeAlphaFlagsKHR.OpaqueBitKhr : CompositeAlphaFlagsKHR.InheritBitKhr,
                 PresentMode = presentMode,
                 Clipped = true
             };
