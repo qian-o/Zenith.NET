@@ -75,7 +75,7 @@ internal unsafe class VKResourceLayout : ResourceLayout
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
-    public VKResourceCounts Counts { get; }
+    public VKDescriptorCounts Counts { get; }
 
     protected override void SetResourceName(string name)
     {

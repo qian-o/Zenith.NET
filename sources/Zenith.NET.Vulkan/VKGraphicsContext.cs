@@ -476,7 +476,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override ResourceSet CreateResourceSetImpl(ResourceSetDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKResourceSet(this, desc);
     }
 
     protected override GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc)
