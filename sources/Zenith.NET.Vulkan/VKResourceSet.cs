@@ -12,7 +12,7 @@ internal unsafe class VKResourceSet : ResourceSet
 
         DescriptorToken = context.DescriptorAllocator.Allocate(desc.Layout.Vulkan());
 
-        WriteDescriptorSet* writes = (WriteDescriptorSet*)ZenithMarshal.Allocate<WriteDescriptorSet>(scope, (uint)desc.Resources.Length);
+        WriteDescriptorSet* descriptorWrites = (WriteDescriptorSet*)ZenithMarshal.Allocate<WriteDescriptorSet>(scope, (uint)desc.Resources.Length);
 
         uint offset = 0;
 
@@ -22,7 +22,7 @@ internal unsafe class VKResourceSet : ResourceSet
 
             IBindableResource[] resources = desc.Resources[(int)offset..(int)(offset + binding.Count)];
 
-            writes[i] = new()
+            descriptorWrites[i] = new()
             {
                 SType = StructureType.WriteDescriptorSet,
                 DstSet = DescriptorToken.DescriptorSet,
@@ -109,6 +109,12 @@ internal unsafe class VKResourceSet : ResourceSet
 
             offset += binding.Count;
         }
+
+        context.Vk.UpdateDescriptorSets(context.Device,
+                                        (uint)desc.Resources.Length,
+                                        descriptorWrites,
+                                        0,
+                                        (CopyDescriptorSet*)null);
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
