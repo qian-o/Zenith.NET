@@ -43,9 +43,22 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
 
             for (uint i = 0; i < swapchainImageCount; i++)
             {
+                TextureDesc desc = new()
+                {
+                    Type = TextureType.Texture2D,
+                    Format = swapChain.Desc.ColorTargetFormat,
+                    Width = width,
+                    Height = height,
+                    Depth = 1,
+                    Layers = 1,
+                    MipLevels = 1,
+                    SampleCount = SampleCount.Count1,
+                    Flags = TextureUsageFlags.RenderTarget
+                };
+
                 frameBuffers[i] = new(context, new()
                 {
-                    ColorAttachments = [new() { Target = colorTargets[i] }],
+                    ColorAttachments = [new() { Target = colorTargets[i] = new(context, desc, swapchainImages[i]) }],
                     DepthStencilAttachment = depthStencilTarget is not null ? new() { Target = depthStencilTarget } : null
                 });
             }

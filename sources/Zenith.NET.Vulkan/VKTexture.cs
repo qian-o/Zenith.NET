@@ -50,9 +50,23 @@ internal unsafe class VKTexture : Texture
         });
     }
 
+    public VKTexture(VKGraphicsContext context, TextureDesc desc, Image image) : base(context, desc)
+    {
+        Image = image;
+
+        View = new(context, new()
+        {
+            Texture = this,
+            FirstLayer = 0,
+            LayerCount = desc.Layers,
+            FirstMipLevel = 0,
+            MipLevelCount = desc.MipLevels
+        });
+    }
+
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
-    public VKDeviceMemory DeviceMemory { get; }
+    public VKDeviceMemory? DeviceMemory { get; }
 
     public VKTextureView View { get; }
 
@@ -85,8 +99,11 @@ internal unsafe class VKTexture : Texture
     {
         View.Dispose();
 
-        DeviceMemory.Dispose();
+        if (DeviceMemory is not null)
+        {
+            DeviceMemory.Dispose();
 
-        Context.Vk.DestroyImage(Context.Device, Image, null);
+            Context.Vk.DestroyImage(Context.Device, Image, null);
+        }
     }
 }
