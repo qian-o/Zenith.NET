@@ -74,7 +74,11 @@ internal unsafe class VKSwapChain : SwapChain
 
     protected override void Destroy()
     {
-        throw new NotImplementedException();
+        DestroySwapChain();
+        DestroySurface();
+
+        swapChainFrameBuffer.Dispose();
+        fence.Dispose();
     }
 
     private void CreateSurface()
