@@ -22,6 +22,7 @@ internal unsafe class VKSwapChain : SwapChain
 
         CreateSurface();
         CreateSwapChain();
+        AcquireNextImage();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
@@ -30,23 +31,45 @@ internal unsafe class VKSwapChain : SwapChain
 
     public override void Present()
     {
-        throw new NotImplementedException();
+        PresentInfoKHR presentInfo = new()
+        {
+            SType = StructureType.PresentInfoKhr,
+            SwapchainCount = 1,
+            PSwapchains = (SwapchainKHR*)Unsafe.AsPointer(ref Swapchain),
+            PImageIndices = (uint*)Unsafe.AsPointer(ref Index)
+        };
+
+        Context.Swapchain?.QueuePresent(Context.GraphicsQueue, &presentInfo);
+
+        AcquireNextImage();
     }
 
     protected override void ResizeImpl()
     {
         CreateSwapChain();
+        AcquireNextImage();
     }
 
     protected override void RefreshImpl()
     {
         CreateSurface();
         CreateSwapChain();
+        AcquireNextImage();
     }
 
     protected override void SetResourceName(string name)
     {
-        throw new NotImplementedException();
+        using ZenithMarshal.Scope scope = new();
+
+        DebugUtilsObjectNameInfoEXT nameInfo = new()
+        {
+            SType = StructureType.DebugUtilsObjectNameInfoExt,
+            ObjectType = ObjectType.SwapchainKhr,
+            ObjectHandle = Swapchain.Handle,
+            PObjectName = (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8)
+        };
+
+        Context.DebugUtils?.SetDebugUtilsObjectName(Context.Device, &nameInfo).Success();
     }
 
     protected override void Destroy()
@@ -221,6 +244,7 @@ internal unsafe class VKSwapChain : SwapChain
                 ImageSharingMode = Context.QueueFamilyIndices.Length is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
                 QueueFamilyIndexCount = (uint)Context.QueueFamilyIndices.Length,
                 PQueueFamilyIndices = queueFamilyIndices,
+                PreTransform = capabilities.SupportedTransforms.HasFlag(SurfaceTransformFlagsKHR.IdentityBitKhr) ? SurfaceTransformFlagsKHR.IdentityBitKhr : SurfaceTransformFlagsKHR.InheritBitKhr,
                 CompositeAlpha = capabilities.SupportedCompositeAlpha.HasFlag(CompositeAlphaFlagsKHR.OpaqueBitKhr) ? CompositeAlphaFlagsKHR.OpaqueBitKhr : CompositeAlphaFlagsKHR.InheritBitKhr,
                 PresentMode = presentMode,
                 Clipped = true
@@ -238,5 +262,12 @@ internal unsafe class VKSwapChain : SwapChain
 
             Swapchain = default;
         }
+    }
+
+    private void AcquireNextImage()
+    {
+        Context.Swapchain?.AcquireNextImage(Context.Device, Swapchain, ulong.MaxValue, default, fence.Fence, (uint*)Unsafe.AsPointer(ref Index)).Success();
+
+        fence.Wait();
     }
 }
