@@ -471,7 +471,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override ResourceLayout CreateResourceLayoutImpl(ResourceLayoutDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKResourceLayout(this, desc);
     }
 
     protected override ResourceSet CreateResourceSetImpl(ResourceSetDesc desc)

@@ -383,4 +383,25 @@ internal static class VKFormats
             _ => VkBorderColor.FloatTransparentBlack
         };
     }
+
+    public static DescriptorType Vulkan(ResourceType type)
+    {
+        return type switch
+        {
+            ResourceType.ConstantBuffer => DescriptorType.UniformBuffer,
+
+            ResourceType.StructuredBuffer or
+            ResourceType.StructuredBufferReadWrite => DescriptorType.StorageBuffer,
+
+            ResourceType.Texture => DescriptorType.SampledImage,
+
+            ResourceType.TextureReadWrite => DescriptorType.StorageImage,
+
+            ResourceType.Sampler => DescriptorType.Sampler,
+
+            ResourceType.AccelerationStructure => DescriptorType.AccelerationStructureKhr,
+
+            _ => DescriptorType.Sampler
+        };
+    }
 }
