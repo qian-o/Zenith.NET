@@ -8,11 +8,11 @@ internal unsafe class VKDescriptorAllocator(VKGraphicsContext context) : Graphic
     private readonly Lock @lock = new();
     private readonly List<VKDescriptorPool> available = [];
 
-    public VKDescriptorToken Alloc(VKResourceLayout resourceLayout)
+    public VKDescriptorToken Allocate(VKResourceLayout resourceLayout)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        if (available.FirstOrDefault(item => item.CanAlloc(resourceLayout.Counts)) is not VKDescriptorPool descriptorPool)
+        if (available.FirstOrDefault(item => item.CanAllocate(resourceLayout.Counts)) is not VKDescriptorPool descriptorPool)
         {
             available.Add(descriptorPool = new(context));
         }

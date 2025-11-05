@@ -91,7 +91,7 @@ internal unsafe class VKDescriptorPool : GraphicsResource
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
-    public bool CanAlloc(VKDescriptorCounts counts)
+    public bool CanAllocate(VKDescriptorCounts counts)
     {
         if (remainingSets < 1 ||
             uniformBufferCount < counts.UniformBufferCount ||

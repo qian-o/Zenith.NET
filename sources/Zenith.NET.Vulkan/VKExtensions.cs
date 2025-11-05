@@ -63,4 +63,20 @@ internal static class VKExtensions
             return (VKSampler)sampler;
         }
     }
+
+    extension(ResourceLayout resourceLayout)
+    {
+        public VKResourceLayout Vulkan()
+        {
+            return (VKResourceLayout)resourceLayout;
+        }
+    }
+
+    extension(ResourceSet resourceSet)
+    {
+        public VKResourceSet Vulkan()
+        {
+            return (VKResourceSet)resourceSet;
+        }
+    }
 }
