@@ -438,7 +438,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override FrameBuffer CreateFrameBufferImpl(FrameBufferDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKFrameBuffer(this, desc);
     }
 
     protected override Shader CreateShaderImpl(ShaderDesc desc)

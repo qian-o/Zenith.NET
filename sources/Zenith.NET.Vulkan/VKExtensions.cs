@@ -16,6 +16,15 @@ internal static class VKExtensions
         }
     }
 
+
+    extension(FrameBuffer frameBuffer)
+    {
+        public VKFrameBuffer Vulkan()
+        {
+            return (VKFrameBuffer)frameBuffer;
+        }
+    }
+
     extension(Shader shader)
     {
         public VKShader Vulkan()
