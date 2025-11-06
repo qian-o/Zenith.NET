@@ -16,6 +16,14 @@ internal static class VKExtensions
         }
     }
 
+    extension(CommandBuffer commandBuffer)
+    {
+        public VKCommandBuffer Vulkan()
+        {
+            return (VKCommandBuffer)commandBuffer;
+        }
+    }
+
     extension(SwapChain swapChain)
     {
         public VKSwapChain Vulkan()
