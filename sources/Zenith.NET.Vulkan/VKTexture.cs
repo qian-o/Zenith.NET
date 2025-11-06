@@ -48,6 +48,9 @@ internal unsafe class VKTexture : Texture
             FirstMipLevel = 0,
             MipLevelCount = desc.MipLevels
         });
+
+        Layouts = new ImageLayout[ZenithHelper.SubresourceCount(desc)];
+        Array.Fill(Layouts, ImageLayout.Undefined);
     }
 
     public VKTexture(VKGraphicsContext context, TextureDesc desc, Image image) : base(context, desc)
@@ -62,6 +65,9 @@ internal unsafe class VKTexture : Texture
             FirstMipLevel = 0,
             MipLevelCount = desc.MipLevels
         });
+
+        Layouts = new ImageLayout[ZenithHelper.SubresourceCount(desc)];
+        Array.Fill(Layouts, ImageLayout.Undefined);
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
@@ -69,6 +75,8 @@ internal unsafe class VKTexture : Texture
     public VKDeviceMemory? DeviceMemory { get; }
 
     public VKTextureView View { get; }
+
+    public ImageLayout[] Layouts { get; }
 
     public override MappedMemory Map(TextureSlice slice)
     {

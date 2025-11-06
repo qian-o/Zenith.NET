@@ -28,7 +28,11 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
             });
         }
 
-        if (swapChain.Desc.Surface.Type is not SurfaceType.D3D11Interop)
+        if (swapChain.Desc.Surface.Type is SurfaceType.D3D11Interop)
+        {
+            frameBuffers = new VKFrameBuffer[1];
+        }
+        else
         {
             using ZenithMarshal.Scope scope = new();
 

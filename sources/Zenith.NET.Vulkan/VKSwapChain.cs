@@ -22,7 +22,6 @@ internal unsafe class VKSwapChain : SwapChain
 
         CreateSurface();
         CreateSwapChain();
-        AcquireNextImage();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
@@ -31,6 +30,11 @@ internal unsafe class VKSwapChain : SwapChain
 
     public override void Present()
     {
+        if (Desc.Surface.Type is SurfaceType.D3D11Interop)
+        {
+            return;
+        }
+
         PresentInfoKHR presentInfo = new()
         {
             SType = StructureType.PresentInfoKhr,
@@ -47,14 +51,12 @@ internal unsafe class VKSwapChain : SwapChain
     protected override void ResizeImpl()
     {
         CreateSwapChain();
-        AcquireNextImage();
     }
 
     protected override void RefreshImpl()
     {
         CreateSurface();
         CreateSwapChain();
-        AcquireNextImage();
     }
 
     protected override void SetResourceName(string name)
@@ -166,7 +168,11 @@ internal unsafe class VKSwapChain : SwapChain
     {
         DestroySwapChain();
 
-        if (Desc.Surface.Type is not SurfaceType.D3D11Interop)
+        if (Desc.Surface.Type is SurfaceType.D3D11Interop)
+        {
+            swapChainFrameBuffer.CreateFrameBuffers(Desc.Surface.Width, Desc.Surface.Height);
+        }
+        else
         {
             using ZenithMarshal.Scope scope = new();
 
@@ -257,19 +263,17 @@ internal unsafe class VKSwapChain : SwapChain
             Context.Swapchain?.CreateSwapchain(Context.Device, &createInfo, null, (SwapchainKHR*)Unsafe.AsPointer(ref Swapchain)).Success();
 
             swapChainFrameBuffer.CreateFrameBuffers(createInfo.ImageExtent.Width, createInfo.ImageExtent.Height);
-        }
-        else
-        {
-            swapChainFrameBuffer.CreateFrameBuffers(Desc.Surface.Width, Desc.Surface.Height);
+
+            AcquireNextImage();
         }
     }
 
     private void DestroySwapChain()
     {
+        swapChainFrameBuffer.DestroyFrameBuffers();
+
         if (Swapchain.Handle is not 0)
         {
-            swapChainFrameBuffer.DestroyFrameBuffers();
-
             Context.Swapchain?.DestroySwapchain(Context.Device, Swapchain, null);
 
             Swapchain = default;
