@@ -10,15 +10,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public Pipeline? CurrentPipeline { get; private set; }
 
-    public abstract void Begin();
-
-    public void End()
-    {
-        EnsureRenderingEnded();
-
-        EndImpl();
-    }
-
     public void Submit()
     {
         queue.Submit(this);
@@ -343,7 +334,10 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         BeginDebugEventImpl(label);
     }
 
-    public abstract void EndDebugEvent();
+    public void EndDebugEvent()
+    {
+        EndDebugEventImpl();
+    }
 
     public void InsertDebugMarker(string label)
     {
@@ -353,6 +347,18 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         }
 
         InsertDebugMarkerImpl(label);
+    }
+
+    internal void Begin()
+    {
+        BeginImpl();
+    }
+
+    internal void End()
+    {
+        EnsureRenderingEnded();
+
+        EndImpl();
     }
 
     internal void Reset()
@@ -372,8 +378,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CurrentFrameBuffer = null;
         CurrentPipeline = null;
     }
-
-    protected abstract void EndImpl();
 
     protected abstract void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes);
 
@@ -433,7 +437,13 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void BeginDebugEventImpl(string label);
 
+    protected abstract void EndDebugEventImpl();
+
     protected abstract void InsertDebugMarkerImpl(string label);
+
+    protected abstract void BeginImpl();
+
+    protected abstract void EndImpl();
 
     protected abstract void ResetImpl();
 
