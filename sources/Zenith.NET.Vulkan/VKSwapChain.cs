@@ -170,7 +170,7 @@ internal unsafe class VKSwapChain : SwapChain
 
         if (Desc.Surface.Type is SurfaceType.D3D11Interop)
         {
-            swapChainFrameBuffer.CreateFrameBuffers(Desc.Surface.Width, Desc.Surface.Height);
+            swapChainFrameBuffer.CreateFrameBuffers(Desc.Surface.Width, Desc.Surface.Height, Desc.Surface.Handles[0]);
         }
         else
         {
@@ -262,7 +262,7 @@ internal unsafe class VKSwapChain : SwapChain
 
             Context.Swapchain?.CreateSwapchain(Context.Device, &createInfo, null, (SwapchainKHR*)Unsafe.AsPointer(ref Swapchain)).Success();
 
-            swapChainFrameBuffer.CreateFrameBuffers(createInfo.ImageExtent.Width, createInfo.ImageExtent.Height);
+            swapChainFrameBuffer.CreateFrameBuffers(createInfo.ImageExtent.Width, createInfo.ImageExtent.Height, 0);
 
             AcquireNextImage();
         }

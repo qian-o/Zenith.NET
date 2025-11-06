@@ -10,7 +10,7 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
 
     public VKFrameBuffer this[uint index] => frameBuffers[index];
 
-    public void CreateFrameBuffers(uint width, uint height)
+    public void CreateFrameBuffers(uint width, uint height, nint handle)
     {
         if (swapChain.Desc.DepthStencilTargetFormat is not null)
         {
@@ -28,26 +28,27 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
             });
         }
 
+        TextureDesc desc = new()
+        {
+            Type = TextureType.Texture2D,
+            Format = swapChain.Desc.ColorTargetFormat,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            Layers = 1,
+            MipLevels = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.RenderTarget
+        };
+
         if (swapChain.Desc.Surface.Type is SurfaceType.D3D11Interop)
         {
+            colorTargets = new VKTexture[1];
             frameBuffers = new VKFrameBuffer[1];
-
-            TextureDesc desc = new()
-            {
-                Type = TextureType.Texture2D,
-                Format = swapChain.Desc.ColorTargetFormat,
-                Width = width,
-                Height = height,
-                Depth = 1,
-                Layers = 1,
-                MipLevels = 1,
-                SampleCount = SampleCount.Count1,
-                Flags = TextureUsageFlags.RenderTarget
-            };
 
             frameBuffers[0] = new(context, new()
             {
-                ColorAttachments = [new() { Target = colorTargets[0] = new(context, desc, ExternalMemoryHandleTypeFlags.D3D11TextureKmtBit, swapChain.Desc.Surface.Handles[0]) }],
+                ColorAttachments = [new() { Target = colorTargets[0] = new(context, desc, ExternalMemoryHandleTypeFlags.D3D11TextureKmtBit, handle) }],
                 DepthStencilAttachment = depthStencilTarget is not null ? new() { Target = depthStencilTarget } : null
             });
         }
@@ -66,19 +67,6 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
 
             for (uint i = 0; i < swapchainImageCount; i++)
             {
-                TextureDesc desc = new()
-                {
-                    Type = TextureType.Texture2D,
-                    Format = swapChain.Desc.ColorTargetFormat,
-                    Width = width,
-                    Height = height,
-                    Depth = 1,
-                    Layers = 1,
-                    MipLevels = 1,
-                    SampleCount = SampleCount.Count1,
-                    Flags = TextureUsageFlags.RenderTarget
-                };
-
                 frameBuffers[i] = new(context, new()
                 {
                     ColorAttachments = [new() { Target = colorTargets[i] = new(context, desc, swapchainImages[i]) }],
