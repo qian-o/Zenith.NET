@@ -8,7 +8,7 @@ internal unsafe class VKCommandQueue(VKGraphicsContext context, CommandQueueType
 
     protected override CommandBuffer CreateCommandBuffer()
     {
-        throw new NotImplementedException();
+        return new VKCommandBuffer(Context, this);
     }
 
     protected override void WaitIdleImpl()
