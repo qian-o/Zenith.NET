@@ -70,6 +70,55 @@ internal unsafe class VKTexture : Texture
         Array.Fill(Layouts, ImageLayout.Undefined);
     }
 
+    public VKTexture(VKGraphicsContext context, TextureDesc desc, ExternalMemoryHandleTypeFlags handleTypes, nint handle) : base(context, desc)
+    {
+        using ZenithMarshal.Scope scope = new();
+
+        uint* queueFamilyIndices = (uint*)ZenithMarshal.Allocate<uint>(scope, (uint)context.QueueFamilyIndices.Length);
+        context.QueueFamilyIndices.CopyTo(new Span<uint>(queueFamilyIndices, context.QueueFamilyIndices.Length));
+
+        ImageCreateInfo createInfo = new()
+        {
+            SType = StructureType.ImageCreateInfo,
+            Flags = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? ImageCreateFlags.CreateCubeCompatibleBit : ImageCreateFlags.None,
+            ImageType = VKFormats.Vulkan(desc.Type).ImageType,
+            Format = VKFormats.Vulkan(desc.Format),
+            Extent = new()
+            {
+                Width = desc.Width,
+                Height = desc.Height,
+                Depth = desc.Depth
+            },
+            MipLevels = desc.MipLevels,
+            ArrayLayers = desc.Layers,
+            Samples = VKFormats.Vulkan(desc.SampleCount),
+            Tiling = desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? ImageTiling.Linear : ImageTiling.Optimal,
+            Usage = VKFormats.Vulkan(desc.Flags).ImageUsageFlags,
+            SharingMode = context.QueueFamilyIndices.Length is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
+            QueueFamilyIndexCount = (uint)context.QueueFamilyIndices.Length,
+            PQueueFamilyIndices = queueFamilyIndices
+        };
+
+        createInfo.AddNext(out ExternalMemoryImageCreateInfo externalMemoryImageCreateInfo);
+        externalMemoryImageCreateInfo.HandleTypes = handleTypes;
+
+        context.Vk.CreateImage(context.Device, &createInfo, null, (Image*)Unsafe.AsPointer(ref Image)).Success();
+
+        DeviceMemory = new(context, this, handleTypes, handle);
+
+        View = new(context, new()
+        {
+            Texture = this,
+            FirstLayer = 0,
+            LayerCount = desc.Layers,
+            FirstMipLevel = 0,
+            MipLevelCount = desc.MipLevels
+        });
+
+        Layouts = new ImageLayout[ZenithHelper.SubresourceCount(desc)];
+        Array.Fill(Layouts, ImageLayout.Undefined);
+    }
+
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
     public VKDeviceMemory? DeviceMemory { get; }

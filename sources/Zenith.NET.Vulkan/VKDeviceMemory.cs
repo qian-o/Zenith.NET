@@ -20,7 +20,7 @@ internal unsafe class VKDeviceMemory : GraphicsResource
             SType = StructureType.MemoryRequirements2
         };
 
-        requirements2.AddNext(out MemoryDedicatedRequirements dedicatedRequirements);
+        requirements2.AddNext(out MemoryDedicatedRequirements requirements);
 
         context.Vk.GetBufferMemoryRequirements2(context.Device, &requirementsInfo2, &requirements2);
 
@@ -31,13 +31,13 @@ internal unsafe class VKDeviceMemory : GraphicsResource
             MemoryTypeIndex = context.FindMemoryTypeIndex(requirements2.MemoryRequirements.MemoryTypeBits, buffer.Desc.Flags.HasFlag(BufferUsageFlags.Dynamic) ? MemoryPropertyFlags.HostVisibleBit : MemoryPropertyFlags.DeviceLocalBit)
         };
 
-        allocateInfo.AddNext(out MemoryAllocateFlagsInfo flagsInfo);
-        flagsInfo.Flags = MemoryAllocateFlags.AddressBit;
+        allocateInfo.AddNext(out MemoryAllocateFlagsInfo memoryAllocateFlagsInfo);
+        memoryAllocateFlagsInfo.Flags = MemoryAllocateFlags.AddressBit;
 
-        if (dedicatedRequirements.PrefersDedicatedAllocation || dedicatedRequirements.RequiresDedicatedAllocation)
+        if (requirements.PrefersDedicatedAllocation || requirements.RequiresDedicatedAllocation)
         {
-            allocateInfo.AddNext(out MemoryDedicatedAllocateInfo dedicatedAllocateInfo);
-            dedicatedAllocateInfo.Buffer = buffer.Buffer;
+            allocateInfo.AddNext(out MemoryDedicatedAllocateInfo memoryDedicatedAllocateInfo);
+            memoryDedicatedAllocateInfo.Buffer = buffer.Buffer;
         }
 
         context.Vk.AllocateMemory(context.Device, &allocateInfo, null, (DeviceMemory*)Unsafe.AsPointer(ref DeviceMemory)).Success();
@@ -58,7 +58,7 @@ internal unsafe class VKDeviceMemory : GraphicsResource
             SType = StructureType.MemoryRequirements2
         };
 
-        requirements2.AddNext(out MemoryDedicatedRequirements dedicatedRequirements);
+        requirements2.AddNext(out MemoryDedicatedRequirements requirements);
 
         context.Vk.GetImageMemoryRequirements2(context.Device, &requirementsInfo2, &requirements2);
 
@@ -69,11 +69,50 @@ internal unsafe class VKDeviceMemory : GraphicsResource
             MemoryTypeIndex = context.FindMemoryTypeIndex(requirements2.MemoryRequirements.MemoryTypeBits, texture.Desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? MemoryPropertyFlags.HostVisibleBit : MemoryPropertyFlags.DeviceLocalBit)
         };
 
-        if (dedicatedRequirements.PrefersDedicatedAllocation || dedicatedRequirements.RequiresDedicatedAllocation)
+        if (requirements.PrefersDedicatedAllocation || requirements.RequiresDedicatedAllocation)
         {
-            allocateInfo.AddNext(out MemoryDedicatedAllocateInfo dedicatedAllocateInfo);
-            dedicatedAllocateInfo.Image = texture.Image;
+            allocateInfo.AddNext(out MemoryDedicatedAllocateInfo memoryDedicatedAllocateInfo);
+            memoryDedicatedAllocateInfo.Image = texture.Image;
         }
+
+        context.Vk.AllocateMemory(context.Device, &allocateInfo, null, (DeviceMemory*)Unsafe.AsPointer(ref DeviceMemory)).Success();
+
+        context.Vk.BindImageMemory(context.Device, texture.Image, DeviceMemory, 0).Success();
+    }
+
+    public VKDeviceMemory(VKGraphicsContext context, VKTexture texture, ExternalMemoryHandleTypeFlags handleTypes, nint handle) : base(context)
+    {
+        ImageMemoryRequirementsInfo2 requirementsInfo2 = new()
+        {
+            SType = StructureType.ImageMemoryRequirementsInfo2,
+            Image = texture.Image
+        };
+
+        MemoryRequirements2 requirements2 = new()
+        {
+            SType = StructureType.MemoryRequirements2
+        };
+
+        requirements2.AddNext(out MemoryDedicatedRequirements requirements);
+
+        context.Vk.GetImageMemoryRequirements2(context.Device, &requirementsInfo2, &requirements2);
+
+        MemoryAllocateInfo allocateInfo = new()
+        {
+            SType = StructureType.MemoryAllocateInfo,
+            AllocationSize = requirements2.MemoryRequirements.Size,
+            MemoryTypeIndex = context.FindMemoryTypeIndex(requirements2.MemoryRequirements.MemoryTypeBits, texture.Desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? MemoryPropertyFlags.HostVisibleBit : MemoryPropertyFlags.DeviceLocalBit)
+        };
+
+        if (requirements.PrefersDedicatedAllocation || requirements.RequiresDedicatedAllocation)
+        {
+            allocateInfo.AddNext(out MemoryDedicatedAllocateInfo memoryDedicatedAllocateInfo);
+            memoryDedicatedAllocateInfo.Image = texture.Image;
+        }
+
+        allocateInfo.AddNext(out ImportMemoryWin32HandleInfoKHR importMemoryWin32HandleInfo);
+        importMemoryWin32HandleInfo.HandleType = handleTypes;
+        importMemoryWin32HandleInfo.Handle = handle;
 
         context.Vk.AllocateMemory(context.Device, &allocateInfo, null, (DeviceMemory*)Unsafe.AsPointer(ref DeviceMemory)).Success();
 

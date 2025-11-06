@@ -31,6 +31,25 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
         if (swapChain.Desc.Surface.Type is SurfaceType.D3D11Interop)
         {
             frameBuffers = new VKFrameBuffer[1];
+
+            TextureDesc desc = new()
+            {
+                Type = TextureType.Texture2D,
+                Format = swapChain.Desc.ColorTargetFormat,
+                Width = width,
+                Height = height,
+                Depth = 1,
+                Layers = 1,
+                MipLevels = 1,
+                SampleCount = SampleCount.Count1,
+                Flags = TextureUsageFlags.RenderTarget
+            };
+
+            frameBuffers[0] = new(context, new()
+            {
+                ColorAttachments = [new() { Target = colorTargets[0] = new(context, desc, ExternalMemoryHandleTypeFlags.D3D11TextureKmtBit, swapChain.Desc.Surface.Handles[0]) }],
+                DepthStencilAttachment = depthStencilTarget is not null ? new() { Target = depthStencilTarget } : null
+            });
         }
         else
         {
