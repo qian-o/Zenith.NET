@@ -43,7 +43,16 @@ internal unsafe class VKSwapChain : SwapChain
             PImageIndices = (uint*)Unsafe.AsPointer(ref Index)
         };
 
-        Context.Swapchain?.QueuePresent(Context.GraphicsQueue, &presentInfo).Success();
+        Result result = Context.Swapchain?.QueuePresent(Context.GraphicsQueue, &presentInfo) ?? Result.ErrorInitializationFailed;
+
+        if (result is Result.ErrorOutOfDateKhr or Result.SuboptimalKhr)
+        {
+            CreateSwapChain();
+
+            return;
+        }
+
+        result.Success();
 
         AcquireNextImage();
     }
@@ -210,16 +219,27 @@ internal unsafe class VKSwapChain : SwapChain
                 }
             }
 
+            Extent2D imageExtent = new()
+            {
+                Width = uint.Clamp(capabilities.MinImageExtent.Width, Desc.Surface.Width, capabilities.MaxImageExtent.Width),
+                Height = uint.Clamp(capabilities.MinImageExtent.Height, Desc.Surface.Height, capabilities.MaxImageExtent.Height)
+            };
+
+            SurfaceTransformFlagsKHR preTransform = SurfaceTransformFlagsKHR.InheritBitKhr;
+            if (capabilities.SupportedTransforms.HasFlag(SurfaceTransformFlagsKHR.IdentityBitKhr))
+            {
+                preTransform = SurfaceTransformFlagsKHR.IdentityBitKhr;
+            }
+
+            CompositeAlphaFlagsKHR compositeAlpha = CompositeAlphaFlagsKHR.InheritBitKhr;
+            if (capabilities.SupportedCompositeAlpha.HasFlag(CompositeAlphaFlagsKHR.OpaqueBitKhr))
+            {
+                compositeAlpha = CompositeAlphaFlagsKHR.OpaqueBitKhr;
+            }
+
             PresentModeKHR presentMode = default;
             foreach (PresentModeKHR item in new ReadOnlySpan<PresentModeKHR>(presentModes, (int)presentModeCount))
             {
-                if (Desc.VerticalSync && item is PresentModeKHR.FifoKhr)
-                {
-                    presentMode = PresentModeKHR.FifoKhr;
-
-                    break;
-                }
-
                 if (item is PresentModeKHR.MailboxKhr)
                 {
                     presentMode = PresentModeKHR.MailboxKhr;
@@ -239,18 +259,14 @@ internal unsafe class VKSwapChain : SwapChain
                 MinImageCount = minImageCount,
                 ImageFormat = surfaceFormat.Format,
                 ImageColorSpace = surfaceFormat.ColorSpace,
-                ImageExtent = new()
-                {
-                    Width = uint.Clamp(capabilities.MinImageExtent.Width, Desc.Surface.Width, capabilities.MaxImageExtent.Width),
-                    Height = uint.Clamp(capabilities.MinImageExtent.Height, Desc.Surface.Height, capabilities.MaxImageExtent.Height)
-                },
+                ImageExtent = imageExtent,
                 ImageArrayLayers = 1,
                 ImageUsage = ImageUsageFlags.ColorAttachmentBit,
                 ImageSharingMode = Context.QueueFamilyIndices.Length is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
                 QueueFamilyIndexCount = (uint)Context.QueueFamilyIndices.Length,
                 PQueueFamilyIndices = queueFamilyIndices,
-                PreTransform = capabilities.SupportedTransforms.HasFlag(SurfaceTransformFlagsKHR.IdentityBitKhr) ? SurfaceTransformFlagsKHR.IdentityBitKhr : SurfaceTransformFlagsKHR.InheritBitKhr,
-                CompositeAlpha = capabilities.SupportedCompositeAlpha.HasFlag(CompositeAlphaFlagsKHR.OpaqueBitKhr) ? CompositeAlphaFlagsKHR.OpaqueBitKhr : CompositeAlphaFlagsKHR.InheritBitKhr,
+                PreTransform = preTransform,
+                CompositeAlpha = compositeAlpha,
                 PresentMode = presentMode,
                 Clipped = true
             };
@@ -283,7 +299,16 @@ internal unsafe class VKSwapChain : SwapChain
 
     private void AcquireNextImage()
     {
-        Context.Swapchain?.AcquireNextImage(Context.Device, Swapchain, ulong.MaxValue, default, fence.Fence, (uint*)Unsafe.AsPointer(ref Index)).Success();
+        Result result = Context.Swapchain?.AcquireNextImage(Context.Device, Swapchain, ulong.MaxValue, default, fence.Fence, (uint*)Unsafe.AsPointer(ref Index)) ?? Result.ErrorInitializationFailed;
+
+        if (result is Result.ErrorOutOfDateKhr or Result.SuboptimalKhr)
+        {
+            CreateSwapChain();
+
+            return;
+        }
+
+        result.Success();
 
         fence.Wait();
     }
