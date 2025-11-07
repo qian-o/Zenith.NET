@@ -164,9 +164,9 @@ internal unsafe class VKTexture : Texture
         {
             for (uint j = 0; j < mipLevelCount; j++)
             {
-                for (uint f = 0; f < faces; f++)
+                for (uint face = 0; face < faces; face++)
                 {
-                    uint index = ZenithHelper.SubresourceIndex(Desc, new() { Layer = firstLayer + i, MipLevel = firstMipLevel + j, Face = f });
+                    uint index = ZenithHelper.SubresourceIndex(Desc, new() { Layer = firstLayer + i, MipLevel = firstMipLevel + j, Face = face });
 
                     ImageLayout oldLayout = Layouts[index];
 
