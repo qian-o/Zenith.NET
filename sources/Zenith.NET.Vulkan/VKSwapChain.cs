@@ -210,26 +210,21 @@ internal unsafe class VKSwapChain : SwapChain
                 }
             }
 
-            PresentModeKHR presentMode = presentModes[0];
-            foreach (PresentModeKHR item in new ReadOnlySpan<PresentModeKHR>(presentModes, (int)presentModeCount))
+            PresentModeKHR presentMode = PresentModeKHR.FifoKhr;
+            if (!Desc.VerticalSync)
             {
-                if (Desc.VerticalSync && item is PresentModeKHR.FifoRelaxedKhr)
+                foreach (PresentModeKHR item in new ReadOnlySpan<PresentModeKHR>(presentModes, (int)presentModeCount))
                 {
-                    presentMode = PresentModeKHR.FifoRelaxedKhr;
+                    if (item is PresentModeKHR.MailboxKhr)
+                    {
+                        presentMode = PresentModeKHR.MailboxKhr;
 
-                    break;
-                }
-                else if (item is PresentModeKHR.MailboxKhr)
-                {
-                    presentMode = PresentModeKHR.MailboxKhr;
-
-                    break;
-                }
-                else if (item is PresentModeKHR.ImmediateKhr)
-                {
-                    presentMode = PresentModeKHR.ImmediateKhr;
-
-                    break;
+                        break;
+                    }
+                    else if (item is PresentModeKHR.ImmediateKhr)
+                    {
+                        presentMode = PresentModeKHR.ImmediateKhr;
+                    }
                 }
             }
 
@@ -262,7 +257,7 @@ internal unsafe class VKSwapChain : SwapChain
 
             AcquireNextImage();
         }
-        else if (Desc.Surface.Type is SurfaceType.D3D11Interop)
+        else
         {
             swapChainFrameBuffer.CreateFrameBuffers(Desc.Surface.Width, Desc.Surface.Height, Desc.Surface.Handles);
         }
