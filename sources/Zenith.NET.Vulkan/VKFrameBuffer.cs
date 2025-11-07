@@ -123,6 +123,16 @@ internal unsafe class VKFrameBuffer : FrameBuffer
 
     public VKTextureView? DepthStencilAttachment { get; }
 
+    public void TransitionLayout(VKCommandBuffer commandBuffer)
+    {
+        for (uint i = 0; i < ColorAttachmentCount; i++)
+        {
+            ColorAttachments[i].TransitionLayout(commandBuffer, ImageLayout.ColorAttachmentOptimal);
+        }
+
+        DepthStencilAttachment?.TransitionLayout(commandBuffer, ImageLayout.DepthStencilAttachmentOptimal);
+    }
+
     protected override void SetResourceName(string name)
     {
     }
