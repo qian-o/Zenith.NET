@@ -137,6 +137,26 @@ internal unsafe class VKTexture : Texture
         throw new NotImplementedException();
     }
 
+    public void TransitionLayout(VKCommandBuffer commandBuffer, uint firstLayer, uint layerCount, uint firstMipLevel, uint mipLevelCount, ImageLayout newLayout)
+    {
+        for (uint i = 0; i < layerCount; i++)
+        {
+            for (uint j = 0; j < mipLevelCount; j++)
+            {
+                uint index = ZenithHelper.SubresourceIndex(Desc, new() { Layer = firstLayer + i, MipLevel = firstMipLevel + j });
+
+                ImageLayout oldLayout = Layouts[index];
+
+                if (oldLayout == newLayout)
+                {
+                    continue;
+                }
+
+                throw new NotImplementedException();
+            }
+        }
+    }
+
     protected override void SetResourceName(string name)
     {
         using ZenithMarshal.Scope scope = new();

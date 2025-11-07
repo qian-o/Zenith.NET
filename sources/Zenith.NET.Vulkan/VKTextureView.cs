@@ -46,6 +46,11 @@ internal unsafe class VKTextureView : TextureView
 
     public DescriptorImageInfo UavImageInfo { get; }
 
+    public void TransitionLayout(VKCommandBuffer commandBuffer, ImageLayout newLayout)
+    {
+        Desc.Texture.Vulkan().TransitionLayout(commandBuffer, Desc.FirstLayer, Desc.LayerCount, Desc.FirstMipLevel, Desc.MipLevelCount, newLayout);
+    }
+
     protected override void SetResourceName(string name)
     {
         using ZenithMarshal.Scope scope = new();
