@@ -16,6 +16,8 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
         desc.Surface.Height = height;
 
         ResizeImpl();
+
+        SetResourceName(Name);
     }
 
     public void Refresh(Surface surface)
@@ -23,6 +25,8 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
         desc.Surface = surface;
 
         RefreshImpl();
+
+        SetResourceName(Name);
     }
 
     protected abstract void ResizeImpl();

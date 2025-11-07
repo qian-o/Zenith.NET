@@ -30,31 +30,29 @@ internal unsafe class VKSwapChain : SwapChain
 
     public override void Present()
     {
-        if (Desc.Surface.Type is SurfaceType.D3D11Interop)
+        if (Swapchain.Handle is not 0)
         {
-            return;
+            PresentInfoKHR presentInfo = new()
+            {
+                SType = StructureType.PresentInfoKhr,
+                SwapchainCount = 1,
+                PSwapchains = (SwapchainKHR*)Unsafe.AsPointer(ref Swapchain),
+                PImageIndices = (uint*)Unsafe.AsPointer(ref Index)
+            };
+
+            Result result = Context.Swapchain?.QueuePresent(Context.GraphicsQueue, &presentInfo) ?? Result.ErrorInitializationFailed;
+
+            if (result is Result.ErrorOutOfDateKhr or Result.SuboptimalKhr)
+            {
+                CreateSwapChain();
+
+                return;
+            }
+
+            result.Success();
+
+            AcquireNextImage();
         }
-
-        PresentInfoKHR presentInfo = new()
-        {
-            SType = StructureType.PresentInfoKhr,
-            SwapchainCount = 1,
-            PSwapchains = (SwapchainKHR*)Unsafe.AsPointer(ref Swapchain),
-            PImageIndices = (uint*)Unsafe.AsPointer(ref Index)
-        };
-
-        Result result = Context.Swapchain?.QueuePresent(Context.GraphicsQueue, &presentInfo) ?? Result.ErrorInitializationFailed;
-
-        if (result is Result.ErrorOutOfDateKhr or Result.SuboptimalKhr)
-        {
-            CreateSwapChain();
-
-            return;
-        }
-
-        result.Success();
-
-        AcquireNextImage();
     }
 
     protected override void ResizeImpl()
@@ -70,17 +68,20 @@ internal unsafe class VKSwapChain : SwapChain
 
     protected override void SetResourceName(string name)
     {
-        using ZenithMarshal.Scope scope = new();
-
-        DebugUtilsObjectNameInfoEXT nameInfo = new()
+        if (Swapchain.Handle is not 0)
         {
-            SType = StructureType.DebugUtilsObjectNameInfoExt,
-            ObjectType = ObjectType.SwapchainKhr,
-            ObjectHandle = Swapchain.Handle,
-            PObjectName = (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8)
-        };
+            using ZenithMarshal.Scope scope = new();
 
-        Context.DebugUtils?.SetDebugUtilsObjectName(Context.Device, &nameInfo).Success();
+            DebugUtilsObjectNameInfoEXT nameInfo = new()
+            {
+                SType = StructureType.DebugUtilsObjectNameInfoExt,
+                ObjectType = ObjectType.SwapchainKhr,
+                ObjectHandle = Swapchain.Handle,
+                PObjectName = (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8)
+            };
+
+            Context.DebugUtils?.SetDebugUtilsObjectName(Context.Device, &nameInfo).Success();
+        }
     }
 
     protected override void Destroy()
