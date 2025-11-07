@@ -14,8 +14,9 @@ internal unsafe class VKResourceSet : ResourceSet
 
         WriteDescriptorSet* descriptorWrites = (WriteDescriptorSet*)ZenithMarshal.Allocate<WriteDescriptorSet>(scope, (uint)desc.Layout.Desc.Bindings.Length);
 
-
         uint resourceStartIndex = 0;
+        List<VKTextureView> srvTextureViews = [];
+        List<VKTextureView> uavTextureViews = [];
 
         for (int i = 0; i < desc.Layout.Desc.Bindings.Length; i++)
         {
@@ -63,19 +64,27 @@ internal unsafe class VKResourceSet : ResourceSet
                             if (resource is Texture texture)
                             {
                                 imageInfos[j] = texture.Vulkan().View.SrvImageInfo;
+
+                                srvTextureViews.Add(texture.Vulkan().View);
                             }
                             else if (resource is TextureView textureView)
                             {
                                 imageInfos[j] = textureView.Vulkan().SrvImageInfo;
+
+                                srvTextureViews.Add(textureView.Vulkan());
                             }
                         }
                         else if (resource is Texture texture)
                         {
                             imageInfos[j] = texture.Vulkan().View.UavImageInfo;
+
+                            uavTextureViews.Add(texture.Vulkan().View);
                         }
                         else if (resource is TextureView textureView)
                         {
                             imageInfos[j] = textureView.Vulkan().UavImageInfo;
+
+                            uavTextureViews.Add(textureView.Vulkan());
                         }
                         break;
 
@@ -99,9 +108,29 @@ internal unsafe class VKResourceSet : ResourceSet
         }
 
         context.Vk.UpdateDescriptorSets(context.Device, (uint)desc.Layout.Desc.Bindings.Length, descriptorWrites, 0, (CopyDescriptorSet*)null);
+
+        SrvTextureViews = [.. srvTextureViews];
+        UavTextureViews = [.. uavTextureViews];
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
+
+    public VKTextureView[] SrvTextureViews { get; }
+
+    public VKTextureView[] UavTextureViews { get; }
+
+    public void TransitionLayout(VKCommandBuffer commandBuffer)
+    {
+        foreach (VKTextureView textureView in SrvTextureViews)
+        {
+            textureView.TransitionLayout(commandBuffer, ImageLayout.ShaderReadOnlyOptimal);
+        }
+
+        foreach (VKTextureView textureView in UavTextureViews)
+        {
+            textureView.TransitionLayout(commandBuffer, ImageLayout.General);
+        }
+    }
 
     protected override void SetResourceName(string name)
     {
