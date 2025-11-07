@@ -10,7 +10,7 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
 
     public VKFrameBuffer this[uint index] => frameBuffers[index];
 
-    public void CreateFrameBuffers(uint width, uint height, nint handle)
+    public void CreateFrameBuffers(uint width, uint height, nint[] handles)
     {
         if (swapChain.Desc.DepthStencilTargetFormat is not null)
         {
@@ -41,18 +41,7 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
             Flags = TextureUsageFlags.RenderTarget
         };
 
-        if (swapChain.Desc.Surface.Type is SurfaceType.D3D11Interop)
-        {
-            colorTargets = new VKTexture[1];
-            frameBuffers = new VKFrameBuffer[1];
-
-            frameBuffers[0] = new(context, new()
-            {
-                ColorAttachments = [new() { Target = colorTargets[0] = new(context, desc, ExternalMemoryHandleTypeFlags.D3D11TextureKmtBit, handle) }],
-                DepthStencilAttachment = depthStencilTarget is not null ? new() { Target = depthStencilTarget } : null
-            });
-        }
-        else
+        if (swapChain.Desc.Surface.Type is not SurfaceType.D3D11Interop)
         {
             using ZenithMarshal.Scope scope = new();
 
@@ -73,6 +62,17 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
                     DepthStencilAttachment = depthStencilTarget is not null ? new() { Target = depthStencilTarget } : null
                 });
             }
+        }
+        else if (swapChain.Desc.Surface.Type is SurfaceType.D3D11Interop)
+        {
+            colorTargets = new VKTexture[1];
+            frameBuffers = new VKFrameBuffer[1];
+
+            frameBuffers[0] = new(context, new()
+            {
+                ColorAttachments = [new() { Target = colorTargets[0] = new(context, desc, ExternalMemoryHandleTypeFlags.D3D11TextureKmtBit, handles[0]) }],
+                DepthStencilAttachment = depthStencilTarget is not null ? new() { Target = depthStencilTarget } : null
+            });
         }
     }
 

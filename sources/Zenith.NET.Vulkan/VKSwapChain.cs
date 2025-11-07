@@ -168,11 +168,7 @@ internal unsafe class VKSwapChain : SwapChain
     {
         DestroySwapChain();
 
-        if (Desc.Surface.Type is SurfaceType.D3D11Interop)
-        {
-            swapChainFrameBuffer.CreateFrameBuffers(Desc.Surface.Width, Desc.Surface.Height, Desc.Surface.Handles[0]);
-        }
-        else
+        if (Desc.Surface.Type is not SurfaceType.D3D11Interop)
         {
             using ZenithMarshal.Scope scope = new();
 
@@ -262,9 +258,13 @@ internal unsafe class VKSwapChain : SwapChain
 
             Context.Swapchain?.CreateSwapchain(Context.Device, &createInfo, null, (SwapchainKHR*)Unsafe.AsPointer(ref Swapchain)).Success();
 
-            swapChainFrameBuffer.CreateFrameBuffers(createInfo.ImageExtent.Width, createInfo.ImageExtent.Height, 0);
+            swapChainFrameBuffer.CreateFrameBuffers(createInfo.ImageExtent.Width, createInfo.ImageExtent.Height, []);
 
             AcquireNextImage();
+        }
+        else if (Desc.Surface.Type is SurfaceType.D3D11Interop)
+        {
+            swapChainFrameBuffer.CreateFrameBuffers(Desc.Surface.Width, Desc.Surface.Height, Desc.Surface.Handles);
         }
     }
 
@@ -278,6 +278,8 @@ internal unsafe class VKSwapChain : SwapChain
 
             Swapchain = default;
         }
+
+        Index = 0;
     }
 
     private void AcquireNextImage()
