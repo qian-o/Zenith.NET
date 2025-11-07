@@ -196,7 +196,7 @@ internal unsafe class VKSwapChain : SwapChain
                 minImageCount = capabilities.MaxImageCount;
             }
 
-            SurfaceFormatKHR surfaceFormat = surfaceFormats[0];
+            SurfaceFormatKHR surfaceFormat = default;
             foreach (SurfaceFormatKHR item in new ReadOnlySpan<SurfaceFormatKHR>(surfaceFormats, (int)surfaceFormatCount))
             {
                 if (item.Format == VKFormats.Vulkan(Desc.ColorTargetFormat))
@@ -210,21 +210,25 @@ internal unsafe class VKSwapChain : SwapChain
                 }
             }
 
-            PresentModeKHR presentMode = PresentModeKHR.FifoKhr;
-            if (!Desc.VerticalSync)
+            PresentModeKHR presentMode = default;
+            foreach (PresentModeKHR item in new ReadOnlySpan<PresentModeKHR>(presentModes, (int)presentModeCount))
             {
-                foreach (PresentModeKHR item in new ReadOnlySpan<PresentModeKHR>(presentModes, (int)presentModeCount))
+                if (Desc.VerticalSync && item is PresentModeKHR.FifoKhr)
                 {
-                    if (item is PresentModeKHR.MailboxKhr)
-                    {
-                        presentMode = PresentModeKHR.MailboxKhr;
+                    presentMode = PresentModeKHR.FifoKhr;
 
-                        break;
-                    }
-                    else if (item is PresentModeKHR.ImmediateKhr)
-                    {
-                        presentMode = PresentModeKHR.ImmediateKhr;
-                    }
+                    break;
+                }
+
+                if (item is PresentModeKHR.MailboxKhr)
+                {
+                    presentMode = PresentModeKHR.MailboxKhr;
+
+                    break;
+                }
+                else if (item is PresentModeKHR.ImmediateKhr)
+                {
+                    presentMode = PresentModeKHR.ImmediateKhr;
                 }
             }
 
