@@ -28,7 +28,7 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
             });
         }
 
-        TextureDesc desc = new()
+        TextureDesc colorTargetDesc = new()
         {
             Type = TextureType.Texture2D,
             Format = swapChain.Desc.ColorTargetFormat,
@@ -58,7 +58,7 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
             {
                 frameBuffers[i] = new(context, new()
                 {
-                    ColorAttachments = [new() { Target = colorTargets[i] = new(context, desc, swapchainImages[i]) }],
+                    ColorAttachments = [new() { Target = colorTargets[i] = new(context, colorTargetDesc, swapchainImages[i]) }],
                     DepthStencilAttachment = depthStencilTarget is not null ? new() { Target = depthStencilTarget } : null
                 });
             }
@@ -70,7 +70,7 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
 
             frameBuffers[0] = new(context, new()
             {
-                ColorAttachments = [new() { Target = colorTargets[0] = new(context, desc, ExternalMemoryHandleTypeFlags.D3D11TextureKmtBit, handles[0]) }],
+                ColorAttachments = [new() { Target = colorTargets[0] = new(context, colorTargetDesc, ExternalMemoryHandleTypeFlags.D3D11TextureKmtBit, handles[0]) }],
                 DepthStencilAttachment = depthStencilTarget is not null ? new() { Target = depthStencilTarget } : null
             });
         }
