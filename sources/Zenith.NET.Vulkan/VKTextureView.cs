@@ -20,8 +20,8 @@ internal unsafe class VKTextureView : TextureView
                 AspectMask = VKFormats.Vulkan(desc.Texture.Desc.Flags).ImageAspectFlags,
                 BaseMipLevel = desc.FirstMipLevel,
                 LevelCount = desc.MipLevelCount,
-                BaseArrayLayer = desc.FirstLayer,
-                LayerCount = desc.LayerCount
+                BaseArrayLayer = ZenithHelper.ArrayLayerRange(desc).ArrayLayerIndex,
+                LayerCount = ZenithHelper.ArrayLayerRange(desc).ArrayLayerCount
             }
         };
 

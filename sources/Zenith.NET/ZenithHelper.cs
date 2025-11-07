@@ -191,6 +191,27 @@ public static class ZenithHelper
         return RowPitch(width, format) * NumRows(height, format);
     }
 
+    public static uint ArrayLayerCount(TextureDesc desc)
+    {
+        uint faces = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : 1u;
+
+        return desc.Layers * faces;
+    }
+
+    public static uint ArrayLayerIndex(TextureDesc desc, TextureSlice slice)
+    {
+        uint faces = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : 1u;
+
+        return (slice.Layer * faces) + slice.Face;
+    }
+
+    public static (uint ArrayLayerIndex, uint ArrayLayerCount) ArrayLayerRange(TextureViewDesc desc)
+    {
+        uint faces = desc.Texture.Desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : 1u;
+
+        return (desc.FirstLayer * faces, desc.LayerCount * faces);
+    }
+
     public static uint SubresourceCount(TextureDesc desc)
     {
         uint faces = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : 1u;

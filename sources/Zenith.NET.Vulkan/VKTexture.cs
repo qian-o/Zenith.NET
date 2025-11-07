@@ -27,7 +27,7 @@ internal unsafe class VKTexture : Texture
                 Depth = desc.Depth
             },
             MipLevels = desc.MipLevels,
-            ArrayLayers = desc.Layers,
+            ArrayLayers = ZenithHelper.ArrayLayerCount(desc),
             Samples = VKFormats.Vulkan(desc.SampleCount),
             Tiling = desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? ImageTiling.Linear : ImageTiling.Optimal,
             Usage = VKFormats.Vulkan(desc.Flags).ImageUsageFlags,
@@ -90,7 +90,7 @@ internal unsafe class VKTexture : Texture
                 Depth = desc.Depth
             },
             MipLevels = desc.MipLevels,
-            ArrayLayers = desc.Layers,
+            ArrayLayers = ZenithHelper.ArrayLayerCount(desc),
             Samples = VKFormats.Vulkan(desc.SampleCount),
             Tiling = desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? ImageTiling.Linear : ImageTiling.Optimal,
             Usage = VKFormats.Vulkan(desc.Flags).ImageUsageFlags,
@@ -133,19 +133,19 @@ internal unsafe class VKTexture : Texture
         {
             AspectMask = VKFormats.Vulkan(Desc.Flags).ImageAspectFlags,
             MipLevel = slice.MipLevel,
-            ArrayLayer = slice.Layer
+            ArrayLayer = ZenithHelper.ArrayLayerIndex(Desc, slice),
         };
 
         SubresourceLayout layout = default;
         Context.Vk.GetImageSubresourceLayout(Context.Device, Image, &subresource, &layout);
 
         void* pointer;
-        Context.Vk.MapMemory(Context.Device, DeviceMemory?.DeviceMemory ?? default, 0, layout.ArrayPitch, 0, &pointer).Success();
+        Context.Vk.MapMemory(Context.Device, DeviceMemory?.DeviceMemory ?? default, layout.Offset, layout.Size, 0, &pointer).Success();
 
         return new()
         {
             Pointer = (nint)pointer,
-            SizeInBytes = (uint)layout.ArrayPitch,
+            SizeInBytes = (uint)layout.Size,
             RowPitch = (uint)layout.RowPitch,
             SlicePitch = (uint)layout.DepthPitch
         };
@@ -158,20 +158,25 @@ internal unsafe class VKTexture : Texture
 
     public void TransitionLayout(VKCommandBuffer commandBuffer, uint firstLayer, uint layerCount, uint firstMipLevel, uint mipLevelCount, ImageLayout newLayout)
     {
+        uint faces = Desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : 1u;
+
         for (uint i = 0; i < layerCount; i++)
         {
             for (uint j = 0; j < mipLevelCount; j++)
             {
-                uint index = ZenithHelper.SubresourceIndex(Desc, new() { Layer = firstLayer + i, MipLevel = firstMipLevel + j });
-
-                ImageLayout oldLayout = Layouts[index];
-
-                if (oldLayout == newLayout)
+                for (uint f = 0; f < faces; f++)
                 {
-                    continue;
-                }
+                    uint index = ZenithHelper.SubresourceIndex(Desc, new() { Layer = firstLayer + i, MipLevel = firstMipLevel + j, Face = f });
 
-                throw new NotImplementedException();
+                    ImageLayout oldLayout = Layouts[index];
+
+                    if (oldLayout == newLayout)
+                    {
+                        continue;
+                    }
+
+                    throw new NotImplementedException();
+                }
             }
         }
     }
