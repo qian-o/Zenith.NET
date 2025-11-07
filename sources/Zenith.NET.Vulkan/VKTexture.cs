@@ -129,12 +129,31 @@ internal unsafe class VKTexture : Texture
 
     public override MappedMemory Map(TextureSlice slice)
     {
-        throw new NotImplementedException();
+        ImageSubresource subresource = new()
+        {
+            AspectMask = VKFormats.Vulkan(Desc.Flags).ImageAspectFlags,
+            MipLevel = slice.MipLevel,
+            ArrayLayer = slice.Layer
+        };
+
+        SubresourceLayout layout = default;
+        Context.Vk.GetImageSubresourceLayout(Context.Device, Image, &subresource, &layout);
+
+        void* pointer;
+        Context.Vk.MapMemory(Context.Device, DeviceMemory?.DeviceMemory ?? default, 0, layout.ArrayPitch, 0, &pointer).Success();
+
+        return new()
+        {
+            Pointer = (nint)pointer,
+            SizeInBytes = (uint)layout.ArrayPitch,
+            RowPitch = (uint)layout.RowPitch,
+            SlicePitch = (uint)layout.DepthPitch
+        };
     }
 
     public override void Unmap()
     {
-        throw new NotImplementedException();
+        Context.Vk.UnmapMemory(Context.Device, DeviceMemory?.DeviceMemory ?? default);
     }
 
     public void TransitionLayout(VKCommandBuffer commandBuffer, uint firstLayer, uint layerCount, uint firstMipLevel, uint mipLevelCount, ImageLayout newLayout)

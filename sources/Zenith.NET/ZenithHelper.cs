@@ -191,43 +191,18 @@ public static class ZenithHelper
         return RowPitch(width, format) * NumRows(height, format);
     }
 
-    public static bool IsTexture1D(TextureType type)
-    {
-        return type is TextureType.Texture1D or TextureType.Texture1DArray;
-    }
-
-    public static bool IsTexture2D(TextureType type)
-    {
-        return type is TextureType.Texture2D or TextureType.Texture2DArray or TextureType.TextureCube or TextureType.TextureCubeArray;
-    }
-
-    public static bool IsTexture3D(TextureType type)
-    {
-        return type is TextureType.Texture3D;
-    }
-
-    public static bool IsTextureCube(TextureType type)
-    {
-        return type is TextureType.TextureCube or TextureType.TextureCubeArray;
-    }
-
-    public static bool IsTextureArray(TextureType type)
-    {
-        return type is TextureType.Texture1DArray or TextureType.Texture2DArray or TextureType.TextureCubeArray;
-    }
-
     public static uint SubresourceCount(TextureDesc desc)
     {
-        uint facesPerMip = IsTextureCube(desc.Type) ? 6u : 1u;
+        uint faces = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : 1u;
 
-        return desc.Layers * desc.MipLevels * facesPerMip;
+        return desc.Layers * desc.MipLevels * faces;
     }
 
     public static uint SubresourceIndex(TextureDesc desc, TextureSlice slice)
     {
-        uint facesPerMip = IsTextureCube(desc.Type) ? 6u : 1u;
+        uint faces = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : 1u;
 
-        return (slice.Layer * desc.MipLevels * facesPerMip) + (slice.MipLevel * facesPerMip) + slice.Face;
+        return (slice.Layer * desc.MipLevels * faces) + (slice.MipLevel * faces) + slice.Face;
     }
 
     public static uint SubresourceSizeInBytes(TextureDesc desc, TextureSlice slice)
