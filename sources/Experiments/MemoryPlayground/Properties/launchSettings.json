@@ -1,0 +1,10 @@
+﻿{
+  "profiles": {
+    "MemoryPlayground": {
+      "commandName": "Project"
+    },
+    "MemoryPlayground (WSL)": {
+      "commandName": "WSL2"
+    }
+  }
+}
