@@ -12,34 +12,20 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public void Upload<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent) where T : unmanaged
     {
-        if (desc.Flags.HasFlag(TextureUsageFlags.Dynamic))
+        if (desc.Type is TextureType.Texture2D && desc.Flags.HasFlag(TextureUsageFlags.Dynamic))
         {
-            if (data.Length != extent.Width * extent.Height * extent.Depth)
-            {
-                return;
-            }
-
             MappedMemory mappedMemory = Map(slice);
 
             unsafe
             {
-                byte* destination = (byte*)mappedMemory.Pointer
-                                    + (offset.Z * mappedMemory.SlicePitch)
-                                    + (offset.Y * mappedMemory.RowPitch)
-                                    + (offset.X * ZenithHelper.SizeInBytes(desc.Format));
+                byte* destination = (byte*)mappedMemory.Pointer + (offset.Y * mappedMemory.RowPitch) + (offset.X * ZenithHelper.SizeInBytes(desc.Format));
 
-                for (uint z = 0; z < extent.Depth; z++)
+                for (uint y = 0; y < extent.Height; y++)
                 {
-                    uint sourceOffset = z * extent.Height * extent.Width;
-                    uint destinationOffset = z * mappedMemory.SlicePitch;
+                    uint sourceRowOffset = y * extent.Width;
+                    uint destinationRowOffset = y * mappedMemory.RowPitch;
 
-                    for (uint y = 0; y < extent.Height; y++)
-                    {
-                        uint sourceRowOffset = sourceOffset + (y * extent.Width);
-                        uint destinationRowOffset = destinationOffset + (y * mappedMemory.RowPitch);
-
-                        data.Slice((int)sourceRowOffset, (int)extent.Width).CopyTo(new(destination + destinationRowOffset, (int)extent.Width));
-                    }
+                    data.Slice((int)sourceRowOffset, (int)extent.Width).CopyTo(new(destination + destinationRowOffset, (int)extent.Width));
                 }
             }
 

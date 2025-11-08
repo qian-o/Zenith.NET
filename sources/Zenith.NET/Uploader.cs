@@ -5,7 +5,6 @@ internal class Uploader(GraphicsContext context) : DisposableObject
     private const uint MinBufferSizeInBytes = 4096;
     private const uint MinTextureWidth = 256;
     private const uint MinTextureHeight = 256;
-    private const uint MinTextureDepth = 32;
 
     private readonly Lock @lock = new();
     private readonly List<Buffer> availableBuffers = [];
@@ -37,7 +36,7 @@ internal class Uploader(GraphicsContext context) : DisposableObject
         return buffer;
     }
 
-    public Texture Texture(CommandBuffer commandBuffer, PixelFormat format, uint width, uint height, uint depth)
+    public Texture Texture(CommandBuffer commandBuffer, PixelFormat format, uint width, uint height)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
@@ -46,15 +45,15 @@ internal class Uploader(GraphicsContext context) : DisposableObject
             usedTextures[commandBuffer] = textures = [];
         }
 
-        if (availableTextures.FirstOrDefault(item => item.Desc.Format == format && item.Desc.Width >= width && item.Desc.Height >= height && item.Desc.Depth >= depth) is not Texture texture || !availableTextures.Remove(texture))
+        if (availableTextures.FirstOrDefault(item => item.Desc.Format == format && item.Desc.Width >= width && item.Desc.Height >= height) is not Texture texture || !availableTextures.Remove(texture))
         {
             texture = context.CreateTexture(new()
             {
-                Type = TextureType.Texture3D,
+                Type = TextureType.Texture2D,
                 Format = format,
                 Width = Math.Max(width, MinTextureWidth),
                 Height = Math.Max(height, MinTextureHeight),
-                Depth = Math.Max(depth, MinTextureDepth),
+                Depth = 1,
                 MipLevels = 1,
                 SampleCount = SampleCount.Count1,
                 Flags = TextureUsageFlags.Dynamic
