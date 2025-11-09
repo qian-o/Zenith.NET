@@ -483,7 +483,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKGraphicsPipeline(this, desc);
     }
 
     protected override ComputePipeline CreateComputePipelineImpl(ComputePipelineDesc desc)
