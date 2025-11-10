@@ -9,7 +9,16 @@ internal unsafe class VKQueryHeap : QueryHeap
 
     public VKQueryHeap(VKGraphicsContext context, QueryHeapDesc desc) : base(context, desc)
     {
-        throw new NotImplementedException();
+        QueryPoolCreateInfo createInfo = new()
+        {
+            SType = StructureType.QueryPoolCreateInfo,
+            QueryType = VKFormats.Vulkan(desc.Type),
+            QueryCount = desc.Count
+        };
+
+        context.Vk.CreateQueryPool(context.Device, &createInfo, null, (QueryPool*)Unsafe.AsPointer(ref QueryPool)).Success();
+
+        context.Vk.ResetQueryPool(context.Device, QueryPool, 0, desc.Count);
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;

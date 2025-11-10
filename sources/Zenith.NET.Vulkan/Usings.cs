@@ -7,6 +7,7 @@ global using VkFilter = Silk.NET.Vulkan.Filter;
 global using VkFrontFace = Silk.NET.Vulkan.FrontFace;
 global using VkPipeline = Silk.NET.Vulkan.Pipeline;
 global using VkPrimitiveTopology = Silk.NET.Vulkan.PrimitiveTopology;
+global using VkQueryType = Silk.NET.Vulkan.QueryType;
 global using VkSampler = Silk.NET.Vulkan.Sampler;
 global using VkShaderStageFlags = Silk.NET.Vulkan.ShaderStageFlags;
 global using VkStencilOp = Silk.NET.Vulkan.StencilOp;

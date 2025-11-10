@@ -20,7 +20,7 @@ internal unsafe class VKDescriptorPool : GraphicsResource
 
     public VKDescriptorPool(VKGraphicsContext context) : base(context)
     {
-        uint sizeCount = Context.Capabilities.RayTracingSupported ? 8u : 7u;
+        uint sizeCount = context.Capabilities.RayTracingSupported ? 8u : 7u;
 
         using ZenithMarshal.Scope scope = new();
 
@@ -68,7 +68,7 @@ internal unsafe class VKDescriptorPool : GraphicsResource
             DescriptorCount = DescriptorCount
         };
 
-        if (Context.Capabilities.RayTracingSupported)
+        if (context.Capabilities.RayTracingSupported)
         {
             sizes[7] = new()
             {

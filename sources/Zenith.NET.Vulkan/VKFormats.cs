@@ -583,4 +583,14 @@ internal static class VKFormats
             _ => VkPrimitiveTopology.PointList
         };
     }
+
+    public static VkQueryType Vulkan(QueryType type)
+    {
+        return type switch
+        {
+            QueryType.Occlusion or QueryType.BinaryOcclusion => VkQueryType.Occlusion,
+            QueryType.Timestamp => VkQueryType.Timestamp,
+            _ => VkQueryType.Occlusion
+        };
+    }
 }
