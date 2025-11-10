@@ -120,4 +120,28 @@ internal static class VKExtensions
             return (VKComputePipeline)computePipeline;
         }
     }
+
+    extension(RayTracingPipeline rayTracingPipeline)
+    {
+        public VKRayTracingPipeline Vulkan()
+        {
+            return (VKRayTracingPipeline)rayTracingPipeline;
+        }
+    }
+
+    extension(MeshShadingPipeline meshShadingPipeline)
+    {
+        public VKMeshShadingPipeline Vulkan()
+        {
+            return (VKMeshShadingPipeline)meshShadingPipeline;
+        }
+    }
+
+    extension(QueryHeap queryHeap)
+    {
+        public VKQueryHeap Vulkan()
+        {
+            return (VKQueryHeap)queryHeap;
+        }
+    }
 }

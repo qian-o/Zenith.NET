@@ -493,17 +493,17 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override RayTracingPipeline CreateRayTracingPipelineImpl(RayTracingPipelineDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKRayTracingPipeline(this, desc);
     }
 
     protected override MeshShadingPipeline CreateMeshShadingPipelineImpl(MeshShadingPipelineDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKMeshShadingPipeline(this, desc);
     }
 
     protected override QueryHeap CreateQueryHeapImpl(QueryHeapDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKQueryHeap(this, desc);
     }
 
     protected override void Destroy()
