@@ -488,7 +488,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override ComputePipeline CreateComputePipelineImpl(ComputePipelineDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKComputePipeline(this, desc);
     }
 
     protected override RayTracingPipeline CreateRayTracingPipelineImpl(RayTracingPipelineDesc desc)

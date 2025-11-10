@@ -191,17 +191,17 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
 
         // ResourceLayouts
         {
-            DescriptorSetLayout* layouts = (DescriptorSetLayout*)ZenithMarshal.Allocate<DescriptorSetLayout>(scope, (uint)desc.ResourceLayouts.Length);
+            DescriptorSetLayout* setLayouts = (DescriptorSetLayout*)ZenithMarshal.Allocate<DescriptorSetLayout>(scope, (uint)desc.ResourceLayouts.Length);
             for (int i = 0; i < desc.ResourceLayouts.Length; i++)
             {
-                layouts[i] = desc.ResourceLayouts[i].Vulkan().DescriptorSetLayout;
+                setLayouts[i] = desc.ResourceLayouts[i].Vulkan().DescriptorSetLayout;
             }
 
             PipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
             {
                 SType = StructureType.PipelineLayoutCreateInfo,
                 SetLayoutCount = (uint)desc.ResourceLayouts.Length,
-                PSetLayouts = layouts
+                PSetLayouts = setLayouts
             };
 
             context.Vk.CreatePipelineLayout(context.Device, &pipelineLayoutCreateInfo, null, (PipelineLayout*)Unsafe.AsPointer(ref PipelineLayout)).Success();

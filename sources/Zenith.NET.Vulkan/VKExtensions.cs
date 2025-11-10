@@ -104,4 +104,20 @@ internal static class VKExtensions
             return (VKResourceSet)resourceSet;
         }
     }
+
+    extension(GraphicsPipeline graphicsPipeline)
+    {
+        public VKGraphicsPipeline Vulkan()
+        {
+            return (VKGraphicsPipeline)graphicsPipeline;
+        }
+    }
+
+    extension(ComputePipeline computePipeline)
+    {
+        public VKComputePipeline Vulkan()
+        {
+            return (VKComputePipeline)computePipeline;
+        }
+    }
 }
