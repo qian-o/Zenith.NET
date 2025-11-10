@@ -1,9 +1,12 @@
-﻿global using VkBorderColor = Silk.NET.Vulkan.BorderColor;
+﻿global using VkBlendOp = Silk.NET.Vulkan.BlendOp;
+global using VkBorderColor = Silk.NET.Vulkan.BorderColor;
 global using VkBuffer = Silk.NET.Vulkan.Buffer;
 global using VkBufferUsageFlags = Silk.NET.Vulkan.BufferUsageFlags;
+global using VkColorComponentFlags = Silk.NET.Vulkan.ColorComponentFlags;
 global using VkFilter = Silk.NET.Vulkan.Filter;
 global using VkFrontFace = Silk.NET.Vulkan.FrontFace;
 global using VkPipeline = Silk.NET.Vulkan.Pipeline;
+global using VkPrimitiveTopology = Silk.NET.Vulkan.PrimitiveTopology;
 global using VkSampler = Silk.NET.Vulkan.Sampler;
 global using VkShaderStageFlags = Silk.NET.Vulkan.ShaderStageFlags;
 global using VkStencilOp = Silk.NET.Vulkan.StencilOp;

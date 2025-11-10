@@ -452,18 +452,135 @@ internal static class VKFormats
         };
     }
 
-    internal static BlendFactor Vulkan(Blend srcBlend)
+    public static BlendFactor Vulkan(Blend blend)
     {
-        throw new NotImplementedException();
+        return blend switch
+        {
+            Blend.Zero => BlendFactor.Zero,
+            Blend.One => BlendFactor.One,
+            Blend.SrcAlpha => BlendFactor.SrcAlpha,
+            Blend.InverseSrcAlpha => BlendFactor.OneMinusSrcAlpha,
+            Blend.DestAlpha => BlendFactor.DstAlpha,
+            Blend.InverseDestAlpha => BlendFactor.OneMinusDstAlpha,
+            Blend.SrcColor => BlendFactor.SrcColor,
+            Blend.InverseSrcColor => BlendFactor.OneMinusSrcColor,
+            Blend.DestColor => BlendFactor.DstColor,
+            Blend.InverseDestColor => BlendFactor.OneMinusDstColor,
+            Blend.BlendFactor => BlendFactor.ConstantColor,
+            Blend.InverseBlendFactor => BlendFactor.OneMinusConstantColor,
+            _ => BlendFactor.Zero
+        };
     }
 
-    internal static Silk.NET.Vulkan.BlendOp Vulkan(BlendOp blendOp)
+    public static VkBlendOp Vulkan(BlendOp blendOp)
     {
-        throw new NotImplementedException();
+        return blendOp switch
+        {
+            BlendOp.Add => VkBlendOp.Add,
+            BlendOp.Subtract => VkBlendOp.Subtract,
+            BlendOp.ReverseSubtract => VkBlendOp.ReverseSubtract,
+            BlendOp.Min => VkBlendOp.Min,
+            BlendOp.Max => VkBlendOp.Max,
+            _ => VkBlendOp.Add
+        };
     }
 
-    internal static Silk.NET.Vulkan.ColorComponentFlags Vulkan(ColorComponentFlags flags)
+    public static VkColorComponentFlags Vulkan(ColorComponentFlags colorComponentFlags)
     {
-        throw new NotImplementedException();
+        VkColorComponentFlags result = VkColorComponentFlags.None;
+
+        if (colorComponentFlags.HasFlag(ColorComponentFlags.Red))
+        {
+            result |= VkColorComponentFlags.RBit;
+        }
+
+        if (colorComponentFlags.HasFlag(ColorComponentFlags.Green))
+        {
+            result |= VkColorComponentFlags.GBit;
+        }
+
+        if (colorComponentFlags.HasFlag(ColorComponentFlags.Blue))
+        {
+            result |= VkColorComponentFlags.BBit;
+        }
+
+        if (colorComponentFlags.HasFlag(ColorComponentFlags.Alpha))
+        {
+            result |= VkColorComponentFlags.ABit;
+        }
+
+        return result;
+    }
+
+    public static Format Vulkan(ElementFormat elementFormat)
+    {
+        return elementFormat switch
+        {
+            ElementFormat.UByte1 => Format.R8Uint,
+            ElementFormat.UByte2 => Format.R8G8Uint,
+            ElementFormat.UByte4 => Format.R8G8B8A8Uint,
+            ElementFormat.Byte1 => Format.R8Sint,
+            ElementFormat.Byte2 => Format.R8G8Sint,
+            ElementFormat.Byte4 => Format.R8G8B8A8Sint,
+
+            ElementFormat.UByte1Normalized => Format.R8Unorm,
+            ElementFormat.UByte2Normalized => Format.R8G8Unorm,
+            ElementFormat.UByte4Normalized => Format.R8G8B8A8Unorm,
+            ElementFormat.Byte1Normalized => Format.R8SNorm,
+            ElementFormat.Byte2Normalized => Format.R8G8SNorm,
+            ElementFormat.Byte4Normalized => Format.R8G8B8A8SNorm,
+
+            ElementFormat.UShort1 => Format.R16Uint,
+            ElementFormat.UShort2 => Format.R16G16Uint,
+            ElementFormat.UShort4 => Format.R16G16B16A16Uint,
+            ElementFormat.Short1 => Format.R16Sint,
+            ElementFormat.Short2 => Format.R16G16Sint,
+            ElementFormat.Short4 => Format.R16G16B16A16Sint,
+
+            ElementFormat.UShort1Normalized => Format.R16Unorm,
+            ElementFormat.UShort2Normalized => Format.R16G16Unorm,
+            ElementFormat.UShort4Normalized => Format.R16G16B16A16Unorm,
+            ElementFormat.Short1Normalized => Format.R16SNorm,
+            ElementFormat.Short2Normalized => Format.R16G16SNorm,
+            ElementFormat.Short4Normalized => Format.R16G16B16A16SNorm,
+
+            ElementFormat.Half1 => Format.R16Sfloat,
+            ElementFormat.Half2 => Format.R16G16Sfloat,
+            ElementFormat.Half4 => Format.R16G16B16A16Sfloat,
+
+            ElementFormat.Float1 => Format.R32Sfloat,
+            ElementFormat.Float2 => Format.R32G32Sfloat,
+            ElementFormat.Float3 => Format.R32G32B32Sfloat,
+            ElementFormat.Float4 => Format.R32G32B32A32Sfloat,
+
+            ElementFormat.UInt1 => Format.R32Uint,
+            ElementFormat.UInt2 => Format.R32G32Uint,
+            ElementFormat.UInt3 => Format.R32G32B32Uint,
+            ElementFormat.UInt4 => Format.R32G32B32A32Uint,
+            ElementFormat.Int1 => Format.R32Sint,
+            ElementFormat.Int2 => Format.R32G32Sint,
+            ElementFormat.Int3 => Format.R32G32B32Sint,
+            ElementFormat.Int4 => Format.R32G32B32A32Sint,
+
+            _ => Format.Undefined
+        };
+    }
+
+    public static VkPrimitiveTopology Vulkan(PrimitiveTopology primitiveTopology)
+    {
+        return primitiveTopology switch
+        {
+            PrimitiveTopology.PointList => VkPrimitiveTopology.PointList,
+            PrimitiveTopology.LineList => VkPrimitiveTopology.LineList,
+            PrimitiveTopology.LineStrip => VkPrimitiveTopology.LineStrip,
+            PrimitiveTopology.TriangleList => VkPrimitiveTopology.TriangleList,
+            PrimitiveTopology.TriangleStrip => VkPrimitiveTopology.TriangleStrip,
+            PrimitiveTopology.LineListWithAdjacency => VkPrimitiveTopology.LineListWithAdjacency,
+            PrimitiveTopology.LineStripWithAdjacency => VkPrimitiveTopology.LineStripWithAdjacency,
+            PrimitiveTopology.TriangleListWithAdjacency => VkPrimitiveTopology.TriangleListWithAdjacency,
+            PrimitiveTopology.TriangleStripWithAdjacency => VkPrimitiveTopology.TriangleStripWithAdjacency,
+            PrimitiveTopology.PatchList => VkPrimitiveTopology.PatchList,
+            _ => VkPrimitiveTopology.PointList
+        };
     }
 }
