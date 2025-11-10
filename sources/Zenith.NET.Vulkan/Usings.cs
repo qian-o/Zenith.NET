@@ -2,5 +2,8 @@
 global using VkBuffer = Silk.NET.Vulkan.Buffer;
 global using VkBufferUsageFlags = Silk.NET.Vulkan.BufferUsageFlags;
 global using VkFilter = Silk.NET.Vulkan.Filter;
+global using VkFrontFace = Silk.NET.Vulkan.FrontFace;
+global using VkPipeline = Silk.NET.Vulkan.Pipeline;
 global using VkSampler = Silk.NET.Vulkan.Sampler;
 global using VkShaderStageFlags = Silk.NET.Vulkan.ShaderStageFlags;
+global using VkStencilOp = Silk.NET.Vulkan.StencilOp;

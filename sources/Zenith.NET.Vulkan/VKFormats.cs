@@ -404,4 +404,66 @@ internal static class VKFormats
             _ => DescriptorType.Sampler
         };
     }
+
+    public static PolygonMode Vulkan(FillMode fillMode)
+    {
+        return fillMode switch
+        {
+            FillMode.Solid => PolygonMode.Fill,
+            FillMode.Wireframe => PolygonMode.Line,
+            _ => PolygonMode.Fill
+        };
+    }
+
+    public static CullModeFlags Vulkan(CullMode cullMode)
+    {
+        return cullMode switch
+        {
+            CullMode.None => CullModeFlags.None,
+            CullMode.Front => CullModeFlags.FrontBit,
+            CullMode.Back => CullModeFlags.BackBit,
+            _ => CullModeFlags.None
+        };
+    }
+
+    public static VkFrontFace Vulkan(FrontFace frontFace)
+    {
+        return frontFace switch
+        {
+            FrontFace.CounterClockwise => VkFrontFace.CounterClockwise,
+            FrontFace.Clockwise => VkFrontFace.Clockwise,
+            _ => VkFrontFace.CounterClockwise
+        };
+    }
+
+    public static VkStencilOp Vulkan(StencilOp stencilOp)
+    {
+        return stencilOp switch
+        {
+            StencilOp.Keep => VkStencilOp.Keep,
+            StencilOp.Zero => VkStencilOp.Zero,
+            StencilOp.Replace => VkStencilOp.Replace,
+            StencilOp.IncrementAndClamp => VkStencilOp.IncrementAndClamp,
+            StencilOp.DecrementAndClamp => VkStencilOp.DecrementAndClamp,
+            StencilOp.Invert => VkStencilOp.Invert,
+            StencilOp.IncrementAndWrap => VkStencilOp.IncrementAndWrap,
+            StencilOp.DecrementAndWrap => VkStencilOp.DecrementAndWrap,
+            _ => VkStencilOp.Keep
+        };
+    }
+
+    internal static BlendFactor Vulkan(Blend srcBlend)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static Silk.NET.Vulkan.BlendOp Vulkan(BlendOp blendOp)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static Silk.NET.Vulkan.ColorComponentFlags Vulkan(ColorComponentFlags flags)
+    {
+        throw new NotImplementedException();
+    }
 }
