@@ -30,6 +30,8 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
                 .. desc.ClosestHit
             ];
 
+            string[] entryPoints = [.. shaders.Select(static item => item.Desc.EntryPoint)];
+
             PipelineShaderStageCreateInfo* stages = (PipelineShaderStageCreateInfo*)ZenithMarshal.Allocate<PipelineShaderStageCreateInfo>(scope, (uint)shaders.Length);
             for (int i = 0; i < shaders.Length; i++)
             {
@@ -51,20 +53,16 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
 
             for (int i = 0; i < desc.Miss.Length; i++)
             {
-                groups[index] = new()
+                groups[index++] = new()
                 {
                     SType = StructureType.RayTracingShaderGroupCreateInfoKhr,
                     Type = RayTracingShaderGroupTypeKHR.GeneralKhr,
-                    GeneralShader = index,
+                    GeneralShader = (uint)(i + 1),
                     ClosestHitShader = Vk.ShaderUnusedKhr,
                     AnyHitShader = Vk.ShaderUnusedKhr,
                     IntersectionShader = Vk.ShaderUnusedKhr
                 };
-
-                index++;
             }
-
-            string[] entryPoints = [.. shaders.Select(static item => item.Desc.EntryPoint)];
 
             foreach (HitGroup hitGroup in desc.HitGroups)
             {
