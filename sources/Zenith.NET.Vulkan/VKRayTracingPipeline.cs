@@ -9,6 +9,12 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
 
     public VkPipeline Pipeline;
 
+    public StridedDeviceAddressRegionKHR RayGenerationRegion;
+
+    public StridedDeviceAddressRegionKHR MissRegion;
+
+    public StridedDeviceAddressRegionKHR HitGroupsRegion;
+
     public VKRayTracingPipeline(VKGraphicsContext context, RayTracingPipelineDesc desc) : base(context, desc)
     {
         using ZenithMarshal.Scope scope = new();
@@ -104,9 +110,79 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
         }
 
         context.RayTracingPipeline?.CreateRayTracingPipelines(context.Device, default, default, 1, &createInfo, null, (VkPipeline*)Unsafe.AsPointer(ref Pipeline)).Success();
+
+        // Shader Binding Tables
+        {
+            uint groupCount = 1 + (uint)desc.Miss.Length + (uint)desc.HitGroups.Length;
+
+            PhysicalDeviceProperties2 properties2 = new()
+            {
+                SType = StructureType.PhysicalDeviceProperties2
+            };
+
+            properties2.AddNext(out PhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingProperties);
+
+            context.Vk.GetPhysicalDeviceProperties2(context.PhysicalDevice, &properties2);
+
+            uint handleSize = rayTracingProperties.ShaderGroupHandleSize;
+            uint handleSizeAligned = ZenithHelper.Align(rayTracingProperties.ShaderGroupHandleSize, rayTracingProperties.ShaderGroupHandleAlignment);
+            uint sbtSize = handleSize * groupCount;
+
+            byte* shaderHandleStorage = (byte*)ZenithMarshal.Allocate<byte>(scope, sbtSize);
+            context.RayTracingPipeline?.GetRayTracingShaderGroupHandles(context.Device, Pipeline, 0, groupCount, sbtSize, shaderHandleStorage).Success();
+
+            RayGenerationBuffer = new(context, new() { SizeInBytes = handleSizeAligned, StrideInBytes = handleSizeAligned, Flags = BufferUsageFlags.Dynamic }, VkBufferUsageFlags.ShaderBindingTableBitKhr);
+            MissBuffer = new(context, new() { SizeInBytes = handleSizeAligned * (uint)desc.Miss.Length, StrideInBytes = handleSizeAligned, Flags = BufferUsageFlags.Dynamic }, VkBufferUsageFlags.ShaderBindingTableBitKhr);
+            HitGroupsBuffer = new(context, new() { SizeInBytes = handleSizeAligned * (uint)desc.HitGroups.Length, StrideInBytes = handleSizeAligned, Flags = BufferUsageFlags.Dynamic }, VkBufferUsageFlags.ShaderBindingTableBitKhr);
+
+            RayGenerationRegion = new()
+            {
+                DeviceAddress = RayGenerationBuffer.DeviceAddress,
+                Size = RayGenerationBuffer.Desc.SizeInBytes,
+                Stride = handleSizeAligned
+            };
+
+            MissRegion = new()
+            {
+                DeviceAddress = MissBuffer.DeviceAddress,
+                Size = MissBuffer.Desc.SizeInBytes,
+                Stride = handleSizeAligned
+            };
+
+            HitGroupsRegion = new()
+            {
+                DeviceAddress = HitGroupsBuffer.DeviceAddress,
+                Size = HitGroupsBuffer.Desc.SizeInBytes,
+                Stride = handleSizeAligned
+            };
+
+            CopyHandles(RayGenerationBuffer, 1);
+            CopyHandles(MissBuffer, (uint)desc.Miss.Length);
+            CopyHandles(HitGroupsBuffer, (uint)desc.HitGroups.Length);
+
+            void CopyHandles(VKBuffer buffer, uint count)
+            {
+                MappedMemory mappedMemory = buffer.Map();
+
+                for (uint i = 0; i < count; i++)
+                {
+                    Unsafe.CopyBlock((byte*)(mappedMemory.Pointer + (i * handleSizeAligned)), shaderHandleStorage, handleSize);
+
+                    shaderHandleStorage += handleSize;
+                }
+
+                buffer.Unmap();
+            }
+        }
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
+
+    public VKBuffer RayGenerationBuffer { get; }
+
+    public VKBuffer MissBuffer { get; }
+
+    public VKBuffer HitGroupsBuffer { get; }
 
     protected override void SetResourceName(string name)
     {
@@ -125,6 +201,10 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
 
     protected override void Destroy()
     {
+        HitGroupsBuffer.Dispose();
+        MissBuffer.Dispose();
+        RayGenerationBuffer.Dispose();
+
         Context.Vk.DestroyPipeline(Context.Device, Pipeline, null);
         Context.Vk.DestroyPipelineLayout(Context.Device, PipelineLayout, null);
     }

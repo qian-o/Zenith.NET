@@ -47,6 +47,44 @@ internal unsafe class VKBuffer : Buffer
         });
     }
 
+    public VKBuffer(VKGraphicsContext context, BufferDesc desc, VkBufferUsageFlags usage) : base(context, desc)
+    {
+        using ZenithMarshal.Scope scope = new();
+
+        uint* queueFamilyIndices = (uint*)ZenithMarshal.Allocate<uint>(scope, (uint)context.QueueFamilyIndices.Length);
+        context.QueueFamilyIndices.CopyTo(new Span<uint>(queueFamilyIndices, context.QueueFamilyIndices.Length));
+
+        BufferCreateInfo createInfo = new()
+        {
+            SType = StructureType.BufferCreateInfo,
+            Size = desc.SizeInBytes,
+            Usage = usage | VkBufferUsageFlags.ShaderDeviceAddressBit,
+            SharingMode = context.QueueFamilyIndices.Length is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
+            QueueFamilyIndexCount = (uint)context.QueueFamilyIndices.Length,
+            PQueueFamilyIndices = queueFamilyIndices
+        };
+
+        context.Vk.CreateBuffer(context.Device, &createInfo, null, (VkBuffer*)Unsafe.AsPointer(ref Buffer)).Success();
+
+        DeviceMemory = new(context, this);
+
+        BufferDeviceAddressInfo addressInfo = new()
+        {
+            SType = StructureType.BufferDeviceAddressInfo,
+            Buffer = Buffer
+        };
+
+        DeviceAddress = context.Vk.GetBufferDeviceAddress(context.Device, &addressInfo);
+
+        View = new(context, new()
+        {
+            Buffer = this,
+            OffsetInBytes = 0,
+            SizeInBytes = desc.SizeInBytes,
+            StrideInBytes = desc.StrideInBytes
+        });
+    }
+
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
     public VKDeviceMemory DeviceMemory { get; }
