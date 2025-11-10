@@ -135,6 +135,10 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
             MissBuffer = new(context, new() { SizeInBytes = handleSizeAligned * (uint)desc.Miss.Length, StrideInBytes = handleSizeAligned, Flags = BufferUsageFlags.Dynamic }, VkBufferUsageFlags.ShaderBindingTableBitKhr);
             HitGroupsBuffer = new(context, new() { SizeInBytes = handleSizeAligned * (uint)desc.HitGroups.Length, StrideInBytes = handleSizeAligned, Flags = BufferUsageFlags.Dynamic }, VkBufferUsageFlags.ShaderBindingTableBitKhr);
 
+            CopyHandles(RayGenerationBuffer, 1);
+            CopyHandles(MissBuffer, (uint)desc.Miss.Length);
+            CopyHandles(HitGroupsBuffer, (uint)desc.HitGroups.Length);
+
             RayGenerationRegion = new()
             {
                 DeviceAddress = RayGenerationBuffer.DeviceAddress,
@@ -155,10 +159,6 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
                 Size = HitGroupsBuffer.Desc.SizeInBytes,
                 Stride = handleSizeAligned
             };
-
-            CopyHandles(RayGenerationBuffer, 1);
-            CopyHandles(MissBuffer, (uint)desc.Miss.Length);
-            CopyHandles(HitGroupsBuffer, (uint)desc.HitGroups.Length);
 
             void CopyHandles(VKBuffer buffer, uint count)
             {
