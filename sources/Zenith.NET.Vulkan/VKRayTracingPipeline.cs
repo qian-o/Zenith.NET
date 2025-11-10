@@ -19,6 +19,8 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
     {
         using ZenithMarshal.Scope scope = new();
 
+        uint groupCount = 1 + (uint)desc.Miss.Length + (uint)desc.HitGroups.Length;
+
         RayTracingPipelineCreateInfoKHR createInfo = new()
         {
             SType = StructureType.RayTracingPipelineCreateInfoKhr,
@@ -44,7 +46,7 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
                 stages[i] = shaders[i].Vulkan().GetPipelineShaderStageCreateInfo(scope);
             }
 
-            RayTracingShaderGroupCreateInfoKHR* groups = (RayTracingShaderGroupCreateInfoKHR*)ZenithMarshal.Allocate<RayTracingShaderGroupCreateInfoKHR>(scope, (uint)(1 + desc.Miss.Length + desc.HitGroups.Length));
+            RayTracingShaderGroupCreateInfoKHR* groups = (RayTracingShaderGroupCreateInfoKHR*)ZenithMarshal.Allocate<RayTracingShaderGroupCreateInfoKHR>(scope, groupCount);
 
             uint index = 0;
             groups[index++] = new()
@@ -85,7 +87,7 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
 
             createInfo.StageCount = (uint)shaders.Length;
             createInfo.PStages = stages;
-            createInfo.GroupCount = (uint)(1 + desc.Miss.Length + desc.HitGroups.Length);
+            createInfo.GroupCount = groupCount;
             createInfo.PGroups = groups;
         }
 
@@ -113,27 +115,17 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
 
         // Shader Binding Tables
         {
-            uint groupCount = 1 + (uint)desc.Miss.Length + (uint)desc.HitGroups.Length;
+            const uint HandleSize = 32;
+            const uint HandleSizeAligned = 64;
 
-            PhysicalDeviceProperties2 properties2 = new()
-            {
-                SType = StructureType.PhysicalDeviceProperties2
-            };
+            uint shaderHandleStorageSize = HandleSize * groupCount;
+            byte* shaderHandleStorage = (byte*)ZenithMarshal.Allocate<byte>(scope, shaderHandleStorageSize);
 
-            properties2.AddNext(out PhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingProperties);
+            context.RayTracingPipeline?.GetRayTracingShaderGroupHandles(context.Device, Pipeline, 0, groupCount, shaderHandleStorageSize, shaderHandleStorage).Success();
 
-            context.Vk.GetPhysicalDeviceProperties2(context.PhysicalDevice, &properties2);
-
-            uint handleSize = rayTracingProperties.ShaderGroupHandleSize;
-            uint handleSizeAligned = ZenithHelper.Align(rayTracingProperties.ShaderGroupHandleSize, rayTracingProperties.ShaderGroupHandleAlignment);
-            uint sbtSize = handleSize * groupCount;
-
-            byte* shaderHandleStorage = (byte*)ZenithMarshal.Allocate<byte>(scope, sbtSize);
-            context.RayTracingPipeline?.GetRayTracingShaderGroupHandles(context.Device, Pipeline, 0, groupCount, sbtSize, shaderHandleStorage).Success();
-
-            RayGenerationBuffer = new(context, new() { SizeInBytes = handleSizeAligned, StrideInBytes = handleSizeAligned, Flags = BufferUsageFlags.Dynamic }, VkBufferUsageFlags.ShaderBindingTableBitKhr);
-            MissBuffer = new(context, new() { SizeInBytes = handleSizeAligned * (uint)desc.Miss.Length, StrideInBytes = handleSizeAligned, Flags = BufferUsageFlags.Dynamic }, VkBufferUsageFlags.ShaderBindingTableBitKhr);
-            HitGroupsBuffer = new(context, new() { SizeInBytes = handleSizeAligned * (uint)desc.HitGroups.Length, StrideInBytes = handleSizeAligned, Flags = BufferUsageFlags.Dynamic }, VkBufferUsageFlags.ShaderBindingTableBitKhr);
+            RayGenerationBuffer = new(context, new() { SizeInBytes = HandleSizeAligned, StrideInBytes = HandleSizeAligned, Flags = BufferUsageFlags.Dynamic }, VkBufferUsageFlags.ShaderBindingTableBitKhr);
+            MissBuffer = new(context, new() { SizeInBytes = HandleSizeAligned * (uint)desc.Miss.Length, StrideInBytes = HandleSizeAligned, Flags = BufferUsageFlags.Dynamic }, VkBufferUsageFlags.ShaderBindingTableBitKhr);
+            HitGroupsBuffer = new(context, new() { SizeInBytes = HandleSizeAligned * (uint)desc.HitGroups.Length, StrideInBytes = HandleSizeAligned, Flags = BufferUsageFlags.Dynamic }, VkBufferUsageFlags.ShaderBindingTableBitKhr);
 
             CopyHandles(RayGenerationBuffer, 1);
             CopyHandles(MissBuffer, (uint)desc.Miss.Length);
@@ -142,22 +134,22 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
             RayGenerationRegion = new()
             {
                 DeviceAddress = RayGenerationBuffer.DeviceAddress,
-                Size = RayGenerationBuffer.Desc.SizeInBytes,
-                Stride = handleSizeAligned
+                Stride = HandleSizeAligned,
+                Size = RayGenerationBuffer.Desc.SizeInBytes
             };
 
             MissRegion = new()
             {
                 DeviceAddress = MissBuffer.DeviceAddress,
-                Size = MissBuffer.Desc.SizeInBytes,
-                Stride = handleSizeAligned
+                Stride = HandleSizeAligned,
+                Size = MissBuffer.Desc.SizeInBytes
             };
 
             HitGroupsRegion = new()
             {
                 DeviceAddress = HitGroupsBuffer.DeviceAddress,
-                Size = HitGroupsBuffer.Desc.SizeInBytes,
-                Stride = handleSizeAligned
+                Stride = HandleSizeAligned,
+                Size = HitGroupsBuffer.Desc.SizeInBytes
             };
 
             void CopyHandles(VKBuffer buffer, uint count)
@@ -166,9 +158,9 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
 
                 for (uint i = 0; i < count; i++)
                 {
-                    Unsafe.CopyBlock((byte*)(mappedMemory.Pointer + (i * handleSizeAligned)), shaderHandleStorage, handleSize);
+                    Unsafe.CopyBlock((byte*)(mappedMemory.Pointer + (i * HandleSizeAligned)), shaderHandleStorage, HandleSize);
 
-                    shaderHandleStorage += handleSize;
+                    shaderHandleStorage += HandleSize;
                 }
 
                 buffer.Unmap();
