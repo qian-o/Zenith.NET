@@ -15,13 +15,9 @@ internal unsafe class VKComputePipeline : ComputePipeline
 
         ComputePipelineCreateInfo createInfo = new()
         {
-            SType = StructureType.ComputePipelineCreateInfo
+            SType = StructureType.ComputePipelineCreateInfo,
+            Stage = desc.Compute.Vulkan().GetPipelineShaderStageCreateInfo(scope)
         };
-
-        // Compute
-        {
-            createInfo.Stage = desc.Compute.Vulkan().GetPipelineShaderStageCreateInfo(scope);
-        }
 
         // ResourceLayouts
         {

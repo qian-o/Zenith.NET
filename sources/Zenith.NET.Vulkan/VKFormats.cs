@@ -584,6 +584,16 @@ internal static class VKFormats
         };
     }
 
+    public static RayTracingShaderGroupTypeKHR Vulkan(HitGroupType hitGroupType)
+    {
+        return hitGroupType switch
+        {
+            HitGroupType.Triangles => RayTracingShaderGroupTypeKHR.TrianglesHitGroupKhr,
+            HitGroupType.Procedural => RayTracingShaderGroupTypeKHR.ProceduralHitGroupKhr,
+            _ => RayTracingShaderGroupTypeKHR.GeneralKhr
+        };
+    }
+
     public static VkQueryType Vulkan(QueryType type)
     {
         return type switch
