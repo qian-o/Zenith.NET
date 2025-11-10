@@ -20,7 +20,43 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
 
         // RenderStates - Output
         {
-            uint attachmentCount = (uint)desc.Output.ColorAttachments.Length;
+            BlendStateRenderTarget[] blendStateRenderTargets =
+            [
+                desc.RenderStates.BlendState.RenderTarget0,
+                desc.RenderStates.BlendState.RenderTarget1,
+                desc.RenderStates.BlendState.RenderTarget2,
+                desc.RenderStates.BlendState.RenderTarget3,
+                desc.RenderStates.BlendState.RenderTarget4,
+                desc.RenderStates.BlendState.RenderTarget5,
+                desc.RenderStates.BlendState.RenderTarget6,
+                desc.RenderStates.BlendState.RenderTarget7
+            ];
+
+            uint colorAttachmentCount = (uint)desc.Output.ColorAttachments.Length;
+            bool hasDepthStencilAttachment = desc.Output.DepthStencilAttachment.HasValue;
+
+            PipelineColorBlendAttachmentState* attachments = (PipelineColorBlendAttachmentState*)ZenithMarshal.Allocate<PipelineColorBlendAttachmentState>(scope, colorAttachmentCount);
+            Format* colorAttachmentFormats = (Format*)ZenithMarshal.Allocate<Format>(scope, colorAttachmentCount);
+            for (uint i = 0; i < colorAttachmentCount; i++)
+            {
+                BlendStateRenderTarget target = desc.RenderStates.BlendState.IndependentBlendEnable ? blendStateRenderTargets[i] : blendStateRenderTargets[0];
+
+                attachments[i] = new()
+                {
+                    BlendEnable = target.BlendEnable,
+                    SrcColorBlendFactor = VKFormats.Vulkan(target.SrcBlend),
+                    DstColorBlendFactor = VKFormats.Vulkan(target.DestBlend),
+                    ColorBlendOp = VKFormats.Vulkan(target.BlendOp),
+                    SrcAlphaBlendFactor = VKFormats.Vulkan(target.SrcBlendAlpha),
+                    DstAlphaBlendFactor = VKFormats.Vulkan(target.DestBlendAlpha),
+                    AlphaBlendOp = VKFormats.Vulkan(target.BlendOpAlpha),
+                    ColorWriteMask = VKFormats.Vulkan(target.Flags)
+                };
+
+                colorAttachmentFormats[i] = VKFormats.Vulkan(desc.Output.ColorAttachments[i]);
+            }
+
+            Format depthStencilFormat = hasDepthStencilAttachment ? VKFormats.Vulkan(desc.Output.DepthStencilAttachment!.Value) : Format.Undefined;
 
             PipelineRasterizationStateCreateInfo rasterizationState = new()
             {
@@ -35,9 +71,6 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
                 DepthBiasSlopeFactor = desc.RenderStates.RasterizerState.SlopeScaledDepthBias,
                 LineWidth = 1.0f
             };
-
-            createInfo.PRasterizationState = &rasterizationState;
-
             PipelineDepthStencilStateCreateInfo depthStencilState = new()
             {
                 SType = StructureType.PipelineDepthStencilStateCreateInfo,
@@ -68,44 +101,31 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
                 MinDepthBounds = 0.0f,
                 MaxDepthBounds = 1.0f
             };
-
-            createInfo.PDepthStencilState = &depthStencilState;
-
-            BlendStateRenderTarget[] blendStateRenderTargets =
-            [
-                desc.RenderStates.BlendState.RenderTarget0,
-                desc.RenderStates.BlendState.RenderTarget1,
-                desc.RenderStates.BlendState.RenderTarget2,
-                desc.RenderStates.BlendState.RenderTarget3,
-                desc.RenderStates.BlendState.RenderTarget4,
-                desc.RenderStates.BlendState.RenderTarget5,
-                desc.RenderStates.BlendState.RenderTarget6,
-                desc.RenderStates.BlendState.RenderTarget7
-            ];
-
-            PipelineColorBlendAttachmentState* attachments = (PipelineColorBlendAttachmentState*)ZenithMarshal.Allocate<PipelineColorBlendAttachmentState>(scope, attachmentCount);
-            for (uint i = 0; i < attachmentCount; i++)
-            {
-                BlendStateRenderTarget target = desc.RenderStates.BlendState.IndependentBlendEnable ? blendStateRenderTargets[i] : blendStateRenderTargets[0];
-
-                attachments[i] = new()
-                {
-                    BlendEnable = target.BlendEnable,
-                    SrcColorBlendFactor = VKFormats.Vulkan(target.SrcBlend),
-                    DstColorBlendFactor = VKFormats.Vulkan(target.DestBlend),
-                    ColorBlendOp = VKFormats.Vulkan(target.BlendOp),
-                    SrcAlphaBlendFactor = VKFormats.Vulkan(target.SrcBlendAlpha),
-                    DstAlphaBlendFactor = VKFormats.Vulkan(target.DestBlendAlpha),
-                    AlphaBlendOp = VKFormats.Vulkan(target.BlendOpAlpha),
-                    ColorWriteMask = VKFormats.Vulkan(target.Flags)
-                };
-            }
-
             PipelineColorBlendStateCreateInfo colorBlendState = new()
             {
                 SType = StructureType.PipelineColorBlendStateCreateInfo,
-                AttachmentCount = attachmentCount,
+                AttachmentCount = colorAttachmentCount,
                 PAttachments = attachments
+            };
+            PipelineViewportStateCreateInfo viewportState = new()
+            {
+                SType = StructureType.PipelineViewportStateCreateInfo,
+                ViewportCount = colorAttachmentCount,
+                ScissorCount = colorAttachmentCount
+            };
+            PipelineMultisampleStateCreateInfo multisampleState = new()
+            {
+                SType = StructureType.PipelineMultisampleStateCreateInfo,
+                RasterizationSamples = VKFormats.Vulkan(desc.Output.SampleCount),
+                AlphaToCoverageEnable = desc.RenderStates.BlendState.AlphaToCoverageEnable
+            };
+            PipelineRenderingCreateInfo rendering = new()
+            {
+                SType = StructureType.PipelineRenderingCreateInfo,
+                ColorAttachmentCount = colorAttachmentCount,
+                PColorAttachmentFormats = colorAttachmentFormats,
+                DepthAttachmentFormat = depthStencilFormat,
+                StencilAttachmentFormat = depthStencilFormat
             };
 
             if (desc.RenderStates.BlendFactor.HasValue)
@@ -116,43 +136,11 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
                 colorBlendState.BlendConstants[3] = desc.RenderStates.BlendFactor.Value.W;
             }
 
+            createInfo.PRasterizationState = &rasterizationState;
+            createInfo.PDepthStencilState = &depthStencilState;
             createInfo.PColorBlendState = &colorBlendState;
-
-            PipelineViewportStateCreateInfo viewportState = new()
-            {
-                SType = StructureType.PipelineViewportStateCreateInfo,
-                ViewportCount = attachmentCount,
-                ScissorCount = attachmentCount
-            };
-
             createInfo.PViewportState = &viewportState;
-
-            PipelineMultisampleStateCreateInfo multisampleState = new()
-            {
-                SType = StructureType.PipelineMultisampleStateCreateInfo,
-                RasterizationSamples = VKFormats.Vulkan(desc.Output.SampleCount),
-                AlphaToCoverageEnable = desc.RenderStates.BlendState.AlphaToCoverageEnable
-            };
-
             createInfo.PMultisampleState = &multisampleState;
-
-            Format* colorAttachmentFormats = (Format*)ZenithMarshal.Allocate<Format>(scope, attachmentCount);
-            for (uint i = 0; i < attachmentCount; i++)
-            {
-                colorAttachmentFormats[i] = VKFormats.Vulkan(desc.Output.ColorAttachments[i]);
-            }
-
-            Format depthStencilFormat = desc.Output.DepthStencilAttachment.HasValue ? VKFormats.Vulkan(desc.Output.DepthStencilAttachment.Value) : Format.Undefined;
-
-            PipelineRenderingCreateInfo rendering = new()
-            {
-                SType = StructureType.PipelineRenderingCreateInfo,
-                ColorAttachmentCount = attachmentCount,
-                PColorAttachmentFormats = colorAttachmentFormats,
-                DepthAttachmentFormat = depthStencilFormat,
-                StencilAttachmentFormat = depthStencilFormat
-            };
-
             createInfo.PNext = &rendering;
         }
 
