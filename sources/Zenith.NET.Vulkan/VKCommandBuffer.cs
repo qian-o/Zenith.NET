@@ -47,16 +47,17 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKBottomLevelAccelerationStructure(Context, desc, this);
     }
 
     protected override TopLevelAccelerationStructure BuildAccelerationStructureImpl(TopLevelAccelerationStructureDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKTopLevelAccelerationStructure(Context, desc, this);
     }
 
     protected override void UpdateAccelerationStructureImpl(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
     {
+        accelerationStructure.Vulkan().Update(this, newDesc);
     }
 
     protected override void BindFrameBufferImpl(FrameBuffer frameBuffer, ClearValue clearValue)

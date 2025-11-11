@@ -89,6 +89,22 @@ internal static class VKExtensions
         }
     }
 
+    extension(BottomLevelAccelerationStructure bottomLevelAccelerationStructure)
+    {
+        public VKBottomLevelAccelerationStructure Vulkan()
+        {
+            return (VKBottomLevelAccelerationStructure)bottomLevelAccelerationStructure;
+        }
+    }
+
+    extension(TopLevelAccelerationStructure topLevelAccelerationStructure)
+    {
+        public VKTopLevelAccelerationStructure Vulkan()
+        {
+            return (VKTopLevelAccelerationStructure)topLevelAccelerationStructure;
+        }
+    }
+
     extension(ResourceLayout resourceLayout)
     {
         public VKResourceLayout Vulkan()
