@@ -2,8 +2,7 @@
 
     <PropertyGroup>
         <!-- Target & Compatibility -->
-        <StandardTargetFramework>net9.0</StandardTargetFramework>
-        <LangVersion>preview</LangVersion>
+        <StandardTargetFramework>net10.0</StandardTargetFramework>
         <IsAotCompatible>true</IsAotCompatible>
 
         <!-- Code Style & Language Features -->
