@@ -87,11 +87,25 @@ internal unsafe class VKTextureView : TextureView
     {
         if (Slice is null)
         {
-            Desc.Texture.Vulkan().TransitionLayout(commandBuffer, Desc.FirstMipLevel, Desc.MipLevelCount, Desc.FirstLayer, Desc.LayerCount, 0, ZenithHelper.FaceCount(Desc.Texture.Desc), newLayout);
+            Desc.Texture.Vulkan().TransitionLayout(commandBuffer,
+                                                   Desc.FirstMipLevel,
+                                                   Desc.MipLevelCount,
+                                                   Desc.FirstLayer,
+                                                   Desc.LayerCount,
+                                                   0,
+                                                   ZenithHelper.FaceCount(Desc.Texture.Desc),
+                                                   newLayout);
         }
         else
         {
-            Desc.Texture.Vulkan().TransitionLayout(commandBuffer, Desc.FirstMipLevel, Desc.MipLevelCount, Desc.FirstLayer, Desc.LayerCount, Slice.Value.Face, 1, newLayout);
+            Desc.Texture.Vulkan().TransitionLayout(commandBuffer,
+                                                   Desc.FirstMipLevel,
+                                                   Desc.MipLevelCount,
+                                                   Desc.FirstLayer,
+                                                   Desc.LayerCount,
+                                                   Slice.Value.Face,
+                                                   1,
+                                                   newLayout);
         }
     }
 

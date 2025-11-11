@@ -154,7 +154,14 @@ internal unsafe class VKTexture : Texture
         Context.Vk.UnmapMemory(Context.Device, DeviceMemory?.DeviceMemory ?? default);
     }
 
-    public void TransitionLayout(VKCommandBuffer commandBuffer, uint firstMipLevel, uint mipLevelCount, uint firstLayer, uint layerCount, uint firstFace, uint faceCount, ImageLayout newLayout)
+    public void TransitionLayout(VKCommandBuffer commandBuffer,
+                                 uint firstMipLevel,
+                                 uint mipLevelCount,
+                                 uint firstLayer,
+                                 uint layerCount,
+                                 uint firstFace,
+                                 uint faceCount,
+                                 ImageLayout newLayout)
     {
         for (uint i = 0; i < mipLevelCount; i++)
         {
