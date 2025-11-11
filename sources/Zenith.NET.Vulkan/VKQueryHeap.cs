@@ -23,7 +23,7 @@ internal unsafe class VKQueryHeap : QueryHeap
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
-    public override void GetResults(Span<ulong> results, uint startIndex)
+    protected override void GetResultsImpl(Span<ulong> results, uint startIndex)
     {
         Context.Vk.GetQueryPoolResults(Context.Device,
                                        QueryPool,

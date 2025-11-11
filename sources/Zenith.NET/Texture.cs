@@ -12,6 +12,11 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public void Upload<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent) where T : unmanaged
     {
+        if (data.Length is 0)
+        {
+            return;
+        }
+
         if (desc.Type is TextureType.Texture2D && desc.Flags.HasFlag(TextureUsageFlags.Dynamic))
         {
             MappedMemory mappedMemory = Map(slice);

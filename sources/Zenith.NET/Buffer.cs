@@ -12,6 +12,11 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes) where T : unmanaged
     {
+        if (data.Length is 0)
+        {
+            return;
+        }
+
         if (desc.Flags.HasFlag(BufferUsageFlags.Dynamic))
         {
             MappedMemory mappedMemory = Map();
