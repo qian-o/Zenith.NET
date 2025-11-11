@@ -162,18 +162,43 @@ internal unsafe class VKTexture : Texture
         {
             for (uint j = 0; j < mipLevelCount; j++)
             {
+                uint index = ZenithHelper.SubresourceIndex(Desc, new() { Layer = firstLayer + i, MipLevel = firstMipLevel + j });
+
+                ImageLayout oldLayout = Layouts[index];
+
+                if (oldLayout == newLayout)
+                {
+                    continue;
+                }
+
+                AccessFlags srcAccessMask = AccessFlags.None;
+                AccessFlags dstAccessMask = AccessFlags.None;
+                PipelineStageFlags srcStageMask = PipelineStageFlags.None;
+                PipelineStageFlags dstStageMask = PipelineStageFlags.None;
+
+                ImageMemoryBarrier imageMemoryBarrier = new()
+                {
+                    SType = StructureType.ImageMemoryBarrier,
+                    SrcAccessMask = srcAccessMask,
+                    DstAccessMask = dstAccessMask,
+                    OldLayout = oldLayout,
+                    NewLayout = newLayout,
+                    Image = Image,
+                    SubresourceRange = new()
+                    {
+                        AspectMask = VKFormats.Vulkan(Desc.Flags).ImageAspectFlags,
+                        BaseMipLevel = firstMipLevel + j,
+                        LevelCount = 1,
+                        BaseArrayLayer = ZenithHelper.ArrayLayerIndex(Desc, new() { Layer = firstLayer + i }),
+                        LayerCount = faces
+                    }
+                };
+
+                Context.Vk.CmdPipelineBarrier(commandBuffer.CommandBuffer, srcStageMask, dstStageMask, DependencyFlags.None, 0, null, 0, null, 1, &imageMemoryBarrier);
+
                 for (uint face = 0; face < faces; face++)
                 {
-                    uint index = ZenithHelper.SubresourceIndex(Desc, new() { Layer = firstLayer + i, MipLevel = firstMipLevel + j, Face = face });
-
-                    ImageLayout oldLayout = Layouts[index];
-
-                    if (oldLayout == newLayout)
-                    {
-                        continue;
-                    }
-
-                    throw new NotImplementedException();
+                    Layouts[index + face] = newLayout;
                 }
             }
         }
