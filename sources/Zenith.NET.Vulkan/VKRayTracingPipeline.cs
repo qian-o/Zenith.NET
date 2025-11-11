@@ -19,15 +19,16 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
     {
         using ZenithMarshal.Scope scope = new();
 
-        uint groupCount = 1 + (uint)desc.Miss.Length + (uint)desc.HitGroups.Length;
         Shader[] shaders = [desc.RayGeneration, .. desc.Miss, .. desc.AnyHit, .. desc.Intersection, .. desc.ClosestHit];
-        string[] entryPoints = [.. shaders.Select(static item => item.Desc.EntryPoint)];
 
         PipelineShaderStageCreateInfo* stages = (PipelineShaderStageCreateInfo*)ZenithMarshal.Allocate<PipelineShaderStageCreateInfo>(scope, (uint)shaders.Length);
         for (int i = 0; i < shaders.Length; i++)
         {
             stages[i] = shaders[i].Vulkan().GetPipelineShaderStageCreateInfo(scope);
         }
+
+        uint groupCount = 1 + (uint)desc.Miss.Length + (uint)desc.HitGroups.Length;
+        string[] entryPoints = [.. shaders.Select(static item => item.Desc.EntryPoint)];
 
         RayTracingShaderGroupCreateInfoKHR* groups = (RayTracingShaderGroupCreateInfoKHR*)ZenithMarshal.Allocate<RayTracingShaderGroupCreateInfoKHR>(scope, groupCount);
         for (uint i = 0; i < groupCount; i++)
