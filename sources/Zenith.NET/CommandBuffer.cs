@@ -31,19 +31,20 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Upload<T>(Texture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data) where T : unmanaged
     {
-        if (data.Length is 0)
+        if (data.Length is 0 || data.Length != extent.Width * extent.Height * extent.Depth)
         {
             return;
         }
 
-        TextureExtent uploadExtent = new() { Width = extent.Width, Height = extent.Height, Depth = 1 };
+        uint sliceSizeInTexels = extent.Width * extent.Height;
+        TextureExtent sliceUploadExtent = new() { Width = extent.Width, Height = extent.Height, Depth = 1 };
 
         for (uint i = 0; i < extent.Depth; i++)
         {
             Texture temporary = Context.Uploader.Texture(this, texture.Desc.Format, extent.Width, extent.Height);
-            temporary.Upload(data, default, default, uploadExtent);
+            temporary.Upload(data.Slice((int)(i * sliceSizeInTexels), (int)sliceSizeInTexels), default, default, sliceUploadExtent);
 
-            CopyTexture(temporary, default, default, texture, slice, offset, uploadExtent);
+            CopyTexture(temporary, default, default, texture, slice, offset, sliceUploadExtent);
 
             offset.Z++;
         }
