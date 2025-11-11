@@ -40,15 +40,59 @@ internal unsafe class VKTextureView : TextureView
         };
     }
 
+    public VKTextureView(VKGraphicsContext context, Texture texture, TextureSlice slice) : base(context, new() { Texture = texture, FirstMipLevel = slice.MipLevel, MipLevelCount = 1, FirstLayer = slice.Layer, LayerCount = 1 })
+    {
+        ImageViewCreateInfo createInfo = new()
+        {
+            SType = StructureType.ImageViewCreateInfo,
+            Image = texture.Vulkan().Image,
+            ViewType = ImageViewType.Type2D,
+            Format = VKFormats.Vulkan(texture.Desc.Format),
+            SubresourceRange = new()
+            {
+                AspectMask = VKFormats.Vulkan(texture.Desc.Flags).ImageAspectFlags,
+                BaseMipLevel = slice.MipLevel,
+                LevelCount = 1,
+                BaseArrayLayer = ZenithHelper.ArrayLayerIndex(texture.Desc, slice),
+                LayerCount = 1
+            }
+        };
+
+        context.Vk.CreateImageView(context.Device, &createInfo, null, (ImageView*)Unsafe.AsPointer(ref ImageView)).Success();
+
+        SrvImageInfo = new()
+        {
+            ImageView = ImageView,
+            ImageLayout = ImageLayout.ShaderReadOnlyOptimal
+        };
+
+        UavImageInfo = new()
+        {
+            ImageView = ImageView,
+            ImageLayout = ImageLayout.General
+        };
+
+        Slice = slice;
+    }
+
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
     public DescriptorImageInfo SrvImageInfo { get; }
 
     public DescriptorImageInfo UavImageInfo { get; }
 
+    public TextureSlice? Slice { get; }
+
     public void TransitionLayout(VKCommandBuffer commandBuffer, ImageLayout newLayout)
     {
-        Desc.Texture.Vulkan().TransitionLayout(commandBuffer, Desc.FirstMipLevel, Desc.MipLevelCount, Desc.FirstLayer, Desc.LayerCount, 0, ZenithHelper.FaceCount(Desc.Texture.Desc), newLayout);
+        if (Slice is null)
+        {
+            Desc.Texture.Vulkan().TransitionLayout(commandBuffer, Desc.FirstMipLevel, Desc.MipLevelCount, Desc.FirstLayer, Desc.LayerCount, 0, ZenithHelper.FaceCount(Desc.Texture.Desc), newLayout);
+        }
+        else
+        {
+            Desc.Texture.Vulkan().TransitionLayout(commandBuffer, Desc.FirstMipLevel, Desc.MipLevelCount, Desc.FirstLayer, Desc.LayerCount, Slice.Value.Face, 1, newLayout);
+        }
     }
 
     protected override void SetResourceName(string name)

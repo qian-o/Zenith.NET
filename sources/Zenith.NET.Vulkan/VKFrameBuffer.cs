@@ -33,14 +33,7 @@ internal unsafe class VKFrameBuffer : FrameBuffer
                 sampleCount = attachment.Target.Desc.SampleCount;
             }
 
-            VKTextureView textureView = new(context, new()
-            {
-                Texture = attachment.Target,
-                FirstMipLevel = attachment.Slice.MipLevel,
-                MipLevelCount = 1,
-                FirstLayer = attachment.Slice.Layer,
-                LayerCount = 1
-            });
+            VKTextureView textureView = new(context, attachment.Target, attachment.Slice);
 
             colorAttachmentInfos[i] = new()
             {
@@ -65,14 +58,7 @@ internal unsafe class VKFrameBuffer : FrameBuffer
                 sampleCount = attachment.Target.Desc.SampleCount;
             }
 
-            VKTextureView textureView = new(context, new()
-            {
-                Texture = attachment.Target,
-                FirstMipLevel = attachment.Slice.MipLevel,
-                MipLevelCount = 1,
-                FirstLayer = attachment.Slice.Layer,
-                LayerCount = 1
-            });
+            VKTextureView textureView = new(context, attachment.Target, attachment.Slice);
 
             depthStencilAttachmentInfo[0] = new()
             {
