@@ -78,7 +78,7 @@ internal static class VKFormats
 
     public static VkBufferUsageFlags Vulkan(BufferUsageFlags bufferUsageFlags)
     {
-        VkBufferUsageFlags result = VkBufferUsageFlags.TransferSrcBit | VkBufferUsageFlags.TransferDstBit | VkBufferUsageFlags.ShaderDeviceAddressBit;
+        VkBufferUsageFlags result = VkBufferUsageFlags.None;
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.Vertex))
         {

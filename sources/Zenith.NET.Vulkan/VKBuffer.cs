@@ -20,7 +20,7 @@ internal unsafe class VKBuffer : Buffer
         {
             SType = StructureType.BufferCreateInfo,
             Size = desc.SizeInBytes,
-            Usage = VKFormats.Vulkan(desc.Flags),
+            Usage = VKFormats.Vulkan(desc.Flags) | VkBufferUsageFlags.TransferSrcBit | VkBufferUsageFlags.TransferDstBit | VkBufferUsageFlags.ShaderDeviceAddressBit,
             SharingMode = context.QueueFamilyIndices.Length is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
             QueueFamilyIndexCount = (uint)context.QueueFamilyIndices.Length,
             PQueueFamilyIndices = queueFamilyIndices
@@ -58,7 +58,7 @@ internal unsafe class VKBuffer : Buffer
         {
             SType = StructureType.BufferCreateInfo,
             Size = desc.SizeInBytes,
-            Usage = usage | VkBufferUsageFlags.ShaderDeviceAddressBit,
+            Usage = VKFormats.Vulkan(desc.Flags) | usage | VkBufferUsageFlags.ShaderDeviceAddressBit,
             SharingMode = context.QueueFamilyIndices.Length is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
             QueueFamilyIndexCount = (uint)context.QueueFamilyIndices.Length,
             PQueueFamilyIndices = queueFamilyIndices
