@@ -162,22 +162,35 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void BeginImpl()
     {
+        CommandBufferBeginInfo beginInfo = new()
+        {
+            SType = StructureType.CommandBufferBeginInfo,
+            Flags = CommandBufferUsageFlags.OneTimeSubmitBit
+        };
+
+        Context.Vk.BeginCommandBuffer(CommandBuffer, &beginInfo).Success();
     }
 
     protected override void EndImpl()
     {
+        Context.Vk.EndCommandBuffer(CommandBuffer).Success();
     }
 
     protected override void ResetImpl()
     {
+        Context.Vk.ResetCommandBuffer(CommandBuffer, CommandBufferResetFlags.None).Success();
     }
 
-    protected override void BeginRenderingImpl()
+    protected override void BeginRenderingImpl(FrameBuffer frameBuffer)
     {
+        frameBuffer.Vulkan().TransitionLayout(this);
+
+        Context.Vk.CmdBeginRendering(CommandBuffer, (RenderingInfo*)Unsafe.AsPointer(ref frameBuffer.Vulkan().RenderingInfo));
     }
 
     protected override void EndRenderingImpl()
     {
+        Context.Vk.CmdEndRendering(CommandBuffer);
     }
 
     protected override void SetResourceName(string name)

@@ -454,7 +454,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void ResetImpl();
 
-    protected abstract void BeginRenderingImpl();
+    protected abstract void BeginRenderingImpl(FrameBuffer frameBuffer);
 
     protected abstract void EndRenderingImpl();
 
@@ -462,7 +462,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     {
         if (!isRendering && CurrentFrameBuffer is not null)
         {
-            BeginRenderingImpl();
+            BeginRenderingImpl(CurrentFrameBuffer);
 
             isRendering = true;
         }
