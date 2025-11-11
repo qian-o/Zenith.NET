@@ -3,6 +3,7 @@ global using VkBorderColor = Silk.NET.Vulkan.BorderColor;
 global using VkBuffer = Silk.NET.Vulkan.Buffer;
 global using VkBufferUsageFlags = Silk.NET.Vulkan.BufferUsageFlags;
 global using VkColorComponentFlags = Silk.NET.Vulkan.ColorComponentFlags;
+global using VkCommandBuffer = Silk.NET.Vulkan.CommandBuffer;
 global using VkFilter = Silk.NET.Vulkan.Filter;
 global using VkFrontFace = Silk.NET.Vulkan.FrontFace;
 global using VkPipeline = Silk.NET.Vulkan.Pipeline;

@@ -1,10 +1,37 @@
-﻿namespace Zenith.NET;
+﻿using System.Runtime.CompilerServices;
+using Silk.NET.Vulkan;
+
+namespace Zenith.NET;
 
 internal unsafe class VKCommandBuffer : CommandBuffer
 {
+    public CommandPool CommandPool;
+
+    public VkCommandBuffer CommandBuffer;
+
     public VKCommandBuffer(VKGraphicsContext context, VKCommandQueue queue) : base(context, queue)
     {
+        CommandPoolCreateInfo createInfo = new()
+        {
+            SType = StructureType.CommandPoolCreateInfo,
+            Flags = CommandPoolCreateFlags.ResetCommandBufferBit,
+            QueueFamilyIndex = queue.QueueFamilyIndex
+        };
+
+        context.Vk.CreateCommandPool(context.Device, &createInfo, null, (CommandPool*)Unsafe.AsPointer(ref CommandPool)).Success();
+
+        CommandBufferAllocateInfo allocateInfo = new()
+        {
+            SType = StructureType.CommandBufferAllocateInfo,
+            CommandPool = CommandPool,
+            Level = CommandBufferLevel.Primary,
+            CommandBufferCount = 1
+        };
+
+        context.Vk.AllocateCommandBuffers(context.Device, &allocateInfo, (VkCommandBuffer*)Unsafe.AsPointer(ref CommandBuffer)).Success();
     }
+
+    public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
     protected override void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes)
     {
@@ -154,5 +181,12 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void SetResourceName(string name)
     {
+    }
+
+    protected override void Destroy()
+    {
+        base.Destroy();
+
+        Context.Vk.DestroyCommandPool(Context.Device, CommandPool, null);
     }
 }
