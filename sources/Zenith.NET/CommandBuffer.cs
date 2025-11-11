@@ -93,14 +93,17 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     {
         EnsureRenderingEnded();
 
-        Scissor[] scissors = new Scissor[frameBuffer.ColorAttachmentCount];
-        Viewport[] viewports = new Viewport[frameBuffer.ColorAttachmentCount];
+        if (frameBuffer.ColorAttachmentCount is not 0)
+        {
+            Scissor[] scissors = new Scissor[frameBuffer.ColorAttachmentCount];
+            Viewport[] viewports = new Viewport[frameBuffer.ColorAttachmentCount];
 
-        Array.Fill(scissors, new() { Width = frameBuffer.Width, Height = frameBuffer.Height });
-        Array.Fill(viewports, new() { Width = frameBuffer.Width, Height = frameBuffer.Height, MaxDepth = 1 });
+            Array.Fill(scissors, new() { Width = frameBuffer.Width, Height = frameBuffer.Height });
+            Array.Fill(viewports, new() { Width = frameBuffer.Width, Height = frameBuffer.Height, MaxDepth = 1 });
 
-        SetScissorsImpl(scissors);
-        SetViewportsImpl(viewports);
+            SetScissorsImpl(scissors);
+            SetViewportsImpl(viewports);
+        }
 
         currentFrameBuffer = frameBuffer;
         currentClearValue = clearValue;
@@ -136,7 +139,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void BindResourceSets(ResourceSet[] sets)
     {
-        if (currentPipeline is null)
+        if (sets.Length is 0 || currentPipeline is null)
         {
             return;
         }
@@ -148,7 +151,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void BindVertexBuffers(Buffer[] buffers, uint[] offsetsInBytes)
     {
-        if (currentPipeline is not GraphicsPipeline)
+        if (buffers.Length is 0 || offsetsInBytes.Length is 0 || buffers.Length != offsetsInBytes.Length || currentPipeline is not GraphicsPipeline)
         {
             return;
         }
@@ -168,7 +171,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetScissors(Scissor[] scissors)
     {
-        if (currentFrameBuffer is null)
+        if (scissors.Length is 0 || currentFrameBuffer is null)
         {
             return;
         }
@@ -178,7 +181,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetViewports(Viewport[] viewports)
     {
-        if (currentFrameBuffer is null)
+        if (viewports.Length is 0 || currentFrameBuffer is null)
         {
             return;
         }

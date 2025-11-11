@@ -594,13 +594,23 @@ internal static class VKFormats
         };
     }
 
-    public static VkQueryType Vulkan(QueryType type)
+    public static VkQueryType Vulkan(QueryType queryType)
     {
-        return type switch
+        return queryType switch
         {
             QueryType.Occlusion or QueryType.BinaryOcclusion => VkQueryType.Occlusion,
             QueryType.Timestamp => VkQueryType.Timestamp,
             _ => VkQueryType.Occlusion
+        };
+    }
+
+    public static IndexType Vulkan(IndexFormat indexFormat)
+    {
+        return indexFormat switch
+        {
+            IndexFormat.UInt16 => IndexType.Uint16,
+            IndexFormat.UInt32 => IndexType.Uint32,
+            _ => IndexType.Uint16
         };
     }
 }

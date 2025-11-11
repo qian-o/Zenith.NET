@@ -12,3 +12,4 @@ global using VkQueryType = Silk.NET.Vulkan.QueryType;
 global using VkSampler = Silk.NET.Vulkan.Sampler;
 global using VkShaderStageFlags = Silk.NET.Vulkan.ShaderStageFlags;
 global using VkStencilOp = Silk.NET.Vulkan.StencilOp;
+global using VkViewport = Silk.NET.Vulkan.Viewport;

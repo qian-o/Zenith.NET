@@ -10,6 +10,9 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     public VkCommandBuffer CommandBuffer;
 
+    private PipelineBindPoint currentPipelineBindPoint;
+    private PipelineLayout currentPipelineLayout;
+
     public VKCommandBuffer(VKGraphicsContext context, VKCommandQueue queue) : base(context, queue)
     {
         CommandPoolCreateInfo createInfo = new()
@@ -63,98 +66,169 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void BindPipelineImpl(GraphicsPipeline pipeline)
     {
+        Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Graphics, pipeline.Vulkan().Pipeline);
+
+        currentPipelineBindPoint = PipelineBindPoint.Graphics;
+        currentPipelineLayout = pipeline.Vulkan().PipelineLayout;
     }
 
     protected override void BindPipelineImpl(ComputePipeline pipeline)
     {
+        Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Compute, pipeline.Vulkan().Pipeline);
+
+        currentPipelineBindPoint = PipelineBindPoint.Compute;
+        currentPipelineLayout = pipeline.Vulkan().PipelineLayout;
     }
 
     protected override void BindPipelineImpl(RayTracingPipeline pipeline)
     {
+        Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.RayTracingKhr, pipeline.Vulkan().Pipeline);
+
+        currentPipelineBindPoint = PipelineBindPoint.RayTracingKhr;
+        currentPipelineLayout = pipeline.Vulkan().PipelineLayout;
     }
 
     protected override void BindPipelineImpl(MeshShadingPipeline pipeline)
     {
+        Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Graphics, pipeline.Vulkan().Pipeline);
+
+        currentPipelineBindPoint = PipelineBindPoint.Graphics;
+        currentPipelineLayout = pipeline.Vulkan().PipelineLayout;
     }
 
     protected override void BindResourceSetsImpl(ResourceSet[] sets)
     {
+        VKResourceSet[] vkSets = [.. sets.Select(static item => item.Vulkan())];
+        DescriptorSet[] vkDescriptorSets = [.. vkSets.Select(static item => item.DescriptorToken.DescriptorSet)];
+
+        foreach (VKResourceSet vkSet in vkSets)
+        {
+            vkSet.TransitionLayout(this);
+        }
+
+        Context.Vk.CmdBindDescriptorSets(CommandBuffer, currentPipelineBindPoint, currentPipelineLayout, 0, (uint)vkDescriptorSets.Length, (DescriptorSet*)Unsafe.AsPointer(ref vkDescriptorSets[0]), 0, null);
     }
 
     protected override void BindVertexBuffersImpl(Buffer[] buffers, uint[] offsetsInBytes)
     {
+        VkBuffer[] vkBuffers = [.. buffers.Select(static item => item.Vulkan().Buffer)];
+        ulong[] vkOffsets = [.. offsetsInBytes.Select(static item => (ulong)item)];
+
+        Context.Vk.CmdBindVertexBuffers(CommandBuffer, 0, (uint)vkBuffers.Length, (VkBuffer*)Unsafe.AsPointer(ref vkBuffers[0]), (ulong*)Unsafe.AsPointer(ref vkOffsets[0]));
     }
 
     protected override void BindIndexBufferImpl(Buffer buffer, uint offsetInBytes, IndexFormat format)
     {
+        Context.Vk.CmdBindIndexBuffer(CommandBuffer, buffer.Vulkan().Buffer, offsetInBytes, VKFormats.Vulkan(format));
     }
 
     protected override void SetScissorsImpl(Scissor[] scissors)
     {
+        Rect2D[] vkScissors = [.. scissors.Select(static item => new Rect2D(new(item.X, item.Y), new(item.Width, item.Height)))];
+
+        Context.Vk.CmdSetScissor(CommandBuffer, 0, (uint)vkScissors.Length, (Rect2D*)Unsafe.AsPointer(ref vkScissors[0]));
     }
 
     protected override void SetViewportsImpl(Viewport[] viewports)
     {
+        VkViewport[] vkViewports = [.. viewports.Select(static item => new VkViewport(item.X, item.Y, item.Width, -item.Height, item.MinDepth, item.MaxDepth))];
+
+        Context.Vk.CmdSetViewport(CommandBuffer, 0, (uint)vkViewports.Length, (VkViewport*)Unsafe.AsPointer(ref vkViewports[0]));
     }
 
     protected override void DrawImpl(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
     {
+        Context.Vk.CmdDraw(CommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     protected override void DrawIndirectImpl(Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
+        Context.Vk.CmdDrawIndirect(CommandBuffer, indirectBuffer.Vulkan().Buffer, offsetInBytes, drawCount, (uint)sizeof(IndirectDrawArgs));
     }
 
     protected override void DrawIndexedImpl(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
     {
+        Context.Vk.CmdDrawIndexed(CommandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
     protected override void DrawIndexedIndirectImpl(Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
+        Context.Vk.CmdDrawIndexedIndirect(CommandBuffer, indirectBuffer.Vulkan().Buffer, offsetInBytes, drawCount, (uint)sizeof(IndirectDrawIndexedArgs));
     }
 
     protected override void DispatchImpl(uint groupCountX, uint groupCountY, uint groupCountZ)
     {
+        Context.Vk.CmdDispatch(CommandBuffer, groupCountX, groupCountY, groupCountZ);
     }
 
     protected override void DispatchIndirectImpl(Buffer indirectBuffer, uint offsetInBytes)
     {
+        Context.Vk.CmdDispatchIndirect(CommandBuffer, indirectBuffer.Vulkan().Buffer, offsetInBytes);
     }
 
     protected override void DispatchRaysImpl(uint width, uint height, uint depth)
     {
+        throw new NotImplementedException();
     }
 
     protected override void DispatchMeshImpl(uint groupCountX, uint groupCountY, uint groupCountZ)
     {
+        Context.MeshShader?.CmdDrawMeshTask(CommandBuffer, groupCountX, groupCountY, groupCountZ);
     }
 
     protected override void DispatchMeshIndirectImpl(Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount)
     {
+        Context.MeshShader?.CmdDrawMeshTasksIndirect(CommandBuffer, indirectBuffer.Vulkan().Buffer, offsetInBytes, dispatchCount, (uint)sizeof(IndirectDispatchMeshArgs));
     }
 
     protected override void BeginQueryImpl(QueryHeap queryHeap, uint index)
     {
+        Context.Vk.CmdResetQueryPool(CommandBuffer, queryHeap.Vulkan().QueryPool, index, 1);
+
+        Context.Vk.CmdBeginQuery(CommandBuffer, queryHeap.Vulkan().QueryPool, index, queryHeap.Desc.Type is QueryType.Occlusion ? QueryControlFlags.PreciseBit : QueryControlFlags.None);
     }
 
     protected override void EndQueryImpl(QueryHeap queryHeap, uint index)
     {
+        Context.Vk.CmdEndQuery(CommandBuffer, queryHeap.Vulkan().QueryPool, index);
     }
 
     protected override void WriteTimestampImpl(QueryHeap queryHeap, uint index)
     {
+        Context.Vk.CmdResetQueryPool(CommandBuffer, queryHeap.Vulkan().QueryPool, index, 1);
+
+        Context.Vk.CmdWriteTimestamp(CommandBuffer, PipelineStageFlags.BottomOfPipeBit, queryHeap.Vulkan().QueryPool, index);
     }
 
     protected override void BeginDebugEventImpl(string label)
     {
+        using ZenithMarshal.Scope scope = new();
+
+        DebugUtilsLabelEXT labelInfo = new()
+        {
+            SType = StructureType.DebugUtilsLabelExt,
+            PLabelName = (byte*)ZenithMarshal.StringToPointer(scope, label, StringEncoding.UTF8)
+        };
+
+        Context.DebugUtils?.CmdBeginDebugUtilsLabel(CommandBuffer, &labelInfo);
     }
 
     protected override void EndDebugEventImpl()
     {
+        Context.DebugUtils?.CmdEndDebugUtilsLabel(CommandBuffer);
     }
 
     protected override void InsertDebugMarkerImpl(string label)
     {
+        using ZenithMarshal.Scope scope = new();
+
+        DebugUtilsLabelEXT labelInfo = new()
+        {
+            SType = StructureType.DebugUtilsLabelExt,
+            PLabelName = (byte*)ZenithMarshal.StringToPointer(scope, label, StringEncoding.UTF8)
+        };
+
+        Context.DebugUtils?.CmdInsertDebugUtilsLabel(CommandBuffer, &labelInfo);
     }
 
     protected override void BeginImpl()
