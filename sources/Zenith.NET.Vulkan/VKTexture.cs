@@ -181,9 +181,77 @@ internal unsafe class VKTexture : Texture
                     }
 
                     AccessFlags srcAccessMask = AccessFlags.None;
-                    AccessFlags dstAccessMask = AccessFlags.None;
                     PipelineStageFlags srcStageMask = PipelineStageFlags.None;
+
+                    if (oldLayout is ImageLayout.Undefined or ImageLayout.Preinitialized)
+                    {
+                        srcAccessMask = AccessFlags.None;
+                        srcStageMask = PipelineStageFlags.TopOfPipeBit;
+                    }
+                    else if (oldLayout == ImageLayout.General)
+                    {
+                        srcAccessMask = AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit;
+                        srcStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit;
+                    }
+                    else if (oldLayout == ImageLayout.ColorAttachmentOptimal)
+                    {
+                        srcAccessMask = AccessFlags.ColorAttachmentWriteBit;
+                        srcStageMask = PipelineStageFlags.ColorAttachmentOutputBit;
+                    }
+                    else if (oldLayout == ImageLayout.DepthStencilAttachmentOptimal)
+                    {
+                        srcAccessMask = AccessFlags.DepthStencilAttachmentWriteBit;
+                        srcStageMask = PipelineStageFlags.EarlyFragmentTestsBit | PipelineStageFlags.LateFragmentTestsBit;
+                    }
+                    else if (oldLayout == ImageLayout.ShaderReadOnlyOptimal)
+                    {
+                        srcAccessMask = AccessFlags.ShaderReadBit;
+                        srcStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit;
+                    }
+                    else if (oldLayout == ImageLayout.TransferSrcOptimal)
+                    {
+                        srcAccessMask = AccessFlags.TransferReadBit;
+                        srcStageMask = PipelineStageFlags.TransferBit;
+                    }
+                    else if (oldLayout == ImageLayout.TransferDstOptimal)
+                    {
+                        srcAccessMask = AccessFlags.TransferWriteBit;
+                        srcStageMask = PipelineStageFlags.TransferBit;
+                    }
+
+                    AccessFlags dstAccessMask = AccessFlags.None;
                     PipelineStageFlags dstStageMask = PipelineStageFlags.None;
+
+                    if (newLayout is ImageLayout.General)
+                    {
+                        dstAccessMask = AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit;
+                        dstStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit;
+                    }
+                    else if (newLayout == ImageLayout.ColorAttachmentOptimal)
+                    {
+                        dstAccessMask = AccessFlags.ColorAttachmentWriteBit;
+                        dstStageMask = PipelineStageFlags.ColorAttachmentOutputBit;
+                    }
+                    else if (newLayout == ImageLayout.DepthStencilAttachmentOptimal)
+                    {
+                        dstAccessMask = AccessFlags.DepthStencilAttachmentWriteBit;
+                        dstStageMask = PipelineStageFlags.EarlyFragmentTestsBit | PipelineStageFlags.LateFragmentTestsBit;
+                    }
+                    else if (newLayout == ImageLayout.ShaderReadOnlyOptimal)
+                    {
+                        dstAccessMask = AccessFlags.ShaderReadBit;
+                        dstStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit;
+                    }
+                    else if (newLayout == ImageLayout.TransferSrcOptimal)
+                    {
+                        dstAccessMask = AccessFlags.TransferReadBit;
+                        dstStageMask = PipelineStageFlags.TransferBit;
+                    }
+                    else if (newLayout == ImageLayout.TransferDstOptimal)
+                    {
+                        dstAccessMask = AccessFlags.TransferWriteBit;
+                        dstStageMask = PipelineStageFlags.TransferBit;
+                    }
 
                     ImageMemoryBarrier imageMemoryBarrier = new()
                     {
@@ -203,7 +271,16 @@ internal unsafe class VKTexture : Texture
                         }
                     };
 
-                    Context.Vk.CmdPipelineBarrier(commandBuffer.CommandBuffer, srcStageMask, dstStageMask, DependencyFlags.None, 0, null, 0, null, 1, &imageMemoryBarrier);
+                    Context.Vk.CmdPipelineBarrier(commandBuffer.CommandBuffer,
+                                                  srcStageMask,
+                                                  dstStageMask,
+                                                  DependencyFlags.None,
+                                                  0,
+                                                  null,
+                                                  0,
+                                                  null,
+                                                  1,
+                                                  &imageMemoryBarrier);
                 }
             }
         }
