@@ -143,7 +143,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         EnsureRenderingEnded();
 
-        BindResourceSetsImpl(currentPipeline, sets);
+        BindResourceSetsImpl(sets);
     }
 
     public void BindVertexBuffers(Buffer[] buffers, uint[] offsetsInBytes)
@@ -407,7 +407,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void BindPipelineImpl(MeshShadingPipeline pipeline);
 
-    protected abstract void BindResourceSetsImpl(Pipeline pipeline, ResourceSet[] sets);
+    protected abstract void BindResourceSetsImpl(ResourceSet[] sets);
 
     protected abstract void BindVertexBuffersImpl(Buffer[] buffers, uint[] offsetsInBytes);
 

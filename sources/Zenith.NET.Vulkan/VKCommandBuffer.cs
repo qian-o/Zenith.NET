@@ -76,7 +76,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
     {
     }
 
-    protected override void BindResourceSetsImpl(Pipeline pipeline, ResourceSet[] sets)
+    protected override void BindResourceSetsImpl(ResourceSet[] sets)
     {
     }
 
