@@ -96,7 +96,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         currentPipelineLayout = pipeline.Vulkan().PipelineLayout;
     }
 
-    protected override void BindResourceSetsImpl(ResourceSet[] sets)
+    protected override void BindResourceSetsImpl(Pipeline pipeline, ResourceSet[] sets)
     {
         VKResourceSet[] vkSets = [.. sets.Select(static item => item.Vulkan())];
         DescriptorSet[] vkDescriptorSets = [.. vkSets.Select(static item => item.DescriptorToken.DescriptorSet)];
@@ -109,7 +109,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         Context.Vk.CmdBindDescriptorSets(CommandBuffer, currentPipelineBindPoint, currentPipelineLayout, 0, (uint)vkDescriptorSets.Length, (DescriptorSet*)Unsafe.AsPointer(ref vkDescriptorSets[0]), 0, null);
     }
 
-    protected override void BindVertexBuffersImpl(Buffer[] buffers, uint[] offsetsInBytes)
+    protected override void BindVertexBuffersImpl(GraphicsPipeline pipeline, Buffer[] buffers, uint[] offsetsInBytes)
     {
         VkBuffer[] vkBuffers = [.. buffers.Select(static item => item.Vulkan().Buffer)];
         ulong[] vkOffsets = [.. offsetsInBytes.Select(static item => (ulong)item)];
@@ -117,7 +117,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         Context.Vk.CmdBindVertexBuffers(CommandBuffer, 0, (uint)vkBuffers.Length, (VkBuffer*)Unsafe.AsPointer(ref vkBuffers[0]), (ulong*)Unsafe.AsPointer(ref vkOffsets[0]));
     }
 
-    protected override void BindIndexBufferImpl(Buffer buffer, uint offsetInBytes, IndexFormat format)
+    protected override void BindIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format)
     {
         Context.Vk.CmdBindIndexBuffer(CommandBuffer, buffer.Vulkan().Buffer, offsetInBytes, VKFormats.Vulkan(format));
     }
@@ -136,47 +136,47 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         Context.Vk.CmdSetViewport(CommandBuffer, 0, (uint)vkViewports.Length, (VkViewport*)Unsafe.AsPointer(ref vkViewports[0]));
     }
 
-    protected override void DrawImpl(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
+    protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
     {
         Context.Vk.CmdDraw(CommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
-    protected override void DrawIndirectImpl(Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
+    protected override void DrawIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
         Context.Vk.CmdDrawIndirect(CommandBuffer, indirectBuffer.Vulkan().Buffer, offsetInBytes, drawCount, (uint)sizeof(IndirectDrawArgs));
     }
 
-    protected override void DrawIndexedImpl(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
+    protected override void DrawIndexedImpl(GraphicsPipeline pipeline, uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
     {
         Context.Vk.CmdDrawIndexed(CommandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
-    protected override void DrawIndexedIndirectImpl(Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
+    protected override void DrawIndexedIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
         Context.Vk.CmdDrawIndexedIndirect(CommandBuffer, indirectBuffer.Vulkan().Buffer, offsetInBytes, drawCount, (uint)sizeof(IndirectDrawIndexedArgs));
     }
 
-    protected override void DispatchImpl(uint groupCountX, uint groupCountY, uint groupCountZ)
+    protected override void DispatchImpl(ComputePipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
         Context.Vk.CmdDispatch(CommandBuffer, groupCountX, groupCountY, groupCountZ);
     }
 
-    protected override void DispatchIndirectImpl(Buffer indirectBuffer, uint offsetInBytes)
+    protected override void DispatchIndirectImpl(ComputePipeline pipeline, Buffer indirectBuffer, uint offsetInBytes)
     {
         Context.Vk.CmdDispatchIndirect(CommandBuffer, indirectBuffer.Vulkan().Buffer, offsetInBytes);
     }
 
-    protected override void DispatchRaysImpl(uint width, uint height, uint depth)
+    protected override void DispatchRaysImpl(RayTracingPipeline pipeline, uint width, uint height, uint depth)
     {
         throw new NotImplementedException();
     }
 
-    protected override void DispatchMeshImpl(uint groupCountX, uint groupCountY, uint groupCountZ)
+    protected override void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
         Context.MeshShader?.CmdDrawMeshTask(CommandBuffer, groupCountX, groupCountY, groupCountZ);
     }
 
-    protected override void DispatchMeshIndirectImpl(Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount)
+    protected override void DispatchMeshIndirectImpl(MeshShadingPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount)
     {
         Context.MeshShader?.CmdDrawMeshTasksIndirect(CommandBuffer, indirectBuffer.Vulkan().Buffer, offsetInBytes, dispatchCount, (uint)sizeof(IndirectDispatchMeshArgs));
     }

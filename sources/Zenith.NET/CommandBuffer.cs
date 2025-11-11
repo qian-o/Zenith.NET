@@ -157,7 +157,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         EnsureRenderingEnded();
 
-        BindResourceSetsImpl(sets);
+        BindResourceSetsImpl(currentPipeline, sets);
     }
 
     public void BindVertexBuffers(Buffer[] buffers, uint[] offsetsInBytes)
@@ -167,7 +167,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             return;
         }
 
-        BindVertexBuffersImpl(buffers, offsetsInBytes);
+        BindVertexBuffersImpl((GraphicsPipeline)currentPipeline, buffers, offsetsInBytes);
     }
 
     public void BindIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat format)
@@ -177,7 +177,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             return;
         }
 
-        BindIndexBufferImpl(buffer, offsetInBytes, format);
+        BindIndexBufferImpl((GraphicsPipeline)currentPipeline, buffer, offsetInBytes, format);
     }
 
     public void SetScissors(Scissor[] scissors)
@@ -209,7 +209,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         EnsureRenderingBegan();
 
-        DrawImpl(vertexCount, instanceCount, firstVertex, firstInstance);
+        DrawImpl((GraphicsPipeline)currentPipeline, vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     public void DrawIndirect(Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
@@ -221,7 +221,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         EnsureRenderingBegan();
 
-        DrawIndirectImpl(indirectBuffer, offsetInBytes, drawCount);
+        DrawIndirectImpl((GraphicsPipeline)currentPipeline, indirectBuffer, offsetInBytes, drawCount);
     }
 
     public void DrawIndexed(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
@@ -233,7 +233,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         EnsureRenderingBegan();
 
-        DrawIndexedImpl(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+        DrawIndexedImpl((GraphicsPipeline)currentPipeline, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
     public void DrawIndexedIndirect(Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
@@ -245,7 +245,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         EnsureRenderingBegan();
 
-        DrawIndexedIndirectImpl(indirectBuffer, offsetInBytes, drawCount);
+        DrawIndexedIndirectImpl((GraphicsPipeline)currentPipeline, indirectBuffer, offsetInBytes, drawCount);
     }
 
     public void Dispatch(uint groupCountX, uint groupCountY, uint groupCountZ)
@@ -257,7 +257,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         EnsureRenderingEnded();
 
-        DispatchImpl(groupCountX, groupCountY, groupCountZ);
+        DispatchImpl((ComputePipeline)currentPipeline, groupCountX, groupCountY, groupCountZ);
     }
 
     public void DispatchIndirect(Buffer indirectBuffer, uint offsetInBytes)
@@ -269,7 +269,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         EnsureRenderingEnded();
 
-        DispatchIndirectImpl(indirectBuffer, offsetInBytes);
+        DispatchIndirectImpl((ComputePipeline)currentPipeline, indirectBuffer, offsetInBytes);
     }
 
     public void DispatchRays(uint width, uint height, uint depth)
@@ -281,7 +281,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         EnsureRenderingEnded();
 
-        DispatchRaysImpl(width, height, depth);
+        DispatchRaysImpl((RayTracingPipeline)currentPipeline, width, height, depth);
     }
 
     public void DispatchMesh(uint groupCountX, uint groupCountY, uint groupCountZ)
@@ -293,7 +293,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         EnsureRenderingBegan();
 
-        DispatchMeshImpl(groupCountX, groupCountY, groupCountZ);
+        DispatchMeshImpl((MeshShadingPipeline)currentPipeline, groupCountX, groupCountY, groupCountZ);
     }
 
     public void DispatchMeshIndirect(Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount)
@@ -305,7 +305,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         EnsureRenderingBegan();
 
-        DispatchMeshIndirectImpl(indirectBuffer, offsetInBytes, dispatchCount);
+        DispatchMeshIndirectImpl((MeshShadingPipeline)currentPipeline, indirectBuffer, offsetInBytes, dispatchCount);
     }
 
     public void BeginQuery(QueryHeap queryHeap, uint index)
@@ -421,33 +421,33 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void BindPipelineImpl(MeshShadingPipeline pipeline);
 
-    protected abstract void BindResourceSetsImpl(ResourceSet[] sets);
+    protected abstract void BindResourceSetsImpl(Pipeline pipeline, ResourceSet[] sets);
 
-    protected abstract void BindVertexBuffersImpl(Buffer[] buffers, uint[] offsetsInBytes);
+    protected abstract void BindVertexBuffersImpl(GraphicsPipeline pipeline, Buffer[] buffers, uint[] offsetsInBytes);
 
-    protected abstract void BindIndexBufferImpl(Buffer buffer, uint offsetInBytes, IndexFormat format);
+    protected abstract void BindIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format);
 
     protected abstract void SetScissorsImpl(Scissor[] scissors);
 
     protected abstract void SetViewportsImpl(Viewport[] viewports);
 
-    protected abstract void DrawImpl(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
+    protected abstract void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
 
-    protected abstract void DrawIndirectImpl(Buffer indirectBuffer, uint offsetInBytes, uint drawCount);
+    protected abstract void DrawIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount);
 
-    protected abstract void DrawIndexedImpl(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance);
+    protected abstract void DrawIndexedImpl(GraphicsPipeline pipeline, uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance);
 
-    protected abstract void DrawIndexedIndirectImpl(Buffer indirectBuffer, uint offsetInBytes, uint drawCount);
+    protected abstract void DrawIndexedIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount);
 
-    protected abstract void DispatchImpl(uint groupCountX, uint groupCountY, uint groupCountZ);
+    protected abstract void DispatchImpl(ComputePipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ);
 
-    protected abstract void DispatchIndirectImpl(Buffer indirectBuffer, uint offsetInBytes);
+    protected abstract void DispatchIndirectImpl(ComputePipeline pipeline, Buffer indirectBuffer, uint offsetInBytes);
 
-    protected abstract void DispatchRaysImpl(uint width, uint height, uint depth);
+    protected abstract void DispatchRaysImpl(RayTracingPipeline pipeline, uint width, uint height, uint depth);
 
-    protected abstract void DispatchMeshImpl(uint groupCountX, uint groupCountY, uint groupCountZ);
+    protected abstract void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ);
 
-    protected abstract void DispatchMeshIndirectImpl(Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount);
+    protected abstract void DispatchMeshIndirectImpl(MeshShadingPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount);
 
     protected abstract void BeginQueryImpl(QueryHeap queryHeap, uint index);
 
