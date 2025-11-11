@@ -425,9 +425,9 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         }
 
         capabilities = new VKCapabilities(this);
-        graphics = new VKCommandQueue(this, CommandQueueType.Graphics, GraphicsQueue, 0);
-        compute = new VKCommandQueue(this, CommandQueueType.Compute, ComputeQueue, 0);
-        copy = new VKCommandQueue(this, CommandQueueType.Copy, CopyQueue, 0);
+        graphics = new VKCommandQueue(this, CommandQueueType.Graphics, GraphicsQueue, QueueFamilyIndices[0]);
+        compute = new VKCommandQueue(this, CommandQueueType.Compute, ComputeQueue, QueueFamilyIndices.Length > 1 ? QueueFamilyIndices[1] : QueueFamilyIndices[0]);
+        copy = new VKCommandQueue(this, CommandQueueType.Copy, CopyQueue, QueueFamilyIndices.Length > 2 ? QueueFamilyIndices[2] : QueueFamilyIndices[0]);
         validationLayer = useValidationLayer ? new VKValidationLayer(this) : null;
     }
 
