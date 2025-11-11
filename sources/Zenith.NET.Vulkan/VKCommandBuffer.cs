@@ -182,6 +182,17 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void SetResourceName(string name)
     {
+        using ZenithMarshal.Scope scope = new();
+
+        DebugUtilsObjectNameInfoEXT nameInfo = new()
+        {
+            SType = StructureType.DebugUtilsObjectNameInfoExt,
+            ObjectType = ObjectType.CommandBuffer,
+            ObjectHandle = (ulong)CommandBuffer.Handle,
+            PObjectName = (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8)
+        };
+
+        Context.DebugUtils?.SetDebugUtilsObjectName(Context.Device, &nameInfo).Success();
     }
 
     protected override void Destroy()
