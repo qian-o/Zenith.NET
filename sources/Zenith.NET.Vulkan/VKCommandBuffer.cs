@@ -9,9 +9,6 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     public VkCommandBuffer CommandBuffer;
 
-    private PipelineBindPoint currentPipelineBindPoint;
-    private PipelineLayout currentPipelineLayout;
-
     public VKCommandBuffer(VKGraphicsContext context, VKCommandQueue queue) : base(context, queue)
     {
         CommandPoolCreateInfo createInfo = new()
@@ -66,46 +63,44 @@ internal unsafe class VKCommandBuffer : CommandBuffer
     protected override void BindPipelineImpl(GraphicsPipeline pipeline)
     {
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Graphics, pipeline.Vulkan().Pipeline);
-
-        currentPipelineBindPoint = PipelineBindPoint.Graphics;
-        currentPipelineLayout = pipeline.Vulkan().PipelineLayout;
     }
 
     protected override void BindPipelineImpl(ComputePipeline pipeline)
     {
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Compute, pipeline.Vulkan().Pipeline);
-
-        currentPipelineBindPoint = PipelineBindPoint.Compute;
-        currentPipelineLayout = pipeline.Vulkan().PipelineLayout;
     }
 
     protected override void BindPipelineImpl(RayTracingPipeline pipeline)
     {
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.RayTracingKhr, pipeline.Vulkan().Pipeline);
-
-        currentPipelineBindPoint = PipelineBindPoint.RayTracingKhr;
-        currentPipelineLayout = pipeline.Vulkan().PipelineLayout;
     }
 
     protected override void BindPipelineImpl(MeshShadingPipeline pipeline)
     {
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Graphics, pipeline.Vulkan().Pipeline);
-
-        currentPipelineBindPoint = PipelineBindPoint.Graphics;
-        currentPipelineLayout = pipeline.Vulkan().PipelineLayout;
     }
 
     protected override void BindResourceSetsImpl(Pipeline pipeline, ResourceSet[] sets)
     {
         VKResourceSet[] vkSets = [.. sets.Select(static item => item.Vulkan())];
-        DescriptorSet[] vkDescriptorSets = [.. vkSets.Select(static item => item.DescriptorToken.DescriptorSet)];
 
         foreach (VKResourceSet vkSet in vkSets)
         {
             vkSet.TransitionLayout(this);
         }
 
-        Context.Vk.CmdBindDescriptorSets(CommandBuffer, currentPipelineBindPoint, currentPipelineLayout, 0, (uint)vkDescriptorSets.Length, ref vkDescriptorSets[0], 0, null);
+        (PipelineBindPoint pipelineBindPoint, PipelineLayout pipelineLayout) = pipeline switch
+        {
+            GraphicsPipeline graphicsPipeline => (PipelineBindPoint.Graphics, graphicsPipeline.Vulkan().PipelineLayout),
+            ComputePipeline computePipeline => (PipelineBindPoint.Compute, computePipeline.Vulkan().PipelineLayout),
+            RayTracingPipeline rayTracingPipeline => (PipelineBindPoint.RayTracingKhr, rayTracingPipeline.Vulkan().PipelineLayout),
+            MeshShadingPipeline meshShadingPipeline => (PipelineBindPoint.Graphics, meshShadingPipeline.Vulkan().PipelineLayout),
+            _ => (PipelineBindPoint.Graphics, default)
+        };
+
+        DescriptorSet[] vkDescriptorSets = [.. vkSets.Select(static item => item.DescriptorToken.DescriptorSet)];
+
+        Context.Vk.CmdBindDescriptorSets(CommandBuffer, pipelineBindPoint, pipelineLayout, 0, (uint)vkDescriptorSets.Length, ref vkDescriptorSets[0], 0, null);
     }
 
     protected override void BindVertexBuffersImpl(GraphicsPipeline pipeline, Buffer[] buffers, uint[] offsetsInBytes)
@@ -169,12 +164,9 @@ internal unsafe class VKCommandBuffer : CommandBuffer
     {
         VKRayTracingPipeline vkPipeline = pipeline.Vulkan();
 
-        StridedDeviceAddressRegionKHR rayGenerationRegion = vkPipeline.RayGenerationRegion;
-        StridedDeviceAddressRegionKHR missRegion = vkPipeline.MissRegion;
-        StridedDeviceAddressRegionKHR hitGroupsRegion = vkPipeline.HitGroupsRegion;
         StridedDeviceAddressRegionKHR callableRegion = new();
 
-        Context.RayTracingPipeline?.CmdTraceRays(CommandBuffer, &rayGenerationRegion, &missRegion, &hitGroupsRegion, &callableRegion, width, height, depth);
+        Context.RayTracingPipeline?.CmdTraceRays(CommandBuffer, ref vkPipeline.RayGenerationRegion, ref vkPipeline.MissRegion, ref vkPipeline.HitGroupsRegion, &callableRegion, width, height, depth);
     }
 
     protected override void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
