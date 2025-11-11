@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Silk.NET.Vulkan;
+﻿using Silk.NET.Vulkan;
 
 namespace Zenith.NET;
 
@@ -86,7 +85,7 @@ internal unsafe class VKDescriptorPool : GraphicsResource
             PPoolSizes = sizes
         };
 
-        context.Vk.CreateDescriptorPool(context.Device, &createInfo, null, (DescriptorPool*)Unsafe.AsPointer(ref Pool)).Success();
+        context.Vk.CreateDescriptorPool(context.Device, &createInfo, null, out Pool).Success();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;

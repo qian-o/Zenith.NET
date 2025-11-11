@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Silk.NET.Vulkan;
+﻿using Silk.NET.Vulkan;
 
 namespace Zenith.NET;
 
@@ -17,18 +16,21 @@ internal unsafe class VKDescriptorAllocator(VKGraphicsContext context) : Graphic
             available.Add(descriptorPool = new(context));
         }
 
-        DescriptorSetAllocateInfo allocateInfo = new()
+        fixed (DescriptorSetLayout* pSetLayouts = &resourceLayout.DescriptorSetLayout)
         {
-            SType = StructureType.DescriptorSetAllocateInfo,
-            DescriptorPool = descriptorPool.Pool,
-            DescriptorSetCount = 1,
-            PSetLayouts = (DescriptorSetLayout*)Unsafe.AsPointer(ref resourceLayout.DescriptorSetLayout),
-        };
+            DescriptorSetAllocateInfo allocateInfo = new()
+            {
+                SType = StructureType.DescriptorSetAllocateInfo,
+                DescriptorPool = descriptorPool.Pool,
+                DescriptorSetCount = 1,
+                PSetLayouts = pSetLayouts
+            };
 
-        DescriptorSet descriptorSet;
-        context.Vk.AllocateDescriptorSets(context.Device, &allocateInfo, &descriptorSet).Success();
+            DescriptorSet descriptorSet;
+            context.Vk.AllocateDescriptorSets(context.Device, &allocateInfo, &descriptorSet).Success();
 
-        return new(descriptorPool, descriptorSet);
+            return new(descriptorPool, descriptorSet);
+        }
     }
 
     public void Free(VKDescriptorToken token)

@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Silk.NET.Vulkan;
+﻿using Silk.NET.Vulkan;
 
 namespace Zenith.NET;
 
@@ -25,7 +24,7 @@ internal unsafe class VKTextureView : TextureView
             }
         };
 
-        context.Vk.CreateImageView(context.Device, &createInfo, null, (ImageView*)Unsafe.AsPointer(ref ImageView)).Success();
+        context.Vk.CreateImageView(context.Device, &createInfo, null, out ImageView).Success();
 
         SrvImageInfo = new()
         {
@@ -58,7 +57,7 @@ internal unsafe class VKTextureView : TextureView
             }
         };
 
-        context.Vk.CreateImageView(context.Device, &createInfo, null, (ImageView*)Unsafe.AsPointer(ref ImageView)).Success();
+        context.Vk.CreateImageView(context.Device, &createInfo, null, out ImageView).Success();
 
         SrvImageInfo = new()
         {

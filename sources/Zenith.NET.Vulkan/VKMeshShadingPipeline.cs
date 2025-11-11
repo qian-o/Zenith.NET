@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Silk.NET.Vulkan;
+﻿using Silk.NET.Vulkan;
 
 namespace Zenith.NET;
 
@@ -182,7 +181,7 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
                 PSetLayouts = setLayouts
             };
 
-            context.Vk.CreatePipelineLayout(context.Device, &pipelineLayoutCreateInfo, null, (PipelineLayout*)Unsafe.AsPointer(ref PipelineLayout)).Success();
+            context.Vk.CreatePipelineLayout(context.Device, &pipelineLayoutCreateInfo, null, out PipelineLayout).Success();
 
             createInfo.Layout = PipelineLayout;
         }
@@ -222,7 +221,7 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
 
         createInfo.PDynamicState = &dynamicState;
 
-        context.Vk.CreateGraphicsPipelines(context.Device, default, 1, &createInfo, null, (VkPipeline*)Unsafe.AsPointer(ref Pipeline)).Success();
+        context.Vk.CreateGraphicsPipelines(context.Device, default, 1, &createInfo, null, out Pipeline).Success();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;

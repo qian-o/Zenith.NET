@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Silk.NET.Vulkan;
+﻿using Silk.NET.Vulkan;
 
 namespace Zenith.NET;
 
@@ -22,7 +21,7 @@ internal unsafe class VKValidationLayer : ValidationLayer
             PfnUserCallback = new(UserCallback)
         };
 
-        context.DebugUtils?.CreateDebugUtilsMessenger(context.Instance, &createInfo, null, (DebugUtilsMessengerEXT*)Unsafe.AsPointer(ref messenger)).Success();
+        context.DebugUtils?.CreateDebugUtilsMessenger(context.Instance, &createInfo, null, out messenger).Success();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;

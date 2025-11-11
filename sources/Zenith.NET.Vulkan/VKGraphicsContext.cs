@@ -167,7 +167,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                 createInfo.PpEnabledLayerNames = (byte**)ZenithMarshal.StringArrayToPointer(scope, enabledLayers, StringEncoding.UTF8);
             }
 
-            Vk.CreateInstance(&createInfo, null, (Instance*)Unsafe.AsPointer(ref Instance)).Success();
+            Vk.CreateInstance(&createInfo, null, out Instance).Success();
 
             LamdaNativeContext context = new((proc) => Vk.GetInstanceProcAddr(Instance, (byte*)ZenithMarshal.StringToPointer(scope, proc, StringEncoding.UTF8)));
 
@@ -319,13 +319,13 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                 getQueues = () =>
                 {
                     Queue graphicsQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, (Queue*)Unsafe.AsPointer(ref graphicsQueue));
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
 
                     Queue computeQueue = default;
-                    Vk.GetDeviceQueue(Device, computeQueueFamilyIndex, 0, (Queue*)Unsafe.AsPointer(ref computeQueue));
+                    Vk.GetDeviceQueue(Device, computeQueueFamilyIndex, 0, &computeQueue);
 
                     Queue copyQueue = default;
-                    Vk.GetDeviceQueue(Device, copyQueueFamilyIndex, 0, (Queue*)Unsafe.AsPointer(ref copyQueue));
+                    Vk.GetDeviceQueue(Device, copyQueueFamilyIndex, 0, &copyQueue);
 
                     return (graphicsQueue, computeQueue, copyQueue, [graphicsQueueFamilyIndex, computeQueueFamilyIndex, copyQueueFamilyIndex]);
                 };
@@ -351,13 +351,13 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                 getQueues = () =>
                 {
                     Queue graphicsQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, (Queue*)Unsafe.AsPointer(ref graphicsQueue));
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
 
                     Queue computeQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 1, (Queue*)Unsafe.AsPointer(ref computeQueue));
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 1, &computeQueue);
 
                     Queue copyQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 2, (Queue*)Unsafe.AsPointer(ref copyQueue));
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 2, &copyQueue);
 
                     return (graphicsQueue, computeQueue, copyQueue, [graphicsQueueFamilyIndex]);
                 };
@@ -381,7 +381,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                 getQueues = () =>
                 {
                     Queue graphicsQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, (Queue*)Unsafe.AsPointer(ref graphicsQueue));
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
 
                     return (graphicsQueue, graphicsQueue, graphicsQueue, [graphicsQueueFamilyIndex]);
                 };
@@ -425,7 +425,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
             Vk.GetPhysicalDeviceFeatures2(PhysicalDevice, &features2);
 
-            Vk.CreateDevice(PhysicalDevice, &createInfo, null, (Device*)Unsafe.AsPointer(ref Device)).Success();
+            Vk.CreateDevice(PhysicalDevice, &createInfo, null, out Device).Success();
 
             (GraphicsQueue, ComputeQueue, CopyQueue, QueueFamilyIndices) = getQueues();
 

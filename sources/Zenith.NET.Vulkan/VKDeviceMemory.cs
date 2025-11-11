@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Silk.NET.Vulkan;
+﻿using Silk.NET.Vulkan;
 
 namespace Zenith.NET;
 
@@ -40,7 +39,7 @@ internal unsafe class VKDeviceMemory : GraphicsResource
         allocateInfo.AddNext(out MemoryAllocateFlagsInfo flagsInfo);
         flagsInfo.Flags = MemoryAllocateFlags.AddressBit;
 
-        context.Vk.AllocateMemory(context.Device, &allocateInfo, null, (DeviceMemory*)Unsafe.AsPointer(ref DeviceMemory)).Success();
+        context.Vk.AllocateMemory(context.Device, &allocateInfo, null, out DeviceMemory).Success();
 
         context.Vk.BindBufferMemory(context.Device, buffer.Buffer, DeviceMemory, 0).Success();
     }
@@ -75,7 +74,7 @@ internal unsafe class VKDeviceMemory : GraphicsResource
             dedicatedAllocateInfo.Image = texture.Image;
         }
 
-        context.Vk.AllocateMemory(context.Device, &allocateInfo, null, (DeviceMemory*)Unsafe.AsPointer(ref DeviceMemory)).Success();
+        context.Vk.AllocateMemory(context.Device, &allocateInfo, null, out DeviceMemory).Success();
 
         context.Vk.BindImageMemory(context.Device, texture.Image, DeviceMemory, 0).Success();
     }
@@ -114,7 +113,7 @@ internal unsafe class VKDeviceMemory : GraphicsResource
         handleInfo.HandleType = handleTypes;
         handleInfo.Handle = handle;
 
-        context.Vk.AllocateMemory(context.Device, &allocateInfo, null, (DeviceMemory*)Unsafe.AsPointer(ref DeviceMemory)).Success();
+        context.Vk.AllocateMemory(context.Device, &allocateInfo, null, out DeviceMemory).Success();
 
         context.Vk.BindImageMemory(context.Device, texture.Image, DeviceMemory, 0).Success();
     }

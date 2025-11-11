@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Silk.NET.Vulkan;
+﻿using Silk.NET.Vulkan;
 
 namespace Zenith.NET;
 
@@ -35,7 +34,7 @@ internal unsafe class VKTexture : Texture
             PQueueFamilyIndices = (uint*)pQueueFamilyIndices
         };
 
-        context.Vk.CreateImage(context.Device, &createInfo, null, (Image*)Unsafe.AsPointer(ref Image)).Success();
+        context.Vk.CreateImage(context.Device, &createInfo, null, out Image).Success();
 
         DeviceMemory = new(context, this);
 
@@ -100,7 +99,7 @@ internal unsafe class VKTexture : Texture
         createInfo.AddNext(out ExternalMemoryImageCreateInfo externalMemoryImageCreateInfo);
         externalMemoryImageCreateInfo.HandleTypes = handleTypes;
 
-        context.Vk.CreateImage(context.Device, &createInfo, null, (Image*)Unsafe.AsPointer(ref Image)).Success();
+        context.Vk.CreateImage(context.Device, &createInfo, null, out Image).Success();
 
         DeviceMemory = new(context, this, handleTypes, handle);
 

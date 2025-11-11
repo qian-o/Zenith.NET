@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Silk.NET.Vulkan;
+﻿using Silk.NET.Vulkan;
 
 namespace Zenith.NET;
 
@@ -15,18 +14,18 @@ internal unsafe class VKFence : GraphicsResource
             Flags = FenceCreateFlags.SignaledBit
         };
 
-        context.Vk.CreateFence(context.Device, &createInfo, null, (Fence*)Unsafe.AsPointer(ref Fence)).Success();
+        context.Vk.CreateFence(context.Device, &createInfo, null, out Fence).Success();
 
-        context.Vk.ResetFences(context.Device, 1, (Fence*)Unsafe.AsPointer(ref Fence)).Success();
+        context.Vk.ResetFences(context.Device, 1, ref Fence).Success();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
     public void Wait()
     {
-        Context.Vk.WaitForFences(Context.Device, 1, (Fence*)Unsafe.AsPointer(ref Fence), true, ulong.MaxValue).Success();
+        Context.Vk.WaitForFences(Context.Device, 1, ref Fence, true, ulong.MaxValue).Success();
 
-        Context.Vk.ResetFences(Context.Device, 1, (Fence*)Unsafe.AsPointer(ref Fence)).Success();
+        Context.Vk.ResetFences(Context.Device, 1, ref Fence).Success();
     }
 
     protected override void SetResourceName(string name)

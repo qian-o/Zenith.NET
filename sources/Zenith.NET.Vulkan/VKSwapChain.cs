@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using Silk.NET.Vulkan;
 
 namespace Zenith.NET;
@@ -13,7 +12,7 @@ internal unsafe class VKSwapChain : SwapChain
 
     public SwapchainKHR Swapchain;
 
-    public uint Index;
+    public uint ImageIndex;
 
     public VKSwapChain(VKGraphicsContext context, SwapChainDesc desc) : base(context, desc)
     {
@@ -26,32 +25,38 @@ internal unsafe class VKSwapChain : SwapChain
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
-    public override FrameBuffer FrameBuffer => swapChainFrameBuffer[Index];
+    public override FrameBuffer FrameBuffer => swapChainFrameBuffer[ImageIndex];
 
     public override void Present()
     {
         if (Swapchain.Handle is not 0)
         {
-            PresentInfoKHR presentInfo = new()
+            fixed (SwapchainKHR* pSwapchains = &Swapchain)
             {
-                SType = StructureType.PresentInfoKhr,
-                SwapchainCount = 1,
-                PSwapchains = (SwapchainKHR*)Unsafe.AsPointer(ref Swapchain),
-                PImageIndices = (uint*)Unsafe.AsPointer(ref Index)
-            };
+                fixed (uint* pImageIndices = &ImageIndex)
+                {
+                    PresentInfoKHR presentInfo = new()
+                    {
+                        SType = StructureType.PresentInfoKhr,
+                        SwapchainCount = 1,
+                        PSwapchains = pSwapchains,
+                        PImageIndices = pImageIndices
+                    };
 
-            Result result = Context.Swapchain?.QueuePresent(Context.GraphicsQueue, &presentInfo) ?? Result.ErrorInitializationFailed;
+                    Result result = Context.Swapchain?.QueuePresent(Context.GraphicsQueue, &presentInfo) ?? Result.ErrorInitializationFailed;
 
-            if (result is Result.ErrorOutOfDateKhr or Result.SuboptimalKhr)
-            {
-                CreateSwapChain();
+                    if (result is Result.ErrorOutOfDateKhr or Result.SuboptimalKhr)
+                    {
+                        CreateSwapChain();
 
-                return;
+                        return;
+                    }
+
+                    result.Success();
+
+                    AcquireNextImage();
+                }
             }
-
-            result.Success();
-
-            AcquireNextImage();
         }
     }
 
@@ -108,7 +113,7 @@ internal unsafe class VKSwapChain : SwapChain
                         Hwnd = Desc.Surface.Handles[0]
                     };
 
-                    Context.Win32Surface?.CreateWin32Surface(Context.Instance, &createInfo, null, (SurfaceKHR*)Unsafe.AsPointer(ref Surface)).Success();
+                    Context.Win32Surface?.CreateWin32Surface(Context.Instance, &createInfo, null, out Surface).Success();
                 }
                 break;
 
@@ -121,7 +126,7 @@ internal unsafe class VKSwapChain : SwapChain
                         Surface = (nint*)Desc.Surface.Handles[1]
                     };
 
-                    Context.WaylandSurface?.CreateWaylandSurface(Context.Instance, &createInfo, null, (SurfaceKHR*)Unsafe.AsPointer(ref Surface)).Success();
+                    Context.WaylandSurface?.CreateWaylandSurface(Context.Instance, &createInfo, null, out Surface).Success();
                 }
                 break;
 
@@ -134,7 +139,7 @@ internal unsafe class VKSwapChain : SwapChain
                         Window = Desc.Surface.Handles[1]
                     };
 
-                    Context.XlibSurface?.CreateXlibSurface(Context.Instance, &createInfo, null, (SurfaceKHR*)Unsafe.AsPointer(ref Surface)).Success();
+                    Context.XlibSurface?.CreateXlibSurface(Context.Instance, &createInfo, null, out Surface).Success();
                 }
                 break;
 
@@ -146,7 +151,7 @@ internal unsafe class VKSwapChain : SwapChain
                         Window = (nint*)Desc.Surface.Handles[0]
                     };
 
-                    Context.AndroidSurface?.CreateAndroidSurface(Context.Instance, &createInfo, null, (SurfaceKHR*)Unsafe.AsPointer(ref Surface)).Success();
+                    Context.AndroidSurface?.CreateAndroidSurface(Context.Instance, &createInfo, null, out Surface).Success();
                 }
                 break;
 
@@ -158,7 +163,7 @@ internal unsafe class VKSwapChain : SwapChain
                         PLayer = (nint*)Desc.Surface.Handles[0]
                     };
 
-                    Context.MetalSurface?.CreateMetalSurface(Context.Instance, &createInfo, null, (SurfaceKHR*)Unsafe.AsPointer(ref Surface)).Success();
+                    Context.MetalSurface?.CreateMetalSurface(Context.Instance, &createInfo, null, out Surface).Success();
                 }
                 break;
         }
@@ -271,7 +276,7 @@ internal unsafe class VKSwapChain : SwapChain
                 Clipped = true
             };
 
-            Context.Swapchain?.CreateSwapchain(Context.Device, &createInfo, null, (SwapchainKHR*)Unsafe.AsPointer(ref Swapchain)).Success();
+            Context.Swapchain?.CreateSwapchain(Context.Device, &createInfo, null, out Swapchain).Success();
 
             swapChainFrameBuffer.CreateFrameBuffers(createInfo.ImageExtent.Width, createInfo.ImageExtent.Height, []);
 
@@ -294,22 +299,25 @@ internal unsafe class VKSwapChain : SwapChain
             Swapchain = default;
         }
 
-        Index = 0;
+        ImageIndex = 0;
     }
 
     private void AcquireNextImage()
     {
-        Result result = Context.Swapchain?.AcquireNextImage(Context.Device, Swapchain, ulong.MaxValue, default, fence.Fence, (uint*)Unsafe.AsPointer(ref Index)) ?? Result.ErrorInitializationFailed;
-
-        if (result is Result.ErrorOutOfDateKhr or Result.SuboptimalKhr)
+        fixed (uint* pImageIndex = &ImageIndex)
         {
-            CreateSwapChain();
+            Result result = Context.Swapchain?.AcquireNextImage(Context.Device, Swapchain, ulong.MaxValue, default, fence.Fence, pImageIndex) ?? Result.ErrorInitializationFailed;
 
-            return;
+            if (result is Result.ErrorOutOfDateKhr or Result.SuboptimalKhr)
+            {
+                CreateSwapChain();
+
+                return;
+            }
+
+            result.Success();
+
+            fence.Wait();
         }
-
-        result.Success();
-
-        fence.Wait();
     }
 }

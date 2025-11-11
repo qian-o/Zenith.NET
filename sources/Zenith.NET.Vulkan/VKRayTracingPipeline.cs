@@ -101,12 +101,12 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
                 PSetLayouts = setLayouts
             };
 
-            context.Vk.CreatePipelineLayout(context.Device, &pipelineLayoutCreateInfo, null, (PipelineLayout*)Unsafe.AsPointer(ref PipelineLayout)).Success();
+            context.Vk.CreatePipelineLayout(context.Device, &pipelineLayoutCreateInfo, null, out PipelineLayout).Success();
 
             createInfo.Layout = PipelineLayout;
         }
 
-        context.RayTracingPipeline?.CreateRayTracingPipelines(context.Device, default, default, 1, &createInfo, null, (VkPipeline*)Unsafe.AsPointer(ref Pipeline)).Success();
+        context.RayTracingPipeline?.CreateRayTracingPipelines(context.Device, default, default, 1, &createInfo, null, out Pipeline).Success();
 
         const uint HandleSize = 32;
         const uint HandleSizeAligned = 64;

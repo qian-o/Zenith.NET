@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Silk.NET.Vulkan;
+﻿using Silk.NET.Vulkan;
 
 namespace Zenith.NET;
 
@@ -21,7 +20,7 @@ internal unsafe class VKShader : Shader
             PCode = (uint*)code
         };
 
-        context.Vk.CreateShaderModule(context.Device, &createInfo, null, (ShaderModule*)Unsafe.AsPointer(ref ShaderModule)).Success();
+        context.Vk.CreateShaderModule(context.Device, &createInfo, null, out ShaderModule).Success();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;

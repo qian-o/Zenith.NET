@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Silk.NET.Vulkan;
+﻿using Silk.NET.Vulkan;
 
 namespace Zenith.NET;
 
@@ -25,7 +24,7 @@ internal unsafe class VKBuffer : Buffer
             PQueueFamilyIndices = (uint*)pQueueFamilyIndices
         };
 
-        context.Vk.CreateBuffer(context.Device, &createInfo, null, (VkBuffer*)Unsafe.AsPointer(ref Buffer)).Success();
+        context.Vk.CreateBuffer(context.Device, &createInfo, null, out Buffer).Success();
 
         DeviceMemory = new(context, this);
 
@@ -62,7 +61,7 @@ internal unsafe class VKBuffer : Buffer
             PQueueFamilyIndices = (uint*)pQueueFamilyIndices
         };
 
-        context.Vk.CreateBuffer(context.Device, &createInfo, null, (VkBuffer*)Unsafe.AsPointer(ref Buffer)).Success();
+        context.Vk.CreateBuffer(context.Device, &createInfo, null, out Buffer).Success();
 
         DeviceMemory = new(context, this);
 

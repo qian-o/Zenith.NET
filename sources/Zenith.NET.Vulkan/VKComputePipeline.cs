@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Silk.NET.Vulkan;
+﻿using Silk.NET.Vulkan;
 
 namespace Zenith.NET;
 
@@ -34,12 +33,12 @@ internal unsafe class VKComputePipeline : ComputePipeline
                 PSetLayouts = setLayouts
             };
 
-            context.Vk.CreatePipelineLayout(context.Device, &pipelineLayoutCreateInfo, null, (PipelineLayout*)Unsafe.AsPointer(ref PipelineLayout)).Success();
+            context.Vk.CreatePipelineLayout(context.Device, &pipelineLayoutCreateInfo, null, out PipelineLayout).Success();
 
             createInfo.Layout = PipelineLayout;
         }
 
-        context.Vk.CreateComputePipelines(context.Device, default, 1, &createInfo, null, (VkPipeline*)Unsafe.AsPointer(ref Pipeline)).Success();
+        context.Vk.CreateComputePipelines(context.Device, default, 1, &createInfo, null, out Pipeline).Success();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;

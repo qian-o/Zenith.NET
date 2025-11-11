@@ -28,7 +28,7 @@ internal unsafe class VKSampler : Sampler
             BorderColor = VKFormats.Vulkan(desc.BorderColor)
         };
 
-        context.Vk.CreateSampler(context.Device, &createInfo, null, (VkSampler*)Unsafe.AsPointer(ref Sampler)).Success();
+        context.Vk.CreateSampler(context.Device, &createInfo, null, out Sampler).Success();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;

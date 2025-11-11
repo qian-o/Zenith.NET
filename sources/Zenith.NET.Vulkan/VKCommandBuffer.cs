@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using System.Runtime.CompilerServices;
 using Silk.NET.Vulkan;
 
 namespace Zenith.NET;
@@ -22,7 +21,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
             QueueFamilyIndex = queue.QueueFamilyIndex
         };
 
-        context.Vk.CreateCommandPool(context.Device, &createInfo, null, (CommandPool*)Unsafe.AsPointer(ref CommandPool)).Success();
+        context.Vk.CreateCommandPool(context.Device, &createInfo, null, out CommandPool).Success();
 
         CommandBufferAllocateInfo allocateInfo = new()
         {
@@ -32,7 +31,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
             CommandBufferCount = 1
         };
 
-        context.Vk.AllocateCommandBuffers(context.Device, &allocateInfo, (VkCommandBuffer*)Unsafe.AsPointer(ref CommandBuffer)).Success();
+        context.Vk.AllocateCommandBuffers(context.Device, &allocateInfo, out CommandBuffer).Success();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
@@ -106,7 +105,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
             vkSet.TransitionLayout(this);
         }
 
-        Context.Vk.CmdBindDescriptorSets(CommandBuffer, currentPipelineBindPoint, currentPipelineLayout, 0, (uint)vkDescriptorSets.Length, (DescriptorSet*)Unsafe.AsPointer(ref vkDescriptorSets[0]), 0, null);
+        Context.Vk.CmdBindDescriptorSets(CommandBuffer, currentPipelineBindPoint, currentPipelineLayout, 0, (uint)vkDescriptorSets.Length, ref vkDescriptorSets[0], 0, null);
     }
 
     protected override void BindVertexBuffersImpl(GraphicsPipeline pipeline, Buffer[] buffers, uint[] offsetsInBytes)
@@ -114,7 +113,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         VkBuffer[] vkBuffers = [.. buffers.Select(static item => item.Vulkan().Buffer)];
         ulong[] vkOffsets = [.. offsetsInBytes.Select(static item => (ulong)item)];
 
-        Context.Vk.CmdBindVertexBuffers(CommandBuffer, 0, (uint)vkBuffers.Length, (VkBuffer*)Unsafe.AsPointer(ref vkBuffers[0]), (ulong*)Unsafe.AsPointer(ref vkOffsets[0]));
+        Context.Vk.CmdBindVertexBuffers(CommandBuffer, 0, (uint)vkBuffers.Length, ref vkBuffers[0], ref vkOffsets[0]);
     }
 
     protected override void BindIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format)
@@ -126,14 +125,14 @@ internal unsafe class VKCommandBuffer : CommandBuffer
     {
         Rect2D[] vkScissors = [.. scissors.Select(static item => new Rect2D(new(item.X, item.Y), new(item.Width, item.Height)))];
 
-        Context.Vk.CmdSetScissor(CommandBuffer, 0, (uint)vkScissors.Length, (Rect2D*)Unsafe.AsPointer(ref vkScissors[0]));
+        Context.Vk.CmdSetScissor(CommandBuffer, 0, (uint)vkScissors.Length, ref vkScissors[0]);
     }
 
     protected override void SetViewportsImpl(Viewport[] viewports)
     {
         VkViewport[] vkViewports = [.. viewports.Select(static item => new VkViewport(item.X, item.Y, item.Width, -item.Height, item.MinDepth, item.MaxDepth))];
 
-        Context.Vk.CmdSetViewport(CommandBuffer, 0, (uint)vkViewports.Length, (VkViewport*)Unsafe.AsPointer(ref vkViewports[0]));
+        Context.Vk.CmdSetViewport(CommandBuffer, 0, (uint)vkViewports.Length, ref vkViewports[0]);
     }
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
@@ -261,9 +260,11 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void BeginRenderingImpl(FrameBuffer frameBuffer, ClearValue? clearValue)
     {
-        frameBuffer.Vulkan().TransitionLayout(this);
+        VKFrameBuffer vkFrameBuffer = frameBuffer.Vulkan();
 
-        Context.Vk.CmdBeginRendering(CommandBuffer, (RenderingInfo*)Unsafe.AsPointer(ref frameBuffer.Vulkan().RenderingInfo));
+        vkFrameBuffer.TransitionLayout(this);
+
+        Context.Vk.CmdBeginRendering(CommandBuffer, ref vkFrameBuffer.RenderingInfo);
 
         if (clearValue.HasValue)
         {
@@ -277,8 +278,8 @@ internal unsafe class VKCommandBuffer : CommandBuffer
                 {
                     Extent = new()
                     {
-                        Width = frameBuffer.Width,
-                        Height = frameBuffer.Height
+                        Width = vkFrameBuffer.Width,
+                        Height = vkFrameBuffer.Height
                     }
                 },
                 LayerCount = 1

@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Silk.NET.Vulkan;
+﻿using Silk.NET.Vulkan;
 
 namespace Zenith.NET;
 
@@ -16,7 +15,7 @@ internal unsafe class VKQueryHeap : QueryHeap
             QueryCount = desc.Count
         };
 
-        context.Vk.CreateQueryPool(context.Device, &createInfo, null, (QueryPool*)Unsafe.AsPointer(ref QueryPool)).Success();
+        context.Vk.CreateQueryPool(context.Device, &createInfo, null, out QueryPool).Success();
 
         context.Vk.ResetQueryPool(context.Device, QueryPool, 0, desc.Count);
     }
@@ -25,14 +24,17 @@ internal unsafe class VKQueryHeap : QueryHeap
 
     protected override void GetResultsImpl(Span<ulong> results, uint startIndex)
     {
-        Context.Vk.GetQueryPoolResults(Context.Device,
-                                       QueryPool,
-                                       startIndex,
-                                       (uint)results.Length,
-                                       (uint)(results.Length * 64),
-                                       Unsafe.AsPointer(ref results[0]),
-                                       64,
-                                       QueryResultFlags.Result64Bit).Success();
+        fixed (ulong* pResults = results)
+        {
+            Context.Vk.GetQueryPoolResults(Context.Device,
+                                           QueryPool,
+                                           startIndex,
+                                           (uint)results.Length,
+                                           (uint)(results.Length * 64),
+                                           pResults,
+                                           64,
+                                           QueryResultFlags.Result64Bit).Success();
+        }
     }
 
     protected override void SetResourceName(string name)

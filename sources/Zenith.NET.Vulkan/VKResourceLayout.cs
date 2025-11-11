@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Silk.NET.Vulkan;
+﻿using Silk.NET.Vulkan;
 
 namespace Zenith.NET;
 
@@ -68,7 +67,7 @@ internal unsafe class VKResourceLayout : ResourceLayout
             PBindings = bindings
         };
 
-        context.Vk.CreateDescriptorSetLayout(context.Device, &createInfo, null, (DescriptorSetLayout*)Unsafe.AsPointer(ref DescriptorSetLayout)).Success();
+        context.Vk.CreateDescriptorSetLayout(context.Device, &createInfo, null, out DescriptorSetLayout).Success();
 
         Counts = new(uniformBufferCount, storageBufferCount, sampledImageCount, storageImageCount, samplerCount, accelerationStructureCount);
     }
