@@ -11,8 +11,4 @@ public record struct TextureViewDesc
     public uint FirstLayer;
 
     public uint LayerCount;
-
-    public uint FirstFace;
-
-    public uint FaceCount;
 }

@@ -42,10 +42,10 @@ internal unsafe class VKTexture : Texture
         View = new(context, new()
         {
             Texture = this,
-            FirstLayer = 0,
-            LayerCount = desc.Layers,
             FirstMipLevel = 0,
-            MipLevelCount = desc.MipLevels
+            MipLevelCount = desc.MipLevels,
+            FirstLayer = 0,
+            LayerCount = desc.Layers
         });
 
         Layouts = new ImageLayout[ZenithHelper.SubresourceCount(desc)];
@@ -59,10 +59,10 @@ internal unsafe class VKTexture : Texture
         View = new(context, new()
         {
             Texture = this,
-            FirstLayer = 0,
-            LayerCount = desc.Layers,
             FirstMipLevel = 0,
-            MipLevelCount = desc.MipLevels
+            MipLevelCount = desc.MipLevels,
+            FirstLayer = 0,
+            LayerCount = desc.Layers
         });
 
         Layouts = new ImageLayout[ZenithHelper.SubresourceCount(desc)];
@@ -107,10 +107,10 @@ internal unsafe class VKTexture : Texture
         View = new(context, new()
         {
             Texture = this,
-            FirstLayer = 0,
-            LayerCount = desc.Layers,
             FirstMipLevel = 0,
-            MipLevelCount = desc.MipLevels
+            MipLevelCount = desc.MipLevels,
+            FirstLayer = 0,
+            LayerCount = desc.Layers
         });
 
         Layouts = new ImageLayout[ZenithHelper.SubresourceCount(desc)];
@@ -131,7 +131,7 @@ internal unsafe class VKTexture : Texture
         {
             AspectMask = VKFormats.Vulkan(Desc.Flags).ImageAspectFlags,
             MipLevel = slice.MipLevel,
-            ArrayLayer = ZenithHelper.ArrayLayerIndex(Desc, slice),
+            ArrayLayer = ZenithHelper.ArrayLayerIndex(Desc, slice)
         };
 
         SubresourceLayout layout = default;
@@ -154,51 +154,49 @@ internal unsafe class VKTexture : Texture
         Context.Vk.UnmapMemory(Context.Device, DeviceMemory?.DeviceMemory ?? default);
     }
 
-    public void TransitionLayout(VKCommandBuffer commandBuffer, uint firstLayer, uint layerCount, uint firstMipLevel, uint mipLevelCount, ImageLayout newLayout)
+    public void TransitionLayout(VKCommandBuffer commandBuffer, uint firstMipLevel, uint mipLevelCount, uint firstLayer, uint layerCount, uint firstFace, uint faceCount, ImageLayout newLayout)
     {
-        uint faces = Desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : 1u;
-
-        for (uint i = 0; i < layerCount; i++)
+        for (uint i = 0; i < mipLevelCount; i++)
         {
-            for (uint j = 0; j < mipLevelCount; j++)
+            for (uint j = 0; j < layerCount; j++)
             {
-                uint index = ZenithHelper.SubresourceIndex(Desc, new() { Layer = firstLayer + i, MipLevel = firstMipLevel + j });
-
-                ImageLayout oldLayout = Layouts[index];
-
-                if (oldLayout == newLayout)
+                for (uint k = 0; k < faceCount; k++)
                 {
-                    continue;
-                }
+                    TextureSlice slice = new() { MipLevel = firstMipLevel + i, Layer = firstLayer + j, Face = firstFace + k };
 
-                AccessFlags srcAccessMask = AccessFlags.None;
-                AccessFlags dstAccessMask = AccessFlags.None;
-                PipelineStageFlags srcStageMask = PipelineStageFlags.None;
-                PipelineStageFlags dstStageMask = PipelineStageFlags.None;
+                    uint index = ZenithHelper.SubresourceIndex(Desc, slice);
 
-                ImageMemoryBarrier imageMemoryBarrier = new()
-                {
-                    SType = StructureType.ImageMemoryBarrier,
-                    SrcAccessMask = srcAccessMask,
-                    DstAccessMask = dstAccessMask,
-                    OldLayout = oldLayout,
-                    NewLayout = newLayout,
-                    Image = Image,
-                    SubresourceRange = new()
+                    ImageLayout oldLayout = Layouts[index];
+
+                    if (oldLayout == newLayout)
                     {
-                        AspectMask = VKFormats.Vulkan(Desc.Flags).ImageAspectFlags,
-                        BaseMipLevel = firstMipLevel + j,
-                        LevelCount = 1,
-                        BaseArrayLayer = ZenithHelper.ArrayLayerIndex(Desc, new() { Layer = firstLayer + i }),
-                        LayerCount = faces
+                        continue;
                     }
-                };
 
-                Context.Vk.CmdPipelineBarrier(commandBuffer.CommandBuffer, srcStageMask, dstStageMask, DependencyFlags.None, 0, null, 0, null, 1, &imageMemoryBarrier);
+                    AccessFlags srcAccessMask = AccessFlags.None;
+                    AccessFlags dstAccessMask = AccessFlags.None;
+                    PipelineStageFlags srcStageMask = PipelineStageFlags.None;
+                    PipelineStageFlags dstStageMask = PipelineStageFlags.None;
 
-                for (uint face = 0; face < faces; face++)
-                {
-                    Layouts[index + face] = newLayout;
+                    ImageMemoryBarrier imageMemoryBarrier = new()
+                    {
+                        SType = StructureType.ImageMemoryBarrier,
+                        SrcAccessMask = srcAccessMask,
+                        DstAccessMask = dstAccessMask,
+                        OldLayout = oldLayout,
+                        NewLayout = newLayout,
+                        Image = Image,
+                        SubresourceRange = new()
+                        {
+                            AspectMask = VKFormats.Vulkan(Desc.Flags).ImageAspectFlags,
+                            BaseMipLevel = slice.MipLevel,
+                            LevelCount = 1,
+                            BaseArrayLayer = ZenithHelper.ArrayLayerIndex(Desc, slice),
+                            LayerCount = 1
+                        }
+                    };
+
+                    Context.Vk.CmdPipelineBarrier(commandBuffer.CommandBuffer, srcStageMask, dstStageMask, DependencyFlags.None, 0, null, 0, null, 1, &imageMemoryBarrier);
                 }
             }
         }

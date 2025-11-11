@@ -191,39 +191,34 @@ public static class ZenithHelper
         return RowPitch(width, format) * NumRows(height, format);
     }
 
+    public static uint FaceCount(TextureDesc desc)
+    {
+        return desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : 1u;
+    }
+
     public static uint ArrayLayerCount(TextureDesc desc)
     {
-        uint faces = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : 1u;
-
-        return desc.Layers * faces;
+        return desc.Layers * FaceCount(desc);
     }
 
     public static uint ArrayLayerIndex(TextureDesc desc, TextureSlice slice)
     {
-        uint faces = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : 1u;
-
-        return (slice.Layer * faces) + slice.Face;
+        return (slice.Layer * FaceCount(desc)) + slice.Face;
     }
 
     public static (uint ArrayLayerIndex, uint ArrayLayerCount) ArrayLayerRange(TextureViewDesc desc)
     {
-        uint faces = desc.Texture.Desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : 1u;
-
-        return (desc.FirstLayer * faces, desc.LayerCount * faces);
+        return (desc.FirstLayer * FaceCount(desc.Texture.Desc), desc.LayerCount * FaceCount(desc.Texture.Desc));
     }
 
     public static uint SubresourceCount(TextureDesc desc)
     {
-        uint faces = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : 1u;
-
-        return desc.Layers * desc.MipLevels * faces;
+        return desc.MipLevels * desc.Layers * FaceCount(desc);
     }
 
     public static uint SubresourceIndex(TextureDesc desc, TextureSlice slice)
     {
-        uint faces = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : 1u;
-
-        return (slice.Layer * desc.MipLevels * faces) + (slice.MipLevel * faces) + slice.Face;
+        return (slice.MipLevel * desc.Layers * FaceCount(desc)) + (slice.Layer * FaceCount(desc)) + slice.Face;
     }
 
     public static uint SubresourceSizeInBytes(TextureDesc desc, TextureSlice slice)

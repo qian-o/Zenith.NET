@@ -48,7 +48,7 @@ internal unsafe class VKTextureView : TextureView
 
     public void TransitionLayout(VKCommandBuffer commandBuffer, ImageLayout newLayout)
     {
-        Desc.Texture.Vulkan().TransitionLayout(commandBuffer, Desc.FirstLayer, Desc.LayerCount, Desc.FirstMipLevel, Desc.MipLevelCount, newLayout);
+        Desc.Texture.Vulkan().TransitionLayout(commandBuffer, Desc.FirstMipLevel, Desc.MipLevelCount, Desc.FirstLayer, Desc.LayerCount, 0, ZenithHelper.FaceCount(Desc.Texture.Desc), newLayout);
     }
 
     protected override void SetResourceName(string name)

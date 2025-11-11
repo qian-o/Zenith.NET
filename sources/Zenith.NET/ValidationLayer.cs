@@ -345,16 +345,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "TextureViewDesc.LayerCount", "the texture layers"));
         }
-
-        if (desc.FirstFace >= ValidationConstants.CubeMapFaceCount)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, "TextureViewDesc.FirstFace", ValidationConstants.CubeMapFaceCount));
-        }
-
-        if (desc.FaceCount is 0 || desc.FirstFace + desc.FaceCount > ValidationConstants.CubeMapFaceCount)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "TextureViewDesc.FaceCount", "the cube map faces"));
-        }
     }
 
     internal void ValidateDesc(SamplerDesc desc)

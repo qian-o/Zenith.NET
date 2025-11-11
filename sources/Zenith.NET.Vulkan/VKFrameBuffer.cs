@@ -36,10 +36,10 @@ internal unsafe class VKFrameBuffer : FrameBuffer
             VKTextureView textureView = new(context, new()
             {
                 Texture = attachment.Target,
-                FirstLayer = attachment.Slice.Layer,
-                LayerCount = 1,
                 FirstMipLevel = attachment.Slice.MipLevel,
-                MipLevelCount = 1
+                MipLevelCount = 1,
+                FirstLayer = attachment.Slice.Layer,
+                LayerCount = 1
             });
 
             colorAttachmentInfos[i] = new()
@@ -68,10 +68,10 @@ internal unsafe class VKFrameBuffer : FrameBuffer
             VKTextureView textureView = new(context, new()
             {
                 Texture = attachment.Target,
-                FirstLayer = attachment.Slice.Layer,
-                LayerCount = 1,
                 FirstMipLevel = attachment.Slice.MipLevel,
-                MipLevelCount = 1
+                MipLevelCount = 1,
+                FirstLayer = attachment.Slice.Layer,
+                LayerCount = 1
             });
 
             depthStencilAttachmentInfo[0] = new()
