@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using Silk.NET.Vulkan;
 
 namespace Zenith.NET;
@@ -182,6 +183,70 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         frameBuffer.Vulkan().TransitionLayout(this);
 
         Context.Vk.CmdBeginRendering(CommandBuffer, (RenderingInfo*)Unsafe.AsPointer(ref frameBuffer.Vulkan().RenderingInfo));
+
+        if (clearValue.HasValue)
+        {
+            bool clearColor = clearValue.Value.Flags.HasFlag(ClearFlags.Color);
+            bool clearDepth = clearValue.Value.Flags.HasFlag(ClearFlags.Depth);
+            bool clearStencil = clearValue.Value.Flags.HasFlag(ClearFlags.Stencil);
+
+            ClearRect rect = new()
+            {
+                Rect = new()
+                {
+                    Extent = new()
+                    {
+                        Width = frameBuffer.Width,
+                        Height = frameBuffer.Height
+                    }
+                },
+                LayerCount = 1
+            };
+
+            if (clearColor)
+            {
+                for (int i = 0; i < clearValue.Value.ColorValues.Length; i++)
+                {
+                    Vector4 color = clearValue.Value.ColorValues[i];
+
+                    ClearAttachment attachment = new()
+                    {
+                        AspectMask = ImageAspectFlags.ColorBit,
+                        ColorAttachment = (uint)i,
+                        ClearValue = new()
+                        {
+                            Color = new()
+                            {
+                                Float32_0 = color.X,
+                                Float32_1 = color.Y,
+                                Float32_2 = color.Z,
+                                Float32_3 = color.W
+                            }
+                        }
+                    };
+
+                    Context.Vk.CmdClearAttachments(CommandBuffer, 1, &attachment, 1, &rect);
+                }
+            }
+
+            if (clearDepth || clearStencil)
+            {
+                ClearAttachment attachment = new()
+                {
+                    AspectMask = (clearDepth ? ImageAspectFlags.DepthBit : 0) | (clearStencil ? ImageAspectFlags.StencilBit : 0),
+                    ClearValue = new()
+                    {
+                        DepthStencil = new()
+                        {
+                            Depth = clearValue.Value.Depth,
+                            Stencil = clearValue.Value.Stencil
+                        }
+                    }
+                };
+
+                Context.Vk.CmdClearAttachments(CommandBuffer, 1, &attachment, 1, &rect);
+            }
+        }
     }
 
     protected override void EndRenderingImpl()
