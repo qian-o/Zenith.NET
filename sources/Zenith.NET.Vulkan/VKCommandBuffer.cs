@@ -60,10 +60,6 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         accelerationStructure.Vulkan().Update(this, newDesc);
     }
 
-    protected override void BindFrameBufferImpl(FrameBuffer frameBuffer, ClearValue clearValue)
-    {
-    }
-
     protected override void BindPipelineImpl(GraphicsPipeline pipeline)
     {
     }
@@ -80,7 +76,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
     {
     }
 
-    protected override void BindResourceSetsImpl(ResourceSet[] sets)
+    protected override void BindResourceSetsImpl(Pipeline pipeline, ResourceSet[] sets)
     {
     }
 
@@ -181,7 +177,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         Context.Vk.ResetCommandBuffer(CommandBuffer, CommandBufferResetFlags.None).Success();
     }
 
-    protected override void BeginRenderingImpl(FrameBuffer frameBuffer)
+    protected override void BeginRenderingImpl(FrameBuffer frameBuffer, ClearValue? clearValue)
     {
         frameBuffer.Vulkan().TransitionLayout(this);
 
