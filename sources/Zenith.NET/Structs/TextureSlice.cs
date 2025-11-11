@@ -2,9 +2,9 @@
 
 public record struct TextureSlice
 {
-    public uint Layer;
-
     public uint MipLevel;
+
+    public uint Layer;
 
     public uint Face;
 }

@@ -187,14 +187,14 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 return;
             }
 
-            if (frameBufferAttachment.Slice.Layer >= frameBufferAttachment.Target.Desc.Layers)
-            {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.Layer", "the number of layers in the texture"));
-            }
-
             if (frameBufferAttachment.Slice.MipLevel >= frameBufferAttachment.Target.Desc.MipLevels)
             {
                 ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.MipLevel", "the number of mip levels in the texture"));
+            }
+
+            if (frameBufferAttachment.Slice.Layer >= frameBufferAttachment.Target.Desc.Layers)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.Layer", "the number of layers in the texture"));
             }
 
             if (frameBufferAttachment.Slice.Face >= ValidationConstants.CubeMapFaceCount)
@@ -289,14 +289,14 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "TextureDesc dimensions (Width, Height, Depth)"));
         }
 
-        if (desc.Layers is 0)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "TextureDesc.Layers"));
-        }
-
         if (desc.MipLevels is 0)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "TextureDesc.MipLevels"));
+        }
+
+        if (desc.Layers is 0)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "TextureDesc.Layers"));
         }
 
         if (!Enum.IsDefined(desc.SampleCount))
@@ -326,6 +326,16 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             return;
         }
 
+        if (desc.FirstMipLevel >= desc.Texture.Desc.MipLevels)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, "TextureViewDesc.FirstMipLevel", "the number of mip levels in the texture"));
+        }
+
+        if (desc.MipLevelCount is 0 || desc.FirstMipLevel + desc.MipLevelCount > desc.Texture.Desc.MipLevels)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "TextureViewDesc.MipLevelCount", "the texture mip levels"));
+        }
+
         if (desc.FirstLayer >= desc.Texture.Desc.Layers)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, "TextureViewDesc.FirstLayer", "the number of layers in the texture"));
@@ -336,14 +346,14 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "TextureViewDesc.LayerCount", "the texture layers"));
         }
 
-        if (desc.FirstMipLevel >= desc.Texture.Desc.MipLevels)
+        if (desc.FirstFace >= ValidationConstants.CubeMapFaceCount)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, "TextureViewDesc.FirstMipLevel", "the number of mip levels in the texture"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, "TextureViewDesc.FirstFace", ValidationConstants.CubeMapFaceCount));
         }
 
-        if (desc.MipLevelCount is 0 || desc.FirstMipLevel + desc.MipLevelCount > desc.Texture.Desc.MipLevels)
+        if (desc.FaceCount is 0 || desc.FirstFace + desc.FaceCount > ValidationConstants.CubeMapFaceCount)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "TextureViewDesc.MipLevelCount", "the texture mip levels"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "TextureViewDesc.FaceCount", "the cube map faces"));
         }
     }
 
