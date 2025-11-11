@@ -182,8 +182,7 @@ internal unsafe class VKSwapChain : SwapChain
         {
             using ZenithMarshal.Scope scope = new();
 
-            uint* queueFamilyIndices = (uint*)ZenithMarshal.Allocate<uint>(scope, (uint)Context.QueueFamilyIndices.Length);
-            Context.QueueFamilyIndices.CopyTo(new Span<uint>(queueFamilyIndices, Context.QueueFamilyIndices.Length));
+            (SharingMode sharingMode, uint queueFamilyIndexCount, nint pQueueFamilyIndices) = Context.GetSharingModeInfo(scope);
 
             SurfaceCapabilitiesKHR capabilities = default;
             Context.Surface?.GetPhysicalDeviceSurfaceCapabilities(Context.PhysicalDevice, Surface, &capabilities).Success();
@@ -263,9 +262,9 @@ internal unsafe class VKSwapChain : SwapChain
                 ImageExtent = imageExtent,
                 ImageArrayLayers = 1,
                 ImageUsage = ImageUsageFlags.ColorAttachmentBit,
-                ImageSharingMode = Context.QueueFamilyIndices.Length is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
-                QueueFamilyIndexCount = (uint)Context.QueueFamilyIndices.Length,
-                PQueueFamilyIndices = queueFamilyIndices,
+                ImageSharingMode = sharingMode,
+                QueueFamilyIndexCount = queueFamilyIndexCount,
+                PQueueFamilyIndices = (uint*)pQueueFamilyIndices,
                 PreTransform = preTransform,
                 CompositeAlpha = compositeAlpha,
                 PresentMode = presentMode,

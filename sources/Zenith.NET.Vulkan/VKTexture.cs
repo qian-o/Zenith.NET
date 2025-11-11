@@ -11,8 +11,7 @@ internal unsafe class VKTexture : Texture
     {
         using ZenithMarshal.Scope scope = new();
 
-        uint* queueFamilyIndices = (uint*)ZenithMarshal.Allocate<uint>(scope, (uint)context.QueueFamilyIndices.Length);
-        context.QueueFamilyIndices.CopyTo(new Span<uint>(queueFamilyIndices, context.QueueFamilyIndices.Length));
+        (SharingMode sharingMode, uint queueFamilyIndexCount, nint pQueueFamilyIndices) = context.GetSharingModeInfo(scope);
 
         ImageCreateInfo createInfo = new()
         {
@@ -31,9 +30,9 @@ internal unsafe class VKTexture : Texture
             Samples = VKFormats.Vulkan(desc.SampleCount),
             Tiling = desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? ImageTiling.Linear : ImageTiling.Optimal,
             Usage = VKFormats.Vulkan(desc.Flags).ImageUsageFlags,
-            SharingMode = context.QueueFamilyIndices.Length is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
-            QueueFamilyIndexCount = (uint)context.QueueFamilyIndices.Length,
-            PQueueFamilyIndices = queueFamilyIndices
+            SharingMode = sharingMode,
+            QueueFamilyIndexCount = queueFamilyIndexCount,
+            PQueueFamilyIndices = (uint*)pQueueFamilyIndices
         };
 
         context.Vk.CreateImage(context.Device, &createInfo, null, (Image*)Unsafe.AsPointer(ref Image)).Success();
@@ -74,8 +73,7 @@ internal unsafe class VKTexture : Texture
     {
         using ZenithMarshal.Scope scope = new();
 
-        uint* queueFamilyIndices = (uint*)ZenithMarshal.Allocate<uint>(scope, (uint)context.QueueFamilyIndices.Length);
-        context.QueueFamilyIndices.CopyTo(new Span<uint>(queueFamilyIndices, context.QueueFamilyIndices.Length));
+        (SharingMode sharingMode, uint queueFamilyIndexCount, nint pQueueFamilyIndices) = context.GetSharingModeInfo(scope);
 
         ImageCreateInfo createInfo = new()
         {
@@ -94,9 +92,9 @@ internal unsafe class VKTexture : Texture
             Samples = VKFormats.Vulkan(desc.SampleCount),
             Tiling = desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? ImageTiling.Linear : ImageTiling.Optimal,
             Usage = VKFormats.Vulkan(desc.Flags).ImageUsageFlags,
-            SharingMode = context.QueueFamilyIndices.Length is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
-            QueueFamilyIndexCount = (uint)context.QueueFamilyIndices.Length,
-            PQueueFamilyIndices = queueFamilyIndices
+            SharingMode = sharingMode,
+            QueueFamilyIndexCount = queueFamilyIndexCount,
+            PQueueFamilyIndices = (uint*)pQueueFamilyIndices
         };
 
         createInfo.AddNext(out ExternalMemoryImageCreateInfo externalMemoryImageCreateInfo);

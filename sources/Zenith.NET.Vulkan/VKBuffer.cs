@@ -13,17 +13,16 @@ internal unsafe class VKBuffer : Buffer
     {
         using ZenithMarshal.Scope scope = new();
 
-        uint* queueFamilyIndices = (uint*)ZenithMarshal.Allocate<uint>(scope, (uint)context.QueueFamilyIndices.Length);
-        context.QueueFamilyIndices.CopyTo(new Span<uint>(queueFamilyIndices, context.QueueFamilyIndices.Length));
+        (SharingMode sharingMode, uint queueFamilyIndexCount, nint pQueueFamilyIndices) = context.GetSharingModeInfo(scope);
 
         BufferCreateInfo createInfo = new()
         {
             SType = StructureType.BufferCreateInfo,
             Size = desc.SizeInBytes,
             Usage = VKFormats.Vulkan(desc.Flags) | VkBufferUsageFlags.TransferSrcBit | VkBufferUsageFlags.TransferDstBit | VkBufferUsageFlags.ShaderDeviceAddressBit,
-            SharingMode = context.QueueFamilyIndices.Length is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
-            QueueFamilyIndexCount = (uint)context.QueueFamilyIndices.Length,
-            PQueueFamilyIndices = queueFamilyIndices
+            SharingMode = sharingMode,
+            QueueFamilyIndexCount = queueFamilyIndexCount,
+            PQueueFamilyIndices = (uint*)pQueueFamilyIndices
         };
 
         context.Vk.CreateBuffer(context.Device, &createInfo, null, (VkBuffer*)Unsafe.AsPointer(ref Buffer)).Success();
@@ -51,17 +50,16 @@ internal unsafe class VKBuffer : Buffer
     {
         using ZenithMarshal.Scope scope = new();
 
-        uint* queueFamilyIndices = (uint*)ZenithMarshal.Allocate<uint>(scope, (uint)context.QueueFamilyIndices.Length);
-        context.QueueFamilyIndices.CopyTo(new Span<uint>(queueFamilyIndices, context.QueueFamilyIndices.Length));
+        (SharingMode sharingMode, uint queueFamilyIndexCount, nint pQueueFamilyIndices) = context.GetSharingModeInfo(scope);
 
         BufferCreateInfo createInfo = new()
         {
             SType = StructureType.BufferCreateInfo,
             Size = desc.SizeInBytes,
             Usage = VKFormats.Vulkan(desc.Flags) | usage | VkBufferUsageFlags.ShaderDeviceAddressBit,
-            SharingMode = context.QueueFamilyIndices.Length is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
-            QueueFamilyIndexCount = (uint)context.QueueFamilyIndices.Length,
-            PQueueFamilyIndices = queueFamilyIndices
+            SharingMode = sharingMode,
+            QueueFamilyIndexCount = queueFamilyIndexCount,
+            PQueueFamilyIndices = (uint*)pQueueFamilyIndices
         };
 
         context.Vk.CreateBuffer(context.Device, &createInfo, null, (VkBuffer*)Unsafe.AsPointer(ref Buffer)).Success();

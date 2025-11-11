@@ -80,6 +80,21 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public ExtMeshShader? MeshShader { get; private set; }
 
+    public (SharingMode SharingMode, uint QueueFamilyIndexCount, nint PQueueFamilyIndices) GetSharingModeInfo(ZenithMarshal.Scope scope)
+    {
+        if (QueueFamilyIndices.Length is 1)
+        {
+            return (SharingMode.Exclusive, 0, 0);
+        }
+        else
+        {
+            uint* pQueueFamilyIndices = (uint*)ZenithMarshal.Allocate<uint>(scope, (uint)QueueFamilyIndices.Length);
+            QueueFamilyIndices.CopyTo(new Span<uint>(pQueueFamilyIndices, QueueFamilyIndices.Length));
+
+            return (SharingMode.Concurrent, (uint)QueueFamilyIndices.Length, (nint)pQueueFamilyIndices);
+        }
+    }
+
     public uint FindMemoryTypeIndex(uint memoryTypeBits, MemoryPropertyFlags flags)
     {
         PhysicalDeviceMemoryProperties properties;
