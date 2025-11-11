@@ -168,7 +168,14 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void DispatchRaysImpl(RayTracingPipeline pipeline, uint width, uint height, uint depth)
     {
-        throw new NotImplementedException();
+        VKRayTracingPipeline vkPipeline = pipeline.Vulkan();
+
+        StridedDeviceAddressRegionKHR rayGenerationRegion = vkPipeline.RayGenerationRegion;
+        StridedDeviceAddressRegionKHR missRegion = vkPipeline.MissRegion;
+        StridedDeviceAddressRegionKHR hitGroupsRegion = vkPipeline.HitGroupsRegion;
+        StridedDeviceAddressRegionKHR callableRegion = new();
+
+        Context.RayTracingPipeline?.CmdTraceRays(CommandBuffer, &rayGenerationRegion, &missRegion, &hitGroupsRegion, &callableRegion, width, height, depth);
     }
 
     protected override void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
