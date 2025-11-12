@@ -20,7 +20,19 @@ internal unsafe class VKCommandQueue(VKGraphicsContext context, CommandQueueType
 
     protected override void SubmitImpl(CommandBuffer commandBuffer)
     {
-        throw new NotImplementedException();
+        VKCommandBuffer vkCommandBuffer = commandBuffer.Vulkan();
+
+        fixed (VkCommandBuffer* pCommandBuffers = &vkCommandBuffer.CommandBuffer)
+        {
+            SubmitInfo submitInfo = new()
+            {
+                SType = StructureType.SubmitInfo,
+                CommandBufferCount = 1,
+                PCommandBuffers = pCommandBuffers
+            };
+
+            Context.Vk.QueueSubmit(queue, 1, &submitInfo, default).Success();
+        }
     }
 
     protected override void SetResourceName(string name)
