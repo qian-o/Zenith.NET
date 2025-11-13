@@ -35,7 +35,10 @@ internal unsafe class VKValidationLayer : ValidationLayer
         Context.DebugUtils?.DestroyDebugUtilsMessenger(Context.Instance, messenger, null);
     }
 
-    private uint UserCallback(DebugUtilsMessageSeverityFlagsEXT messageSeverity, DebugUtilsMessageTypeFlagsEXT messageTypes, DebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
+    private uint UserCallback(DebugUtilsMessageSeverityFlagsEXT messageSeverity,
+                              DebugUtilsMessageTypeFlagsEXT messageTypes,
+                              DebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                              void* pUserData)
     {
         Report(MessageSource.GraphicsAPI, messageSeverity switch
         {

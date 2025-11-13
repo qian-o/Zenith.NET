@@ -153,7 +153,14 @@ internal unsafe class VKTexture : Texture
         Context.Vk.UnmapMemory(Context.Device, DeviceMemory?.DeviceMemory ?? default);
     }
 
-    public void TransitionLayout(VKCommandBuffer commandBuffer, uint firstMipLevel, uint mipLevelCount, uint firstLayer, uint layerCount, uint firstFace, uint faceCount, ImageLayout newLayout)
+    public void TransitionLayout(VKCommandBuffer commandBuffer,
+                                 uint firstMipLevel,
+                                 uint mipLevelCount,
+                                 uint firstLayer,
+                                 uint layerCount,
+                                 uint firstFace,
+                                 uint faceCount,
+                                 ImageLayout newLayout)
     {
         for (uint i = 0; i < mipLevelCount; i++)
         {
@@ -263,7 +270,16 @@ internal unsafe class VKTexture : Texture
                         }
                     };
 
-                    Context.Vk.CmdPipelineBarrier(commandBuffer.CommandBuffer, srcStageMask, dstStageMask, DependencyFlags.None, 0, null, 0, null, 1, &imageMemoryBarrier);
+                    Context.Vk.CmdPipelineBarrier(commandBuffer.CommandBuffer,
+                                                  srcStageMask,
+                                                  dstStageMask,
+                                                  DependencyFlags.None,
+                                                  0,
+                                                  null,
+                                                  0,
+                                                  null,
+                                                  1,
+                                                  &imageMemoryBarrier);
                 }
             }
         }

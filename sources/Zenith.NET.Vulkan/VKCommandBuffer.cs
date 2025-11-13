@@ -274,7 +274,14 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
         StridedDeviceAddressRegionKHR callableRegion = new();
 
-        Context.RayTracingPipeline?.CmdTraceRays(CommandBuffer, ref vkPipeline.RayGenerationRegion, ref vkPipeline.MissRegion, ref vkPipeline.HitGroupsRegion, &callableRegion, width, height, depth);
+        Context.RayTracingPipeline?.CmdTraceRays(CommandBuffer,
+                                                 ref vkPipeline.RayGenerationRegion,
+                                                 ref vkPipeline.MissRegion,
+                                                 ref vkPipeline.HitGroupsRegion,
+                                                 &callableRegion,
+                                                 width,
+                                                 height,
+                                                 depth);
     }
 
     protected override void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
