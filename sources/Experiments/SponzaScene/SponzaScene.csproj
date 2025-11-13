@@ -14,4 +14,8 @@
         <ProjectReference Include="..\..\Zenith.NET.Vulkan\Zenith.NET.Vulkan.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="Silk.NET.Windowing" />
+    </ItemGroup>
+
 </Project>
