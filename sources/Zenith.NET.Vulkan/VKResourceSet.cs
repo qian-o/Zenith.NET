@@ -24,6 +24,7 @@ internal unsafe class VKResourceSet : ResourceSet
 
             DescriptorImageInfo* imageInfos = (DescriptorImageInfo*)ZenithMarshal.Allocate<DescriptorImageInfo>(scope, binding.Count);
             DescriptorBufferInfo* bufferInfos = (DescriptorBufferInfo*)ZenithMarshal.Allocate<DescriptorBufferInfo>(scope, binding.Count);
+            AccelerationStructureKHR* accelerationStructures = (AccelerationStructureKHR*)ZenithMarshal.Allocate<AccelerationStructureKHR>(scope, binding.Count);
 
             descriptorWrites[i] = new()
             {
@@ -37,6 +38,10 @@ internal unsafe class VKResourceSet : ResourceSet
                 PImageInfo = imageInfos,
                 PBufferInfo = bufferInfos
             };
+
+            descriptorWrites[i].AddNext(out WriteDescriptorSetAccelerationStructureKHR accelerationStructureDescriptorWrite);
+            accelerationStructureDescriptorWrite.AccelerationStructureCount = binding.Count;
+            accelerationStructureDescriptorWrite.PAccelerationStructures = accelerationStructures;
 
             for (uint j = 0; j < binding.Count; j++)
             {
@@ -96,10 +101,10 @@ internal unsafe class VKResourceSet : ResourceSet
                         break;
 
                     case ResourceType.AccelerationStructure:
-                        // TODO: Implement if/when AS resources are supported:
-                        // - Allocate WriteDescriptorSetAccelerationStructureKHR
-                        // - Fill with acceleration structure handles
-                        // - Set descriptorWrites[i].PNext to that struct
+                        if (resource is TopLevelAccelerationStructure topLevelAccelerationStructure)
+                        {
+                            accelerationStructures[j] = topLevelAccelerationStructure.Vulkan().AccelerationStructure;
+                        }
                         break;
                 }
             }

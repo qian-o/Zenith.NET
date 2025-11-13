@@ -190,7 +190,12 @@ internal unsafe class VKTexture : Texture
                     else if (oldLayout == ImageLayout.General)
                     {
                         srcAccessMask = AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit;
-                        srcStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit | PipelineStageFlags.RayTracingShaderBitKhr;
+                        srcStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit;
+
+                        if (Context.Capabilities.RayTracingSupported)
+                        {
+                            srcStageMask |= PipelineStageFlags.RayTracingShaderBitKhr;
+                        }
                     }
                     else if (oldLayout == ImageLayout.ColorAttachmentOptimal)
                     {
@@ -205,7 +210,12 @@ internal unsafe class VKTexture : Texture
                     else if (oldLayout == ImageLayout.ShaderReadOnlyOptimal)
                     {
                         srcAccessMask = AccessFlags.ShaderReadBit;
-                        srcStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit | PipelineStageFlags.RayTracingShaderBitKhr;
+                        srcStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit;
+
+                        if (Context.Capabilities.RayTracingSupported)
+                        {
+                            srcStageMask |= PipelineStageFlags.RayTracingShaderBitKhr;
+                        }
                     }
                     else if (oldLayout == ImageLayout.TransferSrcOptimal)
                     {
@@ -224,7 +234,12 @@ internal unsafe class VKTexture : Texture
                     if (newLayout is ImageLayout.General)
                     {
                         dstAccessMask = AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit;
-                        dstStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit | PipelineStageFlags.RayTracingShaderBitKhr;
+                        dstStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit;
+
+                        if (Context.Capabilities.RayTracingSupported)
+                        {
+                            srcStageMask |= PipelineStageFlags.RayTracingShaderBitKhr;
+                        }
                     }
                     else if (newLayout == ImageLayout.ColorAttachmentOptimal)
                     {
@@ -239,7 +254,12 @@ internal unsafe class VKTexture : Texture
                     else if (newLayout == ImageLayout.ShaderReadOnlyOptimal)
                     {
                         dstAccessMask = AccessFlags.ShaderReadBit;
-                        dstStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit | PipelineStageFlags.RayTracingShaderBitKhr;
+                        dstStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit;
+
+                        if (Context.Capabilities.RayTracingSupported)
+                        {
+                            srcStageMask |= PipelineStageFlags.RayTracingShaderBitKhr;
+                        }
                     }
                     else if (newLayout == ImageLayout.TransferSrcOptimal)
                     {
