@@ -11,13 +11,8 @@ internal unsafe class VKValidationLayer : ValidationLayer
         DebugUtilsMessengerCreateInfoEXT createInfo = new()
         {
             SType = StructureType.DebugUtilsMessengerCreateInfoExt,
-            MessageSeverity = DebugUtilsMessageSeverityFlagsEXT.VerboseBitExt
-                              | DebugUtilsMessageSeverityFlagsEXT.InfoBitExt
-                              | DebugUtilsMessageSeverityFlagsEXT.WarningBitExt
-                              | DebugUtilsMessageSeverityFlagsEXT.ErrorBitExt,
-            MessageType = DebugUtilsMessageTypeFlagsEXT.GeneralBitExt
-                          | DebugUtilsMessageTypeFlagsEXT.ValidationBitExt
-                          | DebugUtilsMessageTypeFlagsEXT.PerformanceBitExt,
+            MessageSeverity = DebugUtilsMessageSeverityFlagsEXT.VerboseBitExt | DebugUtilsMessageSeverityFlagsEXT.InfoBitExt | DebugUtilsMessageSeverityFlagsEXT.WarningBitExt | DebugUtilsMessageSeverityFlagsEXT.ErrorBitExt,
+            MessageType = DebugUtilsMessageTypeFlagsEXT.GeneralBitExt | DebugUtilsMessageTypeFlagsEXT.ValidationBitExt | DebugUtilsMessageTypeFlagsEXT.PerformanceBitExt,
             PfnUserCallback = new(UserCallback)
         };
 
@@ -35,10 +30,7 @@ internal unsafe class VKValidationLayer : ValidationLayer
         Context.DebugUtils?.DestroyDebugUtilsMessenger(Context.Instance, messenger, null);
     }
 
-    private uint UserCallback(DebugUtilsMessageSeverityFlagsEXT messageSeverity,
-                              DebugUtilsMessageTypeFlagsEXT messageTypes,
-                              DebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                              void* pUserData)
+    private uint UserCallback(DebugUtilsMessageSeverityFlagsEXT messageSeverity, DebugUtilsMessageTypeFlagsEXT messageTypes, DebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
     {
         Report(MessageSource.GraphicsAPI, messageSeverity switch
         {

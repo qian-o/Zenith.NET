@@ -26,14 +26,7 @@ internal unsafe class VKQueryHeap : QueryHeap
     {
         fixed (ulong* pResults = results)
         {
-            Context.Vk.GetQueryPoolResults(Context.Device,
-                                           QueryPool,
-                                           startIndex,
-                                           (uint)results.Length,
-                                           (uint)(sizeof(ulong) * results.Length),
-                                           pResults,
-                                           sizeof(ulong),
-                                           QueryResultFlags.Result64Bit).Success();
+            Context.Vk.GetQueryPoolResults(Context.Device, QueryPool, startIndex, (uint)results.Length, (uint)(sizeof(ulong) * results.Length), pResults, sizeof(ulong), QueryResultFlags.Result64Bit).Success();
         }
     }
 

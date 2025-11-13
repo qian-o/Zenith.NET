@@ -6,12 +6,7 @@ public abstract class GraphicsContext : DisposableObject
     {
         Backend = backend;
 
-        Initialize(useValidationLayer,
-                   out Capabilities capabilities,
-                   out CommandQueue graphics,
-                   out CommandQueue compute,
-                   out CommandQueue copy,
-                   out ValidationLayer? validationLayer);
+        Initialize(useValidationLayer, out Capabilities capabilities, out CommandQueue graphics, out CommandQueue compute, out CommandQueue copy, out ValidationLayer? validationLayer);
 
         Capabilities = capabilities;
         Graphics = graphics;
@@ -153,12 +148,7 @@ public abstract class GraphicsContext : DisposableObject
         Uploader.Dispose();
     }
 
-    protected abstract void Initialize(bool useValidationLayer,
-                                       out Capabilities capabilities,
-                                       out CommandQueue graphics,
-                                       out CommandQueue compute,
-                                       out CommandQueue copy,
-                                       out ValidationLayer? validationLayer);
+    protected abstract void Initialize(bool useValidationLayer, out Capabilities capabilities, out CommandQueue graphics, out CommandQueue compute, out CommandQueue copy, out ValidationLayer? validationLayer);
 
     protected abstract SwapChain CreateSwapChainImpl(SwapChainDesc desc);
 

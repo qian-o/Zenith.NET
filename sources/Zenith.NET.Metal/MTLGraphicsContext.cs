@@ -2,12 +2,7 @@
 
 internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Backend.Metal, useValidationLayer)
 {
-    protected override void Initialize(bool useValidationLayer,
-                                       out Capabilities capabilities,
-                                       out CommandQueue graphics,
-                                       out CommandQueue compute,
-                                       out CommandQueue copy,
-                                       out ValidationLayer? validationLayer)
+    protected override void Initialize(bool useValidationLayer, out Capabilities capabilities, out CommandQueue graphics, out CommandQueue compute, out CommandQueue copy, out ValidationLayer? validationLayer)
     {
         throw new NotImplementedException();
     }
