@@ -45,14 +45,15 @@ internal unsafe class VKSwapChain : SwapChain
 
                     Result result = Context.Swapchain?.QueuePresent(Context.GraphicsQueue, &presentInfo) ?? Result.ErrorInitializationFailed;
 
-                    if (result is Result.ErrorOutOfDateKhr or Result.SuboptimalKhr)
+                    if (result is Result.ErrorOutOfDateKhr)
                     {
-                        CreateSwapChain();
-
                         return;
                     }
 
-                    result.Success();
+                    if (result is not Result.SuboptimalKhr)
+                    {
+                        result.Success();
+                    }
 
                     AcquireNextImage();
                 }
@@ -308,14 +309,15 @@ internal unsafe class VKSwapChain : SwapChain
         {
             Result result = Context.Swapchain?.AcquireNextImage(Context.Device, Swapchain, ulong.MaxValue, default, fence.Fence, pImageIndex) ?? Result.ErrorInitializationFailed;
 
-            if (result is Result.ErrorOutOfDateKhr or Result.SuboptimalKhr)
+            if (result is Result.ErrorOutOfDateKhr)
             {
-                CreateSwapChain();
-
                 return;
             }
 
-            result.Success();
+            if (result is not Result.SuboptimalKhr)
+            {
+                result.Success();
+            }
 
             fence.Wait();
         }
