@@ -154,14 +154,11 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
 
             MappedMemory mappedMemory = buffer.Map();
 
-            byte* mappedPointer = (byte*)mappedMemory.Pointer;
-
             for (uint i = 0; i < count; i++)
             {
-                Unsafe.CopyBlock(mappedPointer, shaderHandleStorage, HandleSize);
+                Unsafe.CopyBlock((byte*)mappedMemory.Pointer + (HandleSizeAligned * i), shaderHandleStorage, HandleSize);
 
                 shaderHandleStorage += HandleSize;
-                mappedPointer += HandleSizeAligned;
             }
 
             buffer.Unmap();
