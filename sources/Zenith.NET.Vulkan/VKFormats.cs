@@ -675,6 +675,28 @@ internal static class VKFormats
 
     public static GeometryInstanceFlagsKHR Vulkan(RayTracingInstanceFlags rayTracingInstanceFlags)
     {
-        throw new NotImplementedException();
+        GeometryInstanceFlagsKHR result = GeometryInstanceFlagsKHR.None;
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.TriangleCullDisable))
+        {
+            result |= GeometryInstanceFlagsKHR.TriangleFacingCullDisableBitKhr;
+        }
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.TriangleFrontCounterClockwise))
+        {
+            result |= GeometryInstanceFlagsKHR.TriangleFrontCounterclockwiseBitKhr;
+        }
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.ForceOpaque))
+        {
+            result |= GeometryInstanceFlagsKHR.ForceOpaqueBitKhr;
+        }
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.ForceNoOpaque))
+        {
+            result |= GeometryInstanceFlagsKHR.ForceNoOpaqueBitKhr;
+        }
+
+        return result;
     }
 }
