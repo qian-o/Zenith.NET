@@ -616,16 +616,60 @@ internal static class VKFormats
 
     public static GeometryTypeKHR Vulkan(RayTracingGeometryType rayTracingGeometryType)
     {
-        throw new NotImplementedException();
+        return rayTracingGeometryType switch
+        {
+            RayTracingGeometryType.Triangles => GeometryTypeKHR.TrianglesKhr,
+            RayTracingGeometryType.AABBs => GeometryTypeKHR.AabbsKhr,
+            _ => GeometryTypeKHR.TrianglesKhr
+        };
     }
 
     public static GeometryFlagsKHR Vulkan(RayTracingGeometryFlags rayTracingGeometryFlags)
     {
-        throw new NotImplementedException();
+        GeometryFlagsKHR result = GeometryFlagsKHR.None;
+
+        if (rayTracingGeometryFlags.HasFlag(RayTracingGeometryFlags.Opaque))
+        {
+            result |= GeometryFlagsKHR.OpaqueBitKhr;
+        }
+
+        if (rayTracingGeometryFlags.HasFlag(RayTracingGeometryFlags.NoDuplicateAnyHitInvocation))
+        {
+            result |= GeometryFlagsKHR.NoDuplicateAnyHitInvocationBitKhr;
+        }
+
+        return result;
     }
 
     public static BuildAccelerationStructureFlagsKHR Vulkan(AccelerationStructureBuildFlags accelerationStructureBuildFlags)
     {
-        throw new NotImplementedException();
+        BuildAccelerationStructureFlagsKHR result = BuildAccelerationStructureFlagsKHR.None;
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowUpdate) || accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PerformUpdate))
+        {
+            result |= BuildAccelerationStructureFlagsKHR.AllowUpdateBitKhr;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowCompactation))
+        {
+            result |= BuildAccelerationStructureFlagsKHR.AllowCompactionBitKhr;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PreferFastTrace))
+        {
+            result |= BuildAccelerationStructureFlagsKHR.PreferFastTraceBitKhr;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PreferFastBuild))
+        {
+            result |= BuildAccelerationStructureFlagsKHR.PreferFastBuildBitKhr;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.MinimizeMemory))
+        {
+            result |= BuildAccelerationStructureFlagsKHR.LowMemoryBitKhr;
+        }
+
+        return result;
     }
 }
