@@ -190,7 +190,7 @@ internal unsafe class VKTexture : Texture
                     else if (oldLayout == ImageLayout.General)
                     {
                         srcAccessMask = AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit;
-                        srcStageMask = PipelineStageFlags.AllGraphicsBit | PipelineStageFlags.ComputeShaderBit | PipelineStageFlags.RayTracingShaderBitKhr;
+                        srcStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit | PipelineStageFlags.RayTracingShaderBitKhr;
                     }
                     else if (oldLayout == ImageLayout.ColorAttachmentOptimal)
                     {
