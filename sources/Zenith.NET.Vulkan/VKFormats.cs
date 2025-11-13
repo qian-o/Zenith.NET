@@ -672,4 +672,9 @@ internal static class VKFormats
 
         return result;
     }
+
+    public static GeometryInstanceFlagsKHR Vulkan(RayTracingInstanceFlags rayTracingInstanceFlags)
+    {
+        throw new NotImplementedException();
+    }
 }
