@@ -30,6 +30,112 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
         TransformBuffer.Unmap();
 
         AccelerationStructureGeometryKHR* geometries = (AccelerationStructureGeometryKHR*)ZenithMarshal.Allocate<AccelerationStructureGeometryKHR>(scope, geometryCount);
+        uint* maxPrimitiveCounts = (uint*)ZenithMarshal.Allocate<uint>(scope, geometryCount);
+        AccelerationStructureBuildRangeInfoKHR* buildRangeInfos = (AccelerationStructureBuildRangeInfoKHR*)ZenithMarshal.Allocate<AccelerationStructureBuildRangeInfoKHR>(scope, geometryCount);
+        for (uint i = 0; i < geometryCount; i++)
+        {
+            RayTracingGeometry geometry = desc.Geometries[i];
+
+            geometries[i] = new()
+            {
+                SType = StructureType.AccelerationStructureGeometryKhr,
+                GeometryType = VKFormats.Vulkan(geometry.Type),
+                Geometry = new()
+                {
+                    Triangles = new()
+                    {
+                        SType = StructureType.AccelerationStructureGeometryTrianglesDataKhr,
+                        VertexFormat = VKFormats.Vulkan(geometry.Triangles.VertexFormat),
+                        VertexData = new() { DeviceAddress = geometry.Triangles.VertexBuffer.Vulkan().DeviceAddress + geometry.Triangles.VertexOffsetInBytes },
+                        VertexStride = geometry.Triangles.VertexStrideInBytes,
+                        MaxVertex = geometry.Triangles.VertexCount,
+                        IndexType = geometry.Triangles.IndexBuffer is not null ? VKFormats.Vulkan(geometry.Triangles.IndexFormat) : IndexType.NoneKhr,
+                        IndexData = new() { DeviceAddress = geometry.Triangles.IndexBuffer is not null ? geometry.Triangles.IndexBuffer.Vulkan().DeviceAddress + geometry.Triangles.IndexOffsetInBytes : 0 },
+                        TransformData = new() { DeviceAddress = TransformBuffer.DeviceAddress + (uint)(sizeof(TransformMatrixKHR) * i) }
+                    },
+                    Aabbs = new()
+                    {
+                        SType = StructureType.AccelerationStructureGeometryAabbsDataKhr,
+                        Data = new() { DeviceAddress = geometry.AABBs.Buffer.Vulkan().DeviceAddress + geometry.AABBs.OffsetInBytes },
+                        Stride = geometry.AABBs.StrideInBytes
+                    }
+                },
+                Flags = VKFormats.Vulkan(geometry.Flags)
+            };
+            maxPrimitiveCounts[i] = geometry.Type == RayTracingGeometryType.Triangles ? geometry.Triangles.IndexBuffer is not null ? geometry.Triangles.IndexCount / 3 : geometry.Triangles.VertexCount / 3 : geometry.AABBs.Count;
+            buildRangeInfos[i] = new() { PrimitiveCount = maxPrimitiveCounts[i] };
+        }
+
+        AccelerationStructureBuildGeometryInfoKHR buildInfo = new()
+        {
+            SType = StructureType.AccelerationStructureBuildGeometryInfoKhr,
+            Type = AccelerationStructureTypeKHR.BottomLevelKhr,
+            Flags = VKFormats.Vulkan(desc.Flags),
+            Mode = BuildAccelerationStructureModeKHR.BuildKhr,
+            GeometryCount = geometryCount,
+            PGeometries = geometries
+        };
+
+        AccelerationStructureBuildSizesInfoKHR sizeInfo = new() { SType = StructureType.AccelerationStructureBuildSizesInfoKhr };
+
+        context.AccelerationStructure?.GetAccelerationStructureBuildSizes(context.Device, AccelerationStructureBuildTypeKHR.DeviceKhr, &buildInfo, maxPrimitiveCounts, &sizeInfo);
+
+        BufferDesc accelerationStructureBufferDesc = new()
+        {
+            SizeInBytes = (uint)sizeInfo.AccelerationStructureSize,
+            StrideInBytes = (uint)sizeInfo.AccelerationStructureSize
+        };
+
+        AccelerationStructureBuffer = new(context, accelerationStructureBufferDesc, VkBufferUsageFlags.AccelerationStructureStorageBitKhr);
+
+        AccelerationStructureCreateInfoKHR createInfo = new()
+        {
+            SType = StructureType.AccelerationStructureCreateInfoKhr,
+            Buffer = AccelerationStructureBuffer.Buffer,
+            Size = sizeInfo.AccelerationStructureSize,
+            Type = AccelerationStructureTypeKHR.BottomLevelKhr
+        };
+
+        context.AccelerationStructure?.CreateAccelerationStructure(context.Device, &createInfo, null, out AccelerationStructure).Success();
+
+        AccelerationStructureDeviceAddressInfoKHR addressInfo = new()
+        {
+            SType = StructureType.AccelerationStructureDeviceAddressInfoKhr,
+            AccelerationStructure = AccelerationStructure
+        };
+
+        DeviceAddress = context.AccelerationStructure?.GetAccelerationStructureDeviceAddress(context.Device, &addressInfo) ?? 0;
+
+        BufferDesc scratchBufferDesc = new()
+        {
+            SizeInBytes = (uint)sizeInfo.BuildScratchSize,
+            StrideInBytes = (uint)sizeInfo.BuildScratchSize
+        };
+
+        ScratchBuffer = new(context, scratchBufferDesc, VkBufferUsageFlags.StorageBufferBit);
+
+        buildInfo.DstAccelerationStructure = AccelerationStructure;
+        buildInfo.ScratchData = new() { DeviceAddress = ScratchBuffer.DeviceAddress };
+
+        context.AccelerationStructure?.CmdBuildAccelerationStructures(commandBuffer.CommandBuffer, 1, &buildInfo, &buildRangeInfos);
+
+        MemoryBarrier barrier = new()
+        {
+            SType = StructureType.MemoryBarrier,
+            SrcAccessMask = AccessFlags.AccelerationStructureWriteBitKhr,
+            DstAccessMask = AccessFlags.AccelerationStructureReadBitKhr
+        };
+
+        context.Vk.CmdPipelineBarrier(commandBuffer.CommandBuffer,
+                                      PipelineStageFlags.AccelerationStructureBuildBitKhr,
+                                      PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit | PipelineStageFlags.RayTracingShaderBitKhr,
+                                      0,
+                                      1,
+                                      &barrier,
+                                      0,
+                                      null,
+                                      0,
+                                      null);
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;

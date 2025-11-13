@@ -613,4 +613,19 @@ internal static class VKFormats
             _ => IndexType.Uint16
         };
     }
+
+    public static GeometryTypeKHR Vulkan(RayTracingGeometryType rayTracingGeometryType)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static GeometryFlagsKHR Vulkan(RayTracingGeometryFlags rayTracingGeometryFlags)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static BuildAccelerationStructureFlagsKHR Vulkan(AccelerationStructureBuildFlags accelerationStructureBuildFlags)
+    {
+        throw new NotImplementedException();
+    }
 }
