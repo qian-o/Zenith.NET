@@ -43,17 +43,7 @@ internal unsafe class VKSwapChain : SwapChain
                         PImageIndices = pImageIndices
                     };
 
-                    Result result = Context.Swapchain?.QueuePresent(Context.GraphicsQueue, &presentInfo) ?? Result.ErrorInitializationFailed;
-
-                    if (result is Result.ErrorOutOfDateKhr)
-                    {
-                        return;
-                    }
-
-                    if (result is not Result.SuboptimalKhr)
-                    {
-                        result.Success();
-                    }
+                    (Context.Swapchain?.QueuePresent(Context.GraphicsQueue, &presentInfo) ?? Result.ErrorInitializationFailed).Success();
 
                     AcquireNextImage();
                 }
@@ -307,17 +297,7 @@ internal unsafe class VKSwapChain : SwapChain
     {
         fixed (uint* pImageIndex = &ImageIndex)
         {
-            Result result = Context.Swapchain?.AcquireNextImage(Context.Device, Swapchain, ulong.MaxValue, default, fence.Fence, pImageIndex) ?? Result.ErrorInitializationFailed;
-
-            if (result is Result.ErrorOutOfDateKhr)
-            {
-                return;
-            }
-
-            if (result is not Result.SuboptimalKhr)
-            {
-                result.Success();
-            }
+            (Context.Swapchain?.AcquireNextImage(Context.Device, Swapchain, ulong.MaxValue, default, fence.Fence, pImageIndex) ?? Result.ErrorInitializationFailed).Success();
 
             fence.Wait();
         }
