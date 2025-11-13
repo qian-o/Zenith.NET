@@ -376,6 +376,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     internal void End()
     {
+        if (currentClearValue.HasValue)
+        {
+            EnsureRenderingBegan();
+        }
+
         EnsureRenderingEnded();
 
         EndImpl();
@@ -469,7 +474,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void BeginRenderingImpl(FrameBuffer frameBuffer, ClearValue? clearValue);
 
-    protected abstract void EndRenderingImpl();
+    protected abstract void EndRenderingImpl(FrameBuffer frameBuffer);
 
     private void EnsureRenderingBegan()
     {
@@ -485,9 +490,9 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     private void EnsureRenderingEnded()
     {
-        if (isRendering)
+        if (isRendering && currentFrameBuffer is not null)
         {
-            EndRenderingImpl();
+            EndRenderingImpl(currentFrameBuffer);
 
             isRendering = false;
         }

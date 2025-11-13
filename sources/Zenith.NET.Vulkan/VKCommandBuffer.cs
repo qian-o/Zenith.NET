@@ -369,7 +369,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
     {
         VKFrameBuffer vkFrameBuffer = frameBuffer.Vulkan();
 
-        vkFrameBuffer.TransitionLayout(this);
+        vkFrameBuffer.PrepareAttachmentsForRendering(this);
 
         Context.Vk.CmdBeginRendering(CommandBuffer, ref vkFrameBuffer.RenderingInfo);
 
@@ -394,7 +394,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
             if (clearColor)
             {
-                for (int i = 0; i < clearValue.Value.ColorValues.Length; i++)
+                for (int i = 0; i < vkFrameBuffer.ColorAttachmentCount; i++)
                 {
                     Vector4 color = clearValue.Value.ColorValues[i];
 
@@ -418,7 +418,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
                 }
             }
 
-            if (clearDepth || clearStencil)
+            if ((clearDepth || clearStencil) && vkFrameBuffer.HasDepthStencilAttachment)
             {
                 ClearAttachment attachment = new()
                 {
@@ -438,9 +438,11 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         }
     }
 
-    protected override void EndRenderingImpl()
+    protected override void EndRenderingImpl(FrameBuffer frameBuffer)
     {
         Context.Vk.CmdEndRendering(CommandBuffer);
+
+        frameBuffer.Vulkan().FinalizeColorAttachmentsForPresent(this);
     }
 
     protected override void SetResourceName(string name)

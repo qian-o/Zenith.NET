@@ -109,7 +109,7 @@ internal unsafe class VKFrameBuffer : FrameBuffer
 
     public VKTextureView? DepthStencilAttachment { get; }
 
-    public void TransitionLayout(VKCommandBuffer commandBuffer)
+    public void PrepareAttachmentsForRendering(VKCommandBuffer commandBuffer)
     {
         for (uint i = 0; i < ColorAttachmentCount; i++)
         {
@@ -117,6 +117,17 @@ internal unsafe class VKFrameBuffer : FrameBuffer
         }
 
         DepthStencilAttachment?.TransitionLayout(commandBuffer, ImageLayout.DepthStencilAttachmentOptimal);
+    }
+
+    public void FinalizeColorAttachmentsForPresent(VKCommandBuffer commandBuffer)
+    {
+        for (uint i = 0; i < ColorAttachmentCount; i++)
+        {
+            if (ColorAttachments[i].Desc.Texture.Desc.Flags.HasFlag(TextureUsageFlags.RenderTarget))
+            {
+                ColorAttachments[i].TransitionLayout(commandBuffer, ImageLayout.PresentSrcKhr);
+            }
+        }
     }
 
     protected override void SetResourceName(string name)
