@@ -1,2 +1,5 @@
-﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
+﻿using Silk.NET.Windowing;
+
+IWindow window = Window.Create(WindowOptions.Default);
+
+window.Run();

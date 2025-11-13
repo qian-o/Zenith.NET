@@ -1,0 +1,10 @@
+﻿{
+  "profiles": {
+    "SponzaScene": {
+      "commandName": "Project"
+    },
+    "SponzaScene (WSL)": {
+      "commandName": "WSL2"
+    }
+  }
+}
