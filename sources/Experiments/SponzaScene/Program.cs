@@ -31,17 +31,30 @@ SwapChain swapChain = context.CreateSwapChain(new()
     DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
 });
 
-window.Resize += size => swapChain.Resize((uint)size.X, (uint)size.Y);
+window.Resize += size =>
+{
+    if (size.X is 0 || size.Y is 0)
+    {
+        return;
+    }
+
+    swapChain.Resize((uint)size.X, (uint)size.Y);
+};
 window.Render += delta =>
 {
+    if (window.Size.X is 0 || window.Size.Y is 0)
+    {
+        return;
+    }
+
     CommandBuffer commandBuffer = context.Graphics.CommandBuffer();
 
     commandBuffer.BindFrameBuffer(swapChain.FrameBuffer, ClearValues.Default);
     commandBuffer.Submit();
 
-    swapChain.Present();
-
     context.Graphics.WaitIdle();
+
+    swapChain.Present();
 };
 
 window.Run();
