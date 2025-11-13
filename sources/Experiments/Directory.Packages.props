@@ -3,6 +3,7 @@
     <Import Project="..\Directory.Packages.props" />
 
     <ItemGroup>
+        <PackageVersion Include="SharpGLTF.Toolkit" Version="1.0.5" />
         <PackageVersion Include="Silk.NET.Windowing" Version="2.22.0" />
     </ItemGroup>
 
