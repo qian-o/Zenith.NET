@@ -30,9 +30,9 @@ internal unsafe class VKQueryHeap : QueryHeap
                                            QueryPool,
                                            startIndex,
                                            (uint)results.Length,
-                                           (uint)(results.Length * 64),
+                                           (uint)(sizeof(ulong) * results.Length),
                                            pResults,
-                                           64,
+                                           sizeof(ulong),
                                            QueryResultFlags.Result64Bit).Success();
         }
     }
