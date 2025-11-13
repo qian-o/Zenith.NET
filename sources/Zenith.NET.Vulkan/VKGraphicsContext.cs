@@ -113,7 +113,12 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         return index;
     }
 
-    protected override void Initialize(bool useValidationLayer, out Capabilities capabilities, out CommandQueue graphics, out CommandQueue compute, out CommandQueue copy, out ValidationLayer? validationLayer)
+    protected override void Initialize(bool useValidationLayer,
+                                       out Capabilities capabilities,
+                                       out CommandQueue graphics,
+                                       out CommandQueue compute,
+                                       out CommandQueue copy,
+                                       out ValidationLayer? validationLayer)
     {
         using ZenithMarshal.Scope scope = new();
 

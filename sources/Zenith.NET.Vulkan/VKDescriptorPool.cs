@@ -92,7 +92,13 @@ internal unsafe class VKDescriptorPool : GraphicsResource
 
     public bool CanAllocate(VKDescriptorCounts counts)
     {
-        if (remainingSets < 1 || uniformBufferCount < counts.UniformBufferCount || storageBufferCount < counts.StorageBufferCount || sampledImageCount < counts.SampledImageCount || storageImageCount < counts.StorageImageCount || samplerCount < counts.SamplerCount || accelerationStructureCount < counts.AccelerationStructureCount)
+        if (remainingSets < 1
+            || uniformBufferCount < counts.UniformBufferCount
+            || storageBufferCount < counts.StorageBufferCount
+            || sampledImageCount < counts.SampledImageCount
+            || storageImageCount < counts.StorageImageCount
+            || samplerCount < counts.SamplerCount
+            || accelerationStructureCount < counts.AccelerationStructureCount)
         {
             return false;
         }

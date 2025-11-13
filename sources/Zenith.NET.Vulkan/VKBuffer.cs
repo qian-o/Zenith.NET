@@ -18,7 +18,10 @@ internal unsafe class VKBuffer : Buffer
         {
             SType = StructureType.BufferCreateInfo,
             Size = desc.SizeInBytes,
-            Usage = VKFormats.Vulkan(desc.Flags) | VkBufferUsageFlags.TransferSrcBit | VkBufferUsageFlags.TransferDstBit | VkBufferUsageFlags.ShaderDeviceAddressBit,
+            Usage = VKFormats.Vulkan(desc.Flags)
+                    | VkBufferUsageFlags.TransferSrcBit
+                    | VkBufferUsageFlags.TransferDstBit
+                    | VkBufferUsageFlags.ShaderDeviceAddressBit,
             SharingMode = sharingMode,
             QueueFamilyIndexCount = queueFamilyIndexCount,
             PQueueFamilyIndices = (uint*)pQueueFamilyIndices
