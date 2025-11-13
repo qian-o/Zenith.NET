@@ -23,7 +23,9 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
             unsafe
             {
-                byte* destination = (byte*)mappedMemory.Pointer + (offset.Y * mappedMemory.RowPitch) + (offset.X * ZenithHelper.SizeInBytes(desc.Format));
+                byte* destination = (byte*)mappedMemory.Pointer
+                                    + (offset.Y * mappedMemory.RowPitch)
+                                    + (offset.X * ZenithHelper.SizeInBytes(desc.Format));
 
                 for (uint y = 0; y < extent.Height; y++)
                 {
