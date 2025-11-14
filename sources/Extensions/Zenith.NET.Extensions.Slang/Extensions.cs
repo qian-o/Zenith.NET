@@ -6,16 +6,24 @@ public static class Extensions
 {
     extension(GraphicsContext context)
     {
-        public Shader CompileShader(string filePath, string entryPoint, ShaderStageFlags stage)
+        public Shader LoadShaderFromFile(string file, string entryPoint, ShaderStageFlags stage, string[]? searchPaths = null)
         {
             List<string> arguments =
             [
-                filePath,
+                file,
                 "-entry", entryPoint,
                 "-stage", stage.ToString().ToLowerInvariant(),
                 "-matrix-layout-row-major",
                 "-preserve-params"
             ];
+
+            if (searchPaths is not null)
+            {
+                foreach (string path in searchPaths)
+                {
+                    arguments.AddRange(["-I", path]);
+                }
+            }
 
             switch (context.Backend)
             {
@@ -33,6 +41,22 @@ public static class Extensions
             }
 
             return context.CreateShader(new() { ShaderBytes = SlangCompiler.Compile([.. arguments]), EntryPoint = entryPoint, Stage = stage });
+        }
+
+        public Shader LoadShaderFromSource(string source, string entryPoint, ShaderStageFlags stage, string[]? searchPaths = null)
+        {
+            string file = Path.GetTempFileName();
+
+            File.WriteAllText(file, source);
+
+            try
+            {
+                return context.LoadShaderFromFile(file, entryPoint, stage, searchPaths);
+            }
+            finally
+            {
+                File.Delete(file);
+            }
         }
 
         public void ReflectShaderLayout()
