@@ -25,12 +25,7 @@ else
     return;
 }
 
-SwapChain swapChain = context.CreateSwapChain(new()
-{
-    Surface = surface,
-    ColorTargetFormat = PixelFormat.R8G8B8A8UNorm,
-    DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
-});
+SwapChain swapChain = context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.R8G8B8A8UNorm, DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt });
 
 MainView mainView = new(context);
 
