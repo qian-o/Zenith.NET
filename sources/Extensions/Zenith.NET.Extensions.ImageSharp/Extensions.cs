@@ -8,9 +8,9 @@ public static class Extensions
 {
     extension(GraphicsContext context)
     {
-        public Texture LoadTextureFromFile(string file, bool generateMipMaps = true)
+        public Texture LoadTextureFromStream(Stream stream, bool generateMipMaps = true)
         {
-            using Image<Rgba32> image = Image.Load<Rgba32>(file);
+            using Image<Rgba32> image = Image.Load<Rgba32>(stream);
 
             uint mipLevels = generateMipMaps ? ZenithHelper.MipLevels((uint)image.Width, (uint)image.Height, 1) : 1;
 
@@ -45,6 +45,13 @@ public static class Extensions
             }
 
             return texture;
+        }
+
+        public Texture LoadTextureFromFile(string file, bool generateMipMaps = true)
+        {
+            using FileStream stream = File.OpenRead(file);
+
+            return context.LoadTextureFromStream(stream, generateMipMaps);
         }
     }
 }
