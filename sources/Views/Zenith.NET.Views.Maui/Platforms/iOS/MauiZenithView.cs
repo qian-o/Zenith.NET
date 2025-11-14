@@ -1,6 +1,6 @@
 ﻿using UIKit;
 
-namespace Zenith.NET.Views;
+namespace Zenith.NET.Views.Maui.Platforms.iOS;
 
 internal class MauiZenithView(ZenithViewHandler handler) : UIView
 {

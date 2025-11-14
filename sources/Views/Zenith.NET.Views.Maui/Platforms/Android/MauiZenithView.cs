@@ -2,7 +2,7 @@
 using Android.Runtime;
 using Android.Views;
 
-namespace Zenith.NET.Views;
+namespace Zenith.NET.Views.Maui.Platforms.Android;
 
 internal class MauiZenithView(ZenithViewHandler handler) : SurfaceView(handler.Context), ISurfaceHolderCallback
 {

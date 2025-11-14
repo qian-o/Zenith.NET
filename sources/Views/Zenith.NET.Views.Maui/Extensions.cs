@@ -1,4 +1,6 @@
-﻿namespace Zenith.NET.Views;
+﻿using Zenith.NET.Views.Maui;
+
+namespace Zenith.NET.Views.Maui;
 
 public static class Extensions
 {

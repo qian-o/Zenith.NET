@@ -1,3 +1,3 @@
-﻿namespace Zenith.NET.Views;
+﻿namespace Zenith.NET.Views.WinForms;
 
 public class ZenithView : Control;

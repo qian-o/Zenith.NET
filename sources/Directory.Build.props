@@ -6,7 +6,6 @@
         <IsAotCompatible>true</IsAotCompatible>
 
         <!-- Code Style & Language Features -->
-        <NoWarn>IDE0130</NoWarn>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
