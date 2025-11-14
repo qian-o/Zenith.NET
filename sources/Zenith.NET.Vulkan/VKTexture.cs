@@ -25,7 +25,7 @@ internal unsafe class VKTexture : Texture
                 Depth = desc.Depth
             },
             MipLevels = desc.MipLevels,
-            ArrayLayers = ZenithHelper.ArrayLayerCount(desc),
+            ArrayLayers = ZenithHelper.FlattenArrayLayerCount(desc),
             Samples = VKFormats.Vulkan(desc.SampleCount),
             Tiling = desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? ImageTiling.Linear : ImageTiling.Optimal,
             Usage = VKFormats.Vulkan(desc.Flags).ImageUsageFlags,
@@ -43,8 +43,8 @@ internal unsafe class VKTexture : Texture
             Texture = this,
             FirstMipLevel = 0,
             MipLevelCount = desc.MipLevels,
-            FirstLayer = 0,
-            LayerCount = desc.Layers
+            FirstArrayLayer = 0,
+            ArrayLayerCount = desc.ArrayLayers
         });
 
         Layouts = new ImageLayout[ZenithHelper.SubresourceCount(desc)];
@@ -60,8 +60,8 @@ internal unsafe class VKTexture : Texture
             Texture = this,
             FirstMipLevel = 0,
             MipLevelCount = desc.MipLevels,
-            FirstLayer = 0,
-            LayerCount = desc.Layers
+            FirstArrayLayer = 0,
+            ArrayLayerCount = desc.ArrayLayers
         });
 
         Layouts = new ImageLayout[ZenithHelper.SubresourceCount(desc)];
@@ -87,7 +87,7 @@ internal unsafe class VKTexture : Texture
                 Depth = desc.Depth
             },
             MipLevels = desc.MipLevels,
-            ArrayLayers = ZenithHelper.ArrayLayerCount(desc),
+            ArrayLayers = ZenithHelper.FlattenArrayLayerCount(desc),
             Samples = VKFormats.Vulkan(desc.SampleCount),
             Tiling = desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? ImageTiling.Linear : ImageTiling.Optimal,
             Usage = VKFormats.Vulkan(desc.Flags).ImageUsageFlags,
@@ -108,8 +108,8 @@ internal unsafe class VKTexture : Texture
             Texture = this,
             FirstMipLevel = 0,
             MipLevelCount = desc.MipLevels,
-            FirstLayer = 0,
-            LayerCount = desc.Layers
+            FirstArrayLayer = 0,
+            ArrayLayerCount = desc.ArrayLayers
         });
 
         Layouts = new ImageLayout[ZenithHelper.SubresourceCount(desc)];
@@ -130,7 +130,7 @@ internal unsafe class VKTexture : Texture
         {
             AspectMask = VKFormats.Vulkan(Desc.Flags).ImageAspectFlags,
             MipLevel = slice.MipLevel,
-            ArrayLayer = ZenithHelper.ArrayLayerIndex(Desc, slice)
+            ArrayLayer = ZenithHelper.FlattenArrayLayerIndex(Desc, slice)
         };
 
         SubresourceLayout layout = default;
@@ -156,19 +156,19 @@ internal unsafe class VKTexture : Texture
     public void TransitionLayout(VKCommandBuffer commandBuffer,
                                  uint firstMipLevel,
                                  uint mipLevelCount,
-                                 uint firstLayer,
-                                 uint layerCount,
+                                 uint firstArrayLayer,
+                                 uint arrayLayerCount,
                                  uint firstFace,
                                  uint faceCount,
                                  ImageLayout newLayout)
     {
         for (uint i = 0; i < mipLevelCount; i++)
         {
-            for (uint j = 0; j < layerCount; j++)
+            for (uint j = 0; j < arrayLayerCount; j++)
             {
                 for (uint k = 0; k < faceCount; k++)
                 {
-                    TextureSlice slice = new() { MipLevel = firstMipLevel + i, Layer = firstLayer + j, Face = firstFace + k };
+                    TextureSlice slice = new() { MipLevel = firstMipLevel + i, ArrayLayer = firstArrayLayer + j, Face = firstFace + k };
 
                     uint index = ZenithHelper.SubresourceIndex(Desc, slice);
 
@@ -285,7 +285,7 @@ internal unsafe class VKTexture : Texture
                             AspectMask = VKFormats.Vulkan(Desc.Flags).ImageAspectFlags,
                             BaseMipLevel = slice.MipLevel,
                             LevelCount = 1,
-                            BaseArrayLayer = ZenithHelper.ArrayLayerIndex(Desc, slice),
+                            BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(Desc, slice),
                             LayerCount = 1
                         }
                     };

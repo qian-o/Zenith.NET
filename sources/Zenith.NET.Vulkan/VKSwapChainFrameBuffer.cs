@@ -22,7 +22,7 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
                 Height = height,
                 Depth = 1,
                 MipLevels = 1,
-                Layers = 1,
+                ArrayLayers = 1,
                 SampleCount = SampleCount.Count1,
                 Flags = TextureUsageFlags.DepthStencil
             });
@@ -36,7 +36,7 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
             Height = height,
             Depth = 1,
             MipLevels = 1,
-            Layers = 1,
+            ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
             Flags = TextureUsageFlags.RenderTarget
         };

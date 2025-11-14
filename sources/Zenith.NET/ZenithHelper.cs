@@ -196,29 +196,29 @@ public static class ZenithHelper
         return desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : 1u;
     }
 
-    public static uint ArrayLayerCount(TextureDesc desc)
+    public static uint FlattenArrayLayerCount(TextureDesc desc)
     {
-        return desc.Layers * FaceCount(desc);
+        return desc.ArrayLayers * FaceCount(desc);
     }
 
-    public static uint ArrayLayerIndex(TextureDesc desc, TextureSlice slice)
+    public static uint FlattenArrayLayerIndex(TextureDesc desc, TextureSlice slice)
     {
-        return (slice.Layer * FaceCount(desc)) + slice.Face;
+        return (slice.ArrayLayer * FaceCount(desc)) + slice.Face;
     }
 
-    public static (uint ArrayLayerIndex, uint ArrayLayerCount) ArrayLayerRange(TextureViewDesc desc)
+    public static (uint FlattenArrayLayerIndex, uint FlattenArrayLayerCount) FlattenArrayLayerRange(TextureViewDesc desc)
     {
-        return (desc.FirstLayer * FaceCount(desc.Texture.Desc), desc.LayerCount * FaceCount(desc.Texture.Desc));
+        return (desc.FirstArrayLayer * FaceCount(desc.Texture.Desc), desc.ArrayLayerCount * FaceCount(desc.Texture.Desc));
     }
 
     public static uint SubresourceCount(TextureDesc desc)
     {
-        return desc.MipLevels * desc.Layers * FaceCount(desc);
+        return desc.MipLevels * desc.ArrayLayers * FaceCount(desc);
     }
 
     public static uint SubresourceIndex(TextureDesc desc, TextureSlice slice)
     {
-        return (slice.MipLevel * desc.Layers * FaceCount(desc)) + (slice.Layer * FaceCount(desc)) + slice.Face;
+        return (slice.MipLevel * desc.ArrayLayers * FaceCount(desc)) + (slice.ArrayLayer * FaceCount(desc)) + slice.Face;
     }
 
     public static uint SubresourceSizeInBytes(TextureDesc desc, TextureSlice slice)

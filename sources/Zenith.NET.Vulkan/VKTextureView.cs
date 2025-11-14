@@ -19,8 +19,8 @@ internal unsafe class VKTextureView : TextureView
                 AspectMask = VKFormats.Vulkan(desc.Texture.Desc.Flags).ImageAspectFlags,
                 BaseMipLevel = desc.FirstMipLevel,
                 LevelCount = desc.MipLevelCount,
-                BaseArrayLayer = ZenithHelper.ArrayLayerRange(desc).ArrayLayerIndex,
-                LayerCount = ZenithHelper.ArrayLayerRange(desc).ArrayLayerCount
+                BaseArrayLayer = ZenithHelper.FlattenArrayLayerRange(desc).FlattenArrayLayerIndex,
+                LayerCount = ZenithHelper.FlattenArrayLayerRange(desc).FlattenArrayLayerCount
             }
         };
 
@@ -39,7 +39,7 @@ internal unsafe class VKTextureView : TextureView
         };
     }
 
-    public VKTextureView(VKGraphicsContext context, Texture texture, TextureSlice slice) : base(context, new() { Texture = texture, FirstMipLevel = slice.MipLevel, MipLevelCount = 1, FirstLayer = slice.Layer, LayerCount = 1 })
+    public VKTextureView(VKGraphicsContext context, Texture texture, TextureSlice slice) : base(context, new() { Texture = texture, FirstMipLevel = slice.MipLevel, MipLevelCount = 1, FirstArrayLayer = slice.ArrayLayer, ArrayLayerCount = 1 })
     {
         ImageViewCreateInfo createInfo = new()
         {
@@ -52,7 +52,7 @@ internal unsafe class VKTextureView : TextureView
                 AspectMask = VKFormats.Vulkan(texture.Desc.Flags).ImageAspectFlags,
                 BaseMipLevel = slice.MipLevel,
                 LevelCount = 1,
-                BaseArrayLayer = ZenithHelper.ArrayLayerIndex(texture.Desc, slice),
+                BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(texture.Desc, slice),
                 LayerCount = 1
             }
         };
@@ -89,8 +89,8 @@ internal unsafe class VKTextureView : TextureView
             Desc.Texture.Vulkan().TransitionLayout(commandBuffer,
                                                    Desc.FirstMipLevel,
                                                    Desc.MipLevelCount,
-                                                   Desc.FirstLayer,
-                                                   Desc.LayerCount,
+                                                   Desc.FirstArrayLayer,
+                                                   Desc.ArrayLayerCount,
                                                    0,
                                                    ZenithHelper.FaceCount(Desc.Texture.Desc),
                                                    newLayout);
@@ -100,8 +100,8 @@ internal unsafe class VKTextureView : TextureView
             Desc.Texture.Vulkan().TransitionLayout(commandBuffer,
                                                    Desc.FirstMipLevel,
                                                    Desc.MipLevelCount,
-                                                   Desc.FirstLayer,
-                                                   Desc.LayerCount,
+                                                   Desc.FirstArrayLayer,
+                                                   Desc.ArrayLayerCount,
                                                    Slice.Value.Face,
                                                    1,
                                                    newLayout);

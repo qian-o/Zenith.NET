@@ -8,7 +8,7 @@ public record struct TextureViewDesc
 
     public uint MipLevelCount;
 
-    public uint FirstLayer;
+    public uint FirstArrayLayer;
 
-    public uint LayerCount;
+    public uint ArrayLayerCount;
 }

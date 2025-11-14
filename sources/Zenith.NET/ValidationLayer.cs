@@ -192,9 +192,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.MipLevel", "the number of mip levels in the texture"));
             }
 
-            if (frameBufferAttachment.Slice.Layer >= frameBufferAttachment.Target.Desc.Layers)
+            if (frameBufferAttachment.Slice.ArrayLayer >= frameBufferAttachment.Target.Desc.ArrayLayers)
             {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.Layer", "the number of layers in the texture"));
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.ArrayLayer", "the number of array layers in the texture"));
             }
 
             if (frameBufferAttachment.Slice.Face >= ValidationConstants.CubeMapFaceCount)
@@ -294,9 +294,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "TextureDesc.MipLevels"));
         }
 
-        if (desc.Layers is 0)
+        if (desc.ArrayLayers is 0)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "TextureDesc.Layers"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "TextureDesc.ArrayLayers"));
         }
 
         if (!Enum.IsDefined(desc.SampleCount))
@@ -336,14 +336,14 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "TextureViewDesc.MipLevelCount", "the texture mip levels"));
         }
 
-        if (desc.FirstLayer >= desc.Texture.Desc.Layers)
+        if (desc.FirstArrayLayer >= desc.Texture.Desc.ArrayLayers)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, "TextureViewDesc.FirstLayer", "the number of layers in the texture"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, "TextureViewDesc.FirstArrayLayer", "the number of array layers in the texture"));
         }
 
-        if (desc.LayerCount is 0 || desc.FirstLayer + desc.LayerCount > desc.Texture.Desc.Layers)
+        if (desc.ArrayLayerCount is 0 || desc.FirstArrayLayer + desc.ArrayLayerCount > desc.Texture.Desc.ArrayLayers)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "TextureViewDesc.LayerCount", "the texture layers"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "TextureViewDesc.ArrayLayerCount", "the texture array layers"));
         }
     }
 

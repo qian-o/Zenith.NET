@@ -4,7 +4,7 @@ public record struct TextureSlice
 {
     public uint MipLevel;
 
-    public uint Layer;
+    public uint ArrayLayer;
 
     public uint Face;
 }

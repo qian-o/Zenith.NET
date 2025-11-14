@@ -55,7 +55,7 @@ internal class Uploader(GraphicsContext context) : DisposableObject
                 Height = Math.Max(height, MinTextureHeight),
                 Depth = 1,
                 MipLevels = 1,
-                Layers = 1,
+                ArrayLayers = 1,
                 SampleCount = SampleCount.Count1,
                 Flags = TextureUsageFlags.Dynamic
             });
