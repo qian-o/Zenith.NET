@@ -27,7 +27,7 @@ public static class Extensions
                 Flags = TextureUsageFlags.ShaderResource
             });
 
-            Span<Rgba32> pixels = new Rgba32[image.Width * image.Height];
+            Rgba32[] pixels = new Rgba32[image.Width * image.Height];
             image.CopyPixelDataTo(pixels);
 
             texture.Upload(pixels, default, default, new() { Width = (uint)image.Width, Height = (uint)image.Height, Depth = 1 });
