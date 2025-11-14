@@ -30,10 +30,7 @@ public static class Extensions
             Span<Rgba32> pixels = new Rgba32[image.Width * image.Height];
             image.CopyPixelDataTo(pixels);
 
-            TextureSlice slice = default;
-            TextureExtent extent = new() { Width = (uint)image.Width, Height = (uint)image.Height, Depth = 1 };
-
-            texture.Upload(pixels, slice, default, extent);
+            texture.Upload(pixels, default, default, new() { Width = (uint)image.Width, Height = (uint)image.Height, Depth = 1 });
 
             for (uint i = 1; i < mipLevels; i++)
             {
@@ -44,11 +41,7 @@ public static class Extensions
                 pixels = new Rgba32[mipWidth * mipHeight];
                 mipImage.CopyPixelDataTo(pixels);
 
-                slice.MipLevel = i;
-                extent.Width = mipWidth;
-                extent.Height = mipHeight;
-
-                texture.Upload(pixels, slice, default, extent);
+                texture.Upload(pixels, new() { MipLevel = i }, default, new() { Width = mipWidth, Height = mipHeight, Depth = 1 });
             }
 
             return texture;
