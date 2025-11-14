@@ -4,9 +4,9 @@ using HexaImGui = Hexa.NET.ImGui.ImGui;
 
 namespace Zenith.NET.Extensions.ImGui;
 
-public unsafe class ImGuiController(GraphicsContext context, Output output, ImGuiColorSpace colorSpace, Action<ImGuiMouseCursor>? setCursor = null) : DisposableObject
+public unsafe class ImGuiController : DisposableObject
 {
-    private readonly ImGuiRenderer renderer = new(context, output, colorSpace);
+    private readonly ImGuiRenderer renderer;
     private readonly List<ImGuiMouseButton> mouseDowns = [];
     private readonly List<ImGuiMouseButton> mouseUps = [];
     private readonly List<Vector2> mouseMoves = [];
@@ -17,15 +17,8 @@ public unsafe class ImGuiController(GraphicsContext context, Output output, ImGu
 
     private bool frameBegun;
 
-    public ImGuiContextPtr Context { get; private set; }
-
-    public void Initialize(string? fontPath = null, Action<ImGuiIOPtr>? otherSetup = null)
+    public ImGuiController(GraphicsContext context, Output output, ImGuiColorSpace colorSpace, string? fontPath = null, Action<ImGuiIOPtr>? otherSetup = null)
     {
-        if (!Context.IsNull)
-        {
-            return;
-        }
-
         HexaImGui.SetCurrentContext(Context = HexaImGui.GetCurrentContext());
 
         ImGuiIOPtr io = HexaImGui.GetIO();
@@ -45,8 +38,12 @@ public unsafe class ImGuiController(GraphicsContext context, Output output, ImGu
 
         otherSetup?.Invoke(io);
 
-        renderer.Initialize();
+        renderer = new(context, output, colorSpace);
     }
+
+    public ImGuiContextPtr Context { get; }
+
+    public Action<ImGuiMouseCursor>? SetCursor { get; set; }
 
     public void Update(double delta, uint width, uint height)
     {
@@ -68,7 +65,7 @@ public unsafe class ImGuiController(GraphicsContext context, Output output, ImGu
         io.DisplaySize.X = width;
         io.DisplaySize.Y = height;
 
-        setCursor?.Invoke(HexaImGui.GetMouseCursor());
+        SetCursor?.Invoke(HexaImGui.GetMouseCursor());
 
         foreach (ImGuiMouseButton button in mouseDowns)
         {

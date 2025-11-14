@@ -2,9 +2,9 @@
 
 namespace Zenith.NET.Extensions.ImGui;
 
-internal class ImGuiRenderer(GraphicsContext context, Output output, ImGuiColorSpace colorSpace) : DisposableObject
+internal class ImGuiRenderer : DisposableObject
 {
-    public void Initialize()
+    public ImGuiRenderer(GraphicsContext context, Output output, ImGuiColorSpace colorSpace)
     {
     }
 
@@ -14,6 +14,5 @@ internal class ImGuiRenderer(GraphicsContext context, Output output, ImGuiColorS
 
     protected override void Destroy()
     {
-        throw new NotImplementedException();
     }
 }
