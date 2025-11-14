@@ -30,7 +30,12 @@ SwapChain swapChain = context.CreateSwapChain(new() { Surface = surface, ColorTa
 
 MainView mainView = new(context);
 
-window.Update += mainView.Update;
+window.Update += delta =>
+{
+    mainView.Update(delta);
+
+    Dispatcher.Process();
+};
 
 window.Render += delta =>
 {
