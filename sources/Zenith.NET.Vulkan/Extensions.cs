@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET;
+﻿namespace Zenith.NET.Vulkan;
 
 public static class Extensions
 {

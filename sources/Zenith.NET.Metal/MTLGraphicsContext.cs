@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET;
+﻿namespace Zenith.NET.Metal;
 
 internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Backend.Metal, useValidationLayer)
 {

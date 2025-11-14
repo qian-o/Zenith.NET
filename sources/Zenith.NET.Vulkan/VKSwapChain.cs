@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using Silk.NET.Vulkan;
 
-namespace Zenith.NET;
+namespace Zenith.NET.Vulkan;
 
 internal unsafe class VKSwapChain : SwapChain
 {

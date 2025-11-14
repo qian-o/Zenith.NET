@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET;
+﻿namespace Zenith.NET.Vulkan;
 
 internal readonly record struct VKDescriptorCounts(uint UniformBufferCount,
                                                    uint StorageBufferCount,

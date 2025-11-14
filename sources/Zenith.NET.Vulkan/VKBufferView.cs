@@ -1,6 +1,6 @@
 ﻿using Silk.NET.Vulkan;
 
-namespace Zenith.NET;
+namespace Zenith.NET.Vulkan;
 
 internal class VKBufferView : BufferView
 {

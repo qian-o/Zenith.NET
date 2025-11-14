@@ -1,6 +1,6 @@
 ﻿using Silk.NET.Vulkan;
 
-namespace Zenith.NET;
+namespace Zenith.NET.Vulkan;
 
 internal unsafe class VKCommandQueue(VKGraphicsContext context, CommandQueueType type, Queue queue, uint queueFamilyIndex) : CommandQueue(context, type)
 {

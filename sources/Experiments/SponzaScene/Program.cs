@@ -1,6 +1,7 @@
 ﻿using Silk.NET.Windowing;
 using SponzaScene;
 using Zenith.NET;
+using Zenith.NET.Vulkan;
 
 WindowOptions options = WindowOptions.Default;
 options.API = GraphicsAPI.None;

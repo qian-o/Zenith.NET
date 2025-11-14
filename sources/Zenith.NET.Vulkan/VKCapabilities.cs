@@ -3,7 +3,7 @@ using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.EXT;
 using Silk.NET.Vulkan.Extensions.KHR;
 
-namespace Zenith.NET;
+namespace Zenith.NET.Vulkan;
 
 internal unsafe class VKCapabilities : Capabilities
 {
