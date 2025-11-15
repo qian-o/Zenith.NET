@@ -407,7 +407,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
         commandBuffer.BeginDebugEvent("ImGui");
 
         commandBuffer.BindPipeline(graphicsPipeline);
-        commandBuffer.BindVertexBuffers([vertexBuffer], [0]);
+        commandBuffer.BindVertexBuffer(vertexBuffer, 0, 0);
         commandBuffer.BindIndexBuffer(indexBuffer, 0, IndexFormat.UInt16);
 
         for (int i = 0, vertexOffset = 0, indexOffset = 0; i < drawData.CmdListsCount; i++)

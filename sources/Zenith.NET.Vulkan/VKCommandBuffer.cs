@@ -202,12 +202,12 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Graphics, pipeline.Vulkan().Pipeline);
     }
 
-    protected override void BindVertexBuffersImpl(GraphicsPipeline pipeline, Buffer[] buffers, uint[] offsetsInBytes)
+    protected override void BindVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index)
     {
-        VkBuffer[] vkBuffers = [.. buffers.Select(static item => item.Vulkan().Buffer)];
-        ulong[] vkOffsets = [.. offsetsInBytes.Select(static item => (ulong)item)];
+        VkBuffer vkBuffer = buffer.Vulkan().Buffer;
+        ulong vkOffset = offsetInBytes;
 
-        Context.Vk.CmdBindVertexBuffers(CommandBuffer, 0, (uint)vkBuffers.Length, ref vkBuffers[0], ref vkOffsets[0]);
+        Context.Vk.CmdBindVertexBuffers(CommandBuffer, index, 1, ref vkBuffer, ref vkOffset);
     }
 
     protected override void BindIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format)

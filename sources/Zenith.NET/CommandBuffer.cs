@@ -168,14 +168,14 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         currentPipeline = pipeline;
     }
 
-    public void BindVertexBuffers(Buffer[] buffers, uint[] offsetsInBytes)
+    public void BindVertexBuffer(Buffer buffer, uint offsetInBytes, uint index)
     {
-        if (buffers.Length is 0 || offsetsInBytes.Length is 0 || buffers.Length != offsetsInBytes.Length || currentPipeline is not GraphicsPipeline)
+        if (currentPipeline is not GraphicsPipeline)
         {
             return;
         }
 
-        BindVertexBuffersImpl((GraphicsPipeline)currentPipeline, buffers, offsetsInBytes);
+        BindVertexBufferImpl((GraphicsPipeline)currentPipeline, buffer, offsetInBytes, index);
     }
 
     public void BindIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat format)
@@ -428,7 +428,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void BindPipelineImpl(MeshShadingPipeline pipeline);
 
-    protected abstract void BindVertexBuffersImpl(GraphicsPipeline pipeline, Buffer[] buffers, uint[] offsetsInBytes);
+    protected abstract void BindVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index);
 
     protected abstract void BindIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format);
 
