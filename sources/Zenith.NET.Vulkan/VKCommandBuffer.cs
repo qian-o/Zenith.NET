@@ -168,6 +168,20 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         accelerationStructure.Vulkan().Update(this, newDesc);
     }
 
+    protected override void SetScissorsImpl(Scissor[] scissors)
+    {
+        Rect2D[] vkScissors = [.. scissors.Select(static item => new Rect2D(new(item.X, item.Y), new(item.Width, item.Height)))];
+
+        Context.Vk.CmdSetScissor(CommandBuffer, 0, (uint)vkScissors.Length, ref vkScissors[0]);
+    }
+
+    protected override void SetViewportsImpl(Viewport[] viewports)
+    {
+        VkViewport[] vkViewports = [.. viewports.Select(static item => new VkViewport(item.X, item.Y + item.Height, item.Width, -item.Height, item.MinDepth, item.MaxDepth))];
+
+        Context.Vk.CmdSetViewport(CommandBuffer, 0, (uint)vkViewports.Length, ref vkViewports[0]);
+    }
+
     protected override void BindPipelineImpl(GraphicsPipeline pipeline)
     {
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Graphics, pipeline.Vulkan().Pipeline);
@@ -188,29 +202,6 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Graphics, pipeline.Vulkan().Pipeline);
     }
 
-    protected override void BindResourceSetsImpl(Pipeline pipeline, ResourceSet[] sets)
-    {
-        VKResourceSet[] vkSets = [.. sets.Select(static item => item.Vulkan())];
-
-        foreach (VKResourceSet vkSet in vkSets)
-        {
-            vkSet.TransitionLayout(this);
-        }
-
-        (PipelineBindPoint pipelineBindPoint, PipelineLayout pipelineLayout) = pipeline switch
-        {
-            GraphicsPipeline graphicsPipeline => (PipelineBindPoint.Graphics, graphicsPipeline.Vulkan().PipelineLayout),
-            ComputePipeline computePipeline => (PipelineBindPoint.Compute, computePipeline.Vulkan().PipelineLayout),
-            RayTracingPipeline rayTracingPipeline => (PipelineBindPoint.RayTracingKhr, rayTracingPipeline.Vulkan().PipelineLayout),
-            MeshShadingPipeline meshShadingPipeline => (PipelineBindPoint.Graphics, meshShadingPipeline.Vulkan().PipelineLayout),
-            _ => (PipelineBindPoint.Graphics, default)
-        };
-
-        DescriptorSet[] vkDescriptorSets = [.. vkSets.Select(static item => item.DescriptorToken.DescriptorSet)];
-
-        Context.Vk.CmdBindDescriptorSets(CommandBuffer, pipelineBindPoint, pipelineLayout, 0, (uint)vkDescriptorSets.Length, ref vkDescriptorSets[0], 0, null);
-    }
-
     protected override void BindVertexBuffersImpl(GraphicsPipeline pipeline, Buffer[] buffers, uint[] offsetsInBytes)
     {
         VkBuffer[] vkBuffers = [.. buffers.Select(static item => item.Vulkan().Buffer)];
@@ -224,18 +215,22 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         Context.Vk.CmdBindIndexBuffer(CommandBuffer, buffer.Vulkan().Buffer, offsetInBytes, VKFormats.Vulkan(format));
     }
 
-    protected override void SetScissorsImpl(Scissor[] scissors)
+    protected override void BindResourceSetImpl(Pipeline pipeline, ResourceSet resourceSet, uint index)
     {
-        Rect2D[] vkScissors = [.. scissors.Select(static item => new Rect2D(new(item.X, item.Y), new(item.Width, item.Height)))];
+        VKResourceSet vKResourceSet = resourceSet.Vulkan();
 
-        Context.Vk.CmdSetScissor(CommandBuffer, 0, (uint)vkScissors.Length, ref vkScissors[0]);
-    }
+        vKResourceSet.TransitionLayout(this);
 
-    protected override void SetViewportsImpl(Viewport[] viewports)
-    {
-        VkViewport[] vkViewports = [.. viewports.Select(static item => new VkViewport(item.X, item.Y + item.Height, item.Width, -item.Height, item.MinDepth, item.MaxDepth))];
+        (PipelineBindPoint pipelineBindPoint, PipelineLayout pipelineLayout) = pipeline switch
+        {
+            GraphicsPipeline graphicsPipeline => (PipelineBindPoint.Graphics, graphicsPipeline.Vulkan().PipelineLayout),
+            ComputePipeline computePipeline => (PipelineBindPoint.Compute, computePipeline.Vulkan().PipelineLayout),
+            RayTracingPipeline rayTracingPipeline => (PipelineBindPoint.RayTracingKhr, rayTracingPipeline.Vulkan().PipelineLayout),
+            MeshShadingPipeline meshShadingPipeline => (PipelineBindPoint.Graphics, meshShadingPipeline.Vulkan().PipelineLayout),
+            _ => (PipelineBindPoint.Graphics, default)
+        };
 
-        Context.Vk.CmdSetViewport(CommandBuffer, 0, (uint)vkViewports.Length, ref vkViewports[0]);
+        Context.Vk.CmdBindDescriptorSets(CommandBuffer, pipelineBindPoint, pipelineLayout, index, 1, ref vKResourceSet.DescriptorToken.DescriptorSet, 0, null);
     }
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)

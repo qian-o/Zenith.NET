@@ -404,7 +404,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
                                                                1.0f)
         }]);
 
-        commandBuffer.BeginDebugEvent("ImGui Render");
+        commandBuffer.BeginDebugEvent("ImGui");
 
         commandBuffer.BindPipeline(graphicsPipeline);
         commandBuffer.BindVertexBuffers([vertexBuffer], [0]);
@@ -435,7 +435,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
                     };
 
                     commandBuffer.SetScissors([scissor]);
-                    commandBuffer.BindResourceSets([resourceSetBindings[drawCmd.TexRef.GetTexID()]]);
+                    commandBuffer.BindResourceSet(resourceSetBindings[drawCmd.TexRef.GetTexID()], 0);
                     commandBuffer.DrawIndexed(drawCmd.ElemCount, 1, (uint)(drawCmd.IdxOffset + indexOffset), (int)(drawCmd.VtxOffset + vertexOffset), 0);
                 }
             }
@@ -449,6 +449,9 @@ float4 PSMain(VSOutput input) : SV_TARGET
 
     protected override void Destroy()
     {
+        indexBuffer?.Dispose();
+        vertexBuffer?.Dispose();
+
         foreach (ResourceSet binding in resourceSetBindings.Values)
         {
             binding.Dispose();

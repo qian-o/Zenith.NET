@@ -2,4 +2,9 @@
 
 namespace Zenith.NET.Vulkan;
 
-internal readonly record struct VKDescriptorToken(VKDescriptorPool DescriptorPool, DescriptorSet DescriptorSet);
+internal record struct VKDescriptorToken
+{
+    public VKDescriptorPool DescriptorPool;
+
+    public DescriptorSet DescriptorSet;
+}

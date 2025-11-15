@@ -1,6 +1,7 @@
 ﻿using Silk.NET.Windowing;
 using SponzaScene;
 using Zenith.NET;
+using Zenith.NET.Extensions.ImGui;
 using Zenith.NET.Vulkan;
 
 WindowOptions options = WindowOptions.Default;
@@ -28,10 +29,14 @@ else
 
 SwapChain swapChain = context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.R8G8B8A8UNorm, DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt });
 
+ImGuiController imGuiController = new(context, swapChain.FrameBuffer.Output, ImGuiColorSpace.Legacy);
+
 MainView mainView = new(context);
 
 window.Update += delta =>
 {
+    imGuiController.Update(delta, (uint)window.Size.X, (uint)window.Size.Y);
+
     mainView.Update(delta);
 
     Dispatcher.Process();
@@ -44,7 +49,15 @@ window.Render += delta =>
         return;
     }
 
-    mainView.Render(delta, swapChain.FrameBuffer);
+    mainView.Render(delta);
+
+    CommandBuffer commandBuffer = context.Graphics.CommandBuffer();
+
+    commandBuffer.BindFrameBuffer(swapChain.FrameBuffer, ClearValues.Default);
+
+    imGuiController.Render(commandBuffer);
+
+    commandBuffer.Submit();
 
     context.Copy.WaitIdle();
     context.Compute.WaitIdle();

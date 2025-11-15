@@ -29,7 +29,7 @@ internal unsafe class VKDescriptorAllocator(VKGraphicsContext context) : Graphic
             DescriptorSet descriptorSet;
             context.Vk.AllocateDescriptorSets(context.Device, &allocateInfo, &descriptorSet).Success();
 
-            return new(descriptorPool, descriptorSet);
+            return new() { DescriptorPool = descriptorPool, DescriptorSet = descriptorSet };
         }
     }
 

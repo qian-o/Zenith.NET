@@ -120,6 +120,26 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         currentClearValue = clearValue;
     }
 
+    public void SetScissors(Scissor[] scissors)
+    {
+        if (scissors.Length is 0 || currentFrameBuffer is null)
+        {
+            return;
+        }
+
+        SetScissorsImpl(scissors);
+    }
+
+    public void SetViewports(Viewport[] viewports)
+    {
+        if (viewports.Length is 0 || currentFrameBuffer is null)
+        {
+            return;
+        }
+
+        SetViewportsImpl(viewports);
+    }
+
     public void BindPipeline(GraphicsPipeline pipeline)
     {
         BindPipelineImpl(pipeline);
@@ -148,18 +168,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         currentPipeline = pipeline;
     }
 
-    public void BindResourceSets(ResourceSet[] sets)
-    {
-        if (sets.Length is 0 || currentPipeline is null)
-        {
-            return;
-        }
-
-        EnsureRenderingEnded();
-
-        BindResourceSetsImpl(currentPipeline, sets);
-    }
-
     public void BindVertexBuffers(Buffer[] buffers, uint[] offsetsInBytes)
     {
         if (buffers.Length is 0 || offsetsInBytes.Length is 0 || buffers.Length != offsetsInBytes.Length || currentPipeline is not GraphicsPipeline)
@@ -180,24 +188,14 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         BindIndexBufferImpl((GraphicsPipeline)currentPipeline, buffer, offsetInBytes, format);
     }
 
-    public void SetScissors(Scissor[] scissors)
+    public void BindResourceSet(ResourceSet resourceSet, uint index)
     {
-        if (scissors.Length is 0 || currentFrameBuffer is null)
+        if (currentPipeline is null)
         {
             return;
         }
 
-        SetScissorsImpl(scissors);
-    }
-
-    public void SetViewports(Viewport[] viewports)
-    {
-        if (viewports.Length is 0 || currentFrameBuffer is null)
-        {
-            return;
-        }
-
-        SetViewportsImpl(viewports);
+        BindResourceSetImpl(currentPipeline, resourceSet, index);
     }
 
     public void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
@@ -418,6 +416,10 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void UpdateAccelerationStructureImpl(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc);
 
+    protected abstract void SetScissorsImpl(Scissor[] scissors);
+
+    protected abstract void SetViewportsImpl(Viewport[] viewports);
+
     protected abstract void BindPipelineImpl(GraphicsPipeline pipeline);
 
     protected abstract void BindPipelineImpl(ComputePipeline pipeline);
@@ -426,15 +428,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void BindPipelineImpl(MeshShadingPipeline pipeline);
 
-    protected abstract void BindResourceSetsImpl(Pipeline pipeline, ResourceSet[] sets);
-
     protected abstract void BindVertexBuffersImpl(GraphicsPipeline pipeline, Buffer[] buffers, uint[] offsetsInBytes);
 
     protected abstract void BindIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format);
 
-    protected abstract void SetScissorsImpl(Scissor[] scissors);
-
-    protected abstract void SetViewportsImpl(Viewport[] viewports);
+    protected abstract void BindResourceSetImpl(Pipeline pipeline, ResourceSet resourceSet, uint index);
 
     protected abstract void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
 

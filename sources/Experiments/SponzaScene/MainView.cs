@@ -1,4 +1,5 @@
-﻿using Zenith.NET;
+﻿using Hexa.NET.ImGui;
+using Zenith.NET;
 
 namespace SponzaScene;
 
@@ -15,11 +16,8 @@ internal class MainView
     {
     }
 
-    public void Render(double delta, FrameBuffer frameBuffer)
+    public void Render(double delta)
     {
-        CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
-
-        commandBuffer.BindFrameBuffer(frameBuffer, ClearValues.Default);
-        commandBuffer.Submit();
+        ImGui.ShowDemoWindow();
     }
 }
