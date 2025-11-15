@@ -22,6 +22,23 @@ internal class SilkImGuiController : ImGuiController
         keyboard.KeyDown += OnKeyDown;
         keyboard.KeyUp += OnKeyUp;
         keyboard.KeyChar += OnKeyChar;
+
+        SetCursor = cursor =>
+        {
+            mouse.Cursor.StandardCursor = cursor switch
+            {
+                ImGuiMouseCursor.Arrow => StandardCursor.Arrow,
+                ImGuiMouseCursor.TextInput => StandardCursor.IBeam,
+                ImGuiMouseCursor.ResizeAll => StandardCursor.ResizeAll,
+                ImGuiMouseCursor.ResizeNs => StandardCursor.VResize,
+                ImGuiMouseCursor.ResizeEw => StandardCursor.HResize,
+                ImGuiMouseCursor.ResizeNesw => StandardCursor.NeswResize,
+                ImGuiMouseCursor.ResizeNwse => StandardCursor.NwseResize,
+                ImGuiMouseCursor.Hand => StandardCursor.Hand,
+                ImGuiMouseCursor.NotAllowed => StandardCursor.NotAllowed,
+                _ => StandardCursor.Default
+            };
+        };
     }
 
     private void OnMouseDown(IMouse arg1, MouseButton arg2)
