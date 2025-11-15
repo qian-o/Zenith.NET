@@ -286,8 +286,6 @@ float4 PSMain(VSOutput input) : SV_TARGET
                             Flags = TextureUsageFlags.ShaderResource
                         });
 
-                        textureData.SetTexID(Binding(texture));
-
                         TextureExtent extent = new() { Width = (uint)textureData.Width, Height = (uint)textureData.Height, Depth = 1 };
 
                         if (textureData.Format is ImTextureFormat.Rgba32)
@@ -303,7 +301,8 @@ float4 PSMain(VSOutput input) : SV_TARGET
                             commandBuffer.Upload(texture, default, default, extent, pixels);
                         }
 
-                        textureData.Status = ImTextureStatus.Ok;
+                        textureData.SetTexID(Binding(texture));
+                        textureData.SetStatus(ImTextureStatus.Ok);
 
                         imTextures[textureData.TexID] = texture;
                     }
@@ -340,7 +339,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
                             }
                         }
 
-                        textureData.Status = ImTextureStatus.Ok;
+                        textureData.SetStatus(ImTextureStatus.Ok);
                     }
                     break;
 
@@ -354,7 +353,8 @@ float4 PSMain(VSOutput input) : SV_TARGET
                             texture.Dispose();
                         }
 
-                        textureData.Status = ImTextureStatus.Destroyed;
+                        textureData.SetTexID(null);
+                        textureData.SetStatus(ImTextureStatus.Destroyed);
                     }
                     break;
             }

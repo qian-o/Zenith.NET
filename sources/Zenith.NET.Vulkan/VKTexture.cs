@@ -232,6 +232,11 @@ internal unsafe class VKTexture : Texture
                         srcAccessMask = AccessFlags.TransferWriteBit;
                         srcStageMask = PipelineStageFlags.TransferBit;
                     }
+                    else if (oldLayout == ImageLayout.PresentSrcKhr)
+                    {
+                        srcAccessMask = AccessFlags.MemoryReadBit;
+                        srcStageMask = PipelineStageFlags.BottomOfPipeBit;
+                    }
 
                     AccessFlags dstAccessMask = AccessFlags.None;
                     PipelineStageFlags dstStageMask = PipelineStageFlags.None;
@@ -275,6 +280,11 @@ internal unsafe class VKTexture : Texture
                     {
                         dstAccessMask = AccessFlags.TransferWriteBit;
                         dstStageMask = PipelineStageFlags.TransferBit;
+                    }
+                    else if (newLayout == ImageLayout.PresentSrcKhr)
+                    {
+                        dstAccessMask = AccessFlags.MemoryReadBit;
+                        dstStageMask = PipelineStageFlags.BottomOfPipeBit;
                     }
 
                     ImageMemoryBarrier imageMemoryBarrier = new()
