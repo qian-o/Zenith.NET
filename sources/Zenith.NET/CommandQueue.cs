@@ -23,6 +23,11 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
     {
         using Lock.Scope _ = @lock.EnterScope();
 
+        if (execution.Count is 0)
+        {
+            return;
+        }
+
         WaitIdleImpl();
 
         while (execution.TryDequeue(out CommandBuffer? commandBuffer))
