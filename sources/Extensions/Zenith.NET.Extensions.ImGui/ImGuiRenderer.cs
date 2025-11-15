@@ -113,10 +113,10 @@ float4 PSMain(VSOutput input) : SV_TARGET
     private readonly Sampler sampler;
     private readonly ResourceLayout resourceLayout;
     private readonly GraphicsPipeline graphicsPipeline;
-    private readonly Dictionary<Texture, ImTextureID> textures = [];
-    private readonly Dictionary<TextureView, ImTextureID> textureViews = [];
-    private readonly Dictionary<ImTextureID, Texture> textureBindings = [];
-    private readonly Dictionary<ImTextureID, ResourceSet> resourceSetBindings = [];
+    private readonly Dictionary<Texture, ImTextureID> textureBindings = [];
+    private readonly Dictionary<TextureView, ImTextureID> textureViewBindings = [];
+    private readonly Dictionary<ImTextureID, Texture> imTextures = [];
+    private readonly Dictionary<ImTextureID, ResourceSet> imResourceSets = [];
 
     private Buffer? vertexBuffer;
     private Buffer? indexBuffer;
@@ -200,15 +200,15 @@ float4 PSMain(VSOutput input) : SV_TARGET
 
     public ImTextureID Binding(Texture texture)
     {
-        if (!textures.TryGetValue(texture, out ImTextureID textureID))
+        if (!textureBindings.TryGetValue(texture, out ImTextureID textureID))
         {
             ulong id = 0;
-            while (textures.Values.Any(item => item == id))
+            while (textureBindings.Values.Any(item => item == id))
             {
                 id++;
             }
 
-            resourceSetBindings[textures[texture] = textureID = id] = Context.CreateResourceSet(new()
+            imResourceSets[textureBindings[texture] = textureID = id] = Context.CreateResourceSet(new()
             {
                 Layout = resourceLayout,
                 Resources = [constants, texture, sampler]
@@ -220,15 +220,15 @@ float4 PSMain(VSOutput input) : SV_TARGET
 
     public ImTextureID Binding(TextureView textureView)
     {
-        if (!textureViews.TryGetValue(textureView, out ImTextureID textureID))
+        if (!textureViewBindings.TryGetValue(textureView, out ImTextureID textureID))
         {
             ulong id = 0;
-            while (textureViews.Values.Any(item => item == id))
+            while (textureViewBindings.Values.Any(item => item == id))
             {
                 id++;
             }
 
-            resourceSetBindings[textureViews[textureView] = textureID = id] = Context.CreateResourceSet(new()
+            imResourceSets[textureViewBindings[textureView] = textureID = id] = Context.CreateResourceSet(new()
             {
                 Layout = resourceLayout,
                 Resources = [constants, textureView, sampler]
@@ -240,21 +240,21 @@ float4 PSMain(VSOutput input) : SV_TARGET
 
     public void RemoveBinding(ImTextureID textureID)
     {
-        if (resourceSetBindings.TryGetValue(textureID, out ResourceSet? resourceSet))
+        if (imResourceSets.TryGetValue(textureID, out ResourceSet? resourceSet))
         {
-            resourceSetBindings.Remove(textureID);
+            imResourceSets.Remove(textureID);
 
             resourceSet.Dispose();
         }
 
-        if (textures.ContainsValue(textureID) && textures.FirstOrDefault(kv => kv.Value == textureID).Key is Texture texture)
+        if (textureBindings.ContainsValue(textureID) && textureBindings.FirstOrDefault(kv => kv.Value == textureID).Key is Texture texture)
         {
-            textures.Remove(texture);
+            textureBindings.Remove(texture);
         }
 
-        if (textureViews.ContainsValue(textureID) && textureViews.FirstOrDefault(kv => kv.Value == textureID).Key is TextureView textureView)
+        if (textureViewBindings.ContainsValue(textureID) && textureViewBindings.FirstOrDefault(kv => kv.Value == textureID).Key is TextureView textureView)
         {
-            textureViews.Remove(textureView);
+            textureViewBindings.Remove(textureView);
         }
     }
 
@@ -305,13 +305,13 @@ float4 PSMain(VSOutput input) : SV_TARGET
 
                         textureData.Status = ImTextureStatus.Ok;
 
-                        textureBindings[textureData.TexID] = texture;
+                        imTextures[textureData.TexID] = texture;
                     }
                     break;
 
                 case ImTextureStatus.WantUpdates:
                     {
-                        if (textureBindings.TryGetValue(textureData.TexID, out Texture? texture))
+                        if (imTextures.TryGetValue(textureData.TexID, out Texture? texture))
                         {
                             for (int j = 0; j < textureData.Updates.Size; j++)
                             {
@@ -343,9 +343,9 @@ float4 PSMain(VSOutput input) : SV_TARGET
                     {
                         RemoveBinding(textureData.TexID);
 
-                        if (textureBindings.TryGetValue(textureData.TexID, out Texture? texture))
+                        if (imTextures.TryGetValue(textureData.TexID, out Texture? texture))
                         {
-                            textureBindings.Remove(textureData.TexID);
+                            imTextures.Remove(textureData.TexID);
                             texture.Dispose();
                         }
 
@@ -435,7 +435,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
                     };
 
                     commandBuffer.SetScissors([scissor]);
-                    commandBuffer.BindResourceSet(resourceSetBindings[drawCmd.TexRef.GetTexID()], 0);
+                    commandBuffer.BindResourceSet(imResourceSets[drawCmd.TexRef.GetTexID()], 0);
                     commandBuffer.DrawIndexed(drawCmd.ElemCount, 1, (uint)(drawCmd.IdxOffset + indexOffset), (int)(drawCmd.VtxOffset + vertexOffset), 0);
                 }
             }
@@ -452,20 +452,20 @@ float4 PSMain(VSOutput input) : SV_TARGET
         indexBuffer?.Dispose();
         vertexBuffer?.Dispose();
 
-        foreach (ResourceSet binding in resourceSetBindings.Values)
+        foreach (ResourceSet resourceSet in imResourceSets.Values)
         {
-            binding.Dispose();
+            resourceSet.Dispose();
         }
 
-        foreach (Texture binding in textureBindings.Values)
+        foreach (Texture texture in imTextures.Values)
         {
-            binding.Dispose();
+            texture.Dispose();
         }
 
-        resourceSetBindings.Clear();
+        imResourceSets.Clear();
+        imTextures.Clear();
+        textureViewBindings.Clear();
         textureBindings.Clear();
-        textureViews.Clear();
-        textures.Clear();
         graphicsPipeline.Dispose();
         resourceLayout.Dispose();
         sampler.Dispose();
