@@ -225,7 +225,7 @@ internal static class Dispatcher
     }
 }
 
-internal interface IView
+internal interface IView : IDisposable
 {
     void Update(double delta);
 
@@ -325,5 +325,16 @@ internal static class App
         };
 
         MainWindow.Run();
+
+        foreach (IView view in Views)
+        {
+            view.Dispose();
+        }
+
+        ImGuiController.Dispose();
+        SwapChain.Dispose();
+        Context.Dispose();
+
+        Console.WriteLine("Exited cleanly.");
     }
 }

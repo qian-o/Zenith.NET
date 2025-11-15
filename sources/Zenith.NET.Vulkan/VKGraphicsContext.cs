@@ -526,6 +526,8 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
         base.Destroy();
 
+        DescriptorAllocator.Dispose();
+
         Vk.DestroyDevice(Device, null);
         Vk.DestroyInstance(Instance, null);
 

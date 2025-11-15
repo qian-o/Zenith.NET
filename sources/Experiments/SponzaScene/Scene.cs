@@ -1,8 +1,9 @@
 ﻿using Hexa.NET.ImGui;
+using Zenith.NET;
 
 namespace SponzaScene;
 
-internal class MainView : IView
+internal class MainView : DisposableObject, IView
 {
     public void Update(double delta)
     {
@@ -11,5 +12,9 @@ internal class MainView : IView
     public void Render(double delta)
     {
         ImGui.ShowDemoWindow();
+    }
+
+    protected override void Destroy()
+    {
     }
 }
