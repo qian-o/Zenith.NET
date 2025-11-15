@@ -2,11 +2,10 @@
 
 internal class Uploader(GraphicsContext context) : DisposableObject
 {
-    private const uint MinBufferSizeInBytes = 512;
-    private const uint MinTextureWidth = 256;
-    private const uint MinTextureHeight = 256;
-    private const uint MaxAvailableBuffers = 128;
-    private const uint MaxAvailableTextures = 64;
+    private const uint MinBufferSizeInBytes = 4096;
+    private const uint MinTextureWidth = 64;
+    private const uint MinTextureHeight = 64;
+    private const uint MaxAvailableResources = 256;
 
     private readonly Lock @lock = new();
     private readonly List<Buffer> availableBuffers = [];
@@ -75,23 +74,27 @@ internal class Uploader(GraphicsContext context) : DisposableObject
         if (usedBuffers.Remove(commandBuffer, out Buffer[]? buffers))
         {
             availableBuffers.AddRange(buffers);
+
+            while (availableBuffers.Count > MaxAvailableResources)
+            {
+                Buffer buffer = availableBuffers[0];
+                buffer.Dispose();
+
+                availableBuffers.RemoveAt(0);
+            }
         }
 
         if (usedTextures.Remove(commandBuffer, out Texture[]? textures))
         {
             availableTextures.AddRange(textures);
-        }
 
-        while (availableBuffers.Count > MaxAvailableBuffers)
-        {
-            availableBuffers[0].Dispose();
-            availableBuffers.RemoveAt(0);
-        }
+            while (availableTextures.Count > MaxAvailableResources)
+            {
+                Texture texture = availableTextures[0];
+                texture.Dispose();
 
-        while (availableTextures.Count > MaxAvailableTextures)
-        {
-            availableTextures[0].Dispose();
-            availableTextures.RemoveAt(0);
+                availableTextures.RemoveAt(0);
+            }
         }
     }
 
