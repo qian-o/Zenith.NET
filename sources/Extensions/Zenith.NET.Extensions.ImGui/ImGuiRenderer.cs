@@ -283,7 +283,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
                             MipLevels = 1,
                             ArrayLayers = 1,
                             SampleCount = SampleCount.Count1,
-                            Flags = TextureUsageFlags.ShaderResource
+                            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.Dynamic
                         });
 
                         TextureExtent extent = new() { Width = (uint)textureData.Width, Height = (uint)textureData.Height, Depth = 1 };
@@ -325,13 +325,13 @@ float4 PSMain(VSOutput input) : SV_TARGET
                                     {
                                         ReadOnlySpan<int> pixels = new(textureData.GetPixelsAt(rect.X, rect.Y + k), rect.W);
 
-                                        commandBuffer.Upload(texture, default, offset, extent, pixels);
+                                        texture.Upload(pixels, default, offset, extent);
                                     }
                                     else
                                     {
                                         ReadOnlySpan<byte> pixels = new(textureData.GetPixelsAt(rect.X, rect.Y + k), rect.W);
 
-                                        commandBuffer.Upload(texture, default, offset, extent, pixels);
+                                        texture.Upload(pixels, default, offset, extent);
                                     }
 
                                     offset.Y++;
