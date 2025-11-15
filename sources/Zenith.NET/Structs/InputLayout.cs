@@ -6,7 +6,7 @@ public record struct InputLayout
 
     public uint StrideInBytes;
 
-    public InputLayout Add(InputElement element)
+    public void Add(InputElement element)
     {
         element.OffsetInBytes = StrideInBytes;
 
@@ -22,7 +22,5 @@ public record struct InputLayout
         }
 
         StrideInBytes += ZenithHelper.SizeInBytes(element.Format);
-
-        return this;
     }
 }
