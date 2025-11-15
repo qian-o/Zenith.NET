@@ -13,7 +13,7 @@ public unsafe class ImGuiController : DisposableObject
     private readonly List<Vector2> mouseWheels = [];
     private readonly List<ImGuiKey> keyDowns = [];
     private readonly List<ImGuiKey> keyUps = [];
-    private readonly List<char> chars = [];
+    private readonly List<char> keyChars = [];
 
     private bool frameBegun;
 
@@ -107,7 +107,7 @@ public unsafe class ImGuiController : DisposableObject
             io.AddKeyEvent(key, false);
         }
 
-        foreach (char c in chars)
+        foreach (char c in keyChars)
         {
             io.AddInputCharacter(c);
         }
@@ -118,7 +118,7 @@ public unsafe class ImGuiController : DisposableObject
         mouseWheels.Clear();
         keyDowns.Clear();
         keyUps.Clear();
-        chars.Clear();
+        keyChars.Clear();
 
         HexaImGui.NewFrame();
 
@@ -174,9 +174,9 @@ public unsafe class ImGuiController : DisposableObject
         keyUps.Add(key);
     }
 
-    public void AddChar(char c)
+    public void KeyChar(char c)
     {
-        chars.Add(c);
+        keyChars.Add(c);
     }
 
     protected override void Destroy()

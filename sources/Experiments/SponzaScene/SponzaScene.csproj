@@ -16,6 +16,7 @@
 
     <ItemGroup>
         <PackageReference Include="SharpGLTF.Toolkit" />
+        <PackageReference Include="Silk.NET.Input" />
         <PackageReference Include="Silk.NET.Windowing" />
     </ItemGroup>
 
