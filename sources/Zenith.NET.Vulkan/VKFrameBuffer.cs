@@ -113,7 +113,7 @@ internal unsafe class VKFrameBuffer : FrameBuffer
     {
         foreach (VKTextureView colorAttachment in ColorAttachments)
         {
-            colorAttachment.TransitionLayout(commandBuffer, ImageLayout.AttachmentOptimal);
+            colorAttachment.TransitionLayout(commandBuffer, ImageLayout.ColorAttachmentOptimal);
         }
 
         DepthStencilAttachment?.TransitionLayout(commandBuffer, ImageLayout.DepthStencilAttachmentOptimal);

@@ -29,7 +29,6 @@ internal unsafe class VKResourceSet : ResourceSet
             descriptorWrites[i] = new()
             {
                 SType = StructureType.WriteDescriptorSet,
-                PNext = null,
                 DstSet = DescriptorToken.DescriptorSet,
                 DstBinding = binding.Index,
                 DstArrayElement = 0,

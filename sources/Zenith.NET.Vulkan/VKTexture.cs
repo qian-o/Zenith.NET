@@ -162,6 +162,11 @@ internal unsafe class VKTexture : Texture
                                  uint faceCount,
                                  ImageLayout newLayout)
     {
+        if (newLayout is ImageLayout.Undefined)
+        {
+            return;
+        }
+
         for (uint i = 0; i < mipLevelCount; i++)
         {
             for (uint j = 0; j < arrayLayerCount; j++)
@@ -238,7 +243,7 @@ internal unsafe class VKTexture : Texture
 
                         if (Context.Capabilities.RayTracingSupported)
                         {
-                            srcStageMask |= PipelineStageFlags.RayTracingShaderBitKhr;
+                            dstStageMask |= PipelineStageFlags.RayTracingShaderBitKhr;
                         }
                     }
                     else if (newLayout == ImageLayout.ColorAttachmentOptimal)
@@ -258,7 +263,7 @@ internal unsafe class VKTexture : Texture
 
                         if (Context.Capabilities.RayTracingSupported)
                         {
-                            srcStageMask |= PipelineStageFlags.RayTracingShaderBitKhr;
+                            dstStageMask |= PipelineStageFlags.RayTracingShaderBitKhr;
                         }
                     }
                     else if (newLayout == ImageLayout.TransferSrcOptimal)
@@ -300,6 +305,8 @@ internal unsafe class VKTexture : Texture
                                                   null,
                                                   1,
                                                   &imageMemoryBarrier);
+
+                    Layouts[index] = newLayout;
                 }
             }
         }
