@@ -318,19 +318,24 @@ float4 PSMain(VSOutput input) : SV_TARGET
                                 ImTextureRect rect = textureData.Updates[j];
 
                                 TextureOffset offset = new() { X = rect.X, Y = rect.Y, Z = 0 };
-                                TextureExtent extent = new() { Width = rect.W, Height = rect.H, Depth = 1 };
+                                TextureExtent extent = new() { Width = rect.W, Height = 1, Depth = 1 };
 
-                                if (textureData.Format is ImTextureFormat.Rgba32)
+                                for (ushort k = 0; k < rect.H; k++)
                                 {
-                                    ReadOnlySpan<int> pixels = new(textureData.Pixels, rect.W * rect.H);
+                                    if (textureData.Format is ImTextureFormat.Rgba32)
+                                    {
+                                        ReadOnlySpan<int> pixels = new(textureData.GetPixelsAt(rect.X, rect.Y + k), rect.W);
 
-                                    commandBuffer.Upload(texture, default, offset, extent, pixels);
-                                }
-                                else
-                                {
-                                    ReadOnlySpan<byte> pixels = new(textureData.Pixels, rect.W * rect.H);
+                                        commandBuffer.Upload(texture, default, offset, extent, pixels);
+                                    }
+                                    else
+                                    {
+                                        ReadOnlySpan<byte> pixels = new(textureData.GetPixelsAt(rect.X, rect.Y + k), rect.W);
 
-                                    commandBuffer.Upload(texture, default, offset, extent, pixels);
+                                        commandBuffer.Upload(texture, default, offset, extent, pixels);
+                                    }
+
+                                    offset.Y++;
                                 }
                             }
                         }
