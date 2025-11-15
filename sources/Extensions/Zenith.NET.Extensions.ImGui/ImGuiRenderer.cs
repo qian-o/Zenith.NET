@@ -409,6 +409,8 @@ float4 PSMain(VSOutput input) : SV_TARGET
                                                                1.0f)
         }]);
 
+        commandBuffer.PreprocessResourceSets([.. imResourceSets.Values]);
+
         commandBuffer.BeginDebugEvent("ImGui");
 
         commandBuffer.BindPipeline(graphicsPipeline);

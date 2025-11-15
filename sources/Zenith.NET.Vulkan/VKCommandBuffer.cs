@@ -168,6 +168,14 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         accelerationStructure.Vulkan().Update(this, newDesc);
     }
 
+    protected override void PreprocessResourceSetsImpl(ResourceSet[] resourceSets)
+    {
+        foreach (ResourceSet resourceSet in resourceSets)
+        {
+            resourceSet.Vulkan().TransitionLayout(this);
+        }
+    }
+
     protected override void SetScissorsImpl(Scissor[] scissors)
     {
         Rect2D[] vkScissors = [.. scissors.Select(static item => new Rect2D(new(item.X, item.Y), new(item.Width, item.Height)))];
@@ -217,10 +225,6 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void BindResourceSetImpl(Pipeline pipeline, ResourceSet resourceSet, uint index)
     {
-        VKResourceSet vKResourceSet = resourceSet.Vulkan();
-
-        vKResourceSet.TransitionLayout(this);
-
         (PipelineBindPoint pipelineBindPoint, PipelineLayout pipelineLayout) = pipeline switch
         {
             GraphicsPipeline graphicsPipeline => (PipelineBindPoint.Graphics, graphicsPipeline.Vulkan().PipelineLayout),
@@ -230,7 +234,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
             _ => (PipelineBindPoint.Graphics, default)
         };
 
-        Context.Vk.CmdBindDescriptorSets(CommandBuffer, pipelineBindPoint, pipelineLayout, index, 1, ref vKResourceSet.DescriptorToken.DescriptorSet, 0, null);
+        Context.Vk.CmdBindDescriptorSets(CommandBuffer, pipelineBindPoint, pipelineLayout, index, 1, ref resourceSet.Vulkan().DescriptorToken.DescriptorSet, 0, null);
     }
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)

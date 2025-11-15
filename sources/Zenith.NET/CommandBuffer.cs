@@ -100,6 +100,13 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         accelerationStructure.Refresh(newDesc);
     }
 
+    public void PreprocessResourceSets(ResourceSet[] resourceSets)
+    {
+        EnsureRenderingEnded();
+
+        PreprocessResourceSetsImpl(resourceSets);
+    }
+
     public void BindFrameBuffer(FrameBuffer frameBuffer, ClearValue clearValue)
     {
         EnsureRenderingEnded();
@@ -415,6 +422,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     protected abstract TopLevelAccelerationStructure BuildAccelerationStructureImpl(TopLevelAccelerationStructureDesc desc);
 
     protected abstract void UpdateAccelerationStructureImpl(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc);
+
+    protected abstract void PreprocessResourceSetsImpl(ResourceSet[] resourceSets);
 
     protected abstract void SetScissorsImpl(Scissor[] scissors);
 
