@@ -10,7 +10,7 @@ namespace SponzaScene;
 
 internal class SilkImGuiController : ImGuiController
 {
-    public SilkImGuiController(IInputContext inputContext, Output output, ImGuiColorSpace colorSpace, string? fontPath = null, Action<ImGuiIOPtr>? otherSetup = null) : base(App.Context, output, colorSpace, fontPath, otherSetup)
+    public SilkImGuiController(IInputContext inputContext, Output output, ImGuiColorSpace colorSpace) : base(App.Context, output, colorSpace, Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "msyh.ttf"), OtherSetup)
     {
         IMouse mouse = inputContext.Mice[0];
         mouse.MouseDown += OnMouseDown;
@@ -195,6 +195,11 @@ internal class SilkImGuiController : ImGuiController
             _ => ImGuiKey.None
         };
     }
+
+    private static void OtherSetup(ImGuiIOPtr io)
+    {
+        io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
+    }
 }
 
 internal static class Dispatcher
@@ -271,6 +276,8 @@ internal static class App
         MainWindow.Update += delta =>
         {
             ImGuiController.Update(delta, (uint)MainWindow.Size.X, (uint)MainWindow.Size.Y);
+
+            ImGui.DockSpaceOverViewport(null, ImGuiDockNodeFlags.PassthruCentralNode, null);
 
             foreach (IView view in Views)
             {
