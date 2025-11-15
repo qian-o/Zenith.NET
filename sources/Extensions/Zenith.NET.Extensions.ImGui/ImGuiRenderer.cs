@@ -175,7 +175,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
         InputLayout inputLayout = new();
         inputLayout.Add(new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.Position });
         inputLayout.Add(new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.TexCoord });
-        inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Color });
+        inputLayout.Add(new() { Format = ElementFormat.UByte4Normalized, Semantic = ElementSemantic.Color });
 
         graphicsPipeline = context.CreateGraphicsPipeline(new()
         {

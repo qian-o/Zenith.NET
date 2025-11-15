@@ -233,7 +233,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void SetViewportsImpl(Viewport[] viewports)
     {
-        VkViewport[] vkViewports = [.. viewports.Select(static item => new VkViewport(item.X, item.Y, item.Width, -item.Height, item.MinDepth, item.MaxDepth))];
+        VkViewport[] vkViewports = [.. viewports.Select(static item => new VkViewport(item.X, item.Y + item.Height, item.Width, -item.Height, item.MinDepth, item.MaxDepth))];
 
         Context.Vk.CmdSetViewport(CommandBuffer, 0, (uint)vkViewports.Length, ref vkViewports[0]);
     }

@@ -19,7 +19,7 @@ public unsafe class ImGuiController : DisposableObject
 
     public ImGuiController(GraphicsContext context, Output output, ImGuiColorSpace colorSpace, string? fontPath = null, Action<ImGuiIOPtr>? otherSetup = null)
     {
-        HexaImGui.SetCurrentContext(Context = HexaImGui.GetCurrentContext());
+        HexaImGui.SetCurrentContext(Context = HexaImGui.CreateContext());
 
         ImGuiIOPtr io = HexaImGui.GetIO();
 
@@ -121,6 +121,8 @@ public unsafe class ImGuiController : DisposableObject
         chars.Clear();
 
         HexaImGui.NewFrame();
+
+        frameBegun = true;
     }
 
     public void Render(CommandBuffer commandBuffer)
