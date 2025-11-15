@@ -28,7 +28,7 @@ public static class Extensions
             switch (context.Backend)
             {
                 case Backend.DirectX12:
-                    arguments.AddRange(["-target", "dxil"]);
+                    arguments.AddRange(["-profile", "sm_6_6", "-target", "dxil"]);
                     break;
 
                 case Backend.Metal:
@@ -45,7 +45,7 @@ public static class Extensions
 
         public Shader LoadShaderFromSource(string source, string entryPoint, ShaderStageFlags stage, string[]? searchPaths = null)
         {
-            string file = Path.GetTempFileName();
+            string file = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.slang");
 
             File.WriteAllText(file, source);
 
