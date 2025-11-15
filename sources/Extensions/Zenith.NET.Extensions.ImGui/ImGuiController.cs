@@ -45,6 +45,16 @@ public unsafe class ImGuiController : DisposableObject
 
     public Action<ImGuiMouseCursor>? SetCursor { get; set; }
 
+    public ImTextureRef Binding(Texture texture)
+    {
+        return renderer.Binding(texture);
+    }
+
+    public ImTextureRef Binding(TextureView textureView)
+    {
+        return renderer.Binding(textureView);
+    }
+
     public void Update(double delta, uint width, uint height)
     {
         if (Context.IsNull)

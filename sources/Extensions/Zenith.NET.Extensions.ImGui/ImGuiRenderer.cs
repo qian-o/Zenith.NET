@@ -108,10 +108,13 @@ float4 PSMain(VSOutput input) : SV_TARGET
         public Matrix4x4 Projection;
     }
 
-    private readonly Buffer constantsBuffer;
+    private readonly Buffer constants;
     private readonly Sampler sampler;
     private readonly ResourceLayout resourceLayout;
     private readonly GraphicsPipeline graphicsPipeline;
+    private readonly Dictionary<Texture, ImTextureRef> textures = [];
+    private readonly Dictionary<TextureView, ImTextureRef> textureViews = [];
+    private readonly Dictionary<ImTextureRef, ResourceSet> bindings = [];
 
     public ImGuiRenderer(GraphicsContext context, Output output, ImGuiColorSpace colorSpace)
     {
@@ -147,10 +150,10 @@ float4 PSMain(VSOutput input) : SV_TARGET
             Stage = ShaderStageFlags.Pixel
         });
 
-        constantsBuffer = context.CreateBuffer(new()
+        constants = context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)sizeof(Matrix4x4),
-            StrideInBytes = (uint)sizeof(Matrix4x4),
+            SizeInBytes = (uint)sizeof(Constants),
+            StrideInBytes = (uint)sizeof(Constants),
             Flags = BufferUsageFlags.Constant | BufferUsageFlags.Dynamic
         });
 
@@ -184,6 +187,50 @@ float4 PSMain(VSOutput input) : SV_TARGET
             PrimitiveTopology = PrimitiveTopology.TriangleList,
             Output = output
         });
+
+        Context = context;
+    }
+
+    public GraphicsContext Context { get; }
+
+    public ImTextureRef Binding(Texture texture)
+    {
+        if (!textures.TryGetValue(texture, out ImTextureRef textureRef))
+        {
+            ulong texID = 0;
+            while (textures.Values.Any(t => t.TexID == texID))
+            {
+                texID++;
+            }
+
+            bindings[textures[texture] = textureRef = new(null, texID)] = Context.CreateResourceSet(new()
+            {
+                Layout = resourceLayout,
+                Resources = [constants, texture, sampler]
+            });
+        }
+
+        return textureRef;
+    }
+
+    public ImTextureRef Binding(TextureView textureView)
+    {
+        if (!textureViews.TryGetValue(textureView, out ImTextureRef textureRef))
+        {
+            ulong texID = 0;
+            while (textureViews.Values.Any(t => t.TexID == texID))
+            {
+                texID++;
+            }
+
+            bindings[textureViews[textureView] = textureRef = new(null, texID)] = Context.CreateResourceSet(new()
+            {
+                Layout = resourceLayout,
+                Resources = [constants, textureView, sampler]
+            });
+        }
+
+        return textureRef;
     }
 
     public void Render(CommandBuffer commandBuffer, ImDrawDataPtr drawData)
@@ -193,6 +240,17 @@ float4 PSMain(VSOutput input) : SV_TARGET
 
     protected override void Destroy()
     {
-        throw new NotImplementedException();
+        foreach (ResourceSet binding in bindings.Values)
+        {
+            binding.Dispose();
+        }
+
+        bindings.Clear();
+        textureViews.Clear();
+        textures.Clear();
+        graphicsPipeline.Dispose();
+        resourceLayout.Dispose();
+        sampler.Dispose();
+        constants.Dispose();
     }
 }
