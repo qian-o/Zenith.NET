@@ -112,9 +112,10 @@ float4 PSMain(VSOutput input) : SV_TARGET
     private readonly Sampler sampler;
     private readonly ResourceLayout resourceLayout;
     private readonly GraphicsPipeline graphicsPipeline;
-    private readonly Dictionary<Texture, ImTextureRef> textures = [];
-    private readonly Dictionary<TextureView, ImTextureRef> textureViews = [];
-    private readonly Dictionary<ImTextureRef, ResourceSet> bindings = [];
+    private readonly Dictionary<Texture, ImTextureID> textures = [];
+    private readonly Dictionary<TextureView, ImTextureID> textureViews = [];
+    private readonly Dictionary<ImTextureID, Texture> textureBindings = [];
+    private readonly Dictionary<ImTextureID, ResourceSet> resourceSetBindings = [];
 
     public ImGuiRenderer(GraphicsContext context, Output output, ImGuiColorSpace colorSpace)
     {
@@ -195,57 +196,92 @@ float4 PSMain(VSOutput input) : SV_TARGET
 
     public ImTextureRef Binding(Texture texture)
     {
-        if (!textures.TryGetValue(texture, out ImTextureRef textureRef))
+        if (!textures.TryGetValue(texture, out ImTextureID textureID))
         {
-            ulong texID = 0;
-            while (textures.Values.Any(t => t.TexID == texID))
+            ulong id = 0;
+            while (textures.Values.Any(item => item == id))
             {
-                texID++;
+                id++;
             }
 
-            bindings[textures[texture] = textureRef = new(null, texID)] = Context.CreateResourceSet(new()
+            resourceSetBindings[textures[texture] = textureID = id] = Context.CreateResourceSet(new()
             {
                 Layout = resourceLayout,
                 Resources = [constants, texture, sampler]
             });
         }
 
-        return textureRef;
+        return new(null, textureID);
     }
 
     public ImTextureRef Binding(TextureView textureView)
     {
-        if (!textureViews.TryGetValue(textureView, out ImTextureRef textureRef))
+        if (!textureViews.TryGetValue(textureView, out ImTextureID textureID))
         {
-            ulong texID = 0;
-            while (textureViews.Values.Any(t => t.TexID == texID))
+            ulong id = 0;
+            while (textureViews.Values.Any(item => item == id))
             {
-                texID++;
+                id++;
             }
 
-            bindings[textureViews[textureView] = textureRef = new(null, texID)] = Context.CreateResourceSet(new()
+            resourceSetBindings[textureViews[textureView] = textureID = id] = Context.CreateResourceSet(new()
             {
                 Layout = resourceLayout,
                 Resources = [constants, textureView, sampler]
             });
         }
 
-        return textureRef;
+        return new(null, textureID);
     }
 
     public void Render(CommandBuffer commandBuffer, ImDrawDataPtr drawData)
     {
-        throw new NotImplementedException();
+        for (int i = 0; i < drawData.Textures.Size; i++)
+        {
+            ImTextureDataPtr textureData = drawData.Textures[i];
+
+            switch (textureData.Status)
+            {
+                case ImTextureStatus.WantCreate:
+                    {
+                        Texture texture = Context.CreateTexture(new()
+                        {
+                            Type = TextureType.Texture2D,
+                            Format = textureData.Format is ImTextureFormat.Rgba32 ? PixelFormat.R8G8B8A8UNorm : PixelFormat.R8UNorm,
+                            Width = (uint)textureData.Width,
+                            Height = (uint)textureData.Height,
+                            Depth = 1,
+                            MipLevels = 1,
+                            ArrayLayers = 1,
+                            SampleCount = SampleCount.Count1,
+                            Flags = TextureUsageFlags.ShaderResource
+                        });
+                    }
+                    break;
+
+                case ImTextureStatus.WantUpdates:
+                    break;
+
+                case ImTextureStatus.WantDestroy:
+                    break;
+            }
+        }
     }
 
     protected override void Destroy()
     {
-        foreach (ResourceSet binding in bindings.Values)
+        foreach (ResourceSet binding in resourceSetBindings.Values)
         {
             binding.Dispose();
         }
 
-        bindings.Clear();
+        foreach (Texture binding in textureBindings.Values)
+        {
+            binding.Dispose();
+        }
+
+        resourceSetBindings.Clear();
+        textureBindings.Clear();
         textureViews.Clear();
         textures.Clear();
         graphicsPipeline.Dispose();
