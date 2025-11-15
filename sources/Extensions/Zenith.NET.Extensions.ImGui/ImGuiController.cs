@@ -47,12 +47,12 @@ public unsafe class ImGuiController : DisposableObject
 
     public ImTextureRef Binding(Texture texture)
     {
-        return renderer.Binding(texture);
+        return new(null, renderer.Binding(texture));
     }
 
     public ImTextureRef Binding(TextureView textureView)
     {
-        return renderer.Binding(textureView);
+        return new(null, renderer.Binding(textureView));
     }
 
     public void Update(double delta, uint width, uint height)

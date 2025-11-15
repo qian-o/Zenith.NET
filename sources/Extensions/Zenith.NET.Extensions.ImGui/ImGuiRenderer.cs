@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using Hexa.NET.ImGui;
 
 namespace Zenith.NET.Extensions.ImGui;
@@ -117,6 +118,9 @@ float4 PSMain(VSOutput input) : SV_TARGET
     private readonly Dictionary<ImTextureID, Texture> textureBindings = [];
     private readonly Dictionary<ImTextureID, ResourceSet> resourceSetBindings = [];
 
+    private Buffer? vertexBuffer;
+    private Buffer? indexBuffer;
+
     public ImGuiRenderer(GraphicsContext context, Output output, ImGuiColorSpace colorSpace)
     {
         byte[] vertexShaderBytes = [];
@@ -194,7 +198,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
 
     public GraphicsContext Context { get; }
 
-    public ImTextureRef Binding(Texture texture)
+    public ImTextureID Binding(Texture texture)
     {
         if (!textures.TryGetValue(texture, out ImTextureID textureID))
         {
@@ -211,10 +215,10 @@ float4 PSMain(VSOutput input) : SV_TARGET
             });
         }
 
-        return new(null, textureID);
+        return textureID;
     }
 
-    public ImTextureRef Binding(TextureView textureView)
+    public ImTextureID Binding(TextureView textureView)
     {
         if (!textureViews.TryGetValue(textureView, out ImTextureID textureID))
         {
@@ -231,11 +235,36 @@ float4 PSMain(VSOutput input) : SV_TARGET
             });
         }
 
-        return new(null, textureID);
+        return textureID;
+    }
+
+    public void RemoveBinding(ImTextureID textureID)
+    {
+        if (resourceSetBindings.TryGetValue(textureID, out ResourceSet? resourceSet))
+        {
+            resourceSetBindings.Remove(textureID);
+
+            resourceSet.Dispose();
+        }
+
+        if (textures.ContainsValue(textureID) && textures.FirstOrDefault(kv => kv.Value == textureID).Key is Texture texture)
+        {
+            textures.Remove(texture);
+        }
+
+        if (textureViews.ContainsValue(textureID) && textureViews.FirstOrDefault(kv => kv.Value == textureID).Key is TextureView textureView)
+        {
+            textureViews.Remove(textureView);
+        }
     }
 
     public void Render(CommandBuffer commandBuffer, ImDrawDataPtr drawData)
     {
+        if (drawData.CmdListsCount is 0)
+        {
+            return;
+        }
+
         for (int i = 0; i < drawData.Textures.Size; i++)
         {
             ImTextureDataPtr textureData = drawData.Textures[i];
@@ -256,16 +285,173 @@ float4 PSMain(VSOutput input) : SV_TARGET
                             SampleCount = SampleCount.Count1,
                             Flags = TextureUsageFlags.ShaderResource
                         });
+
+                        textureData.SetTexID(Binding(texture));
+
+                        TextureExtent extent = new() { Width = (uint)textureData.Width, Height = (uint)textureData.Height, Depth = 1 };
+
+                        if (textureData.Format is ImTextureFormat.Rgba32)
+                        {
+                            ReadOnlySpan<int> pixels = new(textureData.Pixels, textureData.Width * textureData.Height);
+
+                            commandBuffer.Upload(texture, default, default, extent, pixels);
+                        }
+                        else
+                        {
+                            ReadOnlySpan<byte> pixels = new(textureData.Pixels, textureData.Width * textureData.Height);
+
+                            commandBuffer.Upload(texture, default, default, extent, pixels);
+                        }
+
+                        textureData.Status = ImTextureStatus.Ok;
+
+                        textureBindings[textureData.TexID] = texture;
                     }
                     break;
 
                 case ImTextureStatus.WantUpdates:
+                    {
+                        if (textureBindings.TryGetValue(textureData.TexID, out Texture? texture))
+                        {
+                            for (int j = 0; j < textureData.Updates.Size; j++)
+                            {
+                                ImTextureRect rect = textureData.Updates[j];
+
+                                TextureOffset offset = new() { X = rect.X, Y = rect.Y, Z = 0 };
+                                TextureExtent extent = new() { Width = rect.W, Height = rect.H, Depth = 1 };
+
+                                if (textureData.Format is ImTextureFormat.Rgba32)
+                                {
+                                    ReadOnlySpan<int> pixels = new(textureData.Pixels, rect.W * rect.H);
+
+                                    commandBuffer.Upload(texture, default, offset, extent, pixels);
+                                }
+                                else
+                                {
+                                    ReadOnlySpan<byte> pixels = new(textureData.Pixels, rect.W * rect.H);
+
+                                    commandBuffer.Upload(texture, default, offset, extent, pixels);
+                                }
+                            }
+                        }
+
+                        textureData.Status = ImTextureStatus.Ok;
+                    }
                     break;
 
                 case ImTextureStatus.WantDestroy:
+                    {
+                        RemoveBinding(textureData.TexID);
+
+                        if (textureBindings.TryGetValue(textureData.TexID, out Texture? texture))
+                        {
+                            textureBindings.Remove(textureData.TexID);
+                            texture.Dispose();
+                        }
+
+                        textureData.Status = ImTextureStatus.Destroyed;
+                    }
                     break;
             }
         }
+
+        uint totalVertexSizeInBytes = (uint)(sizeof(ImDrawVert) * drawData.TotalVtxCount);
+        if (vertexBuffer is null || vertexBuffer.Desc.SizeInBytes < totalVertexSizeInBytes)
+        {
+            vertexBuffer?.Dispose();
+
+            vertexBuffer = Context.CreateBuffer(new()
+            {
+                SizeInBytes = totalVertexSizeInBytes + (totalVertexSizeInBytes / 2),
+                StrideInBytes = (uint)sizeof(ImDrawVert),
+                Flags = BufferUsageFlags.Vertex | BufferUsageFlags.Dynamic
+            });
+        }
+
+        uint totalIndexSizeInBytes = (uint)(sizeof(ushort) * drawData.TotalIdxCount);
+        if (indexBuffer is null || indexBuffer.Desc.SizeInBytes < totalIndexSizeInBytes)
+        {
+            indexBuffer?.Dispose();
+            indexBuffer = Context.CreateBuffer(new()
+            {
+                SizeInBytes = totalIndexSizeInBytes + (totalIndexSizeInBytes / 2),
+                StrideInBytes = sizeof(ushort),
+                Flags = BufferUsageFlags.Index | BufferUsageFlags.Dynamic
+            });
+        }
+
+        for (int i = 0, vertexOffset = 0, indexOffset = 0; i < drawData.CmdListsCount; i++)
+        {
+            ImDrawListPtr drawListPtr = drawData.CmdLists[i];
+
+            ReadOnlySpan<ImDrawVert> verts = new(drawListPtr.VtxBuffer.Data, drawListPtr.VtxBuffer.Size);
+            ReadOnlySpan<ushort> indices = new(drawListPtr.IdxBuffer.Data, drawListPtr.IdxBuffer.Size);
+
+            commandBuffer.Upload(vertexBuffer, (uint)(sizeof(ImDrawVert) * vertexOffset), verts);
+            commandBuffer.Upload(indexBuffer, (uint)(sizeof(ushort) * indexOffset), indices);
+
+            vertexOffset += drawListPtr.VtxBuffer.Size;
+            indexOffset += drawListPtr.IdxBuffer.Size;
+        }
+
+        commandBuffer.Upload(constants, 0, [new Constants
+        {
+            Projection = Matrix4x4.CreateOrthographicOffCenter(drawData.DisplayPos.X,
+                                                               drawData.DisplayPos.X + drawData.DisplaySize.X,
+                                                               drawData.DisplayPos.Y + drawData.DisplaySize.Y,
+                                                               drawData.DisplayPos.Y,
+                                                               0.0f,
+                                                               1.0f)
+        }]);
+
+        commandBuffer.BeginDebugEvent("ImGui Render");
+
+        commandBuffer.BindPipeline(graphicsPipeline);
+        commandBuffer.BindVertexBuffers([vertexBuffer], [0]);
+        commandBuffer.BindIndexBuffer(indexBuffer, 0, IndexFormat.UInt16);
+
+        for (int i = 0, vertexOffset = 0, indexOffset = 0; i < drawData.CmdListsCount; i++)
+        {
+            ImDrawListPtr drawListPtr = drawData.CmdLists[i];
+
+            for (int j = 0; j < drawListPtr.CmdBuffer.Size; j++)
+            {
+                ImDrawCmd drawCmd = drawListPtr.CmdBuffer[j];
+
+                if (drawCmd.UserCallback is not null)
+                {
+                    ImDrawCallback callback = Marshal.GetDelegateForFunctionPointer<ImDrawCallback>((nint)drawCmd.UserCallback);
+
+                    callback(drawListPtr, &drawCmd);
+                }
+                else
+                {
+                    Scissor scissor = new()
+                    {
+                        X = (int)(drawCmd.ClipRect.X - drawData.DisplayPos.X),
+                        Y = (int)(drawCmd.ClipRect.Y - drawData.DisplayPos.Y),
+                        Width = (uint)(drawCmd.ClipRect.Z - drawCmd.ClipRect.X),
+                        Height = (uint)(drawCmd.ClipRect.W - drawCmd.ClipRect.Y)
+                    };
+
+                    if (scissor.Width is 0 || scissor.Height is 0)
+                    {
+                        continue;
+                    }
+
+                    commandBuffer.SetScissors([scissor]);
+
+                    commandBuffer.BindResourceSets([resourceSetBindings[drawCmd.TexRef.GetTexID()]]);
+
+                    commandBuffer.DrawIndexed(drawCmd.ElemCount, 1, (uint)(drawCmd.IdxOffset + indexOffset), (int)(drawCmd.VtxOffset + vertexOffset), 0);
+                }
+            }
+
+            vertexOffset += drawListPtr.VtxBuffer.Size;
+            indexOffset += drawListPtr.IdxBuffer.Size;
+        }
+
+        commandBuffer.EndDebugEvent();
     }
 
     protected override void Destroy()
