@@ -2,13 +2,10 @@
 
 internal class Uploader(GraphicsContext context) : DisposableObject
 {
-    private const uint MinBufferSizeInBytes = 4096;
-    private const uint MaxBufferSizeInBytes = 8192;
-    private const uint MinTextureWidth = 512;
-    private const uint MaxTextureWidth = 1024;
-    private const uint MinTextureHeight = 512;
-    private const uint MaxTextureHeight = 1024;
-    private const uint MaxAvailableResources = 256;
+    private const uint BufferSizeInBytes = 4096;
+    private const uint TextureWidth = 512;
+    private const uint TextureHeight = 512;
+    private const uint AvailableResources = 128;
 
     private readonly Lock @lock = new();
     private readonly List<Buffer> availableBuffers = [];
@@ -29,7 +26,7 @@ internal class Uploader(GraphicsContext context) : DisposableObject
         {
             buffer = context.CreateBuffer(new()
             {
-                SizeInBytes = Math.Max(sizeInBytes, MinBufferSizeInBytes),
+                SizeInBytes = Math.Max(sizeInBytes, BufferSizeInBytes),
                 StrideInBytes = 1,
                 Flags = BufferUsageFlags.Dynamic
             });
@@ -55,8 +52,8 @@ internal class Uploader(GraphicsContext context) : DisposableObject
             {
                 Type = TextureType.Texture2D,
                 Format = format,
-                Width = Math.Max(width, MinTextureWidth),
-                Height = Math.Max(height, MinTextureHeight),
+                Width = Math.Max(width, TextureWidth),
+                Height = Math.Max(height, TextureHeight),
                 Depth = 1,
                 MipLevels = 1,
                 ArrayLayers = 1,
@@ -76,49 +73,35 @@ internal class Uploader(GraphicsContext context) : DisposableObject
 
         if (usedBuffers.Remove(commandBuffer, out Buffer[]? buffers))
         {
-            availableBuffers.AddRange(buffers);
-
-            for (int i = availableBuffers.Count - 1; i >= 0; --i)
+            for (int i = 0; i < buffers.Length; i++)
             {
-                Buffer buffer = availableBuffers[i];
+                Buffer buffer = buffers[i];
 
-                if (buffer.Desc.SizeInBytes > MaxBufferSizeInBytes)
+                if (availableBuffers.Count >= AvailableResources || buffer.Desc.SizeInBytes > BufferSizeInBytes)
                 {
                     buffer.Dispose();
-
-                    availableBuffers.RemoveAt(i);
                 }
-            }
-
-            while (availableBuffers.Count > MaxAvailableResources)
-            {
-                availableBuffers[^1].Dispose();
-
-                availableBuffers.RemoveAt(availableBuffers.Count - 1);
+                else
+                {
+                    availableBuffers.Add(buffer);
+                }
             }
         }
 
         if (usedTextures.Remove(commandBuffer, out Texture[]? textures))
         {
-            availableTextures.AddRange(textures);
-
-            for (int i = availableTextures.Count - 1; i >= 0; --i)
+            for (int i = 0; i < textures.Length; i++)
             {
-                Texture texture = availableTextures[i];
+                Texture texture = textures[i];
 
-                if (texture.Desc.Width > MaxTextureWidth || texture.Desc.Height > MaxTextureHeight)
+                if (availableTextures.Count >= AvailableResources || texture.Desc.Width > TextureWidth || texture.Desc.Height > TextureHeight)
                 {
                     texture.Dispose();
-
-                    availableTextures.RemoveAt(i);
                 }
-            }
-
-            while (availableTextures.Count > MaxAvailableResources)
-            {
-                availableTextures[^1].Dispose();
-
-                availableTextures.RemoveAt(availableTextures.Count - 1);
+                else
+                {
+                    availableTextures.Add(texture);
+                }
             }
         }
     }
