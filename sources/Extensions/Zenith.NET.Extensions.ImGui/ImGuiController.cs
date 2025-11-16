@@ -81,43 +81,42 @@ public unsafe class ImGuiController : DisposableObject
         {
             io.AddMouseButtonEvent((int)button, true);
         }
+        mouseDowns.Clear();
 
         foreach (ImGuiMouseButton button in mouseUps)
         {
             io.AddMouseButtonEvent((int)button, false);
         }
+        mouseUps.Clear();
 
         foreach (Vector2 position in mouseMoves)
         {
             io.AddMousePosEvent(position.X, position.Y);
         }
+        mouseMoves.Clear();
 
         foreach (Vector2 offset in mouseWheels)
         {
             io.AddMouseWheelEvent(offset.X, offset.Y);
         }
+        mouseWheels.Clear();
 
         foreach (ImGuiKey key in keyDowns)
         {
             io.AddKeyEvent(key, true);
         }
+        keyDowns.Clear();
 
         foreach (ImGuiKey key in keyUps)
         {
             io.AddKeyEvent(key, false);
         }
+        keyUps.Clear();
 
         foreach (char c in keyChars)
         {
             io.AddInputCharacter(c);
         }
-
-        mouseDowns.Clear();
-        mouseUps.Clear();
-        mouseMoves.Clear();
-        mouseWheels.Clear();
-        keyDowns.Clear();
-        keyUps.Clear();
         keyChars.Clear();
 
         HexaImGui.NewFrame();

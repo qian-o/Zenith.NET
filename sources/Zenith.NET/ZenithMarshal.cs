@@ -26,7 +26,6 @@ public static unsafe class ZenithMarshal
             {
                 NativeMemory.Free((void*)pointer);
             }
-
             pointers.Clear();
         }
     }

@@ -463,14 +463,14 @@ float4 PSMain(VSOutput input) : SV_TARGET
         {
             resourceSet.Dispose();
         }
+        imResourceSets.Clear();
 
         foreach (Texture texture in imTextures.Values)
         {
             texture.Dispose();
         }
-
-        imResourceSets.Clear();
         imTextures.Clear();
+
         textureViewBindings.Clear();
         textureBindings.Clear();
         graphicsPipeline.Dispose();
