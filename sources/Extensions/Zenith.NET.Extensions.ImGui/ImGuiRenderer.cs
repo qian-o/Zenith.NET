@@ -292,13 +292,13 @@ float4 PSMain(VSOutput input) : SV_TARGET
                         {
                             ReadOnlySpan<int> pixels = new(textureData.Pixels, textureData.Width * textureData.Height);
 
-                            commandBuffer.Upload(texture, default, default, extent, pixels);
+                            texture.Upload(pixels, default, default, extent);
                         }
                         else
                         {
                             ReadOnlySpan<byte> pixels = new(textureData.Pixels, textureData.Width * textureData.Height);
 
-                            commandBuffer.Upload(texture, default, default, extent, pixels);
+                            texture.Upload(pixels, default, default, extent);
                         }
 
                         textureData.SetTexID(Binding(texture));

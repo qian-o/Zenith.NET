@@ -3,8 +3,11 @@
 internal class Uploader(GraphicsContext context) : DisposableObject
 {
     private const uint MinBufferSizeInBytes = 4096;
-    private const uint MinTextureWidth = 64;
-    private const uint MinTextureHeight = 64;
+    private const uint MaxBufferSizeInBytes = 8192;
+    private const uint MinTextureWidth = 512;
+    private const uint MaxTextureWidth = 1024;
+    private const uint MinTextureHeight = 512;
+    private const uint MaxTextureHeight = 1024;
     private const uint MaxAvailableResources = 256;
 
     private readonly Lock @lock = new();
@@ -75,12 +78,23 @@ internal class Uploader(GraphicsContext context) : DisposableObject
         {
             availableBuffers.AddRange(buffers);
 
+            for (int i = availableBuffers.Count - 1; i >= 0; --i)
+            {
+                Buffer buffer = availableBuffers[i];
+
+                if (buffer.Desc.SizeInBytes > MaxBufferSizeInBytes)
+                {
+                    buffer.Dispose();
+
+                    availableBuffers.RemoveAt(i);
+                }
+            }
+
             while (availableBuffers.Count > MaxAvailableResources)
             {
-                Buffer buffer = availableBuffers[0];
-                buffer.Dispose();
+                availableBuffers[^1].Dispose();
 
-                availableBuffers.RemoveAt(0);
+                availableBuffers.RemoveAt(availableBuffers.Count - 1);
             }
         }
 
@@ -88,12 +102,23 @@ internal class Uploader(GraphicsContext context) : DisposableObject
         {
             availableTextures.AddRange(textures);
 
+            for (int i = availableTextures.Count - 1; i >= 0; --i)
+            {
+                Texture texture = availableTextures[i];
+
+                if (texture.Desc.Width > MaxTextureWidth || texture.Desc.Height > MaxTextureHeight)
+                {
+                    texture.Dispose();
+
+                    availableTextures.RemoveAt(i);
+                }
+            }
+
             while (availableTextures.Count > MaxAvailableResources)
             {
-                Texture texture = availableTextures[0];
-                texture.Dispose();
+                availableTextures[^1].Dispose();
 
-                availableTextures.RemoveAt(0);
+                availableTextures.RemoveAt(availableTextures.Count - 1);
             }
         }
     }
