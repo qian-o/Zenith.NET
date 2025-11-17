@@ -1,9 +1,8 @@
-﻿using System.Windows;
-using System.Windows.Interop;
-using Silk.NET.Core.Native;
+﻿using Silk.NET.Core.Native;
 using Silk.NET.Direct3D11;
 using Silk.NET.Direct3D9;
 using Silk.NET.DXGI;
+using Format = Silk.NET.Direct3D9.Format;
 using PresentParameters = Silk.NET.Direct3D9.PresentParameters;
 
 namespace Zenith.NET.Views.WPF;
@@ -29,15 +28,18 @@ internal unsafe class D3DTexture : DisposableObject
 
             PresentParameters present = new()
             {
+                BackBufferWidth = 1,
+                BackBufferHeight = 1,
+                BackBufferFormat = Format.X8R8G8B8,
+                BackBufferCount = 1,
                 SwapEffect = Swapeffect.Discard,
-                Windowed = true,
-                PresentationInterval = D3D9.PresentIntervalImmediate
+                Windowed = 1
             };
 
             D3D9Ex.CreateDeviceEx(0,
                                   Devtype.Hal,
-                                  new WindowInteropHelper(Application.Current.MainWindow).Handle,
-                                  D3D9.CreateHardwareVertexprocessing,
+                                  0,
+                                  D3D9.CreateHardwareVertexprocessing | D3D9.CreateMultithreaded | D3D9.CreatePuredevice | D3D9.CreateFpuPreserve,
                                   &present,
                                   (Displaymodeex*)null,
                                   ref D3D9DeviceEx);

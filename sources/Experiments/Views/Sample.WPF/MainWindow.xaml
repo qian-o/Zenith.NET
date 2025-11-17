@@ -1,0 +1,15 @@
+﻿<Window x:Class="Sample.WPF.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:zenith="clr-namespace:Zenith.NET.Views.WPF;assembly=Zenith.NET.Views.WPF"
+        Title="MainWindow"
+        Width="800"
+        Height="450"
+        ThemeMode="System"
+        mc:Ignorable="d">
+    <Grid>
+        <zenith:ZenithView />
+    </Grid>
+</Window>
