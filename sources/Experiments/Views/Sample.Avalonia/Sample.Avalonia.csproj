@@ -9,6 +9,13 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\..\Views\Zenith.NET.Views.Avalonia\Zenith.NET.Views.Avalonia.csproj" />
+        <ProjectReference Include="..\..\..\Zenith.NET.DirectX12\Zenith.NET.DirectX12.csproj" />
+        <ProjectReference Include="..\..\..\Zenith.NET.Metal\Zenith.NET.Metal.csproj" />
+        <ProjectReference Include="..\..\..\Zenith.NET.Vulkan\Zenith.NET.Vulkan.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Avalonia" />
         <PackageReference Include="Avalonia.Desktop" />
         <PackageReference Include="Avalonia.Diagnostics" />
