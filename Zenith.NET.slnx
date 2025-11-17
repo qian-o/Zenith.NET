@@ -6,11 +6,9 @@
     <Project Path="sources/Experiments/SponzaScene/SponzaScene.csproj" />
   </Folder>
   <Folder Name="/Experiments/Views/">
-    <Project Path="sources/Experiments/Views/Sample.Avalonia/Sample.Avalonia.csproj" Id="15a55748-fbb0-437d-896c-a0b6729bbc59" />
-    <Project Path="sources/Experiments/Views/Sample.Maui/Sample.Maui.csproj" Id="2883f44a-2161-4f79-9a30-a77c18576889">
-      <Deploy Solution="Debug|*" />
-    </Project>
-    <Project Path="sources/Experiments/Views/Sample.WinForms/Sample.WinForms.csproj" Id="824c98f1-e2f7-491c-b603-149cc68fdd1f" />
+    <Project Path="sources/Experiments/Views/Sample.Avalonia/Sample.Avalonia.csproj" />
+    <Project Path="sources/Experiments/Views/Sample.Maui/Sample.Maui.csproj" />
+    <Project Path="sources/Experiments/Views/Sample.WinForms/Sample.WinForms.csproj" />
     <Project Path="sources/Experiments/Views/Sample.WPF/Sample.WPF.csproj" />
   </Folder>
   <Folder Name="/Extensions/">
