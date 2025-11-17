@@ -1,18 +1,31 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
+using System.Windows.Media;
 
 namespace Zenith.NET.Views.WPF;
 
 public class ZenithView : Control
 {
-    private readonly D3DImage image;
+    public static readonly DependencyProperty GraphicsContextProperty = DependencyProperty.Register(nameof(GraphicsContext),
+                                                                                                    typeof(GraphicsContext),
+                                                                                                    typeof(ZenithView),
+                                                                                                    new PropertyMetadata(null, (d, _) => ((ZenithView)d).Initialize()));
 
-    private D3DTexture? texture;
+    private readonly D3DImage image = new();
+
+    private D3DTexture texture = new(100, 100);
+    private SwapChain? swapChain;
 
     public ZenithView()
     {
-        image = new();
+        Initialize();
+    }
+
+    public GraphicsContext? GraphicsContext
+    {
+        get => (GraphicsContext?)GetValue(GraphicsContextProperty);
+        set => SetValue(GraphicsContextProperty, value);
     }
 
     protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
@@ -30,5 +43,30 @@ public class ZenithView : Control
         image.Lock();
         image.SetBackBuffer(D3DResourceType.IDirect3DSurface9, texture.Handle);
         image.Unlock();
+
+        Initialize();
+    }
+
+    protected override void OnRender(DrawingContext drawingContext)
+    {
+    }
+
+    private void Initialize()
+    {
+        swapChain?.Dispose();
+
+        if (GraphicsContext is null)
+        {
+            return;
+        }
+
+        swapChain = GraphicsContext.CreateSwapChain(new()
+        {
+            Surface = Surface.D3D11Interop(texture.SharedHandle, texture.Width, texture.Height),
+            ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
+            DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
+        });
+
+        InvalidateVisual();
     }
 }
