@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Globalization;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -49,6 +50,24 @@ public class ZenithView : Control
 
     protected override void OnRender(DrawingContext drawingContext)
     {
+        if (swapChain is null)
+        {
+            LinearGradientBrush backgroundBrush = new(Colors.LightGray, Colors.DarkGray, 45);
+            drawingContext.DrawRectangle(backgroundBrush, null, new Rect(0, 0, ActualWidth, ActualHeight));
+
+            FormattedText text = new("No GraphicsContext assigned.",
+                                     CultureInfo.CurrentCulture,
+                                     FlowDirection.LeftToRight,
+                                     FontFamily.GetTypefaces().First(),
+                                     FontSize,
+                                     Foreground,
+                                     VisualTreeHelper.GetDpi(this).PixelsPerDip);
+
+            float x = (float)(ActualWidth - text.Width) / 2;
+            float y = (float)(ActualHeight - text.Height) / 2;
+
+            drawingContext.DrawText(text, new(x, y));
+        }
     }
 
     private void Initialize()
