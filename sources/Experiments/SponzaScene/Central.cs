@@ -41,51 +41,53 @@ internal class SilkImGuiController : ImGuiController
         };
     }
 
-    private void OnMouseDown(IMouse arg1, MouseButton arg2)
+    private void OnMouseDown(IMouse mouse, MouseButton button)
     {
-        MouseDown(arg2 switch
+        MouseDown(button switch
         {
             MouseButton.Left => ImGuiMouseButton.Left,
             MouseButton.Right => ImGuiMouseButton.Right,
             MouseButton.Middle => ImGuiMouseButton.Middle,
-            _ => (int)ImGuiMouseButton.Count + (int)arg2 - ImGuiMouseButton.Middle,
+            _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle,
         });
     }
 
-    private void OnMouseUp(IMouse arg1, MouseButton arg2)
+    private void OnMouseUp(IMouse mouse, MouseButton button)
     {
-        MouseUp(arg2 switch
+        MouseUp(button switch
         {
             MouseButton.Left => ImGuiMouseButton.Left,
             MouseButton.Right => ImGuiMouseButton.Right,
             MouseButton.Middle => ImGuiMouseButton.Middle,
-            _ => (int)ImGuiMouseButton.Count + (int)arg2 - ImGuiMouseButton.Middle,
+            _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle,
         });
     }
 
-    private void OnMouseMove(IMouse arg1, Vector2 arg2)
+    private void OnMouseMove(IMouse mouse, Vector2 position)
     {
-        MouseMove(arg2);
+        MouseMove(position);
     }
 
-    private void OnMouseScroll(IMouse arg1, ScrollWheel arg2)
+    private void OnMouseScroll(IMouse mouse, ScrollWheel offset)
     {
-        MouseWheel(new(arg2.X, arg2.Y));
+        MouseWheel(new(offset.X, offset.Y));
     }
 
-    private void OnKeyDown(IKeyboard arg1, Key arg2, int arg3)
+    private void OnKeyDown(IKeyboard keyboard, Key key, int arg3)
     {
-        KeyDown(TranslateInputKeyToImGuiKey(arg2));
+        KeyDown(TranslateInputKeyToImGuiKey(key));
+        KeyDown(TranslateInputKeyToImGuiModifier(key));
     }
 
     private void OnKeyUp(IKeyboard keyboard, Key key, int arg3)
     {
         KeyUp(TranslateInputKeyToImGuiKey(key));
+        KeyUp(TranslateInputKeyToImGuiModifier(key));
     }
 
-    private void OnKeyChar(IKeyboard keyboard, char arg2)
+    private void OnKeyChar(IKeyboard keyboard, char c)
     {
-        KeyChar(arg2);
+        KeyChar(c);
     }
 
     private static ImGuiKey TranslateInputKeyToImGuiKey(Key key)
@@ -209,6 +211,18 @@ internal class SilkImGuiController : ImGuiController
             Key.F22 => ImGuiKey.F22,
             Key.F23 => ImGuiKey.F23,
             Key.F24 => ImGuiKey.F24,
+            _ => ImGuiKey.None
+        };
+    }
+
+    private static ImGuiKey TranslateInputKeyToImGuiModifier(Key key)
+    {
+        return key switch
+        {
+            Key.ShiftLeft or Key.ShiftRight => ImGuiKey.ModShift,
+            Key.ControlLeft or Key.ControlRight => ImGuiKey.ModCtrl,
+            Key.AltLeft or Key.AltRight => ImGuiKey.ModAlt,
+            Key.SuperLeft or Key.SuperRight => ImGuiKey.ModSuper,
             _ => ImGuiKey.None
         };
     }
