@@ -1,4 +1,4 @@
-<Solution>
+﻿<Solution>
   <Folder Name="/Experiments/">
     <File Path="sources/Experiments/Directory.Packages.props" />
     <Project Path="sources/Experiments/MemoryPlayground/MemoryPlayground.csproj" />
@@ -6,7 +6,7 @@
     <Project Path="sources/Experiments/SponzaScene/SponzaScene.csproj" />
   </Folder>
   <Folder Name="/Experiments/Views/">
-    <Project Path="sources/Experiments/Views/Sample.WPF/Sample.WPF.csproj" Id="af3c1728-1c49-4e19-86b8-aab79c8120a8" />
+    <Project Path="sources/Experiments/Views/Sample.WPF/Sample.WPF.csproj" />
   </Folder>
   <Folder Name="/Extensions/">
     <Project Path="sources/Extensions/Zenith.NET.Extensions.ImageSharp/Zenith.NET.Extensions.ImageSharp.csproj" />
