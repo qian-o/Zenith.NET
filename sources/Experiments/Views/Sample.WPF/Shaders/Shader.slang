@@ -42,7 +42,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
     float4 color = float4(0.0, 0.0, 0.0, 0.0);
 
     float2 v = constants.Resolution;
-    float2 p = (input.UV * 2.0 - v) / v.y;
+    float2 p = (input.UV * constants.Resolution * 2.0 - v) / v.y;
 
     for (float i = 0.2, l; i < 1.0; i += 0.05)
     {

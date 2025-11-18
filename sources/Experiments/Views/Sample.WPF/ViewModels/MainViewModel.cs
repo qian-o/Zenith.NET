@@ -91,10 +91,16 @@ public unsafe partial class MainViewModel : ObservableRecipient
         });
     }
 
+    [ObservableProperty]
+    private double actualWidth;
+
+    [ObservableProperty]
+    private double actualHeight;
+
     [RelayCommand]
     private void Update(UpdateEventArgs args)
     {
-        constantsBuffer.Upload([new Constants() { Resolution = new(1, 1), TotalTime = (float)args.TotalTime }], 0);
+        constantsBuffer.Upload([new Constants() { Resolution = new((float)ActualWidth, (float)ActualHeight), TotalTime = (float)args.TotalTime }], 0);
     }
 
     [RelayCommand]
