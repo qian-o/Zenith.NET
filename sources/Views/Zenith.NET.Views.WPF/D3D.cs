@@ -8,7 +8,7 @@ using PresentParameters = Silk.NET.Direct3D9.PresentParameters;
 
 namespace Zenith.NET.Views.WPF;
 
-internal unsafe static class GPU
+internal unsafe static class D3D
 {
     public static ComPtr<IDirect3D9Ex> D3D9Ex;
 
@@ -18,7 +18,7 @@ internal unsafe static class GPU
 
     public static ComPtr<ID3D11DeviceContext> D3D11DeviceContext;
 
-    static GPU()
+    static D3D()
     {
         D3D9 = D3D9.GetApi(null);
         D3D11 = D3D11.GetApi(null);
