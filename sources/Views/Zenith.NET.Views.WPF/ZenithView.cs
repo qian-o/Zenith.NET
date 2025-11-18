@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
@@ -8,21 +9,60 @@ namespace Zenith.NET.Views.WPF;
 
 public class ZenithView : Control
 {
-    public static readonly DependencyProperty GraphicsContextProperty = DependencyProperty.Register(nameof(GraphicsContext),
-                                                                                                    typeof(GraphicsContext),
-                                                                                                    typeof(ZenithView),
-                                                                                                    new PropertyMetadata(null, (d, _) => ((ZenithView)d).DestroySwapChain()));
+    public static readonly DependencyProperty GraphicsContextProperty = DependencyProperty.Register(nameof(GraphicsContext), typeof(GraphicsContext), typeof(ZenithView), new(null));
 
     private readonly D3DImage image = new();
+    private readonly Stopwatch updateStopwatch = new();
+    private readonly Stopwatch renderStopwatch = new();
 
+    private TimeSpan lastRender;
     private D3DTexture? texture;
     private SwapChain? swapChain;
+
+    public ZenithView()
+    {
+        IsVisibleChanged += (_, e) =>
+        {
+            if ((bool)e.NewValue)
+            {
+                CompositionTarget.Rendering += OnRendering;
+            }
+            else
+            {
+                CompositionTarget.Rendering -= OnRendering;
+            }
+        };
+
+        Unloaded += (_, _) =>
+        {
+            swapChain?.Dispose();
+            swapChain = null;
+
+            texture?.Dispose();
+            texture = null;
+        };
+    }
+
+    public static Output Output { get; } = new() { ColorAttachments = [PixelFormat.B8G8R8A8UNorm], DepthStencilAttachment = PixelFormat.D32FloatS8UInt, SampleCount = SampleCount.Count1 };
 
     public GraphicsContext? GraphicsContext
     {
         get => (GraphicsContext?)GetValue(GraphicsContextProperty);
-        set => SetValue(GraphicsContextProperty, value);
+        set
+        {
+            if (GraphicsContext != value)
+            {
+                swapChain?.Dispose();
+                swapChain = null;
+            }
+
+            SetValue(GraphicsContextProperty, value);
+        }
     }
+
+    public event EventHandler<UpdateEventArgs>? Update;
+
+    public event EventHandler<RenderEventArgs>? Render;
 
     protected override void OnRender(DrawingContext drawingContext)
     {
@@ -63,46 +103,51 @@ public class ZenithView : Control
         }
         else
         {
-            uint width = (uint)Math.Ceiling(ActualWidth);
-            uint height = (uint)Math.Ceiling(ActualHeight);
-
-            if (width is 0 || height is 0)
-            {
-                return;
-            }
-
-            image.Lock();
+            uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
+            uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
 
             if (texture is null || texture.Width != width || texture.Height != height)
             {
                 texture?.Dispose();
                 texture = new(width, height);
 
-                image.SetBackBuffer(D3DResourceType.IDirect3DSurface9, texture.Handle);
-
-                DestroySwapChain();
+                swapChain?.Dispose();
+                swapChain = null;
             }
 
             swapChain ??= GraphicsContext.CreateSwapChain(new()
             {
-                Surface = Surface.D3D11Interop(texture.SharedHandle, texture.Width, texture.Height),
+                Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
                 ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
-                DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
+                DepthStencilTargetFormat = PixelFormat.D32FloatS8UInt
             });
+
+            Update?.Invoke(this, new(updateStopwatch.Elapsed.TotalSeconds));
+            updateStopwatch.Restart();
+
+            Render?.Invoke(this, new(renderStopwatch.Elapsed.TotalSeconds, swapChain.FrameBuffer));
+            renderStopwatch.Restart();
 
             swapChain.Present();
 
-            image.AddDirtyRect(new Int32Rect(0, 0, (int)Math.Ceiling(ActualWidth), (int)Math.Ceiling(ActualHeight)));
-
+            image.Lock();
+            image.SetBackBuffer(D3DResourceType.IDirect3DSurface9, texture.Handle);
+            image.AddDirtyRect(new(0, 0, (int)width, (int)height));
             image.Unlock();
 
-            drawingContext.DrawImage(image, new Rect(0, 0, ActualWidth, ActualHeight));
+            drawingContext.DrawImage(image, new(0, 0, ActualWidth, ActualHeight));
         }
     }
 
-    private void DestroySwapChain()
+    private void OnRendering(object? sender, EventArgs e)
     {
-        swapChain?.Dispose();
-        swapChain = null;
+        RenderingEventArgs args = (RenderingEventArgs)e;
+
+        if (lastRender != args.RenderingTime)
+        {
+            InvalidateVisual();
+
+            lastRender = args.RenderingTime;
+        }
     }
 }
