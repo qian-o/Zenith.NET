@@ -249,6 +249,7 @@ internal class SilkImGuiController : ImGuiController, IImGuiPlatformBindings
 
     public void SetImeData(ImGuiViewportPtr viewport, ImGuiPlatformImeDataPtr data)
     {
+        // IME not supported.
     }
 }
 
