@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
@@ -82,20 +83,22 @@ public class ZenithView : Control
 
     protected override void OnRender(DrawingContext drawingContext)
     {
-        if (GraphicsContext is null)
+        if (DesignerProperties.GetIsInDesignMode(this) || GraphicsContext is null)
         {
-            drawingContext.DrawRectangle(new LinearGradientBrush(
-            [
-                new(Color.FromRgb(0x51, 0x2B, 0xD4), 0.0),
-                new(Color.FromRgb(0x8A, 0x58, 0xFF), 0.45),
-                new(Color.FromRgb(0x00, 0xA4, 0xEF), 1.0)
-            ], 45), null, new Rect(0, 0, ActualWidth, ActualHeight));
+            LinearGradientBrush brush = new([new(Color.FromRgb(0x51, 0x2B, 0xD4), 0.0), new(Color.FromRgb(0x8A, 0x58, 0xFF), 0.45), new(Color.FromRgb(0x00, 0xA4, 0xEF), 1.0)], 45)
+            {
+                SpreadMethod = GradientSpreadMethod.Reflect,
+                RelativeTransform = new TranslateTransform(lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0, lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0)
+            };
 
+            drawingContext.DrawRectangle(brush, null, new Rect(0, 0, ActualWidth, ActualHeight));
+
+            string message = DesignerProperties.GetIsInDesignMode(this) ? "ZenithView (Design Mode)" : "GraphicsContext not assigned.";
             Typeface typeface = FontFamily.GetTypefaces().FirstOrDefault() ?? new(FontFamily, FontStyle, FontWeight, FontStretch);
             double fontSize = Math.Clamp(ActualHeight / 15.0, 14.0, 48.0);
             double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
 
-            FormattedText shadowText = new("No GraphicsContext assigned.",
+            FormattedText shadowText = new(message,
                                            CultureInfo.CurrentCulture,
                                            FlowDirection.LeftToRight,
                                            typeface,
@@ -103,7 +106,7 @@ public class ZenithView : Control
                                            new SolidColorBrush(Color.FromArgb(0x66, 0, 0, 0)),
                                            dpi);
 
-            FormattedText mainText = new("No GraphicsContext assigned.",
+            FormattedText mainText = new(message,
                                          CultureInfo.CurrentCulture,
                                          FlowDirection.LeftToRight,
                                          typeface,
