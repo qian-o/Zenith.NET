@@ -130,6 +130,16 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                     ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.Apple"));
                 }
                 break;
+            case SurfaceType.D3D11Interop:
+                if (desc.Surface.Handles.Length is not 1)
+                {
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", 1, "SurfaceType.D3D11Interop"));
+                }
+                else if (desc.Surface.Handles[0] is 0)
+                {
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.D3D11Interop"));
+                }
+                break;
 
             default:
                 ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasUnsupportedSurfaceType, "SwapChainDesc.Surface", desc.Surface.Type));
