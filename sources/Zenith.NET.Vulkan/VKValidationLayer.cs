@@ -4,6 +4,7 @@ namespace Zenith.NET.Vulkan;
 
 internal unsafe class VKValidationLayer : ValidationLayer
 {
+    private readonly PfnDebugUtilsMessengerCallbackEXT pfnUserCallback;
     private readonly DebugUtilsMessengerEXT messenger;
 
     public VKValidationLayer(VKGraphicsContext context) : base(context)
@@ -18,7 +19,7 @@ internal unsafe class VKValidationLayer : ValidationLayer
             MessageType = DebugUtilsMessageTypeFlagsEXT.GeneralBitExt
                           | DebugUtilsMessageTypeFlagsEXT.ValidationBitExt
                           | DebugUtilsMessageTypeFlagsEXT.PerformanceBitExt,
-            PfnUserCallback = new(UserCallback)
+            PfnUserCallback = pfnUserCallback = new(UserCallback)
         };
 
         context.DebugUtils?.CreateDebugUtilsMessenger(context.Instance, &createInfo, null, out messenger).Success();
@@ -33,6 +34,8 @@ internal unsafe class VKValidationLayer : ValidationLayer
     protected override void Destroy()
     {
         Context.DebugUtils?.DestroyDebugUtilsMessenger(Context.Instance, messenger, null);
+
+        pfnUserCallback.Dispose();
     }
 
     private uint UserCallback(DebugUtilsMessageSeverityFlagsEXT messageSeverity,
