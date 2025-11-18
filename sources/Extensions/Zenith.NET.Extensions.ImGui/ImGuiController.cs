@@ -78,11 +78,6 @@ public unsafe class ImGuiController : DisposableObject
 
     public void Update(double delta, uint width, uint height)
     {
-        if (Context.IsNull)
-        {
-            return;
-        }
-
         HexaImGui.SetCurrentContext(Context);
 
         if (frameBegun)
@@ -147,11 +142,6 @@ public unsafe class ImGuiController : DisposableObject
 
     public void Render(CommandBuffer commandBuffer)
     {
-        if (Context.IsNull)
-        {
-            return;
-        }
-
         HexaImGui.SetCurrentContext(Context);
 
         if (frameBegun)
@@ -201,10 +191,7 @@ public unsafe class ImGuiController : DisposableObject
 
     protected override void Destroy()
     {
-        if (Context.IsNull)
-        {
-            return;
-        }
+        clipboardScope?.Dispose();
 
         platformSetImeDataHandle.Free();
         platformSetClipboardTextHandle.Free();
