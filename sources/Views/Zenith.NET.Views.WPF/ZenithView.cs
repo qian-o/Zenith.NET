@@ -11,17 +11,12 @@ public class ZenithView : Control
     public static readonly DependencyProperty GraphicsContextProperty = DependencyProperty.Register(nameof(GraphicsContext),
                                                                                                     typeof(GraphicsContext),
                                                                                                     typeof(ZenithView),
-                                                                                                    new PropertyMetadata(null, (d, _) => ((ZenithView)d).Initialize()));
+                                                                                                    new PropertyMetadata(null, (d, _) => ((ZenithView)d).DestroySwapChain()));
 
     private readonly D3DImage image = new();
 
-    private D3DTexture texture = new(100, 100);
+    private D3DTexture? texture;
     private SwapChain? swapChain;
-
-    public ZenithView()
-    {
-        Initialize();
-    }
 
     public GraphicsContext? GraphicsContext
     {
@@ -29,32 +24,16 @@ public class ZenithView : Control
         set => SetValue(GraphicsContextProperty, value);
     }
 
-    protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
-    {
-        base.OnRenderSizeChanged(sizeInfo);
-
-        if (ActualWidth <= 0 || ActualHeight <= 0)
-        {
-            return;
-        }
-
-        texture?.Dispose();
-        texture = new((uint)Math.Ceiling(ActualWidth), (uint)Math.Ceiling(ActualHeight));
-
-        image.Lock();
-        image.SetBackBuffer(D3DResourceType.IDirect3DSurface9, texture.Handle);
-        image.Unlock();
-
-        Initialize();
-    }
-
     protected override void OnRender(DrawingContext drawingContext)
     {
-        if (swapChain is null)
+        if (GraphicsContext is null)
         {
-            LinearGradientBrush backgroundBrush = new([new(Color.FromRgb(0x51, 0x2B, 0xD4), 0.0), new(Color.FromRgb(0x8A, 0x58, 0xFF), 0.45), new(Color.FromRgb(0x00, 0xA4, 0xEF), 1.0)], 45);
-
-            drawingContext.DrawRectangle(backgroundBrush, null, new Rect(0, 0, ActualWidth, ActualHeight));
+            drawingContext.DrawRectangle(new LinearGradientBrush(
+            [
+                new(Color.FromRgb(0x51, 0x2B, 0xD4), 0.0),
+                new(Color.FromRgb(0x8A, 0x58, 0xFF), 0.45),
+                new(Color.FromRgb(0x00, 0xA4, 0xEF), 1.0)
+            ], 45), null, new Rect(0, 0, ActualWidth, ActualHeight));
 
             Typeface typeface = FontFamily.GetTypefaces().FirstOrDefault() ?? new(FontFamily, FontStyle, FontWeight, FontStretch);
             double fontSize = Math.Clamp(ActualHeight / 15.0, 14.0, 48.0);
@@ -82,24 +61,48 @@ public class ZenithView : Control
             drawingContext.DrawText(shadowText, new(x + 1.0, y + 1.0));
             drawingContext.DrawText(mainText, new(x, y));
         }
+        else
+        {
+            uint width = (uint)Math.Ceiling(ActualWidth);
+            uint height = (uint)Math.Ceiling(ActualHeight);
+
+            if (width is 0 || height is 0)
+            {
+                return;
+            }
+
+            image.Lock();
+
+            if (texture is null || texture.Width != width || texture.Height != height)
+            {
+                texture?.Dispose();
+                texture = new(width, height);
+
+                image.SetBackBuffer(D3DResourceType.IDirect3DSurface9, texture.Handle);
+
+                DestroySwapChain();
+            }
+
+            swapChain ??= GraphicsContext.CreateSwapChain(new()
+            {
+                Surface = Surface.D3D11Interop(texture.SharedHandle, texture.Width, texture.Height),
+                ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
+                DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
+            });
+
+            swapChain.Present();
+
+            image.AddDirtyRect(new Int32Rect(0, 0, (int)Math.Ceiling(ActualWidth), (int)Math.Ceiling(ActualHeight)));
+
+            image.Unlock();
+
+            drawingContext.DrawImage(image, new Rect(0, 0, ActualWidth, ActualHeight));
+        }
     }
 
-    private void Initialize()
+    private void DestroySwapChain()
     {
         swapChain?.Dispose();
-
-        if (GraphicsContext is null)
-        {
-            return;
-        }
-
-        swapChain = GraphicsContext.CreateSwapChain(new()
-        {
-            Surface = Surface.D3D11Interop(texture.SharedHandle, texture.Width, texture.Height),
-            ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
-            DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
-        });
-
-        InvalidateVisual();
+        swapChain = null;
     }
 }

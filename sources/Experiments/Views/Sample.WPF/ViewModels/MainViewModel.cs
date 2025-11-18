@@ -2,6 +2,4 @@
 
 namespace Sample.WPF.ViewModels;
 
-internal partial class MainViewModel : ObservableRecipient
-{
-}
+public partial class MainViewModel : ObservableRecipient;

@@ -1,6 +1,7 @@
 ﻿<Project>
 
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+        <IsAotCompatible>true</IsAotCompatible>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <PackageOutputPath>$(MSBuildThisFileDirectory)..\.nuget</PackageOutputPath>
 

@@ -1,9 +1,7 @@
 ﻿<Project>
 
     <PropertyGroup>
-        <!-- Target & Compatibility -->
         <StandardTargetFramework>net10.0</StandardTargetFramework>
-        <IsAotCompatible>true</IsAotCompatible>
 
         <!-- Code Style & Language Features -->
         <Nullable>enable</Nullable>

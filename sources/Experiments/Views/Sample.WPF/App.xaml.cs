@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Diagnostics;
+using System.Windows;
 using Zenith.NET;
 using Zenith.NET.Vulkan;
 
@@ -9,7 +10,7 @@ public partial class App : Application
     static App()
     {
         Context = GraphicsContext.CreateVulkan(true);
-        Context.ValidationMessage += (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
+        Context.ValidationMessage += (sender, args) => Debug.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
     }
 
     public static GraphicsContext Context { get; }
