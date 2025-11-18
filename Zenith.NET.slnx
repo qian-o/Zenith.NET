@@ -1,4 +1,4 @@
-<Solution>
+﻿<Solution>
   <Folder Name="/Experiments/">
     <File Path="sources/Experiments/Directory.Packages.props" />
     <Project Path="sources/Experiments/MemoryPlayground/MemoryPlayground.csproj" />
