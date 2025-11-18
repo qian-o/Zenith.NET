@@ -1,6 +1,8 @@
 ﻿namespace Zenith.NET.Views.WPF;
 
-public class UpdateEventArgs(double delta) : EventArgs
+public class UpdateEventArgs(double deltaTime, double totalTime) : EventArgs
 {
-    public double Delta { get; } = delta;
+    public double DeltaTime { get; } = deltaTime;
+
+    public double TotalTime { get; } = totalTime;
 }

@@ -14,6 +14,7 @@ public class ZenithView : Control
     private readonly D3DImage image = new();
     private readonly Stopwatch updateStopwatch = new();
     private readonly Stopwatch renderStopwatch = new();
+    private readonly Stopwatch lifetimeStopwatch = new();
 
     private TimeSpan lastRender;
     private D3DTexture? texture;
@@ -33,13 +34,28 @@ public class ZenithView : Control
             }
         };
 
+        Loaded += (_, _) =>
+        {
+            updateStopwatch.Start();
+            renderStopwatch.Start();
+            lifetimeStopwatch.Start();
+        };
+
         Unloaded += (_, _) =>
         {
+            updateStopwatch.Stop();
+            renderStopwatch.Stop();
+            lifetimeStopwatch.Stop();
+
             swapChain?.Dispose();
             swapChain = null;
 
             texture?.Dispose();
             texture = null;
+
+            updateStopwatch.Reset();
+            renderStopwatch.Reset();
+            lifetimeStopwatch.Reset();
         };
     }
 
@@ -122,10 +138,10 @@ public class ZenithView : Control
                 DepthStencilTargetFormat = PixelFormat.D32FloatS8UInt
             });
 
-            Update?.Invoke(this, new(updateStopwatch.Elapsed.TotalSeconds));
+            Update?.Invoke(this, new(updateStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds));
             updateStopwatch.Restart();
 
-            Render?.Invoke(this, new(renderStopwatch.Elapsed.TotalSeconds, swapChain.FrameBuffer));
+            Render?.Invoke(this, new(renderStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds, swapChain.FrameBuffer));
             renderStopwatch.Restart();
 
             swapChain.Present();
