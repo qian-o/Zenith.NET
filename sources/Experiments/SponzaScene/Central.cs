@@ -8,37 +8,25 @@ using Zenith.NET.Vulkan;
 
 namespace SponzaScene;
 
-internal class SilkImGuiController : ImGuiController
+internal class SilkImGuiController : ImGuiController, IImGuiPlatformBindings
 {
+    private readonly IMouse mouse;
+    private readonly IKeyboard keyboard;
+
     public SilkImGuiController(IInputContext inputContext, Output output, ImGuiColorSpace colorSpace) : base(App.Context, output, colorSpace, Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "msyh.ttf"), OtherSetup)
     {
-        IMouse mouse = inputContext.Mice[0];
+        mouse = inputContext.Mice[0];
         mouse.MouseDown += OnMouseDown;
         mouse.MouseUp += OnMouseUp;
         mouse.MouseMove += OnMouseMove;
         mouse.Scroll += OnMouseScroll;
 
-        IKeyboard keyboard = inputContext.Keyboards[0];
+        keyboard = inputContext.Keyboards[0];
         keyboard.KeyDown += OnKeyDown;
         keyboard.KeyUp += OnKeyUp;
         keyboard.KeyChar += OnKeyChar;
 
-        SetCursor = cursor =>
-        {
-            mouse.Cursor.StandardCursor = cursor switch
-            {
-                ImGuiMouseCursor.Arrow => StandardCursor.Arrow,
-                ImGuiMouseCursor.TextInput => StandardCursor.IBeam,
-                ImGuiMouseCursor.ResizeAll => StandardCursor.ResizeAll,
-                ImGuiMouseCursor.ResizeNs => StandardCursor.VResize,
-                ImGuiMouseCursor.ResizeEw => StandardCursor.HResize,
-                ImGuiMouseCursor.ResizeNesw => StandardCursor.NeswResize,
-                ImGuiMouseCursor.ResizeNwse => StandardCursor.NwseResize,
-                ImGuiMouseCursor.Hand => StandardCursor.Hand,
-                ImGuiMouseCursor.NotAllowed => StandardCursor.NotAllowed,
-                _ => StandardCursor.Default
-            };
-        };
+        PlatformBindings = this;
     }
 
     private void OnMouseDown(IMouse mouse, MouseButton button)
@@ -230,6 +218,37 @@ internal class SilkImGuiController : ImGuiController
     private static void OtherSetup(ImGuiIOPtr io)
     {
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
+    }
+
+    public void SetCursor(ImGuiMouseCursor cursor)
+    {
+        mouse.Cursor.StandardCursor = cursor switch
+        {
+            ImGuiMouseCursor.Arrow => StandardCursor.Arrow,
+            ImGuiMouseCursor.TextInput => StandardCursor.IBeam,
+            ImGuiMouseCursor.ResizeAll => StandardCursor.ResizeAll,
+            ImGuiMouseCursor.ResizeNs => StandardCursor.VResize,
+            ImGuiMouseCursor.ResizeEw => StandardCursor.HResize,
+            ImGuiMouseCursor.ResizeNesw => StandardCursor.NeswResize,
+            ImGuiMouseCursor.ResizeNwse => StandardCursor.NwseResize,
+            ImGuiMouseCursor.Hand => StandardCursor.Hand,
+            ImGuiMouseCursor.NotAllowed => StandardCursor.NotAllowed,
+            _ => StandardCursor.Default
+        };
+    }
+
+    public string GetClipboardText()
+    {
+        return keyboard.ClipboardText;
+    }
+
+    public void SetClipboardText(string text)
+    {
+        keyboard.ClipboardText = text;
+    }
+
+    public void SetImeData(ImGuiViewportPtr viewport, ImGuiPlatformImeDataPtr data)
+    {
     }
 }
 
