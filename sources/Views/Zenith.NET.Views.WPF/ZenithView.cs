@@ -52,21 +52,35 @@ public class ZenithView : Control
     {
         if (swapChain is null)
         {
-            LinearGradientBrush backgroundBrush = new(Colors.LightGray, Colors.DarkGray, 45);
+            LinearGradientBrush backgroundBrush = new([new(Color.FromRgb(0x51, 0x2B, 0xD4), 0.0), new(Color.FromRgb(0x8A, 0x58, 0xFF), 0.45), new(Color.FromRgb(0x00, 0xA4, 0xEF), 1.0)], 45);
+
             drawingContext.DrawRectangle(backgroundBrush, null, new Rect(0, 0, ActualWidth, ActualHeight));
 
-            FormattedText text = new("No GraphicsContext assigned.",
-                                     CultureInfo.CurrentCulture,
-                                     FlowDirection.LeftToRight,
-                                     FontFamily.GetTypefaces().First(),
-                                     FontSize,
-                                     Foreground,
-                                     VisualTreeHelper.GetDpi(this).PixelsPerDip);
+            Typeface typeface = FontFamily.GetTypefaces().FirstOrDefault() ?? new(FontFamily, FontStyle, FontWeight, FontStretch);
+            double fontSize = Math.Clamp(ActualHeight / 15.0, 14.0, 48.0);
+            double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
 
-            float x = (float)(ActualWidth - text.Width) / 2;
-            float y = (float)(ActualHeight - text.Height) / 2;
+            FormattedText shadowText = new("No GraphicsContext assigned.",
+                                           CultureInfo.CurrentCulture,
+                                           FlowDirection.LeftToRight,
+                                           typeface,
+                                           fontSize,
+                                           new SolidColorBrush(Color.FromArgb(0x66, 0, 0, 0)),
+                                           dpi);
 
-            drawingContext.DrawText(text, new(x, y));
+            FormattedText mainText = new("No GraphicsContext assigned.",
+                                         CultureInfo.CurrentCulture,
+                                         FlowDirection.LeftToRight,
+                                         typeface,
+                                         fontSize,
+                                         new SolidColorBrush(Colors.White) { Opacity = 0.98 },
+                                         dpi);
+
+            float x = (float)(ActualWidth - mainText.Width) / 2;
+            float y = (float)(ActualHeight - mainText.Height) / 2;
+
+            drawingContext.DrawText(shadowText, new(x + 1.0, y + 1.0));
+            drawingContext.DrawText(mainText, new(x, y));
         }
     }
 
