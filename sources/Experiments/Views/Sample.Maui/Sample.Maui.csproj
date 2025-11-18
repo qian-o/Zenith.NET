@@ -7,7 +7,7 @@
         <UseMaui>true</UseMaui>
         <SingleProject>true</SingleProject>
         <ApplicationTitle>Sample.Maui</ApplicationTitle>
-        <ApplicationId>com.companyname.sample.maui</ApplicationId>
+        <ApplicationId>com.zenith.sample.maui</ApplicationId>
         <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
         <ApplicationVersion>1</ApplicationVersion>
         <WindowsPackageType>None</WindowsPackageType>
