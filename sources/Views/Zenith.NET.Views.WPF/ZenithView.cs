@@ -39,7 +39,7 @@ public class ZenithView : Control
         }
 
         texture?.Dispose();
-        texture = new((uint)ActualWidth, (uint)ActualHeight);
+        texture = new((uint)Math.Ceiling(ActualWidth), (uint)Math.Ceiling(ActualHeight));
 
         image.Lock();
         image.SetBackBuffer(D3DResourceType.IDirect3DSurface9, texture.Handle);
