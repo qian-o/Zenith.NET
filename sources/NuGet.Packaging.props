@@ -1,8 +1,9 @@
 ﻿<Project>
 
-    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
         <IsAotCompatible>true</IsAotCompatible>
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+        <!-- Output -->
         <PackageOutputPath>$(MSBuildThisFileDirectory)..\.nuget</PackageOutputPath>
 
         <!-- Package Metadata -->
@@ -26,6 +27,11 @@
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    </PropertyGroup>
+
+    <!-- Only auto-generate package on Release builds -->
+    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     </PropertyGroup>
 
     <ItemGroup Condition="'$(Configuration)' == 'Release'">

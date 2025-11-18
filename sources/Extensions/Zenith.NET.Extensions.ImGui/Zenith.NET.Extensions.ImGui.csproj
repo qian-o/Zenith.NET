@@ -12,6 +12,6 @@
         <PackageReference Include="Hexa.NET.ImGui" />
     </ItemGroup>
 
-    <Import Project="..\..\Release.Package.props" />
+    <Import Project="..\..\NuGet.Packaging.props" />
 
 </Project>

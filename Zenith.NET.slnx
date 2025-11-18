@@ -1,4 +1,4 @@
-﻿<Solution>
+<Solution>
   <Folder Name="/Experiments/">
     <File Path="sources/Experiments/Directory.Packages.props" />
     <Project Path="sources/Experiments/MemoryPlayground/MemoryPlayground.csproj" />
@@ -20,7 +20,7 @@
   <Folder Name="/Solution Items/">
     <File Path="sources/Directory.Build.props" />
     <File Path="sources/Directory.Packages.props" />
-    <File Path="sources/Release.Package.props" />
+    <File Path="sources/NuGet.Packaging.props" />
   </Folder>
   <Folder Name="/Views/">
     <Project Path="sources/Views/Zenith.NET.Views.Avalonia/Zenith.NET.Views.Avalonia.csproj" />

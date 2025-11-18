@@ -12,6 +12,6 @@
         <PackageReference Include="SkiaSharp" />
     </ItemGroup>
 
-    <Import Project="..\..\Release.Package.props" />
+    <Import Project="..\..\NuGet.Packaging.props" />
 
 </Project>

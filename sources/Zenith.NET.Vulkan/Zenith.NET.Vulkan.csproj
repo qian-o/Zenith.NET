@@ -14,6 +14,6 @@
         <PackageReference Include="Silk.NET.Vulkan.Extensions.KHR" />
     </ItemGroup>
 
-    <Import Project="..\Release.Package.props" />
+    <Import Project="..\NuGet.Packaging.props" />
 
 </Project>
