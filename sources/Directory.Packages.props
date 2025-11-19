@@ -5,7 +5,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageVersion Include="Avalonia" Version="11.3.8" />
+        <PackageVersion Include="Avalonia" Version="11.3.9" />
         <PackageVersion Include="Hexa.NET.ImGui" Version="2.2.9" />
         <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.10" />
         <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.8.251106002" />
@@ -18,7 +18,7 @@
         <PackageVersion Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.22.0" />
         <PackageVersion Include="SixLabors.ImageSharp" Version="3.1.12" />
         <PackageVersion Include="SkiaSharp" Version="3.119.1" />
-        <PackageVersion Include="Slangc.NET" Version="2025.22.0" />
+        <PackageVersion Include="Slangc.NET" Version="2025.22.1" />
         <PackageVersion Include="Uno.WinUI" Version="6.4.133" />
     </ItemGroup>
 

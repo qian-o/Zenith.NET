@@ -3,10 +3,10 @@
     <Import Project="..\Directory.Packages.props" />
 
     <ItemGroup>
-        <PackageVersion Include="Avalonia.Desktop" Version="11.3.8" />
-        <PackageVersion Include="Avalonia.Diagnostics" Version="11.3.8" />
-        <PackageVersion Include="Avalonia.Fonts.Inter" Version="11.3.8" />
-        <PackageVersion Include="Avalonia.Themes.Fluent" Version="11.3.8" />
+        <PackageVersion Include="Avalonia.Desktop" Version="11.3.9" />
+        <PackageVersion Include="Avalonia.Diagnostics" Version="11.3.9" />
+        <PackageVersion Include="Avalonia.Fonts.Inter" Version="11.3.9" />
+        <PackageVersion Include="Avalonia.Themes.Fluent" Version="11.3.9" />
         <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
         <PackageVersion Include="Microsoft.Maui.Essentials" Version="10.0.10" />
         <PackageVersion Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
