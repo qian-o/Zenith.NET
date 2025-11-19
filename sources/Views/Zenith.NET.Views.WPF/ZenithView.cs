@@ -71,9 +71,9 @@ public class ZenithView : Control
             {
                 swapChain?.Dispose();
                 swapChain = null;
-            }
 
-            SetValue(GraphicsContextProperty, value);
+                SetValue(GraphicsContextProperty, value);
+            }
         }
     }
 
@@ -132,6 +132,10 @@ public class ZenithView : Control
 
                 swapChain?.Dispose();
                 swapChain = null;
+
+                image.Lock();
+                image.SetBackBuffer(D3DResourceType.IDirect3DSurface9, texture.Handle);
+                image.Unlock();
             }
 
             swapChain ??= GraphicsContext.CreateSwapChain(new()
