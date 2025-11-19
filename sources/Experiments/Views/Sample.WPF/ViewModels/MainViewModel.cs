@@ -67,8 +67,8 @@ public unsafe partial class MainViewModel : ObservableRecipient
         resourceLayout = App.Context.CreateResourceLayout(new() { Bindings = [new() { Type = ResourceType.ConstantBuffer, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel }] });
         resourceSet = App.Context.CreateResourceSet(new() { Layout = resourceLayout, Resources = [constantsBuffer] });
 
-        using Shader vs = App.Context.LoadShaderFromFile(Path.Combine(AppContext.BaseDirectory, "Shaders", "Shader.slang"), "VSMain", ShaderStageFlags.Vertex);
-        using Shader ps = App.Context.LoadShaderFromFile(Path.Combine(AppContext.BaseDirectory, "Shaders", "Shader.slang"), "PSMain", ShaderStageFlags.Pixel);
+        using Shader vs = App.Context.LoadShaderFromFile(Path.Combine(AppContext.BaseDirectory, "Shaders", "Vortex.slang"), "VSMain", ShaderStageFlags.Vertex);
+        using Shader ps = App.Context.LoadShaderFromFile(Path.Combine(AppContext.BaseDirectory, "Shaders", "Vortex.slang"), "PSMain", ShaderStageFlags.Pixel);
 
         InputLayout inputLayout = new();
         inputLayout.Add(new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.Position });
