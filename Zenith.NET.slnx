@@ -5,12 +5,6 @@
     <Project Path="sources/Experiments/PlatformDetection/PlatformDetection.csproj" />
     <Project Path="sources/Experiments/SponzaScene/SponzaScene.csproj" />
   </Folder>
-  <Folder Name="/Experiments/Views/">
-    <Project Path="sources/Experiments/Views/Sample.Avalonia/Sample.Avalonia.csproj" />
-    <Project Path="sources/Experiments/Views/Sample.Maui/Sample.Maui.csproj" />
-    <Project Path="sources/Experiments/Views/Sample.WinForms/Sample.WinForms.csproj" />
-    <Project Path="sources/Experiments/Views/Sample.WPF/Sample.WPF.csproj" />
-  </Folder>
   <Folder Name="/Extensions/">
     <Project Path="sources/Extensions/Zenith.NET.Extensions.ImageSharp/Zenith.NET.Extensions.ImageSharp.csproj" />
     <Project Path="sources/Extensions/Zenith.NET.Extensions.ImGui/Zenith.NET.Extensions.ImGui.csproj" />
