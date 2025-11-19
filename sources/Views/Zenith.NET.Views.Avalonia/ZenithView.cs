@@ -23,6 +23,7 @@ public unsafe class ZenithView : TemplatedControl, IZenithView
     private Texture? color;
     private Texture? depthStencil;
     private FrameBuffer? frameBuffer;
+    private Texture? present;
     private WriteableBitmap? bitmap;
 
     public ZenithView()
@@ -121,7 +122,7 @@ public unsafe class ZenithView : TemplatedControl, IZenithView
             uint width = Math.Clamp((uint)Math.Ceiling(Bounds.Width), 1, uint.MaxValue);
             uint height = Math.Clamp((uint)Math.Ceiling(Bounds.Height), 1, uint.MaxValue);
 
-            if (color is null || depthStencil is null || frameBuffer is null || frameBuffer.Width != width || frameBuffer.Height != height || bitmap is null)
+            if (color is null || depthStencil is null || frameBuffer is null || frameBuffer.Width != width || frameBuffer.Height != height || present is null || bitmap is null)
             {
                 DestroyFrameBuffer();
 
@@ -135,7 +136,7 @@ public unsafe class ZenithView : TemplatedControl, IZenithView
                     MipLevels = 1,
                     ArrayLayers = 1,
                     SampleCount = SampleCount.Count1,
-                    Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.Dynamic
+                    Flags = TextureUsageFlags.RenderTarget
                 });
 
                 depthStencil = GraphicsContext.CreateTexture(new()
@@ -157,6 +158,19 @@ public unsafe class ZenithView : TemplatedControl, IZenithView
                     DepthStencilAttachment = new() { Target = depthStencil }
                 });
 
+                present = GraphicsContext.CreateTexture(new()
+                {
+                    Type = TextureType.Texture2D,
+                    Format = PixelFormat.R8G8B8A8UNorm,
+                    Width = width,
+                    Height = height,
+                    Depth = 1,
+                    MipLevels = 1,
+                    ArrayLayers = 1,
+                    SampleCount = SampleCount.Count1,
+                    Flags = TextureUsageFlags.Dynamic
+                });
+
                 bitmap?.Dispose();
                 bitmap = new(new((int)width, (int)height), new(96, 96), AvaloniaPixelFormat.Rgba8888, AlphaFormat.Premul);
             }
@@ -167,9 +181,15 @@ public unsafe class ZenithView : TemplatedControl, IZenithView
             RenderRequested?.Invoke(this, new(renderStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds, frameBuffer));
             renderStopwatch.Restart();
 
+            CommandBuffer commandBuffer = GraphicsContext.Graphics.CommandBuffer();
+            commandBuffer.CopyTexture(color, default, default, present, default, default, new() { Width = width, Height = height, Depth = 1 });
+            commandBuffer.Submit();
+
+            GraphicsContext.Graphics.WaitIdle();
+
             using (ILockedFramebuffer lockedFramebuffer = bitmap.Lock())
             {
-                MappedMemory mappedMemory = color.Map(default);
+                MappedMemory mappedMemory = present.Map(default);
 
                 if (mappedMemory.RowPitch == lockedFramebuffer.RowBytes)
                 {
@@ -189,7 +209,7 @@ public unsafe class ZenithView : TemplatedControl, IZenithView
                     }
                 }
 
-                color.Unmap();
+                present.Unmap();
             }
 
             context.DrawImage(bitmap, new(0, 0, bitmap.PixelSize.Width, bitmap.PixelSize.Height), new(0, 0, Bounds.Width, Bounds.Height));
@@ -200,6 +220,9 @@ public unsafe class ZenithView : TemplatedControl, IZenithView
 
     private void DestroyFrameBuffer()
     {
+        present?.Dispose();
+        present = null;
+
         frameBuffer?.Dispose();
         frameBuffer = null;
 
