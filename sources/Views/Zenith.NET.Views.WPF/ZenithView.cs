@@ -99,7 +99,7 @@ public class ZenithView : Control, IZenithView
                 RelativeTransform = new TranslateTransform(lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0, lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0)
             };
 
-            drawingContext.DrawRectangle(brush, null, new Rect(0, 0, ActualWidth, ActualHeight));
+            drawingContext.DrawRectangle(brush, null, new(0, 0, ActualWidth, ActualHeight));
 
             string text = DesignerProperties.GetIsInDesignMode(this) ? "ZenithView (Design Mode)" : "ZenithView (No GraphicsContext)";
             Typeface typeface = FontFamily.GetTypefaces().FirstOrDefault() ?? new(FontFamily, FontStyle, FontWeight, FontStretch);

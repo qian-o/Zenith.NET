@@ -45,6 +45,9 @@ public unsafe class ZenithView : TemplatedControl, IZenithView
             updateStopwatch.Reset();
             renderStopwatch.Reset();
             lifetimeStopwatch.Reset();
+
+            bitmap?.Dispose();
+            bitmap = null;
         };
     }
 
@@ -86,7 +89,7 @@ public unsafe class ZenithView : TemplatedControl, IZenithView
                 Transform = new TranslateTransform(lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0, lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0)
             };
 
-            context.DrawRectangle(brush, null, new Rect(0, 0, Bounds.Width, Bounds.Height));
+            context.DrawRectangle(brush, null, new(0, 0, Bounds.Width, Bounds.Height));
 
             string text = Design.IsDesignMode ? "ZenithView (Design Mode)" : "ZenithView (No GraphicsContext)";
             Typeface typeface = new(FontFamily, FontStyle, FontWeight, FontStretch);
@@ -168,7 +171,23 @@ public unsafe class ZenithView : TemplatedControl, IZenithView
             {
                 MappedMemory mappedMemory = color.Map(default);
 
-                Unsafe.CopyBlockUnaligned((void*)lockedFramebuffer.Address, (void*)mappedMemory.Pointer, mappedMemory.SizeInBytes);
+                if (mappedMemory.RowPitch == lockedFramebuffer.RowBytes)
+                {
+                    Unsafe.CopyBlockUnaligned((void*)lockedFramebuffer.Address, (void*)mappedMemory.Pointer, mappedMemory.SizeInBytes);
+                }
+                else
+                {
+                    byte* srcPtr = (byte*)mappedMemory.Pointer;
+                    byte* dstPtr = (byte*)lockedFramebuffer.Address;
+
+                    for (uint y = 0; y < height; y++)
+                    {
+                        Unsafe.CopyBlockUnaligned(dstPtr, srcPtr, width * 4);
+
+                        srcPtr += mappedMemory.RowPitch;
+                        dstPtr += lockedFramebuffer.RowBytes;
+                    }
+                }
 
                 color.Unmap();
             }
