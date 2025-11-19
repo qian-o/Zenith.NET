@@ -8,7 +8,7 @@ using PresentParameters = Silk.NET.Direct3D9.PresentParameters;
 
 namespace Zenith.NET.Views.WPF;
 
-internal unsafe static class D3D
+internal static unsafe class D3D
 {
     public static ComPtr<IDirect3D9Ex> D3D9Ex;
 
