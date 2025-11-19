@@ -1,19 +1,193 @@
-﻿using Avalonia.Controls;
+﻿using System.Diagnostics;
+using System.Globalization;
+using System.Runtime.CompilerServices;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
+using Avalonia.Threading;
+using AvaloniaPixelFormat = Avalonia.Platform.PixelFormat;
 
 namespace Zenith.NET.Views.Avalonia;
 
-public class ZenithView : Control, IZenithView
+public unsafe class ZenithView : TemplatedControl, IZenithView
 {
+    public static readonly StyledProperty<GraphicsContext?> GraphicsContextProperty = AvaloniaProperty.Register<ZenithView, GraphicsContext?>(nameof(GraphicsContext));
+
+    private readonly Stopwatch updateStopwatch = new();
+    private readonly Stopwatch renderStopwatch = new();
+    private readonly Stopwatch lifetimeStopwatch = new();
+
+    private Texture? color;
+    private Texture? depthStencil;
+    private FrameBuffer? frameBuffer;
+    private WriteableBitmap? bitmap;
+
+    public ZenithView()
+    {
+        Loaded += (_, _) =>
+        {
+            updateStopwatch.Start();
+            renderStopwatch.Start();
+            lifetimeStopwatch.Start();
+        };
+
+        Unloaded += (_, _) =>
+        {
+            updateStopwatch.Stop();
+            renderStopwatch.Stop();
+            lifetimeStopwatch.Stop();
+
+            DestroyFrameBuffer();
+
+            updateStopwatch.Reset();
+            renderStopwatch.Reset();
+            lifetimeStopwatch.Reset();
+        };
+    }
+
     public static Output Output { get; } = new()
     {
-        ColorAttachments = [PixelFormat.B8G8R8A8UNorm],
+        ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
         DepthStencilAttachment = PixelFormat.D32FloatS8UInt,
         SampleCount = SampleCount.Count1
     };
 
-    public GraphicsContext? GraphicsContext { get; set; }
+    public GraphicsContext? GraphicsContext
+    {
+        get => GetValue(GraphicsContextProperty);
+        set
+        {
+            if (GraphicsContext != value)
+            {
+                DestroyFrameBuffer();
+
+                SetValue(GraphicsContextProperty, value);
+            }
+        }
+    }
 
     public event EventHandler<UpdateEventArgs>? UpdateRequested;
 
     public event EventHandler<RenderEventArgs>? RenderRequested;
+
+    public override void Render(DrawingContext context)
+    {
+        if (Design.IsDesignMode || GraphicsContext is null)
+        {
+            LinearGradientBrush brush = new()
+            {
+                StartPoint = new(0, 0, RelativeUnit.Relative),
+                EndPoint = new(1, 1, RelativeUnit.Relative),
+                SpreadMethod = GradientSpreadMethod.Reflect,
+                GradientStops = [new(Color.FromRgb(0x51, 0x2B, 0xD4), 0.0), new(Color.FromRgb(0x8A, 0x58, 0xFF), 0.45), new(Color.FromRgb(0x00, 0xA4, 0xEF), 1.0)],
+                Transform = new TranslateTransform(lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0, lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0)
+            };
+
+            context.DrawRectangle(brush, null, new Rect(0, 0, Bounds.Width, Bounds.Height));
+
+            string text = Design.IsDesignMode ? "ZenithView (Design Mode)" : "ZenithView (No GraphicsContext)";
+            Typeface typeface = new(FontFamily, FontStyle, FontWeight, FontStretch);
+            double fontSize = Math.Clamp(Bounds.Height / 15.0, 14.0, 48.0);
+            double dpi = VisualRoot?.RenderScaling ?? 1.0;
+
+            FormattedText shadowText = new(text,
+                                           CultureInfo.CurrentCulture,
+                                           FlowDirection.LeftToRight,
+                                           typeface,
+                                           fontSize * dpi,
+                                           new SolidColorBrush(Color.FromArgb(0x66, 0, 0, 0)));
+
+            FormattedText mainText = new(text,
+                                         CultureInfo.CurrentCulture,
+                                         FlowDirection.LeftToRight,
+                                         typeface,
+                                         fontSize * dpi,
+                                         new SolidColorBrush(Colors.White) { Opacity = 0.98 });
+
+            float x = (float)(Bounds.Width - mainText.Width) / 2;
+            float y = (float)(Bounds.Height - mainText.Height) / 2;
+
+            context.DrawText(shadowText, new(x + 1.0, y + 1.0));
+            context.DrawText(mainText, new(x, y));
+        }
+        else
+        {
+            uint width = Math.Clamp((uint)Math.Ceiling(Bounds.Width), 1, uint.MaxValue);
+            uint height = Math.Clamp((uint)Math.Ceiling(Bounds.Height), 1, uint.MaxValue);
+
+            if (color is null || depthStencil is null || frameBuffer is null || frameBuffer.Width != width || frameBuffer.Height != height || bitmap is null)
+            {
+                DestroyFrameBuffer();
+
+                color = GraphicsContext.CreateTexture(new()
+                {
+                    Type = TextureType.Texture2D,
+                    Format = PixelFormat.R8G8B8A8UNorm,
+                    Width = width,
+                    Height = height,
+                    Depth = 1,
+                    MipLevels = 1,
+                    ArrayLayers = 1,
+                    SampleCount = SampleCount.Count1,
+                    Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.Dynamic
+                });
+
+                depthStencil = GraphicsContext.CreateTexture(new()
+                {
+                    Type = TextureType.Texture2D,
+                    Format = PixelFormat.D32FloatS8UInt,
+                    Width = width,
+                    Height = height,
+                    Depth = 1,
+                    MipLevels = 1,
+                    ArrayLayers = 1,
+                    SampleCount = SampleCount.Count1,
+                    Flags = TextureUsageFlags.DepthStencil
+                });
+
+                frameBuffer = GraphicsContext.CreateFrameBuffer(new()
+                {
+                    ColorAttachments = [new() { Target = color }],
+                    DepthStencilAttachment = new() { Target = depthStencil }
+                });
+
+                bitmap?.Dispose();
+                bitmap = new(new((int)width, (int)height), new(96, 96), AvaloniaPixelFormat.Rgba8888, AlphaFormat.Premul);
+            }
+
+            UpdateRequested?.Invoke(this, new(updateStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds));
+            updateStopwatch.Restart();
+
+            RenderRequested?.Invoke(this, new(renderStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds, frameBuffer));
+            renderStopwatch.Restart();
+
+            using (ILockedFramebuffer lockedFramebuffer = bitmap.Lock())
+            {
+                MappedMemory mappedMemory = color.Map(default);
+
+                Unsafe.CopyBlockUnaligned((void*)lockedFramebuffer.Address, (void*)mappedMemory.Pointer, mappedMemory.SizeInBytes);
+
+                color.Unmap();
+            }
+
+            context.DrawImage(bitmap, new(0, 0, bitmap.PixelSize.Width, bitmap.PixelSize.Height), new(0, 0, Bounds.Width, Bounds.Height));
+        }
+
+        Dispatcher.UIThread.Post(InvalidateVisual, DispatcherPriority.Render);
+    }
+
+    private void DestroyFrameBuffer()
+    {
+        frameBuffer?.Dispose();
+        frameBuffer = null;
+
+        color?.Dispose();
+        color = null;
+
+        depthStencil?.Dispose();
+        depthStencil = null;
+    }
 }
