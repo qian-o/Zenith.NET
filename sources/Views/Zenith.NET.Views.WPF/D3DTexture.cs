@@ -2,6 +2,7 @@
 using Silk.NET.Direct3D11;
 using Silk.NET.Direct3D9;
 using Silk.NET.DXGI;
+using Format = Silk.NET.Direct3D9.Format;
 
 namespace Zenith.NET.Views.WPF;
 
@@ -24,7 +25,7 @@ internal unsafe class D3DTexture : DisposableObject
                                                    height,
                                                    1,
                                                    D3D9.UsageRendertarget,
-                                                   Silk.NET.Direct3D9.Format.X8R8G8B8,
+                                                   Format.X8R8G8B8,
                                                    Pool.Default,
                                                    ref D3D9Texture,
                                                    &d3d9ShareHandle));

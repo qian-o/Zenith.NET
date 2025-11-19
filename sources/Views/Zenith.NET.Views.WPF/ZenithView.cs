@@ -23,18 +23,6 @@ public class ZenithView : Control
 
     public ZenithView()
     {
-        IsVisibleChanged += (_, e) =>
-        {
-            if ((bool)e.NewValue)
-            {
-                CompositionTarget.Rendering += OnRendering;
-            }
-            else
-            {
-                CompositionTarget.Rendering -= OnRendering;
-            }
-        };
-
         Loaded += (_, _) =>
         {
             updateStopwatch.Start();
@@ -57,6 +45,18 @@ public class ZenithView : Control
             updateStopwatch.Reset();
             renderStopwatch.Reset();
             lifetimeStopwatch.Reset();
+        };
+
+        IsVisibleChanged += (_, e) =>
+        {
+            if ((bool)e.NewValue)
+            {
+                CompositionTarget.Rendering += OnRendering;
+            }
+            else
+            {
+                CompositionTarget.Rendering -= OnRendering;
+            }
         };
     }
 
@@ -93,12 +93,12 @@ public class ZenithView : Control
 
             drawingContext.DrawRectangle(brush, null, new Rect(0, 0, ActualWidth, ActualHeight));
 
-            string message = DesignerProperties.GetIsInDesignMode(this) ? "ZenithView (Design Mode)" : "GraphicsContext not assigned.";
+            string text = DesignerProperties.GetIsInDesignMode(this) ? "ZenithView (Design Mode)" : "GraphicsContext not assigned.";
             Typeface typeface = FontFamily.GetTypefaces().FirstOrDefault() ?? new(FontFamily, FontStyle, FontWeight, FontStretch);
             double fontSize = Math.Clamp(ActualHeight / 15.0, 14.0, 48.0);
             double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
 
-            FormattedText shadowText = new(message,
+            FormattedText shadowText = new(text,
                                            CultureInfo.CurrentCulture,
                                            FlowDirection.LeftToRight,
                                            typeface,
@@ -106,7 +106,7 @@ public class ZenithView : Control
                                            new SolidColorBrush(Color.FromArgb(0x66, 0, 0, 0)),
                                            dpi);
 
-            FormattedText mainText = new(message,
+            FormattedText mainText = new(text,
                                          CultureInfo.CurrentCulture,
                                          FlowDirection.LeftToRight,
                                          typeface,
