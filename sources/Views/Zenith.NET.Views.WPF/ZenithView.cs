@@ -154,7 +154,6 @@ public class ZenithView : Control
             swapChain.Present();
 
             image.Lock();
-            image.SetBackBuffer(D3DResourceType.IDirect3DSurface9, texture.Handle);
             image.AddDirtyRect(new(0, 0, (int)width, (int)height));
             image.Unlock();
 
