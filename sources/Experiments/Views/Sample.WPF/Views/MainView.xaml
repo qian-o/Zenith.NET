@@ -19,12 +19,12 @@
     <Grid>
         <zenith:ZenithView GraphicsContext="{x:Static local:App.Context}">
             <b:Interaction.Triggers>
-                <b:EventTrigger EventName="Update">
+                <b:EventTrigger EventName="UpdateRequested">
                     <b:InvokeCommandAction Command="{Binding UpdateCommand}"
                                            PassEventArgsToCommand="True" />
                 </b:EventTrigger>
 
-                <b:EventTrigger EventName="Render">
+                <b:EventTrigger EventName="RenderRequested">
                     <b:InvokeCommandAction Command="{Binding RenderCommand}"
                                            PassEventArgsToCommand="True" />
                 </b:EventTrigger>

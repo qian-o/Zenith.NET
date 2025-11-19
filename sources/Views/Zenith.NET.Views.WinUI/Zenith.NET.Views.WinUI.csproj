@@ -6,7 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Zenith.NET\Zenith.NET.csproj" />
+        <ProjectReference Include="..\Zenith.NET.Views\Zenith.NET.Views.csproj" />
     </ItemGroup>
 
     <Choose>

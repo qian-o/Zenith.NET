@@ -8,9 +8,12 @@ using System.Windows.Media;
 
 namespace Zenith.NET.Views.WPF;
 
-public class ZenithView : Control
+public class ZenithView : Control, IZenithView
 {
-    public static readonly DependencyProperty GraphicsContextProperty = DependencyProperty.Register(nameof(GraphicsContext), typeof(GraphicsContext), typeof(ZenithView), new(null));
+    public static readonly DependencyProperty GraphicsContextProperty = DependencyProperty.Register(nameof(GraphicsContext),
+                                                                                                    typeof(GraphicsContext),
+                                                                                                    typeof(ZenithView),
+                                                                                                    new(null));
 
     private readonly D3DImage image = new();
     private readonly Stopwatch updateStopwatch = new();
@@ -60,7 +63,12 @@ public class ZenithView : Control
         };
     }
 
-    public static Output Output { get; } = new() { ColorAttachments = [PixelFormat.B8G8R8A8UNorm], DepthStencilAttachment = PixelFormat.D32FloatS8UInt, SampleCount = SampleCount.Count1 };
+    public static Output Output { get; } = new()
+    {
+        ColorAttachments = [PixelFormat.B8G8R8A8UNorm],
+        DepthStencilAttachment = PixelFormat.D32FloatS8UInt,
+        SampleCount = SampleCount.Count1
+    };
 
     public GraphicsContext? GraphicsContext
     {
@@ -77,9 +85,9 @@ public class ZenithView : Control
         }
     }
 
-    public event EventHandler<UpdateEventArgs>? Update;
+    public event EventHandler<UpdateEventArgs>? UpdateRequested;
 
-    public event EventHandler<RenderEventArgs>? Render;
+    public event EventHandler<RenderEventArgs>? RenderRequested;
 
     protected override void OnRender(DrawingContext drawingContext)
     {
@@ -93,7 +101,7 @@ public class ZenithView : Control
 
             drawingContext.DrawRectangle(brush, null, new Rect(0, 0, ActualWidth, ActualHeight));
 
-            string text = DesignerProperties.GetIsInDesignMode(this) ? "ZenithView (Design Mode)" : "GraphicsContext not assigned.";
+            string text = DesignerProperties.GetIsInDesignMode(this) ? "ZenithView (Design Mode)" : "ZenithView (No GraphicsContext)";
             Typeface typeface = FontFamily.GetTypefaces().FirstOrDefault() ?? new(FontFamily, FontStyle, FontWeight, FontStretch);
             double fontSize = Math.Clamp(ActualHeight / 15.0, 14.0, 48.0);
             double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
@@ -145,10 +153,10 @@ public class ZenithView : Control
                 DepthStencilTargetFormat = PixelFormat.D32FloatS8UInt
             });
 
-            Update?.Invoke(this, new(updateStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds));
+            UpdateRequested?.Invoke(this, new(updateStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds));
             updateStopwatch.Restart();
 
-            Render?.Invoke(this, new(renderStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds, swapChain.FrameBuffer));
+            RenderRequested?.Invoke(this, new(renderStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds, swapChain.FrameBuffer));
             renderStopwatch.Restart();
 
             swapChain.Present();

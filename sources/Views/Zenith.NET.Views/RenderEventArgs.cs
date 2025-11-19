@@ -1,4 +1,4 @@
-﻿namespace Zenith.NET.Views.WPF;
+﻿namespace Zenith.NET.Views;
 
 public class RenderEventArgs(double deltaTime, double totalTime, FrameBuffer frameBuffer) : EventArgs
 {

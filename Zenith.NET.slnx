@@ -1,4 +1,4 @@
-﻿<Solution>
+<Solution>
   <Folder Name="/Experiments/">
     <File Path="sources/Experiments/Directory.Packages.props" />
     <Project Path="sources/Experiments/MemoryPlayground/MemoryPlayground.csproj" />
@@ -28,6 +28,7 @@
     <Project Path="sources/Views/Zenith.NET.Views.WinForms/Zenith.NET.Views.WinForms.csproj" />
     <Project Path="sources/Views/Zenith.NET.Views.WinUI/Zenith.NET.Views.WinUI.csproj" />
     <Project Path="sources/Views/Zenith.NET.Views.WPF/Zenith.NET.Views.WPF.csproj" />
+    <Project Path="sources/Views/Zenith.NET.Views/Zenith.NET.Views.csproj" Id="8c6844b6-2a5e-4c66-9c75-badfb50a1750" />
   </Folder>
   <Project Path="sources/Zenith.NET.DirectX12/Zenith.NET.DirectX12.csproj" />
   <Project Path="sources/Zenith.NET.Metal/Zenith.NET.Metal.csproj" />

@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Zenith.NET;
 using Zenith.NET.Extensions.Slang;
+using Zenith.NET.Views;
 using Zenith.NET.Views.WPF;
 using Buffer = Zenith.NET.Buffer;
 
