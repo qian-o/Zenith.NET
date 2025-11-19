@@ -10,19 +10,52 @@
         <ApplicationId>com.zenith.sample.maui</ApplicationId>
         <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
         <ApplicationVersion>1</ApplicationVersion>
-        <WindowsPackageType>None</WindowsPackageType>
-        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
-        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
-        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
-        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
     </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\..\..\Views\Zenith.NET.Views.Maui\Zenith.NET.Views.Maui.csproj" />
-        <ProjectReference Include="..\..\..\Zenith.NET.DirectX12\Zenith.NET.DirectX12.csproj" />
-        <ProjectReference Include="..\..\..\Zenith.NET.Metal\Zenith.NET.Metal.csproj" />
-        <ProjectReference Include="..\..\..\Zenith.NET.Vulkan\Zenith.NET.Vulkan.csproj" />
     </ItemGroup>
+
+    <Choose>
+        <When Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+            <PropertyGroup>
+                <SupportedOSPlatformVersion>21.0</SupportedOSPlatformVersion>
+            </PropertyGroup>
+
+            <ItemGroup>
+                <ProjectReference Include="..\..\..\Zenith.NET.Vulkan\Zenith.NET.Vulkan.csproj" />
+            </ItemGroup>
+        </When>
+        <When Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
+            <PropertyGroup>
+                <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+            </PropertyGroup>
+
+            <ItemGroup>
+                <ProjectReference Include="..\..\..\Zenith.NET.Metal\Zenith.NET.Metal.csproj" />
+            </ItemGroup>
+        </When>
+        <When Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
+            <PropertyGroup>
+                <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+            </PropertyGroup>
+
+            <ItemGroup>
+                <ProjectReference Include="..\..\..\Zenith.NET.Metal\Zenith.NET.Metal.csproj" />
+            </ItemGroup>
+        </When>
+        <When Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+            <PropertyGroup>
+                <WindowsPackageType>None</WindowsPackageType>
+                <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+                <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+            </PropertyGroup>
+
+            <ItemGroup>
+                <ProjectReference Include="..\..\..\Zenith.NET.DirectX12\Zenith.NET.DirectX12.csproj" />
+            </ItemGroup>
+        </When>
+    </Choose>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Maui.Controls" />
