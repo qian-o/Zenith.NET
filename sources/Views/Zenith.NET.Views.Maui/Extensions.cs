@@ -8,7 +8,7 @@ public static class Extensions
     {
         public MauiAppBuilder UseZenithView()
         {
-            return builder.ConfigureMauiHandlers(handlers => handlers.AddHandler<ZenithView, ZenithViewHandler>());
+            return builder.ConfigureMauiHandlers(static handlers => handlers.AddHandler<ZenithView, ZenithViewHandler>());
         }
     }
 }

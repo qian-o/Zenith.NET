@@ -291,7 +291,7 @@ internal static class App
         MainWindow.Initialize();
 
         Context = GraphicsContext.CreateVulkan(true);
-        Context.ValidationMessage += (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
+        Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
 
         Surface surface;
         if (OperatingSystem.IsWindows())
