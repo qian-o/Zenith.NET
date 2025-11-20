@@ -193,7 +193,7 @@ public unsafe class ZenithView : TemplatedControl, IZenithView
 
                 if (mappedMemory.RowPitch == lockedFramebuffer.RowBytes)
                 {
-                    Unsafe.CopyBlockUnaligned((void*)lockedFramebuffer.Address, (void*)mappedMemory.Pointer, mappedMemory.SizeInBytes);
+                    Unsafe.CopyBlock((void*)lockedFramebuffer.Address, (void*)mappedMemory.Pointer, mappedMemory.SizeInBytes);
                 }
                 else
                 {
@@ -202,7 +202,7 @@ public unsafe class ZenithView : TemplatedControl, IZenithView
 
                     for (uint y = 0; y < height; y++)
                     {
-                        Unsafe.CopyBlockUnaligned(dstPtr, srcPtr, width * 4);
+                        Unsafe.CopyBlock(dstPtr, srcPtr, (uint)lockedFramebuffer.RowBytes);
 
                         srcPtr += mappedMemory.RowPitch;
                         dstPtr += lockedFramebuffer.RowBytes;
