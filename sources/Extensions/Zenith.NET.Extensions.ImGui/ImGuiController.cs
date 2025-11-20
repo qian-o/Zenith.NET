@@ -205,7 +205,7 @@ public unsafe class ImGuiController : DisposableObject
     private byte* PlatformGetClipboardText(ImGuiContext* context)
     {
         clipboardScope?.Dispose();
-        clipboardScope = new ZenithMarshal.Scope();
+        clipboardScope = new();
 
         return (byte*)ZenithMarshal.StringToPointer(clipboardScope, PlatformBindings?.GetClipboardText() ?? string.Empty, StringEncoding.UTF8);
     }

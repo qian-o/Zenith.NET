@@ -76,9 +76,9 @@ float4 PSMain(VSOutput input) : SV_TARGET
     {
         Bindings =
         [
-            new ResourceBinding() { Type = ResourceType.ConstantBuffer, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Vertex },
-            new ResourceBinding() { Type = ResourceType.Texture, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-            new ResourceBinding() { Type = ResourceType.Sampler, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel }
+            new() { Type = ResourceType.ConstantBuffer, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Vertex },
+            new() { Type = ResourceType.Texture, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+            new() { Type = ResourceType.Sampler, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel }
         ]
     };
 
@@ -98,9 +98,9 @@ float4 PSMain(VSOutput input) : SV_TARGET
     {
         Bindings =
         [
-            new ResourceBinding() { Type = ResourceType.ConstantBuffer, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Vertex },
-            new ResourceBinding() { Type = ResourceType.Texture, Index = 1, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-            new ResourceBinding() { Type = ResourceType.Sampler, Index = 2, Count = 1, StageFlags = ShaderStageFlags.Pixel }
+            new() { Type = ResourceType.ConstantBuffer, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Vertex },
+            new() { Type = ResourceType.Texture, Index = 1, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+            new() { Type = ResourceType.Sampler, Index = 2, Count = 1, StageFlags = ShaderStageFlags.Pixel }
         ]
     };
 
