@@ -67,9 +67,7 @@ public unsafe partial class ZenithView
                 Flags = TextureUsageFlags.Dynamic
             });
 
-            bitmap = new((int)width, (int)height);
-
-            Background = new ImageBrush() { ImageSource = bitmap };
+            Background = new ImageBrush() { ImageSource = bitmap = new((int)width, (int)height) };
         }
 
         UpdateRequested?.Invoke(this, new(updateStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds));
@@ -92,12 +90,10 @@ public unsafe partial class ZenithView
 
             for (uint y = 0; y < height; y++)
             {
-                stream.Write([.. new ReadOnlySpan<byte>(pixels, (int)(width * 4))], 0, (int)(width * 4));
+                stream.Write([.. new ReadOnlySpan<byte>(pixels, (int)(width * 4))]);
 
                 pixels += mappedMemory.RowPitch;
             }
-
-            stream.Flush();
 
             present.Unmap();
         }
