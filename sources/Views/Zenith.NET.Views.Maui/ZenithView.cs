@@ -23,7 +23,7 @@ internal class ZenithViewHandler() : ViewHandler<ZenithView, MauiZenithView>(map
     }
 }
 
-public partial class ZenithView : View, IZenithView
+public partial class ZenithView : View
 {
     public static Output Output { get; } = new()
     {

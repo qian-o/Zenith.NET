@@ -12,7 +12,7 @@ using AvaloniaPixelFormat = Avalonia.Platform.PixelFormat;
 
 namespace Zenith.NET.Views.Avalonia;
 
-public unsafe class ZenithView : TemplatedControl, IZenithView
+public unsafe class ZenithView : TemplatedControl
 {
     public static readonly StyledProperty<GraphicsContext?> GraphicsContextProperty = AvaloniaProperty.Register<ZenithView, GraphicsContext?>(nameof(GraphicsContext));
 

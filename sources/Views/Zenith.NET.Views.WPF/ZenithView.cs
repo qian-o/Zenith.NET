@@ -8,7 +8,7 @@ using System.Windows.Media;
 
 namespace Zenith.NET.Views.WPF;
 
-public class ZenithView : Control, IZenithView
+public class ZenithView : Control
 {
     public static readonly DependencyProperty GraphicsContextProperty = DependencyProperty.Register(nameof(GraphicsContext),
                                                                                                     typeof(GraphicsContext),

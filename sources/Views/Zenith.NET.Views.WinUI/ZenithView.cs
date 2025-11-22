@@ -2,7 +2,7 @@
 
 namespace Zenith.NET.Views.WinUI;
 
-public partial class ZenithView : Control, IZenithView
+public partial class ZenithView : Control
 {
     public static Output Output { get; } = new()
     {

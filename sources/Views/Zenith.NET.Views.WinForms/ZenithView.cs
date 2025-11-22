@@ -2,7 +2,7 @@
 
 namespace Zenith.NET.Views.WinForms;
 
-public class ZenithView : Control, IZenithView
+public class ZenithView : Control
 {
     public static Output Output { get; } = new()
     {
