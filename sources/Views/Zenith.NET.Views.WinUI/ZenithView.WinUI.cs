@@ -20,23 +20,20 @@ public unsafe partial class ZenithView
         uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
         uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
 
-        if (texture is null || texture.Width != width || texture.Height != height)
+        if (texture is null || texture.Width != width || texture.Height != height || swapChain is null)
         {
-            texture?.Dispose();
-            texture = new(width, height);
+            Destroy();
 
-            swapChain?.Dispose();
-            swapChain = null;
+            texture = new(width, height);
+            swapChain = graphicsContext.CreateSwapChain(new()
+            {
+                Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
+                ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
+                DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
+            });
 
             this.As<ISwapChainPanelNative>().SetSwapChain(texture.SwapChain);
         }
-
-        swapChain ??= graphicsContext.CreateSwapChain(new()
-        {
-            Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
-            ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
-            DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
-        });
 
         UpdateRequested?.Invoke(this, new(updateStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds));
         updateStopwatch.Restart();
@@ -50,6 +47,9 @@ public unsafe partial class ZenithView
 
     private void Destroy()
     {
+        swapChain?.Dispose();
+        swapChain = null;
+
         texture?.Dispose();
         texture = null;
     }

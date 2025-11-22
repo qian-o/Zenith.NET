@@ -11,7 +11,7 @@ public partial class ZenithView : SwapChainPanel
     public static readonly DependencyProperty GraphicsContextProperty = DependencyProperty.Register(nameof(GraphicsContext),
                                                                                                     typeof(GraphicsContext),
                                                                                                     typeof(ZenithView),
-                                                                                                    new(null));
+                                                                                                    new(null, (d, _) => ((ZenithView)d).Destroy()));
 
     private readonly Grid previewGrid;
     private readonly LinearGradientBrush previewBrush;
@@ -83,15 +83,7 @@ public partial class ZenithView : SwapChainPanel
     public GraphicsContext? GraphicsContext
     {
         get => (GraphicsContext?)GetValue(GraphicsContextProperty);
-        set
-        {
-            if (GraphicsContext != value)
-            {
-                Destroy();
-
-                SetValue(GraphicsContextProperty, value);
-            }
-        }
+        set => SetValue(GraphicsContextProperty, value);
     }
 
     public event EventHandler<UpdateEventArgs>? UpdateRequested;

@@ -26,6 +26,11 @@ public unsafe class ZenithView : TemplatedControl
     private Texture? present;
     private WriteableBitmap? bitmap;
 
+    static ZenithView()
+    {
+        GraphicsContextProperty.Changed.AddClassHandler<ZenithView>((view, _) => view.Destroy());
+    }
+
     public ZenithView()
     {
         Loaded += (_, _) =>
@@ -41,14 +46,11 @@ public unsafe class ZenithView : TemplatedControl
             renderStopwatch.Stop();
             lifetimeStopwatch.Stop();
 
-            DestroyFrameBuffer();
+            Destroy();
 
             updateStopwatch.Reset();
             renderStopwatch.Reset();
             lifetimeStopwatch.Reset();
-
-            bitmap?.Dispose();
-            bitmap = null;
         };
     }
 
@@ -62,15 +64,7 @@ public unsafe class ZenithView : TemplatedControl
     public GraphicsContext? GraphicsContext
     {
         get => GetValue(GraphicsContextProperty);
-        set
-        {
-            if (GraphicsContext != value)
-            {
-                DestroyFrameBuffer();
-
-                SetValue(GraphicsContextProperty, value);
-            }
-        }
+        set => SetValue(GraphicsContextProperty, value);
     }
 
     public event EventHandler<UpdateEventArgs>? UpdateRequested;
@@ -124,7 +118,7 @@ public unsafe class ZenithView : TemplatedControl
 
             if (color is null || depthStencil is null || frameBuffer is null || frameBuffer.Width != width || frameBuffer.Height != height || present is null || bitmap is null)
             {
-                DestroyFrameBuffer();
+                Destroy();
 
                 color = GraphicsContext.CreateTexture(new()
                 {
@@ -171,7 +165,6 @@ public unsafe class ZenithView : TemplatedControl
                     Flags = TextureUsageFlags.Dynamic
                 });
 
-                bitmap?.Dispose();
                 bitmap = new(new((int)width, (int)height), new(96, 96), AvaloniaPixelFormat.Rgba8888, AlphaFormat.Premul);
             }
 
@@ -218,8 +211,11 @@ public unsafe class ZenithView : TemplatedControl
         Dispatcher.UIThread.Post(InvalidateVisual, DispatcherPriority.Render);
     }
 
-    private void DestroyFrameBuffer()
+    private void Destroy()
     {
+        bitmap?.Dispose();
+        bitmap = null;
+
         present?.Dispose();
         present = null;
 
