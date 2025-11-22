@@ -54,7 +54,7 @@ public partial class ZenithView : SwapChainPanel
             }
         };
 
-        previewGrid = new Grid()
+        Children.Add(previewGrid = new Grid()
         {
             Background = previewBrush = new LinearGradientBrush()
             {
@@ -69,15 +69,14 @@ public partial class ZenithView : SwapChainPanel
                 SpreadMethod = GradientSpreadMethod.Reflect
             },
             IsHitTestVisible = false
-        };
+        });
+
         previewGrid.Children.Add(previewTextBlock = new()
         {
             Text = "ZenithView (No GraphicsContext)",
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
         });
-
-        Children.Add(previewGrid);
     }
 
     public static Output Output { get; } = new()
