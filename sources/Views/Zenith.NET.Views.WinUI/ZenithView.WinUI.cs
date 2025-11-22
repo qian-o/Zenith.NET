@@ -1,0 +1,57 @@
+﻿#if WINDOWS
+using WinRT;
+
+namespace Zenith.NET.Views.WinUI;
+
+public unsafe partial class ZenithView
+{
+    private D3DTexture? texture;
+    private SwapChain? swapChain;
+
+    public static Output Output { get; } = new()
+    {
+        ColorAttachments = [PixelFormat.B8G8R8A8UNorm],
+        DepthStencilAttachment = PixelFormat.D24UNormS8UInt,
+        SampleCount = SampleCount.Count1
+    };
+
+    private void OnRender(GraphicsContext graphicsContext)
+    {
+        uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
+        uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
+
+        if (texture is null || texture.Width != width || texture.Height != height)
+        {
+            texture?.Dispose();
+            texture = new(width, height);
+
+            swapChain?.Dispose();
+            swapChain = null;
+
+            this.As<ISwapChainPanelNative>().SetSwapChain(texture.SwapChain);
+        }
+
+        swapChain ??= graphicsContext.CreateSwapChain(new()
+        {
+            Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
+            ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
+            DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
+        });
+
+        UpdateRequested?.Invoke(this, new(updateStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds));
+        updateStopwatch.Restart();
+
+        RenderRequested?.Invoke(this, new(renderStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds, swapChain.FrameBuffer));
+        renderStopwatch.Restart();
+
+        texture.Present();
+        swapChain.Present();
+    }
+
+    private void Destroy()
+    {
+        texture?.Dispose();
+        texture = null;
+    }
+}
+#endif
