@@ -66,7 +66,7 @@ public class ZenithView : Control, IZenithView
     public static Output Output { get; } = new()
     {
         ColorAttachments = [PixelFormat.B8G8R8A8UNorm],
-        DepthStencilAttachment = PixelFormat.D32FloatS8UInt,
+        DepthStencilAttachment = PixelFormat.D24UNormS8UInt,
         SampleCount = SampleCount.Count1
     };
 
@@ -150,7 +150,7 @@ public class ZenithView : Control, IZenithView
             {
                 Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
                 ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
-                DepthStencilTargetFormat = PixelFormat.D32FloatS8UInt
+                DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
             });
 
             UpdateRequested?.Invoke(this, new(updateStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds));

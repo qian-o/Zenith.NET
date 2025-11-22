@@ -55,7 +55,7 @@ public unsafe class ZenithView : TemplatedControl, IZenithView
     public static Output Output { get; } = new()
     {
         ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
-        DepthStencilAttachment = PixelFormat.D32FloatS8UInt,
+        DepthStencilAttachment = PixelFormat.D24UNormS8UInt,
         SampleCount = SampleCount.Count1
     };
 
@@ -142,7 +142,7 @@ public unsafe class ZenithView : TemplatedControl, IZenithView
                 depthStencil = GraphicsContext.CreateTexture(new()
                 {
                     Type = TextureType.Texture2D,
-                    Format = PixelFormat.D32FloatS8UInt,
+                    Format = PixelFormat.D24UNormS8UInt,
                     Width = width,
                     Height = height,
                     Depth = 1,

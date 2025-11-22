@@ -7,7 +7,7 @@ public partial class ZenithView : Control, IZenithView
     public static Output Output { get; } = new()
     {
         ColorAttachments = [PixelFormat.B8G8R8A8UNorm],
-        DepthStencilAttachment = PixelFormat.D32FloatS8UInt,
+        DepthStencilAttachment = PixelFormat.D24UNormS8UInt,
         SampleCount = SampleCount.Count1
     };
 
