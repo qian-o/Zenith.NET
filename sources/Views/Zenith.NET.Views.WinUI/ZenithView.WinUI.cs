@@ -8,13 +8,6 @@ public unsafe partial class ZenithView
     private D3DTexture? texture;
     private SwapChain? swapChain;
 
-    public static Output Output { get; } = new()
-    {
-        ColorAttachments = [PixelFormat.B8G8R8A8UNorm],
-        DepthStencilAttachment = PixelFormat.D24UNormS8UInt,
-        SampleCount = SampleCount.Count1
-    };
-
     private void OnRender(GraphicsContext graphicsContext)
     {
         uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);

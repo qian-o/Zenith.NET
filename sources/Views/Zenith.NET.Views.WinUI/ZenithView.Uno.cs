@@ -1,5 +1,6 @@
 ﻿#if !WINDOWS
 using System.Runtime.InteropServices.WindowsRuntime;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace Zenith.NET.Views.WinUI;
@@ -11,13 +12,6 @@ public unsafe partial class ZenithView
     private FrameBuffer? frameBuffer;
     private Texture? present;
     private WriteableBitmap? bitmap;
-
-    public static Output Output { get; } = new()
-    {
-        ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
-        DepthStencilAttachment = PixelFormat.D24UNormS8UInt,
-        SampleCount = SampleCount.Count1
-    };
 
     private void OnRender(GraphicsContext graphicsContext)
     {
@@ -31,7 +25,7 @@ public unsafe partial class ZenithView
             color = graphicsContext.CreateTexture(new()
             {
                 Type = TextureType.Texture2D,
-                Format = PixelFormat.R8G8B8A8UNorm,
+                Format = PixelFormat.B8G8R8A8UNorm,
                 Width = width,
                 Height = height,
                 Depth = 1,
@@ -63,7 +57,7 @@ public unsafe partial class ZenithView
             present = graphicsContext.CreateTexture(new()
             {
                 Type = TextureType.Texture2D,
-                Format = PixelFormat.R8G8B8A8UNorm,
+                Format = PixelFormat.B8G8R8A8UNorm,
                 Width = width,
                 Height = height,
                 Depth = 1,
@@ -74,6 +68,8 @@ public unsafe partial class ZenithView
             });
 
             bitmap = new((int)width, (int)height);
+
+            Background = new ImageBrush() { ImageSource = bitmap };
         }
 
         UpdateRequested?.Invoke(this, new(updateStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds));
@@ -92,13 +88,11 @@ public unsafe partial class ZenithView
         {
             MappedMemory mappedMemory = present.Map(default);
 
-            int rowBytes = (int)(width * 4);
-
             byte* pixels = (byte*)mappedMemory.Pointer;
 
             for (uint y = 0; y < height; y++)
             {
-                stream.Write([.. new ReadOnlySpan<byte>(pixels, rowBytes)], (int)(rowBytes * y), rowBytes);
+                stream.Write([.. new ReadOnlySpan<byte>(pixels, (int)(width * 4))], 0, (int)(width * 4));
 
                 pixels += mappedMemory.RowPitch;
             }
