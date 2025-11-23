@@ -37,7 +37,15 @@ public class ZenithView : Control
             lifetimeStopwatch.Reset();
         };
 
-        ClientSizeChanged += (_, _) => swapChain?.Resize(Math.Clamp((uint)ClientSize.Width, 1, uint.MaxValue), Math.Clamp((uint)ClientSize.Height, 1, uint.MaxValue));
+        ClientSizeChanged += (_, _) =>
+        {
+            if (ClientSize.Width is 0 || ClientSize.Height is 0)
+            {
+                return;
+            }
+
+            swapChain?.Resize((uint)ClientSize.Width, (uint)ClientSize.Height);
+        };
     }
 
     public static Output Output { get; } = new()
@@ -69,6 +77,11 @@ public class ZenithView : Control
 
     protected override void OnPaint(PaintEventArgs e)
     {
+        if (ClientSize.Width is 0 || ClientSize.Height is 0)
+        {
+            return;
+        }
+
         if (DesignMode || GraphicsContext is null)
         {
             DoubleBuffered = true;
@@ -86,9 +99,9 @@ public class ZenithView : Control
                     Colors = [Color.FromArgb(0x51, 0x2B, 0xD4), Color.FromArgb(0x8A, 0x58, 0xFF), Color.FromArgb(0x00, 0xA4, 0xEF)],
                     Positions = [0.0f, 0.45f, 1.0f]
                 },
-                WrapMode = WrapMode.TileFlipXY,
-                Transform = new(1.0f, 0.0f, 0.0f, 1.0f, t * ClientRectangle.Width, t * ClientRectangle.Height)
+                WrapMode = WrapMode.TileFlipXY
             };
+            brush.TranslateTransform(t * ClientRectangle.Width, t * ClientRectangle.Height);
 
             e.Graphics.FillRectangle(brush, ClientRectangle);
 
@@ -108,12 +121,9 @@ public class ZenithView : Control
         {
             DoubleBuffered = false;
 
-            uint width = Math.Clamp((uint)ClientSize.Width, 1, uint.MaxValue);
-            uint height = Math.Clamp((uint)ClientSize.Height, 1, uint.MaxValue);
-
             swapChain ??= GraphicsContext.CreateSwapChain(new()
             {
-                Surface = Surface.Win32(Handle, width, height),
+                Surface = Surface.Win32(Handle, (uint)ClientSize.Width, (uint)ClientSize.Height),
                 ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
                 DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
             });
