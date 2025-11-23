@@ -80,7 +80,7 @@ public class ZenithView : Control
     {
         if (DesignerProperties.GetIsInDesignMode(this) || GraphicsContext is null)
         {
-            LinearGradientBrush brush = new([new(Color.FromRgb(0x51, 0x2B, 0xD4), 0.0), new(Color.FromRgb(0x8A, 0x58, 0xFF), 0.45), new(Color.FromRgb(0x00, 0xA4, 0xEF), 1.0)], 45)
+            LinearGradientBrush brush = new([new(Color.FromRgb(0x51, 0x2B, 0xD4), 0.0), new(Color.FromRgb(0x8A, 0x58, 0xFF), 0.45), new(Color.FromRgb(0x00, 0xA4, 0xEF), 1.0)], 45.0)
             {
                 SpreadMethod = GradientSpreadMethod.Reflect,
                 RelativeTransform = new TranslateTransform(lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0, lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0)
