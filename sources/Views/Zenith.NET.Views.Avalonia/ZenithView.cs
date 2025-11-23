@@ -77,14 +77,14 @@ public unsafe class ZenithView : TemplatedControl
         {
             LinearGradientBrush brush = new()
             {
-                StartPoint = new(0, 0, RelativeUnit.Relative),
-                EndPoint = new(1, 1, RelativeUnit.Relative),
+                StartPoint = new(0.0, 0.0, RelativeUnit.Relative),
+                EndPoint = new(1.0, 1.0, RelativeUnit.Relative),
                 SpreadMethod = GradientSpreadMethod.Reflect,
                 GradientStops = [new(Color.FromRgb(0x51, 0x2B, 0xD4), 0.0), new(Color.FromRgb(0x8A, 0x58, 0xFF), 0.45), new(Color.FromRgb(0x00, 0xA4, 0xEF), 1.0)],
                 Transform = new TranslateTransform(lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0, lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0)
             };
 
-            context.DrawRectangle(brush, null, new(0, 0, Bounds.Width, Bounds.Height));
+            context.DrawRectangle(brush, null, new(0.0, 0.0, Bounds.Width, Bounds.Height));
 
             string text = Design.IsDesignMode ? "ZenithView (Design Mode)" : "ZenithView (No GraphicsContext)";
             Typeface typeface = new(FontFamily, FontStyle, FontWeight, FontStretch);

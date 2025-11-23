@@ -64,8 +64,8 @@ public partial class ZenithView : SwapChainPanel
                     new() { Color = Color.FromArgb(0xFF, 0x8A, 0x58, 0xFF), Offset = 0.45 },
                     new() { Color = Color.FromArgb(0xFF, 0x00, 0xA4, 0xEF), Offset = 1.0 }
                 ],
-                StartPoint = new(0, 0),
-                EndPoint = new(1, 1),
+                StartPoint = new(0.0, 0.0),
+                EndPoint = new(1.0, 1.0),
                 SpreadMethod = GradientSpreadMethod.Reflect
             },
             IsHitTestVisible = false

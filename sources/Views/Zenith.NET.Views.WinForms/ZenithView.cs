@@ -84,7 +84,7 @@ public class ZenithView : Control
                 InterpolationColors = new()
                 {
                     Colors = [Color.FromArgb(0x51, 0x2B, 0xD4), Color.FromArgb(0x8A, 0x58, 0xFF), Color.FromArgb(0x00, 0xA4, 0xEF)],
-                    Positions = [0.0f, 0.45f, 1.0f],
+                    Positions = [0.0f, 0.45f, 1.0f]
                 },
                 WrapMode = WrapMode.TileFlipXY,
                 Transform = new(1.0f, 0.0f, 0.0f, 1.0f, t * ClientRectangle.Width, t * ClientRectangle.Height)
