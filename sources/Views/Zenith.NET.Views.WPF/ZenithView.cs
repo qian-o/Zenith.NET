@@ -20,7 +20,6 @@ public class ZenithView : Control
     private readonly Stopwatch renderStopwatch = new();
     private readonly Stopwatch lifetimeStopwatch = new();
 
-    private TimeSpan lastRender;
     private D3DTexture? texture;
     private SwapChain? swapChain;
 
@@ -159,14 +158,7 @@ public class ZenithView : Control
 
     private void OnRendering(object? sender, EventArgs e)
     {
-        RenderingEventArgs args = (RenderingEventArgs)e;
-
-        if (lastRender != args.RenderingTime)
-        {
-            InvalidateVisual();
-
-            lastRender = args.RenderingTime;
-        }
+        InvalidateVisual();
     }
 
     private void Destroy()

@@ -20,8 +20,6 @@ public partial class ZenithView : SwapChainPanel
     private readonly Stopwatch renderStopwatch = new();
     private readonly Stopwatch lifetimeStopwatch = new();
 
-    private TimeSpan lastRender;
-
     public ZenithView()
     {
         Loaded += (_, _) =>
@@ -98,30 +96,23 @@ public partial class ZenithView : SwapChainPanel
 
     private void OnRendering(object? sender, object e)
     {
-        RenderingEventArgs args = (RenderingEventArgs)e;
-
-        if (lastRender != args.RenderingTime)
+        if (GraphicsContext is null)
         {
-            if (GraphicsContext is null)
+            previewGrid.Visibility = Visibility.Visible;
+
+            previewBrush.RelativeTransform = new TranslateTransform()
             {
-                previewGrid.Visibility = Visibility.Visible;
+                X = lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0,
+                Y = lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0
+            };
 
-                previewBrush.RelativeTransform = new TranslateTransform()
-                {
-                    X = lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0,
-                    Y = lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0
-                };
+            previewTextBlock.FontSize = Math.Clamp(ActualHeight / 15.0, 14.0, 48.0);
+        }
+        else
+        {
+            previewGrid.Visibility = Visibility.Collapsed;
 
-                previewTextBlock.FontSize = Math.Clamp(ActualHeight / 15.0, 14.0, 48.0);
-            }
-            else
-            {
-                previewGrid.Visibility = Visibility.Collapsed;
-
-                OnRender(GraphicsContext);
-            }
-
-            lastRender = args.RenderingTime;
+            OnRender(GraphicsContext);
         }
     }
 }
