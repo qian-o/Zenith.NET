@@ -15,6 +15,7 @@ internal class ZenithViewHandler() : ViewHandler<ZenithView, MauiZenithView>(map
 {
     private static readonly PropertyMapper<ZenithView, ZenithViewHandler> mapper = new(ViewMapper)
     {
+        [nameof(ZenithView.Background)] = MapBackground,
         [nameof(ZenithView.GraphicsContext)] = MapGraphicsContext
     };
 
@@ -23,6 +24,18 @@ internal class ZenithViewHandler() : ViewHandler<ZenithView, MauiZenithView>(map
     protected override MauiZenithView CreatePlatformView()
     {
         return new(this);
+    }
+
+    protected override void DisconnectHandler(MauiZenithView platformView)
+    {
+        platformView.Destroy();
+
+        base.DisconnectHandler(platformView);
+    }
+
+    private static void MapBackground(ZenithViewHandler handler, ZenithView view)
+    {
+        // ZenithView does not support Background property.
     }
 
     private static void MapGraphicsContext(ZenithViewHandler handler, ZenithView view)
