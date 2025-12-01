@@ -13,7 +13,10 @@ namespace Zenith.NET.Views.Maui;
 
 internal class ZenithViewHandler() : ViewHandler<ZenithView, MauiZenithView>(mapper, commandMapper)
 {
-    private static readonly PropertyMapper<ZenithView, ZenithViewHandler> mapper = new(ViewMapper);
+    private static readonly PropertyMapper<ZenithView, ZenithViewHandler> mapper = new(ViewMapper)
+    {
+        [nameof(ZenithView.GraphicsContext)] = MapGraphicsContext
+    };
 
     private static readonly CommandMapper<ZenithView, ZenithViewHandler> commandMapper = new(ViewCommandMapper);
 
@@ -21,10 +24,17 @@ internal class ZenithViewHandler() : ViewHandler<ZenithView, MauiZenithView>(map
     {
         return new(this);
     }
+
+    private static void MapGraphicsContext(ZenithViewHandler handler, ZenithView view)
+    {
+        handler.PlatformView.Destroy();
+    }
 }
 
 public partial class ZenithView : View
 {
+    public static readonly BindableProperty GraphicsContextProperty = BindableProperty.Create(nameof(GraphicsContext), typeof(GraphicsContext), typeof(ZenithView));
+
     public static Output Output { get; } = new()
     {
         ColorAttachments = [PixelFormat.B8G8R8A8UNorm],
@@ -32,9 +42,23 @@ public partial class ZenithView : View
         SampleCount = SampleCount.Count1
     };
 
-    public GraphicsContext? GraphicsContext { get; set; }
+    public GraphicsContext? GraphicsContext
+    {
+        get => (GraphicsContext?)GetValue(GraphicsContextProperty);
+        set => SetValue(GraphicsContextProperty, value);
+    }
 
     public event EventHandler<UpdateEventArgs>? UpdateRequested;
 
     public event EventHandler<RenderEventArgs>? RenderRequested;
+
+    internal void OnUpdateRequested(UpdateEventArgs e)
+    {
+        UpdateRequested?.Invoke(this, e);
+    }
+
+    internal void OnRenderRequested(RenderEventArgs e)
+    {
+        RenderRequested?.Invoke(this, e);
+    }
 }

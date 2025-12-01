@@ -5,4 +5,8 @@ namespace Zenith.NET.Views.Maui.Platforms.iOS;
 internal class MauiZenithView(ZenithViewHandler handler) : UIView
 {
     public ZenithView ZenithView => handler.VirtualView;
+
+    public void Destroy()
+    {
+    }
 }
