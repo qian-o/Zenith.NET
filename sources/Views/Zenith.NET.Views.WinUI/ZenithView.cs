@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
@@ -13,33 +12,22 @@ public partial class ZenithView : SwapChainPanel
                                                                                                     typeof(ZenithView),
                                                                                                     new(null, (d, _) => ((ZenithView)d).Destroy()));
 
+    private readonly ViewTimer timer = new();
     private readonly Grid previewGrid;
     private readonly LinearGradientBrush previewBrush;
     private readonly TextBlock previewTextBlock;
-    private readonly Stopwatch updateStopwatch = new();
-    private readonly Stopwatch renderStopwatch = new();
-    private readonly Stopwatch lifetimeStopwatch = new();
 
     public ZenithView()
     {
-        Loaded += (_, _) =>
-        {
-            updateStopwatch.Start();
-            renderStopwatch.Start();
-            lifetimeStopwatch.Start();
-        };
+        Loaded += (_, _) => timer.Start();
 
         Unloaded += (_, _) =>
         {
-            updateStopwatch.Stop();
-            renderStopwatch.Stop();
-            lifetimeStopwatch.Stop();
+            timer.Stop();
 
             Destroy();
 
-            updateStopwatch.Reset();
-            renderStopwatch.Reset();
-            lifetimeStopwatch.Reset();
+            timer.Reset();
         };
 
         EffectiveViewportChanged += (_, e) =>
@@ -102,8 +90,8 @@ public partial class ZenithView : SwapChainPanel
 
             previewBrush.RelativeTransform = new TranslateTransform()
             {
-                X = lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0,
-                Y = lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0
+                X = timer.TotalSeconds * 0.06 % 1.0,
+                Y = timer.TotalSeconds * 0.06 % 1.0
             };
 
             previewTextBlock.FontSize = Math.Clamp(ActualHeight / 15.0, 14.0, 48.0);

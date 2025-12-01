@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel;
-using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
@@ -15,34 +14,23 @@ public class ZenithView : Control
                                                                                                     typeof(ZenithView),
                                                                                                     new(null, (d, _) => ((ZenithView)d).Destroy()));
 
+    private readonly ViewTimer timer = new();
     private readonly D3DImage image = new();
-    private readonly Stopwatch updateStopwatch = new();
-    private readonly Stopwatch renderStopwatch = new();
-    private readonly Stopwatch lifetimeStopwatch = new();
 
     private D3DTexture? texture;
     private SwapChain? swapChain;
 
     public ZenithView()
     {
-        Loaded += (_, _) =>
-        {
-            updateStopwatch.Start();
-            renderStopwatch.Start();
-            lifetimeStopwatch.Start();
-        };
+        Loaded += (_, _) => timer.Start();
 
         Unloaded += (_, _) =>
         {
-            updateStopwatch.Stop();
-            renderStopwatch.Stop();
-            lifetimeStopwatch.Stop();
+            timer.Stop();
 
             Destroy();
 
-            updateStopwatch.Reset();
-            renderStopwatch.Reset();
-            lifetimeStopwatch.Reset();
+            timer.Reset();
         };
 
         IsVisibleChanged += (_, e) =>
@@ -85,7 +73,7 @@ public class ZenithView : Control
                 EndPoint = new(1.0, 1.0),
                 GradientStops = [new(Color.FromRgb(0x51, 0x2B, 0xD4), 0.0), new(Color.FromRgb(0x8A, 0x58, 0xFF), 0.45), new(Color.FromRgb(0x00, 0xA4, 0xEF), 1.0)],
                 SpreadMethod = GradientSpreadMethod.Reflect,
-                RelativeTransform = new TranslateTransform(lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0, lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0)
+                RelativeTransform = new TranslateTransform(timer.TotalSeconds * 0.06 % 1.0, timer.TotalSeconds * 0.06 % 1.0)
             };
 
             drawingContext.DrawRectangle(brush, null, new(0, 0, ActualWidth, ActualHeight));
@@ -140,11 +128,8 @@ public class ZenithView : Control
                 image.Unlock();
             }
 
-            UpdateRequested?.Invoke(this, new(updateStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds));
-            updateStopwatch.Restart();
-
-            RenderRequested?.Invoke(this, new(renderStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds, swapChain.FrameBuffer));
-            renderStopwatch.Restart();
+            UpdateRequested?.Invoke(this, new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
+            RenderRequested?.Invoke(this, new(timer.GetAndRestartRender(), timer.TotalSeconds, swapChain.FrameBuffer));
 
             swapChain.Present();
 

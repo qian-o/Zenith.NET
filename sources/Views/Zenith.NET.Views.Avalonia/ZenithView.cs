@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
@@ -16,9 +15,7 @@ public unsafe class ZenithView : TemplatedControl
 {
     public static readonly StyledProperty<GraphicsContext?> GraphicsContextProperty = AvaloniaProperty.Register<ZenithView, GraphicsContext?>(nameof(GraphicsContext));
 
-    private readonly Stopwatch updateStopwatch = new();
-    private readonly Stopwatch renderStopwatch = new();
-    private readonly Stopwatch lifetimeStopwatch = new();
+    private readonly ViewTimer timer = new();
 
     private Texture? color;
     private Texture? depthStencil;
@@ -33,24 +30,15 @@ public unsafe class ZenithView : TemplatedControl
 
     public ZenithView()
     {
-        Loaded += (_, _) =>
-        {
-            updateStopwatch.Start();
-            renderStopwatch.Start();
-            lifetimeStopwatch.Start();
-        };
+        Loaded += (_, _) => timer.Start();
 
         Unloaded += (_, _) =>
         {
-            updateStopwatch.Stop();
-            renderStopwatch.Stop();
-            lifetimeStopwatch.Stop();
+            timer.Stop();
 
             Destroy();
 
-            updateStopwatch.Reset();
-            renderStopwatch.Reset();
-            lifetimeStopwatch.Reset();
+            timer.Reset();
         };
     }
 
@@ -81,7 +69,7 @@ public unsafe class ZenithView : TemplatedControl
                 EndPoint = new(1.0, 1.0, RelativeUnit.Relative),
                 SpreadMethod = GradientSpreadMethod.Reflect,
                 GradientStops = [new(Color.FromRgb(0x51, 0x2B, 0xD4), 0.0), new(Color.FromRgb(0x8A, 0x58, 0xFF), 0.45), new(Color.FromRgb(0x00, 0xA4, 0xEF), 1.0)],
-                Transform = new TranslateTransform(lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0, lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0)
+                Transform = new TranslateTransform(timer.TotalSeconds * 0.06 % 1.0, timer.TotalSeconds * 0.06 % 1.0)
             };
 
             context.DrawRectangle(brush, null, new(0.0, 0.0, Bounds.Width, Bounds.Height));
@@ -168,11 +156,8 @@ public unsafe class ZenithView : TemplatedControl
                 bitmap = new(new((int)width, (int)height), new(96, 96), AvaloniaPixelFormat.Rgba8888, AlphaFormat.Premul);
             }
 
-            UpdateRequested?.Invoke(this, new(updateStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds));
-            updateStopwatch.Restart();
-
-            RenderRequested?.Invoke(this, new(renderStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds, frameBuffer));
-            renderStopwatch.Restart();
+            UpdateRequested?.Invoke(this, new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
+            RenderRequested?.Invoke(this, new(timer.GetAndRestartRender(), timer.TotalSeconds, frameBuffer));
 
             CommandBuffer commandBuffer = GraphicsContext.Graphics.CommandBuffer();
             commandBuffer.CopyTexture(color, default, default, present, default, default, new() { Width = width, Height = height, Depth = 1 });

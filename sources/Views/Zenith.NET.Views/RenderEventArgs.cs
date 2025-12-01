@@ -1,10 +1,10 @@
 ﻿namespace Zenith.NET.Views;
 
-public class RenderEventArgs(double deltaTime, double totalTime, FrameBuffer frameBuffer) : EventArgs
+public class RenderEventArgs(double deltaSeconds, double totalSeconds, FrameBuffer frameBuffer) : EventArgs
 {
-    public double DeltaTime { get; } = deltaTime;
+    public double DeltaSeconds { get; } = deltaSeconds;
 
-    public double TotalTime { get; } = totalTime;
+    public double TotalSeconds { get; } = totalSeconds;
 
     public FrameBuffer FrameBuffer { get; } = frameBuffer;
 }

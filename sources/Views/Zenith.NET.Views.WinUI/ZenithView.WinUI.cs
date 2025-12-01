@@ -28,11 +28,8 @@ public unsafe partial class ZenithView
             this.As<ISwapChainPanelNative>().SetSwapChain(texture.SwapChain);
         }
 
-        UpdateRequested?.Invoke(this, new(updateStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds));
-        updateStopwatch.Restart();
-
-        RenderRequested?.Invoke(this, new(renderStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds, swapChain.FrameBuffer));
-        renderStopwatch.Restart();
+        UpdateRequested?.Invoke(this, new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
+        RenderRequested?.Invoke(this, new(timer.GetAndRestartRender(), timer.TotalSeconds, swapChain.FrameBuffer));
 
         texture.Present();
         swapChain.Present();

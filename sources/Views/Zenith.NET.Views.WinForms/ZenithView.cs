@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel;
-using System.Diagnostics;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 
@@ -7,9 +6,7 @@ namespace Zenith.NET.Views.WinForms;
 
 public class ZenithView : Control
 {
-    private readonly Stopwatch updateStopwatch = new();
-    private readonly Stopwatch renderStopwatch = new();
-    private readonly Stopwatch lifetimeStopwatch = new();
+    private readonly ViewTimer timer = new();
 
     private SwapChain? swapChain;
 
@@ -17,24 +14,15 @@ public class ZenithView : Control
     {
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw | ControlStyles.Opaque | ControlStyles.UserPaint, true);
 
-        HandleCreated += (_, _) =>
-        {
-            updateStopwatch.Start();
-            renderStopwatch.Start();
-            lifetimeStopwatch.Start();
-        };
+        HandleCreated += (_, _) => timer.Start();
 
         HandleDestroyed += (_, _) =>
         {
-            updateStopwatch.Stop();
-            renderStopwatch.Stop();
-            lifetimeStopwatch.Stop();
+            timer.Stop();
 
             Destroy();
 
-            updateStopwatch.Reset();
-            renderStopwatch.Reset();
-            lifetimeStopwatch.Reset();
+            timer.Reset();
         };
 
         ClientSizeChanged += (_, _) =>
@@ -90,7 +78,7 @@ public class ZenithView : Control
             e.Graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
             e.Graphics.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
 
-            float t = (float)(lifetimeStopwatch.Elapsed.TotalSeconds * 0.06 % 1.0);
+            float t = (float)(timer.TotalSeconds * 0.06 % 1.0);
 
             using LinearGradientBrush brush = new(ClientRectangle, Color.Black, Color.Black, 45.0f, true)
             {
@@ -128,11 +116,8 @@ public class ZenithView : Control
                 DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
             });
 
-            UpdateRequested?.Invoke(this, new(updateStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds));
-            updateStopwatch.Restart();
-
-            RenderRequested?.Invoke(this, new(renderStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds, swapChain.FrameBuffer));
-            renderStopwatch.Restart();
+            UpdateRequested?.Invoke(this, new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
+            RenderRequested?.Invoke(this, new(timer.GetAndRestartRender(), timer.TotalSeconds, swapChain.FrameBuffer));
 
             swapChain.Present();
         }

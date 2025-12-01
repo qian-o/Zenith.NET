@@ -1,8 +1,8 @@
 ﻿namespace Zenith.NET.Views;
 
-public class UpdateEventArgs(double deltaTime, double totalTime) : EventArgs
+public class UpdateEventArgs(double deltaSeconds, double totalSeconds) : EventArgs
 {
-    public double DeltaTime { get; } = deltaTime;
+    public double DeltaSeconds { get; } = deltaSeconds;
 
-    public double TotalTime { get; } = totalTime;
+    public double TotalSeconds { get; } = totalSeconds;
 }

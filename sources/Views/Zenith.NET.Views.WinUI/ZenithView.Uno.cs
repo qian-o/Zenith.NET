@@ -70,11 +70,8 @@ public unsafe partial class ZenithView
             Background = new ImageBrush() { ImageSource = bitmap = new((int)width, (int)height) };
         }
 
-        UpdateRequested?.Invoke(this, new(updateStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds));
-        updateStopwatch.Restart();
-
-        RenderRequested?.Invoke(this, new(renderStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds, frameBuffer));
-        renderStopwatch.Restart();
+        UpdateRequested?.Invoke(this, new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
+        RenderRequested?.Invoke(this, new(timer.GetAndRestartRender(), timer.TotalSeconds, frameBuffer));
 
         CommandBuffer commandBuffer = graphicsContext.Graphics.CommandBuffer();
         commandBuffer.CopyTexture(color, default, default, present, default, default, new() { Width = width, Height = height, Depth = 1 });
