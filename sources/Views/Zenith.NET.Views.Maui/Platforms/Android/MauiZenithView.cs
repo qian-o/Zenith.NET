@@ -71,13 +71,13 @@ internal partial class MauiZenithView : SurfaceView, ISurfaceHolderCallback, IFr
 
     void IFrameCallback.DoFrame(long frameTimeNanos)
     {
-        uint width = (uint)Width;
-        uint height = (uint)Height;
-
-        if (ZenithView.GraphicsContext is null || width is 0 || height is 0)
+        if (ZenithView.GraphicsContext is null)
         {
             return;
         }
+
+        uint width = Math.Clamp((uint)Width, 1, uint.MaxValue);
+        uint height = Math.Clamp((uint)Height, 1, uint.MaxValue);
 
         swapChain ??= ZenithView.GraphicsContext.CreateSwapChain(new()
         {
