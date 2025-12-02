@@ -82,8 +82,8 @@ internal partial class MauiZenithView : SurfaceView, ISurfaceHolderCallback, IFr
         swapChain ??= ZenithView.GraphicsContext.CreateSwapChain(new()
         {
             Surface = Surface.Android(ANativeWindowFromSurface(JniEnvironment.EnvironmentPointer, Holder?.Surface?.Handle ?? 0), width, height),
-            ColorTargetFormat = Output.ColorAttachments[0],
-            DepthStencilTargetFormat = Output.DepthStencilAttachment
+            ColorTargetFormat = PixelFormat.R8G8B8A8UNorm,
+            DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
         });
 
         ZenithView.OnUpdateRequested(new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
