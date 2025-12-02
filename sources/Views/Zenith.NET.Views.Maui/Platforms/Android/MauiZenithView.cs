@@ -53,8 +53,6 @@ internal partial class MauiZenithView : SurfaceView, ISurfaceHolderCallback, IFr
     void ISurfaceHolderCallback.SurfaceChanged(ISurfaceHolder holder, Format format, int width, int height)
     {
         swapChain?.Resize((uint)width, (uint)height);
-
-        Instance?.PostFrameCallback(this);
     }
 
     void ISurfaceHolderCallback.SurfaceCreated(ISurfaceHolder holder)
