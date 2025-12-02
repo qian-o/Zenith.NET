@@ -48,12 +48,7 @@ public partial class ZenithView : View
 {
     public static readonly BindableProperty GraphicsContextProperty = BindableProperty.Create(nameof(GraphicsContext), typeof(GraphicsContext), typeof(ZenithView));
 
-    public static Output Output { get; } = new()
-    {
-        ColorAttachments = [PixelFormat.B8G8R8A8UNorm],
-        DepthStencilAttachment = PixelFormat.D24UNormS8UInt,
-        SampleCount = SampleCount.Count1
-    };
+    public static Output Output => MauiZenithView.Output;
 
     public GraphicsContext? GraphicsContext
     {

@@ -1,37 +1,96 @@
-﻿using Android.Graphics;
+﻿using System.Runtime.InteropServices;
+using Android.Graphics;
 using Android.Views;
+using Java.Interop;
+using static Android.Views.Choreographer;
 
 namespace Zenith.NET.Views.Maui.Platforms.Android;
 
-internal class MauiZenithView : SurfaceView, ISurfaceHolderCallback
+internal partial class MauiZenithView : SurfaceView, ISurfaceHolderCallback, IFrameCallback
 {
+    [LibraryImport("android", EntryPoint = "ANativeWindow_fromSurface")]
+    private static partial nint ANativeWindowFromSurface(nint env, nint surface);
+
+    private readonly ViewTimer timer = new();
+
+    private SwapChain? swapChain;
+
     public MauiZenithView(ZenithViewHandler handler) : base(handler.Context)
     {
-        ZenithView = handler.VirtualView;
+        SetWillNotDraw(false);
 
         Holder?.AddCallback(this);
 
-        SetWillNotDraw(false);
+        ViewAttachedToWindow += (_, _) => timer.Start();
+
+        ViewDetachedFromWindow += (_, _) =>
+        {
+            timer.Stop();
+
+            Destroy();
+
+            timer.Reset();
+        };
+
+        ZenithView = handler.VirtualView;
     }
+
+    public static Output Output { get; } = new()
+    {
+        ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
+        DepthStencilAttachment = PixelFormat.D24UNormS8UInt,
+        SampleCount = SampleCount.Count1
+    };
 
     public ZenithView ZenithView { get; }
 
     public void Destroy()
     {
+        swapChain?.Dispose();
+        swapChain = null;
     }
 
     void ISurfaceHolderCallback.SurfaceChanged(ISurfaceHolder holder, Format format, int width, int height)
     {
-        throw new NotImplementedException();
+        swapChain?.Resize((uint)width, (uint)height);
+
+        Instance?.PostFrameCallback(this);
     }
 
     void ISurfaceHolderCallback.SurfaceCreated(ISurfaceHolder holder)
     {
-        throw new NotImplementedException();
+        Instance?.PostFrameCallback(this);
     }
 
     void ISurfaceHolderCallback.SurfaceDestroyed(ISurfaceHolder holder)
     {
-        throw new NotImplementedException();
+        Destroy();
+
+        Instance?.RemoveFrameCallback(this);
+    }
+
+    void IFrameCallback.DoFrame(long frameTimeNanos)
+    {
+        uint width = (uint)Width;
+        uint height = (uint)Height;
+
+        if (ZenithView.GraphicsContext is null || width is 0 || height is 0)
+        {
+            return;
+        }
+
+        swapChain ??= ZenithView.GraphicsContext.CreateSwapChain(new()
+        {
+            Surface = Surface.Android(ANativeWindowFromSurface(JniEnvironment.EnvironmentPointer, Holder?.Surface?.Handle ?? 0), width, height),
+            ColorTargetFormat = Output.ColorAttachments[0],
+            DepthStencilTargetFormat = Output.DepthStencilAttachment
+        });
+
+        ZenithView.OnUpdateRequested(new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
+        ZenithView.OnRenderRequested(new(timer.GetAndRestartRender(), timer.TotalSeconds, swapChain.FrameBuffer));
+
+        swapChain.Present();
+
+        Instance?.PostFrameCallback(this);
     }
 }

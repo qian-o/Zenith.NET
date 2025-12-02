@@ -37,6 +37,13 @@ internal unsafe partial class MauiZenithView : SwapChainPanel
         ZenithView = handler.VirtualView;
     }
 
+    public static Output Output { get; } = new()
+    {
+        ColorAttachments = [PixelFormat.B8G8R8A8UNorm],
+        DepthStencilAttachment = PixelFormat.D24UNormS8UInt,
+        SampleCount = SampleCount.Count1
+    };
+
     public ZenithView ZenithView { get; }
 
     public void Destroy()
