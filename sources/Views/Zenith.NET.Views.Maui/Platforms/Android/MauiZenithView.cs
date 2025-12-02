@@ -3,9 +3,18 @@ using Android.Views;
 
 namespace Zenith.NET.Views.Maui.Platforms.Android;
 
-internal class MauiZenithView(ZenithViewHandler handler) : SurfaceView(handler.Context), ISurfaceHolderCallback
+internal class MauiZenithView : SurfaceView, ISurfaceHolderCallback
 {
-    public ZenithView ZenithView => handler.VirtualView;
+    public MauiZenithView(ZenithViewHandler handler) : base(handler.Context)
+    {
+        ZenithView = handler.VirtualView;
+
+        Holder?.AddCallback(this);
+
+        SetWillNotDraw(false);
+    }
+
+    public ZenithView ZenithView { get; }
 
     public void Destroy()
     {
