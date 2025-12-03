@@ -240,10 +240,8 @@ float4 PSMain(VSOutput input) : SV_TARGET
 
     public void RemoveBinding(ImTextureID textureID)
     {
-        if (imResourceSets.TryGetValue(textureID, out ResourceSet? resourceSet))
+        if (imResourceSets.Remove(textureID, out ResourceSet? resourceSet))
         {
-            imResourceSets.Remove(textureID);
-
             resourceSet.Dispose();
         }
 
@@ -347,9 +345,8 @@ float4 PSMain(VSOutput input) : SV_TARGET
                     {
                         RemoveBinding(textureData.TexID);
 
-                        if (imTextures.TryGetValue(textureData.TexID, out Texture? texture))
+                        if (imTextures.Remove(textureData.TexID, out Texture? texture))
                         {
-                            imTextures.Remove(textureData.TexID);
                             texture.Dispose();
                         }
 
