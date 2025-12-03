@@ -245,12 +245,12 @@ float4 PSMain(VSOutput input) : SV_TARGET
             resourceSet.Dispose();
         }
 
-        if (textureBindings.ContainsValue(textureID) && textureBindings.FirstOrDefault(kv => kv.Value == textureID).Key is Texture texture)
+        if (textureBindings.FirstOrDefault(kv => kv.Value == textureID).Key is Texture texture)
         {
             textureBindings.Remove(texture);
         }
 
-        if (textureViewBindings.ContainsValue(textureID) && textureViewBindings.FirstOrDefault(kv => kv.Value == textureID).Key is TextureView textureView)
+        if (textureViewBindings.FirstOrDefault(kv => kv.Value == textureID).Key is TextureView textureView)
         {
             textureViewBindings.Remove(textureView);
         }
