@@ -411,9 +411,17 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
             if (enabledExtensions.Contains(KhrRayQuery.ExtensionName) || enabledExtensions.Contains(KhrRayTracingPipeline.ExtensionName))
             {
-                createInfo.AddNext(out PhysicalDeviceRayQueryFeaturesKHR _)
-                          .AddNext(out PhysicalDeviceRayTracingPipelineFeaturesKHR _)
-                          .AddNext(out PhysicalDeviceAccelerationStructureFeaturesKHR _);
+                if (enabledExtensions.Contains(KhrRayQuery.ExtensionName))
+                {
+                    createInfo.AddNext(out PhysicalDeviceRayQueryFeaturesKHR _);
+                }
+
+                if (enabledExtensions.Contains(KhrRayTracingPipeline.ExtensionName))
+                {
+                    createInfo.AddNext(out PhysicalDeviceRayTracingPipelineFeaturesKHR _);
+                }
+
+                createInfo.AddNext(out PhysicalDeviceAccelerationStructureFeaturesKHR _);
             }
 
             if (enabledExtensions.Contains(ExtMeshShader.ExtensionName))
