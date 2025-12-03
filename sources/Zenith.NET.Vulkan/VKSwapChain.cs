@@ -233,7 +233,7 @@ internal unsafe class VKSwapChain : SwapChain
                 compositeAlpha = CompositeAlphaFlagsKHR.OpaqueBitKhr;
             }
 
-            PresentModeKHR presentMode = default;
+            PresentModeKHR presentMode = PresentModeKHR.FifoKhr;
             foreach (PresentModeKHR item in new ReadOnlySpan<PresentModeKHR>(presentModes, (int)presentModeCount))
             {
                 if (item is PresentModeKHR.MailboxKhr)
@@ -241,10 +241,6 @@ internal unsafe class VKSwapChain : SwapChain
                     presentMode = PresentModeKHR.MailboxKhr;
 
                     break;
-                }
-                else if (item is PresentModeKHR.ImmediateKhr)
-                {
-                    presentMode = PresentModeKHR.ImmediateKhr;
                 }
             }
 
