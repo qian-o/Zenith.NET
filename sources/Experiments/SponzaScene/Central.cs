@@ -36,7 +36,7 @@ internal class SilkImGuiController : ImGuiController, IImGuiPlatformBindings
             MouseButton.Left => ImGuiMouseButton.Left,
             MouseButton.Right => ImGuiMouseButton.Right,
             MouseButton.Middle => ImGuiMouseButton.Middle,
-            _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle,
+            _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle
         });
     }
 
@@ -47,7 +47,7 @@ internal class SilkImGuiController : ImGuiController, IImGuiPlatformBindings
             MouseButton.Left => ImGuiMouseButton.Left,
             MouseButton.Right => ImGuiMouseButton.Right,
             MouseButton.Middle => ImGuiMouseButton.Middle,
-            _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle,
+            _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle
         });
     }
 
