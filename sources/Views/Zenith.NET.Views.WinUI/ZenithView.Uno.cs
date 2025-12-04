@@ -109,11 +109,11 @@ public unsafe partial class ZenithView
         frameBuffer?.Dispose();
         frameBuffer = null;
 
-        color?.Dispose();
-        color = null;
-
         depthStencil?.Dispose();
         depthStencil = null;
+
+        color?.Dispose();
+        color = null;
     }
 }
 #endif

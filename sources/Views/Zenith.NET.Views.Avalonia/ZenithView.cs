@@ -175,16 +175,13 @@ public unsafe class ZenithView : TemplatedControl
                 }
                 else
                 {
-                    byte* srcPtr = (byte*)mappedMemory.Pointer;
-                    byte* dstPtr = (byte*)lockedFramebuffer.Address;
-
-                    for (uint y = 0; y < height; y++)
+                    Parallel.For(0, height, y =>
                     {
-                        Unsafe.CopyBlock(dstPtr, srcPtr, (uint)lockedFramebuffer.RowBytes);
+                        byte* srcPtr = (byte*)mappedMemory.Pointer + (y * mappedMemory.RowPitch);
+                        byte* dstPtr = (byte*)lockedFramebuffer.Address + (y * lockedFramebuffer.RowBytes);
 
-                        srcPtr += mappedMemory.RowPitch;
-                        dstPtr += lockedFramebuffer.RowBytes;
-                    }
+                        Unsafe.CopyBlock(dstPtr, srcPtr, (uint)lockedFramebuffer.RowBytes);
+                    });
                 }
 
                 present.Unmap();
@@ -207,10 +204,10 @@ public unsafe class ZenithView : TemplatedControl
         frameBuffer?.Dispose();
         frameBuffer = null;
 
-        color?.Dispose();
-        color = null;
-
         depthStencil?.Dispose();
         depthStencil = null;
+
+        color?.Dispose();
+        color = null;
     }
 }
