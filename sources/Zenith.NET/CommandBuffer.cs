@@ -177,22 +177,22 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void BindVertexBuffer(Buffer buffer, uint offsetInBytes, uint index)
     {
-        if (currentPipeline is not GraphicsPipeline)
+        if (currentPipeline is not GraphicsPipeline pipeline)
         {
             return;
         }
 
-        BindVertexBufferImpl((GraphicsPipeline)currentPipeline, buffer, offsetInBytes, index);
+        BindVertexBufferImpl(pipeline, buffer, offsetInBytes, index);
     }
 
     public void BindIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat format)
     {
-        if (currentPipeline is not GraphicsPipeline)
+        if (currentPipeline is not GraphicsPipeline pipeline)
         {
             return;
         }
 
-        BindIndexBufferImpl((GraphicsPipeline)currentPipeline, buffer, offsetInBytes, format);
+        BindIndexBufferImpl(pipeline, buffer, offsetInBytes, format);
     }
 
     public void BindResourceSet(ResourceSet resourceSet, uint index)
@@ -207,110 +207,110 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
     {
-        if (currentPipeline is not GraphicsPipeline)
+        if (currentPipeline is not GraphicsPipeline pipeline)
         {
             return;
         }
 
         EnsureRenderingBegan();
 
-        DrawImpl((GraphicsPipeline)currentPipeline, vertexCount, instanceCount, firstVertex, firstInstance);
+        DrawImpl(pipeline, vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     public void DrawIndirect(Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        if (currentPipeline is not GraphicsPipeline)
+        if (currentPipeline is not GraphicsPipeline pipeline)
         {
             return;
         }
 
         EnsureRenderingBegan();
 
-        DrawIndirectImpl((GraphicsPipeline)currentPipeline, indirectBuffer, offsetInBytes, drawCount);
+        DrawIndirectImpl(pipeline, indirectBuffer, offsetInBytes, drawCount);
     }
 
     public void DrawIndexed(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
     {
-        if (currentPipeline is not GraphicsPipeline)
+        if (currentPipeline is not GraphicsPipeline pipeline)
         {
             return;
         }
 
         EnsureRenderingBegan();
 
-        DrawIndexedImpl((GraphicsPipeline)currentPipeline, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+        DrawIndexedImpl(pipeline, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
     public void DrawIndexedIndirect(Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        if (currentPipeline is not GraphicsPipeline)
+        if (currentPipeline is not GraphicsPipeline pipeline)
         {
             return;
         }
 
         EnsureRenderingBegan();
 
-        DrawIndexedIndirectImpl((GraphicsPipeline)currentPipeline, indirectBuffer, offsetInBytes, drawCount);
+        DrawIndexedIndirectImpl(pipeline, indirectBuffer, offsetInBytes, drawCount);
     }
 
     public void Dispatch(uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        if (currentPipeline is not ComputePipeline)
+        if (currentPipeline is not ComputePipeline pipeline)
         {
             return;
         }
 
         EnsureRenderingEnded();
 
-        DispatchImpl((ComputePipeline)currentPipeline, groupCountX, groupCountY, groupCountZ);
+        DispatchImpl(pipeline, groupCountX, groupCountY, groupCountZ);
     }
 
     public void DispatchIndirect(Buffer indirectBuffer, uint offsetInBytes)
     {
-        if (currentPipeline is not ComputePipeline)
+        if (currentPipeline is not ComputePipeline pipeline)
         {
             return;
         }
 
         EnsureRenderingEnded();
 
-        DispatchIndirectImpl((ComputePipeline)currentPipeline, indirectBuffer, offsetInBytes);
+        DispatchIndirectImpl(pipeline, indirectBuffer, offsetInBytes);
     }
 
     public void DispatchRays(uint width, uint height, uint depth)
     {
-        if (currentPipeline is not RayTracingPipeline)
+        if (currentPipeline is not RayTracingPipeline pipeline)
         {
             return;
         }
 
         EnsureRenderingEnded();
 
-        DispatchRaysImpl((RayTracingPipeline)currentPipeline, width, height, depth);
+        DispatchRaysImpl(pipeline, width, height, depth);
     }
 
     public void DispatchMesh(uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        if (currentPipeline is not MeshShadingPipeline)
+        if (currentPipeline is not MeshShadingPipeline pipeline)
         {
             return;
         }
 
         EnsureRenderingBegan();
 
-        DispatchMeshImpl((MeshShadingPipeline)currentPipeline, groupCountX, groupCountY, groupCountZ);
+        DispatchMeshImpl(pipeline, groupCountX, groupCountY, groupCountZ);
     }
 
     public void DispatchMeshIndirect(Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount)
     {
-        if (currentPipeline is not MeshShadingPipeline)
+        if (currentPipeline is not MeshShadingPipeline pipeline)
         {
             return;
         }
 
         EnsureRenderingBegan();
 
-        DispatchMeshIndirectImpl((MeshShadingPipeline)currentPipeline, indirectBuffer, offsetInBytes, dispatchCount);
+        DispatchMeshIndirectImpl(pipeline, indirectBuffer, offsetInBytes, dispatchCount);
     }
 
     public void BeginQuery(QueryHeap queryHeap, uint index)
