@@ -7,6 +7,4 @@ public record struct SwapChainDesc
     public PixelFormat ColorTargetFormat;
 
     public PixelFormat? DepthStencilTargetFormat;
-
-    public bool VerticalSync;
 }

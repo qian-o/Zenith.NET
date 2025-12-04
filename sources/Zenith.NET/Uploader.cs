@@ -2,66 +2,67 @@
 
 internal class Uploader(GraphicsContext context) : DisposableObject
 {
-    private const uint MinBufferSizeInBytes = 4096;
-    private const uint MinTextureWidth = 256;
-    private const uint MinTextureHeight = 256;
-    private const uint MinTextureDepth = 32;
+    private const uint BufferSizeInBytes = 4096;
+    private const uint TextureWidth = 512;
+    private const uint TextureHeight = 512;
+    private const uint AvailableResources = 128;
 
     private readonly Lock @lock = new();
-    private readonly List<Buffer> availableBuffer = [];
-    private readonly Dictionary<CommandBuffer, Buffer[]> usedBuffer = [];
-    private readonly List<Texture> availableTexture = [];
-    private readonly Dictionary<CommandBuffer, Texture[]> usedTexture = [];
+    private readonly List<Buffer> availableBuffers = [];
+    private readonly Dictionary<CommandBuffer, Buffer[]> usedBuffers = [];
+    private readonly List<Texture> availableTextures = [];
+    private readonly Dictionary<CommandBuffer, Texture[]> usedTextures = [];
 
     public Buffer Buffer(CommandBuffer commandBuffer, uint sizeInBytes)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        if (!usedBuffer.TryGetValue(commandBuffer, out Buffer[]? buffers))
+        if (!usedBuffers.TryGetValue(commandBuffer, out Buffer[]? buffers))
         {
-            usedBuffer[commandBuffer] = buffers = [];
+            usedBuffers[commandBuffer] = buffers = [];
         }
 
-        if (availableBuffer.FirstOrDefault(item => item.Desc.SizeInBytes >= sizeInBytes) is not Buffer buffer || !availableBuffer.Remove(buffer))
+        if (availableBuffers.FirstOrDefault(item => item.Desc.SizeInBytes >= sizeInBytes) is not Buffer buffer || !availableBuffers.Remove(buffer))
         {
             buffer = context.CreateBuffer(new()
             {
-                SizeInBytes = Math.Max(sizeInBytes, MinBufferSizeInBytes),
+                SizeInBytes = Math.Max(sizeInBytes, BufferSizeInBytes),
                 StrideInBytes = 1,
                 Flags = BufferUsageFlags.Dynamic
             });
         }
 
-        usedBuffer[commandBuffer] = [.. buffers, buffer];
+        usedBuffers[commandBuffer] = [.. buffers, buffer];
 
         return buffer;
     }
 
-    public Texture Texture(CommandBuffer commandBuffer, PixelFormat format, uint width, uint height, uint depth)
+    public Texture Texture(CommandBuffer commandBuffer, PixelFormat format, uint width, uint height)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        if (!usedTexture.TryGetValue(commandBuffer, out Texture[]? textures))
+        if (!usedTextures.TryGetValue(commandBuffer, out Texture[]? textures))
         {
-            usedTexture[commandBuffer] = textures = [];
+            usedTextures[commandBuffer] = textures = [];
         }
 
-        if (availableTexture.FirstOrDefault(item => item.Desc.Format == format && item.Desc.Width >= width && item.Desc.Height >= height && item.Desc.Depth >= depth) is not Texture texture || !availableTexture.Remove(texture))
+        if (availableTextures.FirstOrDefault(item => item.Desc.Format == format && item.Desc.Width >= width && item.Desc.Height >= height) is not Texture texture || !availableTextures.Remove(texture))
         {
             texture = context.CreateTexture(new()
             {
-                Type = TextureType.Texture3D,
+                Type = TextureType.Texture2D,
                 Format = format,
-                Width = Math.Max(width, MinTextureWidth),
-                Height = Math.Max(height, MinTextureHeight),
-                Depth = Math.Max(depth, MinTextureDepth),
+                Width = Math.Max(width, TextureWidth),
+                Height = Math.Max(height, TextureHeight),
+                Depth = 1,
                 MipLevels = 1,
+                ArrayLayers = 1,
                 SampleCount = SampleCount.Count1,
                 Flags = TextureUsageFlags.Dynamic
             });
         }
 
-        usedTexture[commandBuffer] = [.. textures, texture];
+        usedTextures[commandBuffer] = [.. textures, texture];
 
         return texture;
     }
@@ -70,47 +71,71 @@ internal class Uploader(GraphicsContext context) : DisposableObject
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        if (usedBuffer.Remove(commandBuffer, out Buffer[]? buffers))
+        if (usedBuffers.Remove(commandBuffer, out Buffer[]? buffers))
         {
-            availableBuffer.AddRange(buffers);
+            for (int i = 0; i < buffers.Length; i++)
+            {
+                Buffer buffer = buffers[i];
+
+                if (availableBuffers.Count >= AvailableResources || buffer.Desc.SizeInBytes > BufferSizeInBytes)
+                {
+                    buffer.Dispose();
+                }
+                else
+                {
+                    availableBuffers.Add(buffer);
+                }
+            }
         }
 
-        if (usedTexture.Remove(commandBuffer, out Texture[]? textures))
+        if (usedTextures.Remove(commandBuffer, out Texture[]? textures))
         {
-            availableTexture.AddRange(textures);
+            for (int i = 0; i < textures.Length; i++)
+            {
+                Texture texture = textures[i];
+
+                if (availableTextures.Count >= AvailableResources || texture.Desc.Width > TextureWidth || texture.Desc.Height > TextureHeight)
+                {
+                    texture.Dispose();
+                }
+                else
+                {
+                    availableTextures.Add(texture);
+                }
+            }
         }
     }
 
     protected override void Destroy()
     {
-        foreach (Buffer buffer in availableBuffer)
+        foreach (Buffer buffer in availableBuffers)
         {
             buffer.Dispose();
         }
-        availableBuffer.Clear();
+        availableBuffers.Clear();
 
-        foreach (Buffer[] buffers in usedBuffer.Values)
+        foreach (Buffer[] buffers in usedBuffers.Values)
         {
             foreach (Buffer buffer in buffers)
             {
                 buffer.Dispose();
             }
         }
-        usedBuffer.Clear();
+        usedBuffers.Clear();
 
-        foreach (Texture texture in availableTexture)
+        foreach (Texture texture in availableTextures)
         {
             texture.Dispose();
         }
-        availableTexture.Clear();
+        availableTextures.Clear();
 
-        foreach (Texture[] textures in usedTexture.Values)
+        foreach (Texture[] textures in usedTextures.Values)
         {
             foreach (Texture texture in textures)
             {
                 texture.Dispose();
             }
         }
-        usedTexture.Clear();
+        usedTextures.Clear();
     }
 }

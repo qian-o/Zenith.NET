@@ -8,13 +8,13 @@ public abstract class GraphicsContext : DisposableObject
 
         Initialize(useValidationLayer,
                    out Capabilities capabilities,
-                   out CommandQueue direct,
+                   out CommandQueue graphics,
                    out CommandQueue compute,
                    out CommandQueue copy,
                    out ValidationLayer? validationLayer);
 
         Capabilities = capabilities;
-        Direct = direct;
+        Graphics = graphics;
         Compute = compute;
         Copy = copy;
         ValidationLayer = validationLayer;
@@ -26,7 +26,7 @@ public abstract class GraphicsContext : DisposableObject
 
     public Capabilities Capabilities { get; }
 
-    public CommandQueue Direct { get; }
+    public CommandQueue Graphics { get; }
 
     public CommandQueue Compute { get; }
 
@@ -145,7 +145,7 @@ public abstract class GraphicsContext : DisposableObject
 
     protected override void Destroy()
     {
-        Direct.Dispose();
+        Graphics.Dispose();
         Compute.Dispose();
         Copy.Dispose();
         ValidationLayer?.Dispose();
@@ -155,7 +155,7 @@ public abstract class GraphicsContext : DisposableObject
 
     protected abstract void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
-                                       out CommandQueue direct,
+                                       out CommandQueue graphics,
                                        out CommandQueue compute,
                                        out CommandQueue copy,
                                        out ValidationLayer? validationLayer);

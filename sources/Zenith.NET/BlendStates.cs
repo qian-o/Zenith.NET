@@ -35,7 +35,9 @@ public static class BlendStates
         RenderTarget0 = Default.RenderTarget0 with
         {
             BlendEnable = true,
+            SrcBlend = Blend.SrcAlpha,
             DestBlend = Blend.InverseSrcAlpha,
+            SrcBlendAlpha = Blend.SrcAlpha,
             DestBlendAlpha = Blend.InverseSrcAlpha
         }
     };

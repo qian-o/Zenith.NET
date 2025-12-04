@@ -12,12 +12,21 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        return available.Count is 0 ? CreateCommandBuffer() : available.Dequeue();
+        CommandBuffer commandBuffer = available.Count is 0 ? CreateCommandBuffer() : available.Dequeue();
+
+        commandBuffer.Begin();
+
+        return commandBuffer;
     }
 
     public void WaitIdle()
     {
         using Lock.Scope _ = @lock.EnterScope();
+
+        if (execution.Count is 0)
+        {
+            return;
+        }
 
         WaitIdleImpl();
 
@@ -32,6 +41,8 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
     internal void Submit(CommandBuffer commandBuffer)
     {
         using Lock.Scope _ = @lock.EnterScope();
+
+        commandBuffer.End();
 
         SubmitImpl(commandBuffer);
 

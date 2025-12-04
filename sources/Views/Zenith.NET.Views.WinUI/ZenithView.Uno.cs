@@ -1,0 +1,119 @@
+﻿#if !WINDOWS
+using System.Runtime.InteropServices.WindowsRuntime;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
+
+namespace Zenith.NET.Views.WinUI;
+
+public unsafe partial class ZenithView
+{
+    private Texture? color;
+    private Texture? depthStencil;
+    private FrameBuffer? frameBuffer;
+    private Texture? present;
+    private WriteableBitmap? bitmap;
+
+    private void OnRender(GraphicsContext graphicsContext)
+    {
+        uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
+        uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
+
+        if (color is null || depthStencil is null || frameBuffer is null || frameBuffer.Width != width || frameBuffer.Height != height || present is null || bitmap is null)
+        {
+            Destroy();
+
+            color = graphicsContext.CreateTexture(new()
+            {
+                Type = TextureType.Texture2D,
+                Format = PixelFormat.B8G8R8A8UNorm,
+                Width = width,
+                Height = height,
+                Depth = 1,
+                MipLevels = 1,
+                ArrayLayers = 1,
+                SampleCount = SampleCount.Count1,
+                Flags = TextureUsageFlags.RenderTarget
+            });
+
+            depthStencil = graphicsContext.CreateTexture(new()
+            {
+                Type = TextureType.Texture2D,
+                Format = PixelFormat.D24UNormS8UInt,
+                Width = width,
+                Height = height,
+                Depth = 1,
+                MipLevels = 1,
+                ArrayLayers = 1,
+                SampleCount = SampleCount.Count1,
+                Flags = TextureUsageFlags.DepthStencil
+            });
+
+            frameBuffer = graphicsContext.CreateFrameBuffer(new()
+            {
+                ColorAttachments = [new() { Target = color }],
+                DepthStencilAttachment = new() { Target = depthStencil }
+            });
+
+            present = graphicsContext.CreateTexture(new()
+            {
+                Type = TextureType.Texture2D,
+                Format = PixelFormat.B8G8R8A8UNorm,
+                Width = width,
+                Height = height,
+                Depth = 1,
+                MipLevels = 1,
+                ArrayLayers = 1,
+                SampleCount = SampleCount.Count1,
+                Flags = TextureUsageFlags.Dynamic
+            });
+
+            Background = new ImageBrush() { ImageSource = bitmap = new((int)width, (int)height) };
+        }
+
+        UpdateRequested?.Invoke(this, new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
+        RenderRequested?.Invoke(this, new(timer.GetAndRestartRender(), timer.TotalSeconds, frameBuffer));
+
+        CommandBuffer commandBuffer = graphicsContext.Graphics.CommandBuffer();
+        commandBuffer.CopyTexture(color, default, default, present, default, default, new() { Width = width, Height = height, Depth = 1 });
+        commandBuffer.Submit();
+
+        graphicsContext.Graphics.WaitIdle();
+
+        using (Stream stream = bitmap.PixelBuffer.AsStream())
+        {
+            MappedMemory mappedMemory = present.Map(default);
+
+            byte* pixels = (byte*)mappedMemory.Pointer;
+
+            for (uint y = 0; y < height; y++)
+            {
+                stream.Write([.. new ReadOnlySpan<byte>(pixels, (int)(width * 4))]);
+
+                pixels += mappedMemory.RowPitch;
+            }
+
+            present.Unmap();
+        }
+
+        bitmap.Invalidate();
+    }
+
+    private void Destroy()
+    {
+        bitmap?.Dispose();
+        bitmap = null;
+
+        present?.Dispose();
+        present = null;
+
+        frameBuffer?.Dispose();
+        frameBuffer = null;
+
+        depthStencil?.Dispose();
+        depthStencil = null;
+
+        color?.Dispose();
+        color = null;
+    }
+}
+#endif

@@ -1,13 +1,9 @@
 ﻿<Project>
 
     <PropertyGroup>
-        <!-- Target & Compatibility -->
-        <StandardTargetFramework>net9.0</StandardTargetFramework>
-        <LangVersion>preview</LangVersion>
-        <IsAotCompatible>true</IsAotCompatible>
+        <StandardTargetFramework>net10.0</StandardTargetFramework>
 
         <!-- Code Style & Language Features -->
-        <NoWarn>IDE0130</NoWarn>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

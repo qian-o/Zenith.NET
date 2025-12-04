@@ -1,10 +1,10 @@
-﻿namespace Zenith.NET;
+﻿namespace Zenith.NET.Metal;
 
 internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Backend.Metal, useValidationLayer)
 {
     protected override void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
-                                       out CommandQueue direct,
+                                       out CommandQueue graphics,
                                        out CommandQueue compute,
                                        out CommandQueue copy,
                                        out ValidationLayer? validationLayer)

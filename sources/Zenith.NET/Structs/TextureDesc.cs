@@ -12,9 +12,9 @@ public record struct TextureDesc
 
     public uint Depth;
 
-    public uint Layers;
-
     public uint MipLevels;
+
+    public uint ArrayLayers;
 
     public SampleCount SampleCount;
 

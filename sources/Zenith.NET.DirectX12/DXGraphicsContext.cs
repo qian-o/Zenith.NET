@@ -1,10 +1,10 @@
-﻿namespace Zenith.NET;
+﻿namespace Zenith.NET.DirectX12;
 
 internal class DXGraphicsContext(bool useValidationLayer) : GraphicsContext(Backend.DirectX12, useValidationLayer)
 {
     protected override void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
-                                       out CommandQueue direct,
+                                       out CommandQueue graphics,
                                        out CommandQueue compute,
                                        out CommandQueue copy,
                                        out ValidationLayer? validationLayer)

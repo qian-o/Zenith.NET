@@ -6,14 +6,17 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public ref readonly BufferDesc Desc => ref desc;
 
-    public abstract BufferView View { get; }
-
     public abstract MappedMemory Map();
 
     public abstract void Unmap();
 
     public void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes) where T : unmanaged
     {
+        if (data.Length is 0)
+        {
+            return;
+        }
+
         if (desc.Flags.HasFlag(BufferUsageFlags.Dynamic))
         {
             MappedMemory mappedMemory = Map();
@@ -29,9 +32,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
         {
             CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
 
-            commandBuffer.Begin();
             commandBuffer.Upload(this, offsetInBytes, data);
-            commandBuffer.End();
             commandBuffer.Submit();
 
             Context.Copy.WaitIdle();

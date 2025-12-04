@@ -10,17 +10,26 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 
     public abstract void Present();
 
-    public abstract void Resize(uint width, uint height);
+    public void Resize(uint width, uint height)
+    {
+        desc.Surface.Width = width;
+        desc.Surface.Height = height;
+
+        ResizeImpl();
+
+        SetResourceName(Name);
+    }
 
     public void Refresh(Surface surface)
     {
-        desc = (desc with
-        {
-            Surface = surface
-        });
+        desc.Surface = surface;
 
         RefreshImpl();
+
+        SetResourceName(Name);
     }
+
+    protected abstract void ResizeImpl();
 
     protected abstract void RefreshImpl();
 }

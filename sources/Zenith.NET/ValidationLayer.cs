@@ -51,7 +51,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         public const string MustBeLessThanOrEqualTo = "{0} must be less than or equal to {1}.";
 
-        public const string LengthMustMatch = "{0} length must match {1}.";
+        public const string HasInsufficientResources = "{0} has insufficient resources: requires at least {1} to satisfy the layout up to binding index {2}, but only {3} provided.";
 
         public const string MustBeOfType = "{0} item must be a {1} for {2} binding.";
 
@@ -130,6 +130,16 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                     ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.Apple"));
                 }
                 break;
+            case SurfaceType.D3D11Interop:
+                if (desc.Surface.Handles.Length is not 1)
+                {
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustHaveExactlyNHandles, "SwapChainDesc.Surface.Handles", 1, "SurfaceType.D3D11Interop"));
+                }
+                else if (desc.Surface.Handles[0] is 0)
+                {
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeValidHandle, "SwapChainDesc.Surface.Handles[0]", "SurfaceType.D3D11Interop"));
+                }
+                break;
 
             default:
                 ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasUnsupportedSurfaceType, "SwapChainDesc.Surface", desc.Surface.Type));
@@ -187,14 +197,14 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 return;
             }
 
-            if (frameBufferAttachment.Slice.Layer >= frameBufferAttachment.Target.Desc.Layers)
-            {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.Layer", "the number of layers in the texture"));
-            }
-
             if (frameBufferAttachment.Slice.MipLevel >= frameBufferAttachment.Target.Desc.MipLevels)
             {
                 ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.MipLevel", "the number of mip levels in the texture"));
+            }
+
+            if (frameBufferAttachment.Slice.ArrayLayer >= frameBufferAttachment.Target.Desc.ArrayLayers)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.ArrayLayer", "the number of array layers in the texture"));
             }
 
             if (frameBufferAttachment.Slice.Face >= ValidationConstants.CubeMapFaceCount)
@@ -289,14 +299,14 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "TextureDesc dimensions (Width, Height, Depth)"));
         }
 
-        if (desc.Layers is 0)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "TextureDesc.Layers"));
-        }
-
         if (desc.MipLevels is 0)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "TextureDesc.MipLevels"));
+        }
+
+        if (desc.ArrayLayers is 0)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "TextureDesc.ArrayLayers"));
         }
 
         if (!Enum.IsDefined(desc.SampleCount))
@@ -326,16 +336,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             return;
         }
 
-        if (desc.FirstLayer >= desc.Texture.Desc.Layers)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, "TextureViewDesc.FirstLayer", "the number of layers in the texture"));
-        }
-
-        if (desc.LayerCount is 0 || desc.FirstLayer + desc.LayerCount > desc.Texture.Desc.Layers)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "TextureViewDesc.LayerCount", "the texture layers"));
-        }
-
         if (desc.FirstMipLevel >= desc.Texture.Desc.MipLevels)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, "TextureViewDesc.FirstMipLevel", "the number of mip levels in the texture"));
@@ -344,6 +344,16 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         if (desc.MipLevelCount is 0 || desc.FirstMipLevel + desc.MipLevelCount > desc.Texture.Desc.MipLevels)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "TextureViewDesc.MipLevelCount", "the texture mip levels"));
+        }
+
+        if (desc.FirstArrayLayer >= desc.Texture.Desc.ArrayLayers)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, "TextureViewDesc.FirstArrayLayer", "the number of array layers in the texture"));
+        }
+
+        if (desc.ArrayLayerCount is 0 || desc.FirstArrayLayer + desc.ArrayLayerCount > desc.Texture.Desc.ArrayLayers)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "TextureViewDesc.ArrayLayerCount", "the texture array layers"));
         }
     }
 
@@ -419,82 +429,73 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             return;
         }
 
-        if (desc.Resources.Length != desc.Layout.Desc.Bindings.Length)
+        uint resourceStartIndex = 0;
+
+        for (int i = 0; i < desc.Layout.Desc.Bindings.Length; i++)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.LengthMustMatch, "ResourceSetDesc.Resources", "the number of bindings in the layout"));
+            ResourceBinding binding = desc.Layout.Desc.Bindings[i];
 
-            return;
-        }
-
-        for (int i = 0; i < desc.Resources.Length; i++)
-        {
-            IBindableResource resource = desc.Resources[i];
-
-            if (resource is null)
+            if (resourceStartIndex + binding.Count > (uint)desc.Resources.Length)
             {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceSetDesc.Resources"));
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInsufficientResources, "ResourceSetDesc.Resources", resourceStartIndex + binding.Count, i, desc.Resources.Length));
 
-                continue;
+                break;
             }
 
-            if (resource.IsDisposed)
+            for (uint j = 0; j < binding.Count; j++)
             {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ResourceSetDesc.Resources"));
+                IBindableResource resource = desc.Resources[(int)(resourceStartIndex + j)];
 
-                continue;
+                if (resource is null)
+                {
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceSetDesc.Resources"));
+
+                    continue;
+                }
+
+                if (resource.IsDisposed)
+                {
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ResourceSetDesc.Resources"));
+
+                    continue;
+                }
+
+                switch (binding.Type)
+                {
+                    case ResourceType.ConstantBuffer:
+                    case ResourceType.StructuredBuffer:
+                    case ResourceType.StructuredBufferReadWrite:
+                        if (resource is not Buffer or BufferView)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Buffer or BufferView", binding.Type));
+                        }
+                        break;
+
+                    case ResourceType.Texture:
+                    case ResourceType.TextureReadWrite:
+                        if (resource is not Texture or TextureView)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Texture or TextureView", binding.Type));
+                        }
+                        break;
+
+                    case ResourceType.Sampler:
+                        if (resource is not Sampler)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Sampler", binding.Type));
+                        }
+                        break;
+
+                    case ResourceType.AccelerationStructure:
+                        if (resource is not TopLevelAccelerationStructure)
+                        {
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "AccelerationStructure", binding.Type));
+                        }
+                        break;
+                }
             }
 
-            switch (desc.Layout.Desc.Bindings[i].Type)
-            {
-                case ResourceType.ConstantBuffer:
-                    if (resource is not Buffer or BufferView)
-                    {
-                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Buffer or BufferView", "ConstantBuffer"));
-                    }
-                    break;
-
-                case ResourceType.StructuredBuffer:
-                    if (resource is not Buffer or BufferView)
-                    {
-                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Buffer or BufferView", "StructuredBuffer"));
-                    }
-                    break;
-
-                case ResourceType.StructuredBufferReadWrite:
-                    if (resource is not Buffer or BufferView)
-                    {
-                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Buffer or BufferView", "StructuredBufferReadWrite"));
-                    }
-                    break;
-
-                case ResourceType.Texture:
-                    if (resource is not Texture or TextureView)
-                    {
-                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Texture or TextureView", "Texture"));
-                    }
-                    break;
-
-                case ResourceType.TextureReadWrite:
-                    if (resource is not Texture or TextureView)
-                    {
-                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Texture or TextureView", "TextureReadWrite"));
-                    }
-                    break;
-
-                case ResourceType.Sampler:
-                    if (resource is not Sampler)
-                    {
-                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Sampler", "Sampler"));
-                    }
-                    break;
-
-                case ResourceType.AccelerationStructure:
-                    if (resource is not TopLevelAccelerationStructure)
-                    {
-                        ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "TopLevelAccelerationStructure", "AccelerationStructure"));
-                    }
-                    break;
-            }
+            resourceStartIndex += binding.Count;
         }
     }
 

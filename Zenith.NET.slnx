@@ -1,7 +1,9 @@
 ﻿<Solution>
   <Folder Name="/Experiments/">
+    <File Path="sources/Experiments/Directory.Packages.props" />
     <Project Path="sources/Experiments/MemoryPlayground/MemoryPlayground.csproj" />
     <Project Path="sources/Experiments/PlatformDetection/PlatformDetection.csproj" />
+    <Project Path="sources/Experiments/SponzaScene/SponzaScene.csproj" />
   </Folder>
   <Folder Name="/Extensions/">
     <Project Path="sources/Extensions/Zenith.NET.Extensions.ImageSharp/Zenith.NET.Extensions.ImageSharp.csproj" />
@@ -12,7 +14,7 @@
   <Folder Name="/Solution Items/">
     <File Path="sources/Directory.Build.props" />
     <File Path="sources/Directory.Packages.props" />
-    <File Path="sources/Release.Package.props" />
+    <File Path="sources/NuGet.Packaging.props" />
   </Folder>
   <Folder Name="/Views/">
     <Project Path="sources/Views/Zenith.NET.Views.Avalonia/Zenith.NET.Views.Avalonia.csproj" />
@@ -20,6 +22,7 @@
     <Project Path="sources/Views/Zenith.NET.Views.WinForms/Zenith.NET.Views.WinForms.csproj" />
     <Project Path="sources/Views/Zenith.NET.Views.WinUI/Zenith.NET.Views.WinUI.csproj" />
     <Project Path="sources/Views/Zenith.NET.Views.WPF/Zenith.NET.Views.WPF.csproj" />
+    <Project Path="sources/Views/Zenith.NET.Views/Zenith.NET.Views.csproj" />
   </Folder>
   <Project Path="sources/Zenith.NET.DirectX12/Zenith.NET.DirectX12.csproj" />
   <Project Path="sources/Zenith.NET.Metal/Zenith.NET.Metal.csproj" />

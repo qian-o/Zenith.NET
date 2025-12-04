@@ -6,7 +6,7 @@ A modern, cross-platform graphics and compute library for .NET. It provides a un
 
 ## Overview
 
-Zenith.NET targets modern .NET (including .NET 9.0) and integrates with multiple UI frameworks (such as .NET MAUI) to enable portable, high-performance rendering across platforms.
+Zenith.NET targets modern .NET (including .NET 10.0) and integrates with multiple UI frameworks (such as .NET MAUI) to enable portable, high-performance rendering across platforms.
 
 ### Highlights
 - Unified, backend-agnostic GPU API
@@ -23,7 +23,7 @@ Zenith.NET supports multiple graphics APIs that cover mainstream rendering techn
 | :-------: | :-----: | :-------: |
 | DirectX12 | 12.2    | planned   |
 | Metal     | 3.0     | planned   |
-| Vulkan    | 1.3     | planned   |
+| Vulkan    | 1.3     | completed |
 
 ## UI Framework Integrations
 

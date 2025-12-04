@@ -5,19 +5,9 @@ namespace Zenith.NET;
 public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
 {
     private bool isRendering;
-
-    public FrameBuffer? CurrentFrameBuffer { get; private set; }
-
-    public Pipeline? CurrentPipeline { get; private set; }
-
-    public abstract void Begin();
-
-    public void End()
-    {
-        EnsureRenderingEnded();
-
-        EndImpl();
-    }
+    private FrameBuffer? currentFrameBuffer;
+    private ClearValue? currentClearValue;
+    private Pipeline? currentPipeline;
 
     public void Submit()
     {
@@ -26,6 +16,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Upload<T>(Buffer buffer, uint offsetInBytes, ReadOnlySpan<T> data) where T : unmanaged
     {
+        if (data.Length is 0)
+        {
+            return;
+        }
+
         uint sizeInBytes = (uint)(Unsafe.SizeOf<T>() * data.Length);
 
         Buffer temporary = Context.Uploader.Buffer(this, sizeInBytes);
@@ -36,10 +31,23 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Upload<T>(Texture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data) where T : unmanaged
     {
-        Texture temporary = Context.Uploader.Texture(this, texture.Desc.Format, extent.Width, extent.Height, extent.Depth);
-        temporary.Upload(data, default, default, extent);
+        if (data.Length is 0 || data.Length != extent.Width * extent.Height * extent.Depth)
+        {
+            return;
+        }
 
-        CopyTexture(temporary, default, default, texture, slice, offset, extent);
+        uint sliceSizeInTexels = extent.Width * extent.Height;
+        TextureExtent sliceUploadExtent = new() { Width = extent.Width, Height = extent.Height, Depth = 1 };
+
+        for (uint i = 0; i < extent.Depth; i++)
+        {
+            Texture temporary = Context.Uploader.Texture(this, texture.Desc.Format, extent.Width, extent.Height);
+            temporary.Upload(data.Slice((int)(i * sliceSizeInTexels), (int)sliceSizeInTexels), default, default, sliceUploadExtent);
+
+            CopyTexture(temporary, default, default, texture, slice, offset, sliceUploadExtent);
+
+            offset.Z++;
+        }
     }
 
     public void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes)
@@ -92,86 +100,36 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         accelerationStructure.Refresh(newDesc);
     }
 
+    public void PreprocessResourceSets(ResourceSet[] resourceSets)
+    {
+        EnsureRenderingEnded();
+
+        PreprocessResourceSetsImpl(resourceSets);
+    }
+
     public void BindFrameBuffer(FrameBuffer frameBuffer, ClearValue clearValue)
     {
         EnsureRenderingEnded();
 
-        Scissor[] scissors = new Scissor[frameBuffer.ColorAttachmentCount];
-        Viewport[] viewports = new Viewport[frameBuffer.ColorAttachmentCount];
-
-        Array.Fill(scissors, new() { Width = frameBuffer.Width, Height = frameBuffer.Height });
-        Array.Fill(viewports, new() { Width = frameBuffer.Width, Height = frameBuffer.Height, MaxDepth = 1 });
-
-        BindFrameBufferImpl(frameBuffer, clearValue);
-        SetScissorsImpl(scissors);
-        SetViewportsImpl(viewports);
-
-        CurrentFrameBuffer = frameBuffer;
-    }
-
-    public void BindPipeline(GraphicsPipeline pipeline)
-    {
-        BindPipelineImpl(pipeline);
-
-        CurrentPipeline = pipeline;
-    }
-
-    public void BindPipeline(ComputePipeline pipeline)
-    {
-        BindPipelineImpl(pipeline);
-
-        CurrentPipeline = pipeline;
-    }
-
-    public void BindPipeline(RayTracingPipeline pipeline)
-    {
-        BindPipelineImpl(pipeline);
-
-        CurrentPipeline = pipeline;
-    }
-
-    public void BindPipeline(MeshShadingPipeline pipeline)
-    {
-        BindPipelineImpl(pipeline);
-
-        CurrentPipeline = pipeline;
-    }
-
-    public void BindResourceSets(ResourceSet[] sets)
-    {
-        if (CurrentPipeline is null)
+        if (frameBuffer.ColorAttachmentCount is not 0)
         {
-            return;
+            Scissor[] scissors = new Scissor[frameBuffer.ColorAttachmentCount];
+            Viewport[] viewports = new Viewport[frameBuffer.ColorAttachmentCount];
+
+            Array.Fill(scissors, new() { Width = frameBuffer.Width, Height = frameBuffer.Height });
+            Array.Fill(viewports, new() { Width = frameBuffer.Width, Height = frameBuffer.Height, MaxDepth = 1 });
+
+            SetScissorsImpl(scissors);
+            SetViewportsImpl(viewports);
         }
 
-        EnsureRenderingEnded();
-
-        BindResourceSetsImpl(sets);
-    }
-
-    public void BindVertexBuffers(Buffer[] buffers, uint[] offsetsInBytes)
-    {
-        if (CurrentPipeline is not GraphicsPipeline)
-        {
-            return;
-        }
-
-        BindVertexBuffersImpl(buffers, offsetsInBytes);
-    }
-
-    public void BindIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat format)
-    {
-        if (CurrentPipeline is not GraphicsPipeline)
-        {
-            return;
-        }
-
-        BindIndexBufferImpl(buffer, offsetInBytes, format);
+        currentFrameBuffer = frameBuffer;
+        currentClearValue = clearValue;
     }
 
     public void SetScissors(Scissor[] scissors)
     {
-        if (CurrentFrameBuffer is null)
+        if (scissors.Length is 0 || currentFrameBuffer is null)
         {
             return;
         }
@@ -181,7 +139,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetViewports(Viewport[] viewports)
     {
-        if (CurrentFrameBuffer is null)
+        if (viewports.Length is 0 || currentFrameBuffer is null)
         {
             return;
         }
@@ -189,112 +147,170 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         SetViewportsImpl(viewports);
     }
 
+    public void BindPipeline(GraphicsPipeline pipeline)
+    {
+        BindPipelineImpl(pipeline);
+
+        currentPipeline = pipeline;
+    }
+
+    public void BindPipeline(ComputePipeline pipeline)
+    {
+        BindPipelineImpl(pipeline);
+
+        currentPipeline = pipeline;
+    }
+
+    public void BindPipeline(RayTracingPipeline pipeline)
+    {
+        BindPipelineImpl(pipeline);
+
+        currentPipeline = pipeline;
+    }
+
+    public void BindPipeline(MeshShadingPipeline pipeline)
+    {
+        BindPipelineImpl(pipeline);
+
+        currentPipeline = pipeline;
+    }
+
+    public void BindVertexBuffer(Buffer buffer, uint offsetInBytes, uint index)
+    {
+        if (currentPipeline is not GraphicsPipeline pipeline)
+        {
+            return;
+        }
+
+        BindVertexBufferImpl(pipeline, buffer, offsetInBytes, index);
+    }
+
+    public void BindIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat format)
+    {
+        if (currentPipeline is not GraphicsPipeline pipeline)
+        {
+            return;
+        }
+
+        BindIndexBufferImpl(pipeline, buffer, offsetInBytes, format);
+    }
+
+    public void BindResourceSet(ResourceSet resourceSet, uint index)
+    {
+        if (currentPipeline is null)
+        {
+            return;
+        }
+
+        BindResourceSetImpl(currentPipeline, resourceSet, index);
+    }
+
     public void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
     {
-        if (CurrentPipeline is not GraphicsPipeline)
+        if (currentPipeline is not GraphicsPipeline pipeline)
         {
             return;
         }
 
         EnsureRenderingBegan();
 
-        DrawImpl(vertexCount, instanceCount, firstVertex, firstInstance);
+        DrawImpl(pipeline, vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     public void DrawIndirect(Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        if (CurrentPipeline is not GraphicsPipeline)
+        if (currentPipeline is not GraphicsPipeline pipeline)
         {
             return;
         }
 
         EnsureRenderingBegan();
 
-        DrawIndirectImpl(indirectBuffer, offsetInBytes, drawCount);
+        DrawIndirectImpl(pipeline, indirectBuffer, offsetInBytes, drawCount);
     }
 
     public void DrawIndexed(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
     {
-        if (CurrentPipeline is not GraphicsPipeline)
+        if (currentPipeline is not GraphicsPipeline pipeline)
         {
             return;
         }
 
         EnsureRenderingBegan();
 
-        DrawIndexedImpl(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+        DrawIndexedImpl(pipeline, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
     public void DrawIndexedIndirect(Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        if (CurrentPipeline is not GraphicsPipeline)
+        if (currentPipeline is not GraphicsPipeline pipeline)
         {
             return;
         }
 
         EnsureRenderingBegan();
 
-        DrawIndexedIndirectImpl(indirectBuffer, offsetInBytes, drawCount);
+        DrawIndexedIndirectImpl(pipeline, indirectBuffer, offsetInBytes, drawCount);
     }
 
     public void Dispatch(uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        if (CurrentPipeline is not ComputePipeline)
+        if (currentPipeline is not ComputePipeline pipeline)
         {
             return;
         }
 
         EnsureRenderingEnded();
 
-        DispatchImpl(groupCountX, groupCountY, groupCountZ);
+        DispatchImpl(pipeline, groupCountX, groupCountY, groupCountZ);
     }
 
     public void DispatchIndirect(Buffer indirectBuffer, uint offsetInBytes)
     {
-        if (CurrentPipeline is not ComputePipeline)
+        if (currentPipeline is not ComputePipeline pipeline)
         {
             return;
         }
 
         EnsureRenderingEnded();
 
-        DispatchIndirectImpl(indirectBuffer, offsetInBytes);
+        DispatchIndirectImpl(pipeline, indirectBuffer, offsetInBytes);
     }
 
     public void DispatchRays(uint width, uint height, uint depth)
     {
-        if (CurrentPipeline is not RayTracingPipeline)
+        if (currentPipeline is not RayTracingPipeline pipeline)
         {
             return;
         }
 
         EnsureRenderingEnded();
 
-        DispatchRaysImpl(width, height, depth);
+        DispatchRaysImpl(pipeline, width, height, depth);
     }
 
     public void DispatchMesh(uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        if (CurrentPipeline is not MeshShadingPipeline)
+        if (currentPipeline is not MeshShadingPipeline pipeline)
         {
             return;
         }
 
         EnsureRenderingBegan();
 
-        DispatchMeshImpl(groupCountX, groupCountY, groupCountZ);
+        DispatchMeshImpl(pipeline, groupCountX, groupCountY, groupCountZ);
     }
 
     public void DispatchMeshIndirect(Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount)
     {
-        if (CurrentPipeline is not MeshShadingPipeline)
+        if (currentPipeline is not MeshShadingPipeline pipeline)
         {
             return;
         }
 
         EnsureRenderingBegan();
 
-        DispatchMeshIndirectImpl(indirectBuffer, offsetInBytes, dispatchCount);
+        DispatchMeshIndirectImpl(pipeline, indirectBuffer, offsetInBytes, dispatchCount);
     }
 
     public void BeginQuery(QueryHeap queryHeap, uint index)
@@ -343,7 +359,10 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         BeginDebugEventImpl(label);
     }
 
-    public abstract void EndDebugEvent();
+    public void EndDebugEvent()
+    {
+        EndDebugEventImpl();
+    }
 
     public void InsertDebugMarker(string label)
     {
@@ -355,25 +374,42 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         InsertDebugMarkerImpl(label);
     }
 
+    internal void Begin()
+    {
+        BeginImpl();
+    }
+
+    internal void End()
+    {
+        if (currentClearValue.HasValue)
+        {
+            EnsureRenderingBegan();
+        }
+
+        EnsureRenderingEnded();
+
+        EndImpl();
+    }
+
     internal void Reset()
     {
         ResetImpl();
 
         Context.Uploader.Release(this);
 
-        CurrentFrameBuffer = null;
-        CurrentPipeline = null;
+        currentFrameBuffer = null;
+        currentClearValue = null;
+        currentPipeline = null;
     }
 
     protected override void Destroy()
     {
         Context.Uploader.Release(this);
 
-        CurrentFrameBuffer = null;
-        CurrentPipeline = null;
+        currentFrameBuffer = null;
+        currentClearValue = null;
+        currentPipeline = null;
     }
-
-    protected abstract void EndImpl();
 
     protected abstract void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes);
 
@@ -387,7 +423,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void UpdateAccelerationStructureImpl(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc);
 
-    protected abstract void BindFrameBufferImpl(FrameBuffer frameBuffer, ClearValue clearValue);
+    protected abstract void PreprocessResourceSetsImpl(ResourceSet[] resourceSets);
+
+    protected abstract void SetScissorsImpl(Scissor[] scissors);
+
+    protected abstract void SetViewportsImpl(Viewport[] viewports);
 
     protected abstract void BindPipelineImpl(GraphicsPipeline pipeline);
 
@@ -397,33 +437,29 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void BindPipelineImpl(MeshShadingPipeline pipeline);
 
-    protected abstract void BindResourceSetsImpl(ResourceSet[] sets);
+    protected abstract void BindVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index);
 
-    protected abstract void BindVertexBuffersImpl(Buffer[] buffers, uint[] offsetsInBytes);
+    protected abstract void BindIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format);
 
-    protected abstract void BindIndexBufferImpl(Buffer buffer, uint offsetInBytes, IndexFormat format);
+    protected abstract void BindResourceSetImpl(Pipeline pipeline, ResourceSet resourceSet, uint index);
 
-    protected abstract void SetScissorsImpl(Scissor[] scissors);
+    protected abstract void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
 
-    protected abstract void SetViewportsImpl(Viewport[] viewports);
+    protected abstract void DrawIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount);
 
-    protected abstract void DrawImpl(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
+    protected abstract void DrawIndexedImpl(GraphicsPipeline pipeline, uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance);
 
-    protected abstract void DrawIndirectImpl(Buffer indirectBuffer, uint offsetInBytes, uint drawCount);
+    protected abstract void DrawIndexedIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount);
 
-    protected abstract void DrawIndexedImpl(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance);
+    protected abstract void DispatchImpl(ComputePipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ);
 
-    protected abstract void DrawIndexedIndirectImpl(Buffer indirectBuffer, uint offsetInBytes, uint drawCount);
+    protected abstract void DispatchIndirectImpl(ComputePipeline pipeline, Buffer indirectBuffer, uint offsetInBytes);
 
-    protected abstract void DispatchImpl(uint groupCountX, uint groupCountY, uint groupCountZ);
+    protected abstract void DispatchRaysImpl(RayTracingPipeline pipeline, uint width, uint height, uint depth);
 
-    protected abstract void DispatchIndirectImpl(Buffer indirectBuffer, uint offsetInBytes);
+    protected abstract void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ);
 
-    protected abstract void DispatchRaysImpl(uint width, uint height, uint depth);
-
-    protected abstract void DispatchMeshImpl(uint groupCountX, uint groupCountY, uint groupCountZ);
-
-    protected abstract void DispatchMeshIndirectImpl(Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount);
+    protected abstract void DispatchMeshIndirectImpl(MeshShadingPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount);
 
     protected abstract void BeginQueryImpl(QueryHeap queryHeap, uint index);
 
@@ -433,19 +469,27 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void BeginDebugEventImpl(string label);
 
+    protected abstract void EndDebugEventImpl();
+
     protected abstract void InsertDebugMarkerImpl(string label);
+
+    protected abstract void BeginImpl();
+
+    protected abstract void EndImpl();
 
     protected abstract void ResetImpl();
 
-    protected abstract void BeginRenderingImpl();
+    protected abstract void BeginRenderingImpl(FrameBuffer frameBuffer, ClearValue? clearValue);
 
-    protected abstract void EndRenderingImpl();
+    protected abstract void EndRenderingImpl(FrameBuffer frameBuffer);
 
     private void EnsureRenderingBegan()
     {
-        if (!isRendering && CurrentFrameBuffer is not null)
+        if (!isRendering && currentFrameBuffer is not null)
         {
-            BeginRenderingImpl();
+            BeginRenderingImpl(currentFrameBuffer, currentClearValue);
+
+            currentClearValue = null;
 
             isRendering = true;
         }
@@ -453,9 +497,9 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     private void EnsureRenderingEnded()
     {
-        if (isRendering)
+        if (isRendering && currentFrameBuffer is not null)
         {
-            EndRenderingImpl();
+            EndRenderingImpl(currentFrameBuffer);
 
             isRendering = false;
         }

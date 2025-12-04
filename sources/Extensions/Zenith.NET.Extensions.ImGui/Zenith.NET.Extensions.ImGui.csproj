@@ -10,11 +10,8 @@
 
     <ItemGroup>
         <PackageReference Include="Hexa.NET.ImGui" />
-        <PackageReference Include="Hexa.NET.ImGuizmo" />
-        <PackageReference Include="Hexa.NET.ImNodes" />
-        <PackageReference Include="Hexa.NET.ImPlot" />
     </ItemGroup>
 
-    <Import Project="..\..\Release.Package.props" />
+    <Import Project="..\..\NuGet.Packaging.props" />
 
 </Project>

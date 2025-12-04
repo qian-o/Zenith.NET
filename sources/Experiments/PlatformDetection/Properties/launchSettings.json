@@ -1,0 +1,10 @@
+﻿{
+  "profiles": {
+    "PlatformDetection": {
+      "commandName": "Project"
+    },
+    "PlatformDetection (WSL)": {
+      "commandName": "WSL2"
+    }
+  }
+}

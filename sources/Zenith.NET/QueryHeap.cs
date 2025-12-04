@@ -6,5 +6,15 @@ public abstract class QueryHeap(GraphicsContext context, QueryHeapDesc desc) : G
 
     public ref readonly QueryHeapDesc Desc => ref desc;
 
-    public abstract void GetResults(Span<ulong> results, uint startIndex);
+    public void GetResults(Span<ulong> results, uint startIndex)
+    {
+        if (results.Length is 0)
+        {
+            return;
+        }
+
+        GetResultsImpl(results, startIndex);
+    }
+
+    protected abstract void GetResultsImpl(Span<ulong> results, uint startIndex);
 }
