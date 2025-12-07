@@ -1,4 +1,5 @@
-﻿using Zenith.NET;
+﻿using SharpGLTF.Schema2;
+using Zenith.NET;
 
 namespace SponzaScene.Helpers;
 
@@ -9,10 +10,13 @@ internal class NewSponza(GraphicsContext context)
     public void Initialize()
     {
         LoadModel("NewSponza_Main");
+        LoadModel("NewSponza_IvyGrowth");
+        LoadModel("NewSponza_CypressTree");
+        LoadModel("NewSponza_Curtains");
     }
 
     private void LoadModel(string name)
     {
-        string path = Path.Combine(Directory, name);
+        ModelRoot root = ModelRoot.Load(Path.Combine(Directory, name, name) + ".gltf");
     }
 }
