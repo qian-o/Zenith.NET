@@ -322,8 +322,7 @@ internal static class App
 
         ImGuiController = new SilkImGuiController(MainWindow.CreateInput(), SwapChain.FrameBuffer.Output, ImGuiColorSpace.Legacy);
 
-        Sponza = new(Context);
-        Sponza.Initialize();
+        Sponza = new();
     }
 
     public static IWindow MainWindow { get; }

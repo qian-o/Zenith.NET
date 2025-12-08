@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using SharpGLTF.Schema2;
-using Zenith.NET;
 using Zenith.NET.Extensions.ImageSharp;
 using GMaterial = SharpGLTF.Schema2.Material;
 using GTexture = SharpGLTF.Schema2.Texture;
@@ -10,7 +9,7 @@ namespace SponzaScene.Models;
 
 internal class Material
 {
-    public Material(GraphicsContext context, GMaterial material)
+    public Material(GMaterial material)
     {
         Name = material.Name ?? "Unnamed Material";
         DiffuseColor = material.GetDiffuseColor(Vector4.One);
@@ -21,7 +20,7 @@ internal class Material
             {
                 using Stream stream = diffuseTexture.PrimaryImage.Content.Open();
 
-                DiffuseTexture = context.LoadTextureFromStream(stream);
+                DiffuseTexture = App.Context.LoadTextureFromStream(stream);
             }
         });
     }
