@@ -2,30 +2,6 @@
 
 internal class Uploader(GraphicsContext context) : DisposableObject
 {
-    private class ResourceLease<T>(T resource) where T : DisposableObject
-    {
-        private readonly DateTime expirationTime = DateTime.UtcNow + TimeSpan.FromSeconds(120);
-
-        public T Resource { get; } = resource;
-
-        public bool TryExpire()
-        {
-            if (DateTime.UtcNow >= expirationTime)
-            {
-                Release();
-
-                return true;
-            }
-
-            return false;
-        }
-
-        public void Release()
-        {
-            Resource.Dispose();
-        }
-    }
-
     private readonly Lock @lock = new();
     private readonly List<ResourceLease<Buffer>> bufferPool = [];
     private readonly Dictionary<CommandBuffer, Buffer[]> buffersInUse = [];
@@ -160,5 +136,29 @@ internal class Uploader(GraphicsContext context) : DisposableObject
     {
         bufferPool.RemoveAll(static item => item.TryExpire());
         texturePool.RemoveAll(static item => item.TryExpire());
+    }
+
+    private class ResourceLease<T>(T resource) where T : DisposableObject
+    {
+        private readonly DateTime expirationTime = DateTime.UtcNow + TimeSpan.FromSeconds(120);
+
+        public T Resource { get; } = resource;
+
+        public bool TryExpire()
+        {
+            if (DateTime.UtcNow >= expirationTime)
+            {
+                Release();
+
+                return true;
+            }
+
+            return false;
+        }
+
+        public void Release()
+        {
+            Resource.Dispose();
+        }
     }
 }
