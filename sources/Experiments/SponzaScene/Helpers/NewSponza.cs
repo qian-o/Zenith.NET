@@ -1,5 +1,6 @@
 ﻿using SharpGLTF.Schema2;
 using Zenith.NET;
+using Material = SponzaScene.Models.Material;
 
 namespace SponzaScene.Helpers;
 
@@ -18,5 +19,7 @@ internal class NewSponza(GraphicsContext context)
     private void LoadModel(string name)
     {
         ModelRoot root = ModelRoot.Load(Path.Combine(Directory, name, name) + ".gltf");
+
+        Material[] materials = [.. root.LogicalMaterials.Select(item => new Material(context, item))];
     }
 }
