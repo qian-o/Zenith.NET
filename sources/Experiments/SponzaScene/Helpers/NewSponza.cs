@@ -10,10 +10,9 @@ internal class NewSponza(GraphicsContext context)
 
     public void Initialize()
     {
-        LoadModel("NewSponza_Main");
-        LoadModel("NewSponza_IvyGrowth");
-        LoadModel("NewSponza_CypressTree");
-        LoadModel("NewSponza_Curtains");
+        string[] modelNames = ["NewSponza_Main", "NewSponza_IvyGrowth", "NewSponza_CypressTree"];
+
+        Parallel.ForEach(modelNames, LoadModel);
     }
 
     private void LoadModel(string name)
