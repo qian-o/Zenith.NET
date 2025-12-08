@@ -144,6 +144,11 @@ internal class Uploader(GraphicsContext context) : DisposableObject
 
         public T Resource { get; } = resource;
 
+        public void Release()
+        {
+            Resource.Dispose();
+        }
+
         public bool TryExpire()
         {
             if (DateTime.UtcNow >= expirationTime)
@@ -154,11 +159,6 @@ internal class Uploader(GraphicsContext context) : DisposableObject
             }
 
             return false;
-        }
-
-        public void Release()
-        {
-            Resource.Dispose();
         }
     }
 }
