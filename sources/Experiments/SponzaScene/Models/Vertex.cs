@@ -11,7 +11,7 @@ internal struct Vertex
 
     public Vector2 TexCoord;
 
-    public Vector3 Color;
+    public Vector4 Color;
 
     public static InputLayout InputLayout()
     {
@@ -19,7 +19,7 @@ internal struct Vertex
         layout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position });
         layout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Normal });
         layout.Add(new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.TexCoord });
-        layout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Color });
+        layout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Color });
 
         return layout;
     }
