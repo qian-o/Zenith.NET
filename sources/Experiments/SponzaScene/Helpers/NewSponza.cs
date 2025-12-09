@@ -2,13 +2,14 @@
 using SharpGLTF.Schema2;
 using SponzaScene.Models;
 using Zenith.NET;
+using Buffer = Zenith.NET.Buffer;
 using GNode = SharpGLTF.Schema2.Node;
 using Material = SponzaScene.Models.Material;
 using Node = SponzaScene.Models.Node;
 
 namespace SponzaScene.Helpers;
 
-internal class NewSponza
+internal unsafe class NewSponza
 {
     public const string Directory = @"C:\Users\13247\OneDrive\NewSponza";
 
@@ -32,6 +33,24 @@ internal class NewSponza
         {
             ProcessNode(node, nodes, vertices, indices, materials);
         }
+
+        Buffer vertexBuffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)(sizeof(Vertex) * vertices.Count),
+            StrideInBytes = (uint)sizeof(Vertex),
+            Flags = BufferUsageFlags.Vertex | BufferUsageFlags.AccelerationStructure
+        });
+
+        vertexBuffer.Upload([.. vertices], 0);
+
+        Buffer indexBuffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)(sizeof(uint) * indices.Count),
+            StrideInBytes = sizeof(uint),
+            Flags = BufferUsageFlags.Index | BufferUsageFlags.AccelerationStructure
+        });
+
+        indexBuffer.Upload([.. indices], 0);
     }
 
     private static void ProcessNode(GNode node, List<Node> nodes, List<Vertex> vertices, List<uint> indices, Material[] materials)
