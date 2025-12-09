@@ -15,13 +15,29 @@ internal unsafe class NewSponza
 
     public NewSponza()
     {
-        LoadModel("NewSponza_Main");
-        LoadModel("NewSponza_IvyGrowth");
-        LoadModel("NewSponza_CypressTree");
-        LoadModel("NewSponza_Curtains");
+        (MainVertices, MainIndices) = LoadModel("NewSponza_Main");
+        (IvyGrowthVertices, IvyGrowthIndices) = LoadModel("NewSponza_IvyGrowth");
+        (CypressTreeVertices, CypressTreeIndices) = LoadModel("NewSponza_CypressTree");
+        (CurtainsVertices, CurtainsIndices) = LoadModel("NewSponza_Curtains");
     }
 
-    private void LoadModel(string name)
+    public Buffer MainVertices { get; }
+
+    public Buffer MainIndices { get; }
+
+    public Buffer IvyGrowthVertices { get; }
+
+    public Buffer IvyGrowthIndices { get; }
+
+    public Buffer CypressTreeVertices { get; }
+
+    public Buffer CypressTreeIndices { get; }
+
+    public Buffer CurtainsVertices { get; }
+
+    public Buffer CurtainsIndices { get; }
+
+    private static (Buffer Vertices, Buffer Indices) LoadModel(string name)
     {
         ModelRoot root = ModelRoot.Load(Path.Combine(Directory, name, name) + ".gltf");
 
@@ -50,6 +66,8 @@ internal unsafe class NewSponza
             Flags = BufferUsageFlags.Index | BufferUsageFlags.AccelerationStructure
         });
         indexBuffer.Upload([.. indices], 0);
+
+        return (vertexBuffer, indexBuffer);
     }
 
     private static void ProcessNode(GNode node, List<Node> nodes, List<Vertex> vertices, List<uint> indices, Material[] materials)
