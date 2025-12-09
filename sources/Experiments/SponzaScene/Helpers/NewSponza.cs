@@ -15,9 +15,10 @@ internal unsafe class NewSponza
 
     public NewSponza()
     {
-        string[] modelNames = ["NewSponza_Main", "NewSponza_IvyGrowth", "NewSponza_CypressTree", "NewSponza_Curtains"];
-
-        Parallel.ForEach(modelNames, LoadModel);
+        LoadModel("NewSponza_Main");
+        LoadModel("NewSponza_IvyGrowth");
+        LoadModel("NewSponza_CypressTree");
+        LoadModel("NewSponza_Curtains");
     }
 
     private void LoadModel(string name)
@@ -40,7 +41,6 @@ internal unsafe class NewSponza
             StrideInBytes = (uint)sizeof(Vertex),
             Flags = BufferUsageFlags.Vertex | BufferUsageFlags.AccelerationStructure
         });
-
         vertexBuffer.Upload([.. vertices], 0);
 
         Buffer indexBuffer = App.Context.CreateBuffer(new()
@@ -49,7 +49,6 @@ internal unsafe class NewSponza
             StrideInBytes = sizeof(uint),
             Flags = BufferUsageFlags.Index | BufferUsageFlags.AccelerationStructure
         });
-
         indexBuffer.Upload([.. indices], 0);
     }
 
