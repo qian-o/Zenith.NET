@@ -112,5 +112,69 @@ public enum PixelFormat
 
     BC7UNorm,
 
-    BC7UNormSRgb
+    BC7UNormSRgb,
+
+    ETC2UNorm,
+
+    ETC2UNormSRgb,
+
+    ETC2A1UNorm,
+
+    ETC2A1UNormSRgb,
+
+    ASTC4x4UNorm,
+
+    ASTC4x4UNormSRgb,
+
+    ASTC5x4UNorm,
+
+    ASTC5x4UNormSRgb,
+
+    ASTC5x5UNorm,
+
+    ASTC5x5UNormSRgb,
+
+    ASTC6x5UNorm,
+
+    ASTC6x5UNormSRgb,
+
+    ASTC6x6UNorm,
+
+    ASTC6x6UNormSRgb,
+
+    ASTC8x5UNorm,
+
+    ASTC8x5UNormSRgb,
+
+    ASTC8x6UNorm,
+
+    ASTC8x6UNormSRgb,
+
+    ASTC8x8UNorm,
+
+    ASTC8x8UNormSRgb,
+
+    ASTC10x5UNorm,
+
+    ASTC10x5UNormSRgb,
+
+    ASTC10x6UNorm,
+
+    ASTC10x6UNormSRgb,
+
+    ASTC10x8UNorm,
+
+    ASTC10x8UNormSRgb,
+
+    ASTC10x10UNorm,
+
+    ASTC10x10UNormSRgb,
+
+    ASTC12x10UNorm,
+
+    ASTC12x10UNormSRgb,
+
+    ASTC12x12UNorm,
+
+    ASTC12x12UNormSRgb
 }
