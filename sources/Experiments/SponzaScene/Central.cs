@@ -333,9 +333,9 @@ internal static class App
 
     public static ImGuiController ImGuiController { get; }
 
-    public static List<IView> Views { get; } = [];
-
     public static NewSponza Sponza { get; }
+
+    public static List<IView> Views { get; } = [];
 
     public static void Run()
     {
@@ -397,6 +397,7 @@ internal static class App
             view.Dispose();
         }
 
+        Sponza.Dispose();
         ImGuiController.Dispose();
         SwapChain.Dispose();
         Context.Dispose();
