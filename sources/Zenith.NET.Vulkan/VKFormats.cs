@@ -184,7 +184,7 @@ internal static class VKFormats
             PixelFormat.R32G32B32Float => Format.R32G32B32Sfloat,
 
             PixelFormat.R8G8B8A8UNorm => Format.R8G8B8A8Unorm,
-            PixelFormat.R8G8B8A8UNormSRgb => Format.R8G8B8A8Srgb,
+            PixelFormat.R8G8B8A8SRgb => Format.R8G8B8A8Srgb,
             PixelFormat.R8G8B8A8SNorm => Format.R8G8B8A8SNorm,
             PixelFormat.R8G8B8A8UInt => Format.R8G8B8A8Uint,
             PixelFormat.R8G8B8A8SInt => Format.R8G8B8A8Sint,
@@ -200,7 +200,7 @@ internal static class VKFormats
             PixelFormat.R32G32B32A32Float => Format.R32G32B32A32Sfloat,
 
             PixelFormat.B8G8R8A8UNorm => Format.B8G8R8A8Unorm,
-            PixelFormat.B8G8R8A8UNormSRgb => Format.B8G8R8A8Srgb,
+            PixelFormat.B8G8R8A8SRgb => Format.B8G8R8A8Srgb,
 
             PixelFormat.D24UNormS8UInt => Format.D24UnormS8Uint,
             PixelFormat.D32FloatS8UInt => Format.D32SfloatS8Uint,
@@ -215,39 +215,39 @@ internal static class VKFormats
             PixelFormat.BC6HSFloat => Format.BC6HSfloatBlock,
 
             PixelFormat.BC7UNorm => Format.BC7UnormBlock,
-            PixelFormat.BC7UNormSRgb => Format.BC7SrgbBlock,
+            PixelFormat.BC7SRgb => Format.BC7SrgbBlock,
 
             PixelFormat.ETC2UNorm => Format.Etc2R8G8B8UnormBlock,
-            PixelFormat.ETC2UNormSRgb => Format.Etc2R8G8B8SrgbBlock,
+            PixelFormat.ETC2SRgb => Format.Etc2R8G8B8SrgbBlock,
 
             PixelFormat.ETC2A1UNorm => Format.Etc2R8G8B8A1UnormBlock,
-            PixelFormat.ETC2A1UNormSRgb => Format.Etc2R8G8B8A1SrgbBlock,
+            PixelFormat.ETC2A1SRgb => Format.Etc2R8G8B8A1SrgbBlock,
 
             PixelFormat.ETC2A8UNorm => Format.Etc2R8G8B8A8UnormBlock,
-            PixelFormat.ETC2A8UNormSRgb => Format.Etc2R8G8B8A8SrgbBlock,
+            PixelFormat.ETC2A8SRgb => Format.Etc2R8G8B8A8SrgbBlock,
 
             PixelFormat.ASTC4x4UNorm => Format.Astc4x4UnormBlock,
-            PixelFormat.ASTC4x4UNormSRgb => Format.Astc4x4SrgbBlock,
+            PixelFormat.ASTC4x4SRgb => Format.Astc4x4SrgbBlock,
             PixelFormat.ASTC4x4Float => Format.Astc4x4SfloatBlock,
 
             PixelFormat.ASTC5x5UNorm => Format.Astc5x5UnormBlock,
-            PixelFormat.ASTC5x5UNormSRgb => Format.Astc5x5SrgbBlock,
+            PixelFormat.ASTC5x5SRgb => Format.Astc5x5SrgbBlock,
             PixelFormat.ASTC5x5Float => Format.Astc5x5SfloatBlock,
 
             PixelFormat.ASTC6x6UNorm => Format.Astc6x6UnormBlock,
-            PixelFormat.ASTC6x6UNormSRgb => Format.Astc6x6SrgbBlock,
+            PixelFormat.ASTC6x6SRgb => Format.Astc6x6SrgbBlock,
             PixelFormat.ASTC6x6Float => Format.Astc6x6SfloatBlock,
 
             PixelFormat.ASTC8x8UNorm => Format.Astc8x8UnormBlock,
-            PixelFormat.ASTC8x8UNormSRgb => Format.Astc8x8SrgbBlock,
+            PixelFormat.ASTC8x8SRgb => Format.Astc8x8SrgbBlock,
             PixelFormat.ASTC8x8Float => Format.Astc8x8SfloatBlock,
 
             PixelFormat.ASTC10x10UNorm => Format.Astc10x10UnormBlock,
-            PixelFormat.ASTC10x10UNormSRgb => Format.Astc10x10SrgbBlock,
+            PixelFormat.ASTC10x10SRgb => Format.Astc10x10SrgbBlock,
             PixelFormat.ASTC10x10Float => Format.Astc10x10SfloatBlock,
 
             PixelFormat.ASTC12x12UNorm => Format.Astc12x12UnormBlock,
-            PixelFormat.ASTC12x12UNormSRgb => Format.Astc12x12SrgbBlock,
+            PixelFormat.ASTC12x12SRgb => Format.Astc12x12SrgbBlock,
             PixelFormat.ASTC12x12Float => Format.Astc12x12SfloatBlock,
 
             _ => Format.Undefined

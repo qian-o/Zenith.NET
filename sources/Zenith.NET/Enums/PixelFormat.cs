@@ -58,7 +58,7 @@ public enum PixelFormat
 
     R8G8B8A8UNorm,
 
-    R8G8B8A8UNormSRgb,
+    R8G8B8A8SRgb,
 
     R8G8B8A8SNorm,
 
@@ -84,7 +84,7 @@ public enum PixelFormat
 
     B8G8R8A8UNorm,
 
-    B8G8R8A8UNormSRgb,
+    B8G8R8A8SRgb,
 
     D24UNormS8UInt,
 
@@ -104,53 +104,53 @@ public enum PixelFormat
 
     BC7UNorm,
 
-    BC7UNormSRgb,
+    BC7SRgb,
 
     ETC2UNorm,
 
-    ETC2UNormSRgb,
+    ETC2SRgb,
 
     ETC2A1UNorm,
 
-    ETC2A1UNormSRgb,
+    ETC2A1SRgb,
 
     ETC2A8UNorm,
 
-    ETC2A8UNormSRgb,
+    ETC2A8SRgb,
 
     ASTC4x4UNorm,
 
-    ASTC4x4UNormSRgb,
+    ASTC4x4SRgb,
 
     ASTC4x4Float,
 
     ASTC5x5UNorm,
 
-    ASTC5x5UNormSRgb,
+    ASTC5x5SRgb,
 
     ASTC5x5Float,
 
     ASTC6x6UNorm,
 
-    ASTC6x6UNormSRgb,
+    ASTC6x6SRgb,
 
     ASTC6x6Float,
 
     ASTC8x8UNorm,
 
-    ASTC8x8UNormSRgb,
+    ASTC8x8SRgb,
 
     ASTC8x8Float,
 
     ASTC10x10UNorm,
 
-    ASTC10x10UNormSRgb,
+    ASTC10x10SRgb,
 
     ASTC10x10Float,
 
     ASTC12x12UNorm,
 
-    ASTC12x12UNormSRgb,
+    ASTC12x12SRgb,
 
     ASTC12x12Float
 }
