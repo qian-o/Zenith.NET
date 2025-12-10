@@ -205,6 +205,51 @@ internal static class VKFormats
             PixelFormat.D24UNormS8UInt => Format.D24UnormS8Uint,
             PixelFormat.D32FloatS8UInt => Format.D32SfloatS8Uint,
 
+            PixelFormat.BC4UNorm => throw new NotImplementedException(),
+            PixelFormat.BC4SNorm => throw new NotImplementedException(),
+
+            PixelFormat.BC5UNorm => throw new NotImplementedException(),
+            PixelFormat.BC5SNorm => throw new NotImplementedException(),
+
+            PixelFormat.BC6HUFloat => throw new NotImplementedException(),
+            PixelFormat.BC6HSFloat => throw new NotImplementedException(),
+
+            PixelFormat.BC7UNorm => throw new NotImplementedException(),
+            PixelFormat.BC7UNormSRgb => throw new NotImplementedException(),
+
+            PixelFormat.ETC2UNorm => throw new NotImplementedException(),
+            PixelFormat.ETC2UNormSRgb => throw new NotImplementedException(),
+
+            PixelFormat.ETC2A1UNorm => throw new NotImplementedException(),
+            PixelFormat.ETC2A1UNormSRgb => throw new NotImplementedException(),
+
+            PixelFormat.ETC2A8UNorm => throw new NotImplementedException(),
+            PixelFormat.ETC2A8UNormSRgb => throw new NotImplementedException(),
+
+            PixelFormat.ASTC4x4UNorm => throw new NotImplementedException(),
+            PixelFormat.ASTC4x4UNormSRgb => throw new NotImplementedException(),
+            PixelFormat.ASTC4x4Float => throw new NotImplementedException(),
+
+            PixelFormat.ASTC5x5UNorm => throw new NotImplementedException(),
+            PixelFormat.ASTC5x5UNormSRgb => throw new NotImplementedException(),
+            PixelFormat.ASTC5x5Float => throw new NotImplementedException(),
+
+            PixelFormat.ASTC6x6UNorm => throw new NotImplementedException(),
+            PixelFormat.ASTC6x6UNormSRgb => throw new NotImplementedException(),
+            PixelFormat.ASTC6x6Float => throw new NotImplementedException(),
+
+            PixelFormat.ASTC8x8UNorm => throw new NotImplementedException(),
+            PixelFormat.ASTC8x8UNormSRgb => throw new NotImplementedException(),
+            PixelFormat.ASTC8x8Float => throw new NotImplementedException(),
+
+            PixelFormat.ASTC10x10UNorm => throw new NotImplementedException(),
+            PixelFormat.ASTC10x10UNormSRgb => throw new NotImplementedException(),
+            PixelFormat.ASTC10x10Float => throw new NotImplementedException(),
+
+            PixelFormat.ASTC12x12UNorm => throw new NotImplementedException(),
+            PixelFormat.ASTC12x12UNormSRgb => throw new NotImplementedException(),
+            PixelFormat.ASTC12x12Float => throw new NotImplementedException(),
+
             _ => Format.Undefined
         };
     }
