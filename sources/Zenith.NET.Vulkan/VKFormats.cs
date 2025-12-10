@@ -205,24 +205,6 @@ internal static class VKFormats
             PixelFormat.D24UNormS8UInt => Format.D24UnormS8Uint,
             PixelFormat.D32FloatS8UInt => Format.D32SfloatS8Uint,
 
-            PixelFormat.BC1UNorm => Format.BC1RgbaUnormBlock,
-            PixelFormat.BC1UNormSRgb => Format.BC1RgbaSrgbBlock,
-
-            PixelFormat.BC2UNorm => Format.BC2UnormBlock,
-            PixelFormat.BC2UNormSRgb => Format.BC2SrgbBlock,
-
-            PixelFormat.BC3UNorm => Format.BC3UnormBlock,
-            PixelFormat.BC3UNormSRgb => Format.BC3SrgbBlock,
-
-            PixelFormat.BC4UNorm => Format.BC4UnormBlock,
-            PixelFormat.BC4SNorm => Format.BC4SNormBlock,
-
-            PixelFormat.BC5UNorm => Format.BC5UnormBlock,
-            PixelFormat.BC5SNorm => Format.BC5SNormBlock,
-
-            PixelFormat.BC7UNorm => Format.BC7UnormBlock,
-            PixelFormat.BC7UNormSRgb => Format.BC7SrgbBlock,
-
             _ => Format.Undefined
         };
     }

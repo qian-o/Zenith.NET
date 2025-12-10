@@ -25,65 +25,45 @@ public static class ZenithHelper
     {
         return format switch
         {
-            PixelFormat.BC1UNorm or
-            PixelFormat.BC1UNormSRgb or
-            PixelFormat.BC2UNorm or
-            PixelFormat.BC2UNormSRgb or
-            PixelFormat.BC3UNorm or
-            PixelFormat.BC3UNormSRgb or
             PixelFormat.BC4UNorm or
             PixelFormat.BC4SNorm or
             PixelFormat.BC5UNorm or
             PixelFormat.BC5SNorm or
+            PixelFormat.BC6HUFloat or
+            PixelFormat.BC6HSFloat or
             PixelFormat.BC7UNorm or
             PixelFormat.BC7UNormSRgb => (4, 4),
 
             PixelFormat.ETC2UNorm or
             PixelFormat.ETC2UNormSRgb or
             PixelFormat.ETC2A1UNorm or
-            PixelFormat.ETC2A1UNormSRgb => (4, 4),
+            PixelFormat.ETC2A1UNormSRgb or
+            PixelFormat.ETC2A8UNorm or
+            PixelFormat.ETC2A8UNormSRgb => (4, 4),
 
             PixelFormat.ASTC4x4UNorm or
-            PixelFormat.ASTC4x4UNormSRgb => (4, 4),
-
-            PixelFormat.ASTC5x4UNorm or
-            PixelFormat.ASTC5x4UNormSRgb => (5, 4),
+            PixelFormat.ASTC4x4UNormSRgb or
+            PixelFormat.ASTC4x4Float => (4, 4),
 
             PixelFormat.ASTC5x5UNorm or
-            PixelFormat.ASTC5x5UNormSRgb => (5, 5),
-
-            PixelFormat.ASTC6x5UNorm or
-            PixelFormat.ASTC6x5UNormSRgb => (6, 5),
+            PixelFormat.ASTC5x5UNormSRgb or
+            PixelFormat.ASTC5x5Float => (5, 5),
 
             PixelFormat.ASTC6x6UNorm or
-            PixelFormat.ASTC6x6UNormSRgb => (6, 6),
-
-            PixelFormat.ASTC8x5UNorm or
-            PixelFormat.ASTC8x5UNormSRgb => (8, 5),
-
-            PixelFormat.ASTC8x6UNorm or
-            PixelFormat.ASTC8x6UNormSRgb => (8, 6),
+            PixelFormat.ASTC6x6UNormSRgb or
+            PixelFormat.ASTC6x6Float => (6, 6),
 
             PixelFormat.ASTC8x8UNorm or
-            PixelFormat.ASTC8x8UNormSRgb => (8, 8),
-
-            PixelFormat.ASTC10x5UNorm or
-            PixelFormat.ASTC10x5UNormSRgb => (10, 5),
-
-            PixelFormat.ASTC10x6UNorm or
-            PixelFormat.ASTC10x6UNormSRgb => (10, 6),
-
-            PixelFormat.ASTC10x8UNorm or
-            PixelFormat.ASTC10x8UNormSRgb => (10, 8),
+            PixelFormat.ASTC8x8UNormSRgb or
+            PixelFormat.ASTC8x8Float => (8, 8),
 
             PixelFormat.ASTC10x10UNorm or
-            PixelFormat.ASTC10x10UNormSRgb => (10, 10),
-
-            PixelFormat.ASTC12x10UNorm or
-            PixelFormat.ASTC12x10UNormSRgb => (12, 10),
+            PixelFormat.ASTC10x10UNormSRgb or
+            PixelFormat.ASTC10x10Float => (10, 10),
 
             PixelFormat.ASTC12x12UNorm or
-            PixelFormat.ASTC12x12UNormSRgb => (12, 12),
+            PixelFormat.ASTC12x12UNormSRgb or
+            PixelFormat.ASTC12x12Float => (12, 12),
 
             _ => (1, 1)
         };
@@ -150,19 +130,13 @@ public static class ZenithHelper
 
             PixelFormat.D32FloatS8UInt => 5,
 
-            PixelFormat.BC1UNorm or
-            PixelFormat.BC1UNormSRgb => 8,
-
-            PixelFormat.BC2UNorm or
-            PixelFormat.BC2UNormSRgb or
-            PixelFormat.BC3UNorm or
-            PixelFormat.BC3UNormSRgb => 16,
-
             PixelFormat.BC4UNorm or
             PixelFormat.BC4SNorm => 8,
 
             PixelFormat.BC5UNorm or
             PixelFormat.BC5SNorm or
+            PixelFormat.BC6HUFloat or
+            PixelFormat.BC6HSFloat or
             PixelFormat.BC7UNorm or
             PixelFormat.BC7UNormSRgb => 16,
 
@@ -171,34 +145,27 @@ public static class ZenithHelper
             PixelFormat.ETC2A1UNorm or
             PixelFormat.ETC2A1UNormSRgb => 8,
 
+            PixelFormat.ETC2A8UNorm or
+            PixelFormat.ETC2A8UNormSRgb => 16,
+
             PixelFormat.ASTC4x4UNorm or
             PixelFormat.ASTC4x4UNormSRgb or
-            PixelFormat.ASTC5x4UNorm or
-            PixelFormat.ASTC5x4UNormSRgb or
+            PixelFormat.ASTC4x4Float or
             PixelFormat.ASTC5x5UNorm or
             PixelFormat.ASTC5x5UNormSRgb or
-            PixelFormat.ASTC6x5UNorm or
-            PixelFormat.ASTC6x5UNormSRgb or
+            PixelFormat.ASTC5x5Float or
             PixelFormat.ASTC6x6UNorm or
             PixelFormat.ASTC6x6UNormSRgb or
-            PixelFormat.ASTC8x5UNorm or
-            PixelFormat.ASTC8x5UNormSRgb or
-            PixelFormat.ASTC8x6UNorm or
-            PixelFormat.ASTC8x6UNormSRgb or
+            PixelFormat.ASTC6x6Float or
             PixelFormat.ASTC8x8UNorm or
             PixelFormat.ASTC8x8UNormSRgb or
-            PixelFormat.ASTC10x5UNorm or
-            PixelFormat.ASTC10x5UNormSRgb or
-            PixelFormat.ASTC10x6UNorm or
-            PixelFormat.ASTC10x6UNormSRgb or
-            PixelFormat.ASTC10x8UNorm or
-            PixelFormat.ASTC10x8UNormSRgb or
+            PixelFormat.ASTC8x8Float or
             PixelFormat.ASTC10x10UNorm or
             PixelFormat.ASTC10x10UNormSRgb or
-            PixelFormat.ASTC12x10UNorm or
-            PixelFormat.ASTC12x10UNormSRgb or
+            PixelFormat.ASTC10x10Float or
             PixelFormat.ASTC12x12UNorm or
-            PixelFormat.ASTC12x12UNormSRgb => 16,
+            PixelFormat.ASTC12x12UNormSRgb or
+            PixelFormat.ASTC12x12Float => 16,
 
             _ => 0
         };
