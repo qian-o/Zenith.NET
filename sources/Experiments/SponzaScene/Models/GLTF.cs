@@ -41,6 +41,34 @@ internal unsafe class GLTF : DisposableObject
         Indices.Upload([.. indices], 0);
 
         Materials = [.. root.LogicalMaterials.Select(static material => new Material(material))];
+
+        if (App.Context.Capabilities.RayTracingSupported)
+        {
+            RayTracingGeometry[] geometries = new RayTracingGeometry[Nodes.Length];
+            for (int i = 0; i < Nodes.Length; i++)
+            {
+                Node node = Nodes[i];
+
+                geometries[i] = new()
+                {
+                    Type = RayTracingGeometryType.Triangles,
+                    Triangles = new()
+                    {
+                        VertexBuffer = Vertices,
+                        VertexFormat = PixelFormat.R32G32B32Float,
+                        VertexCount = node.Args.IndexCount * 3,
+                        VertexStrideInBytes = (uint)sizeof(Vertex),
+                        VertexOffsetInBytes = (uint)(sizeof(Vertex) * node.Args.VertexOffset),
+                        IndexBuffer = Indices,
+                        IndexFormat = IndexFormat.UInt32,
+                        IndexCount = node.Args.IndexCount,
+                        IndexOffsetInBytes = sizeof(uint) * node.Args.FirstIndex,
+                        Transform = Matrix4x4.Identity
+                    },
+                    Flags = RayTracingGeometryFlags.Opaque
+                };
+            }
+        }
     }
 
     public string Name { get; }
@@ -52,6 +80,8 @@ internal unsafe class GLTF : DisposableObject
     public Buffer Indices { get; }
 
     public Material[] Materials { get; }
+
+    public BottomLevelAccelerationStructure? BLAS { get; }
 
     protected override void Destroy()
     {
