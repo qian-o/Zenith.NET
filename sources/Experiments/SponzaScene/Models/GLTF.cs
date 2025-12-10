@@ -60,73 +60,75 @@ internal unsafe class GLTF : DisposableObject
             material.Dispose();
         }
 
-        Vertices.Dispose();
         Indices.Dispose();
+        Vertices.Dispose();
     }
 
     private static void ProcessNode(GNode node, List<Node> nodes, List<Vertex> vertices, List<uint> indices)
     {
-        if (node.Mesh is not null)
-        {
-            foreach (MeshPrimitive primitive in node.Mesh.Primitives)
-            {
-                IList<Vector3>? positionBuffer = null;
-                IList<Vector3>? normalBuffer = null;
-                IList<Vector2>? texCoordBuffer = null;
-                IList<Vector4>? colorBuffer = null;
-
-                IndirectDrawIndexedArgs args = new()
-                {
-                    IndexCount = (uint)primitive.IndexAccessor.Count,
-                    InstanceCount = 1,
-                    FirstIndex = (uint)indices.Count,
-                    VertexOffset = vertices.Count
-                };
-
-                uint vertexCount = 0;
-
-                if (primitive.VertexAccessors.TryGetValue("POSITION", out Accessor? positionAccessor))
-                {
-                    positionBuffer = positionAccessor.AsVector3Array();
-
-                    vertexCount = (uint)positionAccessor.Count;
-                }
-
-                if (primitive.VertexAccessors.TryGetValue("NORMAL", out Accessor? normalAccessor))
-                {
-                    normalBuffer = normalAccessor.AsVector3Array();
-                }
-
-                if (primitive.VertexAccessors.TryGetValue("TEXCOORD_0", out Accessor? texCoordAccessor))
-                {
-                    texCoordBuffer = texCoordAccessor.AsVector2Array();
-                }
-
-                if (primitive.VertexAccessors.TryGetValue("COLOR_0", out Accessor? colorAccessor))
-                {
-                    colorBuffer = colorAccessor.AsVector4Array();
-                }
-
-                for (uint i = 0; i < vertexCount; i++)
-                {
-                    vertices.Add(new()
-                    {
-                        Position = positionBuffer != null ? positionBuffer[(int)i] : Vector3.Zero,
-                        Normal = normalBuffer != null ? normalBuffer[(int)i] : Vector3.Zero,
-                        TexCoord = texCoordBuffer != null ? texCoordBuffer[(int)i] : Vector2.Zero,
-                        Color = colorBuffer != null ? colorBuffer[(int)i] : Vector4.One
-                    });
-                }
-
-                indices.AddRange(primitive.IndexAccessor.AsIndicesArray());
-
-                nodes.Add(new(node.Name, args, (uint)primitive.Material.LogicalIndex));
-            }
-        }
-
         foreach (GNode children in node.VisualChildren)
         {
             ProcessNode(children, nodes, vertices, indices);
+        }
+
+        if (node.Mesh is null)
+        {
+            return;
+        }
+
+        foreach (MeshPrimitive primitive in node.Mesh.Primitives)
+        {
+            IList<Vector3>? positionBuffer = null;
+            IList<Vector3>? normalBuffer = null;
+            IList<Vector2>? texCoordBuffer = null;
+            IList<Vector4>? colorBuffer = null;
+
+            IndirectDrawIndexedArgs args = new()
+            {
+                IndexCount = (uint)primitive.IndexAccessor.Count,
+                InstanceCount = 1,
+                FirstIndex = (uint)indices.Count,
+                VertexOffset = vertices.Count
+            };
+
+            uint vertexCount = 0;
+
+            if (primitive.VertexAccessors.TryGetValue("POSITION", out Accessor? positionAccessor))
+            {
+                positionBuffer = positionAccessor.AsVector3Array();
+
+                vertexCount = (uint)positionAccessor.Count;
+            }
+
+            if (primitive.VertexAccessors.TryGetValue("NORMAL", out Accessor? normalAccessor))
+            {
+                normalBuffer = normalAccessor.AsVector3Array();
+            }
+
+            if (primitive.VertexAccessors.TryGetValue("TEXCOORD_0", out Accessor? texCoordAccessor))
+            {
+                texCoordBuffer = texCoordAccessor.AsVector2Array();
+            }
+
+            if (primitive.VertexAccessors.TryGetValue("COLOR_0", out Accessor? colorAccessor))
+            {
+                colorBuffer = colorAccessor.AsVector4Array();
+            }
+
+            for (uint i = 0; i < vertexCount; i++)
+            {
+                vertices.Add(new()
+                {
+                    Position = positionBuffer != null ? positionBuffer[(int)i] : Vector3.Zero,
+                    Normal = normalBuffer != null ? normalBuffer[(int)i] : Vector3.Zero,
+                    TexCoord = texCoordBuffer != null ? texCoordBuffer[(int)i] : Vector2.Zero,
+                    Color = colorBuffer != null ? colorBuffer[(int)i] : Vector4.One
+                });
+            }
+
+            indices.AddRange(primitive.IndexAccessor.AsIndicesArray());
+
+            nodes.Add(new(node.Name, args, (uint)primitive.Material.LogicalIndex));
         }
     }
 }
