@@ -45,6 +45,7 @@ internal unsafe class GLTF : DisposableObject
         if (App.Context.Capabilities.RayTracingSupported)
         {
             RayTracingGeometry[] geometries = new RayTracingGeometry[Nodes.Length];
+
             for (int i = 0; i < Nodes.Length; i++)
             {
                 Node node = Nodes[i];
@@ -56,7 +57,7 @@ internal unsafe class GLTF : DisposableObject
                     {
                         VertexBuffer = Vertices,
                         VertexFormat = PixelFormat.R32G32B32Float,
-                        VertexCount = node.Args.IndexCount * 3,
+                        VertexCount = node.VertexCount,
                         VertexStrideInBytes = (uint)sizeof(Vertex),
                         VertexOffsetInBytes = (uint)(sizeof(Vertex) * node.Args.VertexOffset),
                         IndexBuffer = Indices,
@@ -68,6 +69,18 @@ internal unsafe class GLTF : DisposableObject
                     Flags = RayTracingGeometryFlags.Opaque
                 };
             }
+
+            CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
+
+            BLAS = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc()
+            {
+                Geometries = geometries,
+                Flags = AccelerationStructureBuildFlags.PreferFastBuild
+            });
+
+            commandBuffer.Submit();
+
+            App.Context.Graphics.WaitIdle();
         }
     }
 
@@ -85,6 +98,8 @@ internal unsafe class GLTF : DisposableObject
 
     protected override void Destroy()
     {
+        BLAS?.Dispose();
+
         foreach (Material material in Materials)
         {
             material.Dispose();
@@ -145,12 +160,14 @@ internal unsafe class GLTF : DisposableObject
                 colorBuffer = colorAccessor.AsVector4Array();
             }
 
+            Matrix4x4 localMatrix = node.LocalMatrix;
+
             for (uint i = 0; i < vertexCount; i++)
             {
                 vertices.Add(new()
                 {
-                    Position = positionBuffer != null ? positionBuffer[(int)i] : Vector3.Zero,
-                    Normal = normalBuffer != null ? normalBuffer[(int)i] : Vector3.Zero,
+                    Position = Vector3.Transform(positionBuffer != null ? positionBuffer[(int)i] : Vector3.Zero, localMatrix),
+                    Normal = Vector3.Normalize(Vector3.TransformNormal(normalBuffer != null ? normalBuffer[(int)i] : Vector3.UnitY, localMatrix)),
                     TexCoord = texCoordBuffer != null ? texCoordBuffer[(int)i] : Vector2.Zero,
                     Color = colorBuffer != null ? colorBuffer[(int)i] : Vector4.One
                 });
@@ -158,7 +175,7 @@ internal unsafe class GLTF : DisposableObject
 
             indices.AddRange(primitive.IndexAccessor.AsIndicesArray());
 
-            nodes.Add(new(node.Name, args, (uint)primitive.Material.LogicalIndex));
+            nodes.Add(new(node.Name, vertexCount, args, (uint)primitive.Material.LogicalIndex));
         }
     }
 }

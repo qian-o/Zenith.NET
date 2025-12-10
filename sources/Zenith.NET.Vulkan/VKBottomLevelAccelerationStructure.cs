@@ -40,9 +40,9 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
             {
                 SType = StructureType.AccelerationStructureGeometryKhr,
                 GeometryType = VKFormats.Vulkan(geometry.Type),
-                Geometry = new()
-                {
-                    Triangles = new()
+                Geometry = new
+                (
+                    triangles: geometry.Type is RayTracingGeometryType.Triangles ? new()
                     {
                         SType = StructureType.AccelerationStructureGeometryTrianglesDataKhr,
                         VertexFormat = VKFormats.Vulkan(geometry.Triangles.VertexFormat),
@@ -52,17 +52,17 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
                         IndexType = geometry.Triangles.IndexBuffer is not null ? VKFormats.Vulkan(geometry.Triangles.IndexFormat) : IndexType.NoneKhr,
                         IndexData = new() { DeviceAddress = geometry.Triangles.IndexBuffer is not null ? geometry.Triangles.IndexBuffer.Vulkan().DeviceAddress + geometry.Triangles.IndexOffsetInBytes : 0 },
                         TransformData = new() { DeviceAddress = TransformBuffer.DeviceAddress + (uint)(sizeof(TransformMatrixKHR) * i) }
-                    },
-                    Aabbs = new()
+                    } : null,
+                    aabbs: geometry.Type is RayTracingGeometryType.AABBs ? new()
                     {
                         SType = StructureType.AccelerationStructureGeometryAabbsDataKhr,
                         Data = new() { DeviceAddress = geometry.AABBs.Buffer.Vulkan().DeviceAddress + geometry.AABBs.OffsetInBytes },
                         Stride = geometry.AABBs.StrideInBytes
-                    }
-                },
+                    } : null
+                ),
                 Flags = VKFormats.Vulkan(geometry.Flags)
             };
-            maxPrimitiveCounts[i] = geometry.Type == RayTracingGeometryType.Triangles ? geometry.Triangles.IndexBuffer is not null ? geometry.Triangles.IndexCount / 3 : geometry.Triangles.VertexCount / 3 : geometry.AABBs.Count;
+            maxPrimitiveCounts[i] = geometry.Type is RayTracingGeometryType.Triangles ? geometry.Triangles.IndexBuffer is not null ? geometry.Triangles.IndexCount / 3 : geometry.Triangles.VertexCount / 3 : geometry.AABBs.Count;
             buildRangeInfos[i] = new() { PrimitiveCount = maxPrimitiveCounts[i] };
         }
 
