@@ -58,13 +58,13 @@ public enum PixelFormat
 
     R8G8B8A8UNorm,
 
-    R8G8B8A8SRgb,
-
     R8G8B8A8SNorm,
 
     R8G8B8A8UInt,
 
     R8G8B8A8SInt,
+
+    R8G8B8A8SRgb,
 
     R16G16B16A16UNorm,
 
