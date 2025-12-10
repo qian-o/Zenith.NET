@@ -10,9 +10,9 @@ internal unsafe class GLTF : DisposableObject
 {
     public GLTF(string path)
     {
-        ModelRoot root = ModelRoot.Load(path);
+        Name = Path.GetFileNameWithoutExtension(path);
 
-        Name = root.Asset.Generator ?? "GLTF Model";
+        ModelRoot root = ModelRoot.Load(path);
 
         List<Node> nodes = [];
         List<Vertex> vertices = [];

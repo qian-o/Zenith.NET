@@ -9,10 +9,10 @@ internal unsafe class NewSponza : DisposableObject
 
     public NewSponza()
     {
-        Main = new(Path("NewSponza_Main"));
-        IvyGrowth = new(Path("NewSponza_IvyGrowth"));
-        CypressTree = new(Path("NewSponza_CypressTree"));
-        Curtains = new(Path("NewSponza_Curtains"));
+        Main = new(PathCombine("NewSponza_Main"));
+        IvyGrowth = new(PathCombine("NewSponza_IvyGrowth"));
+        CypressTree = new(PathCombine("NewSponza_CypressTree"));
+        Curtains = new(PathCombine("NewSponza_Curtains"));
     }
 
     public GLTF Main { get; }
@@ -31,8 +31,8 @@ internal unsafe class NewSponza : DisposableObject
         Curtains.Dispose();
     }
 
-    private static string Path(string name)
+    private static string PathCombine(string name)
     {
-        return System.IO.Path.Combine(Directory, name, $"{name}.gltf");
+        return Path.Combine(Directory, name, $"{name}.gltf");
     }
 }
