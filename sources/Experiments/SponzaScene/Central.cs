@@ -270,9 +270,12 @@ internal static class Dispatcher
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        if (actions.Count > 0)
+        for (uint i = 0; i < Environment.ProcessorCount; i++)
         {
-            actions.Dequeue()();
+            if (actions.Count > 0)
+            {
+                Task.Run(actions.Dequeue());
+            }
         }
     }
 }
