@@ -272,17 +272,7 @@ internal static class Dispatcher
 
         if (actions.Count > 0)
         {
-            Action?[] actions = new Action?[Environment.ProcessorCount];
-
-            for (int i = 0; i < actions.Length; i++)
-            {
-                if (Dispatcher.actions.Count > 0)
-                {
-                    actions[i] = Dispatcher.actions.Dequeue();
-                }
-            }
-
-            Parallel.ForEach(actions, action => action?.Invoke());
+            actions.Dequeue()();
         }
     }
 }
