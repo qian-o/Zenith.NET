@@ -5,7 +5,7 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXDescriptorPool : GraphicsResource
 {
-    private const uint DescriptorCount = 512;
+    private const uint DescriptorCount = 256;
 
     private readonly CpuDescriptorHandle startHandle;
     private readonly uint incrementSize;
