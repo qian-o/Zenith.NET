@@ -5,11 +5,11 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXDescriptorPool : GraphicsResource
 {
-    private const uint DescriptorCount = 512;
+    private const uint DescriptorCount = 128;
 
     private readonly CpuDescriptorHandle startHandle;
     private readonly uint incrementSize;
-    private readonly bool[] descriptors;
+    private readonly bool[] allocatedSlots;
 
     public ComPtr<ID3D12DescriptorHeap> Heap;
 
@@ -23,10 +23,10 @@ internal unsafe class DXDescriptorPool : GraphicsResource
 
         Context.Device.CreateDescriptorHeap(&desc, out Heap).Success();
 
-        startHandle = initialHandle = Heap.GetCPUDescriptorHandleForHeapStart();
+        initialHandle = startHandle = Heap.GetCPUDescriptorHandleForHeapStart();
         incrementSize = Context.Device.GetDescriptorHandleIncrementSize(type);
-        descriptors = new bool[DescriptorCount];
-        descriptors[0] = true;
+        allocatedSlots = new bool[DescriptorCount];
+        allocatedSlots[0] = true;
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
@@ -37,11 +37,11 @@ internal unsafe class DXDescriptorPool : GraphicsResource
 
         for (uint i = 0; i < DescriptorCount; i++)
         {
-            if (!descriptors[i])
+            if (!allocatedSlots[i])
             {
                 handle = new(startHandle.Ptr + (incrementSize * i));
 
-                return descriptors[i] = true;
+                return allocatedSlots[i] = true;
             }
         }
 
@@ -50,7 +50,7 @@ internal unsafe class DXDescriptorPool : GraphicsResource
 
     public void Free(CpuDescriptorHandle handle)
     {
-        descriptors[(handle.Ptr - startHandle.Ptr) / incrementSize] = false;
+        allocatedSlots[(handle.Ptr - startHandle.Ptr) / incrementSize] = false;
     }
 
     protected override void SetResourceName(string name)
