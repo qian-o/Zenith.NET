@@ -23,9 +23,11 @@ internal unsafe class DXDescriptorPool : GraphicsResource
 
         Context.Device.CreateDescriptorHeap(&desc, out Heap).Success();
 
-        initialHandle = startHandle = Heap.GetCPUDescriptorHandleForHeapStart();
+        startHandle = Heap.GetCPUDescriptorHandleForHeapStart();
         incrementSize = Context.Device.GetDescriptorHandleIncrementSize(type);
         allocatedSlots[0] = true;
+
+        initialHandle = startHandle;
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
