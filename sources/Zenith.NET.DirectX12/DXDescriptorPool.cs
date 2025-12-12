@@ -5,11 +5,11 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXDescriptorPool : GraphicsResource
 {
-    private const uint DescriptorCount = 128;
+    private const uint DescriptorCount = 512;
 
     private readonly CpuDescriptorHandle startHandle;
     private readonly uint incrementSize;
-    private readonly bool[] allocatedSlots;
+    private readonly bool[] allocatedSlots = new bool[DescriptorCount];
 
     public ComPtr<ID3D12DescriptorHeap> Heap;
 
@@ -25,7 +25,6 @@ internal unsafe class DXDescriptorPool : GraphicsResource
 
         initialHandle = startHandle = Heap.GetCPUDescriptorHandleForHeapStart();
         incrementSize = Context.Device.GetDescriptorHandleIncrementSize(type);
-        allocatedSlots = new bool[DescriptorCount];
         allocatedSlots[0] = true;
     }
 
