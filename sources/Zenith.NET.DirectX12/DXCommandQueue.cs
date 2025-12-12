@@ -24,6 +24,6 @@ internal class DXCommandQueue(DXGraphicsContext context, CommandQueueType type, 
 
     protected override void SetResourceName(string name)
     {
-        queue.SetName(name);
+        queue.SetName(name).Success();
     }
 }

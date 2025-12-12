@@ -7,18 +7,14 @@ internal unsafe class DXDescriptorPool : GraphicsResource
 {
     private const uint DescriptorCount = 512;
 
-    private readonly bool[] descriptors = new bool[DescriptorCount];
-
-    public uint IncrementSize;
+    private readonly CpuDescriptorHandle startHandle;
+    private readonly uint incrementSize;
+    private readonly bool[] descriptors;
 
     public ComPtr<ID3D12DescriptorHeap> Heap;
 
-    public CpuDescriptorHandle Start;
-
-    public DXDescriptorPool(GraphicsContext context, DescriptorHeapType type) : base(context)
+    public DXDescriptorPool(GraphicsContext context, DescriptorHeapType type, out CpuDescriptorHandle initialHandle) : base(context)
     {
-        IncrementSize = Context.Device.GetDescriptorHandleIncrementSize(type);
-
         DescriptorHeapDesc desc = new()
         {
             Type = type,
@@ -27,7 +23,10 @@ internal unsafe class DXDescriptorPool : GraphicsResource
 
         Context.Device.CreateDescriptorHeap(&desc, out Heap).Success();
 
-        Start = Heap.GetCPUDescriptorHandleForHeapStart();
+        startHandle = initialHandle = Heap.GetCPUDescriptorHandleForHeapStart();
+        incrementSize = Context.Device.GetDescriptorHandleIncrementSize(type);
+        descriptors = new bool[DescriptorCount];
+        descriptors[0] = true;
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
@@ -40,7 +39,7 @@ internal unsafe class DXDescriptorPool : GraphicsResource
         {
             if (!descriptors[i])
             {
-                handle = new(Start.Ptr + (IncrementSize * i));
+                handle = new(startHandle.Ptr + (incrementSize * i));
 
                 return descriptors[i] = true;
             }
@@ -51,7 +50,7 @@ internal unsafe class DXDescriptorPool : GraphicsResource
 
     public void Free(CpuDescriptorHandle handle)
     {
-        descriptors[(handle.Ptr - Start.Ptr) / IncrementSize] = false;
+        descriptors[(handle.Ptr - startHandle.Ptr) / incrementSize] = false;
     }
 
     protected override void SetResourceName(string name)
