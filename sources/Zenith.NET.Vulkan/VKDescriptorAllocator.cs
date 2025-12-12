@@ -11,9 +11,9 @@ internal unsafe class VKDescriptorAllocator(VKGraphicsContext context) : Graphic
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        if (available.FirstOrDefault(item => item.CanAllocate(resourceLayout.Counts)) is not VKDescriptorPool descriptorPool)
+        if (available.FirstOrDefault(item => item.CanAllocate(resourceLayout.Counts)) is not VKDescriptorPool pool)
         {
-            available.Add(descriptorPool = new(context));
+            available.Add(pool = new(context));
         }
 
         fixed (DescriptorSetLayout* pSetLayouts = &resourceLayout.DescriptorSetLayout)
@@ -21,22 +21,22 @@ internal unsafe class VKDescriptorAllocator(VKGraphicsContext context) : Graphic
             DescriptorSetAllocateInfo allocateInfo = new()
             {
                 SType = StructureType.DescriptorSetAllocateInfo,
-                DescriptorPool = descriptorPool.Pool,
+                DescriptorPool = pool.Pool,
                 DescriptorSetCount = 1,
                 PSetLayouts = pSetLayouts
             };
 
-            DescriptorSet descriptorSet;
-            context.Vk.AllocateDescriptorSets(context.Device, &allocateInfo, &descriptorSet).Success();
+            DescriptorSet set;
+            context.Vk.AllocateDescriptorSets(context.Device, &allocateInfo, &set).Success();
 
-            return new() { DescriptorPool = descriptorPool, DescriptorSet = descriptorSet };
+            return new() { Pool = pool, Set = set };
         }
     }
 
     public void Free(VKDescriptorToken token)
     {
-        DescriptorSet descriptorSet = token.DescriptorSet;
-        context.Vk.FreeDescriptorSets(context.Device, token.DescriptorPool.Pool, 1, &descriptorSet).Success();
+        DescriptorSet set = token.Set;
+        context.Vk.FreeDescriptorSets(context.Device, token.Pool.Pool, 1, &set).Success();
     }
 
     protected override void SetResourceName(string name)

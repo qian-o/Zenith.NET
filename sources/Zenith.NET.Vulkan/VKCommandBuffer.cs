@@ -234,7 +234,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
             _ => (PipelineBindPoint.Graphics, default)
         };
 
-        Context.Vk.CmdBindDescriptorSets(CommandBuffer, pipelineBindPoint, pipelineLayout, index, 1, ref resourceSet.Vulkan().DescriptorToken.DescriptorSet, 0, null);
+        Context.Vk.CmdBindDescriptorSets(CommandBuffer, pipelineBindPoint, pipelineLayout, index, 1, ref resourceSet.Vulkan().DescriptorToken.Set, 0, null);
     }
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)

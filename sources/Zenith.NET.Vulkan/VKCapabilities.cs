@@ -24,7 +24,6 @@ internal unsafe class VKCapabilities : Capabilities
 
         DeviceName = ZenithMarshal.StringFromPointer((nint)properties.DeviceName, StringEncoding.UTF8);
         ApiVersion = (Version32)properties.ApiVersion;
-        DriverVersion = (Version32)properties.DriverVersion;
         RayTracingSupported = supportedExtensions.Contains(KhrRayQuery.ExtensionName) || supportedExtensions.Contains(KhrRayTracingPipeline.ExtensionName);
         MeshShaderSupported = supportedExtensions.Contains(ExtMeshShader.ExtensionName);
     }
@@ -32,8 +31,6 @@ internal unsafe class VKCapabilities : Capabilities
     public override string DeviceName { get; }
 
     public override Version ApiVersion { get; }
-
-    public override Version DriverVersion { get; }
 
     public override bool RayTracingSupported { get; }
 

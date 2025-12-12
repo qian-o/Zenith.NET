@@ -29,7 +29,7 @@ internal unsafe class VKResourceSet : ResourceSet
             descriptorWrites[i] = new()
             {
                 SType = StructureType.WriteDescriptorSet,
-                DstSet = DescriptorToken.DescriptorSet,
+                DstSet = DescriptorToken.Set,
                 DstBinding = binding.Index,
                 DstArrayElement = 0,
                 DescriptorCount = binding.Count,
@@ -144,7 +144,7 @@ internal unsafe class VKResourceSet : ResourceSet
         {
             SType = StructureType.DebugUtilsObjectNameInfoExt,
             ObjectType = ObjectType.DescriptorSet,
-            ObjectHandle = DescriptorToken.DescriptorSet.Handle,
+            ObjectHandle = DescriptorToken.Set.Handle,
             PObjectName = (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8)
         };
 
