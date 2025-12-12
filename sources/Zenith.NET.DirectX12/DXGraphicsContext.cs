@@ -12,6 +12,8 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public ComPtr<ID3D12Device> Device;
 
+    public ComPtr<ID3D12InfoQueue1>? InfoQueue1;
+
     public ComPtr<ID3D12CommandQueue> GraphicsQueue;
 
     public ComPtr<ID3D12CommandQueue> ComputeQueue;
@@ -45,10 +47,8 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
                                        out CommandQueue copy,
                                        out ValidationLayer? validationLayer)
     {
-        if (useValidationLayer)
+        if (useValidationLayer && D3D12.GetDebugInterface(out ComPtr<ID3D12Debug> debug).IsSuccess())
         {
-            D3D12.GetDebugInterface(out ComPtr<ID3D12Debug> debug).Success();
-
             debug.EnableDebugLayer();
 
             debug.Dispose();
@@ -59,6 +59,11 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         Factory7.EnumAdapterByGpuPreference(0, GpuPreference.HighPerformance, out Adapter4).Success();
 
         D3D12.CreateDevice(Adapter4, D3DFeatureLevel.Level120, out Device).Success();
+
+        if (Device.QueryInterface(out ComPtr<ID3D12InfoQueue1> infoQueue1).IsSuccess())
+        {
+            InfoQueue1 = infoQueue1;
+        }
 
         CommandQueueDesc commandQueueDesc = new() { Type = CommandListType.Direct };
         Device.CreateCommandQueue(&commandQueueDesc, out GraphicsQueue).Success();
@@ -82,16 +87,14 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         Device.CreateCommandSignature(&commandSignatureDesc, (ComPtr<ID3D12RootSignature>)null, out DispatchSignature).Success();
 
         indirectArgumentDesc.Type = IndirectArgumentType.DispatchMesh;
-        commandSignatureDesc.ByteStride = (uint)sizeof(IndirectDispatchArgs);
+        commandSignatureDesc.ByteStride = (uint)sizeof(IndirectDispatchMeshArgs);
         Device.CreateCommandSignature(&commandSignatureDesc, (ComPtr<ID3D12RootSignature>)null, out DispatchMeshSignature).Success();
 
         capabilities = new DXCapabilities(this);
-        //graphics = new VKCommandQueue(this, CommandQueueType.Graphics, GraphicsQueue, QueueFamilyIndices[0]);
-        //compute = new VKCommandQueue(this, CommandQueueType.Compute, ComputeQueue, QueueFamilyIndices.Length > 1 ? QueueFamilyIndices[1] : QueueFamilyIndices[0]);
-        //copy = new VKCommandQueue(this, CommandQueueType.Copy, CopyQueue, QueueFamilyIndices.Length > 2 ? QueueFamilyIndices[2] : QueueFamilyIndices[0]);
-        //validationLayer = useValidationLayer ? new VKValidationLayer(this) : null;
-
-        throw new NotImplementedException();
+        graphics = new DXCommandQueue(this, CommandQueueType.Graphics, GraphicsQueue);
+        compute = new DXCommandQueue(this, CommandQueueType.Compute, ComputeQueue);
+        copy = new DXCommandQueue(this, CommandQueueType.Copy, CopyQueue);
+        validationLayer = useValidationLayer ? new DXValidationLayer(this) : null;
     }
 
     protected override SwapChain CreateSwapChainImpl(SwapChainDesc desc)
@@ -167,5 +170,33 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
     protected override QueryHeap CreateQueryHeapImpl(QueryHeapDesc desc)
     {
         throw new NotImplementedException();
+    }
+
+    protected override void Destroy()
+    {
+        base.Destroy();
+
+        SamplerAllocator.Dispose();
+        CbvSrvUavAllocator.Dispose();
+        DsvAllocator.Dispose();
+        RtvAllocator.Dispose();
+
+        DispatchMeshSignature.Dispose();
+        DispatchSignature.Dispose();
+        DrawIndexedSignature.Dispose();
+        DrawSignature.Dispose();
+
+        CopyQueue.Dispose();
+        ComputeQueue.Dispose();
+        GraphicsQueue.Dispose();
+
+        InfoQueue1?.Dispose();
+
+        Device.Dispose();
+        Adapter4.Dispose();
+        Factory7.Dispose();
+
+        D3D12.Dispose();
+        DXGI.Dispose();
     }
 }

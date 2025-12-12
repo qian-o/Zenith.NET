@@ -13,5 +13,10 @@ internal static class DXExtensions
                 Debug.WriteLine($"DirectX call failed with error code: {result}");
             }
         }
+
+        public bool IsSuccess()
+        {
+            return result is 0;
+        }
     }
 }
