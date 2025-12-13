@@ -6,6 +6,8 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsContext(Backend.DirectX12, useValidationLayer)
 {
+    public const uint Shader4ComponentMapping = 0x1688;
+
     public ComPtr<IDXGIFactory7> Factory7;
 
     public ComPtr<IDXGIAdapter4> Adapter4;
@@ -109,17 +111,17 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override Shader CreateShaderImpl(ShaderDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXShader(this, desc);
     }
 
     protected override Buffer CreateBufferImpl(BufferDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXBuffer(this, desc);
     }
 
     protected override BufferView CreateBufferViewImpl(BufferViewDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXBufferView(this, desc);
     }
 
     protected override Texture CreateTextureImpl(TextureDesc desc)
