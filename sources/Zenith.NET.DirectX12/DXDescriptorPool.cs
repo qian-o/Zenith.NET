@@ -7,14 +7,16 @@ internal unsafe class DXDescriptorPool : GraphicsResource
 {
     private const uint DescriptorCount = 256;
 
+    private readonly bool[] slots = new bool[DescriptorCount];
+    private readonly uint handleSize;
     private readonly CpuDescriptorHandle startHandle;
-    private readonly uint incrementSize;
-    private readonly bool[] allocatedSlots = new bool[DescriptorCount];
 
     public ComPtr<ID3D12DescriptorHeap> Heap;
 
     public DXDescriptorPool(GraphicsContext context, DescriptorHeapType type, out CpuDescriptorHandle initialHandle) : base(context)
     {
+        slots[0] = true;
+
         DescriptorHeapDesc desc = new()
         {
             Type = type,
@@ -23,11 +25,8 @@ internal unsafe class DXDescriptorPool : GraphicsResource
 
         Context.Device.CreateDescriptorHeap(&desc, out Heap).Success();
 
-        startHandle = Heap.GetCPUDescriptorHandleForHeapStart();
-        incrementSize = Context.Device.GetDescriptorHandleIncrementSize(type);
-        allocatedSlots[0] = true;
-
-        initialHandle = startHandle;
+        handleSize = Context.Device.GetDescriptorHandleIncrementSize(type);
+        initialHandle = startHandle = Heap.GetCPUDescriptorHandleForHeapStart();
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
@@ -38,11 +37,11 @@ internal unsafe class DXDescriptorPool : GraphicsResource
 
         for (uint i = 0; i < DescriptorCount; i++)
         {
-            if (!allocatedSlots[i])
+            if (!slots[i])
             {
-                handle = new(startHandle.Ptr + (incrementSize * i));
+                handle = new(startHandle.Ptr + (handleSize * i));
 
-                return allocatedSlots[i] = true;
+                return slots[i] = true;
             }
         }
 
@@ -51,7 +50,7 @@ internal unsafe class DXDescriptorPool : GraphicsResource
 
     public void Free(CpuDescriptorHandle handle)
     {
-        allocatedSlots[(handle.Ptr - startHandle.Ptr) / incrementSize] = false;
+        slots[(handle.Ptr - startHandle.Ptr) / handleSize] = false;
     }
 
     protected override void SetResourceName(string name)
