@@ -121,11 +121,11 @@ internal static class VKFormats
             TextureType.Texture1DArray => ImageType.Type1D,
 
             TextureType.Texture2D or
-            TextureType.Texture2DArray => ImageType.Type2D,
-
-            TextureType.Texture3D or
+            TextureType.Texture2DArray or
             TextureType.TextureCube or
-            TextureType.TextureCubeArray => ImageType.Type3D,
+            TextureType.TextureCubeArray => ImageType.Type2D,
+
+            TextureType.Texture3D => ImageType.Type3D,
 
             _ => ImageType.Type1D
         };

@@ -18,22 +18,15 @@ internal unsafe class DXBuffer : Buffer
             MipLevels = 1,
             SampleDesc = new(1, 0),
             Layout = TextureLayout.LayoutRowMajor,
-            Flags = desc.Flags.HasFlag(BufferUsageFlags.UnorderedAccess) ? ResourceFlags.AllowUnorderedAccess : ResourceFlags.None
+            Flags = DXFormats.DirectX12(desc.Flags).Flags
         };
 
-        HeapProperties heapProperties = new(HeapType.Default);
-        ResourceStates initialState = ResourceStates.Common;
-
-        if (desc.Flags.HasFlag(BufferUsageFlags.Dynamic))
-        {
-            heapProperties = new HeapProperties(HeapType.Upload);
-            initialState = ResourceStates.GenericRead;
-        }
+        HeapProperties heapProperties = new(desc.Flags.HasFlag(BufferUsageFlags.Dynamic) ? HeapType.Upload : HeapType.Default);
 
         Context.Device.CreateCommittedResource(&heapProperties,
                                                HeapFlags.None,
                                                &resourceDesc,
-                                               initialState,
+                                               States = DXFormats.DirectX12(desc.Flags).States,
                                                null,
                                                out Resource).Success();
 
@@ -44,8 +37,6 @@ internal unsafe class DXBuffer : Buffer
             SizeInBytes = desc.SizeInBytes,
             StrideInBytes = desc.StrideInBytes
         });
-
-        States = initialState;
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
@@ -57,7 +48,7 @@ internal unsafe class DXBuffer : Buffer
     public override MappedMemory Map()
     {
         void* pointer;
-        Resource.Map(0, (Range*)null, &pointer).Success();
+        Resource.Map(0, (DxRange*)null, &pointer).Success();
 
         return new()
         {
@@ -70,7 +61,7 @@ internal unsafe class DXBuffer : Buffer
 
     public override void Unmap()
     {
-        Resource.Unmap(0, (Range*)null);
+        Resource.Unmap(0, (DxRange*)null);
     }
 
     protected override void SetResourceName(string name)
