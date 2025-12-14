@@ -4,7 +4,7 @@ using Silk.NET.Vulkan;
 
 namespace Zenith.NET.Vulkan;
 
-internal unsafe static class VKExtensions
+internal static unsafe class VKExtensions
 {
     extension(Result result)
     {
