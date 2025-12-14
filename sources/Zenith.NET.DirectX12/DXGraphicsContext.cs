@@ -126,12 +126,12 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override Texture CreateTextureImpl(TextureDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXTexture(this, desc);
     }
 
     protected override TextureView CreateTextureViewImpl(TextureViewDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXTextureView(this, desc);
     }
 
     protected override Sampler CreateSamplerImpl(SamplerDesc desc)

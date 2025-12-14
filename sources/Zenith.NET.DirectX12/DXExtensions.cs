@@ -59,10 +59,18 @@ internal static class DXExtensions
 
     extension(Texture texture)
     {
+        public DXTexture DirectX12()
+        {
+            return (DXTexture)texture;
+        }
     }
 
     extension(TextureView textureView)
     {
+        public DXTextureView DirectX12()
+        {
+            return (DXTextureView)textureView;
+        }
     }
 
     extension(Sampler sampler)
