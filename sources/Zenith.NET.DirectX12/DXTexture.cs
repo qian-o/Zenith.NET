@@ -71,13 +71,13 @@ internal unsafe class DXTexture : Texture
 
     public override MappedMemory Map(TextureSlice slice)
     {
-        ResourceDesc desc = Resource.GetDesc();
+        ResourceDesc resourceDesc = Resource.GetDesc();
 
         PlacedSubresourceFootprint footprint;
         uint numRows;
         ulong rowSizeInBytes;
         ulong totalBytes;
-        Context.Device.GetCopyableFootprints(&desc,
+        Context.Device.GetCopyableFootprints(&resourceDesc,
                                              ZenithHelper.SubresourceIndex(Desc, slice),
                                              1,
                                              0,
