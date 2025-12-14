@@ -1,9 +1,10 @@
 ﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Silk.NET.Vulkan;
 
 namespace Zenith.NET.Vulkan;
 
-internal static class VKExtensions
+internal unsafe static class VKExtensions
 {
     extension(Result result)
     {
@@ -13,6 +14,23 @@ internal static class VKExtensions
             {
                 Debug.WriteLine($"Vulkan call failed with error: {result}");
             }
+        }
+    }
+
+    extension<TChain, TNext>(ref TChain chain) where TChain : unmanaged, IChainable where TNext : unmanaged, IChainable
+    {
+        public void AddNext(out TNext next)
+        {
+            next = default;
+            next.StructureType();
+
+            BaseInStructure* current = (BaseInStructure*)Unsafe.AsPointer(ref chain);
+            while (current->PNext is not null)
+            {
+                current = current->PNext;
+            }
+
+            current->PNext = (BaseInStructure*)Unsafe.AsPointer(ref next);
         }
     }
 

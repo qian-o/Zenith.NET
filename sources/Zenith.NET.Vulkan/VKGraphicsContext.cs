@@ -404,10 +404,10 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                 PpEnabledExtensionNames = (byte**)ZenithMarshal.StringArrayToPointer(scope, enabledExtensions, StringEncoding.UTF8)
             };
 
-            createInfo.AddNext(out PhysicalDeviceFeatures2 features2)
-                      .AddNext(out PhysicalDeviceVulkan13Features _)
-                      .AddNext(out PhysicalDeviceVulkan12Features _)
-                      .AddNext(out PhysicalDeviceVulkan11Features _);
+            createInfo.AddNext(out PhysicalDeviceFeatures2 features2);
+            createInfo.AddNext(out PhysicalDeviceVulkan13Features _);
+            createInfo.AddNext(out PhysicalDeviceVulkan12Features _);
+            createInfo.AddNext(out PhysicalDeviceVulkan11Features _);
 
             if (enabledExtensions.Contains(KhrRayQuery.ExtensionName) || enabledExtensions.Contains(KhrRayTracingPipeline.ExtensionName))
             {
@@ -426,8 +426,8 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
             if (enabledExtensions.Contains(ExtMeshShader.ExtensionName))
             {
-                createInfo.AddNext(out PhysicalDeviceMeshShaderFeaturesEXT _)
-                          .AddNext(out PhysicalDeviceFragmentShadingRateFeaturesKHR _);
+                createInfo.AddNext(out PhysicalDeviceMeshShaderFeaturesEXT _);
+                createInfo.AddNext(out PhysicalDeviceFragmentShadingRateFeaturesKHR _);
             }
 
             Vk.GetPhysicalDeviceFeatures2(PhysicalDevice, &features2);
