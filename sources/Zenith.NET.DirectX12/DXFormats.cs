@@ -167,37 +167,37 @@ internal static class DXFormats
         };
     }
 
-    public static (ResourceFlags ResourceFlags, ResourceStates ResourceStates) DirectX12(TextureUsageFlags textureUsageFlags)
+    public static (ResourceFlags Flags, ResourceStates States) DirectX12(TextureUsageFlags textureUsageFlags)
     {
-        ResourceFlags resourceFlags = ResourceFlags.None;
+        ResourceFlags flags = ResourceFlags.None;
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.RenderTarget))
         {
-            resourceFlags |= ResourceFlags.AllowRenderTarget;
+            flags |= ResourceFlags.AllowRenderTarget;
         }
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.DepthStencil))
         {
-            resourceFlags |= ResourceFlags.AllowDepthStencil;
+            flags |= ResourceFlags.AllowDepthStencil;
         }
 
-        ResourceStates resourceStates = ResourceStates.Common;
+        ResourceStates states = ResourceStates.Common;
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.ShaderResource))
         {
-            resourceStates |= ResourceStates.AllShaderResource;
+            states |= ResourceStates.AllShaderResource;
         }
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.UnorderedAccess))
         {
-            resourceStates |= ResourceStates.UnorderedAccess;
+            states |= ResourceStates.UnorderedAccess;
         }
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.Dynamic))
         {
-            resourceStates |= ResourceStates.CopySource;
+            states |= ResourceStates.CopySource;
         }
 
-        return (resourceFlags, resourceStates);
+        return (flags, states);
     }
 }

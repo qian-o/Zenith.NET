@@ -19,7 +19,7 @@ internal unsafe class DXTexture : Texture
             Format = DXFormats.DirectX12(desc.Format),
             SampleDesc = DXFormats.DirectX12(desc.SampleCount),
             Layout = desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? TextureLayout.LayoutRowMajor : TextureLayout.LayoutUnknown,
-            Flags = DXFormats.DirectX12(desc.Flags).ResourceFlags
+            Flags = DXFormats.DirectX12(desc.Flags).Flags
         };
 
         HeapProperties heapProperties = new(HeapType.Default);
@@ -36,7 +36,7 @@ internal unsafe class DXTexture : Texture
             Context.Device.CreateCommittedResource(&heapProperties,
                                                    desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? HeapFlags.SharedCrossAdapter : HeapFlags.None,
                                                    &resourceDesc,
-                                                   DXFormats.DirectX12(desc.Flags).ResourceStates,
+                                                   DXFormats.DirectX12(desc.Flags).States,
                                                    &clearValue,
                                                    out Resource).Success();
         }
@@ -45,7 +45,7 @@ internal unsafe class DXTexture : Texture
             Context.Device.CreateCommittedResource(&heapProperties,
                                                    desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? HeapFlags.SharedCrossAdapter : HeapFlags.None,
                                                    &resourceDesc,
-                                                   DXFormats.DirectX12(desc.Flags).ResourceStates,
+                                                   DXFormats.DirectX12(desc.Flags).States,
                                                    null,
                                                    out Resource).Success();
         }
@@ -60,7 +60,7 @@ internal unsafe class DXTexture : Texture
         });
 
         States = new ResourceStates[ZenithHelper.SubresourceCount(desc)];
-        Array.Fill(States, DXFormats.DirectX12(desc.Flags).ResourceStates);
+        Array.Fill(States, DXFormats.DirectX12(desc.Flags).States);
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
