@@ -22,7 +22,7 @@ internal unsafe class VKTexture : Texture
             {
                 Width = desc.Width,
                 Height = desc.Height,
-                Depth = desc.Depth
+                Depth = desc.Type is TextureType.Texture3D ? desc.Depth : 1
             },
             MipLevels = desc.MipLevels,
             ArrayLayers = ZenithHelper.FlattenArrayLayerCount(desc),
@@ -84,7 +84,7 @@ internal unsafe class VKTexture : Texture
             {
                 Width = desc.Width,
                 Height = desc.Height,
-                Depth = desc.Depth
+                Depth = desc.Type is TextureType.Texture3D ? desc.Depth : 1
             },
             MipLevels = desc.MipLevels,
             ArrayLayers = ZenithHelper.FlattenArrayLayerCount(desc),
