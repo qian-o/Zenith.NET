@@ -128,7 +128,7 @@ internal unsafe class DXTexture : Texture
                 {
                     viewDesc.ViewDimension = RtvDimension.Texture1Darray;
                     viewDesc.Texture1DArray.MipSlice = slice.MipLevel;
-                    viewDesc.Texture1DArray.FirstArraySlice = slice.ArrayLayer;
+                    viewDesc.Texture1DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerIndex(Desc, slice);
                     viewDesc.Texture1DArray.ArraySize = 1;
                 }
                 break;
@@ -196,7 +196,7 @@ internal unsafe class DXTexture : Texture
                 {
                     viewDesc.ViewDimension = DsvDimension.Texture1Darray;
                     viewDesc.Texture1DArray.MipSlice = slice.MipLevel;
-                    viewDesc.Texture1DArray.FirstArraySlice = slice.ArrayLayer;
+                    viewDesc.Texture1DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerIndex(Desc, slice);
                     viewDesc.Texture1DArray.ArraySize = 1;
                 }
                 break;
