@@ -181,7 +181,57 @@ internal unsafe class DXTexture : Texture
     {
         DXDescriptorToken token = Context.DsvAllocator.Allocate();
 
-        DepthStencilViewDesc viewDesc = new();
+        DepthStencilViewDesc viewDesc = new() { Format = DXFormats.DirectX12(Desc.Format) };
+
+        switch (Desc.Type)
+        {
+            case TextureType.Texture1D:
+                {
+                    viewDesc.ViewDimension = DsvDimension.Texture1D;
+                    viewDesc.Texture1D.MipSlice = slice.MipLevel;
+                }
+                break;
+
+            case TextureType.Texture1DArray:
+                {
+                    viewDesc.ViewDimension = DsvDimension.Texture1Darray;
+                    viewDesc.Texture1DArray.MipSlice = slice.MipLevel;
+                    viewDesc.Texture1DArray.FirstArraySlice = slice.ArrayLayer;
+                    viewDesc.Texture1DArray.ArraySize = 1;
+                }
+                break;
+
+            case TextureType.Texture2D:
+            case TextureType.Texture3D:
+                if (Desc.SampleCount is SampleCount.Count1)
+                {
+                    viewDesc.ViewDimension = DsvDimension.Texture2D;
+                    viewDesc.Texture2D.MipSlice = slice.MipLevel;
+                }
+                else
+                {
+                    viewDesc.ViewDimension = DsvDimension.Texture2Dms;
+                }
+                break;
+
+            case TextureType.Texture2DArray:
+            case TextureType.TextureCube:
+            case TextureType.TextureCubeArray:
+                if (Desc.SampleCount is SampleCount.Count1)
+                {
+                    viewDesc.ViewDimension = DsvDimension.Texture2Darray;
+                    viewDesc.Texture2DArray.MipSlice = slice.MipLevel;
+                    viewDesc.Texture2DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerIndex(Desc, slice);
+                    viewDesc.Texture2DArray.ArraySize = 1;
+                }
+                else
+                {
+                    viewDesc.ViewDimension = DsvDimension.Texture2Dmsarray;
+                    viewDesc.Texture2DMSArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerIndex(Desc, slice);
+                    viewDesc.Texture2DMSArray.ArraySize = 1;
+                }
+                break;
+        }
 
         Context.Device.CreateDepthStencilView(Resource, &viewDesc, token.Handle);
 
