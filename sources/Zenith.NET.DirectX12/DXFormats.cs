@@ -200,4 +200,14 @@ internal static class DXFormats
 
         return (flags, states);
     }
+
+    public static (DxFilter Filter, DxComparisonFunc ComparisonFunc) DirectX12(Filter filter, ComparisonFunc comparisonFunc)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static TextureAddressMode DirectX12(AddressMode u)
+    {
+        throw new NotImplementedException();
+    }
 }

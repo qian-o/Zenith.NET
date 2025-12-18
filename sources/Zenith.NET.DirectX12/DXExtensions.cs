@@ -75,6 +75,10 @@ internal static class DXExtensions
 
     extension(Sampler sampler)
     {
+        public DXSampler DirectX12()
+        {
+            return (DXSampler)sampler;
+        }
     }
 
     extension(BottomLevelAccelerationStructure bottomLevelAccelerationStructure)

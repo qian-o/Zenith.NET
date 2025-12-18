@@ -19,8 +19,8 @@ internal unsafe class DXTextureView(GraphicsContext context, TextureViewDesc des
 
     protected override void Destroy()
     {
-        uavToken?.Free();
-        srvToken?.Free();
+        uavToken?.Dispose();
+        srvToken?.Dispose();
     }
 
     private DXDescriptorToken CreateSrvToken()

@@ -22,9 +22,9 @@ internal unsafe class DXBufferView(GraphicsContext context, BufferViewDesc desc)
 
     protected override void Destroy()
     {
-        uavToken?.Free();
-        srvToken?.Free();
-        cbvToken?.Free();
+        uavToken?.Dispose();
+        srvToken?.Dispose();
+        cbvToken?.Dispose();
     }
 
     private DXDescriptorToken CreateCbvToken()

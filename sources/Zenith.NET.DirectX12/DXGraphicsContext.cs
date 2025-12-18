@@ -136,7 +136,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override Sampler CreateSamplerImpl(SamplerDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXSampler(this, desc);
     }
 
     protected override ResourceLayout CreateResourceLayoutImpl(ResourceLayoutDesc desc)

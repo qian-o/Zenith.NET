@@ -2,13 +2,13 @@
 
 namespace Zenith.NET.DirectX12;
 
-internal record struct DXDescriptorToken
+internal record struct DXDescriptorToken : IDisposable
 {
     public DXDescriptorPool Pool;
 
     public CpuDescriptorHandle Handle;
 
-    public readonly void Free()
+    public readonly void Dispose()
     {
         Pool.Free(Handle);
     }
