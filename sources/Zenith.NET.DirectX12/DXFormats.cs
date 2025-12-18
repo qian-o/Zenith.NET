@@ -203,11 +203,47 @@ internal static class DXFormats
 
     public static (DxFilter Filter, DxComparisonFunc ComparisonFunc) DirectX12(Filter filter, ComparisonFunc comparisonFunc)
     {
-        throw new NotImplementedException();
+        bool isComparison = comparisonFunc is not ComparisonFunc.Never and not ComparisonFunc.Always;
+
+        return
+        (
+            filter switch
+            {
+                Filter.MinPointMagPointMipPoint => isComparison ? DxFilter.ComparisonMinMagMipPoint : DxFilter.MinMagMipPoint,
+                Filter.MinPointMagPointMipLinear => isComparison ? DxFilter.ComparisonMinMagPointMipLinear : DxFilter.MinMagPointMipLinear,
+                Filter.MinPointMagLinearMipPoint => isComparison ? DxFilter.ComparisonMinPointMagLinearMipPoint : DxFilter.MinPointMagLinearMipPoint,
+                Filter.MinPointMagLinearMipLinear => isComparison ? DxFilter.ComparisonMinPointMagMipLinear : DxFilter.MinPointMagMipLinear,
+                Filter.MinLinearMagPointMipPoint => isComparison ? DxFilter.ComparisonMinLinearMagMipPoint : DxFilter.MinLinearMagMipPoint,
+                Filter.MinLinearMagPointMipLinear => isComparison ? DxFilter.ComparisonMinLinearMagPointMipLinear : DxFilter.MinLinearMagPointMipLinear,
+                Filter.MinLinearMagLinearMipPoint => isComparison ? DxFilter.ComparisonMinMagLinearMipPoint : DxFilter.MinMagLinearMipPoint,
+                Filter.MinLinearMagLinearMipLinear => isComparison ? DxFilter.ComparisonMinMagMipLinear : DxFilter.MinMagMipLinear,
+                Filter.Anisotropic => isComparison ? DxFilter.ComparisonAnisotropic : DxFilter.Anisotropic,
+                _ => DxFilter.MinMagMipPoint
+            },
+            comparisonFunc switch
+            {
+                ComparisonFunc.Never => DxComparisonFunc.Never,
+                ComparisonFunc.Less => DxComparisonFunc.Less,
+                ComparisonFunc.Equal => DxComparisonFunc.Equal,
+                ComparisonFunc.LessEqual => DxComparisonFunc.LessEqual,
+                ComparisonFunc.Greater => DxComparisonFunc.Greater,
+                ComparisonFunc.NotEqual => DxComparisonFunc.NotEqual,
+                ComparisonFunc.GreaterEqual => DxComparisonFunc.GreaterEqual,
+                ComparisonFunc.Always => DxComparisonFunc.Always,
+                _ => DxComparisonFunc.None
+            }
+        );
     }
 
-    public static TextureAddressMode DirectX12(AddressMode u)
+    public static TextureAddressMode DirectX12(AddressMode addressMode)
     {
-        throw new NotImplementedException();
+        return addressMode switch
+        {
+            AddressMode.Wrap => TextureAddressMode.Wrap,
+            AddressMode.Mirror => TextureAddressMode.Mirror,
+            AddressMode.Clamp => TextureAddressMode.Clamp,
+            AddressMode.Border => TextureAddressMode.Border,
+            _ => TextureAddressMode.Wrap
+        };
     }
 }
