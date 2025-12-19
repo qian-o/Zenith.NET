@@ -126,6 +126,23 @@ internal unsafe class DXTexture : Texture
         Resource.Unmap(0, (DxRange*)null);
     }
 
+    public void TransitionStates(CommandBuffer commandBuffer,
+                                 uint firstMipLevel,
+                                 uint mipLevelCount,
+                                 uint firstArrayLayer,
+                                 uint arrayLayerCount,
+                                 uint firstFace,
+                                 uint faceCount,
+                                 ResourceStates states)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void TransitionStates(CommandBuffer commandBuffer, TextureSlice slice, ResourceStates states)
+    {
+        TransitionStates(commandBuffer, slice.MipLevel, 1, slice.ArrayLayer, 1, slice.Face, 1, states);
+    }
+
     public DXDescriptorToken CreateRtvToken(TextureSlice slice)
     {
         DXDescriptorToken token = Context.RtvAllocator.Allocate();

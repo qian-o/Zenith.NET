@@ -65,8 +65,8 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         ImageLayout srcOldLayout = vkSrc.Layouts[ZenithHelper.SubresourceIndex(vkSrc.Desc, srcSlice)];
         ImageLayout destOldLayout = vkDest.Layouts[ZenithHelper.SubresourceIndex(vkDest.Desc, destSlice)];
 
-        vkSrc.TransitionLayout(this, srcSlice.MipLevel, 1, srcSlice.ArrayLayer, 1, srcSlice.Face, 1, ImageLayout.TransferSrcOptimal);
-        vkDest.TransitionLayout(this, destSlice.MipLevel, 1, destSlice.ArrayLayer, 1, destSlice.Face, 1, ImageLayout.TransferDstOptimal);
+        vkSrc.TransitionLayout(this, srcSlice, ImageLayout.TransferSrcOptimal);
+        vkDest.TransitionLayout(this, destSlice, ImageLayout.TransferDstOptimal);
 
         ImageCopy imageCopy = new()
         {
@@ -106,8 +106,8 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
         Context.Vk.CmdCopyImage(CommandBuffer, vkSrc.Image, ImageLayout.TransferSrcOptimal, vkDest.Image, ImageLayout.TransferDstOptimal, 1, &imageCopy);
 
-        vkSrc.TransitionLayout(this, srcSlice.MipLevel, 1, srcSlice.ArrayLayer, 1, srcSlice.Face, 1, srcOldLayout);
-        vkDest.TransitionLayout(this, destSlice.MipLevel, 1, destSlice.ArrayLayer, 1, destSlice.Face, 1, destOldLayout);
+        vkSrc.TransitionLayout(this, srcSlice, srcOldLayout);
+        vkDest.TransitionLayout(this, destSlice, destOldLayout);
     }
 
     protected override void ResolveTextureImpl(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice)
@@ -118,8 +118,8 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         ImageLayout srcOldLayout = vkSrc.Layouts[ZenithHelper.SubresourceIndex(vkSrc.Desc, srcSlice)];
         ImageLayout destOldLayout = vkDest.Layouts[ZenithHelper.SubresourceIndex(vkDest.Desc, destSlice)];
 
-        vkSrc.TransitionLayout(this, srcSlice.MipLevel, 1, srcSlice.ArrayLayer, 1, srcSlice.Face, 1, ImageLayout.TransferSrcOptimal);
-        vkDest.TransitionLayout(this, destSlice.MipLevel, 1, destSlice.ArrayLayer, 1, destSlice.Face, 1, ImageLayout.TransferDstOptimal);
+        vkSrc.TransitionLayout(this, srcSlice, ImageLayout.TransferSrcOptimal);
+        vkDest.TransitionLayout(this, destSlice, ImageLayout.TransferDstOptimal);
 
         ZenithHelper.MipDimensions(vkDest.Desc.Width, vkDest.Desc.Height, vkDest.Desc.Depth, destSlice.MipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth);
 
@@ -149,8 +149,8 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
         Context.Vk.CmdResolveImage(CommandBuffer, vkSrc.Image, ImageLayout.TransferSrcOptimal, vkDest.Image, ImageLayout.TransferDstOptimal, 1, &imageResolve);
 
-        vkSrc.TransitionLayout(this, srcSlice.MipLevel, 1, srcSlice.ArrayLayer, 1, srcSlice.Face, 1, srcOldLayout);
-        vkDest.TransitionLayout(this, destSlice.MipLevel, 1, destSlice.ArrayLayer, 1, destSlice.Face, 1, destOldLayout);
+        vkSrc.TransitionLayout(this, srcSlice, srcOldLayout);
+        vkDest.TransitionLayout(this, destSlice, destOldLayout);
     }
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)

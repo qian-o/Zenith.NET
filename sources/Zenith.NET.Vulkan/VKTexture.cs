@@ -322,6 +322,11 @@ internal unsafe class VKTexture : Texture
         }
     }
 
+    public void TransitionLayout(VKCommandBuffer commandBuffer, TextureSlice slice, ImageLayout newLayout)
+    {
+        TransitionLayout(commandBuffer, slice.MipLevel, 1, slice.ArrayLayer, 1, slice.Face, 1, newLayout);
+    }
+
     protected override void SetResourceName(string name)
     {
         using ZenithMarshal.Scope scope = new();

@@ -76,7 +76,12 @@ internal unsafe class DXFrameBuffer : FrameBuffer
 
     public void PrepareAttachmentsForRendering(CommandBuffer commandBuffer)
     {
-        throw new NotImplementedException();
+        foreach (FrameBufferAttachment attachment in Desc.ColorAttachments)
+        {
+            attachment.Target.DirectX12().TransitionStates(commandBuffer, attachment.Slice, ResourceStates.RenderTarget);
+        }
+
+        Desc.DepthStencilAttachment?.Target.DirectX12().TransitionStates(commandBuffer, Desc.DepthStencilAttachment.Value.Slice, ResourceStates.DepthWrite | ResourceStates.DepthRead);
     }
 
     public void FinalizeColorAttachmentsForPresent(CommandBuffer commandBuffer)
