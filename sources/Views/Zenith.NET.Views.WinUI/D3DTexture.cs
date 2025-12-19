@@ -48,7 +48,7 @@ internal unsafe partial class D3DTexture : DisposableObject
         using ComPtr<IDXGIResource1> resource = Texture.QueryInterface<IDXGIResource1>();
 
         void* sharedHandle = null;
-        D3D.Success(resource.GetSharedHandle(&sharedHandle));
+        D3D.Success(resource.CreateSharedHandle((SecurityAttributes*)null, DXGI.SharedResourceRead | DXGI.SharedResourceWrite, (char*)null, &sharedHandle));
 
         Handle = (nint)Texture.Handle;
         SharedHandle = (nint)sharedHandle;

@@ -20,7 +20,7 @@ internal unsafe class D3DTexture : DisposableObject
 
     public D3DTexture(uint width, uint height)
     {
-        void* d3d9ShareHandle = null;
+        void* d3d9SharedHandle = null;
         D3D.Success(D3D.D3D9DeviceEx.CreateTexture(width,
                                                    height,
                                                    1,
@@ -28,15 +28,15 @@ internal unsafe class D3DTexture : DisposableObject
                                                    Format.X8R8G8B8,
                                                    Pool.Default,
                                                    ref D3D9Texture,
-                                                   &d3d9ShareHandle));
+                                                   &d3d9SharedHandle));
 
         D3D.Success(D3D9Texture.GetSurfaceLevel(0, ref D3D9Surface));
-        D3D.Success(D3D.D3D11Device.OpenSharedResource(d3d9ShareHandle, out D3D11Texture));
+        D3D.Success(D3D.D3D11Device.OpenSharedResource(d3d9SharedHandle, out D3D11Texture));
 
-        using ComPtr<IDXGIResource> resource = D3D11Texture.QueryInterface<IDXGIResource>();
+        using ComPtr<IDXGIResource1> resource = D3D11Texture.QueryInterface<IDXGIResource1>();
 
         void* d3d11SharedHandle = null;
-        D3D.Success(resource.GetSharedHandle(&d3d11SharedHandle));
+        D3D.Success(resource.CreateSharedHandle((SecurityAttributes*)null, DXGI.SharedResourceRead | DXGI.SharedResourceWrite, (char*)null, &d3d11SharedHandle));
 
         Handle = (nint)D3D9Surface.Handle;
         SharedHandle = (nint)d3d11SharedHandle;
