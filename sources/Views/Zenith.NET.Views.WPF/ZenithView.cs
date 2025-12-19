@@ -128,15 +128,14 @@ public class ZenithView : Control
                 image.Unlock();
             }
 
-            texture.AcquireMutex();
-            {
-                UpdateRequested?.Invoke(this, new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
-                RenderRequested?.Invoke(this, new(timer.GetAndRestartRender(), timer.TotalSeconds, swapChain.FrameBuffer));
-            }
-            texture.ReleaseMutex();
+            texture.AcquireForUpdate();
 
-            texture.Present();
+            UpdateRequested?.Invoke(this, new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
+            RenderRequested?.Invoke(this, new(timer.GetAndRestartRender(), timer.TotalSeconds, swapChain.FrameBuffer));
+
             swapChain.Present();
+
+            texture.PresentAndRelease();
 
             image.Lock();
             image.AddDirtyRect(new(0, 0, (int)width, (int)height));

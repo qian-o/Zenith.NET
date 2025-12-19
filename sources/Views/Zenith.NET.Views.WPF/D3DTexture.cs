@@ -72,24 +72,17 @@ internal unsafe class D3DTexture : DisposableObject
 
     public uint Height { get; }
 
-    public void AcquireMutex()
+    public void AcquireForUpdate()
     {
         D3D.Success(D3D11Mutex.AcquireSync(key++, uint.MaxValue));
     }
 
-    public void ReleaseMutex()
+    public void PresentAndRelease()
     {
-        D3D.Success(D3D11Mutex.ReleaseSync(key));
-    }
-
-    public void Present()
-    {
-        AcquireMutex();
-
         D3D.D3D11DeviceContext.CopyResource((ID3D11Resource*)D3D9SharedTexture.Handle, (ID3D11Resource*)D3D11RenderTarget.Handle);
         D3D.D3D11DeviceContext.Flush();
 
-        ReleaseMutex();
+        D3D.Success(D3D11Mutex.ReleaseSync(key));
     }
 
     protected override void Destroy()
