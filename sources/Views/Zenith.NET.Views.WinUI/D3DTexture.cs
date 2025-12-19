@@ -40,7 +40,7 @@ internal unsafe partial class D3DTexture : DisposableObject
             Format = Format.FormatB8G8R8A8Unorm,
             SampleDesc = new SampleDesc { Count = 1, Quality = 0 },
             Usage = Usage.Default,
-            MiscFlags = (uint)ResourceMiscFlag.Shared
+            MiscFlags = (uint)(ResourceMiscFlag.SharedNthandle | ResourceMiscFlag.SharedKeyedmutex)
         };
 
         D3D.Success(D3D.Device.CreateTexture2D(&texture2DDesc, null, ref Texture));
