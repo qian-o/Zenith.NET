@@ -23,7 +23,7 @@ internal unsafe class D3DTexture : DisposableObject
 
     public nint SharedHandle;
 
-    private ulong mutexKey;
+    private ulong key;
 
     public D3DTexture(uint width, uint height)
     {
@@ -74,12 +74,12 @@ internal unsafe class D3DTexture : DisposableObject
 
     public void AcquireMutex()
     {
-        D3D.Success(D3D11Mutex.AcquireSync(mutexKey++, uint.MaxValue));
+        D3D.Success(D3D11Mutex.AcquireSync(key++, uint.MaxValue));
     }
 
     public void ReleaseMutex()
     {
-        D3D.Success(D3D11Mutex.ReleaseSync(mutexKey));
+        D3D.Success(D3D11Mutex.ReleaseSync(key));
     }
 
     public void Present()
