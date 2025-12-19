@@ -87,10 +87,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         }
         else
         {
-            uint* pQueueFamilyIndices = (uint*)ZenithMarshal.Allocate<uint>(scope, (uint)QueueFamilyIndices.Length);
-            QueueFamilyIndices.CopyTo(new Span<uint>(pQueueFamilyIndices, QueueFamilyIndices.Length));
-
-            return (SharingMode.Concurrent, (uint)QueueFamilyIndices.Length, (nint)pQueueFamilyIndices);
+            return (SharingMode.Concurrent, (uint)QueueFamilyIndices.Length, ZenithMarshal.AllocateAndFill(scope, QueueFamilyIndices));
         }
     }
 

@@ -6,12 +6,9 @@ internal unsafe class DXShader(DXGraphicsContext context, ShaderDesc desc) : Sha
 {
     public ShaderBytecode GetShaderBytecode(ZenithMarshal.Scope scope)
     {
-        byte* shaderBytecode = (byte*)ZenithMarshal.Allocate<byte>(scope, (uint)Desc.ShaderBytes.Length);
-        Desc.ShaderBytes.CopyTo(new Span<byte>(shaderBytecode, Desc.ShaderBytes.Length));
-
         return new()
         {
-            PShaderBytecode = shaderBytecode,
+            PShaderBytecode = (byte*)ZenithMarshal.AllocateAndFill(scope, Desc.ShaderBytes),
             BytecodeLength = (uint)Desc.ShaderBytes.Length
         };
     }

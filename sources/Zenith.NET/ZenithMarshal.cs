@@ -35,6 +35,11 @@ public static unsafe class ZenithMarshal
         return scope.Native(new T[length]);
     }
 
+    public static nint AllocateAndFill<T>(Scope scope, ReadOnlySpan<T> data) where T : unmanaged
+    {
+        return scope.Native(data);
+    }
+
     public static nint StringToPointer(Scope scope, string value, StringEncoding encoding)
     {
         byte[] values = encoding switch
