@@ -6,9 +6,9 @@ internal unsafe class DXSampler : Sampler
 {
     public DXDescriptorToken Token;
 
-    public DXSampler(GraphicsContext context, SamplerDesc desc) : base(context, desc)
+    public DXSampler(DXGraphicsContext context, SamplerDesc desc) : base(context, desc)
     {
-        Token = Context.SamplerAllocator.Allocate();
+        Token = context.SamplerAllocator.Allocate();
 
         DxSamplerDesc samplerDesc = new()
         {
@@ -37,10 +37,8 @@ internal unsafe class DXSampler : Sampler
                 break;
         }
 
-        Context.Device.CreateSampler(&samplerDesc, Token.Handle);
+        context.Device.CreateSampler(&samplerDesc, Token.Handle);
     }
-
-    public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
 
     protected override void SetResourceName(string name)
     {

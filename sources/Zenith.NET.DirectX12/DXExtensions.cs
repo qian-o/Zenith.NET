@@ -26,6 +26,10 @@ internal static class DXExtensions
 
     extension(SwapChain swapChain)
     {
+        public DXSwapChain DirectX12()
+        {
+            return (DXSwapChain)swapChain;
+        }
     }
 
 

@@ -10,7 +10,7 @@ internal unsafe class DXFrameBuffer : FrameBuffer
 
     public CpuDescriptorHandle* DsvHandle;
 
-    public DXFrameBuffer(GraphicsContext context, FrameBufferDesc desc) : base(context, desc)
+    public DXFrameBuffer(DXGraphicsContext context, FrameBufferDesc desc) : base(context, desc)
     {
         ColorAttachmentCount = (uint)desc.ColorAttachments.Length;
         HasDepthStencilAttachment = desc.DepthStencilAttachment is not null;

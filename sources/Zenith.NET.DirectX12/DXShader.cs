@@ -2,10 +2,8 @@
 
 namespace Zenith.NET.DirectX12;
 
-internal unsafe class DXShader(GraphicsContext context, ShaderDesc desc) : Shader(context, desc)
+internal unsafe class DXShader(DXGraphicsContext context, ShaderDesc desc) : Shader(context, desc)
 {
-    public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
-
     public ShaderBytecode GetShaderBytecode(ZenithMarshal.Scope scope)
     {
         byte* shaderBytecode = (byte*)ZenithMarshal.Allocate<byte>(scope, (uint)Desc.ShaderBytes.Length);

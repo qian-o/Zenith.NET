@@ -7,7 +7,7 @@ internal unsafe class DXBuffer : Buffer
 {
     public ComPtr<ID3D12Resource> Resource;
 
-    public DXBuffer(GraphicsContext context, BufferDesc desc) : base(context, desc)
+    public DXBuffer(DXGraphicsContext context, BufferDesc desc) : base(context, desc)
     {
         ResourceDesc resourceDesc = new()
         {
@@ -23,7 +23,7 @@ internal unsafe class DXBuffer : Buffer
 
         HeapProperties heapProperties = new(desc.Flags.HasFlag(BufferUsageFlags.Dynamic) ? HeapType.Upload : HeapType.Default);
 
-        Context.Device.CreateCommittedResource(&heapProperties,
+        context.Device.CreateCommittedResource(&heapProperties,
                                                HeapFlags.None,
                                                &resourceDesc,
                                                States = DXFormats.DirectX12(desc.Flags).States,
@@ -38,8 +38,6 @@ internal unsafe class DXBuffer : Buffer
             StrideInBytes = desc.StrideInBytes
         });
     }
-
-    public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
 
     public DXBufferView View { get; }
 

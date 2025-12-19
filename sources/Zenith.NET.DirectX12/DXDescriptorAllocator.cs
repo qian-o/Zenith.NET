@@ -14,7 +14,7 @@ internal class DXDescriptorAllocator(DXGraphicsContext context, DescriptorHeapTy
         CpuDescriptorHandle handle = default;
         if (available.FirstOrDefault(item => item.TryAllocate(out handle)) is not DXDescriptorPool pool)
         {
-            pool = new(Context, type, out handle);
+            pool = new(context, type, out handle);
         }
 
         return new() { Pool = pool, Handle = handle };

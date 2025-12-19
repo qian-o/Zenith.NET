@@ -2,13 +2,11 @@
 
 namespace Zenith.NET.DirectX12;
 
-internal unsafe class DXBufferView(GraphicsContext context, BufferViewDesc desc) : BufferView(context, desc)
+internal unsafe class DXBufferView(DXGraphicsContext context, BufferViewDesc desc) : BufferView(context, desc)
 {
     private DXDescriptorToken? cbvToken;
     private DXDescriptorToken? srvToken;
     private DXDescriptorToken? uavToken;
-
-    public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
 
     public CpuDescriptorHandle CbvHandle => (cbvToken ??= CreateCbvToken()).Handle;
 
@@ -29,7 +27,7 @@ internal unsafe class DXBufferView(GraphicsContext context, BufferViewDesc desc)
 
     private DXDescriptorToken CreateCbvToken()
     {
-        DXDescriptorToken token = Context.CbvSrvUavAllocator.Allocate();
+        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate();
 
         ConstantBufferViewDesc viewDesc = new()
         {
@@ -37,14 +35,14 @@ internal unsafe class DXBufferView(GraphicsContext context, BufferViewDesc desc)
             SizeInBytes = Desc.SizeInBytes
         };
 
-        Context.Device.CreateConstantBufferView(&viewDesc, token.Handle);
+        context.Device.CreateConstantBufferView(&viewDesc, token.Handle);
 
         return token;
     }
 
     private DXDescriptorToken CreateSrvToken()
     {
-        DXDescriptorToken token = Context.CbvSrvUavAllocator.Allocate();
+        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate();
 
         ShaderResourceViewDesc viewDesc = new()
         {
@@ -57,14 +55,14 @@ internal unsafe class DXBufferView(GraphicsContext context, BufferViewDesc desc)
             }
         };
 
-        Context.Device.CreateShaderResourceView(Desc.Buffer.DirectX12().Resource, &viewDesc, token.Handle);
+        context.Device.CreateShaderResourceView(Desc.Buffer.DirectX12().Resource, &viewDesc, token.Handle);
 
         return token;
     }
 
     private DXDescriptorToken CreateUavToken()
     {
-        DXDescriptorToken token = Context.CbvSrvUavAllocator.Allocate();
+        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate();
 
         UnorderedAccessViewDesc viewDesc = new()
         {
@@ -76,7 +74,7 @@ internal unsafe class DXBufferView(GraphicsContext context, BufferViewDesc desc)
             }
         };
 
-        Context.Device.CreateUnorderedAccessView(Desc.Buffer.DirectX12().Resource, (ID3D12Resource*)null, &viewDesc, token.Handle);
+        context.Device.CreateUnorderedAccessView(Desc.Buffer.DirectX12().Resource, (ID3D12Resource*)null, &viewDesc, token.Handle);
 
         return token;
     }

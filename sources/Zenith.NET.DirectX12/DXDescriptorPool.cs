@@ -13,7 +13,7 @@ internal unsafe class DXDescriptorPool : GraphicsResource
 
     public ComPtr<ID3D12DescriptorHeap> Heap;
 
-    public DXDescriptorPool(GraphicsContext context, DescriptorHeapType type, out CpuDescriptorHandle initialHandle) : base(context)
+    public DXDescriptorPool(DXGraphicsContext context, DescriptorHeapType type, out CpuDescriptorHandle initialHandle) : base(context)
     {
         slots[0] = true;
 
@@ -23,13 +23,11 @@ internal unsafe class DXDescriptorPool : GraphicsResource
             NumDescriptors = DescriptorCount
         };
 
-        Context.Device.CreateDescriptorHeap(&desc, out Heap).Success();
+        context.Device.CreateDescriptorHeap(&desc, out Heap).Success();
 
-        handleSize = Context.Device.GetDescriptorHandleIncrementSize(type);
+        handleSize = context.Device.GetDescriptorHandleIncrementSize(type);
         initialHandle = startHandle = Heap.GetCPUDescriptorHandleForHeapStart();
     }
-
-    public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
 
     public bool TryAllocate(out CpuDescriptorHandle handle)
     {

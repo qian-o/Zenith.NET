@@ -2,12 +2,10 @@
 
 namespace Zenith.NET.DirectX12;
 
-internal unsafe class DXTextureView(GraphicsContext context, TextureViewDesc desc) : TextureView(context, desc)
+internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc desc) : TextureView(context, desc)
 {
     private DXDescriptorToken? srvToken;
     private DXDescriptorToken? uavToken;
-
-    public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
 
     public CpuDescriptorHandle SrvHandle => (srvToken ??= CreateSrvToken()).Handle;
 
@@ -25,7 +23,7 @@ internal unsafe class DXTextureView(GraphicsContext context, TextureViewDesc des
 
     private DXDescriptorToken CreateSrvToken()
     {
-        DXDescriptorToken token = Context.CbvSrvUavAllocator.Allocate();
+        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate();
 
         ShaderResourceViewDesc viewDesc = new() { Format = DXFormats.DirectX12(Desc.Texture.Desc.Format) };
 
@@ -106,14 +104,14 @@ internal unsafe class DXTextureView(GraphicsContext context, TextureViewDesc des
                 break;
         }
 
-        Context.Device.CreateShaderResourceView(Desc.Texture.DirectX12().Resource, &viewDesc, token.Handle);
+        context.Device.CreateShaderResourceView(Desc.Texture.DirectX12().Resource, &viewDesc, token.Handle);
 
         return token;
     }
 
     private DXDescriptorToken CreateUavToken()
     {
-        DXDescriptorToken token = Context.CbvSrvUavAllocator.Allocate();
+        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate();
 
         UnorderedAccessViewDesc viewDesc = new() { Format = DXFormats.DirectX12(Desc.Texture.Desc.Format) };
 
@@ -174,7 +172,7 @@ internal unsafe class DXTextureView(GraphicsContext context, TextureViewDesc des
                 break;
         }
 
-        Context.Device.CreateUnorderedAccessView(Desc.Texture.DirectX12().Resource, (ID3D12Resource*)null, &viewDesc, token.Handle);
+        context.Device.CreateUnorderedAccessView(Desc.Texture.DirectX12().Resource, (ID3D12Resource*)null, &viewDesc, token.Handle);
 
         return token;
     }

@@ -7,7 +7,7 @@ internal unsafe class DXTexture : Texture
 {
     public ComPtr<ID3D12Resource> Resource;
 
-    public DXTexture(GraphicsContext context, TextureDesc desc) : base(context, desc)
+    public DXTexture(DXGraphicsContext context, TextureDesc desc) : base(context, desc)
     {
         ResourceDesc resourceDesc = new()
         {
@@ -33,7 +33,7 @@ internal unsafe class DXTexture : Texture
                 clearValue.DepthStencil = new() { Depth = 1.0f };
             }
 
-            Context.Device.CreateCommittedResource(&heapProperties,
+            context.Device.CreateCommittedResource(&heapProperties,
                                                    desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? HeapFlags.SharedCrossAdapter : HeapFlags.None,
                                                    &resourceDesc,
                                                    DXFormats.DirectX12(desc.Flags).States,
@@ -42,7 +42,7 @@ internal unsafe class DXTexture : Texture
         }
         else
         {
-            Context.Device.CreateCommittedResource(&heapProperties,
+            context.Device.CreateCommittedResource(&heapProperties,
                                                    desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? HeapFlags.SharedCrossAdapter : HeapFlags.None,
                                                    &resourceDesc,
                                                    DXFormats.DirectX12(desc.Flags).States,

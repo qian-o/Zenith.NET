@@ -5,8 +5,6 @@ namespace Zenith.NET.DirectX12;
 
 internal class DXCommandQueue(DXGraphicsContext context, CommandQueueType type, ComPtr<ID3D12CommandQueue> queue) : CommandQueue(context, type)
 {
-    public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
-
     protected override CommandBuffer CreateCommandBuffer()
     {
         throw new NotImplementedException();

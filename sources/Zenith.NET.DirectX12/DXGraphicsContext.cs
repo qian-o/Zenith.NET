@@ -101,7 +101,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override SwapChain CreateSwapChainImpl(SwapChainDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXSwapChain(this, desc);
     }
 
     protected override FrameBuffer CreateFrameBufferImpl(FrameBufferDesc desc)
