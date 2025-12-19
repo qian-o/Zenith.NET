@@ -10,9 +10,13 @@ internal unsafe partial class D3DTexture : DisposableObject
 
     public ComPtr<ID3D11Texture2D> Texture;
 
+    public ComPtr<IDXGIKeyedMutex> Mutex;
+
     public nint Handle;
 
     public nint SharedHandle;
+
+    private ulong key;
 
     public D3DTexture(uint width, uint height)
     {
@@ -60,8 +64,20 @@ internal unsafe partial class D3DTexture : DisposableObject
 
     public uint Height { get; }
 
+    public void AcquireMutex()
+    {
+        D3D.Success(Mutex.AcquireSync(key++, uint.MaxValue));
+    }
+
+    public void ReleaseMutex()
+    {
+        D3D.Success(Mutex.ReleaseSync(key));
+    }
+
     public void Present()
     {
+        AcquireMutex();
+
         D3D.Success(SwapChain.GetBuffer(0, out ComPtr<ID3D11Texture2D> backBuffer));
 
         D3D.DeviceContext.CopyResource((ID3D11Resource*)backBuffer.Handle, (ID3D11Resource*)Texture.Handle);
@@ -70,6 +86,8 @@ internal unsafe partial class D3DTexture : DisposableObject
         D3D.Success(SwapChain.Present(1, 0));
 
         backBuffer.Dispose();
+
+        ReleaseMutex();
     }
 
     protected override void Destroy()
