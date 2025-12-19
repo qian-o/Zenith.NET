@@ -86,7 +86,13 @@ internal unsafe class DXFrameBuffer : FrameBuffer
 
     public void FinalizeColorAttachmentsForPresent(CommandBuffer commandBuffer)
     {
-        throw new NotImplementedException();
+        foreach (FrameBufferAttachment attachment in Desc.ColorAttachments)
+        {
+            if (attachment.Target.Desc.Flags.HasFlag(TextureUsageFlags.RenderTarget))
+            {
+                attachment.Target.DirectX12().TransitionStates(commandBuffer, attachment.Slice, ResourceStates.Present);
+            }
+        }
     }
 
     protected override void SetResourceName(string name)
