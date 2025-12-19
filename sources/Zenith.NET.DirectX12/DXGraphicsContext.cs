@@ -6,6 +6,8 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsContext(Backend.DirectX12, useValidationLayer)
 {
+    public const uint SwapChainBufferCount = 3;
+
     public const uint Shader4ComponentMapping = 0x1688;
 
     public ComPtr<IDXGIFactory7> Factory7;
