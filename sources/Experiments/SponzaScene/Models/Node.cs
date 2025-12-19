@@ -2,4 +2,4 @@
 
 namespace SponzaScene.Models;
 
-internal record struct Node(string Name, uint VertexCount, IndirectDrawIndexedArgs Args, uint Material);
+internal readonly record struct Node(string Name, uint VertexCount, IndirectDrawIndexedArgs Args, uint Material);

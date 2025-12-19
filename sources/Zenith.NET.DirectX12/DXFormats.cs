@@ -246,4 +246,23 @@ internal static class DXFormats
             _ => TextureAddressMode.Wrap
         };
     }
+
+    public static DescriptorRangeType DirectX12(ResourceType resourceType)
+    {
+        return resourceType switch
+        {
+            ResourceType.ConstantBuffer => DescriptorRangeType.Cbv,
+
+            ResourceType.StructuredBuffer or
+            ResourceType.Texture or
+            ResourceType.AccelerationStructure => DescriptorRangeType.Srv,
+
+            ResourceType.StructuredBufferReadWrite or
+            ResourceType.TextureReadWrite => DescriptorRangeType.Uav,
+
+            ResourceType.Sampler => DescriptorRangeType.Sampler,
+
+            _ => DescriptorRangeType.Srv
+        };
+    }
 }

@@ -143,7 +143,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override ResourceLayout CreateResourceLayoutImpl(ResourceLayoutDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXResourceLayout(this, desc);
     }
 
     protected override ResourceSet CreateResourceSetImpl(ResourceSetDesc desc)

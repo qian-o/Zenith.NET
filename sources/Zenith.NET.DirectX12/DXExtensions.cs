@@ -99,6 +99,10 @@ internal static class DXExtensions
 
     extension(ResourceLayout resourceLayout)
     {
+        public DXResourceLayout DirectX12()
+        {
+            return (DXResourceLayout)resourceLayout;
+        }
     }
 
     extension(ResourceSet resourceSet)
