@@ -46,7 +46,7 @@ internal unsafe class D3DTexture : DisposableObject
             Height = height,
             MipLevels = 1,
             ArraySize = 1,
-            Format = DXGIFormat.FormatB8G8R8A8Unorm,
+            Format = DXGIFormat.FormatB8G8R8X8Unorm,
             SampleDesc = new SampleDesc { Count = 1, Quality = 0 },
             Usage = Usage.Default,
             MiscFlags = (uint)(ResourceMiscFlag.SharedNthandle | ResourceMiscFlag.SharedKeyedmutex)
