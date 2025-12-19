@@ -9,38 +9,38 @@ namespace Zenith.NET.Views.WPF;
 
 internal unsafe class D3DTexture : DisposableObject
 {
-    public ComPtr<IDirect3DTexture9> D3D9Texture;
+    public ComPtr<IDirect3DTexture9> D3D9RenderTarget;
 
-    public ComPtr<IDirect3DSurface9> D3D9Surface;
+    public ComPtr<IDirect3DSurface9> D3D9RenderSurface;
 
-    public ComPtr<ID3D11Texture2D> D3D11Texture;
+    public ComPtr<ID3D11Texture2D> D3D9SharedTexture;
 
-    public ComPtr<ID3D11Texture2D> Texture;
+    public ComPtr<ID3D11Texture2D> D3D11RenderTarget;
 
-    public ComPtr<IDXGIKeyedMutex> Mutex;
+    public ComPtr<IDXGIKeyedMutex> D3D11Mutex;
 
     public nint Handle;
 
     public nint SharedHandle;
 
-    private ulong key;
+    private ulong mutexKey;
 
     public D3DTexture(uint width, uint height)
     {
-        void* d3d9SharedHandle = null;
+        void* sharedHandle = null;
         D3D.Success(D3D.D3D9DeviceEx.CreateTexture(width,
                                                    height,
                                                    1,
                                                    D3D9.UsageRendertarget,
                                                    D3D9Format.X8R8G8B8,
                                                    Pool.Default,
-                                                   ref D3D9Texture,
-                                                   &d3d9SharedHandle));
+                                                   ref D3D9RenderTarget,
+                                                   &sharedHandle));
 
-        D3D.Success(D3D9Texture.GetSurfaceLevel(0, ref D3D9Surface));
-        D3D.Success(D3D.D3D11Device.OpenSharedResource(d3d9SharedHandle, out D3D11Texture));
+        D3D.Success(D3D9RenderTarget.GetSurfaceLevel(0, ref D3D9RenderSurface));
+        D3D.Success(D3D.D3D11Device.OpenSharedResource(sharedHandle, out D3D9SharedTexture));
 
-        Texture2DDesc texture2DDesc = new()
+        Texture2DDesc desc = new()
         {
             Width = width,
             Height = height,
@@ -52,17 +52,17 @@ internal unsafe class D3DTexture : DisposableObject
             MiscFlags = (uint)(ResourceMiscFlag.SharedNthandle | ResourceMiscFlag.SharedKeyedmutex)
         };
 
-        D3D.Success(D3D.D3D11Device.CreateTexture2D(&texture2DDesc, null, ref Texture));
+        D3D.Success(D3D.D3D11Device.CreateTexture2D(&desc, null, ref D3D11RenderTarget));
 
-        D3D.Success(Texture.QueryInterface(out Mutex));
+        D3D.Success(D3D11RenderTarget.QueryInterface(out D3D11Mutex));
 
-        using ComPtr<IDXGIResource1> resource = Texture.QueryInterface<IDXGIResource1>();
+        using ComPtr<IDXGIResource1> resource = D3D11RenderTarget.QueryInterface<IDXGIResource1>();
 
-        void* d3d11SharedHandle = null;
-        D3D.Success(resource.CreateSharedHandle((SecurityAttributes*)null, DXGI.SharedResourceRead | DXGI.SharedResourceWrite, (char*)null, &d3d11SharedHandle));
+        sharedHandle = null;
+        D3D.Success(resource.CreateSharedHandle((SecurityAttributes*)null, DXGI.SharedResourceRead | DXGI.SharedResourceWrite, (char*)null, &sharedHandle));
 
-        Handle = (nint)D3D9Surface.Handle;
-        SharedHandle = (nint)d3d11SharedHandle;
+        Handle = (nint)D3D9RenderSurface.Handle;
+        SharedHandle = (nint)sharedHandle;
 
         Width = width;
         Height = height;
@@ -74,19 +74,19 @@ internal unsafe class D3DTexture : DisposableObject
 
     public void AcquireMutex()
     {
-        D3D.Success(Mutex.AcquireSync(key++, uint.MaxValue));
+        D3D.Success(D3D11Mutex.AcquireSync(mutexKey++, uint.MaxValue));
     }
 
     public void ReleaseMutex()
     {
-        D3D.Success(Mutex.ReleaseSync(key));
+        D3D.Success(D3D11Mutex.ReleaseSync(mutexKey));
     }
 
     public void Present()
     {
         AcquireMutex();
 
-        D3D.D3D11DeviceContext.CopyResource((ID3D11Resource*)D3D11Texture.Handle, (ID3D11Resource*)Texture.Handle);
+        D3D.D3D11DeviceContext.CopyResource((ID3D11Resource*)D3D9SharedTexture.Handle, (ID3D11Resource*)D3D11RenderTarget.Handle);
         D3D.D3D11DeviceContext.Flush();
 
         ReleaseMutex();
@@ -94,10 +94,10 @@ internal unsafe class D3DTexture : DisposableObject
 
     protected override void Destroy()
     {
-        Mutex.Dispose();
-        Texture.Dispose();
-        D3D11Texture.Dispose();
-        D3D9Surface.Dispose();
-        D3D9Texture.Dispose();
+        D3D11Mutex.Dispose();
+        D3D11RenderTarget.Dispose();
+        D3D9SharedTexture.Dispose();
+        D3D9RenderSurface.Dispose();
+        D3D9RenderTarget.Dispose();
     }
 }
