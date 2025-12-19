@@ -92,6 +92,7 @@ internal unsafe partial class D3DTexture : DisposableObject
 
     protected override void Destroy()
     {
+        Mutex.Dispose();
         Texture.Dispose();
         SwapChain.Dispose();
     }

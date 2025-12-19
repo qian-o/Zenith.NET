@@ -29,10 +29,8 @@ public unsafe partial class ZenithView
         }
 
         texture.AcquireMutex();
-
         UpdateRequested?.Invoke(this, new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
         RenderRequested?.Invoke(this, new(timer.GetAndRestartRender(), timer.TotalSeconds, swapChain.FrameBuffer));
-
         texture.ReleaseMutex();
 
         texture.Present();
