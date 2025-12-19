@@ -13,7 +13,7 @@ public unsafe partial class ZenithView
     private Texture? present;
     private WriteableBitmap? bitmap;
 
-    private void OnRender(GraphicsContext graphicsContext)
+    private void OnRender(GraphicsContext context)
     {
         uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
         uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
@@ -22,7 +22,7 @@ public unsafe partial class ZenithView
         {
             Destroy();
 
-            color = graphicsContext.CreateTexture(new()
+            color = context.CreateTexture(new()
             {
                 Type = TextureType.Texture2D,
                 Format = PixelFormat.B8G8R8A8UNorm,
@@ -35,7 +35,7 @@ public unsafe partial class ZenithView
                 Flags = TextureUsageFlags.RenderTarget
             });
 
-            depthStencil = graphicsContext.CreateTexture(new()
+            depthStencil = context.CreateTexture(new()
             {
                 Type = TextureType.Texture2D,
                 Format = PixelFormat.D24UNormS8UInt,
@@ -48,13 +48,13 @@ public unsafe partial class ZenithView
                 Flags = TextureUsageFlags.DepthStencil
             });
 
-            frameBuffer = graphicsContext.CreateFrameBuffer(new()
+            frameBuffer = context.CreateFrameBuffer(new()
             {
                 ColorAttachments = [new() { Target = color }],
                 DepthStencilAttachment = new() { Target = depthStencil }
             });
 
-            present = graphicsContext.CreateTexture(new()
+            present = context.CreateTexture(new()
             {
                 Type = TextureType.Texture2D,
                 Format = PixelFormat.B8G8R8A8UNorm,
@@ -73,11 +73,11 @@ public unsafe partial class ZenithView
         UpdateRequested?.Invoke(this, new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
         RenderRequested?.Invoke(this, new(timer.GetAndRestartRender(), timer.TotalSeconds, frameBuffer));
 
-        CommandBuffer commandBuffer = graphicsContext.Graphics.CommandBuffer();
+        CommandBuffer commandBuffer = context.Graphics.CommandBuffer();
         commandBuffer.CopyTexture(color, default, default, present, default, default, new() { Width = width, Height = height, Depth = 1 });
         commandBuffer.Submit();
 
-        graphicsContext.Graphics.WaitIdle();
+        context.Graphics.WaitIdle();
 
         using (Stream stream = bitmap.PixelBuffer.AsStream())
         {
