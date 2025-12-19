@@ -63,6 +63,23 @@ internal unsafe class DXTexture : Texture
         Array.Fill(States, DXFormats.DirectX12(desc.Flags).States);
     }
 
+    public DXTexture(DXGraphicsContext context, TextureDesc desc, ComPtr<ID3D12Resource> resource) : base(context, desc)
+    {
+        Resource = resource;
+
+        View = new(context, new()
+        {
+            Texture = this,
+            FirstMipLevel = 0,
+            MipLevelCount = desc.MipLevels,
+            FirstArrayLayer = 0,
+            ArrayLayerCount = desc.ArrayLayers
+        });
+
+        States = new ResourceStates[ZenithHelper.SubresourceCount(desc)];
+        Array.Fill(States, ResourceStates.Common);
+    }
+
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
 
     public DXTextureView View { get; }
