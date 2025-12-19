@@ -48,6 +48,8 @@ internal unsafe partial class D3DTexture : DisposableObject
 
         D3D.Success(D3D.Device.CreateTexture2D(&texture2DDesc, null, ref Texture));
 
+        D3D.Success(Texture.QueryInterface(out Mutex));
+
         using ComPtr<IDXGIResource1> resource = Texture.QueryInterface<IDXGIResource1>();
 
         void* sharedHandle = null;
