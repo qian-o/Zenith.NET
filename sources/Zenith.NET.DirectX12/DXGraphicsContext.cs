@@ -106,7 +106,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override FrameBuffer CreateFrameBufferImpl(FrameBufferDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXFrameBuffer(this, desc);
     }
 
     protected override Shader CreateShaderImpl(ShaderDesc desc)

@@ -31,6 +31,10 @@ internal static class DXExtensions
 
     extension(FrameBuffer frameBuffer)
     {
+        public DXFrameBuffer DirectX12()
+        {
+            return (DXFrameBuffer)frameBuffer;
+        }
     }
 
     extension(Shader shader)
