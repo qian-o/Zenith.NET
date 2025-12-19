@@ -81,8 +81,10 @@ internal unsafe partial class MauiZenithView : SwapChainPanel
         }
 
         texture.AcquireMutex();
-        ZenithView.OnUpdateRequested(new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
-        ZenithView.OnRenderRequested(new(timer.GetAndRestartRender(), timer.TotalSeconds, swapChain.FrameBuffer));
+        {
+            ZenithView.OnUpdateRequested(new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
+            ZenithView.OnRenderRequested(new(timer.GetAndRestartRender(), timer.TotalSeconds, swapChain.FrameBuffer));
+        }
         texture.ReleaseMutex();
 
         texture.Present();
