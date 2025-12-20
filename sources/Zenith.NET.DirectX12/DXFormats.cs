@@ -266,53 +266,221 @@ internal static class DXFormats
         };
     }
 
-    internal static ShaderVisibility DirectX12(ShaderStageFlags stage)
+    public static ShaderVisibility DirectX12(ShaderStageFlags shaderStageFlags)
     {
-        throw new NotImplementedException();
+        if (shaderStageFlags.HasFlag(ShaderStageFlags.Vertex))
+        {
+            return ShaderVisibility.Vertex;
+        }
+
+        if (shaderStageFlags.HasFlag(ShaderStageFlags.Hull))
+        {
+            return ShaderVisibility.Hull;
+        }
+
+        if (shaderStageFlags.HasFlag(ShaderStageFlags.Domain))
+        {
+            return ShaderVisibility.Domain;
+        }
+
+        if (shaderStageFlags.HasFlag(ShaderStageFlags.Geometry))
+        {
+            return ShaderVisibility.Geometry;
+        }
+
+        if (shaderStageFlags.HasFlag(ShaderStageFlags.Pixel))
+        {
+            return ShaderVisibility.Pixel;
+        }
+
+        if (shaderStageFlags.HasFlag(ShaderStageFlags.Amplification))
+        {
+            return ShaderVisibility.Amplification;
+        }
+
+        if (shaderStageFlags.HasFlag(ShaderStageFlags.Mesh))
+        {
+            return ShaderVisibility.Mesh;
+        }
+
+        return ShaderVisibility.All;
     }
 
-    internal static Silk.NET.Direct3D12.FillMode DirectX12(FillMode fillMode)
+    public static DxFillMode DirectX12(FillMode fillMode)
     {
-        throw new NotImplementedException();
+        return fillMode switch
+        {
+            FillMode.Solid => DxFillMode.Solid,
+            FillMode.Wireframe => DxFillMode.Wireframe,
+            _ => DxFillMode.None
+        };
     }
 
-    internal static Silk.NET.Direct3D12.CullMode DirectX12(CullMode cullMode)
+    public static DxCullMode DirectX12(CullMode cullMode)
     {
-        throw new NotImplementedException();
+        return cullMode switch
+        {
+            CullMode.None => DxCullMode.None,
+            CullMode.Front => DxCullMode.Front,
+            CullMode.Back => DxCullMode.Back,
+            _ => DxCullMode.None
+        };
     }
 
-    internal static DxComparisonFunc DirectX12(ComparisonFunc depthFunc)
+    public static DxStencilOp DirectX12(StencilOp stencilOp)
     {
-        throw new NotImplementedException();
+        return stencilOp switch
+        {
+            StencilOp.Keep => DxStencilOp.Keep,
+            StencilOp.Zero => DxStencilOp.Zero,
+            StencilOp.Replace => DxStencilOp.Replace,
+            StencilOp.IncrementAndClamp => DxStencilOp.IncrSat,
+            StencilOp.DecrementAndClamp => DxStencilOp.DecrSat,
+            StencilOp.Invert => DxStencilOp.Invert,
+            StencilOp.IncrementAndWrap => DxStencilOp.Incr,
+            StencilOp.DecrementAndWrap => DxStencilOp.Decr,
+            _ => DxStencilOp.Keep
+        };
     }
 
-    internal static Silk.NET.Direct3D12.StencilOp DirectX12(StencilOp stencilFailOp)
+    public static DxBlend DirectX12(Blend blend)
     {
-        throw new NotImplementedException();
+        return blend switch
+        {
+            Blend.Zero => DxBlend.Zero,
+            Blend.One => DxBlend.One,
+            Blend.SrcAlpha => DxBlend.SrcAlpha,
+            Blend.InverseSrcAlpha => DxBlend.InvSrcAlpha,
+            Blend.DestAlpha => DxBlend.DestAlpha,
+            Blend.InverseDestAlpha => DxBlend.InvDestAlpha,
+            Blend.SrcColor => DxBlend.SrcColor,
+            Blend.InverseSrcColor => DxBlend.InvSrcColor,
+            Blend.DestColor => DxBlend.DestColor,
+            Blend.InverseDestColor => DxBlend.InvDestColor,
+            Blend.BlendFactor => DxBlend.BlendFactor,
+            Blend.InverseBlendFactor => DxBlend.InvBlendFactor,
+            _ => DxBlend.Zero
+        };
     }
 
-    internal static Silk.NET.Direct3D12.Blend DirectX12(Blend srcBlend)
+    public static DxBlendOp DirectX12(BlendOp blendOp)
     {
-        throw new NotImplementedException();
+        return blendOp switch
+        {
+            BlendOp.Add => DxBlendOp.Add,
+            BlendOp.Subtract => DxBlendOp.Subtract,
+            BlendOp.ReverseSubtract => DxBlendOp.RevSubtract,
+            BlendOp.Min => DxBlendOp.Min,
+            BlendOp.Max => DxBlendOp.Max,
+            _ => DxBlendOp.Add
+        };
     }
 
-    internal static Silk.NET.Direct3D12.BlendOp DirectX12(BlendOp blendOp)
+    public static ColorWriteEnable DirectX12(ColorComponentFlags colorComponentFlags)
     {
-        throw new NotImplementedException();
+        ColorWriteEnable result = ColorWriteEnable.None;
+
+        if (colorComponentFlags.HasFlag(ColorComponentFlags.Red))
+        {
+            result |= ColorWriteEnable.Red;
+        }
+
+        if (colorComponentFlags.HasFlag(ColorComponentFlags.Green))
+        {
+            result |= ColorWriteEnable.Green;
+        }
+
+        if (colorComponentFlags.HasFlag(ColorComponentFlags.Blue))
+        {
+            result |= ColorWriteEnable.Blue;
+        }
+
+        if (colorComponentFlags.HasFlag(ColorComponentFlags.Alpha))
+        {
+            result |= ColorWriteEnable.Alpha;
+        }
+
+        return result;
     }
 
-    internal static ColorWriteEnable DirectX12(ColorComponentFlags flags)
+    public static Format DirectX12(ElementFormat elementFormat)
     {
-        throw new NotImplementedException();
+        return elementFormat switch
+        {
+            ElementFormat.UByte1 => Format.FormatR8Uint,
+            ElementFormat.UByte2 => Format.FormatR8G8Uint,
+            ElementFormat.UByte4 => Format.FormatR8G8B8A8Uint,
+
+            ElementFormat.Byte1 => Format.FormatR8Sint,
+            ElementFormat.Byte2 => Format.FormatR8G8Sint,
+            ElementFormat.Byte4 => Format.FormatR8G8B8A8Sint,
+
+            ElementFormat.UByte1Normalized => Format.FormatR8Unorm,
+            ElementFormat.UByte2Normalized => Format.FormatR8G8Unorm,
+            ElementFormat.UByte4Normalized => Format.FormatR8G8B8A8Unorm,
+
+            ElementFormat.Byte1Normalized => Format.FormatR8SNorm,
+            ElementFormat.Byte2Normalized => Format.FormatR8G8SNorm,
+            ElementFormat.Byte4Normalized => Format.FormatR8G8B8A8SNorm,
+
+            ElementFormat.UShort1 => Format.FormatR16Uint,
+            ElementFormat.UShort2 => Format.FormatR16G16Uint,
+            ElementFormat.UShort4 => Format.FormatR16G16B16A16Uint,
+
+            ElementFormat.Short1 => Format.FormatR16Sint,
+            ElementFormat.Short2 => Format.FormatR16G16Sint,
+            ElementFormat.Short4 => Format.FormatR16G16B16A16Sint,
+
+            ElementFormat.UShort1Normalized => Format.FormatR16Unorm,
+            ElementFormat.UShort2Normalized => Format.FormatR16G16Unorm,
+            ElementFormat.UShort4Normalized => Format.FormatR16G16B16A16Unorm,
+
+            ElementFormat.Short1Normalized => Format.FormatR16SNorm,
+            ElementFormat.Short2Normalized => Format.FormatR16G16SNorm,
+            ElementFormat.Short4Normalized => Format.FormatR16G16B16A16SNorm,
+
+            ElementFormat.Half1 => Format.FormatR16Float,
+            ElementFormat.Half2 => Format.FormatR16G16Float,
+            ElementFormat.Half4 => Format.FormatR16G16B16A16Float,
+
+            ElementFormat.Float1 => Format.FormatR32Float,
+            ElementFormat.Float2 => Format.FormatR32G32Float,
+            ElementFormat.Float3 => Format.FormatR32G32B32Float,
+            ElementFormat.Float4 => Format.FormatR32G32B32A32Float,
+
+            ElementFormat.UInt1 => Format.FormatR32Uint,
+            ElementFormat.UInt2 => Format.FormatR32G32Uint,
+            ElementFormat.UInt3 => Format.FormatR32G32B32Uint,
+            ElementFormat.UInt4 => Format.FormatR32G32B32A32Uint,
+
+            ElementFormat.Int1 => Format.FormatR32Sint,
+            ElementFormat.Int2 => Format.FormatR32G32Sint,
+            ElementFormat.Int3 => Format.FormatR32G32B32Sint,
+            ElementFormat.Int4 => Format.FormatR32G32B32A32Sint,
+
+            _ => Format.FormatUnknown
+        };
     }
 
-    internal static Format DirectX12(ElementFormat format)
+    public static PrimitiveTopologyType DirectX12(PrimitiveTopology primitiveTopology)
     {
-        throw new NotImplementedException();
-    }
+        return primitiveTopology switch
+        {
+            PrimitiveTopology.PointList => PrimitiveTopologyType.Point,
 
-    internal static PrimitiveTopologyType DirectX12(PrimitiveTopology primitiveTopology)
-    {
-        throw new NotImplementedException();
+            PrimitiveTopology.LineList or
+            PrimitiveTopology.LineStrip or
+            PrimitiveTopology.LineListWithAdjacency or
+            PrimitiveTopology.LineStripWithAdjacency => PrimitiveTopologyType.Line,
+
+            PrimitiveTopology.TriangleList or
+            PrimitiveTopology.TriangleStrip or
+            PrimitiveTopology.TriangleListWithAdjacency or
+            PrimitiveTopology.TriangleStripWithAdjacency => PrimitiveTopologyType.Triangle,
+
+            >= PrimitiveTopology.PatchList => PrimitiveTopologyType.Patch,
+
+            _ => PrimitiveTopologyType.Undefined
+        };
     }
 }

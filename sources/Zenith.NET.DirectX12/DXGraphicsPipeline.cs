@@ -50,7 +50,7 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
             {
                 DepthEnable = desc.RenderStates.DepthStencilState.DepthEnable,
                 DepthWriteMask = desc.RenderStates.DepthStencilState.DepthWriteEnable ? DepthWriteMask.All : DepthWriteMask.Zero,
-                DepthFunc = DXFormats.DirectX12(desc.RenderStates.DepthStencilState.DepthFunc),
+                DepthFunc = DXFormats.DirectX12(default, desc.RenderStates.DepthStencilState.DepthFunc).ComparisonFunc,
                 StencilEnable = desc.RenderStates.DepthStencilState.StencilEnable,
                 StencilReadMask = desc.RenderStates.DepthStencilState.StencilReadMask,
                 StencilWriteMask = desc.RenderStates.DepthStencilState.StencilWriteMask,
@@ -59,14 +59,14 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
                     StencilFailOp = DXFormats.DirectX12(desc.RenderStates.DepthStencilState.FrontFace.StencilFailOp),
                     StencilDepthFailOp = DXFormats.DirectX12(desc.RenderStates.DepthStencilState.FrontFace.StencilDepthFailOp),
                     StencilPassOp = DXFormats.DirectX12(desc.RenderStates.DepthStencilState.FrontFace.StencilPassOp),
-                    StencilFunc = DXFormats.DirectX12(desc.RenderStates.DepthStencilState.FrontFace.StencilFunc)
+                    StencilFunc = DXFormats.DirectX12(default, desc.RenderStates.DepthStencilState.FrontFace.StencilFunc).ComparisonFunc
                 },
                 BackFace = new()
                 {
                     StencilFailOp = DXFormats.DirectX12(desc.RenderStates.DepthStencilState.BackFace.StencilFailOp),
                     StencilDepthFailOp = DXFormats.DirectX12(desc.RenderStates.DepthStencilState.BackFace.StencilDepthFailOp),
                     StencilPassOp = DXFormats.DirectX12(desc.RenderStates.DepthStencilState.BackFace.StencilPassOp),
-                    StencilFunc = DXFormats.DirectX12(desc.RenderStates.DepthStencilState.BackFace.StencilFunc)
+                    StencilFunc = DXFormats.DirectX12(default, desc.RenderStates.DepthStencilState.BackFace.StencilFunc).ComparisonFunc
                 }
             };
 
@@ -196,7 +196,7 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
                     inputElementDescs.Add(new()
                     {
                         SemanticName = (byte*)ZenithMarshal.StringToPointer(scope, element.Semantic.ToString().ToUpper(), StringEncoding.UTF8),
-                        SemanticIndex =element.Index,
+                        SemanticIndex = element.Index,
                         Format = DXFormats.DirectX12(element.Format),
                         InputSlot = (uint)i,
                         AlignedByteOffset = element.OffsetInBytes
