@@ -221,7 +221,7 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
 
     protected override void SetResourceName(string name)
     {
-        PipelineState.SetName(name);
+        PipelineState.SetName(name).Success();
     }
 
     protected override void Destroy()
