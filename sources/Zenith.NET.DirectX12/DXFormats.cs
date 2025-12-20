@@ -265,4 +265,54 @@ internal static class DXFormats
             _ => DescriptorRangeType.Srv
         };
     }
+
+    internal static ShaderVisibility DirectX12(ShaderStageFlags stage)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static Silk.NET.Direct3D12.FillMode DirectX12(FillMode fillMode)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static Silk.NET.Direct3D12.CullMode DirectX12(CullMode cullMode)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static DxComparisonFunc DirectX12(ComparisonFunc depthFunc)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static Silk.NET.Direct3D12.StencilOp DirectX12(StencilOp stencilFailOp)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static Silk.NET.Direct3D12.Blend DirectX12(Blend srcBlend)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static Silk.NET.Direct3D12.BlendOp DirectX12(BlendOp blendOp)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static ColorWriteEnable DirectX12(ColorComponentFlags flags)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static Format DirectX12(ElementFormat format)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static PrimitiveTopologyType DirectX12(PrimitiveTopology primitiveTopology)
+    {
+        throw new NotImplementedException();
+    }
 }
