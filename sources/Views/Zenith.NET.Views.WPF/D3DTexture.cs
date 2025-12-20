@@ -1,4 +1,6 @@
-﻿using Silk.NET.Core.Native;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
+using Silk.NET.Core.Native;
 using Silk.NET.Direct3D11;
 using Silk.NET.Direct3D9;
 using Silk.NET.DXGI;
@@ -7,8 +9,11 @@ using DXGIFormat = Silk.NET.DXGI.Format;
 
 namespace Zenith.NET.Views.WPF;
 
-internal unsafe class D3DTexture : DisposableObject
+internal unsafe partial class D3DTexture : DisposableObject
 {
+    [LibraryImport("kernel32")]
+    private static partial int CloseHandle(nint hObject);
+
     public ComPtr<IDirect3DTexture9> D3D9RenderTarget;
 
     public ComPtr<IDirect3DSurface9> D3D9RenderSurface;
@@ -87,6 +92,11 @@ internal unsafe class D3DTexture : DisposableObject
 
     protected override void Destroy()
     {
+        if (CloseHandle(SharedHandle) is 0)
+        {
+            Debug.WriteLine("Failed to close shared handle.");
+        }
+
         D3D11Mutex.Dispose();
         D3D11RenderTarget.Dispose();
         D3D9SharedTexture.Dispose();

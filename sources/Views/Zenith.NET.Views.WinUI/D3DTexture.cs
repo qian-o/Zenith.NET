@@ -1,4 +1,6 @@
 ﻿#if WINDOWS
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Silk.NET.Core.Native;
 using Silk.NET.Direct3D11;
 using Silk.NET.DXGI;
@@ -7,6 +9,9 @@ namespace Zenith.NET.Views.WinUI;
 
 internal unsafe partial class D3DTexture : DisposableObject
 {
+    [LibraryImport("kernel32")]
+    private static partial int CloseHandle(nint hObject);
+
     public ComPtr<IDXGISwapChain1> SwapChain;
 
     public ComPtr<ID3D11Texture2D> Texture;
@@ -88,6 +93,11 @@ internal unsafe partial class D3DTexture : DisposableObject
 
     protected override void Destroy()
     {
+        if (CloseHandle(SharedHandle) is 0)
+        {
+            Debug.WriteLine("Failed to close shared handle.");
+        }
+
         Mutex.Dispose();
         Texture.Dispose();
         SwapChain.Dispose();
