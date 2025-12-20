@@ -11,6 +11,8 @@ internal class DXGraphicsPipeline : GraphicsPipeline
 
     public DXGraphicsPipeline(DXGraphicsContext context, GraphicsPipelineDesc desc) : base(context, desc)
     {
+        using ZenithMarshal.Scope scope = new();
+
     }
 
     protected override void SetResourceName(string name)

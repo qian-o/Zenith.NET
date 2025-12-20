@@ -178,17 +178,11 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
 
         // ResourceLayouts
         {
-            DescriptorSetLayout* setLayouts = (DescriptorSetLayout*)ZenithMarshal.Allocate<DescriptorSetLayout>(scope, (uint)desc.ResourceLayouts.Length);
-            for (int i = 0; i < desc.ResourceLayouts.Length; i++)
-            {
-                setLayouts[i] = desc.ResourceLayouts[i].Vulkan().DescriptorSetLayout;
-            }
-
             PipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
             {
                 SType = StructureType.PipelineLayoutCreateInfo,
                 SetLayoutCount = (uint)desc.ResourceLayouts.Length,
-                PSetLayouts = setLayouts
+                PSetLayouts = (DescriptorSetLayout*)ZenithMarshal.AllocateAndFill(scope, [.. desc.ResourceLayouts.Select(static item => item.Vulkan().DescriptorSetLayout)])
             };
 
             context.Vk.CreatePipelineLayout(context.Device, &pipelineLayoutCreateInfo, null, out PipelineLayout).Success();
@@ -264,15 +258,11 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
             }
         }
 
-        DynamicState* dynamicStates = (DynamicState*)ZenithMarshal.Allocate<DynamicState>(scope, 2);
-        dynamicStates[0] = DynamicState.Viewport;
-        dynamicStates[1] = DynamicState.Scissor;
-
         PipelineDynamicStateCreateInfo dynamicState = new()
         {
             SType = StructureType.PipelineDynamicStateCreateInfo,
             DynamicStateCount = 2,
-            PDynamicStates = dynamicStates
+            PDynamicStates = (DynamicState*)ZenithMarshal.AllocateAndFill(scope, [DynamicState.Viewport, DynamicState.Scissor])
         };
 
         createInfo.PDynamicState = &dynamicState;

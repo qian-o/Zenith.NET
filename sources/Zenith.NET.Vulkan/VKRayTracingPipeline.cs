@@ -21,12 +21,6 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
 
         Shader[] shaders = [desc.RayGeneration, .. desc.Miss, .. desc.AnyHit, .. desc.Intersection, .. desc.ClosestHit];
 
-        PipelineShaderStageCreateInfo* stages = (PipelineShaderStageCreateInfo*)ZenithMarshal.Allocate<PipelineShaderStageCreateInfo>(scope, (uint)shaders.Length);
-        for (int i = 0; i < shaders.Length; i++)
-        {
-            stages[i] = shaders[i].Vulkan().GetPipelineShaderStageCreateInfo(scope);
-        }
-
         uint groupCount = 1 + (uint)desc.Miss.Length + (uint)desc.HitGroups.Length;
         string[] entryPoints = [.. shaders.Select(static item => item.Desc.EntryPoint)];
 
@@ -81,24 +75,18 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
             SType = StructureType.RayTracingPipelineCreateInfoKhr,
             MaxPipelineRayRecursionDepth = desc.MaxTraceRecursionDepth,
             StageCount = (uint)shaders.Length,
-            PStages = stages,
+            PStages = (PipelineShaderStageCreateInfo*)ZenithMarshal.AllocateAndFill(scope, [.. shaders.Select(item => item.Vulkan().GetPipelineShaderStageCreateInfo(scope))]),
             GroupCount = groupCount,
             PGroups = groups
         };
 
         // ResourceLayouts
         {
-            DescriptorSetLayout* setLayouts = (DescriptorSetLayout*)ZenithMarshal.Allocate<DescriptorSetLayout>(scope, (uint)desc.ResourceLayouts.Length);
-            for (int i = 0; i < desc.ResourceLayouts.Length; i++)
-            {
-                setLayouts[i] = desc.ResourceLayouts[i].Vulkan().DescriptorSetLayout;
-            }
-
             PipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
             {
                 SType = StructureType.PipelineLayoutCreateInfo,
                 SetLayoutCount = (uint)desc.ResourceLayouts.Length,
-                PSetLayouts = setLayouts
+                PSetLayouts = (DescriptorSetLayout*)ZenithMarshal.AllocateAndFill(scope, [.. desc.ResourceLayouts.Select(static item => item.Vulkan().DescriptorSetLayout)])
             };
 
             context.Vk.CreatePipelineLayout(context.Device, &pipelineLayoutCreateInfo, null, out PipelineLayout).Success();
