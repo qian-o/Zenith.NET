@@ -115,6 +115,10 @@ internal static class DXExtensions
 
     extension(GraphicsPipeline graphicsPipeline)
     {
+        public DXGraphicsPipeline DirectX12()
+        {
+            return (DXGraphicsPipeline)graphicsPipeline;
+        }
     }
 
     extension(ComputePipeline computePipeline)

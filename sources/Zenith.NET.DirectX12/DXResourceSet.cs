@@ -4,7 +4,7 @@ namespace Zenith.NET.DirectX12;
 
 internal class DXResourceSet : ResourceSet
 {
-    public DXResourceSet(GraphicsContext context, ResourceSetDesc desc) : base(context, desc)
+    public DXResourceSet(DXGraphicsContext context, ResourceSetDesc desc) : base(context, desc)
     {
         uint resourceStartIndex = 0;
         List<DXTextureView> srvTextureViews = [];
