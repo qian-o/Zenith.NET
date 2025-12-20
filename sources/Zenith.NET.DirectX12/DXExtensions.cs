@@ -107,6 +107,10 @@ internal static class DXExtensions
 
     extension(ResourceSet resourceSet)
     {
+        public DXResourceSet DirectX12()
+        {
+            return (DXResourceSet)resourceSet;
+        }
     }
 
     extension(GraphicsPipeline graphicsPipeline)

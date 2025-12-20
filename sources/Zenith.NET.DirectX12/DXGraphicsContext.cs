@@ -148,7 +148,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override ResourceSet CreateResourceSetImpl(ResourceSetDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXResourceSet(this, desc);
     }
 
     protected override GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc)
