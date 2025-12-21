@@ -4,14 +4,14 @@ namespace Zenith.NET.DirectX12;
 
 internal class DXResourceSet : ResourceSet
 {
-    private readonly DXDescriptorToken cbvSrvUavTable;
-    private readonly DXDescriptorToken samplerTable;
-    private readonly Dictionary<ShaderStageFlags, (DXDescriptorToken CbvSrvUavTable, DXDescriptorToken SamplerTable)> graphicsTables;
+    private readonly DXDescriptorToken cbvSrvUavToken;
+    private readonly DXDescriptorToken samplerToken;
+    private readonly Dictionary<ShaderStageFlags, (DXDescriptorToken CbvSrvUavToken, DXDescriptorToken SamplerToken)> graphicsTokens;
 
     public DXResourceSet(DXGraphicsContext context, ResourceSetDesc desc) : base(context, desc)
     {
-        (cbvSrvUavTable, samplerTable) = GetTables(ShaderStageFlags.None);
-        graphicsTables = ZenithHelper.GraphicShaderStages().ToDictionary(static item => item, GetTables);
+        (cbvSrvUavToken, samplerToken) = GetTokens(ShaderStageFlags.None);
+        graphicsTokens = ZenithHelper.GraphicShaderStages().ToDictionary(static item => item, GetTokens);
 
         uint resourceStartIndex = 0;
         List<DXTextureView> srvTextureViews = [];
@@ -66,33 +66,74 @@ internal class DXResourceSet : ResourceSet
         }
     }
 
+    public void Bind(DXCommandBuffer commandBuffer, DXDescriptorTable cbvSrvUavTable, DXDescriptorTable samplerTable, bool isGraphics, uint offset)
+    {
+        if (isGraphics)
+        {
+            foreach (ShaderStageFlags stage in ZenithHelper.GraphicShaderStages())
+            {
+                (DXDescriptorToken cbvSrvUavToken, DXDescriptorToken samplerToken) = graphicsTokens[stage];
+
+                if (cbvSrvUavToken.Length > 0)
+                {
+                    commandBuffer.GraphicsCommandList.SetGraphicsRootDescriptorTable(offset++, cbvSrvUavTable.GpuCurrentHandle);
+
+                    cbvSrvUavTable.Write(cbvSrvUavToken);
+                }
+
+                if (samplerToken.Length > 0)
+                {
+                    commandBuffer.GraphicsCommandList.SetGraphicsRootDescriptorTable(offset++, samplerTable.GpuCurrentHandle);
+
+                    samplerTable.Write(samplerToken);
+                }
+            }
+        }
+        else
+        {
+            if (cbvSrvUavToken.Length > 0)
+            {
+                commandBuffer.GraphicsCommandList.SetComputeRootDescriptorTable(offset++, cbvSrvUavTable.GpuCurrentHandle);
+
+                cbvSrvUavTable.Write(cbvSrvUavToken);
+            }
+
+            if (samplerToken.Length > 0)
+            {
+                commandBuffer.GraphicsCommandList.SetComputeRootDescriptorTable(offset++, samplerTable.GpuCurrentHandle);
+
+                samplerTable.Write(samplerToken);
+            }
+        }
+    }
+
     protected override void SetResourceName(string name)
     {
     }
 
     protected override void Destroy()
     {
-        foreach ((DXDescriptorToken cbvSrvUavTable, DXDescriptorToken samplerTable) in graphicsTables.Values)
+        foreach ((DXDescriptorToken cbvSrvUavToken, DXDescriptorToken samplerToken) in graphicsTokens.Values)
         {
-            cbvSrvUavTable.Dispose();
-            samplerTable.Dispose();
+            cbvSrvUavToken.Dispose();
+            samplerToken.Dispose();
         }
-        graphicsTables.Clear();
+        graphicsTokens.Clear();
 
-        samplerTable.Dispose();
-        cbvSrvUavTable.Dispose();
+        samplerToken.Dispose();
+        cbvSrvUavToken.Dispose();
     }
 
-    private (DXDescriptorToken CbvSrvUavTable, DXDescriptorToken SamplerTable) GetTables(ShaderStageFlags stage)
+    private (DXDescriptorToken CbvSrvUavToken, DXDescriptorToken SamplerToken) GetTokens(ShaderStageFlags stage)
     {
-        DXDescriptorToken cbvSrvUavTable = default;
-        DXDescriptorToken samplerTable = default;
+        DXDescriptorToken cbvSrvUavToken = default;
+        DXDescriptorToken samplerToken = default;
 
         if (Desc.Layout.DirectX12().ResourceRanges(stage, out DXResourceRange[] cbvSrvUavRanges, out DXResourceRange[] samplerRanges))
         {
             if (cbvSrvUavRanges.Length > 0)
             {
-                cbvSrvUavTable = Context.CbvSrvUavAllocator.Allocate((uint)cbvSrvUavRanges.Sum(static item => item.Count));
+                cbvSrvUavToken = Context.CbvSrvUavAllocator.Allocate((uint)cbvSrvUavRanges.Sum(static item => item.Count));
 
                 uint index = 0;
                 foreach (DXResourceRange range in cbvSrvUavRanges)
@@ -107,11 +148,11 @@ internal class DXResourceSet : ResourceSet
                                 {
                                     if (resource is Buffer buffer)
                                     {
-                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavTable[index], buffer.DirectX12().View.CbvHandle, DescriptorHeapType.CbvSrvUav);
+                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], buffer.DirectX12().View.CbvHandle, DescriptorHeapType.CbvSrvUav);
                                     }
                                     else if (resource is BufferView bufferView)
                                     {
-                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavTable[index], bufferView.DirectX12().CbvHandle, DescriptorHeapType.CbvSrvUav);
+                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], bufferView.DirectX12().CbvHandle, DescriptorHeapType.CbvSrvUav);
                                     }
 
                                     index++;
@@ -125,11 +166,11 @@ internal class DXResourceSet : ResourceSet
                                 {
                                     if (resource is Buffer buffer)
                                     {
-                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavTable[index], buffer.DirectX12().View.SrvHandle, DescriptorHeapType.CbvSrvUav);
+                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], buffer.DirectX12().View.SrvHandle, DescriptorHeapType.CbvSrvUav);
                                     }
                                     else if (resource is BufferView bufferView)
                                     {
-                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavTable[index], bufferView.DirectX12().SrvHandle, DescriptorHeapType.CbvSrvUav);
+                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], bufferView.DirectX12().SrvHandle, DescriptorHeapType.CbvSrvUav);
                                     }
 
                                     index++;
@@ -143,11 +184,11 @@ internal class DXResourceSet : ResourceSet
                                 {
                                     if (resource is Buffer buffer)
                                     {
-                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavTable[index], buffer.DirectX12().View.UavHandle, DescriptorHeapType.CbvSrvUav);
+                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], buffer.DirectX12().View.UavHandle, DescriptorHeapType.CbvSrvUav);
                                     }
                                     else if (resource is BufferView bufferView)
                                     {
-                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavTable[index], bufferView.DirectX12().UavHandle, DescriptorHeapType.CbvSrvUav);
+                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], bufferView.DirectX12().UavHandle, DescriptorHeapType.CbvSrvUav);
                                     }
 
                                     index++;
@@ -161,11 +202,11 @@ internal class DXResourceSet : ResourceSet
                                 {
                                     if (resource is Texture texture)
                                     {
-                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavTable[index], texture.DirectX12().View.SrvHandle, DescriptorHeapType.CbvSrvUav);
+                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], texture.DirectX12().View.SrvHandle, DescriptorHeapType.CbvSrvUav);
                                     }
                                     else if (resource is TextureView textureView)
                                     {
-                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavTable[index], textureView.DirectX12().SrvHandle, DescriptorHeapType.CbvSrvUav);
+                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], textureView.DirectX12().SrvHandle, DescriptorHeapType.CbvSrvUav);
                                     }
 
                                     index++;
@@ -179,11 +220,11 @@ internal class DXResourceSet : ResourceSet
                                 {
                                     if (resource is Texture texture)
                                     {
-                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavTable[index], texture.DirectX12().View.UavHandle, DescriptorHeapType.CbvSrvUav);
+                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], texture.DirectX12().View.UavHandle, DescriptorHeapType.CbvSrvUav);
                                     }
                                     else if (resource is TextureView textureView)
                                     {
-                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavTable[index], textureView.DirectX12().UavHandle, DescriptorHeapType.CbvSrvUav);
+                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], textureView.DirectX12().UavHandle, DescriptorHeapType.CbvSrvUav);
                                     }
 
                                     index++;
@@ -207,7 +248,7 @@ internal class DXResourceSet : ResourceSet
 
             if (samplerRanges.Length > 0)
             {
-                samplerTable = Context.SamplerAllocator.Allocate((uint)samplerRanges.Sum(static item => item.Count));
+                samplerToken = Context.SamplerAllocator.Allocate((uint)samplerRanges.Sum(static item => item.Count));
 
                 uint index = 0;
                 foreach (DXResourceRange range in samplerRanges)
@@ -216,7 +257,7 @@ internal class DXResourceSet : ResourceSet
                     {
                         if (resource is Sampler sampler)
                         {
-                            Context.Device.CopyDescriptorsSimple(1, samplerTable[index], sampler.DirectX12().Token.Handle, DescriptorHeapType.Sampler);
+                            Context.Device.CopyDescriptorsSimple(1, samplerToken[index], sampler.DirectX12().Token.Handle, DescriptorHeapType.Sampler);
                         }
 
                         index++;
@@ -225,6 +266,6 @@ internal class DXResourceSet : ResourceSet
             }
         }
 
-        return (cbvSrvUavTable, samplerTable);
+        return (cbvSrvUavToken, samplerToken);
     }
 }
