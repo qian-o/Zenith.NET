@@ -5,7 +5,7 @@ namespace Zenith.NET.DirectX12;
 /// <summary>
 /// https://github.com/amerkoleci/Vortice.Windows/blob/main/src/Vortice.Direct3D12/PixHelpers.cs
 /// </summary>
-internal unsafe static class PixHelpers
+internal static unsafe class PixHelpers
 {
     public const uint Version = 2;
 
