@@ -9,3 +9,4 @@ global using DxMessageSeverity = Silk.NET.Direct3D12.MessageSeverity;
 global using DxRange = Silk.NET.Direct3D12.Range;
 global using DxSamplerDesc = Silk.NET.Direct3D12.SamplerDesc;
 global using DxStencilOp = Silk.NET.Direct3D12.StencilOp;
+global using DxViewport = Silk.NET.Direct3D12.Viewport;

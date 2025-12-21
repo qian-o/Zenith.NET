@@ -1,5 +1,6 @@
 ﻿using Silk.NET.Core.Native;
 using Silk.NET.Direct3D12;
+using Silk.NET.Maths;
 
 namespace Zenith.NET.DirectX12;
 
@@ -135,12 +136,16 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void SetScissorsImpl(Scissor[] scissors)
     {
-        throw new NotImplementedException();
+        Box2D<int>[] dxScissors = [.. scissors.Select(static item => new Box2D<int>(new(item.X, item.Y), new((int)(item.X + item.Width), (int)(item.Y + item.Height))))];
+
+        GraphicsCommandList.RSSetScissorRects((uint)scissors.Length, dxScissors);
     }
 
     protected override void SetViewportsImpl(Viewport[] viewports)
     {
-        throw new NotImplementedException();
+        DxViewport[] dxViewports = [.. viewports.Select(static item => new DxViewport(item.X, item.Y, item.Width, item.Height, item.MinDepth, item.MaxDepth))];
+
+        GraphicsCommandList.RSSetViewports((uint)viewports.Length, dxViewports);
     }
 
     protected override void BindPipelineImpl(GraphicsPipeline pipeline)
