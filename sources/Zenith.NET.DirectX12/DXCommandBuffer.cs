@@ -44,6 +44,8 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         }
     }
 
+    public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
+
     protected override void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes)
     {
         DXBuffer dxSrc = src.DirectX12();
@@ -225,7 +227,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             ComputePipeline computePipeline => (false, (uint)computePipeline.Desc.ResourceLayouts.Take((int)index).Sum(static item => item.DirectX12().RootParameterCount)),
             RayTracingPipeline rayTracingPipeline => (false, (uint)rayTracingPipeline.Desc.ResourceLayouts.Take((int)index).Sum(static item => item.DirectX12().RootParameterCount)),
             MeshShadingPipeline meshShadingPipeline => (true, (uint)meshShadingPipeline.Desc.ResourceLayouts.Take((int)index).Sum(static item => item.DirectX12().GraphicsRootParameterCount)),
-            _ => (false, 0u)
+            _ => (true, 0u)
         };
 
         resourceSet.DirectX12().Bind(this, cbvSrvUavTable, samplerTable, isGraphics, offset);
@@ -233,32 +235,32 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
     {
-        throw new NotImplementedException();
+        GraphicsCommandList.DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     protected override void DrawIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        throw new NotImplementedException();
+        GraphicsCommandList.ExecuteIndirect(Context.DrawSignature, drawCount, indirectBuffer.DirectX12().Resource, offsetInBytes, (ID3D12Resource*)null, 0);
     }
 
     protected override void DrawIndexedImpl(GraphicsPipeline pipeline, uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
     {
-        throw new NotImplementedException();
+        GraphicsCommandList.DrawIndexedInstanced(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
     protected override void DrawIndexedIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        throw new NotImplementedException();
+        GraphicsCommandList.ExecuteIndirect(Context.DrawIndexedSignature, drawCount, indirectBuffer.DirectX12().Resource, offsetInBytes, (ID3D12Resource*)null, 0);
     }
 
     protected override void DispatchImpl(ComputePipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        throw new NotImplementedException();
+        GraphicsCommandList.Dispatch(groupCountX, groupCountY, groupCountZ);
     }
 
     protected override void DispatchIndirectImpl(ComputePipeline pipeline, Buffer indirectBuffer, uint offsetInBytes)
     {
-        throw new NotImplementedException();
+        GraphicsCommandList.ExecuteIndirect(Context.DispatchSignature, 1, indirectBuffer.DirectX12().Resource, offsetInBytes, (ID3D12Resource*)null, 0);
     }
 
     protected override void DispatchRaysImpl(RayTracingPipeline pipeline, uint width, uint height, uint depth)
@@ -268,12 +270,12 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        throw new NotImplementedException();
+        GraphicsCommandList6?.DispatchMesh(groupCountX, groupCountY, groupCountZ);
     }
 
     protected override void DispatchMeshIndirectImpl(MeshShadingPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount)
     {
-        throw new NotImplementedException();
+        GraphicsCommandList6?.ExecuteIndirect(Context.DispatchMeshSignature, dispatchCount, indirectBuffer.DirectX12().Resource, offsetInBytes, (ID3D12Resource*)null, 0);
     }
 
     protected override void BeginQueryImpl(QueryHeap queryHeap, uint index)
