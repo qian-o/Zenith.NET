@@ -18,7 +18,6 @@ internal unsafe class DXTexture : Texture
             MipLevels = (ushort)desc.MipLevels,
             Format = DXFormats.DirectX12(desc.Format),
             SampleDesc = DXFormats.DirectX12(desc.SampleCount),
-            Layout = desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? TextureLayout.LayoutRowMajor : TextureLayout.LayoutUnknown,
             Flags = DXFormats.DirectX12(desc.Flags).Flags
         };
 
@@ -34,7 +33,7 @@ internal unsafe class DXTexture : Texture
             }
 
             context.Device.CreateCommittedResource(&heapProperties,
-                                                   desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? HeapFlags.SharedCrossAdapter : HeapFlags.None,
+                                                   HeapFlags.None,
                                                    &resourceDesc,
                                                    DXFormats.DirectX12(desc.Flags).States,
                                                    &clearValue,
@@ -43,7 +42,7 @@ internal unsafe class DXTexture : Texture
         else
         {
             context.Device.CreateCommittedResource(&heapProperties,
-                                                   desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? HeapFlags.SharedCrossAdapter : HeapFlags.None,
+                                                   HeapFlags.None,
                                                    &resourceDesc,
                                                    DXFormats.DirectX12(desc.Flags).States,
                                                    null,
