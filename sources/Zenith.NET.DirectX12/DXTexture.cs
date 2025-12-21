@@ -133,14 +133,49 @@ internal unsafe class DXTexture : Texture
                                  uint arrayLayerCount,
                                  uint firstFace,
                                  uint faceCount,
-                                 ResourceStates states)
+                                 ResourceStates newStates)
     {
-        throw new NotImplementedException();
+
+        for (uint i = 0; i < mipLevelCount; i++)
+        {
+            for (uint j = 0; j < arrayLayerCount; j++)
+            {
+                for (uint k = 0; k < faceCount; k++)
+                {
+                    TextureSlice slice = new() { MipLevel = firstMipLevel + i, ArrayLayer = firstArrayLayer + j, Face = firstFace + k };
+
+                    uint index = ZenithHelper.SubresourceIndex(Desc, slice);
+
+                    ResourceStates oldStates = States[index];
+
+                    if (oldStates == newStates)
+                    {
+                        continue;
+                    }
+
+                    ResourceBarrier barrier = new()
+                    {
+                        Type = ResourceBarrierType.Transition,
+                        Transition = new()
+                        {
+                            PResource = Resource,
+                            Subresource = index,
+                            StateBefore = oldStates,
+                            StateAfter = newStates
+                        }
+                    };
+
+                    commandBuffer.GraphicsCommandList.ResourceBarrier(1, &barrier);
+
+                    States[index] = newStates;
+                }
+            }
+        }
     }
 
-    public void TransitionStates(DXCommandBuffer commandBuffer, TextureSlice slice, ResourceStates states)
+    public void TransitionStates(DXCommandBuffer commandBuffer, TextureSlice slice, ResourceStates newStates)
     {
-        TransitionStates(commandBuffer, slice.MipLevel, 1, slice.ArrayLayer, 1, slice.Face, 1, states);
+        TransitionStates(commandBuffer, slice.MipLevel, 1, slice.ArrayLayer, 1, slice.Face, 1, newStates);
     }
 
     public DXDescriptorToken CreateRtvToken(TextureSlice slice)

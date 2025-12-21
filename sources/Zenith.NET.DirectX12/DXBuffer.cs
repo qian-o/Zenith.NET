@@ -62,9 +62,28 @@ internal unsafe class DXBuffer : Buffer
         Resource.Unmap(0, (DxRange*)null);
     }
 
-    public void TransitionStates(DXCommandBuffer commandBuffer, ResourceStates states)
+    public void TransitionStates(DXCommandBuffer commandBuffer, ResourceStates newStates)
     {
-        throw new NotImplementedException();
+        if (States == newStates)
+        {
+            return;
+        }
+
+        ResourceBarrier barrier = new()
+        {
+            Type = ResourceBarrierType.Transition,
+            Transition = new()
+            {
+                PResource = Resource,
+                Subresource = 0,
+                StateBefore = States,
+                StateAfter = newStates
+            }
+        };
+
+        commandBuffer.GraphicsCommandList.ResourceBarrier(1, &barrier);
+
+        States = newStates;
     }
 
     protected override void SetResourceName(string name)

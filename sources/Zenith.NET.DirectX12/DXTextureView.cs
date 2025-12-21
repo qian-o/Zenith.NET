@@ -11,7 +11,7 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
 
     public CpuDescriptorHandle UavHandle => (uavToken ??= CreateUavToken()).Handle;
 
-    public void TransitionStates(DXCommandBuffer commandBuffer, ResourceStates states)
+    public void TransitionStates(DXCommandBuffer commandBuffer, ResourceStates newStates)
     {
         Desc.Texture.DirectX12().TransitionStates(commandBuffer,
                                                   Desc.FirstMipLevel,
@@ -20,7 +20,7 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
                                                   Desc.ArrayLayerCount,
                                                   0,
                                                   ZenithHelper.FaceCount(Desc.Texture.Desc),
-                                                  states);
+                                                  newStates);
     }
 
     protected override void SetResourceName(string name)
