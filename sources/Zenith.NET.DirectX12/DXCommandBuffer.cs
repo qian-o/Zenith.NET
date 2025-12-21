@@ -295,17 +295,33 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void BeginDebugEventImpl(string label)
     {
-        throw new NotImplementedException();
+        using ZenithMarshal.Scope scope = new();
+
+        uint size = PixHelpers.CalculateEventSize(label);
+
+        ulong* buffer = (ulong*)ZenithMarshal.Allocate<byte>(scope, size);
+
+        PixHelpers.FormatEventToBuffer(buffer, PixHelpers.Event, 0, label);
+
+        GraphicsCommandList.BeginEvent(PixHelpers.Version, buffer, size);
     }
 
     protected override void EndDebugEventImpl()
     {
-        throw new NotImplementedException();
+        GraphicsCommandList.EndEvent();
     }
 
     protected override void InsertDebugMarkerImpl(string label)
     {
-        throw new NotImplementedException();
+        using ZenithMarshal.Scope scope = new();
+
+        uint size = PixHelpers.CalculateEventSize(label);
+
+        ulong* buffer = (ulong*)ZenithMarshal.Allocate<byte>(scope, size);
+
+        PixHelpers.FormatEventToBuffer(buffer, PixHelpers.Marker, 0, label);
+
+        GraphicsCommandList.SetMarker(PixHelpers.Version, buffer, size);
     }
 
     protected override void BeginImpl()
