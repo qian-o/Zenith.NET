@@ -10,8 +10,26 @@ internal record struct DXDescriptorToken : IDisposable
 
     public uint Length;
 
+    public readonly CpuDescriptorHandle this[uint index]
+    {
+        get
+        {
+            if (index >= Length)
+            {
+                return default;
+            }
+
+            return new(Handle.Ptr + (Pool.HandleSize * index));
+        }
+    }
+
     public readonly void Dispose()
     {
+        if (Length is 0)
+        {
+            return;
+        }
+
         Pool.Free(Handle, Length);
     }
 }
