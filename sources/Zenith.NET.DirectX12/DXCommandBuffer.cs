@@ -214,7 +214,21 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void BindResourceSetImpl(Pipeline pipeline, ResourceSet resourceSet, uint index)
     {
-        throw new NotImplementedException();
+        if (cbvSrvUavTable is null || samplerTable is null)
+        {
+            return;
+        }
+
+        (bool isGraphics, uint offset) = pipeline switch
+        {
+            GraphicsPipeline graphicsPipeline => (true, (uint)graphicsPipeline.Desc.ResourceLayouts.Take((int)index).Sum(static item => item.DirectX12().GraphicsRootParameterCount)),
+            ComputePipeline computePipeline => (false, (uint)computePipeline.Desc.ResourceLayouts.Take((int)index).Sum(static item => item.DirectX12().RootParameterCount)),
+            RayTracingPipeline rayTracingPipeline => (false, (uint)rayTracingPipeline.Desc.ResourceLayouts.Take((int)index).Sum(static item => item.DirectX12().RootParameterCount)),
+            MeshShadingPipeline meshShadingPipeline => (true, (uint)meshShadingPipeline.Desc.ResourceLayouts.Take((int)index).Sum(static item => item.DirectX12().GraphicsRootParameterCount)),
+            _ => (false, 0u)
+        };
+
+        resourceSet.DirectX12().Bind(this, cbvSrvUavTable, samplerTable, isGraphics, offset);
     }
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
