@@ -12,7 +12,7 @@ internal unsafe class DXSwapChainFrameBuffer(DXGraphicsContext context, DXSwapCh
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
 
-    public DXFrameBuffer this[uint index] => throw new NotImplementedException();
+    public DXFrameBuffer this[uint index] => frameBuffers[index];
 
     public void CreateFrameBuffers(uint width, uint height, nint[] handles)
     {
