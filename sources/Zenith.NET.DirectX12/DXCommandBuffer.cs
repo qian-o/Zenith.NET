@@ -5,8 +5,8 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXCommandBuffer : CommandBuffer
 {
-    private readonly DXDescriptorTable cbvSrvUavTable;
-    private readonly DXDescriptorTable samplerTable;
+    private readonly DXDescriptorTable? cbvSrvUavTable;
+    private readonly DXDescriptorTable? samplerTable;
 
     public ComPtr<ID3D12CommandAllocator> CommandAllocator;
 
@@ -20,8 +20,11 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     public DXCommandBuffer(DXGraphicsContext context, DXCommandQueue queue) : base(context, queue)
     {
-        cbvSrvUavTable = new(context, DescriptorHeapType.CbvSrvUav, 2048);
-        samplerTable = new(context, DescriptorHeapType.Sampler, 1024);
+        if (queue.Type is not CommandQueueType.Copy)
+        {
+            cbvSrvUavTable = new(context, DescriptorHeapType.CbvSrvUav, 2048);
+            samplerTable = new(context, DescriptorHeapType.Sampler, 1024);
+        }
 
         context.Device.CreateCommandAllocator(DXFormats.DirectX12(queue.Type), out CommandAllocator).Success();
 
@@ -42,17 +45,69 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes)
     {
-        throw new NotImplementedException();
+        DXBuffer dxSrc = src.DirectX12();
+        DXBuffer dxDest = dest.DirectX12();
+
+        ResourceStates srcOldStates = dxSrc.States;
+        ResourceStates destOldStates = dxDest.States;
+
+        dxSrc.TransitionStates(this, ResourceStates.CopySource);
+        dxDest.TransitionStates(this, ResourceStates.CopyDest);
+
+        GraphicsCommandList.CopyBufferRegion(dxDest.Resource, destOffsetInBytes, dxSrc.Resource, srcOffsetInBytes, sizeInBytes);
+
+        dxSrc.TransitionStates(this, srcOldStates);
+        dxDest.TransitionStates(this, destOldStates);
     }
 
     protected override void CopyTextureImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent)
     {
-        throw new NotImplementedException();
+        DXTexture dxSrc = src.DirectX12();
+        DXTexture dxDest = dest.DirectX12();
+
+        ResourceStates srcOldStates = dxSrc.States[ZenithHelper.SubresourceIndex(dxSrc.Desc, srcSlice)];
+        ResourceStates destOldStates = dxDest.States[ZenithHelper.SubresourceIndex(dxDest.Desc, destSlice)];
+
+        dxSrc.TransitionStates(this, srcSlice, ResourceStates.CopySource);
+        dxDest.TransitionStates(this, destSlice, ResourceStates.CopyDest);
+
+        TextureCopyLocation srcLocation = new()
+        {
+            PResource = dxSrc.Resource,
+            Type = TextureCopyType.SubresourceIndex,
+            SubresourceIndex = ZenithHelper.SubresourceIndex(dxSrc.Desc, srcSlice)
+        };
+
+        Box srcBox = new(srcOffset.X, srcOffset.Y, srcOffset.Z, srcOffset.X + extent.Width, srcOffset.Y + extent.Height, srcOffset.Z + extent.Depth);
+
+        TextureCopyLocation destLocation = new()
+        {
+            PResource = dxDest.Resource,
+            Type = TextureCopyType.SubresourceIndex,
+            SubresourceIndex = ZenithHelper.SubresourceIndex(dxDest.Desc, destSlice)
+        };
+
+        GraphicsCommandList.CopyTextureRegion(&destLocation, destOffset.X, destOffset.Y, destOffset.Z, &srcLocation, &srcBox);
+
+        dxSrc.TransitionStates(this, srcSlice, srcOldStates);
+        dxDest.TransitionStates(this, destSlice, destOldStates);
     }
 
     protected override void ResolveTextureImpl(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice)
     {
-        throw new NotImplementedException();
+        DXTexture dxSrc = src.DirectX12();
+        DXTexture dxDest = dest.DirectX12();
+
+        ResourceStates srcOldStates = dxSrc.States[ZenithHelper.SubresourceIndex(dxSrc.Desc, srcSlice)];
+        ResourceStates destOldStates = dxDest.States[ZenithHelper.SubresourceIndex(dxDest.Desc, destSlice)];
+
+        dxSrc.TransitionStates(this, srcSlice, ResourceStates.CopySource);
+        dxDest.TransitionStates(this, destSlice, ResourceStates.CopyDest);
+
+        GraphicsCommandList.ResolveSubresource(dxDest.Resource, ZenithHelper.SubresourceIndex(dxDest.Desc, destSlice), dxSrc.Resource, ZenithHelper.SubresourceIndex(dxSrc.Desc, srcSlice), DXFormats.DirectX12(dxDest.Desc.Format));
+
+        dxSrc.TransitionStates(this, srcSlice, srcOldStates);
+        dxDest.TransitionStates(this, destSlice, destOldStates);
     }
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)
@@ -72,7 +127,10 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void PreprocessResourceSetsImpl(ResourceSet[] resourceSets)
     {
-        throw new NotImplementedException();
+        foreach (ResourceSet resourceSet in resourceSets)
+        {
+            resourceSet.DirectX12().TransitionStates(this);
+        }
     }
 
     protected override void SetScissorsImpl(Scissor[] scissors)
@@ -197,6 +255,11 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void BeginImpl()
     {
+        if (cbvSrvUavTable is null || samplerTable is null)
+        {
+            return;
+        }
+
         ComPtr<ID3D12DescriptorHeap>[] descriptorHeaps = [cbvSrvUavTable.Heap, samplerTable.Heap];
 
         fixed (ID3D12DescriptorHeap** ppDescriptorHeaps = descriptorHeaps[0])
@@ -212,8 +275,8 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void ResetImpl()
     {
-        cbvSrvUavTable.Reset();
-        samplerTable.Reset();
+        cbvSrvUavTable?.Reset();
+        samplerTable?.Reset();
 
         CommandAllocator.Reset().Success();
         GraphicsCommandList.Reset(CommandAllocator, (ID3D12PipelineState*)null).Success();
@@ -246,7 +309,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
         CommandAllocator.Dispose();
 
-        samplerTable.Dispose();
-        cbvSrvUavTable.Dispose();
+        samplerTable?.Dispose();
+        cbvSrvUavTable?.Dispose();
     }
 }
