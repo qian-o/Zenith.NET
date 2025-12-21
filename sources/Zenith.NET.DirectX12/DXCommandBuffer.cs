@@ -377,7 +377,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void SetResourceName(string name)
     {
-        throw new NotImplementedException();
+        CommandList.SetName(name).Success();
     }
 
     protected override void Destroy()
