@@ -20,8 +20,8 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     public DXCommandBuffer(DXGraphicsContext context, DXCommandQueue queue) : base(context, queue)
     {
-        cbvSrvUavTable = new(context, DescriptorHeapType.CbvSrvUav, 4096);
-        samplerTable = new(context, DescriptorHeapType.Sampler, 2048);
+        cbvSrvUavTable = new(context, DescriptorHeapType.CbvSrvUav, 2048);
+        samplerTable = new(context, DescriptorHeapType.Sampler, 1024);
 
         context.Device.CreateCommandAllocator(DXFormats.DirectX12(queue.Type), out CommandAllocator).Success();
 
@@ -197,17 +197,26 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void BeginImpl()
     {
-        throw new NotImplementedException();
+        ComPtr<ID3D12DescriptorHeap>[] descriptorHeaps = [cbvSrvUavTable.Heap, samplerTable.Heap];
+
+        fixed (ID3D12DescriptorHeap** ppDescriptorHeaps = descriptorHeaps[0])
+        {
+            GraphicsCommandList.SetDescriptorHeaps((uint)descriptorHeaps.Length, ppDescriptorHeaps);
+        }
     }
 
     protected override void EndImpl()
     {
-        throw new NotImplementedException();
+        GraphicsCommandList.Close().Success();
     }
 
     protected override void ResetImpl()
     {
-        throw new NotImplementedException();
+        cbvSrvUavTable.Reset();
+        samplerTable.Reset();
+
+        CommandAllocator.Reset().Success();
+        GraphicsCommandList.Reset(CommandAllocator, (ID3D12PipelineState*)null).Success();
     }
 
     protected override void BeginRenderingImpl(FrameBuffer frameBuffer, ClearValue? clearValue)
@@ -237,7 +246,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
         CommandAllocator.Dispose();
 
-        cbvSrvUavTable.Dispose();
         samplerTable.Dispose();
+        cbvSrvUavTable.Dispose();
     }
 }
