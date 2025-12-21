@@ -323,12 +323,40 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void BeginRenderingImpl(FrameBuffer frameBuffer, ClearValue? clearValue)
     {
-        throw new NotImplementedException();
+        DXFrameBuffer dxFrameBuffer = frameBuffer.DirectX12();
+
+        dxFrameBuffer.PrepareAttachmentsForRendering(this);
+
+        GraphicsCommandList.OMSetRenderTargets(dxFrameBuffer.ColorAttachmentCount, dxFrameBuffer.RtvHandles, false, dxFrameBuffer.DsvHandle);
+
+        if (clearValue.HasValue)
+        {
+            bool clearColor = clearValue.Value.Flags.HasFlag(ClearFlags.Color);
+            bool clearDepth = clearValue.Value.Flags.HasFlag(ClearFlags.Depth);
+            bool clearStencil = clearValue.Value.Flags.HasFlag(ClearFlags.Stencil);
+
+            if (clearColor)
+            {
+                for (int i = 0; i < dxFrameBuffer.ColorAttachmentCount; i++)
+                {
+                    ref float x = ref clearValue.Value.ColorValues[i].X;
+
+                    GraphicsCommandList.ClearRenderTargetView(dxFrameBuffer.RtvHandles[i], ref x, 0, null);
+                }
+            }
+
+            if ((clearDepth || clearStencil) && dxFrameBuffer.HasDepthStencilAttachment)
+            {
+                DxClearFlags clearFlags = (DxClearFlags)((clearDepth ? (int)DxClearFlags.Depth : 0) + (clearDepth ? (int)DxClearFlags.Stencil : 0));
+
+                GraphicsCommandList.ClearDepthStencilView(*dxFrameBuffer.DsvHandle, clearFlags, clearValue.Value.Depth, clearValue.Value.Stencil, 0, (Box2D<int>*)null);
+            }
+        }
     }
 
     protected override void EndRenderingImpl(FrameBuffer frameBuffer)
     {
-        throw new NotImplementedException();
+        frameBuffer.DirectX12().FinalizeColorAttachmentsForPresent(this);
     }
 
     protected override void SetResourceName(string name)

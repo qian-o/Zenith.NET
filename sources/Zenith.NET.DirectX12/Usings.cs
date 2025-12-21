@@ -1,5 +1,6 @@
 ﻿global using DxBlend = Silk.NET.Direct3D12.Blend;
 global using DxBlendOp = Silk.NET.Direct3D12.BlendOp;
+global using DxClearFlags = Silk.NET.Direct3D12.ClearFlags;
 global using DxClearValue = Silk.NET.Direct3D12.ClearValue;
 global using DxComparisonFunc = Silk.NET.Direct3D12.ComparisonFunc;
 global using DxCullMode = Silk.NET.Direct3D12.CullMode;
