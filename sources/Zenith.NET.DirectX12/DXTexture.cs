@@ -145,7 +145,7 @@ internal unsafe class DXTexture : Texture
 
     public DXDescriptorToken CreateRtvToken(TextureSlice slice)
     {
-        DXDescriptorToken token = Context.RtvAllocator.Allocate();
+        DXDescriptorToken token = Context.RtvAllocator.Allocate(1);
 
         RenderTargetViewDesc viewDesc = new() { Format = DXFormats.DirectX12(Desc.Format) };
 
@@ -213,7 +213,7 @@ internal unsafe class DXTexture : Texture
 
     public DXDescriptorToken CreateDsvToken(TextureSlice slice)
     {
-        DXDescriptorToken token = Context.DsvAllocator.Allocate();
+        DXDescriptorToken token = Context.DsvAllocator.Allocate(1);
 
         DepthStencilViewDesc viewDesc = new() { Format = DXFormats.DirectX12(Desc.Format) };
 

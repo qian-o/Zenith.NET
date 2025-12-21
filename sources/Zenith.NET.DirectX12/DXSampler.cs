@@ -8,7 +8,7 @@ internal unsafe class DXSampler : Sampler
 
     public DXSampler(DXGraphicsContext context, SamplerDesc desc) : base(context, desc)
     {
-        Token = context.SamplerAllocator.Allocate();
+        Token = context.SamplerAllocator.Allocate(1);
 
         DxSamplerDesc samplerDesc = new()
         {

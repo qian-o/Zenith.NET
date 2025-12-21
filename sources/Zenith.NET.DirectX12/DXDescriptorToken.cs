@@ -8,8 +8,10 @@ internal record struct DXDescriptorToken : IDisposable
 
     public CpuDescriptorHandle Handle;
 
+    public uint Length;
+
     public readonly void Dispose()
     {
-        Pool.Free(Handle);
+        Pool.Free(Handle, Length);
     }
 }

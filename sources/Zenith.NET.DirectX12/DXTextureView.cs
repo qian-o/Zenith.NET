@@ -35,7 +35,7 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
 
     private DXDescriptorToken CreateSrvToken()
     {
-        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate();
+        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate(1);
 
         ShaderResourceViewDesc viewDesc = new() { Format = DXFormats.DirectX12(Desc.Texture.Desc.Format) };
 
@@ -123,7 +123,7 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
 
     private DXDescriptorToken CreateUavToken()
     {
-        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate();
+        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate(1);
 
         UnorderedAccessViewDesc viewDesc = new() { Format = DXFormats.DirectX12(Desc.Texture.Desc.Format) };
 

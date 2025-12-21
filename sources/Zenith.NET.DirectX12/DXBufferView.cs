@@ -27,7 +27,7 @@ internal unsafe class DXBufferView(DXGraphicsContext context, BufferViewDesc des
 
     private DXDescriptorToken CreateCbvToken()
     {
-        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate();
+        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate(1);
 
         ConstantBufferViewDesc viewDesc = new()
         {
@@ -42,7 +42,7 @@ internal unsafe class DXBufferView(DXGraphicsContext context, BufferViewDesc des
 
     private DXDescriptorToken CreateSrvToken()
     {
-        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate();
+        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate(1);
 
         ShaderResourceViewDesc viewDesc = new()
         {
@@ -62,7 +62,7 @@ internal unsafe class DXBufferView(DXGraphicsContext context, BufferViewDesc des
 
     private DXDescriptorToken CreateUavToken()
     {
-        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate();
+        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate(1);
 
         UnorderedAccessViewDesc viewDesc = new()
         {

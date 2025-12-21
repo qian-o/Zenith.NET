@@ -7,17 +7,18 @@ internal class DXDescriptorAllocator(DXGraphicsContext context, DescriptorHeapTy
     private readonly Lock @lock = new();
     private readonly List<DXDescriptorPool> available = [];
 
-    public DXDescriptorToken Allocate()
+    public DXDescriptorToken Allocate(uint length)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
         CpuDescriptorHandle handle = default;
-        if (available.FirstOrDefault(item => item.TryAllocate(out handle)) is not DXDescriptorPool pool)
+        if (available.FirstOrDefault(item => item.TryAllocate(length, out handle)) is not DXDescriptorPool pool)
         {
-            pool = new(context, type, out handle);
+            pool = new(context, type);
+            pool.TryAllocate(length, out handle);
         }
 
-        return new() { Pool = pool, Handle = handle };
+        return new() { Pool = pool, Handle = handle, Length = length };
     }
 
     protected override void SetResourceName(string name)

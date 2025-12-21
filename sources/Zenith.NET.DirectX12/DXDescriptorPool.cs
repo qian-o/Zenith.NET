@@ -5,18 +5,14 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXDescriptorPool : GraphicsResource
 {
-    private const uint DescriptorCount = 256;
+    private const uint DescriptorCount = 512;
 
     private readonly bool[] slots = new bool[DescriptorCount];
-    private readonly uint handleSize;
-    private readonly CpuDescriptorHandle startHandle;
 
     public ComPtr<ID3D12DescriptorHeap> Heap;
 
-    public DXDescriptorPool(DXGraphicsContext context, DescriptorHeapType type, out CpuDescriptorHandle initialHandle) : base(context)
+    public DXDescriptorPool(DXGraphicsContext context, DescriptorHeapType type) : base(context)
     {
-        slots[0] = true;
-
         DescriptorHeapDesc desc = new()
         {
             Type = type,
@@ -25,30 +21,54 @@ internal unsafe class DXDescriptorPool : GraphicsResource
 
         context.Device.CreateDescriptorHeap(&desc, out Heap).Success();
 
-        handleSize = context.Device.GetDescriptorHandleIncrementSize(type);
-        initialHandle = startHandle = Heap.GetCPUDescriptorHandleForHeapStart();
+        StartHandle = Heap.GetCPUDescriptorHandleForHeapStart();
+        HandleSize = context.Device.GetDescriptorHandleIncrementSize(type);
     }
 
-    public bool TryAllocate(out CpuDescriptorHandle handle)
+    public CpuDescriptorHandle StartHandle { get; }
+
+    public uint HandleSize { get; }
+
+    public bool TryAllocate(uint length, out CpuDescriptorHandle handle)
     {
         handle = default;
 
-        for (uint i = 0; i < DescriptorCount; i++)
+        for (uint i = 0; i <= DescriptorCount - length; i++)
         {
-            if (!slots[i])
-            {
-                handle = new(startHandle.Ptr + (handleSize * i));
+            bool available = true;
 
-                return slots[i] = true;
+            for (uint j = 0; j < length; j++)
+            {
+                if (slots[i + j])
+                {
+                    available = false;
+
+                    break;
+                }
+            }
+
+            if (available)
+            {
+                for (uint j = 0; j < length; j++)
+                {
+                    slots[i + j] = true;
+                }
+
+                handle = new(StartHandle.Ptr + (HandleSize * i));
+
+                return true;
             }
         }
 
         return false;
     }
 
-    public void Free(CpuDescriptorHandle handle)
+    public void Free(CpuDescriptorHandle handle, uint length)
     {
-        slots[(handle.Ptr - startHandle.Ptr) / handleSize] = false;
+        for (uint i = (uint)((handle.Ptr - StartHandle.Ptr) / HandleSize); i < length; i++)
+        {
+            slots[i] = false;
+        }
     }
 
     protected override void SetResourceName(string name)
