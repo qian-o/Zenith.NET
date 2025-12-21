@@ -81,7 +81,7 @@ internal unsafe class DXFrameBuffer : FrameBuffer
             attachment.Target.DirectX12().TransitionStates(commandBuffer, attachment.Slice, ResourceStates.RenderTarget);
         }
 
-        Desc.DepthStencilAttachment?.Target.DirectX12().TransitionStates(commandBuffer, Desc.DepthStencilAttachment.Value.Slice, ResourceStates.DepthWrite | ResourceStates.DepthRead);
+        Desc.DepthStencilAttachment?.Target.DirectX12().TransitionStates(commandBuffer, Desc.DepthStencilAttachment.Value.Slice, ResourceStates.DepthWrite);
     }
 
     public void FinalizeColorAttachmentsForPresent(DXCommandBuffer commandBuffer)
