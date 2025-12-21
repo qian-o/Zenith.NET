@@ -62,6 +62,11 @@ internal unsafe class DXBuffer : Buffer
         Resource.Unmap(0, (DxRange*)null);
     }
 
+    public void TransitionStates(DXCommandBuffer commandBuffer, ResourceStates states)
+    {
+        throw new NotImplementedException();
+    }
+
     protected override void SetResourceName(string name)
     {
         Resource.SetName(name).Success();

@@ -53,7 +53,7 @@ internal class DXResourceSet : ResourceSet
 
     public DXTextureView[] UavTextureViews { get; }
 
-    public void TransitionStates(CommandBuffer commandBuffer)
+    public void TransitionStates(DXCommandBuffer commandBuffer)
     {
         foreach (DXTextureView textureView in SrvTextureViews)
         {

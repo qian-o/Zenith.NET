@@ -126,7 +126,7 @@ internal unsafe class DXTexture : Texture
         Resource.Unmap(0, (DxRange*)null);
     }
 
-    public void TransitionStates(CommandBuffer commandBuffer,
+    public void TransitionStates(DXCommandBuffer commandBuffer,
                                  uint firstMipLevel,
                                  uint mipLevelCount,
                                  uint firstArrayLayer,
@@ -138,7 +138,7 @@ internal unsafe class DXTexture : Texture
         throw new NotImplementedException();
     }
 
-    public void TransitionStates(CommandBuffer commandBuffer, TextureSlice slice, ResourceStates states)
+    public void TransitionStates(DXCommandBuffer commandBuffer, TextureSlice slice, ResourceStates states)
     {
         TransitionStates(commandBuffer, slice.MipLevel, 1, slice.ArrayLayer, 1, slice.Face, 1, states);
     }

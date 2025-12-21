@@ -74,7 +74,7 @@ internal unsafe class DXFrameBuffer : FrameBuffer
 
     public DXDescriptorToken[] Tokens { get; }
 
-    public void PrepareAttachmentsForRendering(CommandBuffer commandBuffer)
+    public void PrepareAttachmentsForRendering(DXCommandBuffer commandBuffer)
     {
         foreach (FrameBufferAttachment attachment in Desc.ColorAttachments)
         {
@@ -84,7 +84,7 @@ internal unsafe class DXFrameBuffer : FrameBuffer
         Desc.DepthStencilAttachment?.Target.DirectX12().TransitionStates(commandBuffer, Desc.DepthStencilAttachment.Value.Slice, ResourceStates.DepthWrite | ResourceStates.DepthRead);
     }
 
-    public void FinalizeColorAttachmentsForPresent(CommandBuffer commandBuffer)
+    public void FinalizeColorAttachmentsForPresent(DXCommandBuffer commandBuffer)
     {
         foreach (FrameBufferAttachment attachment in Desc.ColorAttachments)
         {
