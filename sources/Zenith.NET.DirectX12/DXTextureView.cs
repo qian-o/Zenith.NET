@@ -37,7 +37,11 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
     {
         DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate(1);
 
-        ShaderResourceViewDesc viewDesc = new() { Format = DXFormats.DirectX12(Desc.Texture.Desc.Format) };
+        ShaderResourceViewDesc viewDesc = new()
+        {
+            Format = DXFormats.DirectX12(Desc.Texture.Desc.Format),
+            Shader4ComponentMapping = DXGraphicsContext.Shader4ComponentMapping
+        };
 
         switch (Desc.Texture.Desc.Type)
         {

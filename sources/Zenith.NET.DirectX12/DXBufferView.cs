@@ -32,7 +32,7 @@ internal unsafe class DXBufferView(DXGraphicsContext context, BufferViewDesc des
         ConstantBufferViewDesc viewDesc = new()
         {
             BufferLocation = Desc.Buffer.DirectX12().Resource.GetGPUVirtualAddress(),
-            SizeInBytes = Desc.SizeInBytes
+            SizeInBytes = ZenithHelper.Align(Desc.SizeInBytes, 256u)
         };
 
         context.Device.CreateConstantBufferView(&viewDesc, token.Handle);
