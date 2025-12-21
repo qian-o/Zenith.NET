@@ -5,6 +5,17 @@ namespace Zenith.NET.DirectX12;
 
 internal static class DXFormats
 {
+    public static CommandListType DirectX12(CommandQueueType commandQueueType)
+    {
+        return commandQueueType switch
+        {
+            CommandQueueType.Graphics => CommandListType.Direct,
+            CommandQueueType.Compute => CommandListType.Compute,
+            CommandQueueType.Copy => CommandListType.Copy,
+            _ => CommandListType.None
+        };
+    }
+
     public static (ResourceFlags Flags, ResourceStates States) DirectX12(BufferUsageFlags bufferUsageFlags)
     {
         ResourceFlags flags = ResourceFlags.None;

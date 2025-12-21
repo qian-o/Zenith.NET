@@ -22,6 +22,10 @@ internal static class DXExtensions
 
     extension(CommandBuffer commandBuffer)
     {
+        public DXCommandBuffer DirectX12()
+        {
+            return (DXCommandBuffer)commandBuffer;
+        }
     }
 
     extension(SwapChain swapChain)
