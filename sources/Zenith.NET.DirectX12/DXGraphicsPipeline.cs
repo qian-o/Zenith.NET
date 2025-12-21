@@ -213,7 +213,7 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
 
         // PrimitiveTopology
         {
-            graphicsPipelineStateDesc.PrimitiveTopologyType = DXFormats.DirectX12(desc.PrimitiveTopology);
+            graphicsPipelineStateDesc.PrimitiveTopologyType = DXFormats.DirectX12(desc.PrimitiveTopology).PrimitiveTopologyType;
         }
 
         context.Device.CreateGraphicsPipelineState(&graphicsPipelineStateDesc, out PipelineState).Success();

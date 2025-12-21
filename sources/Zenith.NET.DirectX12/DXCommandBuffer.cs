@@ -138,19 +138,39 @@ internal unsafe class DXCommandBuffer : CommandBuffer
     {
         Box2D<int>[] dxScissors = [.. scissors.Select(static item => new Box2D<int>(new(item.X, item.Y), new((int)(item.X + item.Width), (int)(item.Y + item.Height))))];
 
-        GraphicsCommandList.RSSetScissorRects((uint)scissors.Length, dxScissors);
+        GraphicsCommandList.RSSetScissorRects((uint)scissors.Length, ref dxScissors[0]);
     }
 
     protected override void SetViewportsImpl(Viewport[] viewports)
     {
         DxViewport[] dxViewports = [.. viewports.Select(static item => new DxViewport(item.X, item.Y, item.Width, item.Height, item.MinDepth, item.MaxDepth))];
 
-        GraphicsCommandList.RSSetViewports((uint)viewports.Length, dxViewports);
+        GraphicsCommandList.RSSetViewports((uint)viewports.Length, ref dxViewports[0]);
     }
 
     protected override void BindPipelineImpl(GraphicsPipeline pipeline)
     {
-        throw new NotImplementedException();
+        DXGraphicsPipeline dxPipeline = pipeline.DirectX12();
+
+        GraphicsCommandList.SetPipelineState(dxPipeline.PipelineState);
+        GraphicsCommandList.SetGraphicsRootSignature(dxPipeline.RootSignature);
+
+        GraphicsCommandList.OMSetStencilRef(dxPipeline.Desc.RenderStates.StencilReference);
+
+        if (dxPipeline.Desc.RenderStates.BlendFactor.HasValue)
+        {
+            float[] blendFactor =
+            [
+                dxPipeline.Desc.RenderStates.BlendFactor.Value.X,
+                dxPipeline.Desc.RenderStates.BlendFactor.Value.Y,
+                dxPipeline.Desc.RenderStates.BlendFactor.Value.Z,
+                dxPipeline.Desc.RenderStates.BlendFactor.Value.W
+            ];
+
+            GraphicsCommandList.OMSetBlendFactor(ref blendFactor[0]);
+        }
+
+        GraphicsCommandList.IASetPrimitiveTopology(DXFormats.DirectX12(pipeline.Desc.PrimitiveTopology).PrimitiveTopology);
     }
 
     protected override void BindPipelineImpl(ComputePipeline pipeline)
@@ -170,12 +190,26 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void BindVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index)
     {
-        throw new NotImplementedException();
+        VertexBufferView view = new()
+        {
+            BufferLocation = buffer.DirectX12().Resource.GetGPUVirtualAddress() + offsetInBytes,
+            SizeInBytes = buffer.Desc.SizeInBytes - offsetInBytes,
+            StrideInBytes = pipeline.Desc.InputLayouts[index].StrideInBytes
+        };
+
+        GraphicsCommandList.IASetVertexBuffers(index, 1, &view);
     }
 
     protected override void BindIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format)
     {
-        throw new NotImplementedException();
+        IndexBufferView view = new()
+        {
+            BufferLocation = buffer.DirectX12().Resource.GetGPUVirtualAddress() + offsetInBytes,
+            SizeInBytes = buffer.Desc.SizeInBytes - offsetInBytes,
+            Format = DXFormats.DirectX12(format)
+        };
+
+        GraphicsCommandList.IASetIndexBuffer(&view);
     }
 
     protected override void BindResourceSetImpl(Pipeline pipeline, ResourceSet resourceSet, uint index)

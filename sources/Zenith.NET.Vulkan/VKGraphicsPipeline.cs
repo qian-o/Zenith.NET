@@ -85,7 +85,7 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
                     CompareOp = VKFormats.Vulkan(desc.RenderStates.DepthStencilState.FrontFace.StencilFunc),
                     CompareMask = desc.RenderStates.DepthStencilState.StencilReadMask,
                     WriteMask = desc.RenderStates.DepthStencilState.StencilWriteMask,
-                    Reference = (uint)desc.RenderStates.StencilReference
+                    Reference = desc.RenderStates.StencilReference
                 },
                 Back = new()
                 {
@@ -95,7 +95,7 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
                     CompareOp = VKFormats.Vulkan(desc.RenderStates.DepthStencilState.BackFace.StencilFunc),
                     CompareMask = desc.RenderStates.DepthStencilState.StencilReadMask,
                     WriteMask = desc.RenderStates.DepthStencilState.StencilWriteMask,
-                    Reference = (uint)desc.RenderStates.StencilReference
+                    Reference = desc.RenderStates.StencilReference
                 },
                 MinDepthBounds = 0.0f,
                 MaxDepthBounds = 1.0f

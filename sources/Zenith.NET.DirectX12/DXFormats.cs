@@ -1,21 +1,11 @@
-﻿using Silk.NET.Direct3D12;
+﻿using Silk.NET.Core.Native;
+using Silk.NET.Direct3D12;
 using Silk.NET.DXGI;
 
 namespace Zenith.NET.DirectX12;
 
 internal static class DXFormats
 {
-    public static CommandListType DirectX12(CommandQueueType commandQueueType)
-    {
-        return commandQueueType switch
-        {
-            CommandQueueType.Graphics => CommandListType.Direct,
-            CommandQueueType.Compute => CommandListType.Compute,
-            CommandQueueType.Copy => CommandListType.Copy,
-            _ => CommandListType.None
-        };
-    }
-
     public static (ResourceFlags Flags, ResourceStates States) DirectX12(BufferUsageFlags bufferUsageFlags)
     {
         ResourceFlags flags = ResourceFlags.None;
@@ -473,25 +463,63 @@ internal static class DXFormats
         };
     }
 
-    public static PrimitiveTopologyType DirectX12(PrimitiveTopology primitiveTopology)
+    public static (PrimitiveTopologyType PrimitiveTopologyType, D3DPrimitiveTopology PrimitiveTopology) DirectX12(PrimitiveTopology primitiveTopology)
     {
-        return primitiveTopology switch
+        return
+        (
+            primitiveTopology switch
+            {
+                PrimitiveTopology.PointList => PrimitiveTopologyType.Point,
+
+                PrimitiveTopology.LineList or
+                PrimitiveTopology.LineStrip or
+                PrimitiveTopology.LineListWithAdjacency or
+                PrimitiveTopology.LineStripWithAdjacency => PrimitiveTopologyType.Line,
+
+                PrimitiveTopology.TriangleList or
+                PrimitiveTopology.TriangleStrip or
+                PrimitiveTopology.TriangleListWithAdjacency or
+                PrimitiveTopology.TriangleStripWithAdjacency => PrimitiveTopologyType.Triangle,
+
+                >= PrimitiveTopology.PatchList => PrimitiveTopologyType.Patch,
+
+                _ => PrimitiveTopologyType.Undefined
+            },
+            primitiveTopology switch
+            {
+                PrimitiveTopology.PointList => D3DPrimitiveTopology.D3DPrimitiveTopologyPointlist,
+                PrimitiveTopology.LineList => D3DPrimitiveTopology.D3DPrimitiveTopologyLinelist,
+                PrimitiveTopology.LineStrip => D3DPrimitiveTopology.D3DPrimitiveTopologyLinestrip,
+                PrimitiveTopology.LineListWithAdjacency => D3DPrimitiveTopology.D3DPrimitiveTopologyLinelistAdj,
+                PrimitiveTopology.LineStripWithAdjacency => D3DPrimitiveTopology.D3DPrimitiveTopologyLinestripAdj,
+                PrimitiveTopology.TriangleList => D3DPrimitiveTopology.D3DPrimitiveTopologyTrianglelist,
+                PrimitiveTopology.TriangleStrip => D3DPrimitiveTopology.D3DPrimitiveTopologyTrianglestrip,
+                PrimitiveTopology.TriangleListWithAdjacency => D3DPrimitiveTopology.D3DPrimitiveTopologyTrianglelistAdj,
+                PrimitiveTopology.TriangleStripWithAdjacency => D3DPrimitiveTopology.D3DPrimitiveTopologyTrianglestripAdj,
+                >= PrimitiveTopology.PatchList => D3DPrimitiveTopology.D3DPrimitiveTopology1ControlPointPatchlist + (PrimitiveTopology.PatchList - primitiveTopology),
+                _ => D3DPrimitiveTopology.D3DPrimitiveTopologyUndefined
+            }
+        );
+    }
+
+    public static CommandListType DirectX12(CommandQueueType commandQueueType)
+    {
+        return commandQueueType switch
         {
-            PrimitiveTopology.PointList => PrimitiveTopologyType.Point,
+            CommandQueueType.Graphics => CommandListType.Direct,
+            CommandQueueType.Compute => CommandListType.Compute,
+            CommandQueueType.Copy => CommandListType.Copy,
+            _ => CommandListType.None
+        };
+    }
 
-            PrimitiveTopology.LineList or
-            PrimitiveTopology.LineStrip or
-            PrimitiveTopology.LineListWithAdjacency or
-            PrimitiveTopology.LineStripWithAdjacency => PrimitiveTopologyType.Line,
-
-            PrimitiveTopology.TriangleList or
-            PrimitiveTopology.TriangleStrip or
-            PrimitiveTopology.TriangleListWithAdjacency or
-            PrimitiveTopology.TriangleStripWithAdjacency => PrimitiveTopologyType.Triangle,
-
-            >= PrimitiveTopology.PatchList => PrimitiveTopologyType.Patch,
-
-            _ => PrimitiveTopologyType.Undefined
+    public static Format DirectX12(IndexFormat indexFormat)
+    {
+        return indexFormat switch
+        {
+            IndexFormat.UInt16 => Format.FormatR16Uint,
+            IndexFormat.UInt32 => Format.FormatR32Uint,
+            _ => Format.FormatUnknown
         };
     }
 }
