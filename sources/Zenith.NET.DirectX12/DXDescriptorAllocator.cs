@@ -12,11 +12,9 @@ internal class DXDescriptorAllocator(DXGraphicsContext context, DescriptorHeapTy
         using Lock.Scope _ = @lock.EnterScope();
 
         CpuDescriptorHandle handle = default;
-        if (available.FirstOrDefault(item => item.TryAllocate(length, out handle)) is not DXDescriptorPool pool)
+        if (available.FirstOrDefault(item => item.TryAllocate(length, out handle)) is not DXDescriptorPool pool && (pool = new(context, type)).TryAllocate(length, out handle))
         {
-            available.Add(pool = new(context, type));
-
-            pool.TryAllocate(length, out handle);
+            available.Add(pool);
         }
 
         return new() { Pool = pool, Handle = handle, Length = length };
