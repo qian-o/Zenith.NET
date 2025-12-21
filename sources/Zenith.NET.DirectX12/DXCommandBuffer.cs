@@ -5,6 +5,9 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXCommandBuffer : CommandBuffer
 {
+    private readonly DXDescriptorTable cbvSrvUavTable;
+    private readonly DXDescriptorTable samplerTable;
+
     public ComPtr<ID3D12CommandAllocator> CommandAllocator;
 
     public ComPtr<ID3D12CommandList> CommandList;
@@ -17,6 +20,9 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     public DXCommandBuffer(DXGraphicsContext context, DXCommandQueue queue) : base(context, queue)
     {
+        cbvSrvUavTable = new(context, DescriptorHeapType.CbvSrvUav, 4096);
+        samplerTable = new(context, DescriptorHeapType.Sampler, 2048);
+
         context.Device.CreateCommandAllocator(DXFormats.DirectX12(queue.Type), out CommandAllocator).Success();
 
         context.Device.CreateCommandList(0, DXFormats.DirectX12(queue.Type), CommandAllocator, (ComPtr<ID3D12PipelineState>)null, out CommandList).Success();
@@ -230,5 +236,8 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         CommandList.Dispose();
 
         CommandAllocator.Dispose();
+
+        cbvSrvUavTable.Dispose();
+        samplerTable.Dispose();
     }
 }

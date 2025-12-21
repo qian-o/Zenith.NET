@@ -21,13 +21,10 @@ internal unsafe class DXDescriptorPool : GraphicsResource
 
         context.Device.CreateDescriptorHeap(&desc, out Heap).Success();
 
-        StartHandle = Heap.GetCPUDescriptorHandleForHeapStart();
-        HandleSize = context.Device.GetDescriptorHandleIncrementSize(type);
+        DescriptorSize = context.Device.GetDescriptorHandleIncrementSize(type);
     }
 
-    public CpuDescriptorHandle StartHandle { get; }
-
-    public uint HandleSize { get; }
+    public uint DescriptorSize { get; }
 
     public bool TryAllocate(uint length, out CpuDescriptorHandle handle)
     {
@@ -54,7 +51,7 @@ internal unsafe class DXDescriptorPool : GraphicsResource
                     slots[i + j] = true;
                 }
 
-                handle = new(StartHandle.Ptr + (HandleSize * i));
+                handle = new(Heap.GetCPUDescriptorHandleForHeapStart().Ptr + (DescriptorSize * i));
 
                 return true;
             }
@@ -65,7 +62,7 @@ internal unsafe class DXDescriptorPool : GraphicsResource
 
     public void Free(CpuDescriptorHandle handle, uint length)
     {
-        for (uint i = (uint)((handle.Ptr - StartHandle.Ptr) / HandleSize); i < length; i++)
+        for (uint i = (uint)((handle.Ptr - Heap.GetCPUDescriptorHandleForHeapStart().Ptr) / DescriptorSize); i < length; i++)
         {
             slots[i] = false;
         }

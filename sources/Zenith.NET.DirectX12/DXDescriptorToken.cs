@@ -19,7 +19,7 @@ internal record struct DXDescriptorToken : IDisposable
                 return default;
             }
 
-            return new(Handle.Ptr + (Pool.HandleSize * index));
+            return new(Handle.Ptr + (Pool.DescriptorSize * index));
         }
     }
 
