@@ -92,6 +92,8 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             }
         };
 
+        Box srcBox = new(0, 0, 0, destExtent.Width, destExtent.Height, destExtent.Depth);
+
         TextureCopyLocation destLocation = new()
         {
             PResource = dxDest.Resource,
@@ -99,7 +101,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             SubresourceIndex = ZenithHelper.SubresourceIndex(dxDest.Desc, destSlice)
         };
 
-        GraphicsCommandList.CopyTextureRegion(&destLocation, destOffset.X, destOffset.Y, destOffset.Z, &srcLocation, (Box*)null);
+        GraphicsCommandList.CopyTextureRegion(&destLocation, destOffset.X, destOffset.Y, destOffset.Z, &srcLocation, &srcBox);
 
         dxSrc.TransitionStates(this, srcOldStates);
         dxDest.TransitionStates(this, destSlice, destOldStates);
