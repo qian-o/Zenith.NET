@@ -9,19 +9,7 @@ internal unsafe class DXTexture : Texture
 
     public DXTexture(DXGraphicsContext context, TextureDesc desc) : base(context, desc)
     {
-        ResourceDesc resourceDesc = new()
-        {
-            Dimension = DXFormats.DirectX12(desc.Type),
-            Width = desc.Width,
-            Height = desc.Height,
-            DepthOrArraySize = (ushort)(desc.Type is TextureType.Texture3D ? desc.Depth : ZenithHelper.FlattenArrayLayerCount(desc)),
-            MipLevels = (ushort)desc.MipLevels,
-            Format = DXFormats.DirectX12(desc.Format),
-            SampleDesc = DXFormats.DirectX12(desc.SampleCount),
-            Flags = DXFormats.DirectX12(desc.Flags).Flags
-        };
-
-        HeapProperties heapProperties = new(HeapType.Default);
+        Heap = new(context, this, out ResourceDesc resourceDesc);
 
         if (desc.Flags.HasFlag(TextureUsageFlags.RenderTarget) || desc.Flags.HasFlag(TextureUsageFlags.DepthStencil))
         {
@@ -32,21 +20,11 @@ internal unsafe class DXTexture : Texture
                 clearValue.DepthStencil = new() { Depth = 1.0f };
             }
 
-            context.Device.CreateCommittedResource(&heapProperties,
-                                                   HeapFlags.None,
-                                                   &resourceDesc,
-                                                   DXFormats.DirectX12(desc.Flags).States,
-                                                   &clearValue,
-                                                   out Resource).Success();
+            context.Device.CreatePlacedResource(Heap.Heap, 0, &resourceDesc, DXFormats.DirectX12(desc.Flags).States, &clearValue, out Resource).Success();
         }
         else
         {
-            context.Device.CreateCommittedResource(&heapProperties,
-                                                   HeapFlags.None,
-                                                   &resourceDesc,
-                                                   DXFormats.DirectX12(desc.Flags).States,
-                                                   null,
-                                                   out Resource).Success();
+            context.Device.CreatePlacedResource(Heap.Heap, 0, &resourceDesc, DXFormats.DirectX12(desc.Flags).States, null, out Resource).Success();
         }
 
         View = new(context, new()
@@ -80,6 +58,8 @@ internal unsafe class DXTexture : Texture
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
+
+    public DXHeap? Heap { get; }
 
     public DXTextureView View { get; }
 
@@ -316,5 +296,7 @@ internal unsafe class DXTexture : Texture
         View.Dispose();
 
         Resource.Dispose();
+
+        Heap?.Dispose();
     }
 }

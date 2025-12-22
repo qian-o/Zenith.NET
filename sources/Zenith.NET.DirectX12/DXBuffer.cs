@@ -9,26 +9,9 @@ internal unsafe class DXBuffer : Buffer
 
     public DXBuffer(DXGraphicsContext context, BufferDesc desc) : base(context, desc)
     {
-        ResourceDesc resourceDesc = new()
-        {
-            Dimension = ResourceDimension.Buffer,
-            Width = ZenithHelper.Align(desc.SizeInBytes, 256u),
-            Height = 1,
-            DepthOrArraySize = 1,
-            MipLevels = 1,
-            SampleDesc = new(1, 0),
-            Layout = TextureLayout.LayoutRowMajor,
-            Flags = DXFormats.DirectX12(desc.Flags).Flags
-        };
+        Heap = new(context, this, out ResourceDesc resourceDesc);
 
-        HeapProperties heapProperties = new(desc.Flags.HasFlag(BufferUsageFlags.Dynamic) ? HeapType.Upload : HeapType.Default);
-
-        context.Device.CreateCommittedResource(&heapProperties,
-                                               HeapFlags.None,
-                                               &resourceDesc,
-                                               States = DXFormats.DirectX12(desc.Flags).States,
-                                               null,
-                                               out Resource).Success();
+        context.Device.CreatePlacedResource(Heap.Heap, 0, &resourceDesc, States = DXFormats.DirectX12(desc.Flags).States, null, out Resource).Success();
 
         View = new(context, new()
         {
@@ -38,6 +21,8 @@ internal unsafe class DXBuffer : Buffer
             StrideInBytes = desc.StrideInBytes
         });
     }
+
+    public DXHeap Heap { get; }
 
     public DXBufferView View { get; }
 
@@ -96,5 +81,7 @@ internal unsafe class DXBuffer : Buffer
         View.Dispose();
 
         Resource.Dispose();
+
+        Heap.Dispose();
     }
 }
