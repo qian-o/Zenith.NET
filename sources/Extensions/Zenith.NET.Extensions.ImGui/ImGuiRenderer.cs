@@ -445,6 +445,11 @@ float4 PSMain(VSOutput input) : SV_TARGET
                         Height = (uint)(drawCmd.ClipRect.W - drawCmd.ClipRect.Y)
                     };
 
+                    if (scissor.Width <= 0 || scissor.Height <= 0)
+                    {
+                        continue;
+                    }
+
                     commandBuffer.SetScissors([scissor]);
                     commandBuffer.BindResourceSet(imResourceSets[drawCmd.TexRef.GetTexID()], 0);
                     commandBuffer.DrawIndexed(drawCmd.ElemCount, 1, (uint)(drawCmd.IdxOffset + indexOffset), (int)(drawCmd.VtxOffset + vertexOffset), 0);
