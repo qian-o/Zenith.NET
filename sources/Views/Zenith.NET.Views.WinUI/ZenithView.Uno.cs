@@ -12,6 +12,7 @@ public unsafe partial class ZenithView
     private FrameBuffer? frameBuffer;
     private Buffer? present;
     private WriteableBitmap? bitmap;
+    private uint rowPitchInBytes;
 
     private void OnRender(GraphicsContext context)
     {
@@ -56,7 +57,7 @@ public unsafe partial class ZenithView
 
             present = context.CreateBuffer(new()
             {
-                SizeInBytes = width * height * 4,
+                SizeInBytes = (rowPitchInBytes = ZenithHelper.Align(width * 4, GraphicsContext.TextureRowPitchAlignment)) * height,
                 StrideInBytes = 4,
                 Flags = BufferUsageFlags.Dynamic
             });
@@ -77,7 +78,14 @@ public unsafe partial class ZenithView
         {
             MappedMemory mappedMemory = present.Map();
 
-            stream.Write([.. new ReadOnlySpan<byte>((byte*)mappedMemory.Pointer, (int)(width * height * 4))]);
+            byte* pixels = (byte*)mappedMemory.Pointer;
+
+            for (uint y = 0; y < height; y++)
+            {
+                stream.Write([.. new ReadOnlySpan<byte>(pixels, (int)(width * 4))]);
+
+                pixels += rowPitchInBytes;
+            }
 
             present.Unmap();
         }

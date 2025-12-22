@@ -22,6 +22,7 @@ public unsafe class ZenithView : TemplatedControl
     private FrameBuffer? frameBuffer;
     private Buffer? present;
     private WriteableBitmap? bitmap;
+    private uint rowPitchInBytes;
 
     static ZenithView()
     {
@@ -142,7 +143,7 @@ public unsafe class ZenithView : TemplatedControl
 
                 present = GraphicsContext.CreateBuffer(new()
                 {
-                    SizeInBytes = width * height * 4,
+                    SizeInBytes = (rowPitchInBytes = ZenithHelper.Align(width * 4, GraphicsContext.TextureRowPitchAlignment)) * height,
                     StrideInBytes = 4,
                     Flags = BufferUsageFlags.Dynamic
                 });
@@ -163,7 +164,20 @@ public unsafe class ZenithView : TemplatedControl
             {
                 MappedMemory mappedMemory = present.Map();
 
-                Unsafe.CopyBlock((void*)lockedFramebuffer.Address, (void*)mappedMemory.Pointer, mappedMemory.SizeInBytes);
+                if (lockedFramebuffer.RowBytes == rowPitchInBytes)
+                {
+                    Unsafe.CopyBlock((void*)lockedFramebuffer.Address, (void*)mappedMemory.Pointer, mappedMemory.SizeInBytes);
+                }
+                else
+                {
+                    Parallel.For(0, height, y =>
+                    {
+                        byte* srcPtr = (byte*)mappedMemory.Pointer + (rowPitchInBytes * y);
+                        byte* dstPtr = (byte*)lockedFramebuffer.Address + (lockedFramebuffer.RowBytes * y);
+
+                        Unsafe.CopyBlock(dstPtr, srcPtr, (uint)lockedFramebuffer.RowBytes);
+                    });
+                }
 
                 present.Unmap();
             }

@@ -162,9 +162,15 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
         vkSrc.TransitionLayout(this, srcSlice, ImageLayout.TransferSrcOptimal);
 
+        uint formatSizeInBytes = ZenithHelper.SizeInBytes(vkSrc.Desc.Format);
+        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * srcExtent.Width, GraphicsContext.TextureRowPitchAlignment);
+        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * srcExtent.Height, GraphicsContext.TextureDepthPitchAlignment);
+
         BufferImageCopy bufferImageCopy = new()
         {
             BufferOffset = destOffsetInBytes,
+            BufferRowLength = sliceRowPitchInBytes / formatSizeInBytes,
+            BufferImageHeight = sliceDepthPitchInBytes / formatSizeInBytes,
             ImageSubresource = new()
             {
                 AspectMask = VKFormats.Vulkan(vkSrc.Desc.Flags).ImageAspectFlags,

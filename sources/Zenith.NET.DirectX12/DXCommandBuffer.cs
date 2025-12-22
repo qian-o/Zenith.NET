@@ -140,7 +140,46 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void CopyTextureToBufferImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes)
     {
-        throw new NotImplementedException();
+        DXTexture dxSrc = src.DirectX12();
+        DXBuffer dxDest = dest.DirectX12();
+
+        ResourceStates srcOldStates = dxSrc.States[ZenithHelper.SubresourceIndex(dxSrc.Desc, srcSlice)];
+        ResourceStates destOldStates = dxDest.States;
+
+        dxSrc.TransitionStates(this, srcSlice, ResourceStates.CopySource);
+        dxDest.TransitionStates(this, ResourceStates.CopyDest);
+
+        TextureCopyLocation srcLocation = new()
+        {
+            PResource = dxSrc.Resource,
+            Type = TextureCopyType.SubresourceIndex,
+            SubresourceIndex = ZenithHelper.SubresourceIndex(dxSrc.Desc, srcSlice)
+        };
+
+        Box srcBox = new(srcOffset.X, srcOffset.Y, srcOffset.Z, srcOffset.X + srcExtent.Width, srcOffset.Y + srcExtent.Height, srcOffset.Z + srcExtent.Depth);
+
+        TextureCopyLocation destLocation = new()
+        {
+            PResource = dxDest.Resource,
+            Type = TextureCopyType.PlacedFootprint,
+            PlacedFootprint = new()
+            {
+                Offset = destOffsetInBytes,
+                Footprint = new()
+                {
+                    Format = DXFormats.DirectX12(dxSrc.Desc.Format),
+                    Width = srcExtent.Width,
+                    Height = srcExtent.Height,
+                    Depth = srcExtent.Depth,
+                    RowPitch = ZenithHelper.Align(ZenithHelper.SizeInBytes(dxSrc.Desc.Format) * srcExtent.Width, GraphicsContext.TextureRowPitchAlignment)
+                }
+            }
+        };
+
+        GraphicsCommandList.CopyTextureRegion(&destLocation, 0, 0, 0, &srcLocation, &srcBox);
+
+        dxSrc.TransitionStates(this, srcSlice, srcOldStates);
+        dxDest.TransitionStates(this, destOldStates);
     }
 
     protected override void ResolveTextureImpl(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice)
