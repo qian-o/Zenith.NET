@@ -67,42 +67,12 @@ internal unsafe class DXTexture : Texture
 
     public override MappedMemory Map(TextureSlice slice)
     {
-        ResourceDesc resourceDesc = Resource.GetDesc();
-
-        PlacedSubresourceFootprint footprint;
-        uint numRows;
-        ulong rowSizeInBytes;
-        ulong totalBytes;
-        Context.Device.GetCopyableFootprints(&resourceDesc,
-                                             ZenithHelper.SubresourceIndex(Desc, slice),
-                                             1,
-                                             0,
-                                             &footprint,
-                                             &numRows,
-                                             &rowSizeInBytes,
-                                             &totalBytes);
-
-        DxRange range = new()
-        {
-            Begin = (uint)footprint.Offset,
-            End = (uint)(footprint.Offset + totalBytes)
-        };
-
-        void* pointer;
-        Resource.Map(0, &range, &pointer).Success();
-
-        return new()
-        {
-            Pointer = (nint)pointer,
-            SizeInBytes = (uint)totalBytes,
-            RowPitch = (uint)rowSizeInBytes,
-            SlicePitch = (uint)(numRows * rowSizeInBytes)
-        };
+        throw new NotImplementedException();
     }
 
     public override void Unmap()
     {
-        Resource.Unmap(0, (DxRange*)null);
+        throw new NotImplementedException();
     }
 
     public void TransitionStates(DXCommandBuffer commandBuffer,

@@ -184,6 +184,16 @@ internal static class DXFormats
 
         ResourceStates states = ResourceStates.Common;
 
+        if (textureUsageFlags.HasFlag(TextureUsageFlags.RenderTarget))
+        {
+            states |= ResourceStates.RenderTarget;
+        }
+
+        if (textureUsageFlags.HasFlag(TextureUsageFlags.DepthStencil))
+        {
+            states |= ResourceStates.DepthWrite;
+        }
+
         if (textureUsageFlags.HasFlag(TextureUsageFlags.ShaderResource))
         {
             states |= ResourceStates.AllShaderResource;
