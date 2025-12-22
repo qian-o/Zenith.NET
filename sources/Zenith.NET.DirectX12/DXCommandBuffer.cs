@@ -87,10 +87,19 @@ internal unsafe class DXCommandBuffer : CommandBuffer
                     Width = destExtent.Width,
                     Height = destExtent.Height,
                     Depth = destExtent.Depth,
-                    RowPitch = ZenithHelper.Align(destExtent.Width * ZenithHelper.SizeInBytes(dxDest.Desc.Format), 256u)
+                    RowPitch = ZenithHelper.Align(ZenithHelper.SizeInBytes(dxDest.Desc.Format) * destExtent.Width, GraphicsContext.TextureRowPitchAlignment)
                 }
             }
         };
+
+        TextureCopyLocation destLocation = new()
+        {
+            PResource = dxDest.Resource,
+            Type = TextureCopyType.SubresourceIndex,
+            SubresourceIndex = ZenithHelper.SubresourceIndex(dxDest.Desc, destSlice)
+        };
+
+        GraphicsCommandList.CopyTextureRegion(&destLocation, destOffset.X, destOffset.Y, destOffset.Z, &srcLocation, (Box*)null);
 
         dxSrc.TransitionStates(this, srcOldStates);
         dxDest.TransitionStates(this, destSlice, destOldStates);

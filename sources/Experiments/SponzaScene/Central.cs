@@ -294,7 +294,7 @@ internal static class App
         MainWindow = Window.Create(WindowOptions.Default with { API = GraphicsAPI.None });
         MainWindow.Initialize();
 
-        Context = GraphicsContext.CreateVulkan(true);
+        Context = GraphicsContext.CreateDirectX12(true);
         Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
 
         Surface surface;
