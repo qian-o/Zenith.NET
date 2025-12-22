@@ -265,7 +265,10 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void BindPipelineImpl(ComputePipeline pipeline)
     {
-        throw new NotImplementedException();
+        DXComputePipeline dxPipeline = pipeline.DirectX12();
+
+        GraphicsCommandList.SetPipelineState(dxPipeline.PipelineState);
+        GraphicsCommandList.SetGraphicsRootSignature(dxPipeline.RootSignature);
     }
 
     protected override void BindPipelineImpl(RayTracingPipeline pipeline)

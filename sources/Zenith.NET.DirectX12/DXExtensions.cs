@@ -127,6 +127,10 @@ internal static class DXExtensions
 
     extension(ComputePipeline computePipeline)
     {
+        public DXComputePipeline DirectX12()
+        {
+            return (DXComputePipeline)computePipeline;
+        }
     }
 
     extension(RayTracingPipeline rayTracingPipeline)
