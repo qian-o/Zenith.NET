@@ -57,6 +57,11 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         Context.Vk.CmdPipelineBarrier(CommandBuffer, PipelineStageFlags.TransferBit, PipelineStageFlags.TransferBit, 0, 1, &barrier, 0, null, 0, null);
     }
 
+    protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent)
+    {
+        throw new NotImplementedException();
+    }
+
     protected override void CopyTextureImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent)
     {
         VKTexture vkSrc = src.Vulkan();
@@ -108,6 +113,11 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
         vkSrc.TransitionLayout(this, srcSlice, srcOldLayout);
         vkDest.TransitionLayout(this, destSlice, destOldLayout);
+    }
+
+    protected override void CopyTextureToBufferImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes)
+    {
+        throw new NotImplementedException();
     }
 
     protected override void ResolveTextureImpl(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice)
