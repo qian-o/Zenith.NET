@@ -65,7 +65,35 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent)
     {
-        throw new NotImplementedException();
+        DXBuffer dxSrc = src.DirectX12();
+        DXTexture dxDest = dest.DirectX12();
+
+        ResourceStates srcOldStates = dxSrc.States;
+        ResourceStates destOldStates = dxDest.States[ZenithHelper.SubresourceIndex(dxDest.Desc, destSlice)];
+
+        dxSrc.TransitionStates(this, ResourceStates.CopySource);
+        dxDest.TransitionStates(this, destSlice, ResourceStates.CopyDest);
+
+        TextureCopyLocation srcLocation = new()
+        {
+            PResource = dxSrc.Resource,
+            Type = TextureCopyType.PlacedFootprint,
+            PlacedFootprint = new()
+            {
+                Offset = srcOffsetInBytes,
+                Footprint = new()
+                {
+                    Format = DXFormats.DirectX12(dxDest.Desc.Format),
+                    Width = destExtent.Width,
+                    Height = destExtent.Height,
+                    Depth = destExtent.Depth,
+                    RowPitch = ZenithHelper.Align(destExtent.Width * ZenithHelper.SizeInBytes(dxDest.Desc.Format), 256u)
+                }
+            }
+        };
+
+        dxSrc.TransitionStates(this, srcOldStates);
+        dxDest.TransitionStates(this, destSlice, destOldStates);
     }
 
     protected override void CopyTextureImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent)

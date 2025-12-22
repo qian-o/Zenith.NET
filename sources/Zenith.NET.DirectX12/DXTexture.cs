@@ -74,7 +74,6 @@ internal unsafe class DXTexture : Texture
                                  uint faceCount,
                                  ResourceStates newStates)
     {
-
         for (uint i = 0; i < mipLevelCount; i++)
         {
             for (uint j = 0; j < arrayLayerCount; j++)

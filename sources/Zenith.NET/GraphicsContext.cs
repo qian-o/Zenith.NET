@@ -2,6 +2,10 @@
 
 public abstract class GraphicsContext : DisposableObject
 {
+    public const uint TextureRowPitchAlignment = 256;
+
+    public const uint TextureDepthPitchAlignment = 512;
+
     protected GraphicsContext(Backend backend, bool useValidationLayer)
     {
         Backend = backend;

@@ -31,20 +31,28 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Upload<T>(Texture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data) where T : unmanaged
     {
-        if (data.Length is 0 || data.Length != extent.Width * extent.Height * extent.Depth)
+        uint formatSizeInBytes = ZenithHelper.SizeInBytes(texture.Desc.Format);
+
+        if (Unsafe.SizeOf<T>() != formatSizeInBytes || data.Length is 0 || data.Length != extent.Width * extent.Height * extent.Depth)
         {
             return;
         }
 
         uint sliceSizeInTexels = extent.Width * extent.Height;
-        uint sliceSizeInBytes = (uint)(Unsafe.SizeOf<T>() * sliceSizeInTexels);
+
+        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * extent.Width, GraphicsContext.TextureRowPitchAlignment);
+        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * extent.Height, GraphicsContext.TextureDepthPitchAlignment);
 
         TextureExtent sliceExtent = extent with { Depth = 1 };
 
         for (uint i = 0; i < extent.Depth; i++)
         {
-            Buffer temporary = Context.Uploader.Buffer(this, sliceSizeInBytes);
-            temporary.Upload(data.Slice((int)(i * sliceSizeInTexels), (int)sliceSizeInTexels), 0);
+            Buffer temporary = Context.Uploader.Buffer(this, sliceDepthPitchInBytes);
+
+            for (int j = 0; j < extent.Height; j++)
+            {
+                temporary.Upload(data.Slice((int)((sliceSizeInTexels * i) + (extent.Width * j)), (int)extent.Width), (uint)(sliceRowPitchInBytes * j));
+            }
 
             CopyBufferToTexture(temporary, 0, texture, slice, offset, sliceExtent);
 

@@ -2,7 +2,6 @@
 using Hexa.NET.ImGui;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
-using SponzaScene.Helpers;
 using Zenith.NET;
 using Zenith.NET.DirectX12;
 using Zenith.NET.Extensions.ImGui;
@@ -315,8 +314,6 @@ internal static class App
         SwapChain = Context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.R8G8B8A8UNorm, DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt });
 
         ImGuiController = new SilkImGuiController(MainWindow.CreateInput(), SwapChain.FrameBuffer.Output, ImGuiColorSpace.Legacy);
-
-        Sponza = new();
     }
 
     public static IWindow MainWindow { get; }
@@ -326,8 +323,6 @@ internal static class App
     public static SwapChain SwapChain { get; }
 
     public static ImGuiController ImGuiController { get; }
-
-    public static NewSponza Sponza { get; }
 
     public static List<IView> Views { get; } = [];
 
@@ -391,7 +386,6 @@ internal static class App
             view.Dispose();
         }
 
-        Sponza.Dispose();
         ImGuiController.Dispose();
         SwapChain.Dispose();
         Context.Dispose();
