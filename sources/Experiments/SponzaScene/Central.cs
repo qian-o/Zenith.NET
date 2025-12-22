@@ -355,7 +355,7 @@ internal static class App
                 view.Render(delta);
             }
 
-            ImGuiHelpers.LeftTopOverlay("Overlay", () =>
+            ImGuiHelpers.Overlay("Info", () =>
             {
                 ImGui.Text($"Backend: {Context.Backend}");
 
