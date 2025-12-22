@@ -59,7 +59,40 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent)
     {
-        throw new NotImplementedException();
+        VKBuffer vkSrc = src.Vulkan();
+        VKTexture vkDest = dest.Vulkan();
+
+        ImageLayout destOldLayout = vkDest.Layouts[ZenithHelper.SubresourceIndex(vkDest.Desc, destSlice)];
+
+        vkDest.TransitionLayout(this, destSlice, ImageLayout.TransferDstOptimal);
+
+        BufferImageCopy bufferImageCopy = new()
+        {
+            BufferOffset = srcOffsetInBytes,
+            ImageSubresource = new()
+            {
+                AspectMask = VKFormats.Vulkan(vkDest.Desc.Flags).ImageAspectFlags,
+                MipLevel = destSlice.MipLevel,
+                BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkDest.Desc, destSlice),
+                LayerCount = 1
+            },
+            ImageOffset = new()
+            {
+                X = (int)destOffset.X,
+                Y = (int)destOffset.Y,
+                Z = (int)destOffset.Z
+            },
+            ImageExtent = new()
+            {
+                Width = destExtent.Width,
+                Height = destExtent.Height,
+                Depth = destExtent.Depth
+            }
+        };
+
+        Context.Vk.CmdCopyBufferToImage(CommandBuffer, vkSrc.Buffer, vkDest.Image, ImageLayout.TransferDstOptimal, 1, &bufferImageCopy);
+
+        vkDest.TransitionLayout(this, destSlice, destOldLayout);
     }
 
     protected override void CopyTextureImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent)
@@ -117,7 +150,39 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void CopyTextureToBufferImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes)
     {
-        throw new NotImplementedException();
+        VKTexture vkSrc = src.Vulkan();
+
+        ImageLayout srcOldLayout = vkSrc.Layouts[ZenithHelper.SubresourceIndex(vkSrc.Desc, srcSlice)];
+
+        vkSrc.TransitionLayout(this, srcSlice, ImageLayout.TransferSrcOptimal);
+
+        BufferImageCopy bufferImageCopy = new()
+        {
+            BufferOffset = destOffsetInBytes,
+            ImageSubresource = new()
+            {
+                AspectMask = VKFormats.Vulkan(vkSrc.Desc.Flags).ImageAspectFlags,
+                MipLevel = srcSlice.MipLevel,
+                BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkSrc.Desc, srcSlice),
+                LayerCount = 1
+            },
+            ImageOffset = new()
+            {
+                X = (int)srcOffset.X,
+                Y = (int)srcOffset.Y,
+                Z = (int)srcOffset.Z
+            },
+            ImageExtent = new()
+            {
+                Width = srcExtent.Width,
+                Height = srcExtent.Height,
+                Depth = srcExtent.Depth
+            }
+        };
+
+        Context.Vk.CmdCopyImageToBuffer(CommandBuffer, vkSrc.Image, ImageLayout.TransferSrcOptimal, dest.Vulkan().Buffer, 1, &bufferImageCopy);
+
+        vkSrc.TransitionLayout(this, srcSlice, srcOldLayout);
     }
 
     protected override void ResolveTextureImpl(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice)

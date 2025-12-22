@@ -290,13 +290,13 @@ float4 PSMain(VSOutput input) : SV_TARGET
                         {
                             ReadOnlySpan<int> pixels = new(textureData.Pixels, textureData.Width * textureData.Height);
 
-                            texture.Upload(pixels, default, default, extent);
+                            commandBuffer.Upload(texture, default, default, extent, pixels);
                         }
                         else
                         {
                             ReadOnlySpan<byte> pixels = new(textureData.Pixels, textureData.Width * textureData.Height);
 
-                            texture.Upload(pixels, default, default, extent);
+                            commandBuffer.Upload(texture, default, default, extent, pixels);
                         }
 
                         textureData.SetTexID(Binding(texture));
@@ -315,24 +315,31 @@ float4 PSMain(VSOutput input) : SV_TARGET
                                 ImTextureRect rect = textureData.Updates[j];
 
                                 TextureOffset offset = new() { X = rect.X, Y = rect.Y, Z = 0 };
-                                TextureExtent extent = new() { Width = rect.W, Height = 1, Depth = 1 };
+                                TextureExtent extent = new() { Width = rect.W, Height = rect.H, Depth = 1 };
 
-                                for (ushort k = 0; k < rect.H; k++)
+                                using ZenithMarshal.Scope scope = new();
+
+                                if (textureData.Format is ImTextureFormat.Rgba32)
                                 {
-                                    if (textureData.Format is ImTextureFormat.Rgba32)
-                                    {
-                                        ReadOnlySpan<int> pixels = new(textureData.GetPixelsAt(rect.X, rect.Y + k), rect.W);
+                                    Span<int> pixels = new((int*)ZenithMarshal.Allocate<int>(scope, (uint)(rect.W * rect.H)), rect.W * rect.H);
 
-                                        texture.Upload(pixels, default, offset, extent);
-                                    }
-                                    else
+                                    for (ushort k = 0; k < rect.H; k++)
                                     {
-                                        ReadOnlySpan<byte> pixels = new(textureData.GetPixelsAt(rect.X, rect.Y + k), rect.W);
-
-                                        texture.Upload(pixels, default, offset, extent);
+                                        new ReadOnlySpan<int>(textureData.GetPixelsAt(rect.X, rect.Y + k), rect.W).CopyTo(pixels.Slice(k * rect.W, rect.W));
                                     }
 
-                                    offset.Y++;
+                                    commandBuffer.Upload(texture, default, offset, extent, pixels);
+                                }
+                                else
+                                {
+                                    Span<byte> pixels = new((byte*)ZenithMarshal.Allocate<byte>(scope, (uint)(rect.W * rect.H)), rect.W * rect.H);
+
+                                    for (ushort k = 0; k < rect.H; k++)
+                                    {
+                                        new ReadOnlySpan<byte>(textureData.GetPixelsAt(rect.X, rect.Y + k), rect.W).CopyTo(pixels.Slice(k * rect.W, rect.W));
+                                    }
+
+                                    commandBuffer.Upload(texture, default, offset, extent, pixels);
                                 }
                             }
                         }
