@@ -26,34 +26,38 @@ internal unsafe class DXSwapChain : SwapChain
 
     public override void Present()
     {
-        SwapChain3.Present(0, DXGI.PresentAllowTearing).Success();
+        if (SwapChain3.Handle is not null)
+        {
+            SwapChain3.Present(0, DXGI.PresentAllowTearing).Success();
 
-        fence.Wait(Context.GraphicsQueue);
+            fence.Wait(Context.GraphicsQueue);
 
-        BufferIndex = SwapChain3.GetCurrentBackBufferIndex();
+            BufferIndex = SwapChain3.GetCurrentBackBufferIndex();
+        }
     }
 
     protected override void ResizeImpl()
     {
-        fence.Wait(Context.GraphicsQueue);
+        if (SwapChain3.Handle is not null)
+        {
+            fence.Wait(Context.GraphicsQueue);
 
-        swapChainFrameBuffer.DestroyFrameBuffers();
+            swapChainFrameBuffer.DestroyFrameBuffers();
 
-        SwapChain3.ResizeBuffers(DXGraphicsContext.SwapChainBufferCount,
-                                 Desc.Surface.Width,
-                                 Desc.Surface.Height,
-                                 DXFormats.DirectX12(Desc.ColorTargetFormat),
-                                 (uint)SwapChainFlag.AllowTearing).Success();
+            SwapChain3.ResizeBuffers(DXGraphicsContext.SwapChainBufferCount,
+                                     Desc.Surface.Width,
+                                     Desc.Surface.Height,
+                                     DXFormats.DirectX12(Desc.ColorTargetFormat),
+                                     (uint)SwapChainFlag.AllowTearing).Success();
 
-        swapChainFrameBuffer.CreateFrameBuffers(Desc.Surface.Width, Desc.Surface.Height, []);
+            swapChainFrameBuffer.CreateFrameBuffers(Desc.Surface.Width, Desc.Surface.Height, []);
 
-        BufferIndex = SwapChain3.GetCurrentBackBufferIndex();
+            BufferIndex = SwapChain3.GetCurrentBackBufferIndex();
+        }
     }
 
     protected override void RefreshImpl()
     {
-        fence.Wait(Context.GraphicsQueue);
-
         CreateSwapChain();
     }
 
