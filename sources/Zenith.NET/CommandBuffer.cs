@@ -49,10 +49,17 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         {
             Buffer temporary = Context.Uploader.Buffer(this, sliceDepthPitchInBytes);
 
-            for (int j = 0; j < extent.Height; j++)
+            MappedMemory mappedMemory = temporary.Map();
+
+            unsafe
             {
-                temporary.Upload(data.Slice((int)((sliceSizeInTexels * i) + (extent.Width * j)), (int)extent.Width), (uint)(sliceRowPitchInBytes * j));
+                for (int j = 0; j < extent.Height; j++)
+                {
+                    data.Slice((int)((sliceSizeInTexels * i) + (extent.Width * j)), (int)extent.Width).CopyTo(new((void*)(mappedMemory.Pointer + (sliceRowPitchInBytes * j)), (int)extent.Width));
+                }
             }
+
+            temporary.Unmap();
 
             CopyBufferToTexture(temporary, 0, texture, slice, offset, sliceExtent);
 
