@@ -282,7 +282,7 @@ internal static class VKFormats
             imageUsageFlags |= ImageUsageFlags.DepthStencilAttachmentBit;
         }
 
-        if (textureUsageFlags.HasFlag(TextureUsageFlags.ShaderResource) || textureUsageFlags.HasFlag(TextureUsageFlags.Dynamic))
+        if (textureUsageFlags.HasFlag(TextureUsageFlags.ShaderResource))
         {
             imageUsageFlags |= ImageUsageFlags.SampledBit;
         }

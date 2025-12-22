@@ -10,7 +10,7 @@ public unsafe partial class ZenithView
     private Texture? color;
     private Texture? depthStencil;
     private FrameBuffer? frameBuffer;
-    private Texture? present;
+    private Buffer? present;
     private WriteableBitmap? bitmap;
 
     private void OnRender(GraphicsContext context)
@@ -54,17 +54,11 @@ public unsafe partial class ZenithView
                 DepthStencilAttachment = new() { Target = depthStencil }
             });
 
-            present = context.CreateTexture(new()
+            present = context.CreateBuffer(new()
             {
-                Type = TextureType.Texture2D,
-                Format = PixelFormat.B8G8R8A8UNorm,
-                Width = width,
-                Height = height,
-                Depth = 1,
-                MipLevels = 1,
-                ArrayLayers = 1,
-                SampleCount = SampleCount.Count1,
-                Flags = TextureUsageFlags.Dynamic
+                SizeInBytes = width * height * 4,
+                StrideInBytes = 4,
+                Flags = BufferUsageFlags.Dynamic
             });
 
             Background = new ImageBrush() { ImageSource = bitmap = new((int)width, (int)height) };
@@ -74,23 +68,16 @@ public unsafe partial class ZenithView
         RenderRequested?.Invoke(this, new(timer.GetAndRestartRender(), timer.TotalSeconds, frameBuffer));
 
         CommandBuffer commandBuffer = context.Graphics.CommandBuffer();
-        commandBuffer.CopyTexture(color, default, default, present, default, default, new() { Width = width, Height = height, Depth = 1 });
+        commandBuffer.CopyTextureToBuffer(color, default, default, new() { Width = width, Height = height, Depth = 1 }, present, 0);
         commandBuffer.Submit();
 
         context.Graphics.WaitIdle();
 
         using (Stream stream = bitmap.PixelBuffer.AsStream())
         {
-            MappedMemory mappedMemory = present.Map(default);
+            MappedMemory mappedMemory = present.Map();
 
-            byte* pixels = (byte*)mappedMemory.Pointer;
-
-            for (uint y = 0; y < height; y++)
-            {
-                stream.Write([.. new ReadOnlySpan<byte>(pixels, (int)(width * 4))]);
-
-                pixels += mappedMemory.RowPitch;
-            }
+            stream.Write([.. new ReadOnlySpan<byte>((byte*)mappedMemory.Pointer, (int)(width * height * 4))]);
 
             present.Unmap();
         }

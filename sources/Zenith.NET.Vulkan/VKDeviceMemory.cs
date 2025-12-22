@@ -65,7 +65,7 @@ internal unsafe class VKDeviceMemory : GraphicsResource
         {
             SType = StructureType.MemoryAllocateInfo,
             AllocationSize = requirements2.MemoryRequirements.Size,
-            MemoryTypeIndex = context.FindMemoryTypeIndex(requirements2.MemoryRequirements.MemoryTypeBits, texture.Desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? MemoryPropertyFlags.HostVisibleBit : MemoryPropertyFlags.DeviceLocalBit)
+            MemoryTypeIndex = context.FindMemoryTypeIndex(requirements2.MemoryRequirements.MemoryTypeBits, MemoryPropertyFlags.DeviceLocalBit)
         };
 
         if (requirements.PrefersDedicatedAllocation || requirements.RequiresDedicatedAllocation)
@@ -100,7 +100,7 @@ internal unsafe class VKDeviceMemory : GraphicsResource
         {
             SType = StructureType.MemoryAllocateInfo,
             AllocationSize = requirements2.MemoryRequirements.Size,
-            MemoryTypeIndex = context.FindMemoryTypeIndex(requirements2.MemoryRequirements.MemoryTypeBits, texture.Desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? MemoryPropertyFlags.HostVisibleBit : MemoryPropertyFlags.DeviceLocalBit)
+            MemoryTypeIndex = context.FindMemoryTypeIndex(requirements2.MemoryRequirements.MemoryTypeBits, MemoryPropertyFlags.DeviceLocalBit)
         };
 
         if (requirements.PrefersDedicatedAllocation || requirements.RequiresDedicatedAllocation)

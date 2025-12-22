@@ -53,7 +53,7 @@ internal unsafe class DXHeap : GraphicsResource
         HeapDesc desc = new()
         {
             SizeInBytes = allocationInfo.SizeInBytes,
-            Properties = new(texture.Desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? HeapType.GpuUpload : HeapType.Default),
+            Properties = new(HeapType.Default),
             Alignment = allocationInfo.Alignment,
             Flags = texture.Desc.Flags.HasFlag(TextureUsageFlags.RenderTarget) || texture.Desc.Flags.HasFlag(TextureUsageFlags.DepthStencil) ? HeapFlags.AllowOnlyRTDSTextures : HeapFlags.AllowOnlyNonRTDSTextures
         };

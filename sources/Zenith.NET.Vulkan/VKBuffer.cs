@@ -96,13 +96,7 @@ internal unsafe class VKBuffer : Buffer
         void* pointer;
         Context.Vk.MapMemory(Context.Device, DeviceMemory.DeviceMemory, 0, Desc.SizeInBytes, 0, &pointer).Success();
 
-        return new()
-        {
-            Pointer = (nint)pointer,
-            SizeInBytes = Desc.SizeInBytes,
-            RowPitch = Desc.SizeInBytes,
-            SlicePitch = Desc.SizeInBytes
-        };
+        return new() { Pointer = (nint)pointer, SizeInBytes = Desc.SizeInBytes };
     }
 
     public override void Unmap()

@@ -33,13 +33,7 @@ internal unsafe class DXBuffer : Buffer
         void* pointer;
         Resource.Map(0, (DxRange*)null, &pointer).Success();
 
-        return new()
-        {
-            Pointer = (nint)pointer,
-            SizeInBytes = Desc.SizeInBytes,
-            RowPitch = Desc.SizeInBytes,
-            SlicePitch = Desc.SizeInBytes
-        };
+        return new() { Pointer = (nint)pointer, SizeInBytes = Desc.SizeInBytes };
     }
 
     public override void Unmap()

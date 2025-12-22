@@ -27,7 +27,6 @@ internal unsafe class VKTexture : Texture
             MipLevels = desc.MipLevels,
             ArrayLayers = ZenithHelper.FlattenArrayLayerCount(desc),
             Samples = VKFormats.Vulkan(desc.SampleCount),
-            Tiling = desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? ImageTiling.Linear : ImageTiling.Optimal,
             Usage = VKFormats.Vulkan(desc.Flags).ImageUsageFlags,
             SharingMode = sharingMode,
             QueueFamilyIndexCount = queueFamilyIndexCount,
@@ -89,7 +88,6 @@ internal unsafe class VKTexture : Texture
             MipLevels = desc.MipLevels,
             ArrayLayers = ZenithHelper.FlattenArrayLayerCount(desc),
             Samples = VKFormats.Vulkan(desc.SampleCount),
-            Tiling = desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? ImageTiling.Linear : ImageTiling.Optimal,
             Usage = VKFormats.Vulkan(desc.Flags).ImageUsageFlags,
             SharingMode = sharingMode,
             QueueFamilyIndexCount = queueFamilyIndexCount,
@@ -123,35 +121,6 @@ internal unsafe class VKTexture : Texture
     public VKTextureView View { get; }
 
     public ImageLayout[] Layouts { get; }
-
-    public override MappedMemory Map(TextureSlice slice)
-    {
-        ImageSubresource subresource = new()
-        {
-            AspectMask = VKFormats.Vulkan(Desc.Flags).ImageAspectFlags,
-            MipLevel = slice.MipLevel,
-            ArrayLayer = ZenithHelper.FlattenArrayLayerIndex(Desc, slice)
-        };
-
-        SubresourceLayout layout = default;
-        Context.Vk.GetImageSubresourceLayout(Context.Device, Image, &subresource, &layout);
-
-        void* pointer;
-        Context.Vk.MapMemory(Context.Device, DeviceMemory?.DeviceMemory ?? default, layout.Offset, layout.Size, 0, &pointer).Success();
-
-        return new()
-        {
-            Pointer = (nint)pointer,
-            SizeInBytes = (uint)layout.Size,
-            RowPitch = (uint)layout.RowPitch,
-            SlicePitch = (uint)layout.DepthPitch
-        };
-    }
-
-    public override void Unmap()
-    {
-        Context.Vk.UnmapMemory(Context.Device, DeviceMemory?.DeviceMemory ?? default);
-    }
 
     public void TransitionLayout(VKCommandBuffer commandBuffer,
                                  uint firstMipLevel,

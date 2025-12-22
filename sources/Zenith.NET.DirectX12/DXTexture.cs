@@ -65,16 +65,6 @@ internal unsafe class DXTexture : Texture
 
     public ResourceStates[] States { get; }
 
-    public override MappedMemory Map(TextureSlice slice)
-    {
-        throw new NotImplementedException();
-    }
-
-    public override void Unmap()
-    {
-        throw new NotImplementedException();
-    }
-
     public void TransitionStates(DXCommandBuffer commandBuffer,
                                  uint firstMipLevel,
                                  uint mipLevelCount,

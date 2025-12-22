@@ -204,11 +204,6 @@ internal static class DXFormats
             states |= ResourceStates.UnorderedAccess;
         }
 
-        if (textureUsageFlags.HasFlag(TextureUsageFlags.Dynamic))
-        {
-            states |= ResourceStates.CopySource;
-        }
-
         return (flags, states);
     }
 

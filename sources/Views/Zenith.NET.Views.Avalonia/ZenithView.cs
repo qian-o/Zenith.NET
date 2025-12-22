@@ -20,7 +20,7 @@ public unsafe class ZenithView : TemplatedControl
     private Texture? color;
     private Texture? depthStencil;
     private FrameBuffer? frameBuffer;
-    private Texture? present;
+    private Buffer? present;
     private WriteableBitmap? bitmap;
 
     static ZenithView()
@@ -140,17 +140,11 @@ public unsafe class ZenithView : TemplatedControl
                     DepthStencilAttachment = new() { Target = depthStencil }
                 });
 
-                present = GraphicsContext.CreateTexture(new()
+                present = GraphicsContext.CreateBuffer(new()
                 {
-                    Type = TextureType.Texture2D,
-                    Format = PixelFormat.R8G8B8A8UNorm,
-                    Width = width,
-                    Height = height,
-                    Depth = 1,
-                    MipLevels = 1,
-                    ArrayLayers = 1,
-                    SampleCount = SampleCount.Count1,
-                    Flags = TextureUsageFlags.Dynamic
+                    SizeInBytes = width * height * 4,
+                    StrideInBytes = 4,
+                    Flags = BufferUsageFlags.Dynamic
                 });
 
                 bitmap = new(new((int)width, (int)height), new(96, 96), AvaloniaPixelFormat.Rgba8888, AlphaFormat.Premul);
@@ -160,29 +154,16 @@ public unsafe class ZenithView : TemplatedControl
             RenderRequested?.Invoke(this, new(timer.GetAndRestartRender(), timer.TotalSeconds, frameBuffer));
 
             CommandBuffer commandBuffer = GraphicsContext.Graphics.CommandBuffer();
-            commandBuffer.CopyTexture(color, default, default, present, default, default, new() { Width = width, Height = height, Depth = 1 });
+            commandBuffer.CopyTextureToBuffer(color, default, default, new() { Width = width, Height = height, Depth = 1 }, present, 0);
             commandBuffer.Submit();
 
             GraphicsContext.Graphics.WaitIdle();
 
             using (ILockedFramebuffer lockedFramebuffer = bitmap.Lock())
             {
-                MappedMemory mappedMemory = present.Map(default);
+                MappedMemory mappedMemory = present.Map();
 
-                if (mappedMemory.RowPitch == lockedFramebuffer.RowBytes)
-                {
-                    Unsafe.CopyBlock((void*)lockedFramebuffer.Address, (void*)mappedMemory.Pointer, mappedMemory.SizeInBytes);
-                }
-                else
-                {
-                    Parallel.For(0, height, y =>
-                    {
-                        byte* srcPtr = (byte*)mappedMemory.Pointer + (y * mappedMemory.RowPitch);
-                        byte* dstPtr = (byte*)lockedFramebuffer.Address + (y * lockedFramebuffer.RowBytes);
-
-                        Unsafe.CopyBlock(dstPtr, srcPtr, (uint)lockedFramebuffer.RowBytes);
-                    });
-                }
+                Unsafe.CopyBlock((void*)lockedFramebuffer.Address, (void*)mappedMemory.Pointer, mappedMemory.SizeInBytes);
 
                 present.Unmap();
             }

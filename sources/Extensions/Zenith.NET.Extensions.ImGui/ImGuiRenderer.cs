@@ -281,7 +281,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
                             MipLevels = 1,
                             ArrayLayers = 1,
                             SampleCount = SampleCount.Count1,
-                            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.Dynamic
+                            Flags = TextureUsageFlags.ShaderResource
                         });
 
                         TextureExtent extent = new() { Width = (uint)textureData.Width, Height = (uint)textureData.Height, Depth = 1 };
