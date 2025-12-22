@@ -29,9 +29,14 @@ internal unsafe class DXTexture : Texture
         {
             DxClearValue clearValue = new() { Format = DXFormats.DirectX12(desc.Format) };
 
+            if (desc.Flags.HasFlag(TextureUsageFlags.RenderTarget))
+            {
+                clearValue.Anonymous.Color[3] = 1.0f;
+            }
+
             if (desc.Flags.HasFlag(TextureUsageFlags.DepthStencil))
             {
-                clearValue.DepthStencil = new() { Depth = 1.0f };
+                clearValue.Anonymous.DepthStencil.Depth = 1.0f;
             }
 
             context.Device.CreatePlacedResource(Heap.Heap, 0, &resourceDesc, DXFormats.DirectX12(desc.Flags).States, &clearValue, out Resource).Success();
