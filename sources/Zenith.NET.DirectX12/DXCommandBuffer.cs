@@ -42,9 +42,13 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         {
             GraphicsCommandList6 = graphicsCommandList6;
         }
+
+        CanTransitionResourceStates = queue.Type is not CommandQueueType.Copy;
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
+
+    public bool CanTransitionResourceStates { get; }
 
     protected override void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes)
     {

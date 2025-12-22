@@ -43,7 +43,7 @@ internal unsafe class DXBuffer : Buffer
 
     public void TransitionStates(DXCommandBuffer commandBuffer, ResourceStates newStates)
     {
-        if (States == newStates)
+        if (!commandBuffer.CanTransitionResourceStates || States == newStates)
         {
             return;
         }
