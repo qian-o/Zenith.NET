@@ -375,17 +375,25 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void BeginQueryImpl(QueryHeap queryHeap, uint index)
     {
-        throw new NotImplementedException();
+        GraphicsCommandList.BeginQuery(queryHeap.DirectX12().QueryHeap, DXFormats.DirectX12(queryHeap.Desc.Type).QueryType, index);
     }
 
     protected override void EndQueryImpl(QueryHeap queryHeap, uint index)
     {
-        throw new NotImplementedException();
+        DXQueryHeap dxQueryHeap = queryHeap.DirectX12();
+
+        GraphicsCommandList.EndQuery(dxQueryHeap.QueryHeap, DXFormats.DirectX12(dxQueryHeap.Desc.Type).QueryType, index);
+
+        GraphicsCommandList.ResolveQueryData(dxQueryHeap.QueryHeap, DXFormats.DirectX12(dxQueryHeap.Desc.Type).QueryType, index, 1, dxQueryHeap.Buffer.Resource, sizeof(ulong) * index);
     }
 
     protected override void WriteTimestampImpl(QueryHeap queryHeap, uint index)
     {
-        throw new NotImplementedException();
+        DXQueryHeap dxQueryHeap = queryHeap.DirectX12();
+
+        GraphicsCommandList.EndQuery(dxQueryHeap.QueryHeap, DxQueryType.Timestamp, index);
+
+        GraphicsCommandList.ResolveQueryData(dxQueryHeap.QueryHeap, DxQueryType.Timestamp, index, 1, dxQueryHeap.Buffer.Resource, sizeof(ulong) * index);
     }
 
     protected override void BeginDebugEventImpl(string label)

@@ -11,16 +11,31 @@ internal unsafe class DXQueryHeap : QueryHeap
     {
         DxQueryHeapDesc queryHeapDesc = new()
         {
-            Type = DXFormats.DirectX12(desc.Type),
+            Type = DXFormats.DirectX12(desc.Type).QueryHeapType,
             Count = desc.Count
         };
 
         context.Device.CreateQueryHeap(&queryHeapDesc, out QueryHeap).Success();
+
+        BufferDesc bufferDesc = new()
+        {
+            SizeInBytes = sizeof(ulong) * desc.Count,
+            StrideInBytes = sizeof(ulong),
+            Flags = BufferUsageFlags.Dynamic
+        };
+
+        Buffer = new(context, bufferDesc, ResourceFlags.None, ResourceStates.CopyDest, HeapType.Readback);
     }
+
+    public DXBuffer Buffer { get; }
 
     protected override void GetResultsImpl(Span<ulong> results, uint startIndex)
     {
-        throw new NotImplementedException();
+        MappedMemory mappedMemory = Buffer.Map();
+
+        new Span<ulong>((void*)(mappedMemory.Pointer + (sizeof(ulong) * startIndex)), results.Length).CopyTo(results);
+
+        Buffer.Unmap();
     }
 
     protected override void SetResourceName(string name)
@@ -30,6 +45,8 @@ internal unsafe class DXQueryHeap : QueryHeap
 
     protected override void Destroy()
     {
+        Buffer.Dispose();
+
         QueryHeap.Dispose();
     }
 }

@@ -528,8 +528,26 @@ internal static class DXFormats
         };
     }
 
-    internal static QueryHeapType DirectX12(QueryType type)
+    public static (QueryHeapType QueryHeapType, DxQueryType QueryType) DirectX12(QueryType queryType)
     {
-        throw new NotImplementedException();
+        return
+        (
+            queryType switch
+            {
+                QueryType.Occlusion or
+                QueryType.BinaryOcclusion => QueryHeapType.Occlusion,
+
+                QueryType.Timestamp => QueryHeapType.Timestamp,
+
+                _ => QueryHeapType.Occlusion
+            },
+            queryType switch
+            {
+                QueryType.Occlusion => DxQueryType.Occlusion,
+                QueryType.BinaryOcclusion => DxQueryType.BinaryOcclusion,
+                QueryType.Timestamp => DxQueryType.Timestamp,
+                _ => DxQueryType.Occlusion
+            }
+        );
     }
 }
