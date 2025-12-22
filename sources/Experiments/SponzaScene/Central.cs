@@ -2,6 +2,7 @@
 using Hexa.NET.ImGui;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
+using SponzaScene.Helpers;
 using Zenith.NET;
 using Zenith.NET.DirectX12;
 using Zenith.NET.Extensions.ImGui;
@@ -353,6 +354,23 @@ internal static class App
             {
                 view.Render(delta);
             }
+
+            ImGuiHelpers.LeftTopOverlay("Overlay", () =>
+            {
+                ImGui.Text($"Backend: {Context.Backend}");
+
+                ImGui.Separator();
+
+                ImGui.Text(Context.Capabilities.DeviceName);
+
+                ImGui.Separator();
+
+                ImGui.Text($"Ray Tracing Supported: {Context.Capabilities.RayTracingSupported}");
+
+                ImGui.Separator();
+
+                ImGui.Text($"Mesh Shader Supported: {Context.Capabilities.MeshShaderSupported}");
+            });
 
             CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
 
