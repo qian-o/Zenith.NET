@@ -37,7 +37,7 @@ internal unsafe partial class D3DTexture : DisposableObject
                                                    height,
                                                    1,
                                                    D3D9.UsageRendertarget,
-                                                   D3D9Format.X8R8G8B8,
+                                                   D3D9Format.A8R8G8B8,
                                                    Pool.Default,
                                                    ref D3D9RenderTarget,
                                                    &sharedHandle));
@@ -51,9 +51,9 @@ internal unsafe partial class D3DTexture : DisposableObject
             Height = height,
             MipLevels = 1,
             ArraySize = 1,
-            Format = DXGIFormat.FormatB8G8R8X8Unorm,
+            Format = DXGIFormat.FormatB8G8R8A8Unorm,
             SampleDesc = new SampleDesc { Count = 1, Quality = 0 },
-            Usage = Usage.Default,
+            BindFlags = (uint)BindFlag.RenderTarget,
             MiscFlags = (uint)(ResourceMiscFlag.SharedNthandle | ResourceMiscFlag.SharedKeyedmutex)
         };
 

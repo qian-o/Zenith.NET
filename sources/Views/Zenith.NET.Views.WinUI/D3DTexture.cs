@@ -48,7 +48,7 @@ internal unsafe partial class D3DTexture : DisposableObject
             ArraySize = 1,
             Format = Format.FormatB8G8R8A8Unorm,
             SampleDesc = new SampleDesc { Count = 1, Quality = 0 },
-            Usage = Usage.Default,
+            BindFlags = (uint)BindFlag.RenderTarget,
             MiscFlags = (uint)(ResourceMiscFlag.SharedNthandle | ResourceMiscFlag.SharedKeyedmutex)
         };
 
