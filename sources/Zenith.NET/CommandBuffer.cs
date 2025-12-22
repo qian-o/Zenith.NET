@@ -29,11 +29,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CopyBuffer(temporary, 0, buffer, offsetInBytes, sizeInBytes);
     }
 
-    public void Upload<T>(Texture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data) where T : unmanaged
+    public void Upload<T>(Texture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> pixels) where T : unmanaged
     {
         uint formatSizeInBytes = ZenithHelper.SizeInBytes(texture.Desc.Format);
 
-        if (Unsafe.SizeOf<T>() != formatSizeInBytes || data.Length is 0 || data.Length != extent.Width * extent.Height * extent.Depth)
+        if (Unsafe.SizeOf<T>() != formatSizeInBytes || pixels.Length is 0 || pixels.Length != extent.Width * extent.Height * extent.Depth)
         {
             return;
         }
@@ -55,7 +55,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             {
                 for (int j = 0; j < extent.Height; j++)
                 {
-                    data.Slice((int)((sliceSizeInTexels * i) + (extent.Width * j)), (int)extent.Width).CopyTo(new((void*)(mappedMemory.Pointer + (sliceRowPitchInBytes * j)), (int)extent.Width));
+                    pixels.Slice((int)((sliceSizeInTexels * i) + (extent.Width * j)), (int)extent.Width).CopyTo(new((void*)(mappedMemory.Pointer + (sliceRowPitchInBytes * j)), (int)extent.Width));
                 }
             }
 
