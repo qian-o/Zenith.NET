@@ -173,7 +173,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override QueryHeap CreateQueryHeapImpl(QueryHeapDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXQueryHeap(this, desc);
     }
 
     protected override void Destroy()

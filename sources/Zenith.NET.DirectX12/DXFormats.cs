@@ -527,4 +527,9 @@ internal static class DXFormats
             _ => Format.FormatUnknown
         };
     }
+
+    internal static QueryHeapType DirectX12(QueryType type)
+    {
+        throw new NotImplementedException();
+    }
 }

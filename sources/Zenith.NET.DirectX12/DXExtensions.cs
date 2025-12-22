@@ -143,5 +143,9 @@ internal static class DXExtensions
 
     extension(QueryHeap queryHeap)
     {
+        public DXQueryHeap DirectX12()
+        {
+            return (DXQueryHeap)queryHeap;
+        }
     }
 }

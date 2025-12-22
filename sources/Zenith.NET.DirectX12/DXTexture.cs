@@ -9,9 +9,23 @@ internal unsafe class DXTexture : Texture
 
     public DXTexture(DXGraphicsContext context, TextureDesc desc) : base(context, desc)
     {
-        Heap = new(context, this, out ResourceDesc resourceDesc);
+        bool isRenderTargetOrDepthStencil = desc.Flags.HasFlag(TextureUsageFlags.RenderTarget) || desc.Flags.HasFlag(TextureUsageFlags.DepthStencil);
 
-        if (desc.Flags.HasFlag(TextureUsageFlags.RenderTarget) || desc.Flags.HasFlag(TextureUsageFlags.DepthStencil))
+        ResourceDesc resourceDesc = new()
+        {
+            Dimension = DXFormats.DirectX12(desc.Type),
+            Width = desc.Width,
+            Height = desc.Height,
+            DepthOrArraySize = (ushort)(desc.Type is TextureType.Texture3D ? desc.Depth : ZenithHelper.FlattenArrayLayerCount(desc)),
+            MipLevels = (ushort)desc.MipLevels,
+            Format = DXFormats.DirectX12(desc.Format),
+            SampleDesc = DXFormats.DirectX12(desc.SampleCount),
+            Flags = DXFormats.DirectX12(desc.Flags).Flags
+        };
+
+        Heap = new(context, resourceDesc, HeapType.Default, isRenderTargetOrDepthStencil ? HeapFlags.AllowOnlyRTDSTextures : HeapFlags.AllowOnlyNonRTDSTextures);
+
+        if (isRenderTargetOrDepthStencil)
         {
             DxClearValue clearValue = new() { Format = DXFormats.DirectX12(desc.Format) };
 

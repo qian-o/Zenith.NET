@@ -7,6 +7,7 @@ global using DxCullMode = Silk.NET.Direct3D12.CullMode;
 global using DxFillMode = Silk.NET.Direct3D12.FillMode;
 global using DxFilter = Silk.NET.Direct3D12.Filter;
 global using DxMessageSeverity = Silk.NET.Direct3D12.MessageSeverity;
+global using DxQueryHeapDesc = Silk.NET.Direct3D12.QueryHeapDesc;
 global using DxRange = Silk.NET.Direct3D12.Range;
 global using DxSamplerDesc = Silk.NET.Direct3D12.SamplerDesc;
 global using DxStencilOp = Silk.NET.Direct3D12.StencilOp;

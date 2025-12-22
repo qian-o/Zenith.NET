@@ -9,9 +9,48 @@ internal unsafe class DXBuffer : Buffer
 
     public DXBuffer(DXGraphicsContext context, BufferDesc desc) : base(context, desc)
     {
-        Heap = new(context, this, out ResourceDesc resourceDesc);
+        ResourceDesc resourceDesc = new()
+        {
+            Dimension = ResourceDimension.Buffer,
+            Width = ZenithHelper.Align(desc.SizeInBytes, 256u),
+            Height = 1,
+            DepthOrArraySize = 1,
+            MipLevels = 1,
+            SampleDesc = new(1, 0),
+            Layout = TextureLayout.LayoutRowMajor,
+            Flags = DXFormats.DirectX12(desc.Flags).Flags
+        };
+
+        Heap = new(context, resourceDesc, desc.Flags.HasFlag(BufferUsageFlags.Dynamic) ? HeapType.GpuUpload : HeapType.Default, HeapFlags.AllowOnlyBuffers);
 
         context.Device.CreatePlacedResource(Heap.Heap, 0, &resourceDesc, States = DXFormats.DirectX12(desc.Flags).States, null, out Resource).Success();
+
+        View = new(context, new()
+        {
+            Buffer = this,
+            OffsetInBytes = 0,
+            SizeInBytes = desc.SizeInBytes,
+            StrideInBytes = desc.StrideInBytes
+        });
+    }
+
+    public DXBuffer(DXGraphicsContext context, BufferDesc desc, ResourceFlags flags, ResourceStates states, HeapType type) : base(context, desc)
+    {
+        ResourceDesc resourceDesc = new()
+        {
+            Dimension = ResourceDimension.Buffer,
+            Width = ZenithHelper.Align(desc.SizeInBytes, 256u),
+            Height = 1,
+            DepthOrArraySize = 1,
+            MipLevels = 1,
+            SampleDesc = new(1, 0),
+            Layout = TextureLayout.LayoutRowMajor,
+            Flags = flags
+        };
+
+        Heap = new(context, resourceDesc, type, HeapFlags.AllowOnlyBuffers);
+
+        context.Device.CreatePlacedResource(Heap.Heap, 0, &resourceDesc, States = states, null, out Resource).Success();
 
         View = new(context, new()
         {
