@@ -18,11 +18,9 @@ public class ZenithView : Control
 
         HandleDestroyed += (_, _) =>
         {
-            timer.Stop();
+            timer.Reset();
 
             Destroy();
-
-            timer.Reset();
         };
 
         ClientSizeChanged += (_, _) =>
@@ -43,7 +41,6 @@ public class ZenithView : Control
         SampleCount = SampleCount.Count1
     };
 
-    [Browsable(false)]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public GraphicsContext? GraphicsContext
     {

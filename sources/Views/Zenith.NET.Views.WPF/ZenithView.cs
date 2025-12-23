@@ -22,27 +22,20 @@ public class ZenithView : Control
 
     public ZenithView()
     {
-        Loaded += (_, _) => timer.Start();
+        Loaded += (_, _) =>
+        {
+            timer.Start();
+
+            CompositionTarget.Rendering += OnRendering;
+        };
 
         Unloaded += (_, _) =>
         {
-            timer.Stop();
-
-            Destroy();
+            CompositionTarget.Rendering -= OnRendering;
 
             timer.Reset();
-        };
 
-        IsVisibleChanged += (_, e) =>
-        {
-            if ((bool)e.NewValue)
-            {
-                CompositionTarget.Rendering += OnRendering;
-            }
-            else
-            {
-                CompositionTarget.Rendering -= OnRendering;
-            }
+            Destroy();
         };
     }
 

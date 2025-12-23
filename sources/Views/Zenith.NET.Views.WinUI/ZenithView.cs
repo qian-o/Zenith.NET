@@ -1,4 +1,5 @@
-﻿using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 
@@ -15,25 +16,20 @@ public partial class ZenithView : SwapChainPanel
 
     public ZenithView()
     {
-        Loaded += (_, _) => timer.Start();
+        Loaded += (_, _) =>
+        {
+            timer.Start();
+
+            CompositionTarget.Rendering += OnRendering;
+        };
 
         Unloaded += (_, _) =>
         {
-            timer.Stop();
-
-            Destroy();
-
-            timer.Reset();
-        };
-
-        EffectiveViewportChanged += (_, e) =>
-        {
             CompositionTarget.Rendering -= OnRendering;
 
-            if (e.EffectiveViewport.Width is not 0 && e.EffectiveViewport.Height is not 0)
-            {
-                CompositionTarget.Rendering += OnRendering;
-            }
+            timer.Reset();
+
+            Destroy();
         };
     }
 
@@ -56,11 +52,12 @@ public partial class ZenithView : SwapChainPanel
 
     private void OnRendering(object? sender, object e)
     {
-        if (GraphicsContext is null)
+        DispatcherQueue.TryEnqueue(() =>
         {
-            return;
-        }
-
-        OnRender(GraphicsContext);
+            if (GraphicsContext is not null)
+            {
+                OnRender(GraphicsContext);
+            }
+        });
     }
 }
