@@ -1,5 +1,4 @@
-﻿using Microsoft.UI.Dispatching;
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 
@@ -54,10 +53,12 @@ public partial class ZenithView : SwapChainPanel
     {
         DispatcherQueue.TryEnqueue(() =>
         {
-            if (GraphicsContext is not null)
+            if (GraphicsContext is null)
             {
-                OnRender(GraphicsContext);
+                return;
             }
+
+            OnRender(GraphicsContext);
         });
     }
 }
