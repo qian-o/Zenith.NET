@@ -25,7 +25,7 @@ internal partial class MauiZenithView : SurfaceView, ISurfaceHolderCallback, IFr
 
         ViewDetachedFromWindow += (_, _) =>
         {
-            timer.Reset();
+            timer.Stop();
 
             Destroy();
         };

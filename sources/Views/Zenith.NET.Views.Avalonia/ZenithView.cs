@@ -35,7 +35,7 @@ public unsafe class ZenithView : TemplatedControl
 
         Unloaded += (_, _) =>
         {
-            timer.Reset();
+            timer.Stop();
 
             Destroy();
         };

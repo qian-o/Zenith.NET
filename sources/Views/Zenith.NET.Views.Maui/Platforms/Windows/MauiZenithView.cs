@@ -24,7 +24,7 @@ internal unsafe partial class MauiZenithView : SwapChainPanel
         {
             CompositionTarget.Rendering -= OnRendering;
 
-            timer.Reset();
+            timer.Stop();
 
             Destroy();
         };

@@ -17,7 +17,7 @@ public class ViewTimer
         lifetimeStopwatch.Start();
     }
 
-    public void Reset()
+    public void Stop()
     {
         updateStopwatch.Reset();
         renderStopwatch.Reset();

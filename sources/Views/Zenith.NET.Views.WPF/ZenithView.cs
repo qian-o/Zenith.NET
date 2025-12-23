@@ -33,7 +33,7 @@ public class ZenithView : Control
         {
             CompositionTarget.Rendering -= OnRendering;
 
-            timer.Reset();
+            timer.Stop();
 
             Destroy();
         };

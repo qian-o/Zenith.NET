@@ -27,7 +27,7 @@ public partial class ZenithView : SwapChainPanel
         {
             CompositionTarget.Rendering -= OnRendering;
 
-            timer.Reset();
+            timer.Stop();
 
             Destroy();
         };

@@ -18,7 +18,7 @@ public class ZenithView : Control
 
         HandleDestroyed += (_, _) =>
         {
-            timer.Reset();
+            timer.Stop();
 
             Destroy();
         };
