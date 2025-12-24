@@ -27,7 +27,7 @@ internal unsafe class VKTexture : Texture
             MipLevels = desc.MipLevels,
             ArrayLayers = ZenithHelper.FlattenArrayLayerCount(desc),
             Samples = VKFormats.Vulkan(desc.SampleCount),
-            Usage = VKFormats.Vulkan(desc.Flags).ImageUsageFlags,
+            Usage = VKFormats.Vulkan(desc.Flags).UsageFlags,
             SharingMode = sharingMode,
             QueueFamilyIndexCount = queueFamilyIndexCount,
             PQueueFamilyIndices = (uint*)pQueueFamilyIndices
@@ -88,7 +88,7 @@ internal unsafe class VKTexture : Texture
             MipLevels = desc.MipLevels,
             ArrayLayers = ZenithHelper.FlattenArrayLayerCount(desc),
             Samples = VKFormats.Vulkan(desc.SampleCount),
-            Usage = VKFormats.Vulkan(desc.Flags).ImageUsageFlags,
+            Usage = VKFormats.Vulkan(desc.Flags).UsageFlags,
             SharingMode = sharingMode,
             QueueFamilyIndexCount = queueFamilyIndexCount,
             PQueueFamilyIndices = (uint*)pQueueFamilyIndices
@@ -266,7 +266,7 @@ internal unsafe class VKTexture : Texture
                         Image = Image,
                         SubresourceRange = new()
                         {
-                            AspectMask = VKFormats.Vulkan(Desc.Flags).ImageAspectFlags,
+                            AspectMask = VKFormats.Vulkan(Desc.Flags).AspectFlags,
                             BaseMipLevel = slice.MipLevel,
                             LevelCount = 1,
                             BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(Desc, slice),

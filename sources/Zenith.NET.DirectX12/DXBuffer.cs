@@ -21,7 +21,7 @@ internal unsafe class DXBuffer : Buffer
             Flags = DXFormats.DirectX12(desc.Flags).Flags
         };
 
-        Heap = new(context, resourceDesc, desc.Flags.HasFlag(BufferUsageFlags.Dynamic) ? HeapType.GpuUpload : HeapType.Default, HeapFlags.AllowOnlyBuffers);
+        Heap = new(context, resourceDesc, DXFormats.DirectX12(desc.Flags).Type, HeapFlags.AllowOnlyBuffers);
 
         context.Device.CreatePlacedResource(Heap.Heap, 0, &resourceDesc, States = DXFormats.DirectX12(desc.Flags).States, null, out Resource).Success();
 

@@ -159,7 +159,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
         {
             SizeInBytes = (uint)sizeof(Constants),
             StrideInBytes = (uint)sizeof(Constants),
-            Flags = BufferUsageFlags.Constant | BufferUsageFlags.Dynamic
+            Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
         });
 
         sampler = context.CreateSampler(new()
@@ -373,7 +373,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
             {
                 SizeInBytes = totalVertexSizeInBytes + (totalVertexSizeInBytes / 2),
                 StrideInBytes = (uint)sizeof(ImDrawVert),
-                Flags = BufferUsageFlags.Vertex | BufferUsageFlags.Dynamic
+                Flags = BufferUsageFlags.Vertex | BufferUsageFlags.MapWrite
             });
         }
 
@@ -385,7 +385,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
             {
                 SizeInBytes = totalIndexSizeInBytes + (totalIndexSizeInBytes / 2),
                 StrideInBytes = sizeof(ushort),
-                Flags = BufferUsageFlags.Index | BufferUsageFlags.Dynamic
+                Flags = BufferUsageFlags.Index | BufferUsageFlags.MapWrite
             });
         }
 
@@ -396,14 +396,14 @@ float4 PSMain(VSOutput input) : SV_TARGET
             ReadOnlySpan<ImDrawVert> verts = new(drawListPtr.VtxBuffer.Data, drawListPtr.VtxBuffer.Size);
             ReadOnlySpan<ushort> indices = new(drawListPtr.IdxBuffer.Data, drawListPtr.IdxBuffer.Size);
 
-            commandBuffer.Upload(vertexBuffer, (uint)(sizeof(ImDrawVert) * vertexOffset), verts);
-            commandBuffer.Upload(indexBuffer, (uint)(sizeof(ushort) * indexOffset), indices);
+            vertexBuffer.Upload(verts, (uint)(sizeof(ImDrawVert) * vertexOffset));
+            indexBuffer.Upload(indices, (uint)(sizeof(ushort) * indexOffset));
 
             vertexOffset += drawListPtr.VtxBuffer.Size;
             indexOffset += drawListPtr.IdxBuffer.Size;
         }
 
-        commandBuffer.Upload(constants, 0, [new Constants
+        constants.Upload([new Constants
         {
             Projection = Matrix4x4.CreateOrthographicOffCenter(drawData.DisplayPos.X,
                                                                drawData.DisplayPos.X + drawData.DisplaySize.X,
@@ -411,7 +411,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
                                                                drawData.DisplayPos.Y,
                                                                0.0f,
                                                                1.0f)
-        }]);
+        }], 0);
 
         commandBuffer.PreprocessResourceSets([.. imResourceSets.Values]);
 

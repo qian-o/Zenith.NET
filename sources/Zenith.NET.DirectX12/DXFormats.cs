@@ -6,7 +6,7 @@ namespace Zenith.NET.DirectX12;
 
 internal static class DXFormats
 {
-    public static (ResourceFlags Flags, ResourceStates States) DirectX12(BufferUsageFlags bufferUsageFlags)
+    public static (ResourceFlags Flags, ResourceStates States, HeapType Type) DirectX12(BufferUsageFlags bufferUsageFlags)
     {
         ResourceFlags flags = ResourceFlags.None;
 
@@ -52,12 +52,33 @@ internal static class DXFormats
             states |= ResourceStates.UnorderedAccess;
         }
 
-        if (bufferUsageFlags.HasFlag(BufferUsageFlags.Dynamic))
+        if (bufferUsageFlags.HasFlag(BufferUsageFlags.CopySource))
         {
-            states = ResourceStates.GenericRead;
+            states |= ResourceStates.CopySource;
         }
 
-        return (flags, states);
+        if (bufferUsageFlags.HasFlag(BufferUsageFlags.CopyDestination))
+        {
+            states |= ResourceStates.CopyDest;
+        }
+
+        HeapType type = HeapType.Default;
+
+        if (bufferUsageFlags.HasFlag(BufferUsageFlags.MapRead))
+        {
+            states = ResourceStates.CopyDest;
+
+            type = HeapType.Readback;
+        }
+
+        if (bufferUsageFlags.HasFlag(BufferUsageFlags.MapWrite))
+        {
+            states = ResourceStates.GenericRead;
+
+            type = HeapType.Upload;
+        }
+
+        return (flags, states, type);
     }
 
     public static ResourceDimension DirectX12(TextureType textureType)

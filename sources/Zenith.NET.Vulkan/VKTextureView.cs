@@ -16,7 +16,7 @@ internal unsafe class VKTextureView : TextureView
             Format = VKFormats.Vulkan(desc.Texture.Desc.Format),
             SubresourceRange = new()
             {
-                AspectMask = VKFormats.Vulkan(desc.Texture.Desc.Flags).ImageAspectFlags,
+                AspectMask = VKFormats.Vulkan(desc.Texture.Desc.Flags).AspectFlags,
                 BaseMipLevel = desc.FirstMipLevel,
                 LevelCount = desc.MipLevelCount,
                 BaseArrayLayer = ZenithHelper.FlattenArrayLayerRange(desc).FlattenArrayLayerIndex,
@@ -49,7 +49,7 @@ internal unsafe class VKTextureView : TextureView
             Format = VKFormats.Vulkan(texture.Desc.Format),
             SubresourceRange = new()
             {
-                AspectMask = VKFormats.Vulkan(texture.Desc.Flags).ImageAspectFlags,
+                AspectMask = VKFormats.Vulkan(texture.Desc.Flags).AspectFlags,
                 BaseMipLevel = slice.MipLevel,
                 LevelCount = 1,
                 BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(texture.Desc, slice),

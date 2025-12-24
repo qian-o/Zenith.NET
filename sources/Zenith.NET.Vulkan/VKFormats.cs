@@ -76,48 +76,48 @@ internal static class VKFormats
         return result;
     }
 
-    public static (VkBufferUsageFlags BufferUsageFlags, MemoryPropertyFlags MemoryPropertyFlags) Vulkan(BufferUsageFlags bufferUsageFlags)
+    public static (VkBufferUsageFlags UsageFlags, MemoryPropertyFlags MemoryPropertyFlags) Vulkan(BufferUsageFlags bufferUsageFlags)
     {
-        VkBufferUsageFlags vkBufferUsageFlags = VkBufferUsageFlags.None;
+        VkBufferUsageFlags usageFlags = VkBufferUsageFlags.None;
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.Vertex))
         {
-            vkBufferUsageFlags |= VkBufferUsageFlags.VertexBufferBit;
+            usageFlags |= VkBufferUsageFlags.VertexBufferBit;
         }
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.Index))
         {
-            vkBufferUsageFlags |= VkBufferUsageFlags.IndexBufferBit;
+            usageFlags |= VkBufferUsageFlags.IndexBufferBit;
         }
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.Indirect))
         {
-            vkBufferUsageFlags |= VkBufferUsageFlags.IndirectBufferBit;
+            usageFlags |= VkBufferUsageFlags.IndirectBufferBit;
         }
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.AccelerationStructure))
         {
-            vkBufferUsageFlags |= VkBufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr;
+            usageFlags |= VkBufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr;
         }
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.Constant))
         {
-            vkBufferUsageFlags |= VkBufferUsageFlags.UniformBufferBit;
+            usageFlags |= VkBufferUsageFlags.UniformBufferBit;
         }
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.ShaderResource) || bufferUsageFlags.HasFlag(BufferUsageFlags.UnorderedAccess))
         {
-            vkBufferUsageFlags |= VkBufferUsageFlags.StorageBufferBit;
+            usageFlags |= VkBufferUsageFlags.StorageBufferBit;
         }
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.CopySource))
         {
-            vkBufferUsageFlags |= VkBufferUsageFlags.TransferSrcBit;
+            usageFlags |= VkBufferUsageFlags.TransferSrcBit;
         }
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.CopyDestination))
         {
-            vkBufferUsageFlags |= VkBufferUsageFlags.TransferDstBit;
+            usageFlags |= VkBufferUsageFlags.TransferDstBit;
         }
 
         MemoryPropertyFlags memoryPropertyFlags = MemoryPropertyFlags.DeviceLocalBit;
@@ -128,17 +128,21 @@ internal static class VKFormats
 
             if (bufferUsageFlags.HasFlag(BufferUsageFlags.MapRead))
             {
+                usageFlags |= VkBufferUsageFlags.TransferDstBit;
+
                 memoryPropertyFlags |= MemoryPropertyFlags.HostCachedBit;
             }
 
             if (bufferUsageFlags.HasFlag(BufferUsageFlags.MapWrite))
             {
+                usageFlags |= VkBufferUsageFlags.TransferSrcBit;
+
                 memoryPropertyFlags |= MemoryPropertyFlags.HostCoherentBit;
             }
         }
 
 
-        return (vkBufferUsageFlags, memoryPropertyFlags);
+        return (usageFlags, memoryPropertyFlags);
     }
 
     public static (ImageType ImageType, ImageViewType ImageViewType) Vulkan(TextureType textureType)
@@ -296,42 +300,42 @@ internal static class VKFormats
         };
     }
 
-    public static (ImageUsageFlags ImageUsageFlags, ImageAspectFlags ImageAspectFlags) Vulkan(TextureUsageFlags textureUsageFlags)
+    public static (ImageUsageFlags UsageFlags, ImageAspectFlags AspectFlags) Vulkan(TextureUsageFlags textureUsageFlags)
     {
-        ImageUsageFlags imageUsageFlags = ImageUsageFlags.TransferSrcBit | ImageUsageFlags.TransferDstBit;
+        ImageUsageFlags usageFlags = ImageUsageFlags.TransferSrcBit | ImageUsageFlags.TransferDstBit;
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.RenderTarget))
         {
-            imageUsageFlags |= ImageUsageFlags.ColorAttachmentBit;
+            usageFlags |= ImageUsageFlags.ColorAttachmentBit;
         }
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.DepthStencil))
         {
-            imageUsageFlags |= ImageUsageFlags.DepthStencilAttachmentBit;
+            usageFlags |= ImageUsageFlags.DepthStencilAttachmentBit;
         }
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.ShaderResource))
         {
-            imageUsageFlags |= ImageUsageFlags.SampledBit;
+            usageFlags |= ImageUsageFlags.SampledBit;
         }
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.UnorderedAccess))
         {
-            imageUsageFlags |= ImageUsageFlags.StorageBit;
+            usageFlags |= ImageUsageFlags.StorageBit;
         }
 
-        ImageAspectFlags imageAspectFlags = ImageAspectFlags.None;
+        ImageAspectFlags aspectFlags = ImageAspectFlags.None;
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.DepthStencil))
         {
-            imageAspectFlags |= ImageAspectFlags.DepthBit | ImageAspectFlags.StencilBit;
+            aspectFlags |= ImageAspectFlags.DepthBit | ImageAspectFlags.StencilBit;
         }
         else
         {
-            imageAspectFlags |= ImageAspectFlags.ColorBit;
+            aspectFlags |= ImageAspectFlags.ColorBit;
         }
 
-        return (imageUsageFlags, imageAspectFlags);
+        return (usageFlags, aspectFlags);
     }
 
     public static (VkFilter MinFilter, VkFilter MagFilter, SamplerMipmapMode MipmapMode) Vulkan(Filter filter)

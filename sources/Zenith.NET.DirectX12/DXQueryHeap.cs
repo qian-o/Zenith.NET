@@ -21,10 +21,10 @@ internal unsafe class DXQueryHeap : QueryHeap
         {
             SizeInBytes = sizeof(ulong) * desc.Count,
             StrideInBytes = sizeof(ulong),
-            Flags = BufferUsageFlags.Dynamic
+            Flags = BufferUsageFlags.CopyDestination | BufferUsageFlags.MapRead
         };
 
-        Buffer = new(context, bufferDesc, ResourceFlags.None, ResourceStates.CopyDest, HeapType.Readback);
+        Buffer = new(context, bufferDesc);
     }
 
     public DXBuffer Buffer { get; }
