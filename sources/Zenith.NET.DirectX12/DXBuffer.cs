@@ -82,7 +82,7 @@ internal unsafe class DXBuffer : Buffer
 
     public void TransitionStates(DXCommandBuffer commandBuffer, ResourceStates newStates)
     {
-        if (!commandBuffer.CanTransitionResourceStates || States == newStates)
+        if (Desc.Flags.HasFlag(BufferUsageFlags.MapRead) || Desc.Flags.HasFlag(BufferUsageFlags.MapWrite) || !commandBuffer.CanTransitionResourceStates || States == newStates)
         {
             return;
         }
