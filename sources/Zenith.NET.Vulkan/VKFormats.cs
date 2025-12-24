@@ -76,7 +76,7 @@ internal static class VKFormats
         return result;
     }
 
-    public static (VkBufferUsageFlags UsageFlags, MemoryPropertyFlags MemoryPropertyFlags) Vulkan(BufferUsageFlags bufferUsageFlags)
+    public static (VkBufferUsageFlags UsageFlags, MemoryPropertyFlags PropertyFlags) Vulkan(BufferUsageFlags bufferUsageFlags)
     {
         VkBufferUsageFlags usageFlags = VkBufferUsageFlags.None;
 
@@ -120,29 +120,29 @@ internal static class VKFormats
             usageFlags |= VkBufferUsageFlags.TransferDstBit;
         }
 
-        MemoryPropertyFlags memoryPropertyFlags = MemoryPropertyFlags.DeviceLocalBit;
+        MemoryPropertyFlags propertyFlags = MemoryPropertyFlags.DeviceLocalBit;
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.MapRead) || bufferUsageFlags.HasFlag(BufferUsageFlags.MapWrite))
         {
-            memoryPropertyFlags = MemoryPropertyFlags.HostVisibleBit;
+            propertyFlags = MemoryPropertyFlags.HostVisibleBit;
 
             if (bufferUsageFlags.HasFlag(BufferUsageFlags.MapRead))
             {
                 usageFlags |= VkBufferUsageFlags.TransferDstBit;
 
-                memoryPropertyFlags |= MemoryPropertyFlags.HostCachedBit;
+                propertyFlags |= MemoryPropertyFlags.HostCachedBit;
             }
 
             if (bufferUsageFlags.HasFlag(BufferUsageFlags.MapWrite))
             {
                 usageFlags |= VkBufferUsageFlags.TransferSrcBit;
 
-                memoryPropertyFlags |= MemoryPropertyFlags.HostCoherentBit;
+                propertyFlags |= MemoryPropertyFlags.HostCoherentBit;
             }
         }
 
 
-        return (usageFlags, memoryPropertyFlags);
+        return (usageFlags, propertyFlags);
     }
 
     public static (ImageType ImageType, ImageViewType ImageViewType) Vulkan(TextureType textureType)
