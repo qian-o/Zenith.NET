@@ -59,7 +59,7 @@ public unsafe partial class ZenithView
             {
                 SizeInBytes = (rowPitchInBytes = ZenithHelper.Align(width * 4, GraphicsContext.TextureRowPitchAlignment)) * height,
                 StrideInBytes = 4,
-                Flags = BufferUsageFlags.CopyDestination | BufferUsageFlags.MapRead
+                Flags = BufferUsageFlags.MapRead
             });
 
             Background = new ImageBrush() { ImageSource = bitmap = new((int)width, (int)height) };

@@ -143,7 +143,7 @@ public unsafe class ZenithView : TemplatedControl
                 {
                     SizeInBytes = (rowPitchInBytes = ZenithHelper.Align(width * 4, GraphicsContext.TextureRowPitchAlignment)) * height,
                     StrideInBytes = 4,
-                    Flags = BufferUsageFlags.CopyDestination | BufferUsageFlags.MapRead
+                    Flags = BufferUsageFlags.MapRead
                 });
 
                 bitmap = new(new((int)width, (int)height), new(96, 96), AvaloniaPixelFormat.Rgba8888, AlphaFormat.Premul);

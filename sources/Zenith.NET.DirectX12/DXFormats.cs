@@ -52,16 +52,6 @@ internal static class DXFormats
             states |= ResourceStates.UnorderedAccess;
         }
 
-        if (bufferUsageFlags.HasFlag(BufferUsageFlags.CopySource))
-        {
-            states |= ResourceStates.CopySource;
-        }
-
-        if (bufferUsageFlags.HasFlag(BufferUsageFlags.CopyDestination))
-        {
-            states |= ResourceStates.CopyDest;
-        }
-
         HeapType type = HeapType.Default;
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.MapRead))

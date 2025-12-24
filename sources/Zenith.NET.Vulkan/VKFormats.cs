@@ -78,7 +78,7 @@ internal static class VKFormats
 
     public static (VkBufferUsageFlags UsageFlags, MemoryPropertyFlags PropertyFlags) Vulkan(BufferUsageFlags bufferUsageFlags)
     {
-        VkBufferUsageFlags usageFlags = VkBufferUsageFlags.None;
+        VkBufferUsageFlags usageFlags = VkBufferUsageFlags.TransferSrcBit | VkBufferUsageFlags.TransferDstBit;
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.Vertex))
         {
@@ -110,16 +110,6 @@ internal static class VKFormats
             usageFlags |= VkBufferUsageFlags.StorageBufferBit;
         }
 
-        if (bufferUsageFlags.HasFlag(BufferUsageFlags.CopySource))
-        {
-            usageFlags |= VkBufferUsageFlags.TransferSrcBit;
-        }
-
-        if (bufferUsageFlags.HasFlag(BufferUsageFlags.CopyDestination))
-        {
-            usageFlags |= VkBufferUsageFlags.TransferDstBit;
-        }
-
         MemoryPropertyFlags propertyFlags = MemoryPropertyFlags.DeviceLocalBit;
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.MapRead) || bufferUsageFlags.HasFlag(BufferUsageFlags.MapWrite))
@@ -128,15 +118,11 @@ internal static class VKFormats
 
             if (bufferUsageFlags.HasFlag(BufferUsageFlags.MapRead))
             {
-                usageFlags |= VkBufferUsageFlags.TransferDstBit;
-
                 propertyFlags |= MemoryPropertyFlags.HostCachedBit;
             }
 
             if (bufferUsageFlags.HasFlag(BufferUsageFlags.MapWrite))
             {
-                usageFlags |= VkBufferUsageFlags.TransferSrcBit;
-
                 propertyFlags |= MemoryPropertyFlags.HostCoherentBit;
             }
         }

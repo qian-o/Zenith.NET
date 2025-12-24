@@ -28,7 +28,7 @@ internal unsafe class GLTF : DisposableObject
         {
             SizeInBytes = (uint)(sizeof(Vertex) * vertices.Count),
             StrideInBytes = (uint)sizeof(Vertex),
-            Flags = BufferUsageFlags.Vertex | BufferUsageFlags.AccelerationStructure | BufferUsageFlags.CopyDestination
+            Flags = BufferUsageFlags.Vertex | BufferUsageFlags.AccelerationStructure
         });
         Vertices.Upload([.. vertices], 0);
 
@@ -36,7 +36,7 @@ internal unsafe class GLTF : DisposableObject
         {
             SizeInBytes = (uint)(sizeof(uint) * indices.Count),
             StrideInBytes = sizeof(uint),
-            Flags = BufferUsageFlags.Index | BufferUsageFlags.AccelerationStructure | BufferUsageFlags.CopyDestination
+            Flags = BufferUsageFlags.Index | BufferUsageFlags.AccelerationStructure
         });
         Indices.Upload([.. indices], 0);
 

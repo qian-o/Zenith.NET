@@ -17,14 +17,12 @@ internal unsafe class DXQueryHeap : QueryHeap
 
         context.Device.CreateQueryHeap(&queryHeapDesc, out QueryHeap).Success();
 
-        BufferDesc bufferDesc = new()
+        Buffer = new(context, new()
         {
             SizeInBytes = sizeof(ulong) * desc.Count,
             StrideInBytes = sizeof(ulong),
-            Flags = BufferUsageFlags.CopyDestination | BufferUsageFlags.MapRead
-        };
-
-        Buffer = new(context, bufferDesc);
+            Flags = BufferUsageFlags.MapRead
+        });
     }
 
     public DXBuffer Buffer { get; }
