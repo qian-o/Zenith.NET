@@ -27,7 +27,7 @@ internal unsafe class VKDeviceMemory : GraphicsResource
         {
             SType = StructureType.MemoryAllocateInfo,
             AllocationSize = requirements2.MemoryRequirements.Size,
-            MemoryTypeIndex = context.FindMemoryTypeIndex(requirements2.MemoryRequirements.MemoryTypeBits, buffer.Desc.Flags.HasFlag(BufferUsageFlags.Dynamic) ? MemoryPropertyFlags.HostVisibleBit : MemoryPropertyFlags.DeviceLocalBit)
+            MemoryTypeIndex = context.FindMemoryTypeIndex(requirements2.MemoryRequirements.MemoryTypeBits, VKFormats.Vulkan(buffer.Desc.Flags).MemoryPropertyFlags)
         };
 
         if (requirements.PrefersDedicatedAllocation || requirements.RequiresDedicatedAllocation)

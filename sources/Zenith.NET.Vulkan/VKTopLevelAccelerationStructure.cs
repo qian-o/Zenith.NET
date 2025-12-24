@@ -16,7 +16,7 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
         {
             SizeInBytes = (uint)(sizeof(AccelerationStructureInstanceKHR) * desc.Instances.Length),
             StrideInBytes = (uint)sizeof(AccelerationStructureInstanceKHR),
-            Flags = BufferUsageFlags.Dynamic
+            Flags = BufferUsageFlags.MapWrite
         };
 
         InstanceBuffer = new(context, instanceBufferDesc, VkBufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr);

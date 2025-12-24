@@ -135,7 +135,7 @@ internal unsafe class VKRayTracingPipeline : RayTracingPipeline
             {
                 SizeInBytes = HandleSizeAligned * count,
                 StrideInBytes = HandleSizeAligned,
-                Flags = BufferUsageFlags.Dynamic
+                Flags = BufferUsageFlags.MapWrite
             };
 
             VKBuffer buffer = new(context, bufferDesc, VkBufferUsageFlags.ShaderBindingTableBitKhr);

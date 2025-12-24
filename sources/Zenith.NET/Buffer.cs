@@ -17,7 +17,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
             return;
         }
 
-        if (desc.Flags.HasFlag(BufferUsageFlags.Dynamic))
+        if (desc.Flags.HasFlag(BufferUsageFlags.MapRead) || desc.Flags.HasFlag(BufferUsageFlags.MapWrite))
         {
             MappedMemory mappedMemory = Map();
 

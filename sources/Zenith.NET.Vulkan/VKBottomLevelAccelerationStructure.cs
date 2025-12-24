@@ -18,7 +18,7 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
         {
             SizeInBytes = (uint)(sizeof(TransformMatrixKHR) * geometryCount),
             StrideInBytes = (uint)sizeof(TransformMatrixKHR),
-            Flags = BufferUsageFlags.Dynamic
+            Flags = BufferUsageFlags.MapWrite
         };
 
         TransformBuffer = new(context, transformBufferDesc, VkBufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr);
