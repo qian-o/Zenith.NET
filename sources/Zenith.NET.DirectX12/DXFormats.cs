@@ -562,23 +562,94 @@ internal static class DXFormats
         );
     }
 
-    internal static RaytracingGeometryType DirectX12(RayTracingGeometryType type)
+    public static RaytracingGeometryType DirectX12(RayTracingGeometryType rayTracingGeometryType)
     {
-        throw new NotImplementedException();
+        return rayTracingGeometryType switch
+        {
+            RayTracingGeometryType.Triangles => RaytracingGeometryType.Triangles,
+            RayTracingGeometryType.AABBs => RaytracingGeometryType.ProceduralPrimitiveAabbs,
+            _ => RaytracingGeometryType.Triangles
+        };
     }
 
-    internal static RaytracingGeometryFlags DirectX12(RayTracingGeometryFlags flags)
+    public static RaytracingGeometryFlags DirectX12(RayTracingGeometryFlags rayTracingGeometryFlags)
     {
-        throw new NotImplementedException();
+        RaytracingGeometryFlags result = RaytracingGeometryFlags.None;
+
+        if (rayTracingGeometryFlags.HasFlag(RayTracingGeometryFlags.Opaque))
+        {
+            result |= RaytracingGeometryFlags.Opaque;
+        }
+
+        if (rayTracingGeometryFlags.HasFlag(RayTracingGeometryFlags.NoDuplicateAnyHitInvocation))
+        {
+            result |= RaytracingGeometryFlags.NoDuplicateAnyhitInvocation;
+        }
+
+        return result;
     }
 
-    internal static RaytracingInstanceFlags DirectX12(RayTracingInstanceFlags flags)
+    public static RaytracingAccelerationStructureBuildFlags DirectX12(AccelerationStructureBuildFlags accelerationStructureBuildFlags)
     {
-        throw new NotImplementedException();
+        RaytracingAccelerationStructureBuildFlags result = RaytracingAccelerationStructureBuildFlags.None;
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowUpdate))
+        {
+            result |= RaytracingAccelerationStructureBuildFlags.AllowUpdate;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowCompaction))
+        {
+            result |= RaytracingAccelerationStructureBuildFlags.AllowCompaction;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PreferFastTrace))
+        {
+            result |= RaytracingAccelerationStructureBuildFlags.PreferFastTrace;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PreferFastBuild))
+        {
+            result |= RaytracingAccelerationStructureBuildFlags.PreferFastBuild;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.MinimizeMemory))
+        {
+            result |= RaytracingAccelerationStructureBuildFlags.MinimizeMemory;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PerformUpdate))
+        {
+            result |= RaytracingAccelerationStructureBuildFlags.PerformUpdate;
+        }
+
+        return result;
     }
 
-    internal static RaytracingAccelerationStructureBuildFlags DirectX12(AccelerationStructureBuildFlags flags)
+    public static RaytracingInstanceFlags DirectX12(RayTracingInstanceFlags rayTracingInstanceFlags)
     {
-        throw new NotImplementedException();
+        RaytracingInstanceFlags result = RaytracingInstanceFlags.None;
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.TriangleCullDisable))
+        {
+            result |= RaytracingInstanceFlags.TriangleCullDisable;
+        }
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.TriangleFrontCounterClockwise))
+        {
+            result |= RaytracingInstanceFlags.TriangleFrontCounterclockwise;
+        }
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.ForceOpaque))
+        {
+            result |= RaytracingInstanceFlags.ForceOpaque;
+        }
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.ForceNoOpaque))
+        {
+            result |= RaytracingInstanceFlags.ForceNonOpaque;
+        }
+
+        return result;
     }
 }

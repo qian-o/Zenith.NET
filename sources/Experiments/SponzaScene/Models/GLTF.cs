@@ -42,46 +42,46 @@ internal unsafe class GLTF : DisposableObject
 
         Materials = [.. root.LogicalMaterials.Select(static material => new Material(material))];
 
-        //if (App.Context.Capabilities.RayTracingSupported)
-        //{
-        //    RayTracingGeometry[] geometries = new RayTracingGeometry[Nodes.Length];
+        if (App.Context.Capabilities.RayTracingSupported)
+        {
+            RayTracingGeometry[] geometries = new RayTracingGeometry[Nodes.Length];
 
-        //    for (int i = 0; i < Nodes.Length; i++)
-        //    {
-        //        Node node = Nodes[i];
+            for (int i = 0; i < Nodes.Length; i++)
+            {
+                Node node = Nodes[i];
 
-        //        geometries[i] = new()
-        //        {
-        //            Type = RayTracingGeometryType.Triangles,
-        //            Triangles = new()
-        //            {
-        //                VertexBuffer = Vertices,
-        //                VertexFormat = PixelFormat.R32G32B32Float,
-        //                VertexCount = node.VertexCount,
-        //                VertexStrideInBytes = (uint)sizeof(Vertex),
-        //                VertexOffsetInBytes = (uint)(sizeof(Vertex) * node.Args.VertexOffset),
-        //                IndexBuffer = Indices,
-        //                IndexFormat = IndexFormat.UInt32,
-        //                IndexCount = node.Args.IndexCount,
-        //                IndexOffsetInBytes = sizeof(uint) * node.Args.FirstIndex,
-        //                Transform = Matrix4x4.Identity
-        //            },
-        //            Flags = RayTracingGeometryFlags.Opaque
-        //        };
-        //    }
+                geometries[i] = new()
+                {
+                    Type = RayTracingGeometryType.Triangles,
+                    Triangles = new()
+                    {
+                        VertexBuffer = Vertices,
+                        VertexFormat = PixelFormat.R32G32B32Float,
+                        VertexCount = node.VertexCount,
+                        VertexStrideInBytes = (uint)sizeof(Vertex),
+                        VertexOffsetInBytes = (uint)(sizeof(Vertex) * node.Args.VertexOffset),
+                        IndexBuffer = Indices,
+                        IndexFormat = IndexFormat.UInt32,
+                        IndexCount = node.Args.IndexCount,
+                        IndexOffsetInBytes = sizeof(uint) * node.Args.FirstIndex,
+                        Transform = Matrix4x4.Identity
+                    },
+                    Flags = RayTracingGeometryFlags.Opaque
+                };
+            }
 
-        //    CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
+            CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
 
-        //    BLAS = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc()
-        //    {
-        //        Geometries = geometries,
-        //        Flags = AccelerationStructureBuildFlags.PreferFastBuild
-        //    });
+            BLAS = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc()
+            {
+                Geometries = geometries,
+                Flags = AccelerationStructureBuildFlags.PreferFastBuild
+            });
 
-        //    commandBuffer.Submit();
+            commandBuffer.Submit();
 
-        //    App.Context.Graphics.WaitIdle();
-        //}
+            App.Context.Graphics.WaitIdle();
+        }
     }
 
     public string Name { get; }

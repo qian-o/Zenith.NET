@@ -66,6 +66,7 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
         BuildRaytracingAccelerationStructureInputs inputs = new()
         {
             Type = RaytracingAccelerationStructureType.BottomLevel,
+            Flags = DXFormats.DirectX12(desc.Flags),
             NumDescs = geometryCount,
             PGeometryDescs = geometries
         };

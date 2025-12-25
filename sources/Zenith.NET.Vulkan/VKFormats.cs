@@ -695,7 +695,7 @@ internal static class VKFormats
             result |= BuildAccelerationStructureFlagsKHR.AllowUpdateBitKhr;
         }
 
-        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowCompactation))
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowCompaction))
         {
             result |= BuildAccelerationStructureFlagsKHR.AllowCompactionBitKhr;
         }
