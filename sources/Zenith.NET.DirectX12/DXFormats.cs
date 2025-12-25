@@ -10,14 +10,14 @@ internal static class DXFormats
     {
         ResourceFlags flags = ResourceFlags.None;
 
-        if (bufferUsageFlags.HasFlag(BufferUsageFlags.AccelerationStructure))
-        {
-            flags |= ResourceFlags.RaytracingAccelerationStructure;
-        }
-
-        if (bufferUsageFlags.HasFlag(BufferUsageFlags.UnorderedAccess))
+        if (bufferUsageFlags.HasFlag(BufferUsageFlags.AccelerationStructure) || bufferUsageFlags.HasFlag(BufferUsageFlags.UnorderedAccess))
         {
             flags |= ResourceFlags.AllowUnorderedAccess;
+
+            if (bufferUsageFlags.HasFlag(BufferUsageFlags.AccelerationStructure))
+            {
+                flags |= ResourceFlags.RaytracingAccelerationStructure;
+            }
         }
 
         ResourceStates states = ResourceStates.Common;
@@ -560,5 +560,15 @@ internal static class DXFormats
                 _ => DxQueryType.Occlusion
             }
         );
+    }
+
+    internal static RaytracingGeometryType DirectX12(RayTracingGeometryType type)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static RaytracingGeometryFlags DirectX12(RayTracingGeometryFlags flags)
+    {
+        throw new NotImplementedException();
     }
 }

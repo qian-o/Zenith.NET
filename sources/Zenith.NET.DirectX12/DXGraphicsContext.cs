@@ -16,6 +16,8 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public ComPtr<ID3D12Device> Device;
 
+    public ComPtr<ID3D12Device5>? Device5;
+
     public ComPtr<ID3D12InfoQueue1>? InfoQueue1;
 
     public ComPtr<ID3D12CommandQueue> GraphicsQueue;
@@ -63,6 +65,11 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         Factory7.EnumAdapterByGpuPreference(0, GpuPreference.HighPerformance, out Adapter4).Success();
 
         D3D12.CreateDevice(Adapter4, D3DFeatureLevel.Level120, out Device).Success();
+
+        if (Device.QueryInterface(out ComPtr<ID3D12Device5> device5).IsSuccess())
+        {
+            Device5 = device5;
+        }
 
         if (Device.QueryInterface(out ComPtr<ID3D12InfoQueue1> infoQueue1).IsSuccess())
         {
@@ -195,6 +202,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         GraphicsQueue.Dispose();
 
         InfoQueue1?.Dispose();
+        Device5?.Dispose();
 
         Device.Dispose();
         Adapter4.Dispose();

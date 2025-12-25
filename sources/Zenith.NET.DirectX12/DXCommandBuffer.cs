@@ -207,7 +207,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXBottomLevelAccelerationStructure(Context, desc, this);
     }
 
     protected override TopLevelAccelerationStructure BuildAccelerationStructureImpl(TopLevelAccelerationStructureDesc desc)
@@ -289,7 +289,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
     {
         VertexBufferView view = new()
         {
-            BufferLocation = buffer.DirectX12().Resource.GetGPUVirtualAddress() + offsetInBytes,
+            BufferLocation = buffer.DirectX12().GPUVirtualAddress + offsetInBytes,
             SizeInBytes = buffer.Desc.SizeInBytes - offsetInBytes,
             StrideInBytes = pipeline.Desc.InputLayouts[index].StrideInBytes
         };
@@ -301,7 +301,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
     {
         IndexBufferView view = new()
         {
-            BufferLocation = buffer.DirectX12().Resource.GetGPUVirtualAddress() + offsetInBytes,
+            BufferLocation = buffer.DirectX12().GPUVirtualAddress + offsetInBytes,
             SizeInBytes = buffer.Desc.SizeInBytes - offsetInBytes,
             Format = DXFormats.DirectX12(format)
         };
