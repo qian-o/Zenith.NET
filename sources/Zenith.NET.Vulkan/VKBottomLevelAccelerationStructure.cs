@@ -14,14 +14,12 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
 
         uint geometryCount = (uint)desc.Geometries.Length;
 
-        BufferDesc transformBufferDesc = new()
+        TransformBuffer = new(context, new()
         {
             SizeInBytes = (uint)(sizeof(TransformMatrixKHR) * geometryCount),
             StrideInBytes = (uint)sizeof(TransformMatrixKHR),
-            Flags = BufferUsageFlags.MapWrite
-        };
-
-        TransformBuffer = new(context, transformBufferDesc, VkBufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr);
+            Flags = BufferUsageFlags.AccelerationStructure | BufferUsageFlags.MapWrite
+        });
 
         MappedMemory mappedMemory = TransformBuffer.Map();
 
@@ -106,13 +104,12 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
 
         DeviceAddress = context.AccelerationStructure?.GetAccelerationStructureDeviceAddress(context.Device, &addressInfo) ?? 0;
 
-        BufferDesc scratchBufferDesc = new()
+        ScratchBuffer = new(context, new()
         {
             SizeInBytes = (uint)sizeInfo.BuildScratchSize,
-            StrideInBytes = (uint)sizeInfo.BuildScratchSize
-        };
-
-        ScratchBuffer = new(context, scratchBufferDesc, VkBufferUsageFlags.StorageBufferBit);
+            StrideInBytes = (uint)sizeInfo.BuildScratchSize,
+            Flags = BufferUsageFlags.ShaderResource
+        });
 
         buildInfo.DstAccelerationStructure = AccelerationStructure;
         buildInfo.ScratchData = new() { DeviceAddress = ScratchBuffer.DeviceAddress };

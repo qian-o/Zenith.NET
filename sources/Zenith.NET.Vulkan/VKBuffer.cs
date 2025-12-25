@@ -8,44 +8,11 @@ internal unsafe class VKBuffer : Buffer
 
     public ulong DeviceAddress;
 
-    public VKBuffer(VKGraphicsContext context, BufferDesc desc) : base(context, desc)
+    public VKBuffer(VKGraphicsContext context, BufferDesc desc) : this(context, desc, VkBufferUsageFlags.None)
     {
-        using ZenithMarshal.Scope scope = new();
-
-        (SharingMode sharingMode, uint queueFamilyIndexCount, nint pQueueFamilyIndices) = context.GetSharingModeInfo(scope);
-
-        BufferCreateInfo createInfo = new()
-        {
-            SType = StructureType.BufferCreateInfo,
-            Size = desc.SizeInBytes,
-            Usage = VKFormats.Vulkan(desc.Flags).UsageFlags | VkBufferUsageFlags.ShaderDeviceAddressBit,
-            SharingMode = sharingMode,
-            QueueFamilyIndexCount = queueFamilyIndexCount,
-            PQueueFamilyIndices = (uint*)pQueueFamilyIndices
-        };
-
-        context.Vk.CreateBuffer(context.Device, &createInfo, null, out Buffer).Success();
-
-        DeviceMemory = new(context, this);
-
-        BufferDeviceAddressInfo addressInfo = new()
-        {
-            SType = StructureType.BufferDeviceAddressInfo,
-            Buffer = Buffer
-        };
-
-        DeviceAddress = context.Vk.GetBufferDeviceAddress(context.Device, &addressInfo);
-
-        View = new(context, new()
-        {
-            Buffer = this,
-            OffsetInBytes = 0,
-            SizeInBytes = desc.SizeInBytes,
-            StrideInBytes = desc.StrideInBytes
-        });
     }
 
-    public VKBuffer(VKGraphicsContext context, BufferDesc desc, VkBufferUsageFlags usage) : base(context, desc)
+    public VKBuffer(VKGraphicsContext context, BufferDesc desc, VkBufferUsageFlags otherUsageFlags) : base(context, desc)
     {
         using ZenithMarshal.Scope scope = new();
 
@@ -55,7 +22,7 @@ internal unsafe class VKBuffer : Buffer
         {
             SType = StructureType.BufferCreateInfo,
             Size = desc.SizeInBytes,
-            Usage = usage | VkBufferUsageFlags.ShaderDeviceAddressBit,
+            Usage = VKFormats.Vulkan(desc.Flags).UsageFlags | otherUsageFlags,
             SharingMode = sharingMode,
             QueueFamilyIndexCount = queueFamilyIndexCount,
             PQueueFamilyIndices = (uint*)pQueueFamilyIndices
