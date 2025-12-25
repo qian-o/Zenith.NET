@@ -236,7 +236,10 @@ internal class DXResourceSet : ResourceSet
                             {
                                 foreach (IBindableResource resource in resources)
                                 {
-                                    // TODO: Implement AccelerationStructure support.
+                                    if (resource is TopLevelAccelerationStructure topLevelAccelerationStructure)
+                                    {
+                                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], topLevelAccelerationStructure.DirectX12().Token.Handle, DescriptorHeapType.CbvSrvUav);
+                                    }
 
                                     index++;
                                 }

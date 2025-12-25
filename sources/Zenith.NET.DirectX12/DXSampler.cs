@@ -8,8 +8,6 @@ internal unsafe class DXSampler : Sampler
 
     public DXSampler(DXGraphicsContext context, SamplerDesc desc) : base(context, desc)
     {
-        Token = context.SamplerAllocator.Allocate(1);
-
         DxSamplerDesc samplerDesc = new()
         {
             Filter = DXFormats.DirectX12(desc.Filter, desc.ComparisonFunc).Filter,
@@ -37,7 +35,7 @@ internal unsafe class DXSampler : Sampler
                 break;
         }
 
-        context.Device.CreateSampler(&samplerDesc, Token.Handle);
+        context.Device.CreateSampler(&samplerDesc, (Token = context.SamplerAllocator.Allocate(1)).Handle);
     }
 
     protected override void SetResourceName(string name)

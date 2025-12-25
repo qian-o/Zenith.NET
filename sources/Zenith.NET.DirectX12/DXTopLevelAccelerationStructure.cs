@@ -4,6 +4,8 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStructure
 {
+    public DXDescriptorToken Token;
+
     public DXTopLevelAccelerationStructure(DXGraphicsContext context, TopLevelAccelerationStructureDesc desc, DXCommandBuffer commandBuffer) : base(context, desc)
     {
         using ZenithMarshal.Scope scope = new();
@@ -54,6 +56,18 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
         };
 
         commandBuffer.GraphicsCommandList.ResourceBarrier(1, &barrier);
+
+        ShaderResourceViewDesc viewDesc = new()
+        {
+            ViewDimension = SrvDimension.RaytracingAccelerationStructure,
+            Shader4ComponentMapping = DXGraphicsContext.Shader4ComponentMapping,
+            RaytracingAccelerationStructure = new()
+            {
+                Location = AccelerationStructureBuffer.GPUVirtualAddress
+            }
+        };
+
+        context.Device.CreateShaderResourceView((ID3D12Resource*)null, &viewDesc, (Token = context.CbvSrvUavAllocator.Allocate(1)).Handle);
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
@@ -96,6 +110,11 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
 
     protected override void Destroy()
     {
+        Token.Dispose();
+
+        ScratchBuffer.Dispose();
+        AccelerationStructureBuffer.Dispose();
+        InstanceBuffer.Dispose();
     }
 
     private void FillInstanceBuffer(TopLevelAccelerationStructureDesc desc, out BuildRaytracingAccelerationStructureInputs inputs)
