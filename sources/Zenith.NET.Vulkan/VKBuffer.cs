@@ -8,8 +8,41 @@ internal unsafe class VKBuffer : Buffer
 
     public ulong DeviceAddress;
 
-    public VKBuffer(VKGraphicsContext context, BufferDesc desc) : this(context, desc, VkBufferUsageFlags.None)
+    public VKBuffer(VKGraphicsContext context, BufferDesc desc) : base(context, desc)
     {
+        using ZenithMarshal.Scope scope = new();
+
+        (SharingMode sharingMode, uint queueFamilyIndexCount, nint pQueueFamilyIndices) = context.GetSharingModeInfo(scope);
+
+        BufferCreateInfo createInfo = new()
+        {
+            SType = StructureType.BufferCreateInfo,
+            Size = desc.SizeInBytes,
+            Usage = VKFormats.Vulkan(desc.Flags).UsageFlags,
+            SharingMode = sharingMode,
+            QueueFamilyIndexCount = queueFamilyIndexCount,
+            PQueueFamilyIndices = (uint*)pQueueFamilyIndices
+        };
+
+        context.Vk.CreateBuffer(context.Device, &createInfo, null, out Buffer).Success();
+
+        DeviceMemory = new(context, this);
+
+        BufferDeviceAddressInfo addressInfo = new()
+        {
+            SType = StructureType.BufferDeviceAddressInfo,
+            Buffer = Buffer
+        };
+
+        DeviceAddress = context.Vk.GetBufferDeviceAddress(context.Device, &addressInfo);
+
+        View = new(context, new()
+        {
+            Buffer = this,
+            OffsetInBytes = 0,
+            SizeInBytes = desc.SizeInBytes,
+            StrideInBytes = desc.StrideInBytes
+        });
     }
 
     public VKBuffer(VKGraphicsContext context, BufferDesc desc, VkBufferUsageFlags otherUsageFlags) : base(context, desc)
