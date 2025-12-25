@@ -95,10 +95,18 @@ internal static class DXExtensions
 
     extension(BottomLevelAccelerationStructure bottomLevelAccelerationStructure)
     {
+        public DXBottomLevelAccelerationStructure DirectX12()
+        {
+            return (DXBottomLevelAccelerationStructure)bottomLevelAccelerationStructure;
+        }
     }
 
     extension(TopLevelAccelerationStructure topLevelAccelerationStructure)
     {
+        public DXTopLevelAccelerationStructure DirectX12()
+        {
+            return (DXTopLevelAccelerationStructure)topLevelAccelerationStructure;
+        }
     }
 
     extension(ResourceLayout resourceLayout)

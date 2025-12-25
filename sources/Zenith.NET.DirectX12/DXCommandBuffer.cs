@@ -212,12 +212,12 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override TopLevelAccelerationStructure BuildAccelerationStructureImpl(TopLevelAccelerationStructureDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXTopLevelAccelerationStructure(Context, desc, this);
     }
 
     protected override void UpdateAccelerationStructureImpl(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
     {
-        throw new NotImplementedException();
+        accelerationStructure.DirectX12().Update(this, newDesc);
     }
 
     protected override void PreprocessResourceSetsImpl(ResourceSet[] resourceSets)

@@ -67,7 +67,6 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
         {
             Type = RaytracingAccelerationStructureType.BottomLevel,
             NumDescs = geometryCount,
-            DescsLayout = ElementsLayout.Array,
             PGeometryDescs = geometries
         };
 

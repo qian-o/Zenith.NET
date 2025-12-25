@@ -571,4 +571,14 @@ internal static class DXFormats
     {
         throw new NotImplementedException();
     }
+
+    internal static RaytracingInstanceFlags DirectX12(RayTracingInstanceFlags flags)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static RaytracingAccelerationStructureBuildFlags DirectX12(AccelerationStructureBuildFlags flags)
+    {
+        throw new NotImplementedException();
+    }
 }
