@@ -79,7 +79,7 @@ internal unsafe class DXRayTracingPipeline : RayTracingPipeline
         *subobjects++ = new()
         {
             Type = StateSubobjectType.RaytracingPipelineConfig,
-            PDesc = (RaytracingPipelineConfig*)ZenithMarshal.AllocateAndFill(scope, [raytracingPipelineConfig])
+            PDesc = &raytracingPipelineConfig
         };
 
         RaytracingShaderConfig raytracingShaderConfig = new()
@@ -91,7 +91,7 @@ internal unsafe class DXRayTracingPipeline : RayTracingPipeline
         *subobjects++ = new()
         {
             Type = StateSubobjectType.RaytracingShaderConfig,
-            PDesc = (RaytracingShaderConfig*)ZenithMarshal.AllocateAndFill(scope, [raytracingShaderConfig])
+            PDesc = &raytracingShaderConfig
         };
 
         // ResourceLayouts
@@ -151,7 +151,7 @@ internal unsafe class DXRayTracingPipeline : RayTracingPipeline
             *subobjects = new()
             {
                 Type = StateSubobjectType.GlobalRootSignature,
-                PDesc = (GlobalRootSignature*)ZenithMarshal.AllocateAndFill(scope, [globalRootSignature])
+                PDesc = &globalRootSignature
             };
         }
 

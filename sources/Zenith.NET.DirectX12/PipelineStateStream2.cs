@@ -5,12 +5,8 @@ using static Silk.NET.Direct3D12.RTFormatArray;
 
 namespace Zenith.NET.DirectX12;
 
-internal unsafe struct PipelineStateStream2
+internal unsafe struct PipelineStateStream2()
 {
-    public PipelineStateStream2()
-    {
-    }
-
     public SubObject<PipelineStateFlags> Flags = new(PipelineStateSubobjectType.Flags);
 
     public SubObject<uint> NodeMask = new(PipelineStateSubobjectType.NodeMask);
@@ -59,9 +55,10 @@ internal unsafe struct PipelineStateStream2
 
     public SubObject<ViewInstancingDesc> ViewInstancing = new(PipelineStateSubobjectType.ViewInstancing);
 
-    public static PipelineStateStream2 Create(GraphicsPipelineStateDesc desc)
+    public static explicit operator PipelineStateStream2(GraphicsPipelineStateDesc desc)
     {
         PipelineStateStream2 pipelineStateStream2 = new();
+
         pipelineStateStream2.Flags.Data = desc.Flags;
         pipelineStateStream2.NodeMask.Data = desc.NodeMask;
         pipelineStateStream2.RootSignature.Data = (nint)desc.PRootSignature;

@@ -16,6 +16,8 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public ComPtr<ID3D12Device> Device;
 
+    public ComPtr<ID3D12Device2>? Device2;
+
     public ComPtr<ID3D12Device5>? Device5;
 
     public ComPtr<ID3D12InfoQueue1>? InfoQueue1;
@@ -65,6 +67,11 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         Factory7.EnumAdapterByGpuPreference(0, GpuPreference.HighPerformance, out Adapter4).Success();
 
         D3D12.CreateDevice(Adapter4, D3DFeatureLevel.Level120, out Device).Success();
+
+        if (Device.QueryInterface(out ComPtr<ID3D12Device2> device2).IsSuccess())
+        {
+            Device2 = device2;
+        }
 
         if (Device.QueryInterface(out ComPtr<ID3D12Device5> device5).IsSuccess())
         {
@@ -175,7 +182,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override MeshShadingPipeline CreateMeshShadingPipelineImpl(MeshShadingPipelineDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXMeshShadingPipeline(this, desc);
     }
 
     protected override QueryHeap CreateQueryHeapImpl(QueryHeapDesc desc)
@@ -203,6 +210,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
         InfoQueue1?.Dispose();
         Device5?.Dispose();
+        Device2?.Dispose();
 
         Device.Dispose();
         Adapter4.Dispose();

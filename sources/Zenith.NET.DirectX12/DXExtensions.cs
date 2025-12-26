@@ -151,6 +151,10 @@ internal static class DXExtensions
 
     extension(MeshShadingPipeline meshShadingPipeline)
     {
+        public DXMeshShadingPipeline DirectX12()
+        {
+            return (DXMeshShadingPipeline)meshShadingPipeline;
+        }
     }
 
     extension(QueryHeap queryHeap)

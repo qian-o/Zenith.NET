@@ -55,7 +55,7 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
             }
         };
 
-        commandBuffer.GraphicsCommandList.ResourceBarrier(1, &barrier);
+        commandBuffer.GraphicsCommandList4?.ResourceBarrier(1, &barrier);
 
         ShaderResourceViewDesc viewDesc = new()
         {
@@ -101,7 +101,7 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
             }
         };
 
-        commandBuffer.GraphicsCommandList.ResourceBarrier(1, &barrier);
+        commandBuffer.GraphicsCommandList4?.ResourceBarrier(1, &barrier);
     }
 
     protected override void SetResourceName(string name)

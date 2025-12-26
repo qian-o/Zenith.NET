@@ -272,17 +272,38 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         DXComputePipeline dxPipeline = pipeline.DirectX12();
 
         GraphicsCommandList.SetPipelineState(dxPipeline.PipelineState);
-        GraphicsCommandList.SetGraphicsRootSignature(dxPipeline.RootSignature);
+        GraphicsCommandList.SetComputeRootSignature(dxPipeline.RootSignature);
     }
 
     protected override void BindPipelineImpl(RayTracingPipeline pipeline)
     {
-        throw new NotImplementedException();
+        DXRayTracingPipeline dxPipeline = pipeline.DirectX12();
+
+        GraphicsCommandList4?.SetPipelineState1(dxPipeline.StateObject);
+        GraphicsCommandList4?.SetComputeRootSignature(dxPipeline.RootSignature);
     }
 
     protected override void BindPipelineImpl(MeshShadingPipeline pipeline)
     {
-        throw new NotImplementedException();
+        DXMeshShadingPipeline dxPipeline = pipeline.DirectX12();
+
+        GraphicsCommandList.SetPipelineState(dxPipeline.PipelineState);
+        GraphicsCommandList.SetGraphicsRootSignature(dxPipeline.RootSignature);
+
+        GraphicsCommandList.OMSetStencilRef(dxPipeline.Desc.RenderStates.StencilReference);
+
+        if (dxPipeline.Desc.RenderStates.BlendFactor.HasValue)
+        {
+            float[] blendFactor =
+            [
+                dxPipeline.Desc.RenderStates.BlendFactor.Value.X,
+                dxPipeline.Desc.RenderStates.BlendFactor.Value.Y,
+                dxPipeline.Desc.RenderStates.BlendFactor.Value.Z,
+                dxPipeline.Desc.RenderStates.BlendFactor.Value.W
+            ];
+
+            GraphicsCommandList.OMSetBlendFactor(ref blendFactor[0]);
+        }
     }
 
     protected override void BindVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index)
@@ -360,7 +381,19 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void DispatchRaysImpl(RayTracingPipeline pipeline, uint width, uint height, uint depth)
     {
-        throw new NotImplementedException();
+        DXRayTracingPipeline dxPipeline = pipeline.DirectX12();
+
+        DispatchRaysDesc desc = new()
+        {
+            RayGenerationShaderRecord = dxPipeline.RayGenerationRange,
+            MissShaderTable = dxPipeline.MissRange,
+            HitGroupTable = dxPipeline.HitGroupsRange,
+            Width = width,
+            Height = height,
+            Depth = depth
+        };
+
+        GraphicsCommandList4?.DispatchRays(&desc);
     }
 
     protected override void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)

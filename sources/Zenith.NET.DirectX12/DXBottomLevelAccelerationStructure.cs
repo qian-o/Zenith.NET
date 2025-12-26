@@ -107,7 +107,7 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
             }
         };
 
-        commandBuffer.GraphicsCommandList.ResourceBarrier(1, &barrier);
+        commandBuffer.GraphicsCommandList4?.ResourceBarrier(1, &barrier);
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
