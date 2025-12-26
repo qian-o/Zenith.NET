@@ -562,6 +562,16 @@ internal static class DXFormats
         );
     }
 
+    public static DxHitGroupType DirectX12(HitGroupType type)
+    {
+        return type switch
+        {
+            HitGroupType.Triangles => DxHitGroupType.Triangles,
+            HitGroupType.Procedural => DxHitGroupType.ProceduralPrimitive,
+            _ => DxHitGroupType.Triangles
+        };
+    }
+
     public static RaytracingGeometryType DirectX12(RayTracingGeometryType rayTracingGeometryType)
     {
         return rayTracingGeometryType switch

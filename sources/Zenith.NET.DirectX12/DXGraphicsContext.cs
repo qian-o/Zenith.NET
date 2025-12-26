@@ -170,7 +170,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override RayTracingPipeline CreateRayTracingPipelineImpl(RayTracingPipelineDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXRayTracingPipeline(this, desc);
     }
 
     protected override MeshShadingPipeline CreateMeshShadingPipelineImpl(MeshShadingPipelineDesc desc)

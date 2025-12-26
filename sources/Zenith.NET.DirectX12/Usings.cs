@@ -6,6 +6,7 @@ global using DxComparisonFunc = Silk.NET.Direct3D12.ComparisonFunc;
 global using DxCullMode = Silk.NET.Direct3D12.CullMode;
 global using DxFillMode = Silk.NET.Direct3D12.FillMode;
 global using DxFilter = Silk.NET.Direct3D12.Filter;
+global using DxHitGroupType = Silk.NET.Direct3D12.HitGroupType;
 global using DxMessageSeverity = Silk.NET.Direct3D12.MessageSeverity;
 global using DxQueryHeapDesc = Silk.NET.Direct3D12.QueryHeapDesc;
 global using DxQueryType = Silk.NET.Direct3D12.QueryType;

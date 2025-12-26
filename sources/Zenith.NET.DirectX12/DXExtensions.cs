@@ -143,6 +143,10 @@ internal static class DXExtensions
 
     extension(RayTracingPipeline rayTracingPipeline)
     {
+        public DXRayTracingPipeline DirectX12()
+        {
+            return (DXRayTracingPipeline)rayTracingPipeline;
+        }
     }
 
     extension(MeshShadingPipeline meshShadingPipeline)
