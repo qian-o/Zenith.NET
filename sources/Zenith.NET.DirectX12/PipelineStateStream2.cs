@@ -101,12 +101,12 @@ internal unsafe struct PipelineStateStream2()
     internal struct SubObject<T>(PipelineStateSubobjectType type) where T : unmanaged
     {
         [FieldOffset(0)]
-        private readonly nint padding;
-
-        [FieldOffset(0)]
         public readonly PipelineStateSubobjectType Type = type;
 
         [FieldOffset(4)]
         public T Data;
+
+        [FieldOffset(0)]
+        private readonly nint padding;
     }
 }
