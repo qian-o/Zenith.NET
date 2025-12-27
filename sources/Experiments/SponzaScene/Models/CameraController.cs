@@ -49,7 +49,7 @@ internal class CameraController
 
     public Matrix4x4 View => Matrix4x4.CreateLookAt(Position, Position + Forward, Up);
 
-    public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(Fov * MathF.PI / 180.0f, AspectRatio, NearPlane, FarPlane);
+    public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), AspectRatio, NearPlane, FarPlane);
 
     public void Update(double delta, uint width, uint height)
     {

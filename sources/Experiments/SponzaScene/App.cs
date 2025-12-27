@@ -23,7 +23,7 @@ internal static class App
 
     static App()
     {
-        Context = GraphicsContext.CreateDirectX12(true);
+        Context = GraphicsContext.CreateVulkan(true);
         Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
 
         Sponza = new();
@@ -68,7 +68,7 @@ internal static class App
 
         swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.R8G8B8A8UNorm, DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt });
         imGui = new(inputContext, swapChain.FrameBuffer.Output, ImGuiColorSpace.Legacy);
-        camera = new(inputContext, Matrix4x4.Identity);
+        camera = new(inputContext, Matrix4x4.CreateRotationY(float.DegreesToRadians(90.0f)) * Matrix4x4.CreateTranslation(new Vector3(0.0f, 1.2f, 0.0f)));
         renderer = new();
     }
 
@@ -124,7 +124,7 @@ internal static class App
 
             renderer.Render(commandBuffer, swapChain.FrameBuffer);
 
-            commandBuffer.BindFrameBuffer(swapChain.FrameBuffer, ClearValues.None);
+            commandBuffer.BindFrameBuffer(swapChain.FrameBuffer, ClearValues.Default);
 
             imGui.Render(commandBuffer);
 
@@ -161,5 +161,15 @@ internal static class App
         Context.Dispose();
 
         Console.WriteLine("Exited cleanly.");
+    }
+
+    public static ImTextureRef Binding(Texture texture)
+    {
+        return imGui.Binding(texture);
+    }
+
+    public static ImTextureRef Binding(TextureView textureView)
+    {
+        return imGui.Binding(textureView);
     }
 }

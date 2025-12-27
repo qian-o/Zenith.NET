@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Hexa.NET.ImGui;
 using SponzaScene.Models;
 using Zenith.NET;
 using Zenith.NET.Extensions.Slang;
@@ -36,9 +37,9 @@ internal unsafe class GBufferPass : RenderPass
             [
                 new() { Type = ResourceType.ConstantBuffer, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Vertex },
                 new() { Type = ResourceType.ConstantBuffer, Index = 1, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Texture, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Texture, Index = 1, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Sampler, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel }
+                new() { Type = ResourceType.Texture, Index = 2, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+                new() { Type = ResourceType.Texture, Index = 3, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+                new() { Type = ResourceType.Sampler, Index = 4, Count = 1, StageFlags = ShaderStageFlags.Pixel }
             ]
         });
 
@@ -81,6 +82,50 @@ internal unsafe class GBufferPass : RenderPass
 
     public override void Execute(CommandBuffer commandBuffer, RenderContext context)
     {
+        if (context.GBufferFrameBuffer is null)
+        {
+            return;
+        }
+
+        cameraBuffer.Upload([new CameraConstants() { View = context.View, Projection = context.Projection }], 0);
+
+        commandBuffer.PreprocessResourceSets([.. sets.Values]);
+
+        commandBuffer.BindPipeline(pipeline);
+        commandBuffer.BindFrameBuffer(context.GBufferFrameBuffer, ClearValues.Default);
+        commandBuffer.BindVertexBuffer(App.Sponza.Vertices, 0, 0);
+        commandBuffer.BindIndexBuffer(App.Sponza.Indices,0, IndexFormat.UInt32);
+
+        foreach (Node node in App.Sponza.Nodes)
+        {
+            Material material = App.Sponza.Materials[node.Material];
+
+            commandBuffer.Upload(materialBuffer, 0, [new MaterialConstants()
+            {
+                BaseColorFactor = material.BaseColorFactor,
+                Flags = (material.BaseColorTexture is not null ? TextureFlags.HasBaseColorTexture : 0)
+                        | (material.NormalTexture is not null ? TextureFlags.HasNormalTexture : 0)
+            }]);
+
+            commandBuffer.BindResourceSet(sets[material.Id], 0);
+
+            commandBuffer.DrawIndexed(node.Args.IndexCount,
+                                      node.Args.InstanceCount,
+                                      node.Args.FirstIndex,
+                                      node.Args.VertexOffset,
+                                      node.Args.FirstInstance);
+        }
+    }
+
+    public override void DebugUI(RenderContext context)
+    {
+        if (ImGui.Begin("G-Buffer Textures"))
+        {
+            ImGui.Text("Albedo");
+            ImGui.Image(App.Binding(context.Albedo!), new(context.Width, context.Height));
+
+            ImGui.End();
+        }
     }
 
     protected override void Destroy()
@@ -94,8 +139,12 @@ internal unsafe class GBufferPass : RenderPass
         materialBuffer.Dispose();
         cameraBuffer.Dispose();
     }
+
+    [Flags]
     private enum TextureFlags
     {
+        None = 0,
+
         HasBaseColorTexture = 1 << 0,
 
         HasNormalTexture = 1 << 1
@@ -110,7 +159,7 @@ internal unsafe class GBufferPass : RenderPass
 
     private struct MaterialConstants
     {
-        public Matrix4x4 BaseColorFactor;
+        public Vector4 BaseColorFactor;
 
         public TextureFlags Flags;
     }

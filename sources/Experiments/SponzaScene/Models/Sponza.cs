@@ -156,14 +156,12 @@ internal unsafe class Sponza : DisposableObject
                 colorBuffer = colorAccessor.AsVector4Array();
             }
 
-            Matrix4x4 localMatrix = node.LocalMatrix;
-
             for (uint i = 0; i < vertexCount; i++)
             {
                 vertices.Add(new()
                 {
-                    Position = Vector3.Transform(positionBuffer != null ? positionBuffer[(int)i] : Vector3.Zero, localMatrix),
-                    Normal = Vector3.Normalize(Vector3.TransformNormal(normalBuffer != null ? normalBuffer[(int)i] : Vector3.UnitY, localMatrix)),
+                    Position = Vector3.Transform(positionBuffer != null ? positionBuffer[(int)i] : Vector3.Zero, node.WorldMatrix),
+                    Normal = Vector3.Normalize(Vector3.TransformNormal(normalBuffer != null ? normalBuffer[(int)i] : Vector3.UnitY, node.WorldMatrix)),
                     TexCoord = texCoordBuffer != null ? texCoordBuffer[(int)i] : Vector2.Zero,
                     Color = colorBuffer != null ? colorBuffer[(int)i] : Vector4.One
                 });

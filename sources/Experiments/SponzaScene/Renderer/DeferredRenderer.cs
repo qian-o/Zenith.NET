@@ -19,6 +19,14 @@ internal class DeferredRenderer : DisposableObject
 
     public void Render(CommandBuffer commandBuffer, FrameBuffer frameBuffer)
     {
+        foreach (RenderPass renderPass in renderPasses)
+        {
+            if (renderPass.Enabled)
+            {
+                renderPass.DebugUI(context);
+            }
+        }
+
         commandBuffer.BeginDebugEvent("Deferred Rendering");
 
         foreach (RenderPass renderPass in renderPasses)
@@ -38,5 +46,7 @@ internal class DeferredRenderer : DisposableObject
         {
             renderPass.Dispose();
         }
+
+        context.Dispose();
     }
 }

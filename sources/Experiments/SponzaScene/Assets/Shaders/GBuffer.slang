@@ -21,11 +21,11 @@ struct MaterialConstants
     TextureFlags Flags;
 };
 
-uniform CameraConstants camera;
-uniform MaterialConstants material;
-uniform Texture2D baseColorTexture;
-uniform Texture2D normalTexture;
-uniform SamplerState linearSampler;
+ConstantBuffer<CameraConstants> camera;
+ConstantBuffer<MaterialConstants> material;
+Texture2D baseColorTexture;
+Texture2D normalTexture;
+SamplerState linearSampler;
 
 struct PSInput
 {
@@ -55,7 +55,7 @@ struct PSOutput
 PSInput VSMain(VSInput input)
 {
     PSInput output;
-    output.Position = mul(camera.View, mul(camera.Projection, float4(input.Position, 1.0)));
+    output.Position = mul(mul(float4(input.Position, 1.0), camera.View), camera.Projection);
     output.WorldPosition = input.Position.xyz;
     output.WorldNormal = normalize(input.Normal);
     output.TexCoord = input.TexCoord;
