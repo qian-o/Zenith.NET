@@ -12,8 +12,8 @@ internal unsafe class GBufferPass : RenderPass
     private readonly Buffer cameraBuffer;
     private readonly Buffer materialBuffer;
     private readonly BufferView[] materialBufferViews;
-    private readonly ResourceLayout layout;
-    private readonly ResourceSet[] sets;
+    private readonly ResourceLayout resourceLayout;
+    private readonly ResourceSet[] resourceSets;
     private readonly GraphicsPipeline pipeline;
 
     public GBufferPass() : base("GBufferPass")
@@ -50,7 +50,7 @@ internal unsafe class GBufferPass : RenderPass
             });
         }
 
-        layout = App.Context.CreateResourceLayout(new()
+        resourceLayout = App.Context.CreateResourceLayout(new()
         {
             Bindings =
             [
@@ -62,14 +62,14 @@ internal unsafe class GBufferPass : RenderPass
             ]
         });
 
-        sets = new ResourceSet[App.Sponza.Materials.Length];
+        resourceSets = new ResourceSet[App.Sponza.Materials.Length];
         for (int i = 0; i < App.Sponza.Materials.Length; i++)
         {
             Material material = App.Sponza.Materials[i];
 
-            sets[i] = App.Context.CreateResourceSet(new()
+            resourceSets[i] = App.Context.CreateResourceSet(new()
             {
-                Layout = layout,
+                Layout = resourceLayout,
                 Resources =
                 [
                     cameraBuffer,
@@ -94,7 +94,7 @@ internal unsafe class GBufferPass : RenderPass
             },
             Vertex = vs,
             Pixel = ps,
-            ResourceLayouts = [layout],
+            ResourceLayouts = [resourceLayout],
             InputLayouts = [Vertex.InputLayout()],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
             Output = RenderContext.GBufferOutput
@@ -116,7 +116,7 @@ internal unsafe class GBufferPass : RenderPass
             FarPlane = context.FarPlane
         }], 0);
 
-        commandBuffer.PreprocessResourceSets(sets);
+        commandBuffer.PreprocessResourceSets(resourceSets);
 
         commandBuffer.BindPipeline(pipeline);
         commandBuffer.BindFrameBuffer(context.GBufferFrameBuffer, ClearValues.Default);
@@ -125,7 +125,7 @@ internal unsafe class GBufferPass : RenderPass
 
         foreach (Node node in App.Sponza.Nodes)
         {
-            commandBuffer.BindResourceSet(sets[node.Material], 0);
+            commandBuffer.BindResourceSet(resourceSets[node.Material], 0);
 
             commandBuffer.DrawIndexed(node.Args.IndexCount,
                                       node.Args.InstanceCount,
@@ -176,11 +176,11 @@ internal unsafe class GBufferPass : RenderPass
     protected override void Destroy()
     {
         pipeline.Dispose();
-        foreach (ResourceSet set in sets)
+        foreach (ResourceSet set in resourceSets)
         {
             set.Dispose();
         }
-        layout.Dispose();
+        resourceLayout.Dispose();
         foreach (BufferView view in materialBufferViews)
         {
             view.Dispose();
