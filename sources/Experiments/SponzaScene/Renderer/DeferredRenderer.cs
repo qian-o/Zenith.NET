@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+﻿using SponzaScene.Models;
 using Zenith.NET;
 
 namespace SponzaScene.Renderer;
@@ -8,13 +8,15 @@ internal class DeferredRenderer : DisposableObject
     private readonly RenderContext context = new();
     private readonly List<RenderPass> renderPasses = [new GBufferPass()];
 
-    public void Update(uint width, uint height, Matrix4x4 view, Matrix4x4 projection, Vector3 cameraPosition)
+    public void Update(uint width, uint height, CameraController camera)
     {
         context.Initialize(width, height);
 
-        context.View = view;
-        context.Projection = projection;
-        context.CameraPosition = cameraPosition;
+        context.View = camera.View;
+        context.Projection = camera.Projection;
+        context.NearPlane = camera.NearPlane;
+        context.FarPlane = camera.FarPlane;
+        context.CameraPosition = camera.Position;
     }
 
     public void Render(CommandBuffer commandBuffer, FrameBuffer frameBuffer)

@@ -35,7 +35,7 @@ internal unsafe class GBufferPass : RenderPass
         {
             Bindings =
             [
-                new() { Type = ResourceType.ConstantBuffer, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Vertex },
+                new() { Type = ResourceType.ConstantBuffer, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Vertex | ShaderStageFlags.Pixel },
                 new() { Type = ResourceType.ConstantBuffer, Index = 1, Count = 1, StageFlags = ShaderStageFlags.Pixel },
                 new() { Type = ResourceType.Texture, Index = 2, Count = 1, StageFlags = ShaderStageFlags.Pixel },
                 new() { Type = ResourceType.Texture, Index = 3, Count = 1, StageFlags = ShaderStageFlags.Pixel },
@@ -87,7 +87,13 @@ internal unsafe class GBufferPass : RenderPass
             return;
         }
 
-        cameraBuffer.Upload([new CameraConstants() { View = context.View, Projection = context.Projection }], 0);
+        cameraBuffer.Upload([new CameraConstants()
+        {
+            View = context.View,
+            Projection = context.Projection,
+            NearPlane = context.NearPlane,
+            FarPlane = context.FarPlane
+        }], 0);
 
         commandBuffer.PreprocessResourceSets([.. sets.Values]);
 
@@ -119,10 +125,37 @@ internal unsafe class GBufferPass : RenderPass
 
     public override void DebugUI(RenderContext context)
     {
+        ImGui.SetWindowSize(new(400.0f, 400.0f), ImGuiCond.FirstUseEver);
         if (ImGui.Begin("G-Buffer Textures"))
         {
+            float imageWidth = (ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X) / 2.0f;
+            Vector2 size = new(imageWidth, imageWidth * context.Height / context.Width);
+
+            // 第一行
+            ImGui.BeginGroup();
             ImGui.Text("Albedo");
-            ImGui.Image(App.Binding(context.Albedo!), new(context.Width, context.Height));
+            ImGui.Image(App.Binding(context.Albedo!), size);
+            ImGui.EndGroup();
+
+            ImGui.SameLine();
+
+            ImGui.BeginGroup();
+            ImGui.Text("Normal");
+            ImGui.Image(App.Binding(context.Normal!), size);
+            ImGui.EndGroup();
+
+            // 第二行
+            ImGui.BeginGroup();
+            ImGui.Text("Position");
+            ImGui.Image(App.Binding(context.Position!), size);
+            ImGui.EndGroup();
+
+            ImGui.SameLine();
+
+            ImGui.BeginGroup();
+            ImGui.Text("Depth");
+            ImGui.Image(App.Binding(context.LinearDepth!), size);
+            ImGui.EndGroup();
 
             ImGui.End();
         }
@@ -155,6 +188,10 @@ internal unsafe class GBufferPass : RenderPass
         public Matrix4x4 View;
 
         public Matrix4x4 Projection;
+
+        public float NearPlane;
+
+        public float FarPlane;
     }
 
     private struct MaterialConstants

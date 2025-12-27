@@ -12,6 +12,10 @@ struct CameraConstants
     float4x4 View;
 
     float4x4 Projection;
+
+    float NearPlane;
+
+    float FarPlane;
 };
 
 struct MaterialConstants
@@ -50,7 +54,15 @@ struct PSOutput
 
     // RGB: World Position, A: Unused
     float4 Position : SV_Target2;
+
+    // RGB: Linear Depth Visualization, A: Unused
+    float4 LinearDepth : SV_Target3;
 };
+
+float LinearizeDepth(float depth, float nearPlane, float farPlane)
+{
+    return nearPlane * farPlane / (farPlane - depth * (farPlane - nearPlane));
+}
 
 PSInput VSMain(VSInput input)
 {
@@ -82,9 +94,13 @@ PSOutput PSMain(PSInput input)
         normal = normalize(normalMap);
     }
 
+    float linearDepth = LinearizeDepth(input.Position.z, camera.NearPlane, camera.FarPlane);
+    float normalizedDepth = (linearDepth - camera.NearPlane) / (camera.FarPlane - camera.NearPlane);
+
     output.Albedo = float4(baseColor.rgb, 1.0);
     output.Normal = float4(normalize(normal), 1.0);
     output.Position = float4(input.WorldPosition, 1.0);
+    output.LinearDepth = float4(normalizedDepth, normalizedDepth, normalizedDepth, 1.0);
 
     return output;
 }

@@ -14,6 +14,10 @@ internal class RenderContext : DisposableObject
 
     public Matrix4x4 Projection { get; set; }
 
+    public float NearPlane { get; set; }
+
+    public float FarPlane { get; set; }
+
     public Vector3 CameraPosition { get; set; }
     #endregion
 
@@ -25,6 +29,8 @@ internal class RenderContext : DisposableObject
     public Texture? Position { get; private set; }
 
     public Texture? Depth { get; private set; }
+
+    public Texture? LinearDepth { get; private set; }
     #endregion
 
     #region Intermediate Textures
@@ -38,7 +44,13 @@ internal class RenderContext : DisposableObject
     #region Frame Buffers
     public static Output GBufferOutput { get; } = new()
     {
-        ColorAttachments = [PixelFormat.R8G8B8A8UNorm, PixelFormat.R16G16B16A16Float, PixelFormat.R16G16B16A16Float],
+        ColorAttachments =
+        [
+            PixelFormat.R8G8B8A8UNorm,
+            PixelFormat.R16G16B16A16Float,
+            PixelFormat.R16G16B16A16Float,
+            PixelFormat.R8G8B8A8UNorm
+        ],
         DepthStencilAttachment = PixelFormat.D32FloatS8UInt,
         SampleCount = SampleCount.Count1
     };
@@ -123,6 +135,19 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.DepthStencil | TextureUsageFlags.ShaderResource
         });
 
+        LinearDepth = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R8G8B8A8UNorm,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
+        });
+
         SSAOResult = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
@@ -155,7 +180,8 @@ internal class RenderContext : DisposableObject
             [
                 new() { Target = Albedo },
                 new() { Target = Normal },
-                new() { Target = Position }
+                new() { Target = Position },
+                new() { Target = LinearDepth }
             ],
             DepthStencilAttachment = new() { Target = Depth }
         });
@@ -190,6 +216,7 @@ internal class RenderContext : DisposableObject
 
         SSAOResult?.Dispose();
 
+        LinearDepth?.Dispose();
         Depth?.Dispose();
         Position?.Dispose();
         Normal?.Dispose();

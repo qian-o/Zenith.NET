@@ -89,7 +89,7 @@ internal static class App
 
             imGui.Update(delta, width, height);
             camera.Update(delta, width, height);
-            renderer.Update(width, height, camera.View, camera.Projection, camera.Position);
+            renderer.Update(width, height, camera);
         };
 
         window.Render += _ =>
