@@ -1,8 +1,10 @@
-﻿using Hexa.NET.ImGui;
+﻿using System.Numerics;
+using Hexa.NET.ImGui;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 using SponzaScene.Helpers;
 using SponzaScene.Models;
+using SponzaScene.Renderer;
 using Zenith.NET;
 using Zenith.NET.DirectX12;
 using Zenith.NET.Extensions.ImGui;
@@ -12,31 +14,17 @@ namespace SponzaScene;
 
 internal static class App
 {
+    private static readonly IWindow window;
+    private static readonly IInputContext inputContext;
+    private static readonly SwapChain swapChain;
+    private static readonly SilkImGuiController imGui;
+    private static readonly CameraController camera;
+    private static readonly DeferredRenderer renderer;
+
     static App()
     {
-        MainWindow = Window.Create(WindowOptions.Default with { API = GraphicsAPI.None });
-        MainWindow.Initialize();
-
         Context = GraphicsContext.CreateDirectX12(true);
         Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
-
-        Surface surface;
-        if (OperatingSystem.IsWindows())
-        {
-            surface = Surface.Win32(MainWindow.Native!.Win32!.Value.Hwnd, (uint)MainWindow.Size.X, (uint)MainWindow.Size.Y);
-        }
-        else if (OperatingSystem.IsLinux())
-        {
-            surface = Surface.Xlib(MainWindow.Native!.X11!.Value.Display, (nint)MainWindow.Native.X11.Value.Window, (uint)MainWindow.Size.X, (uint)MainWindow.Size.Y);
-        }
-        else
-        {
-            throw new PlatformNotSupportedException();
-        }
-
-        SwapChain = Context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.R8G8B8A8UNorm, DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt });
-
-        ImGuiController = new SilkImGuiController(MainWindow.CreateInput(), SwapChain.FrameBuffer.Output, ImGuiColorSpace.Legacy);
 
         Sponza = new();
 
@@ -60,16 +48,31 @@ internal static class App
             MaxLod = uint.MaxValue
         });
 
-        MainView = new();
+        window = Window.Create(WindowOptions.Default with { API = GraphicsAPI.None });
+        window.Initialize();
+        inputContext = window.CreateInput();
+
+        Surface surface;
+        if (OperatingSystem.IsWindows())
+        {
+            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, (uint)window.Size.X, (uint)window.Size.Y);
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, (uint)window.Size.X, (uint)window.Size.Y);
+        }
+        else
+        {
+            throw new PlatformNotSupportedException();
+        }
+
+        swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.R8G8B8A8UNorm, DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt });
+        imGui = new(inputContext, swapChain.FrameBuffer.Output, ImGuiColorSpace.Legacy);
+        camera = new(inputContext, Matrix4x4.Identity);
+        renderer = new();
     }
 
-    public static IWindow MainWindow { get; }
-
     public static GraphicsContext Context { get; }
-
-    public static SwapChain SwapChain { get; }
-
-    public static ImGuiController ImGuiController { get; }
 
     public static Sponza Sponza { get; }
 
@@ -77,25 +80,24 @@ internal static class App
 
     public static Sampler LinearSampler { get; }
 
-    public static MainView MainView { get; }
-
     public static void Run()
     {
-        MainWindow.Update += delta =>
+        window.Update += delta =>
         {
-            ImGuiController.Update(delta, (uint)MainWindow.Size.X, (uint)MainWindow.Size.Y);
+            uint width = (uint)window.Size.X;
+            uint height = (uint)window.Size.Y;
 
-            MainView.Update((uint)MainWindow.Size.X, (uint)MainWindow.Size.Y);
+            imGui.Update(delta, width, height);
+            camera.Update(delta, width, height);
+            renderer.Update(width, height, camera.View, camera.Projection, camera.Position);
         };
 
-        MainWindow.Render += delta =>
+        window.Render += _ =>
         {
-            if (MainWindow.Size.X is 0 || MainWindow.Size.Y is 0)
+            if (window.Size.X is 0 || window.Size.Y is 0)
             {
                 return;
             }
-
-            MainView.Render();
 
             ImGuiHelpers.Overlay("Info", () =>
             {
@@ -112,13 +114,19 @@ internal static class App
                 ImGui.Separator();
 
                 ImGui.Text($"Mesh Shader Supported: {Context.Capabilities.MeshShaderSupported}");
+
+                ImGui.Separator();
+
+                ImGui.Text($"Current FPS: {ImGui.GetIO().Framerate:F1}");
             });
 
             CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
 
-            commandBuffer.BindFrameBuffer(SwapChain.FrameBuffer, ClearValues.None);
+            renderer.Render(commandBuffer, swapChain.FrameBuffer);
 
-            ImGuiController.Render(commandBuffer);
+            commandBuffer.BindFrameBuffer(swapChain.FrameBuffer, ClearValues.None);
+
+            imGui.Render(commandBuffer);
 
             commandBuffer.Submit();
 
@@ -126,27 +134,30 @@ internal static class App
             Context.Compute.WaitIdle();
             Context.Graphics.WaitIdle();
 
-            SwapChain.Present();
+            swapChain.Present();
         };
 
-        MainWindow.Resize += size =>
+        window.Resize += size =>
         {
             if (size.X is 0 || size.Y is 0)
             {
                 return;
             }
 
-            SwapChain.Resize((uint)size.X, (uint)size.Y);
+            swapChain.Resize((uint)size.X, (uint)size.Y);
         };
 
-        MainWindow.Run();
+        window.Run();
 
-        MainView.Dispose();
+        renderer.Dispose();
+        imGui.Dispose();
+        swapChain.Dispose();
+        inputContext.Dispose();
+        window.Dispose();
+
         LinearSampler.Dispose();
         FallbackTexture.Dispose();
         Sponza.Dispose();
-        ImGuiController.Dispose();
-        SwapChain.Dispose();
         Context.Dispose();
 
         Console.WriteLine("Exited cleanly.");

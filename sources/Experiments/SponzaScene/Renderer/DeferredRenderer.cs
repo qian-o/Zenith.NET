@@ -17,7 +17,7 @@ internal class DeferredRenderer : DisposableObject
         context.CameraPosition = cameraPosition;
     }
 
-    public void Render(CommandBuffer commandBuffer)
+    public void Render(CommandBuffer commandBuffer, FrameBuffer frameBuffer)
     {
         commandBuffer.BeginDebugEvent("Deferred Rendering");
 
