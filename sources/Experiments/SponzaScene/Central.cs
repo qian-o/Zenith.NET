@@ -281,13 +281,6 @@ internal static class Dispatcher
     }
 }
 
-internal interface IView : IDisposable
-{
-    void Update(double delta);
-
-    void Render(double delta);
-}
-
 internal static class App
 {
     static App()
@@ -329,20 +322,13 @@ internal static class App
 
     public static NewSponza Sponza { get; }
 
-    public static List<IView> Views { get; } = [];
-
     public static void Run()
     {
         MainWindow.Update += delta =>
         {
             ImGuiController.Update(delta, (uint)MainWindow.Size.X, (uint)MainWindow.Size.Y);
 
-            ImGui.DockSpaceOverViewport(null, ImGuiDockNodeFlags.PassthruCentralNode, null);
-
-            foreach (IView view in Views)
-            {
-                view.Update(delta);
-            }
+            MainView.Update(delta);
 
             Dispatcher.Process();
         };
@@ -354,10 +340,7 @@ internal static class App
                 return;
             }
 
-            foreach (IView view in Views)
-            {
-                view.Render(delta);
-            }
+            MainView.Render(delta);
 
             ImGuiHelpers.Overlay("Info", () =>
             {
@@ -378,7 +361,7 @@ internal static class App
 
             CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
 
-            commandBuffer.BindFrameBuffer(SwapChain.FrameBuffer, ClearValues.Default);
+            commandBuffer.BindFrameBuffer(SwapChain.FrameBuffer, ClearValues.None);
 
             ImGuiController.Render(commandBuffer);
 
@@ -399,14 +382,13 @@ internal static class App
             }
 
             SwapChain.Resize((uint)size.X, (uint)size.Y);
+
+            MainView.Resize((uint)size.X, (uint)size.Y);
         };
 
         MainWindow.Run();
 
-        foreach (IView view in Views)
-        {
-            view.Dispose();
-        }
+        MainView.Release();
 
         Sponza.Dispose();
         ImGuiController.Dispose();

@@ -1,20 +1,20 @@
-﻿using Hexa.NET.ImGui;
-using Zenith.NET;
+﻿namespace SponzaScene;
 
-namespace SponzaScene;
-
-internal class MainView : DisposableObject, IView
+internal static class MainView
 {
-    public void Update(double delta)
+    public static void Update(double delta)
     {
     }
 
-    public void Render(double delta)
+    public static void Render(double delta)
     {
-        ImGui.ShowDemoWindow();
     }
 
-    protected override void Destroy()
+    public static void Resize(uint width, uint height)
+    {
+    }
+
+    public static void Release()
     {
     }
 }
