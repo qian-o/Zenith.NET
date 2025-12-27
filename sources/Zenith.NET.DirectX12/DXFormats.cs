@@ -205,16 +205,6 @@ internal static class DXFormats
             states |= ResourceStates.DepthWrite;
         }
 
-        if (textureUsageFlags.HasFlag(TextureUsageFlags.ShaderResource))
-        {
-            states |= ResourceStates.AllShaderResource;
-        }
-
-        if (textureUsageFlags.HasFlag(TextureUsageFlags.UnorderedAccess))
-        {
-            states |= ResourceStates.UnorderedAccess;
-        }
-
         return (flags, states);
     }
 
