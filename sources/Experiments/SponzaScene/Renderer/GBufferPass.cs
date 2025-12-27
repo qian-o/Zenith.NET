@@ -137,13 +137,10 @@ internal unsafe class GBufferPass : RenderPass
 
     public override void DebugUI(RenderContext context)
     {
-        ImGui.SetWindowSize(new(400.0f, 400.0f), ImGuiCond.FirstUseEver);
-        if (ImGui.Begin("G-Buffer Textures"))
+        if (ImGui.Begin("G-Buffer Textures", ImGuiWindowFlags.AlwaysAutoResize))
         {
-            float width = (ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X) / 2.0f;
-            Vector2 size = new(width, width * context.Height / context.Width);
+            Vector2 size = new(400, 400 * context.Height / context.Width);
 
-            // 第一行
             ImGui.BeginGroup();
             ImGui.Text("Albedo");
             ImGui.Image(App.Binding(context.Albedo!), size);
@@ -156,7 +153,6 @@ internal unsafe class GBufferPass : RenderPass
             ImGui.Image(App.Binding(context.Normal!), size);
             ImGui.EndGroup();
 
-            // 第二行
             ImGui.BeginGroup();
             ImGui.Text("Position");
             ImGui.Image(App.Binding(context.Position!), size);
@@ -168,9 +164,8 @@ internal unsafe class GBufferPass : RenderPass
             ImGui.Text("Depth");
             ImGui.Image(App.Binding(context.LinearDepth!), size);
             ImGui.EndGroup();
-
-            ImGui.End();
         }
+        ImGui.End();
     }
 
     protected override void Destroy()
