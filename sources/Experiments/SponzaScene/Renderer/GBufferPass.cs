@@ -11,6 +11,7 @@ internal unsafe class GBufferPass : RenderPass
 {
     private readonly Buffer cameraBuffer;
     private readonly Buffer materialBuffer;
+    private readonly Dictionary<string, BufferView> materialBufferViews;
     private readonly ResourceLayout layout;
     private readonly Dictionary<string, ResourceSet> sets;
     private readonly GraphicsPipeline pipeline;
@@ -26,10 +27,28 @@ internal unsafe class GBufferPass : RenderPass
 
         materialBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)sizeof(MaterialConstants),
+            SizeInBytes = (uint)(sizeof(MaterialConstants) * App.Sponza.Materials.Length),
             StrideInBytes = (uint)sizeof(MaterialConstants),
             Flags = BufferUsageFlags.Constant
         });
+        materialBuffer.Upload([.. App.Sponza.Materials.Select(static item => new MaterialConstants()
+        {
+            BaseColorFactor = item.BaseColorFactor,
+            Flags = (item.BaseColorTexture is not null ? TextureFlags.HasBaseColorTexture : 0)
+                    | (item.NormalTexture is not null ? TextureFlags.HasNormalTexture : 0)
+        })], 0);
+
+        materialBufferViews = [];
+        foreach (Material material in App.Sponza.Materials)
+        {
+            materialBufferViews[material.Id] = App.Context.CreateBufferView(new()
+            {
+                Buffer = materialBuffer,
+                OffsetInBytes = (uint)(sizeof(MaterialConstants) * materialBufferViews.Count),
+                SizeInBytes = (uint)sizeof(MaterialConstants),
+                StrideInBytes = (uint)sizeof(MaterialConstants)
+            });
+        }
 
         layout = App.Context.CreateResourceLayout(new()
         {
@@ -37,9 +56,9 @@ internal unsafe class GBufferPass : RenderPass
             [
                 new() { Type = ResourceType.ConstantBuffer, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Vertex | ShaderStageFlags.Pixel },
                 new() { Type = ResourceType.ConstantBuffer, Index = 1, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Texture, Index = 2, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Texture, Index = 3, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Sampler, Index = 4, Count = 1, StageFlags = ShaderStageFlags.Pixel }
+                new() { Type = ResourceType.Texture, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+                new() { Type = ResourceType.Texture, Index = 1, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+                new() { Type = ResourceType.Sampler, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel }
             ]
         });
 
@@ -52,7 +71,7 @@ internal unsafe class GBufferPass : RenderPass
                 Resources =
                 [
                     cameraBuffer,
-                    materialBuffer,
+                    materialBufferViews[material.Id],
                     material.BaseColorTexture ?? App.FallbackTexture,
                     material.NormalTexture ?? App.FallbackTexture,
                     App.LinearSampler
@@ -100,20 +119,11 @@ internal unsafe class GBufferPass : RenderPass
         commandBuffer.BindPipeline(pipeline);
         commandBuffer.BindFrameBuffer(context.GBufferFrameBuffer, ClearValues.Default);
         commandBuffer.BindVertexBuffer(App.Sponza.Vertices, 0, 0);
-        commandBuffer.BindIndexBuffer(App.Sponza.Indices,0, IndexFormat.UInt32);
+        commandBuffer.BindIndexBuffer(App.Sponza.Indices, 0, IndexFormat.UInt32);
 
         foreach (Node node in App.Sponza.Nodes)
         {
-            Material material = App.Sponza.Materials[node.Material];
-
-            commandBuffer.Upload(materialBuffer, 0, [new MaterialConstants()
-            {
-                BaseColorFactor = material.BaseColorFactor,
-                Flags = (material.BaseColorTexture is not null ? TextureFlags.HasBaseColorTexture : 0)
-                        | (material.NormalTexture is not null ? TextureFlags.HasNormalTexture : 0)
-            }]);
-
-            commandBuffer.BindResourceSet(sets[material.Id], 0);
+            commandBuffer.BindResourceSet(sets[App.Sponza.Materials[node.Material].Id], 0);
 
             commandBuffer.DrawIndexed(node.Args.IndexCount,
                                       node.Args.InstanceCount,
