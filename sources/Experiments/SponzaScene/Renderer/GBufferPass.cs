@@ -11,9 +11,9 @@ internal unsafe class GBufferPass : RenderPass
 {
     private readonly Buffer cameraBuffer;
     private readonly Buffer materialBuffer;
-    private readonly Dictionary<string, BufferView> materialBufferViews;
+    private readonly BufferView[] materialBufferViews;
     private readonly ResourceLayout layout;
-    private readonly Dictionary<string, ResourceSet> sets;
+    private readonly ResourceSet[] sets;
     private readonly GraphicsPipeline pipeline;
 
     public GBufferPass() : base("GBufferPass")
@@ -38,13 +38,13 @@ internal unsafe class GBufferPass : RenderPass
                     | (item.NormalTexture is not null ? TextureFlags.HasNormalTexture : 0)
         })], 0);
 
-        materialBufferViews = [];
-        foreach (Material material in App.Sponza.Materials)
+        materialBufferViews = new BufferView[App.Sponza.Materials.Length];
+        for (int i = 0; i < App.Sponza.Materials.Length; i++)
         {
-            materialBufferViews[material.Id] = App.Context.CreateBufferView(new()
+            materialBufferViews[i] = App.Context.CreateBufferView(new()
             {
                 Buffer = materialBuffer,
-                OffsetInBytes = (uint)(sizeof(MaterialConstants) * materialBufferViews.Count),
+                OffsetInBytes = (uint)(sizeof(MaterialConstants) * i),
                 SizeInBytes = (uint)sizeof(MaterialConstants),
                 StrideInBytes = (uint)sizeof(MaterialConstants)
             });
@@ -62,16 +62,18 @@ internal unsafe class GBufferPass : RenderPass
             ]
         });
 
-        sets = [];
-        foreach (Material material in App.Sponza.Materials)
+        sets = new ResourceSet[App.Sponza.Materials.Length];
+        for (int i = 0; i < App.Sponza.Materials.Length; i++)
         {
-            sets[material.Id] = App.Context.CreateResourceSet(new()
+            Material material = App.Sponza.Materials[i];
+
+            sets[i] = App.Context.CreateResourceSet(new()
             {
                 Layout = layout,
                 Resources =
                 [
                     cameraBuffer,
-                    materialBufferViews[material.Id],
+                    materialBufferViews[i],
                     material.BaseColorTexture ?? App.FallbackTexture,
                     material.NormalTexture ?? App.FallbackTexture,
                     App.LinearSampler
@@ -114,7 +116,7 @@ internal unsafe class GBufferPass : RenderPass
             FarPlane = context.FarPlane
         }], 0);
 
-        commandBuffer.PreprocessResourceSets([.. sets.Values]);
+        commandBuffer.PreprocessResourceSets(sets);
 
         commandBuffer.BindPipeline(pipeline);
         commandBuffer.BindFrameBuffer(context.GBufferFrameBuffer, ClearValues.Default);
@@ -123,7 +125,7 @@ internal unsafe class GBufferPass : RenderPass
 
         foreach (Node node in App.Sponza.Nodes)
         {
-            commandBuffer.BindResourceSet(sets[App.Sponza.Materials[node.Material].Id], 0);
+            commandBuffer.BindResourceSet(sets[node.Material], 0);
 
             commandBuffer.DrawIndexed(node.Args.IndexCount,
                                       node.Args.InstanceCount,
@@ -174,11 +176,15 @@ internal unsafe class GBufferPass : RenderPass
     protected override void Destroy()
     {
         pipeline.Dispose();
-        foreach (ResourceSet set in sets.Values)
+        foreach (ResourceSet set in sets)
         {
             set.Dispose();
         }
         layout.Dispose();
+        foreach (BufferView view in materialBufferViews)
+        {
+            view.Dispose();
+        }
         materialBuffer.Dispose();
         cameraBuffer.Dispose();
     }
