@@ -1,20 +1,28 @@
-﻿namespace SponzaScene;
+﻿using SponzaScene.Renderer;
+using Zenith.NET;
 
-internal static class MainView
+namespace SponzaScene;
+
+internal class MainView : DisposableObject
 {
-    public static void Update(double delta)
+    private readonly DeferredRenderer renderer = new();
+
+    public void Update(uint width, uint height)
     {
+        renderer.Update(width, height, default, default, default);
     }
 
-    public static void Render(double delta)
+    public void Render()
     {
+        CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
+
+        renderer.Render(commandBuffer);
+
+        commandBuffer.Submit();
     }
 
-    public static void Resize(uint width, uint height)
+    protected override void Destroy()
     {
-    }
-
-    public static void Release()
-    {
+        renderer.Dispose();
     }
 }

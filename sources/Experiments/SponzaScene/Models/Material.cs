@@ -17,22 +17,28 @@ internal class Material : DisposableObject
 
         if (material.GetDiffuseTexture() is GTexture texture)
         {
-            Dispatcher.Invoke(() => BaseColorTexture = App.Context.LoadTextureFromStream(new MemoryStream(texture.PrimaryImage.Content.Content.ToArray())));
+            using MemoryStream stream = new(texture.PrimaryImage.Content.Content.ToArray());
+
+            BaseColorTexture = App.Context.LoadTextureFromStream(stream);
         }
 
         if (material.FindChannel("Normal")?.Texture is GTexture normalTexture)
         {
-            Dispatcher.Invoke(() => NormalTexture = App.Context.LoadTextureFromStream(new MemoryStream(normalTexture.PrimaryImage.Content.Content.ToArray()), false));
+            using MemoryStream stream = new(normalTexture.PrimaryImage.Content.Content.ToArray());
+
+            NormalTexture = App.Context.LoadTextureFromStream(stream, false);
         }
     }
+
+    public string Id { get; } = Guid.NewGuid().ToString();
 
     public string Name { get; }
 
     public Vector4 BaseColorFactor { get; }
 
-    public Texture? BaseColorTexture { get; private set; }
+    public Texture? BaseColorTexture { get; }
 
-    public Texture? NormalTexture { get; private set; }
+    public Texture? NormalTexture { get; }
 
     protected override void Destroy()
     {

@@ -6,13 +6,11 @@ using GNode = SharpGLTF.Schema2.Node;
 
 namespace SponzaScene.Models;
 
-internal unsafe class GLTF : DisposableObject
+internal unsafe class Sponza : DisposableObject
 {
-    public GLTF(string path)
+    public Sponza()
     {
-        Name = Path.GetFileNameWithoutExtension(path);
-
-        ModelRoot root = ModelRoot.Load(path);
+        ModelRoot root = ModelRoot.Load(Path.Combine(AppContext.BaseDirectory, "Assets", "Sponza", "Sponza.gltf"));
 
         List<Node> nodes = [];
         List<Vertex> vertices = [];
@@ -83,8 +81,6 @@ internal unsafe class GLTF : DisposableObject
             App.Context.Graphics.WaitIdle();
         }
     }
-
-    public string Name { get; }
 
     public Node[] Nodes { get; }
 

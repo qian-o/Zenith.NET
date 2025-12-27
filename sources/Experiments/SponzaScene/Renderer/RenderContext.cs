@@ -36,6 +36,25 @@ internal class RenderContext : DisposableObject
     #endregion
 
     #region Frame Buffers
+    public static Output GBufferOutput { get; } = new()
+    {
+        ColorAttachments = [PixelFormat.R8G8B8A8UNorm, PixelFormat.R16G16B16A16Float, PixelFormat.R16G16B16A16Float],
+        DepthStencilAttachment = PixelFormat.D32FloatS8UInt,
+        SampleCount = SampleCount.Count1
+    };
+
+    public static Output SSAOOutput { get; } = new()
+    {
+        ColorAttachments = [PixelFormat.R8UNorm],
+        SampleCount = SampleCount.Count1
+    };
+
+    public static Output ComposeOutput { get; } = new()
+    {
+        ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
+        SampleCount = SampleCount.Count1
+    };
+
     public FrameBuffer? GBufferFrameBuffer { get; private set; }
 
     public FrameBuffer? SSAOFrameBuffer { get; private set; }

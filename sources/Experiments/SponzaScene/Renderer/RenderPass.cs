@@ -9,4 +9,9 @@ internal abstract class RenderPass(string name) : DisposableObject
     public bool Enabled { get; set; } = true;
 
     public abstract void Execute(CommandBuffer commandBuffer, RenderContext context);
+
+    protected static string GetShaderPath(string shaderName)
+    {
+        return Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", $"{shaderName}.slang");
+    }
 }
