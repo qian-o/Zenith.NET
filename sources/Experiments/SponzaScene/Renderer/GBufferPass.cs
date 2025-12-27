@@ -128,8 +128,8 @@ internal unsafe class GBufferPass : RenderPass
         ImGui.SetWindowSize(new(400.0f, 400.0f), ImGuiCond.FirstUseEver);
         if (ImGui.Begin("G-Buffer Textures"))
         {
-            float imageWidth = (ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X) / 2.0f;
-            Vector2 size = new(imageWidth, imageWidth * context.Height / context.Width);
+            float width = (ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X) / 2.0f;
+            Vector2 size = new(width, width * context.Height / context.Width);
 
             // 第一行
             ImGui.BeginGroup();
