@@ -10,7 +10,15 @@ internal class DeferredRenderer : DisposableObject
 
     public void Update(uint width, uint height, CameraController camera)
     {
-        context.Initialize(width, height);
+        if (context.Width != width || context.Height != height)
+        {
+            context.Initialize(width, height);
+
+            foreach (RenderPass renderPass in renderPasses)
+            {
+                renderPass.Resize(width, height);
+            }
+        }
 
         context.View = camera.View;
         context.Projection = camera.Projection;

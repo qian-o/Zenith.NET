@@ -218,6 +218,10 @@ internal unsafe class GBufferPass : RenderPass
         ImGui.End();
     }
 
+    public override void Resize(uint width, uint height)
+    {
+    }
+
     protected override void Destroy()
     {
         cullNonePipeline.Dispose();

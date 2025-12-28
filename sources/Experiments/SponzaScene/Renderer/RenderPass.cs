@@ -12,6 +12,8 @@ internal abstract class RenderPass(string name) : DisposableObject
 
     public abstract void DebugUI(RenderContext context);
 
+    public abstract void Resize(uint width, uint height);
+
     protected static string GetShaderPath(string shaderName)
     {
         return Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", $"{shaderName}.slang");

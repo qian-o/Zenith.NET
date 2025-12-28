@@ -25,7 +25,7 @@ internal abstract class FullscreenPass : RenderPass
             },
             Vertex = vs,
             Pixel = ps,
-            ResourceLayouts = [],
+            ResourceLayouts = resourceLayout is null ? [] : [resourceLayout],
             InputLayouts = [],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
             Output = Output

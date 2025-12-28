@@ -92,11 +92,6 @@ internal class RenderContext : DisposableObject
 
     public void Initialize(uint width, uint height)
     {
-        if (Width == width || Height == height)
-        {
-            return;
-        }
-
         Destroy();
 
         Albedo = App.Context.CreateTexture(new()

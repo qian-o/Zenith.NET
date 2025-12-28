@@ -42,6 +42,12 @@ internal static class App
         });
         FallbackTexture.Upload([unchecked((int)0xFFFF00FF)], default, default, new() { Width = 1, Height = 1, Depth = 1 });
 
+        PointSampler = Context.CreateSampler(new()
+        {
+            Filter = Filter.MinPointMagPointMipPoint,
+            MaxLod = uint.MaxValue
+        });
+
         LinearSampler = Context.CreateSampler(new()
         {
             Filter = Filter.MinLinearMagLinearMipLinear,
@@ -49,7 +55,9 @@ internal static class App
         });
 
         window = Window.Create(WindowOptions.Default with { API = GraphicsAPI.None });
+        window.WindowState = WindowState.Maximized;
         window.Initialize();
+
         inputContext = window.CreateInput();
 
         Surface surface;
@@ -77,6 +85,8 @@ internal static class App
     public static Sponza Sponza { get; }
 
     public static Texture FallbackTexture { get; }
+
+    public static Sampler PointSampler { get; }
 
     public static Sampler LinearSampler { get; }
 
@@ -155,6 +165,7 @@ internal static class App
         inputContext.Dispose();
         window.Dispose();
 
+        PointSampler.Dispose();
         LinearSampler.Dispose();
         FallbackTexture.Dispose();
         Sponza.Dispose();
