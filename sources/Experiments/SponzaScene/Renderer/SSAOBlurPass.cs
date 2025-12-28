@@ -13,7 +13,7 @@ internal unsafe class SSAOBlurPass : FullscreenPass
 
     private int blurSize = 2;
 
-    public SSAOBlurPass() : base("SSAOBlurPass")
+    public SSAOBlurPass() : base("SSAO Blur Pass")
     {
         constantBuffer = App.Context.CreateBuffer(new()
         {
@@ -70,28 +70,7 @@ internal unsafe class SSAOBlurPass : FullscreenPass
 
     public override void DebugUI(RenderContext context)
     {
-        if (ImGui.Begin("SSAO Blur"))
-        {
-            ImGui.SliderInt("Blur Size", ref blurSize, 1, 8);
-
-            ImGui.Separator();
-
-            Vector2 size = new((ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X) / 2.0f);
-            size = size with { Y = size.X * context.Height / context.Width };
-
-            ImGui.BeginGroup();
-            ImGui.Text("Raw SSAO");
-            ImGui.Image(App.Binding(context.SSAO!), size);
-            ImGui.EndGroup();
-
-            ImGui.SameLine();
-
-            ImGui.BeginGroup();
-            ImGui.Text("Blurred SSAO");
-            ImGui.Image(App.Binding(context.SSAOBlurred!), size);
-            ImGui.EndGroup();
-        }
-        ImGui.End();
+        ImGui.SliderInt("Blur Size", ref blurSize, 1, 8);
     }
 
     public override void Resize(uint width, uint height)

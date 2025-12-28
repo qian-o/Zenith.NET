@@ -17,7 +17,7 @@ internal unsafe class GBufferPass : RenderPass
     private readonly GraphicsPipeline cullBackPipeline;
     private readonly GraphicsPipeline cullNonePipeline;
 
-    public GBufferPass() : base("GBufferPass")
+    public GBufferPass() : base("G-Buffer Pass")
     {
         cameraBuffer = App.Context.CreateBuffer(new()
         {
@@ -186,36 +186,32 @@ internal unsafe class GBufferPass : RenderPass
 
     public override void DebugUI(RenderContext context)
     {
-        if (ImGui.Begin("G-Buffer Textures"))
-        {
-            Vector2 size = new((ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X) / 2.0f);
-            size = size with { Y = size.X * context.Height / context.Width };
+        Vector2 size = new((ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X) / 2.0f);
+        size = size with { Y = size.X * context.Height / context.Width };
 
-            ImGui.BeginGroup();
-            ImGui.Text("Albedo");
-            ImGui.Image(App.Binding(context.Albedo!), size);
-            ImGui.EndGroup();
+        ImGui.BeginGroup();
+        ImGui.Text("Albedo");
+        ImGui.Image(App.Binding(context.Albedo!), size);
+        ImGui.EndGroup();
 
-            ImGui.SameLine();
+        ImGui.SameLine();
 
-            ImGui.BeginGroup();
-            ImGui.Text("Normal");
-            ImGui.Image(App.Binding(context.Normal!), size);
-            ImGui.EndGroup();
+        ImGui.BeginGroup();
+        ImGui.Text("Normal");
+        ImGui.Image(App.Binding(context.Normal!), size);
+        ImGui.EndGroup();
 
-            ImGui.BeginGroup();
-            ImGui.Text("Position");
-            ImGui.Image(App.Binding(context.Position!), size);
-            ImGui.EndGroup();
+        ImGui.BeginGroup();
+        ImGui.Text("Position");
+        ImGui.Image(App.Binding(context.Position!), size);
+        ImGui.EndGroup();
 
-            ImGui.SameLine();
+        ImGui.SameLine();
 
-            ImGui.BeginGroup();
-            ImGui.Text("Depth");
-            ImGui.Image(App.Binding(context.NormalizedDepth!), size);
-            ImGui.EndGroup();
-        }
-        ImGui.End();
+        ImGui.BeginGroup();
+        ImGui.Text("Depth");
+        ImGui.Image(App.Binding(context.NormalizedDepth!), size);
+        ImGui.EndGroup();
     }
 
     public override void Resize(uint width, uint height)

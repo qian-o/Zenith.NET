@@ -2,7 +2,7 @@
 
 namespace SponzaScene.Renderer;
 
-internal unsafe class ComposePass() : FullscreenPass("ComposePass")
+internal unsafe class ComposePass() : FullscreenPass("Compose Pass")
 {
     private ResourceSet? resourceSet;
 

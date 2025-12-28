@@ -20,7 +20,7 @@ internal unsafe class SSAOPass : FullscreenPass
     private float bias = 0.025f;
     private float intensity = 1.5f;
 
-    public SSAOPass() : base("SSAOPass")
+    public SSAOPass() : base("SSAO Pass")
     {
         constantBuffer = App.Context.CreateBuffer(new()
         {
@@ -100,20 +100,9 @@ internal unsafe class SSAOPass : FullscreenPass
 
     public override void DebugUI(RenderContext context)
     {
-        if (ImGui.Begin("SSAO"))
-        {
-            ImGui.SliderFloat("Radius", ref radius, 0.01f, 2.0f);
-            ImGui.SliderFloat("Bias", ref bias, 0.001f, 0.1f);
-            ImGui.SliderFloat("Intensity", ref intensity, 0.1f, 5.0f);
-
-            ImGui.Separator();
-
-            Vector2 size = new(ImGui.GetContentRegionAvail().X);
-            size = size with { Y = size.X * context.Height / context.Width };
-
-            ImGui.Image(App.Binding(context.SSAO!), size);
-        }
-        ImGui.End();
+        ImGui.SliderFloat("Radius", ref radius, 0.01f, 2.0f);
+        ImGui.SliderFloat("Bias", ref bias, 0.001f, 0.1f);
+        ImGui.SliderFloat("Intensity", ref intensity, 0.1f, 5.0f);
     }
 
     public override void Resize(uint width, uint height)

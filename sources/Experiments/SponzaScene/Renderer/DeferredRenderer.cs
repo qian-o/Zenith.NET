@@ -52,15 +52,26 @@ internal class DeferredRenderer : DisposableObject
 
         commandBuffer.Submit();
 
-        foreach (RenderPass renderPass in renderPasses)
+        ImGui.GetBackgroundDrawList().AddImage(App.Binding(context.FinalColor!), default, new(context.Width, context.Height));
+
+        if (ImGui.Begin("Deferred Renderer Settings"))
         {
-            if (renderPass.Enabled)
+            if (ImGui.BeginTabBar("Pass Settings"))
             {
-                renderPass.DebugUI(context);
+                foreach (RenderPass renderPass in renderPasses)
+                {
+                    if (ImGui.BeginTabItem(renderPass.Name))
+                    {
+                        renderPass.DebugUI(context);
+
+                        ImGui.EndTabItem();
+                    }
+                }
+
+                ImGui.EndTabBar();
             }
         }
-
-        ImGui.GetBackgroundDrawList().AddImage(App.Binding(context.FinalColor!), default, new(context.Width, context.Height));
+        ImGui.End();
     }
 
     protected override void Destroy()
