@@ -48,7 +48,7 @@ internal unsafe class ComposePass : FullscreenPass
             Resources =
             [
                 constantBuffer,
-                context.Albedo!,
+                context.LitColor!,
                 context.SSAOBlurred!,
                 App.PointSampler
             ]
