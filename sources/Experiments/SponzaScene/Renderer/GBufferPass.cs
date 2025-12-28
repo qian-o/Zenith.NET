@@ -212,7 +212,7 @@ internal unsafe class GBufferPass : RenderPass
 
             ImGui.BeginGroup();
             ImGui.Text("Depth");
-            ImGui.Image(App.Binding(context.LinearDepth!), size);
+            ImGui.Image(App.Binding(context.NormalizedDepth!), size);
             ImGui.EndGroup();
         }
         ImGui.End();

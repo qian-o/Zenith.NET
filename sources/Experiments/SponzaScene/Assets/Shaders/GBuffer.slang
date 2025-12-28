@@ -45,29 +45,30 @@ struct PSInput
 
     float3 WorldNormal : TEXCOORD1;
 
-    float2 TexCoord : TEXCOORD2;
+    float3 WorldTangent : TEXCOORD2;
+
+    float3 WorldBitangent : TEXCOORD3;
+
+    float2 TexCoord : TEXCOORD4;
 
     float4 Color : COLOR0;
 };
 
 struct PSOutput
 {
-    // RGB: Base Color, A: Unused
     float4 Albedo : SV_Target0;
 
-    // RGB: World Normal, A: Unused
     float4 Normal : SV_Target1;
 
-    // RGB: World Position, A: Unused
     float4 Position : SV_Target2;
 
-    // RGB: Linear Depth Visualization, A: Unused
-    float4 LinearDepth : SV_Target3;
+    float4 NormalizedDepth : SV_Target3;
 };
 
 float LinearizeDepth(float depth, float nearPlane, float farPlane)
 {
-    return nearPlane * farPlane / (farPlane - depth * (farPlane - nearPlane));
+    float z = depth * 2.0 - 1.0;
+    return (2.0 * nearPlane * farPlane) / (farPlane + nearPlane - z * (farPlane - nearPlane));
 }
 
 PSInput VSMain(VSInput input)
@@ -76,6 +77,8 @@ PSInput VSMain(VSInput input)
     output.Position = mul(mul(float4(input.Position, 1.0), camera.View), camera.Projection);
     output.WorldPosition = input.Position.xyz;
     output.WorldNormal = normalize(input.Normal);
+    output.WorldTangent = normalize(cross(abs(input.Normal.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0), input.Normal));
+    output.WorldBitangent = cross(input.Normal, output.WorldTangent);
     output.TexCoord = input.TexCoord;
     output.Color = input.Color;
 
@@ -98,20 +101,25 @@ PSOutput PSMain(PSInput input)
         clip(baseColor.a - material.AlphaCutoff);
     }
 
-    float3 normal = input.WorldNormal;
+    float3 normal = normalize(input.WorldNormal);
     if ((material.Flags & MaterialFlags.HasNormalTexture) != 0)
     {
-        float3 normalMap = normalTexture.Sample(linearSampler, input.TexCoord).xyz * 2.0 - 1.0;
-        normal = normalize(normalMap);
+        float3 tangentNormal = normalTexture.Sample(linearSampler, input.TexCoord).xyz * 2.0 - 1.0;
+        
+        float3 T = normalize(input.WorldTangent);
+        float3 B = normalize(input.WorldBitangent);
+        float3 N = normalize(input.WorldNormal);
+        float3x3 TBN = float3x3(T, B, N);
+        
+        normal = normalize(mul(tangentNormal, TBN));
     }
 
-    float linearDepth = LinearizeDepth(input.Position.z, camera.NearPlane, camera.FarPlane);
-    float normalizedDepth = (linearDepth - camera.NearPlane) / (camera.FarPlane - camera.NearPlane);
+    float normalizedDepth = LinearizeDepth(input.Position.z, camera.NearPlane, camera.FarPlane) / camera.FarPlane;
 
     output.Albedo = float4(baseColor.rgb, 1.0);
-    output.Normal = float4(normalize(normal), 1.0);
+    output.Normal = float4(normal, 1.0);
     output.Position = float4(input.WorldPosition, 1.0);
-    output.LinearDepth = float4(normalizedDepth, normalizedDepth, normalizedDepth, 1.0);
-
+    output.NormalizedDepth = float4(normalizedDepth, normalizedDepth, normalizedDepth, 1.0);
+    
     return output;
 }

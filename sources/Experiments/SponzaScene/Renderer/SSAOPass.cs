@@ -56,9 +56,7 @@ internal unsafe class SSAOPass : FullscreenPass
                 new() { Type = ResourceType.Texture, Index = 1, Count = 1, StageFlags = ShaderStageFlags.Pixel },
                 new() { Type = ResourceType.Texture, Index = 2, Count = 1, StageFlags = ShaderStageFlags.Pixel },
                 new() { Type = ResourceType.Texture, Index = 3, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Texture, Index = 4, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Sampler, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Sampler, Index = 1, Count = 1, StageFlags = ShaderStageFlags.Pixel }
+                new() { Type = ResourceType.Sampler, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel }
             ]
         });
     }
@@ -74,10 +72,8 @@ internal unsafe class SSAOPass : FullscreenPass
                 kernelBuffer,
                 context.Position!,
                 context.Normal!,
-                context.LinearDepth!,
                 noiseTexture,
-                App.PointSampler,
-                App.LinearSampler
+                App.PointSampler
             ]
         });
     }
@@ -91,7 +87,8 @@ internal unsafe class SSAOPass : FullscreenPass
     {
         constantBuffer?.Upload([new SSAOConstants
         {
-            ViewProjection = context.View * context.Projection,
+            View = context.View,
+            Projection = context.Projection,
             ScreenSize = new Vector2(context.Width, context.Height),
             NoiseScale = new Vector2(context.Width / (float)NoiseSize, context.Height / (float)NoiseSize),
             Radius = radius,
@@ -196,7 +193,9 @@ internal unsafe class SSAOPass : FullscreenPass
 
     private struct SSAOConstants
     {
-        public Matrix4x4 ViewProjection;
+        public Matrix4x4 View;
+
+        public Matrix4x4 Projection;
 
         public Vector2 ScreenSize;
 

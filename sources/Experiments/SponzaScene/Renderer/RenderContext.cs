@@ -63,7 +63,7 @@ internal class RenderContext : DisposableObject
 
     public Texture? Depth { get; private set; }
 
-    public Texture? LinearDepth { get; private set; }
+    public Texture? NormalizedDepth { get; private set; }
     #endregion
 
     #region Intermediate Textures
@@ -146,7 +146,7 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.DepthStencil | TextureUsageFlags.ShaderResource
         });
 
-        LinearDepth = App.Context.CreateTexture(new()
+        NormalizedDepth = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
             Format = PixelFormat.R8G8B8A8UNorm,
@@ -218,7 +218,7 @@ internal class RenderContext : DisposableObject
                 new() { Target = Albedo },
                 new() { Target = Normal },
                 new() { Target = Position },
-                new() { Target = LinearDepth }
+                new() { Target = NormalizedDepth }
             ],
             DepthStencilAttachment = new() { Target = Depth }
         });
@@ -273,7 +273,7 @@ internal class RenderContext : DisposableObject
         SSAOBlurred?.Dispose();
         SSAO?.Dispose();
 
-        LinearDepth?.Dispose();
+        NormalizedDepth?.Dispose();
         Depth?.Dispose();
         Position?.Dispose();
         Normal?.Dispose();

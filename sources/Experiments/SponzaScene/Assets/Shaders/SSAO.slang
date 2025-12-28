@@ -2,7 +2,9 @@
 
 struct SSAOConstants
 {
-    float4x4 ViewProjection;
+    float4x4 View;
+
+    float4x4 Projection;
 
     float2 ScreenSize;
 
@@ -18,90 +20,66 @@ struct SSAOConstants
 };
 
 ConstantBuffer<SSAOConstants> constants;
-StructuredBuffer<float4> ssaoKernel;
+StructuredBuffer<float4> sampleKernel;
 Texture2D positionTexture;
 Texture2D normalTexture;
-Texture2D depthTexture;
 Texture2D noiseTexture;
 SamplerState pointSampler;
-SamplerState linearSampler;
 
 float4 PSMain(PSInput input) : SV_Target0
 {
     float2 uv = input.TexCoord;
 
-    // 获取当前像素的世界空间位置和法线
-    float3 worldPosition = positionTexture.Sample(linearSampler, uv).xyz;
-    float3 worldNormal = normalize(normalTexture.Sample(linearSampler, uv).xyz);
+    float4 positionData = positionTexture.Sample(pointSampler, uv);
+    float3 worldPosition = positionData.xyz;
+    float linearDepth = positionData.w;
 
-    // 获取深度，跳过天空像素
-    float depth = depthTexture.Sample(pointSampler, uv).r;
-    if (depth >= 0.99)
+    if (linearDepth <= 0.001)
     {
         return float4(1.0, 1.0, 1.0, 1.0);
     }
 
-    // 采样噪声用于随机旋转采样核
-    float3 randomVec = normalize(noiseTexture.Sample(pointSampler, uv * constants.NoiseScale).xyz * 2.0 - 1.0);
+    float3 viewPosition = mul(float4(worldPosition, 1.0), constants.View).xyz;
+    float3 viewNormal = normalize(mul(float4(normalTexture.Sample(pointSampler, uv).xyz, 0.0), constants.View).xyz);
 
-    // 创建 TBN 矩阵，将采样向量从切线空间转换到世界空间
-    float3 tangent = normalize(randomVec - worldNormal * dot(randomVec, worldNormal));
-    float3 bitangent = cross(worldNormal, tangent);
-    float3x3 TBN = float3x3(tangent, bitangent, worldNormal);
+    float3 randomRotation = normalize(noiseTexture.Sample(pointSampler, uv * constants.NoiseScale).xyz * 2.0 - 1.0);
 
-    // 累计遮蔽
-    float occlusion = 0.0;
-    int validSamples = 0;
+    float3 tangent = normalize(randomRotation - viewNormal * dot(randomRotation, viewNormal));
+    float3 bitangent = cross(viewNormal, tangent);
+    float3x3 tangentToView = float3x3(tangent, bitangent, viewNormal);
 
-    for (int i = 0; i < constants.KernelSize; i++)
+    float totalOcclusion = 0.0;
+
+    for (int i = 0; i < constants.KernelSize; ++i)
     {
-        // 获取采样点（切线空间中的半球采样）
-        float3 sampleDir = mul(ssaoKernel[i].xyz, TBN);
-        float3 samplePos = worldPosition + sampleDir * constants.Radius;
+        float3 sampleOffset = mul(sampleKernel[i].xyz, tangentToView);
+        float3 samplePosition = viewPosition + sampleOffset * constants.Radius;
 
-        // 将采样点投影到屏幕空间
-        float4 offset = mul(float4(samplePos, 1.0), constants.ViewProjection);
-        offset.xyz /= offset.w;
-        offset.xy = offset.xy * 0.5 + 0.5;
-        offset.y = 1.0 - offset.y;
+        float4 projectedPosition = mul(float4(samplePosition, 1.0), constants.Projection);
+        projectedPosition.xyz /= projectedPosition.w;
+        
+        float2 sampleUV = projectedPosition.xy * 0.5 + 0.5;
+        sampleUV.y = 1.0 - sampleUV.y;
 
-        // 检查 UV 是否在屏幕范围内
-        if (offset.x < 0.0 || offset.x > 1.0 || offset.y < 0.0 || offset.y > 1.0)
+        if (sampleUV.x < 0.0 || sampleUV.x > 1.0 || sampleUV.y < 0.0 || sampleUV.y > 1.0)
         {
             continue;
         }
 
-        // 获取采样点处的实际位置
-        float3 sampledPosition = positionTexture.Sample(linearSampler, offset.xy).xyz;
+        float3 sampledWorldPosition = positionTexture.Sample(pointSampler, sampleUV).xyz;
+        float3 sampledViewPosition = mul(float4(sampledWorldPosition, 1.0), constants.View).xyz;
+        float geometryDepth = sampledViewPosition.z;
 
-        // 范围检查
-        float distance = length(worldPosition - sampledPosition);
-        float rangeCheck = smoothstep(0.0, 1.0, constants.Radius / max(distance, 0.001));
+        float depthDifference = abs(viewPosition.z - geometryDepth);
+        float rangeWeight = smoothstep(0.0, 1.0, constants.Radius / (depthDifference + 0.0001));
 
-        // 深度比较：如果采样点在实际几何体后面，则被遮蔽
-        float sampleDepth = length(sampledPosition - worldPosition);
-        float fragDepth = length(samplePos - worldPosition);
-
-        if (sampleDepth <= fragDepth - constants.Bias)
-        {
-            occlusion += rangeCheck;
-        }
-
-        validSamples++;
+        float isOccluded = geometryDepth >= samplePosition.z + constants.Bias ? 1.0 : 0.0;
+        totalOcclusion += isOccluded * rangeWeight;
     }
 
-    // 归一化并反转
-    if (validSamples > 0)
-    {
-        occlusion = 1.0 - (occlusion / float(validSamples));
-    }
-    else
-    {
-        occlusion = 1.0;
-    }
+    float visibility = 1.0 - (totalOcclusion / float(constants.KernelSize));
 
-    // 应用强度
-    occlusion = pow(saturate(occlusion), constants.Intensity);
+    visibility = pow(saturate(visibility), constants.Intensity);
 
-    return float4(occlusion, occlusion, occlusion, 1.0);
+    return float4(visibility, visibility, visibility, 1.0);
 }
