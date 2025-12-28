@@ -1,4 +1,5 @@
-﻿using SponzaScene.Models;
+﻿using Hexa.NET.ImGui;
+using SponzaScene.Models;
 using Zenith.NET;
 
 namespace SponzaScene.Renderer;
@@ -10,7 +11,8 @@ internal class DeferredRenderer : DisposableObject
     [
         new GBufferPass(),
         new SSAOPass(),
-        new SSAOBlurPass()
+        new SSAOBlurPass(),
+        new ComposePass()
     ];
 
     public void Update(uint width, uint height, CameraController camera)
@@ -32,15 +34,9 @@ internal class DeferredRenderer : DisposableObject
         context.CameraPosition = camera.Position;
     }
 
-    public void Render(CommandBuffer commandBuffer, FrameBuffer frameBuffer)
+    public void Render()
     {
-        foreach (RenderPass renderPass in renderPasses)
-        {
-            if (renderPass.Enabled)
-            {
-                renderPass.DebugUI(context);
-            }
-        }
+        CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
 
         commandBuffer.BeginDebugEvent("Deferred Rendering");
 
@@ -53,6 +49,18 @@ internal class DeferredRenderer : DisposableObject
         }
 
         commandBuffer.EndDebugEvent();
+
+        commandBuffer.Submit();
+
+        foreach (RenderPass renderPass in renderPasses)
+        {
+            if (renderPass.Enabled)
+            {
+                renderPass.DebugUI(context);
+            }
+        }
+
+        ImGui.GetBackgroundDrawList().AddImage(App.Binding(context.FinalColor!), default, new(context.Width, context.Height));
     }
 
     protected override void Destroy()

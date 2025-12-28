@@ -109,6 +109,8 @@ internal static class App
                 return;
             }
 
+            renderer.Render();
+
             ImGuiHelpers.Overlay("Info", () =>
             {
                 ImGui.Text($"Backend: {Context.Backend}");
@@ -131,8 +133,6 @@ internal static class App
             });
 
             CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
-
-            renderer.Render(commandBuffer, swapChain.FrameBuffer);
 
             commandBuffer.BindFrameBuffer(swapChain.FrameBuffer, ClearValues.Default);
 

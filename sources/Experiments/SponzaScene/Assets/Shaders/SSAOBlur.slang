@@ -3,8 +3,8 @@
 struct BlurConstants
 {
     float2 TexelSize;
+
     int BlurSize;
-    float _Padding;
 };
 
 ConstantBuffer<BlurConstants> constants;
@@ -24,6 +24,7 @@ float4 PSMain(PSInput input) : SV_Target0
         {
             float2 offset = float2(float(x), float(y)) * constants.TexelSize;
             result += ssaoTexture.Sample(pointSampler, uv + offset).r;
+
             sampleCount++;
         }
     }
