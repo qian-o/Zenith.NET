@@ -33,9 +33,11 @@ internal class SSAOPass() : FullscreenPass("SSAOPass")
     {
         if (ImGui.Begin("SSAO"))
         {
-            Vector2 size = ImGui.GetContentRegionAvail();
+            Vector2 size = new(ImGui.GetContentRegionAvail().X);
+            size = size with { Y = size.X * context.Height / context.Width };
 
-            ImGui.Image(App.Binding(context.SSAO!), size with { Y = size.X * context.Height / context.Width });
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ((ImGui.GetContentRegionAvail().Y - size.Y) / 2));
+            ImGui.Image(App.Binding(context.SSAO!), size);
         }
         ImGui.End();
     }

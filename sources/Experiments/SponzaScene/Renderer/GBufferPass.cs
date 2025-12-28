@@ -188,9 +188,8 @@ internal unsafe class GBufferPass : RenderPass
     {
         if (ImGui.Begin("G-Buffer Textures"))
         {
-            float width = (ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X) / 2.0f;
-
-            Vector2 size = new(width, width * context.Height / context.Width);
+            Vector2 size = new((ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X) / 2.0f);
+            size = size with { Y = size.X * context.Height / context.Width };
 
             ImGui.BeginGroup();
             ImGui.Text("Albedo");
