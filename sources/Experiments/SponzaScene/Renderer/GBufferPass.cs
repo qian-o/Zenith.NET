@@ -186,9 +186,11 @@ internal unsafe class GBufferPass : RenderPass
 
     public override void DebugUI(RenderContext context)
     {
-        if (ImGui.Begin("G-Buffer Textures", ImGuiWindowFlags.AlwaysAutoResize))
+        if (ImGui.Begin("G-Buffer Textures"))
         {
-            Vector2 size = new(400, 400 * context.Height / context.Width);
+            float width = (ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X) / 2.0f;
+
+            Vector2 size = new(width, width * context.Height / context.Width);
 
             ImGui.BeginGroup();
             ImGui.Text("Albedo");

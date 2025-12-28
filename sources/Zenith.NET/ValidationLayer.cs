@@ -551,9 +551,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             }
         }
 
-        if (desc.InputLayouts is null || desc.InputLayouts.Length is 0)
+        if (desc.InputLayouts is null)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNullOrEmpty, "GraphicsPipelineDesc.InputLayouts"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.InputLayouts"));
         }
         else
         {

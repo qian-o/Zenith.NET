@@ -5,6 +5,39 @@ namespace SponzaScene.Renderer;
 
 internal class RenderContext : DisposableObject
 {
+    public static Output GBufferOutput { get; } = new()
+    {
+        ColorAttachments =
+        [
+            PixelFormat.R8G8B8A8UNorm,
+            PixelFormat.R16G16B16A16Float,
+            PixelFormat.R16G16B16A16Float,
+            PixelFormat.R8G8B8A8UNorm
+        ],
+        DepthStencilAttachment = PixelFormat.D32FloatS8UInt,
+        SampleCount = SampleCount.Count1
+    };
+
+    public static Output SSAOOutput { get; } = new()
+    {
+        ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
+        SampleCount = SampleCount.Count1
+    };
+
+    public static Output RTAOOutput { get; } = new()
+    {
+        ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
+        SampleCount = SampleCount.Count1
+    };
+
+    public static Output ComposeOutput { get; } = new()
+    {
+        ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
+        SampleCount = SampleCount.Count1
+    };
+
+    public bool RayTracingEnabled { get; set; }
+
     #region Frame Information
     public uint Width { get; private set; }
 
@@ -34,7 +67,11 @@ internal class RenderContext : DisposableObject
     #endregion
 
     #region Intermediate Textures
-    public Texture? SSAOResult { get; private set; }
+    public Texture? SSAO { get; private set; }
+
+    public Texture? SSAOBlurred { get; private set; }
+
+    public Texture? RTAO { get; private set; }
     #endregion
 
     #region Final Composite
@@ -42,34 +79,13 @@ internal class RenderContext : DisposableObject
     #endregion
 
     #region Frame Buffers
-    public static Output GBufferOutput { get; } = new()
-    {
-        ColorAttachments =
-        [
-            PixelFormat.R8G8B8A8UNorm,
-            PixelFormat.R16G16B16A16Float,
-            PixelFormat.R16G16B16A16Float,
-            PixelFormat.R8G8B8A8UNorm
-        ],
-        DepthStencilAttachment = PixelFormat.D32FloatS8UInt,
-        SampleCount = SampleCount.Count1
-    };
-
-    public static Output SSAOOutput { get; } = new()
-    {
-        ColorAttachments = [PixelFormat.R8UNorm],
-        SampleCount = SampleCount.Count1
-    };
-
-    public static Output ComposeOutput { get; } = new()
-    {
-        ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
-        SampleCount = SampleCount.Count1
-    };
-
     public FrameBuffer? GBufferFrameBuffer { get; private set; }
 
     public FrameBuffer? SSAOFrameBuffer { get; private set; }
+
+    public FrameBuffer? SSAOBlurFrameBuffer { get; private set; }
+
+    public FrameBuffer? RTAOFrameBuffer { get; private set; }
 
     public FrameBuffer? ComposeFrameBuffer { get; private set; }
     #endregion
@@ -148,10 +164,36 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
         });
 
-        SSAOResult = App.Context.CreateTexture(new()
+        SSAO = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
-            Format = PixelFormat.R8UNorm,
+            Format = PixelFormat.R8G8B8A8UNorm,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
+        });
+
+        SSAOBlurred = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R8G8B8A8UNorm,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
+        });
+
+        RTAO = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R8G8B8A8UNorm,
             Width = width,
             Height = height,
             Depth = 1,
@@ -190,7 +232,23 @@ internal class RenderContext : DisposableObject
         {
             ColorAttachments =
             [
-                new() { Target = SSAOResult }
+                new() { Target = SSAO }
+            ]
+        });
+
+        SSAOBlurFrameBuffer = App.Context.CreateFrameBuffer(new()
+        {
+            ColorAttachments =
+            [
+                new() { Target = SSAOBlurred }
+            ]
+        });
+
+        RTAOFrameBuffer = App.Context.CreateFrameBuffer(new()
+        {
+            ColorAttachments =
+            [
+                new() { Target = RTAO }
             ]
         });
 
@@ -209,12 +267,16 @@ internal class RenderContext : DisposableObject
     protected override void Destroy()
     {
         ComposeFrameBuffer?.Dispose();
+        RTAOFrameBuffer?.Dispose();
+        SSAOBlurFrameBuffer?.Dispose();
         SSAOFrameBuffer?.Dispose();
         GBufferFrameBuffer?.Dispose();
 
         FinalColor?.Dispose();
 
-        SSAOResult?.Dispose();
+        RTAO?.Dispose();
+        SSAOBlurred?.Dispose();
+        SSAO?.Dispose();
 
         LinearDepth?.Dispose();
         Depth?.Dispose();
