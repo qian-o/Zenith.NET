@@ -8,7 +8,9 @@ enum MaterialFlags : int
 
     HasBaseColorTexture = 1 << 1,
 
-    HasNormalTexture = 1 << 2
+    HasNormalTexture = 1 << 2,
+
+    HasMetallicRoughnessTexture = 1 << 3
 };
 
 struct CameraConstants
@@ -26,6 +28,10 @@ struct MaterialConstants
 {
     float AlphaCutoff;
 
+    float MetallicFactor;
+
+    float RoughnessFactor;
+
     float4 BaseColorFactor;
 
     MaterialFlags Flags;
@@ -35,6 +41,7 @@ ConstantBuffer<CameraConstants> camera;
 ConstantBuffer<MaterialConstants> material;
 Texture2D baseColorTexture;
 Texture2D normalTexture;
+Texture2D metallicRoughnessTexture;
 SamplerState linearSampler;
 
 struct PSInput
@@ -56,12 +63,16 @@ struct PSInput
 
 struct PSOutput
 {
+    // RGB: Albedo, A: Metallic
     float4 Albedo : SV_Target0;
 
+    // RGB: World Normal, A: Roughness
     float4 Normal : SV_Target1;
 
+    // RGB: World Position, A: unused
     float4 Position : SV_Target2;
 
+    // RGB: Normalized Depth A: unused
     float4 NormalizedDepth : SV_Target3;
 };
 
@@ -77,7 +88,8 @@ PSInput VSMain(VSInput input)
     output.Position = mul(mul(float4(input.Position, 1.0), camera.View), camera.Projection);
     output.WorldPosition = input.Position.xyz;
     output.WorldNormal = normalize(input.Normal);
-    output.WorldTangent = normalize(cross(abs(input.Normal.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0), input.Normal));
+    output.WorldTangent =
+        normalize(cross(abs(input.Normal.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0), input.Normal));
     output.WorldBitangent = cross(input.Normal, output.WorldTangent);
     output.TexCoord = input.TexCoord;
     output.Color = input.Color;
@@ -105,21 +117,30 @@ PSOutput PSMain(PSInput input)
     if ((material.Flags & MaterialFlags.HasNormalTexture) != 0)
     {
         float3 tangentNormal = normalTexture.Sample(linearSampler, input.TexCoord).xyz * 2.0 - 1.0;
-        
+
         float3 T = normalize(input.WorldTangent);
         float3 B = normalize(input.WorldBitangent);
         float3 N = normalize(input.WorldNormal);
         float3x3 TBN = float3x3(T, B, N);
-        
+
         normal = normalize(mul(tangentNormal, TBN));
+    }
+
+    float metallic = material.MetallicFactor;
+    float roughness = material.RoughnessFactor;
+    if ((material.Flags & MaterialFlags.HasMetallicRoughnessTexture) != 0)
+    {
+        float4 mr = metallicRoughnessTexture.Sample(linearSampler, input.TexCoord);
+        roughness *= mr.g;
+        metallic *= mr.b;
     }
 
     float normalizedDepth = LinearizeDepth(input.Position.z, camera.NearPlane, camera.FarPlane) / camera.FarPlane;
 
-    output.Albedo = float4(baseColor.rgb, 1.0);
-    output.Normal = float4(normal, 1.0);
+    output.Albedo = float4(baseColor.rgb, metallic);
+    output.Normal = float4(normal, roughness);
     output.Position = float4(input.WorldPosition, 1.0);
     output.NormalizedDepth = float4(normalizedDepth, normalizedDepth, normalizedDepth, 1.0);
-    
+
     return output;
 }

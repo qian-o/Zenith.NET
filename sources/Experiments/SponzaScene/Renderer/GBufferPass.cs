@@ -34,11 +34,14 @@ internal unsafe class GBufferPass : RenderPass
         });
         materialBuffer.Upload([.. App.Sponza.Materials.Select(static item => new MaterialConstants()
         {
-            AlphaCutoff = new(item.AlphaCutoff),
+            AlphaCutoff = item.AlphaCutoff,
+            MetallicFactor = item.MetallicFactor,
+            RoughnessFactor = item.RoughnessFactor,
             BaseColorFactor = item.BaseColorFactor,
             Flags = (item.AlphaCutoff > 0 ? MaterialFlags.UseAlphaCutoff : 0)
                     | (item.BaseColorTexture is not null ? MaterialFlags.HasBaseColorTexture : 0)
                     | (item.NormalTexture is not null ? MaterialFlags.HasNormalTexture : 0)
+                    | (item.MetallicRoughnessTexture is not null ? MaterialFlags.HasMetallicRoughnessTexture : 0)
         })], 0);
 
         materialBufferViews = new BufferView[App.Sponza.Materials.Length];
@@ -61,6 +64,7 @@ internal unsafe class GBufferPass : RenderPass
                 new() { Type = ResourceType.ConstantBuffer, Index = 1, Count = 1, StageFlags = ShaderStageFlags.Pixel },
                 new() { Type = ResourceType.Texture, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel },
                 new() { Type = ResourceType.Texture, Index = 1, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+                new() { Type = ResourceType.Texture, Index = 2, Count = 1, StageFlags = ShaderStageFlags.Pixel },
                 new() { Type = ResourceType.Sampler, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel }
             ]
         });
@@ -79,6 +83,7 @@ internal unsafe class GBufferPass : RenderPass
                     materialBufferViews[i],
                     material.BaseColorTexture ?? App.FallbackTexture,
                     material.NormalTexture ?? App.FallbackTexture,
+                    material.MetallicRoughnessTexture ?? App.FallbackTexture,
                     App.LinearSampler
                 ]
             });
@@ -244,7 +249,9 @@ internal unsafe class GBufferPass : RenderPass
 
         HasBaseColorTexture = 1 << 1,
 
-        HasNormalTexture = 1 << 2
+        HasNormalTexture = 1 << 2,
+
+        HasMetallicRoughnessTexture = 1 << 3
     }
 
     private struct CameraConstants
@@ -260,7 +267,13 @@ internal unsafe class GBufferPass : RenderPass
 
     private struct MaterialConstants
     {
-        public Vector4 AlphaCutoff;
+        public float AlphaCutoff;
+
+        public float MetallicFactor;
+
+        public float RoughnessFactor;
+
+        public float Padding;
 
         public Vector4 BaseColorFactor;
 

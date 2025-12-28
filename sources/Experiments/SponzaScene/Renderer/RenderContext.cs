@@ -24,6 +24,12 @@ internal class RenderContext : DisposableObject
         SampleCount = SampleCount.Count1
     };
 
+    public static Output LightingOutput { get; } = new()
+    {
+        ColorAttachments = [PixelFormat.R16G16B16A16Float],
+        SampleCount = SampleCount.Count1
+    };
+
     public static Output ComposeOutput { get; } = new()
     {
         ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
@@ -62,6 +68,8 @@ internal class RenderContext : DisposableObject
     public Texture? SSAO { get; private set; }
 
     public Texture? SSAOBlurred { get; private set; }
+
+    public Texture? LitColor { get; private set; }
     #endregion
 
     #region Final Composite
@@ -74,6 +82,8 @@ internal class RenderContext : DisposableObject
     public FrameBuffer? SSAOFrameBuffer { get; private set; }
 
     public FrameBuffer? SSAOBlurFrameBuffer { get; private set; }
+
+    public FrameBuffer? LightingFrameBuffer { get; private set; }
 
     public FrameBuffer? ComposeFrameBuffer { get; private set; }
     #endregion
@@ -173,6 +183,19 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
         });
 
+        LitColor = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R16G16B16A16Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
+        });
+
         FinalColor = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
@@ -214,6 +237,11 @@ internal class RenderContext : DisposableObject
             ]
         });
 
+        LightingFrameBuffer = App.Context.CreateFrameBuffer(new()
+        {
+            ColorAttachments = [new() { Target = LitColor }]
+        });
+
         ComposeFrameBuffer = App.Context.CreateFrameBuffer(new()
         {
             ColorAttachments =
@@ -229,6 +257,7 @@ internal class RenderContext : DisposableObject
     protected override void Destroy()
     {
         ComposeFrameBuffer?.Dispose();
+        LightingFrameBuffer?.Dispose();
         SSAOBlurFrameBuffer?.Dispose();
         SSAOFrameBuffer?.Dispose();
         GBufferFrameBuffer?.Dispose();

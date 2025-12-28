@@ -13,9 +13,9 @@ internal class Material : DisposableObject
     public Material(GMaterial material)
     {
         Name = material.Name ?? "Unnamed Material";
-        BaseColorFactor = material.GetDiffuseColor(Vector4.One);
-        AlphaCutoff = material.AlphaCutoff;
         DoubleSided = material.DoubleSided;
+        AlphaCutoff = material.AlphaCutoff;
+        BaseColorFactor = material.GetDiffuseColor(Vector4.One);
 
         if (material.GetDiffuseTexture() is GTexture texture)
         {
@@ -30,15 +30,28 @@ internal class Material : DisposableObject
 
             NormalTexture = App.Context.LoadTextureFromStream(stream, false);
         }
+
+        if (material.FindChannel("MetallicRoughness") is MaterialChannel materialChannel)
+        {
+            MetallicFactor = materialChannel.GetFactor("MetallicFactor");
+            RoughnessFactor = materialChannel.GetFactor("RoughnessFactor");
+
+            if (materialChannel.Texture is GTexture metallicRoughnessTexture)
+            {
+                using MemoryStream stream = new(metallicRoughnessTexture.PrimaryImage.Content.Content.ToArray());
+
+                MetallicRoughnessTexture = App.Context.LoadTextureFromStream(stream);
+            }
+        }
     }
 
     public string Id { get; } = Guid.NewGuid().ToString();
 
     public string Name { get; }
 
-    public float AlphaCutoff { get; }
-
     public bool DoubleSided { get; }
+
+    public float AlphaCutoff { get; }
 
     public Vector4 BaseColorFactor { get; }
 
@@ -46,8 +59,15 @@ internal class Material : DisposableObject
 
     public Texture? NormalTexture { get; }
 
+    public float MetallicFactor { get; }
+
+    public float RoughnessFactor { get; }
+
+    public Texture? MetallicRoughnessTexture { get; }
+
     protected override void Destroy()
     {
+        MetallicRoughnessTexture?.Dispose();
         NormalTexture?.Dispose();
         BaseColorTexture?.Dispose();
     }
