@@ -24,19 +24,11 @@ internal class RenderContext : DisposableObject
         SampleCount = SampleCount.Count1
     };
 
-    public static Output RTAOOutput { get; } = new()
-    {
-        ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
-        SampleCount = SampleCount.Count1
-    };
-
     public static Output ComposeOutput { get; } = new()
     {
         ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
         SampleCount = SampleCount.Count1
     };
-
-    public bool RayTracingEnabled { get; set; }
 
     #region Frame Information
     public uint Width { get; private set; }
@@ -70,8 +62,6 @@ internal class RenderContext : DisposableObject
     public Texture? SSAO { get; private set; }
 
     public Texture? SSAOBlurred { get; private set; }
-
-    public Texture? RTAO { get; private set; }
     #endregion
 
     #region Final Composite
@@ -84,8 +74,6 @@ internal class RenderContext : DisposableObject
     public FrameBuffer? SSAOFrameBuffer { get; private set; }
 
     public FrameBuffer? SSAOBlurFrameBuffer { get; private set; }
-
-    public FrameBuffer? RTAOFrameBuffer { get; private set; }
 
     public FrameBuffer? ComposeFrameBuffer { get; private set; }
     #endregion
@@ -185,19 +173,6 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
         });
 
-        RTAO = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R8G8B8A8UNorm,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
-        });
-
         FinalColor = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
@@ -239,14 +214,6 @@ internal class RenderContext : DisposableObject
             ]
         });
 
-        RTAOFrameBuffer = App.Context.CreateFrameBuffer(new()
-        {
-            ColorAttachments =
-            [
-                new() { Target = RTAO }
-            ]
-        });
-
         ComposeFrameBuffer = App.Context.CreateFrameBuffer(new()
         {
             ColorAttachments =
@@ -262,14 +229,12 @@ internal class RenderContext : DisposableObject
     protected override void Destroy()
     {
         ComposeFrameBuffer?.Dispose();
-        RTAOFrameBuffer?.Dispose();
         SSAOBlurFrameBuffer?.Dispose();
         SSAOFrameBuffer?.Dispose();
         GBufferFrameBuffer?.Dispose();
 
         FinalColor?.Dispose();
 
-        RTAO?.Dispose();
         SSAOBlurred?.Dispose();
         SSAO?.Dispose();
 
