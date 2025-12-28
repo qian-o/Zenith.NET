@@ -40,6 +40,45 @@ internal unsafe class Sponza : DisposableObject
 
         Materials = [.. root.LogicalMaterials.Select(static material => new Material(material))];
 
+        DirectionalLight = new()
+        {
+            Direction = Vector3.Normalize(new Vector3(0.2f, -1.0f, 0.3f)),
+            Color = new Vector3(1.0f, 0.95f, 0.85f),
+            Intensity = 2.5f
+        };
+
+        PointLights =
+        [
+            new()
+            {
+                Position = new Vector3(-4.5f, 1.5f, -1.5f),
+                Color = new Vector3(1.0f, 0.8f, 0.6f),
+                Intensity = 5.0f,
+                Radius = 10.0f
+            },
+            new()
+            {
+                Position = new Vector3(4.5f, 1.5f, -1.5f),
+                Color = new Vector3(1.0f, 0.8f, 0.6f),
+                Intensity = 5.0f,
+                Radius = 10.0f
+            },
+            new()
+            {
+                Position = new Vector3(-4.5f, 1.5f, 1.5f),
+                Color = new Vector3(1.0f, 0.8f, 0.6f),
+                Intensity = 5.0f,
+                Radius = 10.0f
+            },
+            new()
+            {
+                Position = new Vector3(4.5f, 1.5f, 1.5f),
+                Color = new Vector3(1.0f, 0.8f, 0.6f),
+                Intensity = 5.0f,
+                Radius = 10.0f
+            }
+        ];
+
         if (App.Context.Capabilities.RayTracingSupported)
         {
             RayTracingGeometry[] geometries = new RayTracingGeometry[Nodes.Length];
@@ -89,6 +128,10 @@ internal unsafe class Sponza : DisposableObject
     public Buffer Indices { get; }
 
     public Material[] Materials { get; }
+
+    public DirectionalLight DirectionalLight { get; }
+
+    public PointLight[] PointLights { get; }
 
     public BottomLevelAccelerationStructure? BLAS { get; }
 

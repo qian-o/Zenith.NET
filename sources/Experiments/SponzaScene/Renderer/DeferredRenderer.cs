@@ -12,6 +12,7 @@ internal class DeferredRenderer : DisposableObject
         new GBufferPass(),
         new SSAOPass(),
         new SSAOBlurPass(),
+        new LightingPass(),
         new ComposePass()
     ];
 
