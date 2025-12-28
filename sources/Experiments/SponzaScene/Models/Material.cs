@@ -14,6 +14,8 @@ internal class Material : DisposableObject
     {
         Name = material.Name ?? "Unnamed Material";
         BaseColorFactor = material.GetDiffuseColor(Vector4.One);
+        AlphaCutoff = material.AlphaCutoff;
+        DoubleSided = material.DoubleSided;
 
         if (material.GetDiffuseTexture() is GTexture texture)
         {
@@ -33,6 +35,10 @@ internal class Material : DisposableObject
     public string Id { get; } = Guid.NewGuid().ToString();
 
     public string Name { get; }
+
+    public float AlphaCutoff { get; }
+
+    public bool DoubleSided { get; }
 
     public Vector4 BaseColorFactor { get; }
 

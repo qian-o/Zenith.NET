@@ -14,7 +14,8 @@ internal unsafe class GBufferPass : RenderPass
     private readonly BufferView[] materialBufferViews;
     private readonly ResourceLayout resourceLayout;
     private readonly ResourceSet[] resourceSets;
-    private readonly GraphicsPipeline pipeline;
+    private readonly GraphicsPipeline cullBackPipeline;
+    private readonly GraphicsPipeline cullNonePipeline;
 
     public GBufferPass() : base("GBufferPass")
     {
@@ -33,9 +34,11 @@ internal unsafe class GBufferPass : RenderPass
         });
         materialBuffer.Upload([.. App.Sponza.Materials.Select(static item => new MaterialConstants()
         {
+            AlphaCutoff = new(item.AlphaCutoff),
             BaseColorFactor = item.BaseColorFactor,
-            Flags = (item.BaseColorTexture is not null ? TextureFlags.HasBaseColorTexture : 0)
-                    | (item.NormalTexture is not null ? TextureFlags.HasNormalTexture : 0)
+            Flags = (item.AlphaCutoff > 0 ? MaterialFlags.UseAlphaCutoff : 0)
+                    | (item.BaseColorTexture is not null ? MaterialFlags.HasBaseColorTexture : 0)
+                    | (item.NormalTexture is not null ? MaterialFlags.HasNormalTexture : 0)
         })], 0);
 
         materialBufferViews = new BufferView[App.Sponza.Materials.Length];
@@ -84,11 +87,27 @@ internal unsafe class GBufferPass : RenderPass
         using Shader vs = App.Context.LoadShaderFromFile(GetShaderPath("GBuffer"), "VSMain", ShaderStageFlags.Vertex);
         using Shader ps = App.Context.LoadShaderFromFile(GetShaderPath("GBuffer"), "PSMain", ShaderStageFlags.Pixel);
 
-        pipeline = App.Context.CreateGraphicsPipeline(new()
+        cullBackPipeline = App.Context.CreateGraphicsPipeline(new()
         {
             RenderStates = new()
             {
                 RasterizerState = RasterizerStates.CullBack,
+                DepthStencilState = DepthStencilStates.Default,
+                BlendState = BlendStates.Opaque
+            },
+            Vertex = vs,
+            Pixel = ps,
+            ResourceLayouts = [resourceLayout],
+            InputLayouts = [Vertex.InputLayout()],
+            PrimitiveTopology = PrimitiveTopology.TriangleList,
+            Output = RenderContext.GBufferOutput
+        });
+
+        cullNonePipeline = App.Context.CreateGraphicsPipeline(new()
+        {
+            RenderStates = new()
+            {
+                RasterizerState = RasterizerStates.CullNone,
                 DepthStencilState = DepthStencilStates.Default,
                 BlendState = BlendStates.Opaque
             },
@@ -118,20 +137,50 @@ internal unsafe class GBufferPass : RenderPass
 
         commandBuffer.PreprocessResourceSets(resourceSets);
 
-        commandBuffer.BindPipeline(pipeline);
         commandBuffer.BindFrameBuffer(context.GBufferFrameBuffer, ClearValues.Default);
-        commandBuffer.BindVertexBuffer(App.Sponza.Vertices, 0, 0);
-        commandBuffer.BindIndexBuffer(App.Sponza.Indices, 0, IndexFormat.UInt32);
 
-        foreach (Node node in App.Sponza.Nodes)
+        // Cull back faces
         {
-            commandBuffer.BindResourceSet(resourceSets[node.Material], 0);
+            commandBuffer.BindPipeline(cullBackPipeline);
+            commandBuffer.BindVertexBuffer(App.Sponza.Vertices, 0, 0);
+            commandBuffer.BindIndexBuffer(App.Sponza.Indices, 0, IndexFormat.UInt32);
 
-            commandBuffer.DrawIndexed(node.Args.IndexCount,
-                                      node.Args.InstanceCount,
-                                      node.Args.FirstIndex,
-                                      node.Args.VertexOffset,
-                                      node.Args.FirstInstance);
+            foreach (Node node in App.Sponza.Nodes)
+            {
+                if (App.Sponza.Materials[node.Material].DoubleSided)
+                {
+                    continue;
+                }
+
+                commandBuffer.BindResourceSet(resourceSets[node.Material], 0);
+
+                commandBuffer.DrawIndexed(node.Args.IndexCount,
+                                          node.Args.InstanceCount,
+                                          node.Args.FirstIndex,
+                                          node.Args.VertexOffset,
+                                          node.Args.FirstInstance);
+            }
+        }
+
+        // Cull none for double-sided materials
+        {
+            commandBuffer.BindPipeline(cullNonePipeline);
+
+            foreach (Node node in App.Sponza.Nodes)
+            {
+                if (!App.Sponza.Materials[node.Material].DoubleSided)
+                {
+                    continue;
+                }
+
+                commandBuffer.BindResourceSet(resourceSets[node.Material], 0);
+
+                commandBuffer.DrawIndexed(node.Args.IndexCount,
+                                          node.Args.InstanceCount,
+                                          node.Args.FirstIndex,
+                                          node.Args.VertexOffset,
+                                          node.Args.FirstInstance);
+            }
         }
     }
 
@@ -170,7 +219,8 @@ internal unsafe class GBufferPass : RenderPass
 
     protected override void Destroy()
     {
-        pipeline.Dispose();
+        cullNonePipeline.Dispose();
+        cullBackPipeline.Dispose();
         foreach (ResourceSet set in resourceSets)
         {
             set.Dispose();
@@ -185,13 +235,15 @@ internal unsafe class GBufferPass : RenderPass
     }
 
     [Flags]
-    private enum TextureFlags
+    private enum MaterialFlags
     {
         None = 0,
 
-        HasBaseColorTexture = 1 << 0,
+        UseAlphaCutoff = 1 << 0,
 
-        HasNormalTexture = 1 << 1
+        HasBaseColorTexture = 1 << 1,
+
+        HasNormalTexture = 1 << 2
     }
 
     private struct CameraConstants
@@ -207,8 +259,10 @@ internal unsafe class GBufferPass : RenderPass
 
     private struct MaterialConstants
     {
+        public Vector4 AlphaCutoff;
+
         public Vector4 BaseColorFactor;
 
-        public TextureFlags Flags;
+        public MaterialFlags Flags;
     }
 }

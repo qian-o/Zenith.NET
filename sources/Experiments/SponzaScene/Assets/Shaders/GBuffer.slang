@@ -1,10 +1,14 @@
 ﻿import "Common/VSInput";
 
-enum TextureFlags : int
+enum MaterialFlags : int
 {
-    HasBaseColorTexture = 1 << 0,
+    None = 0,
 
-    HasNormalTexture = 1 << 1
+    UseAlphaCutoff = 1 << 0,
+
+    HasBaseColorTexture = 1 << 1,
+
+    HasNormalTexture = 1 << 2
 };
 
 struct CameraConstants
@@ -20,9 +24,11 @@ struct CameraConstants
 
 struct MaterialConstants
 {
+    float AlphaCutoff;
+
     float4 BaseColorFactor;
 
-    TextureFlags Flags;
+    MaterialFlags Flags;
 };
 
 ConstantBuffer<CameraConstants> camera;
@@ -81,14 +87,19 @@ PSOutput PSMain(PSInput input)
     PSOutput output;
 
     float4 baseColor = material.BaseColorFactor;
-    if ((material.Flags & TextureFlags.HasBaseColorTexture) != 0)
+    if ((material.Flags & MaterialFlags.HasBaseColorTexture) != 0)
     {
         baseColor *= baseColorTexture.Sample(linearSampler, input.TexCoord);
     }
     baseColor *= input.Color;
 
+    if ((material.Flags & MaterialFlags.UseAlphaCutoff) != 0)
+    {
+        clip(baseColor.a - material.AlphaCutoff);
+    }
+
     float3 normal = input.WorldNormal;
-    if ((material.Flags & TextureFlags.HasNormalTexture) != 0)
+    if ((material.Flags & MaterialFlags.HasNormalTexture) != 0)
     {
         float3 normalMap = normalTexture.Sample(linearSampler, input.TexCoord).xyz * 2.0 - 1.0;
         normal = normalize(normalMap);
