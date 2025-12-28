@@ -20,7 +20,7 @@ struct SSAOConstants
 };
 
 ConstantBuffer<SSAOConstants> constants;
-StructuredBuffer<float4> sampleKernel;
+StructuredBuffer<float4> kernelBuffer;
 Texture2D positionTexture;
 Texture2D normalTexture;
 Texture2D noiseTexture;
@@ -52,7 +52,7 @@ float4 PSMain(PSInput input) : SV_Target0
 
     for (int i = 0; i < constants.KernelSize; ++i)
     {
-        float3 sampleOffset = mul(sampleKernel[i].xyz, tangentToView);
+        float3 sampleOffset = mul(kernelBuffer[i].xyz, tangentToView);
         float3 samplePosition = viewPosition + sampleOffset * constants.Radius;
 
         float4 projectedPosition = mul(float4(samplePosition, 1.0), constants.Projection);
