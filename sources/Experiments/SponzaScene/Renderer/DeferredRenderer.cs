@@ -6,7 +6,12 @@ namespace SponzaScene.Renderer;
 internal class DeferredRenderer : DisposableObject
 {
     private readonly RenderContext context = new();
-    private readonly List<RenderPass> renderPasses = [new GBufferPass(), new SSAOPass()];
+    private readonly List<RenderPass> renderPasses =
+    [
+        new GBufferPass(),
+        new SSAOPass(),
+        new SSAOBlurPass()
+    ];
 
     public void Update(uint width, uint height, CameraController camera)
     {
