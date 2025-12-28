@@ -1,10 +1,26 @@
-﻿using Zenith.NET;
+﻿using Hexa.NET.ImGui;
+using Zenith.NET;
+using Buffer = Zenith.NET.Buffer;
 
 namespace SponzaScene.Renderer;
 
-internal unsafe class ComposePass() : FullscreenPass("Compose Pass")
+internal unsafe class ComposePass : FullscreenPass
 {
+    private readonly Buffer constantBuffer;
+
     private ResourceSet? resourceSet;
+
+    private float aoStrength = 1.0f;
+
+    public ComposePass() : base("Compose Pass")
+    {
+        constantBuffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)sizeof(ComposeConstants),
+            StrideInBytes = (uint)sizeof(ComposeConstants),
+            Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
+        });
+    }
 
     protected override string ShaderName => "Compose";
 
@@ -16,6 +32,7 @@ internal unsafe class ComposePass() : FullscreenPass("Compose Pass")
         {
             Bindings =
             [
+                new() { Type = ResourceType.ConstantBuffer, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel },
                 new() { Type = ResourceType.Texture, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel },
                 new() { Type = ResourceType.Texture, Index = 1, Count = 1, StageFlags = ShaderStageFlags.Pixel },
                 new() { Type = ResourceType.Sampler, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel }
@@ -30,6 +47,7 @@ internal unsafe class ComposePass() : FullscreenPass("Compose Pass")
             Layout = resourceLayout,
             Resources =
             [
+                constantBuffer,
                 context.Albedo!,
                 context.SSAOBlurred!,
                 App.PointSampler
@@ -44,10 +62,15 @@ internal unsafe class ComposePass() : FullscreenPass("Compose Pass")
 
     protected override void UpdateResources(RenderContext context)
     {
+        constantBuffer.Upload([new ComposeConstants
+        {
+            AOStrength = aoStrength
+        }], 0);
     }
 
     public override void DebugUI(RenderContext context)
     {
+        ImGui.SliderFloat("AO Strength", ref aoStrength, 0.0f, 2.0f);
     }
 
     public override void Resize(uint width, uint height)
@@ -59,7 +82,13 @@ internal unsafe class ComposePass() : FullscreenPass("Compose Pass")
     protected override void Destroy()
     {
         resourceSet?.Dispose();
+        constantBuffer.Dispose();
 
         base.Destroy();
+    }
+
+    private struct ComposeConstants
+    {
+        public float AOStrength;
     }
 }
