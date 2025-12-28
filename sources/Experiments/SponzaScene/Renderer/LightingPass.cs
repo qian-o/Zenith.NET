@@ -80,7 +80,7 @@ internal unsafe class LightingPass : FullscreenPass
         // 更新常量
         constantBuffer.Upload([new LightingConstants
         {
-            CameraPosition = context.CameraPosition,
+            CameraPosition = new(context.CameraPosition, 1.0f),
             DirectionalLight = App.Sponza.DirectionalLight
         }], 0);
     }
@@ -110,9 +110,7 @@ internal unsafe class LightingPass : FullscreenPass
 
     private struct LightingConstants
     {
-        public Vector3 CameraPosition;
-
-        public int Padding;
+        public Vector4 CameraPosition;
 
         public DirectionalLight DirectionalLight;
     }

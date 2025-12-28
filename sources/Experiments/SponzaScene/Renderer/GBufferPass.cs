@@ -34,9 +34,7 @@ internal unsafe class GBufferPass : RenderPass
         });
         materialBuffer.Upload([.. App.Sponza.Materials.Select(static item => new MaterialConstants()
         {
-            AlphaCutoff = item.AlphaCutoff,
-            MetallicFactor = item.MetallicFactor,
-            RoughnessFactor = item.RoughnessFactor,
+            AMRFactor = new Vector4(item.AlphaCutoff, item.MetallicFactor, item.RoughnessFactor, 0.0f),
             BaseColorFactor = item.BaseColorFactor,
             Flags = (item.AlphaCutoff > 0 ? MaterialFlags.UseAlphaCutoff : 0)
                     | (item.BaseColorTexture is not null ? MaterialFlags.HasBaseColorTexture : 0)
@@ -267,13 +265,7 @@ internal unsafe class GBufferPass : RenderPass
 
     private struct MaterialConstants
     {
-        public float AlphaCutoff;
-
-        public float MetallicFactor;
-
-        public float RoughnessFactor;
-
-        public float Padding;
+        public Vector4 AMRFactor; // X: Ambient Occlusion, Y: Metallic, Z: Roughness, W: (Padding)
 
         public Vector4 BaseColorFactor;
 

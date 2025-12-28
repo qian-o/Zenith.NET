@@ -31,23 +31,21 @@ internal unsafe class Sponza : DisposableObject
             Intensity = 2.5f
         };
 
-        PointLights = [];
+        List<PointLight> pointLights = [];
         foreach (Node node in Nodes.Where(static item => item.Name.Contains("Emissive")))
         {
             Material material = Materials[node.Material];
 
-            PointLights =
-            [
-                .. PointLights,
-                new()
-                {
-                    Position = node.WorldMatrix.Translation,
-                    Color = new(material.EmissiveColor.X,material.EmissiveColor.Y,material.EmissiveColor.Z),
-                    Intensity = material.EmissiveStrength,
-                    Radius = 10.0f
-                },
-            ];
+            pointLights.Add(new()
+            {
+                Position = node.WorldMatrix.Translation,
+                Color = new(material.EmissiveColor.X, material.EmissiveColor.Y, material.EmissiveColor.Z),
+                Intensity = material.EmissiveStrength,
+                Radius = 10.0f
+            });
         }
+
+        PointLights = [.. pointLights];
 
         Vertices = App.Context.CreateBuffer(new()
         {
