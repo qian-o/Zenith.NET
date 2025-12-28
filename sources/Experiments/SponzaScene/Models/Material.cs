@@ -43,12 +43,6 @@ internal class Material : DisposableObject
                 MetallicRoughnessTexture = App.Context.LoadTextureFromStream(stream);
             }
         }
-
-        if (material.FindChannel("Emissive") is MaterialChannel emissiveChannel)
-        {
-            EmissiveColor = emissiveChannel.Color;
-            EmissiveStrength = emissiveChannel.GetFactor("EmissiveStrength");
-        }
     }
 
     public string Id { get; } = Guid.NewGuid().ToString();
@@ -70,10 +64,6 @@ internal class Material : DisposableObject
     public float RoughnessFactor { get; }
 
     public Texture? MetallicRoughnessTexture { get; }
-
-    public Vector4 EmissiveColor { get; }
-
-    public float EmissiveStrength { get; }
 
     protected override void Destroy()
     {

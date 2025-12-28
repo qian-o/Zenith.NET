@@ -10,7 +10,7 @@ internal unsafe class Sponza : DisposableObject
 {
     public Sponza()
     {
-        ModelRoot root = ModelRoot.Load(Path.Combine("C:\\Users\\13247\\Desktop\\111", "Sponza.gltf"));
+        ModelRoot root = ModelRoot.Load(Path.Combine(AppContext.BaseDirectory, "Assets", "Sponza", "Sponza.gltf"));
 
         List<Node> nodes = [];
         List<Vertex> vertices = [];
@@ -31,21 +31,37 @@ internal unsafe class Sponza : DisposableObject
             Intensity = 2.5f
         };
 
-        List<PointLight> pointLights = [];
-        foreach (Node node in Nodes.Where(static item => item.Name.Contains("Emissive")))
-        {
-            Material material = Materials[node.Material];
-
-            pointLights.Add(new()
+        PointLights =
+        [
+            new()
             {
-                Position = node.WorldMatrix.Translation,
-                Color = new(material.EmissiveColor.X, material.EmissiveColor.Y, material.EmissiveColor.Z),
-                Intensity = material.EmissiveStrength,
+                Position = new Vector3(-4.94647f, 1.2f, 1.14748f),
+                Color = new Vector3(1.0f, 0.8f, 0.6f),
+                Intensity = 20.0f,
                 Radius = 10.0f
-            });
-        }
-
-        PointLights = [.. pointLights];
+            },
+            new()
+            {
+                Position = new Vector3(-4.94647f, 1.2f, -1.75868f),
+                Color = new Vector3(1.0f, 0.8f, 0.6f),
+                Intensity = 20.0f,
+                Radius = 10.0f
+            },
+            new()
+            {
+                Position = new Vector3(3.9f, 1.2f, 1.14748f),
+                Color = new Vector3(1.0f, 0.8f, 0.6f),
+                Intensity = 20.0f,
+                Radius = 10.0f
+            },
+            new()
+            {
+                Position = new Vector3(3.9f, 1.2f, -1.75846f),
+                Color = new Vector3(1.0f, 0.8f, 0.6f),
+                Intensity = 20.0f,
+                Radius = 10.0f
+            }
+        ];
 
         Vertices = App.Context.CreateBuffer(new()
         {
