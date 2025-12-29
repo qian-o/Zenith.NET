@@ -11,6 +11,7 @@ internal unsafe class ComposePass : FullscreenPass
     private ResourceSet? resourceSet;
 
     private float aoStrength = 1.0f;
+    private float bloomIntensity = 1.0f;
 
     public ComposePass() : base("Compose Pass")
     {
@@ -35,6 +36,7 @@ internal unsafe class ComposePass : FullscreenPass
                 new() { Type = ResourceType.ConstantBuffer, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel },
                 new() { Type = ResourceType.Texture, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel },
                 new() { Type = ResourceType.Texture, Index = 1, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+                new() { Type = ResourceType.Texture, Index = 2, Count = 1, StageFlags = ShaderStageFlags.Pixel },
                 new() { Type = ResourceType.Sampler, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel }
             ]
         });
@@ -50,6 +52,7 @@ internal unsafe class ComposePass : FullscreenPass
                 constantBuffer,
                 context.LitColor!,
                 context.SSAOBlurred!,
+                context.VerticalBloom!,
                 App.PointSampler
             ]
         });
@@ -64,13 +67,15 @@ internal unsafe class ComposePass : FullscreenPass
     {
         constantBuffer.Upload([new ComposeConstants
         {
-            AOStrength = aoStrength
+            AOStrength = aoStrength,
+            BloomIntensity = bloomIntensity
         }], 0);
     }
 
     public override void DebugUI(RenderContext context)
     {
         ImGui.SliderFloat("AO Strength", ref aoStrength, 0.0f, 2.0f);
+        ImGui.SliderFloat("Bloom Intensity", ref bloomIntensity, 0.0f, 2.0f);
     }
 
     public override void Resize(uint width, uint height)
@@ -90,5 +95,7 @@ internal unsafe class ComposePass : FullscreenPass
     private struct ComposeConstants
     {
         public float AOStrength;
+
+        public float BloomIntensity;
     }
 }
