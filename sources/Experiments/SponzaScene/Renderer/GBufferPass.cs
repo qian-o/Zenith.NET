@@ -39,7 +39,7 @@ internal unsafe class GBufferPass : RenderPass
 
         for (int i = 0; i < App.Sponza.Materials.Length; i++)
         {
-            uint offsetInBytes = ZenithHelper.Align((uint)(sizeof(MaterialConstants) * i), GraphicsContext.ConstantBufferAlignment);
+            uint offsetInBytes = (uint)(ZenithHelper.Align((uint)sizeof(MaterialConstants), GraphicsContext.ConstantBufferAlignment) * i);
 
             Material material = App.Sponza.Materials[i];
 
