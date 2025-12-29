@@ -14,7 +14,7 @@ internal class RenderContext : DisposableObject
             PixelFormat.R16G16B16A16Float,
             PixelFormat.R8G8B8A8UNorm,
             PixelFormat.R8G8B8A8UNorm,
-            PixelFormat.R8G8B8A8UNorm
+            PixelFormat.R16G16B16A16Float
         ],
         DepthStencilAttachment = PixelFormat.D32FloatS8UInt,
         SampleCount = SampleCount.Count1
@@ -29,12 +29,6 @@ internal class RenderContext : DisposableObject
     public static Output SSAOBlurOutput { get; } = new()
     {
         ColorAttachments = [PixelFormat.R8UNorm],
-        SampleCount = SampleCount.Count1
-    };
-
-    public static Output BloomOutput { get; } = new()
-    {
-        ColorAttachments = [PixelFormat.R16G16B16A16Float],
         SampleCount = SampleCount.Count1
     };
 
@@ -87,7 +81,9 @@ internal class RenderContext : DisposableObject
 
     public Texture? SSAOBlurred { get; private set; }
 
-    public Texture? Bloom { get; private set; }
+    public Texture? HorizontalBloom { get; private set; }
+
+    public Texture? VerticalBloom { get; private set; }
 
     public Texture? LitColor { get; private set; }
     #endregion
@@ -102,8 +98,6 @@ internal class RenderContext : DisposableObject
     public FrameBuffer? SSAOFrameBuffer { get; private set; }
 
     public FrameBuffer? SSAOBlurFrameBuffer { get; private set; }
-
-    public FrameBuffer? BloomFrameBuffer { get; private set; }
 
     public FrameBuffer? LightingFrameBuffer { get; private set; }
 
@@ -195,7 +189,7 @@ internal class RenderContext : DisposableObject
         Emissive = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
-            Format = PixelFormat.R8G8B8A8UNorm,
+            Format = PixelFormat.R16G16B16A16Float,
             Width = width,
             Height = height,
             Depth = 1,
@@ -231,7 +225,7 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
         });
 
-        Bloom = App.Context.CreateTexture(new()
+        HorizontalBloom = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
             Format = PixelFormat.R16G16B16A16Float,
@@ -241,7 +235,20 @@ internal class RenderContext : DisposableObject
             MipLevels = 1,
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+        });
+
+        VerticalBloom = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R16G16B16A16Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
         LitColor = App.Context.CreateTexture(new()
@@ -327,6 +334,9 @@ internal class RenderContext : DisposableObject
 
         FinalColor?.Dispose();
 
+        LitColor?.Dispose();
+        VerticalBloom?.Dispose();
+        HorizontalBloom?.Dispose();
         SSAOBlurred?.Dispose();
         SSAO?.Dispose();
 

@@ -139,11 +139,6 @@ internal unsafe class GBufferPass : RenderPass
 
     public override void Execute(CommandBuffer commandBuffer, RenderContext context)
     {
-        if (context.GBufferFrameBuffer is null)
-        {
-            return;
-        }
-
         cameraBuffer.Upload([new CameraConstants()
         {
             View = context.View,
@@ -154,7 +149,7 @@ internal unsafe class GBufferPass : RenderPass
 
         commandBuffer.PreprocessResourceSets(resourceSets);
 
-        commandBuffer.BindFrameBuffer(context.GBufferFrameBuffer, ClearValues.Default);
+        commandBuffer.BindFrameBuffer(context.GBufferFrameBuffer!, ClearValues.Default);
 
         // Cull back faces
         {

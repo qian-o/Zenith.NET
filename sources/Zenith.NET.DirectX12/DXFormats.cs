@@ -193,6 +193,11 @@ internal static class DXFormats
             flags |= ResourceFlags.AllowDepthStencil;
         }
 
+        if (textureUsageFlags.HasFlag(TextureUsageFlags.UnorderedAccess))
+        {
+            flags |= ResourceFlags.AllowUnorderedAccess;
+        }
+
         ResourceStates states = ResourceStates.Common;
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.RenderTarget))
