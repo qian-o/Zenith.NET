@@ -25,8 +25,6 @@ internal unsafe class SSAOBlurPass : FullscreenPass
 
     protected override string ShaderName => "SSAOBlur";
 
-    protected override Output Output => RenderContext.SSAOBlurOutput;
-
     public override void Resize(uint width, uint height)
     {
         resourceSet?.Dispose();
@@ -39,9 +37,10 @@ internal unsafe class SSAOBlurPass : FullscreenPass
         {
             Bindings = Bindings
             (
-                new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Pixel }
+                new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Compute }
             )
         });
     }
@@ -55,14 +54,10 @@ internal unsafe class SSAOBlurPass : FullscreenPass
             [
                 constantBuffer,
                 context.SSAO!,
+                context.SSAOBlurred!,
                 App.PointSampler
             ]
         });
-    }
-
-    protected override (FrameBuffer? FrameBuffer, ClearValue ClearValue) GetTarget(RenderContext context)
-    {
-        return (context.SSAOBlurFrameBuffer, ClearValues.Default);
     }
 
     protected override void UpdateResources(RenderContext context)

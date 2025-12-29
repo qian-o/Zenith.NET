@@ -4,8 +4,8 @@
 };
 
 ConstantBuffer<BloomConstants> constants;
-Texture2D<float4> sourceTexture;
-RWTexture2D<float4> outputTexture;
+Texture2D sourceTexture;
+RWTexture2D outputTexture;
 SamplerState linearSampler;
 
 static const float weights[5] = { 0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216 };

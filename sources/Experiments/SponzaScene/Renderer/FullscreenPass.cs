@@ -5,49 +5,33 @@ namespace SponzaScene.Renderer;
 
 internal abstract class FullscreenPass : RenderPass
 {
+    private const uint ThreadGroupSize = 16;
+
     private readonly ResourceLayout? resourceLayout;
-    private readonly GraphicsPipeline pipeline;
+    private readonly ComputePipeline pipeline;
 
     protected FullscreenPass(string name) : base(name)
     {
         resourceLayout = CreateResourceLayout();
 
-        using Shader vs = App.Context.LoadShaderFromFile(Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Common", "Fullscreen.slang"), "VSMain", ShaderStageFlags.Vertex);
-        using Shader ps = App.Context.LoadShaderFromFile(GetShaderPath(ShaderName), "PSMain", ShaderStageFlags.Pixel);
+        using Shader cs = App.Context.LoadShaderFromFile(GetShaderPath(ShaderName), "CSMain", ShaderStageFlags.Compute);
 
-        pipeline = App.Context.CreateGraphicsPipeline(new()
+        pipeline = App.Context.CreateComputePipeline(new()
         {
-            RenderStates = new()
-            {
-                RasterizerState = RasterizerStates.CullNone,
-                DepthStencilState = DepthStencilStates.None,
-                BlendState = BlendStates.Opaque
-            },
-            Vertex = vs,
-            Pixel = ps,
+            Compute = cs,
             ResourceLayouts = resourceLayout is null ? [] : [resourceLayout],
-            InputLayouts = [],
-            PrimitiveTopology = PrimitiveTopology.TriangleList,
-            Output = Output
+            ThreadGroupSizeX = ThreadGroupSize,
+            ThreadGroupSizeY = ThreadGroupSize,
+            ThreadGroupSizeZ = 1
         });
     }
 
     protected abstract string ShaderName { get; }
 
-    protected abstract Output Output { get; }
-
     protected sealed override void ExecuteImpl(CommandBuffer commandBuffer, RenderContext context)
     {
-        (FrameBuffer? frameBuffer, ClearValue clearValue) = GetTarget(context);
-
-        if (frameBuffer is null)
-        {
-            return;
-        }
-
         UpdateResources(context);
 
-        commandBuffer.BindFrameBuffer(frameBuffer, clearValue);
         commandBuffer.BindPipeline(pipeline);
 
         if (resourceLayout is not null)
@@ -56,7 +40,7 @@ internal abstract class FullscreenPass : RenderPass
             commandBuffer.BindResourceSet(EnsureResourceSet(resourceLayout, context), 0);
         }
 
-        commandBuffer.Draw(3, 1, 0, 0);
+        commandBuffer.Dispatch((context.Width + ThreadGroupSize - 1) / ThreadGroupSize, (context.Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
     }
 
     protected override void Destroy()
@@ -72,6 +56,4 @@ internal abstract class FullscreenPass : RenderPass
     protected abstract ResourceSet EnsureResourceSet(ResourceLayout resourceLayout, RenderContext context);
 
     protected abstract void UpdateResources(RenderContext context);
-
-    protected abstract (FrameBuffer? FrameBuffer, ClearValue ClearValue) GetTarget(RenderContext context);
 }

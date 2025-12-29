@@ -37,6 +37,7 @@ Texture2D positionTexture;
 Texture2D metallicRoughnessTexture;
 Texture2D emissiveTexture;
 Texture2D ssaoTexture;
+RWTexture2D outputTexture;
 SamplerState pointSampler;
 
 float DistributionGGX(float3 N, float3 H, float roughness)
@@ -164,9 +165,18 @@ float3 CalculatePointLight(PointLight light, float3 worldPos, float3 V, float3 N
     return CalculatePBRLight(L, V, N, albedo, metallic, roughness, radiance);
 }
 
-float4 PSMain(PSInput input) : SV_Target0
+[numthreads(16, 16, 1)]
+void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
-    float2 uv = input.TexCoord;
+    uint width, height;
+    outputTexture.GetDimensions(width, height);
+
+    if (dispatchThreadID.x >= width || dispatchThreadID.y >= height)
+    {
+        return;
+    }
+
+    float2 uv = (float2(dispatchThreadID.xy) + 0.5) / float2(width, height);
 
     float4 albedoData = albedoTexture.Sample(pointSampler, uv);
     float4 normalData = normalTexture.Sample(pointSampler, uv);
@@ -186,7 +196,7 @@ float4 PSMain(PSInput input) : SV_Target0
 
     if (length(worldPos) < 0.001)
     {
-        return float4(0.0, 0.0, 0.0, 1.0);
+        outputTexture[dispatchThreadID.xy] = float4(0.0, 0.0, 0.0, 1.0);
     }
 
     float3 V = normalize(constants.CameraPosition - worldPos);
@@ -211,5 +221,5 @@ float4 PSMain(PSInput input) : SV_Target0
     float3 emissive = emissiveColor * emissiveStrength;
     color += emissive;
 
-    return float4(color, 1.0);
+    outputTexture[dispatchThreadID.xy] = float4(color, 1.0);
 }

@@ -24,11 +24,21 @@ StructuredBuffer<float4> kernelBuffer;
 Texture2D positionTexture;
 Texture2D normalTexture;
 Texture2D noiseTexture;
+RWTexture2D outputTexture;
 SamplerState pointSampler;
 
-float PSMain(PSInput input) : SV_Target0
+[numthreads(16, 16, 1)]
+void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
-    float2 uv = input.TexCoord;
+    uint width, height;
+    outputTexture.GetDimensions(width, height);
+
+    if (dispatchThreadID.x >= width || dispatchThreadID.y >= height)
+    {
+        return;
+    }
+
+    float2 uv = (float2(dispatchThreadID.xy) + 0.5) / float2(width, height);
 
     float4 positionData = positionTexture.Sample(pointSampler, uv);
     float3 worldPosition = positionData.xyz;
@@ -36,7 +46,7 @@ float PSMain(PSInput input) : SV_Target0
 
     if (linearDepth <= 0.001)
     {
-        return 1.0;
+        outputTexture[dispatchThreadID.xy] = 1.0;
     }
 
     float3 viewPosition = mul(float4(worldPosition, 1.0), constants.View).xyz;
@@ -75,5 +85,5 @@ float PSMain(PSInput input) : SV_Target0
     float visibility = 1.0 - (totalOcclusion / float(constants.KernelSize));
     visibility = pow(saturate(visibility), constants.Intensity);
 
-    return visibility;
+    outputTexture[dispatchThreadID.xy] = visibility;
 }

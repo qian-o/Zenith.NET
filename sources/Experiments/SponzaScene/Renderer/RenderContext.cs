@@ -20,30 +20,6 @@ internal class RenderContext : DisposableObject
         SampleCount = SampleCount.Count1
     };
 
-    public static Output SSAOOutput { get; } = new()
-    {
-        ColorAttachments = [PixelFormat.R8UNorm],
-        SampleCount = SampleCount.Count1
-    };
-
-    public static Output SSAOBlurOutput { get; } = new()
-    {
-        ColorAttachments = [PixelFormat.R8UNorm],
-        SampleCount = SampleCount.Count1
-    };
-
-    public static Output LightingOutput { get; } = new()
-    {
-        ColorAttachments = [PixelFormat.R16G16B16A16Float],
-        SampleCount = SampleCount.Count1
-    };
-
-    public static Output ComposeOutput { get; } = new()
-    {
-        ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
-        SampleCount = SampleCount.Count1
-    };
-
     #region Frame Information
     public uint Width { get; private set; }
 
@@ -86,23 +62,11 @@ internal class RenderContext : DisposableObject
     public Texture? VerticalBloom { get; private set; }
 
     public Texture? LitColor { get; private set; }
-    #endregion
 
-    #region Final Composite
     public Texture? FinalColor { get; private set; }
     #endregion
 
-    #region Frame Buffers
     public FrameBuffer? GBufferFrameBuffer { get; private set; }
-
-    public FrameBuffer? SSAOFrameBuffer { get; private set; }
-
-    public FrameBuffer? SSAOBlurFrameBuffer { get; private set; }
-
-    public FrameBuffer? LightingFrameBuffer { get; private set; }
-
-    public FrameBuffer? ComposeFrameBuffer { get; private set; }
-    #endregion
 
     public void Initialize(uint width, uint height)
     {
@@ -209,7 +173,7 @@ internal class RenderContext : DisposableObject
             MipLevels = 1,
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
         SSAOBlurred = App.Context.CreateTexture(new()
@@ -222,7 +186,7 @@ internal class RenderContext : DisposableObject
             MipLevels = 1,
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
         HorizontalBloom = App.Context.CreateTexture(new()
@@ -261,7 +225,7 @@ internal class RenderContext : DisposableObject
             MipLevels = 1,
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
         FinalColor = App.Context.CreateTexture(new()
@@ -274,7 +238,7 @@ internal class RenderContext : DisposableObject
             MipLevels = 1,
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
         GBufferFrameBuffer = App.Context.CreateFrameBuffer(new()
@@ -291,49 +255,15 @@ internal class RenderContext : DisposableObject
             DepthStencilAttachment = new() { Target = Depth }
         });
 
-        SSAOFrameBuffer = App.Context.CreateFrameBuffer(new()
-        {
-            ColorAttachments =
-            [
-                new() { Target = SSAO }
-            ]
-        });
-
-        SSAOBlurFrameBuffer = App.Context.CreateFrameBuffer(new()
-        {
-            ColorAttachments =
-            [
-                new() { Target = SSAOBlurred }
-            ]
-        });
-
-        LightingFrameBuffer = App.Context.CreateFrameBuffer(new()
-        {
-            ColorAttachments = [new() { Target = LitColor }]
-        });
-
-        ComposeFrameBuffer = App.Context.CreateFrameBuffer(new()
-        {
-            ColorAttachments =
-            [
-                new() { Target = FinalColor }
-            ]
-        });
-
         Width = width;
         Height = height;
     }
 
     protected override void Destroy()
     {
-        ComposeFrameBuffer?.Dispose();
-        LightingFrameBuffer?.Dispose();
-        SSAOBlurFrameBuffer?.Dispose();
-        SSAOFrameBuffer?.Dispose();
         GBufferFrameBuffer?.Dispose();
 
         FinalColor?.Dispose();
-
         LitColor?.Dispose();
         VerticalBloom?.Dispose();
         HorizontalBloom?.Dispose();

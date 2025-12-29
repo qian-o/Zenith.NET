@@ -43,8 +43,6 @@ internal unsafe class SSAOPass : FullscreenPass
 
     protected override string ShaderName => "SSAO";
 
-    protected override Output Output => RenderContext.SSAOOutput;
-
     public override void Resize(uint width, uint height)
     {
         resourceSet?.Dispose();
@@ -57,12 +55,13 @@ internal unsafe class SSAOPass : FullscreenPass
         {
             Bindings = Bindings
             (
-                new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Pixel }
+                new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Compute }
             )
         });
     }
@@ -79,14 +78,10 @@ internal unsafe class SSAOPass : FullscreenPass
                 context.Position!,
                 context.Normal!,
                 noiseTexture,
+                context.SSAO!,
                 App.PointSampler
             ]
         });
-    }
-
-    protected override (FrameBuffer? FrameBuffer, ClearValue ClearValue) GetTarget(RenderContext context)
-    {
-        return (context.SSAOFrameBuffer, ClearValues.Default);
     }
 
     protected override void UpdateResources(RenderContext context)
