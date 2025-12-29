@@ -51,6 +51,25 @@ internal class Material : DisposableObject
         }
     }
 
+    public Material(string name,
+                    bool doubleSided = false,
+                    float alphaCutoff = 0.5f,
+                    Vector4? baseColorFactor = null,
+                    float metallicFactor = 1.0f,
+                    float roughnessFactor = 1.0f,
+                    Vector4? emissiveFactor = null,
+                    float emissiveStrength = 1.0f)
+    {
+        Name = name;
+        DoubleSided = doubleSided;
+        AlphaCutoff = alphaCutoff;
+        BaseColorFactor = baseColorFactor ?? Vector4.One;
+        MetallicFactor = metallicFactor;
+        RoughnessFactor = roughnessFactor;
+        EmissiveFactor = emissiveFactor ?? Vector4.Zero;
+        EmissiveStrength = emissiveStrength;
+    }
+
     public string Id { get; } = Guid.NewGuid().ToString();
 
     public string Name { get; }

@@ -20,54 +20,20 @@ internal unsafe class Sponza : DisposableObject
             ProcessNode(node, nodes, vertices, indices);
         }
 
+        AddCube(new(-4.94647f, 1.2f, 1.14748f), 0.2f, (uint)root.LogicalMaterials.Count, nodes, vertices, indices);
+        AddCube(new(-4.94647f, 1.2f, -1.75868f), 0.2f, (uint)root.LogicalMaterials.Count, nodes, vertices, indices);
+        AddCube(new(3.9f, 1.2f, 1.14748f), 0.2f, (uint)root.LogicalMaterials.Count, nodes, vertices, indices);
+        AddCube(new(3.9f, 1.2f, -1.75846f), 0.2f, (uint)root.LogicalMaterials.Count, nodes, vertices, indices);
+
         Nodes = [.. nodes];
 
-        Materials = [.. root.LogicalMaterials.Select(static material => new Material(material))];
-
-        DirectionalLight = new()
-        {
-            Direction = Vector3.Normalize(new Vector3(0.2f, -1.0f, 0.3f)),
-            Color = new Vector3(1.0f, 0.95f, 0.85f),
-            Intensity = 2.5f
-        };
-
-        PointLights =
-        [
-            new()
-            {
-                Position = new Vector3(-4.94647f, 1.2f, 1.14748f),
-                Color = new Vector3(1.0f, 0.8f, 0.6f),
-                Intensity = 20.0f,
-                Radius = 10.0f
-            },
-            new()
-            {
-                Position = new Vector3(-4.94647f, 1.2f, -1.75868f),
-                Color = new Vector3(1.0f, 0.8f, 0.6f),
-                Intensity = 20.0f,
-                Radius = 10.0f
-            },
-            new()
-            {
-                Position = new Vector3(3.9f, 1.2f, 1.14748f),
-                Color = new Vector3(1.0f, 0.8f, 0.6f),
-                Intensity = 20.0f,
-                Radius = 10.0f
-            },
-            new()
-            {
-                Position = new Vector3(3.9f, 1.2f, -1.75846f),
-                Color = new Vector3(1.0f, 0.8f, 0.6f),
-                Intensity = 20.0f,
-                Radius = 10.0f
-            }
-        ];
+        Materials = [.. root.LogicalMaterials.Select(static material => new Material(material)), new("Emissive", emissiveFactor: new(1.0f, 0.8f, 0.6f, 1.0f), emissiveStrength: 20.0f)];
 
         Vertices = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)(sizeof(Vertex) * vertices.Count),
             StrideInBytes = (uint)sizeof(Vertex),
-            Flags = BufferUsageFlags.Vertex | BufferUsageFlags.AccelerationStructure
+            Flags = BufferUsageFlags.Vertex
         });
         Vertices.Upload([.. vertices], 0);
 
@@ -75,51 +41,49 @@ internal unsafe class Sponza : DisposableObject
         {
             SizeInBytes = (uint)(sizeof(uint) * indices.Count),
             StrideInBytes = sizeof(uint),
-            Flags = BufferUsageFlags.Index | BufferUsageFlags.AccelerationStructure
+            Flags = BufferUsageFlags.Index
         });
         Indices.Upload([.. indices], 0);
-
-        if (App.Context.Capabilities.RayTracingSupported)
-        {
-            RayTracingGeometry[] geometries = new RayTracingGeometry[Nodes.Length];
-
-            for (int i = 0; i < Nodes.Length; i++)
-            {
-                Node node = Nodes[i];
-
-                geometries[i] = new()
-                {
-                    Type = RayTracingGeometryType.Triangles,
-                    Triangles = new()
-                    {
-                        VertexBuffer = Vertices,
-                        VertexFormat = PixelFormat.R32G32B32Float,
-                        VertexCount = node.VertexCount,
-                        VertexStrideInBytes = (uint)sizeof(Vertex),
-                        VertexOffsetInBytes = (uint)(sizeof(Vertex) * node.Args.VertexOffset),
-                        IndexBuffer = Indices,
-                        IndexFormat = IndexFormat.UInt32,
-                        IndexCount = node.Args.IndexCount,
-                        IndexOffsetInBytes = sizeof(uint) * node.Args.FirstIndex,
-                        Transform = Matrix4x4.Identity
-                    },
-                    Flags = RayTracingGeometryFlags.Opaque
-                };
-            }
-
-            CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
-
-            BLAS = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc()
-            {
-                Geometries = geometries,
-                Flags = AccelerationStructureBuildFlags.PreferFastBuild
-            });
-
-            commandBuffer.Submit();
-
-            App.Context.Graphics.WaitIdle();
-        }
     }
+
+    public DirectionalLight DirectionalLight { get; } = new()
+    {
+        Direction = Vector3.Normalize(new(0.2f, -1.0f, 0.3f)),
+        Color = new(1.0f, 0.95f, 0.85f),
+        Intensity = 2.5f
+    };
+
+    public PointLight[] PointLights { get; } =
+    [
+        new()
+        {
+            Position = new(-4.94647f, 1.2f, 1.14748f),
+            Color = new(1.0f, 0.8f, 0.6f),
+            Intensity = 20.0f,
+            Radius = 10.0f
+        },
+        new()
+        {
+            Position = new(-4.94647f, 1.2f, -1.75868f),
+            Color = new(1.0f, 0.8f, 0.6f),
+            Intensity = 20.0f,
+            Radius = 10.0f
+        },
+        new()
+        {
+            Position = new(3.9f, 1.2f, 1.14748f),
+            Color = new(1.0f, 0.8f, 0.6f),
+            Intensity = 20.0f,
+            Radius = 10.0f
+        },
+        new()
+        {
+            Position = new(3.9f, 1.2f, -1.75846f),
+            Color = new(1.0f, 0.8f, 0.6f),
+            Intensity = 20.0f,
+            Radius = 10.0f
+        }
+    ];
 
     public Node[] Nodes { get; }
 
@@ -129,16 +93,8 @@ internal unsafe class Sponza : DisposableObject
 
     public Material[] Materials { get; }
 
-    public DirectionalLight DirectionalLight { get; }
-
-    public PointLight[] PointLights { get; }
-
-    public BottomLevelAccelerationStructure? BLAS { get; }
-
     protected override void Destroy()
     {
-        BLAS?.Dispose();
-
         foreach (Material material in Materials)
         {
             material.Dispose();
@@ -212,7 +168,71 @@ internal unsafe class Sponza : DisposableObject
 
             indices.AddRange(primitive.IndexAccessor.AsIndicesArray());
 
-            nodes.Add(new(node.Name, node.WorldMatrix, vertexCount, args, (uint)primitive.Material.LogicalIndex));
+            nodes.Add(new(node.Name, vertexCount, args, (uint)primitive.Material.LogicalIndex));
         }
+    }
+
+    private static void AddCube(Vector3 center, float size, uint material, List<Node> nodes, List<Vertex> vertices, List<uint> indices)
+    {
+        float halfSize = size * 0.5f;
+        uint baseIndex = (uint)vertices.Count;
+        uint firstIndex = (uint)indices.Count;
+
+        Vector3[] positions =
+        [
+            new(-halfSize, -halfSize, -halfSize),
+            new(halfSize, -halfSize, -halfSize),
+            new(halfSize, halfSize, -halfSize),
+            new(-halfSize, halfSize, -halfSize),
+            new(-halfSize, -halfSize, halfSize),
+            new(halfSize, -halfSize, halfSize),
+            new(halfSize, halfSize, halfSize),
+            new(-halfSize, halfSize, halfSize)
+        ];
+
+        Vector3[] normals = [new(0, 0, -1), new(0, 0, 1), new(-1, 0, 0), new(1, 0, 0), new(0, -1, 0), new(0, 1, 0)];
+
+        Vector2[] uvs = [new(0, 1), new(1, 1), new(1, 0), new(0, 0)];
+
+        uint[][] faceVertexIndices = [[0, 1, 2, 3], [5, 4, 7, 6], [4, 0, 3, 7], [1, 5, 6, 2], [4, 5, 1, 0], [3, 2, 6, 7]];
+
+        uint vertexCount = 0;
+
+        for (uint face = 0; face < 6; face++)
+        {
+            Vector3 normal = normals[face];
+
+            for (int corner = 0; corner < 4; corner++)
+            {
+                vertices.Add(new()
+                {
+                    Position = positions[faceVertexIndices[face][corner]] + center,
+                    Normal = normal,
+                    TexCoord = uvs[corner],
+                    Color = Vector4.One
+                });
+            }
+
+            uint faceBase = face * 4;
+
+            indices.Add(faceBase + 0);
+            indices.Add(faceBase + 1);
+            indices.Add(faceBase + 2);
+            indices.Add(faceBase + 0);
+            indices.Add(faceBase + 2);
+            indices.Add(faceBase + 3);
+
+            vertexCount += 4;
+        }
+
+        IndirectDrawIndexedArgs args = new()
+        {
+            IndexCount = 36,
+            InstanceCount = 1,
+            FirstIndex = firstIndex,
+            VertexOffset = (int)baseIndex
+        };
+
+        nodes.Add(new($"EmissiveCube_{center}", vertexCount, args, material));
     }
 }
