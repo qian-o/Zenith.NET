@@ -12,6 +12,8 @@ internal class RenderContext : DisposableObject
             PixelFormat.R8G8B8A8UNorm,
             PixelFormat.R16G16B16A16Float,
             PixelFormat.R16G16B16A16Float,
+            PixelFormat.R8G8B8A8UNorm,
+            PixelFormat.R8G8B8A8UNorm,
             PixelFormat.R8G8B8A8UNorm
         ],
         DepthStencilAttachment = PixelFormat.D32FloatS8UInt,
@@ -20,7 +22,7 @@ internal class RenderContext : DisposableObject
 
     public static Output SSAOOutput { get; } = new()
     {
-        ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
+        ColorAttachments = [PixelFormat.R8UNorm],
         SampleCount = SampleCount.Count1
     };
 
@@ -62,6 +64,10 @@ internal class RenderContext : DisposableObject
     public Texture? Depth { get; private set; }
 
     public Texture? NormalizedDepth { get; private set; }
+
+    public Texture? MetallicRoughness { get; private set; }
+
+    public Texture? Emissive { get; private set; }
     #endregion
 
     #region Intermediate Textures
@@ -157,7 +163,7 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
         });
 
-        SSAO = App.Context.CreateTexture(new()
+        MetallicRoughness = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
             Format = PixelFormat.R8G8B8A8UNorm,
@@ -170,10 +176,36 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
         });
 
-        SSAOBlurred = App.Context.CreateTexture(new()
+        Emissive = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
             Format = PixelFormat.R8G8B8A8UNorm,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
+        });
+
+        SSAO = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R8UNorm,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
+        });
+
+        SSAOBlurred = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R8UNorm,
             Width = width,
             Height = height,
             Depth = 1,
@@ -216,7 +248,9 @@ internal class RenderContext : DisposableObject
                 new() { Target = Albedo },
                 new() { Target = Normal },
                 new() { Target = Position },
-                new() { Target = NormalizedDepth }
+                new() { Target = NormalizedDepth },
+                new() { Target = MetallicRoughness },
+                new() { Target = Emissive }
             ],
             DepthStencilAttachment = new() { Target = Depth }
         });

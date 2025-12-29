@@ -34,6 +34,8 @@ StructuredBuffer<PointLight> pointLights;
 Texture2D albedoTexture;
 Texture2D normalTexture;
 Texture2D positionTexture;
+Texture2D metallicRoughnessTexture;
+Texture2D emissiveTexture;
 Texture2D ssaoTexture;
 SamplerState pointSampler;
 
@@ -169,11 +171,11 @@ float4 PSMain(PSInput input) : SV_Target0
     float4 albedoData = albedoTexture.Sample(pointSampler, uv);
     float4 normalData = normalTexture.Sample(pointSampler, uv);
     float3 worldPos = positionTexture.Sample(pointSampler, uv).xyz;
+    float2 metallicRoughnessData = metallicRoughnessTexture.Sample(pointSampler, uv).xy;
+    metallicRoughnessData.y = clamp(metallicRoughnessData.y, 0.04, 1.0);
 
     float3 albedo = albedoData.rgb;
-    float metallic = albedoData.a;
     float3 N = normalize(normalData.xyz);
-    float roughness = max(normalData.a, 0.04);
 
     float ao = ssaoTexture.Sample(pointSampler, uv).r;
 
@@ -185,16 +187,18 @@ float4 PSMain(PSInput input) : SV_Target0
     float3 V = normalize(constants.CameraPosition - worldPos);
 
     float3 ambientColor = float3(0.5, 0.6, 0.8) * 0.3;
-    float3 ambient = CalculateAmbient(N, V, albedo, metallic, roughness, ao, ambientColor);
+    float3 ambient = CalculateAmbient(N, V, albedo, metallicRoughnessData.x, metallicRoughnessData.y, ao, ambientColor);
 
     float3 Lo = float3(0.0, 0.0, 0.0);
 
-    Lo += CalculateDirectionalLight(constants.DirectionalLight, V, N, albedo, metallic, roughness);
+    Lo += CalculateDirectionalLight(constants.DirectionalLight, V, N, albedo, metallicRoughnessData.x,
+                                    metallicRoughnessData.y);
 
     uint pointLightCount = pointLights.getCount();
     for (uint i = 0; i < pointLightCount; i++)
     {
-        Lo += CalculatePointLight(pointLights[i], worldPos, V, N, albedo, metallic, roughness);
+        Lo += CalculatePointLight(pointLights[i], worldPos, V, N, albedo, metallicRoughnessData.x,
+                                  metallicRoughnessData.y);
     }
 
     float3 color = ambient + Lo;

@@ -47,6 +47,8 @@ internal unsafe class LightingPass : FullscreenPass
                 new() { Type = ResourceType.Texture, Index = 2, Count = 1, StageFlags = ShaderStageFlags.Pixel },
                 new() { Type = ResourceType.Texture, Index = 3, Count = 1, StageFlags = ShaderStageFlags.Pixel },
                 new() { Type = ResourceType.Texture, Index = 4, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+                new() { Type = ResourceType.Texture, Index = 5, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+                new() { Type = ResourceType.Texture, Index = 6, Count = 1, StageFlags = ShaderStageFlags.Pixel },
                 new() { Type = ResourceType.Sampler, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel }
             ]
         });
@@ -64,6 +66,8 @@ internal unsafe class LightingPass : FullscreenPass
                 context.Albedo!,
                 context.Normal!,
                 context.Position!,
+                context.MetallicRoughness!,
+                context.Emissive!,
                 context.SSAOBlurred!,
                 App.PointSampler
             ]

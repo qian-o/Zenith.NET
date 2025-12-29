@@ -71,6 +71,11 @@ internal unsafe class SSAOBlurPass : FullscreenPass
     public override void DebugUI(RenderContext context)
     {
         ImGui.SliderInt("Blur Size", ref blurSize, 1, 8);
+
+        Vector2 size = new(ImGui.GetContentRegionAvail().X);
+        size = size with { Y = size.X * context.Height / context.Width };
+
+        ImGui.Image(App.Binding(context.SSAOBlurred!), size);
     }
 
     public override void Resize(uint width, uint height)

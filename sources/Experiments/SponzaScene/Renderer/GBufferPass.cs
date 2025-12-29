@@ -34,8 +34,12 @@ internal unsafe class GBufferPass : RenderPass
         });
         materialBuffer.Upload([.. App.Sponza.Materials.Select(static item => new MaterialConstants()
         {
-            AMRFactor = new Vector4(item.AlphaCutoff, item.MetallicFactor, item.RoughnessFactor, 0.0f),
+            AlphaCutoff = item.AlphaCutoff,
+            MetallicFactor = item.MetallicFactor,
+            RoughnessFactor = item.RoughnessFactor,
+            EmissiveStrength = item.EmissiveStrength,
             BaseColorFactor = item.BaseColorFactor,
+            EmissiveFactor = item.EmissiveFactor,
             Flags = (item.AlphaCutoff > 0 ? MaterialFlags.UseAlphaCutoff : 0)
                     | (item.BaseColorTexture is not null ? MaterialFlags.HasBaseColorTexture : 0)
                     | (item.NormalTexture is not null ? MaterialFlags.HasNormalTexture : 0)
@@ -189,7 +193,7 @@ internal unsafe class GBufferPass : RenderPass
 
     public override void DebugUI(RenderContext context)
     {
-        Vector2 size = new((ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X) / 2.0f);
+        Vector2 size = new((ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X) / 3.0f);
         size = size with { Y = size.X * context.Height / context.Width };
 
         ImGui.BeginGroup();
@@ -204,16 +208,30 @@ internal unsafe class GBufferPass : RenderPass
         ImGui.Image(App.Binding(context.Normal!), size);
         ImGui.EndGroup();
 
+        ImGui.SameLine();
+
         ImGui.BeginGroup();
         ImGui.Text("Position");
         ImGui.Image(App.Binding(context.Position!), size);
         ImGui.EndGroup();
 
-        ImGui.SameLine();
-
         ImGui.BeginGroup();
         ImGui.Text("Depth");
         ImGui.Image(App.Binding(context.NormalizedDepth!), size);
+        ImGui.EndGroup();
+
+        ImGui.SameLine();
+
+        ImGui.BeginGroup();
+        ImGui.Text("Metallic Roughness");
+        ImGui.Image(App.Binding(context.MetallicRoughness!), size);
+        ImGui.EndGroup();
+
+        ImGui.SameLine();
+
+        ImGui.BeginGroup();
+        ImGui.Text("Emissive");
+        ImGui.Image(App.Binding(context.Emissive!), size);
         ImGui.EndGroup();
     }
 
@@ -265,9 +283,17 @@ internal unsafe class GBufferPass : RenderPass
 
     private struct MaterialConstants
     {
-        public Vector4 AMRFactor; // X: Ambient Occlusion, Y: Metallic, Z: Roughness, W: (Padding)
+        public float AlphaCutoff;
+
+        public float MetallicFactor;
+
+        public float RoughnessFactor;
+
+        public float EmissiveStrength;
 
         public Vector4 BaseColorFactor;
+
+        public Vector4 EmissiveFactor;
 
         public MaterialFlags Flags;
     }

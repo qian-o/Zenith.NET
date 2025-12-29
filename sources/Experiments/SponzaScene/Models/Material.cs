@@ -31,17 +31,23 @@ internal class Material : DisposableObject
             NormalTexture = App.Context.LoadTextureFromStream(stream, false);
         }
 
-        if (material.FindChannel("MetallicRoughness") is MaterialChannel materialChannel)
+        if (material.FindChannel("MetallicRoughness") is MaterialChannel mr)
         {
-            MetallicFactor = materialChannel.GetFactor("MetallicFactor");
-            RoughnessFactor = materialChannel.GetFactor("RoughnessFactor");
+            MetallicFactor = mr.GetFactor("MetallicFactor");
+            RoughnessFactor = mr.GetFactor("RoughnessFactor");
 
-            if (materialChannel.Texture is GTexture metallicRoughnessTexture)
+            if (mr.Texture is GTexture metallicRoughnessTexture)
             {
                 using MemoryStream stream = new(metallicRoughnessTexture.PrimaryImage.Content.Content.ToArray());
 
                 MetallicRoughnessTexture = App.Context.LoadTextureFromStream(stream);
             }
+        }
+
+        if (material.FindChannel("Emissive") is MaterialChannel e)
+        {
+            EmissiveFactor = e.Color;
+            EmissiveStrength = e.GetFactor("EmissiveStrength");
         }
     }
 
@@ -64,6 +70,10 @@ internal class Material : DisposableObject
     public float RoughnessFactor { get; }
 
     public Texture? MetallicRoughnessTexture { get; }
+
+    public Vector4 EmissiveFactor { get; }
+
+    public float EmissiveStrength { get; }
 
     protected override void Destroy()
     {

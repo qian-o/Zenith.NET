@@ -32,7 +32,11 @@ struct MaterialConstants
 
     float RoughnessFactor;
 
+    float EmissiveStrength;
+
     float4 BaseColorFactor;
+
+    float4 EmissiveFactor;
 
     MaterialFlags Flags;
 };
@@ -63,10 +67,10 @@ struct PSInput
 
 struct PSOutput
 {
-    // RGB: Albedo, A: Metallic
+    // RGB: Albedo, A: unused
     float4 Albedo : SV_Target0;
 
-    // RGB: World Normal, A: Roughness
+    // RGB: World Normal, A: unused
     float4 Normal : SV_Target1;
 
     // RGB: World Position, A: unused
@@ -74,6 +78,12 @@ struct PSOutput
 
     // RGB: Normalized Depth A: unused
     float4 NormalizedDepth : SV_Target3;
+
+    // R: Metallic, G: Roughness, B/A: unused
+    float4 MetallicRoughness : SV_Target4;
+
+    // RGB: Emissive, A: Emissive Strength
+    float4 Emissive : SV_Target5;
 };
 
 float LinearizeDepth(float depth, float nearPlane, float farPlane)
@@ -137,10 +147,12 @@ PSOutput PSMain(PSInput input)
 
     float normalizedDepth = LinearizeDepth(input.Position.z, camera.NearPlane, camera.FarPlane) / camera.FarPlane;
 
-    output.Albedo = float4(baseColor.rgb, metallic);
-    output.Normal = float4(normal, roughness);
+    output.Albedo = float4(baseColor.rgb, 1.0);
+    output.Normal = float4(normal, 1.0);
     output.Position = float4(input.WorldPosition, 1.0);
     output.NormalizedDepth = float4(normalizedDepth, normalizedDepth, normalizedDepth, 1.0);
+    output.MetallicRoughness = float4(metallic, roughness, 0.0, 1.0);
+    output.Emissive = float4(material.EmissiveFactor.rgb, material.EmissiveStrength);
 
     return output;
 }

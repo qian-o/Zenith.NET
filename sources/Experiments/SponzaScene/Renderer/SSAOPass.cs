@@ -103,6 +103,11 @@ internal unsafe class SSAOPass : FullscreenPass
         ImGui.SliderFloat("Radius", ref radius, 0.01f, 2.0f);
         ImGui.SliderFloat("Bias", ref bias, 0.001f, 0.1f);
         ImGui.SliderFloat("Intensity", ref intensity, 0.1f, 5.0f);
+
+        Vector2 size = new(ImGui.GetContentRegionAvail().X);
+        size = size with { Y = size.X * context.Height / context.Width };
+
+        ImGui.Image(App.Binding(context.SSAO!), size);
     }
 
     public override void Resize(uint width, uint height)

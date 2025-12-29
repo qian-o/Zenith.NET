@@ -26,7 +26,7 @@ Texture2D normalTexture;
 Texture2D noiseTexture;
 SamplerState pointSampler;
 
-float4 PSMain(PSInput input) : SV_Target0
+float PSMain(PSInput input) : SV_Target0
 {
     float2 uv = input.TexCoord;
 
@@ -36,7 +36,7 @@ float4 PSMain(PSInput input) : SV_Target0
 
     if (linearDepth <= 0.001)
     {
-        return float4(1.0, 1.0, 1.0, 1.0);
+        return 1.0;
     }
 
     float3 viewPosition = mul(float4(worldPosition, 1.0), constants.View).xyz;
@@ -57,7 +57,7 @@ float4 PSMain(PSInput input) : SV_Target0
 
         float4 projectedPosition = mul(float4(samplePosition, 1.0), constants.Projection);
         projectedPosition.xyz /= projectedPosition.w;
-        
+
         float2 sampleUV = projectedPosition.xy * 0.5 + 0.5;
         sampleUV.y = 1.0 - sampleUV.y;
 
@@ -78,8 +78,7 @@ float4 PSMain(PSInput input) : SV_Target0
     }
 
     float visibility = 1.0 - (totalOcclusion / float(constants.KernelSize));
-
     visibility = pow(saturate(visibility), constants.Intensity);
 
-    return float4(visibility, visibility, visibility, 1.0);
+    return visibility;
 }

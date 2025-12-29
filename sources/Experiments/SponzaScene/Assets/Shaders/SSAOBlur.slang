@@ -11,7 +11,7 @@ ConstantBuffer<BlurConstants> constants;
 Texture2D ssaoTexture;
 SamplerState pointSampler;
 
-float4 PSMain(PSInput input) : SV_Target0
+float PSMain(PSInput input) : SV_Target0
 {
     float2 uv = input.TexCoord;
 
@@ -31,5 +31,5 @@ float4 PSMain(PSInput input) : SV_Target0
 
     result /= float(sampleCount);
 
-    return float4(result, result, result, 1.0);
+    return result;
 }
