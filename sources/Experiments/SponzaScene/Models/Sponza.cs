@@ -194,7 +194,7 @@ internal unsafe class Sponza : DisposableObject
 
         Vector2[] uvs = [new(0, 1), new(1, 1), new(1, 0), new(0, 0)];
 
-        uint[][] faceVertexIndices = [[0, 1, 2, 3], [5, 4, 7, 6], [4, 0, 3, 7], [1, 5, 6, 2], [4, 5, 1, 0], [3, 2, 6, 7]];
+        uint[][] faceVertexIndices = [[0, 3, 2, 1], [4, 5, 6, 7], [4, 7, 3, 0], [1, 2, 6, 5], [4, 0, 1, 5], [3, 7, 6, 2]];
 
         uint vertexCount = 0;
 
