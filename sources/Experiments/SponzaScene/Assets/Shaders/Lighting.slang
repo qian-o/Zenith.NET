@@ -171,8 +171,13 @@ float4 PSMain(PSInput input) : SV_Target0
     float4 albedoData = albedoTexture.Sample(pointSampler, uv);
     float4 normalData = normalTexture.Sample(pointSampler, uv);
     float3 worldPos = positionTexture.Sample(pointSampler, uv).xyz;
+
     float2 metallicRoughnessData = metallicRoughnessTexture.Sample(pointSampler, uv).xy;
     metallicRoughnessData.y = clamp(metallicRoughnessData.y, 0.04, 1.0);
+
+    float4 emissiveData = emissiveTexture.Sample(pointSampler, uv);
+    float3 emissiveColor = emissiveData.rgb;
+    float emissiveStrength = emissiveData.a;
 
     float3 albedo = albedoData.rgb;
     float3 N = normalize(normalData.xyz);
@@ -202,6 +207,9 @@ float4 PSMain(PSInput input) : SV_Target0
     }
 
     float3 color = ambient + Lo;
+
+    float3 emissive = emissiveColor * emissiveStrength;
+    color += emissive;
 
     return float4(color, 1.0);
 }
