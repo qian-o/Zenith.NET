@@ -50,7 +50,7 @@ float PSMain(PSInput input) : SV_Target0
 
     float totalOcclusion = 0.0;
 
-    for (int i = 0; i < constants.KernelSize; ++i)
+    for (int i = 0; i < constants.KernelSize; i++)
     {
         float3 sampleOffset = mul(kernelBuffer[i].xyz, tangentToView);
         float3 samplePosition = viewPosition + sampleOffset * constants.Radius;
@@ -60,11 +60,6 @@ float PSMain(PSInput input) : SV_Target0
 
         float2 sampleUV = projectedPosition.xy * 0.5 + 0.5;
         sampleUV.y = 1.0 - sampleUV.y;
-
-        if (sampleUV.x < 0.0 || sampleUV.x > 1.0 || sampleUV.y < 0.0 || sampleUV.y > 1.0)
-        {
-            continue;
-        }
 
         float3 sampledWorldPosition = positionTexture.Sample(pointSampler, sampleUV).xyz;
         float3 sampledViewPosition = mul(float4(sampledWorldPosition, 1.0), constants.View).xyz;
