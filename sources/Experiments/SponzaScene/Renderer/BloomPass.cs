@@ -30,13 +30,13 @@ internal unsafe class BloomPass : RenderPass
 
         resourceLayout = App.Context.CreateResourceLayout(new()
         {
-            Bindings =
-            [
-                new() { Type = ResourceType.ConstantBuffer, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.Texture, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.TextureReadWrite, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.Sampler, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Compute }
-            ]
+            Bindings = Bindings
+            (
+                new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Compute }
+            )
         });
 
         using Shader cs = App.Context.LoadShaderFromFile(GetShaderPath("Bloom"), "CSMain", ShaderStageFlags.Compute);

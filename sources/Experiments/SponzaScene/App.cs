@@ -23,7 +23,7 @@ internal static class App
 
     static App()
     {
-        Context = GraphicsContext.CreateDirectX12(true);
+        Context = GraphicsContext.CreateVulkan(true);
         Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
 
         Sponza = new();
@@ -55,6 +55,7 @@ internal static class App
         });
 
         window = Window.Create(WindowOptions.Default with { API = GraphicsAPI.None });
+        window.WindowState = WindowState.Maximized;
         window.Initialize();
 
         inputContext = window.CreateInput();

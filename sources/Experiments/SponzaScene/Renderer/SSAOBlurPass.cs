@@ -31,12 +31,12 @@ internal unsafe class SSAOBlurPass : FullscreenPass
     {
         return App.Context.CreateResourceLayout(new()
         {
-            Bindings =
-            [
-                new() { Type = ResourceType.ConstantBuffer, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Texture, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Sampler, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel }
-            ]
+            Bindings = Bindings
+            (
+                new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+                new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Pixel }
+            )
         });
     }
 

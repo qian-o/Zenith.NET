@@ -11,7 +11,7 @@ internal unsafe class ComposePass : FullscreenPass
     private ResourceSet? resourceSet;
 
     private float aoStrength = 1.0f;
-    private float bloomIntensity = 1.0f;
+    private float bloomIntensity = 1.5f;
 
     public ComposePass() : base("Compose Pass")
     {
@@ -31,14 +31,14 @@ internal unsafe class ComposePass : FullscreenPass
     {
         return App.Context.CreateResourceLayout(new()
         {
-            Bindings =
-            [
-                new() { Type = ResourceType.ConstantBuffer, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Texture, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Texture, Index = 1, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Texture, Index = 2, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Sampler, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel }
-            ]
+            Bindings = Bindings
+            (
+                new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+                new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Pixel }
+            )
         });
     }
 
