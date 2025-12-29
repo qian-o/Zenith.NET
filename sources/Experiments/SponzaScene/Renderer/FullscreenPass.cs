@@ -52,6 +52,7 @@ internal abstract class FullscreenPass : RenderPass
 
         if (resourceLayout is not null)
         {
+            commandBuffer.PreprocessResourceSets([EnsureResourceSet(resourceLayout, context)]);
             commandBuffer.BindResourceSet(EnsureResourceSet(resourceLayout, context), 0);
         }
 

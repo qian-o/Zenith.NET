@@ -71,11 +71,17 @@ internal unsafe class BloomPass : RenderPass
         for (int i = 0; i < iterations; i++)
         {
             commandBuffer.Upload(constantBuffer, 0, [new BloomConstants() { TexelSize = new(1.0f / context.Width, 0) }]);
+
+            commandBuffer.PreprocessResourceSets([horizontalResourceSet!]);
             commandBuffer.BindResourceSet(horizontalResourceSet!, 0);
+
             commandBuffer.Dispatch(dispatchX, dispatchY, 1);
 
             commandBuffer.Upload(constantBuffer, 0, [new BloomConstants() { TexelSize = new(0, 1.0f / context.Height) }]);
+
+            commandBuffer.PreprocessResourceSets([verticalResourceSet!]);
             commandBuffer.BindResourceSet(verticalResourceSet!, 0);
+
             commandBuffer.Dispatch(dispatchX, dispatchY, 1);
         }
     }
