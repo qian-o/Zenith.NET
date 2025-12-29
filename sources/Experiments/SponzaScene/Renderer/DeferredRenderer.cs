@@ -44,10 +44,7 @@ internal class DeferredRenderer : DisposableObject
 
         foreach (RenderPass renderPass in renderPasses)
         {
-            if (renderPass.Enabled)
-            {
-                renderPass.Execute(commandBuffer, context);
-            }
+            renderPass.Execute(commandBuffer, context);
         }
 
         commandBuffer.EndDebugEvent();
@@ -56,22 +53,19 @@ internal class DeferredRenderer : DisposableObject
 
         ImGui.GetBackgroundDrawList().AddImage(App.Binding(context.FinalColor!), default, new(context.Width, context.Height));
 
-        if (ImGui.Begin("Deferred Renderer Settings"))
+        if (ImGui.Begin("Deferred Renderer Settings") && ImGui.BeginTabBar("Pass Settings"))
         {
-            if (ImGui.BeginTabBar("Pass Settings"))
+            foreach (RenderPass renderPass in renderPasses)
             {
-                foreach (RenderPass renderPass in renderPasses)
+                if (ImGui.BeginTabItem(renderPass.Name))
                 {
-                    if (ImGui.BeginTabItem(renderPass.Name))
-                    {
-                        renderPass.DebugUI(context);
+                    renderPass.DebugUI(context);
 
-                        ImGui.EndTabItem();
-                    }
+                    ImGui.EndTabItem();
                 }
-
-                ImGui.EndTabBar();
             }
+
+            ImGui.EndTabBar();
         }
         ImGui.End();
     }

@@ -132,17 +132,18 @@ internal static class App
                 ImGui.Text($"Current FPS: {ImGui.GetIO().Framerate:F1}");
             });
 
-            CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
+            // ImGUI
+            {
+                CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
 
-            commandBuffer.BindFrameBuffer(swapChain.FrameBuffer, ClearValues.Default);
+                commandBuffer.BindFrameBuffer(swapChain.FrameBuffer, ClearValues.Default);
 
-            imGui.Render(commandBuffer);
+                imGui.Render(commandBuffer);
 
-            commandBuffer.Submit();
+                commandBuffer.Submit();
 
-            Context.Copy.WaitIdle();
-            Context.Compute.WaitIdle();
-            Context.Graphics.WaitIdle();
+                Context.Graphics.WaitIdle();
+            }
 
             swapChain.Present();
         };

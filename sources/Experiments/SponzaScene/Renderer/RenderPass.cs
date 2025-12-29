@@ -20,13 +20,15 @@ internal abstract class RenderPass : DisposableObject
 
     public string Name { get; }
 
-    public bool Enabled { get; set; } = true;
-
     public void Execute(CommandBuffer commandBuffer, RenderContext context)
     {
         commandBuffer.WriteTimestamp(queryHeap, 0);
 
+        commandBuffer.BeginDebugEvent(Name);
+
         ExecuteImpl(commandBuffer, context);
+
+        commandBuffer.EndDebugEvent();
 
         commandBuffer.WriteTimestamp(queryHeap, 1);
     }
