@@ -155,48 +155,42 @@ internal unsafe class GBufferPass : RenderPass
 
         commandBuffer.BindFrameBuffer(context.GBufferFrameBuffer!, ClearValues.Default);
 
-        // Cull back faces
+        commandBuffer.BindPipeline(cullBackPipeline);
+        commandBuffer.BindVertexBuffer(App.Sponza.Vertices, 0, 0);
+        commandBuffer.BindIndexBuffer(App.Sponza.Indices, 0, IndexFormat.UInt32);
+
+        foreach (Node node in App.Sponza.Nodes)
         {
-            commandBuffer.BindPipeline(cullBackPipeline);
-            commandBuffer.BindVertexBuffer(App.Sponza.Vertices, 0, 0);
-            commandBuffer.BindIndexBuffer(App.Sponza.Indices, 0, IndexFormat.UInt32);
-
-            foreach (Node node in App.Sponza.Nodes)
+            if (App.Sponza.Materials[node.Material].DoubleSided)
             {
-                if (App.Sponza.Materials[node.Material].DoubleSided)
-                {
-                    continue;
-                }
-
-                commandBuffer.BindResourceSet(resourceSets[node.Material], 0);
-
-                commandBuffer.DrawIndexed(node.Args.IndexCount,
-                                          node.Args.InstanceCount,
-                                          node.Args.FirstIndex,
-                                          node.Args.VertexOffset,
-                                          node.Args.FirstInstance);
+                continue;
             }
+
+            commandBuffer.BindResourceSet(resourceSets[node.Material], 0);
+
+            commandBuffer.DrawIndexed(node.Args.IndexCount,
+                                      node.Args.InstanceCount,
+                                      node.Args.FirstIndex,
+                                      node.Args.VertexOffset,
+                                      node.Args.FirstInstance);
         }
 
-        // Cull none for double-sided materials
+        commandBuffer.BindPipeline(cullNonePipeline);
+
+        foreach (Node node in App.Sponza.Nodes)
         {
-            commandBuffer.BindPipeline(cullNonePipeline);
-
-            foreach (Node node in App.Sponza.Nodes)
+            if (!App.Sponza.Materials[node.Material].DoubleSided)
             {
-                if (!App.Sponza.Materials[node.Material].DoubleSided)
-                {
-                    continue;
-                }
-
-                commandBuffer.BindResourceSet(resourceSets[node.Material], 0);
-
-                commandBuffer.DrawIndexed(node.Args.IndexCount,
-                                          node.Args.InstanceCount,
-                                          node.Args.FirstIndex,
-                                          node.Args.VertexOffset,
-                                          node.Args.FirstInstance);
+                continue;
             }
+
+            commandBuffer.BindResourceSet(resourceSets[node.Material], 0);
+
+            commandBuffer.DrawIndexed(node.Args.IndexCount,
+                                      node.Args.InstanceCount,
+                                      node.Args.FirstIndex,
+                                      node.Args.VertexOffset,
+                                      node.Args.FirstInstance);
         }
     }
 
