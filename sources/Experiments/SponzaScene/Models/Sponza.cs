@@ -20,10 +20,10 @@ internal unsafe class Sponza : DisposableObject
             ProcessNode(node, nodes, vertices, indices);
         }
 
-        AddCube(new(-4.94647f, 1.2f, 1.14748f), 0.2f, (uint)root.LogicalMaterials.Count, nodes, vertices, indices);
-        AddCube(new(-4.94647f, 1.2f, -1.75868f), 0.2f, (uint)root.LogicalMaterials.Count, nodes, vertices, indices);
-        AddCube(new(3.9f, 1.2f, 1.14748f), 0.2f, (uint)root.LogicalMaterials.Count, nodes, vertices, indices);
-        AddCube(new(3.9f, 1.2f, -1.75846f), 0.2f, (uint)root.LogicalMaterials.Count, nodes, vertices, indices);
+        AddSphere(new(-4.94647f, 1.15f, 1.14748f), 0.1f, (uint)root.LogicalMaterials.Count, nodes, vertices, indices);
+        AddSphere(new(-4.94647f, 1.15f, -1.75868f), 0.1f, (uint)root.LogicalMaterials.Count, nodes, vertices, indices);
+        AddSphere(new(3.9f, 1.15f, 1.14748f), 0.1f, (uint)root.LogicalMaterials.Count, nodes, vertices, indices);
+        AddSphere(new(3.9f, 1.15f, -1.75846f), 0.1f, (uint)root.LogicalMaterials.Count, nodes, vertices, indices);
 
         Nodes = [.. nodes];
 
@@ -57,28 +57,28 @@ internal unsafe class Sponza : DisposableObject
     [
         new()
         {
-            Position = new(-4.94647f, 1.2f, 1.14748f),
+            Position = new(-4.94647f, 1.15f, 1.14748f),
             Color = new(1.0f, 0.8f, 0.6f),
             Intensity = 20.0f,
             Radius = 10.0f
         },
         new()
         {
-            Position = new(-4.94647f, 1.2f, -1.75868f),
+            Position = new(-4.94647f, 1.15f, -1.75868f),
             Color = new(1.0f, 0.8f, 0.6f),
             Intensity = 20.0f,
             Radius = 10.0f
         },
         new()
         {
-            Position = new(3.9f, 1.2f, 1.14748f),
+            Position = new(3.9f, 1.15f, 1.14748f),
             Color = new(1.0f, 0.8f, 0.6f),
             Intensity = 20.0f,
             Radius = 10.0f
         },
         new()
         {
-            Position = new(3.9f, 1.2f, -1.75846f),
+            Position = new(3.9f, 1.15f, -1.75846f),
             Color = new(1.0f, 0.8f, 0.6f),
             Intensity = 20.0f,
             Radius = 10.0f
@@ -172,67 +172,76 @@ internal unsafe class Sponza : DisposableObject
         }
     }
 
-    private static void AddCube(Vector3 center, float size, uint material, List<Node> nodes, List<Vertex> vertices, List<uint> indices)
+    private static void AddSphere(Vector3 center,
+                                  float radius,
+                                  uint material,
+                                  List<Node> nodes,
+                                  List<Vertex> vertices,
+                                  List<uint> indices)
     {
-        float halfSize = size * 0.5f;
+        const uint segments = 16;
+        const uint rings = 16;
+
         uint baseIndex = (uint)vertices.Count;
         uint firstIndex = (uint)indices.Count;
-
-        Vector3[] positions =
-        [
-            new(-halfSize, -halfSize, -halfSize),
-            new(halfSize, -halfSize, -halfSize),
-            new(halfSize, halfSize, -halfSize),
-            new(-halfSize, halfSize, -halfSize),
-            new(-halfSize, -halfSize, halfSize),
-            new(halfSize, -halfSize, halfSize),
-            new(halfSize, halfSize, halfSize),
-            new(-halfSize, halfSize, halfSize)
-        ];
-
-        Vector3[] normals = [new(0, 0, -1), new(0, 0, 1), new(-1, 0, 0), new(1, 0, 0), new(0, -1, 0), new(0, 1, 0)];
-
-        Vector2[] uvs = [new(0, 1), new(1, 1), new(1, 0), new(0, 0)];
-
-        uint[][] faceVertexIndices = [[0, 3, 2, 1], [4, 5, 6, 7], [4, 7, 3, 0], [1, 2, 6, 5], [4, 0, 1, 5], [3, 7, 6, 2]];
-
         uint vertexCount = 0;
 
-        for (uint face = 0; face < 6; face++)
+        for (uint ring = 0; ring <= rings; ring++)
         {
-            Vector3 normal = normals[face];
+            float phi = MathF.PI * ring / rings;
+            float y = MathF.Cos(phi);
+            float ringRadius = MathF.Sin(phi);
 
-            for (int corner = 0; corner < 4; corner++)
+            for (uint segment = 0; segment <= segments; segment++)
             {
+                float theta = 2.0f * MathF.PI * segment / segments;
+                float x = ringRadius * MathF.Cos(theta);
+                float z = ringRadius * MathF.Sin(theta);
+
+                Vector3 normal = new(x, y, z);
+                Vector3 position = (normal * radius) + center;
+                Vector2 texCoord = new((float)segment / segments, (float)ring / rings);
+
                 vertices.Add(new()
                 {
-                    Position = positions[faceVertexIndices[face][corner]] + center,
+                    Position = position,
                     Normal = normal,
-                    TexCoord = uvs[corner],
+                    TexCoord = texCoord,
                     Color = Vector4.One
                 });
+
+                vertexCount++;
             }
+        }
 
-            uint faceBase = face * 4;
+        uint indexCount = 0;
+        for (uint ring = 0; ring < rings; ring++)
+        {
+            for (uint segment = 0; segment < segments; segment++)
+            {
+                uint current = (ring * (segments + 1)) + segment;
+                uint next = current + segments + 1;
 
-            indices.Add(faceBase + 0);
-            indices.Add(faceBase + 1);
-            indices.Add(faceBase + 2);
-            indices.Add(faceBase + 0);
-            indices.Add(faceBase + 2);
-            indices.Add(faceBase + 3);
+                indices.Add(current);
+                indices.Add(next);
+                indices.Add(current + 1);
 
-            vertexCount += 4;
+                indices.Add(current + 1);
+                indices.Add(next);
+                indices.Add(next + 1);
+
+                indexCount += 6;
+            }
         }
 
         IndirectDrawIndexedArgs args = new()
         {
-            IndexCount = 36,
+            IndexCount = indexCount,
             InstanceCount = 1,
             FirstIndex = firstIndex,
             VertexOffset = (int)baseIndex
         };
 
-        nodes.Add(new($"EmissiveCube_{center}", vertexCount, args, material));
+        nodes.Add(new($"EmissiveSphere_{center}", vertexCount, args, material));
     }
 }
