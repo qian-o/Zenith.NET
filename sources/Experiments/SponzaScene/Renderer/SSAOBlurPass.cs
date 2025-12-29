@@ -25,7 +25,7 @@ internal unsafe class SSAOBlurPass : FullscreenPass
 
     protected override string ShaderName => "SSAOBlur";
 
-    protected override Output Output => RenderContext.SSAOOutput;
+    protected override Output Output => RenderContext.SSAOBlurOutput;
 
     protected override ResourceLayout? CreateResourceLayout()
     {
