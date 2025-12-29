@@ -28,7 +28,7 @@ internal unsafe class GBufferPass : RenderPass
 
         materialBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)(ZenithHelper.Align((uint)sizeof(MaterialConstants), GraphicsContext.ConstantBufferOffsetAlignment) * App.Sponza.Materials.Length),
+            SizeInBytes = (uint)(ZenithHelper.Align((uint)sizeof(MaterialConstants), GraphicsContext.ConstantBufferAlignment) * App.Sponza.Materials.Length),
             StrideInBytes = (uint)sizeof(MaterialConstants),
             Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
         });
@@ -39,7 +39,7 @@ internal unsafe class GBufferPass : RenderPass
 
         for (int i = 0; i < App.Sponza.Materials.Length; i++)
         {
-            uint offsetInBytes = ZenithHelper.Align((uint)(sizeof(MaterialConstants) * i), GraphicsContext.ConstantBufferOffsetAlignment);
+            uint offsetInBytes = ZenithHelper.Align((uint)(sizeof(MaterialConstants) * i), GraphicsContext.ConstantBufferAlignment);
 
             Material material = App.Sponza.Materials[i];
 

@@ -2,7 +2,7 @@
 
 public abstract class GraphicsContext : DisposableObject
 {
-    public const uint ConstantBufferOffsetAlignment = 256;
+    public const uint ConstantBufferAlignment = 256;
 
     public const uint TextureRowPitchAlignment = 256;
 
