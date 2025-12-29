@@ -20,14 +20,23 @@ internal unsafe class Sponza : DisposableObject
             ProcessNode(node, nodes, vertices, indices);
         }
 
-        AddSphere(new(-4.94647f, 1.15f, 1.14748f), 0.1f, (uint)root.LogicalMaterials.Count, nodes, vertices, indices);
-        AddSphere(new(-4.94647f, 1.15f, -1.75868f), 0.1f, (uint)root.LogicalMaterials.Count, nodes, vertices, indices);
-        AddSphere(new(3.9f, 1.15f, 1.14748f), 0.1f, (uint)root.LogicalMaterials.Count, nodes, vertices, indices);
-        AddSphere(new(3.9f, 1.15f, -1.75846f), 0.1f, (uint)root.LogicalMaterials.Count, nodes, vertices, indices);
+        uint baseMaterialIndex = (uint)root.LogicalMaterials.Count;
+
+        AddSphere(new(-4.94647f, 1.15f, 1.14748f), 0.1f, baseMaterialIndex, nodes, vertices, indices);
+        AddSphere(new(-4.94647f, 1.15f, -1.75868f), 0.1f, baseMaterialIndex + 1, nodes, vertices, indices);
+        AddSphere(new(3.9f, 1.15f, 1.14748f), 0.1f, baseMaterialIndex + 2, nodes, vertices, indices);
+        AddSphere(new(3.9f, 1.15f, -1.75846f), 0.1f, baseMaterialIndex + 3, nodes, vertices, indices);
 
         Nodes = [.. nodes];
 
-        Materials = [.. root.LogicalMaterials.Select(static material => new Material(material)), new("Emissive", emissiveFactor: new(1.0f, 0.8f, 0.6f, 1.0f), emissiveStrength: 20.0f)];
+        Materials =
+        [
+            .. root.LogicalMaterials.Select(static material => new Material(material)),
+            new("Emissive_Cyan", emissiveFactor: new(0.3f, 0.9f, 1.0f, 1.0f), emissiveStrength: 35.0f),
+            new("Emissive_Magenta", emissiveFactor: new(1.0f, 0.3f, 0.8f, 1.0f), emissiveStrength: 35.0f),
+            new("Emissive_Yellow", emissiveFactor: new(1.0f, 0.9f, 0.2f, 1.0f), emissiveStrength: 35.0f),
+            new("Emissive_Green", emissiveFactor: new(0.3f, 1.0f, 0.4f, 1.0f), emissiveStrength: 35.0f)
+        ];
 
         Vertices = App.Context.CreateBuffer(new()
         {
@@ -48,9 +57,20 @@ internal unsafe class Sponza : DisposableObject
 
     public DirectionalLight DirectionalLight { get; } = new()
     {
-        Direction = Vector3.Normalize(new(0.2f, -1.0f, 0.3f)),
-        Color = new(1.0f, 0.95f, 0.85f),
-        Intensity = 2.5f
+        // noon
+        // Direction = Vector3.Normalize(new(0.0f, -1.0f, 0.0f)),
+        // Color = new(1.0f, 0.98f, 0.9f),
+        // Intensity = 5.0f
+
+        // dusk
+        Direction = Vector3.Normalize(new(0.8f, -0.15f, 0.3f)),
+        Color = new(1.0f, 0.5f, 0.2f),
+        Intensity = 3.5f
+
+        // night
+        // Direction = Vector3.Normalize(new(0.3f, 0.5f, 0.2f)),
+        // Color = new(0.3f, 0.4f, 0.6f),
+        // Intensity = 0.5f
     };
 
     public PointLight[] PointLights { get; } =
@@ -58,29 +78,29 @@ internal unsafe class Sponza : DisposableObject
         new()
         {
             Position = new(-4.94647f, 1.15f, 1.14748f),
-            Color = new(1.0f, 0.8f, 0.6f),
-            Intensity = 20.0f,
+            Color = new(0.3f, 0.9f, 1.0f),
+            Intensity = 25.0f,
             Radius = 10.0f
         },
         new()
         {
             Position = new(-4.94647f, 1.15f, -1.75868f),
-            Color = new(1.0f, 0.8f, 0.6f),
-            Intensity = 20.0f,
+            Color = new(1.0f, 0.3f, 0.8f),
+            Intensity = 25.0f,
             Radius = 10.0f
         },
         new()
         {
             Position = new(3.9f, 1.15f, 1.14748f),
-            Color = new(1.0f, 0.8f, 0.6f),
-            Intensity = 20.0f,
+            Color = new(1.0f, 0.9f, 0.2f),
+            Intensity = 25.0f,
             Radius = 10.0f
         },
         new()
         {
             Position = new(3.9f, 1.15f, -1.75846f),
-            Color = new(1.0f, 0.8f, 0.6f),
-            Intensity = 20.0f,
+            Color = new(0.3f, 1.0f, 0.4f),
+            Intensity = 25.0f,
             Radius = 10.0f
         }
     ];

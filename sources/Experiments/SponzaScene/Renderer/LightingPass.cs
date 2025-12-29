@@ -82,10 +82,12 @@ internal unsafe class LightingPass : FullscreenPass
 
     protected override void UpdateResources(RenderContext context)
     {
-        // 更新常量
+        Matrix4x4.Invert(context.View * context.Projection, out Matrix4x4 inverseViewProjection);
+
         constantBuffer.Upload([new LightingConstants
         {
             CameraPosition = new(context.CameraPosition, 1.0f),
+            InverseViewProjection = inverseViewProjection,
             DirectionalLight = App.Sponza.DirectionalLight
         }], 0);
     }
@@ -110,6 +112,8 @@ internal unsafe class LightingPass : FullscreenPass
     private struct LightingConstants
     {
         public Vector4 CameraPosition;
+
+        public Matrix4x4 InverseViewProjection;
 
         public DirectionalLight DirectionalLight;
     }
