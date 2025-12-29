@@ -28,35 +28,45 @@ internal unsafe class GBufferPass : RenderPass
 
         materialBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)(sizeof(MaterialConstants) * App.Sponza.Materials.Length),
+            SizeInBytes = (uint)(ZenithHelper.Align((uint)sizeof(MaterialConstants), GraphicsContext.ConstantBufferOffsetAlignment) * App.Sponza.Materials.Length),
             StrideInBytes = (uint)sizeof(MaterialConstants),
-            Flags = BufferUsageFlags.Constant
+            Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
         });
-        materialBuffer.Upload([.. App.Sponza.Materials.Select(static item => new MaterialConstants()
-        {
-            AlphaCutoff = item.AlphaCutoff,
-            MetallicFactor = item.MetallicFactor,
-            RoughnessFactor = item.RoughnessFactor,
-            EmissiveStrength = item.EmissiveStrength,
-            BaseColorFactor = item.BaseColorFactor,
-            EmissiveFactor = item.EmissiveFactor,
-            Flags = (item.AlphaCutoff > 0 ? MaterialFlags.UseAlphaCutoff : 0)
-                    | (item.BaseColorTexture is not null ? MaterialFlags.HasBaseColorTexture : 0)
-                    | (item.NormalTexture is not null ? MaterialFlags.HasNormalTexture : 0)
-                    | (item.MetallicRoughnessTexture is not null ? MaterialFlags.HasMetallicRoughnessTexture : 0)
-        })], 0);
 
         materialBufferViews = new BufferView[App.Sponza.Materials.Length];
+
+        MappedMemory mappedMemory = materialBuffer.Map();
+
         for (int i = 0; i < App.Sponza.Materials.Length; i++)
         {
+            uint offsetInBytes = ZenithHelper.Align((uint)(sizeof(MaterialConstants) * i), GraphicsContext.ConstantBufferOffsetAlignment);
+
+            Material material = App.Sponza.Materials[i];
+
+            *(MaterialConstants*)((byte*)mappedMemory.Pointer + offsetInBytes) = new()
+            {
+                AlphaCutoff = material.AlphaCutoff,
+                MetallicFactor = material.MetallicFactor,
+                RoughnessFactor = material.RoughnessFactor,
+                EmissiveStrength = material.EmissiveStrength,
+                BaseColorFactor = material.BaseColorFactor,
+                EmissiveFactor = material.EmissiveFactor,
+                Flags = (material.AlphaCutoff > 0 ? MaterialFlags.UseAlphaCutoff : 0)
+                        | (material.BaseColorTexture is not null ? MaterialFlags.HasBaseColorTexture : 0)
+                        | (material.NormalTexture is not null ? MaterialFlags.HasNormalTexture : 0)
+                        | (material.MetallicRoughnessTexture is not null ? MaterialFlags.HasMetallicRoughnessTexture : 0)
+            };
+
             materialBufferViews[i] = App.Context.CreateBufferView(new()
             {
                 Buffer = materialBuffer,
-                OffsetInBytes = (uint)(sizeof(MaterialConstants) * i),
+                OffsetInBytes = offsetInBytes,
                 SizeInBytes = (uint)sizeof(MaterialConstants),
                 StrideInBytes = (uint)sizeof(MaterialConstants)
             });
         }
+
+        materialBuffer.Unmap();
 
         resourceLayout = App.Context.CreateResourceLayout(new()
         {
