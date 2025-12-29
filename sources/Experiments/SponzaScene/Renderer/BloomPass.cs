@@ -8,7 +8,7 @@ namespace SponzaScene.Renderer;
 
 internal unsafe class BloomPass : RenderPass
 {
-    private const uint ThreadGroupSize = 8;
+    private const uint ThreadGroupSize = 16;
 
     private readonly Buffer constantBuffer;
     private readonly ResourceLayout resourceLayout;

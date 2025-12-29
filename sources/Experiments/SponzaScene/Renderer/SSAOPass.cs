@@ -7,8 +7,8 @@ namespace SponzaScene.Renderer;
 
 internal unsafe class SSAOPass : FullscreenPass
 {
-    private const int KernelSize = 32;
-    private const int NoiseSize = 4;
+    private const int KernelSize = 64;
+    private const int NoiseSize = 16;
 
     private readonly Buffer constantBuffer;
     private readonly Buffer kernelBuffer;

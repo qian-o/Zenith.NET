@@ -10,7 +10,7 @@ SamplerState linearSampler;
 
 static const float weights[5] = { 0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216 };
 
-[numthreads(8, 8, 1)]
+[numthreads(16, 16, 1)]
 void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint width, height;
