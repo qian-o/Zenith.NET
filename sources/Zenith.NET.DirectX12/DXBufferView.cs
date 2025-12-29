@@ -31,7 +31,7 @@ internal unsafe class DXBufferView(DXGraphicsContext context, BufferViewDesc des
 
         ConstantBufferViewDesc viewDesc = new()
         {
-            BufferLocation = Desc.Buffer.DirectX12().GPUVirtualAddress,
+            BufferLocation = Desc.Buffer.DirectX12().GPUVirtualAddress + Desc.OffsetInBytes,
             SizeInBytes = ZenithHelper.Align(Desc.SizeInBytes, 256u)
         };
 
@@ -50,6 +50,7 @@ internal unsafe class DXBufferView(DXGraphicsContext context, BufferViewDesc des
             Shader4ComponentMapping = DXGraphicsContext.Shader4ComponentMapping,
             Buffer = new()
             {
+                FirstElement = Desc.OffsetInBytes / Desc.StrideInBytes,
                 NumElements = Desc.SizeInBytes / Desc.StrideInBytes,
                 StructureByteStride = Desc.StrideInBytes
             }
@@ -69,6 +70,7 @@ internal unsafe class DXBufferView(DXGraphicsContext context, BufferViewDesc des
             ViewDimension = UavDimension.Buffer,
             Buffer = new()
             {
+                FirstElement = Desc.OffsetInBytes / Desc.StrideInBytes,
                 NumElements = Desc.SizeInBytes / Desc.StrideInBytes,
                 StructureByteStride = Desc.StrideInBytes
             }

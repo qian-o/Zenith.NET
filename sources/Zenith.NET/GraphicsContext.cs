@@ -2,6 +2,8 @@
 
 public abstract class GraphicsContext : DisposableObject
 {
+    public const uint BufferAlignment = 256;
+
     public const uint TextureRowPitchAlignment = 256;
 
     public const uint TextureDepthPitchAlignment = 512;
