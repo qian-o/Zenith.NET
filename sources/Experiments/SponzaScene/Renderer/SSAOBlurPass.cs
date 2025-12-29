@@ -27,6 +27,12 @@ internal unsafe class SSAOBlurPass : FullscreenPass
 
     protected override Output Output => RenderContext.SSAOBlurOutput;
 
+    public override void Resize(uint width, uint height)
+    {
+        resourceSet?.Dispose();
+        resourceSet = null;
+    }
+
     protected override ResourceLayout? CreateResourceLayout()
     {
         return App.Context.CreateResourceLayout(new()
@@ -68,7 +74,7 @@ internal unsafe class SSAOBlurPass : FullscreenPass
         }], 0);
     }
 
-    public override void DebugUI(RenderContext context)
+    protected override void DebugUIImpl(RenderContext context)
     {
         ImGui.SliderInt("Blur Size", ref blurSize, 1, 8);
 
@@ -76,12 +82,6 @@ internal unsafe class SSAOBlurPass : FullscreenPass
         size = size with { Y = size.X * context.Height / context.Width };
 
         ImGui.Image(App.Binding(context.SSAOBlurred!), size);
-    }
-
-    public override void Resize(uint width, uint height)
-    {
-        resourceSet?.Dispose();
-        resourceSet = null;
     }
 
     protected override void Destroy()

@@ -7,7 +7,7 @@ namespace SponzaScene.Renderer;
 
 internal unsafe class SSAOPass : FullscreenPass
 {
-    private const int KernelSize = 64;
+    private const int KernelSize = 32;
     private const int NoiseSize = 4;
 
     private readonly Buffer constantBuffer;
@@ -44,6 +44,12 @@ internal unsafe class SSAOPass : FullscreenPass
     protected override string ShaderName => "SSAO";
 
     protected override Output Output => RenderContext.SSAOOutput;
+
+    public override void Resize(uint width, uint height)
+    {
+        resourceSet?.Dispose();
+        resourceSet = null;
+    }
 
     protected override ResourceLayout? CreateResourceLayout()
     {
@@ -98,7 +104,7 @@ internal unsafe class SSAOPass : FullscreenPass
         }], 0);
     }
 
-    public override void DebugUI(RenderContext context)
+    protected override void DebugUIImpl(RenderContext context)
     {
         ImGui.SliderFloat("Radius", ref radius, 0.01f, 2.0f);
         ImGui.SliderFloat("Bias", ref bias, 0.001f, 0.1f);
@@ -108,12 +114,6 @@ internal unsafe class SSAOPass : FullscreenPass
         size = size with { Y = size.X * context.Height / context.Width };
 
         ImGui.Image(App.Binding(context.SSAO!), size);
-    }
-
-    public override void Resize(uint width, uint height)
-    {
-        resourceSet?.Dispose();
-        resourceSet = null;
     }
 
     protected override void Destroy()

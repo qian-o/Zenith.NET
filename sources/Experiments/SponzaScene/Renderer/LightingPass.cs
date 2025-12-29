@@ -35,6 +35,12 @@ internal unsafe class LightingPass : FullscreenPass
 
     protected override Output Output => RenderContext.LightingOutput;
 
+    public override void Resize(uint width, uint height)
+    {
+        resourceSet?.Dispose();
+        resourceSet = null;
+    }
+
     protected override ResourceLayout? CreateResourceLayout()
     {
         return App.Context.CreateResourceLayout(new()
@@ -89,18 +95,12 @@ internal unsafe class LightingPass : FullscreenPass
         }], 0);
     }
 
-    public override void DebugUI(RenderContext context)
+    protected override void DebugUIImpl(RenderContext context)
     {
         Vector2 size = new(ImGui.GetContentRegionAvail().X);
         size = size with { Y = size.X * context.Height / context.Width };
 
         ImGui.Image(App.Binding(context.LitColor!), size);
-    }
-
-    public override void Resize(uint width, uint height)
-    {
-        resourceSet?.Dispose();
-        resourceSet = null;
     }
 
     protected override void Destroy()

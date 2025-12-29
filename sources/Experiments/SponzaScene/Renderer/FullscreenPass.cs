@@ -36,7 +36,7 @@ internal abstract class FullscreenPass : RenderPass
 
     protected abstract Output Output { get; }
 
-    public sealed override void Execute(CommandBuffer commandBuffer, RenderContext context)
+    protected sealed override void ExecuteImpl(CommandBuffer commandBuffer, RenderContext context)
     {
         (FrameBuffer? frameBuffer, ClearValue clearValue) = GetTarget(context);
 
@@ -63,6 +63,8 @@ internal abstract class FullscreenPass : RenderPass
     {
         pipeline.Dispose();
         resourceLayout?.Dispose();
+
+        base.Destroy();
     }
 
     protected abstract ResourceLayout? CreateResourceLayout();

@@ -27,6 +27,12 @@ internal unsafe class ComposePass : FullscreenPass
 
     protected override Output Output => RenderContext.ComposeOutput;
 
+    public override void Resize(uint width, uint height)
+    {
+        resourceSet?.Dispose();
+        resourceSet = null;
+    }
+
     protected override ResourceLayout? CreateResourceLayout()
     {
         return App.Context.CreateResourceLayout(new()
@@ -72,16 +78,10 @@ internal unsafe class ComposePass : FullscreenPass
         }], 0);
     }
 
-    public override void DebugUI(RenderContext context)
+    protected override void DebugUIImpl(RenderContext context)
     {
         ImGui.SliderFloat("AO Strength", ref aoStrength, 0.0f, 2.0f);
         ImGui.SliderFloat("Bloom Intensity", ref bloomIntensity, 0.0f, 2.0f);
-    }
-
-    public override void Resize(uint width, uint height)
-    {
-        resourceSet?.Dispose();
-        resourceSet = null;
     }
 
     protected override void Destroy()

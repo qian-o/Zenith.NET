@@ -51,7 +51,16 @@ internal unsafe class BloomPass : RenderPass
         });
     }
 
-    public override void Execute(CommandBuffer commandBuffer, RenderContext context)
+    public override void Resize(uint width, uint height)
+    {
+        horizontalResourceSet?.Dispose();
+        horizontalResourceSet = null;
+
+        verticalResourceSet?.Dispose();
+        verticalResourceSet = null;
+    }
+
+    protected override void ExecuteImpl(CommandBuffer commandBuffer, RenderContext context)
     {
         EnsureResourceSets(context);
 
@@ -86,7 +95,7 @@ internal unsafe class BloomPass : RenderPass
         }
     }
 
-    public override void DebugUI(RenderContext context)
+    protected override void DebugUIImpl(RenderContext context)
     {
         ImGui.SliderInt("Blur Iterations", ref iterations, 1, 8);
 
@@ -94,15 +103,6 @@ internal unsafe class BloomPass : RenderPass
         size = size with { Y = size.X * context.Height / context.Width };
 
         ImGui.Image(App.Binding(context.VerticalBloom!), size);
-    }
-
-    public override void Resize(uint width, uint height)
-    {
-        horizontalResourceSet?.Dispose();
-        horizontalResourceSet = null;
-
-        verticalResourceSet?.Dispose();
-        verticalResourceSet = null;
     }
 
     protected override void Destroy()
@@ -113,6 +113,8 @@ internal unsafe class BloomPass : RenderPass
         pipeline.Dispose();
         resourceLayout.Dispose();
         constantBuffer.Dispose();
+
+        base.Destroy();
     }
 
     private void EnsureResourceSets(RenderContext context)

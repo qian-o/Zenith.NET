@@ -1,18 +1,56 @@
-﻿using Zenith.NET;
+﻿using Hexa.NET.ImGui;
+using Zenith.NET;
 
 namespace SponzaScene.Renderer;
 
-internal abstract class RenderPass(string name) : DisposableObject
+internal abstract class RenderPass : DisposableObject
 {
-    public string Name { get; } = name;
+    private readonly QueryHeap queryHeap;
+
+    protected RenderPass(string name)
+    {
+        Name = name;
+
+        queryHeap = App.Context.CreateQueryHeap(new()
+        {
+            Type = QueryType.Timestamp,
+            Count = 2
+        });
+    }
+
+    public string Name { get; }
 
     public bool Enabled { get; set; } = true;
 
-    public abstract void Execute(CommandBuffer commandBuffer, RenderContext context);
+    public void Execute(CommandBuffer commandBuffer, RenderContext context)
+    {
+        commandBuffer.WriteTimestamp(queryHeap, 0);
 
-    public abstract void DebugUI(RenderContext context);
+        ExecuteImpl(commandBuffer, context);
+
+        commandBuffer.WriteTimestamp(queryHeap, 1);
+    }
+
+    public void DebugUI(RenderContext context)
+    {
+        ulong[] timestamps = new ulong[2];
+        queryHeap.GetResults(timestamps, 0);
+
+        ImGui.Text($"GPU Time: {(timestamps[1] - timestamps[0]) / 1_000_000.0:F2}ms");
+
+        DebugUIImpl(context);
+    }
 
     public abstract void Resize(uint width, uint height);
+
+    protected abstract void ExecuteImpl(CommandBuffer commandBuffer, RenderContext context);
+
+    protected abstract void DebugUIImpl(RenderContext context);
+
+    protected override void Destroy()
+    {
+        queryHeap.Dispose();
+    }
 
     protected static string GetShaderPath(string shaderName)
     {

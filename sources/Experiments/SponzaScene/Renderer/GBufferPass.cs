@@ -137,7 +137,11 @@ internal unsafe class GBufferPass : RenderPass
         });
     }
 
-    public override void Execute(CommandBuffer commandBuffer, RenderContext context)
+    public override void Resize(uint width, uint height)
+    {
+    }
+
+    protected override void ExecuteImpl(CommandBuffer commandBuffer, RenderContext context)
     {
         cameraBuffer.Upload([new CameraConstants()
         {
@@ -196,7 +200,7 @@ internal unsafe class GBufferPass : RenderPass
         }
     }
 
-    public override void DebugUI(RenderContext context)
+    protected override void DebugUIImpl(RenderContext context)
     {
         Vector2 size = new((ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X) / 3.0f);
         size = size with { Y = size.X * context.Height / context.Width };
@@ -240,25 +244,27 @@ internal unsafe class GBufferPass : RenderPass
         ImGui.EndGroup();
     }
 
-    public override void Resize(uint width, uint height)
-    {
-    }
-
     protected override void Destroy()
     {
         cullNonePipeline.Dispose();
         cullBackPipeline.Dispose();
+
         foreach (ResourceSet set in resourceSets)
         {
             set.Dispose();
         }
+
         resourceLayout.Dispose();
+
         foreach (BufferView view in materialBufferViews)
         {
             view.Dispose();
         }
+
         materialBuffer.Dispose();
         cameraBuffer.Dispose();
+
+        base.Destroy();
     }
 
     [Flags]
