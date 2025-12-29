@@ -191,7 +191,7 @@ float4 PSMain(PSInput input) : SV_Target0
 
     float3 V = normalize(constants.CameraPosition - worldPos);
 
-    float3 ambientColor = float3(0.5, 0.6, 0.8) * 0.3;
+    float3 ambientColor = float3(0.8, 0.7, 0.5) * 0.3;
     float3 ambient = CalculateAmbient(N, V, albedo, metallicRoughnessData.x, metallicRoughnessData.y, ao, ambientColor);
 
     float3 Lo = float3(0.0, 0.0, 0.0);

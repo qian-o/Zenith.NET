@@ -340,6 +340,8 @@ internal class RenderContext : DisposableObject
         SSAOBlurred?.Dispose();
         SSAO?.Dispose();
 
+        Emissive?.Dispose();
+        MetallicRoughness?.Dispose();
         NormalizedDepth?.Dispose();
         Depth?.Dispose();
         Position?.Dispose();
