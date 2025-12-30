@@ -33,7 +33,7 @@ PSInput VSMain(VSInput input)
     return output;
 }
 
-float4 PSMain(PSInput input)
+float4 PSMain(PSInput input) : SV_Target0
 {
     float normalizedDepth =
         LinearizeDepth(input.Position.z, constants.NearPlane, constants.FarPlane) / constants.FarPlane;
