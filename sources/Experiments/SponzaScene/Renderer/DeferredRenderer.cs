@@ -51,6 +51,11 @@ internal class DeferredRenderer : DisposableObject
 
         commandBuffer.Submit();
 
+        App.Context.Graphics.WaitIdle();
+    }
+
+    public void UI()
+    {
         ImGui.GetBackgroundDrawList().AddImage(App.Binding(context.FinalColor!), default, new(context.Width, context.Height));
 
         if (ImGui.Begin("Deferred Renderer Settings"))

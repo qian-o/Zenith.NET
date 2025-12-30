@@ -25,11 +25,11 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 
     float2 uv = (float2(dispatchThreadID.xy) + 0.5) / float2(width, height);
 
-    float3 color = litColorTexture.Sample(pointSampler, uv).rgb;
+    float3 color = litColorTexture.SampleLevel(pointSampler, uv, 0).rgb;
 
-    color *= lerp(1.0, ssaoTexture.Sample(pointSampler, uv).r, constants.AOStrength);
+    color *= lerp(1.0, ssaoTexture.SampleLevel(pointSampler, uv, 0).r, constants.AOStrength);
 
-    color += bloomTexture.Sample(pointSampler, uv).rgb * constants.BloomIntensity;
+    color += bloomTexture.SampleLevel(pointSampler, uv, 0).rgb * constants.BloomIntensity;
 
     outputTexture[dispatchThreadID.xy] = float4(color, 1.0);
 }

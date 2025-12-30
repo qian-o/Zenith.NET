@@ -38,7 +38,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 
     float2 uv = (float2(dispatchThreadID.xy) + 0.5) / float2(width, height);
 
-    float4 positionData = positionTexture.Sample(pointSampler, uv);
+    float4 positionData = positionTexture.SampleLevel(pointSampler, uv, 0);
     float3 worldPosition = positionData.xyz;
     float linearDepth = positionData.w;
 
@@ -48,9 +48,11 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     }
 
     float3 viewPosition = mul(float4(worldPosition, 1.0), constants.View).xyz;
-    float3 viewNormal = normalize(mul(float4(normalTexture.Sample(pointSampler, uv).xyz, 0.0), constants.View).xyz);
+    float3 viewNormal =
+        normalize(mul(float4(normalTexture.SampleLevel(pointSampler, uv, 0).xyz, 0.0), constants.View).xyz);
 
-    float3 randomRotation = normalize(noiseTexture.Sample(pointSampler, uv * constants.NoiseScale).xyz * 2.0 - 1.0);
+    float3 randomRotation =
+        normalize(noiseTexture.SampleLevel(pointSampler, uv * constants.NoiseScale, 0).xyz * 2.0 - 1.0);
 
     float3 tangent = normalize(randomRotation - viewNormal * dot(randomRotation, viewNormal));
     float3 bitangent = cross(viewNormal, tangent);
@@ -69,7 +71,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
         float2 sampleUV = projectedPosition.xy * 0.5 + 0.5;
         sampleUV.y = 1.0 - sampleUV.y;
 
-        float3 sampledWorldPosition = positionTexture.Sample(pointSampler, sampleUV).xyz;
+        float3 sampledWorldPosition = positionTexture.SampleLevel(pointSampler, sampleUV, 0).xyz;
         float3 sampledViewPosition = mul(float4(sampledWorldPosition, 1.0), constants.View).xyz;
         float geometryDepth = sampledViewPosition.z;
 

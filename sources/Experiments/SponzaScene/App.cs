@@ -99,16 +99,6 @@ internal static class App
             imGui.Update(delta, width, height);
             camera.Update(delta, width, height);
             renderer.Update(width, height, camera);
-        };
-
-        window.Render += _ =>
-        {
-            if (window.Size.X is 0 || window.Size.Y is 0)
-            {
-                return;
-            }
-
-            renderer.Render();
 
             ImGuiHelpers.Overlay("Info", () =>
             {
@@ -131,6 +121,18 @@ internal static class App
                 ImGui.Text($"Current FPS: {ImGui.GetIO().Framerate:F1}");
             });
 
+            renderer.UI();
+        };
+
+        window.Render += _ =>
+        {
+            if (window.Size.X is 0 || window.Size.Y is 0)
+            {
+                return;
+            }
+
+            renderer.Render();
+
             // ImGui
             {
                 CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
@@ -140,9 +142,9 @@ internal static class App
                 imGui.Render(commandBuffer);
 
                 commandBuffer.Submit();
-            }
 
-            Context.Graphics.WaitIdle();
+                Context.Graphics.WaitIdle();
+            }
 
             swapChain.Present();
         };

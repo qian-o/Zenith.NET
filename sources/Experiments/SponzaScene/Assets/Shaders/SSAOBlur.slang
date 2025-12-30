@@ -31,7 +31,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
         for (int y = -constants.BlurSize; y < constants.BlurSize; ++y)
         {
             float2 offset = float2(float(x), float(y)) * constants.TexelSize;
-            result += ssaoTexture.Sample(pointSampler, uv + offset).r;
+            result += ssaoTexture.SampleLevel(pointSampler, uv + offset, 0).r;
 
             sampleCount++;
         }

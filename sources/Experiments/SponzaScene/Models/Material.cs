@@ -21,14 +21,14 @@ internal class Material : DisposableObject
         {
             using MemoryStream stream = new(texture.PrimaryImage.Content.Content.ToArray());
 
-            BaseColorTexture = App.Context.LoadTextureFromStream(stream);
+            BaseColorTexture = App.Context.LoadTextureFromStream(stream, true);
         }
 
         if (material.FindChannel("Normal")?.Texture is GTexture normalTexture)
         {
             using MemoryStream stream = new(normalTexture.PrimaryImage.Content.Content.ToArray());
 
-            NormalTexture = App.Context.LoadTextureFromStream(stream, false);
+            NormalTexture = App.Context.LoadTextureFromStream(stream);
         }
 
         if (material.FindChannel("MetallicRoughness") is MaterialChannel mr)

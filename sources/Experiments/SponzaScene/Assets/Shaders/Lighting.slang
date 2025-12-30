@@ -381,21 +381,21 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 
     float2 uv = (float2(dispatchThreadID.xy) + 0.5) / float2(width, height);
 
-    float4 albedoData = albedoTexture.Sample(pointSampler, uv);
-    float4 normalData = normalTexture.Sample(pointSampler, uv);
-    float3 worldPos = positionTexture.Sample(pointSampler, uv).xyz;
+    float4 albedoData = albedoTexture.SampleLevel(pointSampler, uv, 0);
+    float4 normalData = normalTexture.SampleLevel(pointSampler, uv, 0);
+    float3 worldPos = positionTexture.SampleLevel(pointSampler, uv, 0).xyz;
 
-    float2 metallicRoughnessData = metallicRoughnessTexture.Sample(pointSampler, uv).xy;
+    float2 metallicRoughnessData = metallicRoughnessTexture.SampleLevel(pointSampler, uv, 0).xy;
     metallicRoughnessData.y = clamp(metallicRoughnessData.y, 0.04, 1.0);
 
-    float4 emissiveData = emissiveTexture.Sample(pointSampler, uv);
+    float4 emissiveData = emissiveTexture.SampleLevel(pointSampler, uv, 0);
     float3 emissiveColor = emissiveData.rgb;
     float emissiveStrength = emissiveData.a;
 
     float3 albedo = albedoData.rgb;
     float3 N = normalize(normalData.xyz);
 
-    float ao = ssaoTexture.Sample(pointSampler, uv).r;
+    float ao = ssaoTexture.SampleLevel(pointSampler, uv, 0).r;
 
     if (length(worldPos) < 0.001)
     {
