@@ -1,6 +1,4 @@
-﻿import "Common/Fullscreen";
-
-struct SSAOConstants
+﻿struct SSAOConstants
 {
     float4x4 View;
 

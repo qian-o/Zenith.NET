@@ -1,4 +1,6 @@
-﻿struct BloomConstants
+﻿static const float weights[5] = { 0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216 };
+
+struct BloomConstants
 {
     float2 TexelSize;
 };
@@ -7,8 +9,6 @@ ConstantBuffer<BloomConstants> constants;
 Texture2D sourceTexture;
 RWTexture2D outputTexture;
 SamplerState linearSampler;
-
-static const float weights[5] = { 0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216 };
 
 [numthreads(16, 16, 1)]
 void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)

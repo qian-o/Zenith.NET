@@ -1,6 +1,4 @@
-﻿import "Common/Fullscreen";
-
-struct BlurConstants
+﻿struct BlurConstants
 {
     float2 TexelSize;
 

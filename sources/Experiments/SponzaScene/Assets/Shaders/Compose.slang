@@ -1,6 +1,4 @@
-﻿import "Common/Fullscreen";
-
-struct ComposeConstants
+﻿struct ComposeConstants
 {
     float AOStrength;
 
