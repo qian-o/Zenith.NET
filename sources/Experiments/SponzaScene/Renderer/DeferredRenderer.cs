@@ -10,6 +10,7 @@ internal class DeferredRenderer : DisposableObject
     private readonly List<RenderPass> renderPasses =
     [
         new GBufferPass(),
+        new CSMPass(),
         new SSAOPass(),
         new SSAOBlurPass(),
         new BloomPass(),
@@ -34,6 +35,8 @@ internal class DeferredRenderer : DisposableObject
         context.NearPlane = camera.NearPlane;
         context.FarPlane = camera.FarPlane;
         context.CameraPosition = camera.Position;
+        context.Fov = camera.Fov;
+        context.AspectRatio = camera.AspectRatio;
     }
 
     public void Render()

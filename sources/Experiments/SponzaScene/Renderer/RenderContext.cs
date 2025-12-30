@@ -43,6 +43,10 @@ internal class RenderContext : DisposableObject
     public float FarPlane { get; set; }
 
     public Vector3 CameraPosition { get; set; }
+
+    public float Fov { get; set; }
+
+    public float AspectRatio { get; set; }
     #endregion
 
     #region G-Buffer
@@ -63,12 +67,12 @@ internal class RenderContext : DisposableObject
     public FrameBuffer? GBufferFrameBuffer { get; private set; }
     #endregion
 
-    #region CSM
+    #region Cascaded Shadow Maps
     public Texture? CSMDepthArray { get; private set; }
 
     public Texture? CSMNormalizedDepthArray { get; private set; }
 
-    public FrameBuffer[]? CSMDepthBuffers { get; private set; }
+    public FrameBuffer[]? CSMFrameBuffers { get; private set; }
     #endregion
 
     #region Intermediate Textures
@@ -180,10 +184,10 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
         });
 
-        CSMDepthBuffers = new FrameBuffer[CSMSplits.Length];
+        CSMFrameBuffers = new FrameBuffer[CSMSplits.Length];
         for (int i = 0; i < CSMSplits.Length; i++)
         {
-            CSMDepthBuffers[i] = App.Context.CreateFrameBuffer(new()
+            CSMFrameBuffers[i] = App.Context.CreateFrameBuffer(new()
             {
                 ColorAttachments = [new() { Target = CSMNormalizedDepthArray, Slice = new() { ArrayLayer = (uint)i } }],
                 DepthStencilAttachment = new() { Target = CSMDepthArray, Slice = new() { ArrayLayer = (uint)i } }
@@ -322,9 +326,9 @@ internal class RenderContext : DisposableObject
         SSAOBlurred?.Dispose();
         SSAO?.Dispose();
 
-        if (CSMDepthBuffers is not null)
+        if (CSMFrameBuffers is not null)
         {
-            foreach (FrameBuffer frameBuffer in CSMDepthBuffers)
+            foreach (FrameBuffer frameBuffer in CSMFrameBuffers)
             {
                 frameBuffer.Dispose();
             }
