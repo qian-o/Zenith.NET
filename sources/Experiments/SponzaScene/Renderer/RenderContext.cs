@@ -20,6 +20,15 @@ internal class RenderContext : DisposableObject
         SampleCount = SampleCount.Count1
     };
 
+    public static float[] CSMSplits { get; } = [0.05f, 0.15f, 0.3f, 0.5f, 1.0f];
+
+    public static Output CSMOutput { get; } = new()
+    {
+        ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
+        DepthStencilAttachment = PixelFormat.D32Float,
+        SampleCount = SampleCount.Count1
+    };
+
     #region Frame Information
     public uint Width { get; private set; }
 
@@ -52,6 +61,14 @@ internal class RenderContext : DisposableObject
     public Texture? Emissive { get; private set; }
 
     public FrameBuffer? GBufferFrameBuffer { get; private set; }
+    #endregion
+
+    #region CSM
+    public Texture? CSMDepthArray { get; private set; }
+
+    public Texture? CSMNormalizedDepthArray { get; private set; }
+
+    public FrameBuffer[]? CSMDepthBuffers { get; private set; }
     #endregion
 
     #region Intermediate Textures
@@ -136,6 +153,42 @@ internal class RenderContext : DisposableObject
             SampleCount = SampleCount.Count1,
             Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
         });
+
+        CSMDepthArray = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2DArray,
+            Format = PixelFormat.D32Float,
+            Width = 4096,
+            Height = 4096,
+            Depth = (uint)CSMSplits.Length,
+            MipLevels = 1,
+            ArrayLayers = (uint)CSMSplits.Length,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.DepthStencil | TextureUsageFlags.ShaderResource
+        });
+
+        CSMNormalizedDepthArray = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2DArray,
+            Format = PixelFormat.R8G8B8A8UNorm,
+            Width = 4096,
+            Height = 4096,
+            Depth = (uint)CSMSplits.Length,
+            MipLevels = 1,
+            ArrayLayers = (uint)CSMSplits.Length,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
+        });
+
+        CSMDepthBuffers = new FrameBuffer[CSMSplits.Length];
+        for (int i = 0; i < CSMSplits.Length; i++)
+        {
+            CSMDepthBuffers[i] = App.Context.CreateFrameBuffer(new()
+            {
+                ColorAttachments = [new() { Target = CSMNormalizedDepthArray, Slice = new() { ArrayLayer = (uint)i } }],
+                DepthStencilAttachment = new() { Target = CSMDepthArray, Slice = new() { ArrayLayer = (uint)i } }
+            });
+        }
 
         MetallicRoughness = App.Context.CreateTexture(new()
         {
@@ -268,6 +321,16 @@ internal class RenderContext : DisposableObject
         HorizontalBloom?.Dispose();
         SSAOBlurred?.Dispose();
         SSAO?.Dispose();
+
+        if (CSMDepthBuffers is not null)
+        {
+            foreach (FrameBuffer frameBuffer in CSMDepthBuffers)
+            {
+                frameBuffer.Dispose();
+            }
+        }
+        CSMNormalizedDepthArray?.Dispose();
+        CSMDepthArray?.Dispose();
 
         GBufferFrameBuffer?.Dispose();
         Emissive?.Dispose();
