@@ -154,9 +154,7 @@ public unsafe class ZenithView : TemplatedControl
 
             CommandBuffer commandBuffer = GraphicsContext.Graphics.CommandBuffer();
             commandBuffer.CopyTextureToBuffer(color, default, default, new() { Width = width, Height = height, Depth = 1 }, present, 0);
-            commandBuffer.Submit();
-
-            GraphicsContext.Graphics.WaitIdle();
+            commandBuffer.Submit(true);
 
             using (ILockedFramebuffer lockedFramebuffer = bitmap.Lock())
             {

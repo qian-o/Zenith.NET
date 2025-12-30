@@ -123,16 +123,18 @@ internal unsafe class VKResourceSet : ResourceSet
 
     public VKTextureView[] UavTextureViews { get; }
 
-    public void TransitionLayout(VKCommandBuffer commandBuffer)
+    protected override void PreprocessImpl(CommandBuffer commandBuffer)
     {
+        VKCommandBuffer vkCommandBuffer = commandBuffer.Vulkan();
+
         foreach (VKTextureView textureView in SrvTextureViews)
         {
-            textureView.TransitionLayout(commandBuffer, ImageLayout.ShaderReadOnlyOptimal);
+            textureView.TransitionLayout(vkCommandBuffer, ImageLayout.ShaderReadOnlyOptimal);
         }
 
         foreach (VKTextureView textureView in UavTextureViews)
         {
-            textureView.TransitionLayout(commandBuffer, ImageLayout.General);
+            textureView.TransitionLayout(vkCommandBuffer, ImageLayout.General);
         }
     }
 

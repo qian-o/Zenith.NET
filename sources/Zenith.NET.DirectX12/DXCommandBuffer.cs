@@ -220,12 +220,39 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         accelerationStructure.DirectX12().Update(this, newDesc);
     }
 
-    protected override void PreprocessResourceSetsImpl(ResourceSet[] resourceSets)
+    protected override void BeginRenderPassImpl(FrameBuffer frameBuffer, ClearValue clearValue)
     {
-        foreach (ResourceSet resourceSet in resourceSets)
+        DXFrameBuffer dxFrameBuffer = frameBuffer.DirectX12();
+
+        dxFrameBuffer.PrepareAttachmentsForRendering(this);
+
+        GraphicsCommandList.OMSetRenderTargets(dxFrameBuffer.ColorAttachmentCount, dxFrameBuffer.RtvHandles, false, dxFrameBuffer.DsvHandle);
+
+        bool clearColor = clearValue.Flags.HasFlag(ClearFlags.Color);
+        bool clearDepth = clearValue.Flags.HasFlag(ClearFlags.Depth);
+        bool clearStencil = clearValue.Flags.HasFlag(ClearFlags.Stencil);
+
+        if (clearColor)
         {
-            resourceSet.DirectX12().TransitionStates(this);
+            for (int i = 0; i < dxFrameBuffer.ColorAttachmentCount; i++)
+            {
+                ref float x = ref clearValue.ColorValues[i].X;
+
+                GraphicsCommandList.ClearRenderTargetView(dxFrameBuffer.RtvHandles[i], ref x, 0, null);
+            }
         }
+
+        if ((clearDepth || clearStencil) && dxFrameBuffer.HasDepthStencilAttachment)
+        {
+            DxClearFlags clearFlags = (DxClearFlags)((clearDepth ? (int)DxClearFlags.Depth : 0) + (clearDepth ? (int)DxClearFlags.Stencil : 0));
+
+            GraphicsCommandList.ClearDepthStencilView(*dxFrameBuffer.DsvHandle, clearFlags, clearValue.Depth, clearValue.Stencil, 0, (Box2D<int>*)null);
+        }
+    }
+
+    protected override void EndRenderPassImpl(FrameBuffer frameBuffer)
+    {
+        frameBuffer.DirectX12().FinalizeColorAttachmentsForPresent(this);
     }
 
     protected override void SetScissorsImpl(Scissor[] scissors)
@@ -242,7 +269,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         GraphicsCommandList.RSSetViewports((uint)viewports.Length, ref dxViewports[0]);
     }
 
-    protected override void BindPipelineImpl(GraphicsPipeline pipeline)
+    protected override void SetPipelineImpl(GraphicsPipeline pipeline)
     {
         DXGraphicsPipeline dxPipeline = pipeline.DirectX12();
 
@@ -267,7 +294,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         GraphicsCommandList.IASetPrimitiveTopology(DXFormats.DirectX12(pipeline.Desc.PrimitiveTopology).PrimitiveTopology);
     }
 
-    protected override void BindPipelineImpl(ComputePipeline pipeline)
+    protected override void SetPipelineImpl(ComputePipeline pipeline)
     {
         DXComputePipeline dxPipeline = pipeline.DirectX12();
 
@@ -275,7 +302,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         GraphicsCommandList.SetComputeRootSignature(dxPipeline.RootSignature);
     }
 
-    protected override void BindPipelineImpl(RayTracingPipeline pipeline)
+    protected override void SetPipelineImpl(RayTracingPipeline pipeline)
     {
         DXRayTracingPipeline dxPipeline = pipeline.DirectX12();
 
@@ -283,7 +310,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         GraphicsCommandList4?.SetComputeRootSignature(dxPipeline.RootSignature);
     }
 
-    protected override void BindPipelineImpl(MeshShadingPipeline pipeline)
+    protected override void SetPipelineImpl(MeshShadingPipeline pipeline)
     {
         DXMeshShadingPipeline dxPipeline = pipeline.DirectX12();
 
@@ -306,7 +333,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         }
     }
 
-    protected override void BindVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index)
+    protected override void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index)
     {
         VertexBufferView view = new()
         {
@@ -318,7 +345,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         GraphicsCommandList.IASetVertexBuffers(index, 1, &view);
     }
 
-    protected override void BindIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format)
+    protected override void SetIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format)
     {
         IndexBufferView view = new()
         {
@@ -330,7 +357,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         GraphicsCommandList.IASetIndexBuffer(&view);
     }
 
-    protected override void BindResourceSetImpl(Pipeline pipeline, ResourceSet resourceSet, uint index)
+    protected override void SetResourceSetImpl(Pipeline pipeline, ResourceSet resourceSet, uint index)
     {
         if (cbvSrvUavTable is null || samplerTable is null)
         {
@@ -487,44 +514,6 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
         CommandAllocator.Reset().Success();
         GraphicsCommandList.Reset(CommandAllocator, (ID3D12PipelineState*)null).Success();
-    }
-
-    protected override void BeginRenderingImpl(FrameBuffer frameBuffer, ClearValue? clearValue)
-    {
-        DXFrameBuffer dxFrameBuffer = frameBuffer.DirectX12();
-
-        dxFrameBuffer.PrepareAttachmentsForRendering(this);
-
-        GraphicsCommandList.OMSetRenderTargets(dxFrameBuffer.ColorAttachmentCount, dxFrameBuffer.RtvHandles, false, dxFrameBuffer.DsvHandle);
-
-        if (clearValue.HasValue)
-        {
-            bool clearColor = clearValue.Value.Flags.HasFlag(ClearFlags.Color);
-            bool clearDepth = clearValue.Value.Flags.HasFlag(ClearFlags.Depth);
-            bool clearStencil = clearValue.Value.Flags.HasFlag(ClearFlags.Stencil);
-
-            if (clearColor)
-            {
-                for (int i = 0; i < dxFrameBuffer.ColorAttachmentCount; i++)
-                {
-                    ref float x = ref clearValue.Value.ColorValues[i].X;
-
-                    GraphicsCommandList.ClearRenderTargetView(dxFrameBuffer.RtvHandles[i], ref x, 0, null);
-                }
-            }
-
-            if ((clearDepth || clearStencil) && dxFrameBuffer.HasDepthStencilAttachment)
-            {
-                DxClearFlags clearFlags = (DxClearFlags)((clearDepth ? (int)DxClearFlags.Depth : 0) + (clearDepth ? (int)DxClearFlags.Stencil : 0));
-
-                GraphicsCommandList.ClearDepthStencilView(*dxFrameBuffer.DsvHandle, clearFlags, clearValue.Value.Depth, clearValue.Value.Stencil, 0, (Box2D<int>*)null);
-            }
-        }
-    }
-
-    protected override void EndRenderingImpl(FrameBuffer frameBuffer)
-    {
-        frameBuffer.DirectX12().FinalizeColorAttachmentsForPresent(this);
     }
 
     protected override void SetResourceName(string name)

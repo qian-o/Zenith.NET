@@ -256,7 +256,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
         }
     }
 
-    public void Render(CommandBuffer commandBuffer, ImDrawDataPtr drawData)
+    public void Render(CommandBuffer commandBuffer, FrameBuffer frameBuffer, ClearValue clearValue, ImDrawDataPtr drawData)
     {
         if (drawData.CmdListsCount is 0)
         {
@@ -413,13 +413,13 @@ float4 PSMain(VSOutput input) : SV_TARGET
                                                                1.0f)
         }], 0);
 
-        commandBuffer.PreprocessResourceSets([.. imResourceSets.Values]);
-
         commandBuffer.BeginDebugEvent("ImGui");
 
-        commandBuffer.BindPipeline(graphicsPipeline);
-        commandBuffer.BindVertexBuffer(vertexBuffer, 0, 0);
-        commandBuffer.BindIndexBuffer(indexBuffer, 0, IndexFormat.UInt16);
+        commandBuffer.BeginRenderPass(frameBuffer, clearValue, imResourceSets.Values);
+
+        commandBuffer.SetPipeline(graphicsPipeline);
+        commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
+        commandBuffer.SetIndexBuffer(indexBuffer, 0, IndexFormat.UInt16);
 
         for (int i = 0, vertexOffset = 0, indexOffset = 0; i < drawData.CmdListsCount; i++)
         {
@@ -451,7 +451,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
                     }
 
                     commandBuffer.SetScissors([scissor]);
-                    commandBuffer.BindResourceSet(imResourceSets[drawCmd.TexRef.GetTexID()], 0);
+                    commandBuffer.SetResourceSet(imResourceSets[drawCmd.TexRef.GetTexID()], 0);
                     commandBuffer.DrawIndexed(drawCmd.ElemCount, 1, (uint)(drawCmd.IdxOffset + indexOffset), (int)(drawCmd.VtxOffset + vertexOffset), 0);
                 }
             }
@@ -459,6 +459,8 @@ float4 PSMain(VSOutput input) : SV_TARGET
             vertexOffset += drawListPtr.VtxBuffer.Size;
             indexOffset += drawListPtr.IdxBuffer.Size;
         }
+
+        commandBuffer.EndRenderPass();
 
         commandBuffer.EndDebugEvent();
     }

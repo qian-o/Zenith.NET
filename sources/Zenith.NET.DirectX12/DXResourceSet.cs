@@ -53,19 +53,6 @@ internal class DXResourceSet : ResourceSet
 
     public DXTextureView[] UavTextureViews { get; }
 
-    public void TransitionStates(DXCommandBuffer commandBuffer)
-    {
-        foreach (DXTextureView textureView in SrvTextureViews)
-        {
-            textureView.TransitionStates(commandBuffer, ResourceStates.AllShaderResource);
-        }
-
-        foreach (DXTextureView textureView in UavTextureViews)
-        {
-            textureView.TransitionStates(commandBuffer, ResourceStates.UnorderedAccess);
-        }
-    }
-
     public void Bind(DXCommandBuffer commandBuffer, DXDescriptorTable cbvSrvUavTable, DXDescriptorTable samplerTable, bool isGraphics, uint offset)
     {
         if (isGraphics)
@@ -104,6 +91,21 @@ internal class DXResourceSet : ResourceSet
 
                 samplerTable.Write(samplerToken);
             }
+        }
+    }
+
+    protected override void PreprocessImpl(CommandBuffer commandBuffer)
+    {
+        DXCommandBuffer dxCommandBuffer = commandBuffer.DirectX12();
+
+        foreach (DXTextureView textureView in SrvTextureViews)
+        {
+            textureView.TransitionStates(dxCommandBuffer, ResourceStates.AllShaderResource);
+        }
+
+        foreach (DXTextureView textureView in UavTextureViews)
+        {
+            textureView.TransitionStates(dxCommandBuffer, ResourceStates.UnorderedAccess);
         }
     }
 

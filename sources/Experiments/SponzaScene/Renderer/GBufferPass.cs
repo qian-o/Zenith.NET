@@ -151,13 +151,11 @@ internal unsafe class GBufferPass : RenderPass
             FarPlane = context.FarPlane
         }], 0);
 
-        commandBuffer.PreprocessResourceSets(resourceSets);
+        commandBuffer.BeginRenderPass(context.GBufferFrameBuffer!, ClearValues.Default, resourceSets);
 
-        commandBuffer.BindFrameBuffer(context.GBufferFrameBuffer!, ClearValues.Default);
-
-        commandBuffer.BindPipeline(cullBackPipeline);
-        commandBuffer.BindVertexBuffer(App.Sponza.Vertices, 0, 0);
-        commandBuffer.BindIndexBuffer(App.Sponza.Indices, 0, IndexFormat.UInt32);
+        commandBuffer.SetPipeline(cullBackPipeline);
+        commandBuffer.SetVertexBuffer(App.Sponza.Vertices, 0, 0);
+        commandBuffer.SetIndexBuffer(App.Sponza.Indices, 0, IndexFormat.UInt32);
 
         foreach (Node node in App.Sponza.Nodes)
         {
@@ -166,7 +164,7 @@ internal unsafe class GBufferPass : RenderPass
                 continue;
             }
 
-            commandBuffer.BindResourceSet(resourceSets[node.Material], 0);
+            commandBuffer.SetResourceSet(resourceSets[node.Material], 0);
 
             commandBuffer.DrawIndexed(node.Args.IndexCount,
                                       node.Args.InstanceCount,
@@ -175,7 +173,9 @@ internal unsafe class GBufferPass : RenderPass
                                       node.Args.FirstInstance);
         }
 
-        commandBuffer.BindPipeline(cullNonePipeline);
+        commandBuffer.SetPipeline(cullNonePipeline);
+        commandBuffer.SetVertexBuffer(App.Sponza.Vertices, 0, 0);
+        commandBuffer.SetIndexBuffer(App.Sponza.Indices, 0, IndexFormat.UInt32);
 
         foreach (Node node in App.Sponza.Nodes)
         {
@@ -184,7 +184,7 @@ internal unsafe class GBufferPass : RenderPass
                 continue;
             }
 
-            commandBuffer.BindResourceSet(resourceSets[node.Material], 0);
+            commandBuffer.SetResourceSet(resourceSets[node.Material], 0);
 
             commandBuffer.DrawIndexed(node.Args.IndexCount,
                                       node.Args.InstanceCount,
@@ -192,6 +192,8 @@ internal unsafe class GBufferPass : RenderPass
                                       node.Args.VertexOffset,
                                       node.Args.FirstInstance);
         }
+
+        commandBuffer.EndRenderPass();
     }
 
     protected override void DebugUIImpl(RenderContext context)

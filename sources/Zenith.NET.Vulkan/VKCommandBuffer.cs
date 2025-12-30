@@ -255,12 +255,81 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         accelerationStructure.Vulkan().Update(this, newDesc);
     }
 
-    protected override void PreprocessResourceSetsImpl(ResourceSet[] resourceSets)
+    protected override void BeginRenderPassImpl(FrameBuffer frameBuffer, ClearValue clearValue)
     {
-        foreach (ResourceSet resourceSet in resourceSets)
+        VKFrameBuffer vkFrameBuffer = frameBuffer.Vulkan();
+
+        vkFrameBuffer.PrepareAttachmentsForRendering(this);
+
+        Context.Vk.CmdBeginRendering(CommandBuffer, ref vkFrameBuffer.RenderingInfo);
+
+        bool clearColor = clearValue.Flags.HasFlag(ClearFlags.Color);
+        bool clearDepth = clearValue.Flags.HasFlag(ClearFlags.Depth);
+        bool clearStencil = clearValue.Flags.HasFlag(ClearFlags.Stencil);
+
+        ClearRect rect = new()
         {
-            resourceSet.Vulkan().TransitionLayout(this);
+            Rect = new()
+            {
+                Extent = new()
+                {
+                    Width = vkFrameBuffer.Width,
+                    Height = vkFrameBuffer.Height
+                }
+            },
+            LayerCount = 1
+        };
+
+        if (clearColor)
+        {
+            for (int i = 0; i < vkFrameBuffer.ColorAttachmentCount; i++)
+            {
+                Vector4 color = clearValue.ColorValues[i];
+
+                ClearAttachment attachment = new()
+                {
+                    AspectMask = ImageAspectFlags.ColorBit,
+                    ColorAttachment = (uint)i,
+                    ClearValue = new()
+                    {
+                        Color = new()
+                        {
+                            Float32_0 = color.X,
+                            Float32_1 = color.Y,
+                            Float32_2 = color.Z,
+                            Float32_3 = color.W
+                        }
+                    }
+                };
+
+                Context.Vk.CmdClearAttachments(CommandBuffer, 1, &attachment, 1, &rect);
+            }
         }
+
+        if ((clearDepth || clearStencil) && vkFrameBuffer.HasDepthStencilAttachment)
+        {
+            ClearAttachment attachment = new()
+            {
+                AspectMask = (clearDepth ? ImageAspectFlags.DepthBit : 0) | (clearStencil ? ImageAspectFlags.StencilBit : 0),
+                ClearValue = new()
+                {
+                    DepthStencil = new()
+                    {
+                        Depth = clearValue.Depth,
+                        Stencil = clearValue.Stencil
+                    }
+                }
+            };
+
+            Context.Vk.CmdClearAttachments(CommandBuffer, 1, &attachment, 1, &rect);
+        }
+    }
+
+    protected override void EndRenderPassImpl(FrameBuffer frameBuffer)
+    {
+        Context.Vk.CmdEndRendering(CommandBuffer);
+
+        frameBuffer.Vulkan().FinalizeColorAttachmentsForPresent(this);
     }
 
     protected override void SetScissorsImpl(Scissor[] scissors)
@@ -277,27 +346,27 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         Context.Vk.CmdSetViewport(CommandBuffer, 0, (uint)vkViewports.Length, ref vkViewports[0]);
     }
 
-    protected override void BindPipelineImpl(GraphicsPipeline pipeline)
+    protected override void SetPipelineImpl(GraphicsPipeline pipeline)
     {
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Graphics, pipeline.Vulkan().Pipeline);
     }
 
-    protected override void BindPipelineImpl(ComputePipeline pipeline)
+    protected override void SetPipelineImpl(ComputePipeline pipeline)
     {
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Compute, pipeline.Vulkan().Pipeline);
     }
 
-    protected override void BindPipelineImpl(RayTracingPipeline pipeline)
+    protected override void SetPipelineImpl(RayTracingPipeline pipeline)
     {
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.RayTracingKhr, pipeline.Vulkan().Pipeline);
     }
 
-    protected override void BindPipelineImpl(MeshShadingPipeline pipeline)
+    protected override void SetPipelineImpl(MeshShadingPipeline pipeline)
     {
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Graphics, pipeline.Vulkan().Pipeline);
     }
 
-    protected override void BindVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index)
+    protected override void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index)
     {
         VkBuffer vkBuffer = buffer.Vulkan().Buffer;
         ulong vkOffset = offsetInBytes;
@@ -305,12 +374,12 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         Context.Vk.CmdBindVertexBuffers(CommandBuffer, index, 1, ref vkBuffer, ref vkOffset);
     }
 
-    protected override void BindIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format)
+    protected override void SetIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format)
     {
         Context.Vk.CmdBindIndexBuffer(CommandBuffer, buffer.Vulkan().Buffer, offsetInBytes, VKFormats.Vulkan(format));
     }
 
-    protected override void BindResourceSetImpl(Pipeline pipeline, ResourceSet resourceSet, uint index)
+    protected override void SetResourceSetImpl(Pipeline pipeline, ResourceSet resourceSet, uint index)
     {
         (PipelineBindPoint pipelineBindPoint, PipelineLayout pipelineLayout) = pipeline switch
         {
@@ -449,86 +518,6 @@ internal unsafe class VKCommandBuffer : CommandBuffer
     protected override void ResetImpl()
     {
         Context.Vk.ResetCommandBuffer(CommandBuffer, CommandBufferResetFlags.None).Success();
-    }
-
-    protected override void BeginRenderingImpl(FrameBuffer frameBuffer, ClearValue? clearValue)
-    {
-        VKFrameBuffer vkFrameBuffer = frameBuffer.Vulkan();
-
-        vkFrameBuffer.PrepareAttachmentsForRendering(this);
-
-        Context.Vk.CmdBeginRendering(CommandBuffer, ref vkFrameBuffer.RenderingInfo);
-
-        if (clearValue.HasValue)
-        {
-            bool clearColor = clearValue.Value.Flags.HasFlag(ClearFlags.Color);
-            bool clearDepth = clearValue.Value.Flags.HasFlag(ClearFlags.Depth);
-            bool clearStencil = clearValue.Value.Flags.HasFlag(ClearFlags.Stencil);
-
-            ClearRect rect = new()
-            {
-                Rect = new()
-                {
-                    Extent = new()
-                    {
-                        Width = vkFrameBuffer.Width,
-                        Height = vkFrameBuffer.Height
-                    }
-                },
-                LayerCount = 1
-            };
-
-            if (clearColor)
-            {
-                for (int i = 0; i < vkFrameBuffer.ColorAttachmentCount; i++)
-                {
-                    Vector4 color = clearValue.Value.ColorValues[i];
-
-                    ClearAttachment attachment = new()
-                    {
-                        AspectMask = ImageAspectFlags.ColorBit,
-                        ColorAttachment = (uint)i,
-                        ClearValue = new()
-                        {
-                            Color = new()
-                            {
-                                Float32_0 = color.X,
-                                Float32_1 = color.Y,
-                                Float32_2 = color.Z,
-                                Float32_3 = color.W
-                            }
-                        }
-                    };
-
-                    Context.Vk.CmdClearAttachments(CommandBuffer, 1, &attachment, 1, &rect);
-                }
-            }
-
-            if ((clearDepth || clearStencil) && vkFrameBuffer.HasDepthStencilAttachment)
-            {
-                ClearAttachment attachment = new()
-                {
-                    AspectMask = (clearDepth ? ImageAspectFlags.DepthBit : 0) | (clearStencil ? ImageAspectFlags.StencilBit : 0),
-                    ClearValue = new()
-                    {
-                        DepthStencil = new()
-                        {
-                            Depth = clearValue.Value.Depth,
-                            Stencil = clearValue.Value.Stencil
-                        }
-                    }
-                };
-
-                Context.Vk.CmdClearAttachments(CommandBuffer, 1, &attachment, 1, &rect);
-            }
-        }
-    }
-
-    protected override void EndRenderingImpl(FrameBuffer frameBuffer)
-    {
-        Context.Vk.CmdEndRendering(CommandBuffer);
-
-        frameBuffer.Vulkan().FinalizeColorAttachmentsForPresent(this);
     }
 
     protected override void SetResourceName(string name)

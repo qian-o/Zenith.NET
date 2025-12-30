@@ -137,13 +137,9 @@ internal static class App
 
                 CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
 
-                commandBuffer.BindFrameBuffer(swapChain.FrameBuffer, ClearValues.Default);
+                imGui.Render(commandBuffer, swapChain.FrameBuffer, ClearValues.Default);
 
-                imGui.Render(commandBuffer);
-
-                commandBuffer.Submit();
-
-                Context.Graphics.WaitIdle();
+                commandBuffer.Submit(true);
             }
 
             swapChain.Present();

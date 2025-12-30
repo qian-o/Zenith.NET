@@ -49,9 +49,7 @@ internal class DeferredRenderer : DisposableObject
 
         commandBuffer.EndDebugEvent();
 
-        commandBuffer.Submit();
-
-        App.Context.Graphics.WaitIdle();
+        commandBuffer.Submit(true);
     }
 
     public void UI()

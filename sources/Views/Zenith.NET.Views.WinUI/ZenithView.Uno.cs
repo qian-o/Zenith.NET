@@ -70,9 +70,7 @@ public unsafe partial class ZenithView
 
         CommandBuffer commandBuffer = context.Graphics.CommandBuffer();
         commandBuffer.CopyTextureToBuffer(color, default, default, new() { Width = width, Height = height, Depth = 1 }, present, 0);
-        commandBuffer.Submit();
-
-        context.Graphics.WaitIdle();
+        commandBuffer.Submit(true);
 
         using (Stream stream = bitmap.PixelBuffer.AsStream())
         {

@@ -4,14 +4,17 @@ namespace Zenith.NET;
 
 public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
 {
-    private bool isRendering;
-    private FrameBuffer? currentFrameBuffer;
-    private ClearValue? currentClearValue;
     private Pipeline? currentPipeline;
+    private FrameBuffer? currentFrameBuffer;
 
-    public void Submit()
+    public void Submit(bool waitForCompletion = false)
     {
         queue.Submit(this);
+
+        if (waitForCompletion)
+        {
+            queue.WaitIdle();
+        }
     }
 
     public void Upload<T>(Buffer buffer, uint offsetInBytes, ReadOnlySpan<T> data) where T : unmanaged
@@ -69,44 +72,32 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes)
     {
-        EnsureRenderingEnded();
-
         CopyBufferImpl(src, srcOffsetInBytes, dest, destOffsetInBytes, sizeInBytes);
     }
 
     public void CopyBufferToTexture(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent)
     {
-        EnsureRenderingEnded();
-
         CopyBufferToTextureImpl(src, srcOffsetInBytes, dest, destSlice, destOffset, destExtent);
     }
 
     public void CopyTexture(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent)
     {
-        EnsureRenderingEnded();
-
         CopyTextureImpl(src, srcSlice, srcOffset, dest, destSlice, destOffset, extent);
     }
 
     public void CopyTextureToBuffer(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes)
     {
-        EnsureRenderingEnded();
-
         CopyTextureToBufferImpl(src, srcSlice, srcOffset, srcExtent, dest, destOffsetInBytes);
     }
 
     public void ResolveTexture(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice)
     {
-        EnsureRenderingEnded();
-
         ResolveTextureImpl(src, srcSlice, dest, destSlice);
     }
 
     public BottomLevelAccelerationStructure BuildAccelerationStructure(BottomLevelAccelerationStructureDesc desc)
     {
         Context.ValidationLayer?.ValidateDesc(desc);
-
-        EnsureRenderingEnded();
 
         return BuildAccelerationStructureImpl(desc);
     }
@@ -115,8 +106,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     {
         Context.ValidationLayer?.ValidateDesc(desc);
 
-        EnsureRenderingEnded();
-
         return BuildAccelerationStructureImpl(desc);
     }
 
@@ -124,23 +113,17 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     {
         Context.ValidationLayer?.ValidateDesc(accelerationStructure.Desc, newDesc);
 
-        EnsureRenderingEnded();
-
         UpdateAccelerationStructureImpl(accelerationStructure, newDesc);
 
         accelerationStructure.Refresh(newDesc);
     }
 
-    public void PreprocessResourceSets(ResourceSet[] resourceSets)
+    public void BeginRenderPass(FrameBuffer frameBuffer, ClearValue clearValue, params IEnumerable<ResourceSet> preprocessResourceSets)
     {
-        EnsureRenderingEnded();
-
-        PreprocessResourceSetsImpl(resourceSets);
-    }
-
-    public void BindFrameBuffer(FrameBuffer frameBuffer, ClearValue clearValue)
-    {
-        EnsureRenderingEnded();
+        if (currentFrameBuffer is not null)
+        {
+            EndRenderPass();
+        }
 
         if (frameBuffer.ColorAttachmentCount is not 0)
         {
@@ -154,13 +137,31 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             SetViewportsImpl(viewports);
         }
 
+        foreach (ResourceSet resourceSet in preprocessResourceSets)
+        {
+            resourceSet.Preprocess(this);
+        }
+
+        BeginRenderPassImpl(frameBuffer, clearValue);
+
         currentFrameBuffer = frameBuffer;
-        currentClearValue = clearValue;
+    }
+
+    public void EndRenderPass()
+    {
+        if (currentFrameBuffer is null)
+        {
+            return;
+        }
+
+        EndRenderPassImpl(currentFrameBuffer);
+
+        currentFrameBuffer = null;
     }
 
     public void SetScissors(Scissor[] scissors)
     {
-        if (scissors.Length is 0 || currentFrameBuffer is null)
+        if (scissors.Length is 0)
         {
             return;
         }
@@ -170,7 +171,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetViewports(Viewport[] viewports)
     {
-        if (viewports.Length is 0 || currentFrameBuffer is null)
+        if (viewports.Length is 0)
         {
             return;
         }
@@ -178,62 +179,67 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         SetViewportsImpl(viewports);
     }
 
-    public void BindPipeline(GraphicsPipeline pipeline)
+    public void SetPipeline(GraphicsPipeline pipeline)
     {
-        BindPipelineImpl(pipeline);
+        SetPipelineImpl(pipeline);
 
         currentPipeline = pipeline;
     }
 
-    public void BindPipeline(ComputePipeline pipeline)
+    public void SetPipeline(ComputePipeline pipeline)
     {
-        BindPipelineImpl(pipeline);
+        SetPipelineImpl(pipeline);
 
         currentPipeline = pipeline;
     }
 
-    public void BindPipeline(RayTracingPipeline pipeline)
+    public void SetPipeline(RayTracingPipeline pipeline)
     {
-        BindPipelineImpl(pipeline);
+        SetPipelineImpl(pipeline);
 
         currentPipeline = pipeline;
     }
 
-    public void BindPipeline(MeshShadingPipeline pipeline)
+    public void SetPipeline(MeshShadingPipeline pipeline)
     {
-        BindPipelineImpl(pipeline);
+        SetPipelineImpl(pipeline);
 
         currentPipeline = pipeline;
     }
 
-    public void BindVertexBuffer(Buffer buffer, uint offsetInBytes, uint index)
+    public void SetVertexBuffer(Buffer buffer, uint offsetInBytes, uint index)
     {
         if (currentPipeline is not GraphicsPipeline pipeline)
         {
             return;
         }
 
-        BindVertexBufferImpl(pipeline, buffer, offsetInBytes, index);
+        SetVertexBufferImpl(pipeline, buffer, offsetInBytes, index);
     }
 
-    public void BindIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat format)
+    public void SetIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat format)
     {
         if (currentPipeline is not GraphicsPipeline pipeline)
         {
             return;
         }
 
-        BindIndexBufferImpl(pipeline, buffer, offsetInBytes, format);
+        SetIndexBufferImpl(pipeline, buffer, offsetInBytes, format);
     }
 
-    public void BindResourceSet(ResourceSet resourceSet, uint index)
+    public void SetResourceSet(ResourceSet resourceSet, uint index)
     {
         if (currentPipeline is null)
         {
             return;
         }
 
-        BindResourceSetImpl(currentPipeline, resourceSet, index);
+        SetResourceSetImpl(currentPipeline, resourceSet, index);
+
+        if (currentFrameBuffer is null)
+        {
+            resourceSet.Preprocess(this);
+        }
     }
 
     public void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
@@ -242,8 +248,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         {
             return;
         }
-
-        EnsureRenderingBegan();
 
         DrawImpl(pipeline, vertexCount, instanceCount, firstVertex, firstInstance);
     }
@@ -255,8 +259,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             return;
         }
 
-        EnsureRenderingBegan();
-
         DrawIndirectImpl(pipeline, indirectBuffer, offsetInBytes, drawCount);
     }
 
@@ -266,8 +268,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         {
             return;
         }
-
-        EnsureRenderingBegan();
 
         DrawIndexedImpl(pipeline, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
@@ -279,8 +279,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             return;
         }
 
-        EnsureRenderingBegan();
-
         DrawIndexedIndirectImpl(pipeline, indirectBuffer, offsetInBytes, drawCount);
     }
 
@@ -290,8 +288,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         {
             return;
         }
-
-        EnsureRenderingEnded();
 
         DispatchImpl(pipeline, groupCountX, groupCountY, groupCountZ);
     }
@@ -303,8 +299,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             return;
         }
 
-        EnsureRenderingEnded();
-
         DispatchIndirectImpl(pipeline, indirectBuffer, offsetInBytes);
     }
 
@@ -314,8 +308,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         {
             return;
         }
-
-        EnsureRenderingEnded();
 
         DispatchRaysImpl(pipeline, width, height, depth);
     }
@@ -327,8 +319,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             return;
         }
 
-        EnsureRenderingBegan();
-
         DispatchMeshImpl(pipeline, groupCountX, groupCountY, groupCountZ);
     }
 
@@ -338,8 +328,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         {
             return;
         }
-
-        EnsureRenderingBegan();
 
         DispatchMeshIndirectImpl(pipeline, indirectBuffer, offsetInBytes, dispatchCount);
     }
@@ -351,8 +339,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             return;
         }
 
-        EnsureRenderingEnded();
-
         BeginQueryImpl(queryHeap, index);
     }
 
@@ -363,8 +349,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             return;
         }
 
-        EnsureRenderingEnded();
-
         EndQueryImpl(queryHeap, index);
     }
 
@@ -374,8 +358,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         {
             return;
         }
-
-        EnsureRenderingEnded();
 
         WriteTimestampImpl(queryHeap, index);
     }
@@ -412,13 +394,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     internal void End()
     {
-        if (currentClearValue.HasValue)
-        {
-            EnsureRenderingBegan();
-        }
-
-        EnsureRenderingEnded();
-
         EndImpl();
     }
 
@@ -428,18 +403,16 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         Context.Uploader.Release(this);
 
-        currentFrameBuffer = null;
-        currentClearValue = null;
         currentPipeline = null;
+        currentFrameBuffer = null;
     }
 
     protected override void Destroy()
     {
         Context.Uploader.Release(this);
 
-        currentFrameBuffer = null;
-        currentClearValue = null;
         currentPipeline = null;
+        currentFrameBuffer = null;
     }
 
     protected abstract void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes);
@@ -458,25 +431,27 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void UpdateAccelerationStructureImpl(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc);
 
-    protected abstract void PreprocessResourceSetsImpl(ResourceSet[] resourceSets);
+    protected abstract void BeginRenderPassImpl(FrameBuffer frameBuffer, ClearValue clearValue);
+
+    protected abstract void EndRenderPassImpl(FrameBuffer frameBuffer);
 
     protected abstract void SetScissorsImpl(Scissor[] scissors);
 
     protected abstract void SetViewportsImpl(Viewport[] viewports);
 
-    protected abstract void BindPipelineImpl(GraphicsPipeline pipeline);
+    protected abstract void SetPipelineImpl(GraphicsPipeline pipeline);
 
-    protected abstract void BindPipelineImpl(ComputePipeline pipeline);
+    protected abstract void SetPipelineImpl(ComputePipeline pipeline);
 
-    protected abstract void BindPipelineImpl(RayTracingPipeline pipeline);
+    protected abstract void SetPipelineImpl(RayTracingPipeline pipeline);
 
-    protected abstract void BindPipelineImpl(MeshShadingPipeline pipeline);
+    protected abstract void SetPipelineImpl(MeshShadingPipeline pipeline);
 
-    protected abstract void BindVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index);
+    protected abstract void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index);
 
-    protected abstract void BindIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format);
+    protected abstract void SetIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format);
 
-    protected abstract void BindResourceSetImpl(Pipeline pipeline, ResourceSet resourceSet, uint index);
+    protected abstract void SetResourceSetImpl(Pipeline pipeline, ResourceSet resourceSet, uint index);
 
     protected abstract void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
 
@@ -513,30 +488,4 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     protected abstract void EndImpl();
 
     protected abstract void ResetImpl();
-
-    protected abstract void BeginRenderingImpl(FrameBuffer frameBuffer, ClearValue? clearValue);
-
-    protected abstract void EndRenderingImpl(FrameBuffer frameBuffer);
-
-    private void EnsureRenderingBegan()
-    {
-        if (!isRendering && currentFrameBuffer is not null)
-        {
-            BeginRenderingImpl(currentFrameBuffer, currentClearValue);
-
-            currentClearValue = null;
-
-            isRendering = true;
-        }
-    }
-
-    private void EnsureRenderingEnded()
-    {
-        if (isRendering && currentFrameBuffer is not null)
-        {
-            EndRenderingImpl(currentFrameBuffer);
-
-            isRendering = false;
-        }
-    }
 }

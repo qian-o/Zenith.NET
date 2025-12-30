@@ -32,12 +32,11 @@ internal abstract class FullscreenPass : RenderPass
     {
         UpdateResources(context);
 
-        commandBuffer.BindPipeline(pipeline);
+        commandBuffer.SetPipeline(pipeline);
 
         if (resourceLayout is not null)
         {
-            commandBuffer.PreprocessResourceSets([EnsureResourceSet(resourceLayout, context)]);
-            commandBuffer.BindResourceSet(EnsureResourceSet(resourceLayout, context), 0);
+            commandBuffer.SetResourceSet(EnsureResourceSet(resourceLayout, context), 0);
         }
 
         commandBuffer.Dispatch((context.Width + ThreadGroupSize - 1) / ThreadGroupSize, (context.Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
