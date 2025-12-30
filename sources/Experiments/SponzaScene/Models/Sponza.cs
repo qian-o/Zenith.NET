@@ -28,7 +28,7 @@ internal unsafe class Sponza : DisposableObject
         new() { Name = "Night", Direction = Vector3.Normalize(new(0.3f, 0.5f, 0.2f)), Color = new(0.3f, 0.4f, 0.6f), Intensity = 0.5f }
     ];
 
-    private float directionalLightProgress = 0.375f;
+    private float directionalLightProgress;
 
     public Sponza()
     {
