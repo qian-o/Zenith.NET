@@ -36,7 +36,7 @@ internal class RenderContext : DisposableObject
     public Vector3 CameraPosition { get; set; }
     #endregion
 
-    #region G-Buffer Textures
+    #region G-Buffer
     public Texture? Albedo { get; private set; }
 
     public Texture? Normal { get; private set; }
@@ -50,6 +50,8 @@ internal class RenderContext : DisposableObject
     public Texture? MetallicRoughness { get; private set; }
 
     public Texture? Emissive { get; private set; }
+
+    public FrameBuffer? GBufferFrameBuffer { get; private set; }
     #endregion
 
     #region Intermediate Textures
@@ -62,11 +64,9 @@ internal class RenderContext : DisposableObject
     public Texture? VerticalBloom { get; private set; }
 
     public Texture? LitColor { get; private set; }
-
-    public Texture? FinalColor { get; private set; }
     #endregion
 
-    public FrameBuffer? GBufferFrameBuffer { get; private set; }
+    public Texture? FinalColor { get; private set; }
 
     public void Initialize(uint width, uint height)
     {
@@ -163,6 +163,20 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
         });
 
+        GBufferFrameBuffer = App.Context.CreateFrameBuffer(new()
+        {
+            ColorAttachments =
+            [
+                new() { Target = Albedo },
+                new() { Target = Normal },
+                new() { Target = Position },
+                new() { Target = NormalizedDepth },
+                new() { Target = MetallicRoughness },
+                new() { Target = Emissive }
+            ],
+            DepthStencilAttachment = new() { Target = Depth }
+        });
+
         SSAO = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
@@ -241,35 +255,21 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
-        GBufferFrameBuffer = App.Context.CreateFrameBuffer(new()
-        {
-            ColorAttachments =
-            [
-                new() { Target = Albedo },
-                new() { Target = Normal },
-                new() { Target = Position },
-                new() { Target = NormalizedDepth },
-                new() { Target = MetallicRoughness },
-                new() { Target = Emissive }
-            ],
-            DepthStencilAttachment = new() { Target = Depth }
-        });
-
         Width = width;
         Height = height;
     }
 
     protected override void Destroy()
     {
-        GBufferFrameBuffer?.Dispose();
-
         FinalColor?.Dispose();
+
         LitColor?.Dispose();
         VerticalBloom?.Dispose();
         HorizontalBloom?.Dispose();
         SSAOBlurred?.Dispose();
         SSAO?.Dispose();
 
+        GBufferFrameBuffer?.Dispose();
         Emissive?.Dispose();
         MetallicRoughness?.Dispose();
         NormalizedDepth?.Dispose();
