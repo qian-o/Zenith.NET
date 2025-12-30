@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Hexa.NET.ImGui;
 using SharpGLTF.Schema2;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
@@ -8,6 +9,27 @@ namespace SponzaScene.Models;
 
 internal unsafe class Sponza : DisposableObject
 {
+    private static readonly DirectionalPreset[] directionalPresets =
+    [
+        new() { Name = "Dawn", Direction = Vector3.Normalize(new(0.9f, -0.1f, 0.3f)), Color = new(0.8f, 0.4f, 0.3f), Intensity = 1.0f },
+
+        new() { Name = "Sunrise", Direction = Vector3.Normalize(new(0.8f, -0.15f, 0.3f)), Color = new(1.0f, 0.5f, 0.2f), Intensity = 3.5f },
+
+        new() { Name = "Morning", Direction = Vector3.Normalize(new(0.5f, -0.6f, 0.2f)), Color = new(1.0f, 0.85f, 0.7f), Intensity = 4.5f },
+
+        new() { Name = "Noon", Direction = Vector3.Normalize(new(0.0f, -1.0f, 0.0f)), Color = new(1.0f, 0.98f, 0.9f), Intensity = 5.0f },
+
+        new() { Name = "Afternoon", Direction = Vector3.Normalize(new(-0.5f, -0.6f, 0.2f)), Color = new(1.0f, 0.85f, 0.7f), Intensity = 4.5f },
+
+        new() { Name = "Sunset", Direction = Vector3.Normalize(new(-0.8f, -0.15f, 0.3f)), Color = new(1.0f, 0.5f, 0.2f), Intensity = 3.5f },
+
+        new() { Name = "Dusk", Direction = Vector3.Normalize(new(-0.9f, -0.1f, 0.3f)), Color = new(0.8f, 0.4f, 0.3f), Intensity = 1.0f },
+
+        new() { Name = "Night", Direction = Vector3.Normalize(new(0.3f, 0.5f, 0.2f)), Color = new(0.3f, 0.4f, 0.6f), Intensity = 0.5f }
+    ];
+
+    private float directionalLightProgress = 0.375f;
+
     public Sponza()
     {
         ModelRoot root = ModelRoot.Load(Path.Combine(AppContext.BaseDirectory, "Assets", "Sponza", "Sponza.gltf"));
@@ -55,23 +77,28 @@ internal unsafe class Sponza : DisposableObject
         Indices.Upload([.. indices], 0);
     }
 
-    public DirectionalLight DirectionalLight { get; } = new()
+    public DirectionalLight DirectionalLight
     {
-        // noon
-        // Direction = Vector3.Normalize(new(0.0f, -1.0f, 0.0f)),
-        // Color = new(1.0f, 0.98f, 0.9f),
-        // Intensity = 5.0f
+        get
+        {
+            float scaledProgress = directionalLightProgress * directionalPresets.Length;
+            int index = (int)MathF.Floor(scaledProgress);
+            float t = scaledProgress - index;
 
-        // dusk
-        Direction = Vector3.Normalize(new(0.8f, -0.15f, 0.3f)),
-        Color = new(1.0f, 0.5f, 0.2f),
-        Intensity = 3.5f
+            int currentIndex = index % directionalPresets.Length;
+            int nextIndex = (index + 1) % directionalPresets.Length;
 
-        // night
-        // Direction = Vector3.Normalize(new(0.3f, 0.5f, 0.2f)),
-        // Color = new(0.3f, 0.4f, 0.6f),
-        // Intensity = 0.5f
-    };
+            DirectionalPreset current = directionalPresets[currentIndex];
+            DirectionalPreset next = directionalPresets[nextIndex];
+
+            return new()
+            {
+                Direction = Vector3.Normalize(Vector3.Lerp(current.Direction, next.Direction, t)),
+                Color = Vector3.Lerp(current.Color, next.Color, t),
+                Intensity = float.Lerp(current.Intensity, next.Intensity, t)
+            };
+        }
+    }
 
     public PointLight[] PointLights { get; } =
     [
@@ -112,6 +139,11 @@ internal unsafe class Sponza : DisposableObject
     public Buffer Indices { get; }
 
     public Material[] Materials { get; }
+
+    public void UI()
+    {
+        ImGui.SliderFloat("Time of Day", ref directionalLightProgress, 0.0f, 1.0f);
+    }
 
     protected override void Destroy()
     {

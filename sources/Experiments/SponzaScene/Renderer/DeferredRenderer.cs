@@ -53,19 +53,24 @@ internal class DeferredRenderer : DisposableObject
 
         ImGui.GetBackgroundDrawList().AddImage(App.Binding(context.FinalColor!), default, new(context.Width, context.Height));
 
-        if (ImGui.Begin("Deferred Renderer Settings") && ImGui.BeginTabBar("Pass Settings"))
+        if (ImGui.Begin("Deferred Renderer Settings"))
         {
-            foreach (RenderPass renderPass in renderPasses)
+            App.Sponza.UI();
+
+            if (ImGui.BeginTabBar("Pass Settings"))
             {
-                if (ImGui.BeginTabItem(renderPass.Name))
+                foreach (RenderPass renderPass in renderPasses)
                 {
-                    renderPass.DebugUI(context);
+                    if (ImGui.BeginTabItem(renderPass.Name))
+                    {
+                        renderPass.DebugUI(context);
 
-                    ImGui.EndTabItem();
+                        ImGui.EndTabItem();
+                    }
                 }
-            }
 
-            ImGui.EndTabBar();
+                ImGui.EndTabBar();
+            }
         }
         ImGui.End();
     }
