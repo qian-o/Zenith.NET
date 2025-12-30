@@ -128,11 +128,10 @@ public static class ZenithHelper
 
             PixelFormat.D16UNorm => 2,
 
-            PixelFormat.D24UNormS8UInt => 4,
-
+            PixelFormat.D24UNormS8UInt or
             PixelFormat.D32Float => 4,
 
-            PixelFormat.D32FloatS8UInt => 5,
+            PixelFormat.D32FloatS8UInt => 8,
 
             PixelFormat.BC4UNorm or
             PixelFormat.BC4SNorm => 8,
