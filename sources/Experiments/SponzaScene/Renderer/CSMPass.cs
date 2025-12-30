@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Hexa.NET.ImGui;
 using SponzaScene.Models;
 using Zenith.NET;
 using Zenith.NET.Extensions.Slang;
@@ -86,6 +87,25 @@ internal unsafe class CSMPass : RenderPass
 
     protected override void DebugUIImpl(RenderContext context)
     {
+        int splitCount = RenderContext.CSMSplits.Length;
+
+        float spacing = ImGui.GetStyle().ItemSpacing.X;
+
+        Vector2 size = new((ImGui.GetContentRegionAvail().X - (spacing * (splitCount - 1))) / splitCount);
+        size = size with { Y = size.X };
+
+        for (int i = 0; i < splitCount; i++)
+        {
+            ImGui.BeginGroup();
+            ImGui.Text($"Cascade {i}");
+            ImGui.Image(App.Binding(context.CSMNormalizedDepths![i]), size);
+            ImGui.EndGroup();
+
+            if (i < splitCount - 1)
+            {
+                ImGui.SameLine();
+            }
+        }
     }
 
     public override void Resize(uint width, uint height)

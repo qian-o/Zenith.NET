@@ -183,14 +183,14 @@ internal class RenderContext : DisposableObject
                 Height = 4096,
                 Depth = 1,
                 MipLevels = 1,
-                ArrayLayers = (uint)CSMSplits.Length,
+                ArrayLayers = 1,
                 SampleCount = SampleCount.Count1,
                 Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
             });
 
             CSMFrameBuffers[i] = App.Context.CreateFrameBuffer(new()
             {
-                ColorAttachments = [new() { Target = CSMNormalizedDepths[i], Slice = new() { ArrayLayer = (uint)i } }],
+                ColorAttachments = [new() { Target = CSMNormalizedDepths[i] }],
                 DepthStencilAttachment = new() { Target = CSMDepths, Slice = new() { ArrayLayer = (uint)i } }
             });
         }
