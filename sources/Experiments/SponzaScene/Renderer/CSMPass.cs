@@ -105,7 +105,7 @@ internal unsafe class CSMPass : RenderPass
 
     private static Vector4[] GetFrustumCornersViewSpace(RenderContext context, float nearPlane, float farPlane)
     {
-        Matrix4x4 vp = Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(context.Fov), context.AspectRatio, nearPlane, farPlane) * context.View;
+        Matrix4x4 vp = context.View * Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(context.Fov), context.AspectRatio, nearPlane, farPlane);
 
         Matrix4x4.Invert(vp, out Matrix4x4 invVP);
 
