@@ -99,29 +99,6 @@ internal static class App
             imGui.Update(delta, width, height);
             camera.Update(delta, width, height);
             renderer.Update(width, height, camera);
-
-            ImGuiHelpers.Overlay("Info", () =>
-            {
-                ImGui.Text($"Backend: {Context.Backend}");
-
-                ImGui.Separator();
-
-                ImGui.Text(Context.Capabilities.DeviceName);
-
-                ImGui.Separator();
-
-                ImGui.Text($"Ray Tracing Supported: {Context.Capabilities.RayTracingSupported}");
-
-                ImGui.Separator();
-
-                ImGui.Text($"Mesh Shader Supported: {Context.Capabilities.MeshShaderSupported}");
-
-                ImGui.Separator();
-
-                ImGui.Text($"Current FPS: {ImGui.GetIO().Framerate:F1}");
-            });
-
-            renderer.UI();
         };
 
         window.Render += _ =>
@@ -133,8 +110,31 @@ internal static class App
 
             renderer.Render();
 
-            // ImGui
+            // ImGui Rendering
             {
+                renderer.UI();
+
+                ImGuiHelpers.Overlay("Info", () =>
+                {
+                    ImGui.Text($"Backend: {Context.Backend}");
+
+                    ImGui.Separator();
+
+                    ImGui.Text(Context.Capabilities.DeviceName);
+
+                    ImGui.Separator();
+
+                    ImGui.Text($"Ray Tracing Supported: {Context.Capabilities.RayTracingSupported}");
+
+                    ImGui.Separator();
+
+                    ImGui.Text($"Mesh Shader Supported: {Context.Capabilities.MeshShaderSupported}");
+
+                    ImGui.Separator();
+
+                    ImGui.Text($"Current FPS: {ImGui.GetIO().Framerate:F1}");
+                });
+
                 CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
 
                 commandBuffer.BindFrameBuffer(swapChain.FrameBuffer, ClearValues.Default);
