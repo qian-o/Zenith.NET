@@ -126,7 +126,11 @@ public static class ZenithHelper
             PixelFormat.B8G8R8A8UNorm or
             PixelFormat.B8G8R8A8SRgb => 4,
 
+            PixelFormat.D16UNorm => 2,
+
             PixelFormat.D24UNormS8UInt => 4,
+
+            PixelFormat.D32Float => 4,
 
             PixelFormat.D32FloatS8UInt => 5,
 

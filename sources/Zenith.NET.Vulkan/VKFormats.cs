@@ -220,7 +220,9 @@ internal static class VKFormats
             PixelFormat.B8G8R8A8UNorm => Format.B8G8R8A8Unorm,
             PixelFormat.B8G8R8A8SRgb => Format.B8G8R8A8Srgb,
 
+            PixelFormat.D16UNorm => Format.D16Unorm,
             PixelFormat.D24UNormS8UInt => Format.D24UnormS8Uint,
+            PixelFormat.D32Float => Format.D32Sfloat,
             PixelFormat.D32FloatS8UInt => Format.D32SfloatS8Uint,
 
             PixelFormat.BC4UNorm => Format.BC4UnormBlock,

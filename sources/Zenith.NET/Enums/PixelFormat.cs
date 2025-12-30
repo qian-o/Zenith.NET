@@ -86,7 +86,11 @@ public enum PixelFormat
 
     B8G8R8A8SRgb,
 
+    D16UNorm,
+
     D24UNormS8UInt,
+
+    D32Float,
 
     D32FloatS8UInt,
 
