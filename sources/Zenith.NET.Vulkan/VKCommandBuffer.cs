@@ -77,7 +77,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
             BufferImageHeight = sliceDepthPitchInBytes / formatSizeInBytes,
             ImageSubresource = new()
             {
-                AspectMask = VKFormats.Vulkan(vkDest.Desc.Flags).AspectFlags,
+                AspectMask = VKFormats.Vulkan(vkDest.Desc.Format, vkDest.Desc.Flags).AspectFlags,
                 MipLevel = destSlice.MipLevel,
                 BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkDest.Desc, destSlice),
                 LayerCount = 1
@@ -116,7 +116,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         {
             SrcSubresource = new()
             {
-                AspectMask = VKFormats.Vulkan(vkSrc.Desc.Flags).AspectFlags,
+                AspectMask = VKFormats.Vulkan(vkSrc.Desc.Format, vkSrc.Desc.Flags).AspectFlags,
                 MipLevel = srcSlice.MipLevel,
                 BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkSrc.Desc, srcSlice),
                 LayerCount = 1
@@ -129,7 +129,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
             },
             DstSubresource = new()
             {
-                AspectMask = VKFormats.Vulkan(vkDest.Desc.Flags).AspectFlags,
+                AspectMask = VKFormats.Vulkan(vkDest.Desc.Format, vkDest.Desc.Flags).AspectFlags,
                 MipLevel = destSlice.MipLevel,
                 BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkDest.Desc, destSlice),
                 LayerCount = 1
@@ -173,7 +173,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
             BufferImageHeight = sliceDepthPitchInBytes / formatSizeInBytes,
             ImageSubresource = new()
             {
-                AspectMask = VKFormats.Vulkan(vkSrc.Desc.Flags).AspectFlags,
+                AspectMask = VKFormats.Vulkan(vkSrc.Desc.Format, vkSrc.Desc.Flags).AspectFlags,
                 MipLevel = srcSlice.MipLevel,
                 BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkSrc.Desc, srcSlice),
                 LayerCount = 1
@@ -214,14 +214,14 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         {
             SrcSubresource = new()
             {
-                AspectMask = VKFormats.Vulkan(vkSrc.Desc.Flags).AspectFlags,
+                AspectMask = VKFormats.Vulkan(vkSrc.Desc.Format, vkSrc.Desc.Flags).AspectFlags,
                 MipLevel = srcSlice.MipLevel,
                 BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkSrc.Desc, srcSlice),
                 LayerCount = 1
             },
             DstSubresource = new()
             {
-                AspectMask = VKFormats.Vulkan(vkDest.Desc.Flags).AspectFlags,
+                AspectMask = VKFormats.Vulkan(vkDest.Desc.Format, vkDest.Desc.Flags).AspectFlags,
                 MipLevel = destSlice.MipLevel,
                 BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkDest.Desc, destSlice),
                 LayerCount = 1

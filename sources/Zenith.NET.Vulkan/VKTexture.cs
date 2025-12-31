@@ -17,7 +17,7 @@ internal unsafe class VKTexture : Texture
             SType = StructureType.ImageCreateInfo,
             Flags = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? ImageCreateFlags.CreateCubeCompatibleBit : ImageCreateFlags.None,
             ImageType = VKFormats.Vulkan(desc.Type).ImageType,
-            Format = VKFormats.Vulkan(desc.Format),
+            Format = VKFormats.Vulkan(desc.Format, desc.Flags).Format,
             Extent = new()
             {
                 Width = desc.Width,
@@ -27,7 +27,7 @@ internal unsafe class VKTexture : Texture
             MipLevels = desc.MipLevels,
             ArrayLayers = ZenithHelper.FlattenArrayLayerCount(desc),
             Samples = VKFormats.Vulkan(desc.SampleCount),
-            Usage = VKFormats.Vulkan(desc.Flags).UsageFlags,
+            Usage = VKFormats.Vulkan(desc.Format, desc.Flags).UsageFlags,
             SharingMode = sharingMode,
             QueueFamilyIndexCount = queueFamilyIndexCount,
             PQueueFamilyIndices = (uint*)pQueueFamilyIndices
@@ -78,7 +78,7 @@ internal unsafe class VKTexture : Texture
             SType = StructureType.ImageCreateInfo,
             Flags = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? ImageCreateFlags.CreateCubeCompatibleBit : ImageCreateFlags.None,
             ImageType = VKFormats.Vulkan(desc.Type).ImageType,
-            Format = VKFormats.Vulkan(desc.Format),
+            Format = VKFormats.Vulkan(desc.Format, desc.Flags).Format,
             Extent = new()
             {
                 Width = desc.Width,
@@ -88,7 +88,7 @@ internal unsafe class VKTexture : Texture
             MipLevels = desc.MipLevels,
             ArrayLayers = ZenithHelper.FlattenArrayLayerCount(desc),
             Samples = VKFormats.Vulkan(desc.SampleCount),
-            Usage = VKFormats.Vulkan(desc.Flags).UsageFlags,
+            Usage = VKFormats.Vulkan(desc.Format, desc.Flags).UsageFlags,
             SharingMode = sharingMode,
             QueueFamilyIndexCount = queueFamilyIndexCount,
             PQueueFamilyIndices = (uint*)pQueueFamilyIndices
@@ -266,7 +266,7 @@ internal unsafe class VKTexture : Texture
                         Image = Image,
                         SubresourceRange = new()
                         {
-                            AspectMask = VKFormats.Vulkan(Desc.Flags).AspectFlags,
+                            AspectMask = VKFormats.Vulkan(Desc.Format, Desc.Flags).AspectFlags,
                             BaseMipLevel = slice.MipLevel,
                             LevelCount = 1,
                             BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(Desc, slice),

@@ -163,9 +163,25 @@ internal static class VKFormats
         return (imageType, imageViewType);
     }
 
-    public static Format Vulkan(PixelFormat pixelFormat)
+    public static SampleCountFlags Vulkan(SampleCount sampleCount)
     {
-        return pixelFormat switch
+        return sampleCount switch
+        {
+            SampleCount.Count1 => SampleCountFlags.Count1Bit,
+            SampleCount.Count2 => SampleCountFlags.Count2Bit,
+            SampleCount.Count4 => SampleCountFlags.Count4Bit,
+            SampleCount.Count8 => SampleCountFlags.Count8Bit,
+            SampleCount.Count16 => SampleCountFlags.Count16Bit,
+            SampleCount.Count32 => SampleCountFlags.Count32Bit,
+            _ => SampleCountFlags.None
+        };
+    }
+
+    public static (Format Format, ImageUsageFlags UsageFlags, ImageAspectFlags AspectFlags) Vulkan(PixelFormat pixelFormat, TextureUsageFlags textureUsageFlags)
+    {
+        bool compatibleDepthFormat = textureUsageFlags.HasFlag(TextureUsageFlags.DepthStencil) && (textureUsageFlags.HasFlag(TextureUsageFlags.ShaderResource) || textureUsageFlags.HasFlag(TextureUsageFlags.UnorderedAccess));
+
+        Format format = pixelFormat switch
         {
             PixelFormat.R8UNorm => Format.R8Unorm,
             PixelFormat.R8SNorm => Format.R8SNorm,
@@ -220,10 +236,10 @@ internal static class VKFormats
             PixelFormat.B8G8R8A8UNorm => Format.B8G8R8A8Unorm,
             PixelFormat.B8G8R8A8SRgb => Format.B8G8R8A8Srgb,
 
-            PixelFormat.D16UNorm => Format.D16Unorm,
-            PixelFormat.D24UNormS8UInt => Format.D24UnormS8Uint,
-            PixelFormat.D32Float => Format.D32Sfloat,
-            PixelFormat.D32FloatS8UInt => Format.D32SfloatS8Uint,
+            PixelFormat.D16UNorm => compatibleDepthFormat ? Format.R16Unorm : Format.D16Unorm,
+            PixelFormat.D24UNormS8UInt => compatibleDepthFormat ? Format.R8G8B8A8Unorm : Format.D24UnormS8Uint,
+            PixelFormat.D32Float => compatibleDepthFormat ? Format.R32Sfloat : Format.D32Sfloat,
+            PixelFormat.D32FloatS8UInt => compatibleDepthFormat ? Format.R32G32Sfloat : Format.D32SfloatS8Uint,
 
             PixelFormat.BC4UNorm => Format.BC4UnormBlock,
             PixelFormat.BC4SNorm => Format.BC4SNormBlock,
@@ -272,24 +288,7 @@ internal static class VKFormats
 
             _ => Format.Undefined
         };
-    }
 
-    public static SampleCountFlags Vulkan(SampleCount sampleCount)
-    {
-        return sampleCount switch
-        {
-            SampleCount.Count1 => SampleCountFlags.Count1Bit,
-            SampleCount.Count2 => SampleCountFlags.Count2Bit,
-            SampleCount.Count4 => SampleCountFlags.Count4Bit,
-            SampleCount.Count8 => SampleCountFlags.Count8Bit,
-            SampleCount.Count16 => SampleCountFlags.Count16Bit,
-            SampleCount.Count32 => SampleCountFlags.Count32Bit,
-            _ => SampleCountFlags.None
-        };
-    }
-
-    public static (ImageUsageFlags UsageFlags, ImageAspectFlags AspectFlags) Vulkan(TextureUsageFlags textureUsageFlags)
-    {
         ImageUsageFlags usageFlags = ImageUsageFlags.TransferSrcBit | ImageUsageFlags.TransferDstBit;
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.RenderTarget))
@@ -316,14 +315,14 @@ internal static class VKFormats
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.DepthStencil))
         {
-            aspectFlags |= ImageAspectFlags.DepthBit | ImageAspectFlags.StencilBit;
+            aspectFlags |= ImageAspectFlags.DepthBit | (pixelFormat is PixelFormat.D16UNorm or PixelFormat.D32Float ? ImageAspectFlags.None : ImageAspectFlags.StencilBit);
         }
         else
         {
             aspectFlags |= ImageAspectFlags.ColorBit;
         }
 
-        return (usageFlags, aspectFlags);
+        return (format, usageFlags, aspectFlags);
     }
 
     public static (VkFilter MinFilter, VkFilter MagFilter, SamplerMipmapMode MipmapMode) Vulkan(Filter filter)

@@ -13,10 +13,10 @@ internal unsafe class VKTextureView : TextureView
             SType = StructureType.ImageViewCreateInfo,
             Image = desc.Texture.Vulkan().Image,
             ViewType = VKFormats.Vulkan(desc.Texture.Desc.Type).ImageViewType,
-            Format = VKFormats.Vulkan(desc.Texture.Desc.Format),
+            Format = VKFormats.Vulkan(desc.Texture.Desc.Format, desc.Texture.Desc.Flags).Format,
             SubresourceRange = new()
             {
-                AspectMask = VKFormats.Vulkan(desc.Texture.Desc.Flags).AspectFlags,
+                AspectMask = VKFormats.Vulkan(desc.Texture.Desc.Format, desc.Texture.Desc.Flags).AspectFlags,
                 BaseMipLevel = desc.FirstMipLevel,
                 LevelCount = desc.MipLevelCount,
                 BaseArrayLayer = ZenithHelper.FlattenArrayLayerRange(desc).FlattenArrayLayerIndex,
@@ -46,10 +46,10 @@ internal unsafe class VKTextureView : TextureView
             SType = StructureType.ImageViewCreateInfo,
             Image = texture.Vulkan().Image,
             ViewType = ImageViewType.Type2D,
-            Format = VKFormats.Vulkan(texture.Desc.Format),
+            Format = VKFormats.Vulkan(texture.Desc.Format, texture.Desc.Flags).Format,
             SubresourceRange = new()
             {
-                AspectMask = VKFormats.Vulkan(texture.Desc.Flags).AspectFlags,
+                AspectMask = VKFormats.Vulkan(texture.Desc.Format, texture.Desc.Flags).AspectFlags,
                 BaseMipLevel = slice.MipLevel,
                 LevelCount = 1,
                 BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(texture.Desc, slice),
