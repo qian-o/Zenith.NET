@@ -38,7 +38,7 @@ internal unsafe class VKFrameBuffer : FrameBuffer
             colorAttachmentInfos[i] = new()
             {
                 SType = StructureType.RenderingAttachmentInfo,
-                ImageView = textureView.SrvUav,
+                ImageView = textureView.ImageView,
                 ImageLayout = ImageLayout.AttachmentOptimal,
                 LoadOp = AttachmentLoadOp.Load,
                 StoreOp = AttachmentStoreOp.Store
@@ -63,7 +63,7 @@ internal unsafe class VKFrameBuffer : FrameBuffer
             depthStencilAttachmentInfo[0] = new()
             {
                 SType = StructureType.RenderingAttachmentInfo,
-                ImageView = textureView.SrvUav,
+                ImageView = textureView.ImageView,
                 ImageLayout = ImageLayout.AttachmentOptimal,
                 LoadOp = AttachmentLoadOp.Load,
                 StoreOp = AttachmentStoreOp.Store

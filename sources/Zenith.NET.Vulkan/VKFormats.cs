@@ -288,22 +288,8 @@ internal static class VKFormats
         };
     }
 
-    public static (Format Format, ImageUsageFlags UsageFlags, ImageAspectFlags AspectFlags) Vulkan(PixelFormat pixelFormat, TextureUsageFlags textureUsageFlags)
+    public static (ImageUsageFlags UsageFlags, ImageAspectFlags AspectFlags) Vulkan(PixelFormat pixelFormat, TextureUsageFlags textureUsageFlags)
     {
-        Format format = Vulkan(pixelFormat);
-
-        if (textureUsageFlags.HasFlag(TextureUsageFlags.ShaderResource) || textureUsageFlags.HasFlag(TextureUsageFlags.UnorderedAccess))
-        {
-            format = pixelFormat switch
-            {
-                PixelFormat.D16UNorm => Format.R16Unorm,
-                PixelFormat.D24UNormS8UInt => Format.R8G8B8A8Unorm,
-                PixelFormat.D32Float => Format.R32Sfloat,
-                PixelFormat.D32FloatS8UInt => Format.R32G32Sfloat,
-                _ => format
-            };
-        }
-
         ImageUsageFlags usageFlags = ImageUsageFlags.TransferSrcBit | ImageUsageFlags.TransferDstBit;
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.RenderTarget))
@@ -337,7 +323,7 @@ internal static class VKFormats
             aspectFlags |= ImageAspectFlags.ColorBit;
         }
 
-        return (format, usageFlags, aspectFlags);
+        return (usageFlags, aspectFlags);
     }
 
     public static (VkFilter MinFilter, VkFilter MagFilter, SamplerMipmapMode MipmapMode) Vulkan(Filter filter)

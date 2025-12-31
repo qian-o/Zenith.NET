@@ -4,7 +4,7 @@ namespace Zenith.NET.Vulkan;
 
 internal unsafe class VKTextureView : TextureView
 {
-    public ImageView SrvUav;
+    public ImageView ImageView;
 
     public VKTextureView(VKGraphicsContext context, TextureViewDesc desc) : base(context, desc)
     {
@@ -13,7 +13,7 @@ internal unsafe class VKTextureView : TextureView
             SType = StructureType.ImageViewCreateInfo,
             Image = desc.Texture.Vulkan().Image,
             ViewType = VKFormats.Vulkan(desc.Texture.Desc.Type).ImageViewType,
-            Format = VKFormats.Vulkan(desc.Texture.Desc.Format, desc.Texture.Desc.Flags).Format,
+            Format = VKFormats.Vulkan(desc.Texture.Desc.Format),
             SubresourceRange = new()
             {
                 AspectMask = VKFormats.Vulkan(desc.Texture.Desc.Format, desc.Texture.Desc.Flags).AspectFlags,
@@ -24,17 +24,17 @@ internal unsafe class VKTextureView : TextureView
             }
         };
 
-        context.Vk.CreateImageView(context.Device, &createInfo, null, out SrvUav).Success();
+        context.Vk.CreateImageView(context.Device, &createInfo, null, out ImageView).Success();
 
         SrvImageInfo = new()
         {
-            ImageView = SrvUav,
+            ImageView = ImageView,
             ImageLayout = ImageLayout.ShaderReadOnlyOptimal
         };
 
         UavImageInfo = new()
         {
-            ImageView = SrvUav,
+            ImageView = ImageView,
             ImageLayout = ImageLayout.General
         };
     }
@@ -46,7 +46,7 @@ internal unsafe class VKTextureView : TextureView
             SType = StructureType.ImageViewCreateInfo,
             Image = texture.Vulkan().Image,
             ViewType = ImageViewType.Type2D,
-            Format = VKFormats.Vulkan(texture.Desc.Format, texture.Desc.Flags).Format,
+            Format = VKFormats.Vulkan(texture.Desc.Format),
             SubresourceRange = new()
             {
                 AspectMask = VKFormats.Vulkan(texture.Desc.Format, texture.Desc.Flags).AspectFlags,
@@ -57,17 +57,17 @@ internal unsafe class VKTextureView : TextureView
             }
         };
 
-        context.Vk.CreateImageView(context.Device, &createInfo, null, out SrvUav).Success();
+        context.Vk.CreateImageView(context.Device, &createInfo, null, out ImageView).Success();
 
         SrvImageInfo = new()
         {
-            ImageView = SrvUav,
+            ImageView = ImageView,
             ImageLayout = ImageLayout.ShaderReadOnlyOptimal
         };
 
         UavImageInfo = new()
         {
-            ImageView = SrvUav,
+            ImageView = ImageView,
             ImageLayout = ImageLayout.General
         };
 
@@ -109,7 +109,7 @@ internal unsafe class VKTextureView : TextureView
         {
             SType = StructureType.DebugUtilsObjectNameInfoExt,
             ObjectType = ObjectType.ImageView,
-            ObjectHandle = SrvUav.Handle,
+            ObjectHandle = ImageView.Handle,
             PObjectName = (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8)
         };
 
@@ -118,6 +118,6 @@ internal unsafe class VKTextureView : TextureView
 
     protected override void Destroy()
     {
-        Context.Vk.DestroyImageView(Context.Device, SrvUav, null);
+        Context.Vk.DestroyImageView(Context.Device, ImageView, null);
     }
 }
