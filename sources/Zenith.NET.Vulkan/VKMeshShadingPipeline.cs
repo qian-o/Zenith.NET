@@ -124,7 +124,7 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
                 ColorAttachmentCount = colorAttachmentCount,
                 PColorAttachmentFormats = colorAttachmentFormats,
                 DepthAttachmentFormat = depthStencilFormat,
-                StencilAttachmentFormat = depthStencilFormat
+                StencilAttachmentFormat = desc.Output.DepthStencilAttachment is PixelFormat.D24UNormS8UInt or PixelFormat.D32FloatS8UInt ? depthStencilFormat : Format.Undefined
             };
 
             if (desc.RenderStates.BlendFactor.HasValue)

@@ -80,7 +80,7 @@ internal unsafe class VKFrameBuffer : FrameBuffer
             ColorAttachmentCount = ColorAttachmentCount,
             PColorAttachments = colorAttachmentInfos,
             PDepthAttachment = depthStencilAttachmentInfo,
-            PStencilAttachment = depthStencilAttachmentInfo
+            PStencilAttachment = desc.DepthStencilAttachment?.Target.Desc.Format is PixelFormat.D24UNormS8UInt or PixelFormat.D32FloatS8UInt ? depthStencilAttachmentInfo : null
         };
 
         Width = width;
