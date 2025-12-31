@@ -49,6 +49,12 @@ internal unsafe class CSMPass : RenderPass
         using Shader vs = App.Context.LoadShaderFromFile(GetShaderPath("CSM"), "VSMain", ShaderStageFlags.Vertex);
         using Shader ps = App.Context.LoadShaderFromFile(GetShaderPath("CSM"), "PSMain", ShaderStageFlags.Pixel);
 
+        InputLayout inputLayout = new()
+        {
+            Elements = [new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position }],
+            StrideInBytes = (uint)sizeof(Vertex)
+        };
+
         pipeline = App.Context.CreateGraphicsPipeline(new()
         {
             RenderStates = new()
@@ -60,7 +66,7 @@ internal unsafe class CSMPass : RenderPass
             Vertex = vs,
             Pixel = ps,
             ResourceLayouts = [resourceLayout],
-            InputLayouts = [Vertex.InputLayout()],
+            InputLayouts = [inputLayout],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
             Output = RenderContext.CSMOutput
         });

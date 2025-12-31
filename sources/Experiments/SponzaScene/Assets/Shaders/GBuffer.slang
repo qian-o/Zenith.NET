@@ -1,6 +1,4 @@
-﻿import "Common/VSInput";
-
-enum MaterialFlags : int
+﻿enum MaterialFlags : int
 {
     None = 0,
 
@@ -47,6 +45,17 @@ Texture2D baseColorTexture;
 Texture2D normalTexture;
 Texture2D metallicRoughnessTexture;
 SamplerState linearSampler;
+
+struct VSInput
+{
+    float3 Position : POSITION0;
+
+    float3 Normal : NORMAL0;
+
+    float2 TexCoord : TEXCOORD0;
+
+    float4 Color : COLOR0;
+};
 
 struct PSInput
 {

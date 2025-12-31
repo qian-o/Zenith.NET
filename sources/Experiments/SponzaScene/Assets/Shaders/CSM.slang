@@ -1,6 +1,4 @@
-﻿import "Common/VSInput";
-
-struct CSMConstants
+﻿struct CSMConstants
 {
     float4x4 View;
 
@@ -12,6 +10,11 @@ struct CSMConstants
 };
 
 ConstantBuffer<CSMConstants> constants;
+
+struct VSInput
+{
+    float3 Position : POSITION0;
+};
 
 struct PSInput
 {
