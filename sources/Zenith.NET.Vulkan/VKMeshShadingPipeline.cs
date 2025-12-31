@@ -52,10 +52,10 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
                     ColorWriteMask = VKFormats.Vulkan(target.Flags)
                 };
 
-                colorAttachmentFormats[i] = VKFormats.Vulkan(desc.Output.ColorAttachments[i], TextureUsageFlags.None).Format;
+                colorAttachmentFormats[i] = VKFormats.Vulkan(desc.Output.ColorAttachments[i]);
             }
 
-            Format depthStencilFormat = hasDepthStencilAttachment ? VKFormats.Vulkan(desc.Output.DepthStencilAttachment!.Value, TextureUsageFlags.None).Format : Format.Undefined;
+            Format depthStencilFormat = hasDepthStencilAttachment ? VKFormats.Vulkan(desc.Output.DepthStencilAttachment!.Value) : Format.Undefined;
 
             PipelineRasterizationStateCreateInfo rasterizationState = new()
             {

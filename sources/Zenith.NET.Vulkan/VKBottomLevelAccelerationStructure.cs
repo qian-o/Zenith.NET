@@ -43,7 +43,7 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
                     triangles: geometry.Type is RayTracingGeometryType.Triangles ? new()
                     {
                         SType = StructureType.AccelerationStructureGeometryTrianglesDataKhr,
-                        VertexFormat = VKFormats.Vulkan(geometry.Triangles.VertexFormat, TextureUsageFlags.None).Format,
+                        VertexFormat = VKFormats.Vulkan(geometry.Triangles.VertexFormat),
                         VertexData = new() { DeviceAddress = geometry.Triangles.VertexBuffer.Vulkan().DeviceAddress + geometry.Triangles.VertexOffsetInBytes },
                         VertexStride = geometry.Triangles.VertexStrideInBytes,
                         MaxVertex = geometry.Triangles.VertexCount,

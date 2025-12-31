@@ -4,7 +4,7 @@ namespace Zenith.NET.Vulkan;
 
 internal unsafe class VKTextureView : TextureView
 {
-    public ImageView ImageView;
+    public ImageView SrvUav;
 
     public VKTextureView(VKGraphicsContext context, TextureViewDesc desc) : base(context, desc)
     {
@@ -24,17 +24,17 @@ internal unsafe class VKTextureView : TextureView
             }
         };
 
-        context.Vk.CreateImageView(context.Device, &createInfo, null, out ImageView).Success();
+        context.Vk.CreateImageView(context.Device, &createInfo, null, out SrvUav).Success();
 
         SrvImageInfo = new()
         {
-            ImageView = ImageView,
+            ImageView = SrvUav,
             ImageLayout = ImageLayout.ShaderReadOnlyOptimal
         };
 
         UavImageInfo = new()
         {
-            ImageView = ImageView,
+            ImageView = SrvUav,
             ImageLayout = ImageLayout.General
         };
     }
@@ -57,17 +57,17 @@ internal unsafe class VKTextureView : TextureView
             }
         };
 
-        context.Vk.CreateImageView(context.Device, &createInfo, null, out ImageView).Success();
+        context.Vk.CreateImageView(context.Device, &createInfo, null, out SrvUav).Success();
 
         SrvImageInfo = new()
         {
-            ImageView = ImageView,
+            ImageView = SrvUav,
             ImageLayout = ImageLayout.ShaderReadOnlyOptimal
         };
 
         UavImageInfo = new()
         {
-            ImageView = ImageView,
+            ImageView = SrvUav,
             ImageLayout = ImageLayout.General
         };
 
@@ -109,7 +109,7 @@ internal unsafe class VKTextureView : TextureView
         {
             SType = StructureType.DebugUtilsObjectNameInfoExt,
             ObjectType = ObjectType.ImageView,
-            ObjectHandle = ImageView.Handle,
+            ObjectHandle = SrvUav.Handle,
             PObjectName = (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8)
         };
 
@@ -118,6 +118,6 @@ internal unsafe class VKTextureView : TextureView
 
     protected override void Destroy()
     {
-        Context.Vk.DestroyImageView(Context.Device, ImageView, null);
+        Context.Vk.DestroyImageView(Context.Device, SrvUav, null);
     }
 }
