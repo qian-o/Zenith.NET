@@ -192,9 +192,9 @@ float CalculateShadow(float3 worldPos, float3 cameraPos, float3 normal, float3 l
         return 0.0;
     }
 
-    float cascadeScale = 1.0 + cascadeIndex * 0.3;
+    float cascadeScale = 1.0 + cascadeIndex * 0.4;
     float slopeFactor = saturate(1.0 - NdotL);
-    float normalOffset = (0.015 + 0.025 * slopeFactor) * cascadeScale;
+    float normalOffset = (0.02 + 0.03 * slopeFactor) * cascadeScale;
 
     float3 biasedPos = worldPos + normal * normalOffset;
     float3 shadowCoord = WorldToShadowCoord(biasedPos, cascadeIndex);
