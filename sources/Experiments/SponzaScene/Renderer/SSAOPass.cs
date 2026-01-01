@@ -17,7 +17,7 @@ internal unsafe class SSAOPass : FullscreenPass
     private ResourceSet? resourceSet;
 
     private float radius = 0.5f;
-    private float bias = 0.75f;
+    private float bias = 0.05f;
     private float intensity = 1.5f;
 
     public SSAOPass() : base("SSAO Pass")
@@ -102,7 +102,7 @@ internal unsafe class SSAOPass : FullscreenPass
     protected override void DebugUIImpl(RenderContext context)
     {
         ImGui.SliderFloat("Radius", ref radius, 0.01f, 2.0f);
-        ImGui.SliderFloat("Bias", ref bias, 0.1f, 1.0f);
+        ImGui.SliderFloat("Bias", ref bias, 0.01f, 0.1f);
         ImGui.SliderFloat("Intensity", ref intensity, 0.1f, 5.0f);
 
         Vector2 size = new(ImGui.GetContentRegionAvail().X);
