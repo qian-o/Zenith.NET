@@ -2,15 +2,14 @@
 static const float INV_PI = 0.31830988618;
 static const float EPSILON = 0.0001;
 
-// Poisson disk samples for soft shadows
-static const float2 poissonDisk[16] = { float2(-0.94201624, -0.39906216),  float2(0.94558609, -0.76890725),
-                                        float2(-0.094184101, -0.92938870), float2(0.34495938, 0.29387760),
-                                        float2(-0.91588581, 0.45771432),   float2(-0.81544232, -0.87912464),
-                                        float2(-0.38277543, 0.27676845),   float2(0.97484398, 0.75648379),
-                                        float2(0.44323325, -0.97511554),   float2(0.53742981, -0.47373420),
-                                        float2(-0.26496911, -0.41893023),  float2(0.79197514, 0.19090188),
-                                        float2(-0.24188840, 0.99706507),   float2(-0.81409955, 0.91437590),
-                                        float2(0.19984126, 0.78641367),    float2(0.14383161, -0.14100790) };
+// Vogel disk - better distribution than Poisson for reducing moire
+float2 VogelDiskSample(int sampleIndex, int samplesCount, float phi)
+{
+    float goldenAngle = 2.4;
+    float r = sqrt(float(sampleIndex) + 0.5) / sqrt(float(samplesCount));
+    float theta = float(sampleIndex) * goldenAngle + phi;
+    return float2(r * cos(theta), r * sin(theta));
+}
 
 struct DirectionalLight
 {
@@ -75,16 +74,10 @@ float3 SafeNormalize(float3 v)
     return len > EPSILON ? v * rsqrt(len) : float3(0.0, 1.0, 0.0);
 }
 
-float Random(float2 co)
+float InterleavedGradientNoise(float2 pos)
 {
-    return frac(sin(dot(co, float2(12.9898, 78.233))) * 43758.5453);
-}
-
-float2 RotateSample(float2 sample, float angle)
-{
-    float s = sin(angle);
-    float c = cos(angle);
-    return float2(sample.x * c - sample.y * s, sample.x * s + sample.y * c);
+    float3 magic = float3(0.06711056, 0.00583715, 52.9829189);
+    return frac(magic.z * frac(dot(pos, magic.xy)));
 }
 
 SkyParams CalculateSkyParams(float3 sunDirection)
@@ -130,21 +123,23 @@ float3 WorldToShadowCoord(float3 worldPos, int cascadeIndex)
     return float3(lightSpacePos.x * 0.5 + 0.5, -lightSpacePos.y * 0.5 + 0.5, lightSpacePos.z);
 }
 
-float SampleShadowPCF(float3 shadowCoord, int cascadeIndex, float2 texelSize, float2 screenPos, float filterRadius, float depthBias)
+float SampleShadowPCF(float3 shadowCoord, int cascadeIndex, float2 texelSize, float2 screenPos, float filterRadius)
 {
-    float rotationAngle = Random(screenPos) * PI * 2.0;
-    float receiverDepth = shadowCoord.z - depthBias;
-
+    // Use interleaved gradient noise for rotation - reduces banding artifacts
+    float noise = InterleavedGradientNoise(screenPos);
+    float rotationAngle = noise * PI * 2.0;
+    
+    const int sampleCount = 16;
     float shadow = 0.0;
 
-    [unroll]
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < sampleCount; i++)
     {
-        float2 offset = RotateSample(poissonDisk[i], rotationAngle) * filterRadius * texelSize;
-        shadow += csmTextures.SampleCmpLevelZero(shadowSampler, float3(shadowCoord.xy + offset, cascadeIndex), receiverDepth);
+        // Vogel disk provides better sample distribution than Poisson disk
+        float2 offset = VogelDiskSample(i, sampleCount, rotationAngle) * filterRadius * texelSize;
+        shadow += csmTextures.SampleCmpLevelZero(shadowSampler, float3(shadowCoord.xy + offset, cascadeIndex), shadowCoord.z);
     }
 
-    return shadow / 16.0;
+    return shadow / float(sampleCount);
 }
 
 float CalculateShadow(float3 worldPos, float3 cameraPos, float3 normal, float3 lightDir, float2 screenPos)
@@ -159,36 +154,16 @@ float CalculateShadow(float3 worldPos, float3 cameraPos, float3 normal, float3 l
     float3 L = SafeNormalize(-lightDir);
     float NdotL = dot(normal, L);
 
-    // For surfaces facing away from light, return full shadow
+    // Surfaces facing away from light are in shadow
     if (NdotL <= 0.0)
         return 0.0;
 
-    float NdotLClamped = saturate(NdotL);
-
-    // Use receiver plane bias technique
-    // Calculate the partial derivatives of depth in light space
-    float3 shadowCoordNoOffset = WorldToShadowCoord(worldPos, cascadeIndex);
-
-    // Compute offset in world space based on normal and light direction
-    float3 offsetDir = L + normal;
-    offsetDir = SafeNormalize(offsetDir);
-
-    // Cascade-aware bias scaling
+    // Normal offset - scaled by cascade and angle
     float cascadeScale = 1.0 + cascadeIndex * 0.3;
-
-    // Constant bias - small amount to prevent acne on flat surfaces
-    float constantBias = 0.0008 * cascadeScale;
-
-    // Slope-based bias - increases with angle between normal and light
-    float slopeFactor = sqrt(1.0 - NdotLClamped * NdotLClamped) / max(NdotLClamped, 0.01);
-    float slopeBias = 0.0015 * cascadeScale * min(slopeFactor, 5.0);
-
-    // Normal offset in world space
-    float normalOffset = (0.03 + 0.02 * slopeFactor) * cascadeScale;
-    normalOffset = min(normalOffset, 0.15 * cascadeScale);
-
+    float slopeFactor = saturate(1.0 - NdotL);
+    float normalOffset = (0.015 + 0.025 * slopeFactor) * cascadeScale;
+    
     float3 biasedPos = worldPos + normal * normalOffset;
-
     float3 shadowCoord = WorldToShadowCoord(biasedPos, cascadeIndex);
 
     const float margin = 0.01;
@@ -200,15 +175,12 @@ float CalculateShadow(float3 worldPos, float3 cameraPos, float3 normal, float3 l
     csmTextures.GetDimensions(width, height, elements);
     float2 texelSize = 1.0 / float2(width, height);
 
-    // Total depth bias
-    float depthBias = constantBias + slopeBias;
-
     // Cascade blend
     float cascadeFar = csmDatas[cascadeIndex].FarPlane;
     float cascadeNear = csmDatas[cascadeIndex].NearPlane;
     float cascadeRange = cascadeFar - cascadeNear;
 
-    float blendRegion = cascadeRange * 0.3;
+    float blendRegion = cascadeRange * 0.25;
     float blendStart = cascadeFar - blendRegion;
 
     float blendFactor = 0.0;
@@ -218,22 +190,18 @@ float CalculateShadow(float3 worldPos, float3 cameraPos, float3 normal, float3 l
         blendFactor = smoothstep(0.0, 1.0, blendFactor);
     }
 
-    // Filter radius
-    float baseRadius = 2.5 + cascadeIndex * 1.0;
-    float filterRadius = lerp(baseRadius, baseRadius + 1.0, blendFactor);
+    // Filter radius - larger radius = softer shadows, less moire
+    float baseRadius = 1.5 + cascadeIndex * 0.5;
+    float filterRadius = lerp(baseRadius, baseRadius + 0.5, blendFactor);
 
-    float shadow = SampleShadowPCF(shadowCoord, cascadeIndex, texelSize, screenPos, filterRadius, depthBias);
+    float shadow = SampleShadowPCF(shadowCoord, cascadeIndex, texelSize, screenPos, filterRadius);
 
     // Blend with next cascade
     if (blendFactor > 0.0 && cascadeIndex < int(cascadeCount - 1))
     {
         int nextCascade = cascadeIndex + 1;
         float nextCascadeScale = 1.0 + nextCascade * 0.3;
-
-        float nextConstantBias = 0.0008 * nextCascadeScale;
-        float nextSlopeBias = 0.0015 * nextCascadeScale * min(slopeFactor, 5.0);
-        float nextNormalOffset = (0.03 + 0.02 * slopeFactor) * nextCascadeScale;
-        nextNormalOffset = min(nextNormalOffset, 0.15 * nextCascadeScale);
+        float nextNormalOffset = (0.015 + 0.025 * slopeFactor) * nextCascadeScale;
 
         float3 nextBiasedPos = worldPos + normal * nextNormalOffset;
         float3 nextShadowCoord = WorldToShadowCoord(nextBiasedPos, nextCascade);
@@ -241,8 +209,8 @@ float CalculateShadow(float3 worldPos, float3 cameraPos, float3 normal, float3 l
         if (all(nextShadowCoord.xy > margin) && all(nextShadowCoord.xy < 1.0 - margin) &&
             nextShadowCoord.z > 0.0 && nextShadowCoord.z < 1.0)
         {
-            float nextDepthBias = nextConstantBias + nextSlopeBias;
-            float nextShadow = SampleShadowPCF(nextShadowCoord, nextCascade, texelSize, screenPos, filterRadius, nextDepthBias);
+            float nextFilterRadius = baseRadius + 0.5 + nextCascade * 0.5;
+            float nextShadow = SampleShadowPCF(nextShadowCoord, nextCascade, texelSize, screenPos, nextFilterRadius);
             shadow = lerp(shadow, nextShadow, blendFactor);
         }
     }
