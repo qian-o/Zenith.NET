@@ -1,4 +1,5 @@
 ﻿using Silk.NET.Direct3D12;
+using Silk.NET.DXGI;
 
 namespace Zenith.NET.DirectX12;
 
@@ -39,7 +40,7 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
 
         ShaderResourceViewDesc viewDesc = new()
         {
-            Format = DXFormats.DirectX12(Desc.Texture.Desc.Format),
+            Format = CompatibleDepthFormat(Desc.Texture.Desc.Format),
             Shader4ComponentMapping = DXGraphicsContext.Shader4ComponentMapping
         };
 
@@ -129,7 +130,7 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
     {
         DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate(1);
 
-        UnorderedAccessViewDesc viewDesc = new() { Format = DXFormats.DirectX12(Desc.Texture.Desc.Format) };
+        UnorderedAccessViewDesc viewDesc = new() { Format = CompatibleDepthFormat(Desc.Texture.Desc.Format) };
 
         switch (Desc.Texture.Desc.Type)
         {
@@ -191,5 +192,17 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
         context.Device.CreateUnorderedAccessView(Desc.Texture.DirectX12().Resource, (ID3D12Resource*)null, &viewDesc, token.Handle);
 
         return token;
+    }
+
+    private static Format CompatibleDepthFormat(PixelFormat pixelFormat)
+    {
+        return pixelFormat switch
+        {
+            PixelFormat.D16UNorm => Format.FormatR16Unorm,
+            PixelFormat.D24UNormS8UInt => Format.FormatR24G8Typeless,
+            PixelFormat.D32Float => Format.FormatR32Float,
+            PixelFormat.D32FloatS8UInt => Format.FormatR32G8X24Typeless,
+            _ => DXFormats.DirectX12(pixelFormat)
+        };
     }
 }
