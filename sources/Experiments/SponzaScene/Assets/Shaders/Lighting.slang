@@ -114,26 +114,26 @@ float3 CalculateSkybox(float3 viewDir, float3 sunDirection, float3 sunColor, flo
     float sunDot = dot(viewDir, sunDir);
 
     // Sun size varies: larger at horizon, smaller at noon
-    float sunSizeMultiplier = 1.0 + sunsetFactor * 0.5;
+    float sunSizeMultiplier = 1.0 + sunsetFactor * 0.3;
 
     // Glow intensity based on sun intensity
-    float glowIntensity = sunIntensity / 4.0; // Normalize around intensity 4
+    float glowIntensity = sunIntensity / 5.0; // Normalize around intensity 5
 
-    // Wide glow - stronger at sunset
-    float glow1 = pow(max(sunDot * 0.5 + 0.5, 0.0), 3.0 + dayFactor * 3.0) * 0.1 * (1.0 + sunsetFactor);
+    // Wide glow - subtle atmospheric scattering
+    float glow1 = pow(max(sunDot * 0.5 + 0.5, 0.0), 8.0 + dayFactor * 4.0) * 0.05 * (1.0 + sunsetFactor * 0.5);
 
-    // Medium glow
-    float glow2 = pow(max(sunDot, 0.0), 6.0 + dayFactor * 6.0) * 0.3 * glowIntensity;
+    // Medium glow - corona
+    float glow2 = pow(max(sunDot, 0.0), 32.0 + dayFactor * 16.0) * 0.15 * glowIntensity;
 
-    // Inner glow
-    float glow3 = pow(max(sunDot, 0.0), 32.0 + dayFactor * 32.0) * 0.5 * glowIntensity;
+    // Inner glow - tight halo
+    float glow3 = pow(max(sunDot, 0.0), 128.0 + dayFactor * 64.0) * 0.3 * glowIntensity;
 
     // Bright core
-    float glow4 = pow(max(sunDot, 0.0), 128.0 + dayFactor * 128.0) * 1.0 * glowIntensity;
+    float glow4 = pow(max(sunDot, 0.0), 512.0 + dayFactor * 256.0) * 0.8 * glowIntensity;
 
-    // Sun disc
-    float discThreshold = 0.9985 + dayFactor * 0.001;
-    float sunDisc = smoothstep(discThreshold, discThreshold + 0.0008, sunDot) * 2.5 * glowIntensity;
+    // Sun disc - smaller and sharper
+    float discThreshold = 0.9998 + dayFactor * 0.0001;
+    float sunDisc = smoothstep(discThreshold, discThreshold + 0.0001, sunDot) * 2.0 * glowIntensity;
 
     // Sun visibility (fade when below horizon)
     float sunVis = smoothstep(-0.1, 0.15, sunDir.y);
