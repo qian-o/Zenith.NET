@@ -83,6 +83,10 @@ internal class RenderContext : DisposableObject
 
     public Texture? SSAOBlurred { get; private set; }
 
+    public Texture? VolumetricLight { get; private set; }
+
+    public Texture? VolumetricLightBlurred { get; private set; }
+
     public Texture? HorizontalBloom { get; private set; }
 
     public Texture? VerticalBloom { get; private set; }
@@ -264,6 +268,32 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
+        VolumetricLight = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R16Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+        });
+
+        VolumetricLightBlurred = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R16Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+        });
+
         HorizontalBloom = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
@@ -327,6 +357,8 @@ internal class RenderContext : DisposableObject
         LitColor?.Dispose();
         VerticalBloom?.Dispose();
         HorizontalBloom?.Dispose();
+        VolumetricLightBlurred?.Dispose();
+        VolumetricLight?.Dispose();
         SSAOBlurred?.Dispose();
         SSAO?.Dispose();
 
