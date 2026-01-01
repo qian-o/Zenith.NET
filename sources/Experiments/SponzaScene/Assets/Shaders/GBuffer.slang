@@ -1,4 +1,6 @@
-﻿enum MaterialFlags : int
+﻿static const float NORMAL_MAP_STRENGTH = 0.8;
+
+enum MaterialFlags : int
 {
     None = 0,
 
@@ -76,22 +78,16 @@ struct PSInput
 
 struct PSOutput
 {
-    // RGB: Albedo, A: unused
     float4 Albedo : SV_Target0;
 
-    // RGB: World Normal, A: unused
     float4 Normal : SV_Target1;
 
-    // RGB: World Position, A: unused
     float4 Position : SV_Target2;
 
-    // RGB: Normalized Depth A: unused
     float4 NormalizedDepth : SV_Target3;
 
-    // R: Metallic, G: Roughness, B/A: unused
     float4 MetallicRoughness : SV_Target4;
 
-    // RGB: Emissive, A: Emissive Strength
     float4 Emissive : SV_Target5;
 };
 
@@ -105,11 +101,16 @@ float LinearizeDepth(float depth, float nearPlane, float farPlane)
 PSInput VSMain(VSInput input)
 {
     PSInput output;
+
     output.Position = mul(mul(float4(input.Position, 1.0), camera.View), camera.Projection);
     output.WorldPosition = input.Position.xyz;
     output.WorldNormal = normalize(input.Normal);
-    output.WorldTangent = normalize(cross(abs(input.Normal.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0), input.Normal));
-    output.WorldBitangent = cross(input.Normal, output.WorldTangent);
+
+    float3 N = output.WorldNormal;
+    float3 up = abs(N.y) < 0.999 ? float3(0.0, 1.0, 0.0) : float3(0.0, 0.0, 1.0);
+    output.WorldTangent = normalize(cross(up, N));
+    output.WorldBitangent = normalize(cross(N, output.WorldTangent));
+
     output.TexCoord = input.TexCoord;
     output.Color = input.Color;
 
@@ -136,13 +137,14 @@ PSOutput PSMain(PSInput input)
     if ((material.Flags & MaterialFlags.HasNormalTexture) != 0)
     {
         float3 tangentNormal = normalTexture.Sample(linearSampler, input.TexCoord).xyz * 2.0 - 1.0;
+        tangentNormal.xy *= NORMAL_MAP_STRENGTH;
+        tangentNormal = normalize(tangentNormal);
 
         float3 T = normalize(input.WorldTangent);
         float3 B = normalize(input.WorldBitangent);
         float3 N = normalize(input.WorldNormal);
-        float3x3 TBN = float3x3(T, B, N);
 
-        normal = normalize(mul(tangentNormal, TBN));
+        normal = normalize(mul(tangentNormal, float3x3(T, B, N)));
     }
 
     float metallic = material.MetallicFactor;

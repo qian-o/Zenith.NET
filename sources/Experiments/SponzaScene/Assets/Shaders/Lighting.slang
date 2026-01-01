@@ -6,6 +6,10 @@ static const float SKY_LIGHT_INTENSITY = 0.8;
 static const float INDIRECT_LIGHT_INTENSITY = 0.5;
 static const float DIRECT_LIGHT_SCALE = 0.85;
 
+static const float SHADOW_BASE_OFFSET = 0.035;
+static const float SHADOW_BASE_RADIUS = 2.5;
+static const int SHADOW_SAMPLE_COUNT = 16;
+
 static const float3 GROUND_TINT = float3(0.3, 0.25, 0.2);
 static const float3 SHADOW_TINT = float3(0.7, 0.75, 0.9);
 
@@ -157,19 +161,18 @@ float SampleShadowPCF(float3 shadowCoord, int cascadeIndex, float2 texelSize, fl
     float noise = InterleavedGradientNoise(screenPos);
     float rotationAngle = noise * PI * 2.0;
 
-    const int sampleCount = 16;
     float shadow = 0.0;
 
-    for (int i = 0; i < sampleCount; i++)
+    for (int i = 0; i < SHADOW_SAMPLE_COUNT; i++)
     {
-        float2 offset = VogelDiskSample(i, sampleCount, rotationAngle) * filterRadius * texelSize;
+        float2 offset = VogelDiskSample(i, SHADOW_SAMPLE_COUNT, rotationAngle) * filterRadius * texelSize;
 
         shadow += csmTextures.SampleCmpLevelZero(shadowSampler,
                                                  float3(shadowCoord.xy + offset, cascadeIndex),
                                                  shadowCoord.z);
     }
 
-    return shadow / float(sampleCount);
+    return shadow / float(SHADOW_SAMPLE_COUNT);
 }
 
 float CalculateShadow(float3 worldPos, float3 cameraPos, float3 normal, float3 lightDir, float2 screenPos)
@@ -185,18 +188,31 @@ float CalculateShadow(float3 worldPos, float3 cameraPos, float3 normal, float3 l
     int cascadeIndex = GetCascadeIndex(distanceToCamera);
 
     float3 L = SafeNormalize(-lightDir);
+    float3 V = SafeNormalize(cameraPos - worldPos);
+
     float NdotL = dot(normal, L);
+    float NdotV = abs(dot(normal, V));
 
     if (NdotL <= 0.0)
     {
         return 0.0;
     }
 
-    float cascadeScale = 1.0 + cascadeIndex * 0.4;
-    float slopeFactor = saturate(1.0 - NdotL);
-    float normalOffset = (0.02 + 0.03 * slopeFactor) * cascadeScale;
+    float grazingView = 1.0 - NdotV;
+    float grazingLight = 1.0 - NdotL;
+    float combinedGrazing = max(grazingView * grazingView, grazingLight * grazingLight);
 
-    float3 biasedPos = worldPos + normal * normalOffset;
+    float3 biasNormal = SafeNormalize(lerp(normal, L, combinedGrazing * 0.6));
+    float cascadeScale = 1.0 + cascadeIndex * 0.6;
+
+    float sinTheta = sqrt(1.0 - NdotL * NdotL);
+    float tanTheta = sinTheta / max(NdotL, 0.01);
+    float slopeBias = min(tanTheta, 8.0) * 0.004;
+    float grazingBias = combinedGrazing * combinedGrazing * 0.12;
+
+    float totalBias = (SHADOW_BASE_OFFSET + slopeBias + grazingBias) * cascadeScale;
+    float3 biasedPos = worldPos + biasNormal * totalBias + L * totalBias * 0.4;
+
     float3 shadowCoord = WorldToShadowCoord(biasedPos, cascadeIndex);
 
     const float margin = 0.01;
@@ -212,37 +228,35 @@ float CalculateShadow(float3 worldPos, float3 cameraPos, float3 normal, float3 l
 
     float cascadeFar = csmDatas[cascadeIndex].FarPlane;
     float cascadeNear = csmDatas[cascadeIndex].NearPlane;
-    float cascadeRange = cascadeFar - cascadeNear;
-
-    float blendRegion = cascadeRange * 0.25;
+    float blendRegion = (cascadeFar - cascadeNear) * 0.25;
     float blendStart = cascadeFar - blendRegion;
 
     float blendFactor = 0.0;
-
     if (distanceToCamera > blendStart && cascadeIndex < int(cascadeCount - 1))
     {
-        blendFactor = (distanceToCamera - blendStart) / blendRegion;
-        blendFactor = smoothstep(0.0, 1.0, blendFactor);
+        blendFactor = smoothstep(0.0, 1.0, (distanceToCamera - blendStart) / blendRegion);
     }
 
-    float baseRadius = 1.5 + cascadeIndex * 0.5;
-    float filterRadius = lerp(baseRadius, baseRadius + 0.5, blendFactor);
+    float grazingRadius = combinedGrazing * combinedGrazing * 3.0;
+    float filterRadius = lerp(SHADOW_BASE_RADIUS + cascadeIndex * 0.5 + grazingRadius,
+                              SHADOW_BASE_RADIUS + cascadeIndex * 0.5 + grazingRadius + 0.5,
+                              blendFactor);
 
     float shadow = SampleShadowPCF(shadowCoord, cascadeIndex, texelSize, screenPos, filterRadius);
 
     if (blendFactor > 0.0 && cascadeIndex < int(cascadeCount - 1))
     {
         int nextCascade = cascadeIndex + 1;
-        float nextCascadeScale = 1.0 + nextCascade * 0.3;
-        float nextNormalOffset = (0.015 + 0.025 * slopeFactor) * nextCascadeScale;
+        float nextCascadeScale = 1.0 + nextCascade * 0.6;
+        float nextTotalBias = (SHADOW_BASE_OFFSET + slopeBias + grazingBias) * nextCascadeScale;
 
-        float3 nextBiasedPos = worldPos + normal * nextNormalOffset;
+        float3 nextBiasedPos = worldPos + biasNormal * nextTotalBias + L * nextTotalBias * 0.4;
         float3 nextShadowCoord = WorldToShadowCoord(nextBiasedPos, nextCascade);
 
         if (all(nextShadowCoord.xy > margin) && all(nextShadowCoord.xy < 1.0 - margin) && nextShadowCoord.z > 0.0 &&
             nextShadowCoord.z < 1.0)
         {
-            float nextFilterRadius = baseRadius + 0.5 + nextCascade * 0.5;
+            float nextFilterRadius = SHADOW_BASE_RADIUS + grazingRadius + 0.5 + nextCascade * 0.5;
             float nextShadow = SampleShadowPCF(nextShadowCoord, nextCascade, texelSize, screenPos, nextFilterRadius);
 
             shadow = lerp(shadow, nextShadow, blendFactor);
@@ -388,6 +402,10 @@ float3 CalculatePBRLight(float3 L, float3 V, float3 N, float3 albedo, float meta
     return (kD * albedo * INV_PI + specular) * radiance * NdotL;
 }
 
+// ============================================
+// Lighting
+// ============================================
+
 float3 CalculateAmbient(float3 N, float3 V, float3 albedo, float metallic, float roughness, float ao, float shadow,
                         float3 sunDirection, float3 sunColor, float sunIntensity)
 {
@@ -414,7 +432,6 @@ float3 CalculateAmbient(float3 N, float3 V, float3 albedo, float metallic, float
     float3 indirectSun = sunColor * sunIntensity * 0.1 * wrapLighting * sunHeight * shadow * INDIRECT_LIGHT_INTENSITY;
 
     float3 lowerHemisphereColor = sunColor * sunIntensity * 0.04;
-
     float3 diffuse = kD * albedo * (shadowedAmbient * shadowAmbientFactor + indirectSun + lowerHemisphereColor);
 
     float3 R = reflect(-V, N);
@@ -456,9 +473,7 @@ float3 CalculatePointLight(PointLight light, float3 worldPos, float3 V, float3 N
     float radiusAttenuation = saturate(1.0 - distanceRatio4);
     radiusAttenuation *= radiusAttenuation;
 
-    float minDistance = 0.01;
-    float physicalFalloff = 1.0 / max(distance * distance, minDistance * minDistance);
-
+    float physicalFalloff = 1.0 / max(distance * distance, 0.0001);
     float attenuation = radiusAttenuation * physicalFalloff;
 
     return CalculatePBRLight(L, V, N, albedo, metallic, roughness, light.Color * light.Intensity * attenuation);
@@ -476,20 +491,17 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     }
 
     float2 uv = (float2(dispatchThreadID.xy) + 0.5) / float2(width, height);
+
     float3 worldPos = positionTexture.SampleLevel(pointSampler, uv, 0).xyz;
     float3 normalData = normalTexture.SampleLevel(pointSampler, uv, 0).xyz;
 
-    float posLenSq = dot(worldPos, worldPos);
-    float normalLenSq = dot(normalData, normalData);
-
-    if (posLenSq < EPSILON || normalLenSq < EPSILON)
+    if (dot(worldPos, worldPos) < EPSILON || dot(normalData, normalData) < EPSILON)
     {
         outputTexture[dispatchThreadID.xy] = float4(CalculateSkybox(GetViewDirection(uv),
                                                                     constants.DirectionalLight.Direction,
                                                                     constants.DirectionalLight.Color,
                                                                     constants.DirectionalLight.Intensity),
                                                     1.0);
-
         return;
     }
 
@@ -500,19 +512,13 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 
     float4 emissiveData = emissiveTexture.SampleLevel(pointSampler, uv, 0);
     float ao = max(ssaoTexture.SampleLevel(pointSampler, uv, 0).r, 0.1);
-
     float3 V = SafeNormalize(constants.CameraPosition.xyz - worldPos);
-
-    float emissiveLuminance = dot(emissiveData.rgb, float3(0.299, 0.587, 0.114));
-    bool isEmissive = emissiveLuminance > 0.01;
 
     float3 color;
 
-    if (isEmissive)
+    if (dot(emissiveData.rgb, float3(0.299, 0.587, 0.114)) > 0.01)
     {
-        float3 emissive = emissiveData.rgb * emissiveData.a;
-
-        color = emissive;
+        color = emissiveData.rgb * emissiveData.a;
     }
     else
     {
@@ -545,7 +551,5 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
         }
     }
 
-    color = max(color, 0.0);
-
-    outputTexture[dispatchThreadID.xy] = float4(color, 1.0);
+    outputTexture[dispatchThreadID.xy] = float4(max(color, 0.0), 1.0);
 }
