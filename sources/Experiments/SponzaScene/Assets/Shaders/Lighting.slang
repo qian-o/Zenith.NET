@@ -29,16 +29,30 @@ struct LightingConstants
     DirectionalLight DirectionalLight;
 };
 
+struct CSMData
+{
+    float4x4 View;
+
+    float4x4 Projection;
+
+    float NearPlane;
+
+    float FarPlane;
+}
+
 ConstantBuffer<LightingConstants> constants;
 StructuredBuffer<PointLight> pointLights;
+StructuredBuffer<CSMData> csmDatas;
 Texture2D albedoTexture;
 Texture2D normalTexture;
 Texture2D positionTexture;
 Texture2D metallicRoughnessTexture;
 Texture2D emissiveTexture;
+Texture2DArray csmTextures;
 Texture2D ssaoTexture;
 RWTexture2D outputTexture;
 SamplerState pointSampler;
+SamplerComparisonState shadowSampler;
 
 // ============================================
 // Dynamic Procedural Skybox

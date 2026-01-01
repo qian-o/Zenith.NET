@@ -10,6 +10,7 @@ internal unsafe class LightingPass : FullscreenPass
 {
     private readonly Buffer constantBuffer;
     private readonly Buffer pointLightsBuffer;
+    private readonly Buffer csmDatasBuffer;
 
     private ResourceSet? resourceSet;
 
@@ -29,6 +30,13 @@ internal unsafe class LightingPass : FullscreenPass
             Flags = BufferUsageFlags.ShaderResource
         });
         pointLightsBuffer.Upload(App.Sponza.PointLights, 0);
+
+        csmDatasBuffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)(sizeof(CSMData) * RenderContext.CSMSplits.Length),
+            StrideInBytes = (uint)sizeof(CSMData),
+            Flags = BufferUsageFlags.ShaderResource
+        });
     }
 
     protected override string ShaderName => "Lighting";
@@ -47,6 +55,8 @@ internal unsafe class LightingPass : FullscreenPass
             (
                 new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
@@ -54,6 +64,7 @@ internal unsafe class LightingPass : FullscreenPass
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Compute }
             )
         });
@@ -68,14 +79,17 @@ internal unsafe class LightingPass : FullscreenPass
             [
                 constantBuffer,
                 pointLightsBuffer,
+                csmDatasBuffer,
                 context.Albedo!,
                 context.Normal!,
                 context.Position!,
                 context.MetallicRoughness!,
                 context.Emissive!,
+                context.CSMDepths!,
                 context.SSAOBlurred!,
                 context.LitColor!,
-                App.PointSampler
+                App.PointSampler,
+                App.ShadowSampler
             ]
         });
     }
@@ -90,6 +104,8 @@ internal unsafe class LightingPass : FullscreenPass
             InverseViewProjection = inverseViewProjection,
             DirectionalLight = App.Sponza.DirectionalLight
         }], 0);
+
+        csmDatasBuffer.Upload(context.CSMDatas, 0);
     }
 
     protected override void DebugUIImpl(RenderContext context)
@@ -103,6 +119,7 @@ internal unsafe class LightingPass : FullscreenPass
     protected override void Destroy()
     {
         resourceSet?.Dispose();
+        csmDatasBuffer.Dispose();
         pointLightsBuffer.Dispose();
         constantBuffer.Dispose();
 

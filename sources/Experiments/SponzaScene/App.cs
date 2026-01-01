@@ -54,6 +54,17 @@ internal static class App
             MaxLod = uint.MaxValue
         });
 
+        ShadowSampler = Context.CreateSampler(new()
+        {
+            Filter = Filter.MinLinearMagLinearMipLinear,
+            U = AddressMode.Border,
+            V = AddressMode.Border,
+            W = AddressMode.Border,
+            BorderColor = BorderColor.OpaqueWhite,
+            ComparisonFunc = ComparisonFunc.LessEqual,
+            MaxLod = uint.MaxValue
+        });
+
         window = Window.Create(WindowOptions.Default with { API = GraphicsAPI.None });
         window.Initialize();
 
@@ -88,6 +99,8 @@ internal static class App
     public static Sampler PointSampler { get; }
 
     public static Sampler LinearSampler { get; }
+
+    public static Sampler ShadowSampler { get; }
 
     public static void Run()
     {
@@ -163,6 +176,7 @@ internal static class App
         inputContext.Dispose();
         window.Dispose();
 
+        ShadowSampler.Dispose();
         PointSampler.Dispose();
         LinearSampler.Dispose();
         FallbackTexture.Dispose();
