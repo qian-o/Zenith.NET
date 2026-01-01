@@ -62,7 +62,8 @@ internal unsafe class CSMPass : RenderPass
                 RasterizerState = RasterizerStates.CullNone with
                 {
                     DepthBias = 100,
-                    SlopeScaledDepthBias = 2.0f
+                    DepthBiasClamp = 0.04f,
+                    SlopeScaledDepthBias = 4.0f
                 },
                 DepthStencilState = DepthStencilStates.Default,
                 BlendState = BlendStates.Opaque
@@ -175,7 +176,6 @@ internal unsafe class CSMPass : RenderPass
 
             Vector4[] frustumCorners = GetFrustumCornersWorldSpace(context, previousSplitDist, splitDist);
 
-            // 计算视锥体中心
             Vector3 center = Vector3.Zero;
             foreach (Vector4 corner in frustumCorners)
             {
@@ -183,8 +183,7 @@ internal unsafe class CSMPass : RenderPass
             }
             center /= frustumCorners.Length;
 
-            // 计算视锥体的包围球半径
-            float radius = 0f;
+            float radius = 0.0f;
             foreach (Vector4 corner in frustumCorners)
             {
                 float distance = Vector3.Distance(new(corner.X, corner.Y, corner.Z), center);
@@ -192,31 +191,29 @@ internal unsafe class CSMPass : RenderPass
             }
             radius = MathF.Ceiling(radius * 16f) / 16f;
 
-            // 选择合适的 up 向量
             Vector3 up = MathF.Abs(lightDir.Y) > 0.99f ? Vector3.UnitZ : Vector3.UnitY;
 
-            // 计算光源视图矩阵
-            Vector3 lightPos = center - (lightDir * radius);
+            float shadowDistance = radius * 4.0f;
+
+            Vector3 lightPos = center - (lightDir * shadowDistance);
             Matrix4x4 lightView = Matrix4x4.CreateLookAt(lightPos, center, up);
 
-            // 使用包围球创建正交投影（保证覆盖整个视锥体）
-            float texelsPerUnit = 4096f / (radius * 2f);
+            float texelSize = radius * 2.0f / 4096.0f;
 
-            // 对齐到纹素网格以减少阴影抖动
             Vector3 centerLS = Vector3.Transform(center, lightView);
-            centerLS.X = MathF.Floor(centerLS.X * texelsPerUnit) / texelsPerUnit;
-            centerLS.Y = MathF.Floor(centerLS.Y * texelsPerUnit) / texelsPerUnit;
+            centerLS.X = MathF.Floor(centerLS.X / texelSize) * texelSize;
+            centerLS.Y = MathF.Floor(centerLS.Y / texelSize) * texelSize;
 
             Matrix4x4.Invert(lightView, out Matrix4x4 invLightView);
+
             center = Vector3.Transform(centerLS, invLightView);
-            lightPos = center - (lightDir * radius);
+            lightPos = center - (lightDir * shadowDistance);
             lightView = Matrix4x4.CreateLookAt(lightPos, center, up);
 
-            // 创建正交投影矩阵
             Matrix4x4 lightProjection = Matrix4x4.CreateOrthographic(radius * 2f,
                                                                      radius * 2f,
-                                                                     0.0f,
-                                                                     (radius * 2f) + 50f);
+                                                                     0.1f,
+                                                                     (shadowDistance * 2.0f) + radius);
 
             context.CSMDatas[i] = new()
             {

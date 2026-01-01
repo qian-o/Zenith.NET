@@ -28,20 +28,20 @@ internal unsafe class Sponza : DisposableObject
 
         uint baseMaterialIndex = (uint)root.LogicalMaterials.Count;
 
-        AddSphere(new(-4.94647f, 1.15f, 1.14748f), 0.1f, baseMaterialIndex, nodes, vertices, indices);
-        AddSphere(new(-4.94647f, 1.15f, -1.75868f), 0.1f, baseMaterialIndex + 1, nodes, vertices, indices);
-        AddSphere(new(3.9f, 1.15f, 1.14748f), 0.1f, baseMaterialIndex + 2, nodes, vertices, indices);
-        AddSphere(new(3.9f, 1.15f, -1.75846f), 0.1f, baseMaterialIndex + 3, nodes, vertices, indices);
+        AddSphere(new(-19.78588f, 4.6f, 4.58992f), 0.4f, baseMaterialIndex, nodes, vertices, indices);
+        AddSphere(new(-19.78588f, 4.6f, -7.03472f), 0.4f, baseMaterialIndex + 1, nodes, vertices, indices);
+        AddSphere(new(15.6f, 4.6f, 4.58992f), 0.4f, baseMaterialIndex + 2, nodes, vertices, indices);
+        AddSphere(new(15.6f, 4.6f, -7.03384f), 0.4f, baseMaterialIndex + 3, nodes, vertices, indices);
 
         Nodes = [.. nodes];
 
         Materials =
         [
             .. root.LogicalMaterials.Select(static material => new Material(material)),
-            new("Emissive_Cyan", emissiveFactor: new(0.3f, 0.9f, 1.0f, 1.0f), emissiveStrength: 35.0f),
-            new("Emissive_Magenta", emissiveFactor: new(1.0f, 0.3f, 0.8f, 1.0f), emissiveStrength: 35.0f),
-            new("Emissive_Yellow", emissiveFactor: new(1.0f, 0.9f, 0.2f, 1.0f), emissiveStrength: 35.0f),
-            new("Emissive_Green", emissiveFactor: new(0.3f, 1.0f, 0.4f, 1.0f), emissiveStrength: 35.0f)
+            new("Emissive_Cyan", emissiveFactor: new(0.3f, 0.9f, 1.0f, 1.0f), emissiveStrength: 20.0f),
+            new("Emissive_Magenta", emissiveFactor: new(1.0f, 0.3f, 0.8f, 1.0f), emissiveStrength: 20.0f),
+            new("Emissive_Yellow", emissiveFactor: new(1.0f, 0.9f, 0.2f, 1.0f), emissiveStrength: 20.0f),
+            new("Emissive_Green", emissiveFactor: new(0.3f, 1.0f, 0.4f, 1.0f), emissiveStrength: 20.0f)
         ];
 
         Vertices = App.Context.CreateBuffer(new()
@@ -92,30 +92,30 @@ internal unsafe class Sponza : DisposableObject
     [
         new()
         {
-            Position = new(-4.94647f, 1.15f, 1.14748f),
+            Position = new(-19.78588f, 4.6f, 4.58992f),
             Color = new(0.3f, 0.9f, 1.0f),
-            Intensity = 25.0f,
+            Intensity = 100.0f,
             Radius = 10.0f
         },
         new()
         {
-            Position = new(-4.94647f, 1.15f, -1.75868f),
+            Position = new(-19.78588f, 4.6f, -7.03472f),
             Color = new(1.0f, 0.3f, 0.8f),
-            Intensity = 25.0f,
+            Intensity = 100.0f,
             Radius = 10.0f
         },
         new()
         {
-            Position = new(3.9f, 1.15f, 1.14748f),
+            Position = new(15.6f, 4.6f, 4.58992f),
             Color = new(1.0f, 0.9f, 0.2f),
-            Intensity = 25.0f,
+            Intensity = 100.0f,
             Radius = 10.0f
         },
         new()
         {
-            Position = new(3.9f, 1.15f, -1.75846f),
+            Position = new(15.6f, 4.6f, -7.03384f),
             Color = new(0.3f, 1.0f, 0.4f),
-            Intensity = 25.0f,
+            Intensity = 100.0f,
             Radius = 10.0f
         }
     ];
@@ -146,6 +146,8 @@ internal unsafe class Sponza : DisposableObject
 
     private static void ProcessNode(GNode node, List<Node> nodes, List<Vertex> vertices, List<uint> indices)
     {
+        Matrix4x4 worldMatrix = node.WorldMatrix * Matrix4x4.CreateScale(4.0f);
+
         foreach (GNode children in node.VisualChildren)
         {
             ProcessNode(children, nodes, vertices, indices);
@@ -182,8 +184,8 @@ internal unsafe class Sponza : DisposableObject
             {
                 vertices.Add(new()
                 {
-                    Position = Vector3.Transform(positions?[i] ?? Vector3.Zero, node.WorldMatrix),
-                    Normal = Vector3.Normalize(Vector3.TransformNormal(normals?[i] ?? Vector3.UnitY, node.WorldMatrix)),
+                    Position = Vector3.Transform(positions?[i] ?? Vector3.Zero, worldMatrix),
+                    Normal = Vector3.Normalize(Vector3.TransformNormal(normals?[i] ?? Vector3.UnitY, worldMatrix)),
                     TexCoord = texCoords?[i] ?? Vector2.Zero,
                     Color = colors?[i] ?? Vector4.One
                 });

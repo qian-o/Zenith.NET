@@ -39,11 +39,11 @@ internal class CameraController
 
     public float NearPlane { get; set; } = 0.1f;
 
-    public float FarPlane { get; set; } = 100.0f;
+    public float FarPlane { get; set; } = 200.0f;
 
     public float Fov { get; set; } = 40.0f;
 
-    public float Speed { get; set; } = 2.5f;
+    public float Speed { get; set; } = 10.0f;
 
     public float AspectRatio => Size.X / Size.Y;
 
