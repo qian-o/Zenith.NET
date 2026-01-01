@@ -2,6 +2,13 @@
 static const float INV_PI = 0.31830988618;
 static const float EPSILON = 0.0001;
 
+static const float SKY_LIGHT_INTENSITY = 0.8;
+static const float INDIRECT_LIGHT_INTENSITY = 0.5;
+static const float DIRECT_LIGHT_SCALE = 0.85;
+
+static const float3 GROUND_TINT = float3(0.3, 0.25, 0.2);
+static const float3 SHADOW_TINT = float3(0.7, 0.75, 0.9);
+
 struct DirectionalLight
 {
     float3 Direction;
@@ -270,7 +277,6 @@ float3 CalculateSkybox(float3 viewDir, float3 sunDirection, float3 sunColor, flo
     skyColor = lerp(skyColor, groundColor, groundBlend * groundBlend);
     skyColor = lerp(skyColor, horizonColor, exp(-abs(elevation) * (8.0 + params.DayFactor * 4.0)) * 0.15);
 
-    // Sun glow
     float sunDot = dot(viewDir, params.SunDir);
     float glowIntensity = sunIntensity * 0.2;
 
@@ -287,7 +293,6 @@ float3 CalculateSkybox(float3 viewDir, float3 sunDirection, float3 sunColor, flo
 
     skyColor += glowColor * (glow1 + glow2) + sunColor * params.SunVis * (glow3 + glow4) + discColor * sunDisc;
 
-    // Horizon glow
     float horizonGlow = exp(-elevation * elevation * (15.0 + params.DayFactor * 10.0));
     float3 viewHoriz = SafeNormalize(float3(viewDir.x, 0.0, viewDir.z));
     float3 sunHoriz = SafeNormalize(float3(params.SunDir.x, 0.0, params.SunDir.z));
@@ -296,7 +301,6 @@ float3 CalculateSkybox(float3 viewDir, float3 sunDirection, float3 sunColor, flo
     float3 warmGlow = lerp(float3(0.3, 0.25, 0.3), sunColor * 0.8, horizSunDot * params.SunsetFactor);
     skyColor += warmGlow * horizonGlow * (0.1 + params.SunsetFactor * 0.15) * (0.5 + horizSunDot * 0.8) * params.SunVis;
 
-    // Stars
     if (params.NightFactor > 0.1 && elevation > 0.0)
     {
         float starNoise = frac(sin(dot(viewDir.xz * 100.0, float2(12.9898, 78.233))) * 43758.5453);
@@ -396,31 +400,40 @@ float3 CalculateAmbient(float3 N, float3 V, float3 albedo, float metallic, float
     float3 sunDir = SafeNormalize(-sunDirection);
     float sunHeight = saturate(sunDir.y);
 
-    float3 skyIrradiance = SampleSkyColor(N, sunDirection, sunColor, sunIntensity);
-    float3 groundBounce = sunColor * sunIntensity * 0.04 * sunHeight;
+    float3 skyIrradiance = SampleSkyColor(N, sunDirection, sunColor, sunIntensity) * 1.8 * SKY_LIGHT_INTENSITY;
+    float3 groundIrradiance = GROUND_TINT * sunColor * sunIntensity * 0.1 * sunHeight;
 
-    float hemiFactor = N.y * 0.5 + 0.5;
-    float shadowAmbientFactor = lerp(0.35, 1.0, shadow);
+    float hemiFactor = saturate(N.y * 0.5 + 0.5);
+    float3 hemisphereLight = lerp(groundIrradiance, skyIrradiance, hemiFactor);
+
+    float shadowAmbientFactor = lerp(0.2, 1.0, shadow);
+    float3 shadowedAmbient = hemisphereLight * lerp(SHADOW_TINT * 0.4, float3(1.0, 1.0, 1.0), shadow);
 
     float NdotL = max(dot(N, sunDir), 0.0);
-    float3 indirectSun = sunColor * sunIntensity * 0.05 * pow(NdotL * 0.5 + 0.5, 2.0) * sunHeight * shadow;
+    float wrapLighting = pow(NdotL * 0.5 + 0.5, 2.0);
+    float3 indirectSun = sunColor * sunIntensity * 0.1 * wrapLighting * sunHeight * shadow * INDIRECT_LIGHT_INTENSITY;
 
-    float3 diffuse = kD * albedo * (lerp(groundBounce, skyIrradiance, hemiFactor) * shadowAmbientFactor + indirectSun);
+    float3 lowerHemisphereColor = sunColor * sunIntensity * 0.04;
+
+    float3 diffuse = kD * albedo * (shadowedAmbient * shadowAmbientFactor + indirectSun + lowerHemisphereColor);
 
     float3 R = reflect(-V, N);
-    float3 skySpecular = SampleSkyColor(R, sunDirection, sunColor, sunIntensity);
-    float sunReflect = pow(max(dot(R, sunDir), 0.0), 16.0 / max(roughness * roughness * 16.0, 1.0));
-    float3 sunHighlight = sunColor * sunIntensity * sunReflect * (1.0 - roughness) * 0.15 * shadow;
+    float3 skyReflection = SampleSkyColor(R, sunDirection, sunColor, sunIntensity) * 1.5;
 
-    float horizonFade = saturate(1.0 + dot(R, N));
-    float3 specularAmbient = (skySpecular * 0.25 * shadowAmbientFactor + sunHighlight) * F * (1.0 - roughness * 0.4) * horizonFade;
+    float sunReflect = pow(max(dot(R, sunDir), 0.0), 32.0 / max(roughness * roughness * 32.0, 1.0));
+    float3 sunHighlight = sunColor * sunIntensity * sunReflect * (1.0 - roughness * 0.8) * 0.2 * shadow;
+
+    float horizonOcclusion = saturate(1.0 + dot(R, N));
+    float roughnessAttenuation = 1.0 - roughness * 0.5;
+    float3 specularAmbient = (skyReflection * 0.3 * shadowAmbientFactor + sunHighlight) * F * horizonOcclusion * roughnessAttenuation;
 
     return (diffuse + specularAmbient) * ao;
 }
 
 float3 CalculateDirectionalLight(DirectionalLight light, float3 V, float3 N, float3 albedo, float metallic, float roughness, float shadow)
 {
-    float3 radiance = light.Color * light.Intensity * lerp(0.05, 1.0, shadow * shadow);
+    float shadowFactor = shadow * shadow * shadow;
+    float3 radiance = light.Color * light.Intensity * DIRECT_LIGHT_SCALE * shadowFactor;
 
     return CalculatePBRLight(SafeNormalize(-light.Direction), V, N, albedo, metallic, roughness, radiance);
 }
@@ -443,17 +456,13 @@ float3 CalculatePointLight(PointLight light, float3 worldPos, float3 V, float3 N
     float radiusAttenuation = saturate(1.0 - distanceRatio4);
     radiusAttenuation *= radiusAttenuation;
 
-    float minDistance = 0.1;
+    float minDistance = 0.01;
     float physicalFalloff = 1.0 / max(distance * distance, minDistance * minDistance);
 
     float attenuation = radiusAttenuation * physicalFalloff;
 
     return CalculatePBRLight(L, V, N, albedo, metallic, roughness, light.Color * light.Intensity * attenuation);
 }
-
-// ============================================
-// Main
-// ============================================
 
 [numthreads(16, 16, 1)]
 void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
