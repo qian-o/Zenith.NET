@@ -73,7 +73,7 @@ internal unsafe class Sponza : DisposableObject
             float elevation = maxElevation * MathF.Sin(progressAngle);
             float elevationRad = elevation * degToRad;
 
-            Vector3 direction = Vector3.Normalize(new(-MathF.Cos(progressAngle), -MathF.Sin(elevationRad), 0.0f));
+            Vector3 direction = Vector3.Normalize(new(0.0f, -MathF.Sin(elevationRad), -MathF.Cos(progressAngle)));
 
             float horizonFactor = Math.Clamp(elevation / horizonThreshold, 0.0f, 1.0f);
             float dayFactor = Math.Clamp((elevation - horizonThreshold) / (maxElevation - horizonThreshold), 0.0f, 1.0f);
