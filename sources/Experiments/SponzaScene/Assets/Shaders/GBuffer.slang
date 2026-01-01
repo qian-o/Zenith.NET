@@ -1,6 +1,4 @@
-﻿static const float NORMAL_MAP_STRENGTH = 0.8;
-
-enum MaterialFlags : int
+﻿enum MaterialFlags : int
 {
     None = 0,
 
@@ -137,7 +135,6 @@ PSOutput PSMain(PSInput input)
     if ((material.Flags & MaterialFlags.HasNormalTexture) != 0)
     {
         float3 tangentNormal = normalTexture.Sample(linearSampler, input.TexCoord).xyz * 2.0 - 1.0;
-        tangentNormal.xy *= NORMAL_MAP_STRENGTH;
         tangentNormal = normalize(tangentNormal);
 
         float3 T = normalize(input.WorldTangent);
