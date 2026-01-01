@@ -10,7 +10,7 @@ namespace SponzaScene.Renderer;
 internal unsafe class CSMPass : RenderPass
 {
     private readonly Buffer argsBuffer;
-    private readonly Buffer constantsBuffer;
+    private readonly Buffer dataBuffer;
     private readonly ResourceLayout resourceLayout;
     private readonly ResourceSet resourceSet;
     private readonly GraphicsPipeline pipeline;
@@ -25,10 +25,10 @@ internal unsafe class CSMPass : RenderPass
         });
         argsBuffer.Upload([.. App.Sponza.Nodes.Select(static item => item.Args)], 0);
 
-        constantsBuffer = App.Context.CreateBuffer(new()
+        dataBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)sizeof(CSMConstants),
-            StrideInBytes = (uint)sizeof(CSMConstants),
+            SizeInBytes = (uint)sizeof(CSMData),
+            StrideInBytes = (uint)sizeof(CSMData),
             Flags = BufferUsageFlags.Constant
         });
 
@@ -43,7 +43,7 @@ internal unsafe class CSMPass : RenderPass
         resourceSet = App.Context.CreateResourceSet(new()
         {
             Layout = resourceLayout,
-            Resources = [constantsBuffer]
+            Resources = [dataBuffer]
         });
 
         using Shader vs = App.Context.LoadShaderFromFile(GetShaderPath("CSM"), "VSMain", ShaderStageFlags.Vertex);
@@ -74,7 +74,7 @@ internal unsafe class CSMPass : RenderPass
 
     protected override void ExecuteImpl(CommandBuffer commandBuffer, RenderContext context)
     {
-        CSMConstants[] constants = GetCSMConstants(context);
+        UpdateCSMDatas(context);
 
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetVertexBuffer(App.Sponza.Vertices, 0, 0);
@@ -83,7 +83,7 @@ internal unsafe class CSMPass : RenderPass
 
         for (int i = 0; i < RenderContext.CSMSplits.Length; i++)
         {
-            commandBuffer.Upload(constantsBuffer, 0, [constants[i]]);
+            commandBuffer.Upload(dataBuffer, 0, [context.CSMDatas[i]]);
 
             commandBuffer.BeginRenderPass(context.CSMFrameBuffers![i], ClearValues.Default);
             commandBuffer.DrawIndexedIndirect(argsBuffer, 0, (uint)App.Sponza.Nodes.Length);
@@ -123,17 +123,20 @@ internal unsafe class CSMPass : RenderPass
         pipeline.Dispose();
         resourceSet.Dispose();
         resourceLayout.Dispose();
-        constantsBuffer.Dispose();
+        dataBuffer.Dispose();
         argsBuffer.Dispose();
 
         base.Destroy();
     }
 
-    private static Vector4[] GetFrustumCornersViewSpace(RenderContext context, float nearPlane, float farPlane)
+    private static Vector4[] GetFrustumCornersWorldSpace(RenderContext context, float nearPlane, float farPlane)
     {
-        Matrix4x4 vp = context.View * Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(context.Fov), context.AspectRatio, nearPlane, farPlane);
+        Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(context.Fov),
+                                                                      context.AspectRatio,
+                                                                      nearPlane,
+                                                                      farPlane);
 
-        Matrix4x4.Invert(vp, out Matrix4x4 invVP);
+        Matrix4x4.Invert(context.View * projection, out Matrix4x4 invVP);
 
         Vector4[] frustumCorners =
         [
@@ -150,75 +153,68 @@ internal unsafe class CSMPass : RenderPass
         for (int i = 0; i < frustumCorners.Length; i++)
         {
             Vector4 corner = Vector4.Transform(frustumCorners[i], invVP);
-
             frustumCorners[i] = corner / corner.W;
         }
 
         return frustumCorners;
     }
 
-    private static CSMConstants[] GetCSMConstants(RenderContext context)
+    private static void UpdateCSMDatas(RenderContext context)
     {
-        CSMConstants[] constants = new CSMConstants[RenderContext.CSMSplits.Length];
-
         float previousSplitDist = context.NearPlane;
+
+        Vector3 lightDir = Vector3.Normalize(App.Sponza.DirectionalLight.Direction);
 
         for (int i = 0; i < RenderContext.CSMSplits.Length; i++)
         {
             float splitDist = context.FarPlane * RenderContext.CSMSplits[i];
 
-            Vector4[] frustumCorners = GetFrustumCornersViewSpace(context, previousSplitDist, splitDist);
+            Vector4[] frustumCorners = GetFrustumCornersWorldSpace(context, previousSplitDist, splitDist);
 
-            Vector3 center = default;
+            // 计算视锥体中心
+            Vector3 center = Vector3.Zero;
             foreach (Vector4 corner in frustumCorners)
             {
                 center += new Vector3(corner.X, corner.Y, corner.Z);
             }
             center /= frustumCorners.Length;
 
-            Matrix4x4 lightView = Matrix4x4.CreateLookAt(center - App.Sponza.DirectionalLight.Direction, center, Vector3.UnitY);
-
-            float minX = float.MaxValue;
-            float maxX = float.MinValue;
-            float minY = float.MaxValue;
-            float maxY = float.MinValue;
-            float minZ = float.MaxValue;
-            float maxZ = float.MinValue;
+            // 计算视锥体的包围球半径
+            float radius = 0f;
             foreach (Vector4 corner in frustumCorners)
             {
-                Vector4 cornerLS = Vector4.Transform(corner, lightView);
-
-                minX = MathF.Min(minX, cornerLS.X);
-                maxX = MathF.Max(maxX, cornerLS.X);
-                minY = MathF.Min(minY, cornerLS.Y);
-                maxY = MathF.Max(maxY, cornerLS.Y);
-                minZ = MathF.Min(minZ, cornerLS.Z);
-                maxZ = MathF.Max(maxZ, cornerLS.Z);
+                float distance = Vector3.Distance(new(corner.X, corner.Y, corner.Z), center);
+                radius = MathF.Max(radius, distance);
             }
+            radius = MathF.Ceiling(radius * 16f) / 16f;
 
-            const float zMult = 10.0f;
+            // 选择合适的 up 向量
+            Vector3 up = MathF.Abs(lightDir.Y) > 0.99f ? Vector3.UnitZ : Vector3.UnitY;
 
-            if (minZ < 0)
-            {
-                minZ *= zMult;
-            }
-            else
-            {
-                minZ /= zMult;
-            }
+            // 计算光源视图矩阵
+            Vector3 lightPos = center - (lightDir * radius);
+            Matrix4x4 lightView = Matrix4x4.CreateLookAt(lightPos, center, up);
 
-            if (maxZ < 0)
-            {
-                maxZ /= zMult;
-            }
-            else
-            {
-                maxZ *= zMult;
-            }
+            // 使用包围球创建正交投影（保证覆盖整个视锥体）
+            float texelsPerUnit = 4096f / (radius * 2f);
 
-            Matrix4x4 lightProjection = Matrix4x4.CreateOrthographicOffCenter(minX, maxX, minY, maxY, minZ, maxZ);
+            // 对齐到纹素网格以减少阴影抖动
+            Vector3 centerLS = Vector3.Transform(center, lightView);
+            centerLS.X = MathF.Floor(centerLS.X * texelsPerUnit) / texelsPerUnit;
+            centerLS.Y = MathF.Floor(centerLS.Y * texelsPerUnit) / texelsPerUnit;
 
-            constants[i] = new()
+            Matrix4x4.Invert(lightView, out Matrix4x4 invLightView);
+            center = Vector3.Transform(centerLS, invLightView);
+            lightPos = center - (lightDir * radius);
+            lightView = Matrix4x4.CreateLookAt(lightPos, center, up);
+
+            // 创建正交投影矩阵
+            Matrix4x4 lightProjection = Matrix4x4.CreateOrthographic(radius * 2f,
+                                                                     radius * 2f,
+                                                                     0.0f,
+                                                                     (radius * 2f) + 50f);
+
+            context.CSMDatas[i] = new()
             {
                 View = lightView,
                 Projection = lightProjection,
@@ -228,18 +224,5 @@ internal unsafe class CSMPass : RenderPass
 
             previousSplitDist = splitDist;
         }
-
-        return constants;
-    }
-
-    private struct CSMConstants
-    {
-        public Matrix4x4 View;
-
-        public Matrix4x4 Projection;
-
-        public float NearPlane;
-
-        public float FarPlane;
     }
 }

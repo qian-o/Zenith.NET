@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using SponzaScene.Models;
 using Zenith.NET;
 
 namespace SponzaScene.Renderer;
@@ -68,6 +69,8 @@ internal class RenderContext : DisposableObject
     #endregion
 
     #region Cascaded Shadow Maps
+    public CSMData[] CSMDatas { get; } = new CSMData[CSMSplits.Length];
+
     public Texture? CSMDepths { get; private set; }
 
     public Texture[]? CSMNormalizedDepths { get; private set; }
