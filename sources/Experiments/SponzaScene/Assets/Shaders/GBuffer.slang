@@ -108,8 +108,7 @@ PSInput VSMain(VSInput input)
     output.Position = mul(mul(float4(input.Position, 1.0), camera.View), camera.Projection);
     output.WorldPosition = input.Position.xyz;
     output.WorldNormal = normalize(input.Normal);
-    output.WorldTangent =
-        normalize(cross(abs(input.Normal.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0), input.Normal));
+    output.WorldTangent = normalize(cross(abs(input.Normal.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0), input.Normal));
     output.WorldBitangent = cross(input.Normal, output.WorldTangent);
     output.TexCoord = input.TexCoord;
     output.Color = input.Color;
