@@ -8,6 +8,7 @@
 
     float FarPlane;
 }
+
 ConstantBuffer<CSMData> data;
 
 struct VSInput
