@@ -6,9 +6,10 @@ static const float SKY_LIGHT_INTENSITY = 0.8;
 static const float INDIRECT_LIGHT_INTENSITY = 0.5;
 static const float DIRECT_LIGHT_SCALE = 0.85;
 
-static const float SHADOW_BASE_OFFSET = 0.035;
-static const float SHADOW_BASE_RADIUS = 2.5;
-static const int SHADOW_SAMPLE_COUNT = 16;
+static const float SHADOW_BASE_OFFSET = 0.045;
+static const float SHADOW_BASE_RADIUS = 3.5;
+static const float SHADOW_NORMAL_SMOOTH = 0.5;
+static const int SHADOW_SAMPLE_COUNT = 32;
 
 static const float3 GROUND_TINT = float3(0.3, 0.25, 0.2);
 static const float3 SHADOW_TINT = float3(0.7, 0.75, 0.9);
@@ -93,14 +94,15 @@ float3 SafeNormalize(float3 v)
 
 float InterleavedGradientNoise(float2 pos)
 {
-    float3 magic = float3(0.06711056, 0.00583715, 52.9829189);
+    const float3 magic = float3(0.06711056, 0.00583715, 52.9829189);
 
     return frac(magic.z * frac(dot(pos, magic.xy)));
 }
 
 float2 VogelDiskSample(int sampleIndex, int samplesCount, float phi)
 {
-    float goldenAngle = 2.4;
+    const float goldenAngle = 2.4;
+
     float r = sqrt(float(sampleIndex) + 0.5) / sqrt(float(samplesCount));
     float theta = float(sampleIndex) * goldenAngle + phi;
 
@@ -116,8 +118,7 @@ SkyParams CalculateSkyParams(float3 sunDirection)
     float sunHeight = params.SunDir.y;
 
     params.DayFactor = saturate(sunHeight * 2.0);
-    params.SunsetFactor = 1.0 - params.DayFactor;
-    params.SunsetFactor *= params.SunsetFactor;
+    params.SunsetFactor = (1.0 - params.DayFactor) * (1.0 - params.DayFactor);
     params.NightFactor = saturate(-sunHeight * 3.0);
     params.SunVis = smoothstep(-0.1, 0.15, sunHeight);
 
@@ -158,9 +159,7 @@ float3 WorldToShadowCoord(float3 worldPos, int cascadeIndex)
 
 float SampleShadowPCF(float3 shadowCoord, int cascadeIndex, float2 texelSize, float2 screenPos, float filterRadius)
 {
-    float noise = InterleavedGradientNoise(screenPos);
-    float rotationAngle = noise * PI * 2.0;
-
+    float rotationAngle = InterleavedGradientNoise(screenPos) * PI * 2.0;
     float shadow = 0.0;
 
     for (int i = 0; i < SHADOW_SAMPLE_COUNT; i++)
@@ -184,35 +183,34 @@ float CalculateShadow(float3 worldPos, float3 cameraPos, float3 normal, float3 l
         return 1.0;
     }
 
-    float distanceToCamera = length(worldPos - cameraPos);
-    int cascadeIndex = GetCascadeIndex(distanceToCamera);
-
     float3 L = SafeNormalize(-lightDir);
     float3 V = SafeNormalize(cameraPos - worldPos);
 
-    float NdotL = dot(normal, L);
-    float NdotV = abs(dot(normal, V));
+    float3 shadowNormal = SafeNormalize(lerp(normal, SafeNormalize(normal + L * 0.3), SHADOW_NORMAL_SMOOTH));
+
+    float NdotL = dot(shadowNormal, L);
 
     if (NdotL <= 0.0)
     {
         return 0.0;
     }
 
+    float NdotV = abs(dot(shadowNormal, V));
     float grazingView = 1.0 - NdotV;
     float grazingLight = 1.0 - NdotL;
     float combinedGrazing = max(grazingView * grazingView, grazingLight * grazingLight);
 
-    float3 biasNormal = SafeNormalize(lerp(normal, L, combinedGrazing * 0.6));
+    float distanceToCamera = length(worldPos - cameraPos);
+    int cascadeIndex = GetCascadeIndex(distanceToCamera);
     float cascadeScale = 1.0 + cascadeIndex * 0.6;
 
+    float3 biasNormal = SafeNormalize(lerp(shadowNormal, L, combinedGrazing * 0.7));
     float sinTheta = sqrt(1.0 - NdotL * NdotL);
-    float tanTheta = sinTheta / max(NdotL, 0.01);
-    float slopeBias = min(tanTheta, 8.0) * 0.004;
-    float grazingBias = combinedGrazing * combinedGrazing * 0.12;
+    float slopeBias = min(sinTheta / max(NdotL, 0.01), 8.0) * 0.005;
+    float grazingBias = combinedGrazing * combinedGrazing * 0.15;
 
     float totalBias = (SHADOW_BASE_OFFSET + slopeBias + grazingBias) * cascadeScale;
-    float3 biasedPos = worldPos + biasNormal * totalBias + L * totalBias * 0.4;
-
+    float3 biasedPos = worldPos + biasNormal * totalBias + L * totalBias * 0.5;
     float3 shadowCoord = WorldToShadowCoord(biasedPos, cascadeIndex);
 
     const float margin = 0.01;
@@ -232,31 +230,31 @@ float CalculateShadow(float3 worldPos, float3 cameraPos, float3 normal, float3 l
     float blendStart = cascadeFar - blendRegion;
 
     float blendFactor = 0.0;
+
     if (distanceToCamera > blendStart && cascadeIndex < int(cascadeCount - 1))
     {
         blendFactor = smoothstep(0.0, 1.0, (distanceToCamera - blendStart) / blendRegion);
     }
 
-    float grazingRadius = combinedGrazing * combinedGrazing * 3.0;
-    float filterRadius = lerp(SHADOW_BASE_RADIUS + cascadeIndex * 0.5 + grazingRadius,
-                              SHADOW_BASE_RADIUS + cascadeIndex * 0.5 + grazingRadius + 0.5,
-                              blendFactor);
+    float grazingRadius = combinedGrazing * combinedGrazing * 3.5;
+    float baseRadius = SHADOW_BASE_RADIUS + cascadeIndex * 0.5 + grazingRadius;
+    float filterRadius = lerp(baseRadius, baseRadius + 0.5, blendFactor);
 
     float shadow = SampleShadowPCF(shadowCoord, cascadeIndex, texelSize, screenPos, filterRadius);
 
-    if (blendFactor > 0.0 && cascadeIndex < int(cascadeCount - 1))
+    if (blendFactor > 0.0)
     {
         int nextCascade = cascadeIndex + 1;
         float nextCascadeScale = 1.0 + nextCascade * 0.6;
         float nextTotalBias = (SHADOW_BASE_OFFSET + slopeBias + grazingBias) * nextCascadeScale;
 
-        float3 nextBiasedPos = worldPos + biasNormal * nextTotalBias + L * nextTotalBias * 0.4;
+        float3 nextBiasedPos = worldPos + biasNormal * nextTotalBias + L * nextTotalBias * 0.5;
         float3 nextShadowCoord = WorldToShadowCoord(nextBiasedPos, nextCascade);
 
         if (all(nextShadowCoord.xy > margin) && all(nextShadowCoord.xy < 1.0 - margin) && nextShadowCoord.z > 0.0 &&
             nextShadowCoord.z < 1.0)
         {
-            float nextFilterRadius = SHADOW_BASE_RADIUS + grazingRadius + 0.5 + nextCascade * 0.5;
+            float nextFilterRadius = baseRadius + 0.5 + nextCascade * 0.5;
             float nextShadow = SampleShadowPCF(nextShadowCoord, nextCascade, texelSize, screenPos, nextFilterRadius);
 
             shadow = lerp(shadow, nextShadow, blendFactor);
@@ -363,8 +361,10 @@ float DistributionGGX(float NdotH, float roughness)
 float GeometrySmith(float NdotV, float NdotL, float roughness)
 {
     float k = (roughness + 1.0) * (roughness + 1.0) * 0.125;
+    float ggxV = NdotV / (NdotV * (1.0 - k) + k);
+    float ggxL = NdotL / (NdotL * (1.0 - k) + k);
 
-    return (NdotV / (NdotV * (1.0 - k) + k)) * (NdotL / (NdotL * (1.0 - k) + k));
+    return ggxV * ggxL;
 }
 
 float3 FresnelSchlick(float cosTheta, float3 F0)
@@ -391,10 +391,11 @@ float3 CalculatePBRLight(float3 L, float3 V, float3 N, float3 albedo, float meta
     float NdotV = max(dot(N, V), EPSILON);
     float NdotL = max(dot(N, L), 0.0);
     float NdotH = max(dot(N, H), 0.0);
+    float HdotV = max(dot(H, V), 0.0);
 
     float D = DistributionGGX(NdotH, roughness);
     float G = GeometrySmith(NdotV, NdotL, roughness);
-    float3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+    float3 F = FresnelSchlick(HdotV, F0);
 
     float3 specular = (D * G * F) / (4.0 * NdotV * NdotL + EPSILON);
     float3 kD = (1.0 - F) * (1.0 - metallic);
@@ -457,23 +458,22 @@ float3 CalculateDirectionalLight(DirectionalLight light, float3 V, float3 N, flo
 
 float3 CalculatePointLight(PointLight light, float3 worldPos, float3 V, float3 N, float3 albedo, float metallic, float roughness)
 {
-    float3 L = light.Position - worldPos;
-    float distance = length(L);
+    float3 toLight = light.Position - worldPos;
+    float distance = length(toLight);
 
     if (distance > light.Radius)
     {
         return 0.0;
     }
 
-    L /= distance;
+    float3 L = toLight / distance;
 
     float distanceRatio = distance / light.Radius;
     float distanceRatio2 = distanceRatio * distanceRatio;
-    float distanceRatio4 = distanceRatio2 * distanceRatio2;
-    float radiusAttenuation = saturate(1.0 - distanceRatio4);
+    float radiusAttenuation = saturate(1.0 - distanceRatio2 * distanceRatio2);
     radiusAttenuation *= radiusAttenuation;
 
-    float physicalFalloff = 1.0 / max(distance * distance, 0.0001);
+    float physicalFalloff = 1.0 / max(distance * distance, EPSILON);
     float attenuation = radiusAttenuation * physicalFalloff;
 
     return CalculatePBRLight(L, V, N, albedo, metallic, roughness, light.Color * light.Intensity * attenuation);

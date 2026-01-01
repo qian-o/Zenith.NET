@@ -61,9 +61,9 @@ internal unsafe class CSMPass : RenderPass
             {
                 RasterizerState = RasterizerStates.CullFront with
                 {
-                    DepthBias = 200,
-                    SlopeScaledDepthBias = 2.5f,
-                    DepthBiasClamp = 0.01f
+                    DepthBias = 250,
+                    SlopeScaledDepthBias = 3.0f,
+                    DepthBiasClamp = 0.02f
                 },
                 DepthStencilState = DepthStencilStates.Default,
                 BlendState = BlendStates.Opaque
