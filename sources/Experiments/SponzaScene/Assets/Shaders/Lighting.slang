@@ -157,7 +157,9 @@ float SampleShadowPCF(float3 shadowCoord, int cascadeIndex, float2 texelSize, fl
     {
         float2 offset = VogelDiskSample(i, sampleCount, rotationAngle) * filterRadius * texelSize;
 
-        shadow += csmTextures.SampleCmpLevelZero(shadowSampler, float3(shadowCoord.xy + offset, cascadeIndex), shadowCoord.z);
+        shadow += csmTextures.SampleCmpLevelZero(shadowSampler,
+                                                 float3(shadowCoord.xy + offset, cascadeIndex),
+                                                 shadowCoord.z);
     }
 
     return shadow / float(sampleCount);
@@ -230,7 +232,8 @@ float CalculateShadow(float3 worldPos, float3 cameraPos, float3 normal, float3 l
         float3 nextBiasedPos = worldPos + normal * nextNormalOffset;
         float3 nextShadowCoord = WorldToShadowCoord(nextBiasedPos, nextCascade);
 
-        if (all(nextShadowCoord.xy > margin) && all(nextShadowCoord.xy < 1.0 - margin) && nextShadowCoord.z > 0.0 && nextShadowCoord.z < 1.0)
+        if (all(nextShadowCoord.xy > margin) && all(nextShadowCoord.xy < 1.0 - margin) && nextShadowCoord.z > 0.0 &&
+            nextShadowCoord.z < 1.0)
         {
             float nextFilterRadius = baseRadius + 0.5 + nextCascade * 0.5;
             float nextShadow = SampleShadowPCF(nextShadowCoord, nextCascade, texelSize, screenPos, nextFilterRadius);
@@ -381,7 +384,8 @@ float3 CalculatePBRLight(float3 L, float3 V, float3 N, float3 albedo, float meta
     return (kD * albedo * INV_PI + specular) * radiance * NdotL;
 }
 
-float3 CalculateAmbient(float3 N, float3 V, float3 albedo, float metallic, float roughness, float ao, float shadow, float3 sunDirection, float3 sunColor, float sunIntensity)
+float3 CalculateAmbient(float3 N, float3 V, float3 albedo, float metallic, float roughness, float ao, float shadow,
+                        float3 sunDirection, float3 sunColor, float sunIntensity)
 {
     float3 F0 = lerp(0.04, albedo, metallic);
     float NdotV = max(dot(N, V), EPSILON);
@@ -471,7 +475,11 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 
     if (posLenSq < EPSILON || normalLenSq < EPSILON)
     {
-        outputTexture[dispatchThreadID.xy] = float4(CalculateSkybox(GetViewDirection(uv), constants.DirectionalLight.Direction, constants.DirectionalLight.Color, constants.DirectionalLight.Intensity), 1.0);
+        outputTexture[dispatchThreadID.xy] = float4(CalculateSkybox(GetViewDirection(uv),
+                                                                    constants.DirectionalLight.Direction,
+                                                                    constants.DirectionalLight.Color,
+                                                                    constants.DirectionalLight.Intensity),
+                                                    1.0);
 
         return;
     }
@@ -501,9 +509,24 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     {
         float shadow = CalculateShadow(worldPos, constants.CameraPosition.xyz, N, constants.DirectionalLight.Direction, uv);
 
-        color = CalculateAmbient(N, V, albedo, metallicRoughness.x, metallicRoughness.y, ao, shadow, constants.DirectionalLight.Direction, constants.DirectionalLight.Color, constants.DirectionalLight.Intensity);
+        color = CalculateAmbient(N,
+                                 V,
+                                 albedo,
+                                 metallicRoughness.x,
+                                 metallicRoughness.y,
+                                 ao,
+                                 shadow,
+                                 constants.DirectionalLight.Direction,
+                                 constants.DirectionalLight.Color,
+                                 constants.DirectionalLight.Intensity);
 
-        color += CalculateDirectionalLight(constants.DirectionalLight, V, N, albedo, metallicRoughness.x, metallicRoughness.y, shadow);
+        color += CalculateDirectionalLight(constants.DirectionalLight,
+                                           V,
+                                           N,
+                                           albedo,
+                                           metallicRoughness.x,
+                                           metallicRoughness.y,
+                                           shadow);
 
         uint pointLightCount = pointLights.getCount();
 

@@ -1,128 +1,4 @@
 ﻿---
-Language: Cpp
-BasedOnStyle: Microsoft
-
-# Indentation
-IndentWidth: 4
-TabWidth: 4
-UseTab: Never
-IndentCaseLabels: true
-IndentCaseBlocks: false
-NamespaceIndentation: All
-AccessModifierOffset: -4
-
-# Braces - Allman style (C# style)
-BreakBeforeBraces: Allman
-BraceWrapping:
-  AfterCaseLabel: true
-  AfterClass: true
-  AfterControlStatement: Always
-  AfterEnum: true
-  AfterFunction: true
-  AfterNamespace: true
-  AfterStruct: true
-  AfterUnion: true
-  BeforeCatch: true
-  BeforeElse: true
-  BeforeLambdaBody: true
-  BeforeWhile: true
-  IndentBraces: false
-  SplitEmptyFunction: true
-  SplitEmptyRecord: true
-  SplitEmptyNamespace: true
-
-# Column limit
-ColumnLimit: 120
-
-# Line breaking
-BreakBeforeBinaryOperators: None
-BreakBeforeTernaryOperators: false
-AlwaysBreakAfterReturnType: None
-AlwaysBreakTemplateDeclarations: Yes
-AlwaysBreakBeforeMultilineStrings: false
-
-# Alignment - only align after open bracket, not consecutive
-AlignAfterOpenBracket: Align
-AlignArrayOfStructures: None
-AlignConsecutiveAssignments: None
-AlignConsecutiveBitFields: None
-AlignConsecutiveDeclarations: None
-AlignConsecutiveMacros: None
-AlignEscapedNewlines: Left
-AlignOperands: Align
-AlignTrailingComments: false
-
-# Function parameters - pack arguments, align when wrapped
-BinPackArguments: true
-BinPackParameters: true
-AllowAllArgumentsOnNextLine: true
-AllowAllParametersOfDeclarationOnNextLine: true
-
-# Short statements
-AllowShortBlocksOnASingleLine: Never
-AllowShortCaseLabelsOnASingleLine: false
-AllowShortEnumsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: None
-AllowShortIfStatementsOnASingleLine: Never
-AllowShortLambdasOnASingleLine: All
-AllowShortLoopsOnASingleLine: false
-
-# Spaces
-SpaceAfterCStyleCast: false
-SpaceAfterLogicalNot: false
-SpaceAfterTemplateKeyword: true
-SpaceAroundPointerQualifiers: Default
-SpaceBeforeAssignmentOperators: true
-SpaceBeforeCaseColon: false
-SpaceBeforeCpp11BracedList: false
-SpaceBeforeCtorInitializerColon: true
-SpaceBeforeInheritanceColon: true
-SpaceBeforeParens: ControlStatements
-SpaceBeforeRangeBasedForLoopColon: true
-SpaceBeforeSquareBrackets: false
-SpaceInEmptyBlock: false
-SpaceInEmptyParentheses: false
-SpacesBeforeTrailingComments: 1
-SpacesInAngles: Never
-SpacesInCStyleCastParentheses: false
-SpacesInConditionalStatement: false
-SpacesInContainerLiterals: false
-SpacesInParentheses: false
-SpacesInSquareBrackets: false
-
-# Empty lines
-EmptyLineAfterAccessModifier: Never
-EmptyLineBeforeAccessModifier: LogicalBlock
-KeepEmptyLinesAtTheStartOfBlocks: false
-MaxEmptyLinesToKeep: 1
-SeparateDefinitionBlocks: Always
-
-# Other
-CompactNamespaces: false
-Cpp11BracedListStyle: true
-DerivePointerAlignment: false
-PointerAlignment: Left
-FixNamespaceComments: true
-IncludeBlocks: Preserve
-InsertBraces: true
-InsertNewlineAtEOF: true
-SortIncludes: Never
-SortUsingDeclarations: false
-ReflowComments: false
-BreakStringLiterals: false
-
-# Penalty settings - prefer keeping assignments on same line
-PenaltyBreakAssignment: 100000
-PenaltyBreakBeforeFirstCallParameter: 1
-PenaltyBreakComment: 300
-PenaltyBreakFirstLessLess: 120
-PenaltyBreakOpenParenthesis: 0
-PenaltyBreakString: 1000
-PenaltyExcessCharacter: 10
-PenaltyIndentedWhitespace: 0
-PenaltyReturnTypeOnItsOwnLine: 200
-
----
 Language: CSharp
 BasedOnStyle: Microsoft
 
@@ -156,19 +32,20 @@ BreakBeforeBinaryOperators: None
 BreakBeforeTernaryOperators: false
 AlwaysBreakAfterReturnType: None
 
-# Alignment - only align after open bracket
+# Alignment
 AlignAfterOpenBracket: Align
 AlignConsecutiveAssignments: None
 AlignConsecutiveDeclarations: None
 AlignOperands: Align
 AlignTrailingComments: false
 
-# Function parameters
-BinPackArguments: true
+# Function arguments and parameters - one per line when wrapped
+BinPackArguments: false
 BinPackParameters: true
-AllowAllParametersOfDeclarationOnNextLine: true
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
 
-# Short statements - never allow
+# Short statements
 AllowShortBlocksOnASingleLine: Never
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: None
@@ -197,9 +74,9 @@ SortUsingDeclarations: false
 ReflowComments: false
 
 # Penalty settings
-PenaltyBreakAssignment: 100000
-PenaltyBreakBeforeFirstCallParameter: 1
+PenaltyBreakAssignment: 1000000
+PenaltyBreakBeforeFirstCallParameter: 500
 PenaltyBreakComment: 300
 PenaltyBreakString: 1000
-PenaltyExcessCharacter: 10
-PenaltyReturnTypeOnItsOwnLine: 200
+PenaltyExcessCharacter: 1
+PenaltyReturnTypeOnItsOwnLine: 1000000
