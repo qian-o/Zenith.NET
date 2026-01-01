@@ -46,6 +46,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     }
 
     float2 uv = (float2(dispatchThreadID.xy) + 0.5) / float2(width, height);
+    float2 texelSize = 1.0 / float2(width, height);
 
     float3 worldPosition = positionTexture.SampleLevel(pointSampler, uv, 0).xyz;
     float3 worldNormal = normalTexture.SampleLevel(pointSampler, uv, 0).xyz;
@@ -62,6 +63,16 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 
     float3 viewPosition = mul(float4(worldPosition, 1.0), constants.View).xyz;
     float3 viewNormal = SafeNormalize(mul(float4(worldNormal, 0.0), constants.View).xyz);
+
+    float3 normalL = normalTexture.SampleLevel(pointSampler, uv - float2(texelSize.x, 0.0), 0).xyz;
+    float3 normalR = normalTexture.SampleLevel(pointSampler, uv + float2(texelSize.x, 0.0), 0).xyz;
+    float3 normalU = normalTexture.SampleLevel(pointSampler, uv - float2(0.0, texelSize.y), 0).xyz;
+    float3 normalD = normalTexture.SampleLevel(pointSampler, uv + float2(0.0, texelSize.y), 0).xyz;
+
+    float normalVariation = (length(normalR - normalL) + length(normalD - normalU)) * 0.5;
+
+    float variationFactor = saturate(normalVariation * 4.0);
+    float adaptiveBias = constants.Bias + constants.Bias * variationFactor;
 
     float3 randomRotation = noiseTexture.SampleLevel(pointSampler, uv * constants.NoiseScale, 0).xyz * 2.0 - 1.0;
     randomRotation = SafeNormalize(randomRotation);
@@ -102,7 +113,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
         float depthDifference = abs(viewPosition.z - geometryDepth);
         float rangeWeight = smoothstep(0.0, 1.0, constants.Radius / (depthDifference + EPSILON));
 
-        float isOccluded = geometryDepth >= samplePosition.z + constants.Bias ? 1.0 : 0.0;
+        float isOccluded = geometryDepth >= samplePosition.z + adaptiveBias ? 1.0 : 0.0;
         totalOcclusion += isOccluded * rangeWeight;
 
         validSamples += 1.0;
