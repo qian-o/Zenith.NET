@@ -20,8 +20,8 @@ internal class RenderContext : DisposableObject
         DepthStencilAttachment = PixelFormat.D32FloatS8UInt,
         SampleCount = SampleCount.Count1
     };
-
-    public static float[] CSMSplits { get; } = [0.05f, 0.15f, 0.3f, 0.5f, 1.0f];
+    
+    public static float[] CSMSplits { get; } = [0.1f, 0.3f, 0.6f, 1.0f];
 
     public static Output CSMOutput { get; } = new()
     {

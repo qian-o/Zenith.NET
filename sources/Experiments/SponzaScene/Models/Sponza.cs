@@ -12,7 +12,7 @@ internal unsafe class Sponza : DisposableObject
     private static readonly Vector3 HorizonColor = new(1.0f, 0.5f, 0.2f);
     private static readonly Vector3 DayColor = new(1.0f, 0.98f, 0.9f);
 
-    private float directionalLightProgress = 0.4f;
+    private float directionalLightProgress = 0.454f;
 
     public Sponza()
     {
