@@ -66,6 +66,7 @@ internal static class App
         });
 
         window = Window.Create(WindowOptions.Default with { API = GraphicsAPI.None });
+        window.WindowState = WindowState.Maximized;
         window.Initialize();
 
         inputContext = window.CreateInput();
@@ -108,6 +109,11 @@ internal static class App
         {
             uint width = (uint)window.Size.X;
             uint height = (uint)window.Size.Y;
+
+            if (width is 0 || height is 0)
+            {
+                return;
+            }
 
             imGui.Update(delta, width, height);
             camera.Update(delta, width, height);
