@@ -203,7 +203,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
         if (!textureBindings.TryGetValue(texture, out ImTextureID textureID))
         {
             ulong id = 0;
-            while (textureBindings.Values.Any(item => item == id))
+            while (imResourceSets.ContainsKey(id))
             {
                 id++;
             }
@@ -223,7 +223,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
         if (!textureViewBindings.TryGetValue(textureView, out ImTextureID textureID))
         {
             ulong id = 0;
-            while (textureViewBindings.Values.Any(item => item == id))
+            while (imResourceSets.ContainsKey(id))
             {
                 id++;
             }
