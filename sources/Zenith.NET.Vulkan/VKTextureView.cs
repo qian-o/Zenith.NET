@@ -16,7 +16,7 @@ internal unsafe class VKTextureView : TextureView
             Format = VKFormats.Vulkan(desc.Texture.Desc.Format),
             SubresourceRange = new()
             {
-                AspectMask = VKFormats.Vulkan(desc.Texture.Desc.Format, desc.Texture.Desc.Flags).AspectFlags,
+                AspectMask = VKFormats.Vulkan(desc.Texture.Desc.Format, desc.Texture.Desc.Flags).AspectFlags & ~ImageAspectFlags.StencilBit,
                 BaseMipLevel = desc.FirstMipLevel,
                 LevelCount = desc.MipLevelCount,
                 BaseArrayLayer = ZenithHelper.FlattenArrayLayerRange(desc).FlattenArrayLayerIndex,
@@ -39,66 +39,22 @@ internal unsafe class VKTextureView : TextureView
         };
     }
 
-    public VKTextureView(VKGraphicsContext context, Texture texture, TextureSlice slice) : base(context, new() { Texture = texture, FirstMipLevel = slice.MipLevel, MipLevelCount = 1, FirstArrayLayer = slice.ArrayLayer, ArrayLayerCount = 1 })
-    {
-        ImageViewCreateInfo createInfo = new()
-        {
-            SType = StructureType.ImageViewCreateInfo,
-            Image = texture.Vulkan().Image,
-            ViewType = ImageViewType.Type2D,
-            Format = VKFormats.Vulkan(texture.Desc.Format),
-            SubresourceRange = new()
-            {
-                AspectMask = VKFormats.Vulkan(texture.Desc.Format, texture.Desc.Flags).AspectFlags,
-                BaseMipLevel = slice.MipLevel,
-                LevelCount = 1,
-                BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(texture.Desc, slice),
-                LayerCount = 1
-            }
-        };
-
-        context.Vk.CreateImageView(context.Device, &createInfo, null, out ImageView).Success();
-
-        SrvImageInfo = new()
-        {
-            ImageView = ImageView,
-            ImageLayout = ImageLayout.ShaderReadOnlyOptimal
-        };
-
-        UavImageInfo = new()
-        {
-            ImageView = ImageView,
-            ImageLayout = ImageLayout.General
-        };
-
-        Slice = slice;
-    }
-
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
     public DescriptorImageInfo SrvImageInfo { get; }
 
     public DescriptorImageInfo UavImageInfo { get; }
 
-    public TextureSlice? Slice { get; }
-
     public void TransitionLayout(VKCommandBuffer commandBuffer, ImageLayout newLayout)
     {
-        if (Slice is null)
-        {
-            Desc.Texture.Vulkan().TransitionLayout(commandBuffer,
-                                                   Desc.FirstMipLevel,
-                                                   Desc.MipLevelCount,
-                                                   Desc.FirstArrayLayer,
-                                                   Desc.ArrayLayerCount,
-                                                   0,
-                                                   ZenithHelper.FaceCount(Desc.Texture.Desc),
-                                                   newLayout);
-        }
-        else
-        {
-            Desc.Texture.Vulkan().TransitionLayout(commandBuffer, Slice.Value, newLayout);
-        }
+        Desc.Texture.Vulkan().TransitionLayout(commandBuffer,
+                                               Desc.FirstMipLevel,
+                                               Desc.MipLevelCount,
+                                               Desc.FirstArrayLayer,
+                                               Desc.ArrayLayerCount,
+                                               0,
+                                               ZenithHelper.FaceCount(Desc.Texture.Desc),
+                                               newLayout);
     }
 
     protected override void SetResourceName(string name)

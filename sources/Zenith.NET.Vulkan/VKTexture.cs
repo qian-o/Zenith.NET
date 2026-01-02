@@ -296,6 +296,30 @@ internal unsafe class VKTexture : Texture
         TransitionLayout(commandBuffer, slice.MipLevel, 1, slice.ArrayLayer, 1, slice.Face, 1, newLayout);
     }
 
+    public ImageView CreateAttachmentView(TextureSlice slice)
+    {
+        ImageViewCreateInfo createInfo = new()
+        {
+            SType = StructureType.ImageViewCreateInfo,
+            Image = Image,
+            ViewType = ImageViewType.Type2D,
+            Format = VKFormats.Vulkan(Desc.Format),
+            SubresourceRange = new()
+            {
+                AspectMask = VKFormats.Vulkan(Desc.Format, Desc.Flags).AspectFlags,
+                BaseMipLevel = slice.MipLevel,
+                LevelCount = 1,
+                BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(Desc, slice),
+                LayerCount = 1
+            }
+        };
+
+        ImageView imageView;
+        Context.Vk.CreateImageView(Context.Device, &createInfo, null, &imageView).Success();
+
+        return imageView;
+    }
+
     protected override void SetResourceName(string name)
     {
         using ZenithMarshal.Scope scope = new();
