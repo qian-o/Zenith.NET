@@ -16,7 +16,11 @@ internal class DeferredRenderer : DisposableObject
         new VolumetricLightPass(),
         new VolumetricLightBlurPass(),
         new BloomPass(),
+        new SSGIPass(),
+        new SVGFDenoiserPass(),   // SVGF denoiser replaces SSGIBlurPass for better quality
         new LightingPass(),
+        new CopyLitColorPass(),   // Copy LitColor to LitColorHistory for next frame's SSGI
+        new CopyGBufferHistoryPass(),  // Copy Position/Normal to history for next frame's SVGF
         new ComposePass()
     ];
 
@@ -25,6 +29,7 @@ internal class DeferredRenderer : DisposableObject
         if (context.Width != width || context.Height != height)
         {
             context.Initialize(width, height);
+            context.FrameIndex = 0;
 
             foreach (RenderPass renderPass in renderPasses)
             {
@@ -55,6 +60,8 @@ internal class DeferredRenderer : DisposableObject
         commandBuffer.EndDebugEvent();
 
         commandBuffer.Submit(true);
+
+        context.FrameIndex++;
     }
 
     public void UI()

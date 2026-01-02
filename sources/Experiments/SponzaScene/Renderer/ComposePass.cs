@@ -12,7 +12,7 @@ internal unsafe class ComposePass : FullscreenPass
 
     private float aoStrength = 1.0f;
     private float bloomIntensity = 1.5f;
-    private float volumetricIntensity = 1.0f;
+    private float volumetricIntensity = 2.5f;  // 增加体积光强度
 
     public ComposePass() : base("Compose Pass")
     {
@@ -60,7 +60,7 @@ internal unsafe class ComposePass : FullscreenPass
                 context.LitColor!,
                 context.GTAOBlurred!,
                 context.VerticalBloom!,
-                context.VolumetricLight!,
+                context.VolumetricLightBlurred!,  // 使用模糊后的体积光
                 context.FinalColor!,
                 App.PointSampler
             ]
