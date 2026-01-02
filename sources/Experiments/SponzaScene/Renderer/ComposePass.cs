@@ -12,6 +12,7 @@ internal unsafe class ComposePass : FullscreenPass
 
     private float aoStrength = 1.0f;
     private float bloomIntensity = 1.5f;
+    private float volumetricIntensity = 1.0f;
 
     public ComposePass() : base("Compose Pass")
     {
@@ -41,6 +42,7 @@ internal unsafe class ComposePass : FullscreenPass
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Compute }
             )
@@ -58,6 +60,7 @@ internal unsafe class ComposePass : FullscreenPass
                 context.LitColor!,
                 context.SSAOBlurred!,
                 context.VerticalBloom!,
+                context.VolumetricLight!,
                 context.FinalColor!,
                 App.PointSampler
             ]
@@ -69,7 +72,8 @@ internal unsafe class ComposePass : FullscreenPass
         constantBuffer.Upload([new ComposeConstants
         {
             AOStrength = aoStrength,
-            BloomIntensity = bloomIntensity
+            BloomIntensity = bloomIntensity,
+            VolumetricIntensity = volumetricIntensity
         }], 0);
     }
 
@@ -77,6 +81,7 @@ internal unsafe class ComposePass : FullscreenPass
     {
         ImGui.SliderFloat("AO Strength", ref aoStrength, 0.0f, 2.0f);
         ImGui.SliderFloat("Bloom Intensity", ref bloomIntensity, 0.0f, 2.0f);
+        ImGui.SliderFloat("Volumetric Intensity", ref volumetricIntensity, 0.0f, 5.0f);
     }
 
     protected override void Destroy()
@@ -92,5 +97,7 @@ internal unsafe class ComposePass : FullscreenPass
         public float AOStrength;
 
         public float BloomIntensity;
+
+        public float VolumetricIntensity;
     }
 }

@@ -13,6 +13,8 @@ internal class DeferredRenderer : DisposableObject
         new CSMPass(),
         new SSAOPass(),
         new SSAOBlurPass(),
+        new VolumetricLightPass(),
+        new VolumetricLightBlurPass(),
         new BloomPass(),
         new LightingPass(),
         new ComposePass()

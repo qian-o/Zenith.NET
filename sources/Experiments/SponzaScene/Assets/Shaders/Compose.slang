@@ -10,12 +10,15 @@ struct ComposeConstants
     float AOStrength;
 
     float BloomIntensity;
+
+    float VolumetricIntensity;
 };
 
 ConstantBuffer<ComposeConstants> constants;
 Texture2D litColorTexture;
 Texture2D ssaoTexture;
 Texture2D bloomTexture;
+Texture2D volumetricTexture;
 RWTexture2D outputTexture;
 SamplerState pointSampler;
 
@@ -63,9 +66,11 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     float3 color = litColorTexture.SampleLevel(pointSampler, uv, 0).rgb;
     float ao = ssaoTexture.SampleLevel(pointSampler, uv, 0).r;
     float3 bloom = bloomTexture.SampleLevel(pointSampler, uv, 0).rgb;
+    float volumetric = volumetricTexture.SampleLevel(pointSampler, uv, 0).r;
 
     color *= lerp(1.0, ao, constants.AOStrength);
     color += bloom * constants.BloomIntensity;
+    color += volumetric * constants.VolumetricIntensity;
 
     color *= EXPOSURE;
     color = ACESFilm(color);
