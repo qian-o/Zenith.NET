@@ -37,7 +37,7 @@ ConstantBuffer<VolumetricLightConstants> constants;
 StructuredBuffer<CSMData> csmDatas;
 Texture2D positionTexture;
 Texture2DArray csmTextures;
-RWTexture2D<float> outputTexture;
+RWTexture2D outputTexture;
 SamplerState pointSampler;
 SamplerComparisonState shadowSampler;
 
@@ -71,20 +71,12 @@ int GetCascadeIndex(float distanceToCamera)
     return int(cascadeCount - 1);
 }
 
-float3 WorldToShadowCoord(float3 worldPos, int cascadeIndex)
+float SampleShadow(float3 worldPos, int cascadeIndex)
 {
     float4 lightSpacePos = mul(mul(float4(worldPos, 1.0), csmDatas[cascadeIndex].View), csmDatas[cascadeIndex].Projection);
     lightSpacePos.xyz /= lightSpacePos.w;
 
-    return float3(lightSpacePos.x * 0.5 + 0.5, -lightSpacePos.y * 0.5 + 0.5, lightSpacePos.z);
-}
-
-float SampleShadow(float3 worldPos, float3 cameraPos)
-{
-    float distanceToCamera = length(worldPos - cameraPos);
-    int cascadeIndex = GetCascadeIndex(distanceToCamera);
-
-    float3 shadowCoord = WorldToShadowCoord(worldPos, cascadeIndex);
+    float3 shadowCoord = float3(lightSpacePos.x * 0.5 + 0.5, -lightSpacePos.y * 0.5 + 0.5, lightSpacePos.z);
 
     if (any(shadowCoord.xy < 0.0) || any(shadowCoord.xy > 1.0) || shadowCoord.z < 0.0 || shadowCoord.z > 1.0)
     {
@@ -94,12 +86,11 @@ float SampleShadow(float3 worldPos, float3 cameraPos)
     return csmTextures.SampleCmpLevelZero(shadowSampler, float3(shadowCoord.xy, cascadeIndex), shadowCoord.z);
 }
 
-float3 GetViewDirection(float2 uv)
+float3 GetWorldPosition(float2 ndc)
 {
-    float2 ndc = float2(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0);
     float4 worldPos = mul(float4(ndc, 1.0, 1.0), constants.InverseViewProjection);
 
-    return normalize(worldPos.xyz / worldPos.w - constants.CameraPosition.xyz);
+    return worldPos.xyz / worldPos.w;
 }
 
 [numthreads(16, 16, 1)]
@@ -114,40 +105,49 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     }
 
     float2 uv = (float2(dispatchThreadID.xy) + 0.5) / float2(width, height);
+    float2 ndc = float2(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0);
 
-    float3 worldPos = positionTexture.SampleLevel(pointSampler, uv, 0).xyz;
     float3 cameraPos = constants.CameraPosition.xyz;
-    float3 lightDir = normalize(constants.LightDirection.xyz);
-    float3 lightColor = constants.LightColor.rgb;
-    float lightIntensity = constants.LightColor.w;
+    float3 farWorldPos = GetWorldPosition(ndc);
+    float3 rayDir = normalize(farWorldPos - cameraPos);
 
-    float3 rayDir = GetViewDirection(uv);
-    float3 rayOrigin = cameraPos;
-
-    float maxRayDistance = length(worldPos) > EPSILON ? length(worldPos - cameraPos) : constants.MaxDistance;
+    float3 surfacePos = positionTexture.SampleLevel(pointSampler, uv, 0).xyz;
+    float surfaceDistSq = dot(surfacePos, surfacePos);
+    float maxRayDistance = surfaceDistSq > EPSILON ? length(surfacePos - cameraPos) : constants.MaxDistance;
     maxRayDistance = min(maxRayDistance, constants.MaxDistance);
 
+    float3 lightDir = normalize(constants.LightDirection.xyz);
     float cosTheta = dot(rayDir, -lightDir);
     float phase = HenyeyGreenstein(cosTheta, constants.Scattering);
 
     float noise = InterleavedGradientNoise(float2(dispatchThreadID.xy));
     float stepSize = maxRayDistance / float(constants.SampleCount);
+    float3 rayStep = rayDir * stepSize;
 
     float accumulation = 0.0;
+    float3 samplePos = cameraPos + rayDir * noise * stepSize;
+
+    int currentCascade = 0;
+    float currentCascadeFar = csmDatas[0].FarPlane;
 
     for (int i = 0; i < constants.SampleCount; i++)
     {
-        float t = (float(i) + noise) * stepSize;
-        float3 samplePos = rayOrigin + rayDir * t;
+        float distanceToCamera = float(i + 1) * stepSize;
 
-        float shadow = SampleShadow(samplePos, cameraPos);
+        while (distanceToCamera > currentCascadeFar && currentCascade < int(csmDatas.getCount()) - 1)
+        {
+            currentCascade++;
+            currentCascadeFar = csmDatas[currentCascade].FarPlane;
+        }
 
-        float density = 1.0;
+        float shadow = SampleShadow(samplePos, currentCascade);
 
-        accumulation += shadow * density * stepSize;
+        accumulation += shadow;
+
+        samplePos += rayStep;
     }
 
-    float volumetric = accumulation * phase * lightIntensity * constants.Intensity * 0.01;
+    float volumetric = accumulation * stepSize * phase * constants.LightColor.w * constants.Intensity * 0.01;
 
     outputTexture[dispatchThreadID.xy] = volumetric;
 }

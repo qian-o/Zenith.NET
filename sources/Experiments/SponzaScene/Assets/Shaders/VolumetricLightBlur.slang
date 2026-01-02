@@ -1,4 +1,9 @@
 ﻿static const float EPSILON = 0.0001;
+static const float DEPTH_THRESHOLD = 2.0;
+static const float DEPTH_FALLOFF = 1.0 / (DEPTH_THRESHOLD * DEPTH_THRESHOLD);
+
+static const int KERNEL_RADIUS = 4;
+static const float KERNEL_WEIGHTS[9] = { 0.0093, 0.028, 0.0659, 0.1226, 0.1802, 0.1226, 0.0659, 0.028, 0.0093 };
 
 struct BlurConstants
 {
@@ -6,14 +11,10 @@ struct BlurConstants
 };
 
 ConstantBuffer<BlurConstants> constants;
-Texture2D<float> inputTexture;
+Texture2D inputTexture;
 Texture2D positionTexture;
-RWTexture2D<float> outputTexture;
+RWTexture2D outputTexture;
 SamplerState linearSampler;
-
-static const int KERNEL_SIZE = 9;
-static const float KERNEL_WEIGHTS[9] = { 0.0093, 0.028, 0.0659, 0.1226, 0.1802, 0.1226, 0.0659, 0.028, 0.0093 };
-static const float DEPTH_THRESHOLD = 2.0;
 
 [numthreads(16, 16, 1)]
 void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
@@ -29,30 +30,40 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     float2 uv = (float2(dispatchThreadID.xy) + 0.5) / float2(width, height);
 
     float3 centerPos = positionTexture.SampleLevel(linearSampler, uv, 0).xyz;
-    float centerDepth = length(centerPos);
+    float centerDepth = dot(centerPos, centerPos);
 
-    float result = 0.0;
-    float totalWeight = 0.0;
+    float centerValue = inputTexture.SampleLevel(linearSampler, uv, 0).r;
+    float centerWeight = KERNEL_WEIGHTS[KERNEL_RADIUS];
 
-    int halfSize = KERNEL_SIZE / 2;
+    float result = centerValue * centerWeight;
+    float totalWeight = centerWeight;
 
-    for (int i = -halfSize; i <= halfSize; i++)
+    [unroll]
+    for (int i = 1; i <= KERNEL_RADIUS; i++)
     {
         float2 offset = constants.TexelSize * float(i);
-        float2 sampleUV = uv + offset;
+        float kernelWeight = KERNEL_WEIGHTS[KERNEL_RADIUS + i];
 
-        float3 samplePos = positionTexture.SampleLevel(linearSampler, sampleUV, 0).xyz;
-        float sampleDepth = length(samplePos);
+        float2 uvPos = uv + offset;
+        float2 uvNeg = uv - offset;
 
-        float depthDiff = abs(centerDepth - sampleDepth);
-        float depthWeight = exp(-depthDiff * depthDiff / (DEPTH_THRESHOLD * DEPTH_THRESHOLD));
+        float3 posPos = positionTexture.SampleLevel(linearSampler, uvPos, 0).xyz;
+        float3 posNeg = positionTexture.SampleLevel(linearSampler, uvNeg, 0).xyz;
 
-        float kernelWeight = KERNEL_WEIGHTS[i + halfSize];
-        float weight = kernelWeight * depthWeight;
+        float depthPos = dot(posPos, posPos);
+        float depthNeg = dot(posNeg, posNeg);
 
-        result += inputTexture.SampleLevel(linearSampler, sampleUV, 0) * weight;
-        totalWeight += weight;
+        float diffPos = centerDepth - depthPos;
+        float diffNeg = centerDepth - depthNeg;
+
+        float weightPos = kernelWeight * exp(-diffPos * diffPos * DEPTH_FALLOFF);
+        float weightNeg = kernelWeight * exp(-diffNeg * diffNeg * DEPTH_FALLOFF);
+
+        result += inputTexture.SampleLevel(linearSampler, uvPos, 0).r * weightPos;
+        result += inputTexture.SampleLevel(linearSampler, uvNeg, 0).r * weightNeg;
+
+        totalWeight += weightPos + weightNeg;
     }
 
-    outputTexture[dispatchThreadID.xy] = totalWeight > EPSILON ? result / totalWeight : 0.0;
+    outputTexture[dispatchThreadID.xy] = result / max(totalWeight, EPSILON);
 }
