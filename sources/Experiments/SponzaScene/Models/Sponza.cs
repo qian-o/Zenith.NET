@@ -9,8 +9,8 @@ namespace SponzaScene.Models;
 
 internal unsafe class Sponza : DisposableObject
 {
-    private static readonly Vector3 HorizonColor = new(1.0f, 0.5f, 0.15f);
-    private static readonly Vector3 DayColor = new(1.0f, 0.85f, 0.65f);
+    private static readonly Vector3 HorizonColor = new(1.0f, 0.65f, 0.4f);
+    private static readonly Vector3 DayColor = new(1.0f, 0.9f, 0.75f);
 
     private float directionalLightProgress = 0.454f;
 
@@ -75,13 +75,14 @@ internal unsafe class Sponza : DisposableObject
             Vector3 direction = Vector3.Normalize(new(0.0f, -MathF.Sin(elevationRad), -MathF.Cos(progressAngle)));
 
             float colorFactor = Math.Clamp(elevation / maxElevation, 0.0f, 1.0f);
+            float smoothColorFactor = colorFactor * colorFactor * (3.0f - 2.0f * colorFactor);
             float intensityFactor = MathF.Sin(colorFactor * MathF.PI * 0.5f);
 
             return new()
             {
                 Direction = direction,
-                Color = Vector3.Lerp(HorizonColor, DayColor, colorFactor),
-                Intensity = float.Lerp(1.5f, 5.0f, intensityFactor)
+                Color = Vector3.Lerp(HorizonColor, DayColor, smoothColorFactor),
+                Intensity = float.Lerp(2.0f, 5.0f, intensityFactor)
             };
         }
     }
