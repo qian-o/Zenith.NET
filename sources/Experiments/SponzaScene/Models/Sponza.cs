@@ -75,7 +75,7 @@ internal unsafe class Sponza : DisposableObject
             Vector3 direction = Vector3.Normalize(new(0.0f, -MathF.Sin(elevationRad), -MathF.Cos(progressAngle)));
 
             float colorFactor = Math.Clamp(elevation / maxElevation, 0.0f, 1.0f);
-            float smoothColorFactor = colorFactor * colorFactor * (3.0f - 2.0f * colorFactor);
+            float smoothColorFactor = colorFactor * colorFactor * (3.0f - (2.0f * colorFactor));
             float intensityFactor = MathF.Sin(colorFactor * MathF.PI * 0.5f);
 
             return new()
