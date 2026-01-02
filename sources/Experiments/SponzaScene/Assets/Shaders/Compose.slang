@@ -1,7 +1,10 @@
-﻿static const float EXPOSURE = 1.2;
-static const float CONTRAST = 1.1;
-static const float SATURATION = 1.1;
+﻿static const float EXPOSURE = 0.85;
+static const float CONTRAST = 1.18;
+static const float SATURATION = 1.25;
+static const float MID_GRAY = 0.18;
+
 static const float3 LUMA_COEFFICIENTS = float3(0.2126, 0.7152, 0.0722);
+static const float3 WARM_TINT = float3(1.08, 1.0, 0.9);
 
 struct ComposeConstants
 {
@@ -20,6 +23,10 @@ Texture2D volumetricTexture;
 RWTexture2D outputTexture;
 SamplerState pointSampler;
 
+// ============================================
+// Tone Mapping
+// ============================================
+
 float3 ACESFilm(float3 x)
 {
     const float a = 2.51;
@@ -31,14 +38,18 @@ float3 ACESFilm(float3 x)
     return saturate((x * (a * x + b)) / (x * (c * x + d) + e));
 }
 
+// ============================================
+// Color Grading
+// ============================================
+
 float3 ColorGrade(float3 color)
 {
-    const float midGray = 0.18;
-
-    color = (color - midGray) * CONTRAST + midGray;
+    color = (color - MID_GRAY) * CONTRAST + MID_GRAY;
 
     float luma = dot(color, LUMA_COEFFICIENTS);
     color = lerp(luma, color, SATURATION);
+
+    color *= WARM_TINT;
 
     return max(color, 0.0);
 }

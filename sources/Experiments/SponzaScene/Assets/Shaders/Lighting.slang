@@ -2,17 +2,17 @@
 static const float INV_PI = 0.31830988618;
 static const float EPSILON = 0.0001;
 
-static const float SKY_LIGHT_INTENSITY = 0.8;
-static const float INDIRECT_LIGHT_INTENSITY = 0.5;
-static const float DIRECT_LIGHT_SCALE = 0.85;
+static const float SKY_LIGHT_INTENSITY = 0.4;
+static const float INDIRECT_LIGHT_INTENSITY = 0.25;
+static const float DIRECT_LIGHT_SCALE = 0.6;
 
 static const float SHADOW_BASE_OFFSET = 0.045;
 static const float SHADOW_BASE_RADIUS = 3.5;
 static const float SHADOW_NORMAL_SMOOTH = 0.5;
 static const int SHADOW_SAMPLE_COUNT = 32;
 
-static const float3 GROUND_TINT = float3(0.3, 0.25, 0.2);
-static const float3 SHADOW_TINT = float3(0.7, 0.75, 0.9);
+static const float3 GROUND_TINT = float3(0.45, 0.35, 0.25);
+static const float3 SHADOW_TINT = float3(1.0, 0.92, 0.84);
 
 struct DirectionalLight
 {
@@ -99,7 +99,7 @@ float InterleavedGradientNoise(float2 pos)
     return frac(magic.z * frac(dot(pos, magic.xy)));
 }
 
-float2 VogelDiskSample(int sampleIndex, int samplesCount, float phi)
+float2 VogelDiskSample(int sampleIndex, int samplesCount, int phi)
 {
     const float goldenAngle = 2.4;
 
@@ -159,7 +159,7 @@ float3 WorldToShadowCoord(float3 worldPos, int cascadeIndex)
 
 float SampleShadowPCF(float3 shadowCoord, int cascadeIndex, float2 texelSize, float2 screenPos, float filterRadius)
 {
-    float rotationAngle = InterleavedGradientNoise(screenPos) * PI * 2.0;
+    int rotationAngle = int(InterleavedGradientNoise(screenPos) * PI * 2.0);
     float shadow = 0.0;
 
     for (int i = 0; i < SHADOW_SAMPLE_COUNT; i++)
@@ -275,19 +275,18 @@ float3 CalculateSkybox(float3 viewDir, float3 sunDirection, float3 sunColor, flo
     SkyParams params = CalculateSkyParams(sunDirection);
     float elevation = viewDir.y;
 
-    float3 zenithColor = BlendSkyColors(float3(0.15, 0.35, 0.75), float3(0.12, 0.08, 0.25) + sunColor * 0.1, float3(0.02, 0.02, 0.06), params);
+    float3 zenithColor = BlendSkyColors(float3(0.08, 0.35, 1.0), float3(0.35, 0.2, 0.55) + sunColor * 0.3, float3(0.005, 0.005, 0.02), params);
 
-    float3 horizonColor = BlendSkyColors(float3(0.5, 0.7, 0.9), sunColor * float3(1.0, 0.6, 0.3), float3(0.05, 0.05, 0.1), params);
+    float3 horizonColor = BlendSkyColors(float3(0.25, 0.48, 0.95), sunColor * float3(1.0, 0.85, 0.6), float3(0.015, 0.015, 0.04), params);
 
-    float3 groundColor = float3(0.15, 0.12, 0.1) * (0.3 + params.DayFactor * 0.7);
-    groundColor = lerp(groundColor, groundColor * sunColor, params.SunsetFactor * 0.5);
+    float3 groundColor = BlendSkyColors(float3(0.18, 0.35, 0.7), sunColor * float3(0.7, 0.5, 0.35), float3(0.01, 0.01, 0.025), params);
 
-    float skyBlend = pow(saturate(elevation), 0.4 + params.DayFactor * 0.2);
+    float skyBlend = pow(saturate(elevation + 0.1), 0.18);
     float3 skyColor = lerp(horizonColor, zenithColor, skyBlend);
 
-    float groundBlend = smoothstep(0.0, -0.5, elevation);
-    skyColor = lerp(skyColor, groundColor, groundBlend * groundBlend);
-    skyColor = lerp(skyColor, horizonColor, exp(-abs(elevation) * (8.0 + params.DayFactor * 4.0)) * 0.15);
+    float groundBlend = 1.0 - saturate((elevation + 0.3) / 0.5);
+    groundBlend = groundBlend * groundBlend * (3.0 - 2.0 * groundBlend);
+    skyColor = lerp(skyColor, groundColor, groundBlend);
 
     float sunDot = dot(viewDir, params.SunDir);
     float glowIntensity = sunIntensity * 0.2;
@@ -305,13 +304,13 @@ float3 CalculateSkybox(float3 viewDir, float3 sunDirection, float3 sunColor, flo
 
     skyColor += glowColor * (glow1 + glow2) + sunColor * params.SunVis * (glow3 + glow4) + discColor * sunDisc;
 
-    float horizonGlow = exp(-elevation * elevation * (15.0 + params.DayFactor * 10.0));
+    float horizonGlow = exp(-elevation * elevation * (30.0 + params.DayFactor * 20.0));
     float3 viewHoriz = SafeNormalize(float3(viewDir.x, 0.0, viewDir.z));
     float3 sunHoriz = SafeNormalize(float3(params.SunDir.x, 0.0, params.SunDir.z));
     float horizSunDot = max(dot(viewHoriz, sunHoriz), 0.0);
 
-    float3 warmGlow = lerp(float3(0.3, 0.25, 0.3), sunColor * 0.8, horizSunDot * params.SunsetFactor);
-    skyColor += warmGlow * horizonGlow * (0.1 + params.SunsetFactor * 0.15) * (0.5 + horizSunDot * 0.8) * params.SunVis;
+    float3 warmGlow = lerp(float3(0.15, 0.1, 0.15), sunColor * 0.5, horizSunDot * params.SunsetFactor);
+    skyColor += warmGlow * horizonGlow * (0.06 + params.SunsetFactor * 0.1) * (0.3 + horizSunDot * 0.5) * params.SunVis;
 
     if (params.NightFactor > 0.1 && elevation > 0.0)
     {
@@ -327,13 +326,13 @@ float3 SampleSkyColor(float3 direction, float3 sunDirection, float3 sunColor, fl
 {
     SkyParams params = CalculateSkyParams(sunDirection);
 
-    float3 zenithColor = BlendSkyColors(float3(0.2, 0.4, 0.8), float3(0.15, 0.1, 0.3) + sunColor * 0.15, float3(0.02, 0.02, 0.05), params);
+    float3 zenithColor = BlendSkyColors(float3(0.1, 0.4, 1.0), float3(0.38, 0.22, 0.58) + sunColor * 0.32, float3(0.005, 0.005, 0.015), params);
 
-    float3 horizonColor = BlendSkyColors(float3(0.5, 0.7, 0.9), sunColor * float3(0.8, 0.5, 0.3), float3(0.03, 0.03, 0.06), params);
+    float3 horizonColor = BlendSkyColors(float3(0.5, 0.7, 1.0), sunColor * float3(1.0, 0.8, 0.55), float3(0.015, 0.015, 0.04), params);
 
-    float t = pow(saturate(direction.y * 0.5 + 0.5), 0.5);
+    float t = pow(saturate(direction.y * 0.5 + 0.5), 0.35);
 
-    return lerp(horizonColor, zenithColor, t) * (0.4 + params.DayFactor * 0.6) * sunIntensity * 0.25;
+    return lerp(horizonColor, zenithColor, t) * (0.6 + params.DayFactor * 0.4) * sunIntensity * 0.32;
 }
 
 float3 GetViewDirection(float2 uv)

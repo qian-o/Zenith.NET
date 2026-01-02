@@ -1,6 +1,10 @@
 ﻿static const float PI = 3.14159265359;
 static const float EPSILON = 0.0001;
 
+static const float MAX_PHASE = 0.5;
+static const float SUN_VIEW_ATTENUATION = 0.95;
+static const float INTENSITY_SCALE = 0.005;
+
 struct VolumetricLightConstants
 {
     float4 CameraPosition;
@@ -41,6 +45,10 @@ RWTexture2D outputTexture;
 SamplerState pointSampler;
 SamplerComparisonState shadowSampler;
 
+// ============================================
+// Utility
+// ============================================
+
 float InterleavedGradientNoise(float2 pos)
 {
     const float3 magic = float3(0.06711056, 0.00583715, 52.9829189);
@@ -52,9 +60,14 @@ float HenyeyGreenstein(float cosTheta, float g)
 {
     float g2 = g * g;
     float denom = 1.0 + g2 - 2.0 * g * cosTheta;
+    float phase = (1.0 - g2) / (4.0 * PI * pow(max(denom, EPSILON), 1.5));
 
-    return (1.0 - g2) / (4.0 * PI * pow(max(denom, EPSILON), 1.5));
+    return min(phase, MAX_PHASE);
 }
+
+// ============================================
+// Shadow Sampling
+// ============================================
 
 int GetCascadeIndex(float distanceToCamera)
 {
@@ -85,6 +98,10 @@ float SampleShadow(float3 worldPos, int cascadeIndex)
 
     return csmTextures.SampleCmpLevelZero(shadowSampler, float3(shadowCoord.xy, cascadeIndex), shadowCoord.z);
 }
+
+// ============================================
+// Ray Marching
+// ============================================
 
 float3 GetWorldPosition(float2 ndc)
 {
@@ -118,6 +135,9 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 
     float3 lightDir = normalize(constants.LightDirection.xyz);
     float cosTheta = dot(rayDir, -lightDir);
+
+    float sunAlignment = max(cosTheta, 0.0);
+    float sunViewFactor = saturate(1.0 - pow(sunAlignment, 2.0) * SUN_VIEW_ATTENUATION);
     float phase = HenyeyGreenstein(cosTheta, constants.Scattering);
 
     float noise = InterleavedGradientNoise(float2(dispatchThreadID.xy));
@@ -147,7 +167,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
         samplePos += rayStep;
     }
 
-    float volumetric = accumulation * stepSize * phase * constants.LightColor.w * constants.Intensity * 0.01;
+    float volumetric = accumulation * stepSize * phase * sunViewFactor * constants.LightColor.w * constants.Intensity * INTENSITY_SCALE;
 
     outputTexture[dispatchThreadID.xy] = volumetric;
 }
