@@ -9,8 +9,8 @@ namespace SponzaScene.Models;
 
 internal unsafe class Sponza : DisposableObject
 {
-    private static readonly Vector3 HorizonColor = new(1.0f, 0.5f, 0.2f);
-    private static readonly Vector3 DayColor = new(1.0f, 0.98f, 0.9f);
+    private static readonly Vector3 HorizonColor = new(1.0f, 0.5f, 0.15f);
+    private static readonly Vector3 DayColor = new(1.0f, 0.85f, 0.65f);
 
     private float directionalLightProgress = 0.454f;
 
@@ -66,7 +66,6 @@ internal unsafe class Sponza : DisposableObject
         get
         {
             const float maxElevation = 75.0f;
-            const float horizonThreshold = 20.0f;
             const float degToRad = MathF.PI / 180.0f;
 
             float progressAngle = directionalLightProgress * MathF.PI;
@@ -75,15 +74,14 @@ internal unsafe class Sponza : DisposableObject
 
             Vector3 direction = Vector3.Normalize(new(0.0f, -MathF.Sin(elevationRad), -MathF.Cos(progressAngle)));
 
-            float horizonFactor = Math.Clamp(elevation / horizonThreshold, 0.0f, 1.0f);
-            float dayFactor = Math.Clamp((elevation - horizonThreshold) / (maxElevation - horizonThreshold), 0.0f, 1.0f);
-            float combinedFactor = (horizonFactor + dayFactor) * 0.5f;
+            float colorFactor = Math.Clamp(elevation / maxElevation, 0.0f, 1.0f);
+            float intensityFactor = MathF.Sin(colorFactor * MathF.PI * 0.5f);
 
             return new()
             {
                 Direction = direction,
-                Color = Vector3.Lerp(HorizonColor, DayColor, horizonFactor),
-                Intensity = float.Lerp(1.0f, 5.0f, combinedFactor)
+                Color = Vector3.Lerp(HorizonColor, DayColor, colorFactor),
+                Intensity = float.Lerp(1.5f, 5.0f, intensityFactor)
             };
         }
     }
