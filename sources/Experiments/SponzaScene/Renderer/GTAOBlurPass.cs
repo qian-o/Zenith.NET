@@ -11,7 +11,7 @@ internal unsafe class GTAOBlurPass : FullscreenPass
 
     private ResourceSet? resourceSet;
 
-    private int blurSize = 2;
+    private int blurSize = 4;
 
     public GTAOBlurPass() : base("GTAO Blur Pass")
     {
@@ -39,6 +39,7 @@ internal unsafe class GTAOBlurPass : FullscreenPass
             (
                 new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Compute }
             )
@@ -53,6 +54,7 @@ internal unsafe class GTAOBlurPass : FullscreenPass
             Resources =
             [
                 constantBuffer,
+                context.Position!,
                 context.GTAO!,
                 context.GTAOBlurred!,
                 App.PointSampler

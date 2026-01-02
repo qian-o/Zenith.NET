@@ -1,14 +1,58 @@
-﻿struct BlurConstants
+﻿static const float EPSILON = 0.0001;
+
+static const float SPATIAL_SIGMA_SCALE = 0.5;
+static const float RANGE_SIGMA = 0.15;
+static const float DEPTH_SIGMA = 0.5;
+
+struct BlurConstants
 {
     float2 TexelSize;
+
+    float2 Direction;
 
     int BlurSize;
 };
 
 ConstantBuffer<BlurConstants> constants;
+Texture2D positionTexture;
 Texture2D gtaoTexture;
-RWTexture2D<float> outputTexture;
+RWTexture2D outputTexture;
 SamplerState pointSampler;
+
+// ============================================
+// Utility
+// ============================================
+
+float GetLinearDepth(float2 uv)
+{
+    return positionTexture.SampleLevel(pointSampler, uv, 0).w;
+}
+
+float GaussianWeight(float offset, float sigma)
+{
+    float sigmaSq2 = 2.0 * sigma * sigma;
+
+    return exp(-(offset * offset) / sigmaSq2);
+}
+
+float DepthWeight(float centerDepth, float sampleDepth, float sigma)
+{
+    if (centerDepth < EPSILON || sampleDepth < EPSILON)
+    {
+        return 0.0;
+    }
+
+    float depthDiff = abs(centerDepth - sampleDepth) / max(centerDepth, EPSILON);
+
+    return exp(-(depthDiff * depthDiff) / (2.0 * sigma * sigma));
+}
+
+float RangeWeight(float centerValue, float sampleValue, float sigma)
+{
+    float diff = centerValue - sampleValue;
+
+    return exp(-(diff * diff) / (2.0 * sigma * sigma));
+}
 
 [numthreads(16, 16, 1)]
 void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
@@ -24,48 +68,43 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     float2 uv = (float2(dispatchThreadID.xy) + 0.5) / float2(width, height);
 
     float centerValue = gtaoTexture.SampleLevel(pointSampler, uv, 0).r;
-    
+    float centerDepth = GetLinearDepth(uv);
+
     float result = centerValue;
     float totalWeight = 1.0;
-    
+
     int blurSize = constants.BlurSize;
-    
-    // 使用高斯权重的边缘保留模糊
-    float sigma = float(blurSize) * 0.5;
-    float sigmaSq2 = 2.0 * sigma * sigma;
-    
-    // 值域 sigma - 控制边缘保留程度
-    float rangeSigma = 0.1;
-    float rangeSigmaSq2 = 2.0 * rangeSigma * rangeSigma;
+    float spatialSigma = float(blurSize) * SPATIAL_SIGMA_SCALE;
 
-    for (int x = -blurSize; x <= blurSize; ++x)
+    for (int i = -blurSize; i <= blurSize; i++)
     {
-        for (int y = -blurSize; y <= blurSize; ++y)
+        if (i == 0)
         {
-            if (x == 0 && y == 0)
-            {
-                continue;
-            }
-
-            float2 offset = float2(float(x), float(y)) * constants.TexelSize;
-            float sampleValue = gtaoTexture.SampleLevel(pointSampler, uv + offset, 0).r;
-            
-            // 空间权重（高斯）
-            float distSq = float(x * x + y * y);
-            float spatialWeight = exp(-distSq / sigmaSq2);
-            
-            // 值域权重（边缘保留）
-            float valueDiff = sampleValue - centerValue;
-            float rangeWeight = exp(-(valueDiff * valueDiff) / rangeSigmaSq2);
-            
-            float weight = spatialWeight * rangeWeight;
-            
-            result += sampleValue * weight;
-            totalWeight += weight;
+            continue;
         }
+
+        float2 offset = constants.Direction * float(i) * constants.TexelSize;
+        float2 sampleUV = uv + offset;
+
+        if (any(sampleUV < 0.0) || any(sampleUV > 1.0))
+        {
+            continue;
+        }
+
+        float sampleValue = gtaoTexture.SampleLevel(pointSampler, sampleUV, 0).r;
+        float sampleDepth = GetLinearDepth(sampleUV);
+
+        float wSpatial = GaussianWeight(float(abs(i)), spatialSigma);
+        float wDepth = DepthWeight(centerDepth, sampleDepth, DEPTH_SIGMA);
+        float wRange = RangeWeight(centerValue, sampleValue, RANGE_SIGMA);
+
+        float weight = wSpatial * wDepth * wRange;
+
+        result += sampleValue * weight;
+        totalWeight += weight;
     }
 
-    result /= totalWeight;
+    result /= max(totalWeight, EPSILON);
 
     outputTexture[dispatchThreadID.xy] = result;
 }
