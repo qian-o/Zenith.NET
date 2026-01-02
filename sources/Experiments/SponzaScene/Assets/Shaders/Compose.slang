@@ -14,7 +14,7 @@ struct ComposeConstants
 
 ConstantBuffer<ComposeConstants> constants;
 Texture2D litColorTexture;
-Texture2D ssaoTexture;
+Texture2D gtaoTexture;
 Texture2D bloomTexture;
 Texture2D volumetricTexture;
 RWTexture2D outputTexture;
@@ -57,7 +57,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     float2 uv = (float2(dispatchThreadID.xy) + 0.5) / float2(width, height);
 
     float3 color = litColorTexture.SampleLevel(pointSampler, uv, 0).rgb;
-    float ao = ssaoTexture.SampleLevel(pointSampler, uv, 0).r;
+    float ao = gtaoTexture.SampleLevel(pointSampler, uv, 0).r;
     float3 bloom = bloomTexture.SampleLevel(pointSampler, uv, 0).rgb;
     float volumetric = volumetricTexture.SampleLevel(pointSampler, uv, 0).r;
 

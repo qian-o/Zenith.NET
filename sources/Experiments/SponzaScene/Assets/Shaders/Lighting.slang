@@ -76,7 +76,7 @@ Texture2D positionTexture;
 Texture2D metallicRoughnessTexture;
 Texture2D emissiveTexture;
 Texture2DArray csmTextures;
-Texture2D ssaoTexture;
+Texture2D gtaoTexture;
 RWTexture2D outputTexture;
 SamplerState pointSampler;
 SamplerComparisonState shadowSampler;
@@ -511,7 +511,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     metallicRoughness.y = max(metallicRoughness.y, 0.04);
 
     float4 emissiveData = emissiveTexture.SampleLevel(pointSampler, uv, 0);
-    float ao = max(ssaoTexture.SampleLevel(pointSampler, uv, 0).r, 0.1);
+    float ao = max(gtaoTexture.SampleLevel(pointSampler, uv, 0).r, 0.1);
     float3 V = SafeNormalize(constants.CameraPosition.xyz - worldPos);
 
     float3 color;

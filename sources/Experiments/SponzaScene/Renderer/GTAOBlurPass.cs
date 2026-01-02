@@ -5,7 +5,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace SponzaScene.Renderer;
 
-internal unsafe class SSAOBlurPass : FullscreenPass
+internal unsafe class GTAOBlurPass : FullscreenPass
 {
     private readonly Buffer constantBuffer;
 
@@ -13,7 +13,7 @@ internal unsafe class SSAOBlurPass : FullscreenPass
 
     private int blurSize = 2;
 
-    public SSAOBlurPass() : base("SSAO Blur Pass")
+    public GTAOBlurPass() : base("GTAO Blur Pass")
     {
         constantBuffer = App.Context.CreateBuffer(new()
         {
@@ -23,7 +23,7 @@ internal unsafe class SSAOBlurPass : FullscreenPass
         });
     }
 
-    protected override string ShaderName => "SSAOBlur";
+    protected override string ShaderName => "GTAOBlur";
 
     public override void Resize(uint width, uint height)
     {
@@ -53,8 +53,8 @@ internal unsafe class SSAOBlurPass : FullscreenPass
             Resources =
             [
                 constantBuffer,
-                context.SSAO!,
-                context.SSAOBlurred!,
+                context.GTAO!,
+                context.GTAOBlurred!,
                 App.PointSampler
             ]
         });
@@ -76,7 +76,7 @@ internal unsafe class SSAOBlurPass : FullscreenPass
         Vector2 size = new(ImGui.GetContentRegionAvail().X);
         size = size with { Y = size.X * context.Height / context.Width };
 
-        ImGui.Image(App.Binding(context.SSAOBlurred!), size);
+        ImGui.Image(App.Binding(context.GTAOBlurred!), size);
     }
 
     protected override void Destroy()

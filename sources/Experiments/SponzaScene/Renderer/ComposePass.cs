@@ -58,7 +58,7 @@ internal unsafe class ComposePass : FullscreenPass
             [
                 constantBuffer,
                 context.LitColor!,
-                context.SSAOBlurred!,
+                context.GTAOBlurred!,
                 context.VerticalBloom!,
                 context.VolumetricLight!,
                 context.FinalColor!,

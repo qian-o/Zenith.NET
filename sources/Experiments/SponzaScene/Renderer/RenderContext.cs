@@ -20,7 +20,7 @@ internal class RenderContext : DisposableObject
         DepthStencilAttachment = PixelFormat.D32FloatS8UInt,
         SampleCount = SampleCount.Count1
     };
-    
+
     public static float[] CSMSplits { get; } = [0.1f, 0.3f, 0.6f, 1.0f];
 
     public static Output CSMOutput { get; } = new()
@@ -79,9 +79,9 @@ internal class RenderContext : DisposableObject
     #endregion
 
     #region Intermediate Textures
-    public Texture? SSAO { get; private set; }
+    public Texture? GTAO { get; private set; }
 
-    public Texture? SSAOBlurred { get; private set; }
+    public Texture? GTAOBlurred { get; private set; }
 
     public Texture? VolumetricLight { get; private set; }
 
@@ -242,7 +242,7 @@ internal class RenderContext : DisposableObject
             DepthStencilAttachment = new() { Target = Depth }
         });
 
-        SSAO = App.Context.CreateTexture(new()
+        GTAO = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
             Format = PixelFormat.R8UNorm,
@@ -255,7 +255,7 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
-        SSAOBlurred = App.Context.CreateTexture(new()
+        GTAOBlurred = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
             Format = PixelFormat.R8UNorm,
@@ -359,8 +359,8 @@ internal class RenderContext : DisposableObject
         HorizontalBloom?.Dispose();
         VolumetricLightBlurred?.Dispose();
         VolumetricLight?.Dispose();
-        SSAOBlurred?.Dispose();
-        SSAO?.Dispose();
+        GTAOBlurred?.Dispose();
+        GTAO?.Dispose();
 
         if (CSMFrameBuffers is not null)
         {
