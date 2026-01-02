@@ -272,8 +272,8 @@ internal class RenderContext : DisposableObject
         {
             Type = TextureType.Texture2D,
             Format = PixelFormat.R16Float,
-            Width = width,
-            Height = height,
+            Width = width / 4,
+            Height = height / 4,
             Depth = 1,
             MipLevels = 1,
             ArrayLayers = 1,
