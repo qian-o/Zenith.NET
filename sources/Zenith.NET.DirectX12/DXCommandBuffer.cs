@@ -226,15 +226,15 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
         for (int i = 0; i < dxFrameBuffer.ColorAttachmentCount; i++)
         {
-            ref RenderPassRenderTargetDesc renderTargetDesc = ref dxFrameBuffer.RenderTargets[i];
+            ref RenderPassRenderTargetDesc renderTarget = ref dxFrameBuffer.RenderTargets[i];
 
-            renderTargetDesc.BeginningAccess.Type = RenderPassBeginningAccessType.Preserve;
+            renderTarget.BeginningAccess.Type = RenderPassBeginningAccessType.Preserve;
 
             if (clearColor)
             {
-                renderTargetDesc.BeginningAccess.Type = RenderPassBeginningAccessType.Clear;
+                renderTarget.BeginningAccess.Type = RenderPassBeginningAccessType.Clear;
 
-                fixed (float* colorPtr = renderTargetDesc.BeginningAccess.Clear.ClearValue.Anonymous.Color)
+                fixed (float* colorPtr = renderTarget.BeginningAccess.Clear.ClearValue.Anonymous.Color)
                 {
                     clearValue.ColorValues[i].CopyTo(new Span<float>(colorPtr, 4));
                 }
@@ -243,27 +243,27 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
         if (dxFrameBuffer.HasDepthStencilAttachment)
         {
-            ref RenderPassDepthStencilDesc depthStencilDesc = ref dxFrameBuffer.DepthStencil[0];
+            ref RenderPassDepthStencilDesc depthStencil = ref dxFrameBuffer.DepthStencil[0];
 
-            if (depthStencilDesc.DepthBeginningAccess.Type is not RenderPassBeginningAccessType.NoAccess)
+            if (depthStencil.DepthBeginningAccess.Type is not RenderPassBeginningAccessType.NoAccess)
             {
-                depthStencilDesc.DepthBeginningAccess.Type = RenderPassBeginningAccessType.Preserve;
+                depthStencil.DepthBeginningAccess.Type = RenderPassBeginningAccessType.Preserve;
 
                 if (clearDepth)
                 {
-                    depthStencilDesc.DepthBeginningAccess.Type = RenderPassBeginningAccessType.Clear;
-                    depthStencilDesc.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = clearValue.Depth;
+                    depthStencil.DepthBeginningAccess.Type = RenderPassBeginningAccessType.Clear;
+                    depthStencil.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = clearValue.Depth;
                 }
             }
 
-            if (depthStencilDesc.StencilBeginningAccess.Type is not RenderPassBeginningAccessType.NoAccess)
+            if (depthStencil.StencilBeginningAccess.Type is not RenderPassBeginningAccessType.NoAccess)
             {
-                depthStencilDesc.StencilBeginningAccess.Type = RenderPassBeginningAccessType.Preserve;
+                depthStencil.StencilBeginningAccess.Type = RenderPassBeginningAccessType.Preserve;
 
                 if (clearStencil)
                 {
-                    depthStencilDesc.StencilBeginningAccess.Type = RenderPassBeginningAccessType.Clear;
-                    depthStencilDesc.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = clearValue.Stencil;
+                    depthStencil.StencilBeginningAccess.Type = RenderPassBeginningAccessType.Clear;
+                    depthStencil.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = clearValue.Stencil;
                 }
             }
         }

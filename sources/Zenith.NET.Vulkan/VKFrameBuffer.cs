@@ -6,6 +6,12 @@ internal unsafe class VKFrameBuffer : FrameBuffer
 {
     private readonly ZenithMarshal.Scope scope = new();
 
+    public RenderingAttachmentInfo* ColorAttachments;
+
+    public RenderingAttachmentInfo* DepthAttachment;
+
+    public RenderingAttachmentInfo* StencilAttachment;
+
     public RenderingInfo RenderingInfo;
 
     public VKFrameBuffer(VKGraphicsContext context, FrameBufferDesc desc) : base(context, desc)
@@ -13,8 +19,7 @@ internal unsafe class VKFrameBuffer : FrameBuffer
         ColorAttachmentCount = (uint)desc.ColorAttachments.Length;
         HasDepthStencilAttachment = desc.DepthStencilAttachment is not null;
 
-        RenderingAttachmentInfo* colorAttachmentInfos = (RenderingAttachmentInfo*)ZenithMarshal.Allocate<RenderingAttachmentInfo>(scope, ColorAttachmentCount);
-        RenderingAttachmentInfo* depthStencilAttachmentInfo = HasDepthStencilAttachment ? (RenderingAttachmentInfo*)ZenithMarshal.Allocate<RenderingAttachmentInfo>(scope, 1) : null;
+        ColorAttachments = (RenderingAttachmentInfo*)ZenithMarshal.Allocate<RenderingAttachmentInfo>(scope, ColorAttachmentCount);
 
         ImageViews = new ImageView[ColorAttachmentCount + (HasDepthStencilAttachment ? 1 : 0)];
 
@@ -33,7 +38,7 @@ internal unsafe class VKFrameBuffer : FrameBuffer
                 sampleCount = attachment.Target.Desc.SampleCount;
             }
 
-            colorAttachmentInfos[i] = new()
+            ColorAttachments[i] = new()
             {
                 SType = StructureType.RenderingAttachmentInfo,
                 ImageView = ImageViews[i] = attachment.Target.Vulkan().CreateAttachmentView(attachment.Slice),
@@ -54,14 +59,33 @@ internal unsafe class VKFrameBuffer : FrameBuffer
                 sampleCount = attachment.Target.Desc.SampleCount;
             }
 
-            depthStencilAttachmentInfo[0] = new()
+            ImageViews[ColorAttachmentCount] = attachment.Target.Vulkan().CreateAttachmentView(attachment.Slice);
+
+            if (ZenithHelper.HasDepth(attachment.Target.Desc.Format))
             {
-                SType = StructureType.RenderingAttachmentInfo,
-                ImageView = ImageViews[ColorAttachmentCount] = attachment.Target.Vulkan().CreateAttachmentView(attachment.Slice),
-                ImageLayout = ImageLayout.AttachmentOptimal,
-                LoadOp = AttachmentLoadOp.Load,
-                StoreOp = AttachmentStoreOp.Store
-            };
+                DepthAttachment = (RenderingAttachmentInfo*)ZenithMarshal.Allocate<RenderingAttachmentInfo>(scope, 1);
+                DepthAttachment[0] = new()
+                {
+                    SType = StructureType.RenderingAttachmentInfo,
+                    ImageView = ImageViews[ColorAttachmentCount],
+                    ImageLayout = ImageLayout.AttachmentOptimal,
+                    LoadOp = AttachmentLoadOp.Load,
+                    StoreOp = AttachmentStoreOp.Store
+                };
+            }
+
+            if (ZenithHelper.HasStencil(attachment.Target.Desc.Format))
+            {
+                StencilAttachment = (RenderingAttachmentInfo*)ZenithMarshal.Allocate<RenderingAttachmentInfo>(scope, 1);
+                StencilAttachment[0] = new()
+                {
+                    SType = StructureType.RenderingAttachmentInfo,
+                    ImageView = ImageViews[ColorAttachmentCount],
+                    ImageLayout = ImageLayout.AttachmentOptimal,
+                    LoadOp = AttachmentLoadOp.Load,
+                    StoreOp = AttachmentStoreOp.Store
+                };
+            }
         }
 
         RenderingInfo = new()
@@ -70,9 +94,9 @@ internal unsafe class VKFrameBuffer : FrameBuffer
             RenderArea = new() { Extent = new() { Width = width, Height = height } },
             LayerCount = 1,
             ColorAttachmentCount = ColorAttachmentCount,
-            PColorAttachments = colorAttachmentInfos,
-            PDepthAttachment = depthStencilAttachmentInfo,
-            PStencilAttachment = desc.DepthStencilAttachment?.Target.Desc.Format is PixelFormat.D24UNormS8UInt or PixelFormat.D32FloatS8UInt ? depthStencilAttachmentInfo : null
+            PColorAttachments = ColorAttachments,
+            PDepthAttachment = DepthAttachment,
+            PStencilAttachment = StencilAttachment
         };
 
         Width = width;
