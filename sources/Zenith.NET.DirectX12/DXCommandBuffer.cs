@@ -13,9 +13,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     public ComPtr<ID3D12CommandList> CommandList;
 
-    public ComPtr<ID3D12GraphicsCommandList> GraphicsCommandList;
-
-    public ComPtr<ID3D12GraphicsCommandList4>? GraphicsCommandList4;
+    public ComPtr<ID3D12GraphicsCommandList4> GraphicsCommandList4;
 
     public ComPtr<ID3D12GraphicsCommandList6>? GraphicsCommandList6;
 
@@ -31,12 +29,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
         context.Device.CreateCommandList(0, DXFormats.DirectX12(queue.Type), CommandAllocator, (ComPtr<ID3D12PipelineState>)null, out CommandList).Success();
 
-        CommandList.QueryInterface(out GraphicsCommandList).Success();
-
-        if (CommandList.QueryInterface(out ComPtr<ID3D12GraphicsCommandList4> graphicsCommandList4).IsSuccess())
-        {
-            GraphicsCommandList4 = graphicsCommandList4;
-        }
+        CommandList.QueryInterface(out GraphicsCommandList4).Success();
 
         if (CommandList.QueryInterface(out ComPtr<ID3D12GraphicsCommandList6> graphicsCommandList6).IsSuccess())
         {
@@ -61,7 +54,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         dxSrc.TransitionStates(this, ResourceStates.CopySource);
         dxDest.TransitionStates(this, ResourceStates.CopyDest);
 
-        GraphicsCommandList.CopyBufferRegion(dxDest.Resource, destOffsetInBytes, dxSrc.Resource, srcOffsetInBytes, sizeInBytes);
+        GraphicsCommandList4.CopyBufferRegion(dxDest.Resource, destOffsetInBytes, dxSrc.Resource, srcOffsetInBytes, sizeInBytes);
 
         dxSrc.TransitionStates(this, srcOldStates);
         dxDest.TransitionStates(this, destOldStates);
@@ -105,7 +98,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             SubresourceIndex = ZenithHelper.SubresourceIndex(dxDest.Desc, destSlice)
         };
 
-        GraphicsCommandList.CopyTextureRegion(&destLocation, destOffset.X, destOffset.Y, destOffset.Z, &srcLocation, &srcBox);
+        GraphicsCommandList4.CopyTextureRegion(&destLocation, destOffset.X, destOffset.Y, destOffset.Z, &srcLocation, &srcBox);
 
         dxSrc.TransitionStates(this, srcOldStates);
         dxDest.TransitionStates(this, destSlice, destOldStates);
@@ -138,7 +131,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             SubresourceIndex = ZenithHelper.SubresourceIndex(dxDest.Desc, destSlice)
         };
 
-        GraphicsCommandList.CopyTextureRegion(&destLocation, destOffset.X, destOffset.Y, destOffset.Z, &srcLocation, &srcBox);
+        GraphicsCommandList4.CopyTextureRegion(&destLocation, destOffset.X, destOffset.Y, destOffset.Z, &srcLocation, &srcBox);
 
         dxSrc.TransitionStates(this, srcSlice, srcOldStates);
         dxDest.TransitionStates(this, destSlice, destOldStates);
@@ -182,7 +175,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             }
         };
 
-        GraphicsCommandList.CopyTextureRegion(&destLocation, 0, 0, 0, &srcLocation, &srcBox);
+        GraphicsCommandList4.CopyTextureRegion(&destLocation, 0, 0, 0, &srcLocation, &srcBox);
 
         dxSrc.TransitionStates(this, srcSlice, srcOldStates);
         dxDest.TransitionStates(this, destOldStates);
@@ -199,7 +192,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         dxSrc.TransitionStates(this, srcSlice, ResourceStates.CopySource);
         dxDest.TransitionStates(this, destSlice, ResourceStates.CopyDest);
 
-        GraphicsCommandList.ResolveSubresource(dxDest.Resource, ZenithHelper.SubresourceIndex(dxDest.Desc, destSlice), dxSrc.Resource, ZenithHelper.SubresourceIndex(dxSrc.Desc, srcSlice), DXFormats.DirectX12(dxDest.Desc.Format));
+        GraphicsCommandList4.ResolveSubresource(dxDest.Resource, ZenithHelper.SubresourceIndex(dxDest.Desc, destSlice), dxSrc.Resource, ZenithHelper.SubresourceIndex(dxSrc.Desc, srcSlice), DXFormats.DirectX12(dxDest.Desc.Format));
 
         dxSrc.TransitionStates(this, srcSlice, srcOldStates);
         dxDest.TransitionStates(this, destSlice, destOldStates);
@@ -226,7 +219,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
         dxFrameBuffer.PrepareAttachmentsForRendering(this);
 
-        GraphicsCommandList.OMSetRenderTargets(dxFrameBuffer.ColorAttachmentCount, dxFrameBuffer.RtvHandles, false, dxFrameBuffer.DsvHandle);
+        GraphicsCommandList4.OMSetRenderTargets(dxFrameBuffer.ColorAttachmentCount, dxFrameBuffer.RtvHandles, false, dxFrameBuffer.DsvHandle);
 
         bool clearColor = clearValue.Flags.HasFlag(ClearFlags.Color);
         bool clearDepth = clearValue.Flags.HasFlag(ClearFlags.Depth);
@@ -238,7 +231,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             {
                 ref float x = ref clearValue.ColorValues[i].X;
 
-                GraphicsCommandList.ClearRenderTargetView(dxFrameBuffer.RtvHandles[i], ref x, 0, null);
+                GraphicsCommandList4.ClearRenderTargetView(dxFrameBuffer.RtvHandles[i], ref x, 0, null);
             }
         }
 
@@ -246,7 +239,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         {
             DxClearFlags clearFlags = (DxClearFlags)((clearDepth ? (int)DxClearFlags.Depth : 0) + (clearDepth ? (int)DxClearFlags.Stencil : 0));
 
-            GraphicsCommandList.ClearDepthStencilView(*dxFrameBuffer.DsvHandle, clearFlags, clearValue.Depth, clearValue.Stencil, 0, (Box2D<int>*)null);
+            GraphicsCommandList4.ClearDepthStencilView(*dxFrameBuffer.DsvHandle, clearFlags, clearValue.Depth, clearValue.Stencil, 0, (Box2D<int>*)null);
         }
     }
 
@@ -259,24 +252,24 @@ internal unsafe class DXCommandBuffer : CommandBuffer
     {
         Box2D<int>[] dxScissors = [.. scissors.Select(static item => new Box2D<int>(new(item.X, item.Y), new((int)(item.X + item.Width), (int)(item.Y + item.Height))))];
 
-        GraphicsCommandList.RSSetScissorRects((uint)scissors.Length, ref dxScissors[0]);
+        GraphicsCommandList4.RSSetScissorRects((uint)scissors.Length, ref dxScissors[0]);
     }
 
     protected override void SetViewportsImpl(Viewport[] viewports)
     {
         DxViewport[] dxViewports = [.. viewports.Select(static item => new DxViewport(item.X, item.Y, item.Width, item.Height, item.MinDepth, item.MaxDepth))];
 
-        GraphicsCommandList.RSSetViewports((uint)viewports.Length, ref dxViewports[0]);
+        GraphicsCommandList4.RSSetViewports((uint)viewports.Length, ref dxViewports[0]);
     }
 
     protected override void SetPipelineImpl(GraphicsPipeline pipeline)
     {
         DXGraphicsPipeline dxPipeline = pipeline.DirectX12();
 
-        GraphicsCommandList.SetPipelineState(dxPipeline.PipelineState);
-        GraphicsCommandList.SetGraphicsRootSignature(dxPipeline.RootSignature);
+        GraphicsCommandList4.SetPipelineState(dxPipeline.PipelineState);
+        GraphicsCommandList4.SetGraphicsRootSignature(dxPipeline.RootSignature);
 
-        GraphicsCommandList.OMSetStencilRef(dxPipeline.Desc.RenderStates.StencilReference);
+        GraphicsCommandList4.OMSetStencilRef(dxPipeline.Desc.RenderStates.StencilReference);
 
         if (dxPipeline.Desc.RenderStates.BlendFactor.HasValue)
         {
@@ -288,36 +281,36 @@ internal unsafe class DXCommandBuffer : CommandBuffer
                 dxPipeline.Desc.RenderStates.BlendFactor.Value.W
             ];
 
-            GraphicsCommandList.OMSetBlendFactor(ref blendFactor[0]);
+            GraphicsCommandList4.OMSetBlendFactor(ref blendFactor[0]);
         }
 
-        GraphicsCommandList.IASetPrimitiveTopology(DXFormats.DirectX12(pipeline.Desc.PrimitiveTopology).PrimitiveTopology);
+        GraphicsCommandList4.IASetPrimitiveTopology(DXFormats.DirectX12(pipeline.Desc.PrimitiveTopology).PrimitiveTopology);
     }
 
     protected override void SetPipelineImpl(ComputePipeline pipeline)
     {
         DXComputePipeline dxPipeline = pipeline.DirectX12();
 
-        GraphicsCommandList.SetPipelineState(dxPipeline.PipelineState);
-        GraphicsCommandList.SetComputeRootSignature(dxPipeline.RootSignature);
+        GraphicsCommandList4.SetPipelineState(dxPipeline.PipelineState);
+        GraphicsCommandList4.SetComputeRootSignature(dxPipeline.RootSignature);
     }
 
     protected override void SetPipelineImpl(RayTracingPipeline pipeline)
     {
         DXRayTracingPipeline dxPipeline = pipeline.DirectX12();
 
-        GraphicsCommandList4?.SetPipelineState1(dxPipeline.StateObject);
-        GraphicsCommandList4?.SetComputeRootSignature(dxPipeline.RootSignature);
+        GraphicsCommandList4.SetPipelineState1(dxPipeline.StateObject);
+        GraphicsCommandList4.SetComputeRootSignature(dxPipeline.RootSignature);
     }
 
     protected override void SetPipelineImpl(MeshShadingPipeline pipeline)
     {
         DXMeshShadingPipeline dxPipeline = pipeline.DirectX12();
 
-        GraphicsCommandList.SetPipelineState(dxPipeline.PipelineState);
-        GraphicsCommandList.SetGraphicsRootSignature(dxPipeline.RootSignature);
+        GraphicsCommandList4.SetPipelineState(dxPipeline.PipelineState);
+        GraphicsCommandList4.SetGraphicsRootSignature(dxPipeline.RootSignature);
 
-        GraphicsCommandList.OMSetStencilRef(dxPipeline.Desc.RenderStates.StencilReference);
+        GraphicsCommandList4.OMSetStencilRef(dxPipeline.Desc.RenderStates.StencilReference);
 
         if (dxPipeline.Desc.RenderStates.BlendFactor.HasValue)
         {
@@ -329,7 +322,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
                 dxPipeline.Desc.RenderStates.BlendFactor.Value.W
             ];
 
-            GraphicsCommandList.OMSetBlendFactor(ref blendFactor[0]);
+            GraphicsCommandList4.OMSetBlendFactor(ref blendFactor[0]);
         }
     }
 
@@ -342,7 +335,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             StrideInBytes = pipeline.Desc.InputLayouts[index].StrideInBytes
         };
 
-        GraphicsCommandList.IASetVertexBuffers(index, 1, &view);
+        GraphicsCommandList4.IASetVertexBuffers(index, 1, &view);
     }
 
     protected override void SetIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format)
@@ -354,7 +347,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             Format = DXFormats.DirectX12(format)
         };
 
-        GraphicsCommandList.IASetIndexBuffer(&view);
+        GraphicsCommandList4.IASetIndexBuffer(&view);
     }
 
     protected override void SetResourceSetImpl(Pipeline pipeline, ResourceSet resourceSet, uint index)
@@ -378,32 +371,32 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
     {
-        GraphicsCommandList.DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
+        GraphicsCommandList4.DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     protected override void DrawIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        GraphicsCommandList.ExecuteIndirect(Context.DrawSignature, drawCount, indirectBuffer.DirectX12().Resource, offsetInBytes, (ID3D12Resource*)null, 0);
+        GraphicsCommandList4.ExecuteIndirect(Context.DrawSignature, drawCount, indirectBuffer.DirectX12().Resource, offsetInBytes, (ID3D12Resource*)null, 0);
     }
 
     protected override void DrawIndexedImpl(GraphicsPipeline pipeline, uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
     {
-        GraphicsCommandList.DrawIndexedInstanced(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+        GraphicsCommandList4.DrawIndexedInstanced(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
     protected override void DrawIndexedIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        GraphicsCommandList.ExecuteIndirect(Context.DrawIndexedSignature, drawCount, indirectBuffer.DirectX12().Resource, offsetInBytes, (ID3D12Resource*)null, 0);
+        GraphicsCommandList4.ExecuteIndirect(Context.DrawIndexedSignature, drawCount, indirectBuffer.DirectX12().Resource, offsetInBytes, (ID3D12Resource*)null, 0);
     }
 
     protected override void DispatchImpl(ComputePipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        GraphicsCommandList.Dispatch(groupCountX, groupCountY, groupCountZ);
+        GraphicsCommandList4.Dispatch(groupCountX, groupCountY, groupCountZ);
     }
 
     protected override void DispatchIndirectImpl(ComputePipeline pipeline, Buffer indirectBuffer, uint offsetInBytes)
     {
-        GraphicsCommandList.ExecuteIndirect(Context.DispatchSignature, 1, indirectBuffer.DirectX12().Resource, offsetInBytes, (ID3D12Resource*)null, 0);
+        GraphicsCommandList4.ExecuteIndirect(Context.DispatchSignature, 1, indirectBuffer.DirectX12().Resource, offsetInBytes, (ID3D12Resource*)null, 0);
     }
 
     protected override void DispatchRaysImpl(RayTracingPipeline pipeline, uint width, uint height, uint depth)
@@ -420,7 +413,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             Depth = depth
         };
 
-        GraphicsCommandList4?.DispatchRays(&desc);
+        GraphicsCommandList4.DispatchRays(&desc);
     }
 
     protected override void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
@@ -435,25 +428,25 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void BeginQueryImpl(QueryHeap queryHeap, uint index)
     {
-        GraphicsCommandList.BeginQuery(queryHeap.DirectX12().QueryHeap, DXFormats.DirectX12(queryHeap.Desc.Type).QueryType, index);
+        GraphicsCommandList4.BeginQuery(queryHeap.DirectX12().QueryHeap, DXFormats.DirectX12(queryHeap.Desc.Type).QueryType, index);
     }
 
     protected override void EndQueryImpl(QueryHeap queryHeap, uint index)
     {
         DXQueryHeap dxQueryHeap = queryHeap.DirectX12();
 
-        GraphicsCommandList.EndQuery(dxQueryHeap.QueryHeap, DXFormats.DirectX12(dxQueryHeap.Desc.Type).QueryType, index);
+        GraphicsCommandList4.EndQuery(dxQueryHeap.QueryHeap, DXFormats.DirectX12(dxQueryHeap.Desc.Type).QueryType, index);
 
-        GraphicsCommandList.ResolveQueryData(dxQueryHeap.QueryHeap, DXFormats.DirectX12(dxQueryHeap.Desc.Type).QueryType, index, 1, dxQueryHeap.Buffer.Resource, sizeof(ulong) * index);
+        GraphicsCommandList4.ResolveQueryData(dxQueryHeap.QueryHeap, DXFormats.DirectX12(dxQueryHeap.Desc.Type).QueryType, index, 1, dxQueryHeap.Buffer.Resource, sizeof(ulong) * index);
     }
 
     protected override void WriteTimestampImpl(QueryHeap queryHeap, uint index)
     {
         DXQueryHeap dxQueryHeap = queryHeap.DirectX12();
 
-        GraphicsCommandList.EndQuery(dxQueryHeap.QueryHeap, DxQueryType.Timestamp, index);
+        GraphicsCommandList4.EndQuery(dxQueryHeap.QueryHeap, DxQueryType.Timestamp, index);
 
-        GraphicsCommandList.ResolveQueryData(dxQueryHeap.QueryHeap, DxQueryType.Timestamp, index, 1, dxQueryHeap.Buffer.Resource, sizeof(ulong) * index);
+        GraphicsCommandList4.ResolveQueryData(dxQueryHeap.QueryHeap, DxQueryType.Timestamp, index, 1, dxQueryHeap.Buffer.Resource, sizeof(ulong) * index);
     }
 
     protected override void BeginDebugEventImpl(string label)
@@ -466,12 +459,12 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
         PixHelpers.FormatEventToBuffer(buffer, PixHelpers.Event, 0, label);
 
-        GraphicsCommandList.BeginEvent(PixHelpers.Version, buffer, size);
+        GraphicsCommandList4.BeginEvent(PixHelpers.Version, buffer, size);
     }
 
     protected override void EndDebugEventImpl()
     {
-        GraphicsCommandList.EndEvent();
+        GraphicsCommandList4.EndEvent();
     }
 
     protected override void InsertDebugMarkerImpl(string label)
@@ -484,7 +477,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
         PixHelpers.FormatEventToBuffer(buffer, PixHelpers.Marker, 0, label);
 
-        GraphicsCommandList.SetMarker(PixHelpers.Version, buffer, size);
+        GraphicsCommandList4.SetMarker(PixHelpers.Version, buffer, size);
     }
 
     protected override void BeginImpl()
@@ -498,13 +491,13 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
         fixed (ID3D12DescriptorHeap** ppDescriptorHeaps = descriptorHeaps[0])
         {
-            GraphicsCommandList.SetDescriptorHeaps((uint)descriptorHeaps.Length, ppDescriptorHeaps);
+            GraphicsCommandList4.SetDescriptorHeaps((uint)descriptorHeaps.Length, ppDescriptorHeaps);
         }
     }
 
     protected override void EndImpl()
     {
-        GraphicsCommandList.Close().Success();
+        GraphicsCommandList4.Close().Success();
     }
 
     protected override void ResetImpl()
@@ -513,7 +506,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         samplerTable?.Reset();
 
         CommandAllocator.Reset().Success();
-        GraphicsCommandList.Reset(CommandAllocator, (ID3D12PipelineState*)null).Success();
+        GraphicsCommandList4.Reset(CommandAllocator, (ID3D12PipelineState*)null).Success();
     }
 
     protected override void SetResourceName(string name)
@@ -526,11 +519,8 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         base.Destroy();
 
         GraphicsCommandList6?.Dispose();
-        GraphicsCommandList4?.Dispose();
-        GraphicsCommandList.Dispose();
-
+        GraphicsCommandList4.Dispose();
         CommandList.Dispose();
-
         CommandAllocator.Dispose();
 
         samplerTable?.Dispose();

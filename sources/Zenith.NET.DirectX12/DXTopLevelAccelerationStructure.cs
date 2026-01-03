@@ -44,7 +44,7 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
             ScratchAccelerationStructureData = ScratchBuffer.GPUVirtualAddress
         };
 
-        commandBuffer.GraphicsCommandList4?.BuildRaytracingAccelerationStructure(&buildDesc, 0, (RaytracingAccelerationStructurePostbuildInfoDesc*)null);
+        commandBuffer.GraphicsCommandList4.BuildRaytracingAccelerationStructure(&buildDesc, 0, (RaytracingAccelerationStructurePostbuildInfoDesc*)null);
 
         ResourceBarrier barrier = new()
         {
@@ -55,7 +55,7 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
             }
         };
 
-        commandBuffer.GraphicsCommandList4?.ResourceBarrier(1, &barrier);
+        commandBuffer.GraphicsCommandList4.ResourceBarrier(1, &barrier);
 
         ShaderResourceViewDesc viewDesc = new()
         {
@@ -90,7 +90,7 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
             ScratchAccelerationStructureData = ScratchBuffer.GPUVirtualAddress
         };
 
-        commandBuffer.GraphicsCommandList4?.BuildRaytracingAccelerationStructure(&buildDesc, 0, (RaytracingAccelerationStructurePostbuildInfoDesc*)null);
+        commandBuffer.GraphicsCommandList4.BuildRaytracingAccelerationStructure(&buildDesc, 0, (RaytracingAccelerationStructurePostbuildInfoDesc*)null);
 
         ResourceBarrier barrier = new()
         {
@@ -101,7 +101,7 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
             }
         };
 
-        commandBuffer.GraphicsCommandList4?.ResourceBarrier(1, &barrier);
+        commandBuffer.GraphicsCommandList4.ResourceBarrier(1, &barrier);
     }
 
     protected override void SetResourceName(string name)

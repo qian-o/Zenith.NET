@@ -127,7 +127,7 @@ internal unsafe class DXTexture : Texture
                         }
                     };
 
-                    commandBuffer.GraphicsCommandList.ResourceBarrier(1, &barrier);
+                    commandBuffer.GraphicsCommandList4.ResourceBarrier(1, &barrier);
 
                     States[index] = newStates;
                 }

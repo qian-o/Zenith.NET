@@ -76,7 +76,7 @@ internal unsafe class DXBuffer : Buffer
             }
         };
 
-        commandBuffer.GraphicsCommandList.ResourceBarrier(1, &barrier);
+        commandBuffer.GraphicsCommandList4.ResourceBarrier(1, &barrier);
 
         States = newStates;
     }

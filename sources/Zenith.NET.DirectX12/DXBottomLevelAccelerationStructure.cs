@@ -96,7 +96,7 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
             ScratchAccelerationStructureData = ScratchBuffer.GPUVirtualAddress
         };
 
-        commandBuffer.GraphicsCommandList4?.BuildRaytracingAccelerationStructure(&buildDesc, 0, (RaytracingAccelerationStructurePostbuildInfoDesc*)null);
+        commandBuffer.GraphicsCommandList4.BuildRaytracingAccelerationStructure(&buildDesc, 0, (RaytracingAccelerationStructurePostbuildInfoDesc*)null);
 
         ResourceBarrier barrier = new()
         {
@@ -107,7 +107,7 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
             }
         };
 
-        commandBuffer.GraphicsCommandList4?.ResourceBarrier(1, &barrier);
+        commandBuffer.GraphicsCommandList4.ResourceBarrier(1, &barrier);
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;

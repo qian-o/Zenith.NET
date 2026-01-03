@@ -63,14 +63,14 @@ internal class DXResourceSet : ResourceSet
 
                 if (cbvSrvUavToken.Length > 0)
                 {
-                    commandBuffer.GraphicsCommandList.SetGraphicsRootDescriptorTable(offset++, cbvSrvUavTable.GpuCurrentHandle);
+                    commandBuffer.GraphicsCommandList4.SetGraphicsRootDescriptorTable(offset++, cbvSrvUavTable.GpuCurrentHandle);
 
                     cbvSrvUavTable.Write(cbvSrvUavToken);
                 }
 
                 if (samplerToken.Length > 0)
                 {
-                    commandBuffer.GraphicsCommandList.SetGraphicsRootDescriptorTable(offset++, samplerTable.GpuCurrentHandle);
+                    commandBuffer.GraphicsCommandList4.SetGraphicsRootDescriptorTable(offset++, samplerTable.GpuCurrentHandle);
 
                     samplerTable.Write(samplerToken);
                 }
@@ -80,14 +80,14 @@ internal class DXResourceSet : ResourceSet
         {
             if (cbvSrvUavToken.Length > 0)
             {
-                commandBuffer.GraphicsCommandList.SetComputeRootDescriptorTable(offset++, cbvSrvUavTable.GpuCurrentHandle);
+                commandBuffer.GraphicsCommandList4.SetComputeRootDescriptorTable(offset++, cbvSrvUavTable.GpuCurrentHandle);
 
                 cbvSrvUavTable.Write(cbvSrvUavToken);
             }
 
             if (samplerToken.Length > 0)
             {
-                commandBuffer.GraphicsCommandList.SetComputeRootDescriptorTable(offset++, samplerTable.GpuCurrentHandle);
+                commandBuffer.GraphicsCommandList4.SetComputeRootDescriptorTable(offset++, samplerTable.GpuCurrentHandle);
 
                 samplerTable.Write(samplerToken);
             }
