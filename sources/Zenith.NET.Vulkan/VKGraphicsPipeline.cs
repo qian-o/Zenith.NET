@@ -32,7 +32,6 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
             ];
 
             uint colorAttachmentCount = (uint)desc.Output.ColorAttachments.Length;
-            bool hasDepthStencilAttachment = desc.Output.DepthStencilAttachment.HasValue;
 
             PipelineColorBlendAttachmentState* attachments = (PipelineColorBlendAttachmentState*)ZenithMarshal.Allocate<PipelineColorBlendAttachmentState>(scope, colorAttachmentCount);
             Format* colorAttachmentFormats = (Format*)ZenithMarshal.Allocate<Format>(scope, colorAttachmentCount);
@@ -55,7 +54,7 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
                 colorAttachmentFormats[i] = VKFormats.Vulkan(desc.Output.ColorAttachments[i]).Format;
             }
 
-            Format depthStencilFormat = hasDepthStencilAttachment ? VKFormats.Vulkan(desc.Output.DepthStencilAttachment!.Value).Format : Format.Undefined;
+            (Format depthStencilAttachmentFormat, bool hasDepth, bool hasStencil) = VKFormats.Vulkan(desc.Output.DepthStencilAttachment ?? PixelFormat.R8UNorm);
 
             PipelineRasterizationStateCreateInfo rasterizationState = new()
             {
@@ -123,8 +122,8 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
                 SType = StructureType.PipelineRenderingCreateInfo,
                 ColorAttachmentCount = colorAttachmentCount,
                 PColorAttachmentFormats = colorAttachmentFormats,
-                DepthAttachmentFormat = depthStencilFormat,
-                StencilAttachmentFormat = desc.Output.DepthStencilAttachment is PixelFormat.D24UNormS8UInt or PixelFormat.D32FloatS8UInt ? depthStencilFormat : Format.Undefined
+                DepthAttachmentFormat = hasDepth ? depthStencilAttachmentFormat : Format.Undefined,
+                StencilAttachmentFormat = hasStencil ? depthStencilAttachmentFormat : Format.Undefined
             };
 
             if (desc.RenderStates.BlendFactor.HasValue)
