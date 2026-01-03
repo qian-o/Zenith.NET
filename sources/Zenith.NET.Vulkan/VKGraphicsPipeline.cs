@@ -52,10 +52,10 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
                     ColorWriteMask = VKFormats.Vulkan(target.Flags)
                 };
 
-                colorAttachmentFormats[i] = VKFormats.Vulkan(desc.Output.ColorAttachments[i]);
+                colorAttachmentFormats[i] = VKFormats.Vulkan(desc.Output.ColorAttachments[i]).Format;
             }
 
-            Format depthStencilFormat = hasDepthStencilAttachment ? VKFormats.Vulkan(desc.Output.DepthStencilAttachment!.Value) : Format.Undefined;
+            Format depthStencilFormat = hasDepthStencilAttachment ? VKFormats.Vulkan(desc.Output.DepthStencilAttachment!.Value).Format : Format.Undefined;
 
             PipelineRasterizationStateCreateInfo rasterizationState = new()
             {
