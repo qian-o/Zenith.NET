@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Hexa.NET.ImGui;
+using SponzaScene.Helpers;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
@@ -66,7 +67,7 @@ internal unsafe class GTAOBlurPass : FullscreenPass
     {
         constantBuffer.Upload([new BlurConstants
         {
-            TexelSize = new Vector2(1.0f / context.Width, 1.0f / context.Height),
+            TexelSize = new(1.0f / context.Width, 1.0f / context.Height),
             BlurSize = blurSize
         }], 0);
     }
@@ -75,10 +76,7 @@ internal unsafe class GTAOBlurPass : FullscreenPass
     {
         ImGui.SliderInt("Blur Size", ref blurSize, 1, 8);
 
-        Vector2 size = new(ImGui.GetContentRegionAvail().X);
-        size = size with { Y = size.X * context.Height / context.Width };
-
-        ImGui.Image(App.Binding(context.GTAOBlurred!), size);
+        ImGuiHelpers.Image(context.GTAOBlurred!);
     }
 
     protected override void Destroy()

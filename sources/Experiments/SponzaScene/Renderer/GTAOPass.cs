@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Hexa.NET.ImGui;
+using SponzaScene.Helpers;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
@@ -75,8 +76,8 @@ internal unsafe class GTAOPass : FullscreenPass
         {
             View = context.View,
             Projection = context.Projection,
-            ViewportSize = new Vector2(context.Width, context.Height),
-            ViewportPixelSize = new Vector2(1.0f / context.Width, 1.0f / context.Height),
+            ViewportSize = new(context.Width, context.Height),
+            ViewportPixelSize = new(1.0f / context.Width, 1.0f / context.Height),
             EffectRadius = effectRadius,
             EffectFalloffRange = effectFalloffRange,
             RadiusMultiplier = radiusMultiplier,
@@ -99,10 +100,7 @@ internal unsafe class GTAOPass : FullscreenPass
         ImGui.SliderInt("Slice Count", ref sliceCount, 2, 12);
         ImGui.SliderInt("Steps Per Slice", ref stepsPerSlice, 2, 16);
 
-        Vector2 size = new(ImGui.GetContentRegionAvail().X);
-        size = size with { Y = size.X * context.Height / context.Width };
-
-        ImGui.Image(App.Binding(context.GTAO!), size);
+        ImGuiHelpers.Image(context.GTAO!);
     }
 
     protected override void Destroy()

@@ -87,7 +87,7 @@ internal static class App
 
         swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.R8G8B8A8UNorm, DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt });
         imGui = new(inputContext, swapChain.FrameBuffer.Output, ImGuiColorSpace.Legacy);
-        camera = new(inputContext, Matrix4x4.CreateRotationY(float.DegreesToRadians(90.0f)) * Matrix4x4.CreateTranslation(new Vector3(0.0f, 1.2f, 0.0f)));
+        camera = new(inputContext, Matrix4x4.CreateRotationY(float.DegreesToRadians(90.0f)) * Matrix4x4.CreateTranslation(new(-67.8f, 7.5f, -1.6f)));
         renderer = new();
     }
 

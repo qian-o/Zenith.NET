@@ -12,7 +12,7 @@ internal unsafe class ComposePass : FullscreenPass
 
     private float aoStrength = 1.0f;
     private float bloomIntensity = 1.5f;
-    private float volumetricIntensity = 2.5f;  // 增加体积光强度
+    private float volumetricIntensity = 2.5f;
 
     public ComposePass() : base("Compose Pass")
     {

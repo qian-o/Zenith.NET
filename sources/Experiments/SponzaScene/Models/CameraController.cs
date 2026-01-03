@@ -43,7 +43,7 @@ internal class CameraController
 
     public float Fov { get; set; } = 40.0f;
 
-    public float Speed { get; set; } = 10.0f;
+    public float Speed { get; set; } = 12.0f;
 
     public float AspectRatio => Size.X / Size.Y;
 

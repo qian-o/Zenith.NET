@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Hexa.NET.ImGui;
+using SponzaScene.Helpers;
 using Zenith.NET;
 using Zenith.NET.Extensions.Slang;
 using Buffer = Zenith.NET.Buffer;
@@ -97,10 +98,7 @@ internal unsafe class BloomPass : RenderPass
     {
         ImGui.SliderInt("Blur Iterations", ref iterations, 1, 8);
 
-        Vector2 size = new(ImGui.GetContentRegionAvail().X);
-        size = size with { Y = size.X * context.Height / context.Width };
-
-        ImGui.Image(App.Binding(context.VerticalBloom!), size);
+        ImGuiHelpers.Image(context.VerticalBloom!);
     }
 
     protected override void Destroy()

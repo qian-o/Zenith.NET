@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using Hexa.NET.ImGui;
+using SponzaScene.Helpers;
 using SponzaScene.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
@@ -110,10 +110,7 @@ internal unsafe class LightingPass : FullscreenPass
 
     protected override void DebugUIImpl(RenderContext context)
     {
-        Vector2 size = new(ImGui.GetContentRegionAvail().X);
-        size = size with { Y = size.X * context.Height / context.Width };
-
-        ImGui.Image(App.Binding(context.LitColor!), size);
+        ImGuiHelpers.Image(context.LitColor!);
     }
 
     protected override void Destroy()

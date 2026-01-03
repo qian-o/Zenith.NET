@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Hexa.NET.ImGui;
+using SponzaScene.Helpers;
 using SponzaScene.Models;
 using Zenith.NET;
 using Zenith.NET.Extensions.Slang;
@@ -203,40 +204,40 @@ internal unsafe class GBufferPass : RenderPass
 
         ImGui.BeginGroup();
         ImGui.Text("Albedo");
-        ImGui.Image(App.Binding(context.Albedo!), size);
+        ImGuiHelpers.Image(context.Albedo!, size);
         ImGui.EndGroup();
 
         ImGui.SameLine();
 
         ImGui.BeginGroup();
         ImGui.Text("Normal");
-        ImGui.Image(App.Binding(context.Normal!), size);
+        ImGuiHelpers.Image(context.Normal!, size);
         ImGui.EndGroup();
 
         ImGui.SameLine();
 
         ImGui.BeginGroup();
         ImGui.Text("Position");
-        ImGui.Image(App.Binding(context.Position!), size);
+        ImGuiHelpers.Image(context.Position!, size);
         ImGui.EndGroup();
 
         ImGui.BeginGroup();
         ImGui.Text("Depth");
-        ImGui.Image(App.Binding(context.NormalizedDepth!), size);
+        ImGuiHelpers.Image(context.NormalizedDepth!, size);
         ImGui.EndGroup();
 
         ImGui.SameLine();
 
         ImGui.BeginGroup();
         ImGui.Text("Metallic Roughness");
-        ImGui.Image(App.Binding(context.MetallicRoughness!), size);
+        ImGuiHelpers.Image(context.MetallicRoughness!, size);
         ImGui.EndGroup();
 
         ImGui.SameLine();
 
         ImGui.BeginGroup();
         ImGui.Text("Emissive");
-        ImGui.Image(App.Binding(context.Emissive!), size);
+        ImGuiHelpers.Image(context.Emissive!, size);
         ImGui.EndGroup();
     }
 

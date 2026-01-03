@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Hexa.NET.ImGui;
+using SponzaScene.Helpers;
 using SponzaScene.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
@@ -105,10 +106,7 @@ internal unsafe class VolumetricLightPass : FullscreenPass
         ImGui.SliderFloat("Scattering", ref scattering, 0.0f, 1.0f);
         ImGui.SliderFloat("Max Distance", ref maxDistance, 10.0f, 500.0f);
 
-        Vector2 size = new(ImGui.GetContentRegionAvail().X);
-        size = size with { Y = size.X * context.Height / context.Width };
-
-        ImGui.Image(App.Binding(context.VolumetricLight!), size);
+        ImGuiHelpers.Image(context.VolumetricLight!);
     }
 
     protected override void Destroy()

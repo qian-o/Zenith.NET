@@ -64,23 +64,21 @@ internal class DeferredRenderer : DisposableObject
     {
         ImGui.GetBackgroundDrawList().AddImage(App.Binding(context.FinalColor!), default, new(context.Width, context.Height));
 
-        if (ImGui.Begin("Deferred Renderer Settings"))
+        if (ImGui.Begin("Deferred Renderer"))
         {
             App.Sponza.UI();
 
-            if (ImGui.BeginTabBar("Pass Settings"))
+            foreach (RenderPass renderPass in renderPasses)
             {
-                foreach (RenderPass renderPass in renderPasses)
+                bool opened = ImGui.CollapsingHeader(renderPass.Name);
+
+                ImGui.SameLine(ImGui.GetWindowWidth() - 80);
+                ImGui.Text($"{renderPass.GpuTime:F2} ms");
+
+                if (opened)
                 {
-                    if (ImGui.BeginTabItem(renderPass.Name))
-                    {
-                        renderPass.DebugUI(context);
-
-                        ImGui.EndTabItem();
-                    }
+                    renderPass.DebugUI(context);
                 }
-
-                ImGui.EndTabBar();
             }
         }
         ImGui.End();

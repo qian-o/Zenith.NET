@@ -52,7 +52,7 @@ internal unsafe partial class D3DTexture : DisposableObject
             MipLevels = 1,
             ArraySize = 1,
             Format = DXGIFormat.FormatB8G8R8A8Unorm,
-            SampleDesc = new SampleDesc { Count = 1, Quality = 0 },
+            SampleDesc = new() { Count = 1, Quality = 0 },
             BindFlags = (uint)BindFlag.RenderTarget,
             MiscFlags = (uint)(ResourceMiscFlag.SharedNthandle | ResourceMiscFlag.SharedKeyedmutex)
         };

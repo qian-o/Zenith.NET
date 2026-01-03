@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Hexa.NET.ImGui;
+using SponzaScene.Helpers;
 using Zenith.NET;
 using Zenith.NET.Extensions.Slang;
 using Buffer = Zenith.NET.Buffer;
@@ -86,10 +87,7 @@ internal unsafe class VolumetricLightBlurPass : RenderPass
     {
         ImGui.SliderInt("Blur Iterations", ref iterations, 1, 4);
 
-        Vector2 size = new(ImGui.GetContentRegionAvail().X);
-        size = size with { Y = size.X * context.Height / context.Width };
-
-        ImGui.Image(App.Binding(context.VolumetricLightBlurred!), size);
+        ImGuiHelpers.Image(context.VolumetricLightBlurred!);
     }
 
     protected override void Destroy()

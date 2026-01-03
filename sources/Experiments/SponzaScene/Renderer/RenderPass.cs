@@ -1,5 +1,4 @@
-﻿using Hexa.NET.ImGui;
-using Zenith.NET;
+﻿using Zenith.NET;
 
 namespace SponzaScene.Renderer;
 
@@ -20,6 +19,17 @@ internal abstract class RenderPass : DisposableObject
 
     public string Name { get; }
 
+    public double GpuTime
+    {
+        get
+        {
+            ulong[] timestamps = new ulong[2];
+            queryHeap.GetResults(timestamps, 0);
+
+            return (timestamps[1] - timestamps[0]) / 1000000.0;
+        }
+    }
+
     public void Execute(CommandBuffer commandBuffer, RenderContext context)
     {
         commandBuffer.WriteTimestamp(queryHeap, 0);
@@ -35,11 +45,6 @@ internal abstract class RenderPass : DisposableObject
 
     public void DebugUI(RenderContext context)
     {
-        ulong[] timestamps = new ulong[2];
-        queryHeap.GetResults(timestamps, 0);
-
-        ImGui.Text($"GPU Time: {(timestamps[1] - timestamps[0]) / 1_000_000.0:F2}ms");
-
         DebugUIImpl(context);
     }
 

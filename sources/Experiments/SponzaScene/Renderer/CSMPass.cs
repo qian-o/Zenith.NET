@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Hexa.NET.ImGui;
+using SponzaScene.Helpers;
 using SponzaScene.Models;
 using Zenith.NET;
 using Zenith.NET.Extensions.Slang;
@@ -109,7 +110,7 @@ internal unsafe class CSMPass : RenderPass
         {
             ImGui.BeginGroup();
             ImGui.Text($"Cascade {i}");
-            ImGui.Image(App.Binding(context.CSMNormalizedDepths![i]), size);
+            ImGuiHelpers.Image(context.CSMNormalizedDepths![i], size);
             ImGui.EndGroup();
 
             if (i < splitCount - 1)

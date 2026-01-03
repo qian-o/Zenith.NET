@@ -28,10 +28,10 @@ internal unsafe class Sponza : DisposableObject
 
         uint baseMaterialIndex = (uint)root.LogicalMaterials.Count;
 
-        AddSphere(new(-19.78588f, 4.6f, 4.58992f), 0.4f, baseMaterialIndex, nodes, vertices, indices);
-        AddSphere(new(-19.78588f, 4.6f, -7.03472f), 0.4f, baseMaterialIndex + 1, nodes, vertices, indices);
-        AddSphere(new(15.6f, 4.6f, 4.58992f), 0.4f, baseMaterialIndex + 2, nodes, vertices, indices);
-        AddSphere(new(15.6f, 4.6f, -7.03384f), 0.4f, baseMaterialIndex + 3, nodes, vertices, indices);
+        AddSphere(new(-29.67882f, 6.9f, 6.88488f), 0.6f, baseMaterialIndex, nodes, vertices, indices);
+        AddSphere(new(-29.67882f, 6.9f, -10.55208f), 0.6f, baseMaterialIndex + 1, nodes, vertices, indices);
+        AddSphere(new(23.4f, 6.9f, 6.88488f), 0.6f, baseMaterialIndex + 2, nodes, vertices, indices);
+        AddSphere(new(23.4f, 6.9f, -10.55076f), 0.6f, baseMaterialIndex + 3, nodes, vertices, indices);
 
         Nodes = [.. nodes];
 
@@ -91,31 +91,31 @@ internal unsafe class Sponza : DisposableObject
     [
         new()
         {
-            Position = new(-19.78588f, 4.6f, 4.58992f),
+            Position = new(-29.67882f, 6.9f, 6.88488f),
             Color = new(0.3f, 0.9f, 1.0f),
             Intensity = 100.0f,
-            Radius = 10.0f
+            Radius = 30.0f
         },
         new()
         {
-            Position = new(-19.78588f, 4.6f, -7.03472f),
+            Position = new(-29.67882f, 6.9f, -10.55208f),
             Color = new(1.0f, 0.3f, 0.8f),
             Intensity = 100.0f,
-            Radius = 10.0f
+            Radius = 30.0f
         },
         new()
         {
-            Position = new(15.6f, 4.6f, 4.58992f),
+            Position = new(23.4f, 6.9f, 6.88488f),
             Color = new(1.0f, 0.9f, 0.2f),
             Intensity = 100.0f,
-            Radius = 10.0f
+            Radius = 30.0f
         },
         new()
         {
-            Position = new(15.6f, 4.6f, -7.03384f),
+            Position = new(23.4f, 6.9f, -10.55076f),
             Color = new(0.3f, 1.0f, 0.4f),
             Intensity = 100.0f,
-            Radius = 10.0f
+            Radius = 30.0f
         }
     ];
 
@@ -145,7 +145,7 @@ internal unsafe class Sponza : DisposableObject
 
     private static void ProcessNode(GNode node, List<Node> nodes, List<Vertex> vertices, List<uint> indices)
     {
-        Matrix4x4 worldMatrix = node.WorldMatrix * Matrix4x4.CreateScale(4.0f);
+        Matrix4x4 worldMatrix = node.WorldMatrix * Matrix4x4.CreateScale(6.0f);
 
         foreach (GNode children in node.VisualChildren)
         {
