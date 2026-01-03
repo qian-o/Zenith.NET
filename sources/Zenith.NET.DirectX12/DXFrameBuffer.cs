@@ -6,17 +6,17 @@ internal unsafe class DXFrameBuffer : FrameBuffer
 {
     private readonly ZenithMarshal.Scope scope = new();
 
-    public CpuDescriptorHandle* RtvHandles;
+    public RenderPassRenderTargetDesc* RenderTargets;
 
-    public CpuDescriptorHandle* DsvHandle;
+    public RenderPassDepthStencilDesc* DepthStencil;
 
     public DXFrameBuffer(DXGraphicsContext context, FrameBufferDesc desc) : base(context, desc)
     {
         ColorAttachmentCount = (uint)desc.ColorAttachments.Length;
         HasDepthStencilAttachment = desc.DepthStencilAttachment is not null;
 
-        RtvHandles = (CpuDescriptorHandle*)ZenithMarshal.Allocate<CpuDescriptorHandle>(scope, ColorAttachmentCount);
-        DsvHandle = HasDepthStencilAttachment ? (CpuDescriptorHandle*)ZenithMarshal.Allocate<CpuDescriptorHandle>(scope, 1) : null;
+        RenderTargets = (RenderPassRenderTargetDesc*)ZenithMarshal.Allocate<RenderPassRenderTargetDesc>(scope, ColorAttachmentCount);
+        DepthStencil = HasDepthStencilAttachment ? (RenderPassDepthStencilDesc*)ZenithMarshal.Allocate<RenderPassDepthStencilDesc>(scope, 1) : null;
 
         Tokens = new DXDescriptorToken[ColorAttachmentCount + (HasDepthStencilAttachment ? 1 : 0)];
 
@@ -35,7 +35,24 @@ internal unsafe class DXFrameBuffer : FrameBuffer
                 sampleCount = attachment.Target.Desc.SampleCount;
             }
 
-            RtvHandles[i] = (Tokens[i] = attachment.Target.DirectX12().CreateRtvToken(attachment.Slice)).Handle;
+            RenderTargets[i] = new()
+            {
+                CpuDescriptor = (Tokens[i] = attachment.Target.DirectX12().CreateRtvToken(attachment.Slice)).Handle,
+                BeginningAccess = new()
+                {
+                    Clear = new()
+                    {
+                        ClearValue = new()
+                        {
+                            Format = DXFormats.DirectX12(attachment.Target.Desc.Format)
+                        }
+                    }
+                },
+                EndingAccess = new()
+                {
+                    Type = RenderPassEndingAccessType.Preserve
+                }
+            };
         }
 
         if (HasDepthStencilAttachment)
@@ -49,7 +66,43 @@ internal unsafe class DXFrameBuffer : FrameBuffer
                 sampleCount = attachment.Target.Desc.SampleCount;
             }
 
-            DsvHandle[0] = (Tokens[ColorAttachmentCount] = attachment.Target.DirectX12().CreateDsvToken(attachment.Slice)).Handle;
+            bool hasDepth = ZenithHelper.HasDepth(attachment.Target.Desc.Format);
+            bool hasStencil = ZenithHelper.HasStencil(attachment.Target.Desc.Format);
+
+            DepthStencil[0] = new()
+            {
+                CpuDescriptor = (Tokens[ColorAttachmentCount] = attachment.Target.DirectX12().CreateDsvToken(attachment.Slice)).Handle,
+                DepthBeginningAccess = new()
+                {
+                    Type = hasDepth ? RenderPassBeginningAccessType.Preserve : RenderPassBeginningAccessType.NoAccess,
+                    Clear = new()
+                    {
+                        ClearValue = new()
+                        {
+                            Format = DXFormats.DirectX12(attachment.Target.Desc.Format)
+                        }
+                    }
+                },
+                StencilBeginningAccess = new()
+                {
+                    Type = hasStencil ? RenderPassBeginningAccessType.Preserve : RenderPassBeginningAccessType.NoAccess,
+                    Clear = new()
+                    {
+                        ClearValue = new()
+                        {
+                            Format = DXFormats.DirectX12(attachment.Target.Desc.Format)
+                        }
+                    }
+                },
+                DepthEndingAccess = new()
+                {
+                    Type = hasDepth ? RenderPassEndingAccessType.Preserve : RenderPassEndingAccessType.NoAccess
+                },
+                StencilEndingAccess = new()
+                {
+                    Type = hasStencil ? RenderPassEndingAccessType.Preserve : RenderPassEndingAccessType.NoAccess
+                }
+            };
         }
 
         Width = width;

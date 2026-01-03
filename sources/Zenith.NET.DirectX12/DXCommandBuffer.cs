@@ -1,5 +1,6 @@
 ﻿using Silk.NET.Core.Native;
 using Silk.NET.Direct3D12;
+using Silk.NET.DXGI;
 using Silk.NET.Maths;
 
 namespace Zenith.NET.DirectX12;
@@ -219,32 +220,61 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
         dxFrameBuffer.PrepareAttachmentsForRendering(this);
 
-        GraphicsCommandList4.OMSetRenderTargets(dxFrameBuffer.ColorAttachmentCount, dxFrameBuffer.RtvHandles, false, dxFrameBuffer.DsvHandle);
-
         bool clearColor = clearValue.Flags.HasFlag(ClearFlags.Color);
         bool clearDepth = clearValue.Flags.HasFlag(ClearFlags.Depth);
         bool clearStencil = clearValue.Flags.HasFlag(ClearFlags.Stencil);
 
-        if (clearColor)
+        for (int i = 0; i < dxFrameBuffer.ColorAttachmentCount; i++)
         {
-            for (int i = 0; i < dxFrameBuffer.ColorAttachmentCount; i++)
-            {
-                ref float x = ref clearValue.ColorValues[i].X;
+            ref RenderPassRenderTargetDesc renderTargetDesc = ref dxFrameBuffer.RenderTargets[i];
 
-                GraphicsCommandList4.ClearRenderTargetView(dxFrameBuffer.RtvHandles[i], ref x, 0, null);
+            renderTargetDesc.BeginningAccess.Type = RenderPassBeginningAccessType.Preserve;
+
+            if (clearColor)
+            {
+                renderTargetDesc.BeginningAccess.Type = RenderPassBeginningAccessType.Clear;
+
+                fixed (float* colorPtr = renderTargetDesc.BeginningAccess.Clear.ClearValue.Anonymous.Color)
+                {
+                    clearValue.ColorValues[i].CopyTo(new Span<float>(colorPtr, 4));
+                }
             }
         }
 
-        if ((clearDepth || clearStencil) && dxFrameBuffer.HasDepthStencilAttachment)
+        if (dxFrameBuffer.HasDepthStencilAttachment)
         {
-            DxClearFlags clearFlags = (DxClearFlags)((clearDepth ? (int)DxClearFlags.Depth : 0) + (clearDepth ? (int)DxClearFlags.Stencil : 0));
+            ref RenderPassDepthStencilDesc depthStencilDesc = ref dxFrameBuffer.DepthStencil[0];
 
-            GraphicsCommandList4.ClearDepthStencilView(*dxFrameBuffer.DsvHandle, clearFlags, clearValue.Depth, clearValue.Stencil, 0, (Box2D<int>*)null);
+            if (depthStencilDesc.DepthBeginningAccess.Type is not RenderPassBeginningAccessType.NoAccess)
+            {
+                depthStencilDesc.DepthBeginningAccess.Type = RenderPassBeginningAccessType.Preserve;
+
+                if (clearDepth)
+                {
+                    depthStencilDesc.DepthBeginningAccess.Type = RenderPassBeginningAccessType.Clear;
+                    depthStencilDesc.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = clearValue.Depth;
+                }
+            }
+
+            if (depthStencilDesc.StencilBeginningAccess.Type is not RenderPassBeginningAccessType.NoAccess)
+            {
+                depthStencilDesc.StencilBeginningAccess.Type = RenderPassBeginningAccessType.Preserve;
+
+                if (clearStencil)
+                {
+                    depthStencilDesc.StencilBeginningAccess.Type = RenderPassBeginningAccessType.Clear;
+                    depthStencilDesc.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = clearValue.Stencil;
+                }
+            }
         }
+
+        GraphicsCommandList4.BeginRenderPass(dxFrameBuffer.ColorAttachmentCount, dxFrameBuffer.RenderTargets, dxFrameBuffer.DepthStencil, RenderPassFlags.None);
     }
 
     protected override void EndRenderPassImpl(FrameBuffer frameBuffer)
     {
+        GraphicsCommandList4.EndRenderPass();
+
         frameBuffer.DirectX12().FinalizeColorAttachmentsForPresent(this);
     }
 
