@@ -40,6 +40,7 @@ internal unsafe class DXFrameBuffer : FrameBuffer
                 CpuDescriptor = (Tokens[i] = attachment.Target.DirectX12().CreateRtvToken(attachment.Slice)).Handle,
                 BeginningAccess = new()
                 {
+                    Type = RenderPassBeginningAccessType.Preserve,
                     Clear = new()
                     {
                         ClearValue = new()
