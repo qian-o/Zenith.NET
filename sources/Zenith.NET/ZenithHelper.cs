@@ -69,6 +69,16 @@ public static class ZenithHelper
         };
     }
 
+    public static bool HasDepth(PixelFormat pixelFormat)
+    {
+        return pixelFormat is PixelFormat.D16UNorm or PixelFormat.D24UNormS8UInt or PixelFormat.D32Float or PixelFormat.D32FloatS8UInt;
+    }
+
+    public static bool HasStencil(PixelFormat pixelFormat)
+    {
+        return pixelFormat is PixelFormat.D24UNormS8UInt or PixelFormat.D32FloatS8UInt;
+    }
+
     public static uint SizeInBytes(PixelFormat format)
     {
         return format switch

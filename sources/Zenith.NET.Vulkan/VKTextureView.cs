@@ -13,7 +13,7 @@ internal unsafe class VKTextureView : TextureView
             SType = StructureType.ImageViewCreateInfo,
             Image = desc.Texture.Vulkan().Image,
             ViewType = VKFormats.Vulkan(desc.Texture.Desc.Type).ImageViewType,
-            Format = VKFormats.Vulkan(desc.Texture.Desc.Format).Format,
+            Format = VKFormats.Vulkan(desc.Texture.Desc.Format),
             SubresourceRange = new()
             {
                 AspectMask = VKFormats.Vulkan(desc.Texture.Desc.Format, desc.Texture.Desc.Flags).AspectFlags & ~ImageAspectFlags.StencilBit,

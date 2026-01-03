@@ -163,9 +163,9 @@ internal static class VKFormats
         return (imageType, imageViewType);
     }
 
-    public static (Format Format, bool HasDepth, bool HasStencil) Vulkan(PixelFormat pixelFormat)
+    public static Format Vulkan(PixelFormat pixelFormat)
     {
-        Format format = pixelFormat switch
+        return pixelFormat switch
         {
             PixelFormat.R8UNorm => Format.R8Unorm,
             PixelFormat.R8SNorm => Format.R8SNorm,
@@ -272,12 +272,6 @@ internal static class VKFormats
 
             _ => Format.Undefined
         };
-
-        bool hasDepth = pixelFormat is PixelFormat.D16UNorm or PixelFormat.D24UNormS8UInt or PixelFormat.D32Float or PixelFormat.D32FloatS8UInt;
-
-        bool hasStencil = pixelFormat is PixelFormat.D24UNormS8UInt or PixelFormat.D32FloatS8UInt;
-
-        return (format, hasDepth, hasStencil);
     }
 
     public static SampleCountFlags Vulkan(SampleCount sampleCount)
@@ -322,7 +316,15 @@ internal static class VKFormats
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.DepthStencil))
         {
-            aspectFlags |= ImageAspectFlags.DepthBit | (pixelFormat is PixelFormat.D16UNorm or PixelFormat.D32Float ? ImageAspectFlags.None : ImageAspectFlags.StencilBit);
+            if (ZenithHelper.HasDepth(pixelFormat))
+            {
+                aspectFlags |= ImageAspectFlags.DepthBit;
+            }
+
+            if (ZenithHelper.HasStencil(pixelFormat))
+            {
+                aspectFlags |= ImageAspectFlags.StencilBit;
+            }
         }
         else
         {

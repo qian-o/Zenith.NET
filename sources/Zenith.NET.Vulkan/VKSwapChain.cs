@@ -204,7 +204,7 @@ internal unsafe class VKSwapChain : SwapChain
             SurfaceFormatKHR surfaceFormat = default;
             foreach (SurfaceFormatKHR item in new ReadOnlySpan<SurfaceFormatKHR>(surfaceFormats, (int)surfaceFormatCount))
             {
-                if (item.Format == VKFormats.Vulkan(Desc.ColorTargetFormat).Format)
+                if (item.Format == VKFormats.Vulkan(Desc.ColorTargetFormat))
                 {
                     surfaceFormat = item;
 

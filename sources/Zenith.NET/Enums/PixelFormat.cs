@@ -2,6 +2,8 @@
 
 public enum PixelFormat
 {
+    Unknown,
+
     R8UNorm,
 
     R8SNorm,

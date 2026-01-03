@@ -51,10 +51,10 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
                     ColorWriteMask = VKFormats.Vulkan(target.Flags)
                 };
 
-                colorAttachmentFormats[i] = VKFormats.Vulkan(desc.Output.ColorAttachments[i]).Format;
+                colorAttachmentFormats[i] = VKFormats.Vulkan(desc.Output.ColorAttachments[i]);
             }
 
-            (Format depthStencilAttachmentFormat, bool hasDepth, bool hasStencil) = VKFormats.Vulkan(desc.Output.DepthStencilAttachment ?? PixelFormat.R8UNorm);
+            Format depthStencilAttachmentFormat = VKFormats.Vulkan(desc.Output.DepthStencilAttachment ?? PixelFormat.Unknown);
 
             PipelineRasterizationStateCreateInfo rasterizationState = new()
             {
@@ -122,8 +122,8 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
                 SType = StructureType.PipelineRenderingCreateInfo,
                 ColorAttachmentCount = colorAttachmentCount,
                 PColorAttachmentFormats = colorAttachmentFormats,
-                DepthAttachmentFormat = hasDepth ? depthStencilAttachmentFormat : Format.Undefined,
-                StencilAttachmentFormat = hasStencil ? depthStencilAttachmentFormat : Format.Undefined
+                DepthAttachmentFormat = ZenithHelper.HasDepth(desc.Output.DepthStencilAttachment ?? PixelFormat.Unknown) ? depthStencilAttachmentFormat : Format.Undefined,
+                StencilAttachmentFormat = ZenithHelper.HasStencil(desc.Output.DepthStencilAttachment ?? PixelFormat.Unknown) ? depthStencilAttachmentFormat : Format.Undefined
             };
 
             if (desc.RenderStates.BlendFactor.HasValue)

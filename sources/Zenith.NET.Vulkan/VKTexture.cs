@@ -17,7 +17,7 @@ internal unsafe class VKTexture : Texture
             SType = StructureType.ImageCreateInfo,
             Flags = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? ImageCreateFlags.CreateCubeCompatibleBit : ImageCreateFlags.None,
             ImageType = VKFormats.Vulkan(desc.Type).ImageType,
-            Format = VKFormats.Vulkan(desc.Format).Format,
+            Format = VKFormats.Vulkan(desc.Format),
             Extent = new()
             {
                 Width = desc.Width,
@@ -78,7 +78,7 @@ internal unsafe class VKTexture : Texture
             SType = StructureType.ImageCreateInfo,
             Flags = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? ImageCreateFlags.CreateCubeCompatibleBit : ImageCreateFlags.None,
             ImageType = VKFormats.Vulkan(desc.Type).ImageType,
-            Format = VKFormats.Vulkan(desc.Format).Format,
+            Format = VKFormats.Vulkan(desc.Format),
             Extent = new()
             {
                 Width = desc.Width,
@@ -303,7 +303,7 @@ internal unsafe class VKTexture : Texture
             SType = StructureType.ImageViewCreateInfo,
             Image = Image,
             ViewType = ImageViewType.Type2D,
-            Format = VKFormats.Vulkan(Desc.Format).Format,
+            Format = VKFormats.Vulkan(Desc.Format),
             SubresourceRange = new()
             {
                 AspectMask = VKFormats.Vulkan(Desc.Format, Desc.Flags).AspectFlags,
