@@ -74,7 +74,7 @@ float3 GetViewPosition(float2 uv)
         return float3(0.0, 0.0, 1e10);
     }
 
-    return mul(float4(worldPos.xyz, 1.0), constants.View).xyz; 
+    return mul(float4(worldPos.xyz, 1.0), constants.View).xyz;
 }
 
 float3 GetViewNormal(float2 uv)
