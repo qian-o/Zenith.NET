@@ -74,7 +74,7 @@ float3 GetViewPosition(float2 uv)
         return float3(0.0, 0.0, 1e10);
     }
 
-    return mul(float4(worldPos.xyz, 1.0), constants.View).xyz;
+    return mul(float4(worldPos.xyz, 1.0), constants.View).xyz; 
 }
 
 float3 GetViewNormal(float2 uv)
@@ -181,11 +181,9 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 
     float3 viewNormal = GetViewNormal(uv);
 
-    // Noise generation using interleaved gradient noise
     float noise1 = InterleavedGradientNoise(float2(pixelCoord));
     float noise2 = InterleavedGradientNoise(float2(pixelCoord) + float2(5.588238, 5.588238));
 
-    // Screen space radius calculation
     float worldRadius = constants.EffectRadius * constants.RadiusMultiplier;
     float invWorldRadius = 1.0 / worldRadius;
     float projScale = abs(constants.Projection[1][1]);
@@ -218,7 +216,6 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
             float sampleRadius = max(pow(t, constants.SampleDistributionPower) * screenRadius, 1.0);
             float2 offset = scaledDirection * sampleRadius;
 
-            // Forward direction sample
             float2 forwardUV = uv + offset;
 
             if (all(forwardUV > 0.0) && all(forwardUV < 1.0))
@@ -232,7 +229,6 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
                 sampleCount += 1.0;
             }
 
-            // Backward direction sample
             float2 backwardUV = uv - offset;
 
             if (all(backwardUV > 0.0) && all(backwardUV < 1.0))
