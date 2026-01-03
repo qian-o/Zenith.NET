@@ -21,7 +21,7 @@ Zenith.NET supports multiple graphics APIs that cover mainstream rendering techn
 
 | API       | Feature Level / API Version | Supported |
 | :-------: | :-------------------------: | :-------: |
-| DirectX12 | 12_0                        | planned   |
+| DirectX12 | 12_0                        | completed |
 | Metal     | 4.0                         | planned   |
 | Vulkan    | 1.4                         | completed |
 
