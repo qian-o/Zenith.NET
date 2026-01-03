@@ -424,17 +424,16 @@ float3 CalculateAmbient(float3 N, float3 V, float3 albedo, float metallic, float
     float hemiFactor = saturate(N.y * 0.5 + 0.5);
     float3 hemisphereLight = lerp(groundIrradiance, skyIrradiance, hemiFactor);
 
-    float shadowAmbientFactor = lerp(0.3, 1.0, shadow); // Raised minimum from 0.2 to 0.3
+    float shadowAmbientFactor = lerp(0.3, 1.0, shadow);
     float3 shadowedAmbient = hemisphereLight * lerp(SHADOW_TINT * 0.5, float3(1.0, 1.0, 1.0), shadow);
 
     float NdotL = max(dot(N, sunDir), 0.0);
     float wrapLighting = pow(NdotL * 0.5 + 0.5, 2.0);
     float3 indirectSun = sunColor * sunIntensity * 0.12 * wrapLighting * sunHeight * shadow * INDIRECT_LIGHT_INTENSITY;
 
-    float3 lowerHemisphereColor = sunColor * sunIntensity * 0.06; // Increased from 0.04
+    float3 lowerHemisphereColor = sunColor * sunIntensity * 0.06;
 
-    // Add base ambient that complements SSGI
-    float3 baseAmbient = kD * albedo * hemisphereLight * 0.15; // Always-present ambient
+    float3 baseAmbient = kD * albedo * hemisphereLight * 0.15;
 
     float3 diffuse = kD * albedo * (shadowedAmbient * shadowAmbientFactor + indirectSun + lowerHemisphereColor) + baseAmbient;
 
