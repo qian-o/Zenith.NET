@@ -60,7 +60,7 @@ internal unsafe class ComposePass : FullscreenPass
                 context.LitColor!,
                 context.GTAOBlurred!,
                 context.VerticalBloom!,
-                context.VolumetricLightBlurred!,  // 使用模糊后的体积光
+                context.VolumetricLightBlurred!,
                 context.FinalColor!,
                 App.PointSampler
             ]

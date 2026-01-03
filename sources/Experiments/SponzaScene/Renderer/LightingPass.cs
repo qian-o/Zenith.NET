@@ -63,7 +63,6 @@ internal unsafe class LightingPass : FullscreenPass
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Compute }
@@ -88,7 +87,6 @@ internal unsafe class LightingPass : FullscreenPass
                 context.Emissive!,
                 context.CSMDepths!,
                 context.GTAOBlurred!,
-                context.SSGIDenoised!,  // Use SVGF denoised output instead of SSGIBlurred
                 context.LitColor!,
                 App.PointSampler,
                 App.ShadowSampler

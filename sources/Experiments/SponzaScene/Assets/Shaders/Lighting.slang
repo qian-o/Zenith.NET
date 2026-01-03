@@ -77,7 +77,6 @@ Texture2D metallicRoughnessTexture;
 Texture2D emissiveTexture;
 Texture2DArray csmTextures;
 Texture2D gtaoTexture;
-Texture2D ssgiTexture;
 RWTexture2D outputTexture;
 SamplerState pointSampler;
 SamplerComparisonState shadowSampler;
@@ -408,7 +407,7 @@ float3 CalculatePBRLight(float3 L, float3 V, float3 N, float3 albedo, float meta
 // ============================================
 
 float3 CalculateAmbient(float3 N, float3 V, float3 albedo, float metallic, float roughness, float ao, float shadow,
-                        float3 sunDirection, float3 sunColor, float sunIntensity, float3 ssgi)
+                        float3 sunDirection, float3 sunColor, float sunIntensity)
 {
     float3 F0 = lerp(0.04, albedo, metallic);
     float NdotV = max(dot(N, V), EPSILON);
@@ -425,24 +424,19 @@ float3 CalculateAmbient(float3 N, float3 V, float3 albedo, float metallic, float
     float hemiFactor = saturate(N.y * 0.5 + 0.5);
     float3 hemisphereLight = lerp(groundIrradiance, skyIrradiance, hemiFactor);
 
-    float shadowAmbientFactor = lerp(0.3, 1.0, shadow);  // Raised minimum from 0.2 to 0.3
+    float shadowAmbientFactor = lerp(0.3, 1.0, shadow); // Raised minimum from 0.2 to 0.3
     float3 shadowedAmbient = hemisphereLight * lerp(SHADOW_TINT * 0.5, float3(1.0, 1.0, 1.0), shadow);
 
     float NdotL = max(dot(N, sunDir), 0.0);
     float wrapLighting = pow(NdotL * 0.5 + 0.5, 2.0);
     float3 indirectSun = sunColor * sunIntensity * 0.12 * wrapLighting * sunHeight * shadow * INDIRECT_LIGHT_INTENSITY;
 
-    float3 lowerHemisphereColor = sunColor * sunIntensity * 0.06;  // Increased from 0.04
-    
-    // SSGI contribution - add minimum ambient when SSGI is dark
-    float ssgiLum = dot(ssgi, float3(0.299, 0.587, 0.114));
-    float3 ssgiContribution = kD * albedo * ssgi;
-    
+    float3 lowerHemisphereColor = sunColor * sunIntensity * 0.06; // Increased from 0.04
+
     // Add base ambient that complements SSGI
-    float3 baseAmbient = kD * albedo * hemisphereLight * 0.15;  // Always-present ambient
-    
-    float3 diffuse = kD * albedo * (shadowedAmbient * shadowAmbientFactor + indirectSun + lowerHemisphereColor) 
-                   + ssgiContribution + baseAmbient;
+    float3 baseAmbient = kD * albedo * hemisphereLight * 0.15; // Always-present ambient
+
+    float3 diffuse = kD * albedo * (shadowedAmbient * shadowAmbientFactor + indirectSun + lowerHemisphereColor) + baseAmbient;
 
     float3 R = reflect(-V, N);
     float3 skyReflection = SampleSkyColor(R, sunDirection, sunColor, sunIntensity) * 1.5;
@@ -521,7 +515,6 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 
     float4 emissiveData = emissiveTexture.SampleLevel(pointSampler, uv, 0);
     float ao = max(gtaoTexture.SampleLevel(pointSampler, uv, 0).r, 0.1);
-    float3 ssgi = ssgiTexture.SampleLevel(pointSampler, uv, 0).rgb;
     float3 V = SafeNormalize(constants.CameraPosition.xyz - worldPos);
 
     float3 color;
@@ -543,8 +536,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
                                  shadow,
                                  constants.DirectionalLight.Direction,
                                  constants.DirectionalLight.Color,
-                                 constants.DirectionalLight.Intensity,
-                                 ssgi);
+                                 constants.DirectionalLight.Intensity);
 
         color += CalculateDirectionalLight(constants.DirectionalLight,
                                            V,

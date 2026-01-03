@@ -13,14 +13,8 @@ internal class DeferredRenderer : DisposableObject
         new CSMPass(),
         new GTAOPass(),
         new GTAOBlurPass(),
-        new VolumetricLightPass(),
-        new VolumetricLightBlurPass(),
         new BloomPass(),
-        new SSGIPass(),
-        new SVGFDenoiserPass(),   // SVGF denoiser replaces SSGIBlurPass for better quality
         new LightingPass(),
-        new CopyLitColorPass(),   // Copy LitColor to LitColorHistory for next frame's SSGI
-        new CopyGBufferHistoryPass(),  // Copy Position/Normal to history for next frame's SVGF
         new ComposePass()
     ];
 

@@ -70,11 +70,6 @@ internal class RenderContext : DisposableObject
     public Texture? Emissive { get; private set; }
 
     public FrameBuffer? GBufferFrameBuffer { get; private set; }
-
-    // History textures for temporal effects
-    public Texture? PositionHistory { get; private set; }
-
-    public Texture? NormalHistory { get; private set; }
     #endregion
 
     #region Cascaded Shadow Maps
@@ -92,29 +87,6 @@ internal class RenderContext : DisposableObject
 
     public Texture? GTAOBlurred { get; private set; }
 
-    public Texture? SSGI { get; private set; }
-
-    public Texture? SSGIHistory { get; private set; }
-
-    public Texture? SSGIBlurred { get; private set; }
-
-    // SVGF Denoiser textures
-    public Texture? SSGIDenoised { get; private set; }
-
-    public Texture? SVGFColorHistoryA { get; private set; }
-
-    public Texture? SVGFColorHistoryB { get; private set; }
-
-    public Texture? SVGFMomentsHistoryA { get; private set; }
-
-    public Texture? SVGFMomentsHistoryB { get; private set; }
-
-    public Texture? SVGFVariance { get; private set; }
-
-    public Texture? SVGFAtrousTemp0 { get; private set; }
-
-    public Texture? SVGFAtrousTemp1 { get; private set; }
-
     public Texture? VolumetricLight { get; private set; }
 
     public Texture? VolumetricLightBlurred { get; private set; }
@@ -124,14 +96,9 @@ internal class RenderContext : DisposableObject
     public Texture? VerticalBloom { get; private set; }
 
     public Texture? LitColor { get; private set; }
-
-    public Texture? LitColorHistory { get; private set; }
     #endregion
 
     public Texture? FinalColor { get; private set; }
-
-    // Returns the SSGI texture that contains the latest result (for blur pass and lighting)
-    public Texture? SSGICurrent => (FrameIndex % 2 == 0) ? SSGIHistory : SSGI;
 
     public void Initialize(uint width, uint height)
     {
@@ -305,177 +272,6 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
-        SSGI = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R16G16B16A16Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-        });
-
-        SSGIHistory = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R16G16B16A16Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-        });
-
-        SSGIBlurred = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R16G16B16A16Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-        });
-
-        // SVGF Denoiser textures
-        SSGIDenoised = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R16G16B16A16Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-        });
-
-        SVGFColorHistoryA = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R16G16B16A16Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-        });
-
-        SVGFColorHistoryB = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R16G16B16A16Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-        });
-
-        SVGFMomentsHistoryA = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R16G16B16A16Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-        });
-
-        SVGFMomentsHistoryB = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R16G16B16A16Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-        });
-
-        SVGFVariance = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R16G16B16A16Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-        });
-
-        SVGFAtrousTemp0 = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R16G16B16A16Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-        });
-
-        SVGFAtrousTemp1 = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R16G16B16A16Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-        });
-
-        // History textures for temporal reprojection
-        PositionHistory = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R16G16B16A16Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-        });
-
-        NormalHistory = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R16G16B16A16Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-        });
-
         VolumetricLight = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
@@ -541,19 +337,6 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
-        LitColorHistory = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R16G16B16A16Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-        });
-
         FinalColor = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
@@ -575,28 +358,12 @@ internal class RenderContext : DisposableObject
     {
         FinalColor?.Dispose();
 
-        LitColorHistory?.Dispose();
         LitColor?.Dispose();
         VerticalBloom?.Dispose();
         HorizontalBloom?.Dispose();
         VolumetricLightBlurred?.Dispose();
         VolumetricLight?.Dispose();
 
-        // SVGF textures
-        NormalHistory?.Dispose();
-        PositionHistory?.Dispose();
-        SVGFAtrousTemp1?.Dispose();
-        SVGFAtrousTemp0?.Dispose();
-        SVGFVariance?.Dispose();
-        SVGFMomentsHistoryB?.Dispose();
-        SVGFMomentsHistoryA?.Dispose();
-        SVGFColorHistoryB?.Dispose();
-        SVGFColorHistoryA?.Dispose();
-        SSGIDenoised?.Dispose();
-
-        SSGIBlurred?.Dispose();
-        SSGIHistory?.Dispose();
-        SSGI?.Dispose();
         GTAOBlurred?.Dispose();
         GTAO?.Dispose();
 
@@ -607,6 +374,7 @@ internal class RenderContext : DisposableObject
                 frameBuffer.Dispose();
             }
         }
+
         if (CSMNormalizedDepths is not null)
         {
             foreach (Texture texture in CSMNormalizedDepths)
@@ -614,6 +382,7 @@ internal class RenderContext : DisposableObject
                 texture.Dispose();
             }
         }
+
         CSMDepths?.Dispose();
 
         GBufferFrameBuffer?.Dispose();
