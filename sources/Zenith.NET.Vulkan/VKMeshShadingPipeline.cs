@@ -108,8 +108,8 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
             PipelineViewportStateCreateInfo viewportState = new()
             {
                 SType = StructureType.PipelineViewportStateCreateInfo,
-                ViewportCount = colorAttachmentCount,
-                ScissorCount = colorAttachmentCount
+                ViewportCount = Math.Max(colorAttachmentCount, 1),
+                ScissorCount = Math.Max(colorAttachmentCount, 1)
             };
             PipelineMultisampleStateCreateInfo multisampleState = new()
             {
