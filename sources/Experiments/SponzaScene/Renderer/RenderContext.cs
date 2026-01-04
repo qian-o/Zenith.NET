@@ -25,7 +25,7 @@ internal class RenderContext : DisposableObject
 
     public static Output CSMOutput { get; } = new()
     {
-        ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
+        ColorAttachments = [],
         DepthStencilAttachment = PixelFormat.D32Float,
         SampleCount = SampleCount.Count1
     };
@@ -77,7 +77,7 @@ internal class RenderContext : DisposableObject
 
     public Texture? CSMDepths { get; private set; }
 
-    public Texture[]? CSMNormalizedDepths { get; private set; }
+    public TextureView[]? CSMTextureViews { get; private set; }
 
     public FrameBuffer[]? CSMFrameBuffers { get; private set; }
     #endregion
@@ -182,26 +182,21 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.DepthStencil | TextureUsageFlags.ShaderResource
         });
 
-        CSMNormalizedDepths = new Texture[CSMSplits.Length];
+        CSMTextureViews = new TextureView[CSMSplits.Length];
         CSMFrameBuffers = new FrameBuffer[CSMSplits.Length];
         for (int i = 0; i < CSMSplits.Length; i++)
         {
-            CSMNormalizedDepths[i] = App.Context.CreateTexture(new()
+            CSMTextureViews[i] = App.Context.CreateTextureView(new()
             {
-                Type = TextureType.Texture2D,
-                Format = PixelFormat.R8G8B8A8UNorm,
-                Width = 4096,
-                Height = 4096,
-                Depth = 1,
-                MipLevels = 1,
-                ArrayLayers = 1,
-                SampleCount = SampleCount.Count1,
-                Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
+                Texture = CSMDepths,
+                MipLevelCount = 1,
+                FirstArrayLayer = (uint)i,
+                ArrayLayerCount = 1,
             });
 
             CSMFrameBuffers[i] = App.Context.CreateFrameBuffer(new()
             {
-                ColorAttachments = [new() { Target = CSMNormalizedDepths[i] }],
+                ColorAttachments = [],
                 DepthStencilAttachment = new() { Target = CSMDepths, Slice = new() { ArrayLayer = (uint)i } }
             });
         }
@@ -375,11 +370,11 @@ internal class RenderContext : DisposableObject
             }
         }
 
-        if (CSMNormalizedDepths is not null)
+        if (CSMTextureViews is not null)
         {
-            foreach (Texture texture in CSMNormalizedDepths)
+            foreach (TextureView textureView in CSMTextureViews)
             {
-                texture.Dispose();
+                textureView.Dispose();
             }
         }
 
