@@ -12,7 +12,7 @@ internal unsafe class VKTextureView : TextureView
         {
             SType = StructureType.ImageViewCreateInfo,
             Image = desc.Texture.Vulkan().Image,
-            ViewType = VKFormats.Vulkan(desc.Texture.Desc.Type, desc.ArrayLayerCount),
+            ViewType = VKFormats.Vulkan(desc.Texture.Desc.Type, desc.ArrayLayerCount is 1),
             Format = VKFormats.Vulkan(desc.Texture.Desc.Format),
             SubresourceRange = new()
             {

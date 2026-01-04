@@ -148,17 +148,17 @@ internal static class VKFormats
         };
     }
 
-    public static ImageViewType Vulkan(TextureType textureType, uint arrayLayerCount)
+    public static ImageViewType Vulkan(TextureType textureType, bool singleLayer)
     {
         return textureType switch
         {
             TextureType.Texture1D => ImageViewType.Type1D,
-            TextureType.Texture1DArray => arrayLayerCount is 1 ? ImageViewType.Type1D : ImageViewType.Type1DArray,
+            TextureType.Texture1DArray => singleLayer ? ImageViewType.Type1D : ImageViewType.Type1DArray,
             TextureType.Texture2D => ImageViewType.Type2D,
-            TextureType.Texture2DArray => arrayLayerCount is 1 ? ImageViewType.Type2D : ImageViewType.Type2DArray,
+            TextureType.Texture2DArray => singleLayer ? ImageViewType.Type2D : ImageViewType.Type2DArray,
             TextureType.Texture3D => ImageViewType.Type3D,
             TextureType.TextureCube => ImageViewType.TypeCube,
-            TextureType.TextureCubeArray => arrayLayerCount is 1 ? ImageViewType.TypeCube : ImageViewType.TypeCubeArray,
+            TextureType.TextureCubeArray => singleLayer ? ImageViewType.TypeCube : ImageViewType.TypeCubeArray,
             _ => ImageViewType.Type1D
         };
     }
