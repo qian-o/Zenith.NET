@@ -130,9 +130,9 @@ internal static class VKFormats
         return (usageFlags, propertyFlags);
     }
 
-    public static (ImageType ImageType, ImageViewType ImageViewType) Vulkan(TextureType textureType)
+    public static ImageType Vulkan(TextureType textureType)
     {
-        ImageType imageType = textureType switch
+        return textureType switch
         {
             TextureType.Texture1D or
             TextureType.Texture1DArray => ImageType.Type1D,
@@ -146,20 +146,21 @@ internal static class VKFormats
 
             _ => ImageType.Type1D
         };
+    }
 
-        ImageViewType imageViewType = textureType switch
+    public static ImageViewType Vulkan(TextureType textureType, uint arrayLayerCount)
+    {
+        return textureType switch
         {
             TextureType.Texture1D => ImageViewType.Type1D,
-            TextureType.Texture1DArray => ImageViewType.Type1DArray,
+            TextureType.Texture1DArray => arrayLayerCount is 1 ? ImageViewType.Type1D : ImageViewType.Type1DArray,
             TextureType.Texture2D => ImageViewType.Type2D,
-            TextureType.Texture2DArray => ImageViewType.Type2DArray,
+            TextureType.Texture2DArray => arrayLayerCount is 1 ? ImageViewType.Type2D : ImageViewType.Type2DArray,
             TextureType.Texture3D => ImageViewType.Type3D,
             TextureType.TextureCube => ImageViewType.TypeCube,
-            TextureType.TextureCubeArray => ImageViewType.TypeCubeArray,
+            TextureType.TextureCubeArray => arrayLayerCount is 1 ? ImageViewType.TypeCube : ImageViewType.TypeCubeArray,
             _ => ImageViewType.Type1D
         };
-
-        return (imageType, imageViewType);
     }
 
     public static Format Vulkan(PixelFormat pixelFormat)
