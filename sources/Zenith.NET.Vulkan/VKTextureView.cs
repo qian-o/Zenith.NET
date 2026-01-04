@@ -12,7 +12,7 @@ internal unsafe class VKTextureView : TextureView
         {
             SType = StructureType.ImageViewCreateInfo,
             Image = desc.Texture.Vulkan().Image,
-            ViewType = VKFormats.Vulkan(ActualTextureType(desc)).ViewType,
+            ViewType = VKFormats.Vulkan(ResolveTextureType(desc)).ViewType,
             Format = VKFormats.Vulkan(desc.Texture.Desc.Format),
             SubresourceRange = new()
             {
@@ -77,7 +77,7 @@ internal unsafe class VKTextureView : TextureView
         Context.Vk.DestroyImageView(Context.Device, ImageView, null);
     }
 
-    private static TextureType ActualTextureType(TextureViewDesc desc)
+    private static TextureType ResolveTextureType(TextureViewDesc desc)
     {
         return desc.Texture.Desc.Type switch
         {
