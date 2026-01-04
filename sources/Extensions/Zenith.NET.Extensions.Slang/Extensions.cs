@@ -58,10 +58,5 @@ public static class Extensions
                 File.Delete(file);
             }
         }
-
-        public void ReflectShaderLayout()
-        {
-            throw new NotImplementedException();
-        }
     }
 }

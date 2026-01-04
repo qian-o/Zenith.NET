@@ -11,6 +11,11 @@ public static unsafe class ZenithMarshal
 
         internal nint Native<T>(ReadOnlySpan<T> data) where T : unmanaged
         {
+            if (data.Length is 0)
+            {
+                return nint.Zero;
+            }
+
             nint pointer = (nint)NativeMemory.Alloc((uint)(sizeof(T) * data.Length));
 
             data.CopyTo(new((void*)pointer, data.Length));
