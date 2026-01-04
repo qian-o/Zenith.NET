@@ -120,17 +120,14 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void BeginRenderPass(FrameBuffer frameBuffer, ClearValue clearValue, params IEnumerable<ResourceSet> preprocessResourceSets)
     {
-        if (frameBuffer.ColorAttachmentCount is not 0)
-        {
-            Scissor[] scissors = new Scissor[frameBuffer.ColorAttachmentCount];
-            Viewport[] viewports = new Viewport[frameBuffer.ColorAttachmentCount];
+        Scissor[] scissors = new Scissor[Math.Max(frameBuffer.ColorAttachmentCount, 1)];
+        Viewport[] viewports = new Viewport[Math.Max(frameBuffer.ColorAttachmentCount, 1)];
 
-            Array.Fill(scissors, new() { Width = frameBuffer.Width, Height = frameBuffer.Height });
-            Array.Fill(viewports, new() { Width = frameBuffer.Width, Height = frameBuffer.Height, MaxDepth = 1 });
+        Array.Fill(scissors, new() { Width = frameBuffer.Width, Height = frameBuffer.Height });
+        Array.Fill(viewports, new() { Width = frameBuffer.Width, Height = frameBuffer.Height, MaxDepth = 1 });
 
-            SetScissorsImpl(scissors);
-            SetViewportsImpl(viewports);
-        }
+        SetScissorsImpl(scissors);
+        SetViewportsImpl(viewports);
 
         foreach (ResourceSet resourceSet in preprocessResourceSets)
         {
