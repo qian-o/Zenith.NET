@@ -140,7 +140,7 @@ public unsafe class ImGuiController : DisposableObject
         frameBegun = true;
     }
 
-    public void Render(CommandBuffer commandBuffer)
+    public void Render(CommandBuffer commandBuffer, FrameBuffer frameBuffer, ClearValue clearValue)
     {
         HexaImGui.SetCurrentContext(Context);
 
@@ -148,7 +148,7 @@ public unsafe class ImGuiController : DisposableObject
         {
             HexaImGui.Render();
 
-            renderer.Render(commandBuffer, HexaImGui.GetDrawData());
+            renderer.Render(commandBuffer, frameBuffer, clearValue, HexaImGui.GetDrawData());
 
             frameBegun = false;
         }

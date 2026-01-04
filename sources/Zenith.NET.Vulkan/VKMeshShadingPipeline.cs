@@ -32,7 +32,6 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
             ];
 
             uint colorAttachmentCount = (uint)desc.Output.ColorAttachments.Length;
-            bool hasDepthStencilAttachment = desc.Output.DepthStencilAttachment.HasValue;
 
             PipelineColorBlendAttachmentState* attachments = (PipelineColorBlendAttachmentState*)ZenithMarshal.Allocate<PipelineColorBlendAttachmentState>(scope, colorAttachmentCount);
             Format* colorAttachmentFormats = (Format*)ZenithMarshal.Allocate<Format>(scope, colorAttachmentCount);
@@ -55,7 +54,7 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
                 colorAttachmentFormats[i] = VKFormats.Vulkan(desc.Output.ColorAttachments[i]);
             }
 
-            Format depthStencilFormat = hasDepthStencilAttachment ? VKFormats.Vulkan(desc.Output.DepthStencilAttachment!.Value) : Format.Undefined;
+            Format depthStencilAttachmentFormat = VKFormats.Vulkan(desc.Output.DepthStencilAttachment ?? PixelFormat.Unknown);
 
             PipelineRasterizationStateCreateInfo rasterizationState = new()
             {
@@ -85,7 +84,7 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
                     CompareOp = VKFormats.Vulkan(desc.RenderStates.DepthStencilState.FrontFace.StencilFunc),
                     CompareMask = desc.RenderStates.DepthStencilState.StencilReadMask,
                     WriteMask = desc.RenderStates.DepthStencilState.StencilWriteMask,
-                    Reference = (uint)desc.RenderStates.StencilReference
+                    Reference = desc.RenderStates.StencilReference
                 },
                 Back = new()
                 {
@@ -95,7 +94,7 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
                     CompareOp = VKFormats.Vulkan(desc.RenderStates.DepthStencilState.BackFace.StencilFunc),
                     CompareMask = desc.RenderStates.DepthStencilState.StencilReadMask,
                     WriteMask = desc.RenderStates.DepthStencilState.StencilWriteMask,
-                    Reference = (uint)desc.RenderStates.StencilReference
+                    Reference = desc.RenderStates.StencilReference
                 },
                 MinDepthBounds = 0.0f,
                 MaxDepthBounds = 1.0f
@@ -109,8 +108,8 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
             PipelineViewportStateCreateInfo viewportState = new()
             {
                 SType = StructureType.PipelineViewportStateCreateInfo,
-                ViewportCount = colorAttachmentCount,
-                ScissorCount = colorAttachmentCount
+                ViewportCount = Math.Max(colorAttachmentCount, 1),
+                ScissorCount = Math.Max(colorAttachmentCount, 1)
             };
             PipelineMultisampleStateCreateInfo multisampleState = new()
             {
@@ -123,8 +122,8 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
                 SType = StructureType.PipelineRenderingCreateInfo,
                 ColorAttachmentCount = colorAttachmentCount,
                 PColorAttachmentFormats = colorAttachmentFormats,
-                DepthAttachmentFormat = depthStencilFormat,
-                StencilAttachmentFormat = depthStencilFormat
+                DepthAttachmentFormat = ZenithHelper.HasDepth(desc.Output.DepthStencilAttachment ?? PixelFormat.Unknown) ? depthStencilAttachmentFormat : Format.Undefined,
+                StencilAttachmentFormat = ZenithHelper.HasStencil(desc.Output.DepthStencilAttachment ?? PixelFormat.Unknown) ? depthStencilAttachmentFormat : Format.Undefined
             };
 
             if (desc.RenderStates.BlendFactor.HasValue)
@@ -168,17 +167,11 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
 
         // ResourceLayouts
         {
-            DescriptorSetLayout* setLayouts = (DescriptorSetLayout*)ZenithMarshal.Allocate<DescriptorSetLayout>(scope, (uint)desc.ResourceLayouts.Length);
-            for (int i = 0; i < desc.ResourceLayouts.Length; i++)
-            {
-                setLayouts[i] = desc.ResourceLayouts[i].Vulkan().DescriptorSetLayout;
-            }
-
             PipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
             {
                 SType = StructureType.PipelineLayoutCreateInfo,
                 SetLayoutCount = (uint)desc.ResourceLayouts.Length,
-                PSetLayouts = setLayouts
+                PSetLayouts = (DescriptorSetLayout*)ZenithMarshal.AllocateAndFill(scope, [.. desc.ResourceLayouts.Select(static item => item.Vulkan().DescriptorSetLayout)])
             };
 
             context.Vk.CreatePipelineLayout(context.Device, &pipelineLayoutCreateInfo, null, out PipelineLayout).Success();
@@ -208,15 +201,11 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
             }
         }
 
-        DynamicState* dynamicStates = (DynamicState*)ZenithMarshal.Allocate<DynamicState>(scope, 2);
-        dynamicStates[0] = DynamicState.Viewport;
-        dynamicStates[1] = DynamicState.Scissor;
-
         PipelineDynamicStateCreateInfo dynamicState = new()
         {
             SType = StructureType.PipelineDynamicStateCreateInfo,
             DynamicStateCount = 2,
-            PDynamicStates = dynamicStates
+            PDynamicStates = (DynamicState*)ZenithMarshal.AllocateAndFill(scope, [DynamicState.Viewport, DynamicState.Scissor])
         };
 
         createInfo.PDynamicState = &dynamicState;

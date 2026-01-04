@@ -21,6 +21,179 @@ public static class ZenithHelper
         mipDepth = Math.Max(1, depth >> (int)mipLevel);
     }
 
+    public static (uint BlockWidth, uint BlockHeight) BlockSize(PixelFormat format)
+    {
+        return format switch
+        {
+            PixelFormat.BC4UNorm or
+            PixelFormat.BC4SNorm or
+            PixelFormat.BC5UNorm or
+            PixelFormat.BC5SNorm or
+            PixelFormat.BC6HUFloat or
+            PixelFormat.BC6HSFloat or
+            PixelFormat.BC7UNorm or
+            PixelFormat.BC7SRgb => (4, 4),
+
+            PixelFormat.ETC2UNorm or
+            PixelFormat.ETC2SRgb or
+            PixelFormat.ETC2A1UNorm or
+            PixelFormat.ETC2A1SRgb or
+            PixelFormat.ETC2A8UNorm or
+            PixelFormat.ETC2A8SRgb => (4, 4),
+
+            PixelFormat.ASTC4x4UNorm or
+            PixelFormat.ASTC4x4SRgb or
+            PixelFormat.ASTC4x4Float => (4, 4),
+
+            PixelFormat.ASTC5x5UNorm or
+            PixelFormat.ASTC5x5SRgb or
+            PixelFormat.ASTC5x5Float => (5, 5),
+
+            PixelFormat.ASTC6x6UNorm or
+            PixelFormat.ASTC6x6SRgb or
+            PixelFormat.ASTC6x6Float => (6, 6),
+
+            PixelFormat.ASTC8x8UNorm or
+            PixelFormat.ASTC8x8SRgb or
+            PixelFormat.ASTC8x8Float => (8, 8),
+
+            PixelFormat.ASTC10x10UNorm or
+            PixelFormat.ASTC10x10SRgb or
+            PixelFormat.ASTC10x10Float => (10, 10),
+
+            PixelFormat.ASTC12x12UNorm or
+            PixelFormat.ASTC12x12SRgb or
+            PixelFormat.ASTC12x12Float => (12, 12),
+
+            _ => (1, 1)
+        };
+    }
+
+    public static bool HasDepth(PixelFormat pixelFormat)
+    {
+        return pixelFormat is PixelFormat.D16UNorm or PixelFormat.D24UNormS8UInt or PixelFormat.D32Float or PixelFormat.D32FloatS8UInt;
+    }
+
+    public static bool HasStencil(PixelFormat pixelFormat)
+    {
+        return pixelFormat is PixelFormat.D24UNormS8UInt or PixelFormat.D32FloatS8UInt;
+    }
+
+    public static uint SizeInBytes(PixelFormat format)
+    {
+        return format switch
+        {
+            PixelFormat.R8UNorm or
+            PixelFormat.R8SNorm or
+            PixelFormat.R8UInt or
+            PixelFormat.R8SInt => 1,
+
+            PixelFormat.R16UNorm or
+            PixelFormat.R16SNorm or
+            PixelFormat.R16UInt or
+            PixelFormat.R16SInt or
+            PixelFormat.R16Float => 2,
+
+            PixelFormat.R32UInt or
+            PixelFormat.R32SInt or
+            PixelFormat.R32Float => 4,
+
+            PixelFormat.R8G8UNorm or
+            PixelFormat.R8G8SNorm or
+            PixelFormat.R8G8UInt or
+            PixelFormat.R8G8SInt => 2,
+
+            PixelFormat.R16G16UNorm or
+            PixelFormat.R16G16SNorm or
+            PixelFormat.R16G16UInt or
+            PixelFormat.R16G16SInt or
+            PixelFormat.R16G16Float => 4,
+
+            PixelFormat.R32G32UInt or
+            PixelFormat.R32G32SInt or
+            PixelFormat.R32G32Float => 8,
+
+            PixelFormat.R32G32B32UInt or
+            PixelFormat.R32G32B32SInt or
+            PixelFormat.R32G32B32Float => 12,
+
+            PixelFormat.R8G8B8A8UNorm or
+            PixelFormat.R8G8B8A8SNorm or
+            PixelFormat.R8G8B8A8UInt or
+            PixelFormat.R8G8B8A8SInt or
+            PixelFormat.R8G8B8A8SRgb => 4,
+
+            PixelFormat.R16G16B16A16UNorm or
+            PixelFormat.R16G16B16A16SNorm or
+            PixelFormat.R16G16B16A16UInt or
+            PixelFormat.R16G16B16A16SInt or
+            PixelFormat.R16G16B16A16Float => 8,
+
+            PixelFormat.R32G32B32A32UInt or
+            PixelFormat.R32G32B32A32SInt or
+            PixelFormat.R32G32B32A32Float => 16,
+
+            PixelFormat.B8G8R8A8UNorm or
+            PixelFormat.B8G8R8A8SRgb => 4,
+
+            PixelFormat.D16UNorm => 2,
+
+            PixelFormat.D24UNormS8UInt or
+            PixelFormat.D32Float => 4,
+
+            PixelFormat.D32FloatS8UInt => 8,
+
+            PixelFormat.BC4UNorm or
+            PixelFormat.BC4SNorm => 8,
+
+            PixelFormat.BC5UNorm or
+            PixelFormat.BC5SNorm or
+            PixelFormat.BC6HUFloat or
+            PixelFormat.BC6HSFloat or
+            PixelFormat.BC7UNorm or
+            PixelFormat.BC7SRgb => 16,
+
+            PixelFormat.ETC2UNorm or
+            PixelFormat.ETC2SRgb or
+            PixelFormat.ETC2A1UNorm or
+            PixelFormat.ETC2A1SRgb => 8,
+
+            PixelFormat.ETC2A8UNorm or
+            PixelFormat.ETC2A8SRgb => 16,
+
+            PixelFormat.ASTC4x4UNorm or
+            PixelFormat.ASTC4x4SRgb or
+            PixelFormat.ASTC4x4Float or
+            PixelFormat.ASTC5x5UNorm or
+            PixelFormat.ASTC5x5SRgb or
+            PixelFormat.ASTC5x5Float or
+            PixelFormat.ASTC6x6UNorm or
+            PixelFormat.ASTC6x6SRgb or
+            PixelFormat.ASTC6x6Float or
+            PixelFormat.ASTC8x8UNorm or
+            PixelFormat.ASTC8x8SRgb or
+            PixelFormat.ASTC8x8Float or
+            PixelFormat.ASTC10x10UNorm or
+            PixelFormat.ASTC10x10SRgb or
+            PixelFormat.ASTC10x10Float or
+            PixelFormat.ASTC12x12UNorm or
+            PixelFormat.ASTC12x12SRgb or
+            PixelFormat.ASTC12x12Float => 16,
+
+            _ => 0
+        };
+    }
+
+    public static uint SizeInBytes(PixelFormat format, uint width, uint height)
+    {
+        (uint blockWidth, uint blockHeight) = BlockSize(format);
+
+        uint blocksWide = (width + blockWidth - 1) / blockWidth;
+        uint blocksHigh = (height + blockHeight - 1) / blockHeight;
+
+        return blocksWide * blocksHigh * SizeInBytes(format);
+    }
+
     public static uint SizeInBytes(ElementFormat format)
     {
         return format switch
@@ -74,126 +247,14 @@ public static class ZenithHelper
         };
     }
 
-    public static uint SizeInBytes(PixelFormat format)
-    {
-        return format switch
-        {
-            PixelFormat.R8UNorm or
-            PixelFormat.R8SNorm or
-            PixelFormat.R8UInt or
-            PixelFormat.R8SInt => 1,
-
-            PixelFormat.R16UNorm or
-            PixelFormat.R16SNorm or
-            PixelFormat.R16UInt or
-            PixelFormat.R16SInt or
-            PixelFormat.R16Float => 2,
-
-            PixelFormat.R32UInt or
-            PixelFormat.R32SInt or
-            PixelFormat.R32Float => 4,
-
-            PixelFormat.R8G8UNorm or
-            PixelFormat.R8G8SNorm or
-            PixelFormat.R8G8UInt or
-            PixelFormat.R8G8SInt => 2,
-
-            PixelFormat.R16G16UNorm or
-            PixelFormat.R16G16SNorm or
-            PixelFormat.R16G16UInt or
-            PixelFormat.R16G16SInt or
-            PixelFormat.R16G16Float => 4,
-
-            PixelFormat.R32G32UInt or
-            PixelFormat.R32G32SInt or
-            PixelFormat.R32G32Float => 8,
-
-            PixelFormat.R32G32B32UInt or
-            PixelFormat.R32G32B32SInt or
-            PixelFormat.R32G32B32Float => 12,
-
-            PixelFormat.R8G8B8A8UNorm or
-            PixelFormat.R8G8B8A8UNormSRgb or
-            PixelFormat.R8G8B8A8SNorm or
-            PixelFormat.R8G8B8A8UInt or
-            PixelFormat.R8G8B8A8SInt => 4,
-
-            PixelFormat.R16G16B16A16UNorm or
-            PixelFormat.R16G16B16A16SNorm or
-            PixelFormat.R16G16B16A16UInt or
-            PixelFormat.R16G16B16A16SInt or
-            PixelFormat.R16G16B16A16Float => 8,
-
-            PixelFormat.R32G32B32A32UInt or
-            PixelFormat.R32G32B32A32SInt or
-            PixelFormat.R32G32B32A32Float => 16,
-
-            PixelFormat.B8G8R8A8UNorm or
-            PixelFormat.B8G8R8A8UNormSRgb => 4,
-
-            PixelFormat.D24UNormS8UInt => 4,
-
-            PixelFormat.D32FloatS8UInt => 5,
-
-            PixelFormat.BC1UNorm or
-            PixelFormat.BC1UNormSRgb => 8,
-
-            PixelFormat.BC2UNorm or
-            PixelFormat.BC2UNormSRgb or
-            PixelFormat.BC3UNorm or
-            PixelFormat.BC3UNormSRgb => 16,
-
-            PixelFormat.BC4UNorm or
-            PixelFormat.BC4SNorm => 8,
-
-            PixelFormat.BC5UNorm or
-            PixelFormat.BC5SNorm or
-            PixelFormat.BC7UNorm or
-            PixelFormat.BC7UNormSRgb => 16,
-
-            _ => 0
-        };
-    }
-
-    public static bool IsCompressed(PixelFormat format)
-    {
-        return format switch
-        {
-            PixelFormat.BC1UNorm or
-            PixelFormat.BC1UNormSRgb or
-            PixelFormat.BC2UNorm or
-            PixelFormat.BC2UNormSRgb or
-            PixelFormat.BC3UNorm or
-            PixelFormat.BC3UNormSRgb or
-            PixelFormat.BC4UNorm or
-            PixelFormat.BC4SNorm or
-            PixelFormat.BC5UNorm or
-            PixelFormat.BC5SNorm or
-            PixelFormat.BC7UNorm or
-            PixelFormat.BC7UNormSRgb => true,
-
-            _ => false
-        };
-    }
-
-    public static uint RowPitch(uint width, PixelFormat format)
-    {
-        return IsCompressed(format) ? (width + 3) / 4 * SizeInBytes(format) : width * SizeInBytes(format);
-    }
-
-    public static uint NumRows(uint height, PixelFormat format)
-    {
-        return IsCompressed(format) ? (height + 3) / 4 : height;
-    }
-
-    public static uint SlicePitch(uint width, uint height, PixelFormat format)
-    {
-        return RowPitch(width, format) * NumRows(height, format);
-    }
-
     public static uint FaceCount(TextureDesc desc)
     {
         return desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : 1u;
+    }
+
+    public static uint FaceIndex(TextureDesc desc, TextureSlice slice)
+    {
+        return desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? slice.Face : 0u;
     }
 
     public static uint FlattenArrayLayerCount(TextureDesc desc)
@@ -203,7 +264,7 @@ public static class ZenithHelper
 
     public static uint FlattenArrayLayerIndex(TextureDesc desc, TextureSlice slice)
     {
-        return (slice.ArrayLayer * FaceCount(desc)) + slice.Face;
+        return (slice.ArrayLayer * FaceCount(desc)) + FaceIndex(desc, slice);
     }
 
     public static (uint FlattenArrayLayerIndex, uint FlattenArrayLayerCount) FlattenArrayLayerRange(TextureViewDesc desc)
@@ -218,13 +279,27 @@ public static class ZenithHelper
 
     public static uint SubresourceIndex(TextureDesc desc, TextureSlice slice)
     {
-        return (slice.MipLevel * desc.ArrayLayers * FaceCount(desc)) + (slice.ArrayLayer * FaceCount(desc)) + slice.Face;
+        return (slice.MipLevel * desc.ArrayLayers * FaceCount(desc)) + (slice.ArrayLayer * FaceCount(desc)) + FaceIndex(desc, slice);
     }
 
     public static uint SubresourceSizeInBytes(TextureDesc desc, TextureSlice slice)
     {
         MipDimensions(desc.Width, desc.Height, desc.Depth, slice.MipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth);
 
-        return SlicePitch(mipWidth, mipHeight, desc.Format) * mipDepth;
+        return SizeInBytes(desc.Format, mipWidth, mipHeight) * mipDepth;
+    }
+
+    public static ShaderStageFlags[] GraphicShaderStages()
+    {
+        return
+        [
+            ShaderStageFlags.Vertex,
+            ShaderStageFlags.Hull,
+            ShaderStageFlags.Domain,
+            ShaderStageFlags.Geometry,
+            ShaderStageFlags.Pixel,
+            ShaderStageFlags.Amplification,
+            ShaderStageFlags.Mesh
+        ];
     }
 }

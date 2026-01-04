@@ -1,0 +1,50 @@
+﻿using Silk.NET.Core.Native;
+using Silk.NET.Direct3D12;
+
+namespace Zenith.NET.DirectX12;
+
+internal unsafe class DXQueryHeap : QueryHeap
+{
+    public ComPtr<ID3D12QueryHeap> QueryHeap;
+
+    public DXQueryHeap(DXGraphicsContext context, QueryHeapDesc desc) : base(context, desc)
+    {
+        DxQueryHeapDesc queryHeapDesc = new()
+        {
+            Type = DXFormats.DirectX12(desc.Type).QueryHeapType,
+            Count = desc.Count
+        };
+
+        context.Device.CreateQueryHeap(&queryHeapDesc, out QueryHeap).Success();
+
+        Buffer = new(context, new()
+        {
+            SizeInBytes = sizeof(ulong) * desc.Count,
+            StrideInBytes = sizeof(ulong),
+            Flags = BufferUsageFlags.MapRead
+        });
+    }
+
+    public DXBuffer Buffer { get; }
+
+    protected override void GetResultsImpl(Span<ulong> results, uint startIndex)
+    {
+        MappedMemory mappedMemory = Buffer.Map();
+
+        new Span<ulong>((void*)(mappedMemory.Pointer + (sizeof(ulong) * startIndex)), results.Length).CopyTo(results);
+
+        Buffer.Unmap();
+    }
+
+    protected override void SetResourceName(string name)
+    {
+        QueryHeap.SetName(name).Success();
+    }
+
+    protected override void Destroy()
+    {
+        Buffer.Dispose();
+
+        QueryHeap.Dispose();
+    }
+}

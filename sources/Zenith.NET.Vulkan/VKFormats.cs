@@ -76,41 +76,58 @@ internal static class VKFormats
         return result;
     }
 
-    public static VkBufferUsageFlags Vulkan(BufferUsageFlags bufferUsageFlags)
+    public static (VkBufferUsageFlags UsageFlags, MemoryPropertyFlags PropertyFlags) Vulkan(BufferUsageFlags bufferUsageFlags)
     {
-        VkBufferUsageFlags result = VkBufferUsageFlags.None;
+        VkBufferUsageFlags usageFlags = VkBufferUsageFlags.TransferSrcBit | VkBufferUsageFlags.TransferDstBit | VkBufferUsageFlags.ShaderDeviceAddressBit;
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.Vertex))
         {
-            result |= VkBufferUsageFlags.VertexBufferBit;
+            usageFlags |= VkBufferUsageFlags.VertexBufferBit;
         }
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.Index))
         {
-            result |= VkBufferUsageFlags.IndexBufferBit;
+            usageFlags |= VkBufferUsageFlags.IndexBufferBit;
         }
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.Indirect))
         {
-            result |= VkBufferUsageFlags.IndirectBufferBit;
+            usageFlags |= VkBufferUsageFlags.IndirectBufferBit;
         }
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.AccelerationStructure))
         {
-            result |= VkBufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr;
+            usageFlags |= VkBufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr;
         }
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.Constant))
         {
-            result |= VkBufferUsageFlags.UniformBufferBit;
+            usageFlags |= VkBufferUsageFlags.UniformBufferBit;
         }
 
         if (bufferUsageFlags.HasFlag(BufferUsageFlags.ShaderResource) || bufferUsageFlags.HasFlag(BufferUsageFlags.UnorderedAccess))
         {
-            result |= VkBufferUsageFlags.StorageBufferBit;
+            usageFlags |= VkBufferUsageFlags.StorageBufferBit;
         }
 
-        return result;
+        MemoryPropertyFlags propertyFlags = MemoryPropertyFlags.DeviceLocalBit;
+
+        if (bufferUsageFlags.HasFlag(BufferUsageFlags.MapRead) || bufferUsageFlags.HasFlag(BufferUsageFlags.MapWrite))
+        {
+            propertyFlags = MemoryPropertyFlags.HostVisibleBit;
+
+            if (bufferUsageFlags.HasFlag(BufferUsageFlags.MapRead))
+            {
+                propertyFlags |= MemoryPropertyFlags.HostCachedBit;
+            }
+
+            if (bufferUsageFlags.HasFlag(BufferUsageFlags.MapWrite))
+            {
+                propertyFlags |= MemoryPropertyFlags.HostCoherentBit;
+            }
+        }
+
+        return (usageFlags, propertyFlags);
     }
 
     public static (ImageType ImageType, ImageViewType ImageViewType) Vulkan(TextureType textureType)
@@ -121,11 +138,11 @@ internal static class VKFormats
             TextureType.Texture1DArray => ImageType.Type1D,
 
             TextureType.Texture2D or
-            TextureType.Texture2DArray => ImageType.Type2D,
-
-            TextureType.Texture3D or
+            TextureType.Texture2DArray or
             TextureType.TextureCube or
-            TextureType.TextureCubeArray => ImageType.Type3D,
+            TextureType.TextureCubeArray => ImageType.Type2D,
+
+            TextureType.Texture3D => ImageType.Type3D,
 
             _ => ImageType.Type1D
         };
@@ -184,10 +201,10 @@ internal static class VKFormats
             PixelFormat.R32G32B32Float => Format.R32G32B32Sfloat,
 
             PixelFormat.R8G8B8A8UNorm => Format.R8G8B8A8Unorm,
-            PixelFormat.R8G8B8A8UNormSRgb => Format.R8G8B8A8Srgb,
             PixelFormat.R8G8B8A8SNorm => Format.R8G8B8A8SNorm,
             PixelFormat.R8G8B8A8UInt => Format.R8G8B8A8Uint,
             PixelFormat.R8G8B8A8SInt => Format.R8G8B8A8Sint,
+            PixelFormat.R8G8B8A8SRgb => Format.R8G8B8A8Srgb,
 
             PixelFormat.R16G16B16A16UNorm => Format.R16G16B16A16Unorm,
             PixelFormat.R16G16B16A16SNorm => Format.R16G16B16A16SNorm,
@@ -200,19 +217,12 @@ internal static class VKFormats
             PixelFormat.R32G32B32A32Float => Format.R32G32B32A32Sfloat,
 
             PixelFormat.B8G8R8A8UNorm => Format.B8G8R8A8Unorm,
-            PixelFormat.B8G8R8A8UNormSRgb => Format.B8G8R8A8Srgb,
+            PixelFormat.B8G8R8A8SRgb => Format.B8G8R8A8Srgb,
 
+            PixelFormat.D16UNorm => Format.D16Unorm,
             PixelFormat.D24UNormS8UInt => Format.D24UnormS8Uint,
+            PixelFormat.D32Float => Format.D32Sfloat,
             PixelFormat.D32FloatS8UInt => Format.D32SfloatS8Uint,
-
-            PixelFormat.BC1UNorm => Format.BC1RgbaUnormBlock,
-            PixelFormat.BC1UNormSRgb => Format.BC1RgbaSrgbBlock,
-
-            PixelFormat.BC2UNorm => Format.BC2UnormBlock,
-            PixelFormat.BC2UNormSRgb => Format.BC2SrgbBlock,
-
-            PixelFormat.BC3UNorm => Format.BC3UnormBlock,
-            PixelFormat.BC3UNormSRgb => Format.BC3SrgbBlock,
 
             PixelFormat.BC4UNorm => Format.BC4UnormBlock,
             PixelFormat.BC4SNorm => Format.BC4SNormBlock,
@@ -220,8 +230,44 @@ internal static class VKFormats
             PixelFormat.BC5UNorm => Format.BC5UnormBlock,
             PixelFormat.BC5SNorm => Format.BC5SNormBlock,
 
+            PixelFormat.BC6HUFloat => Format.BC6HUfloatBlock,
+            PixelFormat.BC6HSFloat => Format.BC6HSfloatBlock,
+
             PixelFormat.BC7UNorm => Format.BC7UnormBlock,
-            PixelFormat.BC7UNormSRgb => Format.BC7SrgbBlock,
+            PixelFormat.BC7SRgb => Format.BC7SrgbBlock,
+
+            PixelFormat.ETC2UNorm => Format.Etc2R8G8B8UnormBlock,
+            PixelFormat.ETC2SRgb => Format.Etc2R8G8B8SrgbBlock,
+
+            PixelFormat.ETC2A1UNorm => Format.Etc2R8G8B8A1UnormBlock,
+            PixelFormat.ETC2A1SRgb => Format.Etc2R8G8B8A1SrgbBlock,
+
+            PixelFormat.ETC2A8UNorm => Format.Etc2R8G8B8A8UnormBlock,
+            PixelFormat.ETC2A8SRgb => Format.Etc2R8G8B8A8SrgbBlock,
+
+            PixelFormat.ASTC4x4UNorm => Format.Astc4x4UnormBlock,
+            PixelFormat.ASTC4x4SRgb => Format.Astc4x4SrgbBlock,
+            PixelFormat.ASTC4x4Float => Format.Astc4x4SfloatBlock,
+
+            PixelFormat.ASTC5x5UNorm => Format.Astc5x5UnormBlock,
+            PixelFormat.ASTC5x5SRgb => Format.Astc5x5SrgbBlock,
+            PixelFormat.ASTC5x5Float => Format.Astc5x5SfloatBlock,
+
+            PixelFormat.ASTC6x6UNorm => Format.Astc6x6UnormBlock,
+            PixelFormat.ASTC6x6SRgb => Format.Astc6x6SrgbBlock,
+            PixelFormat.ASTC6x6Float => Format.Astc6x6SfloatBlock,
+
+            PixelFormat.ASTC8x8UNorm => Format.Astc8x8UnormBlock,
+            PixelFormat.ASTC8x8SRgb => Format.Astc8x8SrgbBlock,
+            PixelFormat.ASTC8x8Float => Format.Astc8x8SfloatBlock,
+
+            PixelFormat.ASTC10x10UNorm => Format.Astc10x10UnormBlock,
+            PixelFormat.ASTC10x10SRgb => Format.Astc10x10SrgbBlock,
+            PixelFormat.ASTC10x10Float => Format.Astc10x10SfloatBlock,
+
+            PixelFormat.ASTC12x12UNorm => Format.Astc12x12UnormBlock,
+            PixelFormat.ASTC12x12SRgb => Format.Astc12x12SrgbBlock,
+            PixelFormat.ASTC12x12Float => Format.Astc12x12SfloatBlock,
 
             _ => Format.Undefined
         };
@@ -241,42 +287,50 @@ internal static class VKFormats
         };
     }
 
-    public static (ImageUsageFlags ImageUsageFlags, ImageAspectFlags ImageAspectFlags) Vulkan(TextureUsageFlags textureUsageFlags)
+    public static (ImageUsageFlags UsageFlags, ImageAspectFlags AspectFlags) Vulkan(PixelFormat pixelFormat, TextureUsageFlags textureUsageFlags)
     {
-        ImageUsageFlags imageUsageFlags = ImageUsageFlags.TransferSrcBit | ImageUsageFlags.TransferDstBit;
+        ImageUsageFlags usageFlags = ImageUsageFlags.TransferSrcBit | ImageUsageFlags.TransferDstBit;
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.RenderTarget))
         {
-            imageUsageFlags |= ImageUsageFlags.ColorAttachmentBit;
+            usageFlags |= ImageUsageFlags.ColorAttachmentBit;
         }
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.DepthStencil))
         {
-            imageUsageFlags |= ImageUsageFlags.DepthStencilAttachmentBit;
+            usageFlags |= ImageUsageFlags.DepthStencilAttachmentBit;
         }
 
-        if (textureUsageFlags.HasFlag(TextureUsageFlags.ShaderResource) || textureUsageFlags.HasFlag(TextureUsageFlags.Dynamic))
+        if (textureUsageFlags.HasFlag(TextureUsageFlags.ShaderResource))
         {
-            imageUsageFlags |= ImageUsageFlags.SampledBit;
+            usageFlags |= ImageUsageFlags.SampledBit;
         }
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.UnorderedAccess))
         {
-            imageUsageFlags |= ImageUsageFlags.StorageBit;
+            usageFlags |= ImageUsageFlags.StorageBit;
         }
 
-        ImageAspectFlags imageAspectFlags = ImageAspectFlags.None;
+        ImageAspectFlags aspectFlags = ImageAspectFlags.None;
 
         if (textureUsageFlags.HasFlag(TextureUsageFlags.DepthStencil))
         {
-            imageAspectFlags |= ImageAspectFlags.DepthBit | ImageAspectFlags.StencilBit;
+            if (ZenithHelper.HasDepth(pixelFormat))
+            {
+                aspectFlags |= ImageAspectFlags.DepthBit;
+            }
+
+            if (ZenithHelper.HasStencil(pixelFormat))
+            {
+                aspectFlags |= ImageAspectFlags.StencilBit;
+            }
         }
         else
         {
-            imageAspectFlags |= ImageAspectFlags.ColorBit;
+            aspectFlags |= ImageAspectFlags.ColorBit;
         }
 
-        return (imageUsageFlags, imageAspectFlags);
+        return (usageFlags, aspectFlags);
     }
 
     public static (VkFilter MinFilter, VkFilter MagFilter, SamplerMipmapMode MipmapMode) Vulkan(Filter filter)
@@ -650,7 +704,7 @@ internal static class VKFormats
             result |= BuildAccelerationStructureFlagsKHR.AllowUpdateBitKhr;
         }
 
-        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowCompactation))
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowCompaction))
         {
             result |= BuildAccelerationStructureFlagsKHR.AllowCompactionBitKhr;
         }

@@ -1,12 +1,10 @@
 ﻿using System.Numerics;
 using Hexa.NET.ImGui;
 using Silk.NET.Input;
-using Silk.NET.Windowing;
 using Zenith.NET;
 using Zenith.NET.Extensions.ImGui;
-using Zenith.NET.Vulkan;
 
-namespace SponzaScene;
+namespace SponzaScene.Models;
 
 internal class SilkImGuiController : ImGuiController, IImGuiPlatformBindings
 {
@@ -250,142 +248,5 @@ internal class SilkImGuiController : ImGuiController, IImGuiPlatformBindings
     public void SetImeData(ImGuiViewportPtr viewport, ImGuiPlatformImeDataPtr data)
     {
         // IME not supported.
-    }
-}
-
-internal static class Dispatcher
-{
-    private static readonly Lock @lock = new();
-    private static readonly Queue<Action> actions = new();
-
-    public static void Invoke(Action action)
-    {
-        using Lock.Scope _ = @lock.EnterScope();
-
-        actions.Enqueue(action);
-    }
-
-    public static void Process()
-    {
-        using Lock.Scope _ = @lock.EnterScope();
-
-        if (actions.Count > 0)
-        {
-            actions.Dequeue()();
-        }
-    }
-}
-
-internal interface IView : IDisposable
-{
-    void Update(double delta);
-
-    void Render(double delta);
-}
-
-internal static class App
-{
-    static App()
-    {
-        MainWindow = Window.Create(WindowOptions.Default with { API = GraphicsAPI.None });
-        MainWindow.Initialize();
-
-        Context = GraphicsContext.CreateVulkan(true);
-        Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
-
-        Surface surface;
-        if (OperatingSystem.IsWindows())
-        {
-            surface = Surface.Win32(MainWindow.Native!.Win32!.Value.Hwnd, (uint)MainWindow.Size.X, (uint)MainWindow.Size.Y);
-        }
-        else if (OperatingSystem.IsLinux())
-        {
-            surface = Surface.Xlib(MainWindow.Native!.X11!.Value.Display, (nint)MainWindow.Native.X11.Value.Window, (uint)MainWindow.Size.X, (uint)MainWindow.Size.Y);
-        }
-        else
-        {
-            throw new PlatformNotSupportedException();
-        }
-
-        SwapChain = Context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.R8G8B8A8UNorm, DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt });
-
-        ImGuiController = new SilkImGuiController(MainWindow.CreateInput(), SwapChain.FrameBuffer.Output, ImGuiColorSpace.Legacy);
-    }
-
-    public static IWindow MainWindow { get; }
-
-    public static GraphicsContext Context { get; }
-
-    public static SwapChain SwapChain { get; }
-
-    public static ImGuiController ImGuiController { get; }
-
-    public static List<IView> Views { get; } = [];
-
-    public static void Run()
-    {
-        MainWindow.Update += delta =>
-        {
-            ImGuiController.Update(delta, (uint)MainWindow.Size.X, (uint)MainWindow.Size.Y);
-
-            ImGui.DockSpaceOverViewport(null, ImGuiDockNodeFlags.PassthruCentralNode, null);
-
-            foreach (IView view in Views)
-            {
-                view.Update(delta);
-            }
-
-            Dispatcher.Process();
-        };
-
-        MainWindow.Render += delta =>
-        {
-            if (MainWindow.Size.X is 0 || MainWindow.Size.Y is 0)
-            {
-                return;
-            }
-
-            foreach (IView view in Views)
-            {
-                view.Render(delta);
-            }
-
-            CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
-
-            commandBuffer.BindFrameBuffer(SwapChain.FrameBuffer, ClearValues.Default);
-
-            ImGuiController.Render(commandBuffer);
-
-            commandBuffer.Submit();
-
-            Context.Copy.WaitIdle();
-            Context.Compute.WaitIdle();
-            Context.Graphics.WaitIdle();
-
-            SwapChain.Present();
-        };
-
-        MainWindow.Resize += size =>
-        {
-            if (size.X is 0 || size.Y is 0)
-            {
-                return;
-            }
-
-            SwapChain.Resize((uint)size.X, (uint)size.Y);
-        };
-
-        MainWindow.Run();
-
-        foreach (IView view in Views)
-        {
-            view.Dispose();
-        }
-
-        ImGuiController.Dispose();
-        SwapChain.Dispose();
-        Context.Dispose();
-
-        Console.WriteLine("Exited cleanly.");
     }
 }

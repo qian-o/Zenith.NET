@@ -8,7 +8,7 @@ public unsafe partial class ZenithView
     private D3DTexture? texture;
     private SwapChain? swapChain;
 
-    private void OnRender(GraphicsContext graphicsContext)
+    private void OnRender(GraphicsContext context)
     {
         uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
         uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
@@ -18,7 +18,7 @@ public unsafe partial class ZenithView
             Destroy();
 
             texture = new(width, height);
-            swapChain = graphicsContext.CreateSwapChain(new()
+            swapChain = context.CreateSwapChain(new()
             {
                 Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
                 ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
@@ -28,11 +28,14 @@ public unsafe partial class ZenithView
             this.As<ISwapChainPanelNative>().SetSwapChain(texture.SwapChain);
         }
 
+        texture.AcquireForUpdate();
+
         UpdateRequested?.Invoke(this, new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
         RenderRequested?.Invoke(this, new(timer.GetAndRestartRender(), timer.TotalSeconds, swapChain.FrameBuffer));
 
-        texture.Present();
         swapChain.Present();
+
+        texture.PresentAndRelease();
     }
 
     private void Destroy()

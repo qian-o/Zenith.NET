@@ -9,6 +9,4 @@ public record struct RayTracingAABBs
     public uint StrideInBytes;
 
     public uint OffsetInBytes;
-
-    public RayTracingGeometryFlags Flags;
 }

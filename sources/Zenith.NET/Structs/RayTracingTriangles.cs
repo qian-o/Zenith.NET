@@ -23,6 +23,4 @@ public record struct RayTracingTriangles
     public uint IndexOffsetInBytes;
 
     public Matrix4x4 Transform;
-
-    public RayTracingGeometryFlags Flags;
 }

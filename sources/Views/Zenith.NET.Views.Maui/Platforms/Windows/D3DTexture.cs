@@ -1,4 +1,6 @@
-﻿using Silk.NET.Core.Native;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
+using Silk.NET.Core.Native;
 using Silk.NET.Direct3D11;
 using Silk.NET.DXGI;
 
@@ -6,13 +8,20 @@ namespace Zenith.NET.Views.Maui.Platforms.Windows;
 
 internal unsafe partial class D3DTexture : DisposableObject
 {
+    [LibraryImport("kernel32")]
+    private static partial int CloseHandle(nint hObject);
+
     public ComPtr<IDXGISwapChain1> SwapChain;
 
     public ComPtr<ID3D11Texture2D> Texture;
 
+    public ComPtr<IDXGIKeyedMutex> Mutex;
+
     public nint Handle;
 
     public nint SharedHandle;
+
+    private ulong key;
 
     public D3DTexture(uint width, uint height)
     {
@@ -21,7 +30,7 @@ internal unsafe partial class D3DTexture : DisposableObject
             Width = width,
             Height = height,
             Format = Format.FormatB8G8R8A8Unorm,
-            SampleDesc = new SampleDesc { Count = 1, Quality = 0 },
+            SampleDesc = new() { Count = 1, Quality = 0 },
             BufferUsage = DXGI.UsageRenderTargetOutput,
             BufferCount = 3,
             Scaling = Scaling.Stretch,
@@ -37,17 +46,19 @@ internal unsafe partial class D3DTexture : DisposableObject
             MipLevels = 1,
             ArraySize = 1,
             Format = Format.FormatB8G8R8A8Unorm,
-            SampleDesc = new SampleDesc { Count = 1, Quality = 0 },
-            Usage = Usage.Default,
-            MiscFlags = (uint)ResourceMiscFlag.Shared
+            SampleDesc = new() { Count = 1, Quality = 0 },
+            BindFlags = (uint)BindFlag.RenderTarget,
+            MiscFlags = (uint)(ResourceMiscFlag.SharedNthandle | ResourceMiscFlag.SharedKeyedmutex)
         };
 
         D3D.Success(D3D.Device.CreateTexture2D(&texture2DDesc, null, ref Texture));
 
+        D3D.Success(Texture.QueryInterface(out Mutex));
+
         using ComPtr<IDXGIResource1> resource = Texture.QueryInterface<IDXGIResource1>();
 
         void* sharedHandle = null;
-        D3D.Success(resource.GetSharedHandle(&sharedHandle));
+        D3D.Success(resource.CreateSharedHandle((SecurityAttributes*)null, DXGI.SharedResourceRead | DXGI.SharedResourceWrite, (char*)null, &sharedHandle));
 
         Handle = (nint)Texture.Handle;
         SharedHandle = (nint)sharedHandle;
@@ -60,7 +71,12 @@ internal unsafe partial class D3DTexture : DisposableObject
 
     public uint Height { get; }
 
-    public void Present()
+    public void AcquireForUpdate()
+    {
+        D3D.Success(Mutex.AcquireSync(key++, uint.MaxValue));
+    }
+
+    public void PresentAndRelease()
     {
         D3D.Success(SwapChain.GetBuffer(0, out ComPtr<ID3D11Texture2D> backBuffer));
 
@@ -70,10 +86,18 @@ internal unsafe partial class D3DTexture : DisposableObject
         D3D.Success(SwapChain.Present(1, 0));
 
         backBuffer.Dispose();
+
+        D3D.Success(Mutex.ReleaseSync(key));
     }
 
     protected override void Destroy()
     {
+        if (CloseHandle(SharedHandle) is 0)
+        {
+            Debug.WriteLine("Failed to close shared handle.");
+        }
+
+        Mutex.Dispose();
         Texture.Dispose();
         SwapChain.Dispose();
     }

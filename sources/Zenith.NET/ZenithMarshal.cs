@@ -11,6 +11,11 @@ public static unsafe class ZenithMarshal
 
         internal nint Native<T>(ReadOnlySpan<T> data) where T : unmanaged
         {
+            if (data.Length is 0)
+            {
+                return nint.Zero;
+            }
+
             nint pointer = (nint)NativeMemory.Alloc((uint)(sizeof(T) * data.Length));
 
             data.CopyTo(new((void*)pointer, data.Length));
@@ -33,6 +38,11 @@ public static unsafe class ZenithMarshal
     public static nint Allocate<T>(Scope scope, uint length) where T : unmanaged
     {
         return scope.Native(new T[length]);
+    }
+
+    public static nint AllocateAndFill<T>(Scope scope, ReadOnlySpan<T> data) where T : unmanaged
+    {
+        return scope.Native(data);
     }
 
     public static nint StringToPointer(Scope scope, string value, StringEncoding encoding)

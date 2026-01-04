@@ -70,7 +70,7 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
 
             frameBuffers[0] = new(context, new()
             {
-                ColorAttachments = [new() { Target = colorTargets[0] = new(context, colorTargetDesc, ExternalMemoryHandleTypeFlags.D3D11TextureKmtBit, handles[0]) }],
+                ColorAttachments = [new() { Target = colorTargets[0] = new(context, colorTargetDesc, ExternalMemoryHandleTypeFlags.D3D11TextureBit, handles[0]) }],
                 DepthStencilAttachment = depthStencilTarget is not null ? new() { Target = depthStencilTarget } : null
             });
         }

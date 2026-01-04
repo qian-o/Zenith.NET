@@ -29,7 +29,7 @@ internal unsafe class VKResourceSet : ResourceSet
             descriptorWrites[i] = new()
             {
                 SType = StructureType.WriteDescriptorSet,
-                DstSet = DescriptorToken.DescriptorSet,
+                DstSet = DescriptorToken.Set,
                 DstBinding = binding.Index,
                 DstArrayElement = 0,
                 DescriptorCount = binding.Count,
@@ -123,16 +123,18 @@ internal unsafe class VKResourceSet : ResourceSet
 
     public VKTextureView[] UavTextureViews { get; }
 
-    public void TransitionLayout(VKCommandBuffer commandBuffer)
+    protected override void PreprocessImpl(CommandBuffer commandBuffer)
     {
+        VKCommandBuffer vkCommandBuffer = commandBuffer.Vulkan();
+
         foreach (VKTextureView textureView in SrvTextureViews)
         {
-            textureView.TransitionLayout(commandBuffer, ImageLayout.ShaderReadOnlyOptimal);
+            textureView.TransitionLayout(vkCommandBuffer, ImageLayout.ShaderReadOnlyOptimal);
         }
 
         foreach (VKTextureView textureView in UavTextureViews)
         {
-            textureView.TransitionLayout(commandBuffer, ImageLayout.General);
+            textureView.TransitionLayout(vkCommandBuffer, ImageLayout.General);
         }
     }
 
@@ -144,7 +146,7 @@ internal unsafe class VKResourceSet : ResourceSet
         {
             SType = StructureType.DebugUtilsObjectNameInfoExt,
             ObjectType = ObjectType.DescriptorSet,
-            ObjectHandle = DescriptorToken.DescriptorSet.Handle,
+            ObjectHandle = DescriptorToken.Set.Handle,
             PObjectName = (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8)
         };
 

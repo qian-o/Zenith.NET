@@ -22,13 +22,12 @@ internal unsafe class VKTexture : Texture
             {
                 Width = desc.Width,
                 Height = desc.Height,
-                Depth = desc.Depth
+                Depth = desc.Type is TextureType.Texture3D ? desc.Depth : 1
             },
             MipLevels = desc.MipLevels,
             ArrayLayers = ZenithHelper.FlattenArrayLayerCount(desc),
             Samples = VKFormats.Vulkan(desc.SampleCount),
-            Tiling = desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? ImageTiling.Linear : ImageTiling.Optimal,
-            Usage = VKFormats.Vulkan(desc.Flags).ImageUsageFlags,
+            Usage = VKFormats.Vulkan(desc.Format, desc.Flags).UsageFlags,
             SharingMode = sharingMode,
             QueueFamilyIndexCount = queueFamilyIndexCount,
             PQueueFamilyIndices = (uint*)pQueueFamilyIndices
@@ -84,13 +83,12 @@ internal unsafe class VKTexture : Texture
             {
                 Width = desc.Width,
                 Height = desc.Height,
-                Depth = desc.Depth
+                Depth = desc.Type is TextureType.Texture3D ? desc.Depth : 1
             },
             MipLevels = desc.MipLevels,
             ArrayLayers = ZenithHelper.FlattenArrayLayerCount(desc),
             Samples = VKFormats.Vulkan(desc.SampleCount),
-            Tiling = desc.Flags.HasFlag(TextureUsageFlags.Dynamic) ? ImageTiling.Linear : ImageTiling.Optimal,
-            Usage = VKFormats.Vulkan(desc.Flags).ImageUsageFlags,
+            Usage = VKFormats.Vulkan(desc.Format, desc.Flags).UsageFlags,
             SharingMode = sharingMode,
             QueueFamilyIndexCount = queueFamilyIndexCount,
             PQueueFamilyIndices = (uint*)pQueueFamilyIndices
@@ -123,35 +121,6 @@ internal unsafe class VKTexture : Texture
     public VKTextureView View { get; }
 
     public ImageLayout[] Layouts { get; }
-
-    public override MappedMemory Map(TextureSlice slice)
-    {
-        ImageSubresource subresource = new()
-        {
-            AspectMask = VKFormats.Vulkan(Desc.Flags).ImageAspectFlags,
-            MipLevel = slice.MipLevel,
-            ArrayLayer = ZenithHelper.FlattenArrayLayerIndex(Desc, slice)
-        };
-
-        SubresourceLayout layout = default;
-        Context.Vk.GetImageSubresourceLayout(Context.Device, Image, &subresource, &layout);
-
-        void* pointer;
-        Context.Vk.MapMemory(Context.Device, DeviceMemory?.DeviceMemory ?? default, layout.Offset, layout.Size, 0, &pointer).Success();
-
-        return new()
-        {
-            Pointer = (nint)pointer,
-            SizeInBytes = (uint)layout.Size,
-            RowPitch = (uint)layout.RowPitch,
-            SlicePitch = (uint)layout.DepthPitch
-        };
-    }
-
-    public override void Unmap()
-    {
-        Context.Vk.UnmapMemory(Context.Device, DeviceMemory?.DeviceMemory ?? default);
-    }
 
     public void TransitionLayout(VKCommandBuffer commandBuffer,
                                  uint firstMipLevel,
@@ -297,7 +266,7 @@ internal unsafe class VKTexture : Texture
                         Image = Image,
                         SubresourceRange = new()
                         {
-                            AspectMask = VKFormats.Vulkan(Desc.Flags).ImageAspectFlags,
+                            AspectMask = VKFormats.Vulkan(Desc.Format, Desc.Flags).AspectFlags,
                             BaseMipLevel = slice.MipLevel,
                             LevelCount = 1,
                             BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(Desc, slice),
@@ -320,6 +289,35 @@ internal unsafe class VKTexture : Texture
                 }
             }
         }
+    }
+
+    public void TransitionLayout(VKCommandBuffer commandBuffer, TextureSlice slice, ImageLayout newLayout)
+    {
+        TransitionLayout(commandBuffer, slice.MipLevel, 1, slice.ArrayLayer, 1, slice.Face, 1, newLayout);
+    }
+
+    public ImageView CreateAttachmentView(TextureSlice slice)
+    {
+        ImageViewCreateInfo createInfo = new()
+        {
+            SType = StructureType.ImageViewCreateInfo,
+            Image = Image,
+            ViewType = ImageViewType.Type2D,
+            Format = VKFormats.Vulkan(Desc.Format),
+            SubresourceRange = new()
+            {
+                AspectMask = VKFormats.Vulkan(Desc.Format, Desc.Flags).AspectFlags,
+                BaseMipLevel = slice.MipLevel,
+                LevelCount = 1,
+                BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(Desc, slice),
+                LayerCount = 1
+            }
+        };
+
+        ImageView imageView;
+        Context.Vk.CreateImageView(Context.Device, &createInfo, null, &imageView).Success();
+
+        return imageView;
     }
 
     protected override void SetResourceName(string name)

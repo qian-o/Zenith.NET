@@ -8,7 +8,7 @@ public static class Extensions
 {
     extension(GraphicsContext context)
     {
-        public Texture LoadTextureFromStream(Stream stream, bool generateMipMaps = true)
+        public Texture LoadTextureFromStream(Stream stream, bool generateMipMaps = false)
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(stream);
 

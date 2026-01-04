@@ -159,7 +159,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
         {
             SizeInBytes = (uint)sizeof(Constants),
             StrideInBytes = (uint)sizeof(Constants),
-            Flags = BufferUsageFlags.Constant | BufferUsageFlags.Dynamic
+            Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
         });
 
         sampler = context.CreateSampler(new()
@@ -203,7 +203,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
         if (!textureBindings.TryGetValue(texture, out ImTextureID textureID))
         {
             ulong id = 0;
-            while (textureBindings.Values.Any(item => item == id))
+            while (imResourceSets.ContainsKey(id))
             {
                 id++;
             }
@@ -223,7 +223,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
         if (!textureViewBindings.TryGetValue(textureView, out ImTextureID textureID))
         {
             ulong id = 0;
-            while (textureViewBindings.Values.Any(item => item == id))
+            while (imResourceSets.ContainsKey(id))
             {
                 id++;
             }
@@ -256,7 +256,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
         }
     }
 
-    public void Render(CommandBuffer commandBuffer, ImDrawDataPtr drawData)
+    public void Render(CommandBuffer commandBuffer, FrameBuffer frameBuffer, ClearValue clearValue, ImDrawDataPtr drawData)
     {
         if (drawData.CmdListsCount is 0)
         {
@@ -281,7 +281,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
                             MipLevels = 1,
                             ArrayLayers = 1,
                             SampleCount = SampleCount.Count1,
-                            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.Dynamic
+                            Flags = TextureUsageFlags.ShaderResource
                         });
 
                         TextureExtent extent = new() { Width = (uint)textureData.Width, Height = (uint)textureData.Height, Depth = 1 };
@@ -290,13 +290,13 @@ float4 PSMain(VSOutput input) : SV_TARGET
                         {
                             ReadOnlySpan<int> pixels = new(textureData.Pixels, textureData.Width * textureData.Height);
 
-                            texture.Upload(pixels, default, default, extent);
+                            commandBuffer.Upload(texture, default, default, extent, pixels);
                         }
                         else
                         {
                             ReadOnlySpan<byte> pixels = new(textureData.Pixels, textureData.Width * textureData.Height);
 
-                            texture.Upload(pixels, default, default, extent);
+                            commandBuffer.Upload(texture, default, default, extent, pixels);
                         }
 
                         textureData.SetTexID(Binding(texture));
@@ -315,24 +315,31 @@ float4 PSMain(VSOutput input) : SV_TARGET
                                 ImTextureRect rect = textureData.Updates[j];
 
                                 TextureOffset offset = new() { X = rect.X, Y = rect.Y, Z = 0 };
-                                TextureExtent extent = new() { Width = rect.W, Height = 1, Depth = 1 };
+                                TextureExtent extent = new() { Width = rect.W, Height = rect.H, Depth = 1 };
 
-                                for (ushort k = 0; k < rect.H; k++)
+                                using ZenithMarshal.Scope scope = new();
+
+                                if (textureData.Format is ImTextureFormat.Rgba32)
                                 {
-                                    if (textureData.Format is ImTextureFormat.Rgba32)
-                                    {
-                                        ReadOnlySpan<int> pixels = new(textureData.GetPixelsAt(rect.X, rect.Y + k), rect.W);
+                                    Span<int> pixels = new((int*)ZenithMarshal.Allocate<int>(scope, (uint)(rect.W * rect.H)), rect.W * rect.H);
 
-                                        texture.Upload(pixels, default, offset, extent);
-                                    }
-                                    else
+                                    for (ushort k = 0; k < rect.H; k++)
                                     {
-                                        ReadOnlySpan<byte> pixels = new(textureData.GetPixelsAt(rect.X, rect.Y + k), rect.W);
-
-                                        texture.Upload(pixels, default, offset, extent);
+                                        new ReadOnlySpan<int>(textureData.GetPixelsAt(rect.X, rect.Y + k), rect.W).CopyTo(pixels.Slice(k * rect.W, rect.W));
                                     }
 
-                                    offset.Y++;
+                                    commandBuffer.Upload(texture, default, offset, extent, pixels);
+                                }
+                                else
+                                {
+                                    Span<byte> pixels = new((byte*)ZenithMarshal.Allocate<byte>(scope, (uint)(rect.W * rect.H)), rect.W * rect.H);
+
+                                    for (ushort k = 0; k < rect.H; k++)
+                                    {
+                                        new ReadOnlySpan<byte>(textureData.GetPixelsAt(rect.X, rect.Y + k), rect.W).CopyTo(pixels.Slice(k * rect.W, rect.W));
+                                    }
+
+                                    commandBuffer.Upload(texture, default, offset, extent, pixels);
                                 }
                             }
                         }
@@ -366,7 +373,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
             {
                 SizeInBytes = totalVertexSizeInBytes + (totalVertexSizeInBytes / 2),
                 StrideInBytes = (uint)sizeof(ImDrawVert),
-                Flags = BufferUsageFlags.Vertex | BufferUsageFlags.Dynamic
+                Flags = BufferUsageFlags.Vertex | BufferUsageFlags.MapWrite
             });
         }
 
@@ -378,7 +385,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
             {
                 SizeInBytes = totalIndexSizeInBytes + (totalIndexSizeInBytes / 2),
                 StrideInBytes = sizeof(ushort),
-                Flags = BufferUsageFlags.Index | BufferUsageFlags.Dynamic
+                Flags = BufferUsageFlags.Index | BufferUsageFlags.MapWrite
             });
         }
 
@@ -389,14 +396,14 @@ float4 PSMain(VSOutput input) : SV_TARGET
             ReadOnlySpan<ImDrawVert> verts = new(drawListPtr.VtxBuffer.Data, drawListPtr.VtxBuffer.Size);
             ReadOnlySpan<ushort> indices = new(drawListPtr.IdxBuffer.Data, drawListPtr.IdxBuffer.Size);
 
-            commandBuffer.Upload(vertexBuffer, (uint)(sizeof(ImDrawVert) * vertexOffset), verts);
-            commandBuffer.Upload(indexBuffer, (uint)(sizeof(ushort) * indexOffset), indices);
+            vertexBuffer.Upload(verts, (uint)(sizeof(ImDrawVert) * vertexOffset));
+            indexBuffer.Upload(indices, (uint)(sizeof(ushort) * indexOffset));
 
             vertexOffset += drawListPtr.VtxBuffer.Size;
             indexOffset += drawListPtr.IdxBuffer.Size;
         }
 
-        commandBuffer.Upload(constants, 0, [new Constants
+        constants.Upload([new Constants
         {
             Projection = Matrix4x4.CreateOrthographicOffCenter(drawData.DisplayPos.X,
                                                                drawData.DisplayPos.X + drawData.DisplaySize.X,
@@ -404,15 +411,15 @@ float4 PSMain(VSOutput input) : SV_TARGET
                                                                drawData.DisplayPos.Y,
                                                                0.0f,
                                                                1.0f)
-        }]);
-
-        commandBuffer.PreprocessResourceSets([.. imResourceSets.Values]);
+        }], 0);
 
         commandBuffer.BeginDebugEvent("ImGui");
 
-        commandBuffer.BindPipeline(graphicsPipeline);
-        commandBuffer.BindVertexBuffer(vertexBuffer, 0, 0);
-        commandBuffer.BindIndexBuffer(indexBuffer, 0, IndexFormat.UInt16);
+        commandBuffer.BeginRenderPass(frameBuffer, clearValue, imResourceSets.Values);
+
+        commandBuffer.SetPipeline(graphicsPipeline);
+        commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
+        commandBuffer.SetIndexBuffer(indexBuffer, 0, IndexFormat.UInt16);
 
         for (int i = 0, vertexOffset = 0, indexOffset = 0; i < drawData.CmdListsCount; i++)
         {
@@ -438,8 +445,13 @@ float4 PSMain(VSOutput input) : SV_TARGET
                         Height = (uint)(drawCmd.ClipRect.W - drawCmd.ClipRect.Y)
                     };
 
+                    if (scissor.Width <= 0 || scissor.Height <= 0)
+                    {
+                        continue;
+                    }
+
                     commandBuffer.SetScissors([scissor]);
-                    commandBuffer.BindResourceSet(imResourceSets[drawCmd.TexRef.GetTexID()], 0);
+                    commandBuffer.SetResourceSet(imResourceSets[drawCmd.TexRef.GetTexID()], 0);
                     commandBuffer.DrawIndexed(drawCmd.ElemCount, 1, (uint)(drawCmd.IdxOffset + indexOffset), (int)(drawCmd.VtxOffset + vertexOffset), 0);
                 }
             }
@@ -447,6 +459,8 @@ float4 PSMain(VSOutput input) : SV_TARGET
             vertexOffset += drawListPtr.VtxBuffer.Size;
             indexOffset += drawListPtr.IdxBuffer.Size;
         }
+
+        commandBuffer.EndRenderPass();
 
         commandBuffer.EndDebugEvent();
     }

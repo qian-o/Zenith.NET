@@ -28,8 +28,6 @@ internal partial class MauiZenithView : SurfaceView, ISurfaceHolderCallback, IFr
             timer.Stop();
 
             Destroy();
-
-            timer.Reset();
         };
 
         ZenithView = handler.VirtualView;

@@ -9,7 +9,7 @@
         <!-- Package Metadata -->
         <Version>0.0.1</Version>
         <Authors>qian-o</Authors>
-        <Copyright>Copyright (c) 2025 qian-o</Copyright>
+        <Copyright>Copyright (c) 2026 qian-o</Copyright>
         <Description></Description>
 
         <!-- Repository Information -->
@@ -20,7 +20,7 @@
         <PackageIcon></PackageIcon>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageTags>C#;DirectX12;Metal;Vulkan;ImGui;Skia;Slang;Avalonia;Maui;Uno;WinUI;WPF;GPU;Computer Graphics;Cross Platform</PackageTags>
+        <PackageTags>DirectX12;Metal;Vulkan;ImageSharp;ImGui;Skia;Slang;Avalonia;Maui;Uno;WinForms;WinUI;WPF;GPU;Native</PackageTags>
         <PackageReleaseNotes></PackageReleaseNotes>
 
         <!-- Debug Symbols & Source Link -->

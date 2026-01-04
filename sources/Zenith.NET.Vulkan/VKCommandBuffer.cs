@@ -57,6 +57,50 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         Context.Vk.CmdPipelineBarrier(CommandBuffer, PipelineStageFlags.TransferBit, PipelineStageFlags.TransferBit, 0, 1, &barrier, 0, null, 0, null);
     }
 
+    protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent)
+    {
+        VKBuffer vkSrc = src.Vulkan();
+        VKTexture vkDest = dest.Vulkan();
+
+        ImageLayout destOldLayout = vkDest.Layouts[ZenithHelper.SubresourceIndex(vkDest.Desc, destSlice)];
+
+        vkDest.TransitionLayout(this, destSlice, ImageLayout.TransferDstOptimal);
+
+        uint formatSizeInBytes = ZenithHelper.SizeInBytes(vkDest.Desc.Format);
+        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * destExtent.Width, GraphicsContext.TextureRowPitchAlignment);
+        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * destExtent.Height, GraphicsContext.TextureDepthPitchAlignment);
+
+        BufferImageCopy bufferImageCopy = new()
+        {
+            BufferOffset = srcOffsetInBytes,
+            BufferRowLength = sliceRowPitchInBytes / formatSizeInBytes,
+            BufferImageHeight = sliceDepthPitchInBytes / sliceRowPitchInBytes,
+            ImageSubresource = new()
+            {
+                AspectMask = VKFormats.Vulkan(vkDest.Desc.Format, vkDest.Desc.Flags).AspectFlags,
+                MipLevel = destSlice.MipLevel,
+                BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkDest.Desc, destSlice),
+                LayerCount = 1
+            },
+            ImageOffset = new()
+            {
+                X = (int)destOffset.X,
+                Y = (int)destOffset.Y,
+                Z = (int)destOffset.Z
+            },
+            ImageExtent = new()
+            {
+                Width = destExtent.Width,
+                Height = destExtent.Height,
+                Depth = destExtent.Depth
+            }
+        };
+
+        Context.Vk.CmdCopyBufferToImage(CommandBuffer, vkSrc.Buffer, vkDest.Image, ImageLayout.TransferDstOptimal, 1, &bufferImageCopy);
+
+        vkDest.TransitionLayout(this, destSlice, destOldLayout);
+    }
+
     protected override void CopyTextureImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent)
     {
         VKTexture vkSrc = src.Vulkan();
@@ -65,14 +109,14 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         ImageLayout srcOldLayout = vkSrc.Layouts[ZenithHelper.SubresourceIndex(vkSrc.Desc, srcSlice)];
         ImageLayout destOldLayout = vkDest.Layouts[ZenithHelper.SubresourceIndex(vkDest.Desc, destSlice)];
 
-        vkSrc.TransitionLayout(this, srcSlice.MipLevel, 1, srcSlice.ArrayLayer, 1, srcSlice.Face, 1, ImageLayout.TransferSrcOptimal);
-        vkDest.TransitionLayout(this, destSlice.MipLevel, 1, destSlice.ArrayLayer, 1, destSlice.Face, 1, ImageLayout.TransferDstOptimal);
+        vkSrc.TransitionLayout(this, srcSlice, ImageLayout.TransferSrcOptimal);
+        vkDest.TransitionLayout(this, destSlice, ImageLayout.TransferDstOptimal);
 
         ImageCopy imageCopy = new()
         {
             SrcSubresource = new()
             {
-                AspectMask = VKFormats.Vulkan(vkSrc.Desc.Flags).ImageAspectFlags,
+                AspectMask = VKFormats.Vulkan(vkSrc.Desc.Format, vkSrc.Desc.Flags).AspectFlags,
                 MipLevel = srcSlice.MipLevel,
                 BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkSrc.Desc, srcSlice),
                 LayerCount = 1
@@ -85,7 +129,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
             },
             DstSubresource = new()
             {
-                AspectMask = VKFormats.Vulkan(vkDest.Desc.Flags).ImageAspectFlags,
+                AspectMask = VKFormats.Vulkan(vkDest.Desc.Format, vkDest.Desc.Flags).AspectFlags,
                 MipLevel = destSlice.MipLevel,
                 BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkDest.Desc, destSlice),
                 LayerCount = 1
@@ -106,8 +150,51 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
         Context.Vk.CmdCopyImage(CommandBuffer, vkSrc.Image, ImageLayout.TransferSrcOptimal, vkDest.Image, ImageLayout.TransferDstOptimal, 1, &imageCopy);
 
-        vkSrc.TransitionLayout(this, srcSlice.MipLevel, 1, srcSlice.ArrayLayer, 1, srcSlice.Face, 1, srcOldLayout);
-        vkDest.TransitionLayout(this, destSlice.MipLevel, 1, destSlice.ArrayLayer, 1, destSlice.Face, 1, destOldLayout);
+        vkSrc.TransitionLayout(this, srcSlice, srcOldLayout);
+        vkDest.TransitionLayout(this, destSlice, destOldLayout);
+    }
+
+    protected override void CopyTextureToBufferImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes)
+    {
+        VKTexture vkSrc = src.Vulkan();
+
+        ImageLayout srcOldLayout = vkSrc.Layouts[ZenithHelper.SubresourceIndex(vkSrc.Desc, srcSlice)];
+
+        vkSrc.TransitionLayout(this, srcSlice, ImageLayout.TransferSrcOptimal);
+
+        uint formatSizeInBytes = ZenithHelper.SizeInBytes(vkSrc.Desc.Format);
+        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * srcExtent.Width, GraphicsContext.TextureRowPitchAlignment);
+        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * srcExtent.Height, GraphicsContext.TextureDepthPitchAlignment);
+
+        BufferImageCopy bufferImageCopy = new()
+        {
+            BufferOffset = destOffsetInBytes,
+            BufferRowLength = sliceRowPitchInBytes / formatSizeInBytes,
+            BufferImageHeight = sliceDepthPitchInBytes / sliceRowPitchInBytes,
+            ImageSubresource = new()
+            {
+                AspectMask = VKFormats.Vulkan(vkSrc.Desc.Format, vkSrc.Desc.Flags).AspectFlags,
+                MipLevel = srcSlice.MipLevel,
+                BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkSrc.Desc, srcSlice),
+                LayerCount = 1
+            },
+            ImageOffset = new()
+            {
+                X = (int)srcOffset.X,
+                Y = (int)srcOffset.Y,
+                Z = (int)srcOffset.Z
+            },
+            ImageExtent = new()
+            {
+                Width = srcExtent.Width,
+                Height = srcExtent.Height,
+                Depth = srcExtent.Depth
+            }
+        };
+
+        Context.Vk.CmdCopyImageToBuffer(CommandBuffer, vkSrc.Image, ImageLayout.TransferSrcOptimal, dest.Vulkan().Buffer, 1, &bufferImageCopy);
+
+        vkSrc.TransitionLayout(this, srcSlice, srcOldLayout);
     }
 
     protected override void ResolveTextureImpl(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice)
@@ -118,8 +205,8 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         ImageLayout srcOldLayout = vkSrc.Layouts[ZenithHelper.SubresourceIndex(vkSrc.Desc, srcSlice)];
         ImageLayout destOldLayout = vkDest.Layouts[ZenithHelper.SubresourceIndex(vkDest.Desc, destSlice)];
 
-        vkSrc.TransitionLayout(this, srcSlice.MipLevel, 1, srcSlice.ArrayLayer, 1, srcSlice.Face, 1, ImageLayout.TransferSrcOptimal);
-        vkDest.TransitionLayout(this, destSlice.MipLevel, 1, destSlice.ArrayLayer, 1, destSlice.Face, 1, ImageLayout.TransferDstOptimal);
+        vkSrc.TransitionLayout(this, srcSlice, ImageLayout.TransferSrcOptimal);
+        vkDest.TransitionLayout(this, destSlice, ImageLayout.TransferDstOptimal);
 
         ZenithHelper.MipDimensions(vkDest.Desc.Width, vkDest.Desc.Height, vkDest.Desc.Depth, destSlice.MipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth);
 
@@ -127,14 +214,14 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         {
             SrcSubresource = new()
             {
-                AspectMask = VKFormats.Vulkan(vkSrc.Desc.Flags).ImageAspectFlags,
+                AspectMask = VKFormats.Vulkan(vkSrc.Desc.Format, vkSrc.Desc.Flags).AspectFlags,
                 MipLevel = srcSlice.MipLevel,
                 BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkSrc.Desc, srcSlice),
                 LayerCount = 1
             },
             DstSubresource = new()
             {
-                AspectMask = VKFormats.Vulkan(vkDest.Desc.Flags).ImageAspectFlags,
+                AspectMask = VKFormats.Vulkan(vkDest.Desc.Format, vkDest.Desc.Flags).AspectFlags,
                 MipLevel = destSlice.MipLevel,
                 BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkDest.Desc, destSlice),
                 LayerCount = 1
@@ -149,8 +236,8 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
         Context.Vk.CmdResolveImage(CommandBuffer, vkSrc.Image, ImageLayout.TransferSrcOptimal, vkDest.Image, ImageLayout.TransferDstOptimal, 1, &imageResolve);
 
-        vkSrc.TransitionLayout(this, srcSlice.MipLevel, 1, srcSlice.ArrayLayer, 1, srcSlice.Face, 1, srcOldLayout);
-        vkDest.TransitionLayout(this, destSlice.MipLevel, 1, destSlice.ArrayLayer, 1, destSlice.Face, 1, destOldLayout);
+        vkSrc.TransitionLayout(this, srcSlice, srcOldLayout);
+        vkDest.TransitionLayout(this, destSlice, destOldLayout);
     }
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)
@@ -168,12 +255,75 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         accelerationStructure.Vulkan().Update(this, newDesc);
     }
 
-    protected override void PreprocessResourceSetsImpl(ResourceSet[] resourceSets)
+    protected override void BeginRenderPassImpl(FrameBuffer frameBuffer, ClearValue clearValue)
     {
-        foreach (ResourceSet resourceSet in resourceSets)
+        VKFrameBuffer vkFrameBuffer = frameBuffer.Vulkan();
+
+        vkFrameBuffer.PrepareAttachmentsForRendering(this);
+
+        bool clearColor = clearValue.Flags.HasFlag(ClearFlags.Color);
+        bool clearDepth = clearValue.Flags.HasFlag(ClearFlags.Depth);
+        bool clearStencil = clearValue.Flags.HasFlag(ClearFlags.Stencil);
+
+        for (int i = 0; i < vkFrameBuffer.ColorAttachmentCount; i++)
         {
-            resourceSet.Vulkan().TransitionLayout(this);
+            ref RenderingAttachmentInfo colorAttachment = ref vkFrameBuffer.ColorAttachments[i];
+
+            colorAttachment.LoadOp = AttachmentLoadOp.Load;
+
+            if (clearColor)
+            {
+                colorAttachment.LoadOp = AttachmentLoadOp.Clear;
+
+                Vector4 color = clearValue.ColorValues[i];
+
+                colorAttachment.ClearValue.Color = new()
+                {
+                    Float32_0 = color.X,
+                    Float32_1 = color.Y,
+                    Float32_2 = color.Z,
+                    Float32_3 = color.W
+                };
+            }
         }
+
+        if (vkFrameBuffer.HasDepthStencilAttachment)
+        {
+            if (vkFrameBuffer.DepthAttachment is not null)
+            {
+                ref RenderingAttachmentInfo depthAttachment = ref vkFrameBuffer.DepthAttachment[0];
+
+                depthAttachment.LoadOp = AttachmentLoadOp.Load;
+
+                if (clearDepth)
+                {
+                    depthAttachment.LoadOp = AttachmentLoadOp.Clear;
+                    depthAttachment.ClearValue.DepthStencil.Depth = clearValue.Depth;
+                }
+            }
+
+            if (vkFrameBuffer.StencilAttachment is not null)
+            {
+                ref RenderingAttachmentInfo stencilAttachment = ref vkFrameBuffer.StencilAttachment[0];
+
+                stencilAttachment.LoadOp = AttachmentLoadOp.Load;
+
+                if (clearStencil)
+                {
+                    stencilAttachment.LoadOp = AttachmentLoadOp.Clear;
+                    stencilAttachment.ClearValue.DepthStencil.Stencil = clearValue.Stencil;
+                }
+            }
+        }
+
+        Context.Vk.CmdBeginRendering(CommandBuffer, ref vkFrameBuffer.RenderingInfo);
+    }
+
+    protected override void EndRenderPassImpl(FrameBuffer frameBuffer)
+    {
+        Context.Vk.CmdEndRendering(CommandBuffer);
+
+        frameBuffer.Vulkan().FinalizeColorAttachmentsForPresent(this);
     }
 
     protected override void SetScissorsImpl(Scissor[] scissors)
@@ -190,27 +340,27 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         Context.Vk.CmdSetViewport(CommandBuffer, 0, (uint)vkViewports.Length, ref vkViewports[0]);
     }
 
-    protected override void BindPipelineImpl(GraphicsPipeline pipeline)
+    protected override void SetPipelineImpl(GraphicsPipeline pipeline)
     {
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Graphics, pipeline.Vulkan().Pipeline);
     }
 
-    protected override void BindPipelineImpl(ComputePipeline pipeline)
+    protected override void SetPipelineImpl(ComputePipeline pipeline)
     {
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Compute, pipeline.Vulkan().Pipeline);
     }
 
-    protected override void BindPipelineImpl(RayTracingPipeline pipeline)
+    protected override void SetPipelineImpl(RayTracingPipeline pipeline)
     {
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.RayTracingKhr, pipeline.Vulkan().Pipeline);
     }
 
-    protected override void BindPipelineImpl(MeshShadingPipeline pipeline)
+    protected override void SetPipelineImpl(MeshShadingPipeline pipeline)
     {
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Graphics, pipeline.Vulkan().Pipeline);
     }
 
-    protected override void BindVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index)
+    protected override void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index)
     {
         VkBuffer vkBuffer = buffer.Vulkan().Buffer;
         ulong vkOffset = offsetInBytes;
@@ -218,12 +368,12 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         Context.Vk.CmdBindVertexBuffers(CommandBuffer, index, 1, ref vkBuffer, ref vkOffset);
     }
 
-    protected override void BindIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format)
+    protected override void SetIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format)
     {
         Context.Vk.CmdBindIndexBuffer(CommandBuffer, buffer.Vulkan().Buffer, offsetInBytes, VKFormats.Vulkan(format));
     }
 
-    protected override void BindResourceSetImpl(Pipeline pipeline, ResourceSet resourceSet, uint index)
+    protected override void SetResourceSetImpl(Pipeline pipeline, ResourceSet resourceSet, uint index)
     {
         (PipelineBindPoint pipelineBindPoint, PipelineLayout pipelineLayout) = pipeline switch
         {
@@ -234,7 +384,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
             _ => (PipelineBindPoint.Graphics, default)
         };
 
-        Context.Vk.CmdBindDescriptorSets(CommandBuffer, pipelineBindPoint, pipelineLayout, index, 1, ref resourceSet.Vulkan().DescriptorToken.DescriptorSet, 0, null);
+        Context.Vk.CmdBindDescriptorSets(CommandBuffer, pipelineBindPoint, pipelineLayout, index, 1, ref resourceSet.Vulkan().DescriptorToken.Set, 0, null);
     }
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
@@ -362,86 +512,6 @@ internal unsafe class VKCommandBuffer : CommandBuffer
     protected override void ResetImpl()
     {
         Context.Vk.ResetCommandBuffer(CommandBuffer, CommandBufferResetFlags.None).Success();
-    }
-
-    protected override void BeginRenderingImpl(FrameBuffer frameBuffer, ClearValue? clearValue)
-    {
-        VKFrameBuffer vkFrameBuffer = frameBuffer.Vulkan();
-
-        vkFrameBuffer.PrepareAttachmentsForRendering(this);
-
-        Context.Vk.CmdBeginRendering(CommandBuffer, ref vkFrameBuffer.RenderingInfo);
-
-        if (clearValue.HasValue)
-        {
-            bool clearColor = clearValue.Value.Flags.HasFlag(ClearFlags.Color);
-            bool clearDepth = clearValue.Value.Flags.HasFlag(ClearFlags.Depth);
-            bool clearStencil = clearValue.Value.Flags.HasFlag(ClearFlags.Stencil);
-
-            ClearRect rect = new()
-            {
-                Rect = new()
-                {
-                    Extent = new()
-                    {
-                        Width = vkFrameBuffer.Width,
-                        Height = vkFrameBuffer.Height
-                    }
-                },
-                LayerCount = 1
-            };
-
-            if (clearColor)
-            {
-                for (int i = 0; i < vkFrameBuffer.ColorAttachmentCount; i++)
-                {
-                    Vector4 color = clearValue.Value.ColorValues[i];
-
-                    ClearAttachment attachment = new()
-                    {
-                        AspectMask = ImageAspectFlags.ColorBit,
-                        ColorAttachment = (uint)i,
-                        ClearValue = new()
-                        {
-                            Color = new()
-                            {
-                                Float32_0 = color.X,
-                                Float32_1 = color.Y,
-                                Float32_2 = color.Z,
-                                Float32_3 = color.W
-                            }
-                        }
-                    };
-
-                    Context.Vk.CmdClearAttachments(CommandBuffer, 1, &attachment, 1, &rect);
-                }
-            }
-
-            if ((clearDepth || clearStencil) && vkFrameBuffer.HasDepthStencilAttachment)
-            {
-                ClearAttachment attachment = new()
-                {
-                    AspectMask = (clearDepth ? ImageAspectFlags.DepthBit : 0) | (clearStencil ? ImageAspectFlags.StencilBit : 0),
-                    ClearValue = new()
-                    {
-                        DepthStencil = new()
-                        {
-                            Depth = clearValue.Value.Depth,
-                            Stencil = clearValue.Value.Stencil
-                        }
-                    }
-                };
-
-                Context.Vk.CmdClearAttachments(CommandBuffer, 1, &attachment, 1, &rect);
-            }
-        }
-    }
-
-    protected override void EndRenderingImpl(FrameBuffer frameBuffer)
-    {
-        Context.Vk.CmdEndRendering(CommandBuffer);
-
-        frameBuffer.Vulkan().FinalizeColorAttachmentsForPresent(this);
     }
 
     protected override void SetResourceName(string name)

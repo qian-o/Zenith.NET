@@ -465,7 +465,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                     case ResourceType.ConstantBuffer:
                     case ResourceType.StructuredBuffer:
                     case ResourceType.StructuredBufferReadWrite:
-                        if (resource is not Buffer or BufferView)
+                        if (resource is not Buffer and not BufferView)
                         {
                             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Buffer or BufferView", binding.Type));
                         }
@@ -473,7 +473,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
                     case ResourceType.Texture:
                     case ResourceType.TextureReadWrite:
-                        if (resource is not Texture or TextureView)
+                        if (resource is not Texture and not TextureView)
                         {
                             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Texture or TextureView", binding.Type));
                         }
@@ -551,9 +551,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             }
         }
 
-        if (desc.InputLayouts is null || desc.InputLayouts.Length is 0)
+        if (desc.InputLayouts is null)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNullOrEmpty, "GraphicsPipelineDesc.InputLayouts"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.InputLayouts"));
         }
         else
         {
@@ -770,7 +770,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             }
         }
 
-        if (desc.PrimitiveTopology is not PrimitiveTopology.LineList or PrimitiveTopology.TriangleList)
+        if (desc.PrimitiveTopology is not PrimitiveTopology.LineList and not PrimitiveTopology.TriangleList)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOneOf, "MeshShadingPipelineDesc.PrimitiveTopology", "LineList, TriangleList"));
         }

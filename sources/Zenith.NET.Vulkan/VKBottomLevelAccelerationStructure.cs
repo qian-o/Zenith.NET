@@ -14,14 +14,12 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
 
         uint geometryCount = (uint)desc.Geometries.Length;
 
-        BufferDesc transformBufferDesc = new()
+        TransformBuffer = new(context, new()
         {
             SizeInBytes = (uint)(sizeof(TransformMatrixKHR) * geometryCount),
             StrideInBytes = (uint)sizeof(TransformMatrixKHR),
-            Flags = BufferUsageFlags.Dynamic
-        };
-
-        TransformBuffer = new(context, transformBufferDesc, VkBufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr);
+            Flags = BufferUsageFlags.AccelerationStructure | BufferUsageFlags.MapWrite
+        });
 
         MappedMemory mappedMemory = TransformBuffer.Map();
 
@@ -40,9 +38,9 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
             {
                 SType = StructureType.AccelerationStructureGeometryKhr,
                 GeometryType = VKFormats.Vulkan(geometry.Type),
-                Geometry = new()
-                {
-                    Triangles = new()
+                Geometry = new
+                (
+                    triangles: geometry.Type is RayTracingGeometryType.Triangles ? new()
                     {
                         SType = StructureType.AccelerationStructureGeometryTrianglesDataKhr,
                         VertexFormat = VKFormats.Vulkan(geometry.Triangles.VertexFormat),
@@ -52,17 +50,17 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
                         IndexType = geometry.Triangles.IndexBuffer is not null ? VKFormats.Vulkan(geometry.Triangles.IndexFormat) : IndexType.NoneKhr,
                         IndexData = new() { DeviceAddress = geometry.Triangles.IndexBuffer is not null ? geometry.Triangles.IndexBuffer.Vulkan().DeviceAddress + geometry.Triangles.IndexOffsetInBytes : 0 },
                         TransformData = new() { DeviceAddress = TransformBuffer.DeviceAddress + (uint)(sizeof(TransformMatrixKHR) * i) }
-                    },
-                    Aabbs = new()
+                    } : null,
+                    aabbs: geometry.Type is RayTracingGeometryType.AABBs ? new()
                     {
                         SType = StructureType.AccelerationStructureGeometryAabbsDataKhr,
                         Data = new() { DeviceAddress = geometry.AABBs.Buffer.Vulkan().DeviceAddress + geometry.AABBs.OffsetInBytes },
                         Stride = geometry.AABBs.StrideInBytes
-                    }
-                },
+                    } : null
+                ),
                 Flags = VKFormats.Vulkan(geometry.Flags)
             };
-            maxPrimitiveCounts[i] = geometry.Type == RayTracingGeometryType.Triangles ? geometry.Triangles.IndexBuffer is not null ? geometry.Triangles.IndexCount / 3 : geometry.Triangles.VertexCount / 3 : geometry.AABBs.Count;
+            maxPrimitiveCounts[i] = geometry.Type is RayTracingGeometryType.Triangles ? geometry.Triangles.IndexBuffer is not null ? geometry.Triangles.IndexCount / 3 : geometry.Triangles.VertexCount / 3 : geometry.AABBs.Count;
             buildRangeInfos[i] = new() { PrimitiveCount = maxPrimitiveCounts[i] };
         }
 
@@ -106,13 +104,12 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
 
         DeviceAddress = context.AccelerationStructure?.GetAccelerationStructureDeviceAddress(context.Device, &addressInfo) ?? 0;
 
-        BufferDesc scratchBufferDesc = new()
+        ScratchBuffer = new(context, new()
         {
             SizeInBytes = (uint)sizeInfo.BuildScratchSize,
-            StrideInBytes = (uint)sizeInfo.BuildScratchSize
-        };
-
-        ScratchBuffer = new(context, scratchBufferDesc, VkBufferUsageFlags.StorageBufferBit);
+            StrideInBytes = (uint)sizeInfo.BuildScratchSize,
+            Flags = BufferUsageFlags.ShaderResource
+        });
 
         buildInfo.DstAccelerationStructure = AccelerationStructure;
         buildInfo.ScratchData = new() { DeviceAddress = ScratchBuffer.DeviceAddress };

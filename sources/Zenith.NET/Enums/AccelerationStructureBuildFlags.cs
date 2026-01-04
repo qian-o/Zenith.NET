@@ -7,7 +7,7 @@ public enum AccelerationStructureBuildFlags
 
     AllowUpdate = 1 << 0,
 
-    AllowCompactation = 1 << 1,
+    AllowCompaction = 1 << 1,
 
     PreferFastTrace = 1 << 2,
 

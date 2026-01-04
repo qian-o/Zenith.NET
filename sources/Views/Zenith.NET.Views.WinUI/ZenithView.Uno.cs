@@ -10,10 +10,11 @@ public unsafe partial class ZenithView
     private Texture? color;
     private Texture? depthStencil;
     private FrameBuffer? frameBuffer;
-    private Texture? present;
+    private Buffer? present;
     private WriteableBitmap? bitmap;
+    private uint rowPitchInBytes;
 
-    private void OnRender(GraphicsContext graphicsContext)
+    private void OnRender(GraphicsContext context)
     {
         uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
         uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
@@ -22,7 +23,7 @@ public unsafe partial class ZenithView
         {
             Destroy();
 
-            color = graphicsContext.CreateTexture(new()
+            color = context.CreateTexture(new()
             {
                 Type = TextureType.Texture2D,
                 Format = PixelFormat.B8G8R8A8UNorm,
@@ -35,7 +36,7 @@ public unsafe partial class ZenithView
                 Flags = TextureUsageFlags.RenderTarget
             });
 
-            depthStencil = graphicsContext.CreateTexture(new()
+            depthStencil = context.CreateTexture(new()
             {
                 Type = TextureType.Texture2D,
                 Format = PixelFormat.D24UNormS8UInt,
@@ -48,23 +49,17 @@ public unsafe partial class ZenithView
                 Flags = TextureUsageFlags.DepthStencil
             });
 
-            frameBuffer = graphicsContext.CreateFrameBuffer(new()
+            frameBuffer = context.CreateFrameBuffer(new()
             {
                 ColorAttachments = [new() { Target = color }],
                 DepthStencilAttachment = new() { Target = depthStencil }
             });
 
-            present = graphicsContext.CreateTexture(new()
+            present = context.CreateBuffer(new()
             {
-                Type = TextureType.Texture2D,
-                Format = PixelFormat.B8G8R8A8UNorm,
-                Width = width,
-                Height = height,
-                Depth = 1,
-                MipLevels = 1,
-                ArrayLayers = 1,
-                SampleCount = SampleCount.Count1,
-                Flags = TextureUsageFlags.Dynamic
+                SizeInBytes = (rowPitchInBytes = ZenithHelper.Align(width * 4, GraphicsContext.TextureRowPitchAlignment)) * height,
+                StrideInBytes = 4,
+                Flags = BufferUsageFlags.MapRead
             });
 
             Background = new ImageBrush() { ImageSource = bitmap = new((int)width, (int)height) };
@@ -73,15 +68,13 @@ public unsafe partial class ZenithView
         UpdateRequested?.Invoke(this, new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
         RenderRequested?.Invoke(this, new(timer.GetAndRestartRender(), timer.TotalSeconds, frameBuffer));
 
-        CommandBuffer commandBuffer = graphicsContext.Graphics.CommandBuffer();
-        commandBuffer.CopyTexture(color, default, default, present, default, default, new() { Width = width, Height = height, Depth = 1 });
-        commandBuffer.Submit();
-
-        graphicsContext.Graphics.WaitIdle();
+        CommandBuffer commandBuffer = context.Graphics.CommandBuffer();
+        commandBuffer.CopyTextureToBuffer(color, default, default, new() { Width = width, Height = height, Depth = 1 }, present, 0);
+        commandBuffer.Submit(true);
 
         using (Stream stream = bitmap.PixelBuffer.AsStream())
         {
-            MappedMemory mappedMemory = present.Map(default);
+            MappedMemory mappedMemory = present.Map();
 
             byte* pixels = (byte*)mappedMemory.Pointer;
 
@@ -89,7 +82,7 @@ public unsafe partial class ZenithView
             {
                 stream.Write([.. new ReadOnlySpan<byte>(pixels, (int)(width * 4))]);
 
-                pixels += mappedMemory.RowPitch;
+                pixels += rowPitchInBytes;
             }
 
             present.Unmap();

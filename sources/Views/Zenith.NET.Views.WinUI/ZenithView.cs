@@ -15,25 +15,20 @@ public partial class ZenithView : SwapChainPanel
 
     public ZenithView()
     {
-        Loaded += (_, _) => timer.Start();
+        Loaded += (_, _) =>
+        {
+            timer.Start();
+
+            CompositionTarget.Rendering += OnRendering;
+        };
 
         Unloaded += (_, _) =>
         {
+            CompositionTarget.Rendering -= OnRendering;
+
             timer.Stop();
 
             Destroy();
-
-            timer.Reset();
-        };
-
-        EffectiveViewportChanged += (_, e) =>
-        {
-            CompositionTarget.Rendering -= OnRendering;
-
-            if (e.EffectiveViewport.Width is not 0 && e.EffectiveViewport.Height is not 0)
-            {
-                CompositionTarget.Rendering += OnRendering;
-            }
         };
     }
 
@@ -56,11 +51,14 @@ public partial class ZenithView : SwapChainPanel
 
     private void OnRendering(object? sender, object e)
     {
-        if (GraphicsContext is null)
+        DispatcherQueue.TryEnqueue(() =>
         {
-            return;
-        }
+            if (GraphicsContext is null)
+            {
+                return;
+            }
 
-        OnRender(GraphicsContext);
+            OnRender(GraphicsContext);
+        });
     }
 }

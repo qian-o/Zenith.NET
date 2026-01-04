@@ -18,10 +18,7 @@ internal unsafe class VKBuffer : Buffer
         {
             SType = StructureType.BufferCreateInfo,
             Size = desc.SizeInBytes,
-            Usage = VKFormats.Vulkan(desc.Flags)
-                    | VkBufferUsageFlags.TransferSrcBit
-                    | VkBufferUsageFlags.TransferDstBit
-                    | VkBufferUsageFlags.ShaderDeviceAddressBit,
+            Usage = VKFormats.Vulkan(desc.Flags).UsageFlags,
             SharingMode = sharingMode,
             QueueFamilyIndexCount = queueFamilyIndexCount,
             PQueueFamilyIndices = (uint*)pQueueFamilyIndices
@@ -48,7 +45,7 @@ internal unsafe class VKBuffer : Buffer
         });
     }
 
-    public VKBuffer(VKGraphicsContext context, BufferDesc desc, VkBufferUsageFlags usage) : base(context, desc)
+    public VKBuffer(VKGraphicsContext context, BufferDesc desc, VkBufferUsageFlags otherUsageFlags) : base(context, desc)
     {
         using ZenithMarshal.Scope scope = new();
 
@@ -58,7 +55,7 @@ internal unsafe class VKBuffer : Buffer
         {
             SType = StructureType.BufferCreateInfo,
             Size = desc.SizeInBytes,
-            Usage = VKFormats.Vulkan(desc.Flags) | usage | VkBufferUsageFlags.ShaderDeviceAddressBit,
+            Usage = VKFormats.Vulkan(desc.Flags).UsageFlags | otherUsageFlags,
             SharingMode = sharingMode,
             QueueFamilyIndexCount = queueFamilyIndexCount,
             PQueueFamilyIndices = (uint*)pQueueFamilyIndices
@@ -96,13 +93,7 @@ internal unsafe class VKBuffer : Buffer
         void* pointer;
         Context.Vk.MapMemory(Context.Device, DeviceMemory.DeviceMemory, 0, Desc.SizeInBytes, 0, &pointer).Success();
 
-        return new()
-        {
-            Pointer = (nint)pointer,
-            SizeInBytes = Desc.SizeInBytes,
-            RowPitch = Desc.SizeInBytes,
-            SlicePitch = Desc.SizeInBytes
-        };
+        return new() { Pointer = (nint)pointer, SizeInBytes = Desc.SizeInBytes };
     }
 
     public override void Unmap()

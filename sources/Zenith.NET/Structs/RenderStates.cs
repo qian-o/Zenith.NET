@@ -10,7 +10,7 @@ public record struct RenderStates
 
     public BlendState BlendState;
 
-    public int StencilReference;
+    public uint StencilReference;
 
     public Vector4? BlendFactor;
 }

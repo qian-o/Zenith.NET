@@ -13,25 +13,20 @@ internal unsafe partial class MauiZenithView : SwapChainPanel
 
     public MauiZenithView(ZenithViewHandler handler)
     {
-        Loaded += (_, _) => timer.Start();
+        Loaded += (_, _) =>
+        {
+            timer.Start();
+
+            CompositionTarget.Rendering += OnRendering;
+        };
 
         Unloaded += (_, _) =>
         {
+            CompositionTarget.Rendering -= OnRendering;
+
             timer.Stop();
 
             Destroy();
-
-            timer.Reset();
-        };
-
-        EffectiveViewportChanged += (_, e) =>
-        {
-            CompositionTarget.Rendering -= OnRendering;
-
-            if (e.EffectiveViewport.Width is not 0 && e.EffectiveViewport.Height is not 0)
-            {
-                CompositionTarget.Rendering += OnRendering;
-            }
         };
 
         ZenithView = handler.VirtualView;
@@ -57,33 +52,39 @@ internal unsafe partial class MauiZenithView : SwapChainPanel
 
     private void OnRendering(object? sender, object e)
     {
-        if (ZenithView.GraphicsContext is null)
+        DispatcherQueue.TryEnqueue(() =>
         {
-            return;
-        }
-
-        uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
-        uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
-
-        if (texture is null || texture.Width != width || texture.Height != height || swapChain is null)
-        {
-            Destroy();
-
-            texture = new(width, height);
-            swapChain = ZenithView.GraphicsContext.CreateSwapChain(new()
+            if (ZenithView.GraphicsContext is null)
             {
-                Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
-                ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
-                DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
-            });
+                return;
+            }
 
-            this.As<ISwapChainPanelNative>().SetSwapChain(texture.SwapChain);
-        }
+            uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
+            uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
 
-        ZenithView.OnUpdateRequested(new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
-        ZenithView.OnRenderRequested(new(timer.GetAndRestartRender(), timer.TotalSeconds, swapChain.FrameBuffer));
+            if (texture is null || texture.Width != width || texture.Height != height || swapChain is null)
+            {
+                Destroy();
 
-        texture.Present();
-        swapChain.Present();
+                texture = new(width, height);
+                swapChain = ZenithView.GraphicsContext.CreateSwapChain(new()
+                {
+                    Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
+                    ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
+                    DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
+                });
+
+                this.As<ISwapChainPanelNative>().SetSwapChain(texture.SwapChain);
+            }
+
+            texture.AcquireForUpdate();
+
+            ZenithView.OnUpdateRequested(new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
+            ZenithView.OnRenderRequested(new(timer.GetAndRestartRender(), timer.TotalSeconds, swapChain.FrameBuffer));
+
+            swapChain.Present();
+
+            texture.PresentAndRelease();
+        });
     }
 }

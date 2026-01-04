@@ -10,14 +10,11 @@ internal unsafe class VKShader : Shader
     {
         using ZenithMarshal.Scope scope = new();
 
-        byte* code = (byte*)ZenithMarshal.Allocate<byte>(scope, (uint)desc.ShaderBytes.Length);
-        desc.ShaderBytes.CopyTo(new Span<byte>(code, desc.ShaderBytes.Length));
-
         ShaderModuleCreateInfo createInfo = new()
         {
             SType = StructureType.ShaderModuleCreateInfo,
             CodeSize = (uint)desc.ShaderBytes.Length,
-            PCode = (uint*)code
+            PCode = (uint*)ZenithMarshal.AllocateAndFill(scope, desc.ShaderBytes)
         };
 
         context.Vk.CreateShaderModule(context.Device, &createInfo, null, out ShaderModule).Success();

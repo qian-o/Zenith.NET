@@ -2,140 +2,100 @@
 
 internal class Uploader(GraphicsContext context) : DisposableObject
 {
-    private const uint BufferSizeInBytes = 4096;
-    private const uint TextureWidth = 512;
-    private const uint TextureHeight = 512;
-    private const uint AvailableResources = 128;
-
     private readonly Lock @lock = new();
-    private readonly List<Buffer> availableBuffers = [];
-    private readonly Dictionary<CommandBuffer, Buffer[]> usedBuffers = [];
-    private readonly List<Texture> availableTextures = [];
-    private readonly Dictionary<CommandBuffer, Texture[]> usedTextures = [];
+    private readonly List<ResourceLease<Buffer>> available = [];
+    private readonly Dictionary<CommandBuffer, Buffer[]> used = [];
 
     public Buffer Buffer(CommandBuffer commandBuffer, uint sizeInBytes)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        if (!usedBuffers.TryGetValue(commandBuffer, out Buffer[]? buffers))
+        CleanupExpiredLeases();
+
+        if (!used.TryGetValue(commandBuffer, out Buffer[]? buffers))
         {
-            usedBuffers[commandBuffer] = buffers = [];
+            used[commandBuffer] = buffers = [];
         }
 
-        if (availableBuffers.FirstOrDefault(item => item.Desc.SizeInBytes >= sizeInBytes) is not Buffer buffer || !availableBuffers.Remove(buffer))
+        Buffer buffer;
+        if (available.FirstOrDefault(item => item.Resource.Desc.SizeInBytes >= sizeInBytes) is ResourceLease<Buffer> lease && available.Remove(lease))
+        {
+            buffer = lease.Resource;
+        }
+        else
         {
             buffer = context.CreateBuffer(new()
             {
-                SizeInBytes = Math.Max(sizeInBytes, BufferSizeInBytes),
+                SizeInBytes = sizeInBytes,
                 StrideInBytes = 1,
-                Flags = BufferUsageFlags.Dynamic
+                Flags = BufferUsageFlags.MapWrite
             });
         }
 
-        usedBuffers[commandBuffer] = [.. buffers, buffer];
+        used[commandBuffer] = [.. buffers, buffer];
 
         return buffer;
-    }
-
-    public Texture Texture(CommandBuffer commandBuffer, PixelFormat format, uint width, uint height)
-    {
-        using Lock.Scope _ = @lock.EnterScope();
-
-        if (!usedTextures.TryGetValue(commandBuffer, out Texture[]? textures))
-        {
-            usedTextures[commandBuffer] = textures = [];
-        }
-
-        if (availableTextures.FirstOrDefault(item => item.Desc.Format == format && item.Desc.Width >= width && item.Desc.Height >= height) is not Texture texture || !availableTextures.Remove(texture))
-        {
-            texture = context.CreateTexture(new()
-            {
-                Type = TextureType.Texture2D,
-                Format = format,
-                Width = Math.Max(width, TextureWidth),
-                Height = Math.Max(height, TextureHeight),
-                Depth = 1,
-                MipLevels = 1,
-                ArrayLayers = 1,
-                SampleCount = SampleCount.Count1,
-                Flags = TextureUsageFlags.Dynamic
-            });
-        }
-
-        usedTextures[commandBuffer] = [.. textures, texture];
-
-        return texture;
     }
 
     public void Release(CommandBuffer commandBuffer)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        if (usedBuffers.Remove(commandBuffer, out Buffer[]? buffers))
+        CleanupExpiredLeases();
+
+        if (used.Remove(commandBuffer, out Buffer[]? buffers))
         {
-            for (int i = 0; i < buffers.Length; i++)
+            foreach (Buffer buffer in buffers)
             {
-                Buffer buffer = buffers[i];
-
-                if (availableBuffers.Count >= AvailableResources || buffer.Desc.SizeInBytes > BufferSizeInBytes)
-                {
-                    buffer.Dispose();
-                }
-                else
-                {
-                    availableBuffers.Add(buffer);
-                }
-            }
-        }
-
-        if (usedTextures.Remove(commandBuffer, out Texture[]? textures))
-        {
-            for (int i = 0; i < textures.Length; i++)
-            {
-                Texture texture = textures[i];
-
-                if (availableTextures.Count >= AvailableResources || texture.Desc.Width > TextureWidth || texture.Desc.Height > TextureHeight)
-                {
-                    texture.Dispose();
-                }
-                else
-                {
-                    availableTextures.Add(texture);
-                }
+                available.Add(new(buffer));
             }
         }
     }
 
     protected override void Destroy()
     {
-        foreach (Buffer buffer in availableBuffers)
+        foreach (ResourceLease<Buffer> lease in available)
         {
-            buffer.Dispose();
+            lease.Release();
         }
-        availableBuffers.Clear();
+        available.Clear();
 
-        foreach (Buffer[] buffers in usedBuffers.Values)
+        foreach (Buffer[] buffers in used.Values)
         {
             foreach (Buffer buffer in buffers)
             {
                 buffer.Dispose();
             }
         }
-        usedBuffers.Clear();
+        used.Clear();
+    }
 
-        foreach (Texture texture in availableTextures)
-        {
-            texture.Dispose();
-        }
-        availableTextures.Clear();
+    private void CleanupExpiredLeases()
+    {
+        available.RemoveAll(static item => item.TryExpire());
+    }
 
-        foreach (Texture[] textures in usedTextures.Values)
+    private class ResourceLease<T>(T resource) where T : DisposableObject
+    {
+        private readonly DateTime expirationTime = DateTime.UtcNow + TimeSpan.FromSeconds(120);
+
+        public T Resource { get; } = resource;
+
+        public bool TryExpire()
         {
-            foreach (Texture texture in textures)
+            if (DateTime.UtcNow >= expirationTime)
             {
-                texture.Dispose();
+                Release();
+
+                return true;
             }
+
+            return false;
         }
-        usedTextures.Clear();
+
+        public void Release()
+        {
+            Resource.Dispose();
+        }
     }
 }

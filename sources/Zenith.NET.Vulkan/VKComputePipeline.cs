@@ -20,17 +20,11 @@ internal unsafe class VKComputePipeline : ComputePipeline
 
         // ResourceLayouts
         {
-            DescriptorSetLayout* setLayouts = (DescriptorSetLayout*)ZenithMarshal.Allocate<DescriptorSetLayout>(scope, (uint)desc.ResourceLayouts.Length);
-            for (int i = 0; i < desc.ResourceLayouts.Length; i++)
-            {
-                setLayouts[i] = desc.ResourceLayouts[i].Vulkan().DescriptorSetLayout;
-            }
-
             PipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
             {
                 SType = StructureType.PipelineLayoutCreateInfo,
                 SetLayoutCount = (uint)desc.ResourceLayouts.Length,
-                PSetLayouts = setLayouts
+                PSetLayouts = (DescriptorSetLayout*)ZenithMarshal.AllocateAndFill(scope, [.. desc.ResourceLayouts.Select(static item => item.Vulkan().DescriptorSetLayout)])
             };
 
             context.Vk.CreatePipelineLayout(context.Device, &pipelineLayoutCreateInfo, null, out PipelineLayout).Success();

@@ -6,7 +6,7 @@ public abstract class DisposableObject : IDisposableObject
 
     ~DisposableObject()
     {
-        Destroy();
+        Dispose();
     }
 
     public bool IsDisposed => isDisposed is not 0;

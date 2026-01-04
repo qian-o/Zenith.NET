@@ -1,0 +1,24 @@
+﻿using Silk.NET.Direct3D12;
+
+namespace Zenith.NET.DirectX12;
+
+internal record struct DXDescriptorToken : IDisposable
+{
+    public DXDescriptorPool Pool;
+
+    public CpuDescriptorHandle Handle;
+
+    public uint Length;
+
+    public readonly CpuDescriptorHandle this[uint index] => index >= Length ? default : new(Handle.Ptr + (Pool.DescriptorSize * index));
+
+    public readonly void Dispose()
+    {
+        if (Length is 0)
+        {
+            return;
+        }
+
+        Pool.Free(Handle, Length);
+    }
+}

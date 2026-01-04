@@ -22,27 +22,20 @@ public class ZenithView : Control
 
     public ZenithView()
     {
-        Loaded += (_, _) => timer.Start();
+        Loaded += (_, _) =>
+        {
+            timer.Start();
+
+            CompositionTarget.Rendering += OnRendering;
+        };
 
         Unloaded += (_, _) =>
         {
+            CompositionTarget.Rendering -= OnRendering;
+
             timer.Stop();
 
             Destroy();
-
-            timer.Reset();
-        };
-
-        IsVisibleChanged += (_, e) =>
-        {
-            if ((bool)e.NewValue)
-            {
-                CompositionTarget.Rendering += OnRendering;
-            }
-            else
-            {
-                CompositionTarget.Rendering -= OnRendering;
-            }
         };
     }
 
@@ -128,10 +121,14 @@ public class ZenithView : Control
                 image.Unlock();
             }
 
+            texture.AcquireForUpdate();
+
             UpdateRequested?.Invoke(this, new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
             RenderRequested?.Invoke(this, new(timer.GetAndRestartRender(), timer.TotalSeconds, swapChain.FrameBuffer));
 
             swapChain.Present();
+
+            texture.PresentAndRelease();
 
             image.Lock();
             image.AddDirtyRect(new(0, 0, (int)width, (int)height));

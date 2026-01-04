@@ -1,45 +1,73 @@
-﻿using Silk.NET.Core.Native;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
+using Silk.NET.Core.Native;
 using Silk.NET.Direct3D11;
 using Silk.NET.Direct3D9;
 using Silk.NET.DXGI;
-using Format = Silk.NET.Direct3D9.Format;
+using D3D9Format = Silk.NET.Direct3D9.Format;
+using DXGIFormat = Silk.NET.DXGI.Format;
 
 namespace Zenith.NET.Views.WPF;
 
-internal unsafe class D3DTexture : DisposableObject
+internal unsafe partial class D3DTexture : DisposableObject
 {
-    public ComPtr<IDirect3DTexture9> D3D9Texture;
+    [LibraryImport("kernel32")]
+    private static partial int CloseHandle(nint hObject);
 
-    public ComPtr<IDirect3DSurface9> D3D9Surface;
+    public ComPtr<IDirect3DTexture9> D3D9RenderTarget;
 
-    public ComPtr<ID3D11Texture2D> D3D11Texture;
+    public ComPtr<IDirect3DSurface9> D3D9RenderSurface;
+
+    public ComPtr<ID3D11Texture2D> D3D9SharedTexture;
+
+    public ComPtr<ID3D11Texture2D> D3D11RenderTarget;
+
+    public ComPtr<IDXGIKeyedMutex> D3D11Mutex;
 
     public nint Handle;
 
     public nint SharedHandle;
 
+    private ulong key;
+
     public D3DTexture(uint width, uint height)
     {
-        void* d3d9ShareHandle = null;
+        void* sharedHandle = null;
         D3D.Success(D3D.D3D9DeviceEx.CreateTexture(width,
                                                    height,
                                                    1,
                                                    D3D9.UsageRendertarget,
-                                                   Format.X8R8G8B8,
+                                                   D3D9Format.A8R8G8B8,
                                                    Pool.Default,
-                                                   ref D3D9Texture,
-                                                   &d3d9ShareHandle));
+                                                   ref D3D9RenderTarget,
+                                                   &sharedHandle));
 
-        D3D.Success(D3D9Texture.GetSurfaceLevel(0, ref D3D9Surface));
-        D3D.Success(D3D.D3D11Device.OpenSharedResource(d3d9ShareHandle, out D3D11Texture));
+        D3D.Success(D3D9RenderTarget.GetSurfaceLevel(0, ref D3D9RenderSurface));
+        D3D.Success(D3D.D3D11Device.OpenSharedResource(sharedHandle, out D3D9SharedTexture));
 
-        using ComPtr<IDXGIResource> resource = D3D11Texture.QueryInterface<IDXGIResource>();
+        Texture2DDesc desc = new()
+        {
+            Width = width,
+            Height = height,
+            MipLevels = 1,
+            ArraySize = 1,
+            Format = DXGIFormat.FormatB8G8R8A8Unorm,
+            SampleDesc = new() { Count = 1, Quality = 0 },
+            BindFlags = (uint)BindFlag.RenderTarget,
+            MiscFlags = (uint)(ResourceMiscFlag.SharedNthandle | ResourceMiscFlag.SharedKeyedmutex)
+        };
 
-        void* d3d11SharedHandle = null;
-        D3D.Success(resource.GetSharedHandle(&d3d11SharedHandle));
+        D3D.Success(D3D.D3D11Device.CreateTexture2D(&desc, null, ref D3D11RenderTarget));
 
-        Handle = (nint)D3D9Surface.Handle;
-        SharedHandle = (nint)d3d11SharedHandle;
+        D3D.Success(D3D11RenderTarget.QueryInterface(out D3D11Mutex));
+
+        using ComPtr<IDXGIResource1> resource = D3D11RenderTarget.QueryInterface<IDXGIResource1>();
+
+        sharedHandle = null;
+        D3D.Success(resource.CreateSharedHandle((SecurityAttributes*)null, DXGI.SharedResourceRead | DXGI.SharedResourceWrite, (char*)null, &sharedHandle));
+
+        Handle = (nint)D3D9RenderSurface.Handle;
+        SharedHandle = (nint)sharedHandle;
 
         Width = width;
         Height = height;
@@ -49,10 +77,30 @@ internal unsafe class D3DTexture : DisposableObject
 
     public uint Height { get; }
 
+    public void AcquireForUpdate()
+    {
+        D3D.Success(D3D11Mutex.AcquireSync(key++, uint.MaxValue));
+    }
+
+    public void PresentAndRelease()
+    {
+        D3D.D3D11DeviceContext.CopyResource((ID3D11Resource*)D3D9SharedTexture.Handle, (ID3D11Resource*)D3D11RenderTarget.Handle);
+        D3D.D3D11DeviceContext.Flush();
+
+        D3D.Success(D3D11Mutex.ReleaseSync(key));
+    }
+
     protected override void Destroy()
     {
-        D3D11Texture.Dispose();
-        D3D9Surface.Dispose();
-        D3D9Texture.Dispose();
+        if (CloseHandle(SharedHandle) is 0)
+        {
+            Debug.WriteLine("Failed to close shared handle.");
+        }
+
+        D3D11Mutex.Dispose();
+        D3D11RenderTarget.Dispose();
+        D3D9SharedTexture.Dispose();
+        D3D9RenderSurface.Dispose();
+        D3D9RenderTarget.Dispose();
     }
 }

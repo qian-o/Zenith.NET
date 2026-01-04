@@ -12,14 +12,12 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
     {
         using ZenithMarshal.Scope scope = new();
 
-        BufferDesc instanceBufferDesc = new()
+        InstanceBuffer = new(context, new()
         {
             SizeInBytes = (uint)(sizeof(AccelerationStructureInstanceKHR) * desc.Instances.Length),
             StrideInBytes = (uint)sizeof(AccelerationStructureInstanceKHR),
-            Flags = BufferUsageFlags.Dynamic
-        };
-
-        InstanceBuffer = new(context, instanceBufferDesc, VkBufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr);
+            Flags = BufferUsageFlags.AccelerationStructure | BufferUsageFlags.MapWrite
+        });
 
         FillInstanceBuffer(desc, out AccelerationStructureGeometryKHR geometry, out AccelerationStructureBuildRangeInfoKHR buildRangeInfo);
 
@@ -63,13 +61,12 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
 
         DeviceAddress = context.AccelerationStructure?.GetAccelerationStructureDeviceAddress(context.Device, &addressInfo) ?? 0;
 
-        BufferDesc scratchBufferDesc = new()
+        ScratchBuffer = new(context, new()
         {
             SizeInBytes = (uint)sizeInfo.BuildScratchSize,
-            StrideInBytes = (uint)sizeInfo.BuildScratchSize
-        };
-
-        ScratchBuffer = new(context, scratchBufferDesc, VkBufferUsageFlags.StorageBufferBit);
+            StrideInBytes = (uint)sizeInfo.BuildScratchSize,
+            Flags = BufferUsageFlags.ShaderResource
+        });
 
         buildInfo.DstAccelerationStructure = AccelerationStructure;
         buildInfo.ScratchData = new() { DeviceAddress = ScratchBuffer.DeviceAddress };

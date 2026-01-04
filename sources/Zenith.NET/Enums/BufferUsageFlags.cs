@@ -19,5 +19,7 @@ public enum BufferUsageFlags
 
     UnorderedAccess = 1 << 6,
 
-    Dynamic = 1 << 7
+    MapRead = 1 << 7,
+
+    MapWrite = 1 << 8
 }

@@ -6,6 +6,12 @@ internal unsafe class VKFrameBuffer : FrameBuffer
 {
     private readonly ZenithMarshal.Scope scope = new();
 
+    public RenderingAttachmentInfo* ColorAttachments;
+
+    public RenderingAttachmentInfo* DepthAttachment;
+
+    public RenderingAttachmentInfo* StencilAttachment;
+
     public RenderingInfo RenderingInfo;
 
     public VKFrameBuffer(VKGraphicsContext context, FrameBufferDesc desc) : base(context, desc)
@@ -13,10 +19,9 @@ internal unsafe class VKFrameBuffer : FrameBuffer
         ColorAttachmentCount = (uint)desc.ColorAttachments.Length;
         HasDepthStencilAttachment = desc.DepthStencilAttachment is not null;
 
-        ColorAttachments = new VKTextureView[ColorAttachmentCount];
+        ColorAttachments = (RenderingAttachmentInfo*)ZenithMarshal.Allocate<RenderingAttachmentInfo>(scope, ColorAttachmentCount);
 
-        RenderingAttachmentInfo* colorAttachmentInfos = (RenderingAttachmentInfo*)ZenithMarshal.Allocate<RenderingAttachmentInfo>(scope, ColorAttachmentCount);
-        RenderingAttachmentInfo* depthStencilAttachmentInfo = HasDepthStencilAttachment ? (RenderingAttachmentInfo*)ZenithMarshal.Allocate<RenderingAttachmentInfo>(scope, 1) : null;
+        ImageViews = new ImageView[ColorAttachmentCount + (HasDepthStencilAttachment ? 1 : 0)];
 
         uint width = 0;
         uint height = 0;
@@ -33,18 +38,14 @@ internal unsafe class VKFrameBuffer : FrameBuffer
                 sampleCount = attachment.Target.Desc.SampleCount;
             }
 
-            VKTextureView textureView = new(context, attachment.Target, attachment.Slice);
-
-            colorAttachmentInfos[i] = new()
+            ColorAttachments[i] = new()
             {
                 SType = StructureType.RenderingAttachmentInfo,
-                ImageView = textureView.ImageView,
+                ImageView = ImageViews[i] = attachment.Target.Vulkan().CreateAttachmentView(attachment.Slice),
                 ImageLayout = ImageLayout.AttachmentOptimal,
                 LoadOp = AttachmentLoadOp.Load,
                 StoreOp = AttachmentStoreOp.Store
             };
-
-            ColorAttachments[i] = textureView;
         }
 
         if (HasDepthStencilAttachment)
@@ -58,18 +59,31 @@ internal unsafe class VKFrameBuffer : FrameBuffer
                 sampleCount = attachment.Target.Desc.SampleCount;
             }
 
-            VKTextureView textureView = new(context, attachment.Target, attachment.Slice);
+            ImageViews[ColorAttachmentCount] = attachment.Target.Vulkan().CreateAttachmentView(attachment.Slice);
 
-            depthStencilAttachmentInfo[0] = new()
+            if (ZenithHelper.HasDepth(attachment.Target.Desc.Format))
             {
-                SType = StructureType.RenderingAttachmentInfo,
-                ImageView = textureView.ImageView,
-                ImageLayout = ImageLayout.AttachmentOptimal,
-                LoadOp = AttachmentLoadOp.Load,
-                StoreOp = AttachmentStoreOp.Store
-            };
+                *(DepthAttachment = (RenderingAttachmentInfo*)ZenithMarshal.Allocate<RenderingAttachmentInfo>(scope, 1)) = new()
+                {
+                    SType = StructureType.RenderingAttachmentInfo,
+                    ImageView = ImageViews[ColorAttachmentCount],
+                    ImageLayout = ImageLayout.AttachmentOptimal,
+                    LoadOp = AttachmentLoadOp.Load,
+                    StoreOp = AttachmentStoreOp.Store
+                };
+            }
 
-            DepthStencilAttachment = textureView;
+            if (ZenithHelper.HasStencil(attachment.Target.Desc.Format))
+            {
+                *(StencilAttachment = (RenderingAttachmentInfo*)ZenithMarshal.Allocate<RenderingAttachmentInfo>(scope, 1)) = new()
+                {
+                    SType = StructureType.RenderingAttachmentInfo,
+                    ImageView = ImageViews[ColorAttachmentCount],
+                    ImageLayout = ImageLayout.AttachmentOptimal,
+                    LoadOp = AttachmentLoadOp.Load,
+                    StoreOp = AttachmentStoreOp.Store
+                };
+            }
         }
 
         RenderingInfo = new()
@@ -78,9 +92,9 @@ internal unsafe class VKFrameBuffer : FrameBuffer
             RenderArea = new() { Extent = new() { Width = width, Height = height } },
             LayerCount = 1,
             ColorAttachmentCount = ColorAttachmentCount,
-            PColorAttachments = colorAttachmentInfos,
-            PDepthAttachment = depthStencilAttachmentInfo,
-            PStencilAttachment = depthStencilAttachmentInfo
+            PColorAttachments = ColorAttachments,
+            PDepthAttachment = DepthAttachment,
+            PStencilAttachment = StencilAttachment
         };
 
         Width = width;
@@ -105,27 +119,25 @@ internal unsafe class VKFrameBuffer : FrameBuffer
 
     public override Output Output { get; }
 
-    public VKTextureView[] ColorAttachments { get; }
-
-    public VKTextureView? DepthStencilAttachment { get; }
+    public ImageView[] ImageViews { get; }
 
     public void PrepareAttachmentsForRendering(VKCommandBuffer commandBuffer)
     {
-        foreach (VKTextureView colorAttachment in ColorAttachments)
+        foreach (FrameBufferAttachment attachment in Desc.ColorAttachments)
         {
-            colorAttachment.TransitionLayout(commandBuffer, ImageLayout.ColorAttachmentOptimal);
+            attachment.Target.Vulkan().TransitionLayout(commandBuffer, attachment.Slice, ImageLayout.ColorAttachmentOptimal);
         }
 
-        DepthStencilAttachment?.TransitionLayout(commandBuffer, ImageLayout.DepthStencilAttachmentOptimal);
+        Desc.DepthStencilAttachment?.Target.Vulkan().TransitionLayout(commandBuffer, Desc.DepthStencilAttachment.Value.Slice, ImageLayout.DepthStencilAttachmentOptimal);
     }
 
     public void FinalizeColorAttachmentsForPresent(VKCommandBuffer commandBuffer)
     {
-        foreach (VKTextureView colorAttachment in ColorAttachments)
+        foreach (FrameBufferAttachment attachment in Desc.ColorAttachments)
         {
-            if (colorAttachment.Desc.Texture.Desc.Flags.HasFlag(TextureUsageFlags.RenderTarget))
+            if (attachment.Target.Desc.Flags.HasFlag(TextureUsageFlags.RenderTarget))
             {
-                colorAttachment.TransitionLayout(commandBuffer, ImageLayout.PresentSrcKhr);
+                attachment.Target.Vulkan().TransitionLayout(commandBuffer, attachment.Slice, ImageLayout.PresentSrcKhr);
             }
         }
     }
@@ -136,11 +148,9 @@ internal unsafe class VKFrameBuffer : FrameBuffer
 
     protected override void Destroy()
     {
-        DepthStencilAttachment?.Dispose();
-
-        foreach (TextureView colorAttachment in ColorAttachments)
+        foreach (ImageView imageView in ImageViews)
         {
-            colorAttachment.Dispose();
+            Context.Vk.DestroyImageView(Context.Device, imageView, null);
         }
 
         scope.Dispose();

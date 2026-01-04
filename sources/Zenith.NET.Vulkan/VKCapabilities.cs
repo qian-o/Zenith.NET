@@ -1,5 +1,4 @@
-﻿using Silk.NET.Core;
-using Silk.NET.Vulkan;
+﻿using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.EXT;
 using Silk.NET.Vulkan.Extensions.KHR;
 
@@ -23,17 +22,11 @@ internal unsafe class VKCapabilities : Capabilities
         string[] supportedExtensions = [.. new ReadOnlySpan<ExtensionProperties>(extensions, (int)extensionCount).ToArray().Select(static item => ZenithMarshal.StringFromPointer((nint)item.ExtensionName, StringEncoding.UTF8))];
 
         DeviceName = ZenithMarshal.StringFromPointer((nint)properties.DeviceName, StringEncoding.UTF8);
-        ApiVersion = (Version32)properties.ApiVersion;
-        DriverVersion = (Version32)properties.DriverVersion;
         RayTracingSupported = supportedExtensions.Contains(KhrRayQuery.ExtensionName) || supportedExtensions.Contains(KhrRayTracingPipeline.ExtensionName);
         MeshShaderSupported = supportedExtensions.Contains(ExtMeshShader.ExtensionName);
     }
 
     public override string DeviceName { get; }
-
-    public override Version ApiVersion { get; }
-
-    public override Version DriverVersion { get; }
 
     public override bool RayTracingSupported { get; }
 
