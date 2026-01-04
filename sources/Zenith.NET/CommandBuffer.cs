@@ -120,11 +120,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void BeginRenderPass(FrameBuffer frameBuffer, ClearValue clearValue, params IEnumerable<ResourceSet> preprocessResourceSets)
     {
-        if (currentFrameBuffer is not null)
-        {
-            EndRenderPass();
-        }
-
         if (frameBuffer.ColorAttachmentCount is not 0)
         {
             Scissor[] scissors = new Scissor[frameBuffer.ColorAttachmentCount];

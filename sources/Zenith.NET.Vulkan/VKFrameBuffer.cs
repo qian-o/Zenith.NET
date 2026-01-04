@@ -63,8 +63,7 @@ internal unsafe class VKFrameBuffer : FrameBuffer
 
             if (ZenithHelper.HasDepth(attachment.Target.Desc.Format))
             {
-                DepthAttachment = (RenderingAttachmentInfo*)ZenithMarshal.Allocate<RenderingAttachmentInfo>(scope, 1);
-                DepthAttachment[0] = new()
+                *(DepthAttachment = (RenderingAttachmentInfo*)ZenithMarshal.Allocate<RenderingAttachmentInfo>(scope, 1)) = new()
                 {
                     SType = StructureType.RenderingAttachmentInfo,
                     ImageView = ImageViews[ColorAttachmentCount],
@@ -76,8 +75,7 @@ internal unsafe class VKFrameBuffer : FrameBuffer
 
             if (ZenithHelper.HasStencil(attachment.Target.Desc.Format))
             {
-                StencilAttachment = (RenderingAttachmentInfo*)ZenithMarshal.Allocate<RenderingAttachmentInfo>(scope, 1);
-                StencilAttachment[0] = new()
+                *(StencilAttachment = (RenderingAttachmentInfo*)ZenithMarshal.Allocate<RenderingAttachmentInfo>(scope, 1)) = new()
                 {
                     SType = StructureType.RenderingAttachmentInfo,
                     ImageView = ImageViews[ColorAttachmentCount],

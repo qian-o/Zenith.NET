@@ -74,7 +74,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         {
             BufferOffset = srcOffsetInBytes,
             BufferRowLength = sliceRowPitchInBytes / formatSizeInBytes,
-            BufferImageHeight = sliceDepthPitchInBytes / formatSizeInBytes,
+            BufferImageHeight = sliceDepthPitchInBytes / sliceRowPitchInBytes,
             ImageSubresource = new()
             {
                 AspectMask = VKFormats.Vulkan(vkDest.Desc.Format, vkDest.Desc.Flags).AspectFlags,
@@ -170,7 +170,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         {
             BufferOffset = destOffsetInBytes,
             BufferRowLength = sliceRowPitchInBytes / formatSizeInBytes,
-            BufferImageHeight = sliceDepthPitchInBytes / formatSizeInBytes,
+            BufferImageHeight = sliceDepthPitchInBytes / sliceRowPitchInBytes,
             ImageSubresource = new()
             {
                 AspectMask = VKFormats.Vulkan(vkSrc.Desc.Format, vkSrc.Desc.Flags).AspectFlags,

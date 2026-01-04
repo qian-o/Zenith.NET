@@ -127,7 +127,6 @@ internal static class VKFormats
             }
         }
 
-
         return (usageFlags, propertyFlags);
     }
 

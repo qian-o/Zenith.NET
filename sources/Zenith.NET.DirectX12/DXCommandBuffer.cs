@@ -393,7 +393,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             ComputePipeline computePipeline => (false, (uint)computePipeline.Desc.ResourceLayouts.Take((int)index).Sum(static item => item.DirectX12().RootParameterCount)),
             RayTracingPipeline rayTracingPipeline => (false, (uint)rayTracingPipeline.Desc.ResourceLayouts.Take((int)index).Sum(static item => item.DirectX12().RootParameterCount)),
             MeshShadingPipeline meshShadingPipeline => (true, (uint)meshShadingPipeline.Desc.ResourceLayouts.Take((int)index).Sum(static item => item.DirectX12().GraphicsRootParameterCount)),
-            _ => (true, 0u)
+            _ => (false, 0u)
         };
 
         resourceSet.DirectX12().Bind(this, cbvSrvUavTable, samplerTable, isGraphics, offset);

@@ -196,7 +196,7 @@ internal unsafe class DXMeshShadingPipeline : MeshShadingPipeline
 
     protected override void Destroy()
     {
-        RootSignature.Dispose();
         PipelineState.Dispose();
+        RootSignature.Dispose();
     }
 }

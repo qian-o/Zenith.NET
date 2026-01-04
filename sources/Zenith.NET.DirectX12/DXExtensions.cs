@@ -36,7 +36,6 @@ internal static class DXExtensions
         }
     }
 
-
     extension(FrameBuffer frameBuffer)
     {
         public DXFrameBuffer DirectX12()

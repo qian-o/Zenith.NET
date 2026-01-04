@@ -226,7 +226,7 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
 
     protected override void Destroy()
     {
-        RootSignature.Dispose();
         PipelineState.Dispose();
+        RootSignature.Dispose();
     }
 }

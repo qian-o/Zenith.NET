@@ -80,7 +80,7 @@ internal unsafe class DXComputePipeline : ComputePipeline
 
     protected override void Destroy()
     {
-        RootSignature.Dispose();
         PipelineState.Dispose();
+        RootSignature.Dispose();
     }
 }
