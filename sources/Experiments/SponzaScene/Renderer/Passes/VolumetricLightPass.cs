@@ -1,35 +1,32 @@
 ﻿using System.Numerics;
+using Hexa.NET.ImGui;
 using SponzaScene.Helpers;
 using SponzaScene.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
-namespace SponzaScene.Renderer;
+namespace SponzaScene.Renderer.Passes;
 
-internal unsafe class LightingPass : FullscreenPass
+internal unsafe class VolumetricLightPass : FullscreenPass
 {
     private readonly Buffer constantBuffer;
-    private readonly Buffer pointLightsBuffer;
     private readonly Buffer csmDatasBuffer;
 
     private ResourceSet? resourceSet;
 
-    public LightingPass() : base("LightingPass")
+    private int sampleCount = 64;
+    private float intensity = 1.0f;
+    private float scattering = 0.7f;
+    private float maxDistance = 100.0f;
+
+    public VolumetricLightPass() : base("Volumetric Light Pass")
     {
         constantBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)sizeof(LightingConstants),
-            StrideInBytes = (uint)sizeof(LightingConstants),
+            SizeInBytes = (uint)sizeof(VolumetricLightConstants),
+            StrideInBytes = (uint)sizeof(VolumetricLightConstants),
             Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
         });
-
-        pointLightsBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(PointLight) * App.Sponza.PointLights.Length),
-            StrideInBytes = (uint)sizeof(PointLight),
-            Flags = BufferUsageFlags.ShaderResource
-        });
-        pointLightsBuffer.Upload(App.Sponza.PointLights, 0);
 
         csmDatasBuffer = App.Context.CreateBuffer(new()
         {
@@ -39,7 +36,7 @@ internal unsafe class LightingPass : FullscreenPass
         });
     }
 
-    protected override string ShaderName => "Lighting";
+    protected override string ShaderName => "VolumetricLight";
 
     public override void Resize(uint width, uint height)
     {
@@ -55,12 +52,6 @@ internal unsafe class LightingPass : FullscreenPass
             (
                 new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute },
@@ -78,16 +69,10 @@ internal unsafe class LightingPass : FullscreenPass
             Resources =
             [
                 constantBuffer,
-                pointLightsBuffer,
                 csmDatasBuffer,
-                context.Albedo!,
-                context.Normal!,
                 context.Position!,
-                context.MetallicRoughness!,
-                context.Emissive!,
                 context.CSMDepths!,
-                context.GTAOBlurred!,
-                context.LitColor!,
+                context.VolumetricLight!,
                 App.PointSampler,
                 App.ShadowSampler
             ]
@@ -98,11 +83,17 @@ internal unsafe class LightingPass : FullscreenPass
     {
         Matrix4x4.Invert(context.View * context.Projection, out Matrix4x4 inverseViewProjection);
 
-        constantBuffer.Upload([new LightingConstants
+        constantBuffer.Upload([new VolumetricLightConstants
         {
             CameraPosition = new(context.CameraPosition, 1.0f),
+            LightDirection = new(App.Sponza.DirectionalLight.Direction, 0.0f),
+            LightColor = new(App.Sponza.DirectionalLight.Color, App.Sponza.DirectionalLight.Intensity),
             InverseViewProjection = inverseViewProjection,
-            DirectionalLight = App.Sponza.DirectionalLight
+            ScreenSize = new(context.Width, context.Height),
+            SampleCount = sampleCount,
+            Intensity = intensity,
+            Scattering = scattering,
+            MaxDistance = maxDistance
         }], 0);
 
         csmDatasBuffer.Upload(context.CSMDatas, 0);
@@ -110,25 +101,41 @@ internal unsafe class LightingPass : FullscreenPass
 
     protected override void DebugUIImpl(RenderContext context)
     {
-        ImGuiHelpers.Image(context.LitColor!);
+        ImGui.SliderInt("Sample Count", ref sampleCount, 16, 128);
+        ImGui.SliderFloat("Intensity", ref intensity, 0.0f, 5.0f);
+        ImGui.SliderFloat("Scattering", ref scattering, 0.0f, 1.0f);
+        ImGui.SliderFloat("Max Distance", ref maxDistance, 10.0f, 500.0f);
+
+        ImGuiHelpers.Image(context.VolumetricLight!);
     }
 
     protected override void Destroy()
     {
         resourceSet?.Dispose();
         csmDatasBuffer.Dispose();
-        pointLightsBuffer.Dispose();
         constantBuffer.Dispose();
 
         base.Destroy();
     }
 
-    private struct LightingConstants
+    private struct VolumetricLightConstants
     {
         public Vector4 CameraPosition;
 
+        public Vector4 LightDirection;
+
+        public Vector4 LightColor;
+
         public Matrix4x4 InverseViewProjection;
 
-        public DirectionalLight DirectionalLight;
+        public Vector2 ScreenSize;
+
+        public int SampleCount;
+
+        public float Intensity;
+
+        public float Scattering;
+
+        public float MaxDistance;
     }
 }

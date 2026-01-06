@@ -1,5 +1,6 @@
 ﻿using Hexa.NET.ImGui;
 using SponzaScene.Models;
+using SponzaScene.Renderer.Passes;
 using Zenith.NET;
 
 namespace SponzaScene.Renderer;

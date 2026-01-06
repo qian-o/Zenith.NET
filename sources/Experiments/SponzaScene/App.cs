@@ -66,8 +66,9 @@ internal static class App
         });
 
         window = Window.Create(WindowOptions.Default with { API = GraphicsAPI.None });
-        window.WindowState = WindowState.Maximized;
+        window.Size = new(1280, 720);
         window.Initialize();
+        window.Center();
 
         inputContext = window.CreateInput();
 

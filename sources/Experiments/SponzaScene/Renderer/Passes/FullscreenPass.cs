@@ -1,7 +1,7 @@
 ﻿using Zenith.NET;
 using Zenith.NET.Extensions.Slang;
 
-namespace SponzaScene.Renderer;
+namespace SponzaScene.Renderer.Passes;
 
 internal abstract class FullscreenPass : RenderPass
 {

@@ -4,7 +4,7 @@ using SponzaScene.Helpers;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
-namespace SponzaScene.Renderer;
+namespace SponzaScene.Renderer.Passes;
 
 internal unsafe class GTAOPass : FullscreenPass
 {

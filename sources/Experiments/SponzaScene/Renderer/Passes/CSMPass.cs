@@ -6,7 +6,7 @@ using Zenith.NET;
 using Zenith.NET.Extensions.Slang;
 using Buffer = Zenith.NET.Buffer;
 
-namespace SponzaScene.Renderer;
+namespace SponzaScene.Renderer.Passes;
 
 internal unsafe class CSMPass : RenderPass
 {
