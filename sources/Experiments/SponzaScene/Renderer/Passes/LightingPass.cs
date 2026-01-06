@@ -14,7 +14,7 @@ internal unsafe class LightingPass : FullscreenPass
 
     private ResourceSet? resourceSet;
 
-    public LightingPass() : base("LightingPass")
+    public LightingPass() : base("Lighting Pass")
     {
         constantBuffer = App.Context.CreateBuffer(new()
         {
