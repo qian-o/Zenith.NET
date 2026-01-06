@@ -88,7 +88,7 @@ internal unsafe class LightingPass : FullscreenPass
                 context.Emissive!,
                 context.CSMDepths!,
                 context.GTAOBlurred!,
-                context.RTGIAccumulated!,
+                context.RTGI!,
                 context.LitColor!,
                 App.PointSampler,
                 App.ShadowSampler

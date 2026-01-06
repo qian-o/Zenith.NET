@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using Hexa.NET.ImGui;
 using SponzaScene.Helpers;
 using SponzaScene.Models;
 using Zenith.NET;
@@ -16,9 +15,6 @@ internal unsafe class RTGIPass : RenderPass
     private readonly RayTracingPipeline pipeline;
 
     private ResourceSet? resourceSet;
-
-    private int lastConstantsHash;
-    private uint accumulatedFrames;
 
     public RTGIPass() : base("RTGI Pass")
     {
@@ -48,7 +44,6 @@ internal unsafe class RTGIPass : RenderPass
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.ClosestHit },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.ClosestHit },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.ClosestHit },
-                new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.RayGeneration },
                 new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.RayGeneration },
                 new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.ClosestHit }
             )
@@ -87,7 +82,6 @@ internal unsafe class RTGIPass : RenderPass
     {
         resourceSet?.Dispose();
         resourceSet = null;
-        accumulatedFrames = 0;
     }
 
     protected override void ExecuteImpl(CommandBuffer commandBuffer, RenderContext context)
@@ -96,34 +90,21 @@ internal unsafe class RTGIPass : RenderPass
         {
             ViewProjection = context.View * context.Projection,
             DirectionalLight = App.Sponza.DirectionalLight,
-            AccumulatedFrames = accumulatedFrames,
+            FrameIndex = context.FrameIndex,
             Width = context.Width,
             Height = context.Height
         };
-
-        int currentHash = constants.GetSceneHash();
-
-        if (currentHash != lastConstantsHash)
-        {
-            constants.AccumulatedFrames = accumulatedFrames = 0;
-
-            lastConstantsHash = currentHash;
-        }
 
         constantBuffer.Upload([constants], 0);
 
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetResourceSet(EnsureResourceSet(context), 0);
         commandBuffer.DispatchRays(context.Width, context.Height, 1);
-
-        accumulatedFrames++;
     }
 
     protected override void DebugUIImpl(RenderContext context)
     {
-        ImGui.Text($"Accumulated Frames: {accumulatedFrames}");
-
-        ImGuiHelpers.Image(context.RTGIAccumulated!);
+        ImGuiHelpers.Image(context.RTGI!);
     }
 
     protected override void Destroy()
@@ -151,8 +132,7 @@ internal unsafe class RTGIPass : RenderPass
                 context.Normal!,
                 context.Position!,
                 context.NormalizedDepth!,
-                context.RTGIOutput!,
-                context.RTGIAccumulated!,
+                context.RTGI!,
                 App.LinearSampler
             ]
         });
@@ -164,23 +144,10 @@ internal unsafe class RTGIPass : RenderPass
 
         public DirectionalLight DirectionalLight;
 
-        public uint AccumulatedFrames;
+        public uint FrameIndex;
 
         public uint Width;
 
         public uint Height;
-
-        public readonly int GetSceneHash()
-        {
-            HashCode hash = new();
-            hash.Add(ViewProjection);
-            hash.Add(DirectionalLight.Direction);
-            hash.Add(DirectionalLight.Color);
-            hash.Add(DirectionalLight.Intensity);
-            hash.Add(Width);
-            hash.Add(Height);
-
-            return hash.ToHashCode();
-        }
     }
 }

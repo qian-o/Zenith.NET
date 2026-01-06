@@ -27,7 +27,6 @@ internal class DeferredRenderer : DisposableObject
         if (context.Width != width || context.Height != height)
         {
             context.Initialize(width, height);
-            context.FrameIndex = 0;
 
             foreach (RenderPass renderPass in renderPasses)
             {

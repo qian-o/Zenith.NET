@@ -32,7 +32,7 @@ struct RTGIConstants
 
     DirectionalLight DirectionalLight;
 
-    uint AccumulatedFrames;
+    uint FrameIndex;
 
     uint Width;
 
@@ -54,7 +54,6 @@ Texture2D normalTexture;
 Texture2D positionTexture;
 Texture2D depthTexture;
 RWTexture2D<float4> outputTexture;
-RWTexture2D<float4> accumulatedTexture;
 SamplerState linearSampler;
 
 float3 SafeNormalize(float3 v)
@@ -187,13 +186,12 @@ void RayGen()
     if (depth < EPSILON || dot(normal, normal) < EPSILON)
     {
         outputTexture[pixelCoord] = float4(0.0, 0.0, 0.0, 1.0);
-        accumulatedTexture[pixelCoord] = float4(0.0, 0.0, 0.0, 1.0);
         return;
     }
 
     normal = SafeNormalize(normal);
 
-    uint seed = pixelCoord.x + pixelCoord.y * constants.Width + constants.AccumulatedFrames * 719393;
+    uint seed = pixelCoord.x + pixelCoord.y * constants.Width + constants.FrameIndex * 719393;
 
     float3 indirectLight = float3(0.0);
 
@@ -234,19 +232,6 @@ void RayGen()
     float3 giColor = indirectLight * albedo;
 
     outputTexture[pixelCoord] = float4(giColor, 1.0);
-
-    if (constants.AccumulatedFrames == 0)
-    {
-        accumulatedTexture[pixelCoord] = float4(giColor, 1.0);
-    }
-    else
-    {
-        float3 previousAccumulated = accumulatedTexture[pixelCoord].rgb;
-        float weight = 1.0 / float(constants.AccumulatedFrames + 1);
-        float3 newAccumulated = lerp(previousAccumulated, giColor, weight);
-
-        accumulatedTexture[pixelCoord] = float4(newAccumulated, 1.0);
-    }
 }
 
 [shader("miss")]
@@ -278,7 +263,7 @@ void ClosestHit(inout GIPayload payload, BuiltInTriangleIntersectionAttributes a
         float3 gbufferPos = positionTexture.SampleLevel(linearSampler, hitScreenUV, 0).xyz;
         float distToGBuffer = length(hitPos - gbufferPos);
 
-        if (hitDepth > EPSILON && distToGBuffer < 1.0)
+        if (hitDepth > EPSILON && distToGBuffer < 10.0)
         {
             hitNormal = SafeNormalize(hitNormal);
 

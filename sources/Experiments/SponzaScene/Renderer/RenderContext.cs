@@ -81,6 +81,8 @@ internal class RenderContext : DisposableObject
     #endregion
 
     #region Intermediate Textures
+    public Texture? RTGI { get; private set; }
+
     public Texture? GTAO { get; private set; }
 
     public Texture? GTAOBlurred { get; private set; }
@@ -94,10 +96,6 @@ internal class RenderContext : DisposableObject
     public Texture? VerticalBloom { get; private set; }
 
     public Texture? LitColor { get; private set; }
-
-    public Texture? RTGIOutput { get; private set; }
-
-    public Texture? RTGIAccumulated { get; private set; }
     #endregion
 
     public Texture? FinalColor { get; private set; }
@@ -243,6 +241,19 @@ internal class RenderContext : DisposableObject
             DepthStencilAttachment = new() { Target = Depth }
         });
 
+        RTGI = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R16G16B16A16Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+        });
+
         GTAO = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
@@ -334,32 +345,6 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
-        RTGIOutput = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R16G16B16A16Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-        });
-
-        RTGIAccumulated = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R16G16B16A16Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-        });
-
         FinalColor = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
@@ -375,14 +360,13 @@ internal class RenderContext : DisposableObject
 
         Width = width;
         Height = height;
+        FrameIndex = 0;
     }
 
     protected override void Destroy()
     {
         FinalColor?.Dispose();
 
-        RTGIAccumulated?.Dispose();
-        RTGIOutput?.Dispose();
         LitColor?.Dispose();
         VerticalBloom?.Dispose();
         HorizontalBloom?.Dispose();
@@ -390,6 +374,7 @@ internal class RenderContext : DisposableObject
         VolumetricLight?.Dispose();
         GTAOBlurred?.Dispose();
         GTAO?.Dispose();
+        RTGI?.Dispose();
 
         if (CSMFrameBuffers is not null)
         {
