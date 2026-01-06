@@ -73,14 +73,14 @@ internal unsafe class Sponza : DisposableObject
                     Triangles = new()
                     {
                         VertexBuffer = Vertices,
-                        VertexFormat = PixelFormat.R16G16B16A16Float,
+                        VertexFormat = PixelFormat.R32G32B32Float,
                         VertexCount = node.VertexCount,
                         VertexStrideInBytes = (uint)sizeof(Vertex),
                         VertexOffsetInBytes = (uint)(sizeof(Vertex) * node.Args.VertexOffset),
                         IndexBuffer = Indices,
                         IndexFormat = IndexFormat.UInt32,
                         IndexCount = node.Args.IndexCount,
-                        IndexOffsetInBytes = node.Args.FirstIndex * sizeof(uint),
+                        IndexOffsetInBytes = sizeof(uint) * node.Args.FirstIndex,
                         Transform = Matrix4x4.Identity
                     },
                     Flags = RayTracingGeometryFlags.Opaque

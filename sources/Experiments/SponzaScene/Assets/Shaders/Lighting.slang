@@ -77,6 +77,7 @@ Texture2D metallicRoughnessTexture;
 Texture2D emissiveTexture;
 Texture2DArray csmTextures;
 Texture2D gtaoTexture;
+Texture2D rtgiTexture;
 RWTexture2D outputTexture;
 SamplerState pointSampler;
 SamplerComparisonState shadowSampler;
@@ -514,6 +515,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 
     float4 emissiveData = emissiveTexture.SampleLevel(pointSampler, uv, 0);
     float ao = max(gtaoTexture.SampleLevel(pointSampler, uv, 0).r, 0.1);
+    float3 rtgi = rtgiTexture.SampleLevel(pointSampler, uv, 0).rgb;
     float3 V = SafeNormalize(constants.CameraPosition.xyz - worldPos);
 
     float3 color;
@@ -551,6 +553,8 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
         {
             color += CalculatePointLight(pointLights[i], worldPos, V, N, albedo, metallicRoughness.x, metallicRoughness.y);
         }
+
+        color += rtgi * ao * 2.0;
     }
 
     outputTexture[dispatchThreadID.xy] = float4(max(color, 0.0), 1.0);

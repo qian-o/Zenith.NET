@@ -12,6 +12,7 @@ internal class DeferredRenderer : DisposableObject
     [
         new GBufferPass(),
         new CSMPass(),
+        new RTGIPass(),
         new GTAOPass(),
         new GTAOBlurPass(),
         new VolumetricLightPass(),

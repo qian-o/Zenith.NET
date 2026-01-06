@@ -41,8 +41,6 @@ internal class RenderContext : DisposableObject
 
     public Matrix4x4 Projection { get; set; }
 
-    public Matrix4x4 PrevViewProjection { get; set; }
-
     public float NearPlane { get; set; }
 
     public float FarPlane { get; set; }
@@ -96,6 +94,10 @@ internal class RenderContext : DisposableObject
     public Texture? VerticalBloom { get; private set; }
 
     public Texture? LitColor { get; private set; }
+
+    public Texture? RTGIOutput { get; private set; }
+
+    public Texture? RTGIAccumulated { get; private set; }
     #endregion
 
     public Texture? FinalColor { get; private set; }
@@ -332,6 +334,32 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
+        RTGIOutput = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R16G16B16A16Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+        });
+
+        RTGIAccumulated = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R16G16B16A16Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+        });
+
         FinalColor = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
@@ -353,12 +381,13 @@ internal class RenderContext : DisposableObject
     {
         FinalColor?.Dispose();
 
+        RTGIAccumulated?.Dispose();
+        RTGIOutput?.Dispose();
         LitColor?.Dispose();
         VerticalBloom?.Dispose();
         HorizontalBloom?.Dispose();
         VolumetricLightBlurred?.Dispose();
         VolumetricLight?.Dispose();
-
         GTAOBlurred?.Dispose();
         GTAO?.Dispose();
 
