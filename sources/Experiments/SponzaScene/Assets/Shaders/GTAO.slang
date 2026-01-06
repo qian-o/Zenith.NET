@@ -8,7 +8,11 @@ static const float MIN_SCREEN_RADIUS = 2.0;
 static const float MAX_SCREEN_RADIUS = 100.0;
 
 static const float GOLDEN_RATIO = 0.381966;
-static const float CURVATURE_REJECTION = 0.8;
+
+static const float CURVATURE_NORMAL_THRESHOLD = 0.4;
+static const float CURVATURE_NDOTS_MIN = 0.2;
+static const float CURVATURE_NDOTS_MAX = 0.7;
+static const float CURVATURE_ATTENUATION = 0.8;
 
 struct GTAOConstants
 {
@@ -17,8 +21,6 @@ struct GTAOConstants
     float4x4 Projection;
 
     float2 ViewportSize;
-
-    float2 ViewportPixelSize;
 
     float EffectRadius;
 
@@ -29,8 +31,6 @@ struct GTAOConstants
     float FinalValuePower;
 
     float SampleDistributionPower;
-
-    float ThinOccluderCompensation;
 
     int SliceCount;
 
@@ -119,15 +119,29 @@ float CalculateDistanceFalloff(float distance, float maxDistance, float falloffP
     return pow(falloff, falloffPower);
 }
 
-float CalculateCurvatureWeight(float3 centerNormal, float3 sampleNormal)
+float ApplyCurvatureCompensation(float NdotS, float normalDot)
 {
-    float similarity = dot(centerNormal, sampleNormal);
+    if (normalDot <= CURVATURE_NORMAL_THRESHOLD)
+    {
+        return NdotS;
+    }
 
-    return saturate(1.0 - similarity * CURVATURE_REJECTION);
+    float normalFactor = (normalDot - CURVATURE_NORMAL_THRESHOLD) / (1.0 - CURVATURE_NORMAL_THRESHOLD);
+    normalFactor = normalFactor * normalFactor;
+
+    float threshold = lerp(CURVATURE_NDOTS_MIN, CURVATURE_NDOTS_MAX, normalFactor);
+
+    if (NdotS < threshold)
+    {
+        return 0.0;
+    }
+
+    float remapped = (NdotS - threshold) / (1.0 - threshold);
+
+    return remapped * (1.0 - normalFactor * CURVATURE_ATTENUATION);
 }
 
-float CalculateSampleOcclusion(float3 centerPos, float3 centerNormal, float2 sampleUV, float worldRadius,
-                               float invWorldRadius, float falloffPower)
+float CalculateSampleOcclusion(float3 centerPos, float3 centerNormal, float2 sampleUV, float worldRadius, float falloffPower)
 {
     float3 samplePos, sampleNormal;
     SampleViewData(sampleUV, samplePos, sampleNormal);
@@ -146,12 +160,19 @@ float CalculateSampleOcclusion(float3 centerPos, float3 centerNormal, float2 sam
     }
 
     float3 sampleDir = toSample / dist;
-    float NdotS = max(dot(centerNormal, sampleDir), 0.0);
+    float NdotS = dot(centerNormal, sampleDir);
 
-    float curvatureWeight = CalculateCurvatureWeight(centerNormal, sampleNormal);
+    if (NdotS <= 0.0)
+    {
+        return 0.0;
+    }
+
+    float normalDot = dot(centerNormal, sampleNormal);
+    NdotS = ApplyCurvatureCompensation(NdotS, normalDot);
+
     float distanceFalloff = CalculateDistanceFalloff(dist, worldRadius, falloffPower);
 
-    return NdotS * curvatureWeight * distanceFalloff;
+    return NdotS * distanceFalloff;
 }
 
 [numthreads(16, 16, 1)]
@@ -185,7 +206,6 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     float noise2 = InterleavedGradientNoise(float2(pixelCoord) + float2(5.588238, 5.588238));
 
     float worldRadius = constants.EffectRadius * constants.RadiusMultiplier;
-    float invWorldRadius = 1.0 / worldRadius;
     float projScale = abs(constants.Projection[1][1]);
     float screenRadius = (worldRadius * projScale * constants.ViewportSize.y * 0.5) / viewDepth;
     screenRadius = clamp(screenRadius, MIN_SCREEN_RADIUS, MAX_SCREEN_RADIUS);
@@ -206,7 +226,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
         float2 direction;
         sincos(angle, direction.y, direction.x);
 
-        float2 scaledDirection = direction * constants.ViewportPixelSize;
+        float2 scaledDirection = direction * (1.0 / constants.ViewportSize);
 
         for (int step = 1; step <= stepsPerSlice; step++)
         {
@@ -220,12 +240,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 
             if (all(forwardUV > 0.0) && all(forwardUV < 1.0))
             {
-                totalOcclusion += CalculateSampleOcclusion(viewPos,
-                                                           viewNormal,
-                                                           forwardUV,
-                                                           worldRadius,
-                                                           invWorldRadius,
-                                                           constants.EffectFalloffRange);
+                totalOcclusion += CalculateSampleOcclusion(viewPos, viewNormal, forwardUV, worldRadius, constants.EffectFalloffRange);
                 sampleCount += 1.0;
             }
 
@@ -233,12 +248,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 
             if (all(backwardUV > 0.0) && all(backwardUV < 1.0))
             {
-                totalOcclusion += CalculateSampleOcclusion(viewPos,
-                                                           viewNormal,
-                                                           backwardUV,
-                                                           worldRadius,
-                                                           invWorldRadius,
-                                                           constants.EffectFalloffRange);
+                totalOcclusion += CalculateSampleOcclusion(viewPos, viewNormal, backwardUV, worldRadius, constants.EffectFalloffRange);
                 sampleCount += 1.0;
             }
         }
