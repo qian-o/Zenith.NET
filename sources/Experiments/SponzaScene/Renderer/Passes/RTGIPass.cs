@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Hexa.NET.ImGui;
 using SponzaScene.Helpers;
 using SponzaScene.Models;
 using Zenith.NET;
@@ -15,6 +16,8 @@ internal unsafe class RTGIPass : RenderPass
     private readonly RayTracingPipeline pipeline;
 
     private ResourceSet? resourceSet;
+
+    private float intensity = 1.0f;
 
     public RTGIPass() : base("RTGI Pass")
     {
@@ -88,11 +91,12 @@ internal unsafe class RTGIPass : RenderPass
     {
         RTGIConstants constants = new()
         {
-            ViewProjection = context.View * context.Projection,
-            DirectionalLight = App.Sponza.DirectionalLight,
-            FrameIndex = context.FrameIndex,
             Width = context.Width,
-            Height = context.Height
+            Height = context.Height,
+            FrameIndex = context.FrameIndex,
+            Intensity = intensity,
+            ViewProjection = context.View * context.Projection,
+            DirectionalLight = App.Sponza.DirectionalLight
         };
 
         constantBuffer.Upload([constants], 0);
@@ -104,6 +108,8 @@ internal unsafe class RTGIPass : RenderPass
 
     protected override void DebugUIImpl(RenderContext context)
     {
+        ImGui.SliderFloat("Intensity", ref intensity, 0.0f, 3.0f);
+
         ImGuiHelpers.Image(context.RTGI!);
     }
 
@@ -140,14 +146,16 @@ internal unsafe class RTGIPass : RenderPass
 
     private struct RTGIConstants
     {
-        public Matrix4x4 ViewProjection;
-
-        public DirectionalLight DirectionalLight;
-
-        public uint FrameIndex;
-
         public uint Width;
 
         public uint Height;
+
+        public uint FrameIndex;
+
+        public float Intensity;
+
+        public Matrix4x4 ViewProjection;
+
+        public DirectionalLight DirectionalLight;
     }
 }
