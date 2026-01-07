@@ -3,6 +3,8 @@ static const float INV_PI = 0.31830988618;
 static const float EPSILON = 0.0001;
 
 static const uint RAYS_PER_PIXEL = 4;
+static const uint MAX_ACCUMULATED_FRAMES = 512;
+
 static const float RAY_MAX_DISTANCE = 100.0;
 static const float GBUFFER_DISTANCE_THRESHOLD = 0.5;
 
@@ -313,7 +315,9 @@ void RayGen()
 
     if (constants.FrameIndex > 0)
     {
-        irradiance = lerp(outputTexture[pixelCoord].rgb, irradiance, 1.0 / (float(constants.FrameIndex) + 1));
+        float blendFactor = 1.0 / float(min(constants.FrameIndex, MAX_ACCUMULATED_FRAMES) + 1);
+
+        irradiance = lerp(outputTexture[pixelCoord].rgb, irradiance, blendFactor);
     }
 
     outputTexture[pixelCoord] = float4(irradiance, 1.0);
