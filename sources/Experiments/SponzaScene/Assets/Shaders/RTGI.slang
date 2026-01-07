@@ -315,7 +315,7 @@ void RayGen()
 
     if (constants.FrameIndex > 0)
     {
-        float blendFactor = 1.0 / float(min(constants.FrameIndex, MAX_ACCUMULATED_FRAMES) + 1);
+        float blendFactor = 1.0 / float(min(constants.FrameIndex + 1, MAX_ACCUMULATED_FRAMES));
 
         irradiance = lerp(outputTexture[pixelCoord].rgb, irradiance, blendFactor);
     }
