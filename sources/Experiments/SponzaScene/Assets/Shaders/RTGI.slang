@@ -2,10 +2,10 @@
 static const float INV_PI = 0.31830988618;
 static const float EPSILON = 0.0001;
 
+static const uint RAYS_PER_PIXEL = 4;
 static const float RAY_MAX_DISTANCE = 100.0;
 static const float GBUFFER_DISTANCE_THRESHOLD = 0.5;
 
-static const float COLOR_BLEED_INTENSITY = 1.0;
 static const float SKY_AMBIENT_BOOST = 0.3;
 static const float SHADOW_AREA_BOOST = 1.3;
 
@@ -285,23 +285,31 @@ void RayGen()
 
     uint seed = pixelCoord.x + pixelCoord.y * constants.Width + constants.FrameIndex * 719393;
 
-    float3 rayDir = CosineSampleHemisphere(normal, seed);
-    float3 rayOrigin = OffsetRayOrigin(worldPos, normal, rayDir);
+    float3 irradiance = float3(0.0);
 
-    RayDesc ray;
-    ray.Origin = rayOrigin;
-    ray.Direction = rayDir;
-    ray.TMin = 0.001;
-    ray.TMax = RAY_MAX_DISTANCE;
+    for (uint i = 0; i < RAYS_PER_PIXEL; i++)
+    {
+        float3 rayDir = CosineSampleHemisphere(normal, seed);
+        float3 rayOrigin = OffsetRayOrigin(worldPos, normal, rayDir);
 
-    GIPayload payload;
-    payload.Radiance = float3(0.0);
-    payload.HitDistance = -1.0;
-    payload.ValidHit = false;
+        RayDesc ray;
+        ray.Origin = rayOrigin;
+        ray.Direction = rayDir;
+        ray.TMin = 0.001;
+        ray.TMax = RAY_MAX_DISTANCE;
 
-    TraceRay(tlas, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 0, 0, ray, payload);
+        GIPayload payload;
+        payload.Radiance = float3(0.0);
+        payload.HitDistance = -1.0;
+        payload.ValidHit = false;
 
-    float3 irradiance = payload.Radiance * COLOR_BLEED_INTENSITY * constants.Intensity;
+        TraceRay(tlas, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 0, 0, ray, payload);
+
+        irradiance += payload.Radiance;
+    }
+
+    irradiance /= float(RAYS_PER_PIXEL);
+    irradiance *= constants.Intensity;
 
     if (constants.FrameIndex > 0)
     {
