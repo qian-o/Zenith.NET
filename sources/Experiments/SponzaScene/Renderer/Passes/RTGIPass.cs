@@ -18,7 +18,7 @@ internal unsafe class RTGIPass : RenderPass
     private ResourceSet? resourceSet;
 
     private RTGIConstants constants = new();
-    private float intensity = 1.0f;
+    private float intensity = 2.0f;
 
     public RTGIPass() : base("RTGI Pass")
     {

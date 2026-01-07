@@ -2,7 +2,7 @@
 static const float INV_PI = 0.31830988618;
 static const float EPSILON = 0.0001;
 
-static const uint MAX_ACCUMULATED_FRAMES = 128;
+static const uint MAX_ACCUMULATED_FRAMES = 1024;
 
 static const float RAY_MAX_DISTANCE = 200.0;
 static const float GBUFFER_DISTANCE_THRESHOLD = 0.5;
