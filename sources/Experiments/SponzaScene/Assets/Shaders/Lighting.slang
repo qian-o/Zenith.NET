@@ -476,6 +476,10 @@ float3 CalculateGlobalIllumination(float3 N, float3 albedo, float3 giRadiance, f
     float minAmbientBlend = saturate(darknessLevel);
     giContribution += minAmbient * minAmbientBlend;
 
+    float giStrength = saturate(giLuminance * 10.0);
+    float3 fallbackAmbient = albedo * 0.03 * sunIntensity * (0.5 + sunHeight * 0.5);
+    giContribution += fallbackAmbient * (1.0 - giStrength) * diffuseWeight;
+
     float aoFactor = lerp(0.4, 1.0, ao);
 
     return giContribution * aoFactor;

@@ -83,6 +83,8 @@ internal class RenderContext : DisposableObject
     #region Intermediate Textures
     public Texture? RTGI { get; private set; }
 
+    public Texture? RTGIAccumulated { get; private set; }
+
     public Texture? GTAO { get; private set; }
 
     public Texture? GTAOBlurred { get; private set; }
@@ -254,6 +256,19 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
+        RTGIAccumulated = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R16G16B16A16Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+        });
+
         GTAO = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
@@ -374,6 +389,7 @@ internal class RenderContext : DisposableObject
         VolumetricLight?.Dispose();
         GTAOBlurred?.Dispose();
         GTAO?.Dispose();
+        RTGIAccumulated?.Dispose();
         RTGI?.Dispose();
 
         if (CSMFrameBuffers is not null)
