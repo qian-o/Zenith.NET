@@ -17,6 +17,8 @@ internal unsafe class RTGIPass : RenderPass
 
     private ResourceSet? resourceSet;
 
+    private RTGIConstants constants;
+
     private float intensity = 1.0f;
 
     public RTGIPass() : base("RTGI Pass")
@@ -89,15 +91,11 @@ internal unsafe class RTGIPass : RenderPass
 
     protected override void ExecuteImpl(CommandBuffer commandBuffer, RenderContext context)
     {
-        RTGIConstants constants = new()
-        {
-            Width = context.Width,
-            Height = context.Height,
-            FrameIndex = context.FrameIndex,
-            Intensity = intensity,
-            ViewProjection = context.View * context.Projection,
-            DirectionalLight = App.Sponza.DirectionalLight
-        };
+        constants.Update(context.Width,
+                         context.Height,
+                         intensity,
+                         context.View * context.Projection,
+                         App.Sponza.DirectionalLight);
 
         constantBuffer.Upload([constants], 0);
 
@@ -157,5 +155,42 @@ internal unsafe class RTGIPass : RenderPass
         public Matrix4x4 ViewProjection;
 
         public DirectionalLight DirectionalLight;
+
+        public void Update(uint width,
+                           uint height,
+                           float intensity,
+                           Matrix4x4 viewProjection,
+                           DirectionalLight directionalLight)
+        {
+            int hashCode = HashCode();
+
+            Width = width;
+            Height = height;
+            Intensity = intensity;
+            ViewProjection = viewProjection;
+            DirectionalLight = directionalLight;
+
+            if (hashCode != HashCode())
+            {
+                FrameIndex = 0;
+            }
+            else
+            {
+                FrameIndex++;
+            }
+        }
+
+        private readonly int HashCode()
+        {
+            HashCode hash = new();
+
+            hash.Add(Width);
+            hash.Add(Height);
+            hash.Add(Intensity);
+            hash.Add(ViewProjection);
+            hash.Add(DirectionalLight);
+
+            return hash.ToHashCode();
+        }
     }
 }

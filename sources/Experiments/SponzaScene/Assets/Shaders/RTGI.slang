@@ -303,6 +303,11 @@ void RayGen()
 
     float3 irradiance = payload.Radiance * COLOR_BLEED_INTENSITY * constants.Intensity;
 
+    if (constants.FrameIndex != 0)
+    {
+        irradiance = lerp(outputTexture[pixelCoord].rgb, irradiance, 1.0 / (float(constants.FrameIndex)));
+    }
+
     outputTexture[pixelCoord] = float4(irradiance, 1.0);
 }
 

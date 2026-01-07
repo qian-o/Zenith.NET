@@ -82,8 +82,6 @@ internal class DeferredRenderer : DisposableObject
         commandBuffer.EndDebugEvent();
 
         commandBuffer.Submit(true);
-
-        context.FrameIndex++;
     }
 
     public void UI()
