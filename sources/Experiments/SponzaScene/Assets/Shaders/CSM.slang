@@ -3,10 +3,6 @@
     float4x4 View;
 
     float4x4 Projection;
-
-    float NearPlane;
-
-    float FarPlane;
 }
 
 ConstantBuffer<CSMData> data;
@@ -20,13 +16,6 @@ struct PSInput
 {
     float4 Position : SV_POSITION;
 };
-
-float LinearizeDepth(float depth, float nearPlane, float farPlane)
-{
-    float z = depth * 2.0 - 1.0;
-
-    return (2.0 * nearPlane * farPlane) / (farPlane + nearPlane - z * (farPlane - nearPlane));
-}
 
 PSInput VSMain(VSInput input)
 {
