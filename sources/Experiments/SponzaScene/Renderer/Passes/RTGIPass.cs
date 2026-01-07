@@ -17,8 +17,7 @@ internal unsafe class RTGIPass : RenderPass
 
     private ResourceSet? resourceSet;
 
-    private RTGIConstants constants;
-
+    private RTGIConstants constants = new();
     private float intensity = 1.0f;
 
     public RTGIPass() : base("RTGI Pass")
@@ -162,35 +161,24 @@ internal unsafe class RTGIPass : RenderPass
                            Matrix4x4 viewProjection,
                            DirectionalLight directionalLight)
         {
-            int hashCode = HashCode();
+            int previousHash = HashCode.Combine(Width,
+                                                Height,
+                                                Intensity,
+                                                ViewProjection,
+                                                DirectionalLight);
+
+            int currentHash = HashCode.Combine(width,
+                                               height,
+                                               intensity,
+                                               viewProjection,
+                                               directionalLight);
 
             Width = width;
             Height = height;
+            FrameIndex = previousHash == currentHash ? FrameIndex + 1 : 0;
             Intensity = intensity;
             ViewProjection = viewProjection;
             DirectionalLight = directionalLight;
-
-            if (hashCode != HashCode())
-            {
-                FrameIndex = 0;
-            }
-            else
-            {
-                FrameIndex++;
-            }
-        }
-
-        private readonly int HashCode()
-        {
-            HashCode hash = new();
-
-            hash.Add(Width);
-            hash.Add(Height);
-            hash.Add(Intensity);
-            hash.Add(ViewProjection);
-            hash.Add(DirectionalLight);
-
-            return hash.ToHashCode();
         }
     }
 }
