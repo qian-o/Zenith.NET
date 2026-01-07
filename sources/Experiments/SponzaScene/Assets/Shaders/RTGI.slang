@@ -2,15 +2,12 @@
 static const float INV_PI = 0.31830988618;
 static const float EPSILON = 0.0001;
 
-static const float RAY_BIAS = 0.05;
-static const float RAY_MIN_T = 0.01;
 static const float RAY_MAX_DISTANCE = 100.0;
-static const float GBUFFER_DISTANCE_THRESHOLD = 2.0;
+static const float GBUFFER_DISTANCE_THRESHOLD = 0.5;
 
-static const float DIRECT_LIGHT_FACTOR = 0.3;
-static const float POINT_LIGHT_FACTOR = 0.5;
-static const float AMBIENT_FACTOR = 0.5;
-static const float SKY_FALLBACK_FACTOR = 0.5;
+static const float COLOR_BLEED_INTENSITY = 1.0;
+static const float SKY_AMBIENT_BOOST = 0.3;
+static const float SHADOW_AREA_BOOST = 1.3;
 
 struct DirectionalLight
 {
@@ -49,9 +46,11 @@ struct RTGIConstants
 
 struct GIPayload
 {
-    float3 Color;
+    float3 Radiance;
 
     float HitDistance;
+
+    bool ValidHit;
 };
 
 ConstantBuffer<RTGIConstants> constants;
@@ -118,11 +117,27 @@ float3 CosineSampleHemisphere(float3 normal, inout uint seed)
     return normalize(tangent * localDir.x + bitangent * localDir.y + normal * localDir.z);
 }
 
+float3 OffsetRayOrigin(float3 position, float3 normal, float3 rayDir)
+{
+    float NdotR = max(dot(normal, rayDir), 0.01);
+    float offset = 0.03 + (1.0 - NdotR) * 0.05;
+
+    return position + normal * offset;
+}
+
 bool ReprojectToScreen(float3 worldPos, float4x4 viewProj, out float2 screenUV, out float projDepth)
 {
     float4 clipPos = mul(float4(worldPos, 1.0), viewProj);
-    clipPos.xyz /= clipPos.w;
 
+    if (clipPos.w <= 0.0)
+    {
+        screenUV = float2(-1.0);
+        projDepth = -1.0;
+
+        return false;
+    }
+
+    clipPos.xyz /= clipPos.w;
     screenUV = float2(clipPos.x * 0.5 + 0.5, -clipPos.y * 0.5 + 0.5);
     projDepth = clipPos.z;
 
@@ -130,43 +145,83 @@ bool ReprojectToScreen(float3 worldPos, float4x4 viewProj, out float2 screenUV, 
 }
 
 // ============================================
-// Sky Color
+// Sky
 // ============================================
 
-float3 CalculateSkyColor(float3 direction, float3 sunDirection, float3 sunColor, float sunIntensity)
+float3 GetSkyRadiance(float3 direction)
 {
-    float3 sunDir = SafeNormalize(-sunDirection);
-    float sunHeight = sunDir.y;
+    float3 sunDir = SafeNormalize(-constants.DirectionalLight.Direction);
+    float sunHeight = max(sunDir.y, 0.0);
+    float elevation = direction.y;
 
-    float dayFactor = saturate(sunHeight * 2.0);
-    float nightFactor = saturate(-sunHeight * 3.0);
+    float3 skyBlue = float3(0.4, 0.6, 1.0);
+    float3 horizonColor = float3(0.7, 0.78, 0.9);
+    float3 groundColor = float3(0.25, 0.22, 0.2);
 
-    float3 zenithColor = lerp(lerp(float3(0.1, 0.4, 1.0), float3(0.38, 0.22, 0.58) + sunColor * 0.32, 1.0 - dayFactor),
-                              float3(0.005, 0.005, 0.015),
-                              nightFactor);
-    float3 horizonColor = lerp(lerp(float3(0.5, 0.7, 1.0), sunColor * float3(1.0, 0.8, 0.55), 1.0 - dayFactor),
-                               float3(0.015, 0.015, 0.04),
-                               nightFactor);
+    float t = pow(saturate(elevation * 0.5 + 0.5), 0.4);
+    float3 skyColor = lerp(horizonColor, skyBlue, t);
 
-    float t = pow(saturate(direction.y * 0.5 + 0.5), 0.35);
+    if (elevation < 0.0)
+    {
+        float groundBlend = saturate(-elevation * 2.0);
 
-    return lerp(horizonColor, zenithColor, t) * (0.6 + dayFactor * 0.4) * sunIntensity * 0.32;
+        skyColor = lerp(skyColor, groundColor, groundBlend);
+    }
+
+    float baseBrightness = 0.15 + sunHeight * 0.25;
+
+    return skyColor * constants.DirectionalLight.Intensity * baseBrightness;
+}
+
+float3 GetAmbientRadiance(float3 normal)
+{
+    float3 skyUp = GetSkyRadiance(float3(0.0, 1.0, 0.0));
+    float3 skyNormal = GetSkyRadiance(normal);
+    float3 skyDown = GetSkyRadiance(float3(0.0, -1.0, 0.0)) * 0.3;
+
+    float upWeight = saturate(normal.y);
+    float downWeight = saturate(-normal.y);
+    float sideWeight = 1.0 - upWeight - downWeight;
+
+    float3 ambient = skyUp * upWeight + skyDown * downWeight + skyNormal * sideWeight;
+
+    return ambient * SKY_AMBIENT_BOOST;
 }
 
 // ============================================
-// Lighting
+// Surface Lighting
 // ============================================
 
-float3 CalculatePointLightContribution(float3 worldPos, float3 normal)
+float3 CalculateSurfaceRadiance(float3 hitPos, float3 hitNormal, float3 hitAlbedo)
 {
-    float3 totalLight = float3(0.0);
+    float3 Lo = float3(0.0);
+
+    float3 sunDir = SafeNormalize(-constants.DirectionalLight.Direction);
+    float NdotL = max(dot(hitNormal, sunDir), 0.0);
+
+    if (NdotL > 0.0)
+    {
+        float3 sunRadiance = constants.DirectionalLight.Color * constants.DirectionalLight.Intensity;
+
+        Lo += (hitAlbedo * INV_PI) * sunRadiance * NdotL;
+    }
+
+    float3 ambient = GetAmbientRadiance(hitNormal);
+
+    Lo += hitAlbedo * ambient;
+
+    if (NdotL <= 0.1)
+    {
+        Lo *= SHADOW_AREA_BOOST;
+    }
+
     uint pointLightCount = pointLights.getCount();
 
     for (uint i = 0; i < pointLightCount; i++)
     {
         PointLight light = pointLights[i];
 
-        float3 toLight = light.Position - worldPos;
+        float3 toLight = light.Position - hitPos;
         float distance = length(toLight);
 
         if (distance > light.Radius)
@@ -175,41 +230,38 @@ float3 CalculatePointLightContribution(float3 worldPos, float3 normal)
         }
 
         float3 L = toLight / distance;
-        float NdotL = max(dot(normal, L), 0.0);
+        float lightNdotL = max(dot(hitNormal, L), 0.0);
 
-        if (NdotL <= 0.0)
+        if (lightNdotL <= 0.0)
         {
             continue;
         }
 
-        float distanceRatio = distance / light.Radius;
-        float distanceRatio2 = distanceRatio * distanceRatio;
-        float radiusAttenuation = saturate(1.0 - distanceRatio2 * distanceRatio2);
-        radiusAttenuation *= radiusAttenuation;
+        float attenuation = 1.0 / max(distance * distance, 0.01);
+        float falloff = saturate(1.0 - distance / light.Radius);
+        falloff *= falloff;
 
-        float physicalFalloff = 1.0 / max(distance * distance, EPSILON);
-        float attenuation = radiusAttenuation * physicalFalloff;
+        float3 lightRadiance = light.Color * light.Intensity * attenuation * falloff;
 
-        totalLight += light.Color * light.Intensity * attenuation * NdotL;
+        Lo += (hitAlbedo * INV_PI) * lightRadiance * lightNdotL;
     }
 
-    return totalLight;
+    return Lo;
 }
 
-float3 CalculateHitLighting(float3 hitPos, float3 hitAlbedo, float3 hitNormal)
+float3 EstimateOffscreenRadiance(float3 hitPos, float3 rayDir, float hitDistance)
 {
     float3 sunDir = SafeNormalize(-constants.DirectionalLight.Direction);
-    float NdotL = max(dot(hitNormal, sunDir), 0.0);
+    float3 estimatedAlbedo = float3(0.5, 0.5, 0.5);
+    float3 estimatedNormal = -rayDir;
 
-    float3 directLight = constants.DirectionalLight.Color * constants.DirectionalLight.Intensity * NdotL * DIRECT_LIGHT_FACTOR;
-    float3 pointLightContrib = CalculatePointLightContribution(hitPos, hitNormal) * POINT_LIGHT_FACTOR;
-    float3 ambient = CalculateSkyColor(hitNormal,
-                                       constants.DirectionalLight.Direction,
-                                       constants.DirectionalLight.Color,
-                                       constants.DirectionalLight.Intensity) *
-                     AMBIENT_FACTOR;
+    float NdotL = max(dot(estimatedNormal, sunDir), 0.0);
+    float3 directLight = constants.DirectionalLight.Color * constants.DirectionalLight.Intensity * NdotL * 0.4;
 
-    return hitAlbedo * (directLight + pointLightContrib + ambient);
+    float3 ambient = GetAmbientRadiance(estimatedNormal);
+    float distanceFade = saturate(1.0 - hitDistance / RAY_MAX_DISTANCE * 0.5);
+
+    return estimatedAlbedo * (directLight + ambient) * distanceFade;
 }
 
 [shader("raygeneration")]
@@ -220,7 +272,6 @@ void RayGen()
 
     float3 worldPos = positionTexture.SampleLevel(linearSampler, uv, 0).xyz;
     float3 normal = normalTexture.SampleLevel(linearSampler, uv, 0).xyz;
-    float3 albedo = albedoTexture.SampleLevel(linearSampler, uv, 0).rgb;
     float depth = depthTexture.SampleLevel(linearSampler, uv, 0).r;
 
     if (depth < EPSILON || dot(normal, normal) < EPSILON)
@@ -235,35 +286,24 @@ void RayGen()
     uint seed = pixelCoord.x + pixelCoord.y * constants.Width + constants.FrameIndex * 719393;
 
     float3 rayDir = CosineSampleHemisphere(normal, seed);
-
-    float NdotR = dot(normal, rayDir);
-    float adaptiveBias = RAY_BIAS / max(NdotR, 0.1);
-
-    float3 rayOrigin = worldPos + normal * adaptiveBias + rayDir * RAY_MIN_T;
+    float3 rayOrigin = OffsetRayOrigin(worldPos, normal, rayDir);
 
     RayDesc ray;
     ray.Origin = rayOrigin;
     ray.Direction = rayDir;
-    ray.TMin = RAY_MIN_T;
+    ray.TMin = 0.001;
     ray.TMax = RAY_MAX_DISTANCE;
 
     GIPayload payload;
-    payload.Color = float3(0.0);
+    payload.Radiance = float3(0.0);
     payload.HitDistance = -1.0;
+    payload.ValidHit = false;
 
     TraceRay(tlas, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 0, 0, ray, payload);
 
-    if (payload.HitDistance > 0.0 && payload.HitDistance < RAY_MIN_T * 2.0)
-    {
-        payload.Color = CalculateSkyColor(rayDir,
-                                          constants.DirectionalLight.Direction,
-                                          constants.DirectionalLight.Color,
-                                          constants.DirectionalLight.Intensity);
-    }
+    float3 irradiance = payload.Radiance * COLOR_BLEED_INTENSITY * constants.Intensity;
 
-    float3 giColor = payload.Color * albedo * constants.Intensity;
-
-    outputTexture[pixelCoord] = float4(giColor, 1.0);
+    outputTexture[pixelCoord] = float4(irradiance, 1.0);
 }
 
 [shader("miss")]
@@ -271,17 +311,20 @@ void Miss(inout GIPayload payload)
 {
     float3 rayDir = WorldRayDirection();
 
-    payload.Color = CalculateSkyColor(rayDir,
-                                      constants.DirectionalLight.Direction,
-                                      constants.DirectionalLight.Color,
-                                      constants.DirectionalLight.Intensity);
+    payload.Radiance = GetSkyRadiance(rayDir);
     payload.HitDistance = -1.0;
+    payload.ValidHit = false;
 }
 
 [shader("closesthit")]
 void ClosestHit(inout GIPayload payload, BuiltInTriangleIntersectionAttributes attribs)
 {
     float3 hitPos = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
+    float3 rayDir = WorldRayDirection();
+    float hitDistance = RayTCurrent();
+
+    payload.HitDistance = hitDistance;
+    payload.ValidHit = true;
 
     float2 hitScreenUV;
     float hitProjDepth;
@@ -291,25 +334,33 @@ void ClosestHit(inout GIPayload payload, BuiltInTriangleIntersectionAttributes a
         float3 hitAlbedo = albedoTexture.SampleLevel(linearSampler, hitScreenUV, 0).rgb;
         float3 hitNormal = normalTexture.SampleLevel(linearSampler, hitScreenUV, 0).xyz;
         float hitDepth = depthTexture.SampleLevel(linearSampler, hitScreenUV, 0).r;
-
         float3 gbufferPos = positionTexture.SampleLevel(linearSampler, hitScreenUV, 0).xyz;
+
         float distToGBuffer = length(hitPos - gbufferPos);
 
         if (hitDepth > EPSILON && distToGBuffer < GBUFFER_DISTANCE_THRESHOLD)
         {
             hitNormal = SafeNormalize(hitNormal);
 
-            payload.Color = CalculateHitLighting(hitPos, hitAlbedo, hitNormal);
-            payload.HitDistance = RayTCurrent();
+            payload.Radiance = CalculateSurfaceRadiance(hitPos, hitNormal, hitAlbedo);
+
+            return;
+        }
+
+        if (hitDepth > EPSILON)
+        {
+            float3 sunDir = SafeNormalize(-constants.DirectionalLight.Direction);
+            float3 estimatedNormal = -rayDir;
+            float NdotL = max(dot(estimatedNormal, sunDir), 0.0);
+
+            float3 lighting = constants.DirectionalLight.Color * constants.DirectionalLight.Intensity * NdotL * 0.5;
+            lighting += GetAmbientRadiance(estimatedNormal);
+
+            payload.Radiance = hitAlbedo * lighting;
 
             return;
         }
     }
 
-    payload.Color = CalculateSkyColor(WorldRayDirection(),
-                                      constants.DirectionalLight.Direction,
-                                      constants.DirectionalLight.Color,
-                                      constants.DirectionalLight.Intensity) *
-                    SKY_FALLBACK_FACTOR;
-    payload.HitDistance = RayTCurrent();
+    payload.Radiance = EstimateOffscreenRadiance(hitPos, rayDir, hitDistance);
 }
