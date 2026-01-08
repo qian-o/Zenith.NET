@@ -111,14 +111,6 @@ void SampleViewData(float2 uv, out float3 position, out float3 normal)
 // Occlusion Calculation
 // ============================================
 
-float CalculateDistanceFalloff(float distance, float maxDistance, float falloffPower)
-{
-    float distRatio = distance / maxDistance;
-    float falloff = saturate(1.0 - distRatio * distRatio);
-
-    return pow(falloff, falloffPower);
-}
-
 float ApplyCurvatureCompensation(float NdotS, float normalDot)
 {
     if (normalDot <= CURVATURE_NORMAL_THRESHOLD)
@@ -170,7 +162,9 @@ float CalculateSampleOcclusion(float3 centerPos, float3 centerNormal, float2 sam
     float normalDot = dot(centerNormal, sampleNormal);
     NdotS = ApplyCurvatureCompensation(NdotS, normalDot);
 
-    float distanceFalloff = CalculateDistanceFalloff(dist, worldRadius, falloffPower);
+    float distRatio = dist / worldRadius;
+    float falloff = saturate(1.0 - distRatio * distRatio);
+    float distanceFalloff = pow(falloff, falloffPower);
 
     return NdotS * distanceFalloff;
 }
@@ -220,13 +214,15 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     float angleStep = PI / float(sliceCount);
     float startAngle = noise1 * PI;
 
+    float2 invViewportSize = 1.0 / constants.ViewportSize;
+
     for (int slice = 0; slice < sliceCount; slice++)
     {
         float angle = startAngle + angleStep * (float(slice) + 0.5);
         float2 direction;
         sincos(angle, direction.y, direction.x);
 
-        float2 scaledDirection = direction * (1.0 / constants.ViewportSize);
+        float2 scaledDirection = direction * invViewportSize;
 
         for (int step = 1; step <= stepsPerSlice; step++)
         {
@@ -237,14 +233,13 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
             float2 offset = scaledDirection * sampleRadius;
 
             float2 forwardUV = uv + offset;
+            float2 backwardUV = uv - offset;
 
             if (all(forwardUV > 0.0) && all(forwardUV < 1.0))
             {
                 totalOcclusion += CalculateSampleOcclusion(viewPos, viewNormal, forwardUV, worldRadius, constants.EffectFalloffRange);
                 sampleCount += 1.0;
             }
-
-            float2 backwardUV = uv - offset;
 
             if (all(backwardUV > 0.0) && all(backwardUV < 1.0))
             {
