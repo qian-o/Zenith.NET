@@ -8,8 +8,6 @@ static const float RAY_MAX_DISTANCE = 200.0;
 static const float SHADOW_RAY_DISTANCE = 500.0;
 static const float GBUFFER_DISTANCE_THRESHOLD = 3.0;
 
-static const float SKY_AMBIENT_BOOST = 0.8;
-
 static const float RAY_ORIGIN_NORMAL_OFFSET = 0.1;
 static const float RAY_TMIN = 0.01;
 
@@ -51,8 +49,6 @@ struct RTGIConstants
 struct GIPayload
 {
     float3 Radiance;
-
-    float HitDistance;
 };
 
 struct ShadowPayload
@@ -129,23 +125,21 @@ float3 OffsetRayOrigin(float3 position, float3 normal)
     return position + normal * RAY_ORIGIN_NORMAL_OFFSET;
 }
 
-bool ReprojectToScreen(float3 worldPos, float4x4 viewProj, out float2 screenUV, out float projDepth)
+bool ReprojectToScreen(float3 worldPos, float4x4 viewProj, out float2 screenUV)
 {
     float4 clipPos = mul(float4(worldPos, 1.0), viewProj);
 
     if (clipPos.w <= 0.0)
     {
         screenUV = float2(-1.0);
-        projDepth = -1.0;
 
         return false;
     }
 
     clipPos.xyz /= clipPos.w;
     screenUV = float2(clipPos.x * 0.5 + 0.5, -clipPos.y * 0.5 + 0.5);
-    projDepth = clipPos.z;
 
-    return all(screenUV >= 0.0) && all(screenUV <= 1.0) && projDepth > 0.0 && projDepth < 1.0;
+    return all(screenUV >= 0.0) && all(screenUV <= 1.0) && clipPos.z > 0.0 && clipPos.z < 1.0;
 }
 
 // ============================================
@@ -223,18 +217,14 @@ float3 CalculateSurfaceRadiance(float3 hitPos, float3 hitNormal, float3 hitAlbed
     float3 sunDir = SafeNormalize(-constants.DirectionalLight.Direction);
     float NdotL = max(dot(hitNormal, sunDir), 0.0);
 
-    float3 sunRadiance = constants.DirectionalLight.Color * constants.DirectionalLight.Intensity;
-
-    bool inShadow = true;
-
     if (NdotL > 0.0)
     {
         float3 shadowOrigin = OffsetRayOrigin(hitPos, hitNormal);
 
-        inShadow = TraceShadowRay(shadowOrigin, sunDir, SHADOW_RAY_DISTANCE);
-
-        if (!inShadow)
+        if (!TraceShadowRay(shadowOrigin, sunDir, SHADOW_RAY_DISTANCE))
         {
+            float3 sunRadiance = constants.DirectionalLight.Color * constants.DirectionalLight.Intensity;
+
             Lo += (hitAlbedo * INV_PI) * sunRadiance * NdotL;
         }
     }
@@ -287,7 +277,6 @@ float3 EstimateOffscreenRadiance(float3 hitPos, float3 rayDir, float hitDistance
     float3 estimatedNormal = -rayDir;
 
     float NdotL = max(dot(estimatedNormal, sunDir), 0.0);
-    float3 sunRadiance = constants.DirectionalLight.Color * constants.DirectionalLight.Intensity;
 
     float3 directLight = float3(0.0);
 
@@ -297,6 +286,8 @@ float3 EstimateOffscreenRadiance(float3 hitPos, float3 rayDir, float hitDistance
 
         if (!TraceShadowRay(shadowOrigin, sunDir, SHADOW_RAY_DISTANCE))
         {
+            float3 sunRadiance = constants.DirectionalLight.Color * constants.DirectionalLight.Intensity;
+
             directLight = (estimatedAlbedo * INV_PI) * sunRadiance * NdotL;
         }
     }
@@ -340,7 +331,6 @@ void RayGen()
 
     GIPayload payload;
     payload.Radiance = float3(0.0);
-    payload.HitDistance = -1.0;
 
     TraceRay(tlas, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 0, 0, ray, payload);
 
@@ -359,10 +349,7 @@ void RayGen()
 [shader("miss")]
 void Miss(inout GIPayload payload)
 {
-    float3 rayDir = WorldRayDirection();
-
-    payload.Radiance = GetSkyRadiance(rayDir);
-    payload.HitDistance = -1.0;
+    payload.Radiance = GetSkyRadiance(WorldRayDirection());
 }
 
 [shader("miss")]
@@ -374,17 +361,12 @@ void ShadowMiss(inout ShadowPayload payload)
 [shader("closesthit")]
 void ClosestHit(inout GIPayload payload, BuiltInTriangleIntersectionAttributes attribs)
 {
-    float3 rayOrigin = WorldRayOrigin();
-    float3 hitPos = rayOrigin + WorldRayDirection() * RayTCurrent();
+    float3 hitPos = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
     float3 rayDir = WorldRayDirection();
-    float hitDistance = RayTCurrent();
-
-    payload.HitDistance = hitDistance;
 
     float2 hitScreenUV;
-    float hitProjDepth;
 
-    if (ReprojectToScreen(hitPos, constants.ViewProjection, hitScreenUV, hitProjDepth))
+    if (ReprojectToScreen(hitPos, constants.ViewProjection, hitScreenUV))
     {
         float3 hitAlbedo = albedoTexture.SampleLevel(linearSampler, hitScreenUV, 0).rgb;
         float3 hitNormal = normalTexture.SampleLevel(linearSampler, hitScreenUV, 0).xyz;
@@ -395,9 +377,7 @@ void ClosestHit(inout GIPayload payload, BuiltInTriangleIntersectionAttributes a
 
         if (hitDepth > EPSILON && distToGBuffer < GBUFFER_DISTANCE_THRESHOLD)
         {
-            hitNormal = SafeNormalize(hitNormal);
-
-            payload.Radiance = CalculateSurfaceRadiance(hitPos, hitNormal, hitAlbedo);
+            payload.Radiance = CalculateSurfaceRadiance(hitPos, SafeNormalize(hitNormal), hitAlbedo);
 
             return;
         }
@@ -413,5 +393,5 @@ void ClosestHit(inout GIPayload payload, BuiltInTriangleIntersectionAttributes a
         }
     }
 
-    payload.Radiance = EstimateOffscreenRadiance(hitPos, rayDir, hitDistance);
+    payload.Radiance = EstimateOffscreenRadiance(hitPos, rayDir, RayTCurrent());
 }

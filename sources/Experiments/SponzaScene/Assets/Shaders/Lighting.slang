@@ -2,9 +2,6 @@
 static const float INV_PI = 0.31830988618;
 static const float EPSILON = 0.0001;
 
-static const float DIRECT_LIGHT_SCALE = 1.0;
-static const float GI_INTENSITY = 0.8;
-static const float GI_SHADOW_BOOST = 1.3;
 static const float MIN_AMBIENT = 0.015;
 
 static const float SHADOW_BASE_OFFSET = 0.045;
@@ -429,7 +426,7 @@ float3 CalculateMinimalAmbient(float3 N, float3 V, float3 albedo, float metallic
 float3 CalculateDirectionalLight(DirectionalLight light, float3 V, float3 N, float3 albedo, float metallic, float roughness, float shadow)
 {
     float shadowFactor = shadow * shadow * shadow;
-    float3 radiance = light.Color * light.Intensity * DIRECT_LIGHT_SCALE * shadowFactor;
+    float3 radiance = light.Color * light.Intensity * shadowFactor;
 
     return CalculatePBRLight(SafeNormalize(-light.Direction), V, N, albedo, metallic, roughness, radiance);
 }
