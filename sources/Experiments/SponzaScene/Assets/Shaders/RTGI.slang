@@ -10,6 +10,9 @@ static const float GBUFFER_DISTANCE_THRESHOLD = 3.0;
 
 static const float SKY_AMBIENT_BOOST = 0.8;
 
+static const float RAY_ORIGIN_NORMAL_OFFSET = 0.1;
+static const float RAY_TMIN = 0.01;
+
 struct DirectionalLight
 {
     float3 Direction;
@@ -121,12 +124,9 @@ float3 CosineSampleHemisphere(float3 normal, inout uint seed)
     return normalize(tangent * localDir.x + bitangent * localDir.y + normal * localDir.z);
 }
 
-float3 OffsetRayOrigin(float3 position, float3 normal, float3 rayDir)
+float3 OffsetRayOrigin(float3 position, float3 normal)
 {
-    float NdotR = max(dot(normal, rayDir), 0.01);
-    float offset = 0.03 + (1.0 - NdotR) * 0.05;
-
-    return position + normal * offset;
+    return position + normal * RAY_ORIGIN_NORMAL_OFFSET;
 }
 
 bool ReprojectToScreen(float3 worldPos, float4x4 viewProj, out float2 screenUV, out float projDepth)
@@ -201,7 +201,7 @@ bool TraceShadowRay(float3 origin, float3 direction, float maxDistance)
     RayDesc shadowRay;
     shadowRay.Origin = origin;
     shadowRay.Direction = direction;
-    shadowRay.TMin = 0.01;
+    shadowRay.TMin = RAY_TMIN;
     shadowRay.TMax = maxDistance;
 
     ShadowPayload shadowPayload;
@@ -229,7 +229,7 @@ float3 CalculateSurfaceRadiance(float3 hitPos, float3 hitNormal, float3 hitAlbed
 
     if (NdotL > 0.0)
     {
-        float3 shadowOrigin = hitPos + hitNormal * 0.05;
+        float3 shadowOrigin = OffsetRayOrigin(hitPos, hitNormal);
 
         inShadow = TraceShadowRay(shadowOrigin, sunDir, SHADOW_RAY_DISTANCE);
 
@@ -293,7 +293,7 @@ float3 EstimateOffscreenRadiance(float3 hitPos, float3 rayDir, float hitDistance
 
     if (NdotL > 0.0)
     {
-        float3 shadowOrigin = hitPos + estimatedNormal * 0.05;
+        float3 shadowOrigin = OffsetRayOrigin(hitPos, estimatedNormal);
 
         if (!TraceShadowRay(shadowOrigin, sunDir, SHADOW_RAY_DISTANCE))
         {
@@ -330,12 +330,12 @@ void RayGen()
     uint seed = pixelCoord.x + pixelCoord.y * constants.Width + constants.FrameIndex * 719393;
 
     float3 rayDir = CosineSampleHemisphere(normal, seed);
-    float3 rayOrigin = OffsetRayOrigin(worldPos, normal, rayDir);
+    float3 rayOrigin = OffsetRayOrigin(worldPos, normal);
 
     RayDesc ray;
     ray.Origin = rayOrigin;
     ray.Direction = rayDir;
-    ray.TMin = 0.001;
+    ray.TMin = RAY_TMIN;
     ray.TMax = RAY_MAX_DISTANCE;
 
     GIPayload payload;
