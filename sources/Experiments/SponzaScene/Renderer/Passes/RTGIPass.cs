@@ -18,7 +18,7 @@ internal unsafe class RTGIPass : RenderPass
     private ResourceSet? resourceSet;
 
     private RTGIConstants constants = new();
-    private float intensity = 2.0f;
+    private float intensity = 1.0f;
 
     public RTGIPass() : base("RTGI Pass")
     {
@@ -42,7 +42,7 @@ internal unsafe class RTGIPass : RenderPass
             Bindings = Bindings
             (
                 new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.Miss | ShaderStageFlags.ClosestHit },
-                new() { Type = ResourceType.AccelerationStructure, Count = 1, StageFlags = ShaderStageFlags.RayGeneration },
+                new() { Type = ResourceType.AccelerationStructure, Count = 1, StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.ClosestHit },
                 new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.ClosestHit },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.ClosestHit },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.ClosestHit },
@@ -57,12 +57,13 @@ internal unsafe class RTGIPass : RenderPass
 
         using Shader rayGen = App.Context.LoadShaderFromFile(shaderPath, "RayGen", ShaderStageFlags.RayGeneration);
         using Shader miss = App.Context.LoadShaderFromFile(shaderPath, "Miss", ShaderStageFlags.Miss);
+        using Shader shadowMiss = App.Context.LoadShaderFromFile(shaderPath, "ShadowMiss", ShaderStageFlags.Miss);
         using Shader closestHit = App.Context.LoadShaderFromFile(shaderPath, "ClosestHit", ShaderStageFlags.ClosestHit);
 
         pipeline = App.Context.CreateRayTracingPipeline(new()
         {
             RayGeneration = rayGen,
-            Miss = [miss],
+            Miss = [miss, shadowMiss],
             AnyHit = [],
             Intersection = [],
             ClosestHit = [closestHit],
@@ -73,10 +74,15 @@ internal unsafe class RTGIPass : RenderPass
                     Name = "HitGroup",
                     Type = HitGroupType.Triangles,
                     ClosestHit = "ClosestHit"
+                },
+                new()
+                {
+                    Name = "ShadowHitGroup",
+                    Type = HitGroupType.Triangles
                 }
             ],
             ResourceLayouts = [resourceLayout],
-            MaxTraceRecursionDepth = 1,
+            MaxTraceRecursionDepth = 2,
             MaxPayloadSizeInBytes = 32,
             MaxAttributeSizeInBytes = 8
         });

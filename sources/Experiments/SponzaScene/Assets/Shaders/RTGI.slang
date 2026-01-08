@@ -5,10 +5,10 @@ static const float EPSILON = 0.0001;
 static const uint MAX_ACCUMULATED_FRAMES = 1024;
 
 static const float RAY_MAX_DISTANCE = 200.0;
-static const float GBUFFER_DISTANCE_THRESHOLD = 0.5;
+static const float SHADOW_RAY_DISTANCE = 500.0;
+static const float GBUFFER_DISTANCE_THRESHOLD = 3.0;
 
-static const float SKY_AMBIENT_BOOST = 0.3;
-static const float SHADOW_AREA_BOOST = 1.3;
+static const float SKY_AMBIENT_BOOST = 0.8;
 
 struct DirectionalLight
 {
@@ -50,8 +50,11 @@ struct GIPayload
     float3 Radiance;
 
     float HitDistance;
+};
 
-    bool ValidHit;
+struct ShadowPayload
+{
+    bool InShadow;
 };
 
 ConstantBuffer<RTGIConstants> constants;
@@ -169,7 +172,7 @@ float3 GetSkyRadiance(float3 direction)
         skyColor = lerp(skyColor, groundColor, groundBlend);
     }
 
-    float baseBrightness = 0.15 + sunHeight * 0.25;
+    float baseBrightness = 0.25 + sunHeight * 0.2;
 
     return skyColor * constants.DirectionalLight.Intensity * baseBrightness;
 }
@@ -177,16 +180,36 @@ float3 GetSkyRadiance(float3 direction)
 float3 GetAmbientRadiance(float3 normal)
 {
     float3 skyUp = GetSkyRadiance(float3(0.0, 1.0, 0.0));
-    float3 skyNormal = GetSkyRadiance(normal);
-    float3 skyDown = GetSkyRadiance(float3(0.0, -1.0, 0.0)) * 0.3;
+    float3 skyHorizon = GetSkyRadiance(float3(1.0, 0.0, 0.0));
+    float3 skyDown = GetSkyRadiance(float3(0.0, -1.0, 0.0)) * 0.5;
 
-    float upWeight = saturate(normal.y);
-    float downWeight = saturate(-normal.y);
-    float sideWeight = 1.0 - upWeight - downWeight;
+    float upWeight = max(normal.y, 0.0);
+    float downWeight = max(-normal.y, 0.0);
+    float sideWeight = 1.0 - abs(normal.y);
 
-    float3 ambient = skyUp * upWeight + skyDown * downWeight + skyNormal * sideWeight;
+    float3 ambient = skyUp * upWeight + skyDown * downWeight + skyHorizon * sideWeight;
 
-    return ambient * SKY_AMBIENT_BOOST;
+    return ambient * 0.8;
+}
+
+// ============================================
+// Shadow Testing
+// ============================================
+
+bool TraceShadowRay(float3 origin, float3 direction, float maxDistance)
+{
+    RayDesc shadowRay;
+    shadowRay.Origin = origin;
+    shadowRay.Direction = direction;
+    shadowRay.TMin = 0.01;
+    shadowRay.TMax = maxDistance;
+
+    ShadowPayload shadowPayload;
+    shadowPayload.InShadow = true;
+
+    TraceRay(tlas, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER, 0xFF, 1, 0, 1, shadowRay, shadowPayload);
+
+    return shadowPayload.InShadow;
 }
 
 // ============================================
@@ -200,21 +223,24 @@ float3 CalculateSurfaceRadiance(float3 hitPos, float3 hitNormal, float3 hitAlbed
     float3 sunDir = SafeNormalize(-constants.DirectionalLight.Direction);
     float NdotL = max(dot(hitNormal, sunDir), 0.0);
 
+    float3 sunRadiance = constants.DirectionalLight.Color * constants.DirectionalLight.Intensity;
+
+    bool inShadow = true;
+
     if (NdotL > 0.0)
     {
-        float3 sunRadiance = constants.DirectionalLight.Color * constants.DirectionalLight.Intensity;
+        float3 shadowOrigin = hitPos + hitNormal * 0.05;
 
-        Lo += (hitAlbedo * INV_PI) * sunRadiance * NdotL;
+        inShadow = TraceShadowRay(shadowOrigin, sunDir, SHADOW_RAY_DISTANCE);
+
+        if (!inShadow)
+        {
+            Lo += (hitAlbedo * INV_PI) * sunRadiance * NdotL;
+        }
     }
 
     float3 ambient = GetAmbientRadiance(hitNormal);
-
     Lo += hitAlbedo * ambient;
-
-    if (NdotL <= 0.1)
-    {
-        Lo *= SHADOW_AREA_BOOST;
-    }
 
     uint pointLightCount = pointLights.getCount();
 
@@ -238,11 +264,15 @@ float3 CalculateSurfaceRadiance(float3 hitPos, float3 hitNormal, float3 hitAlbed
             continue;
         }
 
-        float attenuation = 1.0 / max(distance * distance, 0.01);
-        float falloff = saturate(1.0 - distance / light.Radius);
-        falloff *= falloff;
+        float distanceRatio = distance / light.Radius;
+        float distanceRatio2 = distanceRatio * distanceRatio;
+        float radiusAttenuation = saturate(1.0 - distanceRatio2 * distanceRatio2);
+        radiusAttenuation *= radiusAttenuation;
 
-        float3 lightRadiance = light.Color * light.Intensity * attenuation * falloff;
+        float physicalFalloff = 1.0 / max(distance * distance, EPSILON);
+        float attenuation = radiusAttenuation * physicalFalloff;
+
+        float3 lightRadiance = light.Color * light.Intensity * attenuation;
 
         Lo += (hitAlbedo * INV_PI) * lightRadiance * lightNdotL;
     }
@@ -257,12 +287,25 @@ float3 EstimateOffscreenRadiance(float3 hitPos, float3 rayDir, float hitDistance
     float3 estimatedNormal = -rayDir;
 
     float NdotL = max(dot(estimatedNormal, sunDir), 0.0);
-    float3 directLight = constants.DirectionalLight.Color * constants.DirectionalLight.Intensity * NdotL * 0.4;
+    float3 sunRadiance = constants.DirectionalLight.Color * constants.DirectionalLight.Intensity;
+
+    float3 directLight = float3(0.0);
+
+    if (NdotL > 0.0)
+    {
+        float3 shadowOrigin = hitPos + estimatedNormal * 0.05;
+
+        if (!TraceShadowRay(shadowOrigin, sunDir, SHADOW_RAY_DISTANCE))
+        {
+            directLight = (estimatedAlbedo * INV_PI) * sunRadiance * NdotL;
+        }
+    }
 
     float3 ambient = GetAmbientRadiance(estimatedNormal);
-    float distanceFade = saturate(1.0 - hitDistance / RAY_MAX_DISTANCE * 0.5);
 
-    return estimatedAlbedo * (directLight + ambient) * distanceFade;
+    float distanceFade = saturate(1.0 - hitDistance / RAY_MAX_DISTANCE * 0.3);
+
+    return (directLight + estimatedAlbedo * ambient) * distanceFade;
 }
 
 [shader("raygeneration")]
@@ -296,6 +339,9 @@ void RayGen()
     ray.TMax = RAY_MAX_DISTANCE;
 
     GIPayload payload;
+    payload.Radiance = float3(0.0);
+    payload.HitDistance = -1.0;
+
     TraceRay(tlas, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 0, 0, ray, payload);
 
     float3 irradiance = payload.Radiance * constants.Intensity;
@@ -317,18 +363,23 @@ void Miss(inout GIPayload payload)
 
     payload.Radiance = GetSkyRadiance(rayDir);
     payload.HitDistance = -1.0;
-    payload.ValidHit = false;
+}
+
+[shader("miss")]
+void ShadowMiss(inout ShadowPayload payload)
+{
+    payload.InShadow = false;
 }
 
 [shader("closesthit")]
 void ClosestHit(inout GIPayload payload, BuiltInTriangleIntersectionAttributes attribs)
 {
-    float3 hitPos = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
+    float3 rayOrigin = WorldRayOrigin();
+    float3 hitPos = rayOrigin + WorldRayDirection() * RayTCurrent();
     float3 rayDir = WorldRayDirection();
     float hitDistance = RayTCurrent();
 
     payload.HitDistance = hitDistance;
-    payload.ValidHit = true;
 
     float2 hitScreenUV;
     float hitProjDepth;
@@ -353,14 +404,10 @@ void ClosestHit(inout GIPayload payload, BuiltInTriangleIntersectionAttributes a
 
         if (hitDepth > EPSILON)
         {
-            float3 sunDir = SafeNormalize(-constants.DirectionalLight.Direction);
-            float3 estimatedNormal = -rayDir;
-            float NdotL = max(dot(estimatedNormal, sunDir), 0.0);
+            float blendFactor = saturate((distToGBuffer - GBUFFER_DISTANCE_THRESHOLD) / GBUFFER_DISTANCE_THRESHOLD);
+            float3 estimatedNormal = SafeNormalize(lerp(hitNormal, -rayDir, blendFactor * 0.4));
 
-            float3 lighting = constants.DirectionalLight.Color * constants.DirectionalLight.Intensity * NdotL * 0.5;
-            lighting += GetAmbientRadiance(estimatedNormal);
-
-            payload.Radiance = hitAlbedo * lighting;
+            payload.Radiance = CalculateSurfaceRadiance(hitPos, estimatedNormal, hitAlbedo);
 
             return;
         }

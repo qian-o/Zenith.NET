@@ -3,8 +3,8 @@ static const float INV_PI = 0.31830988618;
 static const float EPSILON = 0.0001;
 
 static const float DIRECT_LIGHT_SCALE = 1.0;
-static const float GI_INTENSITY = 1.0;
-static const float GI_SHADOW_BOOST = 1.4;
+static const float GI_INTENSITY = 0.8;
+static const float GI_SHADOW_BOOST = 1.3;
 static const float MIN_AMBIENT = 0.015;
 
 static const float SHADOW_BASE_OFFSET = 0.045;
@@ -458,27 +458,51 @@ float3 CalculatePointLight(PointLight light, float3 worldPos, float3 V, float3 N
 }
 
 float3 CalculateGlobalIllumination(float3 N, float3 albedo, float3 giRadiance, float metallic, float ao,
-                                   float3 sunDirection, float sunIntensity, float shadow)
+                                   float3 sunDirection, float3 sunColor, float sunIntensity, float shadow)
 {
     float diffuseWeight = 1.0 - metallic;
     float giLuminance = dot(giRadiance, float3(0.299, 0.587, 0.114));
-
-    float shadowBoost = lerp(GI_SHADOW_BOOST, 1.0, shadow);
-    float3 giContribution = albedo * giRadiance * diffuseWeight * GI_INTENSITY * shadowBoost;
+    bool hasValidGI = giLuminance > 0.001;
 
     float3 sunDir = SafeNormalize(-sunDirection);
     float sunHeight = max(sunDir.y, 0.0);
     float NdotL = max(dot(N, sunDir), 0.0);
 
-    float darknessLevel = 1.0 - max(NdotL * shadow, giLuminance * 2.0);
-    float3 minAmbient = albedo * MIN_AMBIENT * sunIntensity * (0.3 + sunHeight * 0.7);
+    float3 giContribution = float3(0.0);
 
-    float minAmbientBlend = saturate(darknessLevel);
-    giContribution += minAmbient * minAmbientBlend;
+    if (hasValidGI)
+    {
+        float directLightStrength = NdotL * shadow;
+        float giScale = lerp(1.8, 0.8, directLightStrength);
 
-    float giStrength = saturate(giLuminance * 10.0);
-    float3 fallbackAmbient = albedo * 0.03 * sunIntensity * (0.5 + sunHeight * 0.5);
-    giContribution += fallbackAmbient * (1.0 - giStrength) * diffuseWeight;
+        giContribution = albedo * giRadiance * diffuseWeight * giScale;
+    }
+    else
+    {
+        float3 skyUp = float3(0.25, 0.4, 0.65) * sunIntensity * 0.06;
+        float3 skyHorizon = float3(0.35, 0.4, 0.45) * sunIntensity * 0.05;
+        float3 skyDown = float3(0.12, 0.11, 0.1) * sunIntensity * 0.03;
+
+        float upWeight = max(N.y, 0.0);
+        float downWeight = max(-N.y, 0.0);
+        float sideWeight = 1.0 - abs(N.y);
+
+        float3 ambient = skyUp * upWeight + skyDown * downWeight + skyHorizon * sideWeight;
+
+        float shadowAmbientBoost = lerp(1.5, 1.0, shadow);
+
+        giContribution = albedo * ambient * diffuseWeight * shadowAmbientBoost;
+    }
+
+    float darknessLevel = 1.0 - max(NdotL * shadow, giLuminance * 6.0);
+    float3 minAmbient = albedo * MIN_AMBIENT * sunIntensity * (0.2 + sunHeight * 0.8);
+    giContribution += minAmbient * saturate(darknessLevel) * 0.3;
+
+    if (!hasValidGI)
+    {
+        float3 fallbackAmbient = albedo * 0.015 * sunIntensity * (0.3 + sunHeight * 0.7);
+        giContribution += fallbackAmbient * diffuseWeight;
+    }
 
     float aoFactor = lerp(0.4, 1.0, ao);
 
@@ -562,6 +586,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
                                              metallicRoughness.x,
                                              ao,
                                              constants.DirectionalLight.Direction,
+                                             constants.DirectionalLight.Color,
                                              constants.DirectionalLight.Intensity,
                                              shadow);
     }
