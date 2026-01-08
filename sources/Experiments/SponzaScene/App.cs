@@ -23,7 +23,15 @@ internal static class App
 
     static App()
     {
-        Context = GraphicsContext.CreateDirectX12(true);
+        if (OperatingSystem.IsWindows())
+        {
+            Context = GraphicsContext.CreateDirectX12(true);
+        }
+        else
+        {
+            Context = GraphicsContext.CreateVulkan(true);
+        }
+
         Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
 
         Sponza = new();
