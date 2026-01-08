@@ -44,7 +44,7 @@ internal unsafe class RTGIPass : RenderPass
                 new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.Miss | ShaderStageFlags.ClosestHit },
                 new() { Type = ResourceType.AccelerationStructure, Count = 1, StageFlags = ShaderStageFlags.RayGeneration },
                 new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.ClosestHit },
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.ClosestHit },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.ClosestHit },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.ClosestHit },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.ClosestHit },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.ClosestHit },
