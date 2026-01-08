@@ -8,8 +8,6 @@ struct BlurConstants
 {
     float2 TexelSize;
 
-    float2 Direction;
-
     int BlurSize;
 };
 
@@ -35,7 +33,7 @@ float GaussianWeight(float offset, float sigma)
     return exp(-(offset * offset) / sigmaSq2);
 }
 
-float DepthWeight(float centerDepth, float sampleDepth, float sigma)
+float DepthWeight(float centerDepth, float sampleDepth)
 {
     if (centerDepth < EPSILON || sampleDepth < EPSILON)
     {
@@ -44,14 +42,14 @@ float DepthWeight(float centerDepth, float sampleDepth, float sigma)
 
     float depthDiff = abs(centerDepth - sampleDepth) / max(centerDepth, EPSILON);
 
-    return exp(-(depthDiff * depthDiff) / (2.0 * sigma * sigma));
+    return exp(-(depthDiff * depthDiff) / (2.0 * DEPTH_SIGMA * DEPTH_SIGMA));
 }
 
-float RangeWeight(float centerValue, float sampleValue, float sigma)
+float RangeWeight(float centerValue, float sampleValue)
 {
     float diff = centerValue - sampleValue;
 
-    return exp(-(diff * diff) / (2.0 * sigma * sigma));
+    return exp(-(diff * diff) / (2.0 * RANGE_SIGMA * RANGE_SIGMA));
 }
 
 [numthreads(16, 16, 1)]
@@ -76,32 +74,36 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     int blurSize = constants.BlurSize;
     float spatialSigma = float(blurSize) * SPATIAL_SIGMA_SCALE;
 
-    for (int i = -blurSize; i <= blurSize; i++)
+    for (int y = -blurSize; y <= blurSize; y++)
     {
-        if (i == 0)
+        for (int x = -blurSize; x <= blurSize; x++)
         {
-            continue;
+            if (x == 0 && y == 0)
+            {
+                continue;
+            }
+
+            float2 offset = float2(x, y) * constants.TexelSize;
+            float2 sampleUV = uv + offset;
+
+            if (any(sampleUV < 0.0) || any(sampleUV > 1.0))
+            {
+                continue;
+            }
+
+            float sampleValue = gtaoTexture.SampleLevel(pointSampler, sampleUV, 0).r;
+            float sampleDepth = GetLinearDepth(sampleUV);
+
+            float dist = length(float2(x, y));
+            float wSpatial = GaussianWeight(dist, spatialSigma);
+            float wDepth = DepthWeight(centerDepth, sampleDepth);
+            float wRange = RangeWeight(centerValue, sampleValue);
+
+            float weight = wSpatial * wDepth * wRange;
+
+            result += sampleValue * weight;
+            totalWeight += weight;
         }
-
-        float2 offset = constants.Direction * float(i) * constants.TexelSize;
-        float2 sampleUV = uv + offset;
-
-        if (any(sampleUV < 0.0) || any(sampleUV > 1.0))
-        {
-            continue;
-        }
-
-        float sampleValue = gtaoTexture.SampleLevel(pointSampler, sampleUV, 0).r;
-        float sampleDepth = GetLinearDepth(sampleUV);
-
-        float wSpatial = GaussianWeight(float(abs(i)), spatialSigma);
-        float wDepth = DepthWeight(centerDepth, sampleDepth, DEPTH_SIGMA);
-        float wRange = RangeWeight(centerValue, sampleValue, RANGE_SIGMA);
-
-        float weight = wSpatial * wDepth * wRange;
-
-        result += sampleValue * weight;
-        totalWeight += weight;
     }
 
     result /= max(totalWeight, EPSILON);
