@@ -59,6 +59,7 @@ internal class DeferredRenderer : DisposableObject
             }
         }
 
+        context.FrameIndex++;
         context.View = camera.View;
         context.Projection = camera.Projection;
         context.NearPlane = camera.NearPlane;

@@ -35,6 +35,8 @@ internal class RenderContext : DisposableObject
 
     public uint Height { get; private set; }
 
+    public uint FrameIndex { get; set; }
+
     public Matrix4x4 View { get; set; }
 
     public Matrix4x4 Projection { get; set; }
@@ -358,6 +360,7 @@ internal class RenderContext : DisposableObject
 
         Width = width;
         Height = height;
+        FrameIndex = 0;
     }
 
     protected override void Destroy()

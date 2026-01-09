@@ -2,8 +2,6 @@
 static const float INV_PI = 0.31830988618;
 static const float EPSILON = 0.0001;
 
-static const uint MAX_ACCUMULATED_FRAMES = 1024;
-
 static const float RAY_MAX_DISTANCE = 200.0;
 static const float SHADOW_RAY_DISTANCE = 500.0;
 static const float GBUFFER_DISTANCE_THRESHOLD = 3.0;
@@ -334,16 +332,7 @@ void RayGen()
 
     TraceRay(tlas, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 0, 0, ray, payload);
 
-    float3 irradiance = payload.Radiance * constants.Intensity;
-
-    if (constants.FrameIndex > 0)
-    {
-        float blendFactor = 1.0 / float(min(constants.FrameIndex + 1, MAX_ACCUMULATED_FRAMES));
-
-        irradiance = lerp(outputTexture[pixelCoord].rgb, irradiance, blendFactor);
-    }
-
-    outputTexture[pixelCoord] = float4(irradiance, 1.0);
+    outputTexture[pixelCoord] = float4(payload.Radiance * constants.Intensity, 1.0);
 }
 
 [shader("miss")]

@@ -17,7 +17,6 @@ internal unsafe class RTGIPass : RenderPass
 
     private ResourceSet? resourceSet;
 
-    private RTGIConstants constants = new();
     private float intensity = 1.0f;
 
     public RTGIPass() : base("RTGI Pass")
@@ -96,11 +95,15 @@ internal unsafe class RTGIPass : RenderPass
 
     protected override void ExecuteImpl(CommandBuffer commandBuffer, RenderContext context)
     {
-        constants.Update(context.Width,
-                         context.Height,
-                         intensity,
-                         context.View * context.Projection,
-                         App.Sponza.DirectionalLight);
+        RTGIConstants constants = new()
+        {
+            Width = context.Width,
+            Height = context.Height,
+            FrameIndex = context.FrameIndex,
+            Intensity = intensity,
+            ViewProjection = context.View * context.Projection,
+            DirectionalLight = App.Sponza.DirectionalLight
+        };
 
         constantBuffer.Upload([constants], 0);
 
@@ -160,31 +163,5 @@ internal unsafe class RTGIPass : RenderPass
         public Matrix4x4 ViewProjection;
 
         public DirectionalLight DirectionalLight;
-
-        public void Update(uint width,
-                           uint height,
-                           float intensity,
-                           Matrix4x4 viewProjection,
-                           DirectionalLight directionalLight)
-        {
-            int previousHash = HashCode.Combine(Width,
-                                                Height,
-                                                Intensity,
-                                                ViewProjection,
-                                                DirectionalLight);
-
-            int currentHash = HashCode.Combine(width,
-                                               height,
-                                               intensity,
-                                               viewProjection,
-                                               directionalLight);
-
-            Width = width;
-            Height = height;
-            FrameIndex = previousHash == currentHash ? FrameIndex + 1 : 0;
-            Intensity = intensity;
-            ViewProjection = viewProjection;
-            DirectionalLight = directionalLight;
-        }
     }
 }
