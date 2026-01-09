@@ -145,28 +145,28 @@ internal unsafe class Sponza : DisposableObject
         {
             Position = new(-29.67882f, 6.9f, 6.88488f),
             Color = new(0.3f, 0.9f, 1.0f),
-            Intensity = 100.0f,
+            Intensity = 800.0f,
             Radius = 30.0f
         },
         new()
         {
             Position = new(-29.67882f, 6.9f, -10.55208f),
             Color = new(1.0f, 0.3f, 0.8f),
-            Intensity = 100.0f,
+            Intensity = 800.0f,
             Radius = 30.0f
         },
         new()
         {
             Position = new(23.4f, 6.9f, 6.88488f),
             Color = new(1.0f, 0.9f, 0.2f),
-            Intensity = 100.0f,
+            Intensity = 800.0f,
             Radius = 30.0f
         },
         new()
         {
             Position = new(23.4f, 6.9f, -10.55076f),
             Color = new(0.3f, 1.0f, 0.4f),
-            Intensity = 100.0f,
+            Intensity = 800.0f,
             Radius = 30.0f
         }
     ];
