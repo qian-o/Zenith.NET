@@ -7,13 +7,9 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace SponzaScene.Renderer.Passes;
 
-internal unsafe class SVGFTemporalPass : RenderPass
+internal unsafe class SVGFTemporalPass : FullscreenPass
 {
-    private const uint ThreadGroupSize = 16;
-
     private readonly Buffer constantBuffer;
-    private readonly ResourceLayout resourceLayout;
-    private readonly ComputePipeline pipeline;
 
     private ResourceSet? resourceSet;
     private Matrix4x4 prevViewProjection;
@@ -31,8 +27,19 @@ internal unsafe class SVGFTemporalPass : RenderPass
             StrideInBytes = (uint)sizeof(TemporalConstants),
             Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
         });
+    }
 
-        resourceLayout = App.Context.CreateResourceLayout(new()
+    protected override string ShaderName => "SVGFTemporal";
+
+    public override void Resize(uint width, uint height)
+    {
+        resourceSet?.Dispose();
+        resourceSet = null;
+    }
+
+    protected override ResourceLayout? CreateResourceLayout()
+    {
+        return App.Context.CreateResourceLayout(new()
         {
             Bindings = Bindings
             (
@@ -50,31 +57,33 @@ internal unsafe class SVGFTemporalPass : RenderPass
                 new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Compute }
             )
         });
+    }
 
-        using Shader cs = App.Context.LoadShaderFromFile(GetShaderPath("SVGFTemporal"), "CSMain", ShaderStageFlags.Compute);
-
-        pipeline = App.Context.CreateComputePipeline(new()
+    protected override ResourceSet EnsureResourceSet(ResourceLayout resourceLayout, RenderContext context)
+    {
+        return resourceSet ??= App.Context.CreateResourceSet(new()
         {
-            Compute = cs,
-            ResourceLayouts = [resourceLayout],
-            ThreadGroupSizeX = ThreadGroupSize,
-            ThreadGroupSizeY = ThreadGroupSize,
-            ThreadGroupSizeZ = 1
+            Layout = resourceLayout,
+            Resources =
+            [
+                constantBuffer,
+                context.RTGI!,
+                context.Position!,
+                context.Normal!,
+                context.HistoryPosition!,
+                context.HistoryNormal!,
+                context.RTGIHistoryAccumulated!,
+                context.RTGIHistoryMoments!,
+                context.RTGIAccumulated!,
+                context.RTGIMoments!,
+                context.SVGFPingPong!,
+                App.LinearSampler
+            ]
         });
     }
 
-    public override void Resize(uint width, uint height)
+    protected override void UpdateResources(RenderContext context)
     {
-        resourceSet?.Dispose();
-        resourceSet = null;
-    }
-
-    protected override void ExecuteImpl(CommandBuffer commandBuffer, RenderContext context)
-    {
-        EnsureResourceSet(context);
-
-        Matrix4x4 currentVP = context.View * context.Projection;
-
         constantBuffer.Upload([new TemporalConstants
         {
             PrevViewProjection = prevViewProjection,
@@ -84,14 +93,10 @@ internal unsafe class SVGFTemporalPass : RenderPass
             DepthThreshold = depthThreshold,
             MaxHistoryLength = maxHistoryLength
         }], 0);
+    }
 
-        commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetResourceSet(resourceSet!, 0);
-
-        uint dispatchX = (context.Width + ThreadGroupSize - 1) / ThreadGroupSize;
-        uint dispatchY = (context.Height + ThreadGroupSize - 1) / ThreadGroupSize;
-        commandBuffer.Dispatch(dispatchX, dispatchY, 1);
-
+    protected override void ExecuteBefore(CommandBuffer commandBuffer, RenderContext context)
+    {
         commandBuffer.CopyTexture(context.Position!,
                                   default,
                                   default,
@@ -124,7 +129,7 @@ internal unsafe class SVGFTemporalPass : RenderPass
                                   default,
                                   new() { Width = context.Width, Height = context.Height, Depth = 1 });
 
-        prevViewProjection = currentVP;
+        prevViewProjection = context.View * context.Projection;
     }
 
     protected override void DebugUIImpl(RenderContext context)
@@ -140,34 +145,9 @@ internal unsafe class SVGFTemporalPass : RenderPass
     protected override void Destroy()
     {
         resourceSet?.Dispose();
-        pipeline.Dispose();
-        resourceLayout.Dispose();
         constantBuffer.Dispose();
 
         base.Destroy();
-    }
-
-    private void EnsureResourceSet(RenderContext context)
-    {
-        resourceSet ??= App.Context.CreateResourceSet(new()
-        {
-            Layout = resourceLayout,
-            Resources =
-            [
-                constantBuffer,
-                context.RTGI!,
-                context.Position!,
-                context.Normal!,
-                context.HistoryPosition!,
-                context.HistoryNormal!,
-                context.RTGIHistoryAccumulated!,
-                context.RTGIHistoryMoments!,
-                context.RTGIAccumulated!,
-                context.RTGIMoments!,
-                context.SVGFPingPong!,
-                App.LinearSampler
-            ]
-        });
     }
 
     private struct TemporalConstants
