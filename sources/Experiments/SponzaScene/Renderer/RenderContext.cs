@@ -41,8 +41,6 @@ internal class RenderContext : DisposableObject
 
     public Matrix4x4 Projection { get; set; }
 
-    public Matrix4x4 PrevViewProjection { get; set; }
-
     public float NearPlane { get; set; }
 
     public float FarPlane { get; set; }
@@ -440,7 +438,6 @@ internal class RenderContext : DisposableObject
         Width = width;
         Height = height;
         FrameIndex = 0;
-        PrevViewProjection = Matrix4x4.Identity;
     }
 
     protected override void Destroy()

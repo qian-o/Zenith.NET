@@ -61,8 +61,6 @@ internal class DeferredRenderer : DisposableObject
             }
         }
 
-        context.PrevViewProjection = context.View * context.Projection;
-
         context.FrameIndex++;
         context.View = camera.View;
         context.Projection = camera.Projection;

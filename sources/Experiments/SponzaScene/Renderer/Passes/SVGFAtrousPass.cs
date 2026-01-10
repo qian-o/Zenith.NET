@@ -16,8 +16,8 @@ internal unsafe class SVGFAtrousPass : RenderPass
     private readonly ResourceLayout resourceLayout;
     private readonly ComputePipeline pipeline;
 
-    private ResourceSet? resourceSetAB;
-    private ResourceSet? resourceSetBA;
+    private ResourceSet? readPingWritePong;
+    private ResourceSet? readPongWritePing;
 
     private int iterations = 5;
     private float phiColor = 10.0f;
@@ -72,7 +72,7 @@ internal unsafe class SVGFAtrousPass : RenderPass
 
         commandBuffer.SetPipeline(pipeline);
 
-        bool pingPong = true;
+        bool writeToPong = true;
 
         for (int i = 0; i < iterations; i++)
         {
@@ -86,13 +86,13 @@ internal unsafe class SVGFAtrousPass : RenderPass
             };
 
             commandBuffer.Upload(constantBuffer, 0, [constants]);
-            commandBuffer.SetResourceSet(pingPong ? resourceSetAB! : resourceSetBA!, 0);
+            commandBuffer.SetResourceSet(writeToPong ? readPingWritePong! : readPongWritePing!, 0);
             commandBuffer.Dispatch(dispatchX, dispatchY, 1);
 
-            pingPong = !pingPong;
+            writeToPong = !writeToPong;
         }
 
-        if (pingPong)
+        if (writeToPong)
         {
             commandBuffer.CopyTexture(context.SVGFPingPong!,
                                       default,
@@ -130,13 +130,13 @@ internal unsafe class SVGFAtrousPass : RenderPass
 
     private void EnsureResourceSets(RenderContext context)
     {
-        resourceSetAB ??= App.Context.CreateResourceSet(new()
+        readPingWritePong ??= App.Context.CreateResourceSet(new()
         {
             Layout = resourceLayout,
             Resources = [constantBuffer, context.SVGFPingPong!, context.Position!, context.Normal!, context.RTGI!, App.PointSampler]
         });
 
-        resourceSetBA ??= App.Context.CreateResourceSet(new()
+        readPongWritePing ??= App.Context.CreateResourceSet(new()
         {
             Layout = resourceLayout,
             Resources = [constantBuffer, context.RTGI!, context.Position!, context.Normal!, context.SVGFPingPong!, App.PointSampler]
@@ -145,11 +145,11 @@ internal unsafe class SVGFAtrousPass : RenderPass
 
     private void DisposeResourceSets()
     {
-        resourceSetAB?.Dispose();
-        resourceSetAB = null;
+        readPingWritePong?.Dispose();
+        readPingWritePong = null;
 
-        resourceSetBA?.Dispose();
-        resourceSetBA = null;
+        readPongWritePing?.Dispose();
+        readPongWritePing = null;
     }
 
     private struct AtrousConstants

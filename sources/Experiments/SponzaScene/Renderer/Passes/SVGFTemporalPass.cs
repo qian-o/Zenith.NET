@@ -16,6 +16,7 @@ internal unsafe class SVGFTemporalPass : RenderPass
     private readonly ComputePipeline pipeline;
 
     private ResourceSet? resourceSet;
+    private Matrix4x4 prevViewProjection;
 
     private float colorBoxSigma = 3.0f;
     private float normalThreshold = 0.9f;
@@ -64,6 +65,8 @@ internal unsafe class SVGFTemporalPass : RenderPass
     {
         resourceSet?.Dispose();
         resourceSet = null;
+
+        prevViewProjection = Matrix4x4.Identity;
     }
 
     protected override void ExecuteImpl(CommandBuffer commandBuffer, RenderContext context)
@@ -72,7 +75,7 @@ internal unsafe class SVGFTemporalPass : RenderPass
 
         constantBuffer.Upload([new TemporalConstants
         {
-            PrevViewProjection = context.PrevViewProjection,
+            PrevViewProjection = prevViewProjection,
             ViewportSize = new Vector2(context.Width, context.Height),
             ColorBoxSigma = colorBoxSigma,
             NormalThreshold = normalThreshold,
@@ -102,6 +105,8 @@ internal unsafe class SVGFTemporalPass : RenderPass
                                   default,
                                   default,
                                   new() { Width = context.Width, Height = context.Height, Depth = 1 });
+
+        prevViewProjection = context.View * context.Projection;
     }
 
     protected override void DebugUIImpl(RenderContext context)
