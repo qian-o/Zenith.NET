@@ -18,7 +18,7 @@ ConstantBuffer<AtrousConstants> constants;
 Texture2D inputTexture;
 Texture2D positionTexture;
 Texture2D normalTexture;
-RWTexture2D<float4> outputTexture;
+RWTexture2D outputTexture;
 
 float Luminance(float3 c)
 {

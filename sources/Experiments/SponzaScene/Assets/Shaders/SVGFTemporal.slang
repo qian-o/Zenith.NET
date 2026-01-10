@@ -23,9 +23,9 @@ Texture2D historyPositionTexture;
 Texture2D historyNormalTexture;
 Texture2D historyAccumulatedTexture;
 Texture2D historyMomentsTexture;
-RWTexture2D<float4> accumulatedTexture;
-RWTexture2D<float4> momentsTexture;
-RWTexture2D<float4> outputTexture;
+RWTexture2D accumulatedTexture;
+RWTexture2D momentsTexture;
+RWTexture2D outputTexture;
 SamplerState linearSampler;
 
 float Luminance(float3 c)

@@ -61,7 +61,7 @@ Texture2D albedoTexture;
 Texture2D normalTexture;
 Texture2D positionTexture;
 Texture2D depthTexture;
-RWTexture2D<float4> outputTexture;
+RWTexture2D outputTexture;
 SamplerState linearSampler;
 
 // ============================================
