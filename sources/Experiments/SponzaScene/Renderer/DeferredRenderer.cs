@@ -19,6 +19,8 @@ internal class DeferredRenderer : DisposableObject
                 new GBufferPass(),
                 new CSMPass(),
                 new RTGIPass(),
+                new SVGFTemporalPass(),
+                new SVGFAtrousPass(),
                 new GTAOPass(),
                 new GTAOBlurPass(),
                 new VolumetricLightPass(),
@@ -58,6 +60,8 @@ internal class DeferredRenderer : DisposableObject
                 pass.Resize(width, height);
             }
         }
+
+        context.PrevViewProjection = context.View * context.Projection;
 
         context.FrameIndex++;
         context.View = camera.View;
