@@ -65,8 +65,6 @@ internal unsafe class SVGFTemporalPass : RenderPass
     {
         resourceSet?.Dispose();
         resourceSet = null;
-
-        prevViewProjection = Matrix4x4.Identity;
     }
 
     protected override void ExecuteImpl(CommandBuffer commandBuffer, RenderContext context)
