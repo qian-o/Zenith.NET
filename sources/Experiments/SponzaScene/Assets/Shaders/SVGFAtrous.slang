@@ -1,7 +1,5 @@
-﻿static const float EPSILON = 0.0001;
-static const float MIN_VARIANCE = 0.0001;
-
-static const float KERNEL[3] = { 1.0, 2.0 / 3.0, 1.0 / 6.0 };
+﻿static const float EPSILON = 1e-4;
+static const float KERNEL[3] = { 1.0, 0.667, 0.167 };
 
 struct AtrousConstants
 {
@@ -21,50 +19,49 @@ Texture2D inputTexture;
 Texture2D positionTexture;
 Texture2D normalTexture;
 RWTexture2D<float4> outputTexture;
-SamplerState pointSampler;
+
+float Luminance(float3 c)
+{
+    return dot(c, float3(0.2126, 0.7152, 0.0722));
+}
 
 float3 SafeNormalize(float3 v)
 {
-    float len = dot(v, v);
+    float lenSq = dot(v, v);
 
-    return len > EPSILON ? v * rsqrt(len) : float3(0.0, 0.0, 1.0);
-}
-
-float Luminance(float3 color)
-{
-    return dot(color, float3(0.2126, 0.7152, 0.0722));
+    return lenSq > EPSILON ? v * rsqrt(lenSq) : float3(0, 0, 1);
 }
 
 [numthreads(16, 16, 1)]
-void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
+void CSMain(uint3 id: SV_DispatchThreadID)
 {
-    uint2 pixelCoord = dispatchThreadID.xy;
+    uint2 coord = id.xy;
 
-    if (any(pixelCoord >= uint2(constants.ViewportSize)))
+    if (any(coord >= uint2(constants.ViewportSize)))
     {
         return;
     }
 
-    float4 centerData = inputTexture.Load(int3(pixelCoord, 0));
-    float3 centerPos = positionTexture.Load(int3(pixelCoord, 0)).xyz;
+    float4 centerData = inputTexture.Load(int3(coord, 0));
+    float3 centerPos = positionTexture.Load(int3(coord, 0)).xyz;
 
     if (dot(centerPos, centerPos) < EPSILON)
     {
-        outputTexture[pixelCoord] = float4(0.0);
+        outputTexture[coord] = 0;
 
         return;
     }
 
     float3 centerColor = centerData.rgb;
-    float variance = max(centerData.a, MIN_VARIANCE);
-    float3 centerNormal = SafeNormalize(normalTexture.Load(int3(pixelCoord, 0)).xyz);
+    float variance = max(centerData.a, EPSILON);
+    float3 centerNormal = SafeNormalize(normalTexture.Load(int3(coord, 0)).xyz);
     float centerLum = Luminance(centerColor);
     float centerDepth = length(centerPos);
-
     float phiColor = constants.PhiColor * sqrt(variance) + EPSILON;
+    float phiDepth = centerDepth * constants.PhiDepth + EPSILON;
 
     float3 colorSum = centerColor;
-    float varianceSum = variance;
+    float varSum = variance;
     float weightSum = 1.0;
 
     [unroll]
@@ -78,45 +75,37 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
                 continue;
             }
 
-            int2 sampleCoord = int2(pixelCoord) + int2(dx, dy) * constants.StepWidth;
+            int2 p = int2(coord) + int2(dx, dy) * constants.StepWidth;
 
-            if (any(sampleCoord < 0) || any(sampleCoord >= int2(constants.ViewportSize)))
+            if (any(p < 0) || any(p >= int2(constants.ViewportSize)))
             {
                 continue;
             }
 
-            float4 sampleData = inputTexture.Load(int3(sampleCoord, 0));
-            float3 samplePos = positionTexture.Load(int3(sampleCoord, 0)).xyz;
+            float3 samplePos = positionTexture.Load(int3(p, 0)).xyz;
 
             if (dot(samplePos, samplePos) < EPSILON)
             {
                 continue;
             }
 
-            float3 sampleColor = sampleData.rgb;
-            float sampleVariance = max(sampleData.a, MIN_VARIANCE);
-            float3 sampleNormal = SafeNormalize(normalTexture.Load(int3(sampleCoord, 0)).xyz);
+            float4 sampleData = inputTexture.Load(int3(p, 0));
+            float3 sampleNormal = SafeNormalize(normalTexture.Load(int3(p, 0)).xyz);
 
-            float kernelWeight = KERNEL[abs(dx)] * KERNEL[abs(dy)];
+            float wKernel = KERNEL[abs(dx)] * KERNEL[abs(dy)];
+            float wColor = exp(-abs(Luminance(sampleData.rgb) - centerLum) / phiColor);
+            float wNormal = pow(max(dot(centerNormal, sampleNormal), 0), constants.PhiNormal);
+            float wDepth = exp(-abs(dot(samplePos - centerPos, centerNormal)) / phiDepth);
 
-            float lumDiff = abs(Luminance(sampleColor) - centerLum);
-            float colorWeight = exp(-lumDiff / phiColor);
+            float w = wKernel * wColor * wNormal * wDepth;
 
-            float normalWeight = pow(max(dot(centerNormal, sampleNormal), 0.0), constants.PhiNormal);
-
-            float planeDist = abs(dot(samplePos - centerPos, centerNormal));
-            float depthWeight = exp(-planeDist / (centerDepth * constants.PhiDepth + EPSILON));
-
-            float weight = kernelWeight * colorWeight * normalWeight * depthWeight;
-
-            colorSum += sampleColor * weight;
-            varianceSum += sampleVariance * weight * weight;
-            weightSum += weight;
+            colorSum += sampleData.rgb * w;
+            varSum += max(sampleData.a, EPSILON) * w * w;
+            weightSum += w;
         }
     }
 
-    float3 filteredColor = colorSum / weightSum;
-    float filteredVariance = varianceSum / (weightSum * weightSum);
+    float invWeight = 1.0 / weightSum;
 
-    outputTexture[pixelCoord] = float4(filteredColor, filteredVariance);
+    outputTexture[coord] = float4(colorSum * invWeight, varSum * invWeight * invWeight);
 }

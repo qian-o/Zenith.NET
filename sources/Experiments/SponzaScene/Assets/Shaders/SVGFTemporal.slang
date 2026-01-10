@@ -1,5 +1,4 @@
-﻿static const float EPSILON = 0.0001;
-static const float MIN_VARIANCE = 0.0001;
+﻿static const float EPSILON = 1e-4;
 
 struct TemporalConstants
 {
@@ -17,7 +16,7 @@ struct TemporalConstants
 };
 
 ConstantBuffer<TemporalConstants> constants;
-Texture2D currentColorTexture;
+Texture2D colorTexture;
 Texture2D positionTexture;
 Texture2D normalTexture;
 Texture2D historyPositionTexture;
@@ -27,54 +26,58 @@ RWTexture2D<float4> momentsTexture;
 RWTexture2D<float4> outputTexture;
 SamplerState linearSampler;
 
+float Luminance(float3 c)
+{
+    return dot(c, float3(0.2126, 0.7152, 0.0722));
+}
+
 float3 SafeNormalize(float3 v)
 {
-    float len = dot(v, v);
+    float lenSq = dot(v, v);
 
-    return len > EPSILON ? v * rsqrt(len) : float3(0.0, 0.0, 1.0);
+    return lenSq > EPSILON ? v * rsqrt(lenSq) : float3(0, 0, 1);
 }
 
-float Luminance(float3 color)
+bool Reproject(float3 pos, float3 normal, out int2 historyCoord)
 {
-    return dot(color, float3(0.2126, 0.7152, 0.0722));
-}
+    float4 clip = mul(float4(pos, 1), constants.PrevViewProjection);
 
-bool ReprojectAndValidate(float3 worldPos, float3 worldNormal, out float2 historyUV)
-{
-    float4 clipPos = mul(float4(worldPos, 1.0), constants.PrevViewProjection);
-
-    if (clipPos.w <= 0.0)
+    if (clip.w <= 0)
     {
-        historyUV = float2(-1.0);
+        historyCoord = int2(-1);
 
         return false;
     }
 
-    clipPos.xyz /= clipPos.w;
-    historyUV = float2(clipPos.x * 0.5 + 0.5, -clipPos.y * 0.5 + 0.5);
+    float2 ndc = clip.xy / clip.w;
+    float2 uv = float2(ndc.x * 0.5 + 0.5, -ndc.y * 0.5 + 0.5);
 
-    if (any(historyUV < 0.0) || any(historyUV > 1.0) || clipPos.z <= 0.0 || clipPos.z >= 1.0)
+    if (any(uv < 0) || any(uv > 1))
     {
+        historyCoord = int2(-1);
+
         return false;
     }
 
-    float3 historyPos = historyPositionTexture.SampleLevel(linearSampler, historyUV, 0).xyz;
-    float3 historyNormal = historyNormalTexture.SampleLevel(linearSampler, historyUV, 0).xyz;
+    historyCoord = int2(uv * constants.ViewportSize);
+
+    float3 historyPos = historyPositionTexture.SampleLevel(linearSampler, uv, 0).xyz;
 
     if (dot(historyPos, historyPos) < EPSILON)
     {
         return false;
     }
 
-    float3 normal = SafeNormalize(worldNormal);
-    float planeDist = abs(dot(worldPos - historyPos, normal));
+    float3 n = SafeNormalize(normal);
 
-    if (planeDist > length(worldPos) * constants.DepthThreshold)
+    if (abs(dot(pos - historyPos, n)) > length(pos) * constants.DepthThreshold)
     {
         return false;
     }
 
-    if (dot(normal, SafeNormalize(historyNormal)) < constants.NormalThreshold)
+    float3 historyNormal = historyNormalTexture.SampleLevel(linearSampler, uv, 0).xyz;
+
+    if (dot(n, SafeNormalize(historyNormal)) < constants.NormalThreshold)
     {
         return false;
     }
@@ -82,10 +85,9 @@ bool ReprojectAndValidate(float3 worldPos, float3 worldNormal, out float2 histor
     return true;
 }
 
-void ComputeColorBounds(uint2 pixelCoord, out float3 minColor, out float3 maxColor, out float spatialVariance)
+void ComputeColorBounds(uint2 coord, out float3 boxMin, out float3 boxMax, out float variance)
 {
-    float3 m1 = float3(0.0);
-    float3 m2 = float3(0.0);
+    float3 m1 = 0, m2 = 0;
     int count = 0;
 
     [unroll]
@@ -94,11 +96,11 @@ void ComputeColorBounds(uint2 pixelCoord, out float3 minColor, out float3 maxCol
         [unroll]
         for (int x = -1; x <= 1; x++)
         {
-            int2 coord = int2(pixelCoord) + int2(x, y);
+            int2 p = int2(coord) + int2(x, y);
 
-            if (all(coord >= 0) && all(coord < int2(constants.ViewportSize)))
+            if (all(p >= 0) && all(p < int2(constants.ViewportSize)))
             {
-                float3 c = currentColorTexture.Load(int3(coord, 0)).rgb;
+                float3 c = colorTexture.Load(int3(p, 0)).rgb;
 
                 m1 += c;
                 m2 += c * c;
@@ -107,80 +109,79 @@ void ComputeColorBounds(uint2 pixelCoord, out float3 minColor, out float3 maxCol
         }
     }
 
-    float invCount = 1.0 / float(count);
-    float3 mean = m1 * invCount;
-    float3 variance = max(m2 * invCount - mean * mean, 0.0);
-    float3 stdDev = sqrt(variance) * constants.ColorBoxSigma;
+    float inv = 1.0 / count;
+    float3 mean = m1 * inv;
+    float3 var = max(m2 * inv - mean * mean, 0);
+    float3 sigma = sqrt(var) * constants.ColorBoxSigma;
 
-    minColor = mean - stdDev;
-    maxColor = mean + stdDev;
-    spatialVariance = Luminance(variance);
+    boxMin = mean - sigma;
+    boxMax = mean + sigma;
+    variance = Luminance(var);
 }
 
 [numthreads(16, 16, 1)]
-void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
+void CSMain(uint3 id: SV_DispatchThreadID)
 {
-    uint2 pixelCoord = dispatchThreadID.xy;
+    uint2 coord = id.xy;
 
-    if (any(pixelCoord >= uint2(constants.ViewportSize)))
+    if (any(coord >= uint2(constants.ViewportSize)))
     {
         return;
     }
 
-    float3 worldPos = positionTexture.Load(int3(pixelCoord, 0)).xyz;
+    float3 pos = positionTexture.Load(int3(coord, 0)).xyz;
 
-    if (dot(worldPos, worldPos) < EPSILON)
+    if (dot(pos, pos) < EPSILON)
     {
-        accumulatedTexture[pixelCoord] = float4(0.0);
-        momentsTexture[pixelCoord] = float4(0.0);
-        outputTexture[pixelCoord] = float4(0.0);
+        accumulatedTexture[coord] = 0;
+        momentsTexture[coord] = 0;
+        outputTexture[coord] = 0;
 
         return;
     }
 
-    float3 worldNormal = normalTexture.Load(int3(pixelCoord, 0)).xyz;
-    float3 currentColor = currentColorTexture.Load(int3(pixelCoord, 0)).rgb;
+    float3 normal = normalTexture.Load(int3(coord, 0)).xyz;
+    float3 color = colorTexture.Load(int3(coord, 0)).rgb;
 
-    float3 minColor, maxColor;
-    float spatialVariance;
-    ComputeColorBounds(pixelCoord, minColor, maxColor, spatialVariance);
+    float3 boxMin, boxMax;
+    float spatialVar;
+    ComputeColorBounds(coord, boxMin, boxMax, spatialVar);
 
-    float2 historyUV;
-    bool valid = ReprojectAndValidate(worldPos, worldNormal, historyUV);
+    int2 historyCoord;
+    bool valid = Reproject(pos, normal, historyCoord);
 
-    float3 accumulatedColor;
+    float3 accumulated;
     float2 moments;
-    float historyLength;
+    float histLen;
 
     if (valid)
     {
-        int2 historyCoord = int2(historyUV * constants.ViewportSize);
-        float3 historyColor = clamp(accumulatedTexture[historyCoord].rgb, minColor, maxColor);
-        float4 historyMoments = momentsTexture[historyCoord];
+        float3 histColor = clamp(accumulatedTexture[historyCoord].rgb, boxMin, boxMax);
+        float4 histMoments = momentsTexture[historyCoord];
 
-        historyLength = min(historyMoments.w + 1.0, float(constants.MaxHistoryLength));
+        histLen = min(histMoments.w + 1, constants.MaxHistoryLength);
 
-        float alpha = 1.0 / historyLength;
-        accumulatedColor = lerp(historyColor, currentColor, alpha);
+        float alpha = 1.0 / histLen;
+        accumulated = lerp(histColor, color, alpha);
 
-        float lum = Luminance(currentColor);
-        moments.x = lerp(historyMoments.x, lum, alpha);
-        moments.y = lerp(historyMoments.y, lum * lum, alpha);
+        float lum = Luminance(color);
+        moments.x = lerp(histMoments.x, lum, alpha);
+        moments.y = lerp(histMoments.y, lum * lum, alpha);
     }
     else
     {
-        accumulatedColor = currentColor;
-        historyLength = 1.0;
+        accumulated = color;
+        histLen = 1;
 
-        float lum = Luminance(currentColor);
+        float lum = Luminance(color);
         moments = float2(lum, lum * lum);
     }
 
-    float temporalVariance = max(moments.y - moments.x * moments.x, 0.0);
-    float t = saturate(historyLength / 4.0);
-    float variance = max(lerp(spatialVariance, temporalVariance, t), MIN_VARIANCE);
+    float temporalVar = max(moments.y - moments.x * moments.x, 0);
+    float t = saturate(histLen * 0.25);
+    float variance = max(lerp(spatialVar, temporalVar, t), EPSILON);
 
-    accumulatedTexture[pixelCoord] = float4(accumulatedColor, 1.0);
-    momentsTexture[pixelCoord] = float4(moments, 0.0, historyLength);
-    outputTexture[pixelCoord] = float4(accumulatedColor, variance);
+    accumulatedTexture[coord] = float4(accumulated, 1);
+    momentsTexture[coord] = float4(moments, 0, histLen);
+    outputTexture[coord] = float4(accumulated, variance);
 }

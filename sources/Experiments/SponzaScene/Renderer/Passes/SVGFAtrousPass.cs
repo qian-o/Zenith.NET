@@ -41,8 +41,7 @@ internal unsafe class SVGFAtrousPass : RenderPass
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Compute }
+                new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute }
             )
         });
 
@@ -133,13 +132,27 @@ internal unsafe class SVGFAtrousPass : RenderPass
         readPingWritePong ??= App.Context.CreateResourceSet(new()
         {
             Layout = resourceLayout,
-            Resources = [constantBuffer, context.SVGFPingPong!, context.Position!, context.Normal!, context.RTGI!, App.PointSampler]
+            Resources =
+            [
+                constantBuffer,
+                context.SVGFPingPong!,
+                context.Position!,
+                context.Normal!,
+                context.RTGI!
+            ]
         });
 
         readPongWritePing ??= App.Context.CreateResourceSet(new()
         {
             Layout = resourceLayout,
-            Resources = [constantBuffer, context.RTGI!, context.Position!, context.Normal!, context.SVGFPingPong!, App.PointSampler]
+            Resources =
+            [
+                constantBuffer,
+                context.RTGI!,
+                context.Position!,
+                context.Normal!,
+                context.SVGFPingPong!
+            ]
         });
     }
 
