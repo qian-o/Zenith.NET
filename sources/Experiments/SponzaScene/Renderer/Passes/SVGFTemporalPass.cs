@@ -18,9 +18,9 @@ internal unsafe class SVGFTemporalPass : RenderPass
     private ResourceSet? resourceSet;
     private Matrix4x4 prevViewProjection;
 
-    private float colorBoxSigma = 3.0f;
-    private float normalThreshold = 0.9f;
-    private float depthThreshold = 0.05f;
+    private float colorBoxSigma = 2.0f;
+    private float normalThreshold = 0.95f;
+    private float depthThreshold = 0.02f;
     private int maxHistoryLength = 32;
 
     public SVGFTemporalPass() : base("SVGF Temporal Pass")
@@ -37,6 +37,8 @@ internal unsafe class SVGFTemporalPass : RenderPass
             Bindings = Bindings
             (
                 new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
@@ -71,6 +73,8 @@ internal unsafe class SVGFTemporalPass : RenderPass
     {
         EnsureResourceSet(context);
 
+        Matrix4x4 currentVP = context.View * context.Projection;
+
         constantBuffer.Upload([new TemporalConstants
         {
             PrevViewProjection = prevViewProjection,
@@ -104,14 +108,30 @@ internal unsafe class SVGFTemporalPass : RenderPass
                                   default,
                                   new() { Width = context.Width, Height = context.Height, Depth = 1 });
 
-        prevViewProjection = context.View * context.Projection;
+        commandBuffer.CopyTexture(context.RTGIAccumulated!,
+                                  default,
+                                  default,
+                                  context.RTGIHistoryAccumulated!,
+                                  default,
+                                  default,
+                                  new() { Width = context.Width, Height = context.Height, Depth = 1 });
+
+        commandBuffer.CopyTexture(context.RTGIMoments!,
+                                  default,
+                                  default,
+                                  context.RTGIHistoryMoments!,
+                                  default,
+                                  default,
+                                  new() { Width = context.Width, Height = context.Height, Depth = 1 });
+
+        prevViewProjection = currentVP;
     }
 
     protected override void DebugUIImpl(RenderContext context)
     {
-        ImGui.SliderFloat("Color Box Sigma", ref colorBoxSigma, 0.1f, 5.0f);
-        ImGui.SliderFloat("Normal Threshold", ref normalThreshold, 0.5f, 1.0f);
-        ImGui.SliderFloat("Depth Threshold", ref depthThreshold, 0.01f, 0.5f);
+        ImGui.SliderFloat("Color Box Sigma", ref colorBoxSigma, 0.5f, 5.0f);
+        ImGui.SliderFloat("Normal Threshold", ref normalThreshold, 0.8f, 1.0f);
+        ImGui.SliderFloat("Depth Threshold", ref depthThreshold, 0.001f, 0.1f);
         ImGui.SliderInt("Max History Length", ref maxHistoryLength, 4, 64);
 
         ImGuiHelpers.Image(context.SVGFPingPong!);
@@ -140,6 +160,8 @@ internal unsafe class SVGFTemporalPass : RenderPass
                 context.Normal!,
                 context.HistoryPosition!,
                 context.HistoryNormal!,
+                context.RTGIHistoryAccumulated!,
+                context.RTGIHistoryMoments!,
                 context.RTGIAccumulated!,
                 context.RTGIMoments!,
                 context.SVGFPingPong!,

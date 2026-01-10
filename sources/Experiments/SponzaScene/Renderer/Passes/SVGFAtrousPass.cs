@@ -10,7 +10,6 @@ namespace SponzaScene.Renderer.Passes;
 internal unsafe class SVGFAtrousPass : RenderPass
 {
     private const uint ThreadGroupSize = 16;
-    private const int MaxIterations = 5;
 
     private readonly Buffer constantBuffer;
     private readonly ResourceLayout resourceLayout;
@@ -19,10 +18,10 @@ internal unsafe class SVGFAtrousPass : RenderPass
     private ResourceSet? readPingWritePong;
     private ResourceSet? readPongWritePing;
 
-    private int iterations = 5;
-    private float phiColor = 10.0f;
-    private float phiNormal = 128.0f;
-    private float phiDepth = 0.5f;
+    private int iterations = 6;
+    private float phiColor = 2.0f;
+    private float phiNormal = 32.0f;
+    private float phiDepth = 0.05f;
 
     public SVGFAtrousPass() : base("SVGF A-Trous Pass")
     {
@@ -59,7 +58,11 @@ internal unsafe class SVGFAtrousPass : RenderPass
 
     public override void Resize(uint width, uint height)
     {
-        DisposeResourceSets();
+        readPingWritePong?.Dispose();
+        readPingWritePong = null;
+
+        readPongWritePing?.Dispose();
+        readPongWritePing = null;
     }
 
     protected override void ExecuteImpl(CommandBuffer commandBuffer, RenderContext context)
@@ -105,21 +108,19 @@ internal unsafe class SVGFAtrousPass : RenderPass
 
     protected override void DebugUIImpl(RenderContext context)
     {
-        if (ImGui.SliderInt("Iterations", ref iterations, 1, MaxIterations))
-        {
-            DisposeResourceSets();
-        }
-
-        ImGui.SliderFloat("Phi Color", ref phiColor, 1.0f, 50.0f);
-        ImGui.SliderFloat("Phi Normal", ref phiNormal, 16.0f, 256.0f);
-        ImGui.SliderFloat("Phi Depth", ref phiDepth, 0.1f, 5.0f);
+        ImGui.SliderInt("Iterations", ref iterations, 1, 7);
+        ImGui.SliderFloat("Phi Color", ref phiColor, 0.1f, 10.0f);
+        ImGui.SliderFloat("Phi Normal", ref phiNormal, 4.0f, 128.0f);
+        ImGui.SliderFloat("Phi Depth", ref phiDepth, 0.01f, 1.0f);
 
         ImGuiHelpers.Image(context.RTGI!);
     }
 
     protected override void Destroy()
     {
-        DisposeResourceSets();
+        readPongWritePing?.Dispose();
+        readPingWritePong?.Dispose();
+
         pipeline.Dispose();
         resourceLayout.Dispose();
         constantBuffer.Dispose();
@@ -154,15 +155,6 @@ internal unsafe class SVGFAtrousPass : RenderPass
                 context.SVGFPingPong!
             ]
         });
-    }
-
-    private void DisposeResourceSets()
-    {
-        readPingWritePong?.Dispose();
-        readPingWritePong = null;
-
-        readPongWritePing?.Dispose();
-        readPongWritePing = null;
     }
 
     private struct AtrousConstants

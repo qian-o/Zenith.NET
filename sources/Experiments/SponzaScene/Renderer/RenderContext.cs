@@ -90,6 +90,10 @@ internal class RenderContext : DisposableObject
     public Texture? RTGIAccumulated { get; private set; }
 
     public Texture? RTGIMoments { get; private set; }
+
+    public Texture? RTGIHistoryAccumulated { get; private set; }
+
+    public Texture? RTGIHistoryMoments { get; private set; }
     #endregion
 
     #region Intermediate Textures
@@ -318,6 +322,32 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
+        RTGIHistoryAccumulated = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R16G16B16A16Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+        });
+
+        RTGIHistoryMoments = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R16G16B16A16Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+        });
+
         RTGI = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
@@ -453,6 +483,8 @@ internal class RenderContext : DisposableObject
         GTAO?.Dispose();
         RTGI?.Dispose();
 
+        RTGIHistoryMoments?.Dispose();
+        RTGIHistoryAccumulated?.Dispose();
         RTGIMoments?.Dispose();
         RTGIAccumulated?.Dispose();
         SVGFPingPong?.Dispose();
