@@ -258,8 +258,8 @@ internal class RenderContext : DisposableObject
         {
             Type = TextureType.Texture2D,
             Format = PixelFormat.R8UNorm,
-            Width = width,
-            Height = height,
+            Width = width / 4,
+            Height = height / 4,
             Depth = 1,
             MipLevels = 1,
             ArrayLayers = 1,
