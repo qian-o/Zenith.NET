@@ -41,7 +41,7 @@ internal static class ImGuiHelpers
             size.Y = size.X / aspectRatio;
         }
 
-        Image(App.Binding(texture), size, aspectRatio);
+        Image(App.Binding(texture), size);
     }
 
     public static void Image(TextureView textureView, Vector2? maxSize = null)
@@ -67,27 +67,20 @@ internal static class ImGuiHelpers
             size.Y = size.X / aspectRatio;
         }
 
-        Image(App.Binding(textureView), size, aspectRatio);
+        Image(App.Binding(textureView), size);
     }
 
-    private static void Image(ImTextureRef imTextureRef, Vector2 size, float aspectRatio)
+    private static void Image(ImTextureRef imTextureRef, Vector2 size)
     {
         ImGui.Image(imTextureRef, size);
 
         if (ImGui.IsItemHovered() && ImGui.BeginTooltip())
         {
-            Vector2 displaySize = ImGui.GetIO().DisplaySize / 4.0f;
+            Vector2 displaySize = ImGui.GetIO().DisplaySize / 2.0f;
 
-            float popupWidth = displaySize.X;
-            float popupHeight = popupWidth / aspectRatio;
+            size *= MathF.Min(displaySize.X / size.X, displaySize.Y / size.Y);
 
-            if (popupHeight > displaySize.Y)
-            {
-                popupHeight = displaySize.Y;
-                popupWidth = popupHeight * aspectRatio;
-            }
-
-            ImGui.Image(imTextureRef, new(popupWidth, popupHeight));
+            ImGui.Image(imTextureRef, size);
 
             ImGui.EndTooltip();
         }
