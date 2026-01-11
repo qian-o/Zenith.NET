@@ -6,7 +6,7 @@ using Zenith.NET;
 using Zenith.NET.Extensions.Slang;
 using Buffer = Zenith.NET.Buffer;
 
-namespace SponzaScene.Renderer;
+namespace SponzaScene.Renderer.Passes;
 
 internal unsafe class CSMPass : RenderPass
 {
@@ -110,7 +110,7 @@ internal unsafe class CSMPass : RenderPass
         {
             ImGui.BeginGroup();
             ImGui.Text($"Cascade {i}");
-            ImGuiHelpers.Image(context.CSMNormalizedDepths![i], size);
+            ImGuiHelpers.Image(context.CSMTextureViews![i], size);
             ImGui.EndGroup();
 
             if (i < splitCount - 1)

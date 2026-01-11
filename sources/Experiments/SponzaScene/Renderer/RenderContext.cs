@@ -25,7 +25,7 @@ internal class RenderContext : DisposableObject
 
     public static Output CSMOutput { get; } = new()
     {
-        ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
+        ColorAttachments = [],
         DepthStencilAttachment = PixelFormat.D32Float,
         SampleCount = SampleCount.Count1
     };
@@ -40,8 +40,6 @@ internal class RenderContext : DisposableObject
     public Matrix4x4 View { get; set; }
 
     public Matrix4x4 Projection { get; set; }
-
-    public Matrix4x4 PrevViewProjection { get; set; }
 
     public float NearPlane { get; set; }
 
@@ -77,12 +75,30 @@ internal class RenderContext : DisposableObject
 
     public Texture? CSMDepths { get; private set; }
 
-    public Texture[]? CSMNormalizedDepths { get; private set; }
+    public TextureView[]? CSMTextureViews { get; private set; }
 
     public FrameBuffer[]? CSMFrameBuffers { get; private set; }
     #endregion
 
+    #region SVGF Denoising
+    public Texture? HistoryPosition { get; private set; }
+
+    public Texture? HistoryNormal { get; private set; }
+
+    public Texture? SVGFPingPong { get; private set; }
+
+    public Texture? RTGIAccumulated { get; private set; }
+
+    public Texture? RTGIMoments { get; private set; }
+
+    public Texture? RTGIHistoryAccumulated { get; private set; }
+
+    public Texture? RTGIHistoryMoments { get; private set; }
+    #endregion
+
     #region Intermediate Textures
+    public Texture? RTGI { get; private set; }
+
     public Texture? GTAO { get; private set; }
 
     public Texture? GTAOBlurred { get; private set; }
@@ -169,43 +185,6 @@ internal class RenderContext : DisposableObject
             Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
         });
 
-        CSMDepths = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2DArray,
-            Format = PixelFormat.D32Float,
-            Width = 4096,
-            Height = 4096,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = (uint)CSMSplits.Length,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.DepthStencil | TextureUsageFlags.ShaderResource
-        });
-
-        CSMNormalizedDepths = new Texture[CSMSplits.Length];
-        CSMFrameBuffers = new FrameBuffer[CSMSplits.Length];
-        for (int i = 0; i < CSMSplits.Length; i++)
-        {
-            CSMNormalizedDepths[i] = App.Context.CreateTexture(new()
-            {
-                Type = TextureType.Texture2D,
-                Format = PixelFormat.R8G8B8A8UNorm,
-                Width = 4096,
-                Height = 4096,
-                Depth = 1,
-                MipLevels = 1,
-                ArrayLayers = 1,
-                SampleCount = SampleCount.Count1,
-                Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource
-            });
-
-            CSMFrameBuffers[i] = App.Context.CreateFrameBuffer(new()
-            {
-                ColorAttachments = [new() { Target = CSMNormalizedDepths[i] }],
-                DepthStencilAttachment = new() { Target = CSMDepths, Slice = new() { ArrayLayer = (uint)i } }
-            });
-        }
-
         MetallicRoughness = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
@@ -246,12 +225,148 @@ internal class RenderContext : DisposableObject
             DepthStencilAttachment = new() { Target = Depth }
         });
 
+        CSMDepths = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2DArray,
+            Format = PixelFormat.D32Float,
+            Width = 4096,
+            Height = 4096,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = (uint)CSMSplits.Length,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.DepthStencil | TextureUsageFlags.ShaderResource
+        });
+
+        CSMTextureViews = new TextureView[CSMSplits.Length];
+        CSMFrameBuffers = new FrameBuffer[CSMSplits.Length];
+        for (int i = 0; i < CSMSplits.Length; i++)
+        {
+            CSMTextureViews[i] = App.Context.CreateTextureView(new()
+            {
+                Texture = CSMDepths,
+                MipLevelCount = 1,
+                FirstArrayLayer = (uint)i,
+                ArrayLayerCount = 1
+            });
+
+            CSMFrameBuffers[i] = App.Context.CreateFrameBuffer(new()
+            {
+                ColorAttachments = [],
+                DepthStencilAttachment = new() { Target = CSMDepths, Slice = new() { ArrayLayer = (uint)i } }
+            });
+        }
+
+        HistoryPosition = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R16G16B16A16Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+        });
+
+        HistoryNormal = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R16G16B16A16Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+        });
+
+        SVGFPingPong = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R16G16B16A16Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+        });
+
+        RTGIAccumulated = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R16G16B16A16Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+        });
+
+        RTGIMoments = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R16G16B16A16Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+        });
+
+        RTGIHistoryAccumulated = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R16G16B16A16Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+        });
+
+        RTGIHistoryMoments = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R16G16B16A16Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+        });
+
+        RTGI = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R16G16B16A16Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+        });
+
         GTAO = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
             Format = PixelFormat.R8UNorm,
-            Width = width,
-            Height = height,
+            Width = width / 4,
+            Height = height / 4,
             Depth = 1,
             MipLevels = 1,
             ArrayLayers = 1,
@@ -352,6 +467,7 @@ internal class RenderContext : DisposableObject
 
         Width = width;
         Height = height;
+        FrameIndex = 0;
     }
 
     protected override void Destroy()
@@ -363,9 +479,17 @@ internal class RenderContext : DisposableObject
         HorizontalBloom?.Dispose();
         VolumetricLightBlurred?.Dispose();
         VolumetricLight?.Dispose();
-
         GTAOBlurred?.Dispose();
         GTAO?.Dispose();
+        RTGI?.Dispose();
+
+        RTGIHistoryMoments?.Dispose();
+        RTGIHistoryAccumulated?.Dispose();
+        RTGIMoments?.Dispose();
+        RTGIAccumulated?.Dispose();
+        SVGFPingPong?.Dispose();
+        HistoryNormal?.Dispose();
+        HistoryPosition?.Dispose();
 
         if (CSMFrameBuffers is not null)
         {
@@ -375,11 +499,11 @@ internal class RenderContext : DisposableObject
             }
         }
 
-        if (CSMNormalizedDepths is not null)
+        if (CSMTextureViews is not null)
         {
-            foreach (Texture texture in CSMNormalizedDepths)
+            foreach (TextureView textureView in CSMTextureViews)
             {
-                texture.Dispose();
+                textureView.Dispose();
             }
         }
 

@@ -6,7 +6,7 @@ using Zenith.NET;
 using Zenith.NET.Extensions.Slang;
 using Buffer = Zenith.NET.Buffer;
 
-namespace SponzaScene.Renderer;
+namespace SponzaScene.Renderer.Passes;
 
 internal unsafe class GBufferPass : RenderPass
 {
@@ -44,7 +44,7 @@ internal unsafe class GBufferPass : RenderPass
 
             Material material = App.Sponza.Materials[i];
 
-            *(MaterialConstants*)((byte*)mappedMemory.Pointer + offsetInBytes) = new()
+            *(MaterialConstants*)(mappedMemory.Pointer + offsetInBytes) = new()
             {
                 AlphaCutoff = material.AlphaCutoff,
                 MetallicFactor = material.MetallicFactor,

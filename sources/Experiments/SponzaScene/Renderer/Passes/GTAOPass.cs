@@ -4,7 +4,7 @@ using SponzaScene.Helpers;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
-namespace SponzaScene.Renderer;
+namespace SponzaScene.Renderer.Passes;
 
 internal unsafe class GTAOPass : FullscreenPass
 {
@@ -17,7 +17,6 @@ internal unsafe class GTAOPass : FullscreenPass
     private float radiusMultiplier = 1.2f;
     private float finalValuePower = 1.5f;
     private float sampleDistributionPower = 2.0f;
-    private float thinOccluderCompensation = 0.25f;
     private int sliceCount = 3;
     private int stepsPerSlice = 4;
 
@@ -77,13 +76,11 @@ internal unsafe class GTAOPass : FullscreenPass
             View = context.View,
             Projection = context.Projection,
             ViewportSize = new(context.Width, context.Height),
-            ViewportPixelSize = new(1.0f / context.Width, 1.0f / context.Height),
             EffectRadius = effectRadius,
             EffectFalloffRange = effectFalloffRange,
             RadiusMultiplier = radiusMultiplier,
             FinalValuePower = finalValuePower,
             SampleDistributionPower = sampleDistributionPower,
-            ThinOccluderCompensation = thinOccluderCompensation,
             SliceCount = sliceCount,
             StepsPerSlice = stepsPerSlice
         }], 0);
@@ -96,7 +93,6 @@ internal unsafe class GTAOPass : FullscreenPass
         ImGui.SliderFloat("Radius Multiplier", ref radiusMultiplier, 0.5f, 5.0f);
         ImGui.SliderFloat("Final Value Power", ref finalValuePower, 0.5f, 3.0f);
         ImGui.SliderFloat("Sample Distribution Power", ref sampleDistributionPower, 1.0f, 3.0f);
-        ImGui.SliderFloat("Thin Occluder Compensation", ref thinOccluderCompensation, 0.1f, 0.7f);
         ImGui.SliderInt("Slice Count", ref sliceCount, 2, 12);
         ImGui.SliderInt("Steps Per Slice", ref stepsPerSlice, 2, 16);
 
@@ -119,8 +115,6 @@ internal unsafe class GTAOPass : FullscreenPass
 
         public Vector2 ViewportSize;
 
-        public Vector2 ViewportPixelSize;
-
         public float EffectRadius;
 
         public float EffectFalloffRange;
@@ -130,8 +124,6 @@ internal unsafe class GTAOPass : FullscreenPass
         public float FinalValuePower;
 
         public float SampleDistributionPower;
-
-        public float ThinOccluderCompensation;
 
         public int SliceCount;
 

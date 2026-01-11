@@ -1,7 +1,7 @@
 ﻿using Zenith.NET;
 using Zenith.NET.Extensions.Slang;
 
-namespace SponzaScene.Renderer;
+namespace SponzaScene.Renderer.Passes;
 
 internal abstract class FullscreenPass : RenderPass
 {
@@ -32,6 +32,8 @@ internal abstract class FullscreenPass : RenderPass
     {
         UpdateResources(context);
 
+        ExecuteBefore(commandBuffer, context);
+
         commandBuffer.SetPipeline(pipeline);
 
         if (resourceLayout is not null)
@@ -40,6 +42,8 @@ internal abstract class FullscreenPass : RenderPass
         }
 
         commandBuffer.Dispatch((context.Width + ThreadGroupSize - 1) / ThreadGroupSize, (context.Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
+
+        ExecuteAfter(commandBuffer, context);
     }
 
     protected override void Destroy()
@@ -55,4 +59,8 @@ internal abstract class FullscreenPass : RenderPass
     protected abstract ResourceSet EnsureResourceSet(ResourceLayout resourceLayout, RenderContext context);
 
     protected abstract void UpdateResources(RenderContext context);
+
+    protected virtual void ExecuteBefore(CommandBuffer commandBuffer, RenderContext context) { }
+
+    protected virtual void ExecuteAfter(CommandBuffer commandBuffer, RenderContext context) { }
 }

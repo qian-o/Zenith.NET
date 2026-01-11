@@ -13,6 +13,7 @@ internal unsafe class VKResourceSet : ResourceSet
         DescriptorToken = context.DescriptorAllocator.Allocate(desc.Layout.Vulkan());
 
         WriteDescriptorSet* descriptorWrites = (WriteDescriptorSet*)ZenithMarshal.Allocate<WriteDescriptorSet>(scope, (uint)desc.Layout.Desc.Bindings.Length);
+        WriteDescriptorSetAccelerationStructureKHR* accelerationStructureWrites = (WriteDescriptorSetAccelerationStructureKHR*)ZenithMarshal.Allocate<WriteDescriptorSetAccelerationStructureKHR>(scope, (uint)desc.Layout.Desc.Bindings.Length);
 
         uint resourceStartIndex = 0;
         List<VKTextureView> srvTextureViews = [];
@@ -35,12 +36,16 @@ internal unsafe class VKResourceSet : ResourceSet
                 DescriptorCount = binding.Count,
                 DescriptorType = VKFormats.Vulkan(binding.Type),
                 PImageInfo = imageInfos,
-                PBufferInfo = bufferInfos
+                PBufferInfo = bufferInfos,
+                PNext = accelerationStructureWrites + i
             };
 
-            descriptorWrites[i].AddNext(out WriteDescriptorSetAccelerationStructureKHR accelerationStructureDescriptorWrite);
-            accelerationStructureDescriptorWrite.AccelerationStructureCount = binding.Count;
-            accelerationStructureDescriptorWrite.PAccelerationStructures = accelerationStructures;
+            accelerationStructureWrites[i] = new()
+            {
+                SType = StructureType.WriteDescriptorSetAccelerationStructureKhr,
+                AccelerationStructureCount = binding.Count,
+                PAccelerationStructures = accelerationStructures
+            };
 
             for (uint j = 0; j < binding.Count; j++)
             {

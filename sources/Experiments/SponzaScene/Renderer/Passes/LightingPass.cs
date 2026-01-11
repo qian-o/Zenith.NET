@@ -4,7 +4,7 @@ using SponzaScene.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
-namespace SponzaScene.Renderer;
+namespace SponzaScene.Renderer.Passes;
 
 internal unsafe class LightingPass : FullscreenPass
 {
@@ -14,7 +14,7 @@ internal unsafe class LightingPass : FullscreenPass
 
     private ResourceSet? resourceSet;
 
-    public LightingPass() : base("LightingPass")
+    public LightingPass() : base("Lighting Pass")
     {
         constantBuffer = App.Context.CreateBuffer(new()
         {
@@ -63,6 +63,7 @@ internal unsafe class LightingPass : FullscreenPass
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Compute }
@@ -87,6 +88,7 @@ internal unsafe class LightingPass : FullscreenPass
                 context.Emissive!,
                 context.CSMDepths!,
                 context.GTAOBlurred!,
+                context.RTGI!,
                 context.LitColor!,
                 App.PointSampler,
                 App.ShadowSampler

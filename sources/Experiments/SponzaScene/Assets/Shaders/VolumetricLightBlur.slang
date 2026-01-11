@@ -1,6 +1,5 @@
 ﻿static const float EPSILON = 0.0001;
-static const float DEPTH_THRESHOLD = 2.0;
-static const float DEPTH_FALLOFF = 1.0 / (DEPTH_THRESHOLD * DEPTH_THRESHOLD);
+static const float DEPTH_FALLOFF = 0.25;
 
 static const int KERNEL_RADIUS = 4;
 static const float KERNEL_WEIGHTS[9] = { 0.0093, 0.028, 0.0659, 0.1226, 0.1802, 0.1226, 0.0659, 0.028, 0.0093 };

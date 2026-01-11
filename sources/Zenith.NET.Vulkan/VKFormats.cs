@@ -130,9 +130,9 @@ internal static class VKFormats
         return (usageFlags, propertyFlags);
     }
 
-    public static (ImageType ImageType, ImageViewType ImageViewType) Vulkan(TextureType textureType)
+    public static (ImageType Type, ImageViewType ViewType) Vulkan(TextureType textureType)
     {
-        ImageType imageType = textureType switch
+        ImageType type = textureType switch
         {
             TextureType.Texture1D or
             TextureType.Texture1DArray => ImageType.Type1D,
@@ -147,7 +147,7 @@ internal static class VKFormats
             _ => ImageType.Type1D
         };
 
-        ImageViewType imageViewType = textureType switch
+        ImageViewType viewType = textureType switch
         {
             TextureType.Texture1D => ImageViewType.Type1D,
             TextureType.Texture1DArray => ImageViewType.Type1DArray,
@@ -159,7 +159,7 @@ internal static class VKFormats
             _ => ImageViewType.Type1D
         };
 
-        return (imageType, imageViewType);
+        return (type, viewType);
     }
 
     public static Format Vulkan(PixelFormat pixelFormat)

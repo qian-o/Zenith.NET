@@ -1,6 +1,6 @@
 ﻿using Zenith.NET;
 
-namespace SponzaScene.Renderer;
+namespace SponzaScene.Renderer.Passes;
 
 internal abstract class RenderPass : DisposableObject
 {

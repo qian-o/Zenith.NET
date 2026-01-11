@@ -1,38 +1,67 @@
 ﻿using Hexa.NET.ImGui;
 using SponzaScene.Models;
+using SponzaScene.Renderer.Passes;
 using Zenith.NET;
 
 namespace SponzaScene.Renderer;
 
 internal class DeferredRenderer : DisposableObject
 {
-    private readonly RenderContext context = new();
-    private readonly List<RenderPass> renderPasses =
-    [
-        new GBufferPass(),
-        new CSMPass(),
-        new GTAOPass(),
-        new GTAOBlurPass(),
-        new VolumetricLightPass(),
-        new VolumetricLightBlurPass(),
-        new BloomPass(),
-        new LightingPass(),
-        new ComposePass()
-    ];
+    private readonly RenderPass[] passes;
+    private readonly RenderContext context;
+
+    public DeferredRenderer()
+    {
+        if (App.Context.Capabilities.RayTracingSupported)
+        {
+            passes =
+            [
+                new GBufferPass(),
+                new CSMPass(),
+                new RTGIPass(),
+                new SVGFTemporalPass(),
+                new SVGFAtrousPass(),
+                new GTAOPass(),
+                new GTAOBlurPass(),
+                new VolumetricLightPass(),
+                new VolumetricLightBlurPass(),
+                new BloomPass(),
+                new LightingPass(),
+                new ComposePass()
+            ];
+        }
+        else
+        {
+            passes =
+            [
+                new GBufferPass(),
+                new CSMPass(),
+                new GTAOPass(),
+                new GTAOBlurPass(),
+                new VolumetricLightPass(),
+                new VolumetricLightBlurPass(),
+                new BloomPass(),
+                new LightingPass(),
+                new ComposePass()
+            ];
+        }
+
+        context = new();
+    }
 
     public void Update(uint width, uint height, CameraController camera)
     {
         if (context.Width != width || context.Height != height)
         {
             context.Initialize(width, height);
-            context.FrameIndex = 0;
 
-            foreach (RenderPass renderPass in renderPasses)
+            foreach (RenderPass pass in passes)
             {
-                renderPass.Resize(width, height);
+                pass.Resize(width, height);
             }
         }
 
+        context.FrameIndex++;
         context.View = camera.View;
         context.Projection = camera.Projection;
         context.NearPlane = camera.NearPlane;
@@ -48,16 +77,14 @@ internal class DeferredRenderer : DisposableObject
 
         commandBuffer.BeginDebugEvent("Deferred Rendering");
 
-        foreach (RenderPass renderPass in renderPasses)
+        foreach (RenderPass pass in passes)
         {
-            renderPass.Execute(commandBuffer, context);
+            pass.Execute(commandBuffer, context);
         }
 
         commandBuffer.EndDebugEvent();
 
         commandBuffer.Submit(true);
-
-        context.FrameIndex++;
     }
 
     public void UI()
@@ -68,16 +95,16 @@ internal class DeferredRenderer : DisposableObject
         {
             App.Sponza.UI();
 
-            foreach (RenderPass renderPass in renderPasses)
+            foreach (RenderPass pass in passes)
             {
-                bool opened = ImGui.CollapsingHeader(renderPass.Name);
+                bool opened = ImGui.CollapsingHeader(pass.Name);
 
                 ImGui.SameLine(ImGui.GetWindowWidth() - 80);
-                ImGui.Text($"{renderPass.GpuTime:F2} ms");
+                ImGui.Text($"{pass.GpuTime:F2} ms");
 
                 if (opened)
                 {
-                    renderPass.DebugUI(context);
+                    pass.DebugUI(context);
                 }
             }
         }
@@ -86,9 +113,9 @@ internal class DeferredRenderer : DisposableObject
 
     protected override void Destroy()
     {
-        foreach (RenderPass renderPass in renderPasses)
+        foreach (RenderPass pass in passes)
         {
-            renderPass.Dispose();
+            pass.Dispose();
         }
 
         context.Dispose();

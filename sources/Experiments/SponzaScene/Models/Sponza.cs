@@ -48,7 +48,7 @@ internal unsafe class Sponza : DisposableObject
         {
             SizeInBytes = (uint)(sizeof(Vertex) * vertices.Count),
             StrideInBytes = (uint)sizeof(Vertex),
-            Flags = BufferUsageFlags.Vertex
+            Flags = BufferUsageFlags.Vertex | (App.Context.Capabilities.RayTracingSupported ? BufferUsageFlags.AccelerationStructure : 0)
         });
         Vertices.Upload([.. vertices], 0);
 
@@ -56,9 +56,61 @@ internal unsafe class Sponza : DisposableObject
         {
             SizeInBytes = (uint)(sizeof(uint) * indices.Count),
             StrideInBytes = sizeof(uint),
-            Flags = BufferUsageFlags.Index
+            Flags = BufferUsageFlags.Index | (App.Context.Capabilities.RayTracingSupported ? BufferUsageFlags.AccelerationStructure : 0)
         });
         Indices.Upload([.. indices], 0);
+
+        if (App.Context.Capabilities.RayTracingSupported)
+        {
+            RayTracingGeometry[] geometries = new RayTracingGeometry[Nodes.Length];
+            for (int i = 0; i < Nodes.Length; i++)
+            {
+                Node node = Nodes[i];
+
+                geometries[i] = new()
+                {
+                    Type = RayTracingGeometryType.Triangles,
+                    Triangles = new()
+                    {
+                        VertexBuffer = Vertices,
+                        VertexFormat = PixelFormat.R32G32B32Float,
+                        VertexCount = node.VertexCount,
+                        VertexStrideInBytes = (uint)sizeof(Vertex),
+                        VertexOffsetInBytes = (uint)(sizeof(Vertex) * node.Args.VertexOffset),
+                        IndexBuffer = Indices,
+                        IndexFormat = IndexFormat.UInt32,
+                        IndexCount = node.Args.IndexCount,
+                        IndexOffsetInBytes = sizeof(uint) * node.Args.FirstIndex,
+                        Transform = Matrix4x4.Identity
+                    },
+                    Flags = RayTracingGeometryFlags.Opaque
+                };
+            }
+
+            CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
+
+            BLAS = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc()
+            {
+                Geometries = geometries,
+                Flags = AccelerationStructureBuildFlags.PreferFastTrace
+            });
+
+            RayTracingInstance instance = new()
+            {
+                AccelerationStructure = BLAS,
+                InstanceMask = 0xFF,
+                Transform = Matrix4x4.Identity,
+                Flags = RayTracingInstanceFlags.TriangleCullDisable
+            };
+
+            TLAS = commandBuffer.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc()
+            {
+                Instances = [instance],
+                Flags = AccelerationStructureBuildFlags.PreferFastTrace
+            });
+
+            commandBuffer.Submit(true);
+        }
     }
 
     public DirectionalLight DirectionalLight
@@ -93,39 +145,43 @@ internal unsafe class Sponza : DisposableObject
         {
             Position = new(-29.67882f, 6.9f, 6.88488f),
             Color = new(0.3f, 0.9f, 1.0f),
-            Intensity = 100.0f,
+            Intensity = 800.0f,
             Radius = 30.0f
         },
         new()
         {
             Position = new(-29.67882f, 6.9f, -10.55208f),
             Color = new(1.0f, 0.3f, 0.8f),
-            Intensity = 100.0f,
+            Intensity = 800.0f,
             Radius = 30.0f
         },
         new()
         {
             Position = new(23.4f, 6.9f, 6.88488f),
             Color = new(1.0f, 0.9f, 0.2f),
-            Intensity = 100.0f,
+            Intensity = 800.0f,
             Radius = 30.0f
         },
         new()
         {
             Position = new(23.4f, 6.9f, -10.55076f),
             Color = new(0.3f, 1.0f, 0.4f),
-            Intensity = 100.0f,
+            Intensity = 800.0f,
             Radius = 30.0f
         }
     ];
 
     public Node[] Nodes { get; }
 
+    public Material[] Materials { get; }
+
     public Buffer Vertices { get; }
 
     public Buffer Indices { get; }
 
-    public Material[] Materials { get; }
+    public BottomLevelAccelerationStructure? BLAS { get; }
+
+    public TopLevelAccelerationStructure? TLAS { get; }
 
     public void UI()
     {
@@ -139,6 +195,8 @@ internal unsafe class Sponza : DisposableObject
             material.Dispose();
         }
 
+        TLAS?.Dispose();
+        BLAS?.Dispose();
         Indices.Dispose();
         Vertices.Dispose();
     }
