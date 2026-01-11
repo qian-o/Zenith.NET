@@ -247,7 +247,7 @@ internal class RenderContext : DisposableObject
                 Texture = CSMDepths,
                 MipLevelCount = 1,
                 FirstArrayLayer = (uint)i,
-                ArrayLayerCount = 1,
+                ArrayLayerCount = 1
             });
 
             CSMFrameBuffers[i] = App.Context.CreateFrameBuffer(new()

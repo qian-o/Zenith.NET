@@ -1,4 +1,5 @@
 ﻿using Hexa.NET.ImGui;
+using SponzaScene.Helpers;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
@@ -82,6 +83,8 @@ internal unsafe class ComposePass : FullscreenPass
         ImGui.SliderFloat("AO Strength", ref aoStrength, 0.0f, 2.0f);
         ImGui.SliderFloat("Bloom Intensity", ref bloomIntensity, 0.0f, 2.0f);
         ImGui.SliderFloat("Volumetric Intensity", ref volumetricIntensity, 0.0f, 5.0f);
+
+        ImGuiHelpers.Image(context.FinalColor!);
     }
 
     protected override void Destroy()
