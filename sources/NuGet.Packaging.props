@@ -7,7 +7,7 @@
         <PackageOutputPath>$(MSBuildThisFileDirectory)..\.nuget</PackageOutputPath>
 
         <!-- Package Metadata -->
-        <Version>0.0.2</Version>
+        <Version>0.0.3</Version>
         <Authors>qian-o</Authors>
         <Copyright>Copyright (c) 2026 qian-o</Copyright>
         <Description>Zenith.NET is a modern, cross-platform graphics and compute library for .NET. It provides a unified GPU programming interface supporting DirectX12, Metal, and Vulkan backends.</Description>
@@ -17,7 +17,7 @@
         <RepositoryUrl>https://github.com/qian-o/Zenith.NET.git</RepositoryUrl>
 
         <!-- Package Content -->
-        <PackageIcon></PackageIcon>
+        <PackageIcon>Zenith.NET.png</PackageIcon>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageTags>DirectX12;Metal;Vulkan;ImageSharp;ImGui;Skia;Slang;Avalonia;Maui;Uno;WinForms;WinUI;WPF;GPU;Native</PackageTags>
@@ -34,6 +34,7 @@
     </PropertyGroup>
 
     <ItemGroup Condition="'$(Configuration)' == 'Release'">
+        <None Include="$(MSBuildThisFileDirectory)..\documents\images\Zenith.NET.png" Pack="true" PackagePath="\" />
         <None Include="$(MSBuildThisFileDirectory)..\LICENSE" Pack="true" PackagePath="\" />
         <None Include="$(MSBuildThisFileDirectory)..\README.md" Pack="true" PackagePath="\" />
     </ItemGroup>

@@ -1,0 +1,23 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+    <defs>
+        <linearGradient id="dotnet-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#512BD4" />
+            <stop offset="100%" stop-color="#C239B3" />
+        </linearGradient>
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="2" result="blur" />
+            <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+    </defs>
+
+    <circle cx="128" cy="128" r="120" fill="url(#dotnet-grad)" />
+
+    <g filter="url(#glow)">
+        <polygon points="128,58 192,93 128,128 64,93" fill="#FFFFFF" />
+        <polygon points="64,93 128,128 128,198 64,163" fill="#FFFFFF" fill-opacity="0.65" />
+        <polygon points="192,93 192,163 128,198 128,128" fill="#FFFFFF" fill-opacity="0.4" />
+    </g>
+</svg>
