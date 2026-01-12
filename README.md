@@ -1,8 +1,16 @@
-﻿# Zenith.NET
+﻿<p align="center">
+  <img src="documents/images/Zenith.NET.svg" alt="Zenith.NET Logo" width="128" height="128">
+</p>
 
-A modern, cross-platform graphics and compute library for .NET. It provides a unified GPU programming interface to simplify rendering and general-purpose compute workflows.
+<h1 align="center">Zenith.NET</h1>
 
-> Status: Work in progress (pre-release)
+<p align="center">
+  A modern, cross-platform graphics and compute library for .NET. It provides a unified GPU programming interface to simplify rendering and general-purpose compute workflows.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Status-Work%20in%20Progress-orange?style=for-the-badge" alt="Status: Work in Progress">
+</p>
 
 ## Overview
 
