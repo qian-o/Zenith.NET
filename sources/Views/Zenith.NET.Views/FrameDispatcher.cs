@@ -91,30 +91,23 @@ public class FrameDispatcher(IZenithView view)
 
         cancellationTokenSource?.Cancel();
 
-        frameEvent?.Set();
         presentEvent?.Set();
+        frameTask?.Wait(TimeSpan.FromSeconds(1));
+        frameTask = null;
 
-        if (frameTask is not null && presentTask is not null)
-        {
-            Task.WaitAll([frameTask, presentTask], TimeSpan.FromSeconds(1));
-        }
-
-        if (frameTask?.IsCompleted is true)
-        {
-            frameTask.Dispose();
-        }
-
-        if (presentTask?.IsCompleted is true)
-        {
-            presentTask.Dispose();
-        }
+        frameEvent?.Set();
+        presentTask?.Wait(TimeSpan.FromSeconds(1));
+        presentTask = null;
 
         cancellationTokenSource?.Dispose();
+        cancellationTokenSource = null;
 
         frameEvent?.Close();
         frameEvent?.Dispose();
+        frameEvent = null;
 
         presentEvent?.Close();
         presentEvent?.Dispose();
+        presentEvent = null;
     }
 }
