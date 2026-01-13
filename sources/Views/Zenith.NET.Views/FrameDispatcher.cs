@@ -1,10 +1,11 @@
 ﻿using System.Diagnostics;
+using SystemBuffer = System.Buffer;
 
 namespace Zenith.NET.Views;
 
 public class FrameDispatcher(IZenithView view)
 {
-    private const double PresentInterval = 1.0 / 60.0;
+    private static readonly double PresentInterval;
 
     private readonly Stopwatch updateStopwatch = new();
     private readonly Stopwatch renderStopwatch = new();
@@ -12,6 +13,35 @@ public class FrameDispatcher(IZenithView view)
 
     private CancellationTokenSource? cancellationTokenSource;
     private Task? task;
+
+    static FrameDispatcher()
+    {
+        const double minInterval = 1.0 / 120.0;
+        const double maxInterval = 1.0 / 30.0;
+
+        const int iterations = 50;
+        const int bufferSize = 512 * 1024;
+
+        byte[] source = new byte[bufferSize];
+        byte[] destination = new byte[bufferSize];
+
+        SystemBuffer.BlockCopy(source, 0, destination, 0, bufferSize);
+
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
+        for (int i = 0; i < iterations; i++)
+        {
+            SystemBuffer.BlockCopy(source, 0, destination, 0, bufferSize);
+        }
+
+        stopwatch.Stop();
+
+        double memoryThroughputMBps = iterations * bufferSize / (1024.0 * 1024.0) / stopwatch.Elapsed.TotalSeconds;
+
+        double performanceScore = Math.Clamp(memoryThroughputMBps / 5000.0, 0, 1);
+
+        PresentInterval = double.Lerp(maxInterval, minInterval, performanceScore);
+    }
 
     public double UpdateSeconds
     {
