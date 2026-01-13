@@ -118,6 +118,8 @@ public class ZenithView : Control
                 return;
             }
 
+            texture?.Present();
+
             image.Lock();
             image.AddDirtyRect(new(0, 0, image.PixelWidth, image.PixelHeight));
             image.Unlock();

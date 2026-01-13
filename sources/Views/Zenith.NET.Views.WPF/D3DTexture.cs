@@ -86,10 +86,17 @@ internal unsafe partial class D3DTexture : DisposableObject
 
     public void ReleaseSync()
     {
+        D3D.Success(D3D11Mutex.ReleaseSync(key));
+    }
+
+    public void Present()
+    {
+        AcquireSync();
+
         D3D.D3D11DeviceContext.CopyResource((ID3D11Resource*)D3D9SharedTexture.Handle, (ID3D11Resource*)D3D11RenderTarget.Handle);
         D3D.D3D11DeviceContext.Flush();
 
-        D3D.Success(D3D11Mutex.ReleaseSync(key));
+        ReleaseSync();
     }
 
     protected override void Destroy()

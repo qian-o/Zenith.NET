@@ -1,6 +1,5 @@
 ﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 
 namespace Zenith.NET.Views.WinUI;
 
@@ -9,35 +8,23 @@ public partial class ZenithView : SwapChainPanel
     public static readonly DependencyProperty GraphicsContextProperty = DependencyProperty.Register(nameof(GraphicsContext),
                                                                                                     typeof(GraphicsContext),
                                                                                                     typeof(ZenithView),
-                                                                                                    new(null, (d, _) => ((ZenithView)d).Destroy()));
+                                                                                                    new(null, (d, _) => ((ZenithView)d).DestroyResources()));
 
-    private readonly ViewTimer timer = new();
+    private readonly FrameDispatcher dispatcher;
 
     public ZenithView()
     {
-        Loaded += (_, _) =>
-        {
-            timer.Start();
+        dispatcher = new(Frame, Present);
 
-            CompositionTarget.Rendering += OnRendering;
-        };
+        Loaded += (_, _) => dispatcher.Start();
 
         Unloaded += (_, _) =>
         {
-            CompositionTarget.Rendering -= OnRendering;
+            dispatcher.Stop();
 
-            timer.Stop();
-
-            Destroy();
+            DestroyResources();
         };
     }
-
-    public static Output Output { get; } = new()
-    {
-        ColorAttachments = [PixelFormat.B8G8R8A8UNorm],
-        DepthStencilAttachment = PixelFormat.D24UNormS8UInt,
-        SampleCount = SampleCount.Count1
-    };
 
     public GraphicsContext? GraphicsContext
     {
@@ -48,17 +35,4 @@ public partial class ZenithView : SwapChainPanel
     public event EventHandler<UpdateEventArgs>? UpdateRequested;
 
     public event EventHandler<RenderEventArgs>? RenderRequested;
-
-    private void OnRendering(object? sender, object e)
-    {
-        DispatcherQueue.TryEnqueue(() =>
-        {
-            if (GraphicsContext is null)
-            {
-                return;
-            }
-
-            OnRender(GraphicsContext);
-        });
-    }
 }
