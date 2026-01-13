@@ -1,54 +1,9 @@
-﻿#if !WINDOWS
-using System.Runtime.InteropServices.WindowsRuntime;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
+﻿using System.Runtime.CompilerServices;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
+using AvaloniaPixelFormat = Avalonia.Platform.PixelFormat;
 
-namespace Zenith.NET.Views.WinUI;
-
-public unsafe partial class ZenithView
-{
-    private Surface? surface;
-
-    void IZenithView.EnsureResources()
-    {
-        if (GraphicsContext is null)
-        {
-            return;
-        }
-
-        uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
-        uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
-
-        if (surface is null || surface.Width != width || surface.Height != height)
-        {
-            Destroy();
-
-            Background = new ImageBrush() { ImageSource = (surface = new(GraphicsContext, width, height)).WriteableBitmap };
-        }
-    }
-
-    void IZenithView.Frame()
-    {
-        if (surface is null)
-        {
-            return;
-        }
-
-        UpdateRequested?.Invoke(this, new(dispatcher.UpdateSeconds, dispatcher.TotalSeconds));
-        RenderRequested?.Invoke(this, new(dispatcher.RenderSeconds, dispatcher.TotalSeconds, surface.FrameBuffer));
-    }
-
-    void IZenithView.Present()
-    {
-        surface?.Present();
-    }
-
-    private void Destroy()
-    {
-        surface?.Dispose();
-        surface = null;
-    }
-}
+namespace Zenith.NET.Views.Avalonia;
 
 internal unsafe class Surface : DisposableObject
 {
@@ -61,7 +16,7 @@ internal unsafe class Surface : DisposableObject
         color = context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
-            Format = PixelFormat.B8G8R8A8UNorm,
+            Format = PixelFormat.R8G8B8A8UNorm,
             Width = width,
             Height = height,
             Depth = 1,
@@ -97,7 +52,7 @@ internal unsafe class Surface : DisposableObject
             DepthStencilAttachment = new() { Target = depthStencil }
         });
 
-        WriteableBitmap = new((int)width, (int)height);
+        WriteableBitmap = new(new((int)width, (int)height), new(96, 96), AvaloniaPixelFormat.Rgba8888, AlphaFormat.Premul);
 
         Context = context;
         Width = width;
@@ -122,23 +77,26 @@ internal unsafe class Surface : DisposableObject
 
         uint rowPitchInBytes = ZenithHelper.Align(Width * 4, GraphicsContext.TextureRowPitchAlignment);
 
-        using (Stream stream = WriteableBitmap.PixelBuffer.AsStream())
+        using ILockedFramebuffer lockedFramebuffer = WriteableBitmap.Lock();
+
+        MappedMemory mappedMemory = pixels.Map();
+
+        if (lockedFramebuffer.RowBytes == rowPitchInBytes)
         {
-            MappedMemory mappedMemory = pixels.Map();
-
-            byte* pointer = (byte*)mappedMemory.Pointer;
-
-            for (uint y = 0; y < Height; y++)
+            Unsafe.CopyBlock((void*)lockedFramebuffer.Address, (void*)mappedMemory.Pointer, mappedMemory.SizeInBytes);
+        }
+        else
+        {
+            Parallel.For(0, Height, y =>
             {
-                stream.Write([.. new ReadOnlySpan<byte>(pointer, (int)(Width * 4))]);
+                byte* srcPtr = (byte*)mappedMemory.Pointer + (rowPitchInBytes * y);
+                byte* dstPtr = (byte*)lockedFramebuffer.Address + (lockedFramebuffer.RowBytes * y);
 
-                pointer += rowPitchInBytes;
-            }
-
-            pixels.Unmap();
+                Unsafe.CopyBlock(dstPtr, srcPtr, (uint)lockedFramebuffer.RowBytes);
+            });
         }
 
-        WriteableBitmap.Invalidate();
+        pixels.Unmap();
     }
 
     protected override void Destroy()
@@ -151,4 +109,3 @@ internal unsafe class Surface : DisposableObject
         color.Dispose();
     }
 }
-#endif
