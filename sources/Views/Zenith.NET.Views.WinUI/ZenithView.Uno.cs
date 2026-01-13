@@ -2,7 +2,6 @@
 using System.Runtime.InteropServices.WindowsRuntime;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using Windows.UI.Core;
 
 namespace Zenith.NET.Views.WinUI;
 
@@ -10,10 +9,26 @@ public unsafe partial class ZenithView
 {
     private Surface? surface;
 
-    private void Frame()
+    void IZenithView.Prepare()
     {
-        EnsureResources();
+        if (GraphicsContext is null)
+        {
+            return;
+        }
 
+        uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
+        uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
+
+        if (surface is null || surface.Width != width || surface.Height != height)
+        {
+            Destroy();
+
+            Background = new ImageBrush() { ImageSource = (surface = new(GraphicsContext, width, height)).WriteableBitmap };
+        }
+    }
+
+    void IZenithView.Frame()
+    {
         if (surface is null)
         {
             return;
@@ -23,33 +38,12 @@ public unsafe partial class ZenithView
         RenderRequested?.Invoke(this, new(dispatcher.RenderSeconds, dispatcher.TotalSeconds, surface.FrameBuffer));
     }
 
-    private void Present()
+    void IZenithView.Present()
     {
-        Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => surface?.Present()).GetResults();
+        surface?.Present();
     }
 
-    private void EnsureResources()
-    {
-        Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
-        {
-            if (GraphicsContext is null)
-            {
-                return;
-            }
-
-            uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
-            uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
-
-            if (surface is null || surface.Width != width || surface.Height != height)
-            {
-                DestroyResources();
-
-                Background = new ImageBrush() { ImageSource = (surface = new(GraphicsContext, width, height)).WriteableBitmap };
-            }
-        }).GetResults();
-    }
-
-    private void DestroyResources()
+    private void Destroy()
     {
         surface?.Dispose();
         surface = null;
@@ -122,11 +116,11 @@ internal unsafe class Surface : DisposableObject
 
     public void Present()
     {
-        uint rowPitchInBytes = ZenithHelper.Align(Width * 4, GraphicsContext.TextureRowPitchAlignment);
-
         CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
         commandBuffer.CopyTextureToBuffer(color, default, default, new() { Width = Width, Height = Height, Depth = 1 }, pixels, 0);
         commandBuffer.Submit(true);
+
+        uint rowPitchInBytes = ZenithHelper.Align(Width * 4, GraphicsContext.TextureRowPitchAlignment);
 
         using (Stream stream = WriteableBitmap.PixelBuffer.AsStream())
         {
@@ -136,7 +130,7 @@ internal unsafe class Surface : DisposableObject
 
             for (uint y = 0; y < WriteableBitmap.PixelHeight; y++)
             {
-                stream.Write([.. new ReadOnlySpan<byte>(pointer, WriteableBitmap.PixelHeight * 4)]);
+                stream.Write([.. new ReadOnlySpan<byte>(pointer, WriteableBitmap.PixelWidth * 4)]);
 
                 pointer += rowPitchInBytes;
             }

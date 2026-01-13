@@ -2,7 +2,7 @@
 
 namespace Zenith.NET.Views;
 
-public class FrameDispatcher(Action frame, Action present)
+public class FrameDispatcher(IZenithView view)
 {
     private readonly Stopwatch updateStopwatch = new();
     private readonly Stopwatch renderStopwatch = new();
@@ -56,7 +56,9 @@ public class FrameDispatcher(Action frame, Action present)
             {
                 presentEvent.WaitOne();
 
-                frame();
+                view.UI(view.Prepare);
+
+                view.Frame();
 
                 frameEvent.Set();
 
@@ -70,7 +72,7 @@ public class FrameDispatcher(Action frame, Action present)
             {
                 frameEvent.WaitOne();
 
-                present();
+                view.UI(view.Present);
 
                 presentEvent.Set();
 

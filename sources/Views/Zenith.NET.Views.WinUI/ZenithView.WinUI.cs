@@ -5,7 +5,6 @@ using System.Runtime.InteropServices.Marshalling;
 using Silk.NET.Core.Native;
 using Silk.NET.Direct3D11;
 using Silk.NET.DXGI;
-using Windows.UI.Core;
 using WinRT;
 
 namespace Zenith.NET.Views.WinUI;
@@ -15,10 +14,35 @@ public unsafe partial class ZenithView
     private D3DTexture? texture;
     private SwapChain? swapChain;
 
-    private void Frame()
+    void IZenithView.Prepare()
     {
-        EnsureResources();
+        if (GraphicsContext is null)
+        {
+            return;
+        }
 
+        uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
+        uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
+
+        if (texture is null || texture.Width != width || texture.Height != height || swapChain is null)
+        {
+            Destroy();
+
+            texture = new(width, height);
+
+            swapChain = GraphicsContext.CreateSwapChain(new()
+            {
+                Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
+                ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
+                DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
+            });
+
+            this.As<ISwapChainPanelNative>().SetSwapChain(texture.SwapChain);
+        }
+    }
+
+    void IZenithView.Frame()
+    {
         if (texture is null || swapChain is null)
         {
             return;
@@ -34,42 +58,12 @@ public unsafe partial class ZenithView
         texture.ReleaseSync();
     }
 
-    private void Present()
+    void IZenithView.Present()
     {
         texture?.Present();
     }
 
-    private void EnsureResources()
-    {
-        Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
-        {
-            if (GraphicsContext is null)
-            {
-                return;
-            }
-
-            uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
-            uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
-
-            if (texture is null || texture.Width != width || texture.Height != height || swapChain is null)
-            {
-                DestroyResources();
-
-                texture = new(width, height);
-
-                swapChain = GraphicsContext.CreateSwapChain(new()
-                {
-                    Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
-                    ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
-                    DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
-                });
-
-                this.As<ISwapChainPanelNative>().SetSwapChain(texture.SwapChain);
-            }
-        }).GetResults();
-    }
-
-    private void DestroyResources()
+    private void Destroy()
     {
         swapChain?.Dispose();
         swapChain = null;

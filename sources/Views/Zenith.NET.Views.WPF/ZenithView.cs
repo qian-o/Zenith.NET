@@ -7,12 +7,12 @@ using System.Windows.Media;
 
 namespace Zenith.NET.Views.WPF;
 
-public class ZenithView : Control
+public class ZenithView : Control, IZenithView
 {
     public static readonly DependencyProperty GraphicsContextProperty = DependencyProperty.Register(nameof(GraphicsContext),
                                                                                                     typeof(GraphicsContext),
                                                                                                     typeof(ZenithView),
-                                                                                                    new(null, (d, _) => ((ZenithView)d).DestroyResources()));
+                                                                                                    new(null, (d, _) => ((ZenithView)d).Destroy()));
 
     private readonly D3DImage image;
     private readonly FrameDispatcher dispatcher;
@@ -23,7 +23,7 @@ public class ZenithView : Control
     public ZenithView()
     {
         image = new();
-        dispatcher = new(Frame, Present);
+        dispatcher = new(this);
 
         Loaded += (_, _) => dispatcher.Start();
 
@@ -31,7 +31,7 @@ public class ZenithView : Control
         {
             dispatcher.Stop();
 
-            DestroyResources();
+            Destroy();
         };
     }
 
@@ -90,10 +90,38 @@ public class ZenithView : Control
         }
     }
 
-    private void Frame()
+    void IZenithView.UI(Action action)
     {
-        EnsureResources();
+        Dispatcher.Invoke(action);
+    }
 
+    void IZenithView.Prepare()
+    {
+        if (GraphicsContext is null)
+        {
+            return;
+        }
+
+        uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
+        uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
+
+        if (texture is null || texture.Width != width || texture.Height != height || swapChain is null)
+        {
+            Destroy();
+
+            texture = new(width, height, image);
+
+            swapChain = GraphicsContext.CreateSwapChain(new()
+            {
+                Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
+                ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
+                DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
+            });
+        }
+    }
+
+    void IZenithView.Frame()
+    {
         if (texture is null || swapChain is null)
         {
             return;
@@ -109,54 +137,23 @@ public class ZenithView : Control
         texture.ReleaseSync();
     }
 
-    private void Present()
+    void IZenithView.Present()
     {
-        Dispatcher.Invoke(() =>
+        if (!image.IsFrontBufferAvailable)
         {
-            if (!image.IsFrontBufferAvailable)
-            {
-                return;
-            }
+            return;
+        }
 
-            texture?.Present();
+        texture?.Present();
 
-            image.Lock();
-            image.AddDirtyRect(new(0, 0, image.PixelWidth, image.PixelHeight));
-            image.Unlock();
+        image.Lock();
+        image.AddDirtyRect(new(0, 0, image.PixelWidth, image.PixelHeight));
+        image.Unlock();
 
-            InvalidateVisual();
-        });
+        InvalidateVisual();
     }
 
-    private void EnsureResources()
-    {
-        Dispatcher.Invoke(() =>
-        {
-            if (GraphicsContext is null)
-            {
-                return;
-            }
-
-            uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
-            uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
-
-            if (texture is null || texture.Width != width || texture.Height != height || swapChain is null)
-            {
-                DestroyResources();
-
-                texture = new(width, height, image);
-
-                swapChain = GraphicsContext.CreateSwapChain(new()
-                {
-                    Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
-                    ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
-                    DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
-                });
-            }
-        });
-    }
-
-    private void DestroyResources()
+    private void Destroy()
     {
         swapChain?.Dispose();
         swapChain = null;
