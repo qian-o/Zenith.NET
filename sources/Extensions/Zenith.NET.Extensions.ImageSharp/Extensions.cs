@@ -30,7 +30,9 @@ public static class Extensions
             Rgba32[] pixels = new Rgba32[image.Width * image.Height];
             image.CopyPixelDataTo(pixels);
 
-            texture.Upload(pixels, default, default, new() { Width = (uint)image.Width, Height = (uint)image.Height, Depth = 1 });
+            CommandBuffer commandBuffer = context.Copy.CommandBuffer();
+
+            commandBuffer.Upload(texture, default, default, new() { Width = (uint)image.Width, Height = (uint)image.Height, Depth = 1 }, pixels);
 
             for (uint i = 1; i < mipLevels; i++)
             {
@@ -41,8 +43,10 @@ public static class Extensions
                 pixels = new Rgba32[mipWidth * mipHeight];
                 mipImage.CopyPixelDataTo(pixels);
 
-                texture.Upload(pixels, new() { MipLevel = i }, default, new() { Width = mipWidth, Height = mipHeight, Depth = 1 });
+                commandBuffer.Upload(texture, new() { MipLevel = i }, default, new() { Width = mipWidth, Height = mipHeight, Depth = 1 }, pixels);
             }
+
+            commandBuffer.Submit(true);
 
             return texture;
         }
