@@ -55,9 +55,14 @@ public partial class ZenithView : SwapChainPanel, IZenithView
 
             DispatcherQueue.TryEnqueue(() =>
             {
-                action();
-
-                isCompleted = true;
+                try
+                {
+                    action();
+                }
+                finally
+                {
+                    isCompleted = true;
+                }
             });
 
             while (!isCompleted)
