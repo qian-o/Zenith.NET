@@ -9,8 +9,8 @@ public class FrameDispatcher(IZenithView view)
     private readonly Stopwatch lifetimeStopwatch = new();
 
     private CancellationTokenSource? cancellationTokenSource;
-    private AutoResetEvent? frameEvent;
-    private AutoResetEvent? presentEvent;
+    private ManualResetEventSlim? frameEvent;
+    private ManualResetEventSlim? presentEvent;
     private Task? frameTask;
     private Task? presentTask;
 
@@ -56,7 +56,9 @@ public class FrameDispatcher(IZenithView view)
         {
             while (!cancellationTokenSource.IsCancellationRequested)
             {
-                presentEvent.WaitOne();
+                presentEvent.Wait();
+
+                frameEvent.Reset();
 
                 view.UI(view.Prepare);
 
@@ -72,13 +74,15 @@ public class FrameDispatcher(IZenithView view)
         {
             while (!cancellationTokenSource.IsCancellationRequested)
             {
-                frameEvent.WaitOne();
+                frameEvent.Wait();
+
+                presentEvent.Reset();
 
                 view.UI(view.Present);
 
                 presentEvent.Set();
 
-                await Task.Yield();
+                await Task.Delay(16);
             }
         });
     }
@@ -91,22 +95,17 @@ public class FrameDispatcher(IZenithView view)
 
         cancellationTokenSource?.Cancel();
 
-        presentEvent?.Set();
-        frameTask?.Wait(TimeSpan.FromSeconds(1));
-        frameTask = null;
+        Task.WhenAll(frameTask ?? Task.CompletedTask, presentTask ?? Task.CompletedTask).Wait(TimeSpan.FromSeconds(2));
 
-        frameEvent?.Set();
-        presentTask?.Wait(TimeSpan.FromSeconds(1));
+        frameTask = null;
         presentTask = null;
 
         cancellationTokenSource?.Dispose();
         cancellationTokenSource = null;
 
-        frameEvent?.Close();
         frameEvent?.Dispose();
         frameEvent = null;
 
-        presentEvent?.Close();
         presentEvent?.Dispose();
         presentEvent = null;
     }
