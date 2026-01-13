@@ -25,11 +25,11 @@ public class ZenithView : Control, IZenithView
         image = new();
         dispatcher = new(this);
 
-        Loaded += (_, _) => dispatcher.Start();
+        Loaded += async (_, _) => await dispatcher.StartAsync();
 
-        Unloaded += (_, _) =>
+        Unloaded += async (_, _) =>
         {
-            dispatcher.Stop();
+            await dispatcher.StopAsync();
 
             Destroy();
         };

@@ -16,11 +16,11 @@ public partial class ZenithView : SwapChainPanel, IZenithView
     {
         dispatcher = new(this);
 
-        Loaded += (_, _) => dispatcher.Start();
+        Loaded += async (_, _) => await dispatcher.StartAsync();
 
-        Unloaded += (_, _) =>
+        Unloaded += async (_, _) =>
         {
-            dispatcher.Stop();
+            await dispatcher.StopAsync();
 
             Destroy();
         };
@@ -38,18 +38,20 @@ public partial class ZenithView : SwapChainPanel, IZenithView
 
     void IZenithView.UI(Action action)
     {
-        bool wasCalled = false;
+        using ManualResetEventSlim signal = new(false);
 
         DispatcherQueue.TryEnqueue(() =>
         {
-            action();
-
-            wasCalled = true;
+            try
+            {
+                action();
+            }
+            finally
+            {
+                signal.Set();
+            }
         });
 
-        while (!wasCalled)
-        {
-            Thread.Yield();
-        }
+        signal.Wait();
     }
 }

@@ -69,22 +69,27 @@ public class FrameDispatcher(IZenithView view)
 
     public double TotalSeconds => lifetimeStopwatch.Elapsed.TotalSeconds;
 
-    public void Start()
+    public async Task StartAsync()
     {
-        Stop();
+        await StopAsync();
 
         updateStopwatch.Start();
         renderStopwatch.Start();
         lifetimeStopwatch.Start();
 
         cancellationTokenSource = new();
-        task = Task.Run(async () =>
+        task = Task.Run(() =>
         {
             double lastPresentTime = 0;
 
             while (!cancellationTokenSource.IsCancellationRequested)
             {
                 view.UI(view.EnsureResources);
+
+                if (cancellationTokenSource.IsCancellationRequested)
+                {
+                    break;
+                }
 
                 view.Frame();
 
@@ -96,21 +101,20 @@ public class FrameDispatcher(IZenithView view)
 
                     lastPresentTime = currentTime;
                 }
-
-                await Task.Yield();
             }
         });
     }
 
-    public void Stop()
+    public async Task StopAsync()
     {
+        cancellationTokenSource?.Cancel();
+
+        await (task ?? Task.CompletedTask);
+
         updateStopwatch.Reset();
         renderStopwatch.Reset();
         lifetimeStopwatch.Reset();
 
-        cancellationTokenSource?.Cancel();
-
-        task?.Wait(TimeSpan.FromSeconds(2));
         task = null;
 
         cancellationTokenSource?.Dispose();
