@@ -11,6 +11,8 @@ public class FrameDispatcher(IZenithView view)
     private CancellationTokenSource? cancellationTokenSource;
     private AutoResetEvent? frameEvent;
     private AutoResetEvent? presentEvent;
+    private Task? frameTask;
+    private Task? presentTask;
 
     public double UpdateSeconds
     {
@@ -50,7 +52,7 @@ public class FrameDispatcher(IZenithView view)
         frameEvent = new(false);
         presentEvent = new(true);
 
-        Task.Run(async () =>
+        frameTask = Task.Run(async () =>
         {
             while (!cancellationTokenSource.IsCancellationRequested)
             {
@@ -64,9 +66,9 @@ public class FrameDispatcher(IZenithView view)
 
                 await Task.Yield();
             }
-        }, cancellationTokenSource.Token);
+        });
 
-        Task.Run(async () =>
+        presentTask = Task.Run(async () =>
         {
             while (!cancellationTokenSource.IsCancellationRequested)
             {
@@ -78,7 +80,7 @@ public class FrameDispatcher(IZenithView view)
 
                 await Task.Yield();
             }
-        }, cancellationTokenSource.Token);
+        });
     }
 
     public void Stop()
@@ -88,6 +90,25 @@ public class FrameDispatcher(IZenithView view)
         lifetimeStopwatch.Reset();
 
         cancellationTokenSource?.Cancel();
+
+        frameEvent?.Set();
+        presentEvent?.Set();
+
+        if (frameTask is not null && presentTask is not null)
+        {
+            Task.WaitAll([frameTask, presentTask], TimeSpan.FromSeconds(1));
+        }
+
+        if (frameTask?.IsCompleted is true)
+        {
+            frameTask.Dispose();
+        }
+
+        if (presentTask?.IsCompleted is true)
+        {
+            presentTask.Dispose();
+        }
+
         cancellationTokenSource?.Dispose();
 
         frameEvent?.Close();
