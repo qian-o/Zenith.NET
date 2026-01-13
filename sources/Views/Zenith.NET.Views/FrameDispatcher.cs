@@ -2,7 +2,7 @@
 
 namespace Zenith.NET.Views;
 
-public class FrameCoordinator(Action<double, double> render, Action present)
+public class FrameDispatcher(IZenithView view, Action<Action> dispatcher)
 {
     private readonly Stopwatch renderStopwatch = new();
     private readonly Stopwatch lifetimeStopwatch = new();
@@ -10,6 +10,20 @@ public class FrameCoordinator(Action<double, double> render, Action present)
     private CancellationTokenSource? cancellationTokenSource;
     private AutoResetEvent? renderEvent;
     private AutoResetEvent? presentEvent;
+
+    public double RenderSeconds
+    {
+        get
+        {
+            double seconds = renderStopwatch.Elapsed.TotalSeconds;
+
+            renderStopwatch.Restart();
+
+            return seconds;
+        }
+    }
+
+    public double TotalSeconds => lifetimeStopwatch.Elapsed.TotalSeconds;
 
     public void Start()
     {
@@ -28,8 +42,9 @@ public class FrameCoordinator(Action<double, double> render, Action present)
             {
                 presentEvent.WaitOne();
 
-                render(renderStopwatch.Elapsed.TotalSeconds, lifetimeStopwatch.Elapsed.TotalSeconds);
-                renderStopwatch.Restart();
+                dispatcher(view.PrepareFrame);
+
+                view.Render();
 
                 renderEvent.Set();
 
@@ -43,11 +58,11 @@ public class FrameCoordinator(Action<double, double> render, Action present)
             {
                 renderEvent.WaitOne();
 
-                present();
+                dispatcher(view.Present);
 
                 presentEvent.Set();
 
-                await Task.Delay(16, cancellationTokenSource.Token);
+                await Task.Yield();
             }
         }, cancellationTokenSource.Token);
     }

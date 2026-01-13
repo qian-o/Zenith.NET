@@ -2,9 +2,13 @@
 
 public interface IZenithView
 {
-    static Output Output { get; }
-
     GraphicsContext? GraphicsContext { get; set; }
 
     event EventHandler<RenderEventArgs>? RenderRequested;
+
+    void PrepareFrame();
+
+    void Render();
+
+    void Present();
 }

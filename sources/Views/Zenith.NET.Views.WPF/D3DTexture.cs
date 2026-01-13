@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Windows.Interop;
 using Silk.NET.Core.Native;
 using Silk.NET.Direct3D11;
 using Silk.NET.Direct3D9;
@@ -24,13 +25,11 @@ internal unsafe partial class D3DTexture : DisposableObject
 
     public ComPtr<IDXGIKeyedMutex> D3D11Mutex;
 
-    public nint Handle;
-
     public nint SharedHandle;
 
     private ulong key;
 
-    public D3DTexture(uint width, uint height)
+    public D3DTexture(uint width, uint height, D3DImage image)
     {
         void* sharedHandle = null;
         D3D.Success(D3D.D3D9DeviceEx.CreateTexture(width,
@@ -66,23 +65,26 @@ internal unsafe partial class D3DTexture : DisposableObject
         sharedHandle = null;
         D3D.Success(resource.CreateSharedHandle((SecurityAttributes*)null, DXGI.SharedResourceRead | DXGI.SharedResourceWrite, (char*)null, &sharedHandle));
 
-        Handle = (nint)D3D9RenderSurface.Handle;
         SharedHandle = (nint)sharedHandle;
 
         Width = width;
         Height = height;
+
+        image.Lock();
+        image.SetBackBuffer(D3DResourceType.IDirect3DSurface9, (nint)D3D9RenderSurface.Handle);
+        image.Unlock();
     }
 
     public uint Width { get; }
 
     public uint Height { get; }
 
-    public void AcquireForUpdate()
+    public void AcquireSync()
     {
         D3D.Success(D3D11Mutex.AcquireSync(key++, uint.MaxValue));
     }
 
-    public void PresentAndRelease()
+    public void ReleaseSync()
     {
         D3D.D3D11DeviceContext.CopyResource((ID3D11Resource*)D3D9SharedTexture.Handle, (ID3D11Resource*)D3D11RenderTarget.Handle);
         D3D.D3D11DeviceContext.Flush();
