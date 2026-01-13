@@ -1,0 +1,11 @@
+﻿namespace Zenith.NET.Views;
+
+public static class ZenithViewOutputs
+{
+    public static Output WPF { get; } = new()
+    {
+        ColorAttachments = [PixelFormat.B8G8R8A8UNorm],
+        DepthStencilAttachment = PixelFormat.D24UNormS8UInt,
+        SampleCount = SampleCount.Count1
+    };
+}

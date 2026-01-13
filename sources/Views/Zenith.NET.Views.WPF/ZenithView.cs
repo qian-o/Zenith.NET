@@ -7,19 +7,12 @@ using System.Windows.Media;
 
 namespace Zenith.NET.Views.WPF;
 
-public class ZenithView : Control, IZenithView
+public class ZenithView : Control
 {
-    public static readonly Output Output = new()
-    {
-        ColorAttachments = [PixelFormat.B8G8R8A8UNorm],
-        DepthStencilAttachment = PixelFormat.D24UNormS8UInt,
-        SampleCount = SampleCount.Count1
-    };
-
     public static readonly DependencyProperty GraphicsContextProperty = DependencyProperty.Register(nameof(GraphicsContext),
                                                                                                     typeof(GraphicsContext),
                                                                                                     typeof(ZenithView),
-                                                                                                    new(null, (d, _) => ((ZenithView)d).Destroy()));
+                                                                                                    new(null, (d, _) => ((ZenithView)d).DestroyResources()));
 
     private readonly D3DImage image;
     private readonly FrameDispatcher dispatcher;
@@ -30,7 +23,7 @@ public class ZenithView : Control, IZenithView
     public ZenithView()
     {
         image = new();
-        dispatcher = new(this, Dispatcher.Invoke);
+        dispatcher = new(Frame, Present);
 
         Loaded += (_, _) => dispatcher.Start();
 
@@ -38,7 +31,7 @@ public class ZenithView : Control, IZenithView
         {
             dispatcher.Stop();
 
-            Destroy();
+            DestroyResources();
         };
     }
 
@@ -47,6 +40,8 @@ public class ZenithView : Control, IZenithView
         get => (GraphicsContext?)GetValue(GraphicsContextProperty);
         set => SetValue(GraphicsContextProperty, value);
     }
+
+    public event EventHandler<UpdateEventArgs>? UpdateRequested;
 
     public event EventHandler<RenderEventArgs>? RenderRequested;
 
@@ -95,42 +90,10 @@ public class ZenithView : Control, IZenithView
         }
     }
 
-    private void Destroy()
+    private void Frame()
     {
-        swapChain?.Dispose();
-        swapChain = null;
+        EnsureResources();
 
-        texture?.Dispose();
-        texture = null;
-    }
-
-    void IZenithView.PrepareFrame()
-    {
-        if (GraphicsContext is null)
-        {
-            return;
-        }
-
-        uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
-        uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
-
-        if (texture is null || texture.Width != width || texture.Height != height || swapChain is null)
-        {
-            Destroy();
-
-            texture = new(width, height, image);
-
-            swapChain = GraphicsContext.CreateSwapChain(new()
-            {
-                Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
-                ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
-                DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
-            });
-        }
-    }
-
-    void IZenithView.Render()
-    {
         if (texture is null || swapChain is null)
         {
             return;
@@ -138,6 +101,7 @@ public class ZenithView : Control, IZenithView
 
         texture.AcquireSync();
 
+        UpdateRequested?.Invoke(this, new(dispatcher.UpdateSeconds, dispatcher.TotalSeconds));
         RenderRequested?.Invoke(this, new(dispatcher.RenderSeconds, dispatcher.TotalSeconds, swapChain.FrameBuffer));
 
         swapChain.Present();
@@ -145,17 +109,57 @@ public class ZenithView : Control, IZenithView
         texture.ReleaseSync();
     }
 
-    void IZenithView.Present()
+    private void Present()
     {
-        if (!image.IsFrontBufferAvailable)
+        Dispatcher.Invoke(() =>
         {
-            return;
-        }
+            if (!image.IsFrontBufferAvailable)
+            {
+                return;
+            }
 
-        image.Lock();
-        image.AddDirtyRect(new(0, 0, image.PixelWidth, image.PixelHeight));
-        image.Unlock();
+            image.Lock();
+            image.AddDirtyRect(new(0, 0, image.PixelWidth, image.PixelHeight));
+            image.Unlock();
 
-        InvalidateVisual();
+            InvalidateVisual();
+        });
+    }
+
+    private void EnsureResources()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            if (GraphicsContext is null)
+            {
+                return;
+            }
+
+            uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
+            uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
+
+            if (texture is null || texture.Width != width || texture.Height != height || swapChain is null)
+            {
+                DestroyResources();
+
+                texture = new(width, height, image);
+
+                swapChain = GraphicsContext.CreateSwapChain(new()
+                {
+                    Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
+                    ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
+                    DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
+                });
+            }
+        });
+    }
+
+    private void DestroyResources()
+    {
+        swapChain?.Dispose();
+        swapChain = null;
+
+        texture?.Dispose();
+        texture = null;
     }
 }

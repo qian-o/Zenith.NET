@@ -2,14 +2,27 @@
 
 namespace Zenith.NET.Views;
 
-public class FrameDispatcher(IZenithView view, Action<Action> dispatcher)
+public class FrameDispatcher(Action frame, Action present)
 {
+    private readonly Stopwatch updateStopwatch = new();
     private readonly Stopwatch renderStopwatch = new();
     private readonly Stopwatch lifetimeStopwatch = new();
 
     private CancellationTokenSource? cancellationTokenSource;
-    private AutoResetEvent? renderEvent;
+    private AutoResetEvent? frameEvent;
     private AutoResetEvent? presentEvent;
+
+    public double UpdateSeconds
+    {
+        get
+        {
+            double seconds = updateStopwatch.Elapsed.TotalSeconds;
+
+            updateStopwatch.Restart();
+
+            return seconds;
+        }
+    }
 
     public double RenderSeconds
     {
@@ -29,11 +42,12 @@ public class FrameDispatcher(IZenithView view, Action<Action> dispatcher)
     {
         Stop();
 
+        updateStopwatch.Start();
         renderStopwatch.Start();
         lifetimeStopwatch.Start();
 
         cancellationTokenSource = new();
-        renderEvent = new(false);
+        frameEvent = new(false);
         presentEvent = new(true);
 
         Task.Run(async () =>
@@ -42,11 +56,9 @@ public class FrameDispatcher(IZenithView view, Action<Action> dispatcher)
             {
                 presentEvent.WaitOne();
 
-                dispatcher(view.PrepareFrame);
+                frame();
 
-                view.Render();
-
-                renderEvent.Set();
+                frameEvent.Set();
 
                 await Task.Yield();
             }
@@ -56,9 +68,9 @@ public class FrameDispatcher(IZenithView view, Action<Action> dispatcher)
         {
             while (!cancellationTokenSource.IsCancellationRequested)
             {
-                renderEvent.WaitOne();
+                frameEvent.WaitOne();
 
-                dispatcher(view.Present);
+                present();
 
                 presentEvent.Set();
 
@@ -69,14 +81,15 @@ public class FrameDispatcher(IZenithView view, Action<Action> dispatcher)
 
     public void Stop()
     {
+        updateStopwatch.Reset();
         renderStopwatch.Reset();
         lifetimeStopwatch.Reset();
 
         cancellationTokenSource?.Cancel();
         cancellationTokenSource?.Dispose();
 
-        renderEvent?.Close();
-        renderEvent?.Dispose();
+        frameEvent?.Close();
+        frameEvent?.Dispose();
 
         presentEvent?.Close();
         presentEvent?.Dispose();
