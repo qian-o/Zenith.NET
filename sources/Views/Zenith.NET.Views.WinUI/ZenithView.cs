@@ -45,20 +45,25 @@ public partial class ZenithView : SwapChainPanel, IZenithView
 
     void IZenithView.UI(Action action)
     {
-        using ManualResetEventSlim signal = new(false);
-
-        DispatcherQueue.TryEnqueue(() =>
+        if (DispatcherQueue.HasThreadAccess)
         {
-            try
+            action();
+        }
+        else
+        {
+            bool isCompleted = false;
+
+            DispatcherQueue.TryEnqueue(() =>
             {
                 action();
-            }
-            finally
-            {
-                signal.Set();
-            }
-        });
 
-        signal.Wait();
+                isCompleted = true;
+            });
+
+            while (!isCompleted)
+            {
+                Thread.Yield();
+            }
+        }
     }
 }
