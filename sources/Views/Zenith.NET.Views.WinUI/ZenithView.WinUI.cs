@@ -14,7 +14,7 @@ public unsafe partial class ZenithView
     private D3DTexture? texture;
     private SwapChain? swapChain;
 
-    void IZenithView.Prepare()
+    void IZenithView.EnsureResources()
     {
         if (GraphicsContext is null)
         {

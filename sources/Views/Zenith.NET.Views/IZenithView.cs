@@ -10,7 +10,7 @@ public interface IZenithView
 
     void UI(Action action);
 
-    void Prepare();
+    void EnsureResources();
 
     void Frame();
 

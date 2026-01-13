@@ -95,7 +95,7 @@ public class ZenithView : Control, IZenithView
         Dispatcher.Invoke(action);
     }
 
-    void IZenithView.Prepare()
+    void IZenithView.EnsureResources()
     {
         if (GraphicsContext is null)
         {

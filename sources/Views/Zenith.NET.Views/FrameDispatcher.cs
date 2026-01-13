@@ -4,15 +4,14 @@ namespace Zenith.NET.Views;
 
 public class FrameDispatcher(IZenithView view)
 {
+    private const double PresentInterval = 1.0 / 60.0;
+
     private readonly Stopwatch updateStopwatch = new();
     private readonly Stopwatch renderStopwatch = new();
     private readonly Stopwatch lifetimeStopwatch = new();
 
     private CancellationTokenSource? cancellationTokenSource;
-    private ManualResetEventSlim? frameEvent;
-    private ManualResetEventSlim? presentEvent;
-    private Task? frameTask;
-    private Task? presentTask;
+    private Task? task;
 
     public double UpdateSeconds
     {
@@ -49,40 +48,26 @@ public class FrameDispatcher(IZenithView view)
         lifetimeStopwatch.Start();
 
         cancellationTokenSource = new();
-        frameEvent = new(false);
-        presentEvent = new(true);
-
-        frameTask = Task.Run(async () =>
+        task = Task.Run(async () =>
         {
+            double lastPresentTime = 0;
+
             while (!cancellationTokenSource.IsCancellationRequested)
             {
-                presentEvent.Wait();
-
-                frameEvent.Reset();
-
-                view.UI(view.Prepare);
+                view.UI(view.EnsureResources);
 
                 view.Frame();
 
-                frameEvent.Set();
+                double currentTime = lifetimeStopwatch.Elapsed.TotalSeconds;
+
+                if (currentTime - lastPresentTime >= PresentInterval)
+                {
+                    view.UI(view.Present);
+
+                    lastPresentTime = currentTime;
+                }
 
                 await Task.Yield();
-            }
-        });
-
-        presentTask = Task.Run(async () =>
-        {
-            while (!cancellationTokenSource.IsCancellationRequested)
-            {
-                frameEvent.Wait();
-
-                presentEvent.Reset();
-
-                view.UI(view.Present);
-
-                presentEvent.Set();
-
-                await Task.Delay(16);
             }
         });
     }
@@ -95,18 +80,10 @@ public class FrameDispatcher(IZenithView view)
 
         cancellationTokenSource?.Cancel();
 
-        Task.WhenAll(frameTask ?? Task.CompletedTask, presentTask ?? Task.CompletedTask).Wait(TimeSpan.FromSeconds(2));
-
-        frameTask = null;
-        presentTask = null;
+        task?.Wait(TimeSpan.FromSeconds(2));
+        task = null;
 
         cancellationTokenSource?.Dispose();
         cancellationTokenSource = null;
-
-        frameEvent?.Dispose();
-        frameEvent = null;
-
-        presentEvent?.Dispose();
-        presentEvent = null;
     }
 }

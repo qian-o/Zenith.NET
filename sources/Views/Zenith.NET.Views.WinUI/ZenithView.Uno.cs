@@ -9,7 +9,7 @@ public unsafe partial class ZenithView
 {
     private Surface? surface;
 
-    void IZenithView.Prepare()
+    void IZenithView.EnsureResources()
     {
         if (GraphicsContext is null)
         {
