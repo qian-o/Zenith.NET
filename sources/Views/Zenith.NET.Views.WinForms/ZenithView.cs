@@ -36,6 +36,13 @@ public class ZenithView : Control, IZenithView
         };
     }
 
+    public static Output Output { get; } = new()
+    {
+        ColorAttachments = [PixelFormat.B8G8R8A8UNorm],
+        DepthStencilAttachment = PixelFormat.D24UNormS8UInt,
+        SampleCount = SampleCount.Count1
+    };
+
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public GraphicsContext? GraphicsContext
     {
