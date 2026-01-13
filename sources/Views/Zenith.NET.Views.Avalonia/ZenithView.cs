@@ -134,6 +134,8 @@ public class ZenithView : TemplatedControl, IZenithView
     void IZenithView.Present()
     {
         surface?.Present();
+
+        InvalidateVisual();
     }
 
     private void Destroy()

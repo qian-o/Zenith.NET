@@ -116,7 +116,7 @@ public class ZenithView : Control, IZenithView
         {
             Destroy();
 
-            texture = new(width, height, image);
+            texture = new(width, height);
 
             swapChain = GraphicsContext.CreateSwapChain(new()
             {
@@ -146,16 +146,7 @@ public class ZenithView : Control, IZenithView
 
     void IZenithView.Present()
     {
-        if (!image.IsFrontBufferAvailable)
-        {
-            return;
-        }
-
-        texture?.Present();
-
-        image.Lock();
-        image.AddDirtyRect(new(0, 0, image.PixelWidth, image.PixelHeight));
-        image.Unlock();
+        texture?.Present(image);
 
         InvalidateVisual();
     }
