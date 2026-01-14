@@ -121,7 +121,7 @@ public class ZenithView : Control, IZenithView
         }
     }
 
-    void IZenithView.Frame()
+    void IZenithView.Tick()
     {
         if (texture is null || swapChain is null)
         {

@@ -20,9 +20,8 @@ internal class ZenithViewHandler() : ViewHandler<ZenithView, MauiZenithView>(map
 
     private static readonly CommandMapper<ZenithView, ZenithViewHandler> commandMapper = new(ViewCommandMapper)
     {
-        [nameof(IZenithView.UI)] = MapUI,
         [nameof(IZenithView.EnsureResources)] = MapEnsureResources,
-        [nameof(IZenithView.Frame)] = MapFrame,
+        [nameof(IZenithView.Tick)] = MapTick,
         [nameof(IZenithView.Present)] = MapPresent,
         [nameof(IZenithView.ReleaseResources)] = MapReleaseResources,
     };
@@ -37,15 +36,12 @@ internal class ZenithViewHandler() : ViewHandler<ZenithView, MauiZenithView>(map
         // ZenithView does not support Background property.
     }
 
-    private static void MapUI(ZenithViewHandler handler, ZenithView view, object? arg3)
-    {
-    }
-
     private static void MapEnsureResources(ZenithViewHandler handler, ZenithView view, object? arg3)
     {
+
     }
 
-    private static void MapFrame(ZenithViewHandler handler, ZenithView view, object? arg3)
+    private static void MapTick(ZenithViewHandler handler, ZenithView view, object? arg3)
     {
     }
 
@@ -98,23 +94,48 @@ public partial class ZenithView : View, IZenithView
     {
         if (Dispatcher.IsDispatchRequired)
         {
-            Dispatcher.Dispatch(action);
+            bool isCompleted = false;
+
+            Dispatcher.Dispatch(() =>
+            {
+                try
+                {
+                    action();
+                }
+                finally
+                {
+                    isCompleted = true;
+                }
+            });
+
+            while (!isCompleted)
+            {
+                Thread.Yield();
+            }
+        }
+        else
+        {
+            action();
         }
     }
 
     void IZenithView.EnsureResources()
     {
+        Handler?.Invoke(nameof(IZenithView.EnsureResources), null);
     }
 
-    void IZenithView.Frame()
+    void IZenithView.Tick()
     {
+        Handler?.Invoke(nameof(IZenithView.Tick), null);
     }
 
     void IZenithView.Present()
     {
+        Handler?.Invoke(nameof(IZenithView.Present), null);
     }
 
     void IZenithView.ReleaseResources()
     {
+        Handler?.Invoke(nameof(IZenithView.ReleaseResources), null);
     }
 }

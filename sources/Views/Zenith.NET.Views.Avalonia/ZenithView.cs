@@ -109,7 +109,7 @@ public class ZenithView : TemplatedControl, IZenithView
         }
     }
 
-    void IZenithView.Frame()
+    void IZenithView.Tick()
     {
         if (surface is null)
         {

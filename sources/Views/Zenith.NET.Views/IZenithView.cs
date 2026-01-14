@@ -12,7 +12,7 @@ public interface IZenithView
 
     void EnsureResources();
 
-    void Frame();
+    void Tick();
 
     void Present();
 

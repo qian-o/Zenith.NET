@@ -101,7 +101,7 @@ public class ViewDispatcher(IZenithView view)
                         break;
                     }
 
-                    view.Frame();
+                    view.Tick();
 
                     double currentTime = lifetimeStopwatch.Elapsed.TotalSeconds;
 
