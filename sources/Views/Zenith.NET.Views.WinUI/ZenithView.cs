@@ -8,22 +8,16 @@ public partial class ZenithView : SwapChainPanel, IZenithView
     public static readonly DependencyProperty GraphicsContextProperty = DependencyProperty.Register(nameof(GraphicsContext),
                                                                                                     typeof(GraphicsContext),
                                                                                                     typeof(ZenithView),
-                                                                                                    new(null, (d, _) => ((ZenithView)d).Destroy()));
+                                                                                                    new(null));
 
-    private readonly FrameDispatcher dispatcher;
+    private readonly ViewDispatcher dispatcher;
 
     public ZenithView()
     {
         dispatcher = new(this);
 
         Loaded += async (_, _) => await dispatcher.StartAsync();
-
-        Unloaded += async (_, _) =>
-        {
-            await dispatcher.StopAsync();
-
-            Destroy();
-        };
+        Unloaded += async (_, _) => await dispatcher.StopAsync();
     }
 
     public static Output Output { get; } = new()

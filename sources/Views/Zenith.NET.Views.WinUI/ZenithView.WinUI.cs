@@ -26,7 +26,7 @@ public unsafe partial class ZenithView
 
         if (texture is null || texture.Width != width || texture.Height != height || swapChain is null)
         {
-            Destroy();
+            ((IZenithView)this).ReleaseResources();
 
             texture = new(width, height);
 
@@ -63,7 +63,7 @@ public unsafe partial class ZenithView
         texture?.Present();
     }
 
-    private void Destroy()
+    void IZenithView.ReleaseResources()
     {
         swapChain?.Dispose();
         swapChain = null;

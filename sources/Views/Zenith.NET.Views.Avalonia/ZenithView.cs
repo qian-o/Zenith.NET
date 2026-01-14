@@ -11,27 +11,16 @@ public class ZenithView : TemplatedControl, IZenithView
 {
     public static readonly StyledProperty<GraphicsContext?> GraphicsContextProperty = AvaloniaProperty.Register<ZenithView, GraphicsContext?>(nameof(GraphicsContext));
 
-    private readonly FrameDispatcher dispatcher;
+    private readonly ViewDispatcher dispatcher;
 
     private Surface? surface;
-
-    static ZenithView()
-    {
-        GraphicsContextProperty.Changed.AddClassHandler<ZenithView>((view, _) => view.Destroy());
-    }
 
     public ZenithView()
     {
         dispatcher = new(this);
 
         Loaded += async (_, _) => await dispatcher.StartAsync();
-
-        Unloaded += async (_, _) =>
-        {
-            await dispatcher.StopAsync();
-
-            Destroy();
-        };
+        Unloaded += async (_, _) => await dispatcher.StopAsync();
     }
 
     public static Output Output { get; } = new()
@@ -114,7 +103,7 @@ public class ZenithView : TemplatedControl, IZenithView
 
         if (surface is null || surface.Width != width || surface.Height != height)
         {
-            Destroy();
+            ((IZenithView)this).ReleaseResources();
 
             surface = new(GraphicsContext, width, height);
         }
@@ -138,7 +127,7 @@ public class ZenithView : TemplatedControl, IZenithView
         InvalidateVisual();
     }
 
-    private void Destroy()
+    void IZenithView.ReleaseResources()
     {
         surface?.Dispose();
         surface = null;

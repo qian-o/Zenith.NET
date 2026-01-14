@@ -11,9 +11,9 @@ internal unsafe class Surface : DisposableObject
     private readonly Texture depthStencil;
     private readonly Buffer pixels;
 
-    public Surface(GraphicsContext context, uint width, uint height)
+    public Surface(GraphicsContext graphicsContext, uint width, uint height)
     {
-        color = context.CreateTexture(new()
+        color = graphicsContext.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
             Format = PixelFormat.R8G8B8A8UNorm,
@@ -26,7 +26,7 @@ internal unsafe class Surface : DisposableObject
             Flags = TextureUsageFlags.RenderTarget
         });
 
-        depthStencil = context.CreateTexture(new()
+        depthStencil = graphicsContext.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
             Format = PixelFormat.D24UNormS8UInt,
@@ -39,14 +39,14 @@ internal unsafe class Surface : DisposableObject
             Flags = TextureUsageFlags.DepthStencil
         });
 
-        pixels = context.CreateBuffer(new()
+        pixels = graphicsContext.CreateBuffer(new()
         {
             SizeInBytes = ZenithHelper.Align(width * 4, GraphicsContext.TextureRowPitchAlignment) * height,
             StrideInBytes = 4,
             Flags = BufferUsageFlags.MapRead
         });
 
-        FrameBuffer = context.CreateFrameBuffer(new()
+        FrameBuffer = graphicsContext.CreateFrameBuffer(new()
         {
             ColorAttachments = [new() { Target = color }],
             DepthStencilAttachment = new() { Target = depthStencil }
@@ -54,7 +54,7 @@ internal unsafe class Surface : DisposableObject
 
         WriteableBitmap = new(new((int)width, (int)height), new(96, 96), AvaloniaPixelFormat.Rgba8888, AlphaFormat.Premul);
 
-        Context = context;
+        GraphicsContext = graphicsContext;
         Width = width;
         Height = height;
     }
@@ -63,7 +63,7 @@ internal unsafe class Surface : DisposableObject
 
     public WriteableBitmap WriteableBitmap { get; }
 
-    public GraphicsContext Context { get; }
+    public GraphicsContext GraphicsContext { get; }
 
     public uint Width { get; }
 
@@ -71,7 +71,7 @@ internal unsafe class Surface : DisposableObject
 
     public void Present()
     {
-        CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
+        CommandBuffer commandBuffer = GraphicsContext.Copy.CommandBuffer();
         commandBuffer.CopyTextureToBuffer(color, default, default, new() { Width = Width, Height = Height, Depth = 1 }, pixels, 0);
         commandBuffer.Submit(true);
 

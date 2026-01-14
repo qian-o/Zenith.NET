@@ -3,7 +3,7 @@ using SystemBuffer = System.Buffer;
 
 namespace Zenith.NET.Views;
 
-public class FrameDispatcher(IZenithView view)
+public class ViewDispatcher(IZenithView view)
 {
     private static readonly double PresentInterval;
 
@@ -14,7 +14,7 @@ public class FrameDispatcher(IZenithView view)
     private CancellationTokenSource? cancellationTokenSource;
     private Task? task;
 
-    static FrameDispatcher()
+    static ViewDispatcher()
     {
         const double minInterval = 1.0 / 120.0;
         const double maxInterval = 1.0 / 30.0;
@@ -80,27 +80,42 @@ public class FrameDispatcher(IZenithView view)
         cancellationTokenSource = new();
         task = Task.Run(() =>
         {
-            double lastPresentTime = 0;
-
-            while (!cancellationTokenSource.IsCancellationRequested)
+            try
             {
-                view.UI(view.EnsureResources);
+                GraphicsContext? currentGraphicsContext = null;
+                double lastPresentTime = 0;
 
-                if (cancellationTokenSource.IsCancellationRequested)
+                while (!cancellationTokenSource.IsCancellationRequested)
                 {
-                    break;
+                    if (view.GraphicsContext != currentGraphicsContext)
+                    {
+                        view.ReleaseResources();
+
+                        currentGraphicsContext = view.GraphicsContext;
+                    }
+
+                    view.UI(view.EnsureResources);
+
+                    if (cancellationTokenSource.IsCancellationRequested)
+                    {
+                        break;
+                    }
+
+                    view.Frame();
+
+                    double currentTime = lifetimeStopwatch.Elapsed.TotalSeconds;
+
+                    if (currentTime - lastPresentTime >= PresentInterval)
+                    {
+                        view.UI(view.Present);
+
+                        lastPresentTime = currentTime;
+                    }
                 }
-
-                view.Frame();
-
-                double currentTime = lifetimeStopwatch.Elapsed.TotalSeconds;
-
-                if (currentTime - lastPresentTime >= PresentInterval)
-                {
-                    view.UI(view.Present);
-
-                    lastPresentTime = currentTime;
-                }
+            }
+            finally
+            {
+                view.ReleaseResources();
             }
         });
     }

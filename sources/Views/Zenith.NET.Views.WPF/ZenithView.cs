@@ -12,10 +12,10 @@ public class ZenithView : Control, IZenithView
     public static readonly DependencyProperty GraphicsContextProperty = DependencyProperty.Register(nameof(GraphicsContext),
                                                                                                     typeof(GraphicsContext),
                                                                                                     typeof(ZenithView),
-                                                                                                    new(null, (d, _) => ((ZenithView)d).Destroy()));
+                                                                                                    new(null));
 
     private readonly D3DImage image;
-    private readonly FrameDispatcher dispatcher;
+    private readonly ViewDispatcher dispatcher;
 
     private D3DTexture? texture;
     private SwapChain? swapChain;
@@ -26,13 +26,7 @@ public class ZenithView : Control, IZenithView
         dispatcher = new(this);
 
         Loaded += async (_, _) => await dispatcher.StartAsync();
-
-        Unloaded += async (_, _) =>
-        {
-            await dispatcher.StopAsync();
-
-            Destroy();
-        };
+        Unloaded += async (_, _) => await dispatcher.StopAsync();
     }
 
     public static Output Output { get; } = new()
@@ -114,7 +108,7 @@ public class ZenithView : Control, IZenithView
 
         if (texture is null || texture.Width != width || texture.Height != height || swapChain is null)
         {
-            Destroy();
+            ((IZenithView)this).ReleaseResources();
 
             texture = new(width, height);
 
@@ -151,7 +145,7 @@ public class ZenithView : Control, IZenithView
         InvalidateVisual();
     }
 
-    private void Destroy()
+    void IZenithView.ReleaseResources()
     {
         swapChain?.Dispose();
         swapChain = null;

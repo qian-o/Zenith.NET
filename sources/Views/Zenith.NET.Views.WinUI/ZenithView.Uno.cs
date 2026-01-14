@@ -21,7 +21,7 @@ public unsafe partial class ZenithView
 
         if (surface is null || surface.Width != width || surface.Height != height)
         {
-            Destroy();
+            ((IZenithView)this).ReleaseResources();
 
             Background = new ImageBrush() { ImageSource = (surface = new(GraphicsContext, width, height)).WriteableBitmap };
         }
@@ -43,7 +43,7 @@ public unsafe partial class ZenithView
         surface?.Present();
     }
 
-    private void Destroy()
+    void IZenithView.ReleaseResources()
     {
         surface?.Dispose();
         surface = null;

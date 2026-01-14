@@ -6,7 +6,7 @@ namespace Zenith.NET.Views.WinForms;
 
 public class ZenithView : Control, IZenithView
 {
-    private readonly FrameDispatcher dispatcher;
+    private readonly ViewDispatcher dispatcher;
 
     private SwapChain? swapChain;
 
@@ -17,13 +17,7 @@ public class ZenithView : Control, IZenithView
         dispatcher = new(this);
 
         HandleCreated += async (_, _) => await dispatcher.StartAsync();
-
-        HandleDestroyed += async (_, _) =>
-        {
-            await dispatcher.StopAsync();
-
-            Destroy();
-        };
+        HandleDestroyed += async (_, _) => await dispatcher.StopAsync();
 
         ClientSizeChanged += (_, _) =>
         {
@@ -44,19 +38,7 @@ public class ZenithView : Control, IZenithView
     };
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public GraphicsContext? GraphicsContext
-    {
-        get => field;
-        set
-        {
-            if (field != value)
-            {
-                Destroy();
-
-                field = value;
-            }
-        }
-    }
+    public GraphicsContext? GraphicsContext { get; set; }
 
     public event EventHandler<UpdateEventArgs>? UpdateRequested;
 
@@ -139,7 +121,7 @@ public class ZenithView : Control, IZenithView
         swapChain?.Present();
     }
 
-    private void Destroy()
+    void IZenithView.ReleaseResources()
     {
         swapChain?.Dispose();
         swapChain = null;

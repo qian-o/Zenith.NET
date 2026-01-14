@@ -15,4 +15,6 @@ public interface IZenithView
     void Frame();
 
     void Present();
+
+    void ReleaseResources();
 }
