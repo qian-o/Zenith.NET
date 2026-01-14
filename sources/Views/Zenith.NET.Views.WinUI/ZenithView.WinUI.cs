@@ -53,13 +53,12 @@ public unsafe partial class ZenithView
         UpdateRequested?.Invoke(this, new(dispatcher.UpdateSeconds, dispatcher.TotalSeconds));
         RenderRequested?.Invoke(this, new(dispatcher.RenderSeconds, dispatcher.TotalSeconds, swapChain.FrameBuffer));
 
-        swapChain.Present();
-
         texture.ReleaseSync();
     }
 
     void IZenithView.Present()
     {
+        swapChain?.Present();
         texture?.Present();
     }
 

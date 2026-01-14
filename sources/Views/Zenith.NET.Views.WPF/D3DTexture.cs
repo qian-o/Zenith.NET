@@ -29,7 +29,7 @@ internal unsafe partial class D3DTexture : DisposableObject
 
     private ulong key;
 
-    public D3DTexture(uint width, uint height)
+    public D3DTexture(uint width, uint height, D3DImage image)
     {
         void* sharedHandle = null;
         D3D.Success(D3D.D3D9DeviceEx.CreateTexture(width,
@@ -69,11 +69,14 @@ internal unsafe partial class D3DTexture : DisposableObject
 
         Width = width;
         Height = height;
+        Image = image;
     }
 
     public uint Width { get; }
 
     public uint Height { get; }
+
+    public D3DImage Image { get; }
 
     public void AcquireSync()
     {
@@ -85,10 +88,10 @@ internal unsafe partial class D3DTexture : DisposableObject
         D3D.Success(D3D11Mutex.ReleaseSync(key));
     }
 
-    public void Present(D3DImage image)
+    public void Present()
     {
-        image.Lock();
-        image.SetBackBuffer(D3DResourceType.IDirect3DSurface9, (nint)D3D9RenderSurface.Handle);
+        Image.Lock();
+        Image.SetBackBuffer(D3DResourceType.IDirect3DSurface9, (nint)D3D9RenderSurface.Handle);
 
         AcquireSync();
 
@@ -97,8 +100,8 @@ internal unsafe partial class D3DTexture : DisposableObject
 
         ReleaseSync();
 
-        image.AddDirtyRect(new(0, 0, (int)Width, (int)Height));
-        image.Unlock();
+        Image.AddDirtyRect(new(0, 0, (int)Width, (int)Height));
+        Image.Unlock();
     }
 
     protected override void Destroy()

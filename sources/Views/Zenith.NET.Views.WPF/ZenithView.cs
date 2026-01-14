@@ -110,7 +110,7 @@ public class ZenithView : Control, IZenithView
         {
             ((IZenithView)this).ReleaseResources();
 
-            texture = new(width, height);
+            texture = new(width, height, image);
 
             swapChain = GraphicsContext.CreateSwapChain(new()
             {
@@ -133,14 +133,13 @@ public class ZenithView : Control, IZenithView
         UpdateRequested?.Invoke(this, new(dispatcher.UpdateSeconds, dispatcher.TotalSeconds));
         RenderRequested?.Invoke(this, new(dispatcher.RenderSeconds, dispatcher.TotalSeconds, swapChain.FrameBuffer));
 
-        swapChain.Present();
-
         texture.ReleaseSync();
     }
 
     void IZenithView.Present()
     {
-        texture?.Present(image);
+        swapChain?.Present();
+        texture?.Present();
 
         InvalidateVisual();
     }
