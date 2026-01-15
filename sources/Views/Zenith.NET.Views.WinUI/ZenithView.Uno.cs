@@ -5,7 +5,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace Zenith.NET.Views.WinUI;
 
-public unsafe partial class ZenithView
+public partial class ZenithView
 {
     private Surface? surface;
 
