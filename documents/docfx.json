@@ -37,11 +37,9 @@
     ],
     "resource": [
       {
-        "src": "..",
         "files": [
           "images/**"
-        ],
-        "dest": "."
+        ]
       }
     ],
     "output": "_site",
