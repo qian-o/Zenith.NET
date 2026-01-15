@@ -80,24 +80,27 @@ public class ViewDispatcher(IZenithView view)
         cancellationTokenSource = new();
         task = Task.Run(() =>
         {
+            GraphicsContext? graphicsContext = null;
+
+            void SyncResources()
+            {
+                if (graphicsContext != view.GraphicsContext)
+                {
+                    view.ReleaseResources();
+
+                    graphicsContext = view.GraphicsContext;
+                }
+
+                view.EnsureResources();
+            }
+
             try
             {
-                GraphicsContext? currentGraphicsContext = null;
                 double lastPresentTime = 0;
 
                 while (!cancellationTokenSource.IsCancellationRequested)
                 {
-                    view.UI(() =>
-                    {
-                        if (view.GraphicsContext != currentGraphicsContext)
-                        {
-                            view.ReleaseResources();
-
-                            currentGraphicsContext = view.GraphicsContext;
-                        }
-
-                        view.EnsureResources();
-                    });
+                    view.UI(SyncResources);
 
                     if (cancellationTokenSource.IsCancellationRequested)
                     {
@@ -118,7 +121,7 @@ public class ViewDispatcher(IZenithView view)
             }
             finally
             {
-                view.ReleaseResources();
+                view.UI(view.ReleaseResources);
             }
         });
     }
