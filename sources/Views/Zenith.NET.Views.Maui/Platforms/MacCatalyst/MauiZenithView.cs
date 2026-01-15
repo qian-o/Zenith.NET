@@ -11,9 +11,19 @@ internal class MauiZenithView(ZenithViewHandler handler) : UIView
         SampleCount = SampleCount.Count1
     };
 
-    public ZenithView ZenithView => handler.VirtualView;
+    public void EnsureResources()
+    {
+    }
 
-    public void Destroy()
+    public void Tick()
+    {
+    }
+
+    public void Present()
+    {
+    }
+
+    public void ReleaseResources()
     {
     }
 }

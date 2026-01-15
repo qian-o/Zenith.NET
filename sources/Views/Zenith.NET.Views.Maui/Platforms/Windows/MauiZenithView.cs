@@ -15,35 +15,6 @@ internal unsafe partial class MauiZenithView(ZenithViewHandler handler) : SwapCh
         SampleCount = SampleCount.Count1
     };
 
-    public void UI(Action action)
-    {
-        if (DispatcherQueue.HasThreadAccess)
-        {
-            action();
-        }
-        else
-        {
-            bool isCompleted = false;
-
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                try
-                {
-                    action();
-                }
-                finally
-                {
-                    isCompleted = true;
-                }
-            });
-
-            while (!isCompleted)
-            {
-                Thread.Yield();
-            }
-        }
-    }
-
     public void EnsureResources()
     {
         if (handler.VirtualView.GraphicsContext is null)
@@ -71,7 +42,7 @@ internal unsafe partial class MauiZenithView(ZenithViewHandler handler) : SwapCh
         }
     }
 
-    public void Frame()
+    public void Tick()
     {
         if (texture is null || swapChain is null)
         {

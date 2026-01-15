@@ -18,16 +18,6 @@ public class ZenithView : Control, IZenithView
 
         HandleCreated += async (_, _) => await dispatcher.StartAsync();
         HandleDestroyed += async (_, _) => await dispatcher.StopAsync();
-
-        ClientSizeChanged += (_, _) =>
-        {
-            if (ClientSize.Width is 0 || ClientSize.Height is 0)
-            {
-                return;
-            }
-
-            swapChain?.Resize((uint)ClientSize.Width, (uint)ClientSize.Height);
-        };
     }
 
     public static Output Output { get; } = new()
@@ -97,12 +87,22 @@ public class ZenithView : Control, IZenithView
             return;
         }
 
-        swapChain ??= GraphicsContext.CreateSwapChain(new()
+        uint width = Math.Clamp((uint)ClientSize.Width, 1, uint.MaxValue);
+        uint height = Math.Clamp((uint)ClientSize.Height, 1, uint.MaxValue);
+
+        if (swapChain is null)
         {
-            Surface = Surface.Win32(Handle, (uint)ClientSize.Width, (uint)ClientSize.Height),
-            ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
-            DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
-        });
+            swapChain = GraphicsContext.CreateSwapChain(new()
+            {
+                Surface = Surface.Win32(Handle, width, height),
+                ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
+                DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
+            });
+        }
+        else if (swapChain.Desc.Surface.Width != width || swapChain.Desc.Surface.Height != height)
+        {
+            swapChain.Resize(width, height);
+        }
     }
 
     void IZenithView.Tick()

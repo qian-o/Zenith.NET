@@ -38,19 +38,22 @@ internal class ZenithViewHandler() : ViewHandler<ZenithView, MauiZenithView>(map
 
     private static void MapEnsureResources(ZenithViewHandler handler, ZenithView view, object? arg3)
     {
-
+        handler.PlatformView.EnsureResources();
     }
 
     private static void MapTick(ZenithViewHandler handler, ZenithView view, object? arg3)
     {
+        handler.PlatformView.Tick();
     }
 
     private static void MapPresent(ZenithViewHandler handler, ZenithView view, object? arg3)
     {
+        handler.PlatformView.Present();
     }
 
     private static void MapReleaseResources(ZenithViewHandler handler, ZenithView view, object? arg3)
     {
+        handler.PlatformView.ReleaseResources();
     }
 }
 
