@@ -87,14 +87,17 @@ public class ViewDispatcher(IZenithView view)
 
                 while (!cancellationTokenSource.IsCancellationRequested)
                 {
-                    if (view.GraphicsContext != currentGraphicsContext)
+                    view.UI(() =>
                     {
-                        view.ReleaseResources();
+                        if (view.GraphicsContext != currentGraphicsContext)
+                        {
+                            view.ReleaseResources();
 
-                        currentGraphicsContext = view.GraphicsContext;
-                    }
+                            currentGraphicsContext = view.GraphicsContext;
+                        }
 
-                    view.UI(view.EnsureResources);
+                        view.EnsureResources();
+                    });
 
                     if (cancellationTokenSource.IsCancellationRequested)
                     {
