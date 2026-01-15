@@ -72,7 +72,7 @@ public unsafe partial class ZenithView
     }
 }
 
-internal unsafe static class D3D
+internal static unsafe class D3D
 {
     public static ComPtr<IDXGIFactory2> Factory;
 

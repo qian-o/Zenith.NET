@@ -5,7 +5,7 @@ using Silk.NET.DXGI;
 
 namespace Zenith.NET.Views.Maui.Platforms.Windows;
 
-internal unsafe static class D3D
+internal static unsafe class D3D
 {
     public static ComPtr<IDXGIFactory2> Factory;
 
