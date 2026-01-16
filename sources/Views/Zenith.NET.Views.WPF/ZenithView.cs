@@ -48,6 +48,11 @@ public class ZenithView : Control, IZenithView
 
     protected override void OnRender(DrawingContext drawingContext)
     {
+        if (image.IsFrontBufferAvailable)
+        {
+            drawingContext.DrawImage(image, new(0, 0, ActualWidth, ActualHeight));
+        }
+
         if (DesignerProperties.GetIsInDesignMode(this))
         {
             LinearGradientBrush brush = new()
@@ -86,10 +91,6 @@ public class ZenithView : Control, IZenithView
 
             drawingContext.DrawText(shadowText, new(x + 1.0, y + 1.0));
             drawingContext.DrawText(mainText, new(x, y));
-        }
-        else if (image.IsFrontBufferAvailable)
-        {
-            drawingContext.DrawImage(image, new(0, 0, ActualWidth, ActualHeight));
         }
     }
 

@@ -42,6 +42,11 @@ public class ZenithView : TemplatedControl, IZenithView
 
     public override void Render(DrawingContext context)
     {
+        if (surface is not null)
+        {
+            context.DrawImage(surface.WriteableBitmap, new(0, 0, Bounds.Width, Bounds.Height));
+        }
+
         if (Design.IsDesignMode)
         {
             LinearGradientBrush brush = new()
@@ -78,10 +83,6 @@ public class ZenithView : TemplatedControl, IZenithView
 
             context.DrawText(shadowText, new(x + 1.0, y + 1.0));
             context.DrawText(mainText, new(x, y));
-        }
-        else if (surface is not null)
-        {
-            context.DrawImage(surface.WriteableBitmap, new(0, 0, Bounds.Width, Bounds.Height));
         }
     }
 
