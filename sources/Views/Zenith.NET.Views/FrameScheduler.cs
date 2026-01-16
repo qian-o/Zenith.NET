@@ -122,17 +122,16 @@ public class FrameScheduler(IZenithView view)
     public async Task StopAsync()
     {
         tokenSource?.Cancel();
-
         await (task ?? Task.CompletedTask);
-
-        updateStopwatch.Reset();
-        renderStopwatch.Reset();
-        lifetimeStopwatch.Reset();
 
         task?.Dispose();
         task = null;
 
         tokenSource?.Dispose();
         tokenSource = null;
+
+        lifetimeStopwatch.Reset();
+        renderStopwatch.Reset();
+        updateStopwatch.Reset();
     }
 }
