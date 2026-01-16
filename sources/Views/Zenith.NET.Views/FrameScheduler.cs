@@ -98,23 +98,16 @@ public class FrameScheduler(IZenithView view)
                 view.Present();
             }
 
-            try
+            while (!tokenSource.IsCancellationRequested)
             {
-                while (!tokenSource.IsCancellationRequested)
+                view.UI(Frame);
+
+                if (tokenSource.IsCancellationRequested)
                 {
-                    view.UI(Frame);
-
-                    if (tokenSource.IsCancellationRequested)
-                    {
-                        break;
-                    }
-
-                    await Task.Delay(Interval, tokenSource.Token);
+                    break;
                 }
-            }
-            finally
-            {
-                view.UI(view.ReleaseResources);
+
+                await Task.Delay(Interval, tokenSource.Token);
             }
         });
     }
@@ -133,5 +126,7 @@ public class FrameScheduler(IZenithView view)
         lifetimeStopwatch.Reset();
         renderStopwatch.Reset();
         updateStopwatch.Reset();
+
+        view.ReleaseResources();
     }
 }
