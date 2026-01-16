@@ -100,14 +100,25 @@ public class FrameScheduler(IZenithView view)
 
             while (!tokenSource.IsCancellationRequested)
             {
-                view.UI(Frame);
+                try
+                {
+                    view.UI(Frame);
 
-                if (tokenSource.IsCancellationRequested)
+                    if (tokenSource.IsCancellationRequested)
+                    {
+                        break;
+                    }
+
+                    await Task.Delay(Interval, tokenSource.Token);
+                }
+                catch (TaskCanceledException)
                 {
                     break;
                 }
-
-                await Task.Delay(Interval, tokenSource.Token);
+                catch
+                {
+                    // Ignore other exceptions to keep the loop running.
+                }
             }
         });
     }
