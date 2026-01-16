@@ -78,7 +78,7 @@ public class FrameScheduler(IZenithView view)
         lifetimeStopwatch.Start();
 
         tokenSource = new();
-        task = new(async () =>
+        task = Task.Run(async () =>
         {
             GraphicsContext? graphicsContext = null;
 
@@ -104,7 +104,12 @@ public class FrameScheduler(IZenithView view)
                 {
                     view.UI(Frame);
 
-                    await Task.Delay(Interval);
+                    if (tokenSource.IsCancellationRequested)
+                    {
+                        break;
+                    }
+
+                    await Task.Delay(Interval, tokenSource.Token);
                 }
             }
             finally
