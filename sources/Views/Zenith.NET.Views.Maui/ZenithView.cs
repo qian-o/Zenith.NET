@@ -61,14 +61,14 @@ public partial class ZenithView : View, IZenithView
 {
     public static readonly BindableProperty GraphicsContextProperty = BindableProperty.Create(nameof(GraphicsContext), typeof(GraphicsContext), typeof(ZenithView));
 
-    private readonly ViewDispatcher dispatcher;
+    private readonly FrameScheduler scheduler;
 
     public ZenithView()
     {
-        dispatcher = new(this);
+        scheduler = new(this);
 
-        Loaded += async (_, _) => await dispatcher.StartAsync();
-        Unloaded += async (_, _) => await dispatcher.StopAsync();
+        Loaded += async (_, _) => await scheduler.StartAsync();
+        Unloaded += async (_, _) => await scheduler.StopAsync();
     }
 
     public static Output Output => MauiZenithView.Output;
@@ -85,12 +85,12 @@ public partial class ZenithView : View, IZenithView
 
     internal void OnUpdateRequested()
     {
-        UpdateRequested?.Invoke(this, new(dispatcher.UpdateSeconds, dispatcher.TotalSeconds));
+        UpdateRequested?.Invoke(this, new(scheduler.UpdateSeconds, scheduler.TotalSeconds));
     }
 
     internal void OnRenderRequested(FrameBuffer frameBuffer)
     {
-        RenderRequested?.Invoke(this, new(dispatcher.RenderSeconds, dispatcher.TotalSeconds, frameBuffer));
+        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, frameBuffer));
     }
 
     void IZenithView.UI(Action action)

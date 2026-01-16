@@ -3,7 +3,7 @@ using SystemBuffer = System.Buffer;
 
 namespace Zenith.NET.Views;
 
-public class ViewDispatcher(IZenithView view)
+public class FrameScheduler(IZenithView view)
 {
     private static readonly double PresentInterval;
 
@@ -14,7 +14,7 @@ public class ViewDispatcher(IZenithView view)
     private CancellationTokenSource? cancellationTokenSource;
     private Thread? thread;
 
-    static ViewDispatcher()
+    static FrameScheduler()
     {
         const double minInterval = 1.0 / 120.0;
         const double maxInterval = 1.0 / 30.0;
@@ -80,7 +80,7 @@ public class ViewDispatcher(IZenithView view)
         cancellationTokenSource = new();
         thread = new(Dispatcher)
         {
-            Name = "View Dispatcher",
+            Name = "Frame Scheduler",
             IsBackground = true,
             Priority = ThreadPriority.AboveNormal
         };

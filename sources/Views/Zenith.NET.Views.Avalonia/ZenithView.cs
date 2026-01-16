@@ -11,16 +11,16 @@ public class ZenithView : TemplatedControl, IZenithView
 {
     public static readonly StyledProperty<GraphicsContext?> GraphicsContextProperty = AvaloniaProperty.Register<ZenithView, GraphicsContext?>(nameof(GraphicsContext));
 
-    private readonly ViewDispatcher dispatcher;
+    private readonly FrameScheduler scheduler;
 
     private Surface? surface;
 
     public ZenithView()
     {
-        dispatcher = new(this);
+        scheduler = new(this);
 
-        Loaded += async (_, _) => await dispatcher.StartAsync();
-        Unloaded += async (_, _) => await dispatcher.StopAsync();
+        Loaded += async (_, _) => await scheduler.StartAsync();
+        Unloaded += async (_, _) => await scheduler.StopAsync();
     }
 
     public static Output Output { get; } = new()
@@ -55,7 +55,7 @@ public class ZenithView : TemplatedControl, IZenithView
                 EndPoint = new(1.0, 1.0, RelativeUnit.Relative),
                 SpreadMethod = GradientSpreadMethod.Reflect,
                 GradientStops = [new(Color.FromRgb(0x51, 0x2B, 0xD4), 0.0), new(Color.FromRgb(0x8A, 0x58, 0xFF), 0.45), new(Color.FromRgb(0x00, 0xA4, 0xEF), 1.0)],
-                Transform = new TranslateTransform(dispatcher.TotalSeconds * 0.06 % 1.0, dispatcher.TotalSeconds * 0.06 % 1.0)
+                Transform = new TranslateTransform(scheduler.TotalSeconds * 0.06 % 1.0, scheduler.TotalSeconds * 0.06 % 1.0)
             };
 
             context.DrawRectangle(brush, null, new(0.0, 0.0, Bounds.Width, Bounds.Height));
@@ -116,8 +116,8 @@ public class ZenithView : TemplatedControl, IZenithView
             return;
         }
 
-        UpdateRequested?.Invoke(this, new(dispatcher.UpdateSeconds, dispatcher.TotalSeconds));
-        RenderRequested?.Invoke(this, new(dispatcher.RenderSeconds, dispatcher.TotalSeconds, surface.FrameBuffer));
+        UpdateRequested?.Invoke(this, new(scheduler.UpdateSeconds, scheduler.TotalSeconds));
+        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, surface.FrameBuffer));
     }
 
     void IZenithView.Present()

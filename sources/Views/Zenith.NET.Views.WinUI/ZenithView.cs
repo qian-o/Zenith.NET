@@ -10,14 +10,14 @@ public partial class ZenithView : SwapChainPanel, IZenithView
                                                                                                     typeof(ZenithView),
                                                                                                     new(null));
 
-    private readonly ViewDispatcher dispatcher;
+    private readonly FrameScheduler scheduler;
 
     public ZenithView()
     {
-        dispatcher = new(this);
+        scheduler = new(this);
 
-        Loaded += async (_, _) => await dispatcher.StartAsync();
-        Unloaded += async (_, _) => await dispatcher.StopAsync();
+        Loaded += async (_, _) => await scheduler.StartAsync();
+        Unloaded += async (_, _) => await scheduler.StopAsync();
     }
 
     public static Output Output { get; } = new()

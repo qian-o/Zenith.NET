@@ -6,7 +6,7 @@ namespace Zenith.NET.Views.WinForms;
 
 public class ZenithView : Control, IZenithView
 {
-    private readonly ViewDispatcher dispatcher;
+    private readonly FrameScheduler scheduler;
 
     private SwapChain? swapChain;
 
@@ -14,10 +14,10 @@ public class ZenithView : Control, IZenithView
     {
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw | ControlStyles.Opaque | ControlStyles.UserPaint, true);
 
-        dispatcher = new(this);
+        scheduler = new(this);
 
-        HandleCreated += async (_, _) => await dispatcher.StartAsync();
-        HandleDestroyed += async (_, _) => await dispatcher.StopAsync();
+        HandleCreated += async (_, _) => await scheduler.StartAsync();
+        HandleDestroyed += async (_, _) => await scheduler.StopAsync();
     }
 
     public static Output Output { get; } = new()
@@ -42,7 +42,7 @@ public class ZenithView : Control, IZenithView
             e.Graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
             e.Graphics.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
 
-            float t = (float)(dispatcher.TotalSeconds * 0.06 % 1.0);
+            float t = (float)(scheduler.TotalSeconds * 0.06 % 1.0);
 
             using LinearGradientBrush brush = new(ClientRectangle, Color.Black, Color.Black, 45.0f, true)
             {
@@ -112,8 +112,8 @@ public class ZenithView : Control, IZenithView
             return;
         }
 
-        UpdateRequested?.Invoke(this, new(dispatcher.UpdateSeconds, dispatcher.TotalSeconds));
-        RenderRequested?.Invoke(this, new(dispatcher.RenderSeconds, dispatcher.TotalSeconds, swapChain.FrameBuffer));
+        UpdateRequested?.Invoke(this, new(scheduler.UpdateSeconds, scheduler.TotalSeconds));
+        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, swapChain.FrameBuffer));
     }
 
     void IZenithView.Present()
