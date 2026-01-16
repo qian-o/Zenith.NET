@@ -12,7 +12,7 @@ public class ViewDispatcher(IZenithView view)
     private readonly Stopwatch lifetimeStopwatch = new();
 
     private CancellationTokenSource? cancellationTokenSource;
-    private Task? task;
+    private Thread? thread;
 
     static ViewDispatcher()
     {
@@ -78,67 +78,77 @@ public class ViewDispatcher(IZenithView view)
         lifetimeStopwatch.Start();
 
         cancellationTokenSource = new();
-        task = Task.Run(() =>
+
+        thread = new Thread(Dispatcher)
         {
-            GraphicsContext? graphicsContext = null;
+            Name = "View Dispatcher",
+            IsBackground = true,
+            Priority = ThreadPriority.AboveNormal
+        };
 
-            void SyncResources()
-            {
-                if (graphicsContext != view.GraphicsContext)
-                {
-                    view.ReleaseResources();
-
-                    graphicsContext = view.GraphicsContext;
-                }
-
-                view.EnsureResources();
-            }
-
-            try
-            {
-                double lastPresentTime = 0;
-
-                while (!cancellationTokenSource.IsCancellationRequested)
-                {
-                    view.UI(SyncResources);
-
-                    if (cancellationTokenSource.IsCancellationRequested)
-                    {
-                        break;
-                    }
-
-                    view.Tick();
-
-                    double currentTime = lifetimeStopwatch.Elapsed.TotalSeconds;
-
-                    if (currentTime - lastPresentTime >= PresentInterval)
-                    {
-                        view.UI(view.Present);
-
-                        lastPresentTime = currentTime;
-                    }
-                }
-            }
-            finally
-            {
-                view.UI(view.ReleaseResources);
-            }
-        });
+        thread.Start();
     }
 
     public async Task StopAsync()
     {
         cancellationTokenSource?.Cancel();
 
-        await (task ?? Task.CompletedTask);
+        await Task.Run(() => thread?.Join());
 
         updateStopwatch.Reset();
         renderStopwatch.Reset();
         lifetimeStopwatch.Reset();
 
-        task = null;
+        thread = null;
 
         cancellationTokenSource?.Dispose();
         cancellationTokenSource = null;
+    }
+
+    private void Dispatcher()
+    {
+        GraphicsContext? graphicsContext = null;
+
+        void SyncResources()
+        {
+            if (graphicsContext != view.GraphicsContext)
+            {
+                view.ReleaseResources();
+
+                graphicsContext = view.GraphicsContext;
+            }
+
+            view.EnsureResources();
+        }
+
+        try
+        {
+            double lastPresentTime = 0;
+
+            while (!cancellationTokenSource!.IsCancellationRequested)
+            {
+                view.UI(SyncResources);
+
+                if (cancellationTokenSource.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                view.Tick();
+
+                double currentTime = lifetimeStopwatch.Elapsed.TotalSeconds;
+
+                if (currentTime - lastPresentTime >= PresentInterval)
+                {
+                    view.UI(view.Present);
+
+                    lastPresentTime = currentTime;
+                }
+            }
+        }
+        finally
+        {
+            view.UI(view.ReleaseResources);
+        }
     }
 }
