@@ -11,8 +11,8 @@ public class FrameScheduler(IZenithView view)
     private readonly Stopwatch renderStopwatch = new();
     private readonly Stopwatch lifetimeStopwatch = new();
 
-    private CancellationTokenSource? cancellationTokenSource;
-    private Thread? thread;
+    private Task? task;
+    private CancellationTokenSource? tokenSource;
 
     static FrameScheduler()
     {
@@ -77,34 +77,27 @@ public class FrameScheduler(IZenithView view)
         renderStopwatch.Start();
         lifetimeStopwatch.Start();
 
-        cancellationTokenSource = new();
-        thread = new(Run)
-        {
-            Name = "Frame Scheduler",
-            IsBackground = true,
-            Priority = ThreadPriority.AboveNormal
-        };
-
-        thread.Start(cancellationTokenSource.Token);
+        task = Task.Factory.StartNew(Scheduler, (tokenSource = new()).Token, TaskCreationOptions.LongRunning);
     }
 
     public async Task StopAsync()
     {
-        cancellationTokenSource?.Cancel();
+        tokenSource?.Cancel();
 
-        await Task.Run(() => thread?.Join());
+        await (task ?? Task.CompletedTask);
 
         updateStopwatch.Reset();
         renderStopwatch.Reset();
         lifetimeStopwatch.Reset();
 
-        thread = null;
+        tokenSource?.Dispose();
+        tokenSource = null;
 
-        cancellationTokenSource?.Dispose();
-        cancellationTokenSource = null;
+        task?.Dispose();
+        task = null;
     }
 
-    private void Run(object? obj)
+    private void Scheduler(object? state)
     {
         GraphicsContext? graphicsContext = null;
 
@@ -122,7 +115,7 @@ public class FrameScheduler(IZenithView view)
 
         try
         {
-            CancellationToken token = (CancellationToken)obj!;
+            CancellationToken token = (CancellationToken)state!;
 
             double lastPresentTime = 0;
 
