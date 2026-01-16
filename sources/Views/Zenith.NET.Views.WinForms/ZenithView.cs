@@ -12,8 +12,6 @@ public class ZenithView : Control, IZenithView
 
     public ZenithView()
     {
-        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw | ControlStyles.Opaque | ControlStyles.UserPaint, true);
-
         scheduler = new(this);
 
         HandleCreated += async (_, _) => await scheduler.StartAsync();
@@ -72,11 +70,6 @@ public class ZenithView : Control, IZenithView
 
     void IZenithView.UI(Action action)
     {
-        if (DesignMode)
-        {
-            return;
-        }
-
         Invoke(action);
     }
 
