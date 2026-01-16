@@ -5,14 +5,14 @@ namespace Zenith.NET.Views;
 
 public class FrameScheduler(IZenithView view)
 {
-    private static readonly double PresentInterval;
+    private static readonly TimeSpan Interval;
 
     private readonly Stopwatch updateStopwatch = new();
     private readonly Stopwatch renderStopwatch = new();
     private readonly Stopwatch lifetimeStopwatch = new();
 
-    private Task? task;
     private CancellationTokenSource? tokenSource;
+    private Task? task;
 
     static FrameScheduler()
     {
@@ -40,7 +40,7 @@ public class FrameScheduler(IZenithView view)
 
         double performanceScore = Math.Clamp(memoryThroughputMBps / 5000.0, 0, 1);
 
-        PresentInterval = double.Lerp(maxInterval, minInterval, performanceScore);
+        Interval = TimeSpan.FromSeconds(double.Lerp(maxInterval, minInterval, performanceScore));
     }
 
     public double UpdateSeconds
@@ -77,7 +77,41 @@ public class FrameScheduler(IZenithView view)
         renderStopwatch.Start();
         lifetimeStopwatch.Start();
 
-        task = Task.Factory.StartNew(Scheduler, (tokenSource = new()).Token, TaskCreationOptions.LongRunning);
+        tokenSource = new();
+        task = new(async () =>
+        {
+            GraphicsContext? graphicsContext = null;
+
+            void Frame()
+            {
+                if (graphicsContext != view.GraphicsContext)
+                {
+                    view.ReleaseResources();
+
+                    graphicsContext = view.GraphicsContext;
+                }
+
+                view.EnsureResources();
+
+                view.Tick();
+
+                view.Present();
+            }
+
+            try
+            {
+                while (!tokenSource.IsCancellationRequested)
+                {
+                    view.UI(Frame);
+
+                    await Task.Delay(Interval);
+                }
+            }
+            finally
+            {
+                view.UI(view.ReleaseResources);
+            }
+        });
     }
 
     public async Task StopAsync()
@@ -90,59 +124,10 @@ public class FrameScheduler(IZenithView view)
         renderStopwatch.Reset();
         lifetimeStopwatch.Reset();
 
-        tokenSource?.Dispose();
-        tokenSource = null;
-
         task?.Dispose();
         task = null;
-    }
 
-    private void Scheduler(object? state)
-    {
-        GraphicsContext? graphicsContext = null;
-
-        void SyncResources()
-        {
-            if (graphicsContext != view.GraphicsContext)
-            {
-                view.ReleaseResources();
-
-                graphicsContext = view.GraphicsContext;
-            }
-
-            view.EnsureResources();
-        }
-
-        try
-        {
-            CancellationToken token = (CancellationToken)state!;
-
-            double lastPresentTime = 0;
-
-            while (!token.IsCancellationRequested)
-            {
-                view.UI(SyncResources);
-
-                if (token.IsCancellationRequested)
-                {
-                    break;
-                }
-
-                view.Tick();
-
-                double currentTime = lifetimeStopwatch.Elapsed.TotalSeconds;
-
-                if (currentTime - lastPresentTime >= PresentInterval)
-                {
-                    view.UI(view.Present);
-
-                    lastPresentTime = currentTime;
-                }
-            }
-        }
-        finally
-        {
-            view.UI(view.ReleaseResources);
-        }
+        tokenSource?.Dispose();
+        tokenSource = null;
     }
 }
