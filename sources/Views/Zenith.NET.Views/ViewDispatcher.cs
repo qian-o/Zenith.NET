@@ -78,15 +78,14 @@ public class ViewDispatcher(IZenithView view)
         lifetimeStopwatch.Start();
 
         cancellationTokenSource = new();
-
-        thread = new Thread(Dispatcher)
+        thread = new(Dispatcher)
         {
             Name = "View Dispatcher",
             IsBackground = true,
             Priority = ThreadPriority.AboveNormal
         };
 
-        thread.Start();
+        thread.Start(cancellationTokenSource.Token);
     }
 
     public async Task StopAsync()
@@ -105,7 +104,7 @@ public class ViewDispatcher(IZenithView view)
         cancellationTokenSource = null;
     }
 
-    private void Dispatcher()
+    private void Dispatcher(object? obj)
     {
         GraphicsContext? graphicsContext = null;
 
@@ -123,13 +122,15 @@ public class ViewDispatcher(IZenithView view)
 
         try
         {
+            CancellationToken token = (CancellationToken)obj!;
+
             double lastPresentTime = 0;
 
-            while (!cancellationTokenSource!.IsCancellationRequested)
+            while (!token.IsCancellationRequested)
             {
                 view.UI(SyncResources);
 
-                if (cancellationTokenSource.IsCancellationRequested)
+                if (token.IsCancellationRequested)
                 {
                     break;
                 }
