@@ -78,7 +78,7 @@ public class FrameScheduler(IZenithView view)
         lifetimeStopwatch.Start();
 
         cancellationTokenSource = new();
-        thread = new(Dispatcher)
+        thread = new(Run)
         {
             Name = "Frame Scheduler",
             IsBackground = true,
@@ -104,7 +104,7 @@ public class FrameScheduler(IZenithView view)
         cancellationTokenSource = null;
     }
 
-    private void Dispatcher(object? obj)
+    private void Run(object? obj)
     {
         GraphicsContext? graphicsContext = null;
 
