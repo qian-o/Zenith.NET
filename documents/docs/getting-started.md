@@ -19,13 +19,10 @@ cd HelloTriangle
 ## Install Packages
 
 ```bash
-# Core library
-dotnet add package Zenith.NET
-
 # Backend (choose one based on your platform)
 dotnet add package Zenith.NET.DirectX12  # Windows
-dotnet add package Zenith.NET.Vulkan     # Windows, Linux, Android
 dotnet add package Zenith.NET.Metal      # macOS, iOS
+dotnet add package Zenith.NET.Vulkan     # Windows, Linux, Android
 
 # Shader compiler
 dotnet add package Zenith.NET.Extensions.Slang
@@ -48,7 +45,7 @@ HelloTriangle/
 
 Create `Shaders/Triangle.slang`:
 
-```hlsl
+```slang
 struct VSInput
 {
     float3 Position : POSITION;
