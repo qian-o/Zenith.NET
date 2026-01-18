@@ -2,7 +2,7 @@
 
 This guide will help you create a simple Hello Triangle application using Zenith.NET with Silk.NET windowing.
 
-> **Note**: You can also use other supported UI frameworks (WPF, WinForms, WinUI, MAUI, Avalonia) or any window library that can provide a native window handle. However, we recommend using Silk.NET for its simplicity and cross-platform support.
+> **Note**: You can also use other supported UI frameworks (Avalonia, MAUI, WinForms, WinUI, WPF) or any window library that can provide a native window handle. However, we recommend using Silk.NET for its simplicity and cross-platform support.
 
 ## Prerequisites
 
