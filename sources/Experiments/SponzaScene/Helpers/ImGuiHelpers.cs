@@ -72,6 +72,7 @@ internal static class ImGuiHelpers
 
     private static void Image(ImTextureRef imTextureRef, Vector2 size)
     {
+        Background(ImGui.GetCursorScreenPos(), size, 0xFF000000);
         ImGui.Image(imTextureRef, size);
 
         if (ImGui.IsItemHovered() && ImGui.BeginTooltip())
@@ -80,9 +81,15 @@ internal static class ImGuiHelpers
 
             size *= MathF.Min(displaySize.X / size.X, displaySize.Y / size.Y);
 
+            Background(ImGui.GetCursorScreenPos(), size, 0xFF000000);
             ImGui.Image(imTextureRef, size);
 
             ImGui.EndTooltip();
         }
+    }
+
+    private static void Background(Vector2 position, Vector2 size, uint color)
+    {
+        ImGui.GetWindowDrawList().AddRectFilled(position, position + size, color);
     }
 }
