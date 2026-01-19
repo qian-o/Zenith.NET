@@ -83,18 +83,18 @@ internal unsafe partial class D3DTexture : DisposableObject
 
     public void Present()
     {
-        AcquireSync();
-
         D3D.Success(SwapChain.GetBuffer(0, out ComPtr<ID3D11Texture2D> backBuffer));
+
+        AcquireSync();
 
         D3D.DeviceContext.CopyResource((ID3D11Resource*)backBuffer.Handle, (ID3D11Resource*)Texture.Handle);
         D3D.DeviceContext.Flush();
 
-        D3D.Success(SwapChain.Present(1, 0));
+        ReleaseSync();
 
         backBuffer.Dispose();
 
-        ReleaseSync();
+        D3D.Success(SwapChain.Present(1, 0));
     }
 
     protected override void Destroy()
