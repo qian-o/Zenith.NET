@@ -80,22 +80,31 @@ public class FrameScheduler(IZenithView view)
         tokenSource = new();
         task = Task.Run(async () =>
         {
+            using ManualResetEventSlim @event = new(false);
+
             GraphicsContext? graphicsContext = null;
 
             void Frame()
             {
-                if (graphicsContext != view.GraphicsContext)
+                try
                 {
-                    view.ReleaseResources();
+                    if (graphicsContext != view.GraphicsContext)
+                    {
+                        view.ReleaseResources();
 
-                    graphicsContext = view.GraphicsContext;
+                        graphicsContext = view.GraphicsContext;
+                    }
+
+                    view.EnsureResources();
+
+                    view.Tick();
+
+                    view.Present();
                 }
-
-                view.EnsureResources();
-
-                view.Tick();
-
-                view.Present();
+                finally
+                {
+                    @event.Set();
+                }
             }
 
             while (!tokenSource.IsCancellationRequested)
@@ -104,6 +113,9 @@ public class FrameScheduler(IZenithView view)
                 {
                     view.UI(Frame);
 
+                    @event.Wait(tokenSource.Token);
+                    @event.Reset();
+
                     if (tokenSource.IsCancellationRequested)
                     {
                         break;
@@ -111,7 +123,7 @@ public class FrameScheduler(IZenithView view)
 
                     await Task.Delay(Interval, tokenSource.Token);
                 }
-                catch (TaskCanceledException)
+                catch (OperationCanceledException)
                 {
                     break;
                 }

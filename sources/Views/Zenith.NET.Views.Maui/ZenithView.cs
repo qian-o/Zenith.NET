@@ -95,31 +95,7 @@ public partial class ZenithView : View, IZenithView
 
     void IZenithView.UI(Action action)
     {
-        if (Dispatcher.IsDispatchRequired)
-        {
-            bool isCompleted = false;
-
-            Dispatcher.Dispatch(() =>
-            {
-                try
-                {
-                    action();
-                }
-                finally
-                {
-                    isCompleted = true;
-                }
-            });
-
-            while (!isCompleted)
-            {
-                Thread.Yield();
-            }
-        }
-        else
-        {
-            action();
-        }
+        MainThread.BeginInvokeOnMainThread(action);
     }
 
     void IZenithView.EnsureResources()

@@ -39,30 +39,6 @@ public partial class ZenithView : SwapChainPanel, IZenithView
 
     void IZenithView.UI(Action action)
     {
-        if (DispatcherQueue.HasThreadAccess)
-        {
-            action();
-        }
-        else
-        {
-            bool isCompleted = false;
-
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                try
-                {
-                    action();
-                }
-                finally
-                {
-                    isCompleted = true;
-                }
-            });
-
-            while (!isCompleted)
-            {
-                Thread.Yield();
-            }
-        }
+        DispatcherQueue.TryEnqueue(action.Invoke);
     }
 }
