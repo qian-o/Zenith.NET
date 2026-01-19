@@ -5,7 +5,7 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXFence : GraphicsResource
 {
-    private readonly EventWaitHandle eventWaitHandle = new(false, EventResetMode.ManualReset);
+    private readonly ManualResetEvent @event = new(false);
 
     public ComPtr<ID3D12Fence> Fence;
 
@@ -24,10 +24,10 @@ internal unsafe class DXFence : GraphicsResource
 
         if (Fence.GetCompletedValue() < currentFenceValue)
         {
-            Fence.SetEventOnCompletion(currentFenceValue, (void*)eventWaitHandle.SafeWaitHandle.DangerousGetHandle()).Success();
+            Fence.SetEventOnCompletion(currentFenceValue, (void*)@event.SafeWaitHandle.DangerousGetHandle()).Success();
 
-            eventWaitHandle.WaitOne();
-            eventWaitHandle.Reset();
+            @event.WaitOne();
+            @event.Reset();
         }
     }
 
@@ -39,6 +39,6 @@ internal unsafe class DXFence : GraphicsResource
     {
         Fence.Dispose();
 
-        eventWaitHandle.Dispose();
+        @event.Dispose();
     }
 }

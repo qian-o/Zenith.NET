@@ -7,36 +7,26 @@ using System.Windows.Media;
 
 namespace Zenith.NET.Views.WPF;
 
-public class ZenithView : Control
+public class ZenithView : Control, IZenithView
 {
     public static readonly DependencyProperty GraphicsContextProperty = DependencyProperty.Register(nameof(GraphicsContext),
                                                                                                     typeof(GraphicsContext),
                                                                                                     typeof(ZenithView),
-                                                                                                    new(null, (d, _) => ((ZenithView)d).Destroy()));
+                                                                                                    new(null));
 
-    private readonly ViewTimer timer = new();
-    private readonly D3DImage image = new();
+    private readonly D3DImage image;
+    private readonly FrameScheduler scheduler;
 
     private D3DTexture? texture;
     private SwapChain? swapChain;
 
     public ZenithView()
     {
-        Loaded += (_, _) =>
-        {
-            timer.Start();
+        image = new();
+        scheduler = new(this);
 
-            CompositionTarget.Rendering += OnRendering;
-        };
-
-        Unloaded += (_, _) =>
-        {
-            CompositionTarget.Rendering -= OnRendering;
-
-            timer.Stop();
-
-            Destroy();
-        };
+        Loaded += async (_, _) => await scheduler.StartAsync();
+        Unloaded += async (_, _) => await scheduler.StopAsync();
     }
 
     public static Output Output { get; } = new()
@@ -58,7 +48,12 @@ public class ZenithView : Control
 
     protected override void OnRender(DrawingContext drawingContext)
     {
-        if (DesignerProperties.GetIsInDesignMode(this) || GraphicsContext is null)
+        if (image.IsFrontBufferAvailable)
+        {
+            drawingContext.DrawImage(image, new(0, 0, ActualWidth, ActualHeight));
+        }
+
+        if (DesignerProperties.GetIsInDesignMode(this))
         {
             LinearGradientBrush brush = new()
             {
@@ -66,17 +61,16 @@ public class ZenithView : Control
                 EndPoint = new(1.0, 1.0),
                 GradientStops = [new(Color.FromRgb(0x51, 0x2B, 0xD4), 0.0), new(Color.FromRgb(0x8A, 0x58, 0xFF), 0.45), new(Color.FromRgb(0x00, 0xA4, 0xEF), 1.0)],
                 SpreadMethod = GradientSpreadMethod.Reflect,
-                RelativeTransform = new TranslateTransform(timer.TotalSeconds * 0.06 % 1.0, timer.TotalSeconds * 0.06 % 1.0)
+                RelativeTransform = new TranslateTransform(scheduler.TotalSeconds * 0.06 % 1.0, scheduler.TotalSeconds * 0.06 % 1.0)
             };
 
             drawingContext.DrawRectangle(brush, null, new(0, 0, ActualWidth, ActualHeight));
 
-            string text = DesignerProperties.GetIsInDesignMode(this) ? "ZenithView (Design Mode)" : "ZenithView (No GraphicsContext)";
             Typeface typeface = FontFamily.GetTypefaces().FirstOrDefault() ?? new(FontFamily, FontStyle, FontWeight, FontStretch);
             double fontSize = Math.Clamp(ActualHeight / 15.0, 14.0, 48.0);
             double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
 
-            FormattedText shadowText = new(text,
+            FormattedText shadowText = new("ZenithView",
                                            CultureInfo.CurrentCulture,
                                            FlowDirection.LeftToRight,
                                            typeface,
@@ -84,7 +78,7 @@ public class ZenithView : Control
                                            new SolidColorBrush(Color.FromArgb(0x66, 0, 0, 0)),
                                            dpi);
 
-            FormattedText mainText = new(text,
+            FormattedText mainText = new("ZenithView",
                                          CultureInfo.CurrentCulture,
                                          FlowDirection.LeftToRight,
                                          typeface,
@@ -98,52 +92,62 @@ public class ZenithView : Control
             drawingContext.DrawText(shadowText, new(x + 1.0, y + 1.0));
             drawingContext.DrawText(mainText, new(x, y));
         }
-        else
+    }
+
+    void IZenithView.UI(Action action)
+    {
+        Dispatcher.Invoke(action);
+    }
+
+    void IZenithView.EnsureResources()
+    {
+        if (GraphicsContext is null)
         {
-            uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
-            uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
+            return;
+        }
 
-            if (texture is null || texture.Width != width || texture.Height != height || swapChain is null)
+        uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
+        uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
+
+        if (texture is null || texture.Width != width || texture.Height != height || swapChain is null)
+        {
+            ((IZenithView)this).ReleaseResources();
+
+            texture = new(width, height, image);
+
+            swapChain = GraphicsContext.CreateSwapChain(new()
             {
-                Destroy();
-
-                texture = new(width, height);
-
-                swapChain = GraphicsContext.CreateSwapChain(new()
-                {
-                    Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
-                    ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
-                    DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
-                });
-
-                image.Lock();
-                image.SetBackBuffer(D3DResourceType.IDirect3DSurface9, texture.Handle);
-                image.Unlock();
-            }
-
-            texture.AcquireForUpdate();
-
-            UpdateRequested?.Invoke(this, new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
-            RenderRequested?.Invoke(this, new(timer.GetAndRestartRender(), timer.TotalSeconds, swapChain.FrameBuffer));
-
-            swapChain.Present();
-
-            texture.PresentAndRelease();
-
-            image.Lock();
-            image.AddDirtyRect(new(0, 0, (int)width, (int)height));
-            image.Unlock();
-
-            drawingContext.DrawImage(image, new(0, 0, ActualWidth, ActualHeight));
+                Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
+                ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
+                DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
+            });
         }
     }
 
-    private void OnRendering(object? sender, EventArgs e)
+    void IZenithView.Tick()
     {
+        if (texture is null || swapChain is null)
+        {
+            return;
+        }
+
+        texture.AcquireSync();
+
+        UpdateRequested?.Invoke(this, new(scheduler.UpdateSeconds, scheduler.TotalSeconds));
+        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, swapChain.FrameBuffer));
+
+        texture.ReleaseSync();
+    }
+
+    void IZenithView.Present()
+    {
+        swapChain?.Present();
+        texture?.Present();
+
         InvalidateVisual();
     }
 
-    private void Destroy()
+    void IZenithView.ReleaseResources()
     {
         swapChain?.Dispose();
         swapChain = null;

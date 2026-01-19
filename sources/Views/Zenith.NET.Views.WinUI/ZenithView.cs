@@ -1,35 +1,23 @@
 ﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 
 namespace Zenith.NET.Views.WinUI;
 
-public partial class ZenithView : SwapChainPanel
+public partial class ZenithView : SwapChainPanel, IZenithView
 {
     public static readonly DependencyProperty GraphicsContextProperty = DependencyProperty.Register(nameof(GraphicsContext),
                                                                                                     typeof(GraphicsContext),
                                                                                                     typeof(ZenithView),
-                                                                                                    new(null, (d, _) => ((ZenithView)d).Destroy()));
+                                                                                                    new(null));
 
-    private readonly ViewTimer timer = new();
+    private readonly FrameScheduler scheduler;
 
     public ZenithView()
     {
-        Loaded += (_, _) =>
-        {
-            timer.Start();
+        scheduler = new(this);
 
-            CompositionTarget.Rendering += OnRendering;
-        };
-
-        Unloaded += (_, _) =>
-        {
-            CompositionTarget.Rendering -= OnRendering;
-
-            timer.Stop();
-
-            Destroy();
-        };
+        Loaded += async (_, _) => await scheduler.StartAsync();
+        Unloaded += async (_, _) => await scheduler.StopAsync();
     }
 
     public static Output Output { get; } = new()
@@ -49,16 +37,8 @@ public partial class ZenithView : SwapChainPanel
 
     public event EventHandler<RenderEventArgs>? RenderRequested;
 
-    private void OnRendering(object? sender, object e)
+    void IZenithView.UI(Action action)
     {
-        DispatcherQueue.TryEnqueue(() =>
-        {
-            if (GraphicsContext is null)
-            {
-                return;
-            }
-
-            OnRender(GraphicsContext);
-        });
+        DispatcherQueue.TryEnqueue(action.Invoke);
     }
 }

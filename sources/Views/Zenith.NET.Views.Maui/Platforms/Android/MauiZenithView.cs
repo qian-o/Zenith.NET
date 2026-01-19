@@ -1,37 +1,15 @@
 ﻿using System.Runtime.InteropServices;
-using Android.Graphics;
 using Android.Views;
 using Java.Interop;
-using static Android.Views.Choreographer;
 
 namespace Zenith.NET.Views.Maui.Platforms.Android;
 
-internal partial class MauiZenithView : SurfaceView, ISurfaceHolderCallback, IFrameCallback
+internal partial class MauiZenithView(ZenithViewHandler handler) : SurfaceView(handler.Context)
 {
     [LibraryImport("android", EntryPoint = "ANativeWindow_fromSurface")]
     private static partial nint ANativeWindowFromSurface(nint env, nint surface);
 
-    private readonly ViewTimer timer = new();
-
     private SwapChain? swapChain;
-
-    public MauiZenithView(ZenithViewHandler handler) : base(handler.Context)
-    {
-        SetWillNotDraw(false);
-
-        Holder?.AddCallback(this);
-
-        ViewAttachedToWindow += (_, _) => timer.Start();
-
-        ViewDetachedFromWindow += (_, _) =>
-        {
-            timer.Stop();
-
-            Destroy();
-        };
-
-        ZenithView = handler.VirtualView;
-    }
 
     public static Output Output { get; } = new()
     {
@@ -40,34 +18,9 @@ internal partial class MauiZenithView : SurfaceView, ISurfaceHolderCallback, IFr
         SampleCount = SampleCount.Count1
     };
 
-    public ZenithView ZenithView { get; }
-
-    public void Destroy()
+    public void EnsureResources()
     {
-        swapChain?.Dispose();
-        swapChain = null;
-    }
-
-    void ISurfaceHolderCallback.SurfaceChanged(ISurfaceHolder holder, Format format, int width, int height)
-    {
-        swapChain?.Resize((uint)width, (uint)height);
-    }
-
-    void ISurfaceHolderCallback.SurfaceCreated(ISurfaceHolder holder)
-    {
-        Instance?.PostFrameCallback(this);
-    }
-
-    void ISurfaceHolderCallback.SurfaceDestroyed(ISurfaceHolder holder)
-    {
-        Destroy();
-
-        Instance?.RemoveFrameCallback(this);
-    }
-
-    void IFrameCallback.DoFrame(long frameTimeNanos)
-    {
-        if (ZenithView.GraphicsContext is null)
+        if (!ValidateSurface() || handler.VirtualView.GraphicsContext is null || Width is 0 || Height is 0)
         {
             return;
         }
@@ -75,18 +28,57 @@ internal partial class MauiZenithView : SurfaceView, ISurfaceHolderCallback, IFr
         uint width = Math.Clamp((uint)Width, 1, uint.MaxValue);
         uint height = Math.Clamp((uint)Height, 1, uint.MaxValue);
 
-        swapChain ??= ZenithView.GraphicsContext.CreateSwapChain(new()
+        if (swapChain is null)
         {
-            Surface = Surface.Android(ANativeWindowFromSurface(JniEnvironment.EnvironmentPointer, Holder?.Surface?.Handle ?? 0), width, height),
-            ColorTargetFormat = PixelFormat.R8G8B8A8UNorm,
-            DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
-        });
+            swapChain = handler.VirtualView.GraphicsContext.CreateSwapChain(new()
+            {
+                Surface = Surface.Android(ANativeWindowFromSurface(JniEnvironment.EnvironmentPointer, Holder!.Surface!.Handle), width, height),
+                ColorTargetFormat = PixelFormat.R8G8B8A8UNorm,
+                DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
+            });
+        }
+        else if (swapChain.Desc.Surface.Width != width || swapChain.Desc.Surface.Height != height)
+        {
+            swapChain.Resize(width, height);
+        }
+    }
 
-        ZenithView.OnUpdateRequested(new(timer.GetAndRestartUpdate(), timer.TotalSeconds));
-        ZenithView.OnRenderRequested(new(timer.GetAndRestartRender(), timer.TotalSeconds, swapChain.FrameBuffer));
+    public void Tick()
+    {
+        if (!ValidateSurface() || swapChain is null)
+        {
+            return;
+        }
 
-        swapChain.Present();
+        handler.VirtualView.OnUpdateRequested();
+        handler.VirtualView.OnRenderRequested(swapChain.FrameBuffer);
+    }
 
-        Instance?.PostFrameCallback(this);
+    public void Present()
+    {
+        if (!ValidateSurface())
+        {
+            return;
+        }
+
+        swapChain?.Present();
+    }
+
+    public void ReleaseResources()
+    {
+        swapChain?.Dispose();
+        swapChain = null;
+    }
+
+    private bool ValidateSurface()
+    {
+        bool isValid = Holder?.Surface?.IsValid ?? false;
+
+        if (!isValid)
+        {
+            ReleaseResources();
+        }
+
+        return isValid;
     }
 }
