@@ -44,7 +44,7 @@
     "template": [
       "default",
       "modern",
-      "template"
+      "templates"
     ],
     "globalMetadata": {
       "_appName": "Zenith.NET",

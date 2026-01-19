@@ -1,0 +1,10 @@
+﻿.navbar-brand {
+  justify-content: center;
+  margin-right: 32px;
+}
+
+#logo {
+  width: auto;
+  max-height: 50px;
+  margin-right: 8px;
+}
