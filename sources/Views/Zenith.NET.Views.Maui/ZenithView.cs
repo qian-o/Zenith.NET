@@ -23,7 +23,7 @@ internal class ZenithViewHandler() : ViewHandler<ZenithView, MauiZenithView>(map
         [nameof(IZenithView.EnsureResources)] = MapEnsureResources,
         [nameof(IZenithView.Tick)] = MapTick,
         [nameof(IZenithView.Present)] = MapPresent,
-        [nameof(IZenithView.ReleaseResources)] = MapReleaseResources,
+        [nameof(IZenithView.ReleaseResources)] = MapReleaseResources
     };
 
     protected override MauiZenithView CreatePlatformView()
