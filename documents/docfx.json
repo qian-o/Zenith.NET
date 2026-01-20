@@ -13,18 +13,11 @@
           ]
         }
       ],
-      "output": "obj/api"
+      "output": "api"
     }
   ],
   "build": {
     "content": [
-      {
-        "files": [
-          "**/*.yml"
-        ],
-        "src": "obj/api",
-        "dest": "api"
-      },
       {
         "files": [
           "api/**/*.{md,yml}",
