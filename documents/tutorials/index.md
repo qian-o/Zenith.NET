@@ -10,6 +10,8 @@ New to Zenith.NET? Start here to set up your environment and render your first t
 |----------|-------------|
 | [Prerequisites](getting-started/prerequisites.md) | Set up your development environment and create the project framework |
 | [Hello Triangle](getting-started/hello-triangle.md) | Create your first renderer class and draw a colored triangle |
+| [Textured Quad](getting-started/textured-quad.md) | Load textures and use samplers with resource binding |
+| [Spinning Cube](getting-started/spinning-cube.md) | Render a 3D cube with index buffers and MVP transforms |
 
 ## Tutorial Structure
 
@@ -27,11 +29,12 @@ By completing the Getting Started tutorials, you will understand:
 
 - How to create a reusable `App` framework with `GraphicsContext` and `SwapChain`
 - How to implement the `IRenderer` interface for modular rendering
-- How to create `Buffer` resources for vertex data
+- How to create `Buffer` resources for vertex and index data
 - How to write and compile shaders using Slang
 - How to configure a `GraphicsPipeline` for rendering
 - How to record and submit drawing commands via `CommandBuffer`
-- How to switch between different renderers using `App.Run<TRenderer>()`
+- How to load textures and bind resources using `ResourceLayout` and `ResourceSet`
+- How to render 3D geometry with MVP transformation matrices
 
 ## Requirements
 
@@ -39,7 +42,7 @@ Before starting, ensure you have:
 
 - .NET 10.0 SDK or later
 - A GPU with DirectX 12, Metal 4, or Vulkan 1.4 support
-- Visual Studio 2026 or another .NET 10 compatible IDE
+- Visual Studio 2026, VS Code, or JetBrains Rider
 
 ### Supported Platforms
 

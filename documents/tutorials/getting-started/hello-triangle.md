@@ -276,9 +276,7 @@ The colors are interpolated across the triangle by the GPU.
 
 ## Next Steps
 
-Congratulations! You've rendered your first triangle with Zenith.NET. The renderer class pattern we used here will be extended in future tutorials to add:
+Congratulations! You've rendered your first triangle with Zenith.NET. In the next tutorials, you'll learn:
 
-- Textures and samplers
-- 3D transformations with matrices
-- Index buffers for complex geometry
-- Uniform buffers for shader parameters
+- [Textured Quad](textured-quad.md) - Load textures, create samplers, and use resource binding
+- [Spinning Cube](spinning-cube.md) - Render 3D geometry with index buffers and MVP matrices

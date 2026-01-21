@@ -6,3 +6,7 @@
       href: getting-started/prerequisites.md
     - name: Hello Triangle
       href: getting-started/hello-triangle.md
+    - name: Textured Quad
+      href: getting-started/textured-quad.md
+    - name: Spinning Cube
+      href: getting-started/spinning-cube.md

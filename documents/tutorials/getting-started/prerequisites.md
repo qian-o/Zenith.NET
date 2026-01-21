@@ -83,13 +83,10 @@ Organize your project with the following directory structure:
 
 ```
 ZenithTutorials/
-├── Program.cs                    # Application entry point
-├── App.cs                        # Application framework
-├── IRenderer.cs                  # Renderer interface
-└── Renderers/                    # All tutorial renderers
-    ├── HelloTriangleRenderer.cs
-    ├── TexturedQuadRenderer.cs   # Future tutorials...
-    └── ...
+├── Program.cs       # Application entry point
+├── App.cs           # Application framework
+├── IRenderer.cs     # Renderer interface
+└── Renderers/       # All tutorial renderers
 ```
 
 ## Renderer Interface
@@ -263,6 +260,9 @@ App.Run<HelloTriangleRenderer>();
 App.Cleanup();
 ```
 
+> [!NOTE]
+> `HelloTriangleRenderer` will be created in the [next tutorial](hello-triangle.md).
+
 This framework provides:
 
 - **Window creation** with Silk.NET (1280×720 default size)
@@ -271,14 +271,6 @@ This framework provides:
 - **Resize handling** for responsive rendering
 - **Generic renderer pattern** using `App.Run<TRenderer>()` for easy tutorial switching
 - **Static access** to `App.Context` and `App.SwapChain` from renderers
-
-To try a different tutorial, simply change the type parameter:
-
-```csharp
-App.Run<HelloTriangleRenderer>();
-// App.Run<TexturedQuadRenderer>();
-// App.Run<TransformRenderer>();
-```
 
 ## Verify Installation
 
