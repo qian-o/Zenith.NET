@@ -26,31 +26,33 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace ZenithTutorials.Renderers;
 
-/// <summary>
-/// Vertex structure with position and color data.
-/// LayoutKind.Sequential ensures memory layout matches GPU expectations.
-/// </summary>
-[StructLayout(LayoutKind.Sequential)]
-internal struct Vertex(Vector3 position, Vector4 color)
-{
-    public Vector3 Position = position;
-
-    public Vector4 Color = color;
-}
-
 internal class HelloTriangleRenderer : IRenderer
 {
+    /// <summary>
+    /// Vertex structure with position and color data.
+    /// LayoutKind.Sequential ensures memory layout matches GPU expectations.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    private struct Vertex(Vector3 position, Vector4 color)
+    {
+        public Vector3 Position = position;
+
+        public Vector4 Color = color;
+    }
+
     // Slang shader source (HLSL-like syntax, compiled at runtime)
     private const string shaderSource = """
         struct VSInput
         {
             float3 Position : POSITION0;
+
             float4 Color    : COLOR0;
         };
 
         struct PSInput
         {
             float4 Position : SV_POSITION;
+
             float4 Color    : COLOR0;
         };
 
@@ -59,6 +61,7 @@ internal class HelloTriangleRenderer : IRenderer
             PSInput output;
             output.Position = float4(input.Position, 1.0);
             output.Color = input.Color;
+
             return output;
         }
 
@@ -184,7 +187,7 @@ dotnet run
 
 ```csharp
 [StructLayout(LayoutKind.Sequential)]
-internal struct Vertex(Vector3 position, Vector4 color)
+private struct Vertex(Vector3 position, Vector4 color)
 {
     public Vector3 Position = position;
 
@@ -192,7 +195,7 @@ internal struct Vertex(Vector3 position, Vector4 color)
 }
 ```
 
-The vertex structure defines the data layout for each vertex using a primary constructor. `LayoutKind.Sequential` ensures the memory layout matches what the GPU expects.
+The `Vertex` struct is defined inside the renderer class as a private nested type. It uses a primary constructor and `LayoutKind.Sequential` ensures the memory layout matches what the GPU expects.
 
 ### Vertex Buffer
 
