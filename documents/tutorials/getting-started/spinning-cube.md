@@ -383,7 +383,7 @@ For closed 3D objects, enable back-face culling to skip rendering triangles faci
 
 ## Result
 
-When you run the application, you should see a colorful cube rotating continuously in the center of the window. The colors interpolate smoothly across each face.
+![spinning-cube](../../images/spinning-cube.png)
 
 ## What You've Learned
 

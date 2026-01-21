@@ -269,13 +269,7 @@ Each frame:
 
 ## Result
 
-When you run the application, you should see a window with a colorful triangle:
-
-- Red vertex at the top
-- Green vertex at the bottom-right
-- Blue vertex at the bottom-left
-
-The colors are interpolated across the triangle by the GPU.
+![hello-triangle](../../images/hello-triangle.png)
 
 ## Next Steps
 

@@ -393,7 +393,7 @@ In Slang, resources are declared as global variables after the struct definition
 
 ## Result
 
-When you run the application, you should see a window with your textured quad displayed in the center. The texture is mapped to the quad using the UV coordinates defined in the vertex data.
+![textured-quad](../../images/textured-quad.png)
 
 ## Next Steps
 
