@@ -161,14 +161,14 @@ internal class TexturedQuadRenderer : IRenderer
             MaxLod = uint.MaxValue
         });
 
-        // Define resource layout (describes what resources the shader expects)
+        // Define resource layout using BindingHelper for cross-platform compatibility
         resourceLayout = App.Context.CreateResourceLayout(new()
         {
-            Bindings =
-            [
-                new() { Type = ResourceType.Texture, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Sampler, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel }
-            ]
+            Bindings = BindingHelper.Bindings
+            (
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+                new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Pixel }
+            )
         });
 
         // Create resource set (binds actual resources to the layout)
@@ -213,13 +213,14 @@ internal class TexturedQuadRenderer : IRenderer
     {
         CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
 
+        // Pass resourceSet to preprocessResourceSets to transition resources to optimal layout
         commandBuffer.BeginRenderPass(App.SwapChain.FrameBuffer, new()
         {
             ColorValues = [new(0.1f, 0.1f, 0.1f, 1.0f)],
             Depth = 1.0f,
             Stencil = 0,
             Flags = ClearFlags.All
-        });
+        }, resourceSet);
 
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetResourceSet(resourceSet, 0);  // Bind resource set at slot 0
@@ -331,14 +332,14 @@ Samplers control how textures are read:
 ### Resource Binding
 
 ```csharp
-// 1. Define the layout (what the shader expects)
+// 1. Define the layout using BindingHelper for cross-platform compatibility
 resourceLayout = App.Context.CreateResourceLayout(new()
 {
-    Bindings =
-    [
-        new() { Type = ResourceType.Texture, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-        new() { Type = ResourceType.Sampler, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel }
-    ]
+    Bindings = BindingHelper.Bindings
+    (
+        new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+        new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Pixel }
+    )
 });
 
 // 2. Create the set (bind actual resources)
@@ -357,6 +358,24 @@ This three-step process connects your GPU resources to shader variables:
 1. **ResourceLayout** - Describes the structure (types and binding slots)
 2. **ResourceSet** - Binds actual resources to the layout
 3. **SetResourceSet** - Activates the binding during rendering
+
+The `BindingHelper.Bindings()` method (defined in [Prerequisites](prerequisites.md)) automatically assigns the correct `Index` values based on the current backend, so you don't need to specify them manually.
+
+### Resource Preprocessing
+
+When beginning a render pass, you can pass resource sets to the `preprocessResourceSets` parameter:
+
+```csharp
+commandBuffer.BeginRenderPass(App.SwapChain.FrameBuffer, new()
+{
+    ColorValues = [new(0.1f, 0.1f, 0.1f, 1.0f)],
+    Depth = 1.0f,
+    Stencil = 0,
+    Flags = ClearFlags.All
+}, resourceSet);  // Preprocess resources
+```
+
+This allows Zenith.NET to optimize the resources in the set for shader access before the render pass begins, eliminating the need for manual resource management.
 
 ### Shader Texture Sampling
 

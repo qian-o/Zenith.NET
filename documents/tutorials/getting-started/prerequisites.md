@@ -83,10 +83,11 @@ Organize your project with the following directory structure:
 
 ```
 ZenithTutorials/
-├── Program.cs       # Application entry point
-├── App.cs           # Application framework
-├── IRenderer.cs     # Renderer interface
-└── Renderers/       # All tutorial renderers
+├── Program.cs         # Application entry point
+├── App.cs             # Application framework
+├── IRenderer.cs       # Renderer interface
+├── BindingHelper.cs   # Cross-platform resource binding helper
+└── Renderers/         # All tutorial renderers
 ```
 
 ## Renderer Interface
@@ -107,6 +108,117 @@ internal interface IRenderer : IDisposable
     void Resize(uint width, uint height);
 }
 ```
+
+## Binding Helper
+
+Different graphics backends use different indexing schemes for resource bindings:
+
+| Backend | Index Scheme |
+|---------|--------------|
+| DirectX 12 | Per-type: CBV, SRV, UAV, Sampler each start at 0 |
+| Vulkan | Global: All resources share index space (0, 1, 2, ...) |
+| Metal | Per-category: Buffer, Texture, Sampler each start at 0 |
+
+Create `BindingHelper.cs` to handle these differences automatically:
+
+```csharp
+using Zenith.NET;
+
+namespace ZenithTutorials;
+
+internal static class BindingHelper
+{
+    public static ResourceBinding[] Bindings(params ResourceBinding[] bindings)
+    {
+        switch (App.Context.Backend)
+        {
+            case Backend.DirectX12:
+                {
+                    uint cbvIndex = 0;
+                    uint srvIndex = 0;
+                    uint uavIndex = 0;
+                    uint samplerIndex = 0;
+
+                    for (int i = 0; i < bindings.Length; i++)
+                    {
+                        ref ResourceBinding binding = ref bindings[i];
+
+                        binding = binding with
+                        {
+                            Index = binding.Type switch
+                            {
+                                ResourceType.ConstantBuffer => cbvIndex++,
+                                ResourceType.StructuredBuffer or
+                                ResourceType.Texture or
+                                ResourceType.AccelerationStructure => srvIndex++,
+                                ResourceType.StructuredBufferReadWrite or
+                                ResourceType.TextureReadWrite => uavIndex++,
+                                ResourceType.Sampler => samplerIndex++,
+                                _ => binding.Index
+                            }
+                        };
+                    }
+                }
+                break;
+
+            case Backend.Vulkan:
+                {
+                    for (int i = 0; i < bindings.Length; i++)
+                    {
+                        ref ResourceBinding binding = ref bindings[i];
+
+                        binding = binding with { Index = (uint)i };
+                    }
+                }
+                break;
+
+            case Backend.Metal:
+                {
+                    uint bufferIndex = 0;
+                    uint textureIndex = 0;
+                    uint samplerIndex = 0;
+
+                    for (int i = 0; i < bindings.Length; i++)
+                    {
+                        ref ResourceBinding binding = ref bindings[i];
+
+                        binding = binding with
+                        {
+                            Index = binding.Type switch
+                            {
+                                ResourceType.ConstantBuffer or
+                                ResourceType.StructuredBuffer or
+                                ResourceType.StructuredBufferReadWrite => bufferIndex++,
+                                ResourceType.Texture or
+                                ResourceType.TextureReadWrite => textureIndex++,
+                                ResourceType.Sampler => samplerIndex++,
+                                _ => binding.Index
+                            }
+                        };
+                    }
+                }
+                break;
+        }
+
+        return bindings;
+    }
+}
+```
+
+Usage example:
+
+```csharp
+resourceLayout = App.Context.CreateResourceLayout(new()
+{
+    Bindings = BindingHelper.Bindings
+    (
+        new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+        new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Pixel }
+    )
+});
+```
+
+The helper automatically assigns the correct `Index` values based on the current backend, so you don't need to specify them manually.
 
 This interface ensures all renderers follow a consistent pattern:
 
