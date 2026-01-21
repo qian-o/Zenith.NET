@@ -4,7 +4,7 @@ In this tutorial, you'll learn how to render a textured quad using Zenith.NET. W
 
 ## Overview
 
-Building on the [Hello Triangle](hello-triangle.md) tutorial, we'll create a `TexturedQuadRenderer` class that:
+We'll create a `TexturedQuadRenderer` class that:
 
 - Uses an index buffer to draw a quad with 4 vertices
 - Loads an image and uploads it to a GPU texture
