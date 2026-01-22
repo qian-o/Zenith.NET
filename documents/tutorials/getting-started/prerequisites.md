@@ -148,12 +148,16 @@ internal static class BindingHelper
                             Index = binding.Type switch
                             {
                                 ResourceType.ConstantBuffer => cbvIndex++,
+
                                 ResourceType.StructuredBuffer or
                                 ResourceType.Texture or
                                 ResourceType.AccelerationStructure => srvIndex++,
+
                                 ResourceType.StructuredBufferReadWrite or
                                 ResourceType.TextureReadWrite => uavIndex++,
+
                                 ResourceType.Sampler => samplerIndex++,
+
                                 _ => binding.Index
                             }
                         };
@@ -189,9 +193,12 @@ internal static class BindingHelper
                                 ResourceType.ConstantBuffer or
                                 ResourceType.StructuredBuffer or
                                 ResourceType.StructuredBufferReadWrite => bufferIndex++,
+
                                 ResourceType.Texture or
                                 ResourceType.TextureReadWrite => textureIndex++,
+
                                 ResourceType.Sampler => samplerIndex++,
+
                                 _ => binding.Index
                             }
                         };
