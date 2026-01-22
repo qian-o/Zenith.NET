@@ -272,6 +272,10 @@ Run the application:
 dotnet run
 ```
 
+## Result
+
+![spinning-cube](../../images/spinning-cube.png)
+
 ## Code Breakdown
 
 ### MVP Constants Structure
@@ -380,10 +384,6 @@ RasterizerState = RasterizerStates.CullBack
 ```
 
 For closed 3D objects, enable back-face culling to skip rendering triangles facing away from the camera, improving performance.
-
-## Result
-
-![spinning-cube](../../images/spinning-cube.png)
 
 ## What You've Learned
 

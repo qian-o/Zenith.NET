@@ -269,6 +269,10 @@ Run the application:
 dotnet run
 ```
 
+## Result
+
+![textured-quad](../../images/textured-quad.png)
+
 ## Code Breakdown
 
 ### Vertex Structure
@@ -390,10 +394,6 @@ float4 PSMain(PSInput input) : SV_TARGET
 ```
 
 In Slang, resources are declared as global variables after the struct definitions, without explicit `register` bindings. The binding order is determined by declaration order and matches the order in `ResourceLayout.Bindings`. The pixel shader samples the texture at the interpolated UV coordinates.
-
-## Result
-
-![textured-quad](../../images/textured-quad.png)
 
 ## Next Steps
 

@@ -181,6 +181,10 @@ Run the application:
 dotnet run
 ```
 
+## Result
+
+![hello-triangle](../../images/hello-triangle.png)
+
 ## Code Breakdown
 
 ### Vertex Structure
@@ -266,10 +270,6 @@ Each frame:
 3. `SetPipeline` / `SetVertexBuffer` / `Draw` - Record draw commands
 4. `EndRenderPass` - Finish the render pass
 5. `Submit` - Submit commands to the GPU
-
-## Result
-
-![hello-triangle](../../images/hello-triangle.png)
 
 ## Next Steps
 
