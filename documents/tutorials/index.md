@@ -17,9 +17,11 @@ New to Zenith.NET? Start here to set up your environment and render your first t
 
 Each tutorial follows a consistent pattern:
 
-1. **Prerequisites** - Sets up the `App` framework class shared by all tutorials
-2. **Renderer Class** - Each tutorial implements a specific renderer using the `IRenderer` interface
-3. **Code Breakdown** - Step-by-step explanation of key concepts
+1. **Overview** - What you'll build and learn
+2. **Renderer Class** - Complete implementation code
+3. **Running the Tutorial** - How to run the example
+4. **Result** - Screenshot of the expected output
+5. **Code Breakdown** - Step-by-step explanation of key concepts
 
 The `App` class provides static access to `GraphicsContext` and `SwapChain`, making renderer code clean and focused on rendering logic.
 

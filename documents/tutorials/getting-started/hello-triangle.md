@@ -164,7 +164,7 @@ internal class HelloTriangleRenderer : IRenderer
 
 ## Running the Tutorial
 
-With the framework from [Prerequisites](prerequisites.md) in place, ensure your `Program.cs` runs the `HelloTriangleRenderer`:
+Update your `Program.cs` to run the `HelloTriangleRenderer`:
 
 ```csharp
 using ZenithTutorials;

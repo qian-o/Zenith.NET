@@ -109,6 +109,13 @@ internal interface IRenderer : IDisposable
 }
 ```
 
+This interface ensures all renderers follow a consistent pattern:
+
+- `Update` - Called each frame for logic updates (animations, input handling)
+- `Render` - Called each frame to record and submit draw commands
+- `Resize` - Called when the window size changes
+- `Dispose` - Cleanup GPU resources
+
 ## Binding Helper
 
 Different graphics backends use different indexing schemes for resource bindings:
@@ -226,13 +233,6 @@ resourceLayout = App.Context.CreateResourceLayout(new()
 ```
 
 The helper automatically assigns the correct `Index` values based on the current backend, so you don't need to specify them manually.
-
-This interface ensures all renderers follow a consistent pattern:
-
-- `Update` - Called each frame for logic updates (animations, input handling)
-- `Render` - Called each frame to record and submit draw commands
-- `Resize` - Called when the window size changes
-- `Dispose` - Cleanup GPU resources
 
 ## Application Framework
 

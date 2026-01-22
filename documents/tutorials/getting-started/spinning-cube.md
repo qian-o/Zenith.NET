@@ -27,6 +27,9 @@ namespace ZenithTutorials.Renderers;
 
 internal class SpinningCubeRenderer : IRenderer
 {
+    /// <summary>
+    /// Vertex structure with position and color data.
+    /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     private struct Vertex(Vector3 position, Vector4 color)
     {
