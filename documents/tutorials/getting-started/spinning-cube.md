@@ -405,4 +405,4 @@ Explore more advanced topics:
 - **Multiple Render Targets** - Deferred rendering techniques
 - **Ray Tracing** - Hardware-accelerated ray tracing (when supported)
 
-Check out the [SponzaScene](https://github.com/qian-o/Zenith.NET/tree/main/sources/Experiments/SponzaScene) sample for a complete deferred renderer with shadows, ambient occlusion, and global illumination.
+Check out the [SponzaScene](https://github.com/qian-o/Zenith.NET/tree/master/sources/Experiments/SponzaScene) sample for a complete deferred renderer with shadows, ambient occlusion, and global illumination.
