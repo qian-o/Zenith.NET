@@ -92,6 +92,9 @@ internal class ComputeShaderRenderer : IRenderer
         }
         """;
 
+    /// <summary>
+    /// Vertex structure with position and texture coordinates.
+    /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     private struct Vertex(Vector3 position, Vector2 texCoord)
     {
@@ -306,7 +309,7 @@ internal class ComputeShaderRenderer : IRenderer
 
 ## Running the Tutorial
 
-Update your `Program.cs`:
+Update your `Program.cs` to run the `ComputeShaderRenderer`:
 
 ```csharp
 using ZenithTutorials;
