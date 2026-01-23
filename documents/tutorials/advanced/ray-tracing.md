@@ -1,6 +1,6 @@
 ﻿# Ray Tracing
 
-In this tutorial, you'll learn how to use hardware-accelerated ray tracing with Zenith.NET. We'll render a scene with a checkered floor and two spheres, demonstrating both triangle and procedural geometry (AABBs) along with shadow rays.
+In this tutorial, you'll learn how to use hardware-accelerated ray tracing with Zenith.NET. We'll render a scene with a checkered floor and two spheres, demonstrating triangle geometry, procedural geometry (AABBs), and hard shadows.
 
 > [!NOTE]
 > This tutorial requires a GPU with ray tracing support. Check `Context.Capabilities.RayTracingSupported` before using ray tracing features.
@@ -12,37 +12,49 @@ We'll create a `RayTracingRenderer` class that:
 - Creates a checkered floor using triangle geometry
 - Creates two spheres using procedural AABBs with a custom intersection shader
 - Builds separate BLAS for floor and spheres, combined in a TLAS
-- Implements shadow rays for realistic shadows
+- Implements shadow rays for hard shadows
 - Creates a ray tracing pipeline with multiple hit groups
 
 ## Key Concepts
 
+### Two Ways to Use Ray Tracing
+
+There are two approaches to use hardware ray tracing:
+
+| Aspect | Ray Tracing Pipeline | Inline Ray Tracing (RayQuery) |
+|--------|----------------------|-------------------------------|
+| **Shader Stages** | RayGen, Miss, ClosestHit, AnyHit, Intersection | Any shader (CS, PS, etc.) |
+| **Setup Complexity** | Requires dedicated pipeline and hit groups | Bind acceleration structure only |
+| **Hit/Miss Logic** | Separated into different shaders | All logic in one shader |
+| **Best For** | Complex materials, multiple ray types | Simple queries, shadows, AO |
+
+This tutorial covers the **Ray Tracing Pipeline** approach. For Inline Ray Tracing, simply bind the acceleration structure to your compute/graphics pipeline and use `RayQuery` in your shader.
+
 ### Acceleration Structures
 
-Ray tracing uses a two-level hierarchy to efficiently find ray-geometry intersections:
+Ray tracing uses a two-level acceleration structure hierarchy:
+
+- **BLAS (Bottom-Level Acceleration Structure)**: Contains the actual geometry data. Each BLAS can store either triangle meshes or axis-aligned bounding boxes (AABBs) for procedural geometry.
+- **TLAS (Top-Level Acceleration Structure)**: Contains instances that reference one or more BLAS with transform matrices. Multiple instances can share the same BLAS with different transforms.
 
 ```
-Bottom-Level AS (BLAS)
-├── BLAS 0: Floor geometry (triangles)
-├── BLAS 1: Sphere geometry (AABBs)
-└── ...
-
-Top-Level AS (TLAS)
-├── Instance 0 → BLAS 0 (floor)
-├── Instance 1 → BLAS 1 (spheres)
+TLAS (scene)
+├── Instance 0 → BLAS 0 (floor, triangles)
+├── Instance 1 → BLAS 1 (spheres, AABBs)
+├── Instance 2 → BLAS 0 (same geometry, different transform)
 └── ...
 ```
 
-- **BLAS (Bottom-Level)**: Contains the actual geometry. Can store triangles or axis-aligned bounding boxes (AABBs) for procedural geometry.
-- **TLAS (Top-Level)**: Contains instances that reference BLAS with a transform matrix. Multiple instances can share the same BLAS.
+> [!IMPORTANT]
+> Acceleration structure transforms only support rotation and scale. Translation is **not supported** - use the geometry's world-space coordinates directly.
 
 ### Ray Tracing Pipeline Stages
 
 | Shader Stage | When Called |
 |--------------|-------------|
-| **Ray Generation** | Entry point - invoked for each pixel |
+| **Ray Generation** | Entry point - invoked for each pixel/thread |
 | **Intersection** | For procedural geometry (AABBs) to compute ray-geometry intersection |
-| **Any Hit** | For each potential intersection - can accept/reject hit |
+| **Any Hit** | For each potential intersection - can accept/reject hit (alpha testing) |
 | **Closest Hit** | Once per ray, for the nearest accepted intersection |
 | **Miss** | When the ray hits nothing |
 
@@ -53,8 +65,8 @@ Hit Groups bundle shaders that work together for a specific geometry type:
 | Shader | Required | Description |
 |--------|----------|-------------|
 | **ClosestHit** | Optional | Called for the closest intersection point |
-| **AnyHit** | Optional | Called for each potential hit (alpha testing) |
-| **Intersection** | Optional | Custom intersection for procedural geometry. Required only for AABBs. |
+| **AnyHit** | Optional | Called for each potential hit (alpha testing, transparency) |
+| **Intersection** | Optional | Custom intersection for procedural geometry. Required only for AABBs, triangles use built-in intersection. |
 
 ## The Renderer Class
 
@@ -92,14 +104,18 @@ internal unsafe class RayTracingRenderer : IRenderer
         struct Sphere
         {
             float3 Center;
+
             float Radius;
+
             float3 Color;
+
             float Padding;
         };
 
         struct Payload
         {
             float3 Color;
+
             float T;
         };
 
@@ -416,10 +432,10 @@ internal unsafe class RayTracingRenderer : IRenderer
         {
             Geometries =
             [
-                new RayTracingGeometry
+                new()
                 {
                     Type = RayTracingGeometryType.Triangles,
-                    Triangles = new RayTracingTriangles
+                    Triangles = new()
                     {
                         VertexBuffer = floorVertexBuffer,
                         VertexFormat = PixelFormat.R32G32B32Float,
@@ -440,10 +456,10 @@ internal unsafe class RayTracingRenderer : IRenderer
         {
             Geometries =
             [
-                new RayTracingGeometry
+                new()
                 {
                     Type = RayTracingGeometryType.AABBs,
-                    AABBs = new RayTracingAABBs
+                    AABBs = new()
                     {
                         Buffer = aabbBuffer,
                         Count = (uint)sphereData.Length,
@@ -459,7 +475,7 @@ internal unsafe class RayTracingRenderer : IRenderer
         {
             Instances =
             [
-                new RayTracingInstance
+                new()
                 {
                     AccelerationStructure = floorBlas,
                     InstanceID = 0,
@@ -468,7 +484,7 @@ internal unsafe class RayTracingRenderer : IRenderer
                     Transform = Matrix4x4.Identity,
                     Flags = RayTracingInstanceFlags.None
                 },
-                new RayTracingInstance
+                new()
                 {
                     AccelerationStructure = sphereBlas,
                     InstanceID = 1,
@@ -510,24 +526,12 @@ internal unsafe class RayTracingRenderer : IRenderer
         });
 
         // Compile ray tracing shaders
-        using Shader rayGenShader = App.Context.LoadShaderFromSource(shaderSource,
-                                                                     "RayGen",
-                                                                     ShaderStageFlags.RayGeneration);
-        using Shader missShader = App.Context.LoadShaderFromSource(shaderSource,
-                                                                   "Miss",
-                                                                   ShaderStageFlags.Miss);
-        using Shader shadowMissShader = App.Context.LoadShaderFromSource(shaderSource,
-                                                                         "ShadowMiss",
-                                                                         ShaderStageFlags.Miss);
-        using Shader floorClosestHitShader = App.Context.LoadShaderFromSource(shaderSource,
-                                                                              "FloorClosestHit",
-                                                                              ShaderStageFlags.ClosestHit);
-        using Shader sphereIntersectionShader = App.Context.LoadShaderFromSource(shaderSource,
-                                                                                 "SphereIntersection",
-                                                                                 ShaderStageFlags.Intersection);
-        using Shader sphereClosestHitShader = App.Context.LoadShaderFromSource(shaderSource,
-                                                                               "SphereClosestHit",
-                                                                               ShaderStageFlags.ClosestHit);
+        using Shader rayGenShader = App.Context.LoadShaderFromSource(shaderSource, "RayGen", ShaderStageFlags.RayGeneration);
+        using Shader missShader = App.Context.LoadShaderFromSource(shaderSource, "Miss", ShaderStageFlags.Miss);
+        using Shader shadowMissShader = App.Context.LoadShaderFromSource(shaderSource, "ShadowMiss", ShaderStageFlags.Miss);
+        using Shader floorClosestHitShader = App.Context.LoadShaderFromSource(shaderSource, "FloorClosestHit", ShaderStageFlags.ClosestHit);
+        using Shader sphereIntersectionShader = App.Context.LoadShaderFromSource(shaderSource, "SphereIntersection", ShaderStageFlags.Intersection);
+        using Shader sphereClosestHitShader = App.Context.LoadShaderFromSource(shaderSource, "SphereClosestHit", ShaderStageFlags.ClosestHit);
 
         // Create ray tracing pipeline
         pipeline = App.Context.CreateRayTracingPipeline(new()
@@ -539,13 +543,13 @@ internal unsafe class RayTracingRenderer : IRenderer
             ClosestHit = [floorClosestHitShader, sphereClosestHitShader],
             HitGroups =
             [
-                new HitGroup
+                new()
                 {
                     Type = HitGroupType.Triangles,
                     Name = "FloorHitGroup",
                     ClosestHit = "FloorClosestHit"
                 },
-                new HitGroup
+                new()
                 {
                     Type = HitGroupType.Procedural,
                     Name = "SphereHitGroup",
@@ -578,12 +582,8 @@ internal unsafe class RayTracingRenderer : IRenderer
             )
         });
 
-        using Shader displayVS = App.Context.LoadShaderFromSource(displayShaderSource,
-                                                                  "VSMain",
-                                                                  ShaderStageFlags.Vertex);
-        using Shader displayPS = App.Context.LoadShaderFromSource(displayShaderSource,
-                                                                  "PSMain",
-                                                                  ShaderStageFlags.Pixel);
+        using Shader displayVS = App.Context.LoadShaderFromSource(displayShaderSource, "VSMain", ShaderStageFlags.Vertex);
+        using Shader displayPS = App.Context.LoadShaderFromSource(displayShaderSource, "PSMain", ShaderStageFlags.Pixel);
 
         InputLayout displayInputLayout = new();
         displayInputLayout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position });
@@ -606,7 +606,13 @@ internal unsafe class RayTracingRenderer : IRenderer
         });
 
         // Create fullscreen quad
-        float[] quadVertices = [-1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, -1, 0, 1, 1, -1, -1, 0, 0, 1];
+        float[] quadVertices =
+        [
+            -1,  1, 0, 0, 0,
+             1,  1, 0, 1, 0,
+             1, -1, 0, 1, 1,
+            -1, -1, 0, 0, 1
+        ];
         uint[] quadIndices = [0, 1, 2, 0, 2, 3];
 
         quadVertexBuffer = App.Context.CreateBuffer(new()
@@ -746,6 +752,17 @@ dotnet run
 
 ## Code Breakdown
 
+### Checking Ray Tracing Support
+
+```csharp
+if (!App.Context.Capabilities.RayTracingSupported)
+{
+    throw new NotSupportedException("Ray tracing is not supported on this device.");
+}
+```
+
+Always check `Capabilities.RayTracingSupported` before using ray tracing features.
+
 ### Acceleration Structure Setup
 
 Build a two-level acceleration structure hierarchy:
@@ -756,15 +773,19 @@ floorBlas = buildCmd.BuildAccelerationStructure(new BottomLevelAccelerationStruc
 {
     Geometries =
     [
-        new RayTracingGeometry
+        new()
         {
             Type = RayTracingGeometryType.Triangles,
-            Triangles = new RayTracingTriangles
+            Triangles = new()
             {
                 VertexBuffer = floorVertexBuffer,
                 VertexFormat = PixelFormat.R32G32B32Float,
                 VertexCount = (uint)floorVertices.Length,
-                ...
+                VertexStrideInBytes = (uint)sizeof(Vector3),
+                IndexBuffer = floorIndexBuffer,
+                IndexFormat = IndexFormat.UInt32,
+                IndexCount = (uint)floorIndices.Length,
+                Transform = Matrix4x4.Identity
             },
             Flags = RayTracingGeometryFlags.Opaque
         }
@@ -777,14 +798,45 @@ sphereBlas = buildCmd.BuildAccelerationStructure(new BottomLevelAccelerationStru
 {
     Geometries =
     [
-        new RayTracingGeometry
+        new()
         {
             Type = RayTracingGeometryType.AABBs,
-            AABBs = new RayTracingAABBs { Buffer = aabbBuffer, Count = 2, ... },
+            AABBs = new()
+            {
+                Buffer = aabbBuffer,
+                Count = (uint)sphereData.Length,
+                StrideInBytes = (uint)(sizeof(Vector3) * 2)
+            },
             Flags = RayTracingGeometryFlags.Opaque
         }
     ],
-    ...
+    Flags = AccelerationStructureBuildFlags.PreferFastTrace
+});
+```
+
+Combine BLAS into a TLAS with `InstanceContributionToHitGroupIndex` to select hit groups:
+
+```csharp
+tlas = buildCmd.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
+{
+    Instances =
+    [
+        new()
+        {
+            AccelerationStructure = floorBlas,
+            InstanceContributionToHitGroupIndex = 0,  // Uses FloorHitGroup
+            Transform = Matrix4x4.Identity,
+            ...
+        },
+        new()
+        {
+            AccelerationStructure = sphereBlas,
+            InstanceContributionToHitGroupIndex = 1,  // Uses SphereHitGroup
+            Transform = Matrix4x4.Identity,
+            ...
+        }
+    ],
+    Flags = AccelerationStructureBuildFlags.PreferFastTrace
 });
 ```
 
@@ -797,15 +849,29 @@ pipeline = App.Context.CreateRayTracingPipeline(new()
 {
     RayGeneration = rayGenShader,
     Miss = [missShader, shadowMissShader],
-    ClosestHit = [floorClosestHitShader, sphereClosestHitShader],
+    AnyHit = [],
     Intersection = [sphereIntersectionShader],
+    ClosestHit = [floorClosestHitShader, sphereClosestHitShader],
     HitGroups =
     [
-        new HitGroup { Type = HitGroupType.Triangles, Name = "FloorHitGroup", ClosestHit = "FloorClosestHit" },
-        new HitGroup { Type = HitGroupType.Procedural, Name = "SphereHitGroup", ClosestHit = "SphereClosestHit", Intersection = "SphereIntersection" }
+        new()
+        {
+            Type = HitGroupType.Triangles,
+            Name = "FloorHitGroup",
+            ClosestHit = "FloorClosestHit"
+        },
+        new()
+        {
+            Type = HitGroupType.Procedural,
+            Name = "SphereHitGroup",
+            ClosestHit = "SphereClosestHit",
+            Intersection = "SphereIntersection"
+        }
     ],
+    ResourceLayouts = [resourceLayout],
     MaxTraceRecursionDepth = 2,
-    ...
+    MaxPayloadSizeInBytes = 16,
+    MaxAttributeSizeInBytes = 16
 });
 ```
 
@@ -814,7 +880,8 @@ pipeline = App.Context.CreateRayTracingPipeline(new()
 | `RayGeneration` | Entry point shader |
 | `Miss` | Array of miss shaders (index 0 for primary rays, index 1 for shadow rays) |
 | `HitGroups` | Bundle shaders for each geometry type |
-| `MaxTraceRecursionDepth` | Maximum ray bounce depth |
+| `MaxTraceRecursionDepth` | Maximum ray bounce depth (set to 2 for shadow rays) |
+| `MaxPayloadSizeInBytes` | Size of data passed between shaders |
 
 ### Custom Intersection Shader
 
@@ -830,7 +897,7 @@ void SphereIntersection()
     float3 direction = ObjectRayDirection();
     float3 oc = origin - sphere.Center;
 
-    // Solve quadratic equation
+    // Solve quadratic equation for ray-sphere intersection
     float a = dot(direction, direction);
     float b = dot(oc, direction);
     float c = dot(oc, oc) - sphere.Radius * sphere.Radius;
@@ -849,13 +916,24 @@ void SphereIntersection()
 }
 ```
 
-### Shadow Rays
+The intersection shader:
+1. Gets the sphere data using `PrimitiveIndex()`
+2. Computes ray-sphere intersection using the quadratic formula
+3. Reports hit with `ReportHit(t, hitKind, attributes)` if intersection is valid
 
-Test visibility to light sources with optimized flags:
+### Hard Shadows
+
+Hard shadows test visibility to a point light source. If any geometry blocks the ray, the point is in shadow:
 
 ```slang
 bool TraceShadowRay(float3 origin, float3 direction)
 {
+    RayDesc shadowRay;
+    shadowRay.Origin = origin;
+    shadowRay.Direction = direction;
+    shadowRay.TMin = 0.001;
+    shadowRay.TMax = 1000.0;
+
     ShadowPayload shadowPayload;
     shadowPayload.InShadow = true;
 
@@ -868,9 +946,12 @@ bool TraceShadowRay(float3 origin, float3 direction)
 ```
 
 Key optimizations:
-- `RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH`: Stop at first hit
-- `RAY_FLAG_SKIP_CLOSEST_HIT_SHADER`: Skip shading for shadow rays
-- Miss shader index `1` selects `ShadowMiss`
+- `RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH`: Stop at first hit (we only need to know if something blocks the light)
+- `RAY_FLAG_SKIP_CLOSEST_HIT_SHADER`: Skip shading for shadow rays (we don't need material information)
+- Miss shader index `1` in `TraceRay` selects `ShadowMiss` instead of the primary `Miss` shader
+
+> [!TIP]
+> For soft shadows, cast multiple shadow rays toward different points on an area light source and average the results.
 
 ### Dispatching Rays
 
@@ -889,6 +970,7 @@ Now that you understand ray tracing with multiple geometry types and shadows, yo
 - Adding reflections with recursive ray tracing
 - Implementing refraction for glass materials
 - Global illumination with path tracing
+- [Mesh Shader](mesh-shader.md) - Another advanced GPU feature for geometry processing
 
 For a complete deferred renderer with ray traced global illumination, check out the [SponzaScene](https://github.com/qian-o/Zenith.NET/tree/master/sources/Experiments/SponzaScene) sample.
 
