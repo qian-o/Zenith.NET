@@ -400,3 +400,8 @@ In Slang, resources are declared as global variables after the struct definition
 Now that you understand texturing and resource binding, the next tutorial covers 3D rendering:
 
 - [Spinning Cube](spinning-cube.md) - Render a 3D cube with index buffers and MVP transformation matrices
+
+## Source Code
+
+> [!TIP]
+> View the complete source code on GitHub: [TexturedQuadRenderer.cs](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/TexturedQuadRenderer.cs)

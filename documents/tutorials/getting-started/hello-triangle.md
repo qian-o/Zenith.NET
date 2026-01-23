@@ -277,3 +277,8 @@ Congratulations! You've rendered your first triangle with Zenith.NET. In the nex
 
 - [Textured Quad](textured-quad.md) - Load textures, create samplers, and use resource binding
 - [Spinning Cube](spinning-cube.md) - Render 3D geometry with index buffers and MVP matrices
+
+## Source Code
+
+> [!TIP]
+> View the complete source code on GitHub: [HelloTriangleRenderer.cs](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/HelloTriangleRenderer.cs)
