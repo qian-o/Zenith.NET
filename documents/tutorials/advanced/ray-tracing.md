@@ -950,9 +950,6 @@ Key optimizations:
 - `RAY_FLAG_SKIP_CLOSEST_HIT_SHADER`: Skip shading for shadow rays (we don't need material information)
 - Miss shader index `1` in `TraceRay` selects `ShadowMiss` instead of the primary `Miss` shader
 
-> [!TIP]
-> For soft shadows, cast multiple shadow rays toward different points on an area light source and average the results.
-
 ### Dispatching Rays
 
 ```csharp
