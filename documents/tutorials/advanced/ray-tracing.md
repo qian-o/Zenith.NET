@@ -1,6 +1,6 @@
 ﻿# Ray Tracing
 
-In this tutorial, you'll learn how to use hardware-accelerated ray tracing with Zenith.NET. We'll render a classic colored triangle using ray tracing instead of rasterization.
+In this tutorial, you'll learn how to use hardware-accelerated ray tracing with Zenith.NET. We'll render a scene with a checkered floor and two spheres, demonstrating both triangle and procedural geometry (AABBs) along with shadow rays.
 
 > [!NOTE]
 > This tutorial requires a GPU with ray tracing support. Check `Context.Capabilities.RayTracingSupported` before using ray tracing features.
@@ -9,58 +9,40 @@ In this tutorial, you'll learn how to use hardware-accelerated ray tracing with 
 
 We'll create a `RayTracingRenderer` class that:
 
-- Creates a vertex buffer for a single triangle
-- Builds BLAS and TLAS acceleration structures
-- Creates a ray tracing pipeline with ray generation, miss, and closest hit shaders
-- Renders a colored triangle using ray tracing
+- Creates a checkered floor using triangle geometry
+- Creates two spheres using procedural AABBs with a custom intersection shader
+- Builds separate BLAS for floor and spheres, combined in a TLAS
+- Implements shadow rays for realistic shadows
+- Creates a ray tracing pipeline with multiple hit groups
 
 ## Key Concepts
-
-### Two Ways to Use Ray Tracing
-
-There are two approaches to use hardware ray tracing:
-
-| Aspect | Ray Tracing Pipeline | Inline Ray Tracing (RayQuery) |
-|--------|----------------------|-------------------------------|
-| **Shader Stages** | RayGen, Miss, ClosestHit, AnyHit, Intersection | Any shader (CS, PS, etc.) |
-| **Setup Complexity** | Requires dedicated pipeline and hit groups | Bind acceleration structure only |
-| **Hit/Miss Logic** | Separated into different shaders | All logic in one shader |
-| **Best For** | Complex materials, multiple ray types | Simple queries, shadows, AO |
-
-This tutorial covers the **Ray Tracing Pipeline** approach. For Inline Ray Tracing, simply bind the acceleration structure to your compute/graphics pipeline and use `RayQuery` in your shader.
 
 ### Acceleration Structures
 
 Ray tracing uses a two-level hierarchy to efficiently find ray-geometry intersections:
 
-
-
 ```
 Bottom-Level AS (BLAS)
-├── BLAS 0: Cube geometry
-├── BLAS 1: Sphere geometry
+├── BLAS 0: Floor geometry (triangles)
+├── BLAS 1: Sphere geometry (AABBs)
 └── ...
 
 Top-Level AS (TLAS)
-├── Instance 0 → BLAS 0
-├── Instance 1 → BLAS 0  ← same BLAS, different transform
-├── Instance 2 → BLAS 1
+├── Instance 0 → BLAS 0 (floor)
+├── Instance 1 → BLAS 1 (spheres)
 └── ...
 ```
 
 - **BLAS (Bottom-Level)**: Contains the actual geometry. Can store triangles or axis-aligned bounding boxes (AABBs) for procedural geometry.
 - **TLAS (Top-Level)**: Contains instances that reference BLAS with a transform matrix. Multiple instances can share the same BLAS.
 
-> [!NOTE]
-> Acceleration structure transforms do not support translation.
-
 ### Ray Tracing Pipeline Stages
 
 | Shader Stage | When Called |
 |--------------|-------------|
-| **Ray Generation** | Entry point - invoked for each pixel/thread |
+| **Ray Generation** | Entry point - invoked for each pixel |
 | **Intersection** | For procedural geometry (AABBs) to compute ray-geometry intersection |
-| **Any Hit** | For each potential intersection - can accept/reject hit (alpha testing) |
+| **Any Hit** | For each potential intersection - can accept/reject hit |
 | **Closest Hit** | Once per ray, for the nearest accepted intersection |
 | **Miss** | When the ray hits nothing |
 
@@ -71,8 +53,8 @@ Hit Groups bundle shaders that work together for a specific geometry type:
 | Shader | Required | Description |
 |--------|----------|-------------|
 | **ClosestHit** | Optional | Called for the closest intersection point |
-| **AnyHit** | Optional | Called for each potential hit (alpha testing, transparency) |
-| **Intersection** | Optional | Custom intersection for procedural geometry. Required only for AABBs, triangles use built-in intersection. |
+| **AnyHit** | Optional | Called for each potential hit (alpha testing) |
+| **Intersection** | Optional | Custom intersection for procedural geometry. Required only for AABBs. |
 
 ## The Renderer Class
 
@@ -91,32 +73,55 @@ namespace ZenithTutorials.Renderers;
 internal unsafe class RayTracingRenderer : IRenderer
 {
     /// <summary>
-    /// Vertex structure with position and color data.
+    /// Sphere definition for procedural geometry.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    private struct Vertex(Vector3 position, Vector4 color)
+    private struct Sphere
     {
-        public Vector3 Position = position;
+        public Vector3 Center;
 
-        public Vector4 Color = color;
+        public float Radius;
+
+        public Vector3 Color;
+
+        public float Padding;
     }
 
+    // Ray tracing shader source
     private const string shaderSource = """
-        struct Vertex
+        struct Sphere
         {
-            float3 Position;
-
-            float4 Color;
+            float3 Center;
+            float Radius;
+            float3 Color;
+            float Padding;
         };
 
         struct Payload
         {
-            float4 Color;
+            float3 Color;
+            float T;
         };
 
+        struct ShadowPayload
+        {
+            bool InShadow;
+        };
+
+        struct SphereAttributes
+        {
+            float3 Normal;
+        };
+
+        // Resources
         RaytracingAccelerationStructure scene;
         RWTexture2D<float4> outputTexture;
-        StructuredBuffer<Vertex> vertices;
+        StructuredBuffer<Sphere> spheres;
+
+        // Constants
+        static const float3 LightDir = normalize(float3(1.0, 1.0, -0.5));
+        static const float3 LightColor = float3(1.0, 0.98, 0.95);
+        static const float3 AmbientColor = float3(0.1, 0.1, 0.15);
 
         [shader("raygeneration")]
         void RayGen()
@@ -124,25 +129,40 @@ internal unsafe class RayTracingRenderer : IRenderer
             uint2 pixelCoord = DispatchRaysIndex().xy;
             uint2 dimensions = DispatchRaysDimensions().xy;
 
-            // Calculate ray direction from pixel coordinates (orthographic-like for simplicity)
+            // Camera setup - perspective projection
             float2 uv = (float2(pixelCoord) + 0.5) / float2(dimensions);
             float2 ndc = uv * 2.0 - 1.0;
+            ndc.y = -ndc.y;
 
-            float3 rayOrigin = float3(ndc.x, -ndc.y, -1.0);
-            float3 rayDir = float3(0, 0, 1);
+            float aspectRatio = float(dimensions.x) / float(dimensions.y);
+            float fov = tan(radians(45.0) * 0.5);  // 45 degree FOV
+
+            float3 cameraPos = float3(0.0, 4.0, -12.0);
+            float3 cameraTarget = float3(0.0, 0.0, 0.0);
+            float3 cameraUp = float3(0.0, 1.0, 0.0);
+
+            float3 forward = normalize(cameraTarget - cameraPos);
+            float3 right = normalize(cross(forward, cameraUp));
+            float3 up = cross(right, forward);
+
+            float3 rayDir = normalize(forward + ndc.x * aspectRatio * fov * right + ndc.y * fov * up);
 
             RayDesc ray;
-            ray.Origin = rayOrigin;
+            ray.Origin = cameraPos;
             ray.Direction = rayDir;
             ray.TMin = 0.001;
-            ray.TMax = 100.0;
+            ray.TMax = 1000.0;
 
             Payload payload;
-            payload.Color = float4(0, 0, 0, 1);
+            payload.Color = float3(0.0, 0.0, 0.0);
+            payload.T = -1.0;
 
             TraceRay(scene, RAY_FLAG_NONE, 0xFF, 0, 0, 0, ray, payload);
 
-            outputTexture[pixelCoord] = payload.Color;
+            // Gamma correction
+            float3 color = pow(payload.Color, 1.0 / 2.2);
+
+            outputTexture[pixelCoord] = float4(color, 1.0);
         }
 
         [shader("miss")]
@@ -151,35 +171,169 @@ internal unsafe class RayTracingRenderer : IRenderer
             // Sky gradient background
             float3 rayDir = WorldRayDirection();
             float t = 0.5 * (rayDir.y + 1.0);
-            payload.Color = float4(lerp(float3(1.0, 1.0, 1.0), float3(0.5, 0.7, 1.0), t), 1.0);
+
+            payload.Color = lerp(float3(1.0, 1.0, 1.0), float3(0.5, 0.7, 1.0), t);
+        }
+
+        [shader("miss")]
+        void ShadowMiss(inout ShadowPayload payload)
+        {
+            payload.InShadow = false;
+        }
+
+        bool TraceShadowRay(float3 origin, float3 direction)
+        {
+            RayDesc shadowRay;
+            shadowRay.Origin = origin;
+            shadowRay.Direction = direction;
+            shadowRay.TMin = 0.001;
+            shadowRay.TMax = 1000.0;
+
+            ShadowPayload shadowPayload;
+            shadowPayload.InShadow = true;
+
+            TraceRay(scene,
+                     RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER,
+                     0xFF, 0, 0, 1, shadowRay, shadowPayload);
+
+            return shadowPayload.InShadow;
         }
 
         [shader("closesthit")]
-        void ClosestHit(inout Payload payload, BuiltInTriangleIntersectionAttributes attribs)
+        void FloorClosestHit(inout Payload payload, BuiltInTriangleIntersectionAttributes attribs)
         {
-            // Interpolate vertex colors using barycentric coordinates
-            float3 barycentrics = float3(1.0 - attribs.barycentrics.x - attribs.barycentrics.y,
-                                         attribs.barycentrics.x,
-                                         attribs.barycentrics.y);
+            float3 hitPoint = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
 
-            uint primitiveIndex = PrimitiveIndex();
-            uint baseIndex = primitiveIndex * 3;
+            // Checkerboard pattern
+            float scale = 1.0;
+            int checkX = int(floor(hitPoint.x * scale));
+            int checkZ = int(floor(hitPoint.z * scale));
+            bool isWhite = ((checkX + checkZ) & 1) == 0;
+            float3 baseColor = isWhite ? float3(0.9, 0.9, 0.9) : float3(0.2, 0.2, 0.2);
 
-            float4 color0 = vertices[baseIndex + 0].Color;
-            float4 color1 = vertices[baseIndex + 1].Color;
-            float4 color2 = vertices[baseIndex + 2].Color;
+            float3 normal = float3(0.0, 1.0, 0.0);
+            float NdotL = max(dot(normal, LightDir), 0.0);
 
-            payload.Color = color0 * barycentrics.x + color1 * barycentrics.y + color2 * barycentrics.z;
+            // Shadow test
+            float3 shadowOrigin = hitPoint + normal * 0.001;
+            bool inShadow = TraceShadowRay(shadowOrigin, LightDir);
+
+            float shadow = inShadow ? 0.3 : 1.0;
+            float3 diffuse = baseColor * LightColor * NdotL * shadow;
+            float3 ambient = baseColor * AmbientColor;
+
+            payload.Color = ambient + diffuse;
+            payload.T = RayTCurrent();
+        }
+
+        [shader("intersection")]
+        void SphereIntersection()
+        {
+            uint sphereIndex = PrimitiveIndex();
+            Sphere sphere = spheres[sphereIndex];
+
+            float3 origin = ObjectRayOrigin();
+            float3 direction = ObjectRayDirection();
+            float3 oc = origin - sphere.Center;
+
+            float a = dot(direction, direction);
+            float b = dot(oc, direction);
+            float c = dot(oc, oc) - sphere.Radius * sphere.Radius;
+            float discriminant = b * b - a * c;
+
+            if (discriminant > 0.0)
+            {
+                float sqrtD = sqrt(discriminant);
+                float t1 = (-b - sqrtD) / a;
+                float t2 = (-b + sqrtD) / a;
+
+                float t = t1;
+                if (t < RayTMin() || t > RayTCurrent())
+                {
+                    t = t2;
+                }
+
+                if (t >= RayTMin() && t <= RayTCurrent())
+                {
+                    float3 hitPoint = origin + t * direction;
+                    float3 normal = normalize(hitPoint - sphere.Center);
+
+                    SphereAttributes attr;
+                    attr.Normal = normal;
+
+                    ReportHit(t, 0, attr);
+                }
+            }
+        }
+
+        [shader("closesthit")]
+        void SphereClosestHit(inout Payload payload, SphereAttributes attribs)
+        {
+            uint sphereIndex = PrimitiveIndex();
+            Sphere sphere = spheres[sphereIndex];
+
+            float3 hitPoint = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
+            float3 normal = attribs.Normal;
+            float NdotL = max(dot(normal, LightDir), 0.0);
+
+            // Shadow test
+            float3 shadowOrigin = hitPoint + normal * 0.001;
+            bool inShadow = TraceShadowRay(shadowOrigin, LightDir);
+
+            float shadow = inShadow ? 0.3 : 1.0;
+            float3 diffuse = sphere.Color * LightColor * NdotL * shadow;
+            float3 ambient = sphere.Color * AmbientColor;
+
+            payload.Color = ambient + diffuse;
+            payload.T = RayTCurrent();
         }
         """;
 
-    private readonly Buffer vertexBuffer;
-    private readonly BottomLevelAccelerationStructure blas;
+    // Shader for displaying the ray traced result
+    private const string displayShaderSource = """
+        struct VSInput
+        {
+            float3 Position : POSITION0;
+
+            float2 TexCoord : TEXCOORD0;
+        };
+
+        struct PSInput
+        {
+            float4 Position : SV_POSITION;
+
+            float2 TexCoord : TEXCOORD0;
+        };
+
+        Texture2D displayTexture;
+        SamplerState samplerState;
+
+        PSInput VSMain(VSInput input)
+        {
+            PSInput output;
+            output.Position = float4(input.Position, 1.0);
+            output.TexCoord = input.TexCoord;
+
+            return output;
+        }
+
+        float4 PSMain(PSInput input) : SV_TARGET
+        {
+            return displayTexture.Sample(samplerState, input.TexCoord);
+        }
+        """;
+
+    private readonly Buffer floorVertexBuffer;
+    private readonly Buffer floorIndexBuffer;
+    private readonly Buffer sphereBuffer;
+    private readonly Buffer aabbBuffer;
+    private readonly BottomLevelAccelerationStructure floorBlas;
+    private readonly BottomLevelAccelerationStructure sphereBlas;
     private readonly TopLevelAccelerationStructure tlas;
     private readonly ResourceLayout resourceLayout;
     private readonly RayTracingPipeline pipeline;
 
-    // For displaying the result
+    // Display resources
     private readonly Sampler sampler;
     private readonly ResourceLayout displayResourceLayout;
     private readonly GraphicsPipeline displayPipeline;
@@ -198,26 +352,67 @@ internal unsafe class RayTracingRenderer : IRenderer
             throw new NotSupportedException("Ray tracing is not supported on this device.");
         }
 
-        // Create triangle vertices (same as Hello Triangle, but for ray tracing)
-        Vertex[] vertices =
+        // Create floor geometry (quad)
+        Vector3[] floorVertices =
         [
-            new(new( 0.0f,  0.5f, 0.0f), new(1.0f, 0.0f, 0.0f, 1.0f)),  // Top - Red
-            new(new( 0.5f, -0.5f, 0.0f), new(0.0f, 1.0f, 0.0f, 1.0f)),  // Right - Green
-            new(new(-0.5f, -0.5f, 0.0f), new(0.0f, 0.0f, 1.0f, 1.0f))   // Left - Blue
+            new(-5.0f, 0.0f, -5.0f),
+            new( 5.0f, 0.0f, -5.0f),
+            new( 5.0f, 0.0f,  5.0f),
+            new(-5.0f, 0.0f,  5.0f)
+        ];
+        uint[] floorIndices = [0, 1, 2, 0, 2, 3];
+
+        floorVertexBuffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)(sizeof(Vector3) * floorVertices.Length),
+            StrideInBytes = (uint)sizeof(Vector3),
+            Flags = BufferUsageFlags.Vertex | BufferUsageFlags.AccelerationStructure
+        });
+        floorVertexBuffer.Upload(floorVertices, 0);
+
+        floorIndexBuffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)(sizeof(uint) * floorIndices.Length),
+            StrideInBytes = sizeof(uint),
+            Flags = BufferUsageFlags.Index | BufferUsageFlags.AccelerationStructure
+        });
+        floorIndexBuffer.Upload(floorIndices, 0);
+
+        // Create spheres (procedural geometry using AABBs)
+        Sphere[] sphereData =
+        [
+            new() { Center = new(-1.5f, 1.0f, 0.0f), Radius = 1.0f, Color = new(0.8f, 0.2f, 0.2f) },  // Red
+            new() { Center = new( 1.5f, 1.0f, 0.0f), Radius = 1.0f, Color = new(0.2f, 0.4f, 0.8f) }   // Blue
         ];
 
-        vertexBuffer = App.Context.CreateBuffer(new()
+        sphereBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length),
-            StrideInBytes = (uint)sizeof(Vertex),
-            Flags = BufferUsageFlags.AccelerationStructure | BufferUsageFlags.ShaderResource
+            SizeInBytes = (uint)(sizeof(Sphere) * sphereData.Length),
+            StrideInBytes = (uint)sizeof(Sphere),
+            Flags = BufferUsageFlags.ShaderResource
         });
-        vertexBuffer.Upload(vertices, 0);
+        sphereBuffer.Upload(sphereData, 0);
+
+        // Create AABBs for sphere bounding boxes
+        Vector3[] aabbData = new Vector3[sphereData.Length * 2];
+        for (int i = 0; i < sphereData.Length; i++)
+        {
+            aabbData[i * 2] = sphereData[i].Center - new Vector3(sphereData[i].Radius);
+            aabbData[i * 2 + 1] = sphereData[i].Center + new Vector3(sphereData[i].Radius);
+        }
+
+        aabbBuffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)(sizeof(Vector3) * aabbData.Length),
+            StrideInBytes = (uint)(sizeof(Vector3) * 2),
+            Flags = BufferUsageFlags.ShaderResource | BufferUsageFlags.AccelerationStructure
+        });
+        aabbBuffer.Upload(aabbData, 0);
 
         // Build acceleration structures
         CommandBuffer buildCmd = App.Context.Graphics.CommandBuffer();
 
-        blas = buildCmd.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
+        floorBlas = buildCmd.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
         {
             Geometries =
             [
@@ -226,12 +421,33 @@ internal unsafe class RayTracingRenderer : IRenderer
                     Type = RayTracingGeometryType.Triangles,
                     Triangles = new RayTracingTriangles
                     {
-                        VertexBuffer = vertexBuffer,
+                        VertexBuffer = floorVertexBuffer,
                         VertexFormat = PixelFormat.R32G32B32Float,
-                        VertexCount = (uint)vertices.Length,
-                        VertexStrideInBytes = (uint)sizeof(Vertex),
-                        VertexOffsetInBytes = 0,
+                        VertexCount = (uint)floorVertices.Length,
+                        VertexStrideInBytes = (uint)sizeof(Vector3),
+                        IndexBuffer = floorIndexBuffer,
+                        IndexFormat = IndexFormat.UInt32,
+                        IndexCount = (uint)floorIndices.Length,
                         Transform = Matrix4x4.Identity
+                    },
+                    Flags = RayTracingGeometryFlags.Opaque
+                }
+            ],
+            Flags = AccelerationStructureBuildFlags.PreferFastTrace
+        });
+
+        sphereBlas = buildCmd.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
+        {
+            Geometries =
+            [
+                new RayTracingGeometry
+                {
+                    Type = RayTracingGeometryType.AABBs,
+                    AABBs = new RayTracingAABBs
+                    {
+                        Buffer = aabbBuffer,
+                        Count = (uint)sphereData.Length,
+                        StrideInBytes = (uint)(sizeof(Vector3) * 2)
                     },
                     Flags = RayTracingGeometryFlags.Opaque
                 }
@@ -245,10 +461,19 @@ internal unsafe class RayTracingRenderer : IRenderer
             [
                 new RayTracingInstance
                 {
-                    AccelerationStructure = blas,
+                    AccelerationStructure = floorBlas,
                     InstanceID = 0,
                     InstanceMask = 0xFF,
                     InstanceContributionToHitGroupIndex = 0,
+                    Transform = Matrix4x4.Identity,
+                    Flags = RayTracingInstanceFlags.None
+                },
+                new RayTracingInstance
+                {
+                    AccelerationStructure = sphereBlas,
+                    InstanceID = 1,
+                    InstanceMask = 0xFF,
+                    InstanceContributionToHitGroupIndex = 1,
                     Transform = Matrix4x4.Identity,
                     Flags = RayTracingInstanceFlags.None
                 }
@@ -267,7 +492,7 @@ internal unsafe class RayTracingRenderer : IRenderer
                 {
                     Type = ResourceType.AccelerationStructure,
                     Count = 1,
-                    StageFlags = ShaderStageFlags.RayGeneration
+                    StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.ClosestHit
                 },
                 new()
                 {
@@ -279,7 +504,7 @@ internal unsafe class RayTracingRenderer : IRenderer
                 {
                     Type = ResourceType.StructuredBuffer,
                     Count = 1,
-                    StageFlags = ShaderStageFlags.ClosestHit
+                    StageFlags = ShaderStageFlags.Intersection | ShaderStageFlags.ClosestHit
                 }
             )
         });
@@ -291,34 +516,50 @@ internal unsafe class RayTracingRenderer : IRenderer
         using Shader missShader = App.Context.LoadShaderFromSource(shaderSource,
                                                                    "Miss",
                                                                    ShaderStageFlags.Miss);
-        using Shader closestHitShader = App.Context.LoadShaderFromSource(shaderSource,
-                                                                         "ClosestHit",
-                                                                         ShaderStageFlags.ClosestHit);
+        using Shader shadowMissShader = App.Context.LoadShaderFromSource(shaderSource,
+                                                                         "ShadowMiss",
+                                                                         ShaderStageFlags.Miss);
+        using Shader floorClosestHitShader = App.Context.LoadShaderFromSource(shaderSource,
+                                                                              "FloorClosestHit",
+                                                                              ShaderStageFlags.ClosestHit);
+        using Shader sphereIntersectionShader = App.Context.LoadShaderFromSource(shaderSource,
+                                                                                 "SphereIntersection",
+                                                                                 ShaderStageFlags.Intersection);
+        using Shader sphereClosestHitShader = App.Context.LoadShaderFromSource(shaderSource,
+                                                                               "SphereClosestHit",
+                                                                               ShaderStageFlags.ClosestHit);
 
         // Create ray tracing pipeline
         pipeline = App.Context.CreateRayTracingPipeline(new()
         {
             RayGeneration = rayGenShader,
-            Miss = [missShader],
+            Miss = [missShader, shadowMissShader],
             AnyHit = [],
-            Intersection = [],
-            ClosestHit = [closestHitShader],
+            Intersection = [sphereIntersectionShader],
+            ClosestHit = [floorClosestHitShader, sphereClosestHitShader],
             HitGroups =
             [
                 new HitGroup
                 {
                     Type = HitGroupType.Triangles,
-                    Name = "TriangleHitGroup",
-                    ClosestHit = "ClosestHit"
+                    Name = "FloorHitGroup",
+                    ClosestHit = "FloorClosestHit"
+                },
+                new HitGroup
+                {
+                    Type = HitGroupType.Procedural,
+                    Name = "SphereHitGroup",
+                    ClosestHit = "SphereClosestHit",
+                    Intersection = "SphereIntersection"
                 }
             ],
             ResourceLayouts = [resourceLayout],
-            MaxTraceRecursionDepth = 1,
+            MaxTraceRecursionDepth = 2,
             MaxPayloadSizeInBytes = 16,
-            MaxAttributeSizeInBytes = 8
+            MaxAttributeSizeInBytes = 16
         });
 
-        // Create display resources (fullscreen quad to show ray tracing result)
+        // Create display resources
         sampler = App.Context.CreateSampler(new()
         {
             Filter = Filter.MinLinearMagLinearMipLinear,
@@ -336,39 +577,6 @@ internal unsafe class RayTracingRenderer : IRenderer
                 new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Pixel }
             )
         });
-
-        const string displayShaderSource = """
-            struct VSInput
-            {
-                float3 Position : POSITION0;
-
-                float2 TexCoord : TEXCOORD0;
-            };
-
-            struct PSInput
-            {
-                float4 Position : SV_POSITION;
-
-                float2 TexCoord : TEXCOORD0;
-            };
-
-            Texture2D displayTexture;
-            SamplerState samplerState;
-
-            PSInput VSMain(VSInput input)
-            {
-                PSInput output;
-                output.Position = float4(input.Position, 1.0);
-                output.TexCoord = input.TexCoord;
-
-                return output;
-            }
-
-            float4 PSMain(PSInput input) : SV_TARGET
-            {
-                return displayTexture.Sample(samplerState, input.TexCoord);
-            }
-            """;
 
         using Shader displayVS = App.Context.LoadShaderFromSource(displayShaderSource,
                                                                   "VSMain",
@@ -397,14 +605,8 @@ internal unsafe class RayTracingRenderer : IRenderer
             Output = App.SwapChain.FrameBuffer.Output
         });
 
-        // Fullscreen quad vertices
-        float[] quadVertices =
-        [
-            -1,  1, 0, 0, 0,
-             1,  1, 0, 1, 0,
-             1, -1, 0, 1, 1,
-            -1, -1, 0, 0, 1
-        ];
+        // Create fullscreen quad
+        float[] quadVertices = [-1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, -1, 0, 1, 1, -1, -1, 0, 0, 1];
         uint[] quadIndices = [0, 1, 2, 0, 2, 3];
 
         quadVertexBuffer = App.Context.CreateBuffer(new()
@@ -430,7 +632,7 @@ internal unsafe class RayTracingRenderer : IRenderer
 
     public void Render()
     {
-        // Ensure output texture exists
+        // Create output texture if needed
         outputTexture ??= App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
@@ -444,11 +646,11 @@ internal unsafe class RayTracingRenderer : IRenderer
             Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
-        // Ensure resource sets exist
+        // Create resource sets if needed
         resourceSet ??= App.Context.CreateResourceSet(new()
         {
             Layout = resourceLayout,
-            Resources = [tlas, outputTexture, vertexBuffer]
+            Resources = [tlas, outputTexture, sphereBuffer]
         });
 
         displayResourceSet ??= App.Context.CreateResourceSet(new()
@@ -490,7 +692,6 @@ internal unsafe class RayTracingRenderer : IRenderer
         resourceSet = null;
         displayResourceSet?.Dispose();
         displayResourceSet = null;
-
         outputTexture?.Dispose();
         outputTexture = null;
     }
@@ -510,8 +711,12 @@ internal unsafe class RayTracingRenderer : IRenderer
         pipeline.Dispose();
         resourceLayout.Dispose();
         tlas.Dispose();
-        blas.Dispose();
-        vertexBuffer.Dispose();
+        sphereBlas.Dispose();
+        floorBlas.Dispose();
+        aabbBuffer.Dispose();
+        sphereBuffer.Dispose();
+        floorIndexBuffer.Dispose();
+        floorVertexBuffer.Dispose();
     }
 }
 ```
@@ -541,22 +746,13 @@ dotnet run
 
 ## Code Breakdown
 
-### Checking Ray Tracing Support
+### Acceleration Structure Setup
+
+Build a two-level acceleration structure hierarchy:
 
 ```csharp
-if (!App.Context.Capabilities.RayTracingSupported)
-{
-    throw new NotSupportedException("Ray tracing is not supported on this device.");
-}
-```
-
-Always check `Capabilities.RayTracingSupported` before using ray tracing features.
-
-### Building Acceleration Structures
-
-```csharp
-// Build BLAS (geometry)
-blas = buildCmd.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
+// Floor BLAS (triangle geometry)
+floorBlas = buildCmd.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
 {
     Geometries =
     [
@@ -565,12 +761,10 @@ blas = buildCmd.BuildAccelerationStructure(new BottomLevelAccelerationStructureD
             Type = RayTracingGeometryType.Triangles,
             Triangles = new RayTracingTriangles
             {
-                VertexBuffer = vertexBuffer,
+                VertexBuffer = floorVertexBuffer,
                 VertexFormat = PixelFormat.R32G32B32Float,
-                VertexCount = (uint)vertices.Length,
-                VertexStrideInBytes = (uint)sizeof(Vertex),
-                VertexOffsetInBytes = 0,
-                Transform = Matrix4x4.Identity
+                VertexCount = (uint)floorVertices.Length,
+                ...
             },
             Flags = RayTracingGeometryFlags.Opaque
         }
@@ -578,153 +772,123 @@ blas = buildCmd.BuildAccelerationStructure(new BottomLevelAccelerationStructureD
     Flags = AccelerationStructureBuildFlags.PreferFastTrace
 });
 
-// Build TLAS (instances)
-tlas = buildCmd.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
+// Sphere BLAS (procedural AABB geometry)
+sphereBlas = buildCmd.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
 {
-    Instances =
+    Geometries =
     [
-        new RayTracingInstance
+        new RayTracingGeometry
         {
-            AccelerationStructure = blas,
-            InstanceID = 0,
-            InstanceMask = 0xFF,
-            InstanceContributionToHitGroupIndex = 0,
-            Transform = Matrix4x4.Identity,
-            Flags = RayTracingInstanceFlags.None
+            Type = RayTracingGeometryType.AABBs,
+            AABBs = new RayTracingAABBs { Buffer = aabbBuffer, Count = 2, ... },
+            Flags = RayTracingGeometryFlags.Opaque
         }
     ],
-    Flags = AccelerationStructureBuildFlags.PreferFastTrace
+    ...
 });
 ```
 
-### Creating the Ray Tracing Pipeline
+### Ray Tracing Pipeline
+
+Create a pipeline with multiple hit groups:
 
 ```csharp
 pipeline = App.Context.CreateRayTracingPipeline(new()
 {
     RayGeneration = rayGenShader,
-    Miss = [missShader],
-    AnyHit = [],
-    Intersection = [],
-    ClosestHit = [closestHitShader],
+    Miss = [missShader, shadowMissShader],
+    ClosestHit = [floorClosestHitShader, sphereClosestHitShader],
+    Intersection = [sphereIntersectionShader],
     HitGroups =
     [
-        new HitGroup
-        {
-            Type = HitGroupType.Triangles,
-            Name = "TriangleHitGroup",
-            ClosestHit = "ClosestHit"
-        }
+        new HitGroup { Type = HitGroupType.Triangles, Name = "FloorHitGroup", ClosestHit = "FloorClosestHit" },
+        new HitGroup { Type = HitGroupType.Procedural, Name = "SphereHitGroup", ClosestHit = "SphereClosestHit", Intersection = "SphereIntersection" }
     ],
-    ResourceLayouts = [resourceLayout],
-    MaxTraceRecursionDepth = 1,
-    MaxPayloadSizeInBytes = 16,
-    MaxAttributeSizeInBytes = 8
+    MaxTraceRecursionDepth = 2,
+    ...
 });
 ```
 
 | Property | Description |
 |----------|-------------|
 | `RayGeneration` | Entry point shader |
-| `Miss` | Array of miss shaders |
-| `ClosestHit` | Array of closest hit shaders |
+| `Miss` | Array of miss shaders (index 0 for primary rays, index 1 for shadow rays) |
 | `HitGroups` | Bundle shaders for each geometry type |
 | `MaxTraceRecursionDepth` | Maximum ray bounce depth |
-| `MaxPayloadSizeInBytes` | Size of data passed between shaders |
 
-### Ray Generation Shader
+### Custom Intersection Shader
+
+For procedural geometry (AABBs), implement ray-sphere intersection:
 
 ```slang
-[shader("raygeneration")]
-void RayGen()
+[shader("intersection")]
+void SphereIntersection()
 {
-    uint2 pixelCoord = DispatchRaysIndex().xy;
-    uint2 dimensions = DispatchRaysDimensions().xy;
+    Sphere sphere = spheres[PrimitiveIndex()];
 
-    // Calculate ray from pixel coordinates
-    float2 uv = (float2(pixelCoord) + 0.5) / float2(dimensions);
-    float2 ndc = uv * 2.0 - 1.0;
+    float3 origin = ObjectRayOrigin();
+    float3 direction = ObjectRayDirection();
+    float3 oc = origin - sphere.Center;
 
-    float3 rayOrigin = float3(ndc.x, -ndc.y, -1.0);
-    float3 rayDir = float3(0, 0, 1);
+    // Solve quadratic equation
+    float a = dot(direction, direction);
+    float b = dot(oc, direction);
+    float c = dot(oc, oc) - sphere.Radius * sphere.Radius;
+    float discriminant = b * b - a * c;
 
-    RayDesc ray;
-    ray.Origin = rayOrigin;
-    ray.Direction = rayDir;
-    ray.TMin = 0.001;
-    ray.TMax = 100.0;
-
-    Payload payload;
-    TraceRay(scene, RAY_FLAG_NONE, 0xFF, 0, 0, 0, ray, payload);
-
-    outputTexture[pixelCoord] = payload.Color;
+    if (discriminant > 0.0)
+    {
+        float t = (-b - sqrt(discriminant)) / a;
+        if (t >= RayTMin() && t <= RayTCurrent())
+        {
+            SphereAttributes attr;
+            attr.Normal = normalize(origin + t * direction - sphere.Center);
+            ReportHit(t, 0, attr);
+        }
+    }
 }
 ```
 
-### Closest Hit Shader with Vertex Color Interpolation
+### Shadow Rays
+
+Test visibility to light sources with optimized flags:
 
 ```slang
-[shader("closesthit")]
-void ClosestHit(inout Payload payload, BuiltInTriangleIntersectionAttributes attribs)
+bool TraceShadowRay(float3 origin, float3 direction)
 {
-    // Interpolate vertex colors using barycentric coordinates
-    float3 barycentrics = float3(1.0 - attribs.barycentrics.x - attribs.barycentrics.y,
-                                 attribs.barycentrics.x,
-                                 attribs.barycentrics.y);
+    ShadowPayload shadowPayload;
+    shadowPayload.InShadow = true;
 
-    uint primitiveIndex = PrimitiveIndex();
-    uint baseIndex = primitiveIndex * 3;
+    TraceRay(scene,
+             RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER,
+             0xFF, 0, 0, 1, shadowRay, shadowPayload);
 
-    float4 color0 = vertices[baseIndex + 0].Color;
-    float4 color1 = vertices[baseIndex + 1].Color;
-    float4 color2 = vertices[baseIndex + 2].Color;
-
-    payload.Color = color0 * barycentrics.x + color1 * barycentrics.y + color2 * barycentrics.z;
+    return shadowPayload.InShadow;
 }
 ```
 
-The closest hit shader:
-1. Gets barycentric coordinates from `BuiltInTriangleIntersectionAttributes`
-2. Uses `PrimitiveIndex()` to find which triangle was hit
-3. Reads vertex colors from the `StructuredBuffer`
-4. Interpolates colors using barycentric weights
+Key optimizations:
+- `RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH`: Stop at first hit
+- `RAY_FLAG_SKIP_CLOSEST_HIT_SHADER`: Skip shading for shadow rays
+- Miss shader index `1` selects `ShadowMiss`
 
-### Dispatching Rays and Displaying Result
+### Dispatching Rays
 
 ```csharp
-// Ray tracing pass
 commandBuffer.SetPipeline(pipeline);
 commandBuffer.SetResourceSet(resourceSet, 0);
 commandBuffer.DispatchRays(App.Width, App.Height, 1);
-
-// Display pass
-commandBuffer.BeginRenderPass(App.SwapChain.FrameBuffer, new()
-{
-    ColorValues = [new(0, 0, 0, 1)],
-    Depth = 1.0f,
-    Stencil = 0,
-    Flags = ClearFlags.All
-}, displayResourceSet);
-
-commandBuffer.SetPipeline(displayPipeline);
-commandBuffer.SetResourceSet(displayResourceSet, 0);
-commandBuffer.SetVertexBuffer(quadVertexBuffer, 0, 0);
-commandBuffer.SetIndexBuffer(quadIndexBuffer, 0, IndexFormat.UInt32);
-commandBuffer.DrawIndexed(6, 1, 0, 0, 0);
-
-commandBuffer.EndRenderPass();
 ```
 
-`DispatchRays(width, height, depth)` launches the ray generation shader for each pixel, then we display the result using a fullscreen quad.
+`DispatchRays(width, height, depth)` launches the ray generation shader for each pixel.
 
 ## Next Steps
 
-Now that you understand the basics of ray tracing, you can explore:
+Now that you understand ray tracing with multiple geometry types and shadows, you can explore:
 
-- Adding shadows with shadow rays
-- Reflections with recursive ray tracing
+- Adding reflections with recursive ray tracing
+- Implementing refraction for glass materials
 - Global illumination with path tracing
-- [Mesh Shader](mesh-shader.md) - Another advanced GPU feature for geometry processing
 
 For a complete deferred renderer with ray traced global illumination, check out the [SponzaScene](https://github.com/qian-o/Zenith.NET/tree/master/sources/Experiments/SponzaScene) sample.
 
