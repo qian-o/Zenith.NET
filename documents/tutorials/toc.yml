@@ -10,3 +10,15 @@
       href: getting-started/textured-quad.md
     - name: Spinning Cube
       href: getting-started/spinning-cube.md
+- name: Intermediate
+  items:
+    - name: Compute Shader
+      href: intermediate/compute-shader.md
+    - name: Indirect Drawing
+      href: intermediate/indirect-drawing.md
+- name: Advanced
+  items:
+    - name: Ray Tracing
+      href: advanced/ray-tracing.md
+    - name: Mesh Shader
+      href: advanced/mesh-shader.md

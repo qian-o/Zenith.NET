@@ -402,13 +402,14 @@ Congratulations! You've completed the Getting Started tutorials. You now underst
 
 ## Next Steps
 
-Explore more advanced topics:
+Explore more advanced API topics:
 
-- **Compute Shaders** - General-purpose GPU computing
-- **Multiple Render Targets** - Deferred rendering techniques
-- **Ray Tracing** - Hardware-accelerated ray tracing (when supported)
+- [Compute Shader](../intermediate/compute-shader.md) - GPU computing with ComputePipeline
+- [Indirect Drawing](../intermediate/indirect-drawing.md) - DrawIndirect and DispatchIndirect
+- [Ray Tracing](../advanced/ray-tracing.md) - Hardware-accelerated ray tracing (requires GPU support)
+- [Mesh Shader](../advanced/mesh-shader.md) - Mesh shading pipeline (requires GPU support)
 
-Check out the [SponzaScene](https://github.com/qian-o/Zenith.NET/tree/master/sources/Experiments/SponzaScene) sample for a complete deferred renderer with shadows, ambient occlusion, and global illumination.
+Check out the [SponzaScene](https://github.com/qian-o/Zenith.NET/tree/master/sources/Experiments/SponzaScene) sample for a complete deferred renderer example.
 
 ## Source Code
 
