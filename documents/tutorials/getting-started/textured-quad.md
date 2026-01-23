@@ -376,7 +376,7 @@ commandBuffer.BeginRenderPass(App.SwapChain.FrameBuffer, new()
     Depth = 1.0f,
     Stencil = 0,
     Flags = ClearFlags.All
-}, resourceSet);  // Preprocess resources
+}, resourceSet);
 ```
 
 This allows Zenith.NET to optimize the resources in the set for shader access before the render pass begins, eliminating the need for manual resource management.

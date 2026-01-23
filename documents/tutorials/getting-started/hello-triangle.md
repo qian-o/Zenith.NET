@@ -132,7 +132,7 @@ internal class HelloTriangleRenderer : IRenderer
         // Begin render pass (clears color and depth buffers)
         commandBuffer.BeginRenderPass(App.SwapChain.FrameBuffer, new()
         {
-            ColorValues = [new(0.1f, 0.1f, 0.1f, 1.0f)],  // Dark gray background
+            ColorValues = [new(0.1f, 0.1f, 0.1f, 1.0f)],
             Depth = 1.0f,
             Stencil = 0,
             Flags = ClearFlags.All
