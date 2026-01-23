@@ -262,7 +262,10 @@ internal class IndirectDrawingRenderer : IRenderer
 
                 instances[index] = new()
                 {
-                    Model = Matrix4x4.CreateScale(0.4f) * Matrix4x4.CreateRotationY(rotation) * Matrix4x4.CreateRotationX(rotation * 0.5f) * Matrix4x4.CreateTranslation(offsetX, offsetY, 0),
+                    Model = Matrix4x4.CreateScale(0.4f)
+                            * Matrix4x4.CreateRotationY(rotation)
+                            * Matrix4x4.CreateRotationX(rotation * 0.5f)
+                            * Matrix4x4.CreateTranslation(offsetX, offsetY, 0),
                     Color = new((float)x / gridSize, (float)y / gridSize, 1.0f - (float)x / gridSize, 1.0f)
                 };
 
