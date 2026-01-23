@@ -11,16 +11,6 @@ We'll create a `ComputeShaderRenderer` class that:
 - Builds a compute pipeline
 - Dispatches compute work to process the image
 
-## Key Concepts
-
-| Concept | Description |
-|---------|-------------|
-| `ComputePipeline` | Pipeline for compute shader execution |
-| `ShaderStageFlags.Compute` | Indicates a compute shader stage |
-| `TextureUsageFlags.UnorderedAccess` | Allows read/write access in compute shaders |
-| `ResourceType.TextureReadWrite` | Binding type for writable textures (UAV) |
-| `Dispatch` | Execute compute shader with specified thread groups |
-
 ## The Renderer Class
 
 Create a new file `Renderers/ComputeShaderRenderer.cs`:
@@ -335,15 +325,13 @@ dotnet run
 
 ## Result
 
-The original color image is converted to grayscale using the GPU compute shader:
-
 ![compute-shader](../../images/compute-shader.png)
 
 ## Code Breakdown
 
 ### Compute Shader
 
-```hlsl
+```slang
 Texture2D inputTexture;
 RWTexture2D outputTexture;
 
@@ -441,15 +429,6 @@ The `Dispatch` call executes the compute shader:
 - `dispatchX` × `dispatchY` × `dispatchZ` = total thread groups
 - Each group runs `ThreadGroupSize` × `ThreadGroupSize` × 1 threads
 - The formula `(size + groupSize - 1) / groupSize` ensures full coverage
-
-### Compute vs Graphics Pipeline
-
-| Aspect | Graphics Pipeline | Compute Pipeline |
-|--------|-------------------|------------------|
-| Shader stages | Vertex, Pixel, etc. | Compute only |
-| Output | FrameBuffer | Writable textures/buffers |
-| Execution | `Draw`/`DrawIndexed` | `Dispatch` |
-| Requires render pass | Yes | No |
 
 ## Next Steps
 

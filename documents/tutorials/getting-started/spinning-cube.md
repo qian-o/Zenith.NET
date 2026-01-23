@@ -337,7 +337,7 @@ A cube has 8 unique vertices and 6 faces. Each face is made of 2 triangles, requ
 
 ### Shader MVP Transformation
 
-```hlsl
+```slang
 ConstantBuffer<MVPConstants> mvp;
 
 PSInput VSMain(VSInput input)

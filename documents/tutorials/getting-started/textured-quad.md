@@ -383,7 +383,7 @@ This allows Zenith.NET to optimize the resources in the set for shader access be
 
 ### Shader Texture Sampling
 
-```hlsl
+```slang
 Texture2D shaderTexture;
 SamplerState samplerState;
 
