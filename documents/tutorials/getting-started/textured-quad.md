@@ -275,7 +275,7 @@ file struct Vertex(Vector3 position, Vector2 texCoord)
 }
 ```
 
-The `Vertex` struct uses the `file` keyword to limit its visibility to the current source file. Unlike the triangle tutorial, we now use `Vector2 TexCoord` instead of color. Texture coordinates (UVs) range from `(0,0)` at the top-left to `(1,1)` at the bottom-right.
+Unlike the triangle tutorial, we now use `Vector2 TexCoord` instead of color. Texture coordinates (UVs) range from `(0,0)` at the top-left to `(1,1)` at the bottom-right.
 
 ### Index Buffer
 

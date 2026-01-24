@@ -286,7 +286,7 @@ file struct MVPConstants
 }
 ```
 
-The `MVPConstants` struct uses the `file` keyword to limit its visibility to the current source file. The MVP (Model-View-Projection) matrices transform vertices from object space to screen space:
+The MVP (Model-View-Projection) matrices transform vertices from object space to screen space:
 
 | Matrix | Purpose |
 |--------|---------|

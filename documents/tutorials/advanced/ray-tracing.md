@@ -53,10 +53,10 @@ TLAS (scene)
 | Shader Stage | When Called |
 |--------------|-------------|
 | **Ray Generation** | Entry point - invoked for each pixel/thread |
-| **Intersection** | For procedural geometry (AABBs) to compute ray-geometry intersection |
-| **Any Hit** | For each potential intersection - can accept/reject hit (alpha testing) |
-| **Closest Hit** | Once per ray, for the nearest accepted intersection |
 | **Miss** | When the ray hits nothing |
+| **Any Hit** | For each potential intersection - can accept/reject hit (alpha testing) |
+| **Intersection** | For procedural geometry (AABBs) to compute ray-geometry intersection |
+| **Closest Hit** | Once per ray, for the nearest accepted intersection |
 
 ### Hit Groups
 
@@ -64,9 +64,9 @@ Hit Groups bundle shaders that work together for a specific geometry type:
 
 | Shader | Required | Description |
 |--------|----------|-------------|
-| **ClosestHit** | Optional | Called for the closest intersection point |
 | **AnyHit** | Optional | Called for each potential hit (alpha testing, transparency) |
 | **Intersection** | Optional | Custom intersection for procedural geometry. Required only for AABBs, triangles use built-in intersection. |
+| **ClosestHit** | Optional | Called for the closest intersection point |
 
 ## The Renderer Class
 
@@ -531,8 +531,8 @@ internal unsafe class RayTracingRenderer : IRenderer
                 {
                     Type = HitGroupType.Procedural,
                     Name = "SphereHitGroup",
-                    ClosestHit = "SphereClosestHit",
-                    Intersection = "SphereIntersection"
+                    Intersection = "SphereIntersection",
+                    ClosestHit = "SphereClosestHit"
                 }
             ],
             ResourceLayouts = [resourceLayout],
@@ -853,8 +853,8 @@ pipeline = App.Context.CreateRayTracingPipeline(new()
         {
             Type = HitGroupType.Procedural,
             Name = "SphereHitGroup",
-            ClosestHit = "SphereClosestHit",
-            Intersection = "SphereIntersection"
+            Intersection = "SphereIntersection",
+            ClosestHit = "SphereClosestHit"
         }
     ],
     ResourceLayouts = [resourceLayout],
