@@ -18,7 +18,7 @@ internal unsafe struct PipelineStateStream2()
 
     public StreamIBStripCutValue IBStripCutValue = new();
 
-    public StreamPrimitiveTopology PrimitiveTopology = new();
+    public StreamPrimitiveTopology PrimitiveTopologyType = new();
 
     public StreamVS VS = new();
 
@@ -38,67 +38,70 @@ internal unsafe struct PipelineStateStream2()
 
     public StreamCS CS = new();
 
-    public StreamBlend Blend = new();
+    public StreamBlend BlendState = new();
 
-    public StreamDepthStencil1 DepthStencil1 = new();
+    public StreamDepthStencil1 DepthStencilState = new();
 
-    public StreamDepthStencilFormat DepthStencilFormat = new();
+    public StreamDepthStencilFormat DSVFormat = new();
 
-    public StreamRasterizer Rasterizer = new();
+    public StreamRasterizer RasterizerState = new();
 
-    public StreamRenderTargetFormats RenderTargetFormats = new();
+    public StreamRenderTargetFormats RTVFormats = new();
 
     public StreamSampleDesc SampleDesc = new();
 
     public StreamSampleMask SampleMask = new();
 
-    public StreamCachedPso CachedPso = new();
+    public StreamCachedPso CachedPSO = new();
 
-    public StreamViewInstancing ViewInstancing = new();
+    public StreamViewInstancing ViewInstancingDesc = new();
 
     public static explicit operator PipelineStateStream2(GraphicsPipelineStateDesc desc)
     {
-        PipelineStateStream2 pipelineStateStream2 = new();
-
-        pipelineStateStream2.Flags.Data = desc.Flags;
-        pipelineStateStream2.NodeMask.Data = desc.NodeMask;
-        pipelineStateStream2.RootSignature.Data = (nint)desc.PRootSignature;
-        pipelineStateStream2.InputLayout.Data = desc.InputLayout;
-        pipelineStateStream2.IBStripCutValue.Data = desc.IBStripCutValue;
-        pipelineStateStream2.PrimitiveTopology.Data = desc.PrimitiveTopologyType;
-        pipelineStateStream2.VS.Data = desc.VS;
-        pipelineStateStream2.GS.Data = desc.GS;
-        pipelineStateStream2.StreamOutput.Data = desc.StreamOutput;
-        pipelineStateStream2.HS.Data = desc.HS;
-        pipelineStateStream2.DS.Data = desc.DS;
-        pipelineStateStream2.PS.Data = desc.PS;
-        pipelineStateStream2.Blend.Data = desc.BlendState;
-        pipelineStateStream2.DepthStencil1.Data = new()
+        return new()
         {
-            DepthEnable = desc.DepthStencilState.DepthEnable,
-            DepthWriteMask = desc.DepthStencilState.DepthWriteMask,
-            DepthFunc = desc.DepthStencilState.DepthFunc,
-            StencilEnable = desc.DepthStencilState.StencilEnable,
-            StencilReadMask = desc.DepthStencilState.StencilReadMask,
-            StencilWriteMask = desc.DepthStencilState.StencilWriteMask,
-            FrontFace = desc.DepthStencilState.FrontFace,
-            BackFace = desc.DepthStencilState.BackFace
+            Flags = { Data = desc.Flags },
+            NodeMask = { Data = desc.NodeMask },
+            RootSignature = { Data = (nint)desc.PRootSignature },
+            InputLayout = { Data = desc.InputLayout },
+            IBStripCutValue = { Data = desc.IBStripCutValue },
+            PrimitiveTopologyType = { Data = desc.PrimitiveTopologyType },
+            VS = { Data = desc.VS },
+            GS = { Data = desc.GS },
+            StreamOutput = { Data = desc.StreamOutput },
+            HS = { Data = desc.HS },
+            DS = { Data = desc.DS },
+            PS = { Data = desc.PS },
+            BlendState = { Data = desc.BlendState },
+            DepthStencilState =
+            {
+                Data = new()
+                {
+                    DepthEnable = desc.DepthStencilState.DepthEnable,
+                    DepthWriteMask = desc.DepthStencilState.DepthWriteMask,
+                    DepthFunc = desc.DepthStencilState.DepthFunc,
+                    StencilEnable = desc.DepthStencilState.StencilEnable,
+                    StencilReadMask = desc.DepthStencilState.StencilReadMask,
+                    StencilWriteMask = desc.DepthStencilState.StencilWriteMask,
+                    FrontFace = desc.DepthStencilState.FrontFace,
+                    BackFace = desc.DepthStencilState.BackFace
+                }
+            },
+            DSVFormat = { Data = desc.DSVFormat },
+            RasterizerState = { Data = desc.RasterizerState },
+            RTVFormats =
+            {
+                Data = new()
+                {
+                    NumRenderTargets = desc.NumRenderTargets,
+                    RTFormats = *(RTFormatsBuffer*)&desc.RTVFormats
+                }
+            },
+            SampleDesc = { Data = desc.SampleDesc },
+            SampleMask = { Data = desc.SampleMask },
+            CachedPSO = { Data = desc.CachedPSO }
         };
-        pipelineStateStream2.DepthStencilFormat.Data = desc.DSVFormat;
-        pipelineStateStream2.Rasterizer.Data = desc.RasterizerState;
-        pipelineStateStream2.RenderTargetFormats.Data = new()
-        {
-            NumRenderTargets = desc.NumRenderTargets,
-            RTFormats = *(RTFormatsBuffer*)&desc.RTVFormats
-        };
-        pipelineStateStream2.SampleDesc.Data = desc.SampleDesc;
-        pipelineStateStream2.SampleMask.Data = desc.SampleMask;
-        pipelineStateStream2.CachedPso.Data = desc.CachedPSO;
-
-        return pipelineStateStream2;
     }
-
-
 
     internal struct SubObject<T>(PipelineStateSubobjectType type) where T : unmanaged
     {
