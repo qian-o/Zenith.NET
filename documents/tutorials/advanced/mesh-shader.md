@@ -450,7 +450,7 @@ Each meshlet describes a chunk of geometry:
 
 ### Mesh Shader Entry Point
 
-```hlsl
+```slang
 [shader("mesh")]
 [numthreads(MaxPrimitives, 1, 1)]
 [outputtopology("triangle")]
@@ -461,6 +461,7 @@ void MSMain(in uint groupId : SV_GroupID,
 ```
 
 Key attributes:
+
 | Attribute | Description |
 |-----------|-------------|
 | `[shader("mesh")]` | Marks this as a mesh shader entry point |
@@ -471,7 +472,7 @@ Key attributes:
 
 ### Setting Output Counts
 
-```hlsl
+```slang
 SetMeshOutputCounts(meshlet.VertexCount, meshlet.PrimitiveCount);
 ```
 
@@ -506,7 +507,7 @@ pipeline = App.Context.CreateMeshShadingPipeline(new()
 
 For more advanced scenarios, you can add an amplification shader to dynamically control meshlet dispatch:
 
-```hlsl
+```slang
 struct AmplificationPayload
 {
     uint MeshletIndices[32];
