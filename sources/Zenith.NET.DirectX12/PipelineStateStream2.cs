@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using Silk.NET.Direct3D12;
 using Silk.NET.DXGI;
 using static Silk.NET.Direct3D12.RTFormatArray;
@@ -7,53 +8,53 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe struct PipelineStateStream2()
 {
-    public SubObject<PipelineStateFlags> Flags = new(PipelineStateSubobjectType.Flags);
+    public StreamFlags Flags = new();
 
-    public SubObject<uint> NodeMask = new(PipelineStateSubobjectType.NodeMask);
+    public StreamNodeMask NodeMask = new();
 
-    public SubObject<nint> RootSignature = new(PipelineStateSubobjectType.RootSignature);
+    public StreamRootSignature RootSignature = new();
 
-    public SubObject<InputLayoutDesc> InputLayout = new(PipelineStateSubobjectType.InputLayout);
+    public StreamInputLayout InputLayout = new();
 
-    public SubObject<IndexBufferStripCutValue> IBStripCutValue = new(PipelineStateSubobjectType.IBStripCutValue);
+    public StreamIBStripCutValue IBStripCutValue = new();
 
-    public SubObject<PrimitiveTopologyType> PrimitiveTopology = new(PipelineStateSubobjectType.PrimitiveTopology);
+    public StreamPrimitiveTopology PrimitiveTopology = new();
 
-    public SubObject<ShaderBytecode> VS = new(PipelineStateSubobjectType.VS);
+    public StreamVS VS = new();
 
-    public SubObject<ShaderBytecode> GS = new(PipelineStateSubobjectType.GS);
+    public StreamGS GS = new();
 
-    public SubObject<StreamOutputDesc> StreamOutput = new(PipelineStateSubobjectType.StreamOutput);
+    public StreamStreamOutput StreamOutput = new();
 
-    public SubObject<ShaderBytecode> HS = new(PipelineStateSubobjectType.HS);
+    public StreamHS HS = new();
 
-    public SubObject<ShaderBytecode> DS = new(PipelineStateSubobjectType.DS);
+    public StreamDS DS = new();
 
-    public SubObject<ShaderBytecode> PS = new(PipelineStateSubobjectType.PS);
+    public StreamPS PS = new();
 
-    public SubObject<ShaderBytecode> AS = new(PipelineStateSubobjectType.As);
+    public StreamAS AS = new();
 
-    public SubObject<ShaderBytecode> MS = new(PipelineStateSubobjectType.MS);
+    public StreamMS MS = new();
 
-    public SubObject<ShaderBytecode> CS = new(PipelineStateSubobjectType.CS);
+    public StreamCS CS = new();
 
-    public SubObject<BlendDesc> Blend = new(PipelineStateSubobjectType.Blend);
+    public StreamBlend Blend = new();
 
-    public SubObject<DepthStencilDesc1> DepthStencil1 = new(PipelineStateSubobjectType.DepthStencil1);
+    public StreamDepthStencil1 DepthStencil1 = new();
 
-    public SubObject<Format> DepthStencilFormat = new(PipelineStateSubobjectType.DepthStencilFormat);
+    public StreamDepthStencilFormat DepthStencilFormat = new();
 
-    public SubObject<RasterizerDesc> Rasterizer = new(PipelineStateSubobjectType.Rasterizer);
+    public StreamRasterizer Rasterizer = new();
 
-    public SubObject<RTFormatArray> RenderTargetFormats = new(PipelineStateSubobjectType.RenderTargetFormats);
+    public StreamRenderTargetFormats RenderTargetFormats = new();
 
-    public SubObject<SampleDesc> SampleDesc = new(PipelineStateSubobjectType.SampleDesc);
+    public StreamSampleDesc SampleDesc = new();
 
-    public SubObject<uint> SampleMask = new(PipelineStateSubobjectType.SampleMask);
+    public StreamSampleMask SampleMask = new();
 
-    public SubObject<CachedPipelineState> CachedPso = new(PipelineStateSubobjectType.CachedPso);
+    public StreamCachedPso CachedPso = new();
 
-    public SubObject<ViewInstancingDesc> ViewInstancing = new(PipelineStateSubobjectType.ViewInstancing);
+    public StreamViewInstancing ViewInstancing = new();
 
     public static explicit operator PipelineStateStream2(GraphicsPipelineStateDesc desc)
     {
@@ -97,16 +98,324 @@ internal unsafe struct PipelineStateStream2()
         return pipelineStateStream2;
     }
 
-    [StructLayout(LayoutKind.Explicit)]
+
+
     internal struct SubObject<T>(PipelineStateSubobjectType type) where T : unmanaged
     {
-        [FieldOffset(0)]
         public readonly PipelineStateSubobjectType Type = type;
 
-        [FieldOffset(4)]
         public T Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamFlags()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
 
         [FieldOffset(0)]
-        private readonly nint padding;
+        public SubObject<PipelineStateFlags> Object = new(PipelineStateSubobjectType.Flags);
+
+        [UnscopedRef]
+        public ref PipelineStateFlags Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamNodeMask()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<uint> Object = new(PipelineStateSubobjectType.NodeMask);
+
+        [UnscopedRef]
+        public ref uint Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamRootSignature()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<nint> Object = new(PipelineStateSubobjectType.RootSignature);
+
+        [UnscopedRef]
+        public ref nint Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamInputLayout()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<InputLayoutDesc> Object = new(PipelineStateSubobjectType.InputLayout);
+
+        [UnscopedRef]
+        public ref InputLayoutDesc Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamIBStripCutValue()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<IndexBufferStripCutValue> Object = new(PipelineStateSubobjectType.IBStripCutValue);
+
+        [UnscopedRef]
+        public ref IndexBufferStripCutValue Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamPrimitiveTopology()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<PrimitiveTopologyType> Object = new(PipelineStateSubobjectType.PrimitiveTopology);
+
+        [UnscopedRef]
+        public ref PrimitiveTopologyType Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamVS()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<ShaderBytecode> Object = new(PipelineStateSubobjectType.VS);
+
+        [UnscopedRef]
+        public ref ShaderBytecode Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamGS()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<ShaderBytecode> Object = new(PipelineStateSubobjectType.GS);
+
+        [UnscopedRef]
+        public ref ShaderBytecode Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamStreamOutput()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<StreamOutputDesc> Object = new(PipelineStateSubobjectType.StreamOutput);
+
+        [UnscopedRef]
+        public ref StreamOutputDesc Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamHS()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<ShaderBytecode> Object = new(PipelineStateSubobjectType.HS);
+
+        [UnscopedRef]
+        public ref ShaderBytecode Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamDS()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<ShaderBytecode> Object = new(PipelineStateSubobjectType.DS);
+
+        [UnscopedRef]
+        public ref ShaderBytecode Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamPS()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<ShaderBytecode> Object = new(PipelineStateSubobjectType.PS);
+
+        [UnscopedRef]
+        public ref ShaderBytecode Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamAS()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<ShaderBytecode> Object = new(PipelineStateSubobjectType.As);
+
+        [UnscopedRef]
+        public ref ShaderBytecode Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamMS()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<ShaderBytecode> Object = new(PipelineStateSubobjectType.MS);
+
+        [UnscopedRef]
+        public ref ShaderBytecode Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamCS()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<ShaderBytecode> Object = new(PipelineStateSubobjectType.CS);
+
+        [UnscopedRef]
+        public ref ShaderBytecode Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamBlend()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<BlendDesc> Object = new(PipelineStateSubobjectType.Blend);
+
+        [UnscopedRef]
+        public ref BlendDesc Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamDepthStencil1()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<DepthStencilDesc1> Object = new(PipelineStateSubobjectType.DepthStencil1);
+
+        [UnscopedRef]
+        public ref DepthStencilDesc1 Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamDepthStencilFormat()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<Format> Object = new(PipelineStateSubobjectType.DepthStencilFormat);
+
+        [UnscopedRef]
+        public ref Format Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamRasterizer()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<RasterizerDesc> Object = new(PipelineStateSubobjectType.Rasterizer);
+
+        [UnscopedRef]
+        public ref RasterizerDesc Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamRenderTargetFormats()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<RTFormatArray> Object = new(PipelineStateSubobjectType.RenderTargetFormats);
+
+        [UnscopedRef]
+        public ref RTFormatArray Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamSampleDesc()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<SampleDesc> Object = new(PipelineStateSubobjectType.SampleDesc);
+
+        [UnscopedRef]
+        public ref SampleDesc Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamSampleMask()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<uint> Object = new(PipelineStateSubobjectType.SampleMask);
+
+        [UnscopedRef]
+        public ref uint Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamCachedPso()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<CachedPipelineState> Object = new(PipelineStateSubobjectType.CachedPso);
+
+        [UnscopedRef]
+        public ref CachedPipelineState Data => ref Object.Data;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct StreamViewInstancing()
+    {
+        [FieldOffset(0)]
+        private readonly nint _padding;
+
+        [FieldOffset(0)]
+        public SubObject<ViewInstancingDesc> Object = new(PipelineStateSubobjectType.ViewInstancing);
+
+        [UnscopedRef]
+        public ref ViewInstancingDesc Data => ref Object.Data;
     }
 }
