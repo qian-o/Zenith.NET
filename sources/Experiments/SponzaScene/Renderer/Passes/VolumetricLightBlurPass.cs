@@ -73,11 +73,11 @@ internal unsafe class VolumetricLightBlurPass : RenderPass
 
         for (int i = 0; i < iterations; i++)
         {
-            commandBuffer.Upload(constantBuffer, 0, [new BlurConstants { TexelSize = new(1.0f / context.Width, 0) }]);
+            commandBuffer.Upload(constantBuffer, 0, [new BlurConstants() { TexelSize = new(1.0f / context.Width, 0) }]);
             commandBuffer.SetResourceSet(horizontalResourceSet!, 0);
             commandBuffer.Dispatch(dispatchX, dispatchY, 1);
 
-            commandBuffer.Upload(constantBuffer, 0, [new BlurConstants { TexelSize = new(0, 1.0f / context.Height) }]);
+            commandBuffer.Upload(constantBuffer, 0, [new BlurConstants() { TexelSize = new(0, 1.0f / context.Height) }]);
             commandBuffer.SetResourceSet(verticalResourceSet!, 0);
             commandBuffer.Dispatch(dispatchX, dispatchY, 1);
         }
