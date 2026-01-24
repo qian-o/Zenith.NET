@@ -432,7 +432,7 @@ Always check `Capabilities.MeshShaderSupported` before using mesh shader feature
 
 ```csharp
 [StructLayout(LayoutKind.Sequential)]
-private struct Meshlet
+file struct Meshlet
 {
     public uint VertexOffset;
 

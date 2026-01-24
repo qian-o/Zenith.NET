@@ -211,9 +211,9 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
         {
             for (int x = 0; x < gridSize; x++)
             {
-                float offsetX = (x - gridSize / 2) * 1.5f;
-                float offsetY = (y - gridSize / 2) * 1.5f;
-                float rotation = rotationAngle * (1.0f + index * 0.1f);
+                float offsetX = (x - (gridSize / 2)) * 1.5f;
+                float offsetY = (y - (gridSize / 2)) * 1.5f;
+                float rotation = rotationAngle * (1.0f + (index * 0.1f));
 
                 instances[index] = new()
                 {
@@ -221,7 +221,7 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
                             * Matrix4x4.CreateRotationY(rotation)
                             * Matrix4x4.CreateRotationX(rotation * 0.5f)
                             * Matrix4x4.CreateTranslation(offsetX, offsetY, 0),
-                    Color = new((float)x / gridSize, (float)y / gridSize, 1.0f - (float)x / gridSize, 1.0f)
+                    Color = new((float)x / gridSize, (float)y / gridSize, 1.0f - ((float)x / gridSize), 1.0f)
                 };
 
                 index++;

@@ -389,7 +389,7 @@ internal unsafe class RayTracingRenderer : IRenderer
         for (int i = 0; i < sphereData.Length; i++)
         {
             aabbData[i * 2] = sphereData[i].Center - new Vector3(sphereData[i].Radius);
-            aabbData[i * 2 + 1] = sphereData[i].Center + new Vector3(sphereData[i].Radius);
+            aabbData[(i * 2) + 1] = sphereData[i].Center + new Vector3(sphereData[i].Radius);
         }
 
         aabbBuffer = App.Context.CreateBuffer(new()
