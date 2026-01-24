@@ -292,8 +292,8 @@ The MVP (Model-View-Projection) matrices transform vertices from object space to
 ```csharp
 constantBuffer = App.Context.CreateBuffer(new()
 {
-    SizeInBytes = (uint)Marshal.SizeOf<MVPConstants>(),
-    StrideInBytes = (uint)Marshal.SizeOf<MVPConstants>(),
+    SizeInBytes = (uint)sizeof(MVPConstants),
+    StrideInBytes = (uint)sizeof(MVPConstants),
     Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
 });
 ```
