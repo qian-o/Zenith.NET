@@ -387,20 +387,15 @@ Congratulations! You've completed the Getting Started tutorials. You now underst
 - Compiling shaders with Slang
 - Building graphics pipelines
 - Loading textures and creating samplers
-- Resource binding with `ResourceLayout` and `ResourceSet`
+- Resource binding with layouts and sets
 - Using constant buffers for per-frame data
 - MVP transformations for 3D rendering
 
 ## Next Steps
 
-Explore more advanced API topics:
+Continue with intermediate topics:
 
-- [Compute Shader](../intermediate/compute-shader.md) - GPU computing with ComputePipeline
-- [Indirect Drawing](../intermediate/indirect-drawing.md) - DrawIndirect and DispatchIndirect
-- [Ray Tracing](../advanced/ray-tracing.md) - Hardware-accelerated ray tracing (requires GPU support)
-- [Mesh Shader](../advanced/mesh-shader.md) - Mesh shading pipeline (requires GPU support)
-
-Check out the [SponzaScene](https://github.com/qian-o/Zenith.NET/tree/master/sources/Experiments/SponzaScene) sample for a complete deferred renderer example.
+- [Compute Shader](../intermediate/compute-shader.md) - Run general-purpose GPU computations for image processing
 
 ## Source Code
 

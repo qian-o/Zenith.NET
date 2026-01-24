@@ -179,7 +179,6 @@ dotnet run
 
 ### Vertex Structure
 
-
 ```csharp
 [StructLayout(LayoutKind.Sequential)]
 file struct Vertex(Vector3 position, Vector4 color)
@@ -265,10 +264,9 @@ Each frame:
 
 ## Next Steps
 
-Congratulations! You've rendered your first triangle with Zenith.NET. In the next tutorials, you'll learn:
+Congratulations! You've rendered your first triangle with Zenith.NET.
 
 - [Textured Quad](textured-quad.md) - Load textures, create samplers, and use resource binding
-- [Spinning Cube](spinning-cube.md) - Render 3D geometry with index buffers and MVP matrices
 
 ## Source Code
 

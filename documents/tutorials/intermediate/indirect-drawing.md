@@ -442,10 +442,9 @@ This eliminates CPU-GPU synchronization for visibility determination.
 
 ## Next Steps
 
-Now that you understand indirect drawing, explore advanced GPU features:
+Continue with advanced GPU features:
 
-- [Ray Tracing](../advanced/ray-tracing.md) - Hardware-accelerated ray tracing with acceleration structures
-- [Mesh Shader](../advanced/mesh-shader.md) - Mesh shading pipeline for advanced geometry processing
+- [Ray Tracing](../advanced/ray-tracing.md) - Build acceleration structures, trace rays, and implement shadows
 
 ## Source Code
 

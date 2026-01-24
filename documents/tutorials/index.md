@@ -4,59 +4,58 @@ Welcome to the Zenith.NET tutorials! These step-by-step guides will help you lea
 
 ## Getting Started
 
-New to Zenith.NET? Start here to set up your environment and render your first triangle.
+New to Zenith.NET? Start here to set up your environment and render your first graphics.
 
 | Tutorial | Description |
 |----------|-------------|
-| [Prerequisites](getting-started/prerequisites.md) | Set up your development environment and create the project framework |
-| [Hello Triangle](getting-started/hello-triangle.md) | Create your first renderer class and draw a colored triangle |
-| [Textured Quad](getting-started/textured-quad.md) | Load textures and use samplers with resource binding |
-| [Spinning Cube](getting-started/spinning-cube.md) | Render a 3D cube with index buffers and MVP transforms |
+| [Prerequisites](getting-started/prerequisites.md) | Set up your development environment with `App` framework, `IRenderer` interface, and `BindingHelper` |
+| [Hello Triangle](getting-started/hello-triangle.md) | Create vertex buffers, compile Slang shaders, and build your first graphics pipeline |
+| [Textured Quad](getting-started/textured-quad.md) | Load textures, create samplers, and bind resources with `ResourceLayout` and `ResourceSet` |
+| [Spinning Cube](getting-started/spinning-cube.md) | Use constant buffers for MVP matrices and render 3D geometry with depth testing |
 
 ## Intermediate
 
-Build on the basics with more advanced API features.
+Build on the basics with GPU compute and advanced rendering techniques.
 
 | Tutorial | Description |
 |----------|-------------|
-| [Compute Shader](intermediate/compute-shader.md) | GPU computing with ComputePipeline and image processing |
-| [Indirect Drawing](intermediate/indirect-drawing.md) | GPU-driven rendering with DrawIndirect and DispatchIndirect |
+| [Compute Shader](intermediate/compute-shader.md) | Create compute pipelines for GPU image processing (grayscale conversion) |
+| [Indirect Drawing](intermediate/indirect-drawing.md) | GPU-driven rendering with `DrawIndexedIndirect` for multi-instance drawing |
 
 ## Advanced
 
-Explore cutting-edge GPU features (requires hardware support).
+Explore cutting-edge GPU features for modern rendering (requires hardware support).
 
 | Tutorial | Description | Requirement |
 |----------|-------------|-------------|
-| [Ray Tracing](advanced/ray-tracing.md) | Hardware-accelerated ray tracing with acceleration structures | `RayTracingSupported` |
-| [Mesh Shader](advanced/mesh-shader.md) | Mesh shading pipeline for advanced geometry processing | `MeshShaderSupported` |
+| [Ray Tracing](advanced/ray-tracing.md) | Build acceleration structures (BLAS/TLAS), create ray tracing pipelines with hit groups, and implement hard shadows | `RayTracingSupported` |
+| [Mesh Shader](advanced/mesh-shader.md) | Use meshlet-based geometry processing with mesh shading pipelines | `MeshShaderSupported` |
 
 ## Tutorial Structure
 
 Each tutorial follows a consistent pattern:
 
-1. **Overview** - What you'll build and learn
-2. **Renderer Class** - Complete implementation code
-3. **Running the Tutorial** - How to run the example
-4. **Result** - Screenshot of the expected output
-5. **Code Breakdown** - Step-by-step explanation of key concepts
+1. **Overview** - What you'll build and the key concepts covered
+2. **Key Concepts** (advanced tutorials) - In-depth explanation of new API features
+3. **Renderer Class** - Complete, runnable implementation code
+4. **Running the Tutorial** - How to switch renderers and run the example
+5. **Result** - Screenshot of the expected output
+6. **Code Breakdown** - Step-by-step explanation of important code sections
 
-The `App` class provides static access to `GraphicsContext` and `SwapChain`, making renderer code clean and focused on rendering logic.
+All tutorials share the same `App` framework, making it easy to switch between examples by changing a single line in `Program.cs`.
 
-## What You'll Learn
+## Learning Path
 
-By completing the tutorials, you will understand:
-
-- How to create a reusable `App` framework with `GraphicsContext` and `SwapChain`
-- How to implement the `IRenderer` interface for modular rendering
-- How to create `Buffer` resources for vertex and index data
-- How to write and compile shaders using Slang
-- How to configure `GraphicsPipeline` and `ComputePipeline`
-- How to record and submit drawing commands via `CommandBuffer`
-- How to load textures and bind resources using `ResourceLayout` and `ResourceSet`
-- How to use GPU compute shaders for image processing
-- How to leverage GPU-driven rendering with indirect commands
-- How to use hardware ray tracing and mesh shaders (when supported)
+| Stage | You Will Learn |
+|-------|----------------|
+| **Prerequisites** | Set up the application framework, graphics context, and cross-platform resource binding |
+| **Hello Triangle** | Create GPU buffers, compile shaders, configure graphics pipelines, and submit draw commands |
+| **Textured Quad** | Load and sample textures, use index buffers, and bind shader resources |
+| **Spinning Cube** | Pass data to shaders via constant buffers, implement 3D transformations, and enable depth testing |
+| **Compute Shader** | Run general-purpose GPU computations for image processing |
+| **Indirect Drawing** | Let the GPU control draw parameters for efficient multi-instance rendering |
+| **Ray Tracing** | Build acceleration structures, trace rays, handle intersections, and implement shadows |
+| **Mesh Shader** | Process geometry in meshlets using the modern mesh shading pipeline |
 
 ## Requirements
 
@@ -66,7 +65,7 @@ Before starting, ensure you have:
 - A GPU with DirectX 12, Metal 4, or Vulkan 1.4 support
 - Visual Studio 2026, VS Code, or JetBrains Rider
 
-### Supported Platforms
+### Platform Support
 
 | Platform | DirectX 12 | Metal 4 | Vulkan 1.4 |
 |----------|:----------:|:-------:|:----------:|
@@ -75,3 +74,8 @@ Before starting, ensure you have:
 | Android  | - | - | ✅ |
 | macOS    | - | ✅ | ✅ |
 | iOS      | - | ✅ | ✅ |
+
+## Source Code
+
+> [!TIP]
+> The complete source code for all tutorials is available on GitHub: [ZenithTutorials](https://github.com/qian-o/ZenithTutorials)

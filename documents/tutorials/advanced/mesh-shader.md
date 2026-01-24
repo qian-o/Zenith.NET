@@ -551,8 +551,13 @@ void ASMain(in uint groupId : SV_GroupID,
 4. **Preprocessing**: Generate meshlets offline for complex models
 5. **Culling**: Use amplification shaders for GPU-driven culling
 
-## Further Reading
+## Next Steps
 
-- Use `DispatchMeshIndirect` for fully GPU-driven rendering
-- Combine with compute shaders for meshlet generation
-- Implement hierarchical LOD with amplification shaders
+Congratulations! You've completed all Zenith.NET tutorials.
+
+For a complete rendering example combining multiple techniques, check out the [SponzaScene](https://github.com/qian-o/Zenith.NET/tree/master/sources/Experiments/SponzaScene) sample which demonstrates a deferred renderer with ray traced global illumination.
+
+## Source Code
+
+> [!TIP]
+> View the complete source code on GitHub: [MeshShaderRenderer.cs](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/MeshShaderRenderer.cs)

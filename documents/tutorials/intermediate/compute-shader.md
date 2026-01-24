@@ -426,10 +426,7 @@ The `Dispatch` call executes the compute shader:
 
 ## Next Steps
 
-Now that you understand compute shaders, explore more advanced topics:
-
-- [Indirect Drawing](indirect-drawing.md) - GPU-driven rendering with DrawIndirect
-- [Ray Tracing](../advanced/ray-tracing.md) - Hardware-accelerated ray tracing
+- [Indirect Drawing](indirect-drawing.md) - Let the GPU control draw parameters for efficient multi-instance rendering
 
 ## Source Code
 

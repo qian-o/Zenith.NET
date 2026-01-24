@@ -951,14 +951,7 @@ commandBuffer.DispatchRays(App.Width, App.Height, 1);
 
 ## Next Steps
 
-Now that you understand ray tracing with multiple geometry types and shadows, you can explore:
-
-- Adding reflections with recursive ray tracing
-- Implementing refraction for glass materials
-- Global illumination with path tracing
-- [Mesh Shader](mesh-shader.md) - Another advanced GPU feature for geometry processing
-
-For a complete deferred renderer with ray traced global illumination, check out the [SponzaScene](https://github.com/qian-o/Zenith.NET/tree/master/sources/Experiments/SponzaScene) sample.
+- [Mesh Shader](mesh-shader.md) - Process geometry in meshlets using the modern mesh shading pipeline
 
 ## Source Code
 
