@@ -63,18 +63,7 @@ namespace ZenithTutorials.Renderers;
 
 internal class TexturedQuadRenderer : IRenderer
 {
-    /// <summary>
-    /// Vertex structure with position and texture coordinates.
-    /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
-    private struct Vertex(Vector3 position, Vector2 texCoord)
-    {
-        public Vector3 Position = position;
-
-        public Vector2 TexCoord = texCoord;
-    }
-
-    private const string shaderSource = """
+    private const string ShaderSource = """
         struct VSInput
         {
             float3 Position : POSITION0;
@@ -117,20 +106,17 @@ internal class TexturedQuadRenderer : IRenderer
 
     public TexturedQuadRenderer()
     {
-        // Define quad vertices with texture coordinates
         // UV origin (0,0) is top-left, (1,1) is bottom-right
         Vertex[] vertices =
         [
-            new(new(-0.5f,  0.5f, 0.0f), new(0.0f, 0.0f)), // Top-left
-            new(new( 0.5f,  0.5f, 0.0f), new(1.0f, 0.0f)), // Top-right
-            new(new( 0.5f, -0.5f, 0.0f), new(1.0f, 1.0f)), // Bottom-right
-            new(new(-0.5f, -0.5f, 0.0f), new(0.0f, 1.0f)), // Bottom-left
+            new(new(-0.5f,  0.5f, 0.0f), new(0.0f, 0.0f)),
+            new(new( 0.5f,  0.5f, 0.0f), new(1.0f, 0.0f)),
+            new(new( 0.5f, -0.5f, 0.0f), new(1.0f, 1.0f)),
+            new(new(-0.5f, -0.5f, 0.0f), new(0.0f, 1.0f)),
         ];
 
-        // Index buffer defines two triangles forming a quad
         uint[] indices = [0, 1, 2, 0, 2, 3];
 
-        // Create vertex buffer
         vertexBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)(Marshal.SizeOf<Vertex>() * vertices.Length),
@@ -139,7 +125,6 @@ internal class TexturedQuadRenderer : IRenderer
         });
         vertexBuffer.Upload(vertices, 0);
 
-        // Create index buffer
         indexBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)(sizeof(uint) * indices.Length),
@@ -148,20 +133,17 @@ internal class TexturedQuadRenderer : IRenderer
         });
         indexBuffer.Upload(indices, 0);
 
-        // Load texture from file using ImageSharp extension
         texture = App.Context.LoadTextureFromFile(Path.Combine(AppContext.BaseDirectory, "Assets", "shoko.png"), generateMipMaps: true);
 
-        // Create sampler with linear filtering
         sampler = App.Context.CreateSampler(new()
         {
-            Filter = Filter.MinLinearMagLinearMipLinear,
             U = AddressMode.Clamp,
             V = AddressMode.Clamp,
             W = AddressMode.Clamp,
+            Filter = Filter.MinLinearMagLinearMipLinear,
             MaxLod = uint.MaxValue
         });
 
-        // Define resource layout using BindingHelper for cross-platform compatibility
         resourceLayout = App.Context.CreateResourceLayout(new()
         {
             Bindings = BindingHelper.Bindings
@@ -171,23 +153,19 @@ internal class TexturedQuadRenderer : IRenderer
             )
         });
 
-        // Create resource set (binds actual resources to the layout)
         resourceSet = App.Context.CreateResourceSet(new()
         {
             Layout = resourceLayout,
             Resources = [texture, sampler]
         });
 
-        // Define vertex input layout
         InputLayout inputLayout = new();
         inputLayout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position });
         inputLayout.Add(new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.TexCoord });
 
-        // Compile shaders
-        using Shader vertexShader = App.Context.LoadShaderFromSource(shaderSource, "VSMain", ShaderStageFlags.Vertex);
-        using Shader pixelShader = App.Context.LoadShaderFromSource(shaderSource, "PSMain", ShaderStageFlags.Pixel);
+        using Shader vertexShader = App.Context.LoadShaderFromSource(ShaderSource, "VSMain", ShaderStageFlags.Vertex);
+        using Shader pixelShader = App.Context.LoadShaderFromSource(ShaderSource, "PSMain", ShaderStageFlags.Pixel);
 
-        // Create graphics pipeline with resource layout
         pipeline = App.Context.CreateGraphicsPipeline(new()
         {
             RenderStates = new()
@@ -198,7 +176,7 @@ internal class TexturedQuadRenderer : IRenderer
             },
             Vertex = vertexShader,
             Pixel = pixelShader,
-            ResourceLayouts = [resourceLayout],  // Include resource layout
+            ResourceLayouts = [resourceLayout],
             InputLayouts = [inputLayout],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
             Output = App.SwapChain.FrameBuffer.Output
@@ -213,7 +191,6 @@ internal class TexturedQuadRenderer : IRenderer
     {
         CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
 
-        // Pass resourceSet to preprocessResourceSets to transition resources to optimal layout
         commandBuffer.BeginRenderPass(App.SwapChain.FrameBuffer, new()
         {
             ColorValues = [new(0.1f, 0.1f, 0.1f, 1.0f)],
@@ -223,10 +200,10 @@ internal class TexturedQuadRenderer : IRenderer
         }, resourceSet);
 
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetResourceSet(resourceSet, 0);  // Bind resource set at slot 0
+        commandBuffer.SetResourceSet(resourceSet, 0);
         commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
         commandBuffer.SetIndexBuffer(indexBuffer, 0, IndexFormat.UInt32);
-        commandBuffer.DrawIndexed(6, 1, 0, 0, 0);  // 6 indices, 1 instance
+        commandBuffer.DrawIndexed(6, 1, 0, 0, 0);
 
         commandBuffer.EndRenderPass();
 
@@ -247,6 +224,17 @@ internal class TexturedQuadRenderer : IRenderer
         indexBuffer.Dispose();
         vertexBuffer.Dispose();
     }
+}
+
+/// <summary>
+/// Vertex structure with position and texture coordinates.
+/// </summary>
+[StructLayout(LayoutKind.Sequential)]
+file struct Vertex(Vector3 position, Vector2 texCoord)
+{
+    public Vector3 Position = position;
+
+    public Vector2 TexCoord = texCoord;
 }
 ```
 
@@ -279,7 +267,7 @@ dotnet run
 
 ```csharp
 [StructLayout(LayoutKind.Sequential)]
-private struct Vertex(Vector3 position, Vector2 texCoord)
+file struct Vertex(Vector3 position, Vector2 texCoord)
 {
     public Vector3 Position = position;
 
@@ -287,7 +275,7 @@ private struct Vertex(Vector3 position, Vector2 texCoord)
 }
 ```
 
-The `Vertex` struct is defined inside the renderer class as a private nested type. Unlike the triangle tutorial, we now use `Vector2 TexCoord` instead of color. Texture coordinates (UVs) range from `(0,0)` at the top-left to `(1,1)` at the bottom-right.
+The `Vertex` struct uses the `file` keyword to limit its visibility to the current source file. Unlike the triangle tutorial, we now use `Vector2 TexCoord` instead of color. Texture coordinates (UVs) range from `(0,0)` at the top-left to `(1,1)` at the bottom-right.
 
 ### Index Buffer
 
@@ -317,10 +305,10 @@ The `Zenith.NET.Extensions.ImageSharp` extension provides convenient methods to 
 ```csharp
 sampler = App.Context.CreateSampler(new()
 {
-    Filter = Filter.MinLinearMagLinearMipLinear,
     U = AddressMode.Clamp,
     V = AddressMode.Clamp,
     W = AddressMode.Clamp,
+    Filter = Filter.MinLinearMagLinearMipLinear,
     MaxLod = uint.MaxValue
 });
 ```
@@ -329,8 +317,8 @@ Samplers control how textures are read:
 
 | Property | Description |
 |----------|-------------|
-| `Filter` | Interpolation method (linear = smooth, point = pixelated) |
 | `U/V/W` | How to handle coordinates outside 0-1 range |
+| `Filter` | Interpolation method (linear = smooth, point = pixelated) |
 | `MaxLod` | Maximum mipmap level to use |
 
 ### Resource Binding

@@ -27,28 +27,7 @@ namespace ZenithTutorials.Renderers;
 
 internal class SpinningCubeRenderer : IRenderer
 {
-    /// <summary>
-    /// Vertex structure with position and color data.
-    /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
-    private struct Vertex(Vector3 position, Vector4 color)
-    {
-        public Vector3 Position = position;
-
-        public Vector4 Color = color;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MVPConstants
-    {
-        public Matrix4x4 Model;
-
-        public Matrix4x4 View;
-
-        public Matrix4x4 Projection;
-    }
-
-    private const string shaderSource = """
+    private const string ShaderSource = """
         struct MVPConstants
         {
             float4x4 Model;
@@ -103,22 +82,20 @@ internal class SpinningCubeRenderer : IRenderer
 
     public SpinningCubeRenderer()
     {
-        // Define cube vertices (8 corners with different colors)
         Vertex[] vertices =
         [
             // Front face
-            new(new(-0.5f, -0.5f,  0.5f), new(1.0f, 0.0f, 0.0f, 1.0f)), // 0: Red
-            new(new( 0.5f, -0.5f,  0.5f), new(0.0f, 1.0f, 0.0f, 1.0f)), // 1: Green
-            new(new( 0.5f,  0.5f,  0.5f), new(0.0f, 0.0f, 1.0f, 1.0f)), // 2: Blue
-            new(new(-0.5f,  0.5f,  0.5f), new(1.0f, 1.0f, 0.0f, 1.0f)), // 3: Yellow
+            new(new(-0.5f, -0.5f,  0.5f), new(1.0f, 0.0f, 0.0f, 1.0f)),
+            new(new( 0.5f, -0.5f,  0.5f), new(0.0f, 1.0f, 0.0f, 1.0f)),
+            new(new( 0.5f,  0.5f,  0.5f), new(0.0f, 0.0f, 1.0f, 1.0f)),
+            new(new(-0.5f,  0.5f,  0.5f), new(1.0f, 1.0f, 0.0f, 1.0f)),
             // Back face
-            new(new(-0.5f, -0.5f, -0.5f), new(1.0f, 0.0f, 1.0f, 1.0f)), // 4: Magenta
-            new(new( 0.5f, -0.5f, -0.5f), new(0.0f, 1.0f, 1.0f, 1.0f)), // 5: Cyan
-            new(new( 0.5f,  0.5f, -0.5f), new(1.0f, 1.0f, 1.0f, 1.0f)), // 6: White
-            new(new(-0.5f,  0.5f, -0.5f), new(0.5f, 0.5f, 0.5f, 1.0f)), // 7: Gray
+            new(new(-0.5f, -0.5f, -0.5f), new(1.0f, 0.0f, 1.0f, 1.0f)),
+            new(new( 0.5f, -0.5f, -0.5f), new(0.0f, 1.0f, 1.0f, 1.0f)),
+            new(new( 0.5f,  0.5f, -0.5f), new(1.0f, 1.0f, 1.0f, 1.0f)),
+            new(new(-0.5f,  0.5f, -0.5f), new(0.5f, 0.5f, 0.5f, 1.0f)),
         ];
 
-        // Define cube indices (6 faces × 2 triangles × 3 vertices = 36 indices)
         uint[] indices =
         [
             // Front
@@ -135,7 +112,6 @@ internal class SpinningCubeRenderer : IRenderer
             4, 5, 1, 4, 1, 0
         ];
 
-        // Create vertex buffer
         vertexBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)(Marshal.SizeOf<Vertex>() * vertices.Length),
@@ -144,7 +120,6 @@ internal class SpinningCubeRenderer : IRenderer
         });
         vertexBuffer.Upload(vertices, 0);
 
-        // Create index buffer
         indexBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)(sizeof(uint) * indices.Length),
@@ -153,7 +128,6 @@ internal class SpinningCubeRenderer : IRenderer
         });
         indexBuffer.Upload(indices, 0);
 
-        // Create constant buffer for MVP matrices
         constantBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)Marshal.SizeOf<MVPConstants>(),
@@ -161,7 +135,6 @@ internal class SpinningCubeRenderer : IRenderer
             Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
         });
 
-        // Define resource layout for constant buffer
         resourceLayout = App.Context.CreateResourceLayout(new()
         {
             Bindings = BindingHelper.Bindings
@@ -170,29 +143,25 @@ internal class SpinningCubeRenderer : IRenderer
             )
         });
 
-        // Create resource set
         resourceSet = App.Context.CreateResourceSet(new()
         {
             Layout = resourceLayout,
             Resources = [constantBuffer]
         });
 
-        // Define vertex input layout
         InputLayout inputLayout = new();
         inputLayout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position });
         inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Color });
 
-        // Compile shaders
-        using Shader vertexShader = App.Context.LoadShaderFromSource(shaderSource, "VSMain", ShaderStageFlags.Vertex);
-        using Shader pixelShader = App.Context.LoadShaderFromSource(shaderSource, "PSMain", ShaderStageFlags.Pixel);
+        using Shader vertexShader = App.Context.LoadShaderFromSource(ShaderSource, "VSMain", ShaderStageFlags.Vertex);
+        using Shader pixelShader = App.Context.LoadShaderFromSource(ShaderSource, "PSMain", ShaderStageFlags.Pixel);
 
-        // Create graphics pipeline
         pipeline = App.Context.CreateGraphicsPipeline(new()
         {
             RenderStates = new()
             {
-                RasterizerState = RasterizerStates.CullBack,      // Enable back-face culling for 3D
-                DepthStencilState = DepthStencilStates.Default,   // Enable depth testing
+                RasterizerState = RasterizerStates.CullBack,
+                DepthStencilState = DepthStencilStates.Default,
                 BlendState = BlendStates.Opaque
             },
             Vertex = vertexShader,
@@ -206,13 +175,11 @@ internal class SpinningCubeRenderer : IRenderer
 
     public void Update(double deltaTime)
     {
-        // Rotate cube over time
         rotationAngle += (float)deltaTime;
     }
 
     public void Render()
     {
-        // Update MVP matrices
         Matrix4x4 model = Matrix4x4.CreateRotationY(rotationAngle) * Matrix4x4.CreateRotationX(rotationAngle * 0.5f);
         Matrix4x4 view = Matrix4x4.CreateLookAt(new(0, 0, 3), Vector3.Zero, Vector3.UnitY);
         Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(45.0f), (float)App.Width / App.Height, 0.1f, 100.0f);
@@ -233,7 +200,7 @@ internal class SpinningCubeRenderer : IRenderer
         commandBuffer.SetResourceSet(resourceSet, 0);
         commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
         commandBuffer.SetIndexBuffer(indexBuffer, 0, IndexFormat.UInt32);
-        commandBuffer.DrawIndexed(36, 1, 0, 0, 0);  // 36 indices
+        commandBuffer.DrawIndexed(36, 1, 0, 0, 0);
 
         commandBuffer.EndRenderPass();
 
@@ -253,6 +220,30 @@ internal class SpinningCubeRenderer : IRenderer
         indexBuffer.Dispose();
         vertexBuffer.Dispose();
     }
+}
+
+/// <summary>
+/// Vertex structure with position and color data.
+/// </summary>
+[StructLayout(LayoutKind.Sequential)]
+file struct Vertex(Vector3 position, Vector4 color)
+{
+    public Vector3 Position = position;
+
+    public Vector4 Color = color;
+}
+
+/// <summary>
+/// MVP transformation matrices.
+/// </summary>
+[StructLayout(LayoutKind.Sequential)]
+file struct MVPConstants
+{
+    public Matrix4x4 Model;
+
+    public Matrix4x4 View;
+
+    public Matrix4x4 Projection;
 }
 ```
 
@@ -285,7 +276,7 @@ dotnet run
 
 ```csharp
 [StructLayout(LayoutKind.Sequential)]
-private struct MVPConstants
+file struct MVPConstants
 {
     public Matrix4x4 Model;
 
@@ -295,7 +286,7 @@ private struct MVPConstants
 }
 ```
 
-The MVP (Model-View-Projection) matrices transform vertices from object space to screen space:
+The `MVPConstants` struct uses the `file` keyword to limit its visibility to the current source file. The MVP (Model-View-Projection) matrices transform vertices from object space to screen space:
 
 | Matrix | Purpose |
 |--------|---------|

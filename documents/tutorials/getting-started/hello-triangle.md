@@ -28,20 +28,7 @@ namespace ZenithTutorials.Renderers;
 
 internal class HelloTriangleRenderer : IRenderer
 {
-    /// <summary>
-    /// Vertex structure with position and color data.
-    /// LayoutKind.Sequential ensures memory layout matches GPU expectations.
-    /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
-    private struct Vertex(Vector3 position, Vector4 color)
-    {
-        public Vector3 Position = position;
-
-        public Vector4 Color = color;
-    }
-
-    // Slang shader source (HLSL-like syntax, compiled at runtime)
-    private const string shaderSource = """
+    private const string ShaderSource = """
         struct VSInput
         {
             float3 Position : POSITION0;
@@ -84,7 +71,6 @@ internal class HelloTriangleRenderer : IRenderer
             new(new(-0.5f, -0.5f, 0.0f), new(0.0f, 0.0f, 1.0f, 1.0f)), // Left   - Blue
         ];
 
-        // Create GPU buffer for vertex data
         vertexBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)(Marshal.SizeOf<Vertex>() * vertices.Length),
@@ -98,11 +84,9 @@ internal class HelloTriangleRenderer : IRenderer
         inputLayout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position });
         inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Color });
 
-        // Compile shaders using Slang
-        using Shader vertexShader = App.Context.LoadShaderFromSource(shaderSource, "VSMain", ShaderStageFlags.Vertex);
-        using Shader pixelShader = App.Context.LoadShaderFromSource(shaderSource, "PSMain", ShaderStageFlags.Pixel);
+        using Shader vertexShader = App.Context.LoadShaderFromSource(ShaderSource, "VSMain", ShaderStageFlags.Vertex);
+        using Shader pixelShader = App.Context.LoadShaderFromSource(ShaderSource, "PSMain", ShaderStageFlags.Pixel);
 
-        // Create graphics pipeline (combines all render state)
         pipeline = App.Context.CreateGraphicsPipeline(new()
         {
             RenderStates = new()
@@ -126,10 +110,8 @@ internal class HelloTriangleRenderer : IRenderer
 
     public void Render()
     {
-        // Get command buffer from graphics queue
         CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
 
-        // Begin render pass (clears color and depth buffers)
         commandBuffer.BeginRenderPass(App.SwapChain.FrameBuffer, new()
         {
             ColorValues = [new(0.1f, 0.1f, 0.1f, 1.0f)],
@@ -138,14 +120,12 @@ internal class HelloTriangleRenderer : IRenderer
             Flags = ClearFlags.All
         });
 
-        // Record draw commands
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
-        commandBuffer.Draw(3, 1, 0, 0);  // 3 vertices, 1 instance
+        commandBuffer.Draw(3, 1, 0, 0);
 
         commandBuffer.EndRenderPass();
 
-        // Submit and wait for GPU to finish
         commandBuffer.Submit(waitForCompletion: true);
     }
 
@@ -155,10 +135,20 @@ internal class HelloTriangleRenderer : IRenderer
 
     public void Dispose()
     {
-        // Release GPU resources in reverse creation order
         pipeline.Dispose();
         vertexBuffer.Dispose();
     }
+}
+
+/// <summary>
+/// Vertex structure with position and color data.
+/// </summary>
+[StructLayout(LayoutKind.Sequential)]
+file struct Vertex(Vector3 position, Vector4 color)
+{
+    public Vector3 Position = position;
+
+    public Vector4 Color = color;
 }
 ```
 
@@ -189,9 +179,10 @@ dotnet run
 
 ### Vertex Structure
 
+
 ```csharp
 [StructLayout(LayoutKind.Sequential)]
-private struct Vertex(Vector3 position, Vector4 color)
+file struct Vertex(Vector3 position, Vector4 color)
 {
     public Vector3 Position = position;
 
@@ -199,7 +190,7 @@ private struct Vertex(Vector3 position, Vector4 color)
 }
 ```
 
-The `Vertex` struct is defined inside the renderer class as a private nested type. It uses a primary constructor and `LayoutKind.Sequential` ensures the memory layout matches what the GPU expects.
+The `Vertex` struct uses the `file` keyword to limit its visibility to the current source file. It uses a primary constructor and `LayoutKind.Sequential` ensures the memory layout matches what the GPU expects.
 
 ### Vertex Buffer
 
@@ -231,6 +222,7 @@ pipeline = App.Context.CreateGraphicsPipeline(new()
     RenderStates = new() { ... },
     Vertex = vertexShader,
     Pixel = pixelShader,
+    ResourceLayouts = [],
     InputLayouts = [inputLayout],
     PrimitiveTopology = PrimitiveTopology.TriangleList,
     Output = App.SwapChain.FrameBuffer.Output

@@ -29,34 +29,7 @@ internal class IndirectDrawingRenderer : IRenderer
 {
     private const int InstanceCount = 25;  // 5x5 grid of cubes
 
-    /// <summary>
-    /// Vertex structure with position and color data.
-    /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
-    private struct Vertex(Vector3 position, Vector4 color)
-    {
-        public Vector3 Position = position;
-
-        public Vector4 Color = color;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct InstanceData
-    {
-        public Matrix4x4 Model;
-
-        public Vector4 Color;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct ViewConstants
-    {
-        public Matrix4x4 View;
-
-        public Matrix4x4 Projection;
-    }
-
-    private const string shaderSource = """
+    private const string ShaderSource = """
         struct ViewConstants
         {
             float4x4 View;
@@ -123,7 +96,6 @@ internal class IndirectDrawingRenderer : IRenderer
 
     public IndirectDrawingRenderer()
     {
-        // Define cube vertices
         Vertex[] vertices =
         [
             // Front face
@@ -140,15 +112,14 @@ internal class IndirectDrawingRenderer : IRenderer
 
         uint[] indices =
         [
-            0, 1, 2, 0, 2, 3,  // Front
-            5, 4, 7, 5, 7, 6,  // Back
-            4, 0, 3, 4, 3, 7,  // Left
-            1, 5, 6, 1, 6, 2,  // Right
-            3, 2, 6, 3, 6, 7,  // Top
-            4, 5, 1, 4, 1, 0   // Bottom
+            0, 1, 2, 0, 2, 3,
+            5, 4, 7, 5, 7, 6,
+            4, 0, 3, 4, 3, 7,
+            1, 5, 6, 1, 6, 2,
+            3, 2, 6, 3, 6, 7,
+            4, 5, 1, 4, 1, 0
         ];
 
-        // Create vertex buffer
         vertexBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)(Marshal.SizeOf<Vertex>() * vertices.Length),
@@ -157,7 +128,6 @@ internal class IndirectDrawingRenderer : IRenderer
         });
         vertexBuffer.Upload(vertices, 0);
 
-        // Create index buffer
         indexBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)(sizeof(uint) * indices.Length),
@@ -166,7 +136,6 @@ internal class IndirectDrawingRenderer : IRenderer
         });
         indexBuffer.Upload(indices, 0);
 
-        // Create indirect buffer with draw arguments
         indirectBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)Marshal.SizeOf<IndirectDrawIndexedArgs>(),
@@ -174,7 +143,6 @@ internal class IndirectDrawingRenderer : IRenderer
             Flags = BufferUsageFlags.Indirect | BufferUsageFlags.MapWrite
         });
 
-        // Upload draw arguments
         indirectBuffer.Upload([new IndirectDrawIndexedArgs
         {
             IndexCount = (uint)indices.Length,
@@ -184,7 +152,6 @@ internal class IndirectDrawingRenderer : IRenderer
             FirstInstance = 0
         }], 0);
 
-        // Create view constants buffer
         viewConstantsBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)Marshal.SizeOf<ViewConstants>(),
@@ -192,7 +159,6 @@ internal class IndirectDrawingRenderer : IRenderer
             Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
         });
 
-        // Create instance buffer
         instanceBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)(Marshal.SizeOf<InstanceData>() * InstanceCount),
@@ -200,7 +166,6 @@ internal class IndirectDrawingRenderer : IRenderer
             Flags = BufferUsageFlags.ShaderResource | BufferUsageFlags.MapWrite
         });
 
-        // Define resource layout
         resourceLayout = App.Context.CreateResourceLayout(new()
         {
             Bindings = BindingHelper.Bindings
@@ -210,21 +175,18 @@ internal class IndirectDrawingRenderer : IRenderer
             )
         });
 
-        // Create resource set
         resourceSet = App.Context.CreateResourceSet(new()
         {
             Layout = resourceLayout,
             Resources = [viewConstantsBuffer, instanceBuffer]
         });
 
-        // Define vertex input layout
         InputLayout inputLayout = new();
         inputLayout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position });
         inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Color });
 
-        // Compile shaders
-        using Shader vertexShader = App.Context.LoadShaderFromSource(shaderSource, "VSMain", ShaderStageFlags.Vertex);
-        using Shader pixelShader = App.Context.LoadShaderFromSource(shaderSource, "PSMain", ShaderStageFlags.Pixel);
+        using Shader vertexShader = App.Context.LoadShaderFromSource(ShaderSource, "VSMain", ShaderStageFlags.Vertex);
+        using Shader pixelShader = App.Context.LoadShaderFromSource(ShaderSource, "PSMain", ShaderStageFlags.Pixel);
 
         // Create graphics pipeline
         pipeline = App.Context.CreateGraphicsPipeline(new()
@@ -248,7 +210,6 @@ internal class IndirectDrawingRenderer : IRenderer
     {
         rotationAngle += (float)deltaTime;
 
-        // Update instance data
         InstanceData[] instances = new InstanceData[InstanceCount];
         int index = 0;
         int gridSize = (int)Math.Sqrt(InstanceCount);
@@ -259,8 +220,6 @@ internal class IndirectDrawingRenderer : IRenderer
             {
                 float offsetX = (x - gridSize / 2) * 1.5f;
                 float offsetY = (y - gridSize / 2) * 1.5f;
-
-                // Each cube rotates at a different speed
                 float rotation = rotationAngle * (1.0f + index * 0.1f);
 
                 instances[index] = new()
@@ -281,7 +240,6 @@ internal class IndirectDrawingRenderer : IRenderer
 
     public void Render()
     {
-        // Update view constants
         Matrix4x4 view = Matrix4x4.CreateLookAt(new(0, 0, 8), Vector3.Zero, Vector3.UnitY);
         Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(45.0f), (float)App.Width / App.Height, 0.1f, 100.0f);
 
@@ -301,8 +259,6 @@ internal class IndirectDrawingRenderer : IRenderer
         commandBuffer.SetResourceSet(resourceSet, 0);
         commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
         commandBuffer.SetIndexBuffer(indexBuffer, 0, IndexFormat.UInt32);
-
-        // Draw all instances with a single indirect call
         commandBuffer.DrawIndexedIndirect(indirectBuffer, 0, 1);
 
         commandBuffer.EndRenderPass();
@@ -325,6 +281,39 @@ internal class IndirectDrawingRenderer : IRenderer
         indexBuffer.Dispose();
         vertexBuffer.Dispose();
     }
+}
+
+/// <summary>
+/// Vertex structure with position and color data.
+/// </summary>
+[StructLayout(LayoutKind.Sequential)]
+file struct Vertex(Vector3 position, Vector4 color)
+{
+    public Vector3 Position = position;
+
+    public Vector4 Color = color;
+}
+
+/// <summary>
+/// Per-instance transformation and color data.
+/// </summary>
+[StructLayout(LayoutKind.Sequential)]
+file struct InstanceData
+{
+    public Matrix4x4 Model;
+
+    public Vector4 Color;
+}
+
+/// <summary>
+/// View and projection matrices.
+/// </summary>
+[StructLayout(LayoutKind.Sequential)]
+file struct ViewConstants
+{
+    public Matrix4x4 View;
+
+    public Matrix4x4 Projection;
 }
 ```
 

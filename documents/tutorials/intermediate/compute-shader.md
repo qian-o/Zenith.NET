@@ -31,7 +31,7 @@ internal class ComputeShaderRenderer : IRenderer
 {
     private const uint ThreadGroupSize = 16;
 
-    private const string computeShaderSource = """
+    private const string ComputeShaderSource = """
         Texture2D inputTexture;
         RWTexture2D outputTexture;
 
@@ -59,7 +59,7 @@ internal class ComputeShaderRenderer : IRenderer
         """;
 
     // Shader for displaying the processed texture
-    private const string displayShaderSource = """
+    private const string DisplayShaderSource = """
         struct VSInput
         {
             float3 Position : POSITION0;
@@ -92,17 +92,6 @@ internal class ComputeShaderRenderer : IRenderer
         }
         """;
 
-    /// <summary>
-    /// Vertex structure with position and texture coordinates.
-    /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
-    private struct Vertex(Vector3 position, Vector2 texCoord)
-    {
-        public Vector3 Position = position;
-
-        public Vector2 TexCoord = texCoord;
-    }
-
     // Compute resources
     private readonly Texture inputTexture;
     private readonly Texture outputTexture;
@@ -122,10 +111,8 @@ internal class ComputeShaderRenderer : IRenderer
 
     public ComputeShaderRenderer()
     {
-        // Load input texture
         inputTexture = App.Context.LoadTextureFromFile(Path.Combine(AppContext.BaseDirectory, "Assets", "shoko.png"), generateMipMaps: false);
 
-        // Create output texture with read/write access
         outputTexture = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
@@ -139,7 +126,6 @@ internal class ComputeShaderRenderer : IRenderer
             Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
-        // Create compute resource layout
         computeResourceLayout = App.Context.CreateResourceLayout(new()
         {
             Bindings = BindingHelper.Bindings
@@ -149,17 +135,14 @@ internal class ComputeShaderRenderer : IRenderer
             )
         });
 
-        // Create compute resource set
         computeResourceSet = App.Context.CreateResourceSet(new()
         {
             Layout = computeResourceLayout,
             Resources = [inputTexture, outputTexture]
         });
 
-        // Compile compute shader
-        using Shader computeShader = App.Context.LoadShaderFromSource(computeShaderSource, "CSMain", ShaderStageFlags.Compute);
+        using Shader computeShader = App.Context.LoadShaderFromSource(ComputeShaderSource, "CSMain", ShaderStageFlags.Compute);
 
-        // Create compute pipeline
         computePipeline = App.Context.CreateComputePipeline(new()
         {
             Compute = computeShader,
@@ -169,7 +152,6 @@ internal class ComputeShaderRenderer : IRenderer
             ThreadGroupSizeZ = 1
         });
 
-        // Create display resources (fullscreen quad)
         Vertex[] vertices =
         [
             new(new(-1.0f,  1.0f, 0.0f), new(0.0f, 0.0f)),
@@ -198,10 +180,10 @@ internal class ComputeShaderRenderer : IRenderer
 
         sampler = App.Context.CreateSampler(new()
         {
-            Filter = Filter.MinLinearMagLinearMipLinear,
             U = AddressMode.Clamp,
             V = AddressMode.Clamp,
             W = AddressMode.Clamp,
+            Filter = Filter.MinLinearMagLinearMipLinear,
             MaxLod = uint.MaxValue
         });
 
@@ -224,8 +206,8 @@ internal class ComputeShaderRenderer : IRenderer
         inputLayout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position });
         inputLayout.Add(new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.TexCoord });
 
-        using Shader vertexShader = App.Context.LoadShaderFromSource(displayShaderSource, "VSMain", ShaderStageFlags.Vertex);
-        using Shader pixelShader = App.Context.LoadShaderFromSource(displayShaderSource, "PSMain", ShaderStageFlags.Pixel);
+        using Shader vertexShader = App.Context.LoadShaderFromSource(DisplayShaderSource, "VSMain", ShaderStageFlags.Vertex);
+        using Shader pixelShader = App.Context.LoadShaderFromSource(DisplayShaderSource, "PSMain", ShaderStageFlags.Pixel);
 
         displayPipeline = App.Context.CreateGraphicsPipeline(new()
         {
@@ -252,7 +234,6 @@ internal class ComputeShaderRenderer : IRenderer
     {
         CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
 
-        // Run compute shader once to process the image
         if (!processed)
         {
             uint dispatchX = (inputTexture.Desc.Width + ThreadGroupSize - 1) / ThreadGroupSize;
@@ -265,7 +246,6 @@ internal class ComputeShaderRenderer : IRenderer
             processed = true;
         }
 
-        // Display the processed texture
         commandBuffer.BeginRenderPass(App.SwapChain.FrameBuffer, new()
         {
             ColorValues = [new(0.0f, 0.0f, 0.0f, 1.0f)],
@@ -304,6 +284,17 @@ internal class ComputeShaderRenderer : IRenderer
         outputTexture.Dispose();
         inputTexture.Dispose();
     }
+}
+
+/// <summary>
+/// Vertex structure with position and texture coordinates.
+/// </summary>
+[StructLayout(LayoutKind.Sequential)]
+file struct Vertex(Vector3 position, Vector2 texCoord)
+{
+    public Vector3 Position = position;
+
+    public Vector2 TexCoord = texCoord;
 }
 ```
 

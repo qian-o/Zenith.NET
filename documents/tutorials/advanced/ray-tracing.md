@@ -84,23 +84,8 @@ namespace ZenithTutorials.Renderers;
 
 internal unsafe class RayTracingRenderer : IRenderer
 {
-    /// <summary>
-    /// Sphere definition for procedural geometry.
-    /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
-    private struct Sphere
-    {
-        public Vector3 Center;
-
-        public float Radius;
-
-        public Vector3 Color;
-
-        public float Padding;
-    }
-
     // Ray tracing shader source
-    private const string shaderSource = """
+    private const string ShaderSource = """
         struct Sphere
         {
             float3 Center;
@@ -306,7 +291,7 @@ internal unsafe class RayTracingRenderer : IRenderer
         """;
 
     // Shader for displaying the ray traced result
-    private const string displayShaderSource = """
+    private const string DisplayShaderSource = """
         struct VSInput
         {
             float3 Position : POSITION0;
@@ -368,7 +353,6 @@ internal unsafe class RayTracingRenderer : IRenderer
             throw new NotSupportedException("Ray tracing is not supported on this device.");
         }
 
-        // Create floor geometry (quad)
         Vector3[] floorVertices =
         [
             new(-5.0f, 0.0f, -5.0f),
@@ -394,11 +378,10 @@ internal unsafe class RayTracingRenderer : IRenderer
         });
         floorIndexBuffer.Upload(floorIndices, 0);
 
-        // Create spheres (procedural geometry using AABBs)
         Sphere[] sphereData =
         [
-            new() { Center = new(-1.5f, 1.0f, 0.0f), Radius = 1.0f, Color = new(0.8f, 0.2f, 0.2f) },  // Red
-            new() { Center = new( 1.5f, 1.0f, 0.0f), Radius = 1.0f, Color = new(0.2f, 0.4f, 0.8f) }   // Blue
+            new() { Center = new(-1.5f, 1.0f, 0.0f), Radius = 1.0f, Color = new(0.8f, 0.2f, 0.2f) },
+            new() { Center = new( 1.5f, 1.0f, 0.0f), Radius = 1.0f, Color = new(0.2f, 0.4f, 0.8f) }
         ];
 
         sphereBuffer = App.Context.CreateBuffer(new()
@@ -409,7 +392,6 @@ internal unsafe class RayTracingRenderer : IRenderer
         });
         sphereBuffer.Upload(sphereData, 0);
 
-        // Create AABBs for sphere bounding boxes
         Vector3[] aabbData = new Vector3[sphereData.Length * 2];
         for (int i = 0; i < sphereData.Length; i++)
         {
@@ -425,7 +407,6 @@ internal unsafe class RayTracingRenderer : IRenderer
         });
         aabbBuffer.Upload(aabbData, 0);
 
-        // Build acceleration structures
         CommandBuffer buildCmd = App.Context.Graphics.CommandBuffer();
 
         floorBlas = buildCmd.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
@@ -499,7 +480,6 @@ internal unsafe class RayTracingRenderer : IRenderer
 
         buildCmd.Submit(waitForCompletion: true);
 
-        // Create resource layout for ray tracing
         resourceLayout = App.Context.CreateResourceLayout(new()
         {
             Bindings = BindingHelper.Bindings
@@ -525,15 +505,13 @@ internal unsafe class RayTracingRenderer : IRenderer
             )
         });
 
-        // Compile ray tracing shaders
-        using Shader rayGenShader = App.Context.LoadShaderFromSource(shaderSource, "RayGen", ShaderStageFlags.RayGeneration);
-        using Shader missShader = App.Context.LoadShaderFromSource(shaderSource, "Miss", ShaderStageFlags.Miss);
-        using Shader shadowMissShader = App.Context.LoadShaderFromSource(shaderSource, "ShadowMiss", ShaderStageFlags.Miss);
-        using Shader floorClosestHitShader = App.Context.LoadShaderFromSource(shaderSource, "FloorClosestHit", ShaderStageFlags.ClosestHit);
-        using Shader sphereIntersectionShader = App.Context.LoadShaderFromSource(shaderSource, "SphereIntersection", ShaderStageFlags.Intersection);
-        using Shader sphereClosestHitShader = App.Context.LoadShaderFromSource(shaderSource, "SphereClosestHit", ShaderStageFlags.ClosestHit);
+        using Shader rayGenShader = App.Context.LoadShaderFromSource(ShaderSource, "RayGen", ShaderStageFlags.RayGeneration);
+        using Shader missShader = App.Context.LoadShaderFromSource(ShaderSource, "Miss", ShaderStageFlags.Miss);
+        using Shader shadowMissShader = App.Context.LoadShaderFromSource(ShaderSource, "ShadowMiss", ShaderStageFlags.Miss);
+        using Shader floorClosestHitShader = App.Context.LoadShaderFromSource(ShaderSource, "FloorClosestHit", ShaderStageFlags.ClosestHit);
+        using Shader sphereIntersectionShader = App.Context.LoadShaderFromSource(ShaderSource, "SphereIntersection", ShaderStageFlags.Intersection);
+        using Shader sphereClosestHitShader = App.Context.LoadShaderFromSource(ShaderSource, "SphereClosestHit", ShaderStageFlags.ClosestHit);
 
-        // Create ray tracing pipeline
         pipeline = App.Context.CreateRayTracingPipeline(new()
         {
             RayGeneration = rayGenShader,
@@ -566,10 +544,10 @@ internal unsafe class RayTracingRenderer : IRenderer
         // Create display resources
         sampler = App.Context.CreateSampler(new()
         {
-            Filter = Filter.MinLinearMagLinearMipLinear,
             U = AddressMode.Clamp,
             V = AddressMode.Clamp,
             W = AddressMode.Clamp,
+            Filter = Filter.MinLinearMagLinearMipLinear,
             MaxLod = uint.MaxValue
         });
 
@@ -582,8 +560,8 @@ internal unsafe class RayTracingRenderer : IRenderer
             )
         });
 
-        using Shader displayVS = App.Context.LoadShaderFromSource(displayShaderSource, "VSMain", ShaderStageFlags.Vertex);
-        using Shader displayPS = App.Context.LoadShaderFromSource(displayShaderSource, "PSMain", ShaderStageFlags.Pixel);
+        using Shader displayVS = App.Context.LoadShaderFromSource(DisplayShaderSource, "VSMain", ShaderStageFlags.Vertex);
+        using Shader displayPS = App.Context.LoadShaderFromSource(DisplayShaderSource, "PSMain", ShaderStageFlags.Pixel);
 
         InputLayout displayInputLayout = new();
         displayInputLayout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position });
@@ -605,7 +583,6 @@ internal unsafe class RayTracingRenderer : IRenderer
             Output = App.SwapChain.FrameBuffer.Output
         });
 
-        // Create fullscreen quad
         float[] quadVertices =
         [
             -1,  1, 0, 0, 0,
@@ -652,7 +629,6 @@ internal unsafe class RayTracingRenderer : IRenderer
             Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
-        // Create resource sets if needed
         resourceSet ??= App.Context.CreateResourceSet(new()
         {
             Layout = resourceLayout,
@@ -667,12 +643,10 @@ internal unsafe class RayTracingRenderer : IRenderer
 
         CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
 
-        // Ray tracing pass
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetResourceSet(resourceSet, 0);
         commandBuffer.DispatchRays(App.Width, App.Height, 1);
 
-        // Display pass
         commandBuffer.BeginRenderPass(App.SwapChain.FrameBuffer, new()
         {
             ColorValues = [new(0, 0, 0, 1)],
@@ -724,6 +698,21 @@ internal unsafe class RayTracingRenderer : IRenderer
         floorIndexBuffer.Dispose();
         floorVertexBuffer.Dispose();
     }
+}
+
+/// <summary>
+/// Sphere definition for procedural geometry.
+/// </summary>
+[StructLayout(LayoutKind.Sequential)]
+file struct Sphere
+{
+    public Vector3 Center;
+
+    public float Radius;
+
+    public Vector3 Color;
+
+    public float Padding;
 }
 ```
 
