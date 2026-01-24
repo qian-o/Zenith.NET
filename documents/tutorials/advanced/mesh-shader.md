@@ -322,7 +322,7 @@ internal unsafe class MeshShaderRenderer : IRenderer
             100.0f
         );
 
-        constantBuffer.Upload([new TransformConstants { MVP = model * view * projection }], 0);
+        constantBuffer.Upload([new TransformConstants() { MVP = model * view * projection }], 0);
 
         CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
 

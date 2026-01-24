@@ -177,7 +177,7 @@ internal unsafe class SpinningCubeRenderer : IRenderer
         Matrix4x4 view = Matrix4x4.CreateLookAt(new(0, 0, 3), Vector3.Zero, Vector3.UnitY);
         Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(45.0f), (float)App.Width / App.Height, 0.1f, 100.0f);
 
-        constantBuffer.Upload([new MVPConstants { Model = model, View = view, Projection = projection }], 0);
+        constantBuffer.Upload([new MVPConstants() { Model = model, View = view, Projection = projection }], 0);
 
         CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
 

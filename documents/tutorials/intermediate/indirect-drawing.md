@@ -136,7 +136,7 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
             Flags = BufferUsageFlags.Indirect | BufferUsageFlags.MapWrite
         });
 
-        indirectBuffer.Upload([new IndirectDrawIndexedArgs
+        indirectBuffer.Upload([new IndirectDrawIndexedArgs()
         {
             IndexCount = (uint)indices.Length,
             InstanceCount = InstanceCount,
@@ -236,7 +236,7 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
         Matrix4x4 view = Matrix4x4.CreateLookAt(new(0, 0, 8), Vector3.Zero, Vector3.UnitY);
         Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(45.0f), (float)App.Width / App.Height, 0.1f, 100.0f);
 
-        viewConstantsBuffer.Upload([new ViewConstants { View = view, Projection = projection }], 0);
+        viewConstantsBuffer.Upload([new ViewConstants() { View = view, Projection = projection }], 0);
 
         CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
 
@@ -338,7 +338,7 @@ dotnet run
 ### Indirect Draw Arguments
 
 ```csharp
-indirectBuffer.Upload([new IndirectDrawIndexedArgs
+indirectBuffer.Upload([new IndirectDrawIndexedArgs()
 {
     IndexCount = (uint)indices.Length,
     InstanceCount = InstanceCount,
