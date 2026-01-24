@@ -18,15 +18,9 @@ This class-based approach makes it easy to extend for future tutorials.
 Create a new file `Renderers/HelloTriangleRenderer.cs`:
 
 ```csharp
-using System.Numerics;
-using System.Runtime.InteropServices;
-using Zenith.NET;
-using Zenith.NET.Extensions.Slang;
-using Buffer = Zenith.NET.Buffer;
-
 namespace ZenithTutorials.Renderers;
 
-internal class HelloTriangleRenderer : IRenderer
+internal unsafe class HelloTriangleRenderer : IRenderer
 {
     private const string ShaderSource = """
         struct VSInput
@@ -73,8 +67,8 @@ internal class HelloTriangleRenderer : IRenderer
 
         vertexBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)(Marshal.SizeOf<Vertex>() * vertices.Length),
-            StrideInBytes = (uint)Marshal.SizeOf<Vertex>(),
+            SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length),
+            StrideInBytes = (uint)sizeof(Vertex),
             Flags = BufferUsageFlags.Vertex | BufferUsageFlags.MapWrite
         });
         vertexBuffer.Upload(vertices, 0);
@@ -189,15 +183,15 @@ file struct Vertex(Vector3 position, Vector4 color)
 }
 ```
 
-The `Vertex` struct uses the `file` keyword to limit its visibility to the current source file. It uses a primary constructor and `LayoutKind.Sequential` ensures the memory layout matches what the GPU expects.
+The `Vertex` struct uses the `file` keyword to limit its visibility to the current source file. It uses a primary constructor and `LayoutKind.Sequential` ensures the memory layout matches what the GPU expects. The `unsafe` class modifier allows using `sizeof(Vertex)` for compile-time size calculation.
 
 ### Vertex Buffer
 
 ```csharp
 vertexBuffer = App.Context.CreateBuffer(new()
 {
-    SizeInBytes = (uint)(Marshal.SizeOf<Vertex>() * vertices.Length),
-    StrideInBytes = (uint)Marshal.SizeOf<Vertex>(),
+    SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length),
+    StrideInBytes = (uint)sizeof(Vertex),
     Flags = BufferUsageFlags.Vertex | BufferUsageFlags.MapWrite
 });
 

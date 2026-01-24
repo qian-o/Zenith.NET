@@ -62,13 +62,6 @@ Each meshlet contains:
 Create a new file `Renderers/MeshShaderRenderer.cs`:
 
 ```csharp
-using System;
-using System.Numerics;
-using System.Runtime.InteropServices;
-using Zenith.NET;
-using Zenith.NET.Extensions.Slang;
-using Buffer = Zenith.NET.Buffer;
-
 namespace ZenithTutorials.Renderers;
 
 internal unsafe class MeshShaderRenderer : IRenderer

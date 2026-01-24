@@ -16,16 +16,9 @@ We'll create an `IndirectDrawingRenderer` class that:
 Create a new file `Renderers/IndirectDrawingRenderer.cs`:
 
 ```csharp
-using System;
-using System.Numerics;
-using System.Runtime.InteropServices;
-using Zenith.NET;
-using Zenith.NET.Extensions.Slang;
-using Buffer = Zenith.NET.Buffer;
-
 namespace ZenithTutorials.Renderers;
 
-internal class IndirectDrawingRenderer : IRenderer
+internal unsafe class IndirectDrawingRenderer : IRenderer
 {
     private const int InstanceCount = 25;  // 5x5 grid of cubes
 
@@ -122,8 +115,8 @@ internal class IndirectDrawingRenderer : IRenderer
 
         vertexBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)(Marshal.SizeOf<Vertex>() * vertices.Length),
-            StrideInBytes = (uint)Marshal.SizeOf<Vertex>(),
+            SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length),
+            StrideInBytes = (uint)sizeof(Vertex),
             Flags = BufferUsageFlags.Vertex | BufferUsageFlags.MapWrite
         });
         vertexBuffer.Upload(vertices, 0);
@@ -138,8 +131,8 @@ internal class IndirectDrawingRenderer : IRenderer
 
         indirectBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)Marshal.SizeOf<IndirectDrawIndexedArgs>(),
-            StrideInBytes = (uint)Marshal.SizeOf<IndirectDrawIndexedArgs>(),
+            SizeInBytes = (uint)sizeof(IndirectDrawIndexedArgs),
+            StrideInBytes = (uint)sizeof(IndirectDrawIndexedArgs),
             Flags = BufferUsageFlags.Indirect | BufferUsageFlags.MapWrite
         });
 
@@ -154,15 +147,15 @@ internal class IndirectDrawingRenderer : IRenderer
 
         viewConstantsBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)Marshal.SizeOf<ViewConstants>(),
-            StrideInBytes = (uint)Marshal.SizeOf<ViewConstants>(),
+            SizeInBytes = (uint)sizeof(ViewConstants),
+            StrideInBytes = (uint)sizeof(ViewConstants),
             Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
         });
 
         instanceBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)(Marshal.SizeOf<InstanceData>() * InstanceCount),
-            StrideInBytes = (uint)Marshal.SizeOf<InstanceData>(),
+            SizeInBytes = (uint)(sizeof(InstanceData) * InstanceCount),
+            StrideInBytes = (uint)sizeof(InstanceData),
             Flags = BufferUsageFlags.ShaderResource | BufferUsageFlags.MapWrite
         });
 
@@ -370,8 +363,8 @@ The `IndirectDrawIndexedArgs` structure matches the GPU's expected format for in
 ```csharp
 indirectBuffer = App.Context.CreateBuffer(new()
 {
-    SizeInBytes = (uint)Marshal.SizeOf<IndirectDrawIndexedArgs>(),
-    StrideInBytes = (uint)Marshal.SizeOf<IndirectDrawIndexedArgs>(),
+    SizeInBytes = (uint)sizeof(IndirectDrawIndexedArgs),
+    StrideInBytes = (uint)sizeof(IndirectDrawIndexedArgs),
     Flags = BufferUsageFlags.Indirect | BufferUsageFlags.MapWrite
 });
 ```
@@ -383,8 +376,8 @@ indirectBuffer = App.Context.CreateBuffer(new()
 ```csharp
 instanceBuffer = App.Context.CreateBuffer(new()
 {
-    SizeInBytes = (uint)(Marshal.SizeOf<InstanceData>() * InstanceCount),
-    StrideInBytes = (uint)Marshal.SizeOf<InstanceData>(),
+    SizeInBytes = (uint)(sizeof(InstanceData) * InstanceCount),
+    StrideInBytes = (uint)sizeof(InstanceData),
     Flags = BufferUsageFlags.ShaderResource | BufferUsageFlags.MapWrite
 });
 ```

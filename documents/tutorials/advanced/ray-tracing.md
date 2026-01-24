@@ -73,18 +73,10 @@ Hit Groups bundle shaders that work together for a specific geometry type:
 Create a new file `Renderers/RayTracingRenderer.cs`:
 
 ```csharp
-using System;
-using System.Numerics;
-using System.Runtime.InteropServices;
-using Zenith.NET;
-using Zenith.NET.Extensions.Slang;
-using Buffer = Zenith.NET.Buffer;
-
 namespace ZenithTutorials.Renderers;
 
 internal unsafe class RayTracingRenderer : IRenderer
 {
-    // Ray tracing shader source
     private const string ShaderSource = """
         struct Sphere
         {

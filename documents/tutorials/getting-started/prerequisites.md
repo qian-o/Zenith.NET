@@ -75,7 +75,7 @@ Update your `.csproj` file:
 ```
 
 > [!NOTE]
-> `AllowUnsafeBlocks` is required for some low-level GPU operations.
+> `AllowUnsafeBlocks` is required for using `sizeof()` with custom structs.
 
 ## Project Structure
 
@@ -87,16 +87,30 @@ ZenithTutorials/
 ├── App.cs             # Application framework
 ├── IRenderer.cs       # Renderer interface
 ├── BindingHelper.cs   # Cross-platform resource binding helper
+├── Usings.cs          # Global using statements
 └── Renderers/         # All tutorial renderers
 ```
+
+## Global Usings
+
+Create `Usings.cs` for shared using statements across all files:
+
+```csharp
+global using System.Numerics;
+global using System.Runtime.InteropServices;
+global using Zenith.NET;
+global using Zenith.NET.Extensions.ImageSharp;
+global using Zenith.NET.Extensions.Slang;
+global using Buffer = Zenith.NET.Buffer;
+```
+
+This eliminates repetitive using statements in each renderer file.
 
 ## Renderer Interface
 
 All tutorial renderers implement a common interface. Create `IRenderer.cs`:
 
 ```csharp
-using System;
-
 namespace ZenithTutorials;
 
 internal interface IRenderer : IDisposable

@@ -16,18 +16,9 @@ We'll create a `ComputeShaderRenderer` class that:
 Create a new file `Renderers/ComputeShaderRenderer.cs`:
 
 ```csharp
-using System;
-using System.IO;
-using System.Numerics;
-using System.Runtime.InteropServices;
-using Zenith.NET;
-using Zenith.NET.Extensions.ImageSharp;
-using Zenith.NET.Extensions.Slang;
-using Buffer = Zenith.NET.Buffer;
-
 namespace ZenithTutorials.Renderers;
 
-internal class ComputeShaderRenderer : IRenderer
+internal unsafe class ComputeShaderRenderer : IRenderer
 {
     private const uint ThreadGroupSize = 16;
 
@@ -164,8 +155,8 @@ internal class ComputeShaderRenderer : IRenderer
 
         vertexBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)(Marshal.SizeOf<Vertex>() * vertices.Length),
-            StrideInBytes = (uint)Marshal.SizeOf<Vertex>(),
+            SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length),
+            StrideInBytes = (uint)sizeof(Vertex),
             Flags = BufferUsageFlags.Vertex | BufferUsageFlags.MapWrite
         });
         vertexBuffer.Upload(vertices, 0);
