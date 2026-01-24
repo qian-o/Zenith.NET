@@ -183,7 +183,7 @@ file struct Vertex(Vector3 position, Vector4 color)
 }
 ```
 
-The `Vertex` struct uses the `file` keyword to limit its visibility to the current source file. It uses a primary constructor and `LayoutKind.Sequential` ensures the memory layout matches what the GPU expects. The `unsafe` class modifier allows using `sizeof(Vertex)` for compile-time size calculation.
+The `Vertex` struct uses the `file` keyword to limit its visibility to the current source file. It uses a primary constructor and `LayoutKind.Sequential` ensures the memory layout matches what the GPU expects.
 
 ### Vertex Buffer
 

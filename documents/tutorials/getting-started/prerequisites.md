@@ -75,7 +75,7 @@ Update your `.csproj` file:
 ```
 
 > [!NOTE]
-> `AllowUnsafeBlocks` is required for using `sizeof()` with custom structs.
+> `AllowUnsafeBlocks` is required for some low-level GPU operations.
 
 ## Project Structure
 
