@@ -128,8 +128,6 @@ internal unsafe class SpinningCubeRenderer : IRenderer
             Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
         });
 
-
-
         resourceLayout = App.Context.CreateResourceLayout(new()
         {
             Bindings = BindingHelper.Bindings

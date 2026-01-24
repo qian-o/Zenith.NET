@@ -11,7 +11,9 @@ We'll create a `TexturedQuadRenderer` class that:
 - Creates a sampler for texture filtering
 - Binds texture and sampler using `ResourceLayout` and `ResourceSet`
 
-## Required Packages
+## Project Setup
+
+### Required Package
 
 Add the ImageSharp extension for loading images:
 
@@ -19,7 +21,25 @@ Add the ImageSharp extension for loading images:
 dotnet add package Zenith.NET.Extensions.ImageSharp
 ```
 
-## Project Setup
+Then add the global using to `Usings.cs`:
+
+```csharp
+global using Zenith.NET.Extensions.ImageSharp;
+```
+
+### Assets Configuration
+
+Update your `.csproj` to copy assets to the output directory:
+
+```xml
+<ItemGroup>
+  <None Update="Assets\**\*">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </None>
+</ItemGroup>
+```
+
+### Sample Image
 
 This tutorial uses the following sample image. Right-click to save it to your project's `Assets` folder:
 
@@ -33,16 +53,6 @@ ZenithTutorials/
 │   └── shoko.png      # Save the image above as shoko.png
 └── Renderers/
     └── TexturedQuadRenderer.cs
-```
-
-Update your `.csproj` to copy assets:
-
-```xml
-<ItemGroup>
-  <None Update="Assets\**\*">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-  </None>
-</ItemGroup>
 ```
 
 ## The Renderer Class

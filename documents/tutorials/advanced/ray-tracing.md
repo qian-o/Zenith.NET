@@ -77,6 +77,7 @@ namespace ZenithTutorials.Renderers;
 
 internal unsafe class RayTracingRenderer : IRenderer
 {
+    // Ray tracing shader source
     private const string ShaderSource = """
         struct Sphere
         {

@@ -59,6 +59,7 @@ Update your `.csproj` file:
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
@@ -99,7 +100,6 @@ Create `Usings.cs` for shared using statements across all files:
 global using System.Numerics;
 global using System.Runtime.InteropServices;
 global using Zenith.NET;
-global using Zenith.NET.Extensions.ImageSharp;
 global using Zenith.NET.Extensions.Slang;
 global using Buffer = Zenith.NET.Buffer;
 ```
@@ -143,8 +143,6 @@ Different graphics backends use different indexing schemes for resource bindings
 Create `BindingHelper.cs` to handle these differences automatically:
 
 ```csharp
-using Zenith.NET;
-
 namespace ZenithTutorials;
 
 internal static class BindingHelper
@@ -257,9 +255,7 @@ All tutorials share a common application framework that handles window creation,
 Create `App.cs` as the reusable application framework:
 
 ```csharp
-using System;
 using Silk.NET.Windowing;
-using Zenith.NET;
 using Zenith.NET.DirectX12;
 using Zenith.NET.Metal;
 using Zenith.NET.Vulkan;
