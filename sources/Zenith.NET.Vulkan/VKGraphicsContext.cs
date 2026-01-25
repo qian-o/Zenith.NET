@@ -119,6 +119,8 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
     {
         using ZenithMarshal.Scope scope = new();
 
+        Version32 apiVersion = new(1, 4, 0);
+
         // Create instance
         {
             uint extensionCount = 0;
@@ -137,7 +139,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                 ApplicationVersion = new Version32(1, 0, 0),
                 PEngineName = (byte*)ZenithMarshal.StringToPointer(scope, "Zenith.NET", StringEncoding.UTF8),
                 EngineVersion = new Version32(1, 0, 0),
-                ApiVersion = Vk.Version13
+                ApiVersion = apiVersion
             };
 
             InstanceCreateInfo createInfo = new()
@@ -193,7 +195,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                 PhysicalDeviceFeatures features;
                 Vk.GetPhysicalDeviceFeatures(physicalDevice, &features);
 
-                if (properties.ApiVersion < Vk.Version13)
+                if (properties.ApiVersion < apiVersion)
                 {
                     continue;
                 }
@@ -402,6 +404,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             };
 
             createInfo.AddNext(out PhysicalDeviceFeatures2 features2);
+            createInfo.AddNext(out PhysicalDeviceVulkan14Features _);
             createInfo.AddNext(out PhysicalDeviceVulkan13Features _);
             createInfo.AddNext(out PhysicalDeviceVulkan12Features _);
             createInfo.AddNext(out PhysicalDeviceVulkan11Features _);
