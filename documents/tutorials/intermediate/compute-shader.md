@@ -10,6 +10,7 @@ We'll create a `ComputeShaderRenderer` class that:
 - Creates an output texture with read/write access
 - Builds a compute pipeline
 - Dispatches compute work to process the image
+- Copies the result to the swap chain for display
 
 ## The Renderer Class
 
@@ -49,54 +50,11 @@ internal unsafe class ComputeShaderRenderer : IRenderer
         }
         """;
 
-    // Shader for displaying the processed texture
-    private const string DisplayShaderSource = """
-        struct VSInput
-        {
-            float3 Position : POSITION0;
-
-            float2 TexCoord : TEXCOORD0;
-        };
-
-        struct PSInput
-        {
-            float4 Position : SV_POSITION;
-
-            float2 TexCoord : TEXCOORD0;
-        };
-
-        Texture2D displayTexture;
-        SamplerState samplerState;
-
-        PSInput VSMain(VSInput input)
-        {
-            PSInput output;
-            output.Position = float4(input.Position, 1.0);
-            output.TexCoord = input.TexCoord;
-
-            return output;
-        }
-
-        float4 PSMain(PSInput input) : SV_TARGET
-        {
-            return displayTexture.Sample(samplerState, input.TexCoord);
-        }
-        """;
-
-    // Compute resources
     private readonly Texture inputTexture;
     private readonly Texture outputTexture;
-    private readonly ResourceLayout computeResourceLayout;
-    private readonly ResourceSet computeResourceSet;
-    private readonly ComputePipeline computePipeline;
-
-    // Display resources
-    private readonly Buffer vertexBuffer;
-    private readonly Buffer indexBuffer;
-    private readonly Sampler sampler;
-    private readonly ResourceLayout displayResourceLayout;
-    private readonly ResourceSet displayResourceSet;
-    private readonly GraphicsPipeline displayPipeline;
+    private readonly ResourceLayout resourceLayout;
+    private readonly ResourceSet resourceSet;
+    private readonly ComputePipeline pipeline;
 
     private bool processed;
 
@@ -117,7 +75,7 @@ internal unsafe class ComputeShaderRenderer : IRenderer
             Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
-        computeResourceLayout = App.Context.CreateResourceLayout(new()
+        resourceLayout = App.Context.CreateResourceLayout(new()
         {
             Bindings = BindingHelper.Bindings
             (
@@ -126,94 +84,21 @@ internal unsafe class ComputeShaderRenderer : IRenderer
             )
         });
 
-        computeResourceSet = App.Context.CreateResourceSet(new()
+        resourceSet = App.Context.CreateResourceSet(new()
         {
-            Layout = computeResourceLayout,
+            Layout = resourceLayout,
             Resources = [inputTexture, outputTexture]
         });
 
         using Shader computeShader = App.Context.LoadShaderFromSource(ComputeShaderSource, "CSMain", ShaderStageFlags.Compute);
 
-        computePipeline = App.Context.CreateComputePipeline(new()
+        pipeline = App.Context.CreateComputePipeline(new()
         {
             Compute = computeShader,
-            ResourceLayouts = [computeResourceLayout],
+            ResourceLayouts = [resourceLayout],
             ThreadGroupSizeX = ThreadGroupSize,
             ThreadGroupSizeY = ThreadGroupSize,
             ThreadGroupSizeZ = 1
-        });
-
-        Vertex[] vertices =
-        [
-            new(new(-1.0f,  1.0f, 0.0f), new(0.0f, 0.0f)),
-            new(new( 1.0f,  1.0f, 0.0f), new(1.0f, 0.0f)),
-            new(new( 1.0f, -1.0f, 0.0f), new(1.0f, 1.0f)),
-            new(new(-1.0f, -1.0f, 0.0f), new(0.0f, 1.0f)),
-        ];
-
-        uint[] indices = [0, 1, 2, 0, 2, 3];
-
-        vertexBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length),
-            StrideInBytes = (uint)sizeof(Vertex),
-            Flags = BufferUsageFlags.Vertex | BufferUsageFlags.MapWrite
-        });
-        vertexBuffer.Upload(vertices, 0);
-
-        indexBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(uint) * indices.Length),
-            StrideInBytes = sizeof(uint),
-            Flags = BufferUsageFlags.Index | BufferUsageFlags.MapWrite
-        });
-        indexBuffer.Upload(indices, 0);
-
-        sampler = App.Context.CreateSampler(new()
-        {
-            U = AddressMode.Clamp,
-            V = AddressMode.Clamp,
-            W = AddressMode.Clamp,
-            Filter = Filter.MinLinearMagLinearMipLinear,
-            MaxLod = uint.MaxValue
-        });
-
-        displayResourceLayout = App.Context.CreateResourceLayout(new()
-        {
-            Bindings = BindingHelper.Bindings
-            (
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Pixel }
-            )
-        });
-
-        displayResourceSet = App.Context.CreateResourceSet(new()
-        {
-            Layout = displayResourceLayout,
-            Resources = [outputTexture, sampler]
-        });
-
-        InputLayout inputLayout = new();
-        inputLayout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position });
-        inputLayout.Add(new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.TexCoord });
-
-        using Shader vertexShader = App.Context.LoadShaderFromSource(DisplayShaderSource, "VSMain", ShaderStageFlags.Vertex);
-        using Shader pixelShader = App.Context.LoadShaderFromSource(DisplayShaderSource, "PSMain", ShaderStageFlags.Pixel);
-
-        displayPipeline = App.Context.CreateGraphicsPipeline(new()
-        {
-            RenderStates = new()
-            {
-                RasterizerState = RasterizerStates.CullNone,
-                DepthStencilState = DepthStencilStates.None,
-                BlendState = BlendStates.Opaque
-            },
-            Vertex = vertexShader,
-            Pixel = pixelShader,
-            ResourceLayouts = [displayResourceLayout],
-            InputLayouts = [inputLayout],
-            PrimitiveTopology = PrimitiveTopology.TriangleList,
-            Output = App.SwapChain.FrameBuffer.Output
         });
     }
 
@@ -230,28 +115,33 @@ internal unsafe class ComputeShaderRenderer : IRenderer
             uint dispatchX = (inputTexture.Desc.Width + ThreadGroupSize - 1) / ThreadGroupSize;
             uint dispatchY = (inputTexture.Desc.Height + ThreadGroupSize - 1) / ThreadGroupSize;
 
-            commandBuffer.SetPipeline(computePipeline);
-            commandBuffer.SetResourceSet(computeResourceSet, 0);
+            commandBuffer.SetPipeline(pipeline);
+            commandBuffer.SetResourceSet(resourceSet, 0);
             commandBuffer.Dispatch(dispatchX, dispatchY, 1);
 
             processed = true;
         }
 
-        commandBuffer.BeginRenderPass(App.SwapChain.FrameBuffer, new()
-        {
-            ColorValues = [new(0.0f, 0.0f, 0.0f, 1.0f)],
-            Depth = 1.0f,
-            Stencil = 0,
-            Flags = ClearFlags.All
-        }, displayResourceSet);
+        // Copy the processed texture to the swap chain's color target (centered)
+        Texture colorTarget = App.SwapChain.FrameBuffer.Desc.ColorAttachments[0].Target;
 
-        commandBuffer.SetPipeline(displayPipeline);
-        commandBuffer.SetResourceSet(displayResourceSet, 0);
-        commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
-        commandBuffer.SetIndexBuffer(indexBuffer, 0, IndexFormat.UInt32);
-        commandBuffer.DrawIndexed(6, 1, 0, 0, 0);
+        // Clamp copy region to fit within both textures
+        uint copyWidth = Math.Min(outputTexture.Desc.Width, App.Width);
+        uint copyHeight = Math.Min(outputTexture.Desc.Height, App.Height);
 
-        commandBuffer.EndRenderPass();
+        // Center the copy region
+        uint srcX = (outputTexture.Desc.Width - copyWidth) / 2;
+        uint srcY = (outputTexture.Desc.Height - copyHeight) / 2;
+        uint destX = (App.Width - copyWidth) / 2;
+        uint destY = (App.Height - copyHeight) / 2;
+
+        commandBuffer.CopyTexture(outputTexture,
+                                  default,
+                                  new() { X = srcX, Y = srcY, Z = 0 },
+                                  colorTarget,
+                                  default,
+                                  new() { X = destX, Y = destY, Z = 0 },
+                                  new() { Width = copyWidth, Height = copyHeight, Depth = 1 });
 
         commandBuffer.Submit(waitForCompletion: true);
     }
@@ -262,30 +152,12 @@ internal unsafe class ComputeShaderRenderer : IRenderer
 
     public void Dispose()
     {
-        displayPipeline.Dispose();
-        displayResourceSet.Dispose();
-        displayResourceLayout.Dispose();
-        sampler.Dispose();
-        indexBuffer.Dispose();
-        vertexBuffer.Dispose();
-
-        computePipeline.Dispose();
-        computeResourceSet.Dispose();
-        computeResourceLayout.Dispose();
+        pipeline.Dispose();
+        resourceSet.Dispose();
+        resourceLayout.Dispose();
         outputTexture.Dispose();
         inputTexture.Dispose();
     }
-}
-
-/// <summary>
-/// Vertex structure with position and texture coordinates.
-/// </summary>
-[StructLayout(LayoutKind.Sequential)]
-file struct Vertex(Vector3 position, Vector2 texCoord)
-{
-    public Vector3 Position = position;
-
-    public Vector2 TexCoord = texCoord;
 }
 ```
 
@@ -323,6 +195,9 @@ RWTexture2D outputTexture;
 [numthreads(16, 16, 1)]
 void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
+    uint width, height;
+    outputTexture.GetDimensions(width, height);
+
     // Bounds check
     if (dispatchThreadID.x >= width || dispatchThreadID.y >= height)
     {
@@ -367,7 +242,7 @@ outputTexture = App.Context.CreateTexture(new()
 ### Compute Resource Layout
 
 ```csharp
-computeResourceLayout = App.Context.CreateResourceLayout(new()
+resourceLayout = App.Context.CreateResourceLayout(new()
 {
     Bindings = BindingHelper.Bindings
     (
@@ -384,10 +259,10 @@ Note the differences from graphics shaders:
 ### Compute Pipeline Creation
 
 ```csharp
-computePipeline = App.Context.CreateComputePipeline(new()
+pipeline = App.Context.CreateComputePipeline(new()
 {
     Compute = computeShader,
-    ResourceLayouts = [computeResourceLayout],
+    ResourceLayouts = [resourceLayout],
     ThreadGroupSizeX = ThreadGroupSize,
     ThreadGroupSizeY = ThreadGroupSize,
     ThreadGroupSizeZ = 1
@@ -405,8 +280,8 @@ The `ComputePipelineDesc` requires:
 uint dispatchX = (inputTexture.Desc.Width + ThreadGroupSize - 1) / ThreadGroupSize;
 uint dispatchY = (inputTexture.Desc.Height + ThreadGroupSize - 1) / ThreadGroupSize;
 
-commandBuffer.SetPipeline(computePipeline);
-commandBuffer.SetResourceSet(computeResourceSet, 0);
+commandBuffer.SetPipeline(pipeline);
+commandBuffer.SetResourceSet(resourceSet, 0);
 commandBuffer.Dispatch(dispatchX, dispatchY, 1);
 ```
 
@@ -414,6 +289,40 @@ The `Dispatch` call executes the compute shader:
 - `dispatchX` × `dispatchY` × `dispatchZ` = total thread groups
 - Each group runs `ThreadGroupSize` × `ThreadGroupSize` × 1 threads
 - The formula `(size + groupSize - 1) / groupSize` ensures full coverage
+
+### Copying to the Swap Chain
+
+```csharp
+Texture colorTarget = App.SwapChain.FrameBuffer.Desc.ColorAttachments[0].Target;
+
+// Clamp copy region to fit within both textures
+uint copyWidth = Math.Min(outputTexture.Desc.Width, App.Width);
+uint copyHeight = Math.Min(outputTexture.Desc.Height, App.Height);
+
+// Center the copy region
+uint srcX = (outputTexture.Desc.Width - copyWidth) / 2;
+uint srcY = (outputTexture.Desc.Height - copyHeight) / 2;
+uint destX = (App.Width - copyWidth) / 2;
+uint destY = (App.Height - copyHeight) / 2;
+
+commandBuffer.CopyTexture(outputTexture,
+                          default,
+                          new() { X = srcX, Y = srcY, Z = 0 },
+                          colorTarget,
+                          default,
+                          new() { X = destX, Y = destY, Z = 0 },
+                          new() { Width = copyWidth, Height = copyHeight, Depth = 1 });
+```
+
+Instead of using a full-screen quad with a graphics pipeline, we directly copy the processed texture to the swap chain's color target:
+
+- `App.SwapChain.FrameBuffer.Desc.ColorAttachments[0].Target` - Gets the swap chain's render target texture
+- `CopyTexture` - Efficiently copies texture data on the GPU without needing shaders or render passes
+- `copyWidth` / `copyHeight` - Clamps the copy region to fit within both source and destination textures
+- `srcX` / `srcY` - Centers the source region when the texture is larger than the window
+- `destX` / `destY` - Centers the destination region when the texture is smaller than the window
+
+This approach is simpler and more efficient when you just need to display a texture without additional processing.
 
 ## Next Steps
 

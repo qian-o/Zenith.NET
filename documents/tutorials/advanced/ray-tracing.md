@@ -14,6 +14,7 @@ We'll create a `RayTracingRenderer` class that:
 - Builds separate BLAS for floor and spheres, combined in a TLAS
 - Implements shadow rays for hard shadows
 - Creates a ray tracing pipeline with multiple hit groups
+- Copies the result to the swap chain for display
 
 ## Key Concepts
 
@@ -283,40 +284,6 @@ internal unsafe class RayTracingRenderer : IRenderer
         }
         """;
 
-    // Shader for displaying the ray traced result
-    private const string DisplayShaderSource = """
-        struct VSInput
-        {
-            float3 Position : POSITION0;
-
-            float2 TexCoord : TEXCOORD0;
-        };
-
-        struct PSInput
-        {
-            float4 Position : SV_POSITION;
-
-            float2 TexCoord : TEXCOORD0;
-        };
-
-        Texture2D displayTexture;
-        SamplerState samplerState;
-
-        PSInput VSMain(VSInput input)
-        {
-            PSInput output;
-            output.Position = float4(input.Position, 1.0);
-            output.TexCoord = input.TexCoord;
-
-            return output;
-        }
-
-        float4 PSMain(PSInput input) : SV_TARGET
-        {
-            return displayTexture.Sample(samplerState, input.TexCoord);
-        }
-        """;
-
     private readonly Buffer floorVertexBuffer;
     private readonly Buffer floorIndexBuffer;
     private readonly Buffer sphereBuffer;
@@ -326,18 +293,8 @@ internal unsafe class RayTracingRenderer : IRenderer
     private readonly TopLevelAccelerationStructure tlas;
     private readonly ResourceLayout resourceLayout;
     private readonly RayTracingPipeline pipeline;
-
-    // Display resources
-    private readonly Sampler sampler;
-    private readonly ResourceLayout displayResourceLayout;
-    private readonly GraphicsPipeline displayPipeline;
-    private readonly Buffer quadVertexBuffer;
-    private readonly Buffer quadIndexBuffer;
-
-    // Resizable resources
     private Texture? outputTexture;
     private ResourceSet? resourceSet;
-    private ResourceSet? displayResourceSet;
 
     public RayTracingRenderer()
     {
@@ -533,73 +490,6 @@ internal unsafe class RayTracingRenderer : IRenderer
             MaxPayloadSizeInBytes = 16,
             MaxAttributeSizeInBytes = 16
         });
-
-        // Create display resources
-        sampler = App.Context.CreateSampler(new()
-        {
-            U = AddressMode.Clamp,
-            V = AddressMode.Clamp,
-            W = AddressMode.Clamp,
-            Filter = Filter.MinLinearMagLinearMipLinear,
-            MaxLod = uint.MaxValue
-        });
-
-        displayResourceLayout = App.Context.CreateResourceLayout(new()
-        {
-            Bindings = BindingHelper.Bindings
-            (
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Pixel }
-            )
-        });
-
-        using Shader displayVS = App.Context.LoadShaderFromSource(DisplayShaderSource, "VSMain", ShaderStageFlags.Vertex);
-        using Shader displayPS = App.Context.LoadShaderFromSource(DisplayShaderSource, "PSMain", ShaderStageFlags.Pixel);
-
-        InputLayout displayInputLayout = new();
-        displayInputLayout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position });
-        displayInputLayout.Add(new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.TexCoord });
-
-        displayPipeline = App.Context.CreateGraphicsPipeline(new()
-        {
-            RenderStates = new()
-            {
-                RasterizerState = RasterizerStates.CullNone,
-                DepthStencilState = DepthStencilStates.None,
-                BlendState = BlendStates.Opaque
-            },
-            Vertex = displayVS,
-            Pixel = displayPS,
-            ResourceLayouts = [displayResourceLayout],
-            InputLayouts = [displayInputLayout],
-            PrimitiveTopology = PrimitiveTopology.TriangleList,
-            Output = App.SwapChain.FrameBuffer.Output
-        });
-
-        float[] quadVertices =
-        [
-            -1,  1, 0, 0, 0,
-             1,  1, 0, 1, 0,
-             1, -1, 0, 1, 1,
-            -1, -1, 0, 0, 1
-        ];
-        uint[] quadIndices = [0, 1, 2, 0, 2, 3];
-
-        quadVertexBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(float) * quadVertices.Length),
-            StrideInBytes = sizeof(float) * 5,
-            Flags = BufferUsageFlags.Vertex | BufferUsageFlags.MapWrite
-        });
-        quadVertexBuffer.Upload(quadVertices, 0);
-
-        quadIndexBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(uint) * quadIndices.Length),
-            StrideInBytes = sizeof(uint),
-            Flags = BufferUsageFlags.Index | BufferUsageFlags.MapWrite
-        });
-        quadIndexBuffer.Upload(quadIndices, 0);
     }
 
     public void Update(double deltaTime)
@@ -628,33 +518,22 @@ internal unsafe class RayTracingRenderer : IRenderer
             Resources = [tlas, outputTexture, sphereBuffer]
         });
 
-        displayResourceSet ??= App.Context.CreateResourceSet(new()
-        {
-            Layout = displayResourceLayout,
-            Resources = [outputTexture, sampler]
-        });
-
         CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
 
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetResourceSet(resourceSet, 0);
         commandBuffer.DispatchRays(App.Width, App.Height, 1);
 
-        commandBuffer.BeginRenderPass(App.SwapChain.FrameBuffer, new()
-        {
-            ColorValues = [new(0, 0, 0, 1)],
-            Depth = 1.0f,
-            Stencil = 0,
-            Flags = ClearFlags.All
-        }, displayResourceSet);
+        // Copy the ray traced result to the swap chain's color target
+        Texture colorTarget = App.SwapChain.FrameBuffer.Desc.ColorAttachments[0].Target;
 
-        commandBuffer.SetPipeline(displayPipeline);
-        commandBuffer.SetResourceSet(displayResourceSet, 0);
-        commandBuffer.SetVertexBuffer(quadVertexBuffer, 0, 0);
-        commandBuffer.SetIndexBuffer(quadIndexBuffer, 0, IndexFormat.UInt32);
-        commandBuffer.DrawIndexed(6, 1, 0, 0, 0);
-
-        commandBuffer.EndRenderPass();
+        commandBuffer.CopyTexture(outputTexture,
+                                  default,
+                                  default,
+                                  colorTarget,
+                                  default,
+                                  default,
+                                  new() { Width = App.Width, Height = App.Height, Depth = 1 });
 
         commandBuffer.Submit(waitForCompletion: true);
     }
@@ -663,23 +542,14 @@ internal unsafe class RayTracingRenderer : IRenderer
     {
         resourceSet?.Dispose();
         resourceSet = null;
-        displayResourceSet?.Dispose();
-        displayResourceSet = null;
         outputTexture?.Dispose();
         outputTexture = null;
     }
 
     public void Dispose()
     {
-        displayResourceSet?.Dispose();
         resourceSet?.Dispose();
         outputTexture?.Dispose();
-
-        quadIndexBuffer.Dispose();
-        quadVertexBuffer.Dispose();
-        displayPipeline.Dispose();
-        displayResourceLayout.Dispose();
-        sampler.Dispose();
 
         pipeline.Dispose();
         resourceLayout.Dispose();
@@ -941,6 +811,22 @@ commandBuffer.DispatchRays(App.Width, App.Height, 1);
 ```
 
 `DispatchRays(width, height, depth)` launches the ray generation shader for each pixel.
+
+### Copying to the Swap Chain
+
+```csharp
+Texture colorTarget = App.SwapChain.FrameBuffer.Desc.ColorAttachments[0].Target;
+
+commandBuffer.CopyTexture(outputTexture,
+                          default,
+                          default,
+                          colorTarget,
+                          default,
+                          default,
+                          new() { Width = App.Width, Height = App.Height, Depth = 1 });
+```
+
+Instead of using a full-screen quad with a graphics pipeline, we directly copy the ray traced result to the swap chain's color target. This is simpler and more efficient when you just need to display a texture without additional processing.
 
 ## Next Steps
 
