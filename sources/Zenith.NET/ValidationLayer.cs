@@ -321,6 +321,16 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "SamplerDesc.Filter", desc.Filter));
         }
 
+        if (desc.Filter is Filter.Anisotropic && desc.MaxAnisotropy is 0)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "SamplerDesc.MaxAnisotropy"));
+        }
+
+        if (desc.MaxAnisotropy > ValidationConstants.MaxAnisotropy)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, "SamplerDesc.MaxAnisotropy", ValidationConstants.MaxAnisotropy));
+        }
+
         if (!Enum.IsDefined(desc.ComparisonFunc))
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "SamplerDesc.ComparisonFunc", desc.ComparisonFunc));
@@ -360,6 +370,13 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         if (desc.Layout is null)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceSetDesc.Layout"));
+
+            return;
+        }
+
+        if (desc.Layout.IsDisposed)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ResourceSetDesc.Layout"));
 
             return;
         }
@@ -505,6 +522,11 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             }
         }
 
+        if (desc.PrimitiveTopology is not (>= PrimitiveTopology.PointList and <= PrimitiveTopology.TriangleStripWithAdjacency or >= PrimitiveTopology.PatchList))
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "GraphicsPipelineDesc.PrimitiveTopology", desc.PrimitiveTopology));
+        }
+
         CheckOutput("GraphicsPipelineDesc.Output", desc.Output);
 
         void CheckInputLayout(string name, InputLayout inputLayout)
@@ -638,6 +660,13 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.HitGroups"));
         }
+        else
+        {
+            for (int i = 0; i < desc.HitGroups.Length; i++)
+            {
+                CheckHitGroup($"RayTracingPipelineDesc.HitGroups[{i}]", desc.HitGroups[i]);
+            }
+        }
 
         if (desc.ResourceLayouts is null)
         {
@@ -667,6 +696,19 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         if (desc.MaxAttributeSizeInBytes is 0)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "RayTracingPipelineDesc.MaxAttributeSizeInBytes"));
+        }
+
+        void CheckHitGroup(string name, HitGroup hitGroup)
+        {
+            if (!Enum.IsDefined(hitGroup.Type))
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.Type", hitGroup.Type));
+            }
+
+            if (string.IsNullOrWhiteSpace(hitGroup.Name))
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNullOrWhitespace, $"{name}.Name"));
+            }
         }
     }
 
@@ -1052,6 +1094,8 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 file static class ValidationConstants
 {
     public const int CubeMapFaceCount = 6;
+
+    public const int MaxAnisotropy = 16;
 
     public const int MaxTraceRecursionDepth = 31;
 
