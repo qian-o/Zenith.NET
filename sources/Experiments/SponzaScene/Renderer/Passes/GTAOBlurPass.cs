@@ -86,11 +86,11 @@ internal unsafe class GTAOBlurPass : FullscreenPass
 
         base.Destroy();
     }
+}
 
-    private struct BlurConstants
-    {
-        public Vector2 TexelSize;
+file struct BlurConstants
+{
+    public Vector2 TexelSize;
 
-        public int BlurSize;
-    }
+    public int BlurSize;
 }

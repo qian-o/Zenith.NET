@@ -124,13 +124,13 @@ internal unsafe class LightingPass : FullscreenPass
 
         base.Destroy();
     }
+}
 
-    private struct LightingConstants
-    {
-        public Vector4 CameraPosition;
+file struct LightingConstants
+{
+    public Vector4 CameraPosition;
 
-        public Matrix4x4 InverseViewProjection;
+    public Matrix4x4 InverseViewProjection;
 
-        public DirectionalLight DirectionalLight;
-    }
+    public DirectionalLight DirectionalLight;
 }

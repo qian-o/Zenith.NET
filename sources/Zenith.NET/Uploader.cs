@@ -3,8 +3,8 @@
 internal class Uploader(GraphicsContext context) : DisposableObject
 {
     private readonly Lock @lock = new();
-    private readonly List<ResourceLease<Buffer>> available = [];
-    private readonly Dictionary<CommandBuffer, Buffer[]> used = [];
+    private readonly List<BufferLease> leases = [];
+    private readonly Dictionary<CommandBuffer, Buffer[]> borrowed = [];
 
     public Buffer Buffer(CommandBuffer commandBuffer, uint sizeInBytes)
     {
@@ -12,15 +12,15 @@ internal class Uploader(GraphicsContext context) : DisposableObject
 
         CleanupExpiredLeases();
 
-        if (!used.TryGetValue(commandBuffer, out Buffer[]? buffers))
+        if (!borrowed.TryGetValue(commandBuffer, out Buffer[]? buffers))
         {
-            used[commandBuffer] = buffers = [];
+            borrowed[commandBuffer] = buffers = [];
         }
 
         Buffer buffer;
-        if (available.FirstOrDefault(item => item.Resource.Desc.SizeInBytes >= sizeInBytes) is ResourceLease<Buffer> lease && available.Remove(lease))
+        if (leases.FirstOrDefault(item => item.Buffer.Desc.SizeInBytes >= sizeInBytes) is BufferLease lease && leases.Remove(lease))
         {
-            buffer = lease.Resource;
+            buffer = lease.Buffer;
         }
         else
         {
@@ -32,7 +32,7 @@ internal class Uploader(GraphicsContext context) : DisposableObject
             });
         }
 
-        used[commandBuffer] = [.. buffers, buffer];
+        borrowed[commandBuffer] = [.. buffers, buffer];
 
         return buffer;
     }
@@ -43,43 +43,43 @@ internal class Uploader(GraphicsContext context) : DisposableObject
 
         CleanupExpiredLeases();
 
-        if (used.Remove(commandBuffer, out Buffer[]? buffers))
+        if (borrowed.Remove(commandBuffer, out Buffer[]? buffers))
         {
             foreach (Buffer buffer in buffers)
             {
-                available.Add(new(buffer));
+                leases.Add(new(buffer));
             }
         }
     }
 
     protected override void Destroy()
     {
-        foreach (ResourceLease<Buffer> lease in available)
+        foreach (BufferLease lease in leases)
         {
             lease.Release();
         }
-        available.Clear();
+        leases.Clear();
 
-        foreach (Buffer[] buffers in used.Values)
+        foreach (Buffer[] buffers in borrowed.Values)
         {
             foreach (Buffer buffer in buffers)
             {
                 buffer.Dispose();
             }
         }
-        used.Clear();
+        borrowed.Clear();
     }
 
     private void CleanupExpiredLeases()
     {
-        available.RemoveAll(static item => item.TryExpire());
+        leases.RemoveAll(static item => item.TryExpire());
     }
 
-    private class ResourceLease<T>(T resource) where T : DisposableObject
+    private class BufferLease(Buffer buffer)
     {
         private readonly DateTime expirationTime = DateTime.UtcNow + TimeSpan.FromSeconds(120);
 
-        public T Resource { get; } = resource;
+        public Buffer Buffer { get; } = buffer;
 
         public bool TryExpire()
         {
@@ -95,7 +95,7 @@ internal class Uploader(GraphicsContext context) : DisposableObject
 
         public void Release()
         {
-            Resource.Dispose();
+            Buffer.Dispose();
         }
     }
 }

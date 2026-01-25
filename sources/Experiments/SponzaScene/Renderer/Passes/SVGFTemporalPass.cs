@@ -149,19 +149,19 @@ internal unsafe class SVGFTemporalPass : FullscreenPass
 
         base.Destroy();
     }
+}
 
-    private struct TemporalConstants
-    {
-        public Matrix4x4 PrevViewProjection;
+file struct TemporalConstants
+{
+    public Matrix4x4 PrevViewProjection;
 
-        public Vector2 ViewportSize;
+    public Vector2 ViewportSize;
 
-        public float ColorBoxSigma;
+    public float ColorBoxSigma;
 
-        public float NormalThreshold;
+    public float NormalThreshold;
 
-        public float DepthThreshold;
+    public float DepthThreshold;
 
-        public int MaxHistoryLength;
-    }
+    public int MaxHistoryLength;
 }

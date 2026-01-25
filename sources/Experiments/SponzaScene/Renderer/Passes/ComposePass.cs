@@ -94,13 +94,13 @@ internal unsafe class ComposePass : FullscreenPass
 
         base.Destroy();
     }
+}
 
-    private struct ComposeConstants
-    {
-        public float AOStrength;
+file struct ComposeConstants
+{
+    public float AOStrength;
 
-        public float BloomIntensity;
+    public float BloomIntensity;
 
-        public float VolumetricIntensity;
-    }
+    public float VolumetricIntensity;
 }

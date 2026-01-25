@@ -127,9 +127,9 @@ internal unsafe class BloomPass : RenderPass
             Resources = [constantBuffer, context.HorizontalBloom!, context.VerticalBloom!, App.LinearSampler]
         });
     }
+}
 
-    private struct BloomConstants
-    {
-        public Vector2 TexelSize;
-    }
+file struct BloomConstants
+{
+    public Vector2 TexelSize;
 }

@@ -117,25 +117,25 @@ internal unsafe class VolumetricLightPass : FullscreenPass
 
         base.Destroy();
     }
+}
 
-    private struct VolumetricLightConstants
-    {
-        public Vector4 CameraPosition;
+file struct VolumetricLightConstants
+{
+    public Vector4 CameraPosition;
 
-        public Vector4 LightDirection;
+    public Vector4 LightDirection;
 
-        public Vector4 LightColor;
+    public Vector4 LightColor;
 
-        public Matrix4x4 InverseViewProjection;
+    public Matrix4x4 InverseViewProjection;
 
-        public Vector2 ScreenSize;
+    public Vector2 ScreenSize;
 
-        public int SampleCount;
+    public int SampleCount;
 
-        public float Intensity;
+    public float Intensity;
 
-        public float Scattering;
+    public float Scattering;
 
-        public float MaxDistance;
-    }
+    public float MaxDistance;
 }

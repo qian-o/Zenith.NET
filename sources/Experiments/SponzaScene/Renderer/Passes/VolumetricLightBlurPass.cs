@@ -130,9 +130,9 @@ internal unsafe class VolumetricLightBlurPass : RenderPass
             ]
         });
     }
+}
 
-    private struct BlurConstants
-    {
-        public Vector2 TexelSize;
-    }
+file struct BlurConstants
+{
+    public Vector2 TexelSize;
 }

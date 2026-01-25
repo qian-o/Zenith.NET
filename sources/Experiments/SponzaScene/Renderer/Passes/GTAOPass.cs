@@ -106,27 +106,27 @@ internal unsafe class GTAOPass : FullscreenPass
 
         base.Destroy();
     }
+}
 
-    private struct GTAOConstants
-    {
-        public Matrix4x4 View;
+file struct GTAOConstants
+{
+    public Matrix4x4 View;
 
-        public Matrix4x4 Projection;
+    public Matrix4x4 Projection;
 
-        public Vector2 ViewportSize;
+    public Vector2 ViewportSize;
 
-        public float EffectRadius;
+    public float EffectRadius;
 
-        public float EffectFalloffRange;
+    public float EffectFalloffRange;
 
-        public float RadiusMultiplier;
+    public float RadiusMultiplier;
 
-        public float FinalValuePower;
+    public float FinalValuePower;
 
-        public float SampleDistributionPower;
+    public float SampleDistributionPower;
 
-        public int SliceCount;
+    public int SliceCount;
 
-        public int StepsPerSlice;
-    }
+    public int StepsPerSlice;
 }

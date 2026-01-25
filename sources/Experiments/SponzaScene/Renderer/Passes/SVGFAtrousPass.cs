@@ -156,17 +156,17 @@ internal unsafe class SVGFAtrousPass : RenderPass
             ]
         });
     }
+}
 
-    private struct AtrousConstants
-    {
-        public Vector2 ViewportSize;
+file struct AtrousConstants
+{
+    public Vector2 ViewportSize;
 
-        public int StepWidth;
+    public int StepWidth;
 
-        public float PhiColor;
+    public float PhiColor;
 
-        public float PhiNormal;
+    public float PhiNormal;
 
-        public float PhiDepth;
-    }
+    public float PhiDepth;
 }
