@@ -104,11 +104,6 @@ float4 PSMain(VSOutput input) : SV_TARGET
         ]
     };
 
-    private struct Constants
-    {
-        public Matrix4x4 Projection;
-    }
-
     private readonly Buffer constants;
     private readonly Sampler sampler;
     private readonly ResourceLayout resourceLayout;
@@ -489,4 +484,9 @@ float4 PSMain(VSOutput input) : SV_TARGET
         sampler.Dispose();
         constants.Dispose();
     }
+}
+
+file struct Constants
+{
+    public Matrix4x4 Projection;
 }
