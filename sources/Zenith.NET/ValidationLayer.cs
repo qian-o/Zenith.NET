@@ -1055,13 +1055,13 @@ file static class ValidationConstants
 
     public const int MaxTraceRecursionDepth = 31;
 
-    public const int MaxInstanceId = 16777215;
-
-    public const int MaxHitGroupIndex = 65535;
-
     public const int IndexSizeUInt16 = 2;
 
     public const int IndexSizeUInt32 = 4;
+
+    public const int MaxInstanceId = 16777215;
+
+    public const int MaxHitGroupIndex = 65535;
 }
 
 file static class ValidationMessages
