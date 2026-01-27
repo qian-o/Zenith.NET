@@ -69,11 +69,11 @@ Before starting, ensure you have:
 
 | Platform | DirectX 12 | Metal 4 | Vulkan 1.4 |
 |----------|:----------:|:-------:|:----------:|
-| Windows  | ✅ | - | ✅ |
-| Linux    | - | - | ✅ |
-| Android  | - | - | ✅ |
-| macOS    | - | ✅ | ✅ |
-| iOS      | - | ✅ | ✅ |
+| Windows  | <span class="status-yes">Yes</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
+| Linux    | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
+| Android  | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
+| macOS    | <span class="status-no">No</span> | <span class="status-yes">Yes</span> | <span class="status-yes">Yes</span> |
+| iOS      | <span class="status-no">No</span> | <span class="status-yes">Yes</span> | <span class="status-yes">Yes</span> |
 
 ## Source Code
 

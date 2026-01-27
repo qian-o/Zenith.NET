@@ -10,11 +10,11 @@ Zenith.NET supports multiple graphics backends across platforms:
 
 | Platform | DirectX 12 | Metal 4 | Vulkan 1.4 |
 |----------|:----------:|:-------:|:----------:|
-| Windows  | ✅ | - | ✅ |
-| Linux    | - | - | ✅ |
-| Android  | - | - | ✅ |
-| macOS    | - | ✅ | ✅ |
-| iOS      | - | ✅ | ✅ |
+| Windows  | <span class="status-yes">Yes</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
+| Linux    | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
+| Android  | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
+| macOS    | <span class="status-no">No</span> | <span class="status-yes">Yes</span> | <span class="status-yes">Yes</span> |
+| iOS      | <span class="status-no">No</span> | <span class="status-yes">Yes</span> | <span class="status-yes">Yes</span> |
 
 > [!NOTE]
 > Metal backend is currently under development.
