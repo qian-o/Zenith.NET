@@ -12,7 +12,7 @@ We'll create a `MeshShadingRenderer` class that:
 - Defines vertex and meshlet data structures
 - Creates structured buffers for vertices, indices, and meshlets
 - Builds a mesh shading pipeline with mesh and pixel shaders
-- Dispatches mesh shader workgroups to render geometry
+- Dispatches mesh shading workgroups to render geometry
 
 ## Key Concepts
 
@@ -53,7 +53,7 @@ Each meshlet contains:
 
 | Shader Stage | Description |
 |--------------|-------------|
-| **Amplification** (optional) | Determines how many mesh shader workgroups to spawn (LOD, culling) |
+| **Amplification** (optional) | Determines how many mesh shading workgroups to spawn (LOD, culling) |
 | **Mesh** | Outputs vertices and primitives directly to the rasterizer |
 | **Pixel** | Standard fragment shading |
 
@@ -464,7 +464,7 @@ Key attributes:
 
 | Attribute | Description |
 |-----------|-------------|
-| `[shader("mesh")]` | Marks this as a mesh shader entry point |
+| `[shader("mesh")]` | Marks this as a mesh shading entry point |
 | `[numthreads(X,Y,Z)]` | Thread group size (typically MaxPrimitives threads) |
 | `[outputtopology("triangle")]` | Output primitive type |
 | `OutputVertices<T, N>` | Output vertex array (max N vertices) |
@@ -494,9 +494,9 @@ Unlike traditional `Draw` calls, mesh shading uses `DispatchMesh(X, Y, Z)` to la
 pipeline = App.Context.CreateMeshShadingPipeline(new()
 {
     RenderStates = new() { ... },
-    Amplification = null,           // Optional task/amplification shader
-    Mesh = meshShader,              // Required mesh shader
-    Pixel = pixelShader,            // Required pixel shader
+    Amplification = null,           // Optional amplification shader
+    Mesh = meshShader,              // Required
+    Pixel = pixelShader,            // Required
     ResourceLayouts = [resourceLayout],
     PrimitiveTopology = PrimitiveTopology.TriangleList,
     Output = App.SwapChain.FrameBuffer.Output
@@ -526,7 +526,7 @@ void ASMain(in uint groupId : SV_GroupID,
         AmplificationPayload payload;
         payload.MeshletIndices[groupThreadId] = groupId * 32 + groupThreadId;
 
-        // Dispatch mesh shader workgroups
+        // Dispatch mesh shading workgroups
         DispatchMesh(visibleCount, 1, 1, payload);
     }
 }
