@@ -1,23 +1,28 @@
 ﻿/**
- * Zenith.NET Documentation Theme
- * A modern, clean theme for DocFX documentation
- * 
- * Table of Contents:
- * 1.  CSS Variables (Light & Dark Theme)
- * 2.  Base Styles
- * 3.  Navbar
- * 4.  Hero Section
- * 5.  Features Grid
- * 6.  Technology Section
- * 7.  Cards Grid
- * 8.  Workflow Section
- * 9.  Community Badges
- * 10. Article Content
- * 11. Table Styles
- * 12. Status Badges
- * 13. Hide UI Elements
- * 14. Responsive Design
- */
+* Zenith.NET Documentation Theme
+* A modern, clean theme for DocFX documentation
+* 
+* Table of Contents:
+* 1.  CSS Variables (Light & Dark Theme)
+* 2.  Base Styles
+* 3.  Navbar
+* 4.  Hero Section
+* 5.  Features Grid
+* 6.  Technology Section
+* 7.  Cards Grid
+* 8.  Workflow Section
+* 9.  Community Badges
+* 10. Hero Badges
+* 11. Technology Bar
+* 12. Highlight Grid
+* 13. Feature List
+* 14. CTA Section
+* 15. Article Content
+* 16. Table Styles
+* 17. Status Badges
+* 18. Hide UI Elements
+* 19. Responsive Design
+*/
 
 /* ==========================================================================
    1. CSS Variables
@@ -110,43 +115,40 @@ body {
 
 .hero {
     text-align: center;
-    padding: 4rem 2rem;
-    background: var(--zenith-gradient);
-    border-radius: 16px;
-    margin: 2rem 0;
-    color: white;
+    padding: 2rem 2rem 3rem 2rem;
 }
 
 .hero-logo {
-    width: 120px;
-    height: 120px;
+    width: 100px;
+    height: 100px;
     margin-bottom: 1.5rem;
-    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
+    filter: drop-shadow(0 4px 12px rgba(81, 43, 212, 0.3));
 }
 
 .hero h1 {
-    font-size: 3rem;
-    font-weight: 700;
+    font-size: 3.5rem;
+    font-weight: 800;
     margin: 0 0 0.5rem 0;
-    color: white;
+    background: var(--zenith-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     border: none;
 }
 
 .hero-tagline {
-    font-size: 1.5rem;
+    font-size: 1.35rem;
     font-weight: 500;
     margin: 0 0 1rem 0;
-    opacity: 0.95;
-    color: white;
+    color: var(--zenith-text);
 }
 
 .hero-description {
     font-size: 1.1rem;
-    max-width: 700px;
+    max-width: 650px;
     margin: 0 auto 2rem auto;
-    opacity: 0.9;
+    color: var(--zenith-text-muted);
     line-height: 1.7;
-    color: white;
 }
 
 .hero-buttons {
@@ -167,24 +169,25 @@ body {
     }
 
     .hero-buttons .btn-primary {
-        background: white;
-        color: var(--zenith-primary);
+        background: var(--zenith-gradient);
+        color: white;
+        box-shadow: 0 4px 14px rgba(81, 43, 212, 0.3);
     }
 
         .hero-buttons .btn-primary:hover {
-            background: #f0f0f0;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 6px 20px rgba(81, 43, 212, 0.4);
         }
 
     .hero-buttons .btn-secondary {
-        background: rgba(255, 255, 255, 0.15);
-        color: white;
-        border: 2px solid rgba(255, 255, 255, 0.5);
+        background: var(--zenith-bg-light);
+        color: var(--zenith-text);
+        border: 1px solid var(--zenith-border);
     }
 
         .hero-buttons .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.25);
+            border-color: var(--zenith-primary);
+            color: var(--zenith-primary);
             transform: translateY(-2px);
         }
 
@@ -438,8 +441,250 @@ body {
         }
 
 /* ==========================================================================
-   10. Article Content
-   ========================================================================== */
+10. Hero Badges
+========================================================================== */
+
+.hero-badges {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+}
+
+    .hero-badges a {
+        transition: transform 0.2s ease, opacity 0.2s ease;
+        opacity: 0.9;
+    }
+
+        .hero-badges a:hover {
+            transform: translateY(-2px);
+            opacity: 1;
+        }
+
+    .hero-badges img {
+        height: 24px;
+    }
+
+/* ==========================================================================
+11. Technology Bar
+========================================================================== */
+
+.tech-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+    padding: 1.5rem 2rem;
+    background: var(--zenith-bg-light);
+    border-radius: 12px;
+    border: 1px solid var(--zenith-border);
+    margin-bottom: 2rem;
+}
+
+.tech-bar-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.tech-bar-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--zenith-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.tech-bar-items {
+    font-size: 1rem;
+    font-weight: 500;
+    background: var(--zenith-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.tech-bar-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--zenith-border);
+}
+
+/* ==========================================================================
+12. Highlight Grid
+========================================================================== */
+
+.highlight-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.highlight-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--zenith-bg-light);
+    border-radius: 10px;
+    border: 1px solid var(--zenith-border);
+    transition: all 0.2s ease;
+}
+
+    .highlight-item:hover {
+        border-color: var(--zenith-primary);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(81, 43, 212, 0.1);
+    }
+
+.highlight-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.highlight-text {
+    font-size: 0.95rem;
+    color: var(--zenith-text-muted);
+    line-height: 1.5;
+}
+
+    .highlight-text strong {
+        color: var(--zenith-text);
+        font-weight: 600;
+    }
+
+/* ==========================================================================
+13. Feature List
+========================================================================== */
+
+.feature-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 2rem 0;
+}
+
+.feature-list-item {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: var(--zenith-bg-light);
+    border-radius: 8px;
+    border: 1px solid var(--zenith-border);
+    transition: all 0.2s ease;
+}
+
+    .feature-list-item:hover {
+        border-color: var(--zenith-primary);
+        box-shadow: 0 2px 8px rgba(81, 43, 212, 0.1);
+    }
+
+.feature-list-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--zenith-text);
+    white-space: nowrap;
+    min-width: 160px;
+}
+
+.feature-list-desc {
+    font-size: 0.95rem;
+    color: var(--zenith-text-muted);
+    line-height: 1.5;
+}
+
+/* ==========================================================================
+14. CTA Section
+========================================================================== */
+
+.cta-section {
+    display: flex;
+    align-items: center;
+    gap: 3rem;
+    padding: 2.5rem;
+    background: var(--zenith-gradient);
+    border-radius: 16px;
+    margin: 2rem 0;
+}
+
+.cta-main {
+    flex: 1;
+}
+
+    .cta-main h3 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: white;
+        margin: 0 0 0.75rem 0;
+    }
+
+    .cta-main p {
+        font-size: 1.05rem;
+        color: rgba(255, 255, 255, 0.9);
+        margin: 0 0 1.5rem 0;
+        line-height: 1.6;
+    }
+
+    .cta-main .btn-primary {
+        display: inline-block;
+        padding: 0.85rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        text-decoration: none;
+        border-radius: 8px;
+        background: white;
+        color: var(--zenith-primary);
+        transition: all 0.2s ease;
+    }
+
+        .cta-main .btn-primary:hover {
+            background: #f0f0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+.cta-links {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.cta-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    min-width: 180px;
+}
+
+    .cta-link:hover {
+        background: rgba(255, 255, 255, 0.25);
+        transform: translateX(4px);
+    }
+
+.cta-link-icon {
+    font-size: 1.25rem;
+}
+
+.cta-link-text {
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+}
+
+/* ==========================================================================
+15. Article Content
+========================================================================== */
 
 article {
     color: var(--zenith-text);
@@ -582,7 +827,7 @@ article {
     }
 
     /* ==========================================================================
-   11. Table Styles
+   16. Table Styles
    ========================================================================== */
 
     article table {
@@ -643,8 +888,8 @@ article {
     }
 
 /* ==========================================================================
-   12. Status Badges
-   ========================================================================== */
+17. Status Badges
+========================================================================== */
 
 .status-yes,
 .status-no {
@@ -674,8 +919,8 @@ article {
 }
 
 /* ==========================================================================
-   13. Hide UI Elements
-   ========================================================================== */
+18. Hide UI Elements
+========================================================================== */
 
 article h1 > a,
 article h2 > a,
@@ -689,21 +934,21 @@ a[href^="https"]::after {
 }
 
 /* ==========================================================================
-   14. Responsive Design
-   ========================================================================== */
+19. Responsive Design
+========================================================================== */
 
 @media (max-width: 768px) {
     /* Hero */
     .hero {
-        padding: 3rem 1.5rem;
+        padding: 1.5rem 1.5rem 2rem 1.5rem;
     }
 
         .hero h1 {
-            font-size: 2.25rem;
+            font-size: 2.5rem;
         }
 
     .hero-tagline {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
     }
 
     .hero-description {
@@ -711,8 +956,8 @@ a[href^="https"]::after {
     }
 
     .hero-logo {
-        width: 100px;
-        height: 100px;
+        width: 80px;
+        height: 80px;
     }
 
     /* Tech Items */
@@ -763,5 +1008,62 @@ a[href^="https"]::after {
     .status-no {
         padding: 0.2rem 0.5rem;
         font-size: 0.75rem;
+    }
+
+    /* Tech Bar */
+    .tech-bar {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1.25rem 1.5rem;
+    }
+
+    .tech-bar-group {
+        flex-direction: column;
+        gap: 0.25rem;
+        text-align: center;
+    }
+
+    .tech-bar-divider {
+        width: 80%;
+        height: 1px;
+    }
+
+    /* Highlight Grid */
+    .highlight-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .highlight-item {
+        padding: 1rem;
+    }
+
+    /* Feature List */
+    .feature-list-item {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .feature-list-title {
+        min-width: auto;
+    }
+
+    /* CTA Section */
+    .cta-section {
+        flex-direction: column;
+        padding: 2rem 1.5rem;
+        text-align: center;
+    }
+
+    .cta-main h3 {
+        font-size: 1.5rem;
+    }
+
+    .cta-links {
+        width: 100%;
+    }
+
+    .cta-link {
+        justify-content: center;
+        min-width: auto;
     }
 }

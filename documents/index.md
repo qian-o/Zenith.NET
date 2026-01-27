@@ -8,11 +8,30 @@ _layout: landing
         <img src="images/Zenith.NET.svg" alt="Zenith.NET Logo" class="hero-logo" />
         <h1>Zenith.NET</h1>
         <p class="hero-tagline">Unified Cross-Platform GPU Programming for .NET</p>
-        <p class="hero-description">A modern graphics and compute library that provides a single API for DirectX 12, Metal, and Vulkan. Build high-performance rendering and GPU compute applications across Windows, Linux, macOS, iOS, and Android.</p>
+        <p class="hero-description">A modern graphics and compute library that provides a single API for DirectX 12, Metal, and Vulkan. Build high-performance rendering and GPU compute applications with ease.</p>
         <div class="hero-buttons">
             <a href="tutorials/index.md" class="btn btn-primary">Get Started</a>
-            <a href="https://github.com/qian-o/Zenith.NET" class="btn btn-secondary">GitHub</a>
+            <a href="api/index.md" class="btn btn-secondary">API Reference</a>
         </div>
+        <div class="hero-badges">
+            <a href="https://github.com/qian-o/Zenith.NET"><img src="https://img.shields.io/github/stars/qian-o/Zenith.NET?style=flat-square&logo=github&label=Stars" alt="GitHub Stars" /></a>
+            <a href="https://www.nuget.org/packages/Zenith.NET"><img src="https://img.shields.io/nuget/v/Zenith.NET?style=flat-square&logo=nuget&label=NuGet" alt="NuGet Version" /></a>
+            <a href="https://github.com/qian-o/Zenith.NET/blob/master/LICENSE"><img src="https://img.shields.io/github/license/qian-o/Zenith.NET?style=flat-square&label=License" alt="License" /></a>
+        </div>
+    </div>
+</div>
+
+---
+
+<div class="tech-bar">
+    <div class="tech-bar-group">
+        <span class="tech-bar-label">Graphics APIs</span>
+        <span class="tech-bar-items">DirectX 12 · Metal · Vulkan</span>
+    </div>
+    <div class="tech-bar-divider"></div>
+    <div class="tech-bar-group">
+        <span class="tech-bar-label">Platforms</span>
+        <span class="tech-bar-items">Windows · Linux · macOS · iOS · Android</span>
     </div>
 </div>
 
@@ -20,81 +39,53 @@ _layout: landing
 
 ## Why Zenith.NET?
 
-<div class="features">
-    <div class="feature">
-        <h3>🎯 Unified API</h3>
-        <p>Write once, run everywhere. A single, consistent API abstracts away the complexities of DirectX 12, Metal, and Vulkan, letting you focus on your application logic.</p>
-    </div>
-    <div class="feature">
-        <h3>⚡ High Performance</h3>
-        <p>Direct access to modern GPU features including ray tracing, mesh shaders, and compute pipelines. No compromises on performance.</p>
-    </div>
-    <div class="feature">
-        <h3>🔌 Framework Integration</h3>
-        <p>Seamlessly integrate with your favorite .NET UI frameworks - Avalonia, MAUI, WinForms, WinUI, and WPF.</p>
-    </div>
-    <div class="feature">
-        <h3>🚀 Modern .NET</h3>
-        <p>Built for .NET 10.0+ with full support for nullable reference types, spans, and the latest C# features.</p>
-    </div>
-</div>
-
----
-
-## Supported Technologies
-
-<div class="tech-section">
-    <div class="tech-group">
-        <h4>Graphics APIs</h4>
-        <div class="tech-icons">
-            <div class="tech-item"><span class="tech-text">DirectX 12</span></div>
-            <div class="tech-item"><span class="tech-text">Metal</span></div>
-            <div class="tech-item"><span class="tech-text">Vulkan</span></div>
+<div class="highlight-grid">
+    <div class="highlight-item">
+        <div class="highlight-icon">🎯</div>
+        <div class="highlight-text">
+            <strong>Unified API</strong> — Write once, run everywhere. A single API abstracts DirectX 12, Metal, and Vulkan.
         </div>
     </div>
-    <div class="tech-group">
-        <h4>Platforms</h4>
-        <div class="tech-icons">
-            <div class="tech-item"><span class="tech-text">Android</span></div>
-            <div class="tech-item"><span class="tech-text">iOS</span></div>
-            <div class="tech-item"><span class="tech-text">Linux</span></div>
-            <div class="tech-item"><span class="tech-text">macOS</span></div>
-            <div class="tech-item"><span class="tech-text">Windows</span></div>
+    <div class="highlight-item">
+        <div class="highlight-icon">⚡</div>
+        <div class="highlight-text">
+            <strong>High Performance</strong> — Direct access to ray tracing, mesh shaders, and compute pipelines.
         </div>
     </div>
-    <div class="tech-group">
-        <h4>UI Frameworks</h4>
-        <div class="tech-icons">
-            <div class="tech-item"><span class="tech-text">Avalonia</span></div>
-            <div class="tech-item"><span class="tech-text">.NET MAUI</span></div>
-            <div class="tech-item"><span class="tech-text">Uno Platform</span></div>
-            <div class="tech-item"><span class="tech-text">WinForms</span></div>
-            <div class="tech-item"><span class="tech-text">WinUI</span></div>
-            <div class="tech-item"><span class="tech-text">WPF</span></div>
+    <div class="highlight-item">
+        <div class="highlight-icon">🔌</div>
+        <div class="highlight-text">
+            <strong>Framework Integration</strong> — Works with Avalonia, MAUI, WinForms, WinUI, WPF, and Uno Platform.
+        </div>
+    </div>
+    <div class="highlight-item">
+        <div class="highlight-icon">🚀</div>
+        <div class="highlight-text">
+            <strong>Modern .NET</strong> — Built for .NET 10.0+ with nullable types, spans, and the latest C# features.
         </div>
     </div>
 </div>
 
 ---
 
-## GPU Features
+## GPU Features at a Glance
 
-<div class="features">
-    <div class="feature">
-        <h3>Graphics Pipeline</h3>
-        <p>Full control over vertex, hull, domain, geometry, and pixel shaders. Create complex rendering pipelines with custom blend states, depth testing, and multisampling.</p>
+<div class="feature-list">
+    <div class="feature-list-item">
+        <span class="feature-list-title">Graphics Pipeline</span>
+        <span class="feature-list-desc">Vertex, hull, domain, geometry, and pixel shaders with custom render states.</span>
     </div>
-    <div class="feature">
-        <h3>Compute Pipeline</h3>
-        <p>Harness the GPU for general-purpose computing. Process images, run simulations, or accelerate any parallelizable workload.</p>
+    <div class="feature-list-item">
+        <span class="feature-list-title">Compute Pipeline</span>
+        <span class="feature-list-desc">General-purpose GPU computing for image processing, simulations, and more.</span>
     </div>
-    <div class="feature">
-        <h3>Ray Tracing</h3>
-        <p>Hardware-accelerated ray tracing with acceleration structures (BLAS/TLAS), hit groups, and inline ray queries for shadows, reflections, and global illumination.</p>
+    <div class="feature-list-item">
+        <span class="feature-list-title">Ray Tracing</span>
+        <span class="feature-list-desc">Hardware-accelerated BLAS/TLAS, hit groups, and inline ray queries.</span>
     </div>
-    <div class="feature">
-        <h3>Mesh Shading</h3>
-        <p>Modern GPU-driven geometry processing with mesh and amplification shaders. Process meshlets efficiently for next-generation rendering.</p>
+    <div class="feature-list-item">
+        <span class="feature-list-title">Mesh Shading</span>
+        <span class="feature-list-desc">GPU-driven geometry with mesh and amplification shaders for meshlet processing.</span>
     </div>
 </div>
 
@@ -107,61 +98,50 @@ _layout: landing
         <div class="step-number">1</div>
         <div class="step-content">
             <h4>Initialize</h4>
-            <p>Create a graphics context with automatic backend selection based on your platform.</p>
+            <p>Create a graphics context with automatic backend selection.</p>
         </div>
     </div>
     <div class="workflow-step">
         <div class="step-number">2</div>
         <div class="step-content">
             <h4>Create Resources</h4>
-            <p>Define buffers, textures, shaders, and pipelines using a unified, intuitive API.</p>
+            <p>Define buffers, textures, shaders, and pipelines.</p>
         </div>
     </div>
     <div class="workflow-step">
         <div class="step-number">3</div>
         <div class="step-content">
             <h4>Record Commands</h4>
-            <p>Build command buffers with draw calls, compute dispatches, or ray tracing operations.</p>
+            <p>Build command buffers with draw, compute, or ray tracing calls.</p>
         </div>
     </div>
     <div class="workflow-step">
         <div class="step-number">4</div>
         <div class="step-content">
             <h4>Submit & Present</h4>
-            <p>Execute commands on the GPU and present results to screen or export to textures.</p>
+            <p>Execute on GPU and present to screen or export to textures.</p>
         </div>
     </div>
 </div>
 
 ---
 
-## Learn More
+## Get Started
 
-<div class="cards">
-    <div class="card">
-        <h3>📚 Tutorials</h3>
-        <p>Step-by-step guides from your first triangle to advanced ray tracing and mesh shaders.</p>
-        <a href="tutorials/index.md">Start Learning</a>
+<div class="cta-section">
+    <div class="cta-main">
+        <h3>Ready to build?</h3>
+        <p>Follow our step-by-step tutorials from Hello Triangle to advanced ray tracing and mesh shaders.</p>
+        <a href="tutorials/index.md" class="btn btn-primary">Start Learning →</a>
     </div>
-    <div class="card">
-        <h3>📖 API Reference</h3>
-        <p>Complete API documentation for all Zenith.NET types and methods.</p>
-        <a href="api/index.md">Browse API</a>
+    <div class="cta-links">
+        <a href="api/index.md" class="cta-link">
+            <span class="cta-link-icon">📖</span>
+            <span class="cta-link-text">API Reference</span>
+        </a>
+        <a href="https://github.com/qian-o/Zenith.NET" class="cta-link">
+            <span class="cta-link-icon">💻</span>
+            <span class="cta-link-text">Source Code</span>
+        </a>
     </div>
-    <div class="card">
-        <h3>💻 Source Code</h3>
-        <p>Explore the source, report issues, or contribute on GitHub.</p>
-        <a href="https://github.com/qian-o/Zenith.NET">View on GitHub</a>
-    </div>
-</div>
-
----
-
-<div class="community-badges">
-    <a href="https://github.com/qian-o/Zenith.NET">
-        <img src="https://img.shields.io/github/stars/qian-o/Zenith.NET?style=for-the-badge&logo=github" alt="GitHub Stars" />
-    </a>
-    <a href="https://www.nuget.org/packages/Zenith.NET">
-        <img src="https://img.shields.io/nuget/v/Zenith.NET?style=for-the-badge&logo=nuget" alt="NuGet Version" />
-    </a>
 </div>
