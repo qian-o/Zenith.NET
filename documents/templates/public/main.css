@@ -165,18 +165,15 @@ body {
         font-weight: 600;
         text-decoration: none;
         border-radius: 8px;
-        transition: all 0.2s ease;
         border: none;
         outline: none;
-        box-shadow: none;
+        transition: all 0.2s ease;
     }
 
         .hero-buttons .btn:focus,
         .hero-buttons .btn:focus-visible,
         .hero-buttons .btn:active {
             outline: none !important;
-            box-shadow: none !important;
-            border: none !important;
         }
 
     .hero-buttons .btn-primary {
@@ -209,7 +206,8 @@ body {
 
         .hero-buttons .btn-secondary:focus,
         .hero-buttons .btn-secondary:focus-visible {
-            border: 1px solid var(--zenith-border) !important;
+            border-color: var(--zenith-border) !important;
+            box-shadow: none !important;
         }
 
 /* ==========================================================================
@@ -387,7 +385,7 @@ body {
     .workflow-step:not(:last-child)::after {
         content: '';
         position: absolute;
-        left: 24px;
+        left: 23.5px;
         top: 50%;
         width: 2px;
         height: 100%;
@@ -658,11 +656,11 @@ body {
         font-weight: 600;
         text-decoration: none;
         border-radius: 8px;
+        border: none;
+        outline: none;
         background: white;
         color: var(--zenith-primary);
         transition: all 0.2s ease;
-        border: none;
-        outline: none;
     }
 
         .cta-main .btn-primary:hover {
@@ -676,7 +674,6 @@ body {
         .cta-main .btn-primary:active {
             outline: none !important;
             box-shadow: none !important;
-            border: none !important;
         }
 
 .cta-links {
@@ -701,6 +698,7 @@ body {
     .cta-link:hover {
         background: rgba(255, 255, 255, 0.25);
         transform: translateX(4px);
+        text-decoration: none;
     }
 
 .cta-link-icon {
