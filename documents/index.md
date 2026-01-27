@@ -141,17 +141,17 @@ _layout: landing
     <div class="card">
         <h3>📚 Tutorials</h3>
         <p>Step-by-step guides from your first triangle to advanced ray tracing and mesh shaders.</p>
-        <a href="tutorials/index.md">Start Learning →</a>
+        <a href="tutorials/index.md">Start Learning</a>
     </div>
     <div class="card">
         <h3>📖 API Reference</h3>
         <p>Complete API documentation for all Zenith.NET types and methods.</p>
-        <a href="api/index.md">Browse API →</a>
+        <a href="api/index.md">Browse API</a>
     </div>
     <div class="card">
         <h3>💻 Source Code</h3>
         <p>Explore the source, report issues, or contribute on GitHub.</p>
-        <a href="https://github.com/qian-o/Zenith.NET">View on GitHub →</a>
+        <a href="https://github.com/qian-o/Zenith.NET">View on GitHub</a>
     </div>
 </div>
 
