@@ -3,7 +3,7 @@
 In this tutorial, you'll learn how to use mesh shaders with Zenith.NET. We'll render a simple cube using the mesh shading pipeline, demonstrating the modern GPU-driven geometry processing approach.
 
 > [!NOTE]
-> This tutorial requires a GPU with mesh shader support. Check `Context.Capabilities.MeshShaderSupported` before using mesh shader features.
+> This tutorial requires a GPU with mesh shader support. Check `Context.Capabilities.MeshShadingSupported` before using mesh shader features.
 
 ## Overview
 
@@ -170,7 +170,7 @@ internal unsafe class MeshShadingRenderer : IRenderer
 
     public MeshShadingRenderer()
     {
-        if (!App.Context.Capabilities.MeshShaderSupported)
+        if (!App.Context.Capabilities.MeshShadingSupported)
         {
             throw new NotSupportedException("Mesh shaders are not supported on this device.");
         }
@@ -420,13 +420,13 @@ dotnet run
 ### Checking Mesh Shader Support
 
 ```csharp
-if (!App.Context.Capabilities.MeshShaderSupported)
+if (!App.Context.Capabilities.MeshShadingSupported)
 {
     throw new NotSupportedException("Mesh shaders are not supported on this device.");
 }
 ```
 
-Always check `Capabilities.MeshShaderSupported` before using mesh shader features.
+Always check `Capabilities.MeshShadingSupported` before using mesh shader features.
 
 ### Meshlet Data Structure
 
