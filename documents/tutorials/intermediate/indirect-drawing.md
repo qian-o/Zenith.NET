@@ -421,7 +421,7 @@ Zenith.NET provides several indirect drawing methods:
 | `DrawIndirect` | Non-indexed indirect draw |
 | `DrawIndexedIndirect` | Indexed indirect draw |
 | `DispatchIndirect` | Indirect compute dispatch |
-| `DispatchMeshIndirect` | Indirect mesh shader dispatch |
+| `DispatchMeshIndirect` | Indirect mesh shading dispatch |
 
 ### GPU-Driven Rendering
 
