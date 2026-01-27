@@ -460,8 +460,8 @@ body {
         }
 
 /* ==========================================================================
-10. Hero Badges
-========================================================================== */
+   10. Hero Badges
+   ========================================================================== */
 
 .hero-badges {
     display: flex;
@@ -486,8 +486,8 @@ body {
     }
 
 /* ==========================================================================
-11. Technology Bar
-========================================================================== */
+   11. Technology Bar
+   ========================================================================== */
 
 .tech-bar {
     display: flex;
@@ -532,8 +532,8 @@ body {
 }
 
 /* ==========================================================================
-12. Highlight Grid
-========================================================================== */
+   12. Highlight Grid
+   ========================================================================== */
 
 .highlight-grid {
     display: grid;
@@ -577,8 +577,8 @@ body {
     }
 
 /* ==========================================================================
-13. Feature List
-========================================================================== */
+   13. Feature List
+   ========================================================================== */
 
 .feature-list {
     display: flex;
@@ -618,8 +618,8 @@ body {
 }
 
 /* ==========================================================================
-14. CTA Section
-========================================================================== */
+   14. CTA Section
+   ========================================================================== */
 
 .cta-section {
     display: flex;
@@ -712,213 +712,213 @@ body {
 }
 
 /* ==========================================================================
-15. Article Content
-========================================================================== */
+   15. Article Content
+   ========================================================================== */
 
 article {
     color: var(--zenith-text);
     line-height: 1.7;
 }
 
-    /* Headings */
-    article h1 {
-        font-size: 2.25rem;
-        font-weight: 700;
-        color: var(--zenith-text);
-        margin: 0 0 1.5rem 0;
-        padding-bottom: 0.75rem;
-        border-bottom: 3px solid transparent;
-        border-image: var(--zenith-gradient);
-        border-image-slice: 1;
+/* Article Headings */
+article h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--zenith-text);
+    margin: 0 0 1.5rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 3px solid transparent;
+    border-image: var(--zenith-gradient);
+    border-image-slice: 1;
+}
+
+article h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--zenith-text);
+    margin: 2.5rem 0 1rem 0;
+    position: relative;
+    padding-left: 1rem;
+}
+
+    article h2::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0.1em;
+        bottom: 0.1em;
+        width: 4px;
+        background: var(--zenith-gradient);
+        border-radius: 2px;
     }
 
-    article h2 {
-        font-size: 1.75rem;
-        font-weight: 700;
-        color: var(--zenith-text);
-        margin: 2.5rem 0 1rem 0;
-        position: relative;
-        padding-left: 1rem;
+article h3 {
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--zenith-text);
+    margin: 2rem 0 0.75rem 0;
+}
+
+article h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--zenith-text);
+    margin: 1.5rem 0 0.5rem 0;
+}
+
+/* Article Text */
+article p {
+    margin: 0 0 1rem 0;
+    color: var(--zenith-text);
+}
+
+article a {
+    color: var(--zenith-link);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+    article a:hover {
+        color: var(--zenith-link-hover);
+        text-decoration: underline;
     }
 
-        article h2::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0.1em;
-            bottom: 0.1em;
-            width: 4px;
-            background: var(--zenith-gradient);
-            border-radius: 2px;
-        }
+/* Article Lists */
+article ul,
+article ol {
+    margin: 0 0 1rem 0;
+    padding-left: 1.5rem;
+}
 
-    article h3 {
-        font-size: 1.35rem;
-        font-weight: 600;
-        color: var(--zenith-text);
-        margin: 2rem 0 0.75rem 0;
+article li {
+    margin-bottom: 0.5rem;
+    color: var(--zenith-text);
+}
+
+/* Article Code */
+article pre {
+    border-radius: 12px;
+    border: 1px solid var(--zenith-border);
+    background: var(--zenith-code-bg);
+    margin: 1.5rem 0;
+    overflow: hidden;
+}
+
+    article pre code {
+        display: block;
+        padding: 1rem 1.25rem;
+        overflow-x: auto;
     }
 
-    article h4 {
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: var(--zenith-text);
-        margin: 1.5rem 0 0.5rem 0;
+article code {
+    font-size: 0.875rem;
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+}
+
+article p code,
+article li code,
+article td code {
+    background: var(--zenith-bg-light);
+    color: var(--zenith-secondary);
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    border: 1px solid var(--zenith-border);
+}
+
+/* Article Horizontal Rule */
+article hr {
+    border: none;
+    border-top: 1px solid var(--zenith-border);
+    margin: 3rem 0;
+}
+
+/* Article Blockquote */
+article blockquote {
+    border-left: 4px solid var(--zenith-primary);
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    background: var(--zenith-bg-light);
+    border-radius: 0 8px 8px 0;
+}
+
+    article blockquote p {
+        margin: 0;
+        color: var(--zenith-text-muted);
     }
 
-    /* Text */
-    article p {
-        margin: 0 0 1rem 0;
-        color: var(--zenith-text);
-    }
+/* Article Images */
+article img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
 
-    article a {
-        color: var(--zenith-link);
-        text-decoration: none;
-        transition: color 0.2s ease;
-    }
-
-        article a:hover {
-            color: var(--zenith-link-hover);
-            text-decoration: underline;
-        }
-
-    /* Lists */
-    article ul,
-    article ol {
-        margin: 0 0 1rem 0;
-        padding-left: 1.5rem;
-    }
-
-    article li {
-        margin-bottom: 0.5rem;
-        color: var(--zenith-text);
-    }
-
-    /* Code */
-    article pre {
-        border-radius: 12px;
-        border: 1px solid var(--zenith-border);
-        background: var(--zenith-code-bg);
-        margin: 1.5rem 0;
-        overflow: hidden;
-    }
-
-        article pre code {
-            display: block;
-            padding: 1rem 1.25rem;
-            overflow-x: auto;
-        }
-
-    article code {
-        font-size: 0.875rem;
-        font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
-    }
-
-    article p code,
-    article li code,
-    article td code {
-        background: var(--zenith-bg-light);
-        color: var(--zenith-secondary);
-        padding: 0.2rem 0.5rem;
-        border-radius: 6px;
-        font-size: 0.85rem;
-        border: 1px solid var(--zenith-border);
-    }
-
-    /* Horizontal Rule */
-    article hr {
-        border: none;
-        border-top: 1px solid var(--zenith-border);
-        margin: 3rem 0;
-    }
-
-    /* Blockquote */
-    article blockquote {
-        border-left: 4px solid var(--zenith-primary);
-        padding: 0.5rem 1rem;
-        margin: 1rem 0;
-        background: var(--zenith-bg-light);
-        border-radius: 0 8px 8px 0;
-    }
-
-        article blockquote p {
-            margin: 0;
-            color: var(--zenith-text-muted);
-        }
-
-    /* Images */
-    article img {
-        max-width: 100%;
-        height: auto;
-        border-radius: 8px;
-        margin: 1rem 0;
-    }
-
-    /* ==========================================================================
+/* ==========================================================================
    16. Table Styles
    ========================================================================== */
 
-    article table {
-        width: 100% !important;
-        margin: 1.5rem 0 !important;
-        font-size: 0.95rem !important;
-        border-collapse: separate !important;
-        border-spacing: 0 !important;
-        border: 1px solid var(--zenith-border) !important;
-        border-radius: 8px !important;
-        overflow: hidden !important;
-        background: var(--zenith-bg) !important;
+article table {
+    width: 100% !important;
+    margin: 1.5rem 0 !important;
+    font-size: 0.95rem !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    border: 1px solid var(--zenith-border) !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    background: var(--zenith-bg) !important;
+}
+
+article thead {
+    background: var(--zenith-bg-light) !important;
+}
+
+article th {
+    padding: 0.875rem 1rem !important;
+    text-align: center !important;
+    font-weight: 600 !important;
+    color: var(--zenith-text) !important;
+    background: var(--zenith-bg-light) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--zenith-border) !important;
+    border-right: 1px solid var(--zenith-border) !important;
+}
+
+    article th:last-child {
+        border-right: none !important;
     }
 
-    article thead {
-        background: var(--zenith-bg-light) !important;
+article td {
+    padding: 0.875rem 1rem !important;
+    text-align: left !important;
+    color: var(--zenith-text) !important;
+    background: var(--zenith-bg) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--zenith-border) !important;
+    border-right: 1px solid var(--zenith-border) !important;
+}
+
+    article td:last-child {
+        border-right: none !important;
     }
 
-    article th {
-        padding: 0.875rem 1rem !important;
-        text-align: center !important;
-        font-weight: 600 !important;
-        color: var(--zenith-text) !important;
-        background: var(--zenith-bg-light) !important;
-        border: none !important;
-        border-bottom: 1px solid var(--zenith-border) !important;
-        border-right: 1px solid var(--zenith-border) !important;
-    }
+article tbody tr:last-child td {
+    border-bottom: none !important;
+}
 
-        article th:last-child {
-            border-right: none !important;
-        }
+article tbody tr:hover td {
+    background: var(--zenith-bg-light) !important;
+}
 
-    article td {
-        padding: 0.875rem 1rem !important;
-        text-align: left !important;
-        color: var(--zenith-text) !important;
-        background: var(--zenith-bg) !important;
-        border: none !important;
-        border-bottom: 1px solid var(--zenith-border) !important;
-        border-right: 1px solid var(--zenith-border) !important;
-    }
-
-        article td:last-child {
-            border-right: none !important;
-        }
-
-    article tbody tr:last-child td {
-        border-bottom: none !important;
-    }
-
-    article tbody tr:hover td {
-        background: var(--zenith-bg-light) !important;
-    }
-
-    article td a {
-        white-space: nowrap !important;
-    }
+article td a {
+    white-space: nowrap !important;
+}
 
 /* ==========================================================================
-17. Status Badges
-========================================================================== */
+   17. Status Badges
+   ========================================================================== */
 
 .status-yes,
 .status-no {
@@ -948,8 +948,8 @@ article {
 }
 
 /* ==========================================================================
-18. Hide UI Elements
-========================================================================== */
+   18. Hide UI Elements
+   ========================================================================== */
 
 article h1 > a,
 article h2 > a,
@@ -963,8 +963,8 @@ a[href^="https"]::after {
 }
 
 /* ==========================================================================
-19. Responsive Design
-========================================================================== */
+   19. Responsive Design
+   ========================================================================== */
 
 @media (max-width: 768px) {
     /* Hero */
