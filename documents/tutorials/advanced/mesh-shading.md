@@ -464,7 +464,7 @@ Key attributes:
 
 | Attribute | Description |
 |-----------|-------------|
-| `[shader("mesh")]` | Marks this as a mesh shading entry point |
+| `[shader("mesh")]` | Marks this as a mesh shader entry point |
 | `[numthreads(X,Y,Z)]` | Thread group size (typically MaxPrimitives threads) |
 | `[outputtopology("triangle")]` | Output primitive type |
 | `OutputVertices<T, N>` | Output vertex array (max N vertices) |
