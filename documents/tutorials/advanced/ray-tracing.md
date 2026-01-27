@@ -830,7 +830,7 @@ Instead of using a full-screen quad with a graphics pipeline, we directly copy t
 
 ## Next Steps
 
-- [Mesh Shader](mesh-shader.md) - Process geometry in meshlets using the modern mesh shading pipeline
+- [Mesh Shading](mesh-shading.md) - Process geometry in meshlets using the modern mesh shading pipeline
 
 ## Source Code
 

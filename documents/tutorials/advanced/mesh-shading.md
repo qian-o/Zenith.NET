@@ -1,4 +1,4 @@
-﻿# Mesh Shader
+﻿# Mesh Shading
 
 In this tutorial, you'll learn how to use mesh shaders with Zenith.NET. We'll render a simple cube using the mesh shading pipeline, demonstrating the modern GPU-driven geometry processing approach.
 
@@ -7,7 +7,7 @@ In this tutorial, you'll learn how to use mesh shaders with Zenith.NET. We'll re
 
 ## Overview
 
-We'll create a `MeshShaderRenderer` class that:
+We'll create a `MeshShadingRenderer` class that:
 
 - Defines vertex and meshlet data structures
 - Creates structured buffers for vertices, indices, and meshlets
@@ -59,12 +59,12 @@ Each meshlet contains:
 
 ## The Renderer Class
 
-Create a new file `Renderers/MeshShaderRenderer.cs`:
+Create a new file `Renderers/MeshShadingRenderer.cs`:
 
 ```csharp
 namespace ZenithTutorials.Renderers;
 
-internal unsafe class MeshShaderRenderer : IRenderer
+internal unsafe class MeshShadingRenderer : IRenderer
 {
     private const string ShaderSource = """
         static const uint MaxVertices = 64;
@@ -168,7 +168,7 @@ internal unsafe class MeshShaderRenderer : IRenderer
     private readonly uint meshletCount;
     private float rotationAngle;
 
-    public MeshShaderRenderer()
+    public MeshShadingRenderer()
     {
         if (!App.Context.Capabilities.MeshShaderSupported)
         {
@@ -394,13 +394,13 @@ file struct TransformConstants
 
 ## Running the Tutorial
 
-Update your `Program.cs` to run the `MeshShaderRenderer`:
+Update your `Program.cs` to run the `MeshShadingRenderer`:
 
 ```csharp
 using ZenithTutorials;
 using ZenithTutorials.Renderers;
 
-App.Run<MeshShaderRenderer>();
+App.Run<MeshShadingRenderer>();
 
 App.Cleanup();
 ```
@@ -413,7 +413,7 @@ dotnet run
 
 ## Result
 
-![mesh-shader](../../images/mesh-shader.png)
+![mesh-shading](../../images/mesh-shading.png)
 
 ## Code Breakdown
 
@@ -549,4 +549,4 @@ For a complete rendering example combining multiple techniques, check out the [S
 ## Source Code
 
 > [!TIP]
-> View the complete source code on GitHub: [MeshShaderRenderer.cs](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/MeshShaderRenderer.cs)
+> View the complete source code on GitHub: [MeshShadingRenderer.cs](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/MeshShadingRenderer.cs)

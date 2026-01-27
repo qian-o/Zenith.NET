@@ -29,7 +29,7 @@ Explore cutting-edge GPU features for modern rendering (requires hardware suppor
 | Tutorial | Description | Requirement |
 |----------|-------------|-------------|
 | [Ray Tracing](advanced/ray-tracing.md) | Build acceleration structures (BLAS/TLAS), create ray tracing pipelines with hit groups, and implement hard shadows | `RayTracingSupported` |
-| [Mesh Shader](advanced/mesh-shader.md) | Use meshlet-based geometry processing with mesh shading pipelines | `MeshShaderSupported` |
+| [Mesh Shading](advanced/mesh-shading.md) | Use meshlet-based geometry processing with mesh shading pipelines | `MeshShaderSupported` |
 
 ## Tutorial Structure
 
@@ -55,7 +55,7 @@ All tutorials share the same `App` framework, making it easy to switch between e
 | **Compute Shader** | Run general-purpose GPU computations for image processing |
 | **Indirect Drawing** | Let the GPU control draw parameters for efficient multi-instance rendering |
 | **Ray Tracing** | Build acceleration structures, trace rays, handle intersections, and implement shadows |
-| **Mesh Shader** | Process geometry in meshlets using the modern mesh shading pipeline |
+| **Mesh Shading** | Process geometry in meshlets using the modern mesh shading pipeline |
 
 ## Requirements
 

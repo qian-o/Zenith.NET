@@ -20,5 +20,5 @@
   items:
     - name: Ray Tracing
       href: advanced/ray-tracing.md
-    - name: Mesh Shader
-      href: advanced/mesh-shader.md
+    - name: Mesh Shading
+      href: advanced/mesh-shading.md
