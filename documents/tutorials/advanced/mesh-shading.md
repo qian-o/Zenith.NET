@@ -448,7 +448,7 @@ Each meshlet describes a chunk of geometry:
 - **VertexOffset/Count**: Range of vertices in the vertex buffer
 - **PrimitiveOffset/Count**: Range of triangles in the index buffer
 
-### Mesh Shading Entry Point
+### Mesh Shader Entry Point
 
 ```slang
 [shader("mesh")]
