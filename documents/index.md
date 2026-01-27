@@ -49,7 +49,7 @@ _layout: landing
     <div class="highlight-item">
         <div class="highlight-icon">⚡</div>
         <div class="highlight-text">
-            <strong>High Performance</strong> — Direct access to ray tracing, mesh shaders, and compute pipelines.
+            <strong>High Performance</strong> — Direct access to ray tracing, mesh shading, and compute pipelines.
         </div>
     </div>
     <div class="highlight-item">
@@ -131,7 +131,7 @@ _layout: landing
 <div class="cta-section">
     <div class="cta-main">
         <h3>Ready to build?</h3>
-        <p>Follow our step-by-step tutorials from Hello Triangle to advanced ray tracing and mesh shaders.</p>
+        <p>Follow our step-by-step tutorials from Hello Triangle to advanced ray tracing and mesh shading.</p>
         <a href="tutorials/index.md" class="btn btn-primary">Start Learning →</a>
     </div>
     <div class="cta-links">

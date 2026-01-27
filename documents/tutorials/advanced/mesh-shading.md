@@ -1,9 +1,9 @@
 ﻿# Mesh Shading
 
-In this tutorial, you'll learn how to use mesh shaders with Zenith.NET. We'll render a simple cube using the mesh shading pipeline, demonstrating the modern GPU-driven geometry processing approach.
+In this tutorial, you'll learn how to use mesh shading with Zenith.NET. We'll render a simple cube using the mesh shading pipeline, demonstrating the modern GPU-driven geometry processing approach.
 
 > [!NOTE]
-> This tutorial requires a GPU with mesh shader support. Check `Context.Capabilities.MeshShadingSupported` before using mesh shader features.
+> This tutorial requires a GPU with mesh shading support. Check `Context.Capabilities.MeshShadingSupported` before using mesh shading features.
 
 ## Overview
 
@@ -426,7 +426,7 @@ if (!App.Context.Capabilities.MeshShadingSupported)
 }
 ```
 
-Always check `Capabilities.MeshShadingSupported` before using mesh shader features.
+Always check `Capabilities.MeshShadingSupported` before using mesh shading features.
 
 ### Meshlet Data Structure
 

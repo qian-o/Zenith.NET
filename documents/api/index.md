@@ -20,7 +20,7 @@ Welcome to the Zenith.NET API Reference. This documentation is automatically gen
 | `GraphicsContext` | Central hub for creating GPU resources and accessing command queues |
 | `CommandQueue` | Provides command buffers and synchronization (Graphics, Compute, Copy) |
 | `CommandBuffer` | Records and submits GPU commands |
-| `Capabilities` | Reports device name and feature support (ray tracing, mesh shaders) |
+| `Capabilities` | Reports device name and feature support (ray tracing, mesh shading) |
 
 ### Presentation
 
