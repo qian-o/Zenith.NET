@@ -98,7 +98,7 @@ _layout: landing
         <div class="step-number">1</div>
         <div class="step-content">
             <h4>Initialize</h4>
-            <p>Create a graphics context with automatic backend selection.</p>
+            <p>Create a graphics context with your preferred backend (DirectX 12, Metal, or Vulkan).</p>
         </div>
     </div>
     <div class="workflow-step">
