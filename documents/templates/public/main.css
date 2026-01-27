@@ -1,15 +1,13 @@
-﻿/* ===== Navbar ===== */
-.navbar #navbar,
-.navbar #navbar > * {
-    display: flex;
-    align-items: center;
-}
+﻿/**
+ * Zenith.NET Documentation Theme
+ * A modern, clean theme for DocFX documentation
+ */
 
-#logo {
-    height: 50px;
-}
+/* ==========================================================================
+   1. CSS Variables
+   ========================================================================== */
 
-/* ===== Color Theme (Light) ===== */
+/* Light Theme */
 :root {
     --zenith-primary: #512BD4;
     --zenith-secondary: #C239B3;
@@ -22,7 +20,7 @@
     --zenith-code-bg: #f6f8fa;
 }
 
-/* ===== Color Theme (Dark) ===== */
+/* Dark Theme */
 [data-bs-theme="dark"] {
     --zenith-text: #f3f4f6;
     --zenith-text-muted: #9ca3af;
@@ -32,12 +30,16 @@
     --zenith-code-bg: #1a1a2e;
 }
 
-/* ===== Background Glow ===== */
+/* ==========================================================================
+   2. Base Styles
+   ========================================================================== */
+
 body {
     background-color: var(--zenith-bg);
     position: relative;
 }
 
+/* Background Glow Effect */
 body::before,
 body::after {
     content: '';
@@ -68,7 +70,24 @@ body::after {
     opacity: 0.1;
 }
 
-/* ===== Hero Section ===== */
+/* ==========================================================================
+   3. Navbar
+   ========================================================================== */
+
+.navbar #navbar,
+.navbar #navbar > * {
+    display: flex;
+    align-items: center;
+}
+
+#logo {
+    height: 50px;
+}
+
+/* ==========================================================================
+   4. Hero Section (Landing Page)
+   ========================================================================== */
+
 .hero {
     text-align: center;
     padding: 4rem 2rem;
@@ -98,6 +117,7 @@ body::after {
     font-weight: 500;
     margin: 0 0 1rem 0;
     opacity: 0.95;
+    color: white;
 }
 
 .hero-description {
@@ -106,6 +126,7 @@ body::after {
     margin: 0 auto 2rem auto;
     opacity: 0.9;
     line-height: 1.7;
+    color: white;
 }
 
 .hero-buttons {
@@ -115,7 +136,6 @@ body::after {
     flex-wrap: wrap;
 }
 
-/* ===== Hero Buttons ===== */
 .hero-buttons .btn {
     display: inline-block;
     padding: 0.85rem 2rem;
@@ -148,7 +168,10 @@ body::after {
     transform: translateY(-2px);
 }
 
-/* ===== Features Grid ===== */
+/* ==========================================================================
+   5. Features Grid (Landing Page)
+   ========================================================================== */
+
 .features {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -184,7 +207,10 @@ body::after {
     line-height: 1.6;
 }
 
-/* ===== Technology Section ===== */
+/* ==========================================================================
+   6. Technology Section (Landing Page)
+   ========================================================================== */
+
 .tech-section {
     display: flex;
     flex-direction: column;
@@ -236,10 +262,12 @@ body::after {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    color: transparent;
 }
 
-/* ===== Cards Grid ===== */
+/* ==========================================================================
+   7. Cards Grid (Landing Page)
+   ========================================================================== */
+
 .cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -290,7 +318,10 @@ body::after {
     color: var(--zenith-secondary);
 }
 
-/* ===== Workflow Section ===== */
+/* ==========================================================================
+   8. Workflow Section (Landing Page)
+   ========================================================================== */
+
 .workflow {
     display: flex;
     flex-direction: column;
@@ -366,7 +397,10 @@ body::after {
     line-height: 1.6;
 }
 
-/* ===== Community Badges ===== */
+/* ==========================================================================
+   9. Community Badges (Landing Page)
+   ========================================================================== */
+
 .community-badges {
     display: flex;
     justify-content: center;
@@ -383,28 +417,30 @@ body::after {
     transform: translateY(-2px);
 }
 
-/* ===== Article Styles ===== */
-article pre {
-    border-radius: 8px;
-    border: 1px solid var(--zenith-border);
-    background: var(--zenith-code-bg);
+/* ==========================================================================
+   10. Article Content Styles
+   ========================================================================== */
+
+article {
+    color: var(--zenith-text);
+    line-height: 1.7;
 }
 
-article code {
-    font-size: 0.9rem;
-}
-
-article hr {
-    border: none;
-    border-top: 1px solid var(--zenith-border);
-    margin: 3rem 0;
+/* Headings */
+article h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--zenith-text);
+    margin: 0 0 1.5rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 3px solid var(--zenith-primary);
 }
 
 article h2 {
     font-size: 1.75rem;
     font-weight: 700;
     color: var(--zenith-text);
-    margin: 2rem 0 1rem 0;
+    margin: 2.5rem 0 1rem 0;
     position: relative;
     padding-left: 1rem;
 }
@@ -420,7 +456,174 @@ article h2::before {
     border-radius: 2px;
 }
 
-/* ===== Hide UI Elements ===== */
+article h3 {
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--zenith-text);
+    margin: 2rem 0 0.75rem 0;
+}
+
+article h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--zenith-text);
+    margin: 1.5rem 0 0.5rem 0;
+}
+
+/* Text */
+article p {
+    margin: 0 0 1rem 0;
+    color: var(--zenith-text);
+}
+
+article a {
+    color: var(--zenith-primary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+article a:hover {
+    color: var(--zenith-secondary);
+    text-decoration: underline;
+}
+
+/* Lists */
+article ul,
+article ol {
+    margin: 0 0 1rem 0;
+    padding-left: 1.5rem;
+}
+
+article li {
+    margin-bottom: 0.5rem;
+    color: var(--zenith-text);
+}
+
+/* Code */
+article pre {
+    border-radius: 12px;
+    border: 1px solid var(--zenith-border);
+    background: var(--zenith-code-bg);
+    margin: 1.5rem 0;
+    overflow: hidden;
+}
+
+article pre code {
+    display: block;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+}
+
+article code {
+    font-size: 0.875rem;
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+}
+
+article p code,
+article li code,
+article td code {
+    background: var(--zenith-bg-light);
+    color: var(--zenith-secondary);
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    border: 1px solid var(--zenith-border);
+}
+
+/* Horizontal Rule */
+article hr {
+    border: none;
+    border-top: 1px solid var(--zenith-border);
+    margin: 3rem 0;
+}
+
+/* Blockquote */
+article blockquote {
+    border-left: 4px solid var(--zenith-primary);
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    background: var(--zenith-bg-light);
+    border-radius: 0 8px 8px 0;
+}
+
+article blockquote p {
+    margin: 0;
+    color: var(--zenith-text-muted);
+}
+
+/* Images */
+article img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+
+/* ==========================================================================
+   11. Table Styles
+   ========================================================================== */
+
+article table {
+    width: 100% !important;
+    margin: 1.5rem 0 !important;
+    font-size: 0.95rem !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    border: 1px solid var(--zenith-border) !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    background: var(--zenith-bg) !important;
+}
+
+article thead {
+    background: var(--zenith-bg-light) !important;
+}
+
+article th {
+    padding: 0.875rem 1rem !important;
+    text-align: center !important;
+    font-weight: 600 !important;
+    color: var(--zenith-text) !important;
+    background: var(--zenith-bg-light) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--zenith-border) !important;
+    border-right: 1px solid var(--zenith-border) !important;
+}
+
+article th:last-child {
+    border-right: none !important;
+}
+
+article td {
+    padding: 0.875rem 1rem !important;
+    text-align: left !important;
+    color: var(--zenith-text) !important;
+    background: var(--zenith-bg) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--zenith-border) !important;
+    border-right: 1px solid var(--zenith-border) !important;
+}
+
+article td:last-child {
+    border-right: none !important;
+}
+
+article tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
+article tbody tr:hover td {
+    background: var(--zenith-bg-light) !important;
+}
+
+article td a {
+    white-space: nowrap !important;
+}
+
+/* ==========================================================================
+   12. Hide UI Elements
+   ========================================================================== */
+
 article h1 > a,
 article h2 > a,
 article h3 > a,
@@ -432,8 +635,12 @@ a[href^="https"]::after {
     display: none !important;
 }
 
-/* ===== Responsive ===== */
+/* ==========================================================================
+   13. Responsive Design
+   ========================================================================== */
+
 @media (max-width: 768px) {
+    /* Hero */
     .hero {
         padding: 3rem 1.5rem;
     }
@@ -455,10 +662,12 @@ a[href^="https"]::after {
         height: 100px;
     }
 
+    /* Tech Items */
     .tech-item {
         padding: 0.5rem 1rem;
     }
 
+    /* Workflow */
     .workflow-step:not(:last-child)::after {
         left: 19px;
     }
@@ -474,6 +683,11 @@ a[href^="https"]::after {
         padding: 1rem;
     }
 
+    /* Article Headings */
+    article h1 {
+        font-size: 1.75rem;
+    }
+
     article h2 {
         font-size: 1.5rem;
         padding-left: 0.75rem;
@@ -481,5 +695,14 @@ a[href^="https"]::after {
 
     article h2::before {
         width: 3px;
+    }
+
+    article h3 {
+        font-size: 1.2rem;
+    }
+
+    /* Code Blocks */
+    article pre {
+        border-radius: 8px;
     }
 }
