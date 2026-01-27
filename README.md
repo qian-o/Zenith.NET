@@ -5,81 +5,76 @@
 <h1 align="center">Zenith.NET</h1>
 
 <p align="center">
-  A modern, cross-platform graphics and compute library for .NET. It provides a unified GPU programming interface to simplify rendering and general-purpose compute workflows.
+  A modern, cross-platform graphics and compute library for .NET.<br/>
+  One API for DirectX 12, Metal, and Vulkan.
+</p>
+
+<p align="center">
+  <a href="https://www.nuget.org/packages/Zenith.NET"><img src="https://img.shields.io/nuget/v/Zenith.NET.svg?style=flat-square" alt="NuGet"></a>
+  <a href="https://github.com/qian-o/Zenith.NET/blob/master/LICENSE"><img src="https://img.shields.io/github/license/qian-o/Zenith.NET?style=flat-square" alt="License"></a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Work%20in%20Progress-orange?style=for-the-badge" alt="Status: Work in Progress">
 </p>
 
-## Overview
+---
 
-Zenith.NET targets modern .NET (including .NET 10.0) and integrates with multiple UI frameworks (such as .NET MAUI) to enable portable, high-performance rendering across platforms.
+## 📖 Overview
 
-### Highlights
-- Unified, backend-agnostic GPU API
-- Multiple graphics backends (DirectX12, Metal, Vulkan)
-- First-class integrations with popular .NET UI frameworks
-- Designed for performance and easy integration
-- Consistent, cross-platform developer experience
+Zenith.NET is a GPU abstraction layer that unifies DirectX 12, Metal, and Vulkan under a single .NET API. It enables developers to build high-performance rendering and compute applications without writing backend-specific code. The library supports modern GPU features including ray tracing and mesh shading, and integrates seamlessly with popular .NET UI frameworks.
 
-## NuGet Packages
+Visit the [documentation site](https://qian-o.github.io/Zenith.NET/) for tutorials and API reference.
+
+## ✨ Features
+
+- 🎯 **Unified API** — Write once, run on DirectX 12, Metal, and Vulkan
+- 🎨 **Graphics Pipeline** — Vertex, hull, domain, geometry, and pixel shaders
+- ⚡ **Compute Pipeline** — General-purpose GPU computing
+- 💡 **Ray Tracing** — Hardware-accelerated BLAS/TLAS and hit groups
+- 🔷 **Mesh Shading** — GPU-driven geometry with mesh and amplification shaders
+- 🖼️ **UI Integrations** — Avalonia, MAUI, WinForms, WinUI, WPF, and Uno Platform
+
+---
+
+## 🌍 Platform Support
+
+|           | DirectX 12 | Metal 4 | Vulkan 1.4 |
+| :-------: | :--------: | :-----: | :--------: |
+| Windows   | ✅ |  | ✅ |
+| macOS     |  | 🚧 | ✅ |
+| Linux     |  |  | ✅ |
+| iOS       |  | 🚧 | ✅ |
+| Android   |  |  | ✅ |
+
+> 🚧 Metal backend is under development.
+
+---
+
+## 📦 NuGet Packages
 
 ### Core
 
-| Package    | Description                       | NuGet                                                                                                                  |
-| :--------- | :-------------------------------- | :--------------------------------------------------------------------------------------------------------------------: |
-| Zenith.NET | Core graphics abstraction library | [![NuGet](https://img.shields.io/nuget/v/Zenith.NET.svg)](https://www.nuget.org/packages/Zenith.NET)                   |
+[![Zenith.NET](https://img.shields.io/nuget/v/Zenith.NET.svg?label=Zenith.NET&style=flat-square)](https://www.nuget.org/packages/Zenith.NET)
 
 ### Backends
 
-| Package              | Description                      | NuGet                                                                                                                                  |
-| :------------------- | :------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------: |
-| Zenith.NET.DirectX12 | DirectX12 backend implementation | [![NuGet](https://img.shields.io/nuget/v/Zenith.NET.DirectX12.svg)](https://www.nuget.org/packages/Zenith.NET.DirectX12)               |
-| Zenith.NET.Metal     | Metal backend implementation     | [![NuGet](https://img.shields.io/nuget/v/Zenith.NET.Metal.svg)](https://www.nuget.org/packages/Zenith.NET.Metal)                       |
-| Zenith.NET.Vulkan    | Vulkan backend implementation    | [![NuGet](https://img.shields.io/nuget/v/Zenith.NET.Vulkan.svg)](https://www.nuget.org/packages/Zenith.NET.Vulkan)                     |
+[![DirectX12](https://img.shields.io/nuget/v/Zenith.NET.DirectX12.svg?label=DirectX12&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.DirectX12)
+[![Metal](https://img.shields.io/nuget/v/Zenith.NET.Metal.svg?label=Metal&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Metal)
+[![Vulkan](https://img.shields.io/nuget/v/Zenith.NET.Vulkan.svg?label=Vulkan&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Vulkan)
 
 ### Extensions
 
-| Package                          | Description                          | NuGet                                                                                                                                                      |
-| :------------------------------- | :----------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Zenith.NET.Extensions.ImageSharp | ImageSharp texture loading extension | [![NuGet](https://img.shields.io/nuget/v/Zenith.NET.Extensions.ImageSharp.svg)](https://www.nuget.org/packages/Zenith.NET.Extensions.ImageSharp)           |
-| Zenith.NET.Extensions.ImGui      | Dear ImGui integration               | [![NuGet](https://img.shields.io/nuget/v/Zenith.NET.Extensions.ImGui.svg)](https://www.nuget.org/packages/Zenith.NET.Extensions.ImGui)                     |
-| Zenith.NET.Extensions.Skia       | SkiaSharp integration                | [![NuGet](https://img.shields.io/nuget/v/Zenith.NET.Extensions.Skia.svg)](https://www.nuget.org/packages/Zenith.NET.Extensions.Skia)                       |
-| Zenith.NET.Extensions.Slang      | Slang shader compiler extension      | [![NuGet](https://img.shields.io/nuget/v/Zenith.NET.Extensions.Slang.svg)](https://www.nuget.org/packages/Zenith.NET.Extensions.Slang)                     |
+[![ImageSharp](https://img.shields.io/nuget/v/Zenith.NET.Extensions.ImageSharp.svg?label=ImageSharp&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Extensions.ImageSharp)
+[![ImGui](https://img.shields.io/nuget/v/Zenith.NET.Extensions.ImGui.svg?label=ImGui&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Extensions.ImGui)
+[![Skia](https://img.shields.io/nuget/v/Zenith.NET.Extensions.Skia.svg?label=Skia&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Extensions.Skia)
+[![Slang](https://img.shields.io/nuget/v/Zenith.NET.Extensions.Slang.svg?label=Slang&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Extensions.Slang)
 
 ### Views
 
-| Package                   | Description                        | NuGet                                                                                                                                          |
-| :------------------------ | :--------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------: |
-| Zenith.NET.Views          | Shared UI view abstractions        | [![NuGet](https://img.shields.io/nuget/v/Zenith.NET.Views.svg)](https://www.nuget.org/packages/Zenith.NET.Views)                               |
-| Zenith.NET.Views.Avalonia | Avalonia UI integration            | [![NuGet](https://img.shields.io/nuget/v/Zenith.NET.Views.Avalonia.svg)](https://www.nuget.org/packages/Zenith.NET.Views.Avalonia)             |
-| Zenith.NET.Views.Maui     | .NET MAUI integration              | [![NuGet](https://img.shields.io/nuget/v/Zenith.NET.Views.Maui.svg)](https://www.nuget.org/packages/Zenith.NET.Views.Maui)                     |
-| Zenith.NET.Views.WinForms | Windows Forms integration          | [![NuGet](https://img.shields.io/nuget/v/Zenith.NET.Views.WinForms.svg)](https://www.nuget.org/packages/Zenith.NET.Views.WinForms)             |
-| Zenith.NET.Views.WinUI    | WinUI 3 / Uno Platform integration | [![NuGet](https://img.shields.io/nuget/v/Zenith.NET.Views.WinUI.svg)](https://www.nuget.org/packages/Zenith.NET.Views.WinUI)                   |
-| Zenith.NET.Views.WPF      | WPF integration                    | [![NuGet](https://img.shields.io/nuget/v/Zenith.NET.Views.WPF.svg)](https://www.nuget.org/packages/Zenith.NET.Views.WPF)                       |
-
-## Graphics Backends
-
-Zenith.NET supports multiple graphics APIs that cover mainstream rendering technologies, making it easy to choose the right backend for your scenario.
-
-| API       | Feature Level / API Version | Supported |
-| :-------: | :-------------------------: | :-------: |
-| DirectX12 | 12_0                        | completed |
-| Metal     | 4.0                         | planned   |
-| Vulkan    | 1.4                         | completed |
-
-## UI Framework Integrations
-
-Zenith.NET supports multiple .NET UI frameworks, and its rendering capabilities can be seamlessly integrated into different types of applications.
-
-| Framework   | CPU Pixel Copy | Native GPU Rendering | DirectX12 | Metal     | Vulkan    |
-| :---------: | :------------: | :------------------: | :-------: | :-------: | :-------: |
-| Avalonia    | supported      |                      | supported | supported | supported |
-| MAUI        |                | supported            | supported | supported | supported |
-| WinForms    |                | supported            | supported |           | supported |
-| WinUI       |                | supported            | supported |           | supported |
-| WinUI (Uno) | supported      |                      | supported | supported | supported |
-| WPF         |                | supported            | supported |           | supported |
-
-Note: "CPU Pixel Copy" and "Native GPU Rendering" are two ways to present frames in a UI view. The former copies pixel data on the CPU; the latter renders directly to the view using the GPU.
+[![Views](https://img.shields.io/nuget/v/Zenith.NET.Views.svg?label=Views&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Views)
+[![Avalonia](https://img.shields.io/nuget/v/Zenith.NET.Views.Avalonia.svg?label=Avalonia&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Views.Avalonia)
+[![MAUI](https://img.shields.io/nuget/v/Zenith.NET.Views.Maui.svg?label=MAUI&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Views.Maui)
+[![WinForms](https://img.shields.io/nuget/v/Zenith.NET.Views.WinForms.svg?label=WinForms&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Views.WinForms)
+[![WinUI](https://img.shields.io/nuget/v/Zenith.NET.Views.WinUI.svg?label=WinUI&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Views.WinUI)
+[![WPF](https://img.shields.io/nuget/v/Zenith.NET.Views.WPF.svg?label=WPF&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Views.WPF)
