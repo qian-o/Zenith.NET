@@ -156,7 +156,7 @@ internal static class App
 
                     ImGui.Separator();
 
-                    ImGui.Text($"Mesh Shader Supported: {Context.Capabilities.MeshShaderSupported}");
+                    ImGui.Text($"Mesh Shading Supported: {Context.Capabilities.MeshShadingSupported}");
 
                     ImGui.Separator();
 

@@ -19,12 +19,12 @@ internal unsafe class DXCapabilities : Capabilities
 
         DeviceName = ZenithMarshal.StringFromPointer((nint)desc.Description, StringEncoding.Uni);
         RayTracingSupported = options5.RaytracingTier is not RaytracingTier.TierNotSupported;
-        MeshShaderSupported = options7.MeshShaderTier is not MeshShaderTier.TierNotSupported;
+        MeshShadingSupported = options7.MeshShaderTier is not MeshShaderTier.TierNotSupported;
     }
 
     public override string DeviceName { get; }
 
     public override bool RayTracingSupported { get; }
 
-    public override bool MeshShaderSupported { get; }
+    public override bool MeshShadingSupported { get; }
 }

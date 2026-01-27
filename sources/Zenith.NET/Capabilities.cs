@@ -6,5 +6,5 @@ public abstract class Capabilities
 
     public abstract bool RayTracingSupported { get; }
 
-    public abstract bool MeshShaderSupported { get; }
+    public abstract bool MeshShadingSupported { get; }
 }
