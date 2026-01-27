@@ -6,5 +6,5 @@
 This topic covers:
 
 - Meshlet concept and data structures
-- Mesh shaders and amplification shaders
+- Mesh and amplification shaders
 - Dispatching mesh work with `DispatchMesh`

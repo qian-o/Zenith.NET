@@ -16,9 +16,9 @@ We'll create a `MeshShadingRenderer` class that:
 
 ## Key Concepts
 
-### What are Mesh Shaders?
+### What is Mesh Shading?
 
-Mesh shaders replace the traditional vertex processing pipeline (Input Assembler → Vertex Shader → optional tessellation/geometry) with a more flexible compute-like model:
+Mesh shading replaces the traditional vertex processing pipeline (Input Assembler → Vertex Shader → optional tessellation/geometry) with a more flexible compute-like model:
 
 | Traditional Pipeline | Mesh Shading Pipeline |
 |---------------------|----------------------|
@@ -33,7 +33,7 @@ Mesh shaders replace the traditional vertex processing pipeline (Input Assembler
 
 ### Meshlet Architecture
 
-Mesh shaders work with **meshlets** - small chunks of geometry that can be processed independently:
+The mesh shading pipeline works with **meshlets** - small chunks of geometry that can be processed independently:
 
 ```
 Mesh
@@ -172,7 +172,7 @@ internal unsafe class MeshShadingRenderer : IRenderer
     {
         if (!App.Context.Capabilities.MeshShadingSupported)
         {
-            throw new NotSupportedException("Mesh shaders are not supported on this device.");
+            throw new NotSupportedException("Mesh shading is not supported on this device.");
         }
 
         Vertex[] cubeVertices =
@@ -417,12 +417,12 @@ dotnet run
 
 ## Code Breakdown
 
-### Checking Mesh Shader Support
+### Checking Mesh Shading Support
 
 ```csharp
 if (!App.Context.Capabilities.MeshShadingSupported)
 {
-    throw new NotSupportedException("Mesh shaders are not supported on this device.");
+    throw new NotSupportedException("Mesh shading is not supported on this device.");
 }
 ```
 
@@ -448,7 +448,7 @@ Each meshlet describes a chunk of geometry:
 - **VertexOffset/Count**: Range of vertices in the vertex buffer
 - **PrimitiveOffset/Count**: Range of triangles in the index buffer
 
-### Mesh Shader Entry Point
+### Mesh Shading Entry Point
 
 ```slang
 [shader("mesh")]
@@ -478,13 +478,13 @@ SetMeshOutputCounts(meshlet.VertexCount, meshlet.PrimitiveCount);
 
 This must be called once per workgroup to declare how many vertices and primitives will be output.
 
-### Dispatching Mesh Shaders
+### Dispatching Mesh Shading
 
 ```csharp
 commandBuffer.DispatchMesh(meshletCount, 1, 1);
 ```
 
-Unlike traditional `Draw` calls, mesh shaders use `DispatchMesh(X, Y, Z)` to launch workgroups:
+Unlike traditional `Draw` calls, mesh shading uses `DispatchMesh(X, Y, Z)` to launch workgroups:
 - Each workgroup processes one meshlet
 - Total workgroups = `meshletCount × 1 × 1`
 
