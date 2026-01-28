@@ -221,10 +221,84 @@ body {
         color: var(--zenith-primary) !important;
     }
 
+[data-bs-theme="dark"] .dropdown-item:hover,
+[data-bs-theme="dark"] .dropdown-item:focus {
+    color: var(--zenith-link) !important;
+}
+
 .navbar #navbar,
 .navbar #navbar > * {
     display: flex;
     align-items: center;
+}
+
+/* Navbar Navigation Links */
+.navbar .navbar-nav {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.navbar .nav-link {
+    position: relative;
+    padding: 0.5rem 0.875rem !important;
+    border-radius: var(--radius-sm) !important;
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+    color: var(--zenith-text-muted) !important;
+    transition: all 0.15s var(--motion-standard) !important;
+    text-decoration: none !important;
+}
+
+    .navbar .nav-link:hover {
+        background: var(--surface-tint) !important;
+        color: var(--zenith-primary) !important;
+    }
+
+    .navbar .nav-link.active {
+        background: var(--surface-tint) !important;
+        color: var(--zenith-primary) !important;
+        font-weight: 600 !important;
+    }
+
+[data-bs-theme="dark"] .navbar .nav-link:hover,
+[data-bs-theme="dark"] .navbar .nav-link.active {
+    color: var(--zenith-link) !important;
+}
+
+/* Navbar Icon Buttons */
+.navbar .icons {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+    .navbar .icons > a.btn,
+    .navbar .icons .dropdown > a.btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 36px !important;
+        height: 36px !important;
+        padding: 0 !important;
+        border-radius: var(--radius-sm) !important;
+        color: var(--zenith-text-muted) !important;
+        transition: all 0.15s var(--motion-standard) !important;
+    }
+
+        .navbar .icons > a.btn:hover,
+        .navbar .icons .dropdown > a.btn:hover {
+            background: var(--surface-tint) !important;
+            color: var(--zenith-primary) !important;
+        }
+
+        .navbar .icons > a.btn i,
+        .navbar .icons .dropdown > a.btn i {
+            font-size: 1.1rem;
+        }
+
+[data-bs-theme="dark"] .navbar .icons > a.btn:hover,
+[data-bs-theme="dark"] .navbar .icons .dropdown > a.btn:hover {
+    color: var(--zenith-link) !important;
 }
 
 #logo {
@@ -1558,8 +1632,8 @@ article td a {
     }
 
 /* ==========================================================================
-19. Sidebar Navigation (Liquid Glass)
-========================================================================== */
+   19. Sidebar Navigation (Liquid Glass)
+   ========================================================================== */
 
 .sidebar,
 .sidefilter {
@@ -2050,8 +2124,8 @@ article td a {
 }
 
 /* ==========================================================================
-20. Breadcrumb Navigation
-========================================================================== */
+   20. Breadcrumb Navigation
+   ========================================================================== */
 
 #breadcrumb {
     margin-bottom: 1.5rem;
