@@ -20,9 +20,11 @@
 * 15. Article Content
 * 16. Table Styles
 * 17. Status Badges
-* 18. Sidebar Navigation
-* 19. Hide UI Elements
-* 20. Responsive Design
+* 18. Alerts
+* 19. Sidebar Navigation
+* 20. Breadcrumb Navigation
+* 21. Hide UI Elements
+* 22. Responsive Design
 */
 
 /* ==========================================================================
@@ -1079,8 +1081,8 @@ article {
             position: relative;
             z-index: 1;
             display: block;
-            padding: 1.25rem 0.75rem;
-            margin: 0 0.75rem 0.5rem 0.75rem;
+            padding: 1rem 1rem;
+            margin: 0;
             overflow-x: auto;
             font-size: 0.875rem;
             line-height: 1.6;
@@ -1366,8 +1368,198 @@ article td a {
 }
 
 /* ==========================================================================
-   18. Sidebar Navigation (Liquid Glass)
+   18. Alerts (Liquid Glass)
    ========================================================================== */
+
+.alert {
+    position: relative;
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+    border-radius: var(--radius-lg);
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    box-shadow: var(--glass-shadow);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+    .alert p:last-child {
+        margin-bottom: 0;
+    }
+
+    .alert a {
+        font-weight: 600;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+
+        .alert a:hover {
+            text-decoration: none;
+        }
+
+/* Alert Primary */
+.alert-primary {
+    background: rgba(81, 43, 212, 0.08);
+    border: 1px solid rgba(81, 43, 212, 0.2);
+    color: var(--zenith-text);
+}
+
+    .alert-primary a {
+        color: var(--zenith-primary);
+    }
+
+[data-bs-theme="dark"] .alert-primary {
+    background: rgba(207, 188, 255, 0.1);
+    border-color: rgba(207, 188, 255, 0.25);
+}
+
+    [data-bs-theme="dark"] .alert-primary a {
+        color: var(--zenith-link);
+    }
+
+/* Alert Secondary */
+.alert-secondary {
+    background: rgba(107, 114, 128, 0.08);
+    border: 1px solid rgba(107, 114, 128, 0.2);
+    color: var(--zenith-text);
+}
+
+    .alert-secondary a {
+        color: #4b5563;
+    }
+
+[data-bs-theme="dark"] .alert-secondary {
+    background: rgba(156, 163, 175, 0.1);
+    border-color: rgba(156, 163, 175, 0.25);
+}
+
+    [data-bs-theme="dark"] .alert-secondary a {
+        color: #d1d5db;
+    }
+
+/* Alert Success */
+.alert-success {
+    background: rgba(34, 197, 94, 0.08);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    color: var(--zenith-text);
+}
+
+    .alert-success a {
+        color: #16a34a;
+    }
+
+[data-bs-theme="dark"] .alert-success {
+    background: rgba(74, 222, 128, 0.1);
+    border-color: rgba(74, 222, 128, 0.25);
+}
+
+    [data-bs-theme="dark"] .alert-success a {
+        color: #86efac;
+    }
+
+/* Alert Danger */
+.alert-danger {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: var(--zenith-text);
+}
+
+    .alert-danger a {
+        color: #dc2626;
+    }
+
+[data-bs-theme="dark"] .alert-danger {
+    background: rgba(248, 113, 113, 0.1);
+    border-color: rgba(248, 113, 113, 0.25);
+}
+
+    [data-bs-theme="dark"] .alert-danger a {
+        color: #fca5a5;
+    }
+
+/* Alert Warning */
+.alert-warning {
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    color: var(--zenith-text);
+}
+
+    .alert-warning a {
+        color: #d97706;
+    }
+
+[data-bs-theme="dark"] .alert-warning {
+    background: rgba(251, 191, 36, 0.1);
+    border-color: rgba(251, 191, 36, 0.25);
+}
+
+    [data-bs-theme="dark"] .alert-warning a {
+        color: #fcd34d;
+    }
+
+/* Alert Info */
+.alert-info {
+    background: rgba(6, 182, 212, 0.08);
+    border: 1px solid rgba(6, 182, 212, 0.2);
+    color: var(--zenith-text);
+}
+
+    .alert-info a {
+        color: #0891b2;
+    }
+
+[data-bs-theme="dark"] .alert-info {
+    background: rgba(34, 211, 238, 0.1);
+    border-color: rgba(34, 211, 238, 0.25);
+}
+
+    [data-bs-theme="dark"] .alert-info a {
+        color: #67e8f9;
+    }
+
+/* Alert Light */
+.alert-light {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid var(--glass-border-light);
+    color: var(--zenith-text);
+}
+
+    .alert-light a {
+        color: var(--zenith-primary);
+    }
+
+[data-bs-theme="dark"] .alert-light {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--glass-border-light);
+}
+
+    [data-bs-theme="dark"] .alert-light a {
+        color: var(--zenith-link);
+    }
+
+/* Alert Dark */
+.alert-dark {
+    background: rgba(31, 41, 55, 0.1);
+    border: 1px solid rgba(31, 41, 55, 0.2);
+    color: var(--zenith-text);
+}
+
+    .alert-dark a {
+        color: #1f2937;
+    }
+
+[data-bs-theme="dark"] .alert-dark {
+    background: rgba(55, 65, 81, 0.3);
+    border-color: rgba(75, 85, 99, 0.4);
+}
+
+    [data-bs-theme="dark"] .alert-dark a {
+        color: #e5e7eb;
+    }
+
+/* ==========================================================================
+19. Sidebar Navigation (Liquid Glass)
+========================================================================== */
 
 .sidebar,
 .sidefilter {
@@ -1858,7 +2050,84 @@ article td a {
 }
 
 /* ==========================================================================
-   19. Hide UI Elements
+20. Breadcrumb Navigation
+========================================================================== */
+
+#breadcrumb {
+    margin-bottom: 1.5rem;
+}
+
+.breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.625rem 1rem;
+    margin: 0;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--glass-shadow);
+    list-style: none;
+}
+
+.breadcrumb-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--zenith-text-muted);
+}
+
+    .breadcrumb-item a {
+        color: var(--zenith-text-muted);
+        text-decoration: none;
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius-sm);
+        transition: all 0.15s var(--motion-standard);
+    }
+
+        .breadcrumb-item a:hover {
+            color: var(--zenith-primary);
+            background: var(--surface-tint);
+            text-decoration: none;
+        }
+
+    .breadcrumb-item + .breadcrumb-item::before {
+        content: '';
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        margin-right: 0.5rem;
+        border-right: 1.5px solid var(--zenith-text-muted);
+        border-top: 1.5px solid var(--zenith-text-muted);
+        transform: rotate(45deg);
+        opacity: 0.6;
+    }
+
+    .breadcrumb-item:last-child {
+        color: var(--zenith-text);
+        font-weight: 500;
+    }
+
+        .breadcrumb-item:last-child a {
+            color: var(--zenith-text);
+            pointer-events: none;
+        }
+
+/* Dark theme for breadcrumb */
+[data-bs-theme="dark"] .breadcrumb-item a:hover {
+    color: var(--zenith-link);
+}
+
+[data-bs-theme="dark"] .breadcrumb-item:last-child,
+[data-bs-theme="dark"] .breadcrumb-item:last-child a {
+    color: var(--zenith-text);
+}
+
+/* ==========================================================================
+   21. Hide UI Elements
    ========================================================================== */
 
 article h1 > a,
@@ -1873,7 +2142,7 @@ a[href^="https"]::after {
 }
 
 /* ==========================================================================
-   20. Responsive Design
+   22. Responsive Design
    ========================================================================== */
 
 @media (max-width: 768px) {
@@ -2001,5 +2270,26 @@ a[href^="https"]::after {
     .cta-link {
         justify-content: center;
         min-width: auto;
+    }
+
+    /* Breadcrumb */
+    .breadcrumb {
+        padding: 0.5rem 0.75rem;
+        border-radius: var(--radius-md);
+    }
+
+    .breadcrumb-item {
+        font-size: 0.8rem;
+    }
+
+        .breadcrumb-item a {
+            padding: 0.2rem 0.375rem;
+        }
+
+    /* Alerts */
+    .alert {
+        padding: 0.875rem 1rem;
+        font-size: 0.9rem;
+        border-radius: var(--radius-md);
     }
 }
