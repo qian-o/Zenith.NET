@@ -1508,16 +1508,6 @@ article td a {
     color: var(--zenith-link) !important;
 }
 
-[data-bs-theme="dark"] .affix ul li.active > a,
-[data-bs-theme="dark"] .affix ul li a.active {
-    color: var(--zenith-link) !important;
-}
-
-[data-bs-theme="dark"] .affix ul li.active > a,
-[data-bs-theme="dark"] .affix ul li a.active {
-    color: var(--zenith-link) !important;
-}
-
 .toc {
     padding: 0.5rem !important;
 }
@@ -1623,15 +1613,18 @@ article td a {
         }
 
 .sidefilter .filter-input,
-.sidetoc .filter {
+.sidetoc .filter,
+.sidebar input.form-control[type="search"],
+#toc .filter input.form-control {
     position: relative !important;
     background: var(--glass-bg) !important;
     backdrop-filter: blur(var(--glass-blur)) !important;
     -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
     border: 1px solid var(--glass-border-light) !important;
-    border-radius: var(--radius-xl) !important;
-    padding: 0.75rem 1rem !important;
-    font-size: 0.9rem !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 0.625rem 1rem !important;
+    padding-left: 2.25rem !important;
+    font-size: 0.85rem !important;
     color: var(--zenith-text) !important;
     transition: all 0.2s ease !important;
     width: 100% !important;
@@ -1639,16 +1632,214 @@ article td a {
 }
 
     .sidefilter .filter-input:focus,
-    .sidetoc .filter:focus {
+    .sidetoc .filter:focus,
+    .sidebar input.form-control[type="search"]:focus,
+    #toc .filter input.form-control:focus {
         outline: none !important;
         border-color: var(--zenith-primary) !important;
         box-shadow: var(--glass-shadow), 0 0 0 3px rgba(81, 43, 212, 0.15) !important;
     }
 
-    .sidefilter .filter-input::placeholder,
-    .sidetoc .filter::placeholder {
+[data-bs-theme="dark"] .sidefilter .filter-input:focus,
+[data-bs-theme="dark"] .sidetoc .filter:focus,
+[data-bs-theme="dark"] .sidebar input.form-control[type="search"]:focus,
+[data-bs-theme="dark"] #toc .filter input.form-control:focus {
+    border-color: var(--zenith-link) !important;
+    box-shadow: var(--glass-shadow), 0 0 0 3px rgba(207, 188, 255, 0.2) !important;
+}
+
+.sidefilter .filter-input::placeholder,
+.sidetoc .filter::placeholder,
+.sidebar input.form-control[type="search"]::placeholder,
+#toc .filter input.form-control::placeholder {
+    color: var(--zenith-text-muted) !important;
+}
+
+/* Filter form icon */
+#toc .filter {
+    position: relative !important;
+    margin-bottom: 0.75rem !important;
+}
+
+    #toc .filter i {
+        position: absolute !important;
+        left: 0.75rem !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
         color: var(--zenith-text-muted) !important;
+        font-size: 0.9rem !important;
+        z-index: 1 !important;
+        pointer-events: none !important;
     }
+
+/* ==========================================================================
+   Left Sidebar - Tree Navigation (WinUI-inspired)
+   ========================================================================== */
+
+#toc .flex-fill.overflow-y-auto {
+    --toc-expand-width: 16px;
+    padding: 0 0.25rem !important;
+}
+
+    #toc .flex-fill.overflow-y-auto ul {
+        list-style: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Tree node items - add spacing between all items */
+    #toc .flex-fill.overflow-y-auto > ul > li {
+        margin-top: 2px !important;
+        padding: 0 !important;
+    }
+
+        #toc .flex-fill.overflow-y-auto > ul > li:first-child {
+            margin-top: 0 !important;
+        }
+
+    #toc .flex-fill.overflow-y-auto li {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+        /* Expander items - arrow and text wrapped together */
+        #toc .flex-fill.overflow-y-auto li.expander {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            align-items: stretch !important;
+            border-radius: var(--radius-sm) !important;
+        }
+
+            /* Create a wrapper effect for expand-stub + a */
+            #toc .flex-fill.overflow-y-auto li.expander > .expand-stub,
+            #toc .flex-fill.overflow-y-auto li.expander > a {
+                background: transparent !important;
+                border: none !important;
+            }
+
+            /* Hover state for the combined expander row */
+            #toc .flex-fill.overflow-y-auto li.expander:hover > .expand-stub,
+            #toc .flex-fill.overflow-y-auto li.expander:hover > a {
+                background: var(--surface-tint) !important;
+            }
+
+            #toc .flex-fill.overflow-y-auto li.expander:hover > a {
+                color: var(--zenith-primary) !important;
+                border-color: transparent !important;
+            }
+
+            /* Active state for the combined expander row */
+            #toc .flex-fill.overflow-y-auto li.expander.active > .expand-stub,
+            #toc .flex-fill.overflow-y-auto li.expander.active > a,
+            #toc .flex-fill.overflow-y-auto li.expander > a.active {
+                background: var(--surface-tint) !important;
+            }
+
+        /* Style the expand-stub to connect with link */
+        #toc .flex-fill.overflow-y-auto li .expand-stub {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: calc(var(--toc-expand-width) + 0.5rem) !important;
+            height: auto !important;
+            min-height: 28px !important;
+            border-radius: var(--radius-sm) 0 0 var(--radius-sm) !important;
+            transition: all 0.15s var(--motion-standard) !important;
+            cursor: pointer !important;
+            flex-shrink: 0 !important;
+            padding: 0.5rem 0 0.5rem 0.5rem !important;
+        }
+
+            #toc .flex-fill.overflow-y-auto li .expand-stub::before {
+                margin-left: 0 !important;
+            }
+
+        /* Link style - connects with expand-stub */
+        #toc .flex-fill.overflow-y-auto li.expander > a {
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0 !important;
+            padding: 0.5rem 0.5rem 0.5rem 0.125rem !important;
+        }
+
+        #toc .flex-fill.overflow-y-auto li.expander > ul {
+            width: 100% !important;
+            flex-basis: 100% !important;
+            margin-top: 4px !important;
+            margin-bottom: 4px !important;
+        }
+
+        #toc .flex-fill.overflow-y-auto li > a {
+            display: inline-block !important;
+            padding: 0.5rem 0.625rem !important;
+            margin: 0 !important;
+            border-radius: var(--radius-sm) !important;
+            font-size: 0.85rem !important;
+            font-weight: 500 !important;
+            text-decoration: none !important;
+            transition: all 0.15s var(--motion-standard) !important;
+            background: transparent !important;
+            border: 1px solid transparent !important;
+            cursor: pointer !important;
+            line-height: 1.3 !important;
+            color: var(--zenith-text-muted) !important;
+            flex: 1 !important;
+        }
+
+        /* Non-expander items - full width link */
+        #toc .flex-fill.overflow-y-auto li:not(.expander) > a {
+            display: block !important;
+        }
+
+            #toc .flex-fill.overflow-y-auto li:not(.expander) > a:hover {
+                background: var(--surface-tint) !important;
+                color: var(--zenith-primary) !important;
+                border-color: var(--glass-border-light) !important;
+            }
+
+        #toc .flex-fill.overflow-y-auto li.active > a,
+        #toc .flex-fill.overflow-y-auto li > a.active {
+            background: var(--surface-tint) !important;
+            color: var(--zenith-primary) !important;
+            border-color: var(--glass-border-hover) !important;
+            font-weight: 600 !important;
+        }
+
+    /* Nested tree items - indented */
+    #toc .flex-fill.overflow-y-auto ul ul {
+        position: relative !important;
+        margin-left: calc(var(--toc-expand-width) + 12px) !important;
+        padding: 0 !important;
+    }
+
+        /* Add spacing between child items */
+        #toc .flex-fill.overflow-y-auto ul ul li {
+            margin-top: 2px !important;
+        }
+
+            #toc .flex-fill.overflow-y-auto ul ul li:first-child {
+                margin-top: 0 !important;
+            }
+
+            #toc .flex-fill.overflow-y-auto ul ul li > a {
+                font-size: 0.8rem !important;
+                padding: 0.35rem 0.5rem !important;
+            }
+
+/* Dark theme for tree navigation */
+[data-bs-theme="dark"] #toc .flex-fill.overflow-y-auto li.expander:hover > a,
+[data-bs-theme="dark"] #toc .flex-fill.overflow-y-auto li:not(.expander) > a:hover {
+    color: var(--zenith-link) !important;
+}
+
+[data-bs-theme="dark"] #toc .flex-fill.overflow-y-auto li.active > a,
+[data-bs-theme="dark"] #toc .flex-fill.overflow-y-auto li > a.active {
+    color: var(--zenith-link) !important;
+}
+
+/* Dark theme for .toc navigation */
+[data-bs-theme="dark"] .toc .nav > li > a:hover,
+[data-bs-theme="dark"] .toc .nav > li > .expand-stub + a:hover {
+    color: var(--zenith-link) !important;
+}
 
 [data-bs-theme="dark"] .toc .nav > li.active > a,
 [data-bs-theme="dark"] .toc .nav > li.active > .expand-stub + a,
@@ -1660,6 +1851,11 @@ article td a {
     [data-bs-theme="dark"] .toc .nav > li > a.active::before {
         background: linear-gradient(180deg, #cfbcff 0%, #e879f9 100%) !important;
     }
+
+[data-bs-theme="dark"] .toc .nav .nav > li > a:hover,
+[data-bs-theme="dark"] .toc .nav .nav > li.active > a {
+    color: var(--zenith-link) !important;
+}
 
 /* ==========================================================================
    19. Hide UI Elements
