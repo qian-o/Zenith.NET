@@ -554,6 +554,8 @@ body {
     display: flex;
     flex-direction: column;
     margin: 2rem 0;
+    --step-number-size: 52px;
+    --step-line-width: 2px;
 }
 
 .workflow-step {
@@ -571,9 +573,9 @@ body {
     .workflow-step:not(:last-child)::after {
         content: '';
         position: absolute;
-        left: 23.8px;
+        left: calc((var(--step-number-size) - var(--step-line-width)) / 2);
         top: 50%;
-        width: 2px;
+        width: var(--step-line-width);
         height: 100%;
         background: var(--zenith-gradient);
         opacity: 0.4;
@@ -581,9 +583,9 @@ body {
     }
 
 .step-number {
-    width: 52px;
-    height: 52px;
-    min-width: 52px;
+    width: var(--step-number-size);
+    height: var(--step-number-size);
+    min-width: var(--step-number-size);
     border-radius: 50%;
     background: var(--zenith-gradient);
     color: white;
@@ -1552,14 +1554,11 @@ a[href^="https"]::after {
     }
 
     /* Workflow */
-    .workflow-step:not(:last-child)::after {
-        left: 19px;
+    .workflow {
+        --step-number-size: 40px;
     }
 
     .step-number {
-        width: 40px;
-        height: 40px;
-        min-width: 40px;
         font-size: 1rem;
     }
 
