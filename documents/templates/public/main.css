@@ -42,26 +42,31 @@
     --zenith-code-bg: #f6f8fa;
     --zenith-link: #512BD4;
     --zenith-link-hover: #C239B3;
-    /* Material Design Tokens */
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 16px;
-    --radius-xl: 20px;
-    --radius-2xl: 28px;
-    /* Material Design Elevation */
+    --radius-xl: 24px;
+    --radius-2xl: 32px;
+    --radius-pill: 9999px;
     --elevation-1: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
     --elevation-2: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
     --elevation-3: 0 10px 20px rgba(0, 0, 0, 0.08), 0 3px 6px rgba(0, 0, 0, 0.05);
     --elevation-4: 0 14px 28px rgba(0, 0, 0, 0.1), 0 5px 10px rgba(0, 0, 0, 0.06);
-    /* Liquid Glass - Light */
-    --liquid-glass-bg: rgba(255, 255, 255, 0.45);
-    --liquid-glass-border: rgba(255, 255, 255, 0.6);
-    --liquid-glass-blur: 20px;
-    --liquid-glass-shadow: 0 8px 32px rgba(81, 43, 212, 0.06), 0 2px 8px rgba(0, 0, 0, 0.03);
-    /* Surface */
+    /* Liquid Glass */
+    --glass-bg: rgba(255, 255, 255, 0.15);
+    --glass-bg-solid: rgba(255, 255, 255, 0.85);
+    --glass-blur: 20px;
+    --glass-blur-strong: 40px;
+    --glass-saturate: 180%;
+    --glass-border-light: rgba(0, 0, 0, 0.08);
+    --glass-border-dark: rgba(0, 0, 0, 0.06);
+    --glass-border-hover: rgba(81, 43, 212, 0.25);
+    --glass-refraction-top: rgba(255, 255, 255, 0.9);
+    --glass-refraction-bottom: rgba(255, 255, 255, 0.3);
+    --glass-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    --glass-shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.1);
     --surface-tint: rgba(81, 43, 212, 0.05);
-    --glass-divider: rgba(0, 0, 0, 0.1);
-    /* Motion */
+    --glass-divider: rgba(0, 0, 0, 0.08);
     --motion-standard: cubic-bezier(0.2, 0, 0, 1);
     --motion-emphasized: cubic-bezier(0.2, 0, 0, 1);
 }
@@ -76,18 +81,22 @@
     --zenith-code-bg: #2b2930;
     --zenith-link: #cfbcff;
     --zenith-link-hover: #e879f9;
-    /* Material Design Elevation - Dark */
     --elevation-1: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.24);
     --elevation-2: 0 4px 6px rgba(0, 0, 0, 0.28), 0 2px 4px rgba(0, 0, 0, 0.22);
     --elevation-3: 0 10px 20px rgba(0, 0, 0, 0.3), 0 3px 6px rgba(0, 0, 0, 0.22);
     --elevation-4: 0 14px 28px rgba(0, 0, 0, 0.35), 0 5px 10px rgba(0, 0, 0, 0.24);
     /* Liquid Glass - Dark */
-    --liquid-glass-bg: rgba(60, 60, 80, 0.5);
-    --liquid-glass-border: rgba(255, 255, 255, 0.15);
-    --liquid-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-    /* Surface - Dark */
+    --glass-bg: rgba(255, 255, 255, 0.08);
+    --glass-bg-solid: rgba(40, 38, 45, 0.92);
+    --glass-border-light: rgba(255, 255, 255, 0.1);
+    --glass-border-dark: rgba(0, 0, 0, 0.25);
+    --glass-border-hover: rgba(207, 188, 255, 0.4);
+    --glass-refraction-top: rgba(255, 255, 255, 0.25);
+    --glass-refraction-bottom: rgba(255, 255, 255, 0.05);
+    --glass-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    --glass-shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.4);
     --surface-tint: rgba(207, 188, 255, 0.08);
-    --glass-divider: rgba(255, 255, 255, 0.12);
+    --glass-divider: rgba(255, 255, 255, 0.1);
 }
 
 /* ==========================================================================
@@ -143,40 +152,70 @@ body {
 header.bg-body,
 .navbar {
     --bs-bg-opacity: 0;
-    background: var(--liquid-glass-bg) !important;
-    backdrop-filter: blur(var(--liquid-glass-blur)) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(var(--liquid-glass-blur)) saturate(180%) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1030 !important;
+    background: var(--glass-bg) !important;
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
     border: none !important;
-    box-shadow: var(--liquid-glass-shadow) !important;
+    border-bottom: 1px solid var(--glass-border-light) !important;
+    box-shadow: none !important;
+}
+
+body {
+    padding-top: 60px !important;
 }
 
 /* Dropdown Menu (Liquid Glass) */
 .dropdown-menu {
     --bs-dropdown-bg: transparent;
-    background: rgba(255, 255, 255, 0.92) !important;
-    backdrop-filter: blur(var(--liquid-glass-blur)) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(var(--liquid-glass-blur)) saturate(180%) !important;
-    border: 1px solid var(--liquid-glass-border) !important;
-    border-radius: var(--radius-lg) !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+    position: absolute !important;
+    top: 100% !important;
+    background: var(--glass-bg-solid) !important;
+    backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate)) !important;
+    -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate)) !important;
+    border: 1px solid var(--glass-border-light) !important;
+    border-radius: var(--radius-xl) !important;
+    box-shadow: var(--glass-shadow-elevated) !important;
     padding: 0.5rem !important;
     margin-top: 0.5rem !important;
+    overflow: visible;
+    z-index: 1040 !important;
 }
 
+    .dropdown-menu::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 40%;
+        background: linear-gradient(180deg, var(--glass-refraction-top) 0%, transparent 100%);
+        pointer-events: none;
+        opacity: 0.3;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        z-index: 0;
+    }
+
 [data-bs-theme="dark"] .dropdown-menu {
-    background: rgba(43, 41, 48, 0.95) !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    background: var(--glass-bg-solid) !important;
+    border-color: var(--glass-border-light) !important;
 }
 
 .dropdown-item {
-    border-radius: var(--radius-sm) !important;
-    transition: all 0.2s ease !important;
+    position: relative;
+    z-index: 1;
+    border-radius: var(--radius-md) !important;
+    transition: all 0.2s var(--motion-standard) !important;
     color: var(--zenith-text) !important;
 }
 
     .dropdown-item:hover,
     .dropdown-item:focus {
-        background: rgba(81, 43, 212, 0.1) !important;
+        background: var(--surface-tint) !important;
         color: var(--zenith-primary) !important;
     }
 
@@ -239,13 +278,19 @@ header.bg-body,
     flex-wrap: wrap;
 }
 
+    .hero-buttons .btn,
+    .btn,
+    button.btn,
+    a.btn {
+        border-radius: var(--radius-md) !important;
+    }
+
     .hero-buttons .btn {
         display: inline-block;
         padding: 0.85rem 2rem;
         font-size: 1rem;
         font-weight: 600;
         text-decoration: none;
-        border-radius: var(--radius-sm);
         border: none;
         outline: none;
         transition: all 0.2s ease;
@@ -256,8 +301,6 @@ header.bg-body,
         .hero-buttons .btn:active {
             outline: none !important;
         }
-
-
 
     .hero-buttons .btn-primary {
         background: var(--zenith-gradient);
@@ -276,28 +319,31 @@ header.bg-body,
         }
 
     .hero-buttons .btn-secondary {
-        background: var(--liquid-glass-bg);
-        backdrop-filter: blur(var(--liquid-glass-blur)) saturate(180%);
-        -webkit-backdrop-filter: blur(var(--liquid-glass-blur)) saturate(180%);
+        position: relative;
+        background: var(--glass-bg) !important;
+        backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+        -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
         color: var(--zenith-text);
-        border: 1px solid var(--liquid-glass-border);
-        box-shadow: var(--liquid-glass-shadow);
+        border: 1px solid var(--glass-border-light);
+        box-shadow: var(--glass-shadow);
+        overflow: hidden;
     }
 
         .hero-buttons .btn-secondary:hover {
-            border-color: rgba(255, 255, 255, 0.4);
+            border-color: var(--glass-border-hover);
             color: var(--zenith-primary);
             transform: translateY(-2px);
+            box-shadow: var(--glass-shadow-elevated);
         }
 
         .hero-buttons .btn-secondary:focus,
         .hero-buttons .btn-secondary:focus-visible {
-            border-color: var(--liquid-glass-border) !important;
-            box-shadow: var(--liquid-glass-shadow) !important;
+            border-color: var(--glass-border-light) !important;
+            box-shadow: var(--glass-shadow) !important;
         }
 
 /* ==========================================================================
-   5. Features Grid
+   5. Features Grid (Liquid Glass)
    ========================================================================== */
 
 .features {
@@ -308,20 +354,40 @@ header.bg-body,
 }
 
 .feature {
-    background: var(--zenith-bg-light);
+    position: relative;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     padding: 1.75rem;
-    border-radius: 12px;
-    border: 1px solid var(--zenith-border);
-    transition: all 0.2s ease;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--glass-border-light);
+    box-shadow: var(--glass-shadow);
+    transition: all 0.3s var(--motion-standard);
+    overflow: hidden;
 }
 
+    .feature::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 50%;
+        background: linear-gradient(180deg, var(--glass-refraction-top) 0%, transparent 100%);
+        pointer-events: none;
+        opacity: 0.2;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    }
+
     .feature:hover {
-        border-color: var(--zenith-primary);
-        box-shadow: 0 4px 16px rgba(81, 43, 212, 0.15);
-        transform: translateY(-2px);
+        border-color: var(--glass-border-hover);
+        box-shadow: var(--glass-shadow-elevated);
+        transform: translateY(-4px);
     }
 
     .feature h3 {
+        position: relative;
+        z-index: 1;
         font-size: 1.2rem;
         font-weight: 600;
         margin: 0 0 0.75rem 0;
@@ -329,6 +395,8 @@ header.bg-body,
     }
 
     .feature p {
+        position: relative;
+        z-index: 1;
         font-size: 0.95rem;
         color: var(--zenith-text-muted);
         margin: 0;
@@ -367,23 +435,30 @@ header.bg-body,
 }
 
 .tech-item {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0.75rem 1.25rem;
-    background: var(--zenith-bg-light);
-    border: 1px solid var(--zenith-border);
-    border-radius: 10px;
-    transition: all 0.2s ease;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--glass-shadow);
+    transition: all 0.3s var(--motion-standard);
+    overflow: hidden;
 }
 
     .tech-item:hover {
-        border-color: var(--zenith-primary);
+        border-color: var(--glass-border-hover);
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(81, 43, 212, 0.1);
+        box-shadow: var(--glass-shadow-elevated);
     }
 
     .tech-item .tech-text {
+        position: relative;
+        z-index: 1;
         font-size: 0.95rem;
         font-weight: 600;
         background: var(--zenith-gradient);
@@ -393,7 +468,7 @@ header.bg-body,
     }
 
 /* ==========================================================================
-   7. Cards Grid
+   7. Cards Grid (Liquid Glass)
    ========================================================================== */
 
 .cards {
@@ -404,21 +479,42 @@ header.bg-body,
 }
 
 .card {
+    position: relative;
     display: flex;
     flex-direction: column;
-    background: var(--zenith-bg-light);
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     padding: 2rem;
-    border-radius: 12px;
-    border: 1px solid var(--zenith-border);
-    transition: all 0.2s ease;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--glass-border-light);
+    box-shadow: var(--glass-shadow);
+    transition: all 0.3s var(--motion-standard);
+    overflow: hidden;
 }
 
+    .card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 50%;
+        background: linear-gradient(180deg, var(--glass-refraction-top) 0%, transparent 100%);
+        pointer-events: none;
+        opacity: 0.15;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    }
+
     .card:hover {
-        border-color: var(--zenith-secondary);
-        box-shadow: 0 8px 24px rgba(194, 57, 179, 0.12);
+        border-color: var(--glass-border-hover);
+        box-shadow: var(--glass-shadow-elevated);
+        transform: translateY(-4px);
     }
 
     .card h3 {
+        position: relative;
+        z-index: 1;
         font-size: 1.25rem;
         font-weight: 600;
         margin: 0 0 0.75rem 0;
@@ -426,6 +522,8 @@ header.bg-body,
     }
 
     .card p {
+        position: relative;
+        z-index: 1;
         font-size: 0.95rem;
         color: var(--zenith-text-muted);
         margin: 0;
@@ -434,6 +532,8 @@ header.bg-body,
     }
 
     .card a {
+        position: relative;
+        z-index: 1;
         display: inline-block;
         margin-top: 1rem;
         color: var(--zenith-primary);
@@ -471,7 +571,7 @@ header.bg-body,
     .workflow-step:not(:last-child)::after {
         content: '';
         position: absolute;
-        left: 23.5px;
+        left: 23.8px;
         top: 50%;
         width: 2px;
         height: 100%;
@@ -479,8 +579,6 @@ header.bg-body,
         opacity: 0.4;
         z-index: 0;
     }
-
-
 
 .step-number {
     width: 52px;
@@ -500,23 +598,28 @@ header.bg-body,
 }
 
 .step-content {
+    position: relative;
     flex: 1;
-    background: var(--liquid-glass-bg);
-    backdrop-filter: blur(var(--liquid-glass-blur)) saturate(180%);
-    -webkit-backdrop-filter: blur(var(--liquid-glass-blur)) saturate(180%);
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     padding: 1.25rem 1.5rem;
     border-radius: var(--radius-xl);
-    border: 1px solid var(--liquid-glass-border);
-    box-shadow: var(--liquid-glass-shadow);
+    border: 1px solid var(--glass-border-light);
+    box-shadow: var(--glass-shadow);
     transition: all 0.3s var(--motion-standard);
+    overflow: hidden;
 }
 
     .step-content:hover {
         transform: translateY(-2px);
-        border-color: rgba(255, 255, 255, 0.4);
+        border-color: var(--glass-border-hover);
+        box-shadow: var(--glass-shadow-elevated);
     }
 
     .step-content h4 {
+        position: relative;
+        z-index: 1;
         font-size: 1.1rem;
         font-weight: 600;
         margin: 0 0 0.5rem 0;
@@ -524,6 +627,8 @@ header.bg-body,
     }
 
     .step-content p {
+        position: relative;
+        z-index: 1;
         font-size: 0.95rem;
         color: var(--zenith-text-muted);
         margin: 0;
@@ -581,22 +686,26 @@ header.bg-body,
    ========================================================================== */
 
 .tech-bar {
+    position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 2rem;
     flex-wrap: wrap;
     padding: 1.5rem 2rem;
-    background: var(--liquid-glass-bg);
-    backdrop-filter: blur(var(--liquid-glass-blur)) saturate(180%);
-    -webkit-backdrop-filter: blur(var(--liquid-glass-blur)) saturate(180%);
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     border-radius: var(--radius-2xl);
-    border: 1px solid var(--liquid-glass-border);
-    box-shadow: var(--liquid-glass-shadow);
+    border: 1px solid var(--glass-border-light);
+    box-shadow: var(--glass-shadow);
     margin-bottom: 2rem;
+    overflow: hidden;
 }
 
 .tech-bar-group {
+    position: relative;
+    z-index: 1;
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -622,7 +731,7 @@ header.bg-body,
 .tech-bar-divider {
     width: 1px;
     height: 24px;
-    background: var(--liquid-glass-border);
+    background: var(--glass-border-light);
 }
 
 /* ==========================================================================
@@ -637,32 +746,38 @@ header.bg-body,
 }
 
 .highlight-item {
+    position: relative;
     display: flex;
     align-items: flex-start;
     gap: 1rem;
     padding: 1.25rem;
-    background: var(--liquid-glass-bg);
-    backdrop-filter: blur(var(--liquid-glass-blur)) saturate(180%);
-    -webkit-backdrop-filter: blur(var(--liquid-glass-blur)) saturate(180%);
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     border-radius: var(--radius-xl);
-    border: 1px solid var(--liquid-glass-border);
-    box-shadow: var(--liquid-glass-shadow);
+    border: 1px solid var(--glass-border-light);
+    box-shadow: var(--glass-shadow);
     transition: all 0.3s var(--motion-standard);
+    overflow: hidden;
 }
 
     .highlight-item:hover {
         transform: translateY(-2px);
-        border-color: rgba(255, 255, 255, 0.4);
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+        border-color: var(--glass-border-hover);
+        box-shadow: var(--glass-shadow-elevated);
     }
 
 .highlight-icon {
+    position: relative;
+    z-index: 1;
     font-size: 1.5rem;
     line-height: 1;
     flex-shrink: 0;
 }
 
 .highlight-text {
+    position: relative;
+    z-index: 1;
     font-size: 0.95rem;
     color: var(--zenith-text-muted);
     line-height: 1.5;
@@ -685,25 +800,30 @@ header.bg-body,
 }
 
 .feature-list-item {
+    position: relative;
     display: flex;
     align-items: baseline;
     gap: 1rem;
     padding: 1rem 1.25rem;
-    background: var(--liquid-glass-bg);
-    backdrop-filter: blur(var(--liquid-glass-blur)) saturate(180%);
-    -webkit-backdrop-filter: blur(var(--liquid-glass-blur)) saturate(180%);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--liquid-glass-border);
-    box-shadow: var(--liquid-glass-shadow);
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--glass-border-light);
+    box-shadow: var(--glass-shadow);
     transition: all 0.3s var(--motion-standard);
+    overflow: hidden;
 }
 
     .feature-list-item:hover {
         transform: translateY(-2px);
-        border-color: rgba(255, 255, 255, 0.4);
+        border-color: var(--glass-border-hover);
+        box-shadow: var(--glass-shadow-elevated);
     }
 
 .feature-list-title {
+    position: relative;
+    z-index: 1;
     font-size: 1rem;
     font-weight: 600;
     color: var(--zenith-text);
@@ -712,6 +832,8 @@ header.bg-body,
 }
 
 .feature-list-desc {
+    position: relative;
+    z-index: 1;
     font-size: 0.95rem;
     color: var(--zenith-text-muted);
     line-height: 1.5;
@@ -734,7 +856,6 @@ header.bg-body,
     overflow: hidden;
 }
 
-    /* Liquid Glass 高光效果 */
     .cta-section::before {
         content: '';
         position: absolute;
@@ -771,7 +892,7 @@ header.bg-body,
         font-size: 1rem;
         font-weight: 600;
         text-decoration: none;
-        border-radius: var(--radius-sm);
+        border-radius: var(--radius-md) !important;
         border: none;
         outline: none;
         background: white;
@@ -807,7 +928,7 @@ header.bg-body,
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-md);
     text-decoration: none;
     transition: all 0.3s var(--motion-standard);
     min-width: 180px;
@@ -916,17 +1037,33 @@ article {
 
     /* Article Code (Liquid Glass) */
     article pre {
-        border-radius: var(--radius-lg);
-        border: 1px solid var(--liquid-glass-border);
-        background: var(--liquid-glass-bg);
-        backdrop-filter: blur(var(--liquid-glass-blur)) saturate(180%);
-        -webkit-backdrop-filter: blur(var(--liquid-glass-blur)) saturate(180%);
+        position: relative;
+        border-radius: var(--radius-xl);
+        border: 1px solid var(--glass-border-light);
+        background: var(--glass-bg);
+        backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+        -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
         margin: 1.5rem 0;
         overflow: hidden;
-        box-shadow: var(--liquid-glass-shadow);
+        box-shadow: var(--glass-shadow);
     }
 
+        article pre::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 40%;
+            background: linear-gradient(180deg, var(--glass-refraction-top) 0%, transparent 100%);
+            pointer-events: none;
+            opacity: 0.15;
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        }
+
         article pre code {
+            position: relative;
+            z-index: 1;
             display: block;
             padding: 1.25rem 1.5rem;
             overflow-x: auto;
@@ -935,7 +1072,6 @@ article {
             background: transparent;
         }
 
-            /* 覆盖 highlight.js 背景色 */
             article pre code.hljs,
             article pre .hljs {
                 background: transparent !important;
@@ -950,14 +1086,15 @@ article {
     article p code,
     article li code,
     article td code {
-        background: var(--liquid-glass-bg);
+        position: relative;
+        background: var(--glass-bg);
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
         color: var(--zenith-primary);
         padding: 0.2rem 0.5rem;
         border-radius: var(--radius-sm);
         font-size: 0.85rem;
-        border: 1px solid var(--liquid-glass-border);
+        border: 1px solid var(--glass-border-light);
         font-weight: 500;
     }
 
@@ -974,19 +1111,20 @@ article hr {
     margin: 3rem 0;
 }
 
-/* Article Blockquote (Material Design) */
+/* Article Blockquote (Liquid Glass) */
 article blockquote {
     position: relative;
     border: none;
     padding: 1.25rem 1.5rem;
     padding-left: 1.5rem;
     margin: 1.5rem 0;
-    background: var(--liquid-glass-bg);
-    backdrop-filter: blur(var(--liquid-glass-blur));
-    -webkit-backdrop-filter: blur(var(--liquid-glass-blur));
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--liquid-glass-border);
-    box-shadow: var(--liquid-glass-shadow);
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--glass-border-light);
+    box-shadow: var(--glass-shadow);
+    overflow: hidden;
 }
 
     article blockquote::before {
@@ -997,10 +1135,12 @@ article blockquote {
         bottom: 0;
         width: 4px;
         background: var(--zenith-gradient);
-        border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+        border-radius: var(--radius-xl) 0 0 var(--radius-xl);
     }
 
     article blockquote p {
+        position: relative;
+        z-index: 1;
         margin: 0;
         color: var(--zenith-text);
         font-size: 1rem;
@@ -1011,23 +1151,22 @@ article blockquote {
             margin-bottom: 0.75rem;
         }
 
-/* Article Images (Material Design) */
+/* Article Images (Liquid Glass Container) */
 article img:not(#logo):not(.hero-logo):not([src*="shields.io"]):not([src*="badge"]) {
     max-width: 100%;
     height: auto;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-xl);
     margin: 1.5rem 0;
-    box-shadow: var(--elevation-2);
-    border: 1px solid var(--zenith-border);
+    box-shadow: var(--glass-shadow);
+    border: 1px solid var(--glass-border-light);
     transition: all 0.3s var(--motion-standard);
 }
 
     article img:not(#logo):not(.hero-logo):not([src*="shields.io"]):not([src*="badge"]):hover {
-        box-shadow: var(--elevation-4);
+        box-shadow: var(--glass-shadow-elevated);
         transform: scale(1.01);
     }
 
-/* Logo 和徽章图片 - 无特殊效果 */
 #logo,
 .hero-logo,
 .hero-badges img,
@@ -1044,7 +1183,6 @@ article img:not(#logo):not(.hero-logo):not([src*="shields.io"]):not([src*="badge
         transform: none !important;
     }
 
-/* 图片容器 - 如果有 figure 标签 */
 article figure {
     margin: 1.5rem 0;
     padding: 0;
@@ -1066,21 +1204,30 @@ article figcaption {
    16. Table Styles (Liquid Glass)
    ========================================================================== */
 
+article .table-responsive,
+article > table {
+    margin: 1.5rem 0 !important;
+}
+
 article table {
     width: 100% !important;
-    margin: 1.5rem 0 !important;
+    margin: 0 !important;
     font-size: 0.95rem !important;
     border-collapse: separate !important;
     border-spacing: 0 !important;
-    border: 1px solid var(--liquid-glass-border) !important;
+    border: 1px solid var(--glass-border-light) !important;
     border-radius: var(--radius-xl) !important;
-    overflow: hidden !important;
-    background: var(--liquid-glass-bg) !important;
-    backdrop-filter: blur(var(--liquid-glass-blur)) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(var(--liquid-glass-blur)) saturate(180%) !important;
-    box-shadow: var(--liquid-glass-shadow) !important;
+    background: var(--glass-bg) !important;
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
+    box-shadow: var(--glass-shadow) !important;
 }
 
+.table-responsive {
+    overflow: visible !important;
+}
+
+/* Table Header */
 article thead {
     background: var(--surface-tint) !important;
 }
@@ -1092,53 +1239,28 @@ article th {
     color: var(--zenith-text) !important;
     background: transparent !important;
     border: none !important;
-    position: relative !important;
 }
 
-/* 表头底部分隔线 - 留出边距 */
-article thead tr::after {
-    content: '' !important;
-    position: absolute !important;
-    left: 1rem !important;
-    right: 1rem !important;
-    bottom: 0 !important;
-    height: 1px !important;
-    background: var(--glass-divider) !important;
+article thead tr th:first-child {
+    border-top-left-radius: var(--radius-xl) !important;
 }
 
-article thead tr {
-    position: relative !important;
+article thead tr th:last-child {
+    border-top-right-radius: var(--radius-xl) !important;
 }
 
-/* 表头列分隔线 */
-article th:not(:last-child)::after {
-    content: '' !important;
-    position: absolute !important;
-    right: 0 !important;
-    top: 25% !important;
-    bottom: 25% !important;
-    width: 1px !important;
-    background: var(--glass-divider) !important;
+/* Table Body */
+article tbody tr {
+    transition: background 0.2s ease !important;
 }
 
-article tbody {
-}
-
-    article tbody tr {
-        position: relative !important;
-        transition: background 0.2s ease !important;
+    article tbody tr:hover {
+        background: rgba(81, 43, 212, 0.06) !important;
     }
 
-        /* 行分隔线 - 留出边距 */
-        article tbody tr:not(:last-child)::after {
-            content: '' !important;
-            position: absolute !important;
-            left: 1rem !important;
-            right: 1rem !important;
-            bottom: 0 !important;
-            height: 1px !important;
-            background: var(--glass-divider) !important;
-        }
+[data-bs-theme="dark"] article tbody tr:hover {
+    background: rgba(207, 188, 255, 0.1) !important;
+}
 
 article td {
     padding: 0.875rem 1.25rem !important;
@@ -1146,26 +1268,28 @@ article td {
     color: var(--zenith-text) !important;
     background: transparent !important;
     border: none !important;
-    position: relative !important;
+    border-top: 1px solid var(--glass-divider) !important;
 }
 
-    /* 列分隔线 */
-    article td:not(:last-child)::after {
-        content: '' !important;
-        position: absolute !important;
-        right: 0 !important;
-        top: 20% !important;
-        bottom: 20% !important;
-        width: 1px !important;
-        background: var(--glass-divider) !important;
-    }
-
-article tbody tr:hover td {
-    background: rgba(81, 43, 212, 0.04) !important;
+article tbody tr:first-child td {
+    border-top: none !important;
 }
 
-[data-bs-theme="dark"] article tbody tr:hover td {
-    background: rgba(255, 255, 255, 0.03) !important;
+article tbody tr:last-child td:first-child {
+    border-bottom-left-radius: var(--radius-xl) !important;
+}
+
+article tbody tr:last-child td:last-child {
+    border-bottom-right-radius: var(--radius-xl) !important;
+}
+
+/* Column Dividers (with vertical margin) */
+article th:not(:last-child),
+article td:not(:last-child) {
+    background-image: linear-gradient(to bottom, transparent 20%, var(--glass-divider) 20%, var(--glass-divider) 80%, transparent 80%) !important;
+    background-size: 1px 100% !important;
+    background-position: right !important;
+    background-repeat: no-repeat !important;
 }
 
 article td a {
@@ -1204,27 +1328,24 @@ article td a {
 }
 
 /* ==========================================================================
-   18. Sidebar Navigation (Material Design)
+   18. Sidebar Navigation (Liquid Glass)
    ========================================================================== */
 
-/* 侧边栏容器 */
 .sidebar,
 #affix,
 .sidefilter {
     background: transparent !important;
 }
 
-/* 导航树容器 */
 .toc {
     padding: 0.5rem !important;
 }
 
-    /* 导航项通用样式 */
     .toc .nav > li > a,
     .toc .nav > li > .expand-stub + a {
         padding: 0.625rem 1rem !important;
         margin: 2px 0 !important;
-        border-radius: var(--radius-md) !important;
+        border-radius: var(--radius-lg) !important;
         color: var(--zenith-text-muted) !important;
         font-size: 0.9rem !important;
         font-weight: 500 !important;
@@ -1235,29 +1356,26 @@ article td a {
         background: transparent !important;
     }
 
-        /* 悬停效果 */
         .toc .nav > li > a:hover,
         .toc .nav > li > .expand-stub + a:hover {
-            background: var(--liquid-glass-bg) !important;
+            background: var(--glass-bg) !important;
             color: var(--zenith-primary) !important;
             backdrop-filter: blur(8px) !important;
             -webkit-backdrop-filter: blur(8px) !important;
         }
 
-        /* 激活状态 */
         .toc .nav > li.active > a,
         .toc .nav > li.active > .expand-stub + a,
         .toc .nav > li > a.active {
-            background: var(--liquid-glass-bg) !important;
-            backdrop-filter: blur(var(--liquid-glass-blur)) !important;
-            -webkit-backdrop-filter: blur(var(--liquid-glass-blur)) !important;
+            background: var(--glass-bg) !important;
+            backdrop-filter: blur(var(--glass-blur)) !important;
+            -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
             color: var(--zenith-primary) !important;
             font-weight: 600 !important;
-            border: 1px solid var(--liquid-glass-border) !important;
-            box-shadow: var(--liquid-glass-shadow) !important;
+            border: 1px solid var(--glass-border-light) !important;
+            box-shadow: var(--glass-shadow) !important;
         }
 
-            /* 激活状态左侧指示条 */
             .toc .nav > li.active > a::before,
             .toc .nav > li > a.active::before {
                 content: '' !important;
@@ -1270,7 +1388,6 @@ article td a {
                 border-radius: 0 2px 2px 0 !important;
             }
 
-    /* 展开按钮样式 */
     .toc .nav > li > .expand-stub {
         width: 32px !important;
         height: 32px !important;
@@ -1286,30 +1403,26 @@ article td a {
     }
 
         .toc .nav > li > .expand-stub:hover {
-            background: var(--liquid-glass-bg) !important;
+            background: var(--glass-bg) !important;
         }
 
-        /* 展开箭头 */
         .toc .nav > li > .expand-stub::before {
             font-size: 0.75rem !important;
             color: var(--zenith-text-muted) !important;
             transition: transform 0.2s var(--motion-standard) !important;
         }
 
-    /* 展开状态箭头旋转 */
     .toc .nav > li.in > .expand-stub::before,
     .toc .nav > li.expanded > .expand-stub::before {
         transform: rotate(90deg) !important;
     }
 
-    /* 嵌套导航缩进 */
     .toc .nav .nav {
         padding-left: 0.75rem !important;
         margin-left: 0.75rem !important;
         border-left: 2px solid var(--glass-divider) !important;
     }
 
-        /* 嵌套导航项 */
         .toc .nav .nav > li > a {
             font-size: 0.85rem !important;
             padding: 0.5rem 0.875rem !important;
@@ -1328,26 +1441,27 @@ article td a {
             background: var(--surface-tint) !important;
         }
 
-/* 搜索过滤框 */
 .sidefilter .filter-input,
 .sidetoc .filter {
-    background: var(--liquid-glass-bg) !important;
-    backdrop-filter: blur(var(--liquid-glass-blur)) !important;
-    -webkit-backdrop-filter: blur(var(--liquid-glass-blur)) !important;
-    border: 1px solid var(--liquid-glass-border) !important;
-    border-radius: var(--radius-lg) !important;
+    position: relative !important;
+    background: var(--glass-bg) !important;
+    backdrop-filter: blur(var(--glass-blur)) !important;
+    -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+    border: 1px solid var(--glass-border-light) !important;
+    border-radius: var(--radius-xl) !important;
     padding: 0.75rem 1rem !important;
     font-size: 0.9rem !important;
     color: var(--zenith-text) !important;
     transition: all 0.2s ease !important;
     width: 100% !important;
+    box-shadow: var(--glass-shadow) !important;
 }
 
     .sidefilter .filter-input:focus,
     .sidetoc .filter:focus {
         outline: none !important;
         border-color: var(--zenith-primary) !important;
-        box-shadow: 0 0 0 3px rgba(81, 43, 212, 0.1) !important;
+        box-shadow: var(--glass-shadow), 0 0 0 3px rgba(81, 43, 212, 0.15) !important;
     }
 
     .sidefilter .filter-input::placeholder,
@@ -1355,7 +1469,6 @@ article td a {
         color: var(--zenith-text-muted) !important;
     }
 
-/* 暗色模式调整 */
 [data-bs-theme="dark"] .toc .nav > li.active > a,
 [data-bs-theme="dark"] .toc .nav > li.active > .expand-stub + a,
 [data-bs-theme="dark"] .toc .nav > li > a.active {
