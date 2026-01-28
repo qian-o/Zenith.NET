@@ -1065,7 +1065,8 @@ article {
             position: relative;
             z-index: 1;
             display: block;
-            padding: 1.25rem 1.5rem;
+            padding: 1.25rem 0.75rem;
+            margin: 0 0.75rem 0.5rem 0.75rem;
             overflow-x: auto;
             font-size: 0.875rem;
             line-height: 1.6;
@@ -1076,6 +1077,29 @@ article {
             article pre .hljs {
                 background: transparent !important;
                 background-color: transparent !important;
+            }
+
+            /* Code Block Scrollbar */
+            article pre code::-webkit-scrollbar {
+                height: 6px;
+                background: transparent;
+            }
+
+            article pre code::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
+            article pre code::-webkit-scrollbar-thumb {
+                background: var(--glass-divider);
+                border-radius: 3px;
+            }
+
+                article pre code::-webkit-scrollbar-thumb:hover {
+                    background: var(--zenith-text-muted);
+                }
+
+            article pre code::-webkit-scrollbar-button {
+                display: none;
             }
 
     article code {
