@@ -1061,6 +1061,18 @@ article {
             pointer-events: none;
             opacity: 0.15;
             border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+            z-index: 0;
+        }
+
+        /* Code copy button fix */
+        article pre .code-action,
+        article pre .btn.code-action,
+        article pre button.btn {
+            position: absolute !important;
+            top: 0.5rem !important;
+            right: 0.5rem !important;
+            z-index: 10 !important;
+            padding: 0.25rem 0.5rem !important;
         }
 
         article pre code {
