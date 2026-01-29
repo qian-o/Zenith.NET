@@ -1,37 +1,12 @@
 ﻿/**
-* Zenith.NET Documentation Theme
-* A modern, clean theme for DocFX documentation
-* 
-* Table of Contents:
-* 1.  CSS Variables (Light & Dark Theme)
-* 2.  Base Styles
-* 3.  Navbar
-* 4.  Hero Section
-* 5.  Features Grid
-* 6.  Technology Section
-* 7.  Cards Grid
-* 8.  Workflow Section
-* 9.  Community Badges
-* 10. Hero Badges
-* 11. Technology Bar
-* 12. Highlight Grid
-* 13. Feature List
-* 14. CTA Section
-* 15. Article Content
-* 16. Table Styles
-* 17. Status Badges
-* 18. Alerts
-* 19. Sidebar Navigation
-* 20. Breadcrumb Navigation
-* 21. Hide UI Elements
-* 22. Responsive Design
-*/
+ * Zenith.NET Documentation Theme
+ * Modern Liquid Glass theme for DocFX
+ */
 
 /* ==========================================================================
    1. CSS Variables
    ========================================================================== */
 
-/* Light Theme */
 :root {
     --zenith-primary: #512BD4;
     --zenith-secondary: #C239B3;
@@ -41,7 +16,6 @@
     --zenith-bg: #faf9fc;
     --zenith-bg-light: #f5f3f7;
     --zenith-border: #e5e7eb;
-    --zenith-code-bg: #f6f8fa;
     --zenith-link: #512BD4;
     --zenith-link-hover: #C239B3;
     --radius-sm: 8px;
@@ -49,52 +23,38 @@
     --radius-lg: 16px;
     --radius-xl: 24px;
     --radius-2xl: 32px;
-    --radius-pill: 9999px;
-    --elevation-1: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
-    --elevation-2: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
     --elevation-3: 0 10px 20px rgba(0, 0, 0, 0.08), 0 3px 6px rgba(0, 0, 0, 0.05);
     --elevation-4: 0 14px 28px rgba(0, 0, 0, 0.1), 0 5px 10px rgba(0, 0, 0, 0.06);
-    /* Liquid Glass */
     --glass-bg: rgba(255, 255, 255, 0.15);
     --glass-bg-solid: rgba(255, 255, 255, 0.85);
     --glass-blur: 20px;
     --glass-blur-strong: 40px;
     --glass-saturate: 180%;
     --glass-border-light: rgba(0, 0, 0, 0.08);
-    --glass-border-dark: rgba(0, 0, 0, 0.06);
     --glass-border-hover: rgba(81, 43, 212, 0.25);
     --glass-refraction-top: rgba(255, 255, 255, 0.9);
-    --glass-refraction-bottom: rgba(255, 255, 255, 0.3);
     --glass-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
     --glass-shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.1);
     --surface-tint: rgba(81, 43, 212, 0.05);
     --glass-divider: rgba(0, 0, 0, 0.08);
     --motion-standard: cubic-bezier(0.2, 0, 0, 1);
-    --motion-emphasized: cubic-bezier(0.2, 0, 0, 1);
 }
 
-/* Dark Theme */
 [data-bs-theme="dark"] {
     --zenith-text: #e6e1e5;
     --zenith-text-muted: #938f99;
     --zenith-bg: #1c1b1f;
     --zenith-bg-light: #2b2930;
     --zenith-border: #49454f;
-    --zenith-code-bg: #2b2930;
     --zenith-link: #cfbcff;
     --zenith-link-hover: #e879f9;
-    --elevation-1: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.24);
-    --elevation-2: 0 4px 6px rgba(0, 0, 0, 0.28), 0 2px 4px rgba(0, 0, 0, 0.22);
     --elevation-3: 0 10px 20px rgba(0, 0, 0, 0.3), 0 3px 6px rgba(0, 0, 0, 0.22);
     --elevation-4: 0 14px 28px rgba(0, 0, 0, 0.35), 0 5px 10px rgba(0, 0, 0, 0.24);
-    /* Liquid Glass - Dark */
     --glass-bg: rgba(255, 255, 255, 0.08);
     --glass-bg-solid: rgba(40, 38, 45, 0.92);
     --glass-border-light: rgba(255, 255, 255, 0.1);
-    --glass-border-dark: rgba(0, 0, 0, 0.25);
     --glass-border-hover: rgba(207, 188, 255, 0.4);
     --glass-refraction-top: rgba(255, 255, 255, 0.25);
-    --glass-refraction-bottom: rgba(255, 255, 255, 0.05);
     --glass-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     --glass-shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.4);
     --surface-tint: rgba(207, 188, 255, 0.08);
@@ -110,7 +70,6 @@ body {
     position: relative;
 }
 
-    /* Enhanced Background Glow Effect */
     body::before,
     body::after {
         content: '';
@@ -148,7 +107,7 @@ body {
 }
 
 /* ==========================================================================
-   3. Navbar (Liquid Glass)
+   3. Navbar
    ========================================================================== */
 
 header.bg-body,
@@ -171,7 +130,6 @@ body {
     padding-top: 60px !important;
 }
 
-/* Dropdown Menu (Liquid Glass) */
 .dropdown-menu {
     --bs-dropdown-bg: transparent;
     position: absolute !important;
@@ -232,7 +190,6 @@ body {
     align-items: center;
 }
 
-/* Navbar Navigation Links */
 .navbar .navbar-nav {
     display: flex;
     gap: 0.25rem;
@@ -265,7 +222,6 @@ body {
     color: var(--zenith-link) !important;
 }
 
-/* Navbar Icon Buttons */
 .navbar .icons {
     display: flex;
     align-items: center;
@@ -419,8 +375,8 @@ body {
         }
 
 /* ==========================================================================
-   5. Features Grid (Liquid Glass)
-   ========================================================================== */
+5. Features Grid
+========================================================================== */
 
 .features {
     display: grid;
@@ -544,8 +500,8 @@ body {
     }
 
 /* ==========================================================================
-   7. Cards Grid (Liquid Glass)
-   ========================================================================== */
+7. Cards Grid
+========================================================================== */
 
 .cards {
     display: grid;
@@ -760,8 +716,8 @@ body {
     }
 
 /* ==========================================================================
-   11. Technology Bar (Liquid Glass)
-   ========================================================================== */
+11. Technology Bar
+========================================================================== */
 
 .tech-bar {
     position: relative;
@@ -813,8 +769,8 @@ body {
 }
 
 /* ==========================================================================
-   12. Highlight Grid (Liquid Glass)
-   ========================================================================== */
+12. Highlight Grid
+========================================================================== */
 
 .highlight-grid {
     display: grid;
@@ -867,8 +823,8 @@ body {
     }
 
 /* ==========================================================================
-   13. Feature List (Liquid Glass)
-   ========================================================================== */
+13. Feature List
+========================================================================== */
 
 .feature-list {
     display: flex;
@@ -918,8 +874,8 @@ body {
 }
 
 /* ==========================================================================
-   14. CTA Section (Liquid Glass)
-   ========================================================================== */
+14. CTA Section
+========================================================================== */
 
 .cta-section {
     display: flex;
@@ -1038,7 +994,6 @@ article {
     line-height: 1.7;
 }
 
-    /* Article Headings */
     article h1 {
         font-size: 2.25rem;
         font-weight: 700;
@@ -1084,7 +1039,6 @@ article {
         margin: 1.5rem 0 0.5rem 0;
     }
 
-    /* Article Text */
     article p {
         margin: 0 0 1rem 0;
         color: var(--zenith-text);
@@ -1101,7 +1055,6 @@ article {
             text-decoration: underline;
         }
 
-    /* Article Lists */
     article ul,
     article ol {
         margin: 0 0 1rem 0;
@@ -1113,7 +1066,6 @@ article {
         color: var(--zenith-text);
     }
 
-    /* Article Code (Liquid Glass) */
     article pre {
         position: relative;
         border-radius: var(--radius-xl);
@@ -1140,7 +1092,6 @@ article {
             z-index: 0;
         }
 
-        /* Code copy button fix */
         article pre .code-action,
         article pre .btn.code-action,
         article pre button.btn {
@@ -1169,7 +1120,6 @@ article {
                 background-color: transparent !important;
             }
 
-            /* Code Block Scrollbar */
             article pre code::-webkit-scrollbar {
                 height: 6px;
                 background: transparent;
@@ -1218,14 +1168,12 @@ article {
     color: var(--zenith-link);
 }
 
-/* Article Horizontal Rule */
 article hr {
     border: none;
     border-top: 1px solid var(--zenith-border);
     margin: 3rem 0;
 }
 
-/* Article Blockquote (Liquid Glass) */
 article blockquote {
     position: relative;
     border: none;
@@ -1265,7 +1213,6 @@ article blockquote {
             margin-bottom: 0.75rem;
         }
 
-/* Article Images (Liquid Glass Container) */
 article img:not(#logo):not(.hero-logo):not([src*="shields.io"]):not([src*="badge"]) {
     max-width: 100%;
     height: auto;
@@ -1315,8 +1262,8 @@ article figcaption {
 }
 
 /* ==========================================================================
-   16. Table Styles (Liquid Glass)
-   ========================================================================== */
+16. Table Styles
+========================================================================== */
 
 article .table-responsive,
 article > table {
@@ -1341,7 +1288,6 @@ article table {
     overflow: visible !important;
 }
 
-/* Table Header */
 article thead {
     background: var(--surface-tint) !important;
 }
@@ -1363,7 +1309,6 @@ article thead tr th:last-child {
     border-top-right-radius: var(--radius-xl) !important;
 }
 
-/* Table Body */
 article tbody tr {
     transition: background 0.2s ease !important;
 }
@@ -1397,7 +1342,6 @@ article tbody tr:last-child td:last-child {
     border-bottom-right-radius: var(--radius-xl) !important;
 }
 
-/* Column Dividers (with vertical margin) */
 article th:not(:last-child),
 article td:not(:last-child) {
     background-image: linear-gradient(to bottom, transparent 20%, var(--glass-divider) 20%, var(--glass-divider) 80%, transparent 80%) !important;
@@ -1442,8 +1386,8 @@ article td a {
 }
 
 /* ==========================================================================
-   18. Alerts (Liquid Glass)
-   ========================================================================== */
+18. Alerts
+========================================================================== */
 
 .alert {
     position: relative;
@@ -1632,7 +1576,7 @@ article td a {
     }
 
 /* ==========================================================================
-   19. Sidebar Navigation (Liquid Glass)
+   19. Sidebar Navigation
    ========================================================================== */
 
 .sidebar,
@@ -1640,10 +1584,7 @@ article td a {
     background: transparent !important;
 }
 
-/* ==========================================================================
-   Right Sidebar - In This Article (Liquid Glass Card)
-   ========================================================================== */
-
+/* Right Sidebar */
 .affix {
     position: sticky !important;
     top: 80px !important;
@@ -1921,7 +1862,6 @@ article td a {
     color: var(--zenith-text-muted) !important;
 }
 
-/* Filter form icon */
 #toc .filter {
     position: relative !important;
     margin-bottom: 0.75rem !important;
@@ -1938,10 +1878,7 @@ article td a {
         pointer-events: none !important;
     }
 
-/* ==========================================================================
-   Left Sidebar - Tree Navigation (WinUI-inspired)
-   ========================================================================== */
-
+/* Left Sidebar */
 #toc .flex-fill.overflow-y-auto {
     --toc-expand-width: 16px;
     padding: 0 0.25rem !important;
@@ -1953,7 +1890,6 @@ article td a {
         margin: 0 !important;
     }
 
-    /* Tree node items - add spacing between all items */
     #toc .flex-fill.overflow-y-auto > ul > li {
         margin-top: 2px !important;
         padding: 0 !important;
@@ -1968,7 +1904,6 @@ article td a {
         padding: 0 !important;
     }
 
-        /* Expander items - arrow and text wrapped together */
         #toc .flex-fill.overflow-y-auto li.expander {
             display: flex !important;
             flex-wrap: wrap !important;
@@ -1976,14 +1911,12 @@ article td a {
             border-radius: var(--radius-sm) !important;
         }
 
-            /* Create a wrapper effect for expand-stub + a */
             #toc .flex-fill.overflow-y-auto li.expander > .expand-stub,
             #toc .flex-fill.overflow-y-auto li.expander > a {
                 background: transparent !important;
                 border: none !important;
             }
 
-            /* Hover state for the combined expander row */
             #toc .flex-fill.overflow-y-auto li.expander:hover > .expand-stub,
             #toc .flex-fill.overflow-y-auto li.expander:hover > a {
                 background: var(--surface-tint) !important;
@@ -1994,14 +1927,12 @@ article td a {
                 border-color: transparent !important;
             }
 
-            /* Active state for the combined expander row */
             #toc .flex-fill.overflow-y-auto li.expander.active > .expand-stub,
             #toc .flex-fill.overflow-y-auto li.expander.active > a,
             #toc .flex-fill.overflow-y-auto li.expander > a.active {
                 background: var(--surface-tint) !important;
             }
 
-        /* Style the expand-stub to connect with link */
         #toc .flex-fill.overflow-y-auto li .expand-stub {
             display: inline-flex !important;
             align-items: center !important;
@@ -2050,7 +1981,6 @@ article td a {
             flex: 1 !important;
         }
 
-        /* Non-expander items - full width link */
         #toc .flex-fill.overflow-y-auto li:not(.expander) > a {
             display: block !important;
         }
@@ -2069,14 +1999,12 @@ article td a {
             font-weight: 600 !important;
         }
 
-    /* Nested tree items - indented */
     #toc .flex-fill.overflow-y-auto ul ul {
         position: relative !important;
         margin-left: calc(var(--toc-expand-width) + 12px) !important;
         padding: 0 !important;
     }
 
-        /* Add spacing between child items */
         #toc .flex-fill.overflow-y-auto ul ul li {
             margin-top: 2px !important;
         }
@@ -2090,7 +2018,6 @@ article td a {
                 padding: 0.35rem 0.5rem !important;
             }
 
-/* Dark theme for tree navigation */
 [data-bs-theme="dark"] #toc .flex-fill.overflow-y-auto li.expander:hover > a,
 [data-bs-theme="dark"] #toc .flex-fill.overflow-y-auto li:not(.expander) > a:hover {
     color: var(--zenith-link) !important;
@@ -2101,7 +2028,6 @@ article td a {
     color: var(--zenith-link) !important;
 }
 
-/* Dark theme for .toc navigation */
 [data-bs-theme="dark"] .toc .nav > li > a:hover,
 [data-bs-theme="dark"] .toc .nav > li > .expand-stub + a:hover {
     color: var(--zenith-link) !important;
@@ -2190,7 +2116,6 @@ article td a {
             pointer-events: none;
         }
 
-/* Dark theme for breadcrumb */
 [data-bs-theme="dark"] .breadcrumb-item a:hover {
     color: var(--zenith-link);
 }
@@ -2220,6 +2145,26 @@ a[href^="https"]::after {
    ========================================================================== */
 
 @media (max-width: 768px) {
+
+    /* Navbar */
+    header.bg-body,
+    .navbar {
+        background: var(--glass-bg-solid) !important;
+    }
+
+    /* Actionbar */
+    .actionbar {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+        .actionbar > button {
+            flex-shrink: 0;
+            margin-top: 0 !important;
+            margin-left: 0 !important;
+        }
+
     /* Hero */
     .hero {
         padding: 1.5rem 1.5rem 2rem 1.5rem;
@@ -2268,10 +2213,19 @@ a[href^="https"]::after {
     article h2 {
         font-size: 1.5rem;
         padding-left: 0.75rem;
+        position: relative;
     }
 
         article h2::before {
+            content: '';
+            display: block;
+            position: absolute;
+            left: 0;
+            top: 0.1em;
+            bottom: 0.1em;
             width: 3px;
+            background: var(--zenith-gradient);
+            border-radius: 2px;
         }
 
     article h3 {
