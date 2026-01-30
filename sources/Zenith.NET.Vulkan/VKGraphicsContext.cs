@@ -117,9 +117,9 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                                        out CommandQueue copy,
                                        out ValidationLayer? validationLayer)
     {
-        using ZenithMarshal.Scope scope = new();
-
         Version32 apiVersion = new(1, 4, 0);
+
+        using ZenithMarshal.Scope scope = new();
 
         // Create instance
         {

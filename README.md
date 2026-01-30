@@ -42,10 +42,10 @@ Visit the [documentation site](https://qian-o.github.io/Zenith.NET/) for tutoria
 |           | DirectX 12 | Metal 4 | Vulkan 1.4 |
 | :-------: | :--------: | :-----: | :--------: |
 | Windows   | ✅ |  | ✅ |
-| macOS     |  | 🚧 | ✅ |
 | Linux     |  |  | ✅ |
-| iOS       |  | 🚧 | ✅ |
 | Android   |  |  | ✅ |
+| macOS     |  | 🚧 | ✅ |
+| iOS       |  | 🚧 | ✅ |
 
 > 🚧 Metal backend is under development.
 
