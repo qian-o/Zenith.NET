@@ -85,6 +85,10 @@ internal static class App
         {
             surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, (uint)window.Size.X, (uint)window.Size.Y);
         }
+        else if (OperatingSystem.IsMacOS())
+        {
+            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), (uint)window.Size.X, (uint)window.Size.Y);
+        }
         else if (OperatingSystem.IsLinux())
         {
             surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, (uint)window.Size.X, (uint)window.Size.Y);
@@ -94,7 +98,7 @@ internal static class App
             throw new PlatformNotSupportedException();
         }
 
-        swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.R8G8B8A8UNorm, DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt });
+        swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.B8G8R8A8UNorm, DepthStencilTargetFormat = PixelFormat.D32FloatS8UInt });
         imGui = new(inputContext, swapChain.FrameBuffer.Output, ImGuiColorSpace.Legacy);
         camera = new(inputContext, Matrix4x4.CreateRotationY(float.DegreesToRadians(90.0f)) * Matrix4x4.CreateTranslation(new(-67.8f, 7.5f, -1.6f)));
         renderer = new();
@@ -142,7 +146,7 @@ internal static class App
             {
                 renderer.UI();
 
-                ImGuiHelpers.Overlay("Info", () =>
+                ImGuiHelper.Overlay("Info", () =>
                 {
                     ImGui.Text($"Backend: {Context.Backend}");
 
@@ -156,7 +160,7 @@ internal static class App
 
                     ImGui.Separator();
 
-                    ImGui.Text($"Mesh Shader Supported: {Context.Capabilities.MeshShaderSupported}");
+                    ImGui.Text($"Mesh Shading Supported: {Context.Capabilities.MeshShadingSupported}");
 
                     ImGui.Separator();
 

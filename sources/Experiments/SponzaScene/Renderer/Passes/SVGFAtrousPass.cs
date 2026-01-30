@@ -113,7 +113,7 @@ internal unsafe class SVGFAtrousPass : RenderPass
         ImGui.SliderFloat("Phi Normal", ref phiNormal, 4.0f, 128.0f);
         ImGui.SliderFloat("Phi Depth", ref phiDepth, 0.01f, 1.0f);
 
-        ImGuiHelpers.Image(context.RTGI!);
+        ImGuiHelper.Image(context.RTGI!);
     }
 
     protected override void Destroy()
@@ -156,17 +156,17 @@ internal unsafe class SVGFAtrousPass : RenderPass
             ]
         });
     }
+}
 
-    private struct AtrousConstants
-    {
-        public Vector2 ViewportSize;
+file struct AtrousConstants
+{
+    public Vector2 ViewportSize;
 
-        public int StepWidth;
+    public int StepWidth;
 
-        public float PhiColor;
+    public float PhiColor;
 
-        public float PhiNormal;
+    public float PhiNormal;
 
-        public float PhiDepth;
-    }
+    public float PhiDepth;
 }

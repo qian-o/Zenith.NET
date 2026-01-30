@@ -116,7 +116,7 @@ internal unsafe class RTGIPass : RenderPass
     {
         ImGui.SliderFloat("Intensity", ref intensity, 0.0f, 3.0f);
 
-        ImGuiHelpers.Image(context.RTGI!);
+        ImGuiHelper.Image(context.RTGI!);
     }
 
     protected override void Destroy()
@@ -149,19 +149,19 @@ internal unsafe class RTGIPass : RenderPass
             ]
         });
     }
+}
 
-    private struct RTGIConstants
-    {
-        public uint Width;
+file struct RTGIConstants
+{
+    public uint Width;
 
-        public uint Height;
+    public uint Height;
 
-        public uint FrameIndex;
+    public uint FrameIndex;
 
-        public float Intensity;
+    public float Intensity;
 
-        public Matrix4x4 ViewProjection;
+    public Matrix4x4 ViewProjection;
 
-        public DirectionalLight DirectionalLight;
-    }
+    public DirectionalLight DirectionalLight;
 }

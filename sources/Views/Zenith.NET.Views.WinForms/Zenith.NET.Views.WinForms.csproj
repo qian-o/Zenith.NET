@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>$(StandardTargetFramework)-windows</TargetFramework>
+        <EnableWindowsTargeting>true</EnableWindowsTargeting>
         <UseWindowsForms>true</UseWindowsForms>
     </PropertyGroup>
 

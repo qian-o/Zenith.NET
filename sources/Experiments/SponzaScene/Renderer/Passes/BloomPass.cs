@@ -98,7 +98,7 @@ internal unsafe class BloomPass : RenderPass
     {
         ImGui.SliderInt("Blur Iterations", ref iterations, 1, 8);
 
-        ImGuiHelpers.Image(context.VerticalBloom!);
+        ImGuiHelper.Image(context.VerticalBloom!);
     }
 
     protected override void Destroy()
@@ -127,9 +127,9 @@ internal unsafe class BloomPass : RenderPass
             Resources = [constantBuffer, context.HorizontalBloom!, context.VerticalBloom!, App.LinearSampler]
         });
     }
+}
 
-    private struct BloomConstants
-    {
-        public Vector2 TexelSize;
-    }
+file struct BloomConstants
+{
+    public Vector2 TexelSize;
 }

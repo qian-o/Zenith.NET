@@ -253,7 +253,7 @@ internal unsafe class VKSwapChain : SwapChain
                 ImageColorSpace = surfaceFormat.ColorSpace,
                 ImageExtent = imageExtent,
                 ImageArrayLayers = 1,
-                ImageUsage = ImageUsageFlags.ColorAttachmentBit,
+                ImageUsage = ImageUsageFlags.TransferSrcBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.ColorAttachmentBit,
                 ImageSharingMode = sharingMode,
                 QueueFamilyIndexCount = queueFamilyIndexCount,
                 PQueueFamilyIndices = (uint*)pQueueFamilyIndices,

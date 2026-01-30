@@ -23,12 +23,12 @@ internal unsafe class VKCapabilities : Capabilities
 
         DeviceName = ZenithMarshal.StringFromPointer((nint)properties.DeviceName, StringEncoding.UTF8);
         RayTracingSupported = supportedExtensions.Contains(KhrRayQuery.ExtensionName) || supportedExtensions.Contains(KhrRayTracingPipeline.ExtensionName);
-        MeshShaderSupported = supportedExtensions.Contains(ExtMeshShader.ExtensionName);
+        MeshShadingSupported = supportedExtensions.Contains(ExtMeshShader.ExtensionName);
     }
 
     public override string DeviceName { get; }
 
     public override bool RayTracingSupported { get; }
 
-    public override bool MeshShaderSupported { get; }
+    public override bool MeshShadingSupported { get; }
 }

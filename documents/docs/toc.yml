@@ -1,5 +1,36 @@
-﻿- name: Introduction
-  href: introduction.md
-
-- name: Getting Started
-  href: getting-started.md
+﻿- name: Docs
+  href: index.md
+- name: Core Concepts
+  items:
+    - name: Graphics Context
+      href: concepts/graphics-context.md
+    - name: Command Model
+      href: concepts/command-model.md
+    - name: Resource Binding
+      href: concepts/resource-binding.md
+- name: Resources
+  items:
+    - name: Buffers
+      href: resources/buffers.md
+    - name: Textures
+      href: resources/textures.md
+    - name: Samplers
+      href: resources/samplers.md
+- name: Pipelines
+  items:
+    - name: Graphics Pipeline
+      href: pipelines/graphics.md
+    - name: Compute Pipeline
+      href: pipelines/compute.md
+    - name: Ray Tracing Pipeline
+      href: pipelines/ray-tracing.md
+    - name: Mesh Shading Pipeline
+      href: pipelines/mesh-shading.md
+- name: Platform
+  items:
+    - name: Backend Selection
+      href: platform/backend-selection.md
+    - name: UI Framework Integration
+      href: platform/ui-frameworks.md
+- name: Best Practices
+  href: best-practices.md

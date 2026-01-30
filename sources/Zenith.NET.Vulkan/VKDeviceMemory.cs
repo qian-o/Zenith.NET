@@ -37,7 +37,7 @@ internal unsafe class VKDeviceMemory : GraphicsResource
         }
 
         allocateInfo.AddNext(out MemoryAllocateFlagsInfo flagsInfo);
-        flagsInfo.Flags = MemoryAllocateFlags.AddressBit;
+        flagsInfo.Flags = MemoryAllocateFlags.DeviceAddressBit;
 
         context.Vk.AllocateMemory(context.Device, &allocateInfo, null, out DeviceMemory).Success();
 

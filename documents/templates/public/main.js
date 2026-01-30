@@ -1,5 +1,4 @@
 ﻿export default {
-  defaultTheme: 'auto',
   iconLinks: [
     {
       icon: 'github',

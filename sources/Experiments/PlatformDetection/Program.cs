@@ -18,7 +18,7 @@ foreach (Backend backend in Enum.GetValues<Backend>())
         Console.WriteLine($"Backend {backend} is supported.");
         Console.WriteLine($"  Device Name: {context.Capabilities.DeviceName}");
         Console.WriteLine($"  Ray Tracing Supported: {context.Capabilities.RayTracingSupported}");
-        Console.WriteLine($"  Mesh Shader Supported: {context.Capabilities.MeshShaderSupported}");
+        Console.WriteLine($"  Mesh Shading Supported: {context.Capabilities.MeshShadingSupported}");
     }
     catch (Exception)
     {

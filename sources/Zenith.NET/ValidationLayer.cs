@@ -2,64 +2,6 @@
 
 public abstract class ValidationLayer(GraphicsContext context) : GraphicsResource(context)
 {
-    private static class ValidationConstants
-    {
-        public const int CubeMapFaceCount = 6;
-
-        public const int MaxTraceRecursionDepth = 31;
-
-        public const int MaxInstanceId = 16777215;
-
-        public const int MaxHitGroupIndex = 65535;
-
-        public const int IndexSizeUInt16 = 2;
-
-        public const int IndexSizeUInt32 = 4;
-    }
-
-    private static class ValidationMessages
-    {
-        public const string MustNotBeNull = "{0} must not be null.";
-
-        public const string MustHaveExactlyNHandles = "{0} must have exactly {1} handles for {2}.";
-
-        public const string MustBeValidHandle = "{0} must be a valid handle for {1}.";
-
-        public const string MustBeValidHandles = "{0} must be valid handles for {1}.";
-
-        public const string HasUnsupportedSurfaceType = "{0} has unsupported SurfaceType '{1}'.";
-
-        public const string HasInvalidValue = "{0} has an invalid value '{1}'.";
-
-        public const string HasNoAttachments = "{0} has no attachments.";
-
-        public const string MustNotBeDisposed = "{0} must not be disposed.";
-
-        public const string MustBeLessThan = "{0} must be less than {1}.";
-
-        public const string MustNotBeNullOrEmpty = "{0} must not be null or empty.";
-
-        public const string MustNotBeNullOrWhitespace = "{0} must not be null or whitespace.";
-
-        public const string MustBeGreaterThanZero = "{0} must be greater than zero.";
-
-        public const string IsZeroWarning = "{0} is zero, which may be valid for some {1} but could indicate an issue.";
-
-        public const string IsSetToNoneWarning = "{0} is set to None, which may be valid but could indicate an issue.";
-
-        public const string MustBeWithinBounds = "{0} must be greater than zero and within the bounds of {1}.";
-
-        public const string MustBeLessThanOrEqualTo = "{0} must be less than or equal to {1}.";
-
-        public const string HasInsufficientResources = "{0} has insufficient resources: requires at least {1} to satisfy the layout up to binding index {2}, but only {3} provided.";
-
-        public const string MustBeOfType = "{0} item must be a {1} for {2} binding.";
-
-        public const string MustBeOneOf = "{0} must be one of: {1}.";
-
-        public const string InstanceCountMustRemainSame = "When updating a TopLevelAccelerationStructure, the number of instances must remain the same.";
-    }
-
     protected void Report(MessageSource source, MessageSeverity severity, string message)
     {
         Context.OnValidationMessage(new(source, severity, message));
@@ -379,6 +321,16 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "SamplerDesc.Filter", desc.Filter));
         }
 
+        if (desc.Filter is Filter.Anisotropic && desc.MaxAnisotropy is 0)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "SamplerDesc.MaxAnisotropy"));
+        }
+
+        if (desc.MaxAnisotropy > ValidationConstants.MaxAnisotropy)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, "SamplerDesc.MaxAnisotropy", ValidationConstants.MaxAnisotropy));
+        }
+
         if (!Enum.IsDefined(desc.ComparisonFunc))
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "SamplerDesc.ComparisonFunc", desc.ComparisonFunc));
@@ -418,6 +370,13 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         if (desc.Layout is null)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceSetDesc.Layout"));
+
+            return;
+        }
+
+        if (desc.Layout.IsDisposed)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ResourceSetDesc.Layout"));
 
             return;
         }
@@ -563,6 +522,11 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             }
         }
 
+        if (desc.PrimitiveTopology is not ((>= PrimitiveTopology.PointList and <= PrimitiveTopology.TriangleStripWithAdjacency) or >= PrimitiveTopology.PatchList))
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "GraphicsPipelineDesc.PrimitiveTopology", desc.PrimitiveTopology));
+        }
+
         CheckOutput("GraphicsPipelineDesc.Output", desc.Output);
 
         void CheckInputLayout(string name, InputLayout inputLayout)
@@ -696,6 +660,13 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.HitGroups"));
         }
+        else
+        {
+            for (int i = 0; i < desc.HitGroups.Length; i++)
+            {
+                CheckHitGroup($"RayTracingPipelineDesc.HitGroups[{i}]", desc.HitGroups[i]);
+            }
+        }
 
         if (desc.ResourceLayouts is null)
         {
@@ -725,6 +696,19 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         if (desc.MaxAttributeSizeInBytes is 0)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "RayTracingPipelineDesc.MaxAttributeSizeInBytes"));
+        }
+
+        void CheckHitGroup(string name, HitGroup hitGroup)
+        {
+            if (!Enum.IsDefined(hitGroup.Type))
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.Type", hitGroup.Type));
+            }
+
+            if (string.IsNullOrWhiteSpace(hitGroup.Name))
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNullOrWhitespace, $"{name}.Name"));
+            }
         }
     }
 
@@ -1105,4 +1089,64 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         Report(MessageSource.Framework, severity, message);
     }
+}
+
+file static class ValidationConstants
+{
+    public const int CubeMapFaceCount = 6;
+
+    public const int MaxAnisotropy = 16;
+
+    public const int MaxTraceRecursionDepth = 31;
+
+    public const int IndexSizeUInt16 = 2;
+
+    public const int IndexSizeUInt32 = 4;
+
+    public const int MaxInstanceId = 16777215;
+
+    public const int MaxHitGroupIndex = 65535;
+}
+
+file static class ValidationMessages
+{
+    public const string MustNotBeNull = "{0} must not be null.";
+
+    public const string MustHaveExactlyNHandles = "{0} must have exactly {1} handles for {2}.";
+
+    public const string MustBeValidHandle = "{0} must be a valid handle for {1}.";
+
+    public const string MustBeValidHandles = "{0} must be valid handles for {1}.";
+
+    public const string HasUnsupportedSurfaceType = "{0} has unsupported SurfaceType '{1}'.";
+
+    public const string HasInvalidValue = "{0} has an invalid value '{1}'.";
+
+    public const string HasNoAttachments = "{0} has no attachments.";
+
+    public const string MustNotBeDisposed = "{0} must not be disposed.";
+
+    public const string MustBeLessThan = "{0} must be less than {1}.";
+
+    public const string MustNotBeNullOrEmpty = "{0} must not be null or empty.";
+
+    public const string MustNotBeNullOrWhitespace = "{0} must not be null or whitespace.";
+
+    public const string MustBeGreaterThanZero = "{0} must be greater than zero.";
+
+    public const string IsZeroWarning = "{0} is zero, which may be valid for some {1} but could indicate an issue.";
+
+    public const string IsSetToNoneWarning = "{0} is set to None, which may be valid but could indicate an issue.";
+
+    public const string MustBeWithinBounds = "{0} must be greater than zero and within the bounds of {1}.";
+
+    public const string MustBeLessThanOrEqualTo = "{0} must be less than or equal to {1}.";
+
+    public const string HasInsufficientResources = "{0} has insufficient resources: requires at least {1} to satisfy the layout up to binding index {2}, but only {3} provided.";
+
+    public const string MustBeOfType = "{0} item must be a {1} for {2} binding.";
+
+    public const string MustBeOneOf = "{0} must be one of: {1}.";
+
+    public const string InstanceCountMustRemainSame = "When updating a TopLevelAccelerationStructure, the number of instances must remain the same.";
 }

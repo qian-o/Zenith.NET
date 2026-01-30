@@ -10,15 +10,16 @@
         <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.30" />
         <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.8.260101001" />
         <PackageVersion Include="Roslynator.Analyzers" Version="4.15.0" />
-        <PackageVersion Include="Silk.NET.Direct3D11" Version="2.22.0" />
-        <PackageVersion Include="Silk.NET.Direct3D12" Version="2.22.0" />
-        <PackageVersion Include="Silk.NET.Direct3D9" Version="2.22.0" />
-        <PackageVersion Include="Silk.NET.Vulkan" Version="2.22.0" />
-        <PackageVersion Include="Silk.NET.Vulkan.Extensions.EXT" Version="2.22.0" />
-        <PackageVersion Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.22.0" />
+        <PackageVersion Include="Silk.NET.Direct3D11" Version="2.23.0" />
+        <PackageVersion Include="Silk.NET.Direct3D12" Version="2.23.0" />
+        <PackageVersion Include="Silk.NET.Direct3D9" Version="2.23.0" />
+        <PackageVersion Include="Silk.NET.MoltenVK.Native" Version="2.23.0" />
+        <PackageVersion Include="Silk.NET.Vulkan" Version="2.23.0" />
+        <PackageVersion Include="Silk.NET.Vulkan.Extensions.EXT" Version="2.23.0" />
+        <PackageVersion Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.23.0" />
         <PackageVersion Include="SixLabors.ImageSharp" Version="3.1.12" />
         <PackageVersion Include="SkiaSharp" Version="3.119.1" />
-        <PackageVersion Include="Slangc.NET" Version="2026.1.0" />
+        <PackageVersion Include="Slangc.NET" Version="2026.1.1" />
         <PackageVersion Include="Uno.WinUI" Version="6.4.242" />
     </ItemGroup>
 

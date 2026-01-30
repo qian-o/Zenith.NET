@@ -96,7 +96,7 @@ internal unsafe class GTAOPass : FullscreenPass
         ImGui.SliderInt("Slice Count", ref sliceCount, 2, 12);
         ImGui.SliderInt("Steps Per Slice", ref stepsPerSlice, 2, 16);
 
-        ImGuiHelpers.Image(context.GTAO!);
+        ImGuiHelper.Image(context.GTAO!);
     }
 
     protected override void Destroy()
@@ -106,27 +106,27 @@ internal unsafe class GTAOPass : FullscreenPass
 
         base.Destroy();
     }
+}
 
-    private struct GTAOConstants
-    {
-        public Matrix4x4 View;
+file struct GTAOConstants
+{
+    public Matrix4x4 View;
 
-        public Matrix4x4 Projection;
+    public Matrix4x4 Projection;
 
-        public Vector2 ViewportSize;
+    public Vector2 ViewportSize;
 
-        public float EffectRadius;
+    public float EffectRadius;
 
-        public float EffectFalloffRange;
+    public float EffectFalloffRange;
 
-        public float RadiusMultiplier;
+    public float RadiusMultiplier;
 
-        public float FinalValuePower;
+    public float FinalValuePower;
 
-        public float SampleDistributionPower;
+    public float SampleDistributionPower;
 
-        public int SliceCount;
+    public int SliceCount;
 
-        public int StepsPerSlice;
-    }
+    public int StepsPerSlice;
 }

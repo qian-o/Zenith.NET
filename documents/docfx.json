@@ -13,22 +13,17 @@
           ]
         }
       ],
-      "output": "obj/api"
+      "output": "api"
     }
   ],
   "build": {
     "content": [
       {
         "files": [
-          "**/*.yml"
-        ],
-        "src": "obj/api",
-        "dest": "api"
-      },
-      {
-        "files": [
+          "api/**/*.{md,yml}",
           "docs/**/*.{md,yml}",
-          "*.md",
+          "tutorials/**/*.{md,yml}",
+          "index.md",
           "toc.yml"
         ]
       }
@@ -48,11 +43,12 @@
     ],
     "globalMetadata": {
       "_appTitle": "Zenith.NET",
-      "_appLogoPath": "images/Zenith.NET.svg",
+      "_appLogoPath": "images/Zenith.NET-Logo.svg",
       "_appFaviconPath": "images/Zenith.NET.png",
-      "_enableSearch": true,
-      "_enableNewTab": true,
-      "pdf": false
+      "_gitContribute": {
+        "repo": "https://github.com/qian-o/Zenith.NET",
+        "branch": "master"
+      }
     }
   }
 }

@@ -204,40 +204,40 @@ internal unsafe class GBufferPass : RenderPass
 
         ImGui.BeginGroup();
         ImGui.Text("Albedo");
-        ImGuiHelpers.Image(context.Albedo!, size);
+        ImGuiHelper.Image(context.Albedo!, size);
         ImGui.EndGroup();
 
         ImGui.SameLine();
 
         ImGui.BeginGroup();
         ImGui.Text("Normal");
-        ImGuiHelpers.Image(context.Normal!, size);
+        ImGuiHelper.Image(context.Normal!, size);
         ImGui.EndGroup();
 
         ImGui.SameLine();
 
         ImGui.BeginGroup();
         ImGui.Text("Position");
-        ImGuiHelpers.Image(context.Position!, size);
+        ImGuiHelper.Image(context.Position!, size);
         ImGui.EndGroup();
 
         ImGui.BeginGroup();
         ImGui.Text("Depth");
-        ImGuiHelpers.Image(context.NormalizedDepth!, size);
+        ImGuiHelper.Image(context.NormalizedDepth!, size);
         ImGui.EndGroup();
 
         ImGui.SameLine();
 
         ImGui.BeginGroup();
         ImGui.Text("Metallic Roughness");
-        ImGuiHelpers.Image(context.MetallicRoughness!, size);
+        ImGuiHelper.Image(context.MetallicRoughness!, size);
         ImGui.EndGroup();
 
         ImGui.SameLine();
 
         ImGui.BeginGroup();
         ImGui.Text("Emissive");
-        ImGuiHelpers.Image(context.Emissive!, size);
+        ImGuiHelper.Image(context.Emissive!, size);
         ImGui.EndGroup();
     }
 
@@ -263,46 +263,46 @@ internal unsafe class GBufferPass : RenderPass
 
         base.Destroy();
     }
+}
 
-    [Flags]
-    private enum MaterialFlags
-    {
-        None = 0,
+[Flags]
+file enum MaterialFlags
+{
+    None = 0,
 
-        UseAlphaCutoff = 1 << 0,
+    UseAlphaCutoff = 1 << 0,
 
-        HasBaseColorTexture = 1 << 1,
+    HasBaseColorTexture = 1 << 1,
 
-        HasNormalTexture = 1 << 2,
+    HasNormalTexture = 1 << 2,
 
-        HasMetallicRoughnessTexture = 1 << 3
-    }
+    HasMetallicRoughnessTexture = 1 << 3
+}
 
-    private struct CameraConstants
-    {
-        public Matrix4x4 View;
+file struct CameraConstants
+{
+    public Matrix4x4 View;
 
-        public Matrix4x4 Projection;
+    public Matrix4x4 Projection;
 
-        public float NearPlane;
+    public float NearPlane;
 
-        public float FarPlane;
-    }
+    public float FarPlane;
+}
 
-    private struct MaterialConstants
-    {
-        public float AlphaCutoff;
+file struct MaterialConstants
+{
+    public float AlphaCutoff;
 
-        public float MetallicFactor;
+    public float MetallicFactor;
 
-        public float RoughnessFactor;
+    public float RoughnessFactor;
 
-        public float EmissiveStrength;
+    public float EmissiveStrength;
 
-        public Vector4 BaseColorFactor;
+    public Vector4 BaseColorFactor;
 
-        public Vector4 EmissiveFactor;
+    public Vector4 EmissiveFactor;
 
-        public MaterialFlags Flags;
-    }
+    public MaterialFlags Flags;
 }

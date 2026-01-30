@@ -76,7 +76,7 @@ internal unsafe class GTAOBlurPass : FullscreenPass
     {
         ImGui.SliderInt("Blur Size", ref blurSize, 1, 8);
 
-        ImGuiHelpers.Image(context.GTAOBlurred!);
+        ImGuiHelper.Image(context.GTAOBlurred!);
     }
 
     protected override void Destroy()
@@ -86,11 +86,11 @@ internal unsafe class GTAOBlurPass : FullscreenPass
 
         base.Destroy();
     }
+}
 
-    private struct BlurConstants
-    {
-        public Vector2 TexelSize;
+file struct BlurConstants
+{
+    public Vector2 TexelSize;
 
-        public int BlurSize;
-    }
+    public int BlurSize;
 }
