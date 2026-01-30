@@ -522,7 +522,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             }
         }
 
-        if (desc.PrimitiveTopology is not (>= PrimitiveTopology.PointList and <= PrimitiveTopology.TriangleStripWithAdjacency or >= PrimitiveTopology.PatchList))
+        if (desc.PrimitiveTopology is not ((>= PrimitiveTopology.PointList and <= PrimitiveTopology.TriangleStripWithAdjacency) or >= PrimitiveTopology.PatchList))
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "GraphicsPipelineDesc.PrimitiveTopology", desc.PrimitiveTopology));
         }
