@@ -45,7 +45,7 @@ This tutorial uses the following sample image. Right-click to save it to your pr
 
 <img src="../../images/shoko.png" alt="shoko" width="50%">
 
-Your project structure should look like this:
+Your project structure should now look like this:
 
 ```
 ZenithTutorials/

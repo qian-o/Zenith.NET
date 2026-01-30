@@ -17,7 +17,7 @@ Zenith.NET supports multiple graphics backends across platforms:
 | iOS      | <span class="status-no">No</span> | <span class="status-yes">Yes</span> | <span class="status-yes">Yes</span> |
 
 > [!NOTE]
-> Metal backend is currently under development.
+> These tutorials are designed for desktop platforms (Windows, Linux, and macOS).
 
 ### Software
 
@@ -76,7 +76,7 @@ Update your `.csproj` file:
 ```
 
 > [!NOTE]
-> `AllowUnsafeBlocks` is required for some low-level GPU operations.
+> `AllowUnsafeBlocks` is required because the tutorials use `sizeof` with custom structs for GPU buffer sizing.
 
 ## Project Structure
 
@@ -88,6 +88,7 @@ ZenithTutorials/
 ├── App.cs             # Application framework
 ├── IRenderer.cs       # Renderer interface
 ├── BindingHelper.cs   # Cross-platform resource binding helper
+├── CocoaHelper.cs     # macOS CAMetalLayer helper
 ├── Usings.cs          # Global using statements
 └── Renderers/         # All tutorial renderers
 ```
@@ -246,9 +247,53 @@ resourceLayout = App.Context.CreateResourceLayout(new()
 
 The helper automatically assigns the correct `Index` values based on the current backend, so you don't need to specify them manually.
 
+## Cocoa Helper
+
+On macOS, creating a rendering surface requires a `CAMetalLayer`. Silk.NET.Windowing doesn't expose this directly, so we need a helper to create it using Objective-C runtime interop.
+
+Create `CocoaHelper.cs`:
+
+```csharp
+namespace ZenithTutorials;
+
+internal static partial class CocoaHelper
+{
+    private const string LibObjC = "/usr/lib/libobjc.A.dylib";
+
+    [LibraryImport(LibObjC, EntryPoint = "objc_getClass")]
+    private static partial nint GetClass([MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+
+    [LibraryImport(LibObjC, EntryPoint = "sel_registerName")]
+    private static partial nint Selector([MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+
+    [LibraryImport(LibObjC, EntryPoint = "objc_msgSend")]
+    private static partial nint Send(nint receiver, nint selector);
+
+    [LibraryImport(LibObjC, EntryPoint = "objc_msgSend")]
+    private static partial nint Send(nint receiver, nint selector, [MarshalAs(UnmanagedType.I1)] bool arg);
+
+    [LibraryImport(LibObjC, EntryPoint = "objc_msgSend")]
+    private static partial nint Send(nint receiver, nint selector, nint arg);
+
+    public static nint CreateLayer(nint cocoa)
+    {
+        nint layer = Send(GetClass("CAMetalLayer"), Selector("layer"));
+        Send(layer, Selector("retain"));
+
+        nint view = Send(cocoa, Selector("contentView"));
+        Send(view, Selector("setWantsLayer:"), true);
+        Send(view, Selector("setLayer:"), layer);
+
+        return layer;
+    }
+}
+```
+
+The `CAMetalLayer` can be used with both Metal and Vulkan backends on macOS.
+
 ## Application Framework
 
-All tutorials share a common application framework that handles window creation, graphics context initialization, and the main loop. This is split into two files for clarity.
+All tutorials share a common application framework that handles window creation, graphics context initialization, and the main loop.
 
 ### App.cs
 
@@ -268,6 +313,12 @@ internal static class App
 
     static App()
     {
+        // Ensure platform is supported
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            throw new PlatformNotSupportedException("This tutorial only supports Windows, Linux, and macOS.");
+        }
+
         // Create window with no graphics API (we manage rendering ourselves)
         window = Window.Create(WindowOptions.Default with
         {
@@ -278,18 +329,25 @@ internal static class App
 
         window.Initialize();
 
-        // Select graphics backend based on platform
+        // Create graphics context and surface based on platform
+        Surface surface;
         if (OperatingSystem.IsWindows())
         {
             Context = GraphicsContext.CreateDirectX12(useValidationLayer: true);
+
+            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, Width, Height);
         }
-        else if (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS())
+        else if (OperatingSystem.IsLinux())
         {
-            Context = GraphicsContext.CreateMetal(useValidationLayer: true);
+            Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
+
+            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
         }
         else
         {
-            Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
+            Context = GraphicsContext.CreateMetal(useValidationLayer: true);
+
+            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), Width, Height);
         }
 
         // Log validation messages for debugging
@@ -298,31 +356,12 @@ internal static class App
             Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
         };
 
-        // Create platform-specific surface for rendering
-        Surface surface;
-        if (OperatingSystem.IsWindows())
-        {
-            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, Width, Height);
-        }
-        else if (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS())
-        {
-            throw new NotImplementedException("TODO: Get CAMetalLayer from Silk.NET.Windowing");
-        }
-        else if (OperatingSystem.IsLinux())
-        {
-            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
-        }
-        else
-        {
-            throw new NotImplementedException();
-        }
-
         // Create swap chain for double-buffered rendering
         SwapChain = Context.CreateSwapChain(new()
         {
             Surface = surface,
-            ColorTargetFormat = PixelFormat.R8G8B8A8UNorm,
-            DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
+            ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
+            DepthStencilTargetFormat = PixelFormat.D32FloatS8UInt
         });
     }
 
@@ -394,8 +433,9 @@ App.Cleanup();
 
 This framework provides:
 
+- **Platform validation** - Ensures only supported platforms (Windows, Linux, macOS) are used
 - **Window creation** with Silk.NET (1280×720 default size)
-- **Cross-platform backend selection** (DirectX 12 on Windows, Metal on Apple platforms, Vulkan elsewhere)
+- **Cross-platform backend selection** (DirectX 12 on Windows, Vulkan on Linux, Metal on macOS)
 - **SwapChain management** for presenting frames
 - **Resize handling** for responsive rendering
 - **Generic renderer pattern** using `App.Run<TRenderer>()` for easy tutorial switching
