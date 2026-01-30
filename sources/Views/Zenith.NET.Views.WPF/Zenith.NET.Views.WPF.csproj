@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>$(StandardTargetFramework)-windows</TargetFramework>
+        <EnableWindowsTargeting>true</EnableWindowsTargeting>
         <UseWPF>true</UseWPF>
     </PropertyGroup>
 

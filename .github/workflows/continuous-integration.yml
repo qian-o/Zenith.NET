@@ -12,9 +12,7 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            build-args: ""
           - os: macos-latest
-            build-args: "/p:EnableWindowsTargeting=true"
 
     runs-on: ${{ matrix.os }}
 
@@ -30,4 +28,4 @@ jobs:
         run: dotnet workload install maui
 
       - name: Build
-        run: dotnet build -c Release ${{ matrix.build-args }}
+        run: dotnet build -c Release
