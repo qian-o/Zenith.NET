@@ -25,7 +25,7 @@
     --radius-2xl: 32px;
     --elevation-3: 0 10px 20px rgba(0, 0, 0, 0.08), 0 3px 6px rgba(0, 0, 0, 0.05);
     --elevation-4: 0 14px 28px rgba(0, 0, 0, 0.1), 0 5px 10px rgba(0, 0, 0, 0.06);
-    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-bg: rgba(255, 255, 255, 0.15);
     --glass-bg-solid: rgba(255, 255, 255, 0.95);
     --glass-blur: 20px;
     --glass-blur-strong: 40px;
@@ -52,8 +52,8 @@
     --zenith-link-hover: #a5d6ff;
     --elevation-3: 0 10px 20px rgba(0, 0, 0, 0.4), 0 3px 6px rgba(0, 0, 0, 0.3);
     --elevation-4: 0 14px 28px rgba(0, 0, 0, 0.5), 0 5px 10px rgba(0, 0, 0, 0.35);
-    --glass-bg: rgba(22, 27, 34, 0.8);
-    --glass-bg-solid: rgba(22, 27, 34, 0.95);
+    --glass-bg: rgba(13, 17, 23, 0.15);
+    --glass-bg-solid: rgba(22, 27, 34, 0.92);
     --glass-border: rgba(48, 54, 61, 0.8);
     --glass-border-hover: rgba(88, 166, 255, 0.4);
     --glass-refraction: rgba(255, 255, 255, 0.08);
@@ -78,7 +78,7 @@ body {
         content: '';
         position: fixed;
         border-radius: 50%;
-        filter: blur(120px);
+        filter: blur(150px);
         pointer-events: none;
         z-index: -1;
     }
@@ -93,20 +93,22 @@ body {
     }
 
     body::after {
-        background: #2188ff;
-        width: 700px;
-        height: 700px;
-        bottom: -200px;
-        left: -150px;
+        background: #06b6d4;
+        width: 500px;
+        height: 500px;
+        bottom: -100px;
+        left: -50px;
         opacity: 0.1;
     }
 
 [data-bs-theme="dark"] body::before {
-    opacity: 0.08;
+    background: #58a6ff;
+    opacity: 0.15;
 }
 
 [data-bs-theme="dark"] body::after {
-    opacity: 0.06;
+    background: #22d3ee;
+    opacity: 0.12;
 }
 
 /* ==========================================================================
