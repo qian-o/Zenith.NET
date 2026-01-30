@@ -427,7 +427,7 @@ FodyWeavers.xsd
 *.msm
 *.msp
 
-## MacOS files
+## MacOS generated files
 .DS_Store
 
 ## DocFx generated files
