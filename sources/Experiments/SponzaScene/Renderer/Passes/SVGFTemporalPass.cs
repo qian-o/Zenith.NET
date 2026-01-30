@@ -139,7 +139,7 @@ internal unsafe class SVGFTemporalPass : FullscreenPass
         ImGui.SliderFloat("Depth Threshold", ref depthThreshold, 0.001f, 0.1f);
         ImGui.SliderInt("Max History Length", ref maxHistoryLength, 4, 64);
 
-        ImGuiHelpers.Image(context.SVGFPingPong!);
+        ImGuiHelper.Image(context.SVGFPingPong!);
     }
 
     protected override void Destroy()

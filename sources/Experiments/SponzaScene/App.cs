@@ -146,7 +146,7 @@ internal static class App
             {
                 renderer.UI();
 
-                ImGuiHelpers.Overlay("Info", () =>
+                ImGuiHelper.Overlay("Info", () =>
                 {
                     ImGui.Text($"Backend: {Context.Backend}");
 

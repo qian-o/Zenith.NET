@@ -110,7 +110,7 @@ internal unsafe class CSMPass : RenderPass
         {
             ImGui.BeginGroup();
             ImGui.Text($"Cascade {i}");
-            ImGuiHelpers.Image(context.CSMTextureViews![i], size);
+            ImGuiHelper.Image(context.CSMTextureViews![i], size);
             ImGui.EndGroup();
 
             if (i < splitCount - 1)

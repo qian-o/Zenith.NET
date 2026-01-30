@@ -106,7 +106,7 @@ internal unsafe class VolumetricLightPass : FullscreenPass
         ImGui.SliderFloat("Scattering", ref scattering, 0.0f, 1.0f);
         ImGui.SliderFloat("Max Distance", ref maxDistance, 10.0f, 500.0f);
 
-        ImGuiHelpers.Image(context.VolumetricLight!);
+        ImGuiHelper.Image(context.VolumetricLight!);
     }
 
     protected override void Destroy()

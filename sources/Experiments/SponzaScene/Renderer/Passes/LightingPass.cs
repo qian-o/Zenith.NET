@@ -112,7 +112,7 @@ internal unsafe class LightingPass : FullscreenPass
 
     protected override void DebugUIImpl(RenderContext context)
     {
-        ImGuiHelpers.Image(context.LitColor!);
+        ImGuiHelper.Image(context.LitColor!);
     }
 
     protected override void Destroy()

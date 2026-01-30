@@ -96,7 +96,7 @@ internal unsafe class GTAOPass : FullscreenPass
         ImGui.SliderInt("Slice Count", ref sliceCount, 2, 12);
         ImGui.SliderInt("Steps Per Slice", ref stepsPerSlice, 2, 16);
 
-        ImGuiHelpers.Image(context.GTAO!);
+        ImGuiHelper.Image(context.GTAO!);
     }
 
     protected override void Destroy()

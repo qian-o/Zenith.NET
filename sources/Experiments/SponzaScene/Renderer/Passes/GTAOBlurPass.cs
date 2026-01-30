@@ -76,7 +76,7 @@ internal unsafe class GTAOBlurPass : FullscreenPass
     {
         ImGui.SliderInt("Blur Size", ref blurSize, 1, 8);
 
-        ImGuiHelpers.Image(context.GTAOBlurred!);
+        ImGuiHelper.Image(context.GTAOBlurred!);
     }
 
     protected override void Destroy()

@@ -204,40 +204,40 @@ internal unsafe class GBufferPass : RenderPass
 
         ImGui.BeginGroup();
         ImGui.Text("Albedo");
-        ImGuiHelpers.Image(context.Albedo!, size);
+        ImGuiHelper.Image(context.Albedo!, size);
         ImGui.EndGroup();
 
         ImGui.SameLine();
 
         ImGui.BeginGroup();
         ImGui.Text("Normal");
-        ImGuiHelpers.Image(context.Normal!, size);
+        ImGuiHelper.Image(context.Normal!, size);
         ImGui.EndGroup();
 
         ImGui.SameLine();
 
         ImGui.BeginGroup();
         ImGui.Text("Position");
-        ImGuiHelpers.Image(context.Position!, size);
+        ImGuiHelper.Image(context.Position!, size);
         ImGui.EndGroup();
 
         ImGui.BeginGroup();
         ImGui.Text("Depth");
-        ImGuiHelpers.Image(context.NormalizedDepth!, size);
+        ImGuiHelper.Image(context.NormalizedDepth!, size);
         ImGui.EndGroup();
 
         ImGui.SameLine();
 
         ImGui.BeginGroup();
         ImGui.Text("Metallic Roughness");
-        ImGuiHelpers.Image(context.MetallicRoughness!, size);
+        ImGuiHelper.Image(context.MetallicRoughness!, size);
         ImGui.EndGroup();
 
         ImGui.SameLine();
 
         ImGui.BeginGroup();
         ImGui.Text("Emissive");
-        ImGuiHelpers.Image(context.Emissive!, size);
+        ImGuiHelper.Image(context.Emissive!, size);
         ImGui.EndGroup();
     }
 

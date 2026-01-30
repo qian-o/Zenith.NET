@@ -84,7 +84,7 @@ internal unsafe class ComposePass : FullscreenPass
         ImGui.SliderFloat("Bloom Intensity", ref bloomIntensity, 0.0f, 2.0f);
         ImGui.SliderFloat("Volumetric Intensity", ref volumetricIntensity, 0.0f, 5.0f);
 
-        ImGuiHelpers.Image(context.FinalColor!);
+        ImGuiHelper.Image(context.FinalColor!);
     }
 
     protected override void Destroy()

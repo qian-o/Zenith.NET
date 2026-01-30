@@ -98,7 +98,7 @@ internal unsafe class BloomPass : RenderPass
     {
         ImGui.SliderInt("Blur Iterations", ref iterations, 1, 8);
 
-        ImGuiHelpers.Image(context.VerticalBloom!);
+        ImGuiHelper.Image(context.VerticalBloom!);
     }
 
     protected override void Destroy()

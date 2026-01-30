@@ -87,7 +87,7 @@ internal unsafe class VolumetricLightBlurPass : RenderPass
     {
         ImGui.SliderInt("Blur Iterations", ref iterations, 1, 4);
 
-        ImGuiHelpers.Image(context.VolumetricLightBlurred!);
+        ImGuiHelper.Image(context.VolumetricLightBlurred!);
     }
 
     protected override void Destroy()

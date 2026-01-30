@@ -4,7 +4,7 @@ using Zenith.NET;
 
 namespace SponzaScene.Helpers;
 
-internal static class ImGuiHelpers
+internal static class ImGuiHelper
 {
     private const ImGuiWindowFlags OverlayFlags = ImGuiWindowFlags.NoDecoration
                                                   | ImGuiWindowFlags.AlwaysAutoResize

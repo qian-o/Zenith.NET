@@ -116,7 +116,7 @@ internal unsafe class RTGIPass : RenderPass
     {
         ImGui.SliderFloat("Intensity", ref intensity, 0.0f, 3.0f);
 
-        ImGuiHelpers.Image(context.RTGI!);
+        ImGuiHelper.Image(context.RTGI!);
     }
 
     protected override void Destroy()
