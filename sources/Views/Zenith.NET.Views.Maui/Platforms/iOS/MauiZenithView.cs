@@ -14,7 +14,7 @@ internal class MauiZenithView(ZenithViewHandler handler) : UIView
     {
         CGSize size = Layer.PreferredFrameSize();
 
-        if (handler.VirtualView.GraphicsContext is null || (uint)size.Height is 0 || (uint)size.Height is 0)
+        if (handler.VirtualView.GraphicsContext is null || size.Width.Value is 0 || size.Height.Value is 0)
         {
             return;
         }
