@@ -1,8 +1,11 @@
-﻿<Solution>
+<Solution>
   <Folder Name="/Experiments/">
     <File Path="sources/Experiments/Directory.Packages.props" />
     <Project Path="sources/Experiments/MemoryPlayground/MemoryPlayground.csproj" />
     <Project Path="sources/Experiments/PlatformDetection/PlatformDetection.csproj" />
+    <Project Path="sources/Experiments/Sandbox.Maui/Sandbox.Maui.csproj" Id="626bb57e-f7b8-42ea-b3b8-b4a93647c2f5">
+      <Deploy Solution="Debug|*" />
+    </Project>
     <Project Path="sources/Experiments/SponzaScene/SponzaScene.csproj" />
   </Folder>
   <Folder Name="/Extensions/">
