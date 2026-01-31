@@ -10,15 +10,6 @@ public partial class App : Application
 {
     static App()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            Context = GraphicsContext.CreateDirectX12(true);
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            Context = GraphicsContext.CreateMetal(true);
-        }
-        else
         {
             Context = GraphicsContext.CreateVulkan(true);
         }
