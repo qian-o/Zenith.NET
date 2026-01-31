@@ -18,13 +18,6 @@ public class ZenithView : Control, IZenithView
         HandleDestroyed += async (_, _) => await scheduler.StopAsync();
     }
 
-    public static Output Output { get; } = new()
-    {
-        ColorAttachments = [PixelFormat.B8G8R8A8UNorm],
-        DepthStencilAttachment = PixelFormat.D24UNormS8UInt,
-        SampleCount = SampleCount.Count1
-    };
-
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public GraphicsContext? GraphicsContext { get; set; }
 
@@ -88,8 +81,8 @@ public class ZenithView : Control, IZenithView
             swapChain = GraphicsContext.CreateSwapChain(new()
             {
                 Surface = Surface.Win32(Handle, width, height),
-                ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
-                DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
+                ColorTargetFormat = ZenithViewHelper.ColorTargetFormat,
+                DepthStencilTargetFormat = ZenithViewHelper.DepthStencilTargetFormat
             });
         }
         else if (swapChain.Desc.Surface.Width != width || swapChain.Desc.Surface.Height != height)

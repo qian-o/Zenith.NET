@@ -61,7 +61,7 @@ internal unsafe class Surface : DisposableObject
         color = context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
-            Format = PixelFormat.B8G8R8A8UNorm,
+            Format = ZenithViewHelper.ColorTargetFormat,
             Width = width,
             Height = height,
             Depth = 1,
@@ -74,7 +74,7 @@ internal unsafe class Surface : DisposableObject
         depthStencil = context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
-            Format = PixelFormat.D24UNormS8UInt,
+            Format = ZenithViewHelper.DepthStencilTargetFormat,
             Width = width,
             Height = height,
             Depth = 1,
@@ -128,11 +128,36 @@ internal unsafe class Surface : DisposableObject
 
             byte* pointer = (byte*)mappedMemory.Pointer;
 
-            for (uint y = 0; y < Height; y++)
+            switch (ZenithViewHelper.ColorTargetFormat)
             {
-                stream.Write([.. new ReadOnlySpan<byte>(pointer, (int)(Width * 4))]);
+                case PixelFormat.R8G8B8A8UNorm:
+                    {
+                        for (uint y = 0; y < Height; y++)
+                        {
+                            for (uint x = 0; x < Width; x++)
+                            {
+                                stream.WriteByte(pointer[(x * 4) + 2]);
+                                stream.WriteByte(pointer[(x * 4) + 1]);
+                                stream.WriteByte(pointer[(x * 4) + 0]);
+                                stream.WriteByte(pointer[(x * 4) + 3]);
+                            }
 
-                pointer += rowPitchInBytes;
+                            pointer += rowPitchInBytes;
+                        }
+                    }
+                    break;
+
+                case PixelFormat.B8G8R8A8UNorm:
+                    for (uint y = 0; y < Height; y++)
+                    {
+                        stream.Write([.. new ReadOnlySpan<byte>(pointer, (int)(Width * 4))]);
+
+                        pointer += rowPitchInBytes;
+                    }
+                    break;
+
+                default:
+                    throw new NotSupportedException($"Pixel format {ZenithViewHelper.ColorTargetFormat} is not supported.");
             }
 
             pixels.Unmap();
