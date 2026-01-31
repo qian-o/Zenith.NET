@@ -131,19 +131,17 @@ internal unsafe class Surface : DisposableObject
             switch (ZenithViewHelper.ColorFormat)
             {
                 case PixelFormat.R8G8B8A8UNorm:
+                    for (uint y = 0; y < Height; y++)
                     {
-                        for (uint y = 0; y < Height; y++)
+                        for (uint x = 0; x < Width; x++)
                         {
-                            for (uint x = 0; x < Width; x++)
-                            {
-                                stream.WriteByte(pointer[(x * 4) + 2]);
-                                stream.WriteByte(pointer[(x * 4) + 1]);
-                                stream.WriteByte(pointer[(x * 4) + 0]);
-                                stream.WriteByte(pointer[(x * 4) + 3]);
-                            }
-
-                            pointer += rowPitchInBytes;
+                            stream.WriteByte(pointer[(x * 4) + 2]);
+                            stream.WriteByte(pointer[(x * 4) + 1]);
+                            stream.WriteByte(pointer[(x * 4) + 0]);
+                            stream.WriteByte(pointer[(x * 4) + 3]);
                         }
+
+                        pointer += rowPitchInBytes;
                     }
                     break;
 
