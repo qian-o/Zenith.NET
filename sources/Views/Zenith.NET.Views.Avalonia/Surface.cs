@@ -16,7 +16,7 @@ internal unsafe class Surface : DisposableObject
         color = graphicsContext.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
-            Format = ZenithViewHelper.ColorTargetFormat,
+            Format = ZenithViewHelper.ColorFormat,
             Width = width,
             Height = height,
             Depth = 1,
@@ -29,7 +29,7 @@ internal unsafe class Surface : DisposableObject
         depthStencil = graphicsContext.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
-            Format = ZenithViewHelper.DepthStencilTargetFormat,
+            Format = ZenithViewHelper.DepthStencilFormat,
             Width = width,
             Height = height,
             Depth = 1,
@@ -111,11 +111,11 @@ internal unsafe class Surface : DisposableObject
 
     private static AvaloniaPixelFormat ColorFormat()
     {
-        return ZenithViewHelper.ColorTargetFormat switch
+        return ZenithViewHelper.ColorFormat switch
         {
             PixelFormat.R8G8B8A8UNorm => AvaloniaPixelFormat.Rgba8888,
             PixelFormat.B8G8R8A8UNorm => AvaloniaPixelFormat.Bgra8888,
-            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.ColorTargetFormat} is not supported.")
+            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.ColorFormat} is not supported.")
         };
     }
 }

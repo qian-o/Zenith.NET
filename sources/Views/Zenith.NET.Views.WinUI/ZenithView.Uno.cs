@@ -61,7 +61,7 @@ internal unsafe class Surface : DisposableObject
         color = context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
-            Format = ZenithViewHelper.ColorTargetFormat,
+            Format = ZenithViewHelper.ColorFormat,
             Width = width,
             Height = height,
             Depth = 1,
@@ -74,7 +74,7 @@ internal unsafe class Surface : DisposableObject
         depthStencil = context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
-            Format = ZenithViewHelper.DepthStencilTargetFormat,
+            Format = ZenithViewHelper.DepthStencilFormat,
             Width = width,
             Height = height,
             Depth = 1,
@@ -128,7 +128,7 @@ internal unsafe class Surface : DisposableObject
 
             byte* pointer = (byte*)mappedMemory.Pointer;
 
-            switch (ZenithViewHelper.ColorTargetFormat)
+            switch (ZenithViewHelper.ColorFormat)
             {
                 case PixelFormat.R8G8B8A8UNorm:
                     {
@@ -157,7 +157,7 @@ internal unsafe class Surface : DisposableObject
                     break;
 
                 default:
-                    throw new NotSupportedException($"Pixel format {ZenithViewHelper.ColorTargetFormat} is not supported.");
+                    throw new NotSupportedException($"Pixel format {ZenithViewHelper.ColorFormat} is not supported.");
             }
 
             pixels.Unmap();

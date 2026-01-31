@@ -120,11 +120,11 @@ internal unsafe partial class D3DTexture : DisposableObject
 
     private static DXGIFormat ColorFormat()
     {
-        return ZenithViewHelper.ColorTargetFormat switch
+        return ZenithViewHelper.ColorFormat switch
         {
             PixelFormat.R8G8B8A8UNorm => DXGIFormat.FormatR8G8B8A8Unorm,
             PixelFormat.B8G8R8A8UNorm => DXGIFormat.FormatB8G8R8A8Unorm,
-            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.ColorTargetFormat} is not supported.")
+            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.ColorFormat} is not supported.")
         };
     }
 }

@@ -111,8 +111,8 @@ public class ZenithView : Control, IZenithView
             swapChain = GraphicsContext.CreateSwapChain(new()
             {
                 Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
-                ColorTargetFormat = ZenithViewHelper.ColorTargetFormat,
-                DepthStencilTargetFormat = ZenithViewHelper.DepthStencilTargetFormat
+                ColorTargetFormat = ZenithViewHelper.ColorFormat,
+                DepthStencilTargetFormat = ZenithViewHelper.DepthStencilFormat
             });
         }
     }
