@@ -62,6 +62,6 @@ internal class MauiZenithView(ZenithViewHandler handler) : UIView
     [Export("layerClass")]
     public static Class LayerClass()
     {
-        return new Class(typeof(CAMetalLayer));
+        return new(typeof(CAMetalLayer));
     }
 }
