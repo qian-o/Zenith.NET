@@ -71,8 +71,6 @@ public partial class ZenithView : View, IZenithView
         Unloaded += async (_, _) => await scheduler.StopAsync();
     }
 
-    public static Output Output => MauiZenithView.Output;
-
     public GraphicsContext? GraphicsContext
     {
         get => (GraphicsContext?)GetValue(GraphicsContextProperty);

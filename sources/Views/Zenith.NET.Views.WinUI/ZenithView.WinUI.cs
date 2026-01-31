@@ -33,8 +33,8 @@ public unsafe partial class ZenithView
             swapChain = GraphicsContext.CreateSwapChain(new()
             {
                 Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
-                ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
-                DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
+                ColorTargetFormat = ZenithViewHelper.ColorFormat,
+                DepthStencilTargetFormat = ZenithViewHelper.DepthStencilFormat
             });
 
             this.As<ISwapChainPanelNative>().SetSwapChain(texture.SwapChain);
@@ -135,7 +135,7 @@ internal unsafe partial class D3DTexture : DisposableObject
         {
             Width = width,
             Height = height,
-            Format = Format.FormatB8G8R8A8Unorm,
+            Format = ColorFormat(),
             SampleDesc = new() { Count = 1, Quality = 0 },
             BufferUsage = DXGI.UsageRenderTargetOutput,
             BufferCount = 3,
@@ -151,7 +151,7 @@ internal unsafe partial class D3DTexture : DisposableObject
             Height = height,
             MipLevels = 1,
             ArraySize = 1,
-            Format = Format.FormatB8G8R8A8Unorm,
+            Format = ColorFormat(),
             SampleDesc = new() { Count = 1, Quality = 0 },
             BindFlags = (uint)BindFlag.RenderTarget,
             MiscFlags = (uint)(ResourceMiscFlag.SharedNthandle | ResourceMiscFlag.SharedKeyedmutex)
@@ -213,6 +213,16 @@ internal unsafe partial class D3DTexture : DisposableObject
         Mutex.Dispose();
         Texture.Dispose();
         SwapChain.Dispose();
+    }
+
+    private static Format ColorFormat()
+    {
+        return ZenithViewHelper.ColorFormat switch
+        {
+            PixelFormat.R8G8B8A8UNorm => Format.FormatR8G8B8A8Unorm,
+            PixelFormat.B8G8R8A8UNorm => Format.FormatB8G8R8A8Unorm,
+            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.ColorFormat} is not supported.")
+        };
     }
 }
 

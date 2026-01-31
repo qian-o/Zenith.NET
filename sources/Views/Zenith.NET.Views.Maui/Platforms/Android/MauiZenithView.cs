@@ -11,13 +11,6 @@ internal partial class MauiZenithView(ZenithViewHandler handler) : SurfaceView(h
 
     private SwapChain? swapChain;
 
-    public static Output Output { get; } = new()
-    {
-        ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
-        DepthStencilAttachment = PixelFormat.D24UNormS8UInt,
-        SampleCount = SampleCount.Count1
-    };
-
     public void EnsureResources()
     {
         if (!ValidateSurface() || handler.VirtualView.GraphicsContext is null || Width is 0 || Height is 0)
@@ -33,8 +26,8 @@ internal partial class MauiZenithView(ZenithViewHandler handler) : SurfaceView(h
             swapChain = handler.VirtualView.GraphicsContext.CreateSwapChain(new()
             {
                 Surface = Surface.Android(ANativeWindowFromSurface(JniEnvironment.EnvironmentPointer, Holder!.Surface!.Handle), width, height),
-                ColorTargetFormat = PixelFormat.R8G8B8A8UNorm,
-                DepthStencilTargetFormat = PixelFormat.D24UNormS8UInt
+                ColorTargetFormat = ZenithViewHelper.ColorFormat,
+                DepthStencilTargetFormat = ZenithViewHelper.DepthStencilFormat
             });
         }
         else if (swapChain.Desc.Surface.Width != width || swapChain.Desc.Surface.Height != height)

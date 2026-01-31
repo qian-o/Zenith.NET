@@ -23,13 +23,6 @@ public class ZenithView : TemplatedControl, IZenithView
         Unloaded += async (_, _) => await scheduler.StopAsync();
     }
 
-    public static Output Output { get; } = new()
-    {
-        ColorAttachments = [PixelFormat.R8G8B8A8UNorm],
-        DepthStencilAttachment = PixelFormat.D24UNormS8UInt,
-        SampleCount = SampleCount.Count1
-    };
-
     public GraphicsContext? GraphicsContext
     {
         get => GetValue(GraphicsContextProperty);
