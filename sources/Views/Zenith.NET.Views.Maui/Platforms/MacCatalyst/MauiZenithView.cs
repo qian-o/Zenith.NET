@@ -1,5 +1,7 @@
 ﻿using CoreAnimation;
 using CoreGraphics;
+using Foundation;
+using ObjCRuntime;
 using UIKit;
 
 namespace Zenith.NET.Views.Maui.Platforms.MacCatalyst;
