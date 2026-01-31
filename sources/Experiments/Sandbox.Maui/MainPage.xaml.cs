@@ -28,7 +28,9 @@ public partial class MainPage : ContentPage
         cmd.BeginRenderPass(e.FrameBuffer, new()
         {
             ColorValues = [new(0.1f, 0.2f, 0.3f, 1.0f)],
-            Flags = ClearFlags.Color
+            Depth = 1.0f,
+            Stencil = 0,
+            Flags = ClearFlags.All
         });
 
         cmd.EndRenderPass();
