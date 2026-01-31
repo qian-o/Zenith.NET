@@ -50,7 +50,7 @@ internal unsafe partial class D3DTexture : DisposableObject
             Height = height,
             MipLevels = 1,
             ArraySize = 1,
-            Format = Convert(ZenithViewHelper.ColorTargetFormat),
+            Format = ColorFormat(),
             SampleDesc = new() { Count = 1, Quality = 0 },
             BindFlags = (uint)BindFlag.RenderTarget,
             MiscFlags = (uint)(ResourceMiscFlag.SharedNthandle | ResourceMiscFlag.SharedKeyedmutex)
@@ -118,13 +118,13 @@ internal unsafe partial class D3DTexture : DisposableObject
         D3D9RenderTarget.Dispose();
     }
 
-    private static DXGIFormat Convert(PixelFormat pixelFormat)
+    private static DXGIFormat ColorFormat()
     {
-        return pixelFormat switch
+        return ZenithViewHelper.ColorTargetFormat switch
         {
             PixelFormat.R8G8B8A8UNorm => DXGIFormat.FormatR8G8B8A8Unorm,
             PixelFormat.B8G8R8A8UNorm => DXGIFormat.FormatB8G8R8A8Unorm,
-            _ => throw new NotSupportedException($"Pixel format {pixelFormat} is not supported.")
+            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.ColorTargetFormat} is not supported.")
         };
     }
 }
