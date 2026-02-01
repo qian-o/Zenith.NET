@@ -17,7 +17,7 @@ The `GraphicsContext` is the central hub of Zenith.NET. It abstracts the underly
 
 Backend-specific contexts are created via extension methods:
 - `GraphicsContext.CreateDirectX12(useValidationLayer)` - Windows
-- `GraphicsContext.CreateMetal(useValidationLayer)` - macOS/iOS
+- `GraphicsContext.CreateMetal(useValidationLayer)` - Apple
 - `GraphicsContext.CreateVulkan(useValidationLayer)` - Cross-platform
 
 ### Command Model
@@ -55,8 +55,7 @@ Pipelines reference one or more `ResourceLayout` objects, and you bind correspon
 |----------|:----------:|:-----:|:------:|
 | Windows  | <span class="status-yes">Yes</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
 | Linux    | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
-| macOS    | <span class="status-no">No</span> | <span class="status-yes">Yes</span> | <span class="status-yes">Yes</span> |
-| iOS      | <span class="status-no">No</span> | <span class="status-yes">Yes</span> | <span class="status-yes">Yes</span> |
+| Apple    | <span class="status-no">No</span> | <span class="status-yes">Yes</span> | <span class="status-yes">Yes</span> |
 | Android  | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
 
 ## Best Practices

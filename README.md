@@ -43,9 +43,8 @@ Visit the [documentation site](https://qian-o.github.io/Zenith.NET/) for tutoria
 | :-------: | :--------: | :-----: | :--------: |
 | Windows   | ✅ |  | ✅ |
 | Linux     |  |  | ✅ |
+| Apple     |  | 🚧 | ✅ |
 | Android   |  |  | ✅ |
-| macOS     |  | 🚧 | ✅ |
-| iOS       |  | 🚧 | ✅ |
 
 > 🚧 Metal backend is under development.
 

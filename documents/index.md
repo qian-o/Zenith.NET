@@ -31,7 +31,7 @@ _layout: landing
     <div class="tech-bar-divider"></div>
     <div class="tech-bar-group">
         <span class="tech-bar-label">Platforms</span>
-        <span class="tech-bar-items">Windows · Linux · macOS · iOS · Android</span>
+        <span class="tech-bar-items">Windows · Linux · Apple · Android</span>
     </div>
 </div>
 
