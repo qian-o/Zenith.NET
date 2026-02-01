@@ -1,54 +1,24 @@
 ﻿name: General Issue
 description: For issues that do not fit other templates
-title: "General Issue: "
+title: "Issue: "
 labels: ["needs-triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        This template is for issues that don't fit into the Bug Report or Feature Proposal categories.
-        
-        **Note:** If this is a discussion or suggestion, please consider using the Discussions section instead of submitting an issue.
-  
-  - type: dropdown
-    validations:
-      required: true
-    attributes:
-      label: Issue Type
-      description: What type of issue is this?
-      options:
-        - "Question"
-        - "Documentation Issue"
-        - "Build/Setup Problem"
-        - "Performance Issue"
-        - "Security Concern"
-        - "Other"
-  
+        This template is for issues that don't fit into Bug Report or Feature Request.
+        For questions or discussions, please use the [Discussions](https://github.com/qian-o/Zenith.NET/discussions) section.
+
   - type: textarea
     validations:
       required: true
     attributes:
       label: Description
-      description: Describe your issue or question in detail
-      placeholder: Please provide a clear and detailed description of your issue...
-  
+      description: Describe your issue or question in detail.
+      placeholder: Please provide a clear description...
+
   - type: textarea
     attributes:
-      label: Environment (if applicable)
-      description: If relevant, please provide environment details
-      placeholder: |
-        - Operating System:
-        - .NET Version:
-        - Zenith.NET Version:
-        - Graphics API:
-  
-  - type: textarea
-    attributes:
-      label: Additional Context
-      description: Add any relevant information, code snippets, screenshots, or references
-      placeholder: |
-        You can include:
-        - Code snippets
-        - Screenshots
-        - Links to related issues
-        - Any other relevant information
+      label: Additional context
+      description: Add any relevant information, environment details, code snippets, or screenshots.
+      placeholder: Any additional information that might help.

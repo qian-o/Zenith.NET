@@ -65,19 +65,9 @@ Before starting, ensure you have:
 - A GPU with DirectX 12, Metal 4, or Vulkan 1.4 support
 - Visual Studio 2026, VS Code, or JetBrains Rider
 
-### Platform Support
-
-Zenith.NET supports all major platforms:
-
-| Platform | DirectX 12 | Metal 4 | Vulkan 1.4 |
-|----------|:----------:|:-------:|:----------:|
-| Windows  | <span class="status-yes">Yes</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
-| Linux    | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
-| Apple    | <span class="status-no">No</span> | <span class="status-yes">Yes</span> | <span class="status-yes">Yes</span> |
-| Android  | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
-
 > [!NOTE]
 > These tutorials are designed for desktop platforms (Windows, Linux, and macOS).
+> See [Prerequisites](getting-started/prerequisites.md) for detailed platform support and setup instructions.
 
 ## Source Code
 
