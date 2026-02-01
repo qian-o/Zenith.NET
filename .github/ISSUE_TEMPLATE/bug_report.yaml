@@ -60,10 +60,9 @@ body:
       description: Which operating system are you using?
       options:
         - "Windows"
-        - "macOS"
-        - "iOS"
-        - "Android"
         - "Linux"
+        - "Apple"
+        - "Android"
         - "Other"
 
   - type: dropdown
