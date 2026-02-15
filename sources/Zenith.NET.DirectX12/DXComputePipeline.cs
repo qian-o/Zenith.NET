@@ -18,38 +18,35 @@ internal unsafe class DXComputePipeline : ComputePipeline
             CS = desc.Compute.DirectX12().GetShaderBytecode(scope)
         };
 
-        // ResourceLayouts
+        // ResourceLayout
         {
             List<RootParameter> parameters = [];
-            for (int i = 0; i < desc.ResourceLayouts.Length; i++)
+            if (desc.ResourceLayout is not null && desc.ResourceLayout.DirectX12().DescriptorRanges(ShaderStageFlags.None, out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges))
             {
-                if (desc.ResourceLayouts[i].DirectX12().DescriptorRanges(ShaderStageFlags.None, (uint)i, out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges))
+                if (cbvSrvUavRanges.Length > 0)
                 {
-                    if (cbvSrvUavRanges.Length > 0)
+                    parameters.Add(new()
                     {
-                        parameters.Add(new()
+                        ParameterType = RootParameterType.TypeDescriptorTable,
+                        DescriptorTable = new()
                         {
-                            ParameterType = RootParameterType.TypeDescriptorTable,
-                            DescriptorTable = new()
-                            {
-                                NumDescriptorRanges = (uint)cbvSrvUavRanges.Length,
-                                PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, cbvSrvUavRanges)
-                            }
-                        });
-                    }
+                            NumDescriptorRanges = (uint)cbvSrvUavRanges.Length,
+                            PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, cbvSrvUavRanges)
+                        }
+                    });
+                }
 
-                    if (samplerRanges.Length > 0)
+                if (samplerRanges.Length > 0)
+                {
+                    parameters.Add(new()
                     {
-                        parameters.Add(new()
+                        ParameterType = RootParameterType.TypeDescriptorTable,
+                        DescriptorTable = new()
                         {
-                            ParameterType = RootParameterType.TypeDescriptorTable,
-                            DescriptorTable = new()
-                            {
-                                NumDescriptorRanges = (uint)samplerRanges.Length,
-                                PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, samplerRanges)
-                            }
-                        });
-                    }
+                            NumDescriptorRanges = (uint)samplerRanges.Length,
+                            PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, samplerRanges)
+                        }
+                    });
                 }
             }
 

@@ -165,13 +165,13 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
             createInfo.PStages = stages;
         }
 
-        // ResourceLayouts
+        // ResourceLayout
         {
             PipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
             {
                 SType = StructureType.PipelineLayoutCreateInfo,
-                SetLayoutCount = (uint)desc.ResourceLayouts.Length,
-                PSetLayouts = (DescriptorSetLayout*)ZenithMarshal.AllocateAndFill(scope, [.. desc.ResourceLayouts.Select(static item => item.Vulkan().DescriptorSetLayout)])
+                SetLayoutCount = desc.ResourceLayout is null ? 0u : 1u,
+                PSetLayouts = desc.ResourceLayout is null ? null : (DescriptorSetLayout*)ZenithMarshal.AllocateAndFill(scope, [desc.ResourceLayout.Vulkan().DescriptorSetLayout])
             };
 
             context.Vk.CreatePipelineLayout(context.Device, &pipelineLayoutCreateInfo, null, out PipelineLayout).Success();
@@ -188,17 +188,6 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
             };
 
             createInfo.PInputAssemblyState = &inputAssemblyState;
-
-            if (desc.PrimitiveTopology >= PrimitiveTopology.PatchList)
-            {
-                PipelineTessellationStateCreateInfo tessellationState = new()
-                {
-                    SType = StructureType.PipelineTessellationStateCreateInfo,
-                    PatchControlPoints = (uint)(desc.PrimitiveTopology - PrimitiveTopology.PatchList + 1)
-                };
-
-                createInfo.PTessellationState = &tessellationState;
-            }
         }
 
         PipelineDynamicStateCreateInfo dynamicState = new()

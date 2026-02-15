@@ -103,16 +103,16 @@ internal unsafe class DXMeshShadingPipeline : MeshShadingPipeline
             graphicsPipelineStateDesc.SampleDesc = DXFormats.DirectX12(desc.Output.SampleCount);
         }
 
-        // ResourceLayouts
+        // ResourceLayout
         {
             List<RootParameter> parameters = [];
-            for (int i = 0; i < desc.ResourceLayouts.Length; i++)
+            if (desc.ResourceLayout is not null)
             {
-                DXResourceLayout resourceLayout = desc.ResourceLayouts[i].DirectX12();
+                DXResourceLayout resourceLayout = desc.ResourceLayout.DirectX12();
 
                 foreach (ShaderStageFlags stage in ZenithHelper.GraphicShaderStages())
                 {
-                    if (resourceLayout.DescriptorRanges(stage, (uint)i, out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges))
+                    if (resourceLayout.DescriptorRanges(stage, out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges))
                     {
                         if (cbvSrvUavRanges.Length > 0)
                         {

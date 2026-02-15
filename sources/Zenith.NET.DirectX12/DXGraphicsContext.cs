@@ -160,9 +160,9 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         return new DXResourceLayout(this, desc);
     }
 
-    protected override ResourceSet CreateResourceSetImpl(ResourceSetDesc desc)
+    protected override ResourceTable CreateResourceTableImpl(ResourceTableDesc desc)
     {
-        return new DXResourceSet(this, desc);
+        return new DXResourceTable(this, desc);
     }
 
     protected override GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc)
@@ -173,11 +173,6 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
     protected override ComputePipeline CreateComputePipelineImpl(ComputePipelineDesc desc)
     {
         return new DXComputePipeline(this, desc);
-    }
-
-    protected override RayTracingPipeline CreateRayTracingPipelineImpl(RayTracingPipelineDesc desc)
-    {
-        return new DXRayTracingPipeline(this, desc);
     }
 
     protected override MeshShadingPipeline CreateMeshShadingPipelineImpl(MeshShadingPipelineDesc desc)

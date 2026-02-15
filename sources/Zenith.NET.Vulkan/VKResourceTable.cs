@@ -2,11 +2,11 @@
 
 namespace Zenith.NET.Vulkan;
 
-internal unsafe class VKResourceSet : ResourceSet
+internal unsafe class VKResourceTable : ResourceTable
 {
     public VKDescriptorToken DescriptorToken;
 
-    public VKResourceSet(VKGraphicsContext context, ResourceSetDesc desc) : base(context, desc)
+    public VKResourceTable(VKGraphicsContext context, ResourceTableDesc desc) : base(context, desc)
     {
         using ZenithMarshal.Scope scope = new();
 

@@ -12,7 +12,7 @@ internal unsafe class VKTextureView : TextureView
         {
             SType = StructureType.ImageViewCreateInfo,
             Image = desc.Texture.Vulkan().Image,
-            ViewType = VKFormats.Vulkan(ResolveTextureType(desc)).ViewType,
+            ViewType = Resolve(desc),
             Format = VKFormats.Vulkan(desc.Texture.Desc.Format),
             SubresourceRange = new()
             {
@@ -77,14 +77,14 @@ internal unsafe class VKTextureView : TextureView
         Context.Vk.DestroyImageView(Context.Device, ImageView, null);
     }
 
-    private static TextureType ResolveTextureType(TextureViewDesc desc)
+    private static ImageViewType Resolve(TextureViewDesc desc)
     {
-        return desc.Texture.Desc.Type switch
+        return VKFormats.Vulkan(desc.Texture.Desc.Type switch
         {
-            TextureType.Texture1DArray => desc.ArrayLayerCount is 1 ? TextureType.Texture1D : TextureType.Texture1DArray,
-            TextureType.Texture2DArray => desc.ArrayLayerCount is 1 ? TextureType.Texture2D : TextureType.Texture2DArray,
-            TextureType.TextureCubeArray => desc.ArrayLayerCount is 1 ? TextureType.TextureCube : TextureType.TextureCubeArray,
+            TextureType.Texture1DArray when desc.ArrayLayerCount is 1 => TextureType.Texture1D,
+            TextureType.Texture2DArray when desc.ArrayLayerCount is 1 => TextureType.Texture2D,
+            TextureType.TextureCubeArray when desc.ArrayLayerCount is 1 => TextureType.TextureCube,
             _ => desc.Texture.Desc.Type
-        };
+        }).ViewType;
     }
 }

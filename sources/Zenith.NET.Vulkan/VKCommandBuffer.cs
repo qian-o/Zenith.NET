@@ -350,11 +350,6 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Compute, pipeline.Vulkan().Pipeline);
     }
 
-    protected override void SetPipelineImpl(RayTracingPipeline pipeline)
-    {
-        Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.RayTracingKhr, pipeline.Vulkan().Pipeline);
-    }
-
     protected override void SetPipelineImpl(MeshShadingPipeline pipeline)
     {
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Graphics, pipeline.Vulkan().Pipeline);
@@ -373,18 +368,17 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         Context.Vk.CmdBindIndexBuffer(CommandBuffer, buffer.Vulkan().Buffer, offsetInBytes, VKFormats.Vulkan(format));
     }
 
-    protected override void SetResourceSetImpl(Pipeline pipeline, ResourceSet resourceSet, uint index)
+    protected override void SetResourceTableImpl(Pipeline pipeline, ResourceTable resourceTable)
     {
         (PipelineBindPoint pipelineBindPoint, PipelineLayout pipelineLayout) = pipeline switch
         {
             GraphicsPipeline graphicsPipeline => (PipelineBindPoint.Graphics, graphicsPipeline.Vulkan().PipelineLayout),
             ComputePipeline computePipeline => (PipelineBindPoint.Compute, computePipeline.Vulkan().PipelineLayout),
-            RayTracingPipeline rayTracingPipeline => (PipelineBindPoint.RayTracingKhr, rayTracingPipeline.Vulkan().PipelineLayout),
             MeshShadingPipeline meshShadingPipeline => (PipelineBindPoint.Graphics, meshShadingPipeline.Vulkan().PipelineLayout),
             _ => (PipelineBindPoint.Graphics, default)
         };
 
-        Context.Vk.CmdBindDescriptorSets(CommandBuffer, pipelineBindPoint, pipelineLayout, index, 1, ref resourceSet.Vulkan().DescriptorToken.Set, 0, null);
+        Context.Vk.CmdBindDescriptorSets(CommandBuffer, pipelineBindPoint, pipelineLayout, 0, 1, ref resourceTable.Vulkan().DescriptorToken.Set, 0, null);
     }
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
@@ -415,22 +409,6 @@ internal unsafe class VKCommandBuffer : CommandBuffer
     protected override void DispatchIndirectImpl(ComputePipeline pipeline, Buffer indirectBuffer, uint offsetInBytes)
     {
         Context.Vk.CmdDispatchIndirect(CommandBuffer, indirectBuffer.Vulkan().Buffer, offsetInBytes);
-    }
-
-    protected override void DispatchRaysImpl(RayTracingPipeline pipeline, uint width, uint height, uint depth)
-    {
-        VKRayTracingPipeline vkPipeline = pipeline.Vulkan();
-
-        StridedDeviceAddressRegionKHR callableRegion = new();
-
-        Context.RayTracingPipeline?.CmdTraceRays(CommandBuffer,
-                                                 ref vkPipeline.RayGenerationRegion,
-                                                 ref vkPipeline.MissRegion,
-                                                 ref vkPipeline.HitGroupsRegion,
-                                                 &callableRegion,
-                                                 width,
-                                                 height,
-                                                 depth);
     }
 
     protected override void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)

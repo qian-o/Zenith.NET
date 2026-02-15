@@ -14,7 +14,13 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
 
         GraphicsPipelineCreateInfo createInfo = new()
         {
-            SType = StructureType.GraphicsPipelineCreateInfo
+            SType = StructureType.GraphicsPipelineCreateInfo,
+            StageCount = 2,
+            PStages = (PipelineShaderStageCreateInfo*)ZenithMarshal.AllocateAndFill(scope,
+            [
+                desc.Vertex.Vulkan().GetPipelineShaderStageCreateInfo(scope),
+                desc.Pixel.Vulkan().GetPipelineShaderStageCreateInfo(scope)
+            ])
         };
 
         // RenderStates - Output
@@ -142,46 +148,13 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
             createInfo.PNext = &rendering;
         }
 
-        // Vertex - Hull - Domain - Geometry - Pixel
-        {
-            List<PipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos =
-            [
-                desc.Vertex.Vulkan().GetPipelineShaderStageCreateInfo(scope),
-                desc.Pixel.Vulkan().GetPipelineShaderStageCreateInfo(scope)
-            ];
-
-            if (desc.Hull is not null)
-            {
-                pipelineShaderStageCreateInfos.Add(desc.Hull.Vulkan().GetPipelineShaderStageCreateInfo(scope));
-            }
-
-            if (desc.Domain is not null)
-            {
-                pipelineShaderStageCreateInfos.Add(desc.Domain.Vulkan().GetPipelineShaderStageCreateInfo(scope));
-            }
-
-            if (desc.Geometry is not null)
-            {
-                pipelineShaderStageCreateInfos.Add(desc.Geometry.Vulkan().GetPipelineShaderStageCreateInfo(scope));
-            }
-
-            PipelineShaderStageCreateInfo* stages = (PipelineShaderStageCreateInfo*)ZenithMarshal.Allocate<PipelineShaderStageCreateInfo>(scope, (uint)pipelineShaderStageCreateInfos.Count);
-            for (int i = 0; i < pipelineShaderStageCreateInfos.Count; i++)
-            {
-                stages[i] = pipelineShaderStageCreateInfos[i];
-            }
-
-            createInfo.StageCount = (uint)pipelineShaderStageCreateInfos.Count;
-            createInfo.PStages = stages;
-        }
-
-        // ResourceLayouts
+        // ResourceLayout
         {
             PipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
             {
                 SType = StructureType.PipelineLayoutCreateInfo,
-                SetLayoutCount = (uint)desc.ResourceLayouts.Length,
-                PSetLayouts = (DescriptorSetLayout*)ZenithMarshal.AllocateAndFill(scope, [.. desc.ResourceLayouts.Select(static item => item.Vulkan().DescriptorSetLayout)])
+                SetLayoutCount = desc.ResourceLayout is null ? 0u : 1u,
+                PSetLayouts = desc.ResourceLayout is null ? null : (DescriptorSetLayout*)ZenithMarshal.AllocateAndFill(scope, [desc.ResourceLayout.Vulkan().DescriptorSetLayout])
             };
 
             context.Vk.CreatePipelineLayout(context.Device, &pipelineLayoutCreateInfo, null, out PipelineLayout).Success();
@@ -244,17 +217,6 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
             };
 
             createInfo.PInputAssemblyState = &inputAssemblyState;
-
-            if (desc.PrimitiveTopology >= PrimitiveTopology.PatchList)
-            {
-                PipelineTessellationStateCreateInfo tessellationState = new()
-                {
-                    SType = StructureType.PipelineTessellationStateCreateInfo,
-                    PatchControlPoints = (uint)(desc.PrimitiveTopology - PrimitiveTopology.PatchList + 1)
-                };
-
-                createInfo.PTessellationState = &tessellationState;
-            }
         }
 
         PipelineDynamicStateCreateInfo dynamicState = new()

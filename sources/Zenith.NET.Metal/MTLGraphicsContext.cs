@@ -57,7 +57,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
         throw new NotImplementedException();
     }
 
-    protected override ResourceSet CreateResourceSetImpl(ResourceSetDesc desc)
+    protected override ResourceTable CreateResourceTableImpl(ResourceTableDesc desc)
     {
         throw new NotImplementedException();
     }
@@ -68,11 +68,6 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
     }
 
     protected override ComputePipeline CreateComputePipelineImpl(ComputePipelineDesc desc)
-    {
-        throw new NotImplementedException();
-    }
-
-    protected override RayTracingPipeline CreateRayTracingPipelineImpl(RayTracingPipelineDesc desc)
     {
         throw new NotImplementedException();
     }

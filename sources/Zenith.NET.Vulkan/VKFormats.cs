@@ -13,21 +13,6 @@ internal static class VKFormats
             result |= VkShaderStageFlags.VertexBit;
         }
 
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.Hull))
-        {
-            result |= VkShaderStageFlags.TessellationControlBit;
-        }
-
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.Domain))
-        {
-            result |= VkShaderStageFlags.TessellationEvaluationBit;
-        }
-
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.Geometry))
-        {
-            result |= VkShaderStageFlags.GeometryBit;
-        }
-
         if (shaderStageFlags.HasFlag(ShaderStageFlags.Pixel))
         {
             result |= VkShaderStageFlags.FragmentBit;
@@ -36,31 +21,6 @@ internal static class VKFormats
         if (shaderStageFlags.HasFlag(ShaderStageFlags.Compute))
         {
             result |= VkShaderStageFlags.ComputeBit;
-        }
-
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.RayGeneration))
-        {
-            result |= VkShaderStageFlags.RaygenBitKhr;
-        }
-
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.Miss))
-        {
-            result |= VkShaderStageFlags.MissBitKhr;
-        }
-
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.AnyHit))
-        {
-            result |= VkShaderStageFlags.AnyHitBitKhr;
-        }
-
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.Intersection))
-        {
-            result |= VkShaderStageFlags.IntersectionBitKhr;
-        }
-
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.ClosestHit))
-        {
-            result |= VkShaderStageFlags.ClosestHitBitKhr;
         }
 
         if (shaderStageFlags.HasFlag(ShaderStageFlags.Amplification))
@@ -132,34 +92,34 @@ internal static class VKFormats
 
     public static (ImageType Type, ImageViewType ViewType) Vulkan(TextureType textureType)
     {
-        ImageType type = textureType switch
-        {
-            TextureType.Texture1D or
-            TextureType.Texture1DArray => ImageType.Type1D,
+        return
+        (
+            textureType switch
+            {
+                TextureType.Texture1D or
+                TextureType.Texture1DArray => ImageType.Type1D,
 
-            TextureType.Texture2D or
-            TextureType.Texture2DArray or
-            TextureType.TextureCube or
-            TextureType.TextureCubeArray => ImageType.Type2D,
+                TextureType.Texture2D or
+                TextureType.Texture2DArray or
+                TextureType.TextureCube or
+                TextureType.TextureCubeArray => ImageType.Type2D,
 
-            TextureType.Texture3D => ImageType.Type3D,
+                TextureType.Texture3D => ImageType.Type3D,
 
-            _ => ImageType.Type1D
-        };
-
-        ImageViewType viewType = textureType switch
-        {
-            TextureType.Texture1D => ImageViewType.Type1D,
-            TextureType.Texture1DArray => ImageViewType.Type1DArray,
-            TextureType.Texture2D => ImageViewType.Type2D,
-            TextureType.Texture2DArray => ImageViewType.Type2DArray,
-            TextureType.Texture3D => ImageViewType.Type3D,
-            TextureType.TextureCube => ImageViewType.TypeCube,
-            TextureType.TextureCubeArray => ImageViewType.TypeCubeArray,
-            _ => ImageViewType.Type1D
-        };
-
-        return (type, viewType);
+                _ => ImageType.Type1D
+            },
+            textureType switch
+            {
+                TextureType.Texture1D => ImageViewType.Type1D,
+                TextureType.Texture1DArray => ImageViewType.Type1DArray,
+                TextureType.Texture2D => ImageViewType.Type2D,
+                TextureType.Texture2DArray => ImageViewType.Type2DArray,
+                TextureType.Texture3D => ImageViewType.Type3D,
+                TextureType.TextureCube => ImageViewType.TypeCube,
+                TextureType.TextureCubeArray => ImageViewType.TypeCubeArray,
+                _ => ImageViewType.Type1D
+            }
+        );
     }
 
     public static Format Vulkan(PixelFormat pixelFormat)
@@ -629,22 +589,7 @@ internal static class VKFormats
             PrimitiveTopology.LineStrip => VkPrimitiveTopology.LineStrip,
             PrimitiveTopology.TriangleList => VkPrimitiveTopology.TriangleList,
             PrimitiveTopology.TriangleStrip => VkPrimitiveTopology.TriangleStrip,
-            PrimitiveTopology.LineListWithAdjacency => VkPrimitiveTopology.LineListWithAdjacency,
-            PrimitiveTopology.LineStripWithAdjacency => VkPrimitiveTopology.LineStripWithAdjacency,
-            PrimitiveTopology.TriangleListWithAdjacency => VkPrimitiveTopology.TriangleListWithAdjacency,
-            PrimitiveTopology.TriangleStripWithAdjacency => VkPrimitiveTopology.TriangleStripWithAdjacency,
-            PrimitiveTopology.PatchList => VkPrimitiveTopology.PatchList,
             _ => VkPrimitiveTopology.PointList
-        };
-    }
-
-    public static RayTracingShaderGroupTypeKHR Vulkan(HitGroupType hitGroupType)
-    {
-        return hitGroupType switch
-        {
-            HitGroupType.Triangles => RayTracingShaderGroupTypeKHR.TrianglesHitGroupKhr,
-            HitGroupType.Procedural => RayTracingShaderGroupTypeKHR.ProceduralHitGroupKhr,
-            _ => RayTracingShaderGroupTypeKHR.GeneralKhr
         };
     }
 
@@ -685,11 +630,6 @@ internal static class VKFormats
         if (rayTracingGeometryFlags.HasFlag(RayTracingGeometryFlags.Opaque))
         {
             result |= GeometryFlagsKHR.OpaqueBitKhr;
-        }
-
-        if (rayTracingGeometryFlags.HasFlag(RayTracingGeometryFlags.NoDuplicateAnyHitInvocation))
-        {
-            result |= GeometryFlagsKHR.NoDuplicateAnyHitInvocationBitKhr;
         }
 
         return result;

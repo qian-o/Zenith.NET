@@ -84,7 +84,7 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
 
         context.Vk.CmdPipelineBarrier(commandBuffer.CommandBuffer,
                                       PipelineStageFlags.AccelerationStructureBuildBitKhr,
-                                      PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit | PipelineStageFlags.RayTracingShaderBitKhr,
+                                      PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit,
                                       0,
                                       1,
                                       &barrier,
@@ -132,7 +132,7 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
 
         Context.Vk.CmdPipelineBarrier(commandBuffer.CommandBuffer,
                                       PipelineStageFlags.AccelerationStructureBuildBitKhr,
-                                      PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit | PipelineStageFlags.RayTracingShaderBitKhr,
+                                      PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit,
                                       0,
                                       1,
                                       &barrier,
@@ -182,7 +182,6 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
                 Transform = *(TransformMatrixKHR*)&instance.Transform,
                 InstanceCustomIndex = instance.InstanceID,
                 Mask = instance.InstanceMask,
-                InstanceShaderBindingTableRecordOffset = instance.InstanceContributionToHitGroupIndex,
                 Flags = VKFormats.Vulkan(instance.Flags),
                 AccelerationStructureReference = instance.AccelerationStructure.Vulkan().DeviceAddress
             };
