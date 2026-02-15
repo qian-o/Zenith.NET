@@ -1,6 +1,6 @@
 ﻿# Ray Tracing
 
-Ray tracing in Zenith.NET provides hardware-accelerated ray-scene intersection through `RayQuery` in compute shaders. You build acceleration structures on the GPU, bind them as resources, and trace rays directly within your shader code.
+Ray tracing in Zenith.NET provides hardware-accelerated ray-scene intersection through `RayQuery` in any shader stage. You build acceleration structures on the GPU, bind them as resources, and trace rays directly within your shader code.
 
 > [!NOTE]
 > Ray tracing requires hardware support. Check `Context.Capabilities.RayTracingSupported` before using these features.
@@ -137,7 +137,7 @@ ResourceTable table = context.CreateResourceTable(new()
 
 ## Shader Usage (RayQuery)
 
-In the compute shader, declare a `RaytracingAccelerationStructure` and use `RayQuery` to trace rays:
+In your shader, declare a `RaytracingAccelerationStructure` and use `RayQuery` to trace rays:
 
 ```slang
 RaytracingAccelerationStructure scene;

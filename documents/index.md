@@ -81,7 +81,7 @@ _layout: landing
     </div>
     <div class="feature-list-item">
         <span class="feature-list-title">Ray Tracing</span>
-        <span class="feature-list-desc">Hardware-accelerated BLAS/TLAS with RayQuery in compute shaders.</span>
+        <span class="feature-list-desc">Hardware-accelerated BLAS/TLAS with RayQuery in any shader stage.</span>
     </div>
     <div class="feature-list-item">
         <span class="feature-list-title">Mesh Shading</span>

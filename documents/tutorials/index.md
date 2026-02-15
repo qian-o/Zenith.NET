@@ -28,7 +28,7 @@ Explore cutting-edge GPU features for modern rendering (requires hardware suppor
 
 | Tutorial | Description | Requirement |
 |----------|-------------|-------------|
-| [Ray Tracing](advanced/ray-tracing.md) | Build acceleration structures (BLAS/TLAS), use `RayQuery` in compute shaders for ray tracing, and implement hard shadows | `RayTracingSupported` |
+| [Ray Tracing](advanced/ray-tracing.md) | Build acceleration structures (BLAS/TLAS), use `RayQuery` for ray tracing, and implement hard shadows | `RayTracingSupported` |
 | [Mesh Shading](advanced/mesh-shading.md) | Use meshlet-based geometry processing with mesh shading pipelines | `MeshShadingSupported` |
 
 ## Tutorial Structure

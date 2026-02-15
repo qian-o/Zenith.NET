@@ -20,12 +20,12 @@ We'll create a `RayTracingRenderer` class that:
 
 ### Ray Tracing with RayQuery
 
-Zenith.NET uses `RayQuery` in compute shaders for ray tracing. This approach binds the acceleration structure as a regular resource and performs all ray tracing logic within a single shader:
+Zenith.NET uses `RayQuery` for ray tracing. This approach binds the acceleration structure as a regular resource and performs all ray tracing logic within a single shader:
 
 | Aspect | Description |
 |--------|-------------|
 | **Shader Stage** | Any shader (typically compute) |
-| **Setup** | Bind acceleration structure to a compute pipeline |
+| **Setup** | Bind acceleration structure to any pipeline |
 | **Hit/Miss Logic** | All logic in one shader using `RayQuery` API |
 | **Best For** | Shadows, AO, GI, reflections — any ray tracing workload |
 
