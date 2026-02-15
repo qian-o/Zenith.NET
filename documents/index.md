@@ -112,7 +112,7 @@ _layout: landing
         <div class="step-number">3</div>
         <div class="step-content">
             <h4>Record Commands</h4>
-            <p>Build command buffers with draw, compute, or ray tracing calls.</p>
+            <p>Build command buffers with draw, compute, or mesh shading dispatches.</p>
         </div>
     </div>
     <div class="workflow-step">

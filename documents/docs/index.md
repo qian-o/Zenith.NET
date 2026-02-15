@@ -44,10 +44,10 @@ Pipelines reference a single `ResourceLayout`, and you bind a corresponding `Res
 
 | Feature | Description |
 |---------|-------------|
-| `GraphicsPipeline` | Traditional rasterization with vertex and pixel shaders |
-| `ComputePipeline` | General-purpose GPU compute with compute shaders |
-| `MeshShadingPipeline` | Modern GPU-driven geometry with mesh and amplification shaders |
-| Ray Tracing | Hardware-accelerated BLAS/TLAS with `RayQuery` in compute shaders |
+| **Graphics Pipeline** | Traditional rasterization with vertex and pixel shaders |
+| **Compute Pipeline** | General-purpose GPU compute with compute shaders |
+| **Mesh Shading Pipeline** | Modern GPU-driven geometry with mesh and amplification shaders |
+| **Ray Tracing** | Hardware-accelerated BLAS/TLAS with `RayQuery` in any shader stage |
 
 ## Platform Support
 
