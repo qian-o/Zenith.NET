@@ -73,7 +73,7 @@ _layout: landing
 <div class="feature-list">
     <div class="feature-list-item">
         <span class="feature-list-title">Graphics Pipeline</span>
-        <span class="feature-list-desc">Vertex, hull, domain, geometry, and pixel shaders with custom render states.</span>
+        <span class="feature-list-desc">Vertex and pixel shaders with custom render states.</span>
     </div>
     <div class="feature-list-item">
         <span class="feature-list-title">Compute Pipeline</span>
@@ -81,7 +81,7 @@ _layout: landing
     </div>
     <div class="feature-list-item">
         <span class="feature-list-title">Ray Tracing</span>
-        <span class="feature-list-desc">Hardware-accelerated BLAS/TLAS, hit groups, and inline ray queries.</span>
+        <span class="feature-list-desc">Hardware-accelerated BLAS/TLAS with RayQuery in compute shaders.</span>
     </div>
     <div class="feature-list-item">
         <span class="feature-list-title">Mesh Shading</span>

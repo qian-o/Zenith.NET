@@ -162,7 +162,7 @@ internal unsafe class MeshShadingRenderer : IRenderer
     private readonly Buffer meshletBuffer;
     private readonly Buffer constantBuffer;
     private readonly ResourceLayout resourceLayout;
-    private readonly ResourceSet resourceSet;
+    private readonly ResourceTable resourceTable;
     private readonly MeshShadingPipeline pipeline;
 
     private readonly uint meshletCount;
@@ -280,7 +280,7 @@ internal unsafe class MeshShadingRenderer : IRenderer
             )
         });
 
-        resourceSet = App.Context.CreateResourceSet(new()
+        resourceTable = App.Context.CreateResourceTable(new()
         {
             Layout = resourceLayout,
             Resources = [constantBuffer, vertexBuffer, indexBuffer, meshletBuffer]
@@ -300,7 +300,7 @@ internal unsafe class MeshShadingRenderer : IRenderer
             Amplification = null,
             Mesh = meshShader,
             Pixel = pixelShader,
-            ResourceLayouts = [resourceLayout],
+            ResourceLayout = resourceLayout,
             PrimitiveTopology = PrimitiveTopology.TriangleList,
             Output = App.SwapChain.FrameBuffer.Output
         });
@@ -327,10 +327,10 @@ internal unsafe class MeshShadingRenderer : IRenderer
             Depth = 1.0f,
             Stencil = 0,
             Flags = ClearFlags.All
-        }, resourceSet);
+        }, resourceTable);
 
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetResourceSet(resourceSet, 0);
+        commandBuffer.SetResourceTable(resourceTable);
         commandBuffer.DispatchMesh(meshletCount, 1, 1);
 
         commandBuffer.EndRenderPass();
@@ -345,7 +345,7 @@ internal unsafe class MeshShadingRenderer : IRenderer
     public void Dispose()
     {
         pipeline.Dispose();
-        resourceSet.Dispose();
+        resourceTable.Dispose();
         resourceLayout.Dispose();
         constantBuffer.Dispose();
         meshletBuffer.Dispose();
@@ -497,7 +497,7 @@ pipeline = App.Context.CreateMeshShadingPipeline(new()
     Amplification = null,           // Optional amplification shader
     Mesh = meshShader,              // Required
     Pixel = pixelShader,            // Required
-    ResourceLayouts = [resourceLayout],
+    ResourceLayout = resourceLayout,
     PrimitiveTopology = PrimitiveTopology.TriangleList,
     Output = App.SwapChain.FrameBuffer.Output
 });
