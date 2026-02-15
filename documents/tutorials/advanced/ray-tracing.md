@@ -59,13 +59,6 @@ internal unsafe class RayTracingRenderer : IRenderer
     private const uint ThreadGroupSize = 16;
 
     private const string ShaderSource = """
-        struct SceneConstants
-        {
-            uint Width;
-
-            uint Height;
-        };
-
         struct Sphere
         {
             float3 Center;
@@ -77,7 +70,6 @@ internal unsafe class RayTracingRenderer : IRenderer
             float Padding;
         };
 
-        ConstantBuffer<SceneConstants> constants;
         RaytracingAccelerationStructure scene;
         StructuredBuffer<Sphere> spheres;
         RWTexture2D<float4> outputTexture;
@@ -154,16 +146,19 @@ internal unsafe class RayTracingRenderer : IRenderer
         {
             uint2 pixelCoord = dispatchThreadID.xy;
 
-            if (pixelCoord.x >= constants.Width || pixelCoord.y >= constants.Height)
+            uint width, height;
+            outputTexture.GetDimensions(width, height);
+
+            if (pixelCoord.x >= width || pixelCoord.y >= height)
             {
                 return;
             }
 
-            float2 uv = (float2(pixelCoord) + 0.5) / float2(constants.Width, constants.Height);
+            float2 uv = (float2(pixelCoord) + 0.5) / float2(width, height);
             float2 ndc = uv * 2.0 - 1.0;
             ndc.y = -ndc.y;
 
-            float aspectRatio = float(constants.Width) / float(constants.Height);
+            float aspectRatio = float(width) / float(height);
             float fov = tan(radians(45.0) * 0.5);
 
             float3 cameraPos = float3(0.0, 4.0, -12.0);
@@ -264,7 +259,6 @@ internal unsafe class RayTracingRenderer : IRenderer
         }
         """;
 
-    private readonly Buffer constantBuffer;
     private readonly Buffer floorVertexBuffer;
     private readonly Buffer floorIndexBuffer;
     private readonly Buffer sphereBuffer;
@@ -283,13 +277,6 @@ internal unsafe class RayTracingRenderer : IRenderer
         {
             throw new NotSupportedException("Ray tracing is not supported on this device.");
         }
-
-        constantBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)sizeof(SceneConstants),
-            StrideInBytes = (uint)sizeof(SceneConstants),
-            Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
-        });
 
         Vector3[] floorVertices =
         [
@@ -420,7 +407,6 @@ internal unsafe class RayTracingRenderer : IRenderer
         {
             Bindings = BindingHelper.Bindings
             (
-                new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.AccelerationStructure, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
                 new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute }
@@ -461,10 +447,8 @@ internal unsafe class RayTracingRenderer : IRenderer
         resourceTable ??= App.Context.CreateResourceTable(new()
         {
             Layout = resourceLayout,
-            Resources = [constantBuffer, tlas, sphereBuffer, outputTexture]
+            Resources = [tlas, sphereBuffer, outputTexture]
         });
-
-        constantBuffer.Upload([new SceneConstants { Width = App.Width, Height = App.Height }], 0);
 
         CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
 
@@ -511,7 +495,6 @@ internal unsafe class RayTracingRenderer : IRenderer
         sphereBuffer.Dispose();
         floorIndexBuffer.Dispose();
         floorVertexBuffer.Dispose();
-        constantBuffer.Dispose();
     }
 }
 
@@ -528,17 +511,6 @@ file struct Sphere
     public Vector3 Color;
 
     public float Padding;
-}
-
-/// <summary>
-/// Scene constants for ray tracing.
-/// </summary>
-[StructLayout(LayoutKind.Sequential)]
-file struct SceneConstants
-{
-    public uint Width;
-
-    public uint Height;
 }
 ```
 
@@ -789,7 +761,6 @@ resourceLayout = App.Context.CreateResourceLayout(new()
 {
     Bindings = BindingHelper.Bindings
     (
-        new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
         new() { Type = ResourceType.AccelerationStructure, Count = 1, StageFlags = ShaderStageFlags.Compute },
         new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
         new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute }
@@ -811,8 +782,6 @@ Note that all resource bindings use `ShaderStageFlags.Compute` since ray tracing
 ### Dispatching and Display
 
 ```csharp
-constantBuffer.Upload([new SceneConstants { Width = App.Width, Height = App.Height }], 0);
-
 uint dispatchX = (App.Width + ThreadGroupSize - 1) / ThreadGroupSize;
 uint dispatchY = (App.Height + ThreadGroupSize - 1) / ThreadGroupSize;
 
