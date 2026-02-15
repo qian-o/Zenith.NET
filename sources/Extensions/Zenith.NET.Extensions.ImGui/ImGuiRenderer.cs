@@ -104,7 +104,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
         ]
     };
 
-    private readonly string[] Metal =
+    private readonly string[] Metallib =
     [
         // Vertex Shader - Legacy
 
@@ -113,7 +113,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
         // Pixel Shader
     ];
 
-    private readonly ResourceLayoutDesc MetalDesc = new()
+    private readonly ResourceLayoutDesc MetallibDesc = new()
     {
         Bindings =
         [
@@ -155,9 +155,9 @@ float4 PSMain(VSOutput input) : SV_TARGET
                 break;
 
             case Backend.Metal:
-                vertexShaderBytes = Convert.FromHexString(colorSpace is ImGuiColorSpace.Legacy ? Metal[0] : Metal[1]);
-                pixelShaderBytes = Convert.FromHexString(Metal[2]);
-                resourceLayoutDesc = MetalDesc;
+                vertexShaderBytes = Convert.FromHexString(colorSpace is ImGuiColorSpace.Legacy ? Metallib[0] : Metallib[1]);
+                pixelShaderBytes = Convert.FromHexString(Metallib[2]);
+                resourceLayoutDesc = MetallibDesc;
                 break;
         }
 
