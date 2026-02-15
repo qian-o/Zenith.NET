@@ -10,9 +10,21 @@ public record struct MeshShadingPipelineDesc
 
     public Shader Pixel;
 
-    public ResourceLayout[] ResourceLayouts;
+    public ResourceLayout? ResourceLayout;
 
     public PrimitiveTopology PrimitiveTopology;
 
     public Output Output;
+
+    public uint ObjectThreadGroupSizeX;
+
+    public uint ObjectThreadGroupSizeY;
+
+    public uint ObjectThreadGroupSizeZ;
+
+    public uint MeshThreadGroupSizeX;
+
+    public uint MeshThreadGroupSizeY;
+
+    public uint MeshThreadGroupSizeZ;
 }

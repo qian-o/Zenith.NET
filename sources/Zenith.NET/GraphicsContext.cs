@@ -107,11 +107,11 @@ public abstract class GraphicsContext : DisposableObject
         return CreateResourceLayoutImpl(desc);
     }
 
-    public ResourceSet CreateResourceSet(ResourceSetDesc desc)
+    public ResourceTable CreateResourceTable(ResourceTableDesc desc)
     {
         ValidationLayer?.ValidateDesc(desc);
 
-        return CreateResourceSetImpl(desc);
+        return CreateResourceTableImpl(desc);
     }
 
     public GraphicsPipeline CreateGraphicsPipeline(GraphicsPipelineDesc desc)
@@ -126,13 +126,6 @@ public abstract class GraphicsContext : DisposableObject
         ValidationLayer?.ValidateDesc(desc);
 
         return CreateComputePipelineImpl(desc);
-    }
-
-    public RayTracingPipeline CreateRayTracingPipeline(RayTracingPipelineDesc desc)
-    {
-        ValidationLayer?.ValidateDesc(desc);
-
-        return CreateRayTracingPipelineImpl(desc);
     }
 
     public MeshShadingPipeline CreateMeshShadingPipeline(MeshShadingPipelineDesc desc)
@@ -184,13 +177,11 @@ public abstract class GraphicsContext : DisposableObject
 
     protected abstract ResourceLayout CreateResourceLayoutImpl(ResourceLayoutDesc desc);
 
-    protected abstract ResourceSet CreateResourceSetImpl(ResourceSetDesc desc);
+    protected abstract ResourceTable CreateResourceTableImpl(ResourceTableDesc desc);
 
     protected abstract GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc);
 
     protected abstract ComputePipeline CreateComputePipelineImpl(ComputePipelineDesc desc);
-
-    protected abstract RayTracingPipeline CreateRayTracingPipelineImpl(RayTracingPipelineDesc desc);
 
     protected abstract MeshShadingPipeline CreateMeshShadingPipelineImpl(MeshShadingPipelineDesc desc);
 

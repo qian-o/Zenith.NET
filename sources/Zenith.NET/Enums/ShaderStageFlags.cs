@@ -7,27 +7,11 @@ public enum ShaderStageFlags
 
     Vertex = 1 << 0,
 
-    Hull = 1 << 1,
+    Pixel = 1 << 1,
 
-    Domain = 1 << 2,
+    Compute = 1 << 2,
 
-    Geometry = 1 << 3,
+    Amplification = 1 << 3,
 
-    Pixel = 1 << 4,
-
-    Compute = 1 << 5,
-
-    RayGeneration = 1 << 6,
-
-    Miss = 1 << 7,
-
-    AnyHit = 1 << 8,
-
-    Intersection = 1 << 9,
-
-    ClosestHit = 1 << 10,
-
-    Amplification = 1 << 11,
-
-    Mesh = 1 << 12
+    Mesh = 1 << 4
 }

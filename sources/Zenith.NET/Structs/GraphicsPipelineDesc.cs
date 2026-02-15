@@ -6,15 +6,9 @@ public record struct GraphicsPipelineDesc
 
     public Shader Vertex;
 
-    public Shader? Hull;
-
-    public Shader? Domain;
-
-    public Shader? Geometry;
-
     public Shader Pixel;
 
-    public ResourceLayout[] ResourceLayouts;
+    public ResourceLayout? ResourceLayout;
 
     public InputLayout[] InputLayouts;
 

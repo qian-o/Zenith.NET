@@ -118,7 +118,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         accelerationStructure.Refresh(newDesc);
     }
 
-    public void BeginRenderPass(FrameBuffer frameBuffer, ClearValue clearValue, params IEnumerable<ResourceSet> preprocessResourceSets)
+    public void BeginRenderPass(FrameBuffer frameBuffer, ClearValue clearValue, params IEnumerable<ResourceTable> preprocessResourceTables)
     {
         Scissor[] scissors = new Scissor[Math.Max(frameBuffer.ColorAttachmentCount, 1)];
         Viewport[] viewports = new Viewport[Math.Max(frameBuffer.ColorAttachmentCount, 1)];
@@ -129,9 +129,9 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         SetScissorsImpl(scissors);
         SetViewportsImpl(viewports);
 
-        foreach (ResourceSet resourceSet in preprocessResourceSets)
+        foreach (ResourceTable resourceTable in preprocessResourceTables)
         {
-            resourceSet.Preprocess(this);
+            resourceTable.Preprocess(this);
         }
 
         BeginRenderPassImpl(frameBuffer, clearValue);
@@ -185,13 +185,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         currentPipeline = pipeline;
     }
 
-    public void SetPipeline(RayTracingPipeline pipeline)
-    {
-        SetPipelineImpl(pipeline);
-
-        currentPipeline = pipeline;
-    }
-
     public void SetPipeline(MeshShadingPipeline pipeline)
     {
         SetPipelineImpl(pipeline);
@@ -219,18 +212,18 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         SetIndexBufferImpl(pipeline, buffer, offsetInBytes, format);
     }
 
-    public void SetResourceSet(ResourceSet resourceSet, uint index)
+    public void SetResourceTable(ResourceTable resourceTable)
     {
         if (currentPipeline is null)
         {
             return;
         }
 
-        SetResourceSetImpl(currentPipeline, resourceSet, index);
+        SetResourceTableImpl(currentPipeline, resourceTable);
 
         if (currentFrameBuffer is null)
         {
-            resourceSet.Preprocess(this);
+            resourceTable.Preprocess(this);
         }
     }
 
@@ -292,16 +285,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         }
 
         DispatchIndirectImpl(pipeline, indirectBuffer, offsetInBytes);
-    }
-
-    public void DispatchRays(uint width, uint height, uint depth)
-    {
-        if (currentPipeline is not RayTracingPipeline pipeline)
-        {
-            return;
-        }
-
-        DispatchRaysImpl(pipeline, width, height, depth);
     }
 
     public void DispatchMesh(uint groupCountX, uint groupCountY, uint groupCountZ)
@@ -435,15 +418,13 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void SetPipelineImpl(ComputePipeline pipeline);
 
-    protected abstract void SetPipelineImpl(RayTracingPipeline pipeline);
-
     protected abstract void SetPipelineImpl(MeshShadingPipeline pipeline);
 
     protected abstract void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index);
 
     protected abstract void SetIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format);
 
-    protected abstract void SetResourceSetImpl(Pipeline pipeline, ResourceSet resourceSet, uint index);
+    protected abstract void SetResourceTableImpl(Pipeline pipeline, ResourceTable resourceTable);
 
     protected abstract void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
 
@@ -456,8 +437,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     protected abstract void DispatchImpl(ComputePipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ);
 
     protected abstract void DispatchIndirectImpl(ComputePipeline pipeline, Buffer indirectBuffer, uint offsetInBytes);
-
-    protected abstract void DispatchRaysImpl(RayTracingPipeline pipeline, uint width, uint height, uint depth);
 
     protected abstract void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ);
 

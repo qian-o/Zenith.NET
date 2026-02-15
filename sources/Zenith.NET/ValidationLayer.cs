@@ -365,25 +365,25 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         }
     }
 
-    internal void ValidateDesc(ResourceSetDesc desc)
+    internal void ValidateDesc(ResourceTableDesc desc)
     {
         if (desc.Layout is null)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceSetDesc.Layout"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceTableDesc.Layout"));
 
             return;
         }
 
         if (desc.Layout.IsDisposed)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ResourceSetDesc.Layout"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ResourceTableDesc.Layout"));
 
             return;
         }
 
         if (desc.Resources is null)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceSetDesc.Resources"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceTableDesc.Resources"));
 
             return;
         }
@@ -396,7 +396,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
             if (resourceStartIndex + binding.Count > (uint)desc.Resources.Length)
             {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInsufficientResources, "ResourceSetDesc.Resources", resourceStartIndex + binding.Count, i, desc.Resources.Length));
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInsufficientResources, "ResourceTableDesc.Resources", resourceStartIndex + binding.Count, i, desc.Resources.Length));
 
                 break;
             }
@@ -407,14 +407,14 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
                 if (resource is null)
                 {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceSetDesc.Resources"));
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceTableDesc.Resources"));
 
                     continue;
                 }
 
                 if (resource.IsDisposed)
                 {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ResourceSetDesc.Resources"));
+                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ResourceTableDesc.Resources"));
 
                     continue;
                 }
@@ -426,7 +426,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                     case ResourceType.StructuredBufferReadWrite:
                         if (resource is not Buffer and not BufferView)
                         {
-                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Buffer or BufferView", binding.Type));
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceTableDesc.Resources", "Buffer or BufferView", binding.Type));
                         }
                         break;
 
@@ -434,21 +434,21 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                     case ResourceType.TextureReadWrite:
                         if (resource is not Texture and not TextureView)
                         {
-                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Texture or TextureView", binding.Type));
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceTableDesc.Resources", "Texture or TextureView", binding.Type));
                         }
                         break;
 
                     case ResourceType.Sampler:
                         if (resource is not Sampler)
                         {
-                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "Sampler", binding.Type));
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceTableDesc.Resources", "Sampler", binding.Type));
                         }
                         break;
 
                     case ResourceType.AccelerationStructure:
                         if (resource is not TopLevelAccelerationStructure)
                         {
-                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceSetDesc.Resources", "AccelerationStructure", binding.Type));
+                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceTableDesc.Resources", "AccelerationStructure", binding.Type));
                         }
                         break;
                 }
@@ -471,21 +471,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "GraphicsPipelineDesc.Vertex"));
         }
 
-        if (desc.Hull?.IsDisposed is true)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "GraphicsPipelineDesc.Hull"));
-        }
-
-        if (desc.Domain?.IsDisposed is true)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "GraphicsPipelineDesc.Domain"));
-        }
-
-        if (desc.Geometry?.IsDisposed is true)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "GraphicsPipelineDesc.Geometry"));
-        }
-
         if (desc.Pixel is null)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.Pixel"));
@@ -495,19 +480,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "GraphicsPipelineDesc.Pixel"));
         }
 
-        if (desc.ResourceLayouts is null)
+        if (desc.ResourceLayout?.IsDisposed is true)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.ResourceLayouts"));
-        }
-        else
-        {
-            for (int i = 0; i < desc.ResourceLayouts.Length; i++)
-            {
-                if (desc.ResourceLayouts[i].IsDisposed)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"GraphicsPipelineDesc.ResourceLayouts[{i}]"));
-                }
-            }
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "GraphicsPipelineDesc.ResourceLayout"));
         }
 
         if (desc.InputLayouts is null)
@@ -522,7 +497,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             }
         }
 
-        if (desc.PrimitiveTopology is not ((>= PrimitiveTopology.PointList and <= PrimitiveTopology.TriangleStripWithAdjacency) or >= PrimitiveTopology.PatchList))
+        if (!Enum.IsDefined(desc.PrimitiveTopology))
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "GraphicsPipelineDesc.PrimitiveTopology", desc.PrimitiveTopology));
         }
@@ -564,151 +539,14 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ComputePipelineDesc.Compute"));
         }
 
-        if (desc.ResourceLayouts is null)
+        if (desc.ResourceLayout?.IsDisposed is true)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ComputePipelineDesc.ResourceLayouts"));
-        }
-        else
-        {
-            for (int i = 0; i < desc.ResourceLayouts.Length; i++)
-            {
-                if (desc.ResourceLayouts[i].IsDisposed)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"ComputePipelineDesc.ResourceLayouts[{i}]"));
-                }
-            }
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ComputePipelineDesc.ResourceLayout"));
         }
 
         if (desc.ThreadGroupSizeX is 0 || desc.ThreadGroupSizeY is 0 || desc.ThreadGroupSizeZ is 0)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "ComputePipelineDesc thread group sizes (ThreadGroupSizeX, ThreadGroupSizeY, ThreadGroupSizeZ)"));
-        }
-    }
-
-    internal void ValidateDesc(RayTracingPipelineDesc desc)
-    {
-        if (desc.RayGeneration is null)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.RayGeneration"));
-        }
-        else if (desc.RayGeneration.IsDisposed)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "RayTracingPipelineDesc.RayGeneration"));
-        }
-
-        if (desc.Miss is null)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.Miss"));
-        }
-        else
-        {
-            for (int i = 0; i < desc.Miss.Length; i++)
-            {
-                if (desc.Miss[i].IsDisposed)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"RayTracingPipelineDesc.Miss[{i}]"));
-                }
-            }
-        }
-
-        if (desc.AnyHit is null)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.AnyHit"));
-        }
-        else
-        {
-            for (int i = 0; i < desc.AnyHit.Length; i++)
-            {
-                if (desc.AnyHit[i].IsDisposed)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"RayTracingPipelineDesc.AnyHit[{i}]"));
-                }
-            }
-        }
-
-        if (desc.Intersection is null)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.Intersection"));
-        }
-        else
-        {
-            for (int i = 0; i < desc.Intersection.Length; i++)
-            {
-                if (desc.Intersection[i].IsDisposed)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"RayTracingPipelineDesc.Intersection[{i}]"));
-                }
-            }
-        }
-
-        if (desc.ClosestHit is null)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.ClosestHit"));
-        }
-        else
-        {
-            for (int i = 0; i < desc.ClosestHit.Length; i++)
-            {
-                if (desc.ClosestHit[i].IsDisposed)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"RayTracingPipelineDesc.ClosestHit[{i}]"));
-                }
-            }
-        }
-
-        if (desc.HitGroups is null)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.HitGroups"));
-        }
-        else
-        {
-            for (int i = 0; i < desc.HitGroups.Length; i++)
-            {
-                CheckHitGroup($"RayTracingPipelineDesc.HitGroups[{i}]", desc.HitGroups[i]);
-            }
-        }
-
-        if (desc.ResourceLayouts is null)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "RayTracingPipelineDesc.ResourceLayouts"));
-        }
-        else
-        {
-            for (int i = 0; i < desc.ResourceLayouts.Length; i++)
-            {
-                if (desc.ResourceLayouts[i].IsDisposed)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"RayTracingPipelineDesc.ResourceLayouts[{i}]"));
-                }
-            }
-        }
-
-        if (desc.MaxTraceRecursionDepth > ValidationConstants.MaxTraceRecursionDepth)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, "RayTracingPipelineDesc.MaxTraceRecursionDepth", ValidationConstants.MaxTraceRecursionDepth));
-        }
-
-        if (desc.MaxPayloadSizeInBytes is 0)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "RayTracingPipelineDesc.MaxPayloadSizeInBytes"));
-        }
-
-        if (desc.MaxAttributeSizeInBytes is 0)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "RayTracingPipelineDesc.MaxAttributeSizeInBytes"));
-        }
-
-        void CheckHitGroup(string name, HitGroup hitGroup)
-        {
-            if (!Enum.IsDefined(hitGroup.Type))
-            {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.Type", hitGroup.Type));
-            }
-
-            if (string.IsNullOrWhiteSpace(hitGroup.Name))
-            {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNullOrWhitespace, $"{name}.Name"));
-            }
         }
     }
 
@@ -739,19 +577,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "MeshShadingPipelineDesc.Pixel"));
         }
 
-        if (desc.ResourceLayouts is null)
+        if (desc.ResourceLayout?.IsDisposed is true)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "MeshShadingPipelineDesc.ResourceLayouts"));
-        }
-        else
-        {
-            for (int i = 0; i < desc.ResourceLayouts.Length; i++)
-            {
-                if (desc.ResourceLayouts[i].IsDisposed)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"MeshShadingPipelineDesc.ResourceLayouts[{i}]"));
-                }
-            }
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "MeshShadingPipelineDesc.ResourceLayout"));
         }
 
         if (desc.PrimitiveTopology is not PrimitiveTopology.LineList and not PrimitiveTopology.TriangleList)
@@ -760,6 +588,16 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         }
 
         CheckOutput("MeshShadingPipelineDesc.Output", desc.Output);
+
+        if (desc.Amplification is not null && (desc.ObjectThreadGroupSizeX is 0 || desc.ObjectThreadGroupSizeY is 0 || desc.ObjectThreadGroupSizeZ is 0))
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "MeshShadingPipelineDesc object thread group sizes (ObjectThreadGroupSizeX, ObjectThreadGroupSizeY, ObjectThreadGroupSizeZ)"));
+        }
+
+        if (desc.MeshThreadGroupSizeX is 0 || desc.MeshThreadGroupSizeY is 0 || desc.MeshThreadGroupSizeZ is 0)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "MeshShadingPipelineDesc mesh thread group sizes (MeshThreadGroupSizeX, MeshThreadGroupSizeY, MeshThreadGroupSizeZ)"));
+        }
     }
 
     internal void ValidateDesc(QueryHeapDesc desc)
@@ -943,11 +781,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             {
                 ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, $"{name}.InstanceID", ValidationConstants.MaxInstanceId));
             }
-
-            if (rayTracingInstance.InstanceContributionToHitGroupIndex > ValidationConstants.MaxHitGroupIndex)
-            {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, $"{name}.InstanceContributionToHitGroupIndex", ValidationConstants.MaxHitGroupIndex));
-            }
         }
     }
 
@@ -1097,15 +930,11 @@ file static class ValidationConstants
 
     public const int MaxAnisotropy = 16;
 
-    public const int MaxTraceRecursionDepth = 31;
-
     public const int IndexSizeUInt16 = 2;
 
     public const int IndexSizeUInt32 = 4;
 
     public const int MaxInstanceId = 16777215;
-
-    public const int MaxHitGroupIndex = 65535;
 }
 
 file static class ValidationMessages
