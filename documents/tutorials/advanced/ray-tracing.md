@@ -59,6 +59,13 @@ internal unsafe class RayTracingRenderer : IRenderer
     private const uint ThreadGroupSize = 16;
 
     private const string ShaderSource = """
+        struct SceneConstants
+        {
+            uint Width;
+
+            uint Height;
+        };
+
         struct Sphere
         {
             float3 Center;
@@ -70,13 +77,44 @@ internal unsafe class RayTracingRenderer : IRenderer
             float Padding;
         };
 
+        ConstantBuffer<SceneConstants> constants;
         RaytracingAccelerationStructure scene;
-        RWTexture2D<float4> outputTexture;
         StructuredBuffer<Sphere> spheres;
+        RWTexture2D<float4> outputTexture;
 
         static const float3 LightDir = normalize(float3(1.0, 1.0, -0.5));
         static const float3 LightColor = float3(1.0, 0.98, 0.95);
         static const float3 AmbientColor = float3(0.1, 0.1, 0.15);
+
+        float IntersectSphere(float3 origin, float3 direction, Sphere sphere)
+        {
+            float3 oc = origin - sphere.Center;
+
+            float a = dot(direction, direction);
+            float b = dot(oc, direction);
+            float c = dot(oc, oc) - sphere.Radius * sphere.Radius;
+            float discriminant = b * b - a * c;
+
+            if (discriminant > 0.0)
+            {
+                float sqrtD = sqrt(discriminant);
+                float t1 = (-b - sqrtD) / a;
+
+                if (t1 > 0.0)
+                {
+                    return t1;
+                }
+
+                float t2 = (-b + sqrtD) / a;
+
+                if (t2 > 0.0)
+                {
+                    return t2;
+                }
+            }
+
+            return -1.0;
+        }
 
         bool TraceShadowRay(float3 origin, float3 direction)
         {
@@ -89,7 +127,24 @@ internal unsafe class RayTracingRenderer : IRenderer
             RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> shadowQuery;
             shadowQuery.TraceRayInline(scene, RAY_FLAG_NONE, 0xFF, shadowRay);
 
-            shadowQuery.Proceed();
+            while (shadowQuery.Proceed())
+            {
+                if (shadowQuery.CandidateType() == CANDIDATE_PROCEDURAL_PRIMITIVE)
+                {
+                    uint sphereIndex = shadowQuery.CandidatePrimitiveIndex();
+                    Sphere sphere = spheres[sphereIndex];
+
+                    float3 ro = shadowQuery.CandidateObjectRayOrigin();
+                    float3 rd = shadowQuery.CandidateObjectRayDirection();
+
+                    float t = IntersectSphere(ro, rd, sphere);
+
+                    if (t >= shadowQuery.RayTMin() && t <= shadowQuery.CommittedRayT())
+                    {
+                        shadowQuery.CommitProceduralPrimitiveHit(t);
+                    }
+                }
+            }
 
             return shadowQuery.CommittedStatus() != COMMITTED_NOTHING;
         }
@@ -97,19 +152,18 @@ internal unsafe class RayTracingRenderer : IRenderer
         [numthreads(16, 16, 1)]
         void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         {
-            uint width, height;
-            outputTexture.GetDimensions(width, height);
+            uint2 pixelCoord = dispatchThreadID.xy;
 
-            if (dispatchThreadID.x >= width || dispatchThreadID.y >= height)
+            if (pixelCoord.x >= constants.Width || pixelCoord.y >= constants.Height)
             {
                 return;
             }
 
-            float2 uv = (float2(dispatchThreadID.xy) + 0.5) / float2(width, height);
+            float2 uv = (float2(pixelCoord) + 0.5) / float2(constants.Width, constants.Height);
             float2 ndc = uv * 2.0 - 1.0;
             ndc.y = -ndc.y;
 
-            float aspectRatio = float(width) / float(height);
+            float aspectRatio = float(constants.Width) / float(constants.Height);
             float fov = tan(radians(45.0) * 0.5);
 
             float3 cameraPos = float3(0.0, 4.0, -12.0);
@@ -128,37 +182,32 @@ internal unsafe class RayTracingRenderer : IRenderer
             ray.TMin = 0.001;
             ray.TMax = 1000.0;
 
+            float3 sphereHitNormal = float3(0.0);
+            float3 sphereHitColor = float3(0.0);
+
             RayQuery<RAY_FLAG_NONE> query;
             query.TraceRayInline(scene, RAY_FLAG_NONE, 0xFF, ray);
 
-            // Process procedural (AABB) and triangle intersections
             while (query.Proceed())
             {
-                if (query.CandidateType() == CANDIDATE_NON_OPAQUE_TRIANGLE)
-                {
-                    query.CommitNonOpaqueTriangleHit();
-                }
-                else if (query.CandidateType() == CANDIDATE_PROCEDURAL_PRIMITIVE)
+                if (query.CandidateType() == CANDIDATE_PROCEDURAL_PRIMITIVE)
                 {
                     uint sphereIndex = query.CandidatePrimitiveIndex();
                     Sphere sphere = spheres[sphereIndex];
 
-                    float3 origin = query.CandidateObjectRayOrigin();
-                    float3 direction = query.CandidateObjectRayDirection();
-                    float3 oc = origin - sphere.Center;
+                    float3 ro = query.CandidateObjectRayOrigin();
+                    float3 rd = query.CandidateObjectRayDirection();
 
-                    float a = dot(direction, direction);
-                    float b = dot(oc, direction);
-                    float c = dot(oc, oc) - sphere.Radius * sphere.Radius;
-                    float discriminant = b * b - a * c;
+                    float t = IntersectSphere(ro, rd, sphere);
 
-                    if (discriminant > 0.0)
+                    if (t >= query.RayTMin() && t <= query.CommittedRayT())
                     {
-                        float t = (-b - sqrt(discriminant)) / a;
-                        if (t >= query.RayTMin() && t <= query.CommittedRayT())
-                        {
-                            query.CommitProceduralPrimitiveHit(t);
-                        }
+                        float3 hitPoint = ro + rd * t;
+
+                        sphereHitNormal = normalize(hitPoint - sphere.Center);
+                        sphereHitColor = sphere.Color;
+
+                        query.CommitProceduralPrimitiveHit(t);
                     }
                 }
             }
@@ -167,8 +216,7 @@ internal unsafe class RayTracingRenderer : IRenderer
 
             if (query.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
             {
-                // Floor hit - checkerboard pattern
-                float3 hitPoint = cameraPos + rayDir * query.CommittedRayT();
+                float3 hitPoint = ray.Origin + ray.Direction * query.CommittedRayT();
 
                 float scale = 1.0;
                 int checkX = int(floor(hitPoint.x * scale));
@@ -183,38 +231,40 @@ internal unsafe class RayTracingRenderer : IRenderer
                 bool inShadow = TraceShadowRay(shadowOrigin, LightDir);
 
                 float shadow = inShadow ? 0.3 : 1.0;
-                color = baseColor * AmbientColor + baseColor * LightColor * NdotL * shadow;
+                float3 diffuse = baseColor * LightColor * NdotL * shadow;
+                float3 ambient = baseColor * AmbientColor;
+
+                color = ambient + diffuse;
             }
             else if (query.CommittedStatus() == COMMITTED_PROCEDURAL_PRIMITIVE_HIT)
             {
-                // Sphere hit
-                uint sphereIndex = query.CommittedPrimitiveIndex();
-                Sphere sphere = spheres[sphereIndex];
+                float3 hitPoint = ray.Origin + ray.Direction * query.CommittedRayT();
 
-                float3 hitPoint = cameraPos + rayDir * query.CommittedRayT();
-                float3 normal = normalize(hitPoint - sphere.Center);
-                float NdotL = max(dot(normal, LightDir), 0.0);
+                float NdotL = max(dot(sphereHitNormal, LightDir), 0.0);
 
-                float3 shadowOrigin = hitPoint + normal * 0.001;
+                float3 shadowOrigin = hitPoint + sphereHitNormal * 0.001;
                 bool inShadow = TraceShadowRay(shadowOrigin, LightDir);
 
                 float shadow = inShadow ? 0.3 : 1.0;
-                color = sphere.Color * AmbientColor + sphere.Color * LightColor * NdotL * shadow;
+                float3 diffuse = sphereHitColor * LightColor * NdotL * shadow;
+                float3 ambient = sphereHitColor * AmbientColor;
+
+                color = ambient + diffuse;
             }
             else
             {
-                // Sky gradient
                 float t = 0.5 * (rayDir.y + 1.0);
+
                 color = lerp(float3(1.0, 1.0, 1.0), float3(0.5, 0.7, 1.0), t);
             }
 
-            // Gamma correction
             color = pow(color, 1.0 / 2.2);
 
-            outputTexture[dispatchThreadID.xy] = float4(color, 1.0);
+            outputTexture[pixelCoord] = float4(color, 1.0);
         }
         """;
 
+    private readonly Buffer constantBuffer;
     private readonly Buffer floorVertexBuffer;
     private readonly Buffer floorIndexBuffer;
     private readonly Buffer sphereBuffer;
@@ -233,6 +283,13 @@ internal unsafe class RayTracingRenderer : IRenderer
         {
             throw new NotSupportedException("Ray tracing is not supported on this device.");
         }
+
+        constantBuffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)sizeof(SceneConstants),
+            StrideInBytes = (uint)sizeof(SceneConstants),
+            Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
+        });
 
         Vector3[] floorVertices =
         [
@@ -363,24 +420,10 @@ internal unsafe class RayTracingRenderer : IRenderer
         {
             Bindings = BindingHelper.Bindings
             (
-                new()
-                {
-                    Type = ResourceType.AccelerationStructure,
-                    Count = 1,
-                    StageFlags = ShaderStageFlags.Compute
-                },
-                new()
-                {
-                    Type = ResourceType.TextureReadWrite,
-                    Count = 1,
-                    StageFlags = ShaderStageFlags.Compute
-                },
-                new()
-                {
-                    Type = ResourceType.StructuredBuffer,
-                    Count = 1,
-                    StageFlags = ShaderStageFlags.Compute
-                }
+                new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.AccelerationStructure, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute }
             )
         });
 
@@ -402,11 +445,10 @@ internal unsafe class RayTracingRenderer : IRenderer
 
     public void Render()
     {
-        // Create output texture if needed
         outputTexture ??= App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
-            Format = PixelFormat.R8G8B8A8UNorm,
+            Format = PixelFormat.B8G8R8A8UNorm,
             Width = App.Width,
             Height = App.Height,
             Depth = 1,
@@ -419,19 +461,21 @@ internal unsafe class RayTracingRenderer : IRenderer
         resourceTable ??= App.Context.CreateResourceTable(new()
         {
             Layout = resourceLayout,
-            Resources = [tlas, outputTexture, sphereBuffer]
+            Resources = [constantBuffer, tlas, sphereBuffer, outputTexture]
         });
 
+        constantBuffer.Upload([new SceneConstants { Width = App.Width, Height = App.Height }], 0);
+
         CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
+
+        commandBuffer.SetPipeline(pipeline);
+        commandBuffer.SetResourceTable(resourceTable);
 
         uint dispatchX = (App.Width + ThreadGroupSize - 1) / ThreadGroupSize;
         uint dispatchY = (App.Height + ThreadGroupSize - 1) / ThreadGroupSize;
 
-        commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetResourceTable(resourceTable);
         commandBuffer.Dispatch(dispatchX, dispatchY, 1);
 
-        // Copy the ray traced result to the swap chain's color target
         Texture colorTarget = App.SwapChain.FrameBuffer.Desc.ColorAttachments[0].Target;
 
         commandBuffer.CopyTexture(outputTexture,
@@ -467,6 +511,7 @@ internal unsafe class RayTracingRenderer : IRenderer
         sphereBuffer.Dispose();
         floorIndexBuffer.Dispose();
         floorVertexBuffer.Dispose();
+        constantBuffer.Dispose();
     }
 }
 
@@ -483,6 +528,17 @@ file struct Sphere
     public Vector3 Color;
 
     public float Padding;
+}
+
+/// <summary>
+/// Scene constants for ray tracing.
+/// </summary>
+[StructLayout(LayoutKind.Sequential)]
+file struct SceneConstants
+{
+    public uint Width;
+
+    public uint Height;
 }
 ```
 
@@ -603,22 +659,65 @@ tlas = buildCmd.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
 
 ### Ray Tracing with RayQuery
 
-Ray tracing in Zenith.NET uses `RayQuery` within a compute shader:
+Ray tracing in Zenith.NET uses `RayQuery` within a compute shader. Procedural geometry requires a custom intersection function:
 
 ```slang
+float IntersectSphere(float3 origin, float3 direction, Sphere sphere)
+{
+    float3 oc = origin - sphere.Center;
+
+    float a = dot(direction, direction);
+    float b = dot(oc, direction);
+    float c = dot(oc, oc) - sphere.Radius * sphere.Radius;
+    float discriminant = b * b - a * c;
+
+    if (discriminant > 0.0)
+    {
+        float sqrtD = sqrt(discriminant);
+        float t1 = (-b - sqrtD) / a;
+
+        if (t1 > 0.0)
+        {
+            return t1;
+        }
+
+        float t2 = (-b + sqrtD) / a;
+
+        if (t2 > 0.0)
+        {
+            return t2;
+        }
+    }
+
+    return -1.0;
+}
+```
+
+The main ray query loop processes only procedural candidates, storing hit information for later use:
+
+```slang
+float3 sphereHitNormal = float3(0.0);
+float3 sphereHitColor = float3(0.0);
+
 RayQuery<RAY_FLAG_NONE> query;
 query.TraceRayInline(scene, RAY_FLAG_NONE, 0xFF, ray);
 
 while (query.Proceed())
 {
-    if (query.CandidateType() == CANDIDATE_NON_OPAQUE_TRIANGLE)
+    if (query.CandidateType() == CANDIDATE_PROCEDURAL_PRIMITIVE)
     {
-        query.CommitNonOpaqueTriangleHit();
-    }
-    else if (query.CandidateType() == CANDIDATE_PROCEDURAL_PRIMITIVE)
-    {
-        // Custom intersection logic (e.g., ray-sphere)
-        query.CommitProceduralPrimitiveHit(t);
+        uint sphereIndex = query.CandidatePrimitiveIndex();
+        Sphere sphere = spheres[sphereIndex];
+
+        float t = IntersectSphere(ro, rd, sphere);
+
+        if (t >= query.RayTMin() && t <= query.CommittedRayT())
+        {
+            sphereHitNormal = normalize(hitPoint - sphere.Center);
+            sphereHitColor = sphere.Color;
+
+            query.CommitProceduralPrimitiveHit(t);
+        }
     }
 }
 
@@ -629,7 +728,7 @@ if (query.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
 }
 else if (query.CommittedStatus() == COMMITTED_PROCEDURAL_PRIMITIVE_HIT)
 {
-    // Handle procedural hit
+    // Handle procedural hit using stored normal and color
 }
 ```
 
@@ -647,7 +746,7 @@ Key elements:
 
 ### Shadow Rays with RayQuery
 
-Shadow rays test visibility to a light source using a simplified query:
+Shadow rays test visibility to a light source. Note that shadow rays must also handle procedural geometry intersections:
 
 ```slang
 bool TraceShadowRay(float3 origin, float3 direction)
@@ -661,7 +760,21 @@ bool TraceShadowRay(float3 origin, float3 direction)
     RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> shadowQuery;
     shadowQuery.TraceRayInline(scene, RAY_FLAG_NONE, 0xFF, shadowRay);
 
-    shadowQuery.Proceed();
+    while (shadowQuery.Proceed())
+    {
+        if (shadowQuery.CandidateType() == CANDIDATE_PROCEDURAL_PRIMITIVE)
+        {
+            uint sphereIndex = shadowQuery.CandidatePrimitiveIndex();
+            Sphere sphere = spheres[sphereIndex];
+
+            float t = IntersectSphere(ro, rd, sphere);
+
+            if (t >= shadowQuery.RayTMin() && t <= shadowQuery.CommittedRayT())
+            {
+                shadowQuery.CommitProceduralPrimitiveHit(t);
+            }
+        }
+    }
 
     return shadowQuery.CommittedStatus() != COMMITTED_NOTHING;
 }
@@ -676,9 +789,10 @@ resourceLayout = App.Context.CreateResourceLayout(new()
 {
     Bindings = BindingHelper.Bindings
     (
+        new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
         new() { Type = ResourceType.AccelerationStructure, Count = 1, StageFlags = ShaderStageFlags.Compute },
-        new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute },
-        new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute }
+        new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
+        new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute }
     )
 });
 
@@ -697,6 +811,8 @@ Note that all resource bindings use `ShaderStageFlags.Compute` since ray tracing
 ### Dispatching and Display
 
 ```csharp
+constantBuffer.Upload([new SceneConstants { Width = App.Width, Height = App.Height }], 0);
+
 uint dispatchX = (App.Width + ThreadGroupSize - 1) / ThreadGroupSize;
 uint dispatchY = (App.Height + ThreadGroupSize - 1) / ThreadGroupSize;
 
