@@ -437,7 +437,7 @@ This eliminates CPU-GPU synchronization for visibility determination.
 
 Continue with advanced GPU features:
 
-- [Mesh Shading](../advanced/mesh-shading.md) - Process geometry in meshlets using the modern mesh shading pipeline
+- [Ray Tracing](../advanced/ray-tracing.md) - Build acceleration structures, trace rays with `RayQuery`, and implement shadows
 
 ## Source Code
 
