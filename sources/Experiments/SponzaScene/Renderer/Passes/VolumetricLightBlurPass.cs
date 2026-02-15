@@ -15,8 +15,8 @@ internal unsafe class VolumetricLightBlurPass : RenderPass
     private readonly ResourceLayout resourceLayout;
     private readonly ComputePipeline pipeline;
 
-    private ResourceSet? horizontalResourceSet;
-    private ResourceSet? verticalResourceSet;
+    private ResourceTable? horizontalResourceTable;
+    private ResourceTable? verticalResourceTable;
 
     private int iterations = 2;
 
@@ -46,7 +46,7 @@ internal unsafe class VolumetricLightBlurPass : RenderPass
         pipeline = App.Context.CreateComputePipeline(new()
         {
             Compute = cs,
-            ResourceLayouts = [resourceLayout],
+            ResourceLayout = resourceLayout,
             ThreadGroupSizeX = ThreadGroupSize,
             ThreadGroupSizeY = ThreadGroupSize,
             ThreadGroupSizeZ = 1
@@ -55,16 +55,16 @@ internal unsafe class VolumetricLightBlurPass : RenderPass
 
     public override void Resize(uint width, uint height)
     {
-        horizontalResourceSet?.Dispose();
-        horizontalResourceSet = null;
+        horizontalResourceTable?.Dispose();
+        horizontalResourceTable = null;
 
-        verticalResourceSet?.Dispose();
-        verticalResourceSet = null;
+        verticalResourceTable?.Dispose();
+        verticalResourceTable = null;
     }
 
     protected override void ExecuteImpl(CommandBuffer commandBuffer, RenderContext context)
     {
-        EnsureResourceSets(context);
+        EnsureResourceTables(context);
 
         uint dispatchX = (context.Width + ThreadGroupSize - 1) / ThreadGroupSize;
         uint dispatchY = (context.Height + ThreadGroupSize - 1) / ThreadGroupSize;
@@ -74,11 +74,11 @@ internal unsafe class VolumetricLightBlurPass : RenderPass
         for (int i = 0; i < iterations; i++)
         {
             commandBuffer.Upload(constantBuffer, 0, [new BlurConstants() { TexelSize = new(1.0f / context.Width, 0) }]);
-            commandBuffer.SetResourceSet(horizontalResourceSet!, 0);
+            commandBuffer.SetResourceTable(horizontalResourceTable!);
             commandBuffer.Dispatch(dispatchX, dispatchY, 1);
 
             commandBuffer.Upload(constantBuffer, 0, [new BlurConstants() { TexelSize = new(0, 1.0f / context.Height) }]);
-            commandBuffer.SetResourceSet(verticalResourceSet!, 0);
+            commandBuffer.SetResourceTable(verticalResourceTable!);
             commandBuffer.Dispatch(dispatchX, dispatchY, 1);
         }
     }
@@ -92,8 +92,8 @@ internal unsafe class VolumetricLightBlurPass : RenderPass
 
     protected override void Destroy()
     {
-        verticalResourceSet?.Dispose();
-        horizontalResourceSet?.Dispose();
+        verticalResourceTable?.Dispose();
+        horizontalResourceTable?.Dispose();
 
         pipeline.Dispose();
         resourceLayout.Dispose();
@@ -102,9 +102,9 @@ internal unsafe class VolumetricLightBlurPass : RenderPass
         base.Destroy();
     }
 
-    private void EnsureResourceSets(RenderContext context)
+    private void EnsureResourceTables(RenderContext context)
     {
-        horizontalResourceSet ??= App.Context.CreateResourceSet(new()
+        horizontalResourceTable ??= App.Context.CreateResourceTable(new()
         {
             Layout = resourceLayout,
             Resources =
@@ -117,7 +117,7 @@ internal unsafe class VolumetricLightBlurPass : RenderPass
             ]
         });
 
-        verticalResourceSet ??= App.Context.CreateResourceSet(new()
+        verticalResourceTable ??= App.Context.CreateResourceTable(new()
         {
             Layout = resourceLayout,
             Resources =

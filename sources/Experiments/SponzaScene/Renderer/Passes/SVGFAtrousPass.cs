@@ -15,8 +15,8 @@ internal unsafe class SVGFAtrousPass : RenderPass
     private readonly ResourceLayout resourceLayout;
     private readonly ComputePipeline pipeline;
 
-    private ResourceSet? readPingWritePong;
-    private ResourceSet? readPongWritePing;
+    private ResourceTable? readPingWritePong;
+    private ResourceTable? readPongWritePing;
 
     private int iterations = 6;
     private float phiColor = 2.0f;
@@ -49,7 +49,7 @@ internal unsafe class SVGFAtrousPass : RenderPass
         pipeline = App.Context.CreateComputePipeline(new()
         {
             Compute = cs,
-            ResourceLayouts = [resourceLayout],
+            ResourceLayout = resourceLayout,
             ThreadGroupSizeX = ThreadGroupSize,
             ThreadGroupSizeY = ThreadGroupSize,
             ThreadGroupSizeZ = 1
@@ -67,7 +67,7 @@ internal unsafe class SVGFAtrousPass : RenderPass
 
     protected override void ExecuteImpl(CommandBuffer commandBuffer, RenderContext context)
     {
-        EnsureResourceSets(context);
+        EnsureResourceTables(context);
 
         uint dispatchX = (context.Width + ThreadGroupSize - 1) / ThreadGroupSize;
         uint dispatchY = (context.Height + ThreadGroupSize - 1) / ThreadGroupSize;
@@ -88,7 +88,7 @@ internal unsafe class SVGFAtrousPass : RenderPass
             };
 
             commandBuffer.Upload(constantBuffer, 0, [constants]);
-            commandBuffer.SetResourceSet(writeToPong ? readPingWritePong! : readPongWritePing!, 0);
+            commandBuffer.SetResourceTable(writeToPong ? readPingWritePong! : readPongWritePing!);
             commandBuffer.Dispatch(dispatchX, dispatchY, 1);
 
             writeToPong = !writeToPong;
@@ -128,9 +128,9 @@ internal unsafe class SVGFAtrousPass : RenderPass
         base.Destroy();
     }
 
-    private void EnsureResourceSets(RenderContext context)
+    private void EnsureResourceTables(RenderContext context)
     {
-        readPingWritePong ??= App.Context.CreateResourceSet(new()
+        readPingWritePong ??= App.Context.CreateResourceTable(new()
         {
             Layout = resourceLayout,
             Resources =
@@ -143,7 +143,7 @@ internal unsafe class SVGFAtrousPass : RenderPass
             ]
         });
 
-        readPongWritePing ??= App.Context.CreateResourceSet(new()
+        readPongWritePing ??= App.Context.CreateResourceTable(new()
         {
             Layout = resourceLayout,
             Resources =

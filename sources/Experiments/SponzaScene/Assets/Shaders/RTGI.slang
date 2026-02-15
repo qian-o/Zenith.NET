@@ -44,16 +44,6 @@ struct RTGIConstants
     DirectionalLight DirectionalLight;
 };
 
-struct GIPayload
-{
-    float3 Radiance;
-};
-
-struct ShadowPayload
-{
-    bool InShadow;
-};
-
 ConstantBuffer<RTGIConstants> constants;
 RaytracingAccelerationStructure tlas;
 StructuredBuffer<PointLight> pointLights;
@@ -196,12 +186,14 @@ bool TraceShadowRay(float3 origin, float3 direction, float maxDistance)
     shadowRay.TMin = RAY_TMIN;
     shadowRay.TMax = maxDistance;
 
-    ShadowPayload shadowPayload;
-    shadowPayload.InShadow = true;
+    RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> shadowQuery;
+    shadowQuery.TraceRayInline(tlas, RAY_FLAG_NONE, 0xFF, shadowRay);
 
-    TraceRay(tlas, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER, 0xFF, 1, 0, 1, shadowRay, shadowPayload);
+    while (shadowQuery.Proceed())
+    {
+    }
 
-    return shadowPayload.InShadow;
+    return shadowQuery.CommittedStatus() == COMMITTED_TRIANGLE_HIT;
 }
 
 // ============================================
@@ -297,10 +289,16 @@ float3 EstimateOffscreenRadiance(float3 hitPos, float3 rayDir, float hitDistance
     return (directLight + estimatedAlbedo * ambient) * distanceFade;
 }
 
-[shader("raygeneration")]
-void RayGen()
+[numthreads(16, 16, 1)]
+void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
-    uint2 pixelCoord = DispatchRaysIndex().xy;
+    uint2 pixelCoord = dispatchThreadID.xy;
+
+    if (pixelCoord.x >= constants.Width || pixelCoord.y >= constants.Height)
+    {
+        return;
+    }
+
     float2 uv = (float2(pixelCoord) + 0.5) / float2(constants.Width, constants.Height);
 
     float3 worldPos = positionTexture.SampleLevel(linearSampler, uv, 0).xyz;
@@ -327,60 +325,55 @@ void RayGen()
     ray.TMin = RAY_TMIN;
     ray.TMax = RAY_MAX_DISTANCE;
 
-    GIPayload payload;
-    payload.Radiance = float3(0.0);
+    RayQuery<RAY_FLAG_CULL_BACK_FACING_TRIANGLES> query;
+    query.TraceRayInline(tlas, RAY_FLAG_NONE, 0xFF, ray);
 
-    TraceRay(tlas, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 0, 0, ray, payload);
-
-    outputTexture[pixelCoord] = float4(payload.Radiance * constants.Intensity, 1.0);
-}
-
-[shader("miss")]
-void Miss(inout GIPayload payload)
-{
-    payload.Radiance = GetSkyRadiance(WorldRayDirection());
-}
-
-[shader("miss")]
-void ShadowMiss(inout ShadowPayload payload)
-{
-    payload.InShadow = false;
-}
-
-[shader("closesthit")]
-void ClosestHit(inout GIPayload payload, BuiltInTriangleIntersectionAttributes attribs)
-{
-    float3 hitPos = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
-    float3 rayDir = WorldRayDirection();
-
-    float2 hitScreenUV;
-
-    if (ReprojectToScreen(hitPos, constants.ViewProjection, hitScreenUV))
+    while (query.Proceed())
     {
-        float3 hitAlbedo = albedoTexture.SampleLevel(linearSampler, hitScreenUV, 0).rgb;
-        float3 hitNormal = normalTexture.SampleLevel(linearSampler, hitScreenUV, 0).xyz;
-        float hitDepth = depthTexture.SampleLevel(linearSampler, hitScreenUV, 0).r;
-        float3 gbufferPos = positionTexture.SampleLevel(linearSampler, hitScreenUV, 0).xyz;
-
-        float distToGBuffer = length(hitPos - gbufferPos);
-
-        if (hitDepth > EPSILON && distToGBuffer < GBUFFER_DISTANCE_THRESHOLD)
-        {
-            payload.Radiance = CalculateSurfaceRadiance(hitPos, SafeNormalize(hitNormal), hitAlbedo);
-
-            return;
-        }
-
-        if (hitDepth > EPSILON)
-        {
-            float blendFactor = saturate((distToGBuffer - GBUFFER_DISTANCE_THRESHOLD) / GBUFFER_DISTANCE_THRESHOLD);
-            float3 estimatedNormal = SafeNormalize(lerp(hitNormal, -rayDir, blendFactor * 0.4));
-
-            payload.Radiance = CalculateSurfaceRadiance(hitPos, estimatedNormal, hitAlbedo);
-
-            return;
-        }
     }
 
-    payload.Radiance = EstimateOffscreenRadiance(hitPos, rayDir, RayTCurrent());
+    float3 radiance = float3(0.0);
+
+    if (query.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+    {
+        float3 hitPos = rayOrigin + rayDir * query.CommittedRayT();
+
+        float2 hitScreenUV;
+
+        if (ReprojectToScreen(hitPos, constants.ViewProjection, hitScreenUV))
+        {
+            float3 hitAlbedo = albedoTexture.SampleLevel(linearSampler, hitScreenUV, 0).rgb;
+            float3 hitNormal = normalTexture.SampleLevel(linearSampler, hitScreenUV, 0).xyz;
+            float hitDepth = depthTexture.SampleLevel(linearSampler, hitScreenUV, 0).r;
+            float3 gbufferPos = positionTexture.SampleLevel(linearSampler, hitScreenUV, 0).xyz;
+
+            float distToGBuffer = length(hitPos - gbufferPos);
+
+            if (hitDepth > EPSILON && distToGBuffer < GBUFFER_DISTANCE_THRESHOLD)
+            {
+                radiance = CalculateSurfaceRadiance(hitPos, SafeNormalize(hitNormal), hitAlbedo);
+            }
+            else if (hitDepth > EPSILON)
+            {
+                float blendFactor = saturate((distToGBuffer - GBUFFER_DISTANCE_THRESHOLD) / GBUFFER_DISTANCE_THRESHOLD);
+                float3 estimatedNormal = SafeNormalize(lerp(hitNormal, -rayDir, blendFactor * 0.4));
+
+                radiance = CalculateSurfaceRadiance(hitPos, estimatedNormal, hitAlbedo);
+            }
+            else
+            {
+                radiance = EstimateOffscreenRadiance(hitPos, rayDir, query.CommittedRayT());
+            }
+        }
+        else
+        {
+            radiance = EstimateOffscreenRadiance(hitPos, rayDir, query.CommittedRayT());
+        }
+    }
+    else
+    {
+        radiance = GetSkyRadiance(rayDir);
+    }
+
+    outputTexture[pixelCoord] = float4(radiance * constants.Intensity, 1.0);
 }

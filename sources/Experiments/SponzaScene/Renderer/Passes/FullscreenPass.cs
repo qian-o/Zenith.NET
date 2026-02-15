@@ -12,14 +12,12 @@ internal abstract class FullscreenPass : RenderPass
 
     protected FullscreenPass(string name) : base(name)
     {
-        resourceLayout = CreateResourceLayout();
-
         using Shader cs = App.Context.LoadShaderFromFile(GetShaderPath(ShaderName), "CSMain", ShaderStageFlags.Compute);
 
         pipeline = App.Context.CreateComputePipeline(new()
         {
             Compute = cs,
-            ResourceLayouts = resourceLayout is null ? [] : [resourceLayout],
+            ResourceLayout = resourceLayout = CreateResourceLayout(),
             ThreadGroupSizeX = ThreadGroupSize,
             ThreadGroupSizeY = ThreadGroupSize,
             ThreadGroupSizeZ = 1
@@ -38,7 +36,7 @@ internal abstract class FullscreenPass : RenderPass
 
         if (resourceLayout is not null)
         {
-            commandBuffer.SetResourceSet(EnsureResourceSet(resourceLayout, context), 0);
+            commandBuffer.SetResourceTable(EnsureResourceTable(resourceLayout, context));
         }
 
         commandBuffer.Dispatch((context.Width + ThreadGroupSize - 1) / ThreadGroupSize, (context.Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
@@ -56,7 +54,7 @@ internal abstract class FullscreenPass : RenderPass
 
     protected abstract ResourceLayout? CreateResourceLayout();
 
-    protected abstract ResourceSet EnsureResourceSet(ResourceLayout resourceLayout, RenderContext context);
+    protected abstract ResourceTable EnsureResourceTable(ResourceLayout resourceLayout, RenderContext context);
 
     protected abstract void UpdateResources(RenderContext context);
 

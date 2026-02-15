@@ -10,7 +10,7 @@ internal unsafe class GTAOBlurPass : FullscreenPass
 {
     private readonly Buffer constantBuffer;
 
-    private ResourceSet? resourceSet;
+    private ResourceTable? resourceTable;
 
     private int blurSize = 4;
 
@@ -28,8 +28,8 @@ internal unsafe class GTAOBlurPass : FullscreenPass
 
     public override void Resize(uint width, uint height)
     {
-        resourceSet?.Dispose();
-        resourceSet = null;
+        resourceTable?.Dispose();
+        resourceTable = null;
     }
 
     protected override ResourceLayout? CreateResourceLayout()
@@ -47,9 +47,9 @@ internal unsafe class GTAOBlurPass : FullscreenPass
         });
     }
 
-    protected override ResourceSet EnsureResourceSet(ResourceLayout resourceLayout, RenderContext context)
+    protected override ResourceTable EnsureResourceTable(ResourceLayout resourceLayout, RenderContext context)
     {
-        return resourceSet ??= App.Context.CreateResourceSet(new()
+        return resourceTable ??= App.Context.CreateResourceTable(new()
         {
             Layout = resourceLayout,
             Resources =
@@ -81,7 +81,7 @@ internal unsafe class GTAOBlurPass : FullscreenPass
 
     protected override void Destroy()
     {
-        resourceSet?.Dispose();
+        resourceTable?.Dispose();
         constantBuffer.Dispose();
 
         base.Destroy();

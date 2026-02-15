@@ -3,19 +3,16 @@ using Hexa.NET.ImGui;
 using SponzaScene.Helpers;
 using SponzaScene.Models;
 using Zenith.NET;
-using Zenith.NET.Extensions.Slang;
 using Buffer = Zenith.NET.Buffer;
 
 namespace SponzaScene.Renderer.Passes;
 
-internal unsafe class RTGIPass : RenderPass
+internal unsafe class RTGIPass : FullscreenPass
 {
     private readonly Buffer constantBuffer;
     private readonly Buffer pointLightsBuffer;
-    private readonly ResourceLayout resourceLayout;
-    private readonly RayTracingPipeline pipeline;
 
-    private ResourceSet? resourceSet;
+    private ResourceTable? resourceTable;
 
     private float intensity = 1.0f;
 
@@ -35,104 +32,38 @@ internal unsafe class RTGIPass : RenderPass
             Flags = BufferUsageFlags.ShaderResource
         });
         pointLightsBuffer.Upload(App.Sponza.PointLights, 0);
-
-        resourceLayout = App.Context.CreateResourceLayout(new()
-        {
-            Bindings = Bindings
-            (
-                new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.Miss | ShaderStageFlags.ClosestHit },
-                new() { Type = ResourceType.AccelerationStructure, Count = 1, StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.ClosestHit },
-                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.ClosestHit },
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.ClosestHit },
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.ClosestHit },
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.ClosestHit },
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.ClosestHit },
-                new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.RayGeneration },
-                new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.ClosestHit }
-            )
-        });
-
-        string shaderPath = GetShaderPath("RTGI");
-
-        using Shader rayGen = App.Context.LoadShaderFromFile(shaderPath, "RayGen", ShaderStageFlags.RayGeneration);
-        using Shader miss = App.Context.LoadShaderFromFile(shaderPath, "Miss", ShaderStageFlags.Miss);
-        using Shader shadowMiss = App.Context.LoadShaderFromFile(shaderPath, "ShadowMiss", ShaderStageFlags.Miss);
-        using Shader closestHit = App.Context.LoadShaderFromFile(shaderPath, "ClosestHit", ShaderStageFlags.ClosestHit);
-
-        pipeline = App.Context.CreateRayTracingPipeline(new()
-        {
-            RayGeneration = rayGen,
-            Miss = [miss, shadowMiss],
-            AnyHit = [],
-            Intersection = [],
-            ClosestHit = [closestHit],
-            HitGroups =
-            [
-                new()
-                {
-                    Name = "HitGroup",
-                    Type = HitGroupType.Triangles,
-                    ClosestHit = "ClosestHit"
-                },
-                new()
-                {
-                    Name = "ShadowHitGroup",
-                    Type = HitGroupType.Triangles
-                }
-            ],
-            ResourceLayouts = [resourceLayout],
-            MaxTraceRecursionDepth = 2,
-            MaxPayloadSizeInBytes = 32,
-            MaxAttributeSizeInBytes = 8
-        });
     }
+
+    protected override string ShaderName => "RTGI";
 
     public override void Resize(uint width, uint height)
     {
-        resourceSet?.Dispose();
-        resourceSet = null;
+        resourceTable?.Dispose();
+        resourceTable = null;
     }
 
-    protected override void ExecuteImpl(CommandBuffer commandBuffer, RenderContext context)
+    protected override ResourceLayout? CreateResourceLayout()
     {
-        RTGIConstants constants = new()
+        return App.Context.CreateResourceLayout(new()
         {
-            Width = context.Width,
-            Height = context.Height,
-            FrameIndex = context.FrameIndex,
-            Intensity = intensity,
-            ViewProjection = context.View * context.Projection,
-            DirectionalLight = App.Sponza.DirectionalLight
-        };
-
-        constantBuffer.Upload([constants], 0);
-
-        commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetResourceSet(EnsureResourceSet(context), 0);
-        commandBuffer.DispatchRays(context.Width, context.Height, 1);
+            Bindings = Bindings
+            (
+                new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.AccelerationStructure, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Compute }
+            )
+        });
     }
 
-    protected override void DebugUIImpl(RenderContext context)
+    protected override ResourceTable EnsureResourceTable(ResourceLayout resourceLayout, RenderContext context)
     {
-        ImGui.SliderFloat("Intensity", ref intensity, 0.0f, 3.0f);
-
-        ImGuiHelper.Image(context.RTGI!);
-    }
-
-    protected override void Destroy()
-    {
-        resourceSet?.Dispose();
-        pipeline.Dispose();
-        resourceLayout.Dispose();
-        pointLightsBuffer.Dispose();
-        constantBuffer.Dispose();
-
-        base.Destroy();
-    }
-
-    private ResourceSet EnsureResourceSet(RenderContext context)
-    {
-        return resourceSet ??= App.Context.CreateResourceSet(new()
+        return resourceTable ??= App.Context.CreateResourceTable(new()
         {
             Layout = resourceLayout,
             Resources =
@@ -148,6 +79,35 @@ internal unsafe class RTGIPass : RenderPass
                 App.LinearSampler
             ]
         });
+    }
+
+    protected override void UpdateResources(RenderContext context)
+    {
+        constantBuffer.Upload([new RTGIConstants
+        {
+            Width = context.Width,
+            Height = context.Height,
+            FrameIndex = context.FrameIndex,
+            Intensity = intensity,
+            ViewProjection = context.View * context.Projection,
+            DirectionalLight = App.Sponza.DirectionalLight
+        }], 0);
+    }
+
+    protected override void DebugUIImpl(RenderContext context)
+    {
+        ImGui.SliderFloat("Intensity", ref intensity, 0.0f, 3.0f);
+
+        ImGuiHelper.Image(context.RTGI!);
+    }
+
+    protected override void Destroy()
+    {
+        resourceTable?.Dispose();
+        pointLightsBuffer.Dispose();
+        constantBuffer.Dispose();
+
+        base.Destroy();
     }
 }
 
