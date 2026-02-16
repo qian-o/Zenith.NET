@@ -19,7 +19,7 @@ Create a new file `Renderers/ComputeShaderRenderer.cs`:
 ```csharp
 namespace ZenithTutorials.Renderers;
 
-internal unsafe class ComputeShaderRenderer : IRenderer
+internal class ComputeShaderRenderer : IRenderer
 {
     private const uint ThreadGroupSize = 16;
 
@@ -65,7 +65,7 @@ internal unsafe class ComputeShaderRenderer : IRenderer
         outputTexture = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
-            Format = PixelFormat.R8G8B8A8UNorm,
+            Format = PixelFormat.B8G8R8A8UNorm,
             Width = inputTexture.Desc.Width,
             Height = inputTexture.Desc.Height,
             Depth = 1,
@@ -226,7 +226,7 @@ Key elements:
 outputTexture = App.Context.CreateTexture(new()
 {
     Type = TextureType.Texture2D,
-    Format = PixelFormat.R8G8B8A8UNorm,
+    Format = PixelFormat.B8G8R8A8UNorm,
     Width = inputTexture.Desc.Width,
     Height = inputTexture.Desc.Height,
     Depth = 1,

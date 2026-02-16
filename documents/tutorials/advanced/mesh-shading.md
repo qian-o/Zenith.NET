@@ -66,6 +66,8 @@ namespace ZenithTutorials.Renderers;
 
 internal unsafe class MeshShadingRenderer : IRenderer
 {
+    private const uint MaxPrimitives = 126;
+
     private const string ShaderSource = """
         static const uint MaxVertices = 64;
         static const uint MaxPrimitives = 126;
@@ -302,7 +304,10 @@ internal unsafe class MeshShadingRenderer : IRenderer
             Pixel = pixelShader,
             ResourceLayout = resourceLayout,
             PrimitiveTopology = PrimitiveTopology.TriangleList,
-            Output = App.SwapChain.FrameBuffer.Output
+            Output = App.SwapChain.FrameBuffer.Output,
+            MeshThreadGroupSizeX = MaxPrimitives,
+            MeshThreadGroupSizeY = 1,
+            MeshThreadGroupSizeZ = 1
         });
     }
 
@@ -494,14 +499,25 @@ Unlike traditional `Draw` calls, mesh shading uses `DispatchMesh(X, Y, Z)` to la
 pipeline = App.Context.CreateMeshShadingPipeline(new()
 {
     RenderStates = new() { ... },
-    Amplification = null,           // Optional amplification shader
-    Mesh = meshShader,              // Required
-    Pixel = pixelShader,            // Required
+    Amplification = null,
+    Mesh = meshShader,
+    Pixel = pixelShader,
     ResourceLayout = resourceLayout,
     PrimitiveTopology = PrimitiveTopology.TriangleList,
-    Output = App.SwapChain.FrameBuffer.Output
+    Output = App.SwapChain.FrameBuffer.Output,
+    MeshThreadGroupSizeX = MaxPrimitives,
+    MeshThreadGroupSizeY = 1,
+    MeshThreadGroupSizeZ = 1
 });
 ```
+
+The `MeshShadingPipelineDesc` requires:
+- `Amplification` - The compiled amplification shader (optional)
+- `Mesh` - The compiled mesh shader
+- `Pixel` - The compiled pixel shader
+- `ResourceLayout` - Resource bindings (same as graphics pipelines)
+- `ObjectThreadGroupSizeX/Y/Z` - Must match `[numthreads()]` in the amplification shader (if used)
+- `MeshThreadGroupSizeX/Y/Z` - Must match `[numthreads()]` in the mesh shader
 
 ## Amplification Shader (Optional)
 
