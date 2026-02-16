@@ -113,7 +113,7 @@ internal unsafe class TexturedQuadRenderer : IRenderer
             new(new(-0.5f,  0.5f, 0.0f), new(0.0f, 0.0f)),
             new(new( 0.5f,  0.5f, 0.0f), new(1.0f, 0.0f)),
             new(new( 0.5f, -0.5f, 0.0f), new(1.0f, 1.0f)),
-            new(new(-0.5f, -0.5f, 0.0f), new(0.0f, 1.0f)),
+            new(new(-0.5f, -0.5f, 0.0f), new(0.0f, 1.0f))
         ];
 
         uint[] indices = [0, 1, 2, 0, 2, 3];
