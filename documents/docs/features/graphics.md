@@ -1,4 +1,4 @@
-﻿# Graphics Pipeline
+﻿# Graphics
 
 > [!NOTE]
 > This page is under construction.

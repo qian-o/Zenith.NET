@@ -72,11 +72,11 @@ _layout: landing
 
 <div class="feature-list">
     <div class="feature-list-item">
-        <span class="feature-list-title">Graphics Pipeline</span>
+        <span class="feature-list-title">Graphics</span>
         <span class="feature-list-desc">Vertex and pixel shaders with custom render states.</span>
     </div>
     <div class="feature-list-item">
-        <span class="feature-list-title">Compute Pipeline</span>
+        <span class="feature-list-title">Compute</span>
         <span class="feature-list-desc">General-purpose GPU computing for image processing, simulations, and more.</span>
     </div>
     <div class="feature-list-item">

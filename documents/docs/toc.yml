@@ -18,14 +18,14 @@
       href: resources/samplers.md
 - name: Features
   items:
-    - name: Graphics Pipeline
-      href: features/graphics-pipeline.md
-    - name: Compute Pipeline
-      href: features/compute-pipeline.md
-    - name: Mesh Shading Pipeline
-      href: features/mesh-shading-pipeline.md
+    - name: Graphics
+      href: features/graphics.md
+    - name: Compute
+      href: features/compute.md
     - name: Ray Tracing
       href: features/ray-tracing.md
+    - name: Mesh Shading
+      href: features/mesh-shading.md
 - name: Platform
   items:
     - name: Backend Selection

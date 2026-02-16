@@ -1,4 +1,4 @@
-﻿# Mesh Shading Pipeline
+﻿# Mesh Shading
 
 > [!NOTE]
 > This page is under construction.

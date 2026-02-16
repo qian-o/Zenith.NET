@@ -10,7 +10,6 @@ public static class Extensions
         }
     }
 
-
     extension(CommandBuffer commandBuffer)
     {
     }
