@@ -36,18 +36,18 @@ Resources are bound to shaders through two types:
 | Type | Purpose |
 |------|---------|
 | `ResourceLayout` | Declares *what* resources a shader expects (binding slots, types) |
-| `ResourceSet` | Provides *actual* resources matching a layout |
+| `ResourceTable` | Provides *actual* resources matching a layout |
 
-Pipelines reference one or more `ResourceLayout` objects, and you bind corresponding `ResourceSet` objects before draw/dispatch calls.
+Pipelines reference a single `ResourceLayout`, and you bind a corresponding `ResourceTable` before draw/dispatch calls.
 
-## Pipeline Types
+## Features
 
-| Pipeline | Description |
-|----------|-------------|
-| `GraphicsPipeline` | Traditional rasterization with vertex and pixel shaders |
-| `ComputePipeline` | General-purpose GPU compute with compute shaders |
-| `RayTracingPipeline` | Hardware ray tracing with ray generation, hit, and miss shaders |
-| `MeshShadingPipeline` | Modern GPU-driven geometry with mesh and amplification shaders |
+| Feature | Description |
+|---------|-------------|
+| **Graphics** | Traditional rasterization with vertex and pixel shaders |
+| **Compute** | General-purpose GPU compute with compute shaders |
+| **Ray Tracing** | Hardware-accelerated BLAS/TLAS with `RayQuery` in any shader stage |
+| **Mesh Shading** | Modern GPU-driven geometry with mesh and amplification shaders |
 
 ## Platform Support
 
@@ -68,7 +68,7 @@ Pipelines reference one or more `ResourceLayout` objects, and you bind correspon
 
 ### Command Recording
 
-- **Batch similar operations** to reduce pipeline and resource set switches
+- **Batch similar operations** to reduce pipeline and resource table switches
 - **Minimize render pass switches** by grouping draws with the same targets
 - Call `queue.WaitIdle()` only when synchronization is required
 

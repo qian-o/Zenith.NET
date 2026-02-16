@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct ResourceSetDesc
+public record struct ResourceTableDesc
 {
     public ResourceLayout Layout;
 

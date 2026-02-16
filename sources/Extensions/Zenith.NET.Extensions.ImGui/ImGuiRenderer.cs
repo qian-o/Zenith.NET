@@ -104,6 +104,25 @@ float4 PSMain(VSOutput input) : SV_TARGET
         ]
     };
 
+    private readonly string[] Metallib =
+    [
+        // Vertex Shader - Legacy
+
+        // Vertex Shader - Linear
+
+        // Pixel Shader
+    ];
+
+    private readonly ResourceLayoutDesc MetallibDesc = new()
+    {
+        Bindings =
+        [
+            new() { Type = ResourceType.ConstantBuffer, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Vertex },
+            new() { Type = ResourceType.Texture, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel },
+            new() { Type = ResourceType.Sampler, Index = 0, Count = 1, StageFlags = ShaderStageFlags.Pixel }
+        ]
+    };
+
     private readonly Buffer constants;
     private readonly Sampler sampler;
     private readonly ResourceLayout resourceLayout;
@@ -111,7 +130,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
     private readonly Dictionary<Texture, ImTextureID> textureBindings = [];
     private readonly Dictionary<TextureView, ImTextureID> textureViewBindings = [];
     private readonly Dictionary<ImTextureID, Texture> imTextures = [];
-    private readonly Dictionary<ImTextureID, ResourceSet> imResourceSets = [];
+    private readonly Dictionary<ImTextureID, ResourceTable> imResourceTables = [];
 
     private Buffer? vertexBuffer;
     private Buffer? indexBuffer;
@@ -133,6 +152,12 @@ float4 PSMain(VSOutput input) : SV_TARGET
                 vertexShaderBytes = Convert.FromHexString(colorSpace is ImGuiColorSpace.Legacy ? Spirv[0] : Spirv[1]);
                 pixelShaderBytes = Convert.FromHexString(Spirv[2]);
                 resourceLayoutDesc = SpirvDesc;
+                break;
+
+            case Backend.Metal:
+                vertexShaderBytes = Convert.FromHexString(colorSpace is ImGuiColorSpace.Legacy ? Metallib[0] : Metallib[1]);
+                pixelShaderBytes = Convert.FromHexString(Metallib[2]);
+                resourceLayoutDesc = MetallibDesc;
                 break;
         }
 
@@ -165,8 +190,6 @@ float4 PSMain(VSOutput input) : SV_TARGET
             Filter = Filter.MinPointMagPointMipPoint
         });
 
-        resourceLayout = context.CreateResourceLayout(resourceLayoutDesc);
-
         InputLayout inputLayout = new();
         inputLayout.Add(new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.Position });
         inputLayout.Add(new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.TexCoord });
@@ -182,7 +205,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
             },
             Vertex = vertex,
             Pixel = pixel,
-            ResourceLayouts = [resourceLayout],
+            ResourceLayout = resourceLayout = context.CreateResourceLayout(resourceLayoutDesc),
             InputLayouts = [inputLayout],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
             Output = output
@@ -198,12 +221,12 @@ float4 PSMain(VSOutput input) : SV_TARGET
         if (!textureBindings.TryGetValue(texture, out ImTextureID textureID))
         {
             ulong id = 0;
-            while (imResourceSets.ContainsKey(id))
+            while (imResourceTables.ContainsKey(id))
             {
                 id++;
             }
 
-            imResourceSets[textureBindings[texture] = textureID = id] = Context.CreateResourceSet(new()
+            imResourceTables[textureBindings[texture] = textureID = id] = Context.CreateResourceTable(new()
             {
                 Layout = resourceLayout,
                 Resources = [constants, texture, sampler]
@@ -218,12 +241,12 @@ float4 PSMain(VSOutput input) : SV_TARGET
         if (!textureViewBindings.TryGetValue(textureView, out ImTextureID textureID))
         {
             ulong id = 0;
-            while (imResourceSets.ContainsKey(id))
+            while (imResourceTables.ContainsKey(id))
             {
                 id++;
             }
 
-            imResourceSets[textureViewBindings[textureView] = textureID = id] = Context.CreateResourceSet(new()
+            imResourceTables[textureViewBindings[textureView] = textureID = id] = Context.CreateResourceTable(new()
             {
                 Layout = resourceLayout,
                 Resources = [constants, textureView, sampler]
@@ -235,9 +258,9 @@ float4 PSMain(VSOutput input) : SV_TARGET
 
     public void RemoveBinding(ImTextureID textureID)
     {
-        if (imResourceSets.Remove(textureID, out ResourceSet? resourceSet))
+        if (imResourceTables.Remove(textureID, out ResourceTable? resourceTable))
         {
-            resourceSet.Dispose();
+            resourceTable.Dispose();
         }
 
         if (textureBindings.FirstOrDefault(kv => kv.Value == textureID).Key is Texture texture)
@@ -410,7 +433,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
 
         commandBuffer.BeginDebugEvent("ImGui");
 
-        commandBuffer.BeginRenderPass(frameBuffer, clearValue, imResourceSets.Values);
+        commandBuffer.BeginRenderPass(frameBuffer, clearValue, imResourceTables.Values);
 
         commandBuffer.SetPipeline(graphicsPipeline);
         commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
@@ -446,7 +469,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
                     }
 
                     commandBuffer.SetScissors([scissor]);
-                    commandBuffer.SetResourceSet(imResourceSets[drawCmd.TexRef.GetTexID()], 0);
+                    commandBuffer.SetResourceTable(imResourceTables[drawCmd.TexRef.GetTexID()]);
                     commandBuffer.DrawIndexed(drawCmd.ElemCount, 1, (uint)(drawCmd.IdxOffset + indexOffset), (int)(drawCmd.VtxOffset + vertexOffset), 0);
                 }
             }
@@ -465,11 +488,11 @@ float4 PSMain(VSOutput input) : SV_TARGET
         indexBuffer?.Dispose();
         vertexBuffer?.Dispose();
 
-        foreach (ResourceSet resourceSet in imResourceSets.Values)
+        foreach (ResourceTable resourceTable in imResourceTables.Values)
         {
-            resourceSet.Dispose();
+            resourceTable.Dispose();
         }
-        imResourceSets.Clear();
+        imResourceTables.Clear();
 
         foreach (Texture texture in imTextures.Values)
         {

@@ -2,7 +2,6 @@
 using Hexa.NET.ImGui;
 using SponzaScene.Helpers;
 using Zenith.NET;
-using Zenith.NET.Extensions.Slang;
 using Buffer = Zenith.NET.Buffer;
 
 namespace SponzaScene.Renderer.Passes;
@@ -11,7 +10,7 @@ internal unsafe class SVGFTemporalPass : FullscreenPass
 {
     private readonly Buffer constantBuffer;
 
-    private ResourceSet? resourceSet;
+    private ResourceTable? resourceTable;
     private Matrix4x4 prevViewProjection;
 
     private float colorBoxSigma = 2.0f;
@@ -33,8 +32,8 @@ internal unsafe class SVGFTemporalPass : FullscreenPass
 
     public override void Resize(uint width, uint height)
     {
-        resourceSet?.Dispose();
-        resourceSet = null;
+        resourceTable?.Dispose();
+        resourceTable = null;
     }
 
     protected override ResourceLayout? CreateResourceLayout()
@@ -59,9 +58,9 @@ internal unsafe class SVGFTemporalPass : FullscreenPass
         });
     }
 
-    protected override ResourceSet EnsureResourceSet(ResourceLayout resourceLayout, RenderContext context)
+    protected override ResourceTable EnsureResourceTable(ResourceLayout resourceLayout, RenderContext context)
     {
-        return resourceSet ??= App.Context.CreateResourceSet(new()
+        return resourceTable ??= App.Context.CreateResourceTable(new()
         {
             Layout = resourceLayout,
             Resources =
@@ -144,7 +143,7 @@ internal unsafe class SVGFTemporalPass : FullscreenPass
 
     protected override void Destroy()
     {
-        resourceSet?.Dispose();
+        resourceTable?.Dispose();
         constantBuffer.Dispose();
 
         base.Destroy();

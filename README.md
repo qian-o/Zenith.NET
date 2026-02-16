@@ -29,9 +29,9 @@ Visit the [documentation site](https://qian-o.github.io/Zenith.NET/) for tutoria
 ## ✨ Features
 
 - 🎯 **Unified API** — Write once, run on DirectX 12, Metal, and Vulkan
-- 🎨 **Graphics Pipeline** — Vertex, hull, domain, geometry, and pixel shaders
-- ⚡ **Compute Pipeline** — General-purpose GPU computing
-- 💡 **Ray Tracing** — Hardware-accelerated BLAS/TLAS and hit groups
+- 🎨 **Graphics** — Vertex and pixel shaders
+- ⚡ **Compute** — General-purpose GPU computing
+- 💡 **Ray Tracing** — Hardware-accelerated BLAS/TLAS with RayQuery in any shader stage
 - 🔷 **Mesh Shading** — GPU-driven geometry with mesh and amplification shaders
 - 🖼️ **UI Integrations** — Avalonia, MAUI, WinForms, WinUI, WPF, and Uno Platform
 

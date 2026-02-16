@@ -10,8 +10,6 @@ public record struct RayTracingInstance
 
     public byte InstanceMask;
 
-    public uint InstanceContributionToHitGroupIndex;
-
     public Matrix4x4 Transform;
 
     public RayTracingInstanceFlags Flags;

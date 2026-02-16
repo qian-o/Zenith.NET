@@ -40,7 +40,7 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
 
         ShaderResourceViewDesc viewDesc = new()
         {
-            Format = CompatibleDepthFormat(Desc.Texture.Desc.Format),
+            Format = Resolve(Desc.Texture.Desc.Format),
             Shader4ComponentMapping = DXGraphicsContext.Shader4ComponentMapping
         };
 
@@ -130,7 +130,7 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
     {
         DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate(1);
 
-        UnorderedAccessViewDesc viewDesc = new() { Format = CompatibleDepthFormat(Desc.Texture.Desc.Format) };
+        UnorderedAccessViewDesc viewDesc = new() { Format = Resolve(Desc.Texture.Desc.Format) };
 
         switch (Desc.Texture.Desc.Type)
         {
@@ -194,7 +194,7 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
         return token;
     }
 
-    private static Format CompatibleDepthFormat(PixelFormat pixelFormat)
+    private static Format Resolve(PixelFormat pixelFormat)
     {
         return pixelFormat switch
         {

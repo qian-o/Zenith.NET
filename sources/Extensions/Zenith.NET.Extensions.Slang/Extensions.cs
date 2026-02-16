@@ -13,8 +13,7 @@ public static class Extensions
                 file,
                 "-entry", entryPoint,
                 "-stage", stage.ToString().ToLowerInvariant(),
-                "-matrix-layout-row-major",
-                "-preserve-params"
+                "-matrix-layout-row-major"
             ];
 
             if (searchPaths is not null)
@@ -32,7 +31,7 @@ public static class Extensions
                     break;
 
                 case Backend.Metal:
-                    arguments.AddRange(["-target", "metal"]);
+                    arguments.AddRange(["-target", "metallib"]);
                     break;
 
                 case Backend.Vulkan:

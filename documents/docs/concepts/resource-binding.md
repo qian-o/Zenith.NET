@@ -6,5 +6,5 @@
 This topic covers:
 
 - Declaring bindings with `ResourceLayout`
-- Binding resources with `ResourceSet`
+- Binding resources with `ResourceTable`
 - Index scheme differences across backends

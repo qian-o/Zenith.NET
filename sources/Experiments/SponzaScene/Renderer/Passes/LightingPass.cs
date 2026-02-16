@@ -12,7 +12,7 @@ internal unsafe class LightingPass : FullscreenPass
     private readonly Buffer pointLightsBuffer;
     private readonly Buffer csmDatasBuffer;
 
-    private ResourceSet? resourceSet;
+    private ResourceTable? resourceTable;
 
     public LightingPass() : base("Lighting Pass")
     {
@@ -43,8 +43,8 @@ internal unsafe class LightingPass : FullscreenPass
 
     public override void Resize(uint width, uint height)
     {
-        resourceSet?.Dispose();
-        resourceSet = null;
+        resourceTable?.Dispose();
+        resourceTable = null;
     }
 
     protected override ResourceLayout? CreateResourceLayout()
@@ -71,9 +71,9 @@ internal unsafe class LightingPass : FullscreenPass
         });
     }
 
-    protected override ResourceSet EnsureResourceSet(ResourceLayout resourceLayout, RenderContext context)
+    protected override ResourceTable EnsureResourceTable(ResourceLayout resourceLayout, RenderContext context)
     {
-        return resourceSet ??= App.Context.CreateResourceSet(new()
+        return resourceTable ??= App.Context.CreateResourceTable(new()
         {
             Layout = resourceLayout,
             Resources =
@@ -117,7 +117,7 @@ internal unsafe class LightingPass : FullscreenPass
 
     protected override void Destroy()
     {
-        resourceSet?.Dispose();
+        resourceTable?.Dispose();
         csmDatasBuffer.Dispose();
         pointLightsBuffer.Dispose();
         constantBuffer.Dispose();

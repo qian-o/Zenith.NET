@@ -1,6 +1,6 @@
 ﻿# Ray Tracing
 
-In this tutorial, you'll learn how to use hardware-accelerated ray tracing with Zenith.NET. We'll render a scene with a checkered floor and two spheres, demonstrating triangle geometry, procedural geometry (AABBs), and hard shadows.
+In this tutorial, you'll learn how to use hardware-accelerated ray tracing with Zenith.NET. We'll render a scene with a checkered floor and a sphere, demonstrating acceleration structure construction and compute-shader-based ray tracing with `RayQuery`.
 
 > [!NOTE]
 > This tutorial requires a GPU with ray tracing support. Check `Context.Capabilities.RayTracingSupported` before using ray tracing features.
@@ -9,27 +9,25 @@ In this tutorial, you'll learn how to use hardware-accelerated ray tracing with 
 
 We'll create a `RayTracingRenderer` class that:
 
-- Creates a checkered floor using triangle geometry
-- Creates two spheres using procedural AABBs with a custom intersection shader
-- Builds separate BLAS for floor and spheres, combined in a TLAS
+- Creates floor geometry using triangle buffers
+- Creates a sphere using procedural AABBs
+- Builds separate BLAS for floor and sphere, combined in a TLAS
+- Uses a compute shader with `RayQuery` for ray tracing
 - Implements shadow rays for hard shadows
-- Creates a ray tracing pipeline with multiple hit groups
 - Copies the result to the swap chain for display
 
 ## Key Concepts
 
-### Two Ways to Use Ray Tracing
+### Ray Tracing with RayQuery
 
-There are two approaches to use hardware ray tracing:
+Zenith.NET uses `RayQuery` for ray tracing. This approach binds the acceleration structure as a regular resource and performs all ray tracing logic within a single shader:
 
-| Aspect | Ray Tracing Pipeline | Inline Ray Tracing (RayQuery) |
-|--------|----------------------|-------------------------------|
-| **Shader Stages** | RayGen, Miss, ClosestHit, AnyHit, Intersection | Any shader (CS, PS, etc.) |
-| **Setup Complexity** | Requires dedicated pipeline and hit groups | Bind acceleration structure only |
-| **Hit/Miss Logic** | Separated into different shaders | All logic in one shader |
-| **Best For** | Complex materials, multiple ray types | Simple queries, shadows, AO |
-
-This tutorial covers the **Ray Tracing Pipeline** approach. For Inline Ray Tracing, simply bind the acceleration structure to your compute/graphics pipeline and use `RayQuery` in your shader.
+| Aspect | Description |
+|--------|-------------|
+| **Shader Stage** | Any shader (typically compute) |
+| **Setup** | Bind acceleration structure to any pipeline |
+| **Hit/Miss Logic** | All logic in one shader using `RayQuery` API |
+| **Best For** | Shadows, AO, GI, reflections — any ray tracing workload |
 
 ### Acceleration Structures
 
@@ -41,33 +39,13 @@ Ray tracing uses a two-level acceleration structure hierarchy:
 ```
 TLAS (scene)
 ├── Instance 0 → BLAS 0 (floor, triangles)
-├── Instance 1 → BLAS 1 (spheres, AABBs)
+├── Instance 1 → BLAS 1 (sphere, AABBs)
 ├── Instance 2 → BLAS 0 (same geometry, different transform)
 └── ...
 ```
 
 > [!IMPORTANT]
 > Acceleration structure transforms only support rotation and scale. Translation is **not supported** - use the geometry's world-space coordinates directly.
-
-### Ray Tracing Pipeline Stages
-
-| Shader Stage | When Called |
-|--------------|-------------|
-| **Ray Generation** | Entry point - invoked for each pixel/thread |
-| **Miss** | When the ray hits nothing |
-| **Any Hit** | For each potential intersection - can accept/reject hit (alpha testing) |
-| **Intersection** | For procedural geometry (AABBs) to compute ray-geometry intersection |
-| **Closest Hit** | Once per ray, for the nearest accepted intersection |
-
-### Hit Groups
-
-Hit Groups bundle shaders that work together for a specific geometry type:
-
-| Shader | Required | Description |
-|--------|----------|-------------|
-| **AnyHit** | Optional | Called for each potential hit (alpha testing, transparency) |
-| **Intersection** | Optional | Custom intersection for procedural geometry. Required only for AABBs, triangles use built-in intersection. |
-| **ClosestHit** | Optional | Called for the closest intersection point |
 
 ## The Renderer Class
 
@@ -78,7 +56,8 @@ namespace ZenithTutorials.Renderers;
 
 internal unsafe class RayTracingRenderer : IRenderer
 {
-    // Ray tracing shader source
+    private const uint ThreadGroupSize = 16;
+
     private const string ShaderSource = """
         struct Sphere
         {
@@ -91,46 +70,96 @@ internal unsafe class RayTracingRenderer : IRenderer
             float Padding;
         };
 
-        struct Payload
-        {
-            float3 Color;
-
-            float T;
-        };
-
-        struct ShadowPayload
-        {
-            bool InShadow;
-        };
-
-        struct SphereAttributes
-        {
-            float3 Normal;
-        };
-
-        // Resources
         RaytracingAccelerationStructure scene;
-        RWTexture2D<float4> outputTexture;
         StructuredBuffer<Sphere> spheres;
+        RWTexture2D<float4> outputTexture;
 
-        // Constants
         static const float3 LightDir = normalize(float3(1.0, 1.0, -0.5));
         static const float3 LightColor = float3(1.0, 0.98, 0.95);
         static const float3 AmbientColor = float3(0.1, 0.1, 0.15);
 
-        [shader("raygeneration")]
-        void RayGen()
+        float IntersectSphere(float3 origin, float3 direction, Sphere sphere)
         {
-            uint2 pixelCoord = DispatchRaysIndex().xy;
-            uint2 dimensions = DispatchRaysDimensions().xy;
+            float3 oc = origin - sphere.Center;
 
-            // Camera setup - perspective projection
-            float2 uv = (float2(pixelCoord) + 0.5) / float2(dimensions);
+            float a = dot(direction, direction);
+            float b = dot(oc, direction);
+            float c = dot(oc, oc) - sphere.Radius * sphere.Radius;
+            float discriminant = b * b - a * c;
+
+            if (discriminant > 0.0)
+            {
+                float sqrtD = sqrt(discriminant);
+                float t1 = (-b - sqrtD) / a;
+
+                if (t1 > 0.0)
+                {
+                    return t1;
+                }
+
+                float t2 = (-b + sqrtD) / a;
+
+                if (t2 > 0.0)
+                {
+                    return t2;
+                }
+            }
+
+            return -1.0;
+        }
+
+        bool TraceShadowRay(float3 origin, float3 direction)
+        {
+            RayDesc shadowRay;
+            shadowRay.Origin = origin;
+            shadowRay.Direction = direction;
+            shadowRay.TMin = 0.001;
+            shadowRay.TMax = 1000.0;
+
+            RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> shadowQuery;
+            shadowQuery.TraceRayInline(scene, RAY_FLAG_NONE, 0xFF, shadowRay);
+
+            while (shadowQuery.Proceed())
+            {
+                if (shadowQuery.CandidateType() == CANDIDATE_PROCEDURAL_PRIMITIVE)
+                {
+                    uint sphereIndex = shadowQuery.CandidatePrimitiveIndex();
+                    Sphere sphere = spheres[sphereIndex];
+
+                    float3 ro = shadowQuery.CandidateObjectRayOrigin();
+                    float3 rd = shadowQuery.CandidateObjectRayDirection();
+
+                    float t = IntersectSphere(ro, rd, sphere);
+
+                    if (t >= shadowQuery.RayTMin() && t <= shadowQuery.CommittedRayT())
+                    {
+                        shadowQuery.CommitProceduralPrimitiveHit(t);
+                    }
+                }
+            }
+
+            return shadowQuery.CommittedStatus() != COMMITTED_NOTHING;
+        }
+
+        [numthreads(16, 16, 1)]
+        void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+        {
+            uint2 pixelCoord = dispatchThreadID.xy;
+
+            uint width, height;
+            outputTexture.GetDimensions(width, height);
+
+            if (pixelCoord.x >= width || pixelCoord.y >= height)
+            {
+                return;
+            }
+
+            float2 uv = (float2(pixelCoord) + 0.5) / float2(width, height);
             float2 ndc = uv * 2.0 - 1.0;
             ndc.y = -ndc.y;
 
-            float aspectRatio = float(dimensions.x) / float(dimensions.y);
-            float fov = tan(radians(45.0) * 0.5);  // 45 degree FOV
+            float aspectRatio = float(width) / float(height);
+            float fov = tan(radians(45.0) * 0.5);
 
             float3 cameraPos = float3(0.0, 4.0, -12.0);
             float3 cameraTarget = float3(0.0, 0.0, 0.0);
@@ -148,139 +177,85 @@ internal unsafe class RayTracingRenderer : IRenderer
             ray.TMin = 0.001;
             ray.TMax = 1000.0;
 
-            Payload payload;
-            payload.Color = float3(0.0, 0.0, 0.0);
-            payload.T = -1.0;
+            float3 sphereHitNormal = float3(0.0);
+            float3 sphereHitColor = float3(0.0);
 
-            TraceRay(scene, RAY_FLAG_NONE, 0xFF, 0, 0, 0, ray, payload);
+            RayQuery<RAY_FLAG_NONE> query;
+            query.TraceRayInline(scene, RAY_FLAG_NONE, 0xFF, ray);
 
-            // Gamma correction
-            float3 color = pow(payload.Color, 1.0 / 2.2);
-
-            outputTexture[pixelCoord] = float4(color, 1.0);
-        }
-
-        [shader("miss")]
-        void Miss(inout Payload payload)
-        {
-            // Sky gradient background
-            float3 rayDir = WorldRayDirection();
-            float t = 0.5 * (rayDir.y + 1.0);
-
-            payload.Color = lerp(float3(1.0, 1.0, 1.0), float3(0.5, 0.7, 1.0), t);
-        }
-
-        [shader("miss")]
-        void ShadowMiss(inout ShadowPayload payload)
-        {
-            payload.InShadow = false;
-        }
-
-        bool TraceShadowRay(float3 origin, float3 direction)
-        {
-            RayDesc shadowRay;
-            shadowRay.Origin = origin;
-            shadowRay.Direction = direction;
-            shadowRay.TMin = 0.001;
-            shadowRay.TMax = 1000.0;
-
-            ShadowPayload shadowPayload;
-            shadowPayload.InShadow = true;
-
-            TraceRay(scene,
-                     RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER,
-                     0xFF, 0, 0, 1, shadowRay, shadowPayload);
-
-            return shadowPayload.InShadow;
-        }
-
-        [shader("closesthit")]
-        void FloorClosestHit(inout Payload payload, BuiltInTriangleIntersectionAttributes attribs)
-        {
-            float3 hitPoint = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
-
-            // Checkerboard pattern
-            float scale = 1.0;
-            int checkX = int(floor(hitPoint.x * scale));
-            int checkZ = int(floor(hitPoint.z * scale));
-            bool isWhite = ((checkX + checkZ) & 1) == 0;
-            float3 baseColor = isWhite ? float3(0.9, 0.9, 0.9) : float3(0.2, 0.2, 0.2);
-
-            float3 normal = float3(0.0, 1.0, 0.0);
-            float NdotL = max(dot(normal, LightDir), 0.0);
-
-            // Shadow test
-            float3 shadowOrigin = hitPoint + normal * 0.001;
-            bool inShadow = TraceShadowRay(shadowOrigin, LightDir);
-
-            float shadow = inShadow ? 0.3 : 1.0;
-            float3 diffuse = baseColor * LightColor * NdotL * shadow;
-            float3 ambient = baseColor * AmbientColor;
-
-            payload.Color = ambient + diffuse;
-            payload.T = RayTCurrent();
-        }
-
-        [shader("intersection")]
-        void SphereIntersection()
-        {
-            uint sphereIndex = PrimitiveIndex();
-            Sphere sphere = spheres[sphereIndex];
-
-            float3 origin = ObjectRayOrigin();
-            float3 direction = ObjectRayDirection();
-            float3 oc = origin - sphere.Center;
-
-            float a = dot(direction, direction);
-            float b = dot(oc, direction);
-            float c = dot(oc, oc) - sphere.Radius * sphere.Radius;
-            float discriminant = b * b - a * c;
-
-            if (discriminant > 0.0)
+            while (query.Proceed())
             {
-                float sqrtD = sqrt(discriminant);
-                float t1 = (-b - sqrtD) / a;
-                float t2 = (-b + sqrtD) / a;
-
-                float t = t1;
-                if (t < RayTMin() || t > RayTCurrent())
+                if (query.CandidateType() == CANDIDATE_PROCEDURAL_PRIMITIVE)
                 {
-                    t = t2;
-                }
+                    uint sphereIndex = query.CandidatePrimitiveIndex();
+                    Sphere sphere = spheres[sphereIndex];
 
-                if (t >= RayTMin() && t <= RayTCurrent())
-                {
-                    float3 hitPoint = origin + t * direction;
-                    float3 normal = normalize(hitPoint - sphere.Center);
+                    float3 ro = query.CandidateObjectRayOrigin();
+                    float3 rd = query.CandidateObjectRayDirection();
 
-                    SphereAttributes attr;
-                    attr.Normal = normal;
+                    float t = IntersectSphere(ro, rd, sphere);
 
-                    ReportHit(t, 0, attr);
+                    if (t >= query.RayTMin() && t <= query.CommittedRayT())
+                    {
+                        float3 hitPoint = ro + rd * t;
+
+                        sphereHitNormal = normalize(hitPoint - sphere.Center);
+                        sphereHitColor = sphere.Color;
+
+                        query.CommitProceduralPrimitiveHit(t);
+                    }
                 }
             }
-        }
 
-        [shader("closesthit")]
-        void SphereClosestHit(inout Payload payload, SphereAttributes attribs)
-        {
-            uint sphereIndex = PrimitiveIndex();
-            Sphere sphere = spheres[sphereIndex];
+            float3 color;
 
-            float3 hitPoint = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
-            float3 normal = attribs.Normal;
-            float NdotL = max(dot(normal, LightDir), 0.0);
+            if (query.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+            {
+                float3 hitPoint = ray.Origin + ray.Direction * query.CommittedRayT();
 
-            // Shadow test
-            float3 shadowOrigin = hitPoint + normal * 0.001;
-            bool inShadow = TraceShadowRay(shadowOrigin, LightDir);
+                float scale = 1.0;
+                int checkX = int(floor(hitPoint.x * scale));
+                int checkZ = int(floor(hitPoint.z * scale));
+                bool isWhite = ((checkX + checkZ) & 1) == 0;
+                float3 baseColor = isWhite ? float3(0.9, 0.9, 0.9) : float3(0.2, 0.2, 0.2);
 
-            float shadow = inShadow ? 0.3 : 1.0;
-            float3 diffuse = sphere.Color * LightColor * NdotL * shadow;
-            float3 ambient = sphere.Color * AmbientColor;
+                float3 normal = float3(0.0, 1.0, 0.0);
+                float NdotL = max(dot(normal, LightDir), 0.0);
 
-            payload.Color = ambient + diffuse;
-            payload.T = RayTCurrent();
+                float3 shadowOrigin = hitPoint + normal * 0.001;
+                bool inShadow = TraceShadowRay(shadowOrigin, LightDir);
+
+                float shadow = inShadow ? 0.3 : 1.0;
+                float3 diffuse = baseColor * LightColor * NdotL * shadow;
+                float3 ambient = baseColor * AmbientColor;
+
+                color = ambient + diffuse;
+            }
+            else if (query.CommittedStatus() == COMMITTED_PROCEDURAL_PRIMITIVE_HIT)
+            {
+                float3 hitPoint = ray.Origin + ray.Direction * query.CommittedRayT();
+
+                float NdotL = max(dot(sphereHitNormal, LightDir), 0.0);
+
+                float3 shadowOrigin = hitPoint + sphereHitNormal * 0.001;
+                bool inShadow = TraceShadowRay(shadowOrigin, LightDir);
+
+                float shadow = inShadow ? 0.3 : 1.0;
+                float3 diffuse = sphereHitColor * LightColor * NdotL * shadow;
+                float3 ambient = sphereHitColor * AmbientColor;
+
+                color = ambient + diffuse;
+            }
+            else
+            {
+                float t = 0.5 * (rayDir.y + 1.0);
+
+                color = lerp(float3(1.0, 1.0, 1.0), float3(0.5, 0.7, 1.0), t);
+            }
+
+            color = pow(color, 1.0 / 2.2);
+
+            outputTexture[pixelCoord] = float4(color, 1.0);
         }
         """;
 
@@ -292,9 +267,9 @@ internal unsafe class RayTracingRenderer : IRenderer
     private readonly BottomLevelAccelerationStructure sphereBlas;
     private readonly TopLevelAccelerationStructure tlas;
     private readonly ResourceLayout resourceLayout;
-    private readonly RayTracingPipeline pipeline;
+    private readonly ComputePipeline pipeline;
     private Texture? outputTexture;
-    private ResourceSet? resourceSet;
+    private ResourceTable? resourceTable;
 
     public RayTracingRenderer()
     {
@@ -411,7 +386,6 @@ internal unsafe class RayTracingRenderer : IRenderer
                     AccelerationStructure = floorBlas,
                     InstanceID = 0,
                     InstanceMask = 0xFF,
-                    InstanceContributionToHitGroupIndex = 0,
                     Transform = Matrix4x4.Identity,
                     Flags = RayTracingInstanceFlags.None
                 },
@@ -420,7 +394,6 @@ internal unsafe class RayTracingRenderer : IRenderer
                     AccelerationStructure = sphereBlas,
                     InstanceID = 1,
                     InstanceMask = 0xFF,
-                    InstanceContributionToHitGroupIndex = 1,
                     Transform = Matrix4x4.Identity,
                     Flags = RayTracingInstanceFlags.None
                 }
@@ -434,61 +407,21 @@ internal unsafe class RayTracingRenderer : IRenderer
         {
             Bindings = BindingHelper.Bindings
             (
-                new()
-                {
-                    Type = ResourceType.AccelerationStructure,
-                    Count = 1,
-                    StageFlags = ShaderStageFlags.RayGeneration | ShaderStageFlags.ClosestHit
-                },
-                new()
-                {
-                    Type = ResourceType.TextureReadWrite,
-                    Count = 1,
-                    StageFlags = ShaderStageFlags.RayGeneration
-                },
-                new()
-                {
-                    Type = ResourceType.StructuredBuffer,
-                    Count = 1,
-                    StageFlags = ShaderStageFlags.Intersection | ShaderStageFlags.ClosestHit
-                }
+                new() { Type = ResourceType.AccelerationStructure, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
+                new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute }
             )
         });
 
-        using Shader rayGenShader = App.Context.LoadShaderFromSource(ShaderSource, "RayGen", ShaderStageFlags.RayGeneration);
-        using Shader missShader = App.Context.LoadShaderFromSource(ShaderSource, "Miss", ShaderStageFlags.Miss);
-        using Shader shadowMissShader = App.Context.LoadShaderFromSource(ShaderSource, "ShadowMiss", ShaderStageFlags.Miss);
-        using Shader floorClosestHitShader = App.Context.LoadShaderFromSource(ShaderSource, "FloorClosestHit", ShaderStageFlags.ClosestHit);
-        using Shader sphereIntersectionShader = App.Context.LoadShaderFromSource(ShaderSource, "SphereIntersection", ShaderStageFlags.Intersection);
-        using Shader sphereClosestHitShader = App.Context.LoadShaderFromSource(ShaderSource, "SphereClosestHit", ShaderStageFlags.ClosestHit);
+        using Shader computeShader = App.Context.LoadShaderFromSource(ShaderSource, "CSMain", ShaderStageFlags.Compute);
 
-        pipeline = App.Context.CreateRayTracingPipeline(new()
+        pipeline = App.Context.CreateComputePipeline(new()
         {
-            RayGeneration = rayGenShader,
-            Miss = [missShader, shadowMissShader],
-            AnyHit = [],
-            Intersection = [sphereIntersectionShader],
-            ClosestHit = [floorClosestHitShader, sphereClosestHitShader],
-            HitGroups =
-            [
-                new()
-                {
-                    Type = HitGroupType.Triangles,
-                    Name = "FloorHitGroup",
-                    ClosestHit = "FloorClosestHit"
-                },
-                new()
-                {
-                    Type = HitGroupType.Procedural,
-                    Name = "SphereHitGroup",
-                    Intersection = "SphereIntersection",
-                    ClosestHit = "SphereClosestHit"
-                }
-            ],
-            ResourceLayouts = [resourceLayout],
-            MaxTraceRecursionDepth = 2,
-            MaxPayloadSizeInBytes = 16,
-            MaxAttributeSizeInBytes = 16
+            Compute = computeShader,
+            ResourceLayout = resourceLayout,
+            ThreadGroupSizeX = ThreadGroupSize,
+            ThreadGroupSizeY = ThreadGroupSize,
+            ThreadGroupSizeZ = 1
         });
     }
 
@@ -498,11 +431,10 @@ internal unsafe class RayTracingRenderer : IRenderer
 
     public void Render()
     {
-        // Create output texture if needed
         outputTexture ??= App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
-            Format = PixelFormat.R8G8B8A8UNorm,
+            Format = PixelFormat.B8G8R8A8UNorm,
             Width = App.Width,
             Height = App.Height,
             Depth = 1,
@@ -512,19 +444,22 @@ internal unsafe class RayTracingRenderer : IRenderer
             Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
-        resourceSet ??= App.Context.CreateResourceSet(new()
+        resourceTable ??= App.Context.CreateResourceTable(new()
         {
             Layout = resourceLayout,
-            Resources = [tlas, outputTexture, sphereBuffer]
+            Resources = [tlas, sphereBuffer, outputTexture]
         });
 
         CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
 
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetResourceSet(resourceSet, 0);
-        commandBuffer.DispatchRays(App.Width, App.Height, 1);
+        commandBuffer.SetResourceTable(resourceTable);
 
-        // Copy the ray traced result to the swap chain's color target
+        uint dispatchX = (App.Width + ThreadGroupSize - 1) / ThreadGroupSize;
+        uint dispatchY = (App.Height + ThreadGroupSize - 1) / ThreadGroupSize;
+
+        commandBuffer.Dispatch(dispatchX, dispatchY, 1);
+
         Texture colorTarget = App.SwapChain.FrameBuffer.Desc.ColorAttachments[0].Target;
 
         commandBuffer.CopyTexture(outputTexture,
@@ -540,15 +475,15 @@ internal unsafe class RayTracingRenderer : IRenderer
 
     public void Resize(uint width, uint height)
     {
-        resourceSet?.Dispose();
-        resourceSet = null;
+        resourceTable?.Dispose();
+        resourceTable = null;
         outputTexture?.Dispose();
         outputTexture = null;
     }
 
     public void Dispose()
     {
-        resourceSet?.Dispose();
+        resourceTable?.Dispose();
         outputTexture?.Dispose();
 
         pipeline.Dispose();
@@ -666,7 +601,7 @@ sphereBlas = buildCmd.BuildAccelerationStructure(new BottomLevelAccelerationStru
 });
 ```
 
-Combine BLAS into a TLAS with `InstanceContributionToHitGroupIndex` to select hit groups:
+Combine BLAS into a TLAS:
 
 ```csharp
 tlas = buildCmd.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
@@ -676,14 +611,16 @@ tlas = buildCmd.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
         new()
         {
             AccelerationStructure = floorBlas,
-            InstanceContributionToHitGroupIndex = 0,  // Uses FloorHitGroup
+            InstanceID = 0,
+            InstanceMask = 0xFF,
             Transform = Matrix4x4.Identity,
             ...
         },
         new()
         {
             AccelerationStructure = sphereBlas,
-            InstanceContributionToHitGroupIndex = 1,  // Uses SphereHitGroup
+            InstanceID = 1,
+            InstanceMask = 0xFF,
             Transform = Matrix4x4.Identity,
             ...
         }
@@ -692,64 +629,15 @@ tlas = buildCmd.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
 });
 ```
 
-### Ray Tracing Pipeline
+### Ray Tracing with RayQuery
 
-Create a pipeline with multiple hit groups:
-
-```csharp
-pipeline = App.Context.CreateRayTracingPipeline(new()
-{
-    RayGeneration = rayGenShader,
-    Miss = [missShader, shadowMissShader],
-    AnyHit = [],
-    Intersection = [sphereIntersectionShader],
-    ClosestHit = [floorClosestHitShader, sphereClosestHitShader],
-    HitGroups =
-    [
-        new()
-        {
-            Type = HitGroupType.Triangles,
-            Name = "FloorHitGroup",
-            ClosestHit = "FloorClosestHit"
-        },
-        new()
-        {
-            Type = HitGroupType.Procedural,
-            Name = "SphereHitGroup",
-            Intersection = "SphereIntersection",
-            ClosestHit = "SphereClosestHit"
-        }
-    ],
-    ResourceLayouts = [resourceLayout],
-    MaxTraceRecursionDepth = 2,
-    MaxPayloadSizeInBytes = 16,
-    MaxAttributeSizeInBytes = 16
-});
-```
-
-| Property | Description |
-|----------|-------------|
-| `RayGeneration` | Entry point shader |
-| `Miss` | Array of miss shaders (index 0 for primary rays, index 1 for shadow rays) |
-| `HitGroups` | Bundle shaders for each geometry type |
-| `MaxTraceRecursionDepth` | Maximum ray bounce depth (set to 2 for shadow rays) |
-| `MaxPayloadSizeInBytes` | Size of data passed between shaders |
-
-### Custom Intersection Shader
-
-For procedural geometry (AABBs), implement ray-sphere intersection:
+Ray tracing in Zenith.NET uses `RayQuery` within a compute shader. Procedural geometry requires a custom intersection function:
 
 ```slang
-[shader("intersection")]
-void SphereIntersection()
+float IntersectSphere(float3 origin, float3 direction, Sphere sphere)
 {
-    Sphere sphere = spheres[PrimitiveIndex()];
-
-    float3 origin = ObjectRayOrigin();
-    float3 direction = ObjectRayDirection();
     float3 oc = origin - sphere.Center;
 
-    // Solve quadratic equation for ray-sphere intersection
     float a = dot(direction, direction);
     float b = dot(oc, direction);
     float c = dot(oc, oc) - sphere.Radius * sphere.Radius;
@@ -757,25 +645,80 @@ void SphereIntersection()
 
     if (discriminant > 0.0)
     {
-        float t = (-b - sqrt(discriminant)) / a;
-        if (t >= RayTMin() && t <= RayTCurrent())
+        float sqrtD = sqrt(discriminant);
+        float t1 = (-b - sqrtD) / a;
+
+        if (t1 > 0.0)
         {
-            SphereAttributes attr;
-            attr.Normal = normalize(origin + t * direction - sphere.Center);
-            ReportHit(t, 0, attr);
+            return t1;
+        }
+
+        float t2 = (-b + sqrtD) / a;
+
+        if (t2 > 0.0)
+        {
+            return t2;
         }
     }
+
+    return -1.0;
 }
 ```
 
-The intersection shader:
-1. Gets the sphere data using `PrimitiveIndex()`
-2. Computes ray-sphere intersection using the quadratic formula
-3. Reports hit with `ReportHit(t, hitKind, attributes)` if intersection is valid
+The main ray query loop processes only procedural candidates, storing hit information for later use:
 
-### Hard Shadows
+```slang
+float3 sphereHitNormal = float3(0.0);
+float3 sphereHitColor = float3(0.0);
 
-Hard shadows test visibility to a point light source. If any geometry blocks the ray, the point is in shadow:
+RayQuery<RAY_FLAG_NONE> query;
+query.TraceRayInline(scene, RAY_FLAG_NONE, 0xFF, ray);
+
+while (query.Proceed())
+{
+    if (query.CandidateType() == CANDIDATE_PROCEDURAL_PRIMITIVE)
+    {
+        uint sphereIndex = query.CandidatePrimitiveIndex();
+        Sphere sphere = spheres[sphereIndex];
+
+        float t = IntersectSphere(ro, rd, sphere);
+
+        if (t >= query.RayTMin() && t <= query.CommittedRayT())
+        {
+            sphereHitNormal = normalize(hitPoint - sphere.Center);
+            sphereHitColor = sphere.Color;
+
+            query.CommitProceduralPrimitiveHit(t);
+        }
+    }
+}
+
+// Check result
+if (query.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+{
+    // Handle triangle hit
+}
+else if (query.CommittedStatus() == COMMITTED_PROCEDURAL_PRIMITIVE_HIT)
+{
+    // Handle procedural hit using stored normal and color
+}
+```
+
+Key elements:
+
+| Element | Description |
+|---------|-------------|
+| `RayQuery<FLAGS>` | Declares a ray query with template ray flags |
+| `TraceRayInline` | Initiates the ray traversal |
+| `Proceed()` | Advances traversal; returns `true` while candidates remain |
+| `CandidateType()` | Returns the type of the current candidate hit |
+| `CommitNonOpaqueTriangleHit()` | Accepts a triangle hit |
+| `CommitProceduralPrimitiveHit(t)` | Accepts a procedural hit at distance `t` |
+| `CommittedStatus()` | Returns the final hit result after traversal |
+
+### Shadow Rays with RayQuery
+
+Shadow rays test visibility to a light source. Note that shadow rays must also handle procedural geometry intersections:
 
 ```slang
 bool TraceShadowRay(float3 origin, float3 direction)
@@ -786,47 +729,68 @@ bool TraceShadowRay(float3 origin, float3 direction)
     shadowRay.TMin = 0.001;
     shadowRay.TMax = 1000.0;
 
-    ShadowPayload shadowPayload;
-    shadowPayload.InShadow = true;
+    RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> shadowQuery;
+    shadowQuery.TraceRayInline(scene, RAY_FLAG_NONE, 0xFF, shadowRay);
 
-    TraceRay(scene,
-             RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER,
-             0xFF, 0, 0, 1, shadowRay, shadowPayload);
+    while (shadowQuery.Proceed())
+    {
+        if (shadowQuery.CandidateType() == CANDIDATE_PROCEDURAL_PRIMITIVE)
+        {
+            uint sphereIndex = shadowQuery.CandidatePrimitiveIndex();
+            Sphere sphere = spheres[sphereIndex];
 
-    return shadowPayload.InShadow;
+            float t = IntersectSphere(ro, rd, sphere);
+
+            if (t >= shadowQuery.RayTMin() && t <= shadowQuery.CommittedRayT())
+            {
+                shadowQuery.CommitProceduralPrimitiveHit(t);
+            }
+        }
+    }
+
+    return shadowQuery.CommittedStatus() != COMMITTED_NOTHING;
 }
 ```
 
-Key optimizations:
-- `RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH`: Stop at first hit (we only need to know if something blocks the light)
-- `RAY_FLAG_SKIP_CLOSEST_HIT_SHADER`: Skip shading for shadow rays (we don't need material information)
-- Miss shader index `1` in `TraceRay` selects `ShadowMiss` instead of the primary `Miss` shader
+Key optimization: `RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH` stops at the first hit since we only need to know if something blocks the light.
 
-### Dispatching Rays
+### Compute Pipeline for Ray Tracing
 
 ```csharp
+resourceLayout = App.Context.CreateResourceLayout(new()
+{
+    Bindings = BindingHelper.Bindings
+    (
+        new() { Type = ResourceType.AccelerationStructure, Count = 1, StageFlags = ShaderStageFlags.Compute },
+        new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
+        new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute }
+    )
+});
+
+pipeline = App.Context.CreateComputePipeline(new()
+{
+    Compute = computeShader,
+    ResourceLayout = resourceLayout,
+    ThreadGroupSizeX = ThreadGroupSize,
+    ThreadGroupSizeY = ThreadGroupSize,
+    ThreadGroupSizeZ = 1
+});
+```
+
+Note that all resource bindings use `ShaderStageFlags.Compute` since ray tracing runs entirely within a compute shader.
+
+### Dispatching and Display
+
+```csharp
+uint dispatchX = (App.Width + ThreadGroupSize - 1) / ThreadGroupSize;
+uint dispatchY = (App.Height + ThreadGroupSize - 1) / ThreadGroupSize;
+
 commandBuffer.SetPipeline(pipeline);
-commandBuffer.SetResourceSet(resourceSet, 0);
-commandBuffer.DispatchRays(App.Width, App.Height, 1);
+commandBuffer.SetResourceTable(resourceTable);
+commandBuffer.Dispatch(dispatchX, dispatchY, 1);
 ```
 
-`DispatchRays(width, height, depth)` launches the ray generation shader for each pixel.
-
-### Copying to the Swap Chain
-
-```csharp
-Texture colorTarget = App.SwapChain.FrameBuffer.Desc.ColorAttachments[0].Target;
-
-commandBuffer.CopyTexture(outputTexture,
-                          default,
-                          default,
-                          colorTarget,
-                          default,
-                          default,
-                          new() { Width = App.Width, Height = App.Height, Depth = 1 });
-```
-
-Instead of using a full-screen quad with a graphics pipeline, we directly copy the ray traced result to the swap chain's color target. This is simpler and more efficient when you just need to display a texture without additional processing.
+The compute shader processes each pixel independently. The result is then copied to the swap chain's color target for display.
 
 ## Next Steps
 

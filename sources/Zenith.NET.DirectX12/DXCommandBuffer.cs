@@ -282,14 +282,14 @@ internal unsafe class DXCommandBuffer : CommandBuffer
     {
         Box2D<int>[] dxScissors = [.. scissors.Select(static item => new Box2D<int>(new(item.X, item.Y), new((int)(item.X + item.Width), (int)(item.Y + item.Height))))];
 
-        GraphicsCommandList4.RSSetScissorRects((uint)scissors.Length, ref dxScissors[0]);
+        GraphicsCommandList4.RSSetScissorRects((uint)dxScissors.Length, ref dxScissors[0]);
     }
 
     protected override void SetViewportsImpl(Viewport[] viewports)
     {
         DxViewport[] dxViewports = [.. viewports.Select(static item => new DxViewport(item.X, item.Y, item.Width, item.Height, item.MinDepth, item.MaxDepth))];
 
-        GraphicsCommandList4.RSSetViewports((uint)viewports.Length, ref dxViewports[0]);
+        GraphicsCommandList4.RSSetViewports((uint)dxViewports.Length, ref dxViewports[0]);
     }
 
     protected override void SetPipelineImpl(GraphicsPipeline pipeline)
@@ -322,14 +322,6 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         DXComputePipeline dxPipeline = pipeline.DirectX12();
 
         GraphicsCommandList4.SetPipelineState(dxPipeline.PipelineState);
-        GraphicsCommandList4.SetComputeRootSignature(dxPipeline.RootSignature);
-    }
-
-    protected override void SetPipelineImpl(RayTracingPipeline pipeline)
-    {
-        DXRayTracingPipeline dxPipeline = pipeline.DirectX12();
-
-        GraphicsCommandList4.SetPipelineState1(dxPipeline.StateObject);
         GraphicsCommandList4.SetComputeRootSignature(dxPipeline.RootSignature);
     }
 
@@ -380,23 +372,14 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         GraphicsCommandList4.IASetIndexBuffer(&view);
     }
 
-    protected override void SetResourceSetImpl(Pipeline pipeline, ResourceSet resourceSet, uint index)
+    protected override void SetResourceTableImpl(Pipeline pipeline, ResourceTable resourceTable)
     {
         if (cbvSrvUavTable is null || samplerTable is null)
         {
             return;
         }
 
-        (bool isGraphics, uint offset) = pipeline switch
-        {
-            GraphicsPipeline graphicsPipeline => (true, (uint)graphicsPipeline.Desc.ResourceLayouts.Take((int)index).Sum(static item => item.DirectX12().GraphicsRootParameterCount)),
-            ComputePipeline computePipeline => (false, (uint)computePipeline.Desc.ResourceLayouts.Take((int)index).Sum(static item => item.DirectX12().RootParameterCount)),
-            RayTracingPipeline rayTracingPipeline => (false, (uint)rayTracingPipeline.Desc.ResourceLayouts.Take((int)index).Sum(static item => item.DirectX12().RootParameterCount)),
-            MeshShadingPipeline meshShadingPipeline => (true, (uint)meshShadingPipeline.Desc.ResourceLayouts.Take((int)index).Sum(static item => item.DirectX12().GraphicsRootParameterCount)),
-            _ => (false, 0u)
-        };
-
-        resourceSet.DirectX12().Bind(this, cbvSrvUavTable, samplerTable, isGraphics, offset);
+        resourceTable.DirectX12().Bind(this, cbvSrvUavTable, samplerTable, pipeline is GraphicsPipeline or MeshShadingPipeline);
     }
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
@@ -429,23 +412,6 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         GraphicsCommandList4.ExecuteIndirect(Context.DispatchSignature, 1, indirectBuffer.DirectX12().Resource, offsetInBytes, (ID3D12Resource*)null, 0);
     }
 
-    protected override void DispatchRaysImpl(RayTracingPipeline pipeline, uint width, uint height, uint depth)
-    {
-        DXRayTracingPipeline dxPipeline = pipeline.DirectX12();
-
-        DispatchRaysDesc desc = new()
-        {
-            RayGenerationShaderRecord = dxPipeline.RayGenerationRange,
-            MissShaderTable = dxPipeline.MissRange,
-            HitGroupTable = dxPipeline.HitGroupsRange,
-            Width = width,
-            Height = height,
-            Depth = depth
-        };
-
-        GraphicsCommandList4.DispatchRays(&desc);
-    }
-
     protected override void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
         GraphicsCommandList6?.DispatchMesh(groupCountX, groupCountY, groupCountZ);
@@ -458,16 +424,16 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void BeginQueryImpl(QueryHeap queryHeap, uint index)
     {
-        GraphicsCommandList4.BeginQuery(queryHeap.DirectX12().QueryHeap, DXFormats.DirectX12(queryHeap.Desc.Type).QueryType, index);
+        GraphicsCommandList4.BeginQuery(queryHeap.DirectX12().QueryHeap, DXFormats.DirectX12(queryHeap.Desc.Type).Type, index);
     }
 
     protected override void EndQueryImpl(QueryHeap queryHeap, uint index)
     {
         DXQueryHeap dxQueryHeap = queryHeap.DirectX12();
 
-        GraphicsCommandList4.EndQuery(dxQueryHeap.QueryHeap, DXFormats.DirectX12(dxQueryHeap.Desc.Type).QueryType, index);
+        GraphicsCommandList4.EndQuery(dxQueryHeap.QueryHeap, DXFormats.DirectX12(dxQueryHeap.Desc.Type).Type, index);
 
-        GraphicsCommandList4.ResolveQueryData(dxQueryHeap.QueryHeap, DXFormats.DirectX12(dxQueryHeap.Desc.Type).QueryType, index, 1, dxQueryHeap.Buffer.Resource, sizeof(ulong) * index);
+        GraphicsCommandList4.ResolveQueryData(dxQueryHeap.QueryHeap, DXFormats.DirectX12(dxQueryHeap.Desc.Type).Type, index, 1, dxQueryHeap.Buffer.Resource, sizeof(ulong) * index);
     }
 
     protected override void WriteTimestampImpl(QueryHeap queryHeap, uint index)

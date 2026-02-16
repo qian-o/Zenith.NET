@@ -15,8 +15,8 @@ internal unsafe class BloomPass : RenderPass
     private readonly ResourceLayout resourceLayout;
     private readonly ComputePipeline pipeline;
 
-    private ResourceSet? horizontalResourceSet;
-    private ResourceSet? verticalResourceSet;
+    private ResourceTable? horizontalResourceTable;
+    private ResourceTable? verticalResourceTable;
 
     private int iterations = 4;
 
@@ -45,7 +45,7 @@ internal unsafe class BloomPass : RenderPass
         pipeline = App.Context.CreateComputePipeline(new()
         {
             Compute = cs,
-            ResourceLayouts = [resourceLayout],
+            ResourceLayout = resourceLayout,
             ThreadGroupSizeX = ThreadGroupSize,
             ThreadGroupSizeY = ThreadGroupSize,
             ThreadGroupSizeZ = 1
@@ -54,16 +54,16 @@ internal unsafe class BloomPass : RenderPass
 
     public override void Resize(uint width, uint height)
     {
-        horizontalResourceSet?.Dispose();
-        horizontalResourceSet = null;
+        horizontalResourceTable?.Dispose();
+        horizontalResourceTable = null;
 
-        verticalResourceSet?.Dispose();
-        verticalResourceSet = null;
+        verticalResourceTable?.Dispose();
+        verticalResourceTable = null;
     }
 
     protected override void ExecuteImpl(CommandBuffer commandBuffer, RenderContext context)
     {
-        EnsureResourceSets(context);
+        EnsureResourceTables(context);
 
         commandBuffer.CopyTexture(context.Emissive!,
                                   default,
@@ -82,13 +82,13 @@ internal unsafe class BloomPass : RenderPass
         {
             commandBuffer.Upload(constantBuffer, 0, [new BloomConstants() { TexelSize = new(1.0f / context.Width, 0) }]);
 
-            commandBuffer.SetResourceSet(horizontalResourceSet!, 0);
+            commandBuffer.SetResourceTable(horizontalResourceTable!);
 
             commandBuffer.Dispatch(dispatchX, dispatchY, 1);
 
             commandBuffer.Upload(constantBuffer, 0, [new BloomConstants() { TexelSize = new(0, 1.0f / context.Height) }]);
 
-            commandBuffer.SetResourceSet(verticalResourceSet!, 0);
+            commandBuffer.SetResourceTable(verticalResourceTable!);
 
             commandBuffer.Dispatch(dispatchX, dispatchY, 1);
         }
@@ -103,8 +103,8 @@ internal unsafe class BloomPass : RenderPass
 
     protected override void Destroy()
     {
-        verticalResourceSet?.Dispose();
-        horizontalResourceSet?.Dispose();
+        verticalResourceTable?.Dispose();
+        horizontalResourceTable?.Dispose();
 
         pipeline.Dispose();
         resourceLayout.Dispose();
@@ -113,15 +113,15 @@ internal unsafe class BloomPass : RenderPass
         base.Destroy();
     }
 
-    private void EnsureResourceSets(RenderContext context)
+    private void EnsureResourceTables(RenderContext context)
     {
-        horizontalResourceSet ??= App.Context.CreateResourceSet(new()
+        horizontalResourceTable ??= App.Context.CreateResourceTable(new()
         {
             Layout = resourceLayout,
             Resources = [constantBuffer, context.VerticalBloom!, context.HorizontalBloom!, App.LinearSampler]
         });
 
-        verticalResourceSet ??= App.Context.CreateResourceSet(new()
+        verticalResourceTable ??= App.Context.CreateResourceTable(new()
         {
             Layout = resourceLayout,
             Resources = [constantBuffer, context.HorizontalBloom!, context.VerticalBloom!, App.LinearSampler]

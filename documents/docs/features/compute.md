@@ -1,4 +1,4 @@
-﻿# Compute Pipeline
+﻿# Compute
 
 > [!NOTE]
 > This page is under construction.

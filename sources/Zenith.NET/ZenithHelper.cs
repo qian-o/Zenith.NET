@@ -294,9 +294,6 @@ public static class ZenithHelper
         return
         [
             ShaderStageFlags.Vertex,
-            ShaderStageFlags.Hull,
-            ShaderStageFlags.Domain,
-            ShaderStageFlags.Geometry,
             ShaderStageFlags.Pixel,
             ShaderStageFlags.Amplification,
             ShaderStageFlags.Mesh

@@ -45,7 +45,6 @@ Welcome to the Zenith.NET API Reference. This documentation is automatically gen
 |------|-------------|
 | `GraphicsPipeline` | Rasterization pipeline configuration |
 | `ComputePipeline` | Compute dispatch pipeline configuration |
-| `RayTracingPipeline` | Ray tracing pipeline with hit groups |
 | `MeshShadingPipeline` | Mesh shading pipeline configuration |
 
 ### Resource Binding
@@ -53,7 +52,7 @@ Welcome to the Zenith.NET API Reference. This documentation is automatically gen
 | Type | Description |
 |------|-------------|
 | `ResourceLayout` | Declares expected shader resource bindings |
-| `ResourceSet` | Binds actual resources to a layout |
+| `ResourceTable` | Binds actual resources to a layout |
 | `Shader` | Compiled shader module with entry point and stage |
 
 ### Ray Tracing

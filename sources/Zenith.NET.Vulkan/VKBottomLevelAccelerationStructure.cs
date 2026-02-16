@@ -125,7 +125,7 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
 
         context.Vk.CmdPipelineBarrier(commandBuffer.CommandBuffer,
                                       PipelineStageFlags.AccelerationStructureBuildBitKhr,
-                                      PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit | PipelineStageFlags.RayTracingShaderBitKhr,
+                                      PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit,
                                       0,
                                       1,
                                       &barrier,

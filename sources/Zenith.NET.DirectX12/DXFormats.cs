@@ -287,21 +287,6 @@ internal static class DXFormats
             return ShaderVisibility.Vertex;
         }
 
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.Hull))
-        {
-            return ShaderVisibility.Hull;
-        }
-
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.Domain))
-        {
-            return ShaderVisibility.Domain;
-        }
-
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.Geometry))
-        {
-            return ShaderVisibility.Geometry;
-        }
-
         if (shaderStageFlags.HasFlag(ShaderStageFlags.Pixel))
         {
             return ShaderVisibility.Pixel;
@@ -485,16 +470,10 @@ internal static class DXFormats
                 PrimitiveTopology.PointList => PrimitiveTopologyType.Point,
 
                 PrimitiveTopology.LineList or
-                PrimitiveTopology.LineStrip or
-                PrimitiveTopology.LineListWithAdjacency or
-                PrimitiveTopology.LineStripWithAdjacency => PrimitiveTopologyType.Line,
+                PrimitiveTopology.LineStrip => PrimitiveTopologyType.Line,
 
                 PrimitiveTopology.TriangleList or
-                PrimitiveTopology.TriangleStrip or
-                PrimitiveTopology.TriangleListWithAdjacency or
-                PrimitiveTopology.TriangleStripWithAdjacency => PrimitiveTopologyType.Triangle,
-
-                >= PrimitiveTopology.PatchList => PrimitiveTopologyType.Patch,
+                PrimitiveTopology.TriangleStrip => PrimitiveTopologyType.Triangle,
 
                 _ => PrimitiveTopologyType.Undefined
             },
@@ -503,13 +482,8 @@ internal static class DXFormats
                 PrimitiveTopology.PointList => D3DPrimitiveTopology.D3DPrimitiveTopologyPointlist,
                 PrimitiveTopology.LineList => D3DPrimitiveTopology.D3DPrimitiveTopologyLinelist,
                 PrimitiveTopology.LineStrip => D3DPrimitiveTopology.D3DPrimitiveTopologyLinestrip,
-                PrimitiveTopology.LineListWithAdjacency => D3DPrimitiveTopology.D3DPrimitiveTopologyLinelistAdj,
-                PrimitiveTopology.LineStripWithAdjacency => D3DPrimitiveTopology.D3DPrimitiveTopologyLinestripAdj,
                 PrimitiveTopology.TriangleList => D3DPrimitiveTopology.D3DPrimitiveTopologyTrianglelist,
                 PrimitiveTopology.TriangleStrip => D3DPrimitiveTopology.D3DPrimitiveTopologyTrianglestrip,
-                PrimitiveTopology.TriangleListWithAdjacency => D3DPrimitiveTopology.D3DPrimitiveTopologyTrianglelistAdj,
-                PrimitiveTopology.TriangleStripWithAdjacency => D3DPrimitiveTopology.D3DPrimitiveTopologyTrianglestripAdj,
-                >= PrimitiveTopology.PatchList => D3DPrimitiveTopology.D3DPrimitiveTopology1ControlPointPatchlist + (PrimitiveTopology.PatchList - primitiveTopology),
                 _ => D3DPrimitiveTopology.D3DPrimitiveTopologyUndefined
             }
         );
@@ -536,7 +510,7 @@ internal static class DXFormats
         };
     }
 
-    public static (QueryHeapType QueryHeapType, DxQueryType QueryType) DirectX12(QueryType queryType)
+    public static (QueryHeapType HeapType, DxQueryType Type) DirectX12(QueryType queryType)
     {
         return
         (
@@ -559,16 +533,6 @@ internal static class DXFormats
         );
     }
 
-    public static DxHitGroupType DirectX12(HitGroupType type)
-    {
-        return type switch
-        {
-            HitGroupType.Triangles => DxHitGroupType.Triangles,
-            HitGroupType.Procedural => DxHitGroupType.ProceduralPrimitive,
-            _ => DxHitGroupType.Triangles
-        };
-    }
-
     public static RaytracingGeometryType DirectX12(RayTracingGeometryType rayTracingGeometryType)
     {
         return rayTracingGeometryType switch
@@ -586,11 +550,6 @@ internal static class DXFormats
         if (rayTracingGeometryFlags.HasFlag(RayTracingGeometryFlags.Opaque))
         {
             result |= RaytracingGeometryFlags.Opaque;
-        }
-
-        if (rayTracingGeometryFlags.HasFlag(RayTracingGeometryFlags.NoDuplicateAnyHitInvocation))
-        {
-            result |= RaytracingGeometryFlags.NoDuplicateAnyhitInvocation;
         }
 
         return result;

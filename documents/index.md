@@ -72,16 +72,16 @@ _layout: landing
 
 <div class="feature-list">
     <div class="feature-list-item">
-        <span class="feature-list-title">Graphics Pipeline</span>
-        <span class="feature-list-desc">Vertex, hull, domain, geometry, and pixel shaders with custom render states.</span>
+        <span class="feature-list-title">Graphics</span>
+        <span class="feature-list-desc">Vertex and pixel shaders with custom render states.</span>
     </div>
     <div class="feature-list-item">
-        <span class="feature-list-title">Compute Pipeline</span>
+        <span class="feature-list-title">Compute</span>
         <span class="feature-list-desc">General-purpose GPU computing for image processing, simulations, and more.</span>
     </div>
     <div class="feature-list-item">
         <span class="feature-list-title">Ray Tracing</span>
-        <span class="feature-list-desc">Hardware-accelerated BLAS/TLAS, hit groups, and inline ray queries.</span>
+        <span class="feature-list-desc">Hardware-accelerated BLAS/TLAS with RayQuery in any shader stage.</span>
     </div>
     <div class="feature-list-item">
         <span class="feature-list-title">Mesh Shading</span>
@@ -112,7 +112,7 @@ _layout: landing
         <div class="step-number">3</div>
         <div class="step-content">
             <h4>Record Commands</h4>
-            <p>Build command buffers with draw, compute, or ray tracing calls.</p>
+            <p>Build command buffers with draw, compute, or mesh shading dispatches.</p>
         </div>
     </div>
     <div class="workflow-step">

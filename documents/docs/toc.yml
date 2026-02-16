@@ -16,16 +16,16 @@
       href: resources/textures.md
     - name: Samplers
       href: resources/samplers.md
-- name: Pipelines
+- name: Features
   items:
-    - name: Graphics Pipeline
-      href: pipelines/graphics.md
-    - name: Compute Pipeline
-      href: pipelines/compute.md
-    - name: Ray Tracing Pipeline
-      href: pipelines/ray-tracing.md
-    - name: Mesh Shading Pipeline
-      href: pipelines/mesh-shading.md
+    - name: Graphics
+      href: features/graphics.md
+    - name: Compute
+      href: features/compute.md
+    - name: Ray Tracing
+      href: features/ray-tracing.md
+    - name: Mesh Shading
+      href: features/mesh-shading.md
 - name: Platform
   items:
     - name: Backend Selection

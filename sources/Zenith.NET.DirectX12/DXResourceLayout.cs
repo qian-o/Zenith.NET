@@ -82,7 +82,7 @@ internal class DXResourceLayout : ResourceLayout
         return cbvSrvUavRanges.Length > 0 || samplerRanges.Length > 0;
     }
 
-    public bool DescriptorRanges(ShaderStageFlags stage, uint registerSpace, out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges)
+    public bool DescriptorRanges(ShaderStageFlags stage, out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges)
     {
         List<DescriptorRange> cbvSrvUavRangeList = [];
         List<DescriptorRange> samplerRangeList = [];
@@ -100,8 +100,7 @@ internal class DXResourceLayout : ResourceLayout
             {
                 RangeType = DXFormats.DirectX12(binding.Type),
                 NumDescriptors = binding.Count,
-                BaseShaderRegister = binding.Index,
-                RegisterSpace = registerSpace
+                BaseShaderRegister = binding.Index
             };
 
             if (binding.Type is ResourceType.Sampler)

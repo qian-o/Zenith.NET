@@ -13,7 +13,7 @@ internal unsafe class CSMPass : RenderPass
     private readonly Buffer argsBuffer;
     private readonly Buffer dataBuffer;
     private readonly ResourceLayout resourceLayout;
-    private readonly ResourceSet resourceSet;
+    private readonly ResourceTable resourceTable;
     private readonly GraphicsPipeline pipeline;
 
     public CSMPass() : base("CSM Pass")
@@ -41,7 +41,7 @@ internal unsafe class CSMPass : RenderPass
             )
         });
 
-        resourceSet = App.Context.CreateResourceSet(new()
+        resourceTable = App.Context.CreateResourceTable(new()
         {
             Layout = resourceLayout,
             Resources = [dataBuffer]
@@ -71,7 +71,7 @@ internal unsafe class CSMPass : RenderPass
             },
             Vertex = vs,
             Pixel = ps,
-            ResourceLayouts = [resourceLayout],
+            ResourceLayout = resourceLayout,
             InputLayouts = [inputLayout],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
             Output = RenderContext.CSMOutput
@@ -85,7 +85,7 @@ internal unsafe class CSMPass : RenderPass
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetVertexBuffer(App.Sponza.Vertices, 0, 0);
         commandBuffer.SetIndexBuffer(App.Sponza.Indices, 0, IndexFormat.UInt32);
-        commandBuffer.SetResourceSet(resourceSet, 0);
+        commandBuffer.SetResourceTable(resourceTable);
 
         for (int i = 0; i < RenderContext.CSMSplits.Length; i++)
         {
@@ -127,7 +127,7 @@ internal unsafe class CSMPass : RenderPass
     protected override void Destroy()
     {
         pipeline.Dispose();
-        resourceSet.Dispose();
+        resourceTable.Dispose();
         resourceLayout.Dispose();
         dataBuffer.Dispose();
         argsBuffer.Dispose();

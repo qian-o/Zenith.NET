@@ -242,6 +242,12 @@ resourceLayout = App.Context.CreateResourceLayout(new()
         new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Pixel }
     )
 });
+
+resourceTable = App.Context.CreateResourceTable(new()
+{
+    Layout = resourceLayout,
+    Resources = [texture, sampler]
+});
 ```
 
 The helper automatically assigns the correct `Index` values based on the current backend, so you don't need to specify them manually.

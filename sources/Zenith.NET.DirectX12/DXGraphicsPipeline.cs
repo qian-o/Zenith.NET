@@ -16,7 +16,9 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
 
         GraphicsPipelineStateDesc graphicsPipelineStateDesc = new()
         {
-            SampleMask = uint.MaxValue
+            SampleMask = uint.MaxValue,
+            VS = desc.Vertex.DirectX12().GetShaderBytecode(scope),
+            PS = desc.Pixel.DirectX12().GetShaderBytecode(scope)
         };
 
         // RenderStates - Output
@@ -103,38 +105,16 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
             graphicsPipelineStateDesc.SampleDesc = DXFormats.DirectX12(desc.Output.SampleCount);
         }
 
-        // Vertex - Hull - Domain - Geometry - Pixel
-        {
-            graphicsPipelineStateDesc.VS = desc.Vertex.DirectX12().GetShaderBytecode(scope);
-
-            if (desc.Hull is not null)
-            {
-                graphicsPipelineStateDesc.HS = desc.Hull.DirectX12().GetShaderBytecode(scope);
-            }
-
-            if (desc.Domain is not null)
-            {
-                graphicsPipelineStateDesc.DS = desc.Domain.DirectX12().GetShaderBytecode(scope);
-            }
-
-            if (desc.Geometry is not null)
-            {
-                graphicsPipelineStateDesc.GS = desc.Geometry.DirectX12().GetShaderBytecode(scope);
-            }
-
-            graphicsPipelineStateDesc.PS = desc.Pixel.DirectX12().GetShaderBytecode(scope);
-        }
-
-        // ResourceLayouts
+        // ResourceLayout
         {
             List<RootParameter> parameters = [];
-            for (int i = 0; i < desc.ResourceLayouts.Length; i++)
+            if (desc.ResourceLayout is not null)
             {
-                DXResourceLayout resourceLayout = desc.ResourceLayouts[i].DirectX12();
+                DXResourceLayout resourceLayout = desc.ResourceLayout.DirectX12();
 
                 foreach (ShaderStageFlags stage in ZenithHelper.GraphicShaderStages())
                 {
-                    if (resourceLayout.DescriptorRanges(stage, (uint)i, out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges))
+                    if (resourceLayout.DescriptorRanges(stage, out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges))
                     {
                         if (cbvSrvUavRanges.Length > 0)
                         {

@@ -4,7 +4,7 @@ public record struct ComputePipelineDesc
 {
     public Shader Compute;
 
-    public ResourceLayout[] ResourceLayouts;
+    public ResourceLayout? ResourceLayout;
 
     public uint ThreadGroupSizeX;
 

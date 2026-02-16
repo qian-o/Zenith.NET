@@ -10,15 +10,5 @@ public enum PrimitiveTopology
 
     TriangleList,
 
-    TriangleStrip,
-
-    LineListWithAdjacency,
-
-    LineStripWithAdjacency,
-
-    TriangleListWithAdjacency,
-
-    TriangleStripWithAdjacency,
-
-    PatchList = 99
+    TriangleStrip
 }

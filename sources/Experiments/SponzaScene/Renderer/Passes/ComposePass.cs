@@ -9,7 +9,7 @@ internal unsafe class ComposePass : FullscreenPass
 {
     private readonly Buffer constantBuffer;
 
-    private ResourceSet? resourceSet;
+    private ResourceTable? resourceTable;
 
     private float aoStrength = 1.0f;
     private float bloomIntensity = 1.5f;
@@ -29,8 +29,8 @@ internal unsafe class ComposePass : FullscreenPass
 
     public override void Resize(uint width, uint height)
     {
-        resourceSet?.Dispose();
-        resourceSet = null;
+        resourceTable?.Dispose();
+        resourceTable = null;
     }
 
     protected override ResourceLayout? CreateResourceLayout()
@@ -50,9 +50,9 @@ internal unsafe class ComposePass : FullscreenPass
         });
     }
 
-    protected override ResourceSet EnsureResourceSet(ResourceLayout resourceLayout, RenderContext context)
+    protected override ResourceTable EnsureResourceTable(ResourceLayout resourceLayout, RenderContext context)
     {
-        return resourceSet ??= App.Context.CreateResourceSet(new()
+        return resourceTable ??= App.Context.CreateResourceTable(new()
         {
             Layout = resourceLayout,
             Resources =
@@ -89,7 +89,7 @@ internal unsafe class ComposePass : FullscreenPass
 
     protected override void Destroy()
     {
-        resourceSet?.Dispose();
+        resourceTable?.Dispose();
         constantBuffer.Dispose();
 
         base.Destroy();

@@ -120,8 +120,8 @@ internal unsafe class VKBuffer : Buffer
     {
         View.Dispose();
 
-        DeviceMemory.Dispose();
-
         Context.Vk.DestroyBuffer(Context.Device, Buffer, null);
+
+        DeviceMemory.Dispose();
     }
 }

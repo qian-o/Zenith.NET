@@ -10,7 +10,7 @@ New to Zenith.NET? Start here to set up your environment and render your first g
 |----------|-------------|
 | [Prerequisites](getting-started/prerequisites.md) | Set up your development environment with `App` framework, `IRenderer` interface, and `BindingHelper` |
 | [Hello Triangle](getting-started/hello-triangle.md) | Create vertex buffers, compile Slang shaders, and build your first graphics pipeline |
-| [Textured Quad](getting-started/textured-quad.md) | Load textures, create samplers, and bind resources with `ResourceLayout` and `ResourceSet` |
+| [Textured Quad](getting-started/textured-quad.md) | Load textures, create samplers, and bind resources with `ResourceLayout` and `ResourceTable` |
 | [Spinning Cube](getting-started/spinning-cube.md) | Use constant buffers for MVP matrices and render 3D geometry with depth testing |
 
 ## Intermediate
@@ -28,7 +28,7 @@ Explore cutting-edge GPU features for modern rendering (requires hardware suppor
 
 | Tutorial | Description | Requirement |
 |----------|-------------|-------------|
-| [Ray Tracing](advanced/ray-tracing.md) | Build acceleration structures (BLAS/TLAS), create ray tracing pipelines with hit groups, and implement hard shadows | `RayTracingSupported` |
+| [Ray Tracing](advanced/ray-tracing.md) | Build acceleration structures (BLAS/TLAS), use `RayQuery` for ray tracing, and implement hard shadows | `RayTracingSupported` |
 | [Mesh Shading](advanced/mesh-shading.md) | Use meshlet-based geometry processing with mesh shading pipelines | `MeshShadingSupported` |
 
 ## Tutorial Structure
@@ -54,7 +54,7 @@ All tutorials share the same `App` framework, making it easy to switch between e
 | **Spinning Cube** | Pass data to shaders via constant buffers, implement 3D transformations, and enable depth testing |
 | **Compute Shader** | Run general-purpose GPU computations for image processing |
 | **Indirect Drawing** | Let the GPU control draw parameters for efficient multi-instance rendering |
-| **Ray Tracing** | Build acceleration structures, trace rays, handle intersections, and implement shadows |
+| **Ray Tracing** | Build acceleration structures, trace rays with `RayQuery`, handle intersections, and implement shadows |
 | **Mesh Shading** | Process geometry in meshlets using the modern mesh shading pipeline |
 
 ## Requirements

@@ -29,7 +29,6 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         KhrSwapchain.ExtensionName,
         KhrExternalMemoryWin32.ExtensionName,
         KhrRayQuery.ExtensionName,
-        KhrRayTracingPipeline.ExtensionName,
         KhrAccelerationStructure.ExtensionName,
         KhrDeferredHostOperations.ExtensionName,
         ExtMeshShader.ExtensionName
@@ -70,8 +69,6 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
     public KhrSwapchain? Swapchain { get; private set; }
 
     public KhrExternalMemoryWin32? ExternalMemoryWin32 { get; private set; }
-
-    public KhrRayTracingPipeline? RayTracingPipeline { get; private set; }
 
     public KhrAccelerationStructure? AccelerationStructure { get; private set; }
 
@@ -409,18 +406,9 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             createInfo.AddNext(out PhysicalDeviceVulkan12Features _);
             createInfo.AddNext(out PhysicalDeviceVulkan11Features _);
 
-            if (enabledExtensions.Contains(KhrRayQuery.ExtensionName) || enabledExtensions.Contains(KhrRayTracingPipeline.ExtensionName))
+            if (enabledExtensions.Contains(KhrRayQuery.ExtensionName))
             {
-                if (enabledExtensions.Contains(KhrRayQuery.ExtensionName))
-                {
-                    createInfo.AddNext(out PhysicalDeviceRayQueryFeaturesKHR _);
-                }
-
-                if (enabledExtensions.Contains(KhrRayTracingPipeline.ExtensionName))
-                {
-                    createInfo.AddNext(out PhysicalDeviceRayTracingPipelineFeaturesKHR _);
-                }
-
+                createInfo.AddNext(out PhysicalDeviceRayQueryFeaturesKHR _);
                 createInfo.AddNext(out PhysicalDeviceAccelerationStructureFeaturesKHR _);
             }
 
@@ -440,7 +428,6 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
             Swapchain = enabledExtensions.Contains(KhrSwapchain.ExtensionName) ? new(context) : null;
             ExternalMemoryWin32 = enabledExtensions.Contains(KhrExternalMemoryWin32.ExtensionName) ? new(context) : null;
-            RayTracingPipeline = enabledExtensions.Contains(KhrRayTracingPipeline.ExtensionName) ? new(context) : null;
             AccelerationStructure = enabledExtensions.Contains(KhrAccelerationStructure.ExtensionName) ? new(context) : null;
             DeferredHostOperations = enabledExtensions.Contains(KhrDeferredHostOperations.ExtensionName) ? new(context) : null;
             MeshShader = enabledExtensions.Contains(ExtMeshShader.ExtensionName) ? new(context) : null;
@@ -498,9 +485,9 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         return new VKResourceLayout(this, desc);
     }
 
-    protected override ResourceSet CreateResourceSetImpl(ResourceSetDesc desc)
+    protected override ResourceTable CreateResourceTableImpl(ResourceTableDesc desc)
     {
-        return new VKResourceSet(this, desc);
+        return new VKResourceTable(this, desc);
     }
 
     protected override GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc)
@@ -511,11 +498,6 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
     protected override ComputePipeline CreateComputePipelineImpl(ComputePipelineDesc desc)
     {
         return new VKComputePipeline(this, desc);
-    }
-
-    protected override RayTracingPipeline CreateRayTracingPipelineImpl(RayTracingPipelineDesc desc)
-    {
-        return new VKRayTracingPipeline(this, desc);
     }
 
     protected override MeshShadingPipeline CreateMeshShadingPipelineImpl(MeshShadingPipelineDesc desc)

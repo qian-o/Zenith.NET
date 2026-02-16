@@ -2,13 +2,13 @@
 
 namespace Zenith.NET.DirectX12;
 
-internal class DXResourceSet : ResourceSet
+internal class DXResourceTable : ResourceTable
 {
     private readonly DXDescriptorToken cbvSrvUavToken;
     private readonly DXDescriptorToken samplerToken;
     private readonly Dictionary<ShaderStageFlags, (DXDescriptorToken CbvSrvUavToken, DXDescriptorToken SamplerToken)> graphicsTokens;
 
-    public DXResourceSet(DXGraphicsContext context, ResourceSetDesc desc) : base(context, desc)
+    public DXResourceTable(DXGraphicsContext context, ResourceTableDesc desc) : base(context, desc)
     {
         (cbvSrvUavToken, samplerToken) = GetTokens(ShaderStageFlags.None);
         graphicsTokens = ZenithHelper.GraphicShaderStages().ToDictionary(static item => item, GetTokens);
@@ -53,8 +53,10 @@ internal class DXResourceSet : ResourceSet
 
     public DXTextureView[] UavTextureViews { get; }
 
-    public void Bind(DXCommandBuffer commandBuffer, DXDescriptorTable cbvSrvUavTable, DXDescriptorTable samplerTable, bool isGraphics, uint offset)
+    public void Bind(DXCommandBuffer commandBuffer, DXDescriptorTable cbvSrvUavTable, DXDescriptorTable samplerTable, bool isGraphics)
     {
+        uint offset = 0;
+
         if (isGraphics)
         {
             foreach (ShaderStageFlags stage in ZenithHelper.GraphicShaderStages())

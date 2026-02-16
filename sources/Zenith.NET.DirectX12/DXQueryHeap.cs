@@ -11,7 +11,7 @@ internal unsafe class DXQueryHeap : QueryHeap
     {
         DxQueryHeapDesc queryHeapDesc = new()
         {
-            Type = DXFormats.DirectX12(desc.Type).QueryHeapType,
+            Type = DXFormats.DirectX12(desc.Type).HeapType,
             Count = desc.Count
         };
 

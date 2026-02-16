@@ -12,7 +12,7 @@ internal unsafe class VolumetricLightPass : FullscreenPass
     private readonly Buffer constantBuffer;
     private readonly Buffer csmDatasBuffer;
 
-    private ResourceSet? resourceSet;
+    private ResourceTable? resourceTable;
 
     private int sampleCount = 64;
     private float intensity = 1.0f;
@@ -40,8 +40,8 @@ internal unsafe class VolumetricLightPass : FullscreenPass
 
     public override void Resize(uint width, uint height)
     {
-        resourceSet?.Dispose();
-        resourceSet = null;
+        resourceTable?.Dispose();
+        resourceTable = null;
     }
 
     protected override ResourceLayout? CreateResourceLayout()
@@ -61,9 +61,9 @@ internal unsafe class VolumetricLightPass : FullscreenPass
         });
     }
 
-    protected override ResourceSet EnsureResourceSet(ResourceLayout resourceLayout, RenderContext context)
+    protected override ResourceTable EnsureResourceTable(ResourceLayout resourceLayout, RenderContext context)
     {
-        return resourceSet ??= App.Context.CreateResourceSet(new()
+        return resourceTable ??= App.Context.CreateResourceTable(new()
         {
             Layout = resourceLayout,
             Resources =
@@ -111,7 +111,7 @@ internal unsafe class VolumetricLightPass : FullscreenPass
 
     protected override void Destroy()
     {
-        resourceSet?.Dispose();
+        resourceTable?.Dispose();
         csmDatasBuffer.Dispose();
         constantBuffer.Dispose();
 
