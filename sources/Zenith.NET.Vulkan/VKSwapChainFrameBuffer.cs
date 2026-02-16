@@ -54,6 +54,8 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
             colorTargets = new VKTexture[swapchainImageCount];
             frameBuffers = new VKFrameBuffer[swapchainImageCount];
 
+            CommandBuffer commandBuffer = context.Graphics.CommandBuffer();
+
             for (uint i = 0; i < swapchainImageCount; i++)
             {
                 frameBuffers[i] = new(context, new()
@@ -61,7 +63,11 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
                     ColorAttachments = [new() { Target = colorTargets[i] = new(context, colorTargetDesc, swapchainImages[i]) }],
                     DepthStencilAttachment = depthStencilTarget is not null ? new() { Target = depthStencilTarget } : null
                 });
+
+                colorTargets[i].TransitionLayout(commandBuffer.Vulkan(), default, ImageLayout.PresentSrcKhr);
             }
+
+            commandBuffer.Submit(true);
         }
         else if (swapChain.Desc.Surface.Type is SurfaceType.D3D11Interop)
         {
