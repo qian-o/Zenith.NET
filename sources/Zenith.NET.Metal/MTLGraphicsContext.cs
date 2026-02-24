@@ -4,7 +4,7 @@ namespace Zenith.NET.Metal;
 
 internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Backend.Metal, useValidationLayer)
 {
-    public MTLDevice Device { get; } = MTLDevice.CreateSystemDefaultDevice()!;
+    public MTLDevice Device { get; } = MTLDevice.CreateSystemDefaultDevice();
 
     protected override void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,

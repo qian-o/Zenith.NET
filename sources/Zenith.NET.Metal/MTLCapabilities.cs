@@ -4,7 +4,7 @@ namespace Zenith.NET.Metal;
 
 internal class MTLCapabilities(MTLGraphicsContext context) : Capabilities
 {
-    public override string DeviceName { get; } = context.Device.Name!;
+    public override string DeviceName { get; } = context.Device.Name;
 
     public override bool RayTracingSupported { get; } = context.Device.SupportsRaytracingFromRender;
 
