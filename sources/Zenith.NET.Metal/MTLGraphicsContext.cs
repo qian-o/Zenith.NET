@@ -1,7 +1,11 @@
-﻿namespace Zenith.NET.Metal;
+﻿using Metal.NET;
+
+namespace Zenith.NET.Metal;
 
 internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Backend.Metal, useValidationLayer)
 {
+    public MTLDevice Device { get; } = MTLDevice.CreateSystemDefaultDevice()!;
+
     protected override void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
                                        out CommandQueue graphics,
@@ -9,6 +13,13 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
                                        out CommandQueue copy,
                                        out ValidationLayer? validationLayer)
     {
+        if (!Device.SupportsFamily(MTLGPUFamily.Metal4))
+        {
+            throw new NotSupportedException("Metal 4 is not supported on system default device.");
+        }
+
+        capabilities = new MTLCapabilities(this);
+
         throw new NotImplementedException();
     }
 
@@ -80,5 +91,12 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
     protected override QueryHeap CreateQueryHeapImpl(QueryHeapDesc desc)
     {
         throw new NotImplementedException();
+    }
+
+    protected override void Destroy()
+    {
+        base.Destroy();
+
+        Device.Dispose();
     }
 }
