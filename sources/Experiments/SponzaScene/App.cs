@@ -8,6 +8,7 @@ using SponzaScene.Renderer;
 using Zenith.NET;
 using Zenith.NET.DirectX12;
 using Zenith.NET.Extensions.ImGui;
+using Zenith.NET.Metal;
 using Zenith.NET.Vulkan;
 
 namespace SponzaScene;
@@ -25,11 +26,15 @@ internal static class App
     {
         if (OperatingSystem.IsWindows())
         {
-            Context = GraphicsContext.CreateDirectX12(true);
+            Context = GraphicsContext.CreateDirectX12(useValidationLayer: true);
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
         }
         else
         {
-            Context = GraphicsContext.CreateVulkan(true);
+            Context = GraphicsContext.CreateMetal(useValidationLayer: true);
         }
 
         Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
@@ -85,17 +90,13 @@ internal static class App
         {
             surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, (uint)window.Size.X, (uint)window.Size.Y);
         }
-        else if (OperatingSystem.IsMacOS())
-        {
-            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), (uint)window.Size.X, (uint)window.Size.Y);
-        }
         else if (OperatingSystem.IsLinux())
         {
             surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, (uint)window.Size.X, (uint)window.Size.Y);
         }
         else
         {
-            throw new PlatformNotSupportedException();
+            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), (uint)window.Size.X, (uint)window.Size.Y);
         }
 
         swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.B8G8R8A8UNorm, DepthStencilTargetFormat = PixelFormat.D32FloatS8UInt });
