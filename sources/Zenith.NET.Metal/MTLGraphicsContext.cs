@@ -4,15 +4,15 @@ namespace Zenith.NET.Metal;
 
 internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Backend.Metal, useValidationLayer)
 {
-    public MTLDevice Device { get; private set; } = MTLDevice.Null;
+    public MTLDevice Device = MTLDevice.Null;
 
-    public MTLResidencySet ResidencySet { get; private set; } = MTLResidencySet.Null;
+    public MTLResidencySet ResidencySet = MTLResidencySet.Null;
 
-    public MTL4CommandQueue GraphicsQueue { get; private set; } = MTL4CommandQueue.Null;
+    public MTL4CommandQueue GraphicsQueue = MTL4CommandQueue.Null;
 
-    public MTL4CommandQueue ComputeQueue { get; private set; } = MTL4CommandQueue.Null;
+    public MTL4CommandQueue ComputeQueue = MTL4CommandQueue.Null;
 
-    public MTL4CommandQueue CopyQueue { get; private set; } = MTL4CommandQueue.Null;
+    public MTL4CommandQueue CopyQueue = MTL4CommandQueue.Null;
 
     public void AddAllocation(MTLAllocation allocation)
     {
