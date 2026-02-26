@@ -44,14 +44,12 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
         error.Success();
 
         GraphicsQueue = Device.NewMTL4CommandQueue();
-        GraphicsQueue.AddResidencySet(ResidencySet);
-
         ComputeQueue = Device.NewMTL4CommandQueue();
-        ComputeQueue.AddResidencySet(ResidencySet);
-
         CopyQueue = Device.NewMTL4CommandQueue();
-        CopyQueue.AddResidencySet(ResidencySet);
 
+        GraphicsQueue.AddResidencySet(ResidencySet);
+        ComputeQueue.AddResidencySet(ResidencySet);
+        CopyQueue.AddResidencySet(ResidencySet);
 
         capabilities = new MTLCapabilities(this);
         graphics = new MTLCommandQueue(this, CommandQueueType.Graphics, GraphicsQueue);
@@ -135,12 +133,11 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
         base.Destroy();
 
         CopyQueue.RemoveResidencySet(ResidencySet);
-        CopyQueue.Dispose();
-
         ComputeQueue.RemoveResidencySet(ResidencySet);
-        ComputeQueue.Dispose();
-
         GraphicsQueue.RemoveResidencySet(ResidencySet);
+
+        CopyQueue.Dispose();
+        ComputeQueue.Dispose();
         GraphicsQueue.Dispose();
 
         ResidencySet.Dispose();
