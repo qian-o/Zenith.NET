@@ -52,6 +52,10 @@ public static class Extensions
 
     extension(BufferView bufferView)
     {
+        internal MTLBufferView Metal()
+        {
+            return (MTLBufferView)bufferView;
+        }
     }
 
     extension(Texture texture)
@@ -64,6 +68,10 @@ public static class Extensions
 
     extension(TextureView textureView)
     {
+        internal MTLTextureView Metal()
+        {
+            return (MTLTextureView)textureView;
+        }
     }
 
     extension(Sampler sampler)

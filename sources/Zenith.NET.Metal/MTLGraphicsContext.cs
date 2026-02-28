@@ -80,7 +80,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
 
     protected override BufferView CreateBufferViewImpl(BufferViewDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLBufferView(this, desc);
     }
 
     protected override Texture CreateTextureImpl(TextureDesc desc)
@@ -90,7 +90,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
 
     protected override TextureView CreateTextureViewImpl(TextureViewDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLTextureView(this, desc);
     }
 
     protected override Sampler CreateSamplerImpl(SamplerDesc desc)
