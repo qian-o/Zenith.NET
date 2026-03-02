@@ -70,7 +70,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
 
     protected override Shader CreateShaderImpl(ShaderDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLShader(this, desc);
     }
 
     protected override Buffer CreateBufferImpl(BufferDesc desc)
@@ -95,7 +95,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
 
     protected override Sampler CreateSamplerImpl(SamplerDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLSampler(this, desc);
     }
 
     protected override ResourceLayout CreateResourceLayoutImpl(ResourceLayoutDesc desc)

@@ -40,6 +40,10 @@ public static class Extensions
 
     extension(Shader shader)
     {
+        internal MTLShader Metal()
+        {
+            return (MTLShader)shader;
+        }
     }
 
     extension(Buffer buffer)
@@ -76,6 +80,10 @@ public static class Extensions
 
     extension(Sampler sampler)
     {
+        internal MTLSampler Metal()
+        {
+            return (MTLSampler)sampler;
+        }
     }
 
     extension(BottomLevelAccelerationStructure bottomLevelAccelerationStructure)

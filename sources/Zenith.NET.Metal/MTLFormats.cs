@@ -182,4 +182,60 @@ internal static class MTLFormats
 
         return result;
     }
+
+    public static (MTLSamplerMinMagFilter MinFilter, MTLSamplerMinMagFilter MagFilter, MTLSamplerMipFilter MipFilter) Metal(Filter filter)
+    {
+        return filter switch
+        {
+            Filter.MinPointMagPointMipPoint => (MTLSamplerMinMagFilter.Nearest, MTLSamplerMinMagFilter.Nearest, MTLSamplerMipFilter.Nearest),
+            Filter.MinPointMagPointMipLinear => (MTLSamplerMinMagFilter.Nearest, MTLSamplerMinMagFilter.Nearest, MTLSamplerMipFilter.Linear),
+            Filter.MinPointMagLinearMipPoint => (MTLSamplerMinMagFilter.Nearest, MTLSamplerMinMagFilter.Linear, MTLSamplerMipFilter.Nearest),
+            Filter.MinPointMagLinearMipLinear => (MTLSamplerMinMagFilter.Nearest, MTLSamplerMinMagFilter.Linear, MTLSamplerMipFilter.Linear),
+            Filter.MinLinearMagPointMipPoint => (MTLSamplerMinMagFilter.Linear, MTLSamplerMinMagFilter.Nearest, MTLSamplerMipFilter.Nearest),
+            Filter.MinLinearMagPointMipLinear => (MTLSamplerMinMagFilter.Linear, MTLSamplerMinMagFilter.Nearest, MTLSamplerMipFilter.Linear),
+            Filter.MinLinearMagLinearMipPoint => (MTLSamplerMinMagFilter.Linear, MTLSamplerMinMagFilter.Linear, MTLSamplerMipFilter.Nearest),
+            Filter.MinLinearMagLinearMipLinear => (MTLSamplerMinMagFilter.Linear, MTLSamplerMinMagFilter.Linear, MTLSamplerMipFilter.Linear),
+            Filter.Anisotropic => (MTLSamplerMinMagFilter.Linear, MTLSamplerMinMagFilter.Linear, MTLSamplerMipFilter.Linear),
+            _ => (MTLSamplerMinMagFilter.Nearest, MTLSamplerMinMagFilter.Nearest, MTLSamplerMipFilter.NotMipmapped)
+        };
+    }
+
+    public static MTLSamplerAddressMode Metal(AddressMode addressMode)
+    {
+        return addressMode switch
+        {
+            AddressMode.Wrap => MTLSamplerAddressMode.Repeat,
+            AddressMode.Mirror => MTLSamplerAddressMode.MirrorRepeat,
+            AddressMode.Clamp => MTLSamplerAddressMode.ClampToEdge,
+            AddressMode.Border => MTLSamplerAddressMode.ClampToBorderColor,
+            _ => MTLSamplerAddressMode.ClampToEdge
+        };
+    }
+
+    public static MTLCompareFunction Metal(ComparisonFunc comparisonFunc)
+    {
+        return comparisonFunc switch
+        {
+            ComparisonFunc.Never => MTLCompareFunction.Never,
+            ComparisonFunc.Less => MTLCompareFunction.Less,
+            ComparisonFunc.Equal => MTLCompareFunction.Equal,
+            ComparisonFunc.LessEqual => MTLCompareFunction.LessEqual,
+            ComparisonFunc.Greater => MTLCompareFunction.Greater,
+            ComparisonFunc.NotEqual => MTLCompareFunction.NotEqual,
+            ComparisonFunc.GreaterEqual => MTLCompareFunction.GreaterEqual,
+            ComparisonFunc.Always => MTLCompareFunction.Always,
+            _ => MTLCompareFunction.Never
+        };
+    }
+
+    public static MTLSamplerBorderColor Metal(BorderColor borderColor)
+    {
+        return borderColor switch
+        {
+            BorderColor.TransparentBlack => MTLSamplerBorderColor.TransparentBlack,
+            BorderColor.OpaqueBlack => MTLSamplerBorderColor.OpaqueBlack,
+            BorderColor.OpaqueWhite => MTLSamplerBorderColor.OpaqueWhite,
+            _ => MTLSamplerBorderColor.TransparentBlack
+        };
+    }
 }
