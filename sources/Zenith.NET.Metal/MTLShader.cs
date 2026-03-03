@@ -8,7 +8,10 @@ internal class MTLShader : Shader
 
     public MTLShader(MTLGraphicsContext context, ShaderDesc desc) : base(context, desc)
     {
-        throw new NotImplementedException();
+        using DispatchData dispatchData = DispatchData.Create(desc.ShaderBytes, default, 0);
+
+        Library = context.Device.NewLibrary(dispatchData, out NSError error);
+        error.Success();
     }
 
     protected override void SetResourceName(string name)
