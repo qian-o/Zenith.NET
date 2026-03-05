@@ -65,7 +65,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
 
     protected override FrameBuffer CreateFrameBufferImpl(FrameBufferDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLFrameBuffer(this, desc);
     }
 
     protected override Shader CreateShaderImpl(ShaderDesc desc)
