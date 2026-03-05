@@ -60,7 +60,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
 
     protected override SwapChain CreateSwapChainImpl(SwapChainDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLSwapChain(this, desc);
     }
 
     protected override FrameBuffer CreateFrameBufferImpl(FrameBufferDesc desc)
