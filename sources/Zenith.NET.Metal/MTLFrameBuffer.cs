@@ -103,5 +103,6 @@ internal class MTLFrameBuffer : FrameBuffer
 
     protected override void Destroy()
     {
+        Descriptor.Dispose();
     }
 }
