@@ -8,9 +8,7 @@ internal class MTLShader : Shader
 
     public MTLShader(MTLGraphicsContext context, ShaderDesc desc) : base(context, desc)
     {
-        using DispatchData dispatchData = DispatchData.Create(desc.ShaderBytes, default, 0);
-
-        Library = context.Device.NewLibrary(dispatchData, out NSError error);
+        Library = context.Device.NewLibrary(DispatchData.Create(desc.ShaderBytes), out NSError error);
         error.Success();
     }
 
