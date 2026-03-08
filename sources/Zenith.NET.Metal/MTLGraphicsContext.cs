@@ -100,7 +100,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
 
     protected override ResourceLayout CreateResourceLayoutImpl(ResourceLayoutDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLResourceLayout(this, desc);
     }
 
     protected override ResourceTable CreateResourceTableImpl(ResourceTableDesc desc)
