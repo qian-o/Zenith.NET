@@ -18,6 +18,16 @@ internal class MTLResourceTable : ResourceTable
         textureBindings = new TextureBinding[layout.TextureCount];
         samplerBindings = new SamplerBinding[layout.SamplerCount];
 
+        MTL4ArgumentTableDescriptor descriptor = new()
+        {
+            MaxBufferBindCount = layout.BufferCount,
+            MaxTextureBindCount = layout.TextureCount,
+            MaxSamplerStateBindCount = layout.SamplerCount
+        };
+
+        ArgumentTable = context.Device.NewArgumentTable(descriptor, out NSError error);
+        error.Success();
+
         uint resourceStartIndex = 0;
         uint bufferIndex = 0;
         uint textureIndex = 0;
@@ -73,16 +83,6 @@ internal class MTLResourceTable : ResourceTable
 
             resourceStartIndex += binding.Count;
         }
-
-        MTL4ArgumentTableDescriptor descriptor = new()
-        {
-            MaxBufferBindCount = (uint)bufferBindings.Length,
-            MaxTextureBindCount = (uint)textureBindings.Length,
-            MaxSamplerStateBindCount = (uint)samplerBindings.Length
-        };
-
-        ArgumentTable = context.Device.NewArgumentTable(descriptor, out NSError error);
-        error.Success();
 
         Bind(ArgumentTable);
     }
