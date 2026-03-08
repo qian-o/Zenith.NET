@@ -105,7 +105,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
 
     protected override ResourceTable CreateResourceTableImpl(ResourceTableDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLResourceTable(this, desc);
     }
 
     protected override GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc)

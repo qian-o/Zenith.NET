@@ -112,6 +112,10 @@ public static class Extensions
 
     extension(ResourceTable resourceTable)
     {
+        internal MTLResourceTable Metal()
+        {
+            return (MTLResourceTable)resourceTable;
+        }
     }
 
     extension(GraphicsPipeline graphicsPipeline)
