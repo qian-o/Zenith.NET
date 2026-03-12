@@ -1,4 +1,5 @@
-﻿using Hexa.NET.ImGui;
+﻿using System.Runtime.InteropServices;
+using Hexa.NET.ImGui;
 using SponzaScene.Helpers;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
@@ -96,13 +97,15 @@ internal unsafe class ComposePass : FullscreenPass
     }
 }
 
+[StructLayout(LayoutKind.Explicit, Size = 16)]
 file struct ComposeConstants
 {
+    [FieldOffset(0)]
     public float AOStrength;
 
+    [FieldOffset(4)]
     public float BloomIntensity;
 
+    [FieldOffset(8)]
     public float VolumetricIntensity;
-
-    private float padding0;
 }

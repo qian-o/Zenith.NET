@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using SponzaScene.Helpers;
 using SponzaScene.Models;
 using Zenith.NET;
@@ -126,11 +127,15 @@ internal unsafe class LightingPass : FullscreenPass
     }
 }
 
+[StructLayout(LayoutKind.Explicit, Size = 112)]
 file struct LightingConstants
 {
+    [FieldOffset(0)]
     public Vector4 CameraPosition;
 
+    [FieldOffset(16)]
     public Matrix4x4 InverseViewProjection;
 
+    [FieldOffset(80)]
     public DirectionalLight DirectionalLight;
 }

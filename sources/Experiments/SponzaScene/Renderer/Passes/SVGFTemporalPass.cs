@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using Hexa.NET.ImGui;
 using SponzaScene.Helpers;
 using Zenith.NET;
@@ -150,19 +151,24 @@ internal unsafe class SVGFTemporalPass : FullscreenPass
     }
 }
 
+[StructLayout(LayoutKind.Explicit, Size = 96)]
 file struct TemporalConstants
 {
+    [FieldOffset(0)]
     public Matrix4x4 PrevViewProjection;
 
+    [FieldOffset(64)]
     public Vector2 ViewportSize;
 
+    [FieldOffset(72)]
     public float ColorBoxSigma;
 
+    [FieldOffset(76)]
     public float NormalThreshold;
 
+    [FieldOffset(80)]
     public float DepthThreshold;
 
+    [FieldOffset(84)]
     public int MaxHistoryLength;
-
-    private Vector2 padding0;
 }
