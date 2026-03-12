@@ -11,10 +11,12 @@ Vulkan and Metal.
 
 ## Approach
 
-Instead of renaming fields to `float4`, **insert explicit `private` padding fields** to
-ensure every 16-byte row is fully occupied. This preserves original field names and types,
-minimizes changes to shader logic code, and keeps the Slang and C# struct definitions
-structurally consistent.
+Instead of renaming fields to `float4`, **insert explicit `private` padding fields in Slang**
+to ensure every 16-byte row is fully occupied. On the **C# side**, use
+`[StructLayout(LayoutKind.Explicit, Size = N)]` with `[FieldOffset]` attributes instead of
+padding fields — this avoids unused-variable warnings and keeps the C# structs clean.
+
+This preserves original field names and types, minimizes changes to shader logic code.
 
 ## Scope
 
@@ -50,47 +52,57 @@ aligned to 16-byte boundaries. This includes:
    - `float2` + 2 scalars (8 + 4 + 4 = 16 bytes)
    - 4 scalars (4 × 4 = 16 bytes)
 
-2. **Padding field style**: Use `private` padding fields named `padding0`, `padding1`, etc.
-   (no underscore prefix). In Slang, use `private float paddingN;` or `private float2 paddingN;`.
-   In C#, use `private float paddingN;` or `private Vector2 paddingN;`. Example:
+2. **Slang padding field style**: Use `private` padding fields named `padding0`, `padding1`,
+   etc. (no underscore prefix). **Only use `private float paddingN;`** — never use `float2`,
+   `float3`, or any vector type for padding. `float2` has alignment 8 on Vulkan/Metal but 4
+   on DX12, so using it as padding reintroduces the exact cross-backend mismatch we are
+   fixing. `float` (4-byte alignment) is universally safe across all backends.
+   Insert a blank line between every field declaration (including padding fields).
+   Example:
    ```
-   // Slang
    struct BloomConstants
    {
        float2 TexelSize;
 
-       private float2 padding0;
-   };
+       private float padding0;
 
-   // C#
+       private float padding1;
+   };
+   ```
+
+3. **C# struct style**: Use `[StructLayout(LayoutKind.Explicit, Size = N)]` where `N` is
+   the total struct size (must be a multiple of 16). Use `[FieldOffset(X)]` on each field.
+   Do NOT add padding fields in C# — the `Size` parameter and `FieldOffset` gaps handle
+   alignment. Insert a blank line between every field declaration. Example:
+   ```csharp
+   [StructLayout(LayoutKind.Explicit, Size = 16)]
    file struct BloomConstants
    {
+       [FieldOffset(0)]
        public Vector2 TexelSize;
-
-       private Vector2 padding0;
    }
    ```
 
-3. **Blank lines between fields**: Insert a blank line between every field declaration
-   (including padding fields), in both Slang and C# structs.
-
 4. **Do NOT rename or retype existing fields**. Keep `float3 Direction` as `float3 Direction`,
-   keep `float2 TexelSize` as `float2 TexelSize`. Only add padding fields after them.
+   keep `float2 TexelSize` as `float2 TexelSize`. Only add padding fields in Slang.
 
-5. **Struct tail alignment**: The total `sizeof()` of every struct must be a **multiple of
-   16 bytes**. This ensures correct stride when the struct is used in arrays
-   (e.g., `StructuredBuffer<T>` or `T[]` uploads). Add tail padding if needed.
+5. **Struct tail alignment**: The `Size` parameter in `[StructLayout]` on the C# side and
+   tail padding in Slang must ensure the total size is a **multiple of 16 bytes**. This
+   guarantees correct stride when the struct is used in arrays (e.g., `StructuredBuffer<T>`
+   or `T[]` uploads).
 
 6. **Embedded structs**: When a struct embeds another struct (e.g., `DirectionalLight`
    inside `LightingConstants`), the embedded struct itself must already be padded to a
    16-byte multiple. Do NOT inline/flatten the embedded struct — just ensure it is
    independently padded.
 
-7. **C# mirror struct must be byte-for-byte identical** to the Slang struct, including
-   all padding fields in the same order and with the same sizes.
+7. **C# struct must be byte-for-byte identical in layout** to the Slang struct. The
+   `[FieldOffset]` values must match the byte offsets produced by the Slang struct
+   (including its padding fields). The `Size` must match the Slang struct's total size.
 
 8. **Do NOT modify shader logic code**. No field reads or writes should need updating.
-   The only changes are adding `private` padding fields.
+   The only Slang changes are adding `private` padding fields. The only C# changes are
+   adding `[StructLayout]` and `[FieldOffset]` attributes.
 
 ## Documentation Changes
 

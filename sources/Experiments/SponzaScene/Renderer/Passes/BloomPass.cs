@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using Hexa.NET.ImGui;
 using SponzaScene.Helpers;
 using Zenith.NET;
@@ -129,7 +130,9 @@ internal unsafe class BloomPass : RenderPass
     }
 }
 
+[StructLayout(LayoutKind.Explicit, Size = 16)]
 file struct BloomConstants
 {
+    [FieldOffset(0)]
     public Vector2 TexelSize;
 }

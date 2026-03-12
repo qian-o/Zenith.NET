@@ -13,6 +13,10 @@ struct TemporalConstants
     float DepthThreshold;
 
     int MaxHistoryLength;
+
+    private float padding0;
+
+    private float padding1;
 };
 
 ConstantBuffer<TemporalConstants> constants;

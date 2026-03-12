@@ -16,6 +16,8 @@ struct DirectionalLight
     float Intensity;
 
     float3 Color;
+
+    private float padding0;
 };
 
 struct PointLight
@@ -47,6 +49,10 @@ struct CSMData
     float NearPlane;
 
     float FarPlane;
+
+    private float padding0;
+
+    private float padding1;
 };
 
 struct SkyParams

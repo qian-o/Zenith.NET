@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using Hexa.NET.ImGui;
 using SponzaScene.Helpers;
 using SponzaScene.Models;
@@ -111,17 +112,24 @@ internal unsafe class RTGIPass : FullscreenPass
     }
 }
 
+[StructLayout(LayoutKind.Explicit, Size = 112)]
 file struct RTGIConstants
 {
+    [FieldOffset(0)]
     public uint Width;
 
+    [FieldOffset(4)]
     public uint Height;
 
+    [FieldOffset(8)]
     public uint FrameIndex;
 
+    [FieldOffset(12)]
     public float Intensity;
 
+    [FieldOffset(16)]
     public Matrix4x4 ViewProjection;
 
+    [FieldOffset(80)]
     public DirectionalLight DirectionalLight;
 }

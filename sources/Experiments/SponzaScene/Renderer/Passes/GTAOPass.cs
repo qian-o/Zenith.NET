@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using Hexa.NET.ImGui;
 using SponzaScene.Helpers;
 using Zenith.NET;
@@ -108,25 +109,36 @@ internal unsafe class GTAOPass : FullscreenPass
     }
 }
 
+[StructLayout(LayoutKind.Explicit, Size = 176)]
 file struct GTAOConstants
 {
+    [FieldOffset(0)]
     public Matrix4x4 View;
 
+    [FieldOffset(64)]
     public Matrix4x4 Projection;
 
+    [FieldOffset(128)]
     public Vector2 ViewportSize;
 
+    [FieldOffset(136)]
     public float EffectRadius;
 
+    [FieldOffset(140)]
     public float EffectFalloffRange;
 
+    [FieldOffset(144)]
     public float RadiusMultiplier;
 
+    [FieldOffset(148)]
     public float FinalValuePower;
 
+    [FieldOffset(152)]
     public float SampleDistributionPower;
 
+    [FieldOffset(156)]
     public int SliceCount;
 
+    [FieldOffset(160)]
     public int StepsPerSlice;
 }

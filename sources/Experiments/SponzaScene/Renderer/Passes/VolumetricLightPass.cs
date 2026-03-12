@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using Hexa.NET.ImGui;
 using SponzaScene.Helpers;
 using SponzaScene.Models;
@@ -119,23 +120,33 @@ internal unsafe class VolumetricLightPass : FullscreenPass
     }
 }
 
+[StructLayout(LayoutKind.Explicit, Size = 144)]
 file struct VolumetricLightConstants
 {
+    [FieldOffset(0)]
     public Vector4 CameraPosition;
 
+    [FieldOffset(16)]
     public Vector4 LightDirection;
 
+    [FieldOffset(32)]
     public Vector4 LightColor;
 
+    [FieldOffset(48)]
     public Matrix4x4 InverseViewProjection;
 
+    [FieldOffset(112)]
     public Vector2 ScreenSize;
 
+    [FieldOffset(120)]
     public int SampleCount;
 
+    [FieldOffset(124)]
     public float Intensity;
 
+    [FieldOffset(128)]
     public float Scattering;
 
+    [FieldOffset(132)]
     public float MaxDistance;
 }

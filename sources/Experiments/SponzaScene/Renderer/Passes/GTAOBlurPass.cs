@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using Hexa.NET.ImGui;
 using SponzaScene.Helpers;
 using Zenith.NET;
@@ -88,9 +89,12 @@ internal unsafe class GTAOBlurPass : FullscreenPass
     }
 }
 
+[StructLayout(LayoutKind.Explicit, Size = 16)]
 file struct BlurConstants
 {
+    [FieldOffset(0)]
     public Vector2 TexelSize;
 
+    [FieldOffset(8)]
     public int BlurSize;
 }

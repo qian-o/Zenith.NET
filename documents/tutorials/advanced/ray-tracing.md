@@ -67,7 +67,7 @@ internal unsafe class RayTracingRenderer : IRenderer
 
             float3 Color;
 
-            float Padding;
+            private float padding0;
         };
 
         RaytracingAccelerationStructure scene;
@@ -501,16 +501,17 @@ internal unsafe class RayTracingRenderer : IRenderer
 /// <summary>
 /// Sphere definition for procedural geometry.
 /// </summary>
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Explicit, Size = 32)]
 file struct Sphere
 {
+    [FieldOffset(0)]
     public Vector3 Center;
 
+    [FieldOffset(12)]
     public float Radius;
 
+    [FieldOffset(16)]
     public Vector3 Color;
-
-    public float Padding;
 }
 ```
 

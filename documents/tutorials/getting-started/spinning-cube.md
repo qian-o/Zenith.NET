@@ -229,13 +229,16 @@ file struct Vertex(Vector3 position, Vector4 color)
 /// <summary>
 /// MVP transformation matrices.
 /// </summary>
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Explicit, Size = 192)]
 file struct MVPConstants
 {
+    [FieldOffset(0)]
     public Matrix4x4 Model;
 
+    [FieldOffset(64)]
     public Matrix4x4 View;
 
+    [FieldOffset(128)]
     public Matrix4x4 Projection;
 }
 ```
@@ -268,13 +271,16 @@ dotnet run
 ### MVP Constants Structure
 
 ```csharp
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Explicit, Size = 192)]
 file struct MVPConstants
 {
+    [FieldOffset(0)]
     public Matrix4x4 Model;
 
+    [FieldOffset(64)]
     public Matrix4x4 View;
 
+    [FieldOffset(128)]
     public Matrix4x4 Projection;
 }
 ```

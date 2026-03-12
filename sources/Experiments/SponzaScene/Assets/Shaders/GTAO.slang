@@ -35,6 +35,12 @@ struct GTAOConstants
     int SliceCount;
 
     int StepsPerSlice;
+
+    private float padding0;
+
+    private float padding1;
+
+    private float padding2;
 };
 
 ConstantBuffer<GTAOConstants> constants;

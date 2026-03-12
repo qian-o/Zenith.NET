@@ -16,6 +16,8 @@ struct DirectionalLight
     float Intensity;
 
     float3 Color;
+
+    private float padding0;
 };
 
 struct PointLight

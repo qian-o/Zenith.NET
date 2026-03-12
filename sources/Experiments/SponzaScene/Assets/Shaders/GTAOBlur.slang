@@ -9,6 +9,8 @@ struct BlurConstants
     float2 TexelSize;
 
     int BlurSize;
+
+    private float padding0;
 };
 
 ConstantBuffer<BlurConstants> constants;

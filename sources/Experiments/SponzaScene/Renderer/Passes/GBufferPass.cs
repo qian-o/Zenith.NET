@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using Hexa.NET.ImGui;
 using SponzaScene.Helpers;
 using SponzaScene.Models;
@@ -279,30 +280,43 @@ file enum MaterialFlags
     HasMetallicRoughnessTexture = 1 << 3
 }
 
+[StructLayout(LayoutKind.Explicit, Size = 144)]
 file struct CameraConstants
 {
+    [FieldOffset(0)]
     public Matrix4x4 View;
 
+    [FieldOffset(64)]
     public Matrix4x4 Projection;
 
+    [FieldOffset(128)]
     public float NearPlane;
 
+    [FieldOffset(132)]
     public float FarPlane;
 }
 
+[StructLayout(LayoutKind.Explicit, Size = 64)]
 file struct MaterialConstants
 {
+    [FieldOffset(0)]
     public float AlphaCutoff;
 
+    [FieldOffset(4)]
     public float MetallicFactor;
 
+    [FieldOffset(8)]
     public float RoughnessFactor;
 
+    [FieldOffset(12)]
     public float EmissiveStrength;
 
+    [FieldOffset(16)]
     public Vector4 BaseColorFactor;
 
+    [FieldOffset(32)]
     public Vector4 EmissiveFactor;
 
+    [FieldOffset(48)]
     public MaterialFlags Flags;
 }

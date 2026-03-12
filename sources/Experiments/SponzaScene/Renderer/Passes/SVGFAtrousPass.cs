@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using Hexa.NET.ImGui;
 using SponzaScene.Helpers;
 using Zenith.NET;
@@ -158,15 +159,21 @@ internal unsafe class SVGFAtrousPass : RenderPass
     }
 }
 
+[StructLayout(LayoutKind.Explicit, Size = 32)]
 file struct AtrousConstants
 {
+    [FieldOffset(0)]
     public Vector2 ViewportSize;
 
+    [FieldOffset(8)]
     public int StepWidth;
 
+    [FieldOffset(12)]
     public float PhiColor;
 
+    [FieldOffset(16)]
     public float PhiNormal;
 
+    [FieldOffset(20)]
     public float PhiDepth;
 }
