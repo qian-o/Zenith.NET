@@ -509,7 +509,9 @@ float4 PSMain(VSOutput input) : SV_TARGET
     }
 }
 
+[StructLayout(LayoutKind.Explicit, Size = 64)]
 file struct Constants
 {
+    [FieldOffset(0)]
     public Matrix4x4 Projection;
 }
