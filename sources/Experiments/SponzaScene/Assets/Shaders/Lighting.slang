@@ -11,22 +11,16 @@ static const int SHADOW_SAMPLE_COUNT = 32;
 
 struct DirectionalLight
 {
-    float3 Direction;
+    float4 DirectionAndIntensity;
 
-    float Intensity;
-
-    float3 Color;
+    float4 ColorAndPadding;
 };
 
 struct PointLight
 {
-    float3 Position;
+    float4 PositionAndRadius;
 
-    float Radius;
-
-    float3 Color;
-
-    float Intensity;
+    float4 ColorAndIntensity;
 };
 
 struct LightingConstants
@@ -47,6 +41,10 @@ struct CSMData
     float NearPlane;
 
     float FarPlane;
+
+    float _pad0;
+
+    float _pad1;
 };
 
 struct SkyParams
@@ -426,24 +424,24 @@ float3 CalculateMinimalAmbient(float3 N, float3 V, float3 albedo, float metallic
 float3 CalculateDirectionalLight(DirectionalLight light, float3 V, float3 N, float3 albedo, float metallic, float roughness, float shadow)
 {
     float shadowFactor = shadow * shadow * shadow;
-    float3 radiance = light.Color * light.Intensity * shadowFactor;
+    float3 radiance = light.ColorAndPadding.xyz * light.DirectionAndIntensity.w * shadowFactor;
 
-    return CalculatePBRLight(SafeNormalize(-light.Direction), V, N, albedo, metallic, roughness, radiance);
+    return CalculatePBRLight(SafeNormalize(-light.DirectionAndIntensity.xyz), V, N, albedo, metallic, roughness, radiance);
 }
 
 float3 CalculatePointLight(PointLight light, float3 worldPos, float3 V, float3 N, float3 albedo, float metallic, float roughness)
 {
-    float3 toLight = light.Position - worldPos;
+    float3 toLight = light.PositionAndRadius.xyz - worldPos;
     float distance = length(toLight);
 
-    if (distance > light.Radius)
+    if (distance > light.PositionAndRadius.w)
     {
         return 0.0;
     }
 
     float3 L = toLight / distance;
 
-    float distanceRatio = distance / light.Radius;
+    float distanceRatio = distance / light.PositionAndRadius.w;
     float distanceRatio2 = distanceRatio * distanceRatio;
     float radiusAttenuation = saturate(1.0 - distanceRatio2 * distanceRatio2);
     radiusAttenuation *= radiusAttenuation;
@@ -451,7 +449,7 @@ float3 CalculatePointLight(PointLight light, float3 worldPos, float3 V, float3 N
     float physicalFalloff = 1.0 / max(distance * distance, EPSILON);
     float attenuation = radiusAttenuation * physicalFalloff;
 
-    return CalculatePBRLight(L, V, N, albedo, metallic, roughness, light.Color * light.Intensity * attenuation);
+    return CalculatePBRLight(L, V, N, albedo, metallic, roughness, light.ColorAndIntensity.xyz * light.ColorAndIntensity.w * attenuation);
 }
 
 float3 CalculateGlobalIllumination(float3 N, float3 albedo, float3 giRadiance, float metallic, float ao,
@@ -525,9 +523,9 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     if (dot(worldPos, worldPos) < EPSILON || dot(normalData, normalData) < EPSILON)
     {
         outputTexture[dispatchThreadID.xy] = float4(CalculateSkybox(GetViewDirection(uv),
-                                                                    constants.DirectionalLight.Direction,
-                                                                    constants.DirectionalLight.Color,
-                                                                    constants.DirectionalLight.Intensity),
+                                                                    constants.DirectionalLight.DirectionAndIntensity.xyz,
+                                                                    constants.DirectionalLight.ColorAndPadding.xyz,
+                                                                    constants.DirectionalLight.DirectionAndIntensity.w),
                                                     1.0);
         return;
     }
@@ -550,7 +548,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     }
     else
     {
-        float shadow = CalculateShadow(worldPos, constants.CameraPosition.xyz, N, constants.DirectionalLight.Direction, uv);
+        float shadow = CalculateShadow(worldPos, constants.CameraPosition.xyz, N, constants.DirectionalLight.DirectionAndIntensity.xyz, uv);
 
         color = CalculateMinimalAmbient(N,
                                         V,
@@ -558,9 +556,9 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
                                         metallicRoughness.x,
                                         metallicRoughness.y,
                                         ao,
-                                        constants.DirectionalLight.Direction,
-                                        constants.DirectionalLight.Color,
-                                        constants.DirectionalLight.Intensity);
+                                        constants.DirectionalLight.DirectionAndIntensity.xyz,
+                                        constants.DirectionalLight.ColorAndPadding.xyz,
+                                        constants.DirectionalLight.DirectionAndIntensity.w);
 
         color += CalculateDirectionalLight(constants.DirectionalLight,
                                            V,
@@ -582,9 +580,9 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
                                              giRadiance,
                                              metallicRoughness.x,
                                              ao,
-                                             constants.DirectionalLight.Direction,
-                                             constants.DirectionalLight.Color,
-                                             constants.DirectionalLight.Intensity,
+                                             constants.DirectionalLight.DirectionAndIntensity.xyz,
+                                             constants.DirectionalLight.ColorAndPadding.xyz,
+                                             constants.DirectionalLight.DirectionAndIntensity.w,
                                              shadow);
     }
 

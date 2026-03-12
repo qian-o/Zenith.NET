@@ -86,7 +86,8 @@ internal unsafe class SVGFTemporalPass : FullscreenPass
         constantBuffer.Upload([new TemporalConstants
         {
             PrevViewProjection = prevViewProjection,
-            ViewportSize = new Vector2(context.Width, context.Height),
+            ViewportWidth = context.Width,
+            ViewportHeight = context.Height,
             ColorBoxSigma = colorBoxSigma,
             NormalThreshold = normalThreshold,
             DepthThreshold = depthThreshold,
@@ -154,7 +155,9 @@ file struct TemporalConstants
 {
     public Matrix4x4 PrevViewProjection;
 
-    public Vector2 ViewportSize;
+    public float ViewportWidth;
+
+    public float ViewportHeight;
 
     public float ColorBoxSigma;
 
@@ -163,4 +166,8 @@ file struct TemporalConstants
     public float DepthThreshold;
 
     public int MaxHistoryLength;
+
+    public int _pad0;
+
+    public int _pad1;
 }

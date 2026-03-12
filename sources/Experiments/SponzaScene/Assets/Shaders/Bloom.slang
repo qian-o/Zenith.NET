@@ -2,7 +2,7 @@
 
 struct BloomConstants
 {
-    float2 TexelSize;
+    float4 TexelSize;
 };
 
 ConstantBuffer<BloomConstants> constants;
@@ -27,8 +27,8 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 
     for (int i = 1; i < 5; i++)
     {
-        result += sourceTexture.SampleLevel(linearSampler, uv + constants.TexelSize * i, 0).rgb * weights[i];
-        result += sourceTexture.SampleLevel(linearSampler, uv - constants.TexelSize * i, 0).rgb * weights[i];
+        result += sourceTexture.SampleLevel(linearSampler, uv + constants.TexelSize.xy * i, 0).rgb * weights[i];
+        result += sourceTexture.SampleLevel(linearSampler, uv - constants.TexelSize.xy * i, 0).rgb * weights[i];
     }
 
     outputTexture[dispatchThreadID.xy] = float4(result, 1.0);

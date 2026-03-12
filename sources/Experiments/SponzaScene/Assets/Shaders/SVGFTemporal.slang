@@ -4,7 +4,9 @@ struct TemporalConstants
 {
     float4x4 PrevViewProjection;
 
-    float2 ViewportSize;
+    float ViewportWidth;
+
+    float ViewportHeight;
 
     float ColorBoxSigma;
 
@@ -13,6 +15,10 @@ struct TemporalConstants
     float DepthThreshold;
 
     int MaxHistoryLength;
+
+    int _pad0;
+
+    int _pad1;
 };
 
 ConstantBuffer<TemporalConstants> constants;
@@ -61,7 +67,7 @@ bool Reproject(float3 pos, float3 normal, out int2 histCoord)
         return false;
     }
 
-    histCoord = int2(uv * constants.ViewportSize);
+    histCoord = int2(uv * float2(constants.ViewportWidth, constants.ViewportHeight));
 
     float3 histPos = historyPositionTexture.SampleLevel(linearSampler, uv, 0).xyz;
 
@@ -100,7 +106,7 @@ void ComputeNeighborhood(uint2 coord, out float3 mean, out float3 stdDev, out fl
         [unroll]
         for (int x = -1; x <= 1; x++)
         {
-            int2 p = clamp(int2(coord) + int2(x, y), int2(0), int2(constants.ViewportSize) - 1);
+            int2 p = clamp(int2(coord) + int2(x, y), int2(0), int2(constants.ViewportWidth, constants.ViewportHeight) - 1);
             float3 c = colorTexture.Load(int3(p, 0)).rgb;
 
             m1 += c;
@@ -126,7 +132,7 @@ void CSMain(uint3 id: SV_DispatchThreadID)
 {
     uint2 coord = id.xy;
 
-    if (any(coord >= uint2(constants.ViewportSize)))
+    if (any(coord >= uint2(constants.ViewportWidth, constants.ViewportHeight)))
     {
         return;
     }

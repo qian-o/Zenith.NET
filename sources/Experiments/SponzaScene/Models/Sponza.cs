@@ -132,9 +132,8 @@ internal unsafe class Sponza : DisposableObject
 
             return new()
             {
-                Direction = direction,
-                Color = Vector3.Lerp(HorizonColor, DayColor, smoothColorFactor),
-                Intensity = float.Lerp(2.0f, 5.0f, intensityFactor)
+                DirectionAndIntensity = new(direction, float.Lerp(2.0f, 5.0f, intensityFactor)),
+                ColorAndPadding = new(Vector3.Lerp(HorizonColor, DayColor, smoothColorFactor), 0.0f)
             };
         }
     }
@@ -143,31 +142,23 @@ internal unsafe class Sponza : DisposableObject
     [
         new()
         {
-            Position = new(-29.67882f, 6.9f, 6.88488f),
-            Color = new(0.3f, 0.9f, 1.0f),
-            Intensity = 800.0f,
-            Radius = 30.0f
+            PositionAndRadius = new(-29.67882f, 6.9f, 6.88488f, 30.0f),
+            ColorAndIntensity = new(0.3f, 0.9f, 1.0f, 800.0f)
         },
         new()
         {
-            Position = new(-29.67882f, 6.9f, -10.55208f),
-            Color = new(1.0f, 0.3f, 0.8f),
-            Intensity = 800.0f,
-            Radius = 30.0f
+            PositionAndRadius = new(-29.67882f, 6.9f, -10.55208f, 30.0f),
+            ColorAndIntensity = new(1.0f, 0.3f, 0.8f, 800.0f)
         },
         new()
         {
-            Position = new(23.4f, 6.9f, 6.88488f),
-            Color = new(1.0f, 0.9f, 0.2f),
-            Intensity = 800.0f,
-            Radius = 30.0f
+            PositionAndRadius = new(23.4f, 6.9f, 6.88488f, 30.0f),
+            ColorAndIntensity = new(1.0f, 0.9f, 0.2f, 800.0f)
         },
         new()
         {
-            Position = new(23.4f, 6.9f, -10.55076f),
-            Color = new(0.3f, 1.0f, 0.4f),
-            Intensity = 800.0f,
-            Radius = 30.0f
+            PositionAndRadius = new(23.4f, 6.9f, -10.55076f, 30.0f),
+            ColorAndIntensity = new(0.3f, 1.0f, 0.4f, 800.0f)
         }
     ];
 

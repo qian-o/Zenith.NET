@@ -4,9 +4,7 @@ namespace SponzaScene.Models;
 
 internal struct DirectionalLight
 {
-    public Vector3 Direction;
+    public Vector4 DirectionAndIntensity;
 
-    public float Intensity;
-
-    public Vector3 Color;
+    public Vector4 ColorAndPadding;
 }

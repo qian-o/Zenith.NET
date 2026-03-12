@@ -15,7 +15,9 @@ struct VolumetricLightConstants
 
     float4x4 InverseViewProjection;
 
-    float2 ScreenSize;
+    float ScreenWidth;
+
+    float ScreenHeight;
 
     int SampleCount;
 
@@ -24,6 +26,10 @@ struct VolumetricLightConstants
     float Scattering;
 
     float MaxDistance;
+
+    float _pad0;
+
+    float _pad1;
 };
 
 struct CSMData
@@ -35,6 +41,10 @@ struct CSMData
     float NearPlane;
 
     float FarPlane;
+
+    float _pad0;
+
+    float _pad1;
 };
 
 ConstantBuffer<VolumetricLightConstants> constants;

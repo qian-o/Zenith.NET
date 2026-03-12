@@ -6,7 +6,7 @@ static const float KERNEL_WEIGHTS[9] = { 0.0093, 0.028, 0.0659, 0.1226, 0.1802, 
 
 struct BlurConstants
 {
-    float2 TexelSize;
+    float4 TexelSize;
 };
 
 ConstantBuffer<BlurConstants> constants;
@@ -40,7 +40,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     [unroll]
     for (int i = 1; i <= KERNEL_RADIUS; i++)
     {
-        float2 offset = constants.TexelSize * float(i);
+        float2 offset = constants.TexelSize.xy * float(i);
         float kernelWeight = KERNEL_WEIGHTS[KERNEL_RADIUS + i];
 
         float2 uvPos = uv + offset;

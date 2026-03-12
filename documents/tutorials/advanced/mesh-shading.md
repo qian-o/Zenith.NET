@@ -74,11 +74,9 @@ internal unsafe class MeshShadingRenderer : IRenderer
 
         struct Vertex
         {
-            float3 Position;
+            float4 PositionAndTexU;
 
-            float3 Normal;
-
-            float2 TexCoord;
+            float4 NormalAndTexV;
         };
 
         struct Meshlet
@@ -128,9 +126,9 @@ internal unsafe class MeshShadingRenderer : IRenderer
                 Vertex vertex = vertices[meshlet.VertexOffset + groupThreadId];
 
                 VertexOutput output;
-                output.Position = mul(float4(vertex.Position, 1.0), transform.MVP);
-                output.Normal = vertex.Normal;
-                output.TexCoord = vertex.TexCoord;
+                output.Position = mul(float4(vertex.PositionAndTexU.xyz, 1.0), transform.MVP);
+                output.Normal = vertex.NormalAndTexV.xyz;
+                output.TexCoord = float2(vertex.PositionAndTexU.w, vertex.NormalAndTexV.w);
 
                 outVertices[groupThreadId] = output;
             }
@@ -180,40 +178,40 @@ internal unsafe class MeshShadingRenderer : IRenderer
         Vertex[] cubeVertices =
         [
             // Front face
-            new() { Position = new(-0.5f, -0.5f,  0.5f), Normal = new( 0,  0,  1), TexCoord = new(0, 1) },
-            new() { Position = new( 0.5f, -0.5f,  0.5f), Normal = new( 0,  0,  1), TexCoord = new(1, 1) },
-            new() { Position = new( 0.5f,  0.5f,  0.5f), Normal = new( 0,  0,  1), TexCoord = new(1, 0) },
-            new() { Position = new(-0.5f,  0.5f,  0.5f), Normal = new( 0,  0,  1), TexCoord = new(0, 0) },
+            new() { PositionAndTexU = new(-0.5f, -0.5f,  0.5f, 0), NormalAndTexV = new( 0,  0,  1, 1) },
+            new() { PositionAndTexU = new( 0.5f, -0.5f,  0.5f, 1), NormalAndTexV = new( 0,  0,  1, 1) },
+            new() { PositionAndTexU = new( 0.5f,  0.5f,  0.5f, 1), NormalAndTexV = new( 0,  0,  1, 0) },
+            new() { PositionAndTexU = new(-0.5f,  0.5f,  0.5f, 0), NormalAndTexV = new( 0,  0,  1, 0) },
 
             // Back face
-            new() { Position = new( 0.5f, -0.5f, -0.5f), Normal = new( 0,  0, -1), TexCoord = new(0, 1) },
-            new() { Position = new(-0.5f, -0.5f, -0.5f), Normal = new( 0,  0, -1), TexCoord = new(1, 1) },
-            new() { Position = new(-0.5f,  0.5f, -0.5f), Normal = new( 0,  0, -1), TexCoord = new(1, 0) },
-            new() { Position = new( 0.5f,  0.5f, -0.5f), Normal = new( 0,  0, -1), TexCoord = new(0, 0) },
+            new() { PositionAndTexU = new( 0.5f, -0.5f, -0.5f, 0), NormalAndTexV = new( 0,  0, -1, 1) },
+            new() { PositionAndTexU = new(-0.5f, -0.5f, -0.5f, 1), NormalAndTexV = new( 0,  0, -1, 1) },
+            new() { PositionAndTexU = new(-0.5f,  0.5f, -0.5f, 1), NormalAndTexV = new( 0,  0, -1, 0) },
+            new() { PositionAndTexU = new( 0.5f,  0.5f, -0.5f, 0), NormalAndTexV = new( 0,  0, -1, 0) },
 
             // Left face
-            new() { Position = new(-0.5f, -0.5f, -0.5f), Normal = new(-1,  0,  0), TexCoord = new(0, 1) },
-            new() { Position = new(-0.5f, -0.5f,  0.5f), Normal = new(-1,  0,  0), TexCoord = new(1, 1) },
-            new() { Position = new(-0.5f,  0.5f,  0.5f), Normal = new(-1,  0,  0), TexCoord = new(1, 0) },
-            new() { Position = new(-0.5f,  0.5f, -0.5f), Normal = new(-1,  0,  0), TexCoord = new(0, 0) },
+            new() { PositionAndTexU = new(-0.5f, -0.5f, -0.5f, 0), NormalAndTexV = new(-1,  0,  0, 1) },
+            new() { PositionAndTexU = new(-0.5f, -0.5f,  0.5f, 1), NormalAndTexV = new(-1,  0,  0, 1) },
+            new() { PositionAndTexU = new(-0.5f,  0.5f,  0.5f, 1), NormalAndTexV = new(-1,  0,  0, 0) },
+            new() { PositionAndTexU = new(-0.5f,  0.5f, -0.5f, 0), NormalAndTexV = new(-1,  0,  0, 0) },
 
             // Right face
-            new() { Position = new( 0.5f, -0.5f,  0.5f), Normal = new( 1,  0,  0), TexCoord = new(0, 1) },
-            new() { Position = new( 0.5f, -0.5f, -0.5f), Normal = new( 1,  0,  0), TexCoord = new(1, 1) },
-            new() { Position = new( 0.5f,  0.5f, -0.5f), Normal = new( 1,  0,  0), TexCoord = new(1, 0) },
-            new() { Position = new( 0.5f,  0.5f,  0.5f), Normal = new( 1,  0,  0), TexCoord = new(0, 0) },
+            new() { PositionAndTexU = new( 0.5f, -0.5f,  0.5f, 0), NormalAndTexV = new( 1,  0,  0, 1) },
+            new() { PositionAndTexU = new( 0.5f, -0.5f, -0.5f, 1), NormalAndTexV = new( 1,  0,  0, 1) },
+            new() { PositionAndTexU = new( 0.5f,  0.5f, -0.5f, 1), NormalAndTexV = new( 1,  0,  0, 0) },
+            new() { PositionAndTexU = new( 0.5f,  0.5f,  0.5f, 0), NormalAndTexV = new( 1,  0,  0, 0) },
 
             // Top face
-            new() { Position = new(-0.5f,  0.5f,  0.5f), Normal = new( 0,  1,  0), TexCoord = new(0, 1) },
-            new() { Position = new( 0.5f,  0.5f,  0.5f), Normal = new( 0,  1,  0), TexCoord = new(1, 1) },
-            new() { Position = new( 0.5f,  0.5f, -0.5f), Normal = new( 0,  1,  0), TexCoord = new(1, 0) },
-            new() { Position = new(-0.5f,  0.5f, -0.5f), Normal = new( 0,  1,  0), TexCoord = new(0, 0) },
+            new() { PositionAndTexU = new(-0.5f,  0.5f,  0.5f, 0), NormalAndTexV = new( 0,  1,  0, 1) },
+            new() { PositionAndTexU = new( 0.5f,  0.5f,  0.5f, 1), NormalAndTexV = new( 0,  1,  0, 1) },
+            new() { PositionAndTexU = new( 0.5f,  0.5f, -0.5f, 1), NormalAndTexV = new( 0,  1,  0, 0) },
+            new() { PositionAndTexU = new(-0.5f,  0.5f, -0.5f, 0), NormalAndTexV = new( 0,  1,  0, 0) },
 
             // Bottom face
-            new() { Position = new(-0.5f, -0.5f, -0.5f), Normal = new( 0, -1,  0), TexCoord = new(0, 1) },
-            new() { Position = new( 0.5f, -0.5f, -0.5f), Normal = new( 0, -1,  0), TexCoord = new(1, 1) },
-            new() { Position = new( 0.5f, -0.5f,  0.5f), Normal = new( 0, -1,  0), TexCoord = new(1, 0) },
-            new() { Position = new(-0.5f, -0.5f,  0.5f), Normal = new( 0, -1,  0), TexCoord = new(0, 0) }
+            new() { PositionAndTexU = new(-0.5f, -0.5f, -0.5f, 0), NormalAndTexV = new( 0, -1,  0, 1) },
+            new() { PositionAndTexU = new( 0.5f, -0.5f, -0.5f, 1), NormalAndTexV = new( 0, -1,  0, 1) },
+            new() { PositionAndTexU = new( 0.5f, -0.5f,  0.5f, 1), NormalAndTexV = new( 0, -1,  0, 0) },
+            new() { PositionAndTexU = new(-0.5f, -0.5f,  0.5f, 0), NormalAndTexV = new( 0, -1,  0, 0) }
         ];
 
         uint[] cubeIndices =
@@ -365,11 +363,9 @@ internal unsafe class MeshShadingRenderer : IRenderer
 [StructLayout(LayoutKind.Sequential)]
 file struct Vertex
 {
-    public Vector3 Position;
+    public Vector4 PositionAndTexU;
 
-    public Vector3 Normal;
-
-    public Vector2 TexCoord;
+    public Vector4 NormalAndTexV;
 }
 
 /// <summary>

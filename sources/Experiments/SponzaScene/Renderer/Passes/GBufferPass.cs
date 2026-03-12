@@ -288,6 +288,10 @@ file struct CameraConstants
     public float NearPlane;
 
     public float FarPlane;
+
+    public float _pad0;
+
+    public float _pad1;
 }
 
 file struct MaterialConstants
@@ -305,4 +309,10 @@ file struct MaterialConstants
     public Vector4 EmissiveFactor;
 
     public MaterialFlags Flags;
+
+    public int _pad0;
+
+    public int _pad1;
+
+    public int _pad2;
 }

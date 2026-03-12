@@ -103,4 +103,6 @@ file struct ComposeConstants
     public float BloomIntensity;
 
     public float VolumetricIntensity;
+
+    public float _pad0;
 }

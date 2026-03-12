@@ -3,7 +3,9 @@ static const float KERNEL[3] = { 1.0, 0.75, 0.25 };
 
 struct AtrousConstants
 {
-    float2 ViewportSize;
+    float ViewportWidth;
+
+    float ViewportHeight;
 
     int StepWidth;
 
@@ -12,6 +14,10 @@ struct AtrousConstants
     float PhiNormal;
 
     float PhiDepth;
+
+    float _pad0;
+
+    float _pad1;
 };
 
 ConstantBuffer<AtrousConstants> constants;
@@ -37,7 +43,7 @@ void CSMain(uint3 id: SV_DispatchThreadID)
 {
     uint2 coord = id.xy;
 
-    if (any(coord >= uint2(constants.ViewportSize)))
+    if (any(coord >= uint2(constants.ViewportWidth, constants.ViewportHeight)))
     {
         return;
     }
@@ -78,7 +84,7 @@ void CSMain(uint3 id: SV_DispatchThreadID)
 
             int2 p = int2(coord) + int2(dx, dy) * constants.StepWidth;
 
-            if (any(p < 0) || any(p >= int2(constants.ViewportSize)))
+            if (any(p < 0) || any(p >= int2(constants.ViewportWidth, constants.ViewportHeight)))
             {
                 continue;
             }

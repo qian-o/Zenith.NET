@@ -67,7 +67,8 @@ internal unsafe class GTAOBlurPass : FullscreenPass
     {
         constantBuffer.Upload([new BlurConstants
         {
-            TexelSize = new(1.0f / context.Width, 1.0f / context.Height),
+            TexelSizeX = 1.0f / context.Width,
+            TexelSizeY = 1.0f / context.Height,
             BlurSize = blurSize
         }], 0);
     }
@@ -90,7 +91,11 @@ internal unsafe class GTAOBlurPass : FullscreenPass
 
 file struct BlurConstants
 {
-    public Vector2 TexelSize;
+    public float TexelSizeX;
+
+    public float TexelSizeY;
 
     public int BlurSize;
+
+    public int _pad0;
 }

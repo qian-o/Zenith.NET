@@ -80,7 +80,8 @@ internal unsafe class SVGFAtrousPass : RenderPass
         {
             AtrousConstants constants = new()
             {
-                ViewportSize = new Vector2(context.Width, context.Height),
+                ViewportWidth = context.Width,
+                ViewportHeight = context.Height,
                 StepWidth = 1 << i,
                 PhiColor = phiColor,
                 PhiNormal = phiNormal,
@@ -160,7 +161,9 @@ internal unsafe class SVGFAtrousPass : RenderPass
 
 file struct AtrousConstants
 {
-    public Vector2 ViewportSize;
+    public float ViewportWidth;
+
+    public float ViewportHeight;
 
     public int StepWidth;
 
@@ -169,4 +172,8 @@ file struct AtrousConstants
     public float PhiNormal;
 
     public float PhiDepth;
+
+    public float _pad0;
+
+    public float _pad1;
 }

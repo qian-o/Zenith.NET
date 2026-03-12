@@ -13,6 +13,8 @@ struct ComposeConstants
     float BloomIntensity;
 
     float VolumetricIntensity;
+
+    float _pad0;
 };
 
 ConstantBuffer<ComposeConstants> constants;

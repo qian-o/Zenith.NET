@@ -75,7 +75,8 @@ internal unsafe class GTAOPass : FullscreenPass
         {
             View = context.View,
             Projection = context.Projection,
-            ViewportSize = new(context.Width, context.Height),
+            ViewportWidth = context.Width,
+            ViewportHeight = context.Height,
             EffectRadius = effectRadius,
             EffectFalloffRange = effectFalloffRange,
             RadiusMultiplier = radiusMultiplier,
@@ -114,7 +115,9 @@ file struct GTAOConstants
 
     public Matrix4x4 Projection;
 
-    public Vector2 ViewportSize;
+    public float ViewportWidth;
+
+    public float ViewportHeight;
 
     public float EffectRadius;
 
@@ -129,4 +132,10 @@ file struct GTAOConstants
     public int SliceCount;
 
     public int StepsPerSlice;
+
+    public int _pad0;
+
+    public int _pad1;
+
+    public int _pad2;
 }

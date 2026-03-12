@@ -6,9 +6,13 @@ static const float DEPTH_SIGMA = 0.5;
 
 struct BlurConstants
 {
-    float2 TexelSize;
+    float TexelSizeX;
+
+    float TexelSizeY;
 
     int BlurSize;
+
+    int _pad0;
 };
 
 ConstantBuffer<BlurConstants> constants;
@@ -83,7 +87,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
                 continue;
             }
 
-            float2 offset = float2(x, y) * constants.TexelSize;
+            float2 offset = float2(x, y) * float2(constants.TexelSizeX, constants.TexelSizeY);
             float2 sampleUV = uv + offset;
 
             if (any(sampleUV < 0.0) || any(sampleUV > 1.0))

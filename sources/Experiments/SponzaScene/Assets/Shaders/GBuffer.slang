@@ -20,6 +20,10 @@ struct CameraConstants
     float NearPlane;
 
     float FarPlane;
+
+    float _pad0;
+
+    float _pad1;
 };
 
 struct MaterialConstants
@@ -37,6 +41,12 @@ struct MaterialConstants
     float4 EmissiveFactor;
 
     MaterialFlags Flags;
+
+    int _pad0;
+
+    int _pad1;
+
+    int _pad2;
 };
 
 ConstantBuffer<CameraConstants> camera;

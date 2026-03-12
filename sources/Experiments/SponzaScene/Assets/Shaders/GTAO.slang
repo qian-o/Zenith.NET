@@ -20,7 +20,9 @@ struct GTAOConstants
 
     float4x4 Projection;
 
-    float2 ViewportSize;
+    float ViewportWidth;
+
+    float ViewportHeight;
 
     float EffectRadius;
 
@@ -35,6 +37,12 @@ struct GTAOConstants
     int SliceCount;
 
     int StepsPerSlice;
+
+    int _pad0;
+
+    int _pad1;
+
+    int _pad2;
 };
 
 ConstantBuffer<GTAOConstants> constants;
@@ -201,7 +209,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 
     float worldRadius = constants.EffectRadius * constants.RadiusMultiplier;
     float projScale = abs(constants.Projection[1][1]);
-    float screenRadius = (worldRadius * projScale * constants.ViewportSize.y * 0.5) / viewDepth;
+    float screenRadius = (worldRadius * projScale * constants.ViewportHeight * 0.5) / viewDepth;
     screenRadius = clamp(screenRadius, MIN_SCREEN_RADIUS, MAX_SCREEN_RADIUS);
 
     int sliceCount = constants.SliceCount;
@@ -214,7 +222,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     float angleStep = PI / float(sliceCount);
     float startAngle = noise1 * PI;
 
-    float2 invViewportSize = 1.0 / constants.ViewportSize;
+    float2 invViewportSize = 1.0 / float2(constants.ViewportWidth, constants.ViewportHeight);
 
     for (int slice = 0; slice < sliceCount; slice++)
     {
