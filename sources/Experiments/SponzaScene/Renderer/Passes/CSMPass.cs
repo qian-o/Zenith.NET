@@ -169,7 +169,9 @@ internal unsafe class CSMPass : RenderPass
     {
         float previousSplitDist = context.NearPlane;
 
-        Vector3 lightDir = Vector3.Normalize(App.Sponza.DirectionalLight.Direction);
+        DirectionalLight dl = App.Sponza.DirectionalLight;
+
+        Vector3 lightDir = Vector3.Normalize(new Vector3(dl.DirectionAndIntensity.X, dl.DirectionAndIntensity.Y, dl.DirectionAndIntensity.Z));
 
         for (int i = 0; i < RenderContext.CSMSplits.Length; i++)
         {
