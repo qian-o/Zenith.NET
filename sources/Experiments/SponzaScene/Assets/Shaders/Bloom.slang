@@ -4,7 +4,9 @@ struct BloomConstants
 {
     float2 TexelSize;
 
-    private float2 padding0;
+    private float padding0;
+
+    private float padding1;
 };
 
 ConstantBuffer<BloomConstants> constants;

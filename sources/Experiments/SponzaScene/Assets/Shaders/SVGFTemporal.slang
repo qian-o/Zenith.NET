@@ -14,7 +14,9 @@ struct TemporalConstants
 
     int MaxHistoryLength;
 
-    private float2 padding0;
+    private float padding0;
+
+    private float padding1;
 };
 
 ConstantBuffer<TemporalConstants> constants;

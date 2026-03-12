@@ -21,7 +21,9 @@ struct CameraConstants
 
     float FarPlane;
 
-    private float2 padding0;
+    private float padding0;
+
+    private float padding1;
 };
 
 struct MaterialConstants

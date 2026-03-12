@@ -25,7 +25,9 @@ struct VolumetricLightConstants
 
     float MaxDistance;
 
-    private float2 padding0;
+    private float padding0;
+
+    private float padding1;
 };
 
 struct CSMData
@@ -38,7 +40,9 @@ struct CSMData
 
     float FarPlane;
 
-    private float2 padding0;
+    private float padding0;
+
+    private float padding1;
 };
 
 ConstantBuffer<VolumetricLightConstants> constants;

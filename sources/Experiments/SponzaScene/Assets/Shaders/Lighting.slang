@@ -50,7 +50,9 @@ struct CSMData
 
     float FarPlane;
 
-    private float2 padding0;
+    private float padding0;
+
+    private float padding1;
 };
 
 struct SkyParams
