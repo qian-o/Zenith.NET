@@ -33,11 +33,11 @@ public static class Extensions
                     break;
 
                 case Backend.Metal:
-                    arguments.AddRange(["metallib", "-profile", "metallib_latest"]);
+                    arguments.AddRange(["metallib", "-capability", "metallib_latest"]);
                     break;
 
                 case Backend.Vulkan:
-                    arguments.AddRange(["spirv", "-profile", "spirv_latest", "-fvk-use-entrypoint-name"]);
+                    arguments.AddRange(["spirv", "-capability", "spirv_latest", "-fvk-use-entrypoint-name"]);
                     break;
             }
 
