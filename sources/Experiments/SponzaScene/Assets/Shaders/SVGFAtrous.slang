@@ -12,6 +12,8 @@ struct AtrousConstants
     float PhiNormal;
 
     float PhiDepth;
+
+    private float2 padding0;
 };
 
 ConstantBuffer<AtrousConstants> constants;

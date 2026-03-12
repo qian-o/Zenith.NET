@@ -7,6 +7,8 @@ static const float KERNEL_WEIGHTS[9] = { 0.0093, 0.028, 0.0659, 0.1226, 0.1802, 
 struct BlurConstants
 {
     float2 TexelSize;
+
+    private float2 padding0;
 };
 
 ConstantBuffer<BlurConstants> constants;

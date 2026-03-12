@@ -129,4 +129,10 @@ file struct GTAOConstants
     public int SliceCount;
 
     public int StepsPerSlice;
+
+    private float padding0;
+
+    private float padding1;
+
+    private float padding2;
 }

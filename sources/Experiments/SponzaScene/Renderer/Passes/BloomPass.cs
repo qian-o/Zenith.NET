@@ -132,4 +132,6 @@ internal unsafe class BloomPass : RenderPass
 file struct BloomConstants
 {
     public Vector2 TexelSize;
+
+    private Vector2 padding0;
 }

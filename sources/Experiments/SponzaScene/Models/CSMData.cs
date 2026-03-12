@@ -11,4 +11,6 @@ internal struct CSMData
     public float NearPlane;
 
     public float FarPlane;
+
+    private Vector2 padding0;
 }

@@ -67,7 +67,7 @@ internal unsafe class RayTracingRenderer : IRenderer
 
             float3 Color;
 
-            float Padding;
+            private float padding0;
         };
 
         RaytracingAccelerationStructure scene;
@@ -510,7 +510,7 @@ file struct Sphere
 
     public Vector3 Color;
 
-    public float Padding;
+    private float padding0;
 }
 ```
 

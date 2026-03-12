@@ -9,4 +9,6 @@ internal struct DirectionalLight
     public float Intensity;
 
     public Vector3 Color;
+
+    private float padding0;
 }

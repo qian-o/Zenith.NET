@@ -163,4 +163,6 @@ file struct TemporalConstants
     public float DepthThreshold;
 
     public int MaxHistoryLength;
+
+    private Vector2 padding0;
 }

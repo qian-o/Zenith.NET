@@ -93,4 +93,6 @@ file struct BlurConstants
     public Vector2 TexelSize;
 
     public int BlurSize;
+
+    private float padding0;
 }

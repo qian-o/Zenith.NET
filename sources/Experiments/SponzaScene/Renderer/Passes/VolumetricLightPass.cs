@@ -138,4 +138,6 @@ file struct VolumetricLightConstants
     public float Scattering;
 
     public float MaxDistance;
+
+    private Vector2 padding0;
 }

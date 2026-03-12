@@ -169,4 +169,6 @@ file struct AtrousConstants
     public float PhiNormal;
 
     public float PhiDepth;
+
+    private Vector2 padding0;
 }
