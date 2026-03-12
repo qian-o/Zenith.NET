@@ -76,9 +76,17 @@ internal unsafe class MeshShadingRenderer : IRenderer
         {
             float3 Position;
 
+            private float padding0;
+
             float3 Normal;
 
+            private float padding1;
+
             float2 TexCoord;
+
+            private float padding2;
+
+            private float padding3;
         };
 
         struct Meshlet
@@ -90,6 +98,13 @@ internal unsafe class MeshShadingRenderer : IRenderer
             uint PrimitiveOffset;
 
             uint PrimitiveCount;
+        };
+
+        struct Triangle
+        {
+            uint3 Indices;
+
+            private float padding0;
         };
 
         struct TransformConstants
@@ -108,7 +123,7 @@ internal unsafe class MeshShadingRenderer : IRenderer
 
         ConstantBuffer<TransformConstants> transform;
         StructuredBuffer<Vertex> vertices;
-        StructuredBuffer<uint3> indices;
+        StructuredBuffer<Triangle> indices;
         StructuredBuffer<Meshlet> meshlets;
 
         [shader("mesh")]
@@ -137,7 +152,7 @@ internal unsafe class MeshShadingRenderer : IRenderer
 
             if (groupThreadId < meshlet.PrimitiveCount)
             {
-                outIndices[groupThreadId] = indices[meshlet.PrimitiveOffset + groupThreadId];
+                outIndices[groupThreadId] = indices[meshlet.PrimitiveOffset + groupThreadId].Indices;
             }
         }
 
@@ -216,14 +231,26 @@ internal unsafe class MeshShadingRenderer : IRenderer
             new() { Position = new(-0.5f, -0.5f,  0.5f), Normal = new( 0, -1,  0), TexCoord = new(0, 0) }
         ];
 
-        uint[] cubeIndices =
+        Triangle[] cubeTriangles =
         [
-            0, 1, 2, 0, 2, 3,
-            4, 5, 6, 4, 6, 7,
-            8, 9, 10, 8, 10, 11,
-            12, 13, 14, 12, 14, 15,
-            16, 17, 18, 16, 18, 19,
-            20, 21, 22, 20, 22, 23
+            // Front face
+            new() { I0 = 0, I1 = 1, I2 = 2 },
+            new() { I0 = 0, I1 = 2, I2 = 3 },
+            // Back face
+            new() { I0 = 4, I1 = 5, I2 = 6 },
+            new() { I0 = 4, I1 = 6, I2 = 7 },
+            // Left face
+            new() { I0 = 8, I1 = 9, I2 = 10 },
+            new() { I0 = 8, I1 = 10, I2 = 11 },
+            // Right face
+            new() { I0 = 12, I1 = 13, I2 = 14 },
+            new() { I0 = 12, I1 = 14, I2 = 15 },
+            // Top face
+            new() { I0 = 16, I1 = 17, I2 = 18 },
+            new() { I0 = 16, I1 = 18, I2 = 19 },
+            // Bottom face
+            new() { I0 = 20, I1 = 21, I2 = 22 },
+            new() { I0 = 20, I1 = 22, I2 = 23 }
         ];
 
         Meshlet[] meshlets =
@@ -233,7 +260,7 @@ internal unsafe class MeshShadingRenderer : IRenderer
                 VertexOffset = 0,
                 VertexCount = (uint)cubeVertices.Length,
                 PrimitiveOffset = 0,
-                PrimitiveCount = (uint)cubeIndices.Length / 3
+                PrimitiveCount = (uint)cubeTriangles.Length
             }
         ];
         meshletCount = (uint)meshlets.Length;
@@ -247,14 +274,14 @@ internal unsafe class MeshShadingRenderer : IRenderer
         });
         vertexBuffer.Upload(cubeVertices, 0);
 
-        // Create index buffer (3 uints per triangle = uint3 in shader)
+        // Create index buffer (Triangle struct per triangle)
         indexBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)(sizeof(uint) * cubeIndices.Length),
-            StrideInBytes = sizeof(uint) * 3,  // uint3 stride
+            SizeInBytes = (uint)(sizeof(Triangle) * cubeTriangles.Length),
+            StrideInBytes = (uint)sizeof(Triangle),
             Flags = BufferUsageFlags.ShaderResource
         });
-        indexBuffer.Upload(cubeIndices, 0);
+        indexBuffer.Upload(cubeTriangles, 0);
 
         meshletBuffer = App.Context.CreateBuffer(new()
         {
@@ -362,37 +389,61 @@ internal unsafe class MeshShadingRenderer : IRenderer
 /// <summary>
 /// Vertex structure with position and normal.
 /// </summary>
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Explicit, Size = 48)]
 file struct Vertex
 {
+    [FieldOffset(0)]
     public Vector3 Position;
 
+    [FieldOffset(16)]
     public Vector3 Normal;
 
+    [FieldOffset(32)]
     public Vector2 TexCoord;
+}
+
+/// <summary>
+/// Triangle indices for mesh shading.
+/// </summary>
+[StructLayout(LayoutKind.Explicit, Size = 16)]
+file struct Triangle
+{
+    [FieldOffset(0)]
+    public uint I0;
+
+    [FieldOffset(4)]
+    public uint I1;
+
+    [FieldOffset(8)]
+    public uint I2;
 }
 
 /// <summary>
 /// Meshlet structure defining a chunk of geometry.
 /// </summary>
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Explicit, Size = 16)]
 file struct Meshlet
 {
+    [FieldOffset(0)]
     public uint VertexOffset;
 
+    [FieldOffset(4)]
     public uint VertexCount;
 
+    [FieldOffset(8)]
     public uint PrimitiveOffset;
 
+    [FieldOffset(12)]
     public uint PrimitiveCount;
 }
 
 /// <summary>
 /// Transform constants for the mesh.
 /// </summary>
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Explicit, Size = 64)]
 file struct TransformConstants
 {
+    [FieldOffset(0)]
     public Matrix4x4 MVP;
 }
 ```
@@ -436,15 +487,19 @@ Always check `Capabilities.MeshShadingSupported` before using mesh shading featu
 ### Meshlet Data Structure
 
 ```csharp
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Explicit, Size = 16)]
 file struct Meshlet
 {
+    [FieldOffset(0)]
     public uint VertexOffset;
 
+    [FieldOffset(4)]
     public uint VertexCount;
 
+    [FieldOffset(8)]
     public uint PrimitiveOffset;
 
+    [FieldOffset(12)]
     public uint PrimitiveCount;
 }
 ```
