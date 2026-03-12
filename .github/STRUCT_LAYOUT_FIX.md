@@ -53,7 +53,10 @@ aligned to 16-byte boundaries. This includes:
    - 4 scalars (4 × 4 = 16 bytes)
 
 2. **Slang padding field style**: Use `private` padding fields named `padding0`, `padding1`,
-   etc. (no underscore prefix). Use `private float paddingN;` or `private float2 paddingN;`.
+   etc. (no underscore prefix). **Only use `private float paddingN;`** — never use `float2`,
+   `float3`, or any vector type for padding. `float2` has alignment 8 on Vulkan/Metal but 4
+   on DX12, so using it as padding reintroduces the exact cross-backend mismatch we are
+   fixing. `float` (4-byte alignment) is universally safe across all backends.
    Insert a blank line between every field declaration (including padding fields).
    Example:
    ```
@@ -61,7 +64,9 @@ aligned to 16-byte boundaries. This includes:
    {
        float2 TexelSize;
 
-       private float2 padding0;
+       private float padding0;
+
+       private float padding1;
    };
    ```
 
