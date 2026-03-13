@@ -7,7 +7,7 @@
     <ItemGroup>
         <PackageVersion Include="Avalonia" Version="11.3.12" />
         <PackageVersion Include="Hexa.NET.ImGui" Version="2.2.9" />
-        <PackageVersion Include="Metal.NET" Version="1.4.0" />
+        <PackageVersion Include="Metal.NET" Version="1.4.1" />
         <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.50" />
         <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.8.260209005" />
         <PackageVersion Include="Roslynator.Analyzers" Version="4.15.0" />
@@ -20,7 +20,7 @@
         <PackageVersion Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.23.0" />
         <PackageVersion Include="SixLabors.ImageSharp" Version="3.1.12" />
         <PackageVersion Include="SkiaSharp" Version="3.119.2" />
-        <PackageVersion Include="Slangc.NET" Version="2026.4.0" />
+        <PackageVersion Include="Slangc.NET" Version="2026.4.2" />
         <PackageVersion Include="Uno.WinUI" Version="6.5.153" />
     </ItemGroup>
 

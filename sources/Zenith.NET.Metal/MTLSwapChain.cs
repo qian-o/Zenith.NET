@@ -79,8 +79,6 @@ internal class MTLSwapChain : SwapChain
     {
         using NSAutoreleasePool _ = new();
 
-        Drawable = Layer.NextDrawable();
-
-        ObjectiveC.Retain(Drawable.NativePtr);
+        Drawable = Layer.NextDrawable().Retain();
     }
 }
