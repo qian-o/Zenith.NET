@@ -4,9 +4,9 @@ namespace Zenith.NET.Metal;
 
 internal class MTLResourceTable : ResourceTable
 {
-    private readonly BufferBinding[] bufferBindings;
-    private readonly TextureBinding[] textureBindings;
-    private readonly SamplerBinding[] samplerBindings;
+    private readonly Binding[] bufferBindings;
+    private readonly Binding[] textureBindings;
+    private readonly Binding[] samplerBindings;
 
     public MTL4ArgumentTable ArgumentTable;
 
@@ -14,9 +14,9 @@ internal class MTLResourceTable : ResourceTable
     {
         MTLResourceLayout layout = desc.Layout.Metal();
 
-        bufferBindings = new BufferBinding[layout.BufferCount];
-        textureBindings = new TextureBinding[layout.TextureCount];
-        samplerBindings = new SamplerBinding[layout.SamplerCount];
+        bufferBindings = new Binding[layout.BufferCount];
+        textureBindings = new Binding[layout.TextureCount];
+        samplerBindings = new Binding[layout.SamplerCount];
 
         MTL4ArgumentTableDescriptor descriptor = new()
         {
@@ -48,11 +48,11 @@ internal class MTLResourceTable : ResourceTable
                     case ResourceType.StructuredBufferReadWrite:
                         if (resource is Buffer buffer)
                         {
-                            bufferBindings[bufferIndex++] = new(buffer.Metal().GpuAddress, binding.Index + j);
+                            bufferBindings[bufferIndex++] = new(buffer.Metal().GpuAddress, default, binding.Index + j);
                         }
                         else if (resource is BufferView bufferView)
                         {
-                            bufferBindings[bufferIndex++] = new(bufferView.Metal().GpuAddress, binding.Index + j);
+                            bufferBindings[bufferIndex++] = new(bufferView.Metal().GpuAddress, default, binding.Index + j);
                         }
                         break;
 
@@ -60,18 +60,18 @@ internal class MTLResourceTable : ResourceTable
                     case ResourceType.TextureReadWrite:
                         if (resource is Texture texture)
                         {
-                            textureBindings[textureIndex++] = new(texture.Metal().Texture.GpuResourceID, binding.Index + j);
+                            textureBindings[textureIndex++] = new(default, texture.Metal().Texture.GpuResourceID, binding.Index + j);
                         }
                         else if (resource is TextureView textureView)
                         {
-                            textureBindings[textureIndex++] = new(textureView.Metal().Texture.GpuResourceID, binding.Index + j);
+                            textureBindings[textureIndex++] = new(default, textureView.Metal().Texture.GpuResourceID, binding.Index + j);
                         }
                         break;
 
                     case ResourceType.Sampler:
                         if (resource is Sampler sampler)
                         {
-                            samplerBindings[samplerIndex++] = new(sampler.Metal().SamplerState.GpuResourceID, binding.Index + j);
+                            samplerBindings[samplerIndex++] = new(default, sampler.Metal().SamplerState.GpuResourceID, binding.Index + j);
                         }
                         break;
 
@@ -89,19 +89,19 @@ internal class MTLResourceTable : ResourceTable
 
     public void Bind(MTL4ArgumentTable argumentTable)
     {
-        foreach (BufferBinding binding in bufferBindings)
+        foreach (Binding binding in bufferBindings)
         {
-            argumentTable.SetAddress(binding.GpuAddress, binding.Index);
+            binding.Address(argumentTable);
         }
 
-        foreach (TextureBinding binding in textureBindings)
+        foreach (Binding binding in textureBindings)
         {
-            argumentTable.SetTexture(binding.ResourceID, binding.Index);
+            binding.Texture(argumentTable);
         }
 
-        foreach (SamplerBinding binding in samplerBindings)
+        foreach (Binding binding in samplerBindings)
         {
-            argumentTable.SetSamplerState(binding.ResourceID, binding.Index);
+            binding.Sampler(argumentTable);
         }
     }
 
@@ -118,9 +118,21 @@ internal class MTLResourceTable : ResourceTable
         ArgumentTable.Dispose();
     }
 
-    private readonly record struct BufferBinding(nuint GpuAddress, uint Index);
+    private readonly struct Binding(nuint gpuAddress, MTLResourceID resourceID, uint index)
+    {
+        public void Address(MTL4ArgumentTable argumentTable)
+        {
+            argumentTable.SetAddress(gpuAddress, index);
+        }
 
-    private readonly record struct TextureBinding(MTLResourceID ResourceID, uint Index);
+        public void Texture(MTL4ArgumentTable argumentTable)
+        {
+            argumentTable.SetTexture(resourceID, index);
+        }
 
-    private readonly record struct SamplerBinding(MTLResourceID ResourceID, uint Index);
+        public void Sampler(MTL4ArgumentTable argumentTable)
+        {
+            argumentTable.SetSamplerState(resourceID, index);
+        }
+    }
 }
