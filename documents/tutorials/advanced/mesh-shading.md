@@ -74,19 +74,19 @@ internal unsafe class MeshShadingRenderer : IRenderer
 
         struct Vertex
         {
-            float3 Position;
+            private float4 PositionAndPadding;
 
-            private float padding0;
-
-            float3 Normal;
-
-            private float padding1;
+            private float4 NormalAndPadding;
 
             float2 TexCoord;
 
             private float padding2;
 
             private float padding3;
+
+            property float3 Position { get { return PositionAndPadding.xyz; } }
+
+            property float3 Normal { get { return NormalAndPadding.xyz; } }
         };
 
         struct Meshlet
@@ -102,9 +102,9 @@ internal unsafe class MeshShadingRenderer : IRenderer
 
         struct Triangle
         {
-            uint3 Indices;
+            private uint4 IndicesAndPadding;
 
-            private float padding0;
+            property uint3 Indices { get { return IndicesAndPadding.xyz; } }
         };
 
         struct TransformConstants
