@@ -96,14 +96,26 @@ internal struct DirectionalLight
 }
 ```
 
-## What to fix
+## Scope
 
-1. **All `.slang` shader files:** Find every struct used with `ConstantBuffer<T>` or `StructuredBuffer<T>`. Replace any `float3` / `int3` / `uint3` fields with `float4` / `int4` / `uint4`. Add `float padding0`, `float padding1`, ... if the total size is not a multiple of 16.
+### NEED fixing
 
-2. **All C# struct definitions** that map to shader structs: Replace `Vector3` fields with `Vector4`, update `FieldOffset` values and `Size` accordingly. No padding fields needed on C# side.
+Any `.slang` struct used with `ConstantBuffer<T>` or `StructuredBuffer<T>`, and its corresponding C# struct. This includes all experiment shaders and tutorial docs under `sources/Experiments/` and `documents/tutorials/`.
 
-3. **All shader code that reads these fields:** Update access patterns (e.g., `light.Direction` → `light.DirectionAndIntensity.xyz`).
+### DO NOT fix
 
-4. **All C# code that writes these fields:** Update to construct `Vector4` values (e.g., `new Vector4(dir, intensity)` instead of separate `Direction` and `Intensity` assignments).
+- Vertex input structs (`VSInput` with semantics like `POSITION0`, `NORMAL0`) — handled by input assembler
+- Stage I/O structs (`PSInput`, `VertexOutput` with interpolated semantics) — not buffer-backed
+- Shader-local structs not bound to any buffer (e.g., `SkyParams`)
+- C# vertex structs used with vertex buffer + `InputLayout`, not `StructuredBuffer`
+- `float3` / `uint3` used as local variables, function parameters, return types, or system value semantics (e.g., `uint3 dispatchThreadID : SV_DispatchThreadID`)
 
-5. **Tutorial markdown files** (`documents/tutorials/`): Update any struct definitions and code examples that use `Vector3` / `float3` in buffer structs.
+### Steps
+
+1. **Shader structs:** Replace `float3`/`uint3` fields with `float4`/`uint4` in the buffer-backed structs listed above. Add `float padding0`, `float padding1`, ... if the total size is not a multiple of 16.
+
+2. **C# structs:** Replace `Vector3` fields with `Vector4`, update `FieldOffset` values and `Size` accordingly. No padding fields needed on C# side — the `Size` parameter handles tail alignment.
+
+3. **Shader access code:** Update access patterns (e.g., `light.Direction` → `light.DirectionAndIntensity.xyz`).
+
+4. **C# assignment code:** Update to construct `Vector4` values (e.g., `new Vector4(dir, intensity)` instead of separate `Direction` and `Intensity` assignments).
