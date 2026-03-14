@@ -2,46 +2,41 @@
 
 ## Problem
 
-`float3` / `int3` / `uint3` types have inconsistent sizes across graphics APIs:
+`float3` / `int3` / `uint3` types have inconsistent sizes across graphics APIs. On DX12/Vulkan they are 12 bytes, but on Metal they are **16 bytes**. This means `float3 + float` packs into 16 bytes on DX12/Vulkan, but becomes **32 bytes** on Metal. The `float3; float padding;` pattern does NOT work on Metal because `float3` is already 16 bytes.
 
-| Type | DX12 / Vulkan | Metal |
-|------|--------------|-------|
-| `float3` / `int3` / `uint3` | 12 bytes | **16 bytes** |
+## Core Fix
 
-This means `float3 + float` packs into 16 bytes on DX12/Vulkan, but becomes **32 bytes** on Metal. The `float3; float padding;` pattern does NOT work on Metal because `float3` is already 16 bytes.
+**In shader code, merge each `xxx3` field with the immediately following scalar field into a `private xxx4`, then expose the original fields via `property` accessors.** This guarantees 16-byte alignment on all platforms without changing any shader access code.
+
+For example: `float3 Direction; float Intensity;` -> `private float4 DirectionAndIntensity;` + `property float3 Direction` / `property float Intensity`
+
+If the next field is a `private float padding`, merge it the same way. If there is no next scalar field, the `.w` component is unused.
+
+**Type mismatch:** Merging is only possible when `xxx3` and the next scalar share the same base type (e.g., `float3` + `float`). If they differ (e.g., `uint3` + `float`), expand the `xxx3` to `xxx4` with `.w` unused, and keep the next scalar as a separate field.
 
 ## Rules
 
 ### Rule 1: Never use `xxx3` types in buffer structs
 
-Only use these types in constant buffer / structured buffer structs:
+**Forbidden:** `float3` / `int3` / `uint3` in any `ConstantBuffer<T>` or `StructuredBuffer<T>` struct definition.
 
-| Safe Types | Size | Cross-platform |
-|------------|------|----------------|
-| `float` / `int` / `uint` | 4B | ✅ |
-| `float2` / `int2` / `uint2` | 8B | ✅ |
-| `float4` / `int4` / `uint4` | 16B | ✅ |
-| `float4x4` | 64B | ✅ |
+Safe types: `float`, `int`, `uint`, `float2`, `int2`, `uint2`, `float4`, `int4`, `uint4`, `float4x4`.
 
-**Forbidden:** `float3` / `int3` / `uint3` in any buffer struct definition.
+> **Note:** `float3` is still perfectly fine as **local variables**, **function parameters**, **function return types**, and **interpolated vertex outputs** — only avoid it inside buffer-backed struct definitions.
 
-> **Note:** `float3` is still perfectly fine to use as **local variables**, **function parameters**, **function return types**, and **interpolated vertex outputs** — only avoid it inside buffer-backed struct definitions.
-
-### Rule 2: Pack `xxx3` data into `xxx4`
-
-When a struct field semantically holds 3 components, use `float4` / `int4` / `uint4` and pack related scalar into the `.w` component. If no related scalar exists, `.w` is unused.
-
-### Rule 3: Struct total size must be a multiple of 16 bytes
+### Rule 2: Struct total size must be a multiple of 16 bytes
 
 If the struct does not naturally end on a 16-byte boundary, add `float padding0`, `float padding1`, ... fields **in the shader** to reach the next 16-byte multiple.
 
-### Rule 4: C# side uses `StructLayout(Explicit)` + `Size`
+### Rule 3: C# side keeps original field names and types
 
 - Use `[StructLayout(LayoutKind.Explicit, Size = N)]` where `N` is a multiple of 16.
 - Use `[FieldOffset(X)]` for each field.
+- **Keep original semantic field names** (e.g., `Direction`, `Intensity`, `Color`). Do NOT mirror shader packing names like `DirectionAndIntensity` or `ColorAndPadding`.
 - **No padding fields needed on C# side** — the `Size` parameter handles tail alignment.
+- **No need to change field types** — `Vector3`, `float`, etc. stay as-is. `FieldOffset` + `Size` guarantee correct layout.
 
-## Transformation Examples
+## Example
 
 ### Before (broken on Metal)
 
@@ -50,8 +45,11 @@ Shader (`.slang`):
 struct DirectionalLight
 {
     float3 Direction;
+
     float Intensity;
+
     float3 Color;
+
     private float padding0;
 };
 ```
@@ -74,25 +72,35 @@ internal struct DirectionalLight
 
 ### After (works on DX12 / Vulkan / Metal)
 
-Shader (`.slang`):
+Shader (`.slang`) — merge `float3` + next scalar -> `float4`:
 ```hlsl
 struct DirectionalLight
 {
-    float4 DirectionAndIntensity; // xyz = Direction, w = Intensity
-    float4 ColorAndPadding;       // xyz = Color, w = unused
+    private float4 DirectionAndIntensity;
+
+    private float4 ColorAndPadding;
+
+    property float3 Direction { get { return DirectionAndIntensity.xyz; } }
+
+    property float Intensity { get { return DirectionAndIntensity.w; } }
+
+    property float3 Color { get { return ColorAndPadding.xyz; } }
 };
 ```
 
-C# side:
+C# side — **unchanged**, `FieldOffset` already ensures correct layout:
 ```csharp
 [StructLayout(LayoutKind.Explicit, Size = 32)]
 internal struct DirectionalLight
 {
     [FieldOffset(0)]
-    public Vector4 DirectionAndIntensity; // XYZ = Direction, W = Intensity
+    public Vector3 Direction;
+
+    [FieldOffset(12)]
+    public float Intensity;
 
     [FieldOffset(16)]
-    public Vector4 ColorAndPadding;       // XYZ = Color, W = unused
+    public Vector3 Color;
 }
 ```
 
@@ -110,12 +118,8 @@ Any `.slang` struct used with `ConstantBuffer<T>` or `StructuredBuffer<T>`, and 
 - C# vertex structs used with vertex buffer + `InputLayout`, not `StructuredBuffer`
 - `float3` / `uint3` used as local variables, function parameters, return types, or system value semantics (e.g., `uint3 dispatchThreadID : SV_DispatchThreadID`)
 
-### Steps
+## Steps
 
-1. **Shader structs:** Replace `float3`/`uint3` fields with `float4`/`uint4` in the buffer-backed structs listed above. Add `float padding0`, `float padding1`, ... if the total size is not a multiple of 16.
+1. **Shader structs:** In every buffer-backed struct, merge each `xxx3` field with the immediately following scalar into a `private xxx4` field (only when they share the same base type), then add `property` accessors to expose the original field names. If types differ, expand `xxx3` to `xxx4` (`.w` unused) and keep the next scalar separate. Add `float padding0`, `float padding1`, ... if the total size is not a multiple of 16.
 
-2. **C# structs:** Replace `Vector3` fields with `Vector4`, update `FieldOffset` values and `Size` accordingly. No padding fields needed on C# side — the `Size` parameter handles tail alignment.
-
-3. **Shader access code:** Update access patterns (e.g., `light.Direction` → `light.DirectionAndIntensity.xyz`).
-
-4. **C# assignment code:** Update to construct `Vector4` values (e.g., `new Vector4(dir, intensity)` instead of separate `Direction` and `Intensity` assignments).
+2. **C# structs:** Only update `FieldOffset` values and `Size` if field positions changed due to shader repacking. Keep original field names and types.
