@@ -87,8 +87,8 @@ internal unsafe class VolumetricLightPass : FullscreenPass
         constantBuffer.Upload([new VolumetricLightConstants
         {
             CameraPosition = new(context.CameraPosition, 1.0f),
-            LightDirection = new(App.Sponza.DirectionalLight.Direction, 0.0f),
-            LightColor = new(App.Sponza.DirectionalLight.Color, App.Sponza.DirectionalLight.Intensity),
+            LightDirection = new(App.Sponza.DirectionalLight.DirectionAndIntensity.X, App.Sponza.DirectionalLight.DirectionAndIntensity.Y, App.Sponza.DirectionalLight.DirectionAndIntensity.Z, 0.0f),
+            LightColor = new(App.Sponza.DirectionalLight.ColorAndPadding.X, App.Sponza.DirectionalLight.ColorAndPadding.Y, App.Sponza.DirectionalLight.ColorAndPadding.Z, App.Sponza.DirectionalLight.DirectionAndIntensity.W),
             InverseViewProjection = inverseViewProjection,
             ScreenSize = new(context.Width, context.Height),
             SampleCount = sampleCount,

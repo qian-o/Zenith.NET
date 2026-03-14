@@ -11,24 +11,16 @@ static const float RAY_TMIN = 0.01;
 
 struct DirectionalLight
 {
-    float3 Direction;
+    float4 DirectionAndIntensity; // xyz = Direction, w = Intensity
 
-    float Intensity;
-
-    float3 Color;
-
-    private float padding0;
+    float4 ColorAndPadding;       // xyz = Color, w = unused
 };
 
 struct PointLight
 {
-    float3 Position;
+    float4 PositionAndRadius;    // xyz = Position, w = Radius
 
-    float Radius;
-
-    float3 Color;
-
-    float Intensity;
+    float4 ColorAndIntensity;    // xyz = Color, w = Intensity
 };
 
 struct RTGIConstants
@@ -138,7 +130,7 @@ bool ReprojectToScreen(float3 worldPos, float4x4 viewProj, out float2 screenUV)
 
 float3 GetSkyRadiance(float3 direction)
 {
-    float3 sunDir = SafeNormalize(-constants.DirectionalLight.Direction);
+    float3 sunDir = SafeNormalize(-constants.DirectionalLight.DirectionAndIntensity.xyz);
     float sunHeight = max(sunDir.y, 0.0);
     float elevation = direction.y;
 
@@ -158,7 +150,7 @@ float3 GetSkyRadiance(float3 direction)
 
     float baseBrightness = 0.25 + sunHeight * 0.2;
 
-    return skyColor * constants.DirectionalLight.Intensity * baseBrightness;
+    return skyColor * constants.DirectionalLight.DirectionAndIntensity.w * baseBrightness;
 }
 
 float3 GetAmbientRadiance(float3 normal)
@@ -206,7 +198,7 @@ float3 CalculateSurfaceRadiance(float3 hitPos, float3 hitNormal, float3 hitAlbed
 {
     float3 Lo = float3(0.0);
 
-    float3 sunDir = SafeNormalize(-constants.DirectionalLight.Direction);
+    float3 sunDir = SafeNormalize(-constants.DirectionalLight.DirectionAndIntensity.xyz);
     float NdotL = max(dot(hitNormal, sunDir), 0.0);
 
     if (NdotL > 0.0)
@@ -215,7 +207,7 @@ float3 CalculateSurfaceRadiance(float3 hitPos, float3 hitNormal, float3 hitAlbed
 
         if (!TraceShadowRay(shadowOrigin, sunDir, SHADOW_RAY_DISTANCE))
         {
-            float3 sunRadiance = constants.DirectionalLight.Color * constants.DirectionalLight.Intensity;
+            float3 sunRadiance = constants.DirectionalLight.ColorAndPadding.xyz * constants.DirectionalLight.DirectionAndIntensity.w;
 
             Lo += (hitAlbedo * INV_PI) * sunRadiance * NdotL;
         }
@@ -230,10 +222,10 @@ float3 CalculateSurfaceRadiance(float3 hitPos, float3 hitNormal, float3 hitAlbed
     {
         PointLight light = pointLights[i];
 
-        float3 toLight = light.Position - hitPos;
+        float3 toLight = light.PositionAndRadius.xyz - hitPos;
         float distance = length(toLight);
 
-        if (distance > light.Radius)
+        if (distance > light.PositionAndRadius.w)
         {
             continue;
         }
@@ -246,7 +238,7 @@ float3 CalculateSurfaceRadiance(float3 hitPos, float3 hitNormal, float3 hitAlbed
             continue;
         }
 
-        float distanceRatio = distance / light.Radius;
+        float distanceRatio = distance / light.PositionAndRadius.w;
         float distanceRatio2 = distanceRatio * distanceRatio;
         float radiusAttenuation = saturate(1.0 - distanceRatio2 * distanceRatio2);
         radiusAttenuation *= radiusAttenuation;
@@ -254,7 +246,7 @@ float3 CalculateSurfaceRadiance(float3 hitPos, float3 hitNormal, float3 hitAlbed
         float physicalFalloff = 1.0 / max(distance * distance, EPSILON);
         float attenuation = radiusAttenuation * physicalFalloff;
 
-        float3 lightRadiance = light.Color * light.Intensity * attenuation;
+        float3 lightRadiance = light.ColorAndIntensity.xyz * light.ColorAndIntensity.w * attenuation;
 
         Lo += (hitAlbedo * INV_PI) * lightRadiance * lightNdotL;
     }
@@ -264,7 +256,7 @@ float3 CalculateSurfaceRadiance(float3 hitPos, float3 hitNormal, float3 hitAlbed
 
 float3 EstimateOffscreenRadiance(float3 hitPos, float3 rayDir, float hitDistance)
 {
-    float3 sunDir = SafeNormalize(-constants.DirectionalLight.Direction);
+    float3 sunDir = SafeNormalize(-constants.DirectionalLight.DirectionAndIntensity.xyz);
     float3 estimatedAlbedo = float3(0.5, 0.5, 0.5);
     float3 estimatedNormal = -rayDir;
 
@@ -278,7 +270,7 @@ float3 EstimateOffscreenRadiance(float3 hitPos, float3 rayDir, float hitDistance
 
         if (!TraceShadowRay(shadowOrigin, sunDir, SHADOW_RAY_DISTANCE))
         {
-            float3 sunRadiance = constants.DirectionalLight.Color * constants.DirectionalLight.Intensity;
+            float3 sunRadiance = constants.DirectionalLight.ColorAndPadding.xyz * constants.DirectionalLight.DirectionAndIntensity.w;
 
             directLight = (estimatedAlbedo * INV_PI) * sunRadiance * NdotL;
         }

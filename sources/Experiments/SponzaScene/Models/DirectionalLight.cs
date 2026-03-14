@@ -7,11 +7,8 @@ namespace SponzaScene.Models;
 internal struct DirectionalLight
 {
     [FieldOffset(0)]
-    public Vector3 Direction;
-
-    [FieldOffset(12)]
-    public float Intensity;
+    public Vector4 DirectionAndIntensity; // XYZ = Direction, W = Intensity
 
     [FieldOffset(16)]
-    public Vector3 Color;
+    public Vector4 ColorAndPadding;       // XYZ = Color, W = unused
 }

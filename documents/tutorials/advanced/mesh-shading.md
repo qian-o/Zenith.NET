@@ -74,19 +74,15 @@ internal unsafe class MeshShadingRenderer : IRenderer
 
         struct Vertex
         {
-            float3 Position;
+            float4 PositionAndPadding; // xyz = Position, w = unused
 
-            private float padding0;
-
-            float3 Normal;
-
-            private float padding1;
+            float4 NormalAndPadding;   // xyz = Normal, w = unused
 
             float2 TexCoord;
 
-            private float padding2;
+            private float padding0;
 
-            private float padding3;
+            private float padding1;
         };
 
         struct Meshlet
@@ -102,9 +98,7 @@ internal unsafe class MeshShadingRenderer : IRenderer
 
         struct Triangle
         {
-            uint3 Indices;
-
-            private float padding0;
+            uint4 IndicesAndPadding; // xyz = Indices, w = unused
         };
 
         struct TransformConstants
@@ -143,8 +137,8 @@ internal unsafe class MeshShadingRenderer : IRenderer
                 Vertex vertex = vertices[meshlet.VertexOffset + groupThreadId];
 
                 VertexOutput output;
-                output.Position = mul(float4(vertex.Position, 1.0), transform.MVP);
-                output.Normal = vertex.Normal;
+                output.Position = mul(float4(vertex.PositionAndPadding.xyz, 1.0), transform.MVP);
+                output.Normal = vertex.NormalAndPadding.xyz;
                 output.TexCoord = vertex.TexCoord;
 
                 outVertices[groupThreadId] = output;
@@ -152,7 +146,7 @@ internal unsafe class MeshShadingRenderer : IRenderer
 
             if (groupThreadId < meshlet.PrimitiveCount)
             {
-                outIndices[groupThreadId] = indices[meshlet.PrimitiveOffset + groupThreadId].Indices;
+                outIndices[groupThreadId] = indices[meshlet.PrimitiveOffset + groupThreadId].IndicesAndPadding.xyz;
             }
         }
 
@@ -195,40 +189,40 @@ internal unsafe class MeshShadingRenderer : IRenderer
         Vertex[] cubeVertices =
         [
             // Front face
-            new() { Position = new(-0.5f, -0.5f,  0.5f), Normal = new( 0,  0,  1), TexCoord = new(0, 1) },
-            new() { Position = new( 0.5f, -0.5f,  0.5f), Normal = new( 0,  0,  1), TexCoord = new(1, 1) },
-            new() { Position = new( 0.5f,  0.5f,  0.5f), Normal = new( 0,  0,  1), TexCoord = new(1, 0) },
-            new() { Position = new(-0.5f,  0.5f,  0.5f), Normal = new( 0,  0,  1), TexCoord = new(0, 0) },
+            new() { PositionAndPadding = new(-0.5f, -0.5f,  0.5f, 0), NormalAndPadding = new( 0,  0,  1, 0), TexCoord = new(0, 1) },
+            new() { PositionAndPadding = new( 0.5f, -0.5f,  0.5f, 0), NormalAndPadding = new( 0,  0,  1, 0), TexCoord = new(1, 1) },
+            new() { PositionAndPadding = new( 0.5f,  0.5f,  0.5f, 0), NormalAndPadding = new( 0,  0,  1, 0), TexCoord = new(1, 0) },
+            new() { PositionAndPadding = new(-0.5f,  0.5f,  0.5f, 0), NormalAndPadding = new( 0,  0,  1, 0), TexCoord = new(0, 0) },
 
             // Back face
-            new() { Position = new( 0.5f, -0.5f, -0.5f), Normal = new( 0,  0, -1), TexCoord = new(0, 1) },
-            new() { Position = new(-0.5f, -0.5f, -0.5f), Normal = new( 0,  0, -1), TexCoord = new(1, 1) },
-            new() { Position = new(-0.5f,  0.5f, -0.5f), Normal = new( 0,  0, -1), TexCoord = new(1, 0) },
-            new() { Position = new( 0.5f,  0.5f, -0.5f), Normal = new( 0,  0, -1), TexCoord = new(0, 0) },
+            new() { PositionAndPadding = new( 0.5f, -0.5f, -0.5f, 0), NormalAndPadding = new( 0,  0, -1, 0), TexCoord = new(0, 1) },
+            new() { PositionAndPadding = new(-0.5f, -0.5f, -0.5f, 0), NormalAndPadding = new( 0,  0, -1, 0), TexCoord = new(1, 1) },
+            new() { PositionAndPadding = new(-0.5f,  0.5f, -0.5f, 0), NormalAndPadding = new( 0,  0, -1, 0), TexCoord = new(1, 0) },
+            new() { PositionAndPadding = new( 0.5f,  0.5f, -0.5f, 0), NormalAndPadding = new( 0,  0, -1, 0), TexCoord = new(0, 0) },
 
             // Left face
-            new() { Position = new(-0.5f, -0.5f, -0.5f), Normal = new(-1,  0,  0), TexCoord = new(0, 1) },
-            new() { Position = new(-0.5f, -0.5f,  0.5f), Normal = new(-1,  0,  0), TexCoord = new(1, 1) },
-            new() { Position = new(-0.5f,  0.5f,  0.5f), Normal = new(-1,  0,  0), TexCoord = new(1, 0) },
-            new() { Position = new(-0.5f,  0.5f, -0.5f), Normal = new(-1,  0,  0), TexCoord = new(0, 0) },
+            new() { PositionAndPadding = new(-0.5f, -0.5f, -0.5f, 0), NormalAndPadding = new(-1,  0,  0, 0), TexCoord = new(0, 1) },
+            new() { PositionAndPadding = new(-0.5f, -0.5f,  0.5f, 0), NormalAndPadding = new(-1,  0,  0, 0), TexCoord = new(1, 1) },
+            new() { PositionAndPadding = new(-0.5f,  0.5f,  0.5f, 0), NormalAndPadding = new(-1,  0,  0, 0), TexCoord = new(1, 0) },
+            new() { PositionAndPadding = new(-0.5f,  0.5f, -0.5f, 0), NormalAndPadding = new(-1,  0,  0, 0), TexCoord = new(0, 0) },
 
             // Right face
-            new() { Position = new( 0.5f, -0.5f,  0.5f), Normal = new( 1,  0,  0), TexCoord = new(0, 1) },
-            new() { Position = new( 0.5f, -0.5f, -0.5f), Normal = new( 1,  0,  0), TexCoord = new(1, 1) },
-            new() { Position = new( 0.5f,  0.5f, -0.5f), Normal = new( 1,  0,  0), TexCoord = new(1, 0) },
-            new() { Position = new( 0.5f,  0.5f,  0.5f), Normal = new( 1,  0,  0), TexCoord = new(0, 0) },
+            new() { PositionAndPadding = new( 0.5f, -0.5f,  0.5f, 0), NormalAndPadding = new( 1,  0,  0, 0), TexCoord = new(0, 1) },
+            new() { PositionAndPadding = new( 0.5f, -0.5f, -0.5f, 0), NormalAndPadding = new( 1,  0,  0, 0), TexCoord = new(1, 1) },
+            new() { PositionAndPadding = new( 0.5f,  0.5f, -0.5f, 0), NormalAndPadding = new( 1,  0,  0, 0), TexCoord = new(1, 0) },
+            new() { PositionAndPadding = new( 0.5f,  0.5f,  0.5f, 0), NormalAndPadding = new( 1,  0,  0, 0), TexCoord = new(0, 0) },
 
             // Top face
-            new() { Position = new(-0.5f,  0.5f,  0.5f), Normal = new( 0,  1,  0), TexCoord = new(0, 1) },
-            new() { Position = new( 0.5f,  0.5f,  0.5f), Normal = new( 0,  1,  0), TexCoord = new(1, 1) },
-            new() { Position = new( 0.5f,  0.5f, -0.5f), Normal = new( 0,  1,  0), TexCoord = new(1, 0) },
-            new() { Position = new(-0.5f,  0.5f, -0.5f), Normal = new( 0,  1,  0), TexCoord = new(0, 0) },
+            new() { PositionAndPadding = new(-0.5f,  0.5f,  0.5f, 0), NormalAndPadding = new( 0,  1,  0, 0), TexCoord = new(0, 1) },
+            new() { PositionAndPadding = new( 0.5f,  0.5f,  0.5f, 0), NormalAndPadding = new( 0,  1,  0, 0), TexCoord = new(1, 1) },
+            new() { PositionAndPadding = new( 0.5f,  0.5f, -0.5f, 0), NormalAndPadding = new( 0,  1,  0, 0), TexCoord = new(1, 0) },
+            new() { PositionAndPadding = new(-0.5f,  0.5f, -0.5f, 0), NormalAndPadding = new( 0,  1,  0, 0), TexCoord = new(0, 0) },
 
             // Bottom face
-            new() { Position = new(-0.5f, -0.5f, -0.5f), Normal = new( 0, -1,  0), TexCoord = new(0, 1) },
-            new() { Position = new( 0.5f, -0.5f, -0.5f), Normal = new( 0, -1,  0), TexCoord = new(1, 1) },
-            new() { Position = new( 0.5f, -0.5f,  0.5f), Normal = new( 0, -1,  0), TexCoord = new(1, 0) },
-            new() { Position = new(-0.5f, -0.5f,  0.5f), Normal = new( 0, -1,  0), TexCoord = new(0, 0) }
+            new() { PositionAndPadding = new(-0.5f, -0.5f, -0.5f, 0), NormalAndPadding = new( 0, -1,  0, 0), TexCoord = new(0, 1) },
+            new() { PositionAndPadding = new( 0.5f, -0.5f, -0.5f, 0), NormalAndPadding = new( 0, -1,  0, 0), TexCoord = new(1, 1) },
+            new() { PositionAndPadding = new( 0.5f, -0.5f,  0.5f, 0), NormalAndPadding = new( 0, -1,  0, 0), TexCoord = new(1, 0) },
+            new() { PositionAndPadding = new(-0.5f, -0.5f,  0.5f, 0), NormalAndPadding = new( 0, -1,  0, 0), TexCoord = new(0, 0) }
         ];
 
         Triangle[] cubeTriangles =
@@ -393,10 +387,10 @@ internal unsafe class MeshShadingRenderer : IRenderer
 file struct Vertex
 {
     [FieldOffset(0)]
-    public Vector3 Position;
+    public Vector4 PositionAndPadding; // XYZ = Position, W = unused
 
     [FieldOffset(16)]
-    public Vector3 Normal;
+    public Vector4 NormalAndPadding;   // XYZ = Normal, W = unused
 
     [FieldOffset(32)]
     public Vector2 TexCoord;

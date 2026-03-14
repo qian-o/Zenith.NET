@@ -61,13 +61,9 @@ internal unsafe class RayTracingRenderer : IRenderer
     private const string ShaderSource = """
         struct Sphere
         {
-            float3 Center;
+            float4 CenterAndRadius;    // xyz = Center, w = Radius
 
-            float Radius;
-
-            float3 Color;
-
-            private float padding0;
+            float4 ColorAndPadding;    // xyz = Color, w = unused
         };
 
         RaytracingAccelerationStructure scene;
@@ -80,11 +76,11 @@ internal unsafe class RayTracingRenderer : IRenderer
 
         float IntersectSphere(float3 origin, float3 direction, Sphere sphere)
         {
-            float3 oc = origin - sphere.Center;
+            float3 oc = origin - sphere.CenterAndRadius.xyz;
 
             float a = dot(direction, direction);
             float b = dot(oc, direction);
-            float c = dot(oc, oc) - sphere.Radius * sphere.Radius;
+            float c = dot(oc, oc) - sphere.CenterAndRadius.w * sphere.CenterAndRadius.w;
             float discriminant = b * b - a * c;
 
             if (discriminant > 0.0)
@@ -199,8 +195,8 @@ internal unsafe class RayTracingRenderer : IRenderer
                     {
                         float3 hitPoint = ro + rd * t;
 
-                        sphereHitNormal = normalize(hitPoint - sphere.Center);
-                        sphereHitColor = sphere.Color;
+                        sphereHitNormal = normalize(hitPoint - sphere.CenterAndRadius.xyz);
+                        sphereHitColor = sphere.ColorAndPadding.xyz;
 
                         query.CommitProceduralPrimitiveHit(t);
                     }
@@ -305,8 +301,8 @@ internal unsafe class RayTracingRenderer : IRenderer
 
         Sphere[] sphereData =
         [
-            new() { Center = new(-1.5f, 1.0f, 0.0f), Radius = 1.0f, Color = new(0.8f, 0.2f, 0.2f) },
-            new() { Center = new( 1.5f, 1.0f, 0.0f), Radius = 1.0f, Color = new(0.2f, 0.4f, 0.8f) }
+            new() { CenterAndRadius = new(-1.5f, 1.0f, 0.0f, 1.0f), ColorAndPadding = new(0.8f, 0.2f, 0.2f, 0) },
+            new() { CenterAndRadius = new( 1.5f, 1.0f, 0.0f, 1.0f), ColorAndPadding = new(0.2f, 0.4f, 0.8f, 0) }
         ];
 
         sphereBuffer = App.Context.CreateBuffer(new()
@@ -320,8 +316,10 @@ internal unsafe class RayTracingRenderer : IRenderer
         Vector3[] aabbData = new Vector3[sphereData.Length * 2];
         for (int i = 0; i < sphereData.Length; i++)
         {
-            aabbData[i * 2] = sphereData[i].Center - new Vector3(sphereData[i].Radius);
-            aabbData[(i * 2) + 1] = sphereData[i].Center + new Vector3(sphereData[i].Radius);
+            Vector3 center = new(sphereData[i].CenterAndRadius.X, sphereData[i].CenterAndRadius.Y, sphereData[i].CenterAndRadius.Z);
+            float radius = sphereData[i].CenterAndRadius.W;
+            aabbData[i * 2] = center - new Vector3(radius);
+            aabbData[(i * 2) + 1] = center + new Vector3(radius);
         }
 
         aabbBuffer = App.Context.CreateBuffer(new()
@@ -505,13 +503,10 @@ internal unsafe class RayTracingRenderer : IRenderer
 file struct Sphere
 {
     [FieldOffset(0)]
-    public Vector3 Center;
-
-    [FieldOffset(12)]
-    public float Radius;
+    public Vector4 CenterAndRadius;    // XYZ = Center, W = Radius
 
     [FieldOffset(16)]
-    public Vector3 Color;
+    public Vector4 ColorAndPadding;    // XYZ = Color, W = unused
 }
 ```
 
@@ -637,11 +632,11 @@ Ray tracing in Zenith.NET uses `RayQuery` within a compute shader. Procedural ge
 ```slang
 float IntersectSphere(float3 origin, float3 direction, Sphere sphere)
 {
-    float3 oc = origin - sphere.Center;
+    float3 oc = origin - sphere.CenterAndRadius.xyz;
 
     float a = dot(direction, direction);
     float b = dot(oc, direction);
-    float c = dot(oc, oc) - sphere.Radius * sphere.Radius;
+    float c = dot(oc, oc) - sphere.CenterAndRadius.w * sphere.CenterAndRadius.w;
     float discriminant = b * b - a * c;
 
     if (discriminant > 0.0)
@@ -686,8 +681,8 @@ while (query.Proceed())
 
         if (t >= query.RayTMin() && t <= query.CommittedRayT())
         {
-            sphereHitNormal = normalize(hitPoint - sphere.Center);
-            sphereHitColor = sphere.Color;
+            sphereHitNormal = normalize(hitPoint - sphere.CenterAndRadius.xyz);
+            sphereHitColor = sphere.ColorAndPadding.xyz;
 
             query.CommitProceduralPrimitiveHit(t);
         }

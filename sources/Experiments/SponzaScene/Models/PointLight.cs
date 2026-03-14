@@ -7,14 +7,8 @@ namespace SponzaScene.Models;
 internal struct PointLight
 {
     [FieldOffset(0)]
-    public Vector3 Position;
-
-    [FieldOffset(12)]
-    public float Radius;
+    public Vector4 PositionAndRadius;    // XYZ = Position, W = Radius
 
     [FieldOffset(16)]
-    public Vector3 Color;
-
-    [FieldOffset(28)]
-    public float Intensity;
+    public Vector4 ColorAndIntensity;    // XYZ = Color, W = Intensity
 }
