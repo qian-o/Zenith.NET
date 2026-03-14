@@ -11,24 +11,30 @@ static const float RAY_TMIN = 0.01;
 
 struct DirectionalLight
 {
-    float3 Direction;
+    private float4 DirectionAndIntensity;
 
-    float Intensity;
+    private float4 ColorAndPadding;
 
-    float3 Color;
+    property float3 Direction { get { return DirectionAndIntensity.xyz; } }
 
-    private float padding0;
+    property float Intensity { get { return DirectionAndIntensity.w; } }
+
+    property float3 Color { get { return ColorAndPadding.xyz; } }
 };
 
 struct PointLight
 {
-    float3 Position;
+    private float4 PositionAndRadius;
 
-    float Radius;
+    private float4 ColorAndIntensity;
 
-    float3 Color;
+    property float3 Position { get { return PositionAndRadius.xyz; } }
 
-    float Intensity;
+    property float Radius { get { return PositionAndRadius.w; } }
+
+    property float3 Color { get { return ColorAndIntensity.xyz; } }
+
+    property float Intensity { get { return ColorAndIntensity.w; } }
 };
 
 struct RTGIConstants

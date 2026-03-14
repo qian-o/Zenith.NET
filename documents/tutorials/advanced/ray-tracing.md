@@ -61,13 +61,15 @@ internal unsafe class RayTracingRenderer : IRenderer
     private const string ShaderSource = """
         struct Sphere
         {
-            float3 Center;
+            private float4 CenterAndRadius;
 
-            float Radius;
+            private float4 ColorAndPadding;
 
-            float3 Color;
+            property float3 Center { get { return CenterAndRadius.xyz; } }
 
-            private float padding0;
+            property float Radius { get { return CenterAndRadius.w; } }
+
+            property float3 Color { get { return ColorAndPadding.xyz; } }
         };
 
         RaytracingAccelerationStructure scene;

@@ -3,6 +3,14 @@
     float4x4 View;
 
     float4x4 Projection;
+
+    float NearPlane;
+
+    float FarPlane;
+
+    private float padding0;
+
+    private float padding1;
 }
 
 ConstantBuffer<CSMData> data;
