@@ -80,9 +80,9 @@ internal unsafe class MeshShadingRenderer : IRenderer
 
             float2 TexCoord;
 
-            private float padding2;
+            private float padding0;
 
-            private float padding3;
+            private float padding1;
 
             property float3 Position { get { return PositionAndPadding.xyz; } }
 
