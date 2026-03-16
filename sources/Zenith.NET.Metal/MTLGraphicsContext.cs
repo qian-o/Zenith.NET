@@ -110,7 +110,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
 
     protected override GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLGraphicsPipeline(this, desc);
     }
 
     protected override ComputePipeline CreateComputePipelineImpl(ComputePipelineDesc desc)

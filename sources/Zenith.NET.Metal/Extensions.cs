@@ -120,6 +120,10 @@ public static class Extensions
 
     extension(GraphicsPipeline graphicsPipeline)
     {
+        internal MTLGraphicsPipeline Metal()
+        {
+            return (MTLGraphicsPipeline)graphicsPipeline;
+        }
     }
 
     extension(ComputePipeline computePipeline)
