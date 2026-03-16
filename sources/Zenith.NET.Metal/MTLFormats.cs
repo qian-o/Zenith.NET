@@ -238,4 +238,34 @@ internal static class MTLFormats
             _ => MTLSamplerBorderColor.TransparentBlack
         };
     }
+
+    internal static MTLStencilOperation Metal(StencilOp stencilFailOp)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static MTLBlendFactor Metal(Blend srcBlend)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static MTLBlendOperation Metal(BlendOp blendOp)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static MTLColorWriteMask Metal(ColorComponentFlags flags)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static MTLVertexFormat Metal(ElementFormat format)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static MTLPrimitiveTopologyClass Metal(PrimitiveTopology primitiveTopology)
+    {
+        throw new NotImplementedException();
+    }
 }
