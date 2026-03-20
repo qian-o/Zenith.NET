@@ -280,6 +280,34 @@ internal static class DXFormats
         };
     }
 
+    public static (PrimitiveTopologyType PrimitiveTopologyType, D3DPrimitiveTopology PrimitiveTopology) DirectX12(PrimitiveTopology primitiveTopology)
+    {
+        return
+        (
+            primitiveTopology switch
+            {
+                PrimitiveTopology.PointList => PrimitiveTopologyType.Point,
+
+                PrimitiveTopology.LineList or
+                PrimitiveTopology.LineStrip => PrimitiveTopologyType.Line,
+
+                PrimitiveTopology.TriangleList or
+                PrimitiveTopology.TriangleStrip => PrimitiveTopologyType.Triangle,
+
+                _ => PrimitiveTopologyType.Undefined
+            },
+            primitiveTopology switch
+            {
+                PrimitiveTopology.PointList => D3DPrimitiveTopology.D3DPrimitiveTopologyPointlist,
+                PrimitiveTopology.LineList => D3DPrimitiveTopology.D3DPrimitiveTopologyLinelist,
+                PrimitiveTopology.LineStrip => D3DPrimitiveTopology.D3DPrimitiveTopologyLinestrip,
+                PrimitiveTopology.TriangleList => D3DPrimitiveTopology.D3DPrimitiveTopologyTrianglelist,
+                PrimitiveTopology.TriangleStrip => D3DPrimitiveTopology.D3DPrimitiveTopologyTrianglestrip,
+                _ => D3DPrimitiveTopology.D3DPrimitiveTopologyUndefined
+            }
+        );
+    }
+
     public static ShaderVisibility DirectX12(ShaderStageFlags shaderStageFlags)
     {
         if (shaderStageFlags.HasFlag(ShaderStageFlags.Vertex))
@@ -459,34 +487,6 @@ internal static class DXFormats
 
             _ => Format.FormatUnknown
         };
-    }
-
-    public static (PrimitiveTopologyType PrimitiveTopologyType, D3DPrimitiveTopology PrimitiveTopology) DirectX12(PrimitiveTopology primitiveTopology)
-    {
-        return
-        (
-            primitiveTopology switch
-            {
-                PrimitiveTopology.PointList => PrimitiveTopologyType.Point,
-
-                PrimitiveTopology.LineList or
-                PrimitiveTopology.LineStrip => PrimitiveTopologyType.Line,
-
-                PrimitiveTopology.TriangleList or
-                PrimitiveTopology.TriangleStrip => PrimitiveTopologyType.Triangle,
-
-                _ => PrimitiveTopologyType.Undefined
-            },
-            primitiveTopology switch
-            {
-                PrimitiveTopology.PointList => D3DPrimitiveTopology.D3DPrimitiveTopologyPointlist,
-                PrimitiveTopology.LineList => D3DPrimitiveTopology.D3DPrimitiveTopologyLinelist,
-                PrimitiveTopology.LineStrip => D3DPrimitiveTopology.D3DPrimitiveTopologyLinestrip,
-                PrimitiveTopology.TriangleList => D3DPrimitiveTopology.D3DPrimitiveTopologyTrianglelist,
-                PrimitiveTopology.TriangleStrip => D3DPrimitiveTopology.D3DPrimitiveTopologyTrianglestrip,
-                _ => D3DPrimitiveTopology.D3DPrimitiveTopologyUndefined
-            }
-        );
     }
 
     public static CommandListType DirectX12(CommandQueueType commandQueueType)
