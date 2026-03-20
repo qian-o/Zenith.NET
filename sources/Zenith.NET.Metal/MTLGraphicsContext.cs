@@ -6,6 +6,8 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
 {
     public MTLDevice Device = MTLDevice.Null;
 
+    public MTL4Compiler Compiler = MTL4Compiler.Null;
+
     public MTLResidencySet ResidencySet = MTLResidencySet.Null;
 
     public MTL4CommandQueue GraphicsQueue = MTL4CommandQueue.Null;
@@ -40,12 +42,15 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
             throw new NotSupportedException("Metal 4 is not supported on system default device.");
         }
 
-        ResidencySet = Device.NewResidencySet(new(), out NSError error);
+        Compiler = Device.MakeCompiler(new(), out NSError error);
         error.Success();
 
-        GraphicsQueue = Device.NewMTL4CommandQueue();
-        ComputeQueue = Device.NewMTL4CommandQueue();
-        CopyQueue = Device.NewMTL4CommandQueue();
+        ResidencySet = Device.MakeResidencySet(new(), out error);
+        error.Success();
+
+        GraphicsQueue = Device.MakeMTL4CommandQueue();
+        ComputeQueue = Device.MakeMTL4CommandQueue();
+        CopyQueue = Device.MakeMTL4CommandQueue();
 
         GraphicsQueue.AddResidencySet(ResidencySet);
         ComputeQueue.AddResidencySet(ResidencySet);
@@ -141,6 +146,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
         GraphicsQueue.Dispose();
 
         ResidencySet.Dispose();
+        Compiler.Dispose();
 
         Device.Dispose();
     }

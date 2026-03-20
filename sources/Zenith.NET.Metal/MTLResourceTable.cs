@@ -25,7 +25,7 @@ internal class MTLResourceTable : ResourceTable
             MaxSamplerStateBindCount = layout.SamplerCount
         };
 
-        ArgumentTable = context.Device.NewArgumentTable(descriptor, out NSError error);
+        ArgumentTable = context.Device.MakeArgumentTable(descriptor, out NSError error);
         error.Success();
 
         uint resourceStartIndex = 0;

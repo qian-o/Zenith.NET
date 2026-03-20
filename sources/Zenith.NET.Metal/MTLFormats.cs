@@ -34,8 +34,8 @@ internal static class MTLFormats
             TextureType.Texture2D => MTLTextureType.MTL2D,
             TextureType.Texture2DArray => MTLTextureType.MTL2DArray,
             TextureType.Texture3D => MTLTextureType.MTL3D,
-            TextureType.TextureCube => MTLTextureType.Cube,
-            TextureType.TextureCubeArray => MTLTextureType.CubeArray,
+            TextureType.TextureCube => MTLTextureType.MTLCube,
+            TextureType.TextureCubeArray => MTLTextureType.MTLCubeArray,
             _ => MTLTextureType.MTL1D
         };
     }

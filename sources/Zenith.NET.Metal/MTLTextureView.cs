@@ -10,13 +10,13 @@ internal class MTLTextureView : TextureView
     {
         MTLTextureViewDescriptor descriptor = new()
         {
-            TextureType = Resolve(desc),
             PixelFormat = MTLFormats.Metal(desc.Texture.Desc.Format),
+            TextureType = Resolve(desc),
             LevelRange = new(desc.FirstMipLevel, desc.MipLevelCount),
             SliceRange = new(ZenithHelper.FlattenArrayLayerRange(desc).FlattenArrayLayerIndex, ZenithHelper.FlattenArrayLayerRange(desc).FlattenArrayLayerCount)
         };
 
-        Texture = desc.Texture.Metal().Texture.NewTextureView(descriptor);
+        Texture = desc.Texture.Metal().Texture.MakeTextureView(descriptor);
     }
 
     protected override void SetResourceName(string name)

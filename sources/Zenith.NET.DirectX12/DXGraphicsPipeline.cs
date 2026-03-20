@@ -18,7 +18,8 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
         {
             SampleMask = uint.MaxValue,
             VS = desc.Vertex.DirectX12().GetShaderBytecode(scope),
-            PS = desc.Pixel.DirectX12().GetShaderBytecode(scope)
+            PS = desc.Pixel.DirectX12().GetShaderBytecode(scope),
+            PrimitiveTopologyType = DXFormats.DirectX12(desc.PrimitiveTopology).PrimitiveTopologyType
         };
 
         // RenderStates - Output
@@ -189,11 +190,6 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
                 PInputElementDescs = (InputElementDesc*)ZenithMarshal.AllocateAndFill(scope, [.. inputElementDescs]),
                 NumElements = (uint)inputElementDescs.Count
             };
-        }
-
-        // PrimitiveTopology
-        {
-            graphicsPipelineStateDesc.PrimitiveTopologyType = DXFormats.DirectX12(desc.PrimitiveTopology).PrimitiveTopologyType;
         }
 
         context.Device.CreateGraphicsPipelineState(&graphicsPipelineStateDesc, out PipelineState).Success();

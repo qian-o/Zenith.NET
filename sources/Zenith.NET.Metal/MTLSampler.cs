@@ -10,22 +10,22 @@ internal class MTLSampler : Sampler
     {
         MTLSamplerDescriptor descriptor = new()
         {
-            SAddressMode = MTLFormats.Metal(desc.U),
-            TAddressMode = MTLFormats.Metal(desc.V),
-            RAddressMode = MTLFormats.Metal(desc.W),
             MinFilter = MTLFormats.Metal(desc.Filter).MinFilter,
             MagFilter = MTLFormats.Metal(desc.Filter).MagFilter,
             MipFilter = MTLFormats.Metal(desc.Filter).MipFilter,
-            CompareFunction = MTLFormats.Metal(desc.ComparisonFunc),
             MaxAnisotropy = desc.MaxAnisotropy,
+            SAddressMode = MTLFormats.Metal(desc.U),
+            TAddressMode = MTLFormats.Metal(desc.V),
+            RAddressMode = MTLFormats.Metal(desc.W),
+            BorderColor = MTLFormats.Metal(desc.BorderColor),
             LodMinClamp = desc.MinLod,
             LodMaxClamp = desc.MaxLod,
             LodBias = desc.LodBias,
-            BorderColor = MTLFormats.Metal(desc.BorderColor),
+            CompareFunction = MTLFormats.Metal(desc.ComparisonFunc),
             SupportArgumentBuffers = true
         };
 
-        SamplerState = context.Device.NewSamplerState(descriptor);
+        SamplerState = context.Device.MakeSamplerState(descriptor);
     }
 
     protected override void SetResourceName(string name)

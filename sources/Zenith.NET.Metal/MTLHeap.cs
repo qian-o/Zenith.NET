@@ -8,21 +8,19 @@ internal class MTLHeap : GraphicsResource
 
     public MTLHeap(MTLGraphicsContext context, BufferDesc desc, out MtlBuffer buffer) : base(context)
     {
-        MTLHeapDescriptor descriptor = new()
+        context.AddAllocation(Heap = context.Device.MakeHeap(new()
         {
-            Type = MTLHeapType.Automatic,
             Size = context.Device.HeapBufferSizeAndAlign(desc.SizeInBytes, MTLFormats.Metal(desc.Flags)).Size,
-            ResourceOptions = MTLFormats.Metal(desc.Flags)
-        };
+            ResourceOptions = MTLFormats.Metal(desc.Flags),
+            Type = MTLHeapType.Automatic
+        }));
 
-        context.AddAllocation(Heap = context.Device.NewHeap(descriptor));
-
-        buffer = Heap.NewBuffer(desc.SizeInBytes, MTLFormats.Metal(desc.Flags));
+        buffer = Heap.MakeBuffer(desc.SizeInBytes, MTLFormats.Metal(desc.Flags));
     }
 
     public MTLHeap(MTLGraphicsContext context, TextureDesc desc, out MtlTexture texture) : base(context)
     {
-        MTLTextureDescriptor textureDescriptor = new()
+        MTLTextureDescriptor descriptor = new()
         {
             TextureType = MTLFormats.Metal(desc.Type),
             PixelFormat = MTLFormats.Metal(desc.Format),
@@ -30,23 +28,21 @@ internal class MTLHeap : GraphicsResource
             Height = desc.Height,
             Depth = desc.Depth,
             MipmapLevelCount = desc.MipLevels,
-            ArrayLength = desc.ArrayLayers,
             SampleCount = MTLFormats.Metal(desc.SampleCount),
+            ArrayLength = desc.ArrayLayers,
+            ResourceOptions = MTLResourceOptions.StorageModePrivate | MTLResourceOptions.HazardTrackingModeUntracked,
             Usage = MTLFormats.Metal(desc.Flags),
-            AllowGPUOptimizedContents = true,
-            ResourceOptions = MTLResourceOptions.StorageModePrivate | MTLResourceOptions.HazardTrackingModeUntracked
+            AllowGPUOptimizedContents = true
         };
 
-        MTLHeapDescriptor descriptor = new()
+        context.AddAllocation(Heap = context.Device.MakeHeap(new()
         {
-            Type = MTLHeapType.Automatic,
-            Size = context.Device.HeapTextureSizeAndAlign(textureDescriptor).Size,
-            ResourceOptions = MTLResourceOptions.StorageModePrivate | MTLResourceOptions.HazardTrackingModeUntracked
-        };
+            Size = context.Device.HeapTextureSizeAndAlign(descriptor).Size,
+            ResourceOptions = descriptor.ResourceOptions,
+            Type = MTLHeapType.Automatic
+        }));
 
-        context.AddAllocation(Heap = context.Device.NewHeap(descriptor));
-
-        texture = Heap.NewTexture(textureDescriptor);
+        texture = Heap.MakeTexture(descriptor);
     }
 
     public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;

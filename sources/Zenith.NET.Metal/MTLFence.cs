@@ -4,7 +4,7 @@ namespace Zenith.NET.Metal;
 
 internal class MTLFence(MTLGraphicsContext context) : GraphicsResource(context)
 {
-    private readonly MTLSharedEvent @event = context.Device.NewSharedEvent();
+    private readonly MTLSharedEvent @event = context.Device.MakeSharedEvent();
 
     private ulong currentFenceValue;
 
@@ -16,7 +16,7 @@ internal class MTLFence(MTLGraphicsContext context) : GraphicsResource(context)
 
         if (@event.SignaledValue < currentFenceValue)
         {
-            @event.WaitUntilSignaledValue(currentFenceValue, ulong.MaxValue);
+            @event.Wait(currentFenceValue, ulong.MaxValue);
         }
     }
 
