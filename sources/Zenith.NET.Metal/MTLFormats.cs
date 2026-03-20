@@ -241,31 +241,142 @@ internal static class MTLFormats
 
     public static MTLPrimitiveTopologyClass Metal(PrimitiveTopology primitiveTopology)
     {
-        throw new NotImplementedException();
+        return primitiveTopology switch
+        {
+            PrimitiveTopology.PointList => MTLPrimitiveTopologyClass.Point,
+            PrimitiveTopology.LineList or PrimitiveTopology.LineStrip => MTLPrimitiveTopologyClass.Line,
+            PrimitiveTopology.TriangleList or PrimitiveTopology.TriangleStrip => MTLPrimitiveTopologyClass.Triangle,
+            _ => MTLPrimitiveTopologyClass.Unspecified
+        };
     }
 
     public static MTLStencilOperation Metal(StencilOp stencilOp)
     {
-        throw new NotImplementedException();
+        return stencilOp switch
+        {
+            StencilOp.Keep => MTLStencilOperation.Keep,
+            StencilOp.Zero => MTLStencilOperation.Zero,
+            StencilOp.Replace => MTLStencilOperation.Replace,
+            StencilOp.IncrementAndClamp => MTLStencilOperation.IncrementClamp,
+            StencilOp.DecrementAndClamp => MTLStencilOperation.DecrementClamp,
+            StencilOp.Invert => MTLStencilOperation.Invert,
+            StencilOp.IncrementAndWrap => MTLStencilOperation.IncrementWrap,
+            StencilOp.DecrementAndWrap => MTLStencilOperation.DecrementWrap,
+            _ => MTLStencilOperation.Keep
+        };
     }
 
     public static MTLBlendFactor Metal(Blend blend)
     {
-        throw new NotImplementedException();
+        return blend switch
+        {
+            Blend.Zero => MTLBlendFactor.Zero,
+            Blend.One => MTLBlendFactor.One,
+            Blend.SrcAlpha => MTLBlendFactor.SourceAlpha,
+            Blend.InverseSrcAlpha => MTLBlendFactor.OneMinusSourceAlpha,
+            Blend.DestAlpha => MTLBlendFactor.DestinationAlpha,
+            Blend.InverseDestAlpha => MTLBlendFactor.OneMinusDestinationAlpha,
+            Blend.SrcColor => MTLBlendFactor.SourceColor,
+            Blend.InverseSrcColor => MTLBlendFactor.OneMinusSourceColor,
+            Blend.DestColor => MTLBlendFactor.DestinationColor,
+            Blend.InverseDestColor => MTLBlendFactor.OneMinusDestinationColor,
+            Blend.BlendFactor => MTLBlendFactor.BlendColor,
+            Blend.InverseBlendFactor => MTLBlendFactor.OneMinusBlendColor,
+            _ => MTLBlendFactor.Zero
+        };
     }
 
     public static MTLBlendOperation Metal(BlendOp blendOp)
     {
-        throw new NotImplementedException();
+        return blendOp switch
+        {
+            BlendOp.Add => MTLBlendOperation.Add,
+            BlendOp.Subtract => MTLBlendOperation.Subtract,
+            BlendOp.ReverseSubtract => MTLBlendOperation.ReverseSubtract,
+            BlendOp.Min => MTLBlendOperation.Min,
+            BlendOp.Max => MTLBlendOperation.Max,
+            _ => MTLBlendOperation.Add
+        };
     }
 
     public static MTLColorWriteMask Metal(ColorComponentFlags colorComponentFlags)
     {
-        throw new NotImplementedException();
+        MTLColorWriteMask result = MTLColorWriteMask.None;
+
+        if (colorComponentFlags.HasFlag(ColorComponentFlags.Red))
+        {
+            result |= MTLColorWriteMask.Red;
+        }
+
+        if (colorComponentFlags.HasFlag(ColorComponentFlags.Green))
+        {
+            result |= MTLColorWriteMask.Green;
+        }
+
+        if (colorComponentFlags.HasFlag(ColorComponentFlags.Blue))
+        {
+            result |= MTLColorWriteMask.Blue;
+        }
+
+        if (colorComponentFlags.HasFlag(ColorComponentFlags.Alpha))
+        {
+            result |= MTLColorWriteMask.Alpha;
+        }
+
+        return result;
     }
 
     public static MTLVertexFormat Metal(ElementFormat elementFormat)
     {
-        throw new NotImplementedException();
+        return elementFormat switch
+        {
+            ElementFormat.UByte1 => MTLVertexFormat.UChar,
+            ElementFormat.UByte2 => MTLVertexFormat.UChar2,
+            ElementFormat.UByte4 => MTLVertexFormat.UChar4,
+            ElementFormat.Byte1 => MTLVertexFormat.Char,
+            ElementFormat.Byte2 => MTLVertexFormat.Char2,
+            ElementFormat.Byte4 => MTLVertexFormat.Char4,
+
+            ElementFormat.UByte1Normalized => MTLVertexFormat.UCharNormalized,
+            ElementFormat.UByte2Normalized => MTLVertexFormat.UChar2Normalized,
+            ElementFormat.UByte4Normalized => MTLVertexFormat.UChar4Normalized,
+            ElementFormat.Byte1Normalized => MTLVertexFormat.CharNormalized,
+            ElementFormat.Byte2Normalized => MTLVertexFormat.Char2Normalized,
+            ElementFormat.Byte4Normalized => MTLVertexFormat.Char4Normalized,
+
+            ElementFormat.UShort1 => MTLVertexFormat.UShort,
+            ElementFormat.UShort2 => MTLVertexFormat.UShort2,
+            ElementFormat.UShort4 => MTLVertexFormat.UShort4,
+            ElementFormat.Short1 => MTLVertexFormat.Short,
+            ElementFormat.Short2 => MTLVertexFormat.Short2,
+            ElementFormat.Short4 => MTLVertexFormat.Short4,
+
+            ElementFormat.UShort1Normalized => MTLVertexFormat.UShortNormalized,
+            ElementFormat.UShort2Normalized => MTLVertexFormat.UShort2Normalized,
+            ElementFormat.UShort4Normalized => MTLVertexFormat.UShort4Normalized,
+            ElementFormat.Short1Normalized => MTLVertexFormat.ShortNormalized,
+            ElementFormat.Short2Normalized => MTLVertexFormat.Short2Normalized,
+            ElementFormat.Short4Normalized => MTLVertexFormat.Short4Normalized,
+
+            ElementFormat.Half1 => MTLVertexFormat.Half,
+            ElementFormat.Half2 => MTLVertexFormat.Half2,
+            ElementFormat.Half4 => MTLVertexFormat.Half4,
+
+            ElementFormat.Float1 => MTLVertexFormat.Float,
+            ElementFormat.Float2 => MTLVertexFormat.Float2,
+            ElementFormat.Float3 => MTLVertexFormat.Float3,
+            ElementFormat.Float4 => MTLVertexFormat.Float4,
+
+            ElementFormat.UInt1 => MTLVertexFormat.UInt,
+            ElementFormat.UInt2 => MTLVertexFormat.UInt2,
+            ElementFormat.UInt3 => MTLVertexFormat.UInt3,
+            ElementFormat.UInt4 => MTLVertexFormat.UInt4,
+            ElementFormat.Int1 => MTLVertexFormat.Int,
+            ElementFormat.Int2 => MTLVertexFormat.Int2,
+            ElementFormat.Int3 => MTLVertexFormat.Int3,
+            ElementFormat.Int4 => MTLVertexFormat.Int4,
+
+            _ => MTLVertexFormat.Invalid
+        };
     }
 }
