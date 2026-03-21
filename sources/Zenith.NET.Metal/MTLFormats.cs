@@ -379,4 +379,35 @@ internal static class MTLFormats
             _ => MTLVertexFormat.Invalid
         };
     }
+
+    public static MTLCullMode Metal(CullMode cullMode)
+    {
+        return cullMode switch
+        {
+            CullMode.None => MTLCullMode.None,
+            CullMode.Front => MTLCullMode.Front,
+            CullMode.Back => MTLCullMode.Back,
+            _ => MTLCullMode.None
+        };
+    }
+
+    public static MTLTriangleFillMode Metal(FillMode fillMode)
+    {
+        return fillMode switch
+        {
+            FillMode.Solid => MTLTriangleFillMode.Fill,
+            FillMode.Wireframe => MTLTriangleFillMode.Lines,
+            _ => MTLTriangleFillMode.Fill
+        };
+    }
+
+    public static MTLWinding Metal(FrontFace frontFace)
+    {
+        return frontFace switch
+        {
+            FrontFace.CounterClockwise => MTLWinding.CounterClockwise,
+            FrontFace.Clockwise => MTLWinding.Clockwise,
+            _ => MTLWinding.Clockwise
+        };
+    }
 }
