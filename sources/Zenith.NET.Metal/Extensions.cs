@@ -128,6 +128,10 @@ public static class Extensions
 
     extension(ComputePipeline computePipeline)
     {
+        internal MTLComputePipeline Metal()
+        {
+            return (MTLComputePipeline)computePipeline;
+        }
     }
 
     extension(MeshShadingPipeline meshShadingPipeline)

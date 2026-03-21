@@ -109,7 +109,7 @@ internal class MTLGraphicsPipeline : GraphicsPipeline
             }
         }
 
-        RenderPipelineState = context.Compiler.MakeRenderPipelineState(descriptor, MTLRenderPipelineState.Null, out NSError error);
+        RenderPipelineState = context.Compiler.MakeRenderPipelineState(descriptor, MTL4CompilerTaskOptions.Null, out NSError error);
         error.Success();
     }
 
