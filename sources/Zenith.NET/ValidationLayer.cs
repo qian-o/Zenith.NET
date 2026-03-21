@@ -589,9 +589,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         CheckOutput("MeshShadingPipelineDesc.Output", desc.Output);
 
-        if (desc.Amplification is not null && (desc.ObjectThreadGroupSizeX is 0 || desc.ObjectThreadGroupSizeY is 0 || desc.ObjectThreadGroupSizeZ is 0))
+        if (desc.Amplification is not null && (desc.AmplificationThreadGroupSizeX is 0 || desc.AmplificationThreadGroupSizeY is 0 || desc.AmplificationThreadGroupSizeZ is 0))
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "MeshShadingPipelineDesc object thread group sizes (ObjectThreadGroupSizeX, ObjectThreadGroupSizeY, ObjectThreadGroupSizeZ)"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "MeshShadingPipelineDesc amplification thread group sizes (AmplificationThreadGroupSizeX, AmplificationThreadGroupSizeY, AmplificationThreadGroupSizeZ)"));
         }
 
         if (desc.MeshThreadGroupSizeX is 0 || desc.MeshThreadGroupSizeY is 0 || desc.MeshThreadGroupSizeZ is 0)

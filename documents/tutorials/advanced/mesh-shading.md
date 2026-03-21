@@ -571,7 +571,7 @@ The `MeshShadingPipelineDesc` requires:
 - `Mesh` - The compiled mesh shader
 - `Pixel` - The compiled pixel shader
 - `ResourceLayout` - Resource bindings (same as graphics pipelines)
-- `ObjectThreadGroupSizeX/Y/Z` - Must match `[numthreads()]` in the amplification shader (if used)
+- `AmplificationThreadGroupSizeX/Y/Z` - Must match `[numthreads()]` in the amplification shader (if used)
 - `MeshThreadGroupSizeX/Y/Z` - Must match `[numthreads()]` in the mesh shader
 
 ## Amplification Shader (Optional)

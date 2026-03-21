@@ -20,7 +20,7 @@ internal class MTLMeshShadingPipeline : MeshShadingPipeline
         if (desc.Amplification is not null)
         {
             descriptor.ObjectFunctionDescriptor = desc.Amplification.Metal().Descriptor;
-            descriptor.RequiredThreadsPerObjectThreadgroup = new(desc.ObjectThreadGroupSizeX, desc.ObjectThreadGroupSizeY, desc.ObjectThreadGroupSizeZ);
+            descriptor.RequiredThreadsPerObjectThreadgroup = new(desc.AmplificationThreadGroupSizeX, desc.AmplificationThreadGroupSizeY, desc.AmplificationThreadGroupSizeZ);
         }
 
         // RenderStates - Output
