@@ -125,7 +125,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
 
     protected override MeshShadingPipeline CreateMeshShadingPipelineImpl(MeshShadingPipelineDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLMeshShadingPipeline(this, desc);
     }
 
     protected override QueryHeap CreateQueryHeapImpl(QueryHeapDesc desc)

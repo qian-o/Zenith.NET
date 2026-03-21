@@ -6,10 +6,18 @@ internal class MTLShader : Shader
 {
     public MTLLibrary Library;
 
+    public MTL4LibraryFunctionDescriptor Descriptor;
+
     public MTLShader(MTLGraphicsContext context, ShaderDesc desc) : base(context, desc)
     {
         Library = context.Device.MakeLibrary(DispatchData.Create(desc.ShaderBytes), out NSError error);
         error.Success();
+
+        Descriptor = new()
+        {
+            Name = desc.EntryPoint,
+            Library = Library
+        };
     }
 
     protected override void SetResourceName(string name)
@@ -18,6 +26,7 @@ internal class MTLShader : Shader
 
     protected override void Destroy()
     {
+        Descriptor.Dispose();
         Library.Dispose();
     }
 }

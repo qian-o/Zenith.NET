@@ -2,22 +2,26 @@
 
 namespace Zenith.NET.Metal;
 
-internal class MTLGraphicsPipeline : GraphicsPipeline
+internal class MTLMeshShadingPipeline : MeshShadingPipeline
 {
     public MTLRenderPipelineState RenderPipelineState;
 
     public MTLDepthStencilState DepthStencilState;
 
-    public MTLGraphicsPipeline(MTLGraphicsContext context, GraphicsPipelineDesc desc) : base(context, desc)
+    public MTLMeshShadingPipeline(MTLGraphicsContext context, MeshShadingPipelineDesc desc) : base(context, desc)
     {
-        VertexBufferStartIndex = desc.ResourceLayout is not null ? desc.ResourceLayout.Metal().BufferCount : 0;
-
-        MTL4RenderPipelineDescriptor descriptor = new()
+        MTL4MeshRenderPipelineDescriptor descriptor = new()
         {
-            VertexFunctionDescriptor = desc.Vertex.Metal().Descriptor,
+            MeshFunctionDescriptor = desc.Mesh.Metal().Descriptor,
             FragmentFunctionDescriptor = desc.Pixel.Metal().Descriptor,
-            InputPrimitiveTopology = MTLFormats.Metal(desc.PrimitiveTopology)
+            RequiredThreadsPerMeshThreadgroup = new(desc.MeshThreadGroupSizeX, desc.MeshThreadGroupSizeY, desc.MeshThreadGroupSizeZ)
         };
+
+        if (desc.Amplification is not null)
+        {
+            descriptor.ObjectFunctionDescriptor = desc.Amplification.Metal().Descriptor;
+            descriptor.RequiredThreadsPerObjectThreadgroup = new(desc.ObjectThreadGroupSizeX, desc.ObjectThreadGroupSizeY, desc.ObjectThreadGroupSizeZ);
+        }
 
         // RenderStates - Output
         {
@@ -80,32 +84,9 @@ internal class MTLGraphicsPipeline : GraphicsPipeline
             });
         }
 
-        // InputLayouts
-        {
-            uint attribute = 0;
-            for (int i = 0; i < desc.InputLayouts.Length; i++)
-            {
-                InputLayout inputLayout = desc.InputLayouts[i];
-
-                descriptor.VertexDescriptor.Layouts[(uint)i].Stride = inputLayout.StrideInBytes;
-
-                foreach (InputElement element in inputLayout.Elements)
-                {
-                    descriptor.VertexDescriptor.Attributes[attribute++] = new()
-                    {
-                        Format = MTLFormats.Metal(element.Format),
-                        Offset = element.OffsetInBytes,
-                        BufferIndex = VertexBufferStartIndex + (uint)i
-                    };
-                }
-            }
-        }
-
         RenderPipelineState = context.Compiler.MakeRenderPipelineState(descriptor, MTL4CompilerTaskOptions.Null, out NSError error);
         error.Success();
     }
-
-    public uint VertexBufferStartIndex { get; }
 
     public void Bind(MTL4RenderCommandEncoder commandEncoder)
     {

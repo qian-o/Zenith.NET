@@ -10,11 +10,7 @@ internal class MTLComputePipeline : ComputePipeline
     {
         MTL4ComputePipelineDescriptor descriptor = new()
         {
-            ComputeFunctionDescriptor = new MTL4LibraryFunctionDescriptor()
-            {
-                Name = desc.Compute.Desc.EntryPoint,
-                Library = desc.Compute.Metal().Library
-            },
+            ComputeFunctionDescriptor = desc.Compute.Metal().Descriptor,
             RequiredThreadsPerThreadgroup = new(desc.ThreadGroupSizeX, desc.ThreadGroupSizeY, desc.ThreadGroupSizeZ)
         };
 
