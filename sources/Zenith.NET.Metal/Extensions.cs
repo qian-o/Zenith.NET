@@ -136,6 +136,10 @@ public static class Extensions
 
     extension(MeshShadingPipeline meshShadingPipeline)
     {
+        internal MTLMeshShadingPipeline Metal()
+        {
+            return (MTLMeshShadingPipeline)meshShadingPipeline;
+        }
     }
 
     extension(QueryHeap queryHeap)
