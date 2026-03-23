@@ -325,12 +325,12 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void BeginQueryImpl(QueryHeap queryHeap, uint index)
     {
-        throw new NotImplementedException();
+        CommandEncoder.BeginQuery(queryHeap, index);
     }
 
     protected override void EndQueryImpl(QueryHeap queryHeap, uint index)
     {
-        throw new NotImplementedException();
+        CommandEncoder.EndQuery(index);
     }
 
     protected override void WriteTimestampImpl(QueryHeap queryHeap, uint index)

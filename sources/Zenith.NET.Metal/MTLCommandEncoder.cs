@@ -214,6 +214,16 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
         needsRebind = false;
     }
 
+    public void BeginQuery(QueryHeap queryHeap, uint index)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void EndQuery(uint index)
+    {
+        throw new NotImplementedException();
+    }
+
     public void BeginDebugEvent(string label)
     {
         Render?.PushDebugGroup(label);
