@@ -17,7 +17,11 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
 
     public MTL4ComputeCommandEncoder? Compute { get; private set; }
 
-    public nuint Index { get; private set; }
+    public nuint IndexBuffer { get; private set; }
+
+    public uint IndexSizeInBytes { get; private set; }
+
+    public uint IndexStrideInBytes { get; private set; }
 
     public MTLIndexType IndexType { get; private set; }
 
@@ -131,7 +135,9 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
 
     public void SetIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat format)
     {
-        Index = buffer.Metal().GpuAddress + offsetInBytes;
+        IndexBuffer = buffer.Metal().GpuAddress + offsetInBytes;
+        IndexSizeInBytes = buffer.Desc.SizeInBytes - offsetInBytes;
+        IndexStrideInBytes = (uint)(format is IndexFormat.UInt16 ? sizeof(ushort) : sizeof(uint));
         IndexType = MTLFormats.Metal(format);
     }
 

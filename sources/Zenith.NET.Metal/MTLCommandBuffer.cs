@@ -3,8 +3,12 @@ using Metal.NET;
 
 namespace Zenith.NET.Metal;
 
-internal class MTLCommandBuffer : CommandBuffer
+internal unsafe class MTLCommandBuffer : CommandBuffer
 {
+    private readonly uint indirectDrawArgs = (uint)sizeof(IndirectDrawArgs);
+    private readonly uint indirectDrawIndexedArgs = (uint)sizeof(IndirectDrawIndexedArgs);
+    private readonly uint indirectDispatchMeshArgs = (uint)sizeof(IndirectDispatchMeshArgs);
+
     public MTL4CommandAllocator CommandAllocator;
 
     public MTL4CommandBuffer CommandBuffer;
@@ -239,41 +243,86 @@ internal class MTLCommandBuffer : CommandBuffer
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
     {
         CommandEncoder.Bind();
+
+        CommandEncoder.Render?.DrawPrimitives(CommandEncoder.PrimitiveType, firstVertex, vertexCount, instanceCount, firstInstance);
     }
 
     protected override void DrawIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
         CommandEncoder.Bind();
+
+        nuint indirectGpuAddress = indirectBuffer.Metal().GpuAddress + offsetInBytes;
+
+        for (uint i = 0; i < drawCount; i++)
+        {
+            CommandEncoder.Render?.DrawPrimitives(CommandEncoder.PrimitiveType, indirectGpuAddress + (indirectDrawArgs * i));
+        }
     }
 
     protected override void DrawIndexedImpl(GraphicsPipeline pipeline, uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
     {
         CommandEncoder.Bind();
+
+        CommandEncoder.Render?.DrawIndexedPrimitives(CommandEncoder.PrimitiveType,
+                                                     indexCount,
+                                                     CommandEncoder.IndexType,
+                                                     CommandEncoder.IndexBuffer + (CommandEncoder.IndexStrideInBytes * firstIndex),
+                                                     CommandEncoder.IndexSizeInBytes - (CommandEncoder.IndexStrideInBytes * firstIndex));
     }
 
     protected override void DrawIndexedIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
         CommandEncoder.Bind();
+
+        nuint indirectGpuAddress = indirectBuffer.Metal().GpuAddress + offsetInBytes;
+
+        for (uint i = 0; i < drawCount; i++)
+        {
+            CommandEncoder.Render?.DrawIndexedPrimitives(CommandEncoder.PrimitiveType,
+                                                         CommandEncoder.IndexType,
+                                                         CommandEncoder.IndexBuffer + (CommandEncoder.IndexStrideInBytes * i),
+                                                         CommandEncoder.IndexSizeInBytes - (CommandEncoder.IndexStrideInBytes * i),
+                                                         indirectGpuAddress + (indirectDrawIndexedArgs * i));
+        }
     }
 
     protected override void DispatchImpl(ComputePipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
         CommandEncoder.Bind();
+
+        CommandEncoder.Compute?.DispatchThreadgroups(new MTLSize(groupCountX, groupCountY, groupCountZ),
+                                                     new(pipeline.Desc.ThreadGroupSizeX, pipeline.Desc.ThreadGroupSizeY, pipeline.Desc.ThreadGroupSizeZ));
     }
 
     protected override void DispatchIndirectImpl(ComputePipeline pipeline, Buffer indirectBuffer, uint offsetInBytes)
     {
         CommandEncoder.Bind();
+
+        CommandEncoder.Compute?.DispatchThreadgroups(indirectBuffer.Metal().GpuAddress + offsetInBytes,
+                                                     new(pipeline.Desc.ThreadGroupSizeX, pipeline.Desc.ThreadGroupSizeY, pipeline.Desc.ThreadGroupSizeZ));
     }
 
     protected override void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
         CommandEncoder.Bind();
+
+        CommandEncoder.Render?.DrawMeshThreadgroups(new MTLSize(groupCountX, groupCountY, groupCountZ),
+                                                    new(pipeline.Desc.AmplificationThreadGroupSizeX, pipeline.Desc.AmplificationThreadGroupSizeY, pipeline.Desc.AmplificationThreadGroupSizeZ),
+                                                    new(pipeline.Desc.MeshThreadGroupSizeX, pipeline.Desc.MeshThreadGroupSizeY, pipeline.Desc.MeshThreadGroupSizeZ));
     }
 
     protected override void DispatchMeshIndirectImpl(MeshShadingPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount)
     {
         CommandEncoder.Bind();
+
+        nuint indirectGpuAddress = indirectBuffer.Metal().GpuAddress + offsetInBytes;
+
+        for (uint i = 0; i < dispatchCount; i++)
+        {
+            CommandEncoder.Render?.DrawMeshThreadgroups(indirectGpuAddress + (indirectDispatchMeshArgs * i),
+                                                        new(pipeline.Desc.AmplificationThreadGroupSizeX, pipeline.Desc.AmplificationThreadGroupSizeY, pipeline.Desc.AmplificationThreadGroupSizeZ),
+                                                        new(pipeline.Desc.MeshThreadGroupSizeX, pipeline.Desc.MeshThreadGroupSizeY, pipeline.Desc.MeshThreadGroupSizeZ));
+        }
     }
 
     protected override void BeginQueryImpl(QueryHeap queryHeap, uint index)
