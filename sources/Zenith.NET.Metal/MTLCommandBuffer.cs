@@ -12,7 +12,11 @@ internal class MTLCommandBuffer : CommandBuffer
     {
         CommandAllocator = context.Device.MakeCommandAllocator();
         CommandBuffer = context.Device.MakeCommandBuffer();
+
+        CommandEncoder = new(context, CommandBuffer);
     }
+
+    public MTLCommandEncoder CommandEncoder { get; }
 
     protected override void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes)
     {
