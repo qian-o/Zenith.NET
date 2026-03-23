@@ -11,6 +11,26 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
 
     public MTL4ComputeCommandEncoder Compute => AcquireCompute();
 
+    public void BeginRenderPass(FrameBuffer frameBuffer, ClearValue clearValue)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void EndRenderPass(FrameBuffer frameBuffer)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void SetScissors(Scissor[] scissors)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void SetViewports(Viewport[] viewports)
+    {
+        throw new NotImplementedException();
+    }
+
     public void BeginDebugEvent(string label)
     {
         render?.PushDebugGroup(label);

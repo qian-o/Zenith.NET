@@ -117,22 +117,22 @@ internal class MTLCommandBuffer : CommandBuffer
 
     protected override void BeginRenderPassImpl(FrameBuffer frameBuffer, ClearValue clearValue)
     {
-        throw new NotImplementedException();
+        CommandEncoder.BeginRenderPass(frameBuffer, clearValue);
     }
 
     protected override void EndRenderPassImpl(FrameBuffer frameBuffer)
     {
-        throw new NotImplementedException();
+        CommandEncoder.EndRenderPass(frameBuffer);
     }
 
     protected override void SetScissorsImpl(Scissor[] scissors)
     {
-        throw new NotImplementedException();
+        CommandEncoder.SetScissors(scissors);
     }
 
     protected override void SetViewportsImpl(Viewport[] viewports)
     {
-        throw new NotImplementedException();
+        CommandEncoder.SetViewports(viewports);
     }
 
     protected override void SetPipelineImpl(GraphicsPipeline pipeline)
