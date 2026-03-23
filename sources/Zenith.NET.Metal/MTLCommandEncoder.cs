@@ -4,49 +4,96 @@ namespace Zenith.NET.Metal;
 
 internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer commandBuffer) : GraphicsResource(context)
 {
-    private MTL4RenderCommandEncoder? render;
-    private MTL4ComputeCommandEncoder? compute;
+    private Scissor[]? todoScissors;
+    private Viewport[]? todoViewports;
 
-    public MTL4RenderCommandEncoder Render => AcquireRender();
+    public MTL4RenderCommandEncoder? Render { get; private set; }
 
-    public MTL4ComputeCommandEncoder Compute => AcquireCompute();
+    public MTL4ComputeCommandEncoder? Compute { get; private set; }
 
-    public void BeginRenderPass(FrameBuffer frameBuffer, ClearValue clearValue)
+    public void Begin()
     {
-        throw new NotImplementedException();
+        Compute = commandBuffer.MakeComputeCommandEncoder();
     }
 
-    public void EndRenderPass(FrameBuffer frameBuffer)
+    public void End()
     {
-        throw new NotImplementedException();
+        EndRender();
+        EndCompute();
+    }
+
+    public void BeginRenderPass(MTL4RenderPassDescriptor descriptor)
+    {
+        EndCompute();
+
+        Render = commandBuffer.MakeRenderCommandEncoder(descriptor);
+
+        if (todoScissors is not null)
+        {
+            SetScissors(todoScissors);
+
+            todoScissors = null;
+        }
+
+        if (todoViewports is not null)
+        {
+            SetViewports(todoViewports);
+
+            todoViewports = null;
+        }
+    }
+
+    public void EndRenderPass()
+    {
+        EndRender();
+
+        Compute = commandBuffer.MakeComputeCommandEncoder();
     }
 
     public void SetScissors(Scissor[] scissors)
     {
-        throw new NotImplementedException();
+        if (Render is null)
+        {
+            todoScissors = [.. scissors];
+        }
+        else
+        {
+            MTLScissorRect[] mtlScissors = [.. scissors.Select(static item => new MTLScissorRect((uint)item.X, (uint)item.Y, item.Width, item.Height))];
+
+            Render.SetScissorRects(mtlScissors);
+        }
     }
 
     public void SetViewports(Viewport[] viewports)
     {
-        throw new NotImplementedException();
+        if (Render is null)
+        {
+            todoViewports = [.. viewports];
+        }
+        else
+        {
+            MTLViewport[] mtlViewports = [.. viewports.Select(static item => new MTLViewport(item.X, item.Y, item.Width, item.Height, item.MinDepth, item.MaxDepth))];
+
+            Render.SetViewports(mtlViewports);
+        }
     }
 
     public void BeginDebugEvent(string label)
     {
-        render?.PushDebugGroup(label);
-        compute?.PushDebugGroup(label);
+        Render?.PushDebugGroup(label);
+        Compute?.PushDebugGroup(label);
     }
 
     public void EndDebugEvent()
     {
-        render?.PopDebugGroup();
-        compute?.PopDebugGroup();
+        Render?.PopDebugGroup();
+        Compute?.PopDebugGroup();
     }
 
     public void InsertDebugMarker(string label)
     {
-        render?.InsertDebugSignpost(label);
-        compute?.InsertDebugSignpost(label);
+        Render?.InsertDebugSignpost(label);
+        Compute?.InsertDebugSignpost(label);
     }
 
     protected override void SetResourceName(string name)
@@ -55,33 +102,24 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
 
     protected override void Destroy()
     {
+        Render?.Dispose();
+        Render = null;
+
+        Compute?.Dispose();
+        Compute = null;
     }
 
-    private MTL4RenderCommandEncoder AcquireRender()
+    private void EndRender()
     {
-        ReleaseCompute();
-
-        throw new NotImplementedException();
+        Render?.EndEncoding();
+        Render?.Dispose();
+        Render = null;
     }
 
-    private MTL4ComputeCommandEncoder AcquireCompute()
+    private void EndCompute()
     {
-        ReleaseRender();
-
-        return compute = commandBuffer.MakeComputeCommandEncoder();
-    }
-
-    private void ReleaseRender()
-    {
-        render?.EndEncoding();
-        render?.Dispose();
-        render = null;
-    }
-
-    private void ReleaseCompute()
-    {
-        compute?.EndEncoding();
-        compute?.Dispose();
-        compute = null;
+        Compute?.EndEncoding();
+        Compute?.Dispose();
+        Compute = null;
     }
 }

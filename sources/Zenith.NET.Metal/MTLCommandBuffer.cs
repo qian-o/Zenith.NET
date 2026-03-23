@@ -1,4 +1,5 @@
-﻿using Metal.NET;
+﻿using System.Numerics;
+using Metal.NET;
 
 namespace Zenith.NET.Metal;
 
@@ -25,7 +26,7 @@ internal class MTLCommandBuffer : CommandBuffer
         MTLBuffer mtlSrc = src.Metal();
         MTLBuffer mtlDest = dest.Metal();
 
-        CommandEncoder.Compute.Copy(mtlSrc.Buffer, srcOffsetInBytes, mtlDest.Buffer, destOffsetInBytes, sizeInBytes);
+        CommandEncoder.Compute?.Copy(mtlSrc.Buffer, srcOffsetInBytes, mtlDest.Buffer, destOffsetInBytes, sizeInBytes);
     }
 
     protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent)
@@ -37,15 +38,15 @@ internal class MTLCommandBuffer : CommandBuffer
         uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * destExtent.Width, GraphicsContext.TextureRowPitchAlignment);
         uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * destExtent.Height, GraphicsContext.TextureDepthPitchAlignment);
 
-        CommandEncoder.Compute.Copy(mtlSrc.Buffer,
-                                    srcOffsetInBytes,
-                                    sliceRowPitchInBytes,
-                                    sliceDepthPitchInBytes,
-                                    new(destExtent.Width, destExtent.Height, destExtent.Depth),
-                                    mtlDest.Texture,
-                                    ZenithHelper.FlattenArrayLayerIndex(mtlDest.Desc, destSlice),
-                                    destSlice.MipLevel,
-                                    new(destOffset.X, destOffset.Y, destOffset.Z));
+        CommandEncoder.Compute?.Copy(mtlSrc.Buffer,
+                                     srcOffsetInBytes,
+                                     sliceRowPitchInBytes,
+                                     sliceDepthPitchInBytes,
+                                     new(destExtent.Width, destExtent.Height, destExtent.Depth),
+                                     mtlDest.Texture,
+                                     ZenithHelper.FlattenArrayLayerIndex(mtlDest.Desc, destSlice),
+                                     destSlice.MipLevel,
+                                     new(destOffset.X, destOffset.Y, destOffset.Z));
 
     }
 
@@ -54,15 +55,15 @@ internal class MTLCommandBuffer : CommandBuffer
         MTLTexture mtlSrc = src.Metal();
         MTLTexture mtlDest = dest.Metal();
 
-        CommandEncoder.Compute.Copy(mtlSrc.Texture,
-                                    ZenithHelper.FlattenArrayLayerIndex(mtlSrc.Desc, srcSlice),
-                                    srcSlice.MipLevel,
-                                    new(srcOffset.X, srcOffset.Y, srcOffset.Z),
-                                    new(extent.Width, extent.Height, extent.Depth),
-                                    mtlDest.Texture,
-                                    ZenithHelper.FlattenArrayLayerIndex(mtlDest.Desc, destSlice),
-                                    destSlice.MipLevel,
-                                    new(destOffset.X, destOffset.Y, destOffset.Z));
+        CommandEncoder.Compute?.Copy(mtlSrc.Texture,
+                                     ZenithHelper.FlattenArrayLayerIndex(mtlSrc.Desc, srcSlice),
+                                     srcSlice.MipLevel,
+                                     new(srcOffset.X, srcOffset.Y, srcOffset.Z),
+                                     new(extent.Width, extent.Height, extent.Depth),
+                                     mtlDest.Texture,
+                                     ZenithHelper.FlattenArrayLayerIndex(mtlDest.Desc, destSlice),
+                                     destSlice.MipLevel,
+                                     new(destOffset.X, destOffset.Y, destOffset.Z));
     }
 
     protected override void CopyTextureToBufferImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes)
@@ -74,15 +75,15 @@ internal class MTLCommandBuffer : CommandBuffer
         uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * srcExtent.Width, GraphicsContext.TextureRowPitchAlignment);
         uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * srcExtent.Height, GraphicsContext.TextureDepthPitchAlignment);
 
-        CommandEncoder.Compute.Copy(mtlSrc.Texture,
-                                    ZenithHelper.FlattenArrayLayerIndex(mtlSrc.Desc, srcSlice),
-                                    srcSlice.MipLevel,
-                                    new(srcOffset.X, srcOffset.Y, srcOffset.Z),
-                                    new(srcExtent.Width, srcExtent.Height, srcExtent.Depth),
-                                    mtlDest.Buffer,
-                                    destOffsetInBytes,
-                                    sliceRowPitchInBytes,
-                                    sliceDepthPitchInBytes);
+        CommandEncoder.Compute?.Copy(mtlSrc.Texture,
+                                     ZenithHelper.FlattenArrayLayerIndex(mtlSrc.Desc, srcSlice),
+                                     srcSlice.MipLevel,
+                                     new(srcOffset.X, srcOffset.Y, srcOffset.Z),
+                                     new(srcExtent.Width, srcExtent.Height, srcExtent.Depth),
+                                     mtlDest.Buffer,
+                                     destOffsetInBytes,
+                                     sliceRowPitchInBytes,
+                                     sliceDepthPitchInBytes);
     }
 
     protected override void ResolveTextureImpl(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice)
@@ -90,14 +91,14 @@ internal class MTLCommandBuffer : CommandBuffer
         MTLTexture mtlSrc = src.Metal();
         MTLTexture mtlDest = dest.Metal();
 
-        CommandEncoder.Compute.Copy(mtlSrc.Texture,
-                                    ZenithHelper.FlattenArrayLayerIndex(mtlSrc.Desc, srcSlice),
-                                    srcSlice.MipLevel,
-                                    mtlDest.Texture,
-                                    ZenithHelper.FlattenArrayLayerIndex(mtlDest.Desc, destSlice),
-                                    destSlice.MipLevel,
-                                    1,
-                                    1);
+        CommandEncoder.Compute?.Copy(mtlSrc.Texture,
+                                     ZenithHelper.FlattenArrayLayerIndex(mtlSrc.Desc, srcSlice),
+                                     srcSlice.MipLevel,
+                                     mtlDest.Texture,
+                                     ZenithHelper.FlattenArrayLayerIndex(mtlDest.Desc, destSlice),
+                                     destSlice.MipLevel,
+                                     1,
+                                     1);
     }
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)
@@ -117,12 +118,69 @@ internal class MTLCommandBuffer : CommandBuffer
 
     protected override void BeginRenderPassImpl(FrameBuffer frameBuffer, ClearValue clearValue)
     {
-        CommandEncoder.BeginRenderPass(frameBuffer, clearValue);
+        MTLFrameBuffer mtlFrameBuffer = frameBuffer.Metal();
+
+        bool clearColor = clearValue.Flags.HasFlag(ClearFlags.Color);
+        bool clearDepth = clearValue.Flags.HasFlag(ClearFlags.Depth);
+        bool clearStencil = clearValue.Flags.HasFlag(ClearFlags.Stencil);
+
+        for (uint i = 0; i < mtlFrameBuffer.ColorAttachmentCount; i++)
+        {
+            MTLRenderPassColorAttachmentDescriptor colorAttachment = mtlFrameBuffer.Descriptor.ColorAttachments[i];
+
+            colorAttachment.LoadAction = MTLLoadAction.Load;
+
+            if (clearColor)
+            {
+                colorAttachment.LoadAction = MTLLoadAction.Clear;
+
+                Vector4 color = clearValue.ColorValues[i];
+
+                colorAttachment.ClearColor = new()
+                {
+                    Red = color.X,
+                    Green = color.Y,
+                    Blue = color.Z,
+                    Alpha = color.W
+                };
+            }
+        }
+
+        if (mtlFrameBuffer.HasDepthStencilAttachment)
+        {
+            MTLRenderPassDepthAttachmentDescriptor depthAttachment = mtlFrameBuffer.Descriptor.DepthAttachment;
+
+            if (!depthAttachment.Texture.IsNull)
+            {
+                depthAttachment.LoadAction = MTLLoadAction.Load;
+
+                if (clearDepth)
+                {
+                    depthAttachment.LoadAction = MTLLoadAction.Clear;
+                    depthAttachment.ClearDepth = clearValue.Depth;
+                }
+            }
+
+            MTLRenderPassStencilAttachmentDescriptor stencilAttachment = mtlFrameBuffer.Descriptor.StencilAttachment;
+
+            if (!stencilAttachment.Texture.IsNull)
+            {
+                stencilAttachment.LoadAction = MTLLoadAction.Load;
+
+                if (clearStencil)
+                {
+                    stencilAttachment.LoadAction = MTLLoadAction.Clear;
+                    stencilAttachment.ClearStencil = clearValue.Stencil;
+                }
+            }
+        }
+
+        CommandEncoder.BeginRenderPass(mtlFrameBuffer.Descriptor);
     }
 
     protected override void EndRenderPassImpl(FrameBuffer frameBuffer)
     {
-        CommandEncoder.EndRenderPass(frameBuffer);
+        CommandEncoder.EndRenderPass();
     }
 
     protected override void SetScissorsImpl(Scissor[] scissors)
@@ -240,10 +298,14 @@ internal class MTLCommandBuffer : CommandBuffer
         CommandBuffer.BeginCommandBuffer(CommandAllocator);
 
         CommandBuffer.UseResidencySet(Context.ResidencySet);
+
+        CommandEncoder.Begin();
     }
 
     protected override void EndImpl()
     {
+        CommandEncoder.End();
+
         CommandBuffer.EndCommandBuffer();
     }
 
