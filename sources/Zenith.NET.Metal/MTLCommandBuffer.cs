@@ -16,31 +16,88 @@ internal class MTLCommandBuffer : CommandBuffer
         CommandEncoder = new(context, CommandBuffer);
     }
 
+    public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
+
     public MTLCommandEncoder CommandEncoder { get; }
 
     protected override void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes)
     {
-        throw new NotImplementedException();
+        MTLBuffer mtlSrc = src.Metal();
+        MTLBuffer mtlDest = dest.Metal();
+
+        CommandEncoder.Compute.Copy(mtlSrc.Buffer, srcOffsetInBytes, mtlDest.Buffer, destOffsetInBytes, sizeInBytes);
     }
 
     protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent)
     {
-        throw new NotImplementedException();
+        MTLBuffer mtlSrc = src.Metal();
+        MTLTexture mtlDest = dest.Metal();
+
+        uint formatSizeInBytes = ZenithHelper.SizeInBytes(mtlDest.Desc.Format);
+        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * destExtent.Width, GraphicsContext.TextureRowPitchAlignment);
+        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * destExtent.Height, GraphicsContext.TextureDepthPitchAlignment);
+
+        CommandEncoder.Compute.Copy(mtlSrc.Buffer,
+                                    srcOffsetInBytes,
+                                    sliceRowPitchInBytes,
+                                    sliceDepthPitchInBytes,
+                                    new(destExtent.Width, destExtent.Height, destExtent.Depth),
+                                    mtlDest.Texture,
+                                    ZenithHelper.FlattenArrayLayerIndex(mtlDest.Desc, destSlice),
+                                    destSlice.MipLevel,
+                                    new(destOffset.X, destOffset.Y, destOffset.Z));
+
     }
 
     protected override void CopyTextureImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent)
     {
-        throw new NotImplementedException();
+        MTLTexture mtlSrc = src.Metal();
+        MTLTexture mtlDest = dest.Metal();
+
+        CommandEncoder.Compute.Copy(mtlSrc.Texture,
+                                    ZenithHelper.FlattenArrayLayerIndex(mtlSrc.Desc, srcSlice),
+                                    srcSlice.MipLevel,
+                                    new(srcOffset.X, srcOffset.Y, srcOffset.Z),
+                                    new(extent.Width, extent.Height, extent.Depth),
+                                    mtlDest.Texture,
+                                    ZenithHelper.FlattenArrayLayerIndex(mtlDest.Desc, destSlice),
+                                    destSlice.MipLevel,
+                                    new(destOffset.X, destOffset.Y, destOffset.Z));
     }
 
     protected override void CopyTextureToBufferImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes)
     {
-        throw new NotImplementedException();
+        MTLTexture mtlSrc = src.Metal();
+        MTLBuffer mtlDest = dest.Metal();
+
+        uint formatSizeInBytes = ZenithHelper.SizeInBytes(mtlSrc.Desc.Format);
+        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * srcExtent.Width, GraphicsContext.TextureRowPitchAlignment);
+        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * srcExtent.Height, GraphicsContext.TextureDepthPitchAlignment);
+
+        CommandEncoder.Compute.Copy(mtlSrc.Texture,
+                                    ZenithHelper.FlattenArrayLayerIndex(mtlSrc.Desc, srcSlice),
+                                    srcSlice.MipLevel,
+                                    new(srcOffset.X, srcOffset.Y, srcOffset.Z),
+                                    new(srcExtent.Width, srcExtent.Height, srcExtent.Depth),
+                                    mtlDest.Buffer,
+                                    destOffsetInBytes,
+                                    sliceRowPitchInBytes,
+                                    sliceDepthPitchInBytes);
     }
 
     protected override void ResolveTextureImpl(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice)
     {
-        throw new NotImplementedException();
+        MTLTexture mtlSrc = src.Metal();
+        MTLTexture mtlDest = dest.Metal();
+
+        CommandEncoder.Compute.Copy(mtlSrc.Texture,
+                                    ZenithHelper.FlattenArrayLayerIndex(mtlSrc.Desc, srcSlice),
+                                    srcSlice.MipLevel,
+                                    mtlDest.Texture,
+                                    ZenithHelper.FlattenArrayLayerIndex(mtlDest.Desc, destSlice),
+                                    destSlice.MipLevel,
+                                    1,
+                                    1);
     }
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)
@@ -165,43 +222,48 @@ internal class MTLCommandBuffer : CommandBuffer
 
     protected override void BeginDebugEventImpl(string label)
     {
-        throw new NotImplementedException();
+        CommandEncoder.BeginDebugEvent(label);
     }
 
     protected override void EndDebugEventImpl()
     {
-        throw new NotImplementedException();
+        CommandEncoder.EndDebugEvent();
     }
 
     protected override void InsertDebugMarkerImpl(string label)
     {
-        throw new NotImplementedException();
+        CommandEncoder.InsertDebugMarker(label);
     }
 
     protected override void BeginImpl()
     {
-        throw new NotImplementedException();
+        CommandBuffer.BeginCommandBuffer(CommandAllocator);
+
+        CommandBuffer.UseResidencySet(Context.ResidencySet);
     }
 
     protected override void EndImpl()
     {
-        throw new NotImplementedException();
+        CommandBuffer.EndCommandBuffer();
     }
 
     protected override void ResetImpl()
     {
-        throw new NotImplementedException();
+        CommandAllocator.Reset();
     }
 
     protected override void SetResourceName(string name)
     {
-        throw new NotImplementedException();
+        CommandBuffer.Label = name;
     }
 
     protected override void Destroy()
     {
         base.Destroy();
 
-        throw new NotImplementedException();
+        CommandEncoder.Dispose();
+
+        CommandBuffer.Dispose();
+        CommandAllocator.Dispose();
     }
 }

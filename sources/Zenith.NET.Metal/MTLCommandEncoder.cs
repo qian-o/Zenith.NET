@@ -48,18 +48,20 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
     {
         ReleaseRender();
 
-        throw new NotImplementedException();
+        return compute = commandBuffer.MakeComputeCommandEncoder();
     }
 
     private void ReleaseRender()
     {
         render?.EndEncoding();
+        render?.Dispose();
         render = null;
     }
 
     private void ReleaseCompute()
     {
         compute?.EndEncoding();
+        compute?.Dispose();
         compute = null;
     }
 }
