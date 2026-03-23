@@ -18,11 +18,6 @@ internal class MTLComputePipeline : ComputePipeline
         error.Success();
     }
 
-    public void Bind(MTL4ComputeCommandEncoder commandEncoder)
-    {
-        commandEncoder.SetComputePipelineState(ComputePipelineState);
-    }
-
     protected override void SetResourceName(string name)
     {
     }

@@ -88,28 +88,6 @@ internal class MTLMeshShadingPipeline : MeshShadingPipeline
         error.Success();
     }
 
-    public void Bind(MTL4RenderCommandEncoder commandEncoder)
-    {
-        commandEncoder.SetRenderPipelineState(RenderPipelineState);
-
-        commandEncoder.SetCullMode(MTLFormats.Metal(Desc.RenderStates.RasterizerState.CullMode));
-
-        commandEncoder.SetDepthClipMode(Desc.RenderStates.RasterizerState.DepthClipEnable ? MTLDepthClipMode.Clip : MTLDepthClipMode.Clamp);
-        commandEncoder.SetDepthBias(Desc.RenderStates.RasterizerState.DepthBias, Desc.RenderStates.RasterizerState.SlopeScaledDepthBias, Desc.RenderStates.RasterizerState.DepthBiasClamp);
-
-        commandEncoder.SetTriangleFillMode(MTLFormats.Metal(Desc.RenderStates.RasterizerState.FillMode));
-
-        if (Desc.RenderStates.BlendFactor.HasValue)
-        {
-            commandEncoder.SetBlendColor(Desc.RenderStates.BlendFactor.Value.X, Desc.RenderStates.BlendFactor.Value.Y, Desc.RenderStates.BlendFactor.Value.Z, Desc.RenderStates.BlendFactor.Value.W);
-        }
-
-        commandEncoder.SetDepthStencilState(DepthStencilState);
-        commandEncoder.SetStencilReferenceValue(Desc.RenderStates.StencilReference);
-
-        commandEncoder.SetFrontFacing(MTLFormats.Metal(Desc.RenderStates.RasterizerState.FrontFace));
-    }
-
     protected override void SetResourceName(string name)
     {
     }

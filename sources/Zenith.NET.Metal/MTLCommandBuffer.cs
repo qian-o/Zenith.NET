@@ -9,12 +9,25 @@ internal class MTLCommandBuffer : CommandBuffer
 
     public MTL4CommandBuffer CommandBuffer;
 
+    public MTL4ArgumentTable ArgumentTable;
+
     public MTLCommandBuffer(MTLGraphicsContext context, CommandQueue queue) : base(context, queue)
     {
         CommandAllocator = context.Device.MakeCommandAllocator();
         CommandBuffer = context.Device.MakeCommandBuffer();
 
-        CommandEncoder = new(context, CommandBuffer);
+        MTL4ArgumentTableDescriptor descriptor = new()
+        {
+            MaxBufferBindCount = 16,
+            MaxTextureBindCount = 16,
+            MaxSamplerStateBindCount = 16,
+            SupportAttributeStrides = true
+        };
+
+        ArgumentTable = context.Device.MakeArgumentTable(descriptor, out NSError error);
+        error.Success();
+
+        CommandEncoder = new(context, CommandBuffer, ArgumentTable);
     }
 
     public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
@@ -195,32 +208,32 @@ internal class MTLCommandBuffer : CommandBuffer
 
     protected override void SetPipelineImpl(GraphicsPipeline pipeline)
     {
-        throw new NotImplementedException();
+        CommandEncoder.SetPipeline(pipeline);
     }
 
     protected override void SetPipelineImpl(ComputePipeline pipeline)
     {
-        throw new NotImplementedException();
+        CommandEncoder.SetPipeline(pipeline);
     }
 
     protected override void SetPipelineImpl(MeshShadingPipeline pipeline)
     {
-        throw new NotImplementedException();
+        CommandEncoder.SetPipeline(pipeline);
     }
 
     protected override void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index)
     {
-        throw new NotImplementedException();
+        CommandEncoder.SetVertexBuffer(buffer, offsetInBytes, index);
     }
 
     protected override void SetIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format)
     {
-        throw new NotImplementedException();
+        CommandEncoder.SetIndexBuffer(buffer, offsetInBytes, format);
     }
 
     protected override void SetResourceTableImpl(Pipeline pipeline, ResourceTable resourceTable)
     {
-        throw new NotImplementedException();
+        CommandEncoder.SetResourceTable(resourceTable);
     }
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)

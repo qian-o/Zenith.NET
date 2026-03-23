@@ -2,14 +2,24 @@
 
 namespace Zenith.NET.Metal;
 
-internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer commandBuffer) : GraphicsResource(context)
+internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer commandBuffer, MTL4ArgumentTable argumentTable) : GraphicsResource(context)
 {
+    private readonly List<nuint> queryBuffers = [];
+    private readonly Dictionary<uint, nuint> vertexBuffers = [];
+
     private Scissor[]? todoScissors;
     private Viewport[]? todoViewports;
+    private Pipeline? currentPipeline;
+    private ResourceTable? currentResourceTable;
+    private bool needsRebind;
 
     public MTL4RenderCommandEncoder? Render { get; private set; }
 
     public MTL4ComputeCommandEncoder? Compute { get; private set; }
+
+    public nuint Index { get; private set; }
+
+    public MTLIndexType IndexType { get; private set; }
 
     public void Begin()
     {
@@ -20,6 +30,15 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
     {
         EndRender();
         EndCompute();
+
+        todoScissors = null;
+        todoViewports = null;
+        currentPipeline = null;
+        currentResourceTable = null;
+        needsRebind = false;
+
+        queryBuffers.Clear();
+        vertexBuffers.Clear();
     }
 
     public void BeginRenderPass(MTL4RenderPassDescriptor descriptor)
@@ -78,6 +97,88 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
         }
     }
 
+    public void SetPipeline(Pipeline pipeline)
+    {
+        currentPipeline = pipeline;
+
+        needsRebind = true;
+    }
+
+    public void SetVertexBuffer(Buffer buffer, uint offsetInBytes, uint index)
+    {
+        vertexBuffers[index] = buffer.Metal().GpuAddress + offsetInBytes;
+
+        needsRebind = true;
+    }
+
+    public void SetIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat format)
+    {
+        Index = buffer.Metal().GpuAddress + offsetInBytes;
+        IndexType = MTLFormats.Metal(format);
+    }
+
+    public void SetResourceTable(ResourceTable resourceTable)
+    {
+        currentResourceTable = resourceTable;
+
+        needsRebind = true;
+    }
+
+    public void Bind()
+    {
+        if (!needsRebind)
+        {
+            return;
+        }
+
+        switch (currentPipeline)
+        {
+            case MTLGraphicsPipeline graphicsPipeline:
+                {
+                    BindRenderPipeline(graphicsPipeline.Desc.RenderStates, graphicsPipeline.RenderPipelineState, graphicsPipeline.DepthStencilState);
+
+                    if (currentResourceTable is MTLResourceTable resourceTable)
+                    {
+                        Render?.SetArgumentTable(resourceTable.ArgumentTable, MTLRenderStages.Fragment);
+
+                        resourceTable.Bind(argumentTable);
+                    }
+
+                    foreach (KeyValuePair<uint, nuint> vertexBuffer in vertexBuffers)
+                    {
+                        argumentTable.SetAddress(vertexBuffer.Value, graphicsPipeline.VertexBufferStartIndex + vertexBuffer.Key);
+                    }
+
+                    Render?.SetArgumentTable(argumentTable, MTLRenderStages.Vertex);
+                }
+                break;
+
+            case MTLComputePipeline computePipeline:
+                {
+                    Compute?.SetComputePipelineState(computePipeline.ComputePipelineState);
+
+                    if (currentResourceTable is MTLResourceTable resourceTable)
+                    {
+                        Compute?.SetArgumentTable(resourceTable.ArgumentTable);
+                    }
+                }
+                break;
+
+            case MTLMeshShadingPipeline meshShadingPipeline:
+                {
+                    BindRenderPipeline(meshShadingPipeline.Desc.RenderStates, meshShadingPipeline.RenderPipelineState, meshShadingPipeline.DepthStencilState);
+
+                    if (currentResourceTable is MTLResourceTable resourceTable)
+                    {
+                        Render?.SetArgumentTable(resourceTable.ArgumentTable, MTLRenderStages.Object | MTLRenderStages.Mesh);
+                    }
+                }
+                break;
+        }
+
+        needsRebind = false;
+    }
+
     public void BeginDebugEvent(string label)
     {
         Render?.PushDebugGroup(label);
@@ -121,5 +222,27 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
         Compute?.EndEncoding();
         Compute?.Dispose();
         Compute = null;
+    }
+
+    private void BindRenderPipeline(RenderStates renderStates, MTLRenderPipelineState renderPipelineState, MTLDepthStencilState depthStencilState)
+    {
+        Render?.SetRenderPipelineState(renderPipelineState);
+
+        Render?.SetCullMode(MTLFormats.Metal(renderStates.RasterizerState.CullMode));
+
+        Render?.SetDepthClipMode(renderStates.RasterizerState.DepthClipEnable ? MTLDepthClipMode.Clip : MTLDepthClipMode.Clamp);
+        Render?.SetDepthBias(renderStates.RasterizerState.DepthBias, renderStates.RasterizerState.SlopeScaledDepthBias, renderStates.RasterizerState.DepthBiasClamp);
+
+        Render?.SetTriangleFillMode(MTLFormats.Metal(renderStates.RasterizerState.FillMode));
+
+        if (renderStates.BlendFactor.HasValue)
+        {
+            Render?.SetBlendColor(renderStates.BlendFactor.Value.X, renderStates.BlendFactor.Value.Y, renderStates.BlendFactor.Value.Z, renderStates.BlendFactor.Value.W);
+        }
+
+        Render?.SetDepthStencilState(depthStencilState);
+        Render?.SetStencilReferenceValue(renderStates.StencilReference);
+
+        Render?.SetFrontFacing(MTLFormats.Metal(renderStates.RasterizerState.FrontFace));
     }
 }

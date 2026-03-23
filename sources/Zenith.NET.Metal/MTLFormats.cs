@@ -410,4 +410,14 @@ internal static class MTLFormats
             _ => MTLWinding.Clockwise
         };
     }
+
+    public static MTLIndexType Metal(IndexFormat indexFormat)
+    {
+        return indexFormat switch
+        {
+            IndexFormat.UInt16 => MTLIndexType.UInt16,
+            IndexFormat.UInt32 => MTLIndexType.UInt32,
+            _ => MTLIndexType.UInt16
+        };
+    }
 }
