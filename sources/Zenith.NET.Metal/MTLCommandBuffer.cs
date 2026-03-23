@@ -238,42 +238,42 @@ internal class MTLCommandBuffer : CommandBuffer
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
     {
-        throw new NotImplementedException();
+        CommandEncoder.Bind();
     }
 
     protected override void DrawIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        throw new NotImplementedException();
+        CommandEncoder.Bind();
     }
 
     protected override void DrawIndexedImpl(GraphicsPipeline pipeline, uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
     {
-        throw new NotImplementedException();
+        CommandEncoder.Bind();
     }
 
     protected override void DrawIndexedIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        throw new NotImplementedException();
+        CommandEncoder.Bind();
     }
 
     protected override void DispatchImpl(ComputePipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        throw new NotImplementedException();
+        CommandEncoder.Bind();
     }
 
     protected override void DispatchIndirectImpl(ComputePipeline pipeline, Buffer indirectBuffer, uint offsetInBytes)
     {
-        throw new NotImplementedException();
+        CommandEncoder.Bind();
     }
 
     protected override void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        throw new NotImplementedException();
+        CommandEncoder.Bind();
     }
 
     protected override void DispatchMeshIndirectImpl(MeshShadingPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount)
     {
-        throw new NotImplementedException();
+        CommandEncoder.Bind();
     }
 
     protected override void BeginQueryImpl(QueryHeap queryHeap, uint index)
@@ -288,7 +288,10 @@ internal class MTLCommandBuffer : CommandBuffer
 
     protected override void WriteTimestampImpl(QueryHeap queryHeap, uint index)
     {
-        throw new NotImplementedException();
+        MTLQueryHeap mtlQueryHeap = queryHeap.Metal();
+
+        CommandBuffer.WriteTimestamp(mtlQueryHeap.CounterHeap, index);
+        CommandBuffer.ResolveCounterHeap(mtlQueryHeap.CounterHeap, new(index, 1), new(mtlQueryHeap.Buffer.GpuAddress + (sizeof(ulong) * index), sizeof(ulong)), MtlFence.Null, MtlFence.Null);
     }
 
     protected override void BeginDebugEventImpl(string label)
@@ -338,6 +341,7 @@ internal class MTLCommandBuffer : CommandBuffer
 
         CommandEncoder.Dispose();
 
+        ArgumentTable.Dispose();
         CommandBuffer.Dispose();
         CommandAllocator.Dispose();
     }
