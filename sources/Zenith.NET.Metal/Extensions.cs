@@ -28,6 +28,10 @@ public static class Extensions
 
     extension(CommandBuffer commandBuffer)
     {
+        internal MTLCommandBuffer Metal()
+        {
+            return (MTLCommandBuffer)commandBuffer;
+        }
     }
 
     extension(SwapChain swapChain)

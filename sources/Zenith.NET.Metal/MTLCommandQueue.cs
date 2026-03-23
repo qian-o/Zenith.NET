@@ -8,7 +8,7 @@ internal class MTLCommandQueue(MTLGraphicsContext context, CommandQueueType type
 
     protected override CommandBuffer CreateCommandBuffer()
     {
-        throw new NotImplementedException();
+        return new MTLCommandBuffer(context, this);
     }
 
     protected override void WaitIdleImpl()
@@ -18,7 +18,7 @@ internal class MTLCommandQueue(MTLGraphicsContext context, CommandQueueType type
 
     protected override void SubmitImpl(CommandBuffer commandBuffer)
     {
-        throw new NotImplementedException();
+        queue.Commit([commandBuffer.Metal().CommandBuffer]);
     }
 
     protected override void SetResourceName(string name)
