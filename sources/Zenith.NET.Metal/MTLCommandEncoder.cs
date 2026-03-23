@@ -7,9 +7,9 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
     private MTL4RenderCommandEncoder? render;
     private MTL4ComputeCommandEncoder? compute;
 
-    public MTL4RenderCommandEncoder Render => EnsureRender();
+    public MTL4RenderCommandEncoder Render => AcquireRender();
 
-    public MTL4ComputeCommandEncoder Compute => EnsureCompute();
+    public MTL4ComputeCommandEncoder Compute => AcquireCompute();
 
     public void BeginDebugEvent(string label)
     {
@@ -37,13 +37,29 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
     {
     }
 
-    private MTL4RenderCommandEncoder EnsureRender()
+    private MTL4RenderCommandEncoder AcquireRender()
     {
+        ReleaseCompute();
+
         throw new NotImplementedException();
     }
 
-    private MTL4ComputeCommandEncoder EnsureCompute()
+    private MTL4ComputeCommandEncoder AcquireCompute()
     {
+        ReleaseRender();
+
         throw new NotImplementedException();
+    }
+
+    private void ReleaseRender()
+    {
+        render?.EndEncoding();
+        render = null;
+    }
+
+    private void ReleaseCompute()
+    {
+        compute?.EndEncoding();
+        compute = null;
     }
 }
