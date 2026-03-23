@@ -21,6 +21,8 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
 
     public MTLIndexType IndexType { get; private set; }
 
+    public MTLPrimitiveType PrimitiveType { get; private set; }
+
     public void Begin()
     {
         Compute = commandBuffer.MakeComputeCommandEncoder();
@@ -97,7 +99,23 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
         }
     }
 
-    public void SetPipeline(Pipeline pipeline)
+    public void SetPipeline(GraphicsPipeline pipeline)
+    {
+        currentPipeline = pipeline;
+
+        needsRebind = true;
+
+        PrimitiveType = MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type;
+    }
+
+    public void SetPipeline(ComputePipeline pipeline)
+    {
+        currentPipeline = pipeline;
+
+        needsRebind = true;
+    }
+
+    public void SetPipeline(MeshShadingPipeline pipeline)
     {
         currentPipeline = pipeline;
 

@@ -239,15 +239,32 @@ internal static class MTLFormats
         };
     }
 
-    public static MTLPrimitiveTopologyClass Metal(PrimitiveTopology primitiveTopology)
+    public static (MTLPrimitiveTopologyClass TopologyClass, MTLPrimitiveType Type) Metal(PrimitiveTopology primitiveTopology)
     {
-        return primitiveTopology switch
-        {
-            PrimitiveTopology.PointList => MTLPrimitiveTopologyClass.Point,
-            PrimitiveTopology.LineList or PrimitiveTopology.LineStrip => MTLPrimitiveTopologyClass.Line,
-            PrimitiveTopology.TriangleList or PrimitiveTopology.TriangleStrip => MTLPrimitiveTopologyClass.Triangle,
-            _ => MTLPrimitiveTopologyClass.Unspecified
-        };
+        return
+        (
+            primitiveTopology switch
+            {
+                PrimitiveTopology.PointList => MTLPrimitiveTopologyClass.Point,
+
+                PrimitiveTopology.LineList or
+                PrimitiveTopology.LineStrip => MTLPrimitiveTopologyClass.Line,
+
+                PrimitiveTopology.TriangleList or
+                PrimitiveTopology.TriangleStrip => MTLPrimitiveTopologyClass.Triangle,
+
+                _ => MTLPrimitiveTopologyClass.Unspecified
+            },
+            primitiveTopology switch
+            {
+                PrimitiveTopology.PointList => MTLPrimitiveType.Point,
+                PrimitiveTopology.LineList => MTLPrimitiveType.Line,
+                PrimitiveTopology.LineStrip => MTLPrimitiveType.LineStrip,
+                PrimitiveTopology.TriangleList => MTLPrimitiveType.Triangle,
+                PrimitiveTopology.TriangleStrip => MTLPrimitiveType.TriangleStrip,
+                _ => MTLPrimitiveType.Point
+            }
+        );
     }
 
     public static MTLStencilOperation Metal(StencilOp stencilOp)
