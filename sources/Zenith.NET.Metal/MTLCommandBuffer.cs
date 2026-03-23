@@ -290,16 +290,14 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     {
         CommandEncoder.Bind();
 
-        CommandEncoder.Compute?.DispatchThreadgroups(new MTLSize(groupCountX, groupCountY, groupCountZ),
-                                                     new(pipeline.Desc.ThreadGroupSizeX, pipeline.Desc.ThreadGroupSizeY, pipeline.Desc.ThreadGroupSizeZ));
+        CommandEncoder.Compute?.DispatchThreadgroups(new MTLSize(groupCountX, groupCountY, groupCountZ), CommandEncoder.ThreadGroupSize);
     }
 
     protected override void DispatchIndirectImpl(ComputePipeline pipeline, Buffer indirectBuffer, uint offsetInBytes)
     {
         CommandEncoder.Bind();
 
-        CommandEncoder.Compute?.DispatchThreadgroups(indirectBuffer.Metal().GpuAddress + offsetInBytes,
-                                                     new(pipeline.Desc.ThreadGroupSizeX, pipeline.Desc.ThreadGroupSizeY, pipeline.Desc.ThreadGroupSizeZ));
+        CommandEncoder.Compute?.DispatchThreadgroups(indirectBuffer.Metal().GpuAddress + offsetInBytes, CommandEncoder.ThreadGroupSize);
     }
 
     protected override void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
@@ -307,8 +305,8 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         CommandEncoder.Bind();
 
         CommandEncoder.Render?.DrawMeshThreadgroups(new MTLSize(groupCountX, groupCountY, groupCountZ),
-                                                    new(pipeline.Desc.AmplificationThreadGroupSizeX, pipeline.Desc.AmplificationThreadGroupSizeY, pipeline.Desc.AmplificationThreadGroupSizeZ),
-                                                    new(pipeline.Desc.MeshThreadGroupSizeX, pipeline.Desc.MeshThreadGroupSizeY, pipeline.Desc.MeshThreadGroupSizeZ));
+                                                    CommandEncoder.AmplificationThreadGroupSize,
+                                                    CommandEncoder.MeshThreadGroupSize);
     }
 
     protected override void DispatchMeshIndirectImpl(MeshShadingPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount)
@@ -320,8 +318,8 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         for (uint i = 0; i < dispatchCount; i++)
         {
             CommandEncoder.Render?.DrawMeshThreadgroups(indirectGpuAddress + (indirectDispatchMeshArgs * i),
-                                                        new(pipeline.Desc.AmplificationThreadGroupSizeX, pipeline.Desc.AmplificationThreadGroupSizeY, pipeline.Desc.AmplificationThreadGroupSizeZ),
-                                                        new(pipeline.Desc.MeshThreadGroupSizeX, pipeline.Desc.MeshThreadGroupSizeY, pipeline.Desc.MeshThreadGroupSizeZ));
+                                                        CommandEncoder.AmplificationThreadGroupSize,
+                                                        CommandEncoder.MeshThreadGroupSize);
         }
     }
 

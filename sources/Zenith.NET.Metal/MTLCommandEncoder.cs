@@ -27,6 +27,12 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
 
     public MTLPrimitiveType PrimitiveType { get; private set; }
 
+    public MTLSize ThreadGroupSize { get; private set; }
+
+    public MTLSize AmplificationThreadGroupSize { get; private set; }
+
+    public MTLSize MeshThreadGroupSize { get; private set; }
+
     public void Begin()
     {
         Compute = commandBuffer.MakeComputeCommandEncoder();
@@ -117,6 +123,8 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
         currentPipeline = pipeline;
 
         needsRebind = true;
+
+        ThreadGroupSize = new(pipeline.Desc.ThreadGroupSizeX, pipeline.Desc.ThreadGroupSizeY, pipeline.Desc.ThreadGroupSizeZ);
     }
 
     public void SetPipeline(MeshShadingPipeline pipeline)
@@ -124,6 +132,9 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
         currentPipeline = pipeline;
 
         needsRebind = true;
+
+        AmplificationThreadGroupSize = new(pipeline.Desc.AmplificationThreadGroupSizeX, pipeline.Desc.AmplificationThreadGroupSizeY, pipeline.Desc.AmplificationThreadGroupSizeZ);
+        MeshThreadGroupSize = new(pipeline.Desc.MeshThreadGroupSizeX, pipeline.Desc.MeshThreadGroupSizeY, pipeline.Desc.MeshThreadGroupSizeZ);
     }
 
     public void SetVertexBuffer(Buffer buffer, uint offsetInBytes, uint index)
