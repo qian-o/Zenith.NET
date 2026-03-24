@@ -250,7 +250,10 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
                                                      indexCount,
                                                      CommandEncoder.IndexType,
                                                      CommandEncoder.IndexBuffer + (CommandEncoder.IndexStrideInBytes * firstIndex),
-                                                     CommandEncoder.IndexSizeInBytes - (CommandEncoder.IndexStrideInBytes * firstIndex));
+                                                     CommandEncoder.IndexSizeInBytes - (CommandEncoder.IndexStrideInBytes * firstIndex),
+                                                     instanceCount,
+                                                     vertexOffset,
+                                                     firstInstance);
     }
 
     protected override void DrawIndexedIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
