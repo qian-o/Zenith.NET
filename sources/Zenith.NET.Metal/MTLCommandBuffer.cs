@@ -13,25 +13,12 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     public MTL4CommandBuffer CommandBuffer;
 
-    public MTL4ArgumentTable ArgumentTable;
-
     public MTLCommandBuffer(MTLGraphicsContext context, CommandQueue queue) : base(context, queue)
     {
         CommandAllocator = context.Device.MakeCommandAllocator();
         CommandBuffer = context.Device.MakeCommandBuffer();
 
-        MTL4ArgumentTableDescriptor descriptor = new()
-        {
-            MaxBufferBindCount = 16,
-            MaxTextureBindCount = 16,
-            MaxSamplerStateBindCount = 16,
-            SupportAttributeStrides = true
-        };
-
-        ArgumentTable = context.Device.MakeArgumentTable(descriptor, out NSError error);
-        error.Success();
-
-        CommandEncoder = new(context, CommandBuffer, ArgumentTable);
+        CommandEncoder = new(context, CommandBuffer);
     }
 
     public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
@@ -388,7 +375,6 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
         CommandEncoder.Dispose();
 
-        ArgumentTable.Dispose();
         CommandBuffer.Dispose();
         CommandAllocator.Dispose();
     }

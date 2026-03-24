@@ -437,4 +437,14 @@ internal static class MTLFormats
             _ => MTLIndexType.UInt16
         };
     }
+
+    public static MTLVisibilityResultMode Metal(QueryType queryType)
+    {
+        return queryType switch
+        {
+            QueryType.Occlusion => MTLVisibilityResultMode.Counting,
+            QueryType.BinaryOcclusion => MTLVisibilityResultMode.Boolean,
+            _ => MTLVisibilityResultMode.Disabled
+        };
+    }
 }

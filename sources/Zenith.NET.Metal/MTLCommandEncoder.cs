@@ -2,16 +2,41 @@
 
 namespace Zenith.NET.Metal;
 
-internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer commandBuffer, MTL4ArgumentTable argumentTable) : GraphicsResource(context)
+internal class MTLCommandEncoder : GraphicsResource
 {
-    private readonly List<nuint> queryBuffers = [];
+    private readonly Dictionary<uint, QueryHeap> todoBeginQueries = [];
+    private readonly Dictionary<uint, QueryHeap> todoEndQueries = [];
     private readonly Dictionary<uint, nuint> vertexBuffers = [];
+
+    public MtlBuffer QueryBuffer;
+
+    public MTL4ArgumentTable VertexArgumentTable;
 
     private Scissor[]? todoScissors;
     private Viewport[]? todoViewports;
     private Pipeline? currentPipeline;
     private ResourceTable? currentResourceTable;
     private bool needsRebind;
+
+    public MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer commandBuffer) : base(context)
+    {
+        CommandBuffer = commandBuffer;
+
+        QueryBuffer = context.Device.MakeBuffer(sizeof(ulong) * 128, MTLResourceOptions.StorageModePrivate);
+
+        MTL4ArgumentTableDescriptor descriptor = new()
+        {
+            MaxBufferBindCount = 16,
+            MaxTextureBindCount = 16,
+            MaxSamplerStateBindCount = 16,
+            SupportAttributeStrides = true
+        };
+
+        VertexArgumentTable = context.Device.MakeArgumentTable(descriptor, out NSError error);
+        error.Success();
+    }
+
+    public MTL4CommandBuffer CommandBuffer { get; }
 
     public MTL4RenderCommandEncoder? Render { get; private set; }
 
@@ -35,7 +60,7 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
 
     public void Begin()
     {
-        Compute = commandBuffer.MakeComputeCommandEncoder();
+        Compute = CommandBuffer.MakeComputeCommandEncoder();
     }
 
     public void End()
@@ -49,7 +74,8 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
         currentResourceTable = null;
         needsRebind = false;
 
-        queryBuffers.Clear();
+        todoBeginQueries.Clear();
+        todoEndQueries.Clear();
         vertexBuffers.Clear();
     }
 
@@ -57,7 +83,14 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
     {
         EndCompute();
 
-        Render = commandBuffer.MakeRenderCommandEncoder(descriptor);
+        descriptor.VisibilityResultBuffer = QueryBuffer;
+
+        Render = CommandBuffer.MakeRenderCommandEncoder(descriptor);
+
+        foreach (KeyValuePair<uint, QueryHeap> beginQuery in todoBeginQueries)
+        {
+            BeginQuery(beginQuery.Value, beginQuery.Key);
+        }
 
         if (todoScissors is not null)
         {
@@ -78,7 +111,12 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
     {
         EndRender();
 
-        Compute = commandBuffer.MakeComputeCommandEncoder();
+        Compute = CommandBuffer.MakeComputeCommandEncoder();
+
+        foreach (KeyValuePair<uint, QueryHeap> endQuery in todoEndQueries)
+        {
+            EndQuery(endQuery.Value, endQuery.Key);
+        }
     }
 
     public void SetScissors(Scissor[] scissors)
@@ -176,15 +214,15 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
                     {
                         Render?.SetArgumentTable(resourceTable.ArgumentTable, MTLRenderStages.Fragment);
 
-                        resourceTable.Bind(argumentTable);
+                        resourceTable.Bind(VertexArgumentTable);
                     }
 
                     foreach (KeyValuePair<uint, nuint> vertexBuffer in vertexBuffers)
                     {
-                        argumentTable.SetAddress(vertexBuffer.Value, graphicsPipeline.VertexBufferStartIndex + vertexBuffer.Key);
+                        VertexArgumentTable.SetAddress(vertexBuffer.Value, graphicsPipeline.VertexBufferStartIndex + vertexBuffer.Key);
                     }
 
-                    Render?.SetArgumentTable(argumentTable, MTLRenderStages.Vertex);
+                    Render?.SetArgumentTable(VertexArgumentTable, MTLRenderStages.Vertex);
                 }
                 break;
 
@@ -216,12 +254,28 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
 
     public void BeginQuery(QueryHeap queryHeap, uint index)
     {
-        throw new NotImplementedException();
+        if (Render is null)
+        {
+            todoBeginQueries[index] = queryHeap;
+        }
+        else
+        {
+            Render.SetVisibilityResultMode(MTLFormats.Metal(queryHeap.Desc.Type), sizeof(ulong) * index);
+        }
     }
 
     public void EndQuery(QueryHeap queryHeap, uint index)
     {
-        throw new NotImplementedException();
+        Render?.SetVisibilityResultMode(MTLVisibilityResultMode.Disabled, sizeof(ulong) * index);
+
+        if (Compute is null)
+        {
+            todoEndQueries[index] = queryHeap;
+        }
+        else
+        {
+            Compute.Copy(QueryBuffer, sizeof(ulong) * index, queryHeap.Metal().Buffer.Buffer, sizeof(ulong) * index, sizeof(ulong));
+        }
     }
 
     public void BeginDebugEvent(string label)
@@ -253,6 +307,9 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
 
         Compute?.Dispose();
         Compute = null;
+
+        VertexArgumentTable.Dispose();
+        QueryBuffer.Dispose();
     }
 
     private void EndRender()
