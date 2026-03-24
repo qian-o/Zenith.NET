@@ -219,7 +219,7 @@ internal class MTLCommandEncoder(MTLGraphicsContext context, MTL4CommandBuffer c
         throw new NotImplementedException();
     }
 
-    public void EndQuery(uint index)
+    public void EndQuery(QueryHeap queryHeap, uint index)
     {
         throw new NotImplementedException();
     }

@@ -330,7 +330,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void EndQueryImpl(QueryHeap queryHeap, uint index)
     {
-        CommandEncoder.EndQuery(index);
+        CommandEncoder.EndQuery(queryHeap, index);
     }
 
     protected override void WriteTimestampImpl(QueryHeap queryHeap, uint index)
