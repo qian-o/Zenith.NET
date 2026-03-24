@@ -5,10 +5,6 @@ namespace Zenith.NET.Metal;
 
 internal unsafe class MTLCommandBuffer : CommandBuffer
 {
-    private readonly uint indirectDrawArgs = (uint)sizeof(IndirectDrawArgs);
-    private readonly uint indirectDrawIndexedArgs = (uint)sizeof(IndirectDrawIndexedArgs);
-    private readonly uint indirectDispatchMeshArgs = (uint)sizeof(IndirectDispatchMeshArgs);
-
     public MTL4CommandAllocator CommandAllocator;
 
     public MTL4CommandBuffer CommandBuffer;
@@ -242,7 +238,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
         for (uint i = 0; i < drawCount; i++)
         {
-            CommandEncoder.Render?.DrawPrimitives(CommandEncoder.PrimitiveType, indirectGpuAddress + (indirectDrawArgs * i));
+            CommandEncoder.Render?.DrawPrimitives(CommandEncoder.PrimitiveType, indirectGpuAddress + ((uint)sizeof(IndirectDrawArgs) * i));
         }
     }
 
@@ -269,7 +265,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
                                                          CommandEncoder.IndexType,
                                                          CommandEncoder.IndexBuffer + (CommandEncoder.IndexStrideInBytes * i),
                                                          CommandEncoder.IndexSizeInBytes - (CommandEncoder.IndexStrideInBytes * i),
-                                                         indirectGpuAddress + (indirectDrawIndexedArgs * i));
+                                                         indirectGpuAddress + ((uint)sizeof(IndirectDrawIndexedArgs) * i));
         }
     }
 
@@ -304,7 +300,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
         for (uint i = 0; i < dispatchCount; i++)
         {
-            CommandEncoder.Render?.DrawMeshThreadgroups(indirectGpuAddress + (indirectDispatchMeshArgs * i),
+            CommandEncoder.Render?.DrawMeshThreadgroups(indirectGpuAddress + ((uint)sizeof(IndirectDispatchMeshArgs) * i),
                                                         CommandEncoder.AmplificationThreadGroupSize,
                                                         CommandEncoder.MeshThreadGroupSize);
         }
