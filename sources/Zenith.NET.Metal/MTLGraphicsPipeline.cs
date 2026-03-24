@@ -82,12 +82,13 @@ internal class MTLGraphicsPipeline : GraphicsPipeline
 
         // InputLayouts
         {
+            uint binding = VertexBufferStartIndex;
             uint attribute = 0;
             for (int i = 0; i < desc.InputLayouts.Length; i++)
             {
                 InputLayout inputLayout = desc.InputLayouts[i];
 
-                descriptor.VertexDescriptor.Layouts[(uint)i].Stride = inputLayout.StrideInBytes;
+                descriptor.VertexDescriptor.Layouts[binding].Stride = inputLayout.StrideInBytes;
 
                 foreach (InputElement element in inputLayout.Elements)
                 {
@@ -95,9 +96,11 @@ internal class MTLGraphicsPipeline : GraphicsPipeline
                     {
                         Format = MTLFormats.Metal(element.Format),
                         Offset = element.OffsetInBytes,
-                        BufferIndex = VertexBufferStartIndex + (uint)i
+                        BufferIndex = binding
                     };
                 }
+
+                binding++;
             }
         }
 
