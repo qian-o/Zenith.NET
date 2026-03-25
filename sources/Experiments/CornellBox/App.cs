@@ -68,6 +68,8 @@ internal static class App
 
     public static uint Height => (uint)window.FramebufferSize.Y;
 
+    public static Vector2 DpiScale => (Vector2)window.FramebufferSize / (Vector2)window.Size;
+
     public static void Run()
     {
         window.Update += delta =>

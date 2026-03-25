@@ -216,6 +216,7 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
     private static void OtherSetup(ImGuiIOPtr io)
     {
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
+        io.DisplayFramebufferScale = App.DpiScale;
     }
 
     public void SetCursor(ImGuiMouseCursor cursor)
