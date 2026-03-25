@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Experiments/">
     <File Path="sources/Experiments/Directory.Packages.props" />
+    <Project Path="sources/Experiments/CornellBox/CornellBox.csproj" Id="17c25a34-2781-4e8f-88e5-f662faf2b29e" />
     <Project Path="sources/Experiments/MemoryPlayground/MemoryPlayground.csproj" />
     <Project Path="sources/Experiments/PlatformDetection/PlatformDetection.csproj" />
   </Folder>
