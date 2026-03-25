@@ -68,10 +68,6 @@ internal static class App
 
     public static uint Height => (uint)window.FramebufferSize.Y;
 
-    public static uint WindowWidth => (uint)window.Size.X;
-
-    public static uint WindowHeight => (uint)window.Size.Y;
-
     public static Vector2 DpiScale => (Vector2)window.FramebufferSize / (Vector2)window.Size;
 
     public static void Run()
@@ -83,8 +79,11 @@ internal static class App
                 return;
             }
 
-            imGui.Update(delta, WindowWidth, WindowHeight);
-            camera.Update(delta, WindowWidth, WindowHeight);
+            uint width = (uint)(Width / DpiScale.X);
+            uint height = (uint)(Height / DpiScale.Y);
+
+            imGui.Update(delta, width, height);
+            camera.Update(delta, width, height);
         };
 
         window.Render += _ =>
