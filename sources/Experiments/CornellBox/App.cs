@@ -46,15 +46,15 @@ internal static class App
         Surface surface;
         if (OperatingSystem.IsWindows())
         {
-            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, (uint)window.Size.X, (uint)window.Size.Y);
+            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, Width, Height);
         }
         else if (OperatingSystem.IsLinux())
         {
-            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, (uint)window.Size.X, (uint)window.Size.Y);
+            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
         }
         else
         {
-            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), (uint)window.Size.X, (uint)window.Size.Y);
+            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), Width, Height);
         }
 
         swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.B8G8R8A8UNorm, DepthStencilTargetFormat = PixelFormat.D32FloatS8UInt });
@@ -64,25 +64,26 @@ internal static class App
 
     public static GraphicsContext Context { get; }
 
+    public static uint Width => (uint)window.FramebufferSize.X;
+
+    public static uint Height => (uint)window.FramebufferSize.Y;
+
     public static void Run()
     {
         window.Update += delta =>
         {
-            uint width = (uint)window.Size.X;
-            uint height = (uint)window.Size.Y;
-
-            if (width is 0 || height is 0)
+            if (Width is 0 || Height is 0)
             {
                 return;
             }
 
-            imGui.Update(delta, width, height);
-            camera.Update(delta, width, height);
+            imGui.Update(delta, Width, Height);
+            camera.Update(delta, Width, Height);
         };
 
         window.Render += _ =>
         {
-            if (window.Size.X is 0 || window.Size.Y is 0)
+            if (Width is 0 || Height is 0)
             {
                 return;
             }
@@ -117,14 +118,14 @@ internal static class App
             swapChain.Present();
         };
 
-        window.Resize += size =>
+        window.Resize += _ =>
         {
-            if (size.X is 0 || size.Y is 0)
+            if (Width is 0 || Height is 0)
             {
                 return;
             }
 
-            swapChain.Resize((uint)size.X, (uint)size.Y);
+            swapChain.Resize(Width, Height);
         };
 
         window.Run();
