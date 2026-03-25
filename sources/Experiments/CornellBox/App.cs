@@ -79,8 +79,11 @@ internal static class App
                 return;
             }
 
-            imGui.Update(delta, Width, Height);
-            camera.Update(delta, Width, Height);
+            uint width = (uint)(Width / DpiScale.X);
+            uint height = (uint)(Height / DpiScale.Y);
+
+            imGui.Update(delta, width, height);
+            camera.Update(delta, width, height);
         };
 
         window.Render += _ =>

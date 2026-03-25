@@ -286,9 +286,6 @@ float4 PSMain(VSOutput input) : SV_TARGET
 
         drawData.ScaleClipRects(drawData.FramebufferScale);
 
-        Vector2 displayPos = drawData.DisplayPos / drawData.FramebufferScale;
-        Vector2 displaySize = drawData.DisplaySize / drawData.FramebufferScale;
-
         for (int i = 0; i < drawData.Textures.Size; i++)
         {
             ImTextureDataPtr textureData = drawData.Textures[i];
@@ -431,10 +428,10 @@ float4 PSMain(VSOutput input) : SV_TARGET
 
         constants.Upload([new Constants
         {
-            Projection = Matrix4x4.CreateOrthographicOffCenter(displayPos.X,
-                                                               displayPos.X + displaySize.X,
-                                                               displayPos.Y + displaySize.Y,
-                                                               displayPos.Y,
+            Projection = Matrix4x4.CreateOrthographicOffCenter(drawData.DisplayPos.X,
+                                                               drawData.DisplayPos.X + drawData.DisplaySize.X,
+                                                               drawData.DisplayPos.Y + drawData.DisplaySize.Y,
+                                                               drawData.DisplayPos.Y,
                                                                0.0f,
                                                                1.0f)
         }], 0);
@@ -465,8 +462,8 @@ float4 PSMain(VSOutput input) : SV_TARGET
                 {
                     Scissor scissor = new()
                     {
-                        X = (int)(drawCmd.ClipRect.X - displayPos.X),
-                        Y = (int)(drawCmd.ClipRect.Y - displayPos.Y),
+                        X = (int)(drawCmd.ClipRect.X - drawData.DisplayPos.X),
+                        Y = (int)(drawCmd.ClipRect.Y - drawData.DisplayPos.Y),
                         Width = (uint)(drawCmd.ClipRect.Z - drawCmd.ClipRect.X),
                         Height = (uint)(drawCmd.ClipRect.W - drawCmd.ClipRect.Y)
                     };
