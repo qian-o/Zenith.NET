@@ -615,8 +615,6 @@ void ASMain(in uint groupId : SV_GroupID,
 
 Congratulations! You've completed all Zenith.NET tutorials.
 
-For a complete rendering example combining multiple techniques, check out the [SponzaScene](https://github.com/qian-o/Zenith.NET/tree/master/sources/Experiments/SponzaScene) sample which demonstrates a deferred renderer with ray traced global illumination.
-
 ## Source Code
 
 > [!TIP]
