@@ -85,7 +85,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
                     Width = destExtent.Width,
                     Height = destExtent.Height,
                     Depth = destExtent.Depth,
-                    RowPitch = ZenithHelper.Align(ZenithHelper.SizeInBytes(dxDest.Desc.Format) * destExtent.Width, GraphicsContext.TextureRowPitchAlignment)
+                    RowPitch = ZenithHelper.Align(ZenithHelper.SizeInBytes(dxDest.Desc.Format) * ZenithHelper.BlockLayout(dxDest.Desc.Format, destExtent.Width, destExtent.Height).BlocksWide, GraphicsContext.TextureRowPitchAlignment)
                 }
             }
         };
@@ -171,7 +171,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
                     Width = srcExtent.Width,
                     Height = srcExtent.Height,
                     Depth = srcExtent.Depth,
-                    RowPitch = ZenithHelper.Align(ZenithHelper.SizeInBytes(dxSrc.Desc.Format) * srcExtent.Width, GraphicsContext.TextureRowPitchAlignment)
+                    RowPitch = ZenithHelper.Align(ZenithHelper.SizeInBytes(dxSrc.Desc.Format) * ZenithHelper.BlockLayout(dxSrc.Desc.Format, srcExtent.Width, srcExtent.Height).BlocksWide, GraphicsContext.TextureRowPitchAlignment)
                 }
             }
         };

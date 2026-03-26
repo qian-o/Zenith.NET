@@ -35,16 +35,17 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     public void Upload<T>(Texture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> pixels) where T : unmanaged
     {
         uint formatSizeInBytes = ZenithHelper.SizeInBytes(texture.Desc.Format);
+        (_, _, uint blocksWide, uint blocksHigh) = ZenithHelper.BlockLayout(texture.Desc.Format, extent.Width, extent.Height);
 
-        if (Unsafe.SizeOf<T>() != formatSizeInBytes || pixels.Length is 0 || pixels.Length != extent.Width * extent.Height * extent.Depth)
+        if (Unsafe.SizeOf<T>() != formatSizeInBytes || pixels.Length is 0 || pixels.Length != blocksWide * blocksHigh * extent.Depth)
         {
             return;
         }
 
-        uint sliceSizeInTexels = extent.Width * extent.Height;
+        uint sliceSizeInBlocks = blocksWide * blocksHigh;
 
-        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * extent.Width, GraphicsContext.TextureRowPitchAlignment);
-        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * extent.Height, GraphicsContext.TextureDepthPitchAlignment);
+        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * blocksWide, GraphicsContext.TextureRowPitchAlignment);
+        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * blocksHigh, GraphicsContext.TextureDepthPitchAlignment);
 
         TextureExtent sliceExtent = extent with { Depth = 1 };
 
@@ -56,9 +57,9 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
             unsafe
             {
-                for (int j = 0; j < extent.Height; j++)
+                for (uint j = 0; j < blocksHigh; j++)
                 {
-                    pixels.Slice((int)((sliceSizeInTexels * i) + (extent.Width * j)), (int)extent.Width).CopyTo(new((void*)(mappedMemory.Pointer + (sliceRowPitchInBytes * j)), (int)extent.Width));
+                    pixels.Slice((int)((sliceSizeInBlocks * i) + (blocksWide * j)), (int)blocksWide).CopyTo(new((void*)(mappedMemory.Pointer + (sliceRowPitchInBytes * j)), (int)blocksWide));
                 }
             }
 

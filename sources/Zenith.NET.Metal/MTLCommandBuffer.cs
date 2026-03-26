@@ -34,9 +34,11 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         MTLBuffer mtlSrc = src.Metal();
         MTLTexture mtlDest = dest.Metal();
 
+        (_, _, uint destBlocksWide, uint destBlocksHigh) = ZenithHelper.BlockLayout(mtlDest.Desc.Format, destExtent.Width, destExtent.Height);
+
         uint formatSizeInBytes = ZenithHelper.SizeInBytes(mtlDest.Desc.Format);
-        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * destExtent.Width, GraphicsContext.TextureRowPitchAlignment);
-        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * destExtent.Height, GraphicsContext.TextureDepthPitchAlignment);
+        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * destBlocksWide, GraphicsContext.TextureRowPitchAlignment);
+        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * destBlocksHigh, GraphicsContext.TextureDepthPitchAlignment);
 
         CommandEncoder.Compute?.Copy(mtlSrc.Buffer,
                                      srcOffsetInBytes,
@@ -71,9 +73,11 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         MTLTexture mtlSrc = src.Metal();
         MTLBuffer mtlDest = dest.Metal();
 
+        (_, _, uint srcBlocksWide, uint srcBlocksHigh) = ZenithHelper.BlockLayout(mtlSrc.Desc.Format, srcExtent.Width, srcExtent.Height);
+
         uint formatSizeInBytes = ZenithHelper.SizeInBytes(mtlSrc.Desc.Format);
-        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * srcExtent.Width, GraphicsContext.TextureRowPitchAlignment);
-        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * srcExtent.Height, GraphicsContext.TextureDepthPitchAlignment);
+        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * srcBlocksWide, GraphicsContext.TextureRowPitchAlignment);
+        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * srcBlocksHigh, GraphicsContext.TextureDepthPitchAlignment);
 
         CommandEncoder.Compute?.Copy(mtlSrc.Texture,
                                      ZenithHelper.FlattenArrayLayerIndex(mtlSrc.Desc, srcSlice),
