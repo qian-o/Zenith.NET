@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Zenith.NET;
 
@@ -32,26 +33,29 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CopyBuffer(temporary, 0, buffer, offsetInBytes, sizeInBytes);
     }
 
-    public void Upload<T>(Texture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> pixels) where T : unmanaged
+    public void Upload<T>(Texture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data) where T : unmanaged
     {
+        ReadOnlySpan<byte> byteData = MemoryMarshal.AsBytes(data);
+
         uint formatSizeInBytes = ZenithHelper.SizeInBytes(texture.Desc.Format);
         (_, _, uint blocksWide, uint blocksHigh) = ZenithHelper.BlockLayout(texture.Desc.Format, extent.Width, extent.Height);
 
-        if (Unsafe.SizeOf<T>() != formatSizeInBytes || pixels.Length is 0 || pixels.Length != blocksWide * blocksHigh * extent.Depth)
+        uint sliceRowPitchInBytes = formatSizeInBytes * blocksWide;
+        uint sliceDepthPitchInBytes = sliceRowPitchInBytes * blocksHigh;
+
+        if (byteData.Length != sliceDepthPitchInBytes * extent.Depth)
         {
             return;
         }
 
-        uint sliceSizeInBlocks = blocksWide * blocksHigh;
-
-        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * blocksWide, GraphicsContext.TextureRowPitchAlignment);
-        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * blocksHigh, GraphicsContext.TextureDepthPitchAlignment);
+        uint sliceRowPitchAlignInBytes = ZenithHelper.Align(sliceRowPitchInBytes, GraphicsContext.TextureRowPitchAlignment);
+        uint sliceDepthPitchAlignInBytes = ZenithHelper.Align(sliceRowPitchAlignInBytes * blocksHigh, GraphicsContext.TextureDepthPitchAlignment);
 
         TextureExtent sliceExtent = extent with { Depth = 1 };
 
         for (uint i = 0; i < extent.Depth; i++)
         {
-            Buffer temporary = Context.Uploader.Buffer(this, sliceDepthPitchInBytes);
+            Buffer temporary = Context.Uploader.Buffer(this, sliceDepthPitchAlignInBytes);
 
             MappedMemory mappedMemory = temporary.Map();
 
@@ -59,7 +63,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             {
                 for (uint j = 0; j < blocksHigh; j++)
                 {
-                    pixels.Slice((int)((sliceSizeInBlocks * i) + (blocksWide * j)), (int)blocksWide).CopyTo(new((void*)(mappedMemory.Pointer + (sliceRowPitchInBytes * j)), (int)blocksWide));
+                    byteData.Slice((int)((sliceDepthPitchInBytes * i) + (sliceRowPitchInBytes * j)), (int)sliceRowPitchInBytes).CopyTo(new((void*)(mappedMemory.Pointer + (sliceRowPitchAlignInBytes * j)), (int)sliceRowPitchInBytes));
                 }
             }
 
