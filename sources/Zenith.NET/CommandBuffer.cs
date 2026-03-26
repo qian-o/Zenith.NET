@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Zenith.NET;
 
@@ -25,16 +24,21 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             return;
         }
 
-        uint sizeInBytes = (uint)(Unsafe.SizeOf<T>() * data.Length);
+        ReadOnlySpan<byte> byteData = MemoryMarshal.AsBytes(data);
 
-        Buffer temporary = Context.Uploader.Buffer(this, sizeInBytes);
-        temporary.Upload(data, 0);
+        Buffer temporary = Context.Uploader.Buffer(this, (uint)byteData.Length);
+        temporary.Upload(byteData, 0);
 
-        CopyBuffer(temporary, 0, buffer, offsetInBytes, sizeInBytes);
+        CopyBuffer(temporary, 0, buffer, offsetInBytes, (uint)byteData.Length);
     }
 
     public void Upload<T>(Texture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data) where T : unmanaged
     {
+        if (data.Length is 0)
+        {
+            return;
+        }
+
         ReadOnlySpan<byte> byteData = MemoryMarshal.AsBytes(data);
 
         uint formatSizeInBytes = ZenithHelper.SizeInBytes(texture.Desc.Format);
@@ -42,11 +46,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         uint sliceRowPitchInBytes = formatSizeInBytes * blocksWide;
         uint sliceDepthPitchInBytes = sliceRowPitchInBytes * blocksHigh;
-
-        if (byteData.Length != sliceDepthPitchInBytes * extent.Depth)
-        {
-            return;
-        }
 
         uint sliceRowPitchAlignInBytes = ZenithHelper.Align(sliceRowPitchInBytes, GraphicsContext.TextureRowPitchAlignment);
         uint sliceDepthPitchAlignInBytes = ZenithHelper.Align(sliceRowPitchAlignInBytes * blocksHigh, GraphicsContext.TextureDepthPitchAlignment);
