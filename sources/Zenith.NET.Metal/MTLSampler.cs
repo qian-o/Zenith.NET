@@ -13,7 +13,7 @@ internal class MTLSampler : Sampler
             MinFilter = MTLFormats.Metal(desc.Filter).MinFilter,
             MagFilter = MTLFormats.Metal(desc.Filter).MagFilter,
             MipFilter = MTLFormats.Metal(desc.Filter).MipFilter,
-            MaxAnisotropy = desc.MaxAnisotropy,
+            MaxAnisotropy = desc.Filter is Filter.Anisotropic ? desc.MaxAnisotropy : 1,
             SAddressMode = MTLFormats.Metal(desc.U),
             TAddressMode = MTLFormats.Metal(desc.V),
             RAddressMode = MTLFormats.Metal(desc.W),
