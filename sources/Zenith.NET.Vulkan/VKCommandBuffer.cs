@@ -66,17 +66,17 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
         vkDest.TransitionLayout(this, destSlice, ImageLayout.TransferDstOptimal);
 
-        (uint destBlockWidth, uint destBlockHeight, uint destBlocksWide, uint destBlocksHigh) = ZenithHelper.BlockLayout(vkDest.Desc.Format, destExtent.Width, destExtent.Height);
+        (uint blockWidth, uint blockHeight, uint blocksWide, uint blocksHigh) = ZenithHelper.BlockLayout(vkDest.Desc.Format, destExtent.Width, destExtent.Height);
 
         uint formatSizeInBytes = ZenithHelper.SizeInBytes(vkDest.Desc.Format);
-        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * destBlocksWide, GraphicsContext.TextureRowPitchAlignment);
-        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * destBlocksHigh, GraphicsContext.TextureDepthPitchAlignment);
+        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * blocksWide, GraphicsContext.TextureRowPitchAlignment);
+        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * blocksHigh, GraphicsContext.TextureDepthPitchAlignment);
 
         BufferImageCopy bufferImageCopy = new()
         {
             BufferOffset = srcOffsetInBytes,
-            BufferRowLength = sliceRowPitchInBytes / formatSizeInBytes * destBlockWidth,
-            BufferImageHeight = sliceDepthPitchInBytes / sliceRowPitchInBytes * destBlockHeight,
+            BufferRowLength = sliceRowPitchInBytes / formatSizeInBytes * blockWidth,
+            BufferImageHeight = sliceDepthPitchInBytes / sliceRowPitchInBytes * blockHeight,
             ImageSubresource = new()
             {
                 AspectMask = VKFormats.Vulkan(vkDest.Desc.Format, vkDest.Desc.Flags).AspectFlags,
@@ -164,17 +164,17 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
         vkSrc.TransitionLayout(this, srcSlice, ImageLayout.TransferSrcOptimal);
 
-        (uint srcBlockWidth, uint srcBlockHeight, uint srcBlocksWide, uint srcBlocksHigh) = ZenithHelper.BlockLayout(vkSrc.Desc.Format, srcExtent.Width, srcExtent.Height);
+        (uint blockWidth, uint blockHeight, uint blocksWide, uint blocksHigh) = ZenithHelper.BlockLayout(vkSrc.Desc.Format, srcExtent.Width, srcExtent.Height);
 
         uint formatSizeInBytes = ZenithHelper.SizeInBytes(vkSrc.Desc.Format);
-        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * srcBlocksWide, GraphicsContext.TextureRowPitchAlignment);
-        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * srcBlocksHigh, GraphicsContext.TextureDepthPitchAlignment);
+        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * blocksWide, GraphicsContext.TextureRowPitchAlignment);
+        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * blocksHigh, GraphicsContext.TextureDepthPitchAlignment);
 
         BufferImageCopy bufferImageCopy = new()
         {
             BufferOffset = destOffsetInBytes,
-            BufferRowLength = sliceRowPitchInBytes / formatSizeInBytes * srcBlockWidth,
-            BufferImageHeight = sliceDepthPitchInBytes / sliceRowPitchInBytes * srcBlockHeight,
+            BufferRowLength = sliceRowPitchInBytes / formatSizeInBytes * blockWidth,
+            BufferImageHeight = sliceDepthPitchInBytes / sliceRowPitchInBytes * blockHeight,
             ImageSubresource = new()
             {
                 AspectMask = VKFormats.Vulkan(vkSrc.Desc.Format, vkSrc.Desc.Flags).AspectFlags,
