@@ -64,9 +64,11 @@ internal static class App
 
         swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.B8G8R8A8UNorm, DepthStencilTargetFormat = PixelFormat.D32FloatS8UInt });
         imGui = new(input, swapChain.FrameBuffer.Output);
-        camera = new(input, Matrix4x4.CreateTranslation(278f, 273f, -800f));
-        camera.Speed = 240.0f;
-        camera.FarPlane = 2000.0f;
+        camera = new(input, Matrix4x4.CreateTranslation(278f, 273f, -800f))
+        {
+            Speed = 240.0f,
+            FarPlane = 2000.0f
+        };
 
         rasterizer = new(swapChain.FrameBuffer.Output);
 
@@ -84,8 +86,6 @@ internal static class App
     }
 
     public static GraphicsContext Context { get; }
-
-    public static SwapChain SwapChain => swapChain;
 
     public static uint Width => (uint)window.FramebufferSize.X;
 
