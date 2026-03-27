@@ -4,9 +4,14 @@ namespace Zenith.NET.Metal;
 
 internal class MTLCommandEncoder : GraphicsResource
 {
+    private const MTLStages RenderStages = MTLStages.Vertex | MTLStages.Fragment | MTLStages.Object | MTLStages.Mesh;
+    private const MTLStages ComputeStages = MTLStages.Dispatch | MTLStages.Blit | MTLStages.AccelerationStructure;
+
     private readonly Dictionary<uint, QueryHeap> todoBeginQueries = [];
     private readonly Dictionary<uint, QueryHeap> todoEndQueries = [];
     private readonly Dictionary<uint, nuint> vertexBuffers = [];
+
+    public MtlFence Fence;
 
     public MtlBuffer QueryBuffer;
 
@@ -22,6 +27,7 @@ internal class MTLCommandEncoder : GraphicsResource
     {
         CommandBuffer = commandBuffer;
 
+        Fence = context.Device.MakeFence();
         QueryBuffer = context.Device.MakeBuffer(sizeof(ulong) * 128, MTLResourceOptions.StorageModePrivate);
 
         MTL4ArgumentTableDescriptor descriptor = new()
@@ -86,6 +92,7 @@ internal class MTLCommandEncoder : GraphicsResource
         descriptor.VisibilityResultBuffer = QueryBuffer;
 
         Render = CommandBuffer.MakeRenderCommandEncoder(descriptor);
+        Render.WaitForFence(Fence, RenderStages);
 
         foreach (KeyValuePair<uint, QueryHeap> beginQuery in todoBeginQueries)
         {
@@ -112,6 +119,7 @@ internal class MTLCommandEncoder : GraphicsResource
         EndRender();
 
         Compute = CommandBuffer.MakeComputeCommandEncoder();
+        Compute.WaitForFence(Fence, ComputeStages);
 
         foreach (KeyValuePair<uint, QueryHeap> endQuery in todoEndQueries)
         {
@@ -310,10 +318,12 @@ internal class MTLCommandEncoder : GraphicsResource
 
         VertexArgumentTable.Dispose();
         QueryBuffer.Dispose();
+        Fence.Dispose();
     }
 
     private void EndRender()
     {
+        Render?.UpdateFence(Fence, RenderStages);
         Render?.EndEncoding();
         Render?.Dispose();
         Render = null;
@@ -321,6 +331,7 @@ internal class MTLCommandEncoder : GraphicsResource
 
     private void EndCompute()
     {
+        Compute?.UpdateFence(Fence, ComputeStages);
         Compute?.EndEncoding();
         Compute?.Dispose();
         Compute = null;
