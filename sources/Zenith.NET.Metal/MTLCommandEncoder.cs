@@ -13,9 +13,9 @@ internal class MTLCommandEncoder : GraphicsResource
 
     public MtlFence Fence;
 
-    public MtlBuffer QueryBuffer;
+    public MtlBuffer Buffer;
 
-    public MTL4ArgumentTable VertexArgumentTable;
+    public MTL4ArgumentTable ArgumentTable;
 
     private Scissor[]? todoScissors;
     private Viewport[]? todoViewports;
@@ -28,7 +28,7 @@ internal class MTLCommandEncoder : GraphicsResource
         CommandBuffer = commandBuffer;
 
         Fence = context.Device.MakeFence();
-        QueryBuffer = context.Device.MakeBuffer(sizeof(ulong) * 128, MTLResourceOptions.StorageModePrivate);
+        Buffer = context.Device.MakeBuffer(sizeof(ulong) * 128, MTLResourceOptions.StorageModePrivate);
 
         MTL4ArgumentTableDescriptor descriptor = new()
         {
@@ -38,7 +38,7 @@ internal class MTLCommandEncoder : GraphicsResource
             SupportAttributeStrides = true
         };
 
-        VertexArgumentTable = context.Device.MakeArgumentTable(descriptor, out NSError error);
+        ArgumentTable = context.Device.MakeArgumentTable(descriptor, out NSError error);
         error.Success();
     }
 
@@ -89,7 +89,7 @@ internal class MTLCommandEncoder : GraphicsResource
     {
         EndCompute();
 
-        descriptor.VisibilityResultBuffer = QueryBuffer;
+        descriptor.VisibilityResultBuffer = Buffer;
 
         Render = CommandBuffer.MakeRenderCommandEncoder(descriptor);
         Render.WaitForFence(Fence, RenderStages);
@@ -98,6 +98,7 @@ internal class MTLCommandEncoder : GraphicsResource
         {
             BeginQuery(beginQuery.Value, beginQuery.Key);
         }
+        todoBeginQueries.Clear();
 
         if (todoScissors is not null)
         {
@@ -125,6 +126,7 @@ internal class MTLCommandEncoder : GraphicsResource
         {
             EndQuery(endQuery.Value, endQuery.Key);
         }
+        todoEndQueries.Clear();
     }
 
     public void SetScissors(Scissor[] scissors)
@@ -222,15 +224,15 @@ internal class MTLCommandEncoder : GraphicsResource
                     {
                         Render?.SetArgumentTable(resourceTable.ArgumentTable, MTLRenderStages.Fragment);
 
-                        resourceTable.Bind(VertexArgumentTable);
+                        resourceTable.Bind(ArgumentTable);
                     }
 
                     foreach (KeyValuePair<uint, nuint> vertexBuffer in vertexBuffers)
                     {
-                        VertexArgumentTable.SetAddress(vertexBuffer.Value, graphicsPipeline.VertexBufferStartIndex + vertexBuffer.Key);
+                        ArgumentTable.SetAddress(vertexBuffer.Value, graphicsPipeline.VertexBufferStartIndex + vertexBuffer.Key);
                     }
 
-                    Render?.SetArgumentTable(VertexArgumentTable, MTLRenderStages.Vertex);
+                    Render?.SetArgumentTable(ArgumentTable, MTLRenderStages.Vertex);
                 }
                 break;
 
@@ -282,7 +284,7 @@ internal class MTLCommandEncoder : GraphicsResource
         }
         else
         {
-            Compute.Copy(QueryBuffer, sizeof(ulong) * index, queryHeap.Metal().Buffer.Buffer, sizeof(ulong) * index, sizeof(ulong));
+            Compute.Copy(Buffer, sizeof(ulong) * index, queryHeap.Metal().Buffer.Buffer, sizeof(ulong) * index, sizeof(ulong));
         }
     }
 
@@ -316,8 +318,8 @@ internal class MTLCommandEncoder : GraphicsResource
         Compute?.Dispose();
         Compute = null;
 
-        VertexArgumentTable.Dispose();
-        QueryBuffer.Dispose();
+        ArgumentTable.Dispose();
+        Buffer.Dispose();
         Fence.Dispose();
     }
 
