@@ -100,10 +100,18 @@ public static class Extensions
 
     extension(BottomLevelAccelerationStructure bottomLevelAccelerationStructure)
     {
+        internal MTLBottomLevelAccelerationStructure Metal()
+        {
+            return (MTLBottomLevelAccelerationStructure)bottomLevelAccelerationStructure;
+        }
     }
 
     extension(TopLevelAccelerationStructure topLevelAccelerationStructure)
     {
+        internal MTLTopLevelAccelerationStructure Metal()
+        {
+            return (MTLTopLevelAccelerationStructure)topLevelAccelerationStructure;
+        }
     }
 
     extension(ResourceLayout resourceLayout)

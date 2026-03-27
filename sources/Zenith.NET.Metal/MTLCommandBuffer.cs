@@ -107,17 +107,17 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLBottomLevelAccelerationStructure(Context, desc, this);
     }
 
     protected override TopLevelAccelerationStructure BuildAccelerationStructureImpl(TopLevelAccelerationStructureDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLTopLevelAccelerationStructure(Context, desc, this);
     }
 
     protected override void UpdateAccelerationStructureImpl(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
     {
-        throw new NotImplementedException();
+        accelerationStructure.Metal().Update(this, newDesc);
     }
 
     protected override void BeginRenderPassImpl(FrameBuffer frameBuffer, ClearValue clearValue)
