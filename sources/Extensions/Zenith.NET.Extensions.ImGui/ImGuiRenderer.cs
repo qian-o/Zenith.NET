@@ -387,26 +387,26 @@ float4 PSMain(VSOutput input) : SV_TARGET
             }
         }
 
-        uint totalVertexSizeInBytes = (uint)(sizeof(ImDrawVert) * drawData.TotalVtxCount);
+        uint totalVertexSizeInBytes = (uint)(sizeof(ImDrawVert) * (drawData.TotalVtxCount * 1.5));
         if (vertexBuffer is null || vertexBuffer.Desc.SizeInBytes < totalVertexSizeInBytes)
         {
             vertexBuffer?.Dispose();
 
             vertexBuffer = Context.CreateBuffer(new()
             {
-                SizeInBytes = totalVertexSizeInBytes + (totalVertexSizeInBytes / 2),
+                SizeInBytes = totalVertexSizeInBytes,
                 StrideInBytes = (uint)sizeof(ImDrawVert),
                 Flags = BufferUsageFlags.Vertex | BufferUsageFlags.MapWrite
             });
         }
 
-        uint totalIndexSizeInBytes = (uint)(sizeof(ushort) * drawData.TotalIdxCount);
+        uint totalIndexSizeInBytes = (uint)(sizeof(ushort) * (drawData.TotalIdxCount * 1.5));
         if (indexBuffer is null || indexBuffer.Desc.SizeInBytes < totalIndexSizeInBytes)
         {
             indexBuffer?.Dispose();
             indexBuffer = Context.CreateBuffer(new()
             {
-                SizeInBytes = totalIndexSizeInBytes + (totalIndexSizeInBytes / 2),
+                SizeInBytes = totalIndexSizeInBytes,
                 StrideInBytes = sizeof(ushort),
                 Flags = BufferUsageFlags.Index | BufferUsageFlags.MapWrite
             });

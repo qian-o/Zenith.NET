@@ -155,9 +155,8 @@ internal static class App
                 }
 
                 ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
-
-                ImGui.End();
             }
+            ImGui.End();
 
             CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
 
