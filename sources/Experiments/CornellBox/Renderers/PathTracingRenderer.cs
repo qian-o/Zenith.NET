@@ -480,28 +480,27 @@ internal unsafe class PathTracingRenderer : IRenderer
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetResourceTable(resourceTable!);
 
-        uint dispatchX = (width + ThreadGroupSize - 1) / ThreadGroupSize;
-        uint dispatchY = (height + ThreadGroupSize - 1) / ThreadGroupSize;
-        commandBuffer.Dispatch(dispatchX, dispatchY, 1);
+        commandBuffer.Dispatch((width + ThreadGroupSize - 1) / ThreadGroupSize, (height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
 
-        frameCount++;
-
-        Texture colorTarget = frameBuffer.Desc.ColorAttachments[0].Target;
         commandBuffer.CopyTexture(outputTexture,
                                   default,
                                   default,
-                                  colorTarget,
+                                  frameBuffer.Desc.ColorAttachments[0].Target,
                                   default,
                                   default,
                                   new() { Width = width, Height = height, Depth = 1 });
+
+        frameCount++;
     }
 
     public void Resize(uint width, uint height)
     {
         resourceTable?.Dispose();
         resourceTable = null;
+
         outputTexture?.Dispose();
         outputTexture = null;
+
         accumulationTexture?.Dispose();
         accumulationTexture = null;
     }
@@ -516,6 +515,7 @@ internal unsafe class PathTracingRenderer : IRenderer
         resourceTable?.Dispose();
         outputTexture?.Dispose();
         accumulationTexture?.Dispose();
+
         pipeline.Dispose();
         resourceLayout.Dispose();
         tlas.Dispose();

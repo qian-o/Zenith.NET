@@ -259,7 +259,7 @@ tlas = buildCmd.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
             InstanceMask = 0xFF,
             Transform = Matrix4x4.Identity,
             Flags = RayTracingInstanceFlags.None
-        },
+        }
     ],
     Flags = AccelerationStructureBuildFlags.PreferFastTrace
 });

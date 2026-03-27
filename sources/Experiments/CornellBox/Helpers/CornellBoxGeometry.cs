@@ -11,7 +11,8 @@ internal static class CornellBoxGeometry
         List<uint> indicesList = [];
 
         // 0: Left wall (red)
-        AddQuad(verticesList, indicesList,
+        AddQuad(verticesList,
+                indicesList,
                 new(552.8f, 0.0f, 0.0f),
                 new(549.6f, 0.0f, 559.2f),
                 new(556.0f, 548.8f, 559.2f),
@@ -19,7 +20,8 @@ internal static class CornellBoxGeometry
                 0);
 
         // 1: Right wall (green)
-        AddQuad(verticesList, indicesList,
+        AddQuad(verticesList,
+                indicesList,
                 new(0.0f, 0.0f, 559.2f),
                 new(0.0f, 0.0f, 0.0f),
                 new(0.0f, 548.8f, 0.0f),
@@ -27,7 +29,8 @@ internal static class CornellBoxGeometry
                 1);
 
         // 2: Ceiling (white)
-        AddQuad(verticesList, indicesList,
+        AddQuad(verticesList,
+                indicesList,
                 new(556.0f, 548.8f, 0.0f),
                 new(556.0f, 548.8f, 559.2f),
                 new(0.0f, 548.8f, 559.2f),
@@ -35,7 +38,8 @@ internal static class CornellBoxGeometry
                 2);
 
         // 3: Floor (white)
-        AddQuad(verticesList, indicesList,
+        AddQuad(verticesList,
+                indicesList,
                 new(552.8f, 0.0f, 0.0f),
                 new(0.0f, 0.0f, 0.0f),
                 new(0.0f, 0.0f, 559.2f),
@@ -43,7 +47,8 @@ internal static class CornellBoxGeometry
                 2);
 
         // 4: Back wall (white)
-        AddQuad(verticesList, indicesList,
+        AddQuad(verticesList,
+                indicesList,
                 new(549.6f, 0.0f, 559.2f),
                 new(0.0f, 0.0f, 559.2f),
                 new(0.0f, 548.8f, 559.2f),
@@ -65,7 +70,8 @@ internal static class CornellBoxGeometry
         AddQuad(verticesList, indicesList, new(265.0f, 0.0f, 296.0f), new(265.0f, 330.0f, 296.0f), new(423.0f, 330.0f, 247.0f), new(423.0f, 0.0f, 247.0f), 2);
 
         // 15: Light
-        AddQuad(verticesList, indicesList,
+        AddQuad(verticesList,
+                indicesList,
                 new(343.0f, 548.6f, 227.0f),
                 new(343.0f, 548.6f, 332.0f),
                 new(213.0f, 548.6f, 332.0f),
@@ -79,12 +85,16 @@ internal static class CornellBoxGeometry
             new() { AlbedoAndEmission = new(0.63f, 0.06f, 0.06f, 0.0f) },
             new() { AlbedoAndEmission = new(0.14f, 0.45f, 0.09f, 0.0f) },
             new() { AlbedoAndEmission = new(0.73f, 0.71f, 0.68f, 0.0f) },
-            new() { AlbedoAndEmission = new(1.0f, 0.85f, 0.6f, 15.0f) },
+            new() { AlbedoAndEmission = new(1.0f, 0.85f, 0.6f, 15.0f) }
         ];
     }
 
-    private static void AddQuad(List<PackedVertex> vertices, List<uint> indices,
-                                Vector3 v0, Vector3 v1, Vector3 v2, Vector3 v3,
+    private static void AddQuad(List<PackedVertex> vertices,
+                                List<uint> indices,
+                                Vector3 v0,
+                                Vector3 v1,
+                                Vector3 v2,
+                                Vector3 v3,
                                 uint materialID)
     {
         Vector3 normal = Vector3.Normalize(Vector3.Cross(v1 - v0, v2 - v0));
