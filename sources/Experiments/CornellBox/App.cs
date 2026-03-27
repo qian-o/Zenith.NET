@@ -21,6 +21,7 @@ internal static class App
     private static readonly CameraHandler camera;
     private static readonly PathTracingRenderer? pathTracer;
     private static readonly RasterizationRenderer rasterizer;
+
     private static IRenderer activeRenderer;
     private static int currentMode;
 
@@ -74,8 +75,7 @@ internal static class App
 
         if (Context.Capabilities.RayTracingSupported)
         {
-            pathTracer = new PathTracingRenderer();
-            activeRenderer = pathTracer;
+            activeRenderer = pathTracer = new();
             currentMode = 0;
         }
         else
@@ -130,26 +130,21 @@ internal static class App
 
                 if (Context.Capabilities.RayTracingSupported)
                 {
-                    if (ImGui.RadioButton("Path Tracing", currentMode is 0))
+                    if (ImGui.RadioButton("Path Tracing", currentMode is 0) && currentMode is not 0)
                     {
-                        if (currentMode is not 0)
-                        {
-                            currentMode = 0;
-                            activeRenderer = pathTracer!;
-                            pathTracer!.ResetAccumulation();
-                        }
+                        pathTracer!.ResetAccumulation();
+
+                        currentMode = 0;
+                        activeRenderer = pathTracer;
                     }
 
                     ImGui.SameLine();
                 }
 
-                if (ImGui.RadioButton("Rasterization", currentMode is 1))
+                if (ImGui.RadioButton("Rasterization", currentMode is 1) && currentMode is not 1)
                 {
-                    if (currentMode is not 1)
-                    {
-                        currentMode = 1;
-                        activeRenderer = rasterizer;
-                    }
+                    currentMode = 1;
+                    activeRenderer = rasterizer;
                 }
 
                 ImGui.Separator();
@@ -202,15 +197,5 @@ internal static class App
         Context.Dispose();
 
         Console.WriteLine("Exited cleanly.");
-    }
-
-    public static ImTextureRef Binding(Texture texture)
-    {
-        return imGui.Binding(texture);
-    }
-
-    public static ImTextureRef Binding(TextureView textureView)
-    {
-        return imGui.Binding(textureView);
     }
 }
