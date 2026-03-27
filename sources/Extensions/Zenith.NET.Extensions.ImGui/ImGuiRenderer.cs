@@ -387,7 +387,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
             }
         }
 
-        uint totalVertexSizeInBytes = (uint)(sizeof(ImDrawVert) * (drawData.TotalVtxCount * 1.5));
+        uint totalVertexSizeInBytes = (uint)(sizeof(ImDrawVert) * (int)(drawData.TotalVtxCount * 1.2));
         if (vertexBuffer is null || vertexBuffer.Desc.SizeInBytes < totalVertexSizeInBytes)
         {
             vertexBuffer?.Dispose();
@@ -400,7 +400,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
             });
         }
 
-        uint totalIndexSizeInBytes = (uint)(sizeof(ushort) * (drawData.TotalIdxCount * 1.5));
+        uint totalIndexSizeInBytes = (uint)(sizeof(ushort) * (int)(drawData.TotalIdxCount * 1.2));
         if (indexBuffer is null || indexBuffer.Desc.SizeInBytes < totalIndexSizeInBytes)
         {
             indexBuffer?.Dispose();
