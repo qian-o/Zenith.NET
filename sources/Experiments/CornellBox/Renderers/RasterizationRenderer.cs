@@ -1,0 +1,265 @@
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
+using CornellBox.Handlers;
+using CornellBox.Helpers;
+using Zenith.NET;
+using Zenith.NET.Extensions.Slang;
+using Buffer = Zenith.NET.Buffer;
+
+namespace CornellBox.Renderers;
+
+internal unsafe class RasterizationRenderer : IRenderer
+{
+    private const string ShaderSource = """
+        struct Material
+        {
+            private float4 AlbedoAndEmission;
+
+            property float3 Albedo { get { return AlbedoAndEmission.xyz; } }
+
+            property float Emission { get { return AlbedoAndEmission.w; } }
+        };
+
+        struct RasterConstants
+        {
+            float4x4 Model;
+
+            float4x4 View;
+
+            float4x4 Projection;
+
+            float4 LightPosAndPad;
+
+            float4 LightColorAndPad;
+
+            float4 CameraPosAndPad;
+
+            property float3 LightPos { get { return LightPosAndPad.xyz; } }
+
+            property float3 LightColor { get { return LightColorAndPad.xyz; } }
+
+            property float3 CameraPos { get { return CameraPosAndPad.xyz; } }
+        };
+
+        ConstantBuffer<RasterConstants> cb;
+        StructuredBuffer<Material> materials;
+
+        struct VSInput
+        {
+            float4 PositionAndMatID : POSITION0;
+
+            float4 NormalAndPad : NORMAL0;
+        };
+
+        struct PSInput
+        {
+            float4 Position : SV_POSITION;
+
+            float4 WorldPosAndPad : TEXCOORD0;
+
+            float4 NormalAndPad : TEXCOORD1;
+
+            nointerpolation uint MaterialID : TEXCOORD2;
+        };
+
+        PSInput VSMain(VSInput input)
+        {
+            float4 worldPos = mul(float4(input.PositionAndMatID.xyz, 1.0), cb.Model);
+
+            PSInput output;
+            output.Position = mul(mul(worldPos, cb.View), cb.Projection);
+            output.WorldPosAndPad = float4(worldPos.xyz, 0.0);
+            output.NormalAndPad = float4(normalize(mul(float4(input.NormalAndPad.xyz, 0.0), cb.Model).xyz), 0.0);
+            output.MaterialID = asuint(input.PositionAndMatID.w);
+
+            return output;
+        }
+
+        float4 PSMain(PSInput input) : SV_TARGET
+        {
+            Material mat = materials[input.MaterialID];
+
+            if (mat.Emission > 0.0)
+            {
+                float3 emissive = mat.Albedo * mat.Emission;
+                float3 mapped = emissive / (emissive + 1.0);
+                return float4(pow(mapped, 1.0 / 2.2), 1.0);
+            }
+
+            float3 N = normalize(input.NormalAndPad.xyz);
+            float3 worldPos = input.WorldPosAndPad.xyz;
+            float3 L = normalize(cb.LightPos - worldPos);
+            float3 V = normalize(cb.CameraPos - worldPos);
+            float3 H = normalize(L + V);
+
+            float NdotL = max(dot(N, L), 0.0);
+            float NdotH = max(dot(N, H), 0.0);
+            float spec = pow(NdotH, 64.0);
+
+            float dist = length(cb.LightPos - worldPos);
+            float atten = 1.0 / (1.0 + 0.000005 * dist * dist);
+
+            float3 ambient = mat.Albedo * 0.08;
+            float3 diffuse = mat.Albedo * cb.LightColor * NdotL * atten;
+            float3 specular = cb.LightColor * spec * atten * 0.1;
+
+            float3 color = ambient + diffuse + specular;
+            color = pow(color, 1.0 / 2.2);
+            return float4(color, 1.0);
+        }
+        """;
+
+    private readonly Buffer vertexBuffer;
+    private readonly Buffer indexBuffer;
+    private readonly Buffer materialBuffer;
+    private readonly Buffer constantBuffer;
+    private readonly uint indexCount;
+    private readonly ResourceLayout resourceLayout;
+    private readonly ResourceTable resourceTable;
+    private readonly GraphicsPipeline pipeline;
+
+    public RasterizationRenderer(Output output)
+    {
+        CornellBoxGeometry.Create(out PackedVertex[] vertices, out uint[] indices, out Material[] materials);
+
+        indexCount = (uint)indices.Length;
+
+        vertexBuffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)(sizeof(PackedVertex) * vertices.Length),
+            StrideInBytes = (uint)sizeof(PackedVertex),
+            Flags = BufferUsageFlags.Vertex
+        });
+        vertexBuffer.Upload(vertices, 0);
+
+        indexBuffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)(sizeof(uint) * indices.Length),
+            StrideInBytes = sizeof(uint),
+            Flags = BufferUsageFlags.Index
+        });
+        indexBuffer.Upload(indices, 0);
+
+        materialBuffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)(sizeof(Material) * materials.Length),
+            StrideInBytes = (uint)sizeof(Material),
+            Flags = BufferUsageFlags.ShaderResource
+        });
+        materialBuffer.Upload(materials, 0);
+
+        constantBuffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)sizeof(RasterConstants),
+            StrideInBytes = (uint)sizeof(RasterConstants),
+            Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
+        });
+
+        resourceLayout = App.Context.CreateResourceLayout(new()
+        {
+            Bindings = BindingHelper.Bindings
+            (
+                new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Vertex | ShaderStageFlags.Pixel },
+                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Pixel }
+            )
+        });
+
+        resourceTable = App.Context.CreateResourceTable(new()
+        {
+            Layout = resourceLayout,
+            Resources = [constantBuffer, materialBuffer]
+        });
+
+        InputLayout inputLayout = new();
+        inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Position });
+        inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Normal });
+
+        using Shader vertexShader = App.Context.LoadShaderFromSource(ShaderSource, "VSMain", ShaderStageFlags.Vertex);
+        using Shader pixelShader = App.Context.LoadShaderFromSource(ShaderSource, "PSMain", ShaderStageFlags.Pixel);
+
+        pipeline = App.Context.CreateGraphicsPipeline(new()
+        {
+            RenderStates = new()
+            {
+                RasterizerState = RasterizerStates.CullNone,
+                DepthStencilState = DepthStencilStates.Default,
+                BlendState = BlendStates.Opaque
+            },
+            Vertex = vertexShader,
+            Pixel = pixelShader,
+            ResourceLayout = resourceLayout,
+            InputLayouts = [inputLayout],
+            PrimitiveTopology = PrimitiveTopology.TriangleList,
+            Output = output
+        });
+    }
+
+    public void Update(CameraHandler camera)
+    {
+        constantBuffer.Upload<RasterConstants>([new()
+        {
+            Model = Matrix4x4.Identity,
+            View = camera.View,
+            Projection = camera.Projection,
+            LightPosAndPad = new(278.0f, 548.0f, 280.0f, 0.0f),
+            LightColorAndPad = new(2.0f, 1.8f, 1.4f, 0.0f),
+            CameraPosAndPad = new(camera.Position, 0.0f)
+        }], 0);
+    }
+
+    public void Render(CommandBuffer commandBuffer, FrameBuffer frameBuffer)
+    {
+        commandBuffer.BeginRenderPass(frameBuffer, new()
+        {
+            ColorValues = [new(0.0f, 0.0f, 0.0f, 1.0f)],
+            Depth = 1.0f,
+            Stencil = 0,
+            Flags = ClearFlags.All
+        }, resourceTable);
+
+        commandBuffer.SetPipeline(pipeline);
+        commandBuffer.SetResourceTable(resourceTable);
+        commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
+        commandBuffer.SetIndexBuffer(indexBuffer, 0, IndexFormat.UInt32);
+        commandBuffer.DrawIndexed(indexCount, 1, 0, 0, 0);
+
+        commandBuffer.EndRenderPass();
+    }
+
+    public void Resize(uint width, uint height)
+    {
+    }
+
+    public void Dispose()
+    {
+        pipeline.Dispose();
+        resourceTable.Dispose();
+        resourceLayout.Dispose();
+        constantBuffer.Dispose();
+        materialBuffer.Dispose();
+        indexBuffer.Dispose();
+        vertexBuffer.Dispose();
+    }
+}
+
+[StructLayout(LayoutKind.Explicit, Size = 240)]
+file struct RasterConstants
+{
+    [FieldOffset(0)]
+    public Matrix4x4 Model;
+
+    [FieldOffset(64)]
+    public Matrix4x4 View;
+
+    [FieldOffset(128)]
+    public Matrix4x4 Projection;
+
+    [FieldOffset(192)]
+    public Vector4 LightPosAndPad;
+
+    [FieldOffset(208)]
+    public Vector4 LightColorAndPad;
+
+    [FieldOffset(224)]
+    public Vector4 CameraPosAndPad;
+}

@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using CornellBox.Handlers;
 using CornellBox.Helpers;
+using CornellBox.Renderers;
 using Hexa.NET.ImGui;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
@@ -18,6 +19,10 @@ internal static class App
     private static readonly SwapChain swapChain;
     private static readonly ImGuiHandler imGui;
     private static readonly CameraHandler camera;
+    private static readonly PathTracingRenderer? pathTracer;
+    private static readonly RasterizationRenderer rasterizer;
+    private static IRenderer activeRenderer;
+    private static int currentMode;
 
     static App()
     {
@@ -59,10 +64,28 @@ internal static class App
 
         swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.B8G8R8A8UNorm, DepthStencilTargetFormat = PixelFormat.D32FloatS8UInt });
         imGui = new(input, swapChain.FrameBuffer.Output);
-        camera = new(input, Matrix4x4.Identity);
+        camera = new(input, Matrix4x4.CreateTranslation(278f, 273f, -800f));
+        camera.Speed = 240.0f;
+        camera.FarPlane = 2000.0f;
+
+        rasterizer = new(swapChain.FrameBuffer.Output);
+
+        if (Context.Capabilities.RayTracingSupported)
+        {
+            pathTracer = new PathTracingRenderer();
+            activeRenderer = pathTracer;
+            currentMode = 0;
+        }
+        else
+        {
+            activeRenderer = rasterizer;
+            currentMode = 1;
+        }
     }
 
     public static GraphicsContext Context { get; }
+
+    public static SwapChain SwapChain => swapChain;
 
     public static uint Width => (uint)window.FramebufferSize.X;
 
@@ -84,6 +107,8 @@ internal static class App
 
             imGui.Update(delta, width, height);
             camera.Update(delta, width, height);
+
+            activeRenderer.Update(camera);
         };
 
         window.Render += _ =>
@@ -93,30 +118,60 @@ internal static class App
                 return;
             }
 
-            ImGui.Overlay("Info", () =>
+            ImGui.SetNextWindowPos(new(10, 10), ImGuiCond.FirstUseEver);
+            if (ImGui.Begin("Cornell Box", ImGuiWindowFlags.AlwaysAutoResize))
             {
                 ImGui.Text($"Backend: {Context.Backend}");
-
-                ImGui.Separator();
-
                 ImGui.Text(Context.Capabilities.DeviceName);
 
                 ImGui.Separator();
 
-                ImGui.Text($"Ray Tracing Supported: {Context.Capabilities.RayTracingSupported}");
+                ImGui.Text("Render Mode:");
+
+                if (Context.Capabilities.RayTracingSupported)
+                {
+                    if (ImGui.RadioButton("Path Tracing", currentMode is 0))
+                    {
+                        if (currentMode is not 0)
+                        {
+                            currentMode = 0;
+                            activeRenderer = pathTracer!;
+                            pathTracer!.ResetAccumulation();
+                        }
+                    }
+
+                    ImGui.SameLine();
+                }
+
+                if (ImGui.RadioButton("Rasterization", currentMode is 1))
+                {
+                    if (currentMode is not 1)
+                    {
+                        currentMode = 1;
+                        activeRenderer = rasterizer;
+                    }
+                }
 
                 ImGui.Separator();
 
-                ImGui.Text($"Mesh Shading Supported: {Context.Capabilities.MeshShadingSupported}");
+                if (currentMode is 0 && pathTracer is not null)
+                {
+                    ImGui.Text($"SPP: {pathTracer.FrameCount}");
+                }
 
-                ImGui.Separator();
+                ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
 
-                ImGui.Text($"Current FPS: {ImGui.GetIO().Framerate:F1}");
-            });
+                ImGui.End();
+            }
 
             CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
 
-            imGui.Render(commandBuffer, swapChain.FrameBuffer, ClearValues.Default);
+            commandBuffer.BeginRenderPass(swapChain.FrameBuffer, ClearValues.Default);
+            commandBuffer.EndRenderPass();
+
+            activeRenderer.Render(commandBuffer, swapChain.FrameBuffer);
+
+            imGui.Render(commandBuffer, swapChain.FrameBuffer, ClearValues.None);
 
             commandBuffer.Submit(true);
 
@@ -130,11 +185,15 @@ internal static class App
                 return;
             }
 
+            pathTracer?.Resize(Width, Height);
+            rasterizer.Resize(Width, Height);
             swapChain.Resize(Width, Height);
         };
 
         window.Run();
 
+        pathTracer?.Dispose();
+        rasterizer.Dispose();
         imGui.Dispose();
         swapChain.Dispose();
         input.Dispose();
