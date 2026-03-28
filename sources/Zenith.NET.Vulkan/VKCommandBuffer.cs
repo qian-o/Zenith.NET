@@ -263,7 +263,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
     {
         VKFrameBuffer vkFrameBuffer = frameBuffer.Vulkan();
 
-        vkFrameBuffer.PrepareAttachmentsForRendering(this);
+        vkFrameBuffer.PrepareAttachments(this);
 
         bool clearColor = clearValue.Flags.HasFlag(ClearFlags.Color);
         bool clearDepth = clearValue.Flags.HasFlag(ClearFlags.Depth);
@@ -327,7 +327,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
     {
         Context.Vk.CmdEndRendering(CommandBuffer);
 
-        frameBuffer.Vulkan().FinalizeColorAttachmentsForPresent(this);
+        frameBuffer.Vulkan().PresentColorAttachments(this);
     }
 
     protected override void SetScissorsImpl(Scissor[] scissors)

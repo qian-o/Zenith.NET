@@ -232,7 +232,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
     {
         DXFrameBuffer dxFrameBuffer = frameBuffer.DirectX12();
 
-        dxFrameBuffer.PrepareAttachmentsForRendering(this);
+        dxFrameBuffer.PrepareAttachments(this);
 
         bool clearColor = clearValue.Flags.HasFlag(ClearFlags.Color);
         bool clearDepth = clearValue.Flags.HasFlag(ClearFlags.Depth);
@@ -289,7 +289,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
     {
         GraphicsCommandList4.EndRenderPass();
 
-        frameBuffer.DirectX12().FinalizeColorAttachmentsForPresent(this);
+        frameBuffer.DirectX12().PresentColorAttachments(this);
     }
 
     protected override void SetScissorsImpl(Scissor[] scissors)

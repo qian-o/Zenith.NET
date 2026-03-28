@@ -121,7 +121,7 @@ internal unsafe class VKFrameBuffer : FrameBuffer
 
     public ImageView[] ImageViews { get; }
 
-    public void PrepareAttachmentsForRendering(VKCommandBuffer commandBuffer)
+    public void PrepareAttachments(VKCommandBuffer commandBuffer)
     {
         foreach (FrameBufferAttachment attachment in Desc.ColorAttachments)
         {
@@ -131,7 +131,7 @@ internal unsafe class VKFrameBuffer : FrameBuffer
         Desc.DepthStencilAttachment?.Target.Vulkan().TransitionLayout(commandBuffer, Desc.DepthStencilAttachment.Value.Slice, ImageLayout.DepthStencilAttachmentOptimal);
     }
 
-    public void FinalizeColorAttachmentsForPresent(VKCommandBuffer commandBuffer)
+    public void PresentColorAttachments(VKCommandBuffer commandBuffer)
     {
         foreach (FrameBufferAttachment attachment in Desc.ColorAttachments)
         {
