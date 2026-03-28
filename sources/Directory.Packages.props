@@ -5,7 +5,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageVersion Include="Avalonia" Version="11.3.12" />
+        <PackageVersion Include="Avalonia" Version="11.3.13" />
         <PackageVersion Include="Hexa.NET.ImGui" Version="2.2.9" />
         <PackageVersion Include="Metal.NET" Version="2.2.0" />
         <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.51" />
