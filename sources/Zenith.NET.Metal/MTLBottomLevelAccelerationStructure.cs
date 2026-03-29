@@ -92,6 +92,7 @@ internal class MTLBottomLevelAccelerationStructure : BottomLevelAccelerationStru
         });
 
         commandBuffer.CommandEncoder.Compute?.Build(AccelerationStructure, descriptor, new(ScratchBuffer.Buffer.GpuAddress, sizes.BuildScratchBufferSize));
+        commandBuffer.CommandEncoder.Compute?.BarrierAfterStages(MTLStages.AccelerationStructure, MTLStages.AccelerationStructure, MTL4VisibilityOptions.Device);
     }
 
     public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
