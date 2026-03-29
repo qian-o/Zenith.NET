@@ -46,9 +46,15 @@ internal unsafe class RasterizationRenderer : Renderer
 
         struct VSInput
         {
-            float4 Position : POSITION0;
+            private float4 PositionAndPadding : POSITION0;
 
-            float4 NormalAndMaterialID : NORMAL0;
+            private float4 NormalAndMaterialID : NORMAL0;
+
+            property float3 Position { get { return PositionAndPadding.xyz; } }
+
+            property float3 Normal { get { return NormalAndMaterialID.xyz; } }
+
+            property uint MaterialID { get { return asuint(NormalAndMaterialID.w); } }
         };
 
         struct PSInput
@@ -64,13 +70,13 @@ internal unsafe class RasterizationRenderer : Renderer
 
         PSInput VSMain(VSInput input)
         {
-            float4 worldPos = mul(float4(input.Position.xyz, 1.0), cb.Model);
+            float4 worldPos = mul(float4(input.Position, 1.0), cb.Model);
 
             PSInput output;
             output.Position = mul(mul(worldPos, cb.View), cb.Projection);
             output.WorldPos = worldPos.xyz;
-            output.Normal = normalize(mul(float4(input.NormalAndMaterialID.xyz, 0.0), cb.Model).xyz);
-            output.MaterialID = asuint(input.NormalAndMaterialID.w);
+            output.Normal = normalize(mul(float4(input.Normal, 0.0), cb.Model).xyz);
+            output.MaterialID = input.MaterialID;
 
             return output;
         }
