@@ -27,6 +27,8 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         MTLBuffer mtlDest = dest.Metal();
 
         CommandEncoder.Compute?.Copy(mtlSrc.Buffer, srcOffsetInBytes, mtlDest.Buffer, destOffsetInBytes, sizeInBytes);
+
+        CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.Blit, MTLStages.Blit | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
     }
 
     protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent)
@@ -50,6 +52,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
                                      destSlice.MipLevel,
                                      new(destOffset.X, destOffset.Y, destOffset.Z));
 
+        CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.Blit, MTLStages.Blit | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
     }
 
     protected override void CopyTextureImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent)
@@ -66,6 +69,8 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
                                      ZenithHelper.FlattenArrayLayerIndex(mtlDest.Desc, destSlice),
                                      destSlice.MipLevel,
                                      new(destOffset.X, destOffset.Y, destOffset.Z));
+
+        CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.Blit, MTLStages.Blit | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
     }
 
     protected override void CopyTextureToBufferImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes)
@@ -88,6 +93,8 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
                                      destOffsetInBytes,
                                      sliceRowPitchInBytes,
                                      sliceDepthPitchInBytes);
+
+        CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.Blit, MTLStages.Blit | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
     }
 
     protected override void ResolveTextureImpl(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice)
@@ -103,6 +110,8 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
                                      destSlice.MipLevel,
                                      1,
                                      1);
+
+        CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.Blit, MTLStages.Blit | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
     }
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)
@@ -281,6 +290,8 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         CommandEncoder.Bind();
 
         CommandEncoder.Compute?.DispatchThreadgroups(new MTLSize(groupCountX, groupCountY, groupCountZ), CommandEncoder.ThreadGroupSize);
+
+        CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.Dispatch, MTLStages.Blit | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
     }
 
     protected override void DispatchIndirectImpl(ComputePipeline pipeline, Buffer indirectBuffer, uint offsetInBytes)
@@ -288,6 +299,8 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         CommandEncoder.Bind();
 
         CommandEncoder.Compute?.DispatchThreadgroups(indirectBuffer.Metal().GpuAddress + offsetInBytes, CommandEncoder.ThreadGroupSize);
+
+        CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.Dispatch, MTLStages.Blit | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
     }
 
     protected override void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
