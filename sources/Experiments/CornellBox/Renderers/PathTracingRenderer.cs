@@ -455,12 +455,10 @@ internal unsafe class PathTracingRenderer : Renderer
                 Layout = resourceLayout,
                 Resources = [tlas, cameraBuffer, vertexBuffer, indexBuffer, materialBuffer, accumulationTexture, Color]
             });
-
-            FrameCount = 0;
         }
 
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetResourceTable(resourceTable!);
+        commandBuffer.SetResourceTable(resourceTable);
 
         commandBuffer.Dispatch((App.Width + ThreadGroupSize - 1) / ThreadGroupSize, (App.Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
 
@@ -476,6 +474,8 @@ internal unsafe class PathTracingRenderer : Renderer
 
         accumulationTexture?.Dispose();
         accumulationTexture = null;
+
+        FrameCount = 0;
     }
 
     public override void Dispose()

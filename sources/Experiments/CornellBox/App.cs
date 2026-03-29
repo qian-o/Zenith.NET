@@ -108,6 +108,51 @@ internal static class App
             imGui.Update(delta, width, height);
             camera.Update(delta, width, height);
 
+            // ImGui
+            {
+                ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(activeRenderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
+
+                ImGui.SetNextWindowPos(new(10, 10), ImGuiCond.FirstUseEver);
+                if (ImGui.Begin("Cornell Box", ImGuiWindowFlags.AlwaysAutoResize))
+                {
+                    ImGui.Text($"Backend: {Context.Backend}");
+                    ImGui.Text(Context.Capabilities.DeviceName);
+
+                    ImGui.Separator();
+
+                    ImGui.Text("Render Mode:");
+
+                    if (Context.Capabilities.RayTracingSupported)
+                    {
+                        if (ImGui.RadioButton("Path Tracing", currentMode is 0) && currentMode is not 0)
+                        {
+                            pathTracer!.FrameCount = 0;
+
+                            currentMode = 0;
+                            activeRenderer = pathTracer;
+                        }
+
+                        ImGui.SameLine();
+                    }
+
+                    if (ImGui.RadioButton("Rasterization", currentMode is 1) && currentMode is not 1)
+                    {
+                        currentMode = 1;
+                        activeRenderer = rasterizer;
+                    }
+
+                    ImGui.Separator();
+
+                    if (currentMode is 0 && pathTracer is not null)
+                    {
+                        ImGui.Text($"SPP: {pathTracer.FrameCount}");
+                    }
+
+                    ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
+                }
+                ImGui.End();
+            }
+
             activeRenderer.Update(camera);
         };
 
@@ -118,53 +163,11 @@ internal static class App
                 return;
             }
 
-            ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(activeRenderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
-
-            ImGui.SetNextWindowPos(new(10, 10), ImGuiCond.FirstUseEver);
-            if (ImGui.Begin("Cornell Box", ImGuiWindowFlags.AlwaysAutoResize))
-            {
-                ImGui.Text($"Backend: {Context.Backend}");
-                ImGui.Text(Context.Capabilities.DeviceName);
-
-                ImGui.Separator();
-
-                ImGui.Text("Render Mode:");
-
-                if (Context.Capabilities.RayTracingSupported)
-                {
-                    if (ImGui.RadioButton("Path Tracing", currentMode is 0) && currentMode is not 0)
-                    {
-                        pathTracer!.FrameCount = 0;
-
-                        currentMode = 0;
-                        activeRenderer = pathTracer;
-                    }
-
-                    ImGui.SameLine();
-                }
-
-                if (ImGui.RadioButton("Rasterization", currentMode is 1) && currentMode is not 1)
-                {
-                    currentMode = 1;
-                    activeRenderer = rasterizer;
-                }
-
-                ImGui.Separator();
-
-                if (currentMode is 0 && pathTracer is not null)
-                {
-                    ImGui.Text($"SPP: {pathTracer.FrameCount}");
-                }
-
-                ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
-            }
-            ImGui.End();
-
             CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
 
-            imGui.Render(commandBuffer, swapChain.FrameBuffer, ClearValues.Default);
-
             activeRenderer.Render(commandBuffer);
+
+            imGui.Render(commandBuffer, swapChain.FrameBuffer, ClearValues.Default);
 
             commandBuffer.Submit(true);
 
