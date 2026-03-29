@@ -8,7 +8,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Renderers;
 
-internal unsafe class PathTracingRenderer : IRenderer
+internal unsafe class PathTracingRenderer : Renderer
 {
     private const uint ThreadGroupSize = 16;
 
@@ -294,12 +294,10 @@ internal unsafe class PathTracingRenderer : IRenderer
     private readonly ComputePipeline pipeline;
 
     private Texture? accumulationTexture;
-    private Texture? outputTexture;
     private ResourceTable? resourceTable;
 
     private Matrix4x4 lastView;
     private Matrix4x4 lastProjection;
-    private uint frameCount;
 
     public PathTracingRenderer()
     {
@@ -336,9 +334,9 @@ internal unsafe class PathTracingRenderer : IRenderer
             Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
         });
 
-        CommandBuffer buildCmd = App.Context.Graphics.CommandBuffer();
+        CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
 
-        blas = buildCmd.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
+        blas = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
         {
             Geometries =
             [
@@ -362,7 +360,7 @@ internal unsafe class PathTracingRenderer : IRenderer
             Flags = AccelerationStructureBuildFlags.PreferFastTrace
         });
 
-        tlas = buildCmd.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
+        tlas = commandBuffer.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
         {
             Instances =
             [
@@ -378,7 +376,7 @@ internal unsafe class PathTracingRenderer : IRenderer
             Flags = AccelerationStructureBuildFlags.PreferFastTrace
         });
 
-        buildCmd.Submit(waitForCompletion: true);
+        commandBuffer.Submit(waitForCompletion: true);
 
         resourceLayout = App.Context.CreateResourceLayout(new()
         {
@@ -406,18 +404,19 @@ internal unsafe class PathTracingRenderer : IRenderer
         });
     }
 
-    public uint FrameCount => frameCount;
+    public uint FrameCount { get; set; }
 
-    public void Update(CameraHandler camera)
+    public override void Update(CameraHandler camera)
     {
         Matrix4x4 view = camera.View;
         Matrix4x4 projection = camera.Projection;
 
         if (view != lastView || projection != lastProjection)
         {
-            frameCount = 0;
             lastView = view;
             lastProjection = projection;
+
+            FrameCount = 0;
         }
 
         Matrix4x4.Invert(view, out Matrix4x4 invView);
@@ -427,26 +426,23 @@ internal unsafe class PathTracingRenderer : IRenderer
         {
             InvView = invView,
             InvProjection = invProjection,
-            PositionAndPad = new(camera.Position, 0.0f),
-            FrameCount = frameCount,
+            Position = camera.Position,
+            FrameCount = FrameCount,
             Width = App.Width,
             Height = App.Height
         }], 0);
     }
 
-    public void Render(CommandBuffer commandBuffer, FrameBuffer frameBuffer)
+    public override void Render(CommandBuffer commandBuffer)
     {
-        uint width = App.Width;
-        uint height = App.Height;
-
-        if (accumulationTexture is null || outputTexture is null)
+        if (resourceTable is null || accumulationTexture is null)
         {
             accumulationTexture = App.Context.CreateTexture(new()
             {
                 Type = TextureType.Texture2D,
                 Format = PixelFormat.R32G32B32A32Float,
-                Width = width,
-                Height = height,
+                Width = App.Width,
+                Height = App.Height,
                 Depth = 1,
                 MipLevels = 1,
                 ArrayLayers = 1,
@@ -454,66 +450,39 @@ internal unsafe class PathTracingRenderer : IRenderer
                 Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
             });
 
-            outputTexture = App.Context.CreateTexture(new()
-            {
-                Type = TextureType.Texture2D,
-                Format = PixelFormat.B8G8R8A8UNorm,
-                Width = width,
-                Height = height,
-                Depth = 1,
-                MipLevels = 1,
-                ArrayLayers = 1,
-                SampleCount = SampleCount.Count1,
-                Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-            });
-
-            resourceTable?.Dispose();
             resourceTable = App.Context.CreateResourceTable(new()
             {
                 Layout = resourceLayout,
-                Resources = [tlas, cameraBuffer, vertexBuffer, indexBuffer, materialBuffer, accumulationTexture, outputTexture]
+                Resources = [tlas, cameraBuffer, vertexBuffer, indexBuffer, materialBuffer, accumulationTexture, Color]
             });
 
-            frameCount = 0;
+            FrameCount = 0;
         }
 
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetResourceTable(resourceTable!);
 
-        commandBuffer.Dispatch((width + ThreadGroupSize - 1) / ThreadGroupSize, (height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
+        commandBuffer.Dispatch((App.Width + ThreadGroupSize - 1) / ThreadGroupSize, (App.Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
 
-        commandBuffer.CopyTexture(outputTexture,
-                                  default,
-                                  default,
-                                  frameBuffer.Desc.ColorAttachments[0].Target,
-                                  default,
-                                  default,
-                                  new() { Width = width, Height = height, Depth = 1 });
-
-        frameCount++;
+        FrameCount++;
     }
 
-    public void Resize(uint width, uint height)
+    public override void Resize(uint width, uint height)
     {
+        base.Resize(width, height);
+
         resourceTable?.Dispose();
         resourceTable = null;
-
-        outputTexture?.Dispose();
-        outputTexture = null;
 
         accumulationTexture?.Dispose();
         accumulationTexture = null;
     }
 
-    public void ResetAccumulation()
+    public override void Dispose()
     {
-        frameCount = 0;
-    }
+        base.Dispose();
 
-    public void Dispose()
-    {
         resourceTable?.Dispose();
-        outputTexture?.Dispose();
         accumulationTexture?.Dispose();
 
         pipeline.Dispose();
@@ -537,7 +506,7 @@ file struct CameraParams
     public Matrix4x4 InvProjection;
 
     [FieldOffset(128)]
-    public Vector4 PositionAndPad;
+    public Vector3 Position;
 
     [FieldOffset(144)]
     public uint FrameCount;

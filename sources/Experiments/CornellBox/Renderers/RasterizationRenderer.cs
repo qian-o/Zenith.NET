@@ -8,7 +8,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Renderers;
 
-internal unsafe class RasterizationRenderer : IRenderer
+internal unsafe class RasterizationRenderer : Renderer
 {
     private const string ShaderSource = """
         struct Material
@@ -118,7 +118,7 @@ internal unsafe class RasterizationRenderer : IRenderer
     private readonly ResourceTable resourceTable;
     private readonly GraphicsPipeline pipeline;
 
-    public RasterizationRenderer(Output output)
+    public RasterizationRenderer()
     {
         CornellBoxGeometry.Create(out PackedVertex[] vertices, out uint[] indices, out Material[] materials);
 
@@ -190,11 +190,11 @@ internal unsafe class RasterizationRenderer : IRenderer
             ResourceLayout = resourceLayout,
             InputLayouts = [inputLayout],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
-            Output = output
+            Output = FrameBuffer.Output
         });
     }
 
-    public void Update(CameraHandler camera)
+    public override void Update(CameraHandler camera)
     {
         constantBuffer.Upload<RasterConstants>([new()
         {
@@ -207,9 +207,9 @@ internal unsafe class RasterizationRenderer : IRenderer
         }], 0);
     }
 
-    public void Render(CommandBuffer commandBuffer, FrameBuffer frameBuffer)
+    public override void Render(CommandBuffer commandBuffer)
     {
-        commandBuffer.BeginRenderPass(frameBuffer, new()
+        commandBuffer.BeginRenderPass(FrameBuffer, new()
         {
             ColorValues = [new(0.0f, 0.0f, 0.0f, 1.0f)],
             Depth = 1.0f,
@@ -226,12 +226,10 @@ internal unsafe class RasterizationRenderer : IRenderer
         commandBuffer.EndRenderPass();
     }
 
-    public void Resize(uint width, uint height)
+    public override void Dispose()
     {
-    }
+        base.Dispose();
 
-    public void Dispose()
-    {
         pipeline.Dispose();
         resourceTable.Dispose();
         resourceLayout.Dispose();

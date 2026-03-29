@@ -22,7 +22,7 @@ internal static class App
     private static readonly PathTracingRenderer? pathTracer;
     private static readonly RasterizationRenderer rasterizer;
 
-    private static IRenderer activeRenderer;
+    private static Renderer activeRenderer;
     private static int currentMode;
 
     static App()
@@ -71,7 +71,7 @@ internal static class App
             FarPlane = 2000.0f
         };
 
-        rasterizer = new(swapChain.FrameBuffer.Output);
+        rasterizer = new();
 
         if (Context.Capabilities.RayTracingSupported)
         {
@@ -118,6 +118,8 @@ internal static class App
                 return;
             }
 
+            ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(activeRenderer.Color), new Vector2(0, 0), new Vector2(Width, Height));
+
             ImGui.SetNextWindowPos(new(10, 10), ImGuiCond.FirstUseEver);
             if (ImGui.Begin("Cornell Box", ImGuiWindowFlags.AlwaysAutoResize))
             {
@@ -132,7 +134,7 @@ internal static class App
                 {
                     if (ImGui.RadioButton("Path Tracing", currentMode is 0) && currentMode is not 0)
                     {
-                        pathTracer!.ResetAccumulation();
+                        pathTracer!.FrameCount = 0;
 
                         currentMode = 0;
                         activeRenderer = pathTracer;
@@ -160,12 +162,9 @@ internal static class App
 
             CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
 
-            commandBuffer.BeginRenderPass(swapChain.FrameBuffer, ClearValues.Default);
-            commandBuffer.EndRenderPass();
+            imGui.Render(commandBuffer, swapChain.FrameBuffer, ClearValues.Default);
 
-            activeRenderer.Render(commandBuffer, swapChain.FrameBuffer);
-
-            imGui.Render(commandBuffer, swapChain.FrameBuffer, ClearValues.None);
+            activeRenderer.Render(commandBuffer);
 
             commandBuffer.Submit(true);
 
