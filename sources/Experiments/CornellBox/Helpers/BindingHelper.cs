@@ -68,7 +68,8 @@ internal static class BindingHelper
                             {
                                 ResourceType.ConstantBuffer or
                                 ResourceType.StructuredBuffer or
-                                ResourceType.StructuredBufferReadWrite => bufferIndex++,
+                                ResourceType.StructuredBufferReadWrite or
+                                ResourceType.AccelerationStructure => bufferIndex++,
 
                                 ResourceType.Texture or
                                 ResourceType.TextureReadWrite => textureIndex++,
