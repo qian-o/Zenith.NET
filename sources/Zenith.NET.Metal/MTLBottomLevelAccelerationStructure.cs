@@ -36,14 +36,14 @@ internal class MTLBottomLevelAccelerationStructure : BottomLevelAccelerationStru
                         VertexBuffer = new()
                         {
                             BufferAddress = geometry.Triangles.VertexBuffer.Metal().Buffer.GpuAddress + geometry.Triangles.VertexOffsetInBytes,
-                            Length = geometry.Triangles.VertexCount * geometry.Triangles.VertexStrideInBytes
+                            Length = geometry.Triangles.VertexStrideInBytes * geometry.Triangles.VertexCount
                         },
                         VertexFormat = MTLFormats.Metal(geometry.Triangles.VertexFormat).AttributeFormat,
                         VertexStride = geometry.Triangles.VertexStrideInBytes,
                         IndexBuffer = geometry.Triangles.IndexBuffer is not null ? new()
                         {
                             BufferAddress = geometry.Triangles.IndexBuffer.Metal().Buffer.GpuAddress + geometry.Triangles.IndexOffsetInBytes,
-                            Length = geometry.Triangles.IndexCount * (uint)(geometry.Triangles.IndexFormat is IndexFormat.UInt16 ? sizeof(ushort) : sizeof(uint))
+                            Length = (uint)(geometry.Triangles.IndexFormat is IndexFormat.UInt16 ? sizeof(ushort) : sizeof(uint)) * geometry.Triangles.IndexCount
                         } : default,
                         IndexType = MTLFormats.Metal(geometry.Triangles.IndexFormat),
                         TriangleCount = geometry.Triangles.IndexBuffer is not null ? geometry.Triangles.IndexCount / 3 : geometry.Triangles.VertexCount / 3,
@@ -63,7 +63,7 @@ internal class MTLBottomLevelAccelerationStructure : BottomLevelAccelerationStru
                         BoundingBoxBuffer = new()
                         {
                             BufferAddress = geometry.AABBs.Buffer.Metal().Buffer.GpuAddress + geometry.AABBs.OffsetInBytes,
-                            Length = geometry.AABBs.Count * geometry.AABBs.StrideInBytes
+                            Length = geometry.AABBs.StrideInBytes * geometry.AABBs.Count
                         },
                         BoundingBoxStride = geometry.AABBs.StrideInBytes,
                         BoundingBoxCount = geometry.AABBs.Count,
