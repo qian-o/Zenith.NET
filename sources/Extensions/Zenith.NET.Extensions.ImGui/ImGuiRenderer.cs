@@ -519,14 +519,14 @@ float4 PSMain(VSOutput input) : SV_TARGET
                 resourceTable.Dispose();
             }
 
-            if (textureBindings.FirstOrDefault(kv => kv.Value == textureID).Key is Texture texture)
-            {
-                textureBindings.Remove(texture);
-            }
-
             if (textureViewBindings.FirstOrDefault(kv => kv.Value == textureID).Key is TextureView textureView)
             {
                 textureViewBindings.Remove(textureView);
+            }
+
+            if (textureBindings.FirstOrDefault(kv => kv.Value == textureID).Key is Texture texture)
+            {
+                textureBindings.Remove(texture);
             }
         }
     }
