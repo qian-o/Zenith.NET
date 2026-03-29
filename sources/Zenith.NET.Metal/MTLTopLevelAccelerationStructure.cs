@@ -42,7 +42,7 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
         });
 
         commandBuffer.CommandEncoder.Compute?.Build(AccelerationStructure, descriptor, new(ScratchBuffer.Buffer.GpuAddress, ScratchBuffer.Desc.SizeInBytes));
-        commandBuffer.CommandEncoder.Compute?.BarrierAfterStages(MTLStages.AccelerationStructure, MTLStages.Fragment | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
+        commandBuffer.CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.AccelerationStructure, MTLStages.Fragment | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
     }
 
     public MTLBuffer InstanceBuffer { get; }
