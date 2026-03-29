@@ -28,17 +28,17 @@ internal unsafe class RasterizationRenderer : Renderer
 
             float4x4 Projection;
 
-            float4 LightPosAndPad;
+            private float4 LightPosAndPadding;
 
-            float4 LightColorAndPad;
+            private float4 LightColorAndPadding;
 
-            float4 CameraPosAndPad;
+            private float4 CameraPosAndPadding;
 
-            property float3 LightPos { get { return LightPosAndPad.xyz; } }
+            property float3 LightPos { get { return LightPosAndPadding.xyz; } }
 
-            property float3 LightColor { get { return LightColorAndPad.xyz; } }
+            property float3 LightColor { get { return LightColorAndPadding.xyz; } }
 
-            property float3 CameraPos { get { return CameraPosAndPad.xyz; } }
+            property float3 CameraPos { get { return CameraPosAndPadding.xyz; } }
         };
 
         ConstantBuffer<RasterConstants> cb;
@@ -46,31 +46,31 @@ internal unsafe class RasterizationRenderer : Renderer
 
         struct VSInput
         {
-            float4 PositionAndMatID : POSITION0;
+            float4 Position : POSITION0;
 
-            float4 NormalAndPad : NORMAL0;
+            float4 NormalAndMaterialID : NORMAL0;
         };
 
         struct PSInput
         {
             float4 Position : SV_POSITION;
 
-            float4 WorldPosAndPad : TEXCOORD0;
+            float3 WorldPos : TEXCOORD0;
 
-            float4 NormalAndPad : TEXCOORD1;
+            float3 Normal : TEXCOORD1;
 
             nointerpolation uint MaterialID : TEXCOORD2;
         };
 
         PSInput VSMain(VSInput input)
         {
-            float4 worldPos = mul(float4(input.PositionAndMatID.xyz, 1.0), cb.Model);
+            float4 worldPos = mul(float4(input.Position.xyz, 1.0), cb.Model);
 
             PSInput output;
             output.Position = mul(mul(worldPos, cb.View), cb.Projection);
-            output.WorldPosAndPad = float4(worldPos.xyz, 0.0);
-            output.NormalAndPad = float4(normalize(mul(float4(input.NormalAndPad.xyz, 0.0), cb.Model).xyz), 0.0);
-            output.MaterialID = asuint(input.PositionAndMatID.w);
+            output.WorldPos = worldPos.xyz;
+            output.Normal = normalize(mul(float4(input.NormalAndMaterialID.xyz, 0.0), cb.Model).xyz);
+            output.MaterialID = asuint(input.NormalAndMaterialID.w);
 
             return output;
         }
@@ -86,8 +86,8 @@ internal unsafe class RasterizationRenderer : Renderer
                 return float4(pow(mapped, 1.0 / 2.2), 1.0);
             }
 
-            float3 N = normalize(input.NormalAndPad.xyz);
-            float3 worldPos = input.WorldPosAndPad.xyz;
+            float3 N = normalize(input.Normal);
+            float3 worldPos = input.WorldPos;
             float3 L = normalize(cb.LightPos - worldPos);
             float3 V = normalize(cb.CameraPos - worldPos);
             float3 H = normalize(L + V);
@@ -120,14 +120,14 @@ internal unsafe class RasterizationRenderer : Renderer
 
     public RasterizationRenderer()
     {
-        CornellBoxGeometry.Create(out PackedVertex[] vertices, out uint[] indices, out Material[] materials);
+        CornellBoxGeometry.Create(out Vertex[] vertices, out uint[] indices, out Material[] materials);
 
         indexCount = (uint)indices.Length;
 
         vertexBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)(sizeof(PackedVertex) * vertices.Length),
-            StrideInBytes = (uint)sizeof(PackedVertex),
+            SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length),
+            StrideInBytes = (uint)sizeof(Vertex),
             Flags = BufferUsageFlags.Vertex
         });
         vertexBuffer.Upload(vertices, 0);
@@ -201,9 +201,9 @@ internal unsafe class RasterizationRenderer : Renderer
             Model = Matrix4x4.Identity,
             View = camera.View,
             Projection = camera.Projection,
-            LightPosAndPad = new(278.0f, 548.0f, 280.0f, 0.0f),
-            LightColorAndPad = new(2.0f, 1.8f, 1.4f, 0.0f),
-            CameraPosAndPad = new(camera.Position, 0.0f)
+            LightPos = new(278.0f, 548.0f, 280.0f),
+            LightColor = new(2.0f, 1.8f, 1.4f),
+            CameraPos = camera.Position
         }], 0);
     }
 
@@ -253,11 +253,11 @@ file struct RasterConstants
     public Matrix4x4 Projection;
 
     [FieldOffset(192)]
-    public Vector4 LightPosAndPad;
+    public Vector3 LightPos;
 
     [FieldOffset(208)]
-    public Vector4 LightColorAndPad;
+    public Vector3 LightColor;
 
     [FieldOffset(224)]
-    public Vector4 CameraPosAndPad;
+    public Vector3 CameraPos;
 }

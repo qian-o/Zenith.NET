@@ -47,7 +47,7 @@ CornellBox/
 │   └── ImGuiHandler.cs                # ImGui integration (input forwarding, font loading)
 ├── Helpers/
 │   ├── BindingHelper.cs               # Multi-backend resource binding index assignment
-│   ├── CornellBoxGeometry.cs          # Shared geometry factory (PackedVertex, Material)
+│   ├── CornellBoxGeometry.cs          # Shared geometry factory (Vertex, Material)
 │   ├── CocoaHelper.cs                 # macOS Metal layer creation
 │   └── Extensions.cs                  # ImGui.Overlay extension
 └── Assets/
@@ -59,8 +59,9 @@ CornellBox/
 ### Slang Side
 
 - **Never** use bare `float3` in ConstantBuffer / StructuredBuffer structs
-- Pack `float3 + float` into `float4`, access via `property`
+- Pack `float3 + float` into `float4`, use `private` field + `property` accessor
 - Pad trailing bytes with `private float paddingN` to reach 16-byte boundary
+- Vertex structs and vertex I/O structs (VSInput/PSInput) use tightly packed layout — `float3` is allowed (all backends use compact vertex input)
 - Attributes go **above** properties, blank line between fields
 
 ```slang
@@ -68,10 +69,8 @@ struct Material
 {
     private float4 AlbedoAndEmission;
 
-    [__unsafeForceInlineEarly]
     property float3 Albedo { get { return AlbedoAndEmission.xyz; } }
 
-    [__unsafeForceInlineEarly]
     property float Emission { get { return AlbedoAndEmission.w; } }
 };
 
@@ -81,7 +80,7 @@ struct CameraParams
 
     float4x4 InvProjection;
 
-    float4 PositionAndPad;
+    float4 PositionAndPadding;
 
     uint FrameCount;
 
@@ -91,7 +90,7 @@ struct CameraParams
 
     private float padding0;
 
-    property float3 Position { get { return PositionAndPad.xyz; } }
+    property float3 Position { get { return PositionAndPadding.xyz; } }
 };
 ```
 
@@ -113,7 +112,7 @@ file struct CameraParams
     public Matrix4x4 InvProjection;
 
     [FieldOffset(128)]
-    public Vector4 PositionAndPad;
+    public Vector3 Position;
 
     [FieldOffset(144)]
     public uint FrameCount;
@@ -414,21 +413,24 @@ ResourceTable → Pipeline → ResourceLayout
 - 4 material groups: 0=red left wall, 1=green right wall, 2=white surfaces (ceiling/floor/back wall/two blocks), 3=light
 - Each quad → 4 vertices + 6 indices (2 triangles)
 - Normals auto-computed via `normalize(cross(v1-v0, v2-v0))`
-- Material ID packed into vertex as `BitConverter.UInt32BitsToSingle(materialID)`, decoded in shader via `asuint()`
+- Material ID packed into vertex as `uint MaterialID` field
 - Material colors: red(0.63,0.06,0.06), green(0.14,0.45,0.09), white(0.73,0.71,0.68), light(1.0,0.85,0.6)+emission=15
 
 ### Shared Data Types
 
 ```csharp
-// 32 bytes — used by both renderers
-[StructLayout(LayoutKind.Explicit, Size = 32)]
-internal struct PackedVertex
+// 28 bytes — used by both renderers
+[StructLayout(LayoutKind.Explicit, Size = 28)]
+internal struct Vertex
 {
     [FieldOffset(0)]
-    public Vector4 PositionAndMatID;    // xyz=position, w=asuint(materialID)
+    public Vector3 Position;
+
+    [FieldOffset(12)]
+    public uint MaterialID;
 
     [FieldOffset(16)]
-    public Vector4 NormalAndPad;        // xyz=normal, w=0
+    public Vector3 Normal;
 }
 
 // 16 bytes
@@ -436,7 +438,10 @@ internal struct PackedVertex
 internal struct Material
 {
     [FieldOffset(0)]
-    public Vector4 AlbedoAndEmission;   // xyz=albedo, w=emission strength (0 or 15)
+    public Vector3 Albedo;
+
+    [FieldOffset(12)]
+    public float Emission;
 }
 ```
 
@@ -472,8 +477,8 @@ internal interface IRenderer : IDisposable
 - **Light**: Point light at (278, 548, 280), color (2.0, 1.8, 1.4)
 - **Emissive**: Reinhard tonemapping `color / (color + 1)` for light quad
 - **Rasterizer**: `CullNone` (camera is inside the box)
-- **Material lookup**: `nointerpolation uint MaterialID : TEXCOORD2` — flat interpolation, extracted via `asuint(PositionAndMatID.w)` in vertex shader
-- **InputLayout**: Float4 (POSITION) + Float4 (NORMAL), matches PackedVertex stride=32
+- **Material lookup**: `nointerpolation uint MaterialID : TEXCOORD2` — flat interpolation, passed directly from vertex input
+- **InputLayout**: Float3 (POSITION) + UInt1 (TEXCOORD) + Float3 (NORMAL), matches Vertex stride=28
 - **Resource bindings** (2): ConstantBuffer (RasterConstants 240B), StructuredBuffer (Materials)
 - `Resize()`: No-op (no size-dependent resources)
 

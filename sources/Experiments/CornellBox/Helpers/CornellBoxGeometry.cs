@@ -5,9 +5,9 @@ namespace CornellBox.Helpers;
 
 internal static class CornellBoxGeometry
 {
-    public static void Create(out PackedVertex[] vertices, out uint[] indices, out Material[] materials)
+    public static void Create(out Vertex[] vertices, out uint[] indices, out Material[] materials)
     {
-        List<PackedVertex> verticesList = [];
+        List<Vertex> verticesList = [];
         List<uint> indicesList = [];
 
         // 0: Left wall (red)
@@ -82,14 +82,14 @@ internal static class CornellBoxGeometry
         indices = [.. indicesList];
         materials =
         [
-            new() { AlbedoAndEmission = new(0.63f, 0.06f, 0.06f, 0.0f) },
-            new() { AlbedoAndEmission = new(0.14f, 0.45f, 0.09f, 0.0f) },
-            new() { AlbedoAndEmission = new(0.73f, 0.71f, 0.68f, 0.0f) },
-            new() { AlbedoAndEmission = new(1.0f, 0.85f, 0.6f, 15.0f) }
+            new() { Albedo = new(0.63f, 0.06f, 0.06f), Emission = 0.0f },
+            new() { Albedo = new(0.14f, 0.45f, 0.09f), Emission = 0.0f },
+            new() { Albedo = new(0.73f, 0.71f, 0.68f), Emission = 0.0f },
+            new() { Albedo = new(1.0f, 0.85f, 0.6f), Emission = 15.0f }
         ];
     }
 
-    private static void AddQuad(List<PackedVertex> vertices,
+    private static void AddQuad(List<Vertex> vertices,
                                 List<uint> indices,
                                 Vector3 v0,
                                 Vector3 v1,
@@ -98,14 +98,13 @@ internal static class CornellBoxGeometry
                                 uint materialID)
     {
         Vector3 normal = Vector3.Normalize(Vector3.Cross(v1 - v0, v2 - v0));
-        float matBits = BitConverter.UInt32BitsToSingle(materialID);
 
         uint startIndex = (uint)vertices.Count;
 
-        vertices.Add(new() { PositionAndMatID = new(v0, matBits), NormalAndPad = new(normal, 0.0f) });
-        vertices.Add(new() { PositionAndMatID = new(v1, matBits), NormalAndPad = new(normal, 0.0f) });
-        vertices.Add(new() { PositionAndMatID = new(v2, matBits), NormalAndPad = new(normal, 0.0f) });
-        vertices.Add(new() { PositionAndMatID = new(v3, matBits), NormalAndPad = new(normal, 0.0f) });
+        vertices.Add(new() { Position = v0, Normal = normal, MaterialID = materialID });
+        vertices.Add(new() { Position = v1, Normal = normal, MaterialID = materialID });
+        vertices.Add(new() { Position = v2, Normal = normal, MaterialID = materialID });
+        vertices.Add(new() { Position = v3, Normal = normal, MaterialID = materialID });
 
         indices.Add(startIndex);
         indices.Add(startIndex + 1);
@@ -117,18 +116,24 @@ internal static class CornellBoxGeometry
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 32)]
-internal struct PackedVertex
+internal struct Vertex
 {
     [FieldOffset(0)]
-    public Vector4 PositionAndMatID;
+    public Vector3 Position;
 
     [FieldOffset(16)]
-    public Vector4 NormalAndPad;
+    public Vector3 Normal;
+
+    [FieldOffset(28)]
+    public uint MaterialID;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 16)]
 internal struct Material
 {
     [FieldOffset(0)]
-    public Vector4 AlbedoAndEmission;
+    public Vector3 Albedo;
+
+    [FieldOffset(12)]
+    public float Emission;
 }

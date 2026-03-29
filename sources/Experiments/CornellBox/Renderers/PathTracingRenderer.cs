@@ -13,17 +13,17 @@ internal unsafe class PathTracingRenderer : Renderer
     private const uint ThreadGroupSize = 16;
 
     private const string ShaderSource = """
-        struct PackedVertex
+        struct Vertex
         {
-            private float4 PositionAndMatID;
+            private float4 PositionAndPadding;
 
-            private float4 NormalAndPad;
+            private float4 NormalAndMaterialID;
 
-            property float3 Position { get { return PositionAndMatID.xyz; } }
+            property float3 Position { get { return PositionAndPadding.xyz; } }
 
-            property uint MaterialID { get { return asuint(PositionAndMatID.w); } }
+            property float3 Normal { get { return NormalAndMaterialID.xyz; } }
 
-            property float3 Normal { get { return NormalAndPad.xyz; } }
+            property uint MaterialID { get { return asuint(NormalAndMaterialID.w); } }
         };
 
         struct Material
@@ -41,7 +41,7 @@ internal unsafe class PathTracingRenderer : Renderer
 
             float4x4 InvProjection;
 
-            float4 PositionAndPad;
+            private float4 PositionAndPadding;
 
             uint FrameCount;
 
@@ -51,12 +51,12 @@ internal unsafe class PathTracingRenderer : Renderer
 
             private float padding0;
 
-            property float3 Position { get { return PositionAndPad.xyz; } }
+            property float3 Position { get { return PositionAndPadding.xyz; } }
         };
 
         RaytracingAccelerationStructure scene;
         ConstantBuffer<CameraParams> camera;
-        StructuredBuffer<PackedVertex> vertices;
+        StructuredBuffer<Vertex> vertices;
         StructuredBuffer<uint> indices;
         StructuredBuffer<Material> materials;
         RWTexture2D<float4> accumTexture;
@@ -188,9 +188,9 @@ internal unsafe class PathTracingRenderer : Renderer
                 uint i1 = indices[primIdx * 3 + 1];
                 uint i2 = indices[primIdx * 3 + 2];
 
-                PackedVertex v0 = vertices[i0];
-                PackedVertex v1 = vertices[i1];
-                PackedVertex v2 = vertices[i2];
+                Vertex v0 = vertices[i0];
+                Vertex v1 = vertices[i1];
+                Vertex v2 = vertices[i2];
 
                 float3 baryWeights = float3(1.0 - bary.x - bary.y, bary.x, bary.y);
                 float3 normal = normalize(
@@ -301,12 +301,12 @@ internal unsafe class PathTracingRenderer : Renderer
 
     public PathTracingRenderer()
     {
-        CornellBoxGeometry.Create(out PackedVertex[] vertices, out uint[] indices, out Material[] materials);
+        CornellBoxGeometry.Create(out Vertex[] vertices, out uint[] indices, out Material[] materials);
 
         vertexBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)(sizeof(PackedVertex) * vertices.Length),
-            StrideInBytes = (uint)sizeof(PackedVertex),
+            SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length),
+            StrideInBytes = (uint)sizeof(Vertex),
             Flags = BufferUsageFlags.ShaderResource | BufferUsageFlags.AccelerationStructure
         });
         vertexBuffer.Upload(vertices, 0);
@@ -348,7 +348,7 @@ internal unsafe class PathTracingRenderer : Renderer
                         VertexBuffer = vertexBuffer,
                         VertexFormat = PixelFormat.R32G32B32Float,
                         VertexCount = (uint)vertices.Length,
-                        VertexStrideInBytes = (uint)sizeof(PackedVertex),
+                        VertexStrideInBytes = (uint)sizeof(Vertex),
                         IndexBuffer = indexBuffer,
                         IndexFormat = IndexFormat.UInt32,
                         IndexCount = (uint)indices.Length,
