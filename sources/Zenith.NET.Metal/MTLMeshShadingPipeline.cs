@@ -45,7 +45,7 @@ internal class MTLMeshShadingPipeline : MeshShadingPipeline
 
                 descriptor.ColorAttachments[(uint)i] = new()
                 {
-                    PixelFormat = i < desc.Output.ColorAttachments.Length ? MTLFormats.Metal(desc.Output.ColorAttachments[i]) : MTLPixelFormat.Invalid,
+                    PixelFormat = i < desc.Output.ColorAttachments.Length ? MTLFormats.Metal(desc.Output.ColorAttachments[i]).PixelFormat : MTLPixelFormat.Invalid,
                     BlendingState = target.BlendEnable ? MTL4BlendState.Enabled : MTL4BlendState.Disabled,
                     SourceRGBBlendFactor = MTLFormats.Metal(target.SrcBlend),
                     DestinationRGBBlendFactor = MTLFormats.Metal(target.DestBlend),

@@ -10,7 +10,7 @@ internal class MTLTextureView : TextureView
     {
         MTLTextureViewDescriptor descriptor = new()
         {
-            PixelFormat = MTLFormats.Metal(desc.Texture.Desc.Format),
+            PixelFormat = MTLFormats.Metal(desc.Texture.Desc.Format).PixelFormat,
             TextureType = Resolve(desc),
             LevelRange = new(desc.FirstMipLevel, desc.MipLevelCount),
             SliceRange = new(ZenithHelper.FlattenArrayLayerRange(desc).FlattenArrayLayerIndex, ZenithHelper.FlattenArrayLayerRange(desc).FlattenArrayLayerCount)

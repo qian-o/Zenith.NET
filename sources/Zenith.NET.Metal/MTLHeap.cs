@@ -23,7 +23,7 @@ internal class MTLHeap : GraphicsResource
         MTLTextureDescriptor descriptor = new()
         {
             TextureType = MTLFormats.Metal(desc.Type),
-            PixelFormat = MTLFormats.Metal(desc.Format),
+            PixelFormat = MTLFormats.Metal(desc.Format).PixelFormat,
             Width = desc.Width,
             Height = desc.Height,
             Depth = desc.Depth,
