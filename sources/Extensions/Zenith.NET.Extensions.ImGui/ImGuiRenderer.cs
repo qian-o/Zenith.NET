@@ -132,8 +132,8 @@ float4 PSMain(VSOutput input) : SV_TARGET
     private readonly GraphicsPipeline graphicsPipeline;
     private readonly Dictionary<Texture, ImTextureID> textureBindings = [];
     private readonly Dictionary<TextureView, ImTextureID> textureViewBindings = [];
-    private readonly Dictionary<ImTextureID, Texture> imTextures = [];
-    private readonly Dictionary<ImTextureID, ResourceTable> imResourceTables = [];
+    private readonly Dictionary<ImTextureID, ResourceTable> resourceTableBindings = [];
+    private readonly Dictionary<ImTextureID, Texture> drawDataTextures = [];
 
     private Buffer? vertexBuffer;
     private Buffer? indexBuffer;
@@ -224,12 +224,12 @@ float4 PSMain(VSOutput input) : SV_TARGET
         if (!textureBindings.TryGetValue(texture, out ImTextureID textureID))
         {
             ulong id = 0;
-            while (imResourceTables.ContainsKey(id))
+            while (resourceTableBindings.ContainsKey(id))
             {
                 id++;
             }
 
-            imResourceTables[textureBindings[texture] = textureID = id] = Context.CreateResourceTable(new()
+            resourceTableBindings[textureBindings[texture] = textureID = id] = Context.CreateResourceTable(new()
             {
                 Layout = resourceLayout,
                 Resources = [constants, texture, sampler]
@@ -244,12 +244,12 @@ float4 PSMain(VSOutput input) : SV_TARGET
         if (!textureViewBindings.TryGetValue(textureView, out ImTextureID textureID))
         {
             ulong id = 0;
-            while (imResourceTables.ContainsKey(id))
+            while (resourceTableBindings.ContainsKey(id))
             {
                 id++;
             }
 
-            imResourceTables[textureViewBindings[textureView] = textureID = id] = Context.CreateResourceTable(new()
+            resourceTableBindings[textureViewBindings[textureView] = textureID = id] = Context.CreateResourceTable(new()
             {
                 Layout = resourceLayout,
                 Resources = [constants, textureView, sampler]
@@ -257,24 +257,6 @@ float4 PSMain(VSOutput input) : SV_TARGET
         }
 
         return textureID;
-    }
-
-    public void RemoveBinding(ImTextureID textureID)
-    {
-        if (imResourceTables.Remove(textureID, out ResourceTable? resourceTable))
-        {
-            resourceTable.Dispose();
-        }
-
-        if (textureBindings.FirstOrDefault(kv => kv.Value == textureID).Key is Texture texture)
-        {
-            textureBindings.Remove(texture);
-        }
-
-        if (textureViewBindings.FirstOrDefault(kv => kv.Value == textureID).Key is TextureView textureView)
-        {
-            textureViewBindings.Remove(textureView);
-        }
     }
 
     public void Render(CommandBuffer commandBuffer, FrameBuffer frameBuffer, ClearValue clearValue, ImDrawDataPtr drawData)
@@ -325,13 +307,13 @@ float4 PSMain(VSOutput input) : SV_TARGET
                         textureData.SetTexID(Binding(texture));
                         textureData.SetStatus(ImTextureStatus.Ok);
 
-                        imTextures[textureData.TexID] = texture;
+                        drawDataTextures[textureData.TexID] = texture;
                     }
                     break;
 
                 case ImTextureStatus.WantUpdates:
                     {
-                        if (imTextures.TryGetValue(textureData.TexID, out Texture? texture))
+                        if (drawDataTextures.TryGetValue(textureData.TexID, out Texture? texture))
                         {
                             for (int j = 0; j < textureData.Updates.Size; j++)
                             {
@@ -373,9 +355,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
 
                 case ImTextureStatus.WantDestroy:
                     {
-                        RemoveBinding(textureData.TexID);
-
-                        if (imTextures.Remove(textureData.TexID, out Texture? texture))
+                        if (drawDataTextures.Remove(textureData.TexID, out Texture? texture))
                         {
                             texture.Dispose();
                         }
@@ -386,6 +366,8 @@ float4 PSMain(VSOutput input) : SV_TARGET
                     break;
             }
         }
+
+        RemoveDestroyedBindings();
 
         uint totalVertexSizeInBytes = (uint)(sizeof(ImDrawVert) * (int)(drawData.TotalVtxCount * 1.2));
         if (vertexBuffer is null || vertexBuffer.Desc.SizeInBytes < totalVertexSizeInBytes)
@@ -438,7 +420,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
 
         commandBuffer.BeginDebugEvent("ImGui");
 
-        commandBuffer.BeginRenderPass(frameBuffer, clearValue, imResourceTables.Values);
+        commandBuffer.BeginRenderPass(frameBuffer, clearValue, resourceTableBindings.Values);
 
         commandBuffer.SetPipeline(graphicsPipeline);
         commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
@@ -474,7 +456,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
                     }
 
                     commandBuffer.SetScissors([scissor]);
-                    commandBuffer.SetResourceTable(imResourceTables[drawCmd.TexRef.GetTexID()]);
+                    commandBuffer.SetResourceTable(resourceTableBindings[drawCmd.TexRef.GetTexID()]);
                     commandBuffer.DrawIndexed(drawCmd.ElemCount, 1, (uint)(drawCmd.IdxOffset + indexOffset), (int)(drawCmd.VtxOffset + vertexOffset), 0);
                 }
             }
@@ -493,17 +475,17 @@ float4 PSMain(VSOutput input) : SV_TARGET
         indexBuffer?.Dispose();
         vertexBuffer?.Dispose();
 
-        foreach (ResourceTable resourceTable in imResourceTables.Values)
-        {
-            resourceTable.Dispose();
-        }
-        imResourceTables.Clear();
-
-        foreach (Texture texture in imTextures.Values)
+        foreach (Texture texture in drawDataTextures.Values)
         {
             texture.Dispose();
         }
-        imTextures.Clear();
+        drawDataTextures.Clear();
+
+        foreach (ResourceTable resourceTable in resourceTableBindings.Values)
+        {
+            resourceTable.Dispose();
+        }
+        resourceTableBindings.Clear();
 
         textureViewBindings.Clear();
         textureBindings.Clear();
@@ -511,6 +493,42 @@ float4 PSMain(VSOutput input) : SV_TARGET
         resourceLayout.Dispose();
         sampler.Dispose();
         constants.Dispose();
+    }
+
+    private void RemoveDestroyedBindings()
+    {
+        ImTextureID[] destroyedTextureIDs = [.. resourceTableBindings.Keys.Where(textureID =>
+        {
+            if (textureBindings.FirstOrDefault(kv => kv.Value == textureID).Key is Texture texture)
+            {
+                return texture.IsDisposed;
+            }
+
+            if (textureViewBindings.FirstOrDefault(kv => kv.Value == textureID).Key is TextureView textureView)
+            {
+                return textureView.IsDisposed;
+            }
+
+            return false;
+        })];
+
+        foreach (ImTextureID textureID in destroyedTextureIDs)
+        {
+            if (resourceTableBindings.Remove(textureID, out ResourceTable? resourceTable))
+            {
+                resourceTable.Dispose();
+            }
+
+            if (textureBindings.FirstOrDefault(kv => kv.Value == textureID).Key is Texture texture)
+            {
+                textureBindings.Remove(texture);
+            }
+
+            if (textureViewBindings.FirstOrDefault(kv => kv.Value == textureID).Key is TextureView textureView)
+            {
+                textureViewBindings.Remove(textureView);
+            }
+        }
     }
 }
 
