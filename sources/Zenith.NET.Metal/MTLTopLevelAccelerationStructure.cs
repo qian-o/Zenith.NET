@@ -82,5 +82,25 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
 
     private void FillInstanceBuffer(TopLevelAccelerationStructureDesc desc)
     {
+        uint instanceCount = (uint)desc.Instances.Length;
+
+        MappedMemory mappedMemory = InstanceBuffer.Map();
+
+        MTLIndirectAccelerationStructureInstanceDescriptor* instances = (MTLIndirectAccelerationStructureInstanceDescriptor*)mappedMemory.Pointer;
+        for (uint i = 0; i < instanceCount; i++)
+        {
+            RayTracingInstance instance = desc.Instances[i];
+
+            instances[i] = new()
+            {
+                TransformationMatrix = *(MTLPackedFloat4x3*)&instance.Transform,
+                Options = MTLFormats.Metal(instance.Flags),
+                Mask = instance.InstanceMask,
+                UserID = instance.InstanceID,
+                AccelerationStructureID = instance.AccelerationStructure.Metal().AccelerationStructure.GpuResourceID
+            };
+        }
+
+        InstanceBuffer.Unmap();
     }
 }

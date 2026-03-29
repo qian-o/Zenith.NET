@@ -478,4 +478,31 @@ internal static class MTLFormats
 
         return result;
     }
+
+    public static MTLAccelerationStructureInstanceOptions Metal(RayTracingInstanceFlags rayTracingInstanceFlags)
+    {
+        MTLAccelerationStructureInstanceOptions result = MTLAccelerationStructureInstanceOptions.None;
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.TriangleCullDisable))
+        {
+            result |= MTLAccelerationStructureInstanceOptions.DisableTriangleCulling;
+        }
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.TriangleFrontCounterClockwise))
+        {
+            result |= MTLAccelerationStructureInstanceOptions.TriangleFrontFacingWindingCounterClockwise;
+        }
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.ForceOpaque))
+        {
+            result |= MTLAccelerationStructureInstanceOptions.Opaque;
+        }
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.ForceNoOpaque))
+        {
+            result |= MTLAccelerationStructureInstanceOptions.NonOpaque;
+        }
+
+        return result;
+    }
 }
