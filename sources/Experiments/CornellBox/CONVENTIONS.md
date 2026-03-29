@@ -11,7 +11,7 @@ Two rendering modes switchable via ImGui radio buttons at runtime:
 ## Current State (2026-03-29)
 
 - All files implemented and compiling successfully
-- DX12 validation layer clean (added empty clear pass before rendering to initialize swap chain subresources)
+- DX12 validation layer clean
 - Camera initial position: (278, 273, -800), Speed=240, FarPlane=2000, looks into the box
 - Swap chain format: B8G8R8A8UNorm color + D32FloatS8UInt depth/stencil
 - `IRenderer` interface unifies both renderers (`Update` / `Render` / `Resize` + `IDisposable`)
@@ -22,8 +22,8 @@ Two rendering modes switchable via ImGui radio buttons at runtime:
 1. `imGui.Update()` → `camera.Update()` → `activeRenderer.Update(camera)`
 2. ImGui window: backend info, render mode radio buttons, SPP counter (path tracing only), FPS
 3. Create `CommandBuffer`
-4. `imGui.Render(commandBuffer, swapChain.FrameBuffer, ClearValues.Default)` — ImGui 负责 clear swap chain 并渲染 UI
-5. `activeRenderer.Render(commandBuffer)` — 渲染器写入自身 Color texture，ImGui 通过 `AddImage` 显示
+4. `imGui.Render(commandBuffer, swapChain.FrameBuffer, ClearValues.Default)` — ImGui clears swap chain and renders UI overlay
+5. `activeRenderer.Render(commandBuffer)` — renderer writes to its own Color texture, displayed via ImGui `AddImage`
 6. `commandBuffer.Submit(true)` → `swapChain.Present()`
 
 ### Disposal Order
@@ -93,7 +93,7 @@ struct CameraParams
 
     float4x4 InvProjection;
 
-    float4 PositionAndPadding;
+    private float4 PositionAndPadding;
 
     uint FrameCount;
 
@@ -313,6 +313,8 @@ resourceLayout = App.Context.CreateResourceLayout(new()
         new() { Type = ResourceType.AccelerationStructure, Count = 1, StageFlags = ShaderStageFlags.Compute },
         new() { Type = ResourceType.ConstantBuffer,        Count = 1, StageFlags = ShaderStageFlags.Compute },
         new() { Type = ResourceType.StructuredBuffer,      Count = 1, StageFlags = ShaderStageFlags.Compute },
+        new() { Type = ResourceType.StructuredBuffer,      Count = 1, StageFlags = ShaderStageFlags.Compute },
+        new() { Type = ResourceType.StructuredBuffer,      Count = 1, StageFlags = ShaderStageFlags.Compute },
         new() { Type = ResourceType.TextureReadWrite,      Count = 1, StageFlags = ShaderStageFlags.Compute },
         new() { Type = ResourceType.TextureReadWrite,      Count = 1, StageFlags = ShaderStageFlags.Compute }
     )
@@ -358,19 +360,27 @@ Declaration order in ResourceLayout Bindings = declaration order in shader = res
 Bindings = BindingHelper.Bindings(
     new() { Type = ResourceType.AccelerationStructure, ... },  // [0] scene
     new() { Type = ResourceType.ConstantBuffer, ... },         // [1] camera
-    new() { Type = ResourceType.StructuredBuffer, ... },       // [2] materials
+    new() { Type = ResourceType.StructuredBuffer, ... },       // [2] vertices
+    new() { Type = ResourceType.StructuredBuffer, ... },       // [3] indices
+    new() { Type = ResourceType.StructuredBuffer, ... },       // [4] materials
+    new() { Type = ResourceType.TextureReadWrite, ... },       // [5] accumTexture
+    new() { Type = ResourceType.TextureReadWrite, ... },       // [6] outputTexture
 );
 
 // Shader declares in same order:
 // RaytracingAccelerationStructure scene;
 // ConstantBuffer<CameraParams> camera;
+// StructuredBuffer<Vertex> vertices;
+// StructuredBuffer<uint> indices;
 // StructuredBuffer<Material> materials;
+// RWTexture2D<float4> accumTexture;
+// RWTexture2D<float4> outputTexture;
 
 // ResourceTable passes in same order
 resourceTable = App.Context.CreateResourceTable(new()
 {
     Layout = resourceLayout,
-    Resources = [tlas, cameraBuffer, materialBuffer]
+    Resources = [tlas, cameraBuffer, vertexBuffer, indexBuffer, materialBuffer, accumTexture, Color]
 });
 ```
 
@@ -378,18 +388,15 @@ resourceTable = App.Context.CreateResourceTable(new()
 
 ## Render Loop Patterns
 
-### Compute Output → SwapChain
+### Compute Output → Color Texture
 
 ```csharp
 cmd.SetPipeline(computePipeline);
 cmd.SetResourceTable(resourceTable);
 cmd.Dispatch(dispatchX, dispatchY, 1);
-
-Texture colorTarget = App.SwapChain.FrameBuffer.Desc.ColorAttachments[0].Target;
-cmd.CopyTexture(outputTexture, default, default,
-                colorTarget, default, default,
-                new() { Width = w, Height = h, Depth = 1 });
 ```
+
+The compute shader writes directly to the base class `Color` texture (bound as `outputTexture` UAV in the ResourceTable). No `CopyTexture` needed — ImGui displays it via `AddImage`.
 
 ### Graphics RenderPass → SwapChain
 
@@ -412,21 +419,23 @@ cmd.EndRenderPass();
 
 Resources to rebuild on size change:
 
-- Texture (outputTexture, accumulationTexture)
+- Texture (accumulationTexture)
 - ResourceTable (references Texture)
-- Reset path tracing frameCount to 0
+- Reset path tracing FrameCount to 0
 
 No rebuild needed: Buffer, Pipeline, ResourceLayout, acceleration structures.
 
 ```csharp
 public void Resize(uint width, uint height)
 {
+    base.Resize(width, height);  // recreates Color + DepthStencil + FrameBuffer
+
     resourceTable?.Dispose();
     resourceTable = null;
-    outputTexture?.Dispose();
-    outputTexture = null;
     accumulationTexture?.Dispose();
     accumulationTexture = null;
+
+    FrameCount = 0;
     // Lazy rebuild on next Render call
 }
 ```
@@ -437,7 +446,7 @@ Release in reverse creation order — downstream first, upstream last:
 
 ```
 ResourceTable → Pipeline → ResourceLayout
-→ Texture (output / accumulation)
+→ Texture (accumulation)
 → TLAS → BLAS[]
 → Buffer (camera / material / index / vertex)
 ```
@@ -739,7 +748,6 @@ base (FrameBuffer + DepthStencil + Color)
 
 ## DX12 Specific Notes
 
-- Swap chain subresources must be initialized before use → empty clear pass `BeginRenderPass(fb, ClearValues.Default)` + `EndRenderPass()` before rendering
 - `BindingHelper` assigns DX12 register indices by type: CBV(b), SRV(t), UAV(u), Sampler(s) independently numbered
 - Vulkan numbers all bindings sequentially; Metal uses argument buffer index
 
