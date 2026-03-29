@@ -91,7 +91,7 @@ internal class MTLBottomLevelAccelerationStructure : BottomLevelAccelerationStru
             Flags = BufferUsageFlags.ShaderResource
         });
 
-        commandBuffer.CommandEncoder.Compute?.Build(AccelerationStructure, descriptor, new(ScratchBuffer.Buffer.GpuAddress, sizes.BuildScratchBufferSize));
+        commandBuffer.CommandEncoder.Compute?.Build(AccelerationStructure, descriptor, new(ScratchBuffer.Buffer.GpuAddress, ScratchBuffer.Desc.SizeInBytes));
         commandBuffer.CommandEncoder.Compute?.BarrierAfterStages(MTLStages.AccelerationStructure, MTLStages.AccelerationStructure, MTL4VisibilityOptions.Device);
     }
 

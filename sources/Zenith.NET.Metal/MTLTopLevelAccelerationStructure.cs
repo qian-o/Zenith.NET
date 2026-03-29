@@ -2,13 +2,47 @@
 
 namespace Zenith.NET.Metal;
 
-internal class MTLTopLevelAccelerationStructure : TopLevelAccelerationStructure
+internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStructure
 {
     public MTLAccelerationStructure AccelerationStructure;
 
-    public MTLTopLevelAccelerationStructure(GraphicsContext context, TopLevelAccelerationStructureDesc desc, MTLCommandBuffer commandBuffer) : base(context, desc)
+    public MTLTopLevelAccelerationStructure(MTLGraphicsContext context, TopLevelAccelerationStructureDesc desc, MTLCommandBuffer commandBuffer) : base(context, desc)
     {
-        throw new NotImplementedException();
+        uint instanceCount = (uint)desc.Instances.Length;
+
+        InstanceBuffer = new(context, new()
+        {
+            SizeInBytes = (uint)(sizeof(MTLIndirectAccelerationStructureInstanceDescriptor) * instanceCount),
+            StrideInBytes = (uint)sizeof(MTLIndirectAccelerationStructureInstanceDescriptor),
+            Flags = BufferUsageFlags.MapWrite
+        });
+
+        FillInstanceBuffer(desc);
+
+        MTL4InstanceAccelerationStructureDescriptor descriptor = new()
+        {
+            InstanceDescriptorBuffer = new(InstanceBuffer.Metal().GpuAddress, InstanceBuffer.Desc.SizeInBytes),
+            InstanceDescriptorStride = (uint)sizeof(MTLIndirectAccelerationStructureInstanceDescriptor),
+            InstanceCount = instanceCount,
+            InstanceDescriptorType = MTLAccelerationStructureInstanceDescriptorType.Indirect,
+            InstanceTransformationMatrixLayout = MTLMatrixLayout.RowMajor,
+            Usage = MTLFormats.Metal(desc.Flags)
+        };
+
+        MTLAccelerationStructureSizes sizes = context.Device.AccelerationStructureSizes(descriptor);
+
+        AccelerationStructure = context.Device.MakeAccelerationStructure(sizes.AccelerationStructureSize);
+        context.AddAllocation(AccelerationStructure);
+
+        ScratchBuffer = new(context, new()
+        {
+            SizeInBytes = (uint)sizes.BuildScratchBufferSize,
+            StrideInBytes = (uint)sizes.BuildScratchBufferSize,
+            Flags = BufferUsageFlags.ShaderResource
+        });
+
+        commandBuffer.CommandEncoder.Compute?.Build(AccelerationStructure, descriptor, new(ScratchBuffer.Buffer.GpuAddress, ScratchBuffer.Desc.SizeInBytes));
+        commandBuffer.CommandEncoder.Compute?.BarrierAfterStages(MTLStages.AccelerationStructure, MTLStages.Fragment | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
     }
 
     public MTLBuffer InstanceBuffer { get; }
@@ -17,7 +51,20 @@ internal class MTLTopLevelAccelerationStructure : TopLevelAccelerationStructure
 
     public void Update(MTLCommandBuffer commandBuffer, TopLevelAccelerationStructureDesc newDesc)
     {
-        throw new NotImplementedException();
+        FillInstanceBuffer(newDesc);
+
+        MTL4InstanceAccelerationStructureDescriptor descriptor = new()
+        {
+            InstanceDescriptorBuffer = new(InstanceBuffer.Metal().GpuAddress, InstanceBuffer.Desc.SizeInBytes),
+            InstanceDescriptorStride = (uint)sizeof(MTLIndirectAccelerationStructureInstanceDescriptor),
+            InstanceCount = (uint)newDesc.Instances.Length,
+            InstanceDescriptorType = MTLAccelerationStructureInstanceDescriptorType.Indirect,
+            InstanceTransformationMatrixLayout = MTLMatrixLayout.RowMajor,
+            Usage = MTLFormats.Metal(newDesc.Flags)
+        };
+
+        commandBuffer.CommandEncoder.Compute?.Refit(AccelerationStructure, descriptor, AccelerationStructure, new(ScratchBuffer.Buffer.GpuAddress, ScratchBuffer.Desc.SizeInBytes));
+        commandBuffer.CommandEncoder.Compute?.BarrierAfterStages(MTLStages.AccelerationStructure, MTLStages.Fragment | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
     }
 
     protected override void SetResourceName(string name)
@@ -31,5 +78,9 @@ internal class MTLTopLevelAccelerationStructure : TopLevelAccelerationStructure
 
         ScratchBuffer.Dispose();
         InstanceBuffer.Dispose();
+    }
+
+    private void FillInstanceBuffer(TopLevelAccelerationStructureDesc desc)
+    {
     }
 }
