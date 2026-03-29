@@ -118,7 +118,7 @@ internal static class App
                 return;
             }
 
-            ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(activeRenderer.Color), new Vector2(0, 0), new Vector2(Width, Height));
+            ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(activeRenderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
 
             ImGui.SetNextWindowPos(new(10, 10), ImGuiCond.FirstUseEver);
             if (ImGui.Begin("Cornell Box", ImGuiWindowFlags.AlwaysAutoResize))

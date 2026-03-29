@@ -42,7 +42,7 @@ internal abstract class Renderer : IDisposable
         DepthStencil = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
-            Format = PixelFormat.D24UNormS8UInt,
+            Format = PixelFormat.D32FloatS8UInt,
             Width = width,
             Height = height,
             Depth = 1,
