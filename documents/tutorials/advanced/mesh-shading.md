@@ -129,30 +129,30 @@ internal unsafe class MeshShadingRenderer : IRenderer
         [shader("mesh")]
         [numthreads(MaxPrimitives, 1, 1)]
         [outputtopology("triangle")]
-        void MSMain(in uint groupId : SV_GroupID,
-                    in uint groupThreadId : SV_GroupThreadID,
+        void MSMain(in uint groupID : SV_GroupID,
+                    in uint groupThreadID : SV_GroupThreadID,
                     OutputVertices<VertexOutput, MaxVertices> outVertices,
                     OutputIndices<uint3, MaxPrimitives> outIndices)
         {
-            Meshlet meshlet = meshlets[groupId];
+            Meshlet meshlet = meshlets[groupID];
 
             SetMeshOutputCounts(meshlet.VertexCount, meshlet.PrimitiveCount);
 
-            if (groupThreadId < meshlet.VertexCount)
+            if (groupThreadID < meshlet.VertexCount)
             {
-                Vertex vertex = vertices[meshlet.VertexOffset + groupThreadId];
+                Vertex vertex = vertices[meshlet.VertexOffset + groupThreadID];
 
                 VertexOutput output;
                 output.Position = mul(float4(vertex.Position, 1.0), transform.MVP);
                 output.Normal = vertex.Normal;
                 output.TexCoord = vertex.TexCoord;
 
-                outVertices[groupThreadId] = output;
+                outVertices[groupThreadID] = output;
             }
 
-            if (groupThreadId < meshlet.PrimitiveCount)
+            if (groupThreadID < meshlet.PrimitiveCount)
             {
-                outIndices[groupThreadId] = indices[meshlet.PrimitiveOffset + groupThreadId].Indices;
+                outIndices[groupThreadID] = indices[meshlet.PrimitiveOffset + groupThreadID].Indices;
             }
         }
 
@@ -514,8 +514,8 @@ Each meshlet describes a chunk of geometry:
 [shader("mesh")]
 [numthreads(MaxPrimitives, 1, 1)]
 [outputtopology("triangle")]
-void MSMain(in uint groupId : SV_GroupID,
-            in uint groupThreadId : SV_GroupThreadID,
+void MSMain(in uint groupID : SV_GroupID,
+            in uint groupThreadID : SV_GroupThreadID,
             OutputVertices<VertexOutput, MaxVertices> outVertices,
             OutputIndices<uint3, MaxPrimitives> outIndices)
 ```
@@ -586,8 +586,8 @@ struct AmplificationPayload
 
 [shader("amplification")]
 [numthreads(32, 1, 1)]
-void ASMain(in uint groupId : SV_GroupID,
-            in uint groupThreadId : SV_GroupThreadID)
+void ASMain(in uint groupID : SV_GroupID,
+            in uint groupThreadID : SV_GroupThreadID)
 {
     // Frustum culling, LOD selection, etc.
     bool visible = /* culling logic */;
@@ -595,7 +595,7 @@ void ASMain(in uint groupId : SV_GroupID,
     if (visible)
     {
         AmplificationPayload payload;
-        payload.MeshletIndices[groupThreadId] = groupId * 32 + groupThreadId;
+        payload.MeshletIndices[groupThreadID] = groupID * 32 + groupThreadID;
 
         // Dispatch mesh shading workgroups
         DispatchMesh(visibleCount, 1, 1, payload);
