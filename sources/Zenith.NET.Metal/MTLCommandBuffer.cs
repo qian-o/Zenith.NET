@@ -12,7 +12,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     public MTLCommandBuffer(MTLGraphicsContext context, CommandQueue queue) : base(context, queue)
     {
         CommandAllocator = context.Device.MakeCommandAllocator();
-        CommandBuffer = NSAutoreleasePool.Run(() => context.Device.MakeCommandBuffer().Retain());
+        CommandBuffer = NSAutorelease.Retain(context.Device.MakeCommandBuffer);
 
         CommandEncoder = new(context, CommandBuffer);
     }
