@@ -777,9 +777,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 return;
             }
 
-            if (rayTracingInstance.ID > ValidationConstants.MaxInstanceId)
+            if (rayTracingInstance.ID > ValidationConstants.MaxRayTracingInstanceID)
             {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, $"{name}.ID", ValidationConstants.MaxInstanceId));
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, $"{name}.ID", ValidationConstants.MaxRayTracingInstanceID));
             }
         }
     }
@@ -934,7 +934,7 @@ file static class ValidationConstants
 
     public const int IndexSizeUInt32 = 4;
 
-    public const int MaxInstanceId = 16777215;
+    public const int MaxRayTracingInstanceID = 16777215;
 }
 
 file static class ValidationMessages
