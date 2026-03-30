@@ -5,16 +5,16 @@
 A dual-mode Cornell Box renderer built on the Zenith.NET multi-backend GPU framework (DirectX12 / Vulkan / Metal).
 Two rendering modes switchable via ImGui radio buttons at runtime:
 
-- **Path Tracing** (mode 0): `ComputePipeline` + inline `RayQuery<>`, progressive accumulation with NEE (Next Event Estimation), cosine-weighted hemisphere sampling, Russian roulette. Only available when `Context.Capabilities.RayTracingSupported` is true.
-- **Rasterization** (mode 1): `GraphicsPipeline` + Blinn-Phong lighting, point light at ceiling, Reinhard tonemapping for emissive surfaces. Always available as fallback.
+- **Path Tracing** (mode 0): `ComputePipeline` + inline `RayQuery<>`, progressive accumulation with NEE (Next Event Estimation), Cook-Torrance PBR BRDF (GGX + Schlick Fresnel + Smith G), GGX importance sampling for specular, cosine-weighted hemisphere for diffuse, Russian roulette, environment sky light on ray miss. Only available when `Context.Capabilities.RayTracingSupported` is true.
+- **Rasterization** (mode 1): `GraphicsPipeline` + Blinn-Phong lighting, point light at ceiling, hemisphere ambient, ACES tonemapping. Always available as fallback.
 
-## Current State (2026-03-29)
+## Current State (2026-03-30)
 
 - All files implemented and compiling successfully
 - DX12 validation layer clean
 - Camera initial position: (278, 273, -800), Speed=240, FarPlane=2000, looks into the box
 - Swap chain format: B8G8R8A8UNorm color + D32FloatS8UInt depth/stencil
-- `IRenderer` interface unifies both renderers (`Update` / `Render` / `Resize` + `IDisposable`)
+- `Renderer` abstract base class unifies both renderers (`Update` / `Render` / `Resize` + `IDisposable`)
 - `activeRenderer` field in App.cs dispatches calls polymorphically
 
 ### Render Loop (App.cs)
@@ -38,8 +38,8 @@ CornellBox/
 ├── Program.cs                          # Entry point
 ├── CONVENTIONS.md                      # This file
 ├── Renderers/
-│   ├── IRenderer.cs                    # Interface: Update / Render / Resize + IDisposable
-│   ├── PathTracingRenderer.cs          # ComputePipeline + RayQuery path tracing (NEE)
+│   ├── Renderer.cs                     # Abstract base class: Color / DepthStencil / FrameBuffer management
+│   ├── PathTracingRenderer.cs          # ComputePipeline + RayQuery path tracing (NEE + PBR BRDF)
 │   └── RasterizationRenderer.cs        # GraphicsPipeline + Blinn-Phong
 ├── Handlers/
 │   ├── CameraHandler.cs               # 6DOF camera (WASD+QE, right-click mouselook)
@@ -413,7 +413,7 @@ The compute shader writes directly to the base class `Color` texture (bound as `
 ```csharp
 cmd.BeginRenderPass(App.SwapChain.FrameBuffer, new()
 {
-    ColorValues = [new(0, 0, 0, 1)],
+    ColorValues = [new(0.51f, 0.518f, 0.557f, 1)],
     Depth = 1.0f, Stencil = 0,
     Flags = ClearFlags.All
 });
@@ -465,11 +465,11 @@ ResourceTable → Pipeline → ResourceLayout
 
 - Coordinate range 0~560 (standard Cornell Box specification)
 - 16 quads (64 vertices, 96 indices): 5 walls + 5 short block faces + 5 tall block faces + 1 light
-- 4 material groups: 0=red left wall, 1=green right wall, 2=white surfaces (ceiling/floor/back wall/two blocks), 3=light
+- 6 material groups: 0=red left wall, 1=green right wall, 2=white surfaces (ceiling/floor/back wall), 3=light, 4=short block (smooth diffuse), 5=tall block (metallic mirror)
 - Each quad → 4 vertices + 6 indices (2 triangles)
 - Normals auto-computed via `normalize(cross(v1-v0, v2-v0))`
 - Material ID stored in `Vertex.MaterialID` (C#), packed into `NormalAndMaterialID.w` on GPU via `FieldOffset(28)` overlapping the `float4` w-component
-- Material colors: red(0.63,0.06,0.06), green(0.14,0.45,0.09), white(0.73,0.71,0.68), light(1.0,0.85,0.6)+emission=15
+- Material colors: red(0.63,0.06,0.06), green(0.14,0.45,0.09), white(0.73,0.71,0.68), light(1.0,0.85,0.6)+emission=25, short block(0.73,0.71,0.68)+roughness=0.3, tall block(0.95,0.93,0.88)+metallic=1.0+roughness=0.05
 
 ### Shared Data Types
 
@@ -488,8 +488,8 @@ internal struct Vertex
     public uint MaterialID;
 }
 
-// 16 bytes
-[StructLayout(LayoutKind.Explicit, Size = 16)]
+// 32 bytes — PBR material with metallic/roughness
+[StructLayout(LayoutKind.Explicit, Size = 32)]
 internal struct Material
 {
     [FieldOffset(0)]
@@ -497,6 +497,12 @@ internal struct Material
 
     [FieldOffset(12)]
     public float Emission;
+
+    [FieldOffset(16)]
+    public float Metallic;
+
+    [FieldOffset(20)]
+    public float Roughness;
 }
 ```
 
@@ -527,9 +533,11 @@ internal abstract class Renderer : IDisposable
 
 - **Pipeline**: `ComputePipeline` with `[numthreads(16,16,1)]`, entry point `CSMain`
 - **Shader**: Inline Slang raw string literal
-- **Algorithm**: 5-bounce path tracing + NEE (Next Event Estimation) + Russian roulette (bounce ≥ 2)
+- **Algorithm**: 8-bounce path tracing + NEE (Next Event Estimation) + Cook-Torrance PBR BRDF + Russian roulette (bounce ≥ 2)
 - **Accumulation**: R32G32B32A32Float UAV texture, progressive average with jittered subpixel sampling
-- **Output**: Gamma-corrected (`pow(avg, 1/2.2)`) to `Color` texture (base class, B8G8R8A8UNorm)
+- **Tonemapping**: ACES filmic + gamma correction
+- **Environment**: Gradient sky light on ray miss (warm ground → cool sky)
+- **Output**: Tonemapped + gamma-corrected to `Color` texture (base class, B8G8R8A8UNorm)
 
 ### Shader Structs
 
@@ -547,7 +555,7 @@ struct CameraParams     // ConstantBuffer — float4x4 × 2, private float4 Posi
 | 1 | ConstantBuffer | `camera` | CameraParams (160B) |
 | 2 | StructuredBuffer | `vertices` | Vertex[] (32B stride) |
 | 3 | StructuredBuffer | `indices` | uint[] |
-| 4 | StructuredBuffer | `materials` | Material[] (16B stride) |
+| 4 | StructuredBuffer | `materials` | Material[] (32B stride) |
 | 5 | TextureReadWrite | `accumTexture` | R32G32B32A32Float accumulation buffer |
 | 6 | TextureReadWrite | `outputTexture` | Base class `Color` texture (compute write target) |
 
@@ -559,21 +567,30 @@ struct CameraParams     // ConstantBuffer — float4x4 × 2, private float4 Posi
 | `randomFloat(inout uint)` | Returns [0,1) float, advances seed |
 | `cosineSampleHemisphere(float3, inout uint)` | Cosine-weighted hemisphere sampling around normal |
 | `traceShadowRay(float3, float3, float)` | Shadow ray test using `RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH>` |
-| `sampleLightDirect(float3, float3, float3, inout uint)` | NEE: uniform sample on ceiling light quad, Lambertian BRDF, geometry term |
-| `tracePath(float3, float3, inout uint)` | Main path tracing loop (5 bounces max) |
-| `CSMain(uint3)` | Entry point: generate ray, trace, accumulate, gamma-correct |
+| `sampleLightDirect(float3, float3, float3, Material, inout uint)` | NEE: uniform sample on ceiling light quad, Cook-Torrance BRDF, geometry term |
+| `DistributionGGX(float, float)` | GGX normal distribution function |
+| `GeometrySchlickGGX(float, float)` | Schlick-GGX geometry sub-function |
+| `GeometrySmith(float, float, float)` | Smith geometry function (combined) |
+| `FresnelSchlick(float, float3)` | Schlick Fresnel approximation |
+| `evaluateBRDF(float3, float3, float3, Material)` | Full Cook-Torrance BRDF evaluation (diffuse + specular) |
+| `sampleGGXHalfVector(float3, float, inout uint)` | GGX importance sampling for specular half-vector |
+| `tracePath(float3, float3, inout uint)` | Main path tracing loop (8 bounces max) |
+| `CSMain(uint3)` | Entry point: generate ray, trace, accumulate, ACES tonemap, gamma-correct |
 
 ### Path Tracing Algorithm (`tracePath`)
 
-1. For each bounce (max 5):
+1. For each bounce (max 8):
    - Trace primary ray via `RayQuery<RAY_FLAG_NONE>`
-   - On miss → break
+   - On miss → add environment sky contribution (`lerp` warm ground to cool sky based on `direction.y`) → break
    - Compute hit position, interpolate normal via barycentric weights from index/vertex buffers
    - Flip normal if back-facing (`dot(normal, direction) > 0`)
    - If emissive material: accumulate emission on bounce 0 only, then break (prevents double-counting with NEE)
-   - Non-emissive: add NEE contribution via `sampleLightDirect()`
-   - Sample new direction via `cosineSampleHemisphere()`, multiply throughput by albedo
+   - Non-emissive: add NEE contribution via `sampleLightDirect()` using Cook-Torrance BRDF
+   - Probabilistic BRDF sampling: compute `specProb` from F0 and metallic, then:
+     - With probability `specProb`: GGX importance sample half-vector → reflect → specular throughput (clamped to 10)
+     - Otherwise: cosine-weighted hemisphere → diffuse throughput
    - Russian roulette (bounce ≥ 2): survival probability = max component of throughput
+   - Per-sample radiance clamped to 30 to suppress fireflies
 
 ### Light Constants (hardcoded)
 
@@ -596,6 +613,7 @@ static const float3 LightNormal = float3(0.0, -1.0, 0.0);
 - `FrameCount == 0`: overwrite `accumTexture` with new sample
 - `FrameCount > 0`: add to existing accumulation
 - Running average: `accumulated.rgb / (FrameCount + 1)`
+- ACES tonemapping: `saturate((x * (2.51x + 0.03)) / (x * (2.43x + 0.59) + 0.14))`
 - Gamma correction: `pow(avg, 1/2.2)` → `outputTexture`
 
 ### Camera Change Detection
@@ -655,7 +673,7 @@ base (FrameBuffer + DepthStencil + Color)
 
 - **Pipeline**: `GraphicsPipeline` with Vertex + Pixel shaders, entry points `VSMain` / `PSMain`
 - **Shader**: Inline Slang raw string literal
-- **Algorithm**: Blinn-Phong shading with point light
+- **Algorithm**: Blinn-Phong shading with point light, hemisphere ambient, ACES tonemapping
 - **Output**: Renders directly to `FrameBuffer` (base class) via render pass
 
 ### Shader Structs
@@ -672,7 +690,7 @@ struct PSInput          // Interpolated — float4 Position, float3 WorldPos, fl
 | Index | Type | Shader Variable | Stages | Description |
 |-------|------|-----------------|--------|-------------|
 | 0 | ConstantBuffer | `cb` | Vertex + Pixel | RasterConstants (240B) |
-| 1 | StructuredBuffer | `materials` | Pixel | Material[] (16B stride) |
+| 1 | StructuredBuffer | `materials` | Pixel | Material[] (32B stride) |
 
 ### Vertex Shader (`VSMain`)
 
@@ -685,17 +703,18 @@ struct PSInput          // Interpolated — float4 Position, float3 WorldPos, fl
 
 1. **Emissive check**: if `mat.Emission > 0` → Reinhard tonemapping: `color / (color + 1)` → gamma correct → return
 2. **Blinn-Phong**:
-   - Ambient: `albedo * 0.08`
+   - Hemisphere ambient: `albedo * lerp(0.06, 0.15, N.y * 0.5 + 0.5)` (brighter on upward-facing surfaces)
    - Diffuse: `albedo * lightColor * NdotL * atten`
    - Specular: `lightColor * pow(NdotH, 64) * atten * 0.1`
    - Distance attenuation: `1 / (1 + 0.000005 * dist²)`
-3. Gamma correction: `pow(color, 1/2.2)`
+3. ACES tonemapping: `saturate((x * (2.51x + 0.03)) / (x * (2.43x + 0.59) + 0.14))`
+4. Gamma correction: `pow(color, 1/2.2)`
 
 ### Light Configuration
 
 - Point light position: (278, 548, 280)
 - Light color: (2.0, 1.8, 1.4)
-- Ambient factor: 0.08
+- Ambient factor: hemisphere-based (0.06 bottom to 0.15 top)
 - Specular exponent: 64, weight: 0.1
 
 ### C# Side RasterConstants (240B)
@@ -741,7 +760,7 @@ cmd.DrawIndexed(indexCount, 1, 0, 0, 0);
 cmd.EndRenderPass();
 ```
 
-Clear values: color (0,0,0,1), depth 1.0, stencil 0, ClearFlags.All
+Clear values: color (0.51, 0.518, 0.557, 1) matching environment sky, depth 1.0, stencil 0, ClearFlags.All
 
 ### Resize / Lifecycle
 
