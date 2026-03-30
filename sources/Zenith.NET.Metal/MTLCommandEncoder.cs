@@ -66,7 +66,7 @@ internal class MTLCommandEncoder : GraphicsResource
 
     public void Begin()
     {
-        Compute = NSAutorelease.Retain(CommandBuffer.MakeComputeCommandEncoder);
+        Compute = NSAutorelease.Own(CommandBuffer.MakeComputeCommandEncoder);
     }
 
     public void End()
@@ -91,7 +91,7 @@ internal class MTLCommandEncoder : GraphicsResource
 
         descriptor.VisibilityResultBuffer = Buffer;
 
-        Render = NSAutorelease.Retain(CommandBuffer.MakeRenderCommandEncoder, descriptor);
+        Render = NSAutorelease.Own(CommandBuffer.MakeRenderCommandEncoder, descriptor);
         Render.WaitForFence(Fence, RenderStages);
 
         foreach (KeyValuePair<uint, QueryHeap> beginQuery in todoBeginQueries)
@@ -119,7 +119,7 @@ internal class MTLCommandEncoder : GraphicsResource
     {
         EndRender();
 
-        Compute = NSAutorelease.Retain(CommandBuffer.MakeComputeCommandEncoder);
+        Compute = NSAutorelease.Own(CommandBuffer.MakeComputeCommandEncoder);
         Compute.WaitForFence(Fence, ComputeStages);
 
         foreach (KeyValuePair<uint, QueryHeap> endQuery in todoEndQueries)

@@ -26,7 +26,7 @@ internal class MTLSwapChain : SwapChain
         Drawable.Present();
         Drawable.Dispose();
 
-        Drawable = NSAutorelease.Retain(Layer.NextDrawable);
+        Drawable = NSAutorelease.Own(Layer.NextDrawable);
     }
 
     protected override void ResizeImpl()
@@ -35,7 +35,7 @@ internal class MTLSwapChain : SwapChain
 
         Layer.DrawableSize = new(Desc.Surface.Width, Desc.Surface.Height);
 
-        Drawable = NSAutorelease.Retain(Layer.NextDrawable);
+        Drawable = NSAutorelease.Own(Layer.NextDrawable);
     }
 
     protected override void RefreshImpl()
@@ -66,7 +66,7 @@ internal class MTLSwapChain : SwapChain
             DrawableSize = new(Desc.Surface.Width, Desc.Surface.Height)
         };
 
-        Drawable = NSAutorelease.Retain(Layer.NextDrawable);
+        Drawable = NSAutorelease.Own(Layer.NextDrawable);
     }
 
     private void DestroySwapChain()
