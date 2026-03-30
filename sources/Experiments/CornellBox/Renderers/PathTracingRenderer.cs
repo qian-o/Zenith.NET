@@ -367,8 +367,8 @@ internal unsafe class PathTracingRenderer : Renderer
                 new()
                 {
                     AccelerationStructure = blas,
-                    InstanceID = 0,
-                    InstanceMask = 0xFF,
+                    ID = 0,
+                    Mask = 0xFF,
                     Transform = Matrix4x4.Identity,
                     Flags = RayTracingInstanceFlags.None
                 }

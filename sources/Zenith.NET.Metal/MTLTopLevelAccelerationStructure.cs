@@ -93,8 +93,8 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
             {
                 TransformationMatrix = *(MTLPackedFloat4x3*)&instance.Transform,
                 Options = MTLFormats.Metal(instance.Flags),
-                Mask = instance.InstanceMask,
-                UserID = instance.InstanceID,
+                Mask = instance.Mask,
+                UserID = instance.ID,
                 AccelerationStructureID = instance.AccelerationStructure.Metal().AccelerationStructure.GpuResourceID
             };
         }

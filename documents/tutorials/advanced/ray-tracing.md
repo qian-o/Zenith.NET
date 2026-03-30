@@ -386,16 +386,16 @@ internal unsafe class RayTracingRenderer : IRenderer
                 new()
                 {
                     AccelerationStructure = floorBlas,
-                    InstanceID = 0,
-                    InstanceMask = 0xFF,
+                    ID = 0,
+                    Mask = 0xFF,
                     Transform = Matrix4x4.Identity,
                     Flags = RayTracingInstanceFlags.None
                 },
                 new()
                 {
                     AccelerationStructure = sphereBlas,
-                    InstanceID = 1,
-                    InstanceMask = 0xFF,
+                    ID = 1,
+                    Mask = 0xFF,
                     Transform = Matrix4x4.Identity,
                     Flags = RayTracingInstanceFlags.None
                 }
@@ -614,16 +614,16 @@ tlas = buildCmd.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
         new()
         {
             AccelerationStructure = floorBlas,
-            InstanceID = 0,
-            InstanceMask = 0xFF,
+            ID = 0,
+            Mask = 0xFF,
             Transform = Matrix4x4.Identity,
             ...
         },
         new()
         {
             AccelerationStructure = sphereBlas,
-            InstanceID = 1,
-            InstanceMask = 0xFF,
+            ID = 1,
+            Mask = 0xFF,
             Transform = Matrix4x4.Identity,
             ...
         }

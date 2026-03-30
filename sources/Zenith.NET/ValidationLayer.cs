@@ -777,9 +777,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                 return;
             }
 
-            if (rayTracingInstance.InstanceID > ValidationConstants.MaxInstanceId)
+            if (rayTracingInstance.ID > ValidationConstants.MaxInstanceId)
             {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, $"{name}.InstanceID", ValidationConstants.MaxInstanceId));
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, $"{name}.ID", ValidationConstants.MaxInstanceId));
             }
         }
     }

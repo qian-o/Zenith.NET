@@ -130,8 +130,8 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
 
             instances[i] = new()
             {
-                InstanceID = instance.InstanceID,
-                InstanceMask = instance.InstanceMask,
+                InstanceID = instance.ID,
+                InstanceMask = instance.Mask,
                 Flags = (uint)DXFormats.DirectX12(instance.Flags),
                 AccelerationStructure = instance.AccelerationStructure.DirectX12().AccelerationStructureBuffer.GPUVirtualAddress
             };
