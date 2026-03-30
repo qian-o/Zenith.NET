@@ -56,18 +56,18 @@ internal static class CornellBoxGeometry
                 2);
 
         // 5-9: Short block
-        AddQuad(verticesList, indicesList, new(130.0f, 165.0f, 65.0f), new(82.0f, 165.0f, 225.0f), new(240.0f, 165.0f, 272.0f), new(290.0f, 165.0f, 114.0f), 2);
-        AddQuad(verticesList, indicesList, new(290.0f, 0.0f, 114.0f), new(290.0f, 165.0f, 114.0f), new(240.0f, 165.0f, 272.0f), new(240.0f, 0.0f, 272.0f), 2);
-        AddQuad(verticesList, indicesList, new(130.0f, 0.0f, 65.0f), new(130.0f, 165.0f, 65.0f), new(290.0f, 165.0f, 114.0f), new(290.0f, 0.0f, 114.0f), 2);
-        AddQuad(verticesList, indicesList, new(82.0f, 0.0f, 225.0f), new(82.0f, 165.0f, 225.0f), new(130.0f, 165.0f, 65.0f), new(130.0f, 0.0f, 65.0f), 2);
-        AddQuad(verticesList, indicesList, new(240.0f, 0.0f, 272.0f), new(240.0f, 165.0f, 272.0f), new(82.0f, 165.0f, 225.0f), new(82.0f, 0.0f, 225.0f), 2);
+        AddQuad(verticesList, indicesList, new(130.0f, 165.0f, 65.0f), new(82.0f, 165.0f, 225.0f), new(240.0f, 165.0f, 272.0f), new(290.0f, 165.0f, 114.0f), 4);
+        AddQuad(verticesList, indicesList, new(290.0f, 0.0f, 114.0f), new(290.0f, 165.0f, 114.0f), new(240.0f, 165.0f, 272.0f), new(240.0f, 0.0f, 272.0f), 4);
+        AddQuad(verticesList, indicesList, new(130.0f, 0.0f, 65.0f), new(130.0f, 165.0f, 65.0f), new(290.0f, 165.0f, 114.0f), new(290.0f, 0.0f, 114.0f), 4);
+        AddQuad(verticesList, indicesList, new(82.0f, 0.0f, 225.0f), new(82.0f, 165.0f, 225.0f), new(130.0f, 165.0f, 65.0f), new(130.0f, 0.0f, 65.0f), 4);
+        AddQuad(verticesList, indicesList, new(240.0f, 0.0f, 272.0f), new(240.0f, 165.0f, 272.0f), new(82.0f, 165.0f, 225.0f), new(82.0f, 0.0f, 225.0f), 4);
 
         // 10-14: Tall block
-        AddQuad(verticesList, indicesList, new(423.0f, 330.0f, 247.0f), new(265.0f, 330.0f, 296.0f), new(314.0f, 330.0f, 456.0f), new(472.0f, 330.0f, 406.0f), 2);
-        AddQuad(verticesList, indicesList, new(423.0f, 0.0f, 247.0f), new(423.0f, 330.0f, 247.0f), new(472.0f, 330.0f, 406.0f), new(472.0f, 0.0f, 406.0f), 2);
-        AddQuad(verticesList, indicesList, new(472.0f, 0.0f, 406.0f), new(472.0f, 330.0f, 406.0f), new(314.0f, 330.0f, 456.0f), new(314.0f, 0.0f, 456.0f), 2);
-        AddQuad(verticesList, indicesList, new(314.0f, 0.0f, 456.0f), new(314.0f, 330.0f, 456.0f), new(265.0f, 330.0f, 296.0f), new(265.0f, 0.0f, 296.0f), 2);
-        AddQuad(verticesList, indicesList, new(265.0f, 0.0f, 296.0f), new(265.0f, 330.0f, 296.0f), new(423.0f, 330.0f, 247.0f), new(423.0f, 0.0f, 247.0f), 2);
+        AddQuad(verticesList, indicesList, new(423.0f, 330.0f, 247.0f), new(265.0f, 330.0f, 296.0f), new(314.0f, 330.0f, 456.0f), new(472.0f, 330.0f, 406.0f), 5);
+        AddQuad(verticesList, indicesList, new(423.0f, 0.0f, 247.0f), new(423.0f, 330.0f, 247.0f), new(472.0f, 330.0f, 406.0f), new(472.0f, 0.0f, 406.0f), 5);
+        AddQuad(verticesList, indicesList, new(472.0f, 0.0f, 406.0f), new(472.0f, 330.0f, 406.0f), new(314.0f, 330.0f, 456.0f), new(314.0f, 0.0f, 456.0f), 5);
+        AddQuad(verticesList, indicesList, new(314.0f, 0.0f, 456.0f), new(314.0f, 330.0f, 456.0f), new(265.0f, 330.0f, 296.0f), new(265.0f, 0.0f, 296.0f), 5);
+        AddQuad(verticesList, indicesList, new(265.0f, 0.0f, 296.0f), new(265.0f, 330.0f, 296.0f), new(423.0f, 330.0f, 247.0f), new(423.0f, 0.0f, 247.0f), 5);
 
         // 15: Light
         AddQuad(verticesList,
@@ -82,10 +82,12 @@ internal static class CornellBoxGeometry
         indices = [.. indicesList];
         materials =
         [
-            new() { Albedo = new(0.63f, 0.06f, 0.06f), Emission = 0.0f },
-            new() { Albedo = new(0.14f, 0.45f, 0.09f), Emission = 0.0f },
-            new() { Albedo = new(0.73f, 0.71f, 0.68f), Emission = 0.0f },
-            new() { Albedo = new(1.0f, 0.85f, 0.6f), Emission = 15.0f }
+            new() { Albedo = new(0.63f, 0.06f, 0.06f), Emission = 0.0f, Metallic = 0.0f, Roughness = 0.9f },
+            new() { Albedo = new(0.14f, 0.45f, 0.09f), Emission = 0.0f, Metallic = 0.0f, Roughness = 0.9f },
+            new() { Albedo = new(0.73f, 0.71f, 0.68f), Emission = 0.0f, Metallic = 0.0f, Roughness = 0.9f },
+            new() { Albedo = new(1.0f, 0.85f, 0.6f), Emission = 25.0f, Metallic = 0.0f, Roughness = 0.5f },
+            new() { Albedo = new(0.73f, 0.71f, 0.68f), Emission = 0.0f, Metallic = 0.0f, Roughness = 0.3f },
+            new() { Albedo = new(0.95f, 0.93f, 0.88f), Emission = 0.0f, Metallic = 1.0f, Roughness = 0.05f },
         ];
     }
 
@@ -128,7 +130,7 @@ internal struct Vertex
     public uint MaterialID;
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 16)]
+[StructLayout(LayoutKind.Explicit, Size = 32)]
 internal struct Material
 {
     [FieldOffset(0)]
@@ -136,4 +138,10 @@ internal struct Material
 
     [FieldOffset(12)]
     public float Emission;
+
+    [FieldOffset(16)]
+    public float Metallic;
+
+    [FieldOffset(20)]
+    public float Roughness;
 }

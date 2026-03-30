@@ -30,6 +30,14 @@ internal unsafe class PathTracingRenderer : Renderer
         {
             private float4 AlbedoAndEmission;
 
+            float Metallic;
+
+            float Roughness;
+
+            private float padding0;
+
+            private float padding1;
+
             property float3 Albedo { get { return AlbedoAndEmission.xyz; } }
 
             property float Emission { get { return AlbedoAndEmission.w; } }
@@ -67,6 +75,73 @@ internal unsafe class PathTracingRenderer : Renderer
         static const float3 LightMax = float3(343.0, 548.6, 332.0);
         static const float LightArea = (343.0 - 213.0) * (332.0 - 227.0);
         static const float3 LightNormal = float3(0.0, -1.0, 0.0);
+        static const float PI = 3.14159265;
+
+        float DistributionGGX(float NdotH, float roughness)
+        {
+            float a = roughness * roughness;
+            float a2 = a * a;
+            float denom = NdotH * NdotH * (a2 - 1.0) + 1.0;
+            return a2 / (PI * denom * denom);
+        }
+
+        float GeometrySchlickGGX(float NdotX, float roughness)
+        {
+            float r = roughness + 1.0;
+            float k = (r * r) / 8.0;
+            return NdotX / (NdotX * (1.0 - k) + k);
+        }
+
+        float GeometrySmith(float NdotV, float NdotL, float roughness)
+        {
+            return GeometrySchlickGGX(NdotV, roughness) * GeometrySchlickGGX(NdotL, roughness);
+        }
+
+        float3 FresnelSchlick(float cosTheta, float3 F0)
+        {
+            return F0 + (1.0 - F0) * pow(saturate(1.0 - cosTheta), 5.0);
+        }
+
+        float3 evaluateBRDF(float3 N, float3 V, float3 L, Material mat)
+        {
+            float NdotL = max(dot(N, L), 0.0);
+            float NdotV = max(dot(N, V), 0.001);
+            float3 H = normalize(V + L);
+            float NdotH = max(dot(N, H), 0.0);
+            float HdotV = max(dot(H, V), 0.0);
+
+            float3 F0 = lerp(float3(0.04, 0.04, 0.04), mat.Albedo, mat.Metallic);
+
+            float D = DistributionGGX(NdotH, mat.Roughness);
+            float G = GeometrySmith(NdotV, NdotL, mat.Roughness);
+            float3 F = FresnelSchlick(HdotV, F0);
+
+            float3 specular = D * G * F / (4.0 * NdotV * NdotL + 0.0001);
+
+            float3 kD = (1.0 - F) * (1.0 - mat.Metallic);
+            float3 diffuse = kD * mat.Albedo / PI;
+
+            return diffuse + specular;
+        }
+
+        float3 sampleGGXHalfVector(float3 N, float roughness, inout uint seed)
+        {
+            float a = roughness * roughness;
+
+            float r1 = randomFloat(seed);
+            float r2 = randomFloat(seed);
+
+            float phi = 2.0 * PI * r1;
+            float cosTheta = sqrt((1.0 - r2) / (1.0 + (a * a - 1.0) * r2));
+            float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+
+            float3 w = N;
+            float3 helper = abs(w.x) > 0.99 ? float3(0.0, 1.0, 0.0) : float3(1.0, 0.0, 0.0);
+            float3 u = normalize(cross(helper, w));
+            float3 v = cross(w, u);
+
+            return normalize(u * cos(phi) * sinTheta + v * sin(phi) * sinTheta + w * cosTheta);
+        }
 
         uint pcgHash(uint input)
         {
@@ -114,7 +189,7 @@ internal unsafe class PathTracingRenderer : Renderer
             return shadowQuery.CommittedStatus() != COMMITTED_NOTHING;
         }
 
-        float3 sampleLightDirect(float3 hitPos, float3 hitNormal, float3 albedo, inout uint rng)
+        float3 sampleLightDirect(float3 hitPos, float3 hitNormal, float3 V, Material mat, inout uint rng)
         {
             float u = randomFloat(rng);
             float v = randomFloat(rng);
@@ -150,7 +225,7 @@ internal unsafe class PathTracingRenderer : Renderer
             float3 lightEmission = lightMat.Albedo * lightMat.Emission;
 
             float pdf = 1.0 / LightArea;
-            float3 brdf = albedo / 3.14159265;
+            float3 brdf = evaluateBRDF(hitNormal, V, L, mat);
             float geometryTerm = NdotL * lightCosine / (dist * dist);
 
             return lightEmission * brdf * geometryTerm / pdf;
@@ -216,10 +291,51 @@ internal unsafe class PathTracingRenderer : Renderer
                     break;
                 }
 
-                radiance += throughput * sampleLightDirect(hitPos, normal, mat.Albedo, rng);
+                float3 V = -direction;
 
-                float3 newDir = cosineSampleHemisphere(normal, rng);
-                throughput *= mat.Albedo;
+                radiance += throughput * sampleLightDirect(hitPos, normal, V, mat, rng);
+
+                float3 F0 = lerp(float3(0.04, 0.04, 0.04), mat.Albedo, mat.Metallic);
+                float specWeight = max(F0.r, max(F0.g, F0.b));
+                float diffWeight = (1.0 - specWeight) * (1.0 - mat.Metallic);
+                float total = specWeight + diffWeight;
+                float specProb = specWeight / total;
+
+                float3 newDir;
+                float NdotV = max(dot(normal, V), 0.001);
+
+                if (randomFloat(rng) < specProb)
+                {
+                    float3 H = sampleGGXHalfVector(normal, mat.Roughness, rng);
+                    newDir = reflect(-V, H);
+
+                    float NdotL = dot(normal, newDir);
+                    if (NdotL <= 0.0)
+                    {
+                        break;
+                    }
+
+                    float NdotH = max(dot(normal, H), 0.0);
+                    float HdotV = max(dot(H, V), 0.0);
+
+                    float3 F = FresnelSchlick(HdotV, F0);
+                    float G = GeometrySmith(NdotV, NdotL, mat.Roughness);
+
+                    float3 specThroughput = F * G * HdotV / (NdotV * NdotH * specProb + 0.0001);
+                    throughput *= min(specThroughput, float3(10.0, 10.0, 10.0));
+                }
+                else
+                {
+                    newDir = cosineSampleHemisphere(normal, rng);
+
+                    float3 H = normalize(V + newDir);
+                    float HdotV = max(dot(H, V), 0.0);
+
+                    float3 F = FresnelSchlick(HdotV, F0);
+                    float3 kD = (1.0 - F) * (1.0 - mat.Metallic);
+
+                    throughput *= kD * mat.Albedo / (1.0 - specProb + 0.0001);
+                }
 
                 origin = hitPos + normal * 0.001;
                 direction = newDir;
@@ -263,6 +379,7 @@ internal unsafe class PathTracingRenderer : Renderer
             float3 origin = camera.Position;
 
             float3 color = tracePath(origin, direction, rng);
+            color = min(color, float3(30.0, 30.0, 30.0));
 
             float4 prev = accumTexture[pixel];
             float4 accumulated;

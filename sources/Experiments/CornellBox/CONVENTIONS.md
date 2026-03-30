@@ -58,7 +58,9 @@ CornellBox/
 ### Slang Side
 
 - **Never** use bare `float3` in ConstantBuffer / StructuredBuffer structs
-- Pack `float3 + float/uint` into `float4`, use `private` field + `property` accessor
+- Pack `float3` into `float4`, use `private` field + `property` accessor
+- If the next field after `float3` is a scalar (`float` / `uint`), merge them into one `float4` with a meaningful combined name (e.g. `NormalAndMaterialID`, `AlbedoAndEmission`); if there is no natural scalar to pair, use `XXXAndPadding`
+- **Only** `float3` needs the `float4` + property pattern; scalar types (`float`, `uint`, `int`, `float4x4`, etc.) can be declared directly as normal fields
 - Pad trailing bytes with `private float paddingN` to reach 16-byte boundary
 - Vertex I/O structs (VSInput) also use `private float4` + `property` for consistency — semantic annotations go on the backing field
 - PSInput interpolators can use `float3` directly (controlled by semantic output)
@@ -81,6 +83,14 @@ struct Vertex
 struct Material
 {
     private float4 AlbedoAndEmission;
+
+    float Metallic;
+
+    float Roughness;
+
+    private float padding0;
+
+    private float padding1;
 
     property float3 Albedo { get { return AlbedoAndEmission.xyz; } }
 

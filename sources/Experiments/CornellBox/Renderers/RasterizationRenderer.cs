@@ -15,6 +15,14 @@ internal unsafe class RasterizationRenderer : Renderer
         {
             private float4 AlbedoAndEmission;
 
+            float Metallic;
+
+            float Roughness;
+
+            private float padding0;
+
+            private float padding1;
+
             property float3 Albedo { get { return AlbedoAndEmission.xyz; } }
 
             property float Emission { get { return AlbedoAndEmission.w; } }
