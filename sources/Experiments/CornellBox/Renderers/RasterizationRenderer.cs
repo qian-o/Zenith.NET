@@ -119,6 +119,12 @@ internal unsafe class RasterizationRenderer : Renderer
             float3 specular = cb.LightColor * spec * atten * 0.1;
 
             float3 color = ambient + diffuse + specular;
+
+            // ACES tonemapping
+            float3 a = color * (color * 2.51 + 0.03);
+            float3 b = color * (color * 2.43 + 0.59) + 0.14;
+            color = saturate(a / b);
+
             color = pow(color, 1.0 / 2.2);
             return float4(color, 1.0);
         }
@@ -226,7 +232,7 @@ internal unsafe class RasterizationRenderer : Renderer
     {
         commandBuffer.BeginRenderPass(FrameBuffer, new()
         {
-            ColorValues = [new(0.0f, 0.0f, 0.0f, 1.0f)],
+            ColorValues = [new(0.51f, 0.518f, 0.557f, 1.0f)],
             Depth = 1.0f,
             Stencil = 0,
             Flags = ClearFlags.All

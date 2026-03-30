@@ -104,6 +104,7 @@ internal unsafe class PathTracingRenderer : Renderer
 
         float3 evaluateBRDF(float3 N, float3 V, float3 L, Material mat)
         {
+            float roughness = max(mat.Roughness, 0.04);
             float NdotL = max(dot(N, L), 0.0);
             float NdotV = max(dot(N, V), 0.001);
             float3 H = normalize(V + L);
@@ -112,8 +113,8 @@ internal unsafe class PathTracingRenderer : Renderer
 
             float3 F0 = lerp(float3(0.04, 0.04, 0.04), mat.Albedo, mat.Metallic);
 
-            float D = DistributionGGX(NdotH, mat.Roughness);
-            float G = GeometrySmith(NdotV, NdotL, mat.Roughness);
+            float D = DistributionGGX(NdotH, roughness);
+            float G = GeometrySmith(NdotV, NdotL, roughness);
             float3 F = FresnelSchlick(HdotV, F0);
 
             float3 specular = D * G * F / (4.0 * NdotV * NdotL + 0.0001);
@@ -236,7 +237,7 @@ internal unsafe class PathTracingRenderer : Renderer
             float3 throughput = float3(1.0, 1.0, 1.0);
             float3 radiance = float3(0.0, 0.0, 0.0);
 
-            for (int bounce = 0; bounce < 5; bounce++)
+            for (int bounce = 0; bounce < 8; bounce++)
             {
                 RayDesc ray;
                 ray.Origin = origin;
@@ -298,6 +299,7 @@ internal unsafe class PathTracingRenderer : Renderer
                 radiance += throughput * sampleLightDirect(hitPos, normal, V, mat, rng);
 
                 float3 F0 = lerp(float3(0.04, 0.04, 0.04), mat.Albedo, mat.Metallic);
+                float roughness = max(mat.Roughness, 0.04);
                 float specWeight = max(F0.r, max(F0.g, F0.b));
                 float diffWeight = (1.0 - specWeight) * (1.0 - mat.Metallic);
                 float total = specWeight + diffWeight;
@@ -308,7 +310,7 @@ internal unsafe class PathTracingRenderer : Renderer
 
                 if (randomFloat(rng) < specProb)
                 {
-                    float3 H = sampleGGXHalfVector(normal, mat.Roughness, rng);
+                    float3 H = sampleGGXHalfVector(normal, roughness, rng);
                     newDir = reflect(-V, H);
 
                     float NdotL = dot(normal, newDir);
@@ -321,7 +323,7 @@ internal unsafe class PathTracingRenderer : Renderer
                     float HdotV = max(dot(H, V), 0.0);
 
                     float3 F = FresnelSchlick(HdotV, F0);
-                    float G = GeometrySmith(NdotV, NdotL, mat.Roughness);
+                    float G = GeometrySmith(NdotV, NdotL, roughness);
 
                     float3 specThroughput = F * G * HdotV / (NdotV * NdotH * specProb + 0.0001);
                     throughput *= min(specThroughput, float3(10.0, 10.0, 10.0));
@@ -398,6 +400,12 @@ internal unsafe class PathTracingRenderer : Renderer
             accumTexture[pixel] = accumulated;
 
             float3 avg = accumulated.rgb / float(camera.FrameCount + 1);
+
+            // ACES tonemapping
+            float3 a = avg * (avg * 2.51 + 0.03);
+            float3 b = avg * (avg * 2.43 + 0.59) + 0.14;
+            avg = saturate(a / b);
+
             avg = pow(avg, 1.0 / 2.2);
             outputTexture[pixel] = float4(avg, 1.0);
         }
