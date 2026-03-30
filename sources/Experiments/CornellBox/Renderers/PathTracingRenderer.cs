@@ -251,6 +251,8 @@ internal unsafe class PathTracingRenderer : Renderer
 
                 if (query.CommittedStatus() == COMMITTED_NOTHING)
                 {
+                    float3 skyColor = lerp(float3(0.15, 0.12, 0.10), float3(0.30, 0.35, 0.45), saturate(direction.y * 0.5 + 0.5));
+                    radiance += throughput * skyColor;
                     break;
                 }
 

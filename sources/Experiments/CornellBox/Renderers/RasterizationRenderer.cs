@@ -113,7 +113,8 @@ internal unsafe class RasterizationRenderer : Renderer
             float dist = length(cb.LightPos - worldPos);
             float atten = 1.0 / (1.0 + 0.000005 * dist * dist);
 
-            float3 ambient = mat.Albedo * 0.08;
+            float hemiFactor = N.y * 0.5 + 0.5;
+            float3 ambient = mat.Albedo * lerp(0.06, 0.15, hemiFactor);
             float3 diffuse = mat.Albedo * cb.LightColor * NdotL * atten;
             float3 specular = cb.LightColor * spec * atten * 0.1;
 
