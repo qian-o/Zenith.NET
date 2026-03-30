@@ -13,6 +13,16 @@ public static class Extensions
         }
     }
 
+    extension(NSAutoreleasePool)
+    {
+        public static T Run<T>(Func<T> func)
+        {
+            using NSAutoreleasePool _ = new();
+
+            return func();
+        }
+    }
+
     extension(NSError error)
     {
         internal void Success()

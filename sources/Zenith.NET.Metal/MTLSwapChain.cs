@@ -77,8 +77,6 @@ internal class MTLSwapChain : SwapChain
 
     private void AcquireNextDrawable()
     {
-        using NSAutoreleasePool _ = new();
-
-        Drawable = Layer.NextDrawable().Retain();
+        Drawable = NSAutoreleasePool.Run(() => Layer.NextDrawable().Retain());
     }
 }
