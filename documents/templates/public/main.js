@@ -27,7 +27,6 @@
             while (el) {
                 toHide.push(el);
                 if (el.tagName === 'H3') {
-                    // Also grab the preceding <a> overload anchor
                     const prev = el.previousElementSibling;
                     if (prev && prev.tagName === 'A' && prev.dataset.uid) {
                         toHide.push(prev);
