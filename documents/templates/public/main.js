@@ -7,6 +7,13 @@
         }
     ],
     start: () => {
+        // Prevent short table cells from wrapping (e.g. "DirectX 12", "Vulkan 1.4")
+        for (const td of document.querySelectorAll('article td')) {
+            if (td.textContent.trim().length <= 20) {
+                td.style.whiteSpace = 'nowrap';
+            }
+        }
+
         // Hide inherited type info sections (inheritance, implements, inheritedMembers, derivedClasses)
         for (const dl of document.querySelectorAll('dl.typelist.inheritance, dl.typelist.implements, dl.typelist.inheritedMembers, dl.typelist.derivedClasses')) {
             dl.style.display = 'none';

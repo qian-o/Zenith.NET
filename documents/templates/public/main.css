@@ -106,6 +106,14 @@ body {
     color: var(--text-primary);
 }
 
+/* Full-width layout */
+main.container-xxl,
+header .container-xxl {
+    max-width: 100% !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+}
+
 /* ==========================================================================
    3. Navbar
    ========================================================================== */
@@ -1127,6 +1135,8 @@ article th {
     color: var(--text-tertiary) !important;
     background: transparent !important;
     border: none !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
 }
 
 article thead tr th:first-child {
@@ -1152,6 +1162,7 @@ article td {
     background: transparent !important;
     border: none !important;
     border-top: 1px solid var(--border) !important;
+    vertical-align: middle !important;
 }
 
 article tbody tr:first-child td {
@@ -1801,12 +1812,12 @@ article td a {
    20. Hide UI Elements
    ========================================================================== */
 
-article h1 > a,
-article h2 > a,
-article h3 > a,
-article h4 > a,
-article h5 > a,
-article h6 > a,
+article h1 > a:not(.header-action),
+article h2 > a:not(.header-action),
+article h3 > a:not(.header-action),
+article h4 > a:not(.header-action),
+article h5 > a:not(.header-action),
+article h6 > a:not(.header-action),
 a[href^="http"]::after,
 a[href^="https"]::after {
     display: none !important;

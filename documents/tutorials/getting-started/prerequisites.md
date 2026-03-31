@@ -137,11 +137,8 @@ Different graphics backends use different indexing schemes for resource bindings
 | Backend | Index Scheme |
 |---------|--------------|
 | DirectX 12 | Per-type: CBV, SRV, UAV, Sampler each start at 0 |
-| Vulkan | Global: All resources share index space (0, 1, 2, ...) |
-| Metal | Per-category: Buffer, Texture, Sampler each start at 0 |
-
-Create `BindingHelper.cs` to handle these differences automatically:
-
+| Metal 4 | Per-category: Buffer, Texture, Sampler each start at 0 |
+| Vulkan 1.4 | Global: All resources share index space (0, 1, 2, ...) |
 ```csharp
 namespace ZenithTutorials;
 
@@ -184,17 +181,6 @@ internal static class BindingHelper
                 }
                 break;
 
-            case Backend.Vulkan:
-                {
-                    for (int i = 0; i < bindings.Length; i++)
-                    {
-                        ref ResourceBinding binding = ref bindings[i];
-
-                        binding = binding with { Index = (uint)i };
-                    }
-                }
-                break;
-
             case Backend.Metal:
                 {
                     uint bufferIndex = 0;
@@ -221,6 +207,17 @@ internal static class BindingHelper
                                 _ => binding.Index
                             }
                         };
+                    }
+                }
+                break;
+
+            case Backend.Vulkan:
+                {
+                    for (int i = 0; i < bindings.Length; i++)
+                    {
+                        ref ResourceBinding binding = ref bindings[i];
+
+                        binding = binding with { Index = (uint)i };
                     }
                 }
                 break;
@@ -294,7 +291,7 @@ internal static partial class CocoaHelper
 }
 ```
 
-The `CAMetalLayer` can be used with both Metal and Vulkan backends on macOS.
+The `CAMetalLayer` can be used with both Metal 4 and Vulkan 1.4 backends on macOS.
 
 ## Application Framework
 
@@ -319,9 +316,9 @@ internal static class App
     static App()
     {
         // Ensure platform is supported
-        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux())
         {
-            throw new PlatformNotSupportedException("This tutorial only supports Windows, Linux, and macOS.");
+            throw new PlatformNotSupportedException("This tutorial only supports Windows, macOS, and Linux.");
         }
 
         // Create window with no graphics API (we manage rendering ourselves)
@@ -342,17 +339,17 @@ internal static class App
 
             surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, Width, Height);
         }
-        else if (OperatingSystem.IsLinux())
-        {
-            Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
-
-            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
-        }
-        else
+        else if (OperatingSystem.IsMacOS())
         {
             Context = GraphicsContext.CreateMetal(useValidationLayer: true);
 
             surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), Width, Height);
+        }
+        else
+        {
+            Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
+
+            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
         }
 
         // Log validation messages for debugging
@@ -440,7 +437,7 @@ This framework provides:
 
 - **Platform validation** - Ensures only supported platforms (Windows, Linux, macOS) are used
 - **Window creation** with Silk.NET (1280×720 default size)
-- **Cross-platform backend selection** (DirectX 12 on Windows, Vulkan on Linux, Metal on macOS)
+- **Cross-platform backend selection** (DirectX 12 on Windows, Metal 4 on macOS, Vulkan 1.4 on Linux)
 - **SwapChain management** for presenting frames
 - **Resize handling** for responsive rendering
 - **Generic renderer pattern** using `App.Run<TRenderer>()` for easy tutorial switching

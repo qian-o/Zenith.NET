@@ -8,7 +8,7 @@ _layout: landing
         <img src="images/Zenith.NET.svg" alt="Zenith.NET Logo" class="hero-logo" />
         <h1>Zenith.NET</h1>
         <p class="hero-tagline">Unified Cross-Platform GPU Programming for .NET</p>
-        <p class="hero-description">A modern graphics and compute library that provides a single API for DirectX 12, Metal, and Vulkan. Build high-performance rendering and GPU compute applications with ease.</p>
+        <p class="hero-description">A modern graphics and compute library that provides a single API for DirectX 12, Metal 4, and Vulkan 1.4. Build high-performance rendering and GPU compute applications with ease.</p>
         <div class="hero-buttons">
             <a href="tutorials/index.md" class="btn btn-primary">Get Started</a>
             <a href="api/index.md" class="btn btn-secondary">API Reference</a>
@@ -26,7 +26,7 @@ _layout: landing
 <div class="tech-bar">
     <div class="tech-bar-group">
         <span class="tech-bar-label">Graphics APIs</span>
-        <span class="tech-bar-items">DirectX 12 · Metal · Vulkan</span>
+        <span class="tech-bar-items">DirectX 12 · Metal 4 · Vulkan 1.4</span>
     </div>
     <div class="tech-bar-divider"></div>
     <div class="tech-bar-group">
@@ -43,7 +43,7 @@ _layout: landing
     <div class="highlight-item">
         <div class="highlight-icon">🎯</div>
         <div class="highlight-text">
-            <strong>Unified API</strong> — Write once, run everywhere. A single API abstracts DirectX 12, Metal, and Vulkan.
+            <strong>Unified API</strong> — Write once, run everywhere. A single API abstracts DirectX 12, Metal 4, and Vulkan 1.4.
         </div>
     </div>
     <div class="highlight-item">
@@ -98,7 +98,7 @@ _layout: landing
         <div class="step-number">1</div>
         <div class="step-content">
             <h4>Initialize</h4>
-            <p>Create a graphics context with your preferred backend (DirectX 12, Metal, or Vulkan).</p>
+            <p>Create a graphics context with your preferred backend (DirectX 12, Metal 4, or Vulkan 1.4).</p>
         </div>
     </div>
     <div class="workflow-step">

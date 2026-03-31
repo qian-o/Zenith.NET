@@ -8,8 +8,8 @@ Welcome to the Zenith.NET API Reference. This documentation is automatically gen
 |-----------|-------------|
 | Zenith.NET | Core graphics abstractions and resource types |
 | Zenith.NET.DirectX12 | DirectX 12 backend implementation for Windows |
-| Zenith.NET.Metal | Metal backend implementation for Apple platforms |
-| Zenith.NET.Vulkan | Vulkan backend implementation for cross-platform support |
+| Zenith.NET.Metal | Metal 4 backend implementation for Apple platforms |
+| Zenith.NET.Vulkan | Vulkan 1.4 backend implementation for cross-platform support |
 
 ## Key Types
 
