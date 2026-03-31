@@ -14,10 +14,6 @@
   <a href="https://github.com/qian-o/Zenith.NET/blob/master/LICENSE"><img src="https://img.shields.io/github/license/qian-o/Zenith.NET?style=flat-square" alt="License"></a>
 </p>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Status-Work%20in%20Progress-orange?style=for-the-badge" alt="Status: Work in Progress">
-</p>
-
 ---
 
 ## 📖 Overview
@@ -43,10 +39,8 @@ Visit the [documentation site](https://qian-o.github.io/Zenith.NET/) for tutoria
 | :-------: | :--------: | :-----: | :--------: |
 | Windows   | ✅ |  | ✅ |
 | Linux     |  |  | ✅ |
-| Apple     |  | 🚧 | ✅ |
+| Apple     |  | ✅ | ✅ |
 | Android   |  |  | ✅ |
-
-> 🚧 Metal backend is under development.
 
 ---
 
