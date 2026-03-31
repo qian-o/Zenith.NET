@@ -62,5 +62,26 @@
                 h2.style.display = 'none';
             }
         }
+
+        // Search results: navigate in same tab with back button support
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('#search-results .sr-item a');
+            if (!link) return;
+
+            e.preventDefault();
+            const query = document.getElementById('search-query')?.value || '';
+            history.pushState({ search: true, query }, '');
+            window.location.href = link.href;
+        });
+
+        window.addEventListener('popstate', (e) => {
+            if (e.state?.search) {
+                const input = document.getElementById('search-query');
+                if (input) {
+                    input.value = e.state.query;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+        });
     }
 }
