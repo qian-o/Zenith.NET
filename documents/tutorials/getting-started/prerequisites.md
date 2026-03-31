@@ -11,12 +11,12 @@ Zenith.NET supports multiple graphics backends across platforms:
 | Platform | DirectX 12 | Metal 4 | Vulkan 1.4 |
 |----------|:----------:|:-------:|:----------:|
 | Windows  | <span class="status-yes">Yes</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
-| Linux    | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
 | Apple    | <span class="status-no">No</span> | <span class="status-yes">Yes</span> | <span class="status-yes">Yes</span> |
 | Android  | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
+| Linux    | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
 
 > [!NOTE]
-> These tutorials are designed for desktop platforms (Windows, Linux, and macOS).
+> These tutorials are designed for desktop platforms (Windows, macOS, and Linux).
 
 ### Software
 
@@ -435,7 +435,7 @@ App.Cleanup();
 
 This framework provides:
 
-- **Platform validation** - Ensures only supported platforms (Windows, Linux, macOS) are used
+- **Platform validation** - Ensures only supported platforms (Windows, macOS, Linux) are used
 - **Window creation** with Silk.NET (1280×720 default size)
 - **Cross-platform backend selection** (DirectX 12 on Windows, Metal 4 on macOS, Vulkan 1.4 on Linux)
 - **SwapChain management** for presenting frames

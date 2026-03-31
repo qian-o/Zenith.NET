@@ -778,7 +778,7 @@ base (FrameBuffer + DepthStencil + Color)
 ## DirectX 12 Specific Notes
 
 - `BindingHelper` assigns DirectX 12 register indices by type: CBV(b), SRV(t), UAV(u), Sampler(s) independently numbered
-- Vulkan 1.4 numbers all bindings sequentially; Metal 4 uses argument buffer index
+- Metal 4 uses argument buffer index; Vulkan 1.4 numbers all bindings sequentially
 
 ## C# Code Style
 

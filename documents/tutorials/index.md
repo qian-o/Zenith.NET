@@ -66,7 +66,7 @@ Before starting, ensure you have:
 - Visual Studio 2026, VS Code, or JetBrains Rider
 
 > [!NOTE]
-> These tutorials are designed for desktop platforms (Windows, Linux, and macOS).
+> These tutorials are designed for desktop platforms (Windows, macOS, and Linux).
 > See [Prerequisites](getting-started/prerequisites.md) for detailed platform support and setup instructions.
 
 ## Source Code

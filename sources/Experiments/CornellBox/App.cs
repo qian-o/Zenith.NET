@@ -31,13 +31,13 @@ internal static class App
         {
             Context = GraphicsContext.CreateDirectX12(useValidationLayer: true);
         }
-        else if (OperatingSystem.IsLinux())
+        else if (OperatingSystem.IsMacOS())
         {
-            Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
+            Context = GraphicsContext.CreateMetal(useValidationLayer: true);
         }
         else
         {
-            Context = GraphicsContext.CreateMetal(useValidationLayer: true);
+            Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
         }
 
         Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
@@ -54,13 +54,13 @@ internal static class App
         {
             surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, Width, Height);
         }
-        else if (OperatingSystem.IsLinux())
+        else if (OperatingSystem.IsMacOS())
         {
-            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
+            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), Width, Height);
         }
         else
         {
-            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), Width, Height);
+            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
         }
 
         swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.B8G8R8A8UNorm, DepthStencilTargetFormat = PixelFormat.D32FloatS8UInt });

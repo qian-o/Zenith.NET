@@ -38,9 +38,9 @@ Visit the [documentation site](https://qian-o.github.io/Zenith.NET/) for tutoria
 |           | DirectX 12 | Metal 4 | Vulkan 1.4 |
 | :-------: | :--------: | :-----: | :--------: |
 | Windows   | ✅ |  | ✅ |
-| Linux     |  |  | ✅ |
 | Apple     |  | ✅ | ✅ |
 | Android   |  |  | ✅ |
+| Linux     |  |  | ✅ |
 
 ---
 

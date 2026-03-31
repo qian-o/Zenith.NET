@@ -68,9 +68,9 @@ Pipelines reference a single `ResourceLayout`, and you bind a corresponding `Res
 | Platform | DirectX 12 | Metal 4 | Vulkan 1.4 |
 |----------|:----------:|:-----:|:------:|
 | Windows  | <span class="status-yes">Yes</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
-| Linux    | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
 | Apple    | <span class="status-no">No</span> | <span class="status-yes">Yes</span> | <span class="status-yes">Yes</span> |
 | Android  | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
+| Linux    | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
 
 ## Best Practices
 
