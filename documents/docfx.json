@@ -13,8 +13,8 @@
           ]
         }
       ],
-      "output": "api",
-      "enumSortOrder": "declaringOrder"
+      "enumSortOrder": "declaringOrder",
+      "output": "api"
     }
   ],
   "build": {
