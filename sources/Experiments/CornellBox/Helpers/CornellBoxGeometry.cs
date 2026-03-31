@@ -82,12 +82,12 @@ internal static class CornellBoxGeometry
         indices = [.. indicesList];
         materials =
         [
-            new() { Albedo = new(0.63f, 0.06f, 0.06f), Emission = 0.0f, Metallic = 0.0f, Roughness = 0.9f },
-            new() { Albedo = new(0.14f, 0.45f, 0.09f), Emission = 0.0f, Metallic = 0.0f, Roughness = 0.9f },
-            new() { Albedo = new(0.73f, 0.71f, 0.68f), Emission = 0.0f, Metallic = 0.0f, Roughness = 0.9f },
-            new() { Albedo = new(1.0f, 0.85f, 0.6f), Emission = 25.0f, Metallic = 0.0f, Roughness = 0.5f },
-            new() { Albedo = new(0.73f, 0.71f, 0.68f), Emission = 0.0f, Metallic = 0.0f, Roughness = 0.3f },
-            new() { Albedo = new(0.95f, 0.93f, 0.88f), Emission = 0.0f, Metallic = 1.0f, Roughness = 0.05f },
+            new() { Albedo = new(0.63f, 0.06f, 0.06f), Emission = 0.00f, Metallic = 0.0f, Roughness = 0.90f },
+            new() { Albedo = new(0.14f, 0.45f, 0.09f), Emission = 0.00f, Metallic = 0.0f, Roughness = 0.90f },
+            new() { Albedo = new(0.73f, 0.71f, 0.68f), Emission = 0.00f, Metallic = 0.0f, Roughness = 0.90f },
+            new() { Albedo = new(1.00f, 0.85f, 0.60f), Emission = 25.0f, Metallic = 0.0f, Roughness = 0.50f },
+            new() { Albedo = new(0.73f, 0.71f, 0.68f), Emission = 0.00f, Metallic = 0.0f, Roughness = 0.30f },
+            new() { Albedo = new(0.95f, 0.93f, 0.88f), Emission = 0.00f, Metallic = 1.0f, Roughness = 0.05f }
         ];
     }
 
