@@ -26,6 +26,7 @@ internal class MTLTextureView : TextureView
 
     protected override void Destroy()
     {
+        Texture.Dispose();
     }
 
     private static MTLTextureType Resolve(TextureViewDesc desc)

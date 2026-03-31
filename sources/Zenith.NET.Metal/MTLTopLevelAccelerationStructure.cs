@@ -44,6 +44,8 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
         commandBuffer.CommandEncoder.Compute?.Build(AccelerationStructure, descriptor, new(ScratchBuffer.Buffer.GpuAddress, ScratchBuffer.Desc.SizeInBytes));
     }
 
+    public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
+
     public MTLBuffer InstanceBuffer { get; }
 
     public MTLBuffer ScratchBuffer { get; }
@@ -72,6 +74,8 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
 
     protected override void Destroy()
     {
+        Context.RemoveAllocation(AccelerationStructure);
+
         AccelerationStructure.Dispose();
 
         ScratchBuffer.Dispose();
