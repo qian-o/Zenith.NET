@@ -16,15 +16,15 @@ body:
       description: A clear and concise description of what the bug is, including steps to reproduce and expected behavior.
       placeholder: |
         What happened:
-        E.g. When initializing a DirectX 12 context, an exception is thrown on integrated graphics.
+        E.g. When initializing a DirectX12 context, an exception is thrown on integrated graphics.
 
         Steps to reproduce:
-        1. Create a GraphicsContext with DirectX 12
+        1. Create a GraphicsContext with DirectX12
         2. Call CreateSwapChain()
         3. See exception
 
         Expected behavior:
-        DirectX 12 context should initialize successfully.
+        DirectX12 context should initialize successfully.
 
   - type: textarea
     attributes:
@@ -32,7 +32,7 @@ body:
       description: Please provide your environment details (if applicable).
       placeholder: |
         - OS: Windows 11 / macOS 15 / Ubuntu 24.04 / etc.
-        - Graphics API: DirectX 12 / Metal 4 / Vulkan 1.4
+        - Graphics API: DirectX12 / Metal / Vulkan
         - Zenith.NET Version: 1.0.0
         - GPU: NVIDIA RTX 4090 / Apple M3 / etc.
 

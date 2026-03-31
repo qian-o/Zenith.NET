@@ -136,9 +136,9 @@ Different graphics backends use different indexing schemes for resource bindings
 
 | Backend | Index Scheme |
 |---------|--------------|
-| DirectX 12 | Per-type: CBV, SRV, UAV, Sampler each start at 0 |
-| Metal 4 | Per-category: Buffer, Texture, Sampler each start at 0 |
-| Vulkan 1.4 | Global: All resources share index space (0, 1, 2, ...) |
+| DirectX12 | Per-type: CBV, SRV, UAV, Sampler each start at 0 |
+| Metal | Per-category: Buffer, Texture, Sampler each start at 0 |
+| Vulkan | Global: All resources share index space (0, 1, 2, ...) |
 ```csharp
 namespace ZenithTutorials;
 
@@ -291,7 +291,7 @@ internal static partial class CocoaHelper
 }
 ```
 
-The `CAMetalLayer` can be used with both Metal 4 and Vulkan 1.4 backends on macOS.
+The `CAMetalLayer` can be used with both Metal and Vulkan backends on macOS.
 
 ## Application Framework
 
@@ -437,7 +437,7 @@ This framework provides:
 
 - **Platform validation** - Ensures only supported platforms (Windows, macOS, Linux) are used
 - **Window creation** with Silk.NET (1280×720 default size)
-- **Cross-platform backend selection** (DirectX 12 on Windows, Metal 4 on macOS, Vulkan 1.4 on Linux)
+- **Cross-platform backend selection** (DirectX12 on Windows, Metal on macOS, Vulkan on Linux)
 - **SwapChain management** for presenting frames
 - **Resize handling** for responsive rendering
 - **Generic renderer pattern** using `App.Run<TRenderer>()` for easy tutorial switching
