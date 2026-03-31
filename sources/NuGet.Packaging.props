@@ -20,7 +20,7 @@
         <PackageIcon>Zenith.NET.png</PackageIcon>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageTags>DirectX12;Metal4;Vulkan1.4;ImageSharp;ImGui;Skia;Slang;Avalonia;Maui;Uno;WinForms;WinUI;WPF;GPU;Native</PackageTags>
+        <PackageTags>DirectX12;Metal;Vulkan;ImageSharp;ImGui;Skia;Slang;Avalonia;Maui;Uno;WinForms;WinUI;WPF;GPU;Native</PackageTags>
         <PackageProjectUrl>https://qian-o.github.io/Zenith.NET</PackageProjectUrl>
 
         <!-- Debug Symbols & Source Link -->
