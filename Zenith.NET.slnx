@@ -1,9 +1,9 @@
 ﻿<Solution>
   <Folder Name="/Experiments/">
     <File Path="sources/Experiments/Directory.Packages.props" />
+    <Project Path="sources/Experiments/CornellBox/CornellBox.csproj" />
     <Project Path="sources/Experiments/MemoryPlayground/MemoryPlayground.csproj" />
     <Project Path="sources/Experiments/PlatformDetection/PlatformDetection.csproj" />
-    <Project Path="sources/Experiments/SponzaScene/SponzaScene.csproj" />
   </Folder>
   <Folder Name="/Extensions/">
     <Project Path="sources/Extensions/Zenith.NET.Extensions.ImageSharp/Zenith.NET.Extensions.ImageSharp.csproj" />

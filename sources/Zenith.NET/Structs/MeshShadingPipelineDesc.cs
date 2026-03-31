@@ -16,11 +16,11 @@ public record struct MeshShadingPipelineDesc
 
     public Output Output;
 
-    public uint ObjectThreadGroupSizeX;
+    public uint AmplificationThreadGroupSizeX;
 
-    public uint ObjectThreadGroupSizeY;
+    public uint AmplificationThreadGroupSizeY;
 
-    public uint ObjectThreadGroupSizeZ;
+    public uint AmplificationThreadGroupSizeZ;
 
     public uint MeshThreadGroupSizeX;
 

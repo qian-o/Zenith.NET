@@ -72,6 +72,13 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         dxSrc.TransitionStates(this, ResourceStates.CopySource);
         dxDest.TransitionStates(this, destSlice, ResourceStates.CopyDest);
 
+        (uint blockWidth, uint blockHeight, uint blocksWide, _) = ZenithHelper.BlockLayout(dxDest.Desc.Format, destExtent.Width, destExtent.Height);
+
+        uint offsetX = ZenithHelper.Align(destOffset.X, blockWidth);
+        uint offsetY = ZenithHelper.Align(destOffset.Y, blockHeight);
+        uint extentWidth = ZenithHelper.Align(destExtent.Width, blockWidth);
+        uint extentHeight = ZenithHelper.Align(destExtent.Height, blockHeight);
+
         TextureCopyLocation srcLocation = new()
         {
             PResource = dxSrc.Resource,
@@ -82,15 +89,15 @@ internal unsafe class DXCommandBuffer : CommandBuffer
                 Footprint = new()
                 {
                     Format = DXFormats.DirectX12(dxDest.Desc.Format),
-                    Width = destExtent.Width,
-                    Height = destExtent.Height,
+                    Width = extentWidth,
+                    Height = extentHeight,
                     Depth = destExtent.Depth,
-                    RowPitch = ZenithHelper.Align(ZenithHelper.SizeInBytes(dxDest.Desc.Format) * destExtent.Width, GraphicsContext.TextureRowPitchAlignment)
+                    RowPitch = ZenithHelper.Align(ZenithHelper.SizeInBytes(dxDest.Desc.Format) * blocksWide, GraphicsContext.TextureRowPitchAlignment)
                 }
             }
         };
 
-        Box srcBox = new(0, 0, 0, destExtent.Width, destExtent.Height, destExtent.Depth);
+        Box srcBox = new(0, 0, 0, extentWidth, extentHeight, destExtent.Depth);
 
         TextureCopyLocation destLocation = new()
         {
@@ -99,7 +106,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             SubresourceIndex = ZenithHelper.SubresourceIndex(dxDest.Desc, destSlice)
         };
 
-        GraphicsCommandList4.CopyTextureRegion(&destLocation, destOffset.X, destOffset.Y, destOffset.Z, &srcLocation, &srcBox);
+        GraphicsCommandList4.CopyTextureRegion(&destLocation, offsetX, offsetY, destOffset.Z, &srcLocation, &srcBox);
 
         dxSrc.TransitionStates(this, srcOldStates);
         dxDest.TransitionStates(this, destSlice, destOldStates);
@@ -149,6 +156,13 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         dxSrc.TransitionStates(this, srcSlice, ResourceStates.CopySource);
         dxDest.TransitionStates(this, ResourceStates.CopyDest);
 
+        (uint blockWidth, uint blockHeight, uint blocksWide, _) = ZenithHelper.BlockLayout(dxSrc.Desc.Format, srcExtent.Width, srcExtent.Height);
+
+        uint offsetX = ZenithHelper.Align(srcOffset.X, blockWidth);
+        uint offsetY = ZenithHelper.Align(srcOffset.Y, blockHeight);
+        uint extentWidth = ZenithHelper.Align(srcExtent.Width, blockWidth);
+        uint extentHeight = ZenithHelper.Align(srcExtent.Height, blockHeight);
+
         TextureCopyLocation srcLocation = new()
         {
             PResource = dxSrc.Resource,
@@ -156,7 +170,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             SubresourceIndex = ZenithHelper.SubresourceIndex(dxSrc.Desc, srcSlice)
         };
 
-        Box srcBox = new(srcOffset.X, srcOffset.Y, srcOffset.Z, srcOffset.X + srcExtent.Width, srcOffset.Y + srcExtent.Height, srcOffset.Z + srcExtent.Depth);
+        Box srcBox = new(offsetX, offsetY, srcOffset.Z, offsetX + extentWidth, offsetY + extentHeight, srcOffset.Z + srcExtent.Depth);
 
         TextureCopyLocation destLocation = new()
         {
@@ -168,10 +182,10 @@ internal unsafe class DXCommandBuffer : CommandBuffer
                 Footprint = new()
                 {
                     Format = DXFormats.DirectX12(dxSrc.Desc.Format),
-                    Width = srcExtent.Width,
-                    Height = srcExtent.Height,
+                    Width = extentWidth,
+                    Height = extentHeight,
                     Depth = srcExtent.Depth,
-                    RowPitch = ZenithHelper.Align(ZenithHelper.SizeInBytes(dxSrc.Desc.Format) * srcExtent.Width, GraphicsContext.TextureRowPitchAlignment)
+                    RowPitch = ZenithHelper.Align(ZenithHelper.SizeInBytes(dxSrc.Desc.Format) * blocksWide, GraphicsContext.TextureRowPitchAlignment)
                 }
             }
         };
@@ -218,7 +232,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
     {
         DXFrameBuffer dxFrameBuffer = frameBuffer.DirectX12();
 
-        dxFrameBuffer.PrepareAttachmentsForRendering(this);
+        dxFrameBuffer.PrepareAttachments(this);
 
         bool clearColor = clearValue.Flags.HasFlag(ClearFlags.Color);
         bool clearDepth = clearValue.Flags.HasFlag(ClearFlags.Depth);
@@ -275,7 +289,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
     {
         GraphicsCommandList4.EndRenderPass();
 
-        frameBuffer.DirectX12().FinalizeColorAttachmentsForPresent(this);
+        frameBuffer.DirectX12().PresentColorAttachments(this);
     }
 
     protected override void SetScissorsImpl(Scissor[] scissors)

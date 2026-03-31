@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Zenith.NET;
 
@@ -24,41 +24,45 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             return;
         }
 
-        uint sizeInBytes = (uint)(Unsafe.SizeOf<T>() * data.Length);
+        ReadOnlySpan<byte> byteData = MemoryMarshal.AsBytes(data);
 
-        Buffer temporary = Context.Uploader.Buffer(this, sizeInBytes);
-        temporary.Upload(data, 0);
+        Buffer temporary = Context.Uploader.Buffer(this, (uint)byteData.Length);
+        temporary.Upload(byteData, 0);
 
-        CopyBuffer(temporary, 0, buffer, offsetInBytes, sizeInBytes);
+        CopyBuffer(temporary, 0, buffer, offsetInBytes, (uint)byteData.Length);
     }
 
-    public void Upload<T>(Texture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> pixels) where T : unmanaged
+    public void Upload<T>(Texture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data) where T : unmanaged
     {
-        uint formatSizeInBytes = ZenithHelper.SizeInBytes(texture.Desc.Format);
-
-        if (Unsafe.SizeOf<T>() != formatSizeInBytes || pixels.Length is 0 || pixels.Length != extent.Width * extent.Height * extent.Depth)
+        if (data.Length is 0)
         {
             return;
         }
 
-        uint sliceSizeInTexels = extent.Width * extent.Height;
+        ReadOnlySpan<byte> byteData = MemoryMarshal.AsBytes(data);
 
-        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * extent.Width, GraphicsContext.TextureRowPitchAlignment);
-        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * extent.Height, GraphicsContext.TextureDepthPitchAlignment);
+        uint formatSizeInBytes = ZenithHelper.SizeInBytes(texture.Desc.Format);
+        (_, _, uint blocksWide, uint blocksHigh) = ZenithHelper.BlockLayout(texture.Desc.Format, extent.Width, extent.Height);
+
+        uint sliceRowPitchInBytes = formatSizeInBytes * blocksWide;
+        uint sliceDepthPitchInBytes = sliceRowPitchInBytes * blocksHigh;
+
+        uint sliceRowPitchAlignInBytes = ZenithHelper.Align(sliceRowPitchInBytes, GraphicsContext.TextureRowPitchAlignment);
+        uint sliceDepthPitchAlignInBytes = ZenithHelper.Align(sliceRowPitchAlignInBytes * blocksHigh, GraphicsContext.TextureDepthPitchAlignment);
 
         TextureExtent sliceExtent = extent with { Depth = 1 };
 
         for (uint i = 0; i < extent.Depth; i++)
         {
-            Buffer temporary = Context.Uploader.Buffer(this, sliceDepthPitchInBytes);
+            Buffer temporary = Context.Uploader.Buffer(this, sliceDepthPitchAlignInBytes);
 
             MappedMemory mappedMemory = temporary.Map();
 
             unsafe
             {
-                for (int j = 0; j < extent.Height; j++)
+                for (uint j = 0; j < blocksHigh; j++)
                 {
-                    pixels.Slice((int)((sliceSizeInTexels * i) + (extent.Width * j)), (int)extent.Width).CopyTo(new((void*)(mappedMemory.Pointer + (sliceRowPitchInBytes * j)), (int)extent.Width));
+                    byteData.Slice((int)((sliceDepthPitchInBytes * i) + (sliceRowPitchInBytes * j)), (int)sliceRowPitchInBytes).CopyTo(new((void*)(mappedMemory.Pointer + (sliceRowPitchAlignInBytes * j)), (int)sliceRowPitchInBytes));
                 }
             }
 

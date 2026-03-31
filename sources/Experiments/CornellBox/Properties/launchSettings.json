@@ -1,0 +1,10 @@
+﻿{
+  "profiles": {
+    "CornellBox": {
+      "commandName": "Project"
+    },
+    "CornellBox (WSL)": {
+      "commandName": "WSL2"
+    }
+  }
+}

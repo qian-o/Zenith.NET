@@ -61,13 +61,15 @@ internal unsafe class RayTracingRenderer : IRenderer
     private const string ShaderSource = """
         struct Sphere
         {
-            float3 Center;
+            private float4 CenterAndRadius;
 
-            float Radius;
+            private float4 ColorAndPadding;
 
-            float3 Color;
+            property float3 Center { get { return CenterAndRadius.xyz; } }
 
-            float Padding;
+            property float Radius { get { return CenterAndRadius.w; } }
+
+            property float3 Color { get { return ColorAndPadding.xyz; } }
         };
 
         RaytracingAccelerationStructure scene;
@@ -384,16 +386,16 @@ internal unsafe class RayTracingRenderer : IRenderer
                 new()
                 {
                     AccelerationStructure = floorBlas,
-                    InstanceID = 0,
-                    InstanceMask = 0xFF,
+                    ID = 0,
+                    Mask = 0xFF,
                     Transform = Matrix4x4.Identity,
                     Flags = RayTracingInstanceFlags.None
                 },
                 new()
                 {
                     AccelerationStructure = sphereBlas,
-                    InstanceID = 1,
-                    InstanceMask = 0xFF,
+                    ID = 1,
+                    Mask = 0xFF,
                     Transform = Matrix4x4.Identity,
                     Flags = RayTracingInstanceFlags.None
                 }
@@ -501,16 +503,17 @@ internal unsafe class RayTracingRenderer : IRenderer
 /// <summary>
 /// Sphere definition for procedural geometry.
 /// </summary>
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Explicit, Size = 32)]
 file struct Sphere
 {
+    [FieldOffset(0)]
     public Vector3 Center;
 
+    [FieldOffset(12)]
     public float Radius;
 
+    [FieldOffset(16)]
     public Vector3 Color;
-
-    public float Padding;
 }
 ```
 
@@ -611,16 +614,16 @@ tlas = buildCmd.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
         new()
         {
             AccelerationStructure = floorBlas,
-            InstanceID = 0,
-            InstanceMask = 0xFF,
+            ID = 0,
+            Mask = 0xFF,
             Transform = Matrix4x4.Identity,
             ...
         },
         new()
         {
             AccelerationStructure = sphereBlas,
-            InstanceID = 1,
-            InstanceMask = 0xFF,
+            ID = 1,
+            Mask = 0xFF,
             Transform = Matrix4x4.Identity,
             ...
         }

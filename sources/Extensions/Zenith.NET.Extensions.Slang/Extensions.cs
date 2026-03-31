@@ -24,18 +24,20 @@ public static class Extensions
                 }
             }
 
+            arguments.Add("-target");
+
             switch (context.Backend)
             {
                 case Backend.DirectX12:
-                    arguments.AddRange(["-profile", "sm_6_6", "-target", "dxil"]);
+                    arguments.AddRange(["dxil", "-profile", "sm_6_6"]);
                     break;
 
                 case Backend.Metal:
-                    arguments.AddRange(["-target", "metallib"]);
+                    arguments.AddRange(["metallib", "-capability", "metallib_latest"]);
                     break;
 
                 case Backend.Vulkan:
-                    arguments.AddRange(["-fvk-use-dx-layout", "-fvk-use-entrypoint-name", "-target", "spirv"]);
+                    arguments.AddRange(["spirv", "-capability", "spirv_latest", "-fvk-use-entrypoint-name"]);
                     break;
             }
 

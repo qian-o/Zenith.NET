@@ -21,54 +21,6 @@ public static class ZenithHelper
         mipDepth = Math.Max(1, depth >> (int)mipLevel);
     }
 
-    public static (uint BlockWidth, uint BlockHeight) BlockSize(PixelFormat format)
-    {
-        return format switch
-        {
-            PixelFormat.BC4UNorm or
-            PixelFormat.BC4SNorm or
-            PixelFormat.BC5UNorm or
-            PixelFormat.BC5SNorm or
-            PixelFormat.BC6HUFloat or
-            PixelFormat.BC6HSFloat or
-            PixelFormat.BC7UNorm or
-            PixelFormat.BC7SRgb => (4, 4),
-
-            PixelFormat.ETC2UNorm or
-            PixelFormat.ETC2SRgb or
-            PixelFormat.ETC2A1UNorm or
-            PixelFormat.ETC2A1SRgb or
-            PixelFormat.ETC2A8UNorm or
-            PixelFormat.ETC2A8SRgb => (4, 4),
-
-            PixelFormat.ASTC4x4UNorm or
-            PixelFormat.ASTC4x4SRgb or
-            PixelFormat.ASTC4x4Float => (4, 4),
-
-            PixelFormat.ASTC5x5UNorm or
-            PixelFormat.ASTC5x5SRgb or
-            PixelFormat.ASTC5x5Float => (5, 5),
-
-            PixelFormat.ASTC6x6UNorm or
-            PixelFormat.ASTC6x6SRgb or
-            PixelFormat.ASTC6x6Float => (6, 6),
-
-            PixelFormat.ASTC8x8UNorm or
-            PixelFormat.ASTC8x8SRgb or
-            PixelFormat.ASTC8x8Float => (8, 8),
-
-            PixelFormat.ASTC10x10UNorm or
-            PixelFormat.ASTC10x10SRgb or
-            PixelFormat.ASTC10x10Float => (10, 10),
-
-            PixelFormat.ASTC12x12UNorm or
-            PixelFormat.ASTC12x12SRgb or
-            PixelFormat.ASTC12x12Float => (12, 12),
-
-            _ => (1, 1)
-        };
-    }
-
     public static bool HasDepth(PixelFormat pixelFormat)
     {
         return pixelFormat is PixelFormat.D16UNorm or PixelFormat.D24UNormS8UInt or PixelFormat.D32Float or PixelFormat.D32FloatS8UInt;
@@ -77,6 +29,56 @@ public static class ZenithHelper
     public static bool HasStencil(PixelFormat pixelFormat)
     {
         return pixelFormat is PixelFormat.D24UNormS8UInt or PixelFormat.D32FloatS8UInt;
+    }
+
+    public static (uint BlockWidth, uint BlockHeight, uint BlocksWide, uint BlocksHigh) BlockLayout(PixelFormat format, uint width, uint height)
+    {
+        (uint blockWidth, uint blockHeight) = format switch
+        {
+            PixelFormat.BC4UNorm or
+            PixelFormat.BC4SNorm or
+            PixelFormat.BC5UNorm or
+            PixelFormat.BC5SNorm or
+            PixelFormat.BC6HUFloat or
+            PixelFormat.BC6HSFloat or
+            PixelFormat.BC7UNorm or
+            PixelFormat.BC7SRgb => (4u, 4u),
+
+            PixelFormat.ETC2UNorm or
+            PixelFormat.ETC2SRgb or
+            PixelFormat.ETC2A1UNorm or
+            PixelFormat.ETC2A1SRgb or
+            PixelFormat.ETC2A8UNorm or
+            PixelFormat.ETC2A8SRgb => (4u, 4u),
+
+            PixelFormat.ASTC4x4UNorm or
+            PixelFormat.ASTC4x4SRgb or
+            PixelFormat.ASTC4x4Float => (4u, 4u),
+
+            PixelFormat.ASTC5x5UNorm or
+            PixelFormat.ASTC5x5SRgb or
+            PixelFormat.ASTC5x5Float => (5u, 5u),
+
+            PixelFormat.ASTC6x6UNorm or
+            PixelFormat.ASTC6x6SRgb or
+            PixelFormat.ASTC6x6Float => (6u, 6u),
+
+            PixelFormat.ASTC8x8UNorm or
+            PixelFormat.ASTC8x8SRgb or
+            PixelFormat.ASTC8x8Float => (8u, 8u),
+
+            PixelFormat.ASTC10x10UNorm or
+            PixelFormat.ASTC10x10SRgb or
+            PixelFormat.ASTC10x10Float => (10u, 10u),
+
+            PixelFormat.ASTC12x12UNorm or
+            PixelFormat.ASTC12x12SRgb or
+            PixelFormat.ASTC12x12Float => (12u, 12u),
+
+            _ => (1u, 1u)
+        };
+
+        return (blockWidth, blockHeight, (width + blockWidth - 1) / blockWidth, (height + blockHeight - 1) / blockHeight);
     }
 
     public static uint SizeInBytes(PixelFormat format)
@@ -186,10 +188,7 @@ public static class ZenithHelper
 
     public static uint SizeInBytes(PixelFormat format, uint width, uint height)
     {
-        (uint blockWidth, uint blockHeight) = BlockSize(format);
-
-        uint blocksWide = (width + blockWidth - 1) / blockWidth;
-        uint blocksHigh = (height + blockHeight - 1) / blockHeight;
+        (_, _, uint blocksWide, uint blocksHigh) = BlockLayout(format, width, height);
 
         return blocksWide * blocksHigh * SizeInBytes(format);
     }

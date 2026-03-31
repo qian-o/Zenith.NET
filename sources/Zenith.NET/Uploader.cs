@@ -15,7 +15,7 @@ internal class Uploader(GraphicsContext context) : DisposableObject
             borrowed[commandBuffer] = leases = [];
         }
 
-        if (!(available.Where(item => item.HasCapacityFor(sizeInBytes)).MinBy(item => item.Buffer.Desc.SizeInBytes) is Lease lease && available.Remove(lease)))
+        if (!(available.Where(item => item.HasCapacityFor(sizeInBytes)).MinBy(static item => item.Buffer.Desc.SizeInBytes) is Lease lease && available.Remove(lease)))
         {
             lease = new(context.CreateBuffer(new()
             {

@@ -164,7 +164,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
             Vk.CreateInstance(&createInfo, null, out Instance).Success();
 
-            LamdaNativeContext context = new((proc) => Vk.GetInstanceProcAddr(Instance, (byte*)ZenithMarshal.StringToPointer(scope, proc, StringEncoding.UTF8)));
+            LamdaNativeContext context = new(proc => Vk.GetInstanceProcAddr(Instance, (byte*)ZenithMarshal.StringToPointer(scope, proc, StringEncoding.UTF8)));
 
             DebugUtils = enabledExtensions.Contains(ExtDebugUtils.ExtensionName) ? new(context) : null;
             Surface = enabledExtensions.Contains(KhrSurface.ExtensionName) ? new(context) : null;

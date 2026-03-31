@@ -8,6 +8,10 @@
         <ProjectReference Include="..\Zenith.NET\Zenith.NET.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="Metal.NET" />
+    </ItemGroup>
+
     <Import Project="..\NuGet.Packaging.props" />
 
 </Project>

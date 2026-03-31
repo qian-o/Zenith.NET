@@ -1,0 +1,3 @@
+﻿using CornellBox;
+
+App.Run();
