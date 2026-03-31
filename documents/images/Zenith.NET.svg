@@ -1,10 +1,25 @@
 ﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
     <defs>
-        <linearGradient id="dotnet-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#512BD4" />
-            <stop offset="100%" stop-color="#C239B3" />
+        <!-- Background: luminous radial gradient (Liquid Glass feel) -->
+        <radialGradient id="bg-glow" cx="35%" cy="30%" r="80%">
+            <stop offset="0%" stop-color="#7CB8F2" />
+            <stop offset="50%" stop-color="#4A90D9" />
+            <stop offset="100%" stop-color="#3568B2" />
+        </radialGradient>
+
+        <!-- Glass crystal fill: subtle blue-white -->
+        <linearGradient id="glass-fill" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#FFFFFF" />
+            <stop offset="100%" stop-color="#D0E4F7" />
         </linearGradient>
-        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+
+        <!-- Specular highlight -->
+        <radialGradient id="specular" cx="40%" cy="25%" r="35%">
+            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55" />
+            <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+        </radialGradient>
+
+        <filter id="glass-blur" x="-10%" y="-10%" width="120%" height="120%">
             <feGaussianBlur stdDeviation="2" result="blur" />
             <feMerge>
                 <feMergeNode in="blur" />
@@ -13,11 +28,20 @@
         </filter>
     </defs>
 
-    <circle cx="128" cy="128" r="120" fill="url(#dotnet-grad)" />
+    <!-- Background: rounded square -->
+    <rect x="8" y="8" width="240" height="240" rx="48" fill="url(#bg-glow)" />
 
-    <g filter="url(#glow)">
-        <polygon points="128,58 192,93 128,128 64,93" fill="#FFFFFF" />
-        <polygon points="64,93 128,128 128,198 64,163" fill="#FFFFFF" fill-opacity="0.65" />
-        <polygon points="192,93 192,163 128,198 128,128" fill="#FFFFFF" fill-opacity="0.4" />
+    <!-- Crystal / Gem — Liquid Glass style -->
+    <g filter="url(#glass-blur)">
+        <!-- Upper-left face (brightest — lit side) -->
+        <polygon points="128,38 54,156 128,156" fill="url(#glass-fill)" fill-opacity="0.92" />
+        <!-- Upper-right face -->
+        <polygon points="128,38 202,156 128,156" fill="#FFFFFF" fill-opacity="0.45" />
+        <!-- Lower-left face -->
+        <polygon points="54,156 128,218 128,156" fill="#FFFFFF" fill-opacity="0.3" />
+        <!-- Lower-right face (darkest — refraction shadow) -->
+        <polygon points="202,156 128,218 128,156" fill="#B8D4EE" fill-opacity="0.2" />
     </g>
+
+    <!-- Specular highlight on crystal top -->
 </svg>

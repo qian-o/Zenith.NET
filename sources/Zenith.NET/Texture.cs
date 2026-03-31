@@ -8,7 +8,7 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public void Upload<T>(ReadOnlySpan<T> data, TextureSlice slice, TextureOffset offset, TextureExtent extent) where T : unmanaged
     {
-        if (data.Length is 0 || data.Length != extent.Width * extent.Height * extent.Depth)
+        if (data.Length is 0)
         {
             return;
         }

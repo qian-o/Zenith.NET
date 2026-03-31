@@ -180,14 +180,14 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
                     Stride = inputLayout.StrideInBytes
                 };
 
-                foreach (InputElement inputElement in inputLayout.Elements)
+                foreach (InputElement element in inputLayout.Elements)
                 {
                     vertexAttributeDescriptions[attribute] = new()
                     {
                         Location = attribute,
                         Binding = binding,
-                        Format = VKFormats.Vulkan(inputElement.Format),
-                        Offset = inputElement.OffsetInBytes
+                        Format = VKFormats.Vulkan(element.Format),
+                        Offset = element.OffsetInBytes
                     };
 
                     attribute++;

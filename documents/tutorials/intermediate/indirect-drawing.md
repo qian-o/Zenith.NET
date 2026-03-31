@@ -290,22 +290,26 @@ file struct Vertex(Vector3 position, Vector4 color)
 /// <summary>
 /// Per-instance transformation and color data.
 /// </summary>
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Explicit, Size = 80)]
 file struct InstanceData
 {
+    [FieldOffset(0)]
     public Matrix4x4 Model;
 
+    [FieldOffset(64)]
     public Vector4 Color;
 }
 
 /// <summary>
 /// View and projection matrices.
 /// </summary>
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Explicit, Size = 128)]
 file struct ViewConstants
 {
+    [FieldOffset(0)]
     public Matrix4x4 View;
 
+    [FieldOffset(64)]
     public Matrix4x4 Projection;
 }
 ```

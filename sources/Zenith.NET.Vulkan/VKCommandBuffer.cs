@@ -66,15 +66,17 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
         vkDest.TransitionLayout(this, destSlice, ImageLayout.TransferDstOptimal);
 
+        (uint blockWidth, uint blockHeight, uint blocksWide, uint blocksHigh) = ZenithHelper.BlockLayout(vkDest.Desc.Format, destExtent.Width, destExtent.Height);
+
         uint formatSizeInBytes = ZenithHelper.SizeInBytes(vkDest.Desc.Format);
-        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * destExtent.Width, GraphicsContext.TextureRowPitchAlignment);
-        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * destExtent.Height, GraphicsContext.TextureDepthPitchAlignment);
+        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * blocksWide, GraphicsContext.TextureRowPitchAlignment);
+        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * blocksHigh, GraphicsContext.TextureDepthPitchAlignment);
 
         BufferImageCopy bufferImageCopy = new()
         {
             BufferOffset = srcOffsetInBytes,
-            BufferRowLength = sliceRowPitchInBytes / formatSizeInBytes,
-            BufferImageHeight = sliceDepthPitchInBytes / sliceRowPitchInBytes,
+            BufferRowLength = sliceRowPitchInBytes / formatSizeInBytes * blockWidth,
+            BufferImageHeight = sliceDepthPitchInBytes / sliceRowPitchInBytes * blockHeight,
             ImageSubresource = new()
             {
                 AspectMask = VKFormats.Vulkan(vkDest.Desc.Format, vkDest.Desc.Flags).AspectFlags,
@@ -162,15 +164,17 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
         vkSrc.TransitionLayout(this, srcSlice, ImageLayout.TransferSrcOptimal);
 
+        (uint blockWidth, uint blockHeight, uint blocksWide, uint blocksHigh) = ZenithHelper.BlockLayout(vkSrc.Desc.Format, srcExtent.Width, srcExtent.Height);
+
         uint formatSizeInBytes = ZenithHelper.SizeInBytes(vkSrc.Desc.Format);
-        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * srcExtent.Width, GraphicsContext.TextureRowPitchAlignment);
-        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * srcExtent.Height, GraphicsContext.TextureDepthPitchAlignment);
+        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * blocksWide, GraphicsContext.TextureRowPitchAlignment);
+        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * blocksHigh, GraphicsContext.TextureDepthPitchAlignment);
 
         BufferImageCopy bufferImageCopy = new()
         {
             BufferOffset = destOffsetInBytes,
-            BufferRowLength = sliceRowPitchInBytes / formatSizeInBytes,
-            BufferImageHeight = sliceDepthPitchInBytes / sliceRowPitchInBytes,
+            BufferRowLength = sliceRowPitchInBytes / formatSizeInBytes * blockWidth,
+            BufferImageHeight = sliceDepthPitchInBytes / sliceRowPitchInBytes * blockHeight,
             ImageSubresource = new()
             {
                 AspectMask = VKFormats.Vulkan(vkSrc.Desc.Format, vkSrc.Desc.Flags).AspectFlags,
@@ -259,7 +263,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
     {
         VKFrameBuffer vkFrameBuffer = frameBuffer.Vulkan();
 
-        vkFrameBuffer.PrepareAttachmentsForRendering(this);
+        vkFrameBuffer.PrepareAttachments(this);
 
         bool clearColor = clearValue.Flags.HasFlag(ClearFlags.Color);
         bool clearDepth = clearValue.Flags.HasFlag(ClearFlags.Depth);
@@ -323,7 +327,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
     {
         Context.Vk.CmdEndRendering(CommandBuffer);
 
-        frameBuffer.Vulkan().FinalizeColorAttachmentsForPresent(this);
+        frameBuffer.Vulkan().PresentColorAttachments(this);
     }
 
     protected override void SetScissorsImpl(Scissor[] scissors)
