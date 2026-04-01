@@ -6,6 +6,3 @@ contact_links:
   - name: Documentation
     url: https://qian-o.github.io/Zenith.NET/
     about: Check out the documentation and tutorials for Zenith.NET.
-  - name: Feature Discussions
-    url: https://github.com/qian-o/Zenith.NET/discussions/categories/ideas
-    about: Discuss new ideas and features for Zenith.NET with the community.

@@ -2,7 +2,7 @@
 
 ## Overview
 
-A dual-mode Cornell Box renderer built on the Zenith.NET multi-backend GPU framework (DirectX12 / Vulkan / Metal).
+A dual-mode Cornell Box renderer built on the Zenith.NET multi-backend GPU framework (DirectX12 / Metal / Vulkan).
 Two rendering modes switchable via ImGui radio buttons at runtime:
 
 - **Path Tracing** (mode 0): `ComputePipeline` + inline `RayQuery<>`, progressive accumulation with NEE (Next Event Estimation), Cook-Torrance PBR BRDF (GGX + Schlick Fresnel + Smith G), GGX importance sampling for specular, cosine-weighted hemisphere for diffuse, Russian roulette, environment sky light on ray miss. Only available when `Context.Capabilities.RayTracingSupported` is true.
@@ -11,7 +11,7 @@ Two rendering modes switchable via ImGui radio buttons at runtime:
 ## Current State (2026-03-30)
 
 - All files implemented and compiling successfully
-- DX12 validation layer clean
+- DirectX12 validation layer clean
 - Camera initial position: (278, 273, -800), Speed=240, FarPlane=2000, looks into the box
 - Swap chain format: B8G8R8A8UNorm color + D32FloatS8UInt depth/stencil
 - `Renderer` abstract base class unifies both renderers (`Update` / `Render` / `Resize` + `IDisposable`)
@@ -775,10 +775,10 @@ base (FrameBuffer + DepthStencil + Color)
 → constantBuffer → materialBuffer → indexBuffer → vertexBuffer
 ```
 
-## DX12 Specific Notes
+## DirectX12 Specific Notes
 
-- `BindingHelper` assigns DX12 register indices by type: CBV(b), SRV(t), UAV(u), Sampler(s) independently numbered
-- Vulkan numbers all bindings sequentially; Metal uses argument buffer index
+- `BindingHelper` assigns DirectX12 register indices by type: CBV(b), SRV(t), UAV(u), Sampler(s) independently numbered
+- Metal uses argument buffer index; Vulkan numbers all bindings sequentially
 
 ## C# Code Style
 

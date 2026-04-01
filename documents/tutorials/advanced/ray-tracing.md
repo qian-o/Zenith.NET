@@ -684,10 +684,15 @@ while (query.Proceed())
         uint sphereIndex = query.CandidatePrimitiveIndex();
         Sphere sphere = spheres[sphereIndex];
 
+        float3 ro = query.CandidateObjectRayOrigin();
+        float3 rd = query.CandidateObjectRayDirection();
+
         float t = IntersectSphere(ro, rd, sphere);
 
         if (t >= query.RayTMin() && t <= query.CommittedRayT())
         {
+            float3 hitPoint = ro + rd * t;
+
             sphereHitNormal = normalize(hitPoint - sphere.Center);
             sphereHitColor = sphere.Color;
 
@@ -741,6 +746,9 @@ bool TraceShadowRay(float3 origin, float3 direction)
         {
             uint sphereIndex = shadowQuery.CandidatePrimitiveIndex();
             Sphere sphere = spheres[sphereIndex];
+
+            float3 ro = shadowQuery.CandidateObjectRayOrigin();
+            float3 rd = shadowQuery.CandidateObjectRayDirection();
 
             float t = IntersectSphere(ro, rd, sphere);
 

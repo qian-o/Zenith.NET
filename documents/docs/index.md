@@ -5,6 +5,20 @@ This section provides conceptual documentation to help you understand Zenith.NET
 > [!NOTE]
 > Looking for step-by-step coding guides? Check out the [Tutorials](../tutorials/index.md) section.
 
+## Design Philosophy
+
+Zenith.NET abstracts DirectX 12, Metal 4, and Vulkan 1.4 under a unified API. The design follows a clear principle: **adopt the latest API versions and expose only the capabilities shared across all three backends**. This means platform-specific features are intentionally excluded to maintain a consistent cross-platform experience.
+
+Each backend targets real-world device coverage:
+
+| Backend | Strategy |
+|---------|----------|
+| **DirectX 12** | Targets mainstream Windows 10 and above, covering the vast majority of Windows devices |
+| **Metal 4** | Supports Apple Silicon (M-series) Macs and compatible iPhone/iPad models. Intel-based Macs are not supported |
+| **Vulkan 1.4** | Serves as the cross-platform fallback. While Vulkan has evolved rapidly with many extensions, mobile and Linux driver support remains uneven — so adaptation is driven by actual device capabilities rather than spec version alone |
+
+For detailed backend selection guidance, see [Backend Selection](platform/backend-selection.md).
+
 ## Core Concepts
 
 ### Graphics Context
@@ -51,12 +65,12 @@ Pipelines reference a single `ResourceLayout`, and you bind a corresponding `Res
 
 ## Platform Support
 
-| Platform | DirectX 12 | Metal | Vulkan |
+| Platform | DirectX 12 | Metal 4 | Vulkan 1.4 |
 |----------|:----------:|:-----:|:------:|
 | Windows  | <span class="status-yes">Yes</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
-| Linux    | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
 | Apple    | <span class="status-no">No</span> | <span class="status-yes">Yes</span> | <span class="status-yes">Yes</span> |
 | Android  | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
+| Linux    | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
 
 ## Best Practices
 
