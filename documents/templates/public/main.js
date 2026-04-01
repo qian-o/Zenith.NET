@@ -77,7 +77,7 @@
 
             e.preventDefault();
             const query = document.getElementById('search-query')?.value || '';
-            history.pushState({ search: true, query }, '');
+            history.replaceState({ search: true, query }, '');
             window.location.href = link.href;
         });
 
