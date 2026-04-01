@@ -13,34 +13,23 @@ body:
       required: true
     attributes:
       label: Describe the bug
-      description: A clear and concise description of what the bug is.
-      placeholder: E.g. When initializing a DirectX12 context, an exception is thrown on integrated graphics.
-
-  - type: textarea
-    validations:
-      required: true
-    attributes:
-      label: Steps to reproduce
-      description: Steps to reproduce the behavior. Include a minimal code example if possible.
+      description: A clear and concise description of what the bug is, including steps to reproduce and expected behavior.
       placeholder: |
+        What happened:
+        E.g. When initializing a DirectX12 context, an exception is thrown on integrated graphics.
+
+        Steps to reproduce:
         1. Create a GraphicsContext with DirectX12
         2. Call CreateSwapChain()
         3. See exception
 
-  - type: textarea
-    validations:
-      required: true
-    attributes:
-      label: Expected behavior
-      description: What you expected to happen.
-      placeholder: DirectX12 context should initialize successfully.
+        Expected behavior:
+        DirectX12 context should initialize successfully.
 
   - type: textarea
-    validations:
-      required: true
     attributes:
       label: Environment
-      description: Please provide your environment details.
+      description: Please provide your environment details (if applicable).
       placeholder: |
         - OS: Windows 11 / macOS 15 / Ubuntu 24.04 / etc.
         - Graphics API: DirectX12 / Metal / Vulkan

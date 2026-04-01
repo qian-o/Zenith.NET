@@ -7,6 +7,13 @@
         }
     ],
     start: () => {
+        // Prevent short table cells from wrapping (e.g. "DirectX 12", "Vulkan 1.4")
+        for (const td of document.querySelectorAll('article td')) {
+            if (td.textContent.trim().length <= 20) {
+                td.style.whiteSpace = 'nowrap';
+            }
+        }
+
         // Hide inherited type info sections (inheritance, implements, inheritedMembers, derivedClasses)
         for (const dl of document.querySelectorAll('dl.typelist.inheritance, dl.typelist.implements, dl.typelist.inheritedMembers, dl.typelist.derivedClasses')) {
             dl.style.display = 'none';
@@ -27,7 +34,6 @@
             while (el) {
                 toHide.push(el);
                 if (el.tagName === 'H3') {
-                    // Also grab the preceding <a> overload anchor
                     const prev = el.previousElementSibling;
                     if (prev && prev.tagName === 'A' && prev.dataset.uid) {
                         toHide.push(prev);
@@ -63,5 +69,26 @@
                 h2.style.display = 'none';
             }
         }
+
+        // Search results: navigate in same tab with back button support
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('#search-results .sr-item a');
+            if (!link) return;
+
+            e.preventDefault();
+            const query = document.getElementById('search-query')?.value || '';
+            history.replaceState({ search: true, query }, '');
+            window.location.href = link.href;
+        });
+
+        window.addEventListener('popstate', (e) => {
+            if (e.state?.search) {
+                const input = document.getElementById('search-query');
+                if (input) {
+                    input.value = e.state.query;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+        });
     }
 }

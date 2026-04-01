@@ -6,7 +6,7 @@
 
 <p align="center">
   A modern, cross-platform graphics and compute library for .NET.<br/>
-  One API for DirectX 12, Metal, and Vulkan.
+  One API for DirectX 12, Metal 4, and Vulkan 1.4.
 </p>
 
 <p align="center">
@@ -14,21 +14,17 @@
   <a href="https://github.com/qian-o/Zenith.NET/blob/master/LICENSE"><img src="https://img.shields.io/github/license/qian-o/Zenith.NET?style=flat-square" alt="License"></a>
 </p>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Status-Work%20in%20Progress-orange?style=for-the-badge" alt="Status: Work in Progress">
-</p>
-
 ---
 
 ## 📖 Overview
 
-Zenith.NET is a GPU abstraction layer that unifies DirectX 12, Metal, and Vulkan under a single .NET API. It enables developers to build high-performance rendering and compute applications without writing backend-specific code. The library supports modern GPU features including ray tracing and mesh shading, and integrates seamlessly with popular .NET UI frameworks.
+Zenith.NET is a GPU abstraction layer that unifies DirectX 12, Metal 4, and Vulkan 1.4 under a single .NET API. It enables developers to build high-performance rendering and compute applications without writing backend-specific code. The library supports modern GPU features including ray tracing and mesh shading, and integrates seamlessly with popular .NET UI frameworks.
 
 Visit the [documentation site](https://qian-o.github.io/Zenith.NET/) for tutorials and API reference.
 
 ## ✨ Features
 
-- 🎯 **Unified API** — Write once, run on DirectX 12, Metal, and Vulkan
+- 🎯 **Unified API** — Write once, run on DirectX 12, Metal 4, and Vulkan 1.4
 - 🎨 **Graphics** — Vertex and pixel shaders
 - ⚡ **Compute** — General-purpose GPU computing
 - 💡 **Ray Tracing** — Hardware-accelerated BLAS/TLAS with RayQuery in any shader stage
@@ -42,11 +38,9 @@ Visit the [documentation site](https://qian-o.github.io/Zenith.NET/) for tutoria
 |           | DirectX 12 | Metal 4 | Vulkan 1.4 |
 | :-------: | :--------: | :-----: | :--------: |
 | Windows   | ✅ |  | ✅ |
-| Linux     |  |  | ✅ |
-| Apple     |  | 🚧 | ✅ |
+| Apple     |  | ✅ | ✅ |
 | Android   |  |  | ✅ |
-
-> 🚧 Metal backend is under development.
+| Linux     |  |  | ✅ |
 
 ---
 

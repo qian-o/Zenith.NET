@@ -13,7 +13,8 @@
           ]
         }
       ],
-      "output": "api"
+      "output": "api",
+      "enumSortOrder": "declaringOrder"
     }
   ],
   "build": {
@@ -35,7 +36,6 @@
         ]
       }
     ],
-    "output": "_site",
     "template": [
       "default",
       "modern",
@@ -45,10 +45,15 @@
       "_appTitle": "Zenith.NET",
       "_appLogoPath": "images/Zenith.NET-Logo.svg",
       "_appFaviconPath": "images/Zenith.NET.png",
+      "_enableSearch": true,
       "_gitContribute": {
         "repo": "https://github.com/qian-o/Zenith.NET",
         "branch": "master"
       }
+    },
+    "output": "_site",
+    "sitemap": {
+      "baseUrl": "https://qian-o.github.io/Zenith.NET/"
     }
   }
 }
