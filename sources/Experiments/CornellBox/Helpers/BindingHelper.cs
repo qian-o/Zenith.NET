@@ -41,17 +41,6 @@ internal static class BindingHelper
                 }
                 break;
 
-            case Backend.Vulkan:
-                {
-                    for (int i = 0; i < bindings.Length; i++)
-                    {
-                        ref ResourceBinding binding = ref bindings[i];
-
-                        binding = binding with { Index = (uint)i };
-                    }
-                }
-                break;
-
             case Backend.Metal:
                 {
                     uint bufferIndex = 0;
@@ -79,6 +68,17 @@ internal static class BindingHelper
                                 _ => binding.Index
                             }
                         };
+                    }
+                }
+                break;
+
+            case Backend.Vulkan:
+                {
+                    for (int i = 0; i < bindings.Length; i++)
+                    {
+                        ref ResourceBinding binding = ref bindings[i];
+
+                        binding = binding with { Index = (uint)i };
                     }
                 }
                 break;
