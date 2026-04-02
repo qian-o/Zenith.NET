@@ -210,7 +210,7 @@ float3 cosineSampleHemisphere(float3 normal, inout uint seed)
     float r1 = randomFloat(seed);
     float r2 = randomFloat(seed);
 
-    float phi = 2.0 * 3.14159265 * r1;
+    float phi = 2.0 * PI * r1;
     float sinTheta = sqrt(r2);
     float cosTheta = sqrt(1.0 - r2);
 
@@ -243,10 +243,10 @@ bool traceShadowRay(float3 origin, float3 direction, float maxDist)
 float3 sampleLightDirect(float3 hitPos, float3 hitNormal, float3 geoNormal, float3 V, Material mat, float roughness,
                          float specProb, inout uint rng)
 {
-    float u = randomFloat(rng);
-    float v = randomFloat(rng);
+    float r1 = randomFloat(rng);
+    float r2 = randomFloat(rng);
 
-    float3 lightPoint = float3(lerp(LightMin.x, LightMax.x, u), LightMin.y, lerp(LightMin.z, LightMax.z, v));
+    float3 lightPoint = float3(lerp(LightMin.x, LightMax.x, r1), LightMin.y, lerp(LightMin.z, LightMax.z, r2));
 
     float3 toLight = lightPoint - hitPos;
     float dist = length(toLight);
