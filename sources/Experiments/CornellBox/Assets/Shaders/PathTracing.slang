@@ -115,10 +115,7 @@ float GeometrySmith(float NdotV, float NdotL, float roughness)
 
 float3 FresnelSchlick(float cosTheta, float3 F0)
 {
-    float t = saturate(1.0 - cosTheta);
-    float t2 = t * t;
-
-    return F0 + (1.0 - F0) * (t2 * t2 * t);
+    return F0 + (1.0 - F0) * pow(saturate(1.0 - cosTheta), 5.0);
 }
 
 float3 evaluateBRDF(float3 N, float3 V, float3 L, Material mat)
@@ -144,16 +141,10 @@ float3 evaluateBRDF(float3 N, float3 V, float3 L, Material mat)
     return diffuse + specular;
 }
 
-void buildONB(float3 N, out float3 T, out float3 B)
-{
-    float3 helper = abs(N.x) > 0.99 ? float3(0.0, 1.0, 0.0) : float3(1.0, 0.0, 0.0);
-    T = normalize(cross(helper, N));
-    B = cross(N, T);
-}
-
 float3 sampleGGXHalfVector(float3 N, float roughness, inout uint seed)
 {
     float a = roughness * roughness;
+
     float r1 = randomFloat(seed);
     float r2 = randomFloat(seed);
 
@@ -161,13 +152,12 @@ float3 sampleGGXHalfVector(float3 N, float roughness, inout uint seed)
     float cosTheta = sqrt((1.0 - r2) / (1.0 + (a * a - 1.0) * r2));
     float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
 
-    float sinPhi, cosPhi;
-    sincos(phi, sinPhi, cosPhi);
+    float3 w = N;
+    float3 helper = abs(w.x) > 0.99 ? float3(0.0, 1.0, 0.0) : float3(1.0, 0.0, 0.0);
+    float3 u = normalize(cross(helper, w));
+    float3 v = cross(w, u);
 
-    float3 T, B;
-    buildONB(N, T, B);
-
-    return normalize(T * (cosPhi * sinTheta) + B * (sinPhi * sinTheta) + N * cosTheta);
+    return normalize(u * cos(phi) * sinTheta + v * sin(phi) * sinTheta + w * cosTheta);
 }
 
 uint pcgHash(uint input)
@@ -190,17 +180,16 @@ float3 cosineSampleHemisphere(float3 normal, inout uint seed)
     float r1 = randomFloat(seed);
     float r2 = randomFloat(seed);
 
-    float phi = 2.0 * PI * r1;
+    float phi = 2.0 * 3.14159265 * r1;
     float sinTheta = sqrt(r2);
     float cosTheta = sqrt(1.0 - r2);
 
-    float sinPhi, cosPhi;
-    sincos(phi, sinPhi, cosPhi);
+    float3 w = normal;
+    float3 helper = abs(w.x) > 0.99 ? float3(0.0, 1.0, 0.0) : float3(1.0, 0.0, 0.0);
+    float3 u = normalize(cross(helper, w));
+    float3 v = cross(w, u);
 
-    float3 T, B;
-    buildONB(normal, T, B);
-
-    return normalize(T * (cosPhi * sinTheta) + B * (sinPhi * sinTheta) + normal * cosTheta);
+    return normalize(u * cos(phi) * sinTheta + v * sin(phi) * sinTheta + w * cosTheta);
 }
 
 bool traceShadowRay(float3 origin, float3 direction, float maxDist)
@@ -208,7 +197,7 @@ bool traceShadowRay(float3 origin, float3 direction, float maxDist)
     RayDesc shadowRay;
     shadowRay.Origin = origin;
     shadowRay.Direction = direction;
-    shadowRay.TMin = 0.01;
+    shadowRay.TMin = 0.001;
     shadowRay.TMax = maxDist - 0.01;
 
     RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> shadowQuery;
@@ -244,7 +233,7 @@ float3 sampleLightDirect(float3 hitPos, float3 hitNormal, float3 geoNormal, floa
         return float3(0.0, 0.0, 0.0);
     }
 
-    float3 shadowOrigin = dot(geoNormal, L) > 0.0 ? hitPos + geoNormal * 0.05 : hitPos - geoNormal * 0.05;
+    float3 shadowOrigin = dot(geoNormal, L) > 0.0 ? hitPos + geoNormal * 0.001 : hitPos - geoNormal * 0.001;
     if (traceShadowRay(shadowOrigin, L, dist))
     {
         return float3(0.0, 0.0, 0.0);
@@ -369,7 +358,7 @@ float3 tracePath(float3 origin, float3 direction, inout uint rng)
             throughput *= kD * mat.Albedo / (1.0 - specProb + 0.0001);
         }
 
-        origin = hitPos + normal * 0.05;
+        origin = hitPos + normal * 0.001;
         direction = newDir;
 
         if (bounce >= 2)
@@ -386,16 +375,6 @@ float3 tracePath(float3 origin, float3 direction, inout uint rng)
     }
 
     return radiance;
-}
-
-float3 ACESFilm(float3 x)
-{
-    return saturate((x * (x * 2.51 + 0.03)) / (x * (x * 2.43 + 0.59) + 0.14));
-}
-
-float3 toSRGB(float3 linear)
-{
-    return pow(linear, 1.0 / 2.2);
 }
 
 [numthreads(16, 16, 1)]
@@ -439,6 +418,11 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 
     float3 avg = accumulated.rgb / float(camera.FrameCount + 1);
 
-    avg = toSRGB(ACESFilm(avg));
+    // ACES tonemapping
+    float3 a = avg * (avg * 2.51 + 0.03);
+    float3 b = avg * (avg * 2.43 + 0.59) + 0.14;
+    avg = saturate(a / b);
+
+    avg = pow(avg, 1.0 / 2.2);
     outputTexture[pixel] = float4(avg, 1.0);
 }
