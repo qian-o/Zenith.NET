@@ -100,17 +100,17 @@ struct PSInput
     nointerpolation uint MaterialID : TEXCOORD2;
 };
 
-ConstantBuffer<RasterConstants> constants;
+ConstantBuffer<RasterConstants> raster;
 StructuredBuffer<Material> materials;
 
 PSInput VSMain(VSInput input)
 {
-    float4 worldPos = mul(float4(input.Position, 1.0), constants.Model);
+    float4 worldPos = mul(float4(input.Position, 1.0), raster.Model);
 
     PSInput output;
-    output.Position = mul(mul(worldPos, constants.View), constants.Projection);
+    output.Position = mul(mul(worldPos, raster.View), raster.Projection);
     output.WorldPos = worldPos.xyz;
-    output.Normal = normalize(mul(float4(input.Normal, 0.0), constants.Model).xyz);
+    output.Normal = normalize(mul(float4(input.Normal, 0.0), raster.Model).xyz);
     output.MaterialID = input.MaterialID;
 
     return output;
@@ -130,21 +130,21 @@ float4 PSMain(PSInput input) : SV_TARGET
 
     float3 N = normalize(input.Normal);
     float3 worldPos = input.WorldPos;
-    float3 L = normalize(constants.LightPos - worldPos);
-    float3 V = normalize(constants.CameraPos - worldPos);
+    float3 L = normalize(raster.LightPos - worldPos);
+    float3 V = normalize(raster.CameraPos - worldPos);
     float3 H = normalize(L + V);
 
     float NdotL = max(dot(N, L), 0.0);
     float NdotH = max(dot(N, H), 0.0);
     float spec = pow(NdotH, 64.0);
 
-    float dist = length(constants.LightPos - worldPos);
+    float dist = length(raster.LightPos - worldPos);
     float atten = 1.0 / (1.0 + 0.000005 * dist * dist);
 
     float hemiFactor = N.y * 0.5 + 0.5;
     float3 ambient = mat.Albedo * lerp(0.06, 0.15, hemiFactor);
-    float3 diffuse = mat.Albedo * constants.LightColor * NdotL * atten;
-    float3 specular = constants.LightColor * spec * atten * 0.1;
+    float3 diffuse = mat.Albedo * raster.LightColor * NdotL * atten;
+    float3 specular = raster.LightColor * spec * atten * 0.1;
 
     float3 color = ambient + diffuse + specular;
 
