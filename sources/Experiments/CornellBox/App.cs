@@ -47,8 +47,12 @@ internal static class App
 
         Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
 
-        window = Window.Create(WindowOptions.Default with { API = GraphicsAPI.None });
-        window.Size = new(1280, 720);
+        window = Window.Create(WindowOptions.Default with
+        {
+            API = GraphicsAPI.None,
+            Title = "Cornell Box - Zenith.NET",
+            Size = new(1280, 720)
+        });
         window.Initialize();
         window.Center();
 
