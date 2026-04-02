@@ -103,6 +103,16 @@ struct PSInput
 ConstantBuffer<RasterConstants> raster;
 StructuredBuffer<Material> materials;
 
+float3 ACESFilm(float3 x)
+{
+    return saturate((x * (x * 2.51 + 0.03)) / (x * (x * 2.43 + 0.59) + 0.14));
+}
+
+float3 toSRGB(float3 linear)
+{
+    return pow(linear, 1.0 / 2.2);
+}
+
 PSInput VSMain(VSInput input)
 {
     float4 worldPos = mul(float4(input.Position, 1.0), raster.Model);
@@ -125,20 +135,20 @@ float4 PSMain(PSInput input) : SV_TARGET
         float3 emissive = mat.Albedo * mat.Emission;
         float3 mapped = emissive / (emissive + 1.0);
 
-        return float4(pow(mapped, 1.0 / 2.2), 1.0);
+        return float4(toSRGB(mapped), 1.0);
     }
 
     float3 N = normalize(input.Normal);
     float3 worldPos = input.WorldPos;
-    float3 L = normalize(raster.LightPos - worldPos);
+    float3 toLight = raster.LightPos - worldPos;
+    float dist = length(toLight);
+    float3 L = toLight / dist;
     float3 V = normalize(raster.CameraPos - worldPos);
     float3 H = normalize(L + V);
 
     float NdotL = max(dot(N, L), 0.0);
     float NdotH = max(dot(N, H), 0.0);
     float spec = pow(NdotH, 64.0);
-
-    float dist = length(raster.LightPos - worldPos);
     float atten = 1.0 / (1.0 + 0.000005 * dist * dist);
 
     float hemiFactor = N.y * 0.5 + 0.5;
@@ -148,12 +158,7 @@ float4 PSMain(PSInput input) : SV_TARGET
 
     float3 color = ambient + diffuse + specular;
 
-    // ACES tonemapping
-    float3 a = color * (color * 2.51 + 0.03);
-    float3 b = color * (color * 2.43 + 0.59) + 0.14;
-    color = saturate(a / b);
-
-    color = pow(color, 1.0 / 2.2);
+    color = toSRGB(ACESFilm(color));
 
     return float4(color, 1.0);
 }
