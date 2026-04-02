@@ -141,6 +141,36 @@ float3 evaluateBRDF(float3 N, float3 V, float3 L, Material mat)
     return diffuse + specular;
 }
 
+float powerHeuristic(float pdfA, float pdfB)
+{
+    float a2 = pdfA * pdfA;
+
+    return a2 / (a2 + pdfB * pdfB + 0.0001);
+}
+
+float computeBrdfPdf(float3 N, float3 V, float3 L, float roughness, float specProb)
+{
+    float NdotL = max(dot(N, L), 0.0);
+    if (NdotL <= 0.0)
+    {
+        return 0.0;
+    }
+
+    float3 H = normalize(V + L);
+    float NdotH = max(dot(N, H), 0.0);
+    float HdotV = max(dot(H, V), 0.0);
+
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float denom = NdotH * NdotH * (a2 - 1.0) + 1.0;
+    float D = a2 / (PI * denom * denom);
+
+    float pdfSpec = D * NdotH / (4.0 * HdotV + 0.0001);
+    float pdfDiff = NdotL / PI;
+
+    return specProb * pdfSpec + (1.0 - specProb) * pdfDiff;
+}
+
 float3 sampleGGXHalfVector(float3 N, float roughness, inout uint seed)
 {
     float a = roughness * roughness;
@@ -210,7 +240,8 @@ bool traceShadowRay(float3 origin, float3 direction, float maxDist)
     return shadowQuery.CommittedStatus() != COMMITTED_NOTHING;
 }
 
-float3 sampleLightDirect(float3 hitPos, float3 hitNormal, float3 geoNormal, float3 V, Material mat, inout uint rng)
+float3 sampleLightDirect(float3 hitPos, float3 hitNormal, float3 geoNormal, float3 V, Material mat, float roughness,
+                         float specProb, inout uint rng)
 {
     float u = randomFloat(rng);
     float v = randomFloat(rng);
@@ -242,11 +273,13 @@ float3 sampleLightDirect(float3 hitPos, float3 hitNormal, float3 geoNormal, floa
     Material lightMat = materials[3];
     float3 lightEmission = lightMat.Albedo * lightMat.Emission;
 
-    float pdf = 1.0 / LightArea;
-    float3 brdf = evaluateBRDF(hitNormal, V, L, mat);
-    float geometryTerm = NdotL * lightCosine / (dist * dist);
+    float pdfLight = (dist * dist) / (lightCosine * LightArea);
+    float pdfBrdf = computeBrdfPdf(hitNormal, V, L, roughness, specProb);
+    float misWeight = powerHeuristic(pdfLight, pdfBrdf);
 
-    return lightEmission * brdf * geometryTerm / pdf;
+    float3 brdf = evaluateBRDF(hitNormal, V, L, mat);
+
+    return lightEmission * brdf * NdotL * misWeight / pdfLight;
 }
 
 float3 tracePath(float3 origin, float3 direction, inout uint rng)
@@ -313,14 +346,14 @@ float3 tracePath(float3 origin, float3 direction, inout uint rng)
 
         float3 V = -direction;
 
-        radiance += throughput * sampleLightDirect(hitPos, normal, geoNormal, V, mat, rng);
-
         float3 F0 = lerp(float3(0.04, 0.04, 0.04), mat.Albedo, mat.Metallic);
         float roughness = max(mat.Roughness, 0.04);
         float specWeight = max(F0.r, max(F0.g, F0.b));
         float diffWeight = (1.0 - specWeight) * (1.0 - mat.Metallic);
         float total = specWeight + diffWeight;
         float specProb = specWeight / total;
+
+        radiance += throughput * sampleLightDirect(hitPos, normal, geoNormal, V, mat, roughness, specProb, rng);
 
         float3 newDir;
         float NdotV = max(dot(normal, V), 0.001);
@@ -377,6 +410,23 @@ float3 tracePath(float3 origin, float3 direction, inout uint rng)
     return radiance;
 }
 
+float halton(uint index, uint base)
+{
+    float result = 0.0;
+    float f = 1.0;
+
+    uint i = index;
+
+    while (i > 0)
+    {
+        f /= float(base);
+        result += f * float(i % base);
+        i /= base;
+    }
+
+    return result;
+}
+
 [numthreads(16, 16, 1)]
 void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
@@ -389,7 +439,12 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 
     uint rng = pcgHash(pixel.x + pixel.y * camera.Width + camera.FrameCount * camera.Width * camera.Height);
 
-    float2 jitter = float2(randomFloat(rng), randomFloat(rng));
+    uint sampleIndex = camera.FrameCount + 1;
+    float hx = halton(sampleIndex, 2);
+    float hy = halton(sampleIndex, 3);
+    float ox = randomFloat(rng) * 0.5 - 0.25;
+    float oy = randomFloat(rng) * 0.5 - 0.25;
+    float2 jitter = frac(float2(hx + ox, hy + oy));
     float2 uv = (float2(pixel) + jitter) / float2(camera.Width, camera.Height);
     float2 ndc = uv * 2.0 - 1.0;
     ndc.y = -ndc.y;
