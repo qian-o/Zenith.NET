@@ -1,5 +1,5 @@
-﻿static const float3 LightMin = float3(213.0, 548.6, 227.0);
-static const float3 LightMax = float3(343.0, 548.6, 332.0);
+﻿static const float3 LightMin = float3(213.0, 547.0, 227.0);
+static const float3 LightMax = float3(343.0, 547.0, 332.0);
 static const float LightArea = (343.0 - 213.0) * (332.0 - 227.0);
 static const float3 LightNormal = float3(0.0, -1.0, 0.0);
 static const float PI = 3.14159265;

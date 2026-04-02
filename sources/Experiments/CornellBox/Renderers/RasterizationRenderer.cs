@@ -102,7 +102,7 @@ internal unsafe class RasterizationRenderer : Renderer
             Model = Matrix4x4.Identity,
             View = camera.View,
             Projection = camera.Projection,
-            LightPos = new(278.0f, 548.0f, 280.0f),
+            LightPos = new(278.0f, 547.0f, 280.0f),
             LightColor = new(2.0f, 1.8f, 1.4f),
             CameraPos = camera.Position
         }], 0);
