@@ -76,11 +76,11 @@ internal unsafe class TexturedQuadRenderer : IRenderer
         {
             float4 Position : SV_POSITION;
 
-            float2 TexCoord : TEXCOORD0;
+            float2 TexCoord : TEXCOORD;
         };
 
-        Texture2D shaderTexture;
-        SamplerState samplerState;
+        Texture2D texture;
+        SamplerState sampler;
 
         PSInput VSMain(VSInput input)
         {
@@ -93,7 +93,7 @@ internal unsafe class TexturedQuadRenderer : IRenderer
 
         float4 PSMain(PSInput input) : SV_TARGET
         {
-            return shaderTexture.Sample(samplerState, input.TexCoord);
+            return texture.Sample(sampler, input.TexCoord);
         }
         """;
 
@@ -107,7 +107,6 @@ internal unsafe class TexturedQuadRenderer : IRenderer
 
     public TexturedQuadRenderer()
     {
-        // UV origin (0,0) is top-left, (1,1) is bottom-right
         Vertex[] vertices =
         [
             new(new(-0.5f,  0.5f, 0.0f), new(0.0f, 0.0f)),
@@ -180,7 +179,7 @@ internal unsafe class TexturedQuadRenderer : IRenderer
             ResourceLayout = resourceLayout,
             InputLayouts = [inputLayout],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
-            Output = App.SwapChain.FrameBuffer.Output
+            Output = App.FrameBuffer.Output
         });
     }
 
@@ -192,7 +191,7 @@ internal unsafe class TexturedQuadRenderer : IRenderer
     {
         CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
 
-        commandBuffer.BeginRenderPass(App.SwapChain.FrameBuffer, new()
+        commandBuffer.BeginRenderPass(App.FrameBuffer, new()
         {
             ColorValues = [new(0.1f, 0.1f, 0.1f, 1.0f)],
             Depth = 1.0f,
@@ -227,9 +226,6 @@ internal unsafe class TexturedQuadRenderer : IRenderer
     }
 }
 
-/// <summary>
-/// Vertex structure with position and texture coordinates.
-/// </summary>
 [StructLayout(LayoutKind.Sequential)]
 file struct Vertex(Vector3 position, Vector2 texCoord)
 {
@@ -325,7 +321,6 @@ Samplers control how textures are read:
 ### Resource Binding
 
 ```csharp
-// 1. Define the layout using BindingHelper for cross-platform compatibility
 resourceLayout = App.Context.CreateResourceLayout(new()
 {
     Bindings = BindingHelper.Bindings
@@ -335,14 +330,12 @@ resourceLayout = App.Context.CreateResourceLayout(new()
     )
 });
 
-// 2. Create the table (bind actual resources)
 resourceTable = App.Context.CreateResourceTable(new()
 {
     Layout = resourceLayout,
     Resources = [texture, sampler]
 });
 
-// 3. Bind during rendering
 commandBuffer.SetResourceTable(resourceTable);
 ```
 
@@ -359,7 +352,7 @@ The `BindingHelper.Bindings()` method (defined in [Prerequisites](prerequisites.
 When beginning a render pass, you can pass resource tables to the `preprocessResourceTables` parameter:
 
 ```csharp
-commandBuffer.BeginRenderPass(App.SwapChain.FrameBuffer, new()
+commandBuffer.BeginRenderPass(App.FrameBuffer, new()
 {
     ColorValues = [new(0.1f, 0.1f, 0.1f, 1.0f)],
     Depth = 1.0f,
@@ -373,12 +366,12 @@ This allows Zenith.NET to optimize the resources in the table for shader access 
 ### Shader Texture Sampling
 
 ```slang
-Texture2D shaderTexture;
-SamplerState samplerState;
+Texture2D texture;
+SamplerState sampler;
 
 float4 PSMain(PSInput input) : SV_TARGET
 {
-    return shaderTexture.Sample(samplerState, input.TexCoord);
+    return texture.Sample(sampler, input.TexCoord);
 }
 ```
 

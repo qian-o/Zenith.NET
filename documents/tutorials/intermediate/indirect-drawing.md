@@ -20,17 +20,17 @@ namespace ZenithTutorials.Renderers;
 
 internal unsafe class IndirectDrawingRenderer : IRenderer
 {
-    private const int InstanceCount = 25;  // 5x5 grid of cubes
+    private const int InstanceCount = 25;
 
     private const string ShaderSource = """
-        struct ViewConstants
+        struct Constants
         {
             float4x4 View;
 
             float4x4 Projection;
         };
 
-        struct InstanceData
+        struct Instance
         {
             float4x4 Model;
 
@@ -50,21 +50,21 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
         {
             float4 Position : SV_POSITION;
 
-            float4 Color : COLOR0;
+            float4 Color : COLOR;
         };
 
-        ConstantBuffer<ViewConstants> view;
-        StructuredBuffer<InstanceData> instances;
+        ConstantBuffer<Constants> constants;
+        StructuredBuffer<Instance> instances;
 
         PSInput VSMain(VSInput input)
         {
-            InstanceData instance = instances[input.InstanceID];
+            Instance instance = instances[input.InstanceID];
 
             float4 worldPos = mul(float4(input.Position, 1.0), instance.Model);
-            float4 viewPos = mul(worldPos, view.View);
+            float4 viewPos = mul(worldPos, constants.View);
 
             PSInput output;
-            output.Position = mul(viewPos, view.Projection);
+            output.Position = mul(viewPos, constants.Projection);
             output.Color = input.Color * instance.Color;
 
             return output;
@@ -79,7 +79,7 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
     private readonly Buffer vertexBuffer;
     private readonly Buffer indexBuffer;
     private readonly Buffer indirectBuffer;
-    private readonly Buffer viewConstantsBuffer;
+    private readonly Buffer constantsBuffer;
     private readonly Buffer instanceBuffer;
     private readonly ResourceLayout resourceLayout;
     private readonly ResourceTable resourceTable;
@@ -91,12 +91,10 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
     {
         Vertex[] vertices =
         [
-            // Front face
             new(new(-0.5f, -0.5f,  0.5f), new(1.0f, 1.0f, 1.0f, 1.0f)),
             new(new( 0.5f, -0.5f,  0.5f), new(1.0f, 1.0f, 1.0f, 1.0f)),
             new(new( 0.5f,  0.5f,  0.5f), new(1.0f, 1.0f, 1.0f, 1.0f)),
             new(new(-0.5f,  0.5f,  0.5f), new(1.0f, 1.0f, 1.0f, 1.0f)),
-            // Back face
             new(new(-0.5f, -0.5f, -0.5f), new(1.0f, 1.0f, 1.0f, 1.0f)),
             new(new( 0.5f, -0.5f, -0.5f), new(1.0f, 1.0f, 1.0f, 1.0f)),
             new(new( 0.5f,  0.5f, -0.5f), new(1.0f, 1.0f, 1.0f, 1.0f)),
@@ -145,19 +143,21 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
             FirstInstance = 0
         }], 0);
 
-        viewConstantsBuffer = App.Context.CreateBuffer(new()
+        constantsBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)sizeof(ViewConstants),
-            StrideInBytes = (uint)sizeof(ViewConstants),
+            SizeInBytes = (uint)sizeof(Constants),
+            StrideInBytes = (uint)sizeof(Constants),
             Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
         });
 
         instanceBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)(sizeof(InstanceData) * InstanceCount),
-            StrideInBytes = (uint)sizeof(InstanceData),
+            SizeInBytes = (uint)(sizeof(Instance) * InstanceCount),
+            StrideInBytes = (uint)sizeof(Instance),
             Flags = BufferUsageFlags.ShaderResource | BufferUsageFlags.MapWrite
         });
+
+        Resize(App.Width, App.Height);
 
         resourceLayout = App.Context.CreateResourceLayout(new()
         {
@@ -171,7 +171,7 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
         resourceTable = App.Context.CreateResourceTable(new()
         {
             Layout = resourceLayout,
-            Resources = [viewConstantsBuffer, instanceBuffer]
+            Resources = [constantsBuffer, instanceBuffer]
         });
 
         InputLayout inputLayout = new();
@@ -181,7 +181,6 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
         using Shader vertexShader = App.Context.LoadShaderFromSource(ShaderSource, "VSMain", ShaderStageFlags.Vertex);
         using Shader pixelShader = App.Context.LoadShaderFromSource(ShaderSource, "PSMain", ShaderStageFlags.Pixel);
 
-        // Create graphics pipeline
         pipeline = App.Context.CreateGraphicsPipeline(new()
         {
             RenderStates = new()
@@ -195,7 +194,7 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
             ResourceLayout = resourceLayout,
             InputLayouts = [inputLayout],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
-            Output = App.SwapChain.FrameBuffer.Output
+            Output = App.FrameBuffer.Output
         });
     }
 
@@ -203,7 +202,7 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
     {
         rotationAngle += (float)deltaTime;
 
-        InstanceData[] instances = new InstanceData[InstanceCount];
+        Instance[] instances = new Instance[InstanceCount];
         int index = 0;
         int gridSize = (int)Math.Sqrt(InstanceCount);
 
@@ -233,14 +232,9 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
 
     public void Render()
     {
-        Matrix4x4 view = Matrix4x4.CreateLookAt(new(0, 0, 8), Vector3.Zero, Vector3.UnitY);
-        Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(45.0f), (float)App.Width / App.Height, 0.1f, 100.0f);
-
-        viewConstantsBuffer.Upload([new ViewConstants() { View = view, Projection = projection }], 0);
-
         CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
 
-        commandBuffer.BeginRenderPass(App.SwapChain.FrameBuffer, new()
+        commandBuffer.BeginRenderPass(App.FrameBuffer, new()
         {
             ColorValues = [new(0.1f, 0.1f, 0.15f, 1.0f)],
             Depth = 1.0f,
@@ -261,6 +255,10 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
 
     public void Resize(uint width, uint height)
     {
+        Matrix4x4 view = Matrix4x4.CreateLookAt(new(0, 0, 8), Vector3.Zero, Vector3.UnitY);
+        Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(45.0f), (float)width / height, 0.1f, 100.0f);
+
+        constantsBuffer.Upload([new Constants() { View = view, Projection = projection }], 0);
     }
 
     public void Dispose()
@@ -269,16 +267,13 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
         resourceTable.Dispose();
         resourceLayout.Dispose();
         instanceBuffer.Dispose();
-        viewConstantsBuffer.Dispose();
+        constantsBuffer.Dispose();
         indirectBuffer.Dispose();
         indexBuffer.Dispose();
         vertexBuffer.Dispose();
     }
 }
 
-/// <summary>
-/// Vertex structure with position and color data.
-/// </summary>
 [StructLayout(LayoutKind.Sequential)]
 file struct Vertex(Vector3 position, Vector4 color)
 {
@@ -287,11 +282,8 @@ file struct Vertex(Vector3 position, Vector4 color)
     public Vector4 Color = color;
 }
 
-/// <summary>
-/// Per-instance transformation and color data.
-/// </summary>
 [StructLayout(LayoutKind.Explicit, Size = 80)]
-file struct InstanceData
+file struct Instance
 {
     [FieldOffset(0)]
     public Matrix4x4 Model;
@@ -300,11 +292,8 @@ file struct InstanceData
     public Vector4 Color;
 }
 
-/// <summary>
-/// View and projection matrices.
-/// </summary>
 [StructLayout(LayoutKind.Explicit, Size = 128)]
-file struct ViewConstants
+file struct Constants
 {
     [FieldOffset(0)]
     public Matrix4x4 View;
@@ -323,8 +312,6 @@ using ZenithTutorials;
 using ZenithTutorials.Renderers;
 
 App.Run<IndirectDrawingRenderer>();
-
-App.Cleanup();
 ```
 
 Run the application:
@@ -380,8 +367,8 @@ indirectBuffer = App.Context.CreateBuffer(new()
 ```csharp
 instanceBuffer = App.Context.CreateBuffer(new()
 {
-    SizeInBytes = (uint)(sizeof(InstanceData) * InstanceCount),
-    StrideInBytes = (uint)sizeof(InstanceData),
+    SizeInBytes = (uint)(sizeof(Instance) * InstanceCount),
+    StrideInBytes = (uint)sizeof(Instance),
     Flags = BufferUsageFlags.ShaderResource | BufferUsageFlags.MapWrite
 });
 ```
@@ -391,14 +378,14 @@ Instance data is stored in a `StructuredBuffer` accessed by the vertex shader us
 ### Shader Instance Access
 
 ```slang
-StructuredBuffer<InstanceData> instances;
+StructuredBuffer<Instance> instances;
 
 PSInput VSMain(VSInput input)
 {
-    InstanceData instance = instances[input.InstanceID];
+    Instance instance = instances[input.InstanceID];
 
     float4 worldPos = mul(float4(input.Position, 1.0), instance.Model);
-    // ...
+    ...
 }
 ```
 

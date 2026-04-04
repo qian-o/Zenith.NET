@@ -28,24 +28,22 @@ internal class ComputeShaderRenderer : IRenderer
         RWTexture2D outputTexture;
 
         [numthreads(16, 16, 1)]
-        void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+        void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
         {
             uint width, height;
             outputTexture.GetDimensions(width, height);
 
-            // Bounds check
             if (dispatchThreadID.x >= width || dispatchThreadID.y >= height)
             {
                 return;
             }
 
-            // Read input pixel
             float4 color = inputTexture[dispatchThreadID.xy];
 
-            // Convert to grayscale using luminance weights
-            float gray = dot(color.rgb, float3(0.299, 0.587, 0.114));
+            float3 linear = pow(color.rgb, 2.2);
+            float gray = dot(linear, float3(0.2126, 0.7152, 0.0722));
+            gray = pow(gray, 1.0 / 2.2);
 
-            // Write to output
             outputTexture[dispatchThreadID.xy] = float4(gray, gray, gray, color.a);
         }
         """;
@@ -122,14 +120,11 @@ internal class ComputeShaderRenderer : IRenderer
             processed = true;
         }
 
-        // Copy the processed texture to the swap chain's color target (centered)
-        Texture colorTarget = App.SwapChain.FrameBuffer.Desc.ColorAttachments[0].Target;
+        Texture colorTarget = App.FrameBuffer.Desc.ColorAttachments[0].Target;
 
-        // Clamp copy region to fit within both textures
         uint copyWidth = Math.Min(outputTexture.Desc.Width, App.Width);
         uint copyHeight = Math.Min(outputTexture.Desc.Height, App.Height);
 
-        // Center the copy region
         uint srcX = (outputTexture.Desc.Width - copyWidth) / 2;
         uint srcY = (outputTexture.Desc.Height - copyHeight) / 2;
         uint destX = (App.Width - copyWidth) / 2;
@@ -170,8 +165,6 @@ using ZenithTutorials;
 using ZenithTutorials.Renderers;
 
 App.Run<ComputeShaderRenderer>();
-
-App.Cleanup();
 ```
 
 Run the application:
@@ -193,20 +186,20 @@ Texture2D inputTexture;
 RWTexture2D outputTexture;
 
 [numthreads(16, 16, 1)]
-void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint width, height;
     outputTexture.GetDimensions(width, height);
 
-    // Bounds check
     if (dispatchThreadID.x >= width || dispatchThreadID.y >= height)
     {
         return;
     }
 
-    // Read, process, write
     float4 color = inputTexture[dispatchThreadID.xy];
-    float gray = dot(color.rgb, float3(0.299, 0.587, 0.114));
+    float3 linear = pow(color.rgb, 2.2);
+    float gray = dot(linear, float3(0.2126, 0.7152, 0.0722));
+    gray = pow(gray, 1.0 / 2.2);
     outputTexture[dispatchThreadID.xy] = float4(gray, gray, gray, color.a);
 }
 ```
@@ -219,6 +212,9 @@ Key elements:
 | `RWTexture2D` | Read/write output texture |
 | `[numthreads(16, 16, 1)]` | Thread group size (16×16 threads) |
 | `SV_DispatchThreadID` | Global thread index across all groups |
+| `pow(color.rgb, 2.2)` | Linearizes sRGB input by removing gamma encoding |
+| `float3(0.2126, 0.7152, 0.0722)` | ITU-R BT.709 luminance weights for perceptual grayscale |
+| `pow(gray, 1.0 / 2.2)` | Re-applies gamma correction for correct sRGB display |
 
 ### Output Texture Creation
 
@@ -293,13 +289,11 @@ The `Dispatch` call executes the compute shader:
 ### Copying to the Swap Chain
 
 ```csharp
-Texture colorTarget = App.SwapChain.FrameBuffer.Desc.ColorAttachments[0].Target;
+Texture colorTarget = App.FrameBuffer.Desc.ColorAttachments[0].Target;
 
-// Clamp copy region to fit within both textures
 uint copyWidth = Math.Min(outputTexture.Desc.Width, App.Width);
 uint copyHeight = Math.Min(outputTexture.Desc.Height, App.Height);
 
-// Center the copy region
 uint srcX = (outputTexture.Desc.Width - copyWidth) / 2;
 uint srcY = (outputTexture.Desc.Height - copyHeight) / 2;
 uint destX = (App.Width - copyWidth) / 2;
@@ -316,7 +310,7 @@ commandBuffer.CopyTexture(outputTexture,
 
 Instead of using a full-screen quad with a graphics pipeline, we directly copy the processed texture to the swap chain's color target:
 
-- `App.SwapChain.FrameBuffer.Desc.ColorAttachments[0].Target` - Gets the swap chain's render target texture
+- `App.FrameBuffer.Desc.ColorAttachments[0].Target` - Gets the swap chain's render target texture
 - `CopyTexture` - Efficiently copies texture data on the GPU without needing shaders or render passes
 - `copyWidth` / `copyHeight` - Clamps the copy region to fit within both source and destination textures
 - `srcX` / `srcY` - Centers the source region when the texture is larger than the window

@@ -98,8 +98,10 @@ Create `Usings.cs` for shared using statements across all files:
 
 ```csharp
 global using System.Numerics;
+global using System.Runtime.CompilerServices;
 global using System.Runtime.InteropServices;
 global using Zenith.NET;
+global using Zenith.NET.Extensions.ImageSharp;
 global using Zenith.NET.Extensions.Slang;
 global using Buffer = Zenith.NET.Buffer;
 ```
@@ -197,7 +199,8 @@ internal static class BindingHelper
                             {
                                 ResourceType.ConstantBuffer or
                                 ResourceType.StructuredBuffer or
-                                ResourceType.StructuredBufferReadWrite => bufferIndex++,
+                                ResourceType.StructuredBufferReadWrite or
+                                ResourceType.AccelerationStructure => bufferIndex++,
 
                                 ResourceType.Texture or
                                 ResourceType.TextureReadWrite => textureIndex++,
@@ -312,54 +315,54 @@ namespace ZenithTutorials;
 internal static class App
 {
     private static readonly IWindow window;
+    private static readonly SwapChain swapChain;
 
     static App()
     {
-        // Ensure platform is supported
         if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux())
         {
-            throw new PlatformNotSupportedException("This tutorial only supports Windows, macOS, and Linux.");
+            throw new PlatformNotSupportedException("This application only supports Windows, macOS, and Linux.");
         }
 
-        // Create window with no graphics API (we manage rendering ourselves)
-        window = Window.Create(WindowOptions.Default with
-        {
-            API = GraphicsAPI.None,
-            Title = "Zenith.NET Tutorial",
-            Size = new(1280, 720)
-        });
-
-        window.Initialize();
-
-        // Create graphics context and surface based on platform
-        Surface surface;
         if (OperatingSystem.IsWindows())
         {
             Context = GraphicsContext.CreateDirectX12(useValidationLayer: true);
-
-            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, Width, Height);
         }
         else if (OperatingSystem.IsMacOS())
         {
             Context = GraphicsContext.CreateMetal(useValidationLayer: true);
-
-            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), Width, Height);
         }
         else
         {
             Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
+        }
 
+        Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
+
+        window = Window.Create(WindowOptions.Default with
+        {
+            API = GraphicsAPI.None,
+            Title = "Zenith Tutorials",
+            Size = new(1280, 720)
+        });
+        window.Initialize();
+        window.Center();
+
+        Surface surface;
+        if (OperatingSystem.IsWindows())
+        {
+            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, Width, Height);
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), Width, Height);
+        }
+        else
+        {
             surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
         }
 
-        // Log validation messages for debugging
-        Context.ValidationMessage += (sender, args) =>
-        {
-            Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
-        };
-
-        // Create swap chain for double-buffered rendering
-        SwapChain = Context.CreateSwapChain(new()
+        swapChain = Context.CreateSwapChain(new()
         {
             Surface = surface,
             ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
@@ -369,50 +372,59 @@ internal static class App
 
     public static GraphicsContext Context { get; }
 
-    public static SwapChain SwapChain { get; }
+    public static uint Width => (uint)window.FramebufferSize.X;
 
-    public static uint Width => (uint)window.Size.X;
+    public static uint Height => (uint)window.FramebufferSize.Y;
 
-    public static uint Height => (uint)window.Size.Y;
+    public static FrameBuffer FrameBuffer => swapChain.FrameBuffer;
 
     public static void Run<TRenderer>() where TRenderer : IRenderer, new()
     {
-        using TRenderer renderer = new();
-
-        window.Update += renderer.Update;
-
-        window.Render += delta =>
+        try
         {
-            // Skip rendering when window is minimized
-            if (Width <= 0 || Height <= 0)
+            using TRenderer renderer = new();
+
+            window.Update += delta =>
             {
-                return;
-            }
+                if (Width is 0 || Height is 0)
+                {
+                    return;
+                }
 
-            renderer.Render();
-            SwapChain.Present();
-        };
+                renderer.Update(delta);
+            };
 
-        window.Resize += size =>
+            window.Render += delta =>
+            {
+                if (Width is 0 || Height is 0)
+                {
+                    return;
+                }
+
+                renderer.Render();
+                swapChain.Present();
+            };
+
+            window.Resize += size =>
+            {
+                if (Width is 0 || Height is 0)
+                {
+                    return;
+                }
+
+                renderer.Resize(Width, Height);
+                swapChain.Resize(Width, Height);
+            };
+
+            window.Run();
+        }
+        finally
         {
-            if (Width <= 0 || Height <= 0)
-            {
-                return;
-            }
+            swapChain.Dispose();
+            window.Dispose();
 
-            // Notify renderer first, then resize swap chain
-            renderer.Resize(Width, Height);
-            SwapChain.Resize(Width, Height);
-        };
-
-        window.Run();
-    }
-
-    public static void Cleanup()
-    {
-        SwapChain.Dispose();
-        Context.Dispose();
-        window.Dispose();
+            Context.Dispose();
+        }
     }
 }
 ```
@@ -426,8 +438,6 @@ using ZenithTutorials;
 using ZenithTutorials.Renderers;
 
 App.Run<HelloTriangleRenderer>();
-
-App.Cleanup();
 ```
 
 > [!NOTE]
@@ -441,7 +451,7 @@ This framework provides:
 - **SwapChain management** for presenting frames
 - **Resize handling** for responsive rendering
 - **Generic renderer pattern** using `App.Run<TRenderer>()` for easy tutorial switching
-- **Static access** to `App.Context` and `App.SwapChain` from renderers
+- **Static access** to `App.Context` and `App.FrameBuffer` from renderers
 
 ## Verify Installation
 
