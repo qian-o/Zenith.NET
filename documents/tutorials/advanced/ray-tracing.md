@@ -14,7 +14,7 @@ This tutorial covers:
 - Tracing rays with `RayQuery` in a compute shader
 - Implementing **soft shadows**, **reflections**, and **Fresnel** effects
 - Applying **ACES tone mapping** for cinematic color grading
-- Dynamic output texture resizing on window resize
+- Dynamically **resizing** the output texture on window resize
 
 ## Key Concepts
 
@@ -344,7 +344,6 @@ internal unsafe class RayTracingRenderer : IRenderer
             float3 bitangent = cross(direction, tangent);
 
             float lit = 0.0;
-
             for (uint i = 0; i < ShadowSamples; i++)
             {
                 float h = Hash(pixelSeed + float2(float(i) * 7.13, float(i) * 3.71));
@@ -556,7 +555,6 @@ internal unsafe class RayTracingRenderer : IRenderer
         ];
 
         Vector3[] aabbs = new Vector3[spheres.Length * 2];
-
         for (int i = 0; i < spheres.Length; i++)
         {
             aabbs[i * 2] = spheres[i].Center - new Vector3(spheres[i].Radius);

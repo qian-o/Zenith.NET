@@ -217,7 +217,6 @@ internal unsafe class MeshShadingRenderer : IRenderer
                     OutputVertices<VertexOutput, 62> outVertices, OutputIndices<uint3, 120> outIndices)
         {
             uint instanceIndex = meshPayload.InstanceIndices[groupID];
-
             float3 instancePos = InstancePosition(instanceIndex);
             float3 color = InstanceColor(instanceIndex);
 
@@ -247,7 +246,6 @@ internal unsafe class MeshShadingRenderer : IRenderer
         {
             float3 lightDir = normalize(constants.LightDirection);
             float3 normal = normalize(input.WorldNormal);
-
             float ndotl = max(dot(normal, lightDir), 0.0);
 
             float3 ambient = input.Color * 0.15;

@@ -46,13 +46,13 @@ Your `.csproj` should look like this:
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Zenith.NET.DirectX12" Version="*" />
-    <PackageReference Include="Zenith.NET.Metal" Version="*" />
-    <PackageReference Include="Zenith.NET.Vulkan" Version="*" />
-    <PackageReference Include="Zenith.NET.Extensions.ImageSharp" Version="*" />
-    <PackageReference Include="Zenith.NET.Extensions.Slang" Version="*" />
-    <PackageReference Include="Silk.NET.Windowing" Version="*" />
-    <PackageReference Include="Silk.NET.Input" Version="*" />
+        <PackageReference Include="Silk.NET.Input" Version="*" />
+        <PackageReference Include="Silk.NET.Windowing" Version="*" />
+        <PackageReference Include="Zenith.NET.DirectX12" Version="*" />
+        <PackageReference Include="Zenith.NET.Extensions.ImageSharp" Version="*" />
+        <PackageReference Include="Zenith.NET.Extensions.Slang" Version="*" />
+        <PackageReference Include="Zenith.NET.Metal" Version="*" />
+        <PackageReference Include="Zenith.NET.Vulkan" Version="*" />
   </ItemGroup>
 
   <ItemGroup>
@@ -88,6 +88,12 @@ ZenithTutorials/
     ├── RayTracingRenderer.cs
     └── MeshShadingRenderer.cs
 ```
+
+### Asset File
+
+Save the following image as `Assets/shoko.png` in your project (right-click → Save As):
+
+![shoko.png](../../images/shoko.png)
 
 ## Framework Code
 
