@@ -95,7 +95,7 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
 
             instances[i] = new()
             {
-                TransformationMatrix = *(MTLPackedFloat4x3*)&instance.Transform,
+                TransformationMatrix = MTLFormats.Metal(instance.Transform),
                 Options = MTLFormats.Metal(instance.Flags),
                 Mask = instance.Mask,
                 UserID = instance.ID,

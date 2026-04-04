@@ -179,7 +179,7 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
 
             instances[i] = new()
             {
-                Transform = *(TransformMatrixKHR*)&instance.Transform,
+                Transform = VKFormats.Vulkan(instance.Transform),
                 InstanceCustomIndex = instance.ID,
                 Mask = instance.Mask,
                 Flags = VKFormats.Vulkan(instance.Flags),

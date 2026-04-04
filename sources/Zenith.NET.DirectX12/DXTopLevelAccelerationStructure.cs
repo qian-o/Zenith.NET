@@ -1,4 +1,5 @@
 ﻿using Silk.NET.Direct3D12;
+using Silk.NET.Maths;
 
 namespace Zenith.NET.DirectX12;
 
@@ -136,7 +137,7 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
                 AccelerationStructure = instance.AccelerationStructure.DirectX12().AccelerationStructureBuffer.GPUVirtualAddress
             };
 
-            new ReadOnlySpan<float>(&instance.Transform, 12).CopyTo(new(instances[i].Transform, 12));
+            *(Matrix3X4<float>*)instances[i].Transform = DXFormats.DirectX12(instance.Transform);
         }
 
         InstanceBuffer.Unmap();
