@@ -1,51 +1,60 @@
 ﻿# Ray Tracing
 
-In this tutorial, you'll learn how to use hardware-accelerated ray tracing with Zenith.NET. We'll render a scene with a checkered floor and colored spheres, featuring an animated camera, soft shadows, reflections, and ACES tonemapping — all driven by a compute shader with `RayQuery`.
+In this tutorial, you'll build a real-time ray tracer using hardware-accelerated ray tracing. The scene features three colored spheres on a checkerboard floor with an animated orbiting camera, soft shadows, reflections, and ACES tone mapping — all driven by a compute shader using `RayQuery`.
 
 > [!NOTE]
-> This tutorial requires a GPU with ray tracing support. Check `Context.Capabilities.RayTracingSupported` before using ray tracing features.
+> This tutorial requires a GPU with ray tracing support (e.g., NVIDIA RTX, AMD RDNA 2+, or Apple M1+).
 
 ## Overview
 
-We'll create a `RayTracingRenderer` class that:
+This tutorial covers:
 
-- Creates floor geometry using triangle buffers
-- Creates spheres using procedural AABBs
-- Builds separate BLAS for floor and spheres, combined in a TLAS
-- Uses a compute shader with `RayQuery` for ray tracing
-- Implements soft shadows, reflections, and Fresnel effects
-- Applies ACES tonemapping for cinematic output
-- Animates the camera orbit around the scene
+- Building **Bottom-Level** and **Top-Level Acceleration Structures** (BLAS/TLAS)
+- Using **triangle geometry** for the floor and **procedural AABBs** for spheres
+- Tracing rays with `RayQuery` in a compute shader
+- Implementing **soft shadows**, **reflections**, and **Fresnel** effects
+- Applying **ACES tone mapping** for cinematic color grading
+- Dynamic output texture resizing on window resize
 
 ## Key Concepts
 
-### Ray Tracing with RayQuery
+### Acceleration Structure Hierarchy
 
-Zenith.NET uses `RayQuery` for ray tracing. This approach binds the acceleration structure as a regular resource and performs all ray tracing logic within a single shader:
+Ray tracing uses a two-level acceleration structure:
 
-| Aspect | Description |
-|--------|-------------|
-| **Shader Stage** | Any shader (typically compute) |
-| **Setup** | Bind acceleration structure to any pipeline |
-| **Hit/Miss Logic** | All logic in one shader using `RayQuery` API |
-| **Best For** | Shadows, AO, GI, reflections — any ray tracing workload |
+| Level | Purpose | Content |
+|-------|---------|---------|
+| **BLAS** (Bottom-Level) | Geometry containers | Triangle meshes or procedural AABBs |
+| **TLAS** (Top-Level) | Scene graph | References to BLAS instances with transforms |
 
-### Acceleration Structures
+This tutorial builds two BLAS:
+- **Floor BLAS**: A triangle mesh (2 triangles forming a 100×100 quad)
+- **Sphere BLAS**: 3 procedural AABBs (bounding boxes for sphere intersection)
 
-Ray tracing uses a two-level acceleration structure hierarchy:
+Both are combined into one TLAS for the scene.
 
-- **BLAS (Bottom-Level Acceleration Structure)**: Contains the actual geometry data. Each BLAS can store either triangle meshes or axis-aligned bounding boxes (AABBs) for procedural geometry.
-- **TLAS (Top-Level Acceleration Structure)**: Contains instances that reference one or more BLAS with transform matrices. Multiple instances can share the same BLAS with different transforms.
+### RayQuery
+
+Instead of using a dedicated ray tracing pipeline, Zenith.NET uses `RayQuery` in compute shaders. This inline approach traces rays within any shader stage:
 
 ```
-TLAS (scene)
-├── Instance 0 → BLAS 0 (floor, triangles)
-└── Instance 1 → BLAS 1 (spheres, AABBs)
+RayQuery<RAY_FLAG_NONE> query;
+query.TraceRayInline(scene, RAY_FLAG_NONE, 0xFF, ray);
+
+while (query.Proceed())
+{
+    // Handle procedural intersections
+}
+
+if (query.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+{
+    // Handle triangle hit
+}
 ```
 
 ## The Renderer Class
 
-Create a new file `Renderers/RayTracingRenderer.cs`:
+Create the file `Renderers/RayTracingRenderer.cs`:
 
 ```csharp
 namespace ZenithTutorials.Renderers;
@@ -158,9 +167,8 @@ internal unsafe class RayTracingRenderer : IRenderer
 
             float NdotL = max(dot(normal, LightDir), 0.0);
             float3 shadowOrigin = hitPoint + normal * RayEpsilon;
-            shadow = softShadow ?
-                lerp(ShadowMin, 1.0, TraceSoftShadow(shadowOrigin, LightDir, hitPoint.xz * 100.0)) :
-                (TraceShadowRay(shadowOrigin, LightDir) ? ShadowMin : 1.0);
+            shadow = softShadow ? lerp(ShadowMin, 1.0, TraceSoftShadow(shadowOrigin, LightDir, hitPoint.xz * 100.0)) :
+                                  (TraceShadowRay(shadowOrigin, LightDir) ? ShadowMin : 1.0);
 
             float3 litColor = baseColor * AmbientColor + baseColor * LightColor * NdotL * shadow;
 
@@ -190,9 +198,8 @@ internal unsafe class RayTracingRenderer : IRenderer
             float spec = pow(max(dot(normal, halfDir), 0.0), 64.0);
 
             float3 shadowOrigin = hitPoint + normal * RayEpsilon;
-            float shadow = softShadow ?
-                lerp(ShadowMin, 1.0, TraceSoftShadow(shadowOrigin, LightDir, hitPoint.xz * 100.0)) :
-                (TraceShadowRay(shadowOrigin, LightDir) ? ShadowMin : 1.0);
+            float shadow = softShadow ? lerp(ShadowMin, 1.0, TraceSoftShadow(shadowOrigin, LightDir, hitPoint.xz * 100.0)) :
+                                         (TraceShadowRay(shadowOrigin, LightDir) ? ShadowMin : 1.0);
 
             float3 diffuse = sphereColor * LightColor * NdotL * shadow;
             float3 specular = LightColor * spec * shadow;
@@ -258,6 +265,7 @@ internal unsafe class RayTracingRenderer : IRenderer
         float IntersectSphere(float3 origin, float3 direction, Sphere sphere)
         {
             float3 oc = origin - sphere.Center;
+
             float b = dot(oc, direction);
             float c = dot(oc, oc) - sphere.Radius * sphere.Radius;
             float discriminant = b * b - c;
@@ -336,6 +344,7 @@ internal unsafe class RayTracingRenderer : IRenderer
             float3 bitangent = cross(direction, tangent);
 
             float lit = 0.0;
+
             for (uint i = 0; i < ShadowSamples; i++)
             {
                 float h = Hash(pixelSeed + float2(float(i) * 7.13, float(i) * 3.71));
@@ -547,6 +556,7 @@ internal unsafe class RayTracingRenderer : IRenderer
         ];
 
         Vector3[] aabbs = new Vector3[spheres.Length * 2];
+
         for (int i = 0; i < spheres.Length; i++)
         {
             aabbs[i * 2] = spheres[i].Center - new Vector3(spheres[i].Radius);
@@ -774,16 +784,7 @@ file struct Sphere
 
 ## Running the Tutorial
 
-Update your `Program.cs` to run the `RayTracingRenderer`:
-
-```csharp
-using ZenithTutorials;
-using ZenithTutorials.Renderers;
-
-App.Run<RayTracingRenderer>();
-```
-
-Run the application:
+Run the application and select **6. Ray Tracing** from the menu:
 
 ```bash
 dotnet run
@@ -791,24 +792,13 @@ dotnet run
 
 ## Result
 
-![ray-tracing](../../images/ray-tracing.png)
+![Ray Tracing](../../images/ray-tracing.png)
 
 ## Code Breakdown
 
-### Checking Ray Tracing Support
+### Acceleration Structures
 
-```csharp
-if (!App.Context.Capabilities.RayTracingSupported)
-{
-    throw new NotSupportedException("Ray tracing is not supported on this device.");
-}
-```
-
-Always check `Capabilities.RayTracingSupported` before using ray tracing features.
-
-### Acceleration Structure Setup
-
-Build a two-level acceleration structure hierarchy:
+The floor uses triangle geometry, while spheres use procedural AABBs:
 
 ```csharp
 floorBlas = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
@@ -834,28 +824,23 @@ floorBlas = commandBuffer.BuildAccelerationStructure(new BottomLevelAcceleration
     ],
     Flags = AccelerationStructureBuildFlags.PreferFastTrace
 });
-
-sphereBlas = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
-{
-    Geometries =
-    [
-        new()
-        {
-            Type = RayTracingGeometryType.AABBs,
-            AABBs = new()
-            {
-                Buffer = aabbBuffer,
-                Count = (uint)spheres.Length,
-                StrideInBytes = (uint)(sizeof(Vector3) * 2)
-            },
-            Flags = RayTracingGeometryFlags.Opaque
-        }
-    ],
-    Flags = AccelerationStructureBuildFlags.PreferFastTrace
-});
 ```
 
-Combine BLAS into a TLAS:
+For procedural geometry, AABBs (axis-aligned bounding boxes) are provided as min/max pairs. The actual intersection is computed in the shader:
+
+```csharp
+Vector3[] aabbs = new Vector3[spheres.Length * 2];
+
+for (int i = 0; i < spheres.Length; i++)
+{
+    aabbs[i * 2] = spheres[i].Center - new Vector3(spheres[i].Radius);
+    aabbs[(i * 2) + 1] = spheres[i].Center + new Vector3(spheres[i].Radius);
+}
+```
+
+### TLAS Assembly
+
+The top-level structure combines both BLAS instances:
 
 ```csharp
 tlas = commandBuffer.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
@@ -868,7 +853,7 @@ tlas = commandBuffer.BuildAccelerationStructure(new TopLevelAccelerationStructur
             ID = 0,
             Mask = 0xFF,
             Transform = Matrix4x4.Identity,
-            ...
+            Flags = RayTracingInstanceFlags.None
         },
         new()
         {
@@ -876,14 +861,33 @@ tlas = commandBuffer.BuildAccelerationStructure(new TopLevelAccelerationStructur
             ID = 1,
             Mask = 0xFF,
             Transform = Matrix4x4.Identity,
-            ...
+            Flags = RayTracingInstanceFlags.None
         }
     ],
     Flags = AccelerationStructureBuildFlags.PreferFastTrace
 });
 ```
 
-### Camera Animation
+### Resource Layout
+
+The compute shader accesses four resources — acceleration structure, constants, sphere data, and the output texture:
+
+```csharp
+resourceLayout = App.Context.CreateResourceLayout(new()
+{
+    Bindings = BindingHelper.Bindings
+    (
+        new() { Type = ResourceType.AccelerationStructure, Count = 1, StageFlags = ShaderStageFlags.Compute },
+        new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
+        new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
+        new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute }
+    )
+});
+```
+
+### Animated Camera
+
+The camera orbits the scene, creating a cinematic flythrough:
 
 ```csharp
 public void Update(double deltaTime)
@@ -899,120 +903,47 @@ public void Update(double deltaTime)
 }
 ```
 
-The camera orbits around the scene at a radius of 12 units with gentle vertical bobbing. The position is passed to the compute shader via a constant buffer and used to construct the camera ray directions.
+The camera position traces a circle of radius 12 with vertical bobbing.
 
-### Ray Tracing with RayQuery
+### Dynamic Resize
 
-The main ray query loop processes procedural candidates and stores hit information:
-
-```slang
-RayQuery<RAY_FLAG_NONE> query;
-query.TraceRayInline(scene, RAY_FLAG_NONE, 0xFF, ray);
-
-while (query.Proceed())
-{
-    if (query.CandidateType() == CANDIDATE_PROCEDURAL_PRIMITIVE)
-    {
-        float t = IntersectSphere(ro, rd, sphere);
-        if (t >= query.RayTMin() && t <= query.CommittedRayT())
-        {
-            query.CommitProceduralPrimitiveHit(t);
-        }
-    }
-}
-
-if (query.CommittedStatus() == COMMITTED_TRIANGLE_HIT) { ... }
-else if (query.CommittedStatus() == COMMITTED_PROCEDURAL_PRIMITIVE_HIT) { ... }
-else { ... }
-```
-
-Key elements:
-
-| Element | Description |
-|---------|-------------|
-| `RayQuery<FLAGS>` | Declares a ray query with template ray flags |
-| `TraceRayInline` | Initiates the ray traversal |
-| `Proceed()` | Advances traversal; returns `true` while candidates remain |
-| `CandidateType()` | Returns the type of the current candidate hit |
-| `CommitProceduralPrimitiveHit(t)` | Accepts a procedural hit at distance `t` |
-| `CommittedStatus()` | Returns the final hit result after traversal |
-
-### Shadow Rays
-
-Hard shadow rays test visibility to a light source with early termination:
-
-```slang
-RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> shadowQuery;
-```
-
-`RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH` stops at the first hit since we only need to know if something blocks the light.
-
-Soft shadows jitter the light direction around a small disc to simulate a sun with finite radius:
-
-```slang
-float TraceSoftShadow(float3 origin, float3 direction, float2 pixelSeed)
-{
-    ...
-}
-```
-
-The number of samples (`ShadowSamples = 6`) and sun size (`SunRadius = 0.04`) control the shadow softness.
-
-### Reflections and Fresnel
-
-Both the floor and spheres use Fresnel-based reflections:
-
-```slang
-float3 reflectDir = reflect(rayDir, normal);
-float3 reflectColor = TraceReflection(hitPoint + normal * RayEpsilon, reflectDir);
-float fresnel = SchlickFresnel(max(dot(normal, viewDir), 0.0), f0);
-
-return lerp(directColor, reflectColor, fresnel);
-```
-
-The Schlick approximation controls the blend between direct and reflected color. Surfaces reflect more at glancing angles. Spheres use `TraceRoughReflection` which jitters the reflection direction for a roughened appearance.
-
-### ACES Tonemapping
-
-```slang
-float3 ACESFilm(float3 x)
-{
-    x *= 1.6;
-    float3 a = x * (x * 2.51 + 0.03);
-    float3 b = x * (x * 2.43 + 0.59) + 0.14;
-    float3 result = saturate(a / b);
-
-    float luma = dot(result, float3(0.2126, 0.7152, 0.0722));
-    result = saturate(lerp(float3(luma, luma, luma), result, 1.5));
-
-    return result;
-}
-```
-
-ACES (Academy Color Encoding System) tonemapping maps HDR lighting values to the displayable [0, 1] range with a cinematic response curve. A contrast enhancement step increases color saturation after the initial tone curve.
-
-### Compute Pipeline for Ray Tracing
+The output texture and resource table are recreated when the window resizes:
 
 ```csharp
-resourceLayout = App.Context.CreateResourceLayout(new()
+public void Resize(uint width, uint height)
 {
-    Bindings = BindingHelper.Bindings
-    (
-        new() { Type = ResourceType.AccelerationStructure, Count = 1, StageFlags = ShaderStageFlags.Compute },
-        new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
-        new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
-        new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute }
-    )
-});
+    resourceTable?.Dispose();
+    resourceTable = null;
+
+    outputTexture?.Dispose();
+    outputTexture = null;
+}
 ```
 
-The resource layout binds four resources: the TLAS acceleration structure, a constant buffer for camera position, a structured buffer for sphere data, and a read/write texture for output.
+Using nullable fields with `??=` in `Render()` provides lazy reallocation:
+
+```csharp
+outputTexture ??= App.Context.CreateTexture(new() { ... });
+resourceTable ??= App.Context.CreateResourceTable(new() { ... });
+```
+
+### Shader Rendering Techniques
+
+The shader implements several rendering techniques:
+
+| Technique | Function | Description |
+|-----------|----------|-------------|
+| Sky gradient | `SampleSky` | Horizon-to-zenith color blend with sun disk |
+| Soft shadows | `TraceSoftShadow` | Jittered shadow rays simulating area light |
+| Reflections | `TraceReflection` / `TraceRoughReflection` | Single and multi-sample reflection rays |
+| Fresnel | `SchlickFresnel` | Angle-dependent reflectivity |
+| Tone mapping | `ACESFilm` | ACES filmic curve with saturation boost |
+| Checkerboard | `ShadeCheckerboard` | Anti-aliased procedural floor pattern |
+| Sphere AO | Per-sphere loop | Contact-based ambient occlusion on floor |
 
 ## Next Steps
 
-Congratulations! You've implemented a complete ray tracer with advanced lighting. Continue with mesh shading:
-
-- [Mesh Shading](mesh-shading.md) - Use amplification shaders for frustum culling with mesh shading pipeline at scale
+- [Mesh Shading](mesh-shading.md) - Use the modern mesh shader pipeline with GPU-driven culling
 
 ## Source Code
 

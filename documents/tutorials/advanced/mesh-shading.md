@@ -1,65 +1,49 @@
 ﻿# Mesh Shading
 
-In this tutorial, you'll learn how to use mesh shading with Zenith.NET. We'll render a 10×10×10 grid of 1,000 procedurally generated spheres using the mesh shading pipeline with an amplification shader that performs GPU-driven frustum culling.
+In this tutorial, you'll render 1,000 procedural UV spheres using the mesh shader pipeline with GPU-driven frustum culling. This demonstrates the modern mesh shading approach where geometry is generated and culled entirely on the GPU.
 
 > [!NOTE]
-> This tutorial requires a GPU with mesh shading support. Check `Context.Capabilities.MeshShadingSupported` before using mesh shading features.
+> This tutorial requires a GPU with mesh shading support (e.g., NVIDIA Turing+, AMD RDNA 2+, or Apple M3+).
 
 ## Overview
 
-We'll create a `MeshShadingRenderer` class that:
+This tutorial covers:
 
-- Procedurally generates UV sphere geometry (vertices and triangles)
-- Creates structured buffers for vertex and index data
-- Uses an amplification shader for per-instance frustum culling
-- Dispatches visible instances through a mesh shader
-- Animates the camera orbit with dynamic light direction
-- Renders 1,000 sphere instances with position-based coloring
+- Creating a **mesh shading pipeline** with amplification, mesh, and pixel stages
+- Generating **procedural sphere geometry** (vertices and triangles) on the CPU
+- Implementing **GPU-driven frustum culling** in the amplification shader
+- Using `groupshared` memory and atomic operations for visible instance compaction
+- Extracting **frustum planes** from the view-projection matrix
+- Dispatching mesh groups with `DispatchMesh`
 
 ## Key Concepts
 
-### What is Mesh Shading?
+### Mesh Shader Pipeline
 
-Mesh shading replaces the traditional vertex processing pipeline (Input Assembler → Vertex Shader → optional tessellation/geometry) with a more flexible compute-like model:
+The mesh shader pipeline replaces the traditional vertex/geometry pipeline:
 
-| Traditional Pipeline | Mesh Shading Pipeline |
-|---------------------|----------------------|
-| Input Assembler | (removed) |
-| Vertex Shader | (removed) |
-| Hull/Domain Shader | (removed) |
-| Geometry Shader | (removed) |
-| - | Amplification Shader (optional) |
-| - | Mesh Shader |
-| Rasterizer | Rasterizer |
-| Pixel Shader | Pixel Shader |
+| Stage | Role | Thread Group Size |
+|-------|------|-------------------|
+| **Amplification** | Decides which mesh groups to spawn (culling) | 32 |
+| **Mesh** | Outputs vertices and triangles per group | 120 |
+| **Pixel** | Standard fragment shading | — |
 
-### Amplification + Mesh Shader Architecture
+### Frustum Culling
 
-In this tutorial, the amplification shader runs first and determines which sphere instances are visible. It then dispatches mesh shader workgroups only for visible instances:
+The amplification shader tests each instance's bounding sphere against 6 frustum planes. Only visible instances are passed to mesh shader groups via a payload:
 
 ```
-Amplification Shader (1 thread per instance)
-├── Frustum cull each instance
-├── Collect visible instance indices into shared payload
-└── DispatchMesh(visibleCount, 1, 1, payload)
-    └── Mesh Shader (1 workgroup per visible instance)
-        ├── Read sphere vertices from structured buffer
-        ├── Offset by instance position
-        ├── Transform to clip space
-        └── Output vertices and primitives to rasterizer
+Payload { InstanceIndices[ASGroupSize] }
+
+// Amplification:
+visible = !IsFrustumCulled(position, radius)
+if (visible) payload.InstanceIndices[atomicAdd(count)] = instanceIndex
+DispatchMesh(visibleCount, 1, 1, payload)
 ```
-
-### Pipeline Stages
-
-| Shader Stage | Description |
-|--------------|-------------|
-| **Amplification** | Performs per-instance frustum culling and dispatches only visible instances |
-| **Mesh** | Reads geometry from buffers, transforms vertices, outputs primitives |
-| **Pixel** | Computes per-pixel lighting |
 
 ## The Renderer Class
 
-Create a new file `Renderers/MeshShadingRenderer.cs`:
+Create the file `Renderers/MeshShadingRenderer.cs`:
 
 ```csharp
 namespace ZenithTutorials.Renderers;
@@ -233,6 +217,7 @@ internal unsafe class MeshShadingRenderer : IRenderer
                     OutputVertices<VertexOutput, 62> outVertices, OutputIndices<uint3, 120> outIndices)
         {
             uint instanceIndex = meshPayload.InstanceIndices[groupID];
+
             float3 instancePos = InstancePosition(instanceIndex);
             float3 color = InstanceColor(instanceIndex);
 
@@ -539,16 +524,7 @@ file struct Constants
 
 ## Running the Tutorial
 
-Update your `Program.cs` to run the `MeshShadingRenderer`:
-
-```csharp
-using ZenithTutorials;
-using ZenithTutorials.Renderers;
-
-App.Run<MeshShadingRenderer>();
-```
-
-Run the application:
+Run the application and select **7. Mesh Shading** from the menu:
 
 ```bash
 dotnet run
@@ -556,24 +532,13 @@ dotnet run
 
 ## Result
 
-![mesh-shading](../../images/mesh-shading.png)
+![Mesh Shading](../../images/mesh-shading.png)
 
 ## Code Breakdown
 
-### Checking Mesh Shading Support
+### Procedural Sphere Geometry
 
-```csharp
-if (!App.Context.Capabilities.MeshShadingSupported)
-{
-    throw new NotSupportedException("Mesh shading is not supported on this device.");
-}
-```
-
-Always check `Capabilities.MeshShadingSupported` before using mesh shading features.
-
-### Procedural Sphere Generation
-
-The renderer generates a UV sphere with 12 longitude segments and 6 latitude segments, producing 62 vertices and 120 triangles:
+The sphere is generated as a UV sphere with 12 longitude and 6 latitude segments, producing 62 vertices and 120 triangles:
 
 ```csharp
 sphereVertices.Add(new() { Position = new(0, radius, 0), Normal = Vector3.UnitY });
@@ -581,6 +546,9 @@ sphereVertices.Add(new() { Position = new(0, radius, 0), Normal = Vector3.UnitY 
 for (int lat = 1; lat < latSegments; lat++)
 {
     float phi = MathF.PI * lat / latSegments;
+    float sinPhi = MathF.Sin(phi);
+    float cosPhi = MathF.Cos(phi);
+
     for (int lon = 0; lon < lonSegments; lon++)
     {
         float theta = 2.0f * MathF.PI * lon / lonSegments;
@@ -589,20 +557,45 @@ for (int lat = 1; lat < latSegments; lat++)
         sphereVertices.Add(new() { Position = normal * radius, Normal = normal });
     }
 }
+
+sphereVertices.Add(new() { Position = new(0, -radius, 0), Normal = -Vector3.UnitY });
 ```
 
-The sphere is constructed with:
-- **Top pole** (1 vertex)
-- **Latitude rings** (5 rings × 12 segments = 60 vertices)
-- **Bottom pole** (1 vertex)
+The vertex and index data are stored in `StructuredBuffer` resources (not vertex/index buffers), since mesh shaders read geometry data directly.
 
-Triangles connect the poles to the first/last rings with triangle fans, and connect adjacent rings with quad strips (2 triangles each).
+### Mesh Shading Pipeline
 
-### Amplification Shader and Frustum Culling
+The pipeline configuration specifies thread group sizes for both amplification and mesh stages:
 
-The amplification shader runs one thread per potential instance (1,000 total, dispatched in groups of 32):
+```csharp
+pipeline = App.Context.CreateMeshShadingPipeline(new()
+{
+    RenderStates = new()
+    {
+        RasterizerState = RasterizerStates.CullBack,
+        DepthStencilState = DepthStencilStates.Default,
+        BlendState = BlendStates.Opaque
+    },
+    Amplification = ampShader,
+    Mesh = meshShader,
+    Pixel = pixelShader,
+    ResourceLayout = resourceLayout,
+    PrimitiveTopology = PrimitiveTopology.TriangleList,
+    Output = App.FrameBuffer.Output,
+    AmplificationThreadGroupSizeX = ASGroupSize,
+    AmplificationThreadGroupSizeY = 1,
+    AmplificationThreadGroupSizeZ = 1,
+    MeshThreadGroupSizeX = MeshGroupSize,
+    MeshThreadGroupSizeY = 1,
+    MeshThreadGroupSizeZ = 1
+});
+```
 
-```slang
+### Amplification Shader (Culling)
+
+The amplification shader tests each instance against the camera frustum and only dispatches mesh groups for visible instances:
+
+```csharp
 [shader("amplification")]
 [numthreads(ASGroupSize, 1, 1)]
 void ASMain(uint groupID: SV_GroupID, uint groupThreadID: SV_GroupThreadID)
@@ -615,114 +608,87 @@ void ASMain(uint groupID: SV_GroupID, uint groupThreadID: SV_GroupThreadID)
         float3 worldPos = InstancePosition(instanceIndex);
         visible = !IsFrustumCulled(worldPos, BoundingSphereRadius);
     }
-    ...
+
+    if (groupThreadID == 0)
+    {
+        s_visibleCount = 0;
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    if (visible)
+    {
+        uint offset;
+        InterlockedAdd(s_visibleCount, 1, offset);
+        s_payload.InstanceIndices[offset] = instanceIndex;
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
     DispatchMesh(s_visibleCount, 1, 1, s_payload);
 }
 ```
 
-Key elements:
-- **`IsFrustumCulled`** tests each instance's bounding sphere against 6 frustum planes. If the sphere is completely behind any plane, it's culled.
-- **`InterlockedAdd`** atomically collects visible instance indices into shared memory (`s_payload`).
-- **`GroupMemoryBarrierWithGroupSync`** synchronizes threads before reading/writing shared memory.
-- **`DispatchMesh`** dispatches exactly `s_visibleCount` mesh shader workgroups — one per visible instance.
+**Key steps:**
+1. Each thread checks one instance against 6 frustum planes
+2. Visible instances are compacted into a `groupshared` payload using `InterlockedAdd`
+3. `DispatchMesh` spawns only as many mesh groups as there are visible instances
 
-### Mesh Shader
+### Frustum Plane Extraction
 
-Each mesh shader workgroup processes one visible sphere instance:
+Frustum planes are extracted from the view-projection matrix on the CPU:
 
-```slang
-[shader("mesh")]
-[numthreads(120, 1, 1)]
-[outputtopology("triangle")]
-void MSMain(uint groupID: SV_GroupID, uint groupThreadID: SV_GroupThreadID,
-            in payload Payload meshPayload, ...)
+```csharp
+FrustumPlane0 = NormalizePlane(new(viewProjection.M11 + viewProjection.M14, viewProjection.M21 + viewProjection.M24, viewProjection.M31 + viewProjection.M34, viewProjection.M41 + viewProjection.M44)),
+```
+
+| Plane | Extraction |
+|-------|-----------|
+| Left | Row 4 + Row 1 |
+| Right | Row 4 - Row 1 |
+| Bottom | Row 4 + Row 2 |
+| Top | Row 4 - Row 2 |
+| Near | Row 3 |
+| Far | Row 4 - Row 3 |
+
+### Constants Layout
+
+The `Constants` struct packs all per-frame data into 176 bytes:
+
+```csharp
+[StructLayout(LayoutKind.Explicit, Size = 176)]
+file struct Constants
 {
-    uint instanceIndex = meshPayload.InstanceIndices[groupID];
-    float3 instancePos = InstancePosition(instanceIndex);
+    [FieldOffset(0)]
+    public Matrix4x4 ViewProjection;
 
-    SetMeshOutputCounts(SphereVertexCount, SphereTriangleCount);
+    [FieldOffset(64)]
+    public Vector4 FrustumPlane0;
 
-    if (groupThreadID < SphereVertexCount)
-    {
-        Vertex v = vertices[groupThreadID];
-        float3 worldPos = v.Position + instancePos;
-        ...
-    }
+    [FieldOffset(80)]
+    public Vector4 FrustumPlane1;
+
+    [FieldOffset(96)]
+    public Vector4 FrustumPlane2;
+
+    [FieldOffset(112)]
+    public Vector4 FrustumPlane3;
+
+    [FieldOffset(128)]
+    public Vector4 FrustumPlane4;
+
+    [FieldOffset(144)]
+    public Vector4 FrustumPlane5;
+
+    [FieldOffset(160)]
+    public float Time;
+
+    [FieldOffset(164)]
+    public Vector3 LightDirection;
 }
 ```
 
-Key elements:
-- **120 threads** matches the maximum triangle count (one thread per triangle)
-- **`SetMeshOutputCounts`** declares the exact number of output vertices and primitives
-- Threads with index < 62 write vertices; threads with index < 120 write triangle indices
-- The `payload` struct carries visible instance indices from the amplification shader
-
-### Camera and Frustum Planes
-
-```csharp
-Matrix4x4 viewProjection = view * projection;
-
-constantsBuffer.Upload([new Constants()
-{
-    FrustumPlane0 = NormalizePlane(new(...))
-    FrustumPlane1 = NormalizePlane(new(...))
-    FrustumPlane2 = NormalizePlane(new(...))
-    FrustumPlane3 = NormalizePlane(new(...))
-    FrustumPlane4 = NormalizePlane(new(...))
-    FrustumPlane5 = NormalizePlane(new(...))
-    ...
-}], 0);
-```
-
-Six frustum planes are extracted from the combined view-projection matrix using the Gribb/Hartmann method. Each plane is normalized so the distance test in the shader is accurate:
-
-```csharp
-private static Vector4 NormalizePlane(Vector4 plane)
-{
-    return plane / new Vector3(plane.X, plane.Y, plane.Z).Length();
-}
-```
-
-### Pipeline Configuration
-
-```csharp
-pipeline = App.Context.CreateMeshShadingPipeline(new()
-{
-    RenderStates = new() { ... },
-    Amplification = ampShader,
-    Mesh = meshShader,
-    Pixel = pixelShader,
-    ResourceLayout = resourceLayout,
-    PrimitiveTopology = PrimitiveTopology.TriangleList,
-    Output = App.FrameBuffer.Output,
-    AmplificationThreadGroupSizeX = ASGroupSize,
-    MeshThreadGroupSizeX = MeshGroupSize,
-    ...
-});
-```
-
-The `MeshShadingPipelineDesc` requires:
-- `Amplification` and `Mesh` shaders (plus optional `Pixel`)
-- `AmplificationThreadGroupSizeX/Y/Z` must match `[numthreads()]` in the amplification shader
-- `MeshThreadGroupSizeX/Y/Z` must match `[numthreads()]` in the mesh shader
-- All three shaders share the same `ResourceLayout`
-
-### Dispatching
-
-```csharp
-commandBuffer.DispatchMesh(DispatchGroupCount, 1, 1);
-```
-
-`DispatchGroupCount = (1000 + 32 - 1) / 32 = 32` groups are dispatched initially. Each group runs 32 amplification threads that cull instances and selectively dispatch mesh shader workgroups for visible instances only.
-
-## Next Steps
-
-Congratulations! You've completed all Zenith.NET tutorials. Here are some ideas to explore further:
-
-- Modify the grid size or spacing to render more instances
-- Add LOD selection in the amplification shader based on distance
-- Try different procedural geometries (torus, icosphere, etc.)
-- Implement occlusion culling alongside frustum culling
+The constant buffer is shared across all three shader stages (`Amplification | Mesh | Pixel`), so the amplification shader can read frustum planes while the pixel shader reads the light direction.
 
 ## Source Code
 

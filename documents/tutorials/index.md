@@ -42,7 +42,7 @@ Each tutorial follows a consistent pattern:
 5. **Result** - Screenshot of the expected output
 6. **Code Breakdown** - Step-by-step explanation of important code sections
 
-All tutorials share the same `App` framework, making it easy to switch between examples by changing a single line in `Program.cs`.
+All tutorials share the same `App` framework. Run `dotnet run` and select a tutorial from the interactive menu in `Program.cs`.
 
 ## Learning Path
 

@@ -1,33 +1,17 @@
 ﻿# Prerequisites
 
-This guide covers the environment setup required before working with Zenith.NET.
+Before starting the tutorials, you need to set up the project and create the shared framework code that all tutorials will use.
 
-## System Requirements
+## Development Environment
 
-### Hardware
-
-Zenith.NET supports multiple graphics backends across platforms:
-
-| Platform | DirectX 12 | Metal 4 | Vulkan 1.4 |
-|----------|:----------:|:-------:|:----------:|
-| Windows  | <span class="status-yes">Yes</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
-| Apple    | <span class="status-no">No</span> | <span class="status-yes">Yes</span> | <span class="status-yes">Yes</span> |
-| Android  | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
-| Linux    | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
+- .NET 10.0 SDK or later
+- A GPU with DirectX 12, Metal 4, or Vulkan 1.4 support
+- Visual Studio 2026, VS Code, or JetBrains Rider
 
 > [!NOTE]
-> These tutorials are designed for desktop platforms (Windows, macOS, and Linux).
+> These tutorials target desktop platforms: Windows, macOS, and Linux.
 
-### Software
-
-- **.NET SDK**: 10.0 or later
-- **IDE**: Visual Studio 2026, VS Code, or JetBrains Rider
-
-## Building the Tutorials
-
-The example code in these tutorials is designed to be extensible. We'll create a base project structure that all tutorials will share.
-
-### Creating the Project
+## Creating the Project
 
 ```bash
 dotnet new console -n ZenithTutorials
@@ -36,12 +20,11 @@ cd ZenithTutorials
 
 ### Required Packages
 
-Install the following NuGet packages:
-
 ```bash
 dotnet add package Zenith.NET.DirectX12
 dotnet add package Zenith.NET.Metal
 dotnet add package Zenith.NET.Vulkan
+dotnet add package Zenith.NET.Extensions.ImageSharp
 dotnet add package Zenith.NET.Extensions.Slang
 dotnet add package Silk.NET.Windowing
 dotnet add package Silk.NET.Input
@@ -49,7 +32,7 @@ dotnet add package Silk.NET.Input
 
 ### Project Configuration
 
-Update your `.csproj` file:
+Your `.csproj` should look like this:
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -66,9 +49,16 @@ Update your `.csproj` file:
     <PackageReference Include="Zenith.NET.DirectX12" Version="*" />
     <PackageReference Include="Zenith.NET.Metal" Version="*" />
     <PackageReference Include="Zenith.NET.Vulkan" Version="*" />
+    <PackageReference Include="Zenith.NET.Extensions.ImageSharp" Version="*" />
     <PackageReference Include="Zenith.NET.Extensions.Slang" Version="*" />
     <PackageReference Include="Silk.NET.Windowing" Version="*" />
     <PackageReference Include="Silk.NET.Input" Version="*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Assets\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
@@ -79,22 +69,31 @@ Update your `.csproj` file:
 
 ## Project Structure
 
-Organize your project with the following directory structure:
-
 ```
 ZenithTutorials/
-├── Program.cs         # Application entry point
-├── App.cs             # Application framework
-├── IRenderer.cs       # Renderer interface
-├── BindingHelper.cs   # Cross-platform resource binding helper
-├── CocoaHelper.cs     # macOS CAMetalLayer helper
-├── Usings.cs          # Global using statements
-└── Renderers/         # All tutorial renderers
+├── Program.cs
+├── App.cs
+├── IRenderer.cs
+├── BindingHelper.cs
+├── CocoaHelper.cs
+├── Usings.cs
+├── Assets/
+│   └── shoko.png
+└── Renderers/
+    ├── HelloTriangleRenderer.cs
+    ├── TexturedQuadRenderer.cs
+    ├── SpinningCubeRenderer.cs
+    ├── ComputeShaderRenderer.cs
+    ├── IndirectDrawingRenderer.cs
+    ├── RayTracingRenderer.cs
+    └── MeshShadingRenderer.cs
 ```
 
-## Global Usings
+## Framework Code
 
-Create `Usings.cs` for shared using statements across all files:
+The following files provide the shared infrastructure for all tutorials. Copy each file into your project.
+
+### Usings.cs
 
 ```csharp
 global using System.Numerics;
@@ -106,11 +105,9 @@ global using Zenith.NET.Extensions.Slang;
 global using Buffer = Zenith.NET.Buffer;
 ```
 
-This eliminates repetitive using statements in each renderer file.
+### IRenderer.cs
 
-## Renderer Interface
-
-All tutorial renderers implement a common interface. Create `IRenderer.cs`:
+All tutorial renderers implement this interface:
 
 ```csharp
 namespace ZenithTutorials;
@@ -125,22 +122,150 @@ internal interface IRenderer : IDisposable
 }
 ```
 
-This interface ensures all renderers follow a consistent pattern:
+| Method | Called | Purpose |
+|--------|-------|---------|
+| `Update` | Every frame | Update logic (animations, transforms) |
+| `Render` | Every frame | Issue GPU commands |
+| `Resize` | On window resize | Recreate size-dependent resources |
+| `Dispose` | On exit | Clean up GPU resources |
 
-- `Update` - Called each frame for logic updates (animations, input handling)
-- `Render` - Called each frame to record and submit draw commands
-- `Resize` - Called when the window size changes
-- `Dispose` - Cleanup GPU resources
+### App.cs
 
-## Binding Helper
+The application framework manages window creation, graphics context initialization, and the render loop:
 
-Different graphics backends use different indexing schemes for resource bindings:
+```csharp
+using Silk.NET.Windowing;
+using Zenith.NET.DirectX12;
+using Zenith.NET.Metal;
+using Zenith.NET.Vulkan;
 
-| Backend | Index Scheme |
-|---------|--------------|
-| DirectX12 | Per-type: CBV, SRV, UAV, Sampler each start at 0 |
-| Metal | Per-category: Buffer, Texture, Sampler each start at 0 |
-| Vulkan | Global: All resources share index space (0, 1, 2, ...) |
+namespace ZenithTutorials;
+
+internal static class App
+{
+    private static readonly IWindow window;
+    private static readonly SwapChain swapChain;
+
+    static App()
+    {
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux())
+        {
+            throw new PlatformNotSupportedException("This application only supports Windows, macOS, and Linux.");
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            Context = GraphicsContext.CreateDirectX12(useValidationLayer: true);
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            Context = GraphicsContext.CreateMetal(useValidationLayer: true);
+        }
+        else
+        {
+            Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
+        }
+
+        Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
+
+        window = Window.Create(WindowOptions.Default with
+        {
+            API = GraphicsAPI.None,
+            Title = "Zenith Tutorials",
+            Size = new(1280, 720)
+        });
+        window.Initialize();
+        window.Center();
+
+        Surface surface;
+        if (OperatingSystem.IsWindows())
+        {
+            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, Width, Height);
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), Width, Height);
+        }
+        else
+        {
+            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
+        }
+
+        swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.B8G8R8A8UNorm, DepthStencilTargetFormat = PixelFormat.D32FloatS8UInt });
+    }
+
+    public static GraphicsContext Context { get; }
+
+    public static uint Width => (uint)window.FramebufferSize.X;
+
+    public static uint Height => (uint)window.FramebufferSize.Y;
+
+    public static FrameBuffer FrameBuffer => swapChain.FrameBuffer;
+
+    public static void Run<TRenderer>() where TRenderer : IRenderer, new()
+    {
+        try
+        {
+            using TRenderer renderer = new();
+
+            window.Update += delta =>
+            {
+                if (Width is 0 || Height is 0)
+                {
+                    return;
+                }
+
+                renderer.Update(delta);
+            };
+
+            window.Render += delta =>
+            {
+                if (Width is 0 || Height is 0)
+                {
+                    return;
+                }
+
+                renderer.Render();
+                swapChain.Present();
+            };
+
+            window.Resize += size =>
+            {
+                if (Width is 0 || Height is 0)
+                {
+                    return;
+                }
+
+                renderer.Resize(Width, Height);
+                swapChain.Resize(Width, Height);
+            };
+
+            window.Run();
+        }
+        finally
+        {
+            swapChain.Dispose();
+            window.Dispose();
+
+            Context.Dispose();
+        }
+    }
+}
+```
+
+`App` provides:
+
+| Member | Description |
+|--------|-------------|
+| `Context` | The `GraphicsContext` for the current platform |
+| `Width` / `Height` | Current framebuffer dimensions |
+| `FrameBuffer` | The swap chain's current frame buffer |
+| `Run<T>()` | Creates a renderer, runs the window loop, and cleans up on exit |
+
+### BindingHelper.cs
+
+Each graphics backend (DirectX 12, Metal, Vulkan) uses different resource binding index conventions. `BindingHelper` assigns the correct indices automatically:
+
 ```csharp
 namespace ZenithTutorials;
 
@@ -231,32 +356,15 @@ internal static class BindingHelper
 }
 ```
 
-Usage example:
+| Backend | Index Strategy |
+|---------|---------------|
+| **DirectX 12** | Separate counters per register type (CBV, SRV, UAV, Sampler) |
+| **Metal** | Separate counters per resource category (Buffer, Texture, Sampler) |
+| **Vulkan** | Sequential binding indices |
 
-```csharp
-resourceLayout = App.Context.CreateResourceLayout(new()
-{
-    Bindings = BindingHelper.Bindings
-    (
-        new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-        new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Pixel }
-    )
-});
+### CocoaHelper.cs
 
-resourceTable = App.Context.CreateResourceTable(new()
-{
-    Layout = resourceLayout,
-    Resources = [texture, sampler]
-});
-```
-
-The helper automatically assigns the correct `Index` values based on the current backend, so you don't need to specify them manually.
-
-## Cocoa Helper
-
-On macOS, creating a rendering surface requires a `CAMetalLayer`. Silk.NET.Windowing doesn't expose this directly, so we need a helper to create it using Objective-C runtime interop.
-
-Create `CocoaHelper.cs`:
+Required for macOS to create a `CAMetalLayer` for the window surface:
 
 ```csharp
 namespace ZenithTutorials;
@@ -294,176 +402,53 @@ internal static partial class CocoaHelper
 }
 ```
 
-The `CAMetalLayer` can be used with both Metal and Vulkan backends on macOS.
-
-## Application Framework
-
-All tutorials share a common application framework that handles window creation, graphics context initialization, and the main loop.
-
-### App.cs
-
-Create `App.cs` as the reusable application framework:
-
-```csharp
-using Silk.NET.Windowing;
-using Zenith.NET.DirectX12;
-using Zenith.NET.Metal;
-using Zenith.NET.Vulkan;
-
-namespace ZenithTutorials;
-
-internal static class App
-{
-    private static readonly IWindow window;
-    private static readonly SwapChain swapChain;
-
-    static App()
-    {
-        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux())
-        {
-            throw new PlatformNotSupportedException("This application only supports Windows, macOS, and Linux.");
-        }
-
-        if (OperatingSystem.IsWindows())
-        {
-            Context = GraphicsContext.CreateDirectX12(useValidationLayer: true);
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            Context = GraphicsContext.CreateMetal(useValidationLayer: true);
-        }
-        else
-        {
-            Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
-        }
-
-        Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
-
-        window = Window.Create(WindowOptions.Default with
-        {
-            API = GraphicsAPI.None,
-            Title = "Zenith Tutorials",
-            Size = new(1280, 720)
-        });
-        window.Initialize();
-        window.Center();
-
-        Surface surface;
-        if (OperatingSystem.IsWindows())
-        {
-            surface = Surface.Win32(window.Native!.Win32!.Value.Hwnd, Width, Height);
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), Width, Height);
-        }
-        else
-        {
-            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
-        }
-
-        swapChain = Context.CreateSwapChain(new()
-        {
-            Surface = surface,
-            ColorTargetFormat = PixelFormat.B8G8R8A8UNorm,
-            DepthStencilTargetFormat = PixelFormat.D32FloatS8UInt
-        });
-    }
-
-    public static GraphicsContext Context { get; }
-
-    public static uint Width => (uint)window.FramebufferSize.X;
-
-    public static uint Height => (uint)window.FramebufferSize.Y;
-
-    public static FrameBuffer FrameBuffer => swapChain.FrameBuffer;
-
-    public static void Run<TRenderer>() where TRenderer : IRenderer, new()
-    {
-        try
-        {
-            using TRenderer renderer = new();
-
-            window.Update += delta =>
-            {
-                if (Width is 0 || Height is 0)
-                {
-                    return;
-                }
-
-                renderer.Update(delta);
-            };
-
-            window.Render += delta =>
-            {
-                if (Width is 0 || Height is 0)
-                {
-                    return;
-                }
-
-                renderer.Render();
-                swapChain.Present();
-            };
-
-            window.Resize += size =>
-            {
-                if (Width is 0 || Height is 0)
-                {
-                    return;
-                }
-
-                renderer.Resize(Width, Height);
-                swapChain.Resize(Width, Height);
-            };
-
-            window.Run();
-        }
-        finally
-        {
-            swapChain.Dispose();
-            window.Dispose();
-
-            Context.Dispose();
-        }
-    }
-}
-```
+> [!NOTE]
+> On Windows and Linux, this file is not used but must be present to compile.
 
 ### Program.cs
 
-Create `Program.cs` as the simple entry point:
+The entry point provides an interactive tutorial selector:
 
 ```csharp
 using ZenithTutorials;
 using ZenithTutorials.Renderers;
 
-App.Run<HelloTriangleRenderer>();
+(string Name, Action Run)[] tutorials =
+[
+    ("Hello Triangle",   App.Run<HelloTriangleRenderer>),
+    ("Textured Quad",    App.Run<TexturedQuadRenderer>),
+    ("Spinning Cube",    App.Run<SpinningCubeRenderer>),
+    ("Compute Shader",   App.Run<ComputeShaderRenderer>),
+    ("Indirect Drawing", App.Run<IndirectDrawingRenderer>),
+    ("Ray Tracing",      App.Run<RayTracingRenderer>),
+    ("Mesh Shading",     App.Run<MeshShadingRenderer>)
+];
+
+for (int i = 0; i < tutorials.Length; i++)
+{
+    Console.WriteLine($"{i + 1}. {tutorials[i].Name}");
+}
+
+Console.Write("Select a tutorial to run: ");
+
+if (int.TryParse(Console.ReadKey().KeyChar.ToString(), out int choice) && choice >= 1 && choice <= tutorials.Length)
+{
+    Console.WriteLine($"\nRunning '{tutorials[choice - 1].Name}' tutorial...");
+
+    tutorials[choice - 1].Run();
+}
 ```
 
-> [!NOTE]
-> `HelloTriangleRenderer` will be created in the [next tutorial](hello-triangle.md).
+> [!TIP]
+> If you are following the tutorials sequentially, comment out renderers you haven't implemented yet to avoid build errors.
 
-This framework provides:
+## Next Steps
 
-- **Platform validation** - Ensures only supported platforms (Windows, macOS, Linux) are used
-- **Window creation** with Silk.NET (1280×720 default size)
-- **Cross-platform backend selection** (DirectX12 on Windows, Metal on macOS, Vulkan on Linux)
-- **SwapChain management** for presenting frames
-- **Resize handling** for responsive rendering
-- **Generic renderer pattern** using `App.Run<TRenderer>()` for easy tutorial switching
-- **Static access** to `App.Context` and `App.FrameBuffer` from renderers
+With the framework in place, you're ready to start the first tutorial:
 
-## Verify Installation
-
-Before continuing, verify your setup compiles correctly:
-
-```bash
-dotnet build
-```
-
-If the build succeeds, you're ready to start [Hello Triangle](hello-triangle.md)!
+- [Hello Triangle](hello-triangle.md) - Render your first triangle with a graphics pipeline
 
 ## Source Code
 
 > [!TIP]
-> The complete source code for all tutorials is available on GitHub: [ZenithTutorials](https://github.com/qian-o/ZenithTutorials)
+> View the complete tutorial project on GitHub: [ZenithTutorials](https://github.com/qian-o/ZenithTutorials)
