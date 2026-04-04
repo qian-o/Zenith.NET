@@ -3,7 +3,7 @@ using Metal.NET;
 
 namespace Zenith.NET.Metal;
 
-internal static class MTLFormats
+internal static unsafe class MTLFormats
 {
     public static MTLResourceOptions Metal(BufferUsageFlags bufferUsageFlags)
     {
@@ -453,7 +453,7 @@ internal static class MTLFormats
         };
     }
 
-    public static unsafe MTLPackedFloat4x3 Metal(Matrix4x4 matrix4x4)
+    public static MTLPackedFloat4x3 Metal(Matrix4x4 matrix4x4)
     {
         MTLPackedFloat4x3 result;
 

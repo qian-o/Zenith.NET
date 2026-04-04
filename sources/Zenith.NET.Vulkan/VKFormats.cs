@@ -3,7 +3,7 @@ using Silk.NET.Vulkan;
 
 namespace Zenith.NET.Vulkan;
 
-internal static class VKFormats
+internal static unsafe class VKFormats
 {
     public static VkShaderStageFlags Vulkan(ShaderStageFlags shaderStageFlags)
     {
@@ -614,7 +614,7 @@ internal static class VKFormats
         };
     }
 
-    public static unsafe TransformMatrixKHR Vulkan(Matrix4x4 matrix4x4)
+    public static TransformMatrixKHR Vulkan(Matrix4x4 matrix4x4)
     {
         TransformMatrixKHR result;
 

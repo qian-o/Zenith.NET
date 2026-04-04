@@ -6,7 +6,7 @@ using Silk.NET.Maths;
 
 namespace Zenith.NET.DirectX12;
 
-internal static class DXFormats
+internal static unsafe class DXFormats
 {
     public static (ResourceFlags Flags, ResourceStates States, HeapType Type) DirectX12(BufferUsageFlags bufferUsageFlags)
     {
@@ -535,7 +535,7 @@ internal static class DXFormats
         );
     }
 
-    public static unsafe Matrix3X4<float> DirectX12(Matrix4x4 matrix4x4)
+    public static Matrix3X4<float> DirectX12(Matrix4x4 matrix4x4)
     {
         Matrix3X4<float> result;
 
