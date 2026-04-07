@@ -10,7 +10,7 @@ internal class MTLGraphicsPipeline : GraphicsPipeline
 
     public MTLGraphicsPipeline(MTLGraphicsContext context, GraphicsPipelineDesc desc) : base(context, desc)
     {
-        VertexBufferStartIndex = desc.ResourceLayout is not null ? desc.ResourceLayout.Metal().BufferCount : 0;
+        VertexBufferStartIndex = (uint)desc.ResourceSlots.Where(static item => item.Type is ResourceType.ConstantBuffer or ResourceType.StructuredBuffer or ResourceType.StructuredBufferReadWrite or ResourceType.AccelerationStructure).Sum(static item => item.Count);
 
         MTL4RenderPipelineDescriptor descriptor = new()
         {

@@ -4,117 +4,127 @@ namespace Zenith.NET.Metal;
 
 internal class MTLResourceTable : ResourceTable
 {
-    private readonly Binding[] bufferBindings;
-    private readonly Binding[] textureBindings;
-    private readonly Binding[] samplerBindings;
-    private readonly Binding[] accelerationStructureBindings;
+    private readonly Binding?[] bufferBindings;
+    private readonly Binding?[] textureBindings;
+    private readonly Binding?[] samplerBindings;
 
     public MTL4ArgumentTable ArgumentTable;
 
     public MTLResourceTable(MTLGraphicsContext context, ResourceTableDesc desc) : base(context, desc)
     {
-        MTLResourceLayout layout = desc.Layout.Metal();
+        bufferBindings = new Binding?[desc.Slots.Where(static item => item.Type is ResourceType.ConstantBuffer or ResourceType.StructuredBuffer or ResourceType.StructuredBufferReadWrite or ResourceType.AccelerationStructure).Sum(static item => item.Count)];
+        textureBindings = new Binding?[desc.Slots.Where(static item => item.Type is ResourceType.Texture or ResourceType.TextureReadWrite).Sum(static item => item.Count)];
+        samplerBindings = new Binding?[desc.Slots.Where(static item => item.Type is ResourceType.Sampler).Sum(static item => item.Count)];
 
         MTL4ArgumentTableDescriptor descriptor = new()
         {
-            MaxBufferBindCount = layout.BufferCount,
-            MaxTextureBindCount = layout.TextureCount,
-            MaxSamplerStateBindCount = layout.SamplerCount
+            MaxBufferBindCount = (uint)bufferBindings.Length,
+            MaxTextureBindCount = (uint)textureBindings.Length,
+            MaxSamplerStateBindCount = (uint)samplerBindings.Length
         };
 
         ArgumentTable = context.Device.MakeArgumentTable(descriptor, out NSError error);
         error.Success();
-
-        List<Binding> bufferBindingList = [];
-        List<Binding> textureBindingList = [];
-        List<Binding> samplerBindingList = [];
-        List<Binding> accelerationStructureBindingList = [];
-
-        uint resourceStartIndex = 0;
-
-        for (int i = 0; i < layout.Desc.Bindings.Length; i++)
-        {
-            ResourceBinding binding = layout.Desc.Bindings[i];
-
-            for (uint j = 0; j < binding.Count; j++)
-            {
-                IBindableResource resource = desc.Resources[(int)(resourceStartIndex + j)];
-
-                switch (binding.Type)
-                {
-                    case ResourceType.ConstantBuffer:
-                    case ResourceType.StructuredBuffer:
-                    case ResourceType.StructuredBufferReadWrite:
-                        if (resource is Buffer buffer)
-                        {
-                            bufferBindingList.Add(new(buffer.Metal().GpuAddress, default, binding.Index + j));
-                        }
-                        else if (resource is BufferView bufferView)
-                        {
-                            bufferBindingList.Add(new(bufferView.Metal().GpuAddress, default, binding.Index + j));
-                        }
-                        break;
-
-                    case ResourceType.Texture:
-                    case ResourceType.TextureReadWrite:
-                        if (resource is Texture texture)
-                        {
-                            textureBindingList.Add(new(default, texture.Metal().Texture.GpuResourceID, binding.Index + j));
-                        }
-                        else if (resource is TextureView textureView)
-                        {
-                            textureBindingList.Add(new(default, textureView.Metal().Texture.GpuResourceID, binding.Index + j));
-                        }
-                        break;
-
-                    case ResourceType.Sampler:
-                        if (resource is Sampler sampler)
-                        {
-                            samplerBindingList.Add(new(default, sampler.Metal().SamplerState.GpuResourceID, binding.Index + j));
-                        }
-                        break;
-
-                    case ResourceType.AccelerationStructure:
-                        if (resource is TopLevelAccelerationStructure topLevelAccelerationStructure)
-                        {
-                            accelerationStructureBindingList.Add(new(default, topLevelAccelerationStructure.Metal().AccelerationStructure.GpuResourceID, binding.Index + j));
-                        }
-                        break;
-                }
-            }
-
-            resourceStartIndex += binding.Count;
-        }
-
-        bufferBindings = [.. bufferBindingList];
-        textureBindings = [.. textureBindingList];
-        samplerBindings = [.. samplerBindingList];
-        accelerationStructureBindings = [.. accelerationStructureBindingList];
-
-        Bind(ArgumentTable);
     }
 
     public void Bind(MTL4ArgumentTable argumentTable)
     {
-        foreach (Binding binding in bufferBindings)
+        foreach (Binding? binding in bufferBindings)
         {
-            binding.Buffer(argumentTable);
+            binding?.Buffer(argumentTable);
         }
 
-        foreach (Binding binding in textureBindings)
+        foreach (Binding? binding in textureBindings)
         {
-            binding.Texture(argumentTable);
+            binding?.Texture(argumentTable);
         }
 
-        foreach (Binding binding in samplerBindings)
+        foreach (Binding? binding in samplerBindings)
         {
-            binding.Sampler(argumentTable);
+            binding?.Sampler(argumentTable);
+        }
+    }
+
+    protected override void SetImpl(uint slot, IBindableResource[] resources)
+    {
+        ResourceSlot resourceSlot = Desc.Slots[slot];
+
+        uint index = 0;
+        switch (resourceSlot.Type)
+        {
+            case ResourceType.ConstantBuffer:
+            case ResourceType.StructuredBuffer:
+            case ResourceType.StructuredBufferReadWrite:
+            case ResourceType.AccelerationStructure:
+                index = (uint)Desc.Slots.Take((int)slot).Where(static item => item.Type is ResourceType.ConstantBuffer or ResourceType.StructuredBuffer or ResourceType.StructuredBufferReadWrite or ResourceType.AccelerationStructure).Sum(static item => item.Count);
+                break;
+
+            case ResourceType.Texture:
+            case ResourceType.TextureReadWrite:
+                index = (uint)Desc.Slots.Take((int)slot).Where(static item => item.Type is ResourceType.Texture or ResourceType.TextureReadWrite).Sum(static item => item.Count);
+                break;
+
+            case ResourceType.Sampler:
+                index = (uint)Desc.Slots.Take((int)slot).Where(static item => item.Type is ResourceType.Sampler).Sum(static item => item.Count);
+                break;
         }
 
-        foreach (Binding binding in accelerationStructureBindings)
+        switch (resourceSlot.Type)
         {
-            binding.AccelerationStructure(argumentTable);
+            case ResourceType.ConstantBuffer:
+            case ResourceType.StructuredBuffer:
+            case ResourceType.StructuredBufferReadWrite:
+            case ResourceType.AccelerationStructure:
+                foreach (IBindableResource resource in resources)
+                {
+                    if (resource is Buffer buffer)
+                    {
+                        bufferBindings[index] = new(buffer.Metal().GpuAddress, default, index);
+                    }
+                    else if (resource is BufferView bufferView)
+                    {
+                        bufferBindings[index] = new(bufferView.Metal().GpuAddress, default, index);
+                    }
+                    else if (resource is TopLevelAccelerationStructure topLevelAccelerationStructure)
+                    {
+                        bufferBindings[index] = new(default, topLevelAccelerationStructure.Metal().AccelerationStructure.GpuResourceID, index);
+                    }
+
+                    index++;
+                }
+                break;
+
+            case ResourceType.Texture:
+            case ResourceType.TextureReadWrite:
+                foreach (IBindableResource resource in resources)
+                {
+                    if (resource is Texture texture)
+                    {
+                        textureBindings[index] = new(default, texture.Metal().Texture.GpuResourceID, index);
+                    }
+                    else if (resource is TextureView textureView)
+                    {
+                        textureBindings[index] = new(default, textureView.Metal().Texture.GpuResourceID, index);
+                    }
+
+                    index++;
+                }
+                break;
+
+            case ResourceType.Sampler:
+                foreach (IBindableResource resource in resources)
+                {
+                    if (resource is Sampler sampler)
+                    {
+                        samplerBindings[index] = new(default, sampler.Metal().SamplerState.GpuResourceID, index);
+                    }
+
+                    index++;
+                }
+                break;
         }
+
+        Bind(ArgumentTable);
     }
 
     protected override void PreprocessImpl(CommandBuffer commandBuffer)
@@ -134,7 +144,14 @@ internal class MTLResourceTable : ResourceTable
     {
         public void Buffer(MTL4ArgumentTable argumentTable)
         {
-            argumentTable.SetAddress(gpuAddress, index);
+            if (gpuAddress != default)
+            {
+                argumentTable.SetAddress(gpuAddress, index);
+            }
+            else
+            {
+                argumentTable.SetResource(resourceID, index);
+            }
         }
 
         public void Texture(MTL4ArgumentTable argumentTable)
@@ -145,11 +162,6 @@ internal class MTLResourceTable : ResourceTable
         public void Sampler(MTL4ArgumentTable argumentTable)
         {
             argumentTable.SetSamplerState(resourceID, index);
-        }
-
-        public void AccelerationStructure(MTL4ArgumentTable argumentTable)
-        {
-            argumentTable.SetResource(resourceID, index);
         }
     }
 }

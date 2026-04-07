@@ -114,14 +114,6 @@ public static class Extensions
         }
     }
 
-    extension(ResourceLayout resourceLayout)
-    {
-        internal MTLResourceLayout Metal()
-        {
-            return (MTLResourceLayout)resourceLayout;
-        }
-    }
-
     extension(ResourceTable resourceTable)
     {
         internal MTLResourceTable Metal()

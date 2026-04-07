@@ -80,114 +80,102 @@ internal class DXResourceTable : ResourceTable
         switch (resourceSlot.Type)
         {
             case ResourceType.ConstantBuffer:
+                foreach (IBindableResource resource in resources)
                 {
-                    foreach (IBindableResource resource in resources)
+                    if (resource is Buffer buffer)
                     {
-                        if (resource is Buffer buffer)
-                        {
-                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], buffer.DirectX12().View.CbvHandle, DescriptorHeapType.CbvSrvUav);
-                        }
-                        else if (resource is BufferView bufferView)
-                        {
-                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], bufferView.DirectX12().CbvHandle, DescriptorHeapType.CbvSrvUav);
-                        }
-
-                        index++;
+                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], buffer.DirectX12().View.CbvHandle, DescriptorHeapType.CbvSrvUav);
                     }
+                    else if (resource is BufferView bufferView)
+                    {
+                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], bufferView.DirectX12().CbvHandle, DescriptorHeapType.CbvSrvUav);
+                    }
+
+                    index++;
                 }
                 break;
 
             case ResourceType.StructuredBuffer:
+                foreach (IBindableResource resource in resources)
                 {
-                    foreach (IBindableResource resource in resources)
+                    if (resource is Buffer buffer)
                     {
-                        if (resource is Buffer buffer)
-                        {
-                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], buffer.DirectX12().View.SrvHandle, DescriptorHeapType.CbvSrvUav);
-                        }
-                        else if (resource is BufferView bufferView)
-                        {
-                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], bufferView.DirectX12().SrvHandle, DescriptorHeapType.CbvSrvUav);
-                        }
-
-                        index++;
+                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], buffer.DirectX12().View.SrvHandle, DescriptorHeapType.CbvSrvUav);
                     }
+                    else if (resource is BufferView bufferView)
+                    {
+                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], bufferView.DirectX12().SrvHandle, DescriptorHeapType.CbvSrvUav);
+                    }
+
+                    index++;
                 }
                 break;
 
             case ResourceType.StructuredBufferReadWrite:
+                foreach (IBindableResource resource in resources)
                 {
-                    foreach (IBindableResource resource in resources)
+                    if (resource is Buffer buffer)
                     {
-                        if (resource is Buffer buffer)
-                        {
-                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], buffer.DirectX12().View.UavHandle, DescriptorHeapType.CbvSrvUav);
-                        }
-                        else if (resource is BufferView bufferView)
-                        {
-                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], bufferView.DirectX12().UavHandle, DescriptorHeapType.CbvSrvUav);
-                        }
-
-                        index++;
+                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], buffer.DirectX12().View.UavHandle, DescriptorHeapType.CbvSrvUav);
                     }
+                    else if (resource is BufferView bufferView)
+                    {
+                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], bufferView.DirectX12().UavHandle, DescriptorHeapType.CbvSrvUav);
+                    }
+
+                    index++;
                 }
                 break;
 
             case ResourceType.Texture:
+                foreach (IBindableResource resource in resources)
                 {
-                    foreach (IBindableResource resource in resources)
+                    if (resource is Texture texture)
                     {
-                        if (resource is Texture texture)
-                        {
-                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], texture.DirectX12().View.SrvHandle, DescriptorHeapType.CbvSrvUav);
+                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], texture.DirectX12().View.SrvHandle, DescriptorHeapType.CbvSrvUav);
 
-                            srvTextureViews[index] = texture.DirectX12().View;
-                        }
-                        else if (resource is TextureView textureView)
-                        {
-                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], textureView.DirectX12().SrvHandle, DescriptorHeapType.CbvSrvUav);
-
-                            srvTextureViews[index] = textureView.DirectX12();
-                        }
-
-                        index++;
+                        srvTextureViews[index] = texture.DirectX12().View;
                     }
+                    else if (resource is TextureView textureView)
+                    {
+                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], textureView.DirectX12().SrvHandle, DescriptorHeapType.CbvSrvUav);
+
+                        srvTextureViews[index] = textureView.DirectX12();
+                    }
+
+                    index++;
                 }
                 break;
 
             case ResourceType.TextureReadWrite:
+                foreach (IBindableResource resource in resources)
                 {
-                    foreach (IBindableResource resource in resources)
+                    if (resource is Texture texture)
                     {
-                        if (resource is Texture texture)
-                        {
-                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], texture.DirectX12().View.UavHandle, DescriptorHeapType.CbvSrvUav);
+                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], texture.DirectX12().View.UavHandle, DescriptorHeapType.CbvSrvUav);
 
-                            uavTextureViews[index] = texture.DirectX12().View;
-                        }
-                        else if (resource is TextureView textureView)
-                        {
-                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], textureView.DirectX12().UavHandle, DescriptorHeapType.CbvSrvUav);
-
-                            uavTextureViews[index] = textureView.DirectX12();
-                        }
-
-                        index++;
+                        uavTextureViews[index] = texture.DirectX12().View;
                     }
+                    else if (resource is TextureView textureView)
+                    {
+                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], textureView.DirectX12().UavHandle, DescriptorHeapType.CbvSrvUav);
+
+                        uavTextureViews[index] = textureView.DirectX12();
+                    }
+
+                    index++;
                 }
                 break;
 
             case ResourceType.AccelerationStructure:
+                foreach (IBindableResource resource in resources)
                 {
-                    foreach (IBindableResource resource in resources)
+                    if (resource is TopLevelAccelerationStructure topLevelAccelerationStructure)
                     {
-                        if (resource is TopLevelAccelerationStructure topLevelAccelerationStructure)
-                        {
-                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], topLevelAccelerationStructure.DirectX12().Token.Handle, DescriptorHeapType.CbvSrvUav);
-                        }
-
-                        index++;
+                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], topLevelAccelerationStructure.DirectX12().Token.Handle, DescriptorHeapType.CbvSrvUav);
                     }
+
+                    index++;
                 }
                 break;
         }

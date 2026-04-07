@@ -103,11 +103,6 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
         return new MTLSampler(this, desc);
     }
 
-    protected override ResourceLayout CreateResourceLayoutImpl(ResourceLayoutDesc desc)
-    {
-        return new MTLResourceLayout(this, desc);
-    }
-
     protected override ResourceTable CreateResourceTableImpl(ResourceTableDesc desc)
     {
         return new MTLResourceTable(this, desc);
