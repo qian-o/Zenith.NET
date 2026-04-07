@@ -10,12 +10,17 @@ namespace CornellBox.Renderers;
 
 internal unsafe class RasterizationRenderer : Renderer
 {
+    private readonly ResourceSlot[] resourceSlots =
+    [
+        new() { Type = ResourceType.ConstantBuffer, Count = 1 },
+        new() { Type = ResourceType.StructuredBuffer, Count = 1 }
+    ];
+
     private readonly Buffer vertexBuffer;
     private readonly Buffer indexBuffer;
     private readonly Buffer materialBuffer;
     private readonly Buffer constantBuffer;
     private readonly uint indexCount;
-    private readonly ResourceLayout resourceLayout;
     private readonly ResourceTable resourceTable;
     private readonly GraphicsPipeline pipeline;
 
@@ -56,20 +61,9 @@ internal unsafe class RasterizationRenderer : Renderer
             Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
         });
 
-        resourceLayout = App.Context.CreateResourceLayout(new()
-        {
-            Bindings = BindingHelper.Bindings
-            (
-                new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Vertex | ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Pixel }
-            )
-        });
-
-        resourceTable = App.Context.CreateResourceTable(new()
-        {
-            Layout = resourceLayout,
-            Resources = [constantBuffer, materialBuffer]
-        });
+        resourceTable = App.Context.CreateResourceTable(new() { Slots = resourceSlots });
+        resourceTable.Write(0, constantBuffer);
+        resourceTable.Write(1, materialBuffer);
 
         InputLayout inputLayout = new();
         inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Position });
@@ -88,7 +82,7 @@ internal unsafe class RasterizationRenderer : Renderer
             },
             Vertex = vertexShader,
             Pixel = pixelShader,
-            ResourceLayout = resourceLayout,
+            ResourceSlots = resourceSlots,
             InputLayouts = [inputLayout],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
             Output = FrameBuffer.Output
@@ -133,7 +127,6 @@ internal unsafe class RasterizationRenderer : Renderer
 
         pipeline.Dispose();
         resourceTable.Dispose();
-        resourceLayout.Dispose();
         constantBuffer.Dispose();
         materialBuffer.Dispose();
         indexBuffer.Dispose();

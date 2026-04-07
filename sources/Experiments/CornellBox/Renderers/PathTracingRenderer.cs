@@ -12,13 +12,23 @@ internal unsafe class PathTracingRenderer : Renderer
 {
     private const uint ThreadGroupSize = 16;
 
+    private readonly ResourceSlot[] resourceSlots =
+    [
+        new() { Type = ResourceType.AccelerationStructure, Count = 1 },
+        new() { Type = ResourceType.ConstantBuffer, Count = 1 },
+        new() { Type = ResourceType.StructuredBuffer, Count = 1 },
+        new() { Type = ResourceType.StructuredBuffer, Count = 1 },
+        new() { Type = ResourceType.StructuredBuffer, Count = 1 },
+        new() { Type = ResourceType.TextureReadWrite, Count = 1 },
+        new() { Type = ResourceType.TextureReadWrite, Count = 1 }
+    ];
+
     private readonly Buffer vertexBuffer;
     private readonly Buffer indexBuffer;
     private readonly Buffer materialBuffer;
     private readonly Buffer cameraBuffer;
     private readonly BottomLevelAccelerationStructure blas;
     private readonly TopLevelAccelerationStructure tlas;
-    private readonly ResourceLayout resourceLayout;
     private readonly ComputePipeline pipeline;
 
     private Texture? accumulationTexture;
@@ -106,26 +116,12 @@ internal unsafe class PathTracingRenderer : Renderer
 
         commandBuffer.Submit(waitForCompletion: true);
 
-        resourceLayout = App.Context.CreateResourceLayout(new()
-        {
-            Bindings = BindingHelper.Bindings
-            (
-                new() { Type = ResourceType.AccelerationStructure, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute }
-            )
-        });
-
         using Shader computeShader = App.Context.LoadShaderFromFile(ShaderPath("PathTracing.slang"), "CSMain", ShaderStageFlags.Compute);
 
         pipeline = App.Context.CreateComputePipeline(new()
         {
             Compute = computeShader,
-            ResourceLayout = resourceLayout,
+            ResourceSlots = resourceSlots,
             ThreadGroupSizeX = ThreadGroupSize,
             ThreadGroupSizeY = ThreadGroupSize,
             ThreadGroupSizeZ = 1
@@ -178,11 +174,14 @@ internal unsafe class PathTracingRenderer : Renderer
                 Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
             });
 
-            resourceTable = App.Context.CreateResourceTable(new()
-            {
-                Layout = resourceLayout,
-                Resources = [tlas, cameraBuffer, vertexBuffer, indexBuffer, materialBuffer, accumulationTexture, Color]
-            });
+            resourceTable = App.Context.CreateResourceTable(new() { Slots = resourceSlots });
+            resourceTable.Write(0, tlas);
+            resourceTable.Write(1, cameraBuffer);
+            resourceTable.Write(2, vertexBuffer);
+            resourceTable.Write(3, indexBuffer);
+            resourceTable.Write(4, materialBuffer);
+            resourceTable.Write(5, accumulationTexture);
+            resourceTable.Write(6, Color);
         }
 
         commandBuffer.SetPipeline(pipeline);
@@ -214,7 +213,6 @@ internal unsafe class PathTracingRenderer : Renderer
         accumulationTexture?.Dispose();
 
         pipeline.Dispose();
-        resourceLayout.Dispose();
         tlas.Dispose();
         blas.Dispose();
         cameraBuffer.Dispose();

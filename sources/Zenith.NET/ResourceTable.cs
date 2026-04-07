@@ -6,7 +6,7 @@ public abstract class ResourceTable(GraphicsContext context, ResourceTableDesc d
 
     public ref readonly ResourceTableDesc Desc => ref desc;
 
-    public void Set(uint slot, params IBindableResource[] resources)
+    public void Write(uint slot, params IBindableResource[] resources)
     {
         if (slot >= desc.Slots.Length || resources.Length is 0 || resources.Length > desc.Slots[slot].Count)
         {
