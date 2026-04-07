@@ -18,10 +18,10 @@ internal unsafe class DXComputePipeline : ComputePipeline
             CS = desc.Compute.DirectX12().GetShaderBytecode(scope)
         };
 
-        // ResourceLayout
+        // ResourceSlots
         {
             List<RootParameter> parameters = [];
-            if (desc.ResourceLayout is not null && desc.ResourceLayout.DirectX12().DescriptorRanges(ShaderStageFlags.None, out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges))
+            if (desc.ResourceSlots.DirectX12(out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges))
             {
                 if (cbvSrvUavRanges.Length > 0)
                 {

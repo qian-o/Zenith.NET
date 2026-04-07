@@ -155,11 +155,6 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         return new DXSampler(this, desc);
     }
 
-    protected override ResourceLayout CreateResourceLayoutImpl(ResourceLayoutDesc desc)
-    {
-        return new DXResourceLayout(this, desc);
-    }
-
     protected override ResourceTable CreateResourceTableImpl(ResourceTableDesc desc)
     {
         return new DXResourceTable(this, desc);

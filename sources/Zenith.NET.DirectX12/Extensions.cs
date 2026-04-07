@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Silk.NET.Direct3D12;
 
 namespace Zenith.NET.DirectX12;
 
@@ -25,6 +26,69 @@ public static class Extensions
         internal bool IsSuccess()
         {
             return result is 0;
+        }
+    }
+
+    extension(ResourceSlot[] resourceSlots)
+    {
+        internal bool DirectX12(out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges)
+        {
+            List<DescriptorRange> cbvSrvUavRangeList = [];
+            List<DescriptorRange> samplerRangeList = [];
+
+            uint cbvIndex = 0;
+            uint srvIndex = 0;
+            uint uavIndex = 0;
+            uint samplerIndex = 0;
+            uint cbvSrvUavRangeOffset = 0;
+            uint samplerRangeOffset = 0;
+            foreach (ResourceSlot resourceSlot in resourceSlots)
+            {
+                DescriptorRange range = new()
+                {
+                    RangeType = DXFormats.DirectX12(resourceSlot.Type),
+                    NumDescriptors = resourceSlot.Count
+                };
+
+                switch (resourceSlot.Type)
+                {
+                    case ResourceType.ConstantBuffer:
+                        range.BaseShaderRegister = cbvIndex++;
+                        range.OffsetInDescriptorsFromTableStart = cbvSrvUavRangeOffset++;
+
+                        cbvSrvUavRangeList.Add(range);
+                        break;
+
+                    case ResourceType.StructuredBuffer:
+                    case ResourceType.Texture:
+                    case ResourceType.AccelerationStructure:
+                        range.BaseShaderRegister = srvIndex++;
+                        range.OffsetInDescriptorsFromTableStart = cbvSrvUavRangeOffset++;
+
+                        cbvSrvUavRangeList.Add(range);
+                        break;
+
+                    case ResourceType.StructuredBufferReadWrite:
+                    case ResourceType.TextureReadWrite:
+                        range.BaseShaderRegister = uavIndex++;
+                        range.OffsetInDescriptorsFromTableStart = cbvSrvUavRangeOffset++;
+
+                        cbvSrvUavRangeList.Add(range);
+                        break;
+
+                    case ResourceType.Sampler:
+                        range.BaseShaderRegister = samplerIndex++;
+                        range.OffsetInDescriptorsFromTableStart = samplerRangeOffset++;
+
+                        samplerRangeList.Add(range);
+                        break;
+                }
+            }
+
+            cbvSrvUavRanges = [.. cbvSrvUavRangeList];
+            samplerRanges = [.. samplerRangeList];
+
+            return cbvSrvUavRanges.Length > 0 || samplerRanges.Length > 0;
         }
     }
 
@@ -113,14 +177,6 @@ public static class Extensions
         internal DXTopLevelAccelerationStructure DirectX12()
         {
             return (DXTopLevelAccelerationStructure)topLevelAccelerationStructure;
-        }
-    }
-
-    extension(ResourceLayout resourceLayout)
-    {
-        internal DXResourceLayout DirectX12()
-        {
-            return (DXResourceLayout)resourceLayout;
         }
     }
 

@@ -106,45 +106,35 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
             graphicsPipelineStateDesc.SampleDesc = DXFormats.DirectX12(desc.Output.SampleCount);
         }
 
-        // ResourceLayout
+        // ResourceSlots
         {
             List<RootParameter> parameters = [];
-            if (desc.ResourceLayout is not null)
+            if (desc.ResourceSlots.DirectX12(out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges))
             {
-                DXResourceLayout resourceLayout = desc.ResourceLayout.DirectX12();
-
-                foreach (ShaderStageFlags stage in ZenithHelper.GraphicShaderStages())
+                if (cbvSrvUavRanges.Length > 0)
                 {
-                    if (resourceLayout.DescriptorRanges(stage, out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges))
+                    parameters.Add(new()
                     {
-                        if (cbvSrvUavRanges.Length > 0)
+                        ParameterType = RootParameterType.TypeDescriptorTable,
+                        DescriptorTable = new()
                         {
-                            parameters.Add(new()
-                            {
-                                ParameterType = RootParameterType.TypeDescriptorTable,
-                                ShaderVisibility = DXFormats.DirectX12(stage),
-                                DescriptorTable = new()
-                                {
-                                    NumDescriptorRanges = (uint)cbvSrvUavRanges.Length,
-                                    PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, cbvSrvUavRanges)
-                                }
-                            });
+                            NumDescriptorRanges = (uint)cbvSrvUavRanges.Length,
+                            PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, cbvSrvUavRanges)
                         }
+                    });
+                }
 
-                        if (samplerRanges.Length > 0)
+                if (samplerRanges.Length > 0)
+                {
+                    parameters.Add(new()
+                    {
+                        ParameterType = RootParameterType.TypeDescriptorTable,
+                        DescriptorTable = new()
                         {
-                            parameters.Add(new()
-                            {
-                                ParameterType = RootParameterType.TypeDescriptorTable,
-                                ShaderVisibility = DXFormats.DirectX12(stage),
-                                DescriptorTable = new()
-                                {
-                                    NumDescriptorRanges = (uint)samplerRanges.Length,
-                                    PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, samplerRanges)
-                                }
-                            });
+                            NumDescriptorRanges = (uint)samplerRanges.Length,
+                            PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, samplerRanges)
                         }
-                    }
+                    });
                 }
             }
 
