@@ -228,13 +228,13 @@ bool traceShadowRay(float3 origin, float3 direction, float maxDist)
     shadowRay.Origin = origin;
     shadowRay.Direction = direction;
     shadowRay.TMin = 0.001;
+    shadowRay.TMax = maxDist - 0.01;
 
-    float shadowTMax = maxDist - 0.01;
-    if (shadowTMax <= shadowRay.TMin)
+    if (shadowRay.TMax <= shadowRay.TMin)
     {
         return false;
     }
-    shadowRay.TMax = shadowTMax;
+
     RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> shadowQuery;
     shadowQuery.TraceRayInline(scene, RAY_FLAG_NONE, 0xFF, shadowRay);
 
