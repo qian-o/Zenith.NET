@@ -2,12 +2,35 @@
 
 namespace Zenith.NET.Vulkan;
 
-internal unsafe class VKResourceTable(VKGraphicsContext context, ResourceTableDesc desc) : ResourceTable(context, desc)
+internal unsafe class VKResourceTable : ResourceTable
 {
-    private readonly VKTextureView?[] srvTextureViews = new VKTextureView?[desc.Slots.Sum(static item => item.Count)];
-    private readonly VKTextureView?[] uavTextureViews = new VKTextureView?[desc.Slots.Sum(static item => item.Count)];
+    private readonly VKTextureView?[] srvTextureViews;
+    private readonly VKTextureView?[] uavTextureViews;
 
-    public VKDescriptorToken DescriptorToken = context.DescriptorAllocator.Allocate(desc.Slots);
+    public DescriptorSetLayout DescriptorSetLayout;
+
+    public VKDescriptorToken DescriptorToken;
+
+    public VKResourceTable(VKGraphicsContext context, ResourceTableDesc desc) : base(context, desc)
+    {
+        using ZenithMarshal.Scope scope = new();
+
+        desc.Slots.Vulkan(out DescriptorSetLayoutBinding[] bindings, out VKDescriptorCounts counts);
+
+        DescriptorSetLayoutCreateInfo createInfo = new()
+        {
+            SType = StructureType.DescriptorSetLayoutCreateInfo,
+            BindingCount = (uint)desc.Slots.Length,
+            PBindings = (DescriptorSetLayoutBinding*)ZenithMarshal.AllocateAndFill(scope, bindings)
+        };
+
+        context.Vk.CreateDescriptorSetLayout(context.Device, &createInfo, null, out DescriptorSetLayout).Success();
+
+        DescriptorToken = context.DescriptorAllocator.Allocate(DescriptorSetLayout, counts);
+
+        srvTextureViews = new VKTextureView?[desc.Slots.Sum(static item => item.Count)];
+        uavTextureViews = new VKTextureView?[desc.Slots.Sum(static item => item.Count)];
+    }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
@@ -134,6 +157,8 @@ internal unsafe class VKResourceTable(VKGraphicsContext context, ResourceTableDe
                             AccelerationStructureCount = (uint)resources.Length,
                             PAccelerationStructures = pAccelerationStructures
                         };
+
+                        descriptorWrite.PNext = &accelerationStructureWrite;
                     }
 
                     Context.Vk.UpdateDescriptorSets(Context.Device, 1, &descriptorWrite, 0, (CopyDescriptorSet*)null);
@@ -175,5 +200,6 @@ internal unsafe class VKResourceTable(VKGraphicsContext context, ResourceTableDe
     protected override void Destroy()
     {
         Context.DescriptorAllocator.Free(DescriptorToken);
+        Context.Vk.DestroyDescriptorSetLayout(Context.Device, DescriptorSetLayout, null);
     }
 }

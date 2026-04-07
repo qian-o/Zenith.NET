@@ -7,27 +7,16 @@ internal unsafe class VKDescriptorAllocator(VKGraphicsContext context) : Graphic
     private readonly Lock @lock = new();
     private readonly List<VKDescriptorPool> available = [];
 
-    public VKDescriptorToken Allocate(ResourceSlot[] resourceSlots)
+    public VKDescriptorToken Allocate(DescriptorSetLayout descriptorSetLayout, VKDescriptorCounts counts)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
         using ZenithMarshal.Scope scope = new();
 
-        resourceSlots.Vulkan(out DescriptorSetLayoutBinding[] bindings, out VKDescriptorCounts counts);
-
         if (available.FirstOrDefault(item => item.CanAllocate(counts)) is not VKDescriptorPool pool)
         {
             available.Add(pool = new(context));
         }
-
-        DescriptorSetLayoutCreateInfo createInfo = new()
-        {
-            SType = StructureType.DescriptorSetLayoutCreateInfo,
-            BindingCount = (uint)resourceSlots.Length,
-            PBindings = (DescriptorSetLayoutBinding*)ZenithMarshal.AllocateAndFill(scope, bindings)
-        };
-
-        context.Vk.CreateDescriptorSetLayout(context.Device, &createInfo, null, out DescriptorSetLayout descriptorSetLayout).Success();
 
         DescriptorSetAllocateInfo allocateInfo = new()
         {
@@ -38,7 +27,6 @@ internal unsafe class VKDescriptorAllocator(VKGraphicsContext context) : Graphic
         };
 
         context.Vk.AllocateDescriptorSets(context.Device, &allocateInfo, out DescriptorSet set).Success();
-        context.Vk.DestroyDescriptorSetLayout(context.Device, descriptorSetLayout, null);
 
         return new() { Pool = pool, Set = set };
     }

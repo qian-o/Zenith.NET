@@ -4,6 +4,8 @@ namespace Zenith.NET.Vulkan;
 
 internal unsafe class VKComputePipeline : ComputePipeline
 {
+    public DescriptorSetLayout DescriptorSetLayout;
+
     public PipelineLayout PipelineLayout;
 
     public VkPipeline Pipeline;
@@ -29,17 +31,16 @@ internal unsafe class VKComputePipeline : ComputePipeline
                 PBindings = (DescriptorSetLayoutBinding*)ZenithMarshal.AllocateAndFill(scope, bindings)
             };
 
-            context.Vk.CreateDescriptorSetLayout(context.Device, &descriptorSetLayoutCreateInfo, null, out DescriptorSetLayout descriptorSetLayout).Success();
+            context.Vk.CreateDescriptorSetLayout(context.Device, &descriptorSetLayoutCreateInfo, null, out DescriptorSetLayout).Success();
 
             PipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
             {
                 SType = StructureType.PipelineLayoutCreateInfo,
                 SetLayoutCount = 1,
-                PSetLayouts = (DescriptorSetLayout*)ZenithMarshal.AllocateAndFill(scope, [descriptorSetLayout])
+                PSetLayouts = (DescriptorSetLayout*)ZenithMarshal.AllocateAndFill(scope, [DescriptorSetLayout])
             };
 
             context.Vk.CreatePipelineLayout(context.Device, &pipelineLayoutCreateInfo, null, out PipelineLayout).Success();
-            context.Vk.DestroyDescriptorSetLayout(context.Device, descriptorSetLayout, null);
 
             createInfo.Layout = PipelineLayout;
         }
@@ -68,5 +69,6 @@ internal unsafe class VKComputePipeline : ComputePipeline
     {
         Context.Vk.DestroyPipeline(Context.Device, Pipeline, null);
         Context.Vk.DestroyPipelineLayout(Context.Device, PipelineLayout, null);
+        Context.Vk.DestroyDescriptorSetLayout(Context.Device, DescriptorSetLayout, null);
     }
 }
