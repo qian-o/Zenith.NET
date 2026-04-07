@@ -105,34 +105,34 @@ internal unsafe class DXMeshShadingPipeline : MeshShadingPipeline
 
         // ResourceSlots
         {
-            List<RootParameter> parameters = [];
-            if (desc.ResourceSlots.DirectX12(out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges))
-            {
-                if (cbvSrvUavRanges.Length > 0)
-                {
-                    parameters.Add(new()
-                    {
-                        ParameterType = RootParameterType.TypeDescriptorTable,
-                        DescriptorTable = new()
-                        {
-                            NumDescriptorRanges = (uint)cbvSrvUavRanges.Length,
-                            PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, cbvSrvUavRanges)
-                        }
-                    });
-                }
+            desc.ResourceSlots.DirectX12(out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges);
 
-                if (samplerRanges.Length > 0)
+            List<RootParameter> parameters = [];
+
+            if (cbvSrvUavRanges.Length > 0)
+            {
+                parameters.Add(new()
                 {
-                    parameters.Add(new()
+                    ParameterType = RootParameterType.TypeDescriptorTable,
+                    DescriptorTable = new()
                     {
-                        ParameterType = RootParameterType.TypeDescriptorTable,
-                        DescriptorTable = new()
-                        {
-                            NumDescriptorRanges = (uint)samplerRanges.Length,
-                            PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, samplerRanges)
-                        }
-                    });
-                }
+                        NumDescriptorRanges = (uint)cbvSrvUavRanges.Length,
+                        PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, cbvSrvUavRanges)
+                    }
+                });
+            }
+
+            if (samplerRanges.Length > 0)
+            {
+                parameters.Add(new()
+                {
+                    ParameterType = RootParameterType.TypeDescriptorTable,
+                    DescriptorTable = new()
+                    {
+                        NumDescriptorRanges = (uint)samplerRanges.Length,
+                        PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, samplerRanges)
+                    }
+                });
             }
 
             RootSignatureDesc rootSignatureDesc = new()

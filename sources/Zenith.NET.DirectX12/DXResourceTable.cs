@@ -11,17 +11,16 @@ internal class DXResourceTable : ResourceTable
 
     public DXResourceTable(DXGraphicsContext context, ResourceTableDesc desc) : base(context, desc)
     {
-        if (desc.Slots.DirectX12(out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges))
-        {
-            if (cbvSrvUavRanges.Length > 0)
-            {
-                cbvSrvUavToken = Context.CbvSrvUavAllocator.Allocate((uint)cbvSrvUavRanges.Sum(static item => item.NumDescriptors));
-            }
+        desc.Slots.DirectX12(out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges);
 
-            if (samplerRanges.Length > 0)
-            {
-                samplerToken = Context.SamplerAllocator.Allocate((uint)samplerRanges.Sum(static item => item.NumDescriptors));
-            }
+        if (cbvSrvUavRanges.Length > 0)
+        {
+            cbvSrvUavToken = Context.CbvSrvUavAllocator.Allocate((uint)cbvSrvUavRanges.Sum(static item => item.NumDescriptors));
+        }
+
+        if (samplerRanges.Length > 0)
+        {
+            samplerToken = Context.SamplerAllocator.Allocate((uint)samplerRanges.Sum(static item => item.NumDescriptors));
         }
 
         srvTextureViews = new DXTextureView?[Desc.Slots.Sum(slot => slot.Count)];

@@ -7,36 +7,45 @@ internal unsafe class VKDescriptorAllocator(VKGraphicsContext context) : Graphic
     private readonly Lock @lock = new();
     private readonly List<VKDescriptorPool> available = [];
 
-    public VKDescriptorToken Allocate(VKResourceLayout resourceLayout)
+    public VKDescriptorToken Allocate(ResourceSlot[] resourceSlots)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        if (available.FirstOrDefault(item => item.CanAllocate(resourceLayout.Counts)) is not VKDescriptorPool pool)
+        using ZenithMarshal.Scope scope = new();
+
+        resourceSlots.Vulkan(out DescriptorSetLayoutBinding[] bindings, out VKDescriptorCounts counts);
+
+        if (available.FirstOrDefault(item => item.CanAllocate(counts)) is not VKDescriptorPool pool)
         {
             available.Add(pool = new(context));
         }
 
-        fixed (DescriptorSetLayout* pSetLayouts = &resourceLayout.DescriptorSetLayout)
+        DescriptorSetLayoutCreateInfo createInfo = new()
         {
-            DescriptorSetAllocateInfo allocateInfo = new()
-            {
-                SType = StructureType.DescriptorSetAllocateInfo,
-                DescriptorPool = pool.Pool,
-                DescriptorSetCount = 1,
-                PSetLayouts = pSetLayouts
-            };
+            SType = StructureType.DescriptorSetLayoutCreateInfo,
+            BindingCount = (uint)resourceSlots.Length,
+            PBindings = (DescriptorSetLayoutBinding*)ZenithMarshal.AllocateAndFill(scope, bindings)
+        };
 
-            DescriptorSet set;
-            context.Vk.AllocateDescriptorSets(context.Device, &allocateInfo, &set).Success();
+        context.Vk.CreateDescriptorSetLayout(context.Device, &createInfo, null, out DescriptorSetLayout descriptorSetLayout).Success();
 
-            return new() { Pool = pool, Set = set };
-        }
+        DescriptorSetAllocateInfo allocateInfo = new()
+        {
+            SType = StructureType.DescriptorSetAllocateInfo,
+            DescriptorPool = pool.Pool,
+            DescriptorSetCount = 1,
+            PSetLayouts = (DescriptorSetLayout*)ZenithMarshal.AllocateAndFill(scope, [descriptorSetLayout])
+        };
+
+        context.Vk.AllocateDescriptorSets(context.Device, &allocateInfo, out DescriptorSet set).Success();
+        context.Vk.DestroyDescriptorSetLayout(context.Device, descriptorSetLayout, null);
+
+        return new() { Pool = pool, Set = set };
     }
 
     public void Free(VKDescriptorToken token)
     {
-        DescriptorSet set = token.Set;
-        context.Vk.FreeDescriptorSets(context.Device, token.Pool.Pool, 1, &set).Success();
+        context.Vk.FreeDescriptorSets(context.Device, token.Pool.Pool, 1, &token.Set).Success();
     }
 
     protected override void SetResourceName(string name)

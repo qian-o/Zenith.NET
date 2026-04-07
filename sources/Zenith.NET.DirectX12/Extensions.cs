@@ -31,7 +31,7 @@ public static class Extensions
 
     extension(ResourceSlot[] resourceSlots)
     {
-        internal bool DirectX12(out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges)
+        internal void DirectX12(out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges)
         {
             List<DescriptorRange> cbvSrvUavRangeList = [];
             List<DescriptorRange> samplerRangeList = [];
@@ -87,8 +87,6 @@ public static class Extensions
 
             cbvSrvUavRanges = [.. cbvSrvUavRangeList];
             samplerRanges = [.. samplerRangeList];
-
-            return cbvSrvUavRanges.Length > 0 || samplerRanges.Length > 0;
         }
     }
 

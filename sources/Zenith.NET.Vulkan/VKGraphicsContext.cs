@@ -480,11 +480,6 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         return new VKSampler(this, desc);
     }
 
-    protected override ResourceLayout CreateResourceLayoutImpl(ResourceLayoutDesc desc)
-    {
-        return new VKResourceLayout(this, desc);
-    }
-
     protected override ResourceTable CreateResourceTableImpl(ResourceTableDesc desc)
     {
         return new VKResourceTable(this, desc);

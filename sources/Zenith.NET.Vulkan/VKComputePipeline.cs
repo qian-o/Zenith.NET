@@ -18,16 +18,28 @@ internal unsafe class VKComputePipeline : ComputePipeline
             Stage = desc.Compute.Vulkan().GetPipelineShaderStageCreateInfo(scope)
         };
 
-        // ResourceLayout
+        // ResourceSlots
         {
+            desc.ResourceSlots.Vulkan(out DescriptorSetLayoutBinding[] bindings, out _);
+
+            DescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = new()
+            {
+                SType = StructureType.DescriptorSetLayoutCreateInfo,
+                BindingCount = (uint)desc.ResourceSlots.Length,
+                PBindings = (DescriptorSetLayoutBinding*)ZenithMarshal.AllocateAndFill(scope, bindings)
+            };
+
+            context.Vk.CreateDescriptorSetLayout(context.Device, &descriptorSetLayoutCreateInfo, null, out DescriptorSetLayout descriptorSetLayout).Success();
+
             PipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
             {
                 SType = StructureType.PipelineLayoutCreateInfo,
-                SetLayoutCount = desc.ResourceLayout is null ? 0u : 1u,
-                PSetLayouts = desc.ResourceLayout is null ? null : (DescriptorSetLayout*)ZenithMarshal.AllocateAndFill(scope, [desc.ResourceLayout.Vulkan().DescriptorSetLayout])
+                SetLayoutCount = 1,
+                PSetLayouts = (DescriptorSetLayout*)ZenithMarshal.AllocateAndFill(scope, [descriptorSetLayout])
             };
 
             context.Vk.CreatePipelineLayout(context.Device, &pipelineLayoutCreateInfo, null, out PipelineLayout).Success();
+            context.Vk.DestroyDescriptorSetLayout(context.Device, descriptorSetLayout, null);
 
             createInfo.Layout = PipelineLayout;
         }
