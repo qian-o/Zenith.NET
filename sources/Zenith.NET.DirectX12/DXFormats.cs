@@ -1,10 +1,12 @@
-﻿using Silk.NET.Core.Native;
+﻿using System.Numerics;
+using Silk.NET.Core.Native;
 using Silk.NET.Direct3D12;
 using Silk.NET.DXGI;
+using Silk.NET.Maths;
 
 namespace Zenith.NET.DirectX12;
 
-internal static class DXFormats
+internal static unsafe class DXFormats
 {
     public static (ResourceFlags Flags, ResourceStates States, HeapType Type) DirectX12(BufferUsageFlags bufferUsageFlags)
     {
@@ -531,6 +533,30 @@ internal static class DXFormats
                 _ => DxQueryType.Occlusion
             }
         );
+    }
+
+    public static Matrix3X4<float> DirectX12(Matrix4x4 matrix4x4)
+    {
+        Matrix3X4<float> result;
+
+        float* pResult = (float*)&result;
+
+        pResult[0] = matrix4x4.M11;
+        pResult[1] = matrix4x4.M21;
+        pResult[2] = matrix4x4.M31;
+        pResult[3] = matrix4x4.M41;
+
+        pResult[4] = matrix4x4.M12;
+        pResult[5] = matrix4x4.M22;
+        pResult[6] = matrix4x4.M32;
+        pResult[7] = matrix4x4.M42;
+
+        pResult[8] = matrix4x4.M13;
+        pResult[9] = matrix4x4.M23;
+        pResult[10] = matrix4x4.M33;
+        pResult[11] = matrix4x4.M43;
+
+        return result;
     }
 
     public static RaytracingGeometryType DirectX12(RayTracingGeometryType rayTracingGeometryType)

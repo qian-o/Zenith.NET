@@ -23,7 +23,7 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
 
         MappedMemory mappedMemory = TransformBuffer.Map();
 
-        desc.Geometries.Select(static item => *(TransformMatrixKHR*)&item.Triangles.Transform).ToArray().CopyTo(new Span<TransformMatrixKHR>((TransformMatrixKHR*)mappedMemory.Pointer, (int)geometryCount));
+        desc.Geometries.Select(static item => VKFormats.Vulkan(item.Triangles.Transform)).ToArray().CopyTo(new Span<TransformMatrixKHR>((TransformMatrixKHR*)mappedMemory.Pointer, (int)geometryCount));
 
         TransformBuffer.Unmap();
 

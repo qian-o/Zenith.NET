@@ -7,7 +7,7 @@
         <PackageOutputPath>$(MSBuildThisFileDirectory)..\.nuget</PackageOutputPath>
 
         <!-- Package Metadata -->
-        <Version>0.0.7</Version>
+        <Version>0.0.8</Version>
         <Authors>qian-o</Authors>
         <Copyright>Copyright (c) 2026 qian-o</Copyright>
         <Description>Zenith.NET is a modern, cross-platform graphics and compute library for .NET. It provides a unified GPU programming interface supporting DirectX12, Metal, and Vulkan backends.</Description>

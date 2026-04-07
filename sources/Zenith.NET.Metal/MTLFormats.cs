@@ -1,8 +1,9 @@
-﻿using Metal.NET;
+﻿using System.Numerics;
+using Metal.NET;
 
 namespace Zenith.NET.Metal;
 
-internal static class MTLFormats
+internal static unsafe class MTLFormats
 {
     public static MTLResourceOptions Metal(BufferUsageFlags bufferUsageFlags)
     {
@@ -450,6 +451,30 @@ internal static class MTLFormats
             QueryType.BinaryOcclusion => MTLVisibilityResultMode.Boolean,
             _ => MTLVisibilityResultMode.Disabled
         };
+    }
+
+    public static MTLPackedFloat4x3 Metal(Matrix4x4 matrix4x4)
+    {
+        MTLPackedFloat4x3 result;
+
+        float* pResult = (float*)&result;
+
+        pResult[0] = matrix4x4.M11;
+        pResult[1] = matrix4x4.M21;
+        pResult[2] = matrix4x4.M31;
+        pResult[3] = matrix4x4.M41;
+
+        pResult[4] = matrix4x4.M12;
+        pResult[5] = matrix4x4.M22;
+        pResult[6] = matrix4x4.M32;
+        pResult[7] = matrix4x4.M42;
+
+        pResult[8] = matrix4x4.M13;
+        pResult[9] = matrix4x4.M23;
+        pResult[10] = matrix4x4.M33;
+        pResult[11] = matrix4x4.M43;
+
+        return result;
     }
 
     public static MTLAccelerationStructureUsage Metal(AccelerationStructureBuildFlags accelerationStructureBuildFlags)

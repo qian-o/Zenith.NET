@@ -65,4 +65,9 @@ internal abstract class Renderer : IDisposable
         DepthStencil.Dispose();
         Color.Dispose();
     }
+
+    protected static string ShaderPath(params string[] paths)
+    {
+        return Path.Combine([AppContext.BaseDirectory, "Assets", "Shaders", .. paths]);
+    }
 }

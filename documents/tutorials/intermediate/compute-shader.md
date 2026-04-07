@@ -1,20 +1,20 @@
 ﻿# Compute Shader
 
-In this tutorial, you'll learn how to use compute shaders with Zenith.NET. We'll create a simple image processing effect that converts a color image to grayscale on the GPU.
+In this tutorial, you'll use a compute pipeline to process an image on the GPU — converting it from color to grayscale. This introduces compute shaders, read/write textures, and dispatching work groups.
 
 ## Overview
 
-We'll create a `ComputeShaderRenderer` class that:
+This tutorial covers:
 
-- Loads an image as an input texture
-- Creates an output texture with read/write access
-- Builds a compute pipeline
-- Dispatches compute work to process the image
-- Copies the result to the swap chain for display
+- Creating a **compute pipeline** with thread group configuration
+- Using `Texture2D` (read-only) and `RWTexture2D` (read-write) resources
+- **Dispatching** compute work groups based on texture dimensions
+- Performing **linearize → grayscale → gamma** color conversion
+- Copying the processed texture to the frame buffer with centered placement
 
 ## The Renderer Class
 
-Create a new file `Renderers/ComputeShaderRenderer.cs`:
+Create the file `Renderers/ComputeShaderRenderer.cs`:
 
 ```csharp
 namespace ZenithTutorials.Renderers;
@@ -23,29 +23,27 @@ internal class ComputeShaderRenderer : IRenderer
 {
     private const uint ThreadGroupSize = 16;
 
-    private const string ComputeShaderSource = """
+    private const string ShaderSource = """
         Texture2D inputTexture;
         RWTexture2D outputTexture;
 
         [numthreads(16, 16, 1)]
-        void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+        void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
         {
             uint width, height;
             outputTexture.GetDimensions(width, height);
 
-            // Bounds check
             if (dispatchThreadID.x >= width || dispatchThreadID.y >= height)
             {
                 return;
             }
 
-            // Read input pixel
             float4 color = inputTexture[dispatchThreadID.xy];
 
-            // Convert to grayscale using luminance weights
-            float gray = dot(color.rgb, float3(0.299, 0.587, 0.114));
+            float3 linear = pow(color.rgb, 2.2);
+            float gray = dot(linear, float3(0.2126, 0.7152, 0.0722));
+            gray = pow(gray, 1.0 / 2.2);
 
-            // Write to output
             outputTexture[dispatchThreadID.xy] = float4(gray, gray, gray, color.a);
         }
         """;
@@ -90,7 +88,7 @@ internal class ComputeShaderRenderer : IRenderer
             Resources = [inputTexture, outputTexture]
         });
 
-        using Shader computeShader = App.Context.LoadShaderFromSource(ComputeShaderSource, "CSMain", ShaderStageFlags.Compute);
+        using Shader computeShader = App.Context.LoadShaderFromSource(ShaderSource, "CSMain", ShaderStageFlags.Compute);
 
         pipeline = App.Context.CreateComputePipeline(new()
         {
@@ -122,14 +120,11 @@ internal class ComputeShaderRenderer : IRenderer
             processed = true;
         }
 
-        // Copy the processed texture to the swap chain's color target (centered)
-        Texture colorTarget = App.SwapChain.FrameBuffer.Desc.ColorAttachments[0].Target;
+        Texture colorTarget = App.FrameBuffer.Desc.ColorAttachments[0].Target;
 
-        // Clamp copy region to fit within both textures
         uint copyWidth = Math.Min(outputTexture.Desc.Width, App.Width);
         uint copyHeight = Math.Min(outputTexture.Desc.Height, App.Height);
 
-        // Center the copy region
         uint srcX = (outputTexture.Desc.Width - copyWidth) / 2;
         uint srcY = (outputTexture.Desc.Height - copyHeight) / 2;
         uint destX = (App.Width - copyWidth) / 2;
@@ -163,18 +158,7 @@ internal class ComputeShaderRenderer : IRenderer
 
 ## Running the Tutorial
 
-Update your `Program.cs` to run the `ComputeShaderRenderer`:
-
-```csharp
-using ZenithTutorials;
-using ZenithTutorials.Renderers;
-
-App.Run<ComputeShaderRenderer>();
-
-App.Cleanup();
-```
-
-Run the application:
+Run the application and select **4. Compute Shader** from the menu:
 
 ```bash
 dotnet run
@@ -182,45 +166,67 @@ dotnet run
 
 ## Result
 
-![compute-shader](../../images/compute-shader.png)
+![Compute Shader](../../images/compute-shader.png)
 
 ## Code Breakdown
 
-### Compute Shader
+### Shader
 
-```slang
-Texture2D inputTexture;
-RWTexture2D outputTexture;
+The compute shader processes each pixel independently in 16×16 thread groups:
 
-[numthreads(16, 16, 1)]
-void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
-{
-    uint width, height;
-    outputTexture.GetDimensions(width, height);
+```csharp
+private const string ShaderSource = """
+    Texture2D inputTexture;
+    RWTexture2D outputTexture;
 
-    // Bounds check
-    if (dispatchThreadID.x >= width || dispatchThreadID.y >= height)
+    [numthreads(16, 16, 1)]
+    void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     {
-        return;
-    }
+        uint width, height;
+        outputTexture.GetDimensions(width, height);
 
-    // Read, process, write
-    float4 color = inputTexture[dispatchThreadID.xy];
-    float gray = dot(color.rgb, float3(0.299, 0.587, 0.114));
-    outputTexture[dispatchThreadID.xy] = float4(gray, gray, gray, color.a);
-}
+        if (dispatchThreadID.x >= width || dispatchThreadID.y >= height)
+        {
+            return;
+        }
+
+        float4 color = inputTexture[dispatchThreadID.xy];
+
+        float3 linear = pow(color.rgb, 2.2);
+        float gray = dot(linear, float3(0.2126, 0.7152, 0.0722));
+        gray = pow(gray, 1.0 / 2.2);
+
+        outputTexture[dispatchThreadID.xy] = float4(gray, gray, gray, color.a);
+    }
+    """;
 ```
 
-Key elements:
+The grayscale conversion follows three steps:
 
-| Element | Description |
-|---------|-------------|
-| `Texture2D` | Read-only input texture |
-| `RWTexture2D` | Read/write output texture |
-| `[numthreads(16, 16, 1)]` | Thread group size (16×16 threads) |
-| `SV_DispatchThreadID` | Global thread index across all groups |
+1. **Linearize**: `pow(color.rgb, 2.2)` removes sRGB gamma
+2. **Luminance**: `dot(linear, float3(0.2126, 0.7152, 0.0722))` computes perceptual brightness using Rec. 709 coefficients
+3. **Re-encode**: `pow(gray, 1.0 / 2.2)` applies gamma correction
 
-### Output Texture Creation
+### Compute Pipeline
+
+Unlike the graphics pipeline, a compute pipeline has no vertex/pixel stages or render states:
+
+```csharp
+pipeline = App.Context.CreateComputePipeline(new()
+{
+    Compute = computeShader,
+    ResourceLayout = resourceLayout,
+    ThreadGroupSizeX = ThreadGroupSize,
+    ThreadGroupSizeY = ThreadGroupSize,
+    ThreadGroupSizeZ = 1
+});
+```
+
+The thread group size (16×16×1) defines how many threads run per group. This must match the `[numthreads]` attribute in the shader.
+
+### Output Texture
+
+The output texture is created with `UnorderedAccess` to allow compute shader writes:
 
 ```csharp
 outputTexture = App.Context.CreateTexture(new()
@@ -237,96 +243,36 @@ outputTexture = App.Context.CreateTexture(new()
 });
 ```
 
-`TextureUsageFlags.UnorderedAccess` is required for textures that will be written to in compute shaders.
+| Flag | Purpose |
+|------|---------|
+| `ShaderResource` | Can be read as `Texture2D` in shaders |
+| `UnorderedAccess` | Can be written as `RWTexture2D` in compute shaders |
 
-### Compute Resource Layout
+### Dispatch and Copy
+
+The compute shader runs once, then the result is copied centered to the frame buffer each frame:
 
 ```csharp
-resourceLayout = App.Context.CreateResourceLayout(new()
+if (!processed)
 {
-    Bindings = BindingHelper.Bindings
-    (
-        new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
-        new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute }
-    )
-});
+    uint dispatchX = (inputTexture.Desc.Width + ThreadGroupSize - 1) / ThreadGroupSize;
+    uint dispatchY = (inputTexture.Desc.Height + ThreadGroupSize - 1) / ThreadGroupSize;
+
+    commandBuffer.SetPipeline(pipeline);
+    commandBuffer.SetResourceTable(resourceTable);
+    commandBuffer.Dispatch(dispatchX, dispatchY, 1);
+
+    processed = true;
+}
 ```
 
-Note the differences from graphics shaders:
-- `ShaderStageFlags.Compute` instead of `Vertex` or `Pixel`
-- `ResourceType.TextureReadWrite` for writable textures
+The dispatch count is computed as `ceil(dimension / threadGroupSize)` to ensure all pixels are covered.
 
-### Compute Pipeline Creation
-
-```csharp
-pipeline = App.Context.CreateComputePipeline(new()
-{
-    Compute = computeShader,
-    ResourceLayout = resourceLayout,
-    ThreadGroupSizeX = ThreadGroupSize,
-    ThreadGroupSizeY = ThreadGroupSize,
-    ThreadGroupSizeZ = 1
-});
-```
-
-The `ComputePipelineDesc` requires:
-- `Compute` - The compiled compute shader
-- `ResourceLayout` - Resource bindings (same as graphics pipelines)
-- `ThreadGroupSizeX/Y/Z` - Must match `[numthreads()]` in the shader
-
-### Dispatching Compute Work
-
-```csharp
-uint dispatchX = (inputTexture.Desc.Width + ThreadGroupSize - 1) / ThreadGroupSize;
-uint dispatchY = (inputTexture.Desc.Height + ThreadGroupSize - 1) / ThreadGroupSize;
-
-commandBuffer.SetPipeline(pipeline);
-commandBuffer.SetResourceTable(resourceTable);
-commandBuffer.Dispatch(dispatchX, dispatchY, 1);
-```
-
-The `Dispatch` call executes the compute shader:
-- `dispatchX` × `dispatchY` × `dispatchZ` = total thread groups
-- Each group runs `ThreadGroupSize` × `ThreadGroupSize` × 1 threads
-- The formula `(size + groupSize - 1) / groupSize` ensures full coverage
-
-### Copying to the Swap Chain
-
-```csharp
-Texture colorTarget = App.SwapChain.FrameBuffer.Desc.ColorAttachments[0].Target;
-
-// Clamp copy region to fit within both textures
-uint copyWidth = Math.Min(outputTexture.Desc.Width, App.Width);
-uint copyHeight = Math.Min(outputTexture.Desc.Height, App.Height);
-
-// Center the copy region
-uint srcX = (outputTexture.Desc.Width - copyWidth) / 2;
-uint srcY = (outputTexture.Desc.Height - copyHeight) / 2;
-uint destX = (App.Width - copyWidth) / 2;
-uint destY = (App.Height - copyHeight) / 2;
-
-commandBuffer.CopyTexture(outputTexture,
-                          default,
-                          new() { X = srcX, Y = srcY, Z = 0 },
-                          colorTarget,
-                          default,
-                          new() { X = destX, Y = destY, Z = 0 },
-                          new() { Width = copyWidth, Height = copyHeight, Depth = 1 });
-```
-
-Instead of using a full-screen quad with a graphics pipeline, we directly copy the processed texture to the swap chain's color target:
-
-- `App.SwapChain.FrameBuffer.Desc.ColorAttachments[0].Target` - Gets the swap chain's render target texture
-- `CopyTexture` - Efficiently copies texture data on the GPU without needing shaders or render passes
-- `copyWidth` / `copyHeight` - Clamps the copy region to fit within both source and destination textures
-- `srcX` / `srcY` - Centers the source region when the texture is larger than the window
-- `destX` / `destY` - Centers the destination region when the texture is smaller than the window
-
-This approach is simpler and more efficient when you just need to display a texture without additional processing.
+The `CopyTexture` call copies the result centered within the swap chain's color target, handling cases where the image and window have different sizes.
 
 ## Next Steps
 
-- [Indirect Drawing](indirect-drawing.md) - Let the GPU control draw parameters for efficient multi-instance rendering
+- [Indirect Drawing](indirect-drawing.md) - Draw multiple instances with GPU-driven indirect commands
 
 ## Source Code
 

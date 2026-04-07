@@ -28,8 +28,8 @@ Explore cutting-edge GPU features for modern rendering (requires hardware suppor
 
 | Tutorial | Description | Requirement |
 |----------|-------------|-------------|
-| [Ray Tracing](advanced/ray-tracing.md) | Build acceleration structures (BLAS/TLAS), use `RayQuery` for ray tracing, and implement hard shadows | `RayTracingSupported` |
-| [Mesh Shading](advanced/mesh-shading.md) | Use meshlet-based geometry processing with mesh shading pipelines | `MeshShadingSupported` |
+| [Ray Tracing](advanced/ray-tracing.md) | Build acceleration structures (BLAS/TLAS), use `RayQuery` for ray tracing with soft shadows, reflections, and ACES tonemapping | `RayTracingSupported` |
+| [Mesh Shading](advanced/mesh-shading.md) | Render 1,000 sphere instances with amplification shader frustum culling and mesh shading pipeline | `MeshShadingSupported` |
 
 ## Tutorial Structure
 
@@ -42,7 +42,7 @@ Each tutorial follows a consistent pattern:
 5. **Result** - Screenshot of the expected output
 6. **Code Breakdown** - Step-by-step explanation of important code sections
 
-All tutorials share the same `App` framework, making it easy to switch between examples by changing a single line in `Program.cs`.
+All tutorials share the same `App` framework. Run `dotnet run` and select a tutorial from the interactive menu in `Program.cs`.
 
 ## Learning Path
 
@@ -54,8 +54,8 @@ All tutorials share the same `App` framework, making it easy to switch between e
 | **Spinning Cube** | Pass data to shaders via constant buffers, implement 3D transformations, and enable depth testing |
 | **Compute Shader** | Run general-purpose GPU computations for image processing |
 | **Indirect Drawing** | Let the GPU control draw parameters for efficient multi-instance rendering |
-| **Ray Tracing** | Build acceleration structures, trace rays with `RayQuery`, handle intersections, and implement shadows |
-| **Mesh Shading** | Process geometry in meshlets using the modern mesh shading pipeline |
+| **Ray Tracing** | Build acceleration structures, trace rays with `RayQuery`, implement soft shadows, reflections, Fresnel, and ACES tonemapping |
+| **Mesh Shading** | Use amplification shaders for GPU-driven frustum culling with mesh shading at scale (1,000 instances) |
 
 ## Requirements
 
