@@ -2,7 +2,5 @@
 
 public record struct ResourceTableDesc
 {
-    public ResourceLayout Layout;
-
-    public IBindableResource[] Resources;
+    public ResourceSlot[] Slots;
 }

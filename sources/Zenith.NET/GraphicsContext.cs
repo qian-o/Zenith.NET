@@ -100,13 +100,6 @@ public abstract class GraphicsContext : DisposableObject
         return CreateSamplerImpl(desc);
     }
 
-    public ResourceLayout CreateResourceLayout(ResourceLayoutDesc desc)
-    {
-        ValidationLayer?.ValidateDesc(desc);
-
-        return CreateResourceLayoutImpl(desc);
-    }
-
     public ResourceTable CreateResourceTable(ResourceTableDesc desc)
     {
         ValidationLayer?.ValidateDesc(desc);
@@ -174,8 +167,6 @@ public abstract class GraphicsContext : DisposableObject
     protected abstract TextureView CreateTextureViewImpl(TextureViewDesc desc);
 
     protected abstract Sampler CreateSamplerImpl(SamplerDesc desc);
-
-    protected abstract ResourceLayout CreateResourceLayoutImpl(ResourceLayoutDesc desc);
 
     protected abstract ResourceTable CreateResourceTableImpl(ResourceTableDesc desc);
 

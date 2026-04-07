@@ -347,114 +347,18 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         }
     }
 
-    internal void ValidateDesc(ResourceLayoutDesc desc)
-    {
-        if (desc.Bindings is null || desc.Bindings.Length is 0)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNullOrEmpty, "ResourceLayoutDesc.Bindings"));
-
-            return;
-        }
-
-        foreach (ResourceBinding binding in desc.Bindings)
-        {
-            if (!Enum.IsDefined(binding.Type))
-            {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "ResourceLayoutBinding.Type", binding.Type));
-            }
-        }
-    }
-
     internal void ValidateDesc(ResourceTableDesc desc)
     {
-        if (desc.Layout is null)
+        if (desc.Slots is null || desc.Slots.Length is 0)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceTableDesc.Layout"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNullOrEmpty, "ResourceTableDesc.Slots"));
 
             return;
         }
 
-        if (desc.Layout.IsDisposed)
+        for (int i = 0; i < desc.Slots.Length; i++)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ResourceTableDesc.Layout"));
-
-            return;
-        }
-
-        if (desc.Resources is null)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceTableDesc.Resources"));
-
-            return;
-        }
-
-        uint resourceStartIndex = 0;
-
-        for (int i = 0; i < desc.Layout.Desc.Bindings.Length; i++)
-        {
-            ResourceBinding binding = desc.Layout.Desc.Bindings[i];
-
-            if (resourceStartIndex + binding.Count > (uint)desc.Resources.Length)
-            {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInsufficientResources, "ResourceTableDesc.Resources", resourceStartIndex + binding.Count, i, desc.Resources.Length));
-
-                break;
-            }
-
-            for (uint j = 0; j < binding.Count; j++)
-            {
-                IBindableResource resource = desc.Resources[(int)(resourceStartIndex + j)];
-
-                if (resource is null)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ResourceTableDesc.Resources"));
-
-                    continue;
-                }
-
-                if (resource.IsDisposed)
-                {
-                    ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ResourceTableDesc.Resources"));
-
-                    continue;
-                }
-
-                switch (binding.Type)
-                {
-                    case ResourceType.ConstantBuffer:
-                    case ResourceType.StructuredBuffer:
-                    case ResourceType.StructuredBufferReadWrite:
-                        if (resource is not Buffer and not BufferView)
-                        {
-                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceTableDesc.Resources", "Buffer or BufferView", binding.Type));
-                        }
-                        break;
-
-                    case ResourceType.Texture:
-                    case ResourceType.TextureReadWrite:
-                        if (resource is not Texture and not TextureView)
-                        {
-                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceTableDesc.Resources", "Texture or TextureView", binding.Type));
-                        }
-                        break;
-
-                    case ResourceType.Sampler:
-                        if (resource is not Sampler)
-                        {
-                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceTableDesc.Resources", "Sampler", binding.Type));
-                        }
-                        break;
-
-                    case ResourceType.AccelerationStructure:
-                        if (resource is not TopLevelAccelerationStructure)
-                        {
-                            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeOfType, "ResourceTableDesc.Resources", "AccelerationStructure", binding.Type));
-                        }
-                        break;
-                }
-            }
-
-            resourceStartIndex += binding.Count;
+            CheckResourceSlot($"ResourceTableDesc.Slots[{i}]", desc.Slots[i]);
         }
     }
 
@@ -480,9 +384,16 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "GraphicsPipelineDesc.Pixel"));
         }
 
-        if (desc.ResourceLayout?.IsDisposed is true)
+        if (desc.ResourceSlots is null)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "GraphicsPipelineDesc.ResourceLayout"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.ResourceSlots"));
+        }
+        else
+        {
+            for (int i = 0; i < desc.ResourceSlots.Length; i++)
+            {
+                CheckResourceSlot($"GraphicsPipelineDesc.ResourceSlots[{i}]", desc.ResourceSlots[i]);
+            }
         }
 
         if (desc.InputLayouts is null)
@@ -539,9 +450,16 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ComputePipelineDesc.Compute"));
         }
 
-        if (desc.ResourceLayout?.IsDisposed is true)
+        if (desc.ResourceSlots is null)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ComputePipelineDesc.ResourceLayout"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ComputePipelineDesc.ResourceSlots"));
+        }
+        else
+        {
+            for (int i = 0; i < desc.ResourceSlots.Length; i++)
+            {
+                CheckResourceSlot($"ComputePipelineDesc.ResourceSlots[{i}]", desc.ResourceSlots[i]);
+            }
         }
 
         if (desc.ThreadGroupSizeX is 0 || desc.ThreadGroupSizeY is 0 || desc.ThreadGroupSizeZ is 0)
@@ -577,9 +495,16 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "MeshShadingPipelineDesc.Pixel"));
         }
 
-        if (desc.ResourceLayout?.IsDisposed is true)
+        if (desc.ResourceSlots is null)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "MeshShadingPipelineDesc.ResourceLayout"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "MeshShadingPipelineDesc.ResourceSlots"));
+        }
+        else
+        {
+            for (int i = 0; i < desc.ResourceSlots.Length; i++)
+            {
+                CheckResourceSlot($"MeshShadingPipelineDesc.ResourceSlots[{i}]", desc.ResourceSlots[i]);
+            }
         }
 
         if (desc.PrimitiveTopology is not PrimitiveTopology.LineList and not PrimitiveTopology.TriangleList)
@@ -799,6 +724,19 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         }
     }
 
+    private void CheckResourceSlot(string name, ResourceSlot resourceSlot)
+    {
+        if (!Enum.IsDefined(resourceSlot.Type))
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.Type", resourceSlot.Type));
+        }
+
+        if (resourceSlot.Count is 0)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, $"{name}.Count"));
+        }
+    }
+
     private void CheckRenderStates(string name, RenderStates renderStates)
     {
         if (!Enum.IsDefined(renderStates.RasterizerState.CullMode))
@@ -970,10 +908,6 @@ file static class ValidationMessages
     public const string MustBeWithinBounds = "{0} must be greater than zero and within the bounds of {1}.";
 
     public const string MustBeLessThanOrEqualTo = "{0} must be less than or equal to {1}.";
-
-    public const string HasInsufficientResources = "{0} has insufficient resources: requires at least {1} to satisfy the layout up to binding index {2}, but only {3} provided.";
-
-    public const string MustBeOfType = "{0} item must be a {1} for {2} binding.";
 
     public const string MustBeOneOf = "{0} must be one of: {1}.";
 

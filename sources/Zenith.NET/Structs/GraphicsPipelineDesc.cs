@@ -8,7 +8,7 @@ public record struct GraphicsPipelineDesc
 
     public Shader Pixel;
 
-    public ResourceLayout? ResourceLayout;
+    public ResourceSlot[] ResourceSlots;
 
     public InputLayout[] InputLayouts;
 
