@@ -55,7 +55,7 @@ public class ZenithView : TemplatedControl, IZenithView
 
             Typeface typeface = new(FontFamily, FontStyle, FontWeight, FontStretch);
             double fontSize = Math.Clamp(Bounds.Height / 15.0, 14.0, 48.0);
-            double dpi = VisualRoot?.RenderScaling ?? 1.0;
+            double dpi = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1.0;
 
             FormattedText shadowText = new("ZenithView",
                                            CultureInfo.CurrentCulture,
