@@ -253,7 +253,7 @@ internal class MTLCommandEncoder : GraphicsResource
 
                     if (currentResourceTable is MTLResourceTable resourceTable)
                     {
-                        Render?.SetArgumentTable(resourceTable.ArgumentTable, MTLRenderStages.Object | MTLRenderStages.Mesh);
+                        Render?.SetArgumentTable(resourceTable.ArgumentTable, MTLRenderStages.Object | MTLRenderStages.Mesh | MTLRenderStages.Fragment);
                     }
                 }
                 break;

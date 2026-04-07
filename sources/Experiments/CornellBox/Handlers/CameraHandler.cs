@@ -12,9 +12,9 @@ internal class CameraHandler
     public CameraHandler(IInputContext input, Matrix4x4 initial)
     {
         IMouse mouse = input.Mice[0];
-        mouse.MouseDown += Mouse_MouseDown;
-        mouse.MouseUp += Mouse_MouseUp;
-        mouse.MouseMove += Mouse_MouseMove;
+        mouse.MouseDown += OnMouseDown;
+        mouse.MouseUp += OnMouseUp;
+        mouse.MouseMove += OnMouseMove;
 
         IKeyboard keyboard = input.Keyboards[0];
         keyboard.KeyDown += OnKeyDown;
@@ -86,7 +86,7 @@ internal class CameraHandler
         }
     }
 
-    private void Mouse_MouseDown(IMouse arg1, MouseButton arg2)
+    private void OnMouseDown(IMouse arg1, MouseButton arg2)
     {
         if (arg2 is MouseButton.Right)
         {
@@ -94,7 +94,7 @@ internal class CameraHandler
         }
     }
 
-    private void Mouse_MouseUp(IMouse arg1, MouseButton arg2)
+    private void OnMouseUp(IMouse arg1, MouseButton arg2)
     {
         if (arg2 is MouseButton.Right)
         {
@@ -102,7 +102,7 @@ internal class CameraHandler
         }
     }
 
-    private void Mouse_MouseMove(IMouse mouse, Vector2 vector)
+    private void OnMouseMove(IMouse mouse, Vector2 vector)
     {
         const float clipRadians = 89.0f * MathF.PI / 180.0f;
 

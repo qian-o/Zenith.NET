@@ -27,6 +27,11 @@ internal static class App
 
     static App()
     {
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux())
+        {
+            throw new PlatformNotSupportedException("This application only supports Windows, macOS, and Linux.");
+        }
+
         if (OperatingSystem.IsWindows())
         {
             Context = GraphicsContext.CreateDirectX12(useValidationLayer: true);
@@ -42,8 +47,12 @@ internal static class App
 
         Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
 
-        window = Window.Create(WindowOptions.Default with { API = GraphicsAPI.None });
-        window.Size = new(1280, 720);
+        window = Window.Create(WindowOptions.Default with
+        {
+            API = GraphicsAPI.None,
+            Title = "Cornell Box - Zenith.NET",
+            Size = new(1280, 720)
+        });
         window.Initialize();
         window.Center();
 

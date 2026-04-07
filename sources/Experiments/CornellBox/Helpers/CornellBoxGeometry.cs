@@ -72,10 +72,10 @@ internal static class CornellBoxGeometry
         // 15: Light
         AddQuad(verticesList,
                 indicesList,
-                new(343.0f, 548.6f, 227.0f),
-                new(343.0f, 548.6f, 332.0f),
-                new(213.0f, 548.6f, 332.0f),
-                new(213.0f, 548.6f, 227.0f),
+                new(343.0f, 547.0f, 227.0f),
+                new(343.0f, 547.0f, 332.0f),
+                new(213.0f, 547.0f, 332.0f),
+                new(213.0f, 547.0f, 227.0f),
                 3);
 
         vertices = [.. verticesList];
