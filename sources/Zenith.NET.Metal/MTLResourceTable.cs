@@ -27,21 +27,21 @@ internal class MTLResourceTable : ResourceTable
         error.Success();
     }
 
-    public void Bind(MTL4ArgumentTable argumentTable)
+    public void Bind(MTL4ArgumentTable argumentTable, uint argumentCount)
     {
         foreach (Binding? binding in bufferBindings)
         {
-            binding?.Buffer(argumentTable);
+            binding?.Buffer(argumentTable, argumentCount);
         }
 
         foreach (Binding? binding in textureBindings)
         {
-            binding?.Texture(argumentTable);
+            binding?.Texture(argumentTable, argumentCount);
         }
 
         foreach (Binding? binding in samplerBindings)
         {
-            binding?.Sampler(argumentTable);
+            binding?.Sampler(argumentTable, argumentCount);
         }
     }
 
@@ -114,7 +114,7 @@ internal class MTLResourceTable : ResourceTable
                 break;
         }
 
-        Bind(ArgumentTable);
+        Bind(ArgumentTable, uint.MaxValue);
     }
 
     protected override void PreprocessImpl(CommandBuffer commandBuffer)
@@ -132,8 +132,13 @@ internal class MTLResourceTable : ResourceTable
 
     private readonly struct Binding(nuint gpuAddress, MTLResourceID resourceID, uint index)
     {
-        public void Buffer(MTL4ArgumentTable argumentTable)
+        public void Buffer(MTL4ArgumentTable argumentTable, uint argumentCount)
         {
+            if (index >= argumentCount)
+            {
+                return;
+            }
+
             if (gpuAddress != default)
             {
                 argumentTable.SetAddress(gpuAddress, index);
@@ -144,13 +149,23 @@ internal class MTLResourceTable : ResourceTable
             }
         }
 
-        public void Texture(MTL4ArgumentTable argumentTable)
+        public void Texture(MTL4ArgumentTable argumentTable, uint argumentCount)
         {
+            if (index >= argumentCount)
+            {
+                return;
+            }
+
             argumentTable.SetTexture(resourceID, index);
         }
 
-        public void Sampler(MTL4ArgumentTable argumentTable)
+        public void Sampler(MTL4ArgumentTable argumentTable, uint argumentCount)
         {
+            if (index >= argumentCount)
+            {
+                return;
+            }
+
             argumentTable.SetSamplerState(resourceID, index);
         }
     }

@@ -4,6 +4,7 @@ namespace Zenith.NET.Metal;
 
 internal class MTLCommandEncoder : GraphicsResource
 {
+    private const uint ArgumentCount = 64;
     private const MTLStages RenderStages = MTLStages.Vertex | MTLStages.Fragment | MTLStages.Object | MTLStages.Mesh;
     private const MTLStages ComputeStages = MTLStages.Dispatch | MTLStages.Blit | MTLStages.AccelerationStructure;
 
@@ -32,9 +33,9 @@ internal class MTLCommandEncoder : GraphicsResource
 
         MTL4ArgumentTableDescriptor descriptor = new()
         {
-            MaxBufferBindCount = 16,
-            MaxTextureBindCount = 16,
-            MaxSamplerStateBindCount = 16,
+            MaxBufferBindCount = ArgumentCount,
+            MaxTextureBindCount = ArgumentCount,
+            MaxSamplerStateBindCount = ArgumentCount,
             SupportAttributeStrides = true
         };
 
@@ -224,7 +225,7 @@ internal class MTLCommandEncoder : GraphicsResource
                     {
                         Render?.SetArgumentTable(resourceTable.ArgumentTable, MTLRenderStages.Fragment);
 
-                        resourceTable.Bind(ArgumentTable);
+                        resourceTable.Bind(ArgumentTable, ArgumentCount);
                     }
 
                     foreach (KeyValuePair<uint, nuint> vertexBuffer in vertexBuffers)
