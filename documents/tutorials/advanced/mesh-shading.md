@@ -255,10 +255,16 @@ internal unsafe class MeshShadingRenderer : IRenderer
         }
         """;
 
+    private static readonly ResourceBinding[] ResourceBindings =
+    [
+        new() { Type = ResourceType.ConstantBuffer, Count = 1 },
+        new() { Type = ResourceType.StructuredBuffer, Count = 1 },
+        new() { Type = ResourceType.StructuredBuffer, Count = 1 }
+    ];
+
     private readonly Buffer vertexBuffer;
     private readonly Buffer indexBuffer;
     private readonly Buffer constantsBuffer;
-    private readonly ResourceLayout resourceLayout;
     private readonly ResourceTable resourceTable;
     private readonly MeshShadingPipeline pipeline;
 
@@ -355,21 +361,11 @@ internal unsafe class MeshShadingRenderer : IRenderer
             Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
         });
 
-        resourceLayout = App.Context.CreateResourceLayout(new()
-        {
-            Bindings = BindingHelper.Bindings
-            (
-                new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Amplification | ShaderStageFlags.Mesh | ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Mesh },
-                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Mesh }
-            )
-        });
 
-        resourceTable = App.Context.CreateResourceTable(new()
-        {
-            Layout = resourceLayout,
-            Resources = [constantsBuffer, vertexBuffer, indexBuffer]
-        });
+        resourceTable = App.Context.CreateResourceTable(new() { Bindings = bindings });
+        resourceTable.Write(0, constantsBuffer);
+        resourceTable.Write(1, vertexBuffer);
+        resourceTable.Write(2, indexBuffer);
 
         using Shader ampShader = App.Context.LoadShaderFromSource(ShaderSource, "ASMain", ShaderStageFlags.Amplification);
         using Shader meshShader = App.Context.LoadShaderFromSource(ShaderSource, "MSMain", ShaderStageFlags.Mesh);
@@ -386,7 +382,7 @@ internal unsafe class MeshShadingRenderer : IRenderer
             Amplification = ampShader,
             Mesh = meshShader,
             Pixel = pixelShader,
-            ResourceLayout = resourceLayout,
+            ResourceBindings = ResourceBindings,
             PrimitiveTopology = PrimitiveTopology.TriangleList,
             Output = App.FrameBuffer.Output,
             AmplificationThreadGroupSizeX = ASGroupSize,
@@ -453,7 +449,6 @@ internal unsafe class MeshShadingRenderer : IRenderer
     {
         pipeline.Dispose();
         resourceTable.Dispose();
-        resourceLayout.Dispose();
         constantsBuffer.Dispose();
         indexBuffer.Dispose();
         vertexBuffer.Dispose();
@@ -577,7 +572,7 @@ pipeline = App.Context.CreateMeshShadingPipeline(new()
     Amplification = ampShader,
     Mesh = meshShader,
     Pixel = pixelShader,
-    ResourceLayout = resourceLayout,
+    ResourceBindings = ResourceBindings,
     PrimitiveTopology = PrimitiveTopology.TriangleList,
     Output = App.FrameBuffer.Output,
     AmplificationThreadGroupSizeX = ASGroupSize,
@@ -686,7 +681,7 @@ file struct Constants
 }
 ```
 
-The constant buffer is shared across all three shader stages (`Amplification | Mesh | Pixel`), so the amplification shader can read frustum planes while the pixel shader reads the light direction.
+The constant buffer is shared across all three shader stages (amplification, mesh, and pixel), so the amplification shader can read frustum planes while the pixel shader reads the light direction.
 
 ## Source Code
 

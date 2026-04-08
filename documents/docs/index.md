@@ -45,14 +45,12 @@ Zenith.NET uses an explicit command recording model:
 
 ### Resource Binding
 
-Resources are bound to shaders through two types:
+Resources are bound to shaders through `ResourceTable`:
 
-| Type | Purpose |
-|------|---------|
-| `ResourceLayout` | Declares *what* resources a shader expects (binding slots, types) |
-| `ResourceTable` | Provides *actual* resources matching a layout |
+1. **Create** — Create a `ResourceTable` that declares what each binding slot expects
+2. **Write** — Call `Write()` to assign actual GPU resources to each slot
 
-Pipelines reference a single `ResourceLayout`, and you bind a corresponding `ResourceTable` before draw/dispatch calls.
+Pipelines and resource tables share the same binding definitions. Before draw/dispatch calls, bind the resource table with `SetResourceTable()`.
 
 ## Features
 

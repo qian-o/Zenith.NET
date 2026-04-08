@@ -1,6 +1,6 @@
 ﻿# Textured Quad
 
-In this tutorial, you'll render a textured quad using an index buffer, a texture loaded from file, and a sampler. This introduces resource binding — connecting GPU resources like textures and samplers to shaders through resource layouts and tables.
+In this tutorial, you'll render a textured quad using an index buffer, a texture loaded from file, and a sampler. This introduces resource binding — connecting GPU resources like textures and samplers to shaders through resource bindings and tables.
 
 ## Overview
 
@@ -9,8 +9,7 @@ This tutorial covers:
 - Using an **index buffer** to share vertices between triangles
 - Loading a **texture** from an image file
 - Creating a **sampler** with filtering and address modes
-- Defining a **resource layout** and **resource table** to bind resources to shaders
-- Using `BindingHelper` for cross-backend resource binding
+- Defining a **resource table** to bind resources to shaders
 
 ## The Renderer Class
 
@@ -54,11 +53,16 @@ internal unsafe class TexturedQuadRenderer : IRenderer
         }
         """;
 
+    private static readonly ResourceBinding[] ResourceBindings =
+    [
+        new() { Type = ResourceType.Texture, Count = 1 },
+        new() { Type = ResourceType.Sampler, Count = 1 }
+    ];
+
     private readonly Buffer vertexBuffer;
     private readonly Buffer indexBuffer;
     private readonly Texture texture;
     private readonly Sampler sampler;
-    private readonly ResourceLayout resourceLayout;
     private readonly ResourceTable resourceTable;
     private readonly GraphicsPipeline pipeline;
 
@@ -101,20 +105,9 @@ internal unsafe class TexturedQuadRenderer : IRenderer
             MaxLod = uint.MaxValue
         });
 
-        resourceLayout = App.Context.CreateResourceLayout(new()
-        {
-            Bindings = BindingHelper.Bindings
-            (
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-                new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Pixel }
-            )
-        });
-
-        resourceTable = App.Context.CreateResourceTable(new()
-        {
-            Layout = resourceLayout,
-            Resources = [texture, sampler]
-        });
+        resourceTable = App.Context.CreateResourceTable(new() { Bindings = ResourceBindings });
+        resourceTable.Write(0, texture);
+        resourceTable.Write(1, sampler);
 
         InputLayout inputLayout = new();
         inputLayout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position });
@@ -133,7 +126,7 @@ internal unsafe class TexturedQuadRenderer : IRenderer
             },
             Vertex = vertexShader,
             Pixel = pixelShader,
-            ResourceLayout = resourceLayout,
+            ResourceBindings = ResourceBindings,
             InputLayouts = [inputLayout],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
             Output = App.FrameBuffer.Output
@@ -175,7 +168,6 @@ internal unsafe class TexturedQuadRenderer : IRenderer
     {
         pipeline.Dispose();
         resourceTable.Dispose();
-        resourceLayout.Dispose();
         sampler.Dispose();
         texture.Dispose();
         indexBuffer.Dispose();
@@ -290,26 +282,15 @@ sampler = App.Context.CreateSampler(new()
 
 ### Resource Binding
 
-Resources are exposed to shaders through a layout and table:
+Resources are exposed to shaders through a resource table:
 
 ```csharp
-resourceLayout = App.Context.CreateResourceLayout(new()
-{
-    Bindings = BindingHelper.Bindings
-    (
-        new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Pixel },
-        new() { Type = ResourceType.Sampler, Count = 1, StageFlags = ShaderStageFlags.Pixel }
-    )
-});
-
-resourceTable = App.Context.CreateResourceTable(new()
-{
-    Layout = resourceLayout,
-    Resources = [texture, sampler]
-});
+resourceTable = App.Context.CreateResourceTable(new() { Bindings = ResourceBindings });
+resourceTable.Write(0, texture);
+resourceTable.Write(1, sampler);
 ```
 
-`BindingHelper.Bindings` assigns the correct binding indices per backend. `StageFlags` controls which shader stages can access each resource.
+`ResourceTable.Write(binding, resource)` assigns actual GPU resources to each slot by index.
 
 ### Rendering
 

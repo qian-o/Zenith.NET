@@ -74,7 +74,6 @@ ZenithTutorials/
 ├── Program.cs
 ├── App.cs
 ├── IRenderer.cs
-├── BindingHelper.cs
 ├── CocoaHelper.cs
 ├── Usings.cs
 ├── Assets/
@@ -267,106 +266,6 @@ internal static class App
 | `Width` / `Height` | Current framebuffer dimensions |
 | `FrameBuffer` | The swap chain's current frame buffer |
 | `Run<T>()` | Creates a renderer, runs the window loop, and cleans up on exit |
-
-### BindingHelper.cs
-
-Each graphics backend (DirectX 12, Metal, Vulkan) uses different resource binding index conventions. `BindingHelper` assigns the correct indices automatically:
-
-```csharp
-namespace ZenithTutorials;
-
-internal static class BindingHelper
-{
-    public static ResourceBinding[] Bindings(params ResourceBinding[] bindings)
-    {
-        switch (App.Context.Backend)
-        {
-            case Backend.DirectX12:
-                {
-                    uint cbvIndex = 0;
-                    uint srvIndex = 0;
-                    uint uavIndex = 0;
-                    uint samplerIndex = 0;
-
-                    for (int i = 0; i < bindings.Length; i++)
-                    {
-                        ref ResourceBinding binding = ref bindings[i];
-
-                        binding = binding with
-                        {
-                            Index = binding.Type switch
-                            {
-                                ResourceType.ConstantBuffer => cbvIndex++,
-
-                                ResourceType.StructuredBuffer or
-                                ResourceType.Texture or
-                                ResourceType.AccelerationStructure => srvIndex++,
-
-                                ResourceType.StructuredBufferReadWrite or
-                                ResourceType.TextureReadWrite => uavIndex++,
-
-                                ResourceType.Sampler => samplerIndex++,
-
-                                _ => binding.Index
-                            }
-                        };
-                    }
-                }
-                break;
-
-            case Backend.Metal:
-                {
-                    uint bufferIndex = 0;
-                    uint textureIndex = 0;
-                    uint samplerIndex = 0;
-
-                    for (int i = 0; i < bindings.Length; i++)
-                    {
-                        ref ResourceBinding binding = ref bindings[i];
-
-                        binding = binding with
-                        {
-                            Index = binding.Type switch
-                            {
-                                ResourceType.ConstantBuffer or
-                                ResourceType.StructuredBuffer or
-                                ResourceType.StructuredBufferReadWrite or
-                                ResourceType.AccelerationStructure => bufferIndex++,
-
-                                ResourceType.Texture or
-                                ResourceType.TextureReadWrite => textureIndex++,
-
-                                ResourceType.Sampler => samplerIndex++,
-
-                                _ => binding.Index
-                            }
-                        };
-                    }
-                }
-                break;
-
-            case Backend.Vulkan:
-                {
-                    for (int i = 0; i < bindings.Length; i++)
-                    {
-                        ref ResourceBinding binding = ref bindings[i];
-
-                        binding = binding with { Index = (uint)i };
-                    }
-                }
-                break;
-        }
-
-        return bindings;
-    }
-}
-```
-
-| Backend | Index Strategy |
-|---------|---------------|
-| **DirectX 12** | Separate counters per register type (CBV, SRV, UAV, Sampler) |
-| **Metal** | Separate counters per resource category (Buffer, Texture, Sampler) |
-| **Vulkan** | Sequential binding indices |
 
 ### CocoaHelper.cs
 

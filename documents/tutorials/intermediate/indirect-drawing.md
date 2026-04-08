@@ -77,12 +77,17 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
         }
         """;
 
+    private static readonly ResourceBinding[] ResourceBindings =
+    [
+        new() { Type = ResourceType.ConstantBuffer, Count = 1 },
+        new() { Type = ResourceType.StructuredBuffer, Count = 1 }
+    ];
+
     private readonly Buffer vertexBuffer;
     private readonly Buffer indexBuffer;
     private readonly Buffer indirectBuffer;
     private readonly Buffer constantsBuffer;
     private readonly Buffer instanceBuffer;
-    private readonly ResourceLayout resourceLayout;
     private readonly ResourceTable resourceTable;
     private readonly GraphicsPipeline pipeline;
 
@@ -159,20 +164,9 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
             Flags = BufferUsageFlags.ShaderResource | BufferUsageFlags.MapWrite
         });
 
-        resourceLayout = App.Context.CreateResourceLayout(new()
-        {
-            Bindings = BindingHelper.Bindings
-            (
-                new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Vertex },
-                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Vertex }
-            )
-        });
-
-        resourceTable = App.Context.CreateResourceTable(new()
-        {
-            Layout = resourceLayout,
-            Resources = [constantsBuffer, instanceBuffer]
-        });
+        resourceTable = App.Context.CreateResourceTable(new() { Bindings = ResourceBindings });
+        resourceTable.Write(0, constantsBuffer);
+        resourceTable.Write(1, instanceBuffer);
 
         InputLayout inputLayout = new();
         inputLayout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position });
@@ -191,7 +185,7 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
             },
             Vertex = vertexShader,
             Pixel = pixelShader,
-            ResourceLayout = resourceLayout,
+            ResourceBindings = ResourceBindings,
             InputLayouts = [inputLayout],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
             Output = App.FrameBuffer.Output
@@ -266,7 +260,6 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
     {
         pipeline.Dispose();
         resourceTable.Dispose();
-        resourceLayout.Dispose();
         instanceBuffer.Dispose();
         constantsBuffer.Dispose();
         indirectBuffer.Dispose();

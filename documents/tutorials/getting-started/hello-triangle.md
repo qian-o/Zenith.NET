@@ -88,7 +88,7 @@ internal unsafe class HelloTriangleRenderer : IRenderer
             },
             Vertex = vertexShader,
             Pixel = pixelShader,
-            ResourceLayout = null,
+            ResourceBindings = [],
             InputLayouts = [inputLayout],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
             Output = App.FrameBuffer.Output
@@ -257,7 +257,7 @@ pipeline = App.Context.CreateGraphicsPipeline(new()
     },
     Vertex = vertexShader,
     Pixel = pixelShader,
-    ResourceLayout = null,
+    ResourceBindings = [],
     InputLayouts = [inputLayout],
     PrimitiveTopology = PrimitiveTopology.TriangleList,
     Output = App.FrameBuffer.Output
@@ -269,7 +269,7 @@ pipeline = App.Context.CreateGraphicsPipeline(new()
 | `RasterizerState` | `CullNone` | No face culling (both sides visible) |
 | `DepthStencilState` | `Default` | Standard depth testing |
 | `BlendState` | `Opaque` | No transparency |
-| `ResourceLayout` | `null` | No bound resources needed |
+| `ResourceBindings` | `[]` | No bound resources needed |
 | `PrimitiveTopology` | `TriangleList` | Every 3 vertices form a triangle |
 
 ### Rendering

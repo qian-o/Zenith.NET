@@ -51,8 +51,7 @@ Welcome to the Zenith.NET API Reference. This documentation is automatically gen
 
 | Type | Description |
 |------|-------------|
-| `ResourceLayout` | Declares expected shader resource bindings |
-| `ResourceTable` | Binds actual resources to a layout |
+| `ResourceTable` | Manages resource bindings for shader access |
 | `Shader` | Compiled shader module with entry point and stage |
 
 ### Ray Tracing

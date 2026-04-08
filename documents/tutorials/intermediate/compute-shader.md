@@ -48,9 +48,14 @@ internal class ComputeShaderRenderer : IRenderer
         }
         """;
 
+    private static readonly ResourceBinding[] ResourceBindings =
+    [
+        new() { Type = ResourceType.Texture, Count = 1 },
+        new() { Type = ResourceType.TextureReadWrite, Count = 1 }
+    ];
+
     private readonly Texture inputTexture;
     private readonly Texture outputTexture;
-    private readonly ResourceLayout resourceLayout;
     private readonly ResourceTable resourceTable;
     private readonly ComputePipeline pipeline;
 
@@ -73,27 +78,16 @@ internal class ComputeShaderRenderer : IRenderer
             Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
-        resourceLayout = App.Context.CreateResourceLayout(new()
-        {
-            Bindings = BindingHelper.Bindings
-            (
-                new() { Type = ResourceType.Texture, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute }
-            )
-        });
-
-        resourceTable = App.Context.CreateResourceTable(new()
-        {
-            Layout = resourceLayout,
-            Resources = [inputTexture, outputTexture]
-        });
+        resourceTable = App.Context.CreateResourceTable(new() { Bindings = ResourceBindings });
+        resourceTable.Write(0, inputTexture);
+        resourceTable.Write(1, outputTexture);
 
         using Shader computeShader = App.Context.LoadShaderFromSource(ShaderSource, "CSMain", ShaderStageFlags.Compute);
 
         pipeline = App.Context.CreateComputePipeline(new()
         {
             Compute = computeShader,
-            ResourceLayout = resourceLayout,
+            ResourceBindings = ResourceBindings,
             ThreadGroupSizeX = ThreadGroupSize,
             ThreadGroupSizeY = ThreadGroupSize,
             ThreadGroupSizeZ = 1
@@ -149,7 +143,6 @@ internal class ComputeShaderRenderer : IRenderer
     {
         pipeline.Dispose();
         resourceTable.Dispose();
-        resourceLayout.Dispose();
         outputTexture.Dispose();
         inputTexture.Dispose();
     }
@@ -215,7 +208,7 @@ Unlike the graphics pipeline, a compute pipeline has no vertex/pixel stages or r
 pipeline = App.Context.CreateComputePipeline(new()
 {
     Compute = computeShader,
-    ResourceLayout = resourceLayout,
+    ResourceBindings = ResourceBindings,
     ThreadGroupSizeX = ThreadGroupSize,
     ThreadGroupSizeY = ThreadGroupSize,
     ThreadGroupSizeZ = 1

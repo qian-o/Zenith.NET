@@ -5,6 +5,6 @@
 
 This topic covers:
 
-- Declaring bindings with `ResourceLayout`
-- Binding resources with `ResourceTable`
-- Index scheme differences across backends
+- Creating and writing resources to `ResourceTable`
+- Sharing binding definitions between pipelines and resource tables
+- Dynamic resource updates with `ResourceTable.Write()`

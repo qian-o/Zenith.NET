@@ -63,10 +63,14 @@ internal unsafe class SpinningCubeRenderer : IRenderer
         }
         """;
 
+    private static readonly ResourceBinding[] ResourceBindings =
+    [
+        new() { Type = ResourceType.ConstantBuffer, Count = 1 }
+    ];
+
     private readonly Buffer vertexBuffer;
     private readonly Buffer indexBuffer;
     private readonly Buffer constantsBuffer;
-    private readonly ResourceLayout resourceLayout;
     private readonly ResourceTable resourceTable;
     private readonly GraphicsPipeline pipeline;
 
@@ -119,19 +123,8 @@ internal unsafe class SpinningCubeRenderer : IRenderer
             Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
         });
 
-        resourceLayout = App.Context.CreateResourceLayout(new()
-        {
-            Bindings = BindingHelper.Bindings
-            (
-                new ResourceBinding() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Vertex }
-            )
-        });
-
-        resourceTable = App.Context.CreateResourceTable(new()
-        {
-            Layout = resourceLayout,
-            Resources = [constantsBuffer]
-        });
+        resourceTable = App.Context.CreateResourceTable(new() { Bindings = ResourceBindings });
+        resourceTable.Write(0, constantsBuffer);
 
         InputLayout inputLayout = new();
         inputLayout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position });
@@ -150,7 +143,7 @@ internal unsafe class SpinningCubeRenderer : IRenderer
             },
             Vertex = vertexShader,
             Pixel = pixelShader,
-            ResourceLayout = resourceLayout,
+            ResourceBindings = ResourceBindings,
             InputLayouts = [inputLayout],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
             Output = App.FrameBuffer.Output
@@ -199,7 +192,6 @@ internal unsafe class SpinningCubeRenderer : IRenderer
     {
         pipeline.Dispose();
         resourceTable.Dispose();
-        resourceLayout.Dispose();
         constantsBuffer.Dispose();
         indexBuffer.Dispose();
         vertexBuffer.Dispose();

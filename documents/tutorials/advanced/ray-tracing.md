@@ -500,6 +500,14 @@ internal unsafe class RayTracingRenderer : IRenderer
         }
         """;
 
+    private static readonly ResourceBinding[] ResourceBindings =
+    [
+        new() { Type = ResourceType.AccelerationStructure, Count = 1 },
+        new() { Type = ResourceType.ConstantBuffer, Count = 1 },
+        new() { Type = ResourceType.StructuredBuffer, Count = 1 },
+        new() { Type = ResourceType.TextureReadWrite, Count = 1 }
+    ];
+
     private readonly Buffer floorVertexBuffer;
     private readonly Buffer floorIndexBuffer;
     private readonly Buffer aabbBuffer;
@@ -508,7 +516,6 @@ internal unsafe class RayTracingRenderer : IRenderer
     private readonly TopLevelAccelerationStructure tlas;
     private readonly Buffer constantsBuffer;
     private readonly Buffer sphereBuffer;
-    private readonly ResourceLayout resourceLayout;
     private readonly ComputePipeline pipeline;
 
     private Texture? outputTexture;
@@ -655,23 +662,12 @@ internal unsafe class RayTracingRenderer : IRenderer
         });
         sphereBuffer.Upload(spheres, 0);
 
-        resourceLayout = App.Context.CreateResourceLayout(new()
-        {
-            Bindings = BindingHelper.Bindings
-            (
-                new() { Type = ResourceType.AccelerationStructure, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute }
-            )
-        });
-
         using Shader computeShader = App.Context.LoadShaderFromSource(ShaderSource, "CSMain", ShaderStageFlags.Compute);
 
         pipeline = App.Context.CreateComputePipeline(new()
         {
             Compute = computeShader,
-            ResourceLayout = resourceLayout,
+            ResourceBindings = ResourceBindings,
             ThreadGroupSizeX = ThreadGroupSize,
             ThreadGroupSizeY = ThreadGroupSize,
             ThreadGroupSizeZ = 1
@@ -705,11 +701,11 @@ internal unsafe class RayTracingRenderer : IRenderer
             Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
         });
 
-        resourceTable ??= App.Context.CreateResourceTable(new()
-        {
-            Layout = resourceLayout,
-            Resources = [tlas, constantsBuffer, sphereBuffer, outputTexture]
-        });
+        resourceTable ??= App.Context.CreateResourceTable(new() { Bindings = ResourceBindings });
+        resourceTable.Write(0, tlas);
+        resourceTable.Write(1, constantsBuffer);
+        resourceTable.Write(2, sphereBuffer);
+        resourceTable.Write(3, outputTexture);
 
         CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
 
@@ -747,7 +743,6 @@ internal unsafe class RayTracingRenderer : IRenderer
         outputTexture?.Dispose();
 
         pipeline.Dispose();
-        resourceLayout.Dispose();
         sphereBuffer.Dispose();
         constantsBuffer.Dispose();
         tlas.Dispose();
@@ -866,21 +861,18 @@ tlas = commandBuffer.BuildAccelerationStructure(new TopLevelAccelerationStructur
 });
 ```
 
-### Resource Layout
+### Resource Bindings
 
 The compute shader accesses four resources — acceleration structure, constants, sphere data, and the output texture:
 
 ```csharp
-resourceLayout = App.Context.CreateResourceLayout(new()
-{
-    Bindings = BindingHelper.Bindings
-    (
-        new() { Type = ResourceType.AccelerationStructure, Count = 1, StageFlags = ShaderStageFlags.Compute },
-        new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
-        new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
-        new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute }
-    )
-});
+private static readonly ResourceBinding[] ResourceBindings =
+[
+    new() { Type = ResourceType.AccelerationStructure, Count = 1 },
+    new() { Type = ResourceType.ConstantBuffer, Count = 1 },
+    new() { Type = ResourceType.StructuredBuffer, Count = 1 },
+    new() { Type = ResourceType.TextureReadWrite, Count = 1 }
+];
 ```
 
 ### Animated Camera

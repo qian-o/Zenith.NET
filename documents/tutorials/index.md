@@ -8,9 +8,9 @@ New to Zenith.NET? Start here to set up your environment and render your first g
 
 | Tutorial | Description |
 |----------|-------------|
-| [Prerequisites](getting-started/prerequisites.md) | Set up your development environment with `App` framework, `IRenderer` interface, and `BindingHelper` |
+| [Prerequisites](getting-started/prerequisites.md) | Set up your development environment with `App` framework and `IRenderer` interface |
 | [Hello Triangle](getting-started/hello-triangle.md) | Create vertex buffers, compile Slang shaders, and build your first graphics pipeline |
-| [Textured Quad](getting-started/textured-quad.md) | Load textures, create samplers, and bind resources with `ResourceLayout` and `ResourceTable` |
+| [Textured Quad](getting-started/textured-quad.md) | Load textures, create samplers, and bind resources with `ResourceTable` |
 | [Spinning Cube](getting-started/spinning-cube.md) | Use constant buffers for MVP matrices and render 3D geometry with depth testing |
 
 ## Intermediate
@@ -48,7 +48,7 @@ All tutorials share the same `App` framework. Run `dotnet run` and select a tuto
 
 | Stage | You Will Learn |
 |-------|----------------|
-| **Prerequisites** | Set up the application framework, graphics context, and cross-platform resource binding |
+| **Prerequisites** | Set up the application framework, graphics context, and resource binding |
 | **Hello Triangle** | Create GPU buffers, compile shaders, configure graphics pipelines, and submit draw commands |
 | **Textured Quad** | Load and sample textures, use index buffers, and bind shader resources |
 | **Spinning Cube** | Pass data to shaders via constant buffers, implement 3D transformations, and enable depth testing |
