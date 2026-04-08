@@ -6,8 +6,6 @@ internal class DXResourceTable : ResourceTable
 {
     private readonly DXDescriptorToken cbvSrvUavToken;
     private readonly DXDescriptorToken samplerToken;
-    private readonly DXTextureView?[] srvTextureViews;
-    private readonly DXTextureView?[] uavTextureViews;
 
     public DXResourceTable(DXGraphicsContext context, ResourceTableDesc desc) : base(context, desc)
     {
@@ -23,11 +21,15 @@ internal class DXResourceTable : ResourceTable
             samplerToken = Context.SamplerAllocator.Allocate((uint)samplerRanges.Sum(static item => item.NumDescriptors));
         }
 
-        srvTextureViews = new DXTextureView?[Desc.Slots.Sum(slot => slot.Count)];
-        uavTextureViews = new DXTextureView?[Desc.Slots.Sum(slot => slot.Count)];
+        SrvTextureViews = new DXTextureView?[Desc.Slots.Sum(slot => slot.Count)];
+        UavTextureViews = new DXTextureView?[Desc.Slots.Sum(slot => slot.Count)];
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
+
+    public DXTextureView?[] SrvTextureViews { get; }
+
+    public DXTextureView?[] UavTextureViews { get; }
 
     public void Bind(DXCommandBuffer commandBuffer, DXDescriptorTable cbvSrvUavTable, DXDescriptorTable samplerTable, bool isGraphics)
     {
@@ -133,13 +135,13 @@ internal class DXResourceTable : ResourceTable
                     {
                         Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], texture.DirectX12().View.SrvHandle, DescriptorHeapType.CbvSrvUav);
 
-                        srvTextureViews[index] = texture.DirectX12().View;
+                        SrvTextureViews[index] = texture.DirectX12().View;
                     }
                     else if (resource is TextureView textureView)
                     {
                         Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], textureView.DirectX12().SrvHandle, DescriptorHeapType.CbvSrvUav);
 
-                        srvTextureViews[index] = textureView.DirectX12();
+                        SrvTextureViews[index] = textureView.DirectX12();
                     }
 
                     index++;
@@ -153,13 +155,13 @@ internal class DXResourceTable : ResourceTable
                     {
                         Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], texture.DirectX12().View.UavHandle, DescriptorHeapType.CbvSrvUav);
 
-                        uavTextureViews[index] = texture.DirectX12().View;
+                        UavTextureViews[index] = texture.DirectX12().View;
                     }
                     else if (resource is TextureView textureView)
                     {
                         Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], textureView.DirectX12().UavHandle, DescriptorHeapType.CbvSrvUav);
 
-                        uavTextureViews[index] = textureView.DirectX12();
+                        UavTextureViews[index] = textureView.DirectX12();
                     }
 
                     index++;
@@ -184,12 +186,12 @@ internal class DXResourceTable : ResourceTable
     {
         DXCommandBuffer dxCommandBuffer = commandBuffer.DirectX12();
 
-        foreach (DXTextureView? textureView in srvTextureViews)
+        foreach (DXTextureView? textureView in SrvTextureViews)
         {
             textureView?.TransitionStates(dxCommandBuffer, ResourceStates.AllShaderResource);
         }
 
-        foreach (DXTextureView? textureView in uavTextureViews)
+        foreach (DXTextureView? textureView in UavTextureViews)
         {
             textureView?.TransitionStates(dxCommandBuffer, ResourceStates.UnorderedAccess);
         }

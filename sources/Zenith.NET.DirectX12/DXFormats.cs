@@ -310,31 +310,6 @@ internal static unsafe class DXFormats
         );
     }
 
-    public static ShaderVisibility DirectX12(ShaderStageFlags shaderStageFlags)
-    {
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.Vertex))
-        {
-            return ShaderVisibility.Vertex;
-        }
-
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.Pixel))
-        {
-            return ShaderVisibility.Pixel;
-        }
-
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.Amplification))
-        {
-            return ShaderVisibility.Amplification;
-        }
-
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.Mesh))
-        {
-            return ShaderVisibility.Mesh;
-        }
-
-        return ShaderVisibility.All;
-    }
-
     public static DxFillMode DirectX12(FillMode fillMode)
     {
         return fillMode switch
