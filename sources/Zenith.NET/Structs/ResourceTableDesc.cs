@@ -2,5 +2,5 @@
 
 public record struct ResourceTableDesc
 {
-    public ResourceSlot[] Slots;
+    public ResourceBinding[] Bindings;
 }

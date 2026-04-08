@@ -9,7 +9,7 @@ internal class DXResourceTable : ResourceTable
 
     public DXResourceTable(DXGraphicsContext context, ResourceTableDesc desc) : base(context, desc)
     {
-        desc.Slots.DirectX12(out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges);
+        desc.Bindings.DirectX12(out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges);
 
         if (cbvSrvUavRanges.Length > 0)
         {
@@ -21,8 +21,8 @@ internal class DXResourceTable : ResourceTable
             samplerToken = Context.SamplerAllocator.Allocate((uint)samplerRanges.Sum(static item => item.NumDescriptors));
         }
 
-        SrvTextureViews = new DXTextureView?[Desc.Slots.Sum(slot => slot.Count)];
-        UavTextureViews = new DXTextureView?[Desc.Slots.Sum(slot => slot.Count)];
+        SrvTextureViews = new DXTextureView?[cbvSrvUavToken.Length];
+        UavTextureViews = new DXTextureView?[cbvSrvUavToken.Length];
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
@@ -64,119 +64,147 @@ internal class DXResourceTable : ResourceTable
         }
     }
 
-    protected override void SetImpl(uint slot, IBindableResource[] resources)
+    protected override void SetImpl(uint binding, IBindableResource[] resources)
     {
-        ResourceSlot resourceSlot = Desc.Slots[slot];
-
-        uint index = 0;
-        if (resourceSlot.Type is ResourceType.Sampler)
-        {
-            index = (uint)Desc.Slots.Take((int)slot).Where(static item => item.Type is ResourceType.Sampler).Sum(static item => item.Count);
-        }
-        else
-        {
-            index = (uint)Desc.Slots.Take((int)slot).Where(static item => item.Type is not ResourceType.Sampler).Sum(static item => item.Count);
-        }
-
-        switch (resourceSlot.Type)
+        switch (Desc.Bindings[binding].Type)
         {
             case ResourceType.ConstantBuffer:
-                foreach (IBindableResource resource in resources)
                 {
-                    if (resource is Buffer buffer)
-                    {
-                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], buffer.DirectX12().View.CbvHandle, DescriptorHeapType.CbvSrvUav);
-                    }
-                    else if (resource is BufferView bufferView)
-                    {
-                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], bufferView.DirectX12().CbvHandle, DescriptorHeapType.CbvSrvUav);
-                    }
+                    uint index = (uint)Desc.Bindings.Take((int)binding).Where(static item => item.Type is not ResourceType.Sampler).Sum(static item => item.Count);
 
-                    index++;
+                    foreach (IBindableResource resource in resources)
+                    {
+                        if (resource is Buffer buffer)
+                        {
+                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], buffer.DirectX12().View.CbvHandle, DescriptorHeapType.CbvSrvUav);
+                        }
+                        else if (resource is BufferView bufferView)
+                        {
+                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], bufferView.DirectX12().CbvHandle, DescriptorHeapType.CbvSrvUav);
+                        }
+
+                        index++;
+                    }
                 }
                 break;
 
             case ResourceType.StructuredBuffer:
-                foreach (IBindableResource resource in resources)
                 {
-                    if (resource is Buffer buffer)
-                    {
-                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], buffer.DirectX12().View.SrvHandle, DescriptorHeapType.CbvSrvUav);
-                    }
-                    else if (resource is BufferView bufferView)
-                    {
-                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], bufferView.DirectX12().SrvHandle, DescriptorHeapType.CbvSrvUav);
-                    }
+                    uint index = (uint)Desc.Bindings.Take((int)binding).Where(static item => item.Type is not ResourceType.Sampler).Sum(static item => item.Count);
 
-                    index++;
+                    foreach (IBindableResource resource in resources)
+                    {
+                        if (resource is Buffer buffer)
+                        {
+                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], buffer.DirectX12().View.SrvHandle, DescriptorHeapType.CbvSrvUav);
+                        }
+                        else if (resource is BufferView bufferView)
+                        {
+                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], bufferView.DirectX12().SrvHandle, DescriptorHeapType.CbvSrvUav);
+                        }
+
+                        index++;
+                    }
                 }
                 break;
 
             case ResourceType.StructuredBufferReadWrite:
-                foreach (IBindableResource resource in resources)
                 {
-                    if (resource is Buffer buffer)
-                    {
-                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], buffer.DirectX12().View.UavHandle, DescriptorHeapType.CbvSrvUav);
-                    }
-                    else if (resource is BufferView bufferView)
-                    {
-                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], bufferView.DirectX12().UavHandle, DescriptorHeapType.CbvSrvUav);
-                    }
+                    uint index = (uint)Desc.Bindings.Take((int)binding).Where(static item => item.Type is not ResourceType.Sampler).Sum(static item => item.Count);
 
-                    index++;
+                    foreach (IBindableResource resource in resources)
+                    {
+                        if (resource is Buffer buffer)
+                        {
+                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], buffer.DirectX12().View.UavHandle, DescriptorHeapType.CbvSrvUav);
+                        }
+                        else if (resource is BufferView bufferView)
+                        {
+                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], bufferView.DirectX12().UavHandle, DescriptorHeapType.CbvSrvUav);
+                        }
+
+                        index++;
+                    }
                 }
                 break;
 
             case ResourceType.Texture:
-                foreach (IBindableResource resource in resources)
                 {
-                    if (resource is Texture texture)
+                    uint index = (uint)Desc.Bindings.Take((int)binding).Where(static item => item.Type is not ResourceType.Sampler).Sum(static item => item.Count);
+
+                    foreach (IBindableResource resource in resources)
                     {
-                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], texture.DirectX12().View.SrvHandle, DescriptorHeapType.CbvSrvUav);
+                        if (resource is Texture texture)
+                        {
+                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], texture.DirectX12().View.SrvHandle, DescriptorHeapType.CbvSrvUav);
 
-                        SrvTextureViews[index] = texture.DirectX12().View;
+                            SrvTextureViews[index] = texture.DirectX12().View;
+                        }
+                        else if (resource is TextureView textureView)
+                        {
+                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], textureView.DirectX12().SrvHandle, DescriptorHeapType.CbvSrvUav);
+
+                            SrvTextureViews[index] = textureView.DirectX12();
+                        }
+
+                        index++;
                     }
-                    else if (resource is TextureView textureView)
-                    {
-                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], textureView.DirectX12().SrvHandle, DescriptorHeapType.CbvSrvUav);
-
-                        SrvTextureViews[index] = textureView.DirectX12();
-                    }
-
-                    index++;
                 }
                 break;
 
             case ResourceType.TextureReadWrite:
-                foreach (IBindableResource resource in resources)
                 {
-                    if (resource is Texture texture)
+                    uint index = (uint)Desc.Bindings.Take((int)binding).Where(static item => item.Type is not ResourceType.Sampler).Sum(static item => item.Count);
+
+                    foreach (IBindableResource resource in resources)
                     {
-                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], texture.DirectX12().View.UavHandle, DescriptorHeapType.CbvSrvUav);
+                        if (resource is Texture texture)
+                        {
+                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], texture.DirectX12().View.UavHandle, DescriptorHeapType.CbvSrvUav);
 
-                        UavTextureViews[index] = texture.DirectX12().View;
+                            UavTextureViews[index] = texture.DirectX12().View;
+                        }
+                        else if (resource is TextureView textureView)
+                        {
+                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], textureView.DirectX12().UavHandle, DescriptorHeapType.CbvSrvUav);
+
+                            UavTextureViews[index] = textureView.DirectX12();
+                        }
+
+                        index++;
                     }
-                    else if (resource is TextureView textureView)
+                }
+                break;
+
+            case ResourceType.Sampler:
+                {
+                    uint index = (uint)Desc.Bindings.Take((int)binding).Where(static item => item.Type is ResourceType.Sampler).Sum(static item => item.Count);
+
+                    foreach (IBindableResource resource in resources)
                     {
-                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], textureView.DirectX12().UavHandle, DescriptorHeapType.CbvSrvUav);
+                        if (resource is Sampler sampler)
+                        {
+                            Context.Device.CopyDescriptorsSimple(1, samplerToken[index], sampler.DirectX12().Token.Handle, DescriptorHeapType.Sampler);
+                        }
 
-                        UavTextureViews[index] = textureView.DirectX12();
+                        index++;
                     }
-
-                    index++;
                 }
                 break;
 
             case ResourceType.AccelerationStructure:
-                foreach (IBindableResource resource in resources)
                 {
-                    if (resource is TopLevelAccelerationStructure topLevelAccelerationStructure)
-                    {
-                        Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], topLevelAccelerationStructure.DirectX12().Token.Handle, DescriptorHeapType.CbvSrvUav);
-                    }
+                    uint index = (uint)Desc.Bindings.Take((int)binding).Where(static item => item.Type is not ResourceType.Sampler).Sum(static item => item.Count);
 
-                    index++;
+                    foreach (IBindableResource resource in resources)
+                    {
+                        if (resource is TopLevelAccelerationStructure topLevelAccelerationStructure)
+                        {
+                            Context.Device.CopyDescriptorsSimple(1, cbvSrvUavToken[index], topLevelAccelerationStructure.DirectX12().Token.Handle, DescriptorHeapType.CbvSrvUav);
+                        }
+
+                        index++;
+                    }
                 }
                 break;
         }

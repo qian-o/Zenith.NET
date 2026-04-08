@@ -10,7 +10,7 @@ public record struct MeshShadingPipelineDesc
 
     public Shader Pixel;
 
-    public ResourceSlot[] ResourceSlots;
+    public ResourceBinding[] ResourceBindings;
 
     public PrimitiveTopology PrimitiveTopology;
 

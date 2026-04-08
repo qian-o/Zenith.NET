@@ -12,9 +12,9 @@ internal class MTLResourceTable : ResourceTable
 
     public MTLResourceTable(MTLGraphicsContext context, ResourceTableDesc desc) : base(context, desc)
     {
-        bufferBindings = new Binding?[desc.Slots.Where(static item => item.Type is ResourceType.ConstantBuffer or ResourceType.StructuredBuffer or ResourceType.StructuredBufferReadWrite or ResourceType.AccelerationStructure).Sum(static item => item.Count)];
-        textureBindings = new Binding?[desc.Slots.Where(static item => item.Type is ResourceType.Texture or ResourceType.TextureReadWrite).Sum(static item => item.Count)];
-        samplerBindings = new Binding?[desc.Slots.Where(static item => item.Type is ResourceType.Sampler).Sum(static item => item.Count)];
+        bufferBindings = new Binding?[desc.Bindings.Where(static item => item.Type is ResourceType.ConstantBuffer or ResourceType.StructuredBuffer or ResourceType.StructuredBufferReadWrite or ResourceType.AccelerationStructure).Sum(static item => item.Count)];
+        textureBindings = new Binding?[desc.Bindings.Where(static item => item.Type is ResourceType.Texture or ResourceType.TextureReadWrite).Sum(static item => item.Count)];
+        samplerBindings = new Binding?[desc.Bindings.Where(static item => item.Type is ResourceType.Sampler).Sum(static item => item.Count)];
 
         MTL4ArgumentTableDescriptor descriptor = new()
         {
@@ -45,81 +45,71 @@ internal class MTLResourceTable : ResourceTable
         }
     }
 
-    protected override void SetImpl(uint slot, IBindableResource[] resources)
+    protected override void SetImpl(uint binding, IBindableResource[] resources)
     {
-        ResourceSlot resourceSlot = Desc.Slots[slot];
-
-        uint index = 0;
-        switch (resourceSlot.Type)
+        switch (Desc.Bindings[binding].Type)
         {
             case ResourceType.ConstantBuffer:
             case ResourceType.StructuredBuffer:
             case ResourceType.StructuredBufferReadWrite:
             case ResourceType.AccelerationStructure:
-                index = (uint)Desc.Slots.Take((int)slot).Where(static item => item.Type is ResourceType.ConstantBuffer or ResourceType.StructuredBuffer or ResourceType.StructuredBufferReadWrite or ResourceType.AccelerationStructure).Sum(static item => item.Count);
-                break;
-
-            case ResourceType.Texture:
-            case ResourceType.TextureReadWrite:
-                index = (uint)Desc.Slots.Take((int)slot).Where(static item => item.Type is ResourceType.Texture or ResourceType.TextureReadWrite).Sum(static item => item.Count);
-                break;
-
-            case ResourceType.Sampler:
-                index = (uint)Desc.Slots.Take((int)slot).Where(static item => item.Type is ResourceType.Sampler).Sum(static item => item.Count);
-                break;
-        }
-
-        switch (resourceSlot.Type)
-        {
-            case ResourceType.ConstantBuffer:
-            case ResourceType.StructuredBuffer:
-            case ResourceType.StructuredBufferReadWrite:
-            case ResourceType.AccelerationStructure:
-                foreach (IBindableResource resource in resources)
                 {
-                    if (resource is Buffer buffer)
-                    {
-                        bufferBindings[index] = new(buffer.Metal().GpuAddress, default, index);
-                    }
-                    else if (resource is BufferView bufferView)
-                    {
-                        bufferBindings[index] = new(bufferView.Metal().GpuAddress, default, index);
-                    }
-                    else if (resource is TopLevelAccelerationStructure topLevelAccelerationStructure)
-                    {
-                        bufferBindings[index] = new(default, topLevelAccelerationStructure.Metal().AccelerationStructure.GpuResourceID, index);
-                    }
+                    uint index = (uint)Desc.Bindings.Take((int)binding).Where(static item => item.Type is ResourceType.ConstantBuffer or ResourceType.StructuredBuffer or ResourceType.StructuredBufferReadWrite or ResourceType.AccelerationStructure).Sum(static item => item.Count);
 
-                    index++;
+                    foreach (IBindableResource resource in resources)
+                    {
+                        if (resource is Buffer buffer)
+                        {
+                            bufferBindings[index] = new(buffer.Metal().GpuAddress, default, index);
+                        }
+                        else if (resource is BufferView bufferView)
+                        {
+                            bufferBindings[index] = new(bufferView.Metal().GpuAddress, default, index);
+                        }
+                        else if (resource is TopLevelAccelerationStructure topLevelAccelerationStructure)
+                        {
+                            bufferBindings[index] = new(default, topLevelAccelerationStructure.Metal().AccelerationStructure.GpuResourceID, index);
+                        }
+
+                        index++;
+                    }
                 }
                 break;
 
             case ResourceType.Texture:
             case ResourceType.TextureReadWrite:
-                foreach (IBindableResource resource in resources)
                 {
-                    if (resource is Texture texture)
-                    {
-                        textureBindings[index] = new(default, texture.Metal().Texture.GpuResourceID, index);
-                    }
-                    else if (resource is TextureView textureView)
-                    {
-                        textureBindings[index] = new(default, textureView.Metal().Texture.GpuResourceID, index);
-                    }
+                    uint index = (uint)Desc.Bindings.Take((int)binding).Where(static item => item.Type is ResourceType.Texture or ResourceType.TextureReadWrite).Sum(static item => item.Count);
 
-                    index++;
+                    foreach (IBindableResource resource in resources)
+                    {
+                        if (resource is Texture texture)
+                        {
+                            textureBindings[index] = new(default, texture.Metal().Texture.GpuResourceID, index);
+                        }
+                        else if (resource is TextureView textureView)
+                        {
+                            textureBindings[index] = new(default, textureView.Metal().Texture.GpuResourceID, index);
+                        }
+
+                        index++;
+                    }
                 }
                 break;
 
             case ResourceType.Sampler:
-                foreach (IBindableResource resource in resources)
                 {
-                    if (resource is Sampler sampler)
-                    {
-                        samplerBindings[index] = new(default, sampler.Metal().SamplerState.GpuResourceID, index);
-                    }
+                    uint index = (uint)Desc.Bindings.Take((int)binding).Where(static item => item.Type is ResourceType.Sampler).Sum(static item => item.Count);
 
-                    index++;
+                    foreach (IBindableResource resource in resources)
+                    {
+                        if (resource is Sampler sampler)
+                        {
+                            samplerBindings[index] = new(default, sampler.Metal().SamplerState.GpuResourceID, index);
+                        }
+
+                        index++;
+                    }
                 }
                 break;
         }

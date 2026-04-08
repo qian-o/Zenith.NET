@@ -349,16 +349,16 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     internal void ValidateDesc(ResourceTableDesc desc)
     {
-        if (desc.Slots is null || desc.Slots.Length is 0)
+        if (desc.Bindings is null || desc.Bindings.Length is 0)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNullOrEmpty, "ResourceTableDesc.Slots"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNullOrEmpty, "ResourceTableDesc.Bindings"));
 
             return;
         }
 
-        for (int i = 0; i < desc.Slots.Length; i++)
+        for (int i = 0; i < desc.Bindings.Length; i++)
         {
-            CheckResourceSlot($"ResourceTableDesc.Slots[{i}]", desc.Slots[i]);
+            CheckResourceBinding($"ResourceTableDesc.Bindings[{i}]", desc.Bindings[i]);
         }
     }
 
@@ -384,15 +384,15 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "GraphicsPipelineDesc.Pixel"));
         }
 
-        if (desc.ResourceSlots is null)
+        if (desc.ResourceBindings is null)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.ResourceSlots"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.ResourceBindings"));
         }
         else
         {
-            for (int i = 0; i < desc.ResourceSlots.Length; i++)
+            for (int i = 0; i < desc.ResourceBindings.Length; i++)
             {
-                CheckResourceSlot($"GraphicsPipelineDesc.ResourceSlots[{i}]", desc.ResourceSlots[i]);
+                CheckResourceBinding($"GraphicsPipelineDesc.ResourceBindings[{i}]", desc.ResourceBindings[i]);
             }
         }
 
@@ -450,15 +450,15 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "ComputePipelineDesc.Compute"));
         }
 
-        if (desc.ResourceSlots is null)
+        if (desc.ResourceBindings is null)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ComputePipelineDesc.ResourceSlots"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "ComputePipelineDesc.ResourceBindings"));
         }
         else
         {
-            for (int i = 0; i < desc.ResourceSlots.Length; i++)
+            for (int i = 0; i < desc.ResourceBindings.Length; i++)
             {
-                CheckResourceSlot($"ComputePipelineDesc.ResourceSlots[{i}]", desc.ResourceSlots[i]);
+                CheckResourceBinding($"ComputePipelineDesc.ResourceBindings[{i}]", desc.ResourceBindings[i]);
             }
         }
 
@@ -495,15 +495,15 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "MeshShadingPipelineDesc.Pixel"));
         }
 
-        if (desc.ResourceSlots is null)
+        if (desc.ResourceBindings is null)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "MeshShadingPipelineDesc.ResourceSlots"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "MeshShadingPipelineDesc.ResourceBindings"));
         }
         else
         {
-            for (int i = 0; i < desc.ResourceSlots.Length; i++)
+            for (int i = 0; i < desc.ResourceBindings.Length; i++)
             {
-                CheckResourceSlot($"MeshShadingPipelineDesc.ResourceSlots[{i}]", desc.ResourceSlots[i]);
+                CheckResourceBinding($"MeshShadingPipelineDesc.ResourceBindings[{i}]", desc.ResourceBindings[i]);
             }
         }
 
@@ -724,14 +724,14 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         }
     }
 
-    private void CheckResourceSlot(string name, ResourceSlot resourceSlot)
+    private void CheckResourceBinding(string name, ResourceBinding resourceBinding)
     {
-        if (!Enum.IsDefined(resourceSlot.Type))
+        if (!Enum.IsDefined(resourceBinding.Type))
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.Type", resourceSlot.Type));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, $"{name}.Type", resourceBinding.Type));
         }
 
-        if (resourceSlot.Count is 0)
+        if (resourceBinding.Count is 0)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, $"{name}.Count"));
         }

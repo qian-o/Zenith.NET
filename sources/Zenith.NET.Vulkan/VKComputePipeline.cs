@@ -20,23 +20,13 @@ internal unsafe class VKComputePipeline : ComputePipeline
             Stage = desc.Compute.Vulkan().GetPipelineShaderStageCreateInfo(scope)
         };
 
-        // ResourceSlots
+        // ResourceBindings
         {
-            DescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = new()
-            {
-                SType = StructureType.DescriptorSetLayoutCreateInfo,
-                BindingCount = (uint)desc.ResourceSlots.Length,
-                PBindings = (DescriptorSetLayoutBinding*)ZenithMarshal.AllocateAndFill(scope, desc.ResourceSlots.Vulkan()),
-                Flags = DescriptorSetLayoutCreateFlags.PushDescriptorBit
-            };
-
-            context.Vk.CreateDescriptorSetLayout(context.Device, &descriptorSetLayoutCreateInfo, null, out DescriptorSetLayout).Success();
-
             PipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
             {
                 SType = StructureType.PipelineLayoutCreateInfo,
                 SetLayoutCount = 1,
-                PSetLayouts = (DescriptorSetLayout*)ZenithMarshal.AllocateAndFill(scope, [DescriptorSetLayout])
+                PSetLayouts = (DescriptorSetLayout*)ZenithMarshal.AllocateAndFill(scope, [DescriptorSetLayout = desc.ResourceBindings.DescriptorSetLayout(context)])
             };
 
             context.Vk.CreatePipelineLayout(context.Device, &pipelineLayoutCreateInfo, null, out PipelineLayout).Success();

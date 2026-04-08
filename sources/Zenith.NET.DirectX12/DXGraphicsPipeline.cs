@@ -16,9 +16,10 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
 
         GraphicsPipelineStateDesc graphicsPipelineStateDesc = new()
         {
-            SampleMask = uint.MaxValue,
+            PRootSignature = RootSignature = desc.ResourceBindings.RootSignature(context),
             VS = desc.Vertex.DirectX12().GetShaderBytecode(scope),
             PS = desc.Pixel.DirectX12().GetShaderBytecode(scope),
+            SampleMask = uint.MaxValue,
             PrimitiveTopologyType = DXFormats.DirectX12(desc.PrimitiveTopology).PrimitiveTopologyType
         };
 
@@ -104,55 +105,6 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
             graphicsPipelineStateDesc.DSVFormat = desc.Output.DepthStencilAttachment.HasValue ? DXFormats.DirectX12(desc.Output.DepthStencilAttachment.Value) : Format.FormatUnknown;
 
             graphicsPipelineStateDesc.SampleDesc = DXFormats.DirectX12(desc.Output.SampleCount);
-        }
-
-        // ResourceSlots
-        {
-            desc.ResourceSlots.DirectX12(out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges);
-
-            List<RootParameter> parameters = [];
-
-            if (cbvSrvUavRanges.Length > 0)
-            {
-                parameters.Add(new()
-                {
-                    ParameterType = RootParameterType.TypeDescriptorTable,
-                    DescriptorTable = new()
-                    {
-                        NumDescriptorRanges = (uint)cbvSrvUavRanges.Length,
-                        PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, cbvSrvUavRanges)
-                    }
-                });
-            }
-
-            if (samplerRanges.Length > 0)
-            {
-                parameters.Add(new()
-                {
-                    ParameterType = RootParameterType.TypeDescriptorTable,
-                    DescriptorTable = new()
-                    {
-                        NumDescriptorRanges = (uint)samplerRanges.Length,
-                        PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, samplerRanges)
-                    }
-                });
-            }
-
-            RootSignatureDesc rootSignatureDesc = new()
-            {
-                NumParameters = (uint)parameters.Count,
-                PParameters = (RootParameter*)ZenithMarshal.AllocateAndFill(scope, [.. parameters]),
-                Flags = RootSignatureFlags.AllowInputAssemblerInputLayout
-            };
-
-            ComPtr<ID3D10Blob> blob = default;
-            ComPtr<ID3D10Blob> error = default;
-            context.D3D12.SerializeRootSignature(&rootSignatureDesc, D3DRootSignatureVersion.Version1, ref blob, ref error).Success();
-            context.Device.CreateRootSignature(0, blob.GetBufferPointer(), blob.GetBufferSize(), out RootSignature).Success();
-            blob.Dispose();
-            error.Dispose();
-
-            graphicsPipelineStateDesc.PRootSignature = RootSignature;
         }
 
         // InputLayouts

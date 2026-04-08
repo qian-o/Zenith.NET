@@ -12,7 +12,7 @@ internal unsafe class PathTracingRenderer : Renderer
 {
     private const uint ThreadGroupSize = 16;
 
-    private readonly ResourceSlot[] resourceSlots =
+    private readonly ResourceBinding[] resourceBindings =
     [
         new() { Type = ResourceType.AccelerationStructure, Count = 1 },
         new() { Type = ResourceType.ConstantBuffer, Count = 1 },
@@ -121,7 +121,7 @@ internal unsafe class PathTracingRenderer : Renderer
         pipeline = App.Context.CreateComputePipeline(new()
         {
             Compute = computeShader,
-            ResourceSlots = resourceSlots,
+            ResourceBindings = resourceBindings,
             ThreadGroupSizeX = ThreadGroupSize,
             ThreadGroupSizeY = ThreadGroupSize,
             ThreadGroupSizeZ = 1
@@ -174,7 +174,7 @@ internal unsafe class PathTracingRenderer : Renderer
                 Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
             });
 
-            resourceTable = App.Context.CreateResourceTable(new() { Slots = resourceSlots });
+            resourceTable = App.Context.CreateResourceTable(new() { Bindings = resourceBindings });
             resourceTable.Write(0, tlas);
             resourceTable.Write(1, cameraBuffer);
             resourceTable.Write(2, vertexBuffer);

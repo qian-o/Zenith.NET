@@ -6,9 +6,9 @@ public abstract class ResourceTable(GraphicsContext context, ResourceTableDesc d
 
     public ref readonly ResourceTableDesc Desc => ref desc;
 
-    public void Write(uint slot, params IBindableResource[] resources)
+    public void Write(uint binding, params IBindableResource[] resources)
     {
-        if (slot >= desc.Slots.Length || resources.Length is 0 || resources.Length > desc.Slots[slot].Count)
+        if (binding >= desc.Bindings.Length || resources.Length is 0 || resources.Length > desc.Bindings[binding].Count)
         {
             return;
         }
@@ -21,7 +21,7 @@ public abstract class ResourceTable(GraphicsContext context, ResourceTableDesc d
             }
         }
 
-        switch (desc.Slots[slot].Type)
+        switch (desc.Bindings[binding].Type)
         {
             case ResourceType.ConstantBuffer:
             case ResourceType.StructuredBuffer:
@@ -67,7 +67,7 @@ public abstract class ResourceTable(GraphicsContext context, ResourceTableDesc d
                 break;
         }
 
-        SetImpl(slot, resources);
+        SetImpl(binding, resources);
     }
 
     internal void Preprocess(CommandBuffer commandBuffer)
@@ -75,7 +75,7 @@ public abstract class ResourceTable(GraphicsContext context, ResourceTableDesc d
         PreprocessImpl(commandBuffer);
     }
 
-    protected abstract void SetImpl(uint slot, IBindableResource[] resources);
+    protected abstract void SetImpl(uint binding, IBindableResource[] resources);
 
     protected abstract void PreprocessImpl(CommandBuffer commandBuffer);
 }

@@ -374,15 +374,15 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void SetResourceTableImpl(Pipeline pipeline, ResourceTable resourceTable)
     {
-        (PipelineBindPoint pipelineBindPoint, PipelineLayout pipelineLayout) = pipeline switch
+        (PipelineBindPoint pipelineBindPoint, PipelineLayout pipelineLayout, uint descriptorWriteCount) = pipeline switch
         {
-            GraphicsPipeline graphicsPipeline => (PipelineBindPoint.Graphics, graphicsPipeline.Vulkan().PipelineLayout),
-            ComputePipeline computePipeline => (PipelineBindPoint.Compute, computePipeline.Vulkan().PipelineLayout),
-            MeshShadingPipeline meshShadingPipeline => (PipelineBindPoint.Graphics, meshShadingPipeline.Vulkan().PipelineLayout),
-            _ => (PipelineBindPoint.Graphics, default)
+            GraphicsPipeline graphicsPipeline => (PipelineBindPoint.Graphics, graphicsPipeline.Vulkan().PipelineLayout, (uint)graphicsPipeline.Desc.ResourceBindings.Length),
+            ComputePipeline computePipeline => (PipelineBindPoint.Compute, computePipeline.Vulkan().PipelineLayout, (uint)computePipeline.Desc.ResourceBindings.Length),
+            MeshShadingPipeline meshShadingPipeline => (PipelineBindPoint.Graphics, meshShadingPipeline.Vulkan().PipelineLayout, (uint)meshShadingPipeline.Desc.ResourceBindings.Length),
+            _ => (PipelineBindPoint.Graphics, default, 0)
         };
 
-        Context.Vk.CmdPushDescriptorSet(CommandBuffer, pipelineBindPoint, pipelineLayout, 0, (uint)resourceTable.Desc.Slots.Length, resourceTable.Vulkan().Sets);
+        Context.Vk.CmdPushDescriptorSet(CommandBuffer, pipelineBindPoint, pipelineLayout, 0, descriptorWriteCount, resourceTable.Vulkan().Sets);
     }
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)

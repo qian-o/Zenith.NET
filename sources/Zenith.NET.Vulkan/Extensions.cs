@@ -4,7 +4,7 @@ using Silk.NET.Vulkan;
 
 namespace Zenith.NET.Vulkan;
 
-public static class Extensions
+public static unsafe class Extensions
 {
     extension(GraphicsContext)
     {
@@ -32,39 +32,44 @@ public static class Extensions
             next = default;
             next.StructureType();
 
-            unsafe
+            BaseInStructure* current = (BaseInStructure*)Unsafe.AsPointer(ref chain);
+            while (current->PNext is not null)
             {
-                BaseInStructure* current = (BaseInStructure*)Unsafe.AsPointer(ref chain);
-                while (current->PNext is not null)
-                {
-                    current = current->PNext;
-                }
-
-                current->PNext = (BaseInStructure*)Unsafe.AsPointer(ref next);
+                current = current->PNext;
             }
+
+            current->PNext = (BaseInStructure*)Unsafe.AsPointer(ref next);
         }
     }
 
-    extension(ResourceSlot[] resourceSlots)
+    extension(ResourceBinding[] resourceBindings)
     {
-        internal DescriptorSetLayoutBinding[] Vulkan()
+        internal DescriptorSetLayout DescriptorSetLayout(VKGraphicsContext context)
         {
-            DescriptorSetLayoutBinding[] bindings = new DescriptorSetLayoutBinding[resourceSlots.Length];
+            using ZenithMarshal.Scope scope = new();
 
-            for (int i = 0; i < resourceSlots.Length; i++)
+            DescriptorSetLayoutCreateInfo createInfo = new()
             {
-                ResourceSlot resourceSlot = resourceSlots[i];
+                SType = StructureType.DescriptorSetLayoutCreateInfo,
+                BindingCount = (uint)resourceBindings.Length,
+                PBindings = (DescriptorSetLayoutBinding*)ZenithMarshal.AllocateAndFill(scope, [.. resourceBindings.Select(Vulkan)]),
+                Flags = DescriptorSetLayoutCreateFlags.PushDescriptorBit
+            };
 
-                bindings[i] = new()
+            context.Vk.CreateDescriptorSetLayout(context.Device, &createInfo, null, out DescriptorSetLayout descriptorSetLayout).Success();
+
+            return descriptorSetLayout;
+
+            static DescriptorSetLayoutBinding Vulkan(ResourceBinding resourceBinding, int index)
+            {
+                return new DescriptorSetLayoutBinding
                 {
-                    Binding = (uint)i,
-                    DescriptorType = VKFormats.Vulkan(resourceSlot.Type),
-                    DescriptorCount = resourceSlot.Count,
+                    Binding = (uint)index,
+                    DescriptorType = VKFormats.Vulkan(resourceBinding.Type),
+                    DescriptorCount = resourceBinding.Count,
                     StageFlags = VkShaderStageFlags.All
                 };
             }
-
-            return bindings;
         }
     }
 

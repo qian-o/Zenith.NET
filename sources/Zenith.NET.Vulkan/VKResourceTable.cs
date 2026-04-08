@@ -10,32 +10,32 @@ internal unsafe class VKResourceTable : ResourceTable
 
     public VKResourceTable(VKGraphicsContext context, ResourceTableDesc desc) : base(context, desc)
     {
-        WriteDescriptorSet[] sets = new WriteDescriptorSet[desc.Slots.Length];
+        WriteDescriptorSet[] sets = new WriteDescriptorSet[desc.Bindings.Length];
 
         for (int i = 0; i < sets.Length; i++)
         {
-            ResourceSlot resourceSlot = desc.Slots[i];
+            ResourceBinding binding = desc.Bindings[i];
 
             sets[i] = new()
             {
                 SType = StructureType.WriteDescriptorSet,
                 DstBinding = (uint)i,
-                DescriptorCount = resourceSlot.Count,
-                DescriptorType = VKFormats.Vulkan(resourceSlot.Type)
+                DescriptorCount = binding.Count,
+                DescriptorType = VKFormats.Vulkan(binding.Type)
             };
 
-            switch (resourceSlot.Type)
+            switch (binding.Type)
             {
                 case ResourceType.ConstantBuffer:
                 case ResourceType.StructuredBuffer:
                 case ResourceType.StructuredBufferReadWrite:
-                    sets[i].PBufferInfo = (DescriptorBufferInfo*)ZenithMarshal.Allocate<DescriptorBufferInfo>(scope, resourceSlot.Count);
+                    sets[i].PBufferInfo = (DescriptorBufferInfo*)ZenithMarshal.Allocate<DescriptorBufferInfo>(scope, binding.Count);
                     break;
 
                 case ResourceType.Texture:
                 case ResourceType.TextureReadWrite:
                 case ResourceType.Sampler:
-                    sets[i].PImageInfo = (DescriptorImageInfo*)ZenithMarshal.Allocate<DescriptorImageInfo>(scope, resourceSlot.Count);
+                    sets[i].PImageInfo = (DescriptorImageInfo*)ZenithMarshal.Allocate<DescriptorImageInfo>(scope, binding.Count);
                     break;
 
                 case ResourceType.AccelerationStructure:
@@ -44,8 +44,8 @@ internal unsafe class VKResourceTable : ResourceTable
                         new WriteDescriptorSetAccelerationStructureKHR()
                         {
                             SType = StructureType.WriteDescriptorSetAccelerationStructureKhr,
-                            AccelerationStructureCount = resourceSlot.Count,
-                            PAccelerationStructures = (AccelerationStructureKHR*)ZenithMarshal.Allocate<AccelerationStructureKHR>(scope, resourceSlot.Count)
+                            AccelerationStructureCount = binding.Count,
+                            PAccelerationStructures = (AccelerationStructureKHR*)ZenithMarshal.Allocate<AccelerationStructureKHR>(scope, binding.Count)
                         }
                     ]);
                     break;
@@ -54,8 +54,8 @@ internal unsafe class VKResourceTable : ResourceTable
 
         Sets = (WriteDescriptorSet*)ZenithMarshal.AllocateAndFill(scope, sets);
 
-        SrvTextureViews = new VKTextureView?[desc.Slots.Sum(static item => item.Count)];
-        UavTextureViews = new VKTextureView?[desc.Slots.Sum(static item => item.Count)];
+        SrvTextureViews = new VKTextureView?[desc.Bindings.Sum(static item => item.Count)];
+        UavTextureViews = new VKTextureView?[desc.Bindings.Sum(static item => item.Count)];
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
@@ -64,13 +64,11 @@ internal unsafe class VKResourceTable : ResourceTable
 
     public VKTextureView?[] UavTextureViews { get; }
 
-    protected override void SetImpl(uint slot, IBindableResource[] resources)
+    protected override void SetImpl(uint binding, IBindableResource[] resources)
     {
-        ResourceSlot resourceSlot = Desc.Slots[slot];
+        ref WriteDescriptorSet set = ref Sets[binding];
 
-        ref WriteDescriptorSet descriptorSet = ref Sets[slot];
-
-        switch (resourceSlot.Type)
+        switch (Desc.Bindings[binding].Type)
         {
             case ResourceType.ConstantBuffer:
             case ResourceType.StructuredBuffer:
@@ -81,18 +79,18 @@ internal unsafe class VKResourceTable : ResourceTable
 
                     if (resource is Buffer buffer)
                     {
-                        descriptorSet.PBufferInfo[i] = buffer.Vulkan().View.BufferInfo;
+                        set.PBufferInfo[i] = buffer.Vulkan().View.BufferInfo;
                     }
                     else if (resource is BufferView bufferView)
                     {
-                        descriptorSet.PBufferInfo[i] = bufferView.Vulkan().BufferInfo;
+                        set.PBufferInfo[i] = bufferView.Vulkan().BufferInfo;
                     }
                 }
                 break;
 
             case ResourceType.Texture:
                 {
-                    uint index = (uint)Desc.Slots.Take((int)slot).Sum(static item => item.Count);
+                    uint index = (uint)Desc.Bindings.Take((int)binding).Sum(static item => item.Count);
 
                     for (int i = 0; i < resources.Length; i++)
                     {
@@ -100,13 +98,13 @@ internal unsafe class VKResourceTable : ResourceTable
 
                         if (resource is Texture texture)
                         {
-                            descriptorSet.PImageInfo[i] = texture.Vulkan().View.SrvImageInfo;
+                            set.PImageInfo[i] = texture.Vulkan().View.SrvImageInfo;
 
                             SrvTextureViews[index + i] = texture.Vulkan().View;
                         }
                         else if (resource is TextureView textureView)
                         {
-                            descriptorSet.PImageInfo[i] = textureView.Vulkan().SrvImageInfo;
+                            set.PImageInfo[i] = textureView.Vulkan().SrvImageInfo;
 
                             SrvTextureViews[index + i] = textureView.Vulkan();
                         }
@@ -116,7 +114,7 @@ internal unsafe class VKResourceTable : ResourceTable
 
             case ResourceType.TextureReadWrite:
                 {
-                    uint index = (uint)Desc.Slots.Take((int)slot).Sum(static item => item.Count);
+                    uint index = (uint)Desc.Bindings.Take((int)binding).Sum(static item => item.Count);
 
                     for (int i = 0; i < resources.Length; i++)
                     {
@@ -124,13 +122,13 @@ internal unsafe class VKResourceTable : ResourceTable
 
                         if (resource is Texture texture)
                         {
-                            descriptorSet.PImageInfo[i] = texture.Vulkan().View.UavImageInfo;
+                            set.PImageInfo[i] = texture.Vulkan().View.UavImageInfo;
 
                             UavTextureViews[index + i] = texture.Vulkan().View;
                         }
                         else if (resource is TextureView textureView)
                         {
-                            descriptorSet.PImageInfo[i] = textureView.Vulkan().UavImageInfo;
+                            set.PImageInfo[i] = textureView.Vulkan().UavImageInfo;
 
                             UavTextureViews[index + i] = textureView.Vulkan();
                         }
@@ -143,7 +141,7 @@ internal unsafe class VKResourceTable : ResourceTable
                 {
                     if (resources[i] is Sampler sampler)
                     {
-                        descriptorSet.PImageInfo[i] = new() { Sampler = sampler.Vulkan().Sampler };
+                        set.PImageInfo[i] = new() { Sampler = sampler.Vulkan().Sampler };
                     }
                 }
                 break;
@@ -153,7 +151,7 @@ internal unsafe class VKResourceTable : ResourceTable
                 {
                     if (resources[i] is TopLevelAccelerationStructure topLevelAccelerationStructure)
                     {
-                        ((WriteDescriptorSetAccelerationStructureKHR*)descriptorSet.PNext)->PAccelerationStructures[i] = topLevelAccelerationStructure.Vulkan().AccelerationStructure;
+                        ((WriteDescriptorSetAccelerationStructureKHR*)set.PNext)->PAccelerationStructures[i] = topLevelAccelerationStructure.Vulkan().AccelerationStructure;
                     }
                 }
                 break;

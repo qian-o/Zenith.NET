@@ -1,9 +1,10 @@
 ﻿using System.Diagnostics;
+using Silk.NET.Core.Native;
 using Silk.NET.Direct3D12;
 
 namespace Zenith.NET.DirectX12;
 
-public static class Extensions
+public static unsafe class Extensions
 {
     extension(GraphicsContext)
     {
@@ -29,7 +30,7 @@ public static class Extensions
         }
     }
 
-    extension(ResourceSlot[] resourceSlots)
+    extension(ResourceBinding[] resourceBindings)
     {
         internal void DirectX12(out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges)
         {
@@ -42,15 +43,15 @@ public static class Extensions
             uint samplerIndex = 0;
             uint cbvSrvUavRangeOffset = 0;
             uint samplerRangeOffset = 0;
-            foreach (ResourceSlot resourceSlot in resourceSlots)
+            foreach (ResourceBinding resourceBinding in resourceBindings)
             {
                 DescriptorRange range = new()
                 {
-                    RangeType = DXFormats.DirectX12(resourceSlot.Type),
-                    NumDescriptors = resourceSlot.Count
+                    RangeType = DXFormats.DirectX12(resourceBinding.Type),
+                    NumDescriptors = resourceBinding.Count
                 };
 
-                switch (resourceSlot.Type)
+                switch (resourceBinding.Type)
                 {
                     case ResourceType.ConstantBuffer:
                         range.BaseShaderRegister = cbvIndex++;
@@ -87,6 +88,57 @@ public static class Extensions
 
             cbvSrvUavRanges = [.. cbvSrvUavRangeList];
             samplerRanges = [.. samplerRangeList];
+        }
+
+        internal ComPtr<ID3D12RootSignature> RootSignature(DXGraphicsContext context)
+        {
+            using ZenithMarshal.Scope scope = new();
+
+            resourceBindings.DirectX12(out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges);
+
+            List<RootParameter> parameters = [];
+
+            if (cbvSrvUavRanges.Length > 0)
+            {
+                parameters.Add(new()
+                {
+                    ParameterType = RootParameterType.TypeDescriptorTable,
+                    DescriptorTable = new()
+                    {
+                        NumDescriptorRanges = (uint)cbvSrvUavRanges.Length,
+                        PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, cbvSrvUavRanges)
+                    }
+                });
+            }
+
+            if (samplerRanges.Length > 0)
+            {
+                parameters.Add(new()
+                {
+                    ParameterType = RootParameterType.TypeDescriptorTable,
+                    DescriptorTable = new()
+                    {
+                        NumDescriptorRanges = (uint)samplerRanges.Length,
+                        PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, samplerRanges)
+                    }
+                });
+            }
+
+            RootSignatureDesc desc = new()
+            {
+                NumParameters = (uint)parameters.Count,
+                PParameters = (RootParameter*)ZenithMarshal.AllocateAndFill(scope, [.. parameters]),
+                Flags = RootSignatureFlags.AllowInputAssemblerInputLayout
+            };
+
+            ComPtr<ID3D10Blob> blob = default;
+            ComPtr<ID3D10Blob> error = default;
+            context.D3D12.SerializeRootSignature(&desc, D3DRootSignatureVersion.Version1, ref blob, ref error).Success();
+            context.Device.CreateRootSignature(0, blob.GetBufferPointer(), blob.GetBufferSize(), out ComPtr<ID3D12RootSignature> rootSignature).Success();
+            blob.Dispose();
+            error.Dispose();
+
+            return rootSignature;
         }
     }
 

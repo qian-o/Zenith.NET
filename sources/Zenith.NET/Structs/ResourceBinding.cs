@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct ResourceSlot
+public record struct ResourceBinding
 {
     public ResourceType Type;
 
