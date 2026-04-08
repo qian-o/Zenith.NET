@@ -6,17 +6,17 @@ internal unsafe class VKResourceTable : ResourceTable
 {
     private readonly ZenithMarshal.Scope scope = new();
 
-    public WriteDescriptorSet* DescriptorSets;
+    public WriteDescriptorSet* Sets;
 
     public VKResourceTable(VKGraphicsContext context, ResourceTableDesc desc) : base(context, desc)
     {
-        WriteDescriptorSet[] descriptorSets = new WriteDescriptorSet[desc.Slots.Length];
+        WriteDescriptorSet[] sets = new WriteDescriptorSet[desc.Slots.Length];
 
-        for (int i = 0; i < descriptorSets.Length; i++)
+        for (int i = 0; i < sets.Length; i++)
         {
             ResourceSlot resourceSlot = desc.Slots[i];
 
-            descriptorSets[i] = new()
+            sets[i] = new()
             {
                 SType = StructureType.WriteDescriptorSet,
                 DstBinding = (uint)i,
@@ -29,27 +29,30 @@ internal unsafe class VKResourceTable : ResourceTable
                 case ResourceType.ConstantBuffer:
                 case ResourceType.StructuredBuffer:
                 case ResourceType.StructuredBufferReadWrite:
-                    descriptorSets[i].PBufferInfo = (DescriptorBufferInfo*)ZenithMarshal.Allocate<DescriptorBufferInfo>(scope, resourceSlot.Count);
+                    sets[i].PBufferInfo = (DescriptorBufferInfo*)ZenithMarshal.Allocate<DescriptorBufferInfo>(scope, resourceSlot.Count);
                     break;
 
                 case ResourceType.Texture:
                 case ResourceType.TextureReadWrite:
                 case ResourceType.Sampler:
-                    descriptorSets[i].PImageInfo = (DescriptorImageInfo*)ZenithMarshal.Allocate<DescriptorImageInfo>(scope, resourceSlot.Count);
+                    sets[i].PImageInfo = (DescriptorImageInfo*)ZenithMarshal.Allocate<DescriptorImageInfo>(scope, resourceSlot.Count);
                     break;
 
                 case ResourceType.AccelerationStructure:
-                    descriptorSets[i].PNext = (WriteDescriptorSetAccelerationStructureKHR*)ZenithMarshal.AllocateAndFill<WriteDescriptorSetAccelerationStructureKHR>(scope, [new()
-                    {
-                        SType = StructureType.WriteDescriptorSetAccelerationStructureKhr,
-                        AccelerationStructureCount = resourceSlot.Count,
-                        PAccelerationStructures = (AccelerationStructureKHR*)ZenithMarshal.Allocate<AccelerationStructureKHR>(scope, resourceSlot.Count)
-                    }]);
+                    sets[i].PNext = (WriteDescriptorSetAccelerationStructureKHR*)ZenithMarshal.AllocateAndFill(scope,
+                    [
+                        new WriteDescriptorSetAccelerationStructureKHR()
+                        {
+                            SType = StructureType.WriteDescriptorSetAccelerationStructureKhr,
+                            AccelerationStructureCount = resourceSlot.Count,
+                            PAccelerationStructures = (AccelerationStructureKHR*)ZenithMarshal.Allocate<AccelerationStructureKHR>(scope, resourceSlot.Count)
+                        }
+                    ]);
                     break;
             }
         }
 
-        DescriptorSets = (WriteDescriptorSet*)ZenithMarshal.AllocateAndFill(scope, descriptorSets);
+        Sets = (WriteDescriptorSet*)ZenithMarshal.AllocateAndFill(scope, sets);
 
         SrvTextureViews = new VKTextureView?[desc.Slots.Sum(static item => item.Count)];
         UavTextureViews = new VKTextureView?[desc.Slots.Sum(static item => item.Count)];
@@ -65,7 +68,7 @@ internal unsafe class VKResourceTable : ResourceTable
     {
         ResourceSlot resourceSlot = Desc.Slots[slot];
 
-        ref WriteDescriptorSet descriptorSet = ref DescriptorSets[slot];
+        ref WriteDescriptorSet descriptorSet = ref Sets[slot];
 
         switch (resourceSlot.Type)
         {
