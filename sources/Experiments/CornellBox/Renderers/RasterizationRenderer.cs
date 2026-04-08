@@ -10,7 +10,7 @@ namespace CornellBox.Renderers;
 
 internal unsafe class RasterizationRenderer : Renderer
 {
-    private readonly ResourceBinding[] resourceBindings =
+    private static readonly ResourceBinding[] ResourceBindings =
     [
         new() { Type = ResourceType.ConstantBuffer, Count = 1 },
         new() { Type = ResourceType.StructuredBuffer, Count = 1 }
@@ -61,7 +61,7 @@ internal unsafe class RasterizationRenderer : Renderer
             Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
         });
 
-        resourceTable = App.Context.CreateResourceTable(new() { Bindings = resourceBindings });
+        resourceTable = App.Context.CreateResourceTable(new() { Bindings = ResourceBindings });
         resourceTable.Write(0, constantBuffer);
         resourceTable.Write(1, materialBuffer);
 
@@ -82,7 +82,7 @@ internal unsafe class RasterizationRenderer : Renderer
             },
             Vertex = vertexShader,
             Pixel = pixelShader,
-            ResourceBindings = resourceBindings,
+            ResourceBindings = ResourceBindings,
             InputLayouts = [inputLayout],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
             Output = FrameBuffer.Output
