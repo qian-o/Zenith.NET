@@ -287,15 +287,4 @@ public static class ZenithHelper
 
         return SizeInBytes(desc.Format, mipWidth, mipHeight) * mipDepth;
     }
-
-    public static ShaderStageFlags[] GraphicShaderStages()
-    {
-        return
-        [
-            ShaderStageFlags.Vertex,
-            ShaderStageFlags.Pixel,
-            ShaderStageFlags.Amplification,
-            ShaderStageFlags.Mesh
-        ];
-    }
 }
