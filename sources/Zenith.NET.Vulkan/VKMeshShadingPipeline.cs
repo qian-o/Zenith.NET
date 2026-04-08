@@ -169,13 +169,12 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
 
         // ResourceSlots
         {
-            desc.ResourceSlots.Vulkan(out DescriptorSetLayoutBinding[] bindings, out _);
-
             DescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = new()
             {
                 SType = StructureType.DescriptorSetLayoutCreateInfo,
                 BindingCount = (uint)desc.ResourceSlots.Length,
-                PBindings = (DescriptorSetLayoutBinding*)ZenithMarshal.AllocateAndFill(scope, bindings)
+                PBindings = (DescriptorSetLayoutBinding*)ZenithMarshal.AllocateAndFill(scope, desc.ResourceSlots.Vulkan()),
+                Flags = DescriptorSetLayoutCreateFlags.PushDescriptorBit
             };
 
             context.Vk.CreateDescriptorSetLayout(context.Device, &descriptorSetLayoutCreateInfo, null, out DescriptorSetLayout).Success();

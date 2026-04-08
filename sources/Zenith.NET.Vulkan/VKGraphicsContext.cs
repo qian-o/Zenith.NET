@@ -48,8 +48,6 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public Vk Vk { get; } = Vk.GetApi();
 
-    public VKDescriptorAllocator DescriptorAllocator => field ??= new(this);
-
     public ExtDebugUtils? DebugUtils { get; private set; }
 
     public KhrSurface? Surface { get; private set; }
@@ -510,8 +508,6 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         Vk.DeviceWaitIdle(Device).Success();
 
         base.Destroy();
-
-        DescriptorAllocator.Dispose();
 
         Vk.DestroyDevice(Device, null);
         Vk.DestroyInstance(Instance, null);

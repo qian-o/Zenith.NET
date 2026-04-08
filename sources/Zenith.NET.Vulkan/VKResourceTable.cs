@@ -4,43 +4,68 @@ namespace Zenith.NET.Vulkan;
 
 internal unsafe class VKResourceTable : ResourceTable
 {
-    private readonly VKTextureView?[] srvTextureViews;
-    private readonly VKTextureView?[] uavTextureViews;
+    private readonly ZenithMarshal.Scope scope = new();
 
-    public DescriptorSetLayout DescriptorSetLayout;
-
-    public VKDescriptorToken DescriptorToken;
+    public WriteDescriptorSet* DescriptorSets;
 
     public VKResourceTable(VKGraphicsContext context, ResourceTableDesc desc) : base(context, desc)
     {
-        using ZenithMarshal.Scope scope = new();
+        WriteDescriptorSet[] descriptorSets = new WriteDescriptorSet[desc.Slots.Length];
 
-        desc.Slots.Vulkan(out DescriptorSetLayoutBinding[] bindings, out VKDescriptorCounts counts);
-
-        DescriptorSetLayoutCreateInfo createInfo = new()
+        for (int i = 0; i < descriptorSets.Length; i++)
         {
-            SType = StructureType.DescriptorSetLayoutCreateInfo,
-            BindingCount = (uint)desc.Slots.Length,
-            PBindings = (DescriptorSetLayoutBinding*)ZenithMarshal.AllocateAndFill(scope, bindings)
-        };
+            ResourceSlot resourceSlot = desc.Slots[i];
 
-        context.Vk.CreateDescriptorSetLayout(context.Device, &createInfo, null, out DescriptorSetLayout).Success();
+            descriptorSets[i] = new()
+            {
+                SType = StructureType.WriteDescriptorSet,
+                DstBinding = (uint)i,
+                DescriptorCount = resourceSlot.Count,
+                DescriptorType = VKFormats.Vulkan(resourceSlot.Type)
+            };
 
-        DescriptorToken = context.DescriptorAllocator.Allocate(DescriptorSetLayout, counts);
+            switch (resourceSlot.Type)
+            {
+                case ResourceType.ConstantBuffer:
+                case ResourceType.StructuredBuffer:
+                case ResourceType.StructuredBufferReadWrite:
+                    descriptorSets[i].PBufferInfo = (DescriptorBufferInfo*)ZenithMarshal.Allocate<DescriptorBufferInfo>(scope, resourceSlot.Count);
+                    break;
 
-        srvTextureViews = new VKTextureView?[desc.Slots.Sum(static item => item.Count)];
-        uavTextureViews = new VKTextureView?[desc.Slots.Sum(static item => item.Count)];
+                case ResourceType.Texture:
+                case ResourceType.TextureReadWrite:
+                case ResourceType.Sampler:
+                    descriptorSets[i].PImageInfo = (DescriptorImageInfo*)ZenithMarshal.Allocate<DescriptorImageInfo>(scope, resourceSlot.Count);
+                    break;
+
+                case ResourceType.AccelerationStructure:
+                    descriptorSets[i].PNext = (WriteDescriptorSetAccelerationStructureKHR*)ZenithMarshal.AllocateAndFill<WriteDescriptorSetAccelerationStructureKHR>(scope, [new()
+                    {
+                        SType = StructureType.WriteDescriptorSetAccelerationStructureKhr,
+                        AccelerationStructureCount = resourceSlot.Count,
+                        PAccelerationStructures = (AccelerationStructureKHR*)ZenithMarshal.Allocate<AccelerationStructureKHR>(scope, resourceSlot.Count)
+                    }]);
+                    break;
+            }
+        }
+
+        DescriptorSets = (WriteDescriptorSet*)ZenithMarshal.AllocateAndFill(scope, descriptorSets);
+
+        SrvTextureViews = new VKTextureView?[desc.Slots.Sum(static item => item.Count)];
+        UavTextureViews = new VKTextureView?[desc.Slots.Sum(static item => item.Count)];
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
+
+    public VKTextureView?[] SrvTextureViews { get; }
+
+    public VKTextureView?[] UavTextureViews { get; }
 
     protected override void SetImpl(uint slot, IBindableResource[] resources)
     {
         ResourceSlot resourceSlot = Desc.Slots[slot];
 
-        DescriptorBufferInfo[] bufferInfos = new DescriptorBufferInfo[resources.Length];
-        DescriptorImageInfo[] imageInfos = new DescriptorImageInfo[resources.Length];
-        AccelerationStructureKHR[] accelerationStructures = new AccelerationStructureKHR[resources.Length];
+        ref WriteDescriptorSet descriptorSet = ref DescriptorSets[slot];
 
         switch (resourceSlot.Type)
         {
@@ -53,11 +78,11 @@ internal unsafe class VKResourceTable : ResourceTable
 
                     if (resource is Buffer buffer)
                     {
-                        bufferInfos[i] = buffer.Vulkan().View.BufferInfo;
+                        descriptorSet.PBufferInfo[i] = buffer.Vulkan().View.BufferInfo;
                     }
                     else if (resource is BufferView bufferView)
                     {
-                        bufferInfos[i] = bufferView.Vulkan().BufferInfo;
+                        descriptorSet.PBufferInfo[i] = bufferView.Vulkan().BufferInfo;
                     }
                 }
                 break;
@@ -72,15 +97,15 @@ internal unsafe class VKResourceTable : ResourceTable
 
                         if (resource is Texture texture)
                         {
-                            imageInfos[i] = texture.Vulkan().View.SrvImageInfo;
+                            descriptorSet.PImageInfo[i] = texture.Vulkan().View.SrvImageInfo;
 
-                            srvTextureViews[index + i] = texture.Vulkan().View;
+                            SrvTextureViews[index + i] = texture.Vulkan().View;
                         }
                         else if (resource is TextureView textureView)
                         {
-                            imageInfos[i] = textureView.Vulkan().SrvImageInfo;
+                            descriptorSet.PImageInfo[i] = textureView.Vulkan().SrvImageInfo;
 
-                            srvTextureViews[index + i] = textureView.Vulkan();
+                            SrvTextureViews[index + i] = textureView.Vulkan();
                         }
                     }
                 }
@@ -96,15 +121,15 @@ internal unsafe class VKResourceTable : ResourceTable
 
                         if (resource is Texture texture)
                         {
-                            imageInfos[i] = texture.Vulkan().View.UavImageInfo;
+                            descriptorSet.PImageInfo[i] = texture.Vulkan().View.UavImageInfo;
 
-                            uavTextureViews[index + i] = texture.Vulkan().View;
+                            UavTextureViews[index + i] = texture.Vulkan().View;
                         }
                         else if (resource is TextureView textureView)
                         {
-                            imageInfos[i] = textureView.Vulkan().UavImageInfo;
+                            descriptorSet.PImageInfo[i] = textureView.Vulkan().UavImageInfo;
 
-                            uavTextureViews[index + i] = textureView.Vulkan();
+                            UavTextureViews[index + i] = textureView.Vulkan();
                         }
                     }
                 }
@@ -115,7 +140,7 @@ internal unsafe class VKResourceTable : ResourceTable
                 {
                     if (resources[i] is Sampler sampler)
                     {
-                        imageInfos[i] = new() { Sampler = sampler.Vulkan().Sampler };
+                        descriptorSet.PImageInfo[i] = new() { Sampler = sampler.Vulkan().Sampler };
                     }
                 }
                 break;
@@ -125,45 +150,10 @@ internal unsafe class VKResourceTable : ResourceTable
                 {
                     if (resources[i] is TopLevelAccelerationStructure topLevelAccelerationStructure)
                     {
-                        accelerationStructures[i] = topLevelAccelerationStructure.Vulkan().AccelerationStructure;
+                        ((WriteDescriptorSetAccelerationStructureKHR*)descriptorSet.PNext)->PAccelerationStructures[i] = topLevelAccelerationStructure.Vulkan().AccelerationStructure;
                     }
                 }
                 break;
-        }
-
-        fixed (DescriptorBufferInfo* pBufferInfo = bufferInfos)
-        {
-            fixed (DescriptorImageInfo* pImageInfo = imageInfos)
-            {
-                fixed (AccelerationStructureKHR* pAccelerationStructures = accelerationStructures)
-                {
-                    WriteDescriptorSet descriptorWrite = new()
-                    {
-                        SType = StructureType.WriteDescriptorSet,
-                        DstSet = DescriptorToken.Set,
-                        DstBinding = slot,
-                        DstArrayElement = 0,
-                        DescriptorCount = (uint)resources.Length,
-                        DescriptorType = VKFormats.Vulkan(resourceSlot.Type),
-                        PBufferInfo = pBufferInfo,
-                        PImageInfo = pImageInfo
-                    };
-
-                    if (resourceSlot.Type is ResourceType.AccelerationStructure)
-                    {
-                        WriteDescriptorSetAccelerationStructureKHR accelerationStructureWrite = new()
-                        {
-                            SType = StructureType.WriteDescriptorSetAccelerationStructureKhr,
-                            AccelerationStructureCount = (uint)resources.Length,
-                            PAccelerationStructures = pAccelerationStructures
-                        };
-
-                        descriptorWrite.PNext = &accelerationStructureWrite;
-                    }
-
-                    Context.Vk.UpdateDescriptorSets(Context.Device, 1, &descriptorWrite, 0, (CopyDescriptorSet*)null);
-                }
-            }
         }
     }
 
@@ -171,12 +161,12 @@ internal unsafe class VKResourceTable : ResourceTable
     {
         VKCommandBuffer vkCommandBuffer = commandBuffer.Vulkan();
 
-        foreach (VKTextureView? textureView in srvTextureViews)
+        foreach (VKTextureView? textureView in SrvTextureViews)
         {
             textureView?.TransitionLayout(vkCommandBuffer, ImageLayout.ShaderReadOnlyOptimal);
         }
 
-        foreach (VKTextureView? textureView in uavTextureViews)
+        foreach (VKTextureView? textureView in UavTextureViews)
         {
             textureView?.TransitionLayout(vkCommandBuffer, ImageLayout.General);
         }
@@ -184,22 +174,10 @@ internal unsafe class VKResourceTable : ResourceTable
 
     protected override void SetResourceName(string name)
     {
-        using ZenithMarshal.Scope scope = new();
-
-        DebugUtilsObjectNameInfoEXT nameInfo = new()
-        {
-            SType = StructureType.DebugUtilsObjectNameInfoExt,
-            ObjectType = ObjectType.DescriptorSet,
-            ObjectHandle = DescriptorToken.Set.Handle,
-            PObjectName = (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8)
-        };
-
-        Context.DebugUtils?.SetDebugUtilsObjectName(Context.Device, &nameInfo).Success();
     }
 
     protected override void Destroy()
     {
-        Context.DescriptorAllocator.Free(DescriptorToken);
-        Context.Vk.DestroyDescriptorSetLayout(Context.Device, DescriptorSetLayout, null);
+        scope.Dispose();
     }
 }

@@ -47,16 +47,9 @@ public static class Extensions
 
     extension(ResourceSlot[] resourceSlots)
     {
-        internal void Vulkan(out DescriptorSetLayoutBinding[] bindings, out VKDescriptorCounts counts)
+        internal DescriptorSetLayoutBinding[] Vulkan()
         {
-            bindings = new DescriptorSetLayoutBinding[resourceSlots.Length];
-
-            uint uniformBufferCount = 0;
-            uint storageBufferCount = 0;
-            uint sampledImageCount = 0;
-            uint storageImageCount = 0;
-            uint samplerCount = 0;
-            uint accelerationStructureCount = 0;
+            DescriptorSetLayoutBinding[] bindings = new DescriptorSetLayoutBinding[resourceSlots.Length];
 
             for (int i = 0; i < resourceSlots.Length; i++)
             {
@@ -69,37 +62,9 @@ public static class Extensions
                     DescriptorCount = resourceSlot.Count,
                     StageFlags = VkShaderStageFlags.All
                 };
-
-                switch (resourceSlot.Type)
-                {
-                    case ResourceType.ConstantBuffer:
-                        uniformBufferCount += resourceSlot.Count;
-                        break;
-
-                    case ResourceType.StructuredBuffer:
-                    case ResourceType.StructuredBufferReadWrite:
-                        storageBufferCount += resourceSlot.Count;
-                        break;
-
-                    case ResourceType.Texture:
-                        sampledImageCount += resourceSlot.Count;
-                        break;
-
-                    case ResourceType.TextureReadWrite:
-                        storageImageCount += resourceSlot.Count;
-                        break;
-
-                    case ResourceType.Sampler:
-                        samplerCount += resourceSlot.Count;
-                        break;
-
-                    case ResourceType.AccelerationStructure:
-                        accelerationStructureCount += resourceSlot.Count;
-                        break;
-                }
             }
 
-            counts = new(uniformBufferCount, storageBufferCount, sampledImageCount, storageImageCount, samplerCount, accelerationStructureCount);
+            return bindings;
         }
     }
 
