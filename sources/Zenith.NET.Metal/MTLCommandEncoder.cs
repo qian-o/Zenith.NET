@@ -4,7 +4,7 @@ namespace Zenith.NET.Metal;
 
 internal class MTLCommandEncoder : GraphicsResource
 {
-    private const uint ArgumentCount = 64;
+    private const uint ArgumentCount = 16;
     private const MTLStages RenderStages = MTLStages.Vertex | MTLStages.Fragment | MTLStages.Object | MTLStages.Mesh;
     private const MTLStages ComputeStages = MTLStages.Dispatch | MTLStages.Blit | MTLStages.AccelerationStructure;
 
