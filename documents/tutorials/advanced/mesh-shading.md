@@ -362,7 +362,7 @@ internal unsafe class MeshShadingRenderer : IRenderer
         });
 
 
-        resourceTable = App.Context.CreateResourceTable(new() { Bindings = bindings });
+        resourceTable = App.Context.CreateResourceTable(new() { Bindings = ResourceBindings });
         resourceTable.Write(0, constantsBuffer);
         resourceTable.Write(1, vertexBuffer);
         resourceTable.Write(2, indexBuffer);

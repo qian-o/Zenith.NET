@@ -15,84 +15,43 @@ Each backend targets real-world device coverage:
 |---------|----------|
 | **DirectX 12** | Targets mainstream Windows 10 and above, covering the vast majority of Windows devices |
 | **Metal 4** | Supports Apple Silicon (M-series) Macs and compatible iPhone/iPad models. Intel-based Macs are not supported |
-| **Vulkan 1.4** | Serves as the cross-platform fallback. While Vulkan has evolved rapidly with many extensions, mobile and Linux driver support remains uneven — so adaptation is driven by actual device capabilities rather than spec version alone |
-
-For detailed backend selection guidance, see [Backend Selection](platform/backend-selection.md).
+| **Vulkan 1.4** | Cross-platform fallback, requiring Vulkan 1.4 as the minimum version |
 
 ## Core Concepts
 
-### Graphics Context
+| Topic | Description |
+|-------|-------------|
+| [Graphics Context](concepts/graphics-context.md) | The central hub for resource creation, command queues, capabilities, and validation |
+| [Command Model](concepts/command-model.md) | Command buffers, submission, synchronization, and the full command API |
+| [Resource Binding](concepts/resource-binding.md) | `ResourceTable`, `ResourceBinding`, and how resources connect to shaders |
 
-The `GraphicsContext` is the central hub of Zenith.NET. It abstracts the underlying graphics API and provides:
+## Resources
 
-- **Resource Creation** - Create buffers, textures, pipelines, and other GPU resources
-- **Command Queues** - Access to `Graphics`, `Compute`, and `Copy` queues
-- **Capabilities** - Query device name and feature support via `Capabilities`
-
-Backend-specific contexts are created via extension methods:
-- `GraphicsContext.CreateDirectX12(useValidationLayer)` - Windows
-- `GraphicsContext.CreateMetal(useValidationLayer)` - Apple
-- `GraphicsContext.CreateVulkan(useValidationLayer)` - Cross-platform
-
-### Command Model
-
-Zenith.NET uses an explicit command recording model:
-
-1. **Get a CommandBuffer** - Call `queue.CommandBuffer()` to obtain a buffer from the pool
-2. **Record Commands** - Record draw calls, dispatches, copies, and state changes
-3. **Submit** - Call `commandBuffer.Submit()` to execute on the GPU
-4. **Synchronize** - Use `queue.WaitIdle()` to wait for all submitted work to complete
-
-### Resource Binding
-
-Resources are bound to shaders through `ResourceTable`:
-
-1. **Create** — Create a `ResourceTable` that declares what each binding slot expects
-2. **Write** — Call `Write()` to assign actual GPU resources to each slot
-
-Pipelines and resource tables share the same binding definitions. Before draw/dispatch calls, bind the resource table with `SetResourceTable()`.
+| Topic | Description |
+|-------|-------------|
+| [Buffers](resources/buffers.md) | Vertex, index, constant, and structured buffers with upload and map operations |
+| [Textures](resources/textures.md) | 2D/3D/Cube textures, pixel formats, mipmaps, and multisampling |
+| [Samplers](resources/samplers.md) | Address modes, filtering, anisotropic sampling, and LOD control |
 
 ## Features
 
 | Feature | Description |
 |---------|-------------|
-| **Graphics** | Traditional rasterization with vertex and pixel shaders |
-| **Compute** | General-purpose GPU compute with compute shaders |
-| **Ray Tracing** | Hardware-accelerated BLAS/TLAS with `RayQuery` in any shader stage |
-| **Mesh Shading** | Modern GPU-driven geometry with mesh and amplification shaders |
+| [Graphics](features/graphics.md) | Rasterization with vertex/pixel shaders, render states, and input layouts |
+| [Compute](features/compute.md) | General-purpose GPU computing with dispatch and read-write resources |
+| [Ray Tracing](features/ray-tracing.md) | BLAS/TLAS acceleration structures and `RayQuery` inline tracing |
+| [Mesh Shading](features/mesh-shading.md) | GPU-driven geometry with mesh and amplification shaders |
 
-## Platform Support
+## Platform
 
-| Platform | DirectX 12 | Metal 4 | Vulkan 1.4 |
-|----------|:----------:|:-----:|:------:|
-| Windows  | <span class="status-yes">Yes</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
-| Apple    | <span class="status-no">No</span> | <span class="status-yes">Yes</span> | <span class="status-yes">Yes</span> |
-| Android  | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
-| Linux    | <span class="status-no">No</span> | <span class="status-no">No</span> | <span class="status-yes">Yes</span> |
+| Topic | Description |
+|-------|-------------|
+| [Backend Selection](platform/backend-selection.md) | Platform-backend mapping, runtime detection, and capability checks |
+| [UI Framework Integration](platform/ui-frameworks.md) | Avalonia, MAUI, WinForms, WinUI, and WPF view controls |
 
-## Best Practices
+## [Best Practices](best-practices.md)
 
-### Resource Management
-
-- **Dispose resources** when no longer needed using `using` statements or `IDisposable` patterns
-- **Create resources upfront** rather than per-frame to avoid allocation overhead
-- **Reuse command buffers** - the queue automatically pools and recycles them
-
-### Command Recording
-
-- **Batch similar operations** to reduce pipeline and resource table switches
-- **Minimize render pass switches** by grouping draws with the same targets
-- Call `queue.WaitIdle()` only when synchronization is required
-
-### Data Alignment
-
-Zenith.NET defines alignment constants in `GraphicsContext` for cross-platform compatibility:
-
-| Constant | Value | Purpose |
-|----------|:-----:|---------|
-| `ConstantBufferAlignment` | 256 bytes | Minimum alignment for constant buffer data |
-| `TextureRowPitchAlignment` | 256 bytes | Alignment for texture row pitch |
-| `TextureDepthPitchAlignment` | 512 bytes | Alignment for 3D texture depth slice pitch |
+Resource lifecycle, command batching, data alignment, performance tips, and debugging guidance.
 
 ## Next Steps
 

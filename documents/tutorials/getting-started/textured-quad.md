@@ -290,7 +290,7 @@ resourceTable.Write(0, texture);
 resourceTable.Write(1, sampler);
 ```
 
-`ResourceTable.Write(binding, resource)` assigns actual GPU resources to each slot by index.
+`ResourceTable.Write(binding, resource)` assigns actual GPU resources to each binding by index.
 
 ### Rendering
 
