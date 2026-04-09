@@ -22,6 +22,7 @@ internal class MTLShader : Shader
 
     protected override void SetResourceName(string name)
     {
+        Library.Label = name;
     }
 
     protected override void Destroy()
