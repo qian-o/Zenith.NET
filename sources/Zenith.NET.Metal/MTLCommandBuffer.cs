@@ -231,9 +231,9 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         CommandEncoder.SetIndexBuffer(buffer, offsetInBytes, format);
     }
 
-    protected override void SetResourceTableImpl(Pipeline pipeline, ResourceTable resourceTable)
+    protected override void PushResourceTableImpl(Pipeline pipeline, ResourceTable resourceTable)
     {
-        CommandEncoder.SetResourceTable(resourceTable);
+        CommandEncoder.PushResourceTable(resourceTable);
     }
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)

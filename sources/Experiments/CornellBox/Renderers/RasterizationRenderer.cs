@@ -113,7 +113,7 @@ internal unsafe class RasterizationRenderer : Renderer
         }, resourceTable);
 
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetResourceTable(resourceTable);
+        commandBuffer.PushResourceTable(resourceTable);
         commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
         commandBuffer.SetIndexBuffer(indexBuffer, 0, IndexFormat.UInt32);
         commandBuffer.DrawIndexed(indexCount, 1, 0, 0, 0);

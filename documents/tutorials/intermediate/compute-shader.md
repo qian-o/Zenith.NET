@@ -108,7 +108,7 @@ internal class ComputeShaderRenderer : IRenderer
             uint dispatchY = (inputTexture.Desc.Height + ThreadGroupSize - 1) / ThreadGroupSize;
 
             commandBuffer.SetPipeline(pipeline);
-            commandBuffer.SetResourceTable(resourceTable);
+            commandBuffer.PushResourceTable(resourceTable);
             commandBuffer.Dispatch(dispatchX, dispatchY, 1);
 
             processed = true;
@@ -252,7 +252,7 @@ if (!processed)
     uint dispatchY = (inputTexture.Desc.Height + ThreadGroupSize - 1) / ThreadGroupSize;
 
     commandBuffer.SetPipeline(pipeline);
-    commandBuffer.SetResourceTable(resourceTable);
+    commandBuffer.PushResourceTable(resourceTable);
     commandBuffer.Dispatch(dispatchX, dispatchY, 1);
 
     processed = true;

@@ -185,7 +185,7 @@ internal unsafe class PathTracingRenderer : Renderer
         }
 
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetResourceTable(resourceTable);
+        commandBuffer.PushResourceTable(resourceTable);
 
         commandBuffer.Dispatch((App.Width + ThreadGroupSize - 1) / ThreadGroupSize, (App.Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
 

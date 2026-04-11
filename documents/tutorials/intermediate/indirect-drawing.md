@@ -238,7 +238,7 @@ internal unsafe class IndirectDrawingRenderer : IRenderer
         }, resourceTable);
 
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetResourceTable(resourceTable);
+        commandBuffer.PushResourceTable(resourceTable);
         commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
         commandBuffer.SetIndexBuffer(indexBuffer, 0, IndexFormat.UInt32);
         commandBuffer.DrawIndexedIndirect(indirectBuffer, 0, 1);

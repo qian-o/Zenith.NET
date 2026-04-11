@@ -216,14 +216,14 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         SetIndexBufferImpl(pipeline, buffer, offsetInBytes, format);
     }
 
-    public void SetResourceTable(ResourceTable resourceTable)
+    public void PushResourceTable(ResourceTable resourceTable)
     {
         if (currentPipeline is null)
         {
             return;
         }
 
-        SetResourceTableImpl(currentPipeline, resourceTable);
+        PushResourceTableImpl(currentPipeline, resourceTable);
 
         if (currentFrameBuffer is null)
         {
@@ -428,7 +428,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void SetIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format);
 
-    protected abstract void SetResourceTableImpl(Pipeline pipeline, ResourceTable resourceTable);
+    protected abstract void PushResourceTableImpl(Pipeline pipeline, ResourceTable resourceTable);
 
     protected abstract void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
 

@@ -150,7 +150,7 @@ internal unsafe class TexturedQuadRenderer : IRenderer
         }, resourceTable);
 
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetResourceTable(resourceTable);
+        commandBuffer.PushResourceTable(resourceTable);
         commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
         commandBuffer.SetIndexBuffer(indexBuffer, 0, IndexFormat.UInt32);
         commandBuffer.DrawIndexed(6, 1, 0, 0, 0);
@@ -306,7 +306,7 @@ commandBuffer.BeginRenderPass(App.FrameBuffer, new()
 }, resourceTable);
 
 commandBuffer.SetPipeline(pipeline);
-commandBuffer.SetResourceTable(resourceTable);
+commandBuffer.PushResourceTable(resourceTable);
 commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
 commandBuffer.SetIndexBuffer(indexBuffer, 0, IndexFormat.UInt32);
 commandBuffer.DrawIndexed(6, 1, 0, 0, 0);

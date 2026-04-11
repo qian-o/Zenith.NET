@@ -30,7 +30,7 @@ CommandBuffer commandBuffer = context.Graphics.CommandBuffer();
 // 2. Record commands
 commandBuffer.BeginRenderPass(frameBuffer, clearValue, resourceTable);
 commandBuffer.SetPipeline(pipeline);
-commandBuffer.SetResourceTable(resourceTable);
+commandBuffer.PushResourceTable(resourceTable);
 commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
 commandBuffer.Draw(3, 1, 0, 0);
 commandBuffer.EndRenderPass();
@@ -66,7 +66,7 @@ Compute dispatches do not require a render pass:
 
 ```csharp
 commandBuffer.SetPipeline(computePipeline);
-commandBuffer.SetResourceTable(resourceTable);
+commandBuffer.PushResourceTable(resourceTable);
 commandBuffer.Dispatch(groupCountX, groupCountY, groupCountZ);
 ```
 

@@ -61,7 +61,7 @@ Compute dispatches do not use render passes:
 
 ```csharp
 commandBuffer.SetPipeline(pipeline);
-commandBuffer.SetResourceTable(resourceTable);
+commandBuffer.PushResourceTable(resourceTable);
 commandBuffer.Dispatch(groupCountX, groupCountY, groupCountZ);
 ```
 
@@ -101,7 +101,7 @@ Compute results can be consumed by graphics pipelines and vice versa. For exampl
 ```csharp
 // Compute pass
 commandBuffer.SetPipeline(computePipeline);
-commandBuffer.SetResourceTable(computeTable);
+commandBuffer.PushResourceTable(computeTable);
 commandBuffer.Dispatch(groupCountX, groupCountY, 1);
 
 // Copy result to frame buffer

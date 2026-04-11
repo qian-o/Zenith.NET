@@ -386,7 +386,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         GraphicsCommandList4.IASetIndexBuffer(&view);
     }
 
-    protected override void SetResourceTableImpl(Pipeline pipeline, ResourceTable resourceTable)
+    protected override void PushResourceTableImpl(Pipeline pipeline, ResourceTable resourceTable)
     {
         if (cbvSrvUavTable is null || samplerTable is null)
         {

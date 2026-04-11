@@ -201,7 +201,7 @@ internal class MTLCommandEncoder : GraphicsResource
         IndexType = MTLFormats.Metal(format);
     }
 
-    public void SetResourceTable(ResourceTable resourceTable)
+    public void PushResourceTable(ResourceTable resourceTable)
     {
         currentResourceTable = resourceTable;
 

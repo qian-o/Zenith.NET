@@ -433,7 +433,7 @@ internal unsafe class MeshShadingRenderer : IRenderer
         }, resourceTable);
 
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetResourceTable(resourceTable);
+        commandBuffer.PushResourceTable(resourceTable);
         commandBuffer.DispatchMesh(DispatchGroupCount, 1, 1);
 
         commandBuffer.EndRenderPass();

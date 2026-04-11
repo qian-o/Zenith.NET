@@ -109,7 +109,7 @@ Set the resource table before draw or dispatch calls:
 commandBuffer.BeginRenderPass(frameBuffer, clearValue, resourceTable);
 
 commandBuffer.SetPipeline(pipeline);
-commandBuffer.SetResourceTable(resourceTable);
+commandBuffer.PushResourceTable(resourceTable);
 commandBuffer.Draw(3, 1, 0, 0);
 
 commandBuffer.EndRenderPass();

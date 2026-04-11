@@ -372,7 +372,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         Context.Vk.CmdBindIndexBuffer(CommandBuffer, buffer.Vulkan().Buffer, offsetInBytes, VKFormats.Vulkan(format));
     }
 
-    protected override void SetResourceTableImpl(Pipeline pipeline, ResourceTable resourceTable)
+    protected override void PushResourceTableImpl(Pipeline pipeline, ResourceTable resourceTable)
     {
         (PipelineBindPoint pipelineBindPoint, PipelineLayout pipelineLayout, uint descriptorWriteCount) = pipeline switch
         {

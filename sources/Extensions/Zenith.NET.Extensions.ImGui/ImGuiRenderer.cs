@@ -430,7 +430,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
                     }
 
                     commandBuffer.SetScissors([scissor]);
-                    commandBuffer.SetResourceTable(resourceTableBindings[drawCmd.TexRef.GetTexID()]);
+                    commandBuffer.PushResourceTable(resourceTableBindings[drawCmd.TexRef.GetTexID()]);
                     commandBuffer.DrawIndexed(drawCmd.ElemCount, 1, (uint)(drawCmd.IdxOffset + indexOffset), (int)(drawCmd.VtxOffset + vertexOffset), 0);
                 }
             }

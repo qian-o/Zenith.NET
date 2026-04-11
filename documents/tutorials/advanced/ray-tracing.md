@@ -710,7 +710,7 @@ internal unsafe class RayTracingRenderer : IRenderer
         CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
 
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetResourceTable(resourceTable);
+        commandBuffer.PushResourceTable(resourceTable);
 
         uint dispatchX = (App.Width + ThreadGroupSize - 1) / ThreadGroupSize;
         uint dispatchY = (App.Height + ThreadGroupSize - 1) / ThreadGroupSize;

@@ -127,7 +127,7 @@ Geometry data is typically stored in `StructuredBuffer` resources rather than tr
 ```csharp
 commandBuffer.BeginRenderPass(frameBuffer, clearValue, resourceTable);
 commandBuffer.SetPipeline(pipeline);
-commandBuffer.SetResourceTable(resourceTable);
+commandBuffer.PushResourceTable(resourceTable);
 commandBuffer.DispatchMesh(groupCountX, groupCountY, groupCountZ);
 commandBuffer.EndRenderPass();
 ```
