@@ -49,8 +49,7 @@
       "_gitContribute": {
         "repo": "https://github.com/qian-o/Zenith.NET",
         "branch": "master"
-      },
-      "_gitUrlPattern": "https://github.com/qian-o/Zenith.NET/blob/master/{path}#L{line}"
+      }
     },
     "output": "_site",
     "sitemap": {
