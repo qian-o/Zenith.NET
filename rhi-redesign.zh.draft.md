@@ -601,7 +601,201 @@ RDG 由 RHI 用户自行封装，本节只回答：「本 RHI 是否暴露了 RD
 
 结论：RDG 实现方可在不修改 RHI 公共面的前提下完成封装。
 
-## 11. ZenithHelper 受影响成员
+## 11. 互操作 / 原生句柄
+
+面向 Skia / DLSS / FSR / RenderDoc / 工具链等需要拿后端原生句柄的场景。设计原则：
+
+- 公共面只暴露 `nint` + 一组枚举；不出现任何后端类型 / 平台条件属性
+- RHI 不替外部库做事；调用方按既有模板自管 state 协议
+- 互操作 API 是 RHI 内部本就维护的状态的副产品，零额外运行时成本
+
+### 11.1 NativeObjectType 枚举
+
+```csharp
+public enum NativeObjectType
+{
+    // DirectX 12
+    DxgiFactory,
+    DxgiAdapter,
+    D3D12Device,
+    D3D12CommandQueue,
+    D3D12GraphicsCommandList,
+    D3D12Resource,
+    D3D12CpuDescriptorHandleSampler,
+    D3D12CpuDescriptorHandleRtv,
+    D3D12CpuDescriptorHandleDsv,
+    D3D12CpuDescriptorHandleSrv,
+    D3D12CpuDescriptorHandleUav,
+
+    // Metal
+    MtlDevice,
+    Mtl4CommandQueue,
+    Mtl4CommandBuffer,
+    MtlTexture,
+    MtlBuffer,
+    MtlSamplerState,
+
+    // Vulkan
+    VkInstance,
+    VkPhysicalDevice,
+    VkDevice,
+    VkQueue,
+    VkQueueFamilyIndex,
+    VkCommandBuffer,
+    VkImage,
+    VkImageView,
+    VkBuffer,
+    VkSampler
+}
+```
+
+命名沿用各原生 API 既有前缀：DX12 体系按 `Dxgi` / `D3D12` 区分；Metal 4 与旧 Metal 共存时用 `Mtl` / `Mtl4` 区分；Vulkan 一律 `Vk`。`D3D12CpuDescriptorHandle*` 按 view 类型拆开，避免单入口语义模糊。
+
+非句柄的标量信息（如 `VkQueueFamilyIndex`）也走同一入口，以 `nint` 承载 `uint`，公共面不挂任何平台条件属性。
+
+### 11.2 INativeObject 接口
+
+```csharp
+public interface INativeObject
+{
+    /// <summary>枚举不匹配本对象 / 当前后端时返回 0。</summary>
+    nint GetNativeObject(NativeObjectType type);
+}
+
+public abstract class GraphicsContext : INativeObject
+{
+    public abstract nint GetNativeObject(NativeObjectType type);
+}
+
+public abstract class GraphicsResource(GraphicsContext context) : DisposableObject, INativeObject
+{
+    public GraphicsContext Context { get; } = context;
+
+    public abstract nint GetNativeObject(NativeObjectType type);
+}
+```
+
+所有 `GraphicsResource` 子类（`Buffer` / `Texture` / `Sampler` / `CommandQueue` / `CommandBuffer` / `SwapChain` / `Pipeline` / `Shader` / `ResourceTable` / `ResourceLayout`）一律自动实现该接口；后端按 `switch` 实现，不感兴趣的子类返回 0。第三方代码可走接口编程，不必区分 context / resource。
+
+后端实现示例：
+
+```csharp
+// VKTexture
+public override nint GetNativeObject(NativeObjectType type) => type switch
+{
+    NativeObjectType.VkImage     => (nint)Image.Handle,
+    NativeObjectType.VkImageView => (nint)View.Handle,
+    _ => 0
+};
+
+// DXBuffer
+public override nint GetNativeObject(NativeObjectType type) => type switch
+{
+    NativeObjectType.D3D12Resource => (nint)Resource.Handle,
+    _ => 0
+};
+
+// 暂不暴露的子类
+public override nint GetNativeObject(NativeObjectType type) => 0;
+```
+
+### 11.3 CommandBuffer 互操作动词
+
+```csharp
+public abstract class CommandBuffer
+{
+    /// <summary>
+    /// 进入互操作段：结束当前 RenderPass / Encoder（如有），清空 RHI 内部绑定缓存
+    /// （PSO / 描述符 / 顶点索引 / viewport / scissor）。
+    /// 不向 cmd 写入命令（VK 例外：会调一次 vkCmdEndRendering）。
+    /// 进入后请通过 GetNativeObject(...) 拿原生句柄交给外部库。
+    /// Begin / End 必须成对调用，禁止嵌套。
+    /// </summary>
+    public abstract void BeginExternalCommands();
+
+    /// <summary>
+    /// 结束互操作段：插入一个全局 MemoryBarrier 以隔离外部库的写入与后续 RHI 命令。
+    /// 不重新打开 RenderPass / Encoder；调用方按需 BeginRenderPass / SetPipeline。
+    /// </summary>
+    public abstract void EndExternalCommands();
+
+    /// <summary>
+    /// 同步 RHI 资源状态缓存为 newState，不写 cmd、不发 barrier。
+    /// 下一次 Transition 据此算 from→to。允许在 External scope 内或外调用。
+    /// </summary>
+    public abstract void SetState(Texture texture, TransitionState newState);
+
+    public abstract void SetState(Buffer buffer, TransitionState newState);
+}
+```
+
+后端实现要点：
+
+- `BeginExternalCommands`：
+    - 公共部分：清 `cachedPipeline` / `cachedRootSignature`(DX12) / `cachedDescriptorSets/Heaps` / `cachedVertexBuffers` / `cachedIndexBuffer` / `cachedViewports` / `cachedScissors`
+    - VK：若当前在 dynamic rendering scope，调一次 `vkCmdEndRendering`
+    - DX12 / Metal：仅清字段，不写 cmd（DX12 不调 `ID3D12GraphicsCommandList::ClearState`，那会真往 cmd 写命令）
+    - 置内部 `inExternalScope = true`；若已为 true → 抛异常
+- `EndExternalCommands`：
+    - 调用一次内部 `MemoryBarrier()`（VK = `vkCmdPipelineBarrier2(ALL → ALL, MEMORY_READ|WRITE → MEMORY_READ|WRITE)`；DX12 = `ResourceBarrier(UAV, nullptr)` 或 `D3D12_GLOBAL_BARRIER`；Metal = `MemoryBarrier(scope=AllResources, after=AllStages, before=AllStages)`）
+    - 置 `inExternalScope = false`；若已为 false → 抛异常
+    - 不重开 RenderPass / Encoder
+- `SetState`：直接写 `texture.CurrentState = newState` / `buffer.CurrentState = newState`，零写 cmd。
+
+### 11.4 调用方模板
+
+```csharp
+// === DLSS (DX12) — 共享 cmd，state 不变 ===
+cmd.Transition(colorIn,  TransitionState.ShaderResource);
+cmd.Transition(colorOut, TransitionState.UnorderedAccess);
+
+cmd.BeginExternalCommands();
+DLSS.Evaluate(
+    cmd.GetNativeObject(NativeObjectType.D3D12GraphicsCommandList),
+    colorIn.GetNativeObject(NativeObjectType.D3D12Resource),
+    colorOut.GetNativeObject(NativeObjectType.D3D12Resource));
+cmd.EndExternalCommands();   // 自动插入 barrier，隔离 DLSS 写入与后续 RHI 命令
+
+cmd.BeginRenderPass(...);
+
+// === FSR/FFX (Vulkan) — 共享 cmd，state 由外部库改 ===
+cmd.Transition(colorIn,  TransitionState.ShaderResource);
+cmd.Transition(colorOut, TransitionState.UnorderedAccess);
+
+cmd.BeginExternalCommands();
+Ffx.Fsr2Dispatch(
+    cmd.GetNativeObject(NativeObjectType.VkCommandBuffer),
+    colorIn.GetNativeObject(NativeObjectType.VkImage),
+    colorOut.GetNativeObject(NativeObjectType.VkImage));
+cmd.SetState(colorOut, TransitionState.ShaderResource);
+cmd.EndExternalCommands();
+
+cmd.BeginRenderPass(...);
+
+// === Skia (Vulkan) — 不共享 cmd，自带提交 ===
+nint instance = ctx.GetNativeObject(NativeObjectType.VkInstance);
+nint device   = ctx.GetNativeObject(NativeObjectType.VkDevice);
+nint queue    = ctx.Graphics.GetNativeObject(NativeObjectType.VkQueue);
+uint family   = (uint)ctx.Graphics.GetNativeObject(NativeObjectType.VkQueueFamilyIndex);
+var grContext = GRContext.MakeVulkan(instance, device, queue, family, /*...*/);
+// 不共享 cmd 的库不需要 Begin/End；只需在下一次用到资源前 SetState 同步 layout
+
+// === RenderDoc — 仅 device 句柄 ===
+nint device = ctx.GetNativeObject(NativeObjectType.D3D12Device);
+RenderDocApi.StartFrameCapture(device, IntPtr.Zero);
+// ... 渲染一帧 ...
+RenderDocApi.EndFrameCapture(device, IntPtr.Zero);
+```
+
+### 11.5 不做的事
+
+- 不暴露任何后端类型 / 平台条件属性
+- 不提供「导入外部 native 资源」入口（首版）；如未来需要：通过 `GraphicsContext.ImportTexture(TextureDesc, nint, TransitionState)` 加入，签名同形态
+- 不允许 `BeginExternalCommands` 嵌套
+- `EndExternalCommands` 不重开 RenderPass / Encoder（调用方按需重开）
+- 调用方自己保证调用外部库时不在 RenderPass 内（典型互操作都是 compute，天然如此）
+
+## 12. ZenithHelper 受影响成员
 
 [ZenithHelper](sources/Zenith.NET/ZenithHelper.cs) 中以下函数依赖被删除的 `TextureSlice`（含 `Face`） / `TextureViewDesc`，或依赖 "cube 面隐式乘进子资源计数" 模型，新设计下不再适用，需删除或以新型重写：
 

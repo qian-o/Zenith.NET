@@ -605,7 +605,202 @@ The RDG is built on top of this RHI by the consumer, not by us. This section onl
 
 Conclusion: an RDG implementation can be built without any further changes to the RHI public surface.
 
-## 11. ZenithHelper Members Affected
+## 11. Interop / Native Handles
+
+For third-party libraries that need backend-native handles: Skia / DLSS / FSR / RenderDoc / tooling. Design principles:
+
+- The public surface exposes only `nint` plus an enum; no backend types and no platform-conditional properties.
+- The RHI does not perform work on behalf of the external library; the caller follows the documented protocol for state synchronization.
+- The interop API is a side-effect of state the RHI already maintains internally — zero extra runtime cost.
+
+### 11.1 NativeObjectType
+
+```csharp
+public enum NativeObjectType
+{
+    // DirectX 12
+    DxgiFactory,
+    DxgiAdapter,
+    D3D12Device,
+    D3D12CommandQueue,
+    D3D12GraphicsCommandList,
+    D3D12Resource,
+    D3D12CpuDescriptorHandleSampler,
+    D3D12CpuDescriptorHandleRtv,
+    D3D12CpuDescriptorHandleDsv,
+    D3D12CpuDescriptorHandleSrv,
+    D3D12CpuDescriptorHandleUav,
+
+    // Metal
+    MtlDevice,
+    Mtl4CommandQueue,
+    Mtl4CommandBuffer,
+    MtlTexture,
+    MtlBuffer,
+    MtlSamplerState,
+
+    // Vulkan
+    VkInstance,
+    VkPhysicalDevice,
+    VkDevice,
+    VkQueue,
+    VkQueueFamilyIndex,
+    VkCommandBuffer,
+    VkImage,
+    VkImageView,
+    VkBuffer,
+    VkSampler
+}
+```
+
+Prefixes follow the original native APIs: DX12 splits into `Dxgi` / `D3D12`; Metal 4 keeps `Mtl4` distinct from the older `Mtl`; Vulkan uses `Vk`. `D3D12CpuDescriptorHandle*` is split per view type to avoid ambiguity at a single entry point.
+
+Non-handle scalar information (e.g. `VkQueueFamilyIndex`) flows through the same entry point, carrying a `uint` inside an `nint`. The public surface never grows a platform-conditional property.
+
+### 11.2 INativeObject Interface
+
+```csharp
+public interface INativeObject
+{
+    /// <summary>Returns 0 when the enum does not match this object or the current backend.</summary>
+    nint GetNativeObject(NativeObjectType type);
+}
+
+public abstract class GraphicsContext : INativeObject
+{
+    public abstract nint GetNativeObject(NativeObjectType type);
+}
+
+public abstract class GraphicsResource(GraphicsContext context) : DisposableObject, INativeObject
+{
+    public GraphicsContext Context { get; } = context;
+
+    public abstract nint GetNativeObject(NativeObjectType type);
+}
+```
+
+Every `GraphicsResource` subclass (`Buffer` / `Texture` / `Sampler` / `CommandQueue` / `CommandBuffer` / `SwapChain` / `Pipeline` / `Shader` / `ResourceTable` / `ResourceLayout`) implements the interface. Backends use a `switch`; subclasses with nothing to expose return 0. Third-party code can program against the interface without distinguishing context from resource.
+
+Backend implementation examples:
+
+```csharp
+// VKTexture
+public override nint GetNativeObject(NativeObjectType type) => type switch
+{
+    NativeObjectType.VkImage     => (nint)Image.Handle,
+    NativeObjectType.VkImageView => (nint)View.Handle,
+    _ => 0
+};
+
+// DXBuffer
+public override nint GetNativeObject(NativeObjectType type) => type switch
+{
+    NativeObjectType.D3D12Resource => (nint)Resource.Handle,
+    _ => 0
+};
+
+// Subclass that does not currently expose anything
+public override nint GetNativeObject(NativeObjectType type) => 0;
+```
+
+### 11.3 CommandBuffer Interop Verbs
+
+```csharp
+public abstract class CommandBuffer
+{
+    /// <summary>
+    /// Enter the interop scope: end the current RenderPass / Encoder (if any), clear the
+    /// RHI's internal binding caches (PSO / descriptors / vertex+index buffers / viewports / scissors).
+    /// Does not write any command into the cmd (Vulkan exception: one vkCmdEndRendering call).
+    /// After entering, use GetNativeObject(...) to hand native handles to the external library.
+    /// Begin / End must be paired; nesting is forbidden.
+    /// </summary>
+    public abstract void BeginExternalCommands();
+
+    /// <summary>
+    /// Leave the interop scope: emit one global MemoryBarrier to isolate the external library's
+    /// writes from subsequent RHI commands. Does not re-open any RenderPass / Encoder; the caller
+    /// reissues BeginRenderPass / SetPipeline as needed.
+    /// </summary>
+    public abstract void EndExternalCommands();
+
+    /// <summary>
+    /// Synchronize the RHI's cached resource state to newState. Writes neither cmd nor barrier.
+    /// The next Transition uses this value to compute from → to. Callable inside or outside the External scope.
+    /// </summary>
+    public abstract void SetState(Texture texture, TransitionState newState);
+
+    public abstract void SetState(Buffer buffer, TransitionState newState);
+}
+```
+
+Backend implementation notes:
+
+- `BeginExternalCommands`:
+    - Common: clear `cachedPipeline` / `cachedRootSignature` (DX12) / `cachedDescriptorSets/Heaps` / `cachedVertexBuffers` / `cachedIndexBuffer` / `cachedViewports` / `cachedScissors`.
+    - VK: if currently inside a dynamic rendering scope, call `vkCmdEndRendering` once.
+    - DX12 / Metal: only clear fields; do not write cmd (DX12 must NOT call `ID3D12GraphicsCommandList::ClearState`, which would actually emit a command).
+    - Set `inExternalScope = true`; throw if already true.
+- `EndExternalCommands`:
+    - Call the internal `MemoryBarrier()` once (VK = `vkCmdPipelineBarrier2(ALL → ALL, MEMORY_READ|WRITE → MEMORY_READ|WRITE)`; DX12 = `ResourceBarrier(UAV, nullptr)` or `D3D12_GLOBAL_BARRIER`; Metal = `MemoryBarrier(scope=AllResources, after=AllStages, before=AllStages)`).
+    - Set `inExternalScope = false`; throw if already false.
+    - Do not re-open RenderPass / Encoder.
+- `SetState`: write `texture.CurrentState = newState` / `buffer.CurrentState = newState` directly; never touches cmd.
+
+### 11.4 Caller Templates
+
+```csharp
+// === DLSS (DX12) — shared cmd, state preserved ===
+cmd.Transition(colorIn,  TransitionState.ShaderResource);
+cmd.Transition(colorOut, TransitionState.UnorderedAccess);
+
+cmd.BeginExternalCommands();
+DLSS.Evaluate(
+    cmd.GetNativeObject(NativeObjectType.D3D12GraphicsCommandList),
+    colorIn.GetNativeObject(NativeObjectType.D3D12Resource),
+    colorOut.GetNativeObject(NativeObjectType.D3D12Resource));
+cmd.EndExternalCommands();   // auto barrier isolates DLSS writes from subsequent RHI commands
+
+cmd.BeginRenderPass(...);
+
+// === FSR/FFX (Vulkan) — shared cmd, external library mutates state ===
+cmd.Transition(colorIn,  TransitionState.ShaderResource);
+cmd.Transition(colorOut, TransitionState.UnorderedAccess);
+
+cmd.BeginExternalCommands();
+Ffx.Fsr2Dispatch(
+    cmd.GetNativeObject(NativeObjectType.VkCommandBuffer),
+    colorIn.GetNativeObject(NativeObjectType.VkImage),
+    colorOut.GetNativeObject(NativeObjectType.VkImage));
+cmd.SetState(colorOut, TransitionState.ShaderResource);
+cmd.EndExternalCommands();
+
+cmd.BeginRenderPass(...);
+
+// === Skia (Vulkan) — not sharing cmd, library submits on its own ===
+nint instance = ctx.GetNativeObject(NativeObjectType.VkInstance);
+nint device   = ctx.GetNativeObject(NativeObjectType.VkDevice);
+nint queue    = ctx.Graphics.GetNativeObject(NativeObjectType.VkQueue);
+uint family   = (uint)ctx.Graphics.GetNativeObject(NativeObjectType.VkQueueFamilyIndex);
+var grContext = GRContext.MakeVulkan(instance, device, queue, family, /*...*/);
+// Libraries that do not share cmd need no Begin/End; just SetState before the next RHI access.
+
+// === RenderDoc — device handle only ===
+nint device = ctx.GetNativeObject(NativeObjectType.D3D12Device);
+RenderDocApi.StartFrameCapture(device, IntPtr.Zero);
+// ... render one frame ...
+RenderDocApi.EndFrameCapture(device, IntPtr.Zero);
+```
+
+### 11.5 Out of Scope
+
+- No backend types or platform-conditional properties on the public surface.
+- No "import external native resource" entry point in this iteration; if needed later, add `GraphicsContext.ImportTexture(TextureDesc, nint, TransitionState)` with the same shape.
+- `BeginExternalCommands` is non-reentrant.
+- `EndExternalCommands` does not re-open any RenderPass / Encoder; the caller does that.
+- The caller guarantees that the external library is invoked outside any RenderPass (typical interop is compute-only, so this holds naturally).
+
+## 12. ZenithHelper Members Affected
 
 The following functions in [ZenithHelper](sources/Zenith.NET/ZenithHelper.cs) depend on the now-removed `TextureSlice` (with `Face`) / `TextureViewDesc`, or on the "cube faces multiply implicitly into subresource counts" model. Under the new design they no longer apply and must be removed or rewritten against the new types:
 
