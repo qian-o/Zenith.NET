@@ -7,7 +7,7 @@
 **目标**
 
 - 公共 API 表面小、调用形态统一，与 DirectX 12 / Vulkan 1.4 / Metal 4 命令模型 1:1 对应
-- 帧循环代码短、热路径零托管分配
+- 帧循环代码短，热路径零托管分配
 - 跨队列同步（Graphics / Compute / Copy）一等公民
 - 显式资源状态转换，作为未来 RDG 的稳定基座
 - 内联 RenderPass，去掉长生命周期 `FrameBuffer`
@@ -15,31 +15,27 @@
 
 **非目标**
 
-- RHI 内不做完整 hazard tracking（仅维护"当前状态"用于计算 from→to）
+- RHI 内不做完整 hazard tracking（仅缓存"当前状态"用于计算显式 transition 的 from 端）
 - 一次 submit 一个同步对象
 - 把 `WaitForIdle` 当作主同步手段
-- 本轮不实现 RDG、bindless / descriptor buffer
+- 本轮不实现 RDG、bindless、descriptor buffer
 - 不重构 `ResourceTable` / `ResourceLayout` / `Sampler` / `Pipeline` / shader IO 之外的部分
 - 不在公共面暴露 per-aspect (color/depth/stencil) 寻址、子范围 transition、首帧 image-ready 等待
 
 ## 2. 命名与代码风格约定
 
-- 所有公共值类型：`record struct`，公共字段可写；不使用 `ref struct`、不使用 `in` 参数
+- 所有公共值类型：`record struct`，公共字段可写
 - 多元素入参一律 `ReadOnlySpan<T>` / `params ReadOnlySpan<T>`，不使用 `T[]` / `IEnumerable<T>`
 - 方法体一律 `{ ... }`；**例外**：`ref` / `ref readonly` 返回的属性保留 `=> ref _field;`
 - 字节单位字段与参数加 `*InBytes` 后缀
-- 抽象后端钩子的命名规则：**只有**当存在**同名**的非 `Core` 包装时才用 `*Core` 后缀；否则用自然名
-    - `Wait(ulong)` 包装 → `WaitCore(ulong)`
-    - `Submit(...)` 包装 → `SubmitCore(...)`
-    - `CreateCommandBuffer()` 无同名包装（公共工厂叫 `CommandBuffer()`）→ 不加 `Core`
-    - `GetCompletedValue()` 无包装 → 不加 `Core`
+- 抽象后端钩子命名：**只有**与同名非 `Core` 包装共存时才用 `*Core` 后缀（如 `Wait` / `WaitCore`、`Submit` / `SubmitCore`）；其余一律用自然名
 - 抽象成员一律 `protected abstract`，同程序集内部调用走 `internal` 包装
 - 公共同步结果只有一种：`CommandSubmission`
 
 ## 3. 公共类型一览
 
 ```csharp
-// === 子资源（设计原则：view 用 range，copy/upload 用 layers，单点用 single） ===
+// === 子资源 ===
 
 public record struct TextureSubresource
 {
@@ -172,11 +168,19 @@ public record struct DepthStencilAttachment
 
 // === 队列同步结果 ===
 
-public readonly struct CommandSubmission(CommandQueue queue, ulong value)
+/// <summary>
+/// 一次 Submit / Present 产生的一个时间线点。
+/// <c>default</c> 是合法的"空"值，后端会从 <c>waits</c> 中过滤掉；其上 <see cref="Wait"/> 为空操作。
+/// </summary>
+public readonly struct CommandSubmission(CommandQueue? queue, ulong value)
 {
+    public CommandQueue? Queue = queue;
+
+    public ulong Value = value;
+
     public void Wait()
     {
-        queue.Wait(value);
+        Queue?.Wait(Value);
     }
 }
 ```
@@ -254,7 +258,6 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
     private readonly Queue<CommandBuffer> available = [];
     private readonly Queue<InFlightCommandBuffer> execution = [];
 
-    private ulong nextValue = 1;
     private ulong lastSignaledValue;
 
     public CommandQueueType Type { get; } = type;
@@ -302,15 +305,13 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
         commandBuffer.End();
 
-        nextValue++;
+        lastSignaledValue++;
 
-        SubmitCore(commandBuffer, waits, nextValue);
+        SubmitCore(commandBuffer, waits, lastSignaledValue);
 
-        lastSignaledValue = nextValue;
+        execution.Enqueue(new(commandBuffer, lastSignaledValue));
 
-        execution.Enqueue(new(commandBuffer, nextValue));
-
-        return new(this, nextValue);
+        return new(this, lastSignaledValue);
     }
 
     private void CollectCompleted()
@@ -349,11 +350,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
 要点：
 
-- `internal void Wait(ulong)` 是唯一的 wait 入口：加锁 → `GetCompletedValue() >= value` 短路 → `WaitCore(value)` → `CollectCompleted()`。`CommandSubmission.Wait()` 只是它的薄转发。
-- `WaitForIdle()` 一行：`Wait(lastSignaledValue)`；首次调用 `lastSignaledValue == 0` 时 `GetCompletedValue() >= 0` 自然短路。
-- `GetCompletedValue()` 是**方法**而非属性：DX12 `fence.GetCompletedValue()` / VK `vkGetSemaphoreCounterValue` / Metal `event.SignaledValue` 都是调用语义。
-- `Submit` 中 `nextValue++` 在使用前完成，读起来按"递增 → 提交 → 记录"顺序。
-- `CommandBuffer` 池化由 queue 自管：`CommandBuffer()` 从 `available` 出队（空则 `CreateCommandBuffer()`），`CollectCompleted()` 在每次 `Submit` / `Wait` 时回收已完成的并重置入池。
+- `GetCompletedValue()` 是**方法**而非属性：三端后端（DX12 `fence.GetCompletedValue()` / VK `vkGetSemaphoreCounterValue` / Metal `event.SignaledValue`）都是调用语义。
+- CommandBuffer 池化由 queue 自管：`CollectCompleted()` 在每次 `Submit` / `Wait` 时根据时间线值回收实例，重置后入 `available` 复用。
 
 ### 后端时间线对照
 
@@ -363,11 +361,13 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 | Vulkan 1.4 | 每 queue 一个 timeline `VkSemaphore`（核心特性） | `vkQueueSubmit2` 的 `pSignalSemaphoreInfos[].value` / `vkGetSemaphoreCounterValue` / `vkWaitSemaphores` |
 | Metal 4 | 每 queue 一个 `MTLSharedEvent` | `commandBuffer.EncodeSignalEvent(event, value)` / `event.SignaledValue` / `event.NotifyListener` |
 
-二进制 `VkFence` 仅在 swapchain 内部使用。
+二进制 `VkFence` 仅在 swapchain image acquire 内部使用。
 
 ### 与 SwapChain Present 的关系
 
-DX12 / Vulkan 当前实现都在 GraphicsQueue 上 Present；新模型不变这条事实。`SwapChain.Present(waits)` 内部仍由 GraphicsQueue 提交 present，跨队列 wait 通过 GraphicsQueue 端的"等待对方时间线"指令落地（详见第 7 节后端映射表）。SwapChain 实现从 `GraphicsContext` 取 GraphicsQueue 引用即可，无需对外暴露。
+`Present` 始终在 GraphicsQueue 上执行。`SwapChain.Present(waits)` 内部由 GraphicsQueue 提交 present，跨队列 wait 通过 GraphicsQueue 端的"等待对方时间线"指令落地（详见第 7 节后端映射表）。SwapChain 实现从 `GraphicsContext` 取 GraphicsQueue 引用即可，无需对外暴露。
+
+为简化 barrier，Vulkan 后端所有资源以 concurrent / shared 语义创建（三队列 `VK_SHARING_MODE_CONCURRENT`）；跨队列同步完全通过 `CommandSubmission` waits 表达，用户代码从不写 ownership-transfer barrier。
 
 ## 6. CommandBuffer 操作
 
@@ -450,13 +450,10 @@ public void Upload<T>(Texture destination, TextureSubresourceLayers layers, Offs
 
 要点：
 
-- 字节相关参数统一 `*InBytes` 后缀；多元素入参一律 `ReadOnlySpan<T>`；无 `in` 参数。
-- copy / upload 统一用 `TextureSubresourceLayers`（单 mip + 连续 layer 段），结构本身排除多 mip，无需运行时校验。
-- `ResolveTexture` 是"单点 → 单点"，用 `TextureSubresource`。
 - `BeginRenderPass` 接受 attachment span，无深度时显式传 `null`；内部按 attachment 自动 `Transition` + 自动填 `SetViewports` / `SetScissors`，调用方可在其后再调一次 `SetViewports` / `SetScissors` 覆盖。
 - `PushResourceTable` 加 `ShaderStageFlags stages`：DX12 root parameter visibility / Metal argument table 都按 stage 区分；VK 的 set 在 layout 里编译期固定，stages 用于校验匹配。
 - `Transition` 只在 `ShaderResource` ↔ `UnorderedAccess` 之间显式调用；render target / 深度模板 / copy / 顶点 / 索引 / CBV / indirect / present 状态由对应操作隐式转换。
-- `MemoryBarrier()`：跨资源 / 跨阶段全局内存同步。CommandBuffer 同时维护"上一次 dispatch 写过的 UAV 集合"，下一次 dispatch 若读到同一资源则自动插一个 barrier 作为 fallback。
+- `MemoryBarrier()`：跨资源 / 跨阶段全局内存屏障，由调用方自行决定何时发出。
 
 ### ResourceTable
 
@@ -501,10 +498,8 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
     public abstract Texture? CurrentDepthStencilTarget { get; }
 
     /// <summary>
-    /// 提交 present 到 GraphicsQueue，等待 <paramref name="waits"/>；
-    /// 返回的 submission 表示下一张 backbuffer 已就绪。
-    /// 首帧外部传空 span，或用 <c>default(CommandSubmission)</c> 占位 — 后端从 waits 中过滤掉 <c>queue is null</c> 的项。
-    /// 注意：<see cref="CommandSubmission.Wait"/> 本身不防御 default，只能在 <c>Submit</c> / <c>Present</c> 返回的实例上调用。
+    /// 在 GraphicsQueue 上提交 present，等待 <paramref name="waits"/>；
+    /// 返回的 <see cref="CommandSubmission"/> 表示下一张 backbuffer 可写。
     /// </summary>
     public abstract CommandSubmission Present(params ReadOnlySpan<CommandSubmission> waits);
 
@@ -519,7 +514,6 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 - backbuffer 以普通 `Texture` 公开（颜色 + 可选深度模板）；不公开 `FrameBuffer`，不公开 image index。
 - `Present(...)` 返回 `CommandSubmission`，与 `CommandBuffer.Submit(...)` 形态完全一致；接收任意队列的 wait。
 - 当前 image index 在后端内部维护（`VKSwapChain.ImageIndex` / `DXSwapChain.BufferIndex`），公共抽象类不感知。
-- 首帧 image-ready 由调用方 seed（飞行帧策略由调用方决定）。
 
 后端映射：
 
@@ -572,7 +566,7 @@ while (running)
 }
 ```
 
-每一步形态一致：拿一组 `CommandSubmission` waits，返回一个 `CommandSubmission`。
+每一步形态一致：拿一组 `CommandSubmission` waits，返回一个 `CommandSubmission`。`Submit` 与 `Present` 在 API 表面完全对称。
 
 ## 9. 三端 RenderPass / 状态映射
 
@@ -597,7 +591,6 @@ RDG 由 RHI 用户自行封装，本节只回答：「本 RHI 是否暴露了 RD
 | 跨队列依赖 | ✅ | `CommandSubmission` waits（`Submit` / `Present` 同形态） |
 | 队列完成查询 / 等待 | ✅ | `CommandQueue.WaitForIdle()` / `CommandSubmission.Wait()` |
 | 短生命周期 RenderPass | ✅ | 内联 `BeginRenderPass(colorAttachments, depth)` |
-| Pass 间共享绑定 | ✅ | `ResourceTable` 缓存键 = (range, layout) |
 
 结论：RDG 实现方可在不修改 RHI 公共面的前提下完成封装。
 
@@ -675,7 +668,7 @@ public abstract class GraphicsResource(GraphicsContext context) : DisposableObje
 }
 ```
 
-所有 `GraphicsResource` 子类（`Buffer` / `Texture` / `Sampler` / `CommandQueue` / `CommandBuffer` / `SwapChain` / `Pipeline` / `Shader` / `ResourceTable` / `ResourceLayout`）一律自动实现该接口；后端按 `switch` 实现，不感兴趣的子类返回 0。第三方代码可走接口编程，不必区分 context / resource。
+所有 `GraphicsResource` 子类（`Buffer` / `Texture` / `Sampler` / `CommandQueue` / `CommandBuffer` / `SwapChain` / `Pipeline` / `Shader` / `ResourceTable` / `ResourceLayout`）一律实现该接口；后端按 `switch` 实现，不感兴趣的子类返回 0。第三方代码可走接口编程，不必区分 context / resource。
 
 后端实现示例：
 
@@ -778,7 +771,7 @@ nint device   = ctx.GetNativeObject(NativeObjectType.VkDevice);
 nint queue    = ctx.Graphics.GetNativeObject(NativeObjectType.VkQueue);
 uint family   = (uint)ctx.Graphics.GetNativeObject(NativeObjectType.VkQueueFamilyIndex);
 var grContext = GRContext.MakeVulkan(instance, device, queue, family, /*...*/);
-// 不共享 cmd 的库不需要 Begin/End；只需在下一次用到资源前 SetState 同步 layout
+// Skia 自管 cmd；与 RHI 共享的资源在下次 RHI 使用前对相应 RHI 句柄调 SetState 同步缓存状态即可。
 
 // === RenderDoc — 仅 device 句柄 ===
 nint device = ctx.GetNativeObject(NativeObjectType.D3D12Device);
@@ -789,10 +782,7 @@ RenderDocApi.EndFrameCapture(device, IntPtr.Zero);
 
 ### 11.5 不做的事
 
-- 不暴露任何后端类型 / 平台条件属性
 - 不提供「导入外部 native 资源」入口（首版）；如未来需要：通过 `GraphicsContext.ImportTexture(TextureDesc, nint, TransitionState)` 加入，签名同形态
-- 不允许 `BeginExternalCommands` 嵌套
-- `EndExternalCommands` 不重开 RenderPass / Encoder（调用方按需重开）
 - 调用方自己保证调用外部库时不在 RenderPass 内（典型互操作都是 compute，天然如此）
 
 ## 12. ZenithHelper 受影响成员
@@ -809,3 +799,7 @@ RenderDocApi.EndFrameCapture(device, IntPtr.Zero);
 - `SubresourceSizeInBytes(TextureDesc, TextureSlice)` —— 改为 `TextureSubresource` 入参重写（仅需 `MipLevel`，其余复用现有 `MipDimensions` + `SizeInBytes`）。
 
 不受影响：纯格式 / 几何计算 helper（`MipDimensions`、`SizeInBytes(PixelFormat,...)`、`ElementFormat` 字节表等）保持不变。
+# RHI 重设计草案（中文临时版）
+
+> 仅用于本轮设计讨论，不进入提交。最终英文版同步在 `rhi-redesign.draft.md`。
+

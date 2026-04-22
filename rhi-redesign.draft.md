@@ -24,22 +24,18 @@
 
 ## 2. API-Surface Conventions
 
-- All public value types: `record struct` with public mutable fields. No `ref struct`. No `in` parameters.
+- All public value types: `record struct` with public mutable fields.
 - Multi-element parameters: `ReadOnlySpan<T>` / `params ReadOnlySpan<T>`. No `T[]`, no `IEnumerable<T>`.
 - All method bodies use `{ ... }`. **Exception:** `ref` / `ref readonly` returning properties keep `=> ref _field;`.
 - Every byte-denominated parameter or field carries an `*InBytes` suffix.
-- Backend-hook naming rule: the `*Core` suffix exists **only** to disambiguate from a **same-named** non-`Core` wrapper.
-    - `Wait(ulong)` wrapper → `WaitCore(ulong)`
-    - `Submit(...)` wrapper → `SubmitCore(...)`
-    - `CreateCommandBuffer()` has no same-named wrapper (the public factory is `CommandBuffer()`) → no `Core` suffix.
-    - `GetCompletedValue()` has no wrapper → no `Core` suffix.
+- Backend-hook naming: the `*Core` suffix exists **only** to disambiguate from a same-named non-`Core` wrapper (e.g. `Wait` / `WaitCore`, `Submit` / `SubmitCore`). Hooks without a wrapper use their natural name.
 - Every abstract member is plain `protected abstract`; same-assembly callers go through an `internal` wrapper.
 - The only public synchronization result type is `CommandSubmission`.
 
 ## 3. Public Type Catalog
 
 ```csharp
-// === Subresources (rule: views use range, copy/upload uses layers, single-point uses single) ===
+// === Subresources ===
 
 public record struct TextureSubresource
 {
@@ -172,11 +168,20 @@ public record struct DepthStencilAttachment
 
 // === Queue submission result ===
 
-public readonly struct CommandSubmission(CommandQueue queue, ulong value)
+/// <summary>
+/// One point on a queue's completion timeline, produced by Submit / Present.
+/// <c>default</c> is the well-defined empty value: backends filter it out of any <c>waits</c>,
+/// and <see cref="Wait"/> is a no-op on it.
+/// </summary>
+public readonly struct CommandSubmission(CommandQueue? queue, ulong value)
 {
+    public CommandQueue? Queue = queue;
+
+    public ulong Value = value;
+
     public void Wait()
     {
-        queue.Wait(value);
+        Queue?.Wait(Value);
     }
 }
 ```
@@ -254,7 +259,6 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
     private readonly Queue<CommandBuffer> available = [];
     private readonly Queue<InFlightCommandBuffer> execution = [];
 
-    private ulong nextValue = 1;
     private ulong lastSignaledValue;
 
     public CommandQueueType Type { get; } = type;
@@ -302,15 +306,13 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
         commandBuffer.End();
 
-        nextValue++;
+        lastSignaledValue++;
 
-        SubmitCore(commandBuffer, waits, nextValue);
+        SubmitCore(commandBuffer, waits, lastSignaledValue);
 
-        lastSignaledValue = nextValue;
+        execution.Enqueue(new(commandBuffer, lastSignaledValue));
 
-        execution.Enqueue(new(commandBuffer, nextValue));
-
-        return new(this, nextValue);
+        return new(this, lastSignaledValue);
     }
 
     private void CollectCompleted()
@@ -347,13 +349,10 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 }
 ```
 
-Key points:
+Notes:
 
-- `internal void Wait(ulong)` is the **single** wait entry point: lock → short-circuit on `GetCompletedValue() >= value` → `WaitCore(value)` → `CollectCompleted()`. `CommandSubmission.Wait()` is just a thin forward.
-- `WaitForIdle()` is one line: `Wait(lastSignaledValue)`. The first call has `lastSignaledValue == 0`; `GetCompletedValue() >= 0` short-circuits naturally.
-- `GetCompletedValue()` is a **method**, not a property: DX12 `fence.GetCompletedValue()` / VK `vkGetSemaphoreCounterValue` / Metal `event.SignaledValue` are all call-shaped on the backends.
-- In `Submit`, `nextValue++` runs first, so the same post-incremented value is submitted, signalled, enqueued, and returned. Reads top-to-bottom as "advance → submit → record".
-- Command buffer pooling lives in the queue: `CommandBuffer()` pops from `available` (or calls `CreateCommandBuffer()`); `CollectCompleted()` runs at every `Submit` / `Wait` and recycles buffers whose timeline value has retired.
+- `GetCompletedValue()` is a **method**, not a property: all three backends (DX12 `fence.GetCompletedValue()` / VK `vkGetSemaphoreCounterValue` / Metal `event.SignaledValue`) are call-shaped.
+- Command buffer pooling lives in the queue: `CollectCompleted()` runs at every `Submit` / `Wait` and recycles buffers whose timeline value has retired.
 
 ### Backend Timeline Mapping
 
@@ -367,7 +366,7 @@ The internal binary `VkFence` is retained for swapchain image acquire only.
 
 ### Interaction with SwapChain Present
 
-Both DX12 and Vulkan implementations execute `Present` on the GraphicsQueue today, and the new design keeps this behavior. `SwapChain.Present(waits)` submits the present from the GraphicsQueue; cross-queue waits are honored on the GraphicsQueue side via "wait other queue's timeline" instructions (see Section 7 mapping table). The SwapChain implementation pulls the GraphicsQueue from `GraphicsContext`; the queue reference is never exposed on `SwapChain`'s public surface.
+`Present` runs on the GraphicsQueue. `SwapChain.Present(waits)` submits the present from the GraphicsQueue; cross-queue waits are honored on the GraphicsQueue side via "wait other queue's timeline" instructions (see Section 7 mapping table). The SwapChain implementation pulls the GraphicsQueue from `GraphicsContext`; the queue reference is never exposed on `SwapChain`'s public surface.
 
 To keep barriers simple, all resources are created with concurrent / shared semantics on Vulkan (`VK_SHARING_MODE_CONCURRENT` across the three queues). Cross-queue synchronization is therefore expressed entirely through `CommandSubmission` waits; user code never writes Vulkan ownership-transfer barriers.
 
@@ -452,13 +451,10 @@ public void Upload<T>(Texture destination, TextureSubresourceLayers layers, Offs
 
 Notes:
 
-- All byte-denominated parameters carry the `*InBytes` suffix; multi-element parameters are `ReadOnlySpan<T>`; no `in` parameters.
-- Copy / upload uses `TextureSubresourceLayers` (one mip + contiguous layer range). The type itself excludes multi-mip, so no runtime validation is needed.
-- `ResolveTexture` is single-point → single-point and uses `TextureSubresource`.
 - `BeginRenderPass` accepts an attachment span; pass `null` explicitly for no depth. The implementation auto-`Transition`s the attachments and auto-fills `SetViewports` / `SetScissors` from attachment dimensions; the caller may issue `SetViewports` / `SetScissors` afterward to override.
 - `PushResourceTable` takes a `ShaderStageFlags stages` argument: DX12 root-parameter visibility and Metal argument tables are stage-scoped. On Vulkan the descriptor set's stage mask is fixed at layout creation time, so `stages` is used to validate the call against the layout.
 - `Transition` is only called explicitly between `ShaderResource` and `UnorderedAccess`. Render-target / depth-stencil / copy / vertex / index / CBV / indirect / present states are transitioned implicitly by the corresponding operation.
-- `MemoryBarrier()` is a global cross-resource / cross-stage memory barrier. The command buffer also tracks the set of UAVs written by the previous dispatch and inserts a barrier automatically as a fallback when the next dispatch reads the same resource.
+- `MemoryBarrier()` is a global cross-resource / cross-stage memory barrier; the caller decides when to issue it.
 
 ### ResourceTable
 
@@ -503,12 +499,8 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
     public abstract Texture? CurrentDepthStencilTarget { get; }
 
     /// <summary>
-    /// Submits a present operation on the GraphicsQueue, waiting on <paramref name="waits"/>.
-    /// Returns a CommandSubmission that signals when the next backbuffer is safe to write.
-    /// First-frame seed is the caller's responsibility — pass an empty span, or seed an `imageReady`
-    /// local with `default(CommandSubmission)` and let the backend filter it out of the next `Submit`'s waits.
-    /// Note: <see cref="CommandSubmission.Wait"/> itself does not defend against `default`; only call it
-    /// on submissions returned by an actual `Submit` / `Present`.
+    /// Submits a present on the GraphicsQueue, waiting on <paramref name="waits"/>;
+    /// returns a <see cref="CommandSubmission"/> that signals when the next backbuffer is writable.
     /// </summary>
     public abstract CommandSubmission Present(params ReadOnlySpan<CommandSubmission> waits);
 
@@ -523,7 +515,6 @@ Design points:
 - Backbuffers are exposed as plain `Texture`s (color + optional depth-stencil). No `FrameBuffer`, no image index.
 - `Present(...)` returns a `CommandSubmission` describing when the next backbuffer is writable; it accepts waits from any queue.
 - The current backbuffer index lives **only** inside the backend (today: `VKSwapChain.ImageIndex`, `DXSwapChain.BufferIndex`). Public callers never need it.
-- The first-frame image-ready submission is supplied by the caller (frames-in-flight strategy is the caller's choice).
 
 Backend mapping:
 
@@ -601,7 +592,6 @@ The RDG is built on top of this RHI by the consumer, not by us. This section onl
 | Cross-queue dependencies | ✅ | `CommandSubmission` waits (symmetric on `Submit` / `Present`) |
 | Queue completion query / wait | ✅ | `CommandQueue.WaitForIdle()` / `CommandSubmission.Wait()` |
 | Short-lived RenderPass | ✅ | Inline `BeginRenderPass(colorAttachments, depth)` |
-| Cross-pass binding sharing | ✅ | `ResourceTable` cache key = (range, layout) |
 
 Conclusion: an RDG implementation can be built without any further changes to the RHI public surface.
 
@@ -783,7 +773,8 @@ nint device   = ctx.GetNativeObject(NativeObjectType.VkDevice);
 nint queue    = ctx.Graphics.GetNativeObject(NativeObjectType.VkQueue);
 uint family   = (uint)ctx.Graphics.GetNativeObject(NativeObjectType.VkQueueFamilyIndex);
 var grContext = GRContext.MakeVulkan(instance, device, queue, family, /*...*/);
-// Libraries that do not share cmd need no Begin/End; just SetState before the next RHI access.
+// Skia owns its own command buffers; for any resource shared with the RHI, call SetState on the
+// matching RHI handle before the next RHI use to keep the cached state in sync.
 
 // === RenderDoc — device handle only ===
 nint device = ctx.GetNativeObject(NativeObjectType.D3D12Device);
@@ -794,10 +785,7 @@ RenderDocApi.EndFrameCapture(device, IntPtr.Zero);
 
 ### 11.5 Out of Scope
 
-- No backend types or platform-conditional properties on the public surface.
 - No "import external native resource" entry point in this iteration; if needed later, add `GraphicsContext.ImportTexture(TextureDesc, nint, TransitionState)` with the same shape.
-- `BeginExternalCommands` is non-reentrant.
-- `EndExternalCommands` does not re-open any RenderPass / Encoder; the caller does that.
 - The caller guarantees that the external library is invoked outside any RenderPass (typical interop is compute-only, so this holds naturally).
 
 ## 12. ZenithHelper Members Affected
