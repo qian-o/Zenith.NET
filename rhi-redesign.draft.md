@@ -1,4 +1,4 @@
-# RHI Redesign — Requirements Specification
+﻿# RHI Redesign — Requirements Specification
 
 > Working spec for the redesigned public surface. Not for commit. Mirrors `rhi-redesign.zh.draft.md`.
 > The document is organized as nine numbered requirements; shared types live in §0.

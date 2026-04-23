@@ -1,28 +1,22 @@
-<Solution>
-  <Folder Name="/Solution Items/">
-    <File Path="sources/Directory.Build.props" />
-    <File Path="sources/Directory.Packages.props" />
-    <File Path="sources/NuGet.Packaging.props" />
-  </Folder>
-  <Folder Name="/Sources/">
-    <Project Path="sources/Zenith.NET.DirectX12/Zenith.NET.DirectX12.csproj" />
-    <Project Path="sources/Zenith.NET.Metal/Zenith.NET.Metal.csproj" />
-    <Project Path="sources/Zenith.NET.Vulkan/Zenith.NET.Vulkan.csproj" />
-    <Project Path="sources/Zenith.NET/Zenith.NET.csproj" />
-  </Folder>
-  <Folder Name="/Sources/Experiments/">
+﻿<Solution>
+  <Folder Name="/Experiments/">
     <File Path="sources/Experiments/Directory.Packages.props" />
     <Project Path="sources/Experiments/CornellBox/CornellBox.csproj" />
     <Project Path="sources/Experiments/MemoryPlayground/MemoryPlayground.csproj" />
     <Project Path="sources/Experiments/PlatformDetection/PlatformDetection.csproj" />
   </Folder>
-  <Folder Name="/Sources/Extensions/">
+  <Folder Name="/Extensions/">
     <Project Path="sources/Extensions/Zenith.NET.Extensions.ImageSharp/Zenith.NET.Extensions.ImageSharp.csproj" />
     <Project Path="sources/Extensions/Zenith.NET.Extensions.ImGui/Zenith.NET.Extensions.ImGui.csproj" />
     <Project Path="sources/Extensions/Zenith.NET.Extensions.Skia/Zenith.NET.Extensions.Skia.csproj" />
     <Project Path="sources/Extensions/Zenith.NET.Extensions.Slang/Zenith.NET.Extensions.Slang.csproj" />
   </Folder>
-  <Folder Name="/Sources/Views/">
+  <Folder Name="/Solution Items/">
+    <File Path="sources/Directory.Build.props" />
+    <File Path="sources/Directory.Packages.props" />
+    <File Path="sources/NuGet.Packaging.props" />
+  </Folder>
+  <Folder Name="/Views/">
     <Project Path="sources/Views/Zenith.NET.Views.Avalonia/Zenith.NET.Views.Avalonia.csproj" />
     <Project Path="sources/Views/Zenith.NET.Views.Maui/Zenith.NET.Views.Maui.csproj" />
     <Project Path="sources/Views/Zenith.NET.Views.WinForms/Zenith.NET.Views.WinForms.csproj" />
@@ -30,4 +24,8 @@
     <Project Path="sources/Views/Zenith.NET.Views.WPF/Zenith.NET.Views.WPF.csproj" />
     <Project Path="sources/Views/Zenith.NET.Views/Zenith.NET.Views.csproj" />
   </Folder>
+  <Project Path="sources/Zenith.NET.DirectX12/Zenith.NET.DirectX12.csproj" />
+  <Project Path="sources/Zenith.NET.Metal/Zenith.NET.Metal.csproj" />
+  <Project Path="sources/Zenith.NET.Vulkan/Zenith.NET.Vulkan.csproj" />
+  <Project Path="sources/Zenith.NET/Zenith.NET.csproj" />
 </Solution>
