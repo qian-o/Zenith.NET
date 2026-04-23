@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>$(StandardTargetFramework)</TargetFramework>
+        <NoWarn>IDE0130</NoWarn>
+    </PropertyGroup>
+
+    <Import Project="..\NuGet.Packaging.props" />
+
+</Project>
