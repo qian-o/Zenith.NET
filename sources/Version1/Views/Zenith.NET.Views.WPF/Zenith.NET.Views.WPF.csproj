@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>$(StandardTargetFramework)-windows</TargetFramework>
+        <EnableWindowsTargeting>true</EnableWindowsTargeting>
+        <UseWPF>true</UseWPF>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Zenith.NET.Views\Zenith.NET.Views.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Silk.NET.Direct3D11" />
+        <PackageReference Include="Silk.NET.Direct3D9" />
+    </ItemGroup>
+
+    <Import Project="..\..\..\NuGet.Packaging.props" />
+
+</Project>

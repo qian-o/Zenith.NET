@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>$(StandardTargetFramework)-windows</TargetFramework>
+        <EnableWindowsTargeting>true</EnableWindowsTargeting>
+        <UseWindowsForms>true</UseWindowsForms>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Zenith.NET.Views\Zenith.NET.Views.csproj" />
+    </ItemGroup>
+
+    <Import Project="..\..\..\NuGet.Packaging.props" />
+
+</Project>
