@@ -45,7 +45,7 @@ internal class MTLResourceTable : ResourceTable
         }
     }
 
-    protected override void SetImpl(uint binding, IBindableResource[] resources)
+    protected override void WriteImpl(uint binding, IBindableResource[] resources)
     {
         switch (Desc.Bindings[binding].Type)
         {

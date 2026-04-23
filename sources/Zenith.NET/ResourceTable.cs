@@ -67,7 +67,7 @@ public abstract class ResourceTable(GraphicsContext context, ResourceTableDesc d
                 break;
         }
 
-        SetImpl(binding, resources);
+        WriteImpl(binding, resources);
     }
 
     internal void Preprocess(CommandBuffer commandBuffer)
@@ -75,7 +75,7 @@ public abstract class ResourceTable(GraphicsContext context, ResourceTableDesc d
         PreprocessImpl(commandBuffer);
     }
 
-    protected abstract void SetImpl(uint binding, IBindableResource[] resources);
+    protected abstract void WriteImpl(uint binding, IBindableResource[] resources);
 
     protected abstract void PreprocessImpl(CommandBuffer commandBuffer);
 }

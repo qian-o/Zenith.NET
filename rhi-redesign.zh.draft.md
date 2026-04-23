@@ -2,25 +2,15 @@
 
 > 仅用于本轮设计讨论，不进入提交。最终英文版同步在 `rhi-redesign.draft.md`。
 
-## 1. 目标与非目标
-
-**目标**
+## 1. 目标
 
 - 公共 API 表面小、调用形态统一，与 DirectX 12 / Vulkan 1.4 / Metal 4 命令模型 1:1 对应
 - 帧循环代码短，热路径零托管分配
 - 跨队列同步（Graphics / Compute / Copy）一等公民
-- 显式资源状态转换，作为未来 RDG 的稳定基座
+- 显式资源状态转换仅限 `ShaderResource` ↔ `UnorderedAccess`，其余转换均由对应操作隐式完成
 - 内联 RenderPass，去掉长生命周期 `FrameBuffer`
 - 子范围 / 子资源信息在**调用现场**以值类型表达，不再有公共 `View` 对象
-
-**非目标**
-
-- RHI 内不做完整 hazard tracking（仅缓存"当前状态"用于计算显式 transition 的 from 端）
-- 一次 submit 一个同步对象
-- 把 `WaitForIdle` 当作主同步手段
-- 本轮不实现 RDG、bindless、descriptor buffer
-- 不重构 `ResourceTable` / `ResourceLayout` / `Sampler` / `Pipeline` / shader IO 之外的部分
-- 不在公共面暴露 per-aspect (color/depth/stencil) 寻址、子范围 transition、首帧 image-ready 等待
+- 每个 pipeline 一张 `ResourceTable`（不设次级 descriptor set），对齐 Metal 4 argument-table 模型与另两端的 root/descriptor 模型
 
 ## 2. 命名与代码风格约定
 
@@ -235,15 +225,9 @@ public abstract class Sampler(GraphicsContext context, SamplerDesc desc) : Graph
 }
 ```
 
-**View 缓存**（每个后端 `Texture` / `Buffer` 内部）：
+**View 缓存**（每个后端 `Texture` / `Buffer` 内部）：设计允许后端按 §3 的值类型做 key 懒加载缓存原生 view 对象，但此缓存完全属于后端内部，不在公共面出现。
 
-- `Dictionary<TextureSubresourceRange, T_view>` —— SRV / UAV
-- `Dictionary<TextureSubresource, T_rtv_dsv>` —— RTV / DSV
-- `Dictionary<BufferRange, T_view>` —— typed buffer view
-
-按值类型 key 懒加载，与父资源同生命周期；同一 (resource, range) 组合在所有调用方共享一个后端对象。
-
-**资源状态跟踪**：每个 `Texture` / `Buffer` 内部跟踪当前 `TransitionState`，初值由后端默认写入；首次显式 `Transition` 时根据当前值生成 from→to barrier。
+**资源状态跟踪**：每个 `Texture` / `Buffer` 持有当前 `TransitionState`，初值由后端在创建时写入。首次显式 `Transition` 根据该缓存值生成 from→to barrier。仅 `ShaderResource` ↔ `UnorderedAccess` 向用户可见；render target / 深度模板 / copy / 顶点 / 索引 / CBV / indirect / present 等状态由对应操作隐式转换。
 
 **确认从框架删除（这些当前真实存在）**：`BufferView` / `BufferViewDesc` / `TextureView` / `TextureViewDesc` / `BufferViewType` / `IBindableResource` / `TextureSlice`（含 `Face`）/ `TextureOffset` / `TextureExtent` / `FrameBuffer` / `FrameBufferDesc` / `FrameBufferAttachment` / `ClearValue` / `ClearValues` 静态类 / `ClearFlags` 枚举 / `GraphicsContext.CreateBufferView` / `CreateTextureView` / `CreateFrameBuffer`。`Output` 类型保留并继续作为 `GraphicsPipelineDesc.Output`，仅 `FrameBuffer.Output` 一处使用消失。
 
@@ -254,81 +238,13 @@ public abstract class Sampler(GraphicsContext context, SamplerDesc desc) : Graph
 ```csharp
 public abstract class CommandQueue(GraphicsContext context, CommandQueueType type) : GraphicsResource(context)
 {
-    private readonly Lock @lock = new();
-    private readonly Queue<CommandBuffer> available = [];
-    private readonly Queue<InFlightCommandBuffer> execution = [];
-
-    private ulong lastSignaledValue;
-
     public CommandQueueType Type { get; } = type;
 
-    public CommandBuffer CommandBuffer()
-    {
-        using Lock.Scope _ = @lock.EnterScope();
+    /// <summary>获取一个可录制的 CommandBuffer，必要时复用已退役实例。</summary>
+    public CommandBuffer CommandBuffer();
 
-        CollectCompleted();
-
-        CommandBuffer commandBuffer = available.Count is 0 ? CreateCommandBuffer() : available.Dequeue();
-
-        commandBuffer.Begin();
-
-        return commandBuffer;
-    }
-
-    /// <summary>等待此 queue 上所有已提交的命令完成。幂等。</summary>
-    public void WaitForIdle()
-    {
-        Wait(lastSignaledValue);
-    }
-
-    internal void Wait(ulong value)
-    {
-        using Lock.Scope _ = @lock.EnterScope();
-
-        if (GetCompletedValue() >= value)
-        {
-            CollectCompleted();
-
-            return;
-        }
-
-        WaitCore(value);
-
-        CollectCompleted();
-    }
-
-    internal CommandSubmission Submit(CommandBuffer commandBuffer, ReadOnlySpan<CommandSubmission> waits)
-    {
-        using Lock.Scope _ = @lock.EnterScope();
-
-        CollectCompleted();
-
-        commandBuffer.End();
-
-        lastSignaledValue++;
-
-        SubmitCore(commandBuffer, waits, lastSignaledValue);
-
-        execution.Enqueue(new(commandBuffer, lastSignaledValue));
-
-        return new(this, lastSignaledValue);
-    }
-
-    private void CollectCompleted()
-    {
-        ulong value = GetCompletedValue();
-
-        while (execution.Count > 0 && execution.Peek().Value <= value)
-        {
-            CommandBuffer commandBuffer = execution.Dequeue().CommandBuffer;
-
-            commandBuffer.Reset();
-
-            available.Enqueue(commandBuffer);
-        }
-    }
-
-    protected abstract CommandBuffer CreateCommandBuffer();
+    /// <summary>等待此 queue 上所有已提交命令完成。幂等。</summary>
+    public void WaitForIdle();
 
     protected abstract ulong GetCompletedValue();
 
@@ -336,22 +252,19 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
     protected abstract void SubmitCore(CommandBuffer commandBuffer, ReadOnlySpan<CommandSubmission> waits, ulong signalValue);
 
-    private readonly record struct InFlightCommandBuffer(CommandBuffer CommandBuffer, ulong Value);
+    protected abstract CommandBuffer CreateCommandBuffer();
 }
 
 public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
 {
-    public CommandSubmission Submit(params ReadOnlySpan<CommandSubmission> waits)
-    {
-        return queue.Submit(this, waits);
-    }
+    /// <summary>结束录制并在其所属 queue 上入队。</summary>
+    public CommandSubmission Submit(params ReadOnlySpan<CommandSubmission> waits);
 }
 ```
 
-要点：
-
 - `GetCompletedValue()` 是**方法**而非属性：三端后端（DX12 `fence.GetCompletedValue()` / VK `vkGetSemaphoreCounterValue` / Metal `event.SignaledValue`）都是调用语义。
-- CommandBuffer 池化由 queue 自管：`CollectCompleted()` 在每次 `Submit` / `Wait` 时根据时间线值回收实例，重置后入 `available` 复用。
+- CommandBuffer 池化完全是 queue 的内部实现细节；公共面只暴露 `CommandBuffer()` 与 `Submit(...)`。
+- `GraphicsContext` 暴露三条队列：`Graphics` / `Compute` / `Copy`。`Present` 始终在 `Graphics` 上执行；`SwapChain` 从 context 拿到该队列引用，自身公共面不暴露队列。
 
 ### 后端时间线对照
 
@@ -361,13 +274,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 | Vulkan 1.4 | 每 queue 一个 timeline `VkSemaphore`（核心特性） | `vkQueueSubmit2` 的 `pSignalSemaphoreInfos[].value` / `vkGetSemaphoreCounterValue` / `vkWaitSemaphores` |
 | Metal 4 | 每 queue 一个 `MTLSharedEvent` | `commandBuffer.EncodeSignalEvent(event, value)` / `event.SignaledValue` / `event.NotifyListener` |
 
-二进制 `VkFence` 仅在 swapchain image acquire 内部使用。
-
-### 与 SwapChain Present 的关系
-
-`Present` 始终在 GraphicsQueue 上执行。`SwapChain.Present(waits)` 内部由 GraphicsQueue 提交 present，跨队列 wait 通过 GraphicsQueue 端的"等待对方时间线"指令落地（详见第 7 节后端映射表）。SwapChain 实现从 `GraphicsContext` 取 GraphicsQueue 引用即可，无需对外暴露。
-
-为简化 barrier，Vulkan 后端所有资源以 concurrent / shared 语义创建（三队列 `VK_SHARING_MODE_CONCURRENT`）；跨队列同步完全通过 `CommandSubmission` waits 表达，用户代码从不写 ownership-transfer barrier。
+三端均原生支持上述 timeline 模型；本表仅用于可行性存档，并非实现规定。
 
 ## 6. CommandBuffer 操作
 
@@ -397,7 +304,7 @@ public void SetScissors(ReadOnlySpan<Scissor> scissors);
 
 public void SetPipeline(Pipeline pipeline);
 
-public void PushResourceTable(ShaderStageFlags stages, ResourceTable table);
+public void PushResourceTable(ResourceTable table);
 
 // === 顶点 / 索引 ===
 
@@ -451,7 +358,8 @@ public void Upload<T>(Texture destination, TextureSubresourceLayers layers, Offs
 要点：
 
 - `BeginRenderPass` 接受 attachment span，无深度时显式传 `null`；内部按 attachment 自动 `Transition` + 自动填 `SetViewports` / `SetScissors`，调用方可在其后再调一次 `SetViewports` / `SetScissors` 覆盖。
-- `PushResourceTable` 加 `ShaderStageFlags stages`：DX12 root parameter visibility / Metal argument table 都按 stage 区分；VK 的 set 在 layout 里编译期固定，stages 用于校验匹配。
+- `PushResourceTable` 不接受 stages 参数：stages 信息由 `ResourceTable.Layout` 的每个 binding 自带（DX12 root parameter visibility / Metal argument table 写入位置据此推导；VK 的 set 在 layout 里编译期固定）。每个 pipeline 仅支持一张 table，无 setIndex。
+- **Push-snapshot 语义**：`PushResourceTable` 在调用现场把 `table` 的当前内容快照进 cmd buffer；之后对该 `table` 的 `Write` 不影响已 push 的绑定。三端均原生支持此语义（DX12 绑定时拷贝 descriptor、VK `vkCmdPushDescriptorSet`、Metal 4 `setArgumentTable:`），因此同一个 `ResourceTable` 可以在帧内反复 `Write` + `Push`。
 - `Transition` 只在 `ShaderResource` ↔ `UnorderedAccess` 之间显式调用；render target / 深度模板 / copy / 顶点 / 索引 / CBV / indirect / present 状态由对应操作隐式转换。
 - `MemoryBarrier()`：跨资源 / 跨阶段全局内存屏障，由调用方自行决定何时发出。
 
@@ -512,16 +420,10 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 设计要点：
 
 - backbuffer 以普通 `Texture` 公开（颜色 + 可选深度模板）；不公开 `FrameBuffer`，不公开 image index。
-- `Present(...)` 返回 `CommandSubmission`，与 `CommandBuffer.Submit(...)` 形态完全一致；接收任意队列的 wait。
-- 当前 image index 在后端内部维护（`VKSwapChain.ImageIndex` / `DXSwapChain.BufferIndex`），公共抽象类不感知。
+- `Present(...)` 返回 `CommandSubmission`，与 `CommandBuffer.Submit(...)` 形态对称；接收任意队列的 wait。
+- 当前 image index 完全是后端事务，不在公共面出现。
 
-后端映射：
-
-| 后端 | `Present(waits)` 实现 | "下一帧就绪" 信号 |
-|---|---|---|
-| DX12 | 对每个 wait 调 `graphicsQueue.Wait(otherFence, otherValue)` → `IDXGISwapChain3::Present` | frame latency event 包装为 `CommandSubmission`（值取自 graphics queue 时间线） |
-| Vulkan 1.4 | 一次桥接 submit `vkQueueSubmit2(graphicsQueue, waits=timeline values, signal=renderFinished[N])` → `vkQueuePresentKHR(graphicsQueue, wait=renderFinished[N])` | 下一帧 `vkAcquireNextImageKHR` 返回的 binary `imageAvailable[N]`，再用一次 graphics queue 的 "wait binary, signal timeline" 桥接 submit 包装为 `CommandSubmission` |
-| Metal 4 | `commandBuffer.EncodeWaitForEvent(...)` 转译每个 wait → `commandBuffer.Present(drawable)` → `commandBuffer.Commit()` | 下一个 drawable 的可用事件包装为 `CommandSubmission` |
+三端均原生支持 `Present(waits) → CommandSubmission` 的形态：DX12 以 `IDXGISwapChain3::Present` 搭配每个 wait 的 `graphicsQueue.Wait(fence, value)`；Vulkan 1.4 用一次桥接 `vkQueueSubmit2`，把 timeline waits 翻译成供 `vkQueuePresentKHR` 消费的 binary `renderFinished` semaphore；Metal 4 为 `commandBuffer.EncodeWaitForEvent(...)` → `commandBuffer.Present(drawable)` → `commandBuffer.Commit()`。
 
 ## 8. 帧循环
 
@@ -568,15 +470,17 @@ while (running)
 
 每一步形态一致：拿一组 `CommandSubmission` waits，返回一个 `CommandSubmission`。`Submit` 与 `Present` 在 API 表面完全对称。
 
-## 9. 三端 RenderPass / 状态映射
+## 9. 三端可行性对照
+
+§3–§7 的每个公共原语，三端均有原生对应：
 
 | 概念 | DX12 | Vulkan 1.4 | Metal 4 |
 |---|---|---|---|
-| Begin / End RenderPass | `OMSetRenderTargets` 或 `BeginRenderPass(RENDER_PASS_RENDER_TARGET_DESC)` / `EndRenderPass` | `vkCmdBeginRendering(VkRenderingInfo)` / `vkCmdEndRendering` | `commandBuffer.RenderCommandEncoder(MTLRenderPassDescriptor)` / `endEncoding` |
-| LoadAction | `BeginningAccessType` (Discard / Preserve / Clear) | `loadOp` (DONT_CARE / LOAD / CLEAR) | `MTLLoadAction` |
-| StoreAction | `EndingAccessType` (Discard / Preserve / Resolve) | `storeOp` (DONT_CARE / STORE / NONE) + `resolveMode` | `MTLStoreAction` |
-| Resolve | `EndingAccessResolveSubresourceParameters` | `pResolveAttachments` + `resolveMode` | `MTLRenderPassDescriptor.resolveTexture` |
-| 显式 Transition | `ResourceBarrier(Transition / UAV)` | `vkCmdPipelineBarrier2(VkImageMemoryBarrier2 / VkBufferMemoryBarrier2)` | `commandEncoder.MemoryBarrier(scope, after, before)` |
+| 内联 RenderPass | `ID3D12GraphicsCommandList4::BeginRenderPass` / `EndRenderPass` | `vkCmdBeginRendering` / `vkCmdEndRendering` | `MTL4CommandBuffer::MakeRenderCommandEncoder` / `endEncoding` |
+| LoadAction | `RenderPassBeginningAccessType` | `VkAttachmentLoadOp` | `MTLLoadAction` |
+| StoreAction（含 Resolve） | `RenderPassEndingAccessType` | `VkAttachmentStoreOp` + `pResolveAttachments` + `resolveMode` | `MTLStoreAction` + `resolveTexture` |
+| 显式 Transition（SRV ↔ UAV） | `ResourceBarrier(Transition / UAV)` | `vkCmdPipelineBarrier2`（`VkImageMemoryBarrier2` / `VkBufferMemoryBarrier2`） | `MTL4ComputeCommandEncoder.BarrierAfterEncoderStages` |
+| 全局 `MemoryBarrier()` | `ResourceBarrier(UAV)` 全局 | `vkCmdPipelineBarrier2` 配 `VK_ACCESS_2_MEMORY_READ/WRITE_BIT` | `BarrierAfterEncoderStages` 覆盖全阶段 |
 | Aspect 推断源 | format → plane index | `Texture.Format` → `VkImageAspectFlags` | format → 自动 |
 
 ## 10. RDG 接口自检
@@ -599,8 +503,20 @@ RDG 由 RHI 用户自行封装，本节只回答：「本 RHI 是否暴露了 RD
 面向 Skia / DLSS / FSR / RenderDoc / 工具链等需要拿后端原生句柄的场景。设计原则：
 
 - 公共面只暴露 `nint` + 一组枚举；不出现任何后端类型 / 平台条件属性
-- RHI 不替外部库做事；调用方按既有模板自管 state 协议
+- RHI 不替外部库做事，也不提供任何 escape hatch 让外部代码修改 RHI 的资源状态缓存
 - 互操作 API 是 RHI 内部本就维护的状态的副产品，零额外运行时成本
+
+**状态不变契约**：通过 `GetNativeObject(...)` 暴露给外部库的资源，外部库返回后必须将其留在与当前 `TransitionState` 一致的底层状态：
+
+- DX12：`ShaderResource` → `D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | PIXEL_SHADER_RESOURCE`；`UnorderedAccess` → `D3D12_RESOURCE_STATE_UNORDERED_ACCESS`
+- Vulkan：`ShaderResource` → `VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL`；`UnorderedAccess` → `VK_IMAGE_LAYOUT_GENERAL`
+- Metal 4：状态由 driver 自管，无需配合
+
+DLSS / XeSS / FFX-FSR / NRD 这类 compute 后处理库本就遵守该契约（入口前后状态一致）。主动修改 layout 的库（典型如 Skia）不适合共享 cmd，应采用：
+
+1. **纹理拷贝**（推荐）：让外部库在其私有资源上渲染，结束后以 `Texture` 包装其输出（未来 import 接口，见 § 11.5）或直接以原生拷贝 API 搬进 RHI 资源。
+2. **獨占 swapchain**：纯 UI 应用可将整个 swapchain 让渡给外部库，RHI 不参与该 swapchain 的渲染。
+3. **配置外部库还原 layout**：Skia 可通过 `GrBackendTexture::setVkImageLayout` 要求每次 flush 后还原到 RHI 期望的 layout。
 
 ### 11.1 NativeObjectType 枚举
 
@@ -692,86 +608,49 @@ public override nint GetNativeObject(NativeObjectType type) => type switch
 public override nint GetNativeObject(NativeObjectType type) => 0;
 ```
 
-### 11.3 CommandBuffer 互操作动词
+### 11.3 互操作调用约定
 
-```csharp
-public abstract class CommandBuffer
-{
-    /// <summary>
-    /// 进入互操作段：结束当前 RenderPass / Encoder（如有），清空 RHI 内部绑定缓存
-    /// （PSO / 描述符 / 顶点索引 / viewport / scissor）。
-    /// 不向 cmd 写入命令（VK 例外：会调一次 vkCmdEndRendering）。
-    /// 进入后请通过 GetNativeObject(...) 拿原生句柄交给外部库。
-    /// Begin / End 必须成对调用，禁止嵌套。
-    /// </summary>
-    public abstract void BeginExternalCommands();
+互操作不引入专用的 `BeginExternalCommands` / `EndExternalCommands` 动词。这类调用顺序 / RHI 缓存联动问题属于开发期能够一次性保证的事项，RHI 不以运行时 API 兜底。调用方需自行满足：
 
-    /// <summary>
-    /// 结束互操作段：插入一个全局 MemoryBarrier 以隔离外部库的写入与后续 RHI 命令。
-    /// 不重新打开 RenderPass / Encoder；调用方按需 BeginRenderPass / SetPipeline。
-    /// </summary>
-    public abstract void EndExternalCommands();
+1. 调用外部库时不在 `BeginRenderPass` / `EndRenderPass` 之间（典型互操作都是 compute，天然如此）。
+2. 若调用顺序让 RHI 缓存的 PSO / descriptor / VB / IB / viewport / scissor 与外部库可能冲突，由调用方在外部库返回后重新 `SetPipeline` / `PushResourceTable` 等。
+3. **外部库返回后调一次 `cmd.MemoryBarrier()`**（见 § 6）隔离外部写入与后续 RHI 命令。
 
-    /// <summary>
-    /// 同步 RHI 资源状态缓存为 newState，不写 cmd、不发 barrier。
-    /// 下一次 Transition 据此算 from→to。允许在 External scope 内或外调用。
-    /// </summary>
-    public abstract void SetState(Texture texture, TransitionState newState);
-
-    public abstract void SetState(Buffer buffer, TransitionState newState);
-}
-```
-
-后端实现要点：
-
-- `BeginExternalCommands`：
-    - 公共部分：清 `cachedPipeline` / `cachedRootSignature`(DX12) / `cachedDescriptorSets/Heaps` / `cachedVertexBuffers` / `cachedIndexBuffer` / `cachedViewports` / `cachedScissors`
-    - VK：若当前在 dynamic rendering scope，调一次 `vkCmdEndRendering`
-    - DX12 / Metal：仅清字段，不写 cmd（DX12 不调 `ID3D12GraphicsCommandList::ClearState`，那会真往 cmd 写命令）
-    - 置内部 `inExternalScope = true`；若已为 true → 抛异常
-- `EndExternalCommands`：
-    - 调用一次内部 `MemoryBarrier()`（VK = `vkCmdPipelineBarrier2(ALL → ALL, MEMORY_READ|WRITE → MEMORY_READ|WRITE)`；DX12 = `ResourceBarrier(UAV, nullptr)` 或 `D3D12_GLOBAL_BARRIER`；Metal = `MemoryBarrier(scope=AllResources, after=AllStages, before=AllStages)`）
-    - 置 `inExternalScope = false`；若已为 false → 抛异常
-    - 不重开 RenderPass / Encoder
-- `SetState`：直接写 `texture.CurrentState = newState` / `buffer.CurrentState = newState`，零写 cmd。
+加上 § 11 引言的"状态不变契约"，互操作场景仅依赖 `GetNativeObject` + `MemoryBarrier`，无需专用 API。
 
 ### 11.4 调用方模板
 
 ```csharp
-// === DLSS (DX12) — 共享 cmd，state 不变 ===
+// === DLSS (DX12) — 共享 cmd，遵守状态不变契约 ===
 cmd.Transition(colorIn,  TransitionState.ShaderResource);
 cmd.Transition(colorOut, TransitionState.UnorderedAccess);
 
-cmd.BeginExternalCommands();
 DLSS.Evaluate(
     cmd.GetNativeObject(NativeObjectType.D3D12GraphicsCommandList),
     colorIn.GetNativeObject(NativeObjectType.D3D12Resource),
     colorOut.GetNativeObject(NativeObjectType.D3D12Resource));
-cmd.EndExternalCommands();   // 自动插入 barrier，隔离 DLSS 写入与后续 RHI 命令
+// 返回时：colorIn 仍为 NON_PIXEL_SHADER_RESOURCE，colorOut 仍为 UNORDERED_ACCESS
+cmd.MemoryBarrier();   // 隔离 DLSS 写入与后续 RHI 命令
+cmd.Transition(colorOut, TransitionState.ShaderResource);
 
-cmd.BeginRenderPass(...);
-
-// === FSR/FFX (Vulkan) — 共享 cmd，state 由外部库改 ===
+// === FSR/FFX (Vulkan) — 共享 cmd，同契约 ===
 cmd.Transition(colorIn,  TransitionState.ShaderResource);
 cmd.Transition(colorOut, TransitionState.UnorderedAccess);
 
-cmd.BeginExternalCommands();
 Ffx.Fsr2Dispatch(
     cmd.GetNativeObject(NativeObjectType.VkCommandBuffer),
     colorIn.GetNativeObject(NativeObjectType.VkImage),
     colorOut.GetNativeObject(NativeObjectType.VkImage));
-cmd.SetState(colorOut, TransitionState.ShaderResource);
-cmd.EndExternalCommands();
+cmd.MemoryBarrier();
+cmd.Transition(colorOut, TransitionState.ShaderResource);
 
-cmd.BeginRenderPass(...);
-
-// === Skia (Vulkan) — 不共享 cmd，自带提交 ===
-nint instance = ctx.GetNativeObject(NativeObjectType.VkInstance);
-nint device   = ctx.GetNativeObject(NativeObjectType.VkDevice);
-nint queue    = ctx.Graphics.GetNativeObject(NativeObjectType.VkQueue);
-uint family   = (uint)ctx.Graphics.GetNativeObject(NativeObjectType.VkQueueFamilyIndex);
-var grContext = GRContext.MakeVulkan(instance, device, queue, family, /*...*/);
-// Skia 自管 cmd；与 RHI 共享的资源在下次 RHI 使用前对相应 RHI 句柄调 SetState 同步缓存状态即可。
+// === Skia (Vulkan) — 纹理拷贝路径 ===
+// Skia 主动修改 layout，不适合共享 cmd 契约。
+// 让 Skia 在其私有 VkImage 上完成绘制，然后在 Skia 自己的 cmd buffer 里
+// 把结果拷贝到一张 RHI 拥有的 Texture（TransferDst | Sampled）；Skia 在
+// flush 时 signal 一个 timeline semaphore，由调用方包装为 CommandSubmission
+// 传入下一次 RHI Submit 的 wait。由于 SkiaSharp 共享 VkImage / flush 信号
+// 的 API 易变，该集成始终留在调用方侧。
 
 // === RenderDoc — 仅 device 句柄 ===
 nint device = ctx.GetNativeObject(NativeObjectType.D3D12Device);
@@ -783,23 +662,4 @@ RenderDocApi.EndFrameCapture(device, IntPtr.Zero);
 ### 11.5 不做的事
 
 - 不提供「导入外部 native 资源」入口（首版）；如未来需要：通过 `GraphicsContext.ImportTexture(TextureDesc, nint, TransitionState)` 加入，签名同形态
-- 调用方自己保证调用外部库时不在 RenderPass 内（典型互操作都是 compute，天然如此）
-
-## 12. ZenithHelper 受影响成员
-
-[ZenithHelper](sources/Zenith.NET/ZenithHelper.cs) 中以下函数依赖被删除的 `TextureSlice`（含 `Face`） / `TextureViewDesc`，或依赖 "cube 面隐式乘进子资源计数" 模型，新设计下不再适用，需删除或以新型重写：
-
-- `FaceCount(TextureDesc)` —— cube / cubeArray 以 6-layer array 表达，`ArrayLayers` 含 face 总层数，face 不再是独立轴。
-- `FaceIndex(TextureDesc, TextureSlice)` —— 依赖 `TextureSlice.Face`。
-- `FlattenArrayLayerCount(TextureDesc)` —— "把 face 乘进 array layer" 的折叠不再需要，直接 `desc.ArrayLayers`。
-- `FlattenArrayLayerIndex(TextureDesc, TextureSlice)` —— 同上。
-- `FlattenArrayLayerRange(TextureViewDesc)` —— `TextureViewDesc` 删除。
-- `SubresourceCount(TextureDesc)` —— 新模型 = `MipLevels * ArrayLayers`，使用侧可内联。
-- `SubresourceIndex(TextureDesc, TextureSlice)` —— 新模型直接 `MipLevel + ArrayLayer * MipLevels`，使用侧内联。
-- `SubresourceSizeInBytes(TextureDesc, TextureSlice)` —— 改为 `TextureSubresource` 入参重写（仅需 `MipLevel`，其余复用现有 `MipDimensions` + `SizeInBytes`）。
-
-不受影响：纯格式 / 几何计算 helper（`MipDimensions`、`SizeInBytes(PixelFormat,...)`、`ElementFormat` 字节表等）保持不变。
-# RHI 重设计草案（中文临时版）
-
-> 仅用于本轮设计讨论，不进入提交。最终英文版同步在 `rhi-redesign.draft.md`。
-
+- 不提供互操作 scope 动词（`BeginExternalCommands` / `EndExternalCommands`）；调用顺序与缓存联动由开发期保证，运行时仅需一次 `MemoryBarrier()`（见 § 11.3）

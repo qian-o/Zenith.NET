@@ -2,25 +2,15 @@
 
 > Working document for the redesign discussion. Not for commit. The Chinese mirror lives in `rhi-redesign.zh.draft.md`.
 
-## 1. Goals and Non-Goals
-
-**Goals**
+## 1. Goals
 
 - Small, uniform public API surface that maps 1:1 to DirectX 12 / Vulkan 1.4 / Metal 4.
 - Short frame-loop code with no managed allocations on the hot path.
 - Cross-queue synchronization (Graphics / Compute / Copy) as a first-class primitive.
-- Explicit resource state transitions as a stable foundation for a future RDG.
+- Explicit resource state transitions between `ShaderResource` and `UnorderedAccess`; every other transition is implicit from the operation.
 - Inline render passes; no long-lived `FrameBuffer`.
 - Subresource / sub-range information expressed at the **call site** as a value type, not as a long-lived `View` object.
-
-**Non-Goals**
-
-- Full hazard tracking inside the RHI (only "current state" is cached, used to compute the source side of explicit transitions).
-- One synchronization object per submission.
-- Using `WaitForIdle` as the primary synchronization mechanism.
-- Implementing the RDG, bindless, or descriptor-buffer paths in this iteration.
-- Reworking `ResourceTable` / `ResourceLayout` / `Sampler` / `Pipeline` / shader IO outside of what is described here.
-- Exposing per-aspect (color/depth/stencil) addressing, sub-range transitions, or "first-frame image ready" waiting on the public surface.
+- One `ResourceTable` per pipeline (no secondary descriptor sets), matching the Metal 4 argument-table model and the other two backends' root/descriptor models at 1:1.
 
 ## 2. API-Surface Conventions
 
@@ -236,15 +226,9 @@ public abstract class Sampler(GraphicsContext context, SamplerDesc desc) : Graph
 }
 ```
 
-**View caches** (per-backend, on each `Texture` / `Buffer`):
+**View caches** (per-backend, on each `Texture` / `Buffer`): the design permits backends to lazily cache the native view objects keyed by the value types in §3, but no part of this is on the public surface.
 
-- `Dictionary<TextureSubresourceRange, T_view>` — SRV / UAV
-- `Dictionary<TextureSubresource, T_rtv_dsv>` — RTV / DSV
-- `Dictionary<BufferRange, T_view>` — typed buffer view
-
-Lazy-allocated by value-type key, lifetime tied to the parent. The same `(resource, range)` pair across all call sites shares one backend object.
-
-**State tracking:** every `Texture` / `Buffer` keeps its current `TransitionState` internally; the initial state is set by the backend default. The first explicit `Transition` synthesizes the from→to barrier from that cached value.
+**State tracking:** every `Texture` / `Buffer` carries its current `TransitionState`; the initial value is set by the backend at creation. The first explicit `Transition` synthesizes the from→to barrier against that cached value. Only `ShaderResource` ↔ `UnorderedAccess` is user-visible; all other transitions (render-target / depth-stencil / copy / vertex / index / CBV / indirect / present) are driven implicitly by the operation issuing them.
 
 **Removed from the framework (these all exist today):** `BufferView` / `BufferViewDesc` / `TextureView` / `TextureViewDesc` / `BufferViewType` / `IBindableResource` / `TextureSlice` (incl. `Face`) / `TextureOffset` / `TextureExtent` / `FrameBuffer` / `FrameBufferDesc` / `FrameBufferAttachment` / `ClearValue` / `ClearValues` (static factory) / `ClearFlags` / `GraphicsContext.CreateBufferView` / `CreateTextureView` / `CreateFrameBuffer`. The `Output` type itself stays — it remains `GraphicsPipelineDesc.Output`; only the `FrameBuffer.Output` use site disappears.
 
@@ -255,81 +239,13 @@ Each `CommandQueue` owns one monotonic completion timeline. Each `Submit` advanc
 ```csharp
 public abstract class CommandQueue(GraphicsContext context, CommandQueueType type) : GraphicsResource(context)
 {
-    private readonly Lock @lock = new();
-    private readonly Queue<CommandBuffer> available = [];
-    private readonly Queue<InFlightCommandBuffer> execution = [];
-
-    private ulong lastSignaledValue;
-
     public CommandQueueType Type { get; } = type;
 
-    public CommandBuffer CommandBuffer()
-    {
-        using Lock.Scope _ = @lock.EnterScope();
+    /// <summary>Acquires a recording-ready CommandBuffer, recycling a retired one when available.</summary>
+    public CommandBuffer CommandBuffer();
 
-        CollectCompleted();
-
-        CommandBuffer commandBuffer = available.Count is 0 ? CreateCommandBuffer() : available.Dequeue();
-
-        commandBuffer.Begin();
-
-        return commandBuffer;
-    }
-
-    /// <summary>Idempotent. Returns immediately when the queue is already drained.</summary>
-    public void WaitForIdle()
-    {
-        Wait(lastSignaledValue);
-    }
-
-    internal void Wait(ulong value)
-    {
-        using Lock.Scope _ = @lock.EnterScope();
-
-        if (GetCompletedValue() >= value)
-        {
-            CollectCompleted();
-
-            return;
-        }
-
-        WaitCore(value);
-
-        CollectCompleted();
-    }
-
-    internal CommandSubmission Submit(CommandBuffer commandBuffer, ReadOnlySpan<CommandSubmission> waits)
-    {
-        using Lock.Scope _ = @lock.EnterScope();
-
-        CollectCompleted();
-
-        commandBuffer.End();
-
-        lastSignaledValue++;
-
-        SubmitCore(commandBuffer, waits, lastSignaledValue);
-
-        execution.Enqueue(new(commandBuffer, lastSignaledValue));
-
-        return new(this, lastSignaledValue);
-    }
-
-    private void CollectCompleted()
-    {
-        ulong value = GetCompletedValue();
-
-        while (execution.Count > 0 && execution.Peek().Value <= value)
-        {
-            CommandBuffer commandBuffer = execution.Dequeue().CommandBuffer;
-
-            commandBuffer.Reset();
-
-            available.Enqueue(commandBuffer);
-        }
-    }
-
-    protected abstract CommandBuffer CreateCommandBuffer();
+    /// <summary>Waits until every submission issued on this queue has completed. Idempotent.</summary>
+    public void WaitForIdle();
 
     protected abstract ulong GetCompletedValue();
 
@@ -337,22 +253,19 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
     protected abstract void SubmitCore(CommandBuffer commandBuffer, ReadOnlySpan<CommandSubmission> waits, ulong signalValue);
 
-    private readonly record struct InFlightCommandBuffer(CommandBuffer CommandBuffer, ulong Value);
+    protected abstract CommandBuffer CreateCommandBuffer();
 }
 
 public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
 {
-    public CommandSubmission Submit(params ReadOnlySpan<CommandSubmission> waits)
-    {
-        return queue.Submit(this, waits);
-    }
+    /// <summary>Closes recording and enqueues this buffer on its owning queue.</summary>
+    public CommandSubmission Submit(params ReadOnlySpan<CommandSubmission> waits);
 }
 ```
 
-Notes:
-
 - `GetCompletedValue()` is a **method**, not a property: all three backends (DX12 `fence.GetCompletedValue()` / VK `vkGetSemaphoreCounterValue` / Metal `event.SignaledValue`) are call-shaped.
-- Command buffer pooling lives in the queue: `CollectCompleted()` runs at every `Submit` / `Wait` and recycles buffers whose timeline value has retired.
+- `CommandBuffer` pooling is entirely a queue-internal detail; the public surface only offers `CommandBuffer()` and `Submit(...)`.
+- Three queues are exposed on `GraphicsContext`: `Graphics` / `Compute` / `Copy`. `Present` always runs on `Graphics`; `SwapChain` pulls that queue reference from the context and never exposes it on its own surface.
 
 ### Backend Timeline Mapping
 
@@ -362,13 +275,7 @@ Notes:
 | Vulkan 1.4 | one timeline `VkSemaphore` per queue (core feature) | `vkQueueSubmit2` `pSignalSemaphoreInfos[].value` / `vkGetSemaphoreCounterValue` / `vkWaitSemaphores` |
 | Metal 4 | one `MTLSharedEvent` per queue | `commandBuffer.EncodeSignalEvent(event, value)` / `event.SignaledValue` / `event.NotifyListener` |
 
-The internal binary `VkFence` is retained for swapchain image acquire only.
-
-### Interaction with SwapChain Present
-
-`Present` runs on the GraphicsQueue. `SwapChain.Present(waits)` submits the present from the GraphicsQueue; cross-queue waits are honored on the GraphicsQueue side via "wait other queue's timeline" instructions (see Section 7 mapping table). The SwapChain implementation pulls the GraphicsQueue from `GraphicsContext`; the queue reference is never exposed on `SwapChain`'s public surface.
-
-To keep barriers simple, all resources are created with concurrent / shared semantics on Vulkan (`VK_SHARING_MODE_CONCURRENT` across the three queues). Cross-queue synchronization is therefore expressed entirely through `CommandSubmission` waits; user code never writes Vulkan ownership-transfer barriers.
+All three backends support this timeline model natively; the table is a feasibility record, not a prescription.
 
 ## 6. CommandBuffer Operations
 
@@ -398,7 +305,7 @@ public void SetScissors(ReadOnlySpan<Scissor> scissors);
 
 public void SetPipeline(Pipeline pipeline);
 
-public void PushResourceTable(ShaderStageFlags stages, ResourceTable table);
+public void PushResourceTable(ResourceTable table);
 
 // === Vertex / Index ===
 
@@ -452,7 +359,8 @@ public void Upload<T>(Texture destination, TextureSubresourceLayers layers, Offs
 Notes:
 
 - `BeginRenderPass` accepts an attachment span; pass `null` explicitly for no depth. The implementation auto-`Transition`s the attachments and auto-fills `SetViewports` / `SetScissors` from attachment dimensions; the caller may issue `SetViewports` / `SetScissors` afterward to override.
-- `PushResourceTable` takes a `ShaderStageFlags stages` argument: DX12 root-parameter visibility and Metal argument tables are stage-scoped. On Vulkan the descriptor set's stage mask is fixed at layout creation time, so `stages` is used to validate the call against the layout.
+- `PushResourceTable` takes no `stages` argument: stage information is carried per-binding in `ResourceTable.Layout` (DX12 root-parameter visibility and Metal argument-table placement are derived from it; the VK set's stage mask is fixed at layout creation time). Only one table per pipeline is supported; there is no `setIndex`.
+- **Push-snapshot semantics**: `PushResourceTable` snapshots the current contents of `table` into the cmd buffer at the call site; subsequent `Write`s to that `table` do not affect already-pushed bindings. All three backends provide this natively (DX12 descriptor copy on bind, VK `vkCmdPushDescriptorSet`, Metal 4 `setArgumentTable:`), so the same `ResourceTable` can be repeatedly `Write` + `Push`ed within a frame.
 - `Transition` is only called explicitly between `ShaderResource` and `UnorderedAccess`. Render-target / depth-stencil / copy / vertex / index / CBV / indirect / present states are transitioned implicitly by the corresponding operation.
 - `MemoryBarrier()` is a global cross-resource / cross-stage memory barrier; the caller decides when to issue it.
 
@@ -513,16 +421,10 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 Design points:
 
 - Backbuffers are exposed as plain `Texture`s (color + optional depth-stencil). No `FrameBuffer`, no image index.
-- `Present(...)` returns a `CommandSubmission` describing when the next backbuffer is writable; it accepts waits from any queue.
-- The current backbuffer index lives **only** inside the backend (today: `VKSwapChain.ImageIndex`, `DXSwapChain.BufferIndex`). Public callers never need it.
+- `Present(...)` returns a `CommandSubmission` describing when the next backbuffer is writable; it accepts waits from any queue, symmetrically with `CommandBuffer.Submit(...)`.
+- The current backbuffer index is entirely a backend concern and is never on the public surface.
 
-Backend mapping:
-
-| Backend | `Present(waits)` implementation | "Next-frame ready" signal |
-|---|---|---|
-| DX12 | for each `wait`, call `graphicsQueue.Wait(otherFence, otherValue)`, then `IDXGISwapChain3::Present` | frame-latency event wrapped as a `CommandSubmission` whose value is taken from the graphics queue timeline |
-| Vulkan 1.4 | one bridging `vkQueueSubmit2(graphicsQueue, waits=timeline values, signal=renderFinished[N])` → `vkQueuePresentKHR(graphicsQueue, wait=renderFinished[N])` | the next frame's `vkAcquireNextImageKHR` returns binary `imageAvailable[N]`; another graphics-queue "wait binary, signal timeline" bridging submit wraps it as a `CommandSubmission` |
-| Metal 4 | translate each wait into `commandBuffer.EncodeWaitForEvent(...)` → `commandBuffer.Present(drawable)` → `commandBuffer.Commit()` | the next drawable's availability event wrapped as a `CommandSubmission` |
+All three backends support the shape `Present(waits) → CommandSubmission` natively: DX12 `IDXGISwapChain3::Present` with `graphicsQueue.Wait(fence, value)` for each wait; Vulkan 1.4 a bridging `vkQueueSubmit2` that translates timeline waits into a binary `renderFinished` semaphore consumed by `vkQueuePresentKHR`; Metal 4 `commandBuffer.EncodeWaitForEvent(...)` → `commandBuffer.Present(drawable)` → `commandBuffer.Commit()`.
 
 ## 8. Frame Loop
 
@@ -569,15 +471,17 @@ while (running)
 
 Every step has the same shape: take a set of `CommandSubmission` waits, return a `CommandSubmission`. `Submit` and `Present` are symmetric on the API surface.
 
-## 9. Three-Backend RenderPass / Barrier Mapping
+## 9. Three-Backend Feasibility Matrix
+
+Every public primitive in §3–§7 has a native equivalent on all three backends:
 
 | Concept | DX12 | Vulkan 1.4 | Metal 4 |
 |---|---|---|---|
-| Begin / End RenderPass | `OMSetRenderTargets`, or `BeginRenderPass(RENDER_PASS_RENDER_TARGET_DESC)` / `EndRenderPass` | `vkCmdBeginRendering(VkRenderingInfo)` / `vkCmdEndRendering` | `commandBuffer.RenderCommandEncoder(MTLRenderPassDescriptor)` / `endEncoding` |
-| LoadAction | `BeginningAccessType` (Discard / Preserve / Clear) | `loadOp` (DONT_CARE / LOAD / CLEAR) | `MTLLoadAction` |
-| StoreAction | `EndingAccessType` (Discard / Preserve / Resolve) | `storeOp` (DONT_CARE / STORE / NONE) + `resolveMode` | `MTLStoreAction` |
-| Resolve | `EndingAccessResolveSubresourceParameters` | `pResolveAttachments` + `resolveMode` | `MTLRenderPassDescriptor.resolveTexture` |
-| Explicit Transition | `ResourceBarrier(Transition / UAV)` | `vkCmdPipelineBarrier2(VkImageMemoryBarrier2 / VkBufferMemoryBarrier2)` | `commandEncoder.MemoryBarrier(scope, after, before)` |
+| Inline RenderPass | `ID3D12GraphicsCommandList4::BeginRenderPass` / `EndRenderPass` | `vkCmdBeginRendering` / `vkCmdEndRendering` | `MTL4CommandBuffer::MakeRenderCommandEncoder` / `endEncoding` |
+| LoadAction | `RenderPassBeginningAccessType` | `VkAttachmentLoadOp` | `MTLLoadAction` |
+| StoreAction (incl. Resolve) | `RenderPassEndingAccessType` | `VkAttachmentStoreOp` + `pResolveAttachments` + `resolveMode` | `MTLStoreAction` + `resolveTexture` |
+| Explicit Transition (SRV ↔ UAV) | `ResourceBarrier(Transition / UAV)` | `vkCmdPipelineBarrier2` (`VkImageMemoryBarrier2` / `VkBufferMemoryBarrier2`) | `MTL4ComputeCommandEncoder.BarrierAfterEncoderStages` |
+| Global `MemoryBarrier()` | `ResourceBarrier(UAV)` global | `vkCmdPipelineBarrier2` with `VK_ACCESS_2_MEMORY_READ/WRITE_BIT` | `BarrierAfterEncoderStages` with all stages |
 | Aspect inference source | format → plane index | `Texture.Format` → `VkImageAspectFlags` | format → automatic |
 
 ## 10. RDG Interface Self-Check
@@ -600,8 +504,20 @@ Conclusion: an RDG implementation can be built without any further changes to th
 For third-party libraries that need backend-native handles: Skia / DLSS / FSR / RenderDoc / tooling. Design principles:
 
 - The public surface exposes only `nint` plus an enum; no backend types and no platform-conditional properties.
-- The RHI does not perform work on behalf of the external library; the caller follows the documented protocol for state synchronization.
+- The RHI does not perform work on behalf of the external library, and provides no escape hatch for external code to mutate the RHI's cached resource state.
 - The interop API is a side-effect of state the RHI already maintains internally — zero extra runtime cost.
+
+**State-preservation contract**: any resource exposed to an external library through `GetNativeObject(...)` must be returned in the underlying state matching its current `TransitionState`:
+
+- DX12: `ShaderResource` → `D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | PIXEL_SHADER_RESOURCE`; `UnorderedAccess` → `D3D12_RESOURCE_STATE_UNORDERED_ACCESS`.
+- Vulkan: `ShaderResource` → `VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL`; `UnorderedAccess` → `VK_IMAGE_LAYOUT_GENERAL`.
+- Metal 4: state is driver-managed; no caller cooperation required.
+
+Compute post-processing libraries (DLSS / XeSS / FFX-FSR / NRD) honour this contract by design (state at entry == state at exit). Libraries that actively rewrite layout (Skia and similar) are not suitable for the shared-cmd path; instead use:
+
+1. **Texture copy** (recommended): let the external library render onto its own private resource, then copy the output into an RHI texture (a future import entry point may avoid the copy; see § 11.5).
+2. **Dedicated swapchain**: pure-UI applications can hand the entire swapchain to the external library; the RHI does not participate in that swapchain's rendering.
+3. **Configure the library to restore layout**: e.g. Skia's `GrBackendTexture::setVkImageLayout` can request the layout to be restored to the RHI's expected value after every flush.
 
 ### 11.1 NativeObjectType
 
@@ -693,88 +609,48 @@ public override nint GetNativeObject(NativeObjectType type) => type switch
 public override nint GetNativeObject(NativeObjectType type) => 0;
 ```
 
-### 11.3 CommandBuffer Interop Verbs
+### 11.3 Interop Calling Convention
 
-```csharp
-public abstract class CommandBuffer
-{
-    /// <summary>
-    /// Enter the interop scope: end the current RenderPass / Encoder (if any), clear the
-    /// RHI's internal binding caches (PSO / descriptors / vertex+index buffers / viewports / scissors).
-    /// Does not write any command into the cmd (Vulkan exception: one vkCmdEndRendering call).
-    /// After entering, use GetNativeObject(...) to hand native handles to the external library.
-    /// Begin / End must be paired; nesting is forbidden.
-    /// </summary>
-    public abstract void BeginExternalCommands();
+No dedicated `BeginExternalCommands` / `EndExternalCommands` verbs. Call ordering and RHI cache interaction are concerns the caller resolves at development time, not at the runtime API boundary. The caller guarantees:
 
-    /// <summary>
-    /// Leave the interop scope: emit one global MemoryBarrier to isolate the external library's
-    /// writes from subsequent RHI commands. Does not re-open any RenderPass / Encoder; the caller
-    /// reissues BeginRenderPass / SetPipeline as needed.
-    /// </summary>
-    public abstract void EndExternalCommands();
+1. The external library is invoked outside any `BeginRenderPass` / `EndRenderPass` (typical interop is compute, so this holds naturally).
+2. If the call ordering would let the RHI's cached PSO / descriptors / vertex+index buffers / viewports / scissors collide with the external library, the caller re-issues `SetPipeline` / `PushResourceTable` etc. after the external library returns.
+3. **Issue one `cmd.MemoryBarrier()`** (see § 6) after the external library returns to isolate its writes from subsequent RHI commands.
 
-    /// <summary>
-    /// Synchronize the RHI's cached resource state to newState. Writes neither cmd nor barrier.
-    /// The next Transition uses this value to compute from → to. Callable inside or outside the External scope.
-    /// </summary>
-    public abstract void SetState(Texture texture, TransitionState newState);
-
-    public abstract void SetState(Buffer buffer, TransitionState newState);
-}
-```
-
-Backend implementation notes:
-
-- `BeginExternalCommands`:
-    - Common: clear `cachedPipeline` / `cachedRootSignature` (DX12) / `cachedDescriptorSets/Heaps` / `cachedVertexBuffers` / `cachedIndexBuffer` / `cachedViewports` / `cachedScissors`.
-    - VK: if currently inside a dynamic rendering scope, call `vkCmdEndRendering` once.
-    - DX12 / Metal: only clear fields; do not write cmd (DX12 must NOT call `ID3D12GraphicsCommandList::ClearState`, which would actually emit a command).
-    - Set `inExternalScope = true`; throw if already true.
-- `EndExternalCommands`:
-    - Call the internal `MemoryBarrier()` once (VK = `vkCmdPipelineBarrier2(ALL → ALL, MEMORY_READ|WRITE → MEMORY_READ|WRITE)`; DX12 = `ResourceBarrier(UAV, nullptr)` or `D3D12_GLOBAL_BARRIER`; Metal = `MemoryBarrier(scope=AllResources, after=AllStages, before=AllStages)`).
-    - Set `inExternalScope = false`; throw if already false.
-    - Do not re-open RenderPass / Encoder.
-- `SetState`: write `texture.CurrentState = newState` / `buffer.CurrentState = newState` directly; never touches cmd.
-
+Combined with the state-preservation contract from § 11, interop relies only on `GetNativeObject` and `MemoryBarrier`; no dedicated API is required.
 ### 11.4 Caller Templates
 
 ```csharp
-// === DLSS (DX12) — shared cmd, state preserved ===
+// === DLSS (DX12) — shared cmd, follows the state-preservation contract ===
 cmd.Transition(colorIn,  TransitionState.ShaderResource);
 cmd.Transition(colorOut, TransitionState.UnorderedAccess);
 
-cmd.BeginExternalCommands();
 DLSS.Evaluate(
     cmd.GetNativeObject(NativeObjectType.D3D12GraphicsCommandList),
     colorIn.GetNativeObject(NativeObjectType.D3D12Resource),
     colorOut.GetNativeObject(NativeObjectType.D3D12Resource));
-cmd.EndExternalCommands();   // auto barrier isolates DLSS writes from subsequent RHI commands
+// On return: colorIn stays NON_PIXEL_SHADER_RESOURCE, colorOut stays UNORDERED_ACCESS.
+cmd.MemoryBarrier();   // isolate DLSS writes from later RHI commands
+cmd.Transition(colorOut, TransitionState.ShaderResource);
 
-cmd.BeginRenderPass(...);
-
-// === FSR/FFX (Vulkan) — shared cmd, external library mutates state ===
+// === FSR/FFX (Vulkan) — shared cmd, same contract ===
 cmd.Transition(colorIn,  TransitionState.ShaderResource);
 cmd.Transition(colorOut, TransitionState.UnorderedAccess);
 
-cmd.BeginExternalCommands();
 Ffx.Fsr2Dispatch(
     cmd.GetNativeObject(NativeObjectType.VkCommandBuffer),
     colorIn.GetNativeObject(NativeObjectType.VkImage),
     colorOut.GetNativeObject(NativeObjectType.VkImage));
-cmd.SetState(colorOut, TransitionState.ShaderResource);
-cmd.EndExternalCommands();
+cmd.MemoryBarrier();
+cmd.Transition(colorOut, TransitionState.ShaderResource);
 
-cmd.BeginRenderPass(...);
-
-// === Skia (Vulkan) — not sharing cmd, library submits on its own ===
-nint instance = ctx.GetNativeObject(NativeObjectType.VkInstance);
-nint device   = ctx.GetNativeObject(NativeObjectType.VkDevice);
-nint queue    = ctx.Graphics.GetNativeObject(NativeObjectType.VkQueue);
-uint family   = (uint)ctx.Graphics.GetNativeObject(NativeObjectType.VkQueueFamilyIndex);
-var grContext = GRContext.MakeVulkan(instance, device, queue, family, /*...*/);
-// Skia owns its own command buffers; for any resource shared with the RHI, call SetState on the
-// matching RHI handle before the next RHI use to keep the cached state in sync.
+// === Skia (Vulkan) — texture-copy path ===
+// Skia actively rewrites layout, so it does not fit the shared-cmd contract.
+// Let Skia render onto its own private VkImage, then copy into an RHI-owned
+// Texture (TransferDst | Sampled) from inside Skia's own command buffer; have
+// Skia signal a timeline semaphore on flush and feed it into the next RHI
+// Submit as a CommandSubmission wait. The exact SkiaSharp surface for sharing
+// a VkImage and the flush-signal is volatile, so the integration stays caller-side.
 
 // === RenderDoc — device handle only ===
 nint device = ctx.GetNativeObject(NativeObjectType.D3D12Device);
@@ -786,19 +662,4 @@ RenderDocApi.EndFrameCapture(device, IntPtr.Zero);
 ### 11.5 Out of Scope
 
 - No "import external native resource" entry point in this iteration; if needed later, add `GraphicsContext.ImportTexture(TextureDesc, nint, TransitionState)` with the same shape.
-- The caller guarantees that the external library is invoked outside any RenderPass (typical interop is compute-only, so this holds naturally).
-
-## 12. ZenithHelper Members Affected
-
-The following functions in [ZenithHelper](sources/Zenith.NET/ZenithHelper.cs) depend on the now-removed `TextureSlice` (with `Face`) / `TextureViewDesc`, or on the "cube faces multiply implicitly into subresource counts" model. Under the new design they no longer apply and must be removed or rewritten against the new types:
-
-- `FaceCount(TextureDesc)` — cubes / cube arrays now express their faces directly as 6-layer arrays. `ArrayLayers` already counts faces; there is no separate face axis.
-- `FaceIndex(TextureDesc, TextureSlice)` — depends on `TextureSlice.Face`.
-- `FlattenArrayLayerCount(TextureDesc)` — the "fold face into array layer" step is no longer needed; callers use `desc.ArrayLayers` directly.
-- `FlattenArrayLayerIndex(TextureDesc, TextureSlice)` — same.
-- `FlattenArrayLayerRange(TextureViewDesc)` — `TextureViewDesc` is removed.
-- `SubresourceCount(TextureDesc)` — new model = `MipLevels * ArrayLayers` (DX12 plane is handled implicitly by format). Inline at the call site.
-- `SubresourceIndex(TextureDesc, TextureSlice)` — replace with inline `MipLevel + ArrayLayer * MipLevels` over `TextureSubresource`.
-- `SubresourceSizeInBytes(TextureDesc, TextureSlice)` — rewrite to take a `TextureSubresource` (only `MipLevel` is used; the rest reuses the existing `MipDimensions` + `SizeInBytes` helpers).
-
-Unaffected: pure format / geometry helpers (`MipDimensions`, `SizeInBytes(PixelFormat, ...)`, `ElementFormat` byte-size table, etc.) keep working as-is.
+- No dedicated interop scope verbs (`BeginExternalCommands` / `EndExternalCommands`); call ordering and cache interaction are caller-side concerns, with a single `MemoryBarrier()` at runtime (see § 11.3).

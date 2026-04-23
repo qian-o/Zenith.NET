@@ -64,7 +64,7 @@ internal unsafe class VKResourceTable : ResourceTable
 
     public VKTextureView?[] UavTextureViews { get; }
 
-    protected override void SetImpl(uint binding, IBindableResource[] resources)
+    protected override void WriteImpl(uint binding, IBindableResource[] resources)
     {
         ref WriteDescriptorSet set = ref Sets[binding];
 
