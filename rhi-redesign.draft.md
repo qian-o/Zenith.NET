@@ -1,26 +1,28 @@
-# RHI Redesign
+# RHI Redesign — API Specification
 
-> Working document for the redesign discussion. Not for commit. The Chinese mirror lives in `rhi-redesign.zh.draft.md`.
+> Working spec for the redesigned public surface. Not for commit. Mirrors `rhi-redesign.zh.draft.md`.
+> The same surface is laid out as a C# skeleton under `sources/Zenith.NET.New/`.
 
 ## 1. Goals
 
-- Small, uniform public API surface that maps 1:1 to DirectX 12 / Vulkan 1.4 / Metal 4.
-- Short frame-loop code with no managed allocations on the hot path.
-- Cross-queue synchronization (Graphics / Compute / Copy) as a first-class primitive.
-- Explicit resource state transitions between `ShaderResource` and `UnorderedAccess`; every other transition is implicit from the operation.
+- Public API maps 1:1 to Metal 4 / Vulkan 1.4 / DirectX 12 (Enhanced Barriers).
+- Hot path is allocation-free; multi-element parameters use `ReadOnlySpan<T>`.
+- Cross-queue synchronization via a single value type (`CommandSubmission`).
+- Synchronization primitive is `(stage, access)` pairs, modelled after Metal 4 `barrierAfterStages:beforeStages:visibilityOptions:`.
 - Inline render passes; no long-lived `FrameBuffer`.
-- Subresource / sub-range information expressed at the **call site** as a value type, not as a long-lived `View` object.
-- One `ResourceTable` per pipeline (no secondary descriptor sets), matching the Metal 4 argument-table model and the other two backends' root/descriptor models at 1:1.
+- Subresource / sub-range information is a **call-site value type**, not a long-lived `View` object.
+- One `ResourceTable` per pipeline, aligned with the Metal 4 argument-table model.
 
-## 2. API-Surface Conventions
+## 2. Conventions
 
 - All public value types: `record struct` with public mutable fields.
 - Multi-element parameters: `ReadOnlySpan<T>` / `params ReadOnlySpan<T>`. No `T[]`, no `IEnumerable<T>`.
 - All method bodies use `{ ... }`. **Exception:** `ref` / `ref readonly` returning properties keep `=> ref _field;`.
-- Every byte-denominated parameter or field carries an `*InBytes` suffix.
-- Backend-hook naming: the `*Core` suffix exists **only** to disambiguate from a same-named non-`Core` wrapper (e.g. `Wait` / `WaitCore`, `Submit` / `SubmitCore`). Hooks without a wrapper use their natural name.
+- Every byte-denominated parameter or field carries the `*InBytes` suffix.
+- Backend hooks use the `*Core` suffix only when they share a name with a non-`Core` wrapper (e.g. `Wait` / `WaitCore`); otherwise they keep their natural name.
 - Every abstract member is plain `protected abstract`; same-assembly callers go through an `internal` wrapper.
 - The only public synchronization result type is `CommandSubmission`.
+- There are **no global barriers** and **no residency primitives** on the public surface.
 
 ## 3. Public Type Catalog
 
@@ -96,12 +98,119 @@ public record struct BufferRange
     }
 }
 
-// === Resource state (public surface) ===
+// === Texture view (call-site value) ===
 
-public enum TransitionState
+public enum TextureViewType
 {
-    ShaderResource,
-    UnorderedAccess
+    Texture1D,
+    Texture2D,
+    Texture3D,
+    TextureCube,
+    Texture1DArray,
+    Texture2DArray,
+    TextureCubeArray
+}
+
+public enum ComponentSwizzle
+{
+    Identity,
+    Zero,
+    One,
+    R,
+    G,
+    B,
+    A
+}
+
+public record struct ComponentMapping
+{
+    public ComponentSwizzle R;
+
+    public ComponentSwizzle G;
+
+    public ComponentSwizzle B;
+
+    public ComponentSwizzle A;
+
+    public static ComponentMapping Identity => new()
+    {
+        R = ComponentSwizzle.Identity,
+        G = ComponentSwizzle.Identity,
+        B = ComponentSwizzle.Identity,
+        A = ComponentSwizzle.Identity
+    };
+}
+
+public record struct TextureView
+{
+    public Texture Texture;
+
+    public TextureSubresourceRange Range;
+
+    /// <summary><c>null</c> derives from <c>Texture.Desc</c> + <c>Range</c>.</summary>
+    public TextureViewType? ViewType;
+
+    /// <summary><c>null</c> uses <c>Texture.Desc.Format</c>; otherwise reinterprets within the same family.</summary>
+    public PixelFormat? Format;
+
+    public ComponentMapping Swizzle;
+
+    public static implicit operator TextureView(Texture texture)
+    {
+        return new()
+        {
+            Texture = texture,
+            Range = texture,
+            ViewType = null,
+            Format = null,
+            Swizzle = ComponentMapping.Identity
+        };
+    }
+}
+
+// === Synchronization (stage + access) ===
+
+[Flags]
+public enum BarrierStage : uint
+{
+    None                       = 0,
+    All                        = ~0u,
+    Draw                       = 1u << 0,
+    VertexInput                = 1u << 1,
+    VertexShader               = 1u << 2,
+    PixelShader                = 1u << 3,
+    EarlyDepthStencil          = 1u << 4,
+    LateDepthStencil           = 1u << 5,
+    RenderTarget               = 1u << 6,
+    ComputeShader              = 1u << 7,
+    RayTracing                 = 1u << 8,
+    Copy                       = 1u << 9,
+    Resolve                    = 1u << 10,
+    IndirectArgument           = 1u << 11,
+    AccelerationStructureBuild = 1u << 12,
+}
+
+[Flags]
+public enum BarrierAccess : uint
+{
+    None                       = 0,
+    VertexBuffer               = 1u << 0,
+    IndexBuffer                = 1u << 1,
+    ConstantBuffer             = 1u << 2,
+    ShaderRead                 = 1u << 3,
+    UnorderedAccessRead        = 1u << 4,
+    UnorderedAccessWrite       = 1u << 5,
+    RenderTarget               = 1u << 6,
+    DepthStencilRead           = 1u << 7,
+    DepthStencilWrite          = 1u << 8,
+    CopySource                 = 1u << 9,
+    CopyDestination            = 1u << 10,
+    ResolveSource              = 1u << 11,
+    ResolveDestination         = 1u << 12,
+    IndirectArgument           = 1u << 13,
+    Present                    = 1u << 14,
+    AccelerationStructureRead  = 1u << 15,
+    AccelerationStructureWrite = 1u << 16,
 }
 
 // === RenderPass attachments ===
@@ -178,17 +287,19 @@ public readonly struct CommandSubmission(CommandQueue? queue, ulong value)
 
 Subresource triplet:
 
-| Type | Shape | Used by | Backend mapping |
-|---|---|---|---|
-| `TextureSubresource` | one mip × one layer | RTV / DSV / Resolve | DX12 plane+mip+slice singleton; VK `aspect+mip+layer` singleton; Metal `level+slice` |
-| `TextureSubresourceLayers` | one mip × contiguous layer range | Copy / Upload | `VkImageSubresourceLayers`; DX12 issues one `CopyTextureRegion` per layer; Metal `blitEncoder` per layer |
-| `TextureSubresourceRange` | contiguous mip range × contiguous layer range | View / Transition | `VkImageSubresourceRange`; DX12 view desc base+count; Metal `MTLTextureView` |
+| Type | Shape | Used by |
+|---|---|---|
+| `TextureSubresource` | one mip × one layer | RTV / DSV / Resolve |
+| `TextureSubresourceLayers` | one mip × contiguous layer range | Copy / Upload |
+| `TextureSubresourceRange` | contiguous mip range × contiguous layer range | Barrier / `TextureView.Range` |
 
-The public surface does **not** carry an aspect field; backends derive aspect (color / depth / stencil) from `Texture.Format`. Cube faces use `ArrayLayer = cubeIndex * 6 + face`, matching VK / DX12 / Metal — no separate face axis.
+The public surface does not carry an aspect field; backends derive aspect (color / depth / stencil) from `Texture.Format`. Cube faces are addressed as `ArrayLayer = cubeIndex * 6 + face`; there is no separate face axis.
+
+`TextureView` mirrors VK `VkImageViewCreateInfo` and Metal `newTextureViewWithPixelFormat:textureType:levels:slices:swizzle:`. The native view object is created lazily and cached per backend, keyed by `(Texture, Range, ViewType, Format, Swizzle)`. DX12 has no first-class swizzle; the backend rejects non-Identity swizzles unless the slot's layout opts in to a shader-side swizzle workaround.
+
+`BarrierStage` describes **when** in the pipeline an access happens; `BarrierAccess` describes **what kind** of access it is. They mirror Metal 4 `MTL4RenderStages` + `MTL4VisibilityOptions`, VK 1.4 `VkPipelineStageFlags2` + `VkAccessFlags2`, and DX12 Enhanced Barriers `D3D12_BARRIER_SYNC` + `D3D12_BARRIER_ACCESS`.
 
 ## 4. Resource Handles
-
-`Buffer` / `Texture` / `Sampler` no longer implement `IBindableResource` (the interface is removed):
 
 ```csharp
 public abstract class Buffer(GraphicsContext context, BufferDesc desc) : GraphicsResource(context)
@@ -196,8 +307,6 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
     private BufferDesc desc = desc;
 
     public ref readonly BufferDesc Desc => ref desc;
-
-    // Map / Unmap / Upload kept
 }
 
 public abstract class Texture(GraphicsContext context, TextureDesc desc) : GraphicsResource(context)
@@ -226,11 +335,8 @@ public abstract class Sampler(GraphicsContext context, SamplerDesc desc) : Graph
 }
 ```
 
-**View caches** (per-backend, on each `Texture` / `Buffer`): the design permits backends to lazily cache the native view objects keyed by the value types in §3, but no part of this is on the public surface.
-
-**State tracking:** every `Texture` / `Buffer` carries its current `TransitionState`; the initial value is set by the backend at creation. The first explicit `Transition` synthesizes the from→to barrier against that cached value. Only `ShaderResource` ↔ `UnorderedAccess` is user-visible; all other transitions (render-target / depth-stencil / copy / vertex / index / CBV / indirect / present) are driven implicitly by the operation issuing them.
-
-**Removed from the framework (these all exist today):** `BufferView` / `BufferViewDesc` / `TextureView` / `TextureViewDesc` / `BufferViewType` / `IBindableResource` / `TextureSlice` (incl. `Face`) / `TextureOffset` / `TextureExtent` / `FrameBuffer` / `FrameBufferDesc` / `FrameBufferAttachment` / `ClearValue` / `ClearValues` (static factory) / `ClearFlags` / `GraphicsContext.CreateBufferView` / `CreateTextureView` / `CreateFrameBuffer`. The `Output` type itself stays — it remains `GraphicsPipelineDesc.Output`; only the `FrameBuffer.Output` use site disappears.
+- View objects are not on the public surface. Backends may lazily cache native views keyed by the §3 value types; that cache is a backend implementation detail.
+- Texture image-layout (DX12 / VK) is fully internal to the backend; it is computed from the access flags supplied to barriers and from RenderPass attachment metadata.
 
 ## 5. CommandQueue / CommandBuffer
 
@@ -263,30 +369,33 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 }
 ```
 
-- `GetCompletedValue()` is a **method**, not a property: all three backends (DX12 `fence.GetCompletedValue()` / VK `vkGetSemaphoreCounterValue` / Metal `event.SignaledValue`) are call-shaped.
+- `GetCompletedValue()` is a method, not a property: all three backends (DX12 `fence.GetCompletedValue()` / VK `vkGetSemaphoreCounterValue` / Metal `event.SignaledValue`) are call-shaped.
 - `CommandBuffer` pooling is entirely a queue-internal detail; the public surface only offers `CommandBuffer()` and `Submit(...)`.
-- Three queues are exposed on `GraphicsContext`: `Graphics` / `Compute` / `Copy`. `Present` always runs on `Graphics`; `SwapChain` pulls that queue reference from the context and never exposes it on its own surface.
+- `GraphicsContext` exposes three queues: `Graphics` / `Compute` / `Copy`. `Present` always runs on `Graphics`; `SwapChain` pulls that queue reference from the context.
 
 ### Backend Timeline Mapping
 
 | Backend | Timeline object | API |
 |---|---|---|
-| DX12 | one `ID3D12Fence` per queue | `queue.Signal(fence, value)` / `fence.GetCompletedValue()` / `fence.SetEventOnCompletion` |
-| Vulkan 1.4 | one timeline `VkSemaphore` per queue (core feature) | `vkQueueSubmit2` `pSignalSemaphoreInfos[].value` / `vkGetSemaphoreCounterValue` / `vkWaitSemaphores` |
 | Metal 4 | one `MTLSharedEvent` per queue | `commandBuffer.EncodeSignalEvent(event, value)` / `event.SignaledValue` / `event.NotifyListener` |
-
-All three backends support this timeline model natively; the table is a feasibility record, not a prescription.
+| Vulkan 1.4 | one timeline `VkSemaphore` per queue | `vkQueueSubmit2` `pSignalSemaphoreInfos[].value` / `vkGetSemaphoreCounterValue` / `vkWaitSemaphores` |
+| DX12 | one `ID3D12Fence` per queue | `queue.Signal(fence, value)` / `fence.GetCompletedValue()` / `fence.SetEventOnCompletion` |
 
 ## 6. CommandBuffer Operations
 
 ```csharp
-// === State ===
+// === Synchronization ===
 
-public void Transition(Buffer buffer, TransitionState newState);
+public void Barrier(BarrierStage afterStages, BarrierAccess afterAccess,
+                    BarrierStage beforeStages, BarrierAccess beforeAccess);
 
-public void Transition(Texture texture, TransitionState newState);
+public void BufferBarrier(BufferRange range,
+                          BarrierStage afterStages, BarrierAccess afterAccess,
+                          BarrierStage beforeStages, BarrierAccess beforeAccess);
 
-public void MemoryBarrier();
+public void TextureBarrier(TextureView view,
+                           BarrierStage afterStages, BarrierAccess afterAccess,
+                           BarrierStage beforeStages, BarrierAccess beforeAccess);
 
 // === Inline RenderPass ===
 
@@ -356,38 +465,33 @@ public void ResolveTexture(Texture source, TextureSubresource sourceSubresource,
 public void Upload<T>(Texture destination, TextureSubresourceLayers layers, Offset3D origin, Extent3D extent, ReadOnlySpan<T> data) where T : unmanaged;
 ```
 
-Notes:
-
-- `BeginRenderPass` accepts an attachment span; pass `null` explicitly for no depth. The implementation auto-`Transition`s the attachments and auto-fills `SetViewports` / `SetScissors` from attachment dimensions; the caller may issue `SetViewports` / `SetScissors` afterward to override.
-- `PushResourceTable` takes no `stages` argument: stage information is carried per-binding in `ResourceTable.Layout` (DX12 root-parameter visibility and Metal argument-table placement are derived from it; the VK set's stage mask is fixed at layout creation time). Only one table per pipeline is supported; there is no `setIndex`.
-- **Push-snapshot semantics**: `PushResourceTable` snapshots the current contents of `table` into the cmd buffer at the call site; subsequent `Write`s to that `table` do not affect already-pushed bindings. All three backends provide this natively (DX12 descriptor copy on bind, VK `vkCmdPushDescriptorSet`, Metal 4 `setArgumentTable:`), so the same `ResourceTable` can be repeatedly `Write` + `Push`ed within a frame.
-- `Transition` is only called explicitly between `ShaderResource` and `UnorderedAccess`. Render-target / depth-stencil / copy / vertex / index / CBV / indirect / present states are transitioned implicitly by the corresponding operation.
-- `MemoryBarrier()` is a global cross-resource / cross-stage memory barrier; the caller decides when to issue it.
+- `BeginRenderPass` accepts an attachment span; pass `null` explicitly for no depth. The implementation auto-emits the attachment-side barriers and auto-fills `SetViewports` / `SetScissors` from attachment dimensions; the caller may override afterward.
+- `PushResourceTable` takes no `stages` argument — stage information is carried per-binding in the table's layout. Only one table per pipeline is supported.
+- **Push-snapshot semantics**: `PushResourceTable` snapshots `table` into the cmd buffer at the call site; subsequent `Write`s do not affect already-pushed bindings, so the same `ResourceTable` can be repeatedly `Write` + `Push`ed within a frame.
+- `Barrier` is the global form (no resource argument). `BufferBarrier` / `TextureBarrier` scope the barrier to a `BufferRange` / `TextureView`. All three carry the same `(afterStages, afterAccess) → (beforeStages, beforeAccess)` shape.
 
 ### ResourceTable
-
-`Write` becomes strongly typed, replacing the current `Write(uint, params IBindableResource[])` + runtime type-switch:
 
 ```csharp
 public abstract class ResourceTable
 {
     public void Write(uint binding, BufferRange range);
 
-    public void Write(uint binding, TextureSubresourceRange range);
+    public void Write(uint binding, TextureView view);
 
     public void Write(uint binding, Sampler sampler);
 
     public void Write(uint binding, ReadOnlySpan<BufferRange> ranges);
 
-    public void Write(uint binding, ReadOnlySpan<TextureSubresourceRange> ranges);
+    public void Write(uint binding, ReadOnlySpan<TextureView> views);
 
     public void Write(uint binding, ReadOnlySpan<Sampler> samplers);
 }
 ```
 
 - `Buffer` / `Texture` flow into the call through their implicit operators, keeping single-resource binds a single line.
-- The interpretation of a buffer (CBV / structured SRV / byte-address SRV / UAV / typed) is fixed by the slot's `ResourceLayout`; there is no public `BufferViewType`.
-- Validation: a UAV slot requires `BufferUsageFlags.UnorderedAccess` / `TextureUsageFlags.UnorderedAccess`; shape / layout mismatches are reported at `Write` time.
+- The interpretation of a buffer (CBV / structured SRV / byte-address SRV / UAV / typed) is fixed by the slot's `ResourceLayout`.
+- A UAV slot requires `BufferUsageFlags.UnorderedAccess` / `TextureUsageFlags.UnorderedAccess`; shape / layout / format-family mismatches are reported at `Write` time.
 
 ## 7. SwapChain
 
@@ -418,13 +522,9 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 }
 ```
 
-Design points:
-
-- Backbuffers are exposed as plain `Texture`s (color + optional depth-stencil). No `FrameBuffer`, no image index.
+- Backbuffers are exposed as plain `Texture`s (color + optional depth-stencil).
 - `Present(...)` returns a `CommandSubmission` describing when the next backbuffer is writable; it accepts waits from any queue, symmetrically with `CommandBuffer.Submit(...)`.
-- The current backbuffer index is entirely a backend concern and is never on the public surface.
-
-All three backends support the shape `Present(waits) → CommandSubmission` natively: DX12 `IDXGISwapChain3::Present` with `graphicsQueue.Wait(fence, value)` for each wait; Vulkan 1.4 a bridging `vkQueueSubmit2` that translates timeline waits into a binary `renderFinished` semaphore consumed by `vkQueuePresentKHR`; Metal 4 `commandBuffer.EncodeWaitForEvent(...)` → `commandBuffer.Present(drawable)` → `commandBuffer.Commit()`.
+- The current backbuffer index is entirely a backend concern.
 
 ## 8. Frame Loop
 
@@ -458,7 +558,6 @@ while (running)
         }
         : null;
 
-    // Viewports / scissors are auto-filled from attachment dimensions; override afterward if needed.
     cmd.BeginRenderPass(colors, depth);
     // draws
     cmd.EndRenderPass();
@@ -471,55 +570,7 @@ while (running)
 
 Every step has the same shape: take a set of `CommandSubmission` waits, return a `CommandSubmission`. `Submit` and `Present` are symmetric on the API surface.
 
-## 9. Three-Backend Feasibility Matrix
-
-Every public primitive in §3–§7 has a native equivalent on all three backends:
-
-| Concept | DX12 | Vulkan 1.4 | Metal 4 |
-|---|---|---|---|
-| Inline RenderPass | `ID3D12GraphicsCommandList4::BeginRenderPass` / `EndRenderPass` | `vkCmdBeginRendering` / `vkCmdEndRendering` | `MTL4CommandBuffer::MakeRenderCommandEncoder` / `endEncoding` |
-| LoadAction | `RenderPassBeginningAccessType` | `VkAttachmentLoadOp` | `MTLLoadAction` |
-| StoreAction (incl. Resolve) | `RenderPassEndingAccessType` | `VkAttachmentStoreOp` + `pResolveAttachments` + `resolveMode` | `MTLStoreAction` + `resolveTexture` |
-| Explicit Transition (SRV ↔ UAV) | `ResourceBarrier(Transition / UAV)` | `vkCmdPipelineBarrier2` (`VkImageMemoryBarrier2` / `VkBufferMemoryBarrier2`) | `MTL4ComputeCommandEncoder.BarrierAfterEncoderStages` |
-| Global `MemoryBarrier()` | `ResourceBarrier(UAV)` global | `vkCmdPipelineBarrier2` with `VK_ACCESS_2_MEMORY_READ/WRITE_BIT` | `BarrierAfterEncoderStages` with all stages |
-| Aspect inference source | format → plane index | `Texture.Format` → `VkImageAspectFlags` | format → automatic |
-
-## 10. RDG Interface Self-Check
-
-The RDG is built on top of this RHI by the consumer, not by us. This section only answers: "Does the RHI expose every primitive an RDG needs?"
-
-| RDG requirement | Provided by RHI | Entry point |
-|---|---|---|
-| Explicit resource state transitions | ✅ | `CommandBuffer.Transition(Buffer/Texture, TransitionState)` |
-| Global memory barrier | ✅ | `CommandBuffer.MemoryBarrier()` |
-| Sub-range addressing (alias / hazard keys) | ✅ | `BufferRange` / `TextureSubresourceRange` (`record struct`, hashable) |
-| Cross-queue dependencies | ✅ | `CommandSubmission` waits (symmetric on `Submit` / `Present`) |
-| Queue completion query / wait | ✅ | `CommandQueue.WaitForIdle()` / `CommandSubmission.Wait()` |
-| Short-lived RenderPass | ✅ | Inline `BeginRenderPass(colorAttachments, depth)` |
-
-Conclusion: an RDG implementation can be built without any further changes to the RHI public surface.
-
-## 11. Interop / Native Handles
-
-For third-party libraries that need backend-native handles: Skia / DLSS / FSR / RenderDoc / tooling. Design principles:
-
-- The public surface exposes only `nint` plus an enum; no backend types and no platform-conditional properties.
-- The RHI does not perform work on behalf of the external library, and provides no escape hatch for external code to mutate the RHI's cached resource state.
-- The interop API is a side-effect of state the RHI already maintains internally — zero extra runtime cost.
-
-**State-preservation contract**: any resource exposed to an external library through `GetNativeObject(...)` must be returned in the underlying state matching its current `TransitionState`:
-
-- DX12: `ShaderResource` → `D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | PIXEL_SHADER_RESOURCE`; `UnorderedAccess` → `D3D12_RESOURCE_STATE_UNORDERED_ACCESS`.
-- Vulkan: `ShaderResource` → `VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL`; `UnorderedAccess` → `VK_IMAGE_LAYOUT_GENERAL`.
-- Metal 4: state is driver-managed; no caller cooperation required.
-
-Compute post-processing libraries (DLSS / XeSS / FFX-FSR / NRD) honour this contract by design (state at entry == state at exit). Libraries that actively rewrite layout (Skia and similar) are not suitable for the shared-cmd path; instead use:
-
-1. **Texture copy** (recommended): let the external library render onto its own private resource, then copy the output into an RHI texture (a future import entry point may avoid the copy; see § 11.5).
-2. **Dedicated swapchain**: pure-UI applications can hand the entire swapchain to the external library; the RHI does not participate in that swapchain's rendering.
-3. **Configure the library to restore layout**: e.g. Skia's `GrBackendTexture::setVkImageLayout` can request the layout to be restored to the RHI's expected value after every flush.
-
-### 11.1 NativeObjectType
+## 9. Native Handles
 
 ```csharp
 public enum NativeObjectType
@@ -557,15 +608,7 @@ public enum NativeObjectType
     VkBuffer,
     VkSampler
 }
-```
 
-Prefixes follow the original native APIs: DX12 splits into `Dxgi` / `D3D12`; Metal 4 keeps `Mtl4` distinct from the older `Mtl`; Vulkan uses `Vk`. `D3D12CpuDescriptorHandle*` is split per view type to avoid ambiguity at a single entry point.
-
-Non-handle scalar information (e.g. `VkQueueFamilyIndex`) flows through the same entry point, carrying a `uint` inside an `nint`. The public surface never grows a platform-conditional property.
-
-### 11.2 INativeObject Interface
-
-```csharp
 public interface INativeObject
 {
     /// <summary>Returns 0 when the enum does not match this object or the current backend.</summary>
@@ -585,81 +628,6 @@ public abstract class GraphicsResource(GraphicsContext context) : DisposableObje
 }
 ```
 
-Every `GraphicsResource` subclass (`Buffer` / `Texture` / `Sampler` / `CommandQueue` / `CommandBuffer` / `SwapChain` / `Pipeline` / `Shader` / `ResourceTable` / `ResourceLayout`) implements the interface. Backends use a `switch`; subclasses with nothing to expose return 0. Third-party code can program against the interface without distinguishing context from resource.
-
-Backend implementation examples:
-
-```csharp
-// VKTexture
-public override nint GetNativeObject(NativeObjectType type) => type switch
-{
-    NativeObjectType.VkImage     => (nint)Image.Handle,
-    NativeObjectType.VkImageView => (nint)View.Handle,
-    _ => 0
-};
-
-// DXBuffer
-public override nint GetNativeObject(NativeObjectType type) => type switch
-{
-    NativeObjectType.D3D12Resource => (nint)Resource.Handle,
-    _ => 0
-};
-
-// Subclass that does not currently expose anything
-public override nint GetNativeObject(NativeObjectType type) => 0;
-```
-
-### 11.3 Interop Calling Convention
-
-No dedicated `BeginExternalCommands` / `EndExternalCommands` verbs. Call ordering and RHI cache interaction are concerns the caller resolves at development time, not at the runtime API boundary. The caller guarantees:
-
-1. The external library is invoked outside any `BeginRenderPass` / `EndRenderPass` (typical interop is compute, so this holds naturally).
-2. If the call ordering would let the RHI's cached PSO / descriptors / vertex+index buffers / viewports / scissors collide with the external library, the caller re-issues `SetPipeline` / `PushResourceTable` etc. after the external library returns.
-3. **Issue one `cmd.MemoryBarrier()`** (see § 6) after the external library returns to isolate its writes from subsequent RHI commands.
-
-Combined with the state-preservation contract from § 11, interop relies only on `GetNativeObject` and `MemoryBarrier`; no dedicated API is required.
-### 11.4 Caller Templates
-
-```csharp
-// === DLSS (DX12) — shared cmd, follows the state-preservation contract ===
-cmd.Transition(colorIn,  TransitionState.ShaderResource);
-cmd.Transition(colorOut, TransitionState.UnorderedAccess);
-
-DLSS.Evaluate(
-    cmd.GetNativeObject(NativeObjectType.D3D12GraphicsCommandList),
-    colorIn.GetNativeObject(NativeObjectType.D3D12Resource),
-    colorOut.GetNativeObject(NativeObjectType.D3D12Resource));
-// On return: colorIn stays NON_PIXEL_SHADER_RESOURCE, colorOut stays UNORDERED_ACCESS.
-cmd.MemoryBarrier();   // isolate DLSS writes from later RHI commands
-cmd.Transition(colorOut, TransitionState.ShaderResource);
-
-// === FSR/FFX (Vulkan) — shared cmd, same contract ===
-cmd.Transition(colorIn,  TransitionState.ShaderResource);
-cmd.Transition(colorOut, TransitionState.UnorderedAccess);
-
-Ffx.Fsr2Dispatch(
-    cmd.GetNativeObject(NativeObjectType.VkCommandBuffer),
-    colorIn.GetNativeObject(NativeObjectType.VkImage),
-    colorOut.GetNativeObject(NativeObjectType.VkImage));
-cmd.MemoryBarrier();
-cmd.Transition(colorOut, TransitionState.ShaderResource);
-
-// === Skia (Vulkan) — texture-copy path ===
-// Skia actively rewrites layout, so it does not fit the shared-cmd contract.
-// Let Skia render onto its own private VkImage, then copy into an RHI-owned
-// Texture (TransferDst | Sampled) from inside Skia's own command buffer; have
-// Skia signal a timeline semaphore on flush and feed it into the next RHI
-// Submit as a CommandSubmission wait. The exact SkiaSharp surface for sharing
-// a VkImage and the flush-signal is volatile, so the integration stays caller-side.
-
-// === RenderDoc — device handle only ===
-nint device = ctx.GetNativeObject(NativeObjectType.D3D12Device);
-RenderDocApi.StartFrameCapture(device, IntPtr.Zero);
-// ... render one frame ...
-RenderDocApi.EndFrameCapture(device, IntPtr.Zero);
-```
-
-### 11.5 Out of Scope
-
-- No "import external native resource" entry point in this iteration; if needed later, add `GraphicsContext.ImportTexture(TextureDesc, nint, TransitionState)` with the same shape.
-- No dedicated interop scope verbs (`BeginExternalCommands` / `EndExternalCommands`); call ordering and cache interaction are caller-side concerns, with a single `MemoryBarrier()` at runtime (see § 11.3).
+- Prefixes follow each native API: DX12 splits into `Dxgi` / `D3D12`; Metal 4 keeps `Mtl4` distinct from the older `Mtl`; Vulkan uses `Vk`. `D3D12CpuDescriptorHandle*` is split per view type to avoid ambiguity at a single entry point.
+- Non-handle scalar information (e.g. `VkQueueFamilyIndex`) flows through the same entry point, carrying a `uint` inside an `nint`. The public surface never grows a platform-conditional property.
+- Every `GraphicsResource` subclass implements the interface; subclasses with nothing to expose return 0.
