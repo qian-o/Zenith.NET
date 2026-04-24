@@ -99,63 +99,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         }
     }
 
-    internal void ValidateDesc(FrameBufferDesc desc)
-    {
-        if (desc.ColorAttachments is null)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "FrameBufferDesc.ColorAttachments"));
-
-            return;
-        }
-
-        for (int i = 0; i < desc.ColorAttachments.Length; i++)
-        {
-            CheckFrameBufferAttachment($"FrameBufferDesc.ColorAttachments[{i}]", desc.ColorAttachments[i]);
-        }
-
-        if (desc.DepthStencilAttachment is not null)
-        {
-            CheckFrameBufferAttachment("FrameBufferDesc.DepthStencilAttachment", desc.DepthStencilAttachment.Value);
-        }
-
-        if (desc.ColorAttachments.Length is 0 && desc.DepthStencilAttachment is null)
-        {
-            ReportFrameworkMessage(MessageSeverity.Warning, string.Format(ValidationMessages.HasNoAttachments, "FrameBufferDesc"));
-        }
-
-        void CheckFrameBufferAttachment(string name, FrameBufferAttachment frameBufferAttachment)
-        {
-            if (frameBufferAttachment.Target is null)
-            {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, $"{name}.Target"));
-
-                return;
-            }
-
-            if (frameBufferAttachment.Target.IsDisposed)
-            {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, $"{name}.Target"));
-
-                return;
-            }
-
-            if (frameBufferAttachment.Slice.MipLevel >= frameBufferAttachment.Target.Desc.MipLevels)
-            {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.MipLevel", "the number of mip levels in the texture"));
-            }
-
-            if (frameBufferAttachment.Slice.ArrayLayer >= frameBufferAttachment.Target.Desc.ArrayLayers)
-            {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.ArrayLayer", "the number of array layers in the texture"));
-            }
-
-            if (frameBufferAttachment.Slice.Face >= ValidationConstants.CubeMapFaceCount)
-            {
-                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, $"{name}.Slice.Face", ValidationConstants.CubeMapFaceCount));
-            }
-        }
-    }
-
     internal void ValidateDesc(ShaderDesc desc)
     {
         if (desc.ShaderBytes is null || desc.ShaderBytes.Length is 0)
@@ -192,38 +135,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         }
     }
 
-    internal void ValidateDesc(BufferViewDesc desc)
-    {
-        if (desc.Buffer is null)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeNull, "BufferViewDesc.Buffer"));
-
-            return;
-        }
-
-        if (desc.Buffer.IsDisposed)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustNotBeDisposed, "BufferViewDesc.Buffer"));
-
-            return;
-        }
-
-        if (desc.OffsetInBytes >= desc.Buffer.Desc.SizeInBytes)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, "BufferViewDesc.OffsetInBytes", "the size of the buffer"));
-        }
-
-        if (desc.SizeInBytes is 0 || desc.OffsetInBytes + desc.SizeInBytes > desc.Buffer.Desc.SizeInBytes)
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "BufferViewDesc.SizeInBytes", "the buffer"));
-        }
-
-        if (desc.StrideInBytes is 0)
-        {
-            ReportFrameworkMessage(MessageSeverity.Warning, string.Format(ValidationMessages.IsZeroWarning, "BufferViewDesc.StrideInBytes", "buffer views"));
-        }
-    }
-
     internal void ValidateDesc(TextureDesc desc)
     {
         if (!Enum.IsDefined(desc.Type))
@@ -249,6 +160,21 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         if (desc.ArrayLayers is 0)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeGreaterThanZero, "TextureDesc.ArrayLayers"));
+        }
+
+        if (desc.Type is TextureType.Texture3D && desc.ArrayLayers is not 1)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeEqualTo, "TextureDesc.ArrayLayers", 1));
+        }
+
+        if (desc.Type is TextureType.TextureCube && desc.ArrayLayers is not ValidationConstants.CubeMapFaceCount)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeEqualTo, "TextureDesc.ArrayLayers", ValidationConstants.CubeMapFaceCount));
+        }
+
+        if (desc.Type is TextureType.TextureCubeArray && desc.ArrayLayers % ValidationConstants.CubeMapFaceCount is not 0)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeAMultipleOf, "TextureDesc.ArrayLayers", ValidationConstants.CubeMapFaceCount));
         }
 
         if (!Enum.IsDefined(desc.SampleCount))
@@ -278,24 +204,60 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             return;
         }
 
-        if (desc.FirstMipLevel >= desc.Texture.Desc.MipLevels)
+        if (!Enum.IsDefined(desc.Type))
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, "TextureViewDesc.FirstMipLevel", "the number of mip levels in the texture"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "TextureViewDesc.Type", desc.Type));
         }
 
-        if (desc.MipLevelCount is 0 || desc.FirstMipLevel + desc.MipLevelCount > desc.Texture.Desc.MipLevels)
+        if (!Enum.IsDefined(desc.Format))
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "TextureViewDesc.MipLevelCount", "the texture mip levels"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "TextureViewDesc.Format", desc.Format));
         }
 
-        if (desc.FirstArrayLayer >= desc.Texture.Desc.ArrayLayers)
+        if (desc.Range.BaseMipLevel >= desc.Texture.Desc.MipLevels)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, "TextureViewDesc.FirstArrayLayer", "the number of array layers in the texture"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, "TextureViewDesc.Range.BaseMipLevel", "the number of mip levels in the texture"));
         }
 
-        if (desc.ArrayLayerCount is 0 || desc.FirstArrayLayer + desc.ArrayLayerCount > desc.Texture.Desc.ArrayLayers)
+        if (desc.Range.LevelCount is 0 || desc.Range.BaseMipLevel + desc.Range.LevelCount > desc.Texture.Desc.MipLevels)
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "TextureViewDesc.ArrayLayerCount", "the texture array layers"));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "TextureViewDesc.Range.LevelCount", "the texture mip levels"));
+        }
+
+        if (desc.Range.BaseArrayLayer >= desc.Texture.Desc.ArrayLayers)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThan, "TextureViewDesc.Range.BaseArrayLayer", "the number of array layers in the texture"));
+        }
+
+        if (desc.Range.LayerCount is 0 || desc.Range.BaseArrayLayer + desc.Range.LayerCount > desc.Texture.Desc.ArrayLayers)
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeWithinBounds, "TextureViewDesc.Range.LayerCount", "the texture array layers"));
+        }
+
+        if (desc.Type is TextureType.TextureCube)
+        {
+            if (desc.Range.BaseArrayLayer % ValidationConstants.CubeMapFaceCount is not 0)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeAMultipleOf, "TextureViewDesc.Range.BaseArrayLayer", ValidationConstants.CubeMapFaceCount));
+            }
+
+            if (desc.Range.LayerCount is not ValidationConstants.CubeMapFaceCount)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustDescribeACompleteCube, "TextureViewDesc.Range.LayerCount"));
+            }
+        }
+
+        if (desc.Type is TextureType.TextureCubeArray)
+        {
+            if (desc.Range.BaseArrayLayer % ValidationConstants.CubeMapFaceCount is not 0)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeAMultipleOf, "TextureViewDesc.Range.BaseArrayLayer", ValidationConstants.CubeMapFaceCount));
+            }
+
+            if (desc.Range.LayerCount % ValidationConstants.CubeMapFaceCount is not 0)
+            {
+                ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeAMultipleOf, "TextureViewDesc.Range.LayerCount", ValidationConstants.CubeMapFaceCount));
+            }
         }
     }
 
@@ -908,6 +870,12 @@ file static class ValidationMessages
     public const string MustBeWithinBounds = "{0} must be greater than zero and within the bounds of {1}.";
 
     public const string MustBeLessThanOrEqualTo = "{0} must be less than or equal to {1}.";
+
+    public const string MustBeEqualTo = "{0} must be equal to {1}.";
+
+    public const string MustBeAMultipleOf = "{0} must be a multiple of {1}.";
+
+    public const string MustDescribeACompleteCube = "{0} must describe a complete cube view.";
 
     public const string MustBeOneOf = "{0} must be one of: {1}.";
 

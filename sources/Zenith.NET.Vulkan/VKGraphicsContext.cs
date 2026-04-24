@@ -443,11 +443,6 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         return new VKSwapChain(this, desc);
     }
 
-    protected override FrameBuffer CreateFrameBufferImpl(FrameBufferDesc desc)
-    {
-        return new VKFrameBuffer(this, desc);
-    }
-
     protected override Shader CreateShaderImpl(ShaderDesc desc)
     {
         return new VKShader(this, desc);

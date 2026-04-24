@@ -16,7 +16,7 @@ internal unsafe class DXTexture : Texture
             Dimension = DXFormats.DirectX12(desc.Type),
             Width = desc.Width,
             Height = desc.Height,
-            DepthOrArraySize = (ushort)(desc.Type is TextureType.Texture3D ? desc.Depth : ZenithHelper.FlattenArrayLayerCount(desc)),
+            DepthOrArraySize = (ushort)(desc.Type is TextureType.Texture3D ? desc.Depth : desc.ArrayLayers),
             MipLevels = (ushort)desc.MipLevels,
             Format = DXFormats.DirectX12(desc.Format),
             SampleDesc = DXFormats.DirectX12(desc.SampleCount),
@@ -49,14 +49,16 @@ internal unsafe class DXTexture : Texture
         View = new(context, new()
         {
             Texture = this,
-            FirstMipLevel = 0,
-            MipLevelCount = desc.MipLevels,
-            FirstArrayLayer = 0,
-            ArrayLayerCount = desc.ArrayLayers
+            Type = desc.Type,
+            Format = desc.Format,
+            Range = new()
+            {
+                BaseMipLevel = 0,
+                LevelCount = desc.MipLevels,
+                BaseArrayLayer = 0,
+                LayerCount = desc.ArrayLayers
+            }
         });
-
-        States = new ResourceStates[ZenithHelper.SubresourceCount(desc)];
-        Array.Fill(States, DXFormats.DirectX12(desc.Flags).States);
     }
 
     public DXTexture(DXGraphicsContext context, TextureDesc desc, ComPtr<ID3D12Resource> resource) : base(context, desc)
@@ -66,14 +68,16 @@ internal unsafe class DXTexture : Texture
         View = new(context, new()
         {
             Texture = this,
-            FirstMipLevel = 0,
-            MipLevelCount = desc.MipLevels,
-            FirstArrayLayer = 0,
-            ArrayLayerCount = desc.ArrayLayers
+            Type = desc.Type,
+            Format = desc.Format,
+            Range = new()
+            {
+                BaseMipLevel = 0,
+                LevelCount = desc.MipLevels,
+                BaseArrayLayer = 0,
+                LayerCount = desc.ArrayLayers
+            }
         });
-
-        States = new ResourceStates[ZenithHelper.SubresourceCount(desc)];
-        Array.Fill(States, ResourceStates.Common);
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
@@ -82,65 +86,12 @@ internal unsafe class DXTexture : Texture
 
     public DXTextureView View { get; }
 
-    public ResourceStates[] States { get; }
-
-    public void TransitionStates(DXCommandBuffer commandBuffer,
-                                 uint firstMipLevel,
-                                 uint mipLevelCount,
-                                 uint firstArrayLayer,
-                                 uint arrayLayerCount,
-                                 uint firstFace,
-                                 uint faceCount,
-                                 ResourceStates newStates)
+    public uint SubresourceIndex(TextureSubresource subresource)
     {
-        if (!commandBuffer.CanTransitionResourceStates)
-        {
-            return;
-        }
-
-        for (uint i = 0; i < mipLevelCount; i++)
-        {
-            for (uint j = 0; j < arrayLayerCount; j++)
-            {
-                for (uint k = 0; k < faceCount; k++)
-                {
-                    TextureSlice slice = new() { MipLevel = firstMipLevel + i, ArrayLayer = firstArrayLayer + j, Face = firstFace + k };
-
-                    uint index = ZenithHelper.SubresourceIndex(Desc, slice);
-
-                    ResourceStates oldStates = States[index];
-
-                    if (oldStates == newStates)
-                    {
-                        continue;
-                    }
-
-                    ResourceBarrier barrier = new()
-                    {
-                        Type = ResourceBarrierType.Transition,
-                        Transition = new()
-                        {
-                            PResource = Resource,
-                            Subresource = index,
-                            StateBefore = oldStates,
-                            StateAfter = newStates
-                        }
-                    };
-
-                    commandBuffer.GraphicsCommandList4.ResourceBarrier(1, &barrier);
-
-                    States[index] = newStates;
-                }
-            }
-        }
+        return (subresource.ArrayLayer * Desc.MipLevels) + subresource.MipLevel;
     }
 
-    public void TransitionStates(DXCommandBuffer commandBuffer, TextureSlice slice, ResourceStates newStates)
-    {
-        TransitionStates(commandBuffer, slice.MipLevel, 1, slice.ArrayLayer, 1, slice.Face, 1, newStates);
-    }
-
-    public DXDescriptorToken CreateRtvToken(TextureSlice slice)
+    public DXDescriptorToken CreateRtvToken(TextureSubresource subresource)
     {
         DXDescriptorToken token = Context.RtvAllocator.Allocate(1);
 
@@ -151,15 +102,15 @@ internal unsafe class DXTexture : Texture
             case TextureType.Texture1D:
                 {
                     viewDesc.ViewDimension = RtvDimension.Texture1D;
-                    viewDesc.Texture1D.MipSlice = slice.MipLevel;
+                    viewDesc.Texture1D.MipSlice = subresource.MipLevel;
                 }
                 break;
 
             case TextureType.Texture1DArray:
                 {
                     viewDesc.ViewDimension = RtvDimension.Texture1Darray;
-                    viewDesc.Texture1DArray.MipSlice = slice.MipLevel;
-                    viewDesc.Texture1DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerIndex(Desc, slice);
+                    viewDesc.Texture1DArray.MipSlice = subresource.MipLevel;
+                    viewDesc.Texture1DArray.FirstArraySlice = subresource.ArrayLayer;
                     viewDesc.Texture1DArray.ArraySize = 1;
                 }
                 break;
@@ -168,7 +119,7 @@ internal unsafe class DXTexture : Texture
                 if (Desc.SampleCount is SampleCount.Count1)
                 {
                     viewDesc.ViewDimension = RtvDimension.Texture2D;
-                    viewDesc.Texture2D.MipSlice = slice.MipLevel;
+                    viewDesc.Texture2D.MipSlice = subresource.MipLevel;
                 }
                 else
                 {
@@ -182,14 +133,14 @@ internal unsafe class DXTexture : Texture
                 if (Desc.SampleCount is SampleCount.Count1)
                 {
                     viewDesc.ViewDimension = RtvDimension.Texture2Darray;
-                    viewDesc.Texture2DArray.MipSlice = slice.MipLevel;
-                    viewDesc.Texture2DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerIndex(Desc, slice);
+                    viewDesc.Texture2DArray.MipSlice = subresource.MipLevel;
+                    viewDesc.Texture2DArray.FirstArraySlice = subresource.ArrayLayer;
                     viewDesc.Texture2DArray.ArraySize = 1;
                 }
                 else
                 {
                     viewDesc.ViewDimension = RtvDimension.Texture2Dmsarray;
-                    viewDesc.Texture2DMSArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerIndex(Desc, slice);
+                    viewDesc.Texture2DMSArray.FirstArraySlice = subresource.ArrayLayer;
                     viewDesc.Texture2DMSArray.ArraySize = 1;
                 }
                 break;
@@ -197,7 +148,7 @@ internal unsafe class DXTexture : Texture
             case TextureType.Texture3D:
                 {
                     viewDesc.ViewDimension = RtvDimension.Texture3D;
-                    viewDesc.Texture3D.MipSlice = slice.MipLevel;
+                    viewDesc.Texture3D.MipSlice = subresource.MipLevel;
                     viewDesc.Texture3D.WSize = Desc.Depth;
                 }
                 break;
@@ -208,7 +159,7 @@ internal unsafe class DXTexture : Texture
         return token;
     }
 
-    public DXDescriptorToken CreateDsvToken(TextureSlice slice)
+    public DXDescriptorToken CreateDsvToken(TextureSubresource subresource)
     {
         DXDescriptorToken token = Context.DsvAllocator.Allocate(1);
 
@@ -219,15 +170,15 @@ internal unsafe class DXTexture : Texture
             case TextureType.Texture1D:
                 {
                     viewDesc.ViewDimension = DsvDimension.Texture1D;
-                    viewDesc.Texture1D.MipSlice = slice.MipLevel;
+                    viewDesc.Texture1D.MipSlice = subresource.MipLevel;
                 }
                 break;
 
             case TextureType.Texture1DArray:
                 {
                     viewDesc.ViewDimension = DsvDimension.Texture1Darray;
-                    viewDesc.Texture1DArray.MipSlice = slice.MipLevel;
-                    viewDesc.Texture1DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerIndex(Desc, slice);
+                    viewDesc.Texture1DArray.MipSlice = subresource.MipLevel;
+                    viewDesc.Texture1DArray.FirstArraySlice = subresource.ArrayLayer;
                     viewDesc.Texture1DArray.ArraySize = 1;
                 }
                 break;
@@ -237,7 +188,7 @@ internal unsafe class DXTexture : Texture
                 if (Desc.SampleCount is SampleCount.Count1)
                 {
                     viewDesc.ViewDimension = DsvDimension.Texture2D;
-                    viewDesc.Texture2D.MipSlice = slice.MipLevel;
+                    viewDesc.Texture2D.MipSlice = subresource.MipLevel;
                 }
                 else
                 {
@@ -251,14 +202,14 @@ internal unsafe class DXTexture : Texture
                 if (Desc.SampleCount is SampleCount.Count1)
                 {
                     viewDesc.ViewDimension = DsvDimension.Texture2Darray;
-                    viewDesc.Texture2DArray.MipSlice = slice.MipLevel;
-                    viewDesc.Texture2DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerIndex(Desc, slice);
+                    viewDesc.Texture2DArray.MipSlice = subresource.MipLevel;
+                    viewDesc.Texture2DArray.FirstArraySlice = subresource.ArrayLayer;
                     viewDesc.Texture2DArray.ArraySize = 1;
                 }
                 else
                 {
                     viewDesc.ViewDimension = DsvDimension.Texture2Dmsarray;
-                    viewDesc.Texture2DMSArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerIndex(Desc, slice);
+                    viewDesc.Texture2DMSArray.FirstArraySlice = subresource.ArrayLayer;
                     viewDesc.Texture2DMSArray.ArraySize = 1;
                 }
                 break;

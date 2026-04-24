@@ -89,14 +89,6 @@ public static unsafe class Extensions
         }
     }
 
-    extension(FrameBuffer frameBuffer)
-    {
-        internal VKFrameBuffer Vulkan()
-        {
-            return (VKFrameBuffer)frameBuffer;
-        }
-    }
-
     extension(Shader shader)
     {
         internal VKShader Vulkan()

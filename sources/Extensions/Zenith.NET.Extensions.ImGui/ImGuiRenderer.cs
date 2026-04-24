@@ -233,7 +233,7 @@ float4 PSMain(VSOutput input) : SV_TARGET
         return textureID;
     }
 
-    public void Render(CommandBuffer commandBuffer, FrameBuffer frameBuffer, ClearValue clearValue, ImDrawDataPtr drawData)
+    public void Render(CommandBuffer commandBuffer, ColorAttachment colorAttachment, ImDrawDataPtr drawData)
     {
         if (drawData.CmdListsCount is 0)
         {
@@ -263,19 +263,37 @@ float4 PSMain(VSOutput input) : SV_TARGET
                             Flags = TextureUsageFlags.ShaderResource
                         });
 
-                        TextureExtent extent = new() { Width = (uint)textureData.Width, Height = (uint)textureData.Height, Depth = 1 };
+                        Extent3D extent = new() { Width = (uint)textureData.Width, Height = (uint)textureData.Height, Depth = 1 };
 
                         if (textureData.Format is ImTextureFormat.Rgba32)
                         {
-                            ReadOnlySpan<int> pixels = new(textureData.Pixels, textureData.Width * textureData.Height);
+                            TextureData data = new()
+                            {
+                                Pointer = (nint)textureData.Pixels,
+                                Layout = new()
+                                {
+                                    SizeInBytes = ZenithHelper.SizeInBytes(texture.Desc.Format, extent.Width, extent.Height),
+                                    RowPitchInBytes = ZenithHelper.RowPitchInBytes(texture.Desc.Format, extent.Width, extent.Height),
+                                    SlicePitchInBytes = ZenithHelper.SlicePitchInBytes(texture.Desc.Format, extent.Width, extent.Height)
+                                }
+                            };
 
-                            commandBuffer.Upload(texture, default, default, extent, pixels);
+                            commandBuffer.Upload(texture, default, default, extent, data);
                         }
                         else
                         {
-                            ReadOnlySpan<byte> pixels = new(textureData.Pixels, textureData.Width * textureData.Height);
+                            TextureData data = new()
+                            {
+                                Pointer = (nint)textureData.Pixels,
+                                Layout = new()
+                                {
+                                    SizeInBytes = ZenithHelper.SizeInBytes(texture.Desc.Format, extent.Width, extent.Height),
+                                    RowPitchInBytes = ZenithHelper.RowPitchInBytes(texture.Desc.Format, extent.Width, extent.Height),
+                                    SlicePitchInBytes = ZenithHelper.SlicePitchInBytes(texture.Desc.Format, extent.Width, extent.Height)
+                                }
+                            };
 
-                            commandBuffer.Upload(texture, default, default, extent, pixels);
+                            commandBuffer.Upload(texture, default, default, extent, data);
                         }
 
                         textureData.SetTexID(Binding(texture));
@@ -293,32 +311,54 @@ float4 PSMain(VSOutput input) : SV_TARGET
                             {
                                 ImTextureRect rect = textureData.Updates[j];
 
-                                TextureOffset offset = new() { X = rect.X, Y = rect.Y, Z = 0 };
-                                TextureExtent extent = new() { Width = rect.W, Height = rect.H, Depth = 1 };
+                                Offset3D offset = new() { X = rect.X, Y = rect.Y, Z = 0 };
+                                Extent3D extent = new() { Width = rect.W, Height = rect.H, Depth = 1 };
 
                                 using ZenithMarshal.Scope scope = new();
 
                                 if (textureData.Format is ImTextureFormat.Rgba32)
                                 {
-                                    Span<int> pixels = new((int*)ZenithMarshal.Allocate<int>(scope, (uint)(rect.W * rect.H)), rect.W * rect.H);
+                                    int* pointer = (int*)ZenithMarshal.Allocate<int>(scope, (uint)(rect.W * rect.H));
 
                                     for (ushort k = 0; k < rect.H; k++)
                                     {
-                                        new ReadOnlySpan<int>(textureData.GetPixelsAt(rect.X, rect.Y + k), rect.W).CopyTo(pixels.Slice(k * rect.W, rect.W));
+                                        new ReadOnlySpan<int>(textureData.GetPixelsAt(rect.X, rect.Y + k), rect.W).CopyTo(new(pointer + (k * rect.W), rect.W));
                                     }
 
-                                    commandBuffer.Upload(texture, default, offset, extent, pixels);
+                                    TextureData data = new()
+                                    {
+                                        Pointer = (nint)pointer,
+                                        Layout = new()
+                                        {
+                                            SizeInBytes = (uint)(sizeof(int) * rect.W * rect.H),
+                                            RowPitchInBytes = ZenithHelper.RowPitchInBytes(texture.Desc.Format, extent.Width, extent.Height),
+                                            SlicePitchInBytes = ZenithHelper.SlicePitchInBytes(texture.Desc.Format, extent.Width, extent.Height)
+                                        }
+                                    };
+
+                                    commandBuffer.Upload(texture, default, offset, extent, data);
                                 }
                                 else
                                 {
-                                    Span<byte> pixels = new((byte*)ZenithMarshal.Allocate<byte>(scope, (uint)(rect.W * rect.H)), rect.W * rect.H);
+                                    byte* pointer = (byte*)ZenithMarshal.Allocate<byte>(scope, (uint)(rect.W * rect.H));
 
                                     for (ushort k = 0; k < rect.H; k++)
                                     {
-                                        new ReadOnlySpan<byte>(textureData.GetPixelsAt(rect.X, rect.Y + k), rect.W).CopyTo(pixels.Slice(k * rect.W, rect.W));
+                                        new ReadOnlySpan<byte>(textureData.GetPixelsAt(rect.X, rect.Y + k), rect.W).CopyTo(new(pointer + (k * rect.W), rect.W));
                                     }
 
-                                    commandBuffer.Upload(texture, default, offset, extent, pixels);
+                                    TextureData data = new()
+                                    {
+                                        Pointer = (nint)pointer,
+                                        Layout = new()
+                                        {
+                                            SizeInBytes = (uint)(rect.W * rect.H),
+                                            RowPitchInBytes = ZenithHelper.RowPitchInBytes(texture.Desc.Format, extent.Width, extent.Height),
+                                            SlicePitchInBytes = ZenithHelper.SlicePitchInBytes(texture.Desc.Format, extent.Width, extent.Height)
+                                        }
+                                    };
+
+                                    commandBuffer.Upload(texture, default, offset, extent, data);
                                 }
                             }
                         }
@@ -372,17 +412,14 @@ float4 PSMain(VSOutput input) : SV_TARGET
         {
             ImDrawListPtr drawListPtr = drawData.CmdLists[i];
 
-            ReadOnlySpan<ImDrawVert> verts = new(drawListPtr.VtxBuffer.Data, drawListPtr.VtxBuffer.Size);
-            ReadOnlySpan<ushort> indices = new(drawListPtr.IdxBuffer.Data, drawListPtr.IdxBuffer.Size);
-
-            vertexBuffer.Upload(verts, (uint)(sizeof(ImDrawVert) * vertexOffset));
-            indexBuffer.Upload(indices, (uint)(sizeof(ushort) * indexOffset));
+            vertexBuffer.Upload((uint)(sizeof(ImDrawVert) * vertexOffset), new() { Pointer = (nint)drawListPtr.VtxBuffer.Data, SizeInBytes = (uint)(sizeof(ImDrawVert) * drawListPtr.VtxBuffer.Size) });
+            indexBuffer.Upload((uint)(sizeof(ushort) * indexOffset), new() { Pointer = (nint)drawListPtr.IdxBuffer.Data, SizeInBytes = (uint)(sizeof(ushort) * drawListPtr.IdxBuffer.Size) });
 
             vertexOffset += drawListPtr.VtxBuffer.Size;
             indexOffset += drawListPtr.IdxBuffer.Size;
         }
 
-        constants.Upload([new Constants
+        Constants constantsData = new()
         {
             Projection = Matrix4x4.CreateOrthographicOffCenter(drawData.DisplayPos.X,
                                                                drawData.DisplayPos.X + drawData.DisplaySize.X,
@@ -390,11 +427,15 @@ float4 PSMain(VSOutput input) : SV_TARGET
                                                                drawData.DisplayPos.Y,
                                                                0.0f,
                                                                1.0f)
-        }], 0);
+        };
+
+        constants.Upload(0, new() { Pointer = (nint)(&constantsData), SizeInBytes = (uint)sizeof(Constants) });
 
         commandBuffer.BeginDebugEvent("ImGui");
 
-        commandBuffer.BeginRenderPass(frameBuffer, clearValue, resourceTableBindings.Values);
+        ColorAttachment renderTarget = colorAttachment;
+
+        commandBuffer.BeginRenderPass([colorAttachment], null);
 
         commandBuffer.SetPipeline(graphicsPipeline);
         commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);

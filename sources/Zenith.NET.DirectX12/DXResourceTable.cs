@@ -210,21 +210,6 @@ internal class DXResourceTable : ResourceTable
         }
     }
 
-    protected override void PreprocessImpl(CommandBuffer commandBuffer)
-    {
-        DXCommandBuffer dxCommandBuffer = commandBuffer.DirectX12();
-
-        foreach (DXTextureView? textureView in SrvTextureViews)
-        {
-            textureView?.TransitionStates(dxCommandBuffer, ResourceStates.AllShaderResource);
-        }
-
-        foreach (DXTextureView? textureView in UavTextureViews)
-        {
-            textureView?.TransitionStates(dxCommandBuffer, ResourceStates.UnorderedAccess);
-        }
-    }
-
     protected override void SetResourceName(string name)
     {
     }

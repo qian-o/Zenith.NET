@@ -6,6 +6,10 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsContext(Backend.DirectX12, useValidationLayer)
 {
+    private const uint TextureDataPitchAlignment = 256;
+
+    private const uint TextureDataPlacementAlignment = 512;
+
     public const uint SwapChainBufferCount = 3;
 
     public const uint Shader4ComponentMapping = 0x1688;
@@ -118,11 +122,6 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
     protected override SwapChain CreateSwapChainImpl(SwapChainDesc desc)
     {
         return new DXSwapChain(this, desc);
-    }
-
-    protected override FrameBuffer CreateFrameBufferImpl(FrameBufferDesc desc)
-    {
-        return new DXFrameBuffer(this, desc);
     }
 
     protected override Shader CreateShaderImpl(ShaderDesc desc)

@@ -25,7 +25,7 @@ internal unsafe class VKTexture : Texture
                 Depth = desc.Type is TextureType.Texture3D ? desc.Depth : 1
             },
             MipLevels = desc.MipLevels,
-            ArrayLayers = ZenithHelper.FlattenArrayLayerCount(desc),
+            ArrayLayers = desc.ArrayLayers,
             Samples = VKFormats.Vulkan(desc.SampleCount),
             Usage = VKFormats.Vulkan(desc.Format, desc.Flags).UsageFlags,
             SharingMode = sharingMode,
@@ -40,14 +40,16 @@ internal unsafe class VKTexture : Texture
         View = new(context, new()
         {
             Texture = this,
-            FirstMipLevel = 0,
-            MipLevelCount = desc.MipLevels,
-            FirstArrayLayer = 0,
-            ArrayLayerCount = desc.ArrayLayers
+            Type = desc.Type,
+            Format = desc.Format,
+            Range = new()
+            {
+                BaseMipLevel = 0,
+                LevelCount = desc.MipLevels,
+                BaseArrayLayer = 0,
+                LayerCount = desc.ArrayLayers
+            }
         });
-
-        Layouts = new ImageLayout[ZenithHelper.SubresourceCount(desc)];
-        Array.Fill(Layouts, ImageLayout.Undefined);
     }
 
     public VKTexture(VKGraphicsContext context, TextureDesc desc, Image image) : base(context, desc)
@@ -57,14 +59,16 @@ internal unsafe class VKTexture : Texture
         View = new(context, new()
         {
             Texture = this,
-            FirstMipLevel = 0,
-            MipLevelCount = desc.MipLevels,
-            FirstArrayLayer = 0,
-            ArrayLayerCount = desc.ArrayLayers
+            Type = desc.Type,
+            Format = desc.Format,
+            Range = new()
+            {
+                BaseMipLevel = 0,
+                LevelCount = desc.MipLevels,
+                BaseArrayLayer = 0,
+                LayerCount = desc.ArrayLayers
+            }
         });
-
-        Layouts = new ImageLayout[ZenithHelper.SubresourceCount(desc)];
-        Array.Fill(Layouts, ImageLayout.Undefined);
     }
 
     public VKTexture(VKGraphicsContext context, TextureDesc desc, ExternalMemoryHandleTypeFlags handleTypes, nint handle) : base(context, desc)
@@ -86,7 +90,7 @@ internal unsafe class VKTexture : Texture
                 Depth = desc.Type is TextureType.Texture3D ? desc.Depth : 1
             },
             MipLevels = desc.MipLevels,
-            ArrayLayers = ZenithHelper.FlattenArrayLayerCount(desc),
+            ArrayLayers = desc.ArrayLayers,
             Samples = VKFormats.Vulkan(desc.SampleCount),
             Usage = VKFormats.Vulkan(desc.Format, desc.Flags).UsageFlags,
             SharingMode = sharingMode,
@@ -104,14 +108,16 @@ internal unsafe class VKTexture : Texture
         View = new(context, new()
         {
             Texture = this,
-            FirstMipLevel = 0,
-            MipLevelCount = desc.MipLevels,
-            FirstArrayLayer = 0,
-            ArrayLayerCount = desc.ArrayLayers
+            Type = desc.Type,
+            Format = desc.Format,
+            Range = new()
+            {
+                BaseMipLevel = 0,
+                LevelCount = desc.MipLevels,
+                BaseArrayLayer = 0,
+                LayerCount = desc.ArrayLayers
+            }
         });
-
-        Layouts = new ImageLayout[ZenithHelper.SubresourceCount(desc)];
-        Array.Fill(Layouts, ImageLayout.Undefined);
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
@@ -120,163 +126,12 @@ internal unsafe class VKTexture : Texture
 
     public VKTextureView View { get; }
 
-    public ImageLayout[] Layouts { get; }
-
-    public void TransitionLayout(VKCommandBuffer commandBuffer,
-                                 uint firstMipLevel,
-                                 uint mipLevelCount,
-                                 uint firstArrayLayer,
-                                 uint arrayLayerCount,
-                                 uint firstFace,
-                                 uint faceCount,
-                                 ImageLayout newLayout)
+    public uint SubresourceIndex(TextureSubresource subresource)
     {
-        if (newLayout is ImageLayout.Undefined)
-        {
-            return;
-        }
-
-        for (uint i = 0; i < mipLevelCount; i++)
-        {
-            for (uint j = 0; j < arrayLayerCount; j++)
-            {
-                for (uint k = 0; k < faceCount; k++)
-                {
-                    TextureSlice slice = new() { MipLevel = firstMipLevel + i, ArrayLayer = firstArrayLayer + j, Face = firstFace + k };
-
-                    uint index = ZenithHelper.SubresourceIndex(Desc, slice);
-
-                    ImageLayout oldLayout = Layouts[index];
-
-                    if (oldLayout == newLayout)
-                    {
-                        continue;
-                    }
-
-                    AccessFlags srcAccessMask = AccessFlags.None;
-                    PipelineStageFlags srcStageMask = PipelineStageFlags.None;
-
-                    if (oldLayout is ImageLayout.Undefined or ImageLayout.Preinitialized)
-                    {
-                        srcAccessMask = AccessFlags.None;
-                        srcStageMask = PipelineStageFlags.TopOfPipeBit;
-                    }
-                    else if (oldLayout == ImageLayout.General)
-                    {
-                        srcAccessMask = AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit;
-                        srcStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit;
-                    }
-                    else if (oldLayout == ImageLayout.ColorAttachmentOptimal)
-                    {
-                        srcAccessMask = AccessFlags.ColorAttachmentWriteBit;
-                        srcStageMask = PipelineStageFlags.ColorAttachmentOutputBit;
-                    }
-                    else if (oldLayout == ImageLayout.DepthStencilAttachmentOptimal)
-                    {
-                        srcAccessMask = AccessFlags.DepthStencilAttachmentWriteBit;
-                        srcStageMask = PipelineStageFlags.EarlyFragmentTestsBit | PipelineStageFlags.LateFragmentTestsBit;
-                    }
-                    else if (oldLayout == ImageLayout.ShaderReadOnlyOptimal)
-                    {
-                        srcAccessMask = AccessFlags.ShaderReadBit;
-                        srcStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit;
-                    }
-                    else if (oldLayout == ImageLayout.TransferSrcOptimal)
-                    {
-                        srcAccessMask = AccessFlags.TransferReadBit;
-                        srcStageMask = PipelineStageFlags.TransferBit;
-                    }
-                    else if (oldLayout == ImageLayout.TransferDstOptimal)
-                    {
-                        srcAccessMask = AccessFlags.TransferWriteBit;
-                        srcStageMask = PipelineStageFlags.TransferBit;
-                    }
-                    else if (oldLayout == ImageLayout.PresentSrcKhr)
-                    {
-                        srcAccessMask = AccessFlags.MemoryReadBit;
-                        srcStageMask = PipelineStageFlags.BottomOfPipeBit;
-                    }
-
-                    AccessFlags dstAccessMask = AccessFlags.None;
-                    PipelineStageFlags dstStageMask = PipelineStageFlags.None;
-
-                    if (newLayout is ImageLayout.General)
-                    {
-                        dstAccessMask = AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit;
-                        dstStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit;
-                    }
-                    else if (newLayout == ImageLayout.ColorAttachmentOptimal)
-                    {
-                        dstAccessMask = AccessFlags.ColorAttachmentWriteBit;
-                        dstStageMask = PipelineStageFlags.ColorAttachmentOutputBit;
-                    }
-                    else if (newLayout == ImageLayout.DepthStencilAttachmentOptimal)
-                    {
-                        dstAccessMask = AccessFlags.DepthStencilAttachmentWriteBit;
-                        dstStageMask = PipelineStageFlags.EarlyFragmentTestsBit | PipelineStageFlags.LateFragmentTestsBit;
-                    }
-                    else if (newLayout == ImageLayout.ShaderReadOnlyOptimal)
-                    {
-                        dstAccessMask = AccessFlags.ShaderReadBit;
-                        dstStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit;
-                    }
-                    else if (newLayout == ImageLayout.TransferSrcOptimal)
-                    {
-                        dstAccessMask = AccessFlags.TransferReadBit;
-                        dstStageMask = PipelineStageFlags.TransferBit;
-                    }
-                    else if (newLayout == ImageLayout.TransferDstOptimal)
-                    {
-                        dstAccessMask = AccessFlags.TransferWriteBit;
-                        dstStageMask = PipelineStageFlags.TransferBit;
-                    }
-                    else if (newLayout == ImageLayout.PresentSrcKhr)
-                    {
-                        dstAccessMask = AccessFlags.MemoryReadBit;
-                        dstStageMask = PipelineStageFlags.BottomOfPipeBit;
-                    }
-
-                    ImageMemoryBarrier imageMemoryBarrier = new()
-                    {
-                        SType = StructureType.ImageMemoryBarrier,
-                        SrcAccessMask = srcAccessMask,
-                        DstAccessMask = dstAccessMask,
-                        OldLayout = oldLayout,
-                        NewLayout = newLayout,
-                        Image = Image,
-                        SubresourceRange = new()
-                        {
-                            AspectMask = VKFormats.Vulkan(Desc.Format, Desc.Flags).AspectFlags,
-                            BaseMipLevel = slice.MipLevel,
-                            LevelCount = 1,
-                            BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(Desc, slice),
-                            LayerCount = 1
-                        }
-                    };
-
-                    Context.Vk.CmdPipelineBarrier(commandBuffer.CommandBuffer,
-                                                  srcStageMask,
-                                                  dstStageMask,
-                                                  DependencyFlags.None,
-                                                  0,
-                                                  null,
-                                                  0,
-                                                  null,
-                                                  1,
-                                                  &imageMemoryBarrier);
-
-                    Layouts[index] = newLayout;
-                }
-            }
-        }
+        return (subresource.ArrayLayer * Desc.MipLevels) + subresource.MipLevel;
     }
 
-    public void TransitionLayout(VKCommandBuffer commandBuffer, TextureSlice slice, ImageLayout newLayout)
-    {
-        TransitionLayout(commandBuffer, slice.MipLevel, 1, slice.ArrayLayer, 1, slice.Face, 1, newLayout);
-    }
-
-    public ImageView CreateAttachmentView(TextureSlice slice)
+    public ImageView CreateAttachmentView(TextureSubresource subresource)
     {
         ImageViewCreateInfo createInfo = new()
         {
@@ -287,9 +142,9 @@ internal unsafe class VKTexture : Texture
             SubresourceRange = new()
             {
                 AspectMask = VKFormats.Vulkan(Desc.Format, Desc.Flags).AspectFlags,
-                BaseMipLevel = slice.MipLevel,
+                BaseMipLevel = subresource.MipLevel,
                 LevelCount = 1,
-                BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(Desc, slice),
+                BaseArrayLayer = subresource.ArrayLayer,
                 LayerCount = 1
             }
         };

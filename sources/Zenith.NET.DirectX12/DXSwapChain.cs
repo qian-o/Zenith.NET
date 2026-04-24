@@ -6,7 +6,7 @@ namespace Zenith.NET.DirectX12;
 internal unsafe class DXSwapChain : SwapChain
 {
     private readonly DXFence fence;
-    private readonly DXSwapChainFrameBuffer swapChainFrameBuffer;
+    private readonly DXSwapChainTargets swapChainTargets;
 
     public ComPtr<IDXGISwapChain3> SwapChain3;
 
@@ -15,14 +15,27 @@ internal unsafe class DXSwapChain : SwapChain
     public DXSwapChain(DXGraphicsContext context, SwapChainDesc desc) : base(context, desc)
     {
         fence = new(context);
-        swapChainFrameBuffer = new(context, this);
+        swapChainTargets = new(context, this);
 
         CreateSwapChain();
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
 
-    public override FrameBuffer FrameBuffer => swapChainFrameBuffer[BufferIndex];
+    public override uint Width => CurrentColorTarget.Desc.Width;
+
+    public override uint Height => CurrentColorTarget.Desc.Height;
+
+    public override Texture CurrentColorTarget => swapChainTargets[BufferIndex];
+
+    public override Texture? CurrentDepthStencilTarget => swapChainTargets.DepthStencilTarget;
+
+    public override Output Output => new()
+    {
+        ColorAttachments = [Desc.ColorTargetFormat],
+        DepthStencilAttachment = Desc.DepthStencilTargetFormat,
+        SampleCount = SampleCount.Count1
+    };
 
     public override void Present()
     {
@@ -42,7 +55,7 @@ internal unsafe class DXSwapChain : SwapChain
         {
             fence.Wait(Context.GraphicsQueue);
 
-            swapChainFrameBuffer.DestroyFrameBuffers();
+            swapChainTargets.DestroyTargets();
 
             SwapChain3.ResizeBuffers(DXGraphicsContext.SwapChainBufferCount,
                                      Desc.Surface.Width,
@@ -50,7 +63,7 @@ internal unsafe class DXSwapChain : SwapChain
                                      DXFormats.DirectX12(Desc.ColorTargetFormat),
                                      (uint)SwapChainFlag.AllowTearing).Success();
 
-            swapChainFrameBuffer.CreateFrameBuffers(Desc.Surface.Width, Desc.Surface.Height, []);
+            swapChainTargets.CreateTargets(Desc.Surface.Width, Desc.Surface.Height, []);
 
             BufferIndex = SwapChain3.GetCurrentBackBufferIndex();
         }
@@ -69,7 +82,7 @@ internal unsafe class DXSwapChain : SwapChain
     {
         DestroySwapChain();
 
-        swapChainFrameBuffer.Dispose();
+        swapChainTargets.Dispose();
         fence.Dispose();
     }
 
@@ -99,19 +112,19 @@ internal unsafe class DXSwapChain : SwapChain
                                                     (ComPtr<IDXGIOutput>)null,
                                                     ref SwapChain3).Success();
 
-            swapChainFrameBuffer.CreateFrameBuffers(Desc.Surface.Width, Desc.Surface.Height, []);
+            swapChainTargets.CreateTargets(Desc.Surface.Width, Desc.Surface.Height, []);
 
             BufferIndex = SwapChain3.GetCurrentBackBufferIndex();
         }
         else
         {
-            swapChainFrameBuffer.CreateFrameBuffers(Desc.Surface.Width, Desc.Surface.Height, Desc.Surface.Handles);
+            swapChainTargets.CreateTargets(Desc.Surface.Width, Desc.Surface.Height, Desc.Surface.Handles);
         }
     }
 
     private void DestroySwapChain()
     {
-        swapChainFrameBuffer.DestroyFrameBuffers();
+        swapChainTargets.DestroyTargets();
 
         SwapChain3.Dispose();
         SwapChain3 = default;

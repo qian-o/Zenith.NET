@@ -27,8 +27,7 @@ internal class MauiZenithView(ZenithViewHandler handler) : UIView
             swapChain = handler.VirtualView.GraphicsContext.CreateSwapChain(new()
             {
                 Surface = Surface.Apple(Layer.Handle, width, height),
-                ColorTargetFormat = ZenithViewHelper.ColorFormat,
-                DepthStencilTargetFormat = ZenithViewHelper.DepthStencilFormat
+                ColorTargetFormat = ZenithViewHelper.ColorFormat
             });
         }
         else if (swapChain.Desc.Surface.Width != width || swapChain.Desc.Surface.Height != height)
@@ -45,7 +44,7 @@ internal class MauiZenithView(ZenithViewHandler handler) : UIView
         }
 
         handler.VirtualView.OnUpdateRequested();
-        handler.VirtualView.OnRenderRequested(swapChain.FrameBuffer);
+        handler.VirtualView.OnRenderRequested(swapChain.CurrentColorTarget);
     }
 
     public void Present()

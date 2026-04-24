@@ -158,14 +158,6 @@ public static unsafe class Extensions
         }
     }
 
-    extension(FrameBuffer frameBuffer)
-    {
-        internal DXFrameBuffer DirectX12()
-        {
-            return (DXFrameBuffer)frameBuffer;
-        }
-    }
-
     extension(Shader shader)
     {
         internal DXShader DirectX12()

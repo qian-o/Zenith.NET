@@ -42,14 +42,6 @@ public static class Extensions
         }
     }
 
-    extension(FrameBuffer frameBuffer)
-    {
-        internal MTLFrameBuffer Metal()
-        {
-            return (MTLFrameBuffer)frameBuffer;
-        }
-    }
-
     extension(Shader shader)
     {
         internal MTLShader Metal()

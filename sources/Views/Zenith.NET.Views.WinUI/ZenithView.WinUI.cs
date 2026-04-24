@@ -33,8 +33,7 @@ public unsafe partial class ZenithView
             swapChain = GraphicsContext.CreateSwapChain(new()
             {
                 Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
-                ColorTargetFormat = ZenithViewHelper.ColorFormat,
-                DepthStencilTargetFormat = ZenithViewHelper.DepthStencilFormat
+                ColorTargetFormat = ZenithViewHelper.ColorFormat
             });
 
             this.As<ISwapChainPanelNative>().SetSwapChain(texture.SwapChain);
@@ -51,7 +50,7 @@ public unsafe partial class ZenithView
         texture.AcquireSync();
 
         UpdateRequested?.Invoke(this, new(scheduler.UpdateSeconds, scheduler.TotalSeconds));
-        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, swapChain.FrameBuffer));
+        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, swapChain.CurrentColorTarget));
 
         texture.ReleaseSync();
     }

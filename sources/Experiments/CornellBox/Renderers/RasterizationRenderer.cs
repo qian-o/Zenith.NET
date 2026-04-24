@@ -36,7 +36,11 @@ internal unsafe class RasterizationRenderer : Renderer
             StrideInBytes = (uint)sizeof(Vertex),
             Flags = BufferUsageFlags.Vertex
         });
-        vertexBuffer.Upload(vertices, 0);
+
+        fixed (Vertex* pointer = vertices)
+        {
+            vertexBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length) });
+        }
 
         indexBuffer = App.Context.CreateBuffer(new()
         {
@@ -44,7 +48,11 @@ internal unsafe class RasterizationRenderer : Renderer
             StrideInBytes = sizeof(uint),
             Flags = BufferUsageFlags.Index
         });
-        indexBuffer.Upload(indices, 0);
+
+        fixed (uint* pointer = indices)
+        {
+            indexBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(uint) * indices.Length) });
+        }
 
         materialBuffer = App.Context.CreateBuffer(new()
         {
@@ -52,7 +60,11 @@ internal unsafe class RasterizationRenderer : Renderer
             StrideInBytes = (uint)sizeof(Material),
             Flags = BufferUsageFlags.ShaderResource
         });
-        materialBuffer.Upload(materials, 0);
+
+        fixed (Material* pointer = materials)
+        {
+            materialBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Material) * materials.Length) });
+        }
 
         constantBuffer = App.Context.CreateBuffer(new()
         {
@@ -85,13 +97,13 @@ internal unsafe class RasterizationRenderer : Renderer
             ResourceBindings = ResourceBindings,
             InputLayouts = [inputLayout],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
-            Output = FrameBuffer.Output
+            Output = RenderOutput
         });
     }
 
     public override void Update(CameraHandler camera)
     {
-        constantBuffer.Upload<RasterConstants>([new()
+        RasterConstants constants = new()
         {
             Model = Matrix4x4.Identity,
             View = camera.View,
@@ -99,18 +111,30 @@ internal unsafe class RasterizationRenderer : Renderer
             LightPos = new(278.0f, 547.0f, 280.0f),
             LightColor = new(2.0f, 1.8f, 1.4f),
             CameraPos = camera.Position
-        }], 0);
+        };
+
+        constantBuffer.Upload(0, new() { Pointer = (nint)(&constants), SizeInBytes = (uint)sizeof(RasterConstants) });
     }
 
     public override void Render(CommandBuffer commandBuffer)
     {
-        commandBuffer.BeginRenderPass(FrameBuffer, new()
+        commandBuffer.BeginRenderPass([new()
         {
-            ColorValues = [new(0.51f, 0.518f, 0.557f, 1.0f)],
-            Depth = 1.0f,
-            Stencil = 0,
-            Flags = ClearFlags.All
-        }, resourceTable);
+            Texture = Color,
+            LoadOp = LoadOp.Clear,
+            StoreOp = StoreOp.Store,
+            ClearColor = new(0.51f, 0.518f, 0.557f, 1.0f)
+        }],
+                                      new()
+                                      {
+                                          Texture = DepthStencil,
+                                          DepthLoadOp = LoadOp.Clear,
+                                          DepthStoreOp = StoreOp.Store,
+                                          StencilLoadOp = LoadOp.Clear,
+                                          StencilStoreOp = StoreOp.Store,
+                                          ClearDepth = 1.0f,
+                                          ClearStencil = 0
+                                      });
 
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.PushResourceTable(resourceTable);

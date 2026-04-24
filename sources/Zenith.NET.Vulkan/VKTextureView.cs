@@ -8,19 +8,21 @@ internal unsafe class VKTextureView : TextureView
 
     public VKTextureView(VKGraphicsContext context, TextureViewDesc desc) : base(context, desc)
     {
+        TextureSubresourceRange range = desc.Range;
+
         ImageViewCreateInfo createInfo = new()
         {
             SType = StructureType.ImageViewCreateInfo,
             Image = desc.Texture.Vulkan().Image,
-            ViewType = Resolve(desc),
-            Format = VKFormats.Vulkan(desc.Texture.Desc.Format),
+            ViewType = VKFormats.Vulkan(desc.Type).ViewType,
+            Format = VKFormats.Vulkan(desc.Format),
             SubresourceRange = new()
             {
-                AspectMask = VKFormats.Vulkan(desc.Texture.Desc.Format, desc.Texture.Desc.Flags).AspectFlags & ~ImageAspectFlags.StencilBit,
-                BaseMipLevel = desc.FirstMipLevel,
-                LevelCount = desc.MipLevelCount,
-                BaseArrayLayer = ZenithHelper.FlattenArrayLayerRange(desc).FlattenArrayLayerIndex,
-                LayerCount = ZenithHelper.FlattenArrayLayerRange(desc).FlattenArrayLayerCount
+                AspectMask = VKFormats.Vulkan(desc.Format, desc.Texture.Desc.Flags).AspectFlags & ~ImageAspectFlags.StencilBit,
+                BaseMipLevel = range.BaseMipLevel,
+                LevelCount = range.LevelCount,
+                BaseArrayLayer = range.BaseArrayLayer,
+                LayerCount = range.LayerCount
             }
         };
 
@@ -45,18 +47,6 @@ internal unsafe class VKTextureView : TextureView
 
     public DescriptorImageInfo UavImageInfo { get; }
 
-    public void TransitionLayout(VKCommandBuffer commandBuffer, ImageLayout newLayout)
-    {
-        Desc.Texture.Vulkan().TransitionLayout(commandBuffer,
-                                               Desc.FirstMipLevel,
-                                               Desc.MipLevelCount,
-                                               Desc.FirstArrayLayer,
-                                               Desc.ArrayLayerCount,
-                                               0,
-                                               ZenithHelper.FaceCount(Desc.Texture.Desc),
-                                               newLayout);
-    }
-
     protected override void SetResourceName(string name)
     {
         using ZenithMarshal.Scope scope = new();
@@ -75,16 +65,5 @@ internal unsafe class VKTextureView : TextureView
     protected override void Destroy()
     {
         Context.Vk.DestroyImageView(Context.Device, ImageView, null);
-    }
-
-    private static ImageViewType Resolve(TextureViewDesc desc)
-    {
-        return VKFormats.Vulkan(desc.Texture.Desc.Type switch
-        {
-            TextureType.Texture1DArray when desc.ArrayLayerCount is 1 => TextureType.Texture1D,
-            TextureType.Texture2DArray when desc.ArrayLayerCount is 1 => TextureType.Texture2D,
-            TextureType.TextureCubeArray when desc.ArrayLayerCount is 1 => TextureType.TextureCube,
-            _ => desc.Texture.Desc.Type
-        }).ViewType;
     }
 }

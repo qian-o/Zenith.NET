@@ -7,8 +7,13 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXCommandBuffer : CommandBuffer
 {
+    private const uint TextureDataPitchAlignment = 256;
+
+    private const uint TextureDataPlacementAlignment = 512;
+
     private readonly DXDescriptorTable? cbvSrvUavTable;
     private readonly DXDescriptorTable? samplerTable;
+    private DXDescriptorToken[] currentRenderPassTokens = [];
 
     public ComPtr<ID3D12CommandAllocator> CommandAllocator;
 
@@ -36,41 +41,25 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         {
             GraphicsCommandList6 = graphicsCommandList6;
         }
-
-        CanTransitionResourceStates = queue.Type is not CommandQueueType.Copy;
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
 
-    public bool CanTransitionResourceStates { get; }
-
     protected override void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes)
     {
-        DXBuffer dxSrc = src.DirectX12();
-        DXBuffer dxDest = dest.DirectX12();
-
-        ResourceStates srcOldStates = dxSrc.States;
-        ResourceStates destOldStates = dxDest.States;
-
-        dxSrc.TransitionStates(this, ResourceStates.CopySource);
-        dxDest.TransitionStates(this, ResourceStates.CopyDest);
-
-        GraphicsCommandList4.CopyBufferRegion(dxDest.Resource, destOffsetInBytes, dxSrc.Resource, srcOffsetInBytes, sizeInBytes);
-
-        dxSrc.TransitionStates(this, srcOldStates);
-        dxDest.TransitionStates(this, destOldStates);
+        GraphicsCommandList4.CopyBufferRegion(dest.DirectX12().Resource, destOffsetInBytes, src.DirectX12().Resource, srcOffsetInBytes, sizeInBytes);
     }
 
-    protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent)
+    protected override void CopyBufferToTextureImpl(Buffer src,
+                                                    uint srcOffsetInBytes,
+                                                    TextureDataLayout srcLayout,
+                                                    Texture dest,
+                                                    TextureSubresource destSubresource,
+                                                    Offset3D destOffset,
+                                                    Extent3D destExtent)
     {
         DXBuffer dxSrc = src.DirectX12();
         DXTexture dxDest = dest.DirectX12();
-
-        ResourceStates srcOldStates = dxSrc.States;
-        ResourceStates destOldStates = dxDest.States[ZenithHelper.SubresourceIndex(dxDest.Desc, destSlice)];
-
-        dxSrc.TransitionStates(this, ResourceStates.CopySource);
-        dxDest.TransitionStates(this, destSlice, ResourceStates.CopyDest);
 
         (uint blockWidth, uint blockHeight, uint blocksWide, _) = ZenithHelper.BlockLayout(dxDest.Desc.Format, destExtent.Width, destExtent.Height);
 
@@ -79,55 +68,55 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         uint extentWidth = ZenithHelper.Align(destExtent.Width, blockWidth);
         uint extentHeight = ZenithHelper.Align(destExtent.Height, blockHeight);
 
-        TextureCopyLocation srcLocation = new()
+        for (uint i = 0; i < destExtent.Depth; i++)
         {
-            PResource = dxSrc.Resource,
-            Type = TextureCopyType.PlacedFootprint,
-            PlacedFootprint = new()
+            TextureCopyLocation srcLocation = new()
             {
-                Offset = srcOffsetInBytes,
-                Footprint = new()
+                PResource = dxSrc.Resource,
+                Type = TextureCopyType.PlacedFootprint,
+                PlacedFootprint = new()
                 {
-                    Format = DXFormats.DirectX12(dxDest.Desc.Format),
-                    Width = extentWidth,
-                    Height = extentHeight,
-                    Depth = destExtent.Depth,
-                    RowPitch = ZenithHelper.Align(ZenithHelper.SizeInBytes(dxDest.Desc.Format) * blocksWide, GraphicsContext.TextureRowPitchAlignment)
+                    Offset = srcOffsetInBytes + (srcLayout.SlicePitchInBytes * i),
+                    Footprint = new()
+                    {
+                        Format = DXFormats.DirectX12(dxDest.Desc.Format),
+                        Width = extentWidth,
+                        Height = extentHeight,
+                        Depth = 1,
+                        RowPitch = srcLayout.RowPitchInBytes
+                    }
                 }
-            }
-        };
+            };
 
-        Box srcBox = new(0, 0, 0, extentWidth, extentHeight, destExtent.Depth);
+            Box srcBox = new(0, 0, 0, extentWidth, extentHeight, 1);
 
-        TextureCopyLocation destLocation = new()
-        {
-            PResource = dxDest.Resource,
-            Type = TextureCopyType.SubresourceIndex,
-            SubresourceIndex = ZenithHelper.SubresourceIndex(dxDest.Desc, destSlice)
-        };
+            TextureCopyLocation destLocation = new()
+            {
+                PResource = dxDest.Resource,
+                Type = TextureCopyType.SubresourceIndex,
+                SubresourceIndex = dxDest.SubresourceIndex(destSubresource)
+            };
 
-        GraphicsCommandList4.CopyTextureRegion(&destLocation, offsetX, offsetY, destOffset.Z, &srcLocation, &srcBox);
-
-        dxSrc.TransitionStates(this, srcOldStates);
-        dxDest.TransitionStates(this, destSlice, destOldStates);
+            GraphicsCommandList4.CopyTextureRegion(&destLocation, offsetX, offsetY, destOffset.Z + i, &srcLocation, &srcBox);
+        }
     }
 
-    protected override void CopyTextureImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent)
+    protected override void CopyTextureImpl(Texture src,
+                                            TextureSubresource srcSubresource,
+                                            Offset3D srcOffset,
+                                            Texture dest,
+                                            TextureSubresource destSubresource,
+                                            Offset3D destOffset,
+                                            Extent3D extent)
     {
         DXTexture dxSrc = src.DirectX12();
         DXTexture dxDest = dest.DirectX12();
 
-        ResourceStates srcOldStates = dxSrc.States[ZenithHelper.SubresourceIndex(dxSrc.Desc, srcSlice)];
-        ResourceStates destOldStates = dxDest.States[ZenithHelper.SubresourceIndex(dxDest.Desc, destSlice)];
-
-        dxSrc.TransitionStates(this, srcSlice, ResourceStates.CopySource);
-        dxDest.TransitionStates(this, destSlice, ResourceStates.CopyDest);
-
         TextureCopyLocation srcLocation = new()
         {
             PResource = dxSrc.Resource,
             Type = TextureCopyType.SubresourceIndex,
-            SubresourceIndex = ZenithHelper.SubresourceIndex(dxSrc.Desc, srcSlice)
+            SubresourceIndex = dxSrc.SubresourceIndex(srcSubresource)
         };
 
         Box srcBox = new(srcOffset.X, srcOffset.Y, srcOffset.Z, srcOffset.X + extent.Width, srcOffset.Y + extent.Height, srcOffset.Z + extent.Depth);
@@ -136,25 +125,22 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         {
             PResource = dxDest.Resource,
             Type = TextureCopyType.SubresourceIndex,
-            SubresourceIndex = ZenithHelper.SubresourceIndex(dxDest.Desc, destSlice)
+            SubresourceIndex = dxDest.SubresourceIndex(destSubresource)
         };
 
         GraphicsCommandList4.CopyTextureRegion(&destLocation, destOffset.X, destOffset.Y, destOffset.Z, &srcLocation, &srcBox);
-
-        dxSrc.TransitionStates(this, srcSlice, srcOldStates);
-        dxDest.TransitionStates(this, destSlice, destOldStates);
     }
 
-    protected override void CopyTextureToBufferImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes)
+    protected override void CopyTextureToBufferImpl(Texture src,
+                                                    TextureSubresource srcSubresource,
+                                                    Offset3D srcOffset,
+                                                    Extent3D srcExtent,
+                                                    Buffer dest,
+                                                    uint destOffsetInBytes,
+                                                    TextureDataLayout destLayout)
     {
         DXTexture dxSrc = src.DirectX12();
         DXBuffer dxDest = dest.DirectX12();
-
-        ResourceStates srcOldStates = dxSrc.States[ZenithHelper.SubresourceIndex(dxSrc.Desc, srcSlice)];
-        ResourceStates destOldStates = dxDest.States;
-
-        dxSrc.TransitionStates(this, srcSlice, ResourceStates.CopySource);
-        dxDest.TransitionStates(this, ResourceStates.CopyDest);
 
         (uint blockWidth, uint blockHeight, uint blocksWide, _) = ZenithHelper.BlockLayout(dxSrc.Desc.Format, srcExtent.Width, srcExtent.Height);
 
@@ -167,50 +153,61 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         {
             PResource = dxSrc.Resource,
             Type = TextureCopyType.SubresourceIndex,
-            SubresourceIndex = ZenithHelper.SubresourceIndex(dxSrc.Desc, srcSlice)
+            SubresourceIndex = dxSrc.SubresourceIndex(srcSubresource)
         };
 
         Box srcBox = new(offsetX, offsetY, srcOffset.Z, offsetX + extentWidth, offsetY + extentHeight, srcOffset.Z + srcExtent.Depth);
 
-        TextureCopyLocation destLocation = new()
+        for (uint i = 0; i < srcExtent.Depth; i++)
         {
-            PResource = dxDest.Resource,
-            Type = TextureCopyType.PlacedFootprint,
-            PlacedFootprint = new()
+            Box sliceBox = new(offsetX, offsetY, srcOffset.Z + i, offsetX + extentWidth, offsetY + extentHeight, srcOffset.Z + i + 1);
+
+            TextureCopyLocation destLocation = new()
             {
-                Offset = destOffsetInBytes,
-                Footprint = new()
+                PResource = dxDest.Resource,
+                Type = TextureCopyType.PlacedFootprint,
+                PlacedFootprint = new()
                 {
-                    Format = DXFormats.DirectX12(dxSrc.Desc.Format),
-                    Width = extentWidth,
-                    Height = extentHeight,
-                    Depth = srcExtent.Depth,
-                    RowPitch = ZenithHelper.Align(ZenithHelper.SizeInBytes(dxSrc.Desc.Format) * blocksWide, GraphicsContext.TextureRowPitchAlignment)
+                    Offset = destOffsetInBytes + (destLayout.SlicePitchInBytes * i),
+                    Footprint = new()
+                    {
+                        Format = DXFormats.DirectX12(dxSrc.Desc.Format),
+                        Width = extentWidth,
+                        Height = extentHeight,
+                        Depth = 1,
+                        RowPitch = destLayout.RowPitchInBytes
+                    }
                 }
-            }
-        };
+            };
 
-        GraphicsCommandList4.CopyTextureRegion(&destLocation, 0, 0, 0, &srcLocation, &srcBox);
-
-        dxSrc.TransitionStates(this, srcSlice, srcOldStates);
-        dxDest.TransitionStates(this, destOldStates);
+            GraphicsCommandList4.CopyTextureRegion(&destLocation, 0, 0, 0, &srcLocation, &sliceBox);
+        }
     }
 
-    protected override void ResolveTextureImpl(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice)
+    protected override TextureDataLayout GetTextureCopyLayout(PixelFormat format, Extent3D extent)
+    {
+        uint rowPitchInBytes = ZenithHelper.Align(ZenithHelper.RowPitchInBytes(format, extent.Width, extent.Height), TextureDataPitchAlignment);
+        (_, _, _, uint blocksHigh) = ZenithHelper.BlockLayout(format, extent.Width, extent.Height);
+
+        uint slicePitchInBytes = ZenithHelper.Align(rowPitchInBytes * blocksHigh, TextureDataPlacementAlignment);
+
+        return new()
+        {
+            SizeInBytes = slicePitchInBytes * extent.Depth,
+            RowPitchInBytes = rowPitchInBytes,
+            SlicePitchInBytes = slicePitchInBytes
+        };
+    }
+
+    protected override void ResolveTextureImpl(Texture src,
+                                               TextureSubresource srcSubresource,
+                                               Texture dest,
+                                               TextureSubresource destSubresource)
     {
         DXTexture dxSrc = src.DirectX12();
         DXTexture dxDest = dest.DirectX12();
 
-        ResourceStates srcOldStates = dxSrc.States[ZenithHelper.SubresourceIndex(dxSrc.Desc, srcSlice)];
-        ResourceStates destOldStates = dxDest.States[ZenithHelper.SubresourceIndex(dxDest.Desc, destSlice)];
-
-        dxSrc.TransitionStates(this, srcSlice, ResourceStates.CopySource);
-        dxDest.TransitionStates(this, destSlice, ResourceStates.CopyDest);
-
-        GraphicsCommandList4.ResolveSubresource(dxDest.Resource, ZenithHelper.SubresourceIndex(dxDest.Desc, destSlice), dxSrc.Resource, ZenithHelper.SubresourceIndex(dxSrc.Desc, srcSlice), DXFormats.DirectX12(dxDest.Desc.Format));
-
-        dxSrc.TransitionStates(this, srcSlice, srcOldStates);
-        dxDest.TransitionStates(this, destSlice, destOldStates);
+        GraphicsCommandList4.ResolveSubresource(dxDest.Resource, dxDest.SubresourceIndex(destSubresource), dxSrc.Resource, dxSrc.SubresourceIndex(srcSubresource), DXFormats.DirectX12(dxDest.Desc.Format));
     }
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)
@@ -228,80 +225,155 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         accelerationStructure.DirectX12().Update(this, newDesc);
     }
 
-    protected override void BeginRenderPassImpl(FrameBuffer frameBuffer, ClearValue clearValue)
+    protected override void BeginRenderPassImpl(ReadOnlySpan<ColorAttachment> colorAttachments,
+                                                DepthStencilAttachment? depthStencilAttachment)
     {
-        DXFrameBuffer dxFrameBuffer = frameBuffer.DirectX12();
+        ReleaseRenderPassTokens();
 
-        dxFrameBuffer.PrepareAttachments(this);
+        using ZenithMarshal.Scope scope = new();
 
-        bool clearColor = clearValue.Flags.HasFlag(ClearFlags.Color);
-        bool clearDepth = clearValue.Flags.HasFlag(ClearFlags.Depth);
-        bool clearStencil = clearValue.Flags.HasFlag(ClearFlags.Stencil);
+        uint colorAttachmentCount = (uint)colorAttachments.Length;
+        bool hasDepthStencilAttachment = depthStencilAttachment is not null;
 
-        for (int i = 0; i < dxFrameBuffer.ColorAttachmentCount; i++)
+        RenderPassRenderTargetDesc* renderTargets = (RenderPassRenderTargetDesc*)ZenithMarshal.Allocate<RenderPassRenderTargetDesc>(scope, colorAttachmentCount);
+        RenderPassDepthStencilDesc* depthStencil = hasDepthStencilAttachment ? (RenderPassDepthStencilDesc*)ZenithMarshal.Allocate<RenderPassDepthStencilDesc>(scope, 1) : null;
+
+        currentRenderPassTokens = new DXDescriptorToken[colorAttachmentCount + (hasDepthStencilAttachment ? 1 : 0)];
+
+        for (uint i = 0; i < colorAttachmentCount; i++)
         {
-            ref RenderPassRenderTargetDesc renderTarget = ref dxFrameBuffer.RenderTargets[i];
+            ColorAttachment attachment = colorAttachments[(int)i];
 
-            renderTarget.BeginningAccess.Type = RenderPassBeginningAccessType.Preserve;
-
-            if (clearColor)
+            renderTargets[i] = new()
             {
-                renderTarget.BeginningAccess.Type = RenderPassBeginningAccessType.Clear;
-
-                fixed (float* colorPtr = renderTarget.BeginningAccess.Clear.ClearValue.Anonymous.Color)
+                CpuDescriptor = (currentRenderPassTokens[i] = attachment.Texture.DirectX12().CreateRtvToken(attachment.Subresource)).Handle,
+                BeginningAccess = new()
                 {
-                    clearValue.ColorValues[i].CopyTo(new Span<float>(colorPtr, 4));
+                    Type = RenderPassBeginningAccessType.Preserve
+                },
+                EndingAccess = new()
+                {
+                    Type = attachment.StoreOp is StoreOp.Store ? RenderPassEndingAccessType.Preserve : RenderPassEndingAccessType.Discard
+                }
+            };
+
+            ref RenderPassRenderTargetDesc renderTarget = ref renderTargets[i];
+
+            switch (attachment.LoadOp)
+            {
+                case LoadOp.Clear:
+                    renderTarget.BeginningAccess.Type = RenderPassBeginningAccessType.Clear;
+                    renderTarget.BeginningAccess.Clear.ClearValue.Format = DXFormats.DirectX12(attachment.Texture.Desc.Format);
+
+                    fixed (float* colorPtr = renderTarget.BeginningAccess.Clear.ClearValue.Anonymous.Color)
+                    {
+                        attachment.ClearColor.CopyTo(new Span<float>(colorPtr, 4));
+                    }
+                    break;
+
+                case LoadOp.DontCare:
+                    renderTarget.BeginningAccess.Type = RenderPassBeginningAccessType.Discard;
+                    break;
+            }
+        }
+
+        if (hasDepthStencilAttachment)
+        {
+            DepthStencilAttachment attachment = depthStencilAttachment!.Value;
+            PixelFormat format = attachment.Texture.Desc.Format;
+            bool hasDepth = ZenithHelper.HasDepth(format);
+            bool hasStencil = ZenithHelper.HasStencil(format);
+
+            depthStencil[0] = new()
+            {
+                CpuDescriptor = (currentRenderPassTokens[colorAttachmentCount] = attachment.Texture.DirectX12().CreateDsvToken(attachment.Subresource)).Handle,
+                DepthBeginningAccess = new()
+                {
+                    Type = hasDepth ? RenderPassBeginningAccessType.Preserve : RenderPassBeginningAccessType.NoAccess
+                },
+                StencilBeginningAccess = new()
+                {
+                    Type = hasStencil ? RenderPassBeginningAccessType.Preserve : RenderPassBeginningAccessType.NoAccess
+                },
+                DepthEndingAccess = new()
+                {
+                    Type = hasDepth ? attachment.DepthStoreOp is StoreOp.Store ? RenderPassEndingAccessType.Preserve : RenderPassEndingAccessType.Discard : RenderPassEndingAccessType.NoAccess
+                },
+                StencilEndingAccess = new()
+                {
+                    Type = hasStencil ? attachment.StencilStoreOp is StoreOp.Store ? RenderPassEndingAccessType.Preserve : RenderPassEndingAccessType.Discard : RenderPassEndingAccessType.NoAccess
+                }
+            };
+
+            ref RenderPassDepthStencilDesc depthStencilDesc = ref depthStencil[0];
+
+            if (depthStencilDesc.DepthBeginningAccess.Type is not RenderPassBeginningAccessType.NoAccess)
+            {
+                switch (attachment.DepthLoadOp)
+                {
+                    case LoadOp.Clear:
+                        depthStencilDesc.DepthBeginningAccess.Type = RenderPassBeginningAccessType.Clear;
+                        depthStencilDesc.DepthBeginningAccess.Clear.ClearValue.Format = DXFormats.DirectX12(format);
+                        depthStencilDesc.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = attachment.ClearDepth;
+                        break;
+
+                    case LoadOp.DontCare:
+                        depthStencilDesc.DepthBeginningAccess.Type = RenderPassBeginningAccessType.Discard;
+                        break;
+                }
+            }
+
+            if (depthStencilDesc.StencilBeginningAccess.Type is not RenderPassBeginningAccessType.NoAccess)
+            {
+                switch (attachment.StencilLoadOp)
+                {
+                    case LoadOp.Clear:
+                        depthStencilDesc.StencilBeginningAccess.Type = RenderPassBeginningAccessType.Clear;
+                        depthStencilDesc.StencilBeginningAccess.Clear.ClearValue.Format = DXFormats.DirectX12(format);
+                        depthStencilDesc.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = attachment.ClearStencil;
+                        break;
+
+                    case LoadOp.DontCare:
+                        depthStencilDesc.StencilBeginningAccess.Type = RenderPassBeginningAccessType.Discard;
+                        break;
                 }
             }
         }
 
-        if (dxFrameBuffer.HasDepthStencilAttachment)
-        {
-            ref RenderPassDepthStencilDesc depthStencil = ref dxFrameBuffer.DepthStencil[0];
-
-            if (depthStencil.DepthBeginningAccess.Type is not RenderPassBeginningAccessType.NoAccess)
-            {
-                depthStencil.DepthBeginningAccess.Type = RenderPassBeginningAccessType.Preserve;
-
-                if (clearDepth)
-                {
-                    depthStencil.DepthBeginningAccess.Type = RenderPassBeginningAccessType.Clear;
-                    depthStencil.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = clearValue.Depth;
-                }
-            }
-
-            if (depthStencil.StencilBeginningAccess.Type is not RenderPassBeginningAccessType.NoAccess)
-            {
-                depthStencil.StencilBeginningAccess.Type = RenderPassBeginningAccessType.Preserve;
-
-                if (clearStencil)
-                {
-                    depthStencil.StencilBeginningAccess.Type = RenderPassBeginningAccessType.Clear;
-                    depthStencil.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = clearValue.Stencil;
-                }
-            }
-        }
-
-        GraphicsCommandList4.BeginRenderPass(dxFrameBuffer.ColorAttachmentCount, dxFrameBuffer.RenderTargets, dxFrameBuffer.DepthStencil, RenderPassFlags.None);
+        GraphicsCommandList4.BeginRenderPass(colorAttachmentCount, renderTargets, depthStencil, RenderPassFlags.None);
     }
 
-    protected override void EndRenderPassImpl(FrameBuffer frameBuffer)
+    protected override void EndRenderPassImpl()
     {
         GraphicsCommandList4.EndRenderPass();
 
-        frameBuffer.DirectX12().PresentColorAttachments(this);
+        ReleaseRenderPassTokens();
     }
 
-    protected override void SetScissorsImpl(Scissor[] scissors)
+    protected override void SetScissorsImpl(ReadOnlySpan<Scissor> scissors)
     {
-        Box2D<int>[] dxScissors = [.. scissors.Select(static item => new Box2D<int>(new(item.X, item.Y), new((int)(item.X + item.Width), (int)(item.Y + item.Height))))];
+        Span<Box2D<int>> dxScissors = scissors.Length <= 8 ? stackalloc Box2D<int>[scissors.Length] : new Box2D<int>[scissors.Length];
+
+        for (int i = 0; i < scissors.Length; i++)
+        {
+            Scissor scissor = scissors[i];
+
+            dxScissors[i] = new(new(scissor.X, scissor.Y), new((int)(scissor.X + scissor.Width), (int)(scissor.Y + scissor.Height)));
+        }
 
         GraphicsCommandList4.RSSetScissorRects((uint)dxScissors.Length, ref dxScissors[0]);
     }
 
-    protected override void SetViewportsImpl(Viewport[] viewports)
+    protected override void SetViewportsImpl(ReadOnlySpan<Viewport> viewports)
     {
-        DxViewport[] dxViewports = [.. viewports.Select(static item => new DxViewport(item.X, item.Y, item.Width, item.Height, item.MinDepth, item.MaxDepth))];
+        Span<DxViewport> dxViewports = viewports.Length <= 8 ? stackalloc DxViewport[viewports.Length] : new DxViewport[viewports.Length];
+
+        for (int i = 0; i < viewports.Length; i++)
+        {
+            Viewport viewport = viewports[i];
+
+            dxViewports[i] = new(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
+        }
 
         GraphicsCommandList4.RSSetViewports((uint)dxViewports.Length, ref dxViewports[0]);
     }
@@ -512,6 +584,8 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void ResetImpl()
     {
+        ReleaseRenderPassTokens();
+
         cbvSrvUavTable?.Reset();
         samplerTable?.Reset();
 
@@ -526,6 +600,8 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void Destroy()
     {
+        ReleaseRenderPassTokens();
+
         base.Destroy();
 
         GraphicsCommandList6?.Dispose();
@@ -535,5 +611,15 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
         samplerTable?.Dispose();
         cbvSrvUavTable?.Dispose();
+    }
+
+    private void ReleaseRenderPassTokens()
+    {
+        foreach (DXDescriptorToken token in currentRenderPassTokens)
+        {
+            token.Dispose();
+        }
+
+        currentRenderPassTokens = [];
     }
 }

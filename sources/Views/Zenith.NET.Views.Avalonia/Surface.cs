@@ -1,19 +1,14 @@
-﻿using System.Runtime.CompilerServices;
-using Avalonia.Media.Imaging;
+﻿using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using AvaloniaPixelFormat = Avalonia.Platform.PixelFormat;
 
 namespace Zenith.NET.Views.Avalonia;
 
-internal unsafe class Surface : DisposableObject
+internal class Surface : DisposableObject
 {
-    private readonly Texture color;
-    private readonly Texture depthStencil;
-    private readonly Buffer pixels;
-
     public Surface(GraphicsContext graphicsContext, uint width, uint height)
     {
-        color = graphicsContext.CreateTexture(new()
+        Target = graphicsContext.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
             Format = ZenithViewHelper.ColorFormat,
@@ -26,42 +21,16 @@ internal unsafe class Surface : DisposableObject
             Flags = TextureUsageFlags.RenderTarget
         });
 
-        depthStencil = graphicsContext.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = ZenithViewHelper.DepthStencilFormat,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.DepthStencil
-        });
-
-        pixels = graphicsContext.CreateBuffer(new()
-        {
-            SizeInBytes = ZenithHelper.Align(width * 4, GraphicsContext.TextureRowPitchAlignment) * height,
-            StrideInBytes = 4,
-            Flags = BufferUsageFlags.MapRead
-        });
-
-        FrameBuffer = graphicsContext.CreateFrameBuffer(new()
-        {
-            ColorAttachments = [new() { Target = color }],
-            DepthStencilAttachment = new() { Target = depthStencil }
-        });
-
-        WriteableBitmap = new(new((int)width, (int)height), new(96, 96), ColorFormat(), AlphaFormat.Premul);
+        Bitmap = new(new((int)width, (int)height), new(96, 96), ColorFormat(), AlphaFormat.Premul);
 
         GraphicsContext = graphicsContext;
         Width = width;
         Height = height;
     }
 
-    public FrameBuffer FrameBuffer { get; }
+    public Texture Target { get; }
 
-    public WriteableBitmap WriteableBitmap { get; }
+    public WriteableBitmap Bitmap { get; }
 
     public GraphicsContext GraphicsContext { get; }
 
@@ -71,42 +40,24 @@ internal unsafe class Surface : DisposableObject
 
     public void Present()
     {
-        CommandBuffer commandBuffer = GraphicsContext.Copy.CommandBuffer();
-        commandBuffer.CopyTextureToBuffer(color, default, default, new() { Width = Width, Height = Height, Depth = 1 }, pixels, 0);
-        commandBuffer.Submit(true);
+        using ILockedFramebuffer lockedFramebuffer = Bitmap.Lock();
 
-        uint rowPitchInBytes = ZenithHelper.Align(Width * 4, GraphicsContext.TextureRowPitchAlignment);
-
-        using ILockedFramebuffer lockedFramebuffer = WriteableBitmap.Lock();
-
-        MappedMemory mappedMemory = pixels.Map();
-
-        if (lockedFramebuffer.RowBytes == rowPitchInBytes)
+        Target.Download(default, default, new() { Width = Width, Height = Height, Depth = 1 }, new()
         {
-            Unsafe.CopyBlock((void*)lockedFramebuffer.Address, (void*)mappedMemory.Pointer, mappedMemory.SizeInBytes);
-        }
-        else
-        {
-            Parallel.For(0, Height, y =>
+            Pointer = lockedFramebuffer.Address,
+            Layout = new()
             {
-                byte* srcPtr = (byte*)mappedMemory.Pointer + (rowPitchInBytes * y);
-                byte* dstPtr = (byte*)lockedFramebuffer.Address + (lockedFramebuffer.RowBytes * y);
-
-                Unsafe.CopyBlock(dstPtr, srcPtr, (uint)lockedFramebuffer.RowBytes);
-            });
-        }
-
-        pixels.Unmap();
+                SizeInBytes = (uint)(lockedFramebuffer.RowBytes * Height),
+                RowPitchInBytes = (uint)lockedFramebuffer.RowBytes,
+                SlicePitchInBytes = (uint)(lockedFramebuffer.RowBytes * Height)
+            }
+        });
     }
 
     protected override void Destroy()
     {
-        WriteableBitmap.Dispose();
-        FrameBuffer.Dispose();
-
-        pixels.Dispose();
-        depthStencil.Dispose();
-        color.Dispose();
+        Bitmap.Dispose();
+        Target.Dispose();
     }
 
     private static AvaloniaPixelFormat ColorFormat()

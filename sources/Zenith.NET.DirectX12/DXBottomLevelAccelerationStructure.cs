@@ -21,7 +21,15 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
 
         MappedMemory mappedMemory = TransformBuffer.Map();
 
-        desc.Geometries.Select(static item => DXFormats.DirectX12(item.Triangles.Transform)).ToArray().CopyTo(new Span<Matrix3X4<float>>((Matrix3X4<float>*)mappedMemory.Pointer, (int)geometryCount));
+        Matrix3X4<float>[] transforms = desc.Geometries.Select(static item => DXFormats.DirectX12(item.Triangles.Transform)).ToArray();
+
+        if (geometryCount > 0)
+        {
+            unsafe
+            {
+                transforms.AsSpan().CopyTo(new Span<Matrix3X4<float>>((void*)mappedMemory.Pointer, (int)geometryCount));
+            }
+        }
 
         TransformBuffer.Unmap();
 

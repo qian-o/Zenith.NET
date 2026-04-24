@@ -1,12 +1,8 @@
 ﻿namespace Zenith.NET;
 
-public abstract class GraphicsContext : DisposableObject
+public abstract class GraphicsContext : DisposableObject, INativeObject
 {
     public const uint ConstantBufferAlignment = 256;
-
-    public const uint TextureRowPitchAlignment = 256;
-
-    public const uint TextureDepthPitchAlignment = 512;
 
     protected GraphicsContext(Backend backend, bool useValidationLayer)
     {
@@ -51,13 +47,6 @@ public abstract class GraphicsContext : DisposableObject
         return CreateSwapChainImpl(desc);
     }
 
-    public FrameBuffer CreateFrameBuffer(FrameBufferDesc desc)
-    {
-        ValidationLayer?.ValidateDesc(desc);
-
-        return CreateFrameBufferImpl(desc);
-    }
-
     public Shader CreateShader(ShaderDesc desc)
     {
         ValidationLayer?.ValidateDesc(desc);
@@ -70,13 +59,6 @@ public abstract class GraphicsContext : DisposableObject
         ValidationLayer?.ValidateDesc(desc);
 
         return CreateBufferImpl(desc);
-    }
-
-    public BufferView CreateBufferView(BufferViewDesc desc)
-    {
-        ValidationLayer?.ValidateDesc(desc);
-
-        return CreateBufferViewImpl(desc);
     }
 
     public Texture CreateTexture(TextureDesc desc)
@@ -135,6 +117,8 @@ public abstract class GraphicsContext : DisposableObject
         return CreateQueryHeapImpl(desc);
     }
 
+    public abstract nint GetNativeObject(NativeObjectType type);
+
     protected override void Destroy()
     {
         Graphics.Dispose();
@@ -154,13 +138,9 @@ public abstract class GraphicsContext : DisposableObject
 
     protected abstract SwapChain CreateSwapChainImpl(SwapChainDesc desc);
 
-    protected abstract FrameBuffer CreateFrameBufferImpl(FrameBufferDesc desc);
-
     protected abstract Shader CreateShaderImpl(ShaderDesc desc);
 
     protected abstract Buffer CreateBufferImpl(BufferDesc desc);
-
-    protected abstract BufferView CreateBufferViewImpl(BufferViewDesc desc);
 
     protected abstract Texture CreateTextureImpl(TextureDesc desc);
 

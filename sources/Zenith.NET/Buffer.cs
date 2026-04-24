@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public abstract class Buffer(GraphicsContext context, BufferDesc desc) : GraphicsResource(context), IBindableResource
+public abstract class Buffer(GraphicsContext context, BufferDesc desc) : GraphicsResource(context)
 {
     private BufferDesc desc = desc;
 
@@ -10,20 +10,15 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public abstract void Unmap();
 
-    public void Upload<T>(ReadOnlySpan<T> data, uint offsetInBytes) where T : unmanaged
+    public void Upload(uint offsetInBytes, BufferData data)
     {
-        if (data.Length is 0)
-        {
-            return;
-        }
-
         if (desc.Flags.HasFlag(BufferUsageFlags.MapRead) || desc.Flags.HasFlag(BufferUsageFlags.MapWrite))
         {
             MappedMemory mappedMemory = Map();
 
             unsafe
             {
-                data.CopyTo(new((void*)(mappedMemory.Pointer + offsetInBytes), data.Length));
+                new ReadOnlySpan<byte>((void*)data.Pointer, (int)data.SizeInBytes).CopyTo(new((void*)(mappedMemory.Pointer + offsetInBytes), (int)data.SizeInBytes));
             }
 
             Unmap();
@@ -33,6 +28,28 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
             CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
 
             commandBuffer.Upload(this, offsetInBytes, data);
+            commandBuffer.Submit(true);
+        }
+    }
+
+    public void Download(uint offsetInBytes, BufferData data)
+    {
+        if (desc.Flags.HasFlag(BufferUsageFlags.MapRead) || desc.Flags.HasFlag(BufferUsageFlags.MapWrite))
+        {
+            MappedMemory mappedMemory = Map();
+
+            unsafe
+            {
+                new ReadOnlySpan<byte>((void*)(mappedMemory.Pointer + offsetInBytes), (int)data.SizeInBytes).CopyTo(new((void*)data.Pointer, (int)data.SizeInBytes));
+            }
+
+            Unmap();
+        }
+        else
+        {
+            CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
+
+            commandBuffer.Download(this, offsetInBytes, data);
             commandBuffer.Submit(true);
         }
     }

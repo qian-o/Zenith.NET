@@ -4,7 +4,7 @@ namespace Zenith.NET.Metal;
 
 internal class MTLSwapChain : SwapChain
 {
-    private readonly MTLSwapChainFrameBuffer swapChainFrameBuffer;
+    private readonly MTLSwapChainTargets swapChainTargets;
 
     public CAMetalLayer Layer = CAMetalLayer.Null;
 
@@ -12,14 +12,43 @@ internal class MTLSwapChain : SwapChain
 
     public MTLSwapChain(MTLGraphicsContext context, SwapChainDesc desc) : base(context, desc)
     {
-        swapChainFrameBuffer = new(context, this);
+        swapChainTargets = new(context, this);
 
         CreateSwapChain();
     }
 
     public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
 
-    public override FrameBuffer FrameBuffer => swapChainFrameBuffer.Get(Desc.Surface.Width, Desc.Surface.Height, Drawable);
+    public override uint Width => CurrentColorTarget.Desc.Width;
+
+    public override uint Height => CurrentColorTarget.Desc.Height;
+
+    public override Texture CurrentColorTarget
+    {
+        get
+        {
+            swapChainTargets.EnsureTargets(Desc.Surface.Width, Desc.Surface.Height, Drawable);
+
+            return swapChainTargets.ColorTarget;
+        }
+    }
+
+    public override Texture? CurrentDepthStencilTarget
+    {
+        get
+        {
+            swapChainTargets.EnsureTargets(Desc.Surface.Width, Desc.Surface.Height, Drawable);
+
+            return swapChainTargets.DepthStencilTarget;
+        }
+    }
+
+    public override Output Output => new()
+    {
+        ColorAttachments = [Desc.ColorTargetFormat],
+        DepthStencilAttachment = Desc.DepthStencilTargetFormat,
+        SampleCount = SampleCount.Count1
+    };
 
     public override void Present()
     {
@@ -32,6 +61,7 @@ internal class MTLSwapChain : SwapChain
     protected override void ResizeImpl()
     {
         Drawable.Dispose();
+        swapChainTargets.DestroyTargets();
 
         Layer.DrawableSize = new(Desc.Surface.Width, Desc.Surface.Height);
 
@@ -51,7 +81,7 @@ internal class MTLSwapChain : SwapChain
     {
         DestroySwapChain();
 
-        swapChainFrameBuffer.Dispose();
+        swapChainTargets.Dispose();
     }
 
     private void CreateSwapChain()

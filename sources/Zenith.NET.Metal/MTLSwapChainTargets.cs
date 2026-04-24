@@ -2,13 +2,16 @@
 
 namespace Zenith.NET.Metal;
 
-internal class MTLSwapChainFrameBuffer(MTLGraphicsContext context, MTLSwapChain swapChain) : GraphicsResource(context)
+internal class MTLSwapChainTargets(MTLGraphicsContext context, MTLSwapChain swapChain) : GraphicsResource(context)
 {
     private MTLTexture? colorTarget;
     private MTLTexture? depthStencilTarget;
-    private MTLFrameBuffer? frameBuffer;
 
-    public MTLFrameBuffer Get(uint width, uint height, CAMetalDrawable drawable)
+    public MTLTexture ColorTarget => colorTarget!;
+
+    public MTLTexture? DepthStencilTarget => depthStencilTarget;
+
+    public void EnsureTargets(uint width, uint height, CAMetalDrawable drawable)
     {
         colorTarget ??= new(context, new()
         {
@@ -36,22 +39,16 @@ internal class MTLSwapChainFrameBuffer(MTLGraphicsContext context, MTLSwapChain 
             Flags = TextureUsageFlags.DepthStencil
         }) : null;
 
-        frameBuffer ??= new(context, new()
+        if (colorTarget.Desc.Width != width || colorTarget.Desc.Height != height)
         {
-            ColorAttachments = [new() { Target = colorTarget }],
-            DepthStencilAttachment = depthStencilTarget is not null ? new() { Target = depthStencilTarget } : null
-        });
+            DestroyTargets();
 
-        if (frameBuffer.Width != width || frameBuffer.Height != height)
-        {
-            DestroyFrameBuffer();
+            EnsureTargets(width, height, drawable);
 
-            return Get(width, height, drawable);
+            return;
         }
 
-        frameBuffer.Descriptor.ColorAttachments[0].Texture = colorTarget.Texture = drawable.Texture;
-
-        return frameBuffer;
+        colorTarget.Texture = drawable.Texture;
     }
 
     protected override void SetResourceName(string name)
@@ -60,14 +57,11 @@ internal class MTLSwapChainFrameBuffer(MTLGraphicsContext context, MTLSwapChain 
 
     protected override void Destroy()
     {
-        DestroyFrameBuffer();
+        DestroyTargets();
     }
 
-    private void DestroyFrameBuffer()
+    public void DestroyTargets()
     {
-        frameBuffer?.Dispose();
-        frameBuffer = null;
-
         depthStencilTarget?.Dispose();
         depthStencilTarget = null;
 

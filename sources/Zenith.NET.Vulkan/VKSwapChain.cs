@@ -6,7 +6,7 @@ namespace Zenith.NET.Vulkan;
 internal unsafe class VKSwapChain : SwapChain
 {
     private readonly VKFence fence;
-    private readonly VKSwapChainFrameBuffer swapChainFrameBuffer;
+    private readonly VKSwapChainTargets swapChainTargets;
 
     public SurfaceKHR Surface;
 
@@ -17,7 +17,7 @@ internal unsafe class VKSwapChain : SwapChain
     public VKSwapChain(VKGraphicsContext context, SwapChainDesc desc) : base(context, desc)
     {
         fence = new(context);
-        swapChainFrameBuffer = new(context, this);
+        swapChainTargets = new(context, this);
 
         CreateSurface();
         CreateSwapChain();
@@ -25,7 +25,20 @@ internal unsafe class VKSwapChain : SwapChain
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
-    public override FrameBuffer FrameBuffer => swapChainFrameBuffer[ImageIndex];
+    public override uint Width => CurrentColorTarget.Desc.Width;
+
+    public override uint Height => CurrentColorTarget.Desc.Height;
+
+    public override Texture CurrentColorTarget => swapChainTargets[ImageIndex];
+
+    public override Texture? CurrentDepthStencilTarget => swapChainTargets.DepthStencilTarget;
+
+    public override Output Output => new()
+    {
+        ColorAttachments = [Desc.ColorTargetFormat],
+        DepthStencilAttachment = Desc.DepthStencilTargetFormat,
+        SampleCount = SampleCount.Count1
+    };
 
     public override void Present()
     {
@@ -85,7 +98,7 @@ internal unsafe class VKSwapChain : SwapChain
         DestroySwapChain();
         DestroySurface();
 
-        swapChainFrameBuffer.Dispose();
+        swapChainTargets.Dispose();
         fence.Dispose();
     }
 
@@ -265,19 +278,19 @@ internal unsafe class VKSwapChain : SwapChain
 
             Context.Swapchain?.CreateSwapchain(Context.Device, &createInfo, null, out Swapchain).Success();
 
-            swapChainFrameBuffer.CreateFrameBuffers(createInfo.ImageExtent.Width, createInfo.ImageExtent.Height, []);
+            swapChainTargets.CreateTargets(createInfo.ImageExtent.Width, createInfo.ImageExtent.Height, []);
 
             AcquireNextImage();
         }
         else
         {
-            swapChainFrameBuffer.CreateFrameBuffers(Desc.Surface.Width, Desc.Surface.Height, Desc.Surface.Handles);
+            swapChainTargets.CreateTargets(Desc.Surface.Width, Desc.Surface.Height, Desc.Surface.Handles);
         }
     }
 
     private void DestroySwapChain()
     {
-        swapChainFrameBuffer.DestroyFrameBuffers();
+        swapChainTargets.DestroyTargets();
 
         if (Swapchain.Handle is not 0)
         {

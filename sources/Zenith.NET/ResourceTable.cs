@@ -6,76 +6,27 @@ public abstract class ResourceTable(GraphicsContext context, ResourceTableDesc d
 
     public ref readonly ResourceTableDesc Desc => ref desc;
 
-    public void Write(uint binding, params IBindableResource[] resources)
-    {
-        if (binding >= desc.Bindings.Length || resources.Length is 0 || resources.Length > desc.Bindings[binding].Count)
-        {
-            return;
-        }
+    public abstract void Write(uint binding, Buffer buffer);
 
-        foreach (IBindableResource resource in resources)
-        {
-            if (resource?.IsDisposed is not false)
-            {
-                return;
-            }
-        }
+    public abstract void Write(uint binding, BufferRange bufferRange);
 
-        switch (desc.Bindings[binding].Type)
-        {
-            case ResourceType.ConstantBuffer:
-            case ResourceType.StructuredBuffer:
-            case ResourceType.StructuredBufferReadWrite:
-                foreach (IBindableResource resource in resources)
-                {
-                    if (resource is not Buffer and not BufferView)
-                    {
-                        return;
-                    }
-                }
-                break;
+    public abstract void Write(uint binding, Texture texture);
 
-            case ResourceType.Texture:
-            case ResourceType.TextureReadWrite:
-                foreach (IBindableResource resource in resources)
-                {
-                    if (resource is not Texture and not TextureView)
-                    {
-                        return;
-                    }
-                }
-                break;
+    public abstract void Write(uint binding, TextureView textureView);
 
-            case ResourceType.Sampler:
-                foreach (IBindableResource resource in resources)
-                {
-                    if (resource is not Sampler)
-                    {
-                        return;
-                    }
-                }
-                break;
+    public abstract void Write(uint binding, Sampler sampler);
 
-            case ResourceType.AccelerationStructure:
-                foreach (IBindableResource resource in resources)
-                {
-                    if (resource is not TopLevelAccelerationStructure)
-                    {
-                        return;
-                    }
-                }
-                break;
-        }
+    public abstract void Write(uint binding, TopLevelAccelerationStructure topLevelAccelerationStructure);
 
-        WriteImpl(binding, resources);
-    }
+    public abstract void Write(uint binding, ReadOnlySpan<Buffer> buffers);
 
-    internal void Preprocess(CommandBuffer commandBuffer)
-    {
-        PreprocessImpl(commandBuffer);
-    }
+    public abstract void Write(uint binding, ReadOnlySpan<BufferRange> bufferRanges);
 
-    protected abstract void WriteImpl(uint binding, IBindableResource[] resources);
+    public abstract void Write(uint binding, ReadOnlySpan<Texture> textures);
 
-    protected abstract void PreprocessImpl(CommandBuffer commandBuffer);
+    public abstract void Write(uint binding, ReadOnlySpan<TextureView> textureViews);
+
+    public abstract void Write(uint binding, ReadOnlySpan<Sampler> samplers);
+
+    public abstract void Write(uint binding, ReadOnlySpan<TopLevelAccelerationStructure> topLevelAccelerationStructures);
 }

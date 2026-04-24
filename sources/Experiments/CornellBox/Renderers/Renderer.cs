@@ -14,7 +14,12 @@ internal abstract class Renderer : IDisposable
 
     public Texture DepthStencil { get; private set; } = null!;
 
-    public FrameBuffer FrameBuffer { get; private set; } = null!;
+    public Output RenderOutput => new()
+    {
+        ColorAttachments = [Color.Desc.Format],
+        DepthStencilAttachment = DepthStencil.Desc.Format,
+        SampleCount = Color.Desc.SampleCount
+    };
 
     public abstract void Update(CameraHandler camera);
 
@@ -22,7 +27,6 @@ internal abstract class Renderer : IDisposable
 
     public virtual void Resize(uint width, uint height)
     {
-        FrameBuffer?.Dispose();
         DepthStencil?.Dispose();
         Color?.Dispose();
 
@@ -52,16 +56,10 @@ internal abstract class Renderer : IDisposable
             Flags = TextureUsageFlags.DepthStencil
         });
 
-        FrameBuffer = App.Context.CreateFrameBuffer(new()
-        {
-            ColorAttachments = [new() { Target = Color }],
-            DepthStencilAttachment = new() { Target = DepthStencil }
-        });
     }
 
     public virtual void Dispose()
     {
-        FrameBuffer.Dispose();
         DepthStencil.Dispose();
         Color.Dispose();
     }

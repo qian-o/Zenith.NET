@@ -19,7 +19,15 @@ internal class MTLBottomLevelAccelerationStructure : BottomLevelAccelerationStru
 
         MappedMemory mappedMemory = TransformBuffer.Map();
 
-        desc.Geometries.Select(static item => MTLFormats.Metal(item.Triangles.Transform)).ToArray().CopyTo(new Span<MTLPackedFloat4x3>((MTLPackedFloat4x3*)mappedMemory.Pointer, (int)geometryCount));
+        MTLPackedFloat4x3[] transforms = desc.Geometries.Select(static item => MTLFormats.Metal(item.Triangles.Transform)).ToArray();
+
+        if (geometryCount > 0)
+        {
+            unsafe
+            {
+                transforms.AsSpan().CopyTo(new Span<MTLPackedFloat4x3>((void*)mappedMemory.Pointer, (int)geometryCount));
+            }
+        }
 
         TransformBuffer.Unmap();
 

@@ -8,12 +8,14 @@ internal class MTLTextureView : TextureView
 
     public MTLTextureView(MTLGraphicsContext context, TextureViewDesc desc) : base(context, desc)
     {
+        TextureSubresourceRange range = desc.Range;
+
         MTLTextureViewDescriptor descriptor = new()
         {
-            PixelFormat = MTLFormats.Metal(desc.Texture.Desc.Format).PixelFormat,
-            TextureType = Resolve(desc),
-            LevelRange = new(desc.FirstMipLevel, desc.MipLevelCount),
-            SliceRange = new(ZenithHelper.FlattenArrayLayerRange(desc).FlattenArrayLayerIndex, ZenithHelper.FlattenArrayLayerRange(desc).FlattenArrayLayerCount)
+            PixelFormat = MTLFormats.Metal(desc.Format).PixelFormat,
+            TextureType = MTLFormats.Metal(desc.Type),
+            LevelRange = new(range.BaseMipLevel, range.LevelCount),
+            SliceRange = new(range.BaseArrayLayer, range.LayerCount)
         };
 
         Texture = desc.Texture.Metal().Texture.MakeTextureView(descriptor);
@@ -27,16 +29,5 @@ internal class MTLTextureView : TextureView
     protected override void Destroy()
     {
         Texture.Dispose();
-    }
-
-    private static MTLTextureType Resolve(TextureViewDesc desc)
-    {
-        return MTLFormats.Metal(desc.Texture.Desc.Type switch
-        {
-            TextureType.Texture1DArray when desc.ArrayLayerCount is 1 => TextureType.Texture1D,
-            TextureType.Texture2DArray when desc.ArrayLayerCount is 1 => TextureType.Texture2D,
-            TextureType.TextureCubeArray when desc.ArrayLayerCount is 1 => TextureType.TextureCube,
-            _ => desc.Texture.Desc.Type
-        });
     }
 }

@@ -37,7 +37,7 @@ public class ZenithView : TemplatedControl, IZenithView
     {
         if (surface is not null)
         {
-            context.DrawImage(surface.WriteableBitmap, new(0, 0, Bounds.Width, Bounds.Height));
+            context.DrawImage(surface.Bitmap, new(0, 0, Bounds.Width, Bounds.Height));
         }
 
         if (Design.IsDesignMode)
@@ -110,7 +110,7 @@ public class ZenithView : TemplatedControl, IZenithView
         }
 
         UpdateRequested?.Invoke(this, new(scheduler.UpdateSeconds, scheduler.TotalSeconds));
-        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, surface.FrameBuffer));
+        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, surface.Target));
     }
 
     void IZenithView.Present()

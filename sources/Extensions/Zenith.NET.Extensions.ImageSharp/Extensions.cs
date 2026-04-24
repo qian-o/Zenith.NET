@@ -32,7 +32,26 @@ public static class Extensions
 
             CommandBuffer commandBuffer = context.Copy.CommandBuffer();
 
-            commandBuffer.Upload(texture, default, default, new() { Width = (uint)image.Width, Height = (uint)image.Height, Depth = 1 }, pixels);
+            unsafe
+            {
+                fixed (Rgba32* pPixels = pixels)
+                {
+                    Extent3D extent = new() { Width = (uint)image.Width, Height = (uint)image.Height, Depth = 1 };
+
+                    TextureData data = new()
+                    {
+                        Pointer = (nint)pPixels,
+                        Layout = new()
+                        {
+                            SizeInBytes = (uint)(sizeof(Rgba32) * pixels.Length),
+                            RowPitchInBytes = ZenithHelper.RowPitchInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height),
+                            SlicePitchInBytes = ZenithHelper.SlicePitchInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height)
+                        }
+                    };
+
+                    commandBuffer.Upload(texture, default, default, extent, data);
+                }
+            }
 
             for (uint i = 1; i < mipLevels; i++)
             {
@@ -43,7 +62,26 @@ public static class Extensions
                 pixels = new Rgba32[mipWidth * mipHeight];
                 mipImage.CopyPixelDataTo(pixels);
 
-                commandBuffer.Upload(texture, new() { MipLevel = i }, default, new() { Width = mipWidth, Height = mipHeight, Depth = 1 }, pixels);
+                unsafe
+                {
+                    fixed (Rgba32* pPixels = pixels)
+                    {
+                        Extent3D extent = new() { Width = mipWidth, Height = mipHeight, Depth = 1 };
+
+                        TextureData data = new()
+                        {
+                            Pointer = (nint)pPixels,
+                            Layout = new()
+                            {
+                                SizeInBytes = (uint)(sizeof(Rgba32) * pixels.Length),
+                                RowPitchInBytes = ZenithHelper.RowPitchInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height),
+                                SlicePitchInBytes = ZenithHelper.SlicePitchInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height)
+                            }
+                        };
+
+                        commandBuffer.Upload(texture, new() { MipLevel = i }, default, extent, data);
+                    }
+                }
             }
 
             commandBuffer.Submit(true);

@@ -5,24 +5,14 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc desc) : TextureView(context, desc)
 {
+    private const uint CubeMapFaceCount = 6;
+
     private DXDescriptorToken? srvToken;
     private DXDescriptorToken? uavToken;
 
     public CpuDescriptorHandle SrvHandle => (srvToken ??= CreateSrvToken()).Handle;
 
     public CpuDescriptorHandle UavHandle => (uavToken ??= CreateUavToken()).Handle;
-
-    public void TransitionStates(DXCommandBuffer commandBuffer, ResourceStates newStates)
-    {
-        Desc.Texture.DirectX12().TransitionStates(commandBuffer,
-                                                  Desc.FirstMipLevel,
-                                                  Desc.MipLevelCount,
-                                                  Desc.FirstArrayLayer,
-                                                  Desc.ArrayLayerCount,
-                                                  0,
-                                                  ZenithHelper.FaceCount(Desc.Texture.Desc),
-                                                  newStates);
-    }
 
     protected override void SetResourceName(string name)
     {
@@ -37,30 +27,31 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
     private DXDescriptorToken CreateSrvToken()
     {
         DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate(1);
+        TextureSubresourceRange range = Desc.Range;
 
         ShaderResourceViewDesc viewDesc = new()
         {
-            Format = Resolve(Desc.Texture.Desc.Format),
+            Format = Resolve(Desc.Format),
             Shader4ComponentMapping = DXGraphicsContext.Shader4ComponentMapping
         };
 
-        switch (Desc.Texture.Desc.Type)
+        switch (Desc.Type)
         {
             case TextureType.Texture1D:
                 {
                     viewDesc.ViewDimension = SrvDimension.Texture1D;
-                    viewDesc.Texture1D.MostDetailedMip = Desc.FirstMipLevel;
-                    viewDesc.Texture1D.MipLevels = Desc.MipLevelCount;
+                    viewDesc.Texture1D.MostDetailedMip = range.BaseMipLevel;
+                    viewDesc.Texture1D.MipLevels = range.LevelCount;
                 }
                 break;
 
             case TextureType.Texture1DArray:
                 {
                     viewDesc.ViewDimension = SrvDimension.Texture1Darray;
-                    viewDesc.Texture1DArray.MostDetailedMip = Desc.FirstMipLevel;
-                    viewDesc.Texture1DArray.MipLevels = Desc.MipLevelCount;
-                    viewDesc.Texture1DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerIndex;
-                    viewDesc.Texture1DArray.ArraySize = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerCount;
+                    viewDesc.Texture1DArray.MostDetailedMip = range.BaseMipLevel;
+                    viewDesc.Texture1DArray.MipLevels = range.LevelCount;
+                    viewDesc.Texture1DArray.FirstArraySlice = range.BaseArrayLayer;
+                    viewDesc.Texture1DArray.ArraySize = range.LayerCount;
                 }
                 break;
 
@@ -68,8 +59,8 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
                 if (Desc.Texture.Desc.SampleCount is SampleCount.Count1)
                 {
                     viewDesc.ViewDimension = SrvDimension.Texture2D;
-                    viewDesc.Texture2D.MostDetailedMip = Desc.FirstMipLevel;
-                    viewDesc.Texture2D.MipLevels = Desc.MipLevelCount;
+                    viewDesc.Texture2D.MostDetailedMip = range.BaseMipLevel;
+                    viewDesc.Texture2D.MipLevels = range.LevelCount;
                 }
                 else
                 {
@@ -81,42 +72,42 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
                 if (Desc.Texture.Desc.SampleCount is SampleCount.Count1)
                 {
                     viewDesc.ViewDimension = SrvDimension.Texture2Darray;
-                    viewDesc.Texture2DArray.MostDetailedMip = Desc.FirstMipLevel;
-                    viewDesc.Texture2DArray.MipLevels = Desc.MipLevelCount;
-                    viewDesc.Texture2DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerIndex;
-                    viewDesc.Texture2DArray.ArraySize = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerCount;
+                    viewDesc.Texture2DArray.MostDetailedMip = range.BaseMipLevel;
+                    viewDesc.Texture2DArray.MipLevels = range.LevelCount;
+                    viewDesc.Texture2DArray.FirstArraySlice = range.BaseArrayLayer;
+                    viewDesc.Texture2DArray.ArraySize = range.LayerCount;
                 }
                 else
                 {
                     viewDesc.ViewDimension = SrvDimension.Texture2Dmsarray;
-                    viewDesc.Texture2DMSArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerIndex;
-                    viewDesc.Texture2DMSArray.ArraySize = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerCount;
+                    viewDesc.Texture2DMSArray.FirstArraySlice = range.BaseArrayLayer;
+                    viewDesc.Texture2DMSArray.ArraySize = range.LayerCount;
                 }
                 break;
 
             case TextureType.Texture3D:
                 {
                     viewDesc.ViewDimension = SrvDimension.Texture3D;
-                    viewDesc.Texture3D.MostDetailedMip = Desc.FirstMipLevel;
-                    viewDesc.Texture3D.MipLevels = Desc.MipLevelCount;
+                    viewDesc.Texture3D.MostDetailedMip = range.BaseMipLevel;
+                    viewDesc.Texture3D.MipLevels = range.LevelCount;
                 }
                 break;
 
             case TextureType.TextureCube:
                 {
                     viewDesc.ViewDimension = SrvDimension.Texturecube;
-                    viewDesc.TextureCube.MostDetailedMip = Desc.FirstMipLevel;
-                    viewDesc.TextureCube.MipLevels = Desc.MipLevelCount;
+                    viewDesc.TextureCube.MostDetailedMip = range.BaseMipLevel;
+                    viewDesc.TextureCube.MipLevels = range.LevelCount;
                 }
                 break;
 
             case TextureType.TextureCubeArray:
                 {
                     viewDesc.ViewDimension = SrvDimension.Texturecubearray;
-                    viewDesc.TextureCubeArray.MostDetailedMip = Desc.FirstMipLevel;
-                    viewDesc.TextureCubeArray.MipLevels = Desc.MipLevelCount;
-                    viewDesc.TextureCubeArray.First2DArrayFace = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerIndex;
-                    viewDesc.TextureCubeArray.NumCubes = Desc.ArrayLayerCount;
+                    viewDesc.TextureCubeArray.MostDetailedMip = range.BaseMipLevel;
+                    viewDesc.TextureCubeArray.MipLevels = range.LevelCount;
+                    viewDesc.TextureCubeArray.First2DArrayFace = range.BaseArrayLayer;
+                    viewDesc.TextureCubeArray.NumCubes = range.LayerCount / CubeMapFaceCount;
                 }
                 break;
         }
@@ -129,24 +120,25 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
     private DXDescriptorToken CreateUavToken()
     {
         DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate(1);
+        TextureSubresourceRange range = Desc.Range;
 
-        UnorderedAccessViewDesc viewDesc = new() { Format = Resolve(Desc.Texture.Desc.Format) };
+        UnorderedAccessViewDesc viewDesc = new() { Format = Resolve(Desc.Format) };
 
-        switch (Desc.Texture.Desc.Type)
+        switch (Desc.Type)
         {
             case TextureType.Texture1D:
                 {
                     viewDesc.ViewDimension = UavDimension.Texture1D;
-                    viewDesc.Texture1D.MipSlice = Desc.FirstMipLevel;
+                    viewDesc.Texture1D.MipSlice = range.BaseMipLevel;
                 }
                 break;
 
             case TextureType.Texture1DArray:
                 {
                     viewDesc.ViewDimension = UavDimension.Texture1Darray;
-                    viewDesc.Texture1DArray.MipSlice = Desc.FirstMipLevel;
-                    viewDesc.Texture1DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerIndex;
-                    viewDesc.Texture1DArray.ArraySize = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerCount;
+                    viewDesc.Texture1DArray.MipSlice = range.BaseMipLevel;
+                    viewDesc.Texture1DArray.FirstArraySlice = range.BaseArrayLayer;
+                    viewDesc.Texture1DArray.ArraySize = range.LayerCount;
                 }
                 break;
 
@@ -154,7 +146,7 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
                 if (Desc.Texture.Desc.SampleCount is SampleCount.Count1)
                 {
                     viewDesc.ViewDimension = UavDimension.Texture2D;
-                    viewDesc.Texture2D.MipSlice = Desc.FirstMipLevel;
+                    viewDesc.Texture2D.MipSlice = range.BaseMipLevel;
                 }
                 else
                 {
@@ -168,22 +160,22 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
                 if (Desc.Texture.Desc.SampleCount is SampleCount.Count1)
                 {
                     viewDesc.ViewDimension = UavDimension.Texture2Darray;
-                    viewDesc.Texture2DArray.MipSlice = Desc.FirstMipLevel;
-                    viewDesc.Texture2DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerIndex;
-                    viewDesc.Texture2DArray.ArraySize = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerCount;
+                    viewDesc.Texture2DArray.MipSlice = range.BaseMipLevel;
+                    viewDesc.Texture2DArray.FirstArraySlice = range.BaseArrayLayer;
+                    viewDesc.Texture2DArray.ArraySize = range.LayerCount;
                 }
                 else
                 {
                     viewDesc.ViewDimension = UavDimension.Texture2Dmsarray;
-                    viewDesc.Texture2DMSArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerIndex;
-                    viewDesc.Texture2DMSArray.ArraySize = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerCount;
+                    viewDesc.Texture2DMSArray.FirstArraySlice = range.BaseArrayLayer;
+                    viewDesc.Texture2DMSArray.ArraySize = range.LayerCount;
                 }
                 break;
 
             case TextureType.Texture3D:
                 {
                     viewDesc.ViewDimension = UavDimension.Texture3D;
-                    viewDesc.Texture3D.MipSlice = Desc.FirstMipLevel;
+                    viewDesc.Texture3D.MipSlice = range.BaseMipLevel;
                     viewDesc.Texture3D.WSize = Desc.Texture.Desc.Depth;
                 }
                 break;

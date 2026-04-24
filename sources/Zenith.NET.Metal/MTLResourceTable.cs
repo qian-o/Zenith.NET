@@ -117,10 +117,6 @@ internal class MTLResourceTable : ResourceTable
         Bind(ArgumentTable, uint.MaxValue);
     }
 
-    protected override void PreprocessImpl(CommandBuffer commandBuffer)
-    {
-    }
-
     protected override void SetResourceName(string name)
     {
     }

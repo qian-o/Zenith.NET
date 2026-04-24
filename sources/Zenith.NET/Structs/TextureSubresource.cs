@@ -1,10 +1,8 @@
 ﻿namespace Zenith.NET;
 
-public record struct TextureSlice
+public record struct TextureSubresource
 {
     public uint MipLevel;
 
     public uint ArrayLayer;
-
-    public uint Face;
 }

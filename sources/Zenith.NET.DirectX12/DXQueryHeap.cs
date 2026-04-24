@@ -31,7 +31,10 @@ internal unsafe class DXQueryHeap : QueryHeap
     {
         MappedMemory mappedMemory = Buffer.Map();
 
-        new Span<ulong>((void*)(mappedMemory.Pointer + (sizeof(ulong) * startIndex)), results.Length).CopyTo(results);
+        unsafe
+        {
+            new ReadOnlySpan<ulong>((void*)(mappedMemory.Pointer + (nint)(sizeof(ulong) * startIndex)), results.Length).CopyTo(results);
+        }
 
         Buffer.Unmap();
     }

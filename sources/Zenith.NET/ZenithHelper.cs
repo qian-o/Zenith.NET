@@ -31,9 +31,9 @@ public static class ZenithHelper
         return pixelFormat is PixelFormat.D24UNormS8UInt or PixelFormat.D32FloatS8UInt;
     }
 
-    public static (uint BlockWidth, uint BlockHeight, uint BlocksWide, uint BlocksHigh) BlockLayout(PixelFormat format, uint width, uint height)
+    public static (uint BlockWidth, uint BlockHeight, uint BlocksWide, uint BlocksHigh) BlockLayout(PixelFormat pixelFormat, uint width, uint height)
     {
-        (uint blockWidth, uint blockHeight) = format switch
+        (uint blockWidth, uint blockHeight) = pixelFormat switch
         {
             PixelFormat.BC4UNorm or
             PixelFormat.BC4SNorm or
@@ -81,9 +81,9 @@ public static class ZenithHelper
         return (blockWidth, blockHeight, (width + blockWidth - 1) / blockWidth, (height + blockHeight - 1) / blockHeight);
     }
 
-    public static uint SizeInBytes(PixelFormat format)
+    public static uint SizeInBytes(PixelFormat pixelFormat)
     {
-        return format switch
+        return pixelFormat switch
         {
             PixelFormat.R8UNorm or
             PixelFormat.R8SNorm or
@@ -186,16 +186,30 @@ public static class ZenithHelper
         };
     }
 
-    public static uint SizeInBytes(PixelFormat format, uint width, uint height)
+    public static uint SizeInBytes(PixelFormat pixelFormat, uint width, uint height)
     {
-        (_, _, uint blocksWide, uint blocksHigh) = BlockLayout(format, width, height);
+        (_, _, uint blocksWide, uint blocksHigh) = BlockLayout(pixelFormat, width, height);
 
-        return blocksWide * blocksHigh * SizeInBytes(format);
+        return blocksWide * blocksHigh * SizeInBytes(pixelFormat);
     }
 
-    public static uint SizeInBytes(ElementFormat format)
+    public static uint RowPitchInBytes(PixelFormat pixelFormat, uint width, uint height)
     {
-        return format switch
+        (_, _, uint blocksWide, _) = BlockLayout(pixelFormat, width, height);
+
+        return SizeInBytes(pixelFormat) * blocksWide;
+    }
+
+    public static uint SlicePitchInBytes(PixelFormat pixelFormat, uint width, uint height)
+    {
+        (_, _, _, uint blocksHigh) = BlockLayout(pixelFormat, width, height);
+
+        return RowPitchInBytes(pixelFormat, width, height) * blocksHigh;
+    }
+
+    public static uint SizeInBytes(ElementFormat elementFormat)
+    {
+        return elementFormat switch
         {
             ElementFormat.UByte1 or
             ElementFormat.Byte1 or
@@ -244,47 +258,5 @@ public static class ZenithHelper
 
             _ => 0
         };
-    }
-
-    public static uint FaceCount(TextureDesc desc)
-    {
-        return desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : 1u;
-    }
-
-    public static uint FaceIndex(TextureDesc desc, TextureSlice slice)
-    {
-        return desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? slice.Face : 0u;
-    }
-
-    public static uint FlattenArrayLayerCount(TextureDesc desc)
-    {
-        return desc.ArrayLayers * FaceCount(desc);
-    }
-
-    public static uint FlattenArrayLayerIndex(TextureDesc desc, TextureSlice slice)
-    {
-        return (slice.ArrayLayer * FaceCount(desc)) + FaceIndex(desc, slice);
-    }
-
-    public static (uint FlattenArrayLayerIndex, uint FlattenArrayLayerCount) FlattenArrayLayerRange(TextureViewDesc desc)
-    {
-        return (desc.FirstArrayLayer * FaceCount(desc.Texture.Desc), desc.ArrayLayerCount * FaceCount(desc.Texture.Desc));
-    }
-
-    public static uint SubresourceCount(TextureDesc desc)
-    {
-        return desc.MipLevels * desc.ArrayLayers * FaceCount(desc);
-    }
-
-    public static uint SubresourceIndex(TextureDesc desc, TextureSlice slice)
-    {
-        return (slice.MipLevel * desc.ArrayLayers * FaceCount(desc)) + (slice.ArrayLayer * FaceCount(desc)) + FaceIndex(desc, slice);
-    }
-
-    public static uint SubresourceSizeInBytes(TextureDesc desc, TextureSlice slice)
-    {
-        MipDimensions(desc.Width, desc.Height, desc.Depth, slice.MipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth);
-
-        return SizeInBytes(desc.Format, mipWidth, mipHeight) * mipDepth;
     }
 }

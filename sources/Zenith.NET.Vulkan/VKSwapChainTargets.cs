@@ -2,15 +2,16 @@
 
 namespace Zenith.NET.Vulkan;
 
-internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapChain swapChain) : GraphicsResource(context)
+internal unsafe class VKSwapChainTargets(VKGraphicsContext context, VKSwapChain swapChain) : GraphicsResource(context)
 {
     private VKTexture? depthStencilTarget;
     private VKTexture[] colorTargets = [];
-    private VKFrameBuffer[] frameBuffers = [];
 
-    public VKFrameBuffer this[uint index] => frameBuffers[index];
+    public VKTexture this[uint index] => colorTargets[index];
 
-    public void CreateFrameBuffers(uint width, uint height, nint[] handles)
+    public VKTexture? DepthStencilTarget => depthStencilTarget;
+
+    public void CreateTargets(uint width, uint height, nint[] handles)
     {
         if (swapChain.Desc.DepthStencilTargetFormat is not null)
         {
@@ -52,44 +53,22 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
             context.Swapchain?.GetSwapchainImages(context.Device, swapChain.Swapchain, &swapchainImageCount, swapchainImages).Success();
 
             colorTargets = new VKTexture[swapchainImageCount];
-            frameBuffers = new VKFrameBuffer[swapchainImageCount];
-
-            CommandBuffer commandBuffer = context.Graphics.CommandBuffer();
 
             for (uint i = 0; i < swapchainImageCount; i++)
             {
-                frameBuffers[i] = new(context, new()
-                {
-                    ColorAttachments = [new() { Target = colorTargets[i] = new(context, colorTargetDesc, swapchainImages[i]) }],
-                    DepthStencilAttachment = depthStencilTarget is not null ? new() { Target = depthStencilTarget } : null
-                });
-
-                colorTargets[i].TransitionLayout(commandBuffer.Vulkan(), default, ImageLayout.PresentSrcKhr);
+                colorTargets[i] = new(context, colorTargetDesc, swapchainImages[i]);
             }
-
-            commandBuffer.Submit(true);
         }
         else if (swapChain.Desc.Surface.Type is SurfaceType.D3D11Interop)
         {
             colorTargets = new VKTexture[1];
-            frameBuffers = new VKFrameBuffer[1];
 
-            frameBuffers[0] = new(context, new()
-            {
-                ColorAttachments = [new() { Target = colorTargets[0] = new(context, colorTargetDesc, ExternalMemoryHandleTypeFlags.D3D11TextureBit, handles[0]) }],
-                DepthStencilAttachment = depthStencilTarget is not null ? new() { Target = depthStencilTarget } : null
-            });
+            colorTargets[0] = new(context, colorTargetDesc, ExternalMemoryHandleTypeFlags.D3D11TextureBit, handles[0]);
         }
     }
 
-    public void DestroyFrameBuffers()
+    public void DestroyTargets()
     {
-        foreach (VKFrameBuffer frameBuffer in frameBuffers)
-        {
-            frameBuffer.Dispose();
-        }
-        frameBuffers = [];
-
         foreach (VKTexture texture in colorTargets)
         {
             texture.Dispose();
@@ -106,6 +85,6 @@ internal unsafe class VKSwapChainFrameBuffer(VKGraphicsContext context, VKSwapCh
 
     protected override void Destroy()
     {
-        DestroyFrameBuffers();
+        DestroyTargets();
     }
 }

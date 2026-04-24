@@ -25,7 +25,7 @@ internal unsafe class DXBuffer : Buffer
 
         Heap = new(context, resourceDesc, DXFormats.DirectX12(desc.Flags).Type, HeapFlags.AllowOnlyBuffers);
 
-        context.Device.CreatePlacedResource(Heap.Heap, 0, &resourceDesc, States = DXFormats.DirectX12(desc.Flags).States, null, out Resource).Success();
+        context.Device.CreatePlacedResource(Heap.Heap, 0, &resourceDesc, DXFormats.DirectX12(desc.Flags).States, null, out Resource).Success();
 
         GPUVirtualAddress = Resource.GetGPUVirtualAddress();
 
@@ -42,8 +42,6 @@ internal unsafe class DXBuffer : Buffer
 
     public DXBufferView View { get; }
 
-    public ResourceStates States { get; set; }
-
     public override MappedMemory Map()
     {
         void* pointer;
@@ -55,30 +53,6 @@ internal unsafe class DXBuffer : Buffer
     public override void Unmap()
     {
         Resource.Unmap(0, (DxRange*)null);
-    }
-
-    public void TransitionStates(DXCommandBuffer commandBuffer, ResourceStates newStates)
-    {
-        if (Desc.Flags.HasFlag(BufferUsageFlags.MapRead) || Desc.Flags.HasFlag(BufferUsageFlags.MapWrite) || !commandBuffer.CanTransitionResourceStates || States == newStates)
-        {
-            return;
-        }
-
-        ResourceBarrier barrier = new()
-        {
-            Type = ResourceBarrierType.Transition,
-            Transition = new()
-            {
-                PResource = Resource,
-                Subresource = 0,
-                StateBefore = States,
-                StateAfter = newStates
-            }
-        };
-
-        commandBuffer.GraphicsCommandList4.ResourceBarrier(1, &barrier);
-
-        States = newStates;
     }
 
     protected override void SetResourceName(string name)

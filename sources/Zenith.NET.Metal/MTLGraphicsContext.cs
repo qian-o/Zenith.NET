@@ -68,11 +68,6 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
         return new MTLSwapChain(this, desc);
     }
 
-    protected override FrameBuffer CreateFrameBufferImpl(FrameBufferDesc desc)
-    {
-        return new MTLFrameBuffer(this, desc);
-    }
-
     protected override Shader CreateShaderImpl(ShaderDesc desc)
     {
         return new MTLShader(this, desc);

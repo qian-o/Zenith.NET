@@ -158,21 +158,6 @@ internal unsafe class VKResourceTable : ResourceTable
         }
     }
 
-    protected override void PreprocessImpl(CommandBuffer commandBuffer)
-    {
-        VKCommandBuffer vkCommandBuffer = commandBuffer.Vulkan();
-
-        foreach (VKTextureView? textureView in SrvTextureViews)
-        {
-            textureView?.TransitionLayout(vkCommandBuffer, ImageLayout.ShaderReadOnlyOptimal);
-        }
-
-        foreach (VKTextureView? textureView in UavTextureViews)
-        {
-            textureView?.TransitionLayout(vkCommandBuffer, ImageLayout.General);
-        }
-    }
-
     protected override void SetResourceName(string name)
     {
     }

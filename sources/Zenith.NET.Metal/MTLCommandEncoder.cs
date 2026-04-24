@@ -130,29 +130,43 @@ internal class MTLCommandEncoder : GraphicsResource
         todoEndQueries.Clear();
     }
 
-    public void SetScissors(Scissor[] scissors)
+    public void SetScissors(ReadOnlySpan<Scissor> scissors)
     {
         if (Render is null)
         {
-            todoScissors = [.. scissors];
+            todoScissors = scissors.ToArray();
         }
         else
         {
-            MTLScissorRect[] mtlScissors = [.. scissors.Select(static item => new MTLScissorRect((uint)item.X, (uint)item.Y, item.Width, item.Height))];
+            MTLScissorRect[] mtlScissors = new MTLScissorRect[scissors.Length];
+
+            for (int i = 0; i < scissors.Length; i++)
+            {
+                Scissor scissor = scissors[i];
+
+                mtlScissors[i] = new((uint)scissor.X, (uint)scissor.Y, scissor.Width, scissor.Height);
+            }
 
             Render.SetScissorRects(mtlScissors);
         }
     }
 
-    public void SetViewports(Viewport[] viewports)
+    public void SetViewports(ReadOnlySpan<Viewport> viewports)
     {
         if (Render is null)
         {
-            todoViewports = [.. viewports];
+            todoViewports = viewports.ToArray();
         }
         else
         {
-            MTLViewport[] mtlViewports = [.. viewports.Select(static item => new MTLViewport(item.X, item.Y, item.Width, item.Height, item.MinDepth, item.MaxDepth))];
+            MTLViewport[] mtlViewports = new MTLViewport[viewports.Length];
+
+            for (int i = 0; i < viewports.Length; i++)
+            {
+                Viewport viewport = viewports[i];
+
+                mtlViewports[i] = new(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
+            }
 
             Render.SetViewports(mtlViewports);
         }

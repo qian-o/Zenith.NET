@@ -5,6 +5,8 @@ namespace Zenith.NET.Metal;
 
 internal unsafe class MTLCommandBuffer : CommandBuffer
 {
+    private MTL4RenderPassDescriptor? currentRenderPassDescriptor;
+
     public MTL4CommandAllocator CommandAllocator;
 
     public MTL4CommandBuffer CommandBuffer;
@@ -31,83 +33,105 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.Blit, MTLStages.Blit | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
     }
 
-    protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent)
+    protected override void CopyBufferToTextureImpl(Buffer src,
+                                                    uint srcOffsetInBytes,
+                                                    TextureDataLayout srcLayout,
+                                                    Texture dest,
+                                                    TextureSubresource destSubresource,
+                                                    Offset3D destOffset,
+                                                    Extent3D destExtent)
     {
         MTLBuffer mtlSrc = src.Metal();
         MTLTexture mtlDest = dest.Metal();
 
-        (_, _, uint blocksWide, uint blocksHigh) = ZenithHelper.BlockLayout(mtlDest.Desc.Format, destExtent.Width, destExtent.Height);
-
-        uint formatSizeInBytes = ZenithHelper.SizeInBytes(mtlDest.Desc.Format);
-        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * blocksWide, GraphicsContext.TextureRowPitchAlignment);
-        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * blocksHigh, GraphicsContext.TextureDepthPitchAlignment);
-
         CommandEncoder.Compute?.Copy(mtlSrc.Buffer,
                                      srcOffsetInBytes,
-                                     sliceRowPitchInBytes,
-                                     sliceDepthPitchInBytes,
+                                     srcLayout.RowPitchInBytes,
+                                     srcLayout.SlicePitchInBytes,
                                      new(destExtent.Width, destExtent.Height, destExtent.Depth),
                                      mtlDest.Texture,
-                                     ZenithHelper.FlattenArrayLayerIndex(mtlDest.Desc, destSlice),
-                                     destSlice.MipLevel,
+                                     destSubresource.ArrayLayer,
+                                     destSubresource.MipLevel,
                                      new(destOffset.X, destOffset.Y, destOffset.Z));
 
         CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.Blit, MTLStages.Blit | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
     }
 
-    protected override void CopyTextureImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent)
+    protected override void CopyTextureImpl(Texture src,
+                                            TextureSubresource srcSubresource,
+                                            Offset3D srcOffset,
+                                            Texture dest,
+                                            TextureSubresource destSubresource,
+                                            Offset3D destOffset,
+                                            Extent3D extent)
     {
         MTLTexture mtlSrc = src.Metal();
         MTLTexture mtlDest = dest.Metal();
 
         CommandEncoder.Compute?.Copy(mtlSrc.Texture,
-                                     ZenithHelper.FlattenArrayLayerIndex(mtlSrc.Desc, srcSlice),
-                                     srcSlice.MipLevel,
+                                     srcSubresource.ArrayLayer,
+                                     srcSubresource.MipLevel,
                                      new(srcOffset.X, srcOffset.Y, srcOffset.Z),
                                      new(extent.Width, extent.Height, extent.Depth),
                                      mtlDest.Texture,
-                                     ZenithHelper.FlattenArrayLayerIndex(mtlDest.Desc, destSlice),
-                                     destSlice.MipLevel,
+                                     destSubresource.ArrayLayer,
+                                     destSubresource.MipLevel,
                                      new(destOffset.X, destOffset.Y, destOffset.Z));
 
         CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.Blit, MTLStages.Blit | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
     }
 
-    protected override void CopyTextureToBufferImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes)
+    protected override void CopyTextureToBufferImpl(Texture src,
+                                                    TextureSubresource srcSubresource,
+                                                    Offset3D srcOffset,
+                                                    Extent3D srcExtent,
+                                                    Buffer dest,
+                                                    uint destOffsetInBytes,
+                                                    TextureDataLayout destLayout)
     {
         MTLTexture mtlSrc = src.Metal();
         MTLBuffer mtlDest = dest.Metal();
 
-        (_, _, uint blocksWide, uint blocksHigh) = ZenithHelper.BlockLayout(mtlSrc.Desc.Format, srcExtent.Width, srcExtent.Height);
-
-        uint formatSizeInBytes = ZenithHelper.SizeInBytes(mtlSrc.Desc.Format);
-        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * blocksWide, GraphicsContext.TextureRowPitchAlignment);
-        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * blocksHigh, GraphicsContext.TextureDepthPitchAlignment);
-
         CommandEncoder.Compute?.Copy(mtlSrc.Texture,
-                                     ZenithHelper.FlattenArrayLayerIndex(mtlSrc.Desc, srcSlice),
-                                     srcSlice.MipLevel,
+                                     srcSubresource.ArrayLayer,
+                                     srcSubresource.MipLevel,
                                      new(srcOffset.X, srcOffset.Y, srcOffset.Z),
                                      new(srcExtent.Width, srcExtent.Height, srcExtent.Depth),
                                      mtlDest.Buffer,
                                      destOffsetInBytes,
-                                     sliceRowPitchInBytes,
-                                     sliceDepthPitchInBytes);
+                                     destLayout.RowPitchInBytes,
+                                     destLayout.SlicePitchInBytes);
 
         CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.Blit, MTLStages.Blit | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
     }
 
-    protected override void ResolveTextureImpl(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice)
+    protected override TextureDataLayout GetTextureCopyLayout(PixelFormat format, Extent3D extent)
+    {
+        uint rowPitchInBytes = ZenithHelper.RowPitchInBytes(format, extent.Width, extent.Height);
+        uint slicePitchInBytes = ZenithHelper.SlicePitchInBytes(format, extent.Width, extent.Height);
+
+        return new()
+        {
+            SizeInBytes = slicePitchInBytes * extent.Depth,
+            RowPitchInBytes = rowPitchInBytes,
+            SlicePitchInBytes = slicePitchInBytes
+        };
+    }
+
+    protected override void ResolveTextureImpl(Texture src,
+                                               TextureSubresource srcSubresource,
+                                               Texture dest,
+                                               TextureSubresource destSubresource)
     {
         MTLTexture mtlSrc = src.Metal();
         MTLTexture mtlDest = dest.Metal();
 
         CommandEncoder.Compute?.Copy(mtlSrc.Texture,
-                                     ZenithHelper.FlattenArrayLayerIndex(mtlSrc.Desc, srcSlice),
-                                     srcSlice.MipLevel,
+                                     srcSubresource.ArrayLayer,
+                                     srcSubresource.MipLevel,
                                      mtlDest.Texture,
-                                     ZenithHelper.FlattenArrayLayerIndex(mtlDest.Desc, destSlice),
-                                     destSlice.MipLevel,
+                                     destSubresource.ArrayLayer,
+                                     destSubresource.MipLevel,
                                      1,
                                      1);
 
@@ -129,25 +153,35 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         accelerationStructure.Metal().Update(this, newDesc);
     }
 
-    protected override void BeginRenderPassImpl(FrameBuffer frameBuffer, ClearValue clearValue)
+    protected override void BeginRenderPassImpl(ReadOnlySpan<ColorAttachment> colorAttachments,
+                                                DepthStencilAttachment? depthStencilAttachment)
     {
-        MTLFrameBuffer mtlFrameBuffer = frameBuffer.Metal();
+        currentRenderPassDescriptor?.Dispose();
 
-        bool clearColor = clearValue.Flags.HasFlag(ClearFlags.Color);
-        bool clearDepth = clearValue.Flags.HasFlag(ClearFlags.Depth);
-        bool clearStencil = clearValue.Flags.HasFlag(ClearFlags.Stencil);
+        MTL4RenderPassDescriptor descriptor = currentRenderPassDescriptor = new();
 
-        for (uint i = 0; i < mtlFrameBuffer.ColorAttachmentCount; i++)
+        uint colorAttachmentCount = (uint)colorAttachments.Length;
+
+        for (uint i = 0; i < colorAttachmentCount; i++)
         {
-            MTLRenderPassColorAttachmentDescriptor colorAttachment = mtlFrameBuffer.Descriptor.ColorAttachments[i];
-
-            colorAttachment.LoadAction = MTLLoadAction.Load;
-
-            if (clearColor)
+            ColorAttachment colorRenderTarget = colorAttachments[(int)i];
+            MTLRenderPassColorAttachmentDescriptor colorAttachment = descriptor.ColorAttachments[i] = new()
             {
-                colorAttachment.LoadAction = MTLLoadAction.Clear;
+                Texture = colorRenderTarget.Texture.Metal().Texture,
+                Level = colorRenderTarget.Subresource.MipLevel,
+                Slice = colorRenderTarget.Subresource.ArrayLayer,
+                LoadAction = colorRenderTarget.LoadOp switch
+                {
+                    LoadOp.Clear => MTLLoadAction.Clear,
+                    LoadOp.DontCare => MTLLoadAction.DontCare,
+                    _ => MTLLoadAction.Load
+                },
+                StoreAction = colorRenderTarget.StoreOp is StoreOp.Store ? MTLStoreAction.Store : MTLStoreAction.DontCare
+            };
 
-                Vector4 color = clearValue.ColorValues[i];
+            if (colorRenderTarget.LoadOp is LoadOp.Clear)
+            {
+                Vector4 color = colorRenderTarget.ClearColor;
 
                 colorAttachment.ClearColor = new()
                 {
@@ -159,49 +193,70 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
             }
         }
 
-        if (mtlFrameBuffer.HasDepthStencilAttachment)
+        if (depthStencilAttachment is { } attachment)
         {
-            MTLRenderPassDepthAttachmentDescriptor depthAttachment = mtlFrameBuffer.Descriptor.DepthAttachment;
-
-            if (!depthAttachment.Texture.IsNull)
+            if (ZenithHelper.HasDepth(attachment.Texture.Desc.Format))
             {
-                depthAttachment.LoadAction = MTLLoadAction.Load;
-
-                if (clearDepth)
+                MTLRenderPassDepthAttachmentDescriptor depthAttachment = descriptor.DepthAttachment = new()
                 {
-                    depthAttachment.LoadAction = MTLLoadAction.Clear;
-                    depthAttachment.ClearDepth = clearValue.Depth;
+                    Texture = attachment.Texture.Metal().Texture,
+                    Level = attachment.Subresource.MipLevel,
+                    Slice = attachment.Subresource.ArrayLayer,
+                    LoadAction = attachment.DepthLoadOp switch
+                    {
+                        LoadOp.Clear => MTLLoadAction.Clear,
+                        LoadOp.DontCare => MTLLoadAction.DontCare,
+                        _ => MTLLoadAction.Load
+                    },
+                    StoreAction = attachment.DepthStoreOp is StoreOp.Store ? MTLStoreAction.Store : MTLStoreAction.DontCare
+                };
+
+                if (attachment.DepthLoadOp is LoadOp.Clear)
+                {
+                    depthAttachment.ClearDepth = attachment.ClearDepth;
                 }
             }
 
-            MTLRenderPassStencilAttachmentDescriptor stencilAttachment = mtlFrameBuffer.Descriptor.StencilAttachment;
-
-            if (!stencilAttachment.Texture.IsNull)
+            if (ZenithHelper.HasStencil(attachment.Texture.Desc.Format))
             {
-                stencilAttachment.LoadAction = MTLLoadAction.Load;
-
-                if (clearStencil)
+                MTLRenderPassStencilAttachmentDescriptor stencilAttachment = descriptor.StencilAttachment = new()
                 {
-                    stencilAttachment.LoadAction = MTLLoadAction.Clear;
-                    stencilAttachment.ClearStencil = clearValue.Stencil;
+                    Texture = attachment.Texture.Metal().Texture,
+                    Level = attachment.Subresource.MipLevel,
+                    Slice = attachment.Subresource.ArrayLayer,
+                    LoadAction = attachment.StencilLoadOp switch
+                    {
+                        LoadOp.Clear => MTLLoadAction.Clear,
+                        LoadOp.DontCare => MTLLoadAction.DontCare,
+                        _ => MTLLoadAction.Load
+                    },
+                    StoreAction = attachment.StencilStoreOp is StoreOp.Store ? MTLStoreAction.Store : MTLStoreAction.DontCare
+                };
+
+                if (attachment.StencilLoadOp is LoadOp.Clear)
+                {
+                    stencilAttachment.ClearStencil = attachment.ClearStencil;
                 }
             }
         }
 
-        CommandEncoder.BeginRenderPass(mtlFrameBuffer.Descriptor);
+        CommandEncoder.BeginRenderPass(descriptor);
     }
 
-    protected override void EndRenderPassImpl(FrameBuffer frameBuffer)
+    protected override void EndRenderPassImpl()
     {
         CommandEncoder.EndRenderPass();
+
+        currentRenderPassDescriptor?.Dispose();
+        currentRenderPassDescriptor = null;
     }
 
-    protected override void SetScissorsImpl(Scissor[] scissors)
+    protected override void SetScissorsImpl(ReadOnlySpan<Scissor> scissors)
     {
         CommandEncoder.SetScissors(scissors);
     }
 
-    protected override void SetViewportsImpl(Viewport[] viewports)
+    protected override void SetViewportsImpl(ReadOnlySpan<Viewport> viewports)
     {
         CommandEncoder.SetViewports(viewports);
     }
@@ -377,6 +432,9 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void ResetImpl()
     {
+        currentRenderPassDescriptor?.Dispose();
+        currentRenderPassDescriptor = null;
+
         CommandAllocator.Reset();
     }
 
@@ -387,6 +445,8 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void Destroy()
     {
+        currentRenderPassDescriptor?.Dispose();
+
         base.Destroy();
 
         CommandEncoder.Dispose();

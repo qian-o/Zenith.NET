@@ -47,7 +47,11 @@ internal unsafe class PathTracingRenderer : Renderer
             StrideInBytes = (uint)sizeof(Vertex),
             Flags = BufferUsageFlags.ShaderResource | BufferUsageFlags.AccelerationStructure
         });
-        vertexBuffer.Upload(vertices, 0);
+
+        fixed (Vertex* pointer = vertices)
+        {
+            vertexBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length) });
+        }
 
         indexBuffer = App.Context.CreateBuffer(new()
         {
@@ -55,7 +59,11 @@ internal unsafe class PathTracingRenderer : Renderer
             StrideInBytes = sizeof(uint),
             Flags = BufferUsageFlags.ShaderResource | BufferUsageFlags.AccelerationStructure
         });
-        indexBuffer.Upload(indices, 0);
+
+        fixed (uint* pointer = indices)
+        {
+            indexBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(uint) * indices.Length) });
+        }
 
         materialBuffer = App.Context.CreateBuffer(new()
         {
@@ -63,7 +71,11 @@ internal unsafe class PathTracingRenderer : Renderer
             StrideInBytes = (uint)sizeof(Material),
             Flags = BufferUsageFlags.ShaderResource
         });
-        materialBuffer.Upload(materials, 0);
+
+        fixed (Material* pointer = materials)
+        {
+            materialBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Material) * materials.Length) });
+        }
 
         cameraBuffer = App.Context.CreateBuffer(new()
         {
@@ -146,7 +158,7 @@ internal unsafe class PathTracingRenderer : Renderer
         Matrix4x4.Invert(view, out Matrix4x4 invView);
         Matrix4x4.Invert(projection, out Matrix4x4 invProjection);
 
-        cameraBuffer.Upload<CameraParams>([new()
+        CameraParams parameters = new()
         {
             InvView = invView,
             InvProjection = invProjection,
@@ -154,7 +166,9 @@ internal unsafe class PathTracingRenderer : Renderer
             FrameCount = FrameCount,
             Width = App.Width,
             Height = App.Height
-        }], 0);
+        };
+
+        cameraBuffer.Upload(0, new() { Pointer = (nint)(&parameters), SizeInBytes = (uint)sizeof(CameraParams) });
     }
 
     public override void Render(CommandBuffer commandBuffer)

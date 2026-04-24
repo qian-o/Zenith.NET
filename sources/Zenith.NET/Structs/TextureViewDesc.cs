@@ -4,11 +4,9 @@ public record struct TextureViewDesc
 {
     public Texture Texture;
 
-    public uint FirstMipLevel;
+    public TextureType Type;
 
-    public uint MipLevelCount;
+    public PixelFormat Format;
 
-    public uint FirstArrayLayer;
-
-    public uint ArrayLayerCount;
+    public TextureSubresourceRange Range;
 }

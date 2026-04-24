@@ -6,7 +6,9 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 
     public ref readonly SwapChainDesc Desc => ref desc;
 
-    public abstract FrameBuffer FrameBuffer { get; }
+    public abstract Texture CurrentColorTarget { get; }
+
+    public abstract Texture? CurrentDepthStencilTarget { get; }
 
     public abstract void Present();
 

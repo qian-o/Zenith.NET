@@ -5,6 +5,8 @@ namespace Zenith.NET.Vulkan;
 
 internal unsafe class VKCommandBuffer : CommandBuffer
 {
+    private readonly List<ImageView> renderPassImageViews = [];
+
     public CommandPool CommandPool;
 
     public VkCommandBuffer CommandBuffer;
@@ -57,31 +59,31 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         Context.Vk.CmdPipelineBarrier(CommandBuffer, PipelineStageFlags.TransferBit, PipelineStageFlags.TransferBit, 0, 1, &barrier, 0, null, 0, null);
     }
 
-    protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent)
+    protected override void CopyBufferToTextureImpl(Buffer src,
+                                                    uint srcOffsetInBytes,
+                                                    TextureDataLayout srcLayout,
+                                                    Texture dest,
+                                                    TextureSubresource destSubresource,
+                                                    Offset3D destOffset,
+                                                    Extent3D destExtent)
     {
         VKBuffer vkSrc = src.Vulkan();
         VKTexture vkDest = dest.Vulkan();
 
-        ImageLayout destOldLayout = vkDest.Layouts[ZenithHelper.SubresourceIndex(vkDest.Desc, destSlice)];
-
-        vkDest.TransitionLayout(this, destSlice, ImageLayout.TransferDstOptimal);
-
-        (uint blockWidth, uint blockHeight, uint blocksWide, uint blocksHigh) = ZenithHelper.BlockLayout(vkDest.Desc.Format, destExtent.Width, destExtent.Height);
+        (uint blockWidth, uint blockHeight, _, _) = ZenithHelper.BlockLayout(vkDest.Desc.Format, destExtent.Width, destExtent.Height);
 
         uint formatSizeInBytes = ZenithHelper.SizeInBytes(vkDest.Desc.Format);
-        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * blocksWide, GraphicsContext.TextureRowPitchAlignment);
-        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * blocksHigh, GraphicsContext.TextureDepthPitchAlignment);
 
         BufferImageCopy bufferImageCopy = new()
         {
             BufferOffset = srcOffsetInBytes,
-            BufferRowLength = sliceRowPitchInBytes / formatSizeInBytes * blockWidth,
-            BufferImageHeight = sliceDepthPitchInBytes / sliceRowPitchInBytes * blockHeight,
+            BufferRowLength = srcLayout.RowPitchInBytes / formatSizeInBytes * blockWidth,
+            BufferImageHeight = srcLayout.SlicePitchInBytes / srcLayout.RowPitchInBytes * blockHeight,
             ImageSubresource = new()
             {
                 AspectMask = VKFormats.Vulkan(vkDest.Desc.Format, vkDest.Desc.Flags).AspectFlags,
-                MipLevel = destSlice.MipLevel,
-                BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkDest.Desc, destSlice),
+                MipLevel = destSubresource.MipLevel,
+                BaseArrayLayer = destSubresource.ArrayLayer,
                 LayerCount = 1
             },
             ImageOffset = new()
@@ -99,28 +101,26 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         };
 
         Context.Vk.CmdCopyBufferToImage(CommandBuffer, vkSrc.Buffer, vkDest.Image, ImageLayout.TransferDstOptimal, 1, &bufferImageCopy);
-
-        vkDest.TransitionLayout(this, destSlice, destOldLayout);
     }
 
-    protected override void CopyTextureImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent)
+    protected override void CopyTextureImpl(Texture src,
+                                            TextureSubresource srcSubresource,
+                                            Offset3D srcOffset,
+                                            Texture dest,
+                                            TextureSubresource destSubresource,
+                                            Offset3D destOffset,
+                                            Extent3D extent)
     {
         VKTexture vkSrc = src.Vulkan();
         VKTexture vkDest = dest.Vulkan();
-
-        ImageLayout srcOldLayout = vkSrc.Layouts[ZenithHelper.SubresourceIndex(vkSrc.Desc, srcSlice)];
-        ImageLayout destOldLayout = vkDest.Layouts[ZenithHelper.SubresourceIndex(vkDest.Desc, destSlice)];
-
-        vkSrc.TransitionLayout(this, srcSlice, ImageLayout.TransferSrcOptimal);
-        vkDest.TransitionLayout(this, destSlice, ImageLayout.TransferDstOptimal);
 
         ImageCopy imageCopy = new()
         {
             SrcSubresource = new()
             {
                 AspectMask = VKFormats.Vulkan(vkSrc.Desc.Format, vkSrc.Desc.Flags).AspectFlags,
-                MipLevel = srcSlice.MipLevel,
-                BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkSrc.Desc, srcSlice),
+                MipLevel = srcSubresource.MipLevel,
+                BaseArrayLayer = srcSubresource.ArrayLayer,
                 LayerCount = 1
             },
             SrcOffset = new()
@@ -132,8 +132,8 @@ internal unsafe class VKCommandBuffer : CommandBuffer
             DstSubresource = new()
             {
                 AspectMask = VKFormats.Vulkan(vkDest.Desc.Format, vkDest.Desc.Flags).AspectFlags,
-                MipLevel = destSlice.MipLevel,
-                BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkDest.Desc, destSlice),
+                MipLevel = destSubresource.MipLevel,
+                BaseArrayLayer = destSubresource.ArrayLayer,
                 LayerCount = 1
             },
             DstOffset = new()
@@ -151,35 +151,32 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         };
 
         Context.Vk.CmdCopyImage(CommandBuffer, vkSrc.Image, ImageLayout.TransferSrcOptimal, vkDest.Image, ImageLayout.TransferDstOptimal, 1, &imageCopy);
-
-        vkSrc.TransitionLayout(this, srcSlice, srcOldLayout);
-        vkDest.TransitionLayout(this, destSlice, destOldLayout);
     }
 
-    protected override void CopyTextureToBufferImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes)
+    protected override void CopyTextureToBufferImpl(Texture src,
+                                                    TextureSubresource srcSubresource,
+                                                    Offset3D srcOffset,
+                                                    Extent3D srcExtent,
+                                                    Buffer dest,
+                                                    uint destOffsetInBytes,
+                                                    TextureDataLayout destLayout)
     {
         VKTexture vkSrc = src.Vulkan();
 
-        ImageLayout srcOldLayout = vkSrc.Layouts[ZenithHelper.SubresourceIndex(vkSrc.Desc, srcSlice)];
-
-        vkSrc.TransitionLayout(this, srcSlice, ImageLayout.TransferSrcOptimal);
-
-        (uint blockWidth, uint blockHeight, uint blocksWide, uint blocksHigh) = ZenithHelper.BlockLayout(vkSrc.Desc.Format, srcExtent.Width, srcExtent.Height);
+        (uint blockWidth, uint blockHeight, _, _) = ZenithHelper.BlockLayout(vkSrc.Desc.Format, srcExtent.Width, srcExtent.Height);
 
         uint formatSizeInBytes = ZenithHelper.SizeInBytes(vkSrc.Desc.Format);
-        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * blocksWide, GraphicsContext.TextureRowPitchAlignment);
-        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * blocksHigh, GraphicsContext.TextureDepthPitchAlignment);
 
         BufferImageCopy bufferImageCopy = new()
         {
             BufferOffset = destOffsetInBytes,
-            BufferRowLength = sliceRowPitchInBytes / formatSizeInBytes * blockWidth,
-            BufferImageHeight = sliceDepthPitchInBytes / sliceRowPitchInBytes * blockHeight,
+            BufferRowLength = destLayout.RowPitchInBytes / formatSizeInBytes * blockWidth,
+            BufferImageHeight = destLayout.SlicePitchInBytes / destLayout.RowPitchInBytes * blockHeight,
             ImageSubresource = new()
             {
                 AspectMask = VKFormats.Vulkan(vkSrc.Desc.Format, vkSrc.Desc.Flags).AspectFlags,
-                MipLevel = srcSlice.MipLevel,
-                BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkSrc.Desc, srcSlice),
+                MipLevel = srcSubresource.MipLevel,
+                BaseArrayLayer = srcSubresource.ArrayLayer,
                 LayerCount = 1
             },
             ImageOffset = new()
@@ -197,37 +194,45 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         };
 
         Context.Vk.CmdCopyImageToBuffer(CommandBuffer, vkSrc.Image, ImageLayout.TransferSrcOptimal, dest.Vulkan().Buffer, 1, &bufferImageCopy);
-
-        vkSrc.TransitionLayout(this, srcSlice, srcOldLayout);
     }
 
-    protected override void ResolveTextureImpl(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice)
+    protected override TextureDataLayout GetTextureCopyLayout(PixelFormat format, Extent3D extent)
+    {
+        uint rowPitchInBytes = ZenithHelper.RowPitchInBytes(format, extent.Width, extent.Height);
+        uint slicePitchInBytes = ZenithHelper.SlicePitchInBytes(format, extent.Width, extent.Height);
+
+        return new()
+        {
+            SizeInBytes = slicePitchInBytes * extent.Depth,
+            RowPitchInBytes = rowPitchInBytes,
+            SlicePitchInBytes = slicePitchInBytes
+        };
+    }
+
+    protected override void ResolveTextureImpl(Texture src,
+                                               TextureSubresource srcSubresource,
+                                               Texture dest,
+                                               TextureSubresource destSubresource)
     {
         VKTexture vkSrc = src.Vulkan();
         VKTexture vkDest = dest.Vulkan();
 
-        ImageLayout srcOldLayout = vkSrc.Layouts[ZenithHelper.SubresourceIndex(vkSrc.Desc, srcSlice)];
-        ImageLayout destOldLayout = vkDest.Layouts[ZenithHelper.SubresourceIndex(vkDest.Desc, destSlice)];
-
-        vkSrc.TransitionLayout(this, srcSlice, ImageLayout.TransferSrcOptimal);
-        vkDest.TransitionLayout(this, destSlice, ImageLayout.TransferDstOptimal);
-
-        ZenithHelper.MipDimensions(vkDest.Desc.Width, vkDest.Desc.Height, vkDest.Desc.Depth, destSlice.MipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth);
+        ZenithHelper.MipDimensions(vkDest.Desc.Width, vkDest.Desc.Height, vkDest.Desc.Depth, destSubresource.MipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth);
 
         ImageResolve imageResolve = new()
         {
             SrcSubresource = new()
             {
                 AspectMask = VKFormats.Vulkan(vkSrc.Desc.Format, vkSrc.Desc.Flags).AspectFlags,
-                MipLevel = srcSlice.MipLevel,
-                BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkSrc.Desc, srcSlice),
+                MipLevel = srcSubresource.MipLevel,
+                BaseArrayLayer = srcSubresource.ArrayLayer,
                 LayerCount = 1
             },
             DstSubresource = new()
             {
                 AspectMask = VKFormats.Vulkan(vkDest.Desc.Format, vkDest.Desc.Flags).AspectFlags,
-                MipLevel = destSlice.MipLevel,
-                BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(vkDest.Desc, destSlice),
+                MipLevel = destSubresource.MipLevel,
+                BaseArrayLayer = destSubresource.ArrayLayer,
                 LayerCount = 1
             },
             Extent = new()
@@ -239,9 +244,6 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         };
 
         Context.Vk.CmdResolveImage(CommandBuffer, vkSrc.Image, ImageLayout.TransferSrcOptimal, vkDest.Image, ImageLayout.TransferDstOptimal, 1, &imageResolve);
-
-        vkSrc.TransitionLayout(this, srcSlice, srcOldLayout);
-        vkDest.TransitionLayout(this, destSlice, destOldLayout);
     }
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)
@@ -259,29 +261,54 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         accelerationStructure.Vulkan().Update(this, newDesc);
     }
 
-    protected override void BeginRenderPassImpl(FrameBuffer frameBuffer, ClearValue clearValue)
+    protected override void BeginRenderPassImpl(ReadOnlySpan<ColorAttachment> colorAttachments,
+                                                DepthStencilAttachment? depthStencilAttachment)
     {
-        VKFrameBuffer vkFrameBuffer = frameBuffer.Vulkan();
+        using ZenithMarshal.Scope scope = new();
 
-        vkFrameBuffer.PrepareAttachments(this);
+        uint colorAttachmentCount = (uint)colorAttachments.Length;
+        RenderingAttachmentInfo* colorAttachmentInfos = (RenderingAttachmentInfo*)ZenithMarshal.Allocate<RenderingAttachmentInfo>(scope, colorAttachmentCount);
 
-        bool clearColor = clearValue.Flags.HasFlag(ClearFlags.Color);
-        bool clearDepth = clearValue.Flags.HasFlag(ClearFlags.Depth);
-        bool clearStencil = clearValue.Flags.HasFlag(ClearFlags.Stencil);
+        uint width = 0;
+        uint height = 0;
 
-        for (int i = 0; i < vkFrameBuffer.ColorAttachmentCount; i++)
+        for (uint i = 0; i < colorAttachmentCount; i++)
         {
-            ref RenderingAttachmentInfo colorAttachment = ref vkFrameBuffer.ColorAttachments[i];
+            ColorAttachment attachment = colorAttachments[(int)i];
 
-            colorAttachment.LoadOp = AttachmentLoadOp.Load;
-
-            if (clearColor)
+            if (i is 0)
             {
-                colorAttachment.LoadOp = AttachmentLoadOp.Clear;
+                ZenithHelper.MipDimensions(attachment.Texture.Desc.Width,
+                                           attachment.Texture.Desc.Height,
+                                           0,
+                                           attachment.Subresource.MipLevel,
+                                           out width,
+                                           out height,
+                                           out _);
+            }
 
-                Vector4 color = clearValue.ColorValues[i];
+            ImageView imageView = attachment.Texture.Vulkan().CreateAttachmentView(attachment.Subresource);
+            renderPassImageViews.Add(imageView);
 
-                colorAttachment.ClearValue.Color = new()
+            colorAttachmentInfos[i] = new()
+            {
+                SType = StructureType.RenderingAttachmentInfo,
+                ImageView = imageView,
+                ImageLayout = ImageLayout.AttachmentOptimal,
+                LoadOp = attachment.LoadOp switch
+                {
+                    LoadOp.Clear => AttachmentLoadOp.Clear,
+                    LoadOp.DontCare => AttachmentLoadOp.DontCare,
+                    _ => AttachmentLoadOp.Load
+                },
+                StoreOp = attachment.StoreOp is StoreOp.Store ? AttachmentStoreOp.Store : AttachmentStoreOp.DontCare
+            };
+
+            if (attachment.LoadOp is LoadOp.Clear)
+            {
+                Vector4 color = attachment.ClearColor;
+
+                colorAttachmentInfos[i].ClearValue.Color = new()
                 {
                     Float32_0 = color.X,
                     Float32_1 = color.Y,
@@ -291,55 +318,115 @@ internal unsafe class VKCommandBuffer : CommandBuffer
             }
         }
 
-        if (vkFrameBuffer.HasDepthStencilAttachment)
+        RenderingAttachmentInfo* depthAttachment = null;
+        RenderingAttachmentInfo* stencilAttachment = null;
+
+        if (depthStencilAttachment is { } depthStencilRenderTarget)
         {
-            if (vkFrameBuffer.DepthAttachment is not null)
+            if (colorAttachmentCount is 0)
             {
-                ref RenderingAttachmentInfo depthAttachment = ref vkFrameBuffer.DepthAttachment[0];
+                ZenithHelper.MipDimensions(depthStencilRenderTarget.Texture.Desc.Width,
+                                           depthStencilRenderTarget.Texture.Desc.Height,
+                                           0,
+                                           depthStencilRenderTarget.Subresource.MipLevel,
+                                           out width,
+                                           out height,
+                                           out _);
+            }
 
-                depthAttachment.LoadOp = AttachmentLoadOp.Load;
+            ImageView imageView = depthStencilRenderTarget.Texture.Vulkan().CreateAttachmentView(depthStencilRenderTarget.Subresource);
+            renderPassImageViews.Add(imageView);
 
-                if (clearDepth)
+            if (ZenithHelper.HasDepth(depthStencilRenderTarget.Texture.Desc.Format))
+            {
+                depthAttachment = (RenderingAttachmentInfo*)ZenithMarshal.Allocate<RenderingAttachmentInfo>(scope, 1);
+                depthAttachment[0] = new()
                 {
-                    depthAttachment.LoadOp = AttachmentLoadOp.Clear;
-                    depthAttachment.ClearValue.DepthStencil.Depth = clearValue.Depth;
+                    SType = StructureType.RenderingAttachmentInfo,
+                    ImageView = imageView,
+                    ImageLayout = ImageLayout.AttachmentOptimal,
+                    LoadOp = depthStencilRenderTarget.DepthLoadOp switch
+                    {
+                        LoadOp.Clear => AttachmentLoadOp.Clear,
+                        LoadOp.DontCare => AttachmentLoadOp.DontCare,
+                        _ => AttachmentLoadOp.Load
+                    },
+                    StoreOp = depthStencilRenderTarget.DepthStoreOp is StoreOp.Store ? AttachmentStoreOp.Store : AttachmentStoreOp.DontCare
+                };
+
+                if (depthStencilRenderTarget.DepthLoadOp is LoadOp.Clear)
+                {
+                    depthAttachment[0].ClearValue.DepthStencil.Depth = depthStencilRenderTarget.ClearDepth;
                 }
             }
 
-            if (vkFrameBuffer.StencilAttachment is not null)
+            if (ZenithHelper.HasStencil(depthStencilRenderTarget.Texture.Desc.Format))
             {
-                ref RenderingAttachmentInfo stencilAttachment = ref vkFrameBuffer.StencilAttachment[0];
-
-                stencilAttachment.LoadOp = AttachmentLoadOp.Load;
-
-                if (clearStencil)
+                stencilAttachment = (RenderingAttachmentInfo*)ZenithMarshal.Allocate<RenderingAttachmentInfo>(scope, 1);
+                stencilAttachment[0] = new()
                 {
-                    stencilAttachment.LoadOp = AttachmentLoadOp.Clear;
-                    stencilAttachment.ClearValue.DepthStencil.Stencil = clearValue.Stencil;
+                    SType = StructureType.RenderingAttachmentInfo,
+                    ImageView = imageView,
+                    ImageLayout = ImageLayout.AttachmentOptimal,
+                    LoadOp = depthStencilRenderTarget.StencilLoadOp switch
+                    {
+                        LoadOp.Clear => AttachmentLoadOp.Clear,
+                        LoadOp.DontCare => AttachmentLoadOp.DontCare,
+                        _ => AttachmentLoadOp.Load
+                    },
+                    StoreOp = depthStencilRenderTarget.StencilStoreOp is StoreOp.Store ? AttachmentStoreOp.Store : AttachmentStoreOp.DontCare
+                };
+
+                if (depthStencilRenderTarget.StencilLoadOp is LoadOp.Clear)
+                {
+                    stencilAttachment[0].ClearValue.DepthStencil.Stencil = depthStencilRenderTarget.ClearStencil;
                 }
             }
         }
 
-        Context.Vk.CmdBeginRendering(CommandBuffer, ref vkFrameBuffer.RenderingInfo);
+        RenderingInfo renderingInfo = new()
+        {
+            SType = StructureType.RenderingInfo,
+            RenderArea = new() { Extent = new() { Width = width, Height = height } },
+            LayerCount = 1,
+            ColorAttachmentCount = colorAttachmentCount,
+            PColorAttachments = colorAttachmentInfos,
+            PDepthAttachment = depthAttachment,
+            PStencilAttachment = stencilAttachment
+        };
+
+        Context.Vk.CmdBeginRendering(CommandBuffer, ref renderingInfo);
     }
 
-    protected override void EndRenderPassImpl(FrameBuffer frameBuffer)
+    protected override void EndRenderPassImpl()
     {
         Context.Vk.CmdEndRendering(CommandBuffer);
-
-        frameBuffer.Vulkan().PresentColorAttachments(this);
     }
 
-    protected override void SetScissorsImpl(Scissor[] scissors)
+    protected override void SetScissorsImpl(ReadOnlySpan<Scissor> scissors)
     {
-        Rect2D[] vkScissors = [.. scissors.Select(static item => new Rect2D(new(item.X, item.Y), new(item.Width, item.Height)))];
+        Span<Rect2D> vkScissors = scissors.Length <= 8 ? stackalloc Rect2D[scissors.Length] : new Rect2D[scissors.Length];
+
+        for (int i = 0; i < scissors.Length; i++)
+        {
+            Scissor scissor = scissors[i];
+
+            vkScissors[i] = new(new(scissor.X, scissor.Y), new(scissor.Width, scissor.Height));
+        }
 
         Context.Vk.CmdSetScissor(CommandBuffer, 0, (uint)vkScissors.Length, ref vkScissors[0]);
     }
 
-    protected override void SetViewportsImpl(Viewport[] viewports)
+    protected override void SetViewportsImpl(ReadOnlySpan<Viewport> viewports)
     {
-        VkViewport[] vkViewports = [.. viewports.Select(static item => new VkViewport(item.X, item.Y + item.Height, item.Width, -item.Height, item.MinDepth, item.MaxDepth))];
+        Span<VkViewport> vkViewports = viewports.Length <= 8 ? stackalloc VkViewport[viewports.Length] : new VkViewport[viewports.Length];
+
+        for (int i = 0; i < viewports.Length; i++)
+        {
+            Viewport viewport = viewports[i];
+
+            vkViewports[i] = new(viewport.X, viewport.Y + viewport.Height, viewport.Width, -viewport.Height, viewport.MinDepth, viewport.MaxDepth);
+        }
 
         Context.Vk.CmdSetViewport(CommandBuffer, 0, (uint)vkViewports.Length, ref vkViewports[0]);
     }
@@ -493,6 +580,8 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void ResetImpl()
     {
+        ReleaseRenderPassImageViews();
+
         Context.Vk.ResetCommandBuffer(CommandBuffer, CommandBufferResetFlags.None).Success();
     }
 
@@ -513,8 +602,20 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void Destroy()
     {
+        ReleaseRenderPassImageViews();
+
         base.Destroy();
 
         Context.Vk.DestroyCommandPool(Context.Device, CommandPool, null);
+    }
+
+    private void ReleaseRenderPassImageViews()
+    {
+        foreach (ImageView imageView in renderPassImageViews)
+        {
+            Context.Vk.DestroyImageView(Context.Device, imageView, null);
+        }
+
+        renderPassImageViews.Clear();
     }
 }
