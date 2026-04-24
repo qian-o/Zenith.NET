@@ -1,31 +1,58 @@
-﻿# RHI Redesign — Requirements Specification
+﻿# RHI Redesign — Working Draft
 
-> Working spec for the redesigned public surface. Not for commit. Mirrors `rhi-redesign.zh.draft.md`.
-> The document is organized as nine numbered requirements; shared types live in §0.
+> Working spec for the next public surface. Not for commit. Mirrors `rhi-redesign.zh.draft.md`.
+> Rebuilt against the current `Zenith.NET`, `Extensions`, and `Views` folders. Validation-layer design is intentionally deferred.
+> The document stays organized as nine numbered requirements; shared conventions live in §0.
 
 ## 0. Common Conventions
 
 ### 0.1 Naming and Code Style
 
 - Every public value type is a `record struct` with public mutable fields.
-- Multi-element parameters use `ReadOnlySpan<T>` / `params ReadOnlySpan<T>`. No `T[]`, no `IEnumerable<T>`.
-- All method bodies use `{ ... }`. **Exception:** `ref` / `ref readonly` returning properties keep `=> ref _field;`.
-- Every byte-denominated parameter or field carries the `*InBytes` suffix.
-- Backend hooks use the `*Core` suffix only when they share a name with a non-`Core` wrapper (e.g. `Wait` / `WaitCore`); otherwise they keep their natural name.
-- Every abstract member is plain `protected abstract`; same-assembly callers go through an `internal` wrapper.
+- Multi-element inputs use `ReadOnlySpan<T>` / `params ReadOnlySpan<T>`. No `T[]`, `IEnumerable<T>`, or `IReadOnlyList<T>` on the low-level surface.
+- Every byte-denominated field or parameter uses the `*InBytes` suffix.
+- Backend hooks use plain `protected abstract` members; wrappers above them are only for validation or convenience.
+- Public convenience wrappers may remain when they do not obscure the low-level model, for example `Submit(bool waitForCompletion = false)` on top of the timeline submit path.
 
 ### 0.2 Public Surface Boundaries
 
-- No global-memory-barrier shape beyond the resource-less `Barrier(...)` form.
-- No residency primitives (`MakeResident` / `Evict`) on the public surface.
-- No long-lived `View` objects; view information is a call-site value.
-- No long-lived `FrameBuffer` object.
-- The only public synchronization result type is `CommandSubmission`.
-- Texture image-layout (DX12 / VK) is fully internal to the backend; it is computed from `BarrierAccess` plus RenderPass attachment metadata.
+- `BufferView` stays removed. Buffer subranges are expressed as `BufferRange`.
+- `TextureView` stays a long-lived `GraphicsResource` created by `GraphicsContext.CreateTextureView(...)`.
+- `ResourceTable` stays a long-lived `GraphicsResource` with explicit typed `Write(...)` overloads.
+- There is no public `FrameBuffer` / `RenderPassInfo` object. Render passes are inline.
+- CPU upload and readback are described with `BufferData`, `TextureData`, and `TextureDataLayout`.
+- The view layer renders into a `Texture target`; the platform view decides whether that target is a swapchain backbuffer or a CPU-readback texture.
+- This round only adds the missing low-level synchronization pieces: explicit texture layout transitions, a lightweight `PipelineBarrier` for read-write hazards, queue timelines, and a completed `NativeObjectType`.
+- Residency, heap management, and validation-layer redesign remain out of scope.
 
-### 0.3 Resource Handle Bases
+### 0.3 Core Object Skeleton
 
 ```csharp
+public abstract class GraphicsContext : DisposableObject, INativeObject
+{
+    public Backend Backend { get; }
+
+    public Capabilities Capabilities { get; }
+
+    public CommandQueue Graphics { get; }
+
+    public CommandQueue Compute { get; }
+
+    public CommandQueue Copy { get; }
+
+    public SwapChain CreateSwapChain(SwapChainDesc desc);
+
+    public Buffer CreateBuffer(BufferDesc desc);
+
+    public Texture CreateTexture(TextureDesc desc);
+
+    public TextureView CreateTextureView(TextureViewDesc desc);
+
+    public ResourceTable CreateResourceTable(ResourceTableDesc desc);
+
+    public abstract nint GetNativeObject(NativeObjectType type);
+}
+
 public abstract class GraphicsResource(GraphicsContext context) : DisposableObject, INativeObject
 {
     public GraphicsContext Context { get; } = context;
@@ -35,190 +62,122 @@ public abstract class GraphicsResource(GraphicsContext context) : DisposableObje
 
 public abstract class Buffer(GraphicsContext context, BufferDesc desc) : GraphicsResource(context)
 {
-    private BufferDesc desc = desc;
-
     public ref readonly BufferDesc Desc => ref desc;
 
-    /// <summary>
-    /// Maps the buffer into a CPU-visible region. Only valid when <c>Desc.Flags</c> contains
-    /// <see cref="BufferUsageFlags.MapRead"/> or <see cref="BufferUsageFlags.MapWrite"/>;
-    /// must be paired with <see cref="Unmap"/>.
-    /// </summary>
     public abstract MappedMemory Map();
 
     public abstract void Unmap();
+
+    public void Upload(uint offsetInBytes, BufferData data);
+
+    public void Download(uint offsetInBytes, BufferData data);
 }
 
 public abstract class Texture(GraphicsContext context, TextureDesc desc) : GraphicsResource(context)
 {
-    private TextureDesc desc = desc;
-
     public ref readonly TextureDesc Desc => ref desc;
 
-    public static implicit operator TextureSubresourceRange(Texture texture)
-    {
-        return new()
-        {
-            BaseMipLevel = 0,
-            LevelCount = texture.Desc.MipLevels,
-            BaseArrayLayer = 0,
-            LayerCount = texture.Desc.ArrayLayers
-        };
-    }
-}
+    public void Upload(TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data);
 
-public abstract class Sampler(GraphicsContext context, SamplerDesc desc) : GraphicsResource(context)
-{
-    private SamplerDesc desc = desc;
-
-    public ref readonly SamplerDesc Desc => ref desc;
+    public void Download(TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data);
 }
 ```
 
-### 0.4 BufferDesc / Capability Flags
-
-Follows the existing framework design; no `MemoryAccess` enum is introduced. CPU visibility is expressed within the capability set via `BufferUsageFlags.MapRead` / `MapWrite`.
+### 0.4 Explicit CPU Data Descriptors
 
 ```csharp
-[Flags]
-public enum BufferUsageFlags
+public record struct BufferData
 {
-    None                  = 0,
-    Vertex                = 1 << 0,
-    Index                 = 1 << 1,
-    Indirect              = 1 << 2,
-    AccelerationStructure = 1 << 3,
-    Constant              = 1 << 4,
-    ShaderResource        = 1 << 5,
-    UnorderedAccess       = 1 << 6,
-    MapRead               = 1 << 7,
-    MapWrite              = 1 << 8
+    public nint Pointer;
+
+    public uint SizeInBytes;
 }
 
-public record struct BufferDesc
+public record struct TextureData
+{
+    public nint Pointer;
+
+    public TextureDataLayout Layout;
+}
+
+public record struct TextureDataLayout
 {
     public uint SizeInBytes;
 
-    public uint StrideInBytes;
+    public uint RowPitchInBytes;
 
-    public BufferUsageFlags Flags;
-}
-```
-
-`BufferUsageFlags` is a **capability set**, immutable for the lifetime of the resource. It is layered against §6 `BarrierAccess`: `Flags` declares "which accesses are permitted", `BarrierAccess` describes "which access is happening right now". A buffer declared `Vertex | ShaderResource` can be bound directly via `SetVertexBuffer` — there is no "type conversion" step; barriers only carry visibility between previous and next access.
-
-CPU upload paths split two ways:
-- A buffer that declares `MapRead` / `MapWrite` is written application-side via paired `Map()` / `Unmap()`.
-- Otherwise, writes flow through `CommandBuffer.Upload` / `CopyBuffer` against a staging buffer.
-
----
-
-## 1. ReadOnlySpan over Arrays
-
-Requirement: every multi-element input parameter on the public API uses `ReadOnlySpan<T>` / `params ReadOnlySpan<T>`. No `T[]`, `IList<T>`, `IEnumerable<T>`, or `IReadOnlyList<T>` appears in public signatures.
-
-Rationale:
-- Pairs naturally with .NET 10's `params ReadOnlySpan<T>` and collection expressions `[ ... ]`, giving zero-allocation call sites.
-- The same signature accepts stack-allocated, array-backed, or single-element inputs uniformly.
-- Backends can copy directly into native arrays without enumerating.
-
-Surfaces (non-exhaustive):
-
-| Parameter | Old | New |
-|---|---|---|
-| Submit waits | `Fence[]` | `ReadOnlySpan<CommandSubmission>` |
-| Vertex buffer slots | `Buffer[]` + `ulong[]` | `ReadOnlySpan<Buffer>` + `ReadOnlySpan<ulong>` |
-| Viewports / scissors | `Viewport[]` | `ReadOnlySpan<Viewport>` |
-| RenderPass color attachments | `ColorAttachment[]` | `ReadOnlySpan<ColorAttachment>` |
-| ResourceTable array bindings | `IBindableResource[]` | `ReadOnlySpan<BufferRange>` / `ReadOnlySpan<TextureView>` / `ReadOnlySpan<Sampler>` |
-| Upload data | `byte[]` + offset/size | `ReadOnlySpan<T> where T : unmanaged` |
-
-Exception: returning multiple elements as `ReadOnlySpan<T>` requires a backing owner that is more expensive than the convenience is worth. Single-element returns keep their concrete type; bulk returns keep `T[]` or expose indexed accessors.
-
----
-
-## 2. Cross-queue Synchronization
-
-Requirement: cross-queue dependencies are expressed through a single value type `CommandSubmission`, modelled after the timeline primitive in all three backends.
-
-```csharp
-public enum CommandQueueType
-{
-    Graphics,
-    Compute,
-    Copy
-}
-
-/// <summary>
-/// One point on a queue's completion timeline, produced by Submit / Present.
-/// <c>default</c> is the well-defined empty value: backends filter it out of any <c>waits</c>,
-/// and <see cref="Wait"/> is a no-op on it.
-/// </summary>
-public readonly struct CommandSubmission(CommandQueue? queue, ulong value)
-{
-    public CommandQueue? Queue = queue;
-
-    public ulong Value = value;
-
-    public void Wait()
-    {
-        Queue?.Wait(Value);
-    }
-}
-
-public abstract class CommandQueue(GraphicsContext context, CommandQueueType type) : GraphicsResource(context)
-{
-    public CommandQueueType Type { get; } = type;
-
-    /// <summary>Acquires a recording-ready CommandBuffer, recycling a retired one when available.</summary>
-    public CommandBuffer CommandBuffer();
-
-    /// <summary>Waits until every submission issued on this queue has completed. Idempotent.</summary>
-    public void WaitForIdle();
-
-    /// <summary>Waits until this queue's timeline reaches <paramref name="value"/>.</summary>
-    public void Wait(ulong value);
-
-    protected abstract ulong GetCompletedValue();
-
-    protected abstract void WaitCore(ulong value);
-
-    protected abstract void SubmitCore(CommandBuffer commandBuffer,
-                                       ReadOnlySpan<CommandSubmission> waits,
-                                       ulong signalValue);
-
-    protected abstract CommandBuffer CreateCommandBuffer();
-}
-
-public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
-{
-    public CommandQueue Queue { get; } = queue;
-
-    /// <summary>Closes recording and enqueues this buffer on its owning queue.</summary>
-    public CommandSubmission Submit(params ReadOnlySpan<CommandSubmission> waits);
+    public uint SlicePitchInBytes;
 }
 ```
 
 Design points:
-- Each queue owns one monotonic completion timeline. Each `Submit` advances `Value` and exposes the new point as `CommandSubmission(queue, value)`.
-- Cross-queue dependency = pass an upstream `CommandSubmission` into a downstream `Submit(waits)`.
-- `GetCompletedValue()` is a method, not a property: all three backends are call-shaped.
-- CommandBuffer pooling is a queue-internal detail; the public surface only offers `CommandBuffer()` + `Submit(...)`.
-- `GraphicsContext.Graphics` / `Compute` / `Copy` are the three queues; `Present` always runs on `Graphics`.
-
-Backend timeline mapping:
-
-| Backend | Timeline object | API |
-|---|---|---|
-| Metal 4 | one `MTLSharedEvent` per queue | `commandBuffer.EncodeSignalEvent(event, value)` / `event.SignaledValue` |
-| Vulkan 1.4 | one timeline `VkSemaphore` per queue | `vkQueueSubmit2` `pSignalSemaphoreInfos[].value` / `vkGetSemaphoreCounterValue` |
-| DX12 | one `ID3D12Fence` per queue | `queue.Signal(fence, value)` / `fence.GetCompletedValue()` |
+- `TextureDataLayout` is a pure layout descriptor. It does not carry offsets.
+- Byte offsets stay on copy entry points such as `CopyBufferToTexture(..., uint srcOffsetInBytes, TextureDataLayout srcLayout, ...)`.
+- Tight layouts can be computed with `ZenithHelper`, but callers remain responsible for the final `SizeInBytes` / `RowPitchInBytes` / `SlicePitchInBytes` they pass.
+- Backend-specific copy alignment remains backend-local; it is not lifted back into `GraphicsContext`.
 
 ---
 
-## 3. Subresource / Offset / Range as Value Types
+## 1. ReadOnlySpan at Multi-element Boundaries
 
-Requirement: replace the legacy `TextureSlice` / `TextureOffset` / `TextureExtent` with `TextureSubresource` / `TextureSubresourceLayers` / `TextureSubresourceRange` / `Offset3D` / `Extent3D`. The triplet expresses single-point / single-mip-multiple-layers / multi-mip-multi-layer ranges respectively.
+Requirement: every multi-element public input keeps using `ReadOnlySpan<T>` / `params ReadOnlySpan<T>`.
+
+Representative surfaces:
+
+| Surface | Shape |
+|---|---|
+| Render pass color attachments | `ReadOnlySpan<ColorAttachment>` |
+| Viewports / scissors | `ReadOnlySpan<Viewport>` / `ReadOnlySpan<Scissor>` |
+| ResourceTable array writes | `ReadOnlySpan<Buffer>` / `ReadOnlySpan<BufferRange>` / `ReadOnlySpan<Texture>` / `ReadOnlySpan<TextureView>` / `ReadOnlySpan<Sampler>` / `ReadOnlySpan<TopLevelAccelerationStructure>` |
+| Timeline waits | `params ReadOnlySpan<CommandSubmission>` |
+| Batch transitions | `ReadOnlySpan<TextureTransition>` |
+
+Rationale:
+- Accepts stack, array, and single-element inputs uniformly.
+- Matches the current `BeginRenderPass`, `SetScissors`, `SetViewports`, and `ResourceTable.Write` family.
+- Keeps the future timeline and transition APIs allocation-free at call sites.
+
+Exception:
+- Returning multiple elements as `ReadOnlySpan<T>` still implies an owner. Concrete return types remain acceptable when they avoid hidden lifetime coupling.
+
+---
+
+## 2. Explicit Upload / Download / Copy Model
+
+Requirement: CPU data movement remains descriptor-based. Public texture upload does not move back to `ReadOnlySpan<T>`-shaped APIs.
+
+```csharp
+public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
+{
+    public void Upload(Buffer buffer, uint offsetInBytes, BufferData data);
+
+    public void Download(Buffer buffer, uint offsetInBytes, BufferData data);
+
+    public void Upload(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data);
+
+    public void Download(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data);
+
+    public void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes);
+
+    public void CopyBufferToTexture(Buffer src, uint srcOffsetInBytes, TextureDataLayout srcLayout, Texture dest, TextureSubresource destSubresource, Offset3D destOffset, Extent3D destExtent);
+
+    public void CopyTexture(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Texture dest, TextureSubresource destSubresource, Offset3D destOffset, Extent3D extent);
+
+    public void CopyTextureToBuffer(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dest, uint destOffsetInBytes, TextureDataLayout destLayout);
+}
+```
+
+Design points:
+- `Buffer.Upload` / `Buffer.Download` short-circuit to `Map()` / `Unmap()` when the buffer is CPU-visible; otherwise they stage through `Context.Copy`.
+- `Texture.Upload` / `Texture.Download` always go through `CommandBuffer`, which keeps the copy path explicit and backend-controlled.
+- Offsets and pitches are intentionally separate. `TextureDataLayout` describes memory layout; `offsetInBytes` chooses where inside the staging or destination buffer the copy starts.
+- `Extensions.ImageSharp` and `Views.Avalonia.Surface` already follow this model today.
+
+---
+
+## 3. Subresource, Offset, Extent, and Buffer Range Values
+
+Requirement: subresource and range inputs remain small value types, aligned with the current code and explicit copy/render surfaces.
 
 ```csharp
 public record struct TextureSubresource
@@ -265,27 +224,7 @@ public record struct Extent3D
 
     public uint Depth;
 }
-```
 
-| Type | Shape | Used by |
-|---|---|---|
-| `TextureSubresource` | one mip × one layer | RTV / DSV / Resolve endpoints |
-| `TextureSubresourceLayers` | one mip × contiguous layer range | Copy / Upload |
-| `TextureSubresourceRange` | contiguous mip range × contiguous layer range | Barrier / `TextureView.Range` |
-
-Conventions:
-- The public surface does not carry an aspect field; backends derive aspect (color / depth / stencil) from `Texture.Format`.
-- Cube faces are addressed as `ArrayLayer = cubeIndex * 6 + face`; there is no separate face axis.
-- `Texture` implicitly converts to `TextureSubresourceRange` (full coverage) so common single-resource calls fit on one line.
-- Suffix naming follows VK: `Subresource` (point) / `SubresourceLayers` (slab) / `SubresourceRange` (volume).
-
----
-
-## 4. Drop BufferView, unify on BufferRange
-
-Requirement: remove the `BufferView` type and any `CreateBufferView` entry point. Buffer sub-ranges are expressed as a call-site `BufferRange` value.
-
-```csharp
 public record struct BufferRange
 {
     public Buffer Buffer;
@@ -309,152 +248,136 @@ public record struct BufferRange
 }
 ```
 
-Rationale:
-- Buffers do not need cross-format reinterpretation; offset/size/stride is the full set required to describe a sub-range.
-- DX12 `D3D12_*_VIEW_DESC`, VK `VkDescriptorBufferInfo`, Metal `setBuffer:offset:` all take call-site offset/size; a long-lived view object is unnecessary.
-- Shader-side interpretation (CBV / structured-SRV / byteaddress-SRV / typed-SRV / UAV) is decided by the slot's `ResourceLayout`, not by the buffer.
-- The implicit conversion keeps single-resource calls like `Write(0, vbo)` and `SetVertexBuffer(0, vbo, 0)` on a single line.
+Conventions:
+- The public surface carries no explicit aspect flag. Backends derive color / depth / stencil from `Texture.Desc.Format`.
+- Cube faces remain linearized through `ArrayLayer = cubeIndex * 6 + face`.
+- `BufferRange` is the only public buffer subrange shape. No `BufferView` factory comes back.
 
 ---
 
-## 5. TextureView Refactor (Format / ViewType)
+## 4. TextureView Remains a Long-lived Resource
 
-Requirement: redefine `TextureView` as a call-site value. Drop swizzle (5-tuple → 4-tuple) and add `Format` / `ViewType` for compatible-family reinterpretation and dimensionality switches.
+Requirement: keep `TextureView` as an owned resource object. The old "call-site value only" direction is not aligned with the current binding model or extension usage.
 
 ```csharp
-public enum TextureViewType
-{
-    Texture1D,
-    Texture2D,
-    Texture3D,
-    TextureCube,
-    Texture1DArray,
-    Texture2DArray,
-    TextureCubeArray
-}
-
-public record struct TextureView
+public record struct TextureViewDesc
 {
     public Texture Texture;
 
+    public TextureType Type;
+
+    public PixelFormat Format;
+
     public TextureSubresourceRange Range;
-
-    /// <summary><c>null</c> derives from <c>Texture.Desc</c> + <c>Range</c>.</summary>
-    public TextureViewType? ViewType;
-
-    /// <summary><c>null</c> uses <c>Texture.Desc.Format</c>; otherwise reinterprets within the same family.</summary>
-    public PixelFormat? Format;
-
-    public static implicit operator TextureView(Texture texture)
-    {
-        return new()
-        {
-            Texture = texture,
-            Range = texture,
-            ViewType = null,
-            Format = null
-        };
-    }
 }
-```
 
-- Mirrors VK `VkImageViewCreateInfo` and Metal `newTextureViewWithPixelFormat:textureType:levels:slices:`.
-- Backends lazily cache native views keyed by `(Texture, Range, ViewType, Format)`; that cache is an implementation detail.
-- Channel swizzle is intentionally not on the public surface: single-channel → grayscale and similar patterns are handled in shader; BGRA ↔ RGBA is covered by `Format` reinterpretation within the same compatibility family. If a real need surfaces later, an optional `ComponentMapping?` field can be added back without breaking existing call sites.
-- `Texture` implicitly converts to `TextureView` (full range, original format, original dimensionality) so common single-resource bindings fit on one line.
-
----
-
-## 6. Barrier — 1:1 Synchronization Primitive
-
-Requirement: remove every implicit layout transition. All visibility / execution dependency / layout switches are stated by the caller through a `(stage, access)` pair, mirroring Metal 4 / VK 1.4 / DX12 Enhanced Barriers.
-
-```csharp
-[Flags]
-public enum BarrierStage : uint
+public abstract class TextureView(GraphicsContext context, TextureViewDesc desc) : GraphicsResource(context)
 {
-    None                       = 0,
-    All                        = ~0u,
-    Draw                       = 1u << 0,
-    VertexInput                = 1u << 1,
-    VertexShader               = 1u << 2,
-    PixelShader                = 1u << 3,
-    EarlyDepthStencil          = 1u << 4,
-    LateDepthStencil           = 1u << 5,
-    RenderTarget               = 1u << 6,
-    ComputeShader              = 1u << 7,
-    RayTracing                 = 1u << 8,
-    Copy                       = 1u << 9,
-    Resolve                    = 1u << 10,
-    IndirectArgument           = 1u << 11,
-    AccelerationStructureBuild = 1u << 12,
+    public ref readonly TextureViewDesc Desc => ref desc;
 }
-
-[Flags]
-public enum BarrierAccess : uint
-{
-    None                       = 0,
-    VertexBuffer               = 1u << 0,
-    IndexBuffer                = 1u << 1,
-    ConstantBuffer             = 1u << 2,
-    ShaderRead                 = 1u << 3,
-    UnorderedAccessRead        = 1u << 4,
-    UnorderedAccessWrite       = 1u << 5,
-    RenderTarget               = 1u << 6,
-    DepthStencilRead           = 1u << 7,
-    DepthStencilWrite          = 1u << 8,
-    CopySource                 = 1u << 9,
-    CopyDestination            = 1u << 10,
-    ResolveSource              = 1u << 11,
-    ResolveDestination         = 1u << 12,
-    IndirectArgument           = 1u << 13,
-    Present                    = 1u << 14,
-    AccelerationStructureRead  = 1u << 15,
-    AccelerationStructureWrite = 1u << 16,
-}
-```
-
-The CommandBuffer barrier entry points come in three shapes:
-
-```csharp
-public void Barrier(BarrierStage afterStages, BarrierAccess afterAccess,
-                    BarrierStage beforeStages, BarrierAccess beforeAccess);
-
-public void BufferBarrier(BufferRange range,
-                          BarrierStage afterStages, BarrierAccess afterAccess,
-                          BarrierStage beforeStages, BarrierAccess beforeAccess);
-
-public void TextureBarrier(TextureView view,
-                           BarrierStage afterStages, BarrierAccess afterAccess,
-                           BarrierStage beforeStages, BarrierAccess beforeAccess);
 ```
 
 Design points:
-- `BarrierStage` describes **when** in the pipeline an access happens; `BarrierAccess` describes **what kind** of access it is. They mirror Metal 4 `MTL4RenderStages` + `MTL4VisibilityOptions`, VK 1.4 `VkPipelineStageFlags2` + `VkAccessFlags2`, DX12 `D3D12_BARRIER_SYNC` + `D3D12_BARRIER_ACCESS`.
-- All three forms share the same parameter order: `(afterStages, afterAccess) → (beforeStages, beforeAccess)`.
-- Texture image-layout: maintained internally by the backend, derived from `BarrierAccess` plus RenderPass attachment metadata. There is no public layout enum.
-- The public surface does **not** offer simplified shortcuts; the caller must supply explicit stage + access.
-- Adjacent same-stage / same-resource barriers are folded to no-ops by the backend; the caller is not required to deduplicate.
+- `GraphicsContext.CreateTextureView(...)` stays on the public surface.
+- Binding a plain `Texture` remains the default whole-resource path.
+- Binding a `TextureView` is reserved for explicit subresource, dimensionality, or format reinterpretation.
+- This matches the current `ImGui` renderer, which keeps view objects alive and binds them through `ResourceTable`.
+- Backends are free to let `Texture` carry a default native view internally, but the explicit `TextureView` object remains the public escape hatch.
 
 ---
 
-## 7. Drop FrameBuffer — Inline RenderPass + SwapChain Targets
+## 5. Flat Binding Model: ResourceBinding[] + ResourceTable
 
-Requirement: remove `FrameBuffer` / `RenderPassInfo` long-lived objects. RenderPass is expressed inline via `BeginRenderPass` / `EndRenderPass`; `SwapChain` directly exposes `CurrentColorTarget` / `CurrentDepthStencilTarget`, so backbuffers are shaped like ordinary `Texture` objects.
+Requirement: the binding model remains flat and concrete: `ResourceBinding[]` describes slots, `ResourceTable` holds values, and `Write(...)` stays typed by resource kind.
 
 ```csharp
-public enum LoadAction
+public enum ResourceType
 {
-    Load,
-    Clear,
-    DontCare
+    ConstantBuffer,
+    StructuredBuffer,
+    StructuredBufferReadWrite,
+    Texture,
+    TextureReadWrite,
+    Sampler,
+    AccelerationStructure
 }
 
-public enum StoreAction
+public record struct ResourceBinding
 {
-    Store,
-    DontCare,
-    Resolve
+    public ResourceType Type;
+
+    public uint Count;
+}
+
+public record struct ResourceTableDesc
+{
+    public ResourceBinding[] Bindings;
+}
+
+public abstract class ResourceTable(GraphicsContext context, ResourceTableDesc desc) : GraphicsResource(context)
+{
+    public ref readonly ResourceTableDesc Desc => ref desc;
+
+    public abstract void Write(uint binding, Buffer buffer);
+
+    public abstract void Write(uint binding, BufferRange bufferRange);
+
+    public abstract void Write(uint binding, Texture texture);
+
+    public abstract void Write(uint binding, TextureView textureView);
+
+    public abstract void Write(uint binding, Sampler sampler);
+
+    public abstract void Write(uint binding, TopLevelAccelerationStructure topLevelAccelerationStructure);
+
+    public abstract void Write(uint binding, ReadOnlySpan<Buffer> buffers);
+
+    public abstract void Write(uint binding, ReadOnlySpan<BufferRange> bufferRanges);
+
+    public abstract void Write(uint binding, ReadOnlySpan<Texture> textures);
+
+    public abstract void Write(uint binding, ReadOnlySpan<TextureView> textureViews);
+
+    public abstract void Write(uint binding, ReadOnlySpan<Sampler> samplers);
+
+    public abstract void Write(uint binding, ReadOnlySpan<TopLevelAccelerationStructure> topLevelAccelerationStructures);
+}
+```
+
+CommandBuffer-side entry points stay simple:
+
+```csharp
+public void SetPipeline(GraphicsPipeline pipeline);
+
+public void SetPipeline(ComputePipeline pipeline);
+
+public void SetPipeline(MeshShadingPipeline pipeline);
+
+public void PushResourceTable(ResourceTable resourceTable);
+```
+
+Design points:
+- There is no separate `ResourceLayout` object.
+- There is no `IBindableResource` polymorphic entry.
+- `ResourceBindings` on pipeline descriptors and `Bindings` on `ResourceTableDesc` intentionally share the same flat shape.
+- `Texture` and `TextureView` both remain first-class write targets because "default whole-resource binding" and "explicit view binding" are both used in current code.
+- Record all `Write(...)` operations before `PushResourceTable(...)`; the backend binds the table's current contents against the current pipeline.
+- This maps cleanly to DX12 descriptor tables, Vulkan push descriptors, and Metal encoder-side resource table binding.
+
+---
+
+## 6. Inline RenderPass, Output, SwapChain Targets, and View Integration
+
+Requirement: render targets stay inline, and the view layer keeps the "render into a `Texture target`" contract.
+
+```csharp
+public record struct Output
+{
+    public PixelFormat[] ColorAttachments;
+
+    public PixelFormat? DepthStencilAttachment;
+
+    public SampleCount SampleCount;
 }
 
 public record struct ColorAttachment
@@ -493,204 +416,310 @@ public record struct DepthStencilAttachment
     public byte ClearStencil;
 }
 
-// CommandBuffer
-public void BeginRenderPass(ReadOnlySpan<ColorAttachment> colorAttachments,
-                            DepthStencilAttachment? depthStencilAttachment);
-
-public void EndRenderPass();
-```
-
-```csharp
 public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : GraphicsResource(context)
 {
-    private SwapChainDesc desc = desc;
-
     public ref readonly SwapChainDesc Desc => ref desc;
-
-    public abstract uint Width { get; }
-
-    public abstract uint Height { get; }
 
     public abstract Texture CurrentColorTarget { get; }
 
     public abstract Texture? CurrentDepthStencilTarget { get; }
 
-    /// <summary>
-    /// Submits a present on the GraphicsQueue, waiting for <paramref name="waits"/>;
-    /// the returned <see cref="CommandSubmission"/> is the next-backbuffer-writable point.
-    /// </summary>
-    public abstract CommandSubmission Present(params ReadOnlySpan<CommandSubmission> waits);
-
     public void Resize(uint width, uint height);
 
     public void Refresh(Surface surface);
 }
-```
 
-Design points:
-- Backbuffers are exposed as ordinary `Texture` instances (color + optional depth-stencil); they participate in `BeginRenderPass`, `TextureBarrier`, `CopyTexture`, `Write(...)` like any other texture.
-- `BeginRenderPass` takes an attachment span; pass `null` explicitly when there is no depth target. The backend defaults `SetViewports` / `SetScissors` from attachment dimensions; the caller can override with a follow-up call.
-- `Present(...)` is symmetric with `Submit(...)`: takes waits, returns a `CommandSubmission`.
-- Current image index, acquire / present synchronization primitives are backend-internal.
-
----
-
-## 8. ResourceTable Overloads + Drop IBindableResource
-
-Requirement: `ResourceTable.Write` is overloaded by resource type (`BufferRange` / `TextureView` / `Sampler`); the public surface no longer routes through an `IBindableResource` polymorphic entry.
-
-```csharp
-public abstract class ResourceTable(GraphicsContext context, ResourceLayout layout) : GraphicsResource(context)
+public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
 {
-    public ResourceLayout Layout { get; } = layout;
+    public void BeginRenderPass(ReadOnlySpan<ColorAttachment> colorAttachments, DepthStencilAttachment? depthStencilAttachment);
 
-    public void Write(uint binding, BufferRange range);
+    public void EndRenderPass();
 
-    public void Write(uint binding, TextureView view);
+    public void SetScissors(ReadOnlySpan<Scissor> scissors);
 
-    public void Write(uint binding, Sampler sampler);
-
-    public void Write(uint binding, ReadOnlySpan<BufferRange> ranges);
-
-    public void Write(uint binding, ReadOnlySpan<TextureView> views);
-
-    public void Write(uint binding, ReadOnlySpan<Sampler> samplers);
-
-    protected abstract void WriteCore(uint binding, ReadOnlySpan<BufferRange> ranges);
-
-    protected abstract void WriteCore(uint binding, ReadOnlySpan<TextureView> views);
-
-    protected abstract void WriteCore(uint binding, ReadOnlySpan<Sampler> samplers);
+    public void SetViewports(ReadOnlySpan<Viewport> viewports);
 }
 ```
 
-CommandBuffer-side entry points:
-
-```csharp
-public void SetPipeline(Pipeline pipeline);
-
-public void PushResourceTable(ResourceTable table);
-```
-
 Design points:
-- The §4 / §5 implicit conversions on `Buffer` / `Texture` keep single-resource bindings on one line: `table.Write(0, vbo)` / `table.Write(1, tex)`.
-- Buffer interpretation (CBV / SRV-structured / SRV-byteaddress / UAV / typed) is decided by the slot's `ResourceLayout`, not by the supplied `BufferRange`.
-- One table per pipeline (aligned with the Metal 4 argument-table model).
-- `PushResourceTable` does not take a stages parameter: stages live on each binding inside the layout.
-- **Push-snapshot semantics**: `PushResourceTable` snapshots the table's contents into the command buffer at the call site; later `Write`s on the same `ResourceTable` do not affect already-pushed bindings, so a single `ResourceTable` can be `Write` + `Push`-ed repeatedly within a frame.
-- Validation: UAV slots require the corresponding `UnorderedAccess` capability bit; shape / layout / format-family mismatches are reported at `Write` time.
-
-Why no `IBindableResource`:
-- The three resource kinds have entirely different native write paths (descriptor / argument-buffer slot / sampler heap); a polymorphic interface forces a runtime dispatch that overloads avoid at compile time.
-- Overloads let the right `Write` route be selected at compile time, with no boxing or runtime type tests.
-- Implicit `Buffer → BufferRange` / `Texture → TextureView` conversions already cover "I just want to pass the handle" ergonomics.
+- No `FrameBuffer` object comes back.
+- `Output` continues to live on pipeline descriptors and describes attachment compatibility, not a runtime render target object.
+- `BeginRenderPass(...)` seeds default scissors / viewports from the attachment size, and callers can override them afterward.
+- `SwapChain.CurrentColorTarget` and `CurrentDepthStencilTarget` behave like ordinary `Texture` instances.
+- `RenderEventArgs` remains `Texture`-centric: view code passes a target texture into user rendering rather than leaking platform swapchain details into the callback.
+- The view layer supports both patterns that already exist in the repo:
+  - swapchain-backed targets in WinForms / WPF / WinUI-style views
+  - offscreen target + `Texture.Download(...)` present paths such as Avalonia
 
 ---
 
-## 9. INativeObject — Unified Native Handle Entry
+## 7. Explicit Texture Layout Transitions + Lightweight PipelineBarrier
 
-Requirement: every public type that wraps a native object implements `INativeObject` and exposes the underlying handle through `GetNativeObject(NativeObjectType)`. The public surface carries no platform-conditional properties.
+Requirement: add the missing explicit texture layout transition interface and a minimal pipeline barrier for read-write shader hazards. Do not bring back the old full `(stage, access)` matrix.
+
+```csharp
+public enum TextureLayout
+{
+    Undefined,
+    Common,
+    ShaderResource,
+    UnorderedAccess,
+    RenderTarget,
+    DepthStencilRead,
+    DepthStencilWrite,
+    CopySource,
+    CopyDestination,
+    ResolveSource,
+    ResolveDestination,
+    Present
+}
+
+public record struct TextureTransition
+{
+    public Texture Texture;
+
+    public TextureSubresourceRange Range;
+
+    public TextureLayout Before;
+
+    public TextureLayout After;
+}
+
+public enum PipelineBarrierScope
+{
+    All,
+    Draw,
+    Compute,
+    MeshShading,
+    RayTracing,
+    Copy,
+    AccelerationStructureBuild
+}
+
+public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
+{
+    public void Transition(Texture texture, TextureSubresourceRange range, TextureLayout before, TextureLayout after);
+
+    public void Transition(TextureView textureView, TextureLayout before, TextureLayout after);
+
+    public void Transition(ReadOnlySpan<TextureTransition> transitions);
+
+    public void PipelineBarrier(PipelineBarrierScope before, PipelineBarrierScope after);
+}
+```
+
+Design points:
+- `Transition(...)` is the explicit texture state / layout interface. No hidden layout changes remain in copy, sampling, render-pass, or present flows.
+- `TextureView` overloads reuse `textureView.Desc.Range`; `textureView.Desc.Format` does not affect layout selection.
+- `PipelineBarrier(...)` is the intentionally small UAV-style ordering primitive for cases like "dispatch A writes `RWTexture` / `RWBuffer`, dispatch B touches it again". It does not change layouts and it does not cross queues.
+- No public `BufferBarrier` is added in this round. Buffer copy / bind ordering continues to follow command semantics, and explicit user-authored synchronization is reserved for layout transitions and shader read-write hazard isolation.
+- Backend mapping is straightforward:
+  - DX12: resource-state transitions plus UAV barriers
+  - Vulkan: image memory barriers plus lightweight memory barriers
+  - Metal: texture usage-state transitions plus encoder memory barriers / fences as needed
+
+---
+
+## 8. Timeline-based Cross-queue Synchronization
+
+Requirement: add a canonical timeline submission model without removing the current convenience wrappers.
+
+```csharp
+public enum CommandQueueType
+{
+    Graphics,
+    Compute,
+    Copy
+}
+
+public readonly record struct CommandSubmission(CommandQueue? Queue, ulong Value)
+{
+    public bool IsEmpty => Queue is null;
+
+    public void Wait()
+    {
+        Queue?.Wait(Value);
+    }
+}
+
+public abstract class CommandQueue(GraphicsContext context, CommandQueueType type) : GraphicsResource(context)
+{
+    public CommandQueueType Type { get; } = type;
+
+    public CommandBuffer CommandBuffer();
+
+    public void WaitIdle();
+
+    public void Wait(ulong value);
+
+    public abstract ulong GetCompletedValue();
+}
+
+public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
+{
+    public CommandQueue Queue { get; } = queue;
+
+    public CommandSubmission Submit(params ReadOnlySpan<CommandSubmission> waits);
+
+    public void Submit(bool waitForCompletion = false);
+}
+
+public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : GraphicsResource(context)
+{
+    public abstract CommandSubmission Present(params ReadOnlySpan<CommandSubmission> waits);
+
+    public abstract void Present();
+}
+```
+
+Design points:
+- The timeline path is the canonical low-level model: `Submit(waits)` and `Present(waits)` both return a `CommandSubmission`.
+- `Submit(bool waitForCompletion = false)` and parameterless `Present()` stay as convenience wrappers for the current one-queue, one-frame-loop usage already present in `Extensions` and `Views`.
+- Each queue owns one monotonic completion timeline.
+- `default` / empty submissions are ignored in wait sets.
+- `Present(waits)` returns the point at which the presented backbuffer becomes writable again.
+- Backend mapping follows the natural primitive on each API:
+  - DX12: one `ID3D12Fence` per queue
+  - Vulkan: one timeline `VkSemaphore` per queue
+  - Metal 4: one `MTLSharedEvent` per queue
+
+---
+
+## 9. Unified Native Handles and a Completed NativeObjectType
+
+Requirement: every public object that wraps a native object keeps using `INativeObject`, and `NativeObjectType` is completed around stable native roles rather than backend-specific cast helpers.
 
 ```csharp
 public enum NativeObjectType
 {
-    // DirectX 12
+    // DirectX 12 / DXGI
     DxgiFactory,
     DxgiAdapter,
+    DxgiSwapChain,
     D3D12Device,
     D3D12CommandQueue,
+    D3D12Fence,
     D3D12GraphicsCommandList,
+    D3D12PipelineState,
+    D3D12RootSignature,
     D3D12Resource,
-    D3D12CpuDescriptorHandleSampler,
+    D3D12DescriptorHeap,
     D3D12CpuDescriptorHandleRtv,
     D3D12CpuDescriptorHandleDsv,
     D3D12CpuDescriptorHandleSrv,
     D3D12CpuDescriptorHandleUav,
+    D3D12CpuDescriptorHandleSampler,
+    D3D12QueryHeap,
 
-    // Metal 4
+    // Metal / Metal 4
     MtlDevice,
     Mtl4CommandQueue,
     Mtl4CommandBuffer,
+    MtlSharedEvent,
     MtlTexture,
     MtlBuffer,
     MtlSamplerState,
+    MtlRenderPipelineState,
+    MtlComputePipelineState,
+    MtlDepthStencilState,
+    MtlHeap,
+    MtlAccelerationStructure,
+    CaMetalLayer,
+    CaMetalDrawable,
 
     // Vulkan
     VkInstance,
     VkPhysicalDevice,
+    VkSurfaceKHR,
+    VkSwapchainKHR,
     VkDevice,
     VkQueue,
     VkQueueFamilyIndex,
+    VkSemaphore,
     VkCommandBuffer,
+    VkPipeline,
+    VkPipelineLayout,
+    VkShaderModule,
     VkImage,
     VkImageView,
     VkBuffer,
-    VkSampler
+    VkSampler,
+    VkDescriptorSet,
+    VkQueryPool,
+    VkAccelerationStructureKHR
 }
 
 public interface INativeObject
 {
-    /// <summary>Returns 0 when the requested type does not match this object or the active backend.</summary>
+    /// <summary>Returns 0 when the requested native role does not match this object or the active backend.</summary>
     nint GetNativeObject(NativeObjectType type);
 }
-
-public abstract class GraphicsContext : DisposableObject, INativeObject
-{
-    public abstract nint GetNativeObject(NativeObjectType type);
-}
-
-// GraphicsResource already implements INativeObject in §0.3.
 ```
 
 Design points:
-- Naming follows native API prefixes: DX12 splits into `Dxgi` / `D3D12`; Metal 4 disambiguates from legacy Metal via `Mtl` / `Mtl4`; Vulkan uniformly uses `Vk`.
-- `D3D12CpuDescriptorHandle*` is split per view kind to keep the entry point unambiguous.
-- Non-handle scalars (e.g. `VkQueueFamilyIndex`) flow through the same entry, packed into `nint`.
-- Every `GraphicsResource` subclass implements the interface; subclasses that have nothing to expose return 0 for every requested type.
-- Callers are responsible for handling the "returned 0" degraded path; the public surface does not throw.
+- The enum is organized around stable native roles that map cleanly to current Zenith object categories.
+- One public object may expose several native roles. For example, a DX12 pipeline may expose both `D3D12PipelineState` and `D3D12RootSignature`.
+- Several Zenith object kinds may expose the same native role. For example, DX12 buffers, textures, and acceleration structures all surface `D3D12Resource`.
+- Non-pointer scalars such as `VkQueueFamilyIndex` still flow through the same `nint` entry point.
+- `GetNativeObject(...)` does not add reference counts or retain ownership. Returned handles are only valid while the Zenith object is alive.
+- Returning `0` is the only degradation path; unsupported combinations do not throw.
 
 ---
 
-## Appendix A: Typical Frame Loop (combines §2 / §6 / §7)
+## Appendix A: Current Upload Path
 
 ```csharp
-CommandSubmission imageReady = default;
+CommandBuffer commandBuffer = context.Copy.CommandBuffer();
 
-while (running)
-{
-    CommandBuffer cmd = ctx.Graphics.CommandBuffer();
+commandBuffer.Upload(texture,
+                     default,
+                     default,
+                     new() { Width = width, Height = height, Depth = 1 },
+                     new()
+                     {
+                         Pointer = pixels,
+                         Layout = new()
+                         {
+                             SizeInBytes = sizeInBytes,
+                             RowPitchInBytes = rowPitchInBytes,
+                             SlicePitchInBytes = slicePitchInBytes
+                         }
+                     });
 
-    ReadOnlySpan<ColorAttachment> colors =
-    [
-        new()
-        {
-            Texture = swapChain.CurrentColorTarget,
-            Subresource = new() { MipLevel = 0, ArrayLayer = 0 },
-            LoadAction = LoadAction.Clear,
-            StoreAction = StoreAction.Store,
-            ClearColor = new(0, 0, 0, 1)
-        }
-    ];
-
-    DepthStencilAttachment? depth = swapChain.CurrentDepthStencilTarget is { } ds
-        ? new()
-        {
-            Texture = ds,
-            Subresource = new(),
-            DepthLoadAction = LoadAction.Clear,
-            DepthStoreAction = StoreAction.DontCare,
-            ClearDepth = 1.0f
-        }
-        : null;
-
-    cmd.BeginRenderPass(colors, depth);
-    // draws
-    cmd.EndRenderPass();
-
-    CommandSubmission frame = cmd.Submit(imageReady);
-
-    imageReady = swapChain.Present(frame);
-}
+commandBuffer.Submit(true);
 ```
 
-Each step has the same shape: take a set of `CommandSubmission` waits, return one `CommandSubmission`. `Submit` and `Present` are symmetric on the public surface.
+This matches the current `ImageSharp` extension and the current offscreen-view presentation path.
+
+## Appendix B: Current Binding Path
+
+```csharp
+ResourceBinding[] bindings =
+[
+    new() { Type = ResourceType.ConstantBuffer, Count = 1 },
+    new() { Type = ResourceType.Texture, Count = 1 },
+    new() { Type = ResourceType.Sampler, Count = 1 }
+];
+
+ResourceTable table = context.CreateResourceTable(new() { Bindings = bindings });
+table.Write(0, constants);
+table.Write(1, textureView);
+table.Write(2, sampler);
+
+commandBuffer.SetPipeline(pipeline);
+commandBuffer.PushResourceTable(table);
+```
+
+This matches the current `ImGui` extension: long-lived `ResourceTable`, explicit `Write(...)`, then `PushResourceTable(...)` under the current pipeline.
+
+## Appendix C: Timeline-shaped Multi-queue Flow
+
+```csharp
+CommandSubmission copyDone = copyCommandBuffer.Submit();
+
+CommandSubmission graphicsDone = graphicsCommandBuffer.Submit(copyDone);
+
+CommandSubmission presentDone = swapChain.Present(graphicsDone);
+```
+
+The existing `Submit(true)` / `Present()` convenience calls remain valid for the simple single-queue path; `CommandSubmission` only becomes necessary once work crosses queues or frames.

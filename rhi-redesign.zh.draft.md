@@ -1,31 +1,58 @@
-﻿# RHI 重设计草案 — 需求规范（中文临时版）
+﻿# RHI 重设计草案 — 工作稿
 
-> 仅用于本轮设计讨论，不进入提交。最终英文版同步在 `rhi-redesign.draft.md`。
-> 本文档以 9 条需求为骨架；公共类型与 §0 公共约定共享。
+> 下一版公共面的工作草案，不进入提交。英文同步版见 `rhi-redesign.draft.md`。
+> 本稿依据当前 `Zenith.NET`、`Extensions` 与 `Views` 目录重新整理。验证层设计明确延后处理。
+> 文档仍按 9 条需求组织，共享约定放在 §0。
 
 ## 0. 公共约定
 
 ### 0.1 命名与代码风格
 
-- 所有公共值类型一律 `record struct`，公共字段可写
-- 多元素入参一律 `ReadOnlySpan<T>` / `params ReadOnlySpan<T>`，不使用 `T[]` / `IEnumerable<T>`
-- 方法体一律 `{ ... }`；**例外**：`ref` / `ref readonly` 返回的属性保留 `=> ref _field;`
-- 字节单位字段与参数加 `*InBytes` 后缀
-- 抽象后端钩子：仅当与同名非 `Core` 包装共存时才用 `*Core` 后缀（如 `Wait` / `WaitCore`）；其余一律自然名
-- 抽象成员一律 `protected abstract`，同程序集内部调用走 `internal` 包装
+- 所有公共值类型一律为 `record struct`，公共字段可写。
+- 多元素输入使用 `ReadOnlySpan<T>` / `params ReadOnlySpan<T>`。低层公共面不使用 `T[]`、`IEnumerable<T>`、`IReadOnlyList<T>`。
+- 所有字节单位字段与参数统一使用 `*InBytes` 后缀。
+- 后端钩子保持普通 `protected abstract` 形式；其上的包装层只负责校验或便利调用。
+- 只要不遮蔽低层模型，就可以保留便利包装，例如时间线提交接口之上的 `Submit(bool waitForCompletion = false)`。
 
 ### 0.2 公共面边界
 
-- 公共面**无**全局内存屏障（VK pipeline barrier without resource）以外的特殊形态
-- 公共面**无**驻留集（residency / `MakeResident` / `Evict`）相关原语
-- 公共面**无**长生命周期 `View` 对象；view 信息为调用现场值
-- 公共面**无**长生命周期 `FrameBuffer` 对象
-- 公共同步结果只有一种：`CommandSubmission`
-- Texture 的 image-layout 完全在后端内部维护，由 `BarrierAccess` + RenderPass attachment 元数据推导
+- `BufferView` 继续移除，buffer 子范围统一使用 `BufferRange` 表达。
+- `TextureView` 继续作为长生命周期 `GraphicsResource`，由 `GraphicsContext.CreateTextureView(...)` 创建。
+- `ResourceTable` 继续作为长生命周期 `GraphicsResource`，通过显式类型化 `Write(...)` 重载写入资源。
+- 公共面没有 `FrameBuffer` / `RenderPassInfo` 对象；RenderPass 保持内联表达。
+- CPU 上传与回读统一由 `BufferData`、`TextureData`、`TextureDataLayout` 描述。
+- Views 层统一向上层暴露 `Texture target`；具体平台 view 自己决定该 target 是 swapchain backbuffer 还是 CPU 回读纹理。
+- 本轮仅补齐缺失的低层同步能力：显式 texture layout 转换、面向读写 hazard 的轻量 `PipelineBarrier`、queue 时间线，以及完整的 `NativeObjectType`。
+- Residency、heap 管理、验证层重设计继续留在范围之外。
 
-### 0.3 资源句柄基类
+### 0.3 核心对象骨架
 
 ```csharp
+public abstract class GraphicsContext : DisposableObject, INativeObject
+{
+    public Backend Backend { get; }
+
+    public Capabilities Capabilities { get; }
+
+    public CommandQueue Graphics { get; }
+
+    public CommandQueue Compute { get; }
+
+    public CommandQueue Copy { get; }
+
+    public SwapChain CreateSwapChain(SwapChainDesc desc);
+
+    public Buffer CreateBuffer(BufferDesc desc);
+
+    public Texture CreateTexture(TextureDesc desc);
+
+    public TextureView CreateTextureView(TextureViewDesc desc);
+
+    public ResourceTable CreateResourceTable(ResourceTableDesc desc);
+
+    public abstract nint GetNativeObject(NativeObjectType type);
+}
+
 public abstract class GraphicsResource(GraphicsContext context) : DisposableObject, INativeObject
 {
     public GraphicsContext Context { get; } = context;
@@ -35,188 +62,122 @@ public abstract class GraphicsResource(GraphicsContext context) : DisposableObje
 
 public abstract class Buffer(GraphicsContext context, BufferDesc desc) : GraphicsResource(context)
 {
-    private BufferDesc desc = desc;
-
     public ref readonly BufferDesc Desc => ref desc;
 
-    /// <summary>
-    /// 映射为 CPU 可访问区间。仅在 <c>Desc.Flags</c> 含 <see cref="BufferUsageFlags.MapRead"/>
-    /// 或 <see cref="BufferUsageFlags.MapWrite"/> 时合法，必须与 <see cref="Unmap"/> 配对。
-    /// </summary>
     public abstract MappedMemory Map();
 
     public abstract void Unmap();
+
+    public void Upload(uint offsetInBytes, BufferData data);
+
+    public void Download(uint offsetInBytes, BufferData data);
 }
 
 public abstract class Texture(GraphicsContext context, TextureDesc desc) : GraphicsResource(context)
 {
-    private TextureDesc desc = desc;
-
     public ref readonly TextureDesc Desc => ref desc;
 
-    public static implicit operator TextureSubresourceRange(Texture texture)
-    {
-        return new()
-        {
-            BaseMipLevel = 0,
-            LevelCount = texture.Desc.MipLevels,
-            BaseArrayLayer = 0,
-            LayerCount = texture.Desc.ArrayLayers
-        };
-    }
-}
+    public void Upload(TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data);
 
-public abstract class Sampler(GraphicsContext context, SamplerDesc desc) : GraphicsResource(context)
-{
-    private SamplerDesc desc = desc;
-
-    public ref readonly SamplerDesc Desc => ref desc;
+    public void Download(TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data);
 }
 ```
 
-### 0.4 BufferDesc / 能力位
-
-沿用现框架设计，不引入 `MemoryAccess` 枚举；CPU 可见性由 `BufferUsageFlags.MapRead` / `MapWrite` 在能力位集合里表达。
+### 0.4 显式 CPU 数据描述
 
 ```csharp
-[Flags]
-public enum BufferUsageFlags
+public record struct BufferData
 {
-    None                  = 0,
-    Vertex                = 1 << 0,
-    Index                 = 1 << 1,
-    Indirect              = 1 << 2,
-    AccelerationStructure = 1 << 3,
-    Constant              = 1 << 4,
-    ShaderResource        = 1 << 5,
-    UnorderedAccess       = 1 << 6,
-    MapRead               = 1 << 7,
-    MapWrite              = 1 << 8
+    public nint Pointer;
+
+    public uint SizeInBytes;
 }
 
-public record struct BufferDesc
+public record struct TextureData
+{
+    public nint Pointer;
+
+    public TextureDataLayout Layout;
+}
+
+public record struct TextureDataLayout
 {
     public uint SizeInBytes;
 
-    public uint StrideInBytes;
+    public uint RowPitchInBytes;
 
-    public BufferUsageFlags Flags;
-}
-```
-
-`BufferUsageFlags` 是**能力位集合**，资源生命周期内不可变；它与 §6 的 `BarrierAccess` 是两层：`Flags` 决定"允许的访问集合"，`BarrierAccess` 描述"现在以哪种方式访问"。同一块 buffer 同时声明 `Vertex | ShaderResource` 完全合法，用作顶点输入直接 `SetVertexBuffer` 即可，无任何"格式转换"动作；barrier 只负责"上个用法 → 下个用法"的可见性。
-
-CPU 上传路径二选一：
-- buffer 声明 `MapRead` / `MapWrite` 时，应用侧 `Map()` / `Unmap()` 直接写
-- 否则沉入 `CommandBuffer.Upload` / `CopyBuffer` 走 staging
-
----
-
-## 1. ReadOnlySpan 替代数组
-
-需求：所有"多元素入参"在公共 API 上一律改为 `ReadOnlySpan<T>` / `params ReadOnlySpan<T>`，不出现 `T[]`、`IList<T>`、`IEnumerable<T>`、`IReadOnlyList<T>`。
-
-理由：
-- 接 .NET 10 的 `params ReadOnlySpan<T>` 与集合表达式 `[ ... ]`，调用现场零托管分配
-- 同一签名同时接受栈分配 / 数组 / 单元素，调用方写法统一
-- 后端可直接拷贝到原生数组，无需先 enumerate
-
-适用面（不完全列表）：
-
-| 入参 | 旧形态 | 新形态 |
-|---|---|---|
-| Submit 等待集 | `Fence[]` | `ReadOnlySpan<CommandSubmission>` |
-| 顶点缓冲槽 | `Buffer[]` + `ulong[]` | `ReadOnlySpan<Buffer>` + `ReadOnlySpan<ulong>` |
-| 视口 / 裁剪 | `Viewport[]` | `ReadOnlySpan<Viewport>` |
-| RenderPass 颜色附件 | `ColorAttachment[]` | `ReadOnlySpan<ColorAttachment>` |
-| ResourceTable 数组绑定 | `IBindableResource[]` | `ReadOnlySpan<BufferRange>` / `ReadOnlySpan<TextureView>` / `ReadOnlySpan<Sampler>` |
-| 上传数据 | `byte[]` + offset/size | `ReadOnlySpan<T> where T : unmanaged` |
-
-例外：返回多个元素时使用 `ReadOnlySpan<T>` 的成本（必须有持有者）大于价值 —— 单元素返回保留具体类型；批量返回保留 `T[]` 或暴露索引访问。
-
----
-
-## 2. 跨队列同步
-
-需求：跨队列依赖只暴露**一个**值类型 `CommandSubmission`，对齐三端时间线模型。
-
-```csharp
-public enum CommandQueueType
-{
-    Graphics,
-    Compute,
-    Copy
-}
-
-/// <summary>
-/// 一次 Submit / Present 产生的一个时间线点。
-/// <c>default</c> 是合法的"空"值，后端会从 <c>waits</c> 中过滤掉；其上 <see cref="Wait"/> 为空操作。
-/// </summary>
-public readonly struct CommandSubmission(CommandQueue? queue, ulong value)
-{
-    public CommandQueue? Queue = queue;
-
-    public ulong Value = value;
-
-    public void Wait()
-    {
-        Queue?.Wait(Value);
-    }
-}
-
-public abstract class CommandQueue(GraphicsContext context, CommandQueueType type) : GraphicsResource(context)
-{
-    public CommandQueueType Type { get; } = type;
-
-    /// <summary>获取一个可录制的 CommandBuffer，必要时复用已退役实例。</summary>
-    public CommandBuffer CommandBuffer();
-
-    /// <summary>等待此 queue 上所有已提交命令完成。幂等。</summary>
-    public void WaitForIdle();
-
-    /// <summary>等待该 queue 时间线推进到 <paramref name="value"/>。</summary>
-    public void Wait(ulong value);
-
-    protected abstract ulong GetCompletedValue();
-
-    protected abstract void WaitCore(ulong value);
-
-    protected abstract void SubmitCore(CommandBuffer commandBuffer,
-                                       ReadOnlySpan<CommandSubmission> waits,
-                                       ulong signalValue);
-
-    protected abstract CommandBuffer CreateCommandBuffer();
-}
-
-public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
-{
-    public CommandQueue Queue { get; } = queue;
-
-    /// <summary>结束录制并在所属 queue 上入队。</summary>
-    public CommandSubmission Submit(params ReadOnlySpan<CommandSubmission> waits);
+    public uint SlicePitchInBytes;
 }
 ```
 
 设计要点：
-- 每个 queue 持一条单调递增完成时间线；`Submit` 推进 `Value`，并以 `CommandSubmission(queue, value)` 公开
-- 跨队列依赖 = 把上游 `CommandSubmission` 传入下游 `Submit(waits)`
-- `GetCompletedValue()` 是方法不是属性：三端原生 API 都是调用语义
-- `CommandBuffer` 池化是 queue 内部实现，公共面只暴露 `CommandBuffer()` + `Submit(...)`
-- `GraphicsContext.Graphics` / `Compute` / `Copy` 三条队列；`Present` 始终在 `Graphics`
-
-后端时间线对照：
-
-| 后端 | 时间线对象 | API |
-|---|---|---|
-| Metal 4 | 每 queue 一个 `MTLSharedEvent` | `commandBuffer.EncodeSignalEvent(event, value)` / `event.SignaledValue` |
-| Vulkan 1.4 | 每 queue 一个 timeline `VkSemaphore` | `vkQueueSubmit2` 的 `pSignalSemaphoreInfos[].value` / `vkGetSemaphoreCounterValue` |
-| DX12 | 每 queue 一个 `ID3D12Fence` | `queue.Signal(fence, value)` / `fence.GetCompletedValue()` |
+- `TextureDataLayout` 是纯布局描述，不携带 offset。
+- 字节偏移保留在 copy 接口上，例如 `CopyBufferToTexture(..., uint srcOffsetInBytes, TextureDataLayout srcLayout, ...)`。
+- 紧凑布局可以通过 `ZenithHelper` 计算，但最终传入的 `SizeInBytes` / `RowPitchInBytes` / `SlicePitchInBytes` 仍由调用方负责。
+- 后端特有的 copy 对齐继续下沉到各后端内部，不再抬回 `GraphicsContext`。
 
 ---
 
-## 3. 子资源 / 偏移 / 范围的值类型化
+## 1. `ReadOnlySpan` 作为多元素边界
 
-需求：用 `TextureSubresource` / `TextureSubresourceLayers` / `TextureSubresourceRange` / `Offset3D` / `Extent3D` 替代旧版 `TextureSlice` / `TextureOffset` / `TextureExtent`，统一命名并明确"单点 / 单 mip 多 layer / 多 mip 多 layer"三档。
+需求：所有多元素公共输入继续统一使用 `ReadOnlySpan<T>` / `params ReadOnlySpan<T>`。
+
+代表性接口：
+
+| 接口面 | 形状 |
+|---|---|
+| RenderPass 颜色附件 | `ReadOnlySpan<ColorAttachment>` |
+| Viewport / Scissor | `ReadOnlySpan<Viewport>` / `ReadOnlySpan<Scissor>` |
+| ResourceTable 数组写入 | `ReadOnlySpan<Buffer>` / `ReadOnlySpan<BufferRange>` / `ReadOnlySpan<Texture>` / `ReadOnlySpan<TextureView>` / `ReadOnlySpan<Sampler>` / `ReadOnlySpan<TopLevelAccelerationStructure>` |
+| 时间线等待集 | `params ReadOnlySpan<CommandSubmission>` |
+| 批量转换 | `ReadOnlySpan<TextureTransition>` |
+
+理由：
+- 同时接受栈上、数组以及单元素输入，调用形态统一。
+- 与当前 `BeginRenderPass`、`SetScissors`、`SetViewports`、`ResourceTable.Write` 家族保持一致。
+- 让未来的时间线接口和转换接口在调用现场保持零托管分配。
+
+例外：
+- 返回多个元素时，`ReadOnlySpan<T>` 仍然要求一个显式持有者。只要能避免隐藏生命周期耦合，返回具体类型依然可以接受。
+
+---
+
+## 2. 显式 Upload / Download / Copy 模型
+
+需求：CPU 数据搬运继续保持描述符化，公共 texture 上传接口不回退到 `ReadOnlySpan<T>` 风格。
+
+```csharp
+public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
+{
+    public void Upload(Buffer buffer, uint offsetInBytes, BufferData data);
+
+    public void Download(Buffer buffer, uint offsetInBytes, BufferData data);
+
+    public void Upload(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data);
+
+    public void Download(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data);
+
+    public void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes);
+
+    public void CopyBufferToTexture(Buffer src, uint srcOffsetInBytes, TextureDataLayout srcLayout, Texture dest, TextureSubresource destSubresource, Offset3D destOffset, Extent3D destExtent);
+
+    public void CopyTexture(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Texture dest, TextureSubresource destSubresource, Offset3D destOffset, Extent3D extent);
+
+    public void CopyTextureToBuffer(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dest, uint destOffsetInBytes, TextureDataLayout destLayout);
+}
+```
+
+设计要点：
+- `Buffer.Upload` / `Buffer.Download` 在 buffer 可 CPU 访问时直接走 `Map()` / `Unmap()`；否则通过 `Context.Copy` staging。
+- `Texture.Upload` / `Texture.Download` 始终通过 `CommandBuffer` 完成，以保持 copy 路径显式且可由后端控制。
+- offset 与 pitch 故意分离。`TextureDataLayout` 只描述内存布局，`offsetInBytes` 决定 copy 在 staging / 目标 buffer 中从哪里开始。
+- 当前 `Extensions.ImageSharp` 与 `Views.Avalonia.Surface` 已经在按这套模型使用。
+
+---
+
+## 3. 子资源、偏移、尺寸与 BufferRange 值类型
+
+需求：子资源与范围相关输入保持为小型值类型，并与当前 copy / render 接口对齐。
 
 ```csharp
 public record struct TextureSubresource
@@ -263,27 +224,7 @@ public record struct Extent3D
 
     public uint Depth;
 }
-```
 
-| 类型 | 表达 | 用途 |
-|---|---|---|
-| `TextureSubresource` | 单 mip × 单 layer | RTV / DSV / Resolve 端点 |
-| `TextureSubresourceLayers` | 单 mip × 连续 layer 段 | Copy / Upload |
-| `TextureSubresourceRange` | 连续 mip 段 × 连续 layer 段 | Barrier / `TextureView.Range` |
-
-约定：
-- 公共面不暴露 `aspect`；后端从 `Texture.Format` 推断 color / depth / stencil
-- Cube face 以 `ArrayLayer = cubeIndex * 6 + face` 表达，无独立 face 轴
-- `Texture` 隐式转 `TextureSubresourceRange`（覆盖整张纹理）让常见调用一行内写完
-- 命名后缀对齐 VK：`Subresource`（点）/ `SubresourceLayers`（面）/ `SubresourceRange`（体）
-
----
-
-## 4. 删除 BufferView，统一为 BufferRange
-
-需求：移除 `BufferView` 类型与所有 `CreateBufferView` 入口，buffer 子范围一律用调用现场的 `BufferRange` 值表达。
-
-```csharp
 public record struct BufferRange
 {
     public Buffer Buffer;
@@ -307,152 +248,136 @@ public record struct BufferRange
 }
 ```
 
-理由：
-- buffer 不需要"格式族重解释"；offset/size/stride 三元组就是描述子范围所需的全部信息
-- DX12 `D3D12_*_VIEW_DESC`、VK `VkDescriptorBufferInfo`、Metal `setBuffer:offset:` 都接受调用现场的 offset/size，不存在长生命周期 view 对象的必要
-- shader 端的解释维度（CBV / structured-SRV / byteaddress-SRV / typed-SRV / UAV）由槽位的 `ResourceLayout` 决定，与 buffer 本身无关
-- 隐式转换让 `Write(0, vbo)`、`SetVertexBuffer(0, vbo, 0)` 这类常见单资源绑定保持一行
+约定：
+- 公共面不携带显式 aspect 标记，后端从 `Texture.Desc.Format` 推断 color / depth / stencil。
+- Cube face 继续通过 `ArrayLayer = cubeIndex * 6 + face` 线性化。
+- `BufferRange` 是唯一公共 buffer 子范围形态，不再恢复 `BufferView` 工厂。
 
 ---
 
-## 5. TextureView 重构（Format / ViewType）
+## 4. TextureView 继续作为长生命周期资源
 
-需求：`TextureView` 重新定位为**调用现场值**，5 元组 → 4 元组（去掉 swizzle），加入 `Format` / `ViewType` 用于格式族重解释与维度切换。
+需求：`TextureView` 保持为独立持有的资源对象。旧草案里“仅作为调用现场值”的方向已经不再符合当前绑定模型和扩展层用法。
 
 ```csharp
-public enum TextureViewType
-{
-    Texture1D,
-    Texture2D,
-    Texture3D,
-    TextureCube,
-    Texture1DArray,
-    Texture2DArray,
-    TextureCubeArray
-}
-
-public record struct TextureView
+public record struct TextureViewDesc
 {
     public Texture Texture;
 
+    public TextureType Type;
+
+    public PixelFormat Format;
+
     public TextureSubresourceRange Range;
-
-    /// <summary><c>null</c> 表示按 <c>Texture.Desc</c> + <c>Range</c> 推导。</summary>
-    public TextureViewType? ViewType;
-
-    /// <summary><c>null</c> 表示沿用 <c>Texture.Desc.Format</c>；非 null 时按同一兼容族重解释。</summary>
-    public PixelFormat? Format;
-
-    public static implicit operator TextureView(Texture texture)
-    {
-        return new()
-        {
-            Texture = texture,
-            Range = texture,
-            ViewType = null,
-            Format = null
-        };
-    }
 }
-```
 
-- 对齐 VK `VkImageViewCreateInfo` 与 Metal `newTextureViewWithPixelFormat:textureType:levels:slices:` 的参数集
-- 后端按 `(Texture, Range, ViewType, Format)` 为 key 懒加载并缓存原生 view，纯实现细节
-- 通道 swizzle **不在公共面暴露**：单通道→灰度类约定在 shader 侧解决；BGRA ↔ RGBA 一类靠 `Format` 在同兼容族内重解释覆盖。如未来出现刚需，可作为可选 `ComponentMapping?` 字段加回，向后兼容
-- `Texture` 隐式转 `TextureView`（全范围、原 format、原维度）让常见单资源绑定一行写完
-
----
-
-## 6. Barrier — 1:1 同步原语
-
-需求：移除所有"隐式布局转换"。所有可见性 / 执行依赖 / 布局切换由调用方通过 `(stage, access)` 二元组显式声明，对齐 Metal 4 / VK 1.4 / DX12 Enhanced Barriers。
-
-```csharp
-[Flags]
-public enum BarrierStage : uint
+public abstract class TextureView(GraphicsContext context, TextureViewDesc desc) : GraphicsResource(context)
 {
-    None                       = 0,
-    All                        = ~0u,
-    Draw                       = 1u << 0,
-    VertexInput                = 1u << 1,
-    VertexShader               = 1u << 2,
-    PixelShader                = 1u << 3,
-    EarlyDepthStencil          = 1u << 4,
-    LateDepthStencil           = 1u << 5,
-    RenderTarget               = 1u << 6,
-    ComputeShader              = 1u << 7,
-    RayTracing                 = 1u << 8,
-    Copy                       = 1u << 9,
-    Resolve                    = 1u << 10,
-    IndirectArgument           = 1u << 11,
-    AccelerationStructureBuild = 1u << 12,
+    public ref readonly TextureViewDesc Desc => ref desc;
 }
-
-[Flags]
-public enum BarrierAccess : uint
-{
-    None                       = 0,
-    VertexBuffer               = 1u << 0,
-    IndexBuffer                = 1u << 1,
-    ConstantBuffer             = 1u << 2,
-    ShaderRead                 = 1u << 3,
-    UnorderedAccessRead        = 1u << 4,
-    UnorderedAccessWrite       = 1u << 5,
-    RenderTarget               = 1u << 6,
-    DepthStencilRead           = 1u << 7,
-    DepthStencilWrite          = 1u << 8,
-    CopySource                 = 1u << 9,
-    CopyDestination            = 1u << 10,
-    ResolveSource              = 1u << 11,
-    ResolveDestination         = 1u << 12,
-    IndirectArgument           = 1u << 13,
-    Present                    = 1u << 14,
-    AccelerationStructureRead  = 1u << 15,
-    AccelerationStructureWrite = 1u << 16,
-}
-```
-
-CommandBuffer 上的 barrier 入口三种形态：
-
-```csharp
-public void Barrier(BarrierStage afterStages, BarrierAccess afterAccess,
-                    BarrierStage beforeStages, BarrierAccess beforeAccess);
-
-public void BufferBarrier(BufferRange range,
-                          BarrierStage afterStages, BarrierAccess afterAccess,
-                          BarrierStage beforeStages, BarrierAccess beforeAccess);
-
-public void TextureBarrier(TextureView view,
-                           BarrierStage afterStages, BarrierAccess afterAccess,
-                           BarrierStage beforeStages, BarrierAccess beforeAccess);
 ```
 
 设计要点：
-- `BarrierStage` 描述访问发生在管线**何处**（when）；`BarrierAccess` 描述访问的**性质**（what）。两者对齐 Metal 4 `MTL4RenderStages` + `MTL4VisibilityOptions`、VK 1.4 `VkPipelineStageFlags2` + `VkAccessFlags2`、DX12 `D3D12_BARRIER_SYNC` + `D3D12_BARRIER_ACCESS`
-- 三种形态参数序一致：`(afterStages, afterAccess) → (beforeStages, beforeAccess)`
-- texture image-layout：完全在后端内部维护，由 `BarrierAccess` + RenderPass attachment 元数据推导。公共面无 layout 枚举
-- 公共面**没有**全局内存屏障的"快捷形式"以外的简化入口；调用方必须显式给出 stage + access
-- 队列内部的"同 stage 同资源连续访问"由后端折叠为 noop，不强求调用方手动去重
+- `GraphicsContext.CreateTextureView(...)` 继续保留在公共面上。
+- 直接绑定 `Texture` 仍然是默认的整资源路径。
+- 绑定 `TextureView` 只用于显式子资源、维度切换或格式重解释。
+- 这与当前 `ImGui` 渲染器一致：它会长期持有 view 对象，并通过 `ResourceTable` 绑定。
+- 后端内部可以让 `Texture` 自带默认 native view，但显式 `TextureView` 仍然是公共逃生口。
 
 ---
 
-## 7. 删除 FrameBuffer — 内联 RenderPass + SwapChain 公开当前目标
+## 5. 平铺绑定模型：`ResourceBinding[]` + `ResourceTable`
 
-需求：移除 `FrameBuffer` / `RenderPassInfo` 等长生命周期对象。RenderPass 以 `BeginRenderPass` / `EndRenderPass` 内联表达；`SwapChain` 直接暴露 `CurrentColorTarget` / `CurrentDepthStencilTarget`，使 backbuffer 与普通 `Texture` 同形。
+需求：绑定模型保持扁平且具体：`ResourceBinding[]` 描述槽位，`ResourceTable` 保存资源值，`Write(...)` 继续按资源种类分类型重载。
 
 ```csharp
-public enum LoadAction
+public enum ResourceType
 {
-    Load,
-    Clear,
-    DontCare
+    ConstantBuffer,
+    StructuredBuffer,
+    StructuredBufferReadWrite,
+    Texture,
+    TextureReadWrite,
+    Sampler,
+    AccelerationStructure
 }
 
-public enum StoreAction
+public record struct ResourceBinding
 {
-    Store,
-    DontCare,
-    Resolve
+    public ResourceType Type;
+
+    public uint Count;
+}
+
+public record struct ResourceTableDesc
+{
+    public ResourceBinding[] Bindings;
+}
+
+public abstract class ResourceTable(GraphicsContext context, ResourceTableDesc desc) : GraphicsResource(context)
+{
+    public ref readonly ResourceTableDesc Desc => ref desc;
+
+    public abstract void Write(uint binding, Buffer buffer);
+
+    public abstract void Write(uint binding, BufferRange bufferRange);
+
+    public abstract void Write(uint binding, Texture texture);
+
+    public abstract void Write(uint binding, TextureView textureView);
+
+    public abstract void Write(uint binding, Sampler sampler);
+
+    public abstract void Write(uint binding, TopLevelAccelerationStructure topLevelAccelerationStructure);
+
+    public abstract void Write(uint binding, ReadOnlySpan<Buffer> buffers);
+
+    public abstract void Write(uint binding, ReadOnlySpan<BufferRange> bufferRanges);
+
+    public abstract void Write(uint binding, ReadOnlySpan<Texture> textures);
+
+    public abstract void Write(uint binding, ReadOnlySpan<TextureView> textureViews);
+
+    public abstract void Write(uint binding, ReadOnlySpan<Sampler> samplers);
+
+    public abstract void Write(uint binding, ReadOnlySpan<TopLevelAccelerationStructure> topLevelAccelerationStructures);
+}
+```
+
+CommandBuffer 侧入口继续保持简洁：
+
+```csharp
+public void SetPipeline(GraphicsPipeline pipeline);
+
+public void SetPipeline(ComputePipeline pipeline);
+
+public void SetPipeline(MeshShadingPipeline pipeline);
+
+public void PushResourceTable(ResourceTable resourceTable);
+```
+
+设计要点：
+- 没有单独的 `ResourceLayout` 对象。
+- 没有 `IBindableResource` 多态入口。
+- Pipeline 描述里的 `ResourceBindings` 与 `ResourceTableDesc` 里的 `Bindings` 故意保持同一扁平形状。
+- `Texture` 与 `TextureView` 都继续是一等写入目标，因为“默认整资源绑定”和“显式 view 绑定”在当前代码里都是真实存在的需求。
+- 先完成所有 `Write(...)`，再调用 `PushResourceTable(...)`；后端在 push 时按当前 pipeline 绑定这张表的当前内容。
+- 该模型可以自然映射到 DX12 descriptor table、Vulkan push descriptor，以及 Metal encoder 侧的资源表绑定。
+
+---
+
+## 6. 内联 RenderPass、Output、SwapChain 目标与 Views 集成
+
+需求：render target 继续保持内联表达，Views 层继续保持“渲染到一个 `Texture target`”的契约。
+
+```csharp
+public record struct Output
+{
+    public PixelFormat[] ColorAttachments;
+
+    public PixelFormat? DepthStencilAttachment;
+
+    public SampleCount SampleCount;
 }
 
 public record struct ColorAttachment
@@ -491,204 +416,310 @@ public record struct DepthStencilAttachment
     public byte ClearStencil;
 }
 
-// CommandBuffer
-public void BeginRenderPass(ReadOnlySpan<ColorAttachment> colorAttachments,
-                            DepthStencilAttachment? depthStencilAttachment);
-
-public void EndRenderPass();
-```
-
-```csharp
 public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : GraphicsResource(context)
 {
-    private SwapChainDesc desc = desc;
-
     public ref readonly SwapChainDesc Desc => ref desc;
-
-    public abstract uint Width { get; }
-
-    public abstract uint Height { get; }
 
     public abstract Texture CurrentColorTarget { get; }
 
     public abstract Texture? CurrentDepthStencilTarget { get; }
 
-    /// <summary>
-    /// 在 GraphicsQueue 上提交 present，等待 <paramref name="waits"/>；
-    /// 返回的 <see cref="CommandSubmission"/> 表示下一张 backbuffer 可写。
-    /// </summary>
-    public abstract CommandSubmission Present(params ReadOnlySpan<CommandSubmission> waits);
-
     public void Resize(uint width, uint height);
 
     public void Refresh(Surface surface);
 }
-```
 
-设计要点：
-- backbuffer 以普通 `Texture` 公开（颜色 + 可选深度模板）；它们既能进 `BeginRenderPass`，也能进 `TextureBarrier` / `CopyTexture` / `Write(...)`
-- `BeginRenderPass` 接受 attachment span，无深度时显式传 `null`；按 attachment 尺寸自动填默认 `SetViewports` / `SetScissors`，调用方可在其后再调一次覆盖
-- `Present(...)` 与 `Submit(...)` 形态对称：吃 waits、产 `CommandSubmission`
-- 当前 image index、acquire / present 同步原语都是后端内部事务
-
----
-
-## 8. ResourceTable 多重载 + 删除 IBindableResource
-
-需求：`ResourceTable.Write` 直接按资源类型重载（`BufferRange` / `TextureView` / `Sampler`），不再走 `IBindableResource` 多态入口。
-
-```csharp
-public abstract class ResourceTable(GraphicsContext context, ResourceLayout layout) : GraphicsResource(context)
+public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
 {
-    public ResourceLayout Layout { get; } = layout;
+    public void BeginRenderPass(ReadOnlySpan<ColorAttachment> colorAttachments, DepthStencilAttachment? depthStencilAttachment);
 
-    public void Write(uint binding, BufferRange range);
+    public void EndRenderPass();
 
-    public void Write(uint binding, TextureView view);
+    public void SetScissors(ReadOnlySpan<Scissor> scissors);
 
-    public void Write(uint binding, Sampler sampler);
-
-    public void Write(uint binding, ReadOnlySpan<BufferRange> ranges);
-
-    public void Write(uint binding, ReadOnlySpan<TextureView> views);
-
-    public void Write(uint binding, ReadOnlySpan<Sampler> samplers);
-
-    protected abstract void WriteCore(uint binding, ReadOnlySpan<BufferRange> ranges);
-
-    protected abstract void WriteCore(uint binding, ReadOnlySpan<TextureView> views);
-
-    protected abstract void WriteCore(uint binding, ReadOnlySpan<Sampler> samplers);
+    public void SetViewports(ReadOnlySpan<Viewport> viewports);
 }
 ```
 
-CommandBuffer 上对应入口：
-
-```csharp
-public void SetPipeline(Pipeline pipeline);
-
-public void PushResourceTable(ResourceTable table);
-```
-
 设计要点：
-- `Buffer` / `Texture` 经 §4 / §5 的隐式转换让单资源绑定一行写完：`table.Write(0, vbo)` / `table.Write(1, tex)`
-- buffer 解释（CBV / SRV-structured / SRV-byteaddress / UAV / typed）由槽位的 `ResourceLayout` 决定，与传入的 `BufferRange` 无关
-- 每个 pipeline 仅支持一张 table（对齐 Metal 4 argument-table 模型）
-- `PushResourceTable` 不接受 stages 参数：stages 信息由 layout 在每个 binding 上自带
-- **Push-snapshot 语义**：`PushResourceTable` 在调用现场把 `table` 的当前内容快照进 cmd buffer；之后对该 `table` 的 `Write` 不影响已 push 的绑定，所以同一个 `ResourceTable` 可以在帧内反复 `Write` + `Push`
-- 校验：UAV 槽位要求资源声明对应 `UnorderedAccess` 能力位，shape / layout / 格式族不匹配在 `Write` 时报错
-
-为什么不用 `IBindableResource`：
-- 三种资源在原生 API 上的写入路径完全不同（descriptor / argument buffer slot / sampler heap），多态接口反而需要在运行时 dispatch
-- 重载形式让编译期就能选中正确的 `Write` 路径，避免装箱与运行时 type test
-- 隐式转换 `Buffer → BufferRange` / `Texture → TextureView` 已经覆盖"我就想直接传句柄"的便利性
+- 不恢复 `FrameBuffer` 对象。
+- `Output` 继续挂在 pipeline 描述上，负责描述附件兼容性，而不是承载运行时 render target 对象。
+- `BeginRenderPass(...)` 会先按附件尺寸写入默认 scissors / viewports，调用方后续仍可覆盖。
+- `SwapChain.CurrentColorTarget` 与 `CurrentDepthStencilTarget` 按普通 `Texture` 使用。
+- `RenderEventArgs` 继续以 `Texture` 为中心：view 代码把 target texture 交给用户渲染，而不是把平台 swapchain 细节泄漏进回调。
+- 当前仓库里已经存在两类 view 路径。
+- `WinForms` / `WPF` / `WinUI` 风格 view 直接渲染到 swapchain 支撑的 target。
+- `Avalonia` 风格 view 渲染到离屏 target，并通过 `Texture.Download(...)` 完成 present。
 
 ---
 
-## 9. INativeObject — 原生句柄统一入口
+## 7. 显式 Texture Layout 转换 + 轻量 `PipelineBarrier`
 
-需求：所有持有原生对象的公共类型实现 `INativeObject`，通过 `GetNativeObject(NativeObjectType)` 暴露后端句柄；公共面不挂任何平台条件属性。
+需求：补上缺失的显式 texture layout 转换接口，以及一个最小化的、面向读写 shader hazard 的 pipeline barrier；不再把旧的完整 `(stage, access)` 矩阵搬回公共面。
+
+```csharp
+public enum TextureLayout
+{
+    Undefined,
+    Common,
+    ShaderResource,
+    UnorderedAccess,
+    RenderTarget,
+    DepthStencilRead,
+    DepthStencilWrite,
+    CopySource,
+    CopyDestination,
+    ResolveSource,
+    ResolveDestination,
+    Present
+}
+
+public record struct TextureTransition
+{
+    public Texture Texture;
+
+    public TextureSubresourceRange Range;
+
+    public TextureLayout Before;
+
+    public TextureLayout After;
+}
+
+public enum PipelineBarrierScope
+{
+    All,
+    Draw,
+    Compute,
+    MeshShading,
+    RayTracing,
+    Copy,
+    AccelerationStructureBuild
+}
+
+public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
+{
+    public void Transition(Texture texture, TextureSubresourceRange range, TextureLayout before, TextureLayout after);
+
+    public void Transition(TextureView textureView, TextureLayout before, TextureLayout after);
+
+    public void Transition(ReadOnlySpan<TextureTransition> transitions);
+
+    public void PipelineBarrier(PipelineBarrierScope before, PipelineBarrierScope after);
+}
+```
+
+设计要点：
+- `Transition(...)` 是显式 texture 状态 / layout 接口。Copy、采样、RenderPass、Present 流程里不再保留隐式 layout 变化。
+- `TextureView` 重载复用 `textureView.Desc.Range`；`textureView.Desc.Format` 不参与 layout 选择。
+- `PipelineBarrier(...)` 是故意做小的 UAV 风格顺序原语，用于“dispatch A 写 `RWTexture` / `RWBuffer`，dispatch B 又访问它”这类场景。它不改变 layout，也不跨 queue。
+- 本轮不增加公共 `BufferBarrier`。Buffer 的 copy / bind 顺序继续遵从命令语义，显式用户同步仅保留给 layout 转换和 shader 读写 hazard 隔离。
+- 后端映射很直接：
+- DX12：resource state transition + UAV barrier
+- Vulkan：image memory barrier + 轻量 memory barrier
+- Metal：texture usage-state transition + encoder memory barrier / fence
+
+---
+
+## 8. 基于时间线的跨 Queue 同步
+
+需求：加入规范化的时间线提交模型，同时不删除当前已经在用的便利包装。
+
+```csharp
+public enum CommandQueueType
+{
+    Graphics,
+    Compute,
+    Copy
+}
+
+public readonly record struct CommandSubmission(CommandQueue? Queue, ulong Value)
+{
+    public bool IsEmpty => Queue is null;
+
+    public void Wait()
+    {
+        Queue?.Wait(Value);
+    }
+}
+
+public abstract class CommandQueue(GraphicsContext context, CommandQueueType type) : GraphicsResource(context)
+{
+    public CommandQueueType Type { get; } = type;
+
+    public CommandBuffer CommandBuffer();
+
+    public void WaitIdle();
+
+    public void Wait(ulong value);
+
+    public abstract ulong GetCompletedValue();
+}
+
+public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
+{
+    public CommandQueue Queue { get; } = queue;
+
+    public CommandSubmission Submit(params ReadOnlySpan<CommandSubmission> waits);
+
+    public void Submit(bool waitForCompletion = false);
+}
+
+public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : GraphicsResource(context)
+{
+    public abstract CommandSubmission Present(params ReadOnlySpan<CommandSubmission> waits);
+
+    public abstract void Present();
+}
+```
+
+设计要点：
+- 时间线路径是规范低层模型：`Submit(waits)` 与 `Present(waits)` 都返回一个 `CommandSubmission`。
+- `Submit(bool waitForCompletion = false)` 与无参 `Present()` 继续保留，服务当前 `Extensions` 与 `Views` 中已经存在的单 queue、单帧循环用法。
+- 每条 queue 持有一条单调递增完成时间线。
+- `default` / 空 `CommandSubmission` 会在等待集里被忽略。
+- `Present(waits)` 返回“当前呈现 backbuffer 重新可写”的那个时间线点。
+- 后端映射直接对应各 API 的自然原语：
+- DX12：每条 queue 一条 `ID3D12Fence`
+- Vulkan：每条 queue 一条 timeline `VkSemaphore`
+- Metal 4：每条 queue 一条 `MTLSharedEvent`
+
+---
+
+## 9. 统一 Native Handle 与完整 `NativeObjectType`
+
+需求：所有封装 native 对象的公共类型继续统一走 `INativeObject`，而 `NativeObjectType` 则按稳定 native 角色补齐，不再依赖后端特化 cast helper。
 
 ```csharp
 public enum NativeObjectType
 {
-    // DirectX 12
+    // DirectX 12 / DXGI
     DxgiFactory,
     DxgiAdapter,
+    DxgiSwapChain,
     D3D12Device,
     D3D12CommandQueue,
+    D3D12Fence,
     D3D12GraphicsCommandList,
+    D3D12PipelineState,
+    D3D12RootSignature,
     D3D12Resource,
-    D3D12CpuDescriptorHandleSampler,
+    D3D12DescriptorHeap,
     D3D12CpuDescriptorHandleRtv,
     D3D12CpuDescriptorHandleDsv,
     D3D12CpuDescriptorHandleSrv,
     D3D12CpuDescriptorHandleUav,
+    D3D12CpuDescriptorHandleSampler,
+    D3D12QueryHeap,
 
-    // Metal 4
+    // Metal / Metal 4
     MtlDevice,
     Mtl4CommandQueue,
     Mtl4CommandBuffer,
+    MtlSharedEvent,
     MtlTexture,
     MtlBuffer,
     MtlSamplerState,
+    MtlRenderPipelineState,
+    MtlComputePipelineState,
+    MtlDepthStencilState,
+    MtlHeap,
+    MtlAccelerationStructure,
+    CaMetalLayer,
+    CaMetalDrawable,
 
     // Vulkan
     VkInstance,
     VkPhysicalDevice,
+    VkSurfaceKHR,
+    VkSwapchainKHR,
     VkDevice,
     VkQueue,
     VkQueueFamilyIndex,
+    VkSemaphore,
     VkCommandBuffer,
+    VkPipeline,
+    VkPipelineLayout,
+    VkShaderModule,
     VkImage,
     VkImageView,
     VkBuffer,
-    VkSampler
+    VkSampler,
+    VkDescriptorSet,
+    VkQueryPool,
+    VkAccelerationStructureKHR
 }
 
 public interface INativeObject
 {
-    /// <summary>枚举不匹配本对象 / 当前后端时返回 0。</summary>
+    /// <summary>当请求的 native 角色与当前对象或当前后端不匹配时，返回 0。</summary>
     nint GetNativeObject(NativeObjectType type);
 }
-
-public abstract class GraphicsContext : DisposableObject, INativeObject
-{
-    public abstract nint GetNativeObject(NativeObjectType type);
-}
-
-// GraphicsResource 已在 §0.3 实现 INativeObject
 ```
 
 设计要点：
-- 命名沿用各原生 API 既有前缀：DX12 体系按 `Dxgi` / `D3D12` 区分；Metal 4 与旧 Metal 共存时用 `Mtl` / `Mtl4` 区分；Vulkan 一律 `Vk`
-- `D3D12CpuDescriptorHandle*` 按 view 类型拆开，避免单入口语义模糊
-- 非句柄的标量信息（如 `VkQueueFamilyIndex`）也走同一入口，以 `nint` 承载 `uint`
-- 所有 `GraphicsResource` 子类一律实现该接口；不感兴趣的子类对所有类型返回 0
-- 取该接口的代码必须自己处理"返回 0"的退化路径，公共面不抛异常
+- 该枚举围绕稳定的 native 角色组织，能够自然映射到当前 Zenith 的对象类别。
+- 一个公共对象可以暴露多个 native 角色。例如 DX12 pipeline 可以同时暴露 `D3D12PipelineState` 与 `D3D12RootSignature`。
+- 多个 Zenith 对象类别也可以复用同一个 native 角色。例如 DX12 buffer、texture、acceleration structure 都可通过 `D3D12Resource` 暴露。
+- `VkQueueFamilyIndex` 这类非指针标量也继续通过同一个 `nint` 入口承载。
+- `GetNativeObject(...)` 不增加引用计数，也不转移所有权；返回句柄只在 Zenith 对象存活期间有效。
+- 返回 `0` 是唯一退化路径，不支持的组合不抛异常。
 
 ---
 
-## 附录 A：典型帧循环（综合 §2 / §6 / §7）
+## 附录 A：当前 Upload 路径
 
 ```csharp
-CommandSubmission imageReady = default;
+CommandBuffer commandBuffer = context.Copy.CommandBuffer();
 
-while (running)
-{
-    CommandBuffer cmd = ctx.Graphics.CommandBuffer();
+commandBuffer.Upload(texture,
+                     default,
+                     default,
+                     new() { Width = width, Height = height, Depth = 1 },
+                     new()
+                     {
+                         Pointer = pixels,
+                         Layout = new()
+                         {
+                             SizeInBytes = sizeInBytes,
+                             RowPitchInBytes = rowPitchInBytes,
+                             SlicePitchInBytes = slicePitchInBytes
+                         }
+                     });
 
-    ReadOnlySpan<ColorAttachment> colors =
-    [
-        new()
-        {
-            Texture = swapChain.CurrentColorTarget,
-            Subresource = new() { MipLevel = 0, ArrayLayer = 0 },
-            LoadAction = LoadAction.Clear,
-            StoreAction = StoreAction.Store,
-            ClearColor = new(0, 0, 0, 1)
-        }
-    ];
-
-    DepthStencilAttachment? depth = swapChain.CurrentDepthStencilTarget is { } ds
-        ? new()
-        {
-            Texture = ds,
-            Subresource = new(),
-            DepthLoadAction = LoadAction.Clear,
-            DepthStoreAction = StoreAction.DontCare,
-            ClearDepth = 1.0f
-        }
-        : null;
-
-    cmd.BeginRenderPass(colors, depth);
-    // draws
-    cmd.EndRenderPass();
-
-    CommandSubmission frame = cmd.Submit(imageReady);
-
-    imageReady = swapChain.Present(frame);
-}
+commandBuffer.Submit(true);
 ```
 
-每一步形态一致：拿一组 `CommandSubmission` waits，返回一个 `CommandSubmission`。`Submit` 与 `Present` 在 API 表面对称。
+这与当前 `ImageSharp` 扩展，以及当前离屏 view 的 present 路径一致。
+
+## 附录 B：当前绑定路径
+
+```csharp
+ResourceBinding[] bindings =
+[
+    new() { Type = ResourceType.ConstantBuffer, Count = 1 },
+    new() { Type = ResourceType.Texture, Count = 1 },
+    new() { Type = ResourceType.Sampler, Count = 1 }
+];
+
+ResourceTable table = context.CreateResourceTable(new() { Bindings = bindings });
+table.Write(0, constants);
+table.Write(1, textureView);
+table.Write(2, sampler);
+
+commandBuffer.SetPipeline(pipeline);
+commandBuffer.PushResourceTable(table);
+```
+
+这与当前 `ImGui` 扩展一致：长期持有 `ResourceTable`，显式 `Write(...)`，然后在当前 pipeline 下 `PushResourceTable(...)`。
+
+## 附录 C：时间线形状的多 Queue 流程
+
+```csharp
+CommandSubmission copyDone = copyCommandBuffer.Submit();
+
+CommandSubmission graphicsDone = graphicsCommandBuffer.Submit(copyDone);
+
+CommandSubmission presentDone = swapChain.Present(graphicsDone);
+```
+
+现有 `Submit(true)` / `Present()` 的便利调用在简单单 queue 路径下仍然有效；只有当工作跨 queue 或跨帧传播时，`CommandSubmission` 才成为必需。
