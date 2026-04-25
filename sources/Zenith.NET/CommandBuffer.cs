@@ -88,6 +88,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         accelerationStructure.Refresh(newDesc);
     }
 
+    public void Transition(Texture texture, TextureSubresource subresource, TextureLayout layout)
+    {
+        throw new NotImplementedException();
+    }
+
     public void BeginRenderPass(ReadOnlySpan<ColorAttachment> colorAttachments, DepthStencilAttachment? depthStencilAttachment)
     {
         Span<Scissor> scissors = stackalloc Scissor[8];
