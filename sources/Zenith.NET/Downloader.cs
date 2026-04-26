@@ -67,6 +67,7 @@ internal class Downloader(GraphicsContext context) : DisposableObject
     private class Lease(Buffer buffer)
     {
         private DateTime expirationTime = DateTime.UtcNow + TimeSpan.FromSeconds(120);
+
         private nint pointer;
         private uint sizeInBytes;
 
@@ -114,6 +115,9 @@ internal class Downloader(GraphicsContext context) : DisposableObject
         public Lease Renew()
         {
             expirationTime = DateTime.UtcNow + TimeSpan.FromSeconds(120);
+
+            pointer = nint.Zero;
+            sizeInBytes = 0;
 
             return this;
         }
