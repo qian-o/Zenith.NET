@@ -26,6 +26,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         MemoryBarrierImpl(buffer);
     }
 
+    public void Transition(Texture texture, TextureSubresource subresource, TextureLayout layout)
+    {
+        TransitionImpl(texture, subresource, layout);
+    }
+
     public void Upload(Buffer buffer, uint offsetInBytes, BufferData data)
     {
         Buffer temporary = Context.Uploader.Buffer(this, data.SizeInBytes);
@@ -98,11 +103,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         UpdateAccelerationStructureImpl(accelerationStructure, newDesc);
 
         accelerationStructure.Refresh(newDesc);
-    }
-
-    public void Transition(Texture texture, TextureSubresource subresource, TextureLayout layout)
-    {
-        throw new NotImplementedException();
     }
 
     public void BeginRenderPass(ReadOnlySpan<ColorAttachment> colorAttachments, DepthStencilAttachment? depthStencilAttachment)
@@ -377,6 +377,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     protected abstract void MemoryBarrierImpl(Texture texture);
 
     protected abstract void MemoryBarrierImpl(Buffer buffer);
+
+    protected abstract void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout layout);
 
     protected abstract void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes);
 
