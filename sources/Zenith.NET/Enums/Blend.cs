@@ -6,14 +6,6 @@ public enum Blend
 
     One,
 
-    SrcAlpha,
-
-    InverseSrcAlpha,
-
-    DestAlpha,
-
-    InverseDestAlpha,
-
     SrcColor,
 
     InverseSrcColor,
@@ -21,6 +13,14 @@ public enum Blend
     DestColor,
 
     InverseDestColor,
+
+    SrcAlpha,
+
+    InverseSrcAlpha,
+
+    DestAlpha,
+
+    InverseDestAlpha,
 
     BlendFactor,
 

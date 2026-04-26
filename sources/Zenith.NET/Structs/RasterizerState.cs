@@ -2,9 +2,9 @@
 
 public record struct RasterizerState
 {
-    public CullMode CullMode;
-
     public FillMode FillMode;
+
+    public CullMode CullMode;
 
     public FrontFace FrontFace;
 

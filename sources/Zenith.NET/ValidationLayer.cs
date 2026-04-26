@@ -263,6 +263,11 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     internal void ValidateDesc(SamplerDesc desc)
     {
+        if (!Enum.IsDefined(desc.Filter))
+        {
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "SamplerDesc.Filter", desc.Filter));
+        }
+
         if (!Enum.IsDefined(desc.U))
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "SamplerDesc.U", desc.U));
@@ -278,9 +283,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "SamplerDesc.W", desc.W));
         }
 
-        if (!Enum.IsDefined(desc.Filter))
+        if (!Enum.IsDefined(desc.ComparisonFunc))
         {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "SamplerDesc.Filter", desc.Filter));
+            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "SamplerDesc.ComparisonFunc", desc.ComparisonFunc));
         }
 
         if (desc.Filter is Filter.Anisotropic && desc.MaxAnisotropy is 0)
@@ -291,11 +296,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         if (desc.MaxAnisotropy > ValidationConstants.MaxAnisotropy)
         {
             ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.MustBeLessThanOrEqualTo, "SamplerDesc.MaxAnisotropy", ValidationConstants.MaxAnisotropy));
-        }
-
-        if (!Enum.IsDefined(desc.ComparisonFunc))
-        {
-            ReportFrameworkMessage(MessageSeverity.Error, string.Format(ValidationMessages.HasInvalidValue, "SamplerDesc.ComparisonFunc", desc.ComparisonFunc));
         }
 
         if (desc.MinLod > desc.MaxLod)

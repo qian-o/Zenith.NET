@@ -4,8 +4,8 @@ public static class RasterizerStates
 {
     public static readonly RasterizerState Default = new()
     {
-        CullMode = CullMode.None,
         FillMode = FillMode.Solid,
+        CullMode = CullMode.None,
         FrontFace = FrontFace.CounterClockwise,
         DepthBias = 0,
         DepthBiasClamp = 0.0f,
@@ -31,19 +31,19 @@ public static class RasterizerStates
 
     public static readonly RasterizerState WireframeCullFront = Default with
     {
-        CullMode = CullMode.Front,
-        FillMode = FillMode.Wireframe
+        FillMode = FillMode.Wireframe,
+        CullMode = CullMode.Front
     };
 
     public static readonly RasterizerState WireframeCullBack = Default with
     {
-        CullMode = CullMode.Back,
-        FillMode = FillMode.Wireframe
+        FillMode = FillMode.Wireframe,
+        CullMode = CullMode.Back
     };
 
     public static readonly RasterizerState Wireframe = Default with
     {
-        CullMode = CullMode.None,
-        FillMode = FillMode.Wireframe
+        FillMode = FillMode.Wireframe,
+        CullMode = CullMode.None
     };
 }
