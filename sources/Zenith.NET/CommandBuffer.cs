@@ -41,7 +41,9 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Download(Buffer buffer, uint offsetInBytes, BufferData data)
     {
-        throw new NotImplementedException();
+        Buffer temporary = Context.Downloader.Buffer(this, data.Pointer, data.SizeInBytes);
+
+        CopyBuffer(buffer, offsetInBytes, temporary, 0, data.SizeInBytes);
     }
 
     public void Upload(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
@@ -54,7 +56,9 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Download(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {
-        throw new NotImplementedException();
+        Buffer temporary = Context.Downloader.Buffer(this, data.Pointer, data.Layout.SizeInBytes);
+
+        CopyTextureToBuffer(texture, subresource, offset, extent, temporary, 0, data.Layout);
     }
 
     public void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes)
@@ -361,6 +365,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         ResetImpl();
 
         Context.Uploader.Release(this);
+        Context.Downloader.Release(this);
 
         currentPipeline = null;
     }
@@ -368,6 +373,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     protected override void Destroy()
     {
         Context.Uploader.Release(this);
+        Context.Downloader.Release(this);
 
         currentPipeline = null;
     }

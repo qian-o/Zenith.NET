@@ -22,6 +22,7 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
         ValidationLayer = validationLayer;
 
         Uploader = new(this);
+        Downloader = new(this);
     }
 
     public Backend Backend { get; }
@@ -37,6 +38,8 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
     internal ValidationLayer? ValidationLayer { get; }
 
     internal Uploader Uploader { get; }
+
+    internal Downloader Downloader { get; }
 
     public event EventHandler<ValidationMessageArgs>? ValidationMessage;
 
@@ -127,6 +130,7 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
         ValidationLayer?.Dispose();
 
         Uploader.Dispose();
+        Downloader.Dispose();
     }
 
     protected abstract void Initialize(bool useValidationLayer,

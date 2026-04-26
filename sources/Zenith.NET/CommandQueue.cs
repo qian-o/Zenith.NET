@@ -14,8 +14,6 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        Recycle();
-
         CommandBuffer commandBuffer = commandBuffers.Count is 0 ? CreateCommandBuffer() : commandBuffers.Dequeue();
 
         commandBuffer.Begin();
@@ -28,8 +26,6 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
         using Lock.Scope _ = @lock.EnterScope();
 
         commandBuffer.End();
-
-        Recycle();
 
         SubmitImpl(commandBuffer, waits, ++value);
 
@@ -45,7 +41,20 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
             return;
         }
 
+        using Lock.Scope _ = @lock.EnterScope();
+
         WaitImpl(value);
+
+        ulong completed = GetCompletedValue();
+
+        while (submitteds.TryPeek(out Submitted submitted) && submitted.Value <= completed)
+        {
+            submitteds.Dequeue();
+
+            submitted.CommandBuffer.Reset();
+
+            commandBuffers.Enqueue(submitted.CommandBuffer);
+        }
     }
 
     protected abstract ulong GetCompletedValue();
@@ -68,20 +77,6 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
         while (submitteds.TryDequeue(out Submitted submitted))
         {
             submitted.CommandBuffer.Dispose();
-        }
-    }
-
-    private void Recycle()
-    {
-        ulong completed = GetCompletedValue();
-
-        while (submitteds.TryPeek(out Submitted submitted) && submitted.Value <= completed)
-        {
-            submitteds.Dequeue();
-
-            submitted.CommandBuffer.Reset();
-
-            commandBuffers.Enqueue(submitted.CommandBuffer);
         }
     }
 
