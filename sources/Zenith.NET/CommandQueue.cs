@@ -3,8 +3,8 @@
 public abstract class CommandQueue(GraphicsContext context, CommandQueueType type) : GraphicsResource(context)
 {
     private readonly Lock @lock = new();
-    private readonly Queue<CommandBuffer> available = [];
-    private readonly Queue<InFlight> execution = [];
+    private readonly Queue<CommandBuffer> commandBuffers = [];
+    private readonly Queue<Submitted> submitteds = [];
 
     private ulong value;
 
@@ -16,7 +16,7 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
         Recycle();
 
-        CommandBuffer commandBuffer = available.Count is 0 ? CreateCommandBuffer() : available.Dequeue();
+        CommandBuffer commandBuffer = commandBuffers.Count is 0 ? CreateCommandBuffer() : commandBuffers.Dequeue();
 
         commandBuffer.Begin();
 
@@ -27,13 +27,13 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        Recycle();
-
         commandBuffer.End();
+
+        Recycle();
 
         SubmitImpl(commandBuffer, waits, ++value);
 
-        execution.Enqueue(new(commandBuffer, value));
+        submitteds.Enqueue(new(commandBuffer, value));
 
         return new(this, value);
     }
@@ -60,14 +60,14 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
     {
         Wait(value);
 
-        while (available.TryDequeue(out CommandBuffer? commandBuffer))
+        while (commandBuffers.TryDequeue(out CommandBuffer? commandBuffer))
         {
             commandBuffer.Dispose();
         }
 
-        while (execution.TryDequeue(out InFlight inFlight))
+        while (submitteds.TryDequeue(out Submitted submitted))
         {
-            inFlight.CommandBuffer.Dispose();
+            submitted.CommandBuffer.Dispose();
         }
     }
 
@@ -75,15 +75,15 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
     {
         ulong completed = GetCompletedValue();
 
-        while (execution.TryPeek(out InFlight inFlight) && inFlight.Value <= completed)
+        while (submitteds.TryPeek(out Submitted submitted) && submitted.Value <= completed)
         {
-            execution.Dequeue();
+            submitteds.Dequeue();
 
-            inFlight.CommandBuffer.Reset();
+            submitted.CommandBuffer.Reset();
 
-            available.Enqueue(inFlight.CommandBuffer);
+            commandBuffers.Enqueue(submitted.CommandBuffer);
         }
     }
 
-    private readonly record struct InFlight(CommandBuffer CommandBuffer, ulong Value);
+    private readonly record struct Submitted(CommandBuffer CommandBuffer, ulong Value);
 }
