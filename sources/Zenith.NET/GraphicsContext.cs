@@ -50,13 +50,6 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
         return CreateSwapChainImpl(desc);
     }
 
-    public Shader CreateShader(ShaderDesc desc)
-    {
-        ValidationLayer?.ValidateDesc(desc);
-
-        return CreateShaderImpl(desc);
-    }
-
     public Buffer CreateBuffer(BufferDesc desc)
     {
         ValidationLayer?.ValidateDesc(desc);
@@ -90,6 +83,13 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
         ValidationLayer?.ValidateDesc(desc);
 
         return CreateResourceTableImpl(desc);
+    }
+
+    public Shader CreateShader(ShaderDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
+
+        return CreateShaderImpl(desc);
     }
 
     public GraphicsPipeline CreateGraphicsPipeline(GraphicsPipelineDesc desc)
@@ -142,8 +142,6 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
 
     protected abstract SwapChain CreateSwapChainImpl(SwapChainDesc desc);
 
-    protected abstract Shader CreateShaderImpl(ShaderDesc desc);
-
     protected abstract Buffer CreateBufferImpl(BufferDesc desc);
 
     protected abstract Texture CreateTextureImpl(TextureDesc desc);
@@ -153,6 +151,8 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
     protected abstract Sampler CreateSamplerImpl(SamplerDesc desc);
 
     protected abstract ResourceTable CreateResourceTableImpl(ResourceTableDesc desc);
+
+    protected abstract Shader CreateShaderImpl(ShaderDesc desc);
 
     protected abstract GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc);
 
