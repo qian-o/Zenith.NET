@@ -41,7 +41,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Download(Buffer buffer, uint offsetInBytes, BufferData data)
     {
-        Buffer temporary = Context.Downloader.Buffer(this, data.Pointer, data.SizeInBytes);
+        Buffer temporary = Context.Downloader.Buffer(this, data);
 
         CopyBuffer(buffer, offsetInBytes, temporary, 0, data.SizeInBytes);
     }
@@ -56,7 +56,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Download(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {
-        Buffer temporary = Context.Downloader.Buffer(this, data.Pointer, data.Layout.SizeInBytes);
+        Buffer temporary = Context.Downloader.Buffer(this, new() { Pointer = data.Pointer, SizeInBytes = data.Layout.SizeInBytes });
 
         CopyTextureToBuffer(texture, subresource, offset, extent, temporary, 0, data.Layout);
     }
