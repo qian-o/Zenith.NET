@@ -14,7 +14,7 @@ public static class BlendStates
             SrcBlendAlpha = Blend.One,
             DestBlendAlpha = Blend.Zero,
             BlendOpAlpha = BlendOp.Add,
-            Flags = ColorComponentFlags.All
+            WriteMask = ColorWriteMask.All
         }
     };
 
@@ -67,7 +67,7 @@ public static class BlendStates
         RenderTarget0 = Default.RenderTarget0 with
         {
             BlendEnable = true,
-            Flags = ColorComponentFlags.None
+            WriteMask = ColorWriteMask.None
         }
     };
 }

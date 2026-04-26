@@ -321,26 +321,26 @@ internal static unsafe class MTLFormats
         };
     }
 
-    public static MTLColorWriteMask Metal(ColorComponentFlags colorComponentFlags)
+    public static MTLColorWriteMask Metal(ColorWriteMask writeMask)
     {
         MTLColorWriteMask result = MTLColorWriteMask.None;
 
-        if (colorComponentFlags.HasFlag(ColorComponentFlags.Red))
+        if (writeMask.HasFlag(ColorWriteMask.Red))
         {
             result |= MTLColorWriteMask.Red;
         }
 
-        if (colorComponentFlags.HasFlag(ColorComponentFlags.Green))
+        if (writeMask.HasFlag(ColorWriteMask.Green))
         {
             result |= MTLColorWriteMask.Green;
         }
 
-        if (colorComponentFlags.HasFlag(ColorComponentFlags.Blue))
+        if (writeMask.HasFlag(ColorWriteMask.Blue))
         {
             result |= MTLColorWriteMask.Blue;
         }
 
-        if (colorComponentFlags.HasFlag(ColorComponentFlags.Alpha))
+        if (writeMask.HasFlag(ColorWriteMask.Alpha))
         {
             result |= MTLColorWriteMask.Alpha;
         }

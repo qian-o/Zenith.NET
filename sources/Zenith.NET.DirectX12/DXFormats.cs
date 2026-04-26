@@ -380,26 +380,26 @@ internal static unsafe class DXFormats
         };
     }
 
-    public static ColorWriteEnable DirectX12(ColorComponentFlags colorComponentFlags)
+    public static ColorWriteEnable DirectX12(ColorWriteMask writeMask)
     {
         ColorWriteEnable result = ColorWriteEnable.None;
 
-        if (colorComponentFlags.HasFlag(ColorComponentFlags.Red))
+        if (writeMask.HasFlag(ColorWriteMask.Red))
         {
             result |= ColorWriteEnable.Red;
         }
 
-        if (colorComponentFlags.HasFlag(ColorComponentFlags.Green))
+        if (writeMask.HasFlag(ColorWriteMask.Green))
         {
             result |= ColorWriteEnable.Green;
         }
 
-        if (colorComponentFlags.HasFlag(ColorComponentFlags.Blue))
+        if (writeMask.HasFlag(ColorWriteMask.Blue))
         {
             result |= ColorWriteEnable.Blue;
         }
 
-        if (colorComponentFlags.HasFlag(ColorComponentFlags.Alpha))
+        if (writeMask.HasFlag(ColorWriteMask.Alpha))
         {
             result |= ColorWriteEnable.Alpha;
         }

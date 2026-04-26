@@ -16,5 +16,5 @@ public record struct BlendStateRenderTarget
 
     public BlendOp BlendOpAlpha;
 
-    public ColorComponentFlags Flags;
+    public ColorWriteMask WriteMask;
 }

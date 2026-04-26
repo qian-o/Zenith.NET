@@ -500,26 +500,26 @@ internal static unsafe class VKFormats
         };
     }
 
-    public static VkColorComponentFlags Vulkan(ColorComponentFlags colorComponentFlags)
+    public static VkColorComponentFlags Vulkan(ColorWriteMask writeMask)
     {
         VkColorComponentFlags result = VkColorComponentFlags.None;
 
-        if (colorComponentFlags.HasFlag(ColorComponentFlags.Red))
+        if (writeMask.HasFlag(ColorWriteMask.Red))
         {
             result |= VkColorComponentFlags.RBit;
         }
 
-        if (colorComponentFlags.HasFlag(ColorComponentFlags.Green))
+        if (writeMask.HasFlag(ColorWriteMask.Green))
         {
             result |= VkColorComponentFlags.GBit;
         }
 
-        if (colorComponentFlags.HasFlag(ColorComponentFlags.Blue))
+        if (writeMask.HasFlag(ColorWriteMask.Blue))
         {
             result |= VkColorComponentFlags.BBit;
         }
 
-        if (colorComponentFlags.HasFlag(ColorComponentFlags.Alpha))
+        if (writeMask.HasFlag(ColorWriteMask.Alpha))
         {
             result |= VkColorComponentFlags.ABit;
         }
