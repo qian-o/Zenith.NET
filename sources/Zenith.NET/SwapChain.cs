@@ -10,7 +10,9 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 
     public abstract Texture? CurrentDepthStencilTarget { get; }
 
-    public abstract void Present();
+    public abstract CommandSubmission Acquire();
+
+    public abstract CommandSubmission Present(params ReadOnlySpan<CommandSubmission> waits);
 
     public void Resize(uint width, uint height)
     {

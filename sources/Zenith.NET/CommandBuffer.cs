@@ -4,14 +4,26 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 {
     private Pipeline? currentPipeline;
 
-    public void Submit(bool waitForCompletion = false)
-    {
-        queue.Submit(this);
+    public CommandQueue Queue => queue;
 
-        if (waitForCompletion)
-        {
-            queue.WaitIdle();
-        }
+    public CommandSubmission Submit(params ReadOnlySpan<CommandSubmission> waits)
+    {
+        return queue.Submit(this, waits);
+    }
+
+    public void MemoryBarrier()
+    {
+        MemoryBarrierImpl();
+    }
+
+    public void MemoryBarrier(Texture texture)
+    {
+        MemoryBarrierImpl(texture);
+    }
+
+    public void MemoryBarrier(Buffer buffer)
+    {
+        MemoryBarrierImpl(buffer);
     }
 
     public void Upload(Buffer buffer, uint offsetInBytes, BufferData data)
@@ -359,6 +371,12 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         currentPipeline = null;
     }
+
+    protected abstract void MemoryBarrierImpl();
+
+    protected abstract void MemoryBarrierImpl(Texture texture);
+
+    protected abstract void MemoryBarrierImpl(Buffer buffer);
 
     protected abstract void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes);
 

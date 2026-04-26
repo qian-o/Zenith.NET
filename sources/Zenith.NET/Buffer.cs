@@ -28,7 +28,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
             CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
 
             commandBuffer.Upload(this, offsetInBytes, data);
-            commandBuffer.Submit(true);
+            commandBuffer.Submit().Wait();
         }
     }
 
@@ -50,7 +50,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
             CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
 
             commandBuffer.Download(this, offsetInBytes, data);
-            commandBuffer.Submit(true);
+            commandBuffer.Submit().Wait();
         }
     }
 }

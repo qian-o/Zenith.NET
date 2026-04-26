@@ -11,7 +11,7 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
         CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
 
         commandBuffer.Upload(this, subresource, offset, extent, data);
-        commandBuffer.Submit(true);
+        commandBuffer.Submit().Wait();
     }
 
     public void Download(TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
@@ -19,6 +19,6 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
         CommandBuffer commandBuffer = Context.Copy.CommandBuffer();
 
         commandBuffer.Download(this, subresource, offset, extent, data);
-        commandBuffer.Submit(true);
+        commandBuffer.Submit().Wait();
     }
 }
