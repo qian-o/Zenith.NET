@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public readonly record struct CommandSubmission(CommandQueue? Queue, ulong Value)
+public readonly record struct Submission(CommandQueue? Queue, ulong Value)
 {
     public void Wait()
     {

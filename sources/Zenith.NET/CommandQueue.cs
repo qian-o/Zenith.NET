@@ -4,7 +4,7 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 {
     private readonly Lock @lock = new();
     private readonly Queue<CommandBuffer> available = [];
-    private readonly Queue<PendingCommandBuffer> execution = [];
+    private readonly Queue<InFlight> execution = [];
 
     private ulong value;
 
@@ -23,7 +23,7 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
         return commandBuffer;
     }
 
-    internal CommandSubmission Submit(CommandBuffer commandBuffer, ReadOnlySpan<CommandSubmission> waits)
+    internal Submission Submit(CommandBuffer commandBuffer, ReadOnlySpan<Submission> waits)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
@@ -52,7 +52,7 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
     protected abstract CommandBuffer CreateCommandBuffer();
 
-    protected abstract void SubmitImpl(CommandBuffer commandBuffer, ReadOnlySpan<CommandSubmission> waits, ulong signalValue);
+    protected abstract void SubmitImpl(CommandBuffer commandBuffer, ReadOnlySpan<Submission> waits, ulong signalValue);
 
     protected abstract void WaitImpl(ulong value);
 
@@ -65,9 +65,9 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
             commandBuffer.Dispose();
         }
 
-        while (execution.TryDequeue(out PendingCommandBuffer pending))
+        while (execution.TryDequeue(out InFlight inFlight))
         {
-            pending.CommandBuffer.Dispose();
+            inFlight.CommandBuffer.Dispose();
         }
     }
 
@@ -75,15 +75,15 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
     {
         ulong completed = GetCompletedValue();
 
-        while (execution.TryPeek(out PendingCommandBuffer pending) && pending.Value <= completed)
+        while (execution.TryPeek(out InFlight inFlight) && inFlight.Value <= completed)
         {
             execution.Dequeue();
 
-            pending.CommandBuffer.Reset();
+            inFlight.CommandBuffer.Reset();
 
-            available.Enqueue(pending.CommandBuffer);
+            available.Enqueue(inFlight.CommandBuffer);
         }
     }
 
-    private readonly record struct PendingCommandBuffer(CommandBuffer CommandBuffer, ulong Value);
+    private readonly record struct InFlight(CommandBuffer CommandBuffer, ulong Value);
 }
