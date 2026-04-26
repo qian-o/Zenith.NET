@@ -23,7 +23,7 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
         return commandBuffer;
     }
 
-    internal Submission Submit(CommandBuffer commandBuffer, ReadOnlySpan<Submission> waits)
+    internal CommandSubmission Submit(CommandBuffer commandBuffer, ReadOnlySpan<CommandSubmission> waits)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
@@ -52,7 +52,7 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
     protected abstract CommandBuffer CreateCommandBuffer();
 
-    protected abstract void SubmitImpl(CommandBuffer commandBuffer, ReadOnlySpan<Submission> waits, ulong signalValue);
+    protected abstract void SubmitImpl(CommandBuffer commandBuffer, ReadOnlySpan<CommandSubmission> waits, ulong signalValue);
 
     protected abstract void WaitImpl(ulong value);
 
