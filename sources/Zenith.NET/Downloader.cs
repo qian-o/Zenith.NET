@@ -6,7 +6,7 @@ internal class Downloader(GraphicsContext context) : DisposableObject
     private readonly List<Lease> available = [];
     private readonly Dictionary<CommandBuffer, List<Lease>> borrowed = [];
 
-    public Buffer Buffer(CommandBuffer commandBuffer, nint destination, uint sizeInBytes)
+    public Buffer Buffer(CommandBuffer commandBuffer, nint pointer, uint sizeInBytes)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
@@ -25,7 +25,7 @@ internal class Downloader(GraphicsContext context) : DisposableObject
             }));
         }
 
-        leases.Add(lease.Borrow(destination, sizeInBytes));
+        leases.Add(lease.Borrow(pointer, sizeInBytes));
 
         return lease.Buffer;
     }
@@ -67,7 +67,7 @@ internal class Downloader(GraphicsContext context) : DisposableObject
     private class Lease(Buffer buffer)
     {
         private DateTime expirationTime = DateTime.UtcNow + TimeSpan.FromSeconds(120);
-        private nint destination;
+        private nint pointer;
         private uint sizeInBytes;
 
         public Buffer Buffer { get; } = buffer;
@@ -77,9 +77,9 @@ internal class Downloader(GraphicsContext context) : DisposableObject
             return Buffer.Desc.SizeInBytes >= sizeInBytes;
         }
 
-        public Lease Borrow(nint destination, uint sizeInBytes)
+        public Lease Borrow(nint pointer, uint sizeInBytes)
         {
-            this.destination = destination;
+            this.pointer = pointer;
             this.sizeInBytes = sizeInBytes;
 
             return this;
@@ -91,7 +91,7 @@ internal class Downloader(GraphicsContext context) : DisposableObject
 
             unsafe
             {
-                new ReadOnlySpan<byte>((void*)mappedMemory.Pointer, (int)sizeInBytes).CopyTo(new((void*)destination, (int)sizeInBytes));
+                new ReadOnlySpan<byte>((void*)mappedMemory.Pointer, (int)sizeInBytes).CopyTo(new((void*)pointer, (int)sizeInBytes));
             }
 
             Buffer.Unmap();
