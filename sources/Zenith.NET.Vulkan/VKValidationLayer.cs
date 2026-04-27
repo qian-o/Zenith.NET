@@ -47,7 +47,7 @@ internal unsafe class VKValidationLayer : ValidationLayer
         {
             DebugUtilsMessageSeverityFlagsEXT.ErrorBitExt => MessageSeverity.Error,
             DebugUtilsMessageSeverityFlagsEXT.WarningBitExt => MessageSeverity.Warning,
-            _ => MessageSeverity.Message
+            _ => MessageSeverity.Info
         }, ZenithMarshal.StringFromPointer((nint)pCallbackData->PMessage, StringEncoding.UTF8));
 
         return Vk.False;

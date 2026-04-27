@@ -17,7 +17,7 @@ internal unsafe class DXCapabilities : Capabilities
         FeatureDataD3D12Options7 options7 = new();
         context.Device.CheckFeatureSupport(Feature.D3D12Options7, &options7, (uint)sizeof(FeatureDataD3D12Options7)).Success();
 
-        DeviceName = ZenithMarshal.StringFromPointer((nint)desc.Description, StringEncoding.Uni);
+        DeviceName = ZenithMarshal.StringFromPointer((nint)desc.Description, StringEncoding.UTF16);
         RayTracingSupported = options5.RaytracingTier >= RaytracingTier.Tier11;
         MeshShadingSupported = options7.MeshShaderTier is not MeshShaderTier.TierNotSupported;
     }

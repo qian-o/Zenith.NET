@@ -31,7 +31,7 @@ internal unsafe class DXValidationLayer : ValidationLayer
         {
             DxMessageSeverity.Error => MessageSeverity.Error,
             DxMessageSeverity.Warning => MessageSeverity.Warning,
-            _ => MessageSeverity.Message
+            _ => MessageSeverity.Info
         }, ZenithMarshal.StringFromPointer((nint)pDescription, StringEncoding.UTF8));
     }
 }
