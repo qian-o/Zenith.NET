@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public enum ComparisonFunc
+public enum CompareFunction
 {
     Never,
 

@@ -18,5 +18,5 @@ public record struct TextureDesc
 
     public SampleCount SampleCount;
 
-    public TextureUsageFlags Flags;
+    public TextureUsages Usages;
 }

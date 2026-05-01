@@ -12,7 +12,7 @@ public record struct RasterizerState
 
     public float DepthBiasClamp;
 
-    public float SlopeScaledDepthBias;
+    public float DepthBiasSlopeScale;
 
     public bool DepthClipEnable;
 

@@ -1,17 +1,17 @@
 ﻿namespace Zenith.NET;
 
 [Flags]
-public enum ShaderStageFlags
+public enum ShaderStages
 {
     None = 0,
 
     Vertex = 1 << 0,
 
-    Pixel = 1 << 1,
+    Fragment = 1 << 1,
 
     Compute = 1 << 2,
 
-    Amplification = 1 << 3,
+    Task = 1 << 3,
 
     Mesh = 1 << 4
 }

@@ -2,11 +2,9 @@
 
 public abstract class GraphicsContext : DisposableObject, INativeObject
 {
-    public const uint ConstantBufferAlignment = 256;
-
-    protected GraphicsContext(Backend backend, bool useValidationLayer)
+    protected GraphicsContext(GraphicsApi api, bool useValidationLayer)
     {
-        Backend = backend;
+        Api = api;
 
         Initialize(useValidationLayer,
                    out Capabilities capabilities,
@@ -25,7 +23,7 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
         Downloader = new(this);
     }
 
-    public Backend Backend { get; }
+    public GraphicsApi Api { get; }
 
     public Capabilities Capabilities { get; }
 

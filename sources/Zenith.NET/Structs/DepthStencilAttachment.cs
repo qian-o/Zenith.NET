@@ -6,13 +6,13 @@ public record struct DepthStencilAttachment
 
     public TextureSubresource Subresource;
 
-    public LoadOp DepthLoadOp;
+    public LoadOperation DepthLoad;
 
-    public StoreOp DepthStoreOp;
+    public StoreOperation DepthStore;
 
-    public LoadOp StencilLoadOp;
+    public LoadOperation StencilLoad;
 
-    public StoreOp StencilStoreOp;
+    public StoreOperation StencilStore;
 
     public float ClearDepth;
 

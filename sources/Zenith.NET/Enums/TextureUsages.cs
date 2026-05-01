@@ -1,7 +1,7 @@
 ﻿namespace Zenith.NET;
 
 [Flags]
-public enum TextureUsageFlags
+public enum TextureUsages
 {
     None = 0,
 
@@ -9,7 +9,7 @@ public enum TextureUsageFlags
 
     DepthStencil = 1 << 1,
 
-    ShaderResource = 1 << 2,
+    Sampled = 1 << 2,
 
-    UnorderedAccess = 1 << 3
+    Storage = 1 << 3
 }

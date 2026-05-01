@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public enum LoadOp
+public enum LoadOperation
 {
     Load,
 

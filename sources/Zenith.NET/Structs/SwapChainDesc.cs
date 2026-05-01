@@ -4,7 +4,7 @@ public record struct SwapChainDesc
 {
     public Surface Surface;
 
-    public PixelFormat ColorTargetFormat;
+    public PixelFormat ColorFormat;
 
-    public PixelFormat? DepthStencilTargetFormat;
+    public PixelFormat? DepthStencilFormat;
 }

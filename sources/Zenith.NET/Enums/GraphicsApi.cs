@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public enum Backend
+public enum GraphicsApi
 {
     DirectX12,
 

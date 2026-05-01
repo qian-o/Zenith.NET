@@ -6,5 +6,7 @@ public record struct BufferDesc
 
     public uint StrideInBytes;
 
-    public BufferUsageFlags Flags;
+    public BufferAccess Access;
+
+    public BufferUsages Usages;
 }

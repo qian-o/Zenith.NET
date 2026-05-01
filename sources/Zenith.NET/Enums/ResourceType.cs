@@ -2,15 +2,15 @@
 
 public enum ResourceType
 {
-    ConstantBuffer,
+    UniformBuffer,
 
-    StructuredBuffer,
+    StorageReadOnlyBuffer,
 
-    StructuredBufferReadWrite,
+    StorageReadWriteBuffer,
 
-    Texture,
+    SampledTexture,
 
-    TextureReadWrite,
+    StorageTexture,
 
     Sampler,
 

@@ -63,7 +63,7 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
     protected abstract void SubmitImpl(CommandBuffer commandBuffer, ReadOnlySpan<CommandSubmission> waits, ulong signalValue);
 
-    protected abstract void WaitImpl(ulong value);
+    protected abstract void WaitImpl(ulong waitValue);
 
     protected override void Destroy()
     {

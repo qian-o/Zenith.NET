@@ -2,15 +2,19 @@
 
 public record struct SamplerDesc
 {
-    public Filter Filter;
+    public FilterMode MinFilter;
 
-    public AddressMode U;
+    public FilterMode MagFilter;
 
-    public AddressMode V;
+    public FilterMode MipmapFilter;
 
-    public AddressMode W;
+    public AddressMode AddressU;
 
-    public ComparisonFunc ComparisonFunc;
+    public AddressMode AddressV;
+
+    public AddressMode AddressW;
+
+    public CompareFunction Compare;
 
     public uint MaxAnisotropy;
 

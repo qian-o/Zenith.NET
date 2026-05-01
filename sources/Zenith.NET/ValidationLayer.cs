@@ -23,11 +23,11 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         CheckSurface("SwapChainDesc.Surface", desc.Surface);
 
-        CheckEnum("SwapChainDesc.ColorTargetFormat", desc.ColorTargetFormat);
+        CheckEnum("SwapChainDesc.ColorFormat", desc.ColorFormat);
 
-        if (desc.DepthStencilTargetFormat is { } format)
+        if (desc.DepthStencilFormat is { } format)
         {
-            CheckEnum("SwapChainDesc.DepthStencilTargetFormat", format);
+            CheckEnum("SwapChainDesc.DepthStencilFormat", format);
         }
     }
 
@@ -40,9 +40,20 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             ReportWarning(string.Format(ValidationMessages.IsZeroWarning, "BufferDesc.StrideInBytes", "buffer types"));
         }
 
-        if (desc.Flags is BufferUsageFlags.None)
+        CheckEnum("BufferDesc.Access", desc.Access);
+
+        if (desc.Access is BufferAccess.CpuReadOnly or BufferAccess.CpuWriteOnly)
         {
-            ReportWarning(string.Format(ValidationMessages.IsSetToNoneWarning, "BufferDesc.Flags"));
+            const BufferUsages GpuOnlyUsages = BufferUsages.StorageReadWrite
+                                             | BufferUsages.Indirect
+                                             | BufferUsages.AccelerationStructure;
+
+            BufferUsages forbidden = desc.Usages & GpuOnlyUsages;
+
+            if (forbidden is not BufferUsages.None)
+            {
+                ReportError(string.Format(ValidationMessages.UsagesIncompatibleWithAccess, "BufferDesc.Usages", forbidden, desc.Access));
+            }
         }
     }
 
@@ -76,9 +87,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         CheckEnum("TextureDesc.SampleCount", desc.SampleCount);
 
-        if (desc.Flags is TextureUsageFlags.None)
+        if (desc.Usages is TextureUsages.None)
         {
-            ReportWarning(string.Format(ValidationMessages.IsSetToNoneWarning, "TextureDesc.Flags"));
+            ReportWarning(string.Format(ValidationMessages.IsSetToNoneWarning, "TextureDesc.Usages"));
         }
     }
 
@@ -141,16 +152,13 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     internal void ValidateDesc(SamplerDesc desc)
     {
-        CheckEnum("SamplerDesc.Filter", desc.Filter);
-        CheckEnum("SamplerDesc.U", desc.U);
-        CheckEnum("SamplerDesc.V", desc.V);
-        CheckEnum("SamplerDesc.W", desc.W);
-        CheckEnum("SamplerDesc.ComparisonFunc", desc.ComparisonFunc);
-
-        if (desc.Filter is Filter.Anisotropic && desc.MaxAnisotropy is 0)
-        {
-            ReportError(string.Format(ValidationMessages.MustBeGreaterThanZero, "SamplerDesc.MaxAnisotropy"));
-        }
+        CheckEnum("SamplerDesc.MinFilter", desc.MinFilter);
+        CheckEnum("SamplerDesc.MagFilter", desc.MagFilter);
+        CheckEnum("SamplerDesc.MipmapFilter", desc.MipmapFilter);
+        CheckEnum("SamplerDesc.AddressU", desc.AddressU);
+        CheckEnum("SamplerDesc.AddressV", desc.AddressV);
+        CheckEnum("SamplerDesc.AddressW", desc.AddressW);
+        CheckEnum("SamplerDesc.Compare", desc.Compare);
 
         if (desc.MaxAnisotropy > ValidationConstants.MaxAnisotropy)
         {
@@ -180,7 +188,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     internal void ValidateDesc(ShaderDesc desc)
     {
-        CheckArrayNotEmpty("ShaderDesc.ShaderBytes", desc.ShaderBytes);
+        CheckArrayNotEmpty("ShaderDesc.Bytecode", desc.Bytecode);
         CheckStringNotWhitespace("ShaderDesc.EntryPoint", desc.EntryPoint);
         CheckEnum("ShaderDesc.Stage", desc.Stage);
     }
@@ -190,68 +198,53 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         CheckRenderStates("GraphicsPipelineDesc.RenderStates", desc.RenderStates);
 
         CheckResource("GraphicsPipelineDesc.Vertex", desc.Vertex);
-        CheckResource("GraphicsPipelineDesc.Pixel", desc.Pixel);
+        CheckResource("GraphicsPipelineDesc.Fragment", desc.Fragment);
 
-        CheckResourceBindings("GraphicsPipelineDesc.ResourceBindings", desc.ResourceBindings);
+        CheckResourceBindings("GraphicsPipelineDesc.Bindings", desc.Bindings);
 
-        if (desc.InputLayouts is null)
+        if (desc.Layouts is null)
         {
-            ReportError(string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.InputLayouts"));
+            ReportError(string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.Layouts"));
         }
         else
         {
-            for (int i = 0; i < desc.InputLayouts.Length; i++)
+            for (int i = 0; i < desc.Layouts.Length; i++)
             {
-                CheckInputLayout($"GraphicsPipelineDesc.InputLayouts[{i}]", desc.InputLayouts[i]);
+                CheckInputLayout($"GraphicsPipelineDesc.Layouts[{i}]", desc.Layouts[i]);
             }
         }
 
         CheckEnum("GraphicsPipelineDesc.PrimitiveTopology", desc.PrimitiveTopology);
-        CheckOutput("GraphicsPipelineDesc.Output", desc.Output);
+        CheckAttachmentFormats("GraphicsPipelineDesc.Formats", desc.Formats);
     }
 
     internal void ValidateDesc(ComputePipelineDesc desc)
     {
         CheckResource("ComputePipelineDesc.Compute", desc.Compute);
 
-        CheckResourceBindings("ComputePipelineDesc.ResourceBindings", desc.ResourceBindings);
-
-        if (desc.ThreadGroupSizeX is 0 || desc.ThreadGroupSizeY is 0 || desc.ThreadGroupSizeZ is 0)
-        {
-            ReportError(string.Format(ValidationMessages.MustBeGreaterThanZero, "ComputePipelineDesc thread group sizes (ThreadGroupSizeX, ThreadGroupSizeY, ThreadGroupSizeZ)"));
-        }
+        CheckResourceBindings("ComputePipelineDesc.Bindings", desc.Bindings);
     }
 
     internal void ValidateDesc(MeshShadingPipelineDesc desc)
     {
         CheckRenderStates("MeshShadingPipelineDesc.RenderStates", desc.RenderStates);
 
-        if (desc.Amplification is not null)
+        if (desc.Task is not null)
         {
-            CheckResource("MeshShadingPipelineDesc.Amplification", desc.Amplification);
+            CheckResource("MeshShadingPipelineDesc.Task", desc.Task);
         }
 
         CheckResource("MeshShadingPipelineDesc.Mesh", desc.Mesh);
-        CheckResource("MeshShadingPipelineDesc.Pixel", desc.Pixel);
+        CheckResource("MeshShadingPipelineDesc.Fragment", desc.Fragment);
 
-        CheckResourceBindings("MeshShadingPipelineDesc.ResourceBindings", desc.ResourceBindings);
+        CheckResourceBindings("MeshShadingPipelineDesc.Bindings", desc.Bindings);
 
         if (desc.PrimitiveTopology is not PrimitiveTopology.LineList and not PrimitiveTopology.TriangleList)
         {
             ReportError(string.Format(ValidationMessages.MustBeOneOf, "MeshShadingPipelineDesc.PrimitiveTopology", "LineList, TriangleList"));
         }
 
-        CheckOutput("MeshShadingPipelineDesc.Output", desc.Output);
-
-        if (desc.Amplification is not null && (desc.AmplificationThreadGroupSizeX is 0 || desc.AmplificationThreadGroupSizeY is 0 || desc.AmplificationThreadGroupSizeZ is 0))
-        {
-            ReportError(string.Format(ValidationMessages.MustBeGreaterThanZero, "MeshShadingPipelineDesc amplification thread group sizes (AmplificationThreadGroupSizeX, AmplificationThreadGroupSizeY, AmplificationThreadGroupSizeZ)"));
-        }
-
-        if (desc.MeshThreadGroupSizeX is 0 || desc.MeshThreadGroupSizeY is 0 || desc.MeshThreadGroupSizeZ is 0)
-        {
-            ReportError(string.Format(ValidationMessages.MustBeGreaterThanZero, "MeshShadingPipelineDesc mesh thread group sizes (MeshThreadGroupSizeX, MeshThreadGroupSizeY, MeshThreadGroupSizeZ)"));
-        }
+        CheckAttachmentFormats("MeshShadingPipelineDesc.Formats", desc.Formats);
     }
 
     internal void ValidateDesc(QueryHeapDesc desc)
@@ -451,64 +444,77 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     private void CheckRenderStates(string name, RenderStates renderStates)
     {
-        CheckEnum($"{name}.RasterizerState.FillMode", renderStates.RasterizerState.FillMode);
-        CheckEnum($"{name}.RasterizerState.CullMode", renderStates.RasterizerState.CullMode);
-        CheckEnum($"{name}.RasterizerState.FrontFace", renderStates.RasterizerState.FrontFace);
-
-        CheckEnum($"{name}.DepthStencilState.DepthFunc", renderStates.DepthStencilState.DepthFunc);
-        CheckDepthStencilStateOp($"{name}.DepthStencilState.FrontFace", renderStates.DepthStencilState.FrontFace);
-        CheckDepthStencilStateOp($"{name}.DepthStencilState.BackFace", renderStates.DepthStencilState.BackFace);
-
-        CheckBlendStateRenderTarget($"{name}.BlendState.RenderTarget0", renderStates.BlendState.RenderTarget0);
-        CheckBlendStateRenderTarget($"{name}.BlendState.RenderTarget1", renderStates.BlendState.RenderTarget1);
-        CheckBlendStateRenderTarget($"{name}.BlendState.RenderTarget2", renderStates.BlendState.RenderTarget2);
-        CheckBlendStateRenderTarget($"{name}.BlendState.RenderTarget3", renderStates.BlendState.RenderTarget3);
-        CheckBlendStateRenderTarget($"{name}.BlendState.RenderTarget4", renderStates.BlendState.RenderTarget4);
-        CheckBlendStateRenderTarget($"{name}.BlendState.RenderTarget5", renderStates.BlendState.RenderTarget5);
-        CheckBlendStateRenderTarget($"{name}.BlendState.RenderTarget6", renderStates.BlendState.RenderTarget6);
-        CheckBlendStateRenderTarget($"{name}.BlendState.RenderTarget7", renderStates.BlendState.RenderTarget7);
+        CheckRasterizerState($"{name}.RasterizerState", renderStates.RasterizerState);
+        CheckDepthStencilState($"{name}.DepthStencilState", renderStates.DepthStencilState);
+        CheckBlendState($"{name}.BlendState", renderStates.BlendState);
     }
 
-    private void CheckDepthStencilStateOp(string name, DepthStencilStateOp op)
+    private void CheckRasterizerState(string name, RasterizerState rasterizerState)
     {
-        CheckEnum($"{name}.StencilFailOp", op.StencilFailOp);
-        CheckEnum($"{name}.StencilDepthFailOp", op.StencilDepthFailOp);
-        CheckEnum($"{name}.StencilPassOp", op.StencilPassOp);
-        CheckEnum($"{name}.StencilFunc", op.StencilFunc);
+        CheckEnum($"{name}.FillMode", rasterizerState.FillMode);
+        CheckEnum($"{name}.CullMode", rasterizerState.CullMode);
+        CheckEnum($"{name}.FrontFace", rasterizerState.FrontFace);
+    }
+
+    private void CheckDepthStencilState(string name, DepthStencilState depthStencilState)
+    {
+        CheckEnum($"{name}.DepthCompare", depthStencilState.DepthCompare);
+        CheckStencilFaceState($"{name}.FrontFace", depthStencilState.FrontFace);
+        CheckStencilFaceState($"{name}.BackFace", depthStencilState.BackFace);
+    }
+
+    private void CheckBlendState(string name, BlendState blendState)
+    {
+        CheckBlendStateRenderTarget($"{name}.RenderTarget0", blendState.RenderTarget0);
+        CheckBlendStateRenderTarget($"{name}.RenderTarget1", blendState.RenderTarget1);
+        CheckBlendStateRenderTarget($"{name}.RenderTarget2", blendState.RenderTarget2);
+        CheckBlendStateRenderTarget($"{name}.RenderTarget3", blendState.RenderTarget3);
+        CheckBlendStateRenderTarget($"{name}.RenderTarget4", blendState.RenderTarget4);
+        CheckBlendStateRenderTarget($"{name}.RenderTarget5", blendState.RenderTarget5);
+        CheckBlendStateRenderTarget($"{name}.RenderTarget6", blendState.RenderTarget6);
+        CheckBlendStateRenderTarget($"{name}.RenderTarget7", blendState.RenderTarget7);
+    }
+
+    private void CheckStencilFaceState(string name, StencilFaceState face)
+    {
+        CheckEnum($"{name}.Fail", face.Fail);
+        CheckEnum($"{name}.DepthFail", face.DepthFail);
+        CheckEnum($"{name}.Pass", face.Pass);
+        CheckEnum($"{name}.Compare", face.Compare);
     }
 
     private void CheckBlendStateRenderTarget(string name, BlendStateRenderTarget renderTarget)
     {
-        CheckEnum($"{name}.SrcBlend", renderTarget.SrcBlend);
-        CheckEnum($"{name}.DestBlend", renderTarget.DestBlend);
-        CheckEnum($"{name}.BlendOp", renderTarget.BlendOp);
-        CheckEnum($"{name}.SrcBlendAlpha", renderTarget.SrcBlendAlpha);
-        CheckEnum($"{name}.DestBlendAlpha", renderTarget.DestBlendAlpha);
-        CheckEnum($"{name}.BlendOpAlpha", renderTarget.BlendOpAlpha);
+        CheckEnum($"{name}.SrcFactor", renderTarget.SrcFactor);
+        CheckEnum($"{name}.DstFactor", renderTarget.DstFactor);
+        CheckEnum($"{name}.Operation", renderTarget.Operation);
+        CheckEnum($"{name}.SrcFactorAlpha", renderTarget.SrcFactorAlpha);
+        CheckEnum($"{name}.DstFactorAlpha", renderTarget.DstFactorAlpha);
+        CheckEnum($"{name}.OperationAlpha", renderTarget.OperationAlpha);
     }
 
-    private void CheckOutput(string name, Output output)
+    private void CheckAttachmentFormats(string name, AttachmentFormats layout)
     {
-        if (output.ColorAttachments is null)
+        if (layout.Colors is null)
         {
             ReportError(string.Format(ValidationMessages.MustNotBeNull, $"{name}.ColorAttachments"));
 
             return;
         }
 
-        for (int i = 0; i < output.ColorAttachments.Length; i++)
+        for (int i = 0; i < layout.Colors.Length; i++)
         {
-            CheckEnum($"{name}.ColorAttachments[{i}]", output.ColorAttachments[i]);
+            CheckEnum($"{name}.ColorAttachments[{i}]", layout.Colors[i]);
         }
 
-        if (output.DepthStencilAttachment is { } format)
+        if (layout.DepthStencil is { } format)
         {
             CheckEnum($"{name}.DepthStencilAttachment", format);
         }
 
-        CheckEnum($"{name}.SampleCount", output.SampleCount);
+        CheckEnum($"{name}.SampleCount", layout.SampleCount);
 
-        if (output.ColorAttachments.Length is 0 && output.DepthStencilAttachment is null)
+        if (layout.Colors.Length is 0 && layout.DepthStencil is null)
         {
             ReportWarning(string.Format(ValidationMessages.HasNoAttachments, name));
         }
@@ -597,9 +603,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             return;
         }
 
-        if (instance.ID > ValidationConstants.MaxRayTracingInstanceID)
+        if (instance.Id > ValidationConstants.MaxRayTracingInstanceId)
         {
-            ReportError(string.Format(ValidationMessages.MustBeLessThanOrEqualTo, $"{name}.ID", ValidationConstants.MaxRayTracingInstanceID));
+            ReportError(string.Format(ValidationMessages.MustBeLessThanOrEqualTo, $"{name}.Id", ValidationConstants.MaxRayTracingInstanceId));
         }
     }
 
@@ -624,7 +630,7 @@ file static class ValidationConstants
 
     public const int IndexSizeUInt32 = 4;
 
-    public const int MaxRayTracingInstanceID = 16777215;
+    public const int MaxRayTracingInstanceId = 16777215;
 }
 
 file static class ValidationMessages
@@ -672,4 +678,6 @@ file static class ValidationMessages
     public const string MustHaveFlag = "{0} must have the flag '{1}' set.";
 
     public const string InstanceCountMustRemainSame = "When updating a TopLevelAccelerationStructure, the number of instances must remain the same.";
+
+    public const string UsagesIncompatibleWithAccess = "{0} contains flags '{1}' that require GPU read-write access and cannot be combined with BufferAccess.{2}.";
 }

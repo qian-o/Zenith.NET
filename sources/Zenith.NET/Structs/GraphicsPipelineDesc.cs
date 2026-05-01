@@ -6,13 +6,13 @@ public record struct GraphicsPipelineDesc
 
     public Shader Vertex;
 
-    public Shader Pixel;
+    public Shader Fragment;
 
-    public ResourceBinding[] ResourceBindings;
+    public ResourceBinding[] Bindings;
 
-    public InputLayout[] InputLayouts;
+    public InputLayout[] Layouts;
 
     public PrimitiveTopology PrimitiveTopology;
 
-    public Output Output;
+    public AttachmentFormats Formats;
 }

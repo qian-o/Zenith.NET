@@ -4,17 +4,17 @@ public record struct BlendStateRenderTarget
 {
     public bool BlendEnable;
 
-    public Blend SrcBlend;
+    public BlendFactor SrcFactor;
 
-    public Blend DestBlend;
+    public BlendFactor DstFactor;
 
-    public BlendOp BlendOp;
+    public BlendOperation Operation;
 
-    public Blend SrcBlendAlpha;
+    public BlendFactor SrcFactorAlpha;
 
-    public Blend DestBlendAlpha;
+    public BlendFactor DstFactorAlpha;
 
-    public BlendOp BlendOpAlpha;
+    public BlendOperation OperationAlpha;
 
-    public ColorWriteMask WriteMask;
+    public ColorWrites Writes;
 }

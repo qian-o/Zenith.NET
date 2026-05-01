@@ -6,7 +6,7 @@ public record struct DepthStencilState
 
     public bool DepthWriteEnable;
 
-    public ComparisonFunc DepthFunc;
+    public CompareFunction DepthCompare;
 
     public bool StencilEnable;
 
@@ -14,7 +14,7 @@ public record struct DepthStencilState
 
     public byte StencilWriteMask;
 
-    public DepthStencilStateOp FrontFace;
+    public StencilFaceState FrontFace;
 
-    public DepthStencilStateOp BackFace;
+    public StencilFaceState BackFace;
 }

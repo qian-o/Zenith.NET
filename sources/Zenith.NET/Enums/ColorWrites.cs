@@ -1,7 +1,7 @@
 ﻿namespace Zenith.NET;
 
 [Flags]
-public enum ColorWriteMask
+public enum ColorWrites
 {
     None = 0,
 

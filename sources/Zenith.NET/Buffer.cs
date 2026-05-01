@@ -12,7 +12,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public void Upload(uint offsetInBytes, BufferData data)
     {
-        if (desc.Flags.HasFlag(BufferUsageFlags.MapRead) || desc.Flags.HasFlag(BufferUsageFlags.MapWrite))
+        if (desc.Access is BufferAccess.CpuWriteOnly)
         {
             MappedMemory mappedMemory = Map();
 
@@ -34,7 +34,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public void Download(uint offsetInBytes, BufferData data)
     {
-        if (desc.Flags.HasFlag(BufferUsageFlags.MapRead) || desc.Flags.HasFlag(BufferUsageFlags.MapWrite))
+        if (desc.Access is BufferAccess.CpuReadOnly)
         {
             MappedMemory mappedMemory = Map();
 

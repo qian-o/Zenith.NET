@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public enum TextureLayout
+public enum TextureState
 {
     RenderTarget,
 
@@ -8,17 +8,17 @@ public enum TextureLayout
 
     DepthStencilReadOnly,
 
-    ShaderResource,
+    Sampled,
 
-    UnorderedAccess,
+    Storage,
 
     CopySrc,
 
-    CopyDest,
+    CopyDst,
 
     ResolveSrc,
 
-    ResolveDest,
+    ResolveDst,
 
     Present
 }

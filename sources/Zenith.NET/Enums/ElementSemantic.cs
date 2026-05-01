@@ -16,7 +16,5 @@ public enum ElementSemantic
 
     BlendIndices,
 
-    BlendWeight,
-
-    Count
+    BlendWeight
 }

@@ -2,9 +2,9 @@
 
 public record struct ShaderDesc
 {
-    public byte[] ShaderBytes;
+    public byte[] Bytecode;
 
     public string EntryPoint;
 
-    public ShaderStageFlags Stage;
+    public ShaderStages Stage;
 }

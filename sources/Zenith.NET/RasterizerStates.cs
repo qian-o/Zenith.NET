@@ -9,7 +9,7 @@ public static class RasterizerStates
         FrontFace = FrontFace.CounterClockwise,
         DepthBias = 0,
         DepthBiasClamp = 0.0f,
-        SlopeScaledDepthBias = 0.0f,
+        DepthBiasSlopeScale = 0.0f,
         DepthClipEnable = true,
         ScissorEnable = false
     };

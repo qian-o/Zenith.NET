@@ -213,27 +213,27 @@ public static class ZenithHelper
         {
             ElementFormat.UByte1 or
             ElementFormat.Byte1 or
-            ElementFormat.UByte1Normalized or
-            ElementFormat.Byte1Normalized => 1,
+            ElementFormat.UByte1UNorm or
+            ElementFormat.Byte1SNorm => 1,
 
             ElementFormat.UByte2 or
             ElementFormat.Byte2 or
-            ElementFormat.UByte2Normalized or
-            ElementFormat.Byte2Normalized or
+            ElementFormat.UByte2UNorm or
+            ElementFormat.Byte2SNorm or
             ElementFormat.UShort1 or
             ElementFormat.Short1 or
-            ElementFormat.UShort1Normalized or
-            ElementFormat.Short1Normalized or
+            ElementFormat.UShort1UNorm or
+            ElementFormat.Short1SNorm or
             ElementFormat.Half1 => 2,
 
             ElementFormat.UByte4 or
             ElementFormat.Byte4 or
-            ElementFormat.UByte4Normalized or
-            ElementFormat.Byte4Normalized or
+            ElementFormat.UByte4UNorm or
+            ElementFormat.Byte4SNorm or
             ElementFormat.UShort2 or
             ElementFormat.Short2 or
-            ElementFormat.UShort2Normalized or
-            ElementFormat.Short2Normalized or
+            ElementFormat.UShort2UNorm or
+            ElementFormat.Short2SNorm or
             ElementFormat.Half2 or
             ElementFormat.Float1 or
             ElementFormat.UInt1 or
@@ -241,8 +241,8 @@ public static class ZenithHelper
 
             ElementFormat.UShort4 or
             ElementFormat.Short4 or
-            ElementFormat.UShort4Normalized or
-            ElementFormat.Short4Normalized or
+            ElementFormat.UShort4UNorm or
+            ElementFormat.Short4SNorm or
             ElementFormat.Half4 or
             ElementFormat.Float2 or
             ElementFormat.UInt2 or

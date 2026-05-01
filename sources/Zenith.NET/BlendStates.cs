@@ -8,13 +8,13 @@ public static class BlendStates
         IndependentBlendEnable = false,
         RenderTarget0 = new()
         {
-            SrcBlend = Blend.One,
-            DestBlend = Blend.Zero,
-            BlendOp = BlendOp.Add,
-            SrcBlendAlpha = Blend.One,
-            DestBlendAlpha = Blend.Zero,
-            BlendOpAlpha = BlendOp.Add,
-            WriteMask = ColorWriteMask.All
+            SrcFactor = BlendFactor.One,
+            DstFactor = BlendFactor.Zero,
+            Operation = BlendOperation.Add,
+            SrcFactorAlpha = BlendFactor.One,
+            DstFactorAlpha = BlendFactor.Zero,
+            OperationAlpha = BlendOperation.Add,
+            Writes = ColorWrites.All
         }
     };
 
@@ -23,10 +23,10 @@ public static class BlendStates
         RenderTarget0 = Default.RenderTarget0 with
         {
             BlendEnable = true,
-            SrcBlend = Blend.SrcAlpha,
-            DestBlend = Blend.One,
-            SrcBlendAlpha = Blend.SrcAlpha,
-            DestBlendAlpha = Blend.One
+            SrcFactor = BlendFactor.SrcAlpha,
+            DstFactor = BlendFactor.One,
+            SrcFactorAlpha = BlendFactor.SrcAlpha,
+            DstFactorAlpha = BlendFactor.One
         }
     };
 
@@ -35,10 +35,10 @@ public static class BlendStates
         RenderTarget0 = Default.RenderTarget0 with
         {
             BlendEnable = true,
-            SrcBlend = Blend.SrcAlpha,
-            DestBlend = Blend.InverseSrcAlpha,
-            SrcBlendAlpha = Blend.SrcAlpha,
-            DestBlendAlpha = Blend.InverseSrcAlpha
+            SrcFactor = BlendFactor.One,
+            DstFactor = BlendFactor.OneMinusSrcAlpha,
+            SrcFactorAlpha = BlendFactor.One,
+            DstFactorAlpha = BlendFactor.OneMinusSrcAlpha
         }
     };
 
@@ -47,10 +47,10 @@ public static class BlendStates
         RenderTarget0 = Default.RenderTarget0 with
         {
             BlendEnable = true,
-            SrcBlend = Blend.SrcAlpha,
-            DestBlend = Blend.InverseSrcAlpha,
-            SrcBlendAlpha = Blend.SrcAlpha,
-            DestBlendAlpha = Blend.InverseSrcAlpha
+            SrcFactor = BlendFactor.SrcAlpha,
+            DstFactor = BlendFactor.OneMinusSrcAlpha,
+            SrcFactorAlpha = BlendFactor.SrcAlpha,
+            DstFactorAlpha = BlendFactor.OneMinusSrcAlpha
         }
     };
 
@@ -58,7 +58,7 @@ public static class BlendStates
     {
         RenderTarget0 = Default.RenderTarget0 with
         {
-            BlendEnable = true
+            BlendEnable = false
         }
     };
 
@@ -66,8 +66,8 @@ public static class BlendStates
     {
         RenderTarget0 = Default.RenderTarget0 with
         {
-            BlendEnable = true,
-            WriteMask = ColorWriteMask.None
+            BlendEnable = false,
+            Writes = ColorWrites.None
         }
     };
 }

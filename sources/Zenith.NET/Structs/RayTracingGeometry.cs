@@ -8,5 +8,5 @@ public record struct RayTracingGeometry
 
     public RayTracingAABBs AABBs;
 
-    public RayTracingGeometryFlags Flags;
+    public bool Opaque;
 }

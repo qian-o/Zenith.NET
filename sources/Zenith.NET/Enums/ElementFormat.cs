@@ -14,17 +14,17 @@ public enum ElementFormat
 
     Byte4,
 
-    UByte1Normalized,
+    UByte1UNorm,
 
-    UByte2Normalized,
+    UByte2UNorm,
 
-    UByte4Normalized,
+    UByte4UNorm,
 
-    Byte1Normalized,
+    Byte1SNorm,
 
-    Byte2Normalized,
+    Byte2SNorm,
 
-    Byte4Normalized,
+    Byte4SNorm,
 
     UShort1,
 
@@ -38,17 +38,17 @@ public enum ElementFormat
 
     Short4,
 
-    UShort1Normalized,
+    UShort1UNorm,
 
-    UShort2Normalized,
+    UShort2UNorm,
 
-    UShort4Normalized,
+    UShort4UNorm,
 
-    Short1Normalized,
+    Short1SNorm,
 
-    Short2Normalized,
+    Short2SNorm,
 
-    Short4Normalized,
+    Short4SNorm,
 
     Half1,
 

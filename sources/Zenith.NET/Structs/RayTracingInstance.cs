@@ -6,9 +6,9 @@ public record struct RayTracingInstance
 {
     public BottomLevelAccelerationStructure AccelerationStructure;
 
-    public uint ID;
+    public uint Id;
 
-    public byte Mask;
+    public byte VisibilityMask;
 
     public Matrix4x4 Transform;
 

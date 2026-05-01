@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public enum StoreOp
+public enum StoreOperation
 {
     Store,
 

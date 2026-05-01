@@ -21,7 +21,7 @@ internal class Uploader(GraphicsContext context) : DisposableObject
             {
                 SizeInBytes = sizeInBytes,
                 StrideInBytes = 1,
-                Flags = BufferUsageFlags.MapWrite
+                Access = BufferAccess.CpuWriteOnly
             }));
         }
 

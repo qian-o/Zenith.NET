@@ -12,5 +12,5 @@ public record struct RenderStates
 
     public uint StencilReference;
 
-    public Vector4? BlendFactor;
+    public Vector4? BlendConstant;
 }

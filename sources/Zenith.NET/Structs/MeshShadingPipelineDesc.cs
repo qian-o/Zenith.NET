@@ -4,27 +4,15 @@ public record struct MeshShadingPipelineDesc
 {
     public RenderStates RenderStates;
 
-    public Shader? Amplification;
+    public Shader? Task;
 
     public Shader Mesh;
 
-    public Shader Pixel;
+    public Shader Fragment;
 
-    public ResourceBinding[] ResourceBindings;
+    public ResourceBinding[] Bindings;
 
     public PrimitiveTopology PrimitiveTopology;
 
-    public Output Output;
-
-    public uint AmplificationThreadGroupSizeX;
-
-    public uint AmplificationThreadGroupSizeY;
-
-    public uint AmplificationThreadGroupSizeZ;
-
-    public uint MeshThreadGroupSizeX;
-
-    public uint MeshThreadGroupSizeY;
-
-    public uint MeshThreadGroupSizeZ;
+    public AttachmentFormats Formats;
 }

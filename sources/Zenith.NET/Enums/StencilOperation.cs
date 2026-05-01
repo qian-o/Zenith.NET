@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public enum StencilOp
+public enum StencilOperation
 {
     Keep,
 
