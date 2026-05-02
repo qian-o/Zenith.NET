@@ -33,32 +33,32 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Upload(Buffer buffer, uint offsetInBytes, BufferData data)
     {
-        Buffer temporary = Context.Uploader.Buffer(this, data.SizeInBytes);
-        temporary.Upload(0, data);
+        Buffer stagingBuffer = Context.Uploader.Buffer(this, data.SizeInBytes);
+        stagingBuffer.Upload(0, data);
 
-        CopyBuffer(temporary, 0, buffer, offsetInBytes, data.SizeInBytes);
+        CopyBuffer(stagingBuffer, 0, buffer, offsetInBytes, data.SizeInBytes);
     }
 
     public void Download(Buffer buffer, uint offsetInBytes, BufferData data)
     {
-        Buffer temporary = Context.Downloader.Buffer(this, data);
+        Buffer stagingBuffer = Context.Downloader.Buffer(this, data);
 
-        CopyBuffer(buffer, offsetInBytes, temporary, 0, data.SizeInBytes);
+        CopyBuffer(buffer, offsetInBytes, stagingBuffer, 0, data.SizeInBytes);
     }
 
     public void Upload(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {
-        Buffer temporary = Context.Uploader.Buffer(this, data.Layout.SizeInBytes);
-        temporary.Upload(0, new() { Pointer = data.Pointer, SizeInBytes = data.Layout.SizeInBytes });
+        Buffer stagingBuffer = Context.Uploader.Buffer(this, data.Layout.SizeInBytes);
+        stagingBuffer.Upload(0, new() { Pointer = data.Pointer, SizeInBytes = data.Layout.SizeInBytes });
 
-        CopyBufferToTexture(temporary, 0, data.Layout, texture, subresource, offset, extent);
+        CopyBufferToTexture(stagingBuffer, 0, data.Layout, texture, subresource, offset, extent);
     }
 
     public void Download(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {
-        Buffer temporary = Context.Downloader.Buffer(this, new() { Pointer = data.Pointer, SizeInBytes = data.Layout.SizeInBytes });
+        Buffer stagingBuffer = Context.Downloader.Buffer(this, new() { Pointer = data.Pointer, SizeInBytes = data.Layout.SizeInBytes });
 
-        CopyTextureToBuffer(texture, subresource, offset, extent, temporary, 0, data.Layout);
+        CopyTextureToBuffer(texture, subresource, offset, extent, stagingBuffer, 0, data.Layout);
     }
 
     public void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes)

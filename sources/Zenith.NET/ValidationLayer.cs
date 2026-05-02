@@ -49,11 +49,11 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
                                              | BufferUsages.Indirect
                                              | BufferUsages.AccelerationStructure;
 
-            BufferUsages forbidden = desc.Usages & GpuOnlyUsages;
+            BufferUsages forbiddenUsages = desc.Usages & GpuOnlyUsages;
 
-            if (forbidden is not BufferUsages.None)
+            if (forbiddenUsages is not BufferUsages.None)
             {
-                ReportError(string.Format(ValidationMessages.UsagesIncompatibleWithAccess, "BufferDesc.Usages", forbidden, desc.Access));
+                ReportError(string.Format(ValidationMessages.UsagesIncompatibleWithAccess, "BufferDesc.Usages", forbiddenUsages, desc.Access));
             }
         }
     }
@@ -182,9 +182,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             return;
         }
 
-        for (int i = 0; i < desc.ResourceLayouts.Length; i++)
+        for (int index = 0; index < desc.ResourceLayouts.Length; index++)
         {
-            CheckResourceLayout($"ResourceTableDesc.ResourceLayouts[{i}]", desc.ResourceLayouts[i]);
+            CheckResourceLayout($"ResourceTableDesc.ResourceLayouts[{index}]", desc.ResourceLayouts[index]);
         }
     }
 
@@ -210,9 +210,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         }
         else
         {
-            for (int i = 0; i < desc.InputLayouts.Length; i++)
+            for (int index = 0; index < desc.InputLayouts.Length; index++)
             {
-                CheckInputLayout($"GraphicsPipelineDesc.InputLayouts[{i}]", desc.InputLayouts[i]);
+                CheckInputLayout($"GraphicsPipelineDesc.InputLayouts[{index}]", desc.InputLayouts[index]);
             }
         }
 
@@ -259,9 +259,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         if (CheckArrayNotEmpty("BottomLevelAccelerationStructureDesc.Geometries", desc.Geometries))
         {
-            for (int i = 0; i < desc.Geometries.Length; i++)
+            for (int index = 0; index < desc.Geometries.Length; index++)
             {
-                CheckRayTracingGeometry($"BottomLevelAccelerationStructureDesc.Geometries[{i}]", desc.Geometries[i]);
+                CheckRayTracingGeometry($"BottomLevelAccelerationStructureDesc.Geometries[{index}]", desc.Geometries[index]);
             }
         }
 
@@ -272,9 +272,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         if (CheckArrayNotEmpty("TopLevelAccelerationStructureDesc.Instances", desc.Instances))
         {
-            for (int i = 0; i < desc.Instances.Length; i++)
+            for (int index = 0; index < desc.Instances.Length; index++)
             {
-                CheckRayTracingInstance($"TopLevelAccelerationStructureDesc.Instances[{i}]", desc.Instances[i]);
+                CheckRayTracingInstance($"TopLevelAccelerationStructureDesc.Instances[{index}]", desc.Instances[index]);
             }
         }
 
@@ -395,7 +395,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             return;
         }
 
-        if (!ExpectedSurfaceHandleCount.TryGetValue(surface.Type, out int expected))
+        if (!ExpectedSurfaceHandleCount.TryGetValue(surface.Type, out int expectedHandleCount))
         {
             ReportError(string.Format(ValidationMessages.HasUnsupportedSurfaceType, name, surface.Type));
 
@@ -409,18 +409,18 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             return;
         }
 
-        if (surface.NativeHandles.Length != expected)
+        if (surface.NativeHandles.Length != expectedHandleCount)
         {
-            ReportError(string.Format(ValidationMessages.MustHaveExactlyNHandles, $"{name}.NativeHandles", expected, surface.Type));
+            ReportError(string.Format(ValidationMessages.MustHaveExactlyNHandles, $"{name}.NativeHandles", expectedHandleCount, surface.Type));
 
             return;
         }
 
-        for (int i = 0; i < surface.NativeHandles.Length; i++)
+        for (int index = 0; index < surface.NativeHandles.Length; index++)
         {
-            if (surface.NativeHandles[i] is 0)
+            if (surface.NativeHandles[index] is 0)
             {
-                if (expected is 1)
+                if (expectedHandleCount is 1)
                 {
                     ReportError(string.Format(ValidationMessages.MustBeValidHandle, $"{name}.NativeHandles[0]", surface.Type));
                 }
@@ -446,9 +446,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             return;
         }
 
-        for (int i = 0; i < resourceLayouts.Length; i++)
+        for (int index = 0; index < resourceLayouts.Length; index++)
         {
-            CheckResourceLayout($"{name}[{i}]", resourceLayouts[i]);
+            CheckResourceLayout($"{name}[{index}]", resourceLayouts[index]);
         }
     }
 
@@ -462,9 +462,9 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         if (CheckArrayNotEmpty($"{name}.InputElements", inputLayout.InputElements))
         {
-            for (int i = 0; i < inputLayout.InputElements.Length; i++)
+            for (int index = 0; index < inputLayout.InputElements.Length; index++)
             {
-                CheckInputElement($"{name}.InputElements[{i}]", inputLayout.InputElements[i]);
+                CheckInputElement($"{name}.InputElements[{index}]", inputLayout.InputElements[index]);
             }
         }
 
@@ -510,23 +510,23 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         CheckColorAttachmentBlendState($"{name}.ColorAttachment7", blendState.ColorAttachment7);
     }
 
-    private void CheckStencilFaceState(string name, StencilFaceState face)
+    private void CheckStencilFaceState(string name, StencilFaceState faceState)
     {
-        CheckEnum($"{name}.FailOperation", face.FailOperation);
-        CheckEnum($"{name}.DepthFailOperation", face.DepthFailOperation);
-        CheckEnum($"{name}.PassOperation", face.PassOperation);
-        CheckEnum($"{name}.CompareFunction", face.CompareFunction);
+        CheckEnum($"{name}.FailOperation", faceState.FailOperation);
+        CheckEnum($"{name}.DepthFailOperation", faceState.DepthFailOperation);
+        CheckEnum($"{name}.PassOperation", faceState.PassOperation);
+        CheckEnum($"{name}.CompareFunction", faceState.CompareFunction);
     }
 
-    private void CheckColorAttachmentBlendState(string name, ColorAttachmentBlendState colorAttachment)
+    private void CheckColorAttachmentBlendState(string name, ColorAttachmentBlendState blendState)
     {
-        CheckEnum($"{name}.SourceRgbBlendFactor", colorAttachment.SourceRgbBlendFactor);
-        CheckEnum($"{name}.DestinationRgbBlendFactor", colorAttachment.DestinationRgbBlendFactor);
-        CheckEnum($"{name}.RgbBlendOperation", colorAttachment.RgbBlendOperation);
-        CheckEnum($"{name}.SourceAlphaBlendFactor", colorAttachment.SourceAlphaBlendFactor);
-        CheckEnum($"{name}.DestinationAlphaBlendFactor", colorAttachment.DestinationAlphaBlendFactor);
-        CheckEnum($"{name}.AlphaBlendOperation", colorAttachment.AlphaBlendOperation);
-        CheckFlags($"{name}.ColorWrites", colorAttachment.ColorWrites);
+        CheckEnum($"{name}.SourceRgbBlendFactor", blendState.SourceRgbBlendFactor);
+        CheckEnum($"{name}.DestinationRgbBlendFactor", blendState.DestinationRgbBlendFactor);
+        CheckEnum($"{name}.RgbBlendOperation", blendState.RgbBlendOperation);
+        CheckEnum($"{name}.SourceAlphaBlendFactor", blendState.SourceAlphaBlendFactor);
+        CheckEnum($"{name}.DestinationAlphaBlendFactor", blendState.DestinationAlphaBlendFactor);
+        CheckEnum($"{name}.AlphaBlendOperation", blendState.AlphaBlendOperation);
+        CheckFlags($"{name}.ColorWrites", blendState.ColorWrites);
     }
 
     private void CheckAttachmentFormats(string name, AttachmentFormats attachmentFormats)
@@ -538,14 +538,14 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             return;
         }
 
-        for (int i = 0; i < attachmentFormats.ColorFormats.Length; i++)
+        for (int index = 0; index < attachmentFormats.ColorFormats.Length; index++)
         {
-            CheckEnum($"{name}.ColorFormats[{i}]", attachmentFormats.ColorFormats[i]);
+            CheckEnum($"{name}.ColorFormats[{index}]", attachmentFormats.ColorFormats[index]);
         }
 
-        if (attachmentFormats.DepthStencilFormat is { } format)
+        if (attachmentFormats.DepthStencilFormat is { } depthStencilFormat)
         {
-            CheckEnum($"{name}.DepthStencilFormat", format);
+            CheckEnum($"{name}.DepthStencilFormat", depthStencilFormat);
         }
 
         CheckEnum($"{name}.SampleCount", attachmentFormats.SampleCount);

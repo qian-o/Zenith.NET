@@ -47,14 +47,14 @@ public static unsafe class ZenithMarshal
 
     public static nint StringToPointer(Scope scope, string value, StringEncoding encoding)
     {
-        byte[] values = encoding switch
+        byte[] bytes = encoding switch
         {
             StringEncoding.UTF8 => Encoding.UTF8.GetBytes(value + '\0'),
             StringEncoding.UTF16 => Encoding.Unicode.GetBytes(value + '\0'),
             _ => []
         };
 
-        return scope.Native(values);
+        return scope.Native(bytes);
     }
 
     public static nint StringArrayToPointer(Scope scope, string[] values, StringEncoding encoding)
@@ -83,13 +83,13 @@ public static unsafe class ZenithMarshal
     {
         nint* pointers = (nint*)pointer;
 
-        string[] values = new string[length];
+        string[] strings = new string[length];
 
         for (uint i = 0; i < length; i++)
         {
-            values[i] = StringFromPointer(pointers[i], encoding);
+            strings[i] = StringFromPointer(pointers[i], encoding);
         }
 
-        return values;
+        return strings;
     }
 }
