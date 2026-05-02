@@ -4,70 +4,70 @@ public static class BlendStates
 {
     public static readonly BlendState Default = new()
     {
-        AlphaToCoverageEnable = false,
-        IndependentBlendEnable = false,
-        RenderTarget0 = new()
+        IsAlphaToCoverageEnabled = false,
+        IsIndependentBlendEnabled = false,
+        ColorAttachment0 = new()
         {
-            SrcFactor = BlendFactor.One,
-            DstFactor = BlendFactor.Zero,
-            Operation = BlendOperation.Add,
-            SrcFactorAlpha = BlendFactor.One,
-            DstFactorAlpha = BlendFactor.Zero,
-            OperationAlpha = BlendOperation.Add,
-            Writes = ColorWrites.All
+            SourceRgbBlendFactor = BlendFactor.One,
+            DestinationRgbBlendFactor = BlendFactor.Zero,
+            RgbBlendOperation = BlendOperation.Add,
+            SourceAlphaBlendFactor = BlendFactor.One,
+            DestinationAlphaBlendFactor = BlendFactor.Zero,
+            AlphaBlendOperation = BlendOperation.Add,
+            ColorWrites = ColorWrites.All
         }
     };
 
     public static readonly BlendState Additive = new()
     {
-        RenderTarget0 = Default.RenderTarget0 with
+        ColorAttachment0 = Default.ColorAttachment0 with
         {
-            BlendEnable = true,
-            SrcFactor = BlendFactor.SrcAlpha,
-            DstFactor = BlendFactor.One,
-            SrcFactorAlpha = BlendFactor.SrcAlpha,
-            DstFactorAlpha = BlendFactor.One
+            IsBlendingEnabled = true,
+            SourceRgbBlendFactor = BlendFactor.SourceAlpha,
+            DestinationRgbBlendFactor = BlendFactor.One,
+            SourceAlphaBlendFactor = BlendFactor.SourceAlpha,
+            DestinationAlphaBlendFactor = BlendFactor.One
         }
     };
 
     public static readonly BlendState AlphaBlend = new()
     {
-        RenderTarget0 = Default.RenderTarget0 with
+        ColorAttachment0 = Default.ColorAttachment0 with
         {
-            BlendEnable = true,
-            SrcFactor = BlendFactor.One,
-            DstFactor = BlendFactor.OneMinusSrcAlpha,
-            SrcFactorAlpha = BlendFactor.One,
-            DstFactorAlpha = BlendFactor.OneMinusSrcAlpha
+            IsBlendingEnabled = true,
+            SourceRgbBlendFactor = BlendFactor.One,
+            DestinationRgbBlendFactor = BlendFactor.OneMinusSourceAlpha,
+            SourceAlphaBlendFactor = BlendFactor.One,
+            DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha
         }
     };
 
     public static readonly BlendState NonPremultiplied = new()
     {
-        RenderTarget0 = Default.RenderTarget0 with
+        ColorAttachment0 = Default.ColorAttachment0 with
         {
-            BlendEnable = true,
-            SrcFactor = BlendFactor.SrcAlpha,
-            DstFactor = BlendFactor.OneMinusSrcAlpha,
-            SrcFactorAlpha = BlendFactor.SrcAlpha,
-            DstFactorAlpha = BlendFactor.OneMinusSrcAlpha
+            IsBlendingEnabled = true,
+            SourceRgbBlendFactor = BlendFactor.SourceAlpha,
+            DestinationRgbBlendFactor = BlendFactor.OneMinusSourceAlpha,
+            SourceAlphaBlendFactor = BlendFactor.SourceAlpha,
+            DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha
         }
     };
 
     public static readonly BlendState Opaque = new()
     {
-        RenderTarget0 = Default.RenderTarget0 with
+        ColorAttachment0 = Default.ColorAttachment0 with
         {
-            BlendEnable = false
+            IsBlendingEnabled = false
         }
     };
 
     public static readonly BlendState ColorDisabled = new()
     {
-        RenderTarget0 = Default.RenderTarget0 with
+        ColorAttachment0 = Default.ColorAttachment0 with
         {
-            BlendEnable = false,
-            Writes = ColorWrites.None
+            IsBlendingEnabled = false,
+            ColorWrites = ColorWrites.None
         }
     };
 }

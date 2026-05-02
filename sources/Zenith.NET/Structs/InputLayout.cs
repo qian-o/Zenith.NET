@@ -2,7 +2,7 @@
 
 public record struct InputLayout
 {
-    public InputElement[] Elements;
+    public InputElement[] InputElements;
 
     public uint StrideInBytes;
 
@@ -10,15 +10,15 @@ public record struct InputLayout
     {
         element.OffsetInBytes = StrideInBytes;
 
-        if (Elements is null)
+        if (InputElements is null)
         {
-            Elements = [element];
+            InputElements = [element];
         }
         else
         {
-            Array.Resize(ref Elements, Elements.Length + 1);
+            Array.Resize(ref InputElements, InputElements.Length + 1);
 
-            Elements[^1] = element;
+            InputElements[^1] = element;
         }
 
         StrideInBytes += ZenithHelper.SizeInBytes(element.Format);

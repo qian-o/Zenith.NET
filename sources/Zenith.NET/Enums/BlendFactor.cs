@@ -6,21 +6,21 @@ public enum BlendFactor
 
     One,
 
-    SrcColor,
+    SourceColor,
 
-    OneMinusSrcColor,
+    OneMinusSourceColor,
 
-    DstColor,
+    DestinationColor,
 
-    OneMinusDstColor,
+    OneMinusDestinationColor,
 
-    SrcAlpha,
+    SourceAlpha,
 
-    OneMinusSrcAlpha,
+    OneMinusSourceAlpha,
 
-    DstAlpha,
+    DestinationAlpha,
 
-    OneMinusDstAlpha,
+    OneMinusDestinationAlpha,
 
     Constant,
 

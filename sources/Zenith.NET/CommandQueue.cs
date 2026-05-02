@@ -10,7 +10,7 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
     public CommandQueueType Type { get; } = type;
 
-    public CommandBuffer CommandBuffer()
+    public CommandBuffer AcquireCommandBuffer()
     {
         using Lock.Scope _ = @lock.EnterScope();
 

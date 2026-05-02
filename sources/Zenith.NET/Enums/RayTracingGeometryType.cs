@@ -2,7 +2,7 @@
 
 public enum RayTracingGeometryType
 {
-    Triangles,
+    Triangle,
 
-    AABBs
+    Aabb
 }

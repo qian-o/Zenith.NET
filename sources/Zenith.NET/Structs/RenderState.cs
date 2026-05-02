@@ -1,8 +1,8 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 namespace Zenith.NET;
 
-public record struct RenderStates
+public record struct RenderState
 {
     public RasterizerState RasterizerState;
 

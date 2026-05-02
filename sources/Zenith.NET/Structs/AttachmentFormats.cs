@@ -2,9 +2,9 @@
 
 public record struct AttachmentFormats
 {
-    public PixelFormat[] Colors;
+    public PixelFormat[] ColorFormats;
 
-    public PixelFormat? DepthStencil;
+    public PixelFormat? DepthStencilFormat;
 
     public SampleCount SampleCount;
 }

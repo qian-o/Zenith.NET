@@ -6,7 +6,7 @@ public record struct RayTracingInstance
 {
     public BottomLevelAccelerationStructure AccelerationStructure;
 
-    public uint Id;
+    public uint InstanceId;
 
     public byte VisibilityMask;
 

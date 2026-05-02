@@ -4,7 +4,7 @@ public record struct TextureDataLayout
 {
     public uint SizeInBytes;
 
-    public uint RowPitchInBytes;
+    public uint RowStrideInBytes;
 
-    public uint SlicePitchInBytes;
+    public uint SliceStrideInBytes;
 }

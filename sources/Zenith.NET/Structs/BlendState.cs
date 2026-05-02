@@ -2,23 +2,23 @@
 
 public record struct BlendState
 {
-    public bool AlphaToCoverageEnable;
+    public bool IsAlphaToCoverageEnabled;
 
-    public bool IndependentBlendEnable;
+    public bool IsIndependentBlendEnabled;
 
-    public BlendStateRenderTarget RenderTarget0;
+    public ColorAttachmentBlendState ColorAttachment0;
 
-    public BlendStateRenderTarget RenderTarget1;
+    public ColorAttachmentBlendState ColorAttachment1;
 
-    public BlendStateRenderTarget RenderTarget2;
+    public ColorAttachmentBlendState ColorAttachment2;
 
-    public BlendStateRenderTarget RenderTarget3;
+    public ColorAttachmentBlendState ColorAttachment3;
 
-    public BlendStateRenderTarget RenderTarget4;
+    public ColorAttachmentBlendState ColorAttachment4;
 
-    public BlendStateRenderTarget RenderTarget5;
+    public ColorAttachmentBlendState ColorAttachment5;
 
-    public BlendStateRenderTarget RenderTarget6;
+    public ColorAttachmentBlendState ColorAttachment6;
 
-    public BlendStateRenderTarget RenderTarget7;
+    public ColorAttachmentBlendState ColorAttachment7;
 }

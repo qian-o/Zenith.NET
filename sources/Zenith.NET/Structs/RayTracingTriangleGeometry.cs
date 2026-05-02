@@ -1,8 +1,8 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 namespace Zenith.NET;
 
-public record struct RayTracingTriangles
+public record struct RayTracingTriangleGeometry
 {
     public Buffer VertexBuffer;
 

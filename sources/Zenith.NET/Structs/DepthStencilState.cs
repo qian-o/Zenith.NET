@@ -2,13 +2,13 @@
 
 public record struct DepthStencilState
 {
-    public bool DepthEnable;
+    public bool IsDepthEnabled;
 
-    public bool DepthWriteEnable;
+    public bool IsDepthWriteEnabled;
 
-    public CompareFunction DepthCompare;
+    public CompareFunction DepthCompareFunction;
 
-    public bool StencilEnable;
+    public bool IsStencilEnabled;
 
     public byte StencilReadMask;
 

@@ -2,7 +2,7 @@
 
 public record struct ComputePipelineDesc
 {
-    public Shader Compute;
+    public Shader ComputeShader;
 
-    public ResourceBinding[] Bindings;
+    public ResourceLayout[] ResourceLayouts;
 }

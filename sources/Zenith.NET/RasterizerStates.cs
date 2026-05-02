@@ -10,8 +10,8 @@ public static class RasterizerStates
         DepthBias = 0,
         DepthBiasClamp = 0.0f,
         DepthBiasSlopeScale = 0.0f,
-        DepthClipEnable = true,
-        ScissorEnable = false
+        IsDepthClipEnabled = true,
+        IsScissorEnabled = false
     };
 
     public static readonly RasterizerState CullFront = Default with

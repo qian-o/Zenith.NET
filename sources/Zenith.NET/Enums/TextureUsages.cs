@@ -5,7 +5,7 @@ public enum TextureUsages
 {
     None = 0,
 
-    RenderTarget = 1 << 0,
+    ColorAttachment = 1 << 0,
 
     DepthStencil = 1 << 1,
 

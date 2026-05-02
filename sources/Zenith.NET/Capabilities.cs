@@ -4,7 +4,7 @@ public abstract class Capabilities
 {
     public abstract string DeviceName { get; }
 
-    public abstract bool RayTracingSupported { get; }
+    public abstract bool SupportsRayTracing { get; }
 
-    public abstract bool MeshShadingSupported { get; }
+    public abstract bool SupportsMeshShading { get; }
 }

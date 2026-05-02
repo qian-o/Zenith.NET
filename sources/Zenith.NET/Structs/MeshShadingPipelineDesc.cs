@@ -2,17 +2,17 @@
 
 public record struct MeshShadingPipelineDesc
 {
-    public RenderStates RenderStates;
+    public RenderState RenderState;
 
-    public Shader? Task;
+    public Shader? TaskShader;
 
-    public Shader Mesh;
+    public Shader MeshShader;
 
-    public Shader Fragment;
+    public Shader FragmentShader;
 
-    public ResourceBinding[] Bindings;
+    public ResourceLayout[] ResourceLayouts;
 
     public PrimitiveTopology PrimitiveTopology;
 
-    public AttachmentFormats Formats;
+    public AttachmentFormats AttachmentFormats;
 }

@@ -4,41 +4,41 @@ public static class DepthStencilStates
 {
     public static readonly DepthStencilState Default = new()
     {
-        DepthEnable = true,
-        DepthWriteEnable = true,
-        DepthCompare = CompareFunction.LessEqual,
-        StencilEnable = false,
+        IsDepthEnabled = true,
+        IsDepthWriteEnabled = true,
+        DepthCompareFunction = CompareFunction.LessEqual,
+        IsStencilEnabled = false,
         StencilReadMask = 0xFF,
         StencilWriteMask = 0xFF,
         FrontFace = new()
         {
-            Fail = StencilOperation.Keep,
-            DepthFail = StencilOperation.Keep,
-            Pass = StencilOperation.Keep,
-            Compare = CompareFunction.Always
+            FailOperation = StencilOperation.Keep,
+            DepthFailOperation = StencilOperation.Keep,
+            PassOperation = StencilOperation.Keep,
+            CompareFunction = CompareFunction.Always
         },
         BackFace = new()
         {
-            Fail = StencilOperation.Keep,
-            DepthFail = StencilOperation.Keep,
-            Pass = StencilOperation.Keep,
-            Compare = CompareFunction.Always
+            FailOperation = StencilOperation.Keep,
+            DepthFailOperation = StencilOperation.Keep,
+            PassOperation = StencilOperation.Keep,
+            CompareFunction = CompareFunction.Always
         }
     };
 
     public static readonly DepthStencilState DefaultInverted = Default with
     {
-        DepthCompare = CompareFunction.GreaterEqual
+        DepthCompareFunction = CompareFunction.GreaterEqual
     };
 
     public static readonly DepthStencilState DepthRead = Default with
     {
-        DepthWriteEnable = false
+        IsDepthWriteEnabled = false
     };
 
     public static readonly DepthStencilState None = Default with
     {
-        DepthEnable = false,
-        DepthWriteEnable = false
+        IsDepthEnabled = false,
+        IsDepthWriteEnabled = false
     };
 }

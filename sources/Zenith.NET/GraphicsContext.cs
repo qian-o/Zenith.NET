@@ -8,15 +8,15 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
 
         Initialize(useValidationLayer,
                    out Capabilities capabilities,
-                   out CommandQueue graphics,
-                   out CommandQueue compute,
-                   out CommandQueue copy,
+                   out CommandQueue graphicsQueue,
+                   out CommandQueue computeQueue,
+                   out CommandQueue copyQueue,
                    out ValidationLayer? validationLayer);
 
         Capabilities = capabilities;
-        Graphics = graphics;
-        Compute = compute;
-        Copy = copy;
+        GraphicsQueue = graphicsQueue;
+        ComputeQueue = computeQueue;
+        CopyQueue = copyQueue;
         ValidationLayer = validationLayer;
 
         Uploader = new(this);
@@ -27,11 +27,11 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
 
     public Capabilities Capabilities { get; }
 
-    public CommandQueue Graphics { get; }
+    public CommandQueue GraphicsQueue { get; }
 
-    public CommandQueue Compute { get; }
+    public CommandQueue ComputeQueue { get; }
 
-    public CommandQueue Copy { get; }
+    public CommandQueue CopyQueue { get; }
 
     internal ValidationLayer? ValidationLayer { get; }
 
@@ -39,7 +39,7 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
 
     internal Downloader Downloader { get; }
 
-    public event EventHandler<ValidationMessageArgs>? ValidationMessage;
+    public event EventHandler<ValidationMessageEventArgs>? ValidationMessage;
 
     public SwapChain CreateSwapChain(SwapChainDesc desc)
     {
@@ -122,9 +122,9 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
 
     protected override void Destroy()
     {
-        Graphics.Dispose();
-        Compute.Dispose();
-        Copy.Dispose();
+        GraphicsQueue.Dispose();
+        ComputeQueue.Dispose();
+        CopyQueue.Dispose();
         ValidationLayer?.Dispose();
 
         Uploader.Dispose();
@@ -133,9 +133,9 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
 
     protected abstract void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
-                                       out CommandQueue graphics,
-                                       out CommandQueue compute,
-                                       out CommandQueue copy,
+                                       out CommandQueue graphicsQueue,
+                                       out CommandQueue computeQueue,
+                                       out CommandQueue copyQueue,
                                        out ValidationLayer? validationLayer);
 
     protected abstract SwapChain CreateSwapChainImpl(SwapChainDesc desc);
@@ -160,7 +160,7 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
 
     protected abstract QueryHeap CreateQueryHeapImpl(QueryHeapDesc desc);
 
-    internal void OnValidationMessage(ValidationMessageArgs args)
+    internal void OnValidationMessage(ValidationMessageEventArgs args)
     {
         ValidationMessage?.Invoke(this, args);
     }

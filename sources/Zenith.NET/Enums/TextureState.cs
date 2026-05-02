@@ -2,7 +2,7 @@
 
 public enum TextureState
 {
-    RenderTarget,
+    ColorAttachment,
 
     DepthStencil,
 

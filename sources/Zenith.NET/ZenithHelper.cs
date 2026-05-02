@@ -193,18 +193,18 @@ public static class ZenithHelper
         return blocksWide * blocksHigh * SizeInBytes(pixelFormat);
     }
 
-    public static uint RowPitchInBytes(PixelFormat pixelFormat, uint width, uint height)
+    public static uint RowStrideInBytes(PixelFormat pixelFormat, uint width, uint height)
     {
         (_, _, uint blocksWide, _) = BlockLayout(pixelFormat, width, height);
 
         return SizeInBytes(pixelFormat) * blocksWide;
     }
 
-    public static uint SlicePitchInBytes(PixelFormat pixelFormat, uint width, uint height)
+    public static uint SliceStrideInBytes(PixelFormat pixelFormat, uint width, uint height)
     {
         (_, _, _, uint blocksHigh) = BlockLayout(pixelFormat, width, height);
 
-        return RowPitchInBytes(pixelFormat, width, height) * blocksHigh;
+        return RowStrideInBytes(pixelFormat, width, height) * blocksHigh;
     }
 
     public static uint SizeInBytes(ElementFormat elementFormat)

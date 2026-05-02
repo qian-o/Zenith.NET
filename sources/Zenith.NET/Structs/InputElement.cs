@@ -6,7 +6,7 @@ public record struct InputElement
 
     public ElementSemantic Semantic;
 
-    public uint Index;
+    public uint SemanticIndex;
 
     public uint OffsetInBytes;
 }

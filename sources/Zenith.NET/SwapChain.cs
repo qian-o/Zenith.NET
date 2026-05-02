@@ -6,9 +6,9 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 
     public ref readonly SwapChainDesc Desc => ref desc;
 
-    public abstract Texture CurrentColorTarget { get; }
+    public abstract Texture CurrentColorAttachment { get; }
 
-    public abstract Texture? CurrentDepthStencilTarget { get; }
+    public abstract Texture? CurrentDepthStencilAttachment { get; }
 
     public abstract CommandSubmission Acquire();
 

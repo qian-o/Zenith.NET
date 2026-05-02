@@ -4,9 +4,9 @@ public record struct RayTracingGeometry
 {
     public RayTracingGeometryType Type;
 
-    public RayTracingTriangles Triangles;
+    public RayTracingTriangleGeometry TriangleGeometry;
 
-    public RayTracingAABBs AABBs;
+    public RayTracingAabbGeometry AabbGeometry;
 
-    public bool Opaque;
+    public bool IsOpaque;
 }

@@ -2,17 +2,17 @@
 
 public record struct GraphicsPipelineDesc
 {
-    public RenderStates RenderStates;
+    public RenderState RenderState;
 
-    public Shader Vertex;
+    public Shader VertexShader;
 
-    public Shader Fragment;
+    public Shader FragmentShader;
 
-    public ResourceBinding[] Bindings;
+    public ResourceLayout[] ResourceLayouts;
 
-    public InputLayout[] Layouts;
+    public InputLayout[] InputLayouts;
 
     public PrimitiveTopology PrimitiveTopology;
 
-    public AttachmentFormats Formats;
+    public AttachmentFormats AttachmentFormats;
 }

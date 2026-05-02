@@ -14,7 +14,7 @@ public record struct RasterizerState
 
     public float DepthBiasSlopeScale;
 
-    public bool DepthClipEnable;
+    public bool IsDepthClipEnabled;
 
-    public bool ScissorEnable;
+    public bool IsScissorEnabled;
 }

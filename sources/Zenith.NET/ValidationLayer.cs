@@ -41,6 +41,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         }
 
         CheckEnum("BufferDesc.Access", desc.Access);
+        CheckFlags("BufferDesc.Usages", desc.Usages);
 
         if (desc.Access is BufferAccess.CpuReadOnly or BufferAccess.CpuWriteOnly)
         {
@@ -86,6 +87,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         }
 
         CheckEnum("TextureDesc.SampleCount", desc.SampleCount);
+        CheckFlags("TextureDesc.Usages", desc.Usages);
 
         if (desc.Usages is TextureUsages.None)
         {
@@ -158,7 +160,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         CheckEnum("SamplerDesc.AddressU", desc.AddressU);
         CheckEnum("SamplerDesc.AddressV", desc.AddressV);
         CheckEnum("SamplerDesc.AddressW", desc.AddressW);
-        CheckEnum("SamplerDesc.Compare", desc.Compare);
+        CheckEnum("SamplerDesc.CompareFunction", desc.CompareFunction);
 
         if (desc.MaxAnisotropy > ValidationConstants.MaxAnisotropy)
         {
@@ -175,14 +177,14 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     internal void ValidateDesc(ResourceTableDesc desc)
     {
-        if (!CheckArrayNotEmpty("ResourceTableDesc.Bindings", desc.Bindings))
+        if (!CheckArrayNotEmpty("ResourceTableDesc.ResourceLayouts", desc.ResourceLayouts))
         {
             return;
         }
 
-        for (int i = 0; i < desc.Bindings.Length; i++)
+        for (int i = 0; i < desc.ResourceLayouts.Length; i++)
         {
-            CheckResourceBinding($"ResourceTableDesc.Bindings[{i}]", desc.Bindings[i]);
+            CheckResourceLayout($"ResourceTableDesc.ResourceLayouts[{i}]", desc.ResourceLayouts[i]);
         }
     }
 
@@ -195,56 +197,56 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     internal void ValidateDesc(GraphicsPipelineDesc desc)
     {
-        CheckRenderStates("GraphicsPipelineDesc.RenderStates", desc.RenderStates);
+        CheckRenderState("GraphicsPipelineDesc.RenderState", desc.RenderState);
 
-        CheckResource("GraphicsPipelineDesc.Vertex", desc.Vertex);
-        CheckResource("GraphicsPipelineDesc.Fragment", desc.Fragment);
+        CheckResource("GraphicsPipelineDesc.VertexShader", desc.VertexShader);
+        CheckResource("GraphicsPipelineDesc.FragmentShader", desc.FragmentShader);
 
-        CheckResourceBindings("GraphicsPipelineDesc.Bindings", desc.Bindings);
+        CheckResourceLayouts("GraphicsPipelineDesc.ResourceLayouts", desc.ResourceLayouts);
 
-        if (desc.Layouts is null)
+        if (desc.InputLayouts is null)
         {
-            ReportError(string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.Layouts"));
+            ReportError(string.Format(ValidationMessages.MustNotBeNull, "GraphicsPipelineDesc.InputLayouts"));
         }
         else
         {
-            for (int i = 0; i < desc.Layouts.Length; i++)
+            for (int i = 0; i < desc.InputLayouts.Length; i++)
             {
-                CheckInputLayout($"GraphicsPipelineDesc.Layouts[{i}]", desc.Layouts[i]);
+                CheckInputLayout($"GraphicsPipelineDesc.InputLayouts[{i}]", desc.InputLayouts[i]);
             }
         }
 
         CheckEnum("GraphicsPipelineDesc.PrimitiveTopology", desc.PrimitiveTopology);
-        CheckAttachmentFormats("GraphicsPipelineDesc.Formats", desc.Formats);
+        CheckAttachmentFormats("GraphicsPipelineDesc.AttachmentFormats", desc.AttachmentFormats);
     }
 
     internal void ValidateDesc(ComputePipelineDesc desc)
     {
-        CheckResource("ComputePipelineDesc.Compute", desc.Compute);
+        CheckResource("ComputePipelineDesc.ComputeShader", desc.ComputeShader);
 
-        CheckResourceBindings("ComputePipelineDesc.Bindings", desc.Bindings);
+        CheckResourceLayouts("ComputePipelineDesc.ResourceLayouts", desc.ResourceLayouts);
     }
 
     internal void ValidateDesc(MeshShadingPipelineDesc desc)
     {
-        CheckRenderStates("MeshShadingPipelineDesc.RenderStates", desc.RenderStates);
+        CheckRenderState("MeshShadingPipelineDesc.RenderState", desc.RenderState);
 
-        if (desc.Task is not null)
+        if (desc.TaskShader is not null)
         {
-            CheckResource("MeshShadingPipelineDesc.Task", desc.Task);
+            CheckResource("MeshShadingPipelineDesc.TaskShader", desc.TaskShader);
         }
 
-        CheckResource("MeshShadingPipelineDesc.Mesh", desc.Mesh);
-        CheckResource("MeshShadingPipelineDesc.Fragment", desc.Fragment);
+        CheckResource("MeshShadingPipelineDesc.MeshShader", desc.MeshShader);
+        CheckResource("MeshShadingPipelineDesc.FragmentShader", desc.FragmentShader);
 
-        CheckResourceBindings("MeshShadingPipelineDesc.Bindings", desc.Bindings);
+        CheckResourceLayouts("MeshShadingPipelineDesc.ResourceLayouts", desc.ResourceLayouts);
 
         if (desc.PrimitiveTopology is not PrimitiveTopology.LineList and not PrimitiveTopology.TriangleList)
         {
             ReportError(string.Format(ValidationMessages.MustBeOneOf, "MeshShadingPipelineDesc.PrimitiveTopology", "LineList, TriangleList"));
         }
 
-        CheckAttachmentFormats("MeshShadingPipelineDesc.Formats", desc.Formats);
+        CheckAttachmentFormats("MeshShadingPipelineDesc.AttachmentFormats", desc.AttachmentFormats);
     }
 
     internal void ValidateDesc(QueryHeapDesc desc)
@@ -255,35 +257,35 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     internal void ValidateDesc(BottomLevelAccelerationStructureDesc desc)
     {
-        if (!CheckArrayNotEmpty("BottomLevelAccelerationStructureDesc.Geometries", desc.Geometries))
+        if (CheckArrayNotEmpty("BottomLevelAccelerationStructureDesc.Geometries", desc.Geometries))
         {
-            return;
+            for (int i = 0; i < desc.Geometries.Length; i++)
+            {
+                CheckRayTracingGeometry($"BottomLevelAccelerationStructureDesc.Geometries[{i}]", desc.Geometries[i]);
+            }
         }
 
-        for (int i = 0; i < desc.Geometries.Length; i++)
-        {
-            CheckRayTracingGeometry($"BottomLevelAccelerationStructureDesc.Geometries[{i}]", desc.Geometries[i]);
-        }
+        CheckFlags("BottomLevelAccelerationStructureDesc.BuildFlags", desc.BuildFlags);
     }
 
     internal void ValidateDesc(TopLevelAccelerationStructureDesc desc)
     {
-        if (!CheckArrayNotEmpty("TopLevelAccelerationStructureDesc.Instances", desc.Instances))
+        if (CheckArrayNotEmpty("TopLevelAccelerationStructureDesc.Instances", desc.Instances))
         {
-            return;
+            for (int i = 0; i < desc.Instances.Length; i++)
+            {
+                CheckRayTracingInstance($"TopLevelAccelerationStructureDesc.Instances[{i}]", desc.Instances[i]);
+            }
         }
 
-        for (int i = 0; i < desc.Instances.Length; i++)
-        {
-            CheckRayTracingInstance($"TopLevelAccelerationStructureDesc.Instances[{i}]", desc.Instances[i]);
-        }
+        CheckFlags("TopLevelAccelerationStructureDesc.BuildFlags", desc.BuildFlags);
     }
 
     internal void ValidateDesc(TopLevelAccelerationStructureDesc oldDesc, TopLevelAccelerationStructureDesc newDesc)
     {
-        if (!oldDesc.Flags.HasFlag(AccelerationStructureBuildFlags.AllowUpdate))
+        if (!oldDesc.BuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowUpdate))
         {
-            ReportError(string.Format(ValidationMessages.MustHaveFlag, "TopLevelAccelerationStructureDesc.Flags", AccelerationStructureBuildFlags.AllowUpdate));
+            ReportError(string.Format(ValidationMessages.MustHaveFlag, "TopLevelAccelerationStructureDesc.BuildFlags", AccelerationStructureBuildFlags.AllowUpdate));
         }
 
         ValidateDesc(newDesc);
@@ -354,6 +356,26 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         return true;
     }
 
+    private bool CheckFlags<T>(string name, T value) where T : struct, Enum
+    {
+        ulong valueBits = unchecked((ulong)Convert.ToInt64(value));
+        ulong validBits = 0;
+
+        foreach (T definedValue in Enum.GetValues<T>())
+        {
+            validBits |= unchecked((ulong)Convert.ToInt64(definedValue));
+        }
+
+        if ((valueBits & ~validBits) is not 0)
+        {
+            ReportError(string.Format(ValidationMessages.HasInvalidValue, name, value));
+
+            return false;
+        }
+
+        return true;
+    }
+
     private bool CheckGreaterThanZero<T>(string name, T value) where T : struct, INumber<T>
     {
         if (value <= T.Zero)
@@ -368,10 +390,8 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     private void CheckSurface(string name, Surface surface)
     {
-        if (surface.Handles is null)
+        if (!CheckEnum($"{name}.Type", surface.Type))
         {
-            ReportError(string.Format(ValidationMessages.MustNotBeNull, $"{name}.Handles"));
-
             return;
         }
 
@@ -382,71 +402,86 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
             return;
         }
 
-        if (surface.Handles.Length != expected)
+        if (surface.NativeHandles is null)
         {
-            ReportError(string.Format(ValidationMessages.MustHaveExactlyNHandles, $"{name}.Handles", expected, surface.Type));
+            ReportError(string.Format(ValidationMessages.MustNotBeNull, $"{name}.NativeHandles"));
 
             return;
         }
 
-        for (int i = 0; i < surface.Handles.Length; i++)
+        if (surface.NativeHandles.Length != expected)
         {
-            if (surface.Handles[i] is 0)
+            ReportError(string.Format(ValidationMessages.MustHaveExactlyNHandles, $"{name}.NativeHandles", expected, surface.Type));
+
+            return;
+        }
+
+        for (int i = 0; i < surface.NativeHandles.Length; i++)
+        {
+            if (surface.NativeHandles[i] is 0)
             {
                 if (expected is 1)
                 {
-                    ReportError(string.Format(ValidationMessages.MustBeValidHandle, $"{name}.Handles[0]", surface.Type));
+                    ReportError(string.Format(ValidationMessages.MustBeValidHandle, $"{name}.NativeHandles[0]", surface.Type));
                 }
                 else
                 {
-                    ReportError(string.Format(ValidationMessages.MustBeValidHandles, $"{name}.Handles", surface.Type));
+                    ReportError(string.Format(ValidationMessages.MustBeValidHandles, $"{name}.NativeHandles", surface.Type));
                 }
 
                 return;
             }
         }
+
+        CheckGreaterThanZero($"{name}.Width", surface.Width);
+        CheckGreaterThanZero($"{name}.Height", surface.Height);
     }
 
-    private void CheckResourceBindings(string name, ResourceBinding[]? bindings)
+    private void CheckResourceLayouts(string name, ResourceLayout[]? resourceLayouts)
     {
-        if (bindings is null)
+        if (resourceLayouts is null)
         {
             ReportError(string.Format(ValidationMessages.MustNotBeNull, name));
 
             return;
         }
 
-        for (int i = 0; i < bindings.Length; i++)
+        for (int i = 0; i < resourceLayouts.Length; i++)
         {
-            CheckResourceBinding($"{name}[{i}]", bindings[i]);
+            CheckResourceLayout($"{name}[{i}]", resourceLayouts[i]);
         }
     }
 
-    private void CheckResourceBinding(string name, ResourceBinding binding)
+    private void CheckResourceLayout(string name, ResourceLayout resourceLayout)
     {
-        CheckEnum($"{name}.Type", binding.Type);
-        CheckGreaterThanZero($"{name}.Count", binding.Count);
+        CheckEnum($"{name}.Type", resourceLayout.Type);
+        CheckGreaterThanZero($"{name}.Count", resourceLayout.Count);
     }
 
     private void CheckInputLayout(string name, InputLayout inputLayout)
     {
-        if (!CheckArrayNotEmpty($"{name}.Elements", inputLayout.Elements))
+        if (CheckArrayNotEmpty($"{name}.InputElements", inputLayout.InputElements))
         {
-            return;
+            for (int i = 0; i < inputLayout.InputElements.Length; i++)
+            {
+                CheckInputElement($"{name}.InputElements[{i}]", inputLayout.InputElements[i]);
+            }
         }
 
-        foreach (InputElement element in inputLayout.Elements)
-        {
-            CheckEnum($"{name}.Elements.Format", element.Format);
-            CheckEnum($"{name}.Elements.Semantic", element.Semantic);
-        }
+        CheckGreaterThanZero($"{name}.StrideInBytes", inputLayout.StrideInBytes);
     }
 
-    private void CheckRenderStates(string name, RenderStates renderStates)
+    private void CheckInputElement(string name, InputElement inputElement)
     {
-        CheckRasterizerState($"{name}.RasterizerState", renderStates.RasterizerState);
-        CheckDepthStencilState($"{name}.DepthStencilState", renderStates.DepthStencilState);
-        CheckBlendState($"{name}.BlendState", renderStates.BlendState);
+        CheckEnum($"{name}.Format", inputElement.Format);
+        CheckEnum($"{name}.Semantic", inputElement.Semantic);
+    }
+
+    private void CheckRenderState(string name, RenderState renderState)
+    {
+        CheckRasterizerState($"{name}.RasterizerState", renderState.RasterizerState);
+        CheckDepthStencilState($"{name}.DepthStencilState", renderState.DepthStencilState);
+        CheckBlendState($"{name}.BlendState", renderState.BlendState);
     }
 
     private void CheckRasterizerState(string name, RasterizerState rasterizerState)
@@ -458,63 +493,64 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     private void CheckDepthStencilState(string name, DepthStencilState depthStencilState)
     {
-        CheckEnum($"{name}.DepthCompare", depthStencilState.DepthCompare);
+        CheckEnum($"{name}.DepthCompareFunction", depthStencilState.DepthCompareFunction);
         CheckStencilFaceState($"{name}.FrontFace", depthStencilState.FrontFace);
         CheckStencilFaceState($"{name}.BackFace", depthStencilState.BackFace);
     }
 
     private void CheckBlendState(string name, BlendState blendState)
     {
-        CheckBlendStateRenderTarget($"{name}.RenderTarget0", blendState.RenderTarget0);
-        CheckBlendStateRenderTarget($"{name}.RenderTarget1", blendState.RenderTarget1);
-        CheckBlendStateRenderTarget($"{name}.RenderTarget2", blendState.RenderTarget2);
-        CheckBlendStateRenderTarget($"{name}.RenderTarget3", blendState.RenderTarget3);
-        CheckBlendStateRenderTarget($"{name}.RenderTarget4", blendState.RenderTarget4);
-        CheckBlendStateRenderTarget($"{name}.RenderTarget5", blendState.RenderTarget5);
-        CheckBlendStateRenderTarget($"{name}.RenderTarget6", blendState.RenderTarget6);
-        CheckBlendStateRenderTarget($"{name}.RenderTarget7", blendState.RenderTarget7);
+        CheckColorAttachmentBlendState($"{name}.ColorAttachment0", blendState.ColorAttachment0);
+        CheckColorAttachmentBlendState($"{name}.ColorAttachment1", blendState.ColorAttachment1);
+        CheckColorAttachmentBlendState($"{name}.ColorAttachment2", blendState.ColorAttachment2);
+        CheckColorAttachmentBlendState($"{name}.ColorAttachment3", blendState.ColorAttachment3);
+        CheckColorAttachmentBlendState($"{name}.ColorAttachment4", blendState.ColorAttachment4);
+        CheckColorAttachmentBlendState($"{name}.ColorAttachment5", blendState.ColorAttachment5);
+        CheckColorAttachmentBlendState($"{name}.ColorAttachment6", blendState.ColorAttachment6);
+        CheckColorAttachmentBlendState($"{name}.ColorAttachment7", blendState.ColorAttachment7);
     }
 
     private void CheckStencilFaceState(string name, StencilFaceState face)
     {
-        CheckEnum($"{name}.Fail", face.Fail);
-        CheckEnum($"{name}.DepthFail", face.DepthFail);
-        CheckEnum($"{name}.Pass", face.Pass);
-        CheckEnum($"{name}.Compare", face.Compare);
+        CheckEnum($"{name}.FailOperation", face.FailOperation);
+        CheckEnum($"{name}.DepthFailOperation", face.DepthFailOperation);
+        CheckEnum($"{name}.PassOperation", face.PassOperation);
+        CheckEnum($"{name}.CompareFunction", face.CompareFunction);
     }
 
-    private void CheckBlendStateRenderTarget(string name, BlendStateRenderTarget renderTarget)
+    private void CheckColorAttachmentBlendState(string name, ColorAttachmentBlendState colorAttachment)
     {
-        CheckEnum($"{name}.SrcFactor", renderTarget.SrcFactor);
-        CheckEnum($"{name}.DstFactor", renderTarget.DstFactor);
-        CheckEnum($"{name}.Operation", renderTarget.Operation);
-        CheckEnum($"{name}.SrcFactorAlpha", renderTarget.SrcFactorAlpha);
-        CheckEnum($"{name}.DstFactorAlpha", renderTarget.DstFactorAlpha);
-        CheckEnum($"{name}.OperationAlpha", renderTarget.OperationAlpha);
+        CheckEnum($"{name}.SourceRgbBlendFactor", colorAttachment.SourceRgbBlendFactor);
+        CheckEnum($"{name}.DestinationRgbBlendFactor", colorAttachment.DestinationRgbBlendFactor);
+        CheckEnum($"{name}.RgbBlendOperation", colorAttachment.RgbBlendOperation);
+        CheckEnum($"{name}.SourceAlphaBlendFactor", colorAttachment.SourceAlphaBlendFactor);
+        CheckEnum($"{name}.DestinationAlphaBlendFactor", colorAttachment.DestinationAlphaBlendFactor);
+        CheckEnum($"{name}.AlphaBlendOperation", colorAttachment.AlphaBlendOperation);
+        CheckFlags($"{name}.ColorWrites", colorAttachment.ColorWrites);
     }
 
-    private void CheckAttachmentFormats(string name, AttachmentFormats layout)
+    private void CheckAttachmentFormats(string name, AttachmentFormats attachmentFormats)
     {
-        if (layout.Colors is null)
+        if (attachmentFormats.ColorFormats is null)
         {
-            ReportError(string.Format(ValidationMessages.MustNotBeNull, $"{name}.ColorAttachments"));
+            ReportError(string.Format(ValidationMessages.MustNotBeNull, $"{name}.ColorFormats"));
 
             return;
         }
 
-        for (int i = 0; i < layout.Colors.Length; i++)
+        for (int i = 0; i < attachmentFormats.ColorFormats.Length; i++)
         {
-            CheckEnum($"{name}.ColorAttachments[{i}]", layout.Colors[i]);
+            CheckEnum($"{name}.ColorFormats[{i}]", attachmentFormats.ColorFormats[i]);
         }
 
-        if (layout.DepthStencil is { } format)
+        if (attachmentFormats.DepthStencilFormat is { } format)
         {
-            CheckEnum($"{name}.DepthStencilAttachment", format);
+            CheckEnum($"{name}.DepthStencilFormat", format);
         }
 
-        CheckEnum($"{name}.SampleCount", layout.SampleCount);
+        CheckEnum($"{name}.SampleCount", attachmentFormats.SampleCount);
 
-        if (layout.Colors.Length is 0 && layout.DepthStencil is null)
+        if (attachmentFormats.ColorFormats.Length is 0 && attachmentFormats.DepthStencilFormat is null)
         {
             ReportWarning(string.Format(ValidationMessages.HasNoAttachments, name));
         }
@@ -522,91 +558,81 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     private void CheckRayTracingGeometry(string name, RayTracingGeometry geometry)
     {
-        switch (geometry.Type)
+        if (!CheckEnum($"{name}.Type", geometry.Type))
         {
-            case RayTracingGeometryType.Triangles:
-                CheckRayTracingTriangles(name, geometry.Triangles);
-                break;
+            return;
+        }
 
-            case RayTracingGeometryType.AABBs:
-                CheckRayTracingAABBs(name, geometry.AABBs);
-                break;
+        if (geometry.Type is RayTracingGeometryType.Triangle)
+        {
+            CheckRayTracingTriangleGeometry($"{name}.TriangleGeometry", geometry.TriangleGeometry);
+        }
 
-            default:
-                ReportError(string.Format(ValidationMessages.HasInvalidValue, $"{name}.Type", geometry.Type));
-                break;
+        if (geometry.Type is RayTracingGeometryType.Aabb)
+        {
+            CheckRayTracingAabbGeometry($"{name}.AabbGeometry", geometry.AabbGeometry);
         }
     }
 
-    private void CheckRayTracingTriangles(string name, RayTracingTriangles triangles)
+    private void CheckRayTracingTriangleGeometry(string name, RayTracingTriangleGeometry triangleGeometry)
     {
-        if (!CheckResource($"{name}.Triangles.VertexBuffer", triangles.VertexBuffer))
+        bool hasVertexBuffer = CheckResource($"{name}.VertexBuffer", triangleGeometry.VertexBuffer);
+
+        CheckEnum($"{name}.VertexFormat", triangleGeometry.VertexFormat);
+        bool hasVertexCount = CheckGreaterThanZero($"{name}.VertexCount", triangleGeometry.VertexCount);
+        bool hasVertexStride = CheckGreaterThanZero($"{name}.VertexStrideInBytes", triangleGeometry.VertexStrideInBytes);
+
+        if (hasVertexBuffer && hasVertexCount && hasVertexStride && triangleGeometry.VertexOffsetInBytes + (triangleGeometry.VertexCount * triangleGeometry.VertexStrideInBytes) > triangleGeometry.VertexBuffer.Desc.SizeInBytes)
+        {
+            ReportError(string.Format(ValidationMessages.MustBeWithinBounds, $"{name}.VertexCount", "the vertex buffer"));
+        }
+
+        if (triangleGeometry.IndexBuffer is null)
         {
             return;
         }
 
-        CheckEnum($"{name}.Triangles.VertexFormat", triangles.VertexFormat);
-        CheckGreaterThanZero($"{name}.Triangles.VertexCount", triangles.VertexCount);
-        CheckGreaterThanZero($"{name}.Triangles.VertexStrideInBytes", triangles.VertexStrideInBytes);
+        bool hasIndexBuffer = CheckResource($"{name}.IndexBuffer", triangleGeometry.IndexBuffer);
 
-        if (triangles.VertexOffsetInBytes + (triangles.VertexCount * triangles.VertexStrideInBytes) > triangles.VertexBuffer.Desc.SizeInBytes)
-        {
-            ReportError(string.Format(ValidationMessages.MustBeWithinBounds, $"{name}.Triangles.VertexCount", "the vertex buffer"));
-        }
+        CheckEnum($"{name}.IndexFormat", triangleGeometry.IndexFormat);
+        bool hasIndexCount = CheckGreaterThanZero($"{name}.IndexCount", triangleGeometry.IndexCount);
 
-        if (triangles.IndexBuffer is null)
-        {
-            return;
-        }
-
-        if (!CheckResource($"{name}.Triangles.IndexBuffer", triangles.IndexBuffer))
-        {
-            return;
-        }
-
-        CheckEnum($"{name}.Triangles.IndexFormat", triangles.IndexFormat);
-        CheckGreaterThanZero($"{name}.Triangles.IndexCount", triangles.IndexCount);
-
-        uint indexSizeInBytes = triangles.IndexFormat switch
+        uint indexSizeInBytes = triangleGeometry.IndexFormat switch
         {
             IndexFormat.UInt16 => ValidationConstants.IndexSizeUInt16,
             IndexFormat.UInt32 => ValidationConstants.IndexSizeUInt32,
             _ => 0
         };
 
-        if (triangles.IndexOffsetInBytes + (triangles.IndexCount * indexSizeInBytes) > triangles.IndexBuffer.Desc.SizeInBytes)
+        if (hasIndexBuffer && hasIndexCount && indexSizeInBytes is not 0 && triangleGeometry.IndexOffsetInBytes + (triangleGeometry.IndexCount * indexSizeInBytes) > triangleGeometry.IndexBuffer.Desc.SizeInBytes)
         {
-            ReportError(string.Format(ValidationMessages.MustBeWithinBounds, $"{name}.Triangles.IndexCount", "the index buffer"));
+            ReportError(string.Format(ValidationMessages.MustBeWithinBounds, $"{name}.IndexCount", "the index buffer"));
         }
     }
 
-    private void CheckRayTracingAABBs(string name, RayTracingAABBs aabbs)
+    private void CheckRayTracingAabbGeometry(string name, RayTracingAabbGeometry aabbGeometry)
     {
-        if (!CheckResource($"{name}.AABBs.Buffer", aabbs.Buffer))
-        {
-            return;
-        }
+        bool hasBuffer = CheckResource($"{name}.Buffer", aabbGeometry.Buffer);
 
-        CheckGreaterThanZero($"{name}.AABBs.Count", aabbs.Count);
-        CheckGreaterThanZero($"{name}.AABBs.StrideInBytes", aabbs.StrideInBytes);
+        bool hasCount = CheckGreaterThanZero($"{name}.Count", aabbGeometry.Count);
+        bool hasStride = CheckGreaterThanZero($"{name}.StrideInBytes", aabbGeometry.StrideInBytes);
 
-        if (aabbs.OffsetInBytes + (aabbs.Count * aabbs.StrideInBytes) > aabbs.Buffer.Desc.SizeInBytes)
+        if (hasBuffer && hasCount && hasStride && aabbGeometry.OffsetInBytes + (aabbGeometry.Count * aabbGeometry.StrideInBytes) > aabbGeometry.Buffer.Desc.SizeInBytes)
         {
-            ReportError(string.Format(ValidationMessages.MustBeWithinBounds, $"{name}.AABBs.Count", "the AABBs buffer"));
+            ReportError(string.Format(ValidationMessages.MustBeWithinBounds, $"{name}.Count", "the Aabb geometry buffer"));
         }
     }
 
     private void CheckRayTracingInstance(string name, RayTracingInstance instance)
     {
-        if (!CheckResource($"{name}.AccelerationStructure", instance.AccelerationStructure))
+        CheckResource($"{name}.AccelerationStructure", instance.AccelerationStructure);
+
+        if (instance.InstanceId > ValidationConstants.MaxRayTracingInstanceId)
         {
-            return;
+            ReportError(string.Format(ValidationMessages.MustBeLessThanOrEqualTo, $"{name}.InstanceId", ValidationConstants.MaxRayTracingInstanceId));
         }
 
-        if (instance.Id > ValidationConstants.MaxRayTracingInstanceId)
-        {
-            ReportError(string.Format(ValidationMessages.MustBeLessThanOrEqualTo, $"{name}.Id", ValidationConstants.MaxRayTracingInstanceId));
-        }
+        CheckFlags($"{name}.Flags", instance.Flags);
     }
 
     private void ReportError(string message)
