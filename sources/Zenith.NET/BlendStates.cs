@@ -20,6 +20,8 @@ public static class BlendStates
 
     public static readonly BlendState Additive = new()
     {
+        IsAlphaToCoverageEnabled = false,
+        IsIndependentBlendEnabled = false,
         ColorAttachment0 = Default.ColorAttachment0 with
         {
             IsBlendingEnabled = true,
@@ -32,6 +34,8 @@ public static class BlendStates
 
     public static readonly BlendState AlphaBlend = new()
     {
+        IsAlphaToCoverageEnabled = false,
+        IsIndependentBlendEnabled = false,
         ColorAttachment0 = Default.ColorAttachment0 with
         {
             IsBlendingEnabled = true,
@@ -44,6 +48,8 @@ public static class BlendStates
 
     public static readonly BlendState NonPremultiplied = new()
     {
+        IsAlphaToCoverageEnabled = false,
+        IsIndependentBlendEnabled = false,
         ColorAttachment0 = Default.ColorAttachment0 with
         {
             IsBlendingEnabled = true,
@@ -56,6 +62,8 @@ public static class BlendStates
 
     public static readonly BlendState Opaque = new()
     {
+        IsAlphaToCoverageEnabled = false,
+        IsIndependentBlendEnabled = false,
         ColorAttachment0 = Default.ColorAttachment0 with
         {
             IsBlendingEnabled = false
@@ -64,6 +72,8 @@ public static class BlendStates
 
     public static readonly BlendState ColorDisabled = new()
     {
+        IsAlphaToCoverageEnabled = false,
+        IsIndependentBlendEnabled = false,
         ColorAttachment0 = Default.ColorAttachment0 with
         {
             IsBlendingEnabled = false,
