@@ -39,7 +39,14 @@ the NuGet `Slangc.NET` package instead of any `slangc.exe` that may appear on
 
 ## Compile
 
-Use the C# project directly:
+Start the C# project directly to run the default platform test matrix. No
+arguments is equivalent to `all --clean --spv-descriptor-heap-ext`:
+
+```powershell
+dotnet run --project SlangResourceHeap.csproj
+```
+
+Use explicit arguments when you want a narrower target:
 
 ```powershell
 dotnet run --project SlangResourceHeap.csproj -- all --clean
@@ -50,11 +57,18 @@ dotnet run --project SlangResourceHeap.csproj -- metal-source
 dotnet run --project SlangResourceHeap.csproj -- metal
 ```
 
-The `all` target compiles DXIL, SPIR-V, and Metal source. `metal-source` emits
-MSL and does not require Apple's Metal compiler. On macOS and Linux, `all` skips
-DXIL because Slang's DXIL target needs a loadable DXC / `dxcompiler` downstream
-compiler. Run `dxil` explicitly only on a machine where DXC is installed and
-loadable by Slang.
+The `all` target is host-aware:
+
+- Windows: DXIL, SPIR-V, and Metal source.
+- macOS: SPIR-V, Metal source, and `metallib`.
+- Linux: SPIR-V and Metal source.
+
+`metal-source` emits MSL and does not require Apple's Metal compiler. `metal`
+emits `metallib` with `-target metallib -capability metallib_latest`, so it is
+the target to use when validating the Apple Metal library path. On macOS and
+Linux, `all` skips DXIL because Slang's DXIL target needs a loadable DXC /
+`dxcompiler` downstream compiler. Run `dxil` explicitly only on a machine where
+DXC is installed and loadable by Slang.
 
 The `metal` target emits `metallib` and is intended for a machine with the Metal
 downstream compiler available. The project writes outputs under `out/`. It does

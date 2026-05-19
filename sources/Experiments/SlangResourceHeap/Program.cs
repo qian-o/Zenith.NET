@@ -22,8 +22,8 @@ internal sealed record CompileOptions(string Target, bool UseSpvDescriptorHeapEx
     {
         string target = "all";
         bool targetSpecified = false;
-        bool useSpvDescriptorHeapExt = false;
-        bool clean = false;
+        bool useSpvDescriptorHeapExt = arguments.Length == 0;
+        bool clean = arguments.Length == 0;
         bool showHelp = false;
 
         for (int index = 0; index < arguments.Length; index++)
@@ -118,6 +118,11 @@ internal static class Program
                 return 0;
             }
 
+            if (arguments.Length == 0)
+            {
+                Console.WriteLine("No arguments supplied; running all --clean --spv-descriptor-heap-ext.");
+            }
+
             string projectRoot = FindProjectRoot();
             string shaderDirectory = Path.Combine(projectRoot, "Shaders");
             string outputRoot = Path.Combine(projectRoot, "out");
@@ -189,9 +194,17 @@ internal static class Program
 
     private static string[] CreateDefaultTargets()
     {
-        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? ["dxil", "spirv", "metal-source"]
-            : ["spirv", "metal-source"];
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return ["dxil", "spirv", "metal-source"];
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return ["spirv", "metal-source", "metal"];
+        }
+
+        return ["spirv", "metal-source"];
     }
 
     private static TargetConfig CreateTargetConfig(string target, bool useSpvDescriptorHeapExt)
@@ -259,6 +272,7 @@ internal static class Program
     private static void PrintUsage()
     {
         Console.WriteLine("Usage: dotnet run --project SlangResourceHeap.csproj -- [all|dxil|spirv|metal-source|metal] [--spv-descriptor-heap-ext] [--clean]");
-        Console.WriteLine("Note: all includes dxil on Windows, and skips dxil on non-Windows hosts unless dxil is requested explicitly.");
+        Console.WriteLine("No arguments runs: all --clean --spv-descriptor-heap-ext.");
+        Console.WriteLine("Note: all includes dxil on Windows, metallib on macOS, and skips platform downstream targets elsewhere unless requested explicitly.");
     }
 }
