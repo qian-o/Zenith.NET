@@ -1,4 +1,5 @@
 using Slangc.NET;
+using System.Runtime.InteropServices;
 
 internal sealed record ShaderEntry(string Name, string Stage);
 
@@ -163,8 +164,18 @@ internal static class Program
 
                 Console.WriteLine($"[{targetConfig.Name}] {testCase.Name}::{entry.Name}");
 
-                byte[] shaderBytes = SlangCompiler.Compile(compilerArguments);
-                File.WriteAllBytes(output, shaderBytes);
+                try
+                {
+                    byte[] shaderBytes = SlangCompiler.Compile(compilerArguments);
+                    File.WriteAllBytes(output, shaderBytes);
+                }
+                catch (Exception exception) when (IsMissingDxilCompiler(targetConfig, exception))
+                {
+                    throw new InvalidOperationException(
+                        "DXIL compilation requires DXC/dxcompiler to be available to Slang. " +
+                        "On macOS, run the SPIR-V or Metal-source targets for this experiment, or install DXC and make libdxcompiler loadable before running the dxil target.",
+                        exception);
+                }
             }
         }
     }
@@ -172,8 +183,15 @@ internal static class Program
     private static string[] ExpandTargets(string target)
     {
         return target.Equals("all", StringComparison.OrdinalIgnoreCase)
-            ? ["dxil", "spirv", "metal-source"]
+            ? CreateDefaultTargets()
             : [target];
+    }
+
+    private static string[] CreateDefaultTargets()
+    {
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? ["dxil", "spirv", "metal-source"]
+            : ["spirv", "metal-source"];
     }
 
     private static TargetConfig CreateTargetConfig(string target, bool useSpvDescriptorHeapExt)
@@ -206,6 +224,19 @@ internal static class Program
         return [.. arguments];
     }
 
+    private static bool IsMissingDxilCompiler(TargetConfig targetConfig, Exception exception)
+    {
+        if (!targetConfig.Name.Equals("dxil", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        string message = exception.ToString();
+        return message.Contains("dxc", StringComparison.OrdinalIgnoreCase) ||
+               message.Contains("dxcompiler", StringComparison.OrdinalIgnoreCase) ||
+               message.Contains("pass-through compiler", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static string FindProjectRoot()
     {
         foreach (string seed in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
@@ -228,5 +259,6 @@ internal static class Program
     private static void PrintUsage()
     {
         Console.WriteLine("Usage: dotnet run --project SlangResourceHeap.csproj -- [all|dxil|spirv|metal-source|metal] [--spv-descriptor-heap-ext] [--clean]");
+        Console.WriteLine("Note: all includes dxil on Windows, and skips dxil on non-Windows hosts unless dxil is requested explicitly.");
     }
 }

@@ -51,9 +51,14 @@ dotnet run --project SlangResourceHeap.csproj -- metal
 ```
 
 The `all` target compiles DXIL, SPIR-V, and Metal source. `metal-source` emits
-MSL and does not require Apple's Metal compiler. `metal` emits `metallib` and is
-intended for a machine with the Metal downstream compiler available. The project
-writes outputs under `out/`. It does not run any host-side binding code.
+MSL and does not require Apple's Metal compiler. On macOS and Linux, `all` skips
+DXIL because Slang's DXIL target needs a loadable DXC / `dxcompiler` downstream
+compiler. Run `dxil` explicitly only on a machine where DXC is installed and
+loadable by Slang.
+
+The `metal` target emits `metallib` and is intended for a machine with the Metal
+downstream compiler available. The project writes outputs under `out/`. It does
+not run any host-side binding code.
 
 If `metal-source` succeeds but `metal` fails on a non-Apple machine, the missing
 piece is the platform Metal compiler rather than the CBO/ResourceHeap shader
