@@ -1,11 +1,6 @@
-struct TextureRecord
-{
-    DescriptorHandle<Texture2D<float4>> Texture;
-};
-
 struct TextureArrayConstants
 {
-    DescriptorHandle<StructuredBuffer<TextureRecord>> Textures;
+    DescriptorHandle<StructuredBuffer<DescriptorHandle<Texture2D<float4>>>> Textures;
     DescriptorHandle<SamplerState> LinearSampler;
     uint TextureCount;
     float UvScale;
@@ -18,7 +13,7 @@ struct FullscreenVertex
 };
 
 [[vk::binding(0, 0)]]
-ConstantBuffer<TextureArrayConstants> gTextures;
+ConstantBuffer<TextureArrayConstants> gTextures : register(b0);
 
 [shader("vertex")]
 FullscreenVertex vertexMain(uint vertexId : SV_VertexID)
@@ -37,7 +32,8 @@ float4 fragmentMain(FullscreenVertex input) : SV_TARGET
 {
     uint count = max(gTextures.TextureCount, 1u);
     uint textureIndex = min(uint(input.Uv.x * float(count)), count - 1u);
-    TextureRecord textureRecord = (*gTextures.Textures)[textureIndex];
+    DescriptorHandle<Texture2D<float4>> textureHandle = gTextures.Textures[textureIndex];
+    SamplerState linearSampler = gTextures.LinearSampler;
 
-    return nonuniform(textureRecord.Texture)->Sample(*gTextures.LinearSampler, input.Uv * gTextures.UvScale);
+    return nonuniform(textureHandle)->Sample(linearSampler, input.Uv * gTextures.UvScale);
 }

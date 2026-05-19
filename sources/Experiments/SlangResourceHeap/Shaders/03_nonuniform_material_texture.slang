@@ -19,7 +19,7 @@ struct FullscreenVertex
 };
 
 [[vk::binding(0, 0)]]
-ConstantBuffer<MaterialConstants> gMaterials;
+ConstantBuffer<MaterialConstants> gMaterials : register(b0);
 
 [shader("vertex")]
 FullscreenVertex vertexMain(uint vertexId : SV_VertexID)
@@ -38,7 +38,8 @@ float4 fragmentMain(FullscreenVertex input) : SV_TARGET
 {
     uint count = max(gMaterials.MaterialCount, 1u);
     uint materialIndex = min(uint(input.Uv.x * float(count)), count - 1u);
-    MaterialRecord material = (*gMaterials.Materials)[materialIndex];
+    MaterialRecord material = gMaterials.Materials[materialIndex];
+    SamplerState linearSampler = gMaterials.LinearSampler;
 
-    return nonuniform(material.BaseColorTexture)->Sample(*gMaterials.LinearSampler, input.Uv * gMaterials.UvScale) * material.Tint;
+    return nonuniform(material.BaseColorTexture)->Sample(linearSampler, input.Uv * gMaterials.UvScale) * material.Tint;
 }

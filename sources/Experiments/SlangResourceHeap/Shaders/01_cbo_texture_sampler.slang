@@ -12,7 +12,7 @@ struct FullscreenVertex
 };
 
 [[vk::binding(0, 0)]]
-ConstantBuffer<PassConstants> gPass;
+ConstantBuffer<PassConstants> gPass : register(b0);
 
 [shader("vertex")]
 FullscreenVertex vertexMain(uint vertexId : SV_VertexID)
@@ -29,5 +29,5 @@ FullscreenVertex vertexMain(uint vertexId : SV_VertexID)
 [shader("fragment")]
 float4 fragmentMain(FullscreenVertex input) : SV_TARGET
 {
-    return (*gPass.AlbedoTexture).Sample(*gPass.LinearSampler, input.Uv) * gPass.Tint;
+    return gPass.AlbedoTexture->Sample(gPass.LinearSampler, input.Uv) * gPass.Tint;
 }

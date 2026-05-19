@@ -170,6 +170,7 @@ internal static class Program
                 string[] compilerArguments =
                 [
                     source,
+                    "-I", shaderDirectory,
                     "-entry", entry.Name,
                     "-stage", entry.Stage,
                     "-matrix-layout-row-major",
@@ -220,10 +221,21 @@ internal static class Program
     {
         return target.ToLowerInvariant() switch
         {
-            "dxil" => new("dxil", ".dxil", ["-target", "dxil", "-profile", "sm_6_6"]),
-            "spirv" => new("spirv", ".spv", CreateSpirvArguments(useSpvDescriptorHeapExt)),
-            "metal-source" => new("metal-source", ".metal", ["-target", "metal"]),
-            "metal" => new("metal", ".metallib", ["-target", "metallib", "-capability", "metallib_latest", "-Xmetal", "-std=metal4.0"]),
+            "dxil" => new("dxil", ".dxil", [.. CreateTargetDefines("dxil"), "-target", "dxil", "-profile", "sm_6_6"]),
+            "spirv" => new("spirv", ".spv", [.. CreateTargetDefines("spirv"), .. CreateSpirvArguments(useSpvDescriptorHeapExt)]),
+            "metal-source" => new("metal-source", ".metal", [.. CreateTargetDefines("metal"), "-target", "metal"]),
+            "metal" => new("metal", ".metallib", [.. CreateTargetDefines("metal"), "-target", "metallib", "-capability", "metallib_latest", "-Xmetal", "-std=metal4.0"]),
+            _ => throw new ArgumentException($"Unknown target '{target}'.")
+        };
+    }
+
+    private static string[] CreateTargetDefines(string target)
+    {
+        return target.ToLowerInvariant() switch
+        {
+            "dxil" => ["-DZENITH_TARGET_DX=1", "-DZENITH_TARGET_SPIRV=0", "-DZENITH_TARGET_METAL=0"],
+            "spirv" => ["-DZENITH_TARGET_DX=0", "-DZENITH_TARGET_SPIRV=1", "-DZENITH_TARGET_METAL=0"],
+            "metal" => ["-DZENITH_TARGET_DX=0", "-DZENITH_TARGET_SPIRV=0", "-DZENITH_TARGET_METAL=1"],
             _ => throw new ArgumentException($"Unknown target '{target}'.")
         };
     }

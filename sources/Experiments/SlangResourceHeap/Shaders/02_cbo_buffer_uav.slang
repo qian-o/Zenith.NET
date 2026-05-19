@@ -7,7 +7,7 @@ struct BufferConstants
 };
 
 [[vk::binding(0, 0)]]
-ConstantBuffer<BufferConstants> gBuffers;
+ConstantBuffer<BufferConstants> gBuffers : register(b0);
 
 [shader("compute")]
 [numthreads(64, 1, 1)]
@@ -19,5 +19,5 @@ void computeMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         return;
     }
 
-    (*gBuffers.Destination)[index] = (*gBuffers.Source)[index] * gBuffers.Scale;
+    gBuffers.Destination[index] = gBuffers.Source[index] * gBuffers.Scale;
 }
