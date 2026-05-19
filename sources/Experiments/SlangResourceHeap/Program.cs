@@ -104,6 +104,13 @@ internal static class Program
             [
                 new("vertexMain", "vertex"),
                 new("fragmentMain", "fragment")
+            ]),
+        new(
+            "04_texture_handle_array",
+            "04_texture_handle_array.slang",
+            [
+                new("vertexMain", "vertex"),
+                new("fragmentMain", "fragment")
             ])
     ];
 
@@ -150,6 +157,8 @@ internal static class Program
     {
         string outputDirectory = Path.Combine(outputRoot, targetConfig.Name);
         Directory.CreateDirectory(outputDirectory);
+
+        Console.WriteLine($"[{targetConfig.Name}] args: {string.Join(' ', targetConfig.Arguments)}");
 
         foreach (ShaderTest testCase in TestCases)
         {
@@ -214,7 +223,7 @@ internal static class Program
             "dxil" => new("dxil", ".dxil", ["-target", "dxil", "-profile", "sm_6_6"]),
             "spirv" => new("spirv", ".spv", CreateSpirvArguments(useSpvDescriptorHeapExt)),
             "metal-source" => new("metal-source", ".metal", ["-target", "metal"]),
-            "metal" => new("metal", ".metallib", ["-target", "metallib", "-capability", "metallib_latest"]),
+            "metal" => new("metal", ".metallib", ["-target", "metallib", "-capability", "metallib_latest", "-Xmetal", "-std=metal4.0"]),
             _ => throw new ArgumentException($"Unknown target '{target}'.")
         };
     }

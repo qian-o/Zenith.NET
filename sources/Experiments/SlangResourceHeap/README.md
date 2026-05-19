@@ -36,6 +36,31 @@ the NuGet `Slangc.NET` package instead of any `slangc.exe` that may appear on
    - Fragment shader reads a material record from a structured buffer handle.
      Each material contains a texture handle, and the shader uses `nonuniform`
      before dereferencing it.
+4. `Shaders/04_texture_handle_array.slang`
+   - Fragment shader reads a texture handle from a structured buffer of texture
+     handles, then samples it with `nonuniform(handle)`.
+
+## Many Textures
+
+For many textures, shader code should not use an untyped `heap[index]` expression
+directly. The portable Slang shape is to store typed handles in ordinary data,
+such as a constant buffer, material buffer, or a structured buffer of handles:
+
+```hlsl
+struct DrawConstants
+{
+    DescriptorHandle<StructuredBuffer<DescriptorHandle<Texture2D<float4>>>> Textures;
+    DescriptorHandle<SamplerState> LinearSampler;
+    uint TextureIndex;
+};
+
+DescriptorHandle<Texture2D<float4>> textureHandle = (*draw.Textures)[draw.TextureIndex];
+float4 color = nonuniform(textureHandle)->Sample(*draw.LinearSampler, uv);
+```
+
+The host-side `ResourceHeap` owns the actual descriptors. The shader receives
+typed descriptor handles or buffers of typed descriptor handles, and Slang lowers
+the handle dereference to the target's heap or bindless descriptor mechanism.
 
 ## Compile
 
@@ -64,11 +89,12 @@ The `all` target is host-aware:
 - Linux: SPIR-V and Metal source.
 
 `metal-source` emits MSL and does not require Apple's Metal compiler. `metal`
-emits `metallib` with `-target metallib -capability metallib_latest`, so it is
-the target to use when validating the Apple Metal library path. On macOS and
-Linux, `all` skips DXIL because Slang's DXIL target needs a loadable DXC /
-`dxcompiler` downstream compiler. Run `dxil` explicitly only on a machine where
-DXC is installed and loadable by Slang.
+emits `metallib` with `-target metallib -capability metallib_latest` and passes
+`-std=metal4.0` to Apple's downstream `metal` compiler, so it is the target to
+use when validating the Apple Metal 4 library path. On macOS and Linux, `all`
+skips DXIL because Slang's DXIL target needs a loadable DXC / `dxcompiler`
+downstream compiler. Run `dxil` explicitly only on a machine where DXC is
+installed and loadable by Slang.
 
 The `metal` target emits `metallib` and is intended for a machine with the Metal
 downstream compiler available. The project writes outputs under `out/`. It does
