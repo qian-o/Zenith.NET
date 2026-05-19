@@ -14,7 +14,7 @@ public record struct SamplerDesc
 
     public AddressMode AddressW;
 
-    public CompareFunction CompareFunction;
+    public CompareOp CompareOp;
 
     public uint MaxAnisotropy;
 

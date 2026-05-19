@@ -6,6 +6,10 @@ public record struct RayTracingTriangleGeometry
 {
     public Buffer VertexBuffer;
 
+    public Buffer? IndexBuffer;
+
+    public Matrix4x4 Transform;
+
     public PixelFormat VertexFormat;
 
     public uint VertexCount;
@@ -14,13 +18,9 @@ public record struct RayTracingTriangleGeometry
 
     public uint VertexOffsetInBytes;
 
-    public Buffer? IndexBuffer;
-
     public IndexFormat IndexFormat;
 
     public uint IndexCount;
 
     public uint IndexOffsetInBytes;
-
-    public Matrix4x4 Transform;
 }

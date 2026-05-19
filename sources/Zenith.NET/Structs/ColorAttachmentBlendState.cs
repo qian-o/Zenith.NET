@@ -4,17 +4,17 @@ public record struct ColorAttachmentBlendState
 {
     public bool IsBlendingEnabled;
 
-    public BlendFactor SourceRgbBlendFactor;
+    public BlendFactor SrcRgbFactor;
 
-    public BlendFactor DestinationRgbBlendFactor;
+    public BlendFactor DstRgbFactor;
 
-    public BlendOperation RgbBlendOperation;
+    public BlendOp RgbOp;
 
-    public BlendFactor SourceAlphaBlendFactor;
+    public BlendFactor SrcAlphaFactor;
 
-    public BlendFactor DestinationAlphaBlendFactor;
+    public BlendFactor DstAlphaFactor;
 
-    public BlendOperation AlphaBlendOperation;
+    public BlendOp AlphaOp;
 
     public ColorWrites ColorWrites;
 }

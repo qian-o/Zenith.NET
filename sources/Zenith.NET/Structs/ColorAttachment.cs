@@ -12,9 +12,9 @@ public record struct ColorAttachment
 
     public TextureSubresource ResolveSubresource;
 
-    public LoadOperation LoadOperation;
+    public LoadOp LoadOp;
 
-    public StoreOperation StoreOperation;
+    public StoreOp StoreOp;
 
     public Vector4 ClearColor;
 }

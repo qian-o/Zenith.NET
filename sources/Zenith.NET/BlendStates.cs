@@ -8,12 +8,12 @@ public static class BlendStates
         IsIndependentBlendEnabled = false,
         ColorAttachment0 = new()
         {
-            SourceRgbBlendFactor = BlendFactor.One,
-            DestinationRgbBlendFactor = BlendFactor.Zero,
-            RgbBlendOperation = BlendOperation.Add,
-            SourceAlphaBlendFactor = BlendFactor.One,
-            DestinationAlphaBlendFactor = BlendFactor.Zero,
-            AlphaBlendOperation = BlendOperation.Add,
+            SrcRgbFactor = BlendFactor.One,
+            DstRgbFactor = BlendFactor.Zero,
+            RgbOp = BlendOp.Add,
+            SrcAlphaFactor = BlendFactor.One,
+            DstAlphaFactor = BlendFactor.Zero,
+            AlphaOp = BlendOp.Add,
             ColorWrites = ColorWrites.All
         }
     };
@@ -25,10 +25,10 @@ public static class BlendStates
         ColorAttachment0 = Default.ColorAttachment0 with
         {
             IsBlendingEnabled = true,
-            SourceRgbBlendFactor = BlendFactor.SourceAlpha,
-            DestinationRgbBlendFactor = BlendFactor.One,
-            SourceAlphaBlendFactor = BlendFactor.SourceAlpha,
-            DestinationAlphaBlendFactor = BlendFactor.One
+            SrcRgbFactor = BlendFactor.SourceAlpha,
+            DstRgbFactor = BlendFactor.One,
+            SrcAlphaFactor = BlendFactor.SourceAlpha,
+            DstAlphaFactor = BlendFactor.One
         }
     };
 
@@ -39,10 +39,10 @@ public static class BlendStates
         ColorAttachment0 = Default.ColorAttachment0 with
         {
             IsBlendingEnabled = true,
-            SourceRgbBlendFactor = BlendFactor.One,
-            DestinationRgbBlendFactor = BlendFactor.OneMinusSourceAlpha,
-            SourceAlphaBlendFactor = BlendFactor.One,
-            DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha
+            SrcRgbFactor = BlendFactor.One,
+            DstRgbFactor = BlendFactor.OneMinusSourceAlpha,
+            SrcAlphaFactor = BlendFactor.One,
+            DstAlphaFactor = BlendFactor.OneMinusSourceAlpha
         }
     };
 
@@ -53,10 +53,10 @@ public static class BlendStates
         ColorAttachment0 = Default.ColorAttachment0 with
         {
             IsBlendingEnabled = true,
-            SourceRgbBlendFactor = BlendFactor.SourceAlpha,
-            DestinationRgbBlendFactor = BlendFactor.OneMinusSourceAlpha,
-            SourceAlphaBlendFactor = BlendFactor.SourceAlpha,
-            DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha
+            SrcRgbFactor = BlendFactor.SourceAlpha,
+            DstRgbFactor = BlendFactor.OneMinusSourceAlpha,
+            SrcAlphaFactor = BlendFactor.SourceAlpha,
+            DstAlphaFactor = BlendFactor.OneMinusSourceAlpha
         }
     };
 

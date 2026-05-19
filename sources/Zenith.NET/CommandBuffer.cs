@@ -18,21 +18,41 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void MemoryBarrier(Texture texture)
     {
+        if (Context.ValidationLayer?.ValidateResource("MemoryBarrier.texture", texture) is false)
+        {
+            return;
+        }
+
         MemoryBarrierImpl(texture);
     }
 
     public void MemoryBarrier(Buffer buffer)
     {
+        if (Context.ValidationLayer?.ValidateResource("MemoryBarrier.buffer", buffer) is false)
+        {
+            return;
+        }
+
         MemoryBarrierImpl(buffer);
     }
 
     public void Transition(Texture texture, TextureSubresource subresource, TextureState state)
     {
+        if (Context.ValidationLayer?.ValidateTransition(texture, subresource, state) is false)
+        {
+            return;
+        }
+
         TransitionImpl(texture, subresource, state);
     }
 
     public void Upload(Buffer buffer, uint offsetInBytes, BufferData data)
     {
+        if (Context.ValidationLayer?.ValidateUpload(buffer, offsetInBytes, data) is false)
+        {
+            return;
+        }
+
         Buffer stagingBuffer = Context.Uploader.Buffer(this, data.SizeInBytes);
         stagingBuffer.Upload(0, data);
 
@@ -41,6 +61,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Download(Buffer buffer, uint offsetInBytes, BufferData data)
     {
+        if (Context.ValidationLayer?.ValidateDownload(buffer, offsetInBytes, data) is false)
+        {
+            return;
+        }
+
         Buffer stagingBuffer = Context.Downloader.Buffer(this, data);
 
         CopyBuffer(buffer, offsetInBytes, stagingBuffer, 0, data.SizeInBytes);
@@ -48,6 +73,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Upload(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {
+        if (Context.ValidationLayer?.ValidateUpload(texture, subresource, offset, extent, data) is false)
+        {
+            return;
+        }
+
         Buffer stagingBuffer = Context.Uploader.Buffer(this, data.Layout.SizeInBytes);
         stagingBuffer.Upload(0, new() { Pointer = data.Pointer, SizeInBytes = data.Layout.SizeInBytes });
 
@@ -56,6 +86,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Download(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {
+        if (Context.ValidationLayer?.ValidateDownload(texture, subresource, offset, extent, data) is false)
+        {
+            return;
+        }
+
         Buffer stagingBuffer = Context.Downloader.Buffer(this, new() { Pointer = data.Pointer, SizeInBytes = data.Layout.SizeInBytes });
 
         CopyTextureToBuffer(texture, subresource, offset, extent, stagingBuffer, 0, data.Layout);
@@ -63,26 +98,51 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes)
     {
+        if (Context.ValidationLayer?.ValidateCopyBuffer(src, srcOffsetInBytes, dst, dstOffsetInBytes, sizeInBytes) is false)
+        {
+            return;
+        }
+
         CopyBufferImpl(src, srcOffsetInBytes, dst, dstOffsetInBytes, sizeInBytes);
     }
 
     public void CopyBufferToTexture(Buffer src, uint srcOffsetInBytes, TextureDataLayout srcLayout, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D dstExtent)
     {
+        if (Context.ValidationLayer?.ValidateCopyBufferToTexture(src, srcOffsetInBytes, srcLayout, dst, dstSubresource, dstOffset, dstExtent) is false)
+        {
+            return;
+        }
+
         CopyBufferToTextureImpl(src, srcOffsetInBytes, srcLayout, dst, dstSubresource, dstOffset, dstExtent);
     }
 
     public void CopyTexture(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D extent)
     {
+        if (Context.ValidationLayer?.ValidateCopyTexture(src, srcSubresource, srcOffset, dst, dstSubresource, dstOffset, extent) is false)
+        {
+            return;
+        }
+
         CopyTextureImpl(src, srcSubresource, srcOffset, dst, dstSubresource, dstOffset, extent);
     }
 
     public void CopyTextureToBuffer(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dst, uint dstOffsetInBytes, TextureDataLayout dstLayout)
     {
+        if (Context.ValidationLayer?.ValidateCopyTextureToBuffer(src, srcSubresource, srcOffset, srcExtent, dst, dstOffsetInBytes, dstLayout) is false)
+        {
+            return;
+        }
+
         CopyTextureToBufferImpl(src, srcSubresource, srcOffset, srcExtent, dst, dstOffsetInBytes, dstLayout);
     }
 
     public void ResolveTexture(Texture src, TextureSubresource srcSubresource, Texture dst, TextureSubresource dstSubresource)
     {
+        if (Context.ValidationLayer?.ValidateResolveTexture(src, srcSubresource, dst, dstSubresource) is false)
+        {
+            return;
+        }
+
         ResolveTextureImpl(src, srcSubresource, dst, dstSubresource);
     }
 
@@ -102,6 +162,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void UpdateAccelerationStructure(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
     {
+        if (Context.ValidationLayer?.ValidateResource("UpdateAccelerationStructure.accelerationStructure", accelerationStructure) is false)
+        {
+            return;
+        }
+
         Context.ValidationLayer?.ValidateDesc(accelerationStructure.Desc, newDesc);
 
         UpdateAccelerationStructureImpl(accelerationStructure, newDesc);
@@ -111,8 +176,14 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void BeginRenderPass(ReadOnlySpan<ColorAttachment> colorAttachments, DepthStencilAttachment? depthStencilAttachment)
     {
-        Span<Scissor> scissors = stackalloc Scissor[8];
-        Span<Viewport> viewports = stackalloc Viewport[8];
+        if (Context.ValidationLayer?.ValidateRenderPass(colorAttachments, depthStencilAttachment) is false)
+        {
+            return;
+        }
+
+        int attachmentCount = colorAttachments.Length > 0 ? colorAttachments.Length : depthStencilAttachment is null ? 0 : 1;
+        Span<Scissor> scissors = stackalloc Scissor[attachmentCount];
+        Span<Viewport> viewports = stackalloc Viewport[attachmentCount];
 
         if (colorAttachments.Length > 0)
         {
@@ -156,16 +227,31 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetScissors(ReadOnlySpan<Scissor> scissors)
     {
+        if (Context.ValidationLayer?.ValidateScissors(scissors) is false)
+        {
+            return;
+        }
+
         SetScissorsImpl(scissors);
     }
 
     public void SetViewports(ReadOnlySpan<Viewport> viewports)
     {
+        if (Context.ValidationLayer?.ValidateViewports(viewports) is false)
+        {
+            return;
+        }
+
         SetViewportsImpl(viewports);
     }
 
     public void SetPipeline(GraphicsPipeline pipeline)
     {
+        if (Context.ValidationLayer?.ValidateResource("SetPipeline.pipeline", pipeline) is false)
+        {
+            return;
+        }
+
         SetPipelineImpl(pipeline);
 
         currentPipeline = pipeline;
@@ -173,6 +259,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetPipeline(ComputePipeline pipeline)
     {
+        if (Context.ValidationLayer?.ValidateResource("SetPipeline.pipeline", pipeline) is false)
+        {
+            return;
+        }
+
         SetPipelineImpl(pipeline);
 
         currentPipeline = pipeline;
@@ -180,6 +271,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetPipeline(MeshShadingPipeline pipeline)
     {
+        if (Context.ValidationLayer?.ValidateResource("SetPipeline.pipeline", pipeline) is false)
+        {
+            return;
+        }
+
         SetPipelineImpl(pipeline);
 
         currentPipeline = pipeline;
@@ -187,7 +283,12 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetVertexBuffer(Buffer buffer, uint offsetInBytes, uint slot)
     {
-        if (currentPipeline is not GraphicsPipeline pipeline)
+        if (!TryGetCurrentPipeline(nameof(SetVertexBuffer), out GraphicsPipeline pipeline))
+        {
+            return;
+        }
+
+        if (Context.ValidationLayer?.ValidateSetVertexBuffer(buffer, offsetInBytes, slot, pipeline) is false)
         {
             return;
         }
@@ -197,7 +298,12 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat indexFormat)
     {
-        if (currentPipeline is not GraphicsPipeline pipeline)
+        if (!TryGetCurrentPipeline(nameof(SetIndexBuffer), out GraphicsPipeline pipeline))
+        {
+            return;
+        }
+
+        if (Context.ValidationLayer?.ValidateSetIndexBuffer(buffer, offsetInBytes, indexFormat) is false)
         {
             return;
         }
@@ -207,17 +313,22 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void PushResourceTable(ResourceTable resourceTable)
     {
-        if (currentPipeline is null)
+        if (!TryGetCurrentPipeline(nameof(PushResourceTable), out Pipeline pipeline))
         {
             return;
         }
 
-        PushResourceTableImpl(currentPipeline, resourceTable);
+        if (Context.ValidationLayer?.ValidateResource("PushResourceTable.resourceTable", resourceTable) is false)
+        {
+            return;
+        }
+
+        PushResourceTableImpl(pipeline, resourceTable);
     }
 
     public void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
     {
-        if (currentPipeline is not GraphicsPipeline pipeline)
+        if (!TryGetCurrentPipeline(nameof(Draw), out GraphicsPipeline pipeline))
         {
             return;
         }
@@ -227,7 +338,12 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void DrawIndirect(Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        if (currentPipeline is not GraphicsPipeline pipeline)
+        if (!TryGetCurrentPipeline(nameof(DrawIndirect), out GraphicsPipeline pipeline))
+        {
+            return;
+        }
+
+        if (Context.ValidationLayer?.ValidateIndirectBuffer(nameof(DrawIndirect), indirectBuffer, offsetInBytes, ValidationConstants.IndirectDrawArgsSizeInBytes, drawCount) is false)
         {
             return;
         }
@@ -237,7 +353,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void DrawIndexed(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
     {
-        if (currentPipeline is not GraphicsPipeline pipeline)
+        if (!TryGetCurrentPipeline(nameof(DrawIndexed), out GraphicsPipeline pipeline))
         {
             return;
         }
@@ -247,7 +363,12 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void DrawIndexedIndirect(Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        if (currentPipeline is not GraphicsPipeline pipeline)
+        if (!TryGetCurrentPipeline(nameof(DrawIndexedIndirect), out GraphicsPipeline pipeline))
+        {
+            return;
+        }
+
+        if (Context.ValidationLayer?.ValidateIndirectBuffer(nameof(DrawIndexedIndirect), indirectBuffer, offsetInBytes, ValidationConstants.IndirectDrawIndexedArgsSizeInBytes, drawCount) is false)
         {
             return;
         }
@@ -257,7 +378,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Dispatch(uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        if (currentPipeline is not ComputePipeline pipeline)
+        if (!TryGetCurrentPipeline(nameof(Dispatch), out ComputePipeline pipeline))
         {
             return;
         }
@@ -267,7 +388,12 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void DispatchIndirect(Buffer indirectBuffer, uint offsetInBytes)
     {
-        if (currentPipeline is not ComputePipeline pipeline)
+        if (!TryGetCurrentPipeline(nameof(DispatchIndirect), out ComputePipeline pipeline))
+        {
+            return;
+        }
+
+        if (Context.ValidationLayer?.ValidateIndirectBuffer(nameof(DispatchIndirect), indirectBuffer, offsetInBytes, ValidationConstants.IndirectDispatchArgsSizeInBytes, 1) is false)
         {
             return;
         }
@@ -277,7 +403,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void DispatchMesh(uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        if (currentPipeline is not MeshShadingPipeline pipeline)
+        if (!TryGetCurrentPipeline(nameof(DispatchMesh), out MeshShadingPipeline pipeline))
         {
             return;
         }
@@ -287,7 +413,12 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void DispatchMeshIndirect(Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount)
     {
-        if (currentPipeline is not MeshShadingPipeline pipeline)
+        if (!TryGetCurrentPipeline(nameof(DispatchMeshIndirect), out MeshShadingPipeline pipeline))
+        {
+            return;
+        }
+
+        if (Context.ValidationLayer?.ValidateIndirectBuffer(nameof(DispatchMeshIndirect), indirectBuffer, offsetInBytes, ValidationConstants.IndirectDispatchMeshArgsSizeInBytes, dispatchCount) is false)
         {
             return;
         }
@@ -297,6 +428,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void BeginQuery(QueryHeap queryHeap, uint index)
     {
+        if (Context.ValidationLayer?.ValidateBeginQuery(queryHeap, index) is false)
+        {
+            return;
+        }
+
         if (queryHeap.Desc.Type is QueryType.Timestamp)
         {
             return;
@@ -307,6 +443,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void EndQuery(QueryHeap queryHeap, uint index)
     {
+        if (Context.ValidationLayer?.ValidateEndQuery(queryHeap, index) is false)
+        {
+            return;
+        }
+
         if (queryHeap.Desc.Type is QueryType.Timestamp)
         {
             return;
@@ -317,6 +458,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void WriteTimestamp(QueryHeap queryHeap, uint index)
     {
+        if (Context.ValidationLayer?.ValidateWriteTimestamp(queryHeap, index) is false)
+        {
+            return;
+        }
+
         if (queryHeap.Desc.Type is not QueryType.Timestamp)
         {
             return;
@@ -327,6 +473,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void BeginDebugEvent(string label)
     {
+        if (Context.ValidationLayer?.ValidateDebugLabel(nameof(BeginDebugEvent), label) is false)
+        {
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(label))
         {
             return;
@@ -342,6 +493,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void InsertDebugMarker(string label)
     {
+        if (Context.ValidationLayer?.ValidateDebugLabel(nameof(InsertDebugMarker), label) is false)
+        {
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(label))
         {
             return;
@@ -376,6 +532,50 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         Context.Downloader.Release(this);
 
         currentPipeline = null;
+    }
+
+    private bool TryGetCurrentPipeline(string commandName, out Pipeline pipeline)
+    {
+        if (currentPipeline is not null)
+        {
+            if (Context.ValidationLayer?.ValidateResource($"{commandName}.pipeline", currentPipeline) is false)
+            {
+                pipeline = null!;
+
+                return false;
+            }
+
+            pipeline = currentPipeline;
+
+            return true;
+        }
+
+        Context.ValidationLayer?.ValidateCurrentPipeline(commandName, currentPipeline);
+        pipeline = null!;
+
+        return false;
+    }
+
+    private bool TryGetCurrentPipeline<TPipeline>(string commandName, out TPipeline pipeline) where TPipeline : Pipeline
+    {
+        if (currentPipeline is TPipeline typedPipeline)
+        {
+            if (Context.ValidationLayer?.ValidateResource($"{commandName}.pipeline", typedPipeline) is false)
+            {
+                pipeline = null!;
+
+                return false;
+            }
+
+            pipeline = typedPipeline;
+
+            return true;
+        }
+
+        Context.ValidationLayer?.ValidateCurrentPipeline<TPipeline>(commandName, currentPipeline);
+        pipeline = null!;
+
+        return false;
     }
 
     protected abstract void MemoryBarrierImpl();

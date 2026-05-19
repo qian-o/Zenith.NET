@@ -160,7 +160,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         CheckEnum("SamplerDesc.AddressU", desc.AddressU);
         CheckEnum("SamplerDesc.AddressV", desc.AddressV);
         CheckEnum("SamplerDesc.AddressW", desc.AddressW);
-        CheckEnum("SamplerDesc.CompareFunction", desc.CompareFunction);
+        CheckEnum("SamplerDesc.CompareOp", desc.CompareOp);
 
         if (desc.MaxAnisotropy > ValidationConstants.MaxAnisotropy)
         {
@@ -231,11 +231,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         CheckRenderState("MeshShadingPipelineDesc.RenderState", desc.RenderState);
 
-        if (desc.TaskShader is not null)
-        {
-            CheckResource("MeshShadingPipelineDesc.TaskShader", desc.TaskShader);
-        }
-
         CheckResource("MeshShadingPipelineDesc.MeshShader", desc.MeshShader);
         CheckResource("MeshShadingPipelineDesc.FragmentShader", desc.FragmentShader);
 
@@ -247,6 +242,11 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         }
 
         CheckAttachmentFormats("MeshShadingPipelineDesc.AttachmentFormats", desc.AttachmentFormats);
+
+        if (desc.TaskShader is not null)
+        {
+            CheckResource("MeshShadingPipelineDesc.TaskShader", desc.TaskShader);
+        }
     }
 
     internal void ValidateDesc(QueryHeapDesc desc)
@@ -299,6 +299,413 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         {
             ReportError(ValidationMessages.InstanceCountMustRemainSame);
         }
+    }
+
+    internal bool ValidateResource<T>(string name, T? resource) where T : GraphicsResource
+    {
+        return CheckResource(name, resource);
+    }
+
+    internal bool ValidateTransition(Texture texture, TextureSubresource subresource, TextureState state)
+    {
+        bool isValid = CheckResource("Transition.texture", texture);
+
+        if (isValid)
+        {
+            isValid &= CheckTextureSubresource("Transition.subresource", texture, subresource);
+        }
+
+        isValid &= CheckEnum("Transition.state", state);
+
+        return isValid;
+    }
+
+    internal bool ValidateUpload(Buffer buffer, uint offsetInBytes, BufferData data)
+    {
+        bool isValid = CheckResource("Upload.buffer", buffer);
+        isValid &= CheckBufferData("Upload.data", data);
+
+        if (isValid)
+        {
+            isValid &= CheckBufferUsage("Upload.buffer", buffer, BufferUsages.CopyDst);
+            isValid &= CheckBufferRange("Upload.buffer", buffer, offsetInBytes, data.SizeInBytes);
+        }
+
+        return isValid;
+    }
+
+    internal bool ValidateDownload(Buffer buffer, uint offsetInBytes, BufferData data)
+    {
+        bool isValid = CheckResource("Download.buffer", buffer);
+        isValid &= CheckBufferData("Download.data", data);
+
+        if (isValid)
+        {
+            isValid &= CheckBufferUsage("Download.buffer", buffer, BufferUsages.CopySrc);
+            isValid &= CheckBufferRange("Download.buffer", buffer, offsetInBytes, data.SizeInBytes);
+        }
+
+        return isValid;
+    }
+
+    internal bool ValidateUpload(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
+    {
+        bool isValid = CheckResource("Upload.texture", texture);
+        isValid &= CheckTextureData("Upload.data", data, isValid ? texture.Desc.Format : PixelFormat.Unknown, extent);
+
+        if (isValid)
+        {
+            isValid &= CheckTextureUsage("Upload.texture", texture, TextureUsages.CopyDst);
+            isValid &= CheckTextureRange("Upload.texture", texture, subresource, offset, extent);
+        }
+
+        return isValid;
+    }
+
+    internal bool ValidateDownload(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
+    {
+        bool isValid = CheckResource("Download.texture", texture);
+        isValid &= CheckTextureData("Download.data", data, isValid ? texture.Desc.Format : PixelFormat.Unknown, extent);
+
+        if (isValid)
+        {
+            isValid &= CheckTextureUsage("Download.texture", texture, TextureUsages.CopySrc);
+            isValid &= CheckTextureRange("Download.texture", texture, subresource, offset, extent);
+        }
+
+        return isValid;
+    }
+
+    internal bool ValidateCopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes)
+    {
+        bool hasSrc = CheckResource("CopyBuffer.src", src);
+        bool hasDst = CheckResource("CopyBuffer.dst", dst);
+        bool isValid = hasSrc && hasDst;
+
+        if (hasSrc)
+        {
+            isValid &= CheckBufferUsage("CopyBuffer.src", src, BufferUsages.CopySrc);
+            isValid &= CheckBufferRange("CopyBuffer.src", src, srcOffsetInBytes, sizeInBytes);
+        }
+
+        if (hasDst)
+        {
+            isValid &= CheckBufferUsage("CopyBuffer.dst", dst, BufferUsages.CopyDst);
+            isValid &= CheckBufferRange("CopyBuffer.dst", dst, dstOffsetInBytes, sizeInBytes);
+        }
+
+        return isValid;
+    }
+
+    internal bool ValidateCopyBufferToTexture(Buffer src, uint srcOffsetInBytes, TextureDataLayout srcLayout, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D dstExtent)
+    {
+        bool hasSrc = CheckResource("CopyBufferToTexture.src", src);
+        bool hasDst = CheckResource("CopyBufferToTexture.dst", dst);
+        bool isValid = hasSrc && hasDst;
+
+        if (hasSrc)
+        {
+            isValid &= CheckBufferUsage("CopyBufferToTexture.src", src, BufferUsages.CopySrc);
+            isValid &= CheckTextureDataLayout("CopyBufferToTexture.srcLayout", srcLayout, hasDst ? dst.Desc.Format : PixelFormat.Unknown, dstExtent);
+            isValid &= CheckBufferRange("CopyBufferToTexture.src", src, srcOffsetInBytes, srcLayout.SizeInBytes);
+        }
+
+        if (hasDst)
+        {
+            isValid &= CheckTextureUsage("CopyBufferToTexture.dst", dst, TextureUsages.CopyDst);
+            isValid &= CheckTextureRange("CopyBufferToTexture.dst", dst, dstSubresource, dstOffset, dstExtent);
+        }
+
+        return isValid;
+    }
+
+    internal bool ValidateCopyTexture(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D extent)
+    {
+        bool hasSrc = CheckResource("CopyTexture.src", src);
+        bool hasDst = CheckResource("CopyTexture.dst", dst);
+        bool isValid = hasSrc && hasDst;
+
+        if (hasSrc)
+        {
+            isValid &= CheckTextureUsage("CopyTexture.src", src, TextureUsages.CopySrc);
+            isValid &= CheckTextureRange("CopyTexture.src", src, srcSubresource, srcOffset, extent);
+        }
+
+        if (hasDst)
+        {
+            isValid &= CheckTextureUsage("CopyTexture.dst", dst, TextureUsages.CopyDst);
+            isValid &= CheckTextureRange("CopyTexture.dst", dst, dstSubresource, dstOffset, extent);
+        }
+
+        if (hasSrc && hasDst)
+        {
+            isValid &= CheckSameValue("CopyTexture.Format", src.Desc.Format, dst.Desc.Format);
+            isValid &= CheckSameValue("CopyTexture.SampleCount", src.Desc.SampleCount, dst.Desc.SampleCount);
+        }
+
+        return isValid;
+    }
+
+    internal bool ValidateCopyTextureToBuffer(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dst, uint dstOffsetInBytes, TextureDataLayout dstLayout)
+    {
+        bool hasSrc = CheckResource("CopyTextureToBuffer.src", src);
+        bool hasDst = CheckResource("CopyTextureToBuffer.dst", dst);
+        bool isValid = hasSrc && hasDst;
+
+        if (hasSrc)
+        {
+            isValid &= CheckTextureUsage("CopyTextureToBuffer.src", src, TextureUsages.CopySrc);
+            isValid &= CheckTextureRange("CopyTextureToBuffer.src", src, srcSubresource, srcOffset, srcExtent);
+            isValid &= CheckTextureDataLayout("CopyTextureToBuffer.dstLayout", dstLayout, src.Desc.Format, srcExtent);
+        }
+
+        if (hasDst)
+        {
+            isValid &= CheckBufferUsage("CopyTextureToBuffer.dst", dst, BufferUsages.CopyDst);
+            isValid &= CheckBufferRange("CopyTextureToBuffer.dst", dst, dstOffsetInBytes, dstLayout.SizeInBytes);
+        }
+
+        return isValid;
+    }
+
+    internal bool ValidateResolveTexture(Texture src, TextureSubresource srcSubresource, Texture dst, TextureSubresource dstSubresource)
+    {
+        bool hasSrc = CheckResource("ResolveTexture.src", src);
+        bool hasDst = CheckResource("ResolveTexture.dst", dst);
+        bool isValid = hasSrc && hasDst;
+
+        if (hasSrc)
+        {
+            isValid &= CheckTextureSubresource("ResolveTexture.srcSubresource", src, srcSubresource);
+
+            if (src.Desc.SampleCount is SampleCount.Count1)
+            {
+                ReportError(string.Format(ValidationMessages.MustBeMultisampled, "ResolveTexture.src"));
+                isValid = false;
+            }
+        }
+
+        if (hasDst)
+        {
+            isValid &= CheckTextureSubresource("ResolveTexture.dstSubresource", dst, dstSubresource);
+
+            if (dst.Desc.SampleCount is not SampleCount.Count1)
+            {
+                ReportError(string.Format(ValidationMessages.MustBeSingleSampled, "ResolveTexture.dst"));
+                isValid = false;
+            }
+        }
+
+        if (hasSrc && hasDst)
+        {
+            isValid &= CheckSameValue("ResolveTexture.Format", src.Desc.Format, dst.Desc.Format);
+            isValid &= CheckSameMipExtent("ResolveTexture", src, srcSubresource, dst, dstSubresource);
+        }
+
+        return isValid;
+    }
+
+    internal bool ValidateRenderPass(ReadOnlySpan<ColorAttachment> colorAttachments, DepthStencilAttachment? depthStencilAttachment)
+    {
+        bool isValid = true;
+        bool hasExtent = false;
+        uint renderWidth = 0;
+        uint renderHeight = 0;
+
+        if (colorAttachments.Length > ValidationConstants.MaxColorAttachments)
+        {
+            ReportError(string.Format(ValidationMessages.MustBeLessThanOrEqualTo, "BeginRenderPass.colorAttachments.Length", ValidationConstants.MaxColorAttachments));
+            isValid = false;
+        }
+
+        if (colorAttachments.Length is 0 && depthStencilAttachment is null)
+        {
+            ReportError(string.Format(ValidationMessages.HasNoAttachments, "BeginRenderPass"));
+            isValid = false;
+        }
+
+        for (int index = 0; index < colorAttachments.Length; index++)
+        {
+            isValid &= CheckColorAttachment($"BeginRenderPass.colorAttachments[{index}]", colorAttachments[index], ref hasExtent, ref renderWidth, ref renderHeight);
+        }
+
+        if (depthStencilAttachment is { } attachment)
+        {
+            isValid &= CheckDepthStencilAttachment("BeginRenderPass.depthStencilAttachment", attachment, ref hasExtent, ref renderWidth, ref renderHeight);
+        }
+
+        return isValid;
+    }
+
+    internal bool ValidateScissors(ReadOnlySpan<Scissor> scissors)
+    {
+        bool isValid = true;
+
+        if (scissors.Length is 0)
+        {
+            ReportError(string.Format(ValidationMessages.MustNotBeNullOrEmpty, "SetScissors.scissors"));
+            return false;
+        }
+
+        for (int index = 0; index < scissors.Length; index++)
+        {
+            isValid &= CheckGreaterThanZero($"SetScissors.scissors[{index}].Width", scissors[index].Width);
+            isValid &= CheckGreaterThanZero($"SetScissors.scissors[{index}].Height", scissors[index].Height);
+        }
+
+        return isValid;
+    }
+
+    internal bool ValidateViewports(ReadOnlySpan<Viewport> viewports)
+    {
+        bool isValid = true;
+
+        if (viewports.Length is 0)
+        {
+            ReportError(string.Format(ValidationMessages.MustNotBeNullOrEmpty, "SetViewports.viewports"));
+            return false;
+        }
+
+        for (int index = 0; index < viewports.Length; index++)
+        {
+            Viewport viewport = viewports[index];
+
+            isValid &= CheckFinite($"SetViewports.viewports[{index}].Width", viewport.Width);
+            isValid &= CheckFinite($"SetViewports.viewports[{index}].Height", viewport.Height);
+            isValid &= CheckFinite($"SetViewports.viewports[{index}].MinDepth", viewport.MinDepth);
+            isValid &= CheckFinite($"SetViewports.viewports[{index}].MaxDepth", viewport.MaxDepth);
+
+            if (viewport.Width <= 0)
+            {
+                ReportError(string.Format(ValidationMessages.MustBeGreaterThanZero, $"SetViewports.viewports[{index}].Width"));
+                isValid = false;
+            }
+
+            if (viewport.Height <= 0)
+            {
+                ReportError(string.Format(ValidationMessages.MustBeGreaterThanZero, $"SetViewports.viewports[{index}].Height"));
+                isValid = false;
+            }
+
+            if (viewport.MinDepth > viewport.MaxDepth)
+            {
+                ReportError(string.Format(ValidationMessages.MustBeLessThanOrEqualTo, $"SetViewports.viewports[{index}].MinDepth", $"SetViewports.viewports[{index}].MaxDepth"));
+                isValid = false;
+            }
+        }
+
+        return isValid;
+    }
+
+    internal bool ValidateCurrentPipeline(string commandName, Pipeline? currentPipeline)
+    {
+        ReportError(string.Format(ValidationMessages.MustHaveCurrentPipeline, commandName));
+
+        return false;
+    }
+
+    internal bool ValidateCurrentPipeline<TPipeline>(string commandName, Pipeline? currentPipeline) where TPipeline : Pipeline
+    {
+        if (currentPipeline is null)
+        {
+            ReportError(string.Format(ValidationMessages.MustHaveCurrentPipeline, commandName));
+        }
+        else
+        {
+            ReportError(string.Format(ValidationMessages.MustHaveCurrentPipelineType, commandName, typeof(TPipeline).Name, currentPipeline.GetType().Name));
+        }
+
+        return false;
+    }
+
+    internal bool ValidateSetVertexBuffer(Buffer buffer, uint offsetInBytes, uint slot, GraphicsPipeline pipeline)
+    {
+        bool isValid = CheckResource("SetVertexBuffer.buffer", buffer);
+
+        if (isValid)
+        {
+            isValid &= CheckBufferUsage("SetVertexBuffer.buffer", buffer, BufferUsages.Vertex);
+            isValid &= CheckBufferOffset("SetVertexBuffer.buffer", buffer, offsetInBytes);
+        }
+
+        if (pipeline.Desc.InputLayouts is not null && slot >= pipeline.Desc.InputLayouts.Length)
+        {
+            ReportError(string.Format(ValidationMessages.MustBeLessThan, "SetVertexBuffer.slot", "GraphicsPipelineDesc.InputLayouts.Length"));
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    internal bool ValidateSetIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat indexFormat)
+    {
+        bool isValid = CheckResource("SetIndexBuffer.buffer", buffer);
+        isValid &= CheckEnum("SetIndexBuffer.indexFormat", indexFormat);
+
+        if (isValid)
+        {
+            isValid &= CheckBufferUsage("SetIndexBuffer.buffer", buffer, BufferUsages.Index);
+            isValid &= CheckBufferOffset("SetIndexBuffer.buffer", buffer, offsetInBytes);
+        }
+
+        return isValid;
+    }
+
+    internal bool ValidateIndirectBuffer(string commandName, Buffer indirectBuffer, uint offsetInBytes, uint argsSizeInBytes, uint drawOrDispatchCount)
+    {
+        bool isValid = CheckResource($"{commandName}.indirectBuffer", indirectBuffer);
+
+        if (isValid)
+        {
+            isValid &= CheckBufferUsage($"{commandName}.indirectBuffer", indirectBuffer, BufferUsages.Indirect);
+            isValid &= CheckBufferRange($"{commandName}.indirectBuffer", indirectBuffer, offsetInBytes, (ulong)argsSizeInBytes * drawOrDispatchCount, allowZeroSize: true);
+        }
+
+        return isValid;
+    }
+
+    internal bool ValidateBeginQuery(QueryHeap queryHeap, uint index)
+    {
+        bool isValid = CheckQuery("BeginQuery", queryHeap, index);
+
+        if (isValid && queryHeap.Desc.Type is QueryType.Timestamp)
+        {
+            ReportError(string.Format(ValidationMessages.MustNotBeTimestampQuery, "BeginQuery"));
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    internal bool ValidateEndQuery(QueryHeap queryHeap, uint index)
+    {
+        bool isValid = CheckQuery("EndQuery", queryHeap, index);
+
+        if (isValid && queryHeap.Desc.Type is QueryType.Timestamp)
+        {
+            ReportError(string.Format(ValidationMessages.MustNotBeTimestampQuery, "EndQuery"));
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    internal bool ValidateWriteTimestamp(QueryHeap queryHeap, uint index)
+    {
+        bool isValid = CheckQuery("WriteTimestamp", queryHeap, index);
+
+        if (isValid && queryHeap.Desc.Type is not QueryType.Timestamp)
+        {
+            ReportError(string.Format(ValidationMessages.MustBeTimestampQuery, "WriteTimestamp"));
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    internal bool ValidateDebugLabel(string commandName, string? label)
+    {
+        return CheckStringNotWhitespace($"{commandName}.label", label);
     }
 
     private bool CheckResource<T>(string name, T? resource) where T : GraphicsResource
@@ -386,6 +793,413 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         }
 
         return true;
+    }
+
+    private bool CheckBufferData(string name, BufferData data)
+    {
+        bool isValid = true;
+
+        if (data.Pointer == 0)
+        {
+            ReportError(string.Format(ValidationMessages.MustNotBeZero, $"{name}.Pointer"));
+            isValid = false;
+        }
+
+        isValid &= CheckGreaterThanZero($"{name}.SizeInBytes", data.SizeInBytes);
+
+        return isValid;
+    }
+
+    private bool CheckTextureData(string name, TextureData data, PixelFormat format, Extent3D extent)
+    {
+        bool isValid = true;
+
+        if (data.Pointer == 0)
+        {
+            ReportError(string.Format(ValidationMessages.MustNotBeZero, $"{name}.Pointer"));
+            isValid = false;
+        }
+
+        isValid &= CheckTextureDataLayout($"{name}.Layout", data.Layout, format, extent);
+
+        return isValid;
+    }
+
+    private bool CheckTextureDataLayout(string name, TextureDataLayout layout, PixelFormat format, Extent3D extent)
+    {
+        bool isValid = true;
+
+        isValid &= CheckGreaterThanZero($"{name}.SizeInBytes", layout.SizeInBytes);
+        isValid &= CheckGreaterThanZero($"{name}.RowStrideInBytes", layout.RowStrideInBytes);
+        isValid &= CheckGreaterThanZero($"{name}.SliceStrideInBytes", layout.SliceStrideInBytes);
+
+        if (!CheckTextureExtent($"{name}.Extent", extent))
+        {
+            return false;
+        }
+
+        uint minRowStrideInBytes = ZenithHelper.RowStrideInBytes(format, extent.Width, extent.Height);
+
+        if (minRowStrideInBytes is 0)
+        {
+            return isValid;
+        }
+
+        if (layout.RowStrideInBytes < minRowStrideInBytes)
+        {
+            ReportError(string.Format(ValidationMessages.MustBeGreaterThanOrEqualTo, $"{name}.RowStrideInBytes", minRowStrideInBytes));
+            isValid = false;
+        }
+
+        (_, _, _, uint blocksHigh) = ZenithHelper.BlockLayout(format, extent.Width, extent.Height);
+        ulong minSliceStrideInBytes = (ulong)layout.RowStrideInBytes * blocksHigh;
+
+        if (layout.SliceStrideInBytes < minSliceStrideInBytes)
+        {
+            ReportError(string.Format(ValidationMessages.MustBeGreaterThanOrEqualTo, $"{name}.SliceStrideInBytes", minSliceStrideInBytes));
+            isValid = false;
+        }
+
+        ulong minSizeInBytes = extent.Depth is 0 ? 0 : ((ulong)layout.SliceStrideInBytes * (extent.Depth - 1)) + minSliceStrideInBytes;
+
+        if (layout.SizeInBytes < minSizeInBytes)
+        {
+            ReportError(string.Format(ValidationMessages.MustBeGreaterThanOrEqualTo, $"{name}.SizeInBytes", minSizeInBytes));
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    private bool CheckBufferUsage(string name, Buffer buffer, BufferUsages requiredUsage)
+    {
+        if (!buffer.Desc.Usages.HasFlag(requiredUsage))
+        {
+            ReportError(string.Format(ValidationMessages.MustHaveUsage, name, requiredUsage));
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool CheckTextureUsage(string name, Texture texture, TextureUsages requiredUsage)
+    {
+        if (!texture.Desc.Usages.HasFlag(requiredUsage))
+        {
+            ReportError(string.Format(ValidationMessages.MustHaveUsage, name, requiredUsage));
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool CheckBufferOffset(string name, Buffer buffer, uint offsetInBytes)
+    {
+        if (offsetInBytes > buffer.Desc.SizeInBytes)
+        {
+            ReportError(string.Format(ValidationMessages.MustBeWithinResourceBounds, $"{name}.OffsetInBytes", name));
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool CheckBufferRange(string name, Buffer buffer, uint offsetInBytes, ulong sizeInBytes, bool allowZeroSize = false)
+    {
+        bool isValid = CheckBufferOffset(name, buffer, offsetInBytes);
+
+        if (!allowZeroSize && sizeInBytes is 0)
+        {
+            ReportError(string.Format(ValidationMessages.MustBeGreaterThanZero, $"{name}.SizeInBytes"));
+            isValid = false;
+        }
+
+        if ((ulong)offsetInBytes + sizeInBytes > buffer.Desc.SizeInBytes)
+        {
+            ReportError(string.Format(ValidationMessages.MustBeWithinResourceBounds, name, "the buffer"));
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    private bool CheckTextureSubresource(string name, Texture texture, TextureSubresource subresource)
+    {
+        bool isValid = true;
+
+        if (subresource.MipLevel >= texture.Desc.MipLevels)
+        {
+            ReportError(string.Format(ValidationMessages.MustBeLessThan, $"{name}.MipLevel", "TextureDesc.MipLevels"));
+            isValid = false;
+        }
+
+        if (subresource.ArrayLayer >= texture.Desc.ArrayLayers)
+        {
+            ReportError(string.Format(ValidationMessages.MustBeLessThan, $"{name}.ArrayLayer", "TextureDesc.ArrayLayers"));
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    private bool CheckTextureExtent(string name, Extent3D extent)
+    {
+        if (extent.Width is 0 || extent.Height is 0 || extent.Depth is 0)
+        {
+            ReportError(string.Format(ValidationMessages.MustBeGreaterThanZero, $"{name} dimensions (Width, Height, Depth)"));
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool CheckTextureRange(string name, Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent)
+    {
+        bool isValid = CheckTextureSubresource($"{name}.Subresource", texture, subresource);
+        isValid &= CheckTextureExtent($"{name}.Extent", extent);
+
+        if (!isValid)
+        {
+            return false;
+        }
+
+        ZenithHelper.MipDimensions(texture.Desc.Width, texture.Desc.Height, texture.Desc.Depth, subresource.MipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth);
+
+        if ((ulong)offset.X + extent.Width > mipWidth)
+        {
+            ReportError(string.Format(ValidationMessages.MustBeWithinResourceBounds, $"{name}.X range", "the texture subresource width"));
+            isValid = false;
+        }
+
+        if ((ulong)offset.Y + extent.Height > mipHeight)
+        {
+            ReportError(string.Format(ValidationMessages.MustBeWithinResourceBounds, $"{name}.Y range", "the texture subresource height"));
+            isValid = false;
+        }
+
+        if ((ulong)offset.Z + extent.Depth > mipDepth)
+        {
+            ReportError(string.Format(ValidationMessages.MustBeWithinResourceBounds, $"{name}.Z range", "the texture subresource depth"));
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    private bool CheckSameValue<T>(string name, T first, T second)
+    {
+        if (!EqualityComparer<T>.Default.Equals(first, second))
+        {
+            ReportError(string.Format(ValidationMessages.MustHaveSameValue, name, first, second));
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool CheckSameMipExtent(string name, Texture first, TextureSubresource firstSubresource, Texture second, TextureSubresource secondSubresource)
+    {
+        if (!CheckTextureSubresource($"{name}.firstSubresource", first, firstSubresource) || !CheckTextureSubresource($"{name}.secondSubresource", second, secondSubresource))
+        {
+            return false;
+        }
+
+        ZenithHelper.MipDimensions(first.Desc.Width, first.Desc.Height, first.Desc.Depth, firstSubresource.MipLevel, out uint firstWidth, out uint firstHeight, out uint firstDepth);
+        ZenithHelper.MipDimensions(second.Desc.Width, second.Desc.Height, second.Desc.Depth, secondSubresource.MipLevel, out uint secondWidth, out uint secondHeight, out uint secondDepth);
+
+        bool isValid = true;
+        isValid &= CheckSameValue($"{name}.Width", firstWidth, secondWidth);
+        isValid &= CheckSameValue($"{name}.Height", firstHeight, secondHeight);
+        isValid &= CheckSameValue($"{name}.Depth", firstDepth, secondDepth);
+
+        return isValid;
+    }
+
+    private bool CheckColorAttachment(string name, ColorAttachment attachment, ref bool hasExtent, ref uint renderWidth, ref uint renderHeight)
+    {
+        bool hasTexture = CheckResource($"{name}.Texture", attachment.Texture);
+        bool isValid = hasTexture;
+
+        isValid &= CheckEnum($"{name}.LoadOp", attachment.LoadOp);
+        isValid &= CheckEnum($"{name}.StoreOp", attachment.StoreOp);
+
+        if (hasTexture)
+        {
+            isValid &= CheckTextureUsage($"{name}.Texture", attachment.Texture, TextureUsages.ColorAttachment);
+            isValid &= CheckColorFormat($"{name}.Texture.Desc.Format", attachment.Texture.Desc.Format);
+
+            if (CheckTextureSubresource($"{name}.Subresource", attachment.Texture, attachment.Subresource))
+            {
+                isValid &= CheckRenderPassExtent(name, attachment.Texture, attachment.Subresource, ref hasExtent, ref renderWidth, ref renderHeight);
+            }
+            else
+            {
+                isValid = false;
+            }
+        }
+
+        if (attachment.ResolveTexture is { } resolveTexture)
+        {
+            bool hasResolveTexture = CheckResource($"{name}.ResolveTexture", resolveTexture);
+            isValid &= hasResolveTexture;
+
+            if (hasResolveTexture)
+            {
+                isValid &= CheckTextureUsage($"{name}.ResolveTexture", resolveTexture, TextureUsages.ColorAttachment);
+                isValid &= CheckColorFormat($"{name}.ResolveTexture.Desc.Format", resolveTexture.Desc.Format);
+
+                if (hasTexture)
+                {
+                    isValid &= CheckSameValue($"{name}.ResolveTexture.Desc.Format", attachment.Texture.Desc.Format, resolveTexture.Desc.Format);
+
+                    if (attachment.Texture.Desc.SampleCount is SampleCount.Count1)
+                    {
+                        ReportError(string.Format(ValidationMessages.MustBeMultisampled, $"{name}.Texture"));
+                        isValid = false;
+                    }
+                }
+
+                if (resolveTexture.Desc.SampleCount is not SampleCount.Count1)
+                {
+                    ReportError(string.Format(ValidationMessages.MustBeSingleSampled, $"{name}.ResolveTexture"));
+                    isValid = false;
+                }
+
+                if (CheckTextureSubresource($"{name}.ResolveSubresource", resolveTexture, attachment.ResolveSubresource))
+                {
+                    isValid &= CheckRenderPassExtent($"{name}.ResolveTexture", resolveTexture, attachment.ResolveSubresource, ref hasExtent, ref renderWidth, ref renderHeight);
+                }
+                else
+                {
+                    isValid = false;
+                }
+            }
+        }
+
+        return isValid;
+    }
+
+    private bool CheckDepthStencilAttachment(string name, DepthStencilAttachment attachment, ref bool hasExtent, ref uint renderWidth, ref uint renderHeight)
+    {
+        bool hasTexture = CheckResource($"{name}.Texture", attachment.Texture);
+        bool isValid = hasTexture;
+
+        isValid &= CheckEnum($"{name}.DepthLoadOp", attachment.DepthLoadOp);
+        isValid &= CheckEnum($"{name}.DepthStoreOp", attachment.DepthStoreOp);
+        isValid &= CheckEnum($"{name}.StencilLoadOp", attachment.StencilLoadOp);
+        isValid &= CheckEnum($"{name}.StencilStoreOp", attachment.StencilStoreOp);
+
+        if (attachment.ClearDepth is < 0.0f or > 1.0f)
+        {
+            ReportError(string.Format(ValidationMessages.MustBeBetween, $"{name}.ClearDepth", 0.0f, 1.0f));
+            isValid = false;
+        }
+
+        if (hasTexture)
+        {
+            isValid &= CheckTextureUsage($"{name}.Texture", attachment.Texture, TextureUsages.DepthStencil);
+            isValid &= CheckDepthStencilFormat($"{name}.Texture.Desc.Format", attachment.Texture.Desc.Format);
+
+            if (CheckTextureSubresource($"{name}.Subresource", attachment.Texture, attachment.Subresource))
+            {
+                isValid &= CheckRenderPassExtent(name, attachment.Texture, attachment.Subresource, ref hasExtent, ref renderWidth, ref renderHeight);
+            }
+            else
+            {
+                isValid = false;
+            }
+        }
+
+        return isValid;
+    }
+
+    private bool CheckColorFormat(string name, PixelFormat format)
+    {
+        if (ZenithHelper.HasDepth(format) || ZenithHelper.HasStencil(format))
+        {
+            ReportError(string.Format(ValidationMessages.MustNotBeDepthStencilFormat, name));
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool CheckDepthStencilFormat(string name, PixelFormat format)
+    {
+        if (!ZenithHelper.HasDepth(format) && !ZenithHelper.HasStencil(format))
+        {
+            ReportError(string.Format(ValidationMessages.MustBeDepthStencilFormat, name));
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool CheckRenderPassExtent(string name, Texture texture, TextureSubresource subresource, ref bool hasExtent, ref uint renderWidth, ref uint renderHeight)
+    {
+        ZenithHelper.MipDimensions(texture.Desc.Width, texture.Desc.Height, texture.Desc.Depth, subresource.MipLevel, out uint width, out uint height, out _);
+
+        if (!hasExtent)
+        {
+            renderWidth = width;
+            renderHeight = height;
+            hasExtent = true;
+
+            return true;
+        }
+
+        bool isValid = true;
+
+        if (width != renderWidth)
+        {
+            ReportError(string.Format(ValidationMessages.MustHaveSameValue, $"{name}.Width", width, renderWidth));
+            isValid = false;
+        }
+
+        if (height != renderHeight)
+        {
+            ReportError(string.Format(ValidationMessages.MustHaveSameValue, $"{name}.Height", height, renderHeight));
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    private bool CheckFinite(string name, float value)
+    {
+        if (!float.IsFinite(value))
+        {
+            ReportError(string.Format(ValidationMessages.MustBeFinite, name));
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool CheckQuery(string commandName, QueryHeap queryHeap, uint index)
+    {
+        bool isValid = CheckResource($"{commandName}.queryHeap", queryHeap);
+
+        if (isValid)
+        {
+            isValid &= CheckEnum($"{commandName}.queryHeap.Desc.Type", queryHeap.Desc.Type);
+
+            if (index >= queryHeap.Desc.Count)
+            {
+                ReportError(string.Format(ValidationMessages.MustBeLessThan, $"{commandName}.index", "QueryHeapDesc.Count"));
+                isValid = false;
+            }
+        }
+
+        return isValid;
     }
 
     private void CheckSurface(string name, Surface surface)
@@ -493,7 +1307,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     private void CheckDepthStencilState(string name, DepthStencilState depthStencilState)
     {
-        CheckEnum($"{name}.DepthCompareFunction", depthStencilState.DepthCompareFunction);
+        CheckEnum($"{name}.DepthCompareOp", depthStencilState.DepthCompareOp);
         CheckStencilFaceState($"{name}.FrontFace", depthStencilState.FrontFace);
         CheckStencilFaceState($"{name}.BackFace", depthStencilState.BackFace);
     }
@@ -512,20 +1326,20 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     private void CheckStencilFaceState(string name, StencilFaceState faceState)
     {
-        CheckEnum($"{name}.FailOperation", faceState.FailOperation);
-        CheckEnum($"{name}.DepthFailOperation", faceState.DepthFailOperation);
-        CheckEnum($"{name}.PassOperation", faceState.PassOperation);
-        CheckEnum($"{name}.CompareFunction", faceState.CompareFunction);
+        CheckEnum($"{name}.FailOp", faceState.FailOp);
+        CheckEnum($"{name}.DepthFailOp", faceState.DepthFailOp);
+        CheckEnum($"{name}.PassOp", faceState.PassOp);
+        CheckEnum($"{name}.CompareOp", faceState.CompareOp);
     }
 
     private void CheckColorAttachmentBlendState(string name, ColorAttachmentBlendState blendState)
     {
-        CheckEnum($"{name}.SourceRgbBlendFactor", blendState.SourceRgbBlendFactor);
-        CheckEnum($"{name}.DestinationRgbBlendFactor", blendState.DestinationRgbBlendFactor);
-        CheckEnum($"{name}.RgbBlendOperation", blendState.RgbBlendOperation);
-        CheckEnum($"{name}.SourceAlphaBlendFactor", blendState.SourceAlphaBlendFactor);
-        CheckEnum($"{name}.DestinationAlphaBlendFactor", blendState.DestinationAlphaBlendFactor);
-        CheckEnum($"{name}.AlphaBlendOperation", blendState.AlphaBlendOperation);
+        CheckEnum($"{name}.SrcRgbFactor", blendState.SrcRgbFactor);
+        CheckEnum($"{name}.DstRgbFactor", blendState.DstRgbFactor);
+        CheckEnum($"{name}.RgbOp", blendState.RgbOp);
+        CheckEnum($"{name}.SrcAlphaFactor", blendState.SrcAlphaFactor);
+        CheckEnum($"{name}.DstAlphaFactor", blendState.DstAlphaFactor);
+        CheckEnum($"{name}.AlphaOp", blendState.AlphaOp);
         CheckFlags($"{name}.ColorWrites", blendState.ColorWrites);
     }
 
@@ -577,6 +1391,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     private void CheckRayTracingTriangleGeometry(string name, RayTracingTriangleGeometry triangleGeometry)
     {
         bool hasVertexBuffer = CheckResource($"{name}.VertexBuffer", triangleGeometry.VertexBuffer);
+        bool hasIndexBuffer = triangleGeometry.IndexBuffer is not null && CheckResource($"{name}.IndexBuffer", triangleGeometry.IndexBuffer);
 
         CheckEnum($"{name}.VertexFormat", triangleGeometry.VertexFormat);
         bool hasVertexCount = CheckGreaterThanZero($"{name}.VertexCount", triangleGeometry.VertexCount);
@@ -591,8 +1406,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         {
             return;
         }
-
-        bool hasIndexBuffer = CheckResource($"{name}.IndexBuffer", triangleGeometry.IndexBuffer);
 
         CheckEnum($"{name}.IndexFormat", triangleGeometry.IndexFormat);
         bool hasIndexCount = CheckGreaterThanZero($"{name}.IndexCount", triangleGeometry.IndexCount);
@@ -646,11 +1459,21 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     }
 }
 
-file static class ValidationConstants
+internal static class ValidationConstants
 {
     public const int CubeMapFaceCount = 6;
 
     public const int MaxAnisotropy = 16;
+
+    public const int MaxColorAttachments = 8;
+
+    public const uint IndirectDrawArgsSizeInBytes = 16;
+
+    public const uint IndirectDrawIndexedArgsSizeInBytes = 20;
+
+    public const uint IndirectDispatchArgsSizeInBytes = 12;
+
+    public const uint IndirectDispatchMeshArgsSizeInBytes = 12;
 
     public const int IndexSizeUInt16 = 2;
 
@@ -662,6 +1485,8 @@ file static class ValidationConstants
 file static class ValidationMessages
 {
     public const string MustNotBeNull = "{0} must not be null.";
+
+    public const string MustNotBeZero = "{0} must not be zero.";
 
     public const string MustHaveExactlyNHandles = "{0} must have exactly {1} handles for {2}.";
 
@@ -693,7 +1518,11 @@ file static class ValidationMessages
 
     public const string MustBeLessThanOrEqualTo = "{0} must be less than or equal to {1}.";
 
+    public const string MustBeGreaterThanOrEqualTo = "{0} must be greater than or equal to {1}.";
+
     public const string MustBeEqualTo = "{0} must be equal to {1}.";
+
+    public const string MustBeBetween = "{0} must be between {1} and {2}.";
 
     public const string MustBeAMultipleOf = "{0} must be a multiple of {1}.";
 
@@ -702,6 +1531,30 @@ file static class ValidationMessages
     public const string MustBeOneOf = "{0} must be one of: {1}.";
 
     public const string MustHaveFlag = "{0} must have the flag '{1}' set.";
+
+    public const string MustHaveUsage = "{0} must have usage flag '{1}'.";
+
+    public const string MustHaveSameValue = "{0} must match. First value: '{1}', second value: '{2}'.";
+
+    public const string MustBeWithinResourceBounds = "{0} must be within the bounds of {1}.";
+
+    public const string MustNotBeDepthStencilFormat = "{0} must not use a depth/stencil format.";
+
+    public const string MustBeDepthStencilFormat = "{0} must use a depth/stencil format.";
+
+    public const string MustBeSingleSampled = "{0} must use SampleCount.Count1.";
+
+    public const string MustBeMultisampled = "{0} must use a sample count greater than SampleCount.Count1.";
+
+    public const string MustBeFinite = "{0} must be finite.";
+
+    public const string MustHaveCurrentPipeline = "{0} requires a pipeline to be set.";
+
+    public const string MustHaveCurrentPipelineType = "{0} requires current pipeline type {1}, but current pipeline is {2}.";
+
+    public const string MustNotBeTimestampQuery = "{0} cannot be used with QueryType.Timestamp.";
+
+    public const string MustBeTimestampQuery = "{0} requires QueryType.Timestamp.";
 
     public const string InstanceCountMustRemainSame = "When updating a TopLevelAccelerationStructure, the number of instances must remain the same.";
 

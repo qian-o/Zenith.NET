@@ -21,7 +21,8 @@ internal class Downloader(GraphicsContext context) : DisposableObject
             {
                 SizeInBytes = data.SizeInBytes,
                 StrideInBytes = 1,
-                Access = BufferAccess.CpuReadOnly
+                Access = BufferAccess.CpuReadOnly,
+                Usages = BufferUsages.CopyDst
             }));
         }
 

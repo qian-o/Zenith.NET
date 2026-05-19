@@ -4,8 +4,6 @@ public record struct MeshShadingPipelineDesc
 {
     public RenderState RenderState;
 
-    public Shader? TaskShader;
-
     public Shader MeshShader;
 
     public Shader FragmentShader;
@@ -15,4 +13,6 @@ public record struct MeshShadingPipelineDesc
     public PrimitiveTopology PrimitiveTopology;
 
     public AttachmentFormats AttachmentFormats;
+
+    public Shader? TaskShader;
 }

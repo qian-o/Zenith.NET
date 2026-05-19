@@ -1,6 +1,6 @@
-﻿namespace Zenith.NET;
+namespace Zenith.NET;
 
-public enum BlendOperation
+public enum BlendOp
 {
     Add,
 

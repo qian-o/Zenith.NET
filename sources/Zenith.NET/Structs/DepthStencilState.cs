@@ -6,7 +6,7 @@ public record struct DepthStencilState
 
     public bool IsDepthWriteEnabled;
 
-    public CompareFunction DepthCompareFunction;
+    public CompareOp DepthCompareOp;
 
     public bool IsStencilEnabled;
 

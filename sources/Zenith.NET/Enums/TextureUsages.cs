@@ -5,11 +5,15 @@ public enum TextureUsages
 {
     None = 0,
 
-    ColorAttachment = 1 << 0,
+    CopySrc = 1 << 0,
 
-    DepthStencil = 1 << 1,
+    CopyDst = 1 << 1,
 
-    Sampled = 1 << 2,
+    ColorAttachment = 1 << 2,
 
-    Storage = 1 << 3
+    DepthStencil = 1 << 3,
+
+    Sampled = 1 << 4,
+
+    Storage = 1 << 5
 }

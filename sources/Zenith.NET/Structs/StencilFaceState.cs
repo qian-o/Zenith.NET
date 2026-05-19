@@ -2,11 +2,11 @@
 
 public record struct StencilFaceState
 {
-    public StencilOperation FailOperation;
+    public StencilOp FailOp;
 
-    public StencilOperation DepthFailOperation;
+    public StencilOp DepthFailOp;
 
-    public StencilOperation PassOperation;
+    public StencilOp PassOp;
 
-    public CompareFunction CompareFunction;
+    public CompareOp CompareOp;
 }
