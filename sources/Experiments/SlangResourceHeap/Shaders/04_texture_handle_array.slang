@@ -1,6 +1,11 @@
+struct TextureRecord
+{
+    DescriptorHandle<Texture2D<float4>> Texture;
+};
+
 struct TextureArrayConstants
 {
-    DescriptorHandle<StructuredBuffer<DescriptorHandle<Texture2D<float4>>>> Textures;
+    DescriptorHandle<StructuredBuffer<TextureRecord>> Textures;
     DescriptorHandle<SamplerState> LinearSampler;
     uint TextureCount;
     float UvScale;
@@ -32,7 +37,7 @@ float4 fragmentMain(FullscreenVertex input) : SV_TARGET
 {
     uint count = max(gTextures.TextureCount, 1u);
     uint textureIndex = min(uint(input.Uv.x * float(count)), count - 1u);
-    DescriptorHandle<Texture2D<float4>> textureHandle = (*gTextures.Textures)[textureIndex];
+    TextureRecord textureRecord = (*gTextures.Textures)[textureIndex];
 
-    return nonuniform(textureHandle)->Sample(*gTextures.LinearSampler, input.Uv * gTextures.UvScale);
+    return nonuniform(textureRecord.Texture)->Sample(*gTextures.LinearSampler, input.Uv * gTextures.UvScale);
 }

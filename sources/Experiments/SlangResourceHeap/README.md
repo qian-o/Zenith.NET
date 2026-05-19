@@ -37,26 +37,38 @@ the NuGet `Slangc.NET` package instead of any `slangc.exe` that may appear on
      Each material contains a texture handle, and the shader uses `nonuniform`
      before dereferencing it.
 4. `Shaders/04_texture_handle_array.slang`
-   - Fragment shader reads a texture handle from a structured buffer of texture
-     handles, then samples it with `nonuniform(handle)`.
+   - Fragment shader reads a record containing a texture handle from a structured
+     buffer, then samples it with `nonuniform(handle)`.
 
 ## Many Textures
 
 For many textures, shader code should not use an untyped `heap[index]` expression
 directly. The portable Slang shape is to store typed handles in ordinary data,
-such as a constant buffer, material buffer, or a structured buffer of handles:
+such as a constant buffer, material buffer, or a structured buffer of records
+that contain handles:
 
 ```hlsl
+struct TextureRecord
+{
+  DescriptorHandle<Texture2D<float4>> Texture;
+};
+
 struct DrawConstants
 {
-    DescriptorHandle<StructuredBuffer<DescriptorHandle<Texture2D<float4>>>> Textures;
+  DescriptorHandle<StructuredBuffer<TextureRecord>> Textures;
     DescriptorHandle<SamplerState> LinearSampler;
     uint TextureIndex;
 };
 
-DescriptorHandle<Texture2D<float4>> textureHandle = (*draw.Textures)[draw.TextureIndex];
-float4 color = nonuniform(textureHandle)->Sample(*draw.LinearSampler, uv);
+TextureRecord textureRecord = (*draw.Textures)[draw.TextureIndex];
+float4 color = nonuniform(textureRecord.Texture)->Sample(*draw.LinearSampler, uv);
 ```
+
+Wrapping each texture handle in a record is intentional. DXIL and SPIR-V can
+compile a raw `StructuredBuffer<DescriptorHandle<Texture2D<T>>>`, but Apple's
+Metal compiler rejects the generated `texture2d device*` buffer-pointee type.
+The record form matches material-buffer usage and is accepted by the Metal 4
+`metallib` path.
 
 The host-side `ResourceHeap` owns the actual descriptors. The shader receives
 typed descriptor handles or buffers of typed descriptor handles, and Slang lowers
