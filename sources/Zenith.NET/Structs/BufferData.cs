@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct BufferData
+public struct BufferData
 {
     public nint Pointer;
 

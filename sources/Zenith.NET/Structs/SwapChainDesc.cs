@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct SwapChainDesc
+public struct SwapChainDesc
 {
     public Surface Surface;
 

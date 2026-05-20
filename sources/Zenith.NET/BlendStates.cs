@@ -22,13 +22,16 @@ public static class BlendStates
     {
         IsAlphaToCoverageEnabled = false,
         IsIndependentBlendEnabled = false,
-        ColorAttachment0 = Default.ColorAttachment0 with
+        ColorAttachment0 = new()
         {
             IsBlendingEnabled = true,
             SrcRgbFactor = BlendFactor.SourceAlpha,
             DstRgbFactor = BlendFactor.One,
+            RgbOp = BlendOp.Add,
             SrcAlphaFactor = BlendFactor.SourceAlpha,
-            DstAlphaFactor = BlendFactor.One
+            DstAlphaFactor = BlendFactor.One,
+            AlphaOp = BlendOp.Add,
+            ColorWrites = ColorWrites.All
         }
     };
 
@@ -36,13 +39,16 @@ public static class BlendStates
     {
         IsAlphaToCoverageEnabled = false,
         IsIndependentBlendEnabled = false,
-        ColorAttachment0 = Default.ColorAttachment0 with
+        ColorAttachment0 = new()
         {
             IsBlendingEnabled = true,
             SrcRgbFactor = BlendFactor.One,
             DstRgbFactor = BlendFactor.OneMinusSourceAlpha,
+            RgbOp = BlendOp.Add,
             SrcAlphaFactor = BlendFactor.One,
-            DstAlphaFactor = BlendFactor.OneMinusSourceAlpha
+            DstAlphaFactor = BlendFactor.OneMinusSourceAlpha,
+            AlphaOp = BlendOp.Add,
+            ColorWrites = ColorWrites.All
         }
     };
 
@@ -50,13 +56,16 @@ public static class BlendStates
     {
         IsAlphaToCoverageEnabled = false,
         IsIndependentBlendEnabled = false,
-        ColorAttachment0 = Default.ColorAttachment0 with
+        ColorAttachment0 = new()
         {
             IsBlendingEnabled = true,
             SrcRgbFactor = BlendFactor.SourceAlpha,
             DstRgbFactor = BlendFactor.OneMinusSourceAlpha,
+            RgbOp = BlendOp.Add,
             SrcAlphaFactor = BlendFactor.SourceAlpha,
-            DstAlphaFactor = BlendFactor.OneMinusSourceAlpha
+            DstAlphaFactor = BlendFactor.OneMinusSourceAlpha,
+            AlphaOp = BlendOp.Add,
+            ColorWrites = ColorWrites.All
         }
     };
 
@@ -64,9 +73,16 @@ public static class BlendStates
     {
         IsAlphaToCoverageEnabled = false,
         IsIndependentBlendEnabled = false,
-        ColorAttachment0 = Default.ColorAttachment0 with
+        ColorAttachment0 = new()
         {
-            IsBlendingEnabled = false
+            IsBlendingEnabled = false,
+            SrcRgbFactor = BlendFactor.One,
+            DstRgbFactor = BlendFactor.Zero,
+            RgbOp = BlendOp.Add,
+            SrcAlphaFactor = BlendFactor.One,
+            DstAlphaFactor = BlendFactor.Zero,
+            AlphaOp = BlendOp.Add,
+            ColorWrites = ColorWrites.All
         }
     };
 
@@ -74,9 +90,15 @@ public static class BlendStates
     {
         IsAlphaToCoverageEnabled = false,
         IsIndependentBlendEnabled = false,
-        ColorAttachment0 = Default.ColorAttachment0 with
+        ColorAttachment0 = new()
         {
             IsBlendingEnabled = false,
+            SrcRgbFactor = BlendFactor.One,
+            DstRgbFactor = BlendFactor.Zero,
+            RgbOp = BlendOp.Add,
+            SrcAlphaFactor = BlendFactor.One,
+            DstAlphaFactor = BlendFactor.Zero,
+            AlphaOp = BlendOp.Add,
             ColorWrites = ColorWrites.None
         }
     };

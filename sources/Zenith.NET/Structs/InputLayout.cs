@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct InputLayout
+public struct InputLayout
 {
     public InputElement[] InputElements;
 

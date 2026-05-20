@@ -552,7 +552,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             return true;
         }
 
-        Context.ValidationLayer?.ValidateCurrentPipeline(commandName, currentPipeline);
+        Context.ValidationLayer?.ValidateCurrentPipeline(commandName);
         pipeline = null!;
 
         return false;

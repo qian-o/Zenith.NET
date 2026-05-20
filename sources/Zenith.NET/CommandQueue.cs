@@ -29,9 +29,9 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
         SubmitImpl(commandBuffer, waits, ++value);
 
-        submitteds.Enqueue(new(commandBuffer, value));
+        submitteds.Enqueue(new() { CommandBuffer = commandBuffer, Value = value });
 
-        return new(this, value);
+        return new() { Queue = this, Value = value };
     }
 
     internal void Wait(ulong value)
@@ -80,5 +80,10 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
         }
     }
 
-    private readonly record struct Submitted(CommandBuffer CommandBuffer, ulong Value);
+    private readonly struct Submitted
+    {
+        public CommandBuffer CommandBuffer { get; init; }
+
+        public ulong Value { get; init; }
+    }
 }

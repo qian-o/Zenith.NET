@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct ShaderDesc
+public struct ShaderDesc
 {
     public byte[] Bytecode;
 

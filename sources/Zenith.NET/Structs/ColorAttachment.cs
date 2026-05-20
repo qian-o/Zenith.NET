@@ -2,7 +2,7 @@
 
 namespace Zenith.NET;
 
-public record struct ColorAttachment
+public struct ColorAttachment
 {
     public Texture Texture;
 

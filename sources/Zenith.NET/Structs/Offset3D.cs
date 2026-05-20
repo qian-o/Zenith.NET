@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct Offset3D
+public struct Offset3D
 {
     public uint X;
 

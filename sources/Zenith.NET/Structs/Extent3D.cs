@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct Extent3D
+public struct Extent3D
 {
     public uint Width;
 

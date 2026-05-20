@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct TextureData
+public struct TextureData
 {
     public nint Pointer;
 

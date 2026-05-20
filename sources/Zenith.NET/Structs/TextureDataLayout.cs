@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct TextureDataLayout
+public struct TextureDataLayout
 {
     public uint SizeInBytes;
 

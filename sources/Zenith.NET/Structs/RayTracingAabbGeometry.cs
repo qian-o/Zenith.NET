@@ -1,6 +1,6 @@
 namespace Zenith.NET;
 
-public record struct RayTracingAabbGeometry
+public struct RayTracingAabbGeometry
 {
     public Buffer Buffer;
 

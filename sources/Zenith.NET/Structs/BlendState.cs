@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct BlendState
+public struct BlendState
 {
     public bool IsAlphaToCoverageEnabled;
 

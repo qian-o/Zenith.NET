@@ -1,4 +1,7 @@
-﻿using System.Numerics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
+using System.Reflection;
 
 namespace Zenith.NET;
 
@@ -593,7 +596,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         return isValid;
     }
 
-    internal bool ValidateCurrentPipeline(string commandName, Pipeline? currentPipeline)
+    internal bool ValidateCurrentPipeline(string commandName)
     {
         ReportError(string.Format(ValidationMessages.MustHaveCurrentPipeline, commandName));
 
@@ -649,6 +652,30 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     internal bool ValidateSetConstants<T>(T data) where T : unmanaged, IConstantsLayout<T>
     {
+        bool isLayoutValid = ConstantsLayoutCache.GetOrAdd(typeof(T), CheckConstantsLayout);
+
+        if (!isLayoutValid)
+        {
+            ReportError(string.Format(ValidationMessages.HasInvalidConstantsLayout, typeof(T).Name));
+
+            return false;
+        }
+
+        uint sizeInBytes = Context.GraphicsApi switch
+        {
+            GraphicsApi.DirectX12 => T.DirectX12SizeInBytes,
+            GraphicsApi.Metal => T.MetalSizeInBytes,
+            GraphicsApi.Vulkan => T.VulkanSizeInBytes,
+            _ => 0
+        };
+
+        if (sizeInBytes is 0)
+        {
+            ReportError(string.Format(ValidationMessages.MustHaveNonZeroConstantsSize, typeof(T).Name, Context.GraphicsApi));
+
+            return false;
+        }
+
         return true;
     }
 
@@ -1437,6 +1464,45 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         Report(MessageSource.Framework, MessageSeverity.Warning, message);
     }
+
+    private static readonly ConcurrentDictionary<Type, bool> ConstantsLayoutCache = new();
+
+    [UnconditionalSuppressMessage("Trimming", "IL2070",
+        Justification = "Constants layout types are user-defined structs referenced via T; the trimmer preserves their fields and attributes through the static abstract IConstantsLayout<T> contract.")]
+    private static bool CheckConstantsLayout(Type type)
+    {
+        bool isValid = true;
+
+        if (type.GetCustomAttribute<ConstantsAttribute>() is null)
+        {
+            isValid = false;
+        }
+
+        foreach (FieldInfo field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
+        {
+            int bindingAttributeCount = 0;
+            bool expectsResourceHandle = false;
+
+            if (field.GetCustomAttribute<UniformAttribute>() is not null) { bindingAttributeCount++; }
+            if (field.GetCustomAttribute<StorageReadOnlyAttribute>() is not null) { bindingAttributeCount++; }
+            if (field.GetCustomAttribute<StorageReadWriteAttribute>() is not null) { bindingAttributeCount++; }
+            if (field.GetCustomAttribute<SampledAttribute>() is not null) { bindingAttributeCount++; expectsResourceHandle = true; }
+            if (field.GetCustomAttribute<StorageAttribute>() is not null) { bindingAttributeCount++; expectsResourceHandle = true; }
+            if (field.GetCustomAttribute<SamplerAttribute>() is not null) { bindingAttributeCount++; expectsResourceHandle = true; }
+
+            if (bindingAttributeCount > 1)
+            {
+                isValid = false;
+            }
+
+            if (expectsResourceHandle && field.FieldType != typeof(ResourceHandle))
+            {
+                isValid = false;
+            }
+        }
+
+        return isValid;
+    }
 }
 
 internal static class ValidationConstants
@@ -1539,4 +1605,8 @@ file static class ValidationMessages
     public const string InstanceCountMustRemainSame = "When updating a TopLevelAccelerationStructure, the number of instances must remain the same.";
 
     public const string UsagesIncompatibleWithAccess = "{0} contains flags '{1}' that require GPU read-write access and cannot be combined with BufferAccess.{2}.";
+
+    public const string HasInvalidConstantsLayout = "{0} is not a valid constants layout. It must be marked with [Constants], each field may carry at most one binding attribute, and any field marked with [Sampled], [Storage], or [Sampler] must be of type ResourceHandle.";
+
+    public const string MustHaveNonZeroConstantsSize = "{0} reports a zero size for {1}; the constants layout has no payload for the current backend.";
 }

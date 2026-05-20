@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct QueryHeapDesc
+public struct QueryHeapDesc
 {
     public QueryType Type;
 

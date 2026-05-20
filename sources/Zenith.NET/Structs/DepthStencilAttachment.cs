@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct DepthStencilAttachment
+public struct DepthStencilAttachment
 {
     public Texture Texture;
 

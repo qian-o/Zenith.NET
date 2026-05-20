@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct RayTracingGeometry
+public struct RayTracingGeometry
 {
     public RayTracingGeometryType Type;
 

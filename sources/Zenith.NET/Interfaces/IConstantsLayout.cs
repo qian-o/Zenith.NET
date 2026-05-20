@@ -2,15 +2,15 @@
 
 public interface IConstantsLayout<T> where T : unmanaged, IConstantsLayout<T>
 {
-    static abstract uint SizeInBytesOnDirectX12 { get; }
+    static abstract uint DirectX12SizeInBytes { get; }
 
-    static abstract uint SizeInBytesOnMetal { get; }
+    static abstract uint MetalSizeInBytes { get; }
 
-    static abstract uint SizeInBytesOnVulkan { get; }
+    static abstract uint VulkanSizeInBytes { get; }
 
-    static abstract void DirectX12(T data, Buffer dst);
+    static abstract void WriteDirectX12(T data, Buffer dst);
 
-    static abstract void Metal(T data, Buffer dst);
+    static abstract void WriteMetal(T data, Buffer dst);
 
-    static abstract void Vulkan(T data, Buffer dst);
+    static abstract void WriteVulkan(T data, Buffer dst);
 }

@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct StencilFaceState
+public struct StencilFaceState
 {
     public StencilOp FailOp;
 

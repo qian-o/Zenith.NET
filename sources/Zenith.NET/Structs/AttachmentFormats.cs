@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct AttachmentFormats
+public struct AttachmentFormats
 {
     public PixelFormat[] ColorFormats;
 

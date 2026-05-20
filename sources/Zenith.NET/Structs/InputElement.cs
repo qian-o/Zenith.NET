@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct InputElement
+public struct InputElement
 {
     public ElementFormat Format;
 

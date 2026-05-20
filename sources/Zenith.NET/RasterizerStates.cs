@@ -14,36 +14,75 @@ public static class RasterizerStates
         IsScissorEnabled = false
     };
 
-    public static readonly RasterizerState CullFront = Default with
+    public static readonly RasterizerState CullFront = new()
     {
-        CullMode = CullMode.Front
+        FillMode = FillMode.Solid,
+        CullMode = CullMode.Front,
+        FrontFace = FrontFace.CounterClockwise,
+        DepthBias = 0,
+        DepthBiasClamp = 0.0f,
+        DepthBiasSlopeScale = 0.0f,
+        IsDepthClipEnabled = true,
+        IsScissorEnabled = false
     };
 
-    public static readonly RasterizerState CullBack = Default with
+    public static readonly RasterizerState CullBack = new()
     {
-        CullMode = CullMode.Back
+        FillMode = FillMode.Solid,
+        CullMode = CullMode.Back,
+        FrontFace = FrontFace.CounterClockwise,
+        DepthBias = 0,
+        DepthBiasClamp = 0.0f,
+        DepthBiasSlopeScale = 0.0f,
+        IsDepthClipEnabled = true,
+        IsScissorEnabled = false
     };
 
-    public static readonly RasterizerState CullNone = Default with
+    public static readonly RasterizerState CullNone = new()
     {
-        CullMode = CullMode.None
+        FillMode = FillMode.Solid,
+        CullMode = CullMode.None,
+        FrontFace = FrontFace.CounterClockwise,
+        DepthBias = 0,
+        DepthBiasClamp = 0.0f,
+        DepthBiasSlopeScale = 0.0f,
+        IsDepthClipEnabled = true,
+        IsScissorEnabled = false
     };
 
-    public static readonly RasterizerState WireframeCullFront = Default with
+    public static readonly RasterizerState WireframeCullFront = new()
     {
         FillMode = FillMode.Wireframe,
-        CullMode = CullMode.Front
+        CullMode = CullMode.Front,
+        FrontFace = FrontFace.CounterClockwise,
+        DepthBias = 0,
+        DepthBiasClamp = 0.0f,
+        DepthBiasSlopeScale = 0.0f,
+        IsDepthClipEnabled = true,
+        IsScissorEnabled = false
     };
 
-    public static readonly RasterizerState WireframeCullBack = Default with
+    public static readonly RasterizerState WireframeCullBack = new()
     {
         FillMode = FillMode.Wireframe,
-        CullMode = CullMode.Back
+        CullMode = CullMode.Back,
+        FrontFace = FrontFace.CounterClockwise,
+        DepthBias = 0,
+        DepthBiasClamp = 0.0f,
+        DepthBiasSlopeScale = 0.0f,
+        IsDepthClipEnabled = true,
+        IsScissorEnabled = false
     };
 
-    public static readonly RasterizerState Wireframe = Default with
+    public static readonly RasterizerState Wireframe = new()
     {
         FillMode = FillMode.Wireframe,
-        CullMode = CullMode.None
+        CullMode = CullMode.None,
+        FrontFace = FrontFace.CounterClockwise,
+        DepthBias = 0,
+        DepthBiasClamp = 0.0f,
+        DepthBiasSlopeScale = 0.0f,
+        IsDepthClipEnabled = true,
+        IsScissorEnabled = false
     };
 }

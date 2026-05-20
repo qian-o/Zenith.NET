@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct Surface
+public struct Surface
 {
     public SurfaceType Type;
 

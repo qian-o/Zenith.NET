@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct TopLevelAccelerationStructureDesc
+public struct TopLevelAccelerationStructureDesc
 {
     public RayTracingInstance[] Instances;
 

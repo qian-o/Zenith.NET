@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct GraphicsPipelineDesc
+public struct GraphicsPipelineDesc
 {
     public RenderState RenderState;
 

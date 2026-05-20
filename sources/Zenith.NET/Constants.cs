@@ -2,6 +2,8 @@
 
 internal class Constants(GraphicsContext context) : DisposableObject
 {
+    private static readonly TimeSpan LeaseLifetime = TimeSpan.FromSeconds(120);
+
     private readonly Lock @lock = new();
     private readonly List<Lease> available = [];
     private readonly Dictionary<CommandBuffer, List<Lease>> borrowed = [];
@@ -75,9 +77,9 @@ internal class Constants(GraphicsContext context) : DisposableObject
     {
         return context.GraphicsApi switch
         {
-            GraphicsApi.DirectX12 => T.SizeInBytesOnDirectX12,
-            GraphicsApi.Metal => T.SizeInBytesOnMetal,
-            GraphicsApi.Vulkan => T.SizeInBytesOnVulkan,
+            GraphicsApi.DirectX12 => T.DirectX12SizeInBytes,
+            GraphicsApi.Metal => T.MetalSizeInBytes,
+            GraphicsApi.Vulkan => T.VulkanSizeInBytes,
             _ => 0
         };
     }
@@ -87,15 +89,15 @@ internal class Constants(GraphicsContext context) : DisposableObject
         switch (context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                T.DirectX12(data, buffer);
+                T.WriteDirectX12(data, buffer);
                 break;
 
             case GraphicsApi.Metal:
-                T.Metal(data, buffer);
+                T.WriteMetal(data, buffer);
                 break;
 
             case GraphicsApi.Vulkan:
-                T.Vulkan(data, buffer);
+                T.WriteVulkan(data, buffer);
                 break;
         }
     }
@@ -107,7 +109,7 @@ internal class Constants(GraphicsContext context) : DisposableObject
 
     private class Lease(Buffer buffer)
     {
-        private DateTime expirationTime = DateTime.UtcNow + TimeSpan.FromSeconds(120);
+        private DateTime expirationTime = DateTime.UtcNow + LeaseLifetime;
 
         public Buffer Buffer { get; } = buffer;
 
@@ -130,7 +132,7 @@ internal class Constants(GraphicsContext context) : DisposableObject
 
         public Lease Renew()
         {
-            expirationTime = DateTime.UtcNow + TimeSpan.FromSeconds(120);
+            expirationTime = DateTime.UtcNow + LeaseLifetime;
 
             return this;
         }

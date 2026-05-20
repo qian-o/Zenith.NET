@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace Zenith.NET;
 
-public record struct RayTracingTriangleGeometry
+public struct RayTracingTriangleGeometry
 {
     public Buffer VertexBuffer;
 

@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct TextureViewDesc
+public struct TextureViewDesc
 {
     public Texture Texture;
 

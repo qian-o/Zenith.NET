@@ -1,3 +1,8 @@
 ﻿namespace Zenith.NET;
 
-public readonly record struct MappedMemory(nint Pointer, uint SizeInBytes);
+public readonly struct MappedMemory
+{
+    public nint Pointer { get; init; }
+
+    public uint SizeInBytes { get; init; }
+}

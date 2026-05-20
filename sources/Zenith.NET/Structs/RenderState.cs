@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace Zenith.NET;
 
-public record struct RenderState
+public struct RenderState
 {
     public RasterizerState RasterizerState;
 

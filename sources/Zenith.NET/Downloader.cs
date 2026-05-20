@@ -2,6 +2,8 @@
 
 internal class Downloader(GraphicsContext context) : DisposableObject
 {
+    private static readonly TimeSpan LeaseLifetime = TimeSpan.FromSeconds(120);
+
     private readonly Lock @lock = new();
     private readonly List<Lease> available = [];
     private readonly Dictionary<CommandBuffer, List<Lease>> borrowed = [];
@@ -67,7 +69,7 @@ internal class Downloader(GraphicsContext context) : DisposableObject
 
     private class Lease(Buffer buffer)
     {
-        private DateTime expirationTime = DateTime.UtcNow + TimeSpan.FromSeconds(120);
+        private DateTime expirationTime = DateTime.UtcNow + LeaseLifetime;
 
         private BufferData data;
 
@@ -106,7 +108,7 @@ internal class Downloader(GraphicsContext context) : DisposableObject
 
         public Lease Renew()
         {
-            expirationTime = DateTime.UtcNow + TimeSpan.FromSeconds(120);
+            expirationTime = DateTime.UtcNow + LeaseLifetime;
 
             data = default;
 

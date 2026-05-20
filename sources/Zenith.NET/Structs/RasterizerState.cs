@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct RasterizerState
+public struct RasterizerState
 {
     public FillMode FillMode;
 

@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct TextureSubresource
+public struct TextureSubresource
 {
     public uint MipLevel;
 

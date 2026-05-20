@@ -1,6 +1,6 @@
 namespace Zenith.NET;
 
-public record struct ColorAttachmentBlendState
+public struct ColorAttachmentBlendState
 {
     public bool IsBlendingEnabled;
 

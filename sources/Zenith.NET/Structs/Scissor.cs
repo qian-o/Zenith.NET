@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct Scissor
+public struct Scissor
 {
     public int X;
 

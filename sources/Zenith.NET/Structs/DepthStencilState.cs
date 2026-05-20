@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct DepthStencilState
+public struct DepthStencilState
 {
     public bool IsDepthEnabled;
 

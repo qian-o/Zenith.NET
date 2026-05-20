@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct MeshShadingPipelineDesc
+public struct MeshShadingPipelineDesc
 {
     public RenderState RenderState;
 
