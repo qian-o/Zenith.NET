@@ -2,8 +2,6 @@
 
 public struct GraphicsPipelineDesc
 {
-    public RenderState RenderState;
-
     public Shader VertexShader;
 
     public Shader FragmentShader;
@@ -13,4 +11,6 @@ public struct GraphicsPipelineDesc
     public PrimitiveTopology PrimitiveTopology;
 
     public AttachmentFormats AttachmentFormats;
+
+    public RenderState RenderState;
 }

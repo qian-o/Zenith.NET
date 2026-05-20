@@ -4,15 +4,15 @@ public enum TextureType
 {
     Texture1D,
 
-    Texture1DArray,
-
     Texture2D,
-
-    Texture2DArray,
 
     Texture3D,
 
     TextureCube,
+
+    Texture1DArray,
+
+    Texture2DArray,
 
     TextureCubeArray
 }

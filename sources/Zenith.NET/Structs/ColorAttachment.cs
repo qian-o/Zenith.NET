@@ -8,15 +8,15 @@ public struct ColorAttachment
 
     public TextureSubresource Subresource;
 
-    public Texture? ResolveTexture;
-
-    public TextureSubresource ResolveSubresource;
-
     public LoadOp LoadOp;
 
     public StoreOp StoreOp;
 
     public Vector4 ClearColor;
+
+    public Texture? ResolveTexture;
+
+    public TextureSubresource ResolveSubresource;
 
     public static ColorAttachment Clear(Texture texture, Vector4 clearColor)
     {
@@ -24,11 +24,11 @@ public struct ColorAttachment
         {
             Texture = texture,
             Subresource = new(),
-            ResolveTexture = null,
-            ResolveSubresource = new(),
             LoadOp = LoadOp.Clear,
             StoreOp = StoreOp.Store,
-            ClearColor = clearColor
+            ClearColor = clearColor,
+            ResolveTexture = null,
+            ResolveSubresource = new()
         };
     }
 
@@ -38,11 +38,11 @@ public struct ColorAttachment
         {
             Texture = texture,
             Subresource = new(),
-            ResolveTexture = null,
-            ResolveSubresource = new(),
             LoadOp = LoadOp.Load,
             StoreOp = StoreOp.Store,
-            ClearColor = Vector4.Zero
+            ClearColor = Vector4.Zero,
+            ResolveTexture = null,
+            ResolveSubresource = new()
         };
     }
 
@@ -52,11 +52,11 @@ public struct ColorAttachment
         {
             Texture = texture,
             Subresource = new(),
-            ResolveTexture = null,
-            ResolveSubresource = new(),
             LoadOp = LoadOp.DontCare,
             StoreOp = StoreOp.Store,
-            ClearColor = Vector4.Zero
+            ClearColor = Vector4.Zero,
+            ResolveTexture = null,
+            ResolveSubresource = new()
         };
     }
 }

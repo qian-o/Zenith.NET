@@ -9,11 +9,11 @@ public enum TextureUsages
 
     CopyDst = 1 << 1,
 
-    ColorAttachment = 1 << 2,
+    Sampled = 1 << 2,
 
-    DepthStencil = 1 << 3,
+    Storage = 1 << 3,
 
-    Sampled = 1 << 4,
+    ColorAttachment = 1 << 4,
 
-    Storage = 1 << 5
+    DepthStencil = 1 << 5
 }

@@ -9,11 +9,11 @@ public enum BufferUsages
 
     CopyDst = 1 << 1,
 
-    Vertex = 1 << 2,
+    Uniform = 1 << 2,
 
-    Index = 1 << 3,
+    Vertex = 1 << 3,
 
-    Uniform = 1 << 4,
+    Index = 1 << 4,
 
     StorageReadOnly = 1 << 5,
 

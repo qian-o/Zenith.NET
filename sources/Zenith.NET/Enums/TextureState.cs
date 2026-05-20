@@ -2,19 +2,19 @@
 
 public enum TextureState
 {
-    ColorAttachment,
+    CopySrc,
 
-    DepthStencil,
-
-    DepthStencilReadOnly,
+    CopyDst,
 
     Sampled,
 
     Storage,
 
-    CopySrc,
+    ColorAttachment,
 
-    CopyDst,
+    DepthStencil,
+
+    DepthStencilReadOnly,
 
     ResolveSrc,
 
