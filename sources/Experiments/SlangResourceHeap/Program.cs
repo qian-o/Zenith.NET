@@ -1,5 +1,6 @@
 using Slangc.NET;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 
 internal sealed record ShaderEntry(string Name, string Stage);
 
@@ -15,7 +16,8 @@ internal sealed record CompileOptions(string Target, bool UseSpvDescriptorHeapEx
         "dxil",
         "spirv",
         "metal-source",
-        "metal"
+        "metal",
+        "reflection"
     };
 
     public static CompileOptions Parse(string[] arguments)
@@ -111,6 +113,20 @@ internal static class Program
             [
                 new("vertexMain", "vertex"),
                 new("fragmentMain", "fragment")
+            ]),
+        new(
+            "05_fixed_texture_array",
+            "05_fixed_texture_array.slang",
+            [
+                new("vertexMain", "vertex"),
+                new("fragmentMain", "fragment")
+            ]),
+        new(
+            "06_flattened_textures",
+            "06_flattened_textures.slang",
+            [
+                new("vertexMain", "vertex"),
+                new("fragmentMain", "fragment")
             ])
     ];
 
@@ -139,6 +155,12 @@ internal static class Program
                 Directory.Delete(outputRoot, recursive: true);
             }
 
+            if (options.Target.Equals("reflection", StringComparison.OrdinalIgnoreCase))
+            {
+                DumpReflection(shaderDirectory, outputRoot, options.UseSpvDescriptorHeapExt);
+                return 0;
+            }
+
             foreach (string target in ExpandTargets(options.Target))
             {
                 CompileTarget(shaderDirectory, outputRoot, CreateTargetConfig(target, options.UseSpvDescriptorHeapExt));
@@ -151,6 +173,114 @@ internal static class Program
             Console.Error.WriteLine(exception.Message);
             return 1;
         }
+    }
+
+    private static void DumpReflection(string shaderDirectory, string outputRoot, bool useSpvDescriptorHeapExt)
+    {
+        string outputDirectory = Path.Combine(outputRoot, "reflection");
+        Directory.CreateDirectory(outputDirectory);
+
+        foreach (ShaderTest testCase in TestCases.Where(static item => item.Name is "05_fixed_texture_array" or "06_flattened_textures"))
+        {
+            ShaderEntry entry = testCase.Entries.Single(static item => item.Name == "fragmentMain");
+            string source = Path.Combine(shaderDirectory, testCase.File);
+
+            foreach (string target in new[] { "dxil", "spirv", "metal-source" })
+            {
+                TargetConfig targetConfig = CreateTargetConfig(target, useSpvDescriptorHeapExt);
+                string[] compilerArguments =
+                [
+                    source,
+                    "-I", shaderDirectory,
+                    "-entry", entry.Name,
+                    "-stage", entry.Stage,
+                    "-matrix-layout-row-major",
+                    .. targetConfig.Arguments
+                ];
+
+                Console.WriteLine($"[reflection:{targetConfig.Name}] {testCase.Name}::{entry.Name}");
+
+                byte[] shaderBytes = SlangCompiler.CompileWithReflection(compilerArguments, out SlangReflection reflection);
+                string outputName = $"{testCase.Name}.{targetConfig.Name}";
+                File.WriteAllText(Path.Combine(outputDirectory, $"{outputName}.members.txt"), $"ShaderBytes: {shaderBytes.Length}" + Environment.NewLine + DescribeObject(reflection));
+
+                if (TryGetReflectionJson(reflection, out string reflectionJson))
+                {
+                    File.WriteAllText(Path.Combine(outputDirectory, $"{outputName}.reflection.json"), PrettyJson(reflectionJson));
+                }
+            }
+        }
+    }
+
+    private static string DescribeObject(object value)
+    {
+        Type type = value.GetType();
+        List<string> lines = [$"Type: {type.FullName}"];
+
+        foreach (System.Reflection.PropertyInfo property in type.GetProperties())
+        {
+            object? propertyValue = property.GetValue(value);
+            lines.Add($"Property {property.Name}: {FormatMemberValue(propertyValue)}");
+        }
+
+        foreach (System.Reflection.FieldInfo field in type.GetFields())
+        {
+            object? fieldValue = field.GetValue(value);
+            lines.Add($"Field {field.Name}: {FormatMemberValue(fieldValue)}");
+        }
+
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    private static string FormatMemberValue(object? value) => value switch
+    {
+        null => "<null>",
+        byte[] bytes => $"byte[{bytes.Length}]",
+        string text => text.Length > 120 ? $"string[{text.Length}] {text[..120]}..." : $"string[{text.Length}] {text}",
+        _ => $"{value.GetType().FullName}: {value}"
+    };
+
+    private static bool TryGetReflectionJson(object value, out string reflectionJson)
+    {
+        Type type = value.GetType();
+
+        foreach (System.Reflection.PropertyInfo property in type.GetProperties())
+        {
+            if (property.PropertyType == typeof(string) && IsLikelyReflectionMember(property.Name, property.GetValue(value) as string, out reflectionJson))
+            {
+                return true;
+            }
+        }
+
+        foreach (System.Reflection.FieldInfo field in type.GetFields())
+        {
+            if (field.FieldType == typeof(string) && IsLikelyReflectionMember(field.Name, field.GetValue(value) as string, out reflectionJson))
+            {
+                return true;
+            }
+        }
+
+        reflectionJson = string.Empty;
+        return false;
+    }
+
+    private static bool IsLikelyReflectionMember(string name, string? value, out string reflectionJson)
+    {
+        if (value is not null &&
+            (name.Contains("Reflection", StringComparison.OrdinalIgnoreCase) || value.TrimStart().StartsWith('{') || value.TrimStart().StartsWith('[')))
+        {
+            reflectionJson = value;
+            return true;
+        }
+
+        reflectionJson = string.Empty;
+        return false;
+    }
+
+    private static string PrettyJson(string json)
+    {
+        using JsonDocument document = JsonDocument.Parse(json);
+        return JsonSerializer.Serialize(document, new JsonSerializerOptions { WriteIndented = true });
     }
 
     private static void CompileTarget(string shaderDirectory, string outputRoot, TargetConfig targetConfig)
@@ -292,7 +422,7 @@ internal static class Program
 
     private static void PrintUsage()
     {
-        Console.WriteLine("Usage: dotnet run --project SlangResourceHeap.csproj -- [all|dxil|spirv|metal-source|metal] [--spv-descriptor-heap-ext] [--clean]");
+        Console.WriteLine("Usage: dotnet run --project SlangResourceHeap.csproj -- [all|dxil|spirv|metal-source|metal|reflection] [--spv-descriptor-heap-ext] [--clean]");
         Console.WriteLine("No arguments runs: all --clean --spv-descriptor-heap-ext.");
         Console.WriteLine("Note: all includes dxil on Windows, metallib on macOS, and skips platform downstream targets elsewhere unless requested explicitly.");
     }
