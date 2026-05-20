@@ -73,7 +73,7 @@ internal class Constants(GraphicsContext context) : DisposableObject
 
     private uint SizeInBytes<T>() where T : unmanaged, IConstantsLayout<T>
     {
-        return context.Api switch
+        return context.GraphicsApi switch
         {
             GraphicsApi.DirectX12 => T.SizeInBytesOnDirectX12,
             GraphicsApi.Metal => T.SizeInBytesOnMetal,
@@ -84,7 +84,7 @@ internal class Constants(GraphicsContext context) : DisposableObject
 
     private void Write<T>(T data, Buffer buffer) where T : unmanaged, IConstantsLayout<T>
     {
-        switch (context.Api)
+        switch (context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
                 T.DirectX12(data, buffer);
