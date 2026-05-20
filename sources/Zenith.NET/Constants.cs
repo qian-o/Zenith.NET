@@ -10,34 +10,27 @@ internal class Constants(GraphicsContext context) : DisposableObject
 
     public Buffer Buffer<T>(CommandBuffer commandBuffer, T data) where T : unmanaged, IConstantsLayout<T>
     {
+        using Lock.Scope _ = @lock.EnterScope();
+
         uint sizeInBytes = SizeInBytes<T>();
-        Lease lease;
 
-        using (Lock.Scope _ = @lock.EnterScope())
+        if (!borrowed.TryGetValue(commandBuffer, out List<Lease>? leases))
         {
-            if (!borrowed.TryGetValue(commandBuffer, out List<Lease>? leases))
-            {
-                borrowed[commandBuffer] = leases = [];
-            }
-
-            Lease? availableLease = available.Where(item => item.HasCapacityFor(sizeInBytes)).MinBy(static item => item.Buffer.Desc.SizeInBytes);
-            if (availableLease is not null && available.Remove(availableLease))
-            {
-                lease = availableLease;
-            }
-            else
-            {
-                lease = new(context.CreateBuffer(new()
-                {
-                    SizeInBytes = sizeInBytes,
-                    StrideInBytes = 1,
-                    Access = BufferAccess.CpuWriteOnly,
-                    Usages = BufferUsages.Uniform
-                }));
-            }
-
-            leases.Add(lease);
+            borrowed[commandBuffer] = leases = [];
         }
+
+        if (!(available.Where(item => item.HasCapacityFor(sizeInBytes)).MinBy(static item => item.Buffer.Desc.SizeInBytes) is Lease lease && available.Remove(lease)))
+        {
+            lease = new(context.CreateBuffer(new()
+            {
+                SizeInBytes = sizeInBytes,
+                StrideInBytes = 1,
+                Access = BufferAccess.CpuWriteOnly,
+                Usages = BufferUsages.Uniform
+            }));
+        }
+
+        leases.Add(lease);
 
         Write(data, lease.Buffer);
 
