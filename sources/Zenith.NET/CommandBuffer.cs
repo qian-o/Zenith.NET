@@ -283,9 +283,9 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         currentPipeline = pipeline;
     }
 
-    public void SetStencilReference(uint reference)
+    public void SetStencilReference(uint stencilReference)
     {
-        SetStencilReferenceImpl(reference);
+        SetStencilReferenceImpl(stencilReference);
     }
 
     public void SetBlendConstant(Vector4 blendConstant)
@@ -630,7 +630,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void SetPipelineImpl(MeshShadingPipeline pipeline);
 
-    protected abstract void SetStencilReferenceImpl(uint reference);
+    protected abstract void SetStencilReferenceImpl(uint stencilReference);
 
     protected abstract void SetBlendConstantImpl(Vector4 blendConstant);
 
