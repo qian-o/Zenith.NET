@@ -42,7 +42,7 @@ internal unsafe class DXBuffer : Buffer
 
     public DXBufferView View { get; }
 
-    public override MappedMemory Map()
+    protected override MappedMemory MapImpl()
     {
         void* pointer;
         Resource.Map(0, (DxRange*)null, &pointer).Success();

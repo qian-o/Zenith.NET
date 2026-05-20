@@ -15,7 +15,7 @@ internal class MTLBuffer : Buffer
 
     public MTLHeap Heap { get; }
 
-    public override MappedMemory Map()
+    protected override MappedMemory MapImpl()
     {
         return new() { Pointer = Buffer.Contents(), SizeInBytes = Desc.SizeInBytes };
     }

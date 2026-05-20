@@ -16,6 +16,11 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 
     public void Resize(uint width, uint height)
     {
+        if (Context.ValidationLayer?.ValidateResize(width, height) is false)
+        {
+            return;
+        }
+
         desc.Surface.Width = width;
         desc.Surface.Height = height;
 
@@ -26,6 +31,8 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 
     public void Refresh(Surface surface)
     {
+        Context.ValidationLayer?.ValidateRefresh(surface);
+
         desc.Surface = surface;
 
         RefreshImpl();

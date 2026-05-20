@@ -285,11 +285,21 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void SetStencilReference(uint stencilReference)
     {
+        if (Context.ValidationLayer?.ValidateSetStencilReference(currentPipeline) is false)
+        {
+            return;
+        }
+
         SetStencilReferenceImpl(stencilReference);
     }
 
     public void SetBlendConstant(Vector4 blendConstant)
     {
+        if (Context.ValidationLayer?.ValidateSetBlendConstant(currentPipeline, blendConstant) is false)
+        {
+            return;
+        }
+
         SetBlendConstantImpl(blendConstant);
     }
 

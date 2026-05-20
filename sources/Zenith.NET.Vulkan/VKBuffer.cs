@@ -88,7 +88,7 @@ internal unsafe class VKBuffer : Buffer
 
     public VKBufferView View { get; }
 
-    public override MappedMemory Map()
+    protected override MappedMemory MapImpl()
     {
         void* pointer;
         Context.Vk.MapMemory(Context.Device, DeviceMemory.DeviceMemory, 0, Desc.SizeInBytes, 0, &pointer).Success();
