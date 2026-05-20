@@ -6,6 +6,10 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public ref readonly TextureDesc Desc => ref desc;
 
+    public ResourceHandle SampledHandle { get; }
+
+    public ResourceHandle StorageHandle { get; }
+
     public void Upload(TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {
         CommandBuffer commandBuffer = Context.CopyQueue.AcquireCommandBuffer();

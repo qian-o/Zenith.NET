@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct BufferRange
+public record struct BufferViewDesc
 {
     public Buffer Buffer;
 
