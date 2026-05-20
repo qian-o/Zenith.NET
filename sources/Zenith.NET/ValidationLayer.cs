@@ -58,6 +58,21 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         }
     }
 
+    internal void ValidateDesc(BufferViewDesc desc)
+    {
+        if (!CheckResource("BufferViewDesc.Buffer", desc.Buffer))
+        {
+            return;
+        }
+
+        CheckBufferRange("BufferViewDesc", desc.Buffer, desc.OffsetInBytes, desc.SizeInBytes);
+
+        if (desc.StrideInBytes is 0)
+        {
+            ReportWarning(string.Format(ValidationMessages.IsZeroWarning, "BufferViewDesc.StrideInBytes", "structured buffer views"));
+        }
+    }
+
     internal void ValidateDesc(TextureDesc desc)
     {
         CheckEnum("TextureDesc.Type", desc.Type);
@@ -175,19 +190,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         CheckEnum("SamplerDesc.BorderColor", desc.BorderColor);
     }
 
-    internal void ValidateDesc(ResourceTableDesc desc)
-    {
-        if (!CheckArrayNotEmpty("ResourceTableDesc.ResourceLayouts", desc.ResourceLayouts))
-        {
-            return;
-        }
-
-        for (int index = 0; index < desc.ResourceLayouts.Length; index++)
-        {
-            CheckResourceLayout($"ResourceTableDesc.ResourceLayouts[{index}]", desc.ResourceLayouts[index]);
-        }
-    }
-
     internal void ValidateDesc(ShaderDesc desc)
     {
         CheckArrayNotEmpty("ShaderDesc.Bytecode", desc.Bytecode);
@@ -201,8 +203,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         CheckResource("GraphicsPipelineDesc.VertexShader", desc.VertexShader);
         CheckResource("GraphicsPipelineDesc.FragmentShader", desc.FragmentShader);
-
-        CheckResourceLayouts("GraphicsPipelineDesc.ResourceLayouts", desc.ResourceLayouts);
 
         if (desc.InputLayouts is null)
         {
@@ -223,8 +223,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     internal void ValidateDesc(ComputePipelineDesc desc)
     {
         CheckResource("ComputePipelineDesc.ComputeShader", desc.ComputeShader);
-
-        CheckResourceLayouts("ComputePipelineDesc.ResourceLayouts", desc.ResourceLayouts);
     }
 
     internal void ValidateDesc(MeshShadingPipelineDesc desc)
@@ -233,8 +231,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         CheckResource("MeshShadingPipelineDesc.MeshShader", desc.MeshShader);
         CheckResource("MeshShadingPipelineDesc.FragmentShader", desc.FragmentShader);
-
-        CheckResourceLayouts("MeshShadingPipelineDesc.ResourceLayouts", desc.ResourceLayouts);
 
         if (desc.PrimitiveTopology is not PrimitiveTopology.LineList and not PrimitiveTopology.TriangleList)
         {
@@ -649,6 +645,11 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         }
 
         return isValid;
+    }
+
+    internal bool ValidateSetConstants<T>(T data) where T : unmanaged, IConstantsLayout<T>
+    {
+        return true;
     }
 
     internal bool ValidateIndirectBuffer(string commandName, Buffer indirectBuffer, uint offsetInBytes, uint argsSizeInBytes, uint drawOrDispatchCount)
@@ -1249,27 +1250,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         CheckGreaterThanZero($"{name}.Width", surface.Width);
         CheckGreaterThanZero($"{name}.Height", surface.Height);
-    }
-
-    private void CheckResourceLayouts(string name, ResourceLayout[]? resourceLayouts)
-    {
-        if (resourceLayouts is null)
-        {
-            ReportError(string.Format(ValidationMessages.MustNotBeNull, name));
-
-            return;
-        }
-
-        for (int index = 0; index < resourceLayouts.Length; index++)
-        {
-            CheckResourceLayout($"{name}[{index}]", resourceLayouts[index]);
-        }
-    }
-
-    private void CheckResourceLayout(string name, ResourceLayout resourceLayout)
-    {
-        CheckEnum($"{name}.Type", resourceLayout.Type);
-        CheckGreaterThanZero($"{name}.Count", resourceLayout.Count);
     }
 
     private void CheckInputLayout(string name, InputLayout inputLayout)

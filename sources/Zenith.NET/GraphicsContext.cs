@@ -21,6 +21,7 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
 
         Uploader = new(this);
         Downloader = new(this);
+        Constants = new(this);
     }
 
     public GraphicsApi Api { get; }
@@ -39,6 +40,8 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
 
     internal Downloader Downloader { get; }
 
+    internal Constants Constants { get; }
+
     public event EventHandler<ValidationMessageEventArgs>? ValidationMessage;
 
     public SwapChain CreateSwapChain(SwapChainDesc desc)
@@ -53,6 +56,13 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
         ValidationLayer?.ValidateDesc(desc);
 
         return CreateBufferImpl(desc);
+    }
+
+    public BufferView CreateBufferView(BufferViewDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
+
+        return CreateBufferViewImpl(desc);
     }
 
     public Texture CreateTexture(TextureDesc desc)
@@ -74,13 +84,6 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
         ValidationLayer?.ValidateDesc(desc);
 
         return CreateSamplerImpl(desc);
-    }
-
-    public ResourceTable CreateResourceTable(ResourceTableDesc desc)
-    {
-        ValidationLayer?.ValidateDesc(desc);
-
-        return CreateResourceTableImpl(desc);
     }
 
     public Shader CreateShader(ShaderDesc desc)
@@ -129,6 +132,7 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
 
         Uploader.Dispose();
         Downloader.Dispose();
+        Constants.Dispose();
     }
 
     protected abstract void Initialize(bool useValidationLayer,
@@ -142,13 +146,13 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
 
     protected abstract Buffer CreateBufferImpl(BufferDesc desc);
 
+    protected abstract BufferView CreateBufferViewImpl(BufferViewDesc desc);
+
     protected abstract Texture CreateTextureImpl(TextureDesc desc);
 
     protected abstract TextureView CreateTextureViewImpl(TextureViewDesc desc);
 
     protected abstract Sampler CreateSamplerImpl(SamplerDesc desc);
-
-    protected abstract ResourceTable CreateResourceTableImpl(ResourceTableDesc desc);
 
     protected abstract Shader CreateShaderImpl(ShaderDesc desc);
 

@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-internal abstract class BufferView(GraphicsContext context, BufferViewDesc desc) : GraphicsResource(context)
+public abstract class BufferView(GraphicsContext context, BufferViewDesc desc) : GraphicsResource(context)
 {
     private BufferViewDesc desc = desc;
 

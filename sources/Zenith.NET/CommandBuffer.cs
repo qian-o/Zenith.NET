@@ -311,19 +311,19 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         SetIndexBufferImpl(pipeline, buffer, offsetInBytes, indexFormat);
     }
 
-    public void PushResourceTable(ResourceTable resourceTable)
+    public void SetConstants<T>(T data) where T : unmanaged, IConstantsLayout<T>
     {
-        if (!TryGetCurrentPipeline(nameof(PushResourceTable), out Pipeline pipeline))
+        if (!TryGetCurrentPipeline(nameof(SetConstants), out Pipeline pipeline))
         {
             return;
         }
 
-        if (Context.ValidationLayer?.ValidateResource("PushResourceTable.resourceTable", resourceTable) is false)
+        if (Context.ValidationLayer?.ValidateSetConstants(data) is false)
         {
             return;
         }
 
-        PushResourceTableImpl(pipeline, resourceTable);
+        SetConstantsImpl(pipeline, Context.Constants.Buffer(this, data));
     }
 
     public void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
@@ -522,6 +522,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         Context.Uploader.Release(this);
         Context.Downloader.Release(this);
+        Context.Constants.Release(this);
 
         currentPipeline = null;
     }
@@ -530,6 +531,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     {
         Context.Uploader.Release(this);
         Context.Downloader.Release(this);
+        Context.Constants.Release(this);
 
         currentPipeline = null;
     }
@@ -620,7 +622,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void SetIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat indexFormat);
 
-    protected abstract void PushResourceTableImpl(Pipeline pipeline, ResourceTable resourceTable);
+    protected abstract void SetConstantsImpl(Pipeline pipeline, Buffer buffer);
 
     protected abstract void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
 

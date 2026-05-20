@@ -8,8 +8,6 @@ public record struct GraphicsPipelineDesc
 
     public Shader FragmentShader;
 
-    public ResourceLayout[] ResourceLayouts;
-
     public InputLayout[] InputLayouts;
 
     public PrimitiveTopology PrimitiveTopology;
