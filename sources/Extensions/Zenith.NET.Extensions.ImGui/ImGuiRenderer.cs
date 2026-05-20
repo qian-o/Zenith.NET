@@ -174,9 +174,9 @@ float4 PSMain(VSOutput input) : SV_TARGET
         {
             RenderStates = new()
             {
-                RasterizerState = RasterizerStates.Default,
-                DepthStencilState = DepthStencilStates.None,
-                BlendState = BlendStates.AlphaBlend
+                RasterizerState = RasterizerState.CullNone(),
+                DepthStencilState = DepthStencilState.DepthNone(),
+                BlendState = BlendState.AlphaBlend()
             },
             Vertex = vertex,
             Pixel = pixel,

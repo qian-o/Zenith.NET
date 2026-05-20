@@ -21,4 +21,54 @@ public struct BlendState
     public ColorAttachmentBlendState ColorAttachment6;
 
     public ColorAttachmentBlendState ColorAttachment7;
+
+    public static BlendState Opaque()
+    {
+        return new()
+        {
+            IsAlphaToCoverageEnabled = false,
+            IsIndependentBlendEnabled = false,
+            ColorAttachment0 = ColorAttachmentBlendState.Opaque()
+        };
+    }
+
+    public static BlendState AlphaBlend()
+    {
+        return new()
+        {
+            IsAlphaToCoverageEnabled = false,
+            IsIndependentBlendEnabled = false,
+            ColorAttachment0 = ColorAttachmentBlendState.AlphaBlend()
+        };
+    }
+
+    public static BlendState Additive()
+    {
+        return new()
+        {
+            IsAlphaToCoverageEnabled = false,
+            IsIndependentBlendEnabled = false,
+            ColorAttachment0 = ColorAttachmentBlendState.Additive()
+        };
+    }
+
+    public static BlendState NonPremultiplied()
+    {
+        return new()
+        {
+            IsAlphaToCoverageEnabled = false,
+            IsIndependentBlendEnabled = false,
+            ColorAttachment0 = ColorAttachmentBlendState.NonPremultiplied()
+        };
+    }
+
+    public static BlendState ColorDisabled()
+    {
+        return new()
+        {
+            IsAlphaToCoverageEnabled = false,
+            IsIndependentBlendEnabled = false,
+            ColorAttachment0 = ColorAttachmentBlendState.ColorDisabled()
+        };
+    }
 }

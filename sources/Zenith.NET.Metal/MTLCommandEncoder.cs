@@ -215,6 +215,16 @@ internal class MTLCommandEncoder : GraphicsResource
         IndexType = MTLFormats.Metal(format);
     }
 
+    public void SetStencilReference(uint reference)
+    {
+        Render?.SetStencilReferenceValue(reference);
+    }
+
+    public void SetBlendConstant(System.Numerics.Vector4 blendConstant)
+    {
+        Render?.SetBlendColor(blendConstant.X, blendConstant.Y, blendConstant.Z, blendConstant.W);
+    }
+
     public void PushResourceTable(ResourceTable resourceTable)
     {
         currentResourceTable = resourceTable;
@@ -365,13 +375,7 @@ internal class MTLCommandEncoder : GraphicsResource
 
         Render?.SetTriangleFillMode(MTLFormats.Metal(renderStates.RasterizerState.FillMode));
 
-        if (renderStates.BlendFactor.HasValue)
-        {
-            Render?.SetBlendColor(renderStates.BlendFactor.Value.X, renderStates.BlendFactor.Value.Y, renderStates.BlendFactor.Value.Z, renderStates.BlendFactor.Value.W);
-        }
-
         Render?.SetDepthStencilState(depthStencilState);
-        Render?.SetStencilReferenceValue(renderStates.StencilReference);
 
         Render?.SetFrontFacing(MTLFormats.Metal(renderStates.RasterizerState.FrontFace));
     }

@@ -1,4 +1,5 @@
-﻿using Silk.NET.Core.Native;
+﻿using System.Numerics;
+using Silk.NET.Core.Native;
 using Silk.NET.Direct3D12;
 using Silk.NET.DXGI;
 using Silk.NET.Maths;
@@ -385,21 +386,6 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         GraphicsCommandList4.SetPipelineState(dxPipeline.PipelineState);
         GraphicsCommandList4.SetGraphicsRootSignature(dxPipeline.RootSignature);
 
-        GraphicsCommandList4.OMSetStencilRef(dxPipeline.Desc.RenderStates.StencilReference);
-
-        if (dxPipeline.Desc.RenderStates.BlendFactor.HasValue)
-        {
-            float[] blendFactor =
-            [
-                dxPipeline.Desc.RenderStates.BlendFactor.Value.X,
-                dxPipeline.Desc.RenderStates.BlendFactor.Value.Y,
-                dxPipeline.Desc.RenderStates.BlendFactor.Value.Z,
-                dxPipeline.Desc.RenderStates.BlendFactor.Value.W
-            ];
-
-            GraphicsCommandList4.OMSetBlendFactor(ref blendFactor[0]);
-        }
-
         GraphicsCommandList4.IASetPrimitiveTopology(DXFormats.DirectX12(pipeline.Desc.PrimitiveTopology).PrimitiveTopology);
     }
 
@@ -417,21 +403,24 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
         GraphicsCommandList4.SetPipelineState(dxPipeline.PipelineState);
         GraphicsCommandList4.SetGraphicsRootSignature(dxPipeline.RootSignature);
+    }
 
-        GraphicsCommandList4.OMSetStencilRef(dxPipeline.Desc.RenderStates.StencilReference);
+    protected override void SetStencilReferenceImpl(uint reference)
+    {
+        GraphicsCommandList4.OMSetStencilRef(reference);
+    }
 
-        if (dxPipeline.Desc.RenderStates.BlendFactor.HasValue)
+    protected override void SetBlendConstantImpl(Vector4 blendConstant)
+    {
+        float* blendFactor = stackalloc float[4]
         {
-            float[] blendFactor =
-            [
-                dxPipeline.Desc.RenderStates.BlendFactor.Value.X,
-                dxPipeline.Desc.RenderStates.BlendFactor.Value.Y,
-                dxPipeline.Desc.RenderStates.BlendFactor.Value.Z,
-                dxPipeline.Desc.RenderStates.BlendFactor.Value.W
-            ];
+            blendConstant.X,
+            blendConstant.Y,
+            blendConstant.Z,
+            blendConstant.W
+        };
 
-            GraphicsCommandList4.OMSetBlendFactor(ref blendFactor[0]);
-        }
+        GraphicsCommandList4.OMSetBlendFactor(blendFactor);
     }
 
     protected override void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index)

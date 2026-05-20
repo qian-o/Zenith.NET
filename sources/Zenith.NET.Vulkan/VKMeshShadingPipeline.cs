@@ -86,7 +86,7 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
                     CompareOp = VKFormats.Vulkan(desc.RenderStates.DepthStencilState.FrontFace.StencilFunc),
                     CompareMask = desc.RenderStates.DepthStencilState.StencilReadMask,
                     WriteMask = desc.RenderStates.DepthStencilState.StencilWriteMask,
-                    Reference = desc.RenderStates.StencilReference
+                    Reference = 0
                 },
                 Back = new()
                 {
@@ -96,7 +96,7 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
                     CompareOp = VKFormats.Vulkan(desc.RenderStates.DepthStencilState.BackFace.StencilFunc),
                     CompareMask = desc.RenderStates.DepthStencilState.StencilReadMask,
                     WriteMask = desc.RenderStates.DepthStencilState.StencilWriteMask,
-                    Reference = desc.RenderStates.StencilReference
+                    Reference = 0
                 },
                 MinDepthBounds = 0.0f,
                 MaxDepthBounds = 1.0f
@@ -127,14 +127,6 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
                 DepthAttachmentFormat = ZenithHelper.HasDepth(desc.Output.DepthStencilAttachment ?? PixelFormat.Unknown) ? depthStencilAttachmentFormat : Format.Undefined,
                 StencilAttachmentFormat = ZenithHelper.HasStencil(desc.Output.DepthStencilAttachment ?? PixelFormat.Unknown) ? depthStencilAttachmentFormat : Format.Undefined
             };
-
-            if (desc.RenderStates.BlendFactor.HasValue)
-            {
-                colorBlendState.BlendConstants[0] = desc.RenderStates.BlendFactor.Value.X;
-                colorBlendState.BlendConstants[1] = desc.RenderStates.BlendFactor.Value.Y;
-                colorBlendState.BlendConstants[2] = desc.RenderStates.BlendFactor.Value.Z;
-                colorBlendState.BlendConstants[3] = desc.RenderStates.BlendFactor.Value.W;
-            }
 
             createInfo.PRasterizationState = &rasterizationState;
             createInfo.PDepthStencilState = &depthStencilState;
@@ -195,8 +187,8 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
         PipelineDynamicStateCreateInfo dynamicState = new()
         {
             SType = StructureType.PipelineDynamicStateCreateInfo,
-            DynamicStateCount = 2,
-            PDynamicStates = (DynamicState*)ZenithMarshal.AllocateAndFill(scope, [DynamicState.Viewport, DynamicState.Scissor])
+            DynamicStateCount = 4,
+            PDynamicStates = (DynamicState*)ZenithMarshal.AllocateAndFill(scope, [DynamicState.Viewport, DynamicState.Scissor, DynamicState.StencilReference, DynamicState.BlendConstants])
         };
 
         createInfo.PDynamicState = &dynamicState;

@@ -276,6 +276,16 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         CommandEncoder.SetPipeline(pipeline);
     }
 
+    protected override void SetStencilReferenceImpl(uint reference)
+    {
+        CommandEncoder.SetStencilReference(reference);
+    }
+
+    protected override void SetBlendConstantImpl(Vector4 blendConstant)
+    {
+        CommandEncoder.SetBlendConstant(blendConstant);
+    }
+
     protected override void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index)
     {
         CommandEncoder.SetVertexBuffer(buffer, offsetInBytes, index);

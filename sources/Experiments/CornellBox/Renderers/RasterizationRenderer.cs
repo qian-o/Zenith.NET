@@ -88,9 +88,9 @@ internal unsafe class RasterizationRenderer : Renderer
         {
             RenderStates = new()
             {
-                RasterizerState = RasterizerStates.CullNone,
-                DepthStencilState = DepthStencilStates.Default,
-                BlendState = BlendStates.Opaque
+                RasterizerState = RasterizerState.CullNone(),
+                DepthStencilState = DepthStencilState.DepthReadWrite(),
+                BlendState = BlendState.Opaque()
             },
             Vertex = vertexShader,
             Pixel = pixelShader,

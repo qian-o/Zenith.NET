@@ -1,4 +1,6 @@
-﻿namespace Zenith.NET;
+﻿using System.Numerics;
+
+namespace Zenith.NET;
 
 public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
 {
@@ -279,6 +281,16 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         SetPipelineImpl(pipeline);
 
         currentPipeline = pipeline;
+    }
+
+    public void SetStencilReference(uint reference)
+    {
+        SetStencilReferenceImpl(reference);
+    }
+
+    public void SetBlendConstant(Vector4 blendConstant)
+    {
+        SetBlendConstantImpl(blendConstant);
     }
 
     public void SetVertexBuffer(Buffer buffer, uint offsetInBytes, uint slot)
@@ -617,6 +629,10 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     protected abstract void SetPipelineImpl(ComputePipeline pipeline);
 
     protected abstract void SetPipelineImpl(MeshShadingPipeline pipeline);
+
+    protected abstract void SetStencilReferenceImpl(uint reference);
+
+    protected abstract void SetBlendConstantImpl(Vector4 blendConstant);
 
     protected abstract void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint slot);
 

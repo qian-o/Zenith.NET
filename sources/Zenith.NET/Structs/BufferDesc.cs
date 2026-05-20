@@ -9,4 +9,81 @@ public struct BufferDesc
     public BufferAccess Access;
 
     public BufferUsages Usages;
+
+    public static BufferDesc Vertex(uint sizeInBytes, uint strideInBytes)
+    {
+        return new()
+        {
+            SizeInBytes = sizeInBytes,
+            StrideInBytes = strideInBytes,
+            Access = BufferAccess.GpuOnly,
+            Usages = BufferUsages.Vertex | BufferUsages.CopyDst
+        };
+    }
+
+    public static BufferDesc Index(uint sizeInBytes, uint strideInBytes)
+    {
+        return new()
+        {
+            SizeInBytes = sizeInBytes,
+            StrideInBytes = strideInBytes,
+            Access = BufferAccess.GpuOnly,
+            Usages = BufferUsages.Index | BufferUsages.CopyDst
+        };
+    }
+
+    public static BufferDesc Uniform(uint sizeInBytes)
+    {
+        return new()
+        {
+            SizeInBytes = sizeInBytes,
+            StrideInBytes = 0,
+            Access = BufferAccess.GpuOnly,
+            Usages = BufferUsages.Uniform | BufferUsages.CopyDst
+        };
+    }
+
+    public static BufferDesc StorageReadOnly(uint sizeInBytes, uint strideInBytes)
+    {
+        return new()
+        {
+            SizeInBytes = sizeInBytes,
+            StrideInBytes = strideInBytes,
+            Access = BufferAccess.GpuOnly,
+            Usages = BufferUsages.StorageReadOnly | BufferUsages.CopyDst
+        };
+    }
+
+    public static BufferDesc StorageReadWrite(uint sizeInBytes, uint strideInBytes)
+    {
+        return new()
+        {
+            SizeInBytes = sizeInBytes,
+            StrideInBytes = strideInBytes,
+            Access = BufferAccess.GpuOnly,
+            Usages = BufferUsages.StorageReadWrite | BufferUsages.CopyDst
+        };
+    }
+
+    public static BufferDesc Indirect(uint sizeInBytes)
+    {
+        return new()
+        {
+            SizeInBytes = sizeInBytes,
+            StrideInBytes = 0,
+            Access = BufferAccess.GpuOnly,
+            Usages = BufferUsages.Indirect | BufferUsages.CopyDst
+        };
+    }
+
+    public static BufferDesc Staging(uint sizeInBytes)
+    {
+        return new()
+        {
+            SizeInBytes = sizeInBytes,
+            StrideInBytes = 0,
+            Access = BufferAccess.CpuWriteOnly,
+            Usages = BufferUsages.CopySrc
+        };
+    }
 }

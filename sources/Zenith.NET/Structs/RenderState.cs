@@ -1,5 +1,3 @@
-using System.Numerics;
-
 namespace Zenith.NET;
 
 public struct RenderState
@@ -9,8 +7,4 @@ public struct RenderState
     public DepthStencilState DepthStencilState;
 
     public BlendState BlendState;
-
-    public uint StencilReference;
-
-    public Vector4? BlendConstant;
 }

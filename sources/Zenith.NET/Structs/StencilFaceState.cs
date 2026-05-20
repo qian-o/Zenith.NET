@@ -9,4 +9,15 @@ public struct StencilFaceState
     public StencilOp PassOp;
 
     public CompareOp CompareOp;
+
+    public static StencilFaceState Keep()
+    {
+        return new()
+        {
+            FailOp = StencilOp.Keep,
+            DepthFailOp = StencilOp.Keep,
+            PassOp = StencilOp.Keep,
+            CompareOp = CompareOp.Always
+        };
+    }
 }
