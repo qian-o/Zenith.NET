@@ -340,7 +340,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             return;
         }
 
-        if (Context.ValidationLayer?.ValidateSetConstants(data) is false)
+        if (Context.ValidationLayer?.ValidateSetConstants<T>() is false)
         {
             return;
         }
@@ -365,7 +365,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             return;
         }
 
-        if (Context.ValidationLayer?.ValidateIndirectBuffer(nameof(DrawIndirect), indirectBuffer, offsetInBytes, ValidationConstants.IndirectDrawArgsSizeInBytes, drawCount) is false)
+        if (Context.ValidationLayer?.ValidateDrawIndirect(indirectBuffer, offsetInBytes, drawCount) is false)
         {
             return;
         }
@@ -390,7 +390,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             return;
         }
 
-        if (Context.ValidationLayer?.ValidateIndirectBuffer(nameof(DrawIndexedIndirect), indirectBuffer, offsetInBytes, ValidationConstants.IndirectDrawIndexedArgsSizeInBytes, drawCount) is false)
+        if (Context.ValidationLayer?.ValidateDrawIndexedIndirect(indirectBuffer, offsetInBytes, drawCount) is false)
         {
             return;
         }
@@ -415,7 +415,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             return;
         }
 
-        if (Context.ValidationLayer?.ValidateIndirectBuffer(nameof(DispatchIndirect), indirectBuffer, offsetInBytes, ValidationConstants.IndirectDispatchArgsSizeInBytes, 1) is false)
+        if (Context.ValidationLayer?.ValidateDispatchIndirect(indirectBuffer, offsetInBytes) is false)
         {
             return;
         }
@@ -440,7 +440,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             return;
         }
 
-        if (Context.ValidationLayer?.ValidateIndirectBuffer(nameof(DispatchMeshIndirect), indirectBuffer, offsetInBytes, ValidationConstants.IndirectDispatchMeshArgsSizeInBytes, dispatchCount) is false)
+        if (Context.ValidationLayer?.ValidateDispatchMeshIndirect(indirectBuffer, offsetInBytes, dispatchCount) is false)
         {
             return;
         }
