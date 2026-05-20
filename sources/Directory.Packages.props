@@ -21,7 +21,7 @@
         <PackageVersion Include="SixLabors.ImageSharp" Version="4.0.0" />
         <PackageVersion Include="SkiaSharp" Version="3.119.2" />
         <PackageVersion Include="Slangc.NET" Version="2026.9.0" />
-        <PackageVersion Include="Uno.WinUI" Version="6.5.229" />
+        <PackageVersion Include="Uno.WinUI" Version="6.5.237" />
     </ItemGroup>
 
 </Project>
