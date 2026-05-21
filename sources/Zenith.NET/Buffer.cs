@@ -6,11 +6,11 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public ref readonly BufferDesc Desc => ref desc;
 
-    public ResourceHandle UniformHandle { get; }
+    public abstract ResourceHandle UniformHandle { get; }
 
-    public ResourceHandle StorageReadOnlyHandle { get; }
+    public abstract ResourceHandle StorageReadOnlyHandle { get; }
 
-    public ResourceHandle StorageReadWriteHandle { get; }
+    public abstract ResourceHandle StorageReadWriteHandle { get; }
 
     public MappedMemory Map()
     {

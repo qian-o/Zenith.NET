@@ -6,7 +6,7 @@ public abstract class TextureView(GraphicsContext context, TextureViewDesc desc)
 
     public ref readonly TextureViewDesc Desc => ref desc;
 
-    public ResourceHandle SampledHandle { get; }
+    public abstract ResourceHandle SampledHandle { get; }
 
-    public ResourceHandle StorageHandle { get; }
+    public abstract ResourceHandle StorageHandle { get; }
 }

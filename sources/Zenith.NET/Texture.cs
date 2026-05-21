@@ -6,9 +6,9 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public ref readonly TextureDesc Desc => ref desc;
 
-    public ResourceHandle SampledHandle { get; }
+    public abstract ResourceHandle SampledHandle { get; }
 
-    public ResourceHandle StorageHandle { get; }
+    public abstract ResourceHandle StorageHandle { get; }
 
     public void Upload(TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {

@@ -6,5 +6,5 @@ public abstract class Sampler(GraphicsContext context, SamplerDesc desc) : Graph
 
     public ref readonly SamplerDesc Desc => ref desc;
 
-    public ResourceHandle Handle { get; }
+    public abstract ResourceHandle Handle { get; }
 }

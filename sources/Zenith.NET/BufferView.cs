@@ -6,9 +6,9 @@ public abstract class BufferView(GraphicsContext context, BufferViewDesc desc) :
 
     public ref readonly BufferViewDesc Desc => ref desc;
 
-    public ResourceHandle UniformHandle { get; }
+    public abstract ResourceHandle UniformHandle { get; }
 
-    public ResourceHandle StorageReadOnlyHandle { get; }
+    public abstract ResourceHandle StorageReadOnlyHandle { get; }
 
-    public ResourceHandle StorageReadWriteHandle { get; }
+    public abstract ResourceHandle StorageReadWriteHandle { get; }
 }
