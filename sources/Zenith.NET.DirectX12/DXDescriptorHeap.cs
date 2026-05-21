@@ -23,17 +23,17 @@ internal unsafe class DXDescriptorHeap : DisposableObject
         context.Device10.CreateDescriptorHeap(&desc, out Heap).Success();
 
         IncrementSize = context.Device10.GetDescriptorHandleIncrementSize(type);
-        CpuStart = Heap.GetCPUDescriptorHandleForHeapStart();
-        GpuStart = shaderVisible ? Heap.GetGPUDescriptorHandleForHeapStart() : default;
+        CpuStartHandle = Heap.GetCPUDescriptorHandleForHeapStart();
+        GpuStartHandle = shaderVisible ? Heap.GetGPUDescriptorHandleForHeapStart() : default;
     }
 
     public uint NumDescriptors { get; }
 
     public uint IncrementSize { get; }
 
-    public CpuDescriptorHandle CpuStart { get; }
+    public CpuDescriptorHandle CpuStartHandle { get; }
 
-    public GpuDescriptorHandle GpuStart { get; }
+    public GpuDescriptorHandle GpuStartHandle { get; }
 
     public DXDescriptorToken Allocate()
     {
@@ -42,7 +42,7 @@ internal unsafe class DXDescriptorHeap : DisposableObject
             slot = head++;
         }
 
-        return new(slot, IncrementSize, CpuStart, GpuStart);
+        return new(slot, IncrementSize, CpuStartHandle, GpuStartHandle);
     }
 
     public void Free(DXDescriptorToken token)
