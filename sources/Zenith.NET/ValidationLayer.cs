@@ -183,7 +183,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
     {
         CheckEnum("SamplerDesc.MinFilter", desc.MinFilter);
         CheckEnum("SamplerDesc.MagFilter", desc.MagFilter);
-        CheckEnum("SamplerDesc.MipmapFilter", desc.MipmapFilter);
+        CheckEnum("SamplerDesc.MipFilter", desc.MipFilter);
         CheckEnum("SamplerDesc.AddressU", desc.AddressU);
         CheckEnum("SamplerDesc.AddressV", desc.AddressV);
         CheckEnum("SamplerDesc.AddressW", desc.AddressW);
@@ -211,8 +211,6 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     internal void ValidateDesc(GraphicsPipelineDesc desc)
     {
-        CheckRenderState("GraphicsPipelineDesc.RenderState", desc.RenderState);
-
         CheckResource("GraphicsPipelineDesc.VertexShader", desc.VertexShader);
         CheckResource("GraphicsPipelineDesc.FragmentShader", desc.FragmentShader);
 
@@ -230,6 +228,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
         CheckEnum("GraphicsPipelineDesc.PrimitiveTopology", desc.PrimitiveTopology);
         CheckAttachmentFormats("GraphicsPipelineDesc.AttachmentFormats", desc.AttachmentFormats);
+        CheckRenderState("GraphicsPipelineDesc.RenderState", desc.RenderState);
     }
 
     internal void ValidateDesc(ComputePipelineDesc desc)
@@ -239,7 +238,10 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
 
     internal void ValidateDesc(MeshShadingPipelineDesc desc)
     {
-        CheckRenderState("MeshShadingPipelineDesc.RenderState", desc.RenderState);
+        if (desc.TaskShader is not null)
+        {
+            CheckResource("MeshShadingPipelineDesc.TaskShader", desc.TaskShader);
+        }
 
         CheckResource("MeshShadingPipelineDesc.MeshShader", desc.MeshShader);
         CheckResource("MeshShadingPipelineDesc.FragmentShader", desc.FragmentShader);
@@ -250,11 +252,7 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         }
 
         CheckAttachmentFormats("MeshShadingPipelineDesc.AttachmentFormats", desc.AttachmentFormats);
-
-        if (desc.TaskShader is not null)
-        {
-            CheckResource("MeshShadingPipelineDesc.TaskShader", desc.TaskShader);
-        }
+        CheckRenderState("MeshShadingPipelineDesc.RenderState", desc.RenderState);
     }
 
     internal void ValidateDesc(QueryHeapDesc desc)

@@ -17,7 +17,7 @@ public struct BufferDesc
             SizeInBytes = sizeInBytes,
             StrideInBytes = strideInBytes,
             Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.Vertex | BufferUsages.CopyDst
+            Usages = BufferUsages.CopyDst | BufferUsages.Vertex
         };
     }
 
@@ -28,7 +28,7 @@ public struct BufferDesc
             SizeInBytes = sizeInBytes,
             StrideInBytes = strideInBytes,
             Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.Index | BufferUsages.CopyDst
+            Usages = BufferUsages.CopyDst | BufferUsages.Index
         };
     }
 
@@ -39,7 +39,7 @@ public struct BufferDesc
             SizeInBytes = sizeInBytes,
             StrideInBytes = 0,
             Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.Uniform | BufferUsages.CopyDst
+            Usages = BufferUsages.CopyDst | BufferUsages.Uniform
         };
     }
 
@@ -50,7 +50,7 @@ public struct BufferDesc
             SizeInBytes = sizeInBytes,
             StrideInBytes = strideInBytes,
             Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.StorageReadOnly | BufferUsages.CopyDst
+            Usages = BufferUsages.CopyDst | BufferUsages.StorageReadOnly
         };
     }
 
@@ -61,7 +61,7 @@ public struct BufferDesc
             SizeInBytes = sizeInBytes,
             StrideInBytes = strideInBytes,
             Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.StorageReadWrite | BufferUsages.CopyDst
+            Usages = BufferUsages.CopyDst | BufferUsages.StorageReadWrite
         };
     }
 
@@ -72,7 +72,7 @@ public struct BufferDesc
             SizeInBytes = sizeInBytes,
             StrideInBytes = 0,
             Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.Indirect | BufferUsages.CopyDst
+            Usages = BufferUsages.CopyDst | BufferUsages.Indirect
         };
     }
 

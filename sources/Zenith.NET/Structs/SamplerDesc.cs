@@ -6,7 +6,7 @@ public struct SamplerDesc
 
     public FilterMode MagFilter;
 
-    public FilterMode MipmapFilter;
+    public FilterMode MipFilter;
 
     public AddressMode AddressU;
 
@@ -32,7 +32,7 @@ public struct SamplerDesc
         {
             MinFilter = FilterMode.Linear,
             MagFilter = FilterMode.Linear,
-            MipmapFilter = FilterMode.Linear,
+            MipFilter = FilterMode.Linear,
             AddressU = AddressMode.Wrap,
             AddressV = AddressMode.Wrap,
             AddressW = AddressMode.Wrap,
@@ -51,7 +51,7 @@ public struct SamplerDesc
         {
             MinFilter = FilterMode.Linear,
             MagFilter = FilterMode.Linear,
-            MipmapFilter = FilterMode.Linear,
+            MipFilter = FilterMode.Linear,
             AddressU = AddressMode.Clamp,
             AddressV = AddressMode.Clamp,
             AddressW = AddressMode.Clamp,
@@ -70,7 +70,7 @@ public struct SamplerDesc
         {
             MinFilter = FilterMode.Point,
             MagFilter = FilterMode.Point,
-            MipmapFilter = FilterMode.Point,
+            MipFilter = FilterMode.Point,
             AddressU = AddressMode.Wrap,
             AddressV = AddressMode.Wrap,
             AddressW = AddressMode.Wrap,
@@ -89,7 +89,7 @@ public struct SamplerDesc
         {
             MinFilter = FilterMode.Point,
             MagFilter = FilterMode.Point,
-            MipmapFilter = FilterMode.Point,
+            MipFilter = FilterMode.Point,
             AddressU = AddressMode.Clamp,
             AddressV = AddressMode.Clamp,
             AddressW = AddressMode.Clamp,
@@ -108,7 +108,7 @@ public struct SamplerDesc
         {
             MinFilter = FilterMode.Linear,
             MagFilter = FilterMode.Linear,
-            MipmapFilter = FilterMode.Linear,
+            MipFilter = FilterMode.Linear,
             AddressU = AddressMode.Wrap,
             AddressV = AddressMode.Wrap,
             AddressW = AddressMode.Wrap,
