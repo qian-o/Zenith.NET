@@ -34,6 +34,14 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public D3D12 D3D12 { get; } = D3D12.GetApi();
 
+    public DXDescriptorHeap RtvHeap => field ??= new(this, DescriptorHeapType.Rtv, 1024, false);
+
+    public DXDescriptorHeap DsvHeap => field ??= new(this, DescriptorHeapType.Dsv, 256, false);
+
+    public DXDescriptorHeap CbvSrvUavHeap => field ??= new(this, DescriptorHeapType.CbvSrvUav, 1000000, true);
+
+    public DXDescriptorHeap SamplerHeap => field ??= new(this, DescriptorHeapType.Sampler, 2048, true);
+
     public override nint GetNativeObject(NativeObjectType type)
     {
         throw new NotImplementedException();
@@ -179,5 +187,35 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
     protected override QueryHeap CreateQueryHeapImpl(QueryHeapDesc desc)
     {
         throw new NotImplementedException();
+    }
+
+    protected override void Destroy()
+    {
+        base.Destroy();
+
+        SamplerHeap.Dispose();
+        CbvSrvUavHeap.Dispose();
+        DsvHeap.Dispose();
+        RtvHeap.Dispose();
+
+        CopyCommandQueue.Dispose();
+        ComputeCommandQueue.Dispose();
+        GraphicsCommandQueue.Dispose();
+
+        DispatchMeshSignature.Dispose();
+        DispatchSignature.Dispose();
+        DrawIndexedSignature.Dispose();
+        DrawSignature.Dispose();
+
+        RootSignature.Dispose();
+
+        InfoQueue1?.Dispose();
+
+        Device10.Dispose();
+        Adapter4.Dispose();
+        Factory7.Dispose();
+
+        D3D12.Dispose();
+        DXGI.Dispose();
     }
 }
