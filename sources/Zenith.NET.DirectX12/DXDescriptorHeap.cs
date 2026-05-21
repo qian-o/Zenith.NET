@@ -5,31 +5,31 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXDescriptorHeap : DisposableObject
 {
-    private readonly Stack<uint> slots = [];
+    private readonly Stack<uint> recycled = [];
 
     public ComPtr<ID3D12DescriptorHeap> Heap;
 
-    private uint currentIndex;
+    private uint head;
 
-    public DXDescriptorHeap(DXGraphicsContext context, DescriptorHeapType type, uint capacity, bool shaderVisible)
+    public DXDescriptorHeap(DXGraphicsContext context, DescriptorHeapType type, uint numDescriptors, bool shaderVisible)
     {
         DescriptorHeapDesc desc = new()
         {
             Type = type,
-            NumDescriptors = Capacity = capacity,
+            NumDescriptors = NumDescriptors = numDescriptors,
             Flags = shaderVisible ? DescriptorHeapFlags.ShaderVisible : DescriptorHeapFlags.None
         };
 
         context.Device10.CreateDescriptorHeap(&desc, out Heap).Success();
 
-        DescriptorSize = context.Device10.GetDescriptorHandleIncrementSize(type);
+        IncrementSize = context.Device10.GetDescriptorHandleIncrementSize(type);
         CpuStart = Heap.GetCPUDescriptorHandleForHeapStart();
         GpuStart = shaderVisible ? Heap.GetGPUDescriptorHandleForHeapStart() : default;
     }
 
-    public uint Capacity { get; }
+    public uint NumDescriptors { get; }
 
-    public uint DescriptorSize { get; }
+    public uint IncrementSize { get; }
 
     public CpuDescriptorHandle CpuStart { get; }
 
@@ -37,14 +37,17 @@ internal unsafe class DXDescriptorHeap : DisposableObject
 
     public DXDescriptorToken Allocate()
     {
-        uint slot = slots.TryPop(out uint reused) ? reused : currentIndex++;
+        if (!recycled.TryPop(out uint slot))
+        {
+            slot = head++;
+        }
 
-        return new(slot, DescriptorSize, CpuStart, GpuStart);
+        return new(slot, IncrementSize, CpuStart, GpuStart);
     }
 
     public void Free(DXDescriptorToken token)
     {
-        slots.Push(token.Slot);
+        recycled.Push(token.Slot);
     }
 
     protected override void Destroy()
