@@ -144,12 +144,12 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         throw new NotImplementedException();
     }
 
-    protected override ResourceSizeAndAlignment GetSizeAndAlignmentImpl(BufferDesc desc)
+    protected override SizeAndAlignment GetSizeAndAlignmentImpl(BufferDesc desc)
     {
         throw new NotImplementedException();
     }
 
-    protected override ResourceSizeAndAlignment GetSizeAndAlignmentImpl(TextureDesc desc)
+    protected override SizeAndAlignment GetSizeAndAlignmentImpl(TextureDesc desc)
     {
         throw new NotImplementedException();
     }

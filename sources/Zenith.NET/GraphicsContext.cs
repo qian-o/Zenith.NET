@@ -60,14 +60,14 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
         return CreateHeapImpl(desc);
     }
 
-    public ResourceSizeAndAlignment GetSizeAndAlignment(BufferDesc desc)
+    public SizeAndAlignment GetSizeAndAlignment(BufferDesc desc)
     {
         ValidationLayer?.ValidateDesc(desc);
 
         return GetSizeAndAlignmentImpl(desc);
     }
 
-    public ResourceSizeAndAlignment GetSizeAndAlignment(TextureDesc desc)
+    public SizeAndAlignment GetSizeAndAlignment(TextureDesc desc)
     {
         ValidationLayer?.ValidateDesc(desc);
 
@@ -189,9 +189,9 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
 
     protected abstract Heap CreateHeapImpl(HeapDesc desc);
 
-    protected abstract ResourceSizeAndAlignment GetSizeAndAlignmentImpl(BufferDesc desc);
+    protected abstract SizeAndAlignment GetSizeAndAlignmentImpl(BufferDesc desc);
 
-    protected abstract ResourceSizeAndAlignment GetSizeAndAlignmentImpl(TextureDesc desc);
+    protected abstract SizeAndAlignment GetSizeAndAlignmentImpl(TextureDesc desc);
 
     protected abstract Buffer CreateBufferImpl(BufferDesc desc);
 
