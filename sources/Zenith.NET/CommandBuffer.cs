@@ -18,6 +18,16 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         MemoryBarrierImpl();
     }
 
+    public void MemoryBarrier(Buffer buffer)
+    {
+        if (Context.ValidationLayer?.ValidateResource("MemoryBarrier.buffer", buffer) is false)
+        {
+            return;
+        }
+
+        MemoryBarrierImpl(buffer);
+    }
+
     public void MemoryBarrier(Texture texture)
     {
         if (Context.ValidationLayer?.ValidateResource("MemoryBarrier.texture", texture) is false)
@@ -28,14 +38,50 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         MemoryBarrierImpl(texture);
     }
 
-    public void MemoryBarrier(Buffer buffer)
+    public void MemoryBarrier(ReadOnlySpan<GraphicsResource> resources)
     {
-        if (Context.ValidationLayer?.ValidateResource("MemoryBarrier.buffer", buffer) is false)
+        for (int i = 0; i < resources.Length; i++)
+        {
+            if (Context.ValidationLayer?.ValidateResource($"MemoryBarrier.resources[{i}]", resources[i]) is false)
+            {
+                return;
+            }
+        }
+
+        MemoryBarrierImpl(resources);
+    }
+
+    public void AliasingBarrier(Buffer buffer)
+    {
+        if (Context.ValidationLayer?.ValidateResource("AliasingBarrier.buffer", buffer) is false)
         {
             return;
         }
 
-        MemoryBarrierImpl(buffer);
+        AliasingBarrierImpl(buffer);
+    }
+
+    public void AliasingBarrier(Texture texture)
+    {
+        if (Context.ValidationLayer?.ValidateResource("AliasingBarrier.texture", texture) is false)
+        {
+            return;
+        }
+
+        AliasingBarrierImpl(texture);
+    }
+
+    public void AliasingBarrier(ReadOnlySpan<GraphicsResource> resources)
+    {
+        for (int i = 0; i < resources.Length; i++)
+        {
+            if (Context.ValidationLayer?.ValidateResource($"AliasingBarrier.resources[{i}]", resources[i]) is false)
+            {
+                return;
+            }
+        }
+
+        AliasingBarrierImpl(resources);
     }
 
     public void Transition(Texture texture, TextureSubresource subresource, TextureState state)
@@ -604,9 +650,17 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void MemoryBarrierImpl();
 
+    protected abstract void MemoryBarrierImpl(Buffer buffer);
+
     protected abstract void MemoryBarrierImpl(Texture texture);
 
-    protected abstract void MemoryBarrierImpl(Buffer buffer);
+    protected abstract void MemoryBarrierImpl(ReadOnlySpan<GraphicsResource> resources);
+
+    protected abstract void AliasingBarrierImpl(Buffer buffer);
+
+    protected abstract void AliasingBarrierImpl(Texture texture);
+
+    protected abstract void AliasingBarrierImpl(ReadOnlySpan<GraphicsResource> resources);
 
     protected abstract void TransitionImpl(Texture texture, TextureSubresource subresource, TextureState state);
 

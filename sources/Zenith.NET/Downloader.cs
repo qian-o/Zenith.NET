@@ -80,9 +80,9 @@ internal class Downloader(GraphicsContext context) : DisposableObject
             return Buffer.Desc.SizeInBytes >= sizeInBytes;
         }
 
-        public Lease Borrow(BufferData data)
+        public Lease Borrow(BufferData newData)
         {
-            this.data = data;
+            data = newData;
 
             return this;
         }

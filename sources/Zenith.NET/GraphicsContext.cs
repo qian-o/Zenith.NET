@@ -53,6 +53,27 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
         return CreateSwapChainImpl(desc);
     }
 
+    public Heap CreateHeap(HeapDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
+
+        return CreateHeapImpl(desc);
+    }
+
+    public ResourceSizeAndAlignment GetSizeAndAlignment(BufferDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
+
+        return GetSizeAndAlignmentImpl(desc);
+    }
+
+    public ResourceSizeAndAlignment GetSizeAndAlignment(TextureDesc desc)
+    {
+        ValidationLayer?.ValidateDesc(desc);
+
+        return GetSizeAndAlignmentImpl(desc);
+    }
+
     public Buffer CreateBuffer(BufferDesc desc)
     {
         ValidationLayer?.ValidateDesc(desc);
@@ -165,6 +186,12 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
                                        out ValidationLayer? validationLayer);
 
     protected abstract SwapChain CreateSwapChainImpl(SwapChainDesc desc);
+
+    protected abstract Heap CreateHeapImpl(HeapDesc desc);
+
+    protected abstract ResourceSizeAndAlignment GetSizeAndAlignmentImpl(BufferDesc desc);
+
+    protected abstract ResourceSizeAndAlignment GetSizeAndAlignmentImpl(TextureDesc desc);
 
     protected abstract Buffer CreateBufferImpl(BufferDesc desc);
 

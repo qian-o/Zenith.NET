@@ -1,10 +1,10 @@
 ﻿namespace Zenith.NET;
 
-public readonly struct CommandSubmission
+public readonly struct CommandSubmission(CommandQueue? queue, ulong value)
 {
-    public CommandQueue? Queue { get; init; }
+    public readonly CommandQueue? Queue = queue;
 
-    public ulong Value { get; init; }
+    public readonly ulong Value = value;
 
     public void Wait()
     {

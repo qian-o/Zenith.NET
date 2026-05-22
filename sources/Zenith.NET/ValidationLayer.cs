@@ -43,6 +43,12 @@ public abstract class ValidationLayer(GraphicsContext context) : GraphicsResourc
         }
     }
 
+    internal void ValidateDesc(HeapDesc desc)
+    {
+        CheckEnum("HeapDesc.Type", desc.Type);
+        CheckGreaterThanZero("HeapDesc.SizeInBytes", desc.SizeInBytes);
+    }
+
     internal void ValidateDesc(BufferDesc desc)
     {
         CheckGreaterThanZero("BufferDesc.SizeInBytes", desc.SizeInBytes);
