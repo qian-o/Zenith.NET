@@ -139,6 +139,21 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         throw new NotImplementedException();
     }
 
+    protected override Heap CreateHeapImpl(HeapDesc desc)
+    {
+        throw new NotImplementedException();
+    }
+
+    protected override ResourceSizeAndAlignment GetSizeAndAlignmentImpl(BufferDesc desc)
+    {
+        throw new NotImplementedException();
+    }
+
+    protected override ResourceSizeAndAlignment GetSizeAndAlignmentImpl(TextureDesc desc)
+    {
+        throw new NotImplementedException();
+    }
+
     protected override Buffer CreateBufferImpl(BufferDesc desc)
     {
         throw new NotImplementedException();
