@@ -12,15 +12,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public abstract ResourceHandle StorageReadWriteHandle { get; }
 
-    public MappedMemory Map()
-    {
-        if (Context.ValidationLayer?.ValidateMap(this) is false)
-        {
-            return default;
-        }
-
-        return MapImpl();
-    }
+    public abstract MappedMemory Map();
 
     public abstract void Unmap();
 
@@ -67,6 +59,4 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
             commandBuffer.Submit().Wait();
         }
     }
-
-    protected abstract MappedMemory MapImpl();
 }

@@ -11,10 +11,7 @@ public abstract class GraphicsResource(GraphicsContext context) : DisposableObje
             {
                 field = value;
 
-                if (!string.IsNullOrWhiteSpace(value))
-                {
-                    SetResourceName(value);
-                }
+                SetResourceName(value);
             }
         }
     } = string.Empty;

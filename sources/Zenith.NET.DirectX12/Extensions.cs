@@ -2,7 +2,7 @@
 
 namespace Zenith.NET.DirectX12;
 
-public static unsafe class Extensions
+public static class Extensions
 {
     extension(GraphicsContext)
     {
