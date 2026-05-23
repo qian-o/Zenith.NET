@@ -71,7 +71,7 @@ file struct Constants
 ## Debugging
 
 - **Enable the validation layer** during development: `GraphicsContext.Create*(useValidationLayer: true)`.
-- **Subscribe to `ValidationMessage`** to capture both framework-level and driver-level diagnostics.
+- **Subscribe to `ValidationMessage`** to capture driver-level diagnostics emitted by the backend's native validation layer.
 - **Use debug events** to annotate command streams for GPU debugging tools (RenderDoc, PIX, Xcode GPU Debugger):
 
 ```csharp

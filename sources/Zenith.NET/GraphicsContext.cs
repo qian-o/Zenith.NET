@@ -48,99 +48,71 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
 
     public SwapChain CreateSwapChain(SwapChainDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateSwapChainImpl(desc);
     }
 
     public Heap CreateHeap(HeapDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateHeapImpl(desc);
     }
 
     public SizeAndAlignment GetSizeAndAlignment(BufferDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return GetSizeAndAlignmentImpl(desc);
     }
 
     public SizeAndAlignment GetSizeAndAlignment(TextureDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return GetSizeAndAlignmentImpl(desc);
     }
 
     public Buffer CreateBuffer(BufferDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateBufferImpl(desc);
     }
 
     public BufferView CreateBufferView(BufferViewDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateBufferViewImpl(desc);
     }
 
     public Texture CreateTexture(TextureDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateTextureImpl(desc);
     }
 
     public TextureView CreateTextureView(TextureViewDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateTextureViewImpl(desc);
     }
 
     public Sampler CreateSampler(SamplerDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateSamplerImpl(desc);
     }
 
     public Shader CreateShader(ShaderDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateShaderImpl(desc);
     }
 
     public GraphicsPipeline CreateGraphicsPipeline(GraphicsPipelineDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateGraphicsPipelineImpl(desc);
     }
 
     public ComputePipeline CreateComputePipeline(ComputePipelineDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateComputePipelineImpl(desc);
     }
 
     public MeshShadingPipeline CreateMeshShadingPipeline(MeshShadingPipelineDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateMeshShadingPipelineImpl(desc);
     }
 
     public QueryHeap CreateQueryHeap(QueryHeapDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateQueryHeapImpl(desc);
     }
 

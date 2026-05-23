@@ -8,15 +8,11 @@ public abstract class Heap(GraphicsContext context, HeapDesc desc) : GraphicsRes
 
     public Buffer CreateBuffer(ulong offsetInBytes, BufferDesc desc)
     {
-        Context.ValidationLayer?.ValidateDesc(desc);
-
         return CreateBufferImpl(offsetInBytes, desc);
     }
 
     public Texture CreateTexture(ulong offsetInBytes, TextureDesc desc)
     {
-        Context.ValidationLayer?.ValidateDesc(desc);
-
         return CreateTextureImpl(offsetInBytes, desc);
     }
 
