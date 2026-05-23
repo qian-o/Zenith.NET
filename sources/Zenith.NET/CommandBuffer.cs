@@ -325,31 +325,16 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void BeginQuery(QueryHeap queryHeap, uint index)
     {
-        if (queryHeap.Desc.Type is QueryType.Timestamp)
-        {
-            return;
-        }
-
         BeginQueryImpl(queryHeap, index);
     }
 
     public void EndQuery(QueryHeap queryHeap, uint index)
     {
-        if (queryHeap.Desc.Type is QueryType.Timestamp)
-        {
-            return;
-        }
-
         EndQueryImpl(queryHeap, index);
     }
 
     public void WriteTimestamp(QueryHeap queryHeap, uint index)
     {
-        if (queryHeap.Desc.Type is not QueryType.Timestamp)
-        {
-            return;
-        }
-
         WriteTimestampImpl(queryHeap, index);
     }
 

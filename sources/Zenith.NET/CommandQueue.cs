@@ -36,11 +36,6 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
     internal void Wait(ulong value)
     {
-        if (value is 0)
-        {
-            return;
-        }
-
         using Lock.Scope _ = @lock.EnterScope();
 
         WaitImpl(value);
