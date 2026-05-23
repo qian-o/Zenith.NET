@@ -45,7 +45,7 @@ internal static class App
             Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
         }
 
-        Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
+        Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
 
         window = Window.Create(WindowOptions.Default with
         {

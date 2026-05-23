@@ -43,7 +43,7 @@ internal unsafe class VKValidationLayer : ValidationLayer
                               DebugUtilsMessengerCallbackDataEXT* pCallbackData,
                               void* pUserData)
     {
-        Report(MessageSource.GraphicsAPI, messageSeverity switch
+        Report(messageSeverity switch
         {
             DebugUtilsMessageSeverityFlagsEXT.ErrorBitExt => MessageSeverity.Error,
             DebugUtilsMessageSeverityFlagsEXT.WarningBitExt => MessageSeverity.Warning,

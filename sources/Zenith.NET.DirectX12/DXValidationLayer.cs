@@ -32,7 +32,7 @@ internal unsafe class DXValidationLayer : ValidationLayer
 
     private void Callback(MessageCategory category, DxMessageSeverity severity, MessageID messageID, byte* pDescription, void* context)
     {
-        Report(MessageSource.GraphicsApi, severity switch
+        Report(severity switch
         {
             DxMessageSeverity.Error => MessageSeverity.Error,
             DxMessageSeverity.Warning => MessageSeverity.Warning,
