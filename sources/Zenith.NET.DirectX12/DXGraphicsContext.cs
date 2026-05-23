@@ -44,7 +44,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        throw new NotImplementedException();
+        return 0;
     }
 
     protected override void Initialize(bool useValidationLayer,
@@ -156,12 +156,12 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override Buffer CreateBufferImpl(BufferDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXBuffer(this, desc);
     }
 
     protected override BufferView CreateBufferViewImpl(BufferViewDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXBufferView(this, desc);
     }
 
     protected override Texture CreateTextureImpl(TextureDesc desc)

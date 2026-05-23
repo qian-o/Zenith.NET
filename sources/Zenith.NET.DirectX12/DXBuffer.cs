@@ -11,11 +11,13 @@ internal unsafe class DXBuffer : Buffer
     {
     }
 
-    public override ResourceHandle UniformHandle { get; }
+    public DXBufferView View { get; }
 
-    public override ResourceHandle StorageReadOnlyHandle { get; }
+    public override ResourceHandle UniformHandle => View.UniformHandle;
 
-    public override ResourceHandle StorageReadWriteHandle { get; }
+    public override ResourceHandle StorageReadOnlyHandle => View.StorageReadOnlyHandle;
+
+    public override ResourceHandle StorageReadWriteHandle => View.StorageReadWriteHandle;
 
     public override nint GetNativeObject(NativeObjectType type)
     {
