@@ -42,7 +42,7 @@ internal unsafe class DXDescriptorHeap : DisposableObject
             slot = head++;
         }
 
-        return new(slot, IncrementSize, CpuStartHandle, GpuStartHandle);
+        return new(this, slot);
     }
 
     public void Free(DXDescriptorToken token)

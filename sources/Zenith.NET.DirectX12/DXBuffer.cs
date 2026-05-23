@@ -7,8 +7,17 @@ internal unsafe class DXBuffer : Buffer
 {
     public ComPtr<ID3D12Resource> Resource;
 
+    public ulong GPUVirtualAddress;
+
     public DXBuffer(DXGraphicsContext context, BufferDesc desc) : base(context, desc)
     {
+        View = new(context, new()
+        {
+            Buffer = this,
+            OffsetInBytes = 0,
+            SizeInBytes = desc.SizeInBytes,
+            StrideInBytes = desc.StrideInBytes
+        });
     }
 
     public DXBufferView View { get; }
@@ -44,6 +53,8 @@ internal unsafe class DXBuffer : Buffer
 
     protected override void Destroy()
     {
+        View.Dispose();
+
         Resource.Dispose();
     }
 }

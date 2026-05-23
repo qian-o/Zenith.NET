@@ -27,4 +27,20 @@ public static class Extensions
             return result is 0;
         }
     }
+
+    extension(Buffer buffer)
+    {
+        internal DXBuffer DirectX12()
+        {
+            return (DXBuffer)buffer;
+        }
+    }
+
+    extension(BufferView bufferView)
+    {
+        internal DXBufferView DirectX12()
+        {
+            return (DXBufferView)bufferView;
+        }
+    }
 }
