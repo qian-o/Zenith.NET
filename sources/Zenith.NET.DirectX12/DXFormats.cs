@@ -29,7 +29,7 @@ internal static class DXFormats
             BufferAccess.GpuOnly => DxHeapType.Default,
             BufferAccess.CpuReadOnly => DxHeapType.Readback,
             BufferAccess.CpuWriteOnly => DxHeapType.Upload,
-            _ => DxHeapType.Default
+            _ => default
         };
     }
 
@@ -74,7 +74,7 @@ internal static class DXFormats
 
             TextureType.Texture3D => ResourceDimension.Texture3D,
 
-            _ => ResourceDimension.Texture1D
+            _ => default
         };
     }
 
@@ -88,7 +88,7 @@ internal static class DXFormats
             SampleCount.Count8 => new(8, 0),
             SampleCount.Count16 => new(16, 0),
             SampleCount.Count32 => new(32, 0),
-            _ => new(1, 0)
+            _ => default
         };
     }
 
@@ -166,7 +166,77 @@ internal static class DXFormats
             PixelFormat.BC7UNorm => Format.FormatBC7Unorm,
             PixelFormat.BC7SRgb => Format.FormatBC7UnormSrgb,
 
-            _ => Format.FormatUnknown
+            _ => default
+        };
+    }
+
+    public static Filter DirectX12(FilterMode minFilter, FilterMode magFilter, FilterMode mipFilter, uint maxAnisotropy, CompareOp compareOp)
+    {
+        if (maxAnisotropy > 1)
+        {
+            return compareOp is CompareOp.Never ? Filter.Anisotropic : Filter.ComparisonAnisotropic;
+        }
+
+        return (minFilter, magFilter, mipFilter, compareOp) switch
+        {
+            (FilterMode.Point, FilterMode.Point, FilterMode.Point, CompareOp.Never) => Filter.MinMagMipPoint,
+            (FilterMode.Point, FilterMode.Point, FilterMode.Linear, CompareOp.Never) => Filter.MinMagPointMipLinear,
+            (FilterMode.Point, FilterMode.Linear, FilterMode.Point, CompareOp.Never) => Filter.MinPointMagLinearMipPoint,
+            (FilterMode.Point, FilterMode.Linear, FilterMode.Linear, CompareOp.Never) => Filter.MinPointMagMipLinear,
+            (FilterMode.Linear, FilterMode.Point, FilterMode.Point, CompareOp.Never) => Filter.MinLinearMagMipPoint,
+            (FilterMode.Linear, FilterMode.Point, FilterMode.Linear, CompareOp.Never) => Filter.MinLinearMagPointMipLinear,
+            (FilterMode.Linear, FilterMode.Linear, FilterMode.Point, CompareOp.Never) => Filter.MinMagLinearMipPoint,
+            (FilterMode.Linear, FilterMode.Linear, FilterMode.Linear, CompareOp.Never) => Filter.MinMagMipLinear,
+
+            (FilterMode.Point, FilterMode.Point, FilterMode.Point, _) => Filter.ComparisonMinMagMipPoint,
+            (FilterMode.Point, FilterMode.Point, FilterMode.Linear, _) => Filter.ComparisonMinMagPointMipLinear,
+            (FilterMode.Point, FilterMode.Linear, FilterMode.Point, _) => Filter.ComparisonMinPointMagLinearMipPoint,
+            (FilterMode.Point, FilterMode.Linear, FilterMode.Linear, _) => Filter.ComparisonMinPointMagMipLinear,
+            (FilterMode.Linear, FilterMode.Point, FilterMode.Point, _) => Filter.ComparisonMinLinearMagMipPoint,
+            (FilterMode.Linear, FilterMode.Point, FilterMode.Linear, _) => Filter.ComparisonMinLinearMagPointMipLinear,
+            (FilterMode.Linear, FilterMode.Linear, FilterMode.Point, _) => Filter.ComparisonMinMagLinearMipPoint,
+            (FilterMode.Linear, FilterMode.Linear, FilterMode.Linear, _) => Filter.ComparisonMinMagMipLinear,
+
+            _ => default
+        };
+    }
+
+    public static TextureAddressMode DirectX12(AddressMode addressMode)
+    {
+        return addressMode switch
+        {
+            AddressMode.Wrap => TextureAddressMode.Wrap,
+            AddressMode.Mirror => TextureAddressMode.Mirror,
+            AddressMode.Clamp => TextureAddressMode.Clamp,
+            AddressMode.Border => TextureAddressMode.Border,
+            _ => default
+        };
+    }
+
+    public static ComparisonFunc DirectX12(CompareOp compareOp)
+    {
+        return compareOp switch
+        {
+            CompareOp.Never => ComparisonFunc.Never,
+            CompareOp.Less => ComparisonFunc.Less,
+            CompareOp.Equal => ComparisonFunc.Equal,
+            CompareOp.LessEqual => ComparisonFunc.LessEqual,
+            CompareOp.Greater => ComparisonFunc.Greater,
+            CompareOp.NotEqual => ComparisonFunc.NotEqual,
+            CompareOp.GreaterEqual => ComparisonFunc.GreaterEqual,
+            CompareOp.Always => ComparisonFunc.Always,
+            _ => default
+        };
+    }
+
+    public static (float R, float G, float B, float A) DirectX12(BorderColor borderColor)
+    {
+        return borderColor switch
+        {
+            BorderColor.TransparentBlack => (0.0f, 0.0f, 0.0f, 0.0f),
+            BorderColor.OpaqueBlack => (0.0f, 0.0f, 0.0f, 1.0f),
+            BorderColor.OpaqueWhite => (1.0f, 1.0f, 1.0f, 1.0f),
+            _ => default
         };
     }
 }

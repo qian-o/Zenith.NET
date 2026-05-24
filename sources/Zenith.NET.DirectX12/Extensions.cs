@@ -59,4 +59,20 @@ public static class Extensions
             return (DXTextureView)textureView;
         }
     }
+
+    extension(Sampler sampler)
+    {
+        internal DXSampler DirectX12()
+        {
+            return (DXSampler)sampler;
+        }
+    }
+
+    extension(Shader shader)
+    {
+        internal DXShader DirectX12()
+        {
+            return (DXShader)shader;
+        }
+    }
 }
