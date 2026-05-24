@@ -1,5 +1,6 @@
 ﻿using Silk.NET.Core.Native;
 using Silk.NET.Direct3D12;
+using Silk.NET.DXGI;
 
 namespace Zenith.NET.DirectX12;
 
@@ -11,6 +12,34 @@ internal unsafe class DXBuffer : Buffer
 
     public DXBuffer(DXGraphicsContext context, BufferDesc desc) : base(context, desc)
     {
+        ResourceDesc1 resourceDesc = new()
+        {
+            Dimension = ResourceDimension.Buffer,
+            Alignment = 0,
+            Width = ZenithHelper.Align(desc.SizeInBytes, 256u),
+            Height = 1,
+            DepthOrArraySize = 1,
+            MipLevels = 1,
+            Format = Format.FormatUnknown,
+            SampleDesc = new(1, 0),
+            Layout = TextureLayout.LayoutRowMajor,
+            Flags = DXFormats.DirectX12(desc.Usages)
+        };
+
+        HeapProperties heapProperties = new(DXFormats.DirectX12(desc.Access));
+
+        context.Device10.CreateCommittedResource3(&heapProperties,
+                                                  HeapFlags.None,
+                                                  &resourceDesc,
+                                                  BarrierLayout.Undefined,
+                                                  default,
+                                                  default(ComPtr<ID3D12ProtectedResourceSession>),
+                                                  0,
+                                                  default,
+                                                  out Resource).Success();
+
+        GPUVirtualAddress = Resource.GetGPUVirtualAddress();
+
         View = new(context, new()
         {
             Buffer = this,
@@ -36,14 +65,14 @@ internal unsafe class DXBuffer : Buffer
     public override MappedMemory Map()
     {
         void* pointer;
-        Resource.Map(0, (DxRange*)null, &pointer).Success();
+        Resource.Map(0, default(ReadOnlySpan<DxRange>), &pointer).Success();
 
         return new((nint)pointer, Desc.SizeInBytes);
     }
 
     public override void Unmap()
     {
-        Resource.Unmap(0, (DxRange*)null);
+        Resource.Unmap(0, default(ReadOnlySpan<DxRange>));
     }
 
     protected override void SetResourceName(string name)

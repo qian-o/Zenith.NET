@@ -106,19 +106,19 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
         IndirectArgumentDesc indirectArgumentDesc = new() { Type = IndirectArgumentType.Draw };
         CommandSignatureDesc commandSignatureDesc = new() { ByteStride = (uint)sizeof(IndirectDrawArgs), NumArgumentDescs = 1, PArgumentDescs = &indirectArgumentDesc };
-        Device10.CreateCommandSignature(&commandSignatureDesc, (ComPtr<ID3D12RootSignature>)null, out DrawSignature).Success();
+        Device10.CreateCommandSignature(&commandSignatureDesc, default(ComPtr<ID3D12RootSignature>), out DrawSignature).Success();
 
         indirectArgumentDesc.Type = IndirectArgumentType.DrawIndexed;
         commandSignatureDesc.ByteStride = (uint)sizeof(IndirectDrawIndexedArgs);
-        Device10.CreateCommandSignature(&commandSignatureDesc, (ComPtr<ID3D12RootSignature>)null, out DrawIndexedSignature).Success();
+        Device10.CreateCommandSignature(&commandSignatureDesc, default(ComPtr<ID3D12RootSignature>), out DrawIndexedSignature).Success();
 
         indirectArgumentDesc.Type = IndirectArgumentType.Dispatch;
         commandSignatureDesc.ByteStride = (uint)sizeof(IndirectDispatchArgs);
-        Device10.CreateCommandSignature(&commandSignatureDesc, (ComPtr<ID3D12RootSignature>)null, out DispatchSignature).Success();
+        Device10.CreateCommandSignature(&commandSignatureDesc, default(ComPtr<ID3D12RootSignature>), out DispatchSignature).Success();
 
         indirectArgumentDesc.Type = IndirectArgumentType.DispatchMesh;
         commandSignatureDesc.ByteStride = (uint)sizeof(IndirectDispatchMeshArgs);
-        Device10.CreateCommandSignature(&commandSignatureDesc, (ComPtr<ID3D12RootSignature>)null, out DispatchMeshSignature).Success();
+        Device10.CreateCommandSignature(&commandSignatureDesc, default(ComPtr<ID3D12RootSignature>), out DispatchMeshSignature).Success();
 
         CommandQueueDesc commandQueueDesc = new() { Type = CommandListType.Direct };
         Device10.CreateCommandQueue(&commandQueueDesc, out GraphicsCommandQueue).Success();
