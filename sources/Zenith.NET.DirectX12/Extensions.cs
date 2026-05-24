@@ -43,4 +43,20 @@ public static class Extensions
             return (DXBufferView)bufferView;
         }
     }
+
+    extension(Texture texture)
+    {
+        internal DXTexture DirectX12()
+        {
+            return (DXTexture)texture;
+        }
+    }
+
+    extension(TextureView textureView)
+    {
+        internal DXTextureView DirectX12()
+        {
+            return (DXTextureView)textureView;
+        }
+    }
 }

@@ -3,12 +3,48 @@ using Silk.NET.Direct3D12;
 
 namespace Zenith.NET.DirectX12;
 
-internal class DXTexture : Texture
+internal unsafe class DXTexture : Texture
 {
     public ComPtr<ID3D12Resource> Resource;
 
     public DXTexture(DXGraphicsContext context, TextureDesc desc) : base(context, desc)
     {
+        ResourceDesc1 resourceDesc = new()
+        {
+            Dimension = DXFormats.DirectX12(desc.Type),
+            Width = desc.Width,
+            Height = desc.Height,
+            DepthOrArraySize = (ushort)(desc.Type is TextureType.Texture3D ? desc.Depth : desc.ArrayLayers),
+            MipLevels = (ushort)desc.MipLevels,
+            Format = DXFormats.DirectX12(desc.Format),
+            SampleDesc = DXFormats.DirectX12(desc.SampleCount),
+            Layout = TextureLayout.LayoutUnknown,
+            Flags = DXFormats.DirectX12(desc.Usages)
+        };
+
+        HeapProperties heapProperties = new(DxHeapType.Default);
+
+        context.Device10.CreateCommittedResource3(&heapProperties,
+                                                  HeapFlags.None,
+                                                  &resourceDesc,
+                                                  BarrierLayout.Undefined,
+                                                  default,
+                                                  default(ComPtr<ID3D12ProtectedResourceSession>),
+                                                  0,
+                                                  default,
+                                                  out Resource).Success();
+
+        View = new(context, new()
+        {
+            Texture = this,
+            Type = desc.Type,
+            Format = desc.Format,
+            Range = new()
+            {
+                LevelCount = desc.MipLevels,
+                LayerCount = desc.ArrayLayers
+            }
+        });
     }
 
     public DXTextureView View { get; }
