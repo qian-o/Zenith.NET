@@ -9,7 +9,9 @@ internal unsafe class DXValidationLayer : ValidationLayer
 
     public DXValidationLayer(DXGraphicsContext context) : base(context)
     {
-        context.InfoQueue1?.RegisterMessageCallback(callback = new(Callback), MessageCallbackFlags.FlagNone, null, ref callbackCookie).Success();
+        callback = new(Callback);
+
+        context.InfoQueue1?.RegisterMessageCallback(callback, MessageCallbackFlags.FlagNone, null, ref callbackCookie).Success();
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;

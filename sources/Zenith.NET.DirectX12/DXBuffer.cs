@@ -15,12 +15,10 @@ internal unsafe class DXBuffer : Buffer
         ResourceDesc1 resourceDesc = new()
         {
             Dimension = ResourceDimension.Buffer,
-            Alignment = 0,
             Width = ZenithHelper.Align(desc.SizeInBytes, 256u),
             Height = 1,
             DepthOrArraySize = 1,
             MipLevels = 1,
-            Format = Format.FormatUnknown,
             SampleDesc = new(1, 0),
             Layout = TextureLayout.LayoutRowMajor,
             Flags = DXFormats.DirectX12(desc.Usages)
@@ -43,7 +41,6 @@ internal unsafe class DXBuffer : Buffer
         View = new(context, new()
         {
             Buffer = this,
-            OffsetInBytes = 0,
             SizeInBytes = desc.SizeInBytes,
             StrideInBytes = desc.StrideInBytes
         });

@@ -8,9 +8,9 @@ internal readonly struct DXDescriptorToken(DXDescriptorHeap heap, uint slot) : I
 
     public readonly ResourceHandle ResourceHandle = new(slot, 0);
 
-    public readonly CpuDescriptorHandle CpuHandle = new() { Ptr = (slot * heap.IncrementSize) + heap.CpuStartHandle.Ptr };
+    public readonly CpuDescriptorHandle CpuHandle = new() { Ptr = heap.CpuStartHandle.Ptr + (slot * heap.IncrementSize) };
 
-    public readonly GpuDescriptorHandle GpuHandle = new() { Ptr = (slot * heap.IncrementSize) + heap.GpuStartHandle.Ptr };
+    public readonly GpuDescriptorHandle GpuHandle = new() { Ptr = heap.GpuStartHandle.Ptr + (slot * heap.IncrementSize) };
 
     public void Dispose()
     {
