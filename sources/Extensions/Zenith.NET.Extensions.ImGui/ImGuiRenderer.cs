@@ -28,11 +28,13 @@ struct VSOutput
 struct Constants
 {
     float4x4 Projection;
+
+    DescriptorHandle<Texture2D> Texture;
+
+    DescriptorHandle<SamplerState> Sampler;
 };
 
 uniform Constants constants;
-uniform Texture2D texture;
-uniform SamplerState sampler;
 
 float3 SrgbToLinear(float3 srgb)
 {
@@ -56,7 +58,7 @@ VSOutput VSMain(VSInput input)
 
 float4 PSMain(VSOutput input) : SV_TARGET
 {
-    return input.Color * texture.Sample(sampler, input.UV);
+    return input.Color * (*constants.Texture).Sample(*constants.Sampler, input.UV);
 }
 ";
 
