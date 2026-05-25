@@ -30,14 +30,14 @@ internal unsafe partial class D3DTexture : DisposableObject
             Width = width,
             Height = height,
             Format = ColorFormat(),
-            SampleDesc = new() { Count = 1, Quality = 0 },
+            SampleDesc = new(1),
             BufferUsage = DXGI.UsageRenderTargetOutput,
             BufferCount = 3,
             Scaling = Scaling.Stretch,
             SwapEffect = SwapEffect.FlipSequential
         };
 
-        D3D.Success(D3D.Factory.CreateSwapChainForComposition((IUnknown*)D3D.Device.Handle, &swapChainDesc, (IDXGIOutput*)null, SwapChain.GetAddressOf()));
+        D3D.Success(D3D.Factory.CreateSwapChainForComposition((IUnknown*)D3D.Device.Handle, &swapChainDesc, default(IDXGIOutput*), SwapChain.GetAddressOf()));
 
         Texture2DDesc texture2DDesc = new()
         {
@@ -46,7 +46,7 @@ internal unsafe partial class D3DTexture : DisposableObject
             MipLevels = 1,
             ArraySize = 1,
             Format = ColorFormat(),
-            SampleDesc = new() { Count = 1, Quality = 0 },
+            SampleDesc = new(1),
             BindFlags = (uint)BindFlag.RenderTarget,
             MiscFlags = (uint)(ResourceMiscFlag.SharedNthandle | ResourceMiscFlag.SharedKeyedmutex)
         };
@@ -58,7 +58,7 @@ internal unsafe partial class D3DTexture : DisposableObject
         using ComPtr<IDXGIResource1> resource = Texture.QueryInterface<IDXGIResource1>();
 
         void* sharedHandle = null;
-        D3D.Success(resource.CreateSharedHandle((SecurityAttributes*)null, DXGI.SharedResourceRead | DXGI.SharedResourceWrite, (char*)null, &sharedHandle));
+        D3D.Success(resource.CreateSharedHandle(default(SecurityAttributes*), DXGI.SharedResourceRead | DXGI.SharedResourceWrite, default(char*), &sharedHandle));
 
         Handle = (nint)Texture.Handle;
         SharedHandle = (nint)sharedHandle;

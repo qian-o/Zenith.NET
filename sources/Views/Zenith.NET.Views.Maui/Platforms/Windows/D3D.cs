@@ -20,16 +20,16 @@ internal static unsafe class D3D
 
         Success(DXGI.CreateDXGIFactory2(0, out Factory));
 
-        Success(D3D11.CreateDevice(default(ComPtr<IDXGIAdapter>),
+        Success(D3D11.CreateDevice(default,
                                    D3DDriverType.Hardware,
                                    0,
                                    (uint)CreateDeviceFlag.BgraSupport,
-                                   null,
+                                   default,
                                    0,
                                    D3D11.SdkVersion,
-                                   ref Device,
-                                   null,
-                                   ref DeviceContext));
+                                   Device.GetAddressOf(),
+                                   default,
+                                   DeviceContext.GetAddressOf()));
     }
 
     public static DXGI DXGI { get; }

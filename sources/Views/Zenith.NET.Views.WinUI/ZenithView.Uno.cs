@@ -50,48 +50,20 @@ public partial class ZenithView
     }
 }
 
-internal unsafe class Surface : DisposableObject
+internal unsafe class Surface(GraphicsContext context, uint width, uint height) : DisposableObject
 {
-    private readonly byte[] pixels;
+    private readonly byte[] pixels = new byte[width * height * 4];
 
-    public Surface(GraphicsContext context, uint width, uint height)
-    {
-        pixels = new byte[width * height * 4];
+    public Texture Target { get; } = context.CreateTexture(TextureDesc.Texture2D(ZenithViewHelper.ColorFormat, width, height, 1, SampleCount.Count1));
 
-        Target = context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = ZenithViewHelper.ColorFormat,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.RenderTarget
-        });
+    public WriteableBitmap Bitmap { get; } = new((int)width, (int)height);
 
-        Bitmap = new((int)width, (int)height);
+    public uint Width { get; } = width;
 
-        Context = context;
-        Width = width;
-        Height = height;
-    }
-
-    public Texture Target { get; }
-
-    public WriteableBitmap Bitmap { get; }
-
-    public GraphicsContext Context { get; }
-
-    public uint Width { get; }
-
-    public uint Height { get; }
+    public uint Height { get; } = height;
 
     public void Present()
     {
-        uint rowPitchInBytes = Width * 4;
-
         fixed (byte* pPixels = pixels)
         {
             Target.Download(default, default, new() { Width = Width, Height = Height, Depth = 1 }, new()
@@ -100,8 +72,8 @@ internal unsafe class Surface : DisposableObject
                 Layout = new()
                 {
                     SizeInBytes = (uint)pixels.Length,
-                    RowPitchInBytes = rowPitchInBytes,
-                    SlicePitchInBytes = (uint)pixels.Length
+                    RowStrideInBytes = Width * 4,
+                    SliceStrideInBytes = (uint)pixels.Length
                 }
             });
         }

@@ -38,10 +38,10 @@ internal unsafe partial class D3DTexture : DisposableObject
                                                    D3D9.UsageRendertarget,
                                                    D3D9Format.A8R8G8B8,
                                                    Pool.Default,
-                                                   ref D3D9RenderTarget,
+                                                   D3D9RenderTarget.GetAddressOf(),
                                                    &sharedHandle));
 
-        D3D.Success(D3D9RenderTarget.GetSurfaceLevel(0, ref D3D9RenderSurface));
+        D3D.Success(D3D9RenderTarget.GetSurfaceLevel(0, D3D9RenderSurface.GetAddressOf()));
         D3D.Success(D3D.D3D11Device.OpenSharedResource(sharedHandle, out D3D9SharedTexture));
 
         Texture2DDesc desc = new()
@@ -51,19 +51,19 @@ internal unsafe partial class D3DTexture : DisposableObject
             MipLevels = 1,
             ArraySize = 1,
             Format = ColorFormat(),
-            SampleDesc = new() { Count = 1, Quality = 0 },
+            SampleDesc = new(1),
             BindFlags = (uint)BindFlag.RenderTarget,
             MiscFlags = (uint)(ResourceMiscFlag.SharedNthandle | ResourceMiscFlag.SharedKeyedmutex)
         };
 
-        D3D.Success(D3D.D3D11Device.CreateTexture2D(&desc, null, ref D3D11RenderTarget));
+        D3D.Success(D3D.D3D11Device.CreateTexture2D(&desc, default(SubresourceData*), D3D11RenderTarget.GetAddressOf()));
 
         D3D.Success(D3D11RenderTarget.QueryInterface(out D3D11Mutex));
 
         using ComPtr<IDXGIResource1> resource = D3D11RenderTarget.QueryInterface<IDXGIResource1>();
 
         sharedHandle = null;
-        D3D.Success(resource.CreateSharedHandle((SecurityAttributes*)null, DXGI.SharedResourceRead | DXGI.SharedResourceWrite, (char*)null, &sharedHandle));
+        D3D.Success(resource.CreateSharedHandle(default(SecurityAttributes*), DXGI.SharedResourceRead | DXGI.SharedResourceWrite, default(char*), &sharedHandle));
 
         SharedHandle = (nint)sharedHandle;
 

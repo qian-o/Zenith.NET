@@ -10,8 +10,6 @@ internal class Surface(GraphicsContext graphicsContext, uint width, uint height)
 
     public WriteableBitmap Bitmap { get; } = new(new((int)width, (int)height), new(96, 96), ColorFormat(), AlphaFormat.Premul);
 
-    public GraphicsContext GraphicsContext { get; } = graphicsContext;
-
     public uint Width { get; } = width;
 
     public uint Height { get; } = height;

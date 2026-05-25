@@ -2,7 +2,6 @@
 using Silk.NET.Core.Native;
 using Silk.NET.Direct3D11;
 using Silk.NET.Direct3D9;
-using Silk.NET.DXGI;
 using Format = Silk.NET.Direct3D9.Format;
 using PresentParameters = Silk.NET.Direct3D9.PresentParameters;
 
@@ -23,7 +22,7 @@ internal static unsafe class D3D
         D3D9 = D3D9.GetApi(null);
         D3D11 = D3D11.GetApi(null);
 
-        Success(D3D9.Direct3DCreate9Ex(D3D9.SdkVersion, ref D3D9Ex));
+        Success(D3D9.Direct3DCreate9Ex(D3D9.SdkVersion, D3D9Ex.GetAddressOf()));
 
         PresentParameters present = new()
         {
@@ -40,19 +39,19 @@ internal static unsafe class D3D
                                       0,
                                       D3D9.CreateHardwareVertexprocessing | D3D9.CreateMultithreaded | D3D9.CreatePuredevice | D3D9.CreateFpuPreserve,
                                       &present,
-                                      (Displaymodeex*)null,
-                                      ref D3D9DeviceEx));
+                                      default(Displaymodeex*),
+                                      D3D9DeviceEx.GetAddressOf()));
 
-        Success(D3D11.CreateDevice(default(ComPtr<IDXGIAdapter>),
+        Success(D3D11.CreateDevice(default,
                                    D3DDriverType.Hardware,
                                    0,
                                    (uint)CreateDeviceFlag.BgraSupport,
-                                   null,
+                                   default,
                                    0,
                                    D3D11.SdkVersion,
-                                   ref D3D11Device,
-                                   null,
-                                   ref D3D11DeviceContext));
+                                   D3D11Device.GetAddressOf(),
+                                   default,
+                                   D3D11DeviceContext.GetAddressOf()));
     }
 
     public static D3D9 D3D9 { get; }

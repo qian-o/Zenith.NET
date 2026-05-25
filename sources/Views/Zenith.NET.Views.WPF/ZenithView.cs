@@ -111,7 +111,7 @@ public class ZenithView : Control, IZenithView
             swapChain = GraphicsContext.CreateSwapChain(new()
             {
                 Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
-                ColorTargetFormat = ZenithViewHelper.ColorFormat
+                ColorFormat = ZenithViewHelper.ColorFormat
             });
         }
     }
@@ -126,7 +126,7 @@ public class ZenithView : Control, IZenithView
         texture.AcquireSync();
 
         UpdateRequested?.Invoke(this, new(scheduler.UpdateSeconds, scheduler.TotalSeconds));
-        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, swapChain.CurrentColorTarget));
+        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, swapChain.CurrentTexture));
 
         texture.ReleaseSync();
     }
