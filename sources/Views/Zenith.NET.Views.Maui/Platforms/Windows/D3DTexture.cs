@@ -55,7 +55,8 @@ internal unsafe partial class D3DTexture : DisposableObject
 
         D3D.Success(Texture.QueryInterface(SilkMarshal.GuidPtrOf<IDXGIKeyedMutex>(), (void**)Mutex.GetAddressOf()));
 
-        using ComPtr<IDXGIResource1> resource = Texture.QueryInterface<IDXGIResource1>();
+        using ComPtr<IDXGIResource1> resource = new();
+        D3D.Success(Texture.QueryInterface(SilkMarshal.GuidPtrOf<IDXGIResource1>(), (void**)resource.GetAddressOf()));
 
         void* sharedHandle = null;
         D3D.Success(resource.CreateSharedHandle(default(SecurityAttributes*), DXGI.SharedResourceRead | DXGI.SharedResourceWrite, default(char*), &sharedHandle));
@@ -84,7 +85,6 @@ internal unsafe partial class D3DTexture : DisposableObject
     public void Present()
     {
         using ComPtr<ID3D11Texture2D> backBuffer = new();
-
         D3D.Success(SwapChain.GetBuffer(0, SilkMarshal.GuidPtrOf<ID3D11Texture2D>(), (void**)backBuffer.GetAddressOf()));
 
         AcquireSync();

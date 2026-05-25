@@ -61,7 +61,6 @@ internal unsafe partial class D3DTexture : DisposableObject
         D3D.Success(D3D11RenderTarget.QueryInterface(SilkMarshal.GuidPtrOf<IDXGIKeyedMutex>(), (void**)D3D11Mutex.GetAddressOf()));
 
         using ComPtr<IDXGIResource1> resource = new();
-
         D3D.Success(D3D11RenderTarget.QueryInterface(SilkMarshal.GuidPtrOf<IDXGIResource1>(), (void**)resource.GetAddressOf()));
 
         sharedHandle = null;

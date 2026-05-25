@@ -1,5 +1,6 @@
 ﻿using Silk.NET.Core.Native;
 using Silk.NET.Direct3D12;
+using Silk.NET.DXGI;
 
 namespace Zenith.NET.DirectX12;
 
@@ -16,7 +17,7 @@ internal unsafe class DXHeap : Heap
             Alignment = DXGraphicsContext.DefaultHeapAlignment
         };
 
-        context.Device10.CreateHeap(&heapDesc, out Heap).Success();
+        context.Device10.CreateHeap(&heapDesc, SilkMarshal.GuidPtrOf<ID3D12Heap>(), (void**)Heap.GetAddressOf()).Success();
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
@@ -30,14 +31,16 @@ internal unsafe class DXHeap : Heap
     {
         ResourceDesc1 resourceDesc = DXBuffer.ResourceDesc(desc);
 
+        ComPtr<ID3D12Resource> resource = new();
         Context.Device10.CreatePlacedResource2(Heap,
                                                offsetInBytes,
                                                &resourceDesc,
                                                BarrierLayout.Undefined,
-                                               default,
+                                               default(ClearValue*),
                                                0,
-                                               default,
-                                               out ComPtr<ID3D12Resource> resource).Success();
+                                               default(Format*),
+                                               SilkMarshal.GuidPtrOf<ID3D12Resource>(),
+                                               (void**)resource.GetAddressOf()).Success();
 
         return new DXBuffer(Context, desc, resource);
     }
@@ -46,14 +49,16 @@ internal unsafe class DXHeap : Heap
     {
         ResourceDesc1 resourceDesc = DXTexture.ResourceDesc(desc);
 
+        ComPtr<ID3D12Resource> resource = new();
         Context.Device10.CreatePlacedResource2(Heap,
                                                offsetInBytes,
                                                &resourceDesc,
                                                BarrierLayout.Undefined,
-                                               default,
+                                               default(ClearValue*),
                                                0,
-                                               default,
-                                               out ComPtr<ID3D12Resource> resource).Success();
+                                               default(Format*),
+                                               SilkMarshal.GuidPtrOf<ID3D12Resource>(),
+                                               (void**)resource.GetAddressOf()).Success();
 
         return new DXTexture(Context, desc, resource);
     }

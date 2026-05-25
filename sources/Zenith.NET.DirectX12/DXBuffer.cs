@@ -22,11 +22,12 @@ internal unsafe class DXBuffer : Buffer
                                                       HeapFlags.None,
                                                       &resourceDesc,
                                                       BarrierLayout.Undefined,
-                                                      default,
-                                                      default(ComPtr<ID3D12ProtectedResourceSession>),
+                                                      default(ClearValue*),
+                                                      default(ID3D12ProtectedResourceSession*),
                                                       0,
-                                                      default,
-                                                      out Resource).Success();
+                                                      default(Format*),
+                                                      SilkMarshal.GuidPtrOf<ID3D12Resource>(),
+                                                      (void**)Resource.GetAddressOf()).Success();
         }
         else
         {
@@ -59,14 +60,14 @@ internal unsafe class DXBuffer : Buffer
     public override MappedMemory Map()
     {
         void* pointer;
-        Resource.Map(0, default(ReadOnlySpan<DxRange>), &pointer).Success();
+        Resource.Map(0, default(DxRange*), &pointer).Success();
 
         return new((nint)pointer, Desc.SizeInBytes);
     }
 
     public override void Unmap()
     {
-        Resource.Unmap(0, default(ReadOnlySpan<DxRange>));
+        Resource.Unmap(0, default(DxRange*));
     }
 
     protected override void SetResourceName(string name)
@@ -90,7 +91,7 @@ internal unsafe class DXBuffer : Buffer
             Height = 1,
             DepthOrArraySize = 1,
             MipLevels = 1,
-            SampleDesc = new(1, 0),
+            SampleDesc = new(1),
             Layout = TextureLayout.LayoutRowMajor,
             Flags = DXFormats.DirectX12(desc.Usages)
         };

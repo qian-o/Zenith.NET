@@ -1,5 +1,4 @@
-﻿using Silk.NET.Core.Native;
-using Silk.NET.Direct3D12;
+﻿using Silk.NET.Direct3D12;
 
 namespace Zenith.NET.DirectX12;
 
@@ -202,7 +201,7 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
                 break;
         }
 
-        context.Device10.CreateUnorderedAccessView(Desc.Texture.DirectX12().Resource, default(ComPtr<ID3D12Resource>), &viewDesc, token.CpuHandle);
+        context.Device10.CreateUnorderedAccessView(Desc.Texture.DirectX12().Resource, default(ID3D12Resource*), &viewDesc, token.CpuHandle);
 
         return token;
     }

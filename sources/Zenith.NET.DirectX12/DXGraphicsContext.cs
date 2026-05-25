@@ -58,23 +58,23 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
                                        out CommandQueue copyQueue,
                                        out ValidationLayer? validationLayer)
     {
-        if (useValidationLayer && D3D12.GetDebugInterface(out ComPtr<ID3D12Debug> debug).IsSuccess())
+        using ComPtr<ID3D12Debug> debug = new();
+        if (useValidationLayer && D3D12.GetDebugInterface(SilkMarshal.GuidPtrOf<ID3D12Debug>(), (void**)debug.GetAddressOf()).IsSuccess())
         {
             debug.EnableDebugLayer();
-
-            debug.Dispose();
         }
 
-        DXGI.CreateDXGIFactory2(Convert.ToUInt32(useValidationLayer), out Factory7).Success();
+        DXGI.CreateDXGIFactory2(Convert.ToUInt32(useValidationLayer), SilkMarshal.GuidPtrOf<IDXGIFactory7>(), (void**)Factory7.GetAddressOf()).Success();
 
-        Factory7.EnumAdapterByGpuPreference(0, GpuPreference.HighPerformance, out Adapter4).Success();
+        Factory7.EnumAdapterByGpuPreference(0, GpuPreference.HighPerformance, SilkMarshal.GuidPtrOf<IDXGIAdapter4>(), (void**)Adapter4.GetAddressOf()).Success();
 
-        if (!D3D12.CreateDevice(Adapter4, D3DFeatureLevel.Level122, out Device10).IsSuccess())
+        if (!D3D12.CreateDevice((IUnknown*)Adapter4.Handle, D3DFeatureLevel.Level122, SilkMarshal.GuidPtrOf<ID3D12Device10>(), (void**)Device10.GetAddressOf()).IsSuccess())
         {
             throw new NotSupportedException("Direct3D 12 Feature Level 12_2 is not supported on the selected adapter.");
         }
 
-        if (Device10.QueryInterface(out ComPtr<ID3D12InfoQueue1> infoQueue1).IsSuccess())
+        ComPtr<ID3D12InfoQueue1> infoQueue1 = new();
+        if (Device10.QueryInterface(SilkMarshal.GuidPtrOf<ID3D12InfoQueue1>(), (void**)infoQueue1.GetAddressOf()).IsSuccess())
         {
             InfoQueue1 = infoQueue1;
         }
@@ -99,37 +99,35 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
             Desc11 = rootSignatureDesc
         };
 
-        ComPtr<ID3D10Blob> rootSignatureBlob = default;
-        ComPtr<ID3D10Blob> rootSignatureError = default;
-        D3D12.SerializeVersionedRootSignature(&versionedRootSignatureDesc, ref rootSignatureBlob, ref rootSignatureError).Success();
-        Device10.CreateRootSignature(0, rootSignatureBlob.GetBufferPointer(), rootSignatureBlob.GetBufferSize(), out RootSignature).Success();
-        rootSignatureBlob.Dispose();
-        rootSignatureError.Dispose();
+        using ComPtr<ID3D10Blob> rootSignatureBlob = new();
+        using ComPtr<ID3D10Blob> rootSignatureError = new();
+        D3D12.SerializeVersionedRootSignature(&versionedRootSignatureDesc, rootSignatureBlob.GetAddressOf(), rootSignatureError.GetAddressOf()).Success();
+        Device10.CreateRootSignature(0, rootSignatureBlob.GetBufferPointer(), rootSignatureBlob.GetBufferSize(), SilkMarshal.GuidPtrOf<ID3D12RootSignature>(), (void**)RootSignature.GetAddressOf()).Success();
 
         IndirectArgumentDesc indirectArgumentDesc = new() { Type = IndirectArgumentType.Draw };
         CommandSignatureDesc commandSignatureDesc = new() { ByteStride = (uint)sizeof(IndirectDrawArgs), NumArgumentDescs = 1, PArgumentDescs = &indirectArgumentDesc };
-        Device10.CreateCommandSignature(&commandSignatureDesc, default(ComPtr<ID3D12RootSignature>), out DrawSignature).Success();
+        Device10.CreateCommandSignature(&commandSignatureDesc, default(ComPtr<ID3D12RootSignature>), SilkMarshal.GuidPtrOf<ID3D12CommandSignature>(), (void**)DrawSignature.GetAddressOf()).Success();
 
         indirectArgumentDesc.Type = IndirectArgumentType.DrawIndexed;
         commandSignatureDesc.ByteStride = (uint)sizeof(IndirectDrawIndexedArgs);
-        Device10.CreateCommandSignature(&commandSignatureDesc, default(ComPtr<ID3D12RootSignature>), out DrawIndexedSignature).Success();
+        Device10.CreateCommandSignature(&commandSignatureDesc, default(ComPtr<ID3D12RootSignature>), SilkMarshal.GuidPtrOf<ID3D12CommandSignature>(), (void**)DrawIndexedSignature.GetAddressOf()).Success();
 
         indirectArgumentDesc.Type = IndirectArgumentType.Dispatch;
         commandSignatureDesc.ByteStride = (uint)sizeof(IndirectDispatchArgs);
-        Device10.CreateCommandSignature(&commandSignatureDesc, default(ComPtr<ID3D12RootSignature>), out DispatchSignature).Success();
+        Device10.CreateCommandSignature(&commandSignatureDesc, default(ComPtr<ID3D12RootSignature>), SilkMarshal.GuidPtrOf<ID3D12CommandSignature>(), (void**)DispatchSignature.GetAddressOf()).Success();
 
         indirectArgumentDesc.Type = IndirectArgumentType.DispatchMesh;
         commandSignatureDesc.ByteStride = (uint)sizeof(IndirectDispatchMeshArgs);
-        Device10.CreateCommandSignature(&commandSignatureDesc, default(ComPtr<ID3D12RootSignature>), out DispatchMeshSignature).Success();
+        Device10.CreateCommandSignature(&commandSignatureDesc, default(ComPtr<ID3D12RootSignature>), SilkMarshal.GuidPtrOf<ID3D12CommandSignature>(), (void**)DispatchMeshSignature.GetAddressOf()).Success();
 
         CommandQueueDesc commandQueueDesc = new() { Type = CommandListType.Direct };
-        Device10.CreateCommandQueue(&commandQueueDesc, out GraphicsCommandQueue).Success();
+        Device10.CreateCommandQueue(&commandQueueDesc, SilkMarshal.GuidPtrOf<ID3D12CommandQueue>(), (void**)GraphicsCommandQueue.GetAddressOf()).Success();
 
         commandQueueDesc.Type = CommandListType.Compute;
-        Device10.CreateCommandQueue(&commandQueueDesc, out ComputeCommandQueue).Success();
+        Device10.CreateCommandQueue(&commandQueueDesc, SilkMarshal.GuidPtrOf<ID3D12CommandQueue>(), (void**)ComputeCommandQueue.GetAddressOf()).Success();
 
         commandQueueDesc.Type = CommandListType.Copy;
-        Device10.CreateCommandQueue(&commandQueueDesc, out CopyCommandQueue).Success();
+        Device10.CreateCommandQueue(&commandQueueDesc, SilkMarshal.GuidPtrOf<ID3D12CommandQueue>(), (void**)CopyCommandQueue.GetAddressOf()).Success();
 
         capabilities = new DXCapabilities(this);
         graphicsQueue = new DXCommandQueue(this, CommandQueueType.Graphics, GraphicsCommandQueue);
@@ -152,7 +150,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
     {
         ResourceDesc1 resourceDesc = DXBuffer.ResourceDesc(desc);
 
-        ResourceAllocationInfo info = Device10.GetResourceAllocationInfo2(0, 1, &resourceDesc, default(Span<ResourceAllocationInfo1>));
+        ResourceAllocationInfo info = Device10.GetResourceAllocationInfo2(0, 1, &resourceDesc, default(ResourceAllocationInfo1*));
 
         return new(info.SizeInBytes, info.Alignment);
     }
@@ -161,7 +159,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
     {
         ResourceDesc1 resourceDesc = DXTexture.ResourceDesc(desc);
 
-        ResourceAllocationInfo info = Device10.GetResourceAllocationInfo2(0, 1, &resourceDesc, default(Span<ResourceAllocationInfo1>));
+        ResourceAllocationInfo info = Device10.GetResourceAllocationInfo2(0, 1, &resourceDesc, default(ResourceAllocationInfo1*));
 
         return new(info.SizeInBytes, info.Alignment);
     }

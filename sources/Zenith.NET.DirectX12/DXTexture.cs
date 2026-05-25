@@ -1,5 +1,6 @@
 ﻿using Silk.NET.Core.Native;
 using Silk.NET.Direct3D12;
+using Silk.NET.DXGI;
 
 namespace Zenith.NET.DirectX12;
 
@@ -19,11 +20,12 @@ internal unsafe class DXTexture : Texture
                                                       HeapFlags.None,
                                                       &resourceDesc,
                                                       BarrierLayout.Undefined,
-                                                      default,
-                                                      default(ComPtr<ID3D12ProtectedResourceSession>),
+                                                      default(ClearValue*),
+                                                      default(ID3D12ProtectedResourceSession*),
                                                       0,
-                                                      default,
-                                                      out Resource).Success();
+                                                      default(Format*),
+                                                      SilkMarshal.GuidPtrOf<ID3D12Resource>(),
+                                                      (void**)Resource.GetAddressOf()).Success();
         }
         else
         {
