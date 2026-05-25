@@ -2,141 +2,98 @@
 
 namespace Zenith.NET.Metal;
 
-internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Backend.Metal, useValidationLayer)
+internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(GraphicsApi.Metal, useValidationLayer)
 {
-    public MTLDevice Device = MTLDevice.Null;
+    public MTLDevice Device { get; } = MTLDevice.CreateSystemDefaultDevice();
 
-    public MTL4Compiler Compiler = MTL4Compiler.Null;
-
-    public MTLResidencySet ResidencySet = MTLResidencySet.Null;
-
-    public MTL4CommandQueue GraphicsQueue = MTL4CommandQueue.Null;
-
-    public MTL4CommandQueue ComputeQueue = MTL4CommandQueue.Null;
-
-    public MTL4CommandQueue CopyQueue = MTL4CommandQueue.Null;
-
-    public void AddAllocation(MTLAllocation allocation)
+    public override nint GetNativeObject(NativeObjectType type)
     {
-        ResidencySet.AddAllocation(allocation);
-        ResidencySet.Commit();
-    }
-
-    public void RemoveAllocation(MTLAllocation allocation)
-    {
-        ResidencySet.RemoveAllocation(allocation);
-        ResidencySet.Commit();
+        return 0;
     }
 
     protected override void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
-                                       out CommandQueue graphics,
-                                       out CommandQueue compute,
-                                       out CommandQueue copy,
+                                       out CommandQueue graphicsQueue,
+                                       out CommandQueue computeQueue,
+                                       out CommandQueue copyQueue,
                                        out ValidationLayer? validationLayer)
     {
-        Device = MTLDevice.CreateSystemDefaultDevice();
-
-        if (!Device.SupportsFamily(MTLGPUFamily.Metal4))
-        {
-            throw new NotSupportedException("Metal 4 is not supported on system default device.");
-        }
-
-        Compiler = Device.MakeCompiler(new(), out NSError error);
-        error.Success();
-
-        ResidencySet = Device.MakeResidencySet(new(), out error);
-        error.Success();
-
-        GraphicsQueue = Device.MakeMTL4CommandQueue();
-        ComputeQueue = Device.MakeMTL4CommandQueue();
-        CopyQueue = Device.MakeMTL4CommandQueue();
-
-        GraphicsQueue.AddResidencySet(ResidencySet);
-        ComputeQueue.AddResidencySet(ResidencySet);
-        CopyQueue.AddResidencySet(ResidencySet);
-
-        capabilities = new MTLCapabilities(this);
-        graphics = new MTLCommandQueue(this, CommandQueueType.Graphics, GraphicsQueue);
-        compute = new MTLCommandQueue(this, CommandQueueType.Compute, ComputeQueue);
-        copy = new MTLCommandQueue(this, CommandQueueType.Copy, CopyQueue);
-        validationLayer = null;
+        throw new NotImplementedException();
     }
 
     protected override SwapChain CreateSwapChainImpl(SwapChainDesc desc)
     {
-        return new MTLSwapChain(this, desc);
+        throw new NotImplementedException();
     }
 
-    protected override Shader CreateShaderImpl(ShaderDesc desc)
+    protected override Heap CreateHeapImpl(HeapDesc desc)
     {
-        return new MTLShader(this, desc);
+        throw new NotImplementedException();
+    }
+
+    protected override SizeAndAlignment GetSizeAndAlignmentImpl(BufferDesc desc)
+    {
+        throw new NotImplementedException();
+    }
+
+    protected override SizeAndAlignment GetSizeAndAlignmentImpl(TextureDesc desc)
+    {
+        throw new NotImplementedException();
     }
 
     protected override Buffer CreateBufferImpl(BufferDesc desc)
     {
-        return new MTLBuffer(this, desc);
+        throw new NotImplementedException();
     }
 
     protected override BufferView CreateBufferViewImpl(BufferViewDesc desc)
     {
-        return new MTLBufferView(this, desc);
+        throw new NotImplementedException();
     }
 
     protected override Texture CreateTextureImpl(TextureDesc desc)
     {
-        return new MTLTexture(this, desc);
+        throw new NotImplementedException();
     }
 
     protected override TextureView CreateTextureViewImpl(TextureViewDesc desc)
     {
-        return new MTLTextureView(this, desc);
+        throw new NotImplementedException();
     }
 
     protected override Sampler CreateSamplerImpl(SamplerDesc desc)
     {
-        return new MTLSampler(this, desc);
+        throw new NotImplementedException();
     }
 
-    protected override ResourceTable CreateResourceTableImpl(ResourceTableDesc desc)
+    protected override Shader CreateShaderImpl(ShaderDesc desc)
     {
-        return new MTLResourceTable(this, desc);
+        throw new NotImplementedException();
     }
 
     protected override GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc)
     {
-        return new MTLGraphicsPipeline(this, desc);
+        throw new NotImplementedException();
     }
 
     protected override ComputePipeline CreateComputePipelineImpl(ComputePipelineDesc desc)
     {
-        return new MTLComputePipeline(this, desc);
+        throw new NotImplementedException();
     }
 
     protected override MeshShadingPipeline CreateMeshShadingPipelineImpl(MeshShadingPipelineDesc desc)
     {
-        return new MTLMeshShadingPipeline(this, desc);
+        throw new NotImplementedException();
     }
 
     protected override QueryHeap CreateQueryHeapImpl(QueryHeapDesc desc)
     {
-        return new MTLQueryHeap(this, desc);
+        throw new NotImplementedException();
     }
 
     protected override void Destroy()
     {
         base.Destroy();
-
-        CopyQueue.RemoveResidencySet(ResidencySet);
-        ComputeQueue.RemoveResidencySet(ResidencySet);
-        GraphicsQueue.RemoveResidencySet(ResidencySet);
-
-        CopyQueue.Dispose();
-        ComputeQueue.Dispose();
-        GraphicsQueue.Dispose();
-
-        ResidencySet.Dispose();
-        Compiler.Dispose();
 
         Device.Dispose();
     }
