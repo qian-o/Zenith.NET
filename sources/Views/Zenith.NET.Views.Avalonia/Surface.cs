@@ -4,39 +4,17 @@ using AvaloniaPixelFormat = Avalonia.Platform.PixelFormat;
 
 namespace Zenith.NET.Views.Avalonia;
 
-internal class Surface : DisposableObject
+internal class Surface(GraphicsContext graphicsContext, uint width, uint height) : DisposableObject
 {
-    public Surface(GraphicsContext graphicsContext, uint width, uint height)
-    {
-        Target = graphicsContext.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = ZenithViewHelper.ColorFormat,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.RenderTarget
-        });
+    public Texture Target { get; } = graphicsContext.CreateTexture(TextureDesc.Texture2D(ZenithViewHelper.ColorFormat, width, height, 1, SampleCount.Count1));
 
-        Bitmap = new(new((int)width, (int)height), new(96, 96), ColorFormat(), AlphaFormat.Premul);
+    public WriteableBitmap Bitmap { get; } = new(new((int)width, (int)height), new(96, 96), ColorFormat(), AlphaFormat.Premul);
 
-        GraphicsContext = graphicsContext;
-        Width = width;
-        Height = height;
-    }
+    public GraphicsContext GraphicsContext { get; } = graphicsContext;
 
-    public Texture Target { get; }
+    public uint Width { get; } = width;
 
-    public WriteableBitmap Bitmap { get; }
-
-    public GraphicsContext GraphicsContext { get; }
-
-    public uint Width { get; }
-
-    public uint Height { get; }
+    public uint Height { get; } = height;
 
     public void Present()
     {
@@ -48,8 +26,8 @@ internal class Surface : DisposableObject
             Layout = new()
             {
                 SizeInBytes = (uint)(lockedFramebuffer.RowBytes * Height),
-                RowPitchInBytes = (uint)lockedFramebuffer.RowBytes,
-                SlicePitchInBytes = (uint)(lockedFramebuffer.RowBytes * Height)
+                RowStrideInBytes = (uint)lockedFramebuffer.RowBytes,
+                SliceStrideInBytes = (uint)(lockedFramebuffer.RowBytes * Height)
             }
         });
     }
