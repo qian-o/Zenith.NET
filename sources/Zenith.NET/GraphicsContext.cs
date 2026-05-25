@@ -113,7 +113,7 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
         return CreateQueryHeapImpl(desc);
     }
 
-    public Shader CreateShaderFromFile(string file, string entryPoint, ShaderStages stage, string[]? searchPaths = null)
+    public Shader CreateShaderFromFile(string file, string entryPoint, ShaderStages stage, string[]? searchPaths)
     {
         return CreateShader(new()
         {
@@ -123,7 +123,7 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
         });
     }
 
-    public Shader CreateShaderFromSource(string source, string entryPoint, ShaderStages stage, string[]? searchPaths = null)
+    public Shader CreateShaderFromSource(string source, string entryPoint, ShaderStages stage, string[]? searchPaths)
     {
         return CreateShader(new()
         {
