@@ -233,14 +233,14 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         SetIndexBufferImpl(pipeline, buffer, offsetInBytes, indexFormat);
     }
 
-    public void SetConstants<T>(T data) where T : unmanaged, IConstantsLayout<T>
+    public void SetConstantBuffer(Buffer buffer, uint offsetInBytes)
     {
         if (!TryGetCurrentPipeline(out Pipeline pipeline))
         {
             return;
         }
 
-        SetConstantsImpl(pipeline, Context.Constants.Buffer(this, data));
+        SetConstantBufferImpl(pipeline, buffer, offsetInBytes);
     }
 
     public void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
@@ -369,7 +369,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         Context.Uploader.Release(this);
         Context.Downloader.Release(this);
-        Context.Constants.Release(this);
 
         currentPipeline = null;
     }
@@ -378,7 +377,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     {
         Context.Uploader.Release(this);
         Context.Downloader.Release(this);
-        Context.Constants.Release(this);
 
         currentPipeline = null;
     }
@@ -465,7 +463,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void SetIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat indexFormat);
 
-    protected abstract void SetConstantsImpl(Pipeline pipeline, Buffer buffer);
+    protected abstract void SetConstantBufferImpl(Pipeline pipeline, Buffer buffer, uint offsetInBytes);
 
     protected abstract void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
 

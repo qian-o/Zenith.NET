@@ -23,7 +23,6 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
 
         Uploader = new(this);
         Downloader = new(this);
-        Constants = new(this);
     }
 
     public GraphicsApi GraphicsApi { get; }
@@ -41,8 +40,6 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
     internal Uploader Uploader { get; }
 
     internal Downloader Downloader { get; }
-
-    internal Constants Constants { get; }
 
     public event EventHandler<ValidationMessageEventArgs>? ValidationMessage;
 
@@ -147,7 +144,6 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
 
         Uploader.Dispose();
         Downloader.Dispose();
-        Constants.Dispose();
     }
 
     protected abstract void Initialize(bool useValidationLayer,
