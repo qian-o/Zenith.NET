@@ -15,15 +15,15 @@ internal unsafe partial class D3DTexture : DisposableObject
     [LibraryImport("kernel32")]
     private static partial int CloseHandle(nint hObject);
 
-    public ComPtr<IDirect3DTexture9> D3D9RenderTarget;
+    public ComPtr<IDirect3DTexture9> D3D9RenderTarget = new();
 
-    public ComPtr<IDirect3DSurface9> D3D9RenderSurface;
+    public ComPtr<IDirect3DSurface9> D3D9RenderSurface = new();
 
-    public ComPtr<ID3D11Texture2D> D3D9SharedTexture;
+    public ComPtr<ID3D11Texture2D> D3D9SharedTexture = new();
 
-    public ComPtr<ID3D11Texture2D> D3D11RenderTarget;
+    public ComPtr<ID3D11Texture2D> D3D11RenderTarget = new();
 
-    public ComPtr<IDXGIKeyedMutex> D3D11Mutex;
+    public ComPtr<IDXGIKeyedMutex> D3D11Mutex = new();
 
     public nint SharedHandle;
 
@@ -42,7 +42,7 @@ internal unsafe partial class D3DTexture : DisposableObject
                                                    &sharedHandle));
 
         D3D.Success(D3D9RenderTarget.GetSurfaceLevel(0, D3D9RenderSurface.GetAddressOf()));
-        D3D.Success(D3D.D3D11Device.OpenSharedResource(sharedHandle, out D3D9SharedTexture));
+        D3D.Success(D3D.D3D11Device.OpenSharedResource(sharedHandle, SilkMarshal.GuidPtrOf<ID3D11Texture2D>(), (void**)D3D9SharedTexture.GetAddressOf()));
 
         Texture2DDesc desc = new()
         {
@@ -58,9 +58,11 @@ internal unsafe partial class D3DTexture : DisposableObject
 
         D3D.Success(D3D.D3D11Device.CreateTexture2D(&desc, default(SubresourceData*), D3D11RenderTarget.GetAddressOf()));
 
-        D3D.Success(D3D11RenderTarget.QueryInterface(out D3D11Mutex));
+        D3D.Success(D3D11RenderTarget.QueryInterface(SilkMarshal.GuidPtrOf<IDXGIKeyedMutex>(), (void**)D3D11Mutex.GetAddressOf()));
 
-        using ComPtr<IDXGIResource1> resource = D3D11RenderTarget.QueryInterface<IDXGIResource1>();
+        using ComPtr<IDXGIResource1> resource = new();
+
+        D3D.Success(D3D11RenderTarget.QueryInterface(SilkMarshal.GuidPtrOf<IDXGIResource1>(), (void**)resource.GetAddressOf()));
 
         sharedHandle = null;
         D3D.Success(resource.CreateSharedHandle(default(SecurityAttributes*), DXGI.SharedResourceRead | DXGI.SharedResourceWrite, default(char*), &sharedHandle));

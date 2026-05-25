@@ -73,18 +73,18 @@ public unsafe partial class ZenithView
 
 internal static unsafe class D3D
 {
-    public static ComPtr<IDXGIFactory2> Factory;
+    public static ComPtr<IDXGIFactory2> Factory = new();
 
-    public static ComPtr<ID3D11Device> Device;
+    public static ComPtr<ID3D11Device> Device = new();
 
-    public static ComPtr<ID3D11DeviceContext> DeviceContext;
+    public static ComPtr<ID3D11DeviceContext> DeviceContext = new();
 
     static D3D()
     {
         DXGI = DXGI.GetApi(null);
         D3D11 = D3D11.GetApi(null);
 
-        Success(DXGI.CreateDXGIFactory2(0, out Factory));
+        Success(DXGI.CreateDXGIFactory2(0, SilkMarshal.GuidPtrOf<IDXGIFactory2>(), (void**)Factory.GetAddressOf()));
 
         Success(D3D11.CreateDevice(default,
                                    D3DDriverType.Hardware,
@@ -110,16 +110,17 @@ internal static unsafe class D3D
         }
     }
 }
+
 internal unsafe partial class D3DTexture : DisposableObject
 {
     [LibraryImport("kernel32")]
     private static partial int CloseHandle(nint hObject);
 
-    public ComPtr<IDXGISwapChain1> SwapChain;
+    public ComPtr<IDXGISwapChain1> SwapChain = new();
 
-    public ComPtr<ID3D11Texture2D> Texture;
+    public ComPtr<ID3D11Texture2D> Texture = new();
 
-    public ComPtr<IDXGIKeyedMutex> Mutex;
+    public ComPtr<IDXGIKeyedMutex> Mutex = new();
 
     public nint Handle;
 
@@ -155,9 +156,9 @@ internal unsafe partial class D3DTexture : DisposableObject
             MiscFlags = (uint)(ResourceMiscFlag.SharedNthandle | ResourceMiscFlag.SharedKeyedmutex)
         };
 
-        D3D.Success(D3D.Device.CreateTexture2D(&texture2DDesc, null, ref Texture));
+        D3D.Success(D3D.Device.CreateTexture2D(&texture2DDesc, default(SubresourceData*), Texture.GetAddressOf()));
 
-        D3D.Success(Texture.QueryInterface(out Mutex));
+        D3D.Success(Texture.QueryInterface(SilkMarshal.GuidPtrOf<IDXGIKeyedMutex>(), (void**)Mutex.GetAddressOf()));
 
         using ComPtr<IDXGIResource1> resource = Texture.QueryInterface<IDXGIResource1>();
 
@@ -187,7 +188,9 @@ internal unsafe partial class D3DTexture : DisposableObject
 
     public void Present()
     {
-        D3D.Success(SwapChain.GetBuffer(0, out ComPtr<ID3D11Texture2D> backBuffer));
+        using ComPtr<ID3D11Texture2D> backBuffer = new();
+
+        D3D.Success(SwapChain.GetBuffer(0, SilkMarshal.GuidPtrOf<ID3D11Texture2D>(), (void**)backBuffer.GetAddressOf()));
 
         AcquireSync();
 
@@ -195,8 +198,6 @@ internal unsafe partial class D3DTexture : DisposableObject
         D3D.DeviceContext.Flush();
 
         ReleaseSync();
-
-        backBuffer.Dispose();
 
         D3D.Success(SwapChain.Present(1, 0));
     }

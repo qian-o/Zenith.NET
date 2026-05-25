@@ -9,13 +9,13 @@ namespace Zenith.NET.Views.WPF;
 
 internal static unsafe class D3D
 {
-    public static ComPtr<IDirect3D9Ex> D3D9Ex;
+    public static ComPtr<IDirect3D9Ex> D3D9Ex = new();
 
-    public static ComPtr<IDirect3DDevice9Ex> D3D9DeviceEx;
+    public static ComPtr<IDirect3DDevice9Ex> D3D9DeviceEx = new();
 
-    public static ComPtr<ID3D11Device> D3D11Device;
+    public static ComPtr<ID3D11Device> D3D11Device = new();
 
-    public static ComPtr<ID3D11DeviceContext> D3D11DeviceContext;
+    public static ComPtr<ID3D11DeviceContext> D3D11DeviceContext = new();
 
     static D3D()
     {
