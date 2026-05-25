@@ -106,19 +106,19 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
         IndirectArgumentDesc indirectArgumentDesc = new() { Type = IndirectArgumentType.Draw };
         CommandSignatureDesc commandSignatureDesc = new() { ByteStride = (uint)sizeof(IndirectDrawArgs), NumArgumentDescs = 1, PArgumentDescs = &indirectArgumentDesc };
-        Device10.CreateCommandSignature(&commandSignatureDesc, default(ComPtr<ID3D12RootSignature>), SilkMarshal.GuidPtrOf<ID3D12CommandSignature>(), (void**)DrawSignature.GetAddressOf()).Success();
+        Device10.CreateCommandSignature(&commandSignatureDesc, default(ID3D12RootSignature*), SilkMarshal.GuidPtrOf<ID3D12CommandSignature>(), (void**)DrawSignature.GetAddressOf()).Success();
 
         indirectArgumentDesc.Type = IndirectArgumentType.DrawIndexed;
         commandSignatureDesc.ByteStride = (uint)sizeof(IndirectDrawIndexedArgs);
-        Device10.CreateCommandSignature(&commandSignatureDesc, default(ComPtr<ID3D12RootSignature>), SilkMarshal.GuidPtrOf<ID3D12CommandSignature>(), (void**)DrawIndexedSignature.GetAddressOf()).Success();
+        Device10.CreateCommandSignature(&commandSignatureDesc, default(ID3D12RootSignature*), SilkMarshal.GuidPtrOf<ID3D12CommandSignature>(), (void**)DrawIndexedSignature.GetAddressOf()).Success();
 
         indirectArgumentDesc.Type = IndirectArgumentType.Dispatch;
         commandSignatureDesc.ByteStride = (uint)sizeof(IndirectDispatchArgs);
-        Device10.CreateCommandSignature(&commandSignatureDesc, default(ComPtr<ID3D12RootSignature>), SilkMarshal.GuidPtrOf<ID3D12CommandSignature>(), (void**)DispatchSignature.GetAddressOf()).Success();
+        Device10.CreateCommandSignature(&commandSignatureDesc, default(ID3D12RootSignature*), SilkMarshal.GuidPtrOf<ID3D12CommandSignature>(), (void**)DispatchSignature.GetAddressOf()).Success();
 
         indirectArgumentDesc.Type = IndirectArgumentType.DispatchMesh;
         commandSignatureDesc.ByteStride = (uint)sizeof(IndirectDispatchMeshArgs);
-        Device10.CreateCommandSignature(&commandSignatureDesc, default(ComPtr<ID3D12RootSignature>), SilkMarshal.GuidPtrOf<ID3D12CommandSignature>(), (void**)DispatchMeshSignature.GetAddressOf()).Success();
+        Device10.CreateCommandSignature(&commandSignatureDesc, default(ID3D12RootSignature*), SilkMarshal.GuidPtrOf<ID3D12CommandSignature>(), (void**)DispatchMeshSignature.GetAddressOf()).Success();
 
         CommandQueueDesc commandQueueDesc = new() { Type = CommandListType.Direct };
         Device10.CreateCommandQueue(&commandQueueDesc, SilkMarshal.GuidPtrOf<ID3D12CommandQueue>(), (void**)GraphicsCommandQueue.GetAddressOf()).Success();
