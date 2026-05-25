@@ -45,7 +45,7 @@ internal unsafe class DXBuffer : Buffer
 
     public DXBufferView View { get; }
 
-    public override ResourceHandle UniformHandle => View.UniformHandle;
+    public override ResourceHandle ConstantHandle => View.ConstantHandle;
 
     public override ResourceHandle StorageReadOnlyHandle => View.StorageReadOnlyHandle;
 

@@ -9,7 +9,7 @@ internal unsafe class DXBufferView(DXGraphicsContext context, BufferViewDesc des
     private DXDescriptorToken? srvToken;
     private DXDescriptorToken? uavToken;
 
-    public override ResourceHandle UniformHandle => (cbvToken ??= CreateCbvToken()).ResourceHandle;
+    public override ResourceHandle ConstantHandle => (cbvToken ??= CreateCbvToken()).ResourceHandle;
 
     public override ResourceHandle StorageReadOnlyHandle => (srvToken ??= CreateSrvToken()).ResourceHandle;
 

@@ -6,7 +6,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public ref readonly BufferDesc Desc => ref desc;
 
-    public abstract ResourceHandle UniformHandle { get; }
+    public abstract ResourceHandle ConstantHandle { get; }
 
     public abstract ResourceHandle StorageReadOnlyHandle { get; }
 

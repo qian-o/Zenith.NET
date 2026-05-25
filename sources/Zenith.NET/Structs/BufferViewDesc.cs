@@ -10,7 +10,7 @@ public struct BufferViewDesc
 
     public uint StrideInBytes;
 
-    public static BufferViewDesc Uniform(Buffer buffer, uint offsetInBytes, uint sizeInBytes)
+    public static BufferViewDesc Constant(Buffer buffer, uint offsetInBytes, uint sizeInBytes)
     {
         return new()
         {

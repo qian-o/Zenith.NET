@@ -32,14 +32,14 @@ public struct BufferDesc
         };
     }
 
-    public static BufferDesc Uniform(uint sizeInBytes)
+    public static BufferDesc Constant(uint sizeInBytes)
     {
         return new()
         {
             SizeInBytes = sizeInBytes,
             StrideInBytes = 0,
             Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.CopyDst | BufferUsages.Uniform
+            Usages = BufferUsages.CopyDst | BufferUsages.Constant
         };
     }
 

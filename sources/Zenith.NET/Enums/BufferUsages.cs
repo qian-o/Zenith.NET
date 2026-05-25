@@ -9,7 +9,7 @@ public enum BufferUsages
 
     CopyDst = 1 << 1,
 
-    Uniform = 1 << 2,
+    Constant = 1 << 2,
 
     Vertex = 1 << 3,
 
