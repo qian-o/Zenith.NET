@@ -6,6 +6,8 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsContext(GraphicsApi.DirectX12, useValidationLayer)
 {
+    public const ulong DefaultHeapAlignment = 4194304;
+
     public const uint Shader4ComponentMapping = 0x1688;
 
     public ComPtr<IDXGIFactory7> Factory7;
@@ -143,22 +145,30 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override Heap CreateHeapImpl(HeapDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXHeap(this, desc);
     }
 
     protected override SizeAndAlignment GetSizeAndAlignmentImpl(BufferDesc desc)
     {
-        throw new NotImplementedException();
+        ResourceDesc1 resourceDesc = DXBuffer.ResourceDesc(desc);
+
+        ResourceAllocationInfo info = Device10.GetResourceAllocationInfo2(0, 1, &resourceDesc, default(Span<ResourceAllocationInfo1>));
+
+        return new(info.SizeInBytes, info.Alignment);
     }
 
     protected override SizeAndAlignment GetSizeAndAlignmentImpl(TextureDesc desc)
     {
-        throw new NotImplementedException();
+        ResourceDesc1 resourceDesc = DXTexture.ResourceDesc(desc);
+
+        ResourceAllocationInfo info = Device10.GetResourceAllocationInfo2(0, 1, &resourceDesc, default(Span<ResourceAllocationInfo1>));
+
+        return new(info.SizeInBytes, info.Alignment);
     }
 
     protected override Buffer CreateBufferImpl(BufferDesc desc)
     {
-        return new DXBuffer(this, desc);
+        return new DXBuffer(this, desc, null);
     }
 
     protected override BufferView CreateBufferViewImpl(BufferViewDesc desc)
@@ -168,7 +178,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override Texture CreateTextureImpl(TextureDesc desc)
     {
-        return new DXTexture(this, desc);
+        return new DXTexture(this, desc, null);
     }
 
     protected override TextureView CreateTextureViewImpl(TextureViewDesc desc)

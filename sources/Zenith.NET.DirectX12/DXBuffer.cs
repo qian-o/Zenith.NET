@@ -10,31 +10,28 @@ internal unsafe class DXBuffer : Buffer
 
     public ulong GPUVirtualAddress;
 
-    public DXBuffer(DXGraphicsContext context, BufferDesc desc) : base(context, desc)
+    public DXBuffer(DXGraphicsContext context, BufferDesc desc, ComPtr<ID3D12Resource>? resource) : base(context, desc)
     {
-        ResourceDesc1 resourceDesc = new()
+        if (resource is null)
         {
-            Dimension = ResourceDimension.Buffer,
-            Width = ZenithHelper.Align(desc.SizeInBytes, 256u),
-            Height = 1,
-            DepthOrArraySize = 1,
-            MipLevels = 1,
-            SampleDesc = new(1, 0),
-            Layout = TextureLayout.LayoutRowMajor,
-            Flags = DXFormats.DirectX12(desc.Usages)
-        };
+            ResourceDesc1 resourceDesc = ResourceDesc(desc);
 
-        HeapProperties heapProperties = new(DXFormats.DirectX12(desc.Access));
+            HeapProperties heapProperties = new(DXFormats.DirectX12(desc.Access));
 
-        context.Device10.CreateCommittedResource3(&heapProperties,
-                                                  HeapFlags.None,
-                                                  &resourceDesc,
-                                                  BarrierLayout.Undefined,
-                                                  default,
-                                                  default(ComPtr<ID3D12ProtectedResourceSession>),
-                                                  0,
-                                                  default,
-                                                  out Resource).Success();
+            context.Device10.CreateCommittedResource3(&heapProperties,
+                                                      HeapFlags.None,
+                                                      &resourceDesc,
+                                                      BarrierLayout.Undefined,
+                                                      default,
+                                                      default(ComPtr<ID3D12ProtectedResourceSession>),
+                                                      0,
+                                                      default,
+                                                      out Resource).Success();
+        }
+        else
+        {
+            Resource = resource.Value;
+        }
 
         GPUVirtualAddress = Resource.GetGPUVirtualAddress();
 
@@ -82,5 +79,20 @@ internal unsafe class DXBuffer : Buffer
         View.Dispose();
 
         Resource.Dispose();
+    }
+
+    public static ResourceDesc1 ResourceDesc(BufferDesc desc)
+    {
+        return new()
+        {
+            Dimension = ResourceDimension.Buffer,
+            Width = ZenithHelper.Align(desc.SizeInBytes, 256u),
+            Height = 1,
+            DepthOrArraySize = 1,
+            MipLevels = 1,
+            SampleDesc = new(1, 0),
+            Layout = TextureLayout.LayoutRowMajor,
+            Flags = DXFormats.DirectX12(desc.Usages)
+        };
     }
 }

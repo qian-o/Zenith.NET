@@ -5,6 +5,17 @@ namespace Zenith.NET.DirectX12;
 
 internal static class DXFormats
 {
+    public static DxHeapType DirectX12(HeapType heapType)
+    {
+        return heapType switch
+        {
+            HeapType.GpuOnly => DxHeapType.Default,
+            HeapType.CpuReadOnly => DxHeapType.Readback,
+            HeapType.CpuWriteOnly => DxHeapType.Upload,
+            _ => default
+        };
+    }
+
     public static ResourceFlags DirectX12(BufferUsages bufferUsages)
     {
         ResourceFlags result = ResourceFlags.None;

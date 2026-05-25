@@ -7,32 +7,28 @@ internal unsafe class DXTexture : Texture
 {
     public ComPtr<ID3D12Resource> Resource;
 
-    public DXTexture(DXGraphicsContext context, TextureDesc desc) : base(context, desc)
+    public DXTexture(DXGraphicsContext context, TextureDesc desc, ComPtr<ID3D12Resource>? resource) : base(context, desc)
     {
-        ResourceDesc1 resourceDesc = new()
+        if (resource is null)
         {
-            Dimension = DXFormats.DirectX12(desc.Type),
-            Width = desc.Width,
-            Height = desc.Height,
-            DepthOrArraySize = (ushort)(desc.Type is TextureType.Texture3D ? desc.Depth : desc.ArrayLayers),
-            MipLevels = (ushort)desc.MipLevels,
-            Format = DXFormats.DirectX12(desc.Format),
-            SampleDesc = DXFormats.DirectX12(desc.SampleCount),
-            Layout = TextureLayout.LayoutUnknown,
-            Flags = DXFormats.DirectX12(desc.Usages)
-        };
+            ResourceDesc1 resourceDesc = ResourceDesc(desc);
 
-        HeapProperties heapProperties = new(DxHeapType.Default);
+            HeapProperties heapProperties = new(DxHeapType.Default);
 
-        context.Device10.CreateCommittedResource3(&heapProperties,
-                                                  HeapFlags.None,
-                                                  &resourceDesc,
-                                                  BarrierLayout.Undefined,
-                                                  default,
-                                                  default(ComPtr<ID3D12ProtectedResourceSession>),
-                                                  0,
-                                                  default,
-                                                  out Resource).Success();
+            context.Device10.CreateCommittedResource3(&heapProperties,
+                                                      HeapFlags.None,
+                                                      &resourceDesc,
+                                                      BarrierLayout.Undefined,
+                                                      default,
+                                                      default(ComPtr<ID3D12ProtectedResourceSession>),
+                                                      0,
+                                                      default,
+                                                      out Resource).Success();
+        }
+        else
+        {
+            Resource = resource.Value;
+        }
 
         View = new(context, new()
         {
@@ -68,5 +64,21 @@ internal unsafe class DXTexture : Texture
         View.Dispose();
 
         Resource.Dispose();
+    }
+
+    public static ResourceDesc1 ResourceDesc(TextureDesc desc)
+    {
+        return new()
+        {
+            Dimension = DXFormats.DirectX12(desc.Type),
+            Width = desc.Width,
+            Height = desc.Height,
+            DepthOrArraySize = (ushort)(desc.Type is TextureType.Texture3D ? desc.Depth : desc.ArrayLayers),
+            MipLevels = (ushort)desc.MipLevels,
+            Format = DXFormats.DirectX12(desc.Format),
+            SampleDesc = DXFormats.DirectX12(desc.SampleCount),
+            Layout = TextureLayout.LayoutUnknown,
+            Flags = DXFormats.DirectX12(desc.Usages)
+        };
     }
 }

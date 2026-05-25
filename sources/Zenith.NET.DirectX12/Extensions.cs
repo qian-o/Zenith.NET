@@ -28,6 +28,14 @@ public static class Extensions
         }
     }
 
+    extension(Heap heap)
+    {
+        internal DXHeap DirectX12()
+        {
+            return (DXHeap)heap;
+        }
+    }
+
     extension(Buffer buffer)
     {
         internal DXBuffer DirectX12()
