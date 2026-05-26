@@ -24,14 +24,14 @@ internal unsafe class RasterizationRenderer : Renderer
 
         indexCount = (uint)indices.Length;
 
-        vertexBuffer = App.Context.CreateBuffer(BufferDesc.Vertex((uint)(sizeof(Vertex) * vertices.Length), (uint)sizeof(Vertex)));
+        vertexBuffer = App.Context.CreateBuffer(BufferDesc.Vertex((uint)(sizeof(Vertex) * vertices.Length)));
 
         fixed (Vertex* pointer = vertices)
         {
             vertexBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length) });
         }
 
-        indexBuffer = App.Context.CreateBuffer(BufferDesc.Index((uint)(sizeof(uint) * indices.Length), sizeof(uint)));
+        indexBuffer = App.Context.CreateBuffer(BufferDesc.Index((uint)(sizeof(uint) * indices.Length)));
 
         fixed (uint* pointer = indices)
         {
@@ -41,7 +41,6 @@ internal unsafe class RasterizationRenderer : Renderer
         constantBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)sizeof(RasterizationConstants),
-            StrideInBytes = (uint)sizeof(RasterizationConstants),
             Access = BufferAccess.CpuWriteOnly,
             Usages = BufferUsages.Constant
         });

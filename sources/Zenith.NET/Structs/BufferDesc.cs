@@ -10,23 +10,23 @@ public struct BufferDesc
 
     public BufferUsages Usages;
 
-    public static BufferDesc Vertex(uint sizeInBytes, uint strideInBytes)
+    public static BufferDesc Vertex(uint sizeInBytes)
     {
         return new()
         {
             SizeInBytes = sizeInBytes,
-            StrideInBytes = strideInBytes,
+            StrideInBytes = 0,
             Access = BufferAccess.GpuOnly,
             Usages = BufferUsages.CopyDst | BufferUsages.Vertex
         };
     }
 
-    public static BufferDesc Index(uint sizeInBytes, uint strideInBytes)
+    public static BufferDesc Index(uint sizeInBytes)
     {
         return new()
         {
             SizeInBytes = sizeInBytes,
-            StrideInBytes = strideInBytes,
+            StrideInBytes = 0,
             Access = BufferAccess.GpuOnly,
             Usages = BufferUsages.CopyDst | BufferUsages.Index
         };

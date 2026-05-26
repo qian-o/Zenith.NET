@@ -290,7 +290,6 @@ float4 FSMain(VSOutput input) : SV_TARGET
             vertexBuffer = Context.CreateBuffer(new()
             {
                 SizeInBytes = totalVertexSizeInBytes,
-                StrideInBytes = (uint)sizeof(ImDrawVert),
                 Access = BufferAccess.CpuWriteOnly,
                 Usages = BufferUsages.Vertex
             });
@@ -303,7 +302,6 @@ float4 FSMain(VSOutput input) : SV_TARGET
             indexBuffer = Context.CreateBuffer(new()
             {
                 SizeInBytes = totalIndexSizeInBytes,
-                StrideInBytes = sizeof(ushort),
                 Access = BufferAccess.CpuWriteOnly,
                 Usages = BufferUsages.Index
             });
@@ -316,7 +314,6 @@ float4 FSMain(VSOutput input) : SV_TARGET
             constantBuffer = Context.CreateBuffer(new()
             {
                 SizeInBytes = totalConstantSizeInBytes,
-                StrideInBytes = (uint)sizeof(Constants),
                 Access = BufferAccess.CpuWriteOnly,
                 Usages = BufferUsages.Constant
             });

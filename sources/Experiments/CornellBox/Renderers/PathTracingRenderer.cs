@@ -57,7 +57,6 @@ internal unsafe class PathTracingRenderer : Renderer
         constantBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)sizeof(PathTracingConstants),
-            StrideInBytes = (uint)sizeof(PathTracingConstants),
             Access = BufferAccess.CpuWriteOnly,
             Usages = BufferUsages.Constant
         });

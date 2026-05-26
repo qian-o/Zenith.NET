@@ -422,4 +422,9 @@ internal static class DXFormats
 
         return result;
     }
+
+    public static QueryHeapType DirectX12(QueryType queryType)
+    {
+        throw new NotImplementedException();
+    }
 }
