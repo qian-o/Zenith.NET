@@ -72,9 +72,9 @@ internal static class App
             surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
         }
 
-        swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.B8G8R8A8UNorm, DepthStencilTargetFormat = PixelFormat.D32FloatS8UInt });
-        imGui = new(input, swapChain.Output);
-        camera = new(input, Matrix4x4.CreateTranslation(278f, 273f, -800f))
+        swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorFormat = PixelFormat.B8G8R8A8UNorm, DepthStencilFormat = PixelFormat.D32FloatS8UInt });
+        imGui = new(input, new() { ColorFormats = [PixelFormat.B8G8R8A8UNorm], DepthStencilFormat = PixelFormat.D32FloatS8UInt });
+        camera = new(input, Matrix4x4.CreateTranslation(278.0f, 273.0f, -800.0f))
         {
             Speed = 240.0f,
             FarPlane = 2000.0f
@@ -82,7 +82,7 @@ internal static class App
 
         rasterizer = new();
 
-        if (Context.Capabilities.RayTracingSupported)
+        if (Context.Capabilities.RayTracing)
         {
             activeRenderer = pathTracer = new();
             currentMode = 0;
@@ -124,14 +124,14 @@ internal static class App
                 ImGui.SetNextWindowPos(new(10, 10), ImGuiCond.FirstUseEver);
                 if (ImGui.Begin("Cornell Box", ImGuiWindowFlags.AlwaysAutoResize))
                 {
-                    ImGui.Text($"Backend: {Context.Backend}");
+                    ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
                     ImGui.Text(Context.Capabilities.DeviceName);
 
                     ImGui.Separator();
 
                     ImGui.Text("Render Mode:");
 
-                    if (Context.Capabilities.RayTracingSupported)
+                    if (Context.Capabilities.RayTracing)
                     {
                         if (ImGui.RadioButton("Path Tracing", currentMode is 0) && currentMode is not 0)
                         {
@@ -172,20 +172,18 @@ internal static class App
                 return;
             }
 
-            CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
+            CommandBuffer commandBuffer = Context.GraphicsQueue.AcquireCommandBuffer();
 
             activeRenderer.Render(commandBuffer);
 
             imGui.Render(commandBuffer, new()
             {
-                Texture = swapChain.CurrentColorTarget,
+                Texture = swapChain.CurrentTexture,
                 LoadOp = LoadOp.Load,
                 StoreOp = StoreOp.Store
             });
 
-            commandBuffer.Submit(true);
-
-            swapChain.Present();
+            swapChain.Present(commandBuffer.Submit()).Wait();
         };
 
         window.Resize += _ =>
