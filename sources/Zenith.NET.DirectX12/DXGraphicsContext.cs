@@ -69,7 +69,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
         Factory7.EnumAdapterByGpuPreference(0, GpuPreference.HighPerformance, SilkMarshal.GuidPtrOf<IDXGIAdapter4>(), (void**)Adapter4.GetAddressOf()).Success();
 
-        if (!D3D12.CreateDevice((IUnknown*)Adapter4.Handle, D3DFeatureLevel.Level122, SilkMarshal.GuidPtrOf<ID3D12Device10>(), (void**)Device14.GetAddressOf()).IsSuccess())
+        if (!D3D12.CreateDevice((IUnknown*)Adapter4.Handle, D3DFeatureLevel.Level122, SilkMarshal.GuidPtrOf<ID3D12Device14>(), (void**)Device14.GetAddressOf()).IsSuccess())
         {
             throw new NotSupportedException("Direct3D 12 Feature Level 12_2 is not supported on the selected adapter.");
         }
