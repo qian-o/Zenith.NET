@@ -97,7 +97,7 @@ internal unsafe class RasterizationRenderer : Renderer
             ResourceBindings = ResourceBindings,
             InputLayouts = [inputLayout],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
-            Output = RenderOutput
+            Output = AttachmentFormats
         });
     }
 

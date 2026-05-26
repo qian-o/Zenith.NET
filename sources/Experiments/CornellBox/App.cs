@@ -73,7 +73,7 @@ internal static class App
         }
 
         swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorFormat = PixelFormat.B8G8R8A8UNorm, DepthStencilFormat = PixelFormat.D32FloatS8UInt });
-        imGui = new(input, new() { ColorFormats = [PixelFormat.B8G8R8A8UNorm], DepthStencilFormat = PixelFormat.D32FloatS8UInt });
+        imGui = new(input, new() { ColorFormats = [PixelFormat.B8G8R8A8UNorm], DepthStencilFormat = PixelFormat.D32FloatS8UInt, SampleCount = SampleCount.Count1 });
         camera = new(input, Matrix4x4.CreateTranslation(278.0f, 273.0f, -800.0f))
         {
             Speed = 240.0f,

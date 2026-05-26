@@ -14,10 +14,10 @@ internal abstract class Renderer : IDisposable
 
     public Texture DepthStencil { get; private set; } = null!;
 
-    public Output RenderOutput => new()
+    public AttachmentFormats AttachmentFormats => new()
     {
-        ColorAttachments = [Color.Desc.Format],
-        DepthStencilAttachment = DepthStencil.Desc.Format,
+        ColorFormats = [Color.Desc.Format],
+        DepthStencilFormat = DepthStencil.Desc.Format,
         SampleCount = Color.Desc.SampleCount
     };
 
@@ -40,7 +40,7 @@ internal abstract class Renderer : IDisposable
             MipLevels = 1,
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+            Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment
         });
 
         DepthStencil = App.Context.CreateTexture(new()
@@ -53,7 +53,7 @@ internal abstract class Renderer : IDisposable
             MipLevels = 1,
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.DepthStencil
+            Usages = TextureUsages.DepthStencil
         });
 
     }
