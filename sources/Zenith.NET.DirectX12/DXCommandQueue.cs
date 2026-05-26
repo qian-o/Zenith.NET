@@ -7,7 +7,7 @@ internal class DXCommandQueue(DXGraphicsContext context, CommandQueueType type, 
 {
     public override nint GetNativeObject(NativeObjectType type)
     {
-        throw new NotImplementedException();
+        return 0;
     }
 
     protected override ulong GetCompletedValue()
@@ -32,6 +32,6 @@ internal class DXCommandQueue(DXGraphicsContext context, CommandQueueType type, 
 
     protected override void SetResourceName(string name)
     {
-        throw new NotImplementedException();
+        commandQueue.SetName(name).Success();
     }
 }
