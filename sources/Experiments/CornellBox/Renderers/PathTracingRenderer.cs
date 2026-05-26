@@ -148,7 +148,7 @@ internal unsafe class PathTracingRenderer : Renderer
             Vertices = vertexBuffer.StorageReadOnlyHandle,
             Indices = indexBuffer.StorageReadOnlyHandle,
             Materials = materialBuffer.StorageReadOnlyHandle,
-            AccumTexture = accumulationTexture!.StorageHandle,
+            AccumulationTexture = accumulationTexture!.StorageHandle,
             OutputTexture = Color.StorageHandle
         };
 
@@ -191,9 +191,9 @@ internal unsafe class PathTracingRenderer : Renderer
         base.Dispose();
 
         accumulationTexture?.Dispose();
+        materialBuffer.Dispose();
         tlas.Dispose();
         blas.Dispose();
-        materialBuffer.Dispose();
 
         pipeline.Dispose();
         constantBuffer.Dispose();
@@ -236,7 +236,7 @@ file struct PathTracingConstants
     public ResourceHandle Materials;
 
     [FieldOffset(192)]
-    public ResourceHandle AccumTexture;
+    public ResourceHandle AccumulationTexture;
 
     [FieldOffset(200)]
     public ResourceHandle OutputTexture;

@@ -77,9 +77,9 @@ internal unsafe class RasterizationRenderer : Renderer
             Model = Matrix4x4.Identity,
             View = camera.View,
             Projection = camera.Projection,
-            LightPos = new(278.0f, 547.0f, 280.0f),
+            LightPosition = new(278.0f, 547.0f, 280.0f),
             LightColor = new(2.0f, 1.8f, 1.4f),
-            CameraPos = camera.Position,
+            CameraPosition = camera.Position,
             Materials = materialBuffer.StorageReadOnlyHandle
         };
 
@@ -126,13 +126,13 @@ file struct RasterizationConstants
     public Matrix4x4 Projection;
 
     [FieldOffset(192)]
-    public Vector3 LightPos;
+    public Vector3 LightPosition;
 
     [FieldOffset(208)]
     public Vector3 LightColor;
 
     [FieldOffset(224)]
-    public Vector3 CameraPos;
+    public Vector3 CameraPosition;
 
     [FieldOffset(240)]
     public ResourceHandle Materials;

@@ -43,18 +43,18 @@ struct RasterizationConstants
 
     float4x4 Projection;
 
-    private float4 LightPosAndPadding;
+    private float4 LightPositionAndPadding;
 
     private float4 LightColorAndPadding;
 
-    private float4 CameraPosAndPadding;
+    private float4 CameraPositionAndPadding;
 
     DescriptorHandle<StructuredBuffer<Material>> Materials;
 
-    property float3 LightPos
+    property float3 LightPosition
     {
         get {
-            return LightPosAndPadding.xyz;
+            return LightPositionAndPadding.xyz;
         }
     }
 
@@ -65,10 +65,10 @@ struct RasterizationConstants
         }
     }
 
-    property float3 CameraPos
+    property float3 CameraPosition
     {
         get {
-            return CameraPosAndPadding.xyz;
+            return CameraPositionAndPadding.xyz;
         }
     }
 };
@@ -77,7 +77,7 @@ struct VSInput
 {
     private float4 PositionAndPadding : POSITION0;
 
-    private float4 NormalAndMaterialID : NORMAL0;
+    private float4 NormalAndMaterialId : NORMAL0;
 
     property float3 Position
     {
@@ -89,14 +89,14 @@ struct VSInput
     property float3 Normal
     {
         get {
-            return NormalAndMaterialID.xyz;
+            return NormalAndMaterialId.xyz;
         }
     }
 
-    property uint MaterialID
+    property uint MaterialId
     {
         get {
-            return asuint(NormalAndMaterialID.w);
+            return asuint(NormalAndMaterialId.w);
         }
     }
 };
@@ -109,7 +109,7 @@ struct PSInput
 
     float3 Normal : TEXCOORD1;
 
-    nointerpolation uint MaterialID : TEXCOORD2;
+    nointerpolation uint MaterialId : TEXCOORD2;
 };
 
 uniform RasterizationConstants rasterization;
@@ -159,14 +159,14 @@ PSInput VSMain(VSInput input)
     output.Position = mul(mul(worldPos, rasterization.View), rasterization.Projection);
     output.WorldPos = worldPos.xyz;
     output.Normal = normalize(mul(float4(input.Normal, 0.0), rasterization.Model).xyz);
-    output.MaterialID = input.MaterialID;
+    output.MaterialId = input.MaterialId;
 
     return output;
 }
 
 float4 PSMain(PSInput input) : SV_TARGET
 {
-    Material mat = (*rasterization.Materials)[input.MaterialID];
+    Material mat = (*rasterization.Materials)[input.MaterialId];
 
     if (mat.Emission > 0.0)
     {
@@ -178,8 +178,8 @@ float4 PSMain(PSInput input) : SV_TARGET
 
     float3 N = normalize(input.Normal);
     float3 worldPos = input.WorldPos;
-    float3 V = normalize(rasterization.CameraPos - worldPos);
-    float3 toLight = rasterization.LightPos - worldPos;
+    float3 V = normalize(rasterization.CameraPosition - worldPos);
+    float3 toLight = rasterization.LightPosition - worldPos;
     float dist = length(toLight);
     float3 L = toLight / dist;
     float3 H = normalize(L + V);

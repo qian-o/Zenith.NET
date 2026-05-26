@@ -8,7 +8,7 @@ struct Vertex
 {
     private float4 PositionAndPadding;
 
-    private float4 NormalAndMaterialID;
+    private float4 NormalAndMaterialId;
 
     property float3 Position
     {
@@ -20,14 +20,14 @@ struct Vertex
     property float3 Normal
     {
         get {
-            return NormalAndMaterialID.xyz;
+            return NormalAndMaterialId.xyz;
         }
     }
 
-    property uint MaterialID
+    property uint MaterialId
     {
         get {
-            return asuint(NormalAndMaterialID.w);
+            return asuint(NormalAndMaterialId.w);
         }
     }
 };
@@ -85,7 +85,7 @@ struct PathTracingConstants
 
     DescriptorHandle<StructuredBuffer<Material>> Materials;
 
-    DescriptorHandle<RWTexture2D<float4>> AccumTexture;
+    DescriptorHandle<RWTexture2D<float4>> AccumulationTexture;
 
     DescriptorHandle<RWTexture2D<float4>> OutputTexture;
 
@@ -366,7 +366,7 @@ float3 TracePath(float3 origin, float3 direction, inout uint rng)
             normal = -normal;
         }
 
-        Material mat = (*pathTracing.Materials)[v0.MaterialID];
+        Material mat = (*pathTracing.Materials)[v0.MaterialId];
 
         if (mat.Emission > 0.0)
         {
@@ -491,7 +491,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     float3 color = TracePath(origin, direction, rng);
     color = min(color, float3(30.0, 30.0, 30.0));
 
-    float4 prev = (*pathTracing.AccumTexture)[pixel];
+    float4 prev = (*pathTracing.AccumulationTexture)[pixel];
     float4 accumulated;
 
     if (pathTracing.FrameCount == 0)
@@ -503,7 +503,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
         accumulated = prev + float4(color, 1.0);
     }
 
-    (*pathTracing.AccumTexture)[pixel] = accumulated;
+    (*pathTracing.AccumulationTexture)[pixel] = accumulated;
 
     float3 avg = accumulated.rgb / float(pathTracing.FrameCount + 1);
 

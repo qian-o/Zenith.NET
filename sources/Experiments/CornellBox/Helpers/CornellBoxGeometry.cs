@@ -97,16 +97,16 @@ internal static class CornellBoxGeometry
                                 Vector3 v1,
                                 Vector3 v2,
                                 Vector3 v3,
-                                uint materialID)
+                                uint materialId)
     {
         Vector3 normal = Vector3.Normalize(Vector3.Cross(v1 - v0, v2 - v0));
 
         uint startIndex = (uint)vertices.Count;
 
-        vertices.Add(new() { Position = v0, Normal = normal, MaterialID = materialID });
-        vertices.Add(new() { Position = v1, Normal = normal, MaterialID = materialID });
-        vertices.Add(new() { Position = v2, Normal = normal, MaterialID = materialID });
-        vertices.Add(new() { Position = v3, Normal = normal, MaterialID = materialID });
+        vertices.Add(new() { Position = v0, Normal = normal, MaterialId = materialId });
+        vertices.Add(new() { Position = v1, Normal = normal, MaterialId = materialId });
+        vertices.Add(new() { Position = v2, Normal = normal, MaterialId = materialId });
+        vertices.Add(new() { Position = v3, Normal = normal, MaterialId = materialId });
 
         indices.Add(startIndex);
         indices.Add(startIndex + 1);
@@ -127,7 +127,7 @@ internal struct Vertex
     public Vector3 Normal;
 
     [FieldOffset(28)]
-    public uint MaterialID;
+    public uint MaterialId;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 32)]
