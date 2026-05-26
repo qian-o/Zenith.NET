@@ -101,7 +101,7 @@ struct VSInput
     }
 };
 
-struct PSInput
+struct FSInput
 {
     float4 Position : SV_POSITION;
 
@@ -151,11 +151,11 @@ float3 FresnelSchlick(float cosTheta, float3 F0)
     return F0 + (1.0 - F0) * pow(saturate(1.0 - cosTheta), 5.0);
 }
 
-PSInput VSMain(VSInput input)
+FSInput VSMain(VSInput input)
 {
     float4 worldPos = mul(float4(input.Position, 1.0), rasterization.Model);
 
-    PSInput output;
+    FSInput output;
     output.Position = mul(mul(worldPos, rasterization.View), rasterization.Projection);
     output.WorldPos = worldPos.xyz;
     output.Normal = normalize(mul(float4(input.Normal, 0.0), rasterization.Model).xyz);
@@ -164,7 +164,7 @@ PSInput VSMain(VSInput input)
     return output;
 }
 
-float4 PSMain(PSInput input) : SV_TARGET
+float4 FSMain(FSInput input) : SV_TARGET
 {
     Material mat = (*rasterization.Materials)[input.MaterialId];
 
