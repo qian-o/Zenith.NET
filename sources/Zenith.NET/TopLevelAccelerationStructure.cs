@@ -6,6 +6,8 @@ public abstract class TopLevelAccelerationStructure(GraphicsContext context, Top
 
     public ref readonly TopLevelAccelerationStructureDesc Desc => ref desc;
 
+    public abstract ResourceHandle Handle { get; }
+
     internal void Refresh(TopLevelAccelerationStructureDesc newDesc)
     {
         desc = newDesc;
