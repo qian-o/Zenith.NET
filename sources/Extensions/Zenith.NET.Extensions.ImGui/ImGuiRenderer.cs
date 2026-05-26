@@ -287,21 +287,39 @@ float4 FSMain(VSOutput input) : SV_TARGET
         if (vertexBuffer is null || vertexBuffer.Desc.SizeInBytes < totalVertexSizeInBytes)
         {
             vertexBuffer?.Dispose();
-            vertexBuffer = Context.CreateBuffer(BufferDesc.Vertex(totalVertexSizeInBytes, (uint)sizeof(ImDrawVert)) with { Access = BufferAccess.CpuWriteOnly });
+            vertexBuffer = Context.CreateBuffer(new()
+            {
+                SizeInBytes = totalVertexSizeInBytes,
+                StrideInBytes = (uint)sizeof(ImDrawVert),
+                Access = BufferAccess.CpuWriteOnly,
+                Usages = BufferUsages.Vertex
+            });
         }
 
         uint totalIndexSizeInBytes = (uint)(sizeof(ushort) * (int)(drawData.TotalIdxCount * 1.2));
         if (indexBuffer is null || indexBuffer.Desc.SizeInBytes < totalIndexSizeInBytes)
         {
             indexBuffer?.Dispose();
-            indexBuffer = Context.CreateBuffer(BufferDesc.Index(totalIndexSizeInBytes, sizeof(ushort)) with { Access = BufferAccess.CpuWriteOnly });
+            indexBuffer = Context.CreateBuffer(new()
+            {
+                SizeInBytes = totalIndexSizeInBytes,
+                StrideInBytes = sizeof(ushort),
+                Access = BufferAccess.CpuWriteOnly,
+                Usages = BufferUsages.Index
+            });
         }
 
-        uint constantBufferSizeInBytes = (uint)(sizeof(Constants) * (int)(resourceHandleBindings.Count * 1.2));
-        if (constantBuffer is null || constantBuffer.Desc.SizeInBytes < constantBufferSizeInBytes)
+        uint totalConstantBufferSizeInBytes = (uint)(sizeof(Constants) * (int)(resourceHandleBindings.Count * 1.2));
+        if (constantBuffer is null || constantBuffer.Desc.SizeInBytes < totalConstantBufferSizeInBytes)
         {
             constantBuffer?.Dispose();
-            constantBuffer = Context.CreateBuffer(BufferDesc.Constant(constantBufferSizeInBytes) with { Access = BufferAccess.CpuWriteOnly });
+            constantBuffer = Context.CreateBuffer(new()
+            {
+                SizeInBytes = totalConstantBufferSizeInBytes,
+                StrideInBytes = (uint)sizeof(Constants),
+                Access = BufferAccess.CpuWriteOnly,
+                Usages = BufferUsages.Constant
+            });
         }
 
         for (int i = 0, vertexOffset = 0, indexOffset = 0; i < drawData.CmdListsCount; i++)
