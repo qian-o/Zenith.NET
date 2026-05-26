@@ -58,10 +58,11 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
                                        out CommandQueue copyQueue,
                                        out ValidationLayer? validationLayer)
     {
-        using ComPtr<ID3D12Debug> debug = new();
-        if (useValidationLayer && D3D12.GetDebugInterface(SilkMarshal.GuidPtrOf<ID3D12Debug>(), (void**)debug.GetAddressOf()).IsSuccess())
+        using ComPtr<ID3D12Debug6> debug6 = new();
+        if (useValidationLayer && D3D12.GetDebugInterface(SilkMarshal.GuidPtrOf<ID3D12Debug6>(), (void**)debug6.GetAddressOf()).IsSuccess())
         {
-            debug.EnableDebugLayer();
+            debug6.SetForceLegacyBarrierValidation(false);
+            debug6.EnableDebugLayer();
         }
 
         DXGI.CreateDXGIFactory2(Convert.ToUInt32(useValidationLayer), SilkMarshal.GuidPtrOf<IDXGIFactory7>(), (void**)Factory7.GetAddressOf()).Success();
@@ -86,7 +87,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
             Descriptor = new() { Flags = RootDescriptorFlags.DataVolatile }
         };
 
-        RootSignatureDesc1 rootSignatureDesc = new()
+        RootSignatureDesc2 rootSignatureDesc = new()
         {
             NumParameters = 1,
             PParameters = &rootParameter,
@@ -95,8 +96,8 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
         VersionedRootSignatureDesc versionedRootSignatureDesc = new()
         {
-            Version = D3DRootSignatureVersion.Version11,
-            Desc11 = rootSignatureDesc
+            Version = D3DRootSignatureVersion.Version12,
+            Desc12 = rootSignatureDesc
         };
 
         using ComPtr<ID3D10Blob> rootSignatureBlob = new();
@@ -150,7 +151,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
     {
         ResourceDesc1 resourceDesc = DXBuffer.ResourceDesc(desc);
 
-        ResourceAllocationInfo info = Device14.GetResourceAllocationInfo2(0, 1, &resourceDesc, default(ResourceAllocationInfo1*));
+        ResourceAllocationInfo info = Device14.GetResourceAllocationInfo3(0, 1, &resourceDesc, default(uint*), default, default(ResourceAllocationInfo1*));
 
         return new(info.SizeInBytes, info.Alignment);
     }
@@ -159,7 +160,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
     {
         ResourceDesc1 resourceDesc = DXTexture.ResourceDesc(desc);
 
-        ResourceAllocationInfo info = Device14.GetResourceAllocationInfo2(0, 1, &resourceDesc, default(ResourceAllocationInfo1*));
+        ResourceAllocationInfo info = Device14.GetResourceAllocationInfo3(0, 1, &resourceDesc, default(uint*), default, default(ResourceAllocationInfo1*));
 
         return new(info.SizeInBytes, info.Alignment);
     }
