@@ -61,7 +61,6 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         using ComPtr<ID3D12Debug6> debug6 = new();
         if (useValidationLayer && D3D12.GetDebugInterface(SilkMarshal.GuidPtrOf<ID3D12Debug6>(), (void**)debug6.GetAddressOf()).IsSuccess())
         {
-            debug6.SetForceLegacyBarrierValidation(false);
             debug6.EnableDebugLayer();
         }
 
