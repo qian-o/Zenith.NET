@@ -38,7 +38,7 @@ internal unsafe class RasterizationRenderer : Renderer
             indexBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(uint) * indices.Length) });
         }
 
-        constantBuffer = App.Context.CreateBuffer(BufferDesc.Constant((uint)sizeof(RasterizationConstants)));
+        constantBuffer = App.Context.CreateBuffer(BufferDesc.Constant((uint)sizeof(RasterizationConstants)) with { Access = BufferAccess.CpuWriteOnly });
 
         InputLayout inputLayout = new();
         inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Position });

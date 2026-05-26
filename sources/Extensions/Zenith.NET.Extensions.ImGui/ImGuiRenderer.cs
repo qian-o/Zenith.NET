@@ -287,21 +287,21 @@ float4 FSMain(VSOutput input) : SV_TARGET
         if (vertexBuffer is null || vertexBuffer.Desc.SizeInBytes < totalVertexSizeInBytes)
         {
             vertexBuffer?.Dispose();
-            vertexBuffer = Context.CreateBuffer(BufferDesc.Vertex(totalVertexSizeInBytes, (uint)sizeof(ImDrawVert)));
+            vertexBuffer = Context.CreateBuffer(BufferDesc.Vertex(totalVertexSizeInBytes, (uint)sizeof(ImDrawVert)) with { Access = BufferAccess.CpuWriteOnly });
         }
 
         uint totalIndexSizeInBytes = (uint)(sizeof(ushort) * (int)(drawData.TotalIdxCount * 1.2));
         if (indexBuffer is null || indexBuffer.Desc.SizeInBytes < totalIndexSizeInBytes)
         {
             indexBuffer?.Dispose();
-            indexBuffer = Context.CreateBuffer(BufferDesc.Index(totalIndexSizeInBytes, sizeof(ushort)));
+            indexBuffer = Context.CreateBuffer(BufferDesc.Index(totalIndexSizeInBytes, sizeof(ushort)) with { Access = BufferAccess.CpuWriteOnly });
         }
 
         uint constantBufferSizeInBytes = (uint)(sizeof(Constants) * (int)(resourceHandleBindings.Count * 1.2));
         if (constantBuffer is null || constantBuffer.Desc.SizeInBytes < constantBufferSizeInBytes)
         {
             constantBuffer?.Dispose();
-            constantBuffer = Context.CreateBuffer(BufferDesc.Constant(constantBufferSizeInBytes));
+            constantBuffer = Context.CreateBuffer(BufferDesc.Constant(constantBufferSizeInBytes) with { Access = BufferAccess.CpuWriteOnly });
         }
 
         for (int i = 0, vertexOffset = 0, indexOffset = 0; i < drawData.CmdListsCount; i++)

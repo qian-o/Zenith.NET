@@ -54,7 +54,7 @@ internal unsafe class PathTracingRenderer : Renderer
             indexBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(uint) * indices.Length) });
         }
 
-        constantBuffer = App.Context.CreateBuffer(BufferDesc.Constant((uint)sizeof(PathTracingConstants)));
+        constantBuffer = App.Context.CreateBuffer(BufferDesc.Constant((uint)sizeof(PathTracingConstants)) with { Access = BufferAccess.CpuWriteOnly });
 
         using Shader computeShader = App.Context.CreateShaderFromFile(ShaderPath("PathTracing.slang"), "CSMain", ShaderStages.Compute);
 
