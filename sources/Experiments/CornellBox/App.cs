@@ -176,12 +176,7 @@ internal static class App
 
             activeRenderer.Render(commandBuffer);
 
-            imGui.Render(commandBuffer, new()
-            {
-                Texture = swapChain.CurrentTexture,
-                LoadOp = LoadOp.Load,
-                StoreOp = StoreOp.Store
-            });
+            imGui.Render(commandBuffer, ColorAttachment.Load(swapChain.CurrentTexture));
 
             swapChain.Present(commandBuffer.Submit()).Wait();
         };

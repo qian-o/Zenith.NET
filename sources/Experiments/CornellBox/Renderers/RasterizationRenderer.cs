@@ -3,26 +3,20 @@ using System.Runtime.InteropServices;
 using CornellBox.Handlers;
 using CornellBox.Helpers;
 using Zenith.NET;
-using Zenith.NET.Extensions.Slang;
 using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Renderers;
 
 internal unsafe class RasterizationRenderer : Renderer
 {
-    private static readonly ResourceBinding[] ResourceBindings =
-    [
-        new() { Type = ResourceType.ConstantBuffer, Count = 1 },
-        new() { Type = ResourceType.StructuredBuffer, Count = 1 }
-    ];
+    private readonly uint indexCount;
 
     private readonly Buffer vertexBuffer;
     private readonly Buffer indexBuffer;
-    private readonly Buffer materialBuffer;
     private readonly Buffer constantBuffer;
-    private readonly uint indexCount;
-    private readonly ResourceTable resourceTable;
     private readonly GraphicsPipeline pipeline;
+
+    private readonly Buffer materialBuffer;
 
     public RasterizationRenderer()
     {
@@ -30,116 +24,77 @@ internal unsafe class RasterizationRenderer : Renderer
 
         indexCount = (uint)indices.Length;
 
-        vertexBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length),
-            StrideInBytes = (uint)sizeof(Vertex),
-            Flags = BufferUsageFlags.Vertex
-        });
+        vertexBuffer = App.Context.CreateBuffer(BufferDesc.Vertex((uint)(sizeof(Vertex) * vertices.Length), (uint)sizeof(Vertex)));
 
         fixed (Vertex* pointer = vertices)
         {
             vertexBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length) });
         }
 
-        indexBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(uint) * indices.Length),
-            StrideInBytes = sizeof(uint),
-            Flags = BufferUsageFlags.Index
-        });
+        indexBuffer = App.Context.CreateBuffer(BufferDesc.Index((uint)(sizeof(uint) * indices.Length), sizeof(uint)));
 
         fixed (uint* pointer = indices)
         {
             indexBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(uint) * indices.Length) });
         }
 
-        materialBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(Material) * materials.Length),
-            StrideInBytes = (uint)sizeof(Material),
-            Flags = BufferUsageFlags.ShaderResource
-        });
-
-        fixed (Material* pointer = materials)
-        {
-            materialBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Material) * materials.Length) });
-        }
-
-        constantBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)sizeof(RasterConstants),
-            StrideInBytes = (uint)sizeof(RasterConstants),
-            Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
-        });
-
-        resourceTable = App.Context.CreateResourceTable(new() { Bindings = ResourceBindings });
-        resourceTable.Write(0, constantBuffer);
-        resourceTable.Write(1, materialBuffer);
+        constantBuffer = App.Context.CreateBuffer(BufferDesc.Constant((uint)sizeof(RasterizationConstants)));
 
         InputLayout inputLayout = new();
         inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Position });
         inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Normal });
 
-        using Shader vertexShader = App.Context.LoadShaderFromFile(ShaderPath("Rasterization.slang"), "VSMain", ShaderStageFlags.Vertex);
-        using Shader pixelShader = App.Context.LoadShaderFromFile(ShaderPath("Rasterization.slang"), "PSMain", ShaderStageFlags.Pixel);
+        using Shader vertexShader = App.Context.CreateShaderFromFile(ShaderPath("Rasterization.slang"), "VSMain", ShaderStages.Vertex);
+        using Shader fragmentShader = App.Context.CreateShaderFromFile(ShaderPath("Rasterization.slang"), "PSMain", ShaderStages.Fragment);
 
         pipeline = App.Context.CreateGraphicsPipeline(new()
         {
-            RenderStates = new()
+            VertexShader = vertexShader,
+            FragmentShader = fragmentShader,
+            InputLayouts = [inputLayout],
+            PrimitiveTopology = PrimitiveTopology.TriangleList,
+            AttachmentFormats = AttachmentFormats,
+            RenderState = new()
             {
                 RasterizerState = RasterizerState.CullNone(),
                 DepthStencilState = DepthStencilState.DepthReadWrite(),
                 BlendState = BlendState.Opaque()
-            },
-            Vertex = vertexShader,
-            Pixel = pixelShader,
-            ResourceBindings = ResourceBindings,
-            InputLayouts = [inputLayout],
-            PrimitiveTopology = PrimitiveTopology.TriangleList,
-            Output = AttachmentFormats
+            }
         });
+
+        materialBuffer = App.Context.CreateBuffer(BufferDesc.StorageReadOnly((uint)(sizeof(Material) * materials.Length), (uint)sizeof(Material)));
+
+        fixed (Material* pointer = materials)
+        {
+            materialBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Material) * materials.Length) });
+        }
     }
 
     public override void Update(CameraHandler camera)
     {
-        RasterConstants constants = new()
+        RasterizationConstants parameters = new()
         {
             Model = Matrix4x4.Identity,
             View = camera.View,
             Projection = camera.Projection,
             LightPos = new(278.0f, 547.0f, 280.0f),
             LightColor = new(2.0f, 1.8f, 1.4f),
-            CameraPos = camera.Position
+            CameraPos = camera.Position,
+            Materials = materialBuffer.StorageReadOnlyHandle
         };
 
-        constantBuffer.Upload(0, new() { Pointer = (nint)(&constants), SizeInBytes = (uint)sizeof(RasterConstants) });
+        constantBuffer.Upload(0, new() { Pointer = (nint)(&parameters), SizeInBytes = (uint)sizeof(RasterizationConstants) });
     }
 
     public override void Render(CommandBuffer commandBuffer)
     {
-        commandBuffer.BeginRenderPass([new()
-        {
-            Texture = Color,
-            LoadOp = LoadOp.Clear,
-            StoreOp = StoreOp.Store,
-            ClearColor = new(0.51f, 0.518f, 0.557f, 1.0f)
-        }],
-                                      new()
-                                      {
-                                          Texture = DepthStencil,
-                                          DepthLoadOp = LoadOp.Clear,
-                                          DepthStoreOp = StoreOp.Store,
-                                          StencilLoadOp = LoadOp.Clear,
-                                          StencilStoreOp = StoreOp.Store,
-                                          ClearDepth = 1.0f,
-                                          ClearStencil = 0
-                                      });
+        commandBuffer.BeginRenderPass([ColorAttachment.Clear(Color, new(0.51f, 0.518f, 0.557f, 1.0f))], DepthStencilAttachment.Clear(DepthStencil, 1.0f, 0));
 
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.PushResourceTable(resourceTable);
         commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
         commandBuffer.SetIndexBuffer(indexBuffer, 0, IndexFormat.UInt32);
+        commandBuffer.SetConstantBuffer(constantBuffer, 0);
+
         commandBuffer.DrawIndexed(indexCount, 1, 0, 0, 0);
 
         commandBuffer.EndRenderPass();
@@ -149,17 +104,17 @@ internal unsafe class RasterizationRenderer : Renderer
     {
         base.Dispose();
 
-        pipeline.Dispose();
-        resourceTable.Dispose();
-        constantBuffer.Dispose();
         materialBuffer.Dispose();
+
+        pipeline.Dispose();
+        constantBuffer.Dispose();
         indexBuffer.Dispose();
         vertexBuffer.Dispose();
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 240)]
-file struct RasterConstants
+[StructLayout(LayoutKind.Explicit, Size = 256)]
+file struct RasterizationConstants
 {
     [FieldOffset(0)]
     public Matrix4x4 Model;
@@ -178,4 +133,7 @@ file struct RasterConstants
 
     [FieldOffset(224)]
     public Vector3 CameraPos;
+
+    [FieldOffset(240)]
+    public ResourceHandle Materials;
 }

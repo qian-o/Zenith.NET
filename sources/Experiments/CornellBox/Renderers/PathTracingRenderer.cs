@@ -13,12 +13,12 @@ internal unsafe class PathTracingRenderer : Renderer
 
     private readonly Buffer vertexBuffer;
     private readonly Buffer indexBuffer;
-    private readonly Buffer materialBuffer;
     private readonly Buffer constantBuffer;
-    private readonly BottomLevelAccelerationStructure blas;
-    private readonly TopLevelAccelerationStructure tlas;
     private readonly ComputePipeline pipeline;
 
+    private readonly BottomLevelAccelerationStructure blas;
+    private readonly TopLevelAccelerationStructure tlas;
+    private readonly Buffer materialBuffer;
     private Texture? accumulationTexture;
 
     private Matrix4x4 lastView;
@@ -54,20 +54,11 @@ internal unsafe class PathTracingRenderer : Renderer
             indexBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(uint) * indices.Length) });
         }
 
-        materialBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(Material) * materials.Length),
-            StrideInBytes = (uint)sizeof(Material),
-            Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.StorageReadOnly
-        });
-
-        fixed (Material* pointer = materials)
-        {
-            materialBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Material) * materials.Length) });
-        }
-
         constantBuffer = App.Context.CreateBuffer(BufferDesc.Constant((uint)sizeof(PathTracingConstants)));
+
+        using Shader computeShader = App.Context.CreateShaderFromFile(ShaderPath("PathTracing.slang"), "CSMain", ShaderStages.Compute);
+
+        pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = computeShader });
 
         CommandBuffer commandBuffer = App.Context.ComputeQueue.AcquireCommandBuffer();
 
@@ -113,9 +104,18 @@ internal unsafe class PathTracingRenderer : Renderer
 
         commandBuffer.Submit().Wait();
 
-        using Shader computeShader = App.Context.CreateShaderFromFile(ShaderPath("PathTracing.slang"), "CSMain", ShaderStages.Compute);
+        materialBuffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)(sizeof(Material) * materials.Length),
+            StrideInBytes = (uint)sizeof(Material),
+            Access = BufferAccess.GpuOnly,
+            Usages = BufferUsages.StorageReadOnly
+        });
 
-        pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = computeShader });
+        fixed (Material* pointer = materials)
+        {
+            materialBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Material) * materials.Length) });
+        }
     }
 
     public uint FrameCount { get; set; }
@@ -191,12 +191,12 @@ internal unsafe class PathTracingRenderer : Renderer
         base.Dispose();
 
         accumulationTexture?.Dispose();
-
-        pipeline.Dispose();
         tlas.Dispose();
         blas.Dispose();
-        constantBuffer.Dispose();
         materialBuffer.Dispose();
+
+        pipeline.Dispose();
+        constantBuffer.Dispose();
         indexBuffer.Dispose();
         vertexBuffer.Dispose();
     }
