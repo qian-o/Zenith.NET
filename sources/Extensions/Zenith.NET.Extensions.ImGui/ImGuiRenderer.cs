@@ -309,13 +309,13 @@ float4 FSMain(VSOutput input) : SV_TARGET
             });
         }
 
-        uint totalConstantBufferSizeInBytes = (uint)(sizeof(Constants) * (int)(resourceHandleBindings.Count * 1.2));
-        if (constantBuffer is null || constantBuffer.Desc.SizeInBytes < totalConstantBufferSizeInBytes)
+        uint totalConstantSizeInBytes = (uint)(sizeof(Constants) * (int)(resourceHandleBindings.Count * 1.2));
+        if (constantBuffer is null || constantBuffer.Desc.SizeInBytes < totalConstantSizeInBytes)
         {
             constantBuffer?.Dispose();
             constantBuffer = Context.CreateBuffer(new()
             {
-                SizeInBytes = totalConstantBufferSizeInBytes,
+                SizeInBytes = totalConstantSizeInBytes,
                 StrideInBytes = (uint)sizeof(Constants),
                 Access = BufferAccess.CpuWriteOnly,
                 Usages = BufferUsages.Constant
