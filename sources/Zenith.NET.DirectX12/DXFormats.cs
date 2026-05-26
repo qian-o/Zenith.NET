@@ -44,33 +44,6 @@ internal static class DXFormats
         };
     }
 
-    public static ResourceFlags DirectX12(TextureUsages textureUsages)
-    {
-        ResourceFlags result = ResourceFlags.None;
-
-        if (!textureUsages.HasFlag(TextureUsages.Sampled))
-        {
-            result |= ResourceFlags.DenyShaderResource;
-        }
-
-        if (textureUsages.HasFlag(TextureUsages.Storage))
-        {
-            result |= ResourceFlags.AllowUnorderedAccess;
-        }
-
-        if (textureUsages.HasFlag(TextureUsages.ColorAttachment))
-        {
-            result |= ResourceFlags.AllowRenderTarget;
-        }
-
-        if (textureUsages.HasFlag(TextureUsages.DepthStencil))
-        {
-            result |= ResourceFlags.AllowDepthStencil;
-        }
-
-        return result;
-    }
-
     public static ResourceDimension DirectX12(TextureType textureType)
     {
         return textureType switch
@@ -85,20 +58,6 @@ internal static class DXFormats
 
             TextureType.Texture3D => ResourceDimension.Texture3D,
 
-            _ => default
-        };
-    }
-
-    public static SampleDesc DirectX12(SampleCount sampleCount)
-    {
-        return sampleCount switch
-        {
-            SampleCount.Count1 => new(1, 0),
-            SampleCount.Count2 => new(2, 0),
-            SampleCount.Count4 => new(4, 0),
-            SampleCount.Count8 => new(8, 0),
-            SampleCount.Count16 => new(16, 0),
-            SampleCount.Count32 => new(32, 0),
             _ => default
         };
     }
@@ -181,6 +140,58 @@ internal static class DXFormats
         };
     }
 
+    public static SampleDesc DirectX12(SampleCount sampleCount)
+    {
+        return sampleCount switch
+        {
+            SampleCount.Count1 => new(1, 0),
+            SampleCount.Count2 => new(2, 0),
+            SampleCount.Count4 => new(4, 0),
+            SampleCount.Count8 => new(8, 0),
+            SampleCount.Count16 => new(16, 0),
+            SampleCount.Count32 => new(32, 0),
+            _ => default
+        };
+    }
+
+    public static ResourceFlags DirectX12(TextureUsages textureUsages)
+    {
+        ResourceFlags result = ResourceFlags.None;
+
+        if (!textureUsages.HasFlag(TextureUsages.Sampled))
+        {
+            result |= ResourceFlags.DenyShaderResource;
+        }
+
+        if (textureUsages.HasFlag(TextureUsages.Storage))
+        {
+            result |= ResourceFlags.AllowUnorderedAccess;
+        }
+
+        if (textureUsages.HasFlag(TextureUsages.ColorAttachment))
+        {
+            result |= ResourceFlags.AllowRenderTarget;
+        }
+
+        if (textureUsages.HasFlag(TextureUsages.DepthStencil))
+        {
+            result |= ResourceFlags.AllowDepthStencil;
+        }
+
+        return result;
+    }
+
+    public static (float R, float G, float B, float A) DirectX12(BorderColor borderColor)
+    {
+        return borderColor switch
+        {
+            BorderColor.TransparentBlack => (0.0f, 0.0f, 0.0f, 0.0f),
+            BorderColor.OpaqueBlack => (0.0f, 0.0f, 0.0f, 1.0f),
+            BorderColor.OpaqueWhite => (1.0f, 1.0f, 1.0f, 1.0f),
+            _ => default
+        };
+    }
+
     public static Filter DirectX12(FilterMode minFilter, FilterMode magFilter, FilterMode mipFilter, uint maxAnisotropy, CompareOp compareOp)
     {
         if (maxAnisotropy > 1)
@@ -236,17 +247,6 @@ internal static class DXFormats
             CompareOp.NotEqual => ComparisonFunc.NotEqual,
             CompareOp.GreaterEqual => ComparisonFunc.GreaterEqual,
             CompareOp.Always => ComparisonFunc.Always,
-            _ => default
-        };
-    }
-
-    public static (float R, float G, float B, float A) DirectX12(BorderColor borderColor)
-    {
-        return borderColor switch
-        {
-            BorderColor.TransparentBlack => (0.0f, 0.0f, 0.0f, 0.0f),
-            BorderColor.OpaqueBlack => (0.0f, 0.0f, 0.0f, 1.0f),
-            BorderColor.OpaqueWhite => (1.0f, 1.0f, 1.0f, 1.0f),
             _ => default
         };
     }
@@ -347,6 +347,22 @@ internal static class DXFormats
         };
     }
 
+    public static DxStencilOp DirectX12(StencilOp stencilOp)
+    {
+        return stencilOp switch
+        {
+            StencilOp.Keep => DxStencilOp.Keep,
+            StencilOp.Zero => DxStencilOp.Zero,
+            StencilOp.Replace => DxStencilOp.Replace,
+            StencilOp.IncrementAndClamp => DxStencilOp.IncrSat,
+            StencilOp.DecrementAndClamp => DxStencilOp.DecrSat,
+            StencilOp.Invert => DxStencilOp.Invert,
+            StencilOp.IncrementAndWrap => DxStencilOp.Incr,
+            StencilOp.DecrementAndWrap => DxStencilOp.Decr,
+            _ => default
+        };
+    }
+
     public static Blend DirectX12(BlendFactor blendFactor)
     {
         return blendFactor switch
@@ -376,22 +392,6 @@ internal static class DXFormats
             BlendOp.ReverseSubtract => DxBlendOp.RevSubtract,
             BlendOp.Min => DxBlendOp.Min,
             BlendOp.Max => DxBlendOp.Max,
-            _ => default
-        };
-    }
-
-    public static DxStencilOp DirectX12(StencilOp stencilOp)
-    {
-        return stencilOp switch
-        {
-            StencilOp.Keep => DxStencilOp.Keep,
-            StencilOp.Zero => DxStencilOp.Zero,
-            StencilOp.Replace => DxStencilOp.Replace,
-            StencilOp.IncrementAndClamp => DxStencilOp.IncrSat,
-            StencilOp.DecrementAndClamp => DxStencilOp.DecrSat,
-            StencilOp.Invert => DxStencilOp.Invert,
-            StencilOp.IncrementAndWrap => DxStencilOp.Incr,
-            StencilOp.DecrementAndWrap => DxStencilOp.Decr,
             _ => default
         };
     }
