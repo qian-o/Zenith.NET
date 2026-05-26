@@ -250,4 +250,20 @@ internal static class DXFormats
             _ => default
         };
     }
+
+    public static PrimitiveTopologyType DirectX12(PrimitiveTopology primitiveTopology)
+    {
+        return primitiveTopology switch
+        {
+            PrimitiveTopology.PointList => PrimitiveTopologyType.Point,
+
+            PrimitiveTopology.LineList or
+            PrimitiveTopology.LineStrip => PrimitiveTopologyType.Line,
+
+            PrimitiveTopology.TriangleList or
+            PrimitiveTopology.TriangleStrip => PrimitiveTopologyType.Triangle,
+
+            _ => default
+        };
+    }
 }

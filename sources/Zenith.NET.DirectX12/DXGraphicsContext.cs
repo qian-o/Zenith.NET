@@ -196,17 +196,17 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXGraphicsPipeline(this, desc);
     }
 
     protected override ComputePipeline CreateComputePipelineImpl(ComputePipelineDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXComputePipeline(this, desc);
     }
 
     protected override MeshShadingPipeline CreateMeshShadingPipelineImpl(MeshShadingPipelineDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXMeshShadingPipeline(this, desc);
     }
 
     protected override QueryHeap CreateQueryHeapImpl(QueryHeapDesc desc)

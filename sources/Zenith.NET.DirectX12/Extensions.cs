@@ -83,4 +83,32 @@ public static class Extensions
             return (DXShader)shader;
         }
     }
+
+    extension(GraphicsPipeline graphicsPipeline)
+    {
+        internal DXGraphicsPipeline DirectX12()
+        {
+            return (DXGraphicsPipeline)graphicsPipeline;
+        }
+    }
+
+    extension(ComputePipeline computePipeline)
+    {
+        internal DXComputePipeline DirectX12()
+        {
+            return (DXComputePipeline)computePipeline;
+        }
+    }
+
+    extension(MeshShadingPipeline meshShadingPipeline)
+    {
+        internal DXMeshShadingPipeline DirectX12()
+        {
+            return (DXMeshShadingPipeline)meshShadingPipeline;
+        }
+    }
+
+    extension(QueryHeap queryHeap)
+    {
+    }
 }
