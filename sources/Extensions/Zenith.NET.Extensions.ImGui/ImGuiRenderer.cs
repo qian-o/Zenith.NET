@@ -26,7 +26,7 @@ struct VSOutput
     float4 Color : COLOR0;
 };
 
-struct Constant
+struct Constants
 {
     float4x4 Projection;
 
@@ -35,7 +35,7 @@ struct Constant
     DescriptorHandle<SamplerState> Sampler;
 };
 
-uniform Constant constant;
+uniform Constants constants;
 
 float3 SrgbToLinear(float3 srgb)
 {
@@ -46,7 +46,7 @@ VSOutput VSMain(VSInput input)
 {
     VSOutput output;
     
-    output.Position = mul(float4(input.Position, 0.0, 1.0), constant.Projection);
+    output.Position = mul(float4(input.Position, 0.0, 1.0), constants.Projection);
     output.UV = input.UV;
     output.Color = input.Color;
     
@@ -59,7 +59,7 @@ VSOutput VSMain(VSInput input)
 
 float4 FSMain(VSOutput input) : SV_TARGET
 {
-    return input.Color * (*constant.Texture).Sample(*constant.Sampler, input.UV);
+    return input.Color * (*constants.Texture).Sample(*constants.Sampler, input.UV);
 }
 ";
 
@@ -362,7 +362,7 @@ float4 FSMain(VSOutput input) : SV_TARGET
             indexBuffer = Context.CreateBuffer(BufferDesc.Index(totalIndexSizeInBytes, sizeof(ushort)));
         }
 
-        uint constantBufferSizeInBytes = (uint)(sizeof(Constant) * (int)(resourceHandleBindings.Count * 1.2));
+        uint constantBufferSizeInBytes = (uint)(sizeof(Constants) * (int)(resourceHandleBindings.Count * 1.2));
         if (constantBuffer is null || constantBuffer.Desc.SizeInBytes < constantBufferSizeInBytes)
         {
             constantBuffer?.Dispose();
@@ -380,9 +380,9 @@ float4 FSMain(VSOutput input) : SV_TARGET
             indexOffset += drawListPtr.IdxBuffer.Size;
         }
 
-        Constant[] constants = ArrayPool<Constant>.Shared.Rent(resourceHandleBindings.Count);
+        Constants[] constantsArray = ArrayPool<Constants>.Shared.Rent(resourceHandleBindings.Count);
 
-        Constant constant = new()
+        Constants constants = new()
         {
             Projection = Matrix4x4.CreateOrthographicOffCenter(drawData.DisplayPos.X,
                                                                drawData.DisplayPos.X + drawData.DisplaySize.X,
@@ -395,15 +395,15 @@ float4 FSMain(VSOutput input) : SV_TARGET
 
         for (int i = 0; i < resourceHandleBindings.Count; i++)
         {
-            constants[i] = constant with { Texture = resourceHandleBindings[i] };
+            constantsArray[i] = constants with { Texture = resourceHandleBindings[i] };
         }
 
-        fixed (Constant* pointer = constants)
+        fixed (Constants* pointer = constantsArray)
         {
-            constantBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Constant) * resourceHandleBindings.Count) });
+            constantBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Constants) * resourceHandleBindings.Count) });
         }
 
-        ArrayPool<Constant>.Shared.Return(constants);
+        ArrayPool<Constants>.Shared.Return(constantsArray);
 
         commandBuffer.BeginDebugEvent("ImGui");
 
@@ -445,7 +445,7 @@ float4 FSMain(VSOutput input) : SV_TARGET
                     }
 
                     commandBuffer.SetScissors([scissor]);
-                    commandBuffer.SetConstantBuffer(constantBuffer, (uint)(sizeof(Constant) * resourceHandleBindings.IndexOfKey(drawCmd.TexRef.GetTexID())));
+                    commandBuffer.SetConstantBuffer(constantBuffer, (uint)(sizeof(Constants) * resourceHandleBindings.IndexOfKey(drawCmd.TexRef.GetTexID())));
                     commandBuffer.DrawIndexed(drawCmd.ElemCount, 1, (uint)(drawCmd.IdxOffset + indexOffset), (int)(drawCmd.VtxOffset + vertexOffset), 0);
                 }
             }
@@ -514,7 +514,7 @@ float4 FSMain(VSOutput input) : SV_TARGET
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 256)]
-file struct Constant
+file struct Constants
 {
     [FieldOffset(0)]
     public Matrix4x4 Projection;
