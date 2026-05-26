@@ -13,7 +13,7 @@ internal unsafe class DXComputePipeline : ComputePipeline
 
         PipelineStateStream2 pipelineStateStream = new()
         {
-            RootSignature = (nint)context.RootSignature.Handle,
+            PRootSignature = (nint)context.RootSignature.Handle,
             CS = desc.ComputeShader.DirectX12().GetShaderBytecode(scope)
         };
 

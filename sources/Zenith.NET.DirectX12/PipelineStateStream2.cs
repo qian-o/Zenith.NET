@@ -7,102 +7,102 @@ namespace Zenith.NET.DirectX12;
 
 internal struct PipelineStateStream2()
 {
-    private StreamFlags flags = new();
-    private StreamNodeMask nodeMask = new();
-    private StreamRootSignature rootSignature = new();
-    private StreamInputLayout inputLayout = new();
-    private StreamIBStripCutValue ibStripCutValue = new();
-    private StreamPrimitiveTopology primitiveTopologyType = new();
-    private StreamVS vs = new();
-    private StreamGS gs = new();
-    private StreamStreamOutput streamOutput = new();
-    private StreamHS hs = new();
-    private StreamDS ds = new();
-    private StreamPS ps = new();
-    private StreamAS @as = new();
-    private StreamMS ms = new();
-    private StreamCS cs = new();
-    private StreamBlend blendState = new();
-    private StreamDepthStencil1 depthStencilState = new();
-    private StreamDepthStencilFormat dsvFormat = new();
-    private StreamRasterizer rasterizerState = new();
-    private StreamRenderTargetFormats rtvFormats = new();
-    private StreamSampleDesc sampleDesc = new();
-    private StreamSampleMask sampleMask = new();
-    private StreamCachedPso cachedPSO = new();
-    private StreamViewInstancing viewInstancingDesc = new();
+    private StreamFlags _flags = new();
+    private StreamNodeMask _nodeMask = new();
+    private StreamRootSignature _pRootSignature = new();
+    private StreamInputLayout _inputLayout = new();
+    private StreamIBStripCutValue _ibStripCutValue = new();
+    private StreamPrimitiveTopology _primitiveTopologyType = new();
+    private StreamVS _vs = new();
+    private StreamGS _gs = new();
+    private StreamStreamOutput _streamOutput = new();
+    private StreamHS _hs = new();
+    private StreamDS _ds = new();
+    private StreamPS _ps = new();
+    private StreamAS _as = new();
+    private StreamMS _ms = new();
+    private StreamCS _cs = new();
+    private StreamBlend _blendState = new();
+    private StreamDepthStencil1 _depthStencilState = new();
+    private StreamDepthStencilFormat _dsvFormat = new();
+    private StreamRasterizer _rasterizerState = new();
+    private StreamRenderTargetFormats _rtvFormats = new();
+    private StreamSampleDesc _sampleDesc = new();
+    private StreamSampleMask _sampleMask = new();
+    private StreamCachedPso _cachedPSO = new();
+    private StreamViewInstancing _viewInstancingDesc = new();
 
     [UnscopedRef]
-    public ref PipelineStateFlags Flags => ref flags.Data;
+    public ref PipelineStateFlags Flags => ref _flags.Data;
 
     [UnscopedRef]
-    public ref uint NodeMask => ref nodeMask.Data;
+    public ref uint NodeMask => ref _nodeMask.Data;
 
     [UnscopedRef]
-    public ref nint RootSignature => ref rootSignature.Data;
+    public ref nint PRootSignature => ref _pRootSignature.Data;
 
     [UnscopedRef]
-    public ref InputLayoutDesc InputLayout => ref inputLayout.Data;
+    public ref InputLayoutDesc InputLayout => ref _inputLayout.Data;
 
     [UnscopedRef]
-    public ref IndexBufferStripCutValue IBStripCutValue => ref ibStripCutValue.Data;
+    public ref IndexBufferStripCutValue IBStripCutValue => ref _ibStripCutValue.Data;
 
     [UnscopedRef]
-    public ref PrimitiveTopologyType PrimitiveTopologyType => ref primitiveTopologyType.Data;
+    public ref PrimitiveTopologyType PrimitiveTopologyType => ref _primitiveTopologyType.Data;
 
     [UnscopedRef]
-    public ref ShaderBytecode VS => ref vs.Data;
+    public ref ShaderBytecode VS => ref _vs.Data;
 
     [UnscopedRef]
-    public ref ShaderBytecode GS => ref gs.Data;
+    public ref ShaderBytecode GS => ref _gs.Data;
 
     [UnscopedRef]
-    public ref StreamOutputDesc StreamOutput => ref streamOutput.Data;
+    public ref StreamOutputDesc StreamOutput => ref _streamOutput.Data;
 
     [UnscopedRef]
-    public ref ShaderBytecode HS => ref hs.Data;
+    public ref ShaderBytecode HS => ref _hs.Data;
 
     [UnscopedRef]
-    public ref ShaderBytecode DS => ref ds.Data;
+    public ref ShaderBytecode DS => ref _ds.Data;
 
     [UnscopedRef]
-    public ref ShaderBytecode PS => ref ps.Data;
+    public ref ShaderBytecode PS => ref _ps.Data;
 
     [UnscopedRef]
-    public ref ShaderBytecode AS => ref @as.Data;
+    public ref ShaderBytecode AS => ref _as.Data;
 
     [UnscopedRef]
-    public ref ShaderBytecode MS => ref ms.Data;
+    public ref ShaderBytecode MS => ref _ms.Data;
 
     [UnscopedRef]
-    public ref ShaderBytecode CS => ref cs.Data;
+    public ref ShaderBytecode CS => ref _cs.Data;
 
     [UnscopedRef]
-    public ref BlendDesc BlendState => ref blendState.Data;
+    public ref BlendDesc BlendState => ref _blendState.Data;
 
     [UnscopedRef]
-    public ref DepthStencilDesc1 DepthStencilState => ref depthStencilState.Data;
+    public ref DepthStencilDesc1 DepthStencilState => ref _depthStencilState.Data;
 
     [UnscopedRef]
-    public ref Format DSVFormat => ref dsvFormat.Data;
+    public ref Format DSVFormat => ref _dsvFormat.Data;
 
     [UnscopedRef]
-    public ref RasterizerDesc RasterizerState => ref rasterizerState.Data;
+    public ref RasterizerDesc RasterizerState => ref _rasterizerState.Data;
 
     [UnscopedRef]
-    public ref RTFormatArray RTVFormats => ref rtvFormats.Data;
+    public ref RTFormatArray RTVFormats => ref _rtvFormats.Data;
 
     [UnscopedRef]
-    public ref SampleDesc SampleDesc => ref sampleDesc.Data;
+    public ref SampleDesc SampleDesc => ref _sampleDesc.Data;
 
     [UnscopedRef]
-    public ref uint SampleMask => ref sampleMask.Data;
+    public ref uint SampleMask => ref _sampleMask.Data;
 
     [UnscopedRef]
-    public ref CachedPipelineState CachedPSO => ref cachedPSO.Data;
+    public ref CachedPipelineState CachedPSO => ref _cachedPSO.Data;
 
     [UnscopedRef]
-    public ref ViewInstancingDesc ViewInstancingDesc => ref viewInstancingDesc.Data;
+    public ref ViewInstancingDesc ViewInstancingDesc => ref _viewInstancingDesc.Data;
 
     private struct SubObject<T>(PipelineStateSubobjectType type) where T : unmanaged
     {
