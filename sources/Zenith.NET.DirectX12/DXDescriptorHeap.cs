@@ -26,11 +26,11 @@ internal unsafe class DXDescriptorHeap : DisposableObject
             Flags = shaderVisible ? DescriptorHeapFlags.ShaderVisible : DescriptorHeapFlags.None
         };
 
-        context.Device10.CreateDescriptorHeap(&desc, SilkMarshal.GuidPtrOf<ID3D12DescriptorHeap>(), (void**)Heap.GetAddressOf()).Success();
+        context.Device14.CreateDescriptorHeap(&desc, SilkMarshal.GuidPtrOf<ID3D12DescriptorHeap>(), (void**)Heap.GetAddressOf()).Success();
 
         CpuStartHandle = Heap.GetCPUDescriptorHandleForHeapStart();
         GpuStartHandle = shaderVisible ? Heap.GetGPUDescriptorHandleForHeapStart() : default;
-        IncrementSize = context.Device10.GetDescriptorHandleIncrementSize(type);
+        IncrementSize = context.Device14.GetDescriptorHandleIncrementSize(type);
     }
 
     public DXDescriptorToken Allocate()

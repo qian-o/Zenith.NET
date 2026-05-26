@@ -16,7 +16,7 @@ internal unsafe class DXTexture : Texture
 
             HeapProperties heapProperties = new(DxHeapType.Default);
 
-            context.Device10.CreateCommittedResource3(&heapProperties,
+            context.Device14.CreateCommittedResource3(&heapProperties,
                                                       HeapFlags.None,
                                                       &resourceDesc,
                                                       BarrierLayout.Undefined,

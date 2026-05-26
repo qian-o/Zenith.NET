@@ -18,7 +18,7 @@ internal unsafe class DXBuffer : Buffer
 
             HeapProperties heapProperties = new(DXFormats.DirectX12(desc.Access));
 
-            context.Device10.CreateCommittedResource3(&heapProperties,
+            context.Device14.CreateCommittedResource3(&heapProperties,
                                                       HeapFlags.None,
                                                       &resourceDesc,
                                                       BarrierLayout.Undefined,

@@ -30,7 +30,7 @@ internal unsafe class DXSampler : Sampler
         samplerDesc.BorderColor[2] = b;
         samplerDesc.BorderColor[3] = a;
 
-        context.Device10.CreateSampler(&samplerDesc, Token.CpuHandle);
+        context.Device14.CreateSampler(&samplerDesc, Token.CpuHandle);
     }
 
     public override ResourceHandle Handle => Token.ResourceHandle;

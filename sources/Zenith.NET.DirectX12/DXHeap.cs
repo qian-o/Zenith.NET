@@ -17,7 +17,7 @@ internal unsafe class DXHeap : Heap
             Alignment = DXGraphicsContext.DefaultHeapAlignment
         };
 
-        context.Device10.CreateHeap(&heapDesc, SilkMarshal.GuidPtrOf<ID3D12Heap>(), (void**)Heap.GetAddressOf()).Success();
+        context.Device14.CreateHeap(&heapDesc, SilkMarshal.GuidPtrOf<ID3D12Heap>(), (void**)Heap.GetAddressOf()).Success();
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
@@ -32,7 +32,7 @@ internal unsafe class DXHeap : Heap
         ResourceDesc1 resourceDesc = DXBuffer.ResourceDesc(desc);
 
         ComPtr<ID3D12Resource> resource = new();
-        Context.Device10.CreatePlacedResource2(Heap,
+        Context.Device14.CreatePlacedResource2(Heap,
                                                offsetInBytes,
                                                &resourceDesc,
                                                BarrierLayout.Undefined,
@@ -50,7 +50,7 @@ internal unsafe class DXHeap : Heap
         ResourceDesc1 resourceDesc = DXTexture.ResourceDesc(desc);
 
         ComPtr<ID3D12Resource> resource = new();
-        Context.Device10.CreatePlacedResource2(Heap,
+        Context.Device14.CreatePlacedResource2(Heap,
                                                offsetInBytes,
                                                &resourceDesc,
                                                BarrierLayout.Undefined,

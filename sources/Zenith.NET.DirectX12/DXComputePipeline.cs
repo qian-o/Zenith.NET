@@ -17,7 +17,7 @@ internal unsafe class DXComputePipeline : ComputePipeline
             CS = desc.ComputeShader.DirectX12().GetShaderBytecode(scope)
         };
 
-        context.Device10.CreateComputePipelineState(&computePipelineStateDesc, SilkMarshal.GuidPtrOf<ID3D12PipelineState>(), (void**)PipelineState.GetAddressOf()).Success();
+        context.Device14.CreateComputePipelineState(&computePipelineStateDesc, SilkMarshal.GuidPtrOf<ID3D12PipelineState>(), (void**)PipelineState.GetAddressOf()).Success();
     }
 
     public override nint GetNativeObject(NativeObjectType type)

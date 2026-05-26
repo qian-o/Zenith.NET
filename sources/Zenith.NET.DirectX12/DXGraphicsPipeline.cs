@@ -137,7 +137,7 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
             }
         }
 
-        context.Device10.CreateGraphicsPipelineState(&graphicsPipelineStateDesc, SilkMarshal.GuidPtrOf<ID3D12PipelineState>(), (void**)PipelineState.GetAddressOf()).Success();
+        context.Device14.CreateGraphicsPipelineState(&graphicsPipelineStateDesc, SilkMarshal.GuidPtrOf<ID3D12PipelineState>(), (void**)PipelineState.GetAddressOf()).Success();
     }
 
     public override nint GetNativeObject(NativeObjectType type)
