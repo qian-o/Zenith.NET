@@ -79,7 +79,6 @@ internal unsafe class DXTexture : Texture
             MipLevels = (ushort)desc.MipLevels,
             Format = DXFormats.DirectX12(desc.Format),
             SampleDesc = DXFormats.DirectX12(desc.SampleCount),
-            Layout = TextureLayout.LayoutUnknown,
             Flags = DXFormats.DirectX12(desc.Usages)
         };
     }
