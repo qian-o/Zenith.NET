@@ -266,4 +266,160 @@ internal static class DXFormats
             _ => default
         };
     }
+
+    public static Format DirectX12(ElementFormat elementFormat)
+    {
+        return elementFormat switch
+        {
+            ElementFormat.UByte1 => Format.FormatR8Uint,
+            ElementFormat.UByte2 => Format.FormatR8G8Uint,
+            ElementFormat.UByte4 => Format.FormatR8G8B8A8Uint,
+
+            ElementFormat.Byte1 => Format.FormatR8Sint,
+            ElementFormat.Byte2 => Format.FormatR8G8Sint,
+            ElementFormat.Byte4 => Format.FormatR8G8B8A8Sint,
+
+            ElementFormat.UByte1UNorm => Format.FormatR8Unorm,
+            ElementFormat.UByte2UNorm => Format.FormatR8G8Unorm,
+            ElementFormat.UByte4UNorm => Format.FormatR8G8B8A8Unorm,
+
+            ElementFormat.Byte1SNorm => Format.FormatR8SNorm,
+            ElementFormat.Byte2SNorm => Format.FormatR8G8SNorm,
+            ElementFormat.Byte4SNorm => Format.FormatR8G8B8A8SNorm,
+
+            ElementFormat.UShort1 => Format.FormatR16Uint,
+            ElementFormat.UShort2 => Format.FormatR16G16Uint,
+            ElementFormat.UShort4 => Format.FormatR16G16B16A16Uint,
+
+            ElementFormat.Short1 => Format.FormatR16Sint,
+            ElementFormat.Short2 => Format.FormatR16G16Sint,
+            ElementFormat.Short4 => Format.FormatR16G16B16A16Sint,
+
+            ElementFormat.UShort1UNorm => Format.FormatR16Unorm,
+            ElementFormat.UShort2UNorm => Format.FormatR16G16Unorm,
+            ElementFormat.UShort4UNorm => Format.FormatR16G16B16A16Unorm,
+
+            ElementFormat.Short1SNorm => Format.FormatR16SNorm,
+            ElementFormat.Short2SNorm => Format.FormatR16G16SNorm,
+            ElementFormat.Short4SNorm => Format.FormatR16G16B16A16SNorm,
+
+            ElementFormat.Half1 => Format.FormatR16Float,
+            ElementFormat.Half2 => Format.FormatR16G16Float,
+            ElementFormat.Half4 => Format.FormatR16G16B16A16Float,
+
+            ElementFormat.Float1 => Format.FormatR32Float,
+            ElementFormat.Float2 => Format.FormatR32G32Float,
+            ElementFormat.Float3 => Format.FormatR32G32B32Float,
+            ElementFormat.Float4 => Format.FormatR32G32B32A32Float,
+
+            ElementFormat.UInt1 => Format.FormatR32Uint,
+            ElementFormat.UInt2 => Format.FormatR32G32Uint,
+            ElementFormat.UInt3 => Format.FormatR32G32B32Uint,
+            ElementFormat.UInt4 => Format.FormatR32G32B32A32Uint,
+
+            ElementFormat.Int1 => Format.FormatR32Sint,
+            ElementFormat.Int2 => Format.FormatR32G32Sint,
+            ElementFormat.Int3 => Format.FormatR32G32B32Sint,
+            ElementFormat.Int4 => Format.FormatR32G32B32A32Sint,
+
+            _ => default
+        };
+    }
+
+    public static DxFillMode DirectX12(FillMode fillMode)
+    {
+        return fillMode switch
+        {
+            FillMode.Solid => DxFillMode.Solid,
+            FillMode.Wireframe => DxFillMode.Wireframe,
+            _ => default
+        };
+    }
+
+    public static DxCullMode DirectX12(CullMode cullMode)
+    {
+        return cullMode switch
+        {
+            CullMode.None => DxCullMode.None,
+            CullMode.Front => DxCullMode.Front,
+            CullMode.Back => DxCullMode.Back,
+            _ => default
+        };
+    }
+
+    public static Blend DirectX12(BlendFactor blendFactor)
+    {
+        return blendFactor switch
+        {
+            BlendFactor.Zero => Blend.Zero,
+            BlendFactor.One => Blend.One,
+            BlendFactor.SourceColor => Blend.SrcColor,
+            BlendFactor.OneMinusSourceColor => Blend.InvSrcColor,
+            BlendFactor.DestinationColor => Blend.DestColor,
+            BlendFactor.OneMinusDestinationColor => Blend.InvDestColor,
+            BlendFactor.SourceAlpha => Blend.SrcAlpha,
+            BlendFactor.OneMinusSourceAlpha => Blend.InvSrcAlpha,
+            BlendFactor.DestinationAlpha => Blend.DestAlpha,
+            BlendFactor.OneMinusDestinationAlpha => Blend.InvDestAlpha,
+            BlendFactor.Constant => Blend.BlendFactor,
+            BlendFactor.OneMinusConstant => Blend.InvBlendFactor,
+            _ => default
+        };
+    }
+
+    public static DxBlendOp DirectX12(BlendOp blendOp)
+    {
+        return blendOp switch
+        {
+            BlendOp.Add => DxBlendOp.Add,
+            BlendOp.Subtract => DxBlendOp.Subtract,
+            BlendOp.ReverseSubtract => DxBlendOp.RevSubtract,
+            BlendOp.Min => DxBlendOp.Min,
+            BlendOp.Max => DxBlendOp.Max,
+            _ => default
+        };
+    }
+
+    public static DxStencilOp DirectX12(StencilOp stencilOp)
+    {
+        return stencilOp switch
+        {
+            StencilOp.Keep => DxStencilOp.Keep,
+            StencilOp.Zero => DxStencilOp.Zero,
+            StencilOp.Replace => DxStencilOp.Replace,
+            StencilOp.IncrementAndClamp => DxStencilOp.IncrSat,
+            StencilOp.DecrementAndClamp => DxStencilOp.DecrSat,
+            StencilOp.Invert => DxStencilOp.Invert,
+            StencilOp.IncrementAndWrap => DxStencilOp.Incr,
+            StencilOp.DecrementAndWrap => DxStencilOp.Decr,
+            _ => default
+        };
+    }
+
+    public static ColorWriteEnable DirectX12(ColorWrites colorWrites)
+    {
+        ColorWriteEnable result = ColorWriteEnable.None;
+
+        if (colorWrites.HasFlag(ColorWrites.Red))
+        {
+            result |= ColorWriteEnable.Red;
+        }
+
+        if (colorWrites.HasFlag(ColorWrites.Green))
+        {
+            result |= ColorWriteEnable.Green;
+        }
+
+        if (colorWrites.HasFlag(ColorWrites.Blue))
+        {
+            result |= ColorWriteEnable.Blue;
+        }
+
+        if (colorWrites.HasFlag(ColorWrites.Alpha))
+        {
+            result |= ColorWriteEnable.Alpha;
+        }
+
+        return result;
+    }
 }

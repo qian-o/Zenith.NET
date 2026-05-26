@@ -16,8 +16,6 @@ public struct RasterizerState
 
     public bool IsDepthClipEnabled;
 
-    public bool IsScissorEnabled;
-
     public static RasterizerState CullFront()
     {
         return new()
@@ -28,8 +26,7 @@ public struct RasterizerState
             DepthBias = 0,
             DepthBiasClamp = 0.0f,
             DepthBiasSlopeScale = 0.0f,
-            IsDepthClipEnabled = true,
-            IsScissorEnabled = false
+            IsDepthClipEnabled = true
         };
     }
 
@@ -43,8 +40,7 @@ public struct RasterizerState
             DepthBias = 0,
             DepthBiasClamp = 0.0f,
             DepthBiasSlopeScale = 0.0f,
-            IsDepthClipEnabled = true,
-            IsScissorEnabled = false
+            IsDepthClipEnabled = true
         };
     }
 
@@ -58,8 +54,7 @@ public struct RasterizerState
             DepthBias = 0,
             DepthBiasClamp = 0.0f,
             DepthBiasSlopeScale = 0.0f,
-            IsDepthClipEnabled = true,
-            IsScissorEnabled = false
+            IsDepthClipEnabled = true
         };
     }
 
@@ -73,8 +68,7 @@ public struct RasterizerState
             DepthBias = 0,
             DepthBiasClamp = 0.0f,
             DepthBiasSlopeScale = 0.0f,
-            IsDepthClipEnabled = true,
-            IsScissorEnabled = false
+            IsDepthClipEnabled = true
         };
     }
 
@@ -88,8 +82,7 @@ public struct RasterizerState
             DepthBias = 0,
             DepthBiasClamp = 0.0f,
             DepthBiasSlopeScale = 0.0f,
-            IsDepthClipEnabled = true,
-            IsScissorEnabled = false
+            IsDepthClipEnabled = true
         };
     }
 
@@ -103,8 +96,7 @@ public struct RasterizerState
             DepthBias = 0,
             DepthBiasClamp = 0.0f,
             DepthBiasSlopeScale = 0.0f,
-            IsDepthClipEnabled = true,
-            IsScissorEnabled = false
+            IsDepthClipEnabled = true
         };
     }
 }

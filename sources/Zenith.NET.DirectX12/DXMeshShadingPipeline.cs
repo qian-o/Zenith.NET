@@ -13,6 +13,7 @@ internal class DXMeshShadingPipeline : MeshShadingPipeline
 
         GraphicsPipelineStateDesc graphicsPipelineStateDesc = new()
         {
+            PRootSignature = context.RootSignature,
             SampleMask = uint.MaxValue
         };
     }

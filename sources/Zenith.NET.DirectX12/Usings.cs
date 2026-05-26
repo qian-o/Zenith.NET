@@ -1,5 +1,9 @@
-﻿global using DxHeapDesc = Silk.NET.Direct3D12.HeapDesc;
+﻿global using DxBlendOp = Silk.NET.Direct3D12.BlendOp;
+global using DxCullMode = Silk.NET.Direct3D12.CullMode;
+global using DxFillMode = Silk.NET.Direct3D12.FillMode;
+global using DxHeapDesc = Silk.NET.Direct3D12.HeapDesc;
 global using DxHeapType = Silk.NET.Direct3D12.HeapType;
 global using DxMessageSeverity = Silk.NET.Direct3D12.MessageSeverity;
 global using DxRange = Silk.NET.Direct3D12.Range;
 global using DxSamplerDesc = Silk.NET.Direct3D12.SamplerDesc;
+global using DxStencilOp = Silk.NET.Direct3D12.StencilOp;
