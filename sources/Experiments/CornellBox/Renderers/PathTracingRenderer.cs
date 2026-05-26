@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 using CornellBox.Handlers;
 using CornellBox.Helpers;
 using Zenith.NET;
-using Zenith.NET.Extensions.Slang;
 using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Renderers;
@@ -12,27 +11,15 @@ internal unsafe class PathTracingRenderer : Renderer
 {
     private const uint ThreadGroupSize = 16;
 
-    private static readonly ResourceBinding[] ResourceBindings =
-    [
-        new() { Type = ResourceType.AccelerationStructure, Count = 1 },
-        new() { Type = ResourceType.ConstantBuffer, Count = 1 },
-        new() { Type = ResourceType.StructuredBuffer, Count = 1 },
-        new() { Type = ResourceType.StructuredBuffer, Count = 1 },
-        new() { Type = ResourceType.StructuredBuffer, Count = 1 },
-        new() { Type = ResourceType.TextureReadWrite, Count = 1 },
-        new() { Type = ResourceType.TextureReadWrite, Count = 1 }
-    ];
-
     private readonly Buffer vertexBuffer;
     private readonly Buffer indexBuffer;
     private readonly Buffer materialBuffer;
-    private readonly Buffer cameraBuffer;
+    private readonly Buffer constantBuffer;
     private readonly BottomLevelAccelerationStructure blas;
     private readonly TopLevelAccelerationStructure tlas;
     private readonly ComputePipeline pipeline;
 
     private Texture? accumulationTexture;
-    private ResourceTable? resourceTable;
 
     private Matrix4x4 lastView;
     private Matrix4x4 lastProjection;
@@ -45,7 +32,8 @@ internal unsafe class PathTracingRenderer : Renderer
         {
             SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length),
             StrideInBytes = (uint)sizeof(Vertex),
-            Flags = BufferUsageFlags.ShaderResource | BufferUsageFlags.AccelerationStructure
+            Access = BufferAccess.GpuOnly,
+            Usages = BufferUsages.StorageReadOnly | BufferUsages.AccelerationStructure
         });
 
         fixed (Vertex* pointer = vertices)
@@ -57,7 +45,8 @@ internal unsafe class PathTracingRenderer : Renderer
         {
             SizeInBytes = (uint)(sizeof(uint) * indices.Length),
             StrideInBytes = sizeof(uint),
-            Flags = BufferUsageFlags.ShaderResource | BufferUsageFlags.AccelerationStructure
+            Access = BufferAccess.GpuOnly,
+            Usages = BufferUsages.StorageReadOnly | BufferUsages.AccelerationStructure
         });
 
         fixed (uint* pointer = indices)
@@ -69,7 +58,8 @@ internal unsafe class PathTracingRenderer : Renderer
         {
             SizeInBytes = (uint)(sizeof(Material) * materials.Length),
             StrideInBytes = (uint)sizeof(Material),
-            Flags = BufferUsageFlags.ShaderResource
+            Access = BufferAccess.GpuOnly,
+            Usages = BufferUsages.StorageReadOnly
         });
 
         fixed (Material* pointer = materials)
@@ -77,14 +67,9 @@ internal unsafe class PathTracingRenderer : Renderer
             materialBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Material) * materials.Length) });
         }
 
-        cameraBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)sizeof(CameraParams),
-            StrideInBytes = (uint)sizeof(CameraParams),
-            Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
-        });
+        constantBuffer = App.Context.CreateBuffer(BufferDesc.Constant((uint)sizeof(PathTracingConstants)));
 
-        CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
+        CommandBuffer commandBuffer = App.Context.ComputeQueue.AcquireCommandBuffer();
 
         blas = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
         {
@@ -92,8 +77,8 @@ internal unsafe class PathTracingRenderer : Renderer
             [
                 new()
                 {
-                    Type = RayTracingGeometryType.Triangles,
-                    Triangles = new()
+                    Type = RayTracingGeometryType.Triangle,
+                    TriangleGeometry = new()
                     {
                         VertexBuffer = vertexBuffer,
                         VertexFormat = PixelFormat.R32G32B32Float,
@@ -104,10 +89,10 @@ internal unsafe class PathTracingRenderer : Renderer
                         IndexCount = (uint)indices.Length,
                         Transform = Matrix4x4.Identity
                     },
-                    Flags = RayTracingGeometryFlags.Opaque
+                    IsOpaque = true
                 }
             ],
-            Flags = AccelerationStructureBuildFlags.PreferFastTrace
+            BuildFlags = AccelerationStructureBuildFlags.PreferFastTrace
         });
 
         tlas = commandBuffer.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
@@ -117,27 +102,20 @@ internal unsafe class PathTracingRenderer : Renderer
                 new()
                 {
                     AccelerationStructure = blas,
-                    ID = 0,
-                    Mask = 0xFF,
+                    InstanceId = 0,
+                    VisibilityMask = 0xFF,
                     Transform = Matrix4x4.Identity,
                     Flags = RayTracingInstanceFlags.None
                 }
             ],
-            Flags = AccelerationStructureBuildFlags.PreferFastTrace
+            BuildFlags = AccelerationStructureBuildFlags.PreferFastTrace
         });
 
-        commandBuffer.Submit(waitForCompletion: true);
+        commandBuffer.Submit().Wait();
 
-        using Shader computeShader = App.Context.LoadShaderFromFile(ShaderPath("PathTracing.slang"), "CSMain", ShaderStageFlags.Compute);
+        using Shader computeShader = App.Context.CreateShaderFromFile(ShaderPath("PathTracing.slang"), "CSMain", ShaderStages.Compute);
 
-        pipeline = App.Context.CreateComputePipeline(new()
-        {
-            Compute = computeShader,
-            ResourceBindings = ResourceBindings,
-            ThreadGroupSizeX = ThreadGroupSize,
-            ThreadGroupSizeY = ThreadGroupSize,
-            ThreadGroupSizeZ = 1
-        });
+        pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = computeShader });
     }
 
     public uint FrameCount { get; set; }
@@ -158,48 +136,29 @@ internal unsafe class PathTracingRenderer : Renderer
         Matrix4x4.Invert(view, out Matrix4x4 invView);
         Matrix4x4.Invert(projection, out Matrix4x4 invProjection);
 
-        CameraParams parameters = new()
+        PathTracingConstants parameters = new()
         {
             InvView = invView,
             InvProjection = invProjection,
             Position = camera.Position,
             FrameCount = FrameCount,
             Width = App.Width,
-            Height = App.Height
+            Height = App.Height,
+            Scene = tlas.Handle,
+            Vertices = vertexBuffer.StorageReadOnlyHandle,
+            Indices = indexBuffer.StorageReadOnlyHandle,
+            Materials = materialBuffer.StorageReadOnlyHandle,
+            AccumTexture = accumulationTexture!.StorageHandle,
+            OutputTexture = Color.StorageHandle
         };
 
-        cameraBuffer.Upload(0, new() { Pointer = (nint)(&parameters), SizeInBytes = (uint)sizeof(CameraParams) });
+        constantBuffer.Upload(0, new() { Pointer = (nint)(&parameters), SizeInBytes = (uint)sizeof(PathTracingConstants) });
     }
 
     public override void Render(CommandBuffer commandBuffer)
     {
-        if (resourceTable is null || accumulationTexture is null)
-        {
-            accumulationTexture = App.Context.CreateTexture(new()
-            {
-                Type = TextureType.Texture2D,
-                Format = PixelFormat.R32G32B32A32Float,
-                Width = App.Width,
-                Height = App.Height,
-                Depth = 1,
-                MipLevels = 1,
-                ArrayLayers = 1,
-                SampleCount = SampleCount.Count1,
-                Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-            });
-
-            resourceTable = App.Context.CreateResourceTable(new() { Bindings = ResourceBindings });
-            resourceTable.Write(0, tlas);
-            resourceTable.Write(1, cameraBuffer);
-            resourceTable.Write(2, vertexBuffer);
-            resourceTable.Write(3, indexBuffer);
-            resourceTable.Write(4, materialBuffer);
-            resourceTable.Write(5, accumulationTexture);
-            resourceTable.Write(6, Color);
-        }
-
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.PushResourceTable(resourceTable);
+        commandBuffer.SetConstantBuffer(constantBuffer, 0);
 
         commandBuffer.Dispatch((App.Width + ThreadGroupSize - 1) / ThreadGroupSize, (App.Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
 
@@ -210,11 +169,19 @@ internal unsafe class PathTracingRenderer : Renderer
     {
         base.Resize(width, height);
 
-        resourceTable?.Dispose();
-        resourceTable = null;
-
         accumulationTexture?.Dispose();
-        accumulationTexture = null;
+        accumulationTexture = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R32G32B32A32Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Usages = TextureUsages.Sampled | TextureUsages.Storage
+        });
 
         FrameCount = 0;
     }
@@ -223,21 +190,20 @@ internal unsafe class PathTracingRenderer : Renderer
     {
         base.Dispose();
 
-        resourceTable?.Dispose();
         accumulationTexture?.Dispose();
 
         pipeline.Dispose();
         tlas.Dispose();
         blas.Dispose();
-        cameraBuffer.Dispose();
+        constantBuffer.Dispose();
         materialBuffer.Dispose();
         indexBuffer.Dispose();
         vertexBuffer.Dispose();
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 160)]
-file struct CameraParams
+[StructLayout(LayoutKind.Explicit, Size = 208)]
+file struct PathTracingConstants
 {
     [FieldOffset(0)]
     public Matrix4x4 InvView;
@@ -256,4 +222,22 @@ file struct CameraParams
 
     [FieldOffset(152)]
     public uint Height;
+
+    [FieldOffset(160)]
+    public ResourceHandle Scene;
+
+    [FieldOffset(168)]
+    public ResourceHandle Vertices;
+
+    [FieldOffset(176)]
+    public ResourceHandle Indices;
+
+    [FieldOffset(184)]
+    public ResourceHandle Materials;
+
+    [FieldOffset(192)]
+    public ResourceHandle AccumTexture;
+
+    [FieldOffset(200)]
+    public ResourceHandle OutputTexture;
 }
