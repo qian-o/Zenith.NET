@@ -425,6 +425,11 @@ internal static class DXFormats
 
     public static QueryHeapType DirectX12(QueryType queryType)
     {
-        throw new NotImplementedException();
+        return queryType switch
+        {
+            QueryType.Occlusion or QueryType.BinaryOcclusion => QueryHeapType.Occlusion,
+            QueryType.Timestamp => QueryHeapType.Timestamp,
+            _ => default
+        };
     }
 }
