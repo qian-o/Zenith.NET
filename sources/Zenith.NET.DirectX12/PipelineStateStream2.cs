@@ -2,108 +2,109 @@
 using System.Runtime.InteropServices;
 using Silk.NET.Direct3D12;
 using Silk.NET.DXGI;
-using static Silk.NET.Direct3D12.RTFormatArray;
 
 namespace Zenith.NET.DirectX12;
 
-internal unsafe struct PipelineStateStream2()
+internal struct PipelineStateStream2()
 {
-    public StreamFlags Flags = new();
+    private StreamFlags flags = new();
+    private StreamNodeMask nodeMask = new();
+    private StreamRootSignature rootSignature = new();
+    private StreamInputLayout inputLayout = new();
+    private StreamIBStripCutValue ibStripCutValue = new();
+    private StreamPrimitiveTopology primitiveTopologyType = new();
+    private StreamVS vs = new();
+    private StreamGS gs = new();
+    private StreamStreamOutput streamOutput = new();
+    private StreamHS hs = new();
+    private StreamDS ds = new();
+    private StreamPS ps = new();
+    private StreamAS @as = new();
+    private StreamMS ms = new();
+    private StreamCS cs = new();
+    private StreamBlend blendState = new();
+    private StreamDepthStencil1 depthStencilState = new();
+    private StreamDepthStencilFormat dsvFormat = new();
+    private StreamRasterizer rasterizerState = new();
+    private StreamRenderTargetFormats rtvFormats = new();
+    private StreamSampleDesc sampleDesc = new();
+    private StreamSampleMask sampleMask = new();
+    private StreamCachedPso cachedPSO = new();
+    private StreamViewInstancing viewInstancingDesc = new();
 
-    public StreamNodeMask NodeMask = new();
+    [UnscopedRef]
+    public ref PipelineStateFlags Flags => ref flags.Data;
 
-    public StreamRootSignature RootSignature = new();
+    [UnscopedRef]
+    public ref uint NodeMask => ref nodeMask.Data;
 
-    public StreamInputLayout InputLayout = new();
+    [UnscopedRef]
+    public ref nint RootSignature => ref rootSignature.Data;
 
-    public StreamIBStripCutValue IBStripCutValue = new();
+    [UnscopedRef]
+    public ref InputLayoutDesc InputLayout => ref inputLayout.Data;
 
-    public StreamPrimitiveTopology PrimitiveTopologyType = new();
+    [UnscopedRef]
+    public ref IndexBufferStripCutValue IBStripCutValue => ref ibStripCutValue.Data;
 
-    public StreamVS VS = new();
+    [UnscopedRef]
+    public ref PrimitiveTopologyType PrimitiveTopologyType => ref primitiveTopologyType.Data;
 
-    public StreamGS GS = new();
+    [UnscopedRef]
+    public ref ShaderBytecode VS => ref vs.Data;
 
-    public StreamStreamOutput StreamOutput = new();
+    [UnscopedRef]
+    public ref ShaderBytecode GS => ref gs.Data;
 
-    public StreamHS HS = new();
+    [UnscopedRef]
+    public ref StreamOutputDesc StreamOutput => ref streamOutput.Data;
 
-    public StreamDS DS = new();
+    [UnscopedRef]
+    public ref ShaderBytecode HS => ref hs.Data;
 
-    public StreamPS PS = new();
+    [UnscopedRef]
+    public ref ShaderBytecode DS => ref ds.Data;
 
-    public StreamAS AS = new();
+    [UnscopedRef]
+    public ref ShaderBytecode PS => ref ps.Data;
 
-    public StreamMS MS = new();
+    [UnscopedRef]
+    public ref ShaderBytecode AS => ref @as.Data;
 
-    public StreamCS CS = new();
+    [UnscopedRef]
+    public ref ShaderBytecode MS => ref ms.Data;
 
-    public StreamBlend BlendState = new();
+    [UnscopedRef]
+    public ref ShaderBytecode CS => ref cs.Data;
 
-    public StreamDepthStencil1 DepthStencilState = new();
+    [UnscopedRef]
+    public ref BlendDesc BlendState => ref blendState.Data;
 
-    public StreamDepthStencilFormat DSVFormat = new();
+    [UnscopedRef]
+    public ref DepthStencilDesc1 DepthStencilState => ref depthStencilState.Data;
 
-    public StreamRasterizer RasterizerState = new();
+    [UnscopedRef]
+    public ref Format DSVFormat => ref dsvFormat.Data;
 
-    public StreamRenderTargetFormats RTVFormats = new();
+    [UnscopedRef]
+    public ref RasterizerDesc RasterizerState => ref rasterizerState.Data;
 
-    public StreamSampleDesc SampleDesc = new();
+    [UnscopedRef]
+    public ref RTFormatArray RTVFormats => ref rtvFormats.Data;
 
-    public StreamSampleMask SampleMask = new();
+    [UnscopedRef]
+    public ref SampleDesc SampleDesc => ref sampleDesc.Data;
 
-    public StreamCachedPso CachedPSO = new();
+    [UnscopedRef]
+    public ref uint SampleMask => ref sampleMask.Data;
 
-    public StreamViewInstancing ViewInstancingDesc = new();
+    [UnscopedRef]
+    public ref CachedPipelineState CachedPSO => ref cachedPSO.Data;
 
-    public static explicit operator PipelineStateStream2(GraphicsPipelineStateDesc desc)
-    {
-        return new()
-        {
-            Flags = { Data = desc.Flags },
-            NodeMask = { Data = desc.NodeMask },
-            RootSignature = { Data = (nint)desc.PRootSignature },
-            InputLayout = { Data = desc.InputLayout },
-            IBStripCutValue = { Data = desc.IBStripCutValue },
-            PrimitiveTopologyType = { Data = desc.PrimitiveTopologyType },
-            VS = { Data = desc.VS },
-            GS = { Data = desc.GS },
-            StreamOutput = { Data = desc.StreamOutput },
-            HS = { Data = desc.HS },
-            DS = { Data = desc.DS },
-            PS = { Data = desc.PS },
-            BlendState = { Data = desc.BlendState },
-            DepthStencilState =
-            {
-                Data = new()
-                {
-                    DepthEnable = desc.DepthStencilState.DepthEnable,
-                    DepthWriteMask = desc.DepthStencilState.DepthWriteMask,
-                    DepthFunc = desc.DepthStencilState.DepthFunc,
-                    StencilEnable = desc.DepthStencilState.StencilEnable,
-                    StencilReadMask = desc.DepthStencilState.StencilReadMask,
-                    StencilWriteMask = desc.DepthStencilState.StencilWriteMask,
-                    FrontFace = desc.DepthStencilState.FrontFace,
-                    BackFace = desc.DepthStencilState.BackFace
-                }
-            },
-            DSVFormat = { Data = desc.DSVFormat },
-            RasterizerState = { Data = desc.RasterizerState },
-            RTVFormats =
-            {
-                Data = new()
-                {
-                    NumRenderTargets = desc.NumRenderTargets,
-                    RTFormats = *(RTFormatsBuffer*)&desc.RTVFormats
-                }
-            },
-            SampleDesc = { Data = desc.SampleDesc },
-            SampleMask = { Data = desc.SampleMask },
-            CachedPSO = { Data = desc.CachedPSO }
-        };
-    }
+    [UnscopedRef]
+    public ref ViewInstancingDesc ViewInstancingDesc => ref viewInstancingDesc.Data;
 
-    internal struct SubObject<T>(PipelineStateSubobjectType type) where T : unmanaged
+    private struct SubObject<T>(PipelineStateSubobjectType type) where T : unmanaged
     {
         public readonly PipelineStateSubobjectType Type = type;
 
@@ -111,7 +112,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamFlags()
+    private struct StreamFlags()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -124,7 +125,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamNodeMask()
+    private struct StreamNodeMask()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -137,7 +138,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamRootSignature()
+    private struct StreamRootSignature()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -150,7 +151,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamInputLayout()
+    private struct StreamInputLayout()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -163,7 +164,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamIBStripCutValue()
+    private struct StreamIBStripCutValue()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -176,7 +177,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamPrimitiveTopology()
+    private struct StreamPrimitiveTopology()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -189,7 +190,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamVS()
+    private struct StreamVS()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -202,7 +203,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamGS()
+    private struct StreamGS()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -215,7 +216,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamStreamOutput()
+    private struct StreamStreamOutput()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -228,7 +229,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamHS()
+    private struct StreamHS()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -241,7 +242,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamDS()
+    private struct StreamDS()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -254,7 +255,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamPS()
+    private struct StreamPS()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -267,7 +268,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamAS()
+    private struct StreamAS()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -280,7 +281,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamMS()
+    private struct StreamMS()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -293,7 +294,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamCS()
+    private struct StreamCS()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -306,7 +307,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamBlend()
+    private struct StreamBlend()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -319,7 +320,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamDepthStencil1()
+    private struct StreamDepthStencil1()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -332,7 +333,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamDepthStencilFormat()
+    private struct StreamDepthStencilFormat()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -345,7 +346,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamRasterizer()
+    private struct StreamRasterizer()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -358,7 +359,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamRenderTargetFormats()
+    private struct StreamRenderTargetFormats()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -371,7 +372,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamSampleDesc()
+    private struct StreamSampleDesc()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -384,7 +385,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamSampleMask()
+    private struct StreamSampleMask()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -397,7 +398,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamCachedPso()
+    private struct StreamCachedPso()
     {
         [FieldOffset(0)]
         private readonly nint _padding;
@@ -410,7 +411,7 @@ internal unsafe struct PipelineStateStream2()
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct StreamViewInstancing()
+    private struct StreamViewInstancing()
     {
         [FieldOffset(0)]
         private readonly nint _padding;

@@ -12,26 +12,28 @@ internal unsafe class DXMeshShadingPipeline : MeshShadingPipeline
     {
         using ZenithMarshal.Scope scope = new();
 
-        GraphicsPipelineStateDesc graphicsPipelineStateDesc = new()
+        PipelineStateStream2 pipelineStateStream = new()
         {
-            PRootSignature = context.RootSignature,
+            RootSignature = (nint)context.RootSignature.Handle,
+            PrimitiveTopologyType = DXFormats.DirectX12(desc.PrimitiveTopology),
             PS = desc.FragmentShader.DirectX12().GetShaderBytecode(scope),
-            SampleMask = uint.MaxValue,
-            PrimitiveTopologyType = DXFormats.DirectX12(desc.PrimitiveTopology)
+            AS = (desc.TaskShader?.DirectX12().GetShaderBytecode(scope)) ?? default,
+            MS = desc.MeshShader.DirectX12().GetShaderBytecode(scope),
+            SampleMask = uint.MaxValue
         };
 
         // AttachmentFormats
         {
-            graphicsPipelineStateDesc.NumRenderTargets = (uint)desc.AttachmentFormats.ColorFormats.Length;
+            pipelineStateStream.RTVFormats.NumRenderTargets = (uint)desc.AttachmentFormats.ColorFormats.Length;
 
             for (int i = 0; i < desc.AttachmentFormats.ColorFormats.Length; i++)
             {
-                graphicsPipelineStateDesc.RTVFormats[i] = DXFormats.DirectX12(desc.AttachmentFormats.ColorFormats[i]);
+                pipelineStateStream.RTVFormats.RTFormats[i] = DXFormats.DirectX12(desc.AttachmentFormats.ColorFormats[i]);
             }
 
-            graphicsPipelineStateDesc.DSVFormat = desc.AttachmentFormats.DepthStencilFormat.HasValue ? DXFormats.DirectX12(desc.AttachmentFormats.DepthStencilFormat.Value) : Format.FormatUnknown;
+            pipelineStateStream.DSVFormat = desc.AttachmentFormats.DepthStencilFormat.HasValue ? DXFormats.DirectX12(desc.AttachmentFormats.DepthStencilFormat.Value) : Format.FormatUnknown;
 
-            graphicsPipelineStateDesc.SampleDesc = DXFormats.DirectX12(desc.AttachmentFormats.SampleCount);
+            pipelineStateStream.SampleDesc = DXFormats.DirectX12(desc.AttachmentFormats.SampleCount);
         }
 
         // RenderState
@@ -48,7 +50,7 @@ internal unsafe class DXMeshShadingPipeline : MeshShadingPipeline
                 desc.RenderState.BlendState.ColorAttachment7
             ];
 
-            graphicsPipelineStateDesc.RasterizerState = new()
+            pipelineStateStream.RasterizerState = new()
             {
                 FillMode = DXFormats.DirectX12(desc.RenderState.RasterizerState.FillMode),
                 CullMode = DXFormats.DirectX12(desc.RenderState.RasterizerState.CullMode),
@@ -60,7 +62,7 @@ internal unsafe class DXMeshShadingPipeline : MeshShadingPipeline
                 MultisampleEnable = desc.AttachmentFormats.SampleCount is not SampleCount.Count1
             };
 
-            graphicsPipelineStateDesc.DepthStencilState = new()
+            pipelineStateStream.DepthStencilState = new()
             {
                 DepthEnable = desc.RenderState.DepthStencilState.IsDepthEnabled,
                 DepthWriteMask = desc.RenderState.DepthStencilState.IsDepthWriteEnabled ? DepthWriteMask.All : DepthWriteMask.Zero,
@@ -84,7 +86,7 @@ internal unsafe class DXMeshShadingPipeline : MeshShadingPipeline
                 }
             };
 
-            graphicsPipelineStateDesc.BlendState = new()
+            pipelineStateStream.BlendState = new()
             {
                 AlphaToCoverageEnable = desc.RenderState.BlendState.IsAlphaToCoverageEnabled,
                 IndependentBlendEnable = desc.RenderState.BlendState.IsIndependentBlendEnabled
@@ -94,7 +96,7 @@ internal unsafe class DXMeshShadingPipeline : MeshShadingPipeline
             {
                 ColorAttachmentBlendState blend = colorAttachmentBlendStates[i];
 
-                graphicsPipelineStateDesc.BlendState.RenderTarget[i] = new()
+                pipelineStateStream.BlendState.RenderTarget[i] = new()
                 {
                     BlendEnable = blend.IsBlendingEnabled,
                     SrcBlend = DXFormats.DirectX12(blend.SrcRgbFactor),
@@ -109,19 +111,10 @@ internal unsafe class DXMeshShadingPipeline : MeshShadingPipeline
             }
         }
 
-        PipelineStateStream2 pipelineStateStream2 = (PipelineStateStream2)graphicsPipelineStateDesc;
-
-        if (desc.TaskShader is not null)
-        {
-            pipelineStateStream2.AS.Data = desc.TaskShader.DirectX12().GetShaderBytecode(scope);
-        }
-
-        pipelineStateStream2.MS.Data = desc.MeshShader.DirectX12().GetShaderBytecode(scope);
-
         PipelineStateStreamDesc pipelineStateStreamDesc = new()
         {
             SizeInBytes = (uint)sizeof(PipelineStateStream2),
-            PPipelineStateSubobjectStream = &pipelineStateStream2
+            PPipelineStateSubobjectStream = &pipelineStateStream
         };
 
         context.Device14.CreatePipelineState(&pipelineStateStreamDesc, SilkMarshal.GuidPtrOf<ID3D12PipelineState>(), (void**)PipelineState.GetAddressOf()).Success();
