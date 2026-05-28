@@ -173,7 +173,7 @@ internal static class DXFormats
             result |= ResourceFlags.AllowRenderTarget;
         }
 
-        if (textureUsages.HasFlag(TextureUsages.DepthStencil))
+        if (textureUsages.HasFlag(TextureUsages.DepthStencilAttachment))
         {
             result |= ResourceFlags.AllowDepthStencil;
         }

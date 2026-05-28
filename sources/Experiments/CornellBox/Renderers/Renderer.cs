@@ -53,7 +53,7 @@ internal abstract class Renderer : IDisposable
             MipLevels = 1,
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
-            Usages = TextureUsages.DepthStencil
+            Usages = TextureUsages.DepthStencilAttachment
         });
 
     }

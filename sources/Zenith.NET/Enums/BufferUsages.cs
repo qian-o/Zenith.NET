@@ -5,21 +5,21 @@ public enum BufferUsages
 {
     None = 0,
 
-    CopySrc = 1 << 0,
+    Vertex = 1 << 0,
 
-    CopyDst = 1 << 1,
+    Index = 1 << 1,
 
-    Constant = 1 << 2,
+    Indirect = 1 << 2,
 
-    Vertex = 1 << 3,
+    Constant = 1 << 3,
 
-    Index = 1 << 4,
+    StorageReadOnly = 1 << 4,
 
-    StorageReadOnly = 1 << 5,
+    StorageReadWrite = 1 << 5,
 
-    StorageReadWrite = 1 << 6,
+    AccelerationStructure = 1 << 6,
 
-    Indirect = 1 << 7,
+    CopySrc = 1 << 7,
 
-    AccelerationStructure = 1 << 8
+    CopyDst = 1 << 8
 }

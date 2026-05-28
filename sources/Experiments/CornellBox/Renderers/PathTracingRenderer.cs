@@ -33,7 +33,7 @@ internal unsafe class PathTracingRenderer : Renderer
             SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length),
             StrideInBytes = (uint)sizeof(Vertex),
             Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.StorageReadOnly | BufferUsages.AccelerationStructure
+            Usages = BufferUsages.StorageReadOnly | BufferUsages.AccelerationStructure | BufferUsages.CopyDst
         });
 
         fixed (Vertex* pointer = vertices)
@@ -46,7 +46,7 @@ internal unsafe class PathTracingRenderer : Renderer
             SizeInBytes = (uint)(sizeof(uint) * indices.Length),
             StrideInBytes = sizeof(uint),
             Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.StorageReadOnly | BufferUsages.AccelerationStructure
+            Usages = BufferUsages.StorageReadOnly | BufferUsages.AccelerationStructure | BufferUsages.CopyDst
         });
 
         fixed (uint* pointer = indices)

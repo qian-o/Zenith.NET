@@ -32,7 +32,7 @@ public struct TextureDesc
             MipLevels = mipLevels,
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
-            Usages = TextureUsages.CopyDst | TextureUsages.Sampled
+            Usages = TextureUsages.Sampled | TextureUsages.CopyDst
         };
     }
 
@@ -48,7 +48,7 @@ public struct TextureDesc
             MipLevels = mipLevels,
             ArrayLayers = arrayLayers,
             SampleCount = SampleCount.Count1,
-            Usages = TextureUsages.CopyDst | TextureUsages.Sampled
+            Usages = TextureUsages.Sampled | TextureUsages.CopyDst
         };
     }
 
@@ -64,7 +64,7 @@ public struct TextureDesc
             MipLevels = mipLevels,
             ArrayLayers = 1,
             SampleCount = sampleCount,
-            Usages = TextureUsages.CopyDst | TextureUsages.Sampled
+            Usages = TextureUsages.Sampled | TextureUsages.CopyDst
         };
     }
 
@@ -80,7 +80,7 @@ public struct TextureDesc
             MipLevels = mipLevels,
             ArrayLayers = arrayLayers,
             SampleCount = sampleCount,
-            Usages = TextureUsages.CopyDst | TextureUsages.Sampled
+            Usages = TextureUsages.Sampled | TextureUsages.CopyDst
         };
     }
 
@@ -96,7 +96,7 @@ public struct TextureDesc
             MipLevels = mipLevels,
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
-            Usages = TextureUsages.CopyDst | TextureUsages.Sampled
+            Usages = TextureUsages.Sampled | TextureUsages.CopyDst
         };
     }
 
@@ -112,7 +112,7 @@ public struct TextureDesc
             MipLevels = mipLevels,
             ArrayLayers = 6,
             SampleCount = SampleCount.Count1,
-            Usages = TextureUsages.CopyDst | TextureUsages.Sampled
+            Usages = TextureUsages.Sampled | TextureUsages.CopyDst
         };
     }
 
@@ -128,11 +128,11 @@ public struct TextureDesc
             MipLevels = mipLevels,
             ArrayLayers = 6 * cubeCount,
             SampleCount = SampleCount.Count1,
-            Usages = TextureUsages.CopyDst | TextureUsages.Sampled
+            Usages = TextureUsages.Sampled | TextureUsages.CopyDst
         };
     }
 
-    public static TextureDesc RenderTarget2D(PixelFormat format, uint width, uint height, uint mipLevels, SampleCount sampleCount)
+    public static TextureDesc ColorAttachment(PixelFormat format, uint width, uint height, uint mipLevels, SampleCount sampleCount)
     {
         return new()
         {
@@ -148,7 +148,7 @@ public struct TextureDesc
         };
     }
 
-    public static TextureDesc DepthStencil2D(PixelFormat format, uint width, uint height, SampleCount sampleCount)
+    public static TextureDesc DepthStencilAttachment(PixelFormat format, uint width, uint height, SampleCount sampleCount)
     {
         return new()
         {
@@ -160,7 +160,7 @@ public struct TextureDesc
             MipLevels = 1,
             ArrayLayers = 1,
             SampleCount = sampleCount,
-            Usages = TextureUsages.Sampled | TextureUsages.DepthStencil
+            Usages = TextureUsages.Sampled | TextureUsages.DepthStencilAttachment
         };
     }
 }
