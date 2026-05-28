@@ -92,7 +92,7 @@ internal unsafe class DXBuffer : Buffer
             DepthOrArraySize = 1,
             MipLevels = 1,
             SampleDesc = new(1),
-            Layout = TextureLayout.LayoutRowMajor,
+            Layout = DxTextureLayout.LayoutRowMajor,
             Flags = DXFormats.DirectX12(desc.Usages)
         };
     }
