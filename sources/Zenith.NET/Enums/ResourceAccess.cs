@@ -9,9 +9,9 @@ public enum ResourceAccess
 
     Index = 1 << 1,
 
-    Constant = 1 << 2,
+    Indirect = 1 << 2,
 
-    Indirect = 1 << 3,
+    Constant = 1 << 3,
 
     ShaderRead = 1 << 4,
 
