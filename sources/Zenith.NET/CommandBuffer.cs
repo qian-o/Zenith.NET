@@ -13,44 +13,24 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         return queue.Submit(this, waits);
     }
 
-    public void MemoryBarrier()
+    public void Barrier(MemoryBarrier barrier)
     {
-        MemoryBarrierImpl();
+        BarrierImpl(new(in barrier), [], []);
     }
 
-    public void MemoryBarrier(Buffer buffer)
+    public void Barrier(BufferBarrier barrier)
     {
-        MemoryBarrierImpl(buffer);
+        BarrierImpl([], new(in barrier), []);
     }
 
-    public void MemoryBarrier(Texture texture)
+    public void Barrier(TextureBarrier barrier)
     {
-        MemoryBarrierImpl(texture);
+        BarrierImpl([], [], new(in barrier));
     }
 
-    public void MemoryBarrier(ReadOnlySpan<GraphicsResource> resources)
+    public void Barrier(ReadOnlySpan<MemoryBarrier> memoryBarriers, ReadOnlySpan<BufferBarrier> bufferBarriers, ReadOnlySpan<TextureBarrier> textureBarriers)
     {
-        MemoryBarrierImpl(resources);
-    }
-
-    public void AliasingBarrier(Buffer buffer)
-    {
-        AliasingBarrierImpl(buffer);
-    }
-
-    public void AliasingBarrier(Texture texture)
-    {
-        AliasingBarrierImpl(texture);
-    }
-
-    public void AliasingBarrier(ReadOnlySpan<GraphicsResource> resources)
-    {
-        AliasingBarrierImpl(resources);
-    }
-
-    public void Transition(Texture texture, TextureSubresource subresource, TextureState state)
-    {
-        TransitionImpl(texture, subresource, state);
+        BarrierImpl(memoryBarriers, bufferBarriers, textureBarriers);
     }
 
     public void Upload(Buffer buffer, uint offsetInBytes, BufferData data)
@@ -409,21 +389,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         return false;
     }
 
-    protected abstract void MemoryBarrierImpl();
-
-    protected abstract void MemoryBarrierImpl(Buffer buffer);
-
-    protected abstract void MemoryBarrierImpl(Texture texture);
-
-    protected abstract void MemoryBarrierImpl(ReadOnlySpan<GraphicsResource> resources);
-
-    protected abstract void AliasingBarrierImpl(Buffer buffer);
-
-    protected abstract void AliasingBarrierImpl(Texture texture);
-
-    protected abstract void AliasingBarrierImpl(ReadOnlySpan<GraphicsResource> resources);
-
-    protected abstract void TransitionImpl(Texture texture, TextureSubresource subresource, TextureState state);
+    protected abstract void BarrierImpl(ReadOnlySpan<MemoryBarrier> memoryBarriers, ReadOnlySpan<BufferBarrier> bufferBarriers, ReadOnlySpan<TextureBarrier> textureBarriers);
 
     protected abstract void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes);
 

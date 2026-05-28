@@ -1,10 +1,10 @@
 ﻿namespace Zenith.NET;
 
-public enum TextureState
+public enum TextureLayout
 {
-    CopySrc,
+    Undefined,
 
-    CopyDst,
+    General,
 
     Sampled,
 
@@ -12,9 +12,13 @@ public enum TextureState
 
     ColorAttachment,
 
-    DepthStencil,
+    DepthStencilAttachment,
 
     DepthStencilReadOnly,
+
+    CopySrc,
+
+    CopyDst,
 
     ResolveSrc,
 
