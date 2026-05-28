@@ -13,21 +13,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         return queue.Submit(this, waits);
     }
 
-    public void Barrier(MemoryBarrier barrier)
-    {
-        BarrierImpl([barrier], [], []);
-    }
-
-    public void Barrier(BufferBarrier barrier)
-    {
-        BarrierImpl([], [barrier], []);
-    }
-
-    public void Barrier(TextureBarrier barrier)
-    {
-        BarrierImpl([], [], [barrier]);
-    }
-
     public void Barrier(ReadOnlySpan<MemoryBarrier> memoryBarriers, ReadOnlySpan<BufferBarrier> bufferBarriers, ReadOnlySpan<TextureBarrier> textureBarriers)
     {
         BarrierImpl(memoryBarriers, bufferBarriers, textureBarriers);
