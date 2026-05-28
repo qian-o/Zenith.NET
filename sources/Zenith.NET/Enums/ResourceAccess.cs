@@ -17,25 +17,25 @@ public enum ResourceAccess
 
     ShaderWrite = 1 << 5,
 
-    ColorAttachmentRead = 1 << 6,
+    AccelerationStructureRead = 1 << 6,
 
-    ColorAttachmentWrite = 1 << 7,
+    AccelerationStructureWrite = 1 << 7,
 
-    DepthStencilAttachmentRead = 1 << 8,
+    ColorAttachmentRead = 1 << 8,
 
-    DepthStencilAttachmentWrite = 1 << 9,
+    ColorAttachmentWrite = 1 << 9,
 
-    CopyRead = 1 << 10,
+    DepthStencilAttachmentRead = 1 << 10,
 
-    CopyWrite = 1 << 11,
+    DepthStencilAttachmentWrite = 1 << 11,
 
-    ResolveRead = 1 << 12,
+    CopyRead = 1 << 12,
 
-    ResolveWrite = 1 << 13,
+    CopyWrite = 1 << 13,
 
-    AccelerationStructureRead = 1 << 14,
+    ResolveRead = 1 << 14,
 
-    AccelerationStructureWrite = 1 << 15,
+    ResolveWrite = 1 << 15,
 
     Present = 1 << 16
 }
