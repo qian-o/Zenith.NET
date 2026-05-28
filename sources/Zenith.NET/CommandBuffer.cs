@@ -15,17 +15,17 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Barrier(MemoryBarrier barrier)
     {
-        BarrierImpl(new(in barrier), [], []);
+        BarrierImpl([barrier], [], []);
     }
 
     public void Barrier(BufferBarrier barrier)
     {
-        BarrierImpl([], new(in barrier), []);
+        BarrierImpl([], [barrier], []);
     }
 
     public void Barrier(TextureBarrier barrier)
     {
-        BarrierImpl([], [], new(in barrier));
+        BarrierImpl([], [], [barrier]);
     }
 
     public void Barrier(ReadOnlySpan<MemoryBarrier> memoryBarriers, ReadOnlySpan<BufferBarrier> bufferBarriers, ReadOnlySpan<TextureBarrier> textureBarriers)

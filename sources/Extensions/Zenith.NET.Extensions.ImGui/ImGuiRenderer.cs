@@ -357,8 +357,6 @@ float4 FSMain(VSOutput input) : SV_TARGET
 
         commandBuffer.BeginDebugEvent("ImGui");
 
-        ColorAttachment renderTarget = colorAttachment;
-
         commandBuffer.BeginRenderPass([colorAttachment], null);
 
         commandBuffer.SetPipeline(graphicsPipeline);
