@@ -23,7 +23,7 @@ internal unsafe class DXCommandQueue : CommandQueue
 
     protected override ulong GetCompletedValue()
     {
-        throw new NotImplementedException();
+        return Fence1.GetCompletedValue();
     }
 
     protected override CommandBuffer CreateCommandBuffer()
@@ -38,7 +38,10 @@ internal unsafe class DXCommandQueue : CommandQueue
 
     protected override void WaitImpl(ulong waitValue)
     {
-        throw new NotImplementedException();
+        if (Fence1.GetCompletedValue() < waitValue)
+        {
+            Fence1.SetEventOnCompletion(waitValue, default).Success();
+        }
     }
 
     protected override void SetResourceName(string name)
