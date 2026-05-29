@@ -37,11 +37,7 @@ internal unsafe class DXTexture : Texture
             Texture = this,
             Type = desc.Type,
             Format = desc.Format,
-            Range = new()
-            {
-                LevelCount = desc.MipLevels,
-                LayerCount = desc.ArrayLayers
-            }
+            Range = TextureSubresourceRange.All(this)
         });
     }
 
