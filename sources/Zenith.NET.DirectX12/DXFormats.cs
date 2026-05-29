@@ -5,13 +5,13 @@ namespace Zenith.NET.DirectX12;
 
 internal static class DXFormats
 {
-    public static DxHeapType DirectX12(HeapType heapType)
+    public static DxHeapType DirectX12(MemoryResidency memoryResidency)
     {
-        return heapType switch
+        return memoryResidency switch
         {
-            HeapType.GpuOnly => DxHeapType.Default,
-            HeapType.CpuReadOnly => DxHeapType.Readback,
-            HeapType.CpuWriteOnly => DxHeapType.Upload,
+            MemoryResidency.GpuOnly => DxHeapType.Default,
+            MemoryResidency.CpuReadOnly => DxHeapType.Readback,
+            MemoryResidency.CpuWriteOnly => DxHeapType.Upload,
             _ => default
         };
     }
@@ -31,17 +31,6 @@ internal static class DXFormats
         }
 
         return result;
-    }
-
-    public static DxHeapType DirectX12(BufferAccess bufferAccess)
-    {
-        return bufferAccess switch
-        {
-            BufferAccess.GpuOnly => DxHeapType.Default,
-            BufferAccess.CpuReadOnly => DxHeapType.Readback,
-            BufferAccess.CpuWriteOnly => DxHeapType.Upload,
-            _ => default
-        };
     }
 
     public static ResourceDimension DirectX12(TextureType textureType)

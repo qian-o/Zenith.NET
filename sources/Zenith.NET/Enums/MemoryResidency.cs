@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public enum HeapType
+public enum MemoryResidency
 {
     GpuOnly,
 

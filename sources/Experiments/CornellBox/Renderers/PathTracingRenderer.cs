@@ -32,8 +32,8 @@ internal unsafe class PathTracingRenderer : Renderer
         {
             SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length),
             StrideInBytes = (uint)sizeof(Vertex),
-            Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.StorageReadOnly | BufferUsages.AccelerationStructure | BufferUsages.CopyDst
+            Usages = BufferUsages.StorageReadOnly | BufferUsages.AccelerationStructure | BufferUsages.CopyDst,
+            Residency = MemoryResidency.GpuOnly
         });
 
         fixed (Vertex* pointer = vertices)
@@ -45,8 +45,8 @@ internal unsafe class PathTracingRenderer : Renderer
         {
             SizeInBytes = (uint)(sizeof(uint) * indices.Length),
             StrideInBytes = sizeof(uint),
-            Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.StorageReadOnly | BufferUsages.AccelerationStructure | BufferUsages.CopyDst
+            Usages = BufferUsages.StorageReadOnly | BufferUsages.AccelerationStructure | BufferUsages.CopyDst,
+            Residency = MemoryResidency.GpuOnly
         });
 
         fixed (uint* pointer = indices)
@@ -57,8 +57,8 @@ internal unsafe class PathTracingRenderer : Renderer
         constantBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)sizeof(PathTracingConstants),
-            Access = BufferAccess.CpuWriteOnly,
-            Usages = BufferUsages.Constant
+            Usages = BufferUsages.Constant,
+            Residency = MemoryResidency.CpuWriteOnly
         });
 
         using Shader computeShader = App.Context.CreateShaderFromFile(ShaderPath("PathTracing.slang"), "CSMain", ShaderStages.Compute);
@@ -113,8 +113,8 @@ internal unsafe class PathTracingRenderer : Renderer
         {
             SizeInBytes = (uint)(sizeof(Material) * materials.Length),
             StrideInBytes = (uint)sizeof(Material),
-            Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.StorageReadOnly
+            Usages = BufferUsages.StorageReadOnly,
+            Residency = MemoryResidency.GpuOnly
         });
 
         fixed (Material* pointer = materials)

@@ -6,9 +6,9 @@ public struct BufferDesc
 
     public uint StrideInBytes;
 
-    public BufferAccess Access;
-
     public BufferUsages Usages;
+
+    public MemoryResidency Residency;
 
     public static BufferDesc Vertex(uint sizeInBytes)
     {
@@ -16,8 +16,8 @@ public struct BufferDesc
         {
             SizeInBytes = sizeInBytes,
             StrideInBytes = 0,
-            Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.Vertex | BufferUsages.CopyDst
+            Usages = BufferUsages.Vertex | BufferUsages.CopyDst,
+            Residency = MemoryResidency.GpuOnly
         };
     }
 
@@ -27,41 +27,8 @@ public struct BufferDesc
         {
             SizeInBytes = sizeInBytes,
             StrideInBytes = 0,
-            Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.Index | BufferUsages.CopyDst
-        };
-    }
-
-    public static BufferDesc Constant(uint sizeInBytes)
-    {
-        return new()
-        {
-            SizeInBytes = sizeInBytes,
-            StrideInBytes = 0,
-            Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.Constant | BufferUsages.CopyDst
-        };
-    }
-
-    public static BufferDesc StorageReadOnly(uint sizeInBytes, uint strideInBytes)
-    {
-        return new()
-        {
-            SizeInBytes = sizeInBytes,
-            StrideInBytes = strideInBytes,
-            Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.StorageReadOnly | BufferUsages.CopyDst
-        };
-    }
-
-    public static BufferDesc StorageReadWrite(uint sizeInBytes, uint strideInBytes)
-    {
-        return new()
-        {
-            SizeInBytes = sizeInBytes,
-            StrideInBytes = strideInBytes,
-            Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.StorageReadWrite | BufferUsages.CopyDst
+            Usages = BufferUsages.Index | BufferUsages.CopyDst,
+            Residency = MemoryResidency.GpuOnly
         };
     }
 
@@ -71,8 +38,52 @@ public struct BufferDesc
         {
             SizeInBytes = sizeInBytes,
             StrideInBytes = 0,
-            Access = BufferAccess.GpuOnly,
-            Usages = BufferUsages.Indirect | BufferUsages.CopyDst
+            Usages = BufferUsages.Indirect | BufferUsages.CopyDst,
+            Residency = MemoryResidency.GpuOnly
+        };
+    }
+
+    public static BufferDesc Constant(uint sizeInBytes)
+    {
+        return new()
+        {
+            SizeInBytes = sizeInBytes,
+            StrideInBytes = 0,
+            Usages = BufferUsages.Constant | BufferUsages.CopyDst,
+            Residency = MemoryResidency.GpuOnly
+        };
+    }
+
+    public static BufferDesc StorageReadOnly(uint sizeInBytes, uint strideInBytes)
+    {
+        return new()
+        {
+            SizeInBytes = sizeInBytes,
+            StrideInBytes = strideInBytes,
+            Usages = BufferUsages.StorageReadOnly | BufferUsages.CopyDst,
+            Residency = MemoryResidency.GpuOnly
+        };
+    }
+
+    public static BufferDesc StorageReadWrite(uint sizeInBytes, uint strideInBytes)
+    {
+        return new()
+        {
+            SizeInBytes = sizeInBytes,
+            StrideInBytes = strideInBytes,
+            Usages = BufferUsages.StorageReadWrite | BufferUsages.CopyDst,
+            Residency = MemoryResidency.GpuOnly
+        };
+    }
+
+    public static BufferDesc AccelerationStructure(uint sizeInBytes)
+    {
+        return new()
+        {
+            SizeInBytes = sizeInBytes,
+            StrideInBytes = 0,
+            Usages = BufferUsages.AccelerationStructure | BufferUsages.CopyDst,
+            Residency = MemoryResidency.GpuOnly
         };
     }
 
@@ -82,8 +93,8 @@ public struct BufferDesc
         {
             SizeInBytes = sizeInBytes,
             StrideInBytes = 0,
-            Access = BufferAccess.CpuWriteOnly,
-            Usages = BufferUsages.CopySrc
+            Usages = BufferUsages.CopySrc,
+            Residency = MemoryResidency.CpuWriteOnly
         };
     }
 }

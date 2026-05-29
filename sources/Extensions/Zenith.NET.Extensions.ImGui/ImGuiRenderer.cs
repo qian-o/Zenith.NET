@@ -290,8 +290,8 @@ float4 FSMain(VSOutput input) : SV_TARGET
             vertexBuffer = Context.CreateBuffer(new()
             {
                 SizeInBytes = totalVertexSizeInBytes,
-                Access = BufferAccess.CpuWriteOnly,
-                Usages = BufferUsages.Vertex
+                Usages = BufferUsages.Vertex,
+                Residency = MemoryResidency.CpuWriteOnly
             });
         }
 
@@ -302,8 +302,8 @@ float4 FSMain(VSOutput input) : SV_TARGET
             indexBuffer = Context.CreateBuffer(new()
             {
                 SizeInBytes = totalIndexSizeInBytes,
-                Access = BufferAccess.CpuWriteOnly,
-                Usages = BufferUsages.Index
+                Usages = BufferUsages.Index,
+                Residency = MemoryResidency.CpuWriteOnly
             });
         }
 
@@ -314,8 +314,8 @@ float4 FSMain(VSOutput input) : SV_TARGET
             constantBuffer = Context.CreateBuffer(new()
             {
                 SizeInBytes = totalConstantSizeInBytes,
-                Access = BufferAccess.CpuWriteOnly,
-                Usages = BufferUsages.Constant
+                Usages = BufferUsages.Constant,
+                Residency = MemoryResidency.CpuWriteOnly
             });
         }
 

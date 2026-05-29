@@ -10,7 +10,7 @@ public enum ElementSemantic
 
     Tangent,
 
-    Binormal,
+    Bitangent,
 
     Color,
 

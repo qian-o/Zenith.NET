@@ -22,8 +22,8 @@ internal class Downloader(GraphicsContext context) : DisposableObject
             lease = new(context.CreateBuffer(new()
             {
                 SizeInBytes = data.SizeInBytes,
-                Access = BufferAccess.CpuReadOnly,
-                Usages = BufferUsages.CopyDst
+                Usages = BufferUsages.CopyDst,
+                Residency = MemoryResidency.CpuReadOnly
             }));
         }
 

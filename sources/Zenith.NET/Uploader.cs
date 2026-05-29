@@ -22,8 +22,8 @@ internal class Uploader(GraphicsContext context) : DisposableObject
             lease = new(context.CreateBuffer(new()
             {
                 SizeInBytes = sizeInBytes,
-                Access = BufferAccess.CpuWriteOnly,
-                Usages = BufferUsages.CopySrc
+                Usages = BufferUsages.CopySrc,
+                Residency = MemoryResidency.CpuWriteOnly
             }));
         }
 
