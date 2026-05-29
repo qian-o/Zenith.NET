@@ -18,13 +18,13 @@ internal unsafe class DXCapabilities : Capabilities
         context.Device14.CheckFeatureSupport(Feature.D3D12Options7, &options7, (uint)sizeof(FeatureDataD3D12Options7)).Success();
 
         DeviceName = ZenithMarshal.StringFromPointer((nint)desc.Description, StringEncoding.UTF16);
-        RayTracing = options5.RaytracingTier >= RaytracingTier.Tier11;
-        MeshShading = options7.MeshShaderTier >= MeshShaderTier.Tier1;
+        RayTracingSupported = options5.RaytracingTier >= RaytracingTier.Tier11;
+        MeshShadingSupported = options7.MeshShaderTier >= MeshShaderTier.Tier1;
     }
 
     public override string DeviceName { get; }
 
-    public override bool RayTracing { get; }
+    public override bool RayTracingSupported { get; }
 
-    public override bool MeshShading { get; }
+    public override bool MeshShadingSupported { get; }
 }

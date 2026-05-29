@@ -82,7 +82,7 @@ internal static class App
 
         rasterizer = new();
 
-        if (Context.Capabilities.RayTracing)
+        if (Context.Capabilities.RayTracingSupported)
         {
             activeRenderer = pathTracer = new();
             currentMode = 0;
@@ -131,7 +131,7 @@ internal static class App
 
                     ImGui.Text("Render Mode:");
 
-                    if (Context.Capabilities.RayTracing)
+                    if (Context.Capabilities.RayTracingSupported)
                     {
                         if (ImGui.RadioButton("Path Tracing", currentMode is 0) && currentMode is not 0)
                         {

@@ -7,9 +7,9 @@ public enum RayTracingInstanceFlags
 
     FrontCounterClockwise = 1 << 0,
 
-    CullDisable = 1 << 1,
+    DisableCull = 1 << 1,
 
     ForceOpaque = 1 << 2,
 
-    ForceNoOpaque = 1 << 3
+    ForceNonOpaque = 1 << 3
 }

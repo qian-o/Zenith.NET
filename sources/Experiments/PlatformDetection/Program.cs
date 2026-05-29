@@ -17,8 +17,8 @@ foreach (GraphicsApi graphicsApi in Enum.GetValues<GraphicsApi>())
 
         Console.WriteLine($"GraphicsApi {graphicsApi} is supported.");
         Console.WriteLine($"  Device Name: {context.Capabilities.DeviceName}");
-        Console.WriteLine($"  Ray Tracing Supported: {context.Capabilities.RayTracing}");
-        Console.WriteLine($"  Mesh Shading Supported: {context.Capabilities.MeshShading}");
+        Console.WriteLine($"  Ray Tracing Supported: {context.Capabilities.RayTracingSupported}");
+        Console.WriteLine($"  Mesh Shading Supported: {context.Capabilities.MeshShadingSupported}");
     }
     catch (Exception)
     {

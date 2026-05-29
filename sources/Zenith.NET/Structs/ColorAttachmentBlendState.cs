@@ -39,10 +39,10 @@ public struct ColorAttachmentBlendState
         {
             IsBlendingEnabled = true,
             SrcRgbFactor = BlendFactor.One,
-            DstRgbFactor = BlendFactor.OneMinusSourceAlpha,
+            DstRgbFactor = BlendFactor.OneMinusSrcAlpha,
             RgbOp = BlendOp.Add,
             SrcAlphaFactor = BlendFactor.One,
-            DstAlphaFactor = BlendFactor.OneMinusSourceAlpha,
+            DstAlphaFactor = BlendFactor.OneMinusSrcAlpha,
             AlphaOp = BlendOp.Add,
             ColorWrites = ColorWrites.All
         };
@@ -53,10 +53,10 @@ public struct ColorAttachmentBlendState
         return new()
         {
             IsBlendingEnabled = true,
-            SrcRgbFactor = BlendFactor.SourceAlpha,
+            SrcRgbFactor = BlendFactor.SrcAlpha,
             DstRgbFactor = BlendFactor.One,
             RgbOp = BlendOp.Add,
-            SrcAlphaFactor = BlendFactor.SourceAlpha,
+            SrcAlphaFactor = BlendFactor.SrcAlpha,
             DstAlphaFactor = BlendFactor.One,
             AlphaOp = BlendOp.Add,
             ColorWrites = ColorWrites.All
@@ -68,11 +68,11 @@ public struct ColorAttachmentBlendState
         return new()
         {
             IsBlendingEnabled = true,
-            SrcRgbFactor = BlendFactor.SourceAlpha,
-            DstRgbFactor = BlendFactor.OneMinusSourceAlpha,
+            SrcRgbFactor = BlendFactor.SrcAlpha,
+            DstRgbFactor = BlendFactor.OneMinusSrcAlpha,
             RgbOp = BlendOp.Add,
-            SrcAlphaFactor = BlendFactor.SourceAlpha,
-            DstAlphaFactor = BlendFactor.OneMinusSourceAlpha,
+            SrcAlphaFactor = BlendFactor.SrcAlpha,
+            DstAlphaFactor = BlendFactor.OneMinusSrcAlpha,
             AlphaOp = BlendOp.Add,
             ColorWrites = ColorWrites.All
         };
