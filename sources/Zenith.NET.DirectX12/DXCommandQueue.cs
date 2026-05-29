@@ -5,6 +5,8 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXCommandQueue : CommandQueue
 {
+    private readonly ManualResetEvent @event = new(false);
+
     public ComPtr<ID3D12CommandQueue> CommandQueue;
 
     public ComPtr<ID3D12Fence1> Fence1;
@@ -40,7 +42,10 @@ internal unsafe class DXCommandQueue : CommandQueue
     {
         if (Fence1.GetCompletedValue() < waitValue)
         {
-            Fence1.SetEventOnCompletion(waitValue, default).Success();
+            Fence1.SetEventOnCompletion(waitValue, (void*)@event.SafeWaitHandle.DangerousGetHandle()).Success();
+
+            @event.WaitOne();
+            @event.Reset();
         }
     }
 
@@ -54,5 +59,7 @@ internal unsafe class DXCommandQueue : CommandQueue
         base.Destroy();
 
         Fence1.Dispose();
+
+        @event.Dispose();
     }
 }
