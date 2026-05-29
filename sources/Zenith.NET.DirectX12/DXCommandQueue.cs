@@ -18,6 +18,8 @@ internal unsafe class DXCommandQueue : CommandQueue
         context.Device14.CreateFence(0, FenceFlags.None, SilkMarshal.GuidPtrOf<ID3D12Fence1>(), (void**)Fence1.GetAddressOf()).Success();
     }
 
+    public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
+
     public override nint GetNativeObject(NativeObjectType type)
     {
         return 0;
@@ -30,23 +32,26 @@ internal unsafe class DXCommandQueue : CommandQueue
 
     protected override CommandBuffer CreateCommandBuffer()
     {
-        throw new NotImplementedException();
+        return new DXCommandBuffer(Context, this);
     }
 
     protected override void SubmitImpl(CommandBuffer commandBuffer, ReadOnlySpan<CommandSubmission> waits, ulong signalValue)
     {
-        throw new NotImplementedException();
+        foreach (CommandSubmission wait in waits)
+        {
+            CommandQueue.Wait(wait.Queue.DirectX12().Fence1, wait.Value).Success();
+        }
+
+        CommandQueue.ExecuteCommandLists(1, commandBuffer.DirectX12().CommandList.GetAddressOf());
+        CommandQueue.Signal(Fence1, signalValue).Success();
     }
 
     protected override void WaitImpl(ulong waitValue)
     {
-        if (Fence1.GetCompletedValue() < waitValue)
-        {
-            Fence1.SetEventOnCompletion(waitValue, (void*)@event.SafeWaitHandle.DangerousGetHandle()).Success();
+        Fence1.SetEventOnCompletion(waitValue, (void*)@event.SafeWaitHandle.DangerousGetHandle()).Success();
 
-            @event.WaitOne();
-            @event.Reset();
-        }
+        @event.WaitOne();
+        @event.Reset();
     }
 
     protected override void SetResourceName(string name)

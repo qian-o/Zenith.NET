@@ -38,9 +38,14 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        WaitImpl(value);
-
         ulong completed = GetCompletedValue();
+
+        if (completed < value)
+        {
+            WaitImpl(value);
+
+            completed = GetCompletedValue();
+        }
 
         while (submitteds.TryPeek(out Submitted submitted) && submitted.Value <= completed)
         {
