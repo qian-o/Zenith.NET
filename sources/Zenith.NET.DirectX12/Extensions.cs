@@ -28,6 +28,22 @@ public static class Extensions
         }
     }
 
+    extension(CommandQueue commandQueue)
+    {
+        internal DXCommandQueue DirectX12()
+        {
+            return (DXCommandQueue)commandQueue;
+        }
+    }
+
+    extension(CommandBuffer commandBuffer)
+    {
+        internal DXCommandBuffer DirectX12()
+        {
+            return (DXCommandBuffer)commandBuffer;
+        }
+    }
+
     extension(Heap heap)
     {
         internal DXHeap DirectX12()
