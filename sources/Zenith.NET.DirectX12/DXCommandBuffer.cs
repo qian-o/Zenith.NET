@@ -31,6 +31,10 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes)
     {
+        DXBuffer dxSrc = src.DirectX12();
+        DXBuffer dxDst = dst.DirectX12();
+
+        CommandList.CopyBufferRegion(dxDst.Resource, dstOffsetInBytes, dxSrc.Resource, srcOffsetInBytes, sizeInBytes);
     }
 
     protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, TextureDataLayout srcLayout, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D dstExtent)
@@ -39,6 +43,26 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void CopyTextureImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D extent)
     {
+        DXTexture dxSrc = src.DirectX12();
+        DXTexture dxDst = dst.DirectX12();
+
+        TextureCopyLocation srcLocation = new()
+        {
+            PResource = dxSrc.Resource,
+            Type = TextureCopyType.SubresourceIndex,
+            SubresourceIndex = dxSrc.SubresourceIndex(srcSubresource)
+        };
+
+        Box srcBox = new(srcOffset.X, srcOffset.Y, srcOffset.Z, srcOffset.X + extent.Width, srcOffset.Y + extent.Height, srcOffset.Z + extent.Depth);
+
+        TextureCopyLocation dstLocation = new()
+        {
+            PResource = dxDst.Resource,
+            Type = TextureCopyType.SubresourceIndex,
+            SubresourceIndex = dxDst.SubresourceIndex(dstSubresource)
+        };
+
+        CommandList.CopyTextureRegion(&dstLocation, dstOffset.X, dstOffset.Y, dstOffset.Z, &srcLocation, &srcBox);
     }
 
     protected override void CopyTextureToBufferImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dst, uint dstOffsetInBytes, TextureDataLayout dstLayout)
@@ -50,7 +74,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         DXTexture dxSrc = src.DirectX12();
         DXTexture dxDst = dst.DirectX12();
 
-        CommandList.ResolveSubresource(dxDst.Resource, dxDst.Subresource(dstSubresource), dxSrc.Resource, dxSrc.Subresource(srcSubresource), DXFormats.DirectX12(dxDst.Desc.Format));
+        CommandList.ResolveSubresource(dxDst.Resource, dxDst.SubresourceIndex(dstSubresource), dxSrc.Resource, dxSrc.SubresourceIndex(srcSubresource), DXFormats.DirectX12(dxDst.Desc.Format));
     }
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)

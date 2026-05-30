@@ -47,7 +47,7 @@ internal unsafe class DXTexture : Texture
 
     public override ResourceHandle StorageHandle => View.StorageHandle;
 
-    public uint Subresource(TextureSubresource textureSubresource)
+    public uint SubresourceIndex(TextureSubresource textureSubresource)
     {
         return (textureSubresource.MipLevel * Desc.ArrayLayers) + textureSubresource.ArrayLayer;
     }
