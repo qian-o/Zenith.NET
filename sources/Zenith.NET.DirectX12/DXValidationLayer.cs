@@ -31,6 +31,7 @@ internal unsafe class DXValidationLayer : ValidationLayer
     protected override void Destroy()
     {
         InfoQueue.UnregisterMessageCallback(callbackCookie).Success();
+        InfoQueue.Dispose();
 
         callback.Dispose();
     }
