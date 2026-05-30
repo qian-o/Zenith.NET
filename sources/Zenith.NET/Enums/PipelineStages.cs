@@ -3,8 +3,6 @@
 [Flags]
 public enum PipelineStages
 {
-    AllCommands = ~0,
-
     None = 0,
 
     Indirect = 1 << 0,
@@ -25,13 +23,15 @@ public enum PipelineStages
 
     ColorAttachmentOutput = 1 << 8,
 
-    AllGraphics = Indirect | VertexInput | VertexShader | TaskShader | MeshShader | EarlyFragmentTests | FragmentShader | LateFragmentTests | ColorAttachmentOutput,
-
     ComputeShader = 1 << 9,
 
     AccelerationStructureBuild = 1 << 10,
 
-    Copy = 1 << 11,
+    AllGraphics = 1 << 11,
 
-    Resolve = 1 << 12
+    AllCommands = 1 << 12,
+
+    Copy = 1 << 13,
+
+    Resolve = 1 << 14
 }
