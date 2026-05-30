@@ -9,13 +9,13 @@ internal unsafe class DXCommandQueue : CommandQueue
 
     public ComPtr<ID3D12CommandQueue> CommandQueue;
 
-    public ComPtr<ID3D12Fence1> Fence1;
+    public ComPtr<ID3D12Fence> Fence;
 
     public DXCommandQueue(DXGraphicsContext context, CommandQueueType type, ComPtr<ID3D12CommandQueue> commandQueue) : base(context, type)
     {
         CommandQueue = commandQueue;
 
-        context.Device14.CreateFence(0, FenceFlags.None, SilkMarshal.GuidPtrOf<ID3D12Fence1>(), (void**)Fence1.GetAddressOf()).Success();
+        context.Device.CreateFence(0, FenceFlags.None, SilkMarshal.GuidPtrOf<ID3D12Fence>(), (void**)Fence.GetAddressOf()).Success();
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
@@ -27,7 +27,7 @@ internal unsafe class DXCommandQueue : CommandQueue
 
     protected override ulong GetCompletedValue()
     {
-        return Fence1.GetCompletedValue();
+        return Fence.GetCompletedValue();
     }
 
     protected override CommandBuffer CreateCommandBuffer()
@@ -39,16 +39,16 @@ internal unsafe class DXCommandQueue : CommandQueue
     {
         foreach (CommandSubmission wait in waits)
         {
-            CommandQueue.Wait(wait.Queue.DirectX12().Fence1, wait.Value).Success();
+            CommandQueue.Wait(wait.Queue.DirectX12().Fence, wait.Value).Success();
         }
 
         CommandQueue.ExecuteCommandLists(1, commandBuffer.DirectX12().CommandList.GetAddressOf());
-        CommandQueue.Signal(Fence1, signalValue).Success();
+        CommandQueue.Signal(Fence, signalValue).Success();
     }
 
     protected override void WaitImpl(ulong waitValue)
     {
-        Fence1.SetEventOnCompletion(waitValue, (void*)@event.SafeWaitHandle.DangerousGetHandle()).Success();
+        Fence.SetEventOnCompletion(waitValue, (void*)@event.SafeWaitHandle.DangerousGetHandle()).Success();
 
         @event.WaitOne();
         @event.Reset();
@@ -63,7 +63,7 @@ internal unsafe class DXCommandQueue : CommandQueue
     {
         base.Destroy();
 
-        Fence1.Dispose();
+        Fence.Dispose();
 
         @event.Dispose();
     }

@@ -40,7 +40,7 @@ internal unsafe class DXBufferView(DXGraphicsContext context, BufferViewDesc des
             SizeInBytes = ZenithHelper.Align(Desc.SizeInBytes, 256u)
         };
 
-        context.Device14.CreateConstantBufferView(&viewDesc, token.CpuHandle);
+        context.Device.CreateConstantBufferView(&viewDesc, token.CpuHandle);
 
         return token;
     }
@@ -61,7 +61,7 @@ internal unsafe class DXBufferView(DXGraphicsContext context, BufferViewDesc des
             }
         };
 
-        context.Device14.CreateShaderResourceView(Desc.Buffer.DirectX12().Resource, &viewDesc, token.CpuHandle);
+        context.Device.CreateShaderResourceView(Desc.Buffer.DirectX12().Resource, &viewDesc, token.CpuHandle);
 
         return token;
     }
@@ -81,7 +81,7 @@ internal unsafe class DXBufferView(DXGraphicsContext context, BufferViewDesc des
             }
         };
 
-        context.Device14.CreateUnorderedAccessView(Desc.Buffer.DirectX12().Resource, default(ID3D12Resource*), &viewDesc, token.CpuHandle);
+        context.Device.CreateUnorderedAccessView(Desc.Buffer.DirectX12().Resource, default(ID3D12Resource*), &viewDesc, token.CpuHandle);
 
         return token;
     }

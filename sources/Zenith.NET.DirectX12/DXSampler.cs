@@ -12,7 +12,7 @@ internal unsafe class DXSampler : Sampler
 
         (float r, float g, float b, float a) = DXFormats.DirectX12(desc.BorderColor);
 
-        SamplerDesc2 samplerDesc = new()
+        DxSamplerDesc samplerDesc = new()
         {
             Filter = DXFormats.DirectX12(desc.MinFilter, desc.MagFilter, desc.MipFilter, desc.MaxAnisotropy, desc.CompareOp),
             AddressU = DXFormats.DirectX12(desc.AddressU),
@@ -25,12 +25,12 @@ internal unsafe class DXSampler : Sampler
             MaxLOD = desc.MaxLod
         };
 
-        samplerDesc.Anonymous.FloatBorderColor[0] = r;
-        samplerDesc.Anonymous.FloatBorderColor[1] = g;
-        samplerDesc.Anonymous.FloatBorderColor[2] = b;
-        samplerDesc.Anonymous.FloatBorderColor[3] = a;
+        samplerDesc.BorderColor[0] = r;
+        samplerDesc.BorderColor[1] = g;
+        samplerDesc.BorderColor[2] = b;
+        samplerDesc.BorderColor[3] = a;
 
-        context.Device14.CreateSampler2(&samplerDesc, Token.CpuHandle);
+        context.Device.CreateSampler(&samplerDesc, Token.CpuHandle);
     }
 
     public override ResourceHandle Handle => Token.ResourceHandle;

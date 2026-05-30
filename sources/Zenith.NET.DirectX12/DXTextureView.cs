@@ -127,7 +127,7 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
                 break;
         }
 
-        context.Device14.CreateShaderResourceView(Desc.Texture.DirectX12().Resource, &viewDesc, token.CpuHandle);
+        context.Device.CreateShaderResourceView(Desc.Texture.DirectX12().Resource, &viewDesc, token.CpuHandle);
 
         return token;
     }
@@ -201,7 +201,7 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
                 break;
         }
 
-        context.Device14.CreateUnorderedAccessView(Desc.Texture.DirectX12().Resource, default(ID3D12Resource*), &viewDesc, token.CpuHandle);
+        context.Device.CreateUnorderedAccessView(Desc.Texture.DirectX12().Resource, default(ID3D12Resource*), &viewDesc, token.CpuHandle);
 
         return token;
     }

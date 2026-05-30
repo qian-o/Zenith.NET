@@ -15,7 +15,7 @@ internal unsafe class DXQueryHeap : QueryHeap
             Count = desc.Count
         };
 
-        context.Device14.CreateQueryHeap(&queryHeapDesc, SilkMarshal.GuidPtrOf<ID3D12QueryHeap>(), (void**)QueryHeap.GetAddressOf()).Success();
+        context.Device.CreateQueryHeap(&queryHeapDesc, SilkMarshal.GuidPtrOf<ID3D12QueryHeap>(), (void**)QueryHeap.GetAddressOf()).Success();
 
         Buffer = new(context, new() { SizeInBytes = sizeof(ulong) * desc.Count, Residency = MemoryResidency.CpuReadOnly }, null);
     }

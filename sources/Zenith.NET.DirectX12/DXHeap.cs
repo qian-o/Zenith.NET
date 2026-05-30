@@ -17,7 +17,7 @@ internal unsafe class DXHeap : Heap
             Alignment = DXGraphicsContext.DefaultHeapAlignment
         };
 
-        context.Device14.CreateHeap(&heapDesc, SilkMarshal.GuidPtrOf<ID3D12Heap>(), (void**)Heap.GetAddressOf()).Success();
+        context.Device.CreateHeap(&heapDesc, SilkMarshal.GuidPtrOf<ID3D12Heap>(), (void**)Heap.GetAddressOf()).Success();
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
@@ -32,15 +32,15 @@ internal unsafe class DXHeap : Heap
         ResourceDesc1 resourceDesc = DXBuffer.ResourceDesc(desc);
 
         ComPtr<ID3D12Resource> resource = new();
-        Context.Device14.CreatePlacedResource2(Heap,
-                                               offsetInBytes,
-                                               &resourceDesc,
-                                               BarrierLayout.Undefined,
-                                               default(ClearValue*),
-                                               0,
-                                               default(Format*),
-                                               SilkMarshal.GuidPtrOf<ID3D12Resource>(),
-                                               (void**)resource.GetAddressOf()).Success();
+        Context.Device.CreatePlacedResource2(Heap,
+                                             offsetInBytes,
+                                             &resourceDesc,
+                                             BarrierLayout.Undefined,
+                                             default(ClearValue*),
+                                             0,
+                                             default(Format*),
+                                             SilkMarshal.GuidPtrOf<ID3D12Resource>(),
+                                             (void**)resource.GetAddressOf()).Success();
 
         return new DXBuffer(Context, desc, resource);
     }
@@ -50,15 +50,15 @@ internal unsafe class DXHeap : Heap
         ResourceDesc1 resourceDesc = DXTexture.ResourceDesc(desc);
 
         ComPtr<ID3D12Resource> resource = new();
-        Context.Device14.CreatePlacedResource2(Heap,
-                                               offsetInBytes,
-                                               &resourceDesc,
-                                               BarrierLayout.Undefined,
-                                               default(ClearValue*),
-                                               0,
-                                               default(Format*),
-                                               SilkMarshal.GuidPtrOf<ID3D12Resource>(),
-                                               (void**)resource.GetAddressOf()).Success();
+        Context.Device.CreatePlacedResource2(Heap,
+                                             offsetInBytes,
+                                             &resourceDesc,
+                                             BarrierLayout.Undefined,
+                                             default(ClearValue*),
+                                             0,
+                                             default(Format*),
+                                             SilkMarshal.GuidPtrOf<ID3D12Resource>(),
+                                             (void**)resource.GetAddressOf()).Success();
 
         return new DXTexture(Context, desc, resource);
     }

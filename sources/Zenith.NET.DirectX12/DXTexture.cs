@@ -16,16 +16,16 @@ internal unsafe class DXTexture : Texture
 
             HeapProperties heapProperties = new(DxHeapType.Default);
 
-            context.Device14.CreateCommittedResource3(&heapProperties,
-                                                      HeapFlags.None,
-                                                      &resourceDesc,
-                                                      BarrierLayout.Undefined,
-                                                      default(ClearValue*),
-                                                      default(ID3D12ProtectedResourceSession*),
-                                                      0,
-                                                      default(Format*),
-                                                      SilkMarshal.GuidPtrOf<ID3D12Resource>(),
-                                                      (void**)Resource.GetAddressOf()).Success();
+            context.Device.CreateCommittedResource3(&heapProperties,
+                                                    HeapFlags.None,
+                                                    &resourceDesc,
+                                                    BarrierLayout.Undefined,
+                                                    default(ClearValue*),
+                                                    default(ID3D12ProtectedResourceSession*),
+                                                    0,
+                                                    default(Format*),
+                                                    SilkMarshal.GuidPtrOf<ID3D12Resource>(),
+                                                    (void**)Resource.GetAddressOf()).Success();
         }
         else
         {

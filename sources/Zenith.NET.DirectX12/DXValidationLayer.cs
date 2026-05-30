@@ -1,4 +1,5 @@
-﻿using Silk.NET.Direct3D12;
+﻿using Silk.NET.Core.Native;
+using Silk.NET.Direct3D12;
 
 namespace Zenith.NET.DirectX12;
 
@@ -7,11 +8,13 @@ internal unsafe class DXValidationLayer : ValidationLayer
     private readonly PfnMessageFunc callback;
     private readonly uint callbackCookie;
 
+    public ComPtr<ID3D12InfoQueue1> InfoQueue;
+
     public DXValidationLayer(DXGraphicsContext context) : base(context)
     {
-        callback = new(Callback);
+        context.Device.QueryInterface(SilkMarshal.GuidPtrOf<ID3D12InfoQueue1>(), (void**)InfoQueue.GetAddressOf()).Success();
 
-        context.InfoQueue1?.RegisterMessageCallback(callback, MessageCallbackFlags.FlagNone, null, ref callbackCookie).Success();
+        InfoQueue.RegisterMessageCallback(callback = new(Callback), MessageCallbackFlags.FlagNone, default, ref callbackCookie).Success();
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
@@ -27,7 +30,7 @@ internal unsafe class DXValidationLayer : ValidationLayer
 
     protected override void Destroy()
     {
-        Context.InfoQueue1?.UnregisterMessageCallback(callbackCookie).Success();
+        InfoQueue.UnregisterMessageCallback(callbackCookie).Success();
 
         callback.Dispose();
     }

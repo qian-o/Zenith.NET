@@ -12,9 +12,9 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     public DXCommandBuffer(DXGraphicsContext context, CommandQueue queue) : base(context, queue)
     {
-        context.Device14.CreateCommandAllocator(DXFormats.DirectX12(queue.Type), SilkMarshal.GuidPtrOf<ID3D12CommandAllocator>(), (void**)CommandAllocator.GetAddressOf()).Success();
+        context.Device.CreateCommandAllocator(DXFormats.DirectX12(queue.Type), SilkMarshal.GuidPtrOf<ID3D12CommandAllocator>(), (void**)CommandAllocator.GetAddressOf()).Success();
 
-        context.Device14.CreateCommandList(0, DXFormats.DirectX12(queue.Type), CommandAllocator, default(ID3D12PipelineState*), SilkMarshal.GuidPtrOf<ID3D12CommandList>(), (void**)CommandList.GetAddressOf()).Success();
+        context.Device.CreateCommandList(0, DXFormats.DirectX12(queue.Type), CommandAllocator, default(ID3D12PipelineState*), SilkMarshal.GuidPtrOf<ID3D12CommandList>(), (void**)CommandList.GetAddressOf()).Success();
     }
 
     public override nint GetNativeObject(NativeObjectType type)
