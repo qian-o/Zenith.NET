@@ -27,11 +27,11 @@ public enum PipelineStages
 
     AccelerationStructureBuild = 1 << 10,
 
-    AllGraphics = 1 << 11,
+    Copy = 1 << 11,
 
-    AllCommands = 1 << 12,
+    Resolve = 1 << 12,
 
-    Copy = 1 << 13,
+    AllGraphics = 1 << 13,
 
-    Resolve = 1 << 14
+    AllCommands = 1 << 14
 }

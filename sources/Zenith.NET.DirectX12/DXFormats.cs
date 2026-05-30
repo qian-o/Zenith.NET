@@ -452,4 +452,198 @@ internal static class DXFormats
             _ => default
         };
     }
+
+    public static BarrierSync DirectX12(PipelineStages pipelineStages)
+    {
+        BarrierSync result = BarrierSync.None;
+
+        if (pipelineStages.HasFlag(PipelineStages.Indirect))
+        {
+            result |= BarrierSync.ExecuteIndirect;
+        }
+
+        if (pipelineStages.HasFlag(PipelineStages.VertexInput))
+        {
+            result |= BarrierSync.IndexInput | BarrierSync.VertexShading;
+        }
+
+        if (pipelineStages.HasFlag(PipelineStages.VertexShader))
+        {
+            result |= BarrierSync.VertexShading;
+        }
+
+        if (pipelineStages.HasFlag(PipelineStages.TaskShader))
+        {
+            result |= BarrierSync.VertexShading;
+        }
+
+        if (pipelineStages.HasFlag(PipelineStages.MeshShader))
+        {
+            result |= BarrierSync.VertexShading;
+        }
+
+        if (pipelineStages.HasFlag(PipelineStages.EarlyFragmentTests))
+        {
+            result |= BarrierSync.DepthStencil;
+        }
+
+        if (pipelineStages.HasFlag(PipelineStages.FragmentShader))
+        {
+            result |= BarrierSync.PixelShading;
+        }
+
+        if (pipelineStages.HasFlag(PipelineStages.LateFragmentTests))
+        {
+            result |= BarrierSync.DepthStencil;
+        }
+
+        if (pipelineStages.HasFlag(PipelineStages.ColorAttachmentOutput))
+        {
+            result |= BarrierSync.RenderTarget;
+        }
+
+        if (pipelineStages.HasFlag(PipelineStages.ComputeShader))
+        {
+            result |= BarrierSync.ComputeShading;
+        }
+
+        if (pipelineStages.HasFlag(PipelineStages.AccelerationStructureBuild))
+        {
+            result |= BarrierSync.BuildRaytracingAccelerationStructure;
+        }
+
+        if (pipelineStages.HasFlag(PipelineStages.Copy))
+        {
+            result |= BarrierSync.Copy;
+        }
+
+        if (pipelineStages.HasFlag(PipelineStages.Resolve))
+        {
+            result |= BarrierSync.Resolve;
+        }
+
+        if (pipelineStages.HasFlag(PipelineStages.AllGraphics))
+        {
+            result |= BarrierSync.AllShading;
+        }
+
+        if (pipelineStages.HasFlag(PipelineStages.AllCommands))
+        {
+            result |= BarrierSync.All;
+        }
+
+        return result;
+    }
+
+    public static BarrierAccess DirectX12(ResourceAccess resourceAccess)
+    {
+        if (resourceAccess is ResourceAccess.None)
+        {
+            return BarrierAccess.NoAccess;
+        }
+
+        BarrierAccess result = BarrierAccess.Common;
+
+        if (resourceAccess.HasFlag(ResourceAccess.Vertex))
+        {
+            result |= BarrierAccess.VertexBuffer;
+        }
+
+        if (resourceAccess.HasFlag(ResourceAccess.Index))
+        {
+            result |= BarrierAccess.IndexBuffer;
+        }
+
+        if (resourceAccess.HasFlag(ResourceAccess.Indirect))
+        {
+            result |= BarrierAccess.IndirectArgument;
+        }
+
+        if (resourceAccess.HasFlag(ResourceAccess.Constant))
+        {
+            result |= BarrierAccess.ConstantBuffer;
+        }
+
+        if (resourceAccess.HasFlag(ResourceAccess.ShaderRead))
+        {
+            result |= BarrierAccess.ShaderResource;
+        }
+
+        if (resourceAccess.HasFlag(ResourceAccess.ShaderWrite))
+        {
+            result |= BarrierAccess.UnorderedAccess;
+        }
+
+        if (resourceAccess.HasFlag(ResourceAccess.AccelerationStructureRead))
+        {
+            result |= BarrierAccess.RaytracingAccelerationStructureRead;
+        }
+
+        if (resourceAccess.HasFlag(ResourceAccess.AccelerationStructureWrite))
+        {
+            result |= BarrierAccess.RaytracingAccelerationStructureWrite;
+        }
+
+        if (resourceAccess.HasFlag(ResourceAccess.ColorAttachmentRead))
+        {
+            result |= BarrierAccess.RenderTarget;
+        }
+
+        if (resourceAccess.HasFlag(ResourceAccess.ColorAttachmentWrite))
+        {
+            result |= BarrierAccess.RenderTarget;
+        }
+
+        if (resourceAccess.HasFlag(ResourceAccess.DepthStencilAttachmentRead))
+        {
+            result |= BarrierAccess.DepthStencilRead;
+        }
+
+        if (resourceAccess.HasFlag(ResourceAccess.DepthStencilAttachmentWrite))
+        {
+            result |= BarrierAccess.DepthStencilWrite;
+        }
+
+        if (resourceAccess.HasFlag(ResourceAccess.CopyRead))
+        {
+            result |= BarrierAccess.CopySource;
+        }
+
+        if (resourceAccess.HasFlag(ResourceAccess.CopyWrite))
+        {
+            result |= BarrierAccess.CopyDest;
+        }
+
+        if (resourceAccess.HasFlag(ResourceAccess.ResolveRead))
+        {
+            result |= BarrierAccess.ResolveSource;
+        }
+
+        if (resourceAccess.HasFlag(ResourceAccess.ResolveWrite))
+        {
+            result |= BarrierAccess.ResolveDest;
+        }
+
+        return result;
+    }
+
+    public static BarrierLayout DirectX12(TextureLayout textureLayout)
+    {
+        return textureLayout switch
+        {
+            TextureLayout.Undefined => BarrierLayout.Undefined,
+            TextureLayout.General => BarrierLayout.Common,
+            TextureLayout.Sampled => BarrierLayout.ShaderResource,
+            TextureLayout.Storage => BarrierLayout.UnorderedAccess,
+            TextureLayout.ColorAttachment => BarrierLayout.RenderTarget,
+            TextureLayout.DepthStencilAttachment => BarrierLayout.DepthStencilWrite,
+            TextureLayout.DepthStencilReadOnly => BarrierLayout.DepthStencilRead,
+            TextureLayout.CopySrc => BarrierLayout.CopySource,
+            TextureLayout.CopyDst => BarrierLayout.CopyDest,
+            TextureLayout.ResolveSrc => BarrierLayout.ResolveSource,
+            TextureLayout.ResolveDst => BarrierLayout.ResolveDest,
+            TextureLayout.Present => BarrierLayout.Present,
+            _ => default
+        };
+    }
 }

@@ -1,4 +1,5 @@
 ﻿global using DxBlendOp = Silk.NET.Direct3D12.BlendOp;
+global using DxBufferBarrier = Silk.NET.Direct3D12.BufferBarrier;
 global using DxCullMode = Silk.NET.Direct3D12.CullMode;
 global using DxFillMode = Silk.NET.Direct3D12.FillMode;
 global using DxHeapDesc = Silk.NET.Direct3D12.HeapDesc;
@@ -9,5 +10,6 @@ global using DxQueryType = Silk.NET.Direct3D12.QueryType;
 global using DxRange = Silk.NET.Direct3D12.Range;
 global using DxSamplerDesc = Silk.NET.Direct3D12.SamplerDesc;
 global using DxStencilOp = Silk.NET.Direct3D12.StencilOp;
+global using DxTextureBarrier = Silk.NET.Direct3D12.TextureBarrier;
 global using DxTextureLayout = Silk.NET.Direct3D12.TextureLayout;
 global using DxViewport = Silk.NET.Direct3D12.Viewport;

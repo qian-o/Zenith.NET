@@ -27,6 +27,84 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void BarrierImpl(ReadOnlySpan<MemoryBarrier> memoryBarriers, ReadOnlySpan<BufferBarrier> bufferBarriers, ReadOnlySpan<TextureBarrier> textureBarriers)
     {
+        GlobalBarrier* pGlobalBarriers = stackalloc GlobalBarrier[memoryBarriers.Length];
+        for (int i = 0; i < memoryBarriers.Length; i++)
+        {
+            MemoryBarrier barrier = memoryBarriers[i];
+
+            pGlobalBarriers[i] = new()
+            {
+                SyncBefore = DXFormats.DirectX12(barrier.SrcStages),
+                SyncAfter = DXFormats.DirectX12(barrier.DstStages),
+                AccessBefore = DXFormats.DirectX12(barrier.SrcAccess),
+                AccessAfter = DXFormats.DirectX12(barrier.DstAccess)
+            };
+        }
+
+        DxBufferBarrier* pBufferBarriers = stackalloc DxBufferBarrier[bufferBarriers.Length];
+        for (int i = 0; i < bufferBarriers.Length; i++)
+        {
+            BufferBarrier barrier = bufferBarriers[i];
+
+            pBufferBarriers[i] = new()
+            {
+                SyncBefore = DXFormats.DirectX12(barrier.SrcStages),
+                SyncAfter = DXFormats.DirectX12(barrier.DstStages),
+                AccessBefore = DXFormats.DirectX12(barrier.SrcAccess),
+                AccessAfter = DXFormats.DirectX12(barrier.DstAccess),
+                PResource = barrier.Buffer.DirectX12().Resource,
+                Size = ulong.MaxValue
+            };
+        }
+
+        DxTextureBarrier* pTextureBarriers = stackalloc DxTextureBarrier[textureBarriers.Length];
+        for (int i = 0; i < textureBarriers.Length; i++)
+        {
+            TextureBarrier barrier = textureBarriers[i];
+
+            pTextureBarriers[i] = new()
+            {
+                SyncBefore = DXFormats.DirectX12(barrier.SrcStages),
+                SyncAfter = DXFormats.DirectX12(barrier.DstStages),
+                AccessBefore = DXFormats.DirectX12(barrier.SrcAccess),
+                AccessAfter = DXFormats.DirectX12(barrier.DstAccess),
+                LayoutBefore = DXFormats.DirectX12(barrier.SrcLayout),
+                LayoutAfter = DXFormats.DirectX12(barrier.DstLayout),
+                PResource = barrier.Texture.DirectX12().Resource,
+                Subresources = new()
+                {
+                    IndexOrFirstMipLevel = barrier.Range.BaseMipLevel,
+                    NumMipLevels = barrier.Range.LevelCount,
+                    FirstArraySlice = barrier.Range.BaseArrayLayer,
+                    NumArraySlices = barrier.Range.LayerCount,
+                    NumPlanes = 1
+                }
+            };
+        }
+
+        BarrierGroup* pBarrierGroups = stackalloc BarrierGroup[]
+        {
+            new()
+            {
+                Type = BarrierType.Global,
+                NumBarriers = (uint)memoryBarriers.Length,
+                PGlobalBarriers = pGlobalBarriers
+            },
+            new()
+            {
+                Type = BarrierType.Buffer,
+                NumBarriers = (uint)bufferBarriers.Length,
+                PBufferBarriers = pBufferBarriers
+            },
+            new()
+            {
+                Type = BarrierType.Texture,
+                NumBarriers = (uint)textureBarriers.Length,
+                PTextureBarriers = pTextureBarriers
+            }
+        };
+
+        CommandList.Barrier(3, pBarrierGroups);
     }
 
     protected override void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes)
