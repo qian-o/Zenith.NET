@@ -42,7 +42,7 @@ internal unsafe class DXCommandQueue : CommandQueue
             CommandQueue.Wait(wait.Queue.DirectX12().Fence, wait.Value).Success();
         }
 
-        CommandQueue.ExecuteCommandLists(1, commandBuffer.DirectX12().CommandList.GetAddressOf());
+        CommandQueue.ExecuteCommandLists(1, (ID3D12CommandList**)commandBuffer.DirectX12().CommandList.GetAddressOf());
         CommandQueue.Signal(Fence, signalValue).Success();
     }
 

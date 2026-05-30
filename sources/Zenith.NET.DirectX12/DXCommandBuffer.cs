@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Silk.NET.Core.Native;
 using Silk.NET.Direct3D12;
+using Silk.NET.Maths;
 
 namespace Zenith.NET.DirectX12;
 
@@ -8,14 +9,16 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 {
     public ComPtr<ID3D12CommandAllocator> CommandAllocator;
 
-    public ComPtr<ID3D12CommandList> CommandList;
+    public ComPtr<ID3D12GraphicsCommandList7> CommandList;
 
     public DXCommandBuffer(DXGraphicsContext context, CommandQueue queue) : base(context, queue)
     {
         context.Device.CreateCommandAllocator(DXFormats.DirectX12(queue.Type), SilkMarshal.GuidPtrOf<ID3D12CommandAllocator>(), (void**)CommandAllocator.GetAddressOf()).Success();
 
-        context.Device.CreateCommandList(0, DXFormats.DirectX12(queue.Type), CommandAllocator, default(ID3D12PipelineState*), SilkMarshal.GuidPtrOf<ID3D12CommandList>(), (void**)CommandList.GetAddressOf()).Success();
+        context.Device.CreateCommandList(0, DXFormats.DirectX12(queue.Type), CommandAllocator, default(ID3D12PipelineState*), SilkMarshal.GuidPtrOf<ID3D12GraphicsCommandList7>(), (void**)CommandList.GetAddressOf()).Success();
     }
+
+    public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
 
     public override nint GetNativeObject(NativeObjectType type)
     {
@@ -44,6 +47,11 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void ResolveTextureImpl(Texture src, TextureSubresource srcSubresource, Texture dst, TextureSubresource dstSubresource)
     {
+        DXTexture dxSrc = src.DirectX12();
+        DXTexture dxDst = dst.DirectX12();
+
+        // TODO: 计算subresource的index。
+        CommandList.ResolveSubresource(dxDst.Resource, 0, dxSrc.Resource, 0, DXFormats.DirectX12(dxDst.Desc.Format));
     }
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)
@@ -66,42 +74,78 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void EndRenderPassImpl()
     {
+        CommandList.EndRenderPass();
     }
 
     protected override void SetScissorsImpl(ReadOnlySpan<Scissor> scissors)
     {
+        Box2D<int>* pRects = stackalloc Box2D<int>[scissors.Length];
+        for (int i = 0; i < scissors.Length; i++)
+        {
+            pRects[i] = new(scissors[i].X, scissors[i].Y, scissors[i].X + (int)scissors[i].Width, scissors[i].Y + (int)scissors[i].Height);
+        }
+
+        CommandList.RSSetScissorRects((uint)scissors.Length, pRects);
     }
 
     protected override void SetViewportsImpl(ReadOnlySpan<Viewport> viewports)
     {
+        DxViewport* pViewports = stackalloc DxViewport[viewports.Length];
+        for (int i = 0; i < viewports.Length; i++)
+        {
+            pViewports[i] = new(viewports[i].X, viewports[i].Y, viewports[i].Width, viewports[i].Height, viewports[i].MinDepth, viewports[i].MaxDepth);
+        }
+
+        CommandList.RSSetViewports((uint)viewports.Length, pViewports);
     }
 
     protected override void SetPipelineImpl(GraphicsPipeline pipeline)
     {
+        CommandList.SetPipelineState(pipeline.DirectX12().PipelineState);
     }
 
     protected override void SetPipelineImpl(ComputePipeline pipeline)
     {
+        CommandList.SetPipelineState(pipeline.DirectX12().PipelineState);
     }
 
     protected override void SetPipelineImpl(MeshShadingPipeline pipeline)
     {
+        CommandList.SetPipelineState(pipeline.DirectX12().PipelineState);
     }
 
     protected override void SetStencilReferenceImpl(uint stencilReference)
     {
+        CommandList.OMSetStencilRef(stencilReference);
     }
 
     protected override void SetBlendConstantImpl(Vector4 blendConstant)
     {
+        CommandList.OMSetBlendFactor(&blendConstant.X);
     }
 
     protected override void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint slot)
     {
+        VertexBufferView view = new()
+        {
+            BufferLocation = buffer.DirectX12().GPUVirtualAddress + offsetInBytes,
+            SizeInBytes = buffer.Desc.SizeInBytes - offsetInBytes,
+            StrideInBytes = pipeline.Desc.InputLayouts[slot].StrideInBytes
+        };
+
+        CommandList.IASetVertexBuffers(slot, 1, &view);
     }
 
     protected override void SetIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat indexFormat)
     {
+        IndexBufferView view = new()
+        {
+            BufferLocation = buffer.DirectX12().GPUVirtualAddress + offsetInBytes,
+            SizeInBytes = buffer.Desc.SizeInBytes - offsetInBytes,
+            Format = DXFormats.DirectX12(indexFormat)
+        };
+
+        CommandList.IASetIndexBuffer(&view);
     }
 
     protected override void SetConstantBufferImpl(Pipeline pipeline, Buffer buffer, uint offsetInBytes)
@@ -110,70 +154,128 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
     {
+        CommandList.DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     protected override void DrawIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
+        CommandList.ExecuteIndirect(Context.DrawSignature, drawCount, indirectBuffer.DirectX12().Resource, offsetInBytes, default(ID3D12Resource*), 0);
     }
 
     protected override void DrawIndexedImpl(GraphicsPipeline pipeline, uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
     {
+        CommandList.DrawIndexedInstanced(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
     protected override void DrawIndexedIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
+        CommandList.ExecuteIndirect(Context.DrawIndexedSignature, drawCount, indirectBuffer.DirectX12().Resource, offsetInBytes, default(ID3D12Resource*), 0);
     }
 
     protected override void DispatchImpl(ComputePipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
+        CommandList.Dispatch(groupCountX, groupCountY, groupCountZ);
     }
 
     protected override void DispatchIndirectImpl(ComputePipeline pipeline, Buffer indirectBuffer, uint offsetInBytes)
     {
+        CommandList.ExecuteIndirect(Context.DispatchSignature, 1, indirectBuffer.DirectX12().Resource, offsetInBytes, default(ID3D12Resource*), 0);
     }
 
     protected override void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
+        CommandList.DispatchMesh(groupCountX, groupCountY, groupCountZ);
     }
 
     protected override void DispatchMeshIndirectImpl(MeshShadingPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount)
     {
+        CommandList.ExecuteIndirect(Context.DispatchMeshSignature, dispatchCount, indirectBuffer.DirectX12().Resource, offsetInBytes, default(ID3D12Resource*), 0);
     }
 
     protected override void BeginQueryImpl(QueryHeap queryHeap, uint index)
     {
+        CommandList.BeginQuery(queryHeap.DirectX12().QueryHeap, DXFormats.DirectX12(queryHeap.Desc.Type).Type, index);
     }
 
     protected override void EndQueryImpl(QueryHeap queryHeap, uint index)
     {
+        DXQueryHeap dxQueryHeap = queryHeap.DirectX12();
+
+        CommandList.EndQuery(dxQueryHeap.QueryHeap, DXFormats.DirectX12(dxQueryHeap.Desc.Type).Type, index);
+        CommandList.ResolveQueryData(dxQueryHeap.QueryHeap, DXFormats.DirectX12(dxQueryHeap.Desc.Type).Type, index, 1, dxQueryHeap.Buffer.Resource, sizeof(ulong) * index);
     }
 
     protected override void WriteTimestampImpl(QueryHeap queryHeap, uint index)
     {
+        DXQueryHeap dxQueryHeap = queryHeap.DirectX12();
+
+        CommandList.EndQuery(dxQueryHeap.QueryHeap, DxQueryType.Timestamp, index);
+        CommandList.ResolveQueryData(dxQueryHeap.QueryHeap, DxQueryType.Timestamp, index, 1, dxQueryHeap.Buffer.Resource, sizeof(ulong) * index);
     }
 
     protected override void BeginDebugEventImpl(string label)
     {
+        using ZenithMarshal.Scope scope = new();
+
+        uint size = PixHelpers.CalculateEventSize(label);
+
+        ulong* buffer = (ulong*)ZenithMarshal.Allocate<byte>(scope, size);
+
+        PixHelpers.FormatEventToBuffer(buffer, PixHelpers.Event, 0, label);
+
+        CommandList.BeginEvent(PixHelpers.Version, buffer, size);
     }
 
     protected override void EndDebugEventImpl()
     {
+        CommandList.EndEvent();
     }
 
     protected override void InsertDebugMarkerImpl(string label)
     {
+        using ZenithMarshal.Scope scope = new();
+
+        uint size = PixHelpers.CalculateEventSize(label);
+
+        ulong* buffer = (ulong*)ZenithMarshal.Allocate<byte>(scope, size);
+
+        PixHelpers.FormatEventToBuffer(buffer, PixHelpers.Marker, 0, label);
+
+        CommandList.SetMarker(PixHelpers.Version, buffer, size);
     }
 
     protected override void BeginImpl()
     {
+        if (Queue.Type is CommandQueueType.Copy)
+        {
+            return;
+        }
+
+        ID3D12DescriptorHeap** ppDescriptorHeaps = stackalloc ID3D12DescriptorHeap*[] { Context.CbvSrvUavHeap.Heap, Context.SamplerHeap.Heap };
+
+        CommandList.SetDescriptorHeaps(2, ppDescriptorHeaps);
+
+        switch (Queue.Type)
+        {
+            case CommandQueueType.Graphics:
+                CommandList.SetGraphicsRootSignature(Context.RootSignature);
+                break;
+
+            case CommandQueueType.Compute:
+                CommandList.SetComputeRootSignature(Context.RootSignature);
+                break;
+        }
     }
 
     protected override void EndImpl()
     {
+        CommandList.Close().Success();
     }
 
     protected override void ResetImpl()
     {
+        CommandAllocator.Reset().Success();
+        CommandList.Reset(CommandAllocator, default(ID3D12PipelineState*)).Success();
     }
 
     protected override void SetResourceName(string name)
