@@ -50,8 +50,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         DXTexture dxSrc = src.DirectX12();
         DXTexture dxDst = dst.DirectX12();
 
-        // TODO: 计算subresource的index。
-        CommandList.ResolveSubresource(dxDst.Resource, 0, dxSrc.Resource, 0, DXFormats.DirectX12(dxDst.Desc.Format));
+        CommandList.ResolveSubresource(dxDst.Resource, dxDst.Subresource(dstSubresource), dxSrc.Resource, dxSrc.Subresource(srcSubresource), DXFormats.DirectX12(dxDst.Desc.Format));
     }
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)
