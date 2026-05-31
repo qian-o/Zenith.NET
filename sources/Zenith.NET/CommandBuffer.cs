@@ -20,15 +20,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Upload(Buffer buffer, uint offsetInBytes, BufferData data)
     {
-        Buffer stagingBuffer = Context.Uploader.Buffer(this, data.SizeInBytes);
-        stagingBuffer.Upload(0, data);
-
-        CopyBuffer(stagingBuffer, 0, buffer, offsetInBytes, data.SizeInBytes);
-    }
-
-    public void Download(Buffer buffer, uint offsetInBytes, BufferData data)
-    {
-        Buffer stagingBuffer = Context.Downloader.Buffer(this, data.SizeInBytes, new()
+        Buffer transferBuffer = Context.Uploader.Buffer(this, data.SizeInBytes, new()
         {
             Pointer = data.Pointer,
             RowSizeInBytes = data.SizeInBytes,
@@ -37,7 +29,21 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             Rows = 1
         });
 
-        CopyBuffer(buffer, offsetInBytes, stagingBuffer, 0, data.SizeInBytes);
+        CopyBuffer(transferBuffer, 0, buffer, offsetInBytes, data.SizeInBytes);
+    }
+
+    public void Download(Buffer buffer, uint offsetInBytes, BufferData data)
+    {
+        Buffer transferBuffer = Context.Downloader.Buffer(this, data.SizeInBytes, new()
+        {
+            Pointer = data.Pointer,
+            RowSizeInBytes = data.SizeInBytes,
+            SrcRowStrideInBytes = data.SizeInBytes,
+            DstRowStrideInBytes = data.SizeInBytes,
+            Rows = 1
+        });
+
+        CopyBuffer(buffer, offsetInBytes, transferBuffer, 0, data.SizeInBytes);
     }
 
     public void Upload(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
@@ -56,21 +62,16 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         for (uint i = 0; i < extent.Depth; i++)
         {
-            Buffer stagingBuffer = Context.Uploader.Buffer(this, alignedDepthPitchInBytes);
-
-            MappedMemory mappedMemory = stagingBuffer.Map();
-
-            unsafe
+            Buffer transferBuffer = Context.Uploader.Buffer(this, alignedDepthPitchInBytes, new()
             {
-                for (uint j = 0; j < blocksHigh; j++)
-                {
-                    new ReadOnlySpan<byte>((void*)(data.Pointer + (data.SliceStrideInBytes * i) + (data.RowStrideInBytes * j)), (int)rowPitchInBytes).CopyTo(new((void*)(mappedMemory.Pointer + (alignedRowPitchInBytes * j)), (int)rowPitchInBytes));
-                }
-            }
+                Pointer = (nint)(data.Pointer + (data.SliceStrideInBytes * i)),
+                RowSizeInBytes = rowPitchInBytes,
+                SrcRowStrideInBytes = data.RowStrideInBytes,
+                DstRowStrideInBytes = alignedRowPitchInBytes,
+                Rows = blocksHigh
+            });
 
-            stagingBuffer.Unmap();
-
-            CopyBufferToTexture(stagingBuffer, 0, alignedRowPitchInBytes, alignedDepthPitchInBytes, texture, subresource, offset, sliceExtent);
+            CopyBufferToTexture(transferBuffer, 0, alignedRowPitchInBytes, alignedDepthPitchInBytes, texture, subresource, offset, sliceExtent);
 
             offset.Z++;
         }
@@ -92,7 +93,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         for (uint i = 0; i < extent.Depth; i++)
         {
-            Buffer stagingBuffer = Context.Downloader.Buffer(this, alignedDepthPitchInBytes, new()
+            Buffer transferBuffer = Context.Downloader.Buffer(this, alignedDepthPitchInBytes, new()
             {
                 Pointer = (nint)(data.Pointer + (data.SliceStrideInBytes * i)),
                 RowSizeInBytes = rowPitchInBytes,
@@ -101,7 +102,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
                 Rows = blocksHigh
             });
 
-            CopyTextureToBuffer(texture, subresource, offset, sliceExtent, stagingBuffer, 0, alignedRowPitchInBytes, alignedDepthPitchInBytes);
+            CopyTextureToBuffer(texture, subresource, offset, sliceExtent, transferBuffer, 0, alignedRowPitchInBytes, alignedDepthPitchInBytes);
 
             offset.Z++;
         }

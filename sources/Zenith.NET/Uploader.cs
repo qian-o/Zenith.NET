@@ -8,7 +8,7 @@ internal class Uploader(GraphicsContext context) : DisposableObject
     private readonly List<Lease> available = [];
     private readonly Dictionary<CommandBuffer, List<Lease>> borrowed = [];
 
-    public Buffer Buffer(CommandBuffer commandBuffer, uint sizeInBytes)
+    public Buffer Buffer(CommandBuffer commandBuffer, uint sizeInBytes, TransferLayout layout)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
@@ -27,7 +27,7 @@ internal class Uploader(GraphicsContext context) : DisposableObject
             }));
         }
 
-        leases.Add(lease);
+        leases.Add(lease.Borrow(layout));
 
         return lease.Buffer;
     }
@@ -75,6 +75,13 @@ internal class Uploader(GraphicsContext context) : DisposableObject
         public bool HasCapacityFor(uint sizeInBytes)
         {
             return Buffer.Desc.SizeInBytes >= sizeInBytes;
+        }
+
+        public Lease Borrow(TransferLayout layout)
+        {
+            layout.Upload(Buffer);
+
+            return this;
         }
 
         public bool TryExpire()
