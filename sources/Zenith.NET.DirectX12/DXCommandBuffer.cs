@@ -117,6 +117,35 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, uint srcRowStrideInBytes, uint srcSliceStrideInBytes, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D dstExtent)
     {
+        DXBuffer dxSrc = src.DirectX12();
+        DXTexture dxDst = dst.DirectX12();
+
+        TextureCopyLocation srcLocation = new()
+        {
+            PResource = dxSrc.Resource,
+            Type = TextureCopyType.PlacedFootprint,
+            PlacedFootprint = new()
+            {
+                Offset = srcOffsetInBytes,
+                Footprint = new()
+                {
+                    Format = DXFormats.DirectX12(dxDst.Desc.Format),
+                    Width = dstExtent.Width,
+                    Height = dstExtent.Height,
+                    Depth = dstExtent.Depth,
+                    RowPitch = srcRowStrideInBytes
+                }
+            }
+        };
+
+        TextureCopyLocation dstLocation = new()
+        {
+            PResource = dxDst.Resource,
+            Type = TextureCopyType.SubresourceIndex,
+            SubresourceIndex = dxDst.SubresourceIndex(dstSubresource)
+        };
+
+        CommandList.CopyTextureRegion(&dstLocation, dstOffset.X, dstOffset.Y, dstOffset.Z, &srcLocation, default(Box*));
     }
 
     protected override void CopyTextureImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D extent)
@@ -145,6 +174,37 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void CopyTextureToBufferImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dst, uint dstOffsetInBytes, uint dstRowStrideInBytes, uint dstSliceStrideInBytes)
     {
+        DXTexture dxSrc = src.DirectX12();
+        DXBuffer dxDst = dst.DirectX12();
+
+        TextureCopyLocation srcLocation = new()
+        {
+            PResource = dxSrc.Resource,
+            Type = TextureCopyType.SubresourceIndex,
+            SubresourceIndex = dxSrc.SubresourceIndex(srcSubresource)
+        };
+
+        Box srcBox = new(srcOffset.X, srcOffset.Y, srcOffset.Z, srcOffset.X + srcExtent.Width, srcOffset.Y + srcExtent.Height, srcOffset.Z + srcExtent.Depth);
+
+        TextureCopyLocation dstLocation = new()
+        {
+            PResource = dxDst.Resource,
+            Type = TextureCopyType.PlacedFootprint,
+            PlacedFootprint = new()
+            {
+                Offset = dstOffsetInBytes,
+                Footprint = new()
+                {
+                    Format = DXFormats.DirectX12(dxSrc.Desc.Format),
+                    Width = srcExtent.Width,
+                    Height = srcExtent.Height,
+                    Depth = srcExtent.Depth,
+                    RowPitch = dstRowStrideInBytes
+                }
+            }
+        };
+
+        CommandList.CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, &srcBox);
     }
 
     protected override void ResolveTextureImpl(Texture src, TextureSubresource srcSubresource, Texture dst, TextureSubresource dstSubresource)
