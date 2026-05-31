@@ -34,12 +34,9 @@ public static class Extensions
                     TextureData data = new()
                     {
                         Pointer = (nint)pPixels,
-                        Layout = new()
-                        {
-                            SizeInBytes = (uint)(sizeof(Rgba32) * pixels.Length),
-                            RowStrideInBytes = ZenithHelper.RowStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height),
-                            SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height)
-                        }
+                        SizeInBytes = (uint)(sizeof(Rgba32) * pixels.Length),
+                        RowStrideInBytes = ZenithHelper.RowStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height),
+                        SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height)
                     };
 
                     commandBuffer.Upload(texture, default, default, extent, data);
@@ -61,12 +58,9 @@ public static class Extensions
                         TextureData data = new()
                         {
                             Pointer = (nint)pPixels,
-                            Layout = new()
-                            {
-                                SizeInBytes = (uint)(sizeof(Rgba32) * pixels.Length),
-                                RowStrideInBytes = ZenithHelper.RowStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height),
-                                SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height)
-                            }
+                            SizeInBytes = (uint)(sizeof(Rgba32) * pixels.Length),
+                            RowStrideInBytes = ZenithHelper.RowStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height),
+                            SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height)
                         };
 
                         commandBuffer.Upload(texture, new() { MipLevel = i }, default, extent, data);

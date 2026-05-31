@@ -170,12 +170,9 @@ float4 FSMain(VSOutput input) : SV_TARGET
                             TextureData data = new()
                             {
                                 Pointer = (nint)textureData.Pixels,
-                                Layout = new()
-                                {
-                                    SizeInBytes = ZenithHelper.SizeInBytes(texture.Desc.Format, extent.Width, extent.Height),
-                                    RowStrideInBytes = ZenithHelper.RowStrideInBytes(texture.Desc.Format, extent.Width, extent.Height),
-                                    SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(texture.Desc.Format, extent.Width, extent.Height)
-                                }
+                                SizeInBytes = ZenithHelper.SizeInBytes(texture.Desc.Format, extent.Width, extent.Height),
+                                RowStrideInBytes = ZenithHelper.RowStrideInBytes(texture.Desc.Format, extent.Width, extent.Height),
+                                SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(texture.Desc.Format, extent.Width, extent.Height)
                             };
 
                             commandBuffer.Upload(texture, default, default, extent, data);
@@ -185,12 +182,9 @@ float4 FSMain(VSOutput input) : SV_TARGET
                             TextureData data = new()
                             {
                                 Pointer = (nint)textureData.Pixels,
-                                Layout = new()
-                                {
-                                    SizeInBytes = ZenithHelper.SizeInBytes(texture.Desc.Format, extent.Width, extent.Height),
-                                    RowStrideInBytes = ZenithHelper.RowStrideInBytes(texture.Desc.Format, extent.Width, extent.Height),
-                                    SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(texture.Desc.Format, extent.Width, extent.Height)
-                                }
+                                SizeInBytes = ZenithHelper.SizeInBytes(texture.Desc.Format, extent.Width, extent.Height),
+                                RowStrideInBytes = ZenithHelper.RowStrideInBytes(texture.Desc.Format, extent.Width, extent.Height),
+                                SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(texture.Desc.Format, extent.Width, extent.Height)
                             };
 
                             commandBuffer.Upload(texture, default, default, extent, data);
@@ -228,12 +222,9 @@ float4 FSMain(VSOutput input) : SV_TARGET
                                     TextureData data = new()
                                     {
                                         Pointer = (nint)pointer,
-                                        Layout = new()
-                                        {
-                                            SizeInBytes = (uint)(sizeof(int) * rect.W * rect.H),
-                                            RowStrideInBytes = ZenithHelper.RowStrideInBytes(texture.Desc.Format, extent.Width, extent.Height),
-                                            SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(texture.Desc.Format, extent.Width, extent.Height)
-                                        }
+                                        SizeInBytes = (uint)(sizeof(int) * rect.W * rect.H),
+                                        RowStrideInBytes = ZenithHelper.RowStrideInBytes(texture.Desc.Format, extent.Width, extent.Height),
+                                        SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(texture.Desc.Format, extent.Width, extent.Height)
                                     };
 
                                     commandBuffer.Upload(texture, default, offset, extent, data);
@@ -250,12 +241,9 @@ float4 FSMain(VSOutput input) : SV_TARGET
                                     TextureData data = new()
                                     {
                                         Pointer = (nint)pointer,
-                                        Layout = new()
-                                        {
-                                            SizeInBytes = (uint)(rect.W * rect.H),
-                                            RowStrideInBytes = ZenithHelper.RowStrideInBytes(texture.Desc.Format, extent.Width, extent.Height),
-                                            SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(texture.Desc.Format, extent.Width, extent.Height)
-                                        }
+                                        SizeInBytes = (uint)(rect.W * rect.H),
+                                        RowStrideInBytes = ZenithHelper.RowStrideInBytes(texture.Desc.Format, extent.Width, extent.Height),
+                                        SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(texture.Desc.Format, extent.Width, extent.Height)
                                     };
 
                                     commandBuffer.Upload(texture, default, offset, extent, data);

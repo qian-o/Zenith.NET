@@ -4,5 +4,9 @@ public struct TextureData
 {
     public nint Pointer;
 
-    public TextureDataLayout Layout;
+    public uint SizeInBytes;
+
+    public uint RowStrideInBytes;
+
+    public uint SliceStrideInBytes;
 }

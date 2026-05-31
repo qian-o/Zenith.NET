@@ -35,17 +35,17 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Upload(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {
-        Buffer stagingBuffer = Context.Uploader.Buffer(this, data.Layout.SizeInBytes);
-        stagingBuffer.Upload(0, new() { Pointer = data.Pointer, SizeInBytes = data.Layout.SizeInBytes });
+        Buffer stagingBuffer = Context.Uploader.Buffer(this, data.SizeInBytes);
+        stagingBuffer.Upload(0, new() { Pointer = data.Pointer, SizeInBytes = data.SizeInBytes });
 
-        CopyBufferToTexture(stagingBuffer, 0, data.Layout, texture, subresource, offset, extent);
+        // TODO
     }
 
     public void Download(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {
-        Buffer stagingBuffer = Context.Downloader.Buffer(this, new() { Pointer = data.Pointer, SizeInBytes = data.Layout.SizeInBytes });
+        Buffer stagingBuffer = Context.Downloader.Buffer(this, new() { Pointer = data.Pointer, SizeInBytes = data.SizeInBytes });
 
-        CopyTextureToBuffer(texture, subresource, offset, extent, stagingBuffer, 0, data.Layout);
+        // TODO
     }
 
     public void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes)
@@ -53,9 +53,9 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CopyBufferImpl(src, srcOffsetInBytes, dst, dstOffsetInBytes, sizeInBytes);
     }
 
-    public void CopyBufferToTexture(Buffer src, uint srcOffsetInBytes, TextureDataLayout srcLayout, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D dstExtent)
+    public void CopyBufferToTexture(Buffer src, uint srcOffsetInBytes, uint srcRowStrideInBytes, uint srcSliceStrideInBytes, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D dstExtent)
     {
-        CopyBufferToTextureImpl(src, srcOffsetInBytes, srcLayout, dst, dstSubresource, dstOffset, dstExtent);
+        CopyBufferToTextureImpl(src, srcOffsetInBytes, srcRowStrideInBytes, srcSliceStrideInBytes, dst, dstSubresource, dstOffset, dstExtent);
     }
 
     public void CopyTexture(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D extent)
@@ -63,9 +63,9 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CopyTextureImpl(src, srcSubresource, srcOffset, dst, dstSubresource, dstOffset, extent);
     }
 
-    public void CopyTextureToBuffer(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dst, uint dstOffsetInBytes, TextureDataLayout dstLayout)
+    public void CopyTextureToBuffer(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dst, uint dstOffsetInBytes, uint dstRowStrideInBytes, uint dstSliceStrideInBytes)
     {
-        CopyTextureToBufferImpl(src, srcSubresource, srcOffset, srcExtent, dst, dstOffsetInBytes, dstLayout);
+        CopyTextureToBufferImpl(src, srcSubresource, srcOffset, srcExtent, dst, dstOffsetInBytes, dstRowStrideInBytes, dstSliceStrideInBytes);
     }
 
     public void ResolveTexture(Texture src, TextureSubresource srcSubresource, Texture dst, TextureSubresource dstSubresource)
@@ -378,11 +378,11 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes);
 
-    protected abstract void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, TextureDataLayout srcLayout, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D dstExtent);
+    protected abstract void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, uint srcRowStrideInBytes, uint srcSliceStrideInBytes, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D dstExtent);
 
     protected abstract void CopyTextureImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D extent);
 
-    protected abstract void CopyTextureToBufferImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dst, uint dstOffsetInBytes, TextureDataLayout dstLayout);
+    protected abstract void CopyTextureToBufferImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dst, uint dstOffsetInBytes, uint dstRowStrideInBytes, uint dstSliceStrideInBytes);
 
     protected abstract void ResolveTextureImpl(Texture src, TextureSubresource srcSubresource, Texture dst, TextureSubresource dstSubresource);
 

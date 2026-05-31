@@ -21,12 +21,9 @@ internal class Surface(GraphicsContext graphicsContext, uint width, uint height)
         Target.Download(default, default, new() { Width = Width, Height = Height, Depth = 1 }, new()
         {
             Pointer = lockedFramebuffer.Address,
-            Layout = new()
-            {
-                SizeInBytes = (uint)(lockedFramebuffer.RowBytes * Height),
-                RowStrideInBytes = (uint)lockedFramebuffer.RowBytes,
-                SliceStrideInBytes = (uint)(lockedFramebuffer.RowBytes * Height)
-            }
+            SizeInBytes = (uint)(lockedFramebuffer.RowBytes * Height),
+            RowStrideInBytes = (uint)lockedFramebuffer.RowBytes,
+            SliceStrideInBytes = (uint)(lockedFramebuffer.RowBytes * Height)
         });
     }
 

@@ -115,7 +115,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         CommandList.CopyBufferRegion(dxDst.Resource, dstOffsetInBytes, dxSrc.Resource, srcOffsetInBytes, sizeInBytes);
     }
 
-    protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, TextureDataLayout srcLayout, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D dstExtent)
+    protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, uint srcRowStrideInBytes, uint srcSliceStrideInBytes, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D dstExtent)
     {
     }
 
@@ -143,7 +143,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         CommandList.CopyTextureRegion(&dstLocation, dstOffset.X, dstOffset.Y, dstOffset.Z, &srcLocation, &srcBox);
     }
 
-    protected override void CopyTextureToBufferImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dst, uint dstOffsetInBytes, TextureDataLayout dstLayout)
+    protected override void CopyTextureToBufferImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dst, uint dstOffsetInBytes, uint dstRowStrideInBytes, uint dstSliceStrideInBytes)
     {
     }
 

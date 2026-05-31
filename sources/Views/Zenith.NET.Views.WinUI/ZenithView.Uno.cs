@@ -69,12 +69,9 @@ internal unsafe class Surface(GraphicsContext context, uint width, uint height) 
             Target.Download(default, default, new() { Width = Width, Height = Height, Depth = 1 }, new()
             {
                 Pointer = (nint)pPixels,
-                Layout = new()
-                {
-                    SizeInBytes = (uint)pixels.Length,
-                    RowStrideInBytes = Width * 4,
-                    SliceStrideInBytes = (uint)pixels.Length
-                }
+                SizeInBytes = (uint)pixels.Length,
+                RowStrideInBytes = Width * 4,
+                SliceStrideInBytes = (uint)pixels.Length
             });
         }
 
