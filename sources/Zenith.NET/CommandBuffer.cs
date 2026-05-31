@@ -28,24 +28,83 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Download(Buffer buffer, uint offsetInBytes, BufferData data)
     {
-        Buffer stagingBuffer = Context.Downloader.Buffer(this, data);
+        Buffer stagingBuffer = Context.Downloader.Buffer(this, data.SizeInBytes, new()
+        {
+            Pointer = data.Pointer,
+            RowSizeInBytes = data.SizeInBytes,
+            SrcRowStrideInBytes = data.SizeInBytes,
+            DstRowStrideInBytes = data.SizeInBytes,
+            Rows = 1
+        });
 
         CopyBuffer(buffer, offsetInBytes, stagingBuffer, 0, data.SizeInBytes);
     }
 
     public void Upload(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {
-        Buffer stagingBuffer = Context.Uploader.Buffer(this, data.SizeInBytes);
-        stagingBuffer.Upload(0, new() { Pointer = data.Pointer, SizeInBytes = data.SizeInBytes });
+        const uint RowPitchAlignment = 256;
+        const uint DepthPitchAlignment = 512;
 
-        // TODO
+        (_, _, uint blocksWide, uint blocksHigh) = ZenithHelper.BlockLayout(texture.Desc.Format, extent.Width, extent.Height);
+
+        uint rowPitchInBytes = ZenithHelper.SizeInBytes(texture.Desc.Format) * blocksWide;
+
+        uint alignedRowPitchInBytes = ZenithHelper.Align(rowPitchInBytes, RowPitchAlignment);
+        uint alignedDepthPitchInBytes = ZenithHelper.Align(alignedRowPitchInBytes * blocksHigh, DepthPitchAlignment);
+
+        Extent3D sliceExtent = extent with { Depth = 1 };
+
+        for (uint i = 0; i < extent.Depth; i++)
+        {
+            Buffer stagingBuffer = Context.Uploader.Buffer(this, alignedDepthPitchInBytes);
+
+            MappedMemory mappedMemory = stagingBuffer.Map();
+
+            unsafe
+            {
+                for (uint j = 0; j < blocksHigh; j++)
+                {
+                    new ReadOnlySpan<byte>((void*)(data.Pointer + (data.SliceStrideInBytes * i) + (data.RowStrideInBytes * j)), (int)rowPitchInBytes).CopyTo(new((void*)(mappedMemory.Pointer + (alignedRowPitchInBytes * j)), (int)rowPitchInBytes));
+                }
+            }
+
+            stagingBuffer.Unmap();
+
+            CopyBufferToTexture(stagingBuffer, 0, alignedRowPitchInBytes, alignedDepthPitchInBytes, texture, subresource, offset, sliceExtent);
+
+            offset.Z++;
+        }
     }
 
     public void Download(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {
-        Buffer stagingBuffer = Context.Downloader.Buffer(this, new() { Pointer = data.Pointer, SizeInBytes = data.SizeInBytes });
+        const uint RowPitchAlignment = 256;
+        const uint DepthPitchAlignment = 512;
 
-        // TODO
+        (_, _, uint blocksWide, uint blocksHigh) = ZenithHelper.BlockLayout(texture.Desc.Format, extent.Width, extent.Height);
+
+        uint rowPitchInBytes = ZenithHelper.SizeInBytes(texture.Desc.Format) * blocksWide;
+
+        uint alignedRowPitchInBytes = ZenithHelper.Align(rowPitchInBytes, RowPitchAlignment);
+        uint alignedDepthPitchInBytes = ZenithHelper.Align(alignedRowPitchInBytes * blocksHigh, DepthPitchAlignment);
+
+        Extent3D sliceExtent = extent with { Depth = 1 };
+
+        for (uint i = 0; i < extent.Depth; i++)
+        {
+            Buffer stagingBuffer = Context.Downloader.Buffer(this, alignedDepthPitchInBytes, new()
+            {
+                Pointer = (nint)(data.Pointer + (data.SliceStrideInBytes * i)),
+                RowSizeInBytes = rowPitchInBytes,
+                SrcRowStrideInBytes = alignedRowPitchInBytes,
+                DstRowStrideInBytes = data.RowStrideInBytes,
+                Rows = blocksHigh
+            });
+
+            CopyTextureToBuffer(texture, subresource, offset, sliceExtent, stagingBuffer, 0, alignedRowPitchInBytes, alignedDepthPitchInBytes);
+
+            offset.Z++;
+        }
     }
 
     public void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes)

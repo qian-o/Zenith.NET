@@ -8,7 +8,7 @@ internal class Downloader(GraphicsContext context) : DisposableObject
     private readonly List<Lease> available = [];
     private readonly Dictionary<CommandBuffer, List<Lease>> borrowed = [];
 
-    public Buffer Buffer(CommandBuffer commandBuffer, BufferData data)
+    public Buffer Buffer(CommandBuffer commandBuffer, uint sizeInBytes, DownloadLayout layout)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
@@ -17,17 +17,17 @@ internal class Downloader(GraphicsContext context) : DisposableObject
             borrowed[commandBuffer] = leases = [];
         }
 
-        if (!(available.Where(item => item.HasCapacityFor(data.SizeInBytes)).MinBy(static item => item.Buffer.Desc.SizeInBytes) is Lease lease && available.Remove(lease)))
+        if (!(available.Where(item => item.HasCapacityFor(sizeInBytes)).MinBy(static item => item.Buffer.Desc.SizeInBytes) is Lease lease && available.Remove(lease)))
         {
             lease = new(context.CreateBuffer(new()
             {
-                SizeInBytes = data.SizeInBytes,
+                SizeInBytes = sizeInBytes,
                 Usages = BufferUsages.CopyDst,
                 Residency = MemoryResidency.CpuReadOnly
             }));
         }
 
-        leases.Add(lease.Borrow(data));
+        leases.Add(lease.Borrow(layout));
 
         return lease.Buffer;
     }
@@ -70,7 +70,7 @@ internal class Downloader(GraphicsContext context) : DisposableObject
     {
         private DateTime expirationTime = DateTime.UtcNow + LeaseLifetime;
 
-        private BufferData data;
+        private DownloadLayout layout;
 
         public Buffer Buffer { get; } = buffer;
 
@@ -79,16 +79,26 @@ internal class Downloader(GraphicsContext context) : DisposableObject
             return Buffer.Desc.SizeInBytes >= sizeInBytes;
         }
 
-        public Lease Borrow(BufferData newData)
+        public Lease Borrow(DownloadLayout newLayout)
         {
-            data = newData;
+            layout = newLayout;
 
             return this;
         }
 
         public Lease Writeback()
         {
-            Buffer.Download(0, data);
+            MappedMemory mappedMemory = Buffer.Map();
+
+            unsafe
+            {
+                for (uint row = 0; row < layout.Rows; row++)
+                {
+                    new ReadOnlySpan<byte>((void*)(mappedMemory.Pointer + (layout.SrcRowStrideInBytes * row)), (int)layout.RowSizeInBytes).CopyTo(new((void*)(layout.Pointer + (layout.DstRowStrideInBytes * row)), (int)layout.RowSizeInBytes));
+                }
+            }
+
+            Buffer.Unmap();
 
             return this;
         }
@@ -109,7 +119,7 @@ internal class Downloader(GraphicsContext context) : DisposableObject
         {
             expirationTime = DateTime.UtcNow + LeaseLifetime;
 
-            data = default;
+            layout = default;
 
             return this;
         }
@@ -119,4 +129,17 @@ internal class Downloader(GraphicsContext context) : DisposableObject
             Buffer.Dispose();
         }
     }
+}
+
+internal struct DownloadLayout
+{
+    public nint Pointer;
+
+    public uint RowSizeInBytes;
+
+    public uint SrcRowStrideInBytes;
+
+    public uint DstRowStrideInBytes;
+
+    public uint Rows;
 }
