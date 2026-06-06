@@ -49,8 +49,16 @@ internal unsafe class RasterizationRenderer : Renderer
         inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Position });
         inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Normal });
 
-        using Shader vertexShader = App.Context.CreateShaderFromFile(ShaderPath("Rasterization.slang"), "VSMain", ShaderStages.Vertex);
-        using Shader fragmentShader = App.Context.CreateShaderFromFile(ShaderPath("Rasterization.slang"), "FSMain", ShaderStages.Fragment);
+        using Shader vertexShader = App.Context.CreateShader(new()
+        {
+            Name = "VSMain",
+            CodeBytes = ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Rasterization.slang"), "VSMain")
+        });
+        using Shader fragmentShader = App.Context.CreateShader(new()
+        {
+            Name = "FSMain",
+            CodeBytes = ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Rasterization.slang"), "FSMain")
+        });
 
         pipeline = App.Context.CreateGraphicsPipeline(new()
         {

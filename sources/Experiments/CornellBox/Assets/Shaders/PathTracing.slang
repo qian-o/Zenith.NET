@@ -461,6 +461,7 @@ float Halton(uint index, uint base)
     return result;
 }
 
+[shader("compute")]
 [numthreads(16, 16, 1)]
 void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 {

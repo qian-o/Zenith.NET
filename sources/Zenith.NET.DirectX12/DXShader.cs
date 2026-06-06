@@ -8,8 +8,8 @@ internal unsafe class DXShader(DXGraphicsContext context, ShaderDesc desc) : Sha
     {
         return new()
         {
-            PShaderBytecode = (byte*)ZenithMarshal.AllocateAndFill(scope, Desc.Bytecode),
-            BytecodeLength = (uint)Desc.Bytecode.Length
+            PShaderBytecode = (byte*)ZenithMarshal.AllocateAndFill(scope, Desc.CodeBytes),
+            BytecodeLength = (uint)Desc.CodeBytes.Length
         };
     }
 

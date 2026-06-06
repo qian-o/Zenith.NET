@@ -1,6 +1,4 @@
-﻿using Slangc.NET;
-
-namespace Zenith.NET;
+﻿namespace Zenith.NET;
 
 public abstract class GraphicsContext : DisposableObject, INativeObject
 {
@@ -113,26 +111,6 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
         return CreateQueryHeapImpl(desc);
     }
 
-    public Shader CreateShaderFromFile(string file, string entryPoint, ShaderStages stage, string[]? searchPaths = null)
-    {
-        return CreateShader(new()
-        {
-            Bytecode = SlangCompiler.Compile(SlangCompilerArguments(file, entryPoint, stage, searchPaths)),
-            EntryPoint = entryPoint,
-            Stage = stage
-        });
-    }
-
-    public Shader CreateShaderFromSource(string source, string entryPoint, ShaderStages stage, string[]? searchPaths = null)
-    {
-        return CreateShader(new()
-        {
-            Bytecode = SlangCompiler.Compile(source, SlangCompilerArguments(null, entryPoint, stage, searchPaths)),
-            EntryPoint = entryPoint,
-            Stage = stage
-        });
-    }
-
     public abstract nint GetNativeObject(NativeObjectType type);
 
     protected override void Destroy()
@@ -184,57 +162,5 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
     internal void OnValidationMessage(ValidationMessageEventArgs args)
     {
         ValidationMessage?.Invoke(this, args);
-    }
-
-    private string[] SlangCompilerArguments(string? file, string entryPoint, ShaderStages stage, string[]? searchPaths)
-    {
-        List<string> arguments;
-
-        if (file is null)
-        {
-            arguments =
-            [
-                "-entry", entryPoint,
-                "-stage", stage.ToString().ToLowerInvariant(),
-                "-matrix-layout-row-major"
-            ];
-        }
-        else
-        {
-            arguments =
-            [
-                file,
-                "-entry", entryPoint,
-                "-stage", stage.ToString().ToLowerInvariant(),
-                "-matrix-layout-row-major"
-            ];
-        }
-
-        if (searchPaths is not null)
-        {
-            foreach (string path in searchPaths)
-            {
-                arguments.AddRange(["-I", path]);
-            }
-        }
-
-        arguments.Add("-target");
-
-        switch (GraphicsApi)
-        {
-            case GraphicsApi.DirectX12:
-                arguments.AddRange(["dxil", "-profile", "sm_6_6"]);
-                break;
-
-            case GraphicsApi.Metal:
-                arguments.AddRange(["metallib", "-capability", "metallib_latest", "-Xmetal", "-std=metal4.0"]);
-                break;
-
-            case GraphicsApi.Vulkan:
-                arguments.AddRange(["spirv", "-capability", "spirv_latest", "-capability", "spvDescriptorHeapEXT", "-fvk-use-entrypoint-name"]);
-                break;
-        }
-
-        return [.. arguments];
     }
 }

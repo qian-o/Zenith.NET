@@ -61,7 +61,11 @@ internal unsafe class PathTracingRenderer : Renderer
             Residency = MemoryResidency.CpuWriteOnly
         });
 
-        using Shader computeShader = App.Context.CreateShaderFromFile(ShaderPath("PathTracing.slang"), "CSMain", ShaderStages.Compute);
+        using Shader computeShader = App.Context.CreateShader(new()
+        {
+            Name = "CSMain",
+            CodeBytes = ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("PathTracing.slang"), "CSMain")
+        });
 
         pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = computeShader });
 

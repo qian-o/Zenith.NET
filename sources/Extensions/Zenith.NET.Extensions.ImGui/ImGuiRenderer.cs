@@ -7,7 +7,7 @@ namespace Zenith.NET.Extensions.ImGui;
 
 internal unsafe class ImGuiRenderer : DisposableObject
 {
-    public const string Source = @"
+    public const string Source = """
 struct VSInput
 {
     float2 Position : POSITION0;
@@ -42,6 +42,7 @@ float3 SrgbToLinear(float3 srgb)
     return srgb * (srgb * (srgb * 0.305306011 + 0.682171111) + 0.012522878);
 }
 
+[shader("vertex")]
 VSOutput VSMain(VSInput input)
 {
     VSOutput output;
@@ -57,11 +58,12 @@ VSOutput VSMain(VSInput input)
     return output;
 }
 
+[shader("fragment")]
 float4 FSMain(VSOutput input) : SV_TARGET
 {
     return input.Color * (*constants.Texture).Sample(*constants.Sampler, input.UV);
 }
-";
+""";
 
     private readonly Sampler sampler;
     private readonly GraphicsPipeline graphicsPipeline;
@@ -80,8 +82,16 @@ float4 FSMain(VSOutput input) : SV_TARGET
 
         sampler = context.CreateSampler(SamplerDesc.PointClamp());
 
-        using Shader vertex = context.CreateShaderFromSource(source, "VSMain", ShaderStages.Vertex);
-        using Shader fragment = context.CreateShaderFromSource(source, "FSMain", ShaderStages.Fragment);
+        using Shader vertex = context.CreateShader(new()
+        {
+            Name = "VSMain",
+            CodeBytes = ZenithCompiler.CompileFromSource(context.GraphicsApi, source, "VSMain")
+        });
+        using Shader fragment = context.CreateShader(new()
+        {
+            Name = "FSMain",
+            CodeBytes = ZenithCompiler.CompileFromSource(context.GraphicsApi, source, "FSMain")
+        });
 
         InputLayout inputLayout = new();
         inputLayout.Add(new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.Position });

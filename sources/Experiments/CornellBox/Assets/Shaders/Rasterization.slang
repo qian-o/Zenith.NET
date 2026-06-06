@@ -151,6 +151,7 @@ float3 FresnelSchlick(float cosTheta, float3 F0)
     return F0 + (1.0 - F0) * pow(saturate(1.0 - cosTheta), 5.0);
 }
 
+[shader("vertex")]
 FSInput VSMain(VSInput input)
 {
     float4 worldPos = mul(float4(input.Position, 1.0), rasterization.Model);
@@ -164,6 +165,7 @@ FSInput VSMain(VSInput input)
     return output;
 }
 
+[shader("fragment")]
 float4 FSMain(FSInput input) : SV_TARGET
 {
     Material mat = (*rasterization.Materials)[input.MaterialId];
