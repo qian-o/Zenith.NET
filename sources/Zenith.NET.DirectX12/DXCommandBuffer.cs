@@ -248,7 +248,6 @@ internal unsafe class DXCommandBuffer : CommandBuffer
     protected override void BeginRenderPassImpl(ReadOnlySpan<ColorAttachment> colorAttachments, DepthStencilAttachment? depthStencilAttachment)
     {
         RenderPassRenderTargetDesc* pRenderTargets = stackalloc RenderPassRenderTargetDesc[colorAttachments.Length];
-
         for (int i = 0; i < colorAttachments.Length; i++)
         {
             ColorAttachment attachment = colorAttachments[i];
@@ -259,7 +258,6 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             {
                 Format = DXFormats.DirectX12(texture.Desc.Format)
             };
-
             *(Vector4*)clearValue.Anonymous.Color = attachment.ClearColor;
 
             pRenderTargets[i] = new()
@@ -280,28 +278,29 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             };
         }
 
-        if (depthStencilAttachment is { } depthStencil)
+        RenderPassDepthStencilDesc depthStencil = default;
+        if (depthStencilAttachment.HasValue)
         {
-            DXTexture texture = depthStencil.Texture.DirectX12();
+            DepthStencilAttachment attachment = depthStencilAttachment.Value;
 
-            bool hasStencil = ZenithHelper.HasStencil(texture.Desc.Format);
+            DXTexture texture = attachment.Texture.DirectX12();
 
             ClearValue clearValue = new()
             {
                 Format = DXFormats.DirectX12(texture.Desc.Format),
                 DepthStencil = new()
                 {
-                    Depth = depthStencil.ClearDepth,
-                    Stencil = depthStencil.ClearStencil
+                    Depth = attachment.ClearDepth,
+                    Stencil = attachment.ClearStencil
                 }
             };
 
-            RenderPassDepthStencilDesc depthStencilDesc = new()
+            depthStencil = new()
             {
-                CpuDescriptor = texture.DsvHandle(depthStencil.Subresource),
+                CpuDescriptor = texture.DsvHandle(attachment.Subresource),
                 DepthBeginningAccess = new()
                 {
-                    Type = DXFormats.DirectX12(depthStencil.DepthLoadOp),
+                    Type = DXFormats.DirectX12(attachment.DepthLoadOp),
                     Clear = new()
                     {
                         ClearValue = clearValue
@@ -309,11 +308,11 @@ internal unsafe class DXCommandBuffer : CommandBuffer
                 },
                 DepthEndingAccess = new()
                 {
-                    Type = DXFormats.DirectX12(depthStencil.DepthStoreOp)
+                    Type = ZenithHelper.HasDepth(texture.Desc.Format) ? DXFormats.DirectX12(attachment.DepthStoreOp) : RenderPassEndingAccessType.NoAccess
                 },
                 StencilBeginningAccess = new()
                 {
-                    Type = hasStencil ? DXFormats.DirectX12(depthStencil.StencilLoadOp) : RenderPassBeginningAccessType.NoAccess,
+                    Type = ZenithHelper.HasStencil(texture.Desc.Format) ? DXFormats.DirectX12(attachment.StencilLoadOp) : RenderPassBeginningAccessType.NoAccess,
                     Clear = new()
                     {
                         ClearValue = clearValue
@@ -321,16 +320,12 @@ internal unsafe class DXCommandBuffer : CommandBuffer
                 },
                 StencilEndingAccess = new()
                 {
-                    Type = hasStencil ? DXFormats.DirectX12(depthStencil.StencilStoreOp) : RenderPassEndingAccessType.NoAccess
+                    Type = ZenithHelper.HasStencil(texture.Desc.Format) ? DXFormats.DirectX12(attachment.StencilStoreOp) : RenderPassEndingAccessType.NoAccess
                 }
             };
+        }
 
-            CommandList.BeginRenderPass((uint)colorAttachments.Length, pRenderTargets, &depthStencilDesc, RenderPassFlags.None);
-        }
-        else
-        {
-            CommandList.BeginRenderPass((uint)colorAttachments.Length, pRenderTargets, default(RenderPassDepthStencilDesc*), RenderPassFlags.None);
-        }
+        CommandList.BeginRenderPass((uint)colorAttachments.Length, pRenderTargets, &depthStencil, RenderPassFlags.None);
     }
 
     protected override void EndRenderPassImpl()

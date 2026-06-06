@@ -161,10 +161,12 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         {
             for (int i = 0; i < colorAttachments.Length; i++)
             {
-                ZenithHelper.MipDimensions(colorAttachments[i].Texture.Desc.Width,
-                                           colorAttachments[i].Texture.Desc.Height,
+                ColorAttachment attachment = colorAttachments[i];
+
+                ZenithHelper.MipDimensions(attachment.Texture.Desc.Width,
+                                           attachment.Texture.Desc.Height,
                                            0,
-                                           colorAttachments[i].Subresource.MipLevel,
+                                           attachment.Subresource.MipLevel,
                                            out uint width,
                                            out uint height,
                                            out _);
@@ -173,8 +175,10 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
                 viewports[i] = new() { Width = width, Height = height, MaxDepth = 1.0f };
             }
         }
-        else if (depthStencilAttachment is { } attachment)
+        else if (depthStencilAttachment.HasValue)
         {
+            DepthStencilAttachment attachment = depthStencilAttachment.Value;
+
             ZenithHelper.MipDimensions(attachment.Texture.Desc.Width,
                                        attachment.Texture.Desc.Height,
                                        0,
