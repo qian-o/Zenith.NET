@@ -16,7 +16,10 @@ internal unsafe class DXBuffer : Buffer
         {
             ResourceDesc1 resourceDesc = ResourceDesc(desc);
 
-            HeapProperties heapProperties = new(DXFormats.DirectX12(desc.Residency));
+            HeapProperties heapProperties = new()
+            {
+                Type = DXFormats.DirectX12(desc.Residency)
+            };
 
             context.Device.CreateCommittedResource3(&heapProperties,
                                                     HeapFlags.None,
@@ -91,7 +94,10 @@ internal unsafe class DXBuffer : Buffer
             Height = 1,
             DepthOrArraySize = 1,
             MipLevels = 1,
-            SampleDesc = new(1),
+            SampleDesc = new()
+            {
+                Count = 1
+            },
             Layout = DxTextureLayout.LayoutRowMajor,
             Flags = DXFormats.DirectX12(desc.Usages)
         };

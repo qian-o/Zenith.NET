@@ -180,7 +180,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override Buffer CreateBufferImpl(BufferDesc desc)
     {
-        return new DXBuffer(this, desc, null);
+        return new DXBuffer(this, desc, default);
     }
 
     protected override BufferView CreateBufferViewImpl(BufferViewDesc desc)
@@ -190,7 +190,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override Texture CreateTextureImpl(TextureDesc desc)
     {
-        return new DXTexture(this, desc, null);
+        return new DXTexture(this, desc, default);
     }
 
     protected override TextureView CreateTextureViewImpl(TextureViewDesc desc)

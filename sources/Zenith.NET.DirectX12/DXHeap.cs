@@ -13,7 +13,10 @@ internal unsafe class DXHeap : Heap
         DxHeapDesc heapDesc = new()
         {
             SizeInBytes = ZenithHelper.Align(desc.SizeInBytes, DXGraphicsContext.DefaultHeapAlignment),
-            Properties = new(DXFormats.DirectX12(desc.Residency)),
+            Properties = new()
+            {
+                Type = DXFormats.DirectX12(desc.Residency)
+            },
             Alignment = DXGraphicsContext.DefaultHeapAlignment
         };
 

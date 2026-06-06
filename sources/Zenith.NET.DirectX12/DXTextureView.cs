@@ -164,7 +164,6 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
                 viewDesc.Texture3D = new()
                 {
                     MipSlice = Desc.Range.BaseMipLevel,
-                    FirstWSlice = 0,
                     WSize = Desc.Texture.Desc.Depth
                 };
                 break;

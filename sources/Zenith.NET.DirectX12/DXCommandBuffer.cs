@@ -160,7 +160,15 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             SubresourceIndex = dxSrc.SubresourceIndex(srcSubresource)
         };
 
-        Box srcBox = new(srcOffset.X, srcOffset.Y, srcOffset.Z, srcOffset.X + extent.Width, srcOffset.Y + extent.Height, srcOffset.Z + extent.Depth);
+        Box srcBox = new()
+        {
+            Left = srcOffset.X,
+            Top = srcOffset.Y,
+            Front = srcOffset.Z,
+            Right = srcOffset.X + extent.Width,
+            Bottom = srcOffset.Y + extent.Height,
+            Back = srcOffset.Z + extent.Depth
+        };
 
         TextureCopyLocation dstLocation = new()
         {
@@ -184,7 +192,15 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             SubresourceIndex = dxSrc.SubresourceIndex(srcSubresource)
         };
 
-        Box srcBox = new(srcOffset.X, srcOffset.Y, srcOffset.Z, srcOffset.X + srcExtent.Width, srcOffset.Y + srcExtent.Height, srcOffset.Z + srcExtent.Depth);
+        Box srcBox = new()
+        {
+            Left = srcOffset.X,
+            Top = srcOffset.Y,
+            Front = srcOffset.Z,
+            Right = srcOffset.X + srcExtent.Width,
+            Bottom = srcOffset.Y + srcExtent.Height,
+            Back = srcOffset.Z + srcExtent.Depth
+        };
 
         TextureCopyLocation dstLocation = new()
         {
@@ -231,6 +247,90 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void BeginRenderPassImpl(ReadOnlySpan<ColorAttachment> colorAttachments, DepthStencilAttachment? depthStencilAttachment)
     {
+        RenderPassRenderTargetDesc* pRenderTargets = stackalloc RenderPassRenderTargetDesc[colorAttachments.Length];
+
+        for (int i = 0; i < colorAttachments.Length; i++)
+        {
+            ColorAttachment attachment = colorAttachments[i];
+
+            DXTexture texture = attachment.Texture.DirectX12();
+
+            ClearValue clearValue = new()
+            {
+                Format = DXFormats.DirectX12(texture.Desc.Format)
+            };
+
+            *(Vector4*)clearValue.Anonymous.Color = attachment.ClearColor;
+
+            pRenderTargets[i] = new()
+            {
+                CpuDescriptor = texture.RtvHandle(attachment.Subresource),
+                BeginningAccess = new()
+                {
+                    Type = DXFormats.DirectX12(attachment.LoadOp),
+                    Clear = new()
+                    {
+                        ClearValue = clearValue
+                    }
+                },
+                EndingAccess = new()
+                {
+                    Type = DXFormats.DirectX12(attachment.StoreOp)
+                }
+            };
+        }
+
+        if (depthStencilAttachment is { } depthStencil)
+        {
+            DXTexture texture = depthStencil.Texture.DirectX12();
+
+            bool hasStencil = ZenithHelper.HasStencil(texture.Desc.Format);
+
+            ClearValue clearValue = new()
+            {
+                Format = DXFormats.DirectX12(texture.Desc.Format),
+                DepthStencil = new()
+                {
+                    Depth = depthStencil.ClearDepth,
+                    Stencil = depthStencil.ClearStencil
+                }
+            };
+
+            RenderPassDepthStencilDesc depthStencilDesc = new()
+            {
+                CpuDescriptor = texture.DsvHandle(depthStencil.Subresource),
+                DepthBeginningAccess = new()
+                {
+                    Type = DXFormats.DirectX12(depthStencil.DepthLoadOp),
+                    Clear = new()
+                    {
+                        ClearValue = clearValue
+                    }
+                },
+                DepthEndingAccess = new()
+                {
+                    Type = DXFormats.DirectX12(depthStencil.DepthStoreOp)
+                },
+                StencilBeginningAccess = new()
+                {
+                    Type = hasStencil ? DXFormats.DirectX12(depthStencil.StencilLoadOp) : RenderPassBeginningAccessType.NoAccess,
+                    Clear = new()
+                    {
+                        ClearValue = clearValue
+                    }
+                },
+                StencilEndingAccess = new()
+                {
+                    Type = hasStencil ? DXFormats.DirectX12(depthStencil.StencilStoreOp) : RenderPassEndingAccessType.NoAccess
+                }
+            };
+
+            CommandList.BeginRenderPass((uint)colorAttachments.Length, pRenderTargets, &depthStencilDesc, RenderPassFlags.None);
+        }
+        else
+        {
+            CommandList.BeginRenderPass((uint)colorAttachments.Length, pRenderTargets, default(RenderPassDepthStencilDesc*), RenderPassFlags.None);
+        }
     }
 
     protected override void EndRenderPassImpl()
@@ -243,7 +343,19 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         Box2D<int>* pRects = stackalloc Box2D<int>[scissors.Length];
         for (int i = 0; i < scissors.Length; i++)
         {
-            pRects[i] = new(scissors[i].X, scissors[i].Y, scissors[i].X + (int)scissors[i].Width, scissors[i].Y + (int)scissors[i].Height);
+            pRects[i] = new()
+            {
+                Min = new()
+                {
+                    X = scissors[i].X,
+                    Y = scissors[i].Y
+                },
+                Max = new()
+                {
+                    X = scissors[i].X + (int)scissors[i].Width,
+                    Y = scissors[i].Y + (int)scissors[i].Height
+                }
+            };
         }
 
         CommandList.RSSetScissorRects((uint)scissors.Length, pRects);
@@ -254,7 +366,15 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         DxViewport* pViewports = stackalloc DxViewport[viewports.Length];
         for (int i = 0; i < viewports.Length; i++)
         {
-            pViewports[i] = new(viewports[i].X, viewports[i].Y, viewports[i].Width, viewports[i].Height, viewports[i].MinDepth, viewports[i].MaxDepth);
+            pViewports[i] = new()
+            {
+                TopLeftX = viewports[i].X,
+                TopLeftY = viewports[i].Y,
+                Width = viewports[i].Width,
+                Height = viewports[i].Height,
+                MinDepth = viewports[i].MinDepth,
+                MaxDepth = viewports[i].MaxDepth
+            };
         }
 
         CommandList.RSSetViewports((uint)viewports.Length, pViewports);

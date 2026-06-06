@@ -6,6 +6,9 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXTexture : Texture
 {
+    private readonly Dictionary<TextureSubresource, DXDescriptorToken> rtvTokens = [];
+    private readonly Dictionary<TextureSubresource, DXDescriptorToken> dsvTokens = [];
+
     public ComPtr<ID3D12Resource> Resource;
 
     public DXTexture(DXGraphicsContext context, TextureDesc desc, ComPtr<ID3D12Resource>? resource) : base(context, desc)
@@ -41,6 +44,8 @@ internal unsafe class DXTexture : Texture
         });
     }
 
+    public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
+
     public DXTextureView View { get; }
 
     public override ResourceHandle SampledHandle => View.SampledHandle;
@@ -50,6 +55,152 @@ internal unsafe class DXTexture : Texture
     public uint SubresourceIndex(TextureSubresource textureSubresource)
     {
         return (textureSubresource.MipLevel * Desc.ArrayLayers) + textureSubresource.ArrayLayer;
+    }
+
+    public CpuDescriptorHandle RtvHandle(TextureSubresource subresource)
+    {
+        if (!rtvTokens.TryGetValue(subresource, out DXDescriptorToken token))
+        {
+            rtvTokens[subresource] = token = Context.RtvHeap.Allocate();
+
+            RenderTargetViewDesc viewDesc = new(DXFormats.DirectX12(Desc.Format));
+
+            switch (Desc.Type)
+            {
+                case TextureType.Texture1D:
+                    viewDesc.ViewDimension = RtvDimension.Texture1D;
+                    viewDesc.Texture1D = new(subresource.MipLevel);
+                    break;
+
+                case TextureType.Texture1DArray:
+                    viewDesc.ViewDimension = RtvDimension.Texture1Darray;
+                    viewDesc.Texture1DArray = new()
+                    {
+                        MipSlice = subresource.MipLevel,
+                        FirstArraySlice = subresource.ArrayLayer,
+                        ArraySize = 1
+                    };
+                    break;
+
+                case TextureType.Texture2D:
+                    if (Desc.SampleCount is SampleCount.Count1)
+                    {
+                        viewDesc.ViewDimension = RtvDimension.Texture2D;
+                        viewDesc.Texture2D = new(subresource.MipLevel);
+                    }
+                    else
+                    {
+                        viewDesc.ViewDimension = RtvDimension.Texture2Dms;
+                    }
+                    break;
+
+                case TextureType.Texture2DArray:
+                case TextureType.TextureCube:
+                case TextureType.TextureCubeArray:
+                    if (Desc.SampleCount is SampleCount.Count1)
+                    {
+                        viewDesc.ViewDimension = RtvDimension.Texture2Darray;
+                        viewDesc.Texture2DArray = new()
+                        {
+                            MipSlice = subresource.MipLevel,
+                            FirstArraySlice = subresource.ArrayLayer,
+                            ArraySize = 1
+                        };
+                    }
+                    else
+                    {
+                        viewDesc.ViewDimension = RtvDimension.Texture2Dmsarray;
+                        viewDesc.Texture2DMSArray = new()
+                        {
+                            FirstArraySlice = subresource.ArrayLayer,
+                            ArraySize = 1
+                        };
+                    }
+                    break;
+
+                case TextureType.Texture3D:
+                    viewDesc.ViewDimension = RtvDimension.Texture3D;
+                    viewDesc.Texture3D = new()
+                    {
+                        MipSlice = subresource.MipLevel,
+                        FirstWSlice = subresource.ArrayLayer,
+                        WSize = 1
+                    };
+                    break;
+            }
+
+            Context.Device.CreateRenderTargetView(Resource, &viewDesc, token.CpuHandle);
+        }
+
+        return token.CpuHandle;
+    }
+
+    public CpuDescriptorHandle DsvHandle(TextureSubresource subresource)
+    {
+        if (!dsvTokens.TryGetValue(subresource, out DXDescriptorToken token))
+        {
+            dsvTokens[subresource] = token = Context.DsvHeap.Allocate();
+
+            DepthStencilViewDesc viewDesc = new(DXFormats.DirectX12(Desc.Format));
+
+            switch (Desc.Type)
+            {
+                case TextureType.Texture1D:
+                    viewDesc.ViewDimension = DsvDimension.Texture1D;
+                    viewDesc.Texture1D = new(subresource.MipLevel);
+                    break;
+
+                case TextureType.Texture1DArray:
+                    viewDesc.ViewDimension = DsvDimension.Texture1Darray;
+                    viewDesc.Texture1DArray = new()
+                    {
+                        MipSlice = subresource.MipLevel,
+                        FirstArraySlice = subresource.ArrayLayer,
+                        ArraySize = 1
+                    };
+                    break;
+
+                case TextureType.Texture2D:
+                    if (Desc.SampleCount is SampleCount.Count1)
+                    {
+                        viewDesc.ViewDimension = DsvDimension.Texture2D;
+                        viewDesc.Texture2D = new(subresource.MipLevel);
+                    }
+                    else
+                    {
+                        viewDesc.ViewDimension = DsvDimension.Texture2Dms;
+                    }
+                    break;
+
+                case TextureType.Texture2DArray:
+                case TextureType.TextureCube:
+                case TextureType.TextureCubeArray:
+                    if (Desc.SampleCount is SampleCount.Count1)
+                    {
+                        viewDesc.ViewDimension = DsvDimension.Texture2Darray;
+                        viewDesc.Texture2DArray = new()
+                        {
+                            MipSlice = subresource.MipLevel,
+                            FirstArraySlice = subresource.ArrayLayer,
+                            ArraySize = 1
+                        };
+                    }
+                    else
+                    {
+                        viewDesc.ViewDimension = DsvDimension.Texture2Dmsarray;
+                        viewDesc.Texture2DMSArray = new()
+                        {
+                            FirstArraySlice = subresource.ArrayLayer,
+                            ArraySize = 1
+                        };
+                    }
+                    break;
+            }
+
+            Context.Device.CreateDepthStencilView(Resource, &viewDesc, token.CpuHandle);
+        }
+
+        return token.CpuHandle;
     }
 
     public override nint GetNativeObject(NativeObjectType type)
@@ -64,6 +215,18 @@ internal unsafe class DXTexture : Texture
 
     protected override void Destroy()
     {
+        foreach (DXDescriptorToken token in rtvTokens.Values)
+        {
+            token.Dispose();
+        }
+        rtvTokens.Clear();
+
+        foreach (DXDescriptorToken token in dsvTokens.Values)
+        {
+            token.Dispose();
+        }
+        dsvTokens.Clear();
+
         View.Dispose();
 
         Resource.Dispose();

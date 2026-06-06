@@ -144,12 +144,30 @@ internal static class DXFormats
     {
         return sampleCount switch
         {
-            SampleCount.Count1 => new(1, 0),
-            SampleCount.Count2 => new(2, 0),
-            SampleCount.Count4 => new(4, 0),
-            SampleCount.Count8 => new(8, 0),
-            SampleCount.Count16 => new(16, 0),
-            SampleCount.Count32 => new(32, 0),
+            SampleCount.Count1 => new()
+            {
+                Count = 1
+            },
+            SampleCount.Count2 => new()
+            {
+                Count = 2
+            },
+            SampleCount.Count4 => new()
+            {
+                Count = 4
+            },
+            SampleCount.Count8 => new()
+            {
+                Count = 8
+            },
+            SampleCount.Count16 => new()
+            {
+                Count = 16
+            },
+            SampleCount.Count32 => new()
+            {
+                Count = 32
+            },
             _ => default
         };
     }
@@ -449,6 +467,27 @@ internal static class DXFormats
         {
             IndexFormat.UInt16 => Format.FormatR16Uint,
             IndexFormat.UInt32 => Format.FormatR32Uint,
+            _ => default
+        };
+    }
+
+    public static RenderPassBeginningAccessType DirectX12(LoadOp loadOp)
+    {
+        return loadOp switch
+        {
+            LoadOp.Load => RenderPassBeginningAccessType.Preserve,
+            LoadOp.Clear => RenderPassBeginningAccessType.Clear,
+            LoadOp.DontCare => RenderPassBeginningAccessType.Discard,
+            _ => default
+        };
+    }
+
+    public static RenderPassEndingAccessType DirectX12(StoreOp storeOp)
+    {
+        return storeOp switch
+        {
+            StoreOp.Store => RenderPassEndingAccessType.Preserve,
+            StoreOp.DontCare => RenderPassEndingAccessType.Discard,
             _ => default
         };
     }
