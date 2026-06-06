@@ -1,5 +1,7 @@
-﻿using Silk.NET.Direct3D12;
+﻿using System.Numerics;
+using Silk.NET.Direct3D12;
 using Silk.NET.DXGI;
+using Silk.NET.Maths;
 
 namespace Zenith.NET.DirectX12;
 
@@ -683,6 +685,94 @@ internal static class DXFormats
             TextureLayout.ResolveDst => BarrierLayout.ResolveDest,
             TextureLayout.Present => BarrierLayout.Present,
             _ => default
+        };
+    }
+
+    public static RaytracingGeometryType DirectX12(RayTracingGeometryType rayTracingGeometryType)
+    {
+        return rayTracingGeometryType switch
+        {
+            RayTracingGeometryType.Triangle => RaytracingGeometryType.Triangles,
+            RayTracingGeometryType.Aabb => RaytracingGeometryType.ProceduralPrimitiveAabbs,
+            _ => default
+        };
+    }
+
+    public static RaytracingInstanceFlags DirectX12(RayTracingInstanceFlags rayTracingInstanceFlags)
+    {
+        RaytracingInstanceFlags result = RaytracingInstanceFlags.None;
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.FrontCounterClockwise))
+        {
+            result |= RaytracingInstanceFlags.TriangleFrontCounterclockwise;
+        }
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.DisableCull))
+        {
+            result |= RaytracingInstanceFlags.TriangleCullDisable;
+        }
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.ForceOpaque))
+        {
+            result |= RaytracingInstanceFlags.ForceOpaque;
+        }
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.ForceNonOpaque))
+        {
+            result |= RaytracingInstanceFlags.ForceNonOpaque;
+        }
+
+        return result;
+    }
+
+    public static RaytracingAccelerationStructureBuildFlags DirectX12(AccelerationStructureBuildFlags accelerationStructureBuildFlags)
+    {
+        RaytracingAccelerationStructureBuildFlags result = RaytracingAccelerationStructureBuildFlags.None;
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowUpdate))
+        {
+            result |= RaytracingAccelerationStructureBuildFlags.AllowUpdate;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowCompaction))
+        {
+            result |= RaytracingAccelerationStructureBuildFlags.AllowCompaction;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PreferFastTrace))
+        {
+            result |= RaytracingAccelerationStructureBuildFlags.PreferFastTrace;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PreferFastBuild))
+        {
+            result |= RaytracingAccelerationStructureBuildFlags.PreferFastBuild;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.MinimizeMemory))
+        {
+            result |= RaytracingAccelerationStructureBuildFlags.MinimizeMemory;
+        }
+
+        return result;
+    }
+
+    public static Matrix3X4<float> DirectX12(Matrix4x4 matrix4x4)
+    {
+        return new()
+        {
+            M11 = matrix4x4.M11,
+            M12 = matrix4x4.M21,
+            M13 = matrix4x4.M31,
+            M14 = matrix4x4.M41,
+            M21 = matrix4x4.M12,
+            M22 = matrix4x4.M22,
+            M23 = matrix4x4.M32,
+            M24 = matrix4x4.M42,
+            M31 = matrix4x4.M13,
+            M32 = matrix4x4.M23,
+            M33 = matrix4x4.M33,
+            M34 = matrix4x4.M43
         };
     }
 }

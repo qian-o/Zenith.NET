@@ -233,20 +233,22 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXBottomLevelAccelerationStructure(Context, this, desc);
     }
 
     protected override TopLevelAccelerationStructure BuildAccelerationStructureImpl(TopLevelAccelerationStructureDesc desc)
     {
-        throw new NotImplementedException();
+        return new DXTopLevelAccelerationStructure(Context, this, desc);
     }
 
     protected override void UpdateAccelerationStructureImpl(BottomLevelAccelerationStructure accelerationStructure, BottomLevelAccelerationStructureDesc newDesc)
     {
+        accelerationStructure.DirectX12().Update(this, newDesc);
     }
 
     protected override void UpdateAccelerationStructureImpl(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
     {
+        accelerationStructure.DirectX12().Update(this, newDesc);
     }
 
     protected override void BeginRenderPassImpl(ReadOnlySpan<ColorAttachment> colorAttachments, DepthStencilAttachment? depthStencilAttachment)

@@ -131,4 +131,20 @@ public static class Extensions
             return (DXQueryHeap)queryHeap;
         }
     }
+
+    extension(BottomLevelAccelerationStructure bottomLevelAccelerationStructure)
+    {
+        internal DXBottomLevelAccelerationStructure DirectX12()
+        {
+            return (DXBottomLevelAccelerationStructure)bottomLevelAccelerationStructure;
+        }
+    }
+
+    extension(TopLevelAccelerationStructure topLevelAccelerationStructure)
+    {
+        internal DXTopLevelAccelerationStructure DirectX12()
+        {
+            return (DXTopLevelAccelerationStructure)topLevelAccelerationStructure;
+        }
+    }
 }
