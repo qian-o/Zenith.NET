@@ -262,7 +262,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
             pRenderTargets[i] = new()
             {
-                CpuDescriptor = texture.RtvHandle(attachment.Subresource),
+                CpuDescriptor = texture.GetRtvHandle(attachment.Subresource),
                 BeginningAccess = new()
                 {
                     Type = DXFormats.DirectX12(attachment.LoadOp),
@@ -297,7 +297,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
             depthStencil = new()
             {
-                CpuDescriptor = texture.DsvHandle(attachment.Subresource),
+                CpuDescriptor = texture.GetDsvHandle(attachment.Subresource),
                 DepthBeginningAccess = new()
                 {
                     Type = DXFormats.DirectX12(attachment.DepthLoadOp),

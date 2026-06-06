@@ -52,12 +52,12 @@ internal unsafe class DXTexture : Texture
 
     public override ResourceHandle StorageHandle => View.StorageHandle;
 
-    public uint SubresourceIndex(TextureSubresource textureSubresource)
+    public uint SubresourceIndex(TextureSubresource subresource)
     {
-        return (textureSubresource.MipLevel * Desc.ArrayLayers) + textureSubresource.ArrayLayer;
+        return (subresource.MipLevel * Desc.ArrayLayers) + subresource.ArrayLayer;
     }
 
-    public CpuDescriptorHandle RtvHandle(TextureSubresource subresource)
+    public CpuDescriptorHandle GetRtvHandle(TextureSubresource subresource)
     {
         if (!rtvTokens.TryGetValue(subresource, out DXDescriptorToken token))
         {
@@ -135,7 +135,7 @@ internal unsafe class DXTexture : Texture
         return token.CpuHandle;
     }
 
-    public CpuDescriptorHandle DsvHandle(TextureSubresource subresource)
+    public CpuDescriptorHandle GetDsvHandle(TextureSubresource subresource)
     {
         if (!dsvTokens.TryGetValue(subresource, out DXDescriptorToken token))
         {
