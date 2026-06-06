@@ -20,4 +20,26 @@ public struct MemoryBarrier
             DstAccess = ResourceAccess.ShaderRead | ResourceAccess.ShaderWrite
         };
     }
+
+    public static MemoryBarrier AccelerationStructureRead(MemoryBarrier? previous)
+    {
+        return new()
+        {
+            SrcStages = previous?.DstStages ?? PipelineStages.None,
+            DstStages = PipelineStages.AccelerationStructureBuild,
+            SrcAccess = previous?.DstAccess ?? ResourceAccess.None,
+            DstAccess = ResourceAccess.AccelerationStructureRead
+        };
+    }
+
+    public static MemoryBarrier AccelerationStructureWrite(MemoryBarrier? previous)
+    {
+        return new()
+        {
+            SrcStages = previous?.DstStages ?? PipelineStages.None,
+            DstStages = PipelineStages.AccelerationStructureBuild,
+            SrcAccess = previous?.DstAccess ?? ResourceAccess.None,
+            DstAccess = ResourceAccess.AccelerationStructureWrite
+        };
+    }
 }

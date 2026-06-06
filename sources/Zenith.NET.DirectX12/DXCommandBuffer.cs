@@ -241,6 +241,10 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         throw new NotImplementedException();
     }
 
+    protected override void UpdateAccelerationStructureImpl(BottomLevelAccelerationStructure accelerationStructure, BottomLevelAccelerationStructureDesc newDesc)
+    {
+    }
+
     protected override void UpdateAccelerationStructureImpl(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
     {
     }

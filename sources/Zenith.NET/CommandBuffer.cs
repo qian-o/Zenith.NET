@@ -143,6 +143,13 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         return BuildAccelerationStructureImpl(desc);
     }
 
+    public void UpdateAccelerationStructure(BottomLevelAccelerationStructure accelerationStructure, BottomLevelAccelerationStructureDesc newDesc)
+    {
+        UpdateAccelerationStructureImpl(accelerationStructure, newDesc);
+
+        accelerationStructure.Refresh(newDesc);
+    }
+
     public void UpdateAccelerationStructure(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
     {
         UpdateAccelerationStructureImpl(accelerationStructure, newDesc);
@@ -453,6 +460,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
     protected abstract BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc);
 
     protected abstract TopLevelAccelerationStructure BuildAccelerationStructureImpl(TopLevelAccelerationStructureDesc desc);
+
+    protected abstract void UpdateAccelerationStructureImpl(BottomLevelAccelerationStructure accelerationStructure, BottomLevelAccelerationStructureDesc newDesc);
 
     protected abstract void UpdateAccelerationStructureImpl(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc);
 

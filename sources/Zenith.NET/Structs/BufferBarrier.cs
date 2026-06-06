@@ -107,16 +107,4 @@ public struct BufferBarrier
             DstAccess = ResourceAccess.CopyWrite
         };
     }
-
-    public static BufferBarrier AccelerationStructureRead(Buffer buffer, BufferBarrier? previous)
-    {
-        return new()
-        {
-            Buffer = buffer,
-            SrcStages = previous?.DstStages ?? PipelineStages.None,
-            DstStages = PipelineStages.AccelerationStructureBuild,
-            SrcAccess = previous?.DstAccess ?? ResourceAccess.None,
-            DstAccess = ResourceAccess.AccelerationStructureRead
-        };
-    }
 }
