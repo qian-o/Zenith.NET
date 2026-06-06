@@ -53,7 +53,7 @@ internal unsafe partial class D3DTexture : DisposableObject
             Format = ColorFormat(),
             SampleDesc = new(1),
             BindFlags = (uint)BindFlag.RenderTarget,
-            MiscFlags = (uint)(ResourceMiscFlag.SharedNthandle | ResourceMiscFlag.SharedKeyedmutex)
+            MiscFlags = (uint)(ResourceMiscFlag.SharedKeyedmutex | ResourceMiscFlag.SharedNthandle)
         };
 
         D3D.Success(D3D.D3D11Device.CreateTexture2D(&desc, default(SubresourceData*), D3D11RenderTarget.GetAddressOf()));

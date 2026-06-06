@@ -26,7 +26,7 @@ public struct MemoryBarrier
         return new()
         {
             SrcStages = previous?.DstStages ?? PipelineStages.None,
-            DstStages = PipelineStages.AccelerationStructureBuild,
+            DstStages = PipelineStages.FragmentShader | PipelineStages.ComputeShader | PipelineStages.AccelerationStructureBuild,
             SrcAccess = previous?.DstAccess ?? ResourceAccess.None,
             DstAccess = ResourceAccess.AccelerationStructureRead
         };
