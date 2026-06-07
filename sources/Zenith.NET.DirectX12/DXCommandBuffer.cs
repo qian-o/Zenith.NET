@@ -432,6 +432,16 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void SetConstantBufferImpl(Pipeline pipeline, Buffer buffer, uint offsetInBytes)
     {
+        if (pipeline is ComputePipeline)
+        {
+            CommandList.SetComputeRootSignature(Context.RootSignature);
+            CommandList.SetComputeRootConstantBufferView(0, buffer.DirectX12().GPUVirtualAddress + offsetInBytes);
+        }
+        else
+        {
+            CommandList.SetGraphicsRootSignature(Context.RootSignature);
+            CommandList.SetGraphicsRootConstantBufferView(0, buffer.DirectX12().GPUVirtualAddress + offsetInBytes);
+        }
     }
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
@@ -536,17 +546,6 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         ID3D12DescriptorHeap** ppDescriptorHeaps = stackalloc ID3D12DescriptorHeap*[] { Context.CbvSrvUavHeap.Heap, Context.SamplerHeap.Heap };
 
         CommandList.SetDescriptorHeaps(2, ppDescriptorHeaps);
-
-        switch (Queue.Type)
-        {
-            case CommandQueueType.Graphics:
-                CommandList.SetGraphicsRootSignature(Context.RootSignature);
-                break;
-
-            case CommandQueueType.Compute:
-                CommandList.SetComputeRootSignature(Context.RootSignature);
-                break;
-        }
     }
 
     protected override void EndImpl()
