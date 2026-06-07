@@ -57,6 +57,11 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
         }
     }
 
+    internal void WaitIdle()
+    {
+        Wait(value);
+    }
+
     protected abstract ulong GetCompletedValue();
 
     protected abstract CommandBuffer CreateCommandBuffer();
@@ -67,7 +72,7 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
     protected override void Destroy()
     {
-        Wait(value);
+        WaitIdle();
 
         while (commandBuffers.TryDequeue(out CommandBuffer? commandBuffer))
         {

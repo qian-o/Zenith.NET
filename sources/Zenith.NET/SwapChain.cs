@@ -8,14 +8,36 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 
     public abstract Texture Drawable { get; }
 
-    public abstract CommandSubmission Acquire();
+    public CommandSubmission Acquire()
+    {
+        AcquireImpl();
 
-    public abstract CommandSubmission Present(params ReadOnlySpan<CommandSubmission> waits);
+        CommandBuffer commandBuffer = Context.GraphicsQueue.AcquireCommandBuffer();
+
+        commandBuffer.Barrier([], [], [TextureBarrier.ColorAttachment(Drawable, null)]);
+
+        return commandBuffer.Submit();
+    }
+
+    public CommandSubmission Present(params ReadOnlySpan<CommandSubmission> waits)
+    {
+        CommandBuffer commandBuffer = Context.GraphicsQueue.AcquireCommandBuffer();
+
+        commandBuffer.Barrier([], [], [TextureBarrier.Present(Drawable, TextureBarrier.ColorAttachment(Drawable, null))]);
+
+        CommandSubmission submission = commandBuffer.Submit(waits);
+
+        PresentImpl();
+
+        return submission;
+    }
 
     public void Resize(uint width, uint height)
     {
         desc.Surface.Width = width;
         desc.Surface.Height = height;
+
+        Context.GraphicsQueue.WaitIdle();
 
         ResizeImpl();
 
@@ -26,10 +48,16 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
     {
         desc.Surface = surface;
 
+        Context.GraphicsQueue.WaitIdle();
+
         RefreshImpl();
 
         SetResourceName(Name);
     }
+
+    protected abstract void AcquireImpl();
+
+    protected abstract void PresentImpl();
 
     protected abstract void ResizeImpl();
 
