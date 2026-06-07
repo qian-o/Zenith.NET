@@ -74,6 +74,7 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
 
     protected override void SetResourceName(string name)
     {
+        AccelerationStructureBuffer.Name = name;
     }
 
     protected override void Destroy()
@@ -114,7 +115,6 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
             Type = RaytracingAccelerationStructureType.TopLevel,
             Flags = DXFormats.DirectX12(desc.BuildFlags),
             NumDescs = instanceCount,
-            DescsLayout = ElementsLayout.Array,
             InstanceDescs = InstanceBuffer.GPUVirtualAddress
         };
     }
