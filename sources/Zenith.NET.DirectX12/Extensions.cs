@@ -44,6 +44,14 @@ public static class Extensions
         }
     }
 
+    extension(SwapChain swapChain)
+    {
+        internal DXSwapChain DirectX12()
+        {
+            return (DXSwapChain)swapChain;
+        }
+    }
+
     extension(Heap heap)
     {
         internal DXHeap DirectX12()
