@@ -63,6 +63,7 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
 
     protected override void SetResourceName(string name)
     {
+        AccelerationStructureBuffer.Name = name;
     }
 
     protected override void Destroy()
@@ -90,42 +91,34 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
             geometries[i] = new()
             {
                 Type = DXFormats.DirectX12(geometry.Type),
-                Flags = geometry.IsOpaque ? RaytracingGeometryFlags.Opaque : RaytracingGeometryFlags.None
+                Flags = geometry.IsOpaque ? RaytracingGeometryFlags.Opaque : RaytracingGeometryFlags.None,
+                Anonymous = new
+                (
+                    triangles: geometry.Type is RayTracingGeometryType.Triangle ? new()
+                    {
+                        Transform3x4 = TransformBuffer.GPUVirtualAddress + (ulong)(sizeof(Matrix3X4<float>) * i),
+                        IndexFormat = geometry.TriangleGeometry.IndexBuffer is not null ? DXFormats.DirectX12(geometry.TriangleGeometry.IndexFormat) : Format.FormatUnknown,
+                        VertexFormat = DXFormats.DirectX12(geometry.TriangleGeometry.VertexFormat),
+                        IndexCount = geometry.TriangleGeometry.IndexCount,
+                        VertexCount = geometry.TriangleGeometry.VertexCount,
+                        IndexBuffer = geometry.TriangleGeometry.IndexBuffer is not null ? geometry.TriangleGeometry.IndexBuffer.DirectX12().GPUVirtualAddress + geometry.TriangleGeometry.IndexOffsetInBytes : 0,
+                        VertexBuffer = new()
+                        {
+                            StartAddress = geometry.TriangleGeometry.VertexBuffer.DirectX12().GPUVirtualAddress + geometry.TriangleGeometry.VertexOffsetInBytes,
+                            StrideInBytes = geometry.TriangleGeometry.VertexStrideInBytes
+                        }
+                    } : null,
+                    aABBs: geometry.Type is RayTracingGeometryType.Aabb ? new()
+                    {
+                        AABBCount = geometry.AabbGeometry.Count,
+                        AABBs = new()
+                        {
+                            StartAddress = geometry.AabbGeometry.Buffer.DirectX12().GPUVirtualAddress + geometry.AabbGeometry.OffsetInBytes,
+                            StrideInBytes = geometry.AabbGeometry.StrideInBytes
+                        }
+                    } : null
+                )
             };
-
-            if (geometry.Type is RayTracingGeometryType.Triangle)
-            {
-                RayTracingTriangleGeometry triangle = geometry.TriangleGeometry;
-
-                geometries[i].Triangles = new()
-                {
-                    Transform3x4 = TransformBuffer.GPUVirtualAddress + (ulong)(sizeof(Matrix3X4<float>) * i),
-                    IndexFormat = triangle.IndexBuffer is not null ? DXFormats.DirectX12(triangle.IndexFormat) : Format.FormatUnknown,
-                    VertexFormat = DXFormats.DirectX12(triangle.VertexFormat),
-                    IndexCount = triangle.IndexCount,
-                    VertexCount = triangle.VertexCount,
-                    IndexBuffer = triangle.IndexBuffer is not null ? triangle.IndexBuffer.DirectX12().GPUVirtualAddress + triangle.IndexOffsetInBytes : 0,
-                    VertexBuffer = new()
-                    {
-                        StartAddress = triangle.VertexBuffer.DirectX12().GPUVirtualAddress + triangle.VertexOffsetInBytes,
-                        StrideInBytes = triangle.VertexStrideInBytes
-                    }
-                };
-            }
-            else
-            {
-                RayTracingAabbGeometry aabb = geometry.AabbGeometry;
-
-                geometries[i].AABBs = new()
-                {
-                    AABBCount = aabb.Count,
-                    AABBs = new()
-                    {
-                        StartAddress = aabb.Buffer.DirectX12().GPUVirtualAddress + aabb.OffsetInBytes,
-                        StrideInBytes = aabb.StrideInBytes
-                    }
-                };
-            }
         }
 
         inputs = new()
@@ -133,7 +126,6 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
             Type = RaytracingAccelerationStructureType.BottomLevel,
             Flags = DXFormats.DirectX12(desc.BuildFlags),
             NumDescs = geometryCount,
-            DescsLayout = ElementsLayout.Array,
             PGeometryDescs = geometries
         };
     }
