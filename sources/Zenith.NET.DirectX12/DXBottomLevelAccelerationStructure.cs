@@ -42,7 +42,6 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
         using ZenithMarshal.Scope scope = new();
 
         FillInputs(scope, newDesc, out BuildRaytracingAccelerationStructureInputs inputs);
-
         inputs.Flags |= RaytracingAccelerationStructureBuildFlags.PerformUpdate;
 
         BuildRaytracingAccelerationStructureDesc buildDesc = new()
@@ -79,15 +78,13 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
 
         MappedMemory mappedMemory = TransformBuffer.Map();
 
-        desc.Geometries.Select(static item => DXFormats.DirectX12(item.TriangleGeometry.Transform)).ToArray().CopyTo(new Span<Matrix3X4<float>>((Matrix3X4<float>*)mappedMemory.Pointer, (int)geometryCount));
-
-        TransformBuffer.Unmap();
-
+        Matrix3X4<float>* transforms = (Matrix3X4<float>*)mappedMemory.Pointer;
         RaytracingGeometryDesc* geometries = (RaytracingGeometryDesc*)ZenithMarshal.Allocate<RaytracingGeometryDesc>(scope, geometryCount);
         for (uint i = 0; i < geometryCount; i++)
         {
             RayTracingGeometry geometry = desc.Geometries[i];
 
+            transforms[i] = DXFormats.DirectX12(geometry.TriangleGeometry.Transform);
             geometries[i] = new()
             {
                 Type = DXFormats.DirectX12(geometry.Type),
@@ -120,6 +117,8 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
                 )
             };
         }
+
+        TransformBuffer.Unmap();
 
         inputs = new()
         {

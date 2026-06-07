@@ -53,7 +53,6 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
     public void Update(DXCommandBuffer commandBuffer, TopLevelAccelerationStructureDesc newDesc)
     {
         FillInputs(newDesc, out BuildRaytracingAccelerationStructureInputs inputs);
-
         inputs.Flags |= RaytracingAccelerationStructureBuildFlags.PerformUpdate;
 
         BuildRaytracingAccelerationStructureDesc buildDesc = new()
