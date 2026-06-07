@@ -27,7 +27,7 @@ internal unsafe partial class MauiZenithView(ZenithViewHandler handler) : SwapCh
             swapChain = handler.VirtualView.GraphicsContext.CreateSwapChain(new()
             {
                 Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
-                ColorFormat = ZenithViewHelper.ColorFormat
+                Format = ZenithViewHelper.Format
             });
 
             this.As<ISwapChainPanelNative>().SetSwapChain(texture.SwapChain);

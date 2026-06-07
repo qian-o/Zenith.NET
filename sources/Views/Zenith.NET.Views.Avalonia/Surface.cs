@@ -6,7 +6,7 @@ namespace Zenith.NET.Views.Avalonia;
 
 internal class Surface(GraphicsContext graphicsContext, uint width, uint height) : DisposableObject
 {
-    public Texture Target { get; } = graphicsContext.CreateTexture(TextureDesc.Texture2D(ZenithViewHelper.ColorFormat, width, height, 1, SampleCount.Count1));
+    public Texture Target { get; } = graphicsContext.CreateTexture(TextureDesc.Texture2D(ZenithViewHelper.Format, width, height, 1, SampleCount.Count1));
 
     public WriteableBitmap Bitmap { get; } = new(new((int)width, (int)height), new(96, 96), ColorFormat(), AlphaFormat.Premul);
 
@@ -35,11 +35,11 @@ internal class Surface(GraphicsContext graphicsContext, uint width, uint height)
 
     private static AvaloniaPixelFormat ColorFormat()
     {
-        return ZenithViewHelper.ColorFormat switch
+        return ZenithViewHelper.Format switch
         {
             PixelFormat.R8G8B8A8UNorm => AvaloniaPixelFormat.Rgba8888,
             PixelFormat.B8G8R8A8UNorm => AvaloniaPixelFormat.Bgra8888,
-            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.ColorFormat} is not supported.")
+            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.Format} is not supported.")
         };
     }
 }

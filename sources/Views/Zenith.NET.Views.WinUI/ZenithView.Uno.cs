@@ -54,7 +54,7 @@ internal unsafe class Surface(GraphicsContext context, uint width, uint height) 
 {
     private readonly byte[] pixels = new byte[width * height * 4];
 
-    public Texture Target { get; } = context.CreateTexture(TextureDesc.Texture2D(ZenithViewHelper.ColorFormat, width, height, 1, SampleCount.Count1));
+    public Texture Target { get; } = context.CreateTexture(TextureDesc.Texture2D(ZenithViewHelper.Format, width, height, 1, SampleCount.Count1));
 
     public WriteableBitmap Bitmap { get; } = new((int)width, (int)height);
 
@@ -75,7 +75,7 @@ internal unsafe class Surface(GraphicsContext context, uint width, uint height) 
             });
         }
 
-        if (ZenithViewHelper.ColorFormat is PixelFormat.R8G8B8A8UNorm)
+        if (ZenithViewHelper.Format is PixelFormat.R8G8B8A8UNorm)
         {
             for (int i = 0; i < pixels.Length; i += 4)
             {

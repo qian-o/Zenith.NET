@@ -26,7 +26,7 @@ internal partial class MauiZenithView(ZenithViewHandler handler) : SurfaceView(h
             swapChain = handler.VirtualView.GraphicsContext.CreateSwapChain(new()
             {
                 Surface = Surface.Android(ANativeWindowFromSurface(JniEnvironment.EnvironmentPointer, Holder!.Surface!.Handle), width, height),
-                ColorFormat = ZenithViewHelper.ColorFormat
+                Format = ZenithViewHelper.Format
             });
         }
         else if (swapChain.Desc.Surface.Width != width || swapChain.Desc.Surface.Height != height)

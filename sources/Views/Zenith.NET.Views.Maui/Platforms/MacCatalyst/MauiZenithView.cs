@@ -27,7 +27,7 @@ internal class MauiZenithView(ZenithViewHandler handler) : UIView
             swapChain = handler.VirtualView.GraphicsContext.CreateSwapChain(new()
             {
                 Surface = Surface.Apple(Layer.Handle, width, height),
-                ColorFormat = ZenithViewHelper.ColorFormat
+                Format = ZenithViewHelper.Format
             });
         }
         else if (swapChain.Desc.Surface.Width != width || swapChain.Desc.Surface.Height != height)

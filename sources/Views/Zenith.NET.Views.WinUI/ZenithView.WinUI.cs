@@ -33,7 +33,7 @@ public unsafe partial class ZenithView
             swapChain = GraphicsContext.CreateSwapChain(new()
             {
                 Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
-                ColorFormat = ZenithViewHelper.ColorFormat
+                Format = ZenithViewHelper.Format
             });
 
             this.As<ISwapChainPanelNative>().SetSwapChain(texture.SwapChain);
@@ -216,11 +216,11 @@ internal unsafe partial class D3DTexture : DisposableObject
 
     private static Format ColorFormat()
     {
-        return ZenithViewHelper.ColorFormat switch
+        return ZenithViewHelper.Format switch
         {
             PixelFormat.R8G8B8A8UNorm => Format.FormatR8G8B8A8Unorm,
             PixelFormat.B8G8R8A8UNorm => Format.FormatB8G8R8A8Unorm,
-            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.ColorFormat} is not supported.")
+            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.Format} is not supported.")
         };
     }
 }

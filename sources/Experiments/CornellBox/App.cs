@@ -72,7 +72,7 @@ internal static class App
             surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
         }
 
-        swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorFormat = PixelFormat.B8G8R8A8UNorm });
+        swapChain = Context.CreateSwapChain(new() { Surface = surface, Format = PixelFormat.B8G8R8A8UNorm });
         imGui = new(input, new() { ColorFormats = [PixelFormat.B8G8R8A8UNorm], SampleCount = SampleCount.Count1 });
         camera = new(input, Matrix4x4.CreateTranslation(278.0f, 273.0f, -800.0f))
         {
