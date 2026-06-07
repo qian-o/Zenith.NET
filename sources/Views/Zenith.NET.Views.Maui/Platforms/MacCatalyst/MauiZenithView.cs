@@ -44,7 +44,7 @@ internal class MauiZenithView(ZenithViewHandler handler) : UIView
         }
 
         handler.VirtualView.OnUpdateRequested();
-        handler.VirtualView.OnRenderRequested(swapChain.CurrentTexture);
+        handler.VirtualView.OnRenderRequested(swapChain.Drawable);
     }
 
     public void Present()

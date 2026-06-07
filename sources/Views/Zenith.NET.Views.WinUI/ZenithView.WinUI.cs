@@ -50,7 +50,7 @@ public unsafe partial class ZenithView
         texture.AcquireSync();
 
         UpdateRequested?.Invoke(this, new(scheduler.UpdateSeconds, scheduler.TotalSeconds));
-        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, swapChain.CurrentTexture));
+        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, swapChain.Drawable));
 
         texture.ReleaseSync();
     }

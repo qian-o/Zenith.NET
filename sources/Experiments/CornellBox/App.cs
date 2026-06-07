@@ -72,8 +72,8 @@ internal static class App
             surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
         }
 
-        swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorFormat = PixelFormat.B8G8R8A8UNorm, DepthStencilFormat = PixelFormat.D32FloatS8UInt });
-        imGui = new(input, new() { ColorFormats = [PixelFormat.B8G8R8A8UNorm], DepthStencilFormat = PixelFormat.D32FloatS8UInt, SampleCount = SampleCount.Count1 });
+        swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorFormat = PixelFormat.B8G8R8A8UNorm });
+        imGui = new(input, new() { ColorFormats = [PixelFormat.B8G8R8A8UNorm], SampleCount = SampleCount.Count1 });
         camera = new(input, Matrix4x4.CreateTranslation(278.0f, 273.0f, -800.0f))
         {
             Speed = 240.0f,
@@ -176,7 +176,7 @@ internal static class App
 
             activeRenderer.Render(commandBuffer);
 
-            imGui.Render(commandBuffer, ColorAttachment.Load(swapChain.CurrentTexture));
+            imGui.Render(commandBuffer, ColorAttachment.Load(swapChain.Drawable));
 
             swapChain.Present(commandBuffer.Submit()).Wait();
         };

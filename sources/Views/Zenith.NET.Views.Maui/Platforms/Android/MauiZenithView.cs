@@ -43,7 +43,7 @@ internal partial class MauiZenithView(ZenithViewHandler handler) : SurfaceView(h
         }
 
         handler.VirtualView.OnUpdateRequested();
-        handler.VirtualView.OnRenderRequested(swapChain.CurrentTexture);
+        handler.VirtualView.OnRenderRequested(swapChain.Drawable);
     }
 
     public void Present()

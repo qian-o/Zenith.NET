@@ -44,7 +44,7 @@ internal unsafe partial class MauiZenithView(ZenithViewHandler handler) : SwapCh
         texture.AcquireSync();
 
         handler.VirtualView.OnUpdateRequested();
-        handler.VirtualView.OnRenderRequested(swapChain.CurrentTexture);
+        handler.VirtualView.OnRenderRequested(swapChain.Drawable);
 
         texture.ReleaseSync();
     }
