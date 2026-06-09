@@ -16,14 +16,14 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         return queue.Signal();
     }
 
-    public void Barrier(BarrierStages after, BarrierStages before)
+    public void Barrier(BarrierStages before, BarrierStages after)
     {
-        BarrierImpl(after, before);
+        BarrierImpl(before, after);
     }
 
     public void Transition(Texture texture, TextureSubresource subresource, TextureLayout layout)
     {
-        if (texture[subresource] == layout)
+        if (layout is TextureLayout.Undefined || texture[subresource] == layout)
         {
             return;
         }
@@ -490,7 +490,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         return false;
     }
 
-    protected abstract void BarrierImpl(BarrierStages after, BarrierStages before);
+    protected abstract void BarrierImpl(BarrierStages before, BarrierStages after);
 
     protected abstract void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout srcLayout, TextureLayout dstLayout);
 

@@ -17,9 +17,7 @@ public enum BufferUsages
 
     StorageReadWrite = 1 << 5,
 
-    AccelerationStructure = 1 << 6,
+    CopySrc = 1 << 6,
 
-    CopySrc = 1 << 7,
-
-    CopyDst = 1 << 8
+    CopyDst = 1 << 7
 }

@@ -76,17 +76,6 @@ public struct BufferDesc
         };
     }
 
-    public static BufferDesc AccelerationStructure(uint sizeInBytes)
-    {
-        return new()
-        {
-            SizeInBytes = sizeInBytes,
-            StrideInBytes = 0,
-            Usages = BufferUsages.AccelerationStructure | BufferUsages.CopyDst,
-            Residency = MemoryResidency.GpuOnly
-        };
-    }
-
     public static BufferDesc Staging(uint sizeInBytes)
     {
         return new()
