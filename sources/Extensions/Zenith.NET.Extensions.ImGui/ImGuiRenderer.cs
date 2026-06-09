@@ -69,7 +69,7 @@ float4 FSMain(VSOutput input) : SV_TARGET
     private readonly GraphicsPipeline graphicsPipeline;
     private readonly Dictionary<Texture, ImTextureID> textureBindings = [];
     private readonly Dictionary<TextureView, ImTextureID> textureViewBindings = [];
-    private readonly SortedList<ImTextureID, ResourceHandle> resourceHandleBindings = [];
+    private readonly SortedList<ImTextureID, ResourceHandle> resourceHandleBindings = new(Comparer<ImTextureID>.Create(static (x, y) => x.Handle.CompareTo(y.Handle)));
     private readonly Dictionary<ImTextureID, Texture> drawDataTextures = [];
 
     private Buffer? vertexBuffer;
@@ -96,7 +96,7 @@ float4 FSMain(VSOutput input) : SV_TARGET
         InputLayout inputLayout = new();
         inputLayout.Add(new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.Position });
         inputLayout.Add(new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.TexCoord });
-        inputLayout.Add(new() { Format = ElementFormat.UByte4, Semantic = ElementSemantic.Color });
+        inputLayout.Add(new() { Format = ElementFormat.UByte4UNorm, Semantic = ElementSemantic.Color });
 
         graphicsPipeline = context.CreateGraphicsPipeline(new()
         {
@@ -109,7 +109,7 @@ float4 FSMain(VSOutput input) : SV_TARGET
             {
                 RasterizerState = RasterizerState.CullNone(),
                 DepthStencilState = DepthStencilState.DepthNone(),
-                BlendState = BlendState.AlphaBlend()
+                BlendState = BlendState.NonPremultiplied()
             }
         });
 
@@ -328,30 +328,31 @@ float4 FSMain(VSOutput input) : SV_TARGET
             indexOffset += drawListPtr.IdxBuffer.Size;
         }
 
-        Constants[] constantsArray = ArrayPool<Constants>.Shared.Rent(resourceHandleBindings.Count);
+        Matrix4x4 projection = Matrix4x4.CreateOrthographicOffCenter(drawData.DisplayPos.X,
+                                                                     drawData.DisplayPos.X + drawData.DisplaySize.X,
+                                                                     drawData.DisplayPos.Y + drawData.DisplaySize.Y,
+                                                                     drawData.DisplayPos.Y,
+                                                                     0.0f,
+                                                                     1.0f);
 
-        Constants constants = new()
-        {
-            Projection = Matrix4x4.CreateOrthographicOffCenter(drawData.DisplayPos.X,
-                                                               drawData.DisplayPos.X + drawData.DisplaySize.X,
-                                                               drawData.DisplayPos.Y + drawData.DisplaySize.Y,
-                                                               drawData.DisplayPos.Y,
-                                                               0.0f,
-                                                               1.0f),
-            Sampler = sampler.Handle
-        };
+        Constants[] constants = ArrayPool<Constants>.Shared.Rent(resourceHandleBindings.Count);
 
         for (int i = 0; i < resourceHandleBindings.Count; i++)
         {
-            constantsArray[i] = constants with { Texture = resourceHandleBindings[i] };
+            constants[i] = new()
+            {
+                Projection = projection,
+                Sampler = sampler.Handle,
+                Texture = resourceHandleBindings.Values[i]
+            };
         }
 
-        fixed (Constants* pointer = constantsArray)
+        fixed (Constants* pointer = constants)
         {
             constantBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Constants) * resourceHandleBindings.Count) });
         }
 
-        ArrayPool<Constants>.Shared.Return(constantsArray);
+        ArrayPool<Constants>.Shared.Return(constants);
 
         commandBuffer.BeginDebugEvent("ImGui");
 

@@ -23,7 +23,7 @@ public static class Extensions
             Rgba32[] pixels = new Rgba32[image.Width * image.Height];
             image.CopyPixelDataTo(pixels);
 
-            CommandBuffer commandBuffer = context.CopyQueue.AcquireCommandBuffer();
+            CommandBuffer commandBuffer = context.CopyQueue.CommandBuffer();
 
             unsafe
             {
