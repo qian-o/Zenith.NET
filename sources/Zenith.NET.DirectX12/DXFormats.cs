@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Silk.NET.Core.Native;
 using Silk.NET.Direct3D12;
 using Silk.NET.DXGI;
 using Silk.NET.Maths;
@@ -14,52 +15,6 @@ internal static class DXFormats
             CommandQueueType.Graphics => CommandListType.Direct,
             CommandQueueType.Compute => CommandListType.Compute,
             CommandQueueType.Copy => CommandListType.Copy,
-            _ => default
-        };
-    }
-
-    public static DxHeapType DirectX12(MemoryResidency memoryResidency)
-    {
-        return memoryResidency switch
-        {
-            MemoryResidency.GpuOnly => DxHeapType.Default,
-            MemoryResidency.CpuReadOnly => DxHeapType.Readback,
-            MemoryResidency.CpuWriteOnly => DxHeapType.Upload,
-            _ => default
-        };
-    }
-
-    public static ResourceFlags DirectX12(BufferUsages bufferUsages)
-    {
-        ResourceFlags result = ResourceFlags.None;
-
-        if (bufferUsages.HasFlag(BufferUsages.StorageReadWrite))
-        {
-            result |= ResourceFlags.AllowUnorderedAccess;
-        }
-
-        if (bufferUsages.HasFlag(BufferUsages.AccelerationStructure))
-        {
-            result |= ResourceFlags.RaytracingAccelerationStructure;
-        }
-
-        return result;
-    }
-
-    public static ResourceDimension DirectX12(TextureType textureType)
-    {
-        return textureType switch
-        {
-            TextureType.Texture1D or
-            TextureType.Texture1DArray => ResourceDimension.Texture1D,
-
-            TextureType.Texture2D or
-            TextureType.Texture2DArray or
-            TextureType.TextureCube or
-            TextureType.TextureCubeArray => ResourceDimension.Texture2D,
-
-            TextureType.Texture3D => ResourceDimension.Texture3D,
-
             _ => default
         };
     }
@@ -137,6 +92,47 @@ internal static class DXFormats
 
             PixelFormat.BC7UNorm => Format.FormatBC7Unorm,
             PixelFormat.BC7SRgb => Format.FormatBC7UnormSrgb,
+
+            _ => default
+        };
+    }
+
+    public static DxHeapType DirectX12(MemoryResidency memoryResidency)
+    {
+        return memoryResidency switch
+        {
+            MemoryResidency.GpuOnly => DxHeapType.Default,
+            MemoryResidency.CpuReadOnly => DxHeapType.Readback,
+            MemoryResidency.CpuWriteOnly => DxHeapType.Upload,
+            _ => default
+        };
+    }
+
+    public static ResourceFlags DirectX12(BufferUsages bufferUsages)
+    {
+        ResourceFlags result = ResourceFlags.None;
+
+        if (bufferUsages.HasFlag(BufferUsages.StorageReadWrite))
+        {
+            result |= ResourceFlags.AllowUnorderedAccess;
+        }
+
+        return result;
+    }
+
+    public static ResourceDimension DirectX12(TextureType textureType)
+    {
+        return textureType switch
+        {
+            TextureType.Texture1D or
+            TextureType.Texture1DArray => ResourceDimension.Texture1D,
+
+            TextureType.Texture2D or
+            TextureType.Texture2DArray or
+            TextureType.TextureCube or
+            TextureType.TextureCubeArray => ResourceDimension.Texture2D,
+
+            TextureType.Texture3D => ResourceDimension.Texture3D,
 
             _ => default
         };
@@ -271,20 +267,32 @@ internal static class DXFormats
         };
     }
 
-    public static PrimitiveTopologyType DirectX12(PrimitiveTopology primitiveTopology)
+    public static (PrimitiveTopologyType TopologyType, D3DPrimitiveTopology Topology) DirectX12(PrimitiveTopology primitiveTopology)
     {
-        return primitiveTopology switch
-        {
-            PrimitiveTopology.PointList => PrimitiveTopologyType.Point,
+        return
+        (
+            primitiveTopology switch
+            {
+                PrimitiveTopology.PointList => PrimitiveTopologyType.Point,
 
-            PrimitiveTopology.LineList or
-            PrimitiveTopology.LineStrip => PrimitiveTopologyType.Line,
+                PrimitiveTopology.LineList or
+                PrimitiveTopology.LineStrip => PrimitiveTopologyType.Line,
 
-            PrimitiveTopology.TriangleList or
-            PrimitiveTopology.TriangleStrip => PrimitiveTopologyType.Triangle,
+                PrimitiveTopology.TriangleList or
+                PrimitiveTopology.TriangleStrip => PrimitiveTopologyType.Triangle,
 
-            _ => default
-        };
+                _ => default
+            },
+            primitiveTopology switch
+            {
+                PrimitiveTopology.PointList => D3DPrimitiveTopology.D3DPrimitiveTopologyPointlist,
+                PrimitiveTopology.LineList => D3DPrimitiveTopology.D3DPrimitiveTopologyLinelist,
+                PrimitiveTopology.LineStrip => D3DPrimitiveTopology.D3DPrimitiveTopologyLinestrip,
+                PrimitiveTopology.TriangleList => D3DPrimitiveTopology.D3DPrimitiveTopologyTrianglelist,
+                PrimitiveTopology.TriangleStrip => D3DPrimitiveTopology.D3DPrimitiveTopologyTrianglestrip,
+                _ => default
+            }
+        );
     }
 
     public static Format DirectX12(ElementFormat elementFormat)
@@ -494,198 +502,61 @@ internal static class DXFormats
         };
     }
 
-    public static BarrierSync DirectX12(PipelineStages pipelineStages)
-    {
-        BarrierSync result = BarrierSync.None;
-
-        if (pipelineStages.HasFlag(PipelineStages.Indirect))
-        {
-            result |= BarrierSync.ExecuteIndirect;
-        }
-
-        if (pipelineStages.HasFlag(PipelineStages.VertexInput))
-        {
-            result |= BarrierSync.IndexInput | BarrierSync.VertexShading;
-        }
-
-        if (pipelineStages.HasFlag(PipelineStages.VertexShader))
-        {
-            result |= BarrierSync.VertexShading;
-        }
-
-        if (pipelineStages.HasFlag(PipelineStages.TaskShader))
-        {
-            result |= BarrierSync.VertexShading;
-        }
-
-        if (pipelineStages.HasFlag(PipelineStages.MeshShader))
-        {
-            result |= BarrierSync.VertexShading;
-        }
-
-        if (pipelineStages.HasFlag(PipelineStages.EarlyFragmentTests))
-        {
-            result |= BarrierSync.DepthStencil;
-        }
-
-        if (pipelineStages.HasFlag(PipelineStages.FragmentShader))
-        {
-            result |= BarrierSync.PixelShading;
-        }
-
-        if (pipelineStages.HasFlag(PipelineStages.LateFragmentTests))
-        {
-            result |= BarrierSync.DepthStencil;
-        }
-
-        if (pipelineStages.HasFlag(PipelineStages.ColorAttachmentOutput))
-        {
-            result |= BarrierSync.RenderTarget;
-        }
-
-        if (pipelineStages.HasFlag(PipelineStages.ComputeShader))
-        {
-            result |= BarrierSync.ComputeShading;
-        }
-
-        if (pipelineStages.HasFlag(PipelineStages.AccelerationStructureBuild))
-        {
-            result |= BarrierSync.BuildRaytracingAccelerationStructure;
-        }
-
-        if (pipelineStages.HasFlag(PipelineStages.Copy))
-        {
-            result |= BarrierSync.Copy;
-        }
-
-        if (pipelineStages.HasFlag(PipelineStages.Resolve))
-        {
-            result |= BarrierSync.Resolve;
-        }
-
-        if (pipelineStages.HasFlag(PipelineStages.AllGraphics))
-        {
-            result |= BarrierSync.AllShading;
-        }
-
-        if (pipelineStages.HasFlag(PipelineStages.AllCommands))
-        {
-            result |= BarrierSync.All;
-        }
-
-        return result;
-    }
-
-    public static BarrierAccess DirectX12(ResourceAccess resourceAccess)
-    {
-        if (resourceAccess is ResourceAccess.None)
-        {
-            return BarrierAccess.NoAccess;
-        }
-
-        BarrierAccess result = BarrierAccess.Common;
-
-        if (resourceAccess.HasFlag(ResourceAccess.Vertex))
-        {
-            result |= BarrierAccess.VertexBuffer;
-        }
-
-        if (resourceAccess.HasFlag(ResourceAccess.Index))
-        {
-            result |= BarrierAccess.IndexBuffer;
-        }
-
-        if (resourceAccess.HasFlag(ResourceAccess.Indirect))
-        {
-            result |= BarrierAccess.IndirectArgument;
-        }
-
-        if (resourceAccess.HasFlag(ResourceAccess.Constant))
-        {
-            result |= BarrierAccess.ConstantBuffer;
-        }
-
-        if (resourceAccess.HasFlag(ResourceAccess.ShaderRead))
-        {
-            result |= BarrierAccess.ShaderResource;
-        }
-
-        if (resourceAccess.HasFlag(ResourceAccess.ShaderWrite))
-        {
-            result |= BarrierAccess.UnorderedAccess;
-        }
-
-        if (resourceAccess.HasFlag(ResourceAccess.AccelerationStructureRead))
-        {
-            result |= BarrierAccess.RaytracingAccelerationStructureRead;
-        }
-
-        if (resourceAccess.HasFlag(ResourceAccess.AccelerationStructureWrite))
-        {
-            result |= BarrierAccess.RaytracingAccelerationStructureWrite;
-        }
-
-        if (resourceAccess.HasFlag(ResourceAccess.ColorAttachmentRead))
-        {
-            result |= BarrierAccess.RenderTarget;
-        }
-
-        if (resourceAccess.HasFlag(ResourceAccess.ColorAttachmentWrite))
-        {
-            result |= BarrierAccess.RenderTarget;
-        }
-
-        if (resourceAccess.HasFlag(ResourceAccess.DepthStencilAttachmentRead))
-        {
-            result |= BarrierAccess.DepthStencilRead;
-        }
-
-        if (resourceAccess.HasFlag(ResourceAccess.DepthStencilAttachmentWrite))
-        {
-            result |= BarrierAccess.DepthStencilWrite;
-        }
-
-        if (resourceAccess.HasFlag(ResourceAccess.CopyRead))
-        {
-            result |= BarrierAccess.CopySource;
-        }
-
-        if (resourceAccess.HasFlag(ResourceAccess.CopyWrite))
-        {
-            result |= BarrierAccess.CopyDest;
-        }
-
-        if (resourceAccess.HasFlag(ResourceAccess.ResolveRead))
-        {
-            result |= BarrierAccess.ResolveSource;
-        }
-
-        if (resourceAccess.HasFlag(ResourceAccess.ResolveWrite))
-        {
-            result |= BarrierAccess.ResolveDest;
-        }
-
-        return result;
-    }
-
-    public static BarrierLayout DirectX12(TextureLayout textureLayout)
+    public static (BarrierSync Sync, BarrierAccess Access, BarrierLayout Layout) DirectX12(TextureLayout textureLayout)
     {
         return textureLayout switch
         {
-            TextureLayout.Undefined => BarrierLayout.Undefined,
-            TextureLayout.General => BarrierLayout.Common,
-            TextureLayout.Sampled => BarrierLayout.ShaderResource,
-            TextureLayout.Storage => BarrierLayout.UnorderedAccess,
-            TextureLayout.ColorAttachment => BarrierLayout.RenderTarget,
-            TextureLayout.DepthStencilAttachment => BarrierLayout.DepthStencilWrite,
-            TextureLayout.DepthStencilReadOnly => BarrierLayout.DepthStencilRead,
-            TextureLayout.CopySrc => BarrierLayout.CopySource,
-            TextureLayout.CopyDst => BarrierLayout.CopyDest,
-            TextureLayout.ResolveSrc => BarrierLayout.ResolveSource,
-            TextureLayout.ResolveDst => BarrierLayout.ResolveDest,
-            TextureLayout.Present => BarrierLayout.Present,
-            _ => default
+            TextureLayout.Undefined => (BarrierSync.None, BarrierAccess.NoAccess, BarrierLayout.Undefined),
+            TextureLayout.General => (BarrierSync.All, BarrierAccess.Common, BarrierLayout.Common),
+            TextureLayout.Sampled => (BarrierSync.AllShading, BarrierAccess.ShaderResource, BarrierLayout.ShaderResource),
+            TextureLayout.Storage => (BarrierSync.AllShading, BarrierAccess.UnorderedAccess, BarrierLayout.UnorderedAccess),
+            TextureLayout.ColorAttachment => (BarrierSync.RenderTarget, BarrierAccess.RenderTarget, BarrierLayout.RenderTarget),
+            TextureLayout.DepthStencilAttachment => (BarrierSync.DepthStencil, BarrierAccess.DepthStencilWrite, BarrierLayout.DepthStencilWrite),
+            TextureLayout.DepthStencilReadOnly => (BarrierSync.DepthStencil, BarrierAccess.DepthStencilRead, BarrierLayout.DepthStencilRead),
+            TextureLayout.CopySrc => (BarrierSync.Copy, BarrierAccess.CopySource, BarrierLayout.CopySource),
+            TextureLayout.CopyDst => (BarrierSync.Copy, BarrierAccess.CopyDest, BarrierLayout.CopyDest),
+            TextureLayout.ResolveSrc => (BarrierSync.Resolve, BarrierAccess.ResolveSource, BarrierLayout.ResolveSource),
+            TextureLayout.ResolveDst => (BarrierSync.Resolve, BarrierAccess.ResolveDest, BarrierLayout.ResolveDest),
+            TextureLayout.Present => (BarrierSync.All, BarrierAccess.Common, BarrierLayout.Present),
+            _ => (BarrierSync.None, BarrierAccess.NoAccess, BarrierLayout.Undefined)
         };
+    }
+
+    public static (BarrierSync Sync, BarrierAccess Access) DirectX12(BarrierStages barrierStages)
+    {
+        BarrierSync sync = BarrierSync.None;
+        BarrierAccess access = BarrierAccess.Common;
+
+        if (barrierStages.HasFlag(BarrierStages.Vertex))
+        {
+            sync |= BarrierSync.VertexShading;
+            access |= BarrierAccess.VertexBuffer | BarrierAccess.ConstantBuffer | BarrierAccess.ShaderResource;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.Fragment))
+        {
+            sync |= BarrierSync.PixelShading;
+            access |= BarrierAccess.ConstantBuffer | BarrierAccess.ShaderResource;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.Compute))
+        {
+            sync |= BarrierSync.ComputeShading;
+            access |= BarrierAccess.ConstantBuffer | BarrierAccess.ShaderResource | BarrierAccess.UnorderedAccess;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.Copy))
+        {
+            sync |= BarrierSync.Copy;
+            access |= BarrierAccess.CopySource | BarrierAccess.CopyDest;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.All))
+        {
+            sync |= BarrierSync.All;
+        }
+
+        return (sync, access);
     }
 
     public static RaytracingGeometryType DirectX12(RayTracingGeometryType rayTracingGeometryType)

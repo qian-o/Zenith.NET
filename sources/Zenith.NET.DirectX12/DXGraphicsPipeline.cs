@@ -15,7 +15,7 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
         PipelineStateStream2 pipelineStateStream = new()
         {
             PRootSignature = (nint)context.RootSignature.Handle,
-            PrimitiveTopologyType = DXFormats.DirectX12(desc.PrimitiveTopology),
+            PrimitiveTopologyType = DXFormats.DirectX12(desc.PrimitiveTopology).TopologyType,
             VS = desc.VertexShader.DirectX12().GetShaderBytecode(scope),
             PS = desc.FragmentShader.DirectX12().GetShaderBytecode(scope),
             SampleMask = uint.MaxValue

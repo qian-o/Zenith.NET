@@ -10,32 +10,70 @@ internal unsafe class DXBuffer : Buffer
 
     public ulong GPUVirtualAddress;
 
-    public DXBuffer(DXGraphicsContext context, BufferDesc desc, ComPtr<ID3D12Resource>? resource) : base(context, desc)
+    public DXBuffer(DXGraphicsContext context, BufferDesc desc) : base(context, desc)
     {
-        if (resource is null)
-        {
-            ResourceDesc1 resourceDesc = ResourceDesc(desc);
+        ResourceDesc1 resourceDesc = ResourceDesc(desc);
 
-            HeapProperties heapProperties = new()
-            {
-                Type = DXFormats.DirectX12(desc.Residency)
-            };
-
-            context.Device.CreateCommittedResource3(&heapProperties,
-                                                    HeapFlags.None,
-                                                    &resourceDesc,
-                                                    BarrierLayout.Undefined,
-                                                    default(ClearValue*),
-                                                    default(ID3D12ProtectedResourceSession*),
-                                                    0,
-                                                    default(Format*),
-                                                    SilkMarshal.GuidPtrOf<ID3D12Resource>(),
-                                                    (void**)Resource.GetAddressOf()).Success();
-        }
-        else
+        HeapProperties heapProperties = new()
         {
-            Resource = resource.Value;
-        }
+            Type = DXFormats.DirectX12(desc.Residency)
+        };
+
+        context.Device.CreateCommittedResource3(&heapProperties,
+                                                HeapFlags.None,
+                                                &resourceDesc,
+                                                BarrierLayout.Undefined,
+                                                default(ClearValue*),
+                                                default(ID3D12ProtectedResourceSession*),
+                                                0,
+                                                default(Format*),
+                                                SilkMarshal.GuidPtrOf<ID3D12Resource>(),
+                                                (void**)Resource.GetAddressOf()).Success();
+
+        GPUVirtualAddress = Resource.GetGPUVirtualAddress();
+
+        View = new(context, new()
+        {
+            Buffer = this,
+            SizeInBytes = desc.SizeInBytes,
+            StrideInBytes = desc.StrideInBytes
+        });
+    }
+
+    public DXBuffer(DXGraphicsContext context, BufferDesc desc, ComPtr<ID3D12Resource> resource) : base(context, desc)
+    {
+        Resource = resource;
+
+        GPUVirtualAddress = Resource.GetGPUVirtualAddress();
+
+        View = new(context, new()
+        {
+            Buffer = this,
+            SizeInBytes = desc.SizeInBytes,
+            StrideInBytes = desc.StrideInBytes
+        });
+    }
+
+    public DXBuffer(DXGraphicsContext context, BufferDesc desc, ResourceFlags flags) : base(context, desc)
+    {
+        ResourceDesc1 resourceDesc = ResourceDesc(desc);
+        resourceDesc.Flags |= flags;
+
+        HeapProperties heapProperties = new()
+        {
+            Type = DXFormats.DirectX12(desc.Residency)
+        };
+
+        context.Device.CreateCommittedResource3(&heapProperties,
+                                                HeapFlags.None,
+                                                &resourceDesc,
+                                                BarrierLayout.Undefined,
+                                                default(ClearValue*),
+                                                default(ID3D12ProtectedResourceSession*),
+                                                0,
+                                                default(Format*),
+                                                SilkMarshal.GuidPtrOf<ID3D12Resource>(),
+                                                (void**)Resource.GetAddressOf()).Success();
 
         GPUVirtualAddress = Resource.GetGPUVirtualAddress();
 

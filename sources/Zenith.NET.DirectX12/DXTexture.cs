@@ -11,29 +11,38 @@ internal unsafe class DXTexture : Texture
 
     public ComPtr<ID3D12Resource> Resource;
 
-    public DXTexture(DXGraphicsContext context, TextureDesc desc, ComPtr<ID3D12Resource>? resource) : base(context, desc)
+    public DXTexture(DXGraphicsContext context, TextureDesc desc) : base(context, desc)
     {
-        if (resource is null)
-        {
-            ResourceDesc1 resourceDesc = ResourceDesc(desc);
+        ResourceDesc1 resourceDesc = ResourceDesc(desc);
 
-            HeapProperties heapProperties = new(DxHeapType.Default);
-
-            context.Device.CreateCommittedResource3(&heapProperties,
-                                                    HeapFlags.None,
-                                                    &resourceDesc,
-                                                    BarrierLayout.Undefined,
-                                                    default(ClearValue*),
-                                                    default(ID3D12ProtectedResourceSession*),
-                                                    0,
-                                                    default(Format*),
-                                                    SilkMarshal.GuidPtrOf<ID3D12Resource>(),
-                                                    (void**)Resource.GetAddressOf()).Success();
-        }
-        else
+        HeapProperties heapProperties = new()
         {
-            Resource = resource.Value;
-        }
+            Type = DxHeapType.Default
+        };
+
+        context.Device.CreateCommittedResource3(&heapProperties,
+                                                HeapFlags.None,
+                                                &resourceDesc,
+                                                BarrierLayout.Undefined,
+                                                default(ClearValue*),
+                                                default(ID3D12ProtectedResourceSession*),
+                                                0,
+                                                default(Format*),
+                                                SilkMarshal.GuidPtrOf<ID3D12Resource>(),
+                                                (void**)Resource.GetAddressOf()).Success();
+
+        View = new(context, new()
+        {
+            Texture = this,
+            Type = desc.Type,
+            Format = desc.Format,
+            Range = TextureSubresourceRange.All(this)
+        });
+    }
+
+    public DXTexture(DXGraphicsContext context, TextureDesc desc, ComPtr<ID3D12Resource> resource) : base(context, desc)
+    {
+        Resource = resource;
 
         View = new(context, new()
         {

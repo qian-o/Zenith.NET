@@ -1,5 +1,4 @@
 ﻿global using DxBlendOp = Silk.NET.Direct3D12.BlendOp;
-global using DxBufferBarrier = Silk.NET.Direct3D12.BufferBarrier;
 global using DxCullMode = Silk.NET.Direct3D12.CullMode;
 global using DxFillMode = Silk.NET.Direct3D12.FillMode;
 global using DxHeapDesc = Silk.NET.Direct3D12.HeapDesc;

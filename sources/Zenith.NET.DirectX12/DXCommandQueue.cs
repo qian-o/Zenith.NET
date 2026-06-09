@@ -35,15 +35,14 @@ internal unsafe class DXCommandQueue : CommandQueue
         return new DXCommandBuffer(Context, this);
     }
 
-    protected override void SubmitImpl(CommandBuffer commandBuffer, ReadOnlySpan<CommandSubmission> waits, ulong signalValue)
+    protected override void SignalImpl(ulong signalValue)
     {
-        foreach (CommandSubmission wait in waits)
-        {
-            CommandQueue.Wait(wait.Queue.DirectX12().Fence, wait.Value).Success();
-        }
-
-        CommandQueue.ExecuteCommandLists(1, (ID3D12CommandList**)commandBuffer.DirectX12().CommandList.GetAddressOf());
         CommandQueue.Signal(Fence, signalValue).Success();
+    }
+
+    protected override void SubmitImpl(CommandBuffer commandBuffer)
+    {
+        CommandQueue.ExecuteCommandLists(1, (ID3D12CommandList**)commandBuffer.DirectX12().CommandList.GetAddressOf());
     }
 
     protected override void WaitImpl(ulong waitValue)
@@ -52,6 +51,14 @@ internal unsafe class DXCommandQueue : CommandQueue
 
         @event.WaitOne();
         @event.Reset();
+    }
+
+    protected override void WaitImpl(ReadOnlySpan<CommandSubmission> submissions)
+    {
+        foreach (CommandSubmission submission in submissions)
+        {
+            CommandQueue.Wait(submission.Queue.DirectX12().Fence, submission.Value).Success();
+        }
     }
 
     protected override void SetResourceName(string name)

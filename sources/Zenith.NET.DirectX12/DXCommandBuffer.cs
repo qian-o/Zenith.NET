@@ -25,86 +25,63 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         return 0;
     }
 
-    protected override void BarrierImpl(ReadOnlySpan<MemoryBarrier> memoryBarriers, ReadOnlySpan<BufferBarrier> bufferBarriers, ReadOnlySpan<TextureBarrier> textureBarriers)
+    protected override void BarrierImpl(BarrierStages before, BarrierStages after)
     {
-        GlobalBarrier* pGlobalBarriers = stackalloc GlobalBarrier[memoryBarriers.Length];
-        for (int i = 0; i < memoryBarriers.Length; i++)
+        (BarrierSync syncBefore, BarrierAccess accessBefore) = DXFormats.DirectX12(before);
+        (BarrierSync syncAfter, BarrierAccess accessAfter) = DXFormats.DirectX12(after);
+
+        GlobalBarrier barrier = new()
         {
-            MemoryBarrier barrier = memoryBarriers[i];
+            SyncBefore = syncBefore,
+            SyncAfter = syncAfter,
+            AccessBefore = accessBefore,
+            AccessAfter = accessAfter
+        };
 
-            pGlobalBarriers[i] = new()
-            {
-                SyncBefore = DXFormats.DirectX12(barrier.SrcStages),
-                SyncAfter = DXFormats.DirectX12(barrier.DstStages),
-                AccessBefore = DXFormats.DirectX12(barrier.SrcAccess),
-                AccessAfter = DXFormats.DirectX12(barrier.DstAccess)
-            };
-        }
-
-        DxBufferBarrier* pBufferBarriers = stackalloc DxBufferBarrier[bufferBarriers.Length];
-        for (int i = 0; i < bufferBarriers.Length; i++)
+        BarrierGroup barrierGroup = new()
         {
-            BufferBarrier barrier = bufferBarriers[i];
+            Type = BarrierType.Global,
+            NumBarriers = 1,
+            PGlobalBarriers = &barrier
+        };
 
-            pBufferBarriers[i] = new()
-            {
-                SyncBefore = DXFormats.DirectX12(barrier.SrcStages),
-                SyncAfter = DXFormats.DirectX12(barrier.DstStages),
-                AccessBefore = DXFormats.DirectX12(barrier.SrcAccess),
-                AccessAfter = DXFormats.DirectX12(barrier.DstAccess),
-                PResource = barrier.Buffer.DirectX12().Resource,
-                Size = ulong.MaxValue
-            };
-        }
+        CommandList.Barrier(1, &barrierGroup);
+    }
 
-        DxTextureBarrier* pTextureBarriers = stackalloc DxTextureBarrier[textureBarriers.Length];
-        for (int i = 0; i < textureBarriers.Length; i++)
+    protected override void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout srcLayout, TextureLayout dstLayout)
+    {
+        DXTexture dxTexture = texture.DirectX12();
+
+        (BarrierSync syncBefore, BarrierAccess accessBefore, BarrierLayout layoutBefore) = DXFormats.DirectX12(srcLayout);
+        (BarrierSync syncAfter, BarrierAccess accessAfter, BarrierLayout layoutAfter) = DXFormats.DirectX12(dstLayout);
+
+        DxTextureBarrier barrier = new()
         {
-            TextureBarrier barrier = textureBarriers[i];
-
-            pTextureBarriers[i] = new()
+            SyncBefore = syncBefore,
+            SyncAfter = syncAfter,
+            AccessBefore = accessBefore,
+            AccessAfter = accessAfter,
+            LayoutBefore = layoutBefore,
+            LayoutAfter = layoutAfter,
+            PResource = dxTexture.Resource,
+            Subresources = new()
             {
-                SyncBefore = DXFormats.DirectX12(barrier.SrcStages),
-                SyncAfter = DXFormats.DirectX12(barrier.DstStages),
-                AccessBefore = DXFormats.DirectX12(barrier.SrcAccess),
-                AccessAfter = DXFormats.DirectX12(barrier.DstAccess),
-                LayoutBefore = DXFormats.DirectX12(barrier.SrcLayout),
-                LayoutAfter = DXFormats.DirectX12(barrier.DstLayout),
-                PResource = barrier.Texture.DirectX12().Resource,
-                Subresources = new()
-                {
-                    IndexOrFirstMipLevel = barrier.Range.BaseMipLevel,
-                    NumMipLevels = barrier.Range.LevelCount,
-                    FirstArraySlice = barrier.Range.BaseArrayLayer,
-                    NumArraySlices = barrier.Range.LayerCount,
-                    NumPlanes = 1
-                }
-            };
-        }
-
-        BarrierGroup* pBarrierGroups = stackalloc BarrierGroup[]
-        {
-            new()
-            {
-                Type = BarrierType.Global,
-                NumBarriers = (uint)memoryBarriers.Length,
-                PGlobalBarriers = pGlobalBarriers
-            },
-            new()
-            {
-                Type = BarrierType.Buffer,
-                NumBarriers = (uint)bufferBarriers.Length,
-                PBufferBarriers = pBufferBarriers
-            },
-            new()
-            {
-                Type = BarrierType.Texture,
-                NumBarriers = (uint)textureBarriers.Length,
-                PTextureBarriers = pTextureBarriers
+                IndexOrFirstMipLevel = subresource.MipLevel,
+                NumMipLevels = 1,
+                FirstArraySlice = subresource.ArrayLayer,
+                NumArraySlices = 1,
+                NumPlanes = ZenithHelper.HasStencil(dxTexture.Desc.Format) ? 2u : 1u
             }
         };
 
-        CommandList.Barrier(3, pBarrierGroups);
+        BarrierGroup barrierGroup = new()
+        {
+            Type = BarrierType.Texture,
+            NumBarriers = 1,
+            PTextureBarriers = &barrier
+        };
+
+        CommandList.Barrier(1, &barrierGroup);
     }
 
     protected override void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes)
@@ -284,7 +261,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             };
         }
 
-        RenderPassDepthStencilDesc depthStencil = default;
+        RenderPassDepthStencilDesc* pDepthStencil = stackalloc RenderPassDepthStencilDesc[depthStencilAttachment.HasValue ? 1 : 0];
         if (depthStencilAttachment.HasValue)
         {
             DepthStencilAttachment attachment = depthStencilAttachment.Value;
@@ -301,7 +278,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
                 }
             };
 
-            depthStencil = new()
+            pDepthStencil[0] = new()
             {
                 CpuDescriptor = texture.GetDsvHandle(attachment.Subresource),
                 DepthBeginningAccess = new()
@@ -331,7 +308,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
             };
         }
 
-        CommandList.BeginRenderPass((uint)colorAttachments.Length, pRenderTargets, &depthStencil, RenderPassFlags.None);
+        CommandList.BeginRenderPass((uint)colorAttachments.Length, pRenderTargets, pDepthStencil, RenderPassFlags.None);
     }
 
     protected override void EndRenderPassImpl()
@@ -384,6 +361,8 @@ internal unsafe class DXCommandBuffer : CommandBuffer
     protected override void SetPipelineImpl(GraphicsPipeline pipeline)
     {
         CommandList.SetPipelineState(pipeline.DirectX12().PipelineState);
+
+        CommandList.IASetPrimitiveTopology(DXFormats.DirectX12(pipeline.Desc.PrimitiveTopology).Topology);
     }
 
     protected override void SetPipelineImpl(ComputePipeline pipeline)

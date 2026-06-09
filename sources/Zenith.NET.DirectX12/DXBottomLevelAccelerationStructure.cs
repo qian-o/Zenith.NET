@@ -10,16 +10,29 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
     {
         using ZenithMarshal.Scope scope = new();
 
-        TransformBuffer = new(context, new() { SizeInBytes = (uint)(sizeof(Matrix3X4<float>) * desc.Geometries.Length), Residency = MemoryResidency.CpuWriteOnly }, default);
+        TransformBuffer = new(context, new()
+        {
+            SizeInBytes = (uint)(sizeof(Matrix3X4<float>) * desc.Geometries.Length),
+            Residency = MemoryResidency.CpuWriteOnly
+        });
 
         FillInputs(scope, desc, out BuildRaytracingAccelerationStructureInputs inputs);
 
         RaytracingAccelerationStructurePrebuildInfo prebuildInfo = new();
         context.Device.GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &prebuildInfo);
 
-        AccelerationStructureBuffer = new(context, new() { SizeInBytes = (uint)prebuildInfo.ResultDataMaxSizeInBytes, Usages = BufferUsages.AccelerationStructure, Residency = MemoryResidency.GpuOnly }, default);
+        AccelerationStructureBuffer = new(context, new()
+        {
+            SizeInBytes = (uint)prebuildInfo.ResultDataMaxSizeInBytes,
+            Residency = MemoryResidency.GpuOnly
+        }, ResourceFlags.RaytracingAccelerationStructure);
 
-        ScratchBuffer = new(context, new() { SizeInBytes = (uint)prebuildInfo.ScratchDataSizeInBytes, Usages = BufferUsages.StorageReadWrite, Residency = MemoryResidency.GpuOnly }, default);
+        ScratchBuffer = new(context, new()
+        {
+            SizeInBytes = (uint)prebuildInfo.ScratchDataSizeInBytes,
+            Usages = BufferUsages.StorageReadWrite,
+            Residency = MemoryResidency.GpuOnly
+        });
 
         BuildRaytracingAccelerationStructureDesc buildDesc = new()
         {
@@ -29,6 +42,23 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
         };
 
         commandBuffer.CommandList.BuildRaytracingAccelerationStructure(&buildDesc, 0, default(RaytracingAccelerationStructurePostbuildInfoDesc*));
+
+        GlobalBarrier barrier = new()
+        {
+            SyncBefore = BarrierSync.BuildRaytracingAccelerationStructure,
+            SyncAfter = BarrierSync.BuildRaytracingAccelerationStructure,
+            AccessBefore = BarrierAccess.RaytracingAccelerationStructureWrite,
+            AccessAfter = BarrierAccess.RaytracingAccelerationStructureRead
+        };
+
+        BarrierGroup barrierGroup = new()
+        {
+            Type = BarrierType.Global,
+            NumBarriers = 1,
+            PGlobalBarriers = &barrier
+        };
+
+        commandBuffer.CommandList.Barrier(1, &barrierGroup);
     }
 
     public DXBuffer TransformBuffer { get; }
@@ -53,6 +83,23 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
         };
 
         commandBuffer.CommandList.BuildRaytracingAccelerationStructure(&buildDesc, 0, default(RaytracingAccelerationStructurePostbuildInfoDesc*));
+
+        GlobalBarrier barrier = new()
+        {
+            SyncBefore = BarrierSync.BuildRaytracingAccelerationStructure,
+            SyncAfter = BarrierSync.BuildRaytracingAccelerationStructure,
+            AccessBefore = BarrierAccess.RaytracingAccelerationStructureWrite,
+            AccessAfter = BarrierAccess.RaytracingAccelerationStructureRead
+        };
+
+        BarrierGroup barrierGroup = new()
+        {
+            Type = BarrierType.Global,
+            NumBarriers = 1,
+            PGlobalBarriers = &barrier
+        };
+
+        commandBuffer.CommandList.Barrier(1, &barrierGroup);
     }
 
     public override nint GetNativeObject(NativeObjectType type)

@@ -15,7 +15,7 @@ internal unsafe class DXMeshShadingPipeline : MeshShadingPipeline
         PipelineStateStream2 pipelineStateStream = new()
         {
             PRootSignature = (nint)context.RootSignature.Handle,
-            PrimitiveTopologyType = DXFormats.DirectX12(desc.PrimitiveTopology),
+            PrimitiveTopologyType = DXFormats.DirectX12(desc.PrimitiveTopology).TopologyType,
             PS = desc.FragmentShader.DirectX12().GetShaderBytecode(scope),
             AS = (desc.TaskShader?.DirectX12().GetShaderBytecode(scope)) ?? default,
             MS = desc.MeshShader.DirectX12().GetShaderBytecode(scope),

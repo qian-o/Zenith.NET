@@ -11,19 +11,13 @@ internal unsafe class DXComputePipeline : ComputePipeline
     {
         using ZenithMarshal.Scope scope = new();
 
-        PipelineStateStream2 pipelineStateStream = new()
+        ComputePipelineStateDesc computePipelineStateDesc = new()
         {
-            PRootSignature = (nint)context.RootSignature.Handle,
+            PRootSignature = context.RootSignature,
             CS = desc.ComputeShader.DirectX12().GetShaderBytecode(scope)
         };
 
-        PipelineStateStreamDesc pipelineStateStreamDesc = new()
-        {
-            SizeInBytes = (uint)sizeof(PipelineStateStream2),
-            PPipelineStateSubobjectStream = &pipelineStateStream
-        };
-
-        context.Device.CreatePipelineState(&pipelineStateStreamDesc, SilkMarshal.GuidPtrOf<ID3D12PipelineState>(), (void**)PipelineState.GetAddressOf()).Success();
+        context.Device.CreateComputePipelineState(&computePipelineStateDesc, SilkMarshal.GuidPtrOf<ID3D12PipelineState>(), (void**)PipelineState.GetAddressOf()).Success();
     }
 
     public override nint GetNativeObject(NativeObjectType type)

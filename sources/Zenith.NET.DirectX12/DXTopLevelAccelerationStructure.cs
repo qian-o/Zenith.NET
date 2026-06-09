@@ -9,16 +9,29 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
 
     public DXTopLevelAccelerationStructure(DXGraphicsContext context, DXCommandBuffer commandBuffer, TopLevelAccelerationStructureDesc desc) : base(context, desc)
     {
-        InstanceBuffer = new(context, new() { SizeInBytes = (uint)(sizeof(RaytracingInstanceDesc) * desc.Instances.Length), Residency = MemoryResidency.CpuWriteOnly }, default);
+        InstanceBuffer = new(context, new()
+        {
+            SizeInBytes = (uint)(sizeof(RaytracingInstanceDesc) * desc.Instances.Length),
+            Residency = MemoryResidency.CpuWriteOnly
+        });
 
         FillInputs(desc, out BuildRaytracingAccelerationStructureInputs inputs);
 
         RaytracingAccelerationStructurePrebuildInfo prebuildInfo = new();
         context.Device.GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &prebuildInfo);
 
-        AccelerationStructureBuffer = new(context, new() { SizeInBytes = (uint)prebuildInfo.ResultDataMaxSizeInBytes, Usages = BufferUsages.AccelerationStructure, Residency = MemoryResidency.GpuOnly }, default);
+        AccelerationStructureBuffer = new(context, new()
+        {
+            SizeInBytes = (uint)prebuildInfo.ResultDataMaxSizeInBytes,
+            Residency = MemoryResidency.GpuOnly
+        }, ResourceFlags.RaytracingAccelerationStructure);
 
-        ScratchBuffer = new(context, new() { SizeInBytes = (uint)prebuildInfo.ScratchDataSizeInBytes, Usages = BufferUsages.StorageReadWrite, Residency = MemoryResidency.GpuOnly }, default);
+        ScratchBuffer = new(context, new()
+        {
+            SizeInBytes = (uint)prebuildInfo.ScratchDataSizeInBytes,
+            Usages = BufferUsages.StorageReadWrite,
+            Residency = MemoryResidency.GpuOnly
+        });
 
         BuildRaytracingAccelerationStructureDesc buildDesc = new()
         {
@@ -28,6 +41,23 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
         };
 
         commandBuffer.CommandList.BuildRaytracingAccelerationStructure(&buildDesc, 0, default(RaytracingAccelerationStructurePostbuildInfoDesc*));
+
+        GlobalBarrier barrier = new()
+        {
+            SyncBefore = BarrierSync.BuildRaytracingAccelerationStructure,
+            SyncAfter = BarrierSync.AllShading,
+            AccessBefore = BarrierAccess.RaytracingAccelerationStructureWrite,
+            AccessAfter = BarrierAccess.RaytracingAccelerationStructureRead
+        };
+
+        BarrierGroup barrierGroup = new()
+        {
+            Type = BarrierType.Global,
+            NumBarriers = 1,
+            PGlobalBarriers = &barrier
+        };
+
+        commandBuffer.CommandList.Barrier(1, &barrierGroup);
 
         ShaderResourceViewDesc viewDesc = new()
         {
@@ -64,6 +94,23 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
         };
 
         commandBuffer.CommandList.BuildRaytracingAccelerationStructure(&buildDesc, 0, default(RaytracingAccelerationStructurePostbuildInfoDesc*));
+
+        GlobalBarrier barrier = new()
+        {
+            SyncBefore = BarrierSync.BuildRaytracingAccelerationStructure,
+            SyncAfter = BarrierSync.AllShading,
+            AccessBefore = BarrierAccess.RaytracingAccelerationStructureWrite,
+            AccessAfter = BarrierAccess.RaytracingAccelerationStructureRead
+        };
+
+        BarrierGroup barrierGroup = new()
+        {
+            Type = BarrierType.Global,
+            NumBarriers = 1,
+            PGlobalBarriers = &barrier
+        };
+
+        commandBuffer.CommandList.Barrier(1, &barrierGroup);
     }
 
     public override nint GetNativeObject(NativeObjectType type)
