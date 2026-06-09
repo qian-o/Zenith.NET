@@ -72,7 +72,10 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
             throw new NotSupportedException("Direct3D 12 Feature Level 12_0 is not supported on the selected adapter.");
         }
 
-        FeatureDataShaderModel shaderModel = new() { HighestShaderModel = D3DShaderModel.ShaderModel66 };
+        FeatureDataShaderModel shaderModel = new()
+        {
+            HighestShaderModel = D3DShaderModel.ShaderModel66
+        };
         Device.CheckFeatureSupport(Feature.ShaderModel, &shaderModel, (uint)sizeof(FeatureDataShaderModel)).Success();
         if (shaderModel.HighestShaderModel < D3DShaderModel.ShaderModel66)
         {
@@ -97,7 +100,10 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         {
             ParameterType = RootParameterType.TypeCbv,
             ShaderVisibility = ShaderVisibility.All,
-            Descriptor = new() { Flags = RootDescriptorFlags.DataVolatile }
+            Descriptor = new()
+            {
+                Flags = RootDescriptorFlags.DataVolatile
+            }
         };
 
         RootSignatureDesc2 rootSignatureDesc = new()
@@ -118,8 +124,17 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         D3D12.SerializeVersionedRootSignature(&versionedRootSignatureDesc, rootSignatureBlob.GetAddressOf(), rootSignatureError.GetAddressOf()).Success();
         Device.CreateRootSignature(0, rootSignatureBlob.GetBufferPointer(), rootSignatureBlob.GetBufferSize(), SilkMarshal.GuidPtrOf<ID3D12RootSignature>(), (void**)RootSignature.GetAddressOf()).Success();
 
-        IndirectArgumentDesc indirectArgumentDesc = new() { Type = IndirectArgumentType.Draw };
-        CommandSignatureDesc commandSignatureDesc = new() { ByteStride = (uint)sizeof(IndirectDrawArgs), NumArgumentDescs = 1, PArgumentDescs = &indirectArgumentDesc };
+        IndirectArgumentDesc indirectArgumentDesc = new()
+        {
+            Type = IndirectArgumentType.Draw
+        };
+
+        CommandSignatureDesc commandSignatureDesc = new()
+        {
+            ByteStride = (uint)sizeof(IndirectDrawArgs),
+            NumArgumentDescs = 1,
+            PArgumentDescs = &indirectArgumentDesc
+        };
         Device.CreateCommandSignature(&commandSignatureDesc, default(ID3D12RootSignature*), SilkMarshal.GuidPtrOf<ID3D12CommandSignature>(), (void**)DrawSignature.GetAddressOf()).Success();
 
         indirectArgumentDesc.Type = IndirectArgumentType.DrawIndexed;
@@ -134,7 +149,10 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         commandSignatureDesc.ByteStride = (uint)sizeof(IndirectDispatchMeshArgs);
         Device.CreateCommandSignature(&commandSignatureDesc, default(ID3D12RootSignature*), SilkMarshal.GuidPtrOf<ID3D12CommandSignature>(), (void**)DispatchMeshSignature.GetAddressOf()).Success();
 
-        CommandQueueDesc commandQueueDesc = new() { Type = CommandListType.Direct };
+        CommandQueueDesc commandQueueDesc = new()
+        {
+            Type = CommandListType.Direct
+        };
         Device.CreateCommandQueue(&commandQueueDesc, SilkMarshal.GuidPtrOf<ID3D12CommandQueue>(), (void**)GraphicsCommandQueue.GetAddressOf()).Success();
 
         commandQueueDesc.Type = CommandListType.Compute;
