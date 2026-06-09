@@ -172,15 +172,17 @@ internal static class App
                 return;
             }
 
-            CommandSubmission acquire = swapChain.Acquire();
-
-            CommandBuffer commandBuffer = Context.GraphicsQueue.AcquireCommandBuffer();
+            CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
             activeRenderer.Render(commandBuffer);
 
+            commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.ColorAttachment);
+
             imGui.Render(commandBuffer, ColorAttachment.Load(swapChain.Drawable));
 
-            swapChain.Present(commandBuffer.Submit(acquire)).Wait();
+            commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Present);
+
+            swapChain.Present(commandBuffer.Submit()).Wait();
         };
 
         window.Resize += _ =>

@@ -32,7 +32,7 @@ internal unsafe class PathTracingRenderer : Renderer
         {
             SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length),
             StrideInBytes = (uint)sizeof(Vertex),
-            Usages = BufferUsages.StorageReadOnly | BufferUsages.AccelerationStructure | BufferUsages.CopyDst,
+            Usages = BufferUsages.StorageReadOnly | BufferUsages.CopyDst,
             Residency = MemoryResidency.GpuOnly
         });
 
@@ -45,7 +45,7 @@ internal unsafe class PathTracingRenderer : Renderer
         {
             SizeInBytes = (uint)(sizeof(uint) * indices.Length),
             StrideInBytes = sizeof(uint),
-            Usages = BufferUsages.StorageReadOnly | BufferUsages.AccelerationStructure | BufferUsages.CopyDst,
+            Usages = BufferUsages.StorageReadOnly | BufferUsages.CopyDst,
             Residency = MemoryResidency.GpuOnly
         });
 
@@ -69,7 +69,7 @@ internal unsafe class PathTracingRenderer : Renderer
 
         pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = computeShader });
 
-        CommandBuffer commandBuffer = App.Context.ComputeQueue.AcquireCommandBuffer();
+        CommandBuffer commandBuffer = App.Context.ComputeQueue.CommandBuffer();
 
         blas = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
         {
@@ -166,10 +166,15 @@ internal unsafe class PathTracingRenderer : Renderer
 
     public override void Render(CommandBuffer commandBuffer)
     {
+        commandBuffer.Transition(Color, default, TextureLayout.Storage);
+        commandBuffer.Transition(accumulationTexture!, default, TextureLayout.Storage);
+
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(constantBuffer, 0);
 
         commandBuffer.Dispatch((App.Width + ThreadGroupSize - 1) / ThreadGroupSize, (App.Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
+
+        commandBuffer.Transition(Color, default, TextureLayout.Sampled);
 
         FrameCount++;
     }

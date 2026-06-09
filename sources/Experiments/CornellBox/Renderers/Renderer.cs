@@ -55,7 +55,6 @@ internal abstract class Renderer : IDisposable
             SampleCount = SampleCount.Count1,
             Usages = TextureUsages.DepthStencilAttachment
         });
-
     }
 
     public virtual void Dispose()

@@ -101,6 +101,9 @@ internal unsafe class RasterizationRenderer : Renderer
 
     public override void Render(CommandBuffer commandBuffer)
     {
+        commandBuffer.Transition(Color, default, TextureLayout.ColorAttachment);
+        commandBuffer.Transition(DepthStencil, default, TextureLayout.DepthStencilAttachment);
+
         commandBuffer.BeginRenderPass([ColorAttachment.Clear(Color, new(0.51f, 0.518f, 0.557f, 1.0f))], DepthStencilAttachment.Clear(DepthStencil, 1.0f, 0));
 
         commandBuffer.SetPipeline(pipeline);
@@ -111,6 +114,8 @@ internal unsafe class RasterizationRenderer : Renderer
         commandBuffer.DrawIndexed(indexCount, 1, 0, 0, 0);
 
         commandBuffer.EndRenderPass();
+
+        commandBuffer.Transition(Color, default, TextureLayout.Sampled);
     }
 
     public override void Dispose()
