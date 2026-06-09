@@ -66,13 +66,22 @@ internal unsafe class Surface(GraphicsContext context, uint width, uint height) 
     {
         fixed (byte* pPixels = pixels)
         {
-            Target.Download(default, default, new() { Width = Width, Height = Height, Depth = 1 }, new()
+            Extent3D extent = new()
+            {
+                Width = Width,
+                Height = Height,
+                Depth = 1
+            };
+
+            TextureData data = new()
             {
                 Pointer = (nint)pPixels,
                 SizeInBytes = (uint)pixels.Length,
                 RowStrideInBytes = Width * 4,
                 SliceStrideInBytes = (uint)pixels.Length
-            });
+            };
+
+            Target.Download(default, default, extent, data);
         }
 
         if (ZenithViewHelper.Format is PixelFormat.R8G8B8A8UNorm)

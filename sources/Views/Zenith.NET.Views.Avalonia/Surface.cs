@@ -18,13 +18,22 @@ internal class Surface(GraphicsContext graphicsContext, uint width, uint height)
     {
         using ILockedFramebuffer lockedFramebuffer = Bitmap.Lock();
 
-        Target.Download(default, default, new() { Width = Width, Height = Height, Depth = 1 }, new()
+        Extent3D extent = new()
+        {
+            Width = Width,
+            Height = Height,
+            Depth = 1
+        };
+
+        TextureData data = new()
         {
             Pointer = lockedFramebuffer.Address,
             SizeInBytes = (uint)(lockedFramebuffer.RowBytes * Height),
             RowStrideInBytes = (uint)lockedFramebuffer.RowBytes,
             SliceStrideInBytes = (uint)(lockedFramebuffer.RowBytes * Height)
-        });
+        };
+
+        Target.Download(default, default, extent, data);
     }
 
     protected override void Destroy()

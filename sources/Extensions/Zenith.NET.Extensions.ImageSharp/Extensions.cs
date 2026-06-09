@@ -29,7 +29,12 @@ public static class Extensions
             {
                 fixed (Rgba32* pPixels = pixels)
                 {
-                    Extent3D extent = new() { Width = (uint)image.Width, Height = (uint)image.Height, Depth = 1 };
+                    Extent3D extent = new()
+                    {
+                        Width = (uint)image.Width,
+                        Height = (uint)image.Height,
+                        Depth = 1
+                    };
 
                     TextureData data = new()
                     {
@@ -53,7 +58,12 @@ public static class Extensions
 
                     fixed (Rgba32* pPixels = pixels)
                     {
-                        Extent3D extent = new() { Width = mipWidth, Height = mipHeight, Depth = 1 };
+                        Extent3D extent = new()
+                        {
+                            Width = mipWidth,
+                            Height = mipHeight,
+                            Depth = 1
+                        };
 
                         TextureData data = new()
                         {

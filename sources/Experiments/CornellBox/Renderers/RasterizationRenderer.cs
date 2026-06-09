@@ -28,14 +28,22 @@ internal unsafe class RasterizationRenderer : Renderer
 
         fixed (Vertex* pointer = vertices)
         {
-            vertexBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length) });
+            vertexBuffer.Upload(0, new()
+            {
+                Pointer = (nint)pointer,
+                SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length)
+            });
         }
 
         indexBuffer = App.Context.CreateBuffer(BufferDesc.Index((uint)(sizeof(uint) * indices.Length)));
 
         fixed (uint* pointer = indices)
         {
-            indexBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(uint) * indices.Length) });
+            indexBuffer.Upload(0, new()
+            {
+                Pointer = (nint)pointer,
+                SizeInBytes = (uint)(sizeof(uint) * indices.Length)
+            });
         }
 
         constantBuffer = App.Context.CreateBuffer(new()
@@ -46,8 +54,17 @@ internal unsafe class RasterizationRenderer : Renderer
         });
 
         InputLayout inputLayout = new();
-        inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Position });
-        inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Normal });
+        inputLayout.Add(new()
+        {
+            Format = ElementFormat.Float4,
+            Semantic = ElementSemantic.Position
+        });
+
+        inputLayout.Add(new()
+        {
+            Format = ElementFormat.Float4,
+            Semantic = ElementSemantic.Normal
+        });
 
         using Shader vertexShader = App.Context.CreateShader(new()
         {
@@ -79,7 +96,11 @@ internal unsafe class RasterizationRenderer : Renderer
 
         fixed (Material* pointer = materials)
         {
-            materialBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Material) * materials.Length) });
+            materialBuffer.Upload(0, new()
+            {
+                Pointer = (nint)pointer,
+                SizeInBytes = (uint)(sizeof(Material) * materials.Length)
+            });
         }
     }
 
@@ -96,7 +117,11 @@ internal unsafe class RasterizationRenderer : Renderer
             Materials = materialBuffer.StorageReadOnlyHandle
         };
 
-        constantBuffer.Upload(0, new() { Pointer = (nint)(&parameters), SizeInBytes = (uint)sizeof(RasterizationConstants) });
+        constantBuffer.Upload(0, new()
+        {
+            Pointer = (nint)(&parameters),
+            SizeInBytes = (uint)sizeof(RasterizationConstants)
+        });
     }
 
     public override void Render(CommandBuffer commandBuffer)

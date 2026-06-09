@@ -38,7 +38,11 @@ internal unsafe class PathTracingRenderer : Renderer
 
         fixed (Vertex* pointer = vertices)
         {
-            vertexBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length) });
+            vertexBuffer.Upload(0, new()
+            {
+                Pointer = (nint)pointer,
+                SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length)
+            });
         }
 
         indexBuffer = App.Context.CreateBuffer(new()
@@ -51,7 +55,11 @@ internal unsafe class PathTracingRenderer : Renderer
 
         fixed (uint* pointer = indices)
         {
-            indexBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(uint) * indices.Length) });
+            indexBuffer.Upload(0, new()
+            {
+                Pointer = (nint)pointer,
+                SizeInBytes = (uint)(sizeof(uint) * indices.Length)
+            });
         }
 
         constantBuffer = App.Context.CreateBuffer(new()
@@ -123,7 +131,11 @@ internal unsafe class PathTracingRenderer : Renderer
 
         fixed (Material* pointer = materials)
         {
-            materialBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Material) * materials.Length) });
+            materialBuffer.Upload(0, new()
+            {
+                Pointer = (nint)pointer,
+                SizeInBytes = (uint)(sizeof(Material) * materials.Length)
+            });
         }
     }
 
@@ -161,7 +173,11 @@ internal unsafe class PathTracingRenderer : Renderer
             OutputTexture = Color.StorageHandle
         };
 
-        constantBuffer.Upload(0, new() { Pointer = (nint)(&parameters), SizeInBytes = (uint)sizeof(PathTracingConstants) });
+        constantBuffer.Upload(0, new()
+        {
+            Pointer = (nint)(&parameters),
+            SizeInBytes = (uint)sizeof(PathTracingConstants)
+        });
     }
 
     public override void Render(CommandBuffer commandBuffer)

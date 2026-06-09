@@ -94,9 +94,23 @@ float4 FSMain(VSOutput input) : SV_TARGET
         });
 
         InputLayout inputLayout = new();
-        inputLayout.Add(new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.Position });
-        inputLayout.Add(new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.TexCoord });
-        inputLayout.Add(new() { Format = ElementFormat.UByte4UNorm, Semantic = ElementSemantic.Color });
+        inputLayout.Add(new()
+        {
+            Format = ElementFormat.Float2,
+            Semantic = ElementSemantic.Position
+        });
+
+        inputLayout.Add(new()
+        {
+            Format = ElementFormat.Float2,
+            Semantic = ElementSemantic.TexCoord
+        });
+
+        inputLayout.Add(new()
+        {
+            Format = ElementFormat.UByte4UNorm,
+            Semantic = ElementSemantic.Color
+        });
 
         graphicsPipeline = context.CreateGraphicsPipeline(new()
         {
@@ -173,7 +187,12 @@ float4 FSMain(VSOutput input) : SV_TARGET
                                                                                       1,
                                                                                       SampleCount.Count1));
 
-                        Extent3D extent = new() { Width = (uint)textureData.Width, Height = (uint)textureData.Height, Depth = 1 };
+                        Extent3D extent = new()
+                        {
+                            Width = (uint)textureData.Width,
+                            Height = (uint)textureData.Height,
+                            Depth = 1
+                        };
 
                         if (textureData.Format is ImTextureFormat.Rgba32)
                         {
@@ -215,8 +234,19 @@ float4 FSMain(VSOutput input) : SV_TARGET
                             {
                                 ImTextureRect rect = textureData.Updates[j];
 
-                                Offset3D offset = new() { X = rect.X, Y = rect.Y, Z = 0 };
-                                Extent3D extent = new() { Width = rect.W, Height = rect.H, Depth = 1 };
+                                Offset3D offset = new()
+                                {
+                                    X = rect.X,
+                                    Y = rect.Y,
+                                    Z = 0
+                                };
+
+                                Extent3D extent = new()
+                                {
+                                    Width = rect.W,
+                                    Height = rect.H,
+                                    Depth = 1
+                                };
 
                                 using ZenithMarshal.Scope scope = new();
 
@@ -321,8 +351,17 @@ float4 FSMain(VSOutput input) : SV_TARGET
         {
             ImDrawListPtr drawListPtr = drawData.CmdLists[i];
 
-            vertexBuffer.Upload((uint)(sizeof(ImDrawVert) * vertexOffset), new() { Pointer = (nint)drawListPtr.VtxBuffer.Data, SizeInBytes = (uint)(sizeof(ImDrawVert) * drawListPtr.VtxBuffer.Size) });
-            indexBuffer.Upload((uint)(sizeof(ushort) * indexOffset), new() { Pointer = (nint)drawListPtr.IdxBuffer.Data, SizeInBytes = (uint)(sizeof(ushort) * drawListPtr.IdxBuffer.Size) });
+            vertexBuffer.Upload((uint)(sizeof(ImDrawVert) * vertexOffset), new()
+            {
+                Pointer = (nint)drawListPtr.VtxBuffer.Data,
+                SizeInBytes = (uint)(sizeof(ImDrawVert) * drawListPtr.VtxBuffer.Size)
+            });
+
+            indexBuffer.Upload((uint)(sizeof(ushort) * indexOffset), new()
+            {
+                Pointer = (nint)drawListPtr.IdxBuffer.Data,
+                SizeInBytes = (uint)(sizeof(ushort) * drawListPtr.IdxBuffer.Size)
+            });
 
             vertexOffset += drawListPtr.VtxBuffer.Size;
             indexOffset += drawListPtr.IdxBuffer.Size;
@@ -342,14 +381,18 @@ float4 FSMain(VSOutput input) : SV_TARGET
             constants[i] = new()
             {
                 Projection = projection,
-                Sampler = sampler.Handle,
-                Texture = resourceHandleBindings.Values[i]
+                Texture = resourceHandleBindings.Values[i],
+                Sampler = sampler.Handle
             };
         }
 
         fixed (Constants* pointer = constants)
         {
-            constantBuffer.Upload(0, new() { Pointer = (nint)pointer, SizeInBytes = (uint)(sizeof(Constants) * resourceHandleBindings.Count) });
+            constantBuffer.Upload(0, new()
+            {
+                Pointer = (nint)pointer,
+                SizeInBytes = (uint)(sizeof(Constants) * resourceHandleBindings.Count)
+            });
         }
 
         ArrayPool<Constants>.Shared.Return(constants);

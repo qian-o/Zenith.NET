@@ -223,8 +223,18 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
                                            out uint height,
                                            out _);
 
-                scissors[i] = new() { Width = width, Height = height };
-                viewports[i] = new() { Width = width, Height = height, MaxDepth = 1.0f };
+                scissors[i] = new()
+                {
+                    Width = width,
+                    Height = height
+                };
+
+                viewports[i] = new()
+                {
+                    Width = width,
+                    Height = height,
+                    MaxDepth = 1.0f
+                };
             }
         }
         else if (depthStencilAttachment.HasValue)
@@ -239,8 +249,18 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
                                        out uint height,
                                        out _);
 
-            scissors[0] = new() { Width = width, Height = height };
-            viewports[0] = new() { Width = width, Height = height, MaxDepth = 1.0f };
+            scissors[0] = new()
+            {
+                Width = width,
+                Height = height
+            };
+
+            viewports[0] = new()
+            {
+                Width = width,
+                Height = height,
+                MaxDepth = 1.0f
+            };
         }
 
         SetScissorsImpl(scissors);
