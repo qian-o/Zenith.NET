@@ -63,10 +63,7 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
         {
             ViewDimension = SrvDimension.RaytracingAccelerationStructure,
             Shader4ComponentMapping = DXGraphicsContext.Shader4ComponentMapping,
-            RaytracingAccelerationStructure = new()
-            {
-                Location = AccelerationStructureBuffer.GPUVirtualAddress
-            }
+            RaytracingAccelerationStructure = new() { Location = AccelerationStructureBuffer.GPUVirtualAddress }
         };
 
         context.Device.CreateShaderResourceView(default(ID3D12Resource*), &viewDesc, (Token = context.CbvSrvUavHeap.Allocate()).CpuHandle);

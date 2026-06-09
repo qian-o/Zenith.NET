@@ -142,30 +142,12 @@ internal static class DXFormats
     {
         return sampleCount switch
         {
-            SampleCount.Count1 => new()
-            {
-                Count = 1
-            },
-            SampleCount.Count2 => new()
-            {
-                Count = 2
-            },
-            SampleCount.Count4 => new()
-            {
-                Count = 4
-            },
-            SampleCount.Count8 => new()
-            {
-                Count = 8
-            },
-            SampleCount.Count16 => new()
-            {
-                Count = 16
-            },
-            SampleCount.Count32 => new()
-            {
-                Count = 32
-            },
+            SampleCount.Count1 => new() { Count = 1 },
+            SampleCount.Count2 => new() { Count = 2 },
+            SampleCount.Count4 => new() { Count = 4 },
+            SampleCount.Count8 => new() { Count = 8 },
+            SampleCount.Count16 => new() { Count = 16 },
+            SampleCount.Count32 => new() { Count = 32 },
             _ => default
         };
     }

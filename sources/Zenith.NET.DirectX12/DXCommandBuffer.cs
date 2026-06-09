@@ -237,10 +237,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
             DXTexture texture = attachment.Texture.DirectX12();
 
-            ClearValue clearValue = new()
-            {
-                Format = DXFormats.DirectX12(texture.Desc.Format)
-            };
+            ClearValue clearValue = new() { Format = DXFormats.DirectX12(texture.Desc.Format) };
             *(Vector4*)clearValue.Anonymous.Color = attachment.ClearColor;
 
             pRenderTargets[i] = new()
@@ -249,15 +246,9 @@ internal unsafe class DXCommandBuffer : CommandBuffer
                 BeginningAccess = new()
                 {
                     Type = DXFormats.DirectX12(attachment.LoadOp),
-                    Clear = new()
-                    {
-                        ClearValue = clearValue
-                    }
+                    Clear = new() { ClearValue = clearValue }
                 },
-                EndingAccess = new()
-                {
-                    Type = DXFormats.DirectX12(attachment.StoreOp)
-                }
+                EndingAccess = new() { Type = DXFormats.DirectX12(attachment.StoreOp) }
             };
         }
 
@@ -284,27 +275,15 @@ internal unsafe class DXCommandBuffer : CommandBuffer
                 DepthBeginningAccess = new()
                 {
                     Type = DXFormats.DirectX12(attachment.DepthLoadOp),
-                    Clear = new()
-                    {
-                        ClearValue = clearValue
-                    }
+                    Clear = new() { ClearValue = clearValue }
                 },
-                DepthEndingAccess = new()
-                {
-                    Type = ZenithHelper.HasDepth(texture.Desc.Format) ? DXFormats.DirectX12(attachment.DepthStoreOp) : RenderPassEndingAccessType.NoAccess
-                },
+                DepthEndingAccess = new() { Type = ZenithHelper.HasDepth(texture.Desc.Format) ? DXFormats.DirectX12(attachment.DepthStoreOp) : RenderPassEndingAccessType.NoAccess },
                 StencilBeginningAccess = new()
                 {
                     Type = ZenithHelper.HasStencil(texture.Desc.Format) ? DXFormats.DirectX12(attachment.StencilLoadOp) : RenderPassBeginningAccessType.NoAccess,
-                    Clear = new()
-                    {
-                        ClearValue = clearValue
-                    }
+                    Clear = new() { ClearValue = clearValue }
                 },
-                StencilEndingAccess = new()
-                {
-                    Type = ZenithHelper.HasStencil(texture.Desc.Format) ? DXFormats.DirectX12(attachment.StencilStoreOp) : RenderPassEndingAccessType.NoAccess
-                }
+                StencilEndingAccess = new() { Type = ZenithHelper.HasStencil(texture.Desc.Format) ? DXFormats.DirectX12(attachment.StencilStoreOp) : RenderPassEndingAccessType.NoAccess }
             };
         }
 

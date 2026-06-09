@@ -136,27 +136,18 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
     {
         DXDescriptorToken token = context.CbvSrvUavHeap.Allocate();
 
-        UnorderedAccessViewDesc viewDesc = new()
-        {
-            Format = DXFormats.DirectX12(Desc.Format)
-        };
+        UnorderedAccessViewDesc viewDesc = new() { Format = DXFormats.DirectX12(Desc.Format) };
 
         switch (Desc.Type)
         {
             case TextureType.Texture1D:
                 viewDesc.ViewDimension = UavDimension.Texture1D;
-                viewDesc.Texture1D = new()
-                {
-                    MipSlice = Desc.Range.BaseMipLevel
-                };
+                viewDesc.Texture1D = new() { MipSlice = Desc.Range.BaseMipLevel };
                 break;
 
             case TextureType.Texture2D:
                 viewDesc.ViewDimension = UavDimension.Texture2D;
-                viewDesc.Texture2D = new()
-                {
-                    MipSlice = Desc.Range.BaseMipLevel
-                };
+                viewDesc.Texture2D = new() { MipSlice = Desc.Range.BaseMipLevel };
                 break;
 
             case TextureType.Texture3D:

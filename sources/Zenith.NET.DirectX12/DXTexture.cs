@@ -15,10 +15,7 @@ internal unsafe class DXTexture : Texture
     {
         ResourceDesc1 resourceDesc = ResourceDesc(desc);
 
-        HeapProperties heapProperties = new()
-        {
-            Type = DxHeapType.Default
-        };
+        HeapProperties heapProperties = new() { Type = DxHeapType.Default };
 
         context.Device.CreateCommittedResource3(&heapProperties,
                                                 HeapFlags.None,
@@ -72,19 +69,13 @@ internal unsafe class DXTexture : Texture
         {
             rtvTokens[subresource] = token = Context.RtvHeap.Allocate();
 
-            RenderTargetViewDesc viewDesc = new()
-            {
-                Format = DXFormats.DirectX12(Desc.Format)
-            };
+            RenderTargetViewDesc viewDesc = new() { Format = DXFormats.DirectX12(Desc.Format) };
 
             switch (Desc.Type)
             {
                 case TextureType.Texture1D:
                     viewDesc.ViewDimension = RtvDimension.Texture1D;
-                    viewDesc.Texture1D = new()
-                    {
-                        MipSlice = subresource.MipLevel
-                    };
+                    viewDesc.Texture1D = new() { MipSlice = subresource.MipLevel };
                     break;
 
                 case TextureType.Texture1DArray:
@@ -101,10 +92,7 @@ internal unsafe class DXTexture : Texture
                     if (Desc.SampleCount is SampleCount.Count1)
                     {
                         viewDesc.ViewDimension = RtvDimension.Texture2D;
-                        viewDesc.Texture2D = new()
-                        {
-                            MipSlice = subresource.MipLevel
-                        };
+                        viewDesc.Texture2D = new() { MipSlice = subresource.MipLevel };
                     }
                     else
                     {
@@ -159,19 +147,13 @@ internal unsafe class DXTexture : Texture
         {
             dsvTokens[subresource] = token = Context.DsvHeap.Allocate();
 
-            DepthStencilViewDesc viewDesc = new()
-            {
-                Format = DXFormats.DirectX12(Desc.Format)
-            };
+            DepthStencilViewDesc viewDesc = new() { Format = DXFormats.DirectX12(Desc.Format) };
 
             switch (Desc.Type)
             {
                 case TextureType.Texture1D:
                     viewDesc.ViewDimension = DsvDimension.Texture1D;
-                    viewDesc.Texture1D = new()
-                    {
-                        MipSlice = subresource.MipLevel
-                    };
+                    viewDesc.Texture1D = new() { MipSlice = subresource.MipLevel };
                     break;
 
                 case TextureType.Texture1DArray:
@@ -188,10 +170,7 @@ internal unsafe class DXTexture : Texture
                     if (Desc.SampleCount is SampleCount.Count1)
                     {
                         viewDesc.ViewDimension = DsvDimension.Texture2D;
-                        viewDesc.Texture2D = new()
-                        {
-                            MipSlice = subresource.MipLevel
-                        };
+                        viewDesc.Texture2D = new() { MipSlice = subresource.MipLevel };
                     }
                     else
                     {
