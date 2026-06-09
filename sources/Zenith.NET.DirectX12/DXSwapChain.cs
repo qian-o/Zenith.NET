@@ -26,19 +26,13 @@ internal unsafe class DXSwapChain : SwapChain
         return 0;
     }
 
-    protected override void AcquireImpl()
-    {
-        if (SwapChain.Handle is not null)
-        {
-            index = SwapChain.GetCurrentBackBufferIndex();
-        }
-    }
-
     protected override void PresentImpl()
     {
         if (SwapChain.Handle is not null)
         {
             SwapChain.Present(0, DXGI.PresentAllowTearing).Success();
+
+            index = SwapChain.GetCurrentBackBufferIndex();
         }
     }
 
@@ -142,6 +136,8 @@ internal unsafe class DXSwapChain : SwapChain
 
                 textures[i] = new(Context, desc, resource);
             }
+
+            index = SwapChain.GetCurrentBackBufferIndex();
         }
         else
         {
