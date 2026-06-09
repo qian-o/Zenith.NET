@@ -132,7 +132,7 @@ internal unsafe class DXSwapChain : SwapChain
             for (int i = 0; i < textures.Length; i++)
             {
                 ComPtr<ID3D12Resource> resource = new();
-                SwapChain.GetBuffer((uint)i, SilkMarshal.GuidPtrOf<ID3D12Resource>(), (void**)resource.GetAddressOf());
+                SwapChain.GetBuffer((uint)i, SilkMarshal.GuidPtrOf<ID3D12Resource>(), (void**)resource.GetAddressOf()).Success();
 
                 textures[i] = new(Context, desc, resource);
             }
@@ -141,7 +141,8 @@ internal unsafe class DXSwapChain : SwapChain
         }
         else
         {
-            Context.Device.OpenSharedHandle((void*)Desc.Surface.NativeHandles[0], out ComPtr<ID3D12Resource> resource).Success();
+            ComPtr<ID3D12Resource> resource = new();
+            Context.Device.OpenSharedHandle((void*)Desc.Surface.NativeHandles[0], SilkMarshal.GuidPtrOf<ID3D12Resource>(), (void**)resource.GetAddressOf()).Success();
 
             textures[0] = new(Context, desc, resource);
         }
