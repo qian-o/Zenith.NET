@@ -31,7 +31,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
         }
         else
         {
-            CommandBuffer commandBuffer = Context.CopyQueue.AcquireCommandBuffer();
+            CommandBuffer commandBuffer = Context.CopyQueue.CommandBuffer();
 
             commandBuffer.Upload(this, offsetInBytes, data);
             commandBuffer.Submit().Wait();
@@ -53,7 +53,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
         }
         else
         {
-            CommandBuffer commandBuffer = Context.CopyQueue.AcquireCommandBuffer();
+            CommandBuffer commandBuffer = Context.CopyQueue.CommandBuffer();
 
             commandBuffer.Download(this, offsetInBytes, data);
             commandBuffer.Submit().Wait();

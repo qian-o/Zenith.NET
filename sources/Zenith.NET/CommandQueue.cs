@@ -10,7 +10,7 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
     public CommandQueueType Type { get; } = type;
 
-    public CommandBuffer AcquireCommandBuffer()
+    public CommandBuffer CommandBuffer()
     {
         using Lock.Scope _ = @lock.EnterScope();
 
@@ -21,33 +21,40 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
         return commandBuffer;
     }
 
-    internal CommandSubmission Submit(CommandBuffer commandBuffer, ReadOnlySpan<CommandSubmission> waits)
+    internal CommandSubmission Signal()
+    {
+        using Lock.Scope _ = @lock.EnterScope();
+
+        SignalImpl(++value);
+
+        return new(this, value);
+    }
+
+    internal void Submit(CommandBuffer commandBuffer)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
         commandBuffer.End();
 
-        SubmitImpl(commandBuffer, waits, ++value);
+        SubmitImpl(commandBuffer);
 
         submitteds.Enqueue(new(commandBuffer, value));
-
-        return new(this, value);
     }
 
     internal void Wait(ulong value)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        ulong completed = GetCompletedValue();
+        ulong completedValue = GetCompletedValue();
 
-        if (completed < value)
+        if (completedValue < value)
         {
             WaitImpl(value);
 
-            completed = GetCompletedValue();
+            completedValue = GetCompletedValue();
         }
 
-        while (submitteds.TryPeek(out Submitted submitted) && submitted.Value <= completed)
+        while (submitteds.TryPeek(out Submitted submitted) && submitted.Value <= completedValue)
         {
             submitteds.Dequeue();
 
@@ -57,23 +64,27 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
         }
     }
 
-    internal void WaitIdle()
+    internal void Wait(ReadOnlySpan<CommandSubmission> submissions)
     {
-        Wait(value);
+        using Lock.Scope _ = @lock.EnterScope();
+
+        WaitImpl(submissions);
     }
 
     protected abstract ulong GetCompletedValue();
 
     protected abstract CommandBuffer CreateCommandBuffer();
 
-    protected abstract void SubmitImpl(CommandBuffer commandBuffer, ReadOnlySpan<CommandSubmission> waits, ulong signalValue);
+    protected abstract void SignalImpl(ulong signalValue);
+
+    protected abstract void SubmitImpl(CommandBuffer commandBuffer);
 
     protected abstract void WaitImpl(ulong waitValue);
 
+    protected abstract void WaitImpl(ReadOnlySpan<CommandSubmission> submissions);
+
     protected override void Destroy()
     {
-        WaitIdle();
-
         while (commandBuffers.TryDequeue(out CommandBuffer? commandBuffer))
         {
             commandBuffer.Dispose();

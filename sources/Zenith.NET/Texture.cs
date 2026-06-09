@@ -2,6 +2,8 @@
 
 public abstract class Texture(GraphicsContext context, TextureDesc desc) : GraphicsResource(context)
 {
+    private readonly TextureLayout[] layouts = new TextureLayout[desc.MipLevels * desc.ArrayLayers];
+
     private TextureDesc desc = desc;
 
     public ref readonly TextureDesc Desc => ref desc;
@@ -10,9 +12,15 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public abstract ResourceHandle StorageHandle { get; }
 
+    internal TextureLayout this[TextureSubresource subresource]
+    {
+        get => layouts[(subresource.MipLevel * Desc.ArrayLayers) + subresource.ArrayLayer];
+        set => layouts[(subresource.MipLevel * Desc.ArrayLayers) + subresource.ArrayLayer] = value;
+    }
+
     public void Upload(TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {
-        CommandBuffer commandBuffer = Context.CopyQueue.AcquireCommandBuffer();
+        CommandBuffer commandBuffer = Context.CopyQueue.CommandBuffer();
 
         commandBuffer.Upload(this, subresource, offset, extent, data);
         commandBuffer.Submit().Wait();
@@ -20,9 +28,14 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public void Download(TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {
-        CommandBuffer commandBuffer = Context.CopyQueue.AcquireCommandBuffer();
+        CommandBuffer commandBuffer = Context.CopyQueue.CommandBuffer();
 
         commandBuffer.Download(this, subresource, offset, extent, data);
         commandBuffer.Submit().Wait();
+    }
+
+    public void OverrideLayout(TextureSubresource subresource, TextureLayout layout)
+    {
+        this[subresource] = layout;
     }
 }

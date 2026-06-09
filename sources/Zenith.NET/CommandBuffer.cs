@@ -8,14 +8,29 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public CommandQueue Queue => queue;
 
-    public CommandSubmission Submit(params ReadOnlySpan<CommandSubmission> waits)
+    public CommandSubmission Submit(params ReadOnlySpan<CommandSubmission> submissions)
     {
-        return queue.Submit(this, waits);
+        queue.Wait(submissions);
+        queue.Submit(this);
+
+        return queue.Signal();
     }
 
-    public void Barrier(ReadOnlySpan<MemoryBarrier> memoryBarriers, ReadOnlySpan<BufferBarrier> bufferBarriers, ReadOnlySpan<TextureBarrier> textureBarriers)
+    public void Barrier(BarrierStages after, BarrierStages before)
     {
-        BarrierImpl(memoryBarriers, bufferBarriers, textureBarriers);
+        BarrierImpl(after, before);
+    }
+
+    public void Transition(Texture texture, TextureSubresource subresource, TextureLayout layout)
+    {
+        if (texture[subresource] == layout)
+        {
+            return;
+        }
+
+        TransitionImpl(texture, subresource, texture[subresource], layout);
+
+        texture[subresource] = layout;
     }
 
     public void Upload(Buffer buffer, uint offsetInBytes, BufferData data)
@@ -115,22 +130,52 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void CopyBufferToTexture(Buffer src, uint srcOffsetInBytes, uint srcRowStrideInBytes, uint srcSliceStrideInBytes, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D dstExtent)
     {
+        TextureLayout dstLayout = dst[dstSubresource];
+
+        Transition(dst, dstSubresource, TextureLayout.CopyDst);
+
         CopyBufferToTextureImpl(src, srcOffsetInBytes, srcRowStrideInBytes, srcSliceStrideInBytes, dst, dstSubresource, dstOffset, dstExtent);
+
+        Transition(dst, dstSubresource, dstLayout);
     }
 
     public void CopyTexture(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D extent)
     {
+        TextureLayout srcLayout = src[srcSubresource];
+        TextureLayout dstLayout = dst[dstSubresource];
+
+        Transition(src, srcSubresource, TextureLayout.CopySrc);
+        Transition(dst, dstSubresource, TextureLayout.CopyDst);
+
         CopyTextureImpl(src, srcSubresource, srcOffset, dst, dstSubresource, dstOffset, extent);
+
+        Transition(src, srcSubresource, srcLayout);
+        Transition(dst, dstSubresource, dstLayout);
     }
 
     public void CopyTextureToBuffer(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dst, uint dstOffsetInBytes, uint dstRowStrideInBytes, uint dstSliceStrideInBytes)
     {
+        TextureLayout srcLayout = src[srcSubresource];
+
+        Transition(src, srcSubresource, TextureLayout.CopySrc);
+
         CopyTextureToBufferImpl(src, srcSubresource, srcOffset, srcExtent, dst, dstOffsetInBytes, dstRowStrideInBytes, dstSliceStrideInBytes);
+
+        Transition(src, srcSubresource, srcLayout);
     }
 
     public void ResolveTexture(Texture src, TextureSubresource srcSubresource, Texture dst, TextureSubresource dstSubresource)
     {
+        TextureLayout srcLayout = src[srcSubresource];
+        TextureLayout dstLayout = dst[dstSubresource];
+
+        Transition(src, srcSubresource, TextureLayout.ResolveSrc);
+        Transition(dst, dstSubresource, TextureLayout.ResolveDst);
+
         ResolveTextureImpl(src, srcSubresource, dst, dstSubresource);
+
+        Transition(src, srcSubresource, srcLayout);
+        Transition(dst, dstSubresource, dstLayout);
     }
 
     public BottomLevelAccelerationStructure BuildAccelerationStructure(BottomLevelAccelerationStructureDesc desc)
@@ -445,7 +490,9 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         return false;
     }
 
-    protected abstract void BarrierImpl(ReadOnlySpan<MemoryBarrier> memoryBarriers, ReadOnlySpan<BufferBarrier> bufferBarriers, ReadOnlySpan<TextureBarrier> textureBarriers);
+    protected abstract void BarrierImpl(BarrierStages after, BarrierStages before);
+
+    protected abstract void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout srcLayout, TextureLayout dstLayout);
 
     protected abstract void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes);
 
