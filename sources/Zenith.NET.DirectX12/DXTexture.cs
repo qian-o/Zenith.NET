@@ -234,7 +234,6 @@ internal unsafe class DXTexture : Texture
         dsvTokens.Clear();
 
         View.Dispose();
-
         Resource.Dispose();
     }
 

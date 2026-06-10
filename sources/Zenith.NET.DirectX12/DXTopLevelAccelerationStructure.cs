@@ -9,7 +9,7 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
 
     public DXTopLevelAccelerationStructure(DXGraphicsContext context, DXCommandBuffer commandBuffer, TopLevelAccelerationStructureDesc desc) : base(context, desc)
     {
-        InstanceBuffer = new(context, new()
+        Instance = new(context, new()
         {
             SizeInBytes = (uint)(sizeof(RaytracingInstanceDesc) * desc.Instances.Length),
             Residency = MemoryResidency.CpuWriteOnly
@@ -20,13 +20,13 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
         RaytracingAccelerationStructurePrebuildInfo prebuildInfo = new();
         context.Device.GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &prebuildInfo);
 
-        AccelerationStructureBuffer = new(context, new()
+        AccelerationStructure = new(context, new()
         {
             SizeInBytes = (uint)prebuildInfo.ResultDataMaxSizeInBytes,
             Residency = MemoryResidency.GpuOnly
         }, ResourceFlags.RaytracingAccelerationStructure);
 
-        ScratchBuffer = new(context, new()
+        Scratch = new(context, new()
         {
             SizeInBytes = (uint)prebuildInfo.ScratchDataSizeInBytes,
             Usages = BufferUsages.StorageReadWrite,
@@ -35,9 +35,9 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
 
         BuildRaytracingAccelerationStructureDesc buildDesc = new()
         {
-            DestAccelerationStructureData = AccelerationStructureBuffer.GPUVirtualAddress,
+            DestAccelerationStructureData = AccelerationStructure.GPUVirtualAddress,
             Inputs = inputs,
-            ScratchAccelerationStructureData = ScratchBuffer.GPUVirtualAddress
+            ScratchAccelerationStructureData = Scratch.GPUVirtualAddress
         };
 
         commandBuffer.CommandList.BuildRaytracingAccelerationStructure(&buildDesc, 0, default(RaytracingAccelerationStructurePostbuildInfoDesc*));
@@ -63,17 +63,17 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
         {
             ViewDimension = SrvDimension.RaytracingAccelerationStructure,
             Shader4ComponentMapping = DXGraphicsContext.Shader4ComponentMapping,
-            RaytracingAccelerationStructure = new() { Location = AccelerationStructureBuffer.GPUVirtualAddress }
+            RaytracingAccelerationStructure = new() { Location = AccelerationStructure.GPUVirtualAddress }
         };
 
         context.Device.CreateShaderResourceView(default(ID3D12Resource*), &viewDesc, (Token = context.CbvSrvUavHeap.Allocate()).CpuHandle);
     }
 
-    public DXBuffer InstanceBuffer { get; }
+    public DXBuffer Instance { get; }
 
-    public DXBuffer AccelerationStructureBuffer { get; }
+    public DXBuffer AccelerationStructure { get; }
 
-    public DXBuffer ScratchBuffer { get; }
+    public DXBuffer Scratch { get; }
 
     public override ResourceHandle Handle => Token.ResourceHandle;
 
@@ -84,10 +84,10 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
 
         BuildRaytracingAccelerationStructureDesc buildDesc = new()
         {
-            DestAccelerationStructureData = AccelerationStructureBuffer.GPUVirtualAddress,
+            DestAccelerationStructureData = AccelerationStructure.GPUVirtualAddress,
             Inputs = inputs,
-            SourceAccelerationStructureData = AccelerationStructureBuffer.GPUVirtualAddress,
-            ScratchAccelerationStructureData = ScratchBuffer.GPUVirtualAddress
+            SourceAccelerationStructureData = AccelerationStructure.GPUVirtualAddress,
+            ScratchAccelerationStructureData = Scratch.GPUVirtualAddress
         };
 
         commandBuffer.CommandList.BuildRaytracingAccelerationStructure(&buildDesc, 0, default(RaytracingAccelerationStructurePostbuildInfoDesc*));
@@ -117,23 +117,23 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
 
     protected override void SetResourceName(string name)
     {
-        AccelerationStructureBuffer.Name = name;
+        AccelerationStructure.Name = name;
     }
 
     protected override void Destroy()
     {
         Token.Dispose();
 
-        ScratchBuffer.Dispose();
-        AccelerationStructureBuffer.Dispose();
-        InstanceBuffer.Dispose();
+        Scratch.Dispose();
+        AccelerationStructure.Dispose();
+        Instance.Dispose();
     }
 
     private void FillInputs(TopLevelAccelerationStructureDesc desc, out BuildRaytracingAccelerationStructureInputs inputs)
     {
         uint instanceCount = (uint)desc.Instances.Length;
 
-        MappedMemory mappedMemory = InstanceBuffer.Map();
+        MappedMemory mappedMemory = Instance.Map();
 
         RaytracingInstanceDesc* instances = (RaytracingInstanceDesc*)mappedMemory.Pointer;
         for (uint i = 0; i < instanceCount; i++)
@@ -145,20 +145,20 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
                 InstanceID = instance.InstanceId,
                 InstanceMask = instance.VisibilityMask,
                 Flags = (uint)DXFormats.DirectX12(instance.Flags),
-                AccelerationStructure = instance.AccelerationStructure.DirectX12().AccelerationStructureBuffer.GPUVirtualAddress
+                AccelerationStructure = instance.AccelerationStructure.DirectX12().AccelerationStructure.GPUVirtualAddress
             };
 
             *(Matrix3X4<float>*)instances[i].Transform = DXFormats.DirectX12(instance.Transform);
         }
 
-        InstanceBuffer.Unmap();
+        Instance.Unmap();
 
         inputs = new()
         {
             Type = RaytracingAccelerationStructureType.TopLevel,
             Flags = DXFormats.DirectX12(desc.BuildFlags),
             NumDescs = instanceCount,
-            InstanceDescs = InstanceBuffer.GPUVirtualAddress
+            InstanceDescs = Instance.GPUVirtualAddress
         };
     }
 }

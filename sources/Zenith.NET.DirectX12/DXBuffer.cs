@@ -113,7 +113,6 @@ internal unsafe class DXBuffer : Buffer
     protected override void Destroy()
     {
         View.Dispose();
-
         Resource.Dispose();
     }
 

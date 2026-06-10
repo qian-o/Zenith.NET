@@ -10,7 +10,7 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
     {
         using ZenithMarshal.Scope scope = new();
 
-        TransformBuffer = new(context, new()
+        Transform = new(context, new()
         {
             SizeInBytes = (uint)(sizeof(Matrix3X4<float>) * desc.Geometries.Length),
             Residency = MemoryResidency.CpuWriteOnly
@@ -21,13 +21,13 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
         RaytracingAccelerationStructurePrebuildInfo prebuildInfo = new();
         context.Device.GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &prebuildInfo);
 
-        AccelerationStructureBuffer = new(context, new()
+        AccelerationStructure = new(context, new()
         {
             SizeInBytes = (uint)prebuildInfo.ResultDataMaxSizeInBytes,
             Residency = MemoryResidency.GpuOnly
         }, ResourceFlags.RaytracingAccelerationStructure);
 
-        ScratchBuffer = new(context, new()
+        Scratch = new(context, new()
         {
             SizeInBytes = (uint)prebuildInfo.ScratchDataSizeInBytes,
             Usages = BufferUsages.StorageReadWrite,
@@ -36,9 +36,9 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
 
         BuildRaytracingAccelerationStructureDesc buildDesc = new()
         {
-            DestAccelerationStructureData = AccelerationStructureBuffer.GPUVirtualAddress,
+            DestAccelerationStructureData = AccelerationStructure.GPUVirtualAddress,
             Inputs = inputs,
-            ScratchAccelerationStructureData = ScratchBuffer.GPUVirtualAddress
+            ScratchAccelerationStructureData = Scratch.GPUVirtualAddress
         };
 
         commandBuffer.CommandList.BuildRaytracingAccelerationStructure(&buildDesc, 0, default(RaytracingAccelerationStructurePostbuildInfoDesc*));
@@ -61,11 +61,11 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
         commandBuffer.CommandList.Barrier(1, &barrierGroup);
     }
 
-    public DXBuffer TransformBuffer { get; }
+    public DXBuffer Transform { get; }
 
-    public DXBuffer AccelerationStructureBuffer { get; }
+    public DXBuffer AccelerationStructure { get; }
 
-    public DXBuffer ScratchBuffer { get; }
+    public DXBuffer Scratch { get; }
 
     public void Update(DXCommandBuffer commandBuffer, BottomLevelAccelerationStructureDesc newDesc)
     {
@@ -76,10 +76,10 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
 
         BuildRaytracingAccelerationStructureDesc buildDesc = new()
         {
-            DestAccelerationStructureData = AccelerationStructureBuffer.GPUVirtualAddress,
+            DestAccelerationStructureData = AccelerationStructure.GPUVirtualAddress,
             Inputs = inputs,
-            SourceAccelerationStructureData = AccelerationStructureBuffer.GPUVirtualAddress,
-            ScratchAccelerationStructureData = ScratchBuffer.GPUVirtualAddress
+            SourceAccelerationStructureData = AccelerationStructure.GPUVirtualAddress,
+            ScratchAccelerationStructureData = Scratch.GPUVirtualAddress
         };
 
         commandBuffer.CommandList.BuildRaytracingAccelerationStructure(&buildDesc, 0, default(RaytracingAccelerationStructurePostbuildInfoDesc*));
@@ -109,21 +109,21 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
 
     protected override void SetResourceName(string name)
     {
-        AccelerationStructureBuffer.Name = name;
+        AccelerationStructure.Name = name;
     }
 
     protected override void Destroy()
     {
-        ScratchBuffer.Dispose();
-        AccelerationStructureBuffer.Dispose();
-        TransformBuffer.Dispose();
+        Scratch.Dispose();
+        AccelerationStructure.Dispose();
+        Transform.Dispose();
     }
 
     private void FillInputs(ZenithMarshal.Scope scope, BottomLevelAccelerationStructureDesc desc, out BuildRaytracingAccelerationStructureInputs inputs)
     {
         uint geometryCount = (uint)desc.Geometries.Length;
 
-        MappedMemory mappedMemory = TransformBuffer.Map();
+        MappedMemory mappedMemory = Transform.Map();
 
         Matrix3X4<float>* transforms = (Matrix3X4<float>*)mappedMemory.Pointer;
         RaytracingGeometryDesc* geometries = (RaytracingGeometryDesc*)ZenithMarshal.Allocate<RaytracingGeometryDesc>(scope, geometryCount);
@@ -140,7 +140,7 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
                 (
                     triangles: geometry.Type is RayTracingGeometryType.Triangle ? new()
                     {
-                        Transform3x4 = TransformBuffer.GPUVirtualAddress + (ulong)(sizeof(Matrix3X4<float>) * i),
+                        Transform3x4 = Transform.GPUVirtualAddress + (ulong)(sizeof(Matrix3X4<float>) * i),
                         IndexFormat = geometry.TriangleGeometry.IndexBuffer is not null ? DXFormats.DirectX12(geometry.TriangleGeometry.IndexFormat) : Format.FormatUnknown,
                         VertexFormat = DXFormats.DirectX12(geometry.TriangleGeometry.VertexFormat),
                         IndexCount = geometry.TriangleGeometry.IndexCount,
@@ -165,7 +165,7 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
             };
         }
 
-        TransformBuffer.Unmap();
+        Transform.Unmap();
 
         inputs = new()
         {

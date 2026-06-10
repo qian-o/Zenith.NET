@@ -10,8 +10,6 @@ internal unsafe class DXSampler : Sampler
     {
         Token = context.SamplerHeap.Allocate();
 
-        (float r, float g, float b, float a) = DXFormats.DirectX12(desc.BorderColor);
-
         DxSamplerDesc samplerDesc = new()
         {
             Filter = DXFormats.DirectX12(desc.MinFilter, desc.MagFilter, desc.MipFilter, desc.MaxAnisotropy, desc.CompareOp),
@@ -25,10 +23,7 @@ internal unsafe class DXSampler : Sampler
             MaxLOD = desc.MaxLod
         };
 
-        samplerDesc.BorderColor[0] = r;
-        samplerDesc.BorderColor[1] = g;
-        samplerDesc.BorderColor[2] = b;
-        samplerDesc.BorderColor[3] = a;
+        (samplerDesc.BorderColor[0], samplerDesc.BorderColor[1], samplerDesc.BorderColor[2], samplerDesc.BorderColor[3]) = DXFormats.DirectX12(desc.BorderColor);
 
         context.Device.CreateSampler(&samplerDesc, Token.CpuHandle);
     }

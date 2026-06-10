@@ -78,10 +78,7 @@ internal unsafe class DXSwapChain : SwapChain
                 Width = Desc.Surface.Width,
                 Height = Desc.Surface.Height,
                 Format = DXFormats.DirectX12(Desc.Format),
-                SampleDesc = new()
-                {
-                    Count = 1
-                },
+                SampleDesc = new() { Count = 1 },
                 BufferUsage = DXGI.UsageRenderTargetOutput,
                 BufferCount = BufferCount,
                 SwapEffect = SwapEffect.FlipDiscard,

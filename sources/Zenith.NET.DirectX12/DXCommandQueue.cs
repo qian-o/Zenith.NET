@@ -71,7 +71,6 @@ internal unsafe class DXCommandQueue : CommandQueue
         base.Destroy();
 
         Fence.Dispose();
-
         @event.Dispose();
     }
 }

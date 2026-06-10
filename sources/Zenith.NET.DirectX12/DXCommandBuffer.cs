@@ -14,7 +14,6 @@ internal unsafe class DXCommandBuffer : CommandBuffer
     public DXCommandBuffer(DXGraphicsContext context, CommandQueue queue) : base(context, queue)
     {
         context.Device.CreateCommandAllocator(DXFormats.DirectX12(queue.Type), SilkMarshal.GuidPtrOf<ID3D12CommandAllocator>(), (void**)CommandAllocator.GetAddressOf()).Success();
-
         context.Device.CreateCommandList(0, DXFormats.DirectX12(queue.Type), CommandAllocator, default(ID3D12PipelineState*), SilkMarshal.GuidPtrOf<ID3D12GraphicsCommandList7>(), (void**)CommandList.GetAddressOf()).Success();
     }
 
@@ -340,7 +339,6 @@ internal unsafe class DXCommandBuffer : CommandBuffer
     protected override void SetPipelineImpl(GraphicsPipeline pipeline)
     {
         CommandList.SetPipelineState(pipeline.DirectX12().PipelineState);
-
         CommandList.IASetPrimitiveTopology(DXFormats.DirectX12(pipeline.Desc.PrimitiveTopology).Topology);
     }
 
