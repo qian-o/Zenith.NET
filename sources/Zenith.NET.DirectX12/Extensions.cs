@@ -28,35 +28,11 @@ public static class Extensions
         }
     }
 
-    extension(CommandQueue commandQueue)
+    extension(BottomLevelAccelerationStructure bottomLevelAccelerationStructure)
     {
-        internal DXCommandQueue DirectX12()
+        internal DXBottomLevelAccelerationStructure DirectX12()
         {
-            return (DXCommandQueue)commandQueue;
-        }
-    }
-
-    extension(CommandBuffer commandBuffer)
-    {
-        internal DXCommandBuffer DirectX12()
-        {
-            return (DXCommandBuffer)commandBuffer;
-        }
-    }
-
-    extension(SwapChain swapChain)
-    {
-        internal DXSwapChain DirectX12()
-        {
-            return (DXSwapChain)swapChain;
-        }
-    }
-
-    extension(Heap heap)
-    {
-        internal DXHeap DirectX12()
-        {
-            return (DXHeap)heap;
+            return (DXBottomLevelAccelerationStructure)bottomLevelAccelerationStructure;
         }
     }
 
@@ -76,35 +52,27 @@ public static class Extensions
         }
     }
 
-    extension(Texture texture)
+    extension(CommandBuffer commandBuffer)
     {
-        internal DXTexture DirectX12()
+        internal DXCommandBuffer DirectX12()
         {
-            return (DXTexture)texture;
+            return (DXCommandBuffer)commandBuffer;
         }
     }
 
-    extension(TextureView textureView)
+    extension(CommandQueue commandQueue)
     {
-        internal DXTextureView DirectX12()
+        internal DXCommandQueue DirectX12()
         {
-            return (DXTextureView)textureView;
+            return (DXCommandQueue)commandQueue;
         }
     }
 
-    extension(Sampler sampler)
+    extension(ComputePipeline computePipeline)
     {
-        internal DXSampler DirectX12()
+        internal DXComputePipeline DirectX12()
         {
-            return (DXSampler)sampler;
-        }
-    }
-
-    extension(Shader shader)
-    {
-        internal DXShader DirectX12()
-        {
-            return (DXShader)shader;
+            return (DXComputePipeline)computePipeline;
         }
     }
 
@@ -116,11 +84,11 @@ public static class Extensions
         }
     }
 
-    extension(ComputePipeline computePipeline)
+    extension(Heap heap)
     {
-        internal DXComputePipeline DirectX12()
+        internal DXHeap DirectX12()
         {
-            return (DXComputePipeline)computePipeline;
+            return (DXHeap)heap;
         }
     }
 
@@ -140,11 +108,43 @@ public static class Extensions
         }
     }
 
-    extension(BottomLevelAccelerationStructure bottomLevelAccelerationStructure)
+    extension(Sampler sampler)
     {
-        internal DXBottomLevelAccelerationStructure DirectX12()
+        internal DXSampler DirectX12()
         {
-            return (DXBottomLevelAccelerationStructure)bottomLevelAccelerationStructure;
+            return (DXSampler)sampler;
+        }
+    }
+
+    extension(Shader shader)
+    {
+        internal DXShader DirectX12()
+        {
+            return (DXShader)shader;
+        }
+    }
+
+    extension(SwapChain swapChain)
+    {
+        internal DXSwapChain DirectX12()
+        {
+            return (DXSwapChain)swapChain;
+        }
+    }
+
+    extension(Texture texture)
+    {
+        internal DXTexture DirectX12()
+        {
+            return (DXTexture)texture;
+        }
+    }
+
+    extension(TextureView textureView)
+    {
+        internal DXTextureView DirectX12()
+        {
+            return (DXTextureView)textureView;
         }
     }
 
