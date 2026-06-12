@@ -4,7 +4,29 @@ namespace Zenith.NET.Metal;
 
 internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(GraphicsApi.Metal, useValidationLayer)
 {
-    public MTLDevice Device { get; } = MTLDevice.CreateSystemDefaultDevice();
+    public MTLDevice Device = MTLDevice.CreateSystemDefaultDevice();
+
+    public MTL4Compiler Compiler = MTL4Compiler.Null;
+
+    public MTLResidencySet ResidencySet = MTLResidencySet.Null;
+
+    public MTL4CommandQueue GraphicsCommandQueue = MTL4CommandQueue.Null;
+
+    public MTL4CommandQueue ComputeCommandQueue = MTL4CommandQueue.Null;
+
+    public MTL4CommandQueue CopyCommandQueue = MTL4CommandQueue.Null;
+
+    public void AddResidency(MTLAllocation allocation)
+    {
+        ResidencySet.AddAllocation(allocation);
+        ResidencySet.Commit();
+    }
+
+    public void RemoveResidency(MTLAllocation allocation)
+    {
+        ResidencySet.RemoveAllocation(allocation);
+        ResidencySet.Commit();
+    }
 
     public override nint GetNativeObject(NativeObjectType type)
     {
@@ -18,7 +40,31 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
                                        out CommandQueue copyQueue,
                                        out ValidationLayer? validationLayer)
     {
-        throw new NotImplementedException();
+        if (!Device.SupportsFamily(MTLGPUFamily.Metal4))
+        {
+            throw new NotSupportedException("Metal 4 is required but not supported by this device.");
+        }
+
+        Compiler = Device.MakeCompiler(new(), out NSError error);
+        error.Success();
+
+        ResidencySet = Device.MakeResidencySet(new(), out error);
+        error.Success();
+
+        GraphicsCommandQueue = Device.MakeMTL4CommandQueue();
+        GraphicsCommandQueue.AddResidencySet(ResidencySet);
+
+        ComputeCommandQueue = Device.MakeMTL4CommandQueue();
+        ComputeCommandQueue.AddResidencySet(ResidencySet);
+
+        CopyCommandQueue = Device.MakeMTL4CommandQueue();
+        CopyCommandQueue.AddResidencySet(ResidencySet);
+
+        capabilities = new MTLCapabilities(this);
+        graphicsQueue = new MTLCommandQueue(this, CommandQueueType.Graphics, GraphicsCommandQueue);
+        computeQueue = new MTLCommandQueue(this, CommandQueueType.Compute, ComputeCommandQueue);
+        copyQueue = new MTLCommandQueue(this, CommandQueueType.Copy, CopyCommandQueue);
+        validationLayer = null;
     }
 
     protected override SwapChain CreateSwapChainImpl(SwapChainDesc desc)
@@ -95,6 +141,12 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
     {
         base.Destroy();
 
+        CopyCommandQueue.Dispose();
+        ComputeCommandQueue.Dispose();
+        GraphicsCommandQueue.Dispose();
+
+        ResidencySet.Dispose();
+        Compiler.Dispose();
         Device.Dispose();
     }
 }

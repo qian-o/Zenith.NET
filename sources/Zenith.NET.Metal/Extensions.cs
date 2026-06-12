@@ -25,4 +25,72 @@ public static class Extensions
             }
         }
     }
+
+    extension(BottomLevelAccelerationStructure bottomLevelAccelerationStructure)
+    {
+    }
+
+    extension(Buffer buffer)
+    {
+    }
+
+    extension(BufferView bufferView)
+    {
+    }
+
+    extension(CommandBuffer commandBuffer)
+    {
+    }
+
+    extension(CommandQueue commandQueue)
+    {
+        internal MTLCommandQueue Metal()
+        {
+            return (MTLCommandQueue)commandQueue;
+        }
+    }
+
+    extension(ComputePipeline computePipeline)
+    {
+    }
+
+    extension(GraphicsPipeline graphicsPipeline)
+    {
+    }
+
+    extension(Heap heap)
+    {
+    }
+
+    extension(MeshShadingPipeline meshShadingPipeline)
+    {
+    }
+
+    extension(QueryHeap queryHeap)
+    {
+    }
+
+    extension(Sampler sampler)
+    {
+    }
+
+    extension(Shader shader)
+    {
+    }
+
+    extension(SwapChain swapChain)
+    {
+    }
+
+    extension(Texture texture)
+    {
+    }
+
+    extension(TextureView textureView)
+    {
+    }
+
+    extension(TopLevelAccelerationStructure topLevelAccelerationStructure)
+    {
+    }
 }
