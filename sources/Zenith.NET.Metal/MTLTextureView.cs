@@ -7,7 +7,7 @@ internal class MTLTextureView : TextureView
     public MTLTextureView(MTLGraphicsContext context, TextureViewDesc desc) : base(context, desc)
     {
         Texture = desc.Texture.Metal().Texture.MakeTextureView(MTLFormats.Metal(desc.Format),
-                                                               MTLFormats.Metal(desc.Type),
+                                                               MTLFormats.Metal(desc.Type, desc.Texture.Desc.SampleCount),
                                                                new(desc.Range.BaseMipLevel, desc.Range.LevelCount),
                                                                new(desc.Range.BaseArrayLayer, desc.Range.LayerCount));
 

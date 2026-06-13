@@ -62,7 +62,7 @@ internal class MTLTexture : Texture
     {
         return new()
         {
-            TextureType = MTLFormats.Metal(desc.Type),
+            TextureType = MTLFormats.Metal(desc.Type, desc.SampleCount),
             PixelFormat = MTLFormats.Metal(desc.Format),
             Width = desc.Width,
             Height = desc.Height,
