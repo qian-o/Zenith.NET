@@ -12,7 +12,7 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
 
     public abstract ResourceHandle StorageReadWriteHandle { get; }
 
-    public abstract MappedMemory Map();
+    public abstract nint Map();
 
     public abstract void Unmap();
 
@@ -20,11 +20,11 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
     {
         if (desc.Residency is MemoryResidency.CpuWriteOnly)
         {
-            MappedMemory mappedMemory = Map();
+            nint pointer = Map();
 
             unsafe
             {
-                new ReadOnlySpan<byte>((void*)data.Pointer, (int)data.SizeInBytes).CopyTo(new((void*)(mappedMemory.Pointer + offsetInBytes), (int)data.SizeInBytes));
+                new ReadOnlySpan<byte>((void*)data.Pointer, (int)data.SizeInBytes).CopyTo(new((void*)(pointer + offsetInBytes), (int)data.SizeInBytes));
             }
 
             Unmap();
@@ -42,11 +42,11 @@ public abstract class Buffer(GraphicsContext context, BufferDesc desc) : Graphic
     {
         if (desc.Residency is MemoryResidency.CpuReadOnly)
         {
-            MappedMemory mappedMemory = Map();
+            nint pointer = Map();
 
             unsafe
             {
-                new ReadOnlySpan<byte>((void*)(mappedMemory.Pointer + offsetInBytes), (int)data.SizeInBytes).CopyTo(new((void*)data.Pointer, (int)data.SizeInBytes));
+                new ReadOnlySpan<byte>((void*)(pointer + offsetInBytes), (int)data.SizeInBytes).CopyTo(new((void*)data.Pointer, (int)data.SizeInBytes));
             }
 
             Unmap();

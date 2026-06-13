@@ -33,9 +33,9 @@ internal class MTLBuffer : Buffer
         return 0;
     }
 
-    public override MappedMemory Map()
+    public override nint Map()
     {
-        return new(Buffer.Contents(), Desc.SizeInBytes);
+        return Buffer.Contents();
     }
 
     public override void Unmap()

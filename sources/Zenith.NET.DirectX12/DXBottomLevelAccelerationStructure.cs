@@ -123,9 +123,9 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
     {
         uint geometryCount = (uint)desc.Geometries.Length;
 
-        MappedMemory mappedMemory = Transform.Map();
+        nint pointer = Transform.Map();
 
-        Matrix3X4<float>* transforms = (Matrix3X4<float>*)mappedMemory.Pointer;
+        Matrix3X4<float>* transforms = (Matrix3X4<float>*)pointer;
         RaytracingGeometryDesc* geometries = (RaytracingGeometryDesc*)ZenithMarshal.Allocate<RaytracingGeometryDesc>(scope, geometryCount);
         for (uint i = 0; i < geometryCount; i++)
         {

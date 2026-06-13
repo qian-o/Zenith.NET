@@ -14,13 +14,13 @@ internal struct TransferLayout
 
     public readonly void Upload(Buffer buffer)
     {
-        MappedMemory mappedMemory = buffer.Map();
+        nint pointer = buffer.Map();
 
         unsafe
         {
             for (uint row = 0; row < Rows; row++)
             {
-                new ReadOnlySpan<byte>((void*)(Pointer + (SrcRowStrideInBytes * row)), (int)RowSizeInBytes).CopyTo(new((void*)(mappedMemory.Pointer + (DstRowStrideInBytes * row)), (int)RowSizeInBytes));
+                new ReadOnlySpan<byte>((void*)(Pointer + (SrcRowStrideInBytes * row)), (int)RowSizeInBytes).CopyTo(new((void*)(pointer + (DstRowStrideInBytes * row)), (int)RowSizeInBytes));
             }
         }
 
@@ -29,13 +29,13 @@ internal struct TransferLayout
 
     public readonly void Download(Buffer buffer)
     {
-        MappedMemory mappedMemory = buffer.Map();
+        nint pointer = buffer.Map();
 
         unsafe
         {
             for (uint row = 0; row < Rows; row++)
             {
-                new ReadOnlySpan<byte>((void*)(mappedMemory.Pointer + (SrcRowStrideInBytes * row)), (int)RowSizeInBytes).CopyTo(new((void*)(Pointer + (DstRowStrideInBytes * row)), (int)RowSizeInBytes));
+                new ReadOnlySpan<byte>((void*)(pointer + (SrcRowStrideInBytes * row)), (int)RowSizeInBytes).CopyTo(new((void*)(Pointer + (DstRowStrideInBytes * row)), (int)RowSizeInBytes));
             }
         }
 

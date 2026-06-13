@@ -92,12 +92,12 @@ internal unsafe class DXBuffer : Buffer
         return 0;
     }
 
-    public override MappedMemory Map()
+    public override nint Map()
     {
         void* pointer;
         Resource.Map(0, default(DxRange*), &pointer).Success();
 
-        return new((nint)pointer, Desc.SizeInBytes);
+        return (nint)pointer;
     }
 
     public override void Unmap()

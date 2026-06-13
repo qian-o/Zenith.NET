@@ -33,9 +33,9 @@ internal unsafe class DXQueryHeap : QueryHeap
 
     protected override void GetResultsImpl(Span<ulong> results, uint startIndex)
     {
-        MappedMemory mappedMemory = Buffer.Map();
+        nint pointer = Buffer.Map();
 
-        new Span<ulong>((void*)(mappedMemory.Pointer + (sizeof(ulong) * startIndex)), results.Length).CopyTo(results);
+        new Span<ulong>((void*)(pointer + (sizeof(ulong) * startIndex)), results.Length).CopyTo(results);
 
         Buffer.Unmap();
     }

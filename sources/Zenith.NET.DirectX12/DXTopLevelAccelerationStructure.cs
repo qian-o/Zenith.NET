@@ -133,9 +133,9 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
     {
         uint instanceCount = (uint)desc.Instances.Length;
 
-        MappedMemory mappedMemory = Instance.Map();
+        nint pointer = Instance.Map();
 
-        RaytracingInstanceDesc* instances = (RaytracingInstanceDesc*)mappedMemory.Pointer;
+        RaytracingInstanceDesc* instances = (RaytracingInstanceDesc*)pointer;
         for (uint i = 0; i < instanceCount; i++)
         {
             RayTracingInstance instance = desc.Instances[i];
