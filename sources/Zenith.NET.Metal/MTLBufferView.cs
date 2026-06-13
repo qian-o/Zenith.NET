@@ -2,13 +2,13 @@
 
 internal class MTLBufferView(MTLGraphicsContext context, BufferViewDesc desc) : BufferView(context, desc)
 {
-    public ResourceHandle ResourceHandle = (desc.Buffer.Metal().GpuAddress + desc.OffsetInBytes).ToResourceHandle();
+    public ResourceHandle Handle = (desc.Buffer.Metal().GpuAddress + desc.OffsetInBytes).ToHandle();
 
-    public override ResourceHandle ConstantHandle => ResourceHandle;
+    public override ResourceHandle ConstantHandle => Handle;
 
-    public override ResourceHandle StorageReadOnlyHandle => ResourceHandle;
+    public override ResourceHandle StorageReadOnlyHandle => Handle;
 
-    public override ResourceHandle StorageReadWriteHandle => ResourceHandle;
+    public override ResourceHandle StorageReadWriteHandle => Handle;
 
     public override nint GetNativeObject(NativeObjectType type)
     {

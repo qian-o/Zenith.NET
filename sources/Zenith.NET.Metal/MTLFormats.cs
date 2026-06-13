@@ -34,4 +34,24 @@ internal static class MTLFormats
     {
         throw new NotImplementedException();
     }
+
+    internal static (MTLSamplerMinMagFilter MinMagFilter, MTLSamplerMipFilter MipFilter) Metal(FilterMode minFilter)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static MTLSamplerAddressMode Metal(AddressMode addressV)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static MTLSamplerBorderColor Metal(BorderColor borderColor)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static MTLCompareFunction Metal(CompareOp compareOp)
+    {
+        throw new NotImplementedException();
+    }
 }

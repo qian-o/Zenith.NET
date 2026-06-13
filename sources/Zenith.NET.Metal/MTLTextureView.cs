@@ -1,15 +1,23 @@
 ﻿namespace Zenith.NET.Metal;
 
-internal class MTLTextureView(MTLGraphicsContext context, TextureViewDesc desc) : TextureView(context, desc)
+internal class MTLTextureView : TextureView
 {
-    public MtlTexture Texture = desc.Texture.Metal().Texture.MakeTextureView(MTLFormats.Metal(desc.Format),
-                                                                             MTLFormats.Metal(desc.Type),
-                                                                             new(desc.Range.BaseMipLevel, desc.Range.LevelCount),
-                                                                             new(desc.Range.BaseArrayLayer, desc.Range.LayerCount));
+    public MtlTexture Texture;
 
-    public override ResourceHandle SampledHandle => Texture.GpuResourceID.Impl.ToResourceHandle();
+    public MTLTextureView(MTLGraphicsContext context, TextureViewDesc desc) : base(context, desc)
+    {
+        Texture = desc.Texture.Metal().Texture.MakeTextureView(MTLFormats.Metal(desc.Format),
+                                                               MTLFormats.Metal(desc.Type),
+                                                               new(desc.Range.BaseMipLevel, desc.Range.LevelCount),
+                                                               new(desc.Range.BaseArrayLayer, desc.Range.LayerCount));
 
-    public override ResourceHandle StorageHandle => Texture.GpuResourceID.Impl.ToResourceHandle();
+        SampledHandle = Texture.GpuResourceID.Impl.ToHandle();
+        StorageHandle = Texture.GpuResourceID.Impl.ToHandle();
+    }
+
+    public override ResourceHandle SampledHandle { get; }
+
+    public override ResourceHandle StorageHandle { get; }
 
     public override nint GetNativeObject(NativeObjectType type)
     {

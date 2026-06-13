@@ -113,7 +113,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
 
     protected override Sampler CreateSamplerImpl(SamplerDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLSampler(this, desc);
     }
 
     protected override Shader CreateShaderImpl(ShaderDesc desc)

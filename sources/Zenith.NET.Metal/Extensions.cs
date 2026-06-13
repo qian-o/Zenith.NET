@@ -29,7 +29,7 @@ public static class Extensions
 
     extension(ulong value)
     {
-        internal ResourceHandle ToResourceHandle()
+        internal ResourceHandle ToHandle()
         {
             return Unsafe.As<ulong, ResourceHandle>(ref value);
         }
@@ -89,6 +89,10 @@ public static class Extensions
 
     extension(Sampler sampler)
     {
+        internal MTLSampler Metal()
+        {
+            return (MTLSampler)sampler;
+        }
     }
 
     extension(Shader shader)
