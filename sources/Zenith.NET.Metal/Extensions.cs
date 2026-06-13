@@ -26,6 +26,14 @@ public static class Extensions
         }
     }
 
+    extension(ulong value)
+    {
+        internal ResourceHandle ToResourceHandle()
+        {
+            return new((uint)value, (uint)(value >> 32));
+        }
+    }
+
     extension(BottomLevelAccelerationStructure bottomLevelAccelerationStructure)
     {
     }
