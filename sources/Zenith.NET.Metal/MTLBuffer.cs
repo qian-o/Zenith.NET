@@ -8,7 +8,21 @@ internal class MTLBuffer : Buffer
 
     public MTLBuffer(MTLGraphicsContext context, BufferDesc desc) : base(context, desc)
     {
-        context.AddResidency(Buffer = context.Device.MakeBuffer(desc.SizeInBytes, MTLFormats.Metal(desc.Residency)));
+        context.Register(Buffer = context.Device.MakeBuffer(desc.SizeInBytes, MTLFormats.Metal(desc.Residency)));
+
+        GpuAddress = Buffer.GpuAddress;
+
+        View = new(context, new()
+        {
+            Buffer = this,
+            SizeInBytes = desc.SizeInBytes,
+            StrideInBytes = desc.StrideInBytes
+        });
+    }
+
+    public MTLBuffer(MTLGraphicsContext context, BufferDesc desc, MtlBuffer buffer) : base(context, desc)
+    {
+        context.Register(Buffer = buffer);
 
         GpuAddress = Buffer.GpuAddress;
 
@@ -51,7 +65,7 @@ internal class MTLBuffer : Buffer
 
     protected override void Destroy()
     {
-        Context.RemoveResidency(Buffer);
+        Context.Unregister(Buffer);
 
         View.Dispose();
         Buffer.Dispose();

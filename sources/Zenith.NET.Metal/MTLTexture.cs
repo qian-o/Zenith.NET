@@ -8,7 +8,20 @@ internal class MTLTexture : Texture
 
     public MTLTexture(MTLGraphicsContext context, TextureDesc desc) : base(context, desc)
     {
-        context.AddResidency(Texture = context.Device.MakeTexture(Descriptor(desc)));
+        context.Register(Texture = context.Device.MakeTexture(Descriptor(desc)));
+
+        View = new(context, new()
+        {
+            Texture = this,
+            Type = desc.Type,
+            Format = desc.Format,
+            Range = TextureSubresourceRange.All(this)
+        });
+    }
+
+    public MTLTexture(MTLGraphicsContext context, TextureDesc desc, MtlTexture texture) : base(context, desc)
+    {
+        context.Register(Texture = texture);
 
         View = new(context, new()
         {
@@ -39,7 +52,7 @@ internal class MTLTexture : Texture
 
     protected override void Destroy()
     {
-        Context.RemoveResidency(Texture);
+        Context.Unregister(Texture);
 
         View.Dispose();
         Texture.Dispose();

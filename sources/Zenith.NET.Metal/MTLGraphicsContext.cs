@@ -16,13 +16,13 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
 
     public MTL4CommandQueue CopyCommandQueue = MTL4CommandQueue.Null;
 
-    public void AddResidency(MTLAllocation allocation)
+    public void Register(MTLAllocation allocation)
     {
         ResidencySet.AddAllocation(allocation);
         ResidencySet.Commit();
     }
 
-    public void RemoveResidency(MTLAllocation allocation)
+    public void Unregister(MTLAllocation allocation)
     {
         ResidencySet.RemoveAllocation(allocation);
         ResidencySet.Commit();
@@ -74,7 +74,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
 
     protected override Heap CreateHeapImpl(HeapDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLHeap(this, desc);
     }
 
     protected override SizeAndAlignment GetSizeAndAlignmentImpl(BufferDesc desc)
