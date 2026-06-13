@@ -99,12 +99,12 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
 
     protected override Texture CreateTextureImpl(TextureDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLTexture(this, desc);
     }
 
     protected override TextureView CreateTextureViewImpl(TextureViewDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLTextureView(this, desc);
     }
 
     protected override Sampler CreateSamplerImpl(SamplerDesc desc)

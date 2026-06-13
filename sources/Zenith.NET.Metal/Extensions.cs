@@ -100,10 +100,18 @@ public static class Extensions
 
     extension(Texture texture)
     {
+        internal MTLTexture Metal()
+        {
+            return (MTLTexture)texture;
+        }
     }
 
     extension(TextureView textureView)
     {
+        internal MTLTextureView Metal()
+        {
+            return (MTLTextureView)textureView;
+        }
     }
 
     extension(TopLevelAccelerationStructure topLevelAccelerationStructure)

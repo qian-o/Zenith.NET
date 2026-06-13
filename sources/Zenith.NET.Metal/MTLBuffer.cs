@@ -4,11 +4,13 @@ internal class MTLBuffer : Buffer
 {
     public MtlBuffer Buffer;
 
+    public ulong GpuAddress;
+
     public MTLBuffer(MTLGraphicsContext context, BufferDesc desc) : base(context, desc)
     {
-        Buffer = context.Device.MakeBuffer(desc.SizeInBytes, MTLFormats.Metal(desc.Residency));
+        context.AddResidency(Buffer = context.Device.MakeBuffer(desc.SizeInBytes, MTLFormats.Metal(desc.Residency)));
 
-        context.AddResidency(Buffer);
+        GpuAddress = Buffer.GpuAddress;
 
         View = new(context, new()
         {

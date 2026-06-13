@@ -8,10 +8,30 @@ internal static class MTLFormats
     {
         return memoryResidency switch
         {
-            MemoryResidency.GpuOnly => MTLResourceOptions.StorageModePrivate,
-            MemoryResidency.CpuReadOnly => MTLResourceOptions.StorageModeShared,
-            MemoryResidency.CpuWriteOnly => MTLResourceOptions.StorageModeShared | MTLResourceOptions.CPUCacheModeWriteCombined,
+            MemoryResidency.GpuOnly => MTLResourceOptions.CPUCacheModeDefaultCache | MTLResourceOptions.StorageModePrivate | MTLResourceOptions.HazardTrackingModeUntracked,
+            MemoryResidency.CpuReadOnly => MTLResourceOptions.CPUCacheModeDefaultCache | MTLResourceOptions.StorageModeShared | MTLResourceOptions.HazardTrackingModeUntracked,
+            MemoryResidency.CpuWriteOnly => MTLResourceOptions.CPUCacheModeWriteCombined | MTLResourceOptions.StorageModeShared | MTLResourceOptions.HazardTrackingModeUntracked,
             _ => default
         };
+    }
+
+    internal static MTLTextureType Metal(TextureType type)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static MTLPixelFormat Metal(PixelFormat format)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static nuint Metal(SampleCount sampleCount)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static MTLTextureUsage Metal(TextureUsages usages)
+    {
+        throw new NotImplementedException();
     }
 }
