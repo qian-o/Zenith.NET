@@ -32,10 +32,18 @@ public static class Extensions
 
     extension(Buffer buffer)
     {
+        internal MTLBuffer Metal()
+        {
+            return (MTLBuffer)buffer;
+        }
     }
 
     extension(BufferView bufferView)
     {
+        internal MTLBufferView Metal()
+        {
+            return (MTLBufferView)bufferView;
+        }
     }
 
     extension(CommandBuffer commandBuffer)

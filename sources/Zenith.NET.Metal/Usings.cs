@@ -1,1 +1,1 @@
-﻿
+﻿global using MtlBuffer = Metal.NET.MTLBuffer;
