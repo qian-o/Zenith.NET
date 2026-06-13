@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Metal.NET;
 
 namespace Zenith.NET.Metal;
@@ -30,7 +31,7 @@ public static class Extensions
     {
         internal ResourceHandle ToResourceHandle()
         {
-            return new((uint)value, (uint)(value >> 32));
+            return Unsafe.As<ulong, ResourceHandle>(ref value);
         }
     }
 

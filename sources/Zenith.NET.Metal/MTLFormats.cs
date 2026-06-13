@@ -15,22 +15,22 @@ internal static class MTLFormats
         };
     }
 
-    internal static MTLTextureType Metal(TextureType type)
+    public static MTLTextureType Metal(TextureType textureType)
     {
         throw new NotImplementedException();
     }
 
-    internal static MTLPixelFormat Metal(PixelFormat format)
+    public static MTLPixelFormat Metal(PixelFormat pixelFormat)
     {
         throw new NotImplementedException();
     }
 
-    internal static nuint Metal(SampleCount sampleCount)
+    public static nuint Metal(SampleCount sampleCount)
     {
         throw new NotImplementedException();
     }
 
-    internal static MTLTextureUsage Metal(TextureUsages usages)
+    public static MTLTextureUsage Metal(TextureUsages textureUsages)
     {
         throw new NotImplementedException();
     }
