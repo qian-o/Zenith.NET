@@ -8,22 +8,7 @@ internal class MTLTexture : Texture
 
     public MTLTexture(MTLGraphicsContext context, TextureDesc desc) : base(context, desc)
     {
-        MTLTextureDescriptor descriptor = new()
-        {
-            TextureType = MTLFormats.Metal(desc.Type),
-            PixelFormat = MTLFormats.Metal(desc.Format),
-            Width = desc.Width,
-            Height = desc.Height,
-            Depth = desc.Depth,
-            MipmapLevelCount = desc.MipLevels,
-            SampleCount = MTLFormats.Metal(desc.SampleCount),
-            ArrayLength = desc.ArrayLayers,
-            ResourceOptions = MTLResourceOptions.CPUCacheModeDefaultCache | MTLResourceOptions.StorageModePrivate | MTLResourceOptions.HazardTrackingModeUntracked,
-            Usage = MTLFormats.Metal(desc.Usages),
-            AllowGPUOptimizedContents = true
-        };
-
-        context.AddResidency(Texture = context.Device.MakeTexture(descriptor));
+        context.AddResidency(Texture = context.Device.MakeTexture(Descriptor(desc)));
 
         View = new(context, new()
         {
@@ -58,5 +43,23 @@ internal class MTLTexture : Texture
 
         View.Dispose();
         Texture.Dispose();
+    }
+
+    public static MTLTextureDescriptor Descriptor(TextureDesc desc)
+    {
+        return new()
+        {
+            TextureType = MTLFormats.Metal(desc.Type),
+            PixelFormat = MTLFormats.Metal(desc.Format),
+            Width = desc.Width,
+            Height = desc.Height,
+            Depth = desc.Depth,
+            MipmapLevelCount = desc.MipLevels,
+            SampleCount = MTLFormats.Metal(desc.SampleCount),
+            ArrayLength = desc.ArrayLayers,
+            ResourceOptions = MTLResourceOptions.CPUCacheModeDefaultCache | MTLResourceOptions.StorageModePrivate | MTLResourceOptions.HazardTrackingModeUntracked,
+            Usage = MTLFormats.Metal(desc.Usages),
+            AllowGPUOptimizedContents = true
+        };
     }
 }

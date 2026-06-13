@@ -79,12 +79,16 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
 
     protected override SizeAndAlignment GetSizeAndAlignmentImpl(BufferDesc desc)
     {
-        throw new NotImplementedException();
+        MTLSizeAndAlign sizeAndAlign = Device.HeapBufferSizeAndAlign(desc.SizeInBytes, MTLFormats.Metal(desc.Residency));
+
+        return new(sizeAndAlign.Size, sizeAndAlign.Align);
     }
 
     protected override SizeAndAlignment GetSizeAndAlignmentImpl(TextureDesc desc)
     {
-        throw new NotImplementedException();
+        MTLSizeAndAlign sizeAndAlign = Device.HeapTextureSizeAndAlign(MTLTexture.Descriptor(desc));
+
+        return new(sizeAndAlign.Size, sizeAndAlign.Align);
     }
 
     protected override Buffer CreateBufferImpl(BufferDesc desc)
