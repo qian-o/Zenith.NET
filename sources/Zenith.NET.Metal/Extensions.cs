@@ -97,6 +97,10 @@ public static class Extensions
 
     extension(Shader shader)
     {
+        internal MTLShader Metal()
+        {
+            return (MTLShader)shader;
+        }
     }
 
     extension(SwapChain swapChain)

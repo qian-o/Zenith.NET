@@ -118,7 +118,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
 
     protected override Shader CreateShaderImpl(ShaderDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLShader(this, desc);
     }
 
     protected override GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc)
