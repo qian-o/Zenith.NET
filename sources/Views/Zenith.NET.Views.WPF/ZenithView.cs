@@ -79,8 +79,8 @@ public class ZenithView : Control, IZenithView
                                          new SolidColorBrush(Colors.White) { Opacity = 0.98 },
                                          dpi);
 
-            float x = (float)(ActualWidth - mainText.Width) / 2;
-            float y = (float)(ActualHeight - mainText.Height) / 2;
+            double x = (ActualWidth - mainText.Width) / 2.0;
+            double y = (ActualHeight - mainText.Height) / 2.0;
 
             drawingContext.DrawText(shadowText, new(x + 1.0, y + 1.0));
             drawingContext.DrawText(mainText, new(x, y));

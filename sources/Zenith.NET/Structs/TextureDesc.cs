@@ -126,7 +126,7 @@ public struct TextureDesc
             Height = size,
             Depth = 1,
             MipLevels = mipLevels,
-            ArrayLayers = 6 * cubeCount,
+            ArrayLayers = cubeCount * 6,
             SampleCount = SampleCount.Count1,
             Usages = TextureUsages.Sampled | TextureUsages.CopyDst
         };

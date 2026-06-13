@@ -71,8 +71,8 @@ public class ZenithView : TemplatedControl, IZenithView
                                          fontSize * dpi,
                                          new SolidColorBrush(Colors.White) { Opacity = 0.98 });
 
-            float x = (float)(Bounds.Width - mainText.Width) / 2;
-            float y = (float)(Bounds.Height - mainText.Height) / 2;
+            double x = (Bounds.Width - mainText.Width) / 2.0;
+            double y = (Bounds.Height - mainText.Height) / 2.0;
 
             context.DrawText(shadowText, new(x + 1.0, y + 1.0));
             context.DrawText(mainText, new(x, y));
