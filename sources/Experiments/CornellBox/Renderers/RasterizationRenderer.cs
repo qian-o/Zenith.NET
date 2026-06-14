@@ -86,9 +86,9 @@ internal unsafe class RasterizationRenderer : Renderer
             AttachmentFormats = AttachmentFormats,
             RenderState = new()
             {
-                RasterizerState = RasterizerState.CullNone(),
-                DepthStencilState = DepthStencilState.DepthReadWrite(),
-                BlendState = BlendState.Opaque()
+                Rasterizer = RasterizerState.CullNone(),
+                DepthStencil = DepthStencilState.DepthReadWrite(),
+                Blend = BlendState.Opaque()
             }
         });
 

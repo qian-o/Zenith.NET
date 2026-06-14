@@ -121,9 +121,9 @@ float4 FSMain(VSOutput input) : SV_TARGET
             AttachmentFormats = attachmentFormats,
             RenderState = new()
             {
-                RasterizerState = RasterizerState.CullNone(),
-                DepthStencilState = DepthStencilState.DepthNone(),
-                BlendState = BlendState.NonPremultiplied()
+                Rasterizer = RasterizerState.CullNone(),
+                DepthStencil = DepthStencilState.DepthNone(),
+                Blend = BlendState.NonPremultiplied()
             }
         });
 

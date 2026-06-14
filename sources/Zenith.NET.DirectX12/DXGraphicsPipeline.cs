@@ -66,56 +66,56 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
         {
             ColorAttachmentBlendState[] colorAttachmentBlendStates =
             [
-                desc.RenderState.BlendState.ColorAttachment0,
-                desc.RenderState.BlendState.ColorAttachment1,
-                desc.RenderState.BlendState.ColorAttachment2,
-                desc.RenderState.BlendState.ColorAttachment3,
-                desc.RenderState.BlendState.ColorAttachment4,
-                desc.RenderState.BlendState.ColorAttachment5,
-                desc.RenderState.BlendState.ColorAttachment6,
-                desc.RenderState.BlendState.ColorAttachment7
+                desc.RenderState.Blend.ColorAttachment0,
+                desc.RenderState.Blend.ColorAttachment1,
+                desc.RenderState.Blend.ColorAttachment2,
+                desc.RenderState.Blend.ColorAttachment3,
+                desc.RenderState.Blend.ColorAttachment4,
+                desc.RenderState.Blend.ColorAttachment5,
+                desc.RenderState.Blend.ColorAttachment6,
+                desc.RenderState.Blend.ColorAttachment7
             ];
 
             pipelineStateStream.RasterizerState = new()
             {
-                FillMode = DXFormats.DirectX12(desc.RenderState.RasterizerState.FillMode),
-                CullMode = DXFormats.DirectX12(desc.RenderState.RasterizerState.CullMode),
-                FrontCounterClockwise = desc.RenderState.RasterizerState.FrontFace is FrontFace.CounterClockwise,
-                DepthBias = desc.RenderState.RasterizerState.DepthBias,
-                DepthBiasClamp = desc.RenderState.RasterizerState.DepthBiasClamp,
-                SlopeScaledDepthBias = desc.RenderState.RasterizerState.DepthBiasSlopeScale,
-                DepthClipEnable = desc.RenderState.RasterizerState.IsDepthClipEnabled,
+                FillMode = DXFormats.DirectX12(desc.RenderState.Rasterizer.FillMode),
+                CullMode = DXFormats.DirectX12(desc.RenderState.Rasterizer.CullMode),
+                FrontCounterClockwise = desc.RenderState.Rasterizer.FrontFace is FrontFace.CounterClockwise,
+                DepthBias = desc.RenderState.Rasterizer.DepthBias,
+                DepthBiasClamp = desc.RenderState.Rasterizer.DepthBiasClamp,
+                SlopeScaledDepthBias = desc.RenderState.Rasterizer.DepthBiasSlopeScale,
+                DepthClipEnable = desc.RenderState.Rasterizer.IsDepthClipEnabled,
                 MultisampleEnable = desc.AttachmentFormats.SampleCount is not SampleCount.Count1
             };
 
             pipelineStateStream.DepthStencilState = new()
             {
-                DepthEnable = desc.RenderState.DepthStencilState.IsDepthEnabled,
-                DepthWriteMask = desc.RenderState.DepthStencilState.IsDepthWriteEnabled ? DepthWriteMask.All : DepthWriteMask.Zero,
-                DepthFunc = DXFormats.DirectX12(desc.RenderState.DepthStencilState.DepthCompareOp),
-                StencilEnable = desc.RenderState.DepthStencilState.IsStencilEnabled,
-                StencilReadMask = desc.RenderState.DepthStencilState.StencilReadMask,
-                StencilWriteMask = desc.RenderState.DepthStencilState.StencilWriteMask,
+                DepthEnable = desc.RenderState.DepthStencil.IsDepthEnabled,
+                DepthWriteMask = desc.RenderState.DepthStencil.IsDepthWriteEnabled ? DepthWriteMask.All : DepthWriteMask.Zero,
+                DepthFunc = DXFormats.DirectX12(desc.RenderState.DepthStencil.DepthCompareOp),
+                StencilEnable = desc.RenderState.DepthStencil.IsStencilEnabled,
+                StencilReadMask = desc.RenderState.DepthStencil.StencilReadMask,
+                StencilWriteMask = desc.RenderState.DepthStencil.StencilWriteMask,
                 FrontFace = new()
                 {
-                    StencilFailOp = DXFormats.DirectX12(desc.RenderState.DepthStencilState.FrontFace.FailOp),
-                    StencilDepthFailOp = DXFormats.DirectX12(desc.RenderState.DepthStencilState.FrontFace.DepthFailOp),
-                    StencilPassOp = DXFormats.DirectX12(desc.RenderState.DepthStencilState.FrontFace.PassOp),
-                    StencilFunc = DXFormats.DirectX12(desc.RenderState.DepthStencilState.FrontFace.CompareOp)
+                    StencilFailOp = DXFormats.DirectX12(desc.RenderState.DepthStencil.FrontFace.FailOp),
+                    StencilDepthFailOp = DXFormats.DirectX12(desc.RenderState.DepthStencil.FrontFace.DepthFailOp),
+                    StencilPassOp = DXFormats.DirectX12(desc.RenderState.DepthStencil.FrontFace.PassOp),
+                    StencilFunc = DXFormats.DirectX12(desc.RenderState.DepthStencil.FrontFace.CompareOp)
                 },
                 BackFace = new()
                 {
-                    StencilFailOp = DXFormats.DirectX12(desc.RenderState.DepthStencilState.BackFace.FailOp),
-                    StencilDepthFailOp = DXFormats.DirectX12(desc.RenderState.DepthStencilState.BackFace.DepthFailOp),
-                    StencilPassOp = DXFormats.DirectX12(desc.RenderState.DepthStencilState.BackFace.PassOp),
-                    StencilFunc = DXFormats.DirectX12(desc.RenderState.DepthStencilState.BackFace.CompareOp)
+                    StencilFailOp = DXFormats.DirectX12(desc.RenderState.DepthStencil.BackFace.FailOp),
+                    StencilDepthFailOp = DXFormats.DirectX12(desc.RenderState.DepthStencil.BackFace.DepthFailOp),
+                    StencilPassOp = DXFormats.DirectX12(desc.RenderState.DepthStencil.BackFace.PassOp),
+                    StencilFunc = DXFormats.DirectX12(desc.RenderState.DepthStencil.BackFace.CompareOp)
                 }
             };
 
             pipelineStateStream.BlendState = new()
             {
-                AlphaToCoverageEnable = desc.RenderState.BlendState.IsAlphaToCoverageEnabled,
-                IndependentBlendEnable = desc.RenderState.BlendState.IsIndependentBlendEnabled
+                AlphaToCoverageEnable = desc.RenderState.Blend.IsAlphaToCoverageEnabled,
+                IndependentBlendEnable = desc.RenderState.Blend.IsIndependentBlendEnabled
             };
 
             for (int i = 0; i < colorAttachmentBlendStates.Length; i++)

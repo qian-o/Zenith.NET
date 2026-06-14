@@ -2,9 +2,9 @@
 
 public struct RenderState
 {
-    public RasterizerState RasterizerState;
+    public RasterizerState Rasterizer;
 
-    public DepthStencilState DepthStencilState;
+    public DepthStencilState DepthStencil;
 
-    public BlendState BlendState;
+    public BlendState Blend;
 }
