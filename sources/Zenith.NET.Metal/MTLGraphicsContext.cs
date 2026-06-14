@@ -128,7 +128,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
 
     protected override ComputePipeline CreateComputePipelineImpl(ComputePipelineDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLComputePipeline(this, desc);
     }
 
     protected override MeshShadingPipeline CreateMeshShadingPipelineImpl(MeshShadingPipelineDesc desc)

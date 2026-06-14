@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using Metal.NET;
 
 namespace Zenith.NET.Metal;
@@ -31,7 +30,7 @@ public static class Extensions
     {
         internal ResourceHandle ToHandle()
         {
-            return Unsafe.As<ulong, ResourceHandle>(ref value);
+            return new((uint)value, (uint)(value >> 32));
         }
     }
 
@@ -69,6 +68,10 @@ public static class Extensions
 
     extension(ComputePipeline computePipeline)
     {
+        internal MTLComputePipeline Metal()
+        {
+            return (MTLComputePipeline)computePipeline;
+        }
     }
 
     extension(GraphicsPipeline graphicsPipeline)
