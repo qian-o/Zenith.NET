@@ -64,7 +64,7 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
 
         // RenderState
         {
-            ColorAttachmentBlendState[] colorAttachmentBlendStates =
+            ColorAttachmentBlendState[] states =
             [
                 desc.RenderState.Blend.ColorAttachment0,
                 desc.RenderState.Blend.ColorAttachment1,
@@ -118,9 +118,9 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
                 IndependentBlendEnable = desc.RenderState.Blend.IsIndependentBlendEnabled
             };
 
-            for (int i = 0; i < colorAttachmentBlendStates.Length; i++)
+            for (int i = 0; i < states.Length; i++)
             {
-                ColorAttachmentBlendState blend = colorAttachmentBlendStates[i];
+                ColorAttachmentBlendState blend = states[i];
 
                 pipelineStateStream.BlendState.RenderTarget[i] = new()
                 {
