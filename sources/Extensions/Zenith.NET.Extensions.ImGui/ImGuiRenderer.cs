@@ -82,16 +82,8 @@ float4 FSMain(VSOutput input) : SV_TARGET
 
         sampler = context.CreateSampler(SamplerDesc.PointClamp());
 
-        using Shader vertex = context.CreateShader(new()
-        {
-            Name = "VSMain",
-            CodeBytes = ZenithCompiler.CompileFromSource(context.GraphicsApi, source, "VSMain")
-        });
-        using Shader fragment = context.CreateShader(new()
-        {
-            Name = "FSMain",
-            CodeBytes = ZenithCompiler.CompileFromSource(context.GraphicsApi, source, "FSMain")
-        });
+        using Shader vertex = context.CreateShader(ZenithCompiler.CompileFromSource(context.GraphicsApi, source, "VSMain"));
+        using Shader fragment = context.CreateShader(ZenithCompiler.CompileFromSource(context.GraphicsApi, source, "FSMain"));
 
         InputLayout inputLayout = new();
         inputLayout.Add(new()
