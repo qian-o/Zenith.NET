@@ -219,4 +219,34 @@ internal static class MTLFormats
             _ => default
         };
     }
+
+    internal static MTLPrimitiveTopologyClass Metal(PrimitiveTopology primitiveTopology)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static MTLVertexFormat Metal(ElementFormat format)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static MTLBlendFactor Metal(BlendFactor srcRgbFactor)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static MTLBlendOperation Metal(BlendOp rgbOp)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static MTLColorWriteMask Metal(ColorWrites colorWrites)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static MTLStencilOperation Metal(StencilOp failOp)
+    {
+        throw new NotImplementedException();
+    }
 }

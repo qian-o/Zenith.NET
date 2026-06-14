@@ -28,7 +28,7 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
             {
                 InputLayout inputLayout = desc.InputLayouts[i];
 
-                foreach (InputElement element in inputLayout.InputElements)
+                foreach (InputElement element in inputLayout.Elements)
                 {
                     inputElementDescs.Add(new()
                     {
