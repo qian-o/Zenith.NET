@@ -4,37 +4,33 @@ namespace Zenith.NET;
 
 public static class ZenithCompiler
 {
-    public static byte[] CompileFromFile(GraphicsApi graphicsApi, string file, string entry, string[]? searchPaths = null)
+    public static ShaderDesc CompileFromFile(GraphicsApi graphicsApi, string file, string name, string[]? searchPaths = null)
     {
-        return SlangCompiler.Compile(SlangCompilerArguments(graphicsApi, file, entry, searchPaths));
+        return new()
+        {
+            Name = name,
+            CodeBytes = SlangCompiler.CompileWithReflection([file, .. Arguments(graphicsApi, name, searchPaths)], out SlangReflection reflection),
+            ThreadGroupSize = ThreadGroupSize(reflection, name)
+        };
     }
 
-    public static byte[] CompileFromSource(GraphicsApi graphicsApi, string source, string entry, string[]? searchPaths = null)
+    public static ShaderDesc CompileFromSource(GraphicsApi graphicsApi, string source, string name, string[]? searchPaths = null)
     {
-        return SlangCompiler.Compile(source, SlangCompilerArguments(graphicsApi, null, entry, searchPaths));
+        return new()
+        {
+            Name = name,
+            CodeBytes = SlangCompiler.CompileWithReflection(source, Arguments(graphicsApi, name, searchPaths), out SlangReflection reflection),
+            ThreadGroupSize = ThreadGroupSize(reflection, name)
+        };
     }
 
-    private static string[] SlangCompilerArguments(GraphicsApi graphicsApi, string? file, string entry, string[]? searchPaths)
+    private static string[] Arguments(GraphicsApi graphicsApi, string name, string[]? searchPaths)
     {
-        List<string> arguments;
-
-        if (file is null)
-        {
-            arguments =
-            [
-                "-entry", entry,
-                "-matrix-layout-row-major"
-            ];
-        }
-        else
-        {
-            arguments =
-            [
-                file,
-                "-entry", entry,
-                "-matrix-layout-row-major"
-            ];
-        }
+        List<string> arguments =
+        [
+            "-entry", name,
+            "-matrix-layout-row-major"
+        ];
 
         if (searchPaths is not null)
         {
@@ -62,5 +58,20 @@ public static class ZenithCompiler
         }
 
         return [.. arguments];
+    }
+
+    private static ThreadGroupSize ThreadGroupSize(SlangReflection reflection, string name)
+    {
+        if (reflection.EntryPoints.FirstOrDefault(p => p.Name == name) is SlangEntryPoint entryPoint && entryPoint.ThreadGroupSize.Length is 3)
+        {
+            return new()
+            {
+                X = entryPoint.ThreadGroupSize[0],
+                Y = entryPoint.ThreadGroupSize[1],
+                Z = entryPoint.ThreadGroupSize[2]
+            };
+        }
+
+        return new();
     }
 }
