@@ -5,8 +5,7 @@ namespace Zenith.NET.Views.Maui.Platforms.Windows;
 
 internal unsafe partial class MauiZenithView(ZenithViewHandler handler) : SwapChainPanel
 {
-    private D3DTexture? texture;
-    private SwapChain? swapChain;
+    private Surface? surface;
 
     public void EnsureResources()
     {
@@ -18,49 +17,39 @@ internal unsafe partial class MauiZenithView(ZenithViewHandler handler) : SwapCh
         uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
         uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
 
-        if (texture is null || texture.Width != width || texture.Height != height || swapChain is null)
+        if (surface is null || surface.Width != width || surface.Height != height)
         {
             ReleaseResources();
 
-            texture = new(width, height);
+            surface = new(handler.VirtualView.GraphicsContext, width, height);
 
-            swapChain = handler.VirtualView.GraphicsContext.CreateSwapChain(new()
-            {
-                Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
-                Format = ZenithViewHelper.Format
-            });
-
-            this.As<ISwapChainPanelNative>().SetSwapChain(texture.SwapChain);
+            this.As<ISwapChainPanelNative>().SetSwapChain(surface.SwapChain);
         }
     }
 
     public void Tick()
     {
-        if (texture is null || swapChain is null)
+        if (surface is null)
         {
             return;
         }
 
-        texture.AcquireSync();
+        surface.AcquireSync();
 
         handler.VirtualView.OnUpdateRequested();
-        handler.VirtualView.OnRenderRequested(swapChain.Drawable);
+        handler.VirtualView.OnRenderRequested(surface.Drawable);
 
-        texture.ReleaseSync();
+        surface.ReleaseSync();
     }
 
     public void Present()
     {
-        swapChain?.Present();
-        texture?.Present();
+        surface?.Present();
     }
 
     public void ReleaseResources()
     {
-        swapChain?.Dispose();
-        swapChain = null;
-
-        texture?.Dispose();
-        texture = null;
+        surface?.Dispose();
+        surface = null;
     }
 }

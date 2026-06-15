@@ -6,9 +6,10 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXSwapChain : SwapChain
 {
+    private readonly DXTexture[] textures = new DXTexture[3];
+
     public ComPtr<IDXGISwapChain3> SwapChain;
 
-    private DXTexture[] textures = [];
     private uint index;
 
     public DXSwapChain(DXGraphicsContext context, SwapChainDesc desc) : base(context, desc)
@@ -28,22 +29,16 @@ internal unsafe class DXSwapChain : SwapChain
 
     protected override void PresentImpl()
     {
-        if (SwapChain.Handle is not null)
-        {
-            SwapChain.Present(0, DXGI.PresentAllowTearing).Success();
+        SwapChain.Present(0, DXGI.PresentAllowTearing).Success();
 
-            index = SwapChain.GetCurrentBackBufferIndex();
-        }
+        index = SwapChain.GetCurrentBackBufferIndex();
     }
 
     protected override void ResizeImpl()
     {
         DestroyTextures();
 
-        if (SwapChain.Handle is not null)
-        {
-            SwapChain.ResizeBuffers((uint)textures.Length, Desc.Surface.Width, Desc.Surface.Height, DXFormats.DirectX12(Desc.Format), (uint)SwapChainFlag.AllowTearing).Success();
-        }
+        SwapChain.ResizeBuffers((uint)textures.Length, Desc.Surface.Width, Desc.Surface.Height, DXFormats.DirectX12(Desc.Format), (uint)SwapChainFlag.AllowTearing).Success();
 
         CreateTextures();
     }
@@ -69,42 +64,30 @@ internal unsafe class DXSwapChain : SwapChain
 
     private void CreateSwapChain()
     {
-        if (Desc.Surface.Type is not SurfaceType.D3D11Interop)
+        SwapChainDesc1 swapChainDesc = new()
         {
-            const uint BufferCount = 3;
+            Width = Desc.Surface.Width,
+            Height = Desc.Surface.Height,
+            Format = DXFormats.DirectX12(Desc.Format),
+            SampleDesc = new() { Count = 1 },
+            BufferUsage = DXGI.UsageRenderTargetOutput,
+            BufferCount = (uint)textures.Length,
+            SwapEffect = SwapEffect.FlipDiscard,
+            AlphaMode = AlphaMode.Ignore,
+            Flags = (uint)SwapChainFlag.AllowTearing
+        };
 
-            SwapChainDesc1 swapChainDesc = new()
-            {
-                Width = Desc.Surface.Width,
-                Height = Desc.Surface.Height,
-                Format = DXFormats.DirectX12(Desc.Format),
-                SampleDesc = new() { Count = 1 },
-                BufferUsage = DXGI.UsageRenderTargetOutput,
-                BufferCount = BufferCount,
-                SwapEffect = SwapEffect.FlipDiscard,
-                AlphaMode = AlphaMode.Ignore,
-                Flags = (uint)SwapChainFlag.AllowTearing
-            };
-
-            Context.Factory.CreateSwapChainForHwnd((IUnknown*)Context.GraphicsQueue.DirectX12().CommandQueue.Handle,
-                                                   Desc.Surface.NativeHandles[0],
-                                                   &swapChainDesc,
-                                                   default(SwapChainFullscreenDesc*),
-                                                   default(IDXGIOutput*),
-                                                   (IDXGISwapChain1**)SwapChain.GetAddressOf()).Success();
-
-            textures = new DXTexture[BufferCount];
-        }
-        else
-        {
-            textures = new DXTexture[1];
-        }
+        Context.Factory.CreateSwapChainForHwnd((IUnknown*)Context.GraphicsQueue.DirectX12().CommandQueue.Handle,
+                                               Desc.Surface.NativeHandles[0],
+                                               &swapChainDesc,
+                                               default(SwapChainFullscreenDesc*),
+                                               default(IDXGIOutput*),
+                                               (IDXGISwapChain1**)SwapChain.GetAddressOf()).Success();
     }
 
     private void DestroySwapChain()
     {
         SwapChain.Dispose();
-        SwapChain = default;
 
         index = 0;
     }
@@ -124,25 +107,15 @@ internal unsafe class DXSwapChain : SwapChain
             Usages = TextureUsages.ColorAttachment
         };
 
-        if (SwapChain.Handle is not null)
-        {
-            for (int i = 0; i < textures.Length; i++)
-            {
-                ComPtr<ID3D12Resource> resource = new();
-                SwapChain.GetBuffer((uint)i, SilkMarshal.GuidPtrOf<ID3D12Resource>(), (void**)resource.GetAddressOf()).Success();
-
-                textures[i] = new(Context, desc, resource);
-            }
-
-            index = SwapChain.GetCurrentBackBufferIndex();
-        }
-        else
+        for (int i = 0; i < textures.Length; i++)
         {
             ComPtr<ID3D12Resource> resource = new();
-            Context.Device.OpenSharedHandle((void*)Desc.Surface.NativeHandles[0], SilkMarshal.GuidPtrOf<ID3D12Resource>(), (void**)resource.GetAddressOf()).Success();
+            SwapChain.GetBuffer((uint)i, SilkMarshal.GuidPtrOf<ID3D12Resource>(), (void**)resource.GetAddressOf()).Success();
 
-            textures[0] = new(Context, desc, resource);
+            textures[i] = new(Context, desc, resource);
         }
+
+        index = SwapChain.GetCurrentBackBufferIndex();
     }
 
     private void DestroyTextures()

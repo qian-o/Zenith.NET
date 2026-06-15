@@ -35,7 +35,7 @@ public partial class ZenithView
         }
 
         UpdateRequested?.Invoke(this, new(scheduler.UpdateSeconds, scheduler.TotalSeconds));
-        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, surface.Target));
+        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, surface.Drawable));
     }
 
     void IZenithView.Present()
@@ -54,7 +54,18 @@ internal unsafe class Surface(GraphicsContext context, uint width, uint height) 
 {
     private readonly byte[] pixels = new byte[width * height * 4];
 
-    public Texture Target { get; } = context.CreateTexture(TextureDesc.Texture2D(ZenithViewHelper.Format, width, height, 1, SampleCount.Count1));
+    public Texture Drawable { get; } = context.CreateTexture(new()
+    {
+        Type = TextureType.Texture2D,
+        Format = ZenithViewHelper.DrawableFormat,
+        Width = width,
+        Height = height,
+        Depth = 1,
+        MipLevels = 1,
+        ArrayLayers = 1,
+        SampleCount = SampleCount.Count1,
+        Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment | TextureUsages.CopySrc | TextureUsages.CopyDst
+    });
 
     public WriteableBitmap Bitmap { get; } = new((int)width, (int)height);
 
@@ -81,10 +92,10 @@ internal unsafe class Surface(GraphicsContext context, uint width, uint height) 
                 SliceStrideInBytes = (uint)pixels.Length
             };
 
-            Target.Download(default, default, extent, data);
+            Drawable.Download(default, default, extent, data);
         }
 
-        if (ZenithViewHelper.Format is PixelFormat.R8G8B8A8UNorm)
+        if (ZenithViewHelper.DrawableFormat is PixelFormat.R8G8B8A8UNorm)
         {
             for (int i = 0; i < pixels.Length; i += 4)
             {
@@ -101,7 +112,7 @@ internal unsafe class Surface(GraphicsContext context, uint width, uint height) 
     protected override void Destroy()
     {
         Bitmap.Dispose();
-        Target.Dispose();
+        Drawable.Dispose();
     }
 }
 #endif

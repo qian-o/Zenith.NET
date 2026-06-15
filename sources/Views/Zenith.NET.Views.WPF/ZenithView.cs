@@ -17,8 +17,7 @@ public class ZenithView : Control, IZenithView
     private readonly D3DImage image;
     private readonly FrameScheduler scheduler;
 
-    private D3DTexture? texture;
-    private SwapChain? swapChain;
+    private Surface? surface;
 
     public ZenithView()
     {
@@ -102,49 +101,39 @@ public class ZenithView : Control, IZenithView
         uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
         uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
 
-        if (texture is null || texture.Width != width || texture.Height != height || swapChain is null)
+        if (surface is null || surface.Width != width || surface.Height != height)
         {
             ((IZenithView)this).ReleaseResources();
 
-            texture = new(width, height, image);
-
-            swapChain = GraphicsContext.CreateSwapChain(new()
-            {
-                Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
-                Format = ZenithViewHelper.Format
-            });
+            surface = new(GraphicsContext, width, height);
         }
     }
 
     void IZenithView.Tick()
     {
-        if (texture is null || swapChain is null)
+        if (surface is null)
         {
             return;
         }
 
-        texture.AcquireSync();
+        surface.AcquireSync();
 
         UpdateRequested?.Invoke(this, new(scheduler.UpdateSeconds, scheduler.TotalSeconds));
-        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, swapChain.Drawable));
+        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, surface.Drawable));
 
-        texture.ReleaseSync();
+        surface.ReleaseSync();
     }
 
     void IZenithView.Present()
     {
-        swapChain?.Present();
-        texture?.Present();
+        surface?.Present(image);
 
         InvalidateVisual();
     }
 
     void IZenithView.ReleaseResources()
     {
-        swapChain?.Dispose();
-        swapChain = null;
-
-        texture?.Dispose();
-        texture = null;
+        surface?.Dispose();
+        surface = null;
     }
 }

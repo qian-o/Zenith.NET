@@ -81,7 +81,7 @@ public class ZenithView : Control, IZenithView
             swapChain = GraphicsContext.CreateSwapChain(new()
             {
                 Surface = Surface.Win32(Handle, width, height),
-                Format = ZenithViewHelper.Format
+                Format = ZenithViewHelper.DrawableFormat
             });
         }
         else if (swapChain.Desc.Surface.Width != width || swapChain.Desc.Surface.Height != height)

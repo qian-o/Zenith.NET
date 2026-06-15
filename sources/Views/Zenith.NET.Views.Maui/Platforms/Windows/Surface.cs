@@ -6,7 +6,7 @@ using Silk.NET.DXGI;
 
 namespace Zenith.NET.Views.Maui.Platforms.Windows;
 
-internal unsafe partial class D3DTexture : DisposableObject
+internal unsafe partial class Surface : DisposableObject
 {
     [LibraryImport("kernel32")]
     private static partial int CloseHandle(nint hObject);
@@ -17,13 +17,11 @@ internal unsafe partial class D3DTexture : DisposableObject
 
     public ComPtr<IDXGIKeyedMutex> Mutex = new();
 
-    public nint Handle;
-
     public nint SharedHandle;
 
     private ulong key;
 
-    public D3DTexture(uint width, uint height)
+    public Surface(GraphicsContext graphicsContext, uint width, uint height)
     {
         SwapChainDesc1 swapChainDesc = new()
         {
@@ -61,16 +59,30 @@ internal unsafe partial class D3DTexture : DisposableObject
         void* sharedHandle = null;
         D3D.Success(resource.CreateSharedHandle(default(SecurityAttributes*), DXGI.SharedResourceRead | DXGI.SharedResourceWrite, default(char*), &sharedHandle));
 
-        Handle = (nint)Texture.Handle;
-        SharedHandle = (nint)sharedHandle;
-
-        Width = width;
-        Height = height;
+        Drawable = graphicsContext.ImportTexture(new()
+        {
+            Type = ImportTextureType.D3D11,
+            Texture = SharedHandle = (nint)sharedHandle,
+            TextureDesc = new()
+            {
+                Type = TextureType.Texture2D,
+                Format = ZenithViewHelper.DrawableFormat,
+                Width = Width = width,
+                Height = Height = height,
+                Depth = 1,
+                MipLevels = 1,
+                ArrayLayers = 1,
+                SampleCount = SampleCount.Count1,
+                Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment | TextureUsages.CopySrc | TextureUsages.CopyDst
+            }
+        });
     }
 
     public uint Width { get; }
 
     public uint Height { get; }
+
+    public Texture Drawable { get; }
 
     public void AcquireSync()
     {
@@ -99,6 +111,8 @@ internal unsafe partial class D3DTexture : DisposableObject
 
     protected override void Destroy()
     {
+        Drawable.Dispose();
+
         if (CloseHandle(SharedHandle) is 0)
         {
             Debug.WriteLine("Failed to close shared handle.");
@@ -111,11 +125,11 @@ internal unsafe partial class D3DTexture : DisposableObject
 
     private static Format ColorFormat()
     {
-        return ZenithViewHelper.Format switch
+        return ZenithViewHelper.DrawableFormat switch
         {
             PixelFormat.R8G8B8A8UNorm => Format.FormatR8G8B8A8Unorm,
             PixelFormat.B8G8R8A8UNorm => Format.FormatB8G8R8A8Unorm,
-            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.Format} is not supported.")
+            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.DrawableFormat} is not supported.")
         };
     }
 }

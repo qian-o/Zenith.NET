@@ -10,7 +10,7 @@ using DXGIFormat = Silk.NET.DXGI.Format;
 
 namespace Zenith.NET.Views.WPF;
 
-internal unsafe partial class D3DTexture : DisposableObject
+internal unsafe partial class Surface : DisposableObject
 {
     [LibraryImport("kernel32")]
     private static partial int CloseHandle(nint hObject);
@@ -29,7 +29,7 @@ internal unsafe partial class D3DTexture : DisposableObject
 
     private ulong key;
 
-    public D3DTexture(uint width, uint height, D3DImage image)
+    public Surface(GraphicsContext graphicsContext, uint width, uint height)
     {
         void* sharedHandle = null;
         D3D.Success(D3D.D3D9DeviceEx.CreateTexture(width,
@@ -66,18 +66,30 @@ internal unsafe partial class D3DTexture : DisposableObject
         sharedHandle = null;
         D3D.Success(resource.CreateSharedHandle(default(SecurityAttributes*), DXGI.SharedResourceRead | DXGI.SharedResourceWrite, default(char*), &sharedHandle));
 
-        SharedHandle = (nint)sharedHandle;
-
-        Width = width;
-        Height = height;
-        Image = image;
+        Drawable = graphicsContext.ImportTexture(new()
+        {
+            Type = ImportTextureType.D3D11,
+            Texture = SharedHandle = (nint)sharedHandle,
+            TextureDesc = new()
+            {
+                Type = TextureType.Texture2D,
+                Format = ZenithViewHelper.DrawableFormat,
+                Width = Width = width,
+                Height = Height = height,
+                Depth = 1,
+                MipLevels = 1,
+                ArrayLayers = 1,
+                SampleCount = SampleCount.Count1,
+                Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment | TextureUsages.CopySrc | TextureUsages.CopyDst
+            }
+        });
     }
 
     public uint Width { get; }
 
     public uint Height { get; }
 
-    public D3DImage Image { get; }
+    public Texture Drawable { get; }
 
     public void AcquireSync()
     {
@@ -89,10 +101,10 @@ internal unsafe partial class D3DTexture : DisposableObject
         D3D.Success(D3D11Mutex.ReleaseSync(key));
     }
 
-    public void Present()
+    public void Present(D3DImage image)
     {
-        Image.Lock();
-        Image.SetBackBuffer(D3DResourceType.IDirect3DSurface9, (nint)D3D9RenderSurface.Handle);
+        image.Lock();
+        image.SetBackBuffer(D3DResourceType.IDirect3DSurface9, (nint)D3D9RenderSurface.Handle);
 
         AcquireSync();
 
@@ -101,12 +113,14 @@ internal unsafe partial class D3DTexture : DisposableObject
 
         ReleaseSync();
 
-        Image.AddDirtyRect(new(0, 0, (int)Width, (int)Height));
-        Image.Unlock();
+        image.AddDirtyRect(new(0, 0, (int)Width, (int)Height));
+        image.Unlock();
     }
 
     protected override void Destroy()
     {
+        Drawable.Dispose();
+
         if (CloseHandle(SharedHandle) is 0)
         {
             Debug.WriteLine("Failed to close shared handle.");
@@ -121,11 +135,11 @@ internal unsafe partial class D3DTexture : DisposableObject
 
     private static DXGIFormat ColorFormat()
     {
-        return ZenithViewHelper.Format switch
+        return ZenithViewHelper.DrawableFormat switch
         {
             PixelFormat.R8G8B8A8UNorm => DXGIFormat.FormatR8G8B8A8Unorm,
             PixelFormat.B8G8R8A8UNorm => DXGIFormat.FormatB8G8R8A8Unorm,
-            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.Format} is not supported.")
+            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.DrawableFormat} is not supported.")
         };
     }
 }

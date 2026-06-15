@@ -86,9 +86,9 @@ public partial class ZenithView : View, IZenithView
         UpdateRequested?.Invoke(this, new(scheduler.UpdateSeconds, scheduler.TotalSeconds));
     }
 
-    internal void OnRenderRequested(Texture target)
+    internal void OnRenderRequested(Texture drawable)
     {
-        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, target));
+        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, drawable));
     }
 
     void IZenithView.UI(Action action)

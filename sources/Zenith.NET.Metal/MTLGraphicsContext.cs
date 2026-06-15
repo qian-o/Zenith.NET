@@ -106,6 +106,11 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
         return new MTLTexture(this, desc);
     }
 
+    protected override Texture ImportTextureImpl(ImportTextureDesc desc)
+    {
+        throw new NotImplementedException();
+    }
+
     protected override TextureView CreateTextureViewImpl(TextureViewDesc desc)
     {
         return new MTLTextureView(this, desc);
