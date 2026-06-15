@@ -76,6 +76,11 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
         return CreateTextureImpl(desc);
     }
 
+    public Texture ImportTexture(ImportTextureDesc desc)
+    {
+        return ImportTextureImpl(desc);
+    }
+
     public TextureView CreateTextureView(TextureViewDesc desc)
     {
         return CreateTextureViewImpl(desc);
@@ -144,6 +149,8 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
     protected abstract BufferView CreateBufferViewImpl(BufferViewDesc desc);
 
     protected abstract Texture CreateTextureImpl(TextureDesc desc);
+
+    protected abstract Texture ImportTextureImpl(ImportTextureDesc desc);
 
     protected abstract TextureView CreateTextureViewImpl(TextureViewDesc desc);
 

@@ -64,15 +64,4 @@ public struct Surface
             Height = height
         };
     }
-
-    public static Surface D3D11Interop(nint sharedHandle, uint width, uint height)
-    {
-        return new()
-        {
-            Type = SurfaceType.D3D11Interop,
-            NativeHandles = [sharedHandle],
-            Width = width,
-            Height = height
-        };
-    }
 }
