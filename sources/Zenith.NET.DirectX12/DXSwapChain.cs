@@ -77,7 +77,7 @@ internal unsafe class DXSwapChain : SwapChain
             Flags = (uint)SwapChainFlag.AllowTearing
         };
 
-        Context.Factory.CreateSwapChainForHwnd((IUnknown*)Context.GraphicsQueue.DirectX12().CommandQueue.Handle,
+        Context.Factory.CreateSwapChainForHwnd((IUnknown*)Context.GraphicsCommandQueue.Handle,
                                                Desc.Surface.NativeHandles[0],
                                                &swapChainDesc,
                                                default(SwapChainFullscreenDesc*),
