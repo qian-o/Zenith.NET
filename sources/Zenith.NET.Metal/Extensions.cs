@@ -100,6 +100,10 @@ public static class Extensions
 
     extension(QueryHeap queryHeap)
     {
+        internal MTLQueryHeap Metal()
+        {
+            return (MTLQueryHeap)queryHeap;
+        }
     }
 
     extension(Sampler sampler)

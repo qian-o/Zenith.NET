@@ -138,7 +138,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
 
     protected override QueryHeap CreateQueryHeapImpl(QueryHeapDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLQueryHeap(this, desc);
     }
 
     protected override void Destroy()

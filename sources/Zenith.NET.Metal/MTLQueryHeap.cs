@@ -1,21 +1,21 @@
-﻿using Silk.NET.Core.Native;
-using Silk.NET.Direct3D12;
+﻿using Metal.NET;
 
-namespace Zenith.NET.DirectX12;
+namespace Zenith.NET.Metal;
 
-internal unsafe class DXQueryHeap : QueryHeap
+internal unsafe class MTLQueryHeap : QueryHeap
 {
-    public ComPtr<ID3D12QueryHeap> QueryHeap;
+    public MTL4CounterHeap CounterHeap;
 
-    public DXQueryHeap(DXGraphicsContext context, QueryHeapDesc desc) : base(context, desc)
+    public MTLQueryHeap(MTLGraphicsContext context, QueryHeapDesc desc) : base(context, desc)
     {
-        DxQueryHeapDesc queryHeapDesc = new()
+        MTL4CounterHeapDescriptor descriptor = new()
         {
-            Type = DXFormats.DirectX12(desc.Type).HeapType,
+            Type = MTL4CounterHeapType.Timestamp,
             Count = desc.Count
         };
 
-        context.Device.CreateQueryHeap(&queryHeapDesc, SilkMarshal.GuidPtrOf<ID3D12QueryHeap>(), (void**)QueryHeap.GetAddressOf()).Success();
+        CounterHeap = context.Device.MakeCounterHeap(descriptor, out NSError error);
+        error.Success();
 
         Buffer = new(context, new()
         {
@@ -24,7 +24,7 @@ internal unsafe class DXQueryHeap : QueryHeap
         });
     }
 
-    public DXBuffer Buffer { get; }
+    public MTLBuffer Buffer { get; }
 
     public override nint GetNativeObject(NativeObjectType type)
     {
@@ -42,12 +42,12 @@ internal unsafe class DXQueryHeap : QueryHeap
 
     protected override void SetResourceName(string name)
     {
-        QueryHeap.SetName(name).Success();
+        CounterHeap.Label = name;
     }
 
     protected override void Destroy()
     {
         Buffer.Dispose();
-        QueryHeap.Dispose();
+        CounterHeap.Dispose();
     }
 }
