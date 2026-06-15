@@ -33,7 +33,7 @@ internal class MTLSwapChain : SwapChain
                     MipLevels = 1,
                     ArrayLayers = 1,
                     SampleCount = SampleCount.Count1,
-                    Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment | TextureUsages.CopySrc | TextureUsages.CopyDst
+                    Usages = TextureUsages.ColorAttachment | TextureUsages.CopyDst
                 };
 
                 drawable?.Dispose();

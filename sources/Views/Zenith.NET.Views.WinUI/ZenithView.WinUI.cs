@@ -166,7 +166,7 @@ internal unsafe partial class Surface : DisposableObject
                 MipLevels = 1,
                 ArrayLayers = 1,
                 SampleCount = SampleCount.Count1,
-                Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment | TextureUsages.CopySrc | TextureUsages.CopyDst
+                Usages = TextureUsages.ColorAttachment | TextureUsages.CopyDst
             }
         });
     }

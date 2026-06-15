@@ -8,12 +8,12 @@ internal class MTLHeap : Heap
 
     public MTLHeap(MTLGraphicsContext context, HeapDesc desc) : base(context, desc)
     {
-        context.Register(Heap = context.Device.MakeHeap(new()
+        Heap = context.Device.MakeHeap(new()
         {
             Size = (nuint)desc.SizeInBytes,
             ResourceOptions = MTLFormats.Metal(desc.Residency),
             Type = MTLHeapType.Placement
-        }));
+        });
     }
 
     public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
