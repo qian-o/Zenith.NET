@@ -84,10 +84,18 @@ public static class Extensions
 
     extension(Heap heap)
     {
+        internal MTLHeap Metal()
+        {
+            return (MTLHeap)heap;
+        }
     }
 
     extension(MeshShadingPipeline meshShadingPipeline)
     {
+        internal MTLMeshShadingPipeline Metal()
+        {
+            return (MTLMeshShadingPipeline)meshShadingPipeline;
+        }
     }
 
     extension(QueryHeap queryHeap)
