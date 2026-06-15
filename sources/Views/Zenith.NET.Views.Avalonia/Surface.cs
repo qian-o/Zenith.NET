@@ -6,7 +6,18 @@ namespace Zenith.NET.Views.Avalonia;
 
 internal class Surface(GraphicsContext graphicsContext, uint width, uint height) : DisposableObject
 {
-    public Texture Target { get; } = graphicsContext.CreateTexture(TextureDesc.Texture2D(ZenithViewHelper.Format, width, height, 1, SampleCount.Count1));
+    public Texture Drawable { get; } = graphicsContext.CreateTexture(new()
+    {
+        Type = TextureType.Texture2D,
+        Format = ZenithViewHelper.DrawableFormat,
+        Width = width,
+        Height = height,
+        Depth = 1,
+        MipLevels = 1,
+        ArrayLayers = 1,
+        SampleCount = SampleCount.Count1,
+        Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment | TextureUsages.CopySrc | TextureUsages.CopyDst
+    });
 
     public WriteableBitmap Bitmap { get; } = new(new((int)width, (int)height), new(96, 96), ColorFormat(), AlphaFormat.Premul);
 
@@ -33,22 +44,22 @@ internal class Surface(GraphicsContext graphicsContext, uint width, uint height)
             SliceStrideInBytes = (uint)(lockedFramebuffer.RowBytes * Height)
         };
 
-        Target.Download(default, default, extent, data);
+        Drawable.Download(default, default, extent, data);
     }
 
     protected override void Destroy()
     {
         Bitmap.Dispose();
-        Target.Dispose();
+        Drawable.Dispose();
     }
 
     private static AvaloniaPixelFormat ColorFormat()
     {
-        return ZenithViewHelper.Format switch
+        return ZenithViewHelper.DrawableFormat switch
         {
             PixelFormat.R8G8B8A8UNorm => AvaloniaPixelFormat.Rgba8888,
             PixelFormat.B8G8R8A8UNorm => AvaloniaPixelFormat.Bgra8888,
-            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.Format} is not supported.")
+            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.DrawableFormat} is not supported.")
         };
     }
 }
