@@ -58,6 +58,7 @@ internal class MTLSwapChain : SwapChain
     protected override void PresentImpl()
     {
         MetalDrawable.Present();
+
         MetalDrawable.Dispose();
         MetalDrawable = NSAutorelease.Own(MetalLayer.NextDrawable);
     }
