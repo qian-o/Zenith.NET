@@ -8,7 +8,9 @@ public enum ImportTextureType
 
     Metal,
 
-    OpaqueWin32,
+    VulkanWin32,
 
-    OpaqueFd
+    VulkanLinux,
+
+    VulkanAndroid
 }
