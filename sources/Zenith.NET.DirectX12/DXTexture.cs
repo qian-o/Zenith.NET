@@ -60,7 +60,7 @@ internal unsafe class DXTexture : Texture
 
     public uint SubresourceIndex(TextureSubresource subresource)
     {
-        return (subresource.ArrayLayer * Desc.MipLevels) + subresource.MipLevel;
+        return subresource.MipLevel + (subresource.ArrayLayer * Desc.MipLevels);
     }
 
     public CpuDescriptorHandle GetRtvHandle(TextureSubresource subresource)

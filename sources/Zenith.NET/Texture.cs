@@ -14,8 +14,8 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     internal TextureLayout this[TextureSubresource subresource]
     {
-        get => layouts[(subresource.MipLevel * Desc.ArrayLayers) + subresource.ArrayLayer];
-        set => layouts[(subresource.MipLevel * Desc.ArrayLayers) + subresource.ArrayLayer] = value;
+        get => layouts[subresource.MipLevel + (subresource.ArrayLayer * Desc.MipLevels)];
+        set => layouts[subresource.MipLevel + (subresource.ArrayLayer * Desc.MipLevels)] = value;
     }
 
     public void Upload(TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
