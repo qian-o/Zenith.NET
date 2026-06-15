@@ -124,6 +124,10 @@ public static class Extensions
 
     extension(SwapChain swapChain)
     {
+        internal MTLSwapChain Metal()
+        {
+            return (MTLSwapChain)swapChain;
+        }
     }
 
     extension(Texture texture)

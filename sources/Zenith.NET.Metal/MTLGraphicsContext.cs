@@ -69,7 +69,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
 
     protected override SwapChain CreateSwapChainImpl(SwapChainDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLSwapChain(this, desc);
     }
 
     protected override Heap CreateHeapImpl(HeapDesc desc)
