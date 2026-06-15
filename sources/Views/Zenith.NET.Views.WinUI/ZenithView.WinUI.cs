@@ -120,7 +120,7 @@ internal unsafe partial class Surface : DisposableObject
         {
             Width = width,
             Height = height,
-            Format = ColorFormat(),
+            Format = DrawableFormat(),
             SampleDesc = new() { Count = 1 },
             BufferUsage = DXGI.UsageRenderTargetOutput,
             BufferCount = 3,
@@ -136,7 +136,7 @@ internal unsafe partial class Surface : DisposableObject
             Height = height,
             MipLevels = 1,
             ArraySize = 1,
-            Format = ColorFormat(),
+            Format = DrawableFormat(),
             SampleDesc = new() { Count = 1 },
             BindFlags = (uint)BindFlag.RenderTarget,
             MiscFlags = (uint)(ResourceMiscFlag.SharedKeyedmutex | ResourceMiscFlag.SharedNthandle)
@@ -216,13 +216,13 @@ internal unsafe partial class Surface : DisposableObject
         SwapChain.Dispose();
     }
 
-    private static Format ColorFormat()
+    private static Format DrawableFormat()
     {
         return ZenithViewHelper.DrawableFormat switch
         {
             PixelFormat.R8G8B8A8UNorm => Format.FormatR8G8B8A8Unorm,
             PixelFormat.B8G8R8A8UNorm => Format.FormatB8G8R8A8Unorm,
-            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.DrawableFormat} is not supported.")
+            _ => default
         };
     }
 }

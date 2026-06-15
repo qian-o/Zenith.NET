@@ -19,7 +19,7 @@ internal class Surface(GraphicsContext graphicsContext, uint width, uint height)
         Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment | TextureUsages.CopySrc | TextureUsages.CopyDst
     });
 
-    public WriteableBitmap Bitmap { get; } = new(new((int)width, (int)height), new(96, 96), ColorFormat(), AlphaFormat.Premul);
+    public WriteableBitmap Bitmap { get; } = new(new((int)width, (int)height), new(96, 96), DrawableFormat(), AlphaFormat.Premul);
 
     public uint Width { get; } = width;
 
@@ -53,13 +53,13 @@ internal class Surface(GraphicsContext graphicsContext, uint width, uint height)
         Drawable.Dispose();
     }
 
-    private static AvaloniaPixelFormat ColorFormat()
+    private static AvaloniaPixelFormat DrawableFormat()
     {
         return ZenithViewHelper.DrawableFormat switch
         {
             PixelFormat.R8G8B8A8UNorm => AvaloniaPixelFormat.Rgba8888,
             PixelFormat.B8G8R8A8UNorm => AvaloniaPixelFormat.Bgra8888,
-            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.DrawableFormat} is not supported.")
+            _ => default
         };
     }
 }

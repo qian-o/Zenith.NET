@@ -50,7 +50,7 @@ internal unsafe partial class Surface : DisposableObject
             Height = height,
             MipLevels = 1,
             ArraySize = 1,
-            Format = ColorFormat(),
+            Format = DrawableFormat(),
             SampleDesc = new() { Count = 1 },
             BindFlags = (uint)BindFlag.RenderTarget,
             MiscFlags = (uint)(ResourceMiscFlag.SharedKeyedmutex | ResourceMiscFlag.SharedNthandle)
@@ -133,13 +133,13 @@ internal unsafe partial class Surface : DisposableObject
         D3D9RenderTarget.Dispose();
     }
 
-    private static DXGIFormat ColorFormat()
+    private static DXGIFormat DrawableFormat()
     {
         return ZenithViewHelper.DrawableFormat switch
         {
             PixelFormat.R8G8B8A8UNorm => DXGIFormat.FormatR8G8B8A8Unorm,
             PixelFormat.B8G8R8A8UNorm => DXGIFormat.FormatB8G8R8A8Unorm,
-            _ => throw new NotSupportedException($"Pixel format {ZenithViewHelper.DrawableFormat} is not supported.")
+            _ => default
         };
     }
 }
