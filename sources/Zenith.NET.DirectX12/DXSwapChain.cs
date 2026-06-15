@@ -104,7 +104,7 @@ internal unsafe class DXSwapChain : SwapChain
             MipLevels = 1,
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
-            Usages = TextureUsages.ColorAttachment
+            Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment | TextureUsages.CopySrc | TextureUsages.CopyDst
         };
 
         for (int i = 0; i < textures.Length; i++)

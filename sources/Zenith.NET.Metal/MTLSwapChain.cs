@@ -21,7 +21,7 @@ internal class MTLSwapChain : SwapChain
     {
         get
         {
-            if (drawable is null || drawable.Desc.Format != Desc.Format || drawable.Desc.Width != Desc.Surface.Width || drawable.Desc.Height != Desc.Surface.Height)
+            if (drawable is null || drawable.Texture.NativePtr != MetalDrawable.Texture.NativePtr)
             {
                 TextureDesc desc = new()
                 {
@@ -33,17 +33,11 @@ internal class MTLSwapChain : SwapChain
                     MipLevels = 1,
                     ArrayLayers = 1,
                     SampleCount = SampleCount.Count1,
-                    Usages = TextureUsages.ColorAttachment
+                    Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment | TextureUsages.CopySrc | TextureUsages.CopyDst
                 };
 
                 drawable?.Dispose();
                 drawable = new(Context, desc, MetalDrawable.Texture.Retain());
-            }
-
-            if (drawable.Texture.NativePtr != MetalDrawable.Texture.NativePtr)
-            {
-                drawable.Texture.Dispose();
-                drawable.Texture = MetalDrawable.Texture.Retain();
             }
 
             return drawable;
