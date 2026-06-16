@@ -299,17 +299,19 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         Box2D<int>* pRects = stackalloc Box2D<int>[scissors.Length];
         for (int i = 0; i < scissors.Length; i++)
         {
+            Scissor scissor = scissors[i];
+
             pRects[i] = new()
             {
                 Min = new()
                 {
-                    X = scissors[i].X,
-                    Y = scissors[i].Y
+                    X = scissor.X,
+                    Y = scissor.Y
                 },
                 Max = new()
                 {
-                    X = scissors[i].X + (int)scissors[i].Width,
-                    Y = scissors[i].Y + (int)scissors[i].Height
+                    X = (int)(scissor.X + scissor.Width),
+                    Y = (int)(scissor.Y + scissor.Height)
                 }
             };
         }
@@ -322,14 +324,16 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         DxViewport* pViewports = stackalloc DxViewport[viewports.Length];
         for (int i = 0; i < viewports.Length; i++)
         {
+            Viewport viewport = viewports[i];
+
             pViewports[i] = new()
             {
-                TopLeftX = viewports[i].X,
-                TopLeftY = viewports[i].Y,
-                Width = viewports[i].Width,
-                Height = viewports[i].Height,
-                MinDepth = viewports[i].MinDepth,
-                MaxDepth = viewports[i].MaxDepth
+                TopLeftX = viewport.X,
+                TopLeftY = viewport.Y,
+                Width = viewport.Width,
+                Height = viewport.Height,
+                MinDepth = viewport.MinDepth,
+                MaxDepth = viewport.MaxDepth
             };
         }
 

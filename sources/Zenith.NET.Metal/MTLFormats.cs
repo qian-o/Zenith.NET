@@ -249,4 +249,9 @@ internal static class MTLFormats
     {
         throw new NotImplementedException();
     }
+
+    internal static MTLStages Metal(BarrierStages after)
+    {
+        throw new NotImplementedException();
+    }
 }

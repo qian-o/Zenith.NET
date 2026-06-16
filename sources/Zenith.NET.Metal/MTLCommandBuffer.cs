@@ -3,11 +3,34 @@ using Metal.NET;
 
 namespace Zenith.NET.Metal;
 
-internal class MTLCommandBuffer(MTLGraphicsContext context, MTLCommandQueue queue) : CommandBuffer(context, queue)
+internal class MTLCommandBuffer : CommandBuffer
 {
-    public MTL4CommandAllocator CommandAllocator = context.Device.MakeCommandAllocator();
+    public MTL4CommandAllocator CommandAllocator;
 
-    public MTL4CommandBuffer CommandBuffer = NSAutorelease.Own(context.Device.MakeCommandBuffer);
+    public MTL4CommandBuffer CommandBuffer;
+
+    public MTL4ArgumentTable ArgumentTable;
+
+    private MTL4RenderCommandEncoder? render;
+    private MTL4ComputeCommandEncoder? compute;
+
+    private Scissor[]? todoScissors;
+    private Viewport[]? todoViewports;
+
+    public MTLCommandBuffer(MTLGraphicsContext context, MTLCommandQueue queue) : base(context, queue)
+    {
+        CommandAllocator = context.Device.MakeCommandAllocator();
+        CommandBuffer = NSAutorelease.Own(context.Device.MakeCommandBuffer);
+
+        MTL4ArgumentTableDescriptor descriptor = new()
+        {
+            MaxBufferBindCount = 16,
+            SupportAttributeStrides = true
+        };
+
+        ArgumentTable = context.Device.MakeArgumentTable(descriptor, out NSError error);
+        error.Success();
+    }
 
     public override nint GetNativeObject(NativeObjectType type)
     {
@@ -16,37 +39,68 @@ internal class MTLCommandBuffer(MTLGraphicsContext context, MTLCommandQueue queu
 
     protected override void BarrierImpl(BarrierStages before, BarrierStages after)
     {
-        throw new NotImplementedException();
+        render?.BarrierAfterStages(MTLFormats.Metal(after), MTLFormats.Metal(after), MTL4VisibilityOptions.Device);
+        compute?.BarrierAfterStages(MTLFormats.Metal(after), MTLFormats.Metal(after), MTL4VisibilityOptions.Device);
     }
 
     protected override void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout srcLayout, TextureLayout dstLayout)
     {
-        throw new NotImplementedException();
     }
 
     protected override void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes)
     {
-        throw new NotImplementedException();
+        compute?.Copy(src.Metal().Buffer, srcOffsetInBytes, dst.Metal().Buffer, dstOffsetInBytes, sizeInBytes);
     }
 
     protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, uint srcRowStrideInBytes, uint srcSliceStrideInBytes, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D dstExtent)
     {
-        throw new NotImplementedException();
+        compute?.Copy(src.Metal().Buffer,
+                      srcOffsetInBytes,
+                      srcRowStrideInBytes,
+                      srcSliceStrideInBytes,
+                      new(dstExtent.Width, dstExtent.Height, dstExtent.Depth),
+                      dst.Metal().Texture,
+                      dstSubresource.ArrayLayer,
+                      dstSubresource.MipLevel,
+                      new(dstOffset.X, dstOffset.Y, dstOffset.Z));
     }
 
     protected override void CopyTextureImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D extent)
     {
-        throw new NotImplementedException();
+        compute?.Copy(src.Metal().Texture,
+                      srcSubresource.ArrayLayer,
+                      srcSubresource.MipLevel,
+                      new(srcOffset.X, srcOffset.Y, srcOffset.Z),
+                      new(extent.Width, extent.Height, extent.Depth),
+                      dst.Metal().Texture,
+                      dstSubresource.ArrayLayer,
+                      dstSubresource.MipLevel,
+                      new(dstOffset.X, dstOffset.Y, dstOffset.Z));
     }
 
     protected override void CopyTextureToBufferImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dst, uint dstOffsetInBytes, uint dstRowStrideInBytes, uint dstSliceStrideInBytes)
     {
-        throw new NotImplementedException();
+        compute?.Copy(src.Metal().Texture,
+                      srcSubresource.ArrayLayer,
+                      srcSubresource.MipLevel,
+                      new(srcOffset.X, srcOffset.Y, srcOffset.Z),
+                      new(srcExtent.Width, srcExtent.Height, srcExtent.Depth),
+                      dst.Metal().Buffer,
+                      dstOffsetInBytes,
+                      dstRowStrideInBytes,
+                      dstSliceStrideInBytes);
     }
 
     protected override void ResolveTextureImpl(Texture src, TextureSubresource srcSubresource, Texture dst, TextureSubresource dstSubresource)
     {
-        throw new NotImplementedException();
+        compute?.Copy(src.Metal().Texture,
+                      srcSubresource.ArrayLayer,
+                      srcSubresource.MipLevel,
+                      src.Metal().Texture,
+                      dstSubresource.ArrayLayer,
+                      dstSubresource.MipLevel,
+                      1,
+                      1);
     }
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)
@@ -71,22 +125,54 @@ internal class MTLCommandBuffer(MTLGraphicsContext context, MTLCommandQueue queu
 
     protected override void BeginRenderPassImpl(ReadOnlySpan<ColorAttachment> colorAttachments, DepthStencilAttachment? depthStencilAttachment)
     {
-        throw new NotImplementedException();
+        EndComputeEncoding();
+        BeginRenderEncoding(MTL4RenderPassDescriptor.Null);
     }
 
     protected override void EndRenderPassImpl()
     {
-        throw new NotImplementedException();
+        EndRenderEncoding();
+        BeginComputeEncoding();
     }
 
     protected override void SetScissorsImpl(ReadOnlySpan<Scissor> scissors)
     {
-        throw new NotImplementedException();
+        if (render is null)
+        {
+            todoScissors = [.. scissors];
+        }
+        else
+        {
+            MTLScissorRect[] mtlScissors = new MTLScissorRect[scissors.Length];
+            for (int i = 0; i < scissors.Length; i++)
+            {
+                Scissor scissor = scissors[i];
+
+                mtlScissors[i] = new((uint)scissor.X, (uint)scissor.Y, scissor.Width, scissor.Height);
+            }
+
+            render.SetScissorRects(mtlScissors);
+        }
     }
 
     protected override void SetViewportsImpl(ReadOnlySpan<Viewport> viewports)
     {
-        throw new NotImplementedException();
+        if (render is null)
+        {
+            todoViewports = [.. viewports];
+        }
+        else
+        {
+            MTLViewport[] mtlViewports = new MTLViewport[viewports.Length];
+            for (int i = 0; i < viewports.Length; i++)
+            {
+                Viewport viewport = viewports[i];
+
+                mtlViewports[i] = new(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
+            }
+
+            render.SetViewports(mtlViewports);
+        }
     }
 
     protected override void SetPipelineImpl(GraphicsPipeline pipeline)
@@ -189,26 +275,34 @@ internal class MTLCommandBuffer(MTLGraphicsContext context, MTLCommandQueue queu
 
     protected override void BeginDebugEventImpl(string label)
     {
-        throw new NotImplementedException();
+        render?.PushDebugGroup(label);
+        compute?.PushDebugGroup(label);
     }
 
     protected override void EndDebugEventImpl()
     {
-        throw new NotImplementedException();
+        render?.PopDebugGroup();
+        compute?.PopDebugGroup();
     }
 
     protected override void InsertDebugMarkerImpl(string label)
     {
-        throw new NotImplementedException();
+        render?.InsertDebugSignpost(label);
+        compute?.InsertDebugSignpost(label);
     }
 
     protected override void BeginImpl()
     {
         CommandBuffer.BeginCommandBuffer(CommandAllocator);
+
+        BeginComputeEncoding();
     }
 
     protected override void EndImpl()
     {
+        EndRenderEncoding();
+        EndComputeEncoding();
+
         CommandBuffer.EndCommandBuffer();
     }
 
@@ -226,7 +320,46 @@ internal class MTLCommandBuffer(MTLGraphicsContext context, MTLCommandQueue queu
     {
         base.Destroy();
 
+        ArgumentTable.Dispose();
         CommandBuffer.Dispose();
         CommandAllocator.Dispose();
+    }
+
+    private void BeginRenderEncoding(MTL4RenderPassDescriptor descriptor)
+    {
+        render = NSAutorelease.Own(CommandBuffer.MakeRenderCommandEncoder, descriptor);
+
+        if (todoScissors is not null)
+        {
+            SetScissors(todoScissors);
+
+            todoScissors = null;
+        }
+
+        if (todoViewports is not null)
+        {
+            SetViewports(todoViewports);
+
+            todoViewports = null;
+        }
+    }
+
+    private void EndRenderEncoding()
+    {
+        render?.EndEncoding();
+        render?.Dispose();
+        render = null;
+    }
+
+    private void BeginComputeEncoding()
+    {
+        compute = NSAutorelease.Own(CommandBuffer.MakeComputeCommandEncoder);
+    }
+
+    private void EndComputeEncoding()
+    {
+        compute?.EndEncoding();
+        compute?.Dispose();
+        compute = null;
     }
 }
