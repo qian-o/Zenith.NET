@@ -57,19 +57,19 @@ internal static class DXFormats
         BarrierSync sync = BarrierSync.None;
         BarrierAccess access = BarrierAccess.Common;
 
-        if (barrierStages.HasFlag(BarrierStages.Vertex))
+        if (barrierStages.HasFlag(BarrierStages.VertexShading))
         {
             sync |= BarrierSync.VertexShading;
             access |= BarrierAccess.VertexBuffer | BarrierAccess.ConstantBuffer | BarrierAccess.ShaderResource;
         }
 
-        if (barrierStages.HasFlag(BarrierStages.Fragment))
+        if (barrierStages.HasFlag(BarrierStages.FragmentShading))
         {
-            sync |= BarrierSync.PixelShading;
-            access |= BarrierAccess.ConstantBuffer | BarrierAccess.ShaderResource;
+            sync |= BarrierSync.PixelShading | BarrierSync.DepthStencil | BarrierSync.RenderTarget;
+            access |= BarrierAccess.ConstantBuffer | BarrierAccess.ShaderResource | BarrierAccess.DepthStencilRead | BarrierAccess.DepthStencilWrite | BarrierAccess.RenderTarget;
         }
 
-        if (barrierStages.HasFlag(BarrierStages.Compute))
+        if (barrierStages.HasFlag(BarrierStages.ComputeShading))
         {
             sync |= BarrierSync.ComputeShading;
             access |= BarrierAccess.ConstantBuffer | BarrierAccess.ShaderResource | BarrierAccess.UnorderedAccess;
@@ -81,9 +81,16 @@ internal static class DXFormats
             access |= BarrierAccess.CopySource | BarrierAccess.CopyDest;
         }
 
+        if (barrierStages.HasFlag(BarrierStages.Resolve))
+        {
+            sync |= BarrierSync.Resolve;
+            access |= BarrierAccess.ResolveSource | BarrierAccess.ResolveDest;
+        }
+
         if (barrierStages.HasFlag(BarrierStages.All))
         {
-            sync |= BarrierSync.All;
+            sync = BarrierSync.All;
+            access = BarrierAccess.Common;
         }
 
         return (sync, access);

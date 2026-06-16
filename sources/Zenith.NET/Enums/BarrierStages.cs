@@ -5,13 +5,15 @@ public enum BarrierStages
 {
     None = 0,
 
-    Vertex = 1 << 0,
+    VertexShading = 1 << 0,
 
-    Fragment = 1 << 1,
+    FragmentShading = 1 << 1,
 
-    Compute = 1 << 2,
+    ComputeShading = 1 << 2,
 
     Copy = 1 << 3,
 
-    All = 1 << 4
+    Resolve = 1 << 4,
+
+    All = 1 << 5
 }
