@@ -51,8 +51,6 @@ internal class MTLSwapChain : SwapChain
 
     protected override void PresentImpl()
     {
-        Context.GraphicsCommandQueue.SignalDrawable(MetalDrawable);
-
         MetalDrawable.Present();
 
         MetalDrawable.Dispose();
