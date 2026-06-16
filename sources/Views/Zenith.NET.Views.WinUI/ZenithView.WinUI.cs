@@ -163,7 +163,7 @@ internal unsafe partial class Surface : DisposableObject
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
             Usages = TextureUsages.ColorAttachment | TextureUsages.CopyDst
-        }, NativeTextureType.D3D11, SharedHandle = (nint)sharedHandle);
+        }, NativeTextureType.D3D11TextureNtHandle, SharedHandle = (nint)sharedHandle);
     }
 
     public uint Width { get; }

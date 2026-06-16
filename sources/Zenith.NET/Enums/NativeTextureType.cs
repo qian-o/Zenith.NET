@@ -2,15 +2,17 @@
 
 public enum NativeTextureType
 {
-    D3D11,
+    D3D11TextureNtHandle,
 
-    D3D12,
+    D3D12ResourceNtHandle,
 
-    Metal,
+    MTLSharedTextureHandle,
 
-    VulkanWin32,
+    IOSurfaceRef,
 
-    VulkanLinux,
+    VulkanOpaqueNtHandle,
 
-    VulkanAndroid
+    VulkanOpaquePosixFileDescriptor,
+
+    VulkanAndroidHardwareBuffer
 }
