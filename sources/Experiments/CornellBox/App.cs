@@ -114,6 +114,8 @@ internal static class App
 
     public static void Run()
     {
+        CommandSubmission lastSubmission = default;
+
         window.Update += delta =>
         {
             if (Width is 0 || Height is 0)
@@ -127,52 +129,47 @@ internal static class App
             imGui.Update(delta, width, height);
             camera.Update(delta, width, height);
 
-            // ImGui
+            ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(activeRenderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
+
+            ImGui.SetNextWindowPos(new(10, 10), ImGuiCond.FirstUseEver);
+            if (ImGui.Begin("Cornell Box", ImGuiWindowFlags.AlwaysAutoResize))
             {
-                ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(activeRenderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
+                ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
+                ImGui.Text(Context.Capabilities.DeviceName);
 
-                ImGui.SetNextWindowPos(new(10, 10), ImGuiCond.FirstUseEver);
-                if (ImGui.Begin("Cornell Box", ImGuiWindowFlags.AlwaysAutoResize))
+                ImGui.Separator();
+
+                ImGui.Text("Render Mode:");
+
+                if (Context.Capabilities.RayTracingSupported)
                 {
-                    ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
-                    ImGui.Text(Context.Capabilities.DeviceName);
-
-                    ImGui.Separator();
-
-                    ImGui.Text("Render Mode:");
-
-                    if (Context.Capabilities.RayTracingSupported)
+                    if (ImGui.RadioButton("Path Tracing", currentMode is 0) && currentMode is not 0)
                     {
-                        if (ImGui.RadioButton("Path Tracing", currentMode is 0) && currentMode is not 0)
-                        {
-                            pathTracer!.FrameCount = 0;
+                        pathTracer!.FrameCount = 0;
 
-                            currentMode = 0;
-                            activeRenderer = pathTracer;
-                        }
-
-                        ImGui.SameLine();
+                        currentMode = 0;
+                        activeRenderer = pathTracer;
                     }
 
-                    if (ImGui.RadioButton("Rasterization", currentMode is 1) && currentMode is not 1)
-                    {
-                        currentMode = 1;
-                        activeRenderer = rasterizer;
-                    }
-
-                    ImGui.Separator();
-
-                    if (currentMode is 0 && pathTracer is not null)
-                    {
-                        ImGui.Text($"SPP: {pathTracer.FrameCount}");
-                    }
-
-                    ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
+                    ImGui.SameLine();
                 }
-                ImGui.End();
-            }
 
-            activeRenderer.Update(camera);
+                if (ImGui.RadioButton("Rasterization", currentMode is 1) && currentMode is not 1)
+                {
+                    currentMode = 1;
+                    activeRenderer = rasterizer;
+                }
+
+                ImGui.Separator();
+
+                if (currentMode is 0 && pathTracer is not null)
+                {
+                    ImGui.Text($"SPP: {pathTracer.FrameCount}");
+                }
+
+                ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
+            }
+            ImGui.End();
         };
 
         window.Render += _ =>
@@ -182,8 +179,11 @@ internal static class App
                 return;
             }
 
+            lastSubmission.Wait();
+
             CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
+            activeRenderer.Update(camera);
             activeRenderer.Render(commandBuffer);
 
             commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.ColorAttachment);
@@ -192,7 +192,7 @@ internal static class App
 
             commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Present);
 
-            swapChain.Present(commandBuffer.Submit()).Wait();
+            lastSubmission = swapChain.Present(commandBuffer.Submit());
         };
 
         window.Resize += _ =>
@@ -202,12 +202,16 @@ internal static class App
                 return;
             }
 
+            lastSubmission.Wait();
+
             pathTracer?.Resize(Width, Height);
             rasterizer.Resize(Width, Height);
             swapChain.Resize(Width, Height);
         };
 
         window.Run();
+
+        lastSubmission.Wait();
 
         pathTracer?.Dispose();
         rasterizer.Dispose();

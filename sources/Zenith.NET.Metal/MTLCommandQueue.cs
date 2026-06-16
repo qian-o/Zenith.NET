@@ -42,6 +42,11 @@ internal class MTLCommandQueue(MTLGraphicsContext context, CommandQueueType type
     {
         foreach (CommandSubmission submission in submissions)
         {
+            if (submission.Queue is null)
+            {
+                continue;
+            }
+
             CommandQueue.WaitForEvent(submission.Queue.Metal().Event, submission.Value);
         }
     }

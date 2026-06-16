@@ -57,6 +57,11 @@ internal unsafe class DXCommandQueue : CommandQueue
     {
         foreach (CommandSubmission submission in submissions)
         {
+            if (submission.Queue is null)
+            {
+                continue;
+            }
+
             CommandQueue.Wait(submission.Queue.DirectX12().Fence, submission.Value).Success();
         }
     }
