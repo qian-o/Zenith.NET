@@ -59,23 +59,18 @@ internal unsafe partial class Surface : DisposableObject
         void* sharedHandle = null;
         D3D.Success(resource.CreateSharedHandle(default(SecurityAttributes*), DXGI.SharedResourceRead | DXGI.SharedResourceWrite, default(char*), &sharedHandle));
 
-        Drawable = graphicsContext.ImportTexture(new()
+        Drawable = graphicsContext.CreateTexture(new()
         {
-            Type = ImportTextureType.D3D11,
-            Texture = SharedHandle = (nint)sharedHandle,
-            TextureDesc = new()
-            {
-                Type = TextureType.Texture2D,
-                Format = ZenithViewHelper.DrawableFormat,
-                Width = Width = width,
-                Height = Height = height,
-                Depth = 1,
-                MipLevels = 1,
-                ArrayLayers = 1,
-                SampleCount = SampleCount.Count1,
-                Usages = TextureUsages.ColorAttachment | TextureUsages.CopyDst
-            }
-        });
+            Type = TextureType.Texture2D,
+            Format = ZenithViewHelper.DrawableFormat,
+            Width = Width = width,
+            Height = Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Usages = TextureUsages.ColorAttachment | TextureUsages.CopyDst
+        }, NativeTextureType.D3D11, SharedHandle = (nint)sharedHandle);
     }
 
     public uint Width { get; }

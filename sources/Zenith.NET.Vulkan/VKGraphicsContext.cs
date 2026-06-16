@@ -56,7 +56,7 @@ internal class VKGraphicsContext(bool useValidationLayer) : GraphicsContext(Grap
         throw new NotImplementedException();
     }
 
-    protected override Texture ImportTextureImpl(ImportTextureDesc desc)
+    protected override Texture CreateTextureImpl(TextureDesc desc, NativeTextureType nativeTextureType, nint nativeTexture)
     {
         throw new NotImplementedException();
     }

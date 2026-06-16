@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public enum ImportTextureType
+public enum NativeTextureType
 {
     D3D11,
 

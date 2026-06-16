@@ -106,9 +106,9 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
         return new MTLTexture(this, desc);
     }
 
-    protected override Texture ImportTextureImpl(ImportTextureDesc desc)
+    protected override Texture CreateTextureImpl(TextureDesc desc, NativeTextureType nativeTextureType, nint nativeTexture)
     {
-        return new MTLTexture(this, desc.TextureDesc, Device.MakeSharedTexture(new MTLSharedTextureHandle(desc.Texture, NativeObjectOwnership.Borrowed)));
+        return new MTLTexture(this, desc, Device.MakeSharedTexture(new MTLSharedTextureHandle(nativeTexture, NativeObjectOwnership.Borrowed)));
     }
 
     protected override TextureView CreateTextureViewImpl(TextureViewDesc desc)

@@ -76,9 +76,9 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
         return CreateTextureImpl(desc);
     }
 
-    public Texture ImportTexture(ImportTextureDesc desc)
+    public Texture CreateTexture(TextureDesc desc, NativeTextureType nativeTextureType, nint nativeTexture)
     {
-        return ImportTextureImpl(desc);
+        return CreateTextureImpl(desc, nativeTextureType, nativeTexture);
     }
 
     public TextureView CreateTextureView(TextureViewDesc desc)
@@ -150,7 +150,7 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
 
     protected abstract Texture CreateTextureImpl(TextureDesc desc);
 
-    protected abstract Texture ImportTextureImpl(ImportTextureDesc desc);
+    protected abstract Texture CreateTextureImpl(TextureDesc desc, NativeTextureType nativeTextureType, nint nativeTexture);
 
     protected abstract TextureView CreateTextureViewImpl(TextureViewDesc desc);
 

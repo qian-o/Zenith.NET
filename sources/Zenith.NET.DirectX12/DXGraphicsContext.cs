@@ -199,12 +199,12 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         return new DXTexture(this, desc);
     }
 
-    protected override Texture ImportTextureImpl(ImportTextureDesc desc)
+    protected override Texture CreateTextureImpl(TextureDesc desc, NativeTextureType nativeTextureType, nint nativeTexture)
     {
         ComPtr<ID3D12Resource> resource = new();
-        Device.OpenSharedHandle((void*)desc.Texture, SilkMarshal.GuidPtrOf<ID3D12Resource>(), (void**)resource.GetAddressOf()).Success();
+        Device.OpenSharedHandle((void*)nativeTexture, SilkMarshal.GuidPtrOf<ID3D12Resource>(), (void**)resource.GetAddressOf()).Success();
 
-        return new DXTexture(this, desc.TextureDesc, resource);
+        return new DXTexture(this, desc, resource);
     }
 
     protected override TextureView CreateTextureViewImpl(TextureViewDesc desc)
