@@ -1,14 +1,19 @@
 ﻿namespace Zenith.NET.Metal;
 
-internal class MTLBufferView(MTLGraphicsContext context, BufferViewDesc desc) : BufferView(context, desc)
+internal class MTLBufferView : BufferView
 {
-    public ResourceHandle Handle = (desc.Buffer.Metal().Buffer.GpuAddress.ToUInt64() + desc.OffsetInBytes).ToHandle();
+    public MTLBufferView(MTLGraphicsContext context, BufferViewDesc desc) : base(context, desc)
+    {
+        ConstantHandle = (Desc.Buffer.Metal().Buffer.GpuAddress.ToUInt64() + Desc.OffsetInBytes).ToHandle();
+        StorageReadOnlyHandle = (Desc.Buffer.Metal().Buffer.GpuAddress.ToUInt64() + Desc.OffsetInBytes).ToHandle();
+        StorageReadWriteHandle = (Desc.Buffer.Metal().Buffer.GpuAddress.ToUInt64() + Desc.OffsetInBytes).ToHandle();
+    }
 
-    public override ResourceHandle ConstantHandle => Handle;
+    public override ResourceHandle ConstantHandle { get; }
 
-    public override ResourceHandle StorageReadOnlyHandle => Handle;
+    public override ResourceHandle StorageReadOnlyHandle { get; }
 
-    public override ResourceHandle StorageReadWriteHandle => Handle;
+    public override ResourceHandle StorageReadWriteHandle { get; }
 
     public override nint GetNativeObject(NativeObjectType type)
     {
