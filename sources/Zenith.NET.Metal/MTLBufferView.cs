@@ -2,7 +2,7 @@
 
 internal class MTLBufferView(MTLGraphicsContext context, BufferViewDesc desc) : BufferView(context, desc)
 {
-    public ResourceHandle Handle = (desc.Buffer.Metal().GpuAddress + desc.OffsetInBytes).ToHandle();
+    public ResourceHandle Handle = (desc.Buffer.Metal().Buffer.GpuAddress.ToUInt64() + desc.OffsetInBytes).ToHandle();
 
     public override ResourceHandle ConstantHandle => Handle;
 

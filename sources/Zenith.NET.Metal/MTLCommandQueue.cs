@@ -8,6 +8,8 @@ internal class MTLCommandQueue(MTLGraphicsContext context, CommandQueueType type
 
     public MTLSharedEvent Event = context.Device.MakeSharedEvent();
 
+    public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
+
     public override nint GetNativeObject(NativeObjectType type)
     {
         return 0;
@@ -20,7 +22,7 @@ internal class MTLCommandQueue(MTLGraphicsContext context, CommandQueueType type
 
     protected override CommandBuffer CreateCommandBuffer()
     {
-        throw new NotImplementedException();
+        return new MTLCommandBuffer(Context, this);
     }
 
     protected override void SignalImpl(ulong signalValue)
