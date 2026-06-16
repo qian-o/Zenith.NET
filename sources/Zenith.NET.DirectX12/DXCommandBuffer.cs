@@ -11,7 +11,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     public ComPtr<ID3D12GraphicsCommandList7> CommandList;
 
-    public DXCommandBuffer(DXGraphicsContext context, CommandQueue queue) : base(context, queue)
+    public DXCommandBuffer(DXGraphicsContext context, DXCommandQueue queue) : base(context, queue)
     {
         context.Device.CreateCommandAllocator(DXFormats.DirectX12(queue.Type), SilkMarshal.GuidPtrOf<ID3D12CommandAllocator>(), (void**)CommandAllocator.GetAddressOf()).Success();
         context.Device.CreateCommandList(0, DXFormats.DirectX12(queue.Type), CommandAllocator, default(ID3D12PipelineState*), SilkMarshal.GuidPtrOf<ID3D12GraphicsCommandList7>(), (void**)CommandList.GetAddressOf()).Success();
