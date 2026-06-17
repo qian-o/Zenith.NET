@@ -171,7 +171,7 @@ internal static class MTLFormats
         return result;
     }
 
-    internal static (MTLSamplerMinMagFilter MinMagFilter, MTLSamplerMipFilter MipFilter) Metal(FilterMode filterMode)
+    public static (MTLSamplerMinMagFilter MinMagFilter, MTLSamplerMipFilter MipFilter) Metal(FilterMode filterMode)
     {
         return filterMode switch
         {
@@ -181,7 +181,7 @@ internal static class MTLFormats
         };
     }
 
-    internal static MTLSamplerAddressMode Metal(AddressMode addressMode)
+    public static MTLSamplerAddressMode Metal(AddressMode addressMode)
     {
         return addressMode switch
         {
@@ -193,7 +193,7 @@ internal static class MTLFormats
         };
     }
 
-    internal static MTLSamplerBorderColor Metal(BorderColor borderColor)
+    public static MTLSamplerBorderColor Metal(BorderColor borderColor)
     {
         return borderColor switch
         {
@@ -204,7 +204,7 @@ internal static class MTLFormats
         };
     }
 
-    internal static MTLCompareFunction Metal(CompareOp compareOp)
+    public static MTLCompareFunction Metal(CompareOp compareOp)
     {
         return compareOp switch
         {
@@ -220,38 +220,183 @@ internal static class MTLFormats
         };
     }
 
-    internal static MTLPrimitiveTopologyClass Metal(PrimitiveTopology primitiveTopology)
+    public static MTLPrimitiveTopologyClass Metal(PrimitiveTopology primitiveTopology)
     {
-        throw new NotImplementedException();
+        return primitiveTopology switch
+        {
+            PrimitiveTopology.PointList => MTLPrimitiveTopologyClass.Point,
+            PrimitiveTopology.LineList => MTLPrimitiveTopologyClass.Line,
+            PrimitiveTopology.LineStrip => MTLPrimitiveTopologyClass.Line,
+            PrimitiveTopology.TriangleList => MTLPrimitiveTopologyClass.Triangle,
+            PrimitiveTopology.TriangleStrip => MTLPrimitiveTopologyClass.Triangle,
+            _ => default
+        };
     }
 
-    internal static MTLVertexFormat Metal(ElementFormat format)
+    public static MTLVertexFormat Metal(ElementFormat elementFormat)
     {
-        throw new NotImplementedException();
+        return elementFormat switch
+        {
+            ElementFormat.UByte1 => MTLVertexFormat.UChar,
+            ElementFormat.UByte2 => MTLVertexFormat.UChar2,
+            ElementFormat.UByte4 => MTLVertexFormat.UChar4,
+
+            ElementFormat.Byte1 => MTLVertexFormat.Char,
+            ElementFormat.Byte2 => MTLVertexFormat.Char2,
+            ElementFormat.Byte4 => MTLVertexFormat.Char4,
+
+            ElementFormat.UByte1UNorm => MTLVertexFormat.UCharNormalized,
+            ElementFormat.UByte2UNorm => MTLVertexFormat.UChar2Normalized,
+            ElementFormat.UByte4UNorm => MTLVertexFormat.UChar4Normalized,
+
+            ElementFormat.Byte1SNorm => MTLVertexFormat.CharNormalized,
+            ElementFormat.Byte2SNorm => MTLVertexFormat.Char2Normalized,
+            ElementFormat.Byte4SNorm => MTLVertexFormat.Char4Normalized,
+
+            ElementFormat.UShort1 => MTLVertexFormat.UShort,
+            ElementFormat.UShort2 => MTLVertexFormat.UShort2,
+            ElementFormat.UShort4 => MTLVertexFormat.UShort4,
+
+            ElementFormat.Short1 => MTLVertexFormat.Short,
+            ElementFormat.Short2 => MTLVertexFormat.Short2,
+            ElementFormat.Short4 => MTLVertexFormat.Short4,
+
+            ElementFormat.UShort1UNorm => MTLVertexFormat.UShortNormalized,
+            ElementFormat.UShort2UNorm => MTLVertexFormat.UShort2Normalized,
+            ElementFormat.UShort4UNorm => MTLVertexFormat.UShort4Normalized,
+
+            ElementFormat.Short1SNorm => MTLVertexFormat.ShortNormalized,
+            ElementFormat.Short2SNorm => MTLVertexFormat.Short2Normalized,
+            ElementFormat.Short4SNorm => MTLVertexFormat.Short4Normalized,
+
+            ElementFormat.Half1 => MTLVertexFormat.Half,
+            ElementFormat.Half2 => MTLVertexFormat.Half2,
+            ElementFormat.Half4 => MTLVertexFormat.Half4,
+
+            ElementFormat.Float1 => MTLVertexFormat.Float,
+            ElementFormat.Float2 => MTLVertexFormat.Float2,
+            ElementFormat.Float3 => MTLVertexFormat.Float3,
+            ElementFormat.Float4 => MTLVertexFormat.Float4,
+
+            ElementFormat.UInt1 => MTLVertexFormat.UInt,
+            ElementFormat.UInt2 => MTLVertexFormat.UInt2,
+            ElementFormat.UInt3 => MTLVertexFormat.UInt3,
+            ElementFormat.UInt4 => MTLVertexFormat.UInt4,
+
+            ElementFormat.Int1 => MTLVertexFormat.Int,
+            ElementFormat.Int2 => MTLVertexFormat.Int2,
+            ElementFormat.Int3 => MTLVertexFormat.Int3,
+            ElementFormat.Int4 => MTLVertexFormat.Int4,
+
+            _ => default
+        };
     }
 
-    internal static MTLBlendFactor Metal(BlendFactor srcRgbFactor)
+    public static MTLBlendFactor Metal(BlendFactor blendFactor)
     {
-        throw new NotImplementedException();
+        return blendFactor switch
+        {
+            BlendFactor.Zero => MTLBlendFactor.Zero,
+            BlendFactor.One => MTLBlendFactor.One,
+            BlendFactor.SrcColor => MTLBlendFactor.SourceColor,
+            BlendFactor.OneMinusSrcColor => MTLBlendFactor.OneMinusSourceColor,
+            BlendFactor.DstColor => MTLBlendFactor.DestinationColor,
+            BlendFactor.OneMinusDstColor => MTLBlendFactor.OneMinusDestinationColor,
+            BlendFactor.SrcAlpha => MTLBlendFactor.SourceAlpha,
+            BlendFactor.OneMinusSrcAlpha => MTLBlendFactor.OneMinusSourceAlpha,
+            BlendFactor.DstAlpha => MTLBlendFactor.DestinationAlpha,
+            BlendFactor.OneMinusDstAlpha => MTLBlendFactor.OneMinusDestinationAlpha,
+            BlendFactor.Constant => MTLBlendFactor.BlendColor,
+            BlendFactor.OneMinusConstant => MTLBlendFactor.OneMinusBlendColor,
+            _ => default
+        };
     }
 
-    internal static MTLBlendOperation Metal(BlendOp rgbOp)
+    public static MTLBlendOperation Metal(BlendOp blendOp)
     {
-        throw new NotImplementedException();
+        return blendOp switch
+        {
+            BlendOp.Add => MTLBlendOperation.Add,
+            BlendOp.Subtract => MTLBlendOperation.Subtract,
+            BlendOp.ReverseSubtract => MTLBlendOperation.ReverseSubtract,
+            BlendOp.Min => MTLBlendOperation.Min,
+            BlendOp.Max => MTLBlendOperation.Max,
+            _ => default
+        };
     }
 
-    internal static MTLColorWriteMask Metal(ColorWrites colorWrites)
+    public static MTLColorWriteMask Metal(ColorWrites colorWrites)
     {
-        throw new NotImplementedException();
+        MTLColorWriteMask result = MTLColorWriteMask.None;
+
+        if (colorWrites.HasFlag(ColorWrites.Red))
+        {
+            result |= MTLColorWriteMask.Red;
+        }
+
+        if (colorWrites.HasFlag(ColorWrites.Green))
+        {
+            result |= MTLColorWriteMask.Green;
+        }
+
+        if (colorWrites.HasFlag(ColorWrites.Blue))
+        {
+            result |= MTLColorWriteMask.Blue;
+        }
+
+        if (colorWrites.HasFlag(ColorWrites.Alpha))
+        {
+            result |= MTLColorWriteMask.Alpha;
+        }
+
+        return result;
     }
 
-    internal static MTLStencilOperation Metal(StencilOp failOp)
+    public static MTLStencilOperation Metal(StencilOp stencilOp)
     {
-        throw new NotImplementedException();
+        return stencilOp switch
+        {
+            StencilOp.Keep => MTLStencilOperation.Keep,
+            StencilOp.Zero => MTLStencilOperation.Zero,
+            StencilOp.Replace => MTLStencilOperation.Replace,
+            StencilOp.IncrementAndClamp => MTLStencilOperation.IncrementClamp,
+            StencilOp.DecrementAndClamp => MTLStencilOperation.DecrementClamp,
+            StencilOp.Invert => MTLStencilOperation.Invert,
+            StencilOp.IncrementAndWrap => MTLStencilOperation.IncrementWrap,
+            StencilOp.DecrementAndWrap => MTLStencilOperation.DecrementWrap,
+            _ => default
+        };
     }
 
-    internal static MTLStages Metal(BarrierStages after)
+    public static MTLStages Metal(BarrierStages barrierStages)
     {
-        throw new NotImplementedException();
+        MTLStages result = default;
+
+        if (barrierStages.HasFlag(BarrierStages.VertexShading))
+        {
+            result |= MTLStages.Vertex;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.FragmentShading))
+        {
+            result |= MTLStages.Fragment;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.ComputeShading))
+        {
+            result |= MTLStages.Dispatch;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.Copy) || barrierStages.HasFlag(BarrierStages.Resolve))
+        {
+            result |= MTLStages.Blit;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.All))
+        {
+            result = MTLStages.All;
+        }
+
+        return result;
     }
 }
