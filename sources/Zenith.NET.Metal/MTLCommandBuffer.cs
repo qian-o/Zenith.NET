@@ -39,8 +39,8 @@ internal class MTLCommandBuffer : CommandBuffer
 
     protected override void BarrierImpl(BarrierStages before, BarrierStages after)
     {
-        render?.BarrierAfterStages(MTLFormats.Metal(after), MTLFormats.Metal(after), MTL4VisibilityOptions.Device);
-        compute?.BarrierAfterStages(MTLFormats.Metal(after), MTLFormats.Metal(after), MTL4VisibilityOptions.Device);
+        render?.BarrierAfterStages(MTLFormats.Metal(after), MTLFormats.Metal(before), MTL4VisibilityOptions.Device);
+        compute?.BarrierAfterStages(MTLFormats.Metal(after), MTLFormats.Metal(before), MTL4VisibilityOptions.Device);
     }
 
     protected override void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout srcLayout, TextureLayout dstLayout)
