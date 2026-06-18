@@ -346,6 +346,7 @@ internal class MTLCommandBuffer : CommandBuffer
 
     private void EndRenderEncoding()
     {
+        render?.BarrierAfterEncoderStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
         render?.EndEncoding();
         render?.Dispose();
         render = null;
@@ -358,6 +359,7 @@ internal class MTLCommandBuffer : CommandBuffer
 
     private void EndComputeEncoding()
     {
+        compute?.BarrierAfterEncoderStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
         compute?.EndEncoding();
         compute?.Dispose();
         compute = null;
