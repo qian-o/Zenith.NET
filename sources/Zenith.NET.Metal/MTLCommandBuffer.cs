@@ -19,6 +19,8 @@ internal class MTLCommandBuffer : CommandBuffer
     private GraphicsPipeline? todoGraphicsPipeline;
     private ComputePipeline? todoComputePipeline;
     private MeshShadingPipeline? todoMeshShadingPipeline;
+    private uint? todoStencilReference;
+    private Vector4? todoBlendConstant;
 
     public MTLCommandBuffer(MTLGraphicsContext context, MTLCommandQueue queue) : base(context, queue)
     {
@@ -238,12 +240,26 @@ internal class MTLCommandBuffer : CommandBuffer
 
     protected override void SetStencilReferenceImpl(uint stencilReference)
     {
-        throw new NotImplementedException();
+        if (render is null)
+        {
+            todoStencilReference = stencilReference;
+        }
+        else
+        {
+            render.SetStencilReferenceValue(stencilReference);
+        }
     }
 
     protected override void SetBlendConstantImpl(Vector4 blendConstant)
     {
-        throw new NotImplementedException();
+        if (render is null)
+        {
+            todoBlendConstant = blendConstant;
+        }
+        else
+        {
+            render.SetBlendColor(blendConstant.X, blendConstant.Y, blendConstant.Z, blendConstant.W);
+        }
     }
 
     protected override void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint slot)
@@ -401,6 +417,20 @@ internal class MTLCommandBuffer : CommandBuffer
             SetPipeline(todoMeshShadingPipeline);
 
             todoMeshShadingPipeline = null;
+        }
+
+        if (todoStencilReference is not null)
+        {
+            SetStencilReference(todoStencilReference.Value);
+
+            todoStencilReference = null;
+        }
+
+        if (todoBlendConstant is not null)
+        {
+            SetBlendConstant(todoBlendConstant.Value);
+
+            todoBlendConstant = null;
         }
     }
 
