@@ -399,4 +399,19 @@ internal static class MTLFormats
 
         return result;
     }
+
+    internal static MTLCullMode Metal(CullMode cullMode)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static MTLWinding Metal(FrontFace frontFace)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static MTLTriangleFillMode Metal(FillMode fillMode)
+    {
+        throw new NotImplementedException();
+    }
 }

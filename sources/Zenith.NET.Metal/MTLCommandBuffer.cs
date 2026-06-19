@@ -16,6 +16,9 @@ internal class MTLCommandBuffer : CommandBuffer
 
     private Scissor[]? todoScissors;
     private Viewport[]? todoViewports;
+    private GraphicsPipeline? todoGraphicsPipeline;
+    private ComputePipeline? todoComputePipeline;
+    private MeshShadingPipeline? todoMeshShadingPipeline;
 
     public MTLCommandBuffer(MTLGraphicsContext context, MTLCommandQueue queue) : base(context, queue)
     {
@@ -177,17 +180,60 @@ internal class MTLCommandBuffer : CommandBuffer
 
     protected override void SetPipelineImpl(GraphicsPipeline pipeline)
     {
-        throw new NotImplementedException();
+        if (render is null)
+        {
+            todoGraphicsPipeline = pipeline;
+            todoComputePipeline = null;
+            todoMeshShadingPipeline = null;
+        }
+        else
+        {
+            MTLGraphicsPipeline mtlPipeline = pipeline.Metal();
+
+            render.SetDepthStencilState(mtlPipeline.DepthStencilState);
+            render.SetRenderPipelineState(mtlPipeline.RenderPipelineState);
+            render.SetCullMode(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.CullMode));
+            render.SetFrontFacing(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.FrontFace));
+            render.SetTriangleFillMode(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.FillMode));
+            render.SetDepthClipMode(mtlPipeline.Desc.RenderState.Rasterizer.IsDepthClipEnabled ? MTLDepthClipMode.Clip : MTLDepthClipMode.Clamp);
+            render.SetDepthBias(mtlPipeline.Desc.RenderState.Rasterizer.DepthBias, mtlPipeline.Desc.RenderState.Rasterizer.DepthBiasSlopeScale, mtlPipeline.Desc.RenderState.Rasterizer.DepthBiasClamp);
+        }
     }
 
     protected override void SetPipelineImpl(ComputePipeline pipeline)
     {
-        throw new NotImplementedException();
+        if (compute is null)
+        {
+            todoGraphicsPipeline = null;
+            todoComputePipeline = pipeline;
+            todoMeshShadingPipeline = null;
+        }
+        else
+        {
+            compute.SetComputePipelineState(pipeline.Metal().ComputePipelineState);
+        }
     }
 
     protected override void SetPipelineImpl(MeshShadingPipeline pipeline)
     {
-        throw new NotImplementedException();
+        if (render is null)
+        {
+            todoGraphicsPipeline = null;
+            todoComputePipeline = null;
+            todoMeshShadingPipeline = pipeline;
+        }
+        else
+        {
+            MTLMeshShadingPipeline mtlPipeline = pipeline.Metal();
+
+            render.SetDepthStencilState(mtlPipeline.DepthStencilState);
+            render.SetRenderPipelineState(mtlPipeline.RenderPipelineState);
+            render.SetCullMode(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.CullMode));
+            render.SetFrontFacing(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.FrontFace));
+            render.SetTriangleFillMode(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.FillMode));
+            render.SetDepthClipMode(mtlPipeline.Desc.RenderState.Rasterizer.IsDepthClipEnabled ? MTLDepthClipMode.Clip : MTLDepthClipMode.Clamp);
+            render.SetDepthBias(mtlPipeline.Desc.RenderState.Rasterizer.DepthBias, mtlPipeline.Desc.RenderState.Rasterizer.DepthBiasSlopeScale, mtlPipeline.Desc.RenderState.Rasterizer.DepthBiasClamp);
+        }
     }
 
     protected override void SetStencilReferenceImpl(uint stencilReference)
@@ -342,6 +388,20 @@ internal class MTLCommandBuffer : CommandBuffer
 
             todoViewports = null;
         }
+
+        if (todoGraphicsPipeline is not null)
+        {
+            SetPipeline(todoGraphicsPipeline);
+
+            todoGraphicsPipeline = null;
+        }
+
+        if (todoMeshShadingPipeline is not null)
+        {
+            SetPipeline(todoMeshShadingPipeline);
+
+            todoMeshShadingPipeline = null;
+        }
     }
 
     private void EndRenderEncoding()
@@ -355,6 +415,13 @@ internal class MTLCommandBuffer : CommandBuffer
     private void BeginComputeEncoding()
     {
         compute = NSAutorelease.Own(CommandBuffer.MakeComputeCommandEncoder);
+
+        if (todoComputePipeline is not null)
+        {
+            SetPipeline(todoComputePipeline);
+
+            todoComputePipeline = null;
+        }
     }
 
     private void EndComputeEncoding()
