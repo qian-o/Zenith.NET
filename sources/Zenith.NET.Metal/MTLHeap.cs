@@ -40,8 +40,6 @@ internal class MTLHeap : Heap
 
     protected override void Destroy()
     {
-        Context.Unregister(Heap);
-
         Heap.Dispose();
     }
 }
