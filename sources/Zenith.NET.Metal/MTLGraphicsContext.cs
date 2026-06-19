@@ -4,6 +4,8 @@ namespace Zenith.NET.Metal;
 
 internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(GraphicsApi.Metal, useValidationLayer)
 {
+    private readonly Lock @lock = new();
+
     public MTLDevice Device = MTLDevice.CreateSystemDefaultDevice();
 
     public MTL4Compiler Compiler = MTL4Compiler.Null;
@@ -18,12 +20,16 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
 
     public void Register(MTLAllocation allocation)
     {
+        using Lock.Scope _ = @lock.EnterScope();
+
         ResidencySet.AddAllocation(allocation);
         ResidencySet.Commit();
     }
 
     public void Unregister(MTLAllocation allocation)
     {
+        using Lock.Scope _ = @lock.EnterScope();
+
         ResidencySet.RemoveAllocation(allocation);
         ResidencySet.Commit();
     }
