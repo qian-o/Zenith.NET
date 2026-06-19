@@ -27,12 +27,6 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public ComPtr<ID3D12CommandSignature> DispatchMeshSignature;
 
-    public ComPtr<ID3D12CommandQueue> GraphicsCommandQueue;
-
-    public ComPtr<ID3D12CommandQueue> ComputeCommandQueue;
-
-    public ComPtr<ID3D12CommandQueue> CopyCommandQueue;
-
     public DXGI DXGI { get; } = DXGI.GetApi(null);
 
     public D3D12 D3D12 { get; } = D3D12.GetApi();
@@ -140,19 +134,10 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         commandSignatureDesc.ByteStride = (uint)sizeof(IndirectDispatchMeshArgs);
         Device.CreateCommandSignature(&commandSignatureDesc, default(ID3D12RootSignature*), SilkMarshal.GuidPtrOf<ID3D12CommandSignature>(), (void**)DispatchMeshSignature.GetAddressOf()).Success();
 
-        CommandQueueDesc commandQueueDesc = new() { Type = CommandListType.Direct };
-        Device.CreateCommandQueue(&commandQueueDesc, SilkMarshal.GuidPtrOf<ID3D12CommandQueue>(), (void**)GraphicsCommandQueue.GetAddressOf()).Success();
-
-        commandQueueDesc.Type = CommandListType.Compute;
-        Device.CreateCommandQueue(&commandQueueDesc, SilkMarshal.GuidPtrOf<ID3D12CommandQueue>(), (void**)ComputeCommandQueue.GetAddressOf()).Success();
-
-        commandQueueDesc.Type = CommandListType.Copy;
-        Device.CreateCommandQueue(&commandQueueDesc, SilkMarshal.GuidPtrOf<ID3D12CommandQueue>(), (void**)CopyCommandQueue.GetAddressOf()).Success();
-
         capabilities = new DXCapabilities(this);
-        graphicsQueue = new DXCommandQueue(this, CommandQueueType.Graphics, GraphicsCommandQueue);
-        computeQueue = new DXCommandQueue(this, CommandQueueType.Compute, ComputeCommandQueue);
-        copyQueue = new DXCommandQueue(this, CommandQueueType.Copy, CopyCommandQueue);
+        graphicsQueue = new DXCommandQueue(this, CommandQueueType.Graphics);
+        computeQueue = new DXCommandQueue(this, CommandQueueType.Compute);
+        copyQueue = new DXCommandQueue(this, CommandQueueType.Copy);
         validationLayer = useValidationLayer ? new DXValidationLayer(this) : null;
     }
 
@@ -250,10 +235,6 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         CbvSrvUavHeap.Dispose();
         DsvHeap.Dispose();
         RtvHeap.Dispose();
-
-        CopyCommandQueue.Dispose();
-        ComputeCommandQueue.Dispose();
-        GraphicsCommandQueue.Dispose();
 
         DispatchMeshSignature.Dispose();
         DispatchSignature.Dispose();

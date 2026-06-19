@@ -11,10 +11,11 @@ internal unsafe class DXCommandQueue : CommandQueue
 
     public ComPtr<ID3D12Fence> Fence;
 
-    public DXCommandQueue(DXGraphicsContext context, CommandQueueType type, ComPtr<ID3D12CommandQueue> commandQueue) : base(context, type)
+    public DXCommandQueue(DXGraphicsContext context, CommandQueueType type) : base(context, type)
     {
-        CommandQueue = commandQueue;
+        CommandQueueDesc commandQueueDesc = new() { Type = CommandListType.Direct };
 
+        context.Device.CreateCommandQueue(&commandQueueDesc, SilkMarshal.GuidPtrOf<ID3D12CommandQueue>(), (void**)CommandQueue.GetAddressOf()).Success();
         context.Device.CreateFence(0, FenceFlags.None, SilkMarshal.GuidPtrOf<ID3D12Fence>(), (void**)Fence.GetAddressOf()).Success();
     }
 
@@ -76,6 +77,8 @@ internal unsafe class DXCommandQueue : CommandQueue
         base.Destroy();
 
         Fence.Dispose();
+        CommandQueue.Dispose();
+
         @event.Dispose();
     }
 }
