@@ -13,7 +13,7 @@ internal unsafe class DXCommandQueue : CommandQueue
 
     public DXCommandQueue(DXGraphicsContext context, CommandQueueType type) : base(context, type)
     {
-        CommandQueueDesc commandQueueDesc = new() { Type = CommandListType.Direct };
+        CommandQueueDesc commandQueueDesc = new() { Type = DXFormats.DirectX12(type) };
 
         context.Device.CreateCommandQueue(&commandQueueDesc, SilkMarshal.GuidPtrOf<ID3D12CommandQueue>(), (void**)CommandQueue.GetAddressOf()).Success();
         context.Device.CreateFence(0, FenceFlags.None, SilkMarshal.GuidPtrOf<ID3D12Fence>(), (void**)Fence.GetAddressOf()).Success();
