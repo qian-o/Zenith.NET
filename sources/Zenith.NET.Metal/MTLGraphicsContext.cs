@@ -12,12 +12,6 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
 
     public MTLResidencySet ResidencySet = MTLResidencySet.Null;
 
-    public MTL4CommandQueue GraphicsCommandQueue = MTL4CommandQueue.Null;
-
-    public MTL4CommandQueue ComputeCommandQueue = MTL4CommandQueue.Null;
-
-    public MTL4CommandQueue CopyCommandQueue = MTL4CommandQueue.Null;
-
     public void Register(MTLAllocation allocation)
     {
         using Lock.Scope _ = @lock.EnterScope();
@@ -57,19 +51,10 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
         ResidencySet = Device.MakeResidencySet(new(), out error);
         error.Success();
 
-        GraphicsCommandQueue = Device.MakeMTL4CommandQueue();
-        GraphicsCommandQueue.AddResidencySet(ResidencySet);
-
-        ComputeCommandQueue = Device.MakeMTL4CommandQueue();
-        ComputeCommandQueue.AddResidencySet(ResidencySet);
-
-        CopyCommandQueue = Device.MakeMTL4CommandQueue();
-        CopyCommandQueue.AddResidencySet(ResidencySet);
-
         capabilities = new MTLCapabilities(this);
-        graphicsQueue = new MTLCommandQueue(this, CommandQueueType.Graphics, GraphicsCommandQueue);
-        computeQueue = new MTLCommandQueue(this, CommandQueueType.Compute, ComputeCommandQueue);
-        copyQueue = new MTLCommandQueue(this, CommandQueueType.Copy, CopyCommandQueue);
+        graphicsQueue = new MTLCommandQueue(this, CommandQueueType.Graphics);
+        computeQueue = new MTLCommandQueue(this, CommandQueueType.Compute);
+        copyQueue = new MTLCommandQueue(this, CommandQueueType.Copy);
         validationLayer = null;
     }
 
@@ -160,10 +145,6 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
     protected override void Destroy()
     {
         base.Destroy();
-
-        CopyCommandQueue.Dispose();
-        ComputeCommandQueue.Dispose();
-        GraphicsCommandQueue.Dispose();
 
         ResidencySet.Dispose();
         Compiler.Dispose();

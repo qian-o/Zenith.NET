@@ -2,11 +2,19 @@
 
 namespace Zenith.NET.Metal;
 
-internal class MTLCommandQueue(MTLGraphicsContext context, CommandQueueType type, MTL4CommandQueue commandQueue) : CommandQueue(context, type)
+internal class MTLCommandQueue : CommandQueue
 {
-    public MTL4CommandQueue CommandQueue = commandQueue;
+    public MTL4CommandQueue CommandQueue;
 
-    public MTLSharedEvent Event = context.Device.MakeSharedEvent();
+    public MTLSharedEvent Event;
+
+    public MTLCommandQueue(MTLGraphicsContext context, CommandQueueType type) : base(context, type)
+    {
+        CommandQueue = context.Device.MakeMTL4CommandQueue();
+        Event = context.Device.MakeSharedEvent();
+
+        CommandQueue.AddResidencySet(context.ResidencySet);
+    }
 
     public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
 
@@ -61,6 +69,9 @@ internal class MTLCommandQueue(MTLGraphicsContext context, CommandQueueType type
     {
         base.Destroy();
 
+        CommandQueue.RemoveResidencySet(Context.ResidencySet);
+
         Event.Dispose();
+        CommandQueue.Dispose();
     }
 }
