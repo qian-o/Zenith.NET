@@ -5,6 +5,7 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXDescriptorHeap : DisposableObject
 {
+    private readonly Lock @lock = new();
     private readonly Stack<uint> recycled = [];
 
     public ComPtr<ID3D12DescriptorHeap> Heap;
@@ -35,6 +36,8 @@ internal unsafe class DXDescriptorHeap : DisposableObject
 
     public DXDescriptorToken Allocate()
     {
+        using Lock.Scope _ = @lock.EnterScope();
+
         if (!recycled.TryPop(out uint slot))
         {
             slot = head++;
@@ -45,6 +48,8 @@ internal unsafe class DXDescriptorHeap : DisposableObject
 
     public void Free(DXDescriptorToken token)
     {
+        using Lock.Scope _ = @lock.EnterScope();
+
         recycled.Push(token.Slot);
     }
 
