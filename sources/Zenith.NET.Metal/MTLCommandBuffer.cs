@@ -22,7 +22,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     private uint? todoStencilReference;
     private Vector4? todoBlendConstant;
 
-    private IndexBuffer indexBuffer;
+    private IndexBinding indexBinding;
 
     public MTLCommandBuffer(MTLGraphicsContext context, MTLCommandQueue queue) : base(context, queue)
     {
@@ -103,7 +103,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         compute?.Copy(src.Metal().Texture,
                       srcSubresource.ArrayLayer,
                       srcSubresource.MipLevel,
-                      src.Metal().Texture,
+                      dst.Metal().Texture,
                       dstSubresource.ArrayLayer,
                       dstSubresource.MipLevel,
                       1,
@@ -271,10 +271,10 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void SetIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat indexFormat)
     {
-        indexBuffer = new(MTLFormats.Metal(indexFormat),
-                          buffer.Metal().Buffer.GpuAddress + offsetInBytes,
-                          indexFormat is IndexFormat.UInt16 ? 2u : 4u,
-                          buffer.Desc.SizeInBytes - offsetInBytes);
+        indexBinding = new(MTLFormats.Metal(indexFormat),
+                           buffer.Metal().Buffer.GpuAddress + offsetInBytes,
+                           indexFormat is IndexFormat.UInt16 ? 2u : 4u,
+                           buffer.Desc.SizeInBytes - offsetInBytes);
     }
 
     protected override void SetConstantBufferImpl(Pipeline pipeline, Buffer buffer, uint offsetInBytes)
@@ -304,9 +304,9 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     {
         render?.DrawIndexedPrimitives(MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type,
                                       indexCount,
-                                      indexBuffer.Type,
-                                      indexBuffer.Buffer + (indexBuffer.SizeInBytes * firstIndex),
-                                      indexBuffer.Length,
+                                      indexBinding.Type,
+                                      indexBinding.Address + (indexBinding.SizeInBytes * firstIndex),
+                                      indexBinding.LengthInBytes,
                                       instanceCount,
                                       vertexOffset,
                                       firstInstance);
@@ -319,9 +319,9 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         for (uint i = 0; i < drawCount; i++)
         {
             render?.DrawIndexedPrimitives(MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type,
-                                          indexBuffer.Type,
-                                          indexBuffer.Buffer,
-                                          indexBuffer.Length,
+                                          indexBinding.Type,
+                                          indexBinding.Address,
+                                          indexBinding.LengthInBytes,
                                           address + (uint)(sizeof(IndirectDrawIndexedArgs) * i));
         }
     }
@@ -510,14 +510,14 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         compute = null;
     }
 
-    private struct IndexBuffer(MTLIndexType type, nuint buffer, uint sizeInBytes, uint length)
+    private struct IndexBinding(MTLIndexType type, nuint address, uint sizeInBytes, uint lengthInBytes)
     {
         public MTLIndexType Type = type;
 
-        public nuint Buffer = buffer;
+        public nuint Address = address;
 
         public uint SizeInBytes = sizeInBytes;
 
-        public uint Length = length;
+        public uint LengthInBytes = lengthInBytes;
     }
 }

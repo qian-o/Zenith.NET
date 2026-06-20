@@ -415,23 +415,44 @@ internal static class MTLFormats
         return result;
     }
 
-    internal static MTLCullMode Metal(CullMode cullMode)
+    public static MTLCullMode Metal(CullMode cullMode)
     {
-        throw new NotImplementedException();
+        return cullMode switch
+        {
+            CullMode.None => MTLCullMode.None,
+            CullMode.Front => MTLCullMode.Front,
+            CullMode.Back => MTLCullMode.Back,
+            _ => default
+        };
     }
 
-    internal static MTLWinding Metal(FrontFace frontFace)
+    public static MTLWinding Metal(FrontFace frontFace)
     {
-        throw new NotImplementedException();
+        return frontFace switch
+        {
+            FrontFace.CounterClockwise => MTLWinding.CounterClockwise,
+            FrontFace.Clockwise => MTLWinding.Clockwise,
+            _ => default
+        };
     }
 
-    internal static MTLTriangleFillMode Metal(FillMode fillMode)
+    public static MTLTriangleFillMode Metal(FillMode fillMode)
     {
-        throw new NotImplementedException();
+        return fillMode switch
+        {
+            FillMode.Solid => MTLTriangleFillMode.Fill,
+            FillMode.Wireframe => MTLTriangleFillMode.Lines,
+            _ => default
+        };
     }
 
-    internal static MTLIndexType Metal(IndexFormat indexFormat)
+    public static MTLIndexType Metal(IndexFormat indexFormat)
     {
-        throw new NotImplementedException();
+        return indexFormat switch
+        {
+            IndexFormat.UInt16 => MTLIndexType.UInt16,
+            IndexFormat.UInt32 => MTLIndexType.UInt32,
+            _ => default
+        };
     }
 }
