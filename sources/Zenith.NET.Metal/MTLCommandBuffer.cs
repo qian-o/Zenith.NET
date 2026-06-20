@@ -3,7 +3,7 @@ using Metal.NET;
 
 namespace Zenith.NET.Metal;
 
-internal class MTLCommandBuffer : CommandBuffer
+internal unsafe class MTLCommandBuffer : CommandBuffer
 {
     public MTL4CommandAllocator CommandAllocator;
 
@@ -21,6 +21,8 @@ internal class MTLCommandBuffer : CommandBuffer
     private MeshShadingPipeline? todoMeshShadingPipeline;
     private uint? todoStencilReference;
     private Vector4? todoBlendConstant;
+
+    private IndexBuffer indexBuffer;
 
     public MTLCommandBuffer(MTLGraphicsContext context, MTLCommandQueue queue) : base(context, queue)
     {
@@ -264,57 +266,93 @@ internal class MTLCommandBuffer : CommandBuffer
 
     protected override void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint slot)
     {
-        throw new NotImplementedException();
+        ArgumentTable.SetAddress(buffer.Metal().Buffer.GpuAddress + offsetInBytes, pipeline.Desc.InputLayouts[slot].StrideInBytes, 1 + slot);
     }
 
     protected override void SetIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat indexFormat)
     {
-        throw new NotImplementedException();
+        indexBuffer = new(MTLFormats.Metal(indexFormat),
+                          buffer.Metal().Buffer.GpuAddress + offsetInBytes,
+                          indexFormat is IndexFormat.UInt16 ? 2u : 4u,
+                          buffer.Desc.SizeInBytes - offsetInBytes);
     }
 
     protected override void SetConstantBufferImpl(Pipeline pipeline, Buffer buffer, uint offsetInBytes)
     {
-        throw new NotImplementedException();
+        ArgumentTable.SetAddress(buffer.Metal().Buffer.GpuAddress + offsetInBytes, 0);
+
+        render?.SetArgumentTable(ArgumentTable, MTLRenderStages.Vertex | MTLRenderStages.Fragment | MTLRenderStages.Mesh);
+        compute?.SetArgumentTable(ArgumentTable);
     }
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
     {
-        throw new NotImplementedException();
+        render?.DrawPrimitives(MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type, firstVertex, vertexCount, instanceCount, firstInstance);
     }
 
     protected override void DrawIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        throw new NotImplementedException();
+        nuint address = indirectBuffer.Metal().Buffer.GpuAddress + offsetInBytes;
+
+        for (uint i = 0; i < drawCount; i++)
+        {
+            render?.DrawPrimitives(MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type, address + (uint)(sizeof(IndirectDrawArgs) * i));
+        }
     }
 
     protected override void DrawIndexedImpl(GraphicsPipeline pipeline, uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
     {
-        throw new NotImplementedException();
+        render?.DrawIndexedPrimitives(MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type,
+                                      indexCount,
+                                      indexBuffer.Type,
+                                      indexBuffer.Buffer + (indexBuffer.SizeInBytes * firstIndex),
+                                      indexBuffer.Length,
+                                      instanceCount,
+                                      vertexOffset,
+                                      firstInstance);
     }
 
     protected override void DrawIndexedIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        throw new NotImplementedException();
+        nuint address = indirectBuffer.Metal().Buffer.GpuAddress + offsetInBytes;
+
+        for (uint i = 0; i < drawCount; i++)
+        {
+            render?.DrawIndexedPrimitives(MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type,
+                                          indexBuffer.Type,
+                                          indexBuffer.Buffer,
+                                          indexBuffer.Length,
+                                          address + (uint)(sizeof(IndirectDrawIndexedArgs) * i));
+        }
     }
 
     protected override void DispatchImpl(ComputePipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        throw new NotImplementedException();
+        compute?.DispatchThreadgroups(new MTLSize(groupCountX, groupCountY, groupCountZ), pipeline.Metal().ComputePipelineState.RequiredThreadsPerThreadgroup);
     }
 
     protected override void DispatchIndirectImpl(ComputePipeline pipeline, Buffer indirectBuffer, uint offsetInBytes)
     {
-        throw new NotImplementedException();
+        compute?.DispatchThreadgroups(indirectBuffer.Metal().Buffer.GpuAddress + offsetInBytes, pipeline.Metal().ComputePipelineState.RequiredThreadsPerThreadgroup);
     }
 
     protected override void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        throw new NotImplementedException();
+        render?.DrawMeshThreadgroups(new MTLSize(groupCountX, groupCountY, groupCountZ),
+                                     pipeline.Metal().RenderPipelineState.RequiredThreadsPerObjectThreadgroup,
+                                     pipeline.Metal().RenderPipelineState.RequiredThreadsPerMeshThreadgroup);
     }
 
     protected override void DispatchMeshIndirectImpl(MeshShadingPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount)
     {
-        throw new NotImplementedException();
+        nuint address = indirectBuffer.Metal().Buffer.GpuAddress + offsetInBytes;
+
+        for (uint i = 0; i < dispatchCount; i++)
+        {
+            render?.DrawMeshThreadgroups(address + (uint)(sizeof(IndirectDispatchMeshArgs) * i),
+                                         pipeline.Metal().RenderPipelineState.RequiredThreadsPerObjectThreadgroup,
+                                         pipeline.Metal().RenderPipelineState.RequiredThreadsPerMeshThreadgroup);
+        }
     }
 
     protected override void BeginQueryImpl(QueryHeap queryHeap, uint index)
@@ -370,6 +408,14 @@ internal class MTLCommandBuffer : CommandBuffer
 
     protected override void ResetImpl()
     {
+        todoScissors = null;
+        todoViewports = null;
+        todoGraphicsPipeline = null;
+        todoComputePipeline = null;
+        todoMeshShadingPipeline = null;
+        todoStencilReference = null;
+        todoBlendConstant = null;
+
         CommandAllocator.Reset();
     }
 
@@ -390,6 +436,7 @@ internal class MTLCommandBuffer : CommandBuffer
     private void BeginRenderEncoding(MTL4RenderPassDescriptor descriptor)
     {
         render = NSAutorelease.Own(CommandBuffer.MakeRenderCommandEncoder, descriptor);
+        render.SetArgumentTable(ArgumentTable, MTLRenderStages.Vertex | MTLRenderStages.Fragment | MTLRenderStages.Mesh);
 
         if (todoScissors is not null)
         {
@@ -445,6 +492,7 @@ internal class MTLCommandBuffer : CommandBuffer
     private void BeginComputeEncoding()
     {
         compute = NSAutorelease.Own(CommandBuffer.MakeComputeCommandEncoder);
+        compute.SetArgumentTable(ArgumentTable);
 
         if (todoComputePipeline is not null)
         {
@@ -460,5 +508,16 @@ internal class MTLCommandBuffer : CommandBuffer
         compute?.EndEncoding();
         compute?.Dispose();
         compute = null;
+    }
+
+    private struct IndexBuffer(MTLIndexType type, nuint buffer, uint sizeInBytes, uint length)
+    {
+        public MTLIndexType Type = type;
+
+        public nuint Buffer = buffer;
+
+        public uint SizeInBytes = sizeInBytes;
+
+        public uint Length = length;
     }
 }

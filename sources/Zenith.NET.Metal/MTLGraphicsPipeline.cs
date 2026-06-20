@@ -14,7 +14,7 @@ internal class MTLGraphicsPipeline : GraphicsPipeline
         {
             VertexFunctionDescriptor = desc.VertexShader.Metal().Descriptor,
             FragmentFunctionDescriptor = desc.FragmentShader.Metal().Descriptor,
-            InputPrimitiveTopology = MTLFormats.Metal(desc.PrimitiveTopology)
+            InputPrimitiveTopology = MTLFormats.Metal(desc.PrimitiveTopology).TopologyClass
         };
 
         // InputLayouts
