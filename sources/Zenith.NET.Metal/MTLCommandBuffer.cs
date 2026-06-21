@@ -150,7 +150,45 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     protected override void BeginRenderPassImpl(ReadOnlySpan<ColorAttachment> colorAttachments, DepthStencilAttachment? depthStencilAttachment)
     {
         EndComputeEncoding();
-        BeginRenderEncoding(MTL4RenderPassDescriptor.Null);
+
+        MTL4RenderPassDescriptor descriptor = new() { VisibilityResultBuffer = Visibility.Buffer };
+
+        for (int i = 0; i < colorAttachments.Length; i++)
+        {
+            ColorAttachment attachment = colorAttachments[i];
+
+            MTLTexture texture = attachment.Texture.Metal();
+
+            descriptor.ColorAttachments[(uint)i] = new()
+            {
+                Texture = texture.Texture
+            };
+        }
+
+        if (depthStencilAttachment.HasValue)
+        {
+            DepthStencilAttachment attachment = depthStencilAttachment.Value;
+
+            MTLTexture texture = attachment.Texture.Metal();
+
+            if (ZenithHelper.HasDepth(texture.Desc.Format))
+            {
+                descriptor.DepthAttachment = new()
+                {
+                    Texture = texture.Texture
+                };
+            }
+
+            if (ZenithHelper.HasStencil(texture.Desc.Format))
+            {
+                descriptor.StencilAttachment = new()
+                {
+                    Texture = texture.Texture
+                };
+            }
+        }
+
+        BeginRenderEncoding(descriptor);
     }
 
     protected override void EndRenderPassImpl()
