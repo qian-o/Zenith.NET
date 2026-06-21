@@ -42,23 +42,6 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
         };
 
         commandBuffer.CommandList.BuildRaytracingAccelerationStructure(&buildDesc, 0, default(RaytracingAccelerationStructurePostbuildInfoDesc*));
-
-        GlobalBarrier barrier = new()
-        {
-            SyncBefore = BarrierSync.BuildRaytracingAccelerationStructure,
-            SyncAfter = BarrierSync.BuildRaytracingAccelerationStructure,
-            AccessBefore = BarrierAccess.RaytracingAccelerationStructureWrite,
-            AccessAfter = BarrierAccess.RaytracingAccelerationStructureRead
-        };
-
-        BarrierGroup barrierGroup = new()
-        {
-            Type = BarrierType.Global,
-            NumBarriers = 1,
-            PGlobalBarriers = &barrier
-        };
-
-        commandBuffer.CommandList.Barrier(1, &barrierGroup);
     }
 
     public DXBuffer Transform { get; }
@@ -83,23 +66,6 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
         };
 
         commandBuffer.CommandList.BuildRaytracingAccelerationStructure(&buildDesc, 0, default(RaytracingAccelerationStructurePostbuildInfoDesc*));
-
-        GlobalBarrier barrier = new()
-        {
-            SyncBefore = BarrierSync.BuildRaytracingAccelerationStructure,
-            SyncAfter = BarrierSync.BuildRaytracingAccelerationStructure,
-            AccessBefore = BarrierAccess.RaytracingAccelerationStructureWrite,
-            AccessAfter = BarrierAccess.RaytracingAccelerationStructureRead
-        };
-
-        BarrierGroup barrierGroup = new()
-        {
-            Type = BarrierType.Global,
-            NumBarriers = 1,
-            PGlobalBarriers = &barrier
-        };
-
-        commandBuffer.CommandList.Barrier(1, &barrierGroup);
     }
 
     public override nint GetNativeObject(NativeObjectType type)
