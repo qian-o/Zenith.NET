@@ -67,6 +67,69 @@ internal unsafe class MTLBottomLevelAccelerationStructure : BottomLevelAccelerat
 
     private MTL4PrimitiveAccelerationStructureDescriptor Descriptor(BottomLevelAccelerationStructureDesc desc)
     {
-        throw new NotImplementedException();
+        uint geometryCount = (uint)desc.Geometries.Length;
+
+        nint pointer = Transform.Map();
+
+        MTLPackedFloat4x3* transforms = (MTLPackedFloat4x3*)pointer;
+        MTL4AccelerationStructureGeometryDescriptor[] geometryDescriptors = new MTL4AccelerationStructureGeometryDescriptor[geometryCount];
+        for (uint i = 0; i < geometryCount; i++)
+        {
+            RayTracingGeometry geometry = desc.Geometries[i];
+
+            transforms[i] = MTLFormats.Metal(geometry.TriangleGeometry.Transform);
+
+            switch (geometry.Type)
+            {
+                case RayTracingGeometryType.Triangle:
+                    geometryDescriptors[i] = new MTL4AccelerationStructureTriangleGeometryDescriptor()
+                    {
+                        VertexBuffer = new()
+                        {
+                            BufferAddress = geometry.TriangleGeometry.VertexBuffer.Metal().Buffer.GpuAddress + geometry.TriangleGeometry.VertexOffsetInBytes,
+                            Length = geometry.TriangleGeometry.VertexStrideInBytes * geometry.TriangleGeometry.VertexCount
+                        },
+                        VertexFormat = MTLFormats.Metal(geometry.TriangleGeometry.VertexFormat).AttributeFormat,
+                        VertexStride = geometry.TriangleGeometry.VertexStrideInBytes,
+                        IndexBuffer = geometry.TriangleGeometry.IndexBuffer is not null ? new()
+                        {
+                            BufferAddress = geometry.TriangleGeometry.IndexBuffer.Metal().Buffer.GpuAddress + geometry.TriangleGeometry.IndexOffsetInBytes,
+                            Length = (geometry.TriangleGeometry.IndexFormat is IndexFormat.UInt16 ? 2u : 4u) * geometry.TriangleGeometry.IndexCount
+                        } : default,
+                        IndexType = MTLFormats.Metal(geometry.TriangleGeometry.IndexFormat),
+                        TriangleCount = geometry.TriangleGeometry.IndexBuffer is not null ? geometry.TriangleGeometry.IndexCount / 3 : geometry.TriangleGeometry.VertexCount / 3,
+                        TransformationMatrixBuffer = new()
+                        {
+                            BufferAddress = Transform.Buffer.GpuAddress + (uint)(sizeof(MTLPackedFloat4x3) * i),
+                            Length = (uint)sizeof(MTLPackedFloat4x3)
+                        },
+                        TransformationMatrixLayout = MTLMatrixLayout.RowMajor
+                    };
+                    break;
+
+                case RayTracingGeometryType.Aabb:
+                    geometryDescriptors[i] = new MTL4AccelerationStructureBoundingBoxGeometryDescriptor()
+                    {
+                        BoundingBoxBuffer = new()
+                        {
+                            BufferAddress = geometry.AabbGeometry.Buffer.Metal().Buffer.GpuAddress + geometry.AabbGeometry.OffsetInBytes,
+                            Length = geometry.AabbGeometry.StrideInBytes * geometry.AabbGeometry.Count
+                        },
+                        BoundingBoxStride = geometry.AabbGeometry.StrideInBytes,
+                        BoundingBoxCount = geometry.AabbGeometry.Count
+                    };
+                    break;
+            }
+
+            geometryDescriptors[i].Opaque = geometry.IsOpaque;
+        }
+
+        Transform.Unmap();
+
+        return new()
+        {
+            GeometryDescriptors = geometryDescriptors,
+            Usage = MTLFormats.Metal(desc.BuildFlags)
+        };
     }
 }
