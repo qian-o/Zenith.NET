@@ -33,6 +33,8 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
             Residency = MemoryResidency.GpuOnly
         });
 
+        BuildSyncBarrier(commandBuffer, BarrierSync.BuildRaytracingAccelerationStructure);
+
         BuildRaytracingAccelerationStructureDesc buildDesc = new()
         {
             DestAccelerationStructureData = AccelerationStructure.GPUVirtualAddress,
@@ -42,22 +44,7 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
 
         commandBuffer.CommandList.BuildRaytracingAccelerationStructure(&buildDesc, 0, default(RaytracingAccelerationStructurePostbuildInfoDesc*));
 
-        GlobalBarrier barrier = new()
-        {
-            SyncBefore = BarrierSync.BuildRaytracingAccelerationStructure,
-            SyncAfter = BarrierSync.AllShading,
-            AccessBefore = BarrierAccess.RaytracingAccelerationStructureWrite,
-            AccessAfter = BarrierAccess.RaytracingAccelerationStructureRead
-        };
-
-        BarrierGroup barrierGroup = new()
-        {
-            Type = BarrierType.Global,
-            NumBarriers = 1,
-            PGlobalBarriers = &barrier
-        };
-
-        commandBuffer.CommandList.Barrier(1, &barrierGroup);
+        BuildSyncBarrier(commandBuffer, BarrierSync.AllShading);
 
         ShaderResourceViewDesc viewDesc = new()
         {
@@ -92,22 +79,7 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
 
         commandBuffer.CommandList.BuildRaytracingAccelerationStructure(&buildDesc, 0, default(RaytracingAccelerationStructurePostbuildInfoDesc*));
 
-        GlobalBarrier barrier = new()
-        {
-            SyncBefore = BarrierSync.BuildRaytracingAccelerationStructure,
-            SyncAfter = BarrierSync.AllShading,
-            AccessBefore = BarrierAccess.RaytracingAccelerationStructureWrite,
-            AccessAfter = BarrierAccess.RaytracingAccelerationStructureRead
-        };
-
-        BarrierGroup barrierGroup = new()
-        {
-            Type = BarrierType.Global,
-            NumBarriers = 1,
-            PGlobalBarriers = &barrier
-        };
-
-        commandBuffer.CommandList.Barrier(1, &barrierGroup);
+        BuildSyncBarrier(commandBuffer, BarrierSync.AllShading);
     }
 
     public override nint GetNativeObject(NativeObjectType type)
@@ -160,5 +132,25 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
             NumDescs = instanceCount,
             InstanceDescs = Instance.GPUVirtualAddress
         };
+    }
+
+    private static void BuildSyncBarrier(DXCommandBuffer commandBuffer, BarrierSync syncAfter)
+    {
+        GlobalBarrier barrier = new()
+        {
+            SyncBefore = BarrierSync.BuildRaytracingAccelerationStructure,
+            SyncAfter = syncAfter,
+            AccessBefore = BarrierAccess.RaytracingAccelerationStructureWrite,
+            AccessAfter = BarrierAccess.RaytracingAccelerationStructureRead
+        };
+
+        BarrierGroup barrierGroup = new()
+        {
+            Type = BarrierType.Global,
+            NumBarriers = 1,
+            PGlobalBarriers = &barrier
+        };
+
+        commandBuffer.CommandList.Barrier(1, &barrierGroup);
     }
 }
