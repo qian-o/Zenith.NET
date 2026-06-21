@@ -212,6 +212,27 @@ internal static class MTLFormats
         };
     }
 
+    public static MTLLoadAction Metal(LoadOp loadOp)
+    {
+        return loadOp switch
+        {
+            LoadOp.Load => MTLLoadAction.Load,
+            LoadOp.Clear => MTLLoadAction.Clear,
+            LoadOp.DontCare => MTLLoadAction.DontCare,
+            _ => default
+        };
+    }
+
+    public static MTLStoreAction Metal(StoreOp storeOp)
+    {
+        return storeOp switch
+        {
+            StoreOp.Store => MTLStoreAction.Store,
+            StoreOp.DontCare => MTLStoreAction.DontCare,
+            _ => default
+        };
+    }
+
     public static MTLCompareFunction Metal(CompareOp compareOp)
     {
         return compareOp switch
@@ -466,21 +487,73 @@ internal static class MTLFormats
 
     public static MTLPackedFloat4x3 Metal(Matrix4x4 matrix4x4)
     {
-        throw new NotImplementedException();
+        return new(new(matrix4x4.M11, matrix4x4.M12, matrix4x4.M13),
+                   new(matrix4x4.M21, matrix4x4.M22, matrix4x4.M23),
+                   new(matrix4x4.M31, matrix4x4.M32, matrix4x4.M33),
+                   new(matrix4x4.M41, matrix4x4.M42, matrix4x4.M43));
     }
 
     public static MTLAccelerationStructureUsage Metal(AccelerationStructureBuildFlags accelerationStructureBuildFlags)
     {
-        throw new NotImplementedException();
+        MTLAccelerationStructureUsage result = MTLAccelerationStructureUsage.None;
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowUpdate))
+        {
+            result |= MTLAccelerationStructureUsage.Refit;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PreferFastTrace))
+        {
+            result |= MTLAccelerationStructureUsage.PreferFastIntersection;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PreferFastBuild))
+        {
+            result |= MTLAccelerationStructureUsage.PreferFastBuild;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.MinimizeMemory))
+        {
+            result |= MTLAccelerationStructureUsage.MinimizeMemory;
+        }
+
+        return result;
     }
 
     public static MTLAccelerationStructureInstanceOptions Metal(RayTracingInstanceFlags rayTracingInstanceFlags)
     {
-        throw new NotImplementedException();
+        MTLAccelerationStructureInstanceOptions result = MTLAccelerationStructureInstanceOptions.None;
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.FrontCounterClockwise))
+        {
+            result |= MTLAccelerationStructureInstanceOptions.TriangleFrontFacingWindingCounterClockwise;
+        }
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.DisableCull))
+        {
+            result |= MTLAccelerationStructureInstanceOptions.DisableTriangleCulling;
+        }
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.ForceOpaque))
+        {
+            result |= MTLAccelerationStructureInstanceOptions.Opaque;
+        }
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.ForceNonOpaque))
+        {
+            result |= MTLAccelerationStructureInstanceOptions.NonOpaque;
+        }
+
+        return result;
     }
 
     public static MTLVisibilityResultMode Metal(QueryType queryType)
     {
-        throw new NotImplementedException();
+        return queryType switch
+        {
+            QueryType.Occlusion => MTLVisibilityResultMode.Counting,
+            QueryType.BinaryOcclusion => MTLVisibilityResultMode.Boolean,
+            _ => default
+        };
     }
 }

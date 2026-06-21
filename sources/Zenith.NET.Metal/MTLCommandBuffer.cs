@@ -161,7 +161,12 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
             descriptor.ColorAttachments[(uint)i] = new()
             {
-                Texture = texture.Texture
+                Texture = texture.Texture,
+                Level = attachment.Subresource.MipLevel,
+                Slice = attachment.Subresource.ArrayLayer,
+                LoadAction = MTLFormats.Metal(attachment.LoadOp),
+                StoreAction = MTLFormats.Metal(attachment.StoreOp),
+                ClearColor = new(attachment.ClearColor.X, attachment.ClearColor.Y, attachment.ClearColor.Z, attachment.ClearColor.W)
             };
         }
 
@@ -175,7 +180,12 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
             {
                 descriptor.DepthAttachment = new()
                 {
-                    Texture = texture.Texture
+                    Texture = texture.Texture,
+                    Level = attachment.Subresource.MipLevel,
+                    Slice = attachment.Subresource.ArrayLayer,
+                    LoadAction = MTLFormats.Metal(attachment.DepthLoadOp),
+                    StoreAction = MTLFormats.Metal(attachment.DepthStoreOp),
+                    ClearDepth = attachment.ClearDepth
                 };
             }
 
@@ -183,7 +193,12 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
             {
                 descriptor.StencilAttachment = new()
                 {
-                    Texture = texture.Texture
+                    Texture = texture.Texture,
+                    Level = attachment.Subresource.MipLevel,
+                    Slice = attachment.Subresource.ArrayLayer,
+                    LoadAction = MTLFormats.Metal(attachment.StencilLoadOp),
+                    StoreAction = MTLFormats.Metal(attachment.StencilStoreOp),
+                    ClearStencil = attachment.ClearStencil
                 };
             }
         }
