@@ -16,7 +16,7 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
             Residency = MemoryResidency.CpuWriteOnly
         });
 
-        FillInputs(scope, desc, out BuildRaytracingAccelerationStructureInputs inputs);
+        BuildRaytracingAccelerationStructureInputs inputs = Inputs(scope, desc);
 
         RaytracingAccelerationStructurePrebuildInfo prebuildInfo = new();
         context.Device.GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &prebuildInfo);
@@ -71,7 +71,7 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
     {
         using ZenithMarshal.Scope scope = new();
 
-        FillInputs(scope, newDesc, out BuildRaytracingAccelerationStructureInputs inputs);
+        BuildRaytracingAccelerationStructureInputs inputs = Inputs(scope, newDesc);
         inputs.Flags |= RaytracingAccelerationStructureBuildFlags.PerformUpdate;
 
         BuildRaytracingAccelerationStructureDesc buildDesc = new()
@@ -119,7 +119,7 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
         Transform.Dispose();
     }
 
-    private void FillInputs(ZenithMarshal.Scope scope, BottomLevelAccelerationStructureDesc desc, out BuildRaytracingAccelerationStructureInputs inputs)
+    private BuildRaytracingAccelerationStructureInputs Inputs(ZenithMarshal.Scope scope, BottomLevelAccelerationStructureDesc desc)
     {
         uint geometryCount = (uint)desc.Geometries.Length;
 
@@ -167,7 +167,7 @@ internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerati
 
         Transform.Unmap();
 
-        inputs = new()
+        return new()
         {
             Type = RaytracingAccelerationStructureType.BottomLevel,
             Flags = DXFormats.DirectX12(desc.BuildFlags),

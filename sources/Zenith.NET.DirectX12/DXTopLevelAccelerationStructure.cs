@@ -15,7 +15,7 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
             Residency = MemoryResidency.CpuWriteOnly
         });
 
-        FillInputs(desc, out BuildRaytracingAccelerationStructureInputs inputs);
+        BuildRaytracingAccelerationStructureInputs inputs = Inputs(desc);
 
         RaytracingAccelerationStructurePrebuildInfo prebuildInfo = new();
         context.Device.GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &prebuildInfo);
@@ -79,7 +79,7 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
 
     public void Update(DXCommandBuffer commandBuffer, TopLevelAccelerationStructureDesc newDesc)
     {
-        FillInputs(newDesc, out BuildRaytracingAccelerationStructureInputs inputs);
+        BuildRaytracingAccelerationStructureInputs inputs = Inputs(newDesc);
         inputs.Flags |= RaytracingAccelerationStructureBuildFlags.PerformUpdate;
 
         BuildRaytracingAccelerationStructureDesc buildDesc = new()
@@ -129,7 +129,7 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
         Instance.Dispose();
     }
 
-    private void FillInputs(TopLevelAccelerationStructureDesc desc, out BuildRaytracingAccelerationStructureInputs inputs)
+    private BuildRaytracingAccelerationStructureInputs Inputs(TopLevelAccelerationStructureDesc desc)
     {
         uint instanceCount = (uint)desc.Instances.Length;
 
@@ -153,7 +153,7 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
 
         Instance.Unmap();
 
-        inputs = new()
+        return new()
         {
             Type = RaytracingAccelerationStructureType.TopLevel,
             Flags = DXFormats.DirectX12(desc.BuildFlags),
