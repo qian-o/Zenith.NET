@@ -49,7 +49,7 @@ public static class ZenithCompiler
                 break;
 
             case GraphicsApi.Metal:
-                arguments.AddRange(["metallib", "-capability", "metallib_latest"]);
+                arguments.AddRange(["metallib", "-capability", "metallib_latest", "-Xmetal", "-std=metal4.0"]);
                 break;
 
             case GraphicsApi.Vulkan:

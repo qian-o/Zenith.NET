@@ -29,6 +29,8 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
 
         commandBuffer.Compute?.Build(AccelerationStructure, descriptor, new(Scratch.Buffer.GpuAddress, Scratch.Desc.SizeInBytes));
         commandBuffer.Compute?.BarrierAfterStages(MTLStages.AccelerationStructure, MTLStages.Dispatch, MTL4VisibilityOptions.Device);
+
+        Handle = AccelerationStructure.GpuResourceID.Impl.ToHandle();
     }
 
     public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
