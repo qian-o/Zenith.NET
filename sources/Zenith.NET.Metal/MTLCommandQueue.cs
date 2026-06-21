@@ -40,7 +40,7 @@ internal class MTLCommandQueue : CommandQueue
 
     protected override void SubmitImpl(CommandBuffer commandBuffer)
     {
-        throw new NotImplementedException();
+        CommandQueue.Commit([commandBuffer.Metal().CommandBuffer]);
     }
 
     protected override void WaitImpl(ulong waitValue)
