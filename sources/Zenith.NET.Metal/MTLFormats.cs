@@ -138,6 +138,57 @@ internal static class MTLFormats
             },
             pixelFormat switch
             {
+                PixelFormat.R8UNorm => MTLAttributeFormat.UCharNormalized,
+                PixelFormat.R8SNorm => MTLAttributeFormat.CharNormalized,
+                PixelFormat.R8UInt => MTLAttributeFormat.UChar,
+                PixelFormat.R8SInt => MTLAttributeFormat.Char,
+
+                PixelFormat.R16UNorm => MTLAttributeFormat.UShortNormalized,
+                PixelFormat.R16SNorm => MTLAttributeFormat.ShortNormalized,
+                PixelFormat.R16UInt => MTLAttributeFormat.UShort,
+                PixelFormat.R16SInt => MTLAttributeFormat.Short,
+                PixelFormat.R16Float => MTLAttributeFormat.Half,
+
+                PixelFormat.R32UInt => MTLAttributeFormat.UInt,
+                PixelFormat.R32SInt => MTLAttributeFormat.Int,
+                PixelFormat.R32Float => MTLAttributeFormat.Float,
+
+                PixelFormat.R8G8UNorm => MTLAttributeFormat.UChar2Normalized,
+                PixelFormat.R8G8SNorm => MTLAttributeFormat.Char2Normalized,
+                PixelFormat.R8G8UInt => MTLAttributeFormat.UChar2,
+                PixelFormat.R8G8SInt => MTLAttributeFormat.Char2,
+
+                PixelFormat.R16G16UNorm => MTLAttributeFormat.UShort2Normalized,
+                PixelFormat.R16G16SNorm => MTLAttributeFormat.Short2Normalized,
+                PixelFormat.R16G16UInt => MTLAttributeFormat.UShort2,
+                PixelFormat.R16G16SInt => MTLAttributeFormat.Short2,
+                PixelFormat.R16G16Float => MTLAttributeFormat.Half2,
+
+                PixelFormat.R32G32UInt => MTLAttributeFormat.UInt2,
+                PixelFormat.R32G32SInt => MTLAttributeFormat.Int2,
+                PixelFormat.R32G32Float => MTLAttributeFormat.Float2,
+
+                PixelFormat.R32G32B32UInt => MTLAttributeFormat.UInt3,
+                PixelFormat.R32G32B32SInt => MTLAttributeFormat.Int3,
+                PixelFormat.R32G32B32Float => MTLAttributeFormat.Float3,
+
+                PixelFormat.R8G8B8A8UNorm => MTLAttributeFormat.UChar4Normalized,
+                PixelFormat.R8G8B8A8SNorm => MTLAttributeFormat.Char4Normalized,
+                PixelFormat.R8G8B8A8UInt => MTLAttributeFormat.UChar4,
+                PixelFormat.R8G8B8A8SInt => MTLAttributeFormat.Char4,
+
+                PixelFormat.R16G16B16A16UNorm => MTLAttributeFormat.UShort4Normalized,
+                PixelFormat.R16G16B16A16SNorm => MTLAttributeFormat.Short4Normalized,
+                PixelFormat.R16G16B16A16UInt => MTLAttributeFormat.UShort4,
+                PixelFormat.R16G16B16A16SInt => MTLAttributeFormat.Short4,
+                PixelFormat.R16G16B16A16Float => MTLAttributeFormat.Half4,
+
+                PixelFormat.R32G32B32A32UInt => MTLAttributeFormat.UInt4,
+                PixelFormat.R32G32B32A32SInt => MTLAttributeFormat.Int4,
+                PixelFormat.R32G32B32A32Float => MTLAttributeFormat.Float4,
+
+                PixelFormat.B8G8R8A8UNorm => MTLAttributeFormat.UChar4Normalized_BGRA,
+
                 _ => default
             }
         );
