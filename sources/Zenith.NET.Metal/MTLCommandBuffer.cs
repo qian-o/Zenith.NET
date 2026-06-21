@@ -599,6 +599,17 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         resolveTimestamps.Clear();
     }
 
+    private struct IndexBinding(MTLIndexType type, nuint address, uint sizeInBytes, uint lengthInBytes)
+    {
+        public MTLIndexType Type = type;
+
+        public nuint Address = address;
+
+        public uint SizeInBytes = sizeInBytes;
+
+        public uint LengthInBytes = lengthInBytes;
+    }
+
     private struct VisibilityKey(MTLQueryHeap queryHeap, uint index)
     {
         public MTLQueryHeap QueryHeap = queryHeap;
@@ -620,16 +631,5 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         public MTLQueryHeap QueryHeap = queryHeap;
 
         public uint Index = index;
-    }
-
-    private struct IndexBinding(MTLIndexType type, nuint address, uint sizeInBytes, uint lengthInBytes)
-    {
-        public MTLIndexType Type = type;
-
-        public nuint Address = address;
-
-        public uint SizeInBytes = sizeInBytes;
-
-        public uint LengthInBytes = lengthInBytes;
     }
 }
