@@ -103,7 +103,7 @@ internal unsafe class MTLBottomLevelAccelerationStructure : BottomLevelAccelerat
                             BufferAddress = Transform.Buffer.GpuAddress + (uint)(sizeof(MTLPackedFloat4x3) * i),
                             Length = (uint)sizeof(MTLPackedFloat4x3)
                         },
-                        TransformationMatrixLayout = MTLMatrixLayout.RowMajor
+                        TransformationMatrixLayout = MTLMatrixLayout.ColumnMajor
                     };
                     break;
 
