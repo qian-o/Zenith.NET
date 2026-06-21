@@ -15,6 +15,8 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     public MTL4ComputeCommandEncoder? Compute;
 
+    private readonly List<ResolveTimestamp> resolveTimestamps = [];
+
     private Scissor[]? todoScissors;
     private Viewport[]? todoViewports;
     private GraphicsPipeline? todoGraphicsPipeline;
@@ -22,6 +24,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     private MeshShadingPipeline? todoMeshShadingPipeline;
     private uint? todoStencilReference;
     private Vector4? todoBlendConstant;
+    private BeginQueryArgs? todoBeginQueryArgs;
 
     private IndexBinding indexBinding;
 
@@ -372,20 +375,29 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void BeginQueryImpl(QueryHeap queryHeap, uint index)
     {
-        throw new NotImplementedException();
+        if (Render is null)
+        {
+            todoBeginQueryArgs = new(queryHeap.Metal(), index);
+        }
+        else
+        {
+            Render.SetVisibilityResultMode(MTLFormats.Metal(queryHeap.Desc.Type), index);
+        }
     }
 
     protected override void EndQueryImpl(QueryHeap queryHeap, uint index)
     {
-        throw new NotImplementedException();
+        Render?.SetVisibilityResultMode(MTLVisibilityResultMode.Disabled, index);
     }
 
     protected override void WriteTimestampImpl(QueryHeap queryHeap, uint index)
     {
         MTLQueryHeap mtlQueryHeap = queryHeap.Metal();
 
-        CommandBuffer.WriteTimestamp(mtlQueryHeap.CounterHeap, index);
-        CommandBuffer.ResolveCounterHeap(mtlQueryHeap.CounterHeap, new(index, 1), new(mtlQueryHeap.Buffer.Buffer.GpuAddress + (sizeof(ulong) * index), sizeof(ulong)), MTLFence.Null, MTLFence.Null);
+        Render?.WriteTimestamp(MTL4TimestampGranularity.Precise, MTLRenderStages.Fragment, mtlQueryHeap.CounterHeap, index);
+        Compute?.WriteTimestamp(MTL4TimestampGranularity.Precise, mtlQueryHeap.CounterHeap, index);
+
+        resolveTimestamps.Add(new(mtlQueryHeap, index));
     }
 
     protected override void BeginDebugEventImpl(string label)
@@ -423,6 +435,8 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void ResetImpl()
     {
+        resolveTimestamps.Clear();
+
         todoScissors = null;
         todoViewports = null;
         todoGraphicsPipeline = null;
@@ -430,6 +444,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         todoMeshShadingPipeline = null;
         todoStencilReference = null;
         todoBlendConstant = null;
+        todoBeginQueryArgs = null;
 
         CommandAllocator.Reset();
     }
@@ -450,6 +465,11 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     private void BeginRenderEncoding(MTL4RenderPassDescriptor descriptor)
     {
+        if (todoBeginQueryArgs is not null)
+        {
+            descriptor.VisibilityResultBuffer = todoBeginQueryArgs.Value.QueryHeap.Buffer.Buffer;
+        }
+
         Render = NSAutorelease.Own(CommandBuffer.MakeRenderCommandEncoder, descriptor);
         Render.SetArgumentTable(ArgumentTable, MTLRenderStages.Vertex | MTLRenderStages.Fragment | MTLRenderStages.Mesh);
 
@@ -494,10 +514,19 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
             todoBlendConstant = null;
         }
+
+        if (todoBeginQueryArgs is not null)
+        {
+            BeginQuery(todoBeginQueryArgs.Value.QueryHeap, todoBeginQueryArgs.Value.Index);
+
+            todoBeginQueryArgs = null;
+        }
     }
 
     private void EndRenderEncoding()
     {
+        ResolveTimestamps();
+
         Render?.BarrierAfterEncoderStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
         Render?.EndEncoding();
         Render?.Dispose();
@@ -519,10 +548,26 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     private void EndComputeEncoding()
     {
+        ResolveTimestamps();
+
         Compute?.BarrierAfterEncoderStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
         Compute?.EndEncoding();
         Compute?.Dispose();
         Compute = null;
+    }
+
+    private void ResolveTimestamps()
+    {
+        foreach (ResolveTimestamp resolveTimestamp in resolveTimestamps)
+        {
+            CommandBuffer.ResolveCounterHeap(resolveTimestamp.QueryHeap.CounterHeap,
+                                             new(resolveTimestamp.Index, 1),
+                                             new(resolveTimestamp.QueryHeap.Buffer.Buffer.GpuAddress + (sizeof(ulong) * resolveTimestamp.Index), sizeof(ulong)),
+                                             MTLFence.Null,
+                                             MTLFence.Null);
+        }
+
+        resolveTimestamps.Clear();
     }
 
     private struct IndexBinding(MTLIndexType type, nuint address, uint sizeInBytes, uint lengthInBytes)
@@ -534,5 +579,19 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         public uint SizeInBytes = sizeInBytes;
 
         public uint LengthInBytes = lengthInBytes;
+    }
+
+    private struct BeginQueryArgs(MTLQueryHeap queryHeap, uint index)
+    {
+        public MTLQueryHeap QueryHeap = queryHeap;
+
+        public uint Index = index;
+    }
+
+    private struct ResolveTimestamp(MTLQueryHeap queryHeap, uint index)
+    {
+        public MTLQueryHeap QueryHeap = queryHeap;
+
+        public uint Index = index;
     }
 }

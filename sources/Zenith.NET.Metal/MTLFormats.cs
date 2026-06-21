@@ -478,4 +478,9 @@ internal static class MTLFormats
     {
         throw new NotImplementedException();
     }
+
+    public static MTLVisibilityResultMode Metal(QueryType queryType)
+    {
+        throw new NotImplementedException();
+    }
 }
