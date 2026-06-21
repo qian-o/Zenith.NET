@@ -36,6 +36,10 @@ public static class Extensions
 
     extension(BottomLevelAccelerationStructure bottomLevelAccelerationStructure)
     {
+        internal MTLBottomLevelAccelerationStructure Metal()
+        {
+            return (MTLBottomLevelAccelerationStructure)bottomLevelAccelerationStructure;
+        }
     }
 
     extension(Buffer buffer)
@@ -56,6 +60,10 @@ public static class Extensions
 
     extension(CommandBuffer commandBuffer)
     {
+        internal MTLCommandBuffer Metal()
+        {
+            return (MTLCommandBuffer)commandBuffer;
+        }
     }
 
     extension(CommandQueue commandQueue)
@@ -148,5 +156,9 @@ public static class Extensions
 
     extension(TopLevelAccelerationStructure topLevelAccelerationStructure)
     {
+        internal MTLTopLevelAccelerationStructure Metal()
+        {
+            return (MTLTopLevelAccelerationStructure)topLevelAccelerationStructure;
+        }
     }
 }

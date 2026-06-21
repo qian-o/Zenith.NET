@@ -39,6 +39,8 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         error.Success();
     }
 
+    public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
+
     public override nint GetNativeObject(NativeObjectType type)
     {
         return 0;
@@ -112,22 +114,22 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLBottomLevelAccelerationStructure(Context, this, desc);
     }
 
     protected override TopLevelAccelerationStructure BuildAccelerationStructureImpl(TopLevelAccelerationStructureDesc desc)
     {
-        throw new NotImplementedException();
+        return new MTLTopLevelAccelerationStructure(Context, this, desc);
     }
 
     protected override void UpdateAccelerationStructureImpl(BottomLevelAccelerationStructure accelerationStructure, BottomLevelAccelerationStructureDesc newDesc)
     {
-        throw new NotImplementedException();
+        accelerationStructure.Metal().Update(this, newDesc);
     }
 
     protected override void UpdateAccelerationStructureImpl(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
     {
-        throw new NotImplementedException();
+        accelerationStructure.Metal().Update(this, newDesc);
     }
 
     protected override void BeginRenderPassImpl(ReadOnlySpan<ColorAttachment> colorAttachments, DepthStencilAttachment? depthStencilAttachment)
