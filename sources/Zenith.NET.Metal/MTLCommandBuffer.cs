@@ -11,8 +11,9 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     public MTL4ArgumentTable ArgumentTable;
 
-    private MTL4RenderCommandEncoder? render;
-    private MTL4ComputeCommandEncoder? compute;
+    public MTL4RenderCommandEncoder? Render;
+
+    public MTL4ComputeCommandEncoder? Compute;
 
     private Scissor[]? todoScissors;
     private Viewport[]? todoViewports;
@@ -48,8 +49,8 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void BarrierImpl(BarrierStages before, BarrierStages after)
     {
-        render?.BarrierAfterStages(MTLFormats.Metal(after), MTLFormats.Metal(before), MTL4VisibilityOptions.Device);
-        compute?.BarrierAfterStages(MTLFormats.Metal(after), MTLFormats.Metal(before), MTL4VisibilityOptions.Device);
+        Render?.BarrierAfterStages(MTLFormats.Metal(before), MTLFormats.Metal(after), MTL4VisibilityOptions.Device);
+        Compute?.BarrierAfterStages(MTLFormats.Metal(before), MTLFormats.Metal(after), MTL4VisibilityOptions.Device);
     }
 
     protected override void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout srcLayout, TextureLayout dstLayout)
@@ -58,12 +59,12 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes)
     {
-        compute?.Copy(src.Metal().Buffer, srcOffsetInBytes, dst.Metal().Buffer, dstOffsetInBytes, sizeInBytes);
+        Compute?.Copy(src.Metal().Buffer, srcOffsetInBytes, dst.Metal().Buffer, dstOffsetInBytes, sizeInBytes);
     }
 
     protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, uint srcRowStrideInBytes, uint srcSliceStrideInBytes, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D dstExtent)
     {
-        compute?.Copy(src.Metal().Buffer,
+        Compute?.Copy(src.Metal().Buffer,
                       srcOffsetInBytes,
                       srcRowStrideInBytes,
                       srcSliceStrideInBytes,
@@ -76,7 +77,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void CopyTextureImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D extent)
     {
-        compute?.Copy(src.Metal().Texture,
+        Compute?.Copy(src.Metal().Texture,
                       srcSubresource.ArrayLayer,
                       srcSubresource.MipLevel,
                       new(srcOffset.X, srcOffset.Y, srcOffset.Z),
@@ -89,7 +90,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void CopyTextureToBufferImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dst, uint dstOffsetInBytes, uint dstRowStrideInBytes, uint dstSliceStrideInBytes)
     {
-        compute?.Copy(src.Metal().Texture,
+        Compute?.Copy(src.Metal().Texture,
                       srcSubresource.ArrayLayer,
                       srcSubresource.MipLevel,
                       new(srcOffset.X, srcOffset.Y, srcOffset.Z),
@@ -102,7 +103,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void ResolveTextureImpl(Texture src, TextureSubresource srcSubresource, Texture dst, TextureSubresource dstSubresource)
     {
-        compute?.Copy(src.Metal().Texture,
+        Compute?.Copy(src.Metal().Texture,
                       srcSubresource.ArrayLayer,
                       srcSubresource.MipLevel,
                       dst.Metal().Texture,
@@ -146,7 +147,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void SetScissorsImpl(ReadOnlySpan<Scissor> scissors)
     {
-        if (render is null)
+        if (Render is null)
         {
             todoScissors = [.. scissors];
         }
@@ -160,13 +161,13 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
                 mtlScissors[i] = new((uint)scissor.X, (uint)scissor.Y, scissor.Width, scissor.Height);
             }
 
-            render.SetScissorRects(mtlScissors);
+            Render.SetScissorRects(mtlScissors);
         }
     }
 
     protected override void SetViewportsImpl(ReadOnlySpan<Viewport> viewports)
     {
-        if (render is null)
+        if (Render is null)
         {
             todoViewports = [.. viewports];
         }
@@ -180,13 +181,13 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
                 mtlViewports[i] = new(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
             }
 
-            render.SetViewports(mtlViewports);
+            Render.SetViewports(mtlViewports);
         }
     }
 
     protected override void SetPipelineImpl(GraphicsPipeline pipeline)
     {
-        if (render is null)
+        if (Render is null)
         {
             todoGraphicsPipeline = pipeline;
             todoComputePipeline = null;
@@ -194,21 +195,25 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         }
         else
         {
+            todoGraphicsPipeline = null;
+            todoComputePipeline = null;
+            todoMeshShadingPipeline = null;
+
             MTLGraphicsPipeline mtlPipeline = pipeline.Metal();
 
-            render.SetDepthStencilState(mtlPipeline.DepthStencilState);
-            render.SetRenderPipelineState(mtlPipeline.RenderPipelineState);
-            render.SetCullMode(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.CullMode));
-            render.SetFrontFacing(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.FrontFace));
-            render.SetTriangleFillMode(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.FillMode));
-            render.SetDepthClipMode(mtlPipeline.Desc.RenderState.Rasterizer.IsDepthClipEnabled ? MTLDepthClipMode.Clip : MTLDepthClipMode.Clamp);
-            render.SetDepthBias(mtlPipeline.Desc.RenderState.Rasterizer.DepthBias, mtlPipeline.Desc.RenderState.Rasterizer.DepthBiasSlopeScale, mtlPipeline.Desc.RenderState.Rasterizer.DepthBiasClamp);
+            Render.SetDepthStencilState(mtlPipeline.DepthStencilState);
+            Render.SetRenderPipelineState(mtlPipeline.RenderPipelineState);
+            Render.SetCullMode(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.CullMode));
+            Render.SetFrontFacing(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.FrontFace));
+            Render.SetTriangleFillMode(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.FillMode));
+            Render.SetDepthClipMode(mtlPipeline.Desc.RenderState.Rasterizer.IsDepthClipEnabled ? MTLDepthClipMode.Clip : MTLDepthClipMode.Clamp);
+            Render.SetDepthBias(mtlPipeline.Desc.RenderState.Rasterizer.DepthBias, mtlPipeline.Desc.RenderState.Rasterizer.DepthBiasSlopeScale, mtlPipeline.Desc.RenderState.Rasterizer.DepthBiasClamp);
         }
     }
 
     protected override void SetPipelineImpl(ComputePipeline pipeline)
     {
-        if (compute is null)
+        if (Compute is null)
         {
             todoGraphicsPipeline = null;
             todoComputePipeline = pipeline;
@@ -216,13 +221,17 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         }
         else
         {
-            compute.SetComputePipelineState(pipeline.Metal().ComputePipelineState);
+            todoGraphicsPipeline = null;
+            todoComputePipeline = null;
+            todoMeshShadingPipeline = null;
+
+            Compute.SetComputePipelineState(pipeline.Metal().ComputePipelineState);
         }
     }
 
     protected override void SetPipelineImpl(MeshShadingPipeline pipeline)
     {
-        if (render is null)
+        if (Render is null)
         {
             todoGraphicsPipeline = null;
             todoComputePipeline = null;
@@ -230,39 +239,43 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         }
         else
         {
+            todoGraphicsPipeline = null;
+            todoComputePipeline = null;
+            todoMeshShadingPipeline = null;
+
             MTLMeshShadingPipeline mtlPipeline = pipeline.Metal();
 
-            render.SetDepthStencilState(mtlPipeline.DepthStencilState);
-            render.SetRenderPipelineState(mtlPipeline.RenderPipelineState);
-            render.SetCullMode(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.CullMode));
-            render.SetFrontFacing(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.FrontFace));
-            render.SetTriangleFillMode(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.FillMode));
-            render.SetDepthClipMode(mtlPipeline.Desc.RenderState.Rasterizer.IsDepthClipEnabled ? MTLDepthClipMode.Clip : MTLDepthClipMode.Clamp);
-            render.SetDepthBias(mtlPipeline.Desc.RenderState.Rasterizer.DepthBias, mtlPipeline.Desc.RenderState.Rasterizer.DepthBiasSlopeScale, mtlPipeline.Desc.RenderState.Rasterizer.DepthBiasClamp);
+            Render.SetDepthStencilState(mtlPipeline.DepthStencilState);
+            Render.SetRenderPipelineState(mtlPipeline.RenderPipelineState);
+            Render.SetCullMode(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.CullMode));
+            Render.SetFrontFacing(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.FrontFace));
+            Render.SetTriangleFillMode(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.FillMode));
+            Render.SetDepthClipMode(mtlPipeline.Desc.RenderState.Rasterizer.IsDepthClipEnabled ? MTLDepthClipMode.Clip : MTLDepthClipMode.Clamp);
+            Render.SetDepthBias(mtlPipeline.Desc.RenderState.Rasterizer.DepthBias, mtlPipeline.Desc.RenderState.Rasterizer.DepthBiasSlopeScale, mtlPipeline.Desc.RenderState.Rasterizer.DepthBiasClamp);
         }
     }
 
     protected override void SetStencilReferenceImpl(uint stencilReference)
     {
-        if (render is null)
+        if (Render is null)
         {
             todoStencilReference = stencilReference;
         }
         else
         {
-            render.SetStencilReferenceValue(stencilReference);
+            Render.SetStencilReferenceValue(stencilReference);
         }
     }
 
     protected override void SetBlendConstantImpl(Vector4 blendConstant)
     {
-        if (render is null)
+        if (Render is null)
         {
             todoBlendConstant = blendConstant;
         }
         else
         {
-            render.SetBlendColor(blendConstant.X, blendConstant.Y, blendConstant.Z, blendConstant.W);
+            Render.SetBlendColor(blendConstant.X, blendConstant.Y, blendConstant.Z, blendConstant.W);
         }
     }
 
@@ -283,13 +296,13 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     {
         ArgumentTable.SetAddress(buffer.Metal().Buffer.GpuAddress + offsetInBytes, 0);
 
-        render?.SetArgumentTable(ArgumentTable, MTLRenderStages.Vertex | MTLRenderStages.Fragment | MTLRenderStages.Mesh);
-        compute?.SetArgumentTable(ArgumentTable);
+        Render?.SetArgumentTable(ArgumentTable, MTLRenderStages.Vertex | MTLRenderStages.Fragment | MTLRenderStages.Mesh);
+        Compute?.SetArgumentTable(ArgumentTable);
     }
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
     {
-        render?.DrawPrimitives(MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type, firstVertex, vertexCount, instanceCount, firstInstance);
+        Render?.DrawPrimitives(MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type, firstVertex, vertexCount, instanceCount, firstInstance);
     }
 
     protected override void DrawIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
@@ -298,13 +311,13 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
         for (uint i = 0; i < drawCount; i++)
         {
-            render?.DrawPrimitives(MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type, address + (uint)(sizeof(IndirectDrawArgs) * i));
+            Render?.DrawPrimitives(MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type, address + (uint)(sizeof(IndirectDrawArgs) * i));
         }
     }
 
     protected override void DrawIndexedImpl(GraphicsPipeline pipeline, uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
     {
-        render?.DrawIndexedPrimitives(MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type,
+        Render?.DrawIndexedPrimitives(MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type,
                                       indexCount,
                                       indexBinding.Type,
                                       indexBinding.Address + (indexBinding.SizeInBytes * firstIndex),
@@ -320,7 +333,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
         for (uint i = 0; i < drawCount; i++)
         {
-            render?.DrawIndexedPrimitives(MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type,
+            Render?.DrawIndexedPrimitives(MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type,
                                           indexBinding.Type,
                                           indexBinding.Address,
                                           indexBinding.LengthInBytes,
@@ -330,17 +343,17 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void DispatchImpl(ComputePipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        compute?.DispatchThreadgroups(new MTLSize(groupCountX, groupCountY, groupCountZ), pipeline.Metal().ComputePipelineState.RequiredThreadsPerThreadgroup);
+        Compute?.DispatchThreadgroups(new MTLSize(groupCountX, groupCountY, groupCountZ), pipeline.Metal().ComputePipelineState.RequiredThreadsPerThreadgroup);
     }
 
     protected override void DispatchIndirectImpl(ComputePipeline pipeline, Buffer indirectBuffer, uint offsetInBytes)
     {
-        compute?.DispatchThreadgroups(indirectBuffer.Metal().Buffer.GpuAddress + offsetInBytes, pipeline.Metal().ComputePipelineState.RequiredThreadsPerThreadgroup);
+        Compute?.DispatchThreadgroups(indirectBuffer.Metal().Buffer.GpuAddress + offsetInBytes, pipeline.Metal().ComputePipelineState.RequiredThreadsPerThreadgroup);
     }
 
     protected override void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        render?.DrawMeshThreadgroups(new MTLSize(groupCountX, groupCountY, groupCountZ),
+        Render?.DrawMeshThreadgroups(new MTLSize(groupCountX, groupCountY, groupCountZ),
                                      pipeline.Metal().RenderPipelineState.RequiredThreadsPerObjectThreadgroup,
                                      pipeline.Metal().RenderPipelineState.RequiredThreadsPerMeshThreadgroup);
     }
@@ -351,7 +364,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
         for (uint i = 0; i < dispatchCount; i++)
         {
-            render?.DrawMeshThreadgroups(address + (uint)(sizeof(IndirectDispatchMeshArgs) * i),
+            Render?.DrawMeshThreadgroups(address + (uint)(sizeof(IndirectDispatchMeshArgs) * i),
                                          pipeline.Metal().RenderPipelineState.RequiredThreadsPerObjectThreadgroup,
                                          pipeline.Metal().RenderPipelineState.RequiredThreadsPerMeshThreadgroup);
         }
@@ -377,20 +390,20 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void BeginDebugEventImpl(string label)
     {
-        render?.PushDebugGroup(label);
-        compute?.PushDebugGroup(label);
+        Render?.PushDebugGroup(label);
+        Compute?.PushDebugGroup(label);
     }
 
     protected override void EndDebugEventImpl()
     {
-        render?.PopDebugGroup();
-        compute?.PopDebugGroup();
+        Render?.PopDebugGroup();
+        Compute?.PopDebugGroup();
     }
 
     protected override void InsertDebugMarkerImpl(string label)
     {
-        render?.InsertDebugSignpost(label);
-        compute?.InsertDebugSignpost(label);
+        Render?.InsertDebugSignpost(label);
+        Compute?.InsertDebugSignpost(label);
     }
 
     protected override void BeginImpl()
@@ -437,8 +450,8 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     private void BeginRenderEncoding(MTL4RenderPassDescriptor descriptor)
     {
-        render = NSAutorelease.Own(CommandBuffer.MakeRenderCommandEncoder, descriptor);
-        render.SetArgumentTable(ArgumentTable, MTLRenderStages.Vertex | MTLRenderStages.Fragment | MTLRenderStages.Mesh);
+        Render = NSAutorelease.Own(CommandBuffer.MakeRenderCommandEncoder, descriptor);
+        Render.SetArgumentTable(ArgumentTable, MTLRenderStages.Vertex | MTLRenderStages.Fragment | MTLRenderStages.Mesh);
 
         if (todoScissors is not null)
         {
@@ -485,16 +498,16 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     private void EndRenderEncoding()
     {
-        render?.BarrierAfterEncoderStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
-        render?.EndEncoding();
-        render?.Dispose();
-        render = null;
+        Render?.BarrierAfterEncoderStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
+        Render?.EndEncoding();
+        Render?.Dispose();
+        Render = null;
     }
 
     private void BeginComputeEncoding()
     {
-        compute = NSAutorelease.Own(CommandBuffer.MakeComputeCommandEncoder);
-        compute.SetArgumentTable(ArgumentTable);
+        Compute = NSAutorelease.Own(CommandBuffer.MakeComputeCommandEncoder);
+        Compute.SetArgumentTable(ArgumentTable);
 
         if (todoComputePipeline is not null)
         {
@@ -506,10 +519,10 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     private void EndComputeEncoding()
     {
-        compute?.BarrierAfterEncoderStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
-        compute?.EndEncoding();
-        compute?.Dispose();
-        compute = null;
+        Compute?.BarrierAfterEncoderStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
+        Compute?.EndEncoding();
+        Compute?.Dispose();
+        Compute = null;
     }
 
     private struct IndexBinding(MTLIndexType type, nuint address, uint sizeInBytes, uint lengthInBytes)
