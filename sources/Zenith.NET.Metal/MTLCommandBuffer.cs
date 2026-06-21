@@ -15,7 +15,13 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     public MTL4ComputeCommandEncoder? Compute;
 
+    private readonly Dictionary<VisibilityKey, uint> activeVisibilityIndices = [];
+    private readonly List<VisibilityBinding> beginVisibilityBindings = [];
+    private readonly List<VisibilityBinding> endVisibilityBindings = [];
     private readonly List<ResolveTimestamp> resolveTimestamps = [];
+
+    private uint visibilityIndex;
+    private IndexBinding indexBinding;
 
     private Scissor[]? todoScissors;
     private Viewport[]? todoViewports;
@@ -24,9 +30,6 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     private MeshShadingPipeline? todoMeshShadingPipeline;
     private uint? todoStencilReference;
     private Vector4? todoBlendConstant;
-    private BeginQueryArgs? todoBeginQueryArgs;
-
-    private IndexBinding indexBinding;
 
     public MTLCommandBuffer(MTLGraphicsContext context, MTLCommandQueue queue) : base(context, queue)
     {
@@ -41,9 +44,17 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
         ArgumentTable = context.Device.MakeArgumentTable(descriptor, out NSError error);
         error.Success();
+
+        Visibility = new(context, new()
+        {
+            SizeInBytes = sizeof(ulong) * 1024,
+            Residency = MemoryResidency.CpuReadOnly
+        });
     }
 
     public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
+
+    public MTLBuffer Visibility { get; }
 
     public override nint GetNativeObject(NativeObjectType type)
     {
@@ -375,19 +386,32 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void BeginQueryImpl(QueryHeap queryHeap, uint index)
     {
+        MTLQueryHeap mtlQueryHeap = queryHeap.Metal();
+
+        uint scratchIndex = visibilityIndex++;
+
+        activeVisibilityIndices.Add(new(mtlQueryHeap, index), scratchIndex);
+
         if (Render is null)
         {
-            todoBeginQueryArgs = new(queryHeap.Metal(), index);
+            beginVisibilityBindings.Add(new(mtlQueryHeap, index, scratchIndex));
         }
         else
         {
-            Render.SetVisibilityResultMode(MTLFormats.Metal(queryHeap.Desc.Type), index);
+            Render.SetVisibilityResultMode(MTLFormats.Metal(mtlQueryHeap.Desc.Type), sizeof(ulong) * scratchIndex);
         }
     }
 
     protected override void EndQueryImpl(QueryHeap queryHeap, uint index)
     {
-        Render?.SetVisibilityResultMode(MTLVisibilityResultMode.Disabled, index);
+        MTLQueryHeap mtlQueryHeap = queryHeap.Metal();
+
+        if (activeVisibilityIndices.Remove(new(mtlQueryHeap, index), out uint scratchIndex))
+        {
+            Render?.SetVisibilityResultMode(MTLVisibilityResultMode.Disabled, 0);
+
+            endVisibilityBindings.Add(new(mtlQueryHeap, index, scratchIndex));
+        }
     }
 
     protected override void WriteTimestampImpl(QueryHeap queryHeap, uint index)
@@ -435,7 +459,13 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void ResetImpl()
     {
+        activeVisibilityIndices.Clear();
+        beginVisibilityBindings.Clear();
+        endVisibilityBindings.Clear();
         resolveTimestamps.Clear();
+
+        visibilityIndex = 0;
+        indexBinding = default;
 
         todoScissors = null;
         todoViewports = null;
@@ -444,7 +474,6 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         todoMeshShadingPipeline = null;
         todoStencilReference = null;
         todoBlendConstant = null;
-        todoBeginQueryArgs = null;
 
         CommandAllocator.Reset();
     }
@@ -458,6 +487,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     {
         base.Destroy();
 
+        Visibility.Dispose();
         ArgumentTable.Dispose();
         CommandBuffer.Dispose();
         CommandAllocator.Dispose();
@@ -465,11 +495,6 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     private void BeginRenderEncoding(MTL4RenderPassDescriptor descriptor)
     {
-        if (todoBeginQueryArgs is not null)
-        {
-            descriptor.VisibilityResultBuffer = todoBeginQueryArgs.Value.QueryHeap.Buffer.Buffer;
-        }
-
         Render = NSAutorelease.Own(CommandBuffer.MakeRenderCommandEncoder, descriptor);
         Render.SetArgumentTable(ArgumentTable, MTLRenderStages.Vertex | MTLRenderStages.Fragment | MTLRenderStages.Mesh);
 
@@ -515,12 +540,11 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
             todoBlendConstant = null;
         }
 
-        if (todoBeginQueryArgs is not null)
+        foreach (VisibilityBinding visibilityBinding in beginVisibilityBindings)
         {
-            BeginQuery(todoBeginQueryArgs.Value.QueryHeap, todoBeginQueryArgs.Value.Index);
-
-            todoBeginQueryArgs = null;
+            Render.SetVisibilityResultMode(MTLFormats.Metal(visibilityBinding.QueryHeap.Desc.Type), sizeof(ulong) * visibilityBinding.ScratchIndex);
         }
+        beginVisibilityBindings.Clear();
     }
 
     private void EndRenderEncoding()
@@ -544,6 +568,12 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
             todoComputePipeline = null;
         }
+
+        foreach (VisibilityBinding visibilityBinding in endVisibilityBindings)
+        {
+            CopyBuffer(Visibility, sizeof(ulong) * visibilityBinding.ScratchIndex, visibilityBinding.QueryHeap.Buffer, sizeof(ulong) * visibilityBinding.Index, sizeof(ulong));
+        }
+        endVisibilityBindings.Clear();
     }
 
     private void EndComputeEncoding()
@@ -566,8 +596,30 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
                                              MTLFence.Null,
                                              MTLFence.Null);
         }
-
         resolveTimestamps.Clear();
+    }
+
+    private struct VisibilityKey(MTLQueryHeap queryHeap, uint index)
+    {
+        public MTLQueryHeap QueryHeap = queryHeap;
+
+        public uint Index = index;
+    }
+
+    private struct VisibilityBinding(MTLQueryHeap queryHeap, uint index, uint scratchIndex)
+    {
+        public MTLQueryHeap QueryHeap = queryHeap;
+
+        public uint Index = index;
+
+        public uint ScratchIndex = scratchIndex;
+    }
+
+    private struct ResolveTimestamp(MTLQueryHeap queryHeap, uint index)
+    {
+        public MTLQueryHeap QueryHeap = queryHeap;
+
+        public uint Index = index;
     }
 
     private struct IndexBinding(MTLIndexType type, nuint address, uint sizeInBytes, uint lengthInBytes)
@@ -579,19 +631,5 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         public uint SizeInBytes = sizeInBytes;
 
         public uint LengthInBytes = lengthInBytes;
-    }
-
-    private struct BeginQueryArgs(MTLQueryHeap queryHeap, uint index)
-    {
-        public MTLQueryHeap QueryHeap = queryHeap;
-
-        public uint Index = index;
-    }
-
-    private struct ResolveTimestamp(MTLQueryHeap queryHeap, uint index)
-    {
-        public MTLQueryHeap QueryHeap = queryHeap;
-
-        public uint Index = index;
     }
 }
