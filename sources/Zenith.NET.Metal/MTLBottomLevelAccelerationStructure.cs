@@ -28,7 +28,6 @@ internal unsafe class MTLBottomLevelAccelerationStructure : BottomLevelAccelerat
         });
 
         commandBuffer.Compute?.Build(AccelerationStructure, descriptor, new(Scratch.Buffer.GpuAddress, Scratch.Desc.SizeInBytes));
-        commandBuffer.Compute?.BarrierAfterStages(MTLStages.AccelerationStructure, MTLStages.AccelerationStructure, MTL4VisibilityOptions.Device);
     }
 
     public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
@@ -43,7 +42,6 @@ internal unsafe class MTLBottomLevelAccelerationStructure : BottomLevelAccelerat
         descriptor.Usage |= MTLAccelerationStructureUsage.Refit;
 
         commandBuffer.Compute?.Refit(AccelerationStructure, descriptor, AccelerationStructure, new(Scratch.Buffer.GpuAddress, Scratch.Desc.SizeInBytes));
-        commandBuffer.Compute?.BarrierAfterStages(MTLStages.AccelerationStructure, MTLStages.AccelerationStructure, MTL4VisibilityOptions.Device);
     }
 
     public override nint GetNativeObject(NativeObjectType type)
