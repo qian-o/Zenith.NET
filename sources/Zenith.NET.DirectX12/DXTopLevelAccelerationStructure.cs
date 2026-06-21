@@ -33,8 +33,6 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
             Residency = MemoryResidency.GpuOnly
         });
 
-        BuildSyncBarrier(commandBuffer, BarrierSync.BuildRaytracingAccelerationStructure);
-
         BuildRaytracingAccelerationStructureDesc buildDesc = new()
         {
             DestAccelerationStructureData = AccelerationStructure.GPUVirtualAddress,
@@ -42,8 +40,8 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
             ScratchAccelerationStructureData = Scratch.GPUVirtualAddress
         };
 
+        BuildSyncBarrier(commandBuffer, BarrierSync.BuildRaytracingAccelerationStructure);
         commandBuffer.CommandList.BuildRaytracingAccelerationStructure(&buildDesc, 0, default(RaytracingAccelerationStructurePostbuildInfoDesc*));
-
         BuildSyncBarrier(commandBuffer, BarrierSync.AllShading);
 
         ShaderResourceViewDesc viewDesc = new()
@@ -77,8 +75,8 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
             ScratchAccelerationStructureData = Scratch.GPUVirtualAddress
         };
 
+        BuildSyncBarrier(commandBuffer, BarrierSync.BuildRaytracingAccelerationStructure);
         commandBuffer.CommandList.BuildRaytracingAccelerationStructure(&buildDesc, 0, default(RaytracingAccelerationStructurePostbuildInfoDesc*));
-
         BuildSyncBarrier(commandBuffer, BarrierSync.AllShading);
     }
 
