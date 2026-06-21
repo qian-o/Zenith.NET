@@ -72,7 +72,7 @@ internal unsafe class MTLBottomLevelAccelerationStructure : BottomLevelAccelerat
         nint pointer = Transform.Map();
 
         MTLPackedFloat4x3* transforms = (MTLPackedFloat4x3*)pointer;
-        MTL4AccelerationStructureGeometryDescriptor[] geometryDescriptors = new MTL4AccelerationStructureGeometryDescriptor[geometryCount];
+        MTL4AccelerationStructureGeometryDescriptor[] geometries = new MTL4AccelerationStructureGeometryDescriptor[geometryCount];
         for (uint i = 0; i < geometryCount; i++)
         {
             RayTracingGeometry geometry = desc.Geometries[i];
@@ -82,7 +82,7 @@ internal unsafe class MTLBottomLevelAccelerationStructure : BottomLevelAccelerat
             switch (geometry.Type)
             {
                 case RayTracingGeometryType.Triangle:
-                    geometryDescriptors[i] = new MTL4AccelerationStructureTriangleGeometryDescriptor()
+                    geometries[i] = new MTL4AccelerationStructureTriangleGeometryDescriptor()
                     {
                         VertexBuffer = new()
                         {
@@ -108,7 +108,7 @@ internal unsafe class MTLBottomLevelAccelerationStructure : BottomLevelAccelerat
                     break;
 
                 case RayTracingGeometryType.Aabb:
-                    geometryDescriptors[i] = new MTL4AccelerationStructureBoundingBoxGeometryDescriptor()
+                    geometries[i] = new MTL4AccelerationStructureBoundingBoxGeometryDescriptor()
                     {
                         BoundingBoxBuffer = new()
                         {
@@ -121,14 +121,14 @@ internal unsafe class MTLBottomLevelAccelerationStructure : BottomLevelAccelerat
                     break;
             }
 
-            geometryDescriptors[i].Opaque = geometry.IsOpaque;
+            geometries[i].Opaque = geometry.IsOpaque;
         }
 
         Transform.Unmap();
 
         return new()
         {
-            GeometryDescriptors = geometryDescriptors,
+            GeometryDescriptors = geometries,
             Usage = MTLFormats.Metal(desc.BuildFlags)
         };
     }

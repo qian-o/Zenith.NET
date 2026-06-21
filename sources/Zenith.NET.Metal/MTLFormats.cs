@@ -473,4 +473,9 @@ internal static class MTLFormats
     {
         throw new NotImplementedException();
     }
+
+    internal static MTLAccelerationStructureInstanceOptions Metal(RayTracingInstanceFlags flags)
+    {
+        throw new NotImplementedException();
+    }
 }

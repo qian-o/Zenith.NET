@@ -69,6 +69,39 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
 
     private MTL4InstanceAccelerationStructureDescriptor Descriptor(TopLevelAccelerationStructureDesc desc)
     {
-        throw new NotImplementedException();
+        uint instanceCount = (uint)desc.Instances.Length;
+
+        nint pointer = Instance.Map();
+
+        MTLIndirectAccelerationStructureInstanceDescriptor* instances = (MTLIndirectAccelerationStructureInstanceDescriptor*)pointer;
+        for (uint i = 0; i < instanceCount; i++)
+        {
+            RayTracingInstance instance = desc.Instances[i];
+
+            instances[i] = new()
+            {
+                TransformationMatrix = MTLFormats.Metal(instance.Transform),
+                Options = MTLFormats.Metal(instance.Flags),
+                Mask = instance.VisibilityMask,
+                UserID = instance.InstanceId,
+                AccelerationStructureID = instance.AccelerationStructure.Metal().AccelerationStructure.GpuResourceID
+            };
+        }
+
+        Instance.Unmap();
+
+        return new()
+        {
+            InstanceDescriptorBuffer = new()
+            {
+                BufferAddress = Instance.Buffer.GpuAddress,
+                Length = Instance.Desc.SizeInBytes
+            },
+            InstanceDescriptorStride = (uint)sizeof(MTLIndirectAccelerationStructureInstanceDescriptor),
+            InstanceCount = instanceCount,
+            InstanceDescriptorType = MTLAccelerationStructureInstanceDescriptorType.Indirect,
+            InstanceTransformationMatrixLayout = MTLMatrixLayout.RowMajor,
+            Usage = MTLFormats.Metal(desc.BuildFlags)
+        };
     }
 }
