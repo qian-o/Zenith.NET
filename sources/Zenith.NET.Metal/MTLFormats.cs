@@ -5,6 +5,293 @@ namespace Zenith.NET.Metal;
 
 internal static class MTLFormats
 {
+    public static MTLAccelerationStructureUsage Metal(AccelerationStructureBuildFlags accelerationStructureBuildFlags)
+    {
+        MTLAccelerationStructureUsage result = MTLAccelerationStructureUsage.None;
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowUpdate))
+        {
+            result |= MTLAccelerationStructureUsage.Refit;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PreferFastTrace))
+        {
+            result |= MTLAccelerationStructureUsage.PreferFastIntersection;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PreferFastBuild))
+        {
+            result |= MTLAccelerationStructureUsage.PreferFastBuild;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.MinimizeMemory))
+        {
+            result |= MTLAccelerationStructureUsage.MinimizeMemory;
+        }
+
+        return result;
+    }
+
+    public static MTLSamplerAddressMode Metal(AddressMode addressMode)
+    {
+        return addressMode switch
+        {
+            AddressMode.Wrap => MTLSamplerAddressMode.Repeat,
+            AddressMode.Mirror => MTLSamplerAddressMode.MirrorRepeat,
+            AddressMode.Clamp => MTLSamplerAddressMode.ClampToEdge,
+            AddressMode.Border => MTLSamplerAddressMode.ClampToBorderColor,
+            _ => default
+        };
+    }
+
+    public static MTLStages Metal(BarrierStages barrierStages)
+    {
+        MTLStages result = default;
+
+        if (barrierStages.HasFlag(BarrierStages.VertexShading))
+        {
+            result |= MTLStages.Vertex;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.FragmentShading))
+        {
+            result |= MTLStages.Fragment;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.ComputeShading))
+        {
+            result |= MTLStages.Dispatch;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.Copy) || barrierStages.HasFlag(BarrierStages.Resolve))
+        {
+            result |= MTLStages.Blit;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.All))
+        {
+            result = MTLStages.All;
+        }
+
+        return result;
+    }
+
+    public static MTLBlendFactor Metal(BlendFactor blendFactor)
+    {
+        return blendFactor switch
+        {
+            BlendFactor.Zero => MTLBlendFactor.Zero,
+            BlendFactor.One => MTLBlendFactor.One,
+            BlendFactor.SrcColor => MTLBlendFactor.SourceColor,
+            BlendFactor.OneMinusSrcColor => MTLBlendFactor.OneMinusSourceColor,
+            BlendFactor.DstColor => MTLBlendFactor.DestinationColor,
+            BlendFactor.OneMinusDstColor => MTLBlendFactor.OneMinusDestinationColor,
+            BlendFactor.SrcAlpha => MTLBlendFactor.SourceAlpha,
+            BlendFactor.OneMinusSrcAlpha => MTLBlendFactor.OneMinusSourceAlpha,
+            BlendFactor.DstAlpha => MTLBlendFactor.DestinationAlpha,
+            BlendFactor.OneMinusDstAlpha => MTLBlendFactor.OneMinusDestinationAlpha,
+            BlendFactor.Constant => MTLBlendFactor.BlendColor,
+            BlendFactor.OneMinusConstant => MTLBlendFactor.OneMinusBlendColor,
+            _ => default
+        };
+    }
+
+    public static MTLBlendOperation Metal(BlendOp blendOp)
+    {
+        return blendOp switch
+        {
+            BlendOp.Add => MTLBlendOperation.Add,
+            BlendOp.Subtract => MTLBlendOperation.Subtract,
+            BlendOp.ReverseSubtract => MTLBlendOperation.ReverseSubtract,
+            BlendOp.Min => MTLBlendOperation.Min,
+            BlendOp.Max => MTLBlendOperation.Max,
+            _ => default
+        };
+    }
+
+    public static MTLSamplerBorderColor Metal(BorderColor borderColor)
+    {
+        return borderColor switch
+        {
+            BorderColor.TransparentBlack => MTLSamplerBorderColor.TransparentBlack,
+            BorderColor.OpaqueBlack => MTLSamplerBorderColor.OpaqueBlack,
+            BorderColor.OpaqueWhite => MTLSamplerBorderColor.OpaqueWhite,
+            _ => default
+        };
+    }
+
+    public static MTLColorWriteMask Metal(ColorWrites colorWrites)
+    {
+        MTLColorWriteMask result = MTLColorWriteMask.None;
+
+        if (colorWrites.HasFlag(ColorWrites.Red))
+        {
+            result |= MTLColorWriteMask.Red;
+        }
+
+        if (colorWrites.HasFlag(ColorWrites.Green))
+        {
+            result |= MTLColorWriteMask.Green;
+        }
+
+        if (colorWrites.HasFlag(ColorWrites.Blue))
+        {
+            result |= MTLColorWriteMask.Blue;
+        }
+
+        if (colorWrites.HasFlag(ColorWrites.Alpha))
+        {
+            result |= MTLColorWriteMask.Alpha;
+        }
+
+        return result;
+    }
+
+    public static MTLCompareFunction Metal(CompareOp compareOp)
+    {
+        return compareOp switch
+        {
+            CompareOp.Never => MTLCompareFunction.Never,
+            CompareOp.Less => MTLCompareFunction.Less,
+            CompareOp.Equal => MTLCompareFunction.Equal,
+            CompareOp.LessEqual => MTLCompareFunction.LessEqual,
+            CompareOp.Greater => MTLCompareFunction.Greater,
+            CompareOp.NotEqual => MTLCompareFunction.NotEqual,
+            CompareOp.GreaterEqual => MTLCompareFunction.GreaterEqual,
+            CompareOp.Always => MTLCompareFunction.Always,
+            _ => default
+        };
+    }
+
+    public static MTLCullMode Metal(CullMode cullMode)
+    {
+        return cullMode switch
+        {
+            CullMode.None => MTLCullMode.None,
+            CullMode.Front => MTLCullMode.Front,
+            CullMode.Back => MTLCullMode.Back,
+            _ => default
+        };
+    }
+
+    public static MTLVertexFormat Metal(ElementFormat elementFormat)
+    {
+        return elementFormat switch
+        {
+            ElementFormat.UByte1 => MTLVertexFormat.UChar,
+            ElementFormat.UByte2 => MTLVertexFormat.UChar2,
+            ElementFormat.UByte4 => MTLVertexFormat.UChar4,
+
+            ElementFormat.Byte1 => MTLVertexFormat.Char,
+            ElementFormat.Byte2 => MTLVertexFormat.Char2,
+            ElementFormat.Byte4 => MTLVertexFormat.Char4,
+
+            ElementFormat.UByte1UNorm => MTLVertexFormat.UCharNormalized,
+            ElementFormat.UByte2UNorm => MTLVertexFormat.UChar2Normalized,
+            ElementFormat.UByte4UNorm => MTLVertexFormat.UChar4Normalized,
+
+            ElementFormat.Byte1SNorm => MTLVertexFormat.CharNormalized,
+            ElementFormat.Byte2SNorm => MTLVertexFormat.Char2Normalized,
+            ElementFormat.Byte4SNorm => MTLVertexFormat.Char4Normalized,
+
+            ElementFormat.UShort1 => MTLVertexFormat.UShort,
+            ElementFormat.UShort2 => MTLVertexFormat.UShort2,
+            ElementFormat.UShort4 => MTLVertexFormat.UShort4,
+
+            ElementFormat.Short1 => MTLVertexFormat.Short,
+            ElementFormat.Short2 => MTLVertexFormat.Short2,
+            ElementFormat.Short4 => MTLVertexFormat.Short4,
+
+            ElementFormat.UShort1UNorm => MTLVertexFormat.UShortNormalized,
+            ElementFormat.UShort2UNorm => MTLVertexFormat.UShort2Normalized,
+            ElementFormat.UShort4UNorm => MTLVertexFormat.UShort4Normalized,
+
+            ElementFormat.Short1SNorm => MTLVertexFormat.ShortNormalized,
+            ElementFormat.Short2SNorm => MTLVertexFormat.Short2Normalized,
+            ElementFormat.Short4SNorm => MTLVertexFormat.Short4Normalized,
+
+            ElementFormat.Half1 => MTLVertexFormat.Half,
+            ElementFormat.Half2 => MTLVertexFormat.Half2,
+            ElementFormat.Half4 => MTLVertexFormat.Half4,
+
+            ElementFormat.Float1 => MTLVertexFormat.Float,
+            ElementFormat.Float2 => MTLVertexFormat.Float2,
+            ElementFormat.Float3 => MTLVertexFormat.Float3,
+            ElementFormat.Float4 => MTLVertexFormat.Float4,
+
+            ElementFormat.UInt1 => MTLVertexFormat.UInt,
+            ElementFormat.UInt2 => MTLVertexFormat.UInt2,
+            ElementFormat.UInt3 => MTLVertexFormat.UInt3,
+            ElementFormat.UInt4 => MTLVertexFormat.UInt4,
+
+            ElementFormat.Int1 => MTLVertexFormat.Int,
+            ElementFormat.Int2 => MTLVertexFormat.Int2,
+            ElementFormat.Int3 => MTLVertexFormat.Int3,
+            ElementFormat.Int4 => MTLVertexFormat.Int4,
+
+            _ => default
+        };
+    }
+
+    public static MTLTriangleFillMode Metal(FillMode fillMode)
+    {
+        return fillMode switch
+        {
+            FillMode.Solid => MTLTriangleFillMode.Fill,
+            FillMode.Wireframe => MTLTriangleFillMode.Lines,
+            _ => default
+        };
+    }
+
+    public static (MTLSamplerMinMagFilter MinMagFilter, MTLSamplerMipFilter MipFilter) Metal(FilterMode filterMode)
+    {
+        return filterMode switch
+        {
+            FilterMode.Point => (MTLSamplerMinMagFilter.Nearest, MTLSamplerMipFilter.Nearest),
+            FilterMode.Linear => (MTLSamplerMinMagFilter.Linear, MTLSamplerMipFilter.Linear),
+            _ => default
+        };
+    }
+
+    public static MTLWinding Metal(FrontFace frontFace)
+    {
+        return frontFace switch
+        {
+            FrontFace.CounterClockwise => MTLWinding.CounterClockwise,
+            FrontFace.Clockwise => MTLWinding.Clockwise,
+            _ => default
+        };
+    }
+
+    public static MTLIndexType Metal(IndexFormat indexFormat)
+    {
+        return indexFormat switch
+        {
+            IndexFormat.UInt16 => MTLIndexType.UInt16,
+            IndexFormat.UInt32 => MTLIndexType.UInt32,
+            _ => default
+        };
+    }
+
+    public static MTLLoadAction Metal(LoadOp loadOp)
+    {
+        return loadOp switch
+        {
+            LoadOp.Load => MTLLoadAction.Load,
+            LoadOp.Clear => MTLLoadAction.Clear,
+            LoadOp.DontCare => MTLLoadAction.DontCare,
+            _ => default
+        };
+    }
+
+    public static MTLPackedFloat4x3 Metal(Matrix4x4 matrix4x4)
+    {
+        return new(new(matrix4x4.M11, matrix4x4.M12, matrix4x4.M13),
+                   new(matrix4x4.M21, matrix4x4.M22, matrix4x4.M23),
+                   new(matrix4x4.M31, matrix4x4.M32, matrix4x4.M33),
+                   new(matrix4x4.M41, matrix4x4.M42, matrix4x4.M43));
+    }
+
     public static MTLResourceOptions Metal(MemoryResidency memoryResidency)
     {
         return memoryResidency switch
@@ -12,21 +299,6 @@ internal static class MTLFormats
             MemoryResidency.GpuOnly => MTLResourceOptions.CPUCacheModeDefaultCache | MTLResourceOptions.StorageModePrivate | MTLResourceOptions.HazardTrackingModeUntracked,
             MemoryResidency.CpuReadOnly => MTLResourceOptions.CPUCacheModeDefaultCache | MTLResourceOptions.StorageModeShared | MTLResourceOptions.HazardTrackingModeUntracked,
             MemoryResidency.CpuWriteOnly => MTLResourceOptions.CPUCacheModeWriteCombined | MTLResourceOptions.StorageModeShared | MTLResourceOptions.HazardTrackingModeUntracked,
-            _ => default
-        };
-    }
-
-    public static MTLTextureType Metal(TextureType textureType, SampleCount sampleCount)
-    {
-        return textureType switch
-        {
-            TextureType.Texture1D => MTLTextureType.MTL1D,
-            TextureType.Texture2D => sampleCount is SampleCount.Count1 ? MTLTextureType.MTL2D : MTLTextureType.MTL2DMultisample,
-            TextureType.Texture3D => MTLTextureType.MTL3D,
-            TextureType.TextureCube => MTLTextureType.MTLCube,
-            TextureType.Texture1DArray => MTLTextureType.MTL1DArray,
-            TextureType.Texture2DArray => sampleCount is SampleCount.Count1 ? MTLTextureType.MTL2DArray : MTLTextureType.MTL2DMultisampleArray,
-            TextureType.TextureCubeArray => MTLTextureType.MTLCubeArray,
             _ => default
         };
     }
@@ -194,112 +466,6 @@ internal static class MTLFormats
         );
     }
 
-    public static nuint Metal(SampleCount sampleCount)
-    {
-        return sampleCount switch
-        {
-            SampleCount.Count1 => 1,
-            SampleCount.Count2 => 2,
-            SampleCount.Count4 => 4,
-            SampleCount.Count8 => 8,
-            SampleCount.Count16 => 16,
-            SampleCount.Count32 => 32,
-            _ => default
-        };
-    }
-
-    public static MTLTextureUsage Metal(TextureUsages textureUsages)
-    {
-        MTLTextureUsage result = MTLTextureUsage.Unknown;
-
-        if (textureUsages.HasFlag(TextureUsages.Sampled))
-        {
-            result |= MTLTextureUsage.ShaderRead;
-        }
-
-        if (textureUsages.HasFlag(TextureUsages.Storage))
-        {
-            result |= MTLTextureUsage.ShaderWrite;
-        }
-
-        if (textureUsages.HasFlag(TextureUsages.ColorAttachment) || textureUsages.HasFlag(TextureUsages.DepthStencilAttachment))
-        {
-            result |= MTLTextureUsage.RenderTarget;
-        }
-
-        return result;
-    }
-
-    public static (MTLSamplerMinMagFilter MinMagFilter, MTLSamplerMipFilter MipFilter) Metal(FilterMode filterMode)
-    {
-        return filterMode switch
-        {
-            FilterMode.Point => (MTLSamplerMinMagFilter.Nearest, MTLSamplerMipFilter.Nearest),
-            FilterMode.Linear => (MTLSamplerMinMagFilter.Linear, MTLSamplerMipFilter.Linear),
-            _ => default
-        };
-    }
-
-    public static MTLSamplerAddressMode Metal(AddressMode addressMode)
-    {
-        return addressMode switch
-        {
-            AddressMode.Wrap => MTLSamplerAddressMode.Repeat,
-            AddressMode.Mirror => MTLSamplerAddressMode.MirrorRepeat,
-            AddressMode.Clamp => MTLSamplerAddressMode.ClampToEdge,
-            AddressMode.Border => MTLSamplerAddressMode.ClampToBorderColor,
-            _ => default
-        };
-    }
-
-    public static MTLSamplerBorderColor Metal(BorderColor borderColor)
-    {
-        return borderColor switch
-        {
-            BorderColor.TransparentBlack => MTLSamplerBorderColor.TransparentBlack,
-            BorderColor.OpaqueBlack => MTLSamplerBorderColor.OpaqueBlack,
-            BorderColor.OpaqueWhite => MTLSamplerBorderColor.OpaqueWhite,
-            _ => default
-        };
-    }
-
-    public static MTLLoadAction Metal(LoadOp loadOp)
-    {
-        return loadOp switch
-        {
-            LoadOp.Load => MTLLoadAction.Load,
-            LoadOp.Clear => MTLLoadAction.Clear,
-            LoadOp.DontCare => MTLLoadAction.DontCare,
-            _ => default
-        };
-    }
-
-    public static MTLStoreAction Metal(StoreOp storeOp)
-    {
-        return storeOp switch
-        {
-            StoreOp.Store => MTLStoreAction.Store,
-            StoreOp.DontCare => MTLStoreAction.DontCare,
-            _ => default
-        };
-    }
-
-    public static MTLCompareFunction Metal(CompareOp compareOp)
-    {
-        return compareOp switch
-        {
-            CompareOp.Never => MTLCompareFunction.Never,
-            CompareOp.Less => MTLCompareFunction.Less,
-            CompareOp.Equal => MTLCompareFunction.Equal,
-            CompareOp.LessEqual => MTLCompareFunction.LessEqual,
-            CompareOp.Greater => MTLCompareFunction.Greater,
-            CompareOp.NotEqual => MTLCompareFunction.NotEqual,
-            CompareOp.GreaterEqual => MTLCompareFunction.GreaterEqual,
-            CompareOp.Always => MTLCompareFunction.Always,
-            _ => default
-        };
-    }
-
     public static (MTLPrimitiveTopologyClass TopologyClass, MTLPrimitiveType Type) Metal(PrimitiveTopology primitiveTopology)
     {
         return
@@ -328,247 +494,14 @@ internal static class MTLFormats
         );
     }
 
-    public static MTLVertexFormat Metal(ElementFormat elementFormat)
+    public static MTLVisibilityResultMode Metal(QueryType queryType)
     {
-        return elementFormat switch
+        return queryType switch
         {
-            ElementFormat.UByte1 => MTLVertexFormat.UChar,
-            ElementFormat.UByte2 => MTLVertexFormat.UChar2,
-            ElementFormat.UByte4 => MTLVertexFormat.UChar4,
-
-            ElementFormat.Byte1 => MTLVertexFormat.Char,
-            ElementFormat.Byte2 => MTLVertexFormat.Char2,
-            ElementFormat.Byte4 => MTLVertexFormat.Char4,
-
-            ElementFormat.UByte1UNorm => MTLVertexFormat.UCharNormalized,
-            ElementFormat.UByte2UNorm => MTLVertexFormat.UChar2Normalized,
-            ElementFormat.UByte4UNorm => MTLVertexFormat.UChar4Normalized,
-
-            ElementFormat.Byte1SNorm => MTLVertexFormat.CharNormalized,
-            ElementFormat.Byte2SNorm => MTLVertexFormat.Char2Normalized,
-            ElementFormat.Byte4SNorm => MTLVertexFormat.Char4Normalized,
-
-            ElementFormat.UShort1 => MTLVertexFormat.UShort,
-            ElementFormat.UShort2 => MTLVertexFormat.UShort2,
-            ElementFormat.UShort4 => MTLVertexFormat.UShort4,
-
-            ElementFormat.Short1 => MTLVertexFormat.Short,
-            ElementFormat.Short2 => MTLVertexFormat.Short2,
-            ElementFormat.Short4 => MTLVertexFormat.Short4,
-
-            ElementFormat.UShort1UNorm => MTLVertexFormat.UShortNormalized,
-            ElementFormat.UShort2UNorm => MTLVertexFormat.UShort2Normalized,
-            ElementFormat.UShort4UNorm => MTLVertexFormat.UShort4Normalized,
-
-            ElementFormat.Short1SNorm => MTLVertexFormat.ShortNormalized,
-            ElementFormat.Short2SNorm => MTLVertexFormat.Short2Normalized,
-            ElementFormat.Short4SNorm => MTLVertexFormat.Short4Normalized,
-
-            ElementFormat.Half1 => MTLVertexFormat.Half,
-            ElementFormat.Half2 => MTLVertexFormat.Half2,
-            ElementFormat.Half4 => MTLVertexFormat.Half4,
-
-            ElementFormat.Float1 => MTLVertexFormat.Float,
-            ElementFormat.Float2 => MTLVertexFormat.Float2,
-            ElementFormat.Float3 => MTLVertexFormat.Float3,
-            ElementFormat.Float4 => MTLVertexFormat.Float4,
-
-            ElementFormat.UInt1 => MTLVertexFormat.UInt,
-            ElementFormat.UInt2 => MTLVertexFormat.UInt2,
-            ElementFormat.UInt3 => MTLVertexFormat.UInt3,
-            ElementFormat.UInt4 => MTLVertexFormat.UInt4,
-
-            ElementFormat.Int1 => MTLVertexFormat.Int,
-            ElementFormat.Int2 => MTLVertexFormat.Int2,
-            ElementFormat.Int3 => MTLVertexFormat.Int3,
-            ElementFormat.Int4 => MTLVertexFormat.Int4,
-
+            QueryType.Occlusion => MTLVisibilityResultMode.Counting,
+            QueryType.BinaryOcclusion => MTLVisibilityResultMode.Boolean,
             _ => default
         };
-    }
-
-    public static MTLBlendFactor Metal(BlendFactor blendFactor)
-    {
-        return blendFactor switch
-        {
-            BlendFactor.Zero => MTLBlendFactor.Zero,
-            BlendFactor.One => MTLBlendFactor.One,
-            BlendFactor.SrcColor => MTLBlendFactor.SourceColor,
-            BlendFactor.OneMinusSrcColor => MTLBlendFactor.OneMinusSourceColor,
-            BlendFactor.DstColor => MTLBlendFactor.DestinationColor,
-            BlendFactor.OneMinusDstColor => MTLBlendFactor.OneMinusDestinationColor,
-            BlendFactor.SrcAlpha => MTLBlendFactor.SourceAlpha,
-            BlendFactor.OneMinusSrcAlpha => MTLBlendFactor.OneMinusSourceAlpha,
-            BlendFactor.DstAlpha => MTLBlendFactor.DestinationAlpha,
-            BlendFactor.OneMinusDstAlpha => MTLBlendFactor.OneMinusDestinationAlpha,
-            BlendFactor.Constant => MTLBlendFactor.BlendColor,
-            BlendFactor.OneMinusConstant => MTLBlendFactor.OneMinusBlendColor,
-            _ => default
-        };
-    }
-
-    public static MTLBlendOperation Metal(BlendOp blendOp)
-    {
-        return blendOp switch
-        {
-            BlendOp.Add => MTLBlendOperation.Add,
-            BlendOp.Subtract => MTLBlendOperation.Subtract,
-            BlendOp.ReverseSubtract => MTLBlendOperation.ReverseSubtract,
-            BlendOp.Min => MTLBlendOperation.Min,
-            BlendOp.Max => MTLBlendOperation.Max,
-            _ => default
-        };
-    }
-
-    public static MTLColorWriteMask Metal(ColorWrites colorWrites)
-    {
-        MTLColorWriteMask result = MTLColorWriteMask.None;
-
-        if (colorWrites.HasFlag(ColorWrites.Red))
-        {
-            result |= MTLColorWriteMask.Red;
-        }
-
-        if (colorWrites.HasFlag(ColorWrites.Green))
-        {
-            result |= MTLColorWriteMask.Green;
-        }
-
-        if (colorWrites.HasFlag(ColorWrites.Blue))
-        {
-            result |= MTLColorWriteMask.Blue;
-        }
-
-        if (colorWrites.HasFlag(ColorWrites.Alpha))
-        {
-            result |= MTLColorWriteMask.Alpha;
-        }
-
-        return result;
-    }
-
-    public static MTLStencilOperation Metal(StencilOp stencilOp)
-    {
-        return stencilOp switch
-        {
-            StencilOp.Keep => MTLStencilOperation.Keep,
-            StencilOp.Zero => MTLStencilOperation.Zero,
-            StencilOp.Replace => MTLStencilOperation.Replace,
-            StencilOp.IncrementAndClamp => MTLStencilOperation.IncrementClamp,
-            StencilOp.DecrementAndClamp => MTLStencilOperation.DecrementClamp,
-            StencilOp.Invert => MTLStencilOperation.Invert,
-            StencilOp.IncrementAndWrap => MTLStencilOperation.IncrementWrap,
-            StencilOp.DecrementAndWrap => MTLStencilOperation.DecrementWrap,
-            _ => default
-        };
-    }
-
-    public static MTLStages Metal(BarrierStages barrierStages)
-    {
-        MTLStages result = default;
-
-        if (barrierStages.HasFlag(BarrierStages.VertexShading))
-        {
-            result |= MTLStages.Vertex;
-        }
-
-        if (barrierStages.HasFlag(BarrierStages.FragmentShading))
-        {
-            result |= MTLStages.Fragment;
-        }
-
-        if (barrierStages.HasFlag(BarrierStages.ComputeShading))
-        {
-            result |= MTLStages.Dispatch;
-        }
-
-        if (barrierStages.HasFlag(BarrierStages.Copy) || barrierStages.HasFlag(BarrierStages.Resolve))
-        {
-            result |= MTLStages.Blit;
-        }
-
-        if (barrierStages.HasFlag(BarrierStages.All))
-        {
-            result = MTLStages.All;
-        }
-
-        return result;
-    }
-
-    public static MTLCullMode Metal(CullMode cullMode)
-    {
-        return cullMode switch
-        {
-            CullMode.None => MTLCullMode.None,
-            CullMode.Front => MTLCullMode.Front,
-            CullMode.Back => MTLCullMode.Back,
-            _ => default
-        };
-    }
-
-    public static MTLWinding Metal(FrontFace frontFace)
-    {
-        return frontFace switch
-        {
-            FrontFace.CounterClockwise => MTLWinding.CounterClockwise,
-            FrontFace.Clockwise => MTLWinding.Clockwise,
-            _ => default
-        };
-    }
-
-    public static MTLTriangleFillMode Metal(FillMode fillMode)
-    {
-        return fillMode switch
-        {
-            FillMode.Solid => MTLTriangleFillMode.Fill,
-            FillMode.Wireframe => MTLTriangleFillMode.Lines,
-            _ => default
-        };
-    }
-
-    public static MTLIndexType Metal(IndexFormat indexFormat)
-    {
-        return indexFormat switch
-        {
-            IndexFormat.UInt16 => MTLIndexType.UInt16,
-            IndexFormat.UInt32 => MTLIndexType.UInt32,
-            _ => default
-        };
-    }
-
-    public static MTLPackedFloat4x3 Metal(Matrix4x4 matrix4x4)
-    {
-        return new(new(matrix4x4.M11, matrix4x4.M12, matrix4x4.M13),
-                   new(matrix4x4.M21, matrix4x4.M22, matrix4x4.M23),
-                   new(matrix4x4.M31, matrix4x4.M32, matrix4x4.M33),
-                   new(matrix4x4.M41, matrix4x4.M42, matrix4x4.M43));
-    }
-
-    public static MTLAccelerationStructureUsage Metal(AccelerationStructureBuildFlags accelerationStructureBuildFlags)
-    {
-        MTLAccelerationStructureUsage result = MTLAccelerationStructureUsage.None;
-
-        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowUpdate))
-        {
-            result |= MTLAccelerationStructureUsage.Refit;
-        }
-
-        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PreferFastTrace))
-        {
-            result |= MTLAccelerationStructureUsage.PreferFastIntersection;
-        }
-
-        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PreferFastBuild))
-        {
-            result |= MTLAccelerationStructureUsage.PreferFastBuild;
-        }
-
-        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.MinimizeMemory))
-        {
-            result |= MTLAccelerationStructureUsage.MinimizeMemory;
-        }
-
-        return result;
     }
 
     public static MTLAccelerationStructureInstanceOptions Metal(RayTracingInstanceFlags rayTracingInstanceFlags)
@@ -598,13 +531,80 @@ internal static class MTLFormats
         return result;
     }
 
-    public static MTLVisibilityResultMode Metal(QueryType queryType)
+    public static nuint Metal(SampleCount sampleCount)
     {
-        return queryType switch
+        return sampleCount switch
         {
-            QueryType.Occlusion => MTLVisibilityResultMode.Counting,
-            QueryType.BinaryOcclusion => MTLVisibilityResultMode.Boolean,
+            SampleCount.Count1 => 1,
+            SampleCount.Count2 => 2,
+            SampleCount.Count4 => 4,
+            SampleCount.Count8 => 8,
+            SampleCount.Count16 => 16,
+            SampleCount.Count32 => 32,
             _ => default
         };
+    }
+
+    public static MTLStencilOperation Metal(StencilOp stencilOp)
+    {
+        return stencilOp switch
+        {
+            StencilOp.Keep => MTLStencilOperation.Keep,
+            StencilOp.Zero => MTLStencilOperation.Zero,
+            StencilOp.Replace => MTLStencilOperation.Replace,
+            StencilOp.IncrementAndClamp => MTLStencilOperation.IncrementClamp,
+            StencilOp.DecrementAndClamp => MTLStencilOperation.DecrementClamp,
+            StencilOp.Invert => MTLStencilOperation.Invert,
+            StencilOp.IncrementAndWrap => MTLStencilOperation.IncrementWrap,
+            StencilOp.DecrementAndWrap => MTLStencilOperation.DecrementWrap,
+            _ => default
+        };
+    }
+
+    public static MTLStoreAction Metal(StoreOp storeOp)
+    {
+        return storeOp switch
+        {
+            StoreOp.Store => MTLStoreAction.Store,
+            StoreOp.DontCare => MTLStoreAction.DontCare,
+            _ => default
+        };
+    }
+
+    public static MTLTextureType Metal(TextureType textureType, SampleCount sampleCount)
+    {
+        return textureType switch
+        {
+            TextureType.Texture1D => MTLTextureType.MTL1D,
+            TextureType.Texture2D => sampleCount is SampleCount.Count1 ? MTLTextureType.MTL2D : MTLTextureType.MTL2DMultisample,
+            TextureType.Texture3D => MTLTextureType.MTL3D,
+            TextureType.TextureCube => MTLTextureType.MTLCube,
+            TextureType.Texture1DArray => MTLTextureType.MTL1DArray,
+            TextureType.Texture2DArray => sampleCount is SampleCount.Count1 ? MTLTextureType.MTL2DArray : MTLTextureType.MTL2DMultisampleArray,
+            TextureType.TextureCubeArray => MTLTextureType.MTLCubeArray,
+            _ => default
+        };
+    }
+
+    public static MTLTextureUsage Metal(TextureUsages textureUsages)
+    {
+        MTLTextureUsage result = MTLTextureUsage.Unknown;
+
+        if (textureUsages.HasFlag(TextureUsages.Sampled))
+        {
+            result |= MTLTextureUsage.ShaderRead;
+        }
+
+        if (textureUsages.HasFlag(TextureUsages.Storage))
+        {
+            result |= MTLTextureUsage.ShaderWrite;
+        }
+
+        if (textureUsages.HasFlag(TextureUsages.ColorAttachment) || textureUsages.HasFlag(TextureUsages.DepthStencilAttachment))
+        {
+            result |= MTLTextureUsage.RenderTarget;
+        }
+
+        return result;
     }
 }
