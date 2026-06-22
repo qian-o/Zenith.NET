@@ -10,7 +10,7 @@ internal static class DXFormats
 {
     public static RaytracingAccelerationStructureBuildFlags DirectX12(AccelerationStructureBuildFlags accelerationStructureBuildFlags)
     {
-        RaytracingAccelerationStructureBuildFlags result = RaytracingAccelerationStructureBuildFlags.None;
+        RaytracingAccelerationStructureBuildFlags result = default;
 
         if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowUpdate))
         {
@@ -54,37 +54,42 @@ internal static class DXFormats
 
     public static (BarrierSync Sync, BarrierAccess Access) DirectX12(BarrierStages barrierStages)
     {
-        BarrierSync sync = BarrierSync.None;
-        BarrierAccess access = BarrierAccess.Common;
+        if (barrierStages is BarrierStages.None)
+        {
+            return (BarrierSync.None, BarrierAccess.NoAccess);
+        }
+
+        BarrierSync sync = default;
+        BarrierAccess access = default;
 
         if (barrierStages.HasFlag(BarrierStages.VertexShading))
         {
-            sync |= BarrierSync.VertexShading;
-            access |= BarrierAccess.VertexBuffer | BarrierAccess.ConstantBuffer | BarrierAccess.ShaderResource;
+            sync |= BarrierSync.IndexInput | BarrierSync.VertexShading | BarrierSync.ExecuteIndirect;
+            access |= BarrierAccess.VertexBuffer | BarrierAccess.ConstantBuffer | BarrierAccess.IndexBuffer | BarrierAccess.UnorderedAccess | BarrierAccess.ShaderResource | BarrierAccess.IndirectArgument | BarrierAccess.RaytracingAccelerationStructureRead;
         }
 
         if (barrierStages.HasFlag(BarrierStages.FragmentShading))
         {
             sync |= BarrierSync.PixelShading | BarrierSync.DepthStencil | BarrierSync.RenderTarget;
-            access |= BarrierAccess.ConstantBuffer | BarrierAccess.ShaderResource | BarrierAccess.DepthStencilRead | BarrierAccess.DepthStencilWrite | BarrierAccess.RenderTarget;
+            access |= BarrierAccess.ConstantBuffer | BarrierAccess.RenderTarget | BarrierAccess.UnorderedAccess | BarrierAccess.DepthStencilWrite | BarrierAccess.DepthStencilRead | BarrierAccess.ShaderResource | BarrierAccess.RaytracingAccelerationStructureRead;
         }
 
         if (barrierStages.HasFlag(BarrierStages.ComputeShading))
         {
-            sync |= BarrierSync.ComputeShading;
-            access |= BarrierAccess.ConstantBuffer | BarrierAccess.ShaderResource | BarrierAccess.UnorderedAccess;
+            sync |= BarrierSync.ComputeShading | BarrierSync.ExecuteIndirect;
+            access |= BarrierAccess.ConstantBuffer | BarrierAccess.UnorderedAccess | BarrierAccess.ShaderResource | BarrierAccess.IndirectArgument | BarrierAccess.RaytracingAccelerationStructureRead;
         }
 
         if (barrierStages.HasFlag(BarrierStages.Copy))
         {
             sync |= BarrierSync.Copy;
-            access |= BarrierAccess.CopySource | BarrierAccess.CopyDest;
+            access |= BarrierAccess.CopyDest | BarrierAccess.CopySource;
         }
 
         if (barrierStages.HasFlag(BarrierStages.Resolve))
         {
             sync |= BarrierSync.Resolve;
-            access |= BarrierAccess.ResolveSource | BarrierAccess.ResolveDest;
+            access |= BarrierAccess.ResolveDest | BarrierAccess.ResolveSource;
         }
 
         if (barrierStages.HasFlag(BarrierStages.All))
@@ -142,7 +147,7 @@ internal static class DXFormats
 
     public static ResourceFlags DirectX12(BufferUsages bufferUsages)
     {
-        ResourceFlags result = ResourceFlags.None;
+        ResourceFlags result = default;
 
         if (bufferUsages.HasFlag(BufferUsages.StorageReadWrite))
         {
@@ -154,7 +159,7 @@ internal static class DXFormats
 
     public static ColorWriteEnable DirectX12(ColorWrites colorWrites)
     {
-        ColorWriteEnable result = ColorWriteEnable.None;
+        ColorWriteEnable result = default;
 
         if (colorWrites.HasFlag(ColorWrites.Red))
         {
@@ -506,7 +511,7 @@ internal static class DXFormats
 
     public static RaytracingInstanceFlags DirectX12(RayTracingInstanceFlags rayTracingInstanceFlags)
     {
-        RaytracingInstanceFlags result = RaytracingInstanceFlags.None;
+        RaytracingInstanceFlags result = default;
 
         if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.FrontCounterClockwise))
         {
@@ -611,7 +616,7 @@ internal static class DXFormats
 
     public static ResourceFlags DirectX12(TextureUsages textureUsages)
     {
-        ResourceFlags result = ResourceFlags.None;
+        ResourceFlags result = default;
 
         if (!textureUsages.HasFlag(TextureUsages.Sampled))
         {

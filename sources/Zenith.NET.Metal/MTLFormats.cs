@@ -7,7 +7,7 @@ internal static class MTLFormats
 {
     public static MTLAccelerationStructureUsage Metal(AccelerationStructureBuildFlags accelerationStructureBuildFlags)
     {
-        MTLAccelerationStructureUsage result = MTLAccelerationStructureUsage.None;
+        MTLAccelerationStructureUsage result = default;
 
         if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowUpdate))
         {
@@ -50,7 +50,7 @@ internal static class MTLFormats
 
         if (barrierStages.HasFlag(BarrierStages.VertexShading))
         {
-            result |= MTLStages.Vertex;
+            result |= MTLStages.Vertex | MTLStages.Object | MTLStages.Mesh;
         }
 
         if (barrierStages.HasFlag(BarrierStages.FragmentShading))
@@ -122,7 +122,7 @@ internal static class MTLFormats
 
     public static MTLColorWriteMask Metal(ColorWrites colorWrites)
     {
-        MTLColorWriteMask result = MTLColorWriteMask.None;
+        MTLColorWriteMask result = default;
 
         if (colorWrites.HasFlag(ColorWrites.Red))
         {
@@ -506,7 +506,7 @@ internal static class MTLFormats
 
     public static MTLAccelerationStructureInstanceOptions Metal(RayTracingInstanceFlags rayTracingInstanceFlags)
     {
-        MTLAccelerationStructureInstanceOptions result = MTLAccelerationStructureInstanceOptions.None;
+        MTLAccelerationStructureInstanceOptions result = default;
 
         if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.FrontCounterClockwise))
         {
@@ -588,7 +588,7 @@ internal static class MTLFormats
 
     public static MTLTextureUsage Metal(TextureUsages textureUsages)
     {
-        MTLTextureUsage result = MTLTextureUsage.Unknown;
+        MTLTextureUsage result = default;
 
         if (textureUsages.HasFlag(TextureUsages.Sampled))
         {
