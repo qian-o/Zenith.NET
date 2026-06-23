@@ -9,423 +9,6 @@ using Silk.NET.Core.Contexts;
 using Silk.NET.Core.Native;
 using Extension = Silk.NET.Core.Attributes.ExtensionAttribute;
 
-namespace Silk.NET.Vulkan.Extensions.EXT
-{
-    [Extension("VK_EXT_descriptor_heap")]
-    public unsafe partial class ExtDescriptorHeap : NativeExtension<Vk>
-    {
-        public const uint SpecVersion = 1;
-        public const string ExtensionName = "VK_EXT_descriptor_heap";
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkCmdBindResourceHeapEXT", Convention = CallingConvention.Winapi)]
-        public unsafe void CmdBindResourceHeap([Count(Count = 0)] CommandBuffer commandBuffer, [Count(Count = 0), Flow(FlowDirection.In)] BindHeapInfoEXT* pBindInfo)
-        {
-            ((delegate* unmanaged[Stdcall]<CommandBuffer, BindHeapInfoEXT*, void>)VTable.CmdBindResourceHeap)(commandBuffer, pBindInfo);
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkCmdBindResourceHeapEXT", Convention = CallingConvention.Winapi)]
-        public void CmdBindResourceHeap([Count(Count = 0)] CommandBuffer commandBuffer, [Count(Count = 0), Flow(FlowDirection.In)] ref readonly BindHeapInfoEXT pBindInfo)
-        {
-            fixed (BindHeapInfoEXT* pBindInfoPtr = &pBindInfo)
-            {
-                CmdBindResourceHeap(commandBuffer, pBindInfoPtr);
-            }
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkCmdBindSamplerHeapEXT", Convention = CallingConvention.Winapi)]
-        public unsafe void CmdBindSamplerHeap([Count(Count = 0)] CommandBuffer commandBuffer, [Count(Count = 0), Flow(FlowDirection.In)] BindHeapInfoEXT* pBindInfo)
-        {
-            ((delegate* unmanaged[Stdcall]<CommandBuffer, BindHeapInfoEXT*, void>)VTable.CmdBindSamplerHeap)(commandBuffer, pBindInfo);
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkCmdBindSamplerHeapEXT", Convention = CallingConvention.Winapi)]
-        public void CmdBindSamplerHeap([Count(Count = 0)] CommandBuffer commandBuffer, [Count(Count = 0), Flow(FlowDirection.In)] ref readonly BindHeapInfoEXT pBindInfo)
-        {
-            fixed (BindHeapInfoEXT* pBindInfoPtr = &pBindInfo)
-            {
-                CmdBindSamplerHeap(commandBuffer, pBindInfoPtr);
-            }
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkCmdPushDataEXT", Convention = CallingConvention.Winapi)]
-        public unsafe void CmdPushData([Count(Count = 0)] CommandBuffer commandBuffer, [Count(Count = 0), Flow(FlowDirection.In)] PushDataInfoEXT* pPushDataInfo)
-        {
-            ((delegate* unmanaged[Stdcall]<CommandBuffer, PushDataInfoEXT*, void>)VTable.CmdPushData)(commandBuffer, pPushDataInfo);
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkCmdPushDataEXT", Convention = CallingConvention.Winapi)]
-        public void CmdPushData([Count(Count = 0)] CommandBuffer commandBuffer, [Count(Count = 0), Flow(FlowDirection.In)] ref readonly PushDataInfoEXT pPushDataInfo)
-        {
-            fixed (PushDataInfoEXT* pPushDataInfoPtr = &pPushDataInfo)
-            {
-                CmdPushData(commandBuffer, pPushDataInfoPtr);
-            }
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkGetImageOpaqueCaptureDataEXT", Convention = CallingConvention.Winapi)]
-        public unsafe Result GetImageOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Count = 0)] uint imageCount, [Count(Parameter = "imageCount"), Flow(FlowDirection.In)] Image* pImages, [Count(Parameter = "imageCount"), Flow(FlowDirection.Out)] HostAddressRangeEXT* pDatas)
-        {
-            return ((delegate* unmanaged[Stdcall]<Device, uint, Image*, HostAddressRangeEXT*, Result>)VTable.GetImageOpaqueCaptureData)(device, imageCount, pImages, pDatas);
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkGetImageOpaqueCaptureDataEXT", Convention = CallingConvention.Winapi)]
-        public unsafe Result GetImageOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Count = 0)] uint imageCount, [Count(Parameter = "imageCount"), Flow(FlowDirection.In)] Image* pImages, [Count(Parameter = "imageCount"), Flow(FlowDirection.Out)] out HostAddressRangeEXT pDatas)
-        {
-            pDatas = default;
-
-            fixed (HostAddressRangeEXT* pDatasPtr = &pDatas)
-            {
-                return GetImageOpaqueCaptureData(device, imageCount, pImages, pDatasPtr);
-            }
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkGetImageOpaqueCaptureDataEXT", Convention = CallingConvention.Winapi)]
-        public unsafe Result GetImageOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Count = 0)] uint imageCount, [Count(Parameter = "imageCount"), Flow(FlowDirection.In)] ref readonly Image pImages, [Count(Parameter = "imageCount"), Flow(FlowDirection.Out)] HostAddressRangeEXT* pDatas)
-        {
-            fixed (Image* pImagesPtr = &pImages)
-            {
-                return GetImageOpaqueCaptureData(device, imageCount, pImagesPtr, pDatas);
-            }
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkGetImageOpaqueCaptureDataEXT", Convention = CallingConvention.Winapi)]
-        public Result GetImageOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Count = 0)] uint imageCount, [Count(Parameter = "imageCount"), Flow(FlowDirection.In)] ref readonly Image pImages, [Count(Parameter = "imageCount"), Flow(FlowDirection.Out)] out HostAddressRangeEXT pDatas)
-        {
-            pDatas = default;
-
-            fixed (Image* pImagesPtr = &pImages)
-            fixed (HostAddressRangeEXT* pDatasPtr = &pDatas)
-            {
-                return GetImageOpaqueCaptureData(device, imageCount, pImagesPtr, pDatasPtr);
-            }
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkGetPhysicalDeviceDescriptorSizeEXT", Convention = CallingConvention.Winapi)]
-        public ulong GetPhysicalDeviceDescriptorSize([Count(Count = 0)] PhysicalDevice physicalDevice, [Count(Count = 0)] DescriptorType descriptorType)
-        {
-            return ((delegate* unmanaged[Stdcall]<PhysicalDevice, DescriptorType, ulong>)VTable.GetPhysicalDeviceDescriptorSize)(physicalDevice, descriptorType);
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkGetTensorOpaqueCaptureDataARM", Convention = CallingConvention.Winapi)]
-        public unsafe Result GetTensorOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Count = 0)] uint tensorCount, [Count(Parameter = "tensorCount"), Flow(FlowDirection.In)] TensorARM* pTensors, [Count(Parameter = "tensorCount"), Flow(FlowDirection.Out)] HostAddressRangeEXT* pDatas)
-        {
-            return ((delegate* unmanaged[Stdcall]<Device, uint, TensorARM*, HostAddressRangeEXT*, Result>)VTable.GetTensorOpaqueCaptureData)(device, tensorCount, pTensors, pDatas);
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkGetTensorOpaqueCaptureDataARM", Convention = CallingConvention.Winapi)]
-        public unsafe Result GetTensorOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Count = 0)] uint tensorCount, [Count(Parameter = "tensorCount"), Flow(FlowDirection.In)] TensorARM* pTensors, [Count(Parameter = "tensorCount"), Flow(FlowDirection.Out)] out HostAddressRangeEXT pDatas)
-        {
-            pDatas = default;
-
-            fixed (HostAddressRangeEXT* pDatasPtr = &pDatas)
-            {
-                return GetTensorOpaqueCaptureData(device, tensorCount, pTensors, pDatasPtr);
-            }
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkGetTensorOpaqueCaptureDataARM", Convention = CallingConvention.Winapi)]
-        public unsafe Result GetTensorOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Count = 0)] uint tensorCount, [Count(Parameter = "tensorCount"), Flow(FlowDirection.In)] ref readonly TensorARM pTensors, [Count(Parameter = "tensorCount"), Flow(FlowDirection.Out)] HostAddressRangeEXT* pDatas)
-        {
-            fixed (TensorARM* pTensorsPtr = &pTensors)
-            {
-                return GetTensorOpaqueCaptureData(device, tensorCount, pTensorsPtr, pDatas);
-            }
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkGetTensorOpaqueCaptureDataARM", Convention = CallingConvention.Winapi)]
-        public Result GetTensorOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Count = 0)] uint tensorCount, [Count(Parameter = "tensorCount"), Flow(FlowDirection.In)] ref readonly TensorARM pTensors, [Count(Parameter = "tensorCount"), Flow(FlowDirection.Out)] out HostAddressRangeEXT pDatas)
-        {
-            pDatas = default;
-
-            fixed (TensorARM* pTensorsPtr = &pTensors)
-            fixed (HostAddressRangeEXT* pDatasPtr = &pDatas)
-            {
-                return GetTensorOpaqueCaptureData(device, tensorCount, pTensorsPtr, pDatasPtr);
-            }
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkRegisterCustomBorderColorEXT", Convention = CallingConvention.Winapi)]
-        public unsafe Result RegisterCustomBorderColor([Count(Count = 0)] Device device, [Count(Count = 0), Flow(FlowDirection.In)] SamplerCustomBorderColorCreateInfoEXT* pBorderColor, [Count(Count = 0)] Bool32 requestIndex, [Count(Count = 0)] uint* pIndex)
-        {
-            return ((delegate* unmanaged[Stdcall]<Device, SamplerCustomBorderColorCreateInfoEXT*, Bool32, uint*, Result>)VTable.RegisterCustomBorderColor)(device, pBorderColor, requestIndex, pIndex);
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkRegisterCustomBorderColorEXT", Convention = CallingConvention.Winapi)]
-        public unsafe Result RegisterCustomBorderColor([Count(Count = 0)] Device device, [Count(Count = 0), Flow(FlowDirection.In)] SamplerCustomBorderColorCreateInfoEXT* pBorderColor, [Count(Count = 0)] Bool32 requestIndex, [Count(Count = 0)] ref uint pIndex)
-        {
-            fixed (uint* pIndexPtr = &pIndex)
-            {
-                return RegisterCustomBorderColor(device, pBorderColor, requestIndex, pIndexPtr);
-            }
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkRegisterCustomBorderColorEXT", Convention = CallingConvention.Winapi)]
-        public unsafe Result RegisterCustomBorderColor([Count(Count = 0)] Device device, [Count(Count = 0), Flow(FlowDirection.In)] ref readonly SamplerCustomBorderColorCreateInfoEXT pBorderColor, [Count(Count = 0)] Bool32 requestIndex, [Count(Count = 0)] uint* pIndex)
-        {
-            fixed (SamplerCustomBorderColorCreateInfoEXT* pBorderColorPtr = &pBorderColor)
-            {
-                return RegisterCustomBorderColor(device, pBorderColorPtr, requestIndex, pIndex);
-            }
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkRegisterCustomBorderColorEXT", Convention = CallingConvention.Winapi)]
-        public Result RegisterCustomBorderColor([Count(Count = 0)] Device device, [Count(Count = 0), Flow(FlowDirection.In)] ref readonly SamplerCustomBorderColorCreateInfoEXT pBorderColor, [Count(Count = 0)] Bool32 requestIndex, [Count(Count = 0)] ref uint pIndex)
-        {
-            fixed (SamplerCustomBorderColorCreateInfoEXT* pBorderColorPtr = &pBorderColor)
-            fixed (uint* pIndexPtr = &pIndex)
-            {
-                return RegisterCustomBorderColor(device, pBorderColorPtr, requestIndex, pIndexPtr);
-            }
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkUnregisterCustomBorderColorEXT", Convention = CallingConvention.Winapi)]
-        public void UnregisterCustomBorderColor([Count(Count = 0)] Device device, [Count(Count = 0)] uint index)
-        {
-            ((delegate* unmanaged[Stdcall]<Device, uint, void>)VTable.UnregisterCustomBorderColor)(device, index);
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkWriteResourceDescriptorsEXT", Convention = CallingConvention.Winapi)]
-        public unsafe Result WriteResourceDescriptors([Count(Count = 0)] Device device, [Count(Count = 0)] uint resourceCount, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ResourceDescriptorInfoEXT* pResources, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] HostAddressRangeEXT* pDescriptors)
-        {
-            return ((delegate* unmanaged[Stdcall]<Device, uint, ResourceDescriptorInfoEXT*, HostAddressRangeEXT*, Result>)VTable.WriteResourceDescriptors)(device, resourceCount, pResources, pDescriptors);
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkWriteResourceDescriptorsEXT", Convention = CallingConvention.Winapi)]
-        public unsafe Result WriteResourceDescriptors([Count(Count = 0)] Device device, [Count(Count = 0)] uint resourceCount, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ResourceDescriptorInfoEXT* pResources, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ref readonly HostAddressRangeEXT pDescriptors)
-        {
-            fixed (HostAddressRangeEXT* pDescriptorsPtr = &pDescriptors)
-            {
-                return WriteResourceDescriptors(device, resourceCount, pResources, pDescriptorsPtr);
-            }
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkWriteResourceDescriptorsEXT", Convention = CallingConvention.Winapi)]
-        public unsafe Result WriteResourceDescriptors([Count(Count = 0)] Device device, [Count(Count = 0)] uint resourceCount, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ref readonly ResourceDescriptorInfoEXT pResources, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] HostAddressRangeEXT* pDescriptors)
-        {
-            fixed (ResourceDescriptorInfoEXT* pResourcesPtr = &pResources)
-            {
-                return WriteResourceDescriptors(device, resourceCount, pResourcesPtr, pDescriptors);
-            }
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkWriteResourceDescriptorsEXT", Convention = CallingConvention.Winapi)]
-        public Result WriteResourceDescriptors([Count(Count = 0)] Device device, [Count(Count = 0)] uint resourceCount, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ref readonly ResourceDescriptorInfoEXT pResources, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ref readonly HostAddressRangeEXT pDescriptors)
-        {
-            fixed (ResourceDescriptorInfoEXT* pResourcesPtr = &pResources)
-            fixed (HostAddressRangeEXT* pDescriptorsPtr = &pDescriptors)
-            {
-                return WriteResourceDescriptors(device, resourceCount, pResourcesPtr, pDescriptorsPtr);
-            }
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkWriteSamplerDescriptorsEXT", Convention = CallingConvention.Winapi)]
-        public unsafe Result WriteSamplerDescriptors([Count(Count = 0)] Device device, [Count(Count = 0)] uint samplerCount, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] SamplerCreateInfo* pSamplers, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] HostAddressRangeEXT* pDescriptors)
-        {
-            return ((delegate* unmanaged[Stdcall]<Device, uint, SamplerCreateInfo*, HostAddressRangeEXT*, Result>)VTable.WriteSamplerDescriptors)(device, samplerCount, pSamplers, pDescriptors);
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkWriteSamplerDescriptorsEXT", Convention = CallingConvention.Winapi)]
-        public unsafe Result WriteSamplerDescriptors([Count(Count = 0)] Device device, [Count(Count = 0)] uint samplerCount, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] SamplerCreateInfo* pSamplers, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] ref readonly HostAddressRangeEXT pDescriptors)
-        {
-            fixed (HostAddressRangeEXT* pDescriptorsPtr = &pDescriptors)
-            {
-                return WriteSamplerDescriptors(device, samplerCount, pSamplers, pDescriptorsPtr);
-            }
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkWriteSamplerDescriptorsEXT", Convention = CallingConvention.Winapi)]
-        public unsafe Result WriteSamplerDescriptors([Count(Count = 0)] Device device, [Count(Count = 0)] uint samplerCount, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] ref readonly SamplerCreateInfo pSamplers, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] HostAddressRangeEXT* pDescriptors)
-        {
-            fixed (SamplerCreateInfo* pSamplersPtr = &pSamplers)
-            {
-                return WriteSamplerDescriptors(device, samplerCount, pSamplersPtr, pDescriptors);
-            }
-        }
-
-        /// <summary>To be documented.</summary>
-        [NativeApi(EntryPoint = "vkWriteSamplerDescriptorsEXT", Convention = CallingConvention.Winapi)]
-        public Result WriteSamplerDescriptors([Count(Count = 0)] Device device, [Count(Count = 0)] uint samplerCount, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] ref readonly SamplerCreateInfo pSamplers, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] ref readonly HostAddressRangeEXT pDescriptors)
-        {
-            fixed (SamplerCreateInfo* pSamplersPtr = &pSamplers)
-            fixed (HostAddressRangeEXT* pDescriptorsPtr = &pDescriptors)
-            {
-                return WriteSamplerDescriptors(device, samplerCount, pSamplersPtr, pDescriptorsPtr);
-            }
-        }
-
-        /// <summary>To be documented.</summary>
-        public unsafe Result GetImageOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Parameter = "imageCount"), Flow(FlowDirection.In)] Image* pImages, [Count(Parameter = "imageCount"), Flow(FlowDirection.Out)] Span<HostAddressRangeEXT> pDatas)
-        {
-            return GetImageOpaqueCaptureData(device, (uint)pDatas.Length, pImages, out pDatas.GetPinnableReference());
-        }
-
-        /// <summary>To be documented.</summary>
-        public unsafe Result GetImageOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Parameter = "imageCount"), Flow(FlowDirection.In)] ReadOnlySpan<Image> pImages, [Count(Parameter = "imageCount"), Flow(FlowDirection.Out)] HostAddressRangeEXT* pDatas)
-        {
-            return GetImageOpaqueCaptureData(device, (uint)pImages.Length, in pImages.GetPinnableReference(), pDatas);
-        }
-
-        /// <summary>To be documented.</summary>
-        public Result GetImageOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Parameter = "imageCount"), Flow(FlowDirection.In)] ReadOnlySpan<Image> pImages, [Count(Parameter = "imageCount"), Flow(FlowDirection.Out)] Span<HostAddressRangeEXT> pDatas)
-        {
-            return GetImageOpaqueCaptureData(device, (uint)pDatas.Length, in pImages.GetPinnableReference(), out pDatas.GetPinnableReference());
-        }
-
-        /// <summary>To be documented.</summary>
-        public unsafe Result GetTensorOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Parameter = "tensorCount"), Flow(FlowDirection.In)] TensorARM* pTensors, [Count(Parameter = "tensorCount"), Flow(FlowDirection.Out)] Span<HostAddressRangeEXT> pDatas)
-        {
-            return GetTensorOpaqueCaptureData(device, (uint)pDatas.Length, pTensors, out pDatas.GetPinnableReference());
-        }
-
-        /// <summary>To be documented.</summary>
-        public unsafe Result GetTensorOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Parameter = "tensorCount"), Flow(FlowDirection.In)] ReadOnlySpan<TensorARM> pTensors, [Count(Parameter = "tensorCount"), Flow(FlowDirection.Out)] HostAddressRangeEXT* pDatas)
-        {
-            return GetTensorOpaqueCaptureData(device, (uint)pTensors.Length, in pTensors.GetPinnableReference(), pDatas);
-        }
-
-        /// <summary>To be documented.</summary>
-        public Result GetTensorOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Parameter = "tensorCount"), Flow(FlowDirection.In)] ReadOnlySpan<TensorARM> pTensors, [Count(Parameter = "tensorCount"), Flow(FlowDirection.Out)] Span<HostAddressRangeEXT> pDatas)
-        {
-            return GetTensorOpaqueCaptureData(device, (uint)pDatas.Length, in pTensors.GetPinnableReference(), out pDatas.GetPinnableReference());
-        }
-
-        /// <summary>To be documented.</summary>
-        public unsafe Result WriteResourceDescriptors([Count(Count = 0)] Device device, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ResourceDescriptorInfoEXT* pResources, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ReadOnlySpan<HostAddressRangeEXT> pDescriptors)
-        {
-            return WriteResourceDescriptors(device, (uint)pDescriptors.Length, pResources, in pDescriptors.GetPinnableReference());
-        }
-
-        /// <summary>To be documented.</summary>
-        public unsafe Result WriteResourceDescriptors([Count(Count = 0)] Device device, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ReadOnlySpan<ResourceDescriptorInfoEXT> pResources, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] HostAddressRangeEXT* pDescriptors)
-        {
-            return WriteResourceDescriptors(device, (uint)pResources.Length, in pResources.GetPinnableReference(), pDescriptors);
-        }
-
-        /// <summary>To be documented.</summary>
-        public Result WriteResourceDescriptors([Count(Count = 0)] Device device, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ReadOnlySpan<ResourceDescriptorInfoEXT> pResources, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ReadOnlySpan<HostAddressRangeEXT> pDescriptors)
-        {
-            return WriteResourceDescriptors(device, (uint)pDescriptors.Length, in pResources.GetPinnableReference(), in pDescriptors.GetPinnableReference());
-        }
-
-        /// <summary>To be documented.</summary>
-        public unsafe Result WriteSamplerDescriptors([Count(Count = 0)] Device device, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] SamplerCreateInfo* pSamplers, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] ReadOnlySpan<HostAddressRangeEXT> pDescriptors)
-        {
-            return WriteSamplerDescriptors(device, (uint)pDescriptors.Length, pSamplers, in pDescriptors.GetPinnableReference());
-        }
-
-        /// <summary>To be documented.</summary>
-        public unsafe Result WriteSamplerDescriptors([Count(Count = 0)] Device device, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] ReadOnlySpan<SamplerCreateInfo> pSamplers, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] HostAddressRangeEXT* pDescriptors)
-        {
-            return WriteSamplerDescriptors(device, (uint)pSamplers.Length, in pSamplers.GetPinnableReference(), pDescriptors);
-        }
-
-        /// <summary>To be documented.</summary>
-        public Result WriteSamplerDescriptors([Count(Count = 0)] Device device, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] ReadOnlySpan<SamplerCreateInfo> pSamplers, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] ReadOnlySpan<HostAddressRangeEXT> pDescriptors)
-        {
-            return WriteSamplerDescriptors(device, (uint)pDescriptors.Length, in pSamplers.GetPinnableReference(), in pDescriptors.GetPinnableReference());
-        }
-
-        public ExtDescriptorHeap(INativeContext ctx)
-            : base(ctx)
-        {
-        }
-
-        protected override IVTable CreateVTable()
-        {
-            return new GeneratedVTable(_ctx);
-        }
-
-        private GeneratedVTable VTable => (GeneratedVTable)CurrentVTable;
-
-        private sealed class GeneratedVTable(INativeContext ctx) : IVTable, IDisposable
-        {
-            private readonly INativeContext ctx = ctx;
-            private nint cmdBindResourceHeap;
-            private nint cmdBindSamplerHeap;
-            private nint cmdPushData;
-            private nint getImageOpaqueCaptureData;
-            private nint getPhysicalDeviceDescriptorSize;
-            private nint getTensorOpaqueCaptureData;
-            private nint registerCustomBorderColor;
-            private nint unregisterCustomBorderColor;
-            private nint writeResourceDescriptors;
-            private nint writeSamplerDescriptors;
-
-            public nint CmdBindResourceHeap => cmdBindResourceHeap is 0 ? cmdBindResourceHeap = Load("vkCmdBindResourceHeapEXT") : cmdBindResourceHeap;
-            public nint CmdBindSamplerHeap => cmdBindSamplerHeap is 0 ? cmdBindSamplerHeap = Load("vkCmdBindSamplerHeapEXT") : cmdBindSamplerHeap;
-            public nint CmdPushData => cmdPushData is 0 ? cmdPushData = Load("vkCmdPushDataEXT") : cmdPushData;
-            public nint GetImageOpaqueCaptureData => getImageOpaqueCaptureData is 0 ? getImageOpaqueCaptureData = Load("vkGetImageOpaqueCaptureDataEXT") : getImageOpaqueCaptureData;
-            public nint GetPhysicalDeviceDescriptorSize => getPhysicalDeviceDescriptorSize is 0 ? getPhysicalDeviceDescriptorSize = Load("vkGetPhysicalDeviceDescriptorSizeEXT") : getPhysicalDeviceDescriptorSize;
-            public nint GetTensorOpaqueCaptureData => getTensorOpaqueCaptureData is 0 ? getTensorOpaqueCaptureData = Load("vkGetTensorOpaqueCaptureDataARM") : getTensorOpaqueCaptureData;
-            public nint RegisterCustomBorderColor => registerCustomBorderColor is 0 ? registerCustomBorderColor = Load("vkRegisterCustomBorderColorEXT") : registerCustomBorderColor;
-            public nint UnregisterCustomBorderColor => unregisterCustomBorderColor is 0 ? unregisterCustomBorderColor = Load("vkUnregisterCustomBorderColorEXT") : unregisterCustomBorderColor;
-            public nint WriteResourceDescriptors => writeResourceDescriptors is 0 ? writeResourceDescriptors = Load("vkWriteResourceDescriptorsEXT") : writeResourceDescriptors;
-            public nint WriteSamplerDescriptors => writeSamplerDescriptors is 0 ? writeSamplerDescriptors = Load("vkWriteSamplerDescriptorsEXT") : writeSamplerDescriptors;
-
-            public nint Load(int slot, string name)
-            {
-                return Load(name);
-            }
-
-            public nint Load(string name)
-            {
-                return ctx.GetProcAddress(name, null);
-            }
-
-            public IVTable Clone()
-            {
-                return new GeneratedVTable(ctx);
-            }
-
-            public void Purge()
-            {
-                cmdBindResourceHeap = 0;
-                cmdBindSamplerHeap = 0;
-                cmdPushData = 0;
-                getImageOpaqueCaptureData = 0;
-                getPhysicalDeviceDescriptorSize = 0;
-                getTensorOpaqueCaptureData = 0;
-                registerCustomBorderColor = 0;
-                unregisterCustomBorderColor = 0;
-                writeResourceDescriptors = 0;
-                writeSamplerDescriptors = 0;
-            }
-
-            public void Dispose()
-            {
-                Purge();
-            }
-        }
-    }
-}
-
 namespace Silk.NET.Vulkan
 {
     public static class ExtDescriptorHeapStructureTypeExtensions
@@ -2718,6 +2301,423 @@ namespace Silk.NET.Vulkan
         {
             get => (BaseInStructure*)PNext;
             set => PNext = value;
+        }
+    }
+}
+
+namespace Silk.NET.Vulkan.Extensions.EXT
+{
+    [Extension("VK_EXT_descriptor_heap")]
+    public unsafe partial class ExtDescriptorHeap : NativeExtension<Vk>
+    {
+        public const uint SpecVersion = 1;
+        public const string ExtensionName = "VK_EXT_descriptor_heap";
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkCmdBindResourceHeapEXT", Convention = CallingConvention.Winapi)]
+        public unsafe void CmdBindResourceHeap([Count(Count = 0)] CommandBuffer commandBuffer, [Count(Count = 0), Flow(FlowDirection.In)] BindHeapInfoEXT* pBindInfo)
+        {
+            ((delegate* unmanaged[Stdcall]<CommandBuffer, BindHeapInfoEXT*, void>)VTable.CmdBindResourceHeap)(commandBuffer, pBindInfo);
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkCmdBindResourceHeapEXT", Convention = CallingConvention.Winapi)]
+        public void CmdBindResourceHeap([Count(Count = 0)] CommandBuffer commandBuffer, [Count(Count = 0), Flow(FlowDirection.In)] ref readonly BindHeapInfoEXT pBindInfo)
+        {
+            fixed (BindHeapInfoEXT* pBindInfoPtr = &pBindInfo)
+            {
+                CmdBindResourceHeap(commandBuffer, pBindInfoPtr);
+            }
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkCmdBindSamplerHeapEXT", Convention = CallingConvention.Winapi)]
+        public unsafe void CmdBindSamplerHeap([Count(Count = 0)] CommandBuffer commandBuffer, [Count(Count = 0), Flow(FlowDirection.In)] BindHeapInfoEXT* pBindInfo)
+        {
+            ((delegate* unmanaged[Stdcall]<CommandBuffer, BindHeapInfoEXT*, void>)VTable.CmdBindSamplerHeap)(commandBuffer, pBindInfo);
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkCmdBindSamplerHeapEXT", Convention = CallingConvention.Winapi)]
+        public void CmdBindSamplerHeap([Count(Count = 0)] CommandBuffer commandBuffer, [Count(Count = 0), Flow(FlowDirection.In)] ref readonly BindHeapInfoEXT pBindInfo)
+        {
+            fixed (BindHeapInfoEXT* pBindInfoPtr = &pBindInfo)
+            {
+                CmdBindSamplerHeap(commandBuffer, pBindInfoPtr);
+            }
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkCmdPushDataEXT", Convention = CallingConvention.Winapi)]
+        public unsafe void CmdPushData([Count(Count = 0)] CommandBuffer commandBuffer, [Count(Count = 0), Flow(FlowDirection.In)] PushDataInfoEXT* pPushDataInfo)
+        {
+            ((delegate* unmanaged[Stdcall]<CommandBuffer, PushDataInfoEXT*, void>)VTable.CmdPushData)(commandBuffer, pPushDataInfo);
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkCmdPushDataEXT", Convention = CallingConvention.Winapi)]
+        public void CmdPushData([Count(Count = 0)] CommandBuffer commandBuffer, [Count(Count = 0), Flow(FlowDirection.In)] ref readonly PushDataInfoEXT pPushDataInfo)
+        {
+            fixed (PushDataInfoEXT* pPushDataInfoPtr = &pPushDataInfo)
+            {
+                CmdPushData(commandBuffer, pPushDataInfoPtr);
+            }
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkGetImageOpaqueCaptureDataEXT", Convention = CallingConvention.Winapi)]
+        public unsafe Result GetImageOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Count = 0)] uint imageCount, [Count(Parameter = "imageCount"), Flow(FlowDirection.In)] Image* pImages, [Count(Parameter = "imageCount"), Flow(FlowDirection.Out)] HostAddressRangeEXT* pDatas)
+        {
+            return ((delegate* unmanaged[Stdcall]<Device, uint, Image*, HostAddressRangeEXT*, Result>)VTable.GetImageOpaqueCaptureData)(device, imageCount, pImages, pDatas);
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkGetImageOpaqueCaptureDataEXT", Convention = CallingConvention.Winapi)]
+        public unsafe Result GetImageOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Count = 0)] uint imageCount, [Count(Parameter = "imageCount"), Flow(FlowDirection.In)] Image* pImages, [Count(Parameter = "imageCount"), Flow(FlowDirection.Out)] out HostAddressRangeEXT pDatas)
+        {
+            pDatas = default;
+
+            fixed (HostAddressRangeEXT* pDatasPtr = &pDatas)
+            {
+                return GetImageOpaqueCaptureData(device, imageCount, pImages, pDatasPtr);
+            }
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkGetImageOpaqueCaptureDataEXT", Convention = CallingConvention.Winapi)]
+        public unsafe Result GetImageOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Count = 0)] uint imageCount, [Count(Parameter = "imageCount"), Flow(FlowDirection.In)] ref readonly Image pImages, [Count(Parameter = "imageCount"), Flow(FlowDirection.Out)] HostAddressRangeEXT* pDatas)
+        {
+            fixed (Image* pImagesPtr = &pImages)
+            {
+                return GetImageOpaqueCaptureData(device, imageCount, pImagesPtr, pDatas);
+            }
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkGetImageOpaqueCaptureDataEXT", Convention = CallingConvention.Winapi)]
+        public Result GetImageOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Count = 0)] uint imageCount, [Count(Parameter = "imageCount"), Flow(FlowDirection.In)] ref readonly Image pImages, [Count(Parameter = "imageCount"), Flow(FlowDirection.Out)] out HostAddressRangeEXT pDatas)
+        {
+            pDatas = default;
+
+            fixed (Image* pImagesPtr = &pImages)
+            fixed (HostAddressRangeEXT* pDatasPtr = &pDatas)
+            {
+                return GetImageOpaqueCaptureData(device, imageCount, pImagesPtr, pDatasPtr);
+            }
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkGetPhysicalDeviceDescriptorSizeEXT", Convention = CallingConvention.Winapi)]
+        public ulong GetPhysicalDeviceDescriptorSize([Count(Count = 0)] PhysicalDevice physicalDevice, [Count(Count = 0)] DescriptorType descriptorType)
+        {
+            return ((delegate* unmanaged[Stdcall]<PhysicalDevice, DescriptorType, ulong>)VTable.GetPhysicalDeviceDescriptorSize)(physicalDevice, descriptorType);
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkGetTensorOpaqueCaptureDataARM", Convention = CallingConvention.Winapi)]
+        public unsafe Result GetTensorOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Count = 0)] uint tensorCount, [Count(Parameter = "tensorCount"), Flow(FlowDirection.In)] TensorARM* pTensors, [Count(Parameter = "tensorCount"), Flow(FlowDirection.Out)] HostAddressRangeEXT* pDatas)
+        {
+            return ((delegate* unmanaged[Stdcall]<Device, uint, TensorARM*, HostAddressRangeEXT*, Result>)VTable.GetTensorOpaqueCaptureData)(device, tensorCount, pTensors, pDatas);
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkGetTensorOpaqueCaptureDataARM", Convention = CallingConvention.Winapi)]
+        public unsafe Result GetTensorOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Count = 0)] uint tensorCount, [Count(Parameter = "tensorCount"), Flow(FlowDirection.In)] TensorARM* pTensors, [Count(Parameter = "tensorCount"), Flow(FlowDirection.Out)] out HostAddressRangeEXT pDatas)
+        {
+            pDatas = default;
+
+            fixed (HostAddressRangeEXT* pDatasPtr = &pDatas)
+            {
+                return GetTensorOpaqueCaptureData(device, tensorCount, pTensors, pDatasPtr);
+            }
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkGetTensorOpaqueCaptureDataARM", Convention = CallingConvention.Winapi)]
+        public unsafe Result GetTensorOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Count = 0)] uint tensorCount, [Count(Parameter = "tensorCount"), Flow(FlowDirection.In)] ref readonly TensorARM pTensors, [Count(Parameter = "tensorCount"), Flow(FlowDirection.Out)] HostAddressRangeEXT* pDatas)
+        {
+            fixed (TensorARM* pTensorsPtr = &pTensors)
+            {
+                return GetTensorOpaqueCaptureData(device, tensorCount, pTensorsPtr, pDatas);
+            }
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkGetTensorOpaqueCaptureDataARM", Convention = CallingConvention.Winapi)]
+        public Result GetTensorOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Count = 0)] uint tensorCount, [Count(Parameter = "tensorCount"), Flow(FlowDirection.In)] ref readonly TensorARM pTensors, [Count(Parameter = "tensorCount"), Flow(FlowDirection.Out)] out HostAddressRangeEXT pDatas)
+        {
+            pDatas = default;
+
+            fixed (TensorARM* pTensorsPtr = &pTensors)
+            fixed (HostAddressRangeEXT* pDatasPtr = &pDatas)
+            {
+                return GetTensorOpaqueCaptureData(device, tensorCount, pTensorsPtr, pDatasPtr);
+            }
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkRegisterCustomBorderColorEXT", Convention = CallingConvention.Winapi)]
+        public unsafe Result RegisterCustomBorderColor([Count(Count = 0)] Device device, [Count(Count = 0), Flow(FlowDirection.In)] SamplerCustomBorderColorCreateInfoEXT* pBorderColor, [Count(Count = 0)] Bool32 requestIndex, [Count(Count = 0)] uint* pIndex)
+        {
+            return ((delegate* unmanaged[Stdcall]<Device, SamplerCustomBorderColorCreateInfoEXT*, Bool32, uint*, Result>)VTable.RegisterCustomBorderColor)(device, pBorderColor, requestIndex, pIndex);
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkRegisterCustomBorderColorEXT", Convention = CallingConvention.Winapi)]
+        public unsafe Result RegisterCustomBorderColor([Count(Count = 0)] Device device, [Count(Count = 0), Flow(FlowDirection.In)] SamplerCustomBorderColorCreateInfoEXT* pBorderColor, [Count(Count = 0)] Bool32 requestIndex, [Count(Count = 0)] ref uint pIndex)
+        {
+            fixed (uint* pIndexPtr = &pIndex)
+            {
+                return RegisterCustomBorderColor(device, pBorderColor, requestIndex, pIndexPtr);
+            }
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkRegisterCustomBorderColorEXT", Convention = CallingConvention.Winapi)]
+        public unsafe Result RegisterCustomBorderColor([Count(Count = 0)] Device device, [Count(Count = 0), Flow(FlowDirection.In)] ref readonly SamplerCustomBorderColorCreateInfoEXT pBorderColor, [Count(Count = 0)] Bool32 requestIndex, [Count(Count = 0)] uint* pIndex)
+        {
+            fixed (SamplerCustomBorderColorCreateInfoEXT* pBorderColorPtr = &pBorderColor)
+            {
+                return RegisterCustomBorderColor(device, pBorderColorPtr, requestIndex, pIndex);
+            }
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkRegisterCustomBorderColorEXT", Convention = CallingConvention.Winapi)]
+        public Result RegisterCustomBorderColor([Count(Count = 0)] Device device, [Count(Count = 0), Flow(FlowDirection.In)] ref readonly SamplerCustomBorderColorCreateInfoEXT pBorderColor, [Count(Count = 0)] Bool32 requestIndex, [Count(Count = 0)] ref uint pIndex)
+        {
+            fixed (SamplerCustomBorderColorCreateInfoEXT* pBorderColorPtr = &pBorderColor)
+            fixed (uint* pIndexPtr = &pIndex)
+            {
+                return RegisterCustomBorderColor(device, pBorderColorPtr, requestIndex, pIndexPtr);
+            }
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkUnregisterCustomBorderColorEXT", Convention = CallingConvention.Winapi)]
+        public void UnregisterCustomBorderColor([Count(Count = 0)] Device device, [Count(Count = 0)] uint index)
+        {
+            ((delegate* unmanaged[Stdcall]<Device, uint, void>)VTable.UnregisterCustomBorderColor)(device, index);
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkWriteResourceDescriptorsEXT", Convention = CallingConvention.Winapi)]
+        public unsafe Result WriteResourceDescriptors([Count(Count = 0)] Device device, [Count(Count = 0)] uint resourceCount, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ResourceDescriptorInfoEXT* pResources, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] HostAddressRangeEXT* pDescriptors)
+        {
+            return ((delegate* unmanaged[Stdcall]<Device, uint, ResourceDescriptorInfoEXT*, HostAddressRangeEXT*, Result>)VTable.WriteResourceDescriptors)(device, resourceCount, pResources, pDescriptors);
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkWriteResourceDescriptorsEXT", Convention = CallingConvention.Winapi)]
+        public unsafe Result WriteResourceDescriptors([Count(Count = 0)] Device device, [Count(Count = 0)] uint resourceCount, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ResourceDescriptorInfoEXT* pResources, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ref readonly HostAddressRangeEXT pDescriptors)
+        {
+            fixed (HostAddressRangeEXT* pDescriptorsPtr = &pDescriptors)
+            {
+                return WriteResourceDescriptors(device, resourceCount, pResources, pDescriptorsPtr);
+            }
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkWriteResourceDescriptorsEXT", Convention = CallingConvention.Winapi)]
+        public unsafe Result WriteResourceDescriptors([Count(Count = 0)] Device device, [Count(Count = 0)] uint resourceCount, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ref readonly ResourceDescriptorInfoEXT pResources, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] HostAddressRangeEXT* pDescriptors)
+        {
+            fixed (ResourceDescriptorInfoEXT* pResourcesPtr = &pResources)
+            {
+                return WriteResourceDescriptors(device, resourceCount, pResourcesPtr, pDescriptors);
+            }
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkWriteResourceDescriptorsEXT", Convention = CallingConvention.Winapi)]
+        public Result WriteResourceDescriptors([Count(Count = 0)] Device device, [Count(Count = 0)] uint resourceCount, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ref readonly ResourceDescriptorInfoEXT pResources, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ref readonly HostAddressRangeEXT pDescriptors)
+        {
+            fixed (ResourceDescriptorInfoEXT* pResourcesPtr = &pResources)
+            fixed (HostAddressRangeEXT* pDescriptorsPtr = &pDescriptors)
+            {
+                return WriteResourceDescriptors(device, resourceCount, pResourcesPtr, pDescriptorsPtr);
+            }
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkWriteSamplerDescriptorsEXT", Convention = CallingConvention.Winapi)]
+        public unsafe Result WriteSamplerDescriptors([Count(Count = 0)] Device device, [Count(Count = 0)] uint samplerCount, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] SamplerCreateInfo* pSamplers, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] HostAddressRangeEXT* pDescriptors)
+        {
+            return ((delegate* unmanaged[Stdcall]<Device, uint, SamplerCreateInfo*, HostAddressRangeEXT*, Result>)VTable.WriteSamplerDescriptors)(device, samplerCount, pSamplers, pDescriptors);
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkWriteSamplerDescriptorsEXT", Convention = CallingConvention.Winapi)]
+        public unsafe Result WriteSamplerDescriptors([Count(Count = 0)] Device device, [Count(Count = 0)] uint samplerCount, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] SamplerCreateInfo* pSamplers, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] ref readonly HostAddressRangeEXT pDescriptors)
+        {
+            fixed (HostAddressRangeEXT* pDescriptorsPtr = &pDescriptors)
+            {
+                return WriteSamplerDescriptors(device, samplerCount, pSamplers, pDescriptorsPtr);
+            }
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkWriteSamplerDescriptorsEXT", Convention = CallingConvention.Winapi)]
+        public unsafe Result WriteSamplerDescriptors([Count(Count = 0)] Device device, [Count(Count = 0)] uint samplerCount, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] ref readonly SamplerCreateInfo pSamplers, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] HostAddressRangeEXT* pDescriptors)
+        {
+            fixed (SamplerCreateInfo* pSamplersPtr = &pSamplers)
+            {
+                return WriteSamplerDescriptors(device, samplerCount, pSamplersPtr, pDescriptors);
+            }
+        }
+
+        /// <summary>To be documented.</summary>
+        [NativeApi(EntryPoint = "vkWriteSamplerDescriptorsEXT", Convention = CallingConvention.Winapi)]
+        public Result WriteSamplerDescriptors([Count(Count = 0)] Device device, [Count(Count = 0)] uint samplerCount, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] ref readonly SamplerCreateInfo pSamplers, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] ref readonly HostAddressRangeEXT pDescriptors)
+        {
+            fixed (SamplerCreateInfo* pSamplersPtr = &pSamplers)
+            fixed (HostAddressRangeEXT* pDescriptorsPtr = &pDescriptors)
+            {
+                return WriteSamplerDescriptors(device, samplerCount, pSamplersPtr, pDescriptorsPtr);
+            }
+        }
+
+        /// <summary>To be documented.</summary>
+        public unsafe Result GetImageOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Parameter = "imageCount"), Flow(FlowDirection.In)] Image* pImages, [Count(Parameter = "imageCount"), Flow(FlowDirection.Out)] Span<HostAddressRangeEXT> pDatas)
+        {
+            return GetImageOpaqueCaptureData(device, (uint)pDatas.Length, pImages, out pDatas.GetPinnableReference());
+        }
+
+        /// <summary>To be documented.</summary>
+        public unsafe Result GetImageOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Parameter = "imageCount"), Flow(FlowDirection.In)] ReadOnlySpan<Image> pImages, [Count(Parameter = "imageCount"), Flow(FlowDirection.Out)] HostAddressRangeEXT* pDatas)
+        {
+            return GetImageOpaqueCaptureData(device, (uint)pImages.Length, in pImages.GetPinnableReference(), pDatas);
+        }
+
+        /// <summary>To be documented.</summary>
+        public Result GetImageOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Parameter = "imageCount"), Flow(FlowDirection.In)] ReadOnlySpan<Image> pImages, [Count(Parameter = "imageCount"), Flow(FlowDirection.Out)] Span<HostAddressRangeEXT> pDatas)
+        {
+            return GetImageOpaqueCaptureData(device, (uint)pDatas.Length, in pImages.GetPinnableReference(), out pDatas.GetPinnableReference());
+        }
+
+        /// <summary>To be documented.</summary>
+        public unsafe Result GetTensorOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Parameter = "tensorCount"), Flow(FlowDirection.In)] TensorARM* pTensors, [Count(Parameter = "tensorCount"), Flow(FlowDirection.Out)] Span<HostAddressRangeEXT> pDatas)
+        {
+            return GetTensorOpaqueCaptureData(device, (uint)pDatas.Length, pTensors, out pDatas.GetPinnableReference());
+        }
+
+        /// <summary>To be documented.</summary>
+        public unsafe Result GetTensorOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Parameter = "tensorCount"), Flow(FlowDirection.In)] ReadOnlySpan<TensorARM> pTensors, [Count(Parameter = "tensorCount"), Flow(FlowDirection.Out)] HostAddressRangeEXT* pDatas)
+        {
+            return GetTensorOpaqueCaptureData(device, (uint)pTensors.Length, in pTensors.GetPinnableReference(), pDatas);
+        }
+
+        /// <summary>To be documented.</summary>
+        public Result GetTensorOpaqueCaptureData([Count(Count = 0)] Device device, [Count(Parameter = "tensorCount"), Flow(FlowDirection.In)] ReadOnlySpan<TensorARM> pTensors, [Count(Parameter = "tensorCount"), Flow(FlowDirection.Out)] Span<HostAddressRangeEXT> pDatas)
+        {
+            return GetTensorOpaqueCaptureData(device, (uint)pDatas.Length, in pTensors.GetPinnableReference(), out pDatas.GetPinnableReference());
+        }
+
+        /// <summary>To be documented.</summary>
+        public unsafe Result WriteResourceDescriptors([Count(Count = 0)] Device device, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ResourceDescriptorInfoEXT* pResources, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ReadOnlySpan<HostAddressRangeEXT> pDescriptors)
+        {
+            return WriteResourceDescriptors(device, (uint)pDescriptors.Length, pResources, in pDescriptors.GetPinnableReference());
+        }
+
+        /// <summary>To be documented.</summary>
+        public unsafe Result WriteResourceDescriptors([Count(Count = 0)] Device device, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ReadOnlySpan<ResourceDescriptorInfoEXT> pResources, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] HostAddressRangeEXT* pDescriptors)
+        {
+            return WriteResourceDescriptors(device, (uint)pResources.Length, in pResources.GetPinnableReference(), pDescriptors);
+        }
+
+        /// <summary>To be documented.</summary>
+        public Result WriteResourceDescriptors([Count(Count = 0)] Device device, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ReadOnlySpan<ResourceDescriptorInfoEXT> pResources, [Count(Parameter = "resourceCount"), Flow(FlowDirection.In)] ReadOnlySpan<HostAddressRangeEXT> pDescriptors)
+        {
+            return WriteResourceDescriptors(device, (uint)pDescriptors.Length, in pResources.GetPinnableReference(), in pDescriptors.GetPinnableReference());
+        }
+
+        /// <summary>To be documented.</summary>
+        public unsafe Result WriteSamplerDescriptors([Count(Count = 0)] Device device, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] SamplerCreateInfo* pSamplers, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] ReadOnlySpan<HostAddressRangeEXT> pDescriptors)
+        {
+            return WriteSamplerDescriptors(device, (uint)pDescriptors.Length, pSamplers, in pDescriptors.GetPinnableReference());
+        }
+
+        /// <summary>To be documented.</summary>
+        public unsafe Result WriteSamplerDescriptors([Count(Count = 0)] Device device, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] ReadOnlySpan<SamplerCreateInfo> pSamplers, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] HostAddressRangeEXT* pDescriptors)
+        {
+            return WriteSamplerDescriptors(device, (uint)pSamplers.Length, in pSamplers.GetPinnableReference(), pDescriptors);
+        }
+
+        /// <summary>To be documented.</summary>
+        public Result WriteSamplerDescriptors([Count(Count = 0)] Device device, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] ReadOnlySpan<SamplerCreateInfo> pSamplers, [Count(Parameter = "samplerCount"), Flow(FlowDirection.In)] ReadOnlySpan<HostAddressRangeEXT> pDescriptors)
+        {
+            return WriteSamplerDescriptors(device, (uint)pDescriptors.Length, in pSamplers.GetPinnableReference(), in pDescriptors.GetPinnableReference());
+        }
+
+        public ExtDescriptorHeap(INativeContext ctx)
+            : base(ctx)
+        {
+        }
+
+        protected override IVTable CreateVTable()
+        {
+            return new GeneratedVTable(_ctx);
+        }
+
+        private GeneratedVTable VTable => (GeneratedVTable)CurrentVTable;
+
+        private sealed class GeneratedVTable(INativeContext ctx) : IVTable, IDisposable
+        {
+            private readonly INativeContext ctx = ctx;
+            private nint cmdBindResourceHeap;
+            private nint cmdBindSamplerHeap;
+            private nint cmdPushData;
+            private nint getImageOpaqueCaptureData;
+            private nint getPhysicalDeviceDescriptorSize;
+            private nint getTensorOpaqueCaptureData;
+            private nint registerCustomBorderColor;
+            private nint unregisterCustomBorderColor;
+            private nint writeResourceDescriptors;
+            private nint writeSamplerDescriptors;
+
+            public nint CmdBindResourceHeap => cmdBindResourceHeap is 0 ? cmdBindResourceHeap = Load("vkCmdBindResourceHeapEXT") : cmdBindResourceHeap;
+            public nint CmdBindSamplerHeap => cmdBindSamplerHeap is 0 ? cmdBindSamplerHeap = Load("vkCmdBindSamplerHeapEXT") : cmdBindSamplerHeap;
+            public nint CmdPushData => cmdPushData is 0 ? cmdPushData = Load("vkCmdPushDataEXT") : cmdPushData;
+            public nint GetImageOpaqueCaptureData => getImageOpaqueCaptureData is 0 ? getImageOpaqueCaptureData = Load("vkGetImageOpaqueCaptureDataEXT") : getImageOpaqueCaptureData;
+            public nint GetPhysicalDeviceDescriptorSize => getPhysicalDeviceDescriptorSize is 0 ? getPhysicalDeviceDescriptorSize = Load("vkGetPhysicalDeviceDescriptorSizeEXT") : getPhysicalDeviceDescriptorSize;
+            public nint GetTensorOpaqueCaptureData => getTensorOpaqueCaptureData is 0 ? getTensorOpaqueCaptureData = Load("vkGetTensorOpaqueCaptureDataARM") : getTensorOpaqueCaptureData;
+            public nint RegisterCustomBorderColor => registerCustomBorderColor is 0 ? registerCustomBorderColor = Load("vkRegisterCustomBorderColorEXT") : registerCustomBorderColor;
+            public nint UnregisterCustomBorderColor => unregisterCustomBorderColor is 0 ? unregisterCustomBorderColor = Load("vkUnregisterCustomBorderColorEXT") : unregisterCustomBorderColor;
+            public nint WriteResourceDescriptors => writeResourceDescriptors is 0 ? writeResourceDescriptors = Load("vkWriteResourceDescriptorsEXT") : writeResourceDescriptors;
+            public nint WriteSamplerDescriptors => writeSamplerDescriptors is 0 ? writeSamplerDescriptors = Load("vkWriteSamplerDescriptorsEXT") : writeSamplerDescriptors;
+
+            public nint Load(int slot, string name)
+            {
+                return Load(name);
+            }
+
+            public nint Load(string name)
+            {
+                return ctx.GetProcAddress(name, null);
+            }
+
+            public IVTable Clone()
+            {
+                return new GeneratedVTable(ctx);
+            }
+
+            public void Purge()
+            {
+                cmdBindResourceHeap = 0;
+                cmdBindSamplerHeap = 0;
+                cmdPushData = 0;
+                getImageOpaqueCaptureData = 0;
+                getPhysicalDeviceDescriptorSize = 0;
+                getTensorOpaqueCaptureData = 0;
+                registerCustomBorderColor = 0;
+                unregisterCustomBorderColor = 0;
+                writeResourceDescriptors = 0;
+                writeSamplerDescriptors = 0;
+            }
+
+            public void Dispose()
+            {
+                Purge();
+            }
         }
     }
 }
