@@ -1,9 +1,44 @@
 ﻿using Silk.NET.Vulkan;
+using Silk.NET.Vulkan.Extensions.EXT;
+using Silk.NET.Vulkan.Extensions.KHR;
 
 namespace Zenith.NET.Vulkan;
 
 internal class VKGraphicsContext(bool useValidationLayer) : GraphicsContext(GraphicsApi.Vulkan, useValidationLayer)
 {
+    private static readonly string[] InstanceLayers =
+    [
+        "VK_LAYER_KHRONOS_validation"
+    ];
+
+    private static readonly string[] InstanceExtensions =
+    [
+        ExtDebugUtils.ExtensionName,
+        ExtMetalSurface.ExtensionName,
+        KhrAndroidSurface.ExtensionName,
+        KhrSurface.ExtensionName,
+        KhrWaylandSurface.ExtensionName,
+        KhrWin32Surface.ExtensionName,
+        KhrXlibSurface.ExtensionName
+    ];
+
+    private static readonly string[] DeviceExtensions =
+    [
+        ExtDescriptorHeap.ExtensionName,
+        ExtMeshShader.ExtensionName,
+        KhrAccelerationStructure.ExtensionName,
+        KhrDeferredHostOperations.ExtensionName,
+        KhrExternalMemoryWin32.ExtensionName,
+        KhrRayQuery.ExtensionName,
+        KhrSwapchain.ExtensionName
+    ];
+
+    public Instance Instance;
+
+    public PhysicalDevice PhysicalDevice;
+
+    public Device Device;
+
     public Vk Vk { get; } = Vk.GetApi();
 
     public override nint GetNativeObject(NativeObjectType type)
