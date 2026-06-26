@@ -460,6 +460,8 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             Swapchain = enabledExtensions.Contains(KhrSwapchain.ExtensionName) ? new(context) : null;
         }
 
+        capabilities = new VKCapabilities(this);
+
         throw new NotImplementedException();
     }
 
