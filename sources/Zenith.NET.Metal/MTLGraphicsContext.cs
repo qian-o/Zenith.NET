@@ -42,7 +42,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
     {
         if (!Device.SupportsFamily(MTLGPUFamily.Metal4))
         {
-            throw new NotSupportedException("Metal 4 is required but not supported by this device.");
+            throw new NotSupportedException("This device does not support Metal 4.0 or higher.");
         }
 
         Compiler = Device.MakeCompiler(new(), out NSError error);

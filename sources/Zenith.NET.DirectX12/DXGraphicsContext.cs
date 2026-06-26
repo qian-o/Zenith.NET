@@ -1,7 +1,6 @@
 ﻿using Silk.NET.Core.Native;
 using Silk.NET.Direct3D12;
 using Silk.NET.DXGI;
-using Feature = Silk.NET.Direct3D12.Feature;
 
 namespace Zenith.NET.DirectX12;
 
@@ -63,28 +62,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
         if (!D3D12.CreateDevice((IUnknown*)Adapter.Handle, D3DFeatureLevel.Level120, SilkMarshal.GuidPtrOf<ID3D12Device10>(), (void**)Device.GetAddressOf()).IsSuccess())
         {
-            throw new NotSupportedException("Direct3D 12 Feature Level 12_0 is not supported on the selected adapter.");
-        }
-
-        FeatureDataShaderModel shaderModel = new() { HighestShaderModel = D3DShaderModel.ShaderModel66 };
-        Device.CheckFeatureSupport(Feature.ShaderModel, &shaderModel, (uint)sizeof(FeatureDataShaderModel)).Success();
-        if (shaderModel.HighestShaderModel < D3DShaderModel.ShaderModel66)
-        {
-            throw new NotSupportedException("Shader Model 6.6 is required but not supported on the selected adapter.");
-        }
-
-        FeatureDataD3D12Options options = new();
-        Device.CheckFeatureSupport(Feature.D3D12Options, &options, (uint)sizeof(FeatureDataD3D12Options)).Success();
-        if (options.ResourceBindingTier < ResourceBindingTier.Tier3)
-        {
-            throw new NotSupportedException("Resource Binding Tier 3 (bindless) is required but not supported on the selected adapter.");
-        }
-
-        FeatureDataD3D12Options12 options12 = new();
-        Device.CheckFeatureSupport(Feature.D3D12Options12, &options12, (uint)sizeof(FeatureDataD3D12Options12)).Success();
-        if (!options12.EnhancedBarriersSupported)
-        {
-            throw new NotSupportedException("Enhanced Barriers are required but not supported on the selected adapter.");
+            throw new NotSupportedException("This device does not support DirectX 12.0 or higher.");
         }
 
         RootParameter1 rootParameter = new()
