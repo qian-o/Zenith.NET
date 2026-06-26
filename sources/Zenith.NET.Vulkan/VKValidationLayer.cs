@@ -38,7 +38,7 @@ internal unsafe class VKValidationLayer : ValidationLayer
 
     protected override void Destroy()
     {
-        Context.DebugUtils?.DestroyDebugUtilsMessenger(Context.Instance, messenger, null);
+        Context.DebugUtils?.DestroyDebugUtilsMessenger(Context.Instance, messenger, default);
 
         callback.Dispose();
     }
