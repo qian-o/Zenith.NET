@@ -36,13 +36,13 @@ internal unsafe class DXValidationLayer : ValidationLayer
         callback.Dispose();
     }
 
-    private void Callback(MessageCategory category, DxMessageSeverity severity, MessageID messageID, byte* pDescription, void* context)
+    private void Callback(MessageCategory category, DxMessageSeverity severity, MessageID messageID, byte* description, void* context)
     {
         Report(severity switch
         {
             DxMessageSeverity.Error => MessageSeverity.Error,
             DxMessageSeverity.Warning => MessageSeverity.Warning,
             _ => MessageSeverity.Info
-        }, ZenithMarshal.StringFromPointer((nint)pDescription, StringEncoding.UTF8));
+        }, ZenithMarshal.StringFromPointer((nint)description, StringEncoding.UTF8));
     }
 }

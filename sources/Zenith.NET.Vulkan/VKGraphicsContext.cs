@@ -468,8 +468,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         graphicsQueue = new VKCommandQueue(this, CommandQueueType.Graphics, queues.GraphicsQueue, queues.GraphicsQueueFamilyIndex);
         computeQueue = new VKCommandQueue(this, CommandQueueType.Compute, queues.ComputeQueue, queues.ComputeQueueFamilyIndex);
         transferQueue = new VKCommandQueue(this, CommandQueueType.Transfer, queues.TransferQueue, queues.TransferQueueFamilyIndex);
-
-        throw new NotImplementedException();
+        validationLayer = useValidationLayer ? new VKValidationLayer(this) : null;
     }
 
     protected override SwapChain CreateSwapChainImpl(SwapChainDesc desc)
