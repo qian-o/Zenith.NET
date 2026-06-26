@@ -15,6 +15,7 @@
         <PackageVersion Include="Silk.NET.Direct3D12" Version="2.23.0" />
         <PackageVersion Include="Silk.NET.Direct3D9" Version="2.23.0" />
         <PackageVersion Include="Silk.NET.Vulkan" Version="2.23.0" />
+        <PackageVersion Include="Silk.NET.Vulkan.Extensions.ANDROID" Version="2.23.0" />
         <PackageVersion Include="Silk.NET.Vulkan.Extensions.EXT" Version="2.23.0" />
         <PackageVersion Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.23.0" />
         <PackageVersion Include="SixLabors.ImageSharp" Version="4.0.0" />

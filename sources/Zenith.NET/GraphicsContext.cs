@@ -10,13 +10,13 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
                    out Capabilities capabilities,
                    out CommandQueue graphicsQueue,
                    out CommandQueue computeQueue,
-                   out CommandQueue copyQueue,
+                   out CommandQueue transferQueue,
                    out ValidationLayer? validationLayer);
 
         Capabilities = capabilities;
         GraphicsQueue = graphicsQueue;
         ComputeQueue = computeQueue;
-        CopyQueue = copyQueue;
+        TransferQueue = transferQueue;
         ValidationLayer = validationLayer;
 
         Uploader = new(this);
@@ -31,7 +31,7 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
 
     public CommandQueue ComputeQueue { get; }
 
-    public CommandQueue CopyQueue { get; }
+    public CommandQueue TransferQueue { get; }
 
     internal ValidationLayer? ValidationLayer { get; }
 
@@ -122,7 +122,7 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
     {
         GraphicsQueue.Dispose();
         ComputeQueue.Dispose();
-        CopyQueue.Dispose();
+        TransferQueue.Dispose();
         ValidationLayer?.Dispose();
 
         Uploader.Dispose();
@@ -133,7 +133,7 @@ public abstract class GraphicsContext : DisposableObject, INativeObject
                                        out Capabilities capabilities,
                                        out CommandQueue graphicsQueue,
                                        out CommandQueue computeQueue,
-                                       out CommandQueue copyQueue,
+                                       out CommandQueue transferQueue,
                                        out ValidationLayer? validationLayer);
 
     protected abstract SwapChain CreateSwapChainImpl(SwapChainDesc desc);

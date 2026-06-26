@@ -20,7 +20,7 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public void Upload(TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {
-        CommandBuffer commandBuffer = Context.CopyQueue.CommandBuffer();
+        CommandBuffer commandBuffer = Context.TransferQueue.CommandBuffer();
 
         commandBuffer.Upload(this, subresource, offset, extent, data);
         commandBuffer.Submit().Wait();
@@ -28,7 +28,7 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public void Download(TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {
-        CommandBuffer commandBuffer = Context.CopyQueue.CommandBuffer();
+        CommandBuffer commandBuffer = Context.TransferQueue.CommandBuffer();
 
         commandBuffer.Download(this, subresource, offset, extent, data);
         commandBuffer.Submit().Wait();

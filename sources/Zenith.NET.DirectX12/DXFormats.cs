@@ -190,7 +190,7 @@ internal static class DXFormats
         {
             CommandQueueType.Graphics => CommandListType.Direct,
             CommandQueueType.Compute => CommandListType.Compute,
-            CommandQueueType.Copy => CommandListType.Copy,
+            CommandQueueType.Transfer => CommandListType.Copy,
             _ => default
         };
     }

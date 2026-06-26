@@ -498,7 +498,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     protected override void BeginImpl()
     {
-        if (Queue.Type is CommandQueueType.Copy)
+        if (Queue.Type is CommandQueueType.Transfer)
         {
             return;
         }
