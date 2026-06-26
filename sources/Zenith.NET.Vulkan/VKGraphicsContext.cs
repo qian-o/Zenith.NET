@@ -35,6 +35,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         KhrDeferredHostOperations.ExtensionName,
         KhrExternalFenceFd.ExtensionName,
         KhrExternalMemoryWin32.ExtensionName,
+        KhrFragmentShadingRate.ExtensionName,
         KhrRayQuery.ExtensionName,
         KhrShaderUntypedPointers.ExtensionName,
         KhrSwapchain.ExtensionName
@@ -77,6 +78,8 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
     public KhrExternalFenceFd? ExternalFenceFd { get; private set; }
 
     public KhrExternalMemoryWin32? ExternalMemoryWin32 { get; private set; }
+
+    public KhrFragmentShadingRate? FragmentShadingRate { get; private set; }
 
     public KhrSwapchain? Swapchain { get; private set; }
 
@@ -409,9 +412,52 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             createInfo.AddNext(out PhysicalDeviceVulkan13Features _);
             createInfo.AddNext(out PhysicalDeviceVulkan14Features _);
 
+            if (enabledExtensions.Contains(ExtDescriptorHeap.ExtensionName))
+            {
+                createInfo.AddNext(out PhysicalDeviceDescriptorHeapFeaturesEXT _);
+            }
+
+            if (enabledExtensions.Contains(ExtMeshShader.ExtensionName))
+            {
+                createInfo.AddNext(out PhysicalDeviceMeshShaderFeaturesEXT _);
+            }
+
+            if (enabledExtensions.Contains(KhrAccelerationStructure.ExtensionName))
+            {
+                createInfo.AddNext(out PhysicalDeviceAccelerationStructureFeaturesKHR _);
+            }
+
+            if (enabledExtensions.Contains(KhrFragmentShadingRate.ExtensionName))
+            {
+                createInfo.AddNext(out PhysicalDeviceFragmentShadingRateFeaturesKHR _);
+            }
+
+            if (enabledExtensions.Contains(KhrRayQuery.ExtensionName))
+            {
+                createInfo.AddNext(out PhysicalDeviceRayQueryFeaturesKHR _);
+            }
+
+            if (enabledExtensions.Contains(KhrShaderUntypedPointers.ExtensionName))
+            {
+                createInfo.AddNext(out PhysicalDeviceShaderUntypedPointersFeaturesKHR _);
+            }
+
             Vk.GetPhysicalDeviceFeatures2(PhysicalDevice, &features2);
 
             Vk.CreateDevice(PhysicalDevice, &createInfo, default, out Device).Success();
+
+            LamdaNativeContext context = new((proc) => Vk.GetDeviceProcAddr(Device, (byte*)ZenithMarshal.StringToPointer(scope, proc, StringEncoding.UTF8)));
+
+            ExternalMemoryAndroidHardwareBuffer = enabledExtensions.Contains(AndroidExternalMemoryAndroidHardwareBuffer.ExtensionName) ? new(context) : null;
+            DescriptorHeap = enabledExtensions.Contains(ExtDescriptorHeap.ExtensionName) ? new(context) : null;
+            MeshShader = enabledExtensions.Contains(ExtMeshShader.ExtensionName) ? new(context) : null;
+            MetalObjects = enabledExtensions.Contains(ExtMetalObjects.ExtensionName) ? new(context) : null;
+            AccelerationStructure = enabledExtensions.Contains(KhrAccelerationStructure.ExtensionName) ? new(context) : null;
+            DeferredHostOperations = enabledExtensions.Contains(KhrDeferredHostOperations.ExtensionName) ? new(context) : null;
+            ExternalFenceFd = enabledExtensions.Contains(KhrExternalFenceFd.ExtensionName) ? new(context) : null;
+            ExternalMemoryWin32 = enabledExtensions.Contains(KhrExternalMemoryWin32.ExtensionName) ? new(context) : null;
+            FragmentShadingRate = enabledExtensions.Contains(KhrFragmentShadingRate.ExtensionName) ? new(context) : null;
+            Swapchain = enabledExtensions.Contains(KhrSwapchain.ExtensionName) ? new(context) : null;
         }
 
         throw new NotImplementedException();
