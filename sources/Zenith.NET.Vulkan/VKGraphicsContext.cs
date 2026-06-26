@@ -154,6 +154,8 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             XlibSurface = enabledExtensions.Contains(KhrXlibSurface.ExtensionName) ? new(context) : null;
         }
 
+        (Queue GraphicsQueue, uint GraphicsQueueFamilyIndex, Queue ComputeQueue, uint ComputeQueueFamilyIndex, Queue TransferQueue, uint TransferQueueFamilyIndex) queues = default;
+
         // Select physical device and create logical device
         {
             uint physicalDeviceCount = 0;
@@ -283,7 +285,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
             uint queueCreateInfoCount;
             DeviceQueueCreateInfo* queueCreateInfos;
-            Func<(Queue GraphicsQueue, Queue ComputeQueue, Queue TransferQueue, uint[] QueueFamilyIndices)> getQueues;
+            Action loadQueues;
             if (queueFamilyIndices.Count is 3)
             {
                 queueCreateInfoCount = 3;
@@ -317,7 +319,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     PQueuePriorities = queuePriorities
                 };
 
-                getQueues = () =>
+                loadQueues = () =>
                 {
                     Queue graphicsQueue = default;
                     Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
@@ -328,7 +330,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     Queue transferQueue = default;
                     Vk.GetDeviceQueue(Device, transferQueueFamilyIndex, 0, &transferQueue);
 
-                    return (graphicsQueue, computeQueue, transferQueue, [graphicsQueueFamilyIndex, computeQueueFamilyIndex, transferQueueFamilyIndex]);
+                    queues = (graphicsQueue, graphicsQueueFamilyIndex, computeQueue, computeQueueFamilyIndex, transferQueue, transferQueueFamilyIndex);
                 };
             }
             else if (graphicsQueueFamilyCount >= 3)
@@ -349,7 +351,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     PQueuePriorities = queuePriorities
                 };
 
-                getQueues = () =>
+                loadQueues = () =>
                 {
                     Queue graphicsQueue = default;
                     Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
@@ -360,7 +362,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     Queue transferQueue = default;
                     Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 2, &transferQueue);
 
-                    return (graphicsQueue, computeQueue, transferQueue, [graphicsQueueFamilyIndex]);
+                    queues = (graphicsQueue, graphicsQueueFamilyIndex, computeQueue, graphicsQueueFamilyIndex, transferQueue, graphicsQueueFamilyIndex);
                 };
             }
             else
@@ -379,12 +381,12 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     PQueuePriorities = queuePriorities
                 };
 
-                getQueues = () =>
+                loadQueues = () =>
                 {
                     Queue graphicsQueue = default;
                     Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
 
-                    return (graphicsQueue, graphicsQueue, graphicsQueue, [graphicsQueueFamilyIndex]);
+                    queues = (graphicsQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex);
                 };
             }
 
@@ -445,6 +447,8 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             Vk.GetPhysicalDeviceFeatures2(PhysicalDevice, &features2);
 
             Vk.CreateDevice(PhysicalDevice, &createInfo, default, out Device).Success();
+
+            loadQueues();
 
             LamdaNativeContext context = new((proc) => Vk.GetDeviceProcAddr(Device, (byte*)ZenithMarshal.StringToPointer(scope, proc, StringEncoding.UTF8)));
 
