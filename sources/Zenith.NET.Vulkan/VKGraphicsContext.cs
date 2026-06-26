@@ -550,6 +550,8 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
     {
         base.Destroy();
 
+        Vk.DestroyDevice(Device, null);
+        Vk.DestroyInstance(Instance, null);
         Vk.Dispose();
     }
 }
