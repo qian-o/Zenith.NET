@@ -283,25 +283,11 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
             HashSet<uint> queueFamilyIndices = [graphicsQueueFamilyIndex, computeQueueFamilyIndex, transferQueueFamilyIndex];
 
-            Action loadQueues;
             uint queueCreateInfoCount;
             DeviceQueueCreateInfo* queueCreateInfos;
+            Action loadQueues;
             if (queueFamilyIndices.Count is 3)
             {
-                loadQueues = () =>
-                {
-                    Queue graphicsQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
-
-                    Queue computeQueue = default;
-                    Vk.GetDeviceQueue(Device, computeQueueFamilyIndex, 0, &computeQueue);
-
-                    Queue transferQueue = default;
-                    Vk.GetDeviceQueue(Device, transferQueueFamilyIndex, 0, &transferQueue);
-
-                    queues = (graphicsQueue, graphicsQueueFamilyIndex, computeQueue, computeQueueFamilyIndex, transferQueue, transferQueueFamilyIndex);
-                };
-
                 queueCreateInfoCount = 3;
 
                 float* queuePriorities = (float*)ZenithMarshal.Allocate<float>(scope, 1);
@@ -332,23 +318,23 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     QueueCount = 1,
                     PQueuePriorities = queuePriorities
                 };
-            }
-            else if (graphicsQueueFamilyCount >= 3)
-            {
+
                 loadQueues = () =>
                 {
                     Queue graphicsQueue = default;
                     Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
 
                     Queue computeQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 1, &computeQueue);
+                    Vk.GetDeviceQueue(Device, computeQueueFamilyIndex, 0, &computeQueue);
 
                     Queue transferQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 2, &transferQueue);
+                    Vk.GetDeviceQueue(Device, transferQueueFamilyIndex, 0, &transferQueue);
 
-                    queues = (graphicsQueue, graphicsQueueFamilyIndex, computeQueue, graphicsQueueFamilyIndex, transferQueue, graphicsQueueFamilyIndex);
+                    queues = (graphicsQueue, graphicsQueueFamilyIndex, computeQueue, computeQueueFamilyIndex, transferQueue, transferQueueFamilyIndex);
                 };
-
+            }
+            else if (graphicsQueueFamilyCount >= 3)
+            {
                 queueCreateInfoCount = 1;
 
                 float* queuePriorities = (float*)ZenithMarshal.Allocate<float>(scope, 3);
@@ -364,17 +350,23 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     QueueCount = 3,
                     PQueuePriorities = queuePriorities
                 };
-            }
-            else
-            {
+
                 loadQueues = () =>
                 {
                     Queue graphicsQueue = default;
                     Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
 
-                    queues = (graphicsQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex);
-                };
+                    Queue computeQueue = default;
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 1, &computeQueue);
 
+                    Queue transferQueue = default;
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 2, &transferQueue);
+
+                    queues = (graphicsQueue, graphicsQueueFamilyIndex, computeQueue, graphicsQueueFamilyIndex, transferQueue, graphicsQueueFamilyIndex);
+                };
+            }
+            else
+            {
                 queueCreateInfoCount = 1;
 
                 float* queuePriorities = (float*)ZenithMarshal.Allocate<float>(scope, 1);
@@ -387,6 +379,14 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     QueueFamilyIndex = graphicsQueueFamilyIndex,
                     QueueCount = 1,
                     PQueuePriorities = queuePriorities
+                };
+
+                loadQueues = () =>
+                {
+                    Queue graphicsQueue = default;
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
+
+                    queues = (graphicsQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex);
                 };
             }
 
