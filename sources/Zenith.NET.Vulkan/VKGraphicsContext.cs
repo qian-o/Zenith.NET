@@ -478,7 +478,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override Heap CreateHeapImpl(HeapDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKHeap(this, desc);
     }
 
     protected override SizeAndAlignment GetSizeAndAlignmentImpl(BufferDesc desc)

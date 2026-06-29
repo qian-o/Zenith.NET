@@ -72,6 +72,10 @@ public static unsafe class Extensions
 
     extension(Heap heap)
     {
+        internal VKHeap Vulkan()
+        {
+            return (VKHeap)heap;
+        }
     }
 
     extension(MeshShadingPipeline meshShadingPipeline)
