@@ -8,7 +8,17 @@ internal unsafe class VKHeap : Heap
 
     public VKHeap(VKGraphicsContext context, HeapDesc desc) : base(context, desc)
     {
-        throw new NotImplementedException();
+        MemoryAllocateInfo allocateInfo = new()
+        {
+            SType = StructureType.MemoryAllocateInfo,
+            AllocationSize = desc.SizeInBytes,
+            MemoryTypeIndex = context.FindMemoryTypeIndex(uint.MaxValue, desc.Residency)
+        };
+
+        allocateInfo.AddNext(out MemoryAllocateFlagsInfo allocateFlagsInfo);
+        allocateFlagsInfo.Flags = MemoryAllocateFlags.DeviceAddressBit;
+
+        context.Vk.AllocateMemory(context.Device, &allocateInfo, default, out DeviceMemory).Success();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;

@@ -60,6 +60,10 @@ public static unsafe class Extensions
 
     extension(CommandQueue commandQueue)
     {
+        internal VKCommandQueue Vulkan()
+        {
+            return (VKCommandQueue)commandQueue;
+        }
     }
 
     extension(ComputePipeline computePipeline)

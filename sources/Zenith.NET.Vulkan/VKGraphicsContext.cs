@@ -83,6 +83,63 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public KhrSwapchain? Swapchain { get; private set; }
 
+    public (SharingMode SharingMode, uint QueueFamilyIndexCount, nint PQueueFamilyIndices) GetSharingModeInfo(ZenithMarshal.Scope scope)
+    {
+        HashSet<uint> queueFamilyIndices =
+        [
+            GraphicsQueue.Vulkan().QueueFamilyIndex,
+            ComputeQueue.Vulkan().QueueFamilyIndex,
+            TransferQueue.Vulkan().QueueFamilyIndex
+        ];
+
+        if (queueFamilyIndices.Count is 1)
+        {
+            return (SharingMode.Exclusive, 0, 0);
+        }
+        else
+        {
+            return (SharingMode.Concurrent, (uint)queueFamilyIndices.Count, ZenithMarshal.AllocateAndFill(scope, [.. queueFamilyIndices]));
+        }
+    }
+
+    public uint FindMemoryTypeIndex(uint memoryTypeBits, MemoryResidency residency)
+    {
+        PhysicalDeviceMemoryProperties properties;
+        Vk.GetPhysicalDeviceMemoryProperties(PhysicalDevice, &properties);
+
+        MemoryPropertyFlags[] candidates = residency switch
+        {
+            MemoryResidency.GpuOnly =>
+            [
+                MemoryPropertyFlags.DeviceLocalBit
+            ],
+            MemoryResidency.CpuWriteOnly =>
+            [
+                MemoryPropertyFlags.DeviceLocalBit | MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit,
+                MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit
+            ],
+            MemoryResidency.CpuReadOnly =>
+            [
+                MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit | MemoryPropertyFlags.HostCachedBit,
+                MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit
+            ],
+            _ => []
+        };
+
+        foreach (MemoryPropertyFlags propertyFlags in candidates)
+        {
+            for (uint index = 0; index < properties.MemoryTypeCount; index++)
+            {
+                if ((memoryTypeBits & (1u << (int)index)) is not 0 && (properties.MemoryTypes[(int)index].PropertyFlags & propertyFlags) == propertyFlags)
+                {
+                    return index;
+                }
+            }
+        }
+
+        return 0;
+    }
+
     public override nint GetNativeObject(NativeObjectType type)
     {
         return 0;
