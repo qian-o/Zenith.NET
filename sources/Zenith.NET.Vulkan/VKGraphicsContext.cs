@@ -83,22 +83,22 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public KhrSwapchain? Swapchain { get; private set; }
 
-    public (SharingMode SharingMode, uint QueueFamilyIndexCount, nint PQueueFamilyIndices) GetSharingModeInfo(ZenithMarshal.Scope scope)
+    public VKSharing GetSharing(ZenithMarshal.Scope scope)
     {
-        HashSet<uint> queueFamilyIndices =
+        HashSet<uint> indices =
         [
             GraphicsQueue.Vulkan().QueueFamilyIndex,
             ComputeQueue.Vulkan().QueueFamilyIndex,
             TransferQueue.Vulkan().QueueFamilyIndex
         ];
 
-        if (queueFamilyIndices.Count is 1)
+        if (indices.Count is 1)
         {
-            return (SharingMode.Exclusive, 0, 0);
+            return new(SharingMode.Exclusive, null, 0);
         }
         else
         {
-            return (SharingMode.Concurrent, (uint)queueFamilyIndices.Count, ZenithMarshal.AllocateAndFill(scope, [.. queueFamilyIndices]));
+            return new(SharingMode.Concurrent, (uint*)ZenithMarshal.AllocateAndFill(scope, [.. indices]), (uint)indices.Count);
         }
     }
 
@@ -550,7 +550,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override Buffer CreateBufferImpl(BufferDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKBuffer(this, desc);
     }
 
     protected override BufferView CreateBufferViewImpl(BufferViewDesc desc)

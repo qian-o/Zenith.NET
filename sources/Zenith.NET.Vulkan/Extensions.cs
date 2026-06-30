@@ -48,6 +48,10 @@ public static unsafe class Extensions
 
     extension(Buffer buffer)
     {
+        internal VKBuffer Vulkan()
+        {
+            return (VKBuffer)buffer;
+        }
     }
 
     extension(BufferView bufferView)
