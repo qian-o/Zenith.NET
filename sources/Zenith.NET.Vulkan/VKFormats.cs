@@ -33,12 +33,12 @@ internal static class VKFormats
             result |= BufferUsageFlags.StorageBufferBit;
         }
 
-        if (bufferUsages.HasFlag(BufferUsages.CopySrc))
+        if (bufferUsages.HasFlag(BufferUsages.TransferSrc))
         {
             result |= BufferUsageFlags.TransferSrcBit;
         }
 
-        if (bufferUsages.HasFlag(BufferUsages.CopyDst))
+        if (bufferUsages.HasFlag(BufferUsages.TransferDst))
         {
             result |= BufferUsageFlags.TransferDstBit;
         }
@@ -70,12 +70,12 @@ internal static class VKFormats
             result |= ImageUsageFlags.DepthStencilAttachmentBit;
         }
 
-        if (textureUsages.HasFlag(TextureUsages.CopySrc))
+        if (textureUsages.HasFlag(TextureUsages.TransferSrc))
         {
             result |= ImageUsageFlags.TransferSrcBit;
         }
 
-        if (textureUsages.HasFlag(TextureUsages.CopyDst))
+        if (textureUsages.HasFlag(TextureUsages.TransferDst))
         {
             result |= ImageUsageFlags.TransferDstBit;
         }

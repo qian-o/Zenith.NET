@@ -17,7 +17,7 @@ public enum BufferUsages
 
     StorageReadWrite = 1 << 5,
 
-    CopySrc = 1 << 6,
+    TransferSrc = 1 << 6,
 
-    CopyDst = 1 << 7
+    TransferDst = 1 << 7
 }

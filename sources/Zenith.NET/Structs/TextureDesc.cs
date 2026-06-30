@@ -32,7 +32,7 @@ public struct TextureDesc
             MipLevels = mipLevels,
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
-            Usages = TextureUsages.Sampled | TextureUsages.CopyDst
+            Usages = TextureUsages.Sampled | TextureUsages.TransferDst
         };
     }
 
@@ -48,7 +48,7 @@ public struct TextureDesc
             MipLevels = mipLevels,
             ArrayLayers = arrayLayers,
             SampleCount = SampleCount.Count1,
-            Usages = TextureUsages.Sampled | TextureUsages.CopyDst
+            Usages = TextureUsages.Sampled | TextureUsages.TransferDst
         };
     }
 
@@ -64,7 +64,7 @@ public struct TextureDesc
             MipLevels = mipLevels,
             ArrayLayers = 1,
             SampleCount = sampleCount,
-            Usages = TextureUsages.Sampled | TextureUsages.CopyDst
+            Usages = TextureUsages.Sampled | TextureUsages.TransferDst
         };
     }
 
@@ -80,7 +80,7 @@ public struct TextureDesc
             MipLevels = mipLevels,
             ArrayLayers = arrayLayers,
             SampleCount = sampleCount,
-            Usages = TextureUsages.Sampled | TextureUsages.CopyDst
+            Usages = TextureUsages.Sampled | TextureUsages.TransferDst
         };
     }
 
@@ -96,7 +96,7 @@ public struct TextureDesc
             MipLevels = mipLevels,
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
-            Usages = TextureUsages.Sampled | TextureUsages.CopyDst
+            Usages = TextureUsages.Sampled | TextureUsages.TransferDst
         };
     }
 
@@ -112,7 +112,7 @@ public struct TextureDesc
             MipLevels = mipLevels,
             ArrayLayers = 6,
             SampleCount = SampleCount.Count1,
-            Usages = TextureUsages.Sampled | TextureUsages.CopyDst
+            Usages = TextureUsages.Sampled | TextureUsages.TransferDst
         };
     }
 
@@ -128,7 +128,7 @@ public struct TextureDesc
             MipLevels = mipLevels,
             ArrayLayers = cubeCount * 6,
             SampleCount = SampleCount.Count1,
-            Usages = TextureUsages.Sampled | TextureUsages.CopyDst
+            Usages = TextureUsages.Sampled | TextureUsages.TransferDst
         };
     }
 

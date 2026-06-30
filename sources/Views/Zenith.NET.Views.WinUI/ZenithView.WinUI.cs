@@ -162,7 +162,7 @@ internal unsafe partial class Surface : DisposableObject
             MipLevels = 1,
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
-            Usages = TextureUsages.ColorAttachment | TextureUsages.CopyDst
+            Usages = TextureUsages.ColorAttachment | TextureUsages.TransferDst
         }, NativeTextureType.D3D11TextureNtHandle, SharedHandle = (nint)sharedHandle);
     }
 

@@ -13,7 +13,7 @@ public enum TextureUsages
 
     DepthStencilAttachment = 1 << 3,
 
-    CopySrc = 1 << 4,
+    TransferSrc = 1 << 4,
 
-    CopyDst = 1 << 5
+    TransferDst = 1 << 5
 }

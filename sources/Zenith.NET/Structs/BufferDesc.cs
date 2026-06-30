@@ -16,7 +16,7 @@ public struct BufferDesc
         {
             SizeInBytes = sizeInBytes,
             StrideInBytes = 0,
-            Usages = BufferUsages.Vertex | BufferUsages.CopyDst,
+            Usages = BufferUsages.Vertex | BufferUsages.TransferDst,
             Residency = MemoryResidency.GpuOnly
         };
     }
@@ -27,7 +27,7 @@ public struct BufferDesc
         {
             SizeInBytes = sizeInBytes,
             StrideInBytes = 0,
-            Usages = BufferUsages.Index | BufferUsages.CopyDst,
+            Usages = BufferUsages.Index | BufferUsages.TransferDst,
             Residency = MemoryResidency.GpuOnly
         };
     }
@@ -38,7 +38,7 @@ public struct BufferDesc
         {
             SizeInBytes = sizeInBytes,
             StrideInBytes = 0,
-            Usages = BufferUsages.Indirect | BufferUsages.CopyDst,
+            Usages = BufferUsages.Indirect | BufferUsages.TransferDst,
             Residency = MemoryResidency.GpuOnly
         };
     }
@@ -49,7 +49,7 @@ public struct BufferDesc
         {
             SizeInBytes = sizeInBytes,
             StrideInBytes = 0,
-            Usages = BufferUsages.Constant | BufferUsages.CopyDst,
+            Usages = BufferUsages.Constant | BufferUsages.TransferDst,
             Residency = MemoryResidency.GpuOnly
         };
     }
@@ -60,7 +60,7 @@ public struct BufferDesc
         {
             SizeInBytes = sizeInBytes,
             StrideInBytes = strideInBytes,
-            Usages = BufferUsages.StorageReadOnly | BufferUsages.CopyDst,
+            Usages = BufferUsages.StorageReadOnly | BufferUsages.TransferDst,
             Residency = MemoryResidency.GpuOnly
         };
     }
@@ -71,7 +71,7 @@ public struct BufferDesc
         {
             SizeInBytes = sizeInBytes,
             StrideInBytes = strideInBytes,
-            Usages = BufferUsages.StorageReadWrite | BufferUsages.CopyDst,
+            Usages = BufferUsages.StorageReadWrite | BufferUsages.TransferDst,
             Residency = MemoryResidency.GpuOnly
         };
     }
@@ -82,7 +82,7 @@ public struct BufferDesc
         {
             SizeInBytes = sizeInBytes,
             StrideInBytes = 0,
-            Usages = BufferUsages.CopySrc,
+            Usages = BufferUsages.TransferSrc,
             Residency = MemoryResidency.CpuWriteOnly
         };
     }

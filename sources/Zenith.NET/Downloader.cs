@@ -22,7 +22,7 @@ internal class Downloader(GraphicsContext context) : DisposableObject
             lease = new(context.CreateBuffer(new()
             {
                 SizeInBytes = sizeInBytes,
-                Usages = BufferUsages.CopyDst,
+                Usages = BufferUsages.TransferDst,
                 Residency = MemoryResidency.CpuReadOnly
             }));
         }
