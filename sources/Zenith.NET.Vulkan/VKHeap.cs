@@ -65,7 +65,7 @@ internal unsafe class VKHeap : Heap
     {
         using ZenithMarshal.Scope scope = new();
 
-        BufferCreateInfo createInfo = VKBuffer.CreateInfo(desc, Context.GetSharing(scope));
+        BufferCreateInfo createInfo = VKBuffer.CreateInfo(desc, (uint)Context.QueueFamilyIndices.Length, (uint*)ZenithMarshal.AllocateAndFill(scope, [.. Context.QueueFamilyIndices]));
 
         Context.Vk.CreateBuffer(Context.Device, &createInfo, default, out VkBuffer buffer).Success();
         Context.Vk.BindBufferMemory(Context.Device, buffer, DeviceMemory, offsetInBytes).Success();

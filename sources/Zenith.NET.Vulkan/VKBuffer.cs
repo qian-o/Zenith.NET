@@ -12,7 +12,7 @@ internal unsafe class VKBuffer : Buffer
     {
         using ZenithMarshal.Scope scope = new();
 
-        BufferCreateInfo createInfo = CreateInfo(desc, context.GetSharing(scope));
+        BufferCreateInfo createInfo = CreateInfo(desc, (uint)context.QueueFamilyIndices.Length, (uint*)ZenithMarshal.AllocateAndFill(scope, [.. context.QueueFamilyIndices]));
 
         context.Vk.CreateBuffer(context.Device, &createInfo, default, out Buffer).Success();
 
@@ -91,16 +91,16 @@ internal unsafe class VKBuffer : Buffer
         Heap?.Dispose();
     }
 
-    public static BufferCreateInfo CreateInfo(BufferDesc desc, VKSharing sharing)
+    public static BufferCreateInfo CreateInfo(BufferDesc desc, uint queueFamilyIndexCount, uint* pQueueFamilyIndices)
     {
         return new()
         {
             SType = StructureType.BufferCreateInfo,
             Size = desc.SizeInBytes,
             Usage = VKFormats.Vulkan(desc.Usages),
-            SharingMode = sharing.Mode,
-            QueueFamilyIndexCount = sharing.Count,
-            PQueueFamilyIndices = sharing.Indices
+            SharingMode = queueFamilyIndexCount is 1 ? SharingMode.Exclusive : SharingMode.Concurrent,
+            QueueFamilyIndexCount = queueFamilyIndexCount,
+            PQueueFamilyIndices = pQueueFamilyIndices
         };
     }
 }

@@ -83,24 +83,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public KhrSwapchain? Swapchain { get; private set; }
 
-    public VKSharing GetSharing(ZenithMarshal.Scope scope)
-    {
-        HashSet<uint> indices =
-        [
-            GraphicsQueue.Vulkan().QueueFamilyIndex,
-            ComputeQueue.Vulkan().QueueFamilyIndex,
-            TransferQueue.Vulkan().QueueFamilyIndex
-        ];
-
-        if (indices.Count is 1)
-        {
-            return new(SharingMode.Exclusive, null, 0);
-        }
-        else
-        {
-            return new(SharingMode.Concurrent, (uint*)ZenithMarshal.AllocateAndFill(scope, [.. indices]), (uint)indices.Count);
-        }
-    }
+    public uint[] QueueFamilyIndices { get; private set; } = [];
 
     public uint FindMemoryTypeIndex(uint memoryTypeBits, MemoryResidency residency)
     {
@@ -519,6 +502,8 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             Swapchain = enabledExtensions.Contains(KhrSwapchain.ExtensionName) ? new(context) : null;
 
             loadQueues();
+
+            QueueFamilyIndices = [.. new HashSet<uint>() { queues.GraphicsQueueFamilyIndex, queues.ComputeQueueFamilyIndex, queues.TransferQueueFamilyIndex }];
         }
 
         capabilities = new VKCapabilities(this);
