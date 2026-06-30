@@ -25,7 +25,7 @@ internal unsafe class VKHeap : Heap
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        throw new NotImplementedException();
+        return 0;
     }
 
     protected override Buffer CreateBufferImpl(ulong offsetInBytes, BufferDesc desc)

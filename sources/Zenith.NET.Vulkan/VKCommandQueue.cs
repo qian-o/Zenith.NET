@@ -2,11 +2,13 @@
 
 namespace Zenith.NET.Vulkan;
 
-internal class VKCommandQueue(VKGraphicsContext context, CommandQueueType type, Queue queue, uint queueFamilyIndex) : CommandQueue(context, type)
+internal unsafe class VKCommandQueue(VKGraphicsContext context, CommandQueueType type, Queue queue, uint queueFamilyIndex) : CommandQueue(context, type)
 {
     public Queue Queue = queue;
 
     public uint QueueFamilyIndex = queueFamilyIndex;
+
+    public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
     public override nint GetNativeObject(NativeObjectType type)
     {
@@ -45,5 +47,16 @@ internal class VKCommandQueue(VKGraphicsContext context, CommandQueueType type, 
 
     protected override void SetResourceName(string name)
     {
+        using ZenithMarshal.Scope scope = new();
+
+        DebugUtilsObjectNameInfoEXT nameInfo = new()
+        {
+            SType = StructureType.DebugUtilsObjectNameInfoExt,
+            ObjectType = ObjectType.Queue,
+            ObjectHandle = (ulong)Queue.Handle,
+            PObjectName = (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8)
+        };
+
+        Context.DebugUtils?.SetDebugUtilsObjectName(Context.Device, &nameInfo).Success();
     }
 }
