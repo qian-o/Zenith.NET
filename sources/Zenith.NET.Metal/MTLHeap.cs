@@ -25,7 +25,7 @@ internal class MTLHeap : Heap
 
     protected override Buffer CreateBufferImpl(ulong offsetInBytes, BufferDesc desc)
     {
-        return new MTLBuffer(Context, desc, Heap.MakeBuffer(desc.SizeInBytes, MTLFormats.Metal(desc.Residency), (nuint)offsetInBytes));
+        return new MTLBuffer(Context, desc, Heap.MakeBuffer(desc.SizeInBytes, MTLFormats.Metal(Desc.Residency), (nuint)offsetInBytes));
     }
 
     protected override Texture CreateTextureImpl(ulong offsetInBytes, TextureDesc desc)
