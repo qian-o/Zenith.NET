@@ -1,1 +1,1 @@
-﻿
+﻿global using VkBuffer = Silk.NET.Vulkan.Buffer;
