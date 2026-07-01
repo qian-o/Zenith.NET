@@ -4,6 +4,158 @@ namespace Zenith.NET.Vulkan;
 
 internal static class VKFormats
 {
+    public static ImageType Vulkan(TextureType textureType)
+    {
+        return textureType switch
+        {
+            TextureType.Texture1D or
+            TextureType.Texture1DArray => ImageType.Type1D,
+
+            TextureType.Texture2D or
+            TextureType.Texture2DArray or
+            TextureType.TextureCube or
+            TextureType.TextureCubeArray => ImageType.Type2D,
+
+            TextureType.Texture3D => ImageType.Type3D,
+
+            _ => default
+        };
+    }
+
+    public static SampleCountFlags Vulkan(SampleCount sampleCount)
+    {
+        return sampleCount switch
+        {
+            SampleCount.Count1 => SampleCountFlags.Count1Bit,
+            SampleCount.Count2 => SampleCountFlags.Count2Bit,
+            SampleCount.Count4 => SampleCountFlags.Count4Bit,
+            SampleCount.Count8 => SampleCountFlags.Count8Bit,
+            SampleCount.Count16 => SampleCountFlags.Count16Bit,
+            SampleCount.Count32 => SampleCountFlags.Count32Bit,
+            _ => default
+        };
+    }
+
+    public static (Format Format, ImageAspectFlags Aspect) Vulkan(PixelFormat pixelFormat)
+    {
+        ImageAspectFlags aspect = default;
+
+        if (ZenithHelper.HasDepth(pixelFormat))
+        {
+            aspect |= ImageAspectFlags.DepthBit;
+        }
+
+        if (ZenithHelper.HasStencil(pixelFormat))
+        {
+            aspect |= ImageAspectFlags.StencilBit;
+        }
+
+        if (aspect is 0)
+        {
+            aspect = ImageAspectFlags.ColorBit;
+        }
+
+        Format format = pixelFormat switch
+        {
+            PixelFormat.R8UNorm => Format.R8Unorm,
+            PixelFormat.R8SNorm => Format.R8SNorm,
+            PixelFormat.R8UInt => Format.R8Uint,
+            PixelFormat.R8SInt => Format.R8Sint,
+
+            PixelFormat.R16UNorm => Format.R16Unorm,
+            PixelFormat.R16SNorm => Format.R16SNorm,
+            PixelFormat.R16UInt => Format.R16Uint,
+            PixelFormat.R16SInt => Format.R16Sint,
+            PixelFormat.R16Float => Format.R16Sfloat,
+
+            PixelFormat.R32UInt => Format.R32Uint,
+            PixelFormat.R32SInt => Format.R32Sint,
+            PixelFormat.R32Float => Format.R32Sfloat,
+
+            PixelFormat.R8G8UNorm => Format.R8G8Unorm,
+            PixelFormat.R8G8SNorm => Format.R8G8SNorm,
+            PixelFormat.R8G8UInt => Format.R8G8Uint,
+            PixelFormat.R8G8SInt => Format.R8G8Sint,
+
+            PixelFormat.R16G16UNorm => Format.R16G16Unorm,
+            PixelFormat.R16G16SNorm => Format.R16G16SNorm,
+            PixelFormat.R16G16UInt => Format.R16G16Uint,
+            PixelFormat.R16G16SInt => Format.R16G16Sint,
+            PixelFormat.R16G16Float => Format.R16G16Sfloat,
+
+            PixelFormat.R32G32UInt => Format.R32G32Uint,
+            PixelFormat.R32G32SInt => Format.R32G32Sint,
+            PixelFormat.R32G32Float => Format.R32G32Sfloat,
+
+            PixelFormat.R32G32B32UInt => Format.R32G32B32Uint,
+            PixelFormat.R32G32B32SInt => Format.R32G32B32Sint,
+            PixelFormat.R32G32B32Float => Format.R32G32B32Sfloat,
+
+            PixelFormat.R8G8B8A8UNorm => Format.R8G8B8A8Unorm,
+            PixelFormat.R8G8B8A8SNorm => Format.R8G8B8A8SNorm,
+            PixelFormat.R8G8B8A8UInt => Format.R8G8B8A8Uint,
+            PixelFormat.R8G8B8A8SInt => Format.R8G8B8A8Sint,
+            PixelFormat.R8G8B8A8SRgb => Format.R8G8B8A8Srgb,
+
+            PixelFormat.R16G16B16A16UNorm => Format.R16G16B16A16Unorm,
+            PixelFormat.R16G16B16A16SNorm => Format.R16G16B16A16SNorm,
+            PixelFormat.R16G16B16A16UInt => Format.R16G16B16A16Uint,
+            PixelFormat.R16G16B16A16SInt => Format.R16G16B16A16Sint,
+            PixelFormat.R16G16B16A16Float => Format.R16G16B16A16Sfloat,
+
+            PixelFormat.R32G32B32A32UInt => Format.R32G32B32A32Uint,
+            PixelFormat.R32G32B32A32SInt => Format.R32G32B32A32Sint,
+            PixelFormat.R32G32B32A32Float => Format.R32G32B32A32Sfloat,
+
+            PixelFormat.B8G8R8A8UNorm => Format.B8G8R8A8Unorm,
+            PixelFormat.B8G8R8A8SRgb => Format.B8G8R8A8Srgb,
+
+            PixelFormat.D16UNorm => Format.D16Unorm,
+            PixelFormat.D24UNormS8UInt => Format.D24UnormS8Uint,
+            PixelFormat.D32Float => Format.D32Sfloat,
+            PixelFormat.D32FloatS8UInt => Format.D32SfloatS8Uint,
+
+            PixelFormat.BC4UNorm => Format.BC4UnormBlock,
+            PixelFormat.BC4SNorm => Format.BC4SNormBlock,
+            PixelFormat.BC5UNorm => Format.BC5UnormBlock,
+            PixelFormat.BC5SNorm => Format.BC5SNormBlock,
+            PixelFormat.BC6HUFloat => Format.BC6HUfloatBlock,
+            PixelFormat.BC6HSFloat => Format.BC6HSfloatBlock,
+            PixelFormat.BC7UNorm => Format.BC7UnormBlock,
+            PixelFormat.BC7SRgb => Format.BC7SrgbBlock,
+
+            PixelFormat.ETC2UNorm => Format.Etc2R8G8B8UnormBlock,
+            PixelFormat.ETC2SRgb => Format.Etc2R8G8B8SrgbBlock,
+            PixelFormat.ETC2A1UNorm => Format.Etc2R8G8B8A1UnormBlock,
+            PixelFormat.ETC2A1SRgb => Format.Etc2R8G8B8A1SrgbBlock,
+            PixelFormat.ETC2A8UNorm => Format.Etc2R8G8B8A8UnormBlock,
+            PixelFormat.ETC2A8SRgb => Format.Etc2R8G8B8A8SrgbBlock,
+
+            PixelFormat.ASTC4x4UNorm => Format.Astc4x4UnormBlock,
+            PixelFormat.ASTC4x4SRgb => Format.Astc4x4SrgbBlock,
+            PixelFormat.ASTC4x4Float => Format.Astc4x4SfloatBlock,
+            PixelFormat.ASTC5x5UNorm => Format.Astc5x5UnormBlock,
+            PixelFormat.ASTC5x5SRgb => Format.Astc5x5SrgbBlock,
+            PixelFormat.ASTC5x5Float => Format.Astc5x5SfloatBlock,
+            PixelFormat.ASTC6x6UNorm => Format.Astc6x6UnormBlock,
+            PixelFormat.ASTC6x6SRgb => Format.Astc6x6SrgbBlock,
+            PixelFormat.ASTC6x6Float => Format.Astc6x6SfloatBlock,
+            PixelFormat.ASTC8x8UNorm => Format.Astc8x8UnormBlock,
+            PixelFormat.ASTC8x8SRgb => Format.Astc8x8SrgbBlock,
+            PixelFormat.ASTC8x8Float => Format.Astc8x8SfloatBlock,
+            PixelFormat.ASTC10x10UNorm => Format.Astc10x10UnormBlock,
+            PixelFormat.ASTC10x10SRgb => Format.Astc10x10SrgbBlock,
+            PixelFormat.ASTC10x10Float => Format.Astc10x10SfloatBlock,
+            PixelFormat.ASTC12x12UNorm => Format.Astc12x12UnormBlock,
+            PixelFormat.ASTC12x12SRgb => Format.Astc12x12SrgbBlock,
+            PixelFormat.ASTC12x12Float => Format.Astc12x12SfloatBlock,
+
+            _ => default
+        };
+
+        return (format, aspect);
+    }
+
     public static BufferUsageFlags Vulkan(BufferUsages bufferUsages)
     {
         BufferUsageFlags result = BufferUsageFlags.ShaderDeviceAddressBit;

@@ -83,7 +83,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public KhrSwapchain? Swapchain { get; private set; }
 
-    public uint[] QueueFamilyIndices { get; private set; } = [];
+    public QueueSharing QueueSharing { get; private set; }
 
     public uint FindMemoryTypeIndex(uint memoryTypeBits, MemoryResidency residency)
     {
@@ -503,7 +503,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
             loadQueues();
 
-            QueueFamilyIndices = [.. new HashSet<uint>() { queues.GraphicsQueueFamilyIndex, queues.ComputeQueueFamilyIndex, queues.TransferQueueFamilyIndex }];
+            QueueSharing = new([.. new HashSet<uint>() { queues.GraphicsQueueFamilyIndex, queues.ComputeQueueFamilyIndex, queues.TransferQueueFamilyIndex }]);
         }
 
         capabilities = new VKCapabilities(this);
@@ -525,12 +525,39 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override SizeAndAlignment GetSizeAndAlignmentImpl(BufferDesc desc)
     {
-        throw new NotImplementedException();
+        BufferCreateInfo createInfo = VKBuffer.CreateInfo(QueueSharing, desc);
+
+        DeviceBufferMemoryRequirements deviceRequirements = new()
+        {
+            SType = StructureType.DeviceBufferMemoryRequirements,
+            PCreateInfo = &createInfo
+        };
+
+        MemoryRequirements2 requirements2 = new() { SType = StructureType.MemoryRequirements2 };
+
+        Vk.GetDeviceBufferMemoryRequirements(Device, &deviceRequirements, &requirements2);
+
+        return new(requirements2.MemoryRequirements.Size, requirements2.MemoryRequirements.Alignment);
     }
 
     protected override SizeAndAlignment GetSizeAndAlignmentImpl(TextureDesc desc)
     {
-        throw new NotImplementedException();
+        ImageCreateInfo createInfo = VKTexture.CreateInfo(QueueSharing, desc);
+
+        DeviceImageMemoryRequirements deviceRequirements = new()
+        {
+            SType = StructureType.DeviceImageMemoryRequirements,
+            PCreateInfo = &createInfo
+        };
+
+        MemoryRequirements2 requirements2 = new() { SType = StructureType.MemoryRequirements2 };
+
+        Vk.GetDeviceImageMemoryRequirements(Device, &deviceRequirements, &requirements2);
+
+        PhysicalDeviceProperties properties;
+        Vk.GetPhysicalDeviceProperties(PhysicalDevice, &properties);
+
+        return new(requirements2.MemoryRequirements.Size, Math.Max(requirements2.MemoryRequirements.Alignment, properties.Limits.BufferImageGranularity));
     }
 
     protected override Buffer CreateBufferImpl(BufferDesc desc)
@@ -545,7 +572,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override Texture CreateTextureImpl(TextureDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKTexture(this, desc);
     }
 
     protected override Texture CreateTextureImpl(TextureDesc desc, NativeTextureType nativeTextureType, nint nativeTexture)
@@ -591,6 +618,8 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
     protected override void Destroy()
     {
         base.Destroy();
+
+        QueueSharing.Dispose();
 
         Vk.DestroyDevice(Device, default);
         Vk.DestroyInstance(Instance, default);
