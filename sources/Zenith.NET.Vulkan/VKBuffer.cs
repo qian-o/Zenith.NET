@@ -57,6 +57,54 @@ internal unsafe class VKBuffer : Buffer
         DeviceAddress = context.Vk.GetBufferDeviceAddress(context.Device, &deviceAddressInfo);
     }
 
+    public VKBuffer(VKGraphicsContext context, BufferDesc desc, BufferUsageFlags usage) : base(context, desc)
+    {
+        BufferCreateInfo createInfo = CreateInfo(desc, context.QueueFamilies);
+        createInfo.Usage |= usage;
+
+        context.Vk.CreateBuffer(context.Device, &createInfo, default, out Buffer).Success();
+
+        BufferMemoryRequirementsInfo2 requirementsInfo2 = new()
+        {
+            SType = StructureType.BufferMemoryRequirementsInfo2,
+            Buffer = Buffer
+        };
+
+        MemoryRequirements2 requirements2 = new() { SType = StructureType.MemoryRequirements2 };
+        requirements2.AddNext(out MemoryDedicatedRequirements dedicatedRequirements);
+
+        context.Vk.GetBufferMemoryRequirements2(context.Device, &requirementsInfo2, &requirements2);
+
+        MemoryAllocateInfo allocateInfo = new()
+        {
+            SType = StructureType.MemoryAllocateInfo,
+            AllocationSize = requirements2.MemoryRequirements.Size,
+            MemoryTypeIndex = context.FindMemoryTypeIndex(requirements2.MemoryRequirements.MemoryTypeBits, desc.Residency)
+        };
+
+        if (dedicatedRequirements.PrefersDedicatedAllocation || dedicatedRequirements.RequiresDedicatedAllocation)
+        {
+            allocateInfo.AddNext(out MemoryDedicatedAllocateInfo dedicatedAllocateInfo);
+            dedicatedAllocateInfo.Buffer = Buffer;
+        }
+
+        allocateInfo.AddNext(out MemoryAllocateFlagsInfo allocateFlagsInfo);
+        allocateFlagsInfo.Flags = MemoryAllocateFlags.DeviceAddressBit;
+
+        context.Vk.AllocateMemory(context.Device, &allocateInfo, default, out DeviceMemory deviceMemory).Success();
+        context.Vk.BindBufferMemory(context.Device, Buffer, deviceMemory, 0).Success();
+
+        Allocation = new(deviceMemory, 0, true);
+
+        BufferDeviceAddressInfo deviceAddressInfo = new()
+        {
+            SType = StructureType.BufferDeviceAddressInfo,
+            Buffer = Buffer
+        };
+
+        DeviceAddress = context.Vk.GetBufferDeviceAddress(context.Device, &deviceAddressInfo);
+    }
+
     public VKBuffer(VKGraphicsContext context, BufferDesc desc, VkBuffer buffer, VKAllocation allocation) : base(context, desc)
     {
         Buffer = buffer;
