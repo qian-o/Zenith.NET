@@ -12,7 +12,7 @@ internal unsafe class VKBuffer : Buffer
 
     public VKBuffer(VKGraphicsContext context, BufferDesc desc) : base(context, desc)
     {
-        BufferCreateInfo createInfo = CreateInfo(context.QueueSharing, desc);
+        BufferCreateInfo createInfo = CreateInfo(desc, context.QueueFamilies);
 
         context.Vk.CreateBuffer(context.Device, &createInfo, default, out Buffer).Success();
 
@@ -122,16 +122,16 @@ internal unsafe class VKBuffer : Buffer
         }
     }
 
-    public static BufferCreateInfo CreateInfo(QueueSharing queueSharing, BufferDesc desc)
+    public static BufferCreateInfo CreateInfo(BufferDesc desc, QueueFamilies queueFamilies)
     {
         return new()
         {
             SType = StructureType.BufferCreateInfo,
             Size = desc.SizeInBytes,
             Usage = VKFormats.Vulkan(desc.Usages),
-            SharingMode = queueSharing.Mode,
-            QueueFamilyIndexCount = queueSharing.Count,
-            PQueueFamilyIndices = queueSharing.Indices
+            SharingMode = queueFamilies.SharingMode,
+            QueueFamilyIndexCount = queueFamilies.IndexCount,
+            PQueueFamilyIndices = queueFamilies.Indices
         };
     }
 }

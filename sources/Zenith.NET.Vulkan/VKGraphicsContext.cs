@@ -83,7 +83,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public KhrSwapchain? Swapchain { get; private set; }
 
-    public QueueSharing QueueSharing { get; private set; }
+    public QueueFamilies QueueFamilies { get; private set; }
 
     public uint FindMemoryTypeIndex(uint memoryTypeBits, MemoryResidency residency)
     {
@@ -503,7 +503,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
             loadQueues();
 
-            QueueSharing = new([.. new HashSet<uint>() { queues.GraphicsQueueFamilyIndex, queues.ComputeQueueFamilyIndex, queues.TransferQueueFamilyIndex }]);
+            QueueFamilies = new([.. new HashSet<uint>() { queues.GraphicsQueueFamilyIndex, queues.ComputeQueueFamilyIndex, queues.TransferQueueFamilyIndex }]);
         }
 
         capabilities = new VKCapabilities(this);
@@ -525,7 +525,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override SizeAndAlignment GetSizeAndAlignmentImpl(BufferDesc desc)
     {
-        BufferCreateInfo createInfo = VKBuffer.CreateInfo(QueueSharing, desc);
+        BufferCreateInfo createInfo = VKBuffer.CreateInfo(desc, QueueFamilies);
 
         DeviceBufferMemoryRequirements deviceRequirements = new()
         {
@@ -542,7 +542,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override SizeAndAlignment GetSizeAndAlignmentImpl(TextureDesc desc)
     {
-        ImageCreateInfo createInfo = VKTexture.CreateInfo(QueueSharing, desc);
+        ImageCreateInfo createInfo = VKTexture.CreateInfo(desc, QueueFamilies);
 
         DeviceImageMemoryRequirements deviceRequirements = new()
         {
@@ -619,7 +619,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
     {
         base.Destroy();
 
-        QueueSharing.Dispose();
+        QueueFamilies.Dispose();
 
         Vk.DestroyDevice(Device, default);
         Vk.DestroyInstance(Instance, default);

@@ -30,7 +30,7 @@ internal unsafe class VKHeap : Heap
 
     protected override Buffer CreateBufferImpl(ulong offsetInBytes, BufferDesc desc)
     {
-        BufferCreateInfo createInfo = VKBuffer.CreateInfo(Context.QueueSharing, desc);
+        BufferCreateInfo createInfo = VKBuffer.CreateInfo(desc, Context.QueueFamilies);
 
         Context.Vk.CreateBuffer(Context.Device, &createInfo, default, out VkBuffer buffer).Success();
         Context.Vk.BindBufferMemory(Context.Device, buffer, DeviceMemory, offsetInBytes).Success();
@@ -40,7 +40,7 @@ internal unsafe class VKHeap : Heap
 
     protected override Texture CreateTextureImpl(ulong offsetInBytes, TextureDesc desc)
     {
-        ImageCreateInfo createInfo = VKTexture.CreateInfo(Context.QueueSharing, desc);
+        ImageCreateInfo createInfo = VKTexture.CreateInfo(desc, Context.QueueFamilies);
 
         Context.Vk.CreateImage(Context.Device, &createInfo, default, out Image image).Success();
         Context.Vk.BindImageMemory(Context.Device, image, DeviceMemory, offsetInBytes).Success();

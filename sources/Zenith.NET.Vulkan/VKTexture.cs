@@ -10,7 +10,7 @@ internal unsafe class VKTexture : Texture
 
     public VKTexture(VKGraphicsContext context, TextureDesc desc) : base(context, desc)
     {
-        ImageCreateInfo createInfo = CreateInfo(context.QueueSharing, desc);
+        ImageCreateInfo createInfo = CreateInfo(desc, context.QueueFamilies);
 
         context.Vk.CreateImage(context.Device, &createInfo, default, out Image).Success();
 
@@ -86,7 +86,7 @@ internal unsafe class VKTexture : Texture
         }
     }
 
-    public static ImageCreateInfo CreateInfo(QueueSharing queueSharing, TextureDesc desc)
+    public static ImageCreateInfo CreateInfo(TextureDesc desc, QueueFamilies queueFamilies)
     {
         return new()
         {
@@ -104,9 +104,9 @@ internal unsafe class VKTexture : Texture
             ArrayLayers = desc.ArrayLayers,
             Samples = VKFormats.Vulkan(desc.SampleCount),
             Usage = VKFormats.Vulkan(desc.Usages),
-            SharingMode = queueSharing.Mode,
-            QueueFamilyIndexCount = queueSharing.Count,
-            PQueueFamilyIndices = queueSharing.Indices
+            SharingMode = queueFamilies.SharingMode,
+            QueueFamilyIndexCount = queueFamilies.IndexCount,
+            PQueueFamilyIndices = queueFamilies.Indices
         };
     }
 }

@@ -36,25 +36,8 @@ internal static class VKFormats
         };
     }
 
-    public static (Format Format, ImageAspectFlags Aspect) Vulkan(PixelFormat pixelFormat)
+    public static (Format Format, ImageAspectFlags AspectFlags) Vulkan(PixelFormat pixelFormat)
     {
-        ImageAspectFlags aspect = default;
-
-        if (ZenithHelper.HasDepth(pixelFormat))
-        {
-            aspect |= ImageAspectFlags.DepthBit;
-        }
-
-        if (ZenithHelper.HasStencil(pixelFormat))
-        {
-            aspect |= ImageAspectFlags.StencilBit;
-        }
-
-        if (aspect is 0)
-        {
-            aspect = ImageAspectFlags.ColorBit;
-        }
-
         Format format = pixelFormat switch
         {
             PixelFormat.R8UNorm => Format.R8Unorm,
@@ -153,7 +136,24 @@ internal static class VKFormats
             _ => default
         };
 
-        return (format, aspect);
+        ImageAspectFlags aspectFlags = default;
+
+        if (ZenithHelper.HasDepth(pixelFormat))
+        {
+            aspectFlags |= ImageAspectFlags.DepthBit;
+        }
+
+        if (ZenithHelper.HasStencil(pixelFormat))
+        {
+            aspectFlags |= ImageAspectFlags.StencilBit;
+        }
+
+        if (aspectFlags is 0)
+        {
+            aspectFlags = ImageAspectFlags.ColorBit;
+        }
+
+        return (format, aspectFlags);
     }
 
     public static BufferUsageFlags Vulkan(BufferUsages bufferUsages)
