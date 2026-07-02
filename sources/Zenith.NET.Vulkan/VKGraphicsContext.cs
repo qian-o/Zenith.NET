@@ -85,6 +85,10 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public QueueFamilies QueueFamilies { get; private set; }
 
+    public VKDescriptorHeap ResourceHeap => field ??= VKDescriptorHeap.CreateResourceHeap(this, 200000, 800000);
+
+    public VKDescriptorHeap SamplerHeap => field ??= VKDescriptorHeap.CreateSamplerHeap(this, 2048);
+
     public uint FindMemoryTypeIndex(uint memoryTypeBits, MemoryResidency residency)
     {
         PhysicalDeviceMemoryProperties properties;
@@ -618,6 +622,9 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
     protected override void Destroy()
     {
         base.Destroy();
+
+        SamplerHeap.Dispose();
+        ResourceHeap.Dispose();
 
         QueueFamilies.Dispose();
 
