@@ -2,7 +2,7 @@
 
 namespace Zenith.NET.Vulkan;
 
-internal unsafe class VKDescriptorRegion(uint baseIndex, nuint stride)
+internal unsafe class VKDescriptorRegion(uint baseIndex, ulong stride)
 {
     private readonly Lock @lock = new();
     private readonly Stack<uint> recycled = [];
@@ -20,7 +20,7 @@ internal unsafe class VKDescriptorRegion(uint baseIndex, nuint stride)
 
         index += baseIndex;
 
-        target = new((void*)(pointer + (nint)(stride * index)), stride);
+        target = new((void*)(pointer + (nint)(stride * index)), (nuint)stride);
 
         return new(this, index);
     }
