@@ -601,17 +601,17 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKGraphicsPipeline(this, desc);
     }
 
     protected override ComputePipeline CreateComputePipelineImpl(ComputePipelineDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKComputePipeline(this, desc);
     }
 
     protected override MeshShadingPipeline CreateMeshShadingPipelineImpl(MeshShadingPipelineDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKMeshShadingPipeline(this, desc);
     }
 
     protected override QueryHeap CreateQueryHeapImpl(QueryHeapDesc desc)

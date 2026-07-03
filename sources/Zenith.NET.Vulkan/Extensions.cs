@@ -76,10 +76,18 @@ public static unsafe class Extensions
 
     extension(ComputePipeline computePipeline)
     {
+        internal VKComputePipeline Vulkan()
+        {
+            return (VKComputePipeline)computePipeline;
+        }
     }
 
     extension(GraphicsPipeline graphicsPipeline)
     {
+        internal VKGraphicsPipeline Vulkan()
+        {
+            return (VKGraphicsPipeline)graphicsPipeline;
+        }
     }
 
     extension(Heap heap)
@@ -92,6 +100,10 @@ public static unsafe class Extensions
 
     extension(MeshShadingPipeline meshShadingPipeline)
     {
+        internal VKMeshShadingPipeline Vulkan()
+        {
+            return (VKMeshShadingPipeline)meshShadingPipeline;
+        }
     }
 
     extension(QueryHeap queryHeap)
@@ -100,10 +112,18 @@ public static unsafe class Extensions
 
     extension(Sampler sampler)
     {
+        internal VKSampler Vulkan()
+        {
+            return (VKSampler)sampler;
+        }
     }
 
     extension(Shader shader)
     {
+        internal VKShader Vulkan()
+        {
+            return (VKShader)shader;
+        }
     }
 
     extension(SwapChain swapChain)
@@ -120,6 +140,10 @@ public static unsafe class Extensions
 
     extension(TextureView textureView)
     {
+        internal VKTextureView Vulkan()
+        {
+            return (VKTextureView)textureView;
+        }
     }
 
     extension(TopLevelAccelerationStructure topLevelAccelerationStructure)
