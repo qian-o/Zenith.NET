@@ -170,7 +170,6 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
                     CompareMask = desc.RenderState.DepthStencil.StencilReadMask,
                     WriteMask = desc.RenderState.DepthStencil.StencilWriteMask
                 },
-                MinDepthBounds = 0.0f,
                 MaxDepthBounds = 1.0f
             };
 
