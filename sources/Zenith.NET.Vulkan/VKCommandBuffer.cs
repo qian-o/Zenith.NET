@@ -30,6 +30,8 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         context.Vk.AllocateCommandBuffers(context.Device, &allocateInfo, out CommandBuffer).Success();
     }
 
+    public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
+
     public override nint GetNativeObject(NativeObjectType type)
     {
         return 0;
@@ -207,41 +209,75 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void BeginDebugEventImpl(string label)
     {
-        throw new NotImplementedException();
+        using ZenithMarshal.Scope scope = new();
+
+        DebugUtilsLabelEXT labelInfo = new()
+        {
+            SType = StructureType.DebugUtilsLabelExt,
+            PLabelName = (byte*)ZenithMarshal.StringToPointer(scope, label, StringEncoding.UTF8)
+        };
+
+        Context.DebugUtils?.CmdBeginDebugUtilsLabel(CommandBuffer, &labelInfo);
     }
 
     protected override void EndDebugEventImpl()
     {
-        throw new NotImplementedException();
+        Context.DebugUtils?.CmdEndDebugUtilsLabel(CommandBuffer);
     }
 
     protected override void InsertDebugMarkerImpl(string label)
     {
-        throw new NotImplementedException();
+        using ZenithMarshal.Scope scope = new();
+
+        DebugUtilsLabelEXT labelInfo = new()
+        {
+            SType = StructureType.DebugUtilsLabelExt,
+            PLabelName = (byte*)ZenithMarshal.StringToPointer(scope, label, StringEncoding.UTF8)
+        };
+
+        Context.DebugUtils?.CmdInsertDebugUtilsLabel(CommandBuffer, &labelInfo);
     }
 
     protected override void BeginImpl()
     {
-        throw new NotImplementedException();
+        CommandBufferBeginInfo beginInfo = new()
+        {
+            SType = StructureType.CommandBufferBeginInfo,
+            Flags = CommandBufferUsageFlags.OneTimeSubmitBit
+        };
+
+        Context.Vk.BeginCommandBuffer(CommandBuffer, &beginInfo).Success();
     }
 
     protected override void EndImpl()
     {
-        throw new NotImplementedException();
+        Context.Vk.EndCommandBuffer(CommandBuffer).Success();
     }
 
     protected override void ResetImpl()
     {
-        throw new NotImplementedException();
+        Context.Vk.ResetCommandBuffer(CommandBuffer, CommandBufferResetFlags.None).Success();
     }
 
     protected override void SetResourceName(string name)
     {
-        throw new NotImplementedException();
+        using ZenithMarshal.Scope scope = new();
+
+        DebugUtilsObjectNameInfoEXT nameInfo = new()
+        {
+            SType = StructureType.DebugUtilsObjectNameInfoExt,
+            ObjectType = ObjectType.CommandBuffer,
+            ObjectHandle = (ulong)CommandBuffer.Handle,
+            PObjectName = (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8)
+        };
+
+        Context.DebugUtils?.SetDebugUtilsObjectName(Context.Device, &nameInfo).Success();
     }
 
     protected override void Destroy()
     {
         base.Destroy();
+
+        Context.Vk.DestroyCommandPool(Context.Device, CommandPool, default);
     }
 }
