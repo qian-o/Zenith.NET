@@ -70,6 +70,9 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
 
         createInfo.PDynamicState = &dynamicState;
 
+        createInfo.AddNext(out PipelineCreateFlags2CreateInfo flags2CreateInfo);
+        flags2CreateInfo.Flags = PipelineCreateFlags2.Vk2DescriptorHeapBitExt();
+
         context.Vk.CreateGraphicsPipelines(context.Device, default, 1, &createInfo, default, out Pipeline).Success();
     }
 

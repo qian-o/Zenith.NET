@@ -16,6 +16,9 @@ internal unsafe class VKComputePipeline : ComputePipeline
             Stage = desc.ComputeShader.Vulkan().GetPipelineShaderStageCreateInfo(scope, ShaderStageFlags.ComputeBit)
         };
 
+        createInfo.AddNext(out PipelineCreateFlags2CreateInfo flags2CreateInfo);
+        flags2CreateInfo.Flags = PipelineCreateFlags2.Vk2DescriptorHeapBitExt();
+
         context.Vk.CreateComputePipelines(context.Device, default, 1, &createInfo, default, out Pipeline).Success();
     }
 
