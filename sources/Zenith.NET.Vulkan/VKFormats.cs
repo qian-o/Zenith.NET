@@ -36,6 +36,64 @@ internal static class VKFormats
         );
     }
 
+    public static (Filter Filter, SamplerMipmapMode MipmapMode) Vulkan(FilterMode filterMode)
+    {
+        return
+        (
+            filterMode switch
+            {
+                FilterMode.Point => Filter.Nearest,
+                FilterMode.Linear => Filter.Linear,
+                _ => default
+            },
+            filterMode switch
+            {
+                FilterMode.Point => SamplerMipmapMode.Nearest,
+                FilterMode.Linear => SamplerMipmapMode.Linear,
+                _ => default
+            }
+        );
+    }
+
+    public static SamplerAddressMode Vulkan(AddressMode addressMode)
+    {
+        return addressMode switch
+        {
+            AddressMode.Wrap => SamplerAddressMode.Repeat,
+            AddressMode.Mirror => SamplerAddressMode.MirroredRepeat,
+            AddressMode.Clamp => SamplerAddressMode.ClampToEdge,
+            AddressMode.Border => SamplerAddressMode.ClampToBorder,
+            _ => default
+        };
+    }
+
+    public static VkCompareOp Vulkan(CompareOp compareOp)
+    {
+        return compareOp switch
+        {
+            CompareOp.Never => VkCompareOp.Never,
+            CompareOp.Less => VkCompareOp.Less,
+            CompareOp.Equal => VkCompareOp.Equal,
+            CompareOp.LessEqual => VkCompareOp.LessOrEqual,
+            CompareOp.Greater => VkCompareOp.Greater,
+            CompareOp.NotEqual => VkCompareOp.NotEqual,
+            CompareOp.GreaterEqual => VkCompareOp.GreaterOrEqual,
+            CompareOp.Always => VkCompareOp.Always,
+            _ => default
+        };
+    }
+
+    public static VkBorderColor Vulkan(BorderColor borderColor)
+    {
+        return borderColor switch
+        {
+            BorderColor.TransparentBlack => VkBorderColor.FloatTransparentBlack,
+            BorderColor.OpaqueBlack => VkBorderColor.FloatOpaqueBlack,
+            BorderColor.OpaqueWhite => VkBorderColor.FloatOpaqueWhite,
+            _ => default
+        };
+    }
+
     public static SampleCountFlags Vulkan(SampleCount sampleCount)
     {
         return sampleCount switch

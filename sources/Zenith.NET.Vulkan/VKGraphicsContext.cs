@@ -591,12 +591,12 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override Sampler CreateSamplerImpl(SamplerDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKSampler(this, desc);
     }
 
     protected override Shader CreateShaderImpl(ShaderDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKShader(this, desc);
     }
 
     protected override GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc)
