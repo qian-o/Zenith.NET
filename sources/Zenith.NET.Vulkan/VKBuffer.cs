@@ -55,6 +55,13 @@ internal unsafe class VKBuffer : Buffer
         };
 
         DeviceAddress = context.Vk.GetBufferDeviceAddress(context.Device, &deviceAddressInfo);
+
+        View = new(context, new()
+        {
+            Buffer = this,
+            SizeInBytes = desc.SizeInBytes,
+            StrideInBytes = desc.StrideInBytes
+        });
     }
 
     public VKBuffer(VKGraphicsContext context, BufferDesc desc, BufferUsageFlags usage) : base(context, desc)
@@ -103,6 +110,13 @@ internal unsafe class VKBuffer : Buffer
         };
 
         DeviceAddress = context.Vk.GetBufferDeviceAddress(context.Device, &deviceAddressInfo);
+
+        View = new(context, new()
+        {
+            Buffer = this,
+            SizeInBytes = desc.SizeInBytes,
+            StrideInBytes = desc.StrideInBytes
+        });
     }
 
     public VKBuffer(VKGraphicsContext context, BufferDesc desc, VkBuffer buffer, VKAllocation allocation) : base(context, desc)
@@ -117,15 +131,24 @@ internal unsafe class VKBuffer : Buffer
         };
 
         DeviceAddress = context.Vk.GetBufferDeviceAddress(context.Device, &deviceAddressInfo);
+
+        View = new(context, new()
+        {
+            Buffer = this,
+            SizeInBytes = desc.SizeInBytes,
+            StrideInBytes = desc.StrideInBytes
+        });
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
-    public override ResourceHandle ConstantHandle { get; }
+    public VKBufferView View { get; }
 
-    public override ResourceHandle StorageReadOnlyHandle { get; }
+    public override ResourceHandle ConstantHandle => View.ConstantHandle;
 
-    public override ResourceHandle StorageReadWriteHandle { get; }
+    public override ResourceHandle StorageReadOnlyHandle => View.StorageReadOnlyHandle;
+
+    public override ResourceHandle StorageReadWriteHandle => View.StorageReadWriteHandle;
 
     public override nint GetNativeObject(NativeObjectType type)
     {
@@ -162,6 +185,8 @@ internal unsafe class VKBuffer : Buffer
 
     protected override void Destroy()
     {
+        View.Dispose();
+
         Context.Vk.DestroyBuffer(Context.Device, Buffer, default);
 
         if (Allocation.IsOwned)

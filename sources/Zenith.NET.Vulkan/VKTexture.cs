@@ -42,19 +42,37 @@ internal unsafe class VKTexture : Texture
         context.Vk.BindImageMemory(context.Device, Image, deviceMemory, 0).Success();
 
         Allocation = new(deviceMemory, 0, true);
+
+        View = new(context, new()
+        {
+            Texture = this,
+            Type = desc.Type,
+            Format = desc.Format,
+            Range = TextureSubresourceRange.All(this)
+        });
     }
 
     public VKTexture(VKGraphicsContext context, TextureDesc desc, Image image, VKAllocation allocation) : base(context, desc)
     {
         Image = image;
         Allocation = allocation;
+
+        View = new(context, new()
+        {
+            Texture = this,
+            Type = desc.Type,
+            Format = desc.Format,
+            Range = TextureSubresourceRange.All(this)
+        });
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
-    public override ResourceHandle SampledHandle { get; }
+    public VKTextureView View { get; }
 
-    public override ResourceHandle StorageHandle { get; }
+    public override ResourceHandle SampledHandle => View.SampledHandle;
+
+    public override ResourceHandle StorageHandle => View.StorageHandle;
 
     public override nint GetNativeObject(NativeObjectType type)
     {
@@ -78,6 +96,8 @@ internal unsafe class VKTexture : Texture
 
     protected override void Destroy()
     {
+        View.Dispose();
+
         Context.Vk.DestroyImage(Context.Device, Image, default);
 
         if (Allocation.IsOwned)
