@@ -9,7 +9,7 @@ internal unsafe class VKDescriptorHeap(VKGraphicsContext context,
                                        VKDescriptorRegion? imageRegion,
                                        VKDescriptorRegion? samplerRegion) : DisposableObject
 {
-    public nint HostAddress { get; } = buffer.Map();
+    private readonly nint pointer = buffer.Map();
 
     public ulong DeviceAddress => buffer.DeviceAddress;
 
@@ -34,7 +34,7 @@ internal unsafe class VKDescriptorHeap(VKGraphicsContext context,
             return default;
         }
 
-        VKDescriptorToken token = region.Allocate(HostAddress, out HostAddressRangeEXT target);
+        VKDescriptorToken token = region.Allocate(pointer, out HostAddressRangeEXT target);
 
         context.DescriptorHeap?.WriteResourceDescriptors(context.Device, 1, &info, &target).Success();
 
@@ -48,7 +48,7 @@ internal unsafe class VKDescriptorHeap(VKGraphicsContext context,
             return default;
         }
 
-        VKDescriptorToken token = samplerRegion.Allocate(HostAddress, out HostAddressRangeEXT target);
+        VKDescriptorToken token = samplerRegion.Allocate(pointer, out HostAddressRangeEXT target);
 
         context.DescriptorHeap?.WriteSamplerDescriptors(context.Device, 1, &info, &target).Success();
 

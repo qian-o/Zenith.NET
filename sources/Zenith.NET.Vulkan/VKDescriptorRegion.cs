@@ -9,7 +9,7 @@ internal unsafe class VKDescriptorRegion(uint baseIndex, nuint stride)
 
     private uint head;
 
-    public VKDescriptorToken Allocate(nint address, out HostAddressRangeEXT target)
+    public VKDescriptorToken Allocate(nint pointer, out HostAddressRangeEXT target)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
@@ -20,7 +20,7 @@ internal unsafe class VKDescriptorRegion(uint baseIndex, nuint stride)
 
         index += baseIndex;
 
-        target = new((void*)(address + (nint)(stride * index)), stride);
+        target = new((void*)(pointer + (nint)(stride * index)), stride);
 
         return new(this, index);
     }
