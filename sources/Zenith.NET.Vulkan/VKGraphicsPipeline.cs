@@ -100,7 +100,7 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
         {
             SType = StructureType.PipelineDynamicStateCreateInfo,
             DynamicStateCount = 4,
-            PDynamicStates = (DynamicState*)ZenithMarshal.AllocateAndFill(scope, [DynamicState.Viewport, DynamicState.Scissor, DynamicState.StencilReference, DynamicState.BlendConstants])
+            PDynamicStates = (DynamicState*)ZenithMarshal.AllocateAndFill(scope, [DynamicState.Viewport, DynamicState.Scissor, DynamicState.BlendConstants, DynamicState.StencilReference])
         };
 
         createInfo.PDynamicState = &dynamicState;
