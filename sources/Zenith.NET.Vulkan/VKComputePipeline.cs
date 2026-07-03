@@ -8,6 +8,15 @@ internal unsafe class VKComputePipeline : ComputePipeline
 
     public VKComputePipeline(VKGraphicsContext context, ComputePipelineDesc desc) : base(context, desc)
     {
+        using ZenithMarshal.Scope scope = new();
+
+        ComputePipelineCreateInfo createInfo = new()
+        {
+            SType = StructureType.ComputePipelineCreateInfo,
+            Stage = desc.ComputeShader.Vulkan().GetPipelineShaderStageCreateInfo(scope, ShaderStageFlags.ComputeBit)
+        };
+
+        context.Vk.CreateComputePipelines(context.Device, default, 1, &createInfo, default, out Pipeline).Success();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
