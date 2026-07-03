@@ -265,7 +265,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
         SetViewportsImpl(viewports);
         SetScissorsImpl(scissors);
-        SetBlendConstantImpl(Vector4.Zero);
+        SetBlendConstantImpl(Vector4.One);
         SetStencilReferenceImpl(0);
         BeginRenderPassImpl(colorAttachments, depthStencilAttachment);
     }
