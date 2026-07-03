@@ -56,6 +56,10 @@ public static unsafe class Extensions
 
     extension(BufferView bufferView)
     {
+        internal VKBufferView Vulkan()
+        {
+            return (VKBufferView)bufferView;
+        }
     }
 
     extension(CommandBuffer commandBuffer)
@@ -108,6 +112,10 @@ public static unsafe class Extensions
 
     extension(Texture texture)
     {
+        internal VKTexture Vulkan()
+        {
+            return (VKTexture)texture;
+        }
     }
 
     extension(TextureView textureView)

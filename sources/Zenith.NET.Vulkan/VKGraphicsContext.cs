@@ -571,7 +571,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override BufferView CreateBufferViewImpl(BufferViewDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKBufferView(this, desc);
     }
 
     protected override Texture CreateTextureImpl(TextureDesc desc)
@@ -586,7 +586,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override TextureView CreateTextureViewImpl(TextureViewDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKTextureView(this, desc);
     }
 
     protected override Sampler CreateSamplerImpl(SamplerDesc desc)

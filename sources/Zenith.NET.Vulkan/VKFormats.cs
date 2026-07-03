@@ -4,22 +4,36 @@ namespace Zenith.NET.Vulkan;
 
 internal static class VKFormats
 {
-    public static ImageType Vulkan(TextureType textureType)
+    public static (ImageType Type, ImageViewType ViewType) Vulkan(TextureType textureType)
     {
-        return textureType switch
-        {
-            TextureType.Texture1D or
-            TextureType.Texture1DArray => ImageType.Type1D,
+        return
+        (
+            textureType switch
+            {
+                TextureType.Texture1D or
+                TextureType.Texture1DArray => ImageType.Type1D,
 
-            TextureType.Texture2D or
-            TextureType.Texture2DArray or
-            TextureType.TextureCube or
-            TextureType.TextureCubeArray => ImageType.Type2D,
+                TextureType.Texture2D or
+                TextureType.Texture2DArray or
+                TextureType.TextureCube or
+                TextureType.TextureCubeArray => ImageType.Type2D,
 
-            TextureType.Texture3D => ImageType.Type3D,
+                TextureType.Texture3D => ImageType.Type3D,
 
-            _ => default
-        };
+                _ => default
+            },
+            textureType switch
+            {
+                TextureType.Texture1D => ImageViewType.Type1D,
+                TextureType.Texture1DArray => ImageViewType.Type1DArray,
+                TextureType.Texture2D => ImageViewType.Type2D,
+                TextureType.Texture2DArray => ImageViewType.Type2DArray,
+                TextureType.Texture3D => ImageViewType.Type3D,
+                TextureType.TextureCube => ImageViewType.TypeCube,
+                TextureType.TextureCubeArray => ImageViewType.TypeCubeArray,
+                _ => default
+            }
+        );
     }
 
     public static SampleCountFlags Vulkan(SampleCount sampleCount)
