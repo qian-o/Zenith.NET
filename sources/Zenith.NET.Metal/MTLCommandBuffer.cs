@@ -23,13 +23,13 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     private uint visibilityIndex;
     private IndexBinding indexBinding;
 
-    private Scissor[]? todoScissors;
-    private Viewport[]? todoViewports;
     private GraphicsPipeline? todoGraphicsPipeline;
     private ComputePipeline? todoComputePipeline;
     private MeshShadingPipeline? todoMeshShadingPipeline;
-    private uint? todoStencilReference;
+    private Viewport[]? todoViewports;
+    private Scissor[]? todoScissors;
     private Vector4? todoBlendConstant;
+    private uint? todoStencilReference;
 
     public MTLCommandBuffer(MTLGraphicsContext context, MTLCommandQueue queue) : base(context, queue)
     {
@@ -551,20 +551,6 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         Render = NSAutorelease.Own(CommandBuffer.MakeRenderCommandEncoder, descriptor);
         Render.SetArgumentTable(ArgumentTable, MTLRenderStages.Vertex | MTLRenderStages.Fragment | MTLRenderStages.Mesh);
 
-        if (todoScissors is not null)
-        {
-            SetScissors(todoScissors);
-
-            todoScissors = null;
-        }
-
-        if (todoViewports is not null)
-        {
-            SetViewports(todoViewports);
-
-            todoViewports = null;
-        }
-
         if (todoGraphicsPipeline is not null)
         {
             SetPipeline(todoGraphicsPipeline);
@@ -579,11 +565,18 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
             todoMeshShadingPipeline = null;
         }
 
-        if (todoStencilReference is not null)
+        if (todoViewports is not null)
         {
-            SetStencilReference(todoStencilReference.Value);
+            SetViewports(todoViewports);
 
-            todoStencilReference = null;
+            todoViewports = null;
+        }
+
+        if (todoScissors is not null)
+        {
+            SetScissors(todoScissors);
+
+            todoScissors = null;
         }
 
         if (todoBlendConstant is not null)
@@ -591,6 +584,13 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
             SetBlendConstant(todoBlendConstant.Value);
 
             todoBlendConstant = null;
+        }
+
+        if (todoStencilReference is not null)
+        {
+            SetStencilReference(todoStencilReference.Value);
+
+            todoStencilReference = null;
         }
 
         foreach (VisibilityBinding visibilityBinding in beginVisibilityBindings)
