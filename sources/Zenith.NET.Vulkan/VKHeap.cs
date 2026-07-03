@@ -15,8 +15,8 @@ internal unsafe class VKHeap : Heap
             MemoryTypeIndex = context.FindMemoryTypeIndex(uint.MaxValue, desc.Residency)
         };
 
-        allocateInfo.AddNext(out MemoryAllocateFlagsInfo allocateFlagsInfo);
-        allocateFlagsInfo.Flags = MemoryAllocateFlags.DeviceAddressBit;
+        allocateInfo.AddNext(out MemoryAllocateFlagsInfo flagsInfo);
+        flagsInfo.Flags = MemoryAllocateFlags.DeviceAddressBit;
 
         context.Vk.AllocateMemory(context.Device, &allocateInfo, default, out DeviceMemory).Success();
     }

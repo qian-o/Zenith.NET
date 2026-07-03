@@ -40,8 +40,8 @@ internal unsafe class VKBuffer : Buffer
             dedicatedAllocateInfo.Buffer = Buffer;
         }
 
-        allocateInfo.AddNext(out MemoryAllocateFlagsInfo allocateFlagsInfo);
-        allocateFlagsInfo.Flags = MemoryAllocateFlags.DeviceAddressBit;
+        allocateInfo.AddNext(out MemoryAllocateFlagsInfo flagsInfo);
+        flagsInfo.Flags = MemoryAllocateFlags.DeviceAddressBit;
 
         context.Vk.AllocateMemory(context.Device, &allocateInfo, default, out DeviceMemory deviceMemory).Success();
         context.Vk.BindBufferMemory(context.Device, Buffer, deviceMemory, 0).Success();
@@ -95,8 +95,8 @@ internal unsafe class VKBuffer : Buffer
             dedicatedAllocateInfo.Buffer = Buffer;
         }
 
-        allocateInfo.AddNext(out MemoryAllocateFlagsInfo allocateFlagsInfo);
-        allocateFlagsInfo.Flags = MemoryAllocateFlags.DeviceAddressBit;
+        allocateInfo.AddNext(out MemoryAllocateFlagsInfo flagsInfo);
+        flagsInfo.Flags = MemoryAllocateFlags.DeviceAddressBit;
 
         context.Vk.AllocateMemory(context.Device, &allocateInfo, default, out DeviceMemory deviceMemory).Success();
         context.Vk.BindBufferMemory(context.Device, Buffer, deviceMemory, 0).Success();

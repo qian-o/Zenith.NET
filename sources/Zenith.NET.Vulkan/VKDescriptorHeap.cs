@@ -64,21 +64,21 @@ internal unsafe class VKDescriptorHeap(VKGraphicsContext context,
     public static VKDescriptorHeap CreateResourceHeap(VKGraphicsContext context, uint bufferCapacity, uint imageCapacity)
     {
         PhysicalDeviceProperties2 properties2 = new() { SType = StructureType.PhysicalDeviceProperties2 };
-        properties2.AddNext(out PhysicalDeviceDescriptorHeapPropertiesEXT heapProperties);
+        properties2.AddNext(out PhysicalDeviceDescriptorHeapPropertiesEXT descriptorHeapProperties);
 
         context.Vk.GetPhysicalDeviceProperties2(context.PhysicalDevice, &properties2);
 
-        ulong reservedBytes = heapProperties.MinResourceHeapReservedRange;
+        ulong reservedBytes = descriptorHeapProperties.MinResourceHeapReservedRange;
 
-        ulong bufferStride = heapProperties.BufferDescriptorSize;
+        ulong bufferStride = descriptorHeapProperties.BufferDescriptorSize;
         ulong bufferOffset = ZenithHelper.Align(reservedBytes, bufferStride);
 
-        ulong imageStride = heapProperties.ImageDescriptorSize;
+        ulong imageStride = descriptorHeapProperties.ImageDescriptorSize;
         ulong imageOffset = ZenithHelper.Align(bufferOffset + (bufferCapacity * bufferStride), imageStride);
 
         VKBuffer buffer = new(context, new()
         {
-            SizeInBytes = (uint)ZenithHelper.Align(imageOffset + (imageCapacity * imageStride), heapProperties.ResourceHeapAlignment),
+            SizeInBytes = (uint)ZenithHelper.Align(imageOffset + (imageCapacity * imageStride), descriptorHeapProperties.ResourceHeapAlignment),
             Residency = MemoryResidency.CpuWriteOnly
         }, BufferUsageFlags.DescriptorHeapBitExt());
 
@@ -93,18 +93,18 @@ internal unsafe class VKDescriptorHeap(VKGraphicsContext context,
     public static VKDescriptorHeap CreateSamplerHeap(VKGraphicsContext context, uint samplerCapacity)
     {
         PhysicalDeviceProperties2 properties2 = new() { SType = StructureType.PhysicalDeviceProperties2 };
-        properties2.AddNext(out PhysicalDeviceDescriptorHeapPropertiesEXT heapProperties);
+        properties2.AddNext(out PhysicalDeviceDescriptorHeapPropertiesEXT descriptorHeapProperties);
 
         context.Vk.GetPhysicalDeviceProperties2(context.PhysicalDevice, &properties2);
 
-        ulong reservedBytes = heapProperties.MinSamplerHeapReservedRange;
+        ulong reservedBytes = descriptorHeapProperties.MinSamplerHeapReservedRange;
 
-        ulong samplerStride = heapProperties.SamplerDescriptorSize;
+        ulong samplerStride = descriptorHeapProperties.SamplerDescriptorSize;
         ulong samplerOffset = ZenithHelper.Align(reservedBytes, samplerStride);
 
         VKBuffer buffer = new(context, new()
         {
-            SizeInBytes = (uint)ZenithHelper.Align(samplerOffset + (samplerCapacity * samplerStride), heapProperties.SamplerHeapAlignment),
+            SizeInBytes = (uint)ZenithHelper.Align(samplerOffset + (samplerCapacity * samplerStride), descriptorHeapProperties.SamplerHeapAlignment),
             Residency = MemoryResidency.CpuWriteOnly
         }, BufferUsageFlags.DescriptorHeapBitExt());
 
