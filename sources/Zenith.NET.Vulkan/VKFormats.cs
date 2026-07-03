@@ -379,6 +379,19 @@ internal static class VKFormats
         };
     }
 
+    public static VkQueryType Vulkan(QueryType queryType)
+    {
+        return queryType switch
+        {
+            QueryType.Occlusion or
+            QueryType.BinaryOcclusion => VkQueryType.Occlusion,
+
+            QueryType.Timestamp => VkQueryType.Timestamp,
+
+            _ => default
+        };
+    }
+
     public static PolygonMode Vulkan(FillMode fillMode)
     {
         return fillMode switch

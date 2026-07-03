@@ -64,6 +64,10 @@ public static unsafe class Extensions
 
     extension(CommandBuffer commandBuffer)
     {
+        internal VKCommandBuffer Vulkan()
+        {
+            return (VKCommandBuffer)commandBuffer;
+        }
     }
 
     extension(CommandQueue commandQueue)
@@ -108,6 +112,10 @@ public static unsafe class Extensions
 
     extension(QueryHeap queryHeap)
     {
+        internal VKQueryHeap Vulkan()
+        {
+            return (VKQueryHeap)queryHeap;
+        }
     }
 
     extension(Sampler sampler)

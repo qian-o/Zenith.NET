@@ -616,7 +616,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override QueryHeap CreateQueryHeapImpl(QueryHeapDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKQueryHeap(this, desc);
     }
 
     protected override void Destroy()

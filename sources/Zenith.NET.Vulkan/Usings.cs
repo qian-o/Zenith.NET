@@ -7,4 +7,5 @@ global using VkCompareOp = Silk.NET.Vulkan.CompareOp;
 global using VkFrontFace = Silk.NET.Vulkan.FrontFace;
 global using VkPipeline = Silk.NET.Vulkan.Pipeline;
 global using VkPrimitiveTopology = Silk.NET.Vulkan.PrimitiveTopology;
+global using VkQueryType = Silk.NET.Vulkan.QueryType;
 global using VkStencilOp = Silk.NET.Vulkan.StencilOp;

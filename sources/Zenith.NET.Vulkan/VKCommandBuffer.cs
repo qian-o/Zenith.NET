@@ -194,17 +194,23 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void BeginQueryImpl(QueryHeap queryHeap, uint index)
     {
-        throw new NotImplementedException();
+        VKQueryHeap vkQueryHeap = queryHeap.Vulkan();
+
+        Context.Vk.CmdResetQueryPool(CommandBuffer, vkQueryHeap.QueryPool, index, 1);
+        Context.Vk.CmdBeginQuery(CommandBuffer, vkQueryHeap.QueryPool, index, queryHeap.Desc.Type is QueryType.Occlusion ? QueryControlFlags.PreciseBit : QueryControlFlags.None);
     }
 
     protected override void EndQueryImpl(QueryHeap queryHeap, uint index)
     {
-        throw new NotImplementedException();
+        Context.Vk.CmdEndQuery(CommandBuffer, queryHeap.Vulkan().QueryPool, index);
     }
 
     protected override void WriteTimestampImpl(QueryHeap queryHeap, uint index)
     {
-        throw new NotImplementedException();
+        VKQueryHeap vkQueryHeap = queryHeap.Vulkan();
+
+        Context.Vk.CmdResetQueryPool(CommandBuffer, vkQueryHeap.QueryPool, index, 1);
+        Context.Vk.CmdWriteTimestamp(CommandBuffer, PipelineStageFlags.BottomOfPipeBit, vkQueryHeap.QueryPool, index);
     }
 
     protected override void BeginDebugEventImpl(string label)
