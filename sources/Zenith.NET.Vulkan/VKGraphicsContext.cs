@@ -531,7 +531,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
     {
         BufferCreateInfo createInfo = VKBuffer.CreateInfo(desc, QueueFamilies);
 
-        DeviceBufferMemoryRequirements deviceRequirements = new()
+        DeviceBufferMemoryRequirements requirements = new()
         {
             SType = StructureType.DeviceBufferMemoryRequirements,
             PCreateInfo = &createInfo
@@ -539,7 +539,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
         MemoryRequirements2 requirements2 = new() { SType = StructureType.MemoryRequirements2 };
 
-        Vk.GetDeviceBufferMemoryRequirements(Device, &deviceRequirements, &requirements2);
+        Vk.GetDeviceBufferMemoryRequirements(Device, &requirements, &requirements2);
 
         return new(requirements2.MemoryRequirements.Size, requirements2.MemoryRequirements.Alignment);
     }
@@ -548,7 +548,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
     {
         ImageCreateInfo createInfo = VKTexture.CreateInfo(desc, QueueFamilies);
 
-        DeviceImageMemoryRequirements deviceRequirements = new()
+        DeviceImageMemoryRequirements requirements = new()
         {
             SType = StructureType.DeviceImageMemoryRequirements,
             PCreateInfo = &createInfo
@@ -556,7 +556,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
         MemoryRequirements2 requirements2 = new() { SType = StructureType.MemoryRequirements2 };
 
-        Vk.GetDeviceImageMemoryRequirements(Device, &deviceRequirements, &requirements2);
+        Vk.GetDeviceImageMemoryRequirements(Device, &requirements, &requirements2);
 
         PhysicalDeviceProperties properties;
         Vk.GetPhysicalDeviceProperties(PhysicalDevice, &properties);
