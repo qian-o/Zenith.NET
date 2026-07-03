@@ -309,11 +309,180 @@ internal static class VKFormats
 
     public static Format Vulkan(ElementFormat elementFormat)
     {
-        throw new NotImplementedException();
+        return elementFormat switch
+        {
+            ElementFormat.UByte1 => Format.R8Uint,
+            ElementFormat.UByte2 => Format.R8G8Uint,
+            ElementFormat.UByte4 => Format.R8G8B8A8Uint,
+
+            ElementFormat.Byte1 => Format.R8Sint,
+            ElementFormat.Byte2 => Format.R8G8Sint,
+            ElementFormat.Byte4 => Format.R8G8B8A8Sint,
+
+            ElementFormat.UByte1UNorm => Format.R8Unorm,
+            ElementFormat.UByte2UNorm => Format.R8G8Unorm,
+            ElementFormat.UByte4UNorm => Format.R8G8B8A8Unorm,
+
+            ElementFormat.Byte1SNorm => Format.R8SNorm,
+            ElementFormat.Byte2SNorm => Format.R8G8SNorm,
+            ElementFormat.Byte4SNorm => Format.R8G8B8A8SNorm,
+
+            ElementFormat.UShort1 => Format.R16Uint,
+            ElementFormat.UShort2 => Format.R16G16Uint,
+            ElementFormat.UShort4 => Format.R16G16B16A16Uint,
+
+            ElementFormat.Short1 => Format.R16Sint,
+            ElementFormat.Short2 => Format.R16G16Sint,
+            ElementFormat.Short4 => Format.R16G16B16A16Sint,
+
+            ElementFormat.UShort1UNorm => Format.R16Unorm,
+            ElementFormat.UShort2UNorm => Format.R16G16Unorm,
+            ElementFormat.UShort4UNorm => Format.R16G16B16A16Unorm,
+
+            ElementFormat.Short1SNorm => Format.R16SNorm,
+            ElementFormat.Short2SNorm => Format.R16G16SNorm,
+            ElementFormat.Short4SNorm => Format.R16G16B16A16SNorm,
+
+            ElementFormat.Half1 => Format.R16Sfloat,
+            ElementFormat.Half2 => Format.R16G16Sfloat,
+            ElementFormat.Half4 => Format.R16G16B16A16Sfloat,
+
+            ElementFormat.Float1 => Format.R32Sfloat,
+            ElementFormat.Float2 => Format.R32G32Sfloat,
+            ElementFormat.Float3 => Format.R32G32B32Sfloat,
+            ElementFormat.Float4 => Format.R32G32B32A32Sfloat,
+
+            ElementFormat.UInt1 => Format.R32Uint,
+            ElementFormat.UInt2 => Format.R32G32Uint,
+            ElementFormat.UInt3 => Format.R32G32B32Uint,
+            ElementFormat.UInt4 => Format.R32G32B32A32Uint,
+
+            ElementFormat.Int1 => Format.R32Sint,
+            ElementFormat.Int2 => Format.R32G32Sint,
+            ElementFormat.Int3 => Format.R32G32B32Sint,
+            ElementFormat.Int4 => Format.R32G32B32A32Sint,
+
+            _ => default
+        };
     }
 
     public static VkPrimitiveTopology Vulkan(PrimitiveTopology primitiveTopology)
     {
-        throw new NotImplementedException();
+        return primitiveTopology switch
+        {
+            PrimitiveTopology.PointList => VkPrimitiveTopology.PointList,
+            PrimitiveTopology.LineList => VkPrimitiveTopology.LineList,
+            PrimitiveTopology.LineStrip => VkPrimitiveTopology.LineStrip,
+            PrimitiveTopology.TriangleList => VkPrimitiveTopology.TriangleList,
+            PrimitiveTopology.TriangleStrip => VkPrimitiveTopology.TriangleStrip,
+            _ => default
+        };
+    }
+
+    public static PolygonMode Vulkan(FillMode fillMode)
+    {
+        return fillMode switch
+        {
+            FillMode.Solid => PolygonMode.Fill,
+            FillMode.Wireframe => PolygonMode.Line,
+            _ => default
+        };
+    }
+
+    public static CullModeFlags Vulkan(CullMode cullMode)
+    {
+        return cullMode switch
+        {
+            CullMode.None => CullModeFlags.None,
+            CullMode.Front => CullModeFlags.FrontBit,
+            CullMode.Back => CullModeFlags.BackBit,
+            _ => default
+        };
+    }
+
+    public static VkFrontFace Vulkan(FrontFace frontFace)
+    {
+        return frontFace switch
+        {
+            FrontFace.CounterClockwise => VkFrontFace.CounterClockwise,
+            FrontFace.Clockwise => VkFrontFace.Clockwise,
+            _ => default
+        };
+    }
+
+    public static VkBlendFactor Vulkan(BlendFactor blendFactor)
+    {
+        return blendFactor switch
+        {
+            BlendFactor.Zero => VkBlendFactor.Zero,
+            BlendFactor.One => VkBlendFactor.One,
+            BlendFactor.SrcColor => VkBlendFactor.SrcColor,
+            BlendFactor.OneMinusSrcColor => VkBlendFactor.OneMinusSrcColor,
+            BlendFactor.DstColor => VkBlendFactor.DstColor,
+            BlendFactor.OneMinusDstColor => VkBlendFactor.OneMinusDstColor,
+            BlendFactor.SrcAlpha => VkBlendFactor.SrcAlpha,
+            BlendFactor.OneMinusSrcAlpha => VkBlendFactor.OneMinusSrcAlpha,
+            BlendFactor.DstAlpha => VkBlendFactor.DstAlpha,
+            BlendFactor.OneMinusDstAlpha => VkBlendFactor.OneMinusDstAlpha,
+            BlendFactor.Constant => VkBlendFactor.ConstantColor,
+            BlendFactor.OneMinusConstant => VkBlendFactor.OneMinusConstantColor,
+            _ => default
+        };
+    }
+
+    public static VkBlendOp Vulkan(BlendOp blendOp)
+    {
+        return blendOp switch
+        {
+            BlendOp.Add => VkBlendOp.Add,
+            BlendOp.Subtract => VkBlendOp.Subtract,
+            BlendOp.ReverseSubtract => VkBlendOp.ReverseSubtract,
+            BlendOp.Min => VkBlendOp.Min,
+            BlendOp.Max => VkBlendOp.Max,
+            _ => default
+        };
+    }
+
+    public static ColorComponentFlags Vulkan(ColorWrites colorWrites)
+    {
+        ColorComponentFlags result = default;
+
+        if (colorWrites.HasFlag(ColorWrites.Red))
+        {
+            result |= ColorComponentFlags.RBit;
+        }
+
+        if (colorWrites.HasFlag(ColorWrites.Green))
+        {
+            result |= ColorComponentFlags.GBit;
+        }
+
+        if (colorWrites.HasFlag(ColorWrites.Blue))
+        {
+            result |= ColorComponentFlags.BBit;
+        }
+
+        if (colorWrites.HasFlag(ColorWrites.Alpha))
+        {
+            result |= ColorComponentFlags.ABit;
+        }
+
+        return result;
+    }
+
+    public static VkStencilOp Vulkan(StencilOp stencilOp)
+    {
+        return stencilOp switch
+        {
+            StencilOp.Keep => VkStencilOp.Keep,
+            StencilOp.Zero => VkStencilOp.Zero,
+            StencilOp.Replace => VkStencilOp.Replace,
+            StencilOp.IncrementAndClamp => VkStencilOp.IncrementAndClamp,
+            StencilOp.DecrementAndClamp => VkStencilOp.DecrementAndClamp,
+            StencilOp.Invert => VkStencilOp.Invert,
+            StencilOp.IncrementAndWrap => VkStencilOp.IncrementAndWrap,
+            StencilOp.DecrementAndWrap => VkStencilOp.DecrementAndWrap,
+            _ => default
+        };
     }
 }
