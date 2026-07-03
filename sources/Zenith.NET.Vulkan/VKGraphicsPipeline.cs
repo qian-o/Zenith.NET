@@ -91,6 +91,21 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
 
             createInfo.PNext = &rendering;
         }
+
+        // RenderState
+        {
+        }
+
+        PipelineDynamicStateCreateInfo dynamicState = new()
+        {
+            SType = StructureType.PipelineDynamicStateCreateInfo,
+            DynamicStateCount = 4,
+            PDynamicStates = (DynamicState*)ZenithMarshal.AllocateAndFill(scope, [DynamicState.Viewport, DynamicState.Scissor, DynamicState.StencilReference, DynamicState.BlendConstants])
+        };
+
+        createInfo.PDynamicState = &dynamicState;
+
+        context.Vk.CreateGraphicsPipelines(context.Device, default, 1, &createInfo, default, out Pipeline).Success();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
