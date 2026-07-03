@@ -4,7 +4,7 @@ namespace Zenith.NET.Vulkan;
 
 internal unsafe class VKDescriptorHeap(VKGraphicsContext context,
                                        VKBuffer buffer,
-                                       ulong reservedRangeSize,
+                                       ulong reservedBytes,
                                        VKDescriptorRegion? bufferRegion,
                                        VKDescriptorRegion? imageRegion,
                                        VKDescriptorRegion? samplerRegion) : DisposableObject
@@ -13,7 +13,7 @@ internal unsafe class VKDescriptorHeap(VKGraphicsContext context,
 
     public DeviceAddressRangeEXT Range => new(buffer.DeviceAddress, buffer.Desc.SizeInBytes);
 
-    public ulong ReservedRangeSize => reservedRangeSize;
+    public ulong ReservedBytes => reservedBytes;
 
     public VKDescriptorToken Allocate(ResourceDescriptorInfoEXT info)
     {
@@ -68,29 +68,25 @@ internal unsafe class VKDescriptorHeap(VKGraphicsContext context,
 
         context.Vk.GetPhysicalDeviceProperties2(context.PhysicalDevice, &properties2);
 
-        ulong reservedRangeSize = heapProperties.MinResourceHeapReservedRange;
+        ulong reservedBytes = heapProperties.MinResourceHeapReservedRange;
+
         ulong bufferStride = heapProperties.BufferDescriptorSize;
+        ulong bufferOffset = ZenithHelper.Align(reservedBytes, bufferStride);
+
         ulong imageStride = heapProperties.ImageDescriptorSize;
-
-        ulong bufferOffset = ZenithHelper.Align(reservedRangeSize, bufferStride);
-        uint bufferBaseIndex = (uint)(bufferOffset / bufferStride);
-
         ulong imageOffset = ZenithHelper.Align(bufferOffset + (bufferCapacity * bufferStride), imageStride);
-        uint imageBaseIndex = (uint)(imageOffset / imageStride);
-
-        ulong sizeInBytes = ZenithHelper.Align(imageOffset + (imageCapacity * imageStride), heapProperties.ResourceHeapAlignment);
 
         VKBuffer buffer = new(context, new()
         {
-            SizeInBytes = (uint)sizeInBytes,
+            SizeInBytes = (uint)ZenithHelper.Align(imageOffset + (imageCapacity * imageStride), heapProperties.ResourceHeapAlignment),
             Residency = MemoryResidency.CpuWriteOnly
         }, BufferUsageFlags.DescriptorHeapBitExt());
 
         return new(context,
                    buffer,
-                   reservedRangeSize,
-                   new(bufferBaseIndex, bufferStride),
-                   new(imageBaseIndex, imageStride),
+                   reservedBytes,
+                   new((uint)(bufferOffset / bufferStride), (uint)bufferStride),
+                   new((uint)(imageOffset / imageStride), (uint)imageStride),
                    null);
     }
 
@@ -101,25 +97,22 @@ internal unsafe class VKDescriptorHeap(VKGraphicsContext context,
 
         context.Vk.GetPhysicalDeviceProperties2(context.PhysicalDevice, &properties2);
 
-        ulong reservedRangeSize = heapProperties.MinSamplerHeapReservedRange;
+        ulong reservedBytes = heapProperties.MinSamplerHeapReservedRange;
+
         ulong samplerStride = heapProperties.SamplerDescriptorSize;
-
-        ulong samplerOffset = ZenithHelper.Align(reservedRangeSize, samplerStride);
-        uint samplerBaseIndex = (uint)(samplerOffset / samplerStride);
-
-        ulong sizeInBytes = ZenithHelper.Align(samplerOffset + (samplerCapacity * samplerStride), heapProperties.SamplerHeapAlignment);
+        ulong samplerOffset = ZenithHelper.Align(reservedBytes, samplerStride);
 
         VKBuffer buffer = new(context, new()
         {
-            SizeInBytes = (uint)sizeInBytes,
+            SizeInBytes = (uint)ZenithHelper.Align(samplerOffset + (samplerCapacity * samplerStride), heapProperties.SamplerHeapAlignment),
             Residency = MemoryResidency.CpuWriteOnly
         }, BufferUsageFlags.DescriptorHeapBitExt());
 
         return new(context,
                    buffer,
-                   reservedRangeSize,
+                   reservedBytes,
                    null,
                    null,
-                   new(samplerBaseIndex, samplerStride));
+                   new((uint)(samplerOffset / samplerStride), (uint)samplerStride));
     }
 }
