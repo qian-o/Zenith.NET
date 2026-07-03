@@ -84,7 +84,7 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
             {
                 SType = StructureType.PipelineRenderingCreateInfo,
                 ColorAttachmentCount = (uint)desc.AttachmentFormats.ColorFormats.Length,
-                PColorAttachmentFormats = (Format*)ZenithMarshal.AllocateAndFill(scope, [.. desc.AttachmentFormats.ColorFormats.Select(static item => VKFormats.Vulkan(item))]),
+                PColorAttachmentFormats = (Format*)ZenithMarshal.AllocateAndFill(scope, [.. desc.AttachmentFormats.ColorFormats.Select(static item => VKFormats.Vulkan(item).Format)]),
                 DepthAttachmentFormat = VKFormats.Vulkan(desc.AttachmentFormats.DepthStencilFormat ?? PixelFormat.Unknown).Format,
                 StencilAttachmentFormat = VKFormats.Vulkan(desc.AttachmentFormats.DepthStencilFormat ?? PixelFormat.Unknown).Format
             };
