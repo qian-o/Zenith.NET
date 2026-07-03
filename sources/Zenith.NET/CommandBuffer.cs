@@ -263,24 +263,14 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
             };
         }
 
-        SetScissorsImpl(scissors);
         SetViewportsImpl(viewports);
+        SetScissorsImpl(scissors);
         BeginRenderPassImpl(colorAttachments, depthStencilAttachment);
     }
 
     public void EndRenderPass()
     {
         EndRenderPassImpl();
-    }
-
-    public void SetScissors(ReadOnlySpan<Scissor> scissors)
-    {
-        SetScissorsImpl(scissors);
-    }
-
-    public void SetViewports(ReadOnlySpan<Viewport> viewports)
-    {
-        SetViewportsImpl(viewports);
     }
 
     public void SetPipeline(GraphicsPipeline pipeline)
@@ -304,14 +294,24 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         currentPipeline = pipeline;
     }
 
-    public void SetStencilReference(uint stencilReference)
+    public void SetViewports(ReadOnlySpan<Viewport> viewports)
     {
-        SetStencilReferenceImpl(stencilReference);
+        SetViewportsImpl(viewports);
+    }
+
+    public void SetScissors(ReadOnlySpan<Scissor> scissors)
+    {
+        SetScissorsImpl(scissors);
     }
 
     public void SetBlendConstant(Vector4 blendConstant)
     {
         SetBlendConstantImpl(blendConstant);
+    }
+
+    public void SetStencilReference(uint stencilReference)
+    {
+        SetStencilReferenceImpl(stencilReference);
     }
 
     public void SetVertexBuffer(Buffer buffer, uint offsetInBytes, uint slot)
@@ -536,19 +536,19 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void EndRenderPassImpl();
 
-    protected abstract void SetScissorsImpl(ReadOnlySpan<Scissor> scissors);
-
-    protected abstract void SetViewportsImpl(ReadOnlySpan<Viewport> viewports);
-
     protected abstract void SetPipelineImpl(GraphicsPipeline pipeline);
 
     protected abstract void SetPipelineImpl(ComputePipeline pipeline);
 
     protected abstract void SetPipelineImpl(MeshShadingPipeline pipeline);
 
-    protected abstract void SetStencilReferenceImpl(uint stencilReference);
+    protected abstract void SetViewportsImpl(ReadOnlySpan<Viewport> viewports);
+
+    protected abstract void SetScissorsImpl(ReadOnlySpan<Scissor> scissors);
 
     protected abstract void SetBlendConstantImpl(Vector4 blendConstant);
+
+    protected abstract void SetStencilReferenceImpl(uint stencilReference);
 
     protected abstract void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint slot);
 

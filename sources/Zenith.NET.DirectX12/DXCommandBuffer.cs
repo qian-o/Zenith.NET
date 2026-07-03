@@ -294,6 +294,43 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         CommandList.EndRenderPass();
     }
 
+    protected override void SetPipelineImpl(GraphicsPipeline pipeline)
+    {
+        CommandList.SetPipelineState(pipeline.DirectX12().PipelineState);
+        CommandList.IASetPrimitiveTopology(DXFormats.DirectX12(pipeline.Desc.PrimitiveTopology).Topology);
+    }
+
+    protected override void SetPipelineImpl(ComputePipeline pipeline)
+    {
+        CommandList.SetPipelineState(pipeline.DirectX12().PipelineState);
+    }
+
+    protected override void SetPipelineImpl(MeshShadingPipeline pipeline)
+    {
+        CommandList.SetPipelineState(pipeline.DirectX12().PipelineState);
+    }
+
+    protected override void SetViewportsImpl(ReadOnlySpan<Viewport> viewports)
+    {
+        DxViewport* pViewports = stackalloc DxViewport[viewports.Length];
+        for (int i = 0; i < viewports.Length; i++)
+        {
+            Viewport viewport = viewports[i];
+
+            pViewports[i] = new()
+            {
+                TopLeftX = viewport.X,
+                TopLeftY = viewport.Y,
+                Width = viewport.Width,
+                Height = viewport.Height,
+                MinDepth = viewport.MinDepth,
+                MaxDepth = viewport.MaxDepth
+            };
+        }
+
+        CommandList.RSSetViewports((uint)viewports.Length, pViewports);
+    }
+
     protected override void SetScissorsImpl(ReadOnlySpan<Scissor> scissors)
     {
         Box2D<int>* pRects = stackalloc Box2D<int>[scissors.Length];
@@ -319,51 +356,14 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         CommandList.RSSetScissorRects((uint)scissors.Length, pRects);
     }
 
-    protected override void SetViewportsImpl(ReadOnlySpan<Viewport> viewports)
+    protected override void SetBlendConstantImpl(Vector4 blendConstant)
     {
-        DxViewport* pViewports = stackalloc DxViewport[viewports.Length];
-        for (int i = 0; i < viewports.Length; i++)
-        {
-            Viewport viewport = viewports[i];
-
-            pViewports[i] = new()
-            {
-                TopLeftX = viewport.X,
-                TopLeftY = viewport.Y,
-                Width = viewport.Width,
-                Height = viewport.Height,
-                MinDepth = viewport.MinDepth,
-                MaxDepth = viewport.MaxDepth
-            };
-        }
-
-        CommandList.RSSetViewports((uint)viewports.Length, pViewports);
-    }
-
-    protected override void SetPipelineImpl(GraphicsPipeline pipeline)
-    {
-        CommandList.SetPipelineState(pipeline.DirectX12().PipelineState);
-        CommandList.IASetPrimitiveTopology(DXFormats.DirectX12(pipeline.Desc.PrimitiveTopology).Topology);
-    }
-
-    protected override void SetPipelineImpl(ComputePipeline pipeline)
-    {
-        CommandList.SetPipelineState(pipeline.DirectX12().PipelineState);
-    }
-
-    protected override void SetPipelineImpl(MeshShadingPipeline pipeline)
-    {
-        CommandList.SetPipelineState(pipeline.DirectX12().PipelineState);
+        CommandList.OMSetBlendFactor(&blendConstant.X);
     }
 
     protected override void SetStencilReferenceImpl(uint stencilReference)
     {
         CommandList.OMSetStencilRef(stencilReference);
-    }
-
-    protected override void SetBlendConstantImpl(Vector4 blendConstant)
-    {
-        CommandList.OMSetBlendFactor(&blendConstant.X);
     }
 
     protected override void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint slot)

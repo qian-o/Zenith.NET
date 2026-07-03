@@ -212,46 +212,6 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         BeginComputeEncoding();
     }
 
-    protected override void SetScissorsImpl(ReadOnlySpan<Scissor> scissors)
-    {
-        if (Render is null)
-        {
-            todoScissors = [.. scissors];
-        }
-        else
-        {
-            MTLScissorRect[] mtlScissors = new MTLScissorRect[scissors.Length];
-            for (int i = 0; i < scissors.Length; i++)
-            {
-                Scissor scissor = scissors[i];
-
-                mtlScissors[i] = new((uint)scissor.X, (uint)scissor.Y, scissor.Width, scissor.Height);
-            }
-
-            Render.SetScissorRects(mtlScissors);
-        }
-    }
-
-    protected override void SetViewportsImpl(ReadOnlySpan<Viewport> viewports)
-    {
-        if (Render is null)
-        {
-            todoViewports = [.. viewports];
-        }
-        else
-        {
-            MTLViewport[] mtlViewports = new MTLViewport[viewports.Length];
-            for (int i = 0; i < viewports.Length; i++)
-            {
-                Viewport viewport = viewports[i];
-
-                mtlViewports[i] = new(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
-            }
-
-            Render.SetViewports(mtlViewports);
-        }
-    }
-
     protected override void SetPipelineImpl(GraphicsPipeline pipeline)
     {
         if (Render is null)
@@ -322,15 +282,43 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         }
     }
 
-    protected override void SetStencilReferenceImpl(uint stencilReference)
+    protected override void SetViewportsImpl(ReadOnlySpan<Viewport> viewports)
     {
         if (Render is null)
         {
-            todoStencilReference = stencilReference;
+            todoViewports = [.. viewports];
         }
         else
         {
-            Render.SetStencilReferenceValue(stencilReference);
+            MTLViewport[] mtlViewports = new MTLViewport[viewports.Length];
+            for (int i = 0; i < viewports.Length; i++)
+            {
+                Viewport viewport = viewports[i];
+
+                mtlViewports[i] = new(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
+            }
+
+            Render.SetViewports(mtlViewports);
+        }
+    }
+
+    protected override void SetScissorsImpl(ReadOnlySpan<Scissor> scissors)
+    {
+        if (Render is null)
+        {
+            todoScissors = [.. scissors];
+        }
+        else
+        {
+            MTLScissorRect[] mtlScissors = new MTLScissorRect[scissors.Length];
+            for (int i = 0; i < scissors.Length; i++)
+            {
+                Scissor scissor = scissors[i];
+
+                mtlScissors[i] = new((uint)scissor.X, (uint)scissor.Y, scissor.Width, scissor.Height);
+            }
+
+            Render.SetScissorRects(mtlScissors);
         }
     }
 
@@ -343,6 +331,18 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         else
         {
             Render.SetBlendColor(blendConstant.X, blendConstant.Y, blendConstant.Z, blendConstant.W);
+        }
+    }
+
+    protected override void SetStencilReferenceImpl(uint stencilReference)
+    {
+        if (Render is null)
+        {
+            todoStencilReference = stencilReference;
+        }
+        else
+        {
+            Render.SetStencilReferenceValue(stencilReference);
         }
     }
 
