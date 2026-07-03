@@ -2,3 +2,4 @@
 global using VkBuffer = Silk.NET.Vulkan.Buffer;
 global using VkCompareOp = Silk.NET.Vulkan.CompareOp;
 global using VkPipeline = Silk.NET.Vulkan.Pipeline;
+global using VkPrimitiveTopology = Silk.NET.Vulkan.PrimitiveTopology;

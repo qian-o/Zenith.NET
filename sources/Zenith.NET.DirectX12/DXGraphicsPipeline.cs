@@ -1,6 +1,5 @@
 ﻿using Silk.NET.Core.Native;
 using Silk.NET.Direct3D12;
-using Silk.NET.DXGI;
 
 namespace Zenith.NET.DirectX12;
 
@@ -50,14 +49,14 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
 
         // AttachmentFormats
         {
+            pipelineStateStream.DSVFormat = DXFormats.DirectX12(desc.AttachmentFormats.DepthStencilFormat ?? PixelFormat.Unknown);
+
             pipelineStateStream.RTVFormats.NumRenderTargets = (uint)desc.AttachmentFormats.ColorFormats.Length;
 
             for (int i = 0; i < desc.AttachmentFormats.ColorFormats.Length; i++)
             {
                 pipelineStateStream.RTVFormats.RTFormats[i] = DXFormats.DirectX12(desc.AttachmentFormats.ColorFormats[i]);
             }
-
-            pipelineStateStream.DSVFormat = desc.AttachmentFormats.DepthStencilFormat.HasValue ? DXFormats.DirectX12(desc.AttachmentFormats.DepthStencilFormat.Value) : Format.FormatUnknown;
 
             pipelineStateStream.SampleDesc = DXFormats.DirectX12(desc.AttachmentFormats.SampleCount);
         }

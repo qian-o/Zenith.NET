@@ -306,4 +306,14 @@ internal static class VKFormats
 
         return result;
     }
+
+    public static Format Vulkan(ElementFormat elementFormat)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static VkPrimitiveTopology Vulkan(PrimitiveTopology primitiveTopology)
+    {
+        throw new NotImplementedException();
+    }
 }

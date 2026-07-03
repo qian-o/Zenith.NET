@@ -4,7 +4,7 @@ namespace Zenith.NET.Vulkan;
 
 internal unsafe class VKShader(VKGraphicsContext context, ShaderDesc desc) : Shader(context, desc)
 {
-    public ShaderModuleCreateInfo GetShaderModuleCreateInfo(ZenithMarshal.Scope scope)
+    public PipelineShaderStageCreateInfo GetPipelineShaderStageCreateInfo(ZenithMarshal.Scope scope, ShaderStageFlags stage)
     {
         DescriptorSetAndBindingMappingEXT mapping = new()
         {
@@ -21,12 +21,20 @@ internal unsafe class VKShader(VKGraphicsContext context, ShaderDesc desc) : Sha
             PMappings = (DescriptorSetAndBindingMappingEXT*)ZenithMarshal.AllocateAndFill(scope, [mapping])
         };
 
-        return new()
+        ShaderModuleCreateInfo createInfo = new()
         {
             SType = StructureType.ShaderModuleCreateInfo,
             PNext = (ShaderDescriptorSetAndBindingMappingInfoEXT*)ZenithMarshal.AllocateAndFill(scope, [mappingInfo]),
             CodeSize = (nuint)Desc.CodeBytes.Length,
             PCode = (uint*)ZenithMarshal.AllocateAndFill(scope, Desc.CodeBytes)
+        };
+
+        return new()
+        {
+            SType = StructureType.PipelineShaderStageCreateInfo,
+            PNext = (ShaderModuleCreateInfo*)ZenithMarshal.AllocateAndFill(scope, [createInfo]),
+            Stage = stage,
+            PName = (byte*)ZenithMarshal.StringToPointer(scope, Desc.Name, StringEncoding.UTF8)
         };
     }
 
