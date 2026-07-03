@@ -6,9 +6,25 @@ internal unsafe class VKShader(VKGraphicsContext context, ShaderDesc desc) : Sha
 {
     public ShaderModuleCreateInfo GetShaderModuleCreateInfo(ZenithMarshal.Scope scope)
     {
+        DescriptorSetAndBindingMappingEXT mapping = new()
+        {
+            SType = StructureType.DescriptorSetAndBindingMappingExt(),
+            BindingCount = 1,
+            ResourceMask = SpirvResourceTypeFlagsEXT.UniformBufferBitExt,
+            Source = DescriptorMappingSourceEXT.PushAddressExt
+        };
+
+        ShaderDescriptorSetAndBindingMappingInfoEXT mappingInfo = new()
+        {
+            SType = StructureType.ShaderDescriptorSetAndBindingMappingInfoExt(),
+            MappingCount = 1,
+            PMappings = (DescriptorSetAndBindingMappingEXT*)ZenithMarshal.AllocateAndFill(scope, [mapping])
+        };
+
         return new()
         {
             SType = StructureType.ShaderModuleCreateInfo,
+            PNext = (ShaderDescriptorSetAndBindingMappingInfoEXT*)ZenithMarshal.AllocateAndFill(scope, [mappingInfo]),
             CodeSize = (nuint)Desc.CodeBytes.Length,
             PCode = (uint*)ZenithMarshal.AllocateAndFill(scope, Desc.CodeBytes)
         };
