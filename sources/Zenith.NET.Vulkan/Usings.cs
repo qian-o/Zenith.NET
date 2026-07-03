@@ -2,6 +2,7 @@
 global using VkBlendOp = Silk.NET.Vulkan.BlendOp;
 global using VkBorderColor = Silk.NET.Vulkan.BorderColor;
 global using VkBuffer = Silk.NET.Vulkan.Buffer;
+global using VkCommandBuffer = Silk.NET.Vulkan.CommandBuffer;
 global using VkCompareOp = Silk.NET.Vulkan.CompareOp;
 global using VkFrontFace = Silk.NET.Vulkan.FrontFace;
 global using VkPipeline = Silk.NET.Vulkan.Pipeline;
