@@ -8,4 +8,5 @@ global using VkFrontFace = Silk.NET.Vulkan.FrontFace;
 global using VkPipeline = Silk.NET.Vulkan.Pipeline;
 global using VkPrimitiveTopology = Silk.NET.Vulkan.PrimitiveTopology;
 global using VkQueryType = Silk.NET.Vulkan.QueryType;
+global using VkSemaphore = Silk.NET.Vulkan.Semaphore;
 global using VkStencilOp = Silk.NET.Vulkan.StencilOp;
