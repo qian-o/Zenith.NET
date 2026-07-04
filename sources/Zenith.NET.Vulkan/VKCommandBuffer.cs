@@ -102,27 +102,223 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes)
     {
-        throw new NotImplementedException();
+        VKBuffer vkSrc = src.Vulkan();
+        VKBuffer vkDst = dst.Vulkan();
+
+        BufferCopy2 region = new()
+        {
+            SType = StructureType.BufferCopy2,
+            SrcOffset = srcOffsetInBytes,
+            DstOffset = dstOffsetInBytes,
+            Size = sizeInBytes
+        };
+
+        CopyBufferInfo2 copyBufferInfo = new()
+        {
+            SType = StructureType.CopyBufferInfo2,
+            SrcBuffer = vkSrc.Buffer,
+            DstBuffer = vkDst.Buffer,
+            RegionCount = 1,
+            PRegions = &region
+        };
+
+        Context.Vk.CmdCopyBuffer2(CommandBuffer, &copyBufferInfo);
     }
 
     protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, uint srcRowStrideInBytes, uint srcSliceStrideInBytes, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D dstExtent)
     {
-        throw new NotImplementedException();
+        VKBuffer vkSrc = src.Vulkan();
+        VKTexture vkDst = dst.Vulkan();
+
+        (uint blockWidth, uint blockHeight, _, _) = ZenithHelper.BlockLayout(vkDst.Desc.Format, dstExtent.Width, dstExtent.Height);
+
+        BufferImageCopy2 region = new()
+        {
+            SType = StructureType.BufferImageCopy2,
+            BufferOffset = srcOffsetInBytes,
+            BufferRowLength = srcRowStrideInBytes / ZenithHelper.SizeInBytes(vkDst.Desc.Format) * blockWidth,
+            BufferImageHeight = srcSliceStrideInBytes / srcRowStrideInBytes * blockHeight,
+            ImageSubresource = new()
+            {
+                AspectMask = VKFormats.Vulkan(vkDst.Desc.Format).AspectFlags,
+                MipLevel = dstSubresource.MipLevel,
+                BaseArrayLayer = dstSubresource.ArrayLayer,
+                LayerCount = 1
+            },
+            ImageOffset = new()
+            {
+                X = (int)dstOffset.X,
+                Y = (int)dstOffset.Y,
+                Z = (int)dstOffset.Z
+            },
+            ImageExtent = new()
+            {
+                Width = dstExtent.Width,
+                Height = dstExtent.Height,
+                Depth = dstExtent.Depth
+            }
+        };
+
+        CopyBufferToImageInfo2 copyBufferToImageInfo = new()
+        {
+            SType = StructureType.CopyBufferToImageInfo2,
+            SrcBuffer = vkSrc.Buffer,
+            DstImage = vkDst.Image,
+            DstImageLayout = ImageLayout.TransferDstOptimal,
+            RegionCount = 1,
+            PRegions = &region
+        };
+
+        Context.Vk.CmdCopyBufferToImage2(CommandBuffer, &copyBufferToImageInfo);
     }
 
     protected override void CopyTextureImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D extent)
     {
-        throw new NotImplementedException();
+        VKTexture vkSrc = src.Vulkan();
+        VKTexture vkDst = dst.Vulkan();
+
+        ImageCopy2 region = new()
+        {
+            SType = StructureType.ImageCopy2,
+            SrcSubresource = new()
+            {
+                AspectMask = VKFormats.Vulkan(vkSrc.Desc.Format).AspectFlags,
+                MipLevel = srcSubresource.MipLevel,
+                BaseArrayLayer = srcSubresource.ArrayLayer,
+                LayerCount = 1
+            },
+            SrcOffset = new()
+            {
+                X = (int)srcOffset.X,
+                Y = (int)srcOffset.Y,
+                Z = (int)srcOffset.Z
+            },
+            DstSubresource = new()
+            {
+                AspectMask = VKFormats.Vulkan(vkDst.Desc.Format).AspectFlags,
+                MipLevel = dstSubresource.MipLevel,
+                BaseArrayLayer = dstSubresource.ArrayLayer,
+                LayerCount = 1
+            },
+            DstOffset = new()
+            {
+                X = (int)dstOffset.X,
+                Y = (int)dstOffset.Y,
+                Z = (int)dstOffset.Z
+            },
+            Extent = new()
+            {
+                Width = extent.Width,
+                Height = extent.Height,
+                Depth = extent.Depth
+            }
+        };
+
+        CopyImageInfo2 copyImageInfo = new()
+        {
+            SType = StructureType.CopyImageInfo2,
+            SrcImage = vkSrc.Image,
+            SrcImageLayout = ImageLayout.TransferSrcOptimal,
+            DstImage = vkDst.Image,
+            DstImageLayout = ImageLayout.TransferDstOptimal,
+            RegionCount = 1,
+            PRegions = &region
+        };
+
+        Context.Vk.CmdCopyImage2(CommandBuffer, &copyImageInfo);
     }
 
     protected override void CopyTextureToBufferImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dst, uint dstOffsetInBytes, uint dstRowStrideInBytes, uint dstSliceStrideInBytes)
     {
-        throw new NotImplementedException();
+        VKTexture vkSrc = src.Vulkan();
+        VKBuffer vkDst = dst.Vulkan();
+
+        (uint blockWidth, uint blockHeight, _, _) = ZenithHelper.BlockLayout(vkSrc.Desc.Format, srcExtent.Width, srcExtent.Height);
+
+        BufferImageCopy2 region = new()
+        {
+            SType = StructureType.BufferImageCopy2,
+            BufferOffset = dstOffsetInBytes,
+            BufferRowLength = dstRowStrideInBytes / ZenithHelper.SizeInBytes(vkSrc.Desc.Format) * blockWidth,
+            BufferImageHeight = dstSliceStrideInBytes / dstRowStrideInBytes * blockHeight,
+            ImageSubresource = new()
+            {
+                AspectMask = VKFormats.Vulkan(vkSrc.Desc.Format).AspectFlags,
+                MipLevel = srcSubresource.MipLevel,
+                BaseArrayLayer = srcSubresource.ArrayLayer,
+                LayerCount = 1
+            },
+            ImageOffset = new()
+            {
+                X = (int)srcOffset.X,
+                Y = (int)srcOffset.Y,
+                Z = (int)srcOffset.Z
+            },
+            ImageExtent = new()
+            {
+                Width = srcExtent.Width,
+                Height = srcExtent.Height,
+                Depth = srcExtent.Depth
+            }
+        };
+
+        CopyImageToBufferInfo2 copyImageToBufferInfo = new()
+        {
+            SType = StructureType.CopyImageToBufferInfo2,
+            SrcImage = vkSrc.Image,
+            SrcImageLayout = ImageLayout.TransferSrcOptimal,
+            DstBuffer = vkDst.Buffer,
+            RegionCount = 1,
+            PRegions = &region
+        };
+
+        Context.Vk.CmdCopyImageToBuffer2(CommandBuffer, &copyImageToBufferInfo);
     }
 
     protected override void ResolveTextureImpl(Texture src, TextureSubresource srcSubresource, Texture dst, TextureSubresource dstSubresource)
     {
-        throw new NotImplementedException();
+        VKTexture vkSrc = src.Vulkan();
+        VKTexture vkDst = dst.Vulkan();
+
+        ZenithHelper.MipDimensions(vkSrc.Desc.Width, vkSrc.Desc.Height, vkSrc.Desc.Depth, srcSubresource.MipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth);
+
+        ImageResolve2 region = new()
+        {
+            SType = StructureType.ImageResolve2,
+            SrcSubresource = new()
+            {
+                AspectMask = VKFormats.Vulkan(vkSrc.Desc.Format).AspectFlags,
+                MipLevel = srcSubresource.MipLevel,
+                BaseArrayLayer = srcSubresource.ArrayLayer,
+                LayerCount = 1
+            },
+            DstSubresource = new()
+            {
+                AspectMask = VKFormats.Vulkan(vkDst.Desc.Format).AspectFlags,
+                MipLevel = dstSubresource.MipLevel,
+                BaseArrayLayer = dstSubresource.ArrayLayer,
+                LayerCount = 1
+            },
+            Extent = new()
+            {
+                Width = mipWidth,
+                Height = mipHeight,
+                Depth = mipDepth
+            }
+        };
+
+        ResolveImageInfo2 resolveImageInfo = new()
+        {
+            SType = StructureType.ResolveImageInfo2,
+            SrcImage = vkSrc.Image,
+            SrcImageLayout = ImageLayout.TransferSrcOptimal,
+            DstImage = vkDst.Image,
+            DstImageLayout = ImageLayout.TransferDstOptimal,
+            RegionCount = 1,
+            PRegions = &region
+        };
+
+        Context.Vk.CmdResolveImage2(CommandBuffer, &resolveImageInfo);
     }
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)
