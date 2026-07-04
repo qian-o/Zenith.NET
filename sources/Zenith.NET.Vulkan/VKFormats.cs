@@ -498,4 +498,53 @@ internal static class VKFormats
             _ => default
         };
     }
+
+    public static (PipelineStageFlags2 Stage, AccessFlags2 Access) Vulkan(BarrierStages barrierStages)
+    {
+        if (barrierStages is BarrierStages.None)
+        {
+            return (PipelineStageFlags2.None, AccessFlags2.None);
+        }
+
+        PipelineStageFlags2 stage = default;
+        AccessFlags2 access = default;
+
+        if (barrierStages.HasFlag(BarrierStages.VertexShading))
+        {
+            stage |= PipelineStageFlags2.IndexInputBit | PipelineStageFlags2.VertexAttributeInputBit | PipelineStageFlags2.VertexShaderBit | PipelineStageFlags2.DrawIndirectBit;
+            access |= AccessFlags2.VertexAttributeReadBit | AccessFlags2.UniformReadBit | AccessFlags2.IndexReadBit | AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit | AccessFlags2.IndirectCommandReadBit | AccessFlags2.AccelerationStructureReadBitKhr;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.FragmentShading))
+        {
+            stage |= PipelineStageFlags2.FragmentShaderBit | PipelineStageFlags2.EarlyFragmentTestsBit | PipelineStageFlags2.LateFragmentTestsBit | PipelineStageFlags2.ColorAttachmentOutputBit;
+            access |= AccessFlags2.UniformReadBit | AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit | AccessFlags2.ColorAttachmentReadBit | AccessFlags2.ColorAttachmentWriteBit | AccessFlags2.DepthStencilAttachmentReadBit | AccessFlags2.DepthStencilAttachmentWriteBit | AccessFlags2.AccelerationStructureReadBitKhr;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.ComputeShading))
+        {
+            stage |= PipelineStageFlags2.ComputeShaderBit | PipelineStageFlags2.DrawIndirectBit;
+            access |= AccessFlags2.UniformReadBit | AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit | AccessFlags2.IndirectCommandReadBit | AccessFlags2.AccelerationStructureReadBitKhr;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.Copy))
+        {
+            stage |= PipelineStageFlags2.CopyBit;
+            access |= AccessFlags2.TransferReadBit | AccessFlags2.TransferWriteBit;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.Resolve))
+        {
+            stage |= PipelineStageFlags2.ResolveBit;
+            access |= AccessFlags2.TransferReadBit | AccessFlags2.TransferWriteBit;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.All))
+        {
+            stage = PipelineStageFlags2.AllCommandsBit;
+            access = AccessFlags2.MemoryReadBit | AccessFlags2.MemoryWriteBit;
+        }
+
+        return (stage, access);
+    }
 }

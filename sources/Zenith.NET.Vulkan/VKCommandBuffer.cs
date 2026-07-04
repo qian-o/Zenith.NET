@@ -39,7 +39,26 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void BarrierImpl(BarrierStages before, BarrierStages after)
     {
-        throw new NotImplementedException();
+        (PipelineStageFlags2 srcStage, AccessFlags2 srcAccess) = VKFormats.Vulkan(before);
+        (PipelineStageFlags2 dstStage, AccessFlags2 dstAccess) = VKFormats.Vulkan(after);
+
+        MemoryBarrier2 memoryBarrier = new()
+        {
+            SType = StructureType.MemoryBarrier2,
+            SrcStageMask = srcStage,
+            SrcAccessMask = srcAccess,
+            DstStageMask = dstStage,
+            DstAccessMask = dstAccess
+        };
+
+        DependencyInfo dependencyInfo = new()
+        {
+            SType = StructureType.DependencyInfo,
+            MemoryBarrierCount = 1,
+            PMemoryBarriers = &memoryBarrier
+        };
+
+        Context.Vk.CmdPipelineBarrier2(CommandBuffer, &dependencyInfo);
     }
 
     protected override void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout srcLayout, TextureLayout dstLayout)
@@ -253,6 +272,29 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         };
 
         Context.Vk.BeginCommandBuffer(CommandBuffer, &beginInfo).Success();
+
+        if (Queue.Type is CommandQueueType.Transfer)
+        {
+            return;
+        }
+
+        BindHeapInfoEXT resourceBindInfo = new()
+        {
+            SType = StructureType.BindHeapInfoExt(),
+            HeapRange = Context.ResourceHeap.Range,
+            ReservedRangeSize = Context.ResourceHeap.ReservedBytes
+        };
+
+        Context.DescriptorHeap?.CmdBindResourceHeap(CommandBuffer, &resourceBindInfo);
+
+        BindHeapInfoEXT samplerBindInfo = new()
+        {
+            SType = StructureType.BindHeapInfoExt(),
+            HeapRange = Context.SamplerHeap.Range,
+            ReservedRangeSize = Context.SamplerHeap.ReservedBytes
+        };
+
+        Context.DescriptorHeap?.CmdBindSamplerHeap(CommandBuffer, &samplerBindInfo);
     }
 
     protected override void EndImpl()
