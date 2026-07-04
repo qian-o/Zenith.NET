@@ -63,7 +63,41 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout srcLayout, TextureLayout dstLayout)
     {
-        throw new NotImplementedException();
+        VKTexture vkTexture = texture.Vulkan();
+
+        (PipelineStageFlags2 srcStage, AccessFlags2 srcAccess, ImageLayout oldLayout) = VKFormats.Vulkan(srcLayout);
+        (PipelineStageFlags2 dstStage, AccessFlags2 dstAccess, ImageLayout newLayout) = VKFormats.Vulkan(dstLayout);
+
+        ImageMemoryBarrier2 imageMemoryBarrier = new()
+        {
+            SType = StructureType.ImageMemoryBarrier2,
+            SrcStageMask = srcStage,
+            SrcAccessMask = srcAccess,
+            DstStageMask = dstStage,
+            DstAccessMask = dstAccess,
+            OldLayout = oldLayout,
+            NewLayout = newLayout,
+            SrcQueueFamilyIndex = Vk.QueueFamilyIgnored,
+            DstQueueFamilyIndex = Vk.QueueFamilyIgnored,
+            Image = vkTexture.Image,
+            SubresourceRange = new()
+            {
+                AspectMask = VKFormats.Vulkan(vkTexture.Desc.Format).AspectFlags,
+                BaseMipLevel = subresource.MipLevel,
+                LevelCount = 1,
+                BaseArrayLayer = subresource.ArrayLayer,
+                LayerCount = 1
+            }
+        };
+
+        DependencyInfo dependencyInfo = new()
+        {
+            SType = StructureType.DependencyInfo,
+            ImageMemoryBarrierCount = 1,
+            PImageMemoryBarriers = &imageMemoryBarrier
+        };
+
+        Context.Vk.CmdPipelineBarrier2(CommandBuffer, &dependencyInfo);
     }
 
     protected override void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes)

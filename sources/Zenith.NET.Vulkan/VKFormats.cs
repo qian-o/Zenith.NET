@@ -547,4 +547,24 @@ internal static class VKFormats
 
         return (stage, access);
     }
+
+    public static (PipelineStageFlags2 Stage, AccessFlags2 Access, ImageLayout Layout) Vulkan(TextureLayout textureLayout)
+    {
+        return textureLayout switch
+        {
+            TextureLayout.Undefined => (PipelineStageFlags2.None, AccessFlags2.None, ImageLayout.Undefined),
+            TextureLayout.General => (PipelineStageFlags2.AllCommandsBit, AccessFlags2.MemoryReadBit | AccessFlags2.MemoryWriteBit, ImageLayout.General),
+            TextureLayout.Sampled => (PipelineStageFlags2.VertexShaderBit | PipelineStageFlags2.FragmentShaderBit | PipelineStageFlags2.ComputeShaderBit, AccessFlags2.ShaderReadBit, ImageLayout.ShaderReadOnlyOptimal),
+            TextureLayout.Storage => (PipelineStageFlags2.VertexShaderBit | PipelineStageFlags2.FragmentShaderBit | PipelineStageFlags2.ComputeShaderBit, AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit, ImageLayout.General),
+            TextureLayout.ColorAttachment => (PipelineStageFlags2.ColorAttachmentOutputBit, AccessFlags2.ColorAttachmentReadBit | AccessFlags2.ColorAttachmentWriteBit, ImageLayout.ColorAttachmentOptimal),
+            TextureLayout.DepthStencilAttachment => (PipelineStageFlags2.EarlyFragmentTestsBit | PipelineStageFlags2.LateFragmentTestsBit, AccessFlags2.DepthStencilAttachmentReadBit | AccessFlags2.DepthStencilAttachmentWriteBit, ImageLayout.DepthStencilAttachmentOptimal),
+            TextureLayout.DepthStencilReadOnly => (PipelineStageFlags2.EarlyFragmentTestsBit | PipelineStageFlags2.LateFragmentTestsBit, AccessFlags2.DepthStencilAttachmentReadBit, ImageLayout.DepthStencilReadOnlyOptimal),
+            TextureLayout.CopySrc => (PipelineStageFlags2.CopyBit, AccessFlags2.TransferReadBit, ImageLayout.TransferSrcOptimal),
+            TextureLayout.CopyDst => (PipelineStageFlags2.CopyBit, AccessFlags2.TransferWriteBit, ImageLayout.TransferDstOptimal),
+            TextureLayout.ResolveSrc => (PipelineStageFlags2.ResolveBit, AccessFlags2.TransferReadBit, ImageLayout.TransferSrcOptimal),
+            TextureLayout.ResolveDst => (PipelineStageFlags2.ResolveBit, AccessFlags2.TransferWriteBit, ImageLayout.TransferDstOptimal),
+            TextureLayout.Present => (PipelineStageFlags2.AllCommandsBit, AccessFlags2.None, ImageLayout.PresentSrcKhr),
+            _ => (PipelineStageFlags2.None, AccessFlags2.None, ImageLayout.Undefined)
+        };
+    }
 }
