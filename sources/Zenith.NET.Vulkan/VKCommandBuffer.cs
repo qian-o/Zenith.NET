@@ -507,7 +507,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         VKQueryHeap vkQueryHeap = queryHeap.Vulkan();
 
         Context.Vk.CmdResetQueryPool(CommandBuffer, vkQueryHeap.QueryPool, index, 1);
-        Context.Vk.CmdWriteTimestamp(CommandBuffer, PipelineStageFlags.BottomOfPipeBit, vkQueryHeap.QueryPool, index);
+        Context.Vk.CmdWriteTimestamp2(CommandBuffer, PipelineStageFlags2.BottomOfPipeBit, vkQueryHeap.QueryPool, index);
     }
 
     protected override void BeginDebugEventImpl(string label)
