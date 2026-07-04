@@ -348,52 +348,88 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void EndRenderPassImpl()
     {
-        throw new NotImplementedException();
+        Context.Vk.CmdEndRendering(CommandBuffer);
     }
 
     protected override void SetPipelineImpl(GraphicsPipeline pipeline)
     {
-        throw new NotImplementedException();
+        Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Graphics, pipeline.Vulkan().Pipeline);
     }
 
     protected override void SetPipelineImpl(ComputePipeline pipeline)
     {
-        throw new NotImplementedException();
+        Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Compute, pipeline.Vulkan().Pipeline);
     }
 
     protected override void SetPipelineImpl(MeshShadingPipeline pipeline)
     {
-        throw new NotImplementedException();
+        Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Graphics, pipeline.Vulkan().Pipeline);
     }
 
     protected override void SetViewportsImpl(ReadOnlySpan<Viewport> viewports)
     {
-        throw new NotImplementedException();
+        VkViewport* pViewports = stackalloc VkViewport[viewports.Length];
+        for (int i = 0; i < viewports.Length; i++)
+        {
+            Viewport viewport = viewports[i];
+
+            pViewports[i] = new()
+            {
+                X = viewport.X,
+                Y = viewport.Y,
+                Width = viewport.Width,
+                Height = viewport.Height,
+                MinDepth = viewport.MinDepth,
+                MaxDepth = viewport.MaxDepth
+            };
+        }
+
+        Context.Vk.CmdSetViewport(CommandBuffer, 0, (uint)viewports.Length, pViewports);
     }
 
     protected override void SetScissorsImpl(ReadOnlySpan<Scissor> scissors)
     {
-        throw new NotImplementedException();
+        Rect2D* pScissors = stackalloc Rect2D[scissors.Length];
+        for (int i = 0; i < scissors.Length; i++)
+        {
+            Scissor scissor = scissors[i];
+
+            pScissors[i] = new()
+            {
+                Offset = new()
+                {
+                    X = scissor.X,
+                    Y = scissor.Y
+                },
+                Extent = new()
+                {
+                    Width = scissor.Width,
+                    Height = scissor.Height
+                }
+            };
+        }
+
+        Context.Vk.CmdSetScissor(CommandBuffer, 0, (uint)scissors.Length, pScissors);
     }
 
     protected override void SetBlendConstantImpl(Vector4 blendConstant)
     {
-        throw new NotImplementedException();
+        Context.Vk.CmdSetBlendConstants(CommandBuffer, &blendConstant.X);
     }
 
     protected override void SetStencilReferenceImpl(uint stencilReference)
     {
-        throw new NotImplementedException();
+        Context.Vk.CmdSetStencilReference(CommandBuffer, StencilFaceFlags.FrontAndBack, stencilReference);
     }
 
     protected override void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint slot)
     {
-        throw new NotImplementedException();
+        Context.Vk.CmdBindVertexBuffers(CommandBuffer, slot, 1, [buffer.Vulkan().Buffer], [offsetInBytes]);
     }
 
     protected override void SetIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat indexFormat)
     {
-        throw new NotImplementedException();
+        Context.Vk.CmdBindIndexBuffer(CommandBuffer, buffer.Vulkan().Buffer, offsetInBytes, VKFormats.Vulkan(indexFormat));
     }
 
     protected override void SetConstantBufferImpl(Pipeline pipeline, Buffer buffer, uint offsetInBytes)
@@ -403,42 +439,42 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
     {
-        throw new NotImplementedException();
+        Context.Vk.CmdDraw(CommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     protected override void DrawIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        throw new NotImplementedException();
+        Context.Vk.CmdDrawIndirect(CommandBuffer, indirectBuffer.Vulkan().Buffer, offsetInBytes, drawCount, (uint)sizeof(IndirectDrawArgs));
     }
 
     protected override void DrawIndexedImpl(GraphicsPipeline pipeline, uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
     {
-        throw new NotImplementedException();
+        Context.Vk.CmdDrawIndexed(CommandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
     protected override void DrawIndexedIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        throw new NotImplementedException();
+        Context.Vk.CmdDrawIndexedIndirect(CommandBuffer, indirectBuffer.Vulkan().Buffer, offsetInBytes, drawCount, (uint)sizeof(IndirectDrawIndexedArgs));
     }
 
     protected override void DispatchImpl(ComputePipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        throw new NotImplementedException();
+        Context.Vk.CmdDispatch(CommandBuffer, groupCountX, groupCountY, groupCountZ);
     }
 
     protected override void DispatchIndirectImpl(ComputePipeline pipeline, Buffer indirectBuffer, uint offsetInBytes)
     {
-        throw new NotImplementedException();
+        Context.Vk.CmdDispatchIndirect(CommandBuffer, indirectBuffer.Vulkan().Buffer, offsetInBytes);
     }
 
     protected override void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        throw new NotImplementedException();
+        Context.MeshShader?.CmdDrawMeshTask(CommandBuffer, groupCountX, groupCountY, groupCountZ);
     }
 
     protected override void DispatchMeshIndirectImpl(MeshShadingPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount)
     {
-        throw new NotImplementedException();
+        Context.MeshShader?.CmdDrawMeshTasksIndirect(CommandBuffer, indirectBuffer.Vulkan().Buffer, offsetInBytes, dispatchCount, (uint)sizeof(IndirectDispatchMeshArgs));
     }
 
     protected override void BeginQueryImpl(QueryHeap queryHeap, uint index)

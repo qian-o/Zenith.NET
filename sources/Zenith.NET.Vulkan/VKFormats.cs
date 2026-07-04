@@ -567,4 +567,9 @@ internal static class VKFormats
             _ => (default, default, default)
         };
     }
+
+    internal static IndexType Vulkan(IndexFormat indexFormat)
+    {
+        throw new NotImplementedException();
+    }
 }

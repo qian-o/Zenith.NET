@@ -10,3 +10,4 @@ global using VkPrimitiveTopology = Silk.NET.Vulkan.PrimitiveTopology;
 global using VkQueryType = Silk.NET.Vulkan.QueryType;
 global using VkSemaphore = Silk.NET.Vulkan.Semaphore;
 global using VkStencilOp = Silk.NET.Vulkan.StencilOp;
+global using VkViewport = Silk.NET.Vulkan.Viewport;
