@@ -434,7 +434,19 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void SetConstantBufferImpl(Pipeline pipeline, Buffer buffer, uint offsetInBytes)
     {
-        throw new NotImplementedException();
+        ulong address = buffer.Vulkan().DeviceAddress + offsetInBytes;
+
+        PushDataInfoEXT pushDataInfo = new()
+        {
+            SType = StructureType.PushDataInfoExt(),
+            Data = new()
+            {
+                Address = &address,
+                Size = sizeof(ulong)
+            }
+        };
+
+        Context.DescriptorHeap?.CmdPushData(CommandBuffer, &pushDataInfo);
     }
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
