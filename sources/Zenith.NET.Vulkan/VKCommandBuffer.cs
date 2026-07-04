@@ -376,9 +376,9 @@ internal unsafe class VKCommandBuffer : CommandBuffer
             pViewports[i] = new()
             {
                 X = viewport.X,
-                Y = viewport.Y,
+                Y = viewport.Y + viewport.Height,
                 Width = viewport.Width,
-                Height = viewport.Height,
+                Height = -viewport.Height,
                 MinDepth = viewport.MinDepth,
                 MaxDepth = viewport.MaxDepth
             };
