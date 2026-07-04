@@ -592,7 +592,7 @@ internal static class DXFormats
             TextureLayout.ResolveSrc => (BarrierSync.Resolve, BarrierAccess.ResolveSource, BarrierLayout.ResolveSource),
             TextureLayout.ResolveDst => (BarrierSync.Resolve, BarrierAccess.ResolveDest, BarrierLayout.ResolveDest),
             TextureLayout.Present => (BarrierSync.All, BarrierAccess.Common, BarrierLayout.Present),
-            _ => (BarrierSync.None, BarrierAccess.NoAccess, BarrierLayout.Undefined)
+            _ => (default, default, default)
         };
     }
 

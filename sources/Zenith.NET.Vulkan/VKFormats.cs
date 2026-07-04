@@ -564,7 +564,7 @@ internal static class VKFormats
             TextureLayout.ResolveSrc => (PipelineStageFlags2.ResolveBit, AccessFlags2.TransferReadBit, ImageLayout.TransferSrcOptimal),
             TextureLayout.ResolveDst => (PipelineStageFlags2.ResolveBit, AccessFlags2.TransferWriteBit, ImageLayout.TransferDstOptimal),
             TextureLayout.Present => (PipelineStageFlags2.AllCommandsBit, AccessFlags2.None, ImageLayout.PresentSrcKhr),
-            _ => (PipelineStageFlags2.None, AccessFlags2.None, ImageLayout.Undefined)
+            _ => (default, default, default)
         };
     }
 }
