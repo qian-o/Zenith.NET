@@ -407,7 +407,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
                 };
             }
 
-            if (hasStencil = ZenithHelper.HasDepth(texture.Desc.Format))
+            if (hasStencil = ZenithHelper.HasStencil(texture.Desc.Format))
             {
                 pStencilAttachment[0] = new()
                 {
