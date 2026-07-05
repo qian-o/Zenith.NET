@@ -130,7 +130,6 @@ internal unsafe class VKTexture : Texture
         {
             Context.Vk.DestroyImageView(Context.Device, attachmentView, default);
         }
-
         attachmentViews.Clear();
 
         View.Dispose();
