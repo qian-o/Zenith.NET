@@ -4,6 +4,8 @@ namespace Zenith.NET.Vulkan;
 
 internal unsafe class VKTexture : Texture
 {
+    private readonly Dictionary<TextureSubresource, ImageView> attachmentViews = [];
+
     public Image Image;
 
     public VKAllocation Allocation;
@@ -79,6 +81,34 @@ internal unsafe class VKTexture : Texture
         return 0;
     }
 
+    public ImageView GetAttachmentView(TextureSubresource subresource)
+    {
+        if (!attachmentViews.TryGetValue(subresource, out ImageView view))
+        {
+            ImageViewCreateInfo createInfo = new()
+            {
+                SType = StructureType.ImageViewCreateInfo,
+                Image = Image,
+                ViewType = VKFormats.Vulkan(Desc.Type).ViewType,
+                Format = VKFormats.Vulkan(Desc.Format).Format,
+                SubresourceRange = new()
+                {
+                    AspectMask = VKFormats.Vulkan(Desc.Format).AspectFlags,
+                    BaseMipLevel = subresource.MipLevel,
+                    LevelCount = 1,
+                    BaseArrayLayer = subresource.ArrayLayer,
+                    LayerCount = 1
+                }
+            };
+
+            Context.Vk.CreateImageView(Context.Device, &createInfo, default, out view).Success();
+
+            attachmentViews[subresource] = view;
+        }
+
+        return view;
+    }
+
     protected override void SetResourceName(string name)
     {
         using ZenithMarshal.Scope scope = new();
@@ -96,6 +126,13 @@ internal unsafe class VKTexture : Texture
 
     protected override void Destroy()
     {
+        foreach (ImageView attachmentView in attachmentViews.Values)
+        {
+            Context.Vk.DestroyImageView(Context.Device, attachmentView, default);
+        }
+
+        attachmentViews.Clear();
+
         View.Dispose();
 
         Context.Vk.DestroyImage(Context.Device, Image, default);

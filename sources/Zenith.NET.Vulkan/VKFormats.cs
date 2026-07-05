@@ -572,4 +572,25 @@ internal static class VKFormats
     {
         throw new NotImplementedException();
     }
+
+    public static AttachmentLoadOp Vulkan(LoadOp loadOp)
+    {
+        return loadOp switch
+        {
+            LoadOp.Load => AttachmentLoadOp.Load,
+            LoadOp.Clear => AttachmentLoadOp.Clear,
+            LoadOp.DontCare => AttachmentLoadOp.DontCare,
+            _ => default
+        };
+    }
+
+    public static AttachmentStoreOp Vulkan(StoreOp storeOp)
+    {
+        return storeOp switch
+        {
+            StoreOp.Store => AttachmentStoreOp.Store,
+            StoreOp.DontCare => AttachmentStoreOp.DontCare,
+            _ => default
+        };
+    }
 }

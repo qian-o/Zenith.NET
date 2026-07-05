@@ -343,7 +343,110 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void BeginRenderPassImpl(ReadOnlySpan<ColorAttachment> colorAttachments, DepthStencilAttachment? depthStencilAttachment)
     {
-        throw new NotImplementedException();
+        uint width = 0;
+        uint height = 0;
+        bool hasDepth = false;
+        bool hasStencil = false;
+
+        RenderingAttachmentInfo* pColorAttachments = stackalloc RenderingAttachmentInfo[colorAttachments.Length];
+        for (int i = 0; i < colorAttachments.Length; i++)
+        {
+            ColorAttachment attachment = colorAttachments[i];
+
+            VKTexture texture = attachment.Texture.Vulkan();
+
+            ZenithHelper.MipDimensions(texture.Desc.Width, texture.Desc.Height, texture.Desc.Depth, attachment.Subresource.MipLevel, out width, out height, out _);
+
+            pColorAttachments[i] = new()
+            {
+                SType = StructureType.RenderingAttachmentInfo,
+                ImageView = texture.GetAttachmentView(attachment.Subresource),
+                ImageLayout = ImageLayout.ColorAttachmentOptimal,
+                LoadOp = VKFormats.Vulkan(attachment.LoadOp),
+                StoreOp = VKFormats.Vulkan(attachment.StoreOp),
+                ClearValue = new()
+                {
+                    Color = new()
+                    {
+                        Float32_0 = attachment.ClearColor.X,
+                        Float32_1 = attachment.ClearColor.Y,
+                        Float32_2 = attachment.ClearColor.Z,
+                        Float32_3 = attachment.ClearColor.W
+                    }
+                }
+            };
+        }
+
+        RenderingAttachmentInfo* pDepthAttachment = stackalloc RenderingAttachmentInfo[depthStencilAttachment.HasValue ? 1 : 0];
+        RenderingAttachmentInfo* pStencilAttachment = stackalloc RenderingAttachmentInfo[depthStencilAttachment.HasValue ? 1 : 0];
+        if (depthStencilAttachment.HasValue)
+        {
+            DepthStencilAttachment attachment = depthStencilAttachment.Value;
+
+            VKTexture texture = attachment.Texture.Vulkan();
+
+            ZenithHelper.MipDimensions(texture.Desc.Width, texture.Desc.Height, texture.Desc.Depth, attachment.Subresource.MipLevel, out width, out height, out _);
+
+            if (hasDepth = ZenithHelper.HasDepth(texture.Desc.Format))
+            {
+                pDepthAttachment[0] = new()
+                {
+                    SType = StructureType.RenderingAttachmentInfo,
+                    ImageView = texture.GetAttachmentView(attachment.Subresource),
+                    ImageLayout = ImageLayout.DepthStencilAttachmentOptimal,
+                    LoadOp = VKFormats.Vulkan(attachment.DepthLoadOp),
+                    StoreOp = VKFormats.Vulkan(attachment.DepthStoreOp),
+                    ClearValue = new()
+                    {
+                        DepthStencil = new()
+                        {
+                            Depth = attachment.ClearDepth,
+                            Stencil = attachment.ClearStencil
+                        }
+                    }
+                };
+            }
+
+            if (hasStencil = ZenithHelper.HasDepth(texture.Desc.Format))
+            {
+                pStencilAttachment[0] = new()
+                {
+                    SType = StructureType.RenderingAttachmentInfo,
+                    ImageView = texture.GetAttachmentView(attachment.Subresource),
+                    ImageLayout = ImageLayout.DepthStencilAttachmentOptimal,
+                    LoadOp = VKFormats.Vulkan(attachment.StencilLoadOp),
+                    StoreOp = VKFormats.Vulkan(attachment.StencilStoreOp),
+                    ClearValue = new()
+                    {
+                        DepthStencil = new()
+                        {
+                            Depth = attachment.ClearDepth,
+                            Stencil = attachment.ClearStencil
+                        }
+                    }
+                };
+            }
+        }
+
+        RenderingInfo renderingInfo = new()
+        {
+            SType = StructureType.RenderingInfo,
+            RenderArea = new()
+            {
+                Extent = new()
+                {
+                    Width = width,
+                    Height = height
+                }
+            },
+            LayerCount = 1,
+            ColorAttachmentCount = (uint)colorAttachments.Length,
+            PColorAttachments = pColorAttachments,
+            PDepthAttachment = pDepthAttachment,
+            PStencilAttachment = pStencilAttachment
+        };
+
+        Context.Vk.CmdBeginRendering(CommandBuffer, &renderingInfo);
     }
 
     protected override void EndRenderPassImpl()
