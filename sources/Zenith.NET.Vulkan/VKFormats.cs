@@ -624,4 +624,9 @@ internal static class VKFormats
     {
         throw new NotImplementedException();
     }
+
+    internal static GeometryInstanceFlagsKHR Vulkan(RayTracingInstanceFlags flags)
+    {
+        throw new NotImplementedException();
+    }
 }

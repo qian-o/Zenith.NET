@@ -140,7 +140,14 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
         {
             RayTracingInstance instance = desc.Instances[i];
 
-            // TODO..
+            instances[i] = new()
+            {
+                Transform = VKFormats.Vulkan(instance.Transform),
+                InstanceCustomIndex = instance.InstanceId,
+                Mask = instance.VisibilityMask,
+                Flags = VKFormats.Vulkan(instance.Flags),
+                AccelerationStructureReference = instance.AccelerationStructure.Vulkan().DeviceAddress
+            };
         }
 
         Instance.Unmap();
