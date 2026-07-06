@@ -44,6 +44,10 @@ public static unsafe class Extensions
 
     extension(BottomLevelAccelerationStructure bottomLevelAccelerationStructure)
     {
+        internal VKBottomLevelAccelerationStructure Vulkan()
+        {
+            return (VKBottomLevelAccelerationStructure)bottomLevelAccelerationStructure;
+        }
     }
 
     extension(Buffer buffer)
@@ -156,5 +160,9 @@ public static unsafe class Extensions
 
     extension(TopLevelAccelerationStructure topLevelAccelerationStructure)
     {
+        internal VKTopLevelAccelerationStructure Vulkan()
+        {
+            return (VKTopLevelAccelerationStructure)topLevelAccelerationStructure;
+        }
     }
 }
