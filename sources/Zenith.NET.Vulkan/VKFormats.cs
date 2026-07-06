@@ -5,36 +5,321 @@ namespace Zenith.NET.Vulkan;
 
 internal static class VKFormats
 {
-    public static (ImageType Type, ImageViewType ViewType) Vulkan(TextureType textureType)
+    public static BuildAccelerationStructureFlagsKHR Vulkan(AccelerationStructureBuildFlags accelerationStructureBuildFlags)
     {
-        return
-        (
-            textureType switch
+        BuildAccelerationStructureFlagsKHR result = default;
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowUpdate))
+        {
+            result |= BuildAccelerationStructureFlagsKHR.AllowUpdateBitKhr;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowCompaction))
+        {
+            result |= BuildAccelerationStructureFlagsKHR.AllowCompactionBitKhr;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PreferFastTrace))
+        {
+            result |= BuildAccelerationStructureFlagsKHR.PreferFastTraceBitKhr;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PreferFastBuild))
+        {
+            result |= BuildAccelerationStructureFlagsKHR.PreferFastBuildBitKhr;
+        }
+
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.MinimizeMemory))
+        {
+            result |= BuildAccelerationStructureFlagsKHR.LowMemoryBitKhr;
+        }
+
+        return result;
+    }
+
+    public static SamplerAddressMode Vulkan(AddressMode addressMode)
+    {
+        return addressMode switch
+        {
+            AddressMode.Wrap => SamplerAddressMode.Repeat,
+            AddressMode.Mirror => SamplerAddressMode.MirroredRepeat,
+            AddressMode.Clamp => SamplerAddressMode.ClampToEdge,
+            AddressMode.Border => SamplerAddressMode.ClampToBorder,
+            _ => default
+        };
+    }
+
+    public static (PipelineStageFlags2 Stage, AccessFlags2 Access) Vulkan(BarrierStages barrierStages)
+    {
+        if (barrierStages is BarrierStages.None)
+        {
+            return (PipelineStageFlags2.None, AccessFlags2.None);
+        }
+
+        PipelineStageFlags2 stage = default;
+        AccessFlags2 access = default;
+
+        if (barrierStages.HasFlag(BarrierStages.VertexShading))
+        {
+            stage |= PipelineStageFlags2.IndexInputBit | PipelineStageFlags2.VertexAttributeInputBit | PipelineStageFlags2.VertexShaderBit | PipelineStageFlags2.DrawIndirectBit;
+            access |= AccessFlags2.VertexAttributeReadBit | AccessFlags2.UniformReadBit | AccessFlags2.IndexReadBit | AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit | AccessFlags2.IndirectCommandReadBit | AccessFlags2.AccelerationStructureReadBitKhr;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.FragmentShading))
+        {
+            stage |= PipelineStageFlags2.FragmentShaderBit | PipelineStageFlags2.EarlyFragmentTestsBit | PipelineStageFlags2.LateFragmentTestsBit | PipelineStageFlags2.ColorAttachmentOutputBit;
+            access |= AccessFlags2.UniformReadBit | AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit | AccessFlags2.ColorAttachmentReadBit | AccessFlags2.ColorAttachmentWriteBit | AccessFlags2.DepthStencilAttachmentReadBit | AccessFlags2.DepthStencilAttachmentWriteBit | AccessFlags2.AccelerationStructureReadBitKhr;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.ComputeShading))
+        {
+            stage |= PipelineStageFlags2.ComputeShaderBit | PipelineStageFlags2.DrawIndirectBit;
+            access |= AccessFlags2.UniformReadBit | AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit | AccessFlags2.IndirectCommandReadBit | AccessFlags2.AccelerationStructureReadBitKhr;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.Copy))
+        {
+            stage |= PipelineStageFlags2.CopyBit;
+            access |= AccessFlags2.TransferReadBit | AccessFlags2.TransferWriteBit;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.Resolve))
+        {
+            stage |= PipelineStageFlags2.ResolveBit;
+            access |= AccessFlags2.TransferReadBit | AccessFlags2.TransferWriteBit;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.All))
+        {
+            stage = PipelineStageFlags2.AllCommandsBit;
+            access = AccessFlags2.MemoryReadBit | AccessFlags2.MemoryWriteBit;
+        }
+
+        return (stage, access);
+    }
+
+    public static VkBlendFactor Vulkan(BlendFactor blendFactor)
+    {
+        return blendFactor switch
+        {
+            BlendFactor.Zero => VkBlendFactor.Zero,
+            BlendFactor.One => VkBlendFactor.One,
+            BlendFactor.SrcColor => VkBlendFactor.SrcColor,
+            BlendFactor.OneMinusSrcColor => VkBlendFactor.OneMinusSrcColor,
+            BlendFactor.DstColor => VkBlendFactor.DstColor,
+            BlendFactor.OneMinusDstColor => VkBlendFactor.OneMinusDstColor,
+            BlendFactor.SrcAlpha => VkBlendFactor.SrcAlpha,
+            BlendFactor.OneMinusSrcAlpha => VkBlendFactor.OneMinusSrcAlpha,
+            BlendFactor.DstAlpha => VkBlendFactor.DstAlpha,
+            BlendFactor.OneMinusDstAlpha => VkBlendFactor.OneMinusDstAlpha,
+            BlendFactor.Constant => VkBlendFactor.ConstantColor,
+            BlendFactor.OneMinusConstant => VkBlendFactor.OneMinusConstantColor,
+            _ => default
+        };
+    }
+
+    public static VkBlendOp Vulkan(BlendOp blendOp)
+    {
+        return blendOp switch
+        {
+            BlendOp.Add => VkBlendOp.Add,
+            BlendOp.Subtract => VkBlendOp.Subtract,
+            BlendOp.ReverseSubtract => VkBlendOp.ReverseSubtract,
+            BlendOp.Min => VkBlendOp.Min,
+            BlendOp.Max => VkBlendOp.Max,
+            _ => default
+        };
+    }
+
+    public static VkBorderColor Vulkan(BorderColor borderColor)
+    {
+        return borderColor switch
+        {
+            BorderColor.TransparentBlack => VkBorderColor.FloatTransparentBlack,
+            BorderColor.OpaqueBlack => VkBorderColor.FloatOpaqueBlack,
+            BorderColor.OpaqueWhite => VkBorderColor.FloatOpaqueWhite,
+            _ => default
+        };
+    }
+
+    public static BufferUsageFlags Vulkan(BufferUsages bufferUsages, bool rayTracingSupported)
+    {
+        BufferUsageFlags result = BufferUsageFlags.ShaderDeviceAddressBit;
+
+        if (bufferUsages.HasFlag(BufferUsages.Vertex))
+        {
+            result |= BufferUsageFlags.VertexBufferBit;
+
+            if (rayTracingSupported)
             {
-                TextureType.Texture1D or
-                TextureType.Texture1DArray => ImageType.Type1D,
-
-                TextureType.Texture2D or
-                TextureType.Texture2DArray or
-                TextureType.TextureCube or
-                TextureType.TextureCubeArray => ImageType.Type2D,
-
-                TextureType.Texture3D => ImageType.Type3D,
-
-                _ => default
-            },
-            textureType switch
-            {
-                TextureType.Texture1D => ImageViewType.Type1D,
-                TextureType.Texture1DArray => ImageViewType.Type1DArray,
-                TextureType.Texture2D => ImageViewType.Type2D,
-                TextureType.Texture2DArray => ImageViewType.Type2DArray,
-                TextureType.Texture3D => ImageViewType.Type3D,
-                TextureType.TextureCube => ImageViewType.TypeCube,
-                TextureType.TextureCubeArray => ImageViewType.TypeCubeArray,
-                _ => default
+                result |= BufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr;
             }
-        );
+        }
+
+        if (bufferUsages.HasFlag(BufferUsages.Index))
+        {
+            result |= BufferUsageFlags.IndexBufferBit;
+
+            if (rayTracingSupported)
+            {
+                result |= BufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr;
+            }
+        }
+
+        if (bufferUsages.HasFlag(BufferUsages.Indirect))
+        {
+            result |= BufferUsageFlags.IndirectBufferBit;
+        }
+
+        if (bufferUsages.HasFlag(BufferUsages.Constant))
+        {
+            result |= BufferUsageFlags.UniformBufferBit;
+        }
+
+        if (bufferUsages.HasFlag(BufferUsages.StorageReadOnly) || bufferUsages.HasFlag(BufferUsages.StorageReadWrite))
+        {
+            result |= BufferUsageFlags.StorageBufferBit;
+
+            if (rayTracingSupported)
+            {
+                result |= BufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr;
+            }
+        }
+
+        if (bufferUsages.HasFlag(BufferUsages.TransferSrc))
+        {
+            result |= BufferUsageFlags.TransferSrcBit;
+        }
+
+        if (bufferUsages.HasFlag(BufferUsages.TransferDst))
+        {
+            result |= BufferUsageFlags.TransferDstBit;
+        }
+
+        return result;
+    }
+
+    public static ColorComponentFlags Vulkan(ColorWrites colorWrites)
+    {
+        ColorComponentFlags result = default;
+
+        if (colorWrites.HasFlag(ColorWrites.Red))
+        {
+            result |= ColorComponentFlags.RBit;
+        }
+
+        if (colorWrites.HasFlag(ColorWrites.Green))
+        {
+            result |= ColorComponentFlags.GBit;
+        }
+
+        if (colorWrites.HasFlag(ColorWrites.Blue))
+        {
+            result |= ColorComponentFlags.BBit;
+        }
+
+        if (colorWrites.HasFlag(ColorWrites.Alpha))
+        {
+            result |= ColorComponentFlags.ABit;
+        }
+
+        return result;
+    }
+
+    public static VkCompareOp Vulkan(CompareOp compareOp)
+    {
+        return compareOp switch
+        {
+            CompareOp.Never => VkCompareOp.Never,
+            CompareOp.Less => VkCompareOp.Less,
+            CompareOp.Equal => VkCompareOp.Equal,
+            CompareOp.LessEqual => VkCompareOp.LessOrEqual,
+            CompareOp.Greater => VkCompareOp.Greater,
+            CompareOp.NotEqual => VkCompareOp.NotEqual,
+            CompareOp.GreaterEqual => VkCompareOp.GreaterOrEqual,
+            CompareOp.Always => VkCompareOp.Always,
+            _ => default
+        };
+    }
+
+    public static CullModeFlags Vulkan(CullMode cullMode)
+    {
+        return cullMode switch
+        {
+            CullMode.None => CullModeFlags.None,
+            CullMode.Front => CullModeFlags.FrontBit,
+            CullMode.Back => CullModeFlags.BackBit,
+            _ => default
+        };
+    }
+
+    public static Format Vulkan(ElementFormat elementFormat)
+    {
+        return elementFormat switch
+        {
+            ElementFormat.UByte1 => Format.R8Uint,
+            ElementFormat.UByte2 => Format.R8G8Uint,
+            ElementFormat.UByte4 => Format.R8G8B8A8Uint,
+
+            ElementFormat.Byte1 => Format.R8Sint,
+            ElementFormat.Byte2 => Format.R8G8Sint,
+            ElementFormat.Byte4 => Format.R8G8B8A8Sint,
+
+            ElementFormat.UByte1UNorm => Format.R8Unorm,
+            ElementFormat.UByte2UNorm => Format.R8G8Unorm,
+            ElementFormat.UByte4UNorm => Format.R8G8B8A8Unorm,
+
+            ElementFormat.Byte1SNorm => Format.R8SNorm,
+            ElementFormat.Byte2SNorm => Format.R8G8SNorm,
+            ElementFormat.Byte4SNorm => Format.R8G8B8A8SNorm,
+
+            ElementFormat.UShort1 => Format.R16Uint,
+            ElementFormat.UShort2 => Format.R16G16Uint,
+            ElementFormat.UShort4 => Format.R16G16B16A16Uint,
+
+            ElementFormat.Short1 => Format.R16Sint,
+            ElementFormat.Short2 => Format.R16G16Sint,
+            ElementFormat.Short4 => Format.R16G16B16A16Sint,
+
+            ElementFormat.UShort1UNorm => Format.R16Unorm,
+            ElementFormat.UShort2UNorm => Format.R16G16Unorm,
+            ElementFormat.UShort4UNorm => Format.R16G16B16A16Unorm,
+
+            ElementFormat.Short1SNorm => Format.R16SNorm,
+            ElementFormat.Short2SNorm => Format.R16G16SNorm,
+            ElementFormat.Short4SNorm => Format.R16G16B16A16SNorm,
+
+            ElementFormat.Half1 => Format.R16Sfloat,
+            ElementFormat.Half2 => Format.R16G16Sfloat,
+            ElementFormat.Half4 => Format.R16G16B16A16Sfloat,
+
+            ElementFormat.Float1 => Format.R32Sfloat,
+            ElementFormat.Float2 => Format.R32G32Sfloat,
+            ElementFormat.Float3 => Format.R32G32B32Sfloat,
+            ElementFormat.Float4 => Format.R32G32B32A32Sfloat,
+
+            ElementFormat.UInt1 => Format.R32Uint,
+            ElementFormat.UInt2 => Format.R32G32Uint,
+            ElementFormat.UInt3 => Format.R32G32B32Uint,
+            ElementFormat.UInt4 => Format.R32G32B32A32Uint,
+
+            ElementFormat.Int1 => Format.R32Sint,
+            ElementFormat.Int2 => Format.R32G32Sint,
+            ElementFormat.Int3 => Format.R32G32B32Sint,
+            ElementFormat.Int4 => Format.R32G32B32A32Sint,
+
+            _ => default
+        };
+    }
+
+    public static PolygonMode Vulkan(FillMode fillMode)
+    {
+        return fillMode switch
+        {
+            FillMode.Solid => PolygonMode.Fill,
+            FillMode.Wireframe => PolygonMode.Line,
+            _ => default
+        };
     }
 
     public static (Filter Filter, SamplerMipmapMode MipmapMode) Vulkan(FilterMode filterMode)
@@ -56,57 +341,59 @@ internal static class VKFormats
         );
     }
 
-    public static SamplerAddressMode Vulkan(AddressMode addressMode)
+    public static VkFrontFace Vulkan(FrontFace frontFace)
     {
-        return addressMode switch
+        return frontFace switch
         {
-            AddressMode.Wrap => SamplerAddressMode.Repeat,
-            AddressMode.Mirror => SamplerAddressMode.MirroredRepeat,
-            AddressMode.Clamp => SamplerAddressMode.ClampToEdge,
-            AddressMode.Border => SamplerAddressMode.ClampToBorder,
+            FrontFace.CounterClockwise => VkFrontFace.CounterClockwise,
+            FrontFace.Clockwise => VkFrontFace.Clockwise,
             _ => default
         };
     }
 
-    public static VkCompareOp Vulkan(CompareOp compareOp)
+    public static IndexType Vulkan(IndexFormat indexFormat)
     {
-        return compareOp switch
+        return indexFormat switch
         {
-            CompareOp.Never => VkCompareOp.Never,
-            CompareOp.Less => VkCompareOp.Less,
-            CompareOp.Equal => VkCompareOp.Equal,
-            CompareOp.LessEqual => VkCompareOp.LessOrEqual,
-            CompareOp.Greater => VkCompareOp.Greater,
-            CompareOp.NotEqual => VkCompareOp.NotEqual,
-            CompareOp.GreaterEqual => VkCompareOp.GreaterOrEqual,
-            CompareOp.Always => VkCompareOp.Always,
+            IndexFormat.UInt16 => IndexType.Uint16,
+            IndexFormat.UInt32 => IndexType.Uint32,
             _ => default
         };
     }
 
-    public static VkBorderColor Vulkan(BorderColor borderColor)
+    public static AttachmentLoadOp Vulkan(LoadOp loadOp)
     {
-        return borderColor switch
+        return loadOp switch
         {
-            BorderColor.TransparentBlack => VkBorderColor.FloatTransparentBlack,
-            BorderColor.OpaqueBlack => VkBorderColor.FloatOpaqueBlack,
-            BorderColor.OpaqueWhite => VkBorderColor.FloatOpaqueWhite,
+            LoadOp.Load => AttachmentLoadOp.Load,
+            LoadOp.Clear => AttachmentLoadOp.Clear,
+            LoadOp.DontCare => AttachmentLoadOp.DontCare,
             _ => default
         };
     }
 
-    public static SampleCountFlags Vulkan(SampleCount sampleCount)
+    public static unsafe TransformMatrixKHR Vulkan(Matrix4x4 matrix4x4)
     {
-        return sampleCount switch
-        {
-            SampleCount.Count1 => SampleCountFlags.Count1Bit,
-            SampleCount.Count2 => SampleCountFlags.Count2Bit,
-            SampleCount.Count4 => SampleCountFlags.Count4Bit,
-            SampleCount.Count8 => SampleCountFlags.Count8Bit,
-            SampleCount.Count16 => SampleCountFlags.Count16Bit,
-            SampleCount.Count32 => SampleCountFlags.Count32Bit,
-            _ => default
-        };
+        TransformMatrixKHR result;
+
+        float* pResult = (float*)&result;
+
+        pResult[0] = matrix4x4.M11;
+        pResult[1] = matrix4x4.M21;
+        pResult[2] = matrix4x4.M31;
+        pResult[3] = matrix4x4.M41;
+
+        pResult[4] = matrix4x4.M12;
+        pResult[5] = matrix4x4.M22;
+        pResult[6] = matrix4x4.M32;
+        pResult[7] = matrix4x4.M42;
+
+        pResult[8] = matrix4x4.M13;
+        pResult[9] = matrix4x4.M23;
+        pResult[10] = matrix4x4.M33;
+        pResult[11] = matrix4x4.M43;
+
+        return result;
     }
 
     public static (Format Format, ImageAspectFlags AspectFlags) Vulkan(PixelFormat pixelFormat)
@@ -229,61 +516,159 @@ internal static class VKFormats
         return (format, aspectFlags);
     }
 
-    public static BufferUsageFlags Vulkan(BufferUsages bufferUsages, bool rayTracingSupported)
+    public static VkPrimitiveTopology Vulkan(PrimitiveTopology primitiveTopology)
     {
-        BufferUsageFlags result = BufferUsageFlags.ShaderDeviceAddressBit;
-
-        if (bufferUsages.HasFlag(BufferUsages.Vertex))
+        return primitiveTopology switch
         {
-            result |= BufferUsageFlags.VertexBufferBit;
+            PrimitiveTopology.PointList => VkPrimitiveTopology.PointList,
+            PrimitiveTopology.LineList => VkPrimitiveTopology.LineList,
+            PrimitiveTopology.LineStrip => VkPrimitiveTopology.LineStrip,
+            PrimitiveTopology.TriangleList => VkPrimitiveTopology.TriangleList,
+            PrimitiveTopology.TriangleStrip => VkPrimitiveTopology.TriangleStrip,
+            _ => default
+        };
+    }
 
-            if (rayTracingSupported)
-            {
-                result |= BufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr;
-            }
+    public static VkQueryType Vulkan(QueryType queryType)
+    {
+        return queryType switch
+        {
+            QueryType.Occlusion or
+            QueryType.BinaryOcclusion => VkQueryType.Occlusion,
+
+            QueryType.Timestamp => VkQueryType.Timestamp,
+
+            _ => default
+        };
+    }
+
+    public static GeometryTypeKHR Vulkan(RayTracingGeometryType rayTracingGeometryType)
+    {
+        return rayTracingGeometryType switch
+        {
+            RayTracingGeometryType.Triangle => GeometryTypeKHR.TrianglesKhr,
+            RayTracingGeometryType.Aabb => GeometryTypeKHR.AabbsKhr,
+            _ => default
+        };
+    }
+
+    public static GeometryInstanceFlagsKHR Vulkan(RayTracingInstanceFlags rayTracingInstanceFlags)
+    {
+        GeometryInstanceFlagsKHR result = default;
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.FrontCounterClockwise))
+        {
+            result |= GeometryInstanceFlagsKHR.TriangleFrontCounterclockwiseBitKhr;
         }
 
-        if (bufferUsages.HasFlag(BufferUsages.Index))
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.DisableCull))
         {
-            result |= BufferUsageFlags.IndexBufferBit;
-
-            if (rayTracingSupported)
-            {
-                result |= BufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr;
-            }
+            result |= GeometryInstanceFlagsKHR.TriangleFacingCullDisableBitKhr;
         }
 
-        if (bufferUsages.HasFlag(BufferUsages.Indirect))
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.ForceOpaque))
         {
-            result |= BufferUsageFlags.IndirectBufferBit;
+            result |= GeometryInstanceFlagsKHR.ForceOpaqueBitKhr;
         }
 
-        if (bufferUsages.HasFlag(BufferUsages.Constant))
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.ForceNonOpaque))
         {
-            result |= BufferUsageFlags.UniformBufferBit;
-        }
-
-        if (bufferUsages.HasFlag(BufferUsages.StorageReadOnly) || bufferUsages.HasFlag(BufferUsages.StorageReadWrite))
-        {
-            result |= BufferUsageFlags.StorageBufferBit;
-
-            if (rayTracingSupported)
-            {
-                result |= BufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr;
-            }
-        }
-
-        if (bufferUsages.HasFlag(BufferUsages.TransferSrc))
-        {
-            result |= BufferUsageFlags.TransferSrcBit;
-        }
-
-        if (bufferUsages.HasFlag(BufferUsages.TransferDst))
-        {
-            result |= BufferUsageFlags.TransferDstBit;
+            result |= GeometryInstanceFlagsKHR.ForceNoOpaqueBitKhr;
         }
 
         return result;
+    }
+
+    public static SampleCountFlags Vulkan(SampleCount sampleCount)
+    {
+        return sampleCount switch
+        {
+            SampleCount.Count1 => SampleCountFlags.Count1Bit,
+            SampleCount.Count2 => SampleCountFlags.Count2Bit,
+            SampleCount.Count4 => SampleCountFlags.Count4Bit,
+            SampleCount.Count8 => SampleCountFlags.Count8Bit,
+            SampleCount.Count16 => SampleCountFlags.Count16Bit,
+            SampleCount.Count32 => SampleCountFlags.Count32Bit,
+            _ => default
+        };
+    }
+
+    public static VkStencilOp Vulkan(StencilOp stencilOp)
+    {
+        return stencilOp switch
+        {
+            StencilOp.Keep => VkStencilOp.Keep,
+            StencilOp.Zero => VkStencilOp.Zero,
+            StencilOp.Replace => VkStencilOp.Replace,
+            StencilOp.IncrementAndClamp => VkStencilOp.IncrementAndClamp,
+            StencilOp.DecrementAndClamp => VkStencilOp.DecrementAndClamp,
+            StencilOp.Invert => VkStencilOp.Invert,
+            StencilOp.IncrementAndWrap => VkStencilOp.IncrementAndWrap,
+            StencilOp.DecrementAndWrap => VkStencilOp.DecrementAndWrap,
+            _ => default
+        };
+    }
+
+    public static AttachmentStoreOp Vulkan(StoreOp storeOp)
+    {
+        return storeOp switch
+        {
+            StoreOp.Store => AttachmentStoreOp.Store,
+            StoreOp.DontCare => AttachmentStoreOp.DontCare,
+            _ => default
+        };
+    }
+
+    public static (PipelineStageFlags2 Stage, AccessFlags2 Access, ImageLayout Layout) Vulkan(TextureLayout textureLayout)
+    {
+        return textureLayout switch
+        {
+            TextureLayout.Undefined => (PipelineStageFlags2.None, AccessFlags2.None, ImageLayout.Undefined),
+            TextureLayout.General => (PipelineStageFlags2.AllCommandsBit, AccessFlags2.MemoryReadBit | AccessFlags2.MemoryWriteBit, ImageLayout.General),
+            TextureLayout.Sampled => (PipelineStageFlags2.VertexShaderBit | PipelineStageFlags2.FragmentShaderBit | PipelineStageFlags2.ComputeShaderBit, AccessFlags2.ShaderReadBit, ImageLayout.ShaderReadOnlyOptimal),
+            TextureLayout.Storage => (PipelineStageFlags2.VertexShaderBit | PipelineStageFlags2.FragmentShaderBit | PipelineStageFlags2.ComputeShaderBit, AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit, ImageLayout.General),
+            TextureLayout.ColorAttachment => (PipelineStageFlags2.ColorAttachmentOutputBit, AccessFlags2.ColorAttachmentReadBit | AccessFlags2.ColorAttachmentWriteBit, ImageLayout.ColorAttachmentOptimal),
+            TextureLayout.DepthStencilAttachment => (PipelineStageFlags2.EarlyFragmentTestsBit | PipelineStageFlags2.LateFragmentTestsBit, AccessFlags2.DepthStencilAttachmentReadBit | AccessFlags2.DepthStencilAttachmentWriteBit, ImageLayout.DepthStencilAttachmentOptimal),
+            TextureLayout.DepthStencilReadOnly => (PipelineStageFlags2.EarlyFragmentTestsBit | PipelineStageFlags2.LateFragmentTestsBit, AccessFlags2.DepthStencilAttachmentReadBit, ImageLayout.DepthStencilReadOnlyOptimal),
+            TextureLayout.CopySrc => (PipelineStageFlags2.CopyBit, AccessFlags2.TransferReadBit, ImageLayout.TransferSrcOptimal),
+            TextureLayout.CopyDst => (PipelineStageFlags2.CopyBit, AccessFlags2.TransferWriteBit, ImageLayout.TransferDstOptimal),
+            TextureLayout.ResolveSrc => (PipelineStageFlags2.ResolveBit, AccessFlags2.TransferReadBit, ImageLayout.TransferSrcOptimal),
+            TextureLayout.ResolveDst => (PipelineStageFlags2.ResolveBit, AccessFlags2.TransferWriteBit, ImageLayout.TransferDstOptimal),
+            TextureLayout.Present => (PipelineStageFlags2.AllCommandsBit, AccessFlags2.None, ImageLayout.PresentSrcKhr),
+            _ => (default, default, default)
+        };
+    }
+
+    public static (ImageType Type, ImageViewType ViewType) Vulkan(TextureType textureType)
+    {
+        return
+        (
+            textureType switch
+            {
+                TextureType.Texture1D or
+                TextureType.Texture1DArray => ImageType.Type1D,
+
+                TextureType.Texture2D or
+                TextureType.Texture2DArray or
+                TextureType.TextureCube or
+                TextureType.TextureCubeArray => ImageType.Type2D,
+
+                TextureType.Texture3D => ImageType.Type3D,
+
+                _ => default
+            },
+            textureType switch
+            {
+                TextureType.Texture1D => ImageViewType.Type1D,
+                TextureType.Texture1DArray => ImageViewType.Type1DArray,
+                TextureType.Texture2D => ImageViewType.Type2D,
+                TextureType.Texture2DArray => ImageViewType.Type2DArray,
+                TextureType.Texture3D => ImageViewType.Type3D,
+                TextureType.TextureCube => ImageViewType.TypeCube,
+                TextureType.TextureCubeArray => ImageViewType.TypeCubeArray,
+                _ => default
+            }
+        );
     }
 
     public static ImageUsageFlags Vulkan(TextureUsages textureUsages)
@@ -321,312 +706,5 @@ internal static class VKFormats
         }
 
         return result;
-    }
-
-    public static Format Vulkan(ElementFormat elementFormat)
-    {
-        return elementFormat switch
-        {
-            ElementFormat.UByte1 => Format.R8Uint,
-            ElementFormat.UByte2 => Format.R8G8Uint,
-            ElementFormat.UByte4 => Format.R8G8B8A8Uint,
-
-            ElementFormat.Byte1 => Format.R8Sint,
-            ElementFormat.Byte2 => Format.R8G8Sint,
-            ElementFormat.Byte4 => Format.R8G8B8A8Sint,
-
-            ElementFormat.UByte1UNorm => Format.R8Unorm,
-            ElementFormat.UByte2UNorm => Format.R8G8Unorm,
-            ElementFormat.UByte4UNorm => Format.R8G8B8A8Unorm,
-
-            ElementFormat.Byte1SNorm => Format.R8SNorm,
-            ElementFormat.Byte2SNorm => Format.R8G8SNorm,
-            ElementFormat.Byte4SNorm => Format.R8G8B8A8SNorm,
-
-            ElementFormat.UShort1 => Format.R16Uint,
-            ElementFormat.UShort2 => Format.R16G16Uint,
-            ElementFormat.UShort4 => Format.R16G16B16A16Uint,
-
-            ElementFormat.Short1 => Format.R16Sint,
-            ElementFormat.Short2 => Format.R16G16Sint,
-            ElementFormat.Short4 => Format.R16G16B16A16Sint,
-
-            ElementFormat.UShort1UNorm => Format.R16Unorm,
-            ElementFormat.UShort2UNorm => Format.R16G16Unorm,
-            ElementFormat.UShort4UNorm => Format.R16G16B16A16Unorm,
-
-            ElementFormat.Short1SNorm => Format.R16SNorm,
-            ElementFormat.Short2SNorm => Format.R16G16SNorm,
-            ElementFormat.Short4SNorm => Format.R16G16B16A16SNorm,
-
-            ElementFormat.Half1 => Format.R16Sfloat,
-            ElementFormat.Half2 => Format.R16G16Sfloat,
-            ElementFormat.Half4 => Format.R16G16B16A16Sfloat,
-
-            ElementFormat.Float1 => Format.R32Sfloat,
-            ElementFormat.Float2 => Format.R32G32Sfloat,
-            ElementFormat.Float3 => Format.R32G32B32Sfloat,
-            ElementFormat.Float4 => Format.R32G32B32A32Sfloat,
-
-            ElementFormat.UInt1 => Format.R32Uint,
-            ElementFormat.UInt2 => Format.R32G32Uint,
-            ElementFormat.UInt3 => Format.R32G32B32Uint,
-            ElementFormat.UInt4 => Format.R32G32B32A32Uint,
-
-            ElementFormat.Int1 => Format.R32Sint,
-            ElementFormat.Int2 => Format.R32G32Sint,
-            ElementFormat.Int3 => Format.R32G32B32Sint,
-            ElementFormat.Int4 => Format.R32G32B32A32Sint,
-
-            _ => default
-        };
-    }
-
-    public static VkPrimitiveTopology Vulkan(PrimitiveTopology primitiveTopology)
-    {
-        return primitiveTopology switch
-        {
-            PrimitiveTopology.PointList => VkPrimitiveTopology.PointList,
-            PrimitiveTopology.LineList => VkPrimitiveTopology.LineList,
-            PrimitiveTopology.LineStrip => VkPrimitiveTopology.LineStrip,
-            PrimitiveTopology.TriangleList => VkPrimitiveTopology.TriangleList,
-            PrimitiveTopology.TriangleStrip => VkPrimitiveTopology.TriangleStrip,
-            _ => default
-        };
-    }
-
-    public static VkQueryType Vulkan(QueryType queryType)
-    {
-        return queryType switch
-        {
-            QueryType.Occlusion or
-            QueryType.BinaryOcclusion => VkQueryType.Occlusion,
-
-            QueryType.Timestamp => VkQueryType.Timestamp,
-
-            _ => default
-        };
-    }
-
-    public static PolygonMode Vulkan(FillMode fillMode)
-    {
-        return fillMode switch
-        {
-            FillMode.Solid => PolygonMode.Fill,
-            FillMode.Wireframe => PolygonMode.Line,
-            _ => default
-        };
-    }
-
-    public static CullModeFlags Vulkan(CullMode cullMode)
-    {
-        return cullMode switch
-        {
-            CullMode.None => CullModeFlags.None,
-            CullMode.Front => CullModeFlags.FrontBit,
-            CullMode.Back => CullModeFlags.BackBit,
-            _ => default
-        };
-    }
-
-    public static VkFrontFace Vulkan(FrontFace frontFace)
-    {
-        return frontFace switch
-        {
-            FrontFace.CounterClockwise => VkFrontFace.CounterClockwise,
-            FrontFace.Clockwise => VkFrontFace.Clockwise,
-            _ => default
-        };
-    }
-
-    public static VkBlendFactor Vulkan(BlendFactor blendFactor)
-    {
-        return blendFactor switch
-        {
-            BlendFactor.Zero => VkBlendFactor.Zero,
-            BlendFactor.One => VkBlendFactor.One,
-            BlendFactor.SrcColor => VkBlendFactor.SrcColor,
-            BlendFactor.OneMinusSrcColor => VkBlendFactor.OneMinusSrcColor,
-            BlendFactor.DstColor => VkBlendFactor.DstColor,
-            BlendFactor.OneMinusDstColor => VkBlendFactor.OneMinusDstColor,
-            BlendFactor.SrcAlpha => VkBlendFactor.SrcAlpha,
-            BlendFactor.OneMinusSrcAlpha => VkBlendFactor.OneMinusSrcAlpha,
-            BlendFactor.DstAlpha => VkBlendFactor.DstAlpha,
-            BlendFactor.OneMinusDstAlpha => VkBlendFactor.OneMinusDstAlpha,
-            BlendFactor.Constant => VkBlendFactor.ConstantColor,
-            BlendFactor.OneMinusConstant => VkBlendFactor.OneMinusConstantColor,
-            _ => default
-        };
-    }
-
-    public static VkBlendOp Vulkan(BlendOp blendOp)
-    {
-        return blendOp switch
-        {
-            BlendOp.Add => VkBlendOp.Add,
-            BlendOp.Subtract => VkBlendOp.Subtract,
-            BlendOp.ReverseSubtract => VkBlendOp.ReverseSubtract,
-            BlendOp.Min => VkBlendOp.Min,
-            BlendOp.Max => VkBlendOp.Max,
-            _ => default
-        };
-    }
-
-    public static ColorComponentFlags Vulkan(ColorWrites colorWrites)
-    {
-        ColorComponentFlags result = default;
-
-        if (colorWrites.HasFlag(ColorWrites.Red))
-        {
-            result |= ColorComponentFlags.RBit;
-        }
-
-        if (colorWrites.HasFlag(ColorWrites.Green))
-        {
-            result |= ColorComponentFlags.GBit;
-        }
-
-        if (colorWrites.HasFlag(ColorWrites.Blue))
-        {
-            result |= ColorComponentFlags.BBit;
-        }
-
-        if (colorWrites.HasFlag(ColorWrites.Alpha))
-        {
-            result |= ColorComponentFlags.ABit;
-        }
-
-        return result;
-    }
-
-    public static VkStencilOp Vulkan(StencilOp stencilOp)
-    {
-        return stencilOp switch
-        {
-            StencilOp.Keep => VkStencilOp.Keep,
-            StencilOp.Zero => VkStencilOp.Zero,
-            StencilOp.Replace => VkStencilOp.Replace,
-            StencilOp.IncrementAndClamp => VkStencilOp.IncrementAndClamp,
-            StencilOp.DecrementAndClamp => VkStencilOp.DecrementAndClamp,
-            StencilOp.Invert => VkStencilOp.Invert,
-            StencilOp.IncrementAndWrap => VkStencilOp.IncrementAndWrap,
-            StencilOp.DecrementAndWrap => VkStencilOp.DecrementAndWrap,
-            _ => default
-        };
-    }
-
-    public static (PipelineStageFlags2 Stage, AccessFlags2 Access) Vulkan(BarrierStages barrierStages)
-    {
-        if (barrierStages is BarrierStages.None)
-        {
-            return (PipelineStageFlags2.None, AccessFlags2.None);
-        }
-
-        PipelineStageFlags2 stage = default;
-        AccessFlags2 access = default;
-
-        if (barrierStages.HasFlag(BarrierStages.VertexShading))
-        {
-            stage |= PipelineStageFlags2.IndexInputBit | PipelineStageFlags2.VertexAttributeInputBit | PipelineStageFlags2.VertexShaderBit | PipelineStageFlags2.DrawIndirectBit;
-            access |= AccessFlags2.VertexAttributeReadBit | AccessFlags2.UniformReadBit | AccessFlags2.IndexReadBit | AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit | AccessFlags2.IndirectCommandReadBit | AccessFlags2.AccelerationStructureReadBitKhr;
-        }
-
-        if (barrierStages.HasFlag(BarrierStages.FragmentShading))
-        {
-            stage |= PipelineStageFlags2.FragmentShaderBit | PipelineStageFlags2.EarlyFragmentTestsBit | PipelineStageFlags2.LateFragmentTestsBit | PipelineStageFlags2.ColorAttachmentOutputBit;
-            access |= AccessFlags2.UniformReadBit | AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit | AccessFlags2.ColorAttachmentReadBit | AccessFlags2.ColorAttachmentWriteBit | AccessFlags2.DepthStencilAttachmentReadBit | AccessFlags2.DepthStencilAttachmentWriteBit | AccessFlags2.AccelerationStructureReadBitKhr;
-        }
-
-        if (barrierStages.HasFlag(BarrierStages.ComputeShading))
-        {
-            stage |= PipelineStageFlags2.ComputeShaderBit | PipelineStageFlags2.DrawIndirectBit;
-            access |= AccessFlags2.UniformReadBit | AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit | AccessFlags2.IndirectCommandReadBit | AccessFlags2.AccelerationStructureReadBitKhr;
-        }
-
-        if (barrierStages.HasFlag(BarrierStages.Copy))
-        {
-            stage |= PipelineStageFlags2.CopyBit;
-            access |= AccessFlags2.TransferReadBit | AccessFlags2.TransferWriteBit;
-        }
-
-        if (barrierStages.HasFlag(BarrierStages.Resolve))
-        {
-            stage |= PipelineStageFlags2.ResolveBit;
-            access |= AccessFlags2.TransferReadBit | AccessFlags2.TransferWriteBit;
-        }
-
-        if (barrierStages.HasFlag(BarrierStages.All))
-        {
-            stage = PipelineStageFlags2.AllCommandsBit;
-            access = AccessFlags2.MemoryReadBit | AccessFlags2.MemoryWriteBit;
-        }
-
-        return (stage, access);
-    }
-
-    public static (PipelineStageFlags2 Stage, AccessFlags2 Access, ImageLayout Layout) Vulkan(TextureLayout textureLayout)
-    {
-        return textureLayout switch
-        {
-            TextureLayout.Undefined => (PipelineStageFlags2.None, AccessFlags2.None, ImageLayout.Undefined),
-            TextureLayout.General => (PipelineStageFlags2.AllCommandsBit, AccessFlags2.MemoryReadBit | AccessFlags2.MemoryWriteBit, ImageLayout.General),
-            TextureLayout.Sampled => (PipelineStageFlags2.VertexShaderBit | PipelineStageFlags2.FragmentShaderBit | PipelineStageFlags2.ComputeShaderBit, AccessFlags2.ShaderReadBit, ImageLayout.ShaderReadOnlyOptimal),
-            TextureLayout.Storage => (PipelineStageFlags2.VertexShaderBit | PipelineStageFlags2.FragmentShaderBit | PipelineStageFlags2.ComputeShaderBit, AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit, ImageLayout.General),
-            TextureLayout.ColorAttachment => (PipelineStageFlags2.ColorAttachmentOutputBit, AccessFlags2.ColorAttachmentReadBit | AccessFlags2.ColorAttachmentWriteBit, ImageLayout.ColorAttachmentOptimal),
-            TextureLayout.DepthStencilAttachment => (PipelineStageFlags2.EarlyFragmentTestsBit | PipelineStageFlags2.LateFragmentTestsBit, AccessFlags2.DepthStencilAttachmentReadBit | AccessFlags2.DepthStencilAttachmentWriteBit, ImageLayout.DepthStencilAttachmentOptimal),
-            TextureLayout.DepthStencilReadOnly => (PipelineStageFlags2.EarlyFragmentTestsBit | PipelineStageFlags2.LateFragmentTestsBit, AccessFlags2.DepthStencilAttachmentReadBit, ImageLayout.DepthStencilReadOnlyOptimal),
-            TextureLayout.CopySrc => (PipelineStageFlags2.CopyBit, AccessFlags2.TransferReadBit, ImageLayout.TransferSrcOptimal),
-            TextureLayout.CopyDst => (PipelineStageFlags2.CopyBit, AccessFlags2.TransferWriteBit, ImageLayout.TransferDstOptimal),
-            TextureLayout.ResolveSrc => (PipelineStageFlags2.ResolveBit, AccessFlags2.TransferReadBit, ImageLayout.TransferSrcOptimal),
-            TextureLayout.ResolveDst => (PipelineStageFlags2.ResolveBit, AccessFlags2.TransferWriteBit, ImageLayout.TransferDstOptimal),
-            TextureLayout.Present => (PipelineStageFlags2.AllCommandsBit, AccessFlags2.None, ImageLayout.PresentSrcKhr),
-            _ => (default, default, default)
-        };
-    }
-
-    internal static IndexType Vulkan(IndexFormat indexFormat)
-    {
-        throw new NotImplementedException();
-    }
-
-    public static AttachmentLoadOp Vulkan(LoadOp loadOp)
-    {
-        return loadOp switch
-        {
-            LoadOp.Load => AttachmentLoadOp.Load,
-            LoadOp.Clear => AttachmentLoadOp.Clear,
-            LoadOp.DontCare => AttachmentLoadOp.DontCare,
-            _ => default
-        };
-    }
-
-    public static AttachmentStoreOp Vulkan(StoreOp storeOp)
-    {
-        return storeOp switch
-        {
-            StoreOp.Store => AttachmentStoreOp.Store,
-            StoreOp.DontCare => AttachmentStoreOp.DontCare,
-            _ => default
-        };
-    }
-
-    internal static BuildAccelerationStructureFlagsKHR Vulkan(AccelerationStructureBuildFlags buildFlags)
-    {
-        throw new NotImplementedException();
-    }
-
-    internal static TransformMatrixKHR Vulkan(Matrix4x4 transform)
-    {
-        throw new NotImplementedException();
-    }
-
-    internal static GeometryTypeKHR Vulkan(RayTracingGeometryType type)
-    {
-        throw new NotImplementedException();
-    }
-
-    internal static GeometryInstanceFlagsKHR Vulkan(RayTracingInstanceFlags flags)
-    {
-        throw new NotImplementedException();
     }
 }
