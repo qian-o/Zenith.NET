@@ -16,7 +16,7 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
         {
             SizeInBytes = (uint)(sizeof(AccelerationStructureInstanceKHR) * desc.Instances.Length),
             Residency = MemoryResidency.CpuWriteOnly
-        });
+        }, BufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr);
 
         AccelerationStructureBuildGeometryInfoKHR info = Info(scope, desc, out uint* maxPrimitiveCounts, out AccelerationStructureBuildRangeInfoKHR* buildRangeInfos);
 
@@ -131,7 +131,47 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
 
     private AccelerationStructureBuildGeometryInfoKHR Info(ZenithMarshal.Scope scope, TopLevelAccelerationStructureDesc desc, out uint* maxPrimitiveCounts, out AccelerationStructureBuildRangeInfoKHR* buildRangeInfos)
     {
-        throw new NotImplementedException();
+        uint instanceCount = (uint)desc.Instances.Length;
+
+        nint pointer = Instance.Map();
+
+        AccelerationStructureInstanceKHR* instances = (AccelerationStructureInstanceKHR*)pointer;
+        for (uint i = 0; i < instanceCount; i++)
+        {
+            RayTracingInstance instance = desc.Instances[i];
+
+            // TODO..
+        }
+
+        Instance.Unmap();
+
+        maxPrimitiveCounts = (uint*)ZenithMarshal.AllocateAndFill(scope, [instanceCount]);
+        buildRangeInfos = (AccelerationStructureBuildRangeInfoKHR*)ZenithMarshal.AllocateAndFill(scope, [new AccelerationStructureBuildRangeInfoKHR() { PrimitiveCount = instanceCount }]);
+
+        return new()
+        {
+            SType = StructureType.AccelerationStructureBuildGeometryInfoKhr,
+            Type = AccelerationStructureTypeKHR.TopLevelKhr,
+            Flags = VKFormats.Vulkan(desc.BuildFlags),
+            Mode = BuildAccelerationStructureModeKHR.BuildKhr,
+            GeometryCount = 1,
+            PGeometries = (AccelerationStructureGeometryKHR*)ZenithMarshal.AllocateAndFill(scope,
+            [
+                new AccelerationStructureGeometryKHR()
+                {
+                    SType = StructureType.AccelerationStructureGeometryKhr,
+                    GeometryType = GeometryTypeKHR.InstancesKhr,
+                    Geometry = new()
+                    {
+                        Instances = new()
+                        {
+                            SType = StructureType.AccelerationStructureGeometryInstancesDataKhr,
+                            Data = new() { DeviceAddress = Instance.DeviceAddress }
+                        }
+                    }
+                }
+            ])
+        };
     }
 
     private static void BuildSyncBarrier(VKCommandBuffer commandBuffer, PipelineStageFlags2 dstStage)
