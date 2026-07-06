@@ -12,7 +12,7 @@ internal unsafe class VKBuffer : Buffer
 
     public VKBuffer(VKGraphicsContext context, BufferDesc desc) : base(context, desc)
     {
-        BufferCreateInfo createInfo = CreateInfo(desc, context.QueueFamilies);
+        BufferCreateInfo createInfo = CreateInfo(desc, context.Capabilities, context.QueueFamilies);
 
         context.Vk.CreateBuffer(context.Device, &createInfo, default, out Buffer).Success();
 
@@ -66,7 +66,7 @@ internal unsafe class VKBuffer : Buffer
 
     public VKBuffer(VKGraphicsContext context, BufferDesc desc, BufferUsageFlags usage) : base(context, desc)
     {
-        BufferCreateInfo createInfo = CreateInfo(desc, context.QueueFamilies);
+        BufferCreateInfo createInfo = CreateInfo(desc, context.Capabilities, context.QueueFamilies);
         createInfo.Usage |= usage;
 
         context.Vk.CreateBuffer(context.Device, &createInfo, default, out Buffer).Success();
@@ -195,13 +195,13 @@ internal unsafe class VKBuffer : Buffer
         }
     }
 
-    public static BufferCreateInfo CreateInfo(BufferDesc desc, QueueFamilies queueFamilies)
+    public static BufferCreateInfo CreateInfo(BufferDesc desc, Capabilities capabilities, QueueFamilies queueFamilies)
     {
         return new()
         {
             SType = StructureType.BufferCreateInfo,
             Size = desc.SizeInBytes,
-            Usage = VKFormats.Vulkan(desc.Usages),
+            Usage = VKFormats.Vulkan(desc.Usages, capabilities.RayTracingSupported),
             SharingMode = queueFamilies.SharingMode,
             QueueFamilyIndexCount = queueFamilies.IndexCount,
             PQueueFamilyIndices = queueFamilies.Indices

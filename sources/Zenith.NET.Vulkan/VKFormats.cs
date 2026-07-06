@@ -228,18 +228,28 @@ internal static class VKFormats
         return (format, aspectFlags);
     }
 
-    public static BufferUsageFlags Vulkan(BufferUsages bufferUsages)
+    public static BufferUsageFlags Vulkan(BufferUsages bufferUsages, bool rayTracingSupported)
     {
         BufferUsageFlags result = BufferUsageFlags.ShaderDeviceAddressBit;
 
         if (bufferUsages.HasFlag(BufferUsages.Vertex))
         {
             result |= BufferUsageFlags.VertexBufferBit;
+
+            if (rayTracingSupported)
+            {
+                result |= BufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr;
+            }
         }
 
         if (bufferUsages.HasFlag(BufferUsages.Index))
         {
             result |= BufferUsageFlags.IndexBufferBit;
+
+            if (rayTracingSupported)
+            {
+                result |= BufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr;
+            }
         }
 
         if (bufferUsages.HasFlag(BufferUsages.Indirect))
@@ -255,6 +265,11 @@ internal static class VKFormats
         if (bufferUsages.HasFlag(BufferUsages.StorageReadOnly) || bufferUsages.HasFlag(BufferUsages.StorageReadWrite))
         {
             result |= BufferUsageFlags.StorageBufferBit;
+
+            if (rayTracingSupported)
+            {
+                result |= BufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr;
+            }
         }
 
         if (bufferUsages.HasFlag(BufferUsages.TransferSrc))

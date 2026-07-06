@@ -30,7 +30,7 @@ internal unsafe class VKHeap : Heap
 
     protected override Buffer CreateBufferImpl(ulong offsetInBytes, BufferDesc desc)
     {
-        BufferCreateInfo createInfo = VKBuffer.CreateInfo(desc, Context.QueueFamilies);
+        BufferCreateInfo createInfo = VKBuffer.CreateInfo(desc, Context.Capabilities, Context.QueueFamilies);
 
         Context.Vk.CreateBuffer(Context.Device, &createInfo, default, out VkBuffer buffer).Success();
         Context.Vk.BindBufferMemory(Context.Device, buffer, DeviceMemory, offsetInBytes).Success();

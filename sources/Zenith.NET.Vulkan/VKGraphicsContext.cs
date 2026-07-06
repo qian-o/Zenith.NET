@@ -529,7 +529,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override SizeAndAlignment GetSizeAndAlignmentImpl(BufferDesc desc)
     {
-        BufferCreateInfo createInfo = VKBuffer.CreateInfo(desc, QueueFamilies);
+        BufferCreateInfo createInfo = VKBuffer.CreateInfo(desc, Capabilities, QueueFamilies);
 
         DeviceBufferMemoryRequirements requirements = new()
         {
