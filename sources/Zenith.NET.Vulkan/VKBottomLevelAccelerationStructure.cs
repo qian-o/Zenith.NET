@@ -46,6 +46,11 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
 
         context.AccelerationStructure?.CreateAccelerationStructure(context.Device, &createInfo, default, out AccelerationStructure).Success();
 
+        info.DstAccelerationStructure = AccelerationStructure;
+        info.ScratchData = new() { DeviceAddress = Scratch.DeviceAddress };
+
+        context.AccelerationStructure?.CmdBuildAccelerationStructures(commandBuffer.CommandBuffer, 1, &info, &buildRangeInfos);
+
         AccelerationStructureDeviceAddressInfoKHR deviceAddressInfo = new()
         {
             SType = StructureType.AccelerationStructureDeviceAddressInfoKhr,
@@ -53,11 +58,6 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
         };
 
         DeviceAddress = context.AccelerationStructure?.GetAccelerationStructureDeviceAddress(context.Device, &deviceAddressInfo) ?? 0;
-
-        info.DstAccelerationStructure = AccelerationStructure;
-        info.ScratchData = new() { DeviceAddress = Scratch.DeviceAddress };
-
-        context.AccelerationStructure?.CmdBuildAccelerationStructures(commandBuffer.CommandBuffer, 1, &info, &buildRangeInfos);
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
