@@ -1,4 +1,5 @@
-﻿using Silk.NET.Vulkan;
+﻿using System.Numerics;
+using Silk.NET.Vulkan;
 
 namespace Zenith.NET.Vulkan;
 
@@ -607,5 +608,20 @@ internal static class VKFormats
             StoreOp.DontCare => AttachmentStoreOp.DontCare,
             _ => default
         };
+    }
+
+    internal static BuildAccelerationStructureFlagsKHR Vulkan(AccelerationStructureBuildFlags buildFlags)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static TransformMatrixKHR Vulkan(Matrix4x4 transform)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static GeometryTypeKHR Vulkan(RayTracingGeometryType type)
+    {
+        throw new NotImplementedException();
     }
 }
