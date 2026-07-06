@@ -31,7 +31,7 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
 
         Scratch = new(context, new()
         {
-            SizeInBytes = (uint)sizeInfo.BuildScratchSize,
+            SizeInBytes = (uint)Math.Max(sizeInfo.BuildScratchSize, sizeInfo.UpdateScratchSize),
             Usages = BufferUsages.StorageReadWrite,
             Residency = MemoryResidency.GpuOnly
         });
@@ -153,7 +153,7 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
             };
             maxPrimitiveCounts[i] = geometry.Type switch
             {
-                RayTracingGeometryType.Triangle => geometry.TriangleGeometry.IndexBuffer is null ? geometry.TriangleGeometry.VertexCount / 3u : geometry.TriangleGeometry.IndexCount,
+                RayTracingGeometryType.Triangle => (geometry.TriangleGeometry.IndexBuffer is null ? geometry.TriangleGeometry.VertexCount : geometry.TriangleGeometry.IndexCount) / 3u,
                 RayTracingGeometryType.Aabb => geometry.AabbGeometry.Count,
                 _ => default
             };
