@@ -72,7 +72,7 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
     {
         using ZenithMarshal.Scope scope = new();
 
-        AccelerationStructureBuildGeometryInfoKHR info = Info(scope, newDesc, out uint* maxPrimitiveCounts, out AccelerationStructureBuildRangeInfoKHR* buildRangeInfos);
+        AccelerationStructureBuildGeometryInfoKHR info = Info(scope, newDesc, out _, out AccelerationStructureBuildRangeInfoKHR* buildRangeInfos);
         info.Mode = BuildAccelerationStructureModeKHR.UpdateKhr;
         info.SrcAccelerationStructure = AccelerationStructure;
         info.DstAccelerationStructure = AccelerationStructure;
