@@ -55,10 +55,7 @@ internal unsafe class VKTextureView(VKGraphicsContext context, TextureViewDesc d
         {
             SType = StructureType.ResourceDescriptorInfoExt(),
             Type = type,
-            Data = new()
-            {
-                PImage = &image
-            }
+            Data = new() { PImage = &image }
         });
     }
 }

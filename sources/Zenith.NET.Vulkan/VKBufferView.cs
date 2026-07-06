@@ -32,16 +32,17 @@ internal unsafe class VKBufferView(VKGraphicsContext context, BufferViewDesc des
 
     private VKDescriptorToken CreateToken(DescriptorType type)
     {
-        DeviceAddressRangeEXT addressRange = new(Desc.Buffer.Vulkan().DeviceAddress + Desc.OffsetInBytes, Desc.SizeInBytes);
+        DeviceAddressRangeEXT addressRange = new()
+        {
+            Address = Desc.Buffer.Vulkan().DeviceAddress + Desc.OffsetInBytes,
+            Size = Desc.SizeInBytes
+        };
 
         return context.ResourceHeap.Allocate(new ResourceDescriptorInfoEXT()
         {
             SType = StructureType.ResourceDescriptorInfoExt(),
             Type = type,
-            Data = new()
-            {
-                PAddressRange = &addressRange
-            }
+            Data = new() { PAddressRange = &addressRange }
         });
     }
 }

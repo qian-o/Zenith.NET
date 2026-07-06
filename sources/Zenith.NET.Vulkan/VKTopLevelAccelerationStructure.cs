@@ -6,8 +6,6 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
 {
     public AccelerationStructureKHR AccelerationStructure;
 
-    public ulong DeviceAddress;
-
     public VKDescriptorToken Token;
 
     public VKTopLevelAccelerationStructure(VKGraphicsContext context, VKCommandBuffer commandBuffer, TopLevelAccelerationStructureDesc desc) : base(context, desc)
@@ -48,20 +46,31 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
 
         context.AccelerationStructure?.CreateAccelerationStructure(context.Device, &createInfo, default, out AccelerationStructure).Success();
 
-        AccelerationStructureDeviceAddressInfoKHR deviceAddressInfo = new()
-        {
-            SType = StructureType.AccelerationStructureDeviceAddressInfoKhr,
-            AccelerationStructure = AccelerationStructure
-        };
-
-        DeviceAddress = context.AccelerationStructure?.GetAccelerationStructureDeviceAddress(context.Device, &deviceAddressInfo) ?? 0;
-
         info.DstAccelerationStructure = AccelerationStructure;
         info.ScratchData = new() { DeviceAddress = Scratch.DeviceAddress };
 
         BuildSyncBarrier(commandBuffer, PipelineStageFlags2.AccelerationStructureBuildBitKhr);
         context.AccelerationStructure?.CmdBuildAccelerationStructures(commandBuffer.CommandBuffer, 1, &info, &buildRangeInfos);
         BuildSyncBarrier(commandBuffer, PipelineStageFlags2.FragmentShaderBit | PipelineStageFlags2.ComputeShaderBit);
+
+        AccelerationStructureDeviceAddressInfoKHR deviceAddressInfo = new()
+        {
+            SType = StructureType.AccelerationStructureDeviceAddressInfoKhr,
+            AccelerationStructure = AccelerationStructure
+        };
+
+        DeviceAddressRangeEXT addressRange = new()
+        {
+            Address = context.AccelerationStructure?.GetAccelerationStructureDeviceAddress(context.Device, &deviceAddressInfo) ?? 0,
+            Size = sizeInfo.AccelerationStructureSize
+        };
+
+        Token = context.ResourceHeap.Allocate(new ResourceDescriptorInfoEXT()
+        {
+            SType = StructureType.ResourceDescriptorInfoExt(),
+            Type = DescriptorType.AccelerationStructureKhr,
+            Data = new() { PAddressRange = &addressRange }
+        });
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
