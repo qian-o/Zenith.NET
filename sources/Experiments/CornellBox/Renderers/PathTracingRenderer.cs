@@ -121,7 +121,7 @@ internal unsafe class PathTracingRenderer : Renderer
         {
             SizeInBytes = (uint)(sizeof(Material) * materials.Length),
             StrideInBytes = (uint)sizeof(Material),
-            Usages = BufferUsages.StorageReadOnly,
+            Usages = BufferUsages.StorageReadOnly | BufferUsages.TransferDst,
             Residency = MemoryResidency.GpuOnly
         });
 

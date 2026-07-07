@@ -51,7 +51,7 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
 
         BuildSyncBarrier(commandBuffer, PipelineStageFlags2.AccelerationStructureBuildBitKhr);
         context.AccelerationStructure?.CmdBuildAccelerationStructures(commandBuffer.CommandBuffer, 1, &info, &buildRangeInfos);
-        BuildSyncBarrier(commandBuffer, PipelineStageFlags2.FragmentShaderBit | PipelineStageFlags2.ComputeShaderBit);
+        BuildSyncBarrier(commandBuffer, PipelineStageFlags2.AllCommandsBit);
 
         AccelerationStructureDeviceAddressInfoKHR deviceAddressInfo = new()
         {
@@ -95,7 +95,7 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
 
         BuildSyncBarrier(commandBuffer, PipelineStageFlags2.AccelerationStructureBuildBitKhr);
         Context.AccelerationStructure?.CmdBuildAccelerationStructures(commandBuffer.CommandBuffer, 1, &info, &buildRangeInfos);
-        BuildSyncBarrier(commandBuffer, PipelineStageFlags2.FragmentShaderBit | PipelineStageFlags2.ComputeShaderBit);
+        BuildSyncBarrier(commandBuffer, PipelineStageFlags2.AllCommandsBit);
     }
 
     public override nint GetNativeObject(NativeObjectType type)
