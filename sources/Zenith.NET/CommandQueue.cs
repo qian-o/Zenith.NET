@@ -64,11 +64,11 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
         }
     }
 
-    internal void Wait(ReadOnlySpan<CommandSubmission> submissions)
+    internal void InsertWaits(ReadOnlySpan<CommandSubmission> submissions)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        WaitImpl(submissions);
+        InsertWaitsImpl(submissions);
     }
 
     protected abstract ulong GetCompletedValue();
@@ -81,7 +81,7 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
     protected abstract void WaitImpl(ulong waitValue);
 
-    protected abstract void WaitImpl(ReadOnlySpan<CommandSubmission> submissions);
+    protected abstract void InsertWaitsImpl(ReadOnlySpan<CommandSubmission> submissions);
 
     protected override void Destroy()
     {

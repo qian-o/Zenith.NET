@@ -10,7 +10,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public CommandSubmission Submit(params ReadOnlySpan<CommandSubmission> submissions)
     {
-        queue.Wait(submissions);
+        queue.InsertWaits(submissions);
         queue.Submit(this);
 
         return queue.Signal();

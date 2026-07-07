@@ -10,7 +10,7 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 
     public CommandSubmission Present(params ReadOnlySpan<CommandSubmission> submissions)
     {
-        Context.GraphicsQueue.Wait(submissions);
+        Context.GraphicsQueue.InsertWaits(submissions);
 
         PresentImpl();
 

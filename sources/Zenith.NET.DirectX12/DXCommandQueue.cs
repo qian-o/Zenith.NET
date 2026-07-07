@@ -54,7 +54,7 @@ internal unsafe class DXCommandQueue : CommandQueue
         @event.Reset();
     }
 
-    protected override void WaitImpl(ReadOnlySpan<CommandSubmission> submissions)
+    protected override void InsertWaitsImpl(ReadOnlySpan<CommandSubmission> submissions)
     {
         foreach (CommandSubmission submission in submissions)
         {

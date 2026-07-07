@@ -48,7 +48,7 @@ internal class MTLCommandQueue : CommandQueue
         Event.Wait(waitValue, ulong.MaxValue);
     }
 
-    protected override void WaitImpl(ReadOnlySpan<CommandSubmission> submissions)
+    protected override void InsertWaitsImpl(ReadOnlySpan<CommandSubmission> submissions)
     {
         foreach (CommandSubmission submission in submissions)
         {

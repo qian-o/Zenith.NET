@@ -96,7 +96,7 @@ internal unsafe class VKCommandQueue : CommandQueue
         }
     }
 
-    protected override void WaitImpl(ReadOnlySpan<CommandSubmission> submissions)
+    protected override void InsertWaitsImpl(ReadOnlySpan<CommandSubmission> submissions)
     {
         foreach (CommandSubmission submission in submissions)
         {
