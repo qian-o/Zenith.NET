@@ -519,7 +519,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override SwapChain CreateSwapChainImpl(SwapChainDesc desc)
     {
-        throw new NotImplementedException();
+        return new VKSwapChain(this, desc);
     }
 
     protected override Heap CreateHeapImpl(HeapDesc desc)

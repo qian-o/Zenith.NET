@@ -140,6 +140,10 @@ public static unsafe class Extensions
 
     extension(SwapChain swapChain)
     {
+        internal VKSwapChain Vulkan()
+        {
+            return (VKSwapChain)swapChain;
+        }
     }
 
     extension(Texture texture)

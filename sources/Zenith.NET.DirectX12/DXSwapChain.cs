@@ -78,7 +78,7 @@ internal unsafe class DXSwapChain : SwapChain
         };
 
         Context.Factory.CreateSwapChainForHwnd((IUnknown*)Context.GraphicsQueue.DirectX12().CommandQueue.Handle,
-                                               Desc.Surface.NativeHandles[0],
+                                               Desc.Surface.Handles[0],
                                                &swapChainDesc,
                                                default(SwapChainFullscreenDesc*),
                                                default(IDXGIOutput*),

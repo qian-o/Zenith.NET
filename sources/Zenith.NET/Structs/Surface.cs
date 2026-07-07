@@ -4,7 +4,7 @@ public struct Surface
 {
     public SurfaceType Type;
 
-    public nint[] NativeHandles;
+    public nint[] Handles;
 
     public uint Width;
 
@@ -15,7 +15,7 @@ public struct Surface
         return new()
         {
             Type = SurfaceType.Win32,
-            NativeHandles = [hwnd],
+            Handles = [hwnd],
             Width = width,
             Height = height
         };
@@ -26,7 +26,7 @@ public struct Surface
         return new()
         {
             Type = SurfaceType.Wayland,
-            NativeHandles = [display, surface],
+            Handles = [display, surface],
             Width = width,
             Height = height
         };
@@ -37,7 +37,7 @@ public struct Surface
         return new()
         {
             Type = SurfaceType.Xlib,
-            NativeHandles = [display, window],
+            Handles = [display, window],
             Width = width,
             Height = height
         };
@@ -48,7 +48,7 @@ public struct Surface
         return new()
         {
             Type = SurfaceType.Android,
-            NativeHandles = [nativeWindow],
+            Handles = [nativeWindow],
             Width = width,
             Height = height
         };
@@ -59,7 +59,7 @@ public struct Surface
         return new()
         {
             Type = SurfaceType.Apple,
-            NativeHandles = [layer],
+            Handles = [layer],
             Width = width,
             Height = height
         };
