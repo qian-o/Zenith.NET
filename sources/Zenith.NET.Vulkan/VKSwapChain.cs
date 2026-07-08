@@ -275,7 +275,7 @@ internal unsafe class VKSwapChain : SwapChain
         textures = new VKTexture[swapchainImageCount];
         for (uint i = 0; i < swapchainImageCount; i++)
         {
-            textures[i] = new(Context, desc, swapchainImages[i], new(default, 0, false));
+            textures[i] = new(Context, desc, swapchainImages[i], new(default, 0, false, false));
         }
     }
 

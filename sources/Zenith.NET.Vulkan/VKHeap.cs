@@ -35,7 +35,7 @@ internal unsafe class VKHeap : Heap
         Context.Vk.CreateBuffer(Context.Device, &createInfo, default, out VkBuffer buffer).Success();
         Context.Vk.BindBufferMemory(Context.Device, buffer, DeviceMemory, offsetInBytes).Success();
 
-        return new VKBuffer(Context, desc, buffer, new(DeviceMemory, offsetInBytes, false));
+        return new VKBuffer(Context, desc, buffer, new(DeviceMemory, offsetInBytes, true, false));
     }
 
     protected override Texture CreateTextureImpl(ulong offsetInBytes, TextureDesc desc)
@@ -45,7 +45,7 @@ internal unsafe class VKHeap : Heap
         Context.Vk.CreateImage(Context.Device, &createInfo, default, out Image image).Success();
         Context.Vk.BindImageMemory(Context.Device, image, DeviceMemory, offsetInBytes).Success();
 
-        return new VKTexture(Context, desc, image, new(DeviceMemory, offsetInBytes, false));
+        return new VKTexture(Context, desc, image, new(DeviceMemory, offsetInBytes, true, false));
     }
 
     protected override void SetResourceName(string name)

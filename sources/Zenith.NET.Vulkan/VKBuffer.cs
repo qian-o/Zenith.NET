@@ -46,7 +46,7 @@ internal unsafe class VKBuffer : Buffer
         context.Vk.AllocateMemory(context.Device, &allocateInfo, default, out DeviceMemory deviceMemory).Success();
         context.Vk.BindBufferMemory(context.Device, Buffer, deviceMemory, 0).Success();
 
-        Allocation = new(deviceMemory, 0, true);
+        Allocation = new(deviceMemory, 0, true, true);
 
         BufferDeviceAddressInfo deviceAddressInfo = new()
         {
@@ -101,7 +101,7 @@ internal unsafe class VKBuffer : Buffer
         context.Vk.AllocateMemory(context.Device, &allocateInfo, default, out DeviceMemory deviceMemory).Success();
         context.Vk.BindBufferMemory(context.Device, Buffer, deviceMemory, 0).Success();
 
-        Allocation = new(deviceMemory, 0, true);
+        Allocation = new(deviceMemory, 0, true, true);
 
         BufferDeviceAddressInfo deviceAddressInfo = new()
         {
@@ -187,9 +187,12 @@ internal unsafe class VKBuffer : Buffer
     {
         View.Dispose();
 
-        Context.Vk.DestroyBuffer(Context.Device, Buffer, default);
+        if (Allocation.OwnsResource)
+        {
+            Context.Vk.DestroyBuffer(Context.Device, Buffer, default);
+        }
 
-        if (Allocation.IsOwned)
+        if (Allocation.OwnsMemory)
         {
             Context.Vk.FreeMemory(Context.Device, Allocation.DeviceMemory, default);
         }

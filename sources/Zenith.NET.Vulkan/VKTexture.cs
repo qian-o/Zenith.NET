@@ -43,7 +43,7 @@ internal unsafe class VKTexture : Texture
         context.Vk.AllocateMemory(context.Device, &allocateInfo, default, out DeviceMemory deviceMemory).Success();
         context.Vk.BindImageMemory(context.Device, Image, deviceMemory, 0).Success();
 
-        Allocation = new(deviceMemory, 0, true);
+        Allocation = new(deviceMemory, 0, true, true);
 
         View = new(context, new()
         {
@@ -134,9 +134,12 @@ internal unsafe class VKTexture : Texture
 
         View.Dispose();
 
-        Context.Vk.DestroyImage(Context.Device, Image, default);
+        if (Allocation.OwnsResource)
+        {
+            Context.Vk.DestroyImage(Context.Device, Image, default);
+        }
 
-        if (Allocation.IsOwned)
+        if (Allocation.OwnsMemory)
         {
             Context.Vk.FreeMemory(Context.Device, Allocation.DeviceMemory, default);
         }
