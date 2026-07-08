@@ -31,8 +31,6 @@ internal unsafe class DXSwapChain : SwapChain
     {
         SwapChain.Present(0, DXGI.PresentAllowTearing).Success();
 
-        Context.GraphicsQueue.Timeline.Signal().Wait();
-
         index = SwapChain.GetCurrentBackBufferIndex();
     }
 
@@ -60,6 +58,8 @@ internal unsafe class DXSwapChain : SwapChain
 
     protected override void Destroy()
     {
+        base.Destroy();
+
         DestroyTextures();
         DestroySwapChain();
     }

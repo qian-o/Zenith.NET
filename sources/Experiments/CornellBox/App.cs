@@ -6,6 +6,7 @@ using Hexa.NET.ImGui;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 using Zenith.NET;
+using Zenith.NET.DirectX12;
 using Zenith.NET.Metal;
 using Zenith.NET.Vulkan;
 
@@ -33,7 +34,7 @@ internal static class App
 
         if (OperatingSystem.IsWindows())
         {
-            Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
+            Context = GraphicsContext.CreateDirectX12(useValidationLayer: true);
         }
         else if (OperatingSystem.IsMacOS())
         {

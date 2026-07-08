@@ -81,6 +81,8 @@ internal unsafe class VKSwapChain : SwapChain
 
     protected override void Destroy()
     {
+        base.Destroy();
+
         DestroyTextures();
         DestroySwapChain();
 

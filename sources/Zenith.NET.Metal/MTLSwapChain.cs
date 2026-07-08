@@ -54,9 +54,6 @@ internal class MTLSwapChain : SwapChain
         Context.GraphicsQueue.Metal().CommandQueue.SignalDrawable(MetalDrawable);
 
         MetalDrawable.Present();
-
-        Context.GraphicsQueue.Timeline.Signal().Wait();
-
         MetalDrawable.Dispose();
         MetalDrawable = NSAutorelease.Own(MetalLayer.NextDrawable);
     }
@@ -86,6 +83,8 @@ internal class MTLSwapChain : SwapChain
 
     protected override void Destroy()
     {
+        base.Destroy();
+
         drawable?.Dispose();
 
         MetalDrawable.Dispose();
