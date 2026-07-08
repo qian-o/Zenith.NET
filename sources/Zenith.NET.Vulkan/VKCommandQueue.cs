@@ -78,11 +78,4 @@ internal unsafe class VKCommandQueue : CommandQueue
 
         Context.DebugUtils?.SetDebugUtilsObjectName(Context.Device, &nameInfo).Success();
     }
-
-    protected override void Destroy()
-    {
-        base.Destroy();
-
-        Timeline.Dispose();
-    }
 }
