@@ -113,8 +113,6 @@ internal static class App
 
     public static void Run()
     {
-        CommandSubmission lastSubmission = default;
-
         window.Update += delta =>
         {
             if (Width is 0 || Height is 0)
@@ -178,8 +176,6 @@ internal static class App
                 return;
             }
 
-            lastSubmission.Wait();
-
             CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
             activeRenderer.Update(camera);
@@ -191,7 +187,9 @@ internal static class App
 
             commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Present);
 
-            lastSubmission = swapChain.Present(commandBuffer.Submit());
+            commandBuffer.Submit().Wait();
+
+            swapChain.Present();
         };
 
         window.Resize += _ =>
@@ -201,16 +199,12 @@ internal static class App
                 return;
             }
 
-            lastSubmission.Wait();
-
             pathTracer?.Resize(Width, Height);
             rasterizer.Resize(Width, Height);
             swapChain.Resize(Width, Height);
         };
 
         window.Run();
-
-        lastSubmission.Wait();
 
         pathTracer?.Dispose();
         rasterizer.Dispose();

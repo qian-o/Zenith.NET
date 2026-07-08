@@ -68,6 +68,14 @@ public static class Extensions
         }
     }
 
+    extension(Timeline timeline)
+    {
+        internal DXTimeline DirectX12()
+        {
+            return (DXTimeline)timeline;
+        }
+    }
+
     extension(ComputePipeline computePipeline)
     {
         internal DXComputePipeline DirectX12()

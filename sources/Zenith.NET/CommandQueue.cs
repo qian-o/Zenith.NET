@@ -6,13 +6,22 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
     private readonly Queue<CommandBuffer> commandBuffers = [];
     private readonly Queue<Submitted> submitteds = [];
 
-    private ulong value;
-
     public CommandQueueType Type { get; } = type;
+
+    public abstract Timeline Timeline { get; }
 
     public CommandBuffer CommandBuffer()
     {
         using Lock.Scope _ = @lock.EnterScope();
+
+        while (submitteds.TryPeek(out Submitted submitted) && submitted.TimelineValue.IsCompleted)
+        {
+            submitteds.Dequeue();
+
+            submitted.CommandBuffer.Reset();
+
+            commandBuffers.Enqueue(submitted.CommandBuffer);
+        }
 
         CommandBuffer commandBuffer = commandBuffers.Count is 0 ? CreateCommandBuffer() : commandBuffers.Dequeue();
 
@@ -21,70 +30,29 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
         return commandBuffer;
     }
 
-    internal CommandSubmission Signal()
-    {
-        using Lock.Scope _ = @lock.EnterScope();
-
-        SignalImpl(++value);
-
-        return new(this, value);
-    }
-
-    internal void Submit(CommandBuffer commandBuffer)
+    internal TimelineValue Submit(ReadOnlySpan<TimelineValue> waits, CommandBuffer commandBuffer)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
         commandBuffer.End();
 
-        SubmitImpl(commandBuffer);
+        SubmitImpl(waits, commandBuffer);
 
-        submitteds.Enqueue(new(commandBuffer, value));
+        TimelineValue timelineValue = Timeline.Signal();
+
+        submitteds.Enqueue(new(commandBuffer, timelineValue));
+
+        return timelineValue;
     }
-
-    internal void Wait(ulong value)
-    {
-        using Lock.Scope _ = @lock.EnterScope();
-
-        ulong completedValue = GetCompletedValue();
-
-        if (completedValue < value)
-        {
-            WaitImpl(value);
-
-            completedValue = GetCompletedValue();
-        }
-
-        while (submitteds.TryPeek(out Submitted submitted) && submitted.Value <= completedValue)
-        {
-            submitteds.Dequeue();
-
-            submitted.CommandBuffer.Reset();
-
-            commandBuffers.Enqueue(submitted.CommandBuffer);
-        }
-    }
-
-    internal void InsertWaits(ReadOnlySpan<CommandSubmission> submissions)
-    {
-        using Lock.Scope _ = @lock.EnterScope();
-
-        InsertWaitsImpl(submissions);
-    }
-
-    protected abstract ulong GetCompletedValue();
 
     protected abstract CommandBuffer CreateCommandBuffer();
 
-    protected abstract void SignalImpl(ulong signalValue);
-
-    protected abstract void SubmitImpl(CommandBuffer commandBuffer);
-
-    protected abstract void WaitImpl(ulong waitValue);
-
-    protected abstract void InsertWaitsImpl(ReadOnlySpan<CommandSubmission> submissions);
+    protected abstract void SubmitImpl(ReadOnlySpan<TimelineValue> waits, CommandBuffer commandBuffer);
 
     protected override void Destroy()
     {
+        Timeline.Dispose();
+
         while (commandBuffers.TryDequeue(out CommandBuffer? commandBuffer))
         {
             commandBuffer.Dispose();
@@ -96,10 +64,10 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
         }
     }
 
-    private readonly struct Submitted(CommandBuffer commandBuffer, ulong value)
+    private readonly struct Submitted(CommandBuffer commandBuffer, TimelineValue timelineValue)
     {
         public readonly CommandBuffer CommandBuffer = commandBuffer;
 
-        public readonly ulong Value = value;
+        public readonly TimelineValue TimelineValue = timelineValue;
     }
 }

@@ -8,12 +8,9 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public CommandQueue Queue => queue;
 
-    public CommandSubmission Submit(params ReadOnlySpan<CommandSubmission> submissions)
+    public TimelineValue Submit(params ReadOnlySpan<TimelineValue> waits)
     {
-        queue.InsertWaits(submissions);
-        queue.Submit(this);
-
-        return queue.Signal();
+        return queue.Submit(waits, this);
     }
 
     public void Barrier(BarrierStages before, BarrierStages after)

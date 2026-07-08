@@ -8,14 +8,7 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 
     public abstract Texture Drawable { get; }
 
-    public CommandSubmission Present(params ReadOnlySpan<CommandSubmission> submissions)
-    {
-        Context.GraphicsQueue.InsertWaits(submissions);
-
-        PresentImpl();
-
-        return Context.GraphicsQueue.Signal();
-    }
+    public abstract void Present();
 
     public void Resize(uint width, uint height)
     {
@@ -35,8 +28,6 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 
         SetResourceName(Name);
     }
-
-    protected abstract void PresentImpl();
 
     protected abstract void ResizeImpl();
 

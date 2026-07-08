@@ -27,9 +27,11 @@ internal unsafe class DXSwapChain : SwapChain
         return 0;
     }
 
-    protected override void PresentImpl()
+    public override void Present()
     {
         SwapChain.Present(0, DXGI.PresentAllowTearing).Success();
+
+        Context.GraphicsQueue.Timeline.Signal().Wait();
 
         index = SwapChain.GetCurrentBackBufferIndex();
     }

@@ -5,30 +5,24 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXCommandQueue : CommandQueue
 {
-    private readonly ManualResetEvent @event = new(false);
-
     public ComPtr<ID3D12CommandQueue> CommandQueue;
-
-    public ComPtr<ID3D12Fence> Fence;
 
     public DXCommandQueue(DXGraphicsContext context, CommandQueueType type) : base(context, type)
     {
         CommandQueueDesc commandQueueDesc = new() { Type = DXFormats.DirectX12(type) };
 
         context.Device.CreateCommandQueue(&commandQueueDesc, SilkMarshal.GuidPtrOf<ID3D12CommandQueue>(), (void**)CommandQueue.GetAddressOf()).Success();
-        context.Device.CreateFence(0, FenceFlags.None, SilkMarshal.GuidPtrOf<ID3D12Fence>(), (void**)Fence.GetAddressOf()).Success();
+
+        Timeline = new DXTimeline(context, this);
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
 
+    public override Timeline Timeline { get; }
+
     public override nint GetNativeObject(NativeObjectType type)
     {
         return 0;
-    }
-
-    protected override ulong GetCompletedValue()
-    {
-        return Fence.GetCompletedValue();
     }
 
     protected override CommandBuffer CreateCommandBuffer()
@@ -36,35 +30,14 @@ internal unsafe class DXCommandQueue : CommandQueue
         return new DXCommandBuffer(Context, this);
     }
 
-    protected override void SignalImpl(ulong signalValue)
+    protected override void SubmitImpl(ReadOnlySpan<TimelineValue> waits, CommandBuffer commandBuffer)
     {
-        CommandQueue.Signal(Fence, signalValue).Success();
-    }
-
-    protected override void SubmitImpl(CommandBuffer commandBuffer)
-    {
-        CommandQueue.ExecuteCommandLists(1, (ID3D12CommandList**)commandBuffer.DirectX12().CommandList.GetAddressOf());
-    }
-
-    protected override void WaitImpl(ulong waitValue)
-    {
-        Fence.SetEventOnCompletion(waitValue, (void*)@event.SafeWaitHandle.DangerousGetHandle()).Success();
-
-        @event.WaitOne();
-        @event.Reset();
-    }
-
-    protected override void InsertWaitsImpl(ReadOnlySpan<CommandSubmission> submissions)
-    {
-        foreach (CommandSubmission submission in submissions)
+        foreach (TimelineValue wait in waits)
         {
-            if (submission.Queue is null)
-            {
-                continue;
-            }
-
-            CommandQueue.Wait(submission.Queue.DirectX12().Fence, submission.Value).Success();
+            CommandQueue.Wait(wait.Timeline.DirectX12().Fence, wait.Value).Success();
         }
+
+        CommandQueue.ExecuteCommandLists(1, (ID3D12CommandList**)commandBuffer.DirectX12().CommandList.GetAddressOf());
     }
 
     protected override void SetResourceName(string name)
@@ -76,9 +49,6 @@ internal unsafe class DXCommandQueue : CommandQueue
     {
         base.Destroy();
 
-        Fence.Dispose();
         CommandQueue.Dispose();
-
-        @event.Dispose();
     }
 }
