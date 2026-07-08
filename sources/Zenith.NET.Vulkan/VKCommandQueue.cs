@@ -8,33 +8,21 @@ internal unsafe class VKCommandQueue : CommandQueue
 
     public uint QueueFamilyIndex;
 
-    public VkSemaphore Semaphore;
-
     public VKCommandQueue(VKGraphicsContext context, CommandQueueType type, Queue queue, uint queueFamilyIndex) : base(context, type)
     {
         Queue = queue;
         QueueFamilyIndex = queueFamilyIndex;
 
-        SemaphoreCreateInfo createInfo = new() { SType = StructureType.SemaphoreCreateInfo };
-        createInfo.AddNext(out SemaphoreTypeCreateInfo typeCreateInfo);
-        typeCreateInfo.SemaphoreType = SemaphoreType.Timeline;
-
-        context.Vk.CreateSemaphore(context.Device, &createInfo, default, out Semaphore).Success();
+        Timeline = new VKTimeline(context, this);
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
+    public override Timeline Timeline { get; }
+
     public override nint GetNativeObject(NativeObjectType type)
     {
         return 0;
-    }
-
-    protected override ulong GetCompletedValue()
-    {
-        ulong value;
-        Context.Vk.GetSemaphoreCounterValue(Context.Device, Semaphore, &value).Success();
-
-        return value;
     }
 
     protected override CommandBuffer CreateCommandBuffer()
@@ -42,28 +30,22 @@ internal unsafe class VKCommandQueue : CommandQueue
         return new VKCommandBuffer(Context, this);
     }
 
-    protected override void SignalImpl(ulong signalValue)
+    protected override void SubmitImpl(ReadOnlySpan<TimelineValue> waits, CommandBuffer commandBuffer)
     {
-        SemaphoreSubmitInfo signalSemaphoreInfo = new()
+        SemaphoreSubmitInfo* waitSemaphoreInfos = stackalloc SemaphoreSubmitInfo[waits.Length];
+        for (int i = 0; i < waits.Length; i++)
         {
-            SType = StructureType.SemaphoreSubmitInfo,
-            Semaphore = Semaphore,
-            Value = signalValue,
-            StageMask = PipelineStageFlags2.AllCommandsBit
-        };
+            TimelineValue wait = waits[i];
 
-        SubmitInfo2 submitInfo = new()
-        {
-            SType = StructureType.SubmitInfo2,
-            SignalSemaphoreInfoCount = 1,
-            PSignalSemaphoreInfos = &signalSemaphoreInfo
-        };
+            waitSemaphoreInfos[i] = new()
+            {
+                SType = StructureType.SemaphoreSubmitInfo,
+                Semaphore = wait.Timeline.Vulkan().Semaphore,
+                Value = wait.Value,
+                StageMask = PipelineStageFlags2.AllCommandsBit
+            };
+        }
 
-        Context.Vk.QueueSubmit2(Queue, 1, &submitInfo, default).Success();
-    }
-
-    protected override void SubmitImpl(CommandBuffer commandBuffer)
-    {
         CommandBufferSubmitInfo commandBufferInfo = new()
         {
             SType = StructureType.CommandBufferSubmitInfo,
@@ -73,55 +55,13 @@ internal unsafe class VKCommandQueue : CommandQueue
         SubmitInfo2 submitInfo = new()
         {
             SType = StructureType.SubmitInfo2,
+            WaitSemaphoreInfoCount = (uint)waits.Length,
+            PWaitSemaphoreInfos = waitSemaphoreInfos,
             CommandBufferInfoCount = 1,
             PCommandBufferInfos = &commandBufferInfo
         };
 
         Context.Vk.QueueSubmit2(Queue, 1, &submitInfo, default).Success();
-    }
-
-    protected override void WaitImpl(ulong waitValue)
-    {
-        fixed (VkSemaphore* pSemaphores = &Semaphore)
-        {
-            SemaphoreWaitInfo waitInfo = new()
-            {
-                SType = StructureType.SemaphoreWaitInfo,
-                SemaphoreCount = 1,
-                PSemaphores = pSemaphores,
-                PValues = &waitValue
-            };
-
-            Context.Vk.WaitSemaphores(Context.Device, &waitInfo, ulong.MaxValue).Success();
-        }
-    }
-
-    protected override void InsertWaitsImpl(ReadOnlySpan<CommandSubmission> submissions)
-    {
-        foreach (CommandSubmission submission in submissions)
-        {
-            if (submission.Queue is null)
-            {
-                continue;
-            }
-
-            SemaphoreSubmitInfo waitSemaphoreInfo = new()
-            {
-                SType = StructureType.SemaphoreSubmitInfo,
-                Semaphore = submission.Queue.Vulkan().Semaphore,
-                Value = submission.Value,
-                StageMask = PipelineStageFlags2.AllCommandsBit
-            };
-
-            SubmitInfo2 submitInfo = new()
-            {
-                SType = StructureType.SubmitInfo2,
-                WaitSemaphoreInfoCount = 1,
-                PWaitSemaphoreInfos = &waitSemaphoreInfo
-            };
-
-            Context.Vk.QueueSubmit2(Queue, 1, &submitInfo, default).Success();
-        }
     }
 
     protected override void SetResourceName(string name)
@@ -143,6 +83,6 @@ internal unsafe class VKCommandQueue : CommandQueue
     {
         base.Destroy();
 
-        Context.Vk.DestroySemaphore(Context.Device, Semaphore, default);
+        Timeline.Dispose();
     }
 }

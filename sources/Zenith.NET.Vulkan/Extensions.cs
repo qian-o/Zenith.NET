@@ -82,6 +82,14 @@ public static unsafe class Extensions
         }
     }
 
+    extension(Timeline timeline)
+    {
+        internal VKTimeline Vulkan()
+        {
+            return (VKTimeline)timeline;
+        }
+    }
+
     extension(ComputePipeline computePipeline)
     {
         internal VKComputePipeline Vulkan()

@@ -1,4 +1,4 @@
-namespace Zenith.NET;
+﻿namespace Zenith.NET;
 
 public abstract class Timeline(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
 {
@@ -6,13 +6,15 @@ public abstract class Timeline(GraphicsContext context, CommandQueue queue) : Gr
 
     private ulong nextValue;
 
+    public CommandQueue Queue { get; } = queue;
+
     public abstract ulong CompletedValue { get; }
 
     public TimelineValue Signal()
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        SignalImpl(queue, ++nextValue);
+        SignalImpl(++nextValue);
 
         return new(this, nextValue);
     }
@@ -27,7 +29,7 @@ public abstract class Timeline(GraphicsContext context, CommandQueue queue) : Gr
         }
     }
 
-    protected abstract void SignalImpl(CommandQueue queue, ulong value);
+    protected abstract void SignalImpl(ulong value);
 
     protected abstract void WaitImpl(ulong value);
 }

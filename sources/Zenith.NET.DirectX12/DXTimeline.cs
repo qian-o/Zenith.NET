@@ -9,12 +9,14 @@ internal unsafe class DXTimeline : Timeline
 
     public ComPtr<ID3D12Fence> Fence;
 
-    public DXTimeline(DXGraphicsContext context, CommandQueue queue) : base(context, queue)
+    public DXTimeline(DXGraphicsContext context, DXCommandQueue queue) : base(context, queue)
     {
         context.Device.CreateFence(0, FenceFlags.None, SilkMarshal.GuidPtrOf<ID3D12Fence>(), (void**)Fence.GetAddressOf()).Success();
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
+
+    public new DXCommandQueue Queue => (DXCommandQueue)base.Queue;
 
     public override ulong CompletedValue => Fence.GetCompletedValue();
 
@@ -23,9 +25,9 @@ internal unsafe class DXTimeline : Timeline
         return 0;
     }
 
-    protected override void SignalImpl(CommandQueue queue, ulong value)
+    protected override void SignalImpl(ulong value)
     {
-        queue.DirectX12().CommandQueue.Signal(Fence, value).Success();
+        Queue.CommandQueue.Signal(Fence, value).Success();
     }
 
     protected override void WaitImpl(ulong value)

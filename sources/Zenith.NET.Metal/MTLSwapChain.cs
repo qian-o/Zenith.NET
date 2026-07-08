@@ -49,9 +49,13 @@ internal class MTLSwapChain : SwapChain
         return 0;
     }
 
-    protected override void PresentImpl()
+    public override void Present()
     {
+        Context.GraphicsQueue.Metal().CommandQueue.SignalDrawable(MetalDrawable);
+
         MetalDrawable.Present();
+
+        Context.GraphicsQueue.Timeline.Signal().Wait();
 
         MetalDrawable.Dispose();
         MetalDrawable = NSAutorelease.Own(MetalLayer.NextDrawable);

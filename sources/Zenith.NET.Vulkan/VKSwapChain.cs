@@ -5,6 +5,8 @@ namespace Zenith.NET.Vulkan;
 
 internal unsafe class VKSwapChain : SwapChain
 {
+    private readonly VKFence fence;
+
     public SurfaceKHR Surface;
 
     public SwapchainKHR Swapchain;
@@ -14,8 +16,11 @@ internal unsafe class VKSwapChain : SwapChain
 
     public VKSwapChain(VKGraphicsContext context, SwapChainDesc desc) : base(context, desc)
     {
+        fence = new(context);
+
         CreateSwapChain();
         CreateTextures();
+        AcquireNextImage();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
@@ -27,8 +32,25 @@ internal unsafe class VKSwapChain : SwapChain
         return 0;
     }
 
-    protected override void PresentImpl()
+    public override void Present()
     {
+        fixed (SwapchainKHR* swapchains = &Swapchain)
+        {
+            fixed (uint* imageIndices = &index)
+            {
+                PresentInfoKHR presentInfo = new()
+                {
+                    SType = StructureType.PresentInfoKhr,
+                    SwapchainCount = 1,
+                    PSwapchains = swapchains,
+                    PImageIndices = imageIndices
+                };
+
+                Context.Swapchain?.QueuePresent(Context.GraphicsQueue.Vulkan().Queue, &presentInfo).Success();
+            }
+        }
+
+        AcquireNextImage();
     }
 
     protected override void ResizeImpl()
@@ -38,6 +60,8 @@ internal unsafe class VKSwapChain : SwapChain
 
         CreateSwapChain();
         CreateTextures();
+
+        AcquireNextImage();
     }
 
     protected override void RefreshImpl()
@@ -47,6 +71,8 @@ internal unsafe class VKSwapChain : SwapChain
 
         CreateSwapChain();
         CreateTextures();
+
+        AcquireNextImage();
     }
 
     protected override void SetResourceName(string name)
@@ -57,6 +83,8 @@ internal unsafe class VKSwapChain : SwapChain
     {
         DestroyTextures();
         DestroySwapChain();
+
+        fence.Dispose();
     }
 
     private void CreateSwapChain()
@@ -257,5 +285,12 @@ internal unsafe class VKSwapChain : SwapChain
         {
             textures[i].Dispose();
         }
+    }
+
+    private void AcquireNextImage()
+    {
+        Context.Swapchain?.AcquireNextImage(Context.Device, Swapchain, ulong.MaxValue, default, fence.Fence, ref index).Success();
+
+        fence.Wait();
     }
 }

@@ -74,6 +74,14 @@ public static class Extensions
         }
     }
 
+    extension(Timeline timeline)
+    {
+        internal MTLTimeline Metal()
+        {
+            return (MTLTimeline)timeline;
+        }
+    }
+
     extension(ComputePipeline computePipeline)
     {
         internal MTLComputePipeline Metal()
