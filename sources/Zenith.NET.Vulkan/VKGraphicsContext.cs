@@ -33,7 +33,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         ExtMetalObjects.ExtensionName,
         KhrAccelerationStructure.ExtensionName,
         KhrDeferredHostOperations.ExtensionName,
-        KhrExternalFenceFd.ExtensionName,
+        KhrExternalMemoryFd.ExtensionName,
         KhrExternalMemoryWin32.ExtensionName,
         KhrFragmentShadingRate.ExtensionName,
         KhrRayQuery.ExtensionName,
@@ -75,7 +75,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public KhrDeferredHostOperations? DeferredHostOperations { get; private set; }
 
-    public KhrExternalFenceFd? ExternalFenceFd { get; private set; }
+    public KhrExternalMemoryFd? ExternalMemoryFd { get; private set; }
 
     public KhrExternalMemoryWin32? ExternalMemoryWin32 { get; private set; }
 
@@ -500,7 +500,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             MetalObjects = enabledExtensions.Contains(ExtMetalObjects.ExtensionName) ? new(context) : null;
             AccelerationStructure = enabledExtensions.Contains(KhrAccelerationStructure.ExtensionName) ? new(context) : null;
             DeferredHostOperations = enabledExtensions.Contains(KhrDeferredHostOperations.ExtensionName) ? new(context) : null;
-            ExternalFenceFd = enabledExtensions.Contains(KhrExternalFenceFd.ExtensionName) ? new(context) : null;
+            ExternalMemoryFd = enabledExtensions.Contains(KhrExternalMemoryFd.ExtensionName) ? new(context) : null;
             ExternalMemoryWin32 = enabledExtensions.Contains(KhrExternalMemoryWin32.ExtensionName) ? new(context) : null;
             FragmentShadingRate = enabledExtensions.Contains(KhrFragmentShadingRate.ExtensionName) ? new(context) : null;
             Swapchain = enabledExtensions.Contains(KhrSwapchain.ExtensionName) ? new(context) : null;
