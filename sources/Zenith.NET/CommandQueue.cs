@@ -14,15 +14,6 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        while (submitteds.TryPeek(out Submitted submitted) && submitted.TimelineValue.IsCompleted)
-        {
-            submitteds.Dequeue();
-
-            submitted.CommandBuffer.Reset();
-
-            commandBuffers.Enqueue(submitted.CommandBuffer);
-        }
-
         CommandBuffer commandBuffer = commandBuffers.Count is 0 ? CreateCommandBuffer() : commandBuffers.Dequeue();
 
         commandBuffer.Begin();
@@ -43,6 +34,18 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
         submitteds.Enqueue(new(commandBuffer, timelineValue));
 
         return timelineValue;
+    }
+
+    internal void Reclaim()
+    {
+        while (submitteds.TryPeek(out Submitted submitted) && submitted.TimelineValue.IsCompleted)
+        {
+            submitteds.Dequeue();
+
+            submitted.CommandBuffer.Reset();
+
+            commandBuffers.Enqueue(submitted.CommandBuffer);
+        }
     }
 
     protected abstract CommandBuffer CreateCommandBuffer();
