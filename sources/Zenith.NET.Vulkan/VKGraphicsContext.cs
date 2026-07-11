@@ -581,7 +581,97 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override Texture CreateTextureImpl(TextureDesc desc, NativeTextureType nativeTextureType, nint nativeTexture)
     {
-        throw new NotImplementedException();
+        ImageCreateInfo createInfo = VKTexture.CreateInfo(desc, QueueFamilies);
+
+        if (nativeTextureType is NativeTextureType.MTLSharedTextureHandle or NativeTextureType.IOSurfaceRef)
+        {
+            switch (nativeTextureType)
+            {
+                case NativeTextureType.MTLSharedTextureHandle:
+                    {
+                        createInfo.AddNext(out ImportMetalTextureInfoEXT importInfo);
+                        importInfo.Plane = ImageAspectFlags.ColorBit;
+                        importInfo.MtlTexture = nativeTexture;
+                    }
+                    break;
+
+                case NativeTextureType.IOSurfaceRef:
+                    {
+                        createInfo.AddNext(out ImportMetalIOSurfaceInfoEXT importInfo);
+                        importInfo.IoSurface = nativeTexture;
+                    }
+                    break;
+            }
+
+            Vk.CreateImage(Device, &createInfo, default, out Image metalImage).Success();
+
+            return new VKTexture(this, desc, metalImage, new(default, 0, true, false));
+        }
+        else
+        {
+            createInfo.AddNext(out ExternalMemoryImageCreateInfo externalMemoryImageCreateInfo);
+            externalMemoryImageCreateInfo.HandleTypes = VKFormats.Vulkan(nativeTextureType);
+
+            Vk.CreateImage(Device, &createInfo, default, out Image image).Success();
+
+            ImageMemoryRequirementsInfo2 requirementsInfo2 = new()
+            {
+                SType = StructureType.ImageMemoryRequirementsInfo2,
+                Image = image
+            };
+
+            MemoryRequirements2 requirements2 = new() { SType = StructureType.MemoryRequirements2 };
+            Vk.GetImageMemoryRequirements2(Device, &requirementsInfo2, &requirements2);
+
+            MemoryAllocateInfo allocateInfo = new()
+            {
+                SType = StructureType.MemoryAllocateInfo,
+                AllocationSize = requirements2.MemoryRequirements.Size,
+                MemoryTypeIndex = FindMemoryTypeIndex(requirements2.MemoryRequirements.MemoryTypeBits, MemoryResidency.GpuOnly)
+            };
+
+            allocateInfo.AddNext(out MemoryDedicatedAllocateInfo dedicatedAllocateInfo);
+            dedicatedAllocateInfo.Image = image;
+
+            switch (nativeTextureType)
+            {
+                case NativeTextureType.D3D11TextureNtHandle:
+                case NativeTextureType.D3D12ResourceNtHandle:
+                case NativeTextureType.VulkanOpaqueNtHandle:
+                    {
+                        allocateInfo.AddNext(out ImportMemoryWin32HandleInfoKHR importInfo);
+                        importInfo.HandleType = VKFormats.Vulkan(nativeTextureType);
+                        importInfo.Handle = nativeTexture;
+                    }
+                    break;
+
+                case NativeTextureType.VulkanOpaquePosixFileDescriptor:
+                    {
+                        allocateInfo.AddNext(out ImportMemoryFdInfoKHR importInfo);
+                        importInfo.HandleType = VKFormats.Vulkan(nativeTextureType);
+                        importInfo.Fd = (int)nativeTexture;
+                    }
+                    break;
+
+                case NativeTextureType.VulkanAndroidHardwareBuffer:
+                    {
+                        AndroidHardwareBufferPropertiesANDROID properties = new() { SType = StructureType.AndroidHardwareBufferPropertiesAndroid };
+                        ExternalMemoryAndroidHardwareBuffer!.GetAndroidHardwareBufferProperties(Device, (nint*)nativeTexture, &properties).Success();
+
+                        allocateInfo.AllocationSize = properties.AllocationSize;
+                        allocateInfo.MemoryTypeIndex = FindMemoryTypeIndex(properties.MemoryTypeBits, MemoryResidency.GpuOnly);
+
+                        allocateInfo.AddNext(out ImportAndroidHardwareBufferInfoANDROID importInfo);
+                        importInfo.Buffer = (nint*)nativeTexture;
+                    }
+                    break;
+            }
+
+            Vk.AllocateMemory(Device, &allocateInfo, default, out DeviceMemory deviceMemory).Success();
+            Vk.BindImageMemory(Device, image, deviceMemory, 0).Success();
+
+            return new VKTexture(this, desc, image, new(deviceMemory, 0, true, true));
+        }
     }
 
     protected override TextureView CreateTextureViewImpl(TextureViewDesc desc)

@@ -391,6 +391,19 @@ internal static class VKFormats
         return result;
     }
 
+    public static ExternalMemoryHandleTypeFlags Vulkan(NativeTextureType nativeTextureType)
+    {
+        return nativeTextureType switch
+        {
+            NativeTextureType.D3D11TextureNtHandle => ExternalMemoryHandleTypeFlags.D3D11TextureBit,
+            NativeTextureType.D3D12ResourceNtHandle => ExternalMemoryHandleTypeFlags.D3D12ResourceBit,
+            NativeTextureType.VulkanOpaqueNtHandle => ExternalMemoryHandleTypeFlags.OpaqueWin32Bit,
+            NativeTextureType.VulkanOpaquePosixFileDescriptor => ExternalMemoryHandleTypeFlags.OpaqueFDBit,
+            NativeTextureType.VulkanAndroidHardwareBuffer => ExternalMemoryHandleTypeFlags.AndroidHardwareBufferBitAndroid,
+            _ => default
+        };
+    }
+
     public static (Format Format, ImageAspectFlags AspectFlags) Vulkan(PixelFormat pixelFormat)
     {
         Format format = pixelFormat switch
