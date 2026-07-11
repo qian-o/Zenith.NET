@@ -27,7 +27,7 @@ internal unsafe class DXSwapChain : SwapChain
         return 0;
     }
 
-    public override void Present()
+    protected override void PresentImpl()
     {
         SwapChain.Present(0, DXGI.PresentAllowTearing).Success();
 
@@ -58,8 +58,6 @@ internal unsafe class DXSwapChain : SwapChain
 
     protected override void Destroy()
     {
-        base.Destroy();
-
         DestroyTextures();
         DestroySwapChain();
     }

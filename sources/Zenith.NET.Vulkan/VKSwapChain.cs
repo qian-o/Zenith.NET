@@ -32,7 +32,7 @@ internal unsafe class VKSwapChain : SwapChain
         return 0;
     }
 
-    public override void Present()
+    protected override void PresentImpl()
     {
         fixed (SwapchainKHR* swapchains = &Swapchain)
         {
@@ -81,8 +81,6 @@ internal unsafe class VKSwapChain : SwapChain
 
     protected override void Destroy()
     {
-        base.Destroy();
-
         DestroyTextures();
         DestroySwapChain();
 

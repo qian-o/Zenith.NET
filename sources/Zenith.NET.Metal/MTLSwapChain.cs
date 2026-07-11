@@ -49,7 +49,7 @@ internal class MTLSwapChain : SwapChain
         return 0;
     }
 
-    public override void Present()
+    protected override void PresentImpl()
     {
         Context.GraphicsQueue.Metal().CommandQueue.SignalDrawable(MetalDrawable);
 
@@ -83,8 +83,6 @@ internal class MTLSwapChain : SwapChain
 
     protected override void Destroy()
     {
-        base.Destroy();
-
         drawable?.Dispose();
 
         MetalDrawable.Dispose();

@@ -8,12 +8,15 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 
     public abstract Texture Drawable { get; }
 
-    public abstract void Present();
+    public void Present()
+    {
+        PresentImpl();
+
+        Context.GraphicsQueue.Timeline.Signal().Wait();
+    }
 
     public void Resize(uint width, uint height)
     {
-        Context.GraphicsQueue.Timeline.Signal().Wait();
-
         desc.Surface.Width = width;
         desc.Surface.Height = height;
 
@@ -24,8 +27,6 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 
     public void Refresh(Surface surface)
     {
-        Context.GraphicsQueue.Timeline.Signal().Wait();
-
         desc.Surface = surface;
 
         RefreshImpl();
@@ -33,12 +34,9 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
         SetResourceName(Name);
     }
 
+    protected abstract void PresentImpl();
+
     protected abstract void ResizeImpl();
 
     protected abstract void RefreshImpl();
-
-    protected override void Destroy()
-    {
-        Context.GraphicsQueue.Timeline.Signal().Wait();
-    }
 }
