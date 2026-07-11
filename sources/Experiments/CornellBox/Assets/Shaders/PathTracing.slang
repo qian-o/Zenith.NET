@@ -12,21 +12,24 @@ struct Vertex
 
     property float3 Position
     {
-        get {
+        get
+        {
             return PositionAndPadding.xyz;
         }
     }
 
     property float3 Normal
     {
-        get {
+        get
+        {
             return NormalAndMaterialId.xyz;
         }
     }
 
     property uint MaterialId
     {
-        get {
+        get
+        {
             return asuint(NormalAndMaterialId.w);
         }
     }
@@ -40,28 +43,32 @@ struct Material
 
     property float3 Albedo
     {
-        get {
+        get
+        {
             return AlbedoAndEmission.xyz;
         }
     }
 
     property float Emission
     {
-        get {
+        get
+        {
             return AlbedoAndEmission.w;
         }
     }
 
     property float Metallic
     {
-        get {
+        get
+        {
             return MetallicRoughnessAndPadding.x;
         }
     }
 
     property float Roughness
     {
-        get {
+        get
+        {
             return MetallicRoughnessAndPadding.y;
         }
     }
@@ -91,28 +98,32 @@ struct PathTracingConstants
 
     property float3 Position
     {
-        get {
+        get
+        {
             return PositionAndPadding.xyz;
         }
     }
 
     property uint FrameCount
     {
-        get {
+        get
+        {
             return FrameCountWidthHeightAndPadding.x;
         }
     }
 
     property uint Width
     {
-        get {
+        get
+        {
             return FrameCountWidthHeightAndPadding.y;
         }
     }
 
     property uint Height
     {
-        get {
+        get
+        {
             return FrameCountWidthHeightAndPadding.z;
         }
     }
@@ -177,7 +188,7 @@ float PowerHeuristic(float pdfA, float pdfB)
     return a2 / (a2 + pdfB * pdfB + 0.0001);
 }
 
-float ComputeBrdfPdf(float3 N, float3 V, float3 L, float roughness, float specProb)
+float ComputeBRDFPDF(float3 N, float3 V, float3 L, float roughness, float specProb)
 {
     float NdotL = max(dot(N, L), 0.0);
     if (NdotL <= 0.0)
@@ -200,7 +211,7 @@ float ComputeBrdfPdf(float3 N, float3 V, float3 L, float roughness, float specPr
     return specProb * pdfSpec + (1.0 - specProb) * pdfDiff;
 }
 
-uint PcgHash(uint input)
+uint PCGHash(uint input)
 {
     uint state = input * 747796405u + 2891336453u;
     uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
@@ -210,7 +221,7 @@ uint PcgHash(uint input)
 
 float RandomFloat(inout uint seed)
 {
-    seed = PcgHash(seed);
+    seed = PCGHash(seed);
 
     return float(seed) / 4294967295.0;
 }
@@ -308,7 +319,7 @@ float3 SampleLightDirect(float3 hitPos, float3 hitNormal, float3 geoNormal, floa
     float3 lightEmission = lightMat.Albedo * lightMat.Emission;
 
     float pdfLight = (dist * dist) / (lightCosine * LightArea);
-    float pdfBrdf = ComputeBrdfPdf(hitNormal, V, L, roughness, specProb);
+    float pdfBrdf = ComputeBRDFPDF(hitNormal, V, L, roughness, specProb);
     float misWeight = PowerHeuristic(pdfLight, pdfBrdf);
 
     float3 brdf = EvaluateBRDF(hitNormal, V, L, mat);
@@ -338,7 +349,9 @@ float3 TracePath(float3 origin, float3 direction, inout uint rng)
 
         if (query.CommittedStatus() == COMMITTED_NOTHING)
         {
-            float3 skyColor = lerp(float3(0.15, 0.12, 0.10), float3(0.30, 0.35, 0.45), saturate(direction.y * 0.5 + 0.5));
+            float3 skyColor = lerp(float3(0.15, 0.12, 0.10),
+                                   float3(0.30, 0.35, 0.45),
+                                   saturate(direction.y * 0.5 + 0.5));
             radiance += throughput * skyColor;
 
             break;
@@ -472,7 +485,9 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
         return;
     }
 
-    uint rng = PcgHash(pixel.x + pixel.y * pathTracing.Width + pathTracing.FrameCount * pathTracing.Width * pathTracing.Height);
+    uint rng = PCGHash(pixel.x +
+                       pixel.y * pathTracing.Width +
+                       pathTracing.FrameCount * pathTracing.Width * pathTracing.Height);
 
     uint sampleIndex = pathTracing.FrameCount + 1;
     float hx = Halton(sampleIndex, 2);
@@ -514,5 +529,5 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     avg = saturate(a / b);
 
     avg = pow(avg, 1.0 / 2.2);
-    (*pathTracing.OutputTexture) [pixel] = float4(avg, 1.0);
+    (*pathTracing.OutputTexture)[pixel] = float4(avg, 1.0);
 }

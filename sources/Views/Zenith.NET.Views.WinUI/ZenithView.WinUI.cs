@@ -99,6 +99,7 @@ internal static unsafe class D3D
         }
     }
 }
+
 internal unsafe partial class Surface : DisposableObject
 {
     [LibraryImport("kernel32")]
