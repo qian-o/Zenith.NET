@@ -53,7 +53,7 @@ public static class ZenithCompiler
                 break;
 
             case GraphicsApi.Vulkan:
-                arguments.AddRange(["spirv", "-capability", "spirv_latest", "-capability", "spvDescriptorHeapEXT", "-fvk-use-entrypoint-name"]);
+                arguments.AddRange(["spirv", "-capability", "spirv_latest", "-capability", "spvDescriptorHeapEXT", "-capability", "spvRayQueryKHR", "-fvk-use-entrypoint-name"]);
                 break;
         }
 
