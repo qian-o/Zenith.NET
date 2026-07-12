@@ -7,6 +7,62 @@
         }
     ],
     start: () => {
+        const logo = document.getElementById('logo');
+        if (logo) {
+            const lightLogo = logo.src;
+            const darkLogo = lightLogo.replace('Zenith.NET-Logo.svg', 'Zenith.NET-Logo-Dark.svg');
+            const updateLogo = () => {
+                logo.src = document.documentElement.dataset.bsTheme === 'dark' ? darkLogo : lightLogo;
+            };
+
+            new MutationObserver(updateLogo).observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['data-bs-theme']
+            });
+            updateLogo();
+        }
+
+        const navbar = document.getElementById('navbar');
+        if (navbar && !navbar.querySelector('.nav-cta')) {
+            const rootPath = document.querySelector('meta[name="docfx:rel"]')?.content || '';
+            const getStarted = document.createElement('a');
+            getStarted.className = 'nav-cta';
+            getStarted.href = `${rootPath}tutorials/getting-started/prerequisites.html`;
+            getStarted.innerHTML = 'Get started <i class="bi bi-chevron-right" aria-hidden="true"></i>';
+            getStarted.setAttribute('aria-label', 'Get started with Zenith.NET');
+            navbar.append(getStarted);
+        }
+
+        const installCopy = document.querySelector('[data-copy-command]');
+        if (installCopy) {
+            installCopy.addEventListener('click', async () => {
+                const label = installCopy.querySelector('span');
+                const command = installCopy.dataset.copyCommand;
+
+                try {
+                    await navigator.clipboard.writeText(command);
+                    installCopy.classList.add('is-copied');
+                    if (label) label.textContent = 'Copied';
+
+                    window.setTimeout(() => {
+                        installCopy.classList.remove('is-copied');
+                        if (label) label.textContent = 'Copy';
+                    }, 2000);
+                } catch {
+                    installCopy.classList.remove('is-copied');
+                    if (label) label.textContent = 'Copy failed';
+                }
+            });
+        }
+
+        const currentPath = window.location.pathname.replace(/\/index\.html$/, '/');
+        for (const link of document.querySelectorAll('#navbar .nav-link')) {
+            const linkPath = new URL(link.href, window.location.href).pathname.replace(/\/index\.html$/, '/');
+            const isHome = linkPath === '/' && currentPath === '/';
+            const isSection = linkPath !== '/' && currentPath.startsWith(linkPath);
+            link.classList.toggle('active', isHome || isSection);
+        }
+
         // Prevent short table cells from wrapping (e.g. "DirectX 12", "Vulkan 1.4")
         for (const td of document.querySelectorAll('article td')) {
             if (td.textContent.trim().length <= 20) {

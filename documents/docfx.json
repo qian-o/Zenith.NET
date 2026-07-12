@@ -44,8 +44,9 @@
     "globalMetadata": {
       "_appTitle": "Zenith.NET",
       "_appLogoPath": "images/Zenith.NET-Logo.svg",
-      "_appFaviconPath": "images/Zenith.NET.png",
+      "_appFaviconPath": "images/Zenith.NET.svg",
       "_enableSearch": true,
+      "_appFooter": "Zenith.NET is an open-source, cross-platform rendering hardware interface for .NET.",
       "_gitContribute": {
         "repo": "https://github.com/qian-o/Zenith.NET",
         "branch": "master"

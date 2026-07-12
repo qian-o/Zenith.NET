@@ -1,45 +1,20 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 80">
-    <defs>
-        <radialGradient id="bg-glow" cx="35%" cy="30%" r="80%">
-            <stop offset="0%" stop-color="#7CB8F2" />
-            <stop offset="50%" stop-color="#4A90D9" />
-            <stop offset="100%" stop-color="#3568B2" />
-        </radialGradient>
-        <linearGradient id="glass-fill" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#FFFFFF" />
-            <stop offset="100%" stop-color="#D0E4F7" />
-        </linearGradient>
-        <radialGradient id="specular" cx="40%" cy="25%" r="35%">
-            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55" />
-            <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
-        </radialGradient>
-        <filter id="glass-blur" x="-10%" y="-10%" width="120%" height="120%">
-            <feGaussianBlur stdDeviation="0.5" result="blur" />
-            <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-            </feMerge>
-        </filter>
-    </defs>
-
-    <!-- Icon: rounded square with crystal -->
-    <g transform="translate(8, 8)">
-        <rect width="64" height="64" rx="14" fill="url(#bg-glow)" />
-
-        <!-- Crystal — Liquid Glass style -->
-        <g filter="url(#glass-blur)">
-            <polygon points="32,9 13,39 32,39" fill="url(#glass-fill)" fill-opacity="0.92" />
-            <polygon points="32,9 51,39 32,39" fill="#FFFFFF" fill-opacity="0.45" />
-            <polygon points="13,39 32,55 32,39" fill="#FFFFFF" fill-opacity="0.3" />
-            <polygon points="51,39 32,55 32,39" fill="#B8D4EE" fill-opacity="0.2" />
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 234 64" role="img" aria-labelledby="title">
+    <title id="title">Zenith.NET</title>
+    <rect x="2" y="2" width="60" height="60" rx="14" fill="#512BD4" />
+    <g transform="translate(9.6 9.6) scale(0.7)" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <g>
+            <path d="M32 9.5 42 15.5v13L32 34.5 22 28.5v-13L32 9.5Z" />
+            <path d="m22 15.5 10 6 10-6M32 21.5v13" />
         </g>
-
-        <!-- Specular highlight -->
+        <g>
+            <path d="m21.5 28.5 10 6v13l-10 6-10-6v-13l10-6Z" />
+            <path d="m11.5 34.5 10 6 10-6m-10 6v13" />
+        </g>
+        <g>
+            <path d="m42.5 28.5 10 6v13l-10 6-10-6v-13l10-6Z" />
+            <path d="m32.5 34.5 10 6 10-6m-10 6v13" />
+        </g>
     </g>
-
-    <!-- Text -->
-    <text x="84" y="52" font-family="Segoe UI, Arial, sans-serif" font-size="36" font-weight="600"
-        fill="#3A7BD5">
-        Zenith.NET
-    </text>
+    <text x="79" y="42" fill="#403451" font-family="Aptos Display, Segoe UI, sans-serif" font-size="29" font-weight="750">Zenith</text>
+    <text x="166" y="42" fill="#512BD4" font-family="Aptos Display, Segoe UI, sans-serif" font-size="29" font-weight="750">.NET</text>
 </svg>
