@@ -140,16 +140,14 @@
         }
 
         for (const table of document.querySelectorAll('body:not([data-layout="landing"]) article table')) {
-            const existingFrame = table.closest('.table-responsive');
-            if (existingFrame) {
-                existingFrame.classList.add('doc-table-frame');
-                continue;
-            }
+            if (table.closest('.doc-table-frame')) continue;
 
             const frame = document.createElement('div');
             frame.className = 'doc-table-frame';
-            table.parentNode.insertBefore(frame, table);
-            frame.append(table);
+            const responsive = table.closest('.table-responsive');
+            const target = responsive || table;
+            target.parentNode.insertBefore(frame, target);
+            frame.append(target);
         }
 
         const initializeAffix = () => {
@@ -301,18 +299,65 @@
 
             e.preventDefault();
             const query = document.getElementById('search-query')?.value || '';
-            history.replaceState({ search: true, query }, '');
+            history.replaceState({ search: true, query, scrollY: window.scrollY }, '');
             window.location.href = link.href;
         });
 
-        window.addEventListener('popstate', (e) => {
-            if (e.state?.search) {
-                const input = document.getElementById('search-query');
-                if (input) {
-                    input.value = e.state.query;
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                }
+        const restoreSearchState = (state) => {
+            if (!state?.search) return;
+
+            const input = document.getElementById('search-query');
+            if (!input) return;
+
+            input.value = state.query || '';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+
+            if (!Number.isFinite(state.scrollY)) return;
+
+            const restoreScroll = () => {
+                if (!document.body.hasAttribute('data-search')) return false;
+
+                const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+                if (maxScroll < state.scrollY) return false;
+
+                window.scrollTo(0, state.scrollY);
+                return true;
+            };
+
+            if (restoreScroll()) return;
+
+            const observer = new MutationObserver(() => {
+                if (restoreScroll()) observer.disconnect();
+            });
+            observer.observe(document.body, { attributes: true, childList: true, subtree: true });
+            window.setTimeout(() => {
+                restoreScroll();
+                observer.disconnect();
+            }, 2000);
+        };
+
+        window.addEventListener('popstate', (e) => restoreSearchState(e.state));
+
+        const restoreInitialSearchState = () => {
+            if (!history.state?.search) return;
+
+            const input = document.getElementById('search-query');
+            if (!input) return;
+
+            if (!input.disabled) {
+                restoreSearchState(history.state);
+                return;
             }
-        });
+
+            const observer = new MutationObserver(() => {
+                if (input.disabled) return;
+
+                observer.disconnect();
+                restoreSearchState(history.state);
+            });
+            observer.observe(input, { attributes: true, attributeFilter: ['disabled'] });
+        };
+
+        restoreInitialSearchState();
     }
 }
