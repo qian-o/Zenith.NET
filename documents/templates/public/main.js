@@ -7,20 +7,63 @@
         }
     ],
     start: () => {
-        const logo = document.getElementById('logo');
-        if (logo) {
-            const lightLogo = logo.src;
-            const darkLogo = lightLogo.replace('Zenith.NET-Logo.svg', 'Zenith.NET-Logo-Dark.svg');
-            const updateLogo = () => {
-                logo.src = document.documentElement.dataset.bsTheme === 'dark' ? darkLogo : lightLogo;
-            };
+        const copyText = async (text) => {
+            try {
+                await navigator.clipboard.writeText(text);
+                return;
+            } catch {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.setAttribute('readonly', '');
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.append(textarea);
+                textarea.select();
 
-            new MutationObserver(updateLogo).observe(document.documentElement, {
-                attributes: true,
-                attributeFilter: ['data-bs-theme']
-            });
-            updateLogo();
-        }
+                const copied = document.execCommand('copy');
+                textarea.remove();
+                if (!copied) throw new Error('Copy failed');
+            }
+        };
+
+        const copyResetTimers = new WeakMap();
+        const setCopyButtonState = (button, state) => {
+            const defaultLabel = button.dataset.copyLabel || button.getAttribute('aria-label') || 'Copy';
+            const icon = button.querySelector('i');
+            const feedback = {
+                idle: { icon: 'bi bi-copy', label: defaultLabel },
+                copied: { icon: 'bi bi-check2', label: 'Copied' },
+                failed: { icon: 'bi bi-x-lg', label: 'Copy failed' }
+            }[state];
+
+            button.dataset.copyLabel = defaultLabel;
+            button.classList.toggle('is-copied', state === 'copied');
+            button.classList.toggle('is-failed', state === 'failed');
+            button.setAttribute('aria-label', feedback.label);
+            button.title = feedback.label;
+            if (icon) icon.className = feedback.icon;
+
+            const activeTimer = copyResetTimers.get(button);
+            if (activeTimer) window.clearTimeout(activeTimer);
+
+            if (state === 'idle') {
+                copyResetTimers.delete(button);
+            } else {
+                copyResetTimers.set(button, window.setTimeout(() => {
+                    copyResetTimers.delete(button);
+                    setCopyButtonState(button, 'idle');
+                }, 2000));
+            }
+        };
+
+        const copyWithFeedback = async (button, text) => {
+            try {
+                await copyText(text);
+                setCopyButtonState(button, 'copied');
+            } catch {
+                setCopyButtonState(button, 'failed');
+            }
+        };
 
         const navbar = document.getElementById('navbar');
         if (navbar && !navbar.querySelector('.nav-cta')) {
@@ -28,32 +71,154 @@
             const getStarted = document.createElement('a');
             getStarted.className = 'nav-cta';
             getStarted.href = `${rootPath}tutorials/getting-started/prerequisites.html`;
-            getStarted.innerHTML = 'Get started <i class="bi bi-chevron-right" aria-hidden="true"></i>';
+            getStarted.textContent = 'Get started';
             getStarted.setAttribute('aria-label', 'Get started with Zenith.NET');
             navbar.append(getStarted);
         }
 
         const installCopy = document.querySelector('[data-copy-command]');
         if (installCopy) {
+            setCopyButtonState(installCopy, 'idle');
             installCopy.addEventListener('click', async () => {
-                const label = installCopy.querySelector('span');
-                const command = installCopy.dataset.copyCommand;
-
-                try {
-                    await navigator.clipboard.writeText(command);
-                    installCopy.classList.add('is-copied');
-                    if (label) label.textContent = 'Copied';
-
-                    window.setTimeout(() => {
-                        installCopy.classList.remove('is-copied');
-                        if (label) label.textContent = 'Copy';
-                    }, 2000);
-                } catch {
-                    installCopy.classList.remove('is-copied');
-                    if (label) label.textContent = 'Copy failed';
-                }
+                await copyWithFeedback(installCopy, installCopy.dataset.copyCommand);
             });
         }
+
+        const architectureCopy = document.querySelector('.architecture-code-copy');
+        const architectureCode = document.querySelector('.architecture-code code');
+        if (architectureCopy && architectureCode) {
+            setCopyButtonState(architectureCopy, 'idle');
+            architectureCopy.addEventListener('click', async () => {
+                await copyWithFeedback(architectureCopy, architectureCode.textContent);
+            });
+        }
+
+        const languageNames = {
+            bash: 'Shell',
+            csharp: 'C#',
+            cs: 'C#',
+            console: 'Console',
+            json: 'JSON',
+            powershell: 'PowerShell',
+            shell: 'Shell',
+            xml: 'XML',
+            yaml: 'YAML',
+            yml: 'YAML'
+        };
+
+        for (const pre of document.querySelectorAll('body:not([data-layout="landing"]) article pre')) {
+            if (pre.closest('.doc-code-frame')) continue;
+
+            const code = pre.querySelector('code');
+            if (!code) continue;
+
+            const languageClass = [...code.classList].find(name => name.startsWith('language-') || name.startsWith('lang-'));
+            const language = languageClass?.replace(/^language-|^lang-/, '').toLowerCase() || 'text';
+            const frame = document.createElement('div');
+            const toolbar = document.createElement('div');
+            const languageLabel = document.createElement('span');
+            const copy = document.createElement('button');
+
+            frame.className = 'doc-code-frame';
+            toolbar.className = 'doc-code-toolbar';
+            languageLabel.className = 'doc-code-language';
+            languageLabel.textContent = languageNames[language] || language.toUpperCase();
+            copy.type = 'button';
+            copy.className = 'doc-code-copy';
+            copy.setAttribute('aria-label', 'Copy code block');
+            copy.innerHTML = '<i class="bi bi-copy" aria-hidden="true"></i>';
+            setCopyButtonState(copy, 'idle');
+
+            pre.parentNode.insertBefore(frame, pre);
+            frame.append(toolbar, pre);
+            toolbar.append(languageLabel, copy);
+            pre.querySelector(':scope > .code-action')?.remove();
+
+            copy.addEventListener('click', async () => {
+                await copyWithFeedback(copy, code.textContent);
+            });
+        }
+
+        for (const table of document.querySelectorAll('body:not([data-layout="landing"]) article table')) {
+            const existingFrame = table.closest('.table-responsive');
+            if (existingFrame) {
+                existingFrame.classList.add('doc-table-frame');
+                continue;
+            }
+
+            const frame = document.createElement('div');
+            frame.className = 'doc-table-frame';
+            table.parentNode.insertBefore(frame, table);
+            frame.append(table);
+        }
+
+        const initializeAffix = () => {
+            const links = [...document.querySelectorAll('#affix a[href^="#"]')];
+            const targetGroups = new Map();
+            const targetIndexes = new Map();
+
+            for (const link of links) {
+                const targetId = decodeURIComponent(link.hash.slice(1));
+                if (!targetGroups.has(targetId)) {
+                    targetGroups.set(targetId, [...document.querySelectorAll(`[id="${CSS.escape(targetId)}"]`)]);
+                }
+            }
+
+            const affixLinks = links
+                .map(link => {
+                    const targetId = decodeURIComponent(link.hash.slice(1));
+                    const targetIndex = targetIndexes.get(targetId) || 0;
+                    const targets = targetGroups.get(targetId) || [];
+                    const target = targets[targetIndex] || targets[0];
+                    targetIndexes.set(targetId, targetIndex + 1);
+
+                    if (target && targetIndex > 0) {
+                        const uniqueId = `${targetId}--${targetIndex + 1}`;
+                        target.id = uniqueId;
+                        link.setAttribute('href', `#${uniqueId}`);
+                    }
+
+                    return { link, target };
+                })
+                .filter(item => {
+                    const isVisible = item.target?.getClientRects().length;
+                    if (!isVisible) item.link.closest('li')?.style.setProperty('display', 'none');
+                    return isVisible;
+                });
+            if (!affixLinks.length) return false;
+
+            let affixFrame;
+            const updateAffix = () => {
+                if (affixFrame) return;
+                affixFrame = window.requestAnimationFrame(() => {
+                    const scrollPaddingTop = Number.parseFloat(
+                        window.getComputedStyle(document.documentElement).scrollPaddingTop
+                    ) || 0;
+                    let current = affixLinks[0];
+
+                    for (const item of affixLinks) {
+                        const scrollMarginTop = Number.parseFloat(
+                            window.getComputedStyle(item.target).scrollMarginTop
+                        ) || 0;
+                        const targetOffset = scrollPaddingTop + scrollMarginTop + 1;
+                        if (item.target.getBoundingClientRect().top <= targetOffset) {
+                            current = item;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    for (const item of affixLinks) {
+                        item.link.classList.toggle('is-active', item === current);
+                    }
+                    affixFrame = undefined;
+                });
+            };
+
+            window.addEventListener('scroll', updateAffix, { passive: true });
+            updateAffix();
+            return true;
+        };
 
         const currentPath = window.location.pathname.replace(/\/index\.html$/, '/');
         for (const link of document.querySelectorAll('#navbar .nav-link')) {
@@ -61,13 +226,6 @@
             const isHome = linkPath === '/' && currentPath === '/';
             const isSection = linkPath !== '/' && currentPath.startsWith(linkPath);
             link.classList.toggle('active', isHome || isSection);
-        }
-
-        // Prevent short table cells from wrapping (e.g. "DirectX 12", "Vulkan 1.4")
-        for (const td of document.querySelectorAll('article td')) {
-            if (td.textContent.trim().length <= 20) {
-                td.style.whiteSpace = 'nowrap';
-            }
         }
 
         // Hide inherited type info sections (inheritance, implements, inheritedMembers, derivedClasses)
@@ -123,6 +281,16 @@
             }
             if (!hasVisibleMember) {
                 h2.style.display = 'none';
+            }
+        }
+
+        if (!initializeAffix()) {
+            const affixHost = document.querySelector('main > .affix');
+            if (affixHost) {
+                const affixObserver = new MutationObserver(() => {
+                    if (initializeAffix()) affixObserver.disconnect();
+                });
+                affixObserver.observe(affixHost, { childList: true, subtree: true });
             }
         }
 

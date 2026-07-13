@@ -12,13 +12,13 @@ _layout: landing
         <div class="landing-shell render-hero-inner">
             <div class="hero-copy">
                 <h1>One rendering model.<span>Every modern GPU.</span></h1>
-                <p class="hero-lede">A precise, low-level .NET interface for graphics, compute, ray queries, and mesh shading across DirectX 12, Metal 4, and Vulkan 1.4.</p>
+                <p class="hero-lede">A precise, low-level .NET interface for graphics, compute, ray tracing, and mesh shading across DirectX 12, Metal 4, and Vulkan 1.4.</p>
                 <div class="hero-actions">
                     <a class="landing-button landing-button-primary" href="https://www.nuget.org/packages/Zenith.NET">
-                        Install Zenith.NET <i class="bi bi-arrow-down" aria-hidden="true"></i>
+                        Install Zenith.NET
                     </a>
                     <a class="landing-button landing-button-secondary" href="docs/index.md">
-                        Read the docs <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                        Read the docs
                     </a>
                 </div>
                 <div class="backend-support" aria-label="Supported graphics backends">
@@ -75,9 +75,10 @@ _layout: landing
         <div class="landing-shell architecture-grid">
             <div class="architecture-code" aria-label="Zenith.NET architecture example">
                 <div class="architecture-code-bar">
-                    <span class="window-dot window-dot-red"></span><span class="window-dot window-dot-yellow"></span><span class="window-dot window-dot-green"></span>
                     <span class="architecture-code-title">RenderFrame.cs</span>
-                    <span class="architecture-code-brand">Zenith.NET RHI</span>
+                    <button type="button" class="architecture-code-copy" aria-label="Copy code example" title="Copy code example">
+                        <i class="bi bi-copy" aria-hidden="true"></i>
+                    </button>
                 </div>
                 <pre><code class="language-csharp nohighlight" data-highlighted="yes"><span class="code-keyword">using</span> <span class="code-namespace">Zenith.NET</span>;
 <span class="code-keyword">using</span> <span class="code-namespace">Zenith.NET.Vulkan</span>;
@@ -118,7 +119,7 @@ commands.<span class="code-method">Submit</span>().<span class="code-method">Wai
             </header>
             <div class="install-command">
                 <code><span>$</span> dotnet add package <strong>Zenith.NET.Vulkan</strong></code>
-                <button type="button" class="install-copy" aria-label="Copy install command" data-copy-command="dotnet add package Zenith.NET.Vulkan"><i class="bi bi-copy" aria-hidden="true"></i><span>Copy</span></button>
+                <button type="button" class="install-copy" aria-label="Copy install command" title="Copy install command" data-copy-command="dotnet add package Zenith.NET.Vulkan"><i class="bi bi-copy" aria-hidden="true"></i></button>
             </div>
             <p class="install-note">Continue with <a href="tutorials/getting-started/prerequisites.md">Getting started</a> or browse the <a href="api/index.md">API reference</a>.</p>
         </div>
@@ -134,19 +135,19 @@ commands.<span class="code-method">Submit</span>().<span class="code-method">Wai
                     <span class="resource-icon"><i class="bi bi-book" aria-hidden="true"></i></span>
                     <strong class="resource-title">Documentation</strong>
                     <p>Concepts, backend guidance, workload details, and practical integration notes.</p>
-                    <strong>Browse docs <i class="bi bi-arrow-up-right" aria-hidden="true"></i></strong>
+                    <strong>Browse docs</strong>
                 </a>
                 <a class="resource-card resource-card-nuget" href="https://www.nuget.org/packages/Zenith.NET">
                     <span class="resource-icon"><i class="bi bi-download" aria-hidden="true"></i></span>
                     <strong class="resource-title">NuGet packages</strong>
                     <p>Install the core API and native backend packages directly into your .NET project.</p>
-                    <strong>View packages <i class="bi bi-arrow-right" aria-hidden="true"></i></strong>
+                    <strong>View packages</strong>
                 </a>
                 <a class="resource-card resource-card-community" href="https://github.com/qian-o/Zenith.NET">
                     <span class="resource-icon"><i class="bi bi-chat-square" aria-hidden="true"></i></span>
                     <strong class="resource-title">Open source</strong>
                     <p>Report issues, inspect backend implementations, and contribute on GitHub.</p>
-                    <strong>Visit GitHub <i class="bi bi-arrow-up-right" aria-hidden="true"></i></strong>
+                    <strong>Visit GitHub</strong>
                 </a>
             </div>
         </div>
@@ -154,7 +155,7 @@ commands.<span class="code-method">Submit</span>().<span class="code-method">Wai
     <footer class="landing-footer">
         <div class="landing-shell landing-footer-grid">
             <div class="landing-footer-brand">
-                <div><img src="images/Zenith.NET.svg" alt=""><strong>Zenith<span>.NET</span></strong></div>
+                <img class="landing-footer-logo" src="images/Zenith.NET-Logo.svg" alt="Zenith.NET">
                 <p>A high-performance rendering hardware interface for modern .NET applications.</p>
                 <a class="landing-footer-github" href="https://github.com/qian-o/Zenith.NET" aria-label="Zenith.NET on GitHub"><i class="bi bi-github" aria-hidden="true"></i></a>
             </div>

@@ -15,6 +15,6 @@
             <path d="m32.5 34.5 10 6 10-6m-10 6v13" />
         </g>
     </g>
-    <text x="79" y="42" fill="#403451" font-family="Aptos Display, Segoe UI, sans-serif" font-size="29" font-weight="750">Zenith</text>
+    <text x="79" y="42" fill="#512BD4" font-family="Aptos Display, Segoe UI, sans-serif" font-size="29" font-weight="750">Zenith</text>
     <text x="166" y="42" fill="#512BD4" font-family="Aptos Display, Segoe UI, sans-serif" font-size="29" font-weight="750">.NET</text>
 </svg>
