@@ -1,7 +1,18 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
-    <title id="title">Zenith.NET</title>
-    <rect x="2" y="2" width="60" height="60" rx="14" fill="#512BD4" />
-    <g transform="translate(9.6 9.6) scale(0.7)" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="mark-title" shape-rendering="geometricPrecision">
+    <title id="mark-title">Zenith.NET</title>
+    <defs>
+        <linearGradient id="mark-surface" x1="9" y1="5" x2="57" y2="61" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#8A63FF" />
+            <stop offset="0.5" stop-color="#6540DF" />
+            <stop offset="1" stop-color="#2B76D9" />
+        </linearGradient>
+        <linearGradient id="mark-lines" x1="20" y1="12" x2="47" y2="54" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#FFFFFF" />
+            <stop offset="1" stop-color="#DDF7FF" />
+        </linearGradient>
+    </defs>
+    <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#mark-surface)" />
+    <g transform="translate(9.6 9.6) scale(0.7)" fill="none" stroke="url(#mark-lines)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
         <g>
             <path d="M32 9.5 42 15.5v13L32 34.5 22 28.5v-13L32 9.5Z" />
             <path d="m22 15.5 10 6 10-6M32 21.5v13" />

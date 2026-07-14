@@ -7,6 +7,185 @@
         }
     ],
     start: () => {
+        const rootPath = document.querySelector('meta[name="docfx:rel"]')?.content || '';
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+        document.body.toggleAttribute('data-zenith-api', /\/api(?:\/|$)/i.test(window.location.pathname));
+
+        const initializeReadingMotion = () => {
+            const header = document.querySelector('body > header');
+            if (!header) return;
+
+            const progress = document.createElement('div');
+            const progressValue = document.createElement('span');
+            progress.className = 'zenith-reading-progress';
+            progress.setAttribute('aria-hidden', 'true');
+            progress.append(progressValue);
+            header.append(progress);
+
+            const hasScrollTimeline = window.CSS?.supports?.('animation-timeline: scroll()') === true;
+
+            const updateScrollState = () => {
+                const scrollRange = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+                const value = Math.min(1, Math.max(0, window.scrollY / scrollRange));
+                if (!hasScrollTimeline) progressValue.style.transform = `scaleX(${value.toFixed(4)})`;
+                header.classList.toggle('is-scrolled', window.scrollY > 8);
+            };
+
+            window.addEventListener('scroll', updateScrollState, { passive: true });
+            window.addEventListener('resize', updateScrollState, { passive: true });
+            updateScrollState();
+        };
+
+        const initializeOverlayScrollbars = () => {
+            const initialized = new WeakSet();
+            const hideTimers = new WeakMap();
+            const updates = new WeakMap();
+
+            const attach = (scroller, host) => {
+                if (!scroller || !host) return;
+                if (initialized.has(scroller)) {
+                    updates.get(scroller)?.();
+                    return;
+                }
+                initialized.add(scroller);
+                host.classList.add('zenith-scroll-host');
+
+                const track = document.createElement('span');
+                const thumb = document.createElement('span');
+                track.className = 'zenith-overlay-scrollbar';
+                track.setAttribute('role', 'scrollbar');
+                track.setAttribute('aria-label', host.id === 'toc'
+                    ? 'Table of contents scrollbar'
+                    : 'In this article scrollbar');
+                track.setAttribute('aria-orientation', 'vertical');
+                track.setAttribute('aria-valuemin', '0');
+                if (!scroller.id) scroller.id = `${host.id || 'zenith'}-scroll-region`;
+                track.setAttribute('aria-controls', scroller.id);
+                track.append(thumb);
+                host.append(track);
+
+                const update = () => {
+                    const hostRect = host.getBoundingClientRect();
+                    const scrollerRect = scroller.getBoundingClientRect();
+                    const trackStyle = window.getComputedStyle(track);
+                    const scrollbarSize = Number.parseFloat(
+                        trackStyle.getPropertyValue('--zenith-scrollbar-size')
+                    ) || track.offsetWidth;
+                    const edgeGap = Number.parseFloat(
+                        trackStyle.getPropertyValue('--zenith-scrollbar-edge-gap')
+                    ) || (scrollbarSize / 2);
+                    const minThumbHeight = Number.parseFloat(
+                        trackStyle.getPropertyValue('--zenith-scrollbar-min-thumb')
+                    ) || (scrollbarSize * 4.5);
+                    const trackHeight = Math.max(0, scroller.clientHeight - (edgeGap * 2));
+                    const scrollRange = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+                    const thumbHeight = scrollRange
+                        ? Math.max(minThumbHeight, trackHeight * (scroller.clientHeight / scroller.scrollHeight))
+                        : trackHeight;
+                    const thumbRange = Math.max(0, trackHeight - thumbHeight);
+                    const thumbOffset = scrollRange ? (scroller.scrollTop / scrollRange) * thumbRange : 0;
+
+                    track.style.top = `${scrollerRect.top - hostRect.top + edgeGap}px`;
+                    track.style.height = `${trackHeight}px`;
+                    track.tabIndex = scrollRange > 1 ? 0 : -1;
+                    track.setAttribute('aria-valuemax', `${Math.round(scrollRange)}`);
+                    track.setAttribute('aria-valuenow', `${Math.round(scroller.scrollTop)}`);
+                    thumb.style.height = `${thumbHeight}px`;
+                    thumb.style.transform = `translateY(${thumbOffset}px)`;
+                    host.classList.toggle('has-scroll-range', scrollRange > 1);
+                };
+                updates.set(scroller, update);
+
+                const showWhileScrolling = () => {
+                    host.classList.add('is-scrolling');
+                    window.clearTimeout(hideTimers.get(host));
+                    hideTimers.set(host, window.setTimeout(() => {
+                        host.classList.remove('is-scrolling');
+                    }, 700));
+                    update();
+                };
+
+                scroller.addEventListener('scroll', showWhileScrolling, { passive: true });
+                window.addEventListener('resize', update, { passive: true });
+                const resizeObserver = typeof ResizeObserver === 'undefined'
+                    ? null
+                    : new ResizeObserver(update);
+                resizeObserver?.observe(scroller);
+                resizeObserver?.observe(host);
+                new MutationObserver(update).observe(scroller, { childList: true, subtree: true });
+
+                track.addEventListener('keydown', event => {
+                    const lineStep = scroller.clientHeight / 10;
+                    const pageStep = scroller.clientHeight;
+                    const scrollRange = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+                    const target = {
+                        ArrowUp: scroller.scrollTop - lineStep,
+                        ArrowDown: scroller.scrollTop + lineStep,
+                        PageUp: scroller.scrollTop - pageStep,
+                        PageDown: scroller.scrollTop + pageStep,
+                        Home: 0,
+                        End: scrollRange
+                    }[event.key];
+                    if (target === undefined) return;
+
+                    event.preventDefault();
+                    scroller.scrollTop = Math.min(scrollRange, Math.max(0, target));
+                });
+
+                track.addEventListener('pointerdown', event => {
+                    if (!host.classList.contains('has-scroll-range')) return;
+                    event.preventDefault();
+
+                    const trackRect = track.getBoundingClientRect();
+                    const thumbRect = thumb.getBoundingClientRect();
+                    const startY = event.clientY;
+                    let startScrollTop = scroller.scrollTop;
+                    const thumbRange = Math.max(1, trackRect.height - thumbRect.height);
+                    const scrollRange = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+
+                    if (event.target !== thumb) {
+                        const targetOffset = Math.min(
+                            thumbRange,
+                            Math.max(0, event.clientY - trackRect.top - (thumbRect.height / 2))
+                        );
+                        scroller.scrollTop = (targetOffset / thumbRange) * scrollRange;
+                        startScrollTop = scroller.scrollTop;
+                    }
+
+                    track.classList.add('is-dragging');
+                    track.setPointerCapture(event.pointerId);
+                    const move = moveEvent => {
+                        scroller.scrollTop = startScrollTop
+                            + ((moveEvent.clientY - startY) / thumbRange) * scrollRange;
+                    };
+                    const stop = () => {
+                        track.classList.remove('is-dragging');
+                        track.removeEventListener('pointermove', move);
+                        track.removeEventListener('pointerup', stop);
+                        track.removeEventListener('pointercancel', stop);
+                    };
+                    track.addEventListener('pointermove', move);
+                    track.addEventListener('pointerup', stop);
+                    track.addEventListener('pointercancel', stop);
+                });
+                update();
+            };
+
+            const initialize = () => {
+                const tocScroller = document.querySelector('#toc > .overflow-y-auto');
+                attach(tocScroller, document.querySelector('#toc'));
+
+                const affix = document.querySelector('#affix');
+                attach(affix, affix?.parentElement);
+            };
+
+            const observer = new MutationObserver(initialize);
+            for (const host of document.querySelectorAll('#toc, main > .affix')) {
+                observer.observe(host, { childList: true, subtree: true });
+            }
+            initialize();
+        };
+
         const copyText = async (text) => {
             try {
                 await navigator.clipboard.writeText(text);
@@ -67,7 +246,6 @@
 
         const navbar = document.getElementById('navbar');
         if (navbar && !navbar.querySelector('.nav-cta')) {
-            const rootPath = document.querySelector('meta[name="docfx:rel"]')?.content || '';
             const getStarted = document.createElement('a');
             getStarted.className = 'nav-cta';
             getStarted.href = `${rootPath}tutorials/getting-started/prerequisites.html`;
@@ -150,6 +328,117 @@
             frame.append(target);
         }
 
+        const initializeTableScrollCues = () => {
+            const frames = [...document.querySelectorAll('.doc-table-frame')];
+            if (!frames.length) return;
+
+            const observedScrollers = new WeakSet();
+            const updates = new WeakMap();
+            const resizeObserver = typeof ResizeObserver === 'undefined'
+                ? null
+                : new ResizeObserver(entries => {
+                    for (const entry of entries) updates.get(entry.target)?.();
+                });
+
+            const initializeFrame = frame => {
+                const scroller = frame.querySelector('.table-responsive');
+                if (!scroller || observedScrollers.has(scroller)) return false;
+                observedScrollers.add(scroller);
+
+                const update = () => {
+                    const maxScroll = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+                    frame.classList.toggle('is-scrollable', maxScroll > 1);
+                    frame.classList.toggle('is-scroll-end', scroller.scrollLeft >= maxScroll - 1);
+                };
+
+                scroller.addEventListener('scroll', update, { passive: true });
+                if (!resizeObserver) window.addEventListener('resize', update, { passive: true });
+                updates.set(scroller, update);
+                resizeObserver?.observe(scroller);
+
+                const table = scroller.querySelector('table');
+                if (table) {
+                    updates.set(table, update);
+                    resizeObserver?.observe(table);
+                }
+                update();
+                return true;
+            };
+
+            const pendingFrames = new Set(frames);
+            const initializePendingFrames = () => {
+                for (const frame of pendingFrames) {
+                    if (initializeFrame(frame)) pendingFrames.delete(frame);
+                }
+                if (!pendingFrames.size) mutationObserver.disconnect();
+            };
+            const mutationObserver = new MutationObserver(initializePendingFrames);
+
+            for (const frame of pendingFrames) {
+                mutationObserver.observe(frame, { childList: true, subtree: true });
+            }
+            initializePendingFrames();
+        };
+
+        const initializeRevealMotion = () => {
+            const selectors = document.body.matches('[data-layout="landing"]')
+                ? [
+                    '.feature-card',
+                    '.architecture-code',
+                    '.architecture-copy',
+                    '.install-heading',
+                    '.install-command',
+                    '.resources-heading',
+                    '.resource-card',
+                    '.landing-footer-grid > *'
+                ]
+                : [
+                    'article h1:first-of-type',
+                    'article h2',
+                    'article .alert',
+                    'article .doc-code-frame',
+                    'article .doc-table-frame',
+                    'article .tabGroup'
+                ];
+            const targets = [...document.querySelectorAll(selectors.join(','))]
+                .filter(element => element.getClientRects().length);
+            if (!targets.length || reducedMotion.matches) {
+                targets.forEach(element => element.classList.add('is-visible'));
+                return;
+            }
+
+            for (const [index, target] of targets.entries()) {
+                target.classList.add('zenith-reveal');
+                target.style.setProperty('--zenith-reveal-delay', `${Math.min(index % 4, 3) * 45}ms`);
+            }
+            document.documentElement.classList.add('zenith-motion-ready');
+
+            const pending = new Set(targets);
+            const revealVisibleTargets = () => {
+                const revealBoundary = window.innerHeight * 0.92;
+                for (const target of pending) {
+                    const rect = target.getBoundingClientRect();
+                    if (rect.top >= revealBoundary || rect.bottom <= 0) continue;
+
+                    target.classList.add('is-visible');
+                    pending.delete(target);
+                }
+
+                if (!pending.size) {
+                    window.removeEventListener('scroll', revealVisibleTargets);
+                    window.removeEventListener('resize', revealVisibleTargets);
+                }
+            };
+
+            window.addEventListener('scroll', revealVisibleTargets, { passive: true });
+            window.addEventListener('resize', revealVisibleTargets, { passive: true });
+            revealVisibleTargets();
+        };
+
+        initializeReadingMotion();
+        initializeOverlayScrollbars();
+        initializeTableScrollCues();
+
         const initializeAffix = () => {
             const links = [...document.querySelectorAll('#affix a[href^="#"]')];
             const targetGroups = new Map();
@@ -185,32 +474,33 @@
                 });
             if (!affixLinks.length) return false;
 
-            let affixFrame;
             const updateAffix = () => {
-                if (affixFrame) return;
-                affixFrame = window.requestAnimationFrame(() => {
-                    const scrollPaddingTop = Number.parseFloat(
-                        window.getComputedStyle(document.documentElement).scrollPaddingTop
+                const scrollPaddingTop = Number.parseFloat(
+                    window.getComputedStyle(document.documentElement).scrollPaddingTop
+                ) || 0;
+                let current = affixLinks[0];
+                let start = 0;
+                let end = affixLinks.length - 1;
+
+                while (start <= end) {
+                    const middle = Math.floor((start + end) / 2);
+                    const item = affixLinks[middle];
+                    const scrollMarginTop = Number.parseFloat(
+                        window.getComputedStyle(item.target).scrollMarginTop
                     ) || 0;
-                    let current = affixLinks[0];
+                    const targetOffset = scrollPaddingTop + scrollMarginTop + 1;
 
-                    for (const item of affixLinks) {
-                        const scrollMarginTop = Number.parseFloat(
-                            window.getComputedStyle(item.target).scrollMarginTop
-                        ) || 0;
-                        const targetOffset = scrollPaddingTop + scrollMarginTop + 1;
-                        if (item.target.getBoundingClientRect().top <= targetOffset) {
-                            current = item;
-                        } else {
-                            break;
-                        }
+                    if (item.target.getBoundingClientRect().top <= targetOffset) {
+                        current = item;
+                        start = middle + 1;
+                    } else {
+                        end = middle - 1;
                     }
+                }
 
-                    for (const item of affixLinks) {
-                        item.link.classList.toggle('is-active', item === current);
-                    }
-                    affixFrame = undefined;
-                });
+                for (const item of affixLinks) {
+                    item.link.classList.toggle('is-active', item === current);
+                }
             };
 
             window.addEventListener('scroll', updateAffix, { passive: true });
@@ -291,6 +581,8 @@
                 affixObserver.observe(affixHost, { childList: true, subtree: true });
             }
         }
+
+        initializeRevealMotion();
 
         // Search results: navigate in same tab with back button support
         document.addEventListener('click', (e) => {

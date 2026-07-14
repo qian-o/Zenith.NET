@@ -1,7 +1,35 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 234 64" role="img" aria-labelledby="title">
-    <title id="title">Zenith.NET</title>
-    <rect x="2" y="2" width="60" height="60" rx="14" fill="#512BD4" />
-    <g transform="translate(9.6 9.6) scale(0.7)" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 234 64" role="img" aria-labelledby="logo-title" shape-rendering="geometricPrecision">
+    <title id="logo-title">Zenith.NET</title>
+    <defs>
+        <linearGradient id="logo-surface" x1="9" y1="5" x2="57" y2="61" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#8A63FF" />
+            <stop offset="0.5" stop-color="#6540DF" />
+            <stop offset="1" stop-color="#2B76D9" />
+        </linearGradient>
+        <linearGradient id="logo-lines" x1="20" y1="12" x2="47" y2="54" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#FFFFFF" />
+            <stop offset="1" stop-color="#DDF7FF" />
+        </linearGradient>
+        <linearGradient id="wordmark-fill" x1="78" y1="19" x2="233" y2="45" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#7659DD" />
+            <stop offset="0.55" stop-color="#8A50D5" />
+            <stop offset="1" stop-color="#C735A5" />
+        </linearGradient>
+        <g id="wordmark-shape">
+            <path d="M78 19h15v4L83.8 41H93v4H78v-4l9.2-18H78Z" />
+            <path d="M96 19h13v4h-9v7h8v4h-8v7h9v4H96Z" />
+            <path d="M113 19h4l7 16.2V19h4v26h-4l-7-16.2V45h-4Z" />
+            <path d="M132 19h4v26h-4Z" />
+            <path d="M140 19h14v4h-5v22h-4V23h-5Z" />
+            <path d="M158 19h4v10h7V19h4v26h-4V33h-7v12h-4Z" />
+            <circle cx="178.5" cy="42.5" r="2.5" />
+            <path d="M184 19h4l7 16.2V19h4v26h-4l-7-16.2V45h-4Z" />
+            <path d="M203 19h13v4h-9v7h8v4h-8v7h9v4h-13Z" />
+            <path d="M219 19h14v4h-5v22h-4V23h-5Z" />
+        </g>
+    </defs>
+    <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#logo-surface)" />
+    <g transform="translate(9.6 9.6) scale(0.7)" fill="none" stroke="url(#logo-lines)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
         <g>
             <path d="M32 9.5 42 15.5v13L32 34.5 22 28.5v-13L32 9.5Z" />
             <path d="m22 15.5 10 6 10-6M32 21.5v13" />
@@ -15,6 +43,5 @@
             <path d="m32.5 34.5 10 6 10-6m-10 6v13" />
         </g>
     </g>
-    <text x="79" y="42" fill="#512BD4" font-family="Aptos Display, Segoe UI, sans-serif" font-size="29" font-weight="750">Zenith</text>
-    <text x="166" y="42" fill="#512BD4" font-family="Aptos Display, Segoe UI, sans-serif" font-size="29" font-weight="750">.NET</text>
+    <use href="#wordmark-shape" fill="url(#wordmark-fill)" aria-hidden="true" />
 </svg>
