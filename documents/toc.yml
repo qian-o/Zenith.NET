@@ -1,7 +1,4 @@
-﻿- name: Overview
-  href: index.md
-
-- name: Docs
+﻿- name: Docs
   href: docs/
   homepage: docs/index.md
 

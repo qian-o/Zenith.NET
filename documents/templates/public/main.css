@@ -1729,9 +1729,14 @@ main > .affix > .zenith-overlay-scrollbar {
         transition: color 160ms ease, background-color 160ms ease, box-shadow 180ms ease, transform 180ms var(--zenith-ease);
     }
 
+        #affix a.link-body-emphasis {
+            font-weight: 600;
+        }
+
         #affix a.link-secondary {
             padding-left: 18px;
             font-size: 11px;
+            font-weight: 400;
         }
 
         #affix a wbr {
@@ -1749,8 +1754,12 @@ body[data-yaml-mime="ManagedReference"] #affix {
 #affix a.is-active {
     color: var(--zenith-purple-700);
     background: rgba(113, 56, 232, 0.1);
-    font-weight: 700;
     box-shadow: inset 2px 0 0 var(--zenith-purple-700);
+}
+
+#affix a.active,
+#affix a.is-active {
+    font-weight: 700;
 }
 
 [data-bs-theme="dark"] .toc li > a:hover,
