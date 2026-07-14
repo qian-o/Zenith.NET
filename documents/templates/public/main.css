@@ -111,13 +111,18 @@
     --bs-body-font-family: "Aptos", "Segoe UI Variable Text", sans-serif;
     --bs-body-color: var(--zenith-text);
     --bs-body-bg: var(--zenith-surface);
-    --bs-link-color: var(--zenith-purple-700);
-    --bs-link-hover-color: var(--zenith-magenta-600);
+    --bs-link-color: var(--zenith-link);
+    --bs-link-color-rgb: 81, 43, 212;
+    --bs-link-hover-color: var(--zenith-link-hover);
+    --bs-link-hover-color-rgb: 118, 82, 232;
     --bs-border-color: var(--zenith-border);
     --bs-border-radius: var(--zenith-radius-small);
 }
 
 [data-bs-theme="dark"] {
+    --zenith-purple-700: #b9a5ff;
+    --zenith-purple-600: #c8b8ff;
+    --zenith-magenta-600: #d1c4ff;
     --zenith-text: #f5f1fa;
     --zenith-text-soft: #b9b1c4;
     --zenith-text-faint: #81798d;
@@ -150,6 +155,8 @@
     --zenith-table-text: #c0b8ca;
     --zenith-table-heading: #f1edf6;
     --zenith-header-surface: rgba(16, 13, 22, 0.95);
+    --zenith-link: #b9a5ff;
+    --zenith-link-hover: #d1c4ff;
     --zenith-nav-active: #f7f3ff;
     --zenith-search-surface: #191421;
     --zenith-search-border: #312940;
@@ -165,6 +172,10 @@
     --zenith-syntax-number: #b8d7a3;
     --bs-body-color: var(--zenith-text);
     --bs-body-bg: var(--zenith-surface);
+    --bs-link-color: var(--zenith-link);
+    --bs-link-color-rgb: 185, 165, 255;
+    --bs-link-hover-color: var(--zenith-link-hover);
+    --bs-link-hover-color-rgb: 209, 196, 255;
     --bs-border-color: var(--zenith-border);
 }
 
@@ -2415,7 +2426,7 @@ article li::marker,
 .edit-link:hover,
 body > footer a,
 #search-results .item-title {
-    color: #512bd4;
+    color: var(--zenith-purple-700);
 }
 
 .toc .nav > li > a:hover {
@@ -2716,7 +2727,7 @@ body[data-layout="landing"] > footer {
 .landing-page .section-kicker {
     display: block;
     margin-bottom: 14px;
-    color: #512bd4;
+    color: var(--zenith-purple-700);
     font-family: "Cascadia Code", "Cascadia Mono", Consolas, monospace;
     font-size: 10px;
     font-weight: 800;
@@ -3021,7 +3032,7 @@ body[data-layout="landing"] > footer {
 
     .architecture-points i {
         margin-top: 2px;
-        color: #512bd4;
+        color: var(--zenith-purple-700);
         font-size: 16px;
     }
 
@@ -3143,7 +3154,7 @@ body[data-layout="landing"] > footer {
 }
 
     .install-note a {
-        color: #512bd4;
+        color: var(--zenith-purple-700);
         font-weight: 700;
     }
 

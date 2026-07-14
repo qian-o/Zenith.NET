@@ -245,6 +245,11 @@
         };
 
         const navbar = document.getElementById('navbar');
+        const brand = document.querySelector('.navbar-brand');
+        if (brand && !brand.hasAttribute('aria-label')) {
+            brand.setAttribute('aria-label', 'Zenith.NET home');
+        }
+
         if (navbar && !navbar.querySelector('.nav-cta')) {
             const getStarted = document.createElement('a');
             getStarted.className = 'nav-cta';
@@ -508,12 +513,20 @@
             return true;
         };
 
-        const currentPath = window.location.pathname.replace(/\/index\.html$/, '/');
+        const normalizePath = path => path.replace(/\/index\.html$/, '/');
+        const siteRootPath = normalizePath(new URL(rootPath || './', window.location.href).pathname);
+        const currentPath = normalizePath(window.location.pathname);
         for (const link of document.querySelectorAll('#navbar .nav-link')) {
-            const linkPath = new URL(link.href, window.location.href).pathname.replace(/\/index\.html$/, '/');
-            const isHome = linkPath === '/' && currentPath === '/';
-            const isSection = linkPath !== '/' && currentPath.startsWith(linkPath);
-            link.classList.toggle('active', isHome || isSection);
+            const linkPath = normalizePath(new URL(link.href, window.location.href).pathname);
+            const isHome = linkPath === siteRootPath && currentPath === siteRootPath;
+            const isSection = linkPath !== siteRootPath && currentPath.startsWith(linkPath);
+            const isActive = isHome || isSection;
+            link.classList.toggle('active', isActive);
+            if (isActive) {
+                link.setAttribute('aria-current', 'page');
+            } else {
+                link.removeAttribute('aria-current');
+            }
         }
 
         // Hide inherited type info sections (inheritance, implements, inheritedMembers, derivedClasses)
@@ -521,10 +534,10 @@
             dl.style.display = 'none';
         }
 
-        // Hide protected and override members from API pages
+        // Hide protected members from API pages
         for (const code of document.querySelectorAll('.codewrapper pre code')) {
             const text = code.textContent.trim();
-            if (!/^protected\s/.test(text) && !/\boverride\b/.test(text)) continue;
+            if (!/^(?:private\s+)?protected\b/.test(text)) continue;
 
             const wrapper = code.closest('.codewrapper');
             if (!wrapper) continue;
