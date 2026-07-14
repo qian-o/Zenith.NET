@@ -98,7 +98,8 @@
     --zenith-content-width: 1200px;
     --zenith-page-gutter: clamp(16px, 1.25vw, 40px);
     --zenith-column-gap: clamp(20px, 1.5vw, 28px);
-    --zenith-sidebar-width: 14%;
+    --zenith-sidebar-width: clamp(240px, 18vw, 300px);
+    --zenith-affix-width: 14%;
     --zenith-api-sidebar-width: clamp(280px, 21vw, 340px);
     --zenith-scrollbar-size: 8px;
     --zenith-scrollbar-inset: 2px;
@@ -762,7 +763,7 @@ body[data-layout="landing"] {
 
 body:not([data-layout="landing"]) > main.container-xxl {
     display: grid;
-    grid-template-columns: var(--zenith-sidebar-width) minmax(0, 1fr) var(--zenith-sidebar-width);
+    grid-template-columns: var(--zenith-sidebar-width) minmax(0, 1fr) var(--zenith-affix-width);
     width: 100%;
     max-width: none !important;
     min-height: calc(100vh - var(--zenith-header-height));
@@ -1581,7 +1582,7 @@ main > .affix > .zenith-overlay-scrollbar {
     list-style: none;
 }
 
-#toc > .overflow-y-auto > ul > li > a {
+.toc li > a {
     white-space: nowrap;
 }
 
@@ -1782,7 +1783,7 @@ body[data-search] > main.container-xxl {
 
 body[data-search] #search-results {
     display: grid;
-    grid-template-columns: var(--zenith-sidebar-width) minmax(0, 1fr) var(--zenith-sidebar-width);
+    grid-template-columns: var(--zenith-sidebar-width) minmax(0, 1fr) var(--zenith-affix-width);
     column-gap: var(--zenith-column-gap);
 }
 
@@ -1927,7 +1928,7 @@ body > footer {
     }
 
     body:not([data-layout="landing"]) > main.container-xxl {
-        grid-template-columns: minmax(170px, 200px) minmax(0, 1fr);
+        grid-template-columns: var(--zenith-sidebar-width) minmax(0, 1fr);
         column-gap: 20px;
     }
 
@@ -1936,7 +1937,7 @@ body > footer {
     }
 
     body[data-search] #search-results {
-        grid-template-columns: minmax(170px, 200px) minmax(0, 1fr);
+        grid-template-columns: var(--zenith-sidebar-width) minmax(0, 1fr);
         column-gap: 20px;
     }
 
@@ -1995,7 +1996,7 @@ body > footer {
     }
 
     body:not([data-layout="landing"]) > main.container-xxl {
-        grid-template-columns: minmax(160px, 190px) minmax(0, 1fr);
+        grid-template-columns: var(--zenith-sidebar-width) minmax(0, 1fr);
         padding-right: 14px !important;
         padding-left: 14px !important;
         column-gap: 18px;
@@ -2006,7 +2007,7 @@ body > footer {
     }
 
     body[data-search] #search-results {
-        grid-template-columns: minmax(160px, 190px) minmax(0, 1fr);
+        grid-template-columns: var(--zenith-sidebar-width) minmax(0, 1fr);
         column-gap: 18px;
     }
 
@@ -2764,6 +2765,10 @@ body[data-layout="landing"] > footer {
     .landing-page .install-heading h2 > .anchorjs-link {
         display: none;
     }
+
+.landing-page h2::after {
+    content: none;
+}
 
 .landing-page .section-heading p,
 .landing-page .install-heading p {
