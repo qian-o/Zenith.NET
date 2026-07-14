@@ -1,75 +1,51 @@
 ﻿# Tutorials
 
-Welcome to the Zenith.NET tutorials! These step-by-step guides will help you learn how to use Zenith.NET for GPU programming.
+These tutorials build one desktop renderer step by step with the current Zenith.NET RHI. The code uses explicit command queues, texture layouts, timeline submission, bindless resource handles, and Slang shaders throughout.
+
+Start with the shared application shell, then follow the subjects in order. Each page contains the complete renderer and shader additions for that stage.
 
 ## Getting Started
 
-New to Zenith.NET? Start here to set up your environment and render your first graphics.
+| Tutorial | You Will Build |
+|----------|----------------|
+| [Prerequisites](getting-started/prerequisites.md) | A cross-platform window, Graphics API selection, surface, swap chain, synchronous frame loop, and renderer contract |
+| [Hello Triangle](getting-started/hello-triangle.md) | A vertex buffer, Slang vertex/fragment shaders, graphics pipeline, render pass, and direct draw |
+| [Textured Quad](getting-started/textured-quad.md) | Indexed geometry with an ImageSharp texture, sampler, bindless handles, and constant-buffer binding |
+| [Spinning Cube](getting-started/spinning-cube.md) | A depth-tested 3D pipeline with model, view, and projection matrices updated every frame |
 
-| Tutorial | Description |
-|----------|-------------|
-| [Prerequisites](getting-started/prerequisites.md) | Set up your development environment with `App` framework and `IRenderer` interface |
-| [Hello Triangle](getting-started/hello-triangle.md) | Create vertex buffers, compile Slang shaders, and build your first graphics pipeline |
-| [Textured Quad](getting-started/textured-quad.md) | Load textures, create samplers, and bind resources with `ResourceTable` |
-| [Spinning Cube](getting-started/spinning-cube.md) | Use constant buffers for MVP matrices and render 3D geometry with depth testing |
+## Compute and GPU-Driven Work
 
-## Intermediate
+| Tutorial | You Will Build |
+|----------|----------------|
+| [Compute Shader](intermediate/compute-shader.md) | A storage-texture image effect with dispatch sizing and explicit texture transitions |
+| [Indirect Drawing](intermediate/indirect-drawing.md) | Compute-generated draw arguments consumed by `DrawIndexedIndirect` after a memory barrier |
 
-Build on the basics with GPU compute and advanced rendering techniques.
+## Optional GPU Features
 
-| Tutorial | Description |
-|----------|-------------|
-| [Compute Shader](intermediate/compute-shader.md) | Create compute pipelines for GPU image processing (grayscale conversion) |
-| [Indirect Drawing](intermediate/indirect-drawing.md) | GPU-driven rendering with `DrawIndexedIndirect` for multi-instance drawing |
+| Tutorial | You Will Build | Capability |
+|----------|----------------|------------|
+| [Ray Tracing](advanced/ray-tracing.md) | Triangle BLAS, scene TLAS, bindless acceleration-structure access, and inline `RayQuery` | `RayTracingSupported` |
+| [Mesh Shading](advanced/mesh-shading.md) | A task/mesh pipeline that emits geometry without vertex or index input | `MeshShadingSupported` |
 
-## Advanced
+## Shared Rules
 
-Explore cutting-edge GPU features for modern rendering (requires hardware support).
+Every tutorial follows the same RHI rules:
 
-| Tutorial | Description | Requirement |
-|----------|-------------|-------------|
-| [Ray Tracing](advanced/ray-tracing.md) | Build acceleration structures (BLAS/TLAS), use `RayQuery` for ray tracing with soft shadows, reflections, and ACES tonemapping | `RayTracingSupported` |
-| [Mesh Shading](advanced/mesh-shading.md) | Render 1,000 sphere instances with amplification shader frustum culling and mesh shading pipeline | `MeshShadingSupported` |
+1. Obtain command buffers from `GraphicsQueue`, `ComputeQueue`, or `TransferQueue`.
+2. Transition textures when their access role changes.
+3. Insert `Barrier` when later work depends on earlier writes without a texture layout change.
+4. Pass bindless `ResourceHandle` values through explicitly laid-out constant data.
+5. Submit recorded commands and use `TimelineValue` for GPU or CPU dependencies.
+6. Transition the swap-chain drawable to `Present` before synchronous presentation.
+7. Dispose resources deterministically after their final submission completes.
 
-## Tutorial Structure
-
-Each tutorial follows a consistent pattern:
-
-1. **Overview** - What you'll build and the key concepts covered
-2. **Key Concepts** (advanced tutorials) - In-depth explanation of new API features
-3. **Renderer Class** - Complete, runnable implementation code
-4. **Running the Tutorial** - How to switch renderers and run the example
-5. **Result** - Screenshot of the expected output
-6. **Code Breakdown** - Step-by-step explanation of important code sections
-
-All tutorials share the same `App` framework. Run `dotnet run` and select a tutorial from the interactive menu in `Program.cs`.
-
-## Learning Path
-
-| Stage | You Will Learn |
-|-------|----------------|
-| **Prerequisites** | Set up the application framework, graphics context, and resource binding |
-| **Hello Triangle** | Create GPU buffers, compile shaders, configure graphics pipelines, and submit draw commands |
-| **Textured Quad** | Load and sample textures, use index buffers, and bind shader resources |
-| **Spinning Cube** | Pass data to shaders via constant buffers, implement 3D transformations, and enable depth testing |
-| **Compute Shader** | Run general-purpose GPU computations for image processing |
-| **Indirect Drawing** | Let the GPU control draw parameters for efficient multi-instance rendering |
-| **Ray Tracing** | Build acceleration structures, trace rays with `RayQuery`, implement soft shadows, reflections, Fresnel, and ACES tonemapping |
-| **Mesh Shading** | Use amplification shaders for GPU-driven frustum culling with mesh shading at scale (1,000 instances) |
+Zenith.NET does not expose frames in flight. The shared application waits for each frame submission before calling `SwapChain.Present()`.
 
 ## Requirements
 
-Before starting, ensure you have:
+- .NET 10 SDK or later
+- DirectX 12 on Windows, Metal 4 on macOS, or Vulkan 1.4 with Zenith.NET's required bindless extensions on Linux
+- A GPU and driver that support the selected Graphics API
+- Visual Studio, VS Code, or JetBrains Rider
 
-- .NET 10.0 SDK or later
-- A GPU with DirectX 12, Metal 4, or Vulkan 1.4 support
-- Visual Studio 2026, VS Code, or JetBrains Rider
-
-> [!NOTE]
-> These tutorials are designed for desktop platforms (Windows, macOS, and Linux).
-> See [Prerequisites](getting-started/prerequisites.md) for detailed platform support and setup instructions.
-
-## Source Code
-
-> [!TIP]
-> The complete source code for all tutorials is available on GitHub: [ZenithTutorials](https://github.com/qian-o/ZenithTutorials)
+See [Prerequisites](getting-started/prerequisites.md) to create the project and the reusable frame loop.

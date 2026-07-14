@@ -1,111 +1,133 @@
 ﻿# Compute
 
-Compute pipelines run general-purpose GPU computations using compute shaders. They operate outside of render passes and work on buffers and textures through resource bindings.
+Compute pipelines run outside render passes and are typically recorded on `GraphicsContext.ComputeQueue`.
 
-## Compute Pipeline
+## Compile a Compute Shader
+
+Compile Slang entry points through `ZenithCompiler` and create a `Shader`:
 
 ```csharp
-ComputePipeline pipeline = context.CreateComputePipeline(new ComputePipelineDesc
-{
-    Compute = computeShader,
-    ResourceBindings = resourceBindings,
-    ThreadGroupSizeX = 16,
-    ThreadGroupSizeY = 16,
-    ThreadGroupSizeZ = 1
-});
+using Shader computeShader = context.CreateShader(ZenithCompiler.CompileFromFile(context.GraphicsApi, "Assets/Shaders/PathTracing.slang", "CSMain"));
 ```
 
-### ComputePipelineDesc
+In Slang, the entry point uses compute stage terminology:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `Compute` | `Shader` | The compute shader |
-| `ResourceBindings` | `ResourceBinding[]` | Shader resource binding declarations |
-| `ThreadGroupSizeX` | `uint` | Thread group size in X (must match `[numthreads]`) |
-| `ThreadGroupSizeY` | `uint` | Thread group size in Y |
-| `ThreadGroupSizeZ` | `uint` | Thread group size in Z |
-
-The thread group size must match the `[numthreads]` attribute in the shader.
-
-## Shader
-
-Compute shaders use `[numthreads(X, Y, Z)]` to define thread group dimensions:
-
-```hlsl
-Texture2D inputTexture;
-RWTexture2D outputTexture;
-
+```slang
+[shader("compute")]
 [numthreads(16, 16, 1)]
 void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    uint width, height;
-    outputTexture.GetDimensions(width, height);
-
-    if (dispatchThreadID.x >= width || dispatchThreadID.y >= height)
-        return;
-
-    float4 color = inputTexture[dispatchThreadID.xy];
-    outputTexture[dispatchThreadID.xy] = color;
 }
 ```
 
-Compile with `ShaderStageFlags.Compute`:
+## ComputePipelineDesc
+
+`ComputePipelineDesc` currently has one field:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ComputeShader` | `Shader` | Compute shader entry point |
 
 ```csharp
-Shader computeShader = context.LoadShaderFromSource(source, "CSMain", ShaderStageFlags.Compute);
+ComputePipeline pipeline = context.CreateComputePipeline(new() { ComputeShader = computeShader });
 ```
 
-## Dispatching
+`ThreadGroupSize` exists as a general struct (`X`, `Y`, `Z`) and is commonly mirrored in app code, but dispatch dimensions are provided to `Dispatch(...)`, not stored in `ComputePipelineDesc`.
 
-Compute dispatches do not use render passes:
+## Bindless Storage Resources
+
+Compute resource binding is bindless. Store `ResourceHandle` values in an explicitly laid-out C# constant struct, then resolve them in Slang with `DescriptorHandle<T>`.
+
+```csharp
+[StructLayout(LayoutKind.Explicit, Size = 32)]
+file struct ComputeConstants
+{
+    [FieldOffset(0)]
+    public uint Width;
+
+    [FieldOffset(4)]
+    public uint Height;
+
+    [FieldOffset(8)]
+    public ResourceHandle Input;
+
+    [FieldOffset(16)]
+    public ResourceHandle Output;
+}
+```
+
+```slang
+struct ComputeConstants
+{
+    uint Width;
+    uint Height;
+    DescriptorHandle<StructuredBuffer<float4>> Input;
+    DescriptorHandle<RWTexture2D<float4>> Output;
+};
+
+uniform ComputeConstants constants;
+```
+
+For the full bindless model and handle mapping, see [Bindless Resources](../concepts/resource-binding.md).
+
+## Dispatch and Group Counts
+
+Use `Dispatch(groupCountX, groupCountY, groupCountZ)` after setting pipeline and constant buffer:
 
 ```csharp
 commandBuffer.SetPipeline(pipeline);
-commandBuffer.PushResourceTable(resourceTable);
+commandBuffer.SetConstantBuffer(constantBuffer, 0);
 commandBuffer.Dispatch(groupCountX, groupCountY, groupCountZ);
 ```
 
-Calculate dispatch group counts:
+Group counts should cover your workload size based on `[numthreads(x, y, z)]`:
 
 ```csharp
-uint groupCountX = (width + threadGroupSize - 1) / threadGroupSize;
-uint groupCountY = (height + threadGroupSize - 1) / threadGroupSize;
+const uint groupSizeX = 16;
+const uint groupSizeY = 16;
+
+uint groupCountX = (width + groupSizeX - 1) / groupSizeX;
+uint groupCountY = (height + groupSizeY - 1) / groupSizeY;
+
 commandBuffer.Dispatch(groupCountX, groupCountY, 1);
 ```
 
-### Indirect Dispatch
+Then guard bounds in shader with `SV_DispatchThreadID`.
 
-For GPU-driven dispatch counts, store `IndirectDispatchArgs` in a buffer:
+## Indirect Dispatch
 
-```csharp
-commandBuffer.DispatchIndirect(indirectBuffer, offsetInBytes: 0);
-```
-
-## Read-Write Resources
-
-Compute shaders can both read and write textures and buffers:
-
-| Shader Type | Resource Type | Description |
-|------------|---------------|-------------|
-| `Texture2D` | `ResourceType.Texture` | Read-only texture |
-| `RWTexture2D` | `ResourceType.TextureReadWrite` | Read-write texture |
-| `StructuredBuffer<T>` | `ResourceType.StructuredBuffer` | Read-only buffer |
-| `RWStructuredBuffer<T>` | `ResourceType.StructuredBufferReadWrite` | Read-write buffer |
-
-Read-write textures require `TextureUsageFlags.UnorderedAccess`. Read-write buffers require `BufferUsageFlags.UnorderedAccess`.
-
-## Resource Sharing
-
-Compute results can be consumed by graphics pipelines and vice versa. For example, run a compute pass to process an image, then copy or display the result:
+For GPU-driven compute counts, write `IndirectDispatchArgs` into a buffer and call:
 
 ```csharp
-// Compute pass
-commandBuffer.SetPipeline(computePipeline);
-commandBuffer.PushResourceTable(computeTable);
-commandBuffer.Dispatch(groupCountX, groupCountY, 1);
-
-// Copy result to frame buffer
-commandBuffer.CopyTexture(outputTexture, default, default,
-                          colorTarget, default, default,
-                          new() { Width = width, Height = height, Depth = 1 });
+commandBuffer.DispatchIndirect(indirectBuffer, 0);
 ```
+
+`IndirectDispatchArgs` contains:
+
+- `GroupCountX`
+- `GroupCountY`
+- `GroupCountZ`
+
+## Transitions and Barriers
+
+Use explicit transitions for texture layout changes and barriers for producer/consumer ordering when layout does not change.
+
+```csharp
+commandBuffer.Transition(outputTexture, default, TextureLayout.Storage);
+
+commandBuffer.SetPipeline(producerPipeline);
+commandBuffer.SetConstantBuffer(producerConstants, 0);
+commandBuffer.Dispatch(producerX, producerY, 1);
+
+commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
+
+commandBuffer.SetPipeline(consumerPipeline);
+commandBuffer.SetConstantBuffer(consumerConstants, 0);
+commandBuffer.Dispatch(consumerX, consumerY, 1);
+
+commandBuffer.Transition(outputTexture, default, TextureLayout.Sampled);
+```
+
+`Barrier` stage masks should match producer and consumer domains (for example, compute-to-vertex for indirect draw argument generation).
+
+See [Synchronization and Barriers](../concepts/synchronization.md) for stage guidance and queue-to-queue timeline waits.

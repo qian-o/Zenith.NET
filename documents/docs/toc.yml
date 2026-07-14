@@ -1,36 +1,42 @@
 ﻿- name: Docs
   href: index.md
-- name: Core Concepts
+- name: Core Model
   items:
     - name: Graphics Context
       href: concepts/graphics-context.md
-    - name: Command Model
+    - name: Commands
       href: concepts/command-model.md
-    - name: Resource Binding
+    - name: Synchronization and Barriers
+      href: concepts/synchronization.md
+    - name: Bindless Resources
       href: concepts/resource-binding.md
 - name: Resources
   items:
-    - name: Buffers
+    - name: Buffers and Memory
       href: resources/buffers.md
-    - name: Textures
+    - name: Textures and Views
       href: resources/textures.md
     - name: Samplers
       href: resources/samplers.md
-- name: Features
+- name: Rendering
   items:
-    - name: Graphics
+    - name: Graphics Pipelines
       href: features/graphics.md
-    - name: Compute
+    - name: Compute and Indirect
       href: features/compute.md
     - name: Ray Tracing
       href: features/ray-tracing.md
     - name: Mesh Shading
       href: features/mesh-shading.md
-- name: Platform
+- name: Presentation and Integration
   items:
-    - name: Backend Selection
+    - name: Graphics API Selection
       href: platform/backend-selection.md
+    - name: Surfaces and Swap Chains
+      href: platform/presentation.md
     - name: UI Framework Integration
       href: platform/ui-frameworks.md
-- name: Best Practices
-  href: best-practices.md
+- name: Guidance
+  items:
+    - name: Best Practices
+      href: best-practices.md

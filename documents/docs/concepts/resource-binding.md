@@ -1,140 +1,165 @@
-﻿# Resource Binding
+# Bindless Resources
 
-Resources are bound to shaders through `ResourceTable`. Each binding in a table maps to a shader resource declaration (constant buffer, texture, sampler, etc.).
+Zenith.NET uses bindless resource handles instead of per-pipeline resource tables. Buffers, textures, views, samplers, and top-level acceleration structures expose compact `ResourceHandle` values that can be stored in constant data and resolved by Slang shaders.
 
-## Binding Model
+The binding path is:
 
-The binding model has two components:
+1. Create a resource with the required usage.
+2. Select the handle that represents the intended shader access.
+3. Store that handle in an unmanaged constant structure.
+4. Upload the structure to a constant buffer.
+5. Bind that constant buffer with `SetConstantBuffer`.
+6. Resolve the handle through Slang `DescriptorHandle<T>`.
 
-1. **`ResourceBinding`** — Declares the type and count for a single binding index
-2. **`ResourceTable`** — Holds the actual GPU resources, written by index
+## Resource Handles
 
-The `ResourceTable` is created with a `ResourceBinding[]` that must be layout-compatible with the pipeline’s `ResourceBinding[]`. As long as the binding layout matches, the table can be used with the pipeline.
+Choose a handle that matches the shader declaration:
 
-## ResourceBinding
+| Zenith.NET resource | Handle | Slang target |
+|---------------------|--------|--------------|
+| `Buffer` / `BufferView` | `ConstantHandle` | `ConstantBuffer<T>` |
+| `Buffer` / `BufferView` | `StorageReadOnlyHandle` | `StructuredBuffer<T>` |
+| `Buffer` / `BufferView` | `StorageReadWriteHandle` | `RWStructuredBuffer<T>` |
+| `Texture` / `TextureView` | `SampledHandle` | `Texture1D`, `Texture2D`, `Texture3D`, or cube texture types |
+| `Texture` / `TextureView` | `StorageHandle` | `RWTexture1D`, `RWTexture2D`, or `RWTexture3D` |
+| `Sampler` | `Handle` | `SamplerState` or `SamplerComparisonState` |
+| `TopLevelAccelerationStructure` | `Handle` | `RaytracingAccelerationStructure` |
 
-A `ResourceBinding` declares what a single binding index expects:
+Requesting a handle creates or resolves the corresponding graphics API descriptor as needed. Keep the source resource or view alive for every submission that can use the handle.
+
+## Constant Data
+
+Use explicit unmanaged layout when C# data must exactly match a shader structure:
 
 ```csharp
-ResourceBinding[] bindings =
-[
-    new() { Type = ResourceType.ConstantBuffer, Count = 1 },
-    new() { Type = ResourceType.Texture, Count = 1 },
-    new() { Type = ResourceType.Sampler, Count = 1 }
-];
+[StructLayout(LayoutKind.Explicit, Size = 80)]
+file struct ComputeConstants
+{
+    [FieldOffset(0)]
+    public Matrix4x4 Transform;
+
+    [FieldOffset(64)]
+    public ResourceHandle Input;
+
+    [FieldOffset(72)]
+    public ResourceHandle Output;
+}
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `Type` | `ResourceType` | The kind of resource at this binding |
-| `Count` | `uint` | Number of resources at this binding (use `1` for single resources, `> 1` for arrays) |
-
-### Resource Types
-
-| ResourceType | Shader Declaration | Bindable Types |
-|-------------|-------------------|----------------|
-| `ConstantBuffer` | `ConstantBuffer<T>` | `Buffer`, `BufferView` |
-| `StructuredBuffer` | `StructuredBuffer<T>` | `Buffer`, `BufferView` |
-| `StructuredBufferReadWrite` | `RWStructuredBuffer<T>` | `Buffer`, `BufferView` |
-| `Texture` | `Texture2D`, `Texture3D`, etc. | `Texture`, `TextureView` |
-| `TextureReadWrite` | `RWTexture2D`, etc. | `Texture`, `TextureView` |
-| `Sampler` | `SamplerState` | `Sampler` |
-| `AccelerationStructure` | `RaytracingAccelerationStructure` | `TopLevelAccelerationStructure` |
-
-## Creating a ResourceTable
+Populate the handles from resources or views:
 
 ```csharp
-ResourceTable resourceTable = context.CreateResourceTable(new()
+ComputeConstants constants = new()
 {
-    Bindings = bindings
+    Transform = transform,
+    Input = input.StorageReadOnlyHandle,
+    Output = output.StorageHandle
+};
+```
+
+Create a CPU-writable constant buffer and upload the structure:
+
+```csharp
+Buffer constantBuffer = context.CreateBuffer(new()
+{
+    SizeInBytes = (uint)sizeof(ComputeConstants),
+    Usages = BufferUsages.Constant,
+    Residency = MemoryResidency.CpuWriteOnly
+});
+
+constantBuffer.Upload(0, new()
+{
+    Pointer = (nint)(&constants),
+    SizeInBytes = (uint)sizeof(ComputeConstants)
 });
 ```
 
-## Writing Resources
+The structure must be unmanaged. Verify every field offset against the Slang layout rather than relying on accidental CLR padding.
 
-Assign GPU resources to each binding index using `Write()`:
+## Slang Declarations
 
-```csharp
-resourceTable.Write(0, constantBuffer);
-resourceTable.Write(1, texture);
-resourceTable.Write(2, sampler);
-```
+Declare the matching shader structure with typed descriptor handles:
 
-The binding index corresponds to the order in the `ResourceBinding[]` array. Resources can be updated at any time by calling `Write()` again.
-
-### Array Bindings
-
-For bindings with `Count > 1`, pass multiple resources:
-
-```csharp
-resourceTable.Write(0, texture0, texture1, texture2);
-```
-
-## Connecting Pipeline and Table
-
-The pipeline’s `ResourceBindings` and the resource table’s `Bindings` must have compatible layouts — the same types and counts at each index, but they do not need to be the same array instance:
-
-```csharp
-// Pipeline bindings
-ResourceBinding[] pipelineBindings =
-[
-    new() { Type = ResourceType.Texture, Count = 1 },
-    new() { Type = ResourceType.Sampler, Count = 1 }
-];
-
-pipeline = context.CreateGraphicsPipeline(new()
+```slang
+struct ComputeConstants
 {
-    // ...
-    ResourceBindings = pipelineBindings,
-    // ...
-});
+    float4x4 Transform;
 
-// Table bindings — layout-compatible with the pipeline
-ResourceBinding[] tableBindings =
-[
-    new() { Type = ResourceType.Texture, Count = 1 },
-    new() { Type = ResourceType.Sampler, Count = 1 }
-];
+    DescriptorHandle<StructuredBuffer<float4>> Input;
 
-resourceTable = context.CreateResourceTable(new() { Bindings = tableBindings });
-resourceTable.Write(0, texture);
-resourceTable.Write(1, sampler);
+    DescriptorHandle<RWTexture2D<float4>> Output;
+};
+
+uniform ComputeConstants constants;
 ```
 
-## Binding During Rendering
+Dereference a handle before indexing or invoking resource operations:
 
-Set the resource table before draw or dispatch calls:
+```slang
+float4 value = (*constants.Input)[index];
+(*constants.Output)[pixel] = value;
+```
+
+The generic argument is part of the ABI. It must match the handle's access type and the resource data layout.
+
+## Binding the Constant Buffer
+
+Set the pipeline before binding constants, then provide the byte offset of the selected constant record:
 
 ```csharp
-commandBuffer.BeginRenderPass(frameBuffer, clearValue, resourceTable);
-
-commandBuffer.SetPipeline(pipeline);
-commandBuffer.PushResourceTable(resourceTable);
-commandBuffer.Draw(3, 1, 0, 0);
-
-commandBuffer.EndRenderPass();
+commandBuffer.SetPipeline(computePipeline);
+commandBuffer.SetConstantBuffer(constantBuffer, 0);
+commandBuffer.Dispatch(groupCountX, groupCountY, 1);
 ```
 
-> [!NOTE]
-> Pass the `ResourceTable` to `BeginRenderPass` as well — this allows the backend to perform any necessary resource transitions before rendering begins.
+`SetConstantBuffer` binds one constant-buffer record for the current pipeline. Store several aligned records in one buffer and vary `offsetInBytes` when issuing many draws or dispatches.
 
-## Shader Binding Order
+## Views
 
-Shader resource declarations map to binding indices in declaration order. For example:
-
-```hlsl
-ConstantBuffer<Constants> constants;  // binding 0
-Texture2D albedo;                     // binding 1
-SamplerState linearSampler;           // binding 2
-```
-
-Corresponds to:
+Resources expose handles for their default full-resource views. Create an explicit view when a shader should see only a subrange or when a texture needs another view type or format.
 
 ```csharp
-ResourceBinding[] bindings =
-[
-    new() { Type = ResourceType.ConstantBuffer, Count = 1 },  // 0 → constants
-    new() { Type = ResourceType.Texture, Count = 1 },         // 1 → albedo
-    new() { Type = ResourceType.Sampler, Count = 1 }          // 2 → linearSampler
-];
+BufferView materialView = context.CreateBufferView(BufferViewDesc.StorageReadOnly(materialBuffer, offsetInBytes, sizeInBytes, (uint)sizeof(Material)));
+
+ResourceHandle materials = materialView.StorageReadOnlyHandle;
 ```
+
+Texture views select mip levels and array layers:
+
+```csharp
+TextureView mipView = context.CreateTextureView(TextureViewDesc.Texture2D(texture, texture.Desc.Format, mipLevel, 1));
+
+ResourceHandle sampledMip = mipView.SampledHandle;
+```
+
+Dispose explicit views after the last submission that uses their handles. Disposing a resource also disposes its internal default view, but it does not dispose separately created views.
+
+## Resource Usage and Layout
+
+A handle does not transition a texture or insert a memory dependency. The resource description and command stream must permit the requested access:
+
+- `SampledHandle` requires `TextureUsages.Sampled` and `TextureLayout.Sampled` while accessed.
+- `StorageHandle` requires `TextureUsages.Storage` and `TextureLayout.Storage` while accessed.
+- Storage buffer handles require the corresponding `BufferUsages.StorageReadOnly` or `StorageReadWrite` usage.
+- A producer/consumer dependency without a texture layout change requires `Barrier`.
+
+```csharp
+commandBuffer.Transition(output, default, TextureLayout.Storage);
+commandBuffer.SetPipeline(computePipeline);
+commandBuffer.SetConstantBuffer(constantBuffer, 0);
+commandBuffer.Dispatch(groupCountX, groupCountY, 1);
+commandBuffer.Transition(output, default, TextureLayout.Sampled);
+```
+
+See [Synchronization and Barriers](synchronization.md) for choosing between a barrier, a texture transition, and a timeline wait.
+
+## Handle Lifetime
+
+Treat a `ResourceHandle` as a non-owning reference:
+
+- Keep the resource or view alive while GPU work can dereference the handle.
+- Do not cache a handle after disposing its owner.
+- Rebuild constant data when replacing a resized texture or view.
+- Wait for the final dependent submission before disposing an owner.
+
+Handles are portable values inside Zenith.NET's shader ABI. Their internal representation is graphics API-specific and should not be decoded by application code.

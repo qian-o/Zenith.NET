@@ -1,76 +1,124 @@
 ﻿# UI Framework Integration
 
-Zenith.NET provides view controls for major .NET UI frameworks through the `Zenith.NET.Views.*` packages.
+Zenith.NET provides UI-facing controls through `Zenith.NET.Views` and per-framework packages in `Zenith.NET.Views.*`.
 
-## IZenithView
+The shared integration contract is `IZenithView`.
 
-All view implementations share the `IZenithView` interface:
+## Shared Abstractions
 
-| Member | Description |
-|--------|-------------|
-| `GraphicsContext` | The graphics context used for rendering (assign before use) |
-| `UpdateRequested` | Event fired each frame for logic updates |
-| `RenderRequested` | Event fired each frame for GPU rendering |
-| `UI(Action)` | Execute an action on the UI thread |
-| `EnsureResources()` | Create/recreate swap chain and frame buffer resources |
-| `Tick()` | Drive one frame update + render cycle |
-| `Present()` | Present the rendered frame |
-| `ReleaseResources()` | Dispose GPU resources |
+All framework views implement the same public surface:
 
-### Event Args
+| Member | Purpose |
+|---|---|
+| `GraphicsContext` | Assigned by app code; rendering is skipped when null |
+| `UpdateRequested` | Per-frame CPU update callback |
+| `RenderRequested` | Per-frame rendering callback with drawable texture |
+| `UI(Action)` | Marshal work onto the framework UI thread |
+| `EnsureResources()` | Create or recreate framework-specific presentation resources |
+| `Tick()` | Raise update and render events for one frame |
+| `Present()` | Present or blit the frame to the host UI surface |
+| `ReleaseResources()` | Dispose framework-specific graphics resources |
 
-| Type | Properties |
-|------|-----------|
-| `UpdateEventArgs` | `DeltaSeconds`, `TotalSeconds` |
-| `RenderEventArgs` | `DeltaSeconds`, `TotalSeconds`, `FrameBuffer` |
+Event args contracts:
 
-## Supported Frameworks
+- `UpdateEventArgs`: `DeltaSeconds`, `TotalSeconds`
+- `RenderEventArgs`: `DeltaSeconds`, `TotalSeconds`, `Drawable` (`Texture`)
 
-| Package | Framework | Platforms |
-|---------|-----------|-----------|
-| `Zenith.NET.Views.Avalonia` | Avalonia | Windows, macOS, Linux |
-| `Zenith.NET.Views.Maui` | .NET MAUI | Windows, macOS, Android, iOS |
-| `Zenith.NET.Views.WinForms` | Windows Forms | Windows |
-| `Zenith.NET.Views.WinUI` | WinUI 3 / Uno Platform | Windows (+ Uno targets) |
-| `Zenith.NET.Views.WPF` | WPF | Windows |
+`RenderEventArgs` exposes a `Drawable` texture as the render target input.
 
-## Basic Usage
+## FrameScheduler Lifecycle
 
-All views follow the same pattern:
+Each control owns a `FrameScheduler` that drives the loop:
+
+1. UI lifecycle starts scheduler on load/create and stops it on unload/destroy.
+2. Scheduler marshals frame work through `IZenithView.UI(...)`.
+3. Frame body runs `EnsureResources()`, `Tick()`, then `Present()`.
+4. When `GraphicsContext` changes, resources are released and recreated.
+
+`UpdateSeconds`, `RenderSeconds`, and `TotalSeconds` are measured by internal stopwatches and propagated through event args.
+
+## Framework Packages
+
+| Package | UI Framework | Notes |
+|---|---|---|
+| `Zenith.NET.Views.WPF` | WPF | D3D11 shared texture path displayed through `D3DImage` |
+| `Zenith.NET.Views.WinForms` | Windows Forms | Native Win32 swap chain (`Surface.Win32`) |
+| `Zenith.NET.Views.WinUI` | WinUI 3 / Uno | Windows path uses `SwapChainPanel` + shared D3D11 texture; non-Windows Uno path uses CPU readback bitmap |
+| `Zenith.NET.Views.Avalonia` | Avalonia | CPU readback (`Texture.Download`) into `WriteableBitmap` |
+| `Zenith.NET.Views.Maui` | .NET MAUI | Handler-based platform view; swap chain on Android/iOS/MacCatalyst, shared D3D11 path on Windows |
+
+Package references from project files:
+
+- WPF: `Silk.NET.Direct3D11`, `Silk.NET.Direct3D9`
+- WinUI (Windows target): `Microsoft.WindowsAppSDK`, `Silk.NET.Direct3D11`
+- WinUI (non-Windows target): `Uno.WinUI`
+- MAUI (Windows target): `Silk.NET.Direct3D11`
+- Avalonia: `Avalonia`
+
+## Surface and Present Paths
+
+Current implementations use two conceptual presentation models.
+
+Swap-chain-based:
+
+- WinForms (`SwapChain` created from `Surface.Win32`)
+- MAUI Android (`Surface.Android`)
+- MAUI iOS/MacCatalyst (`Surface.Apple` / `CAMetalLayer`)
+
+Shared-texture composition (Windows compositor interop):
+
+- WPF (`D3DImage` + keyed mutex + D3D9/D3D11 bridge)
+- WinUI Windows (`SwapChainPanel` + keyed mutex + copy into composition swap chain)
+- MAUI Windows (`SwapChainPanel` + keyed mutex + copy into composition swap chain)
+
+CPU readback presentation:
+
+- Avalonia (`Texture.Download` into a locked bitmap buffer)
+- WinUI Uno non-Windows (`Texture.Download` into `WriteableBitmap` pixel buffer)
+
+## Swap-Chain Integration Pattern
+
+Use one `GraphicsContext` and render into `args.Drawable` from `RenderRequested`. This example applies to the swap-chain-backed WinForms and MAUI Android/iOS/MacCatalyst controls:
 
 ```csharp
-// 1. Create a graphics context
-GraphicsContext context = GraphicsContext.CreateDirectX12(useValidationLayer: false);
+using Zenith.NET;
+using Zenith.NET.DirectX12;
+using Zenith.NET.Views;
 
-// 2. Assign to the view
+GraphicsContext context = GraphicsContext.CreateDirectX12(useValidationLayer: true);
 zenithView.GraphicsContext = context;
 
-// 3. Subscribe to events
-zenithView.UpdateRequested += (sender, args) =>
+zenithView.UpdateRequested += (_, args) =>
 {
-    // Update logic (animations, input, etc.)
+    // Simulation and CPU-side updates.
 };
 
-zenithView.RenderRequested += (sender, args) =>
+zenithView.RenderRequested += (_, args) =>
 {
-    CommandBuffer cmd = context.Graphics.CommandBuffer();
-    cmd.BeginRenderPass(args.FrameBuffer, clearValue);
-    // ... draw commands ...
-    cmd.EndRenderPass();
-    cmd.Submit(waitForCompletion: true);
+    CommandBuffer commandBuffer = context.GraphicsQueue.CommandBuffer();
+
+    commandBuffer.Transition(args.Drawable, default, TextureLayout.ColorAttachment);
+    commandBuffer.BeginRenderPass([ColorAttachment.Load(args.Drawable)], null);
+    // Record draw calls.
+    commandBuffer.EndRenderPass();
+    commandBuffer.Transition(args.Drawable, default, TextureLayout.Present);
+
+    commandBuffer.Submit().Wait();
 };
 ```
 
-## ZenithViewHelper
+The required final layout depends on the control's presentation path:
 
-`ZenithViewHelper` provides shared defaults for all view implementations:
+- Swap-chain-backed controls require `TextureLayout.Present` before submission.
+- Shared-texture and CPU-readback controls must not transition their drawable to `Present`; leave it in `ColorAttachment` and submit before the framework copies or downloads it.
 
-| Property | Value | Description |
-|----------|-------|-------------|
-| `ColorFormat` | `B8G8R8A8UNorm` (desktop) / `R8G8B8A8UNorm` (Android) | Default swap chain color format |
-| `DepthStencilFormat` | `D32FloatS8UInt` | Default depth/stencil format |
-| `Output` | Derived from above | Pre-configured `Output` for pipeline creation |
+The view's `FrameScheduler` calls `Present()` after `RenderRequested` returns. Waiting for the submitted commands in the callback ensures that shared-texture copies and CPU downloads observe completed rendering.
 
-## FrameScheduler
+## Practical Guidance
 
-`FrameScheduler` drives the render loop for views that don't have a built-in frame tick mechanism. It calls `Tick()` and `Present()` on the view at the appropriate cadence.
+- Keep event handlers lightweight; avoid allocations and pipeline creation inside per-frame callbacks.
+- Recreate size-dependent resources only when view dimensions change.
+- Treat `RenderRequested` as explicit rendering work: transitions, pass setup, and submission with the final layout required by that control.
+- Respect framework lifetime events so `ReleaseResources()` runs before control teardown.
+
+For Graphics API selection and package strategy, see [Graphics API Selection](backend-selection.md). For synchronization details, see [Synchronization and Barriers](../concepts/synchronization.md).

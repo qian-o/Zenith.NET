@@ -1,426 +1,413 @@
 ﻿# Indirect Drawing
 
-In this tutorial, you'll render a 5×5 grid of spinning cubes using indirect drawing and GPU instancing. This introduces indirect draw buffers, structured buffers for per-instance data, and shows how to drive draw calls from GPU-accessible memory.
+Indirect drawing lets the GPU provide draw parameters instead of passing them directly from the CPU. In this tutorial, a compute shader generates both a grid of animated instances and one `IndirectDrawIndexedArgs` command. The same command buffer then places an explicit `Barrier` before consuming those buffers with `DrawIndexedIndirect`.
 
-## Overview
+You will use:
 
-This tutorial covers:
+- A GPU-only buffer with `StorageReadWrite | Indirect` usages
+- The exact `IndirectDrawIndexedArgs` field layout and stride
+- Bindless read/write and read-only views of an instance buffer
+- `Barrier(ComputeShading, VertexShading)` as a first-class RHI dependency
+- Compute and graphics pipelines in one `GraphicsQueue` command buffer
 
-- Creating an **indirect draw buffer** with `IndirectDrawIndexedArgs`
-- Using a **structured buffer** to store per-instance transforms and colors
-- Updating instance data per-frame for independent animations
-- Issuing a single `DrawIndexedIndirect` call to render all instances
-- Setting up view/projection matrices in `Resize` for window-independent rendering
+Start from the [shared application](../getting-started/prerequisites.md). Add the shader and renderer below, then select the renderer in `Program.cs`.
 
-## The Renderer Class
+## Shader
 
-Create the file `Renderers/IndirectDrawingRenderer.cs`:
+Create `Assets/Shaders/IndirectDrawing.slang`:
+
+```slang
+struct InstanceData
+{
+    float2 Offset;
+
+    float Scale;
+
+    float Angle;
+
+    float4 Color;
+};
+
+struct IndirectDrawIndexedArgs
+{
+    uint IndexCount;
+
+    uint InstanceCount;
+
+    uint FirstIndex;
+
+    int VertexOffset;
+
+    uint FirstInstance;
+};
+
+struct Constants
+{
+    float Time;
+
+    uint InstanceCount;
+
+    uint GridWidth;
+
+    uint IndexCount;
+
+    DescriptorHandle<RWStructuredBuffer<InstanceData>> WritableInstances;
+
+    DescriptorHandle<RWStructuredBuffer<IndirectDrawIndexedArgs>> DrawArguments;
+
+    DescriptorHandle<StructuredBuffer<InstanceData>> Instances;
+};
+
+uniform Constants constants;
+
+[shader("compute")]
+[numthreads(64, 1, 1)]
+void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    uint instanceIndex = dispatchThreadID.x;
+
+    if (instanceIndex == 0)
+    {
+        IndirectDrawIndexedArgs arguments;
+        arguments.IndexCount = constants.IndexCount;
+        arguments.InstanceCount = constants.InstanceCount;
+        arguments.FirstIndex = 0;
+        arguments.VertexOffset = 0;
+        arguments.FirstInstance = 0;
+
+        (*constants.DrawArguments)[0] = arguments;
+    }
+
+    if (instanceIndex >= constants.InstanceCount)
+    {
+        return;
+    }
+
+    uint column = instanceIndex % constants.GridWidth;
+    uint row = instanceIndex / constants.GridWidth;
+    float halfGrid = (float(constants.GridWidth) - 1.0) * 0.5;
+    float spacing = 1.6 / max(float(constants.GridWidth) - 1.0, 1.0);
+
+    InstanceData instance;
+    instance.Offset = (float2(column, row) - halfGrid) * spacing;
+    instance.Scale = 0.13 + 0.02 * sin(constants.Time * 1.7 + float(instanceIndex));
+    instance.Angle = constants.Time * (0.7 + float(instanceIndex) * 0.03);
+    instance.Color = float4(0.5 + 0.5 * cos(float(instanceIndex) * 0.37 + float3(0.0, 2.1, 4.2)), 1.0);
+
+    (*constants.WritableInstances)[instanceIndex] = instance;
+}
+
+struct VSInput
+{
+    float2 Position : POSITION0;
+
+    uint InstanceID : SV_InstanceID;
+};
+
+struct VSOutput
+{
+    float4 Position : SV_POSITION;
+
+    float4 Color : COLOR0;
+};
+
+[shader("vertex")]
+VSOutput VSMain(VSInput input)
+{
+    InstanceData instance = (*constants.Instances)[input.InstanceID];
+    float sine = sin(instance.Angle);
+    float cosine = cos(instance.Angle);
+    float2 rotated = float2(input.Position.x * cosine - input.Position.y * sine, input.Position.x * sine + input.Position.y * cosine);
+
+    VSOutput output;
+    output.Position = float4(instance.Offset + rotated * instance.Scale, 0.0, 1.0);
+    output.Color = instance.Color;
+
+    return output;
+}
+
+[shader("fragment")]
+float4 FSMain(VSOutput input) : SV_TARGET
+{
+    return input.Color;
+}
+```
+
+The Slang argument structure deliberately mirrors the RHI type field for field. All five members are 32-bit values, so its stride is 20 bytes. `VertexOffset` is signed; the other fields are unsigned.
+
+## Renderer
+
+Create `Renderers/IndirectDrawingRenderer.cs`:
 
 ```csharp
 namespace ZenithTutorials.Renderers;
 
-internal unsafe class IndirectDrawingRenderer : IRenderer
+internal unsafe sealed class IndirectDrawingRenderer : IRenderer
 {
-    private const int InstanceCount = 25;
-
-    private const string ShaderSource = """
-        struct VSInput
-        {
-            float3 Position : POSITION0;
-
-            float4 Color : COLOR0;
-
-            uint InstanceID : SV_InstanceID;
-        };
-
-        struct PSInput
-        {
-            float4 Position : SV_POSITION;
-
-            float4 Color : COLOR;
-        };
-
-        struct Constants
-        {
-            float4x4 View;
-
-            float4x4 Projection;
-        };
-
-        struct Instance
-        {
-            float4x4 Model;
-
-            float4 Color;
-        };
-
-        ConstantBuffer<Constants> constants;
-        StructuredBuffer<Instance> instances;
-
-        PSInput VSMain(VSInput input)
-        {
-            Instance instance = instances[input.InstanceID];
-
-            float4 worldPos = mul(float4(input.Position, 1.0), instance.Model);
-            float4 viewPos = mul(worldPos, constants.View);
-
-            PSInput output;
-            output.Position = mul(viewPos, constants.Projection);
-            output.Color = input.Color * instance.Color;
-
-            return output;
-        }
-
-        float4 PSMain(PSInput input) : SV_TARGET
-        {
-            return input.Color;
-        }
-        """;
-
-    private static readonly ResourceBinding[] ResourceBindings =
-    [
-        new() { Type = ResourceType.ConstantBuffer, Count = 1 },
-        new() { Type = ResourceType.StructuredBuffer, Count = 1 }
-    ];
+    private const uint ThreadGroupSize = 64;
+    private const uint InstanceCount = 25;
+    private const uint GridWidth = 5;
+    private const uint IndexCount = 6;
 
     private readonly Buffer vertexBuffer;
     private readonly Buffer indexBuffer;
-    private readonly Buffer indirectBuffer;
-    private readonly Buffer constantsBuffer;
     private readonly Buffer instanceBuffer;
-    private readonly ResourceTable resourceTable;
-    private readonly GraphicsPipeline pipeline;
+    private readonly Buffer indirectBuffer;
+    private readonly Buffer constantBuffer;
+    private readonly ComputePipeline computePipeline;
+    private readonly GraphicsPipeline graphicsPipeline;
 
-    private float rotationAngle;
+    private float elapsedTime;
 
     public IndirectDrawingRenderer()
     {
         Vertex[] vertices =
         [
-            new(new(-0.5f, -0.5f,  0.5f), new(1.0f, 1.0f, 1.0f, 1.0f)),
-            new(new( 0.5f, -0.5f,  0.5f), new(1.0f, 1.0f, 1.0f, 1.0f)),
-            new(new( 0.5f,  0.5f,  0.5f), new(1.0f, 1.0f, 1.0f, 1.0f)),
-            new(new(-0.5f,  0.5f,  0.5f), new(1.0f, 1.0f, 1.0f, 1.0f)),
-            new(new(-0.5f, -0.5f, -0.5f), new(1.0f, 1.0f, 1.0f, 1.0f)),
-            new(new( 0.5f, -0.5f, -0.5f), new(1.0f, 1.0f, 1.0f, 1.0f)),
-            new(new( 0.5f,  0.5f, -0.5f), new(1.0f, 1.0f, 1.0f, 1.0f)),
-            new(new(-0.5f,  0.5f, -0.5f), new(1.0f, 1.0f, 1.0f, 1.0f))
+            new(new(-1.0f, -1.0f)),
+            new(new( 1.0f, -1.0f)),
+            new(new( 1.0f,  1.0f)),
+            new(new(-1.0f,  1.0f))
         ];
 
-        uint[] indices =
-        [
-            0, 1, 2, 0, 2, 3,
-            5, 4, 7, 5, 7, 6,
-            4, 0, 3, 4, 3, 7,
-            1, 5, 6, 1, 6, 2,
-            3, 2, 6, 3, 6, 7,
-            4, 5, 1, 4, 1, 0
-        ];
+        uint[] indices = [0, 1, 2, 0, 2, 3];
 
-        vertexBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length),
-            StrideInBytes = (uint)sizeof(Vertex),
-            Flags = BufferUsageFlags.Vertex | BufferUsageFlags.MapWrite
-        });
-        vertexBuffer.Upload(vertices, 0);
+        vertexBuffer = App.Context.CreateBuffer(BufferDesc.Vertex((uint)(sizeof(Vertex) * vertices.Length)));
 
-        indexBuffer = App.Context.CreateBuffer(new()
+        fixed (Vertex* pointer = vertices)
         {
-            SizeInBytes = (uint)(sizeof(uint) * indices.Length),
-            StrideInBytes = sizeof(uint),
-            Flags = BufferUsageFlags.Index | BufferUsageFlags.MapWrite
+            vertexBuffer.Upload(0, new()
+            {
+                Pointer = (nint)pointer,
+                SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length)
+            });
+        }
+
+        indexBuffer = App.Context.CreateBuffer(BufferDesc.Index((uint)(sizeof(uint) * indices.Length)));
+
+        fixed (uint* pointer = indices)
+        {
+            indexBuffer.Upload(0, new()
+            {
+                Pointer = (nint)pointer,
+                SizeInBytes = (uint)(sizeof(uint) * indices.Length)
+            });
+        }
+
+        instanceBuffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)sizeof(InstanceData) * InstanceCount,
+            StrideInBytes = (uint)sizeof(InstanceData),
+            Usages = BufferUsages.StorageReadWrite | BufferUsages.StorageReadOnly,
+            Residency = MemoryResidency.GpuOnly
         });
-        indexBuffer.Upload(indices, 0);
 
         indirectBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)sizeof(IndirectDrawIndexedArgs),
             StrideInBytes = (uint)sizeof(IndirectDrawIndexedArgs),
-            Flags = BufferUsageFlags.Indirect | BufferUsageFlags.MapWrite
+            Usages = BufferUsages.StorageReadWrite | BufferUsages.Indirect,
+            Residency = MemoryResidency.GpuOnly
         });
 
-        indirectBuffer.Upload([new IndirectDrawIndexedArgs()
+        constantBuffer = App.Context.CreateBuffer(new()
         {
-            IndexCount = (uint)indices.Length,
-            InstanceCount = InstanceCount,
-            FirstIndex = 0,
-            VertexOffset = 0,
-            FirstInstance = 0
-        }], 0);
-
-        constantsBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)sizeof(Constants),
-            StrideInBytes = (uint)sizeof(Constants),
-            Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
-        });
-        Resize(App.Width, App.Height);
-
-        instanceBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(Instance) * InstanceCount),
-            StrideInBytes = (uint)sizeof(Instance),
-            Flags = BufferUsageFlags.ShaderResource | BufferUsageFlags.MapWrite
+            SizeInBytes = (uint)sizeof(IndirectConstants),
+            Usages = BufferUsages.Constant,
+            Residency = MemoryResidency.CpuWriteOnly
         });
 
-        resourceTable = App.Context.CreateResourceTable(new() { Bindings = ResourceBindings });
-        resourceTable.Write(0, constantsBuffer);
-        resourceTable.Write(1, instanceBuffer);
+        using Shader computeShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, App.ShaderPath("IndirectDrawing.slang"), "CSMain"));
+        using Shader vertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, App.ShaderPath("IndirectDrawing.slang"), "VSMain"));
+        using Shader fragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, App.ShaderPath("IndirectDrawing.slang"), "FSMain"));
+
+        computePipeline = App.Context.CreateComputePipeline(new() { ComputeShader = computeShader });
 
         InputLayout inputLayout = new();
-        inputLayout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position });
-        inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Color });
+        inputLayout.Add(new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.Position });
 
-        using Shader vertexShader = App.Context.LoadShaderFromSource(ShaderSource, "VSMain", ShaderStageFlags.Vertex);
-        using Shader pixelShader = App.Context.LoadShaderFromSource(ShaderSource, "PSMain", ShaderStageFlags.Pixel);
-
-        pipeline = App.Context.CreateGraphicsPipeline(new()
+        graphicsPipeline = App.Context.CreateGraphicsPipeline(new()
         {
-            RenderStates = new()
-            {
-                RasterizerState = RasterizerStates.CullBack,
-                DepthStencilState = DepthStencilStates.Default,
-                BlendState = BlendStates.Opaque
-            },
-            Vertex = vertexShader,
-            Pixel = pixelShader,
-            ResourceBindings = ResourceBindings,
+            VertexShader = vertexShader,
+            FragmentShader = fragmentShader,
             InputLayouts = [inputLayout],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
-            Output = App.FrameBuffer.Output
+            AttachmentFormats = new()
+            {
+                ColorFormats = [App.ColorFormat],
+                SampleCount = SampleCount.Count1
+            },
+            RenderState = new()
+            {
+                Rasterizer = RasterizerState.CullNone(),
+                DepthStencil = DepthStencilState.DepthNone(),
+                Blend = BlendState.Opaque()
+            }
         });
+
+        UploadConstants();
     }
 
     public void Update(double deltaTime)
     {
-        rotationAngle += (float)deltaTime;
-
-        Instance[] instances = new Instance[InstanceCount];
-
-        int index = 0;
-        int gridSize = (int)Math.Sqrt(InstanceCount);
-
-        for (int y = 0; y < gridSize; y++)
-        {
-            for (int x = 0; x < gridSize; x++)
-            {
-                float offsetX = (x - (gridSize / 2)) * 1.5f;
-                float offsetY = (y - (gridSize / 2)) * 1.5f;
-                float rotation = rotationAngle * (1.0f + (index * 0.1f));
-
-                instances[index] = new()
-                {
-                    Model = Matrix4x4.CreateScale(0.4f)
-                            * Matrix4x4.CreateRotationY(rotation)
-                            * Matrix4x4.CreateRotationX(rotation * 0.5f)
-                            * Matrix4x4.CreateTranslation(offsetX, offsetY, 0),
-                    Color = new((float)x / gridSize, (float)y / gridSize, 1.0f - ((float)x / gridSize), 1.0f)
-                };
-
-                index++;
-            }
-        }
-
-        instanceBuffer.Upload(instances, 0);
+        elapsedTime += (float)deltaTime;
+        UploadConstants();
     }
 
-    public void Render()
+    public void Render(CommandBuffer commandBuffer, Texture drawable)
     {
-        CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
+        commandBuffer.SetPipeline(computePipeline);
+        commandBuffer.SetConstantBuffer(constantBuffer, 0);
 
-        commandBuffer.BeginRenderPass(App.FrameBuffer, new()
-        {
-            ColorValues = [new(0.1f, 0.1f, 0.15f, 1.0f)],
-            Depth = 1.0f,
-            Stencil = 0,
-            Flags = ClearFlags.All
-        }, resourceTable);
+        uint groupCount = (InstanceCount + ThreadGroupSize - 1) / ThreadGroupSize;
+        commandBuffer.Dispatch(groupCount, 1, 1);
 
-        commandBuffer.SetPipeline(pipeline);
-        commandBuffer.PushResourceTable(resourceTable);
+        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.VertexShading);
+
+        commandBuffer.Transition(drawable, default, TextureLayout.ColorAttachment);
+        commandBuffer.BeginRenderPass([ColorAttachment.Clear(drawable, new(0.025f, 0.03f, 0.045f, 1.0f))], null);
+
+        commandBuffer.SetPipeline(graphicsPipeline);
         commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
         commandBuffer.SetIndexBuffer(indexBuffer, 0, IndexFormat.UInt32);
+        commandBuffer.SetConstantBuffer(constantBuffer, 0);
         commandBuffer.DrawIndexedIndirect(indirectBuffer, 0, 1);
 
         commandBuffer.EndRenderPass();
-
-        commandBuffer.Submit(waitForCompletion: true);
     }
 
     public void Resize(uint width, uint height)
     {
-        Matrix4x4 view = Matrix4x4.CreateLookAt(new(0, 0, 8), Vector3.Zero, Vector3.UnitY);
-        Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(45.0f), (float)width / height, 0.1f, 100.0f);
-
-        constantsBuffer.Upload([new Constants() { View = view, Projection = projection }], 0);
     }
 
     public void Dispose()
     {
-        pipeline.Dispose();
-        resourceTable.Dispose();
-        instanceBuffer.Dispose();
-        constantsBuffer.Dispose();
+        graphicsPipeline.Dispose();
+        computePipeline.Dispose();
+        constantBuffer.Dispose();
         indirectBuffer.Dispose();
+        instanceBuffer.Dispose();
         indexBuffer.Dispose();
         vertexBuffer.Dispose();
+    }
+
+    private void UploadConstants()
+    {
+        IndirectConstants constants = new()
+        {
+            Time = elapsedTime,
+            InstanceCount = InstanceCount,
+            GridWidth = GridWidth,
+            IndexCount = IndexCount,
+            WritableInstances = instanceBuffer.StorageReadWriteHandle,
+            DrawArguments = indirectBuffer.StorageReadWriteHandle,
+            Instances = instanceBuffer.StorageReadOnlyHandle
+        };
+
+        constantBuffer.Upload(0, new()
+        {
+            Pointer = (nint)(&constants),
+            SizeInBytes = (uint)sizeof(IndirectConstants)
+        });
     }
 }
 
 [StructLayout(LayoutKind.Sequential)]
-file struct Vertex(Vector3 position, Vector4 color)
+file struct Vertex(Vector2 position)
 {
-    public Vector3 Position = position;
-
-    public Vector4 Color = color;
+    public Vector2 Position = position;
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 128)]
-file struct Constants
+[StructLayout(LayoutKind.Explicit, Size = 32)]
+file struct InstanceData
 {
     [FieldOffset(0)]
-    public Matrix4x4 View;
+    public Vector2 Offset;
 
-    [FieldOffset(64)]
-    public Matrix4x4 Projection;
-}
+    [FieldOffset(8)]
+    public float Scale;
 
-[StructLayout(LayoutKind.Explicit, Size = 80)]
-file struct Instance
-{
-    [FieldOffset(0)]
-    public Matrix4x4 Model;
+    [FieldOffset(12)]
+    public float Angle;
 
-    [FieldOffset(64)]
+    [FieldOffset(16)]
     public Vector4 Color;
+}
+
+[StructLayout(LayoutKind.Explicit, Size = 256)]
+file struct IndirectConstants
+{
+    [FieldOffset(0)]
+    public float Time;
+
+    [FieldOffset(4)]
+    public uint InstanceCount;
+
+    [FieldOffset(8)]
+    public uint GridWidth;
+
+    [FieldOffset(12)]
+    public uint IndexCount;
+
+    [FieldOffset(16)]
+    public ResourceHandle WritableInstances;
+
+    [FieldOffset(24)]
+    public ResourceHandle DrawArguments;
+
+    [FieldOffset(32)]
+    public ResourceHandle Instances;
 }
 ```
 
-## Running the Tutorial
+## Run
 
-Run the application and select **5. Indirect Drawing** from the menu:
+Replace `Program.cs` with:
+
+```csharp
+using ZenithTutorials;
+using ZenithTutorials.Renderers;
+
+App.Run<IndirectDrawingRenderer>();
+```
+
+Run the project:
 
 ```bash
 dotnet run
 ```
 
-## Result
+## How It Works
 
-![Indirect Drawing](../../images/indirect-drawing.png)
+### Argument Layout and Buffer Roles
 
-## Code Breakdown
+Zenith.NET defines `IndirectDrawIndexedArgs` in this exact order:
 
-### Shader
+| Field | Type | Value in this tutorial |
+|-------|------|------------------------|
+| `IndexCount` | `uint` | `6` |
+| `InstanceCount` | `uint` | `25` |
+| `FirstIndex` | `uint` | `0` |
+| `VertexOffset` | `int` | `0` |
+| `FirstInstance` | `uint` | `0` |
 
-The vertex shader reads per-instance data from a `StructuredBuffer`:
+The structure is 20 bytes. `StrideInBytes = (uint)sizeof(IndirectDrawIndexedArgs)` therefore matches the stride used by `DrawIndexedIndirect` on every supported Graphics API. The compute shader writes one element, and `DrawIndexedIndirect(indirectBuffer, 0, 1)` consumes one command at byte offset zero.
 
-```csharp
-ConstantBuffer<Constants> constants;
-StructuredBuffer<Instance> instances;
+The indirect buffer is `GpuOnly` and combines `StorageReadWrite` with `Indirect`: compute needs a writable descriptor, while the draw command processor needs indirect-argument access. The instance buffer combines `StorageReadWrite` and `StorageReadOnly`, exposing separate bindless handles for compute writes and vertex-shader reads. Neither buffer needs CPU mapping or a transfer usage because compute initializes both every frame.
 
-PSInput VSMain(VSInput input)
-{
-    Instance instance = instances[input.InstanceID];
+The static vertex and index buffers are also `GpuOnly`. Their `BufferDesc.Vertex` and `BufferDesc.Index` helpers include `TransferDst`, so the constructor's `Upload` calls stage the immutable geometry through the transfer queue and wait before returning. Only the small constants buffer is `CpuWriteOnly` and updated by the CPU.
 
-    float4 worldPos = mul(float4(input.Position, 1.0), instance.Model);
-    float4 viewPos = mul(worldPos, constants.View);
+## Synchronization and Lifetime
 
-    PSInput output;
-    output.Position = mul(viewPos, constants.Projection);
-    output.Color = input.Color * instance.Color;
-
-    return output;
-}
-```
-
-`SV_InstanceID` provides the instance index, used to look up the per-instance model matrix and color from the structured buffer.
-
-### Indirect Draw Buffer
-
-The draw arguments are stored in a GPU buffer instead of being passed as CPU parameters:
+`Dispatch` writes both GPU-only buffers, but buffers do not have texture layouts to transition. The dependency is expressed directly:
 
 ```csharp
-indirectBuffer = App.Context.CreateBuffer(new()
-{
-    SizeInBytes = (uint)sizeof(IndirectDrawIndexedArgs),
-    StrideInBytes = (uint)sizeof(IndirectDrawIndexedArgs),
-    Flags = BufferUsageFlags.Indirect | BufferUsageFlags.MapWrite
-});
-
-indirectBuffer.Upload([new IndirectDrawIndexedArgs()
-{
-    IndexCount = (uint)indices.Length,
-    InstanceCount = InstanceCount,
-    FirstIndex = 0,
-    VertexOffset = 0,
-    FirstInstance = 0
-}], 0);
+commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.VertexShading);
 ```
 
-`IndirectDrawIndexedArgs` mirrors the standard GPU indirect draw structure. Using `DrawIndexedIndirect` instead of `DrawIndexed` allows the GPU to read draw parameters from a buffer, enabling GPU-driven rendering scenarios.
+Within Zenith.NET, the `VertexShading` destination covers the indexed-draw inputs, indirect-command read, and vertex shader read used here. The barrier makes the compute writes available before `DrawIndexedIndirect` reads the arguments and the vertex shader reads the instances. It is not a CPU wait and it does not split the command buffer.
 
-### Structured Buffer
-
-Per-instance data (model matrix + color) is uploaded to a structured buffer each frame:
-
-```csharp
-instanceBuffer = App.Context.CreateBuffer(new()
-{
-    SizeInBytes = (uint)(sizeof(Instance) * InstanceCount),
-    StrideInBytes = (uint)sizeof(Instance),
-    Flags = BufferUsageFlags.ShaderResource | BufferUsageFlags.MapWrite
-});
-```
-
-The `Instance` struct is 80 bytes — a 64-byte `Matrix4x4` plus a 16-byte `Vector4`:
-
-```csharp
-[StructLayout(LayoutKind.Explicit, Size = 80)]
-file struct Instance
-{
-    [FieldOffset(0)]
-    public Matrix4x4 Model;
-
-    [FieldOffset(64)]
-    public Vector4 Color;
-}
-```
-
-### Per-Instance Animation
-
-Each cube gets a unique rotation speed and color based on its grid position:
-
-```csharp
-instances[index] = new()
-{
-    Model = Matrix4x4.CreateScale(0.4f)
-            * Matrix4x4.CreateRotationY(rotation)
-            * Matrix4x4.CreateRotationX(rotation * 0.5f)
-            * Matrix4x4.CreateTranslation(offsetX, offsetY, 0),
-    Color = new((float)x / gridSize, (float)y / gridSize, 1.0f - ((float)x / gridSize), 1.0f)
-};
-```
-
-### View/Projection in Resize
-
-View and projection matrices are set in `Resize` rather than `Update`, since the camera is static and only the aspect ratio changes:
-
-```csharp
-public void Resize(uint width, uint height)
-{
-    Matrix4x4 view = Matrix4x4.CreateLookAt(new(0, 0, 8), Vector3.Zero, Vector3.UnitY);
-    Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(45.0f), (float)width / height, 0.1f, 100.0f);
-
-    constantsBuffer.Upload([new Constants() { View = view, Projection = projection }], 0);
-}
-```
+Both pipelines run on the `GraphicsQueue` command buffer supplied by `App`, preserving their order in one submission. The shared shell performs the final transition of the drawable to `Present`, calls `Submit().Wait()`, and presents it. Because that wait completes the submitted work, all renderer-owned buffers and pipelines can be disposed before the `GraphicsContext` at shutdown.
 
 ## Next Steps
 
-- [Ray Tracing](../advanced/ray-tracing.md) - Cast rays with hardware acceleration structures
-
-## Source Code
-
-> [!TIP]
-> View the complete source code on GitHub: [IndirectDrawingRenderer.cs](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/IndirectDrawingRenderer.cs)
+Continue with [Ray Tracing](../advanced/ray-tracing.md) to build and query acceleration structures through the same explicit RHI.

@@ -1,127 +1,175 @@
-﻿# Textures
+# Textures and Views
 
-Textures are GPU image resources used for rendering, sampling, compute read/write, and render targets.
+Textures store multidimensional formatted data for sampling, storage access, render attachments, copies, resolves, and presentation. A `TextureDesc` defines the shape and permitted usages; each subresource also has a tracked `TextureLayout`.
 
-## Creating a Texture
+## Texture Description
 
 ```csharp
-Texture texture = context.CreateTexture(new TextureDesc
+Texture texture = context.CreateTexture(new()
 {
     Type = TextureType.Texture2D,
     Format = PixelFormat.R8G8B8A8UNorm,
-    Width = 512,
-    Height = 512,
+    Width = 1024,
+    Height = 1024,
     Depth = 1,
     MipLevels = 1,
     ArrayLayers = 1,
     SampleCount = SampleCount.Count1,
-    Flags = TextureUsageFlags.ShaderResource
+    Usages = TextureUsages.Sampled | TextureUsages.TransferDst
 });
 ```
 
-### TextureDesc
+| Field | Description |
+|-------|-------------|
+| `Type` | Dimensionality, array behavior, and cube interpretation |
+| `Format` | Texel or depth/stencil format |
+| `Width`, `Height`, `Depth` | Base mip dimensions |
+| `MipLevels` | Number of mip levels |
+| `ArrayLayers` | Array layers; cube textures use six layers per cube |
+| `SampleCount` | Multisample count |
+| `Usages` | Permitted texture access roles |
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `Type` | `TextureType` | Dimensionality and array/cube configuration |
-| `Format` | `PixelFormat` | Pixel format (color, depth, compressed) |
-| `Width` | `uint` | Width in pixels |
-| `Height` | `uint` | Height in pixels |
-| `Depth` | `uint` | Depth (for 3D textures, otherwise `1`) |
-| `MipLevels` | `uint` | Number of mipmap levels |
-| `ArrayLayers` | `uint` | Number of array layers |
-| `SampleCount` | `SampleCount` | Multisample count |
-| `Flags` | `TextureUsageFlags` | Usage flags |
+## Texture Types
 
-### Texture Types
+Zenith.NET supports `Texture1D`, `Texture1DArray`, `Texture2D`, `Texture2DArray`, `Texture3D`, `TextureCube`, and `TextureCubeArray`.
 
-| Type | Description |
-|------|-------------|
-| `Texture1D` | 1D texture |
-| `Texture1DArray` | Array of 1D textures |
-| `Texture2D` | Standard 2D texture |
-| `Texture2DArray` | Array of 2D textures |
-| `Texture3D` | Volume texture |
-| `TextureCube` | Cube map (6 faces) |
-| `TextureCubeArray` | Array of cube maps |
+Use the helper descriptions for common shapes:
 
-### Usage Flags
+```csharp
+TextureDesc albedoDesc = TextureDesc.Texture2D(PixelFormat.R8G8B8A8UNorm, width, height, mipLevels, SampleCount.Count1);
 
-| Flag | Description |
-|------|-------------|
-| `RenderTarget` | Color render target attachment |
-| `DepthStencil` | Depth/stencil render target attachment |
-| `ShaderResource` | Read-only in shaders (`Texture2D`, etc.) |
-| `UnorderedAccess` | Read-write in compute shaders (`RWTexture2D`, etc.) |
+TextureDesc cubeDesc = TextureDesc.TextureCube(PixelFormat.R16G16B16A16Float, size, mipLevels);
+```
 
-## Pixel Formats
+Texture helpers create sampled transfer destinations by default. Extend `Usages` when the same texture also needs storage or attachment access.
 
-Common formats:
+## Texture Usages
 
-| Category | Formats |
-|----------|---------|
-| Color (8-bit) | `R8G8B8A8UNorm`, `B8G8R8A8UNorm`, `R8G8B8A8SRgb` |
-| Color (16-bit) | `R16G16B16A16Float` |
-| Color (32-bit) | `R32G32B32A32Float` |
-| Depth | `D16UNorm`, `D32Float` |
-| Depth + Stencil | `D24UNormS8UInt`, `D32FloatS8UInt` |
-| Compressed | `BC7UNorm`, `BC7SRgb`, `ETC2R8G8B8A8UNorm`, `ASTC4x4UNorm` |
+| Usage | Purpose |
+|-------|---------|
+| `Sampled` | Read through `SampledHandle` |
+| `Storage` | Read or write through `StorageHandle` |
+| `ColorAttachment` | Use as a color attachment |
+| `DepthStencilAttachment` | Use as a depth/stencil attachment |
+| `TransferSrc` | Copy or download source |
+| `TransferDst` | Copy or upload destination |
+
+Usage declares what a texture may do. Layout declares what one subresource is doing at a particular point in the command stream.
+
+## Attachments
+
+Create color and depth/stencil attachments with the provided helpers:
+
+```csharp
+Texture color = context.CreateTexture(TextureDesc.ColorAttachment(PixelFormat.B8G8R8A8UNorm, width, height, 1, SampleCount.Count1));
+
+Texture depthStencil = context.CreateTexture(TextureDesc.DepthStencilAttachment(PixelFormat.D32FloatS8UInt, width, height, SampleCount.Count1));
+```
+
+Transition attachments before beginning a render pass:
+
+```csharp
+commandBuffer.Transition(color, default, TextureLayout.ColorAttachment);
+commandBuffer.Transition(depthStencil, default, TextureLayout.DepthStencilAttachment);
+```
 
 ## Uploading Data
 
-Upload pixel data directly:
+Provide row and slice strides explicitly:
 
 ```csharp
-byte[] pixelData = [ /* ... */ ];
-texture.Upload(pixelData, slice: default, offset: default, extent: new()
+unsafe
 {
-    Width = texture.Desc.Width,
-    Height = texture.Desc.Height,
-    Depth = 1
-});
+    fixed (Rgba32* pointer = pixels)
+    {
+        texture.Upload(default, default, new()
+        {
+            Width = width,
+            Height = height,
+            Depth = 1
+        }, new()
+        {
+            Pointer = (nint)pointer,
+            SizeInBytes = (uint)(sizeof(Rgba32) * pixels.Length),
+            RowStrideInBytes = rowStrideInBytes,
+            SliceStrideInBytes = sliceStrideInBytes
+        });
+    }
+}
 ```
 
-### Loading from File
+`Texture.Upload` records on the transfer queue and waits. Use `CommandBuffer.Upload` to batch several subresources before one submission.
 
-With the `Zenith.NET.Extensions.ImageSharp` package:
+## ImageSharp Loading
+
+`Zenith.NET.Extensions.ImageSharp` loads RGBA images and optionally creates a full mip chain:
 
 ```csharp
-Texture texture = context.LoadTextureFromFile("image.png", generateMipMaps: true);
+using Zenith.NET.Extensions.ImageSharp;
+
+Texture albedo = context.LoadTextureFromFile("Assets/Textures/Albedo.png", generateMipMaps: true);
 ```
+
+The extension resizes mip images on the CPU, records every mip upload on one transfer command buffer, then submits and waits once.
+
+## Subresources and Layouts
+
+A `TextureSubresource` selects one mip level and array layer:
+
+```csharp
+TextureSubresource subresource = new() { MipLevel = mipLevel, ArrayLayer = arrayLayer };
+
+commandBuffer.Transition(texture, subresource, TextureLayout.Sampled);
+```
+
+Use `default` for mip level zero and array layer zero. Layouts are tracked independently for all subresources.
+
+Texture transitions include the texture-specific synchronization dependency. See [Synchronization and Barriers](../concepts/synchronization.md) for layout definitions and barrier rules.
 
 ## Texture Views
 
-A `TextureView` references a subset of mip levels or array layers:
+Full textures expose handles through an internal default view. Create an explicit `TextureView` to select another type, format, mip range, or array range:
 
 ```csharp
-TextureView view = context.CreateTextureView(new TextureViewDesc
-{
-    Texture = texture,
-    FirstMipLevel = 0,
-    MipLevelCount = 1,
-    FirstArrayLayer = 0,
-    ArrayLayerCount = 1
-});
+TextureView mipView = context.CreateTextureView(TextureViewDesc.Texture2D(texture, texture.Desc.Format, mipLevel, 1));
+
+ResourceHandle sampledMip = mipView.SampledHandle;
 ```
 
-Texture views implement `IBindableResource` and can be written to resource tables.
+Helper descriptions cover all supported texture types. Cube helpers accept cube indices and convert them to six-layer ranges.
 
-## Mipmaps
+Explicit views expose `SampledHandle` and `StorageHandle`. Their selected range must be compatible with the underlying texture description and usage.
 
-Set `MipLevels` to the desired number of levels, or use the `generateMipMaps` parameter when loading from file. In shaders, configure the sampler's `MaxLod` to allow mipmap sampling:
+## Multisampling and Resolve
+
+Create a multisampled color attachment and a single-sampled resolve target with matching formats:
 
 ```csharp
-Sampler sampler = context.CreateSampler(new()
-{
-    Filter = Filter.MinLinearMagLinearMipLinear,
-    MaxLod = uint.MaxValue
-});
+commandBuffer.ResolveTexture(msaaColor, default, resolvedColor, default);
 ```
 
-## Multisampling
+`ResolveTexture` temporarily transitions the source and destination to their resolve layouts, performs the resolve, and restores their tracked layouts.
 
-Set `SampleCount` to `Count2`, `Count4`, `Count8`, `Count16`, or `Count32`. Multisampled textures can be resolved to single-sampled targets:
+## Copies and Downloads
+
+Command buffers support texture-to-texture, buffer-to-texture, and texture-to-buffer copies. The copy helpers transition affected texture subresources to copy layouts and restore them afterward.
+
+`Texture.Download` is synchronous and writes to a `TextureData` destination. Record `CommandBuffer.Download` directly when readback should remain part of a larger command sequence.
+
+## Wrapped Native Textures
+
+`CreateTexture(desc, nativeTextureType, nativeTexture)` wraps a supported native texture handle. The description must match the underlying native resource.
+
+Use `OverrideLayout` when importing a texture whose current layout is known outside Zenith.NET:
 
 ```csharp
-commandBuffer.ResolveTexture(msaaTexture, slice, resolvedTexture, slice);
+texture.OverrideLayout(default, TextureLayout.Sampled);
 ```
+
+`OverrideLayout` only changes Zenith.NET's tracked state. It does not record a GPU transition.
+
+## Lifetime and Resizing
+
+Dispose explicit views before the source texture. Recreate size-dependent textures when the drawable dimensions change, then update every constant structure that stores their handles.
+
+Do not dispose `SwapChain.Drawable`; the swap chain owns it.

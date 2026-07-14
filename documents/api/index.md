@@ -1,99 +1,105 @@
 ﻿# API Reference
 
-Welcome to the Zenith.NET API Reference. This documentation is automatically generated from the source code and provides detailed information about all public types, methods, and properties.
+The API reference is generated from the current Zenith.NET source. Use it for exact type, field, method, and enum signatures after learning the RHI model in [Docs](../docs/index.md).
 
 ## Namespaces
 
 | Namespace | Description |
 |-----------|-------------|
-| Zenith.NET | Core graphics abstractions and resource types |
-| Zenith.NET.DirectX12 | DirectX 12 backend implementation for Windows |
-| Zenith.NET.Metal | Metal 4 backend implementation for Apple platforms |
-| Zenith.NET.Vulkan | Vulkan 1.4 backend implementation for cross-platform support |
+| `Zenith.NET` | Shared RHI types, resource descriptions, pipelines, synchronization, presentation, and Slang compilation |
+| `Zenith.NET.DirectX12` | DirectX 12 Graphics API implementation |
+| `Zenith.NET.Metal` | Metal 4 Graphics API implementation |
+| `Zenith.NET.Vulkan` | Vulkan 1.4 Graphics API implementation |
 
-## Key Types
+## Core Model
 
-### Context & Queues
+| Type | Role |
+|------|------|
+| `GraphicsContext` | Root object for Graphics API identity, capabilities, queues, validation, and resource creation |
+| `GraphicsApi` | Selected implementation: DirectX 12, Metal, or Vulkan |
+| `Capabilities` | Device name plus Ray Tracing and Mesh Shading support |
+| `CommandQueue` | Owns pooled command buffers and one timeline |
+| `CommandBuffer` | Records transitions, barriers, copies, render passes, draws, dispatches, queries, and acceleration-structure builds |
+| `TimelineValue` | Identifies one queue submission for GPU dependencies or CPU waiting |
 
-| Type | Description |
-|------|-------------|
-| `GraphicsContext` | Central hub for creating GPU resources and accessing command queues |
-| `CommandQueue` | Provides command buffers and synchronization (Graphics, Compute, Copy) |
-| `CommandBuffer` | Records and submits GPU commands |
-| `Capabilities` | Reports device name and feature support (ray tracing, mesh shading) |
+Each context exposes `GraphicsQueue`, `ComputeQueue`, and `TransferQueue`.
 
 ### Presentation
 
 | Type | Description |
 |------|-------------|
-| `SwapChain` | Manages double/triple buffering and presentation to a surface |
-| `FrameBuffer` | Render target attachments (color and depth/stencil) |
+| `Surface` | Native window-system handles and drawable dimensions |
+| `SwapChain` | Owns presentation images and exposes the current `Drawable` texture |
+| `SwapChainDesc` | Surface and drawable format |
+| `ColorAttachment` | Color attachment plus load, store, subresource, and clear state |
+| `DepthStencilAttachment` | Depth/stencil attachment plus load, store, and clear state |
 
-### Buffers & Textures
+Presentation is synchronous. Render passes receive attachment structs directly.
 
-| Type | Description |
-|------|-------------|
-| `Buffer` | GPU buffer for vertex, index, constant, or structured data |
-| `BufferView` | A view into a portion of a buffer for shader binding |
-| `Texture` | GPU texture resource (2D, 3D, Cube, Array) |
-| `TextureView` | A view into a texture for shader binding |
-| `Sampler` | Texture sampling and filtering configuration |
-
-### Pipelines
+## Resources and Memory
 
 | Type | Description |
 |------|-------------|
-| `GraphicsPipeline` | Rasterization pipeline configuration |
-| `ComputePipeline` | Compute dispatch pipeline configuration |
-| `MeshShadingPipeline` | Mesh shading pipeline configuration |
+| `Buffer` / `BufferView` | Linear storage and typed subranges |
+| `BufferDesc` / `BufferUsages` | Size, stride, permitted operations, and memory residency |
+| `Texture` / `TextureView` | Formatted multidimensional storage and selected subresource ranges |
+| `TextureDesc` / `TextureUsages` | Shape, format, sample count, and permitted operations |
+| `TextureLayout` / `TextureSubresource` | Tracked access role for each mip level and array layer |
+| `Sampler` / `SamplerDesc` | Filtering, addressing, comparison, anisotropy, and LOD state |
+| `Heap` / `HeapDesc` | Explicit placed-resource allocation |
 
-### Resource Binding
+## Bindless Access
 
-| Type | Description |
-|------|-------------|
-| `ResourceTable` | Manages resource bindings for shader access |
-| `Shader` | Compiled shader module with entry point and stage |
+Buffers, textures, views, samplers, and top-level acceleration structures expose `ResourceHandle` values. Applications place handles in explicitly laid-out constant data, bind that data with `CommandBuffer.SetConstantBuffer`, and resolve the handles in Slang through `DescriptorHandle<T>`.
 
-### Ray Tracing
+Use `BarrierStages` and `CommandBuffer.Barrier` for same-layout memory dependencies. Use `CommandBuffer.Transition` when a texture changes access role.
 
-| Type | Description |
-|------|-------------|
-| `BottomLevelAccelerationStructure` | BLAS containing triangle or AABB geometry |
-| `TopLevelAccelerationStructure` | TLAS containing geometry instances |
-
-### Query
+## Pipelines
 
 | Type | Description |
 |------|-------------|
-| `QueryHeap` | GPU query heap for timestamps and statistics |
+| `Shader` / `ShaderDesc` | Compiled Graphics API shader object and entry metadata |
+| `ZenithCompiler` | Compiles Slang source or files for the selected `GraphicsApi` |
+| `GraphicsPipeline` / `GraphicsPipelineDesc` | Vertex/fragment rasterization pipeline |
+| `ComputePipeline` / `ComputePipelineDesc` | Compute pipeline |
+| `MeshShadingPipeline` / `MeshShadingPipelineDesc` | Optional task plus required mesh/fragment pipeline |
+
+## Ray Tracing
+
+| Type | Description |
+|------|-------------|
+| `RayTracingGeometry` | Triangle or AABB BLAS geometry |
+| `BottomLevelAccelerationStructure` | BLAS built by a command buffer |
+| `RayTracingInstance` | BLAS transform, identity, mask, and instance flags |
+| `TopLevelAccelerationStructure` | TLAS built from BLAS instances and exposed through a bindless handle |
+
+Ray Tracing in the current RHI combines BLAS/TLAS with inline Slang `RayQuery`.
+
+## Queries
+
+| Type | Description |
+|------|-------------|
+| `QueryHeap` / `QueryHeapDesc` | Occlusion, binary occlusion, or timestamp query storage |
 
 ## Extensions
 
 | Namespace | Description |
 |-----------|-------------|
-| Zenith.NET.Extensions.ImageSharp | Texture loading from files/streams via ImageSharp |
-| Zenith.NET.Extensions.ImGui | Dear ImGui rendering integration |
-| Zenith.NET.Extensions.Skia | Skia rendering integration |
-| Zenith.NET.Extensions.Slang | Shader compilation from Slang source files |
+| `Zenith.NET.Extensions.ImageSharp` | Texture loading from ImageSharp streams and files |
+| `Zenith.NET.Extensions.ImGui` | Dear ImGui rendering integration |
+| `Zenith.NET.Extensions.Skia` | Skia rendering integration |
 
 ## Views
 
 | Namespace | Description |
 |-----------|-------------|
-| Zenith.NET.Views | Base view interface and frame scheduling |
-| Zenith.NET.Views.Avalonia | Avalonia UI integration |
-| Zenith.NET.Views.Maui | .NET MAUI integration |
-| Zenith.NET.Views.WinForms | Windows Forms integration |
-| Zenith.NET.Views.WinUI | WinUI 3 and Uno Platform integration |
-| Zenith.NET.Views.WPF | WPF integration |
+| `Zenith.NET.Views` | Shared view contract, frame scheduling, and drawable event data |
+| `Zenith.NET.Views.Avalonia` | Avalonia integration |
+| `Zenith.NET.Views.Maui` | .NET MAUI integration |
+| `Zenith.NET.Views.WinForms` | Windows Forms integration |
+| `Zenith.NET.Views.WinUI` | WinUI 3 and Uno integration |
+| `Zenith.NET.Views.WPF` | WPF integration |
 
 ## Navigation
 
-Browse the namespace tree on the left to explore all available types. Each type page includes:
-
-- **Summary** - Brief description of the type
-- **Properties** - Available properties
-- **Methods** - Available methods
-
-> [!TIP]
-> Start with `GraphicsContext` to understand resource creation, then explore `CommandBuffer` for recording GPU commands.
+Browse the generated namespace tree for complete signatures. Start with `GraphicsContext`, continue with `CommandBuffer`, then inspect the resource and pipeline descriptions used by your workload.

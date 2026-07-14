@@ -1,104 +1,172 @@
-﻿# Graphics Context
+# Graphics Context
 
-The `GraphicsContext` is the central hub of Zenith.NET. All GPU resources are created through it, and it provides access to the three command queues used for submitting work to the GPU.
+`GraphicsContext` is the root object of Zenith.NET. It selects one graphics API, exposes the GPU device capabilities and command queues, creates resources, and owns validation services.
 
-All GPU resources (buffers, textures, pipelines, resource tables, acceleration structures, etc.) implement `IDisposable` and must be explicitly disposed when no longer needed. Dispose all resources before disposing the `GraphicsContext` itself.
+Create resources from the context that will use them. Resources cannot be shared between contexts.
 
-## Creating a Context
+## Graphics API Creation
 
-Backend-specific contexts are created via static extension methods:
+Each graphics API is provided by a separate package and extension namespace:
 
 ```csharp
-// Windows — DirectX 12
-GraphicsContext context = GraphicsContext.CreateDirectX12(useValidationLayer: true);
-
-// Apple — Metal 4
-GraphicsContext context = GraphicsContext.CreateMetal(useValidationLayer: true);
-
-// Cross-platform — Vulkan 1.4
-GraphicsContext context = GraphicsContext.CreateVulkan(useValidationLayer: true);
+using Zenith.NET;
+using Zenith.NET.DirectX12;
+using Zenith.NET.Metal;
+using Zenith.NET.Vulkan;
 ```
 
-The `useValidationLayer` parameter enables runtime validation — invaluable during development, but should be disabled in production for performance.
+Create the context appropriate for the current platform:
 
-## Properties
+```csharp
+GraphicsContext context;
+if (OperatingSystem.IsWindows())
+{
+    context = GraphicsContext.CreateDirectX12(useValidationLayer: true);
+}
+else if (OperatingSystem.IsMacOS())
+{
+    context = GraphicsContext.CreateMetal(useValidationLayer: true);
+}
+else
+{
+    context = GraphicsContext.CreateVulkan(useValidationLayer: true);
+}
+```
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `Backend` | `Backend` | The active backend (`DirectX12`, `Metal`, or `Vulkan`) |
-| `Capabilities` | `Capabilities` | Device name and feature support queries |
-| `Graphics` | `CommandQueue` | Queue for draw, dispatch, and copy commands |
-| `Compute` | `CommandQueue` | Queue for compute dispatches and copies |
-| `Copy` | `CommandQueue` | Queue for data transfer only |
+`GraphicsApi` identifies the selected implementation:
 
-## Resource Creation
+```csharp
+Console.WriteLine(context.GraphicsApi);
+```
 
-All GPU resources are created through `GraphicsContext`:
+Its values are `DirectX12`, `Metal`, and `Vulkan`.
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `CreateSwapChain` | `SwapChain` | Presentation chain for a window surface |
-| `CreateFrameBuffer` | `FrameBuffer` | Off-screen render target attachments |
-| `CreateShader` | `Shader` | Compiled shader module |
-| `CreateBuffer` | `Buffer` | GPU buffer (vertex, index, constant, structured, etc.) |
-| `CreateBufferView` | `BufferView` | View into a buffer for shader binding |
-| `CreateTexture` | `Texture` | GPU texture (2D, 3D, Cube, Array) |
-| `CreateTextureView` | `TextureView` | View into a texture for shader binding |
-| `CreateSampler` | `Sampler` | Texture sampling and filtering configuration |
-| `CreateResourceTable` | `ResourceTable` | Declares and holds resource bindings for shaders |
-| `CreateGraphicsPipeline` | `GraphicsPipeline` | Rasterization pipeline |
-| `CreateComputePipeline` | `ComputePipeline` | Compute dispatch pipeline |
-| `CreateMeshShadingPipeline` | `MeshShadingPipeline` | Mesh shading pipeline |
-| `CreateQueryHeap` | `QueryHeap` | GPU query heap for timestamps and occlusion |
+## Command Queues
 
-## Alignment Constants
+Every context exposes three queues:
 
-Zenith.NET defines alignment constants for cross-platform compatibility:
+| Property | Queue type | Intended work |
+|----------|------------|---------------|
+| `GraphicsQueue` | `CommandQueueType.Graphics` | Rendering, compute, copies, and presentation work |
+| `ComputeQueue` | `CommandQueueType.Compute` | Compute and acceleration structure work |
+| `TransferQueue` | `CommandQueueType.Transfer` | Uploads, downloads, and copies |
 
-| Constant | Value | Purpose |
-|----------|:-----:|---------|
-| `ConstantBufferAlignment` | 256 bytes | Minimum alignment for constant buffer data |
-| `TextureRowPitchAlignment` | 256 bytes | Alignment for texture row pitch |
-| `TextureDepthPitchAlignment` | 512 bytes | Alignment for 3D texture depth slice pitch |
+Request command buffers directly from these queues:
+
+```csharp
+CommandBuffer commandBuffer = context.GraphicsQueue.CommandBuffer();
+```
+
+See [Commands](command-model.md) for recording and [Synchronization and Barriers](synchronization.md) for timeline and memory dependencies.
 
 ## Capabilities
 
-Query device features before using optional capabilities:
+`Capabilities` deliberately exposes the optional feature decisions an application needs:
 
 ```csharp
-Console.WriteLine($"Device: {context.Capabilities.DeviceName}");
+Console.WriteLine(context.Capabilities.DeviceName);
 
 if (context.Capabilities.RayTracingSupported)
 {
-    // Safe to use acceleration structures and RayQuery
+    // Acceleration structures and inline RayQuery are available.
 }
 
 if (context.Capabilities.MeshShadingSupported)
 {
-    // Safe to use mesh shading pipelines
+    // Task and mesh shader pipelines are available.
 }
 ```
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `DeviceName` | `string` | Name of the GPU device |
-| `RayTracingSupported` | `bool` | Whether BLAS/TLAS and RayQuery are available |
-| `MeshShadingSupported` | `bool` | Whether mesh and amplification shaders are available |
+| Property | Description |
+|----------|-------------|
+| `DeviceName` | Name reported by the selected GPU device |
+| `RayTracingSupported` | Acceleration structure and inline `RayQuery` support |
+| `MeshShadingSupported` | Task and mesh shader pipeline support |
 
-## Validation Messages
+Check an optional capability before creating its resources or pipelines. Zenith.NET does not require applications to branch on lower-level graphics API feature tiers.
 
-When the validation layer is enabled, subscribe to `ValidationMessage` to receive diagnostic messages:
+## Resource Creation
+
+The context creates the following public resource categories:
+
+| Factory | Result |
+|---------|--------|
+| `CreateSwapChain` | Presentation swap chain for a native `Surface` |
+| `CreateHeap` | Explicit memory heap for placed buffers and textures |
+| `CreateBuffer` / `CreateBufferView` | Buffers and typed subranges |
+| `CreateTexture` / `CreateTextureView` | Textures and typed subresource ranges |
+| `CreateSampler` | Texture sampling state |
+| `CreateShader` | Graphics API shader object from a `ShaderDesc` |
+| `CreateGraphicsPipeline` | Vertex and fragment rasterization pipeline |
+| `CreateComputePipeline` | Compute pipeline |
+| `CreateMeshShadingPipeline` | Optional task, mesh, and fragment pipeline |
+| `CreateQueryHeap` | Occlusion or timestamp query storage |
+
+Acceleration structures are created by command buffers because building them records GPU work.
+
+## Memory Requirements
+
+Query the required size and alignment before placing a resource in a `Heap`:
 
 ```csharp
-context.ValidationMessage += (sender, args) =>
-{
-    Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
-};
+BufferDesc desc = BufferDesc.StorageReadOnly(sizeInBytes, strideInBytes);
+SizeAndAlignment requirements = context.GetSizeAndAlignment(desc);
+
+Heap heap = context.CreateHeap(HeapDesc.GpuOnly(requirements.SizeInBytes));
+Buffer buffer = heap.CreateBuffer(0, desc);
 ```
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `Source` | `MessageSource` | `Framework` (Zenith.NET checks) or `GraphicsAPI` (backend driver) |
-| `Severity` | `MessageSeverity` | `Error`, `Warning`, or `Message` |
-| `Message` | `string` | The diagnostic message text |
-| `Timestamp` | `DateTimeOffset` | When the message was generated |
+Use the returned `AlignmentInBytes` when packing multiple resources into the same heap.
+
+## Validation
+
+Enable the validation layer during development and subscribe before creating application resources:
+
+```csharp
+GraphicsContext context = GraphicsContext.CreateVulkan(useValidationLayer: true);
+context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
+```
+
+`MessageSeverity` is `Error`, `Warning`, or `Info`. Validation availability and exact messages depend on the selected graphics API and installed development components.
+
+## Resource Names
+
+Every `GraphicsResource` has a `Name`. Assign concise names to improve validation and graphics debugger output:
+
+```csharp
+Buffer vertexBuffer = context.CreateBuffer(BufferDesc.Vertex(sizeInBytes));
+vertexBuffer.Name = "Scene vertices";
+```
+
+Naming does not affect resource identity or shader handles.
+
+## Ownership and Disposal
+
+All contexts and graphics resources implement `IDisposable`. Dispose resources only after their final submission completes, and dispose child resources before their context:
+
+```csharp
+submission.Wait();
+
+pipeline.Dispose();
+constantBuffer.Dispose();
+output.Dispose();
+swapChain.Dispose();
+context.Dispose();
+```
+
+Do not dispose swap-chain drawables. They are owned by the swap chain. Do not retain a drawable as a permanent texture because the current image can change after presentation.
+
+`Dispose()` is idempotent, and `IsDisposed` reports whether disposal has already occurred. Deterministic disposal is still required; finalization is a fallback, not a synchronization mechanism.
+
+## Context Lifetime
+
+A typical application lifetime is:
+
+1. Select and create one `GraphicsContext`.
+2. Subscribe to validation messages.
+3. Create a surface, swap chain, and persistent resources.
+4. Record and submit work through the context queues.
+5. Wait for the last submission that uses each resource.
+6. Dispose resources, then dispose the context.
+
+Use a separate context only when the application intentionally manages another independent graphics device and resource universe.

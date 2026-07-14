@@ -1,624 +1,293 @@
-﻿# Ray Tracing
+# Ray Tracing
 
-In this tutorial, you'll build a real-time ray tracer using hardware-accelerated ray tracing. The scene features three colored spheres on a checkerboard floor with an animated orbiting camera, soft shadows, reflections, and ACES tone mapping — all driven by a compute shader using `RayQuery`.
+Zenith.NET Ray Tracing combines hardware acceleration structures with inline ray queries. The current RHI builds bottom-level and top-level acceleration structures (BLAS and TLAS), exposes the TLAS through a bindless `ResourceHandle`, and traces it with Slang `RayQuery` from a compute shader. It does not use a separate ray-generation, miss, or hit-group pipeline.
+
+This tutorial builds one indexed triangle, traces it into a storage texture, and samples that texture into the swap-chain drawable. It uses the shared application from [Prerequisites](../getting-started/prerequisites.md), including its `IRenderer.Render(CommandBuffer commandBuffer, Texture drawable)` contract.
 
 > [!NOTE]
-> This tutorial requires a GPU with ray tracing support (e.g., NVIDIA RTX, AMD RDNA 2+, or Apple M1+).
+> Ray Tracing must be reported by `App.Context.Capabilities.RayTracingSupported`. Support depends on the selected Graphics API, GPU, driver, and Graphics API implementation.
 
-## Overview
+## Data Flow
 
-This tutorial covers:
+The workload has a one-time setup phase and a per-frame phase.
 
-- Building **Bottom-Level** and **Top-Level Acceleration Structures** (BLAS/TLAS)
-- Using **triangle geometry** for the floor and **procedural AABBs** for spheres
-- Tracing rays with `RayQuery` in a compute shader
-- Implementing **soft shadows**, **reflections**, and **Fresnel** effects
-- Applying **ACES tone mapping** for cinematic color grading
-- Dynamically **resizing** the output texture on window resize
+Setup:
 
-## Key Concepts
+1. The renderer uploads triangle vertex and index buffers.
+2. One compute-queue command buffer builds the BLAS and then the TLAS.
+3. The renderer submits that build command buffer and waits for completion.
 
-### Acceleration Structure Hierarchy
+Per frame:
 
-Ray tracing uses a two-level acceleration structure:
+1. A compute shader uses inline `RayQuery` and writes a storage texture.
+2. The texture changes to sampled access and a fullscreen graphics pass writes the drawable through a fragment shader.
+3. The shared `App` transitions the drawable to `Present`, submits and waits, then calls `SwapChain.Present()`.
 
-| Level | Purpose | Content |
-|-------|---------|---------|
-| **BLAS** (Bottom-Level) | Geometry containers | Triangle meshes or procedural AABBs |
-| **TLAS** (Top-Level) | Scene graph | References to BLAS instances with transforms |
+## Shader
 
-This tutorial builds two BLAS:
-- **Floor BLAS**: A triangle mesh (2 triangles forming a 100×100 quad)
-- **Sphere BLAS**: 3 procedural AABBs (bounding boxes for sphere intersection)
+Create `Assets/Shaders/RayTracing.slang`:
 
-Both are combined into one TLAS for the scene.
-
-### RayQuery
-
-Instead of using a dedicated ray tracing pipeline, Zenith.NET uses `RayQuery` in compute shaders. This inline approach traces rays within any shader stage:
-
-```
-RayQuery<RAY_FLAG_NONE> query;
-query.TraceRayInline(scene, RAY_FLAG_NONE, 0xFF, ray);
-
-while (query.Proceed())
+```slang
+struct RayTracingConstants
 {
-    // Handle procedural intersections
+    private uint4 WidthHeightTimeAndPadding;
+
+    DescriptorHandle<RaytracingAccelerationStructure> Scene;
+
+    DescriptorHandle<RWTexture2D<float4>> OutputTexture;
+
+    DescriptorHandle<Texture2D> Image;
+
+    DescriptorHandle<SamplerState> Sampler;
+
+    property uint Width
+    {
+        get
+        {
+            return WidthHeightTimeAndPadding.x;
+        }
+    }
+
+    property uint Height
+    {
+        get
+        {
+            return WidthHeightTimeAndPadding.y;
+        }
+    }
+
+    property float Time
+    {
+        get
+        {
+            return asfloat(WidthHeightTimeAndPadding.z);
+        }
+    }
+};
+
+uniform RayTracingConstants rayTracing;
+
+float3 Sky(float3 direction)
+{
+    float blend = saturate(direction.y * 0.5 + 0.5);
+
+    return lerp(float3(0.035, 0.045, 0.075), float3(0.24, 0.42, 0.68), blend);
 }
 
-if (query.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+[shader("compute")]
+[numthreads(16, 16, 1)]
+void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    // Handle triangle hit
+    uint2 pixel = dispatchThreadID.xy;
+
+    if (pixel.x >= rayTracing.Width || pixel.y >= rayTracing.Height)
+    {
+        return;
+    }
+
+    float2 uv = (float2(pixel) + 0.5) / float2(rayTracing.Width, rayTracing.Height);
+    float2 ndc = uv * 2.0 - 1.0;
+    ndc.y = -ndc.y;
+
+    float orbit = rayTracing.Time * 0.35;
+    float3 cameraPosition = float3(sin(orbit) * 0.6, 0.15, -3.2);
+    float3 cameraTarget = float3(0.0, 0.0, 0.0);
+    float3 cameraForward = normalize(cameraTarget - cameraPosition);
+    float3 cameraRight = normalize(cross(float3(0.0, 1.0, 0.0), cameraForward));
+    float3 cameraUp = cross(cameraForward, cameraRight);
+
+    float aspect = float(rayTracing.Width) / float(rayTracing.Height);
+    float tanHalfFov = tan(radians(45.0) * 0.5);
+    float3 rayDirection = normalize(cameraForward + ndc.x * aspect * tanHalfFov * cameraRight + ndc.y * tanHalfFov * cameraUp);
+
+    RayDesc ray;
+    ray.Origin = cameraPosition;
+    ray.Direction = rayDirection;
+    ray.TMin = 0.001;
+    ray.TMax = 1000.0;
+
+    RayQuery<RAY_FLAG_NONE> query;
+    query.TraceRayInline(*rayTracing.Scene, RAY_FLAG_NONE, 0xFF, ray);
+
+    while (query.Proceed())
+    {
+    }
+
+    float3 color = Sky(rayDirection);
+
+    if (query.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+    {
+        float2 barycentrics = query.CommittedTriangleBarycentrics();
+        float3 weights = float3(1.0 - barycentrics.x - barycentrics.y, barycentrics.x, barycentrics.y);
+
+        color = float3(1.0, 0.16, 0.08) * weights.x + float3(0.10, 0.92, 0.34) * weights.y + float3(0.12, 0.36, 1.0) * weights.z;
+    }
+
+    (*rayTracing.OutputTexture)[pixel] = float4(color, 1.0);
+}
+
+struct DisplayOutput
+{
+    float4 Position : SV_POSITION;
+
+    float2 TexCoord : TEXCOORD0;
+};
+
+[shader("vertex")]
+DisplayOutput VSMain(uint vertexID : SV_VertexID)
+{
+    float2 texCoord = float2((vertexID << 1) & 2, vertexID & 2);
+
+    DisplayOutput output;
+    output.Position = float4(texCoord * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
+    output.TexCoord = texCoord;
+
+    return output;
+}
+
+[shader("fragment")]
+float4 FSMain(DisplayOutput input) : SV_TARGET
+{
+    return (*rayTracing.Image).Sample(*rayTracing.Sampler, input.TexCoord);
 }
 ```
 
-## The Renderer Class
+`DescriptorHandle<T>` is Slang's bindless view of a Zenith.NET `ResourceHandle`. Dereferencing `Scene` gives `TraceRayInline` the TLAS. The same texture has separate storage and sampled handles because those handles describe different access paths.
 
-Create the file `Renderers/RayTracingRenderer.cs`:
+## Renderer
+
+Create `Renderers/RayTracingRenderer.cs`:
 
 ```csharp
 namespace ZenithTutorials.Renderers;
 
-internal unsafe class RayTracingRenderer : IRenderer
+internal unsafe sealed class RayTracingRenderer : IRenderer
 {
     private const uint ThreadGroupSize = 16;
 
-    private const string ShaderSource = """
-        static const float RayEpsilon = 0.001;
-        static const float TwoPi = 6.2831853;
-        static const uint SphereCount = 3;
-        static const uint ShadowSamples = 6;
-        static const uint ReflectionSamples = 4;
-        static const float ShadowMin = 0.3;
-        static const float SunRadius = 0.04;
-        static const float SphereRoughness = 0.05;
-        static const float SphereF0 = 0.15;
-        static const float FloorFadeStart = 8.0;
-        static const float FloorFadeRange = 20.0;
-
-        static const float3 FloorNormal = float3(0.0, 1.0, 0.0);
-        static const float3 LightDir = float3(0.6667, 0.6667, -0.3333);
-        static const float3 LightColor = float3(1.0, 0.98, 0.95);
-        static const float3 AmbientColor = float3(0.15, 0.15, 0.2);
-
-        struct Constants
-        {
-            private float4 PositionAndPadding;
-
-            property float3 Position
-            {
-                get {
-                    return PositionAndPadding.xyz;
-                }
-            }
-        };
-
-        struct Sphere
-        {
-            private float4 CenterAndRadius;
-
-            private float4 ColorAndPadding;
-
-            property float3 Center
-            {
-                get {
-                    return CenterAndRadius.xyz;
-                }
-            }
-
-            property float Radius
-            {
-                get {
-                    return CenterAndRadius.w;
-                }
-            }
-
-            property float3 Color
-            {
-                get {
-                    return ColorAndPadding.xyz;
-                }
-            }
-        };
-
-        RaytracingAccelerationStructure scene;
-        ConstantBuffer<Constants> constants;
-        StructuredBuffer<Sphere> spheres;
-        RWTexture2D<float4> outputTexture;
-
-        float3 SampleSky(float3 direction)
-        {
-            float t = 0.5 * (direction.y + 1.0);
-            float3 horizon = float3(0.7, 0.85, 1.0);
-            float3 zenith = float3(0.3, 0.5, 1.0);
-            float3 sky = lerp(horizon, zenith, saturate(t));
-
-            float sunDot = dot(direction, LightDir);
-            sky += LightColor * smoothstep(0.995, 0.999, sunDot) * 3.0;
-
-            return sky;
-        }
-
-        float3 ACESFilm(float3 x)
-        {
-            x *= 1.6;
-            float3 a = x * (x * 2.51 + 0.03);
-            float3 b = x * (x * 2.43 + 0.59) + 0.14;
-            float3 result = saturate(a / b);
-
-            float luma = dot(result, float3(0.2126, 0.7152, 0.0722));
-            result = saturate(lerp(float3(luma, luma, luma), result, 1.5));
-
-            return result;
-        }
-
-        float SchlickFresnel(float cosTheta, float f0)
-        {
-            return f0 + (1.0 - f0) * pow(1.0 - cosTheta, 5.0);
-        }
-
-        float3 ShadeCheckerboard(float3 hitPoint, float3 normal, float3 rayDirection, bool softShadow, out float shadow)
-        {
-            float2 fw = max(abs(fwidth_approx(hitPoint.xz)), 0.001);
-            float2 fractPos = fract(hitPoint.xz) - 0.5;
-            float2 filtered = clamp(fractPos / fw, -0.5, 0.5);
-            float checker = 0.5 - 0.5 * filtered.x * filtered.y;
-            float3 baseColor = lerp(float3(0.787, 0.787, 0.787), float3(0.1, 0.1, 0.1), checker);
-
-            float NdotL = max(dot(normal, LightDir), 0.0);
-            float3 shadowOrigin = hitPoint + normal * RayEpsilon;
-            shadow = softShadow ? lerp(ShadowMin, 1.0, TraceSoftShadow(shadowOrigin, LightDir, hitPoint.xz * 100.0)) :
-                                  (TraceShadowRay(shadowOrigin, LightDir) ? ShadowMin : 1.0);
-
-            float3 litColor = baseColor * AmbientColor + baseColor * LightColor * NdotL * shadow;
-
-            float ao = 1.0;
-            for (uint i = 0; i < SphereCount; i++)
-            {
-                float3 toSphere = spheres[i].Center - hitPoint;
-                float horizDist = length(toSphere.xz);
-                float r = spheres[i].Radius;
-                float occl = saturate(1.0 - horizDist / (r * 2.0));
-                float hFactor = saturate(1.0 - toSphere.y / (r * 3.0));
-                ao -= occl * hFactor * 0.4;
-            }
-
-            litColor *= max(ao, 0.3);
-
-            float dist = length(hitPoint.xz);
-            float fade = saturate((dist - FloorFadeStart) / FloorFadeRange);
-            return lerp(litColor, SampleSky(rayDirection), fade);
-        }
-
-        float3 ShadeSphere(float3 hitPoint, float3 normal, float3 sphereColor, float3 viewDir, bool softShadow)
-        {
-            float NdotL = max(dot(normal, LightDir), 0.0);
-
-            float3 halfDir = normalize(LightDir + viewDir);
-            float spec = pow(max(dot(normal, halfDir), 0.0), 64.0);
-
-            float3 shadowOrigin = hitPoint + normal * RayEpsilon;
-            float shadow = softShadow ? lerp(ShadowMin, 1.0, TraceSoftShadow(shadowOrigin, LightDir, hitPoint.xz * 100.0)) :
-                                         (TraceShadowRay(shadowOrigin, LightDir) ? ShadowMin : 1.0);
-
-            float3 diffuse = sphereColor * LightColor * NdotL * shadow;
-            float3 specular = LightColor * spec * shadow;
-            float3 ambient = sphereColor * AmbientColor;
-
-            return ambient + diffuse + specular;
-        }
-
-        float3 TraceReflection(float3 origin, float3 direction)
-        {
-            RayDesc reflectRay;
-            reflectRay.Origin = origin;
-            reflectRay.Direction = direction;
-            reflectRay.TMin = RayEpsilon;
-            reflectRay.TMax = 1000.0;
-
-            float3 sphereNormal = float3(0.0);
-            float3 sphereColor = float3(0.0);
-
-            RayQuery<RAY_FLAG_NONE> query;
-            query.TraceRayInline(scene, RAY_FLAG_NONE, 0xFF, reflectRay);
-
-            while (query.Proceed())
-            {
-                if (query.CandidateType() == CANDIDATE_PROCEDURAL_PRIMITIVE)
-                {
-                    uint sphereIndex = query.CandidatePrimitiveIndex();
-                    Sphere sphere = spheres[sphereIndex];
-
-                    float3 ro = query.CandidateObjectRayOrigin();
-                    float3 rd = query.CandidateObjectRayDirection();
-
-                    float t = IntersectSphere(ro, rd, sphere);
-
-                    if (t >= query.RayTMin() && t <= query.CommittedRayT())
-                    {
-                        float3 hitPoint = ro + rd * t;
-                        sphereNormal = normalize(hitPoint - sphere.Center);
-                        sphereColor = sphere.Color;
-                        query.CommitProceduralPrimitiveHit(t);
-                    }
-                }
-            }
-
-            if (query.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
-            {
-                float3 hitPoint = reflectRay.Origin + reflectRay.Direction * query.CommittedRayT();
-                float unused;
-                return ShadeCheckerboard(hitPoint, FloorNormal, reflectRay.Direction, false, unused);
-            }
-            else if (query.CommittedStatus() == COMMITTED_PROCEDURAL_PRIMITIVE_HIT)
-            {
-                float3 hitPoint = reflectRay.Origin + reflectRay.Direction * query.CommittedRayT();
-                float3 viewDir = normalize(origin - hitPoint);
-                return ShadeSphere(hitPoint, sphereNormal, sphereColor, viewDir, false);
-            }
-            else
-            {
-                return SampleSky(direction);
-            }
-        }
-
-        float IntersectSphere(float3 origin, float3 direction, Sphere sphere)
-        {
-            float3 oc = origin - sphere.Center;
-
-            float b = dot(oc, direction);
-            float c = dot(oc, oc) - sphere.Radius * sphere.Radius;
-            float discriminant = b * b - c;
-
-            if (discriminant > 0.0)
-            {
-                float sqrtD = sqrt(discriminant);
-                float t1 = -b - sqrtD;
-
-                if (t1 > 0.0)
-                {
-                    return t1;
-                }
-
-                float t2 = -b + sqrtD;
-
-                if (t2 > 0.0)
-                {
-                    return t2;
-                }
-            }
-
-            return -1.0;
-        }
-
-        float2 fwidth_approx(float2 p)
-        {
-            float2 dx = float2(0.02, 0.0);
-            float2 dy = float2(0.0, 0.02);
-            return abs(fract(p + dx) - fract(p)) + abs(fract(p + dy) - fract(p));
-        }
-
-        float Hash(float2 p)
-        {
-            float3 p3 = fract(float3(p.xyx) * 0.1031);
-            p3 += dot(p3, p3.yzx + 33.33);
-            return fract((p3.x + p3.y) * p3.z);
-        }
-
-        bool TraceShadowRay(float3 origin, float3 direction)
-        {
-            RayDesc shadowRay;
-            shadowRay.Origin = origin;
-            shadowRay.Direction = direction;
-            shadowRay.TMin = RayEpsilon;
-            shadowRay.TMax = 1000.0;
-
-            RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> shadowQuery;
-            shadowQuery.TraceRayInline(scene, RAY_FLAG_NONE, 0xFF, shadowRay);
-
-            while (shadowQuery.Proceed())
-            {
-                if (shadowQuery.CandidateType() == CANDIDATE_PROCEDURAL_PRIMITIVE)
-                {
-                    uint sphereIndex = shadowQuery.CandidatePrimitiveIndex();
-                    Sphere sphere = spheres[sphereIndex];
-
-                    float3 ro = shadowQuery.CandidateObjectRayOrigin();
-                    float3 rd = shadowQuery.CandidateObjectRayDirection();
-
-                    float t = IntersectSphere(ro, rd, sphere);
-
-                    if (t >= shadowQuery.RayTMin() && t <= shadowQuery.CommittedRayT())
-                    {
-                        shadowQuery.CommitProceduralPrimitiveHit(t);
-                    }
-                }
-            }
-
-            return shadowQuery.CommittedStatus() != COMMITTED_NOTHING;
-        }
-
-        float TraceSoftShadow(float3 origin, float3 direction, float2 pixelSeed)
-        {
-            float3 tangent = normalize(cross(direction, float3(0.0, 1.0, 0.0)));
-            float3 bitangent = cross(direction, tangent);
-
-            float lit = 0.0;
-            for (uint i = 0; i < ShadowSamples; i++)
-            {
-                float h = Hash(pixelSeed + float2(float(i) * 7.13, float(i) * 3.71));
-                float angle = (float(i) + h) * (TwoPi / float(ShadowSamples));
-                float radius = sqrt(Hash(pixelSeed + float2(float(i) * 11.07, 0.0))) * SunRadius;
-                float3 jitteredDir = normalize(direction + tangent * cos(angle) * radius + bitangent * sin(angle) * radius);
-
-                if (!TraceShadowRay(origin, jitteredDir))
-                {
-                    lit += 1.0;
-                }
-            }
-
-            return lit / float(ShadowSamples);
-        }
-
-        float3 TraceRoughReflection(float3 origin, float3 reflectDir, float3 normal, float roughness, float2 pixelSeed)
-        {
-            float3 tangent = normalize(cross(reflectDir, normal));
-            float3 bitangent = cross(reflectDir, tangent);
-
-            float3 accum = float3(0.0);
-            for (uint i = 0; i < ReflectionSamples; i++)
-            {
-                float h1 = Hash(pixelSeed + float2(float(i) * 5.17, float(i) * 9.23));
-                float h2 = Hash(pixelSeed + float2(float(i) * 13.37, float(i) * 2.91));
-                float angle = h1 * TwoPi;
-                float radius = sqrt(h2) * roughness;
-                float3 jitteredDir = normalize(reflectDir + tangent * cos(angle) * radius + bitangent * sin(angle) * radius);
-                accum += TraceReflection(origin, jitteredDir);
-            }
-
-            return accum / float(ReflectionSamples);
-        }
-
-        float3 ShadeFloor(float3 hitPoint, float3 rayDir, float3 cameraPos)
-        {
-            float shadow;
-            float3 directColor = ShadeCheckerboard(hitPoint, FloorNormal, rayDir, true, shadow);
-
-            float3 viewDir = normalize(cameraPos - hitPoint);
-            float3 halfDir = normalize(LightDir + viewDir);
-            float floorSpec = pow(max(dot(FloorNormal, halfDir), 0.0), 128.0);
-            float specDist = length(hitPoint.xz);
-            float specFade = 1.0 - saturate((specDist - FloorFadeStart) / FloorFadeRange);
-            directColor += LightColor * floorSpec * 0.4 * specFade * shadow;
-
-            float3 reflectDir = reflect(rayDir, FloorNormal);
-            float3 reflectColor = TraceReflection(hitPoint + FloorNormal * RayEpsilon, reflectDir);
-            float fresnel = SchlickFresnel(max(dot(FloorNormal, viewDir), 0.0), 0.02);
-
-            return lerp(directColor, reflectColor, fresnel);
-        }
-
-        float3 ShadePrimarySphere(float3 hitPoint, float3 rayDir, float3 cameraPos, float3 normal, float3 sphereColor)
-        {
-            float3 viewDir = normalize(cameraPos - hitPoint);
-
-            float3 directColor = ShadeSphere(hitPoint, normal, sphereColor, viewDir, true);
-
-            float3 reflectDir = reflect(rayDir, normal);
-            float3 reflectColor = TraceRoughReflection(hitPoint + normal * RayEpsilon, reflectDir, normal, SphereRoughness, hitPoint.xz * 100.0);
-            float fresnel = SchlickFresnel(max(dot(normal, viewDir), 0.0), SphereF0);
-
-            return lerp(directColor, reflectColor, fresnel);
-        }
-
-        [numthreads(16, 16, 1)]
-        void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
-        {
-            uint2 pixelCoord = dispatchThreadID.xy;
-
-            uint width, height;
-            outputTexture.GetDimensions(width, height);
-
-            if (pixelCoord.x >= width || pixelCoord.y >= height)
-            {
-                return;
-            }
-
-            float2 uv = (float2(pixelCoord) + 0.5) / float2(width, height);
-            float2 ndc = uv * 2.0 - 1.0;
-            ndc.y = -ndc.y;
-
-            float aspectRatio = float(width) / float(height);
-            float fov = tan(radians(45.0) * 0.5);
-
-            float3 cameraPos = constants.Position;
-            float3 cameraTarget = float3(0.0, 0.5, 0.0);
-            float3 cameraUp = float3(0.0, 1.0, 0.0);
-
-            float3 forward = normalize(cameraTarget - cameraPos);
-            float3 right = normalize(cross(forward, cameraUp));
-            float3 up = cross(right, forward);
-
-            float3 rayDir = normalize(forward + ndc.x * aspectRatio * fov * right + ndc.y * fov * up);
-
-            RayDesc ray;
-            ray.Origin = cameraPos;
-            ray.Direction = rayDir;
-            ray.TMin = RayEpsilon;
-            ray.TMax = 1000.0;
-
-            float3 sphereHitNormal = float3(0.0);
-            float3 sphereHitColor = float3(0.0);
-
-            RayQuery<RAY_FLAG_NONE> query;
-            query.TraceRayInline(scene, RAY_FLAG_NONE, 0xFF, ray);
-
-            while (query.Proceed())
-            {
-                if (query.CandidateType() == CANDIDATE_PROCEDURAL_PRIMITIVE)
-                {
-                    uint sphereIndex = query.CandidatePrimitiveIndex();
-                    Sphere sphere = spheres[sphereIndex];
-
-                    float3 ro = query.CandidateObjectRayOrigin();
-                    float3 rd = query.CandidateObjectRayDirection();
-
-                    float t = IntersectSphere(ro, rd, sphere);
-
-                    if (t >= query.RayTMin() && t <= query.CommittedRayT())
-                    {
-                        float3 hitPoint = ro + rd * t;
-
-                        sphereHitNormal = normalize(hitPoint - sphere.Center);
-                        sphereHitColor = sphere.Color;
-
-                        query.CommitProceduralPrimitiveHit(t);
-                    }
-                }
-            }
-
-            float3 color;
-
-            if (query.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
-            {
-                float3 hitPoint = ray.Origin + ray.Direction * query.CommittedRayT();
-                color = ShadeFloor(hitPoint, rayDir, cameraPos);
-            }
-            else if (query.CommittedStatus() == COMMITTED_PROCEDURAL_PRIMITIVE_HIT)
-            {
-                float3 hitPoint = ray.Origin + ray.Direction * query.CommittedRayT();
-                color = ShadePrimarySphere(hitPoint, rayDir, cameraPos, sphereHitNormal, sphereHitColor);
-            }
-            else
-            {
-                color = SampleSky(rayDir);
-            }
-
-            color = ACESFilm(color);
-
-            outputTexture[pixelCoord] = float4(color, 1.0);
-        }
-        """;
-
-    private static readonly ResourceBinding[] ResourceBindings =
-    [
-        new() { Type = ResourceType.AccelerationStructure, Count = 1 },
-        new() { Type = ResourceType.ConstantBuffer, Count = 1 },
-        new() { Type = ResourceType.StructuredBuffer, Count = 1 },
-        new() { Type = ResourceType.TextureReadWrite, Count = 1 }
-    ];
-
-    private readonly Buffer floorVertexBuffer;
-    private readonly Buffer floorIndexBuffer;
-    private readonly Buffer aabbBuffer;
-    private readonly BottomLevelAccelerationStructure floorBlas;
-    private readonly BottomLevelAccelerationStructure sphereBlas;
+    private readonly Buffer vertexBuffer;
+    private readonly Buffer indexBuffer;
+    private readonly Buffer constantBuffer;
+    private readonly Sampler sampler;
+    private readonly ComputePipeline rayTracingPipeline;
+    private readonly GraphicsPipeline displayPipeline;
+
+    private readonly BottomLevelAccelerationStructure blas;
     private readonly TopLevelAccelerationStructure tlas;
-    private readonly Buffer constantsBuffer;
-    private readonly Buffer sphereBuffer;
-    private readonly ComputePipeline pipeline;
 
-    private Texture? outputTexture;
-    private ResourceTable? resourceTable;
+    private Texture outputTexture;
     private float totalTime;
 
     public RayTracingRenderer()
     {
         if (!App.Context.Capabilities.RayTracingSupported)
         {
-            throw new NotSupportedException("Ray tracing is not supported on this device.");
+            throw new NotSupportedException(
+                $"Ray Tracing is not supported by '{App.Context.Capabilities.DeviceName}' " +
+                $"through the {App.Context.GraphicsApi} Graphics API.");
         }
 
-        Vector3[] floorVertices =
+        Vector3[] vertices =
         [
-            new(-50.0f, 0.0f, -50.0f),
-            new( 50.0f, 0.0f, -50.0f),
-            new( 50.0f, 0.0f,  50.0f),
-            new(-50.0f, 0.0f,  50.0f)
+            new(-1.35f, -1.0f, 0.0f),
+            new( 0.0f,   1.25f, 0.0f),
+            new( 1.35f, -1.0f, 0.0f)
         ];
-        uint[] floorIndices = [0, 1, 2, 0, 2, 3];
 
-        floorVertexBuffer = App.Context.CreateBuffer(new()
+        uint[] indices = [0, 1, 2];
+
+        vertexBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)(sizeof(Vector3) * floorVertices.Length),
+            SizeInBytes = (uint)(sizeof(Vector3) * vertices.Length),
             StrideInBytes = (uint)sizeof(Vector3),
-            Flags = BufferUsageFlags.Vertex | BufferUsageFlags.AccelerationStructure
+            Usages = BufferUsages.StorageReadOnly | BufferUsages.TransferDst,
+            Residency = MemoryResidency.GpuOnly
         });
-        floorVertexBuffer.Upload(floorVertices, 0);
 
-        floorIndexBuffer = App.Context.CreateBuffer(new()
+        fixed (Vector3* pointer = vertices)
         {
-            SizeInBytes = (uint)(sizeof(uint) * floorIndices.Length),
-            StrideInBytes = sizeof(uint),
-            Flags = BufferUsageFlags.Index | BufferUsageFlags.AccelerationStructure
-        });
-        floorIndexBuffer.Upload(floorIndices, 0);
-
-        Sphere[] spheres =
-        [
-            new() { Center = new(-2.0f, 1.0f, 1.0f), Radius = 1.0f, Color = new(0.8f, 0.2f, 0.2f) },
-            new() { Center = new( 2.0f, 1.2f, -1.0f), Radius = 1.2f, Color = new(0.2f, 0.4f, 0.8f) },
-            new() { Center = new( 0.0f, 0.6f, -3.0f), Radius = 0.6f, Color = new(0.9f, 0.7f, 0.2f) }
-        ];
-
-        Vector3[] aabbs = new Vector3[spheres.Length * 2];
-        for (int i = 0; i < spheres.Length; i++)
-        {
-            aabbs[i * 2] = spheres[i].Center - new Vector3(spheres[i].Radius);
-            aabbs[(i * 2) + 1] = spheres[i].Center + new Vector3(spheres[i].Radius);
+            vertexBuffer.Upload(0, new()
+            {
+                Pointer = (nint)pointer,
+                SizeInBytes = (uint)(sizeof(Vector3) * vertices.Length)
+            });
         }
 
-        aabbBuffer = App.Context.CreateBuffer(new()
+        indexBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)(sizeof(Vector3) * aabbs.Length),
-            StrideInBytes = (uint)(sizeof(Vector3) * 2),
-            Flags = BufferUsageFlags.ShaderResource | BufferUsageFlags.AccelerationStructure
+            SizeInBytes = (uint)(sizeof(uint) * indices.Length),
+            StrideInBytes = sizeof(uint),
+            Usages = BufferUsages.StorageReadOnly | BufferUsages.TransferDst,
+            Residency = MemoryResidency.GpuOnly
         });
-        aabbBuffer.Upload(aabbs, 0);
 
-        CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
+        fixed (uint* pointer = indices)
+        {
+            indexBuffer.Upload(0, new()
+            {
+                Pointer = (nint)pointer,
+                SizeInBytes = (uint)(sizeof(uint) * indices.Length)
+            });
+        }
 
-        floorBlas = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
+        constantBuffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)sizeof(RayTracingConstants),
+            Usages = BufferUsages.Constant,
+            Residency = MemoryResidency.CpuWriteOnly
+        });
+
+        sampler = App.Context.CreateSampler(SamplerDesc.LinearClamp());
+
+        using Shader computeShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, App.ShaderPath("RayTracing.slang"), "CSMain"));
+        using Shader vertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, App.ShaderPath("RayTracing.slang"), "VSMain"));
+        using Shader fragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, App.ShaderPath("RayTracing.slang"), "FSMain"));
+
+        rayTracingPipeline = App.Context.CreateComputePipeline(new() { ComputeShader = computeShader });
+
+        displayPipeline = App.Context.CreateGraphicsPipeline(new()
+        {
+            VertexShader = vertexShader,
+            FragmentShader = fragmentShader,
+            InputLayouts = [],
+            PrimitiveTopology = PrimitiveTopology.TriangleList,
+            AttachmentFormats = new()
+            {
+                ColorFormats = [App.ColorFormat],
+                SampleCount = SampleCount.Count1
+            },
+            RenderState = new()
+            {
+                Rasterizer = RasterizerState.CullNone(),
+                DepthStencil = DepthStencilState.DepthNone(),
+                Blend = BlendState.Opaque()
+            }
+        });
+
+        CommandBuffer commandBuffer = App.Context.ComputeQueue.CommandBuffer();
+
+        blas = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
         {
             Geometries =
             [
                 new()
                 {
-                    Type = RayTracingGeometryType.Triangles,
-                    Triangles = new()
+                    Type = RayTracingGeometryType.Triangle,
+                    TriangleGeometry = new()
                     {
-                        VertexBuffer = floorVertexBuffer,
+                        VertexBuffer = vertexBuffer,
                         VertexFormat = PixelFormat.R32G32B32Float,
-                        VertexCount = (uint)floorVertices.Length,
+                        VertexCount = (uint)vertices.Length,
                         VertexStrideInBytes = (uint)sizeof(Vector3),
-                        IndexBuffer = floorIndexBuffer,
+                        IndexBuffer = indexBuffer,
                         IndexFormat = IndexFormat.UInt32,
-                        IndexCount = (uint)floorIndices.Length,
+                        IndexCount = (uint)indices.Length,
                         Transform = Matrix4x4.Identity
                     },
-                    Flags = RayTracingGeometryFlags.Opaque
+                    IsOpaque = true
                 }
             ],
-            Flags = AccelerationStructureBuildFlags.PreferFastTrace
-        });
-
-        sphereBlas = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
-        {
-            Geometries =
-            [
-                new()
-                {
-                    Type = RayTracingGeometryType.AABBs,
-                    AABBs = new()
-                    {
-                        Buffer = aabbBuffer,
-                        Count = (uint)spheres.Length,
-                        StrideInBytes = (uint)(sizeof(Vector3) * 2)
-                    },
-                    Flags = RayTracingGeometryFlags.Opaque
-                }
-            ],
-            Flags = AccelerationStructureBuildFlags.PreferFastTrace
+            BuildFlags = AccelerationStructureBuildFlags.PreferFastTrace
         });
 
         tlas = commandBuffer.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
@@ -627,315 +296,184 @@ internal unsafe class RayTracingRenderer : IRenderer
             [
                 new()
                 {
-                    AccelerationStructure = floorBlas,
-                    ID = 0,
-                    Mask = 0xFF,
-                    Transform = Matrix4x4.Identity,
-                    Flags = RayTracingInstanceFlags.None
-                },
-                new()
-                {
-                    AccelerationStructure = sphereBlas,
-                    ID = 1,
-                    Mask = 0xFF,
+                    AccelerationStructure = blas,
+                    InstanceId = 0,
+                    VisibilityMask = 0xFF,
                     Transform = Matrix4x4.Identity,
                     Flags = RayTracingInstanceFlags.None
                 }
             ],
-            Flags = AccelerationStructureBuildFlags.PreferFastTrace
+            BuildFlags = AccelerationStructureBuildFlags.PreferFastTrace
         });
 
-        commandBuffer.Submit(waitForCompletion: true);
+        commandBuffer.Submit().Wait();
 
-        constantsBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)sizeof(Constants),
-            StrideInBytes = (uint)sizeof(Constants),
-            Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
-        });
-
-        sphereBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(Sphere) * spheres.Length),
-            StrideInBytes = (uint)sizeof(Sphere),
-            Flags = BufferUsageFlags.ShaderResource
-        });
-        sphereBuffer.Upload(spheres, 0);
-
-        using Shader computeShader = App.Context.LoadShaderFromSource(ShaderSource, "CSMain", ShaderStageFlags.Compute);
-
-        pipeline = App.Context.CreateComputePipeline(new()
-        {
-            Compute = computeShader,
-            ResourceBindings = ResourceBindings,
-            ThreadGroupSizeX = ThreadGroupSize,
-            ThreadGroupSizeY = ThreadGroupSize,
-            ThreadGroupSizeZ = 1
-        });
+        outputTexture = CreateOutputTexture(App.Width, App.Height);
     }
 
     public void Update(double deltaTime)
     {
         totalTime += (float)deltaTime;
-
-        float angle = totalTime * 0.3f;
-
-        constantsBuffer.Upload([new Constants()
-        {
-            Position = new(12.0f * MathF.Sin(angle), 4.0f + MathF.Sin(totalTime * 0.2f), -12.0f * MathF.Cos(angle))
-        }], 0);
     }
 
-    public void Render()
+    public void Render(CommandBuffer commandBuffer, Texture drawable)
     {
-        outputTexture ??= App.Context.CreateTexture(new()
+        RayTracingConstants constants = new()
         {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.B8G8R8A8UNorm,
             Width = App.Width,
             Height = App.Height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+            Time = totalTime,
+            Scene = tlas.Handle,
+            OutputTexture = outputTexture.StorageHandle,
+            Image = outputTexture.SampledHandle,
+            Sampler = sampler.Handle
+        };
+
+        constantBuffer.Upload(0, new()
+        {
+            Pointer = (nint)(&constants),
+            SizeInBytes = (uint)sizeof(RayTracingConstants)
         });
 
-        resourceTable ??= App.Context.CreateResourceTable(new() { Bindings = ResourceBindings });
-        resourceTable.Write(0, tlas);
-        resourceTable.Write(1, constantsBuffer);
-        resourceTable.Write(2, sphereBuffer);
-        resourceTable.Write(3, outputTexture);
+        commandBuffer.Transition(outputTexture, default, TextureLayout.Storage);
+        commandBuffer.SetPipeline(rayTracingPipeline);
+        commandBuffer.SetConstantBuffer(constantBuffer, 0);
+        commandBuffer.Dispatch((App.Width + ThreadGroupSize - 1) / ThreadGroupSize, (App.Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
 
-        CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
+        commandBuffer.Transition(outputTexture, default, TextureLayout.Sampled);
+        commandBuffer.Transition(drawable, default, TextureLayout.ColorAttachment);
+        commandBuffer.BeginRenderPass([ColorAttachment.DontCare(drawable)], null);
 
-        commandBuffer.SetPipeline(pipeline);
-        commandBuffer.PushResourceTable(resourceTable);
+        commandBuffer.SetPipeline(displayPipeline);
+        commandBuffer.SetConstantBuffer(constantBuffer, 0);
+        commandBuffer.Draw(3, 1, 0, 0);
 
-        uint dispatchX = (App.Width + ThreadGroupSize - 1) / ThreadGroupSize;
-        uint dispatchY = (App.Height + ThreadGroupSize - 1) / ThreadGroupSize;
-
-        commandBuffer.Dispatch(dispatchX, dispatchY, 1);
-
-        commandBuffer.CopyTexture(outputTexture,
-                                  default,
-                                  default,
-                                  App.FrameBuffer.Desc.ColorAttachments[0].Target,
-                                  default,
-                                  default,
-                                  new() { Width = App.Width, Height = App.Height, Depth = 1 });
-
-        commandBuffer.Submit(waitForCompletion: true);
+        commandBuffer.EndRenderPass();
     }
 
     public void Resize(uint width, uint height)
     {
-        resourceTable?.Dispose();
-        resourceTable = null;
+        Texture replacement = CreateOutputTexture(width, height);
 
-        outputTexture?.Dispose();
-        outputTexture = null;
+        outputTexture.Dispose();
+        outputTexture = replacement;
     }
 
     public void Dispose()
     {
-        resourceTable?.Dispose();
-        outputTexture?.Dispose();
+        outputTexture.Dispose();
+        displayPipeline.Dispose();
+        rayTracingPipeline.Dispose();
+        sampler.Dispose();
+        constantBuffer.Dispose();
 
-        pipeline.Dispose();
-        sphereBuffer.Dispose();
-        constantsBuffer.Dispose();
         tlas.Dispose();
-        sphereBlas.Dispose();
-        floorBlas.Dispose();
-        aabbBuffer.Dispose();
-        floorIndexBuffer.Dispose();
-        floorVertexBuffer.Dispose();
+        blas.Dispose();
+
+        indexBuffer.Dispose();
+        vertexBuffer.Dispose();
+    }
+
+    private static Texture CreateOutputTexture(uint width, uint height)
+    {
+        return App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R32G32B32A32Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Usages = TextureUsages.Storage | TextureUsages.Sampled
+        });
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 16)]
-file struct Constants
+[StructLayout(LayoutKind.Explicit, Size = 48)]
+file struct RayTracingConstants
 {
     [FieldOffset(0)]
-    public Vector3 Position;
-}
+    public uint Width;
 
-[StructLayout(LayoutKind.Explicit, Size = 32)]
-file struct Sphere
-{
-    [FieldOffset(0)]
-    public Vector3 Center;
+    [FieldOffset(4)]
+    public uint Height;
+
+    [FieldOffset(8)]
+    public float Time;
 
     [FieldOffset(12)]
-    public float Radius;
+    public uint Padding;
 
     [FieldOffset(16)]
-    public Vector3 Color;
+    public ResourceHandle Scene;
+
+    [FieldOffset(24)]
+    public ResourceHandle OutputTexture;
+
+    [FieldOffset(32)]
+    public ResourceHandle Image;
+
+    [FieldOffset(40)]
+    public ResourceHandle Sampler;
 }
 ```
 
-## Running the Tutorial
+## Run
 
-Run the application and select **6. Ray Tracing** from the menu:
+The shared `App.Run<TRenderer>()` constructs the renderer before registering frame callbacks. If construction throws, its `finally` block still disposes the swap chain, window, and graphics context. Catch the capability exception at the entry point so an unsupported device receives a concise message instead of only an unhandled exception stack.
+
+Replace `Program.cs` with:
+
+```csharp
+using ZenithTutorials;
+using ZenithTutorials.Renderers;
+
+try
+{
+    App.Run<RayTracingRenderer>();
+}
+catch (NotSupportedException exception)
+{
+    Console.Error.WriteLine(exception.Message);
+    Environment.ExitCode = 1;
+}
+```
+
+This is a runtime check against the actual context and selected Graphics API. A platform-name or GPU-family check would not reliably describe the enabled Graphics API features.
+
+Run the tutorial application:
 
 ```bash
 dotnet run
 ```
 
-## Result
+On a supported device, the window shows a slowly orbiting, barycentrically colored triangle over a sky gradient. On an unsupported device, the process prints the device name and selected Graphics API, then exits with a nonzero code.
 
-![Ray Tracing](../../images/ray-tracing.png)
+## How It Works
 
-## Code Breakdown
+The explicit C# layout matches the Slang struct byte for byte. The first 16 bytes correspond to `uint4 WidthHeightTimeAndPadding`; `Time` occupies the third 32-bit lane and Slang recovers it with `asfloat`. Each `ResourceHandle` occupies 8 bytes, so the four descriptors begin at offsets 16, 24, 32, and 40. The full constant block is 48 bytes.
 
-### Acceleration Structures
+The intermediate output uses `R32G32B32A32Float`, matching the storage-texture path used by the compute tutorial. The display pipeline samples that texture and converts the result into `App.ColorFormat` when it writes the swap-chain drawable.
 
-The floor uses triangle geometry, while spheres use procedural AABBs:
+## Synchronization and Lifetime
 
-```csharp
-floorBlas = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
-{
-    Geometries =
-    [
-        new()
-        {
-            Type = RayTracingGeometryType.Triangles,
-            Triangles = new()
-            {
-                VertexBuffer = floorVertexBuffer,
-                VertexFormat = PixelFormat.R32G32B32Float,
-                VertexCount = (uint)floorVertices.Length,
-                VertexStrideInBytes = (uint)sizeof(Vector3),
-                IndexBuffer = floorIndexBuffer,
-                IndexFormat = IndexFormat.UInt32,
-                IndexCount = (uint)floorIndices.Length,
-                Transform = Matrix4x4.Identity
-            },
-            Flags = RayTracingGeometryFlags.Opaque
-        }
-    ],
-    Flags = AccelerationStructureBuildFlags.PreferFastTrace
-});
-```
+### Synchronization
 
-For procedural geometry, AABBs (axis-aligned bounding boxes) are provided as min/max pairs. The actual intersection is computed in the shader:
+The vertex and index `Upload` calls use Zenith.NET's transfer queue and wait before returning. The BLAS and TLAS builds are then recorded in that order into one compute-queue command buffer, matching the repository's path tracing renderer. Queue order makes the BLAS available to the following TLAS build, and `commandBuffer.Submit().Wait()` completes both builds before any graphics-queue command buffer can trace the TLAS.
 
-```csharp
-Vector3[] aabbs = new Vector3[spheres.Length * 2];
+Per-frame Ray Tracing and display work share the graphics-queue command buffer supplied by `App`. The output texture transitions to `Storage` before `Dispatch`, then to `Sampled` before the fragment shader reads it. That layout-changing transition carries the compute-write to fragment-read dependency, so no redundant global barrier is needed. The drawable remains in `ColorAttachment` when `Render` returns; the shared `App` owns its final `Present` transition, submission wait, and presentation.
 
-for (int i = 0; i < spheres.Length; i++)
-{
-    aabbs[i * 2] = spheres[i].Center - new Vector3(spheres[i].Radius);
-    aabbs[(i * 2) + 1] = spheres[i].Center + new Vector3(spheres[i].Radius);
-}
-```
+### Resize and Lifetime
 
-### TLAS Assembly
+`Resize` creates the replacement texture before disposing the old one. The next `Render` call writes the replacement's storage and sampled handles into the constant buffer, so no stale bindless handle survives a resize. This is safe with the shared synchronous frame loop because the preceding frame submission has completed before resize work runs.
 
-The top-level structure combines both BLAS instances:
-
-```csharp
-tlas = commandBuffer.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
-{
-    Instances =
-    [
-        new()
-        {
-            AccelerationStructure = floorBlas,
-            ID = 0,
-            Mask = 0xFF,
-            Transform = Matrix4x4.Identity,
-            Flags = RayTracingInstanceFlags.None
-        },
-        new()
-        {
-            AccelerationStructure = sphereBlas,
-            ID = 1,
-            Mask = 0xFF,
-            Transform = Matrix4x4.Identity,
-            Flags = RayTracingInstanceFlags.None
-        }
-    ],
-    Flags = AccelerationStructureBuildFlags.PreferFastTrace
-});
-```
-
-### Resource Bindings
-
-The compute shader accesses four resources — acceleration structure, constants, sphere data, and the output texture:
-
-```csharp
-private static readonly ResourceBinding[] ResourceBindings =
-[
-    new() { Type = ResourceType.AccelerationStructure, Count = 1 },
-    new() { Type = ResourceType.ConstantBuffer, Count = 1 },
-    new() { Type = ResourceType.StructuredBuffer, Count = 1 },
-    new() { Type = ResourceType.TextureReadWrite, Count = 1 }
-];
-```
-
-### Animated Camera
-
-The camera orbits the scene, creating a cinematic flythrough:
-
-```csharp
-public void Update(double deltaTime)
-{
-    totalTime += (float)deltaTime;
-
-    float angle = totalTime * 0.3f;
-
-    constantsBuffer.Upload([new Constants()
-    {
-        Position = new(12.0f * MathF.Sin(angle), 4.0f + MathF.Sin(totalTime * 0.2f), -12.0f * MathF.Cos(angle))
-    }], 0);
-}
-```
-
-The camera position traces a circle of radius 12 with vertical bobbing.
-
-### Dynamic Resize
-
-The output texture and resource table are recreated when the window resizes:
-
-```csharp
-public void Resize(uint width, uint height)
-{
-    resourceTable?.Dispose();
-    resourceTable = null;
-
-    outputTexture?.Dispose();
-    outputTexture = null;
-}
-```
-
-Using nullable fields with `??=` in `Render()` provides lazy reallocation:
-
-```csharp
-outputTexture ??= App.Context.CreateTexture(new() { ... });
-resourceTable ??= App.Context.CreateResourceTable(new() { ... });
-```
-
-### Shader Rendering Techniques
-
-The shader implements several rendering techniques:
-
-| Technique | Function | Description |
-|-----------|----------|-------------|
-| Sky gradient | `SampleSky` | Horizon-to-zenith color blend with sun disk |
-| Soft shadows | `TraceSoftShadow` | Jittered shadow rays simulating area light |
-| Reflections | `TraceReflection` / `TraceRoughReflection` | Single and multi-sample reflection rays |
-| Fresnel | `SchlickFresnel` | Angle-dependent reflectivity |
-| Tone mapping | `ACESFilm` | ACES filmic curve with saturation boost |
-| Checkerboard | `ShadeCheckerboard` | Anti-aliased procedural floor pattern |
-| Sphere AO | Per-sphere loop | Contact-based ambient occlusion on floor |
+Disposal follows resource dependencies in reverse: the output and pipelines go first, then the sampler and constant buffer, TLAS, BLAS, and finally the geometry buffers retained by the BLAS. The shared application disposes the renderer before disposing `App.Context`.
 
 ## Next Steps
 
-- [Mesh Shading](mesh-shading.md) - Use the modern mesh shader pipeline with GPU-driven culling
-
-## Source Code
-
-> [!TIP]
-> View the complete source code on GitHub: [RayTracingRenderer.cs](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/RayTracingRenderer.cs)
+- Add more triangle geometries to the BLAS and use `CommittedPrimitiveIndex()` to select material data.
+- Add additional BLAS instances with different transforms and visibility masks to the TLAS.
+- Add recursive lighting by issuing more inline `RayQuery` operations from the compute shader.
+- Continue with [Mesh Shading](mesh-shading.md).

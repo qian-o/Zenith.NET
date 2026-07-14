@@ -1,79 +1,95 @@
 ﻿# Ray Tracing
 
-Zenith.NET supports hardware-accelerated ray tracing through a two-level acceleration structure hierarchy and `RayQuery` inline tracing in compute shaders.
+Zenith.NET Ray Tracing combines BLAS/TLAS acceleration structures with inline shader `RayQuery` operations.
 
-> [!NOTE]
-> Ray tracing requires `context.Capabilities.RayTracingSupported == true`.
+## Capability Check
 
-## Acceleration Structures
-
-### Hierarchy
-
-| Level | Type | Contains |
-|-------|------|----------|
-| **BLAS** | `BottomLevelAccelerationStructure` | Triangle meshes or procedural AABBs |
-| **TLAS** | `TopLevelAccelerationStructure` | References to BLAS instances with transforms |
-
-### Building a BLAS
-
-BLAS is built from geometry descriptions via a `CommandBuffer`:
-
-**Triangle geometry:**
+Ray tracing support is runtime-gated:
 
 ```csharp
-BottomLevelAccelerationStructure blas = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
+if (!context.Capabilities.RayTracingSupported)
+{
+    return;
+}
+```
+
+## Acceleration Structure Model
+
+| Level | Type | Content |
+|-------|------|---------|
+| BLAS | `BottomLevelAccelerationStructure` | Triangle or AABB geometry |
+| TLAS | `TopLevelAccelerationStructure` | Instances of BLAS with transform/flags |
+
+`CommandBuffer` provides build and update entry points:
+
+- `BuildAccelerationStructure(BottomLevelAccelerationStructureDesc)`
+- `BuildAccelerationStructure(TopLevelAccelerationStructureDesc)`
+- `UpdateAccelerationStructure(...)`
+
+## BLAS: Triangle and AABB Geometry
+
+Triangle BLAS:
+
+```csharp
+BottomLevelAccelerationStructure triangleBlas = commandBuffer.BuildAccelerationStructure(new()
 {
     Geometries =
     [
         new()
         {
-            Type = RayTracingGeometryType.Triangles,
-            Triangles = new()
+            Type = RayTracingGeometryType.Triangle,
+            TriangleGeometry = new()
             {
                 VertexBuffer = vertexBuffer,
                 VertexFormat = PixelFormat.R32G32B32Float,
                 VertexCount = vertexCount,
-                VertexStrideInBytes = 12,
+                VertexStrideInBytes = vertexStrideInBytes,
+                VertexOffsetInBytes = 0,
                 IndexBuffer = indexBuffer,
                 IndexFormat = IndexFormat.UInt32,
                 IndexCount = indexCount,
+                IndexOffsetInBytes = 0,
                 Transform = Matrix4x4.Identity
             },
-            Flags = RayTracingGeometryFlags.Opaque
+            IsOpaque = true
         }
     ],
-    Flags = AccelerationStructureBuildFlags.PreferFastTrace
+    BuildFlags = AccelerationStructureBuildFlags.PreferFastTrace
 });
 ```
 
-**Procedural AABB geometry:**
+AABB BLAS:
 
 ```csharp
-BottomLevelAccelerationStructure blas = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
+BottomLevelAccelerationStructure aabbBlas = commandBuffer.BuildAccelerationStructure(new()
 {
     Geometries =
     [
         new()
         {
-            Type = RayTracingGeometryType.AABBs,
-            AABBs = new()
+            Type = RayTracingGeometryType.Aabb,
+            AabbGeometry = new()
             {
                 Buffer = aabbBuffer,
                 Count = aabbCount,
-                StrideInBytes = 24  // 2 × Vector3 (min, max)
+                StrideInBytes = 24,
+                OffsetInBytes = 0
             },
-            Flags = RayTracingGeometryFlags.Opaque
+            IsOpaque = true
         }
     ],
-    Flags = AccelerationStructureBuildFlags.PreferFastTrace
+    BuildFlags = AccelerationStructureBuildFlags.PreferFastTrace
 });
 ```
 
-Buffers used for BLAS input require `BufferUsageFlags.AccelerationStructure`.
+You can also use helpers:
 
-### Building a TLAS
+- `RayTracingGeometry.Triangles(...)`
+- `RayTracingGeometry.Aabbs(...)`
 
-TLAS combines BLAS instances into a scene:
+## TLAS Build and Update
+
+Build TLAS from `RayTracingInstance[]`:
 
 ```csharp
 TopLevelAccelerationStructure tlas = commandBuffer.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
@@ -82,93 +98,123 @@ TopLevelAccelerationStructure tlas = commandBuffer.BuildAccelerationStructure(ne
     [
         new()
         {
-            AccelerationStructure = meshBlas,
-            ID = 0,
-            Mask = 0xFF,
+            AccelerationStructure = triangleBlas,
+            InstanceId = 0,
+            VisibilityMask = 0xFF,
             Transform = Matrix4x4.Identity,
             Flags = RayTracingInstanceFlags.None
         }
     ],
-    Flags = AccelerationStructureBuildFlags.PreferFastTrace
+    BuildFlags = AccelerationStructureBuildFlags.PreferFastTrace
 });
 ```
 
-### RayTracingInstance
-
-| Field | Description |
-|-------|-------------|
-| `AccelerationStructure` | The BLAS to instance |
-| `ID` | User-defined instance ID (readable in shaders) |
-| `Mask` | Visibility mask for ray filtering |
-| `Transform` | 3×4 transform matrix |
-| `Flags` | Instance behavior flags |
-
-### Updating a TLAS
-
-Update an existing TLAS in-place (e.g., for animated transforms):
+Update in place when previously created with `AllowUpdate`:
 
 ```csharp
-commandBuffer.UpdateAccelerationStructure(tlas, newDesc);
+commandBuffer.UpdateAccelerationStructure(tlas, new TopLevelAccelerationStructureDesc
+{
+    Instances = updatedInstances,
+    BuildFlags = AccelerationStructureBuildFlags.AllowUpdate | AccelerationStructureBuildFlags.PreferFastTrace
+});
 ```
 
-### Build Flags
+## Build Flags
 
-| Flag | Description |
-|------|-------------|
-| `PreferFastTrace` | Optimize for ray traversal speed |
-| `PreferFastBuild` | Optimize for build speed |
-| `AllowUpdate` | Allow in-place updates (required for `UpdateAccelerationStructure`) |
+`AccelerationStructureBuildFlags`:
 
-## RayQuery
+- `None`
+- `AllowUpdate`
+- `AllowCompaction`
+- `PreferFastTrace`
+- `PreferFastBuild`
+- `MinimizeMemory`
 
-Zenith.NET uses `RayQuery` in compute shaders (inline ray tracing) rather than a dedicated ray tracing pipeline:
+Pick flags based on scene behavior (static vs dynamic) and memory/performance goals.
 
-```hlsl
-RaytracingAccelerationStructure scene;
+`AllowCompaction` maps to the native build hint where the Graphics API supports it, but the current RHI does not expose an acceleration-structure compaction command. Do not select it unless the application integrates the required native operation separately.
 
-[numthreads(16, 16, 1)]
-void CSMain(uint3 id : SV_DispatchThreadID)
+## Bindless TLAS Handles
+
+Bind TLAS through a `ResourceHandle` in your constant struct:
+
+```csharp
+[StructLayout(LayoutKind.Explicit, Size = 32)]
+file struct PathTracingConstants
 {
-    RayDesc ray;
-    ray.Origin = cameraPos;
-    ray.Direction = rayDir;
-    ray.TMin = 0.001;
-    ray.TMax = 1000.0;
+    [FieldOffset(0)]
+    public ResourceHandle Scene;
 
-    RayQuery<RAY_FLAG_NONE> query;
-    query.TraceRayInline(scene, RAY_FLAG_NONE, 0xFF, ray);
+    [FieldOffset(8)]
+    public ResourceHandle OutputTexture;
+}
 
-    while (query.Proceed())
-    {
-        if (query.CandidateType() == CANDIDATE_PROCEDURAL_PRIMITIVE)
-        {
-            // Custom intersection test for procedural geometry
-            float t = IntersectSphere(query.CandidateObjectRayOrigin(),
-                                       query.CandidateObjectRayDirection(), sphere);
-            if (t > 0)
-                query.CommitProceduralPrimitiveHit(t);
-        }
-    }
+PathTracingConstants constants = new()
+{
+    Scene = tlas.Handle,
+    OutputTexture = outputTexture.StorageHandle
+};
+```
 
-    if (query.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
-    {
-        float t = query.CommittedRayT();
-        // Shade triangle hit
-    }
+Shader side:
+
+```slang
+struct PathTracingConstants
+{
+    DescriptorHandle<RaytracingAccelerationStructure> Scene;
+    DescriptorHandle<RWTexture2D<float4>> OutputTexture;
+};
+
+uniform PathTracingConstants pathTracing;
+```
+
+See [Bindless Resources](../concepts/resource-binding.md) for handle lifetime and mapping rules.
+
+## Inline RayQuery in Slang
+
+Inline ray tracing uses `RayQuery` with `TraceRayInline`:
+
+```slang
+RayDesc ray;
+ray.Origin = origin;
+ray.Direction = direction;
+ray.TMin = 0.001;
+ray.TMax = 100000.0;
+
+RayQuery<RAY_FLAG_NONE> query;
+query.TraceRayInline(*pathTracing.Scene, RAY_FLAG_NONE, 0xFF, ray);
+
+while (query.Proceed())
+{
+}
+
+if (query.CommittedStatus() == COMMITTED_NOTHING)
+{
+    // Miss
+}
+else
+{
+    uint primitiveIndex = query.CommittedPrimitiveIndex();
+    float2 barycentrics = query.CommittedTriangleBarycentrics();
 }
 ```
 
-## Resource Binding
+For shadow rays, a common fast path is `RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH>`.
 
-Bind the TLAS to a resource table as `ResourceType.AccelerationStructure`:
+## Synchronization and Lifetime
+
+Ray tracing resources follow normal explicit synchronization and ownership rules:
+
+- Build/update BLAS or TLAS on a command buffer, then synchronize before use on another queue with `TimelineValue` waits.
+- Keep BLAS/TLAS alive until all submissions that may access their handles are complete.
+- Rebuild or update TLAS when instance transforms or membership changes.
+
+Example queue dependency:
 
 ```csharp
-ResourceBinding[] bindings =
-[
-    new() { Type = ResourceType.AccelerationStructure, Count = 1 },
-    new() { Type = ResourceType.TextureReadWrite, Count = 1 }
-];
-
-resourceTable.Write(0, tlas);
-resourceTable.Write(1, outputTexture);
+TimelineValue built = buildCommands.Submit();
+TimelineValue traced = traceCommands.Submit(built);
+traced.Wait();
 ```
+
+See [Synchronization and Barriers](../concepts/synchronization.md) for queue and barrier guidance.

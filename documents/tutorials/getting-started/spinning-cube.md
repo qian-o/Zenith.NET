@@ -1,93 +1,90 @@
 ﻿# Spinning Cube
 
-In this tutorial, you'll render a spinning 3D cube with per-vertex colors. This introduces constant buffers for uploading transformation matrices, and per-frame updates for animation.
+Render a continuously rotating, indexed 3D cube with per-vertex colors. This tutorial adds a Model-View-Projection constant buffer, back-face culling, depth testing, and a depth texture that follows the drawable size.
 
-## Overview
+## Shader
 
-This tutorial covers:
+Create `Assets/Shaders/SpinningCube.slang`:
 
-- Building **Model/View/Projection** transformation matrices
-- Creating and updating a **constant buffer** each frame
-- Using **back-face culling** and **depth testing** for 3D rendering
-- Animating object rotation over time in the `Update` loop
+```slang
+struct VSInput
+{
+    float3 Position : POSITION0;
 
-## The Renderer Class
+    float4 Color : COLOR0;
+};
 
-Create the file `Renderers/SpinningCubeRenderer.cs`:
+struct FSInput
+{
+    float4 Position : SV_POSITION;
+
+    float4 Color : COLOR0;
+};
+
+struct Constants
+{
+    float4x4 Model;
+
+    float4x4 View;
+
+    float4x4 Projection;
+};
+
+uniform Constants constants;
+
+[shader("vertex")]
+FSInput VSMain(VSInput input)
+{
+    float4x4 modelView = mul(constants.Model, constants.View);
+    float4x4 mvp = mul(modelView, constants.Projection);
+
+    FSInput output;
+    output.Position = mul(float4(input.Position, 1.0), mvp);
+    output.Color = input.Color;
+
+    return output;
+}
+
+[shader("fragment")]
+float4 FSMain(FSInput input) : SV_TARGET
+{
+    return input.Color;
+}
+```
+
+The shader receives three 4x4 matrices through one `uniform` constant block. Its row-vector multiplication order matches `System.Numerics.Matrix4x4` and the current CornellBox shaders.
+
+## Renderer
+
+Create `Renderers/SpinningCubeRenderer.cs`:
 
 ```csharp
 namespace ZenithTutorials.Renderers;
 
-internal unsafe class SpinningCubeRenderer : IRenderer
+internal unsafe sealed class SpinningCubeRenderer : IRenderer
 {
-    private const string ShaderSource = """
-        struct VSInput
-        {
-            float3 Position : POSITION0;
-
-            float4 Color : COLOR0;
-        };
-
-        struct PSInput
-        {
-            float4 Position : SV_POSITION;
-
-            float4 Color : COLOR;
-        };
-
-        struct Constants
-        {
-            float4x4 Model;
-
-            float4x4 View;
-
-            float4x4 Projection;
-        };
-
-        ConstantBuffer<Constants> constants;
-
-        PSInput VSMain(VSInput input)
-        {
-            float4x4 mvp = mul(mul(constants.Model, constants.View), constants.Projection);
-
-            PSInput output;
-            output.Position = mul(float4(input.Position, 1.0), mvp);
-            output.Color = input.Color;
-
-            return output;
-        }
-
-        float4 PSMain(PSInput input) : SV_TARGET
-        {
-            return input.Color;
-        }
-        """;
-
-    private static readonly ResourceBinding[] ResourceBindings =
-    [
-        new() { Type = ResourceType.ConstantBuffer, Count = 1 }
-    ];
+    private const PixelFormat DepthFormat = PixelFormat.D32FloatS8UInt;
 
     private readonly Buffer vertexBuffer;
     private readonly Buffer indexBuffer;
-    private readonly Buffer constantsBuffer;
-    private readonly ResourceTable resourceTable;
+    private readonly Buffer constantBuffer;
     private readonly GraphicsPipeline pipeline;
 
+    private Texture depthTexture;
     private float rotationAngle;
 
     public SpinningCubeRenderer()
     {
         Vertex[] vertices =
         [
-            new(new(-0.5f, -0.5f,  0.5f), new(1.0f, 0.0f, 0.0f, 1.0f)),
-            new(new( 0.5f, -0.5f,  0.5f), new(0.0f, 1.0f, 0.0f, 1.0f)),
-            new(new( 0.5f,  0.5f,  0.5f), new(0.0f, 0.0f, 1.0f, 1.0f)),
-            new(new(-0.5f,  0.5f,  0.5f), new(1.0f, 1.0f, 0.0f, 1.0f)),
-            new(new(-0.5f, -0.5f, -0.5f), new(1.0f, 0.0f, 1.0f, 1.0f)),
-            new(new( 0.5f, -0.5f, -0.5f), new(0.0f, 1.0f, 1.0f, 1.0f)),
-            new(new( 0.5f,  0.5f, -0.5f), new(1.0f, 1.0f, 1.0f, 1.0f)),
-            new(new(-0.5f,  0.5f, -0.5f), new(0.5f, 0.5f, 0.5f, 1.0f))
+            new() { Position = new(-0.5f, -0.5f, 0.5f), Color = new(1.0f, 0.0f, 0.0f, 1.0f) },
+            new() { Position = new(0.5f, -0.5f, 0.5f), Color = new(0.0f, 1.0f, 0.0f, 1.0f) },
+            new() { Position = new(0.5f, 0.5f, 0.5f), Color = new(0.0f, 0.0f, 1.0f, 1.0f) },
+            new() { Position = new(-0.5f, 0.5f, 0.5f), Color = new(1.0f, 1.0f, 0.0f, 1.0f) },
+            new() { Position = new(-0.5f, -0.5f, -0.5f), Color = new(1.0f, 0.0f, 1.0f, 1.0f) },
+            new() { Position = new(0.5f, -0.5f, -0.5f), Color = new(0.0f, 1.0f, 1.0f, 1.0f) },
+            new() { Position = new(0.5f, 0.5f, -0.5f), Color = new(1.0f, 1.0f, 1.0f, 1.0f) },
+            new() { Position = new(-0.5f, 0.5f, -0.5f), Color = new(0.5f, 0.5f, 0.5f, 1.0f) }
         ];
 
         uint[] indices =
@@ -100,54 +97,65 @@ internal unsafe class SpinningCubeRenderer : IRenderer
             4, 5, 1, 4, 1, 0
         ];
 
-        vertexBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length),
-            StrideInBytes = (uint)sizeof(Vertex),
-            Flags = BufferUsageFlags.Vertex | BufferUsageFlags.MapWrite
-        });
-        vertexBuffer.Upload(vertices, 0);
+        vertexBuffer = App.Context.CreateBuffer(BufferDesc.Vertex((uint)(sizeof(Vertex) * vertices.Length)));
 
-        indexBuffer = App.Context.CreateBuffer(new()
+        fixed (Vertex* pointer = vertices)
         {
-            SizeInBytes = (uint)(sizeof(uint) * indices.Length),
-            StrideInBytes = sizeof(uint),
-            Flags = BufferUsageFlags.Index | BufferUsageFlags.MapWrite
-        });
-        indexBuffer.Upload(indices, 0);
+            vertexBuffer.Upload(0, new()
+            {
+                Pointer = (nint)pointer,
+                SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length)
+            });
+        }
 
-        constantsBuffer = App.Context.CreateBuffer(new()
+        indexBuffer = App.Context.CreateBuffer(BufferDesc.Index((uint)(sizeof(uint) * indices.Length)));
+
+        fixed (uint* pointer = indices)
+        {
+            indexBuffer.Upload(0, new()
+            {
+                Pointer = (nint)pointer,
+                SizeInBytes = (uint)(sizeof(uint) * indices.Length)
+            });
+        }
+
+        constantBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)sizeof(Constants),
-            StrideInBytes = (uint)sizeof(Constants),
-            Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
+            Usages = BufferUsages.Constant,
+            Residency = MemoryResidency.CpuWriteOnly
         });
 
-        resourceTable = App.Context.CreateResourceTable(new() { Bindings = ResourceBindings });
-        resourceTable.Write(0, constantsBuffer);
+        depthTexture = CreateDepthTexture(App.Width, App.Height);
 
         InputLayout inputLayout = new();
         inputLayout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position });
         inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Color });
 
-        using Shader vertexShader = App.Context.LoadShaderFromSource(ShaderSource, "VSMain", ShaderStageFlags.Vertex);
-        using Shader pixelShader = App.Context.LoadShaderFromSource(ShaderSource, "PSMain", ShaderStageFlags.Pixel);
+        using Shader vertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, App.ShaderPath("SpinningCube.slang"), "VSMain"));
+        using Shader fragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, App.ShaderPath("SpinningCube.slang"), "FSMain"));
 
         pipeline = App.Context.CreateGraphicsPipeline(new()
         {
-            RenderStates = new()
-            {
-                RasterizerState = RasterizerStates.CullBack,
-                DepthStencilState = DepthStencilStates.Default,
-                BlendState = BlendStates.Opaque
-            },
-            Vertex = vertexShader,
-            Pixel = pixelShader,
-            ResourceBindings = ResourceBindings,
+            VertexShader = vertexShader,
+            FragmentShader = fragmentShader,
             InputLayouts = [inputLayout],
             PrimitiveTopology = PrimitiveTopology.TriangleList,
-            Output = App.FrameBuffer.Output
+            AttachmentFormats = new()
+            {
+                ColorFormats = [App.ColorFormat],
+                DepthStencilFormat = DepthFormat,
+                SampleCount = SampleCount.Count1
+            },
+            RenderState = new()
+            {
+                Rasterizer = RasterizerState.CullBack(),
+                DepthStencil = DepthStencilState.DepthReadWrite(),
+                Blend = BlendState.Opaque()
+            }
         });
+
+        Update(0.0);
     }
 
     public void Update(double deltaTime)
@@ -155,55 +163,79 @@ internal unsafe class SpinningCubeRenderer : IRenderer
         rotationAngle += (float)deltaTime;
 
         Matrix4x4 model = Matrix4x4.CreateRotationY(rotationAngle) * Matrix4x4.CreateRotationX(rotationAngle * 0.5f);
-        Matrix4x4 view = Matrix4x4.CreateLookAt(new(0, 0, 3), Vector3.Zero, Vector3.UnitY);
+        Matrix4x4 view = Matrix4x4.CreateLookAt(new(0.0f, 0.0f, 3.0f), Vector3.Zero, Vector3.UnitY);
         Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(45.0f), (float)App.Width / App.Height, 0.1f, 100.0f);
 
-        constantsBuffer.Upload([new Constants() { Model = model, View = view, Projection = projection }], 0);
+        Constants constants = new()
+        {
+            Model = model,
+            View = view,
+            Projection = projection
+        };
+
+        constantBuffer.Upload(0, new()
+        {
+            Pointer = (nint)(&constants),
+            SizeInBytes = (uint)sizeof(Constants)
+        });
     }
 
-    public void Render()
+    public void Render(CommandBuffer commandBuffer, Texture drawable)
     {
-        CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
+        commandBuffer.Transition(drawable, default, TextureLayout.ColorAttachment);
+        commandBuffer.Transition(depthTexture, default, TextureLayout.DepthStencilAttachment);
 
-        commandBuffer.BeginRenderPass(App.FrameBuffer, new()
-        {
-            ColorValues = [new(0.1f, 0.1f, 0.1f, 1.0f)],
-            Depth = 1.0f,
-            Stencil = 0,
-            Flags = ClearFlags.All
-        }, resourceTable);
+        commandBuffer.BeginRenderPass([ColorAttachment.Clear(drawable, new(0.04f, 0.055f, 0.075f, 1.0f))], DepthStencilAttachment.Clear(depthTexture, 1.0f, 0));
 
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.PushResourceTable(resourceTable);
         commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
         commandBuffer.SetIndexBuffer(indexBuffer, 0, IndexFormat.UInt32);
+        commandBuffer.SetConstantBuffer(constantBuffer, 0);
         commandBuffer.DrawIndexed(36, 1, 0, 0, 0);
 
         commandBuffer.EndRenderPass();
-
-        commandBuffer.Submit(waitForCompletion: true);
     }
 
     public void Resize(uint width, uint height)
     {
+        depthTexture.Dispose();
+        depthTexture = CreateDepthTexture(width, height);
     }
 
     public void Dispose()
     {
         pipeline.Dispose();
-        resourceTable.Dispose();
-        constantsBuffer.Dispose();
+        depthTexture.Dispose();
+        constantBuffer.Dispose();
         indexBuffer.Dispose();
         vertexBuffer.Dispose();
     }
+
+    private static Texture CreateDepthTexture(uint width, uint height)
+    {
+        return App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = DepthFormat,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Usages = TextureUsages.DepthStencilAttachment
+        });
+    }
 }
 
-[StructLayout(LayoutKind.Sequential)]
-file struct Vertex(Vector3 position, Vector4 color)
+[StructLayout(LayoutKind.Explicit, Size = 28)]
+file struct Vertex
 {
-    public Vector3 Position = position;
+    [FieldOffset(0)]
+    public Vector3 Position;
 
-    public Vector4 Color = color;
+    [FieldOffset(12)]
+    public Vector4 Color;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 192)]
@@ -220,123 +252,35 @@ file struct Constants
 }
 ```
 
-## Running the Tutorial
+## Run
 
-Run the application and select **3. Spinning Cube** from the menu:
+Replace `Program.cs` with:
+
+```csharp
+using ZenithTutorials;
+using ZenithTutorials.Renderers;
+
+App.Run<SpinningCubeRenderer>();
+```
+
+Run the project:
 
 ```bash
 dotnet run
 ```
 
-## Result
-
 ![Spinning Cube](../../images/spinning-cube.png)
 
-## Code Breakdown
+## How It Works
 
-### Shader
+`Update` accumulates elapsed time, composes the model rotation, builds a camera view, and recalculates the perspective projection from the current drawable aspect ratio. The three matrices occupy 192 bytes and are uploaded to the CPU-writable constant buffer before `SetConstantBuffer` binds it.
 
-The vertex shader computes the Model-View-Projection transform:
+The pipeline enables back-face culling and read-write depth testing. Before each pass, the renderer transitions the drawable to `ColorAttachment` and its depth texture to `DepthStencilAttachment`; both are cleared when the pass begins. The depth test keeps only the closest cube surfaces.
 
-```csharp
-private const string ShaderSource = """
-    struct Constants
-    {
-        float4x4 Model;
+## Synchronization and Lifetime
 
-        float4x4 View;
-
-        float4x4 Projection;
-    };
-
-    ConstantBuffer<Constants> constants;
-
-    PSInput VSMain(VSInput input)
-    {
-        float4x4 mvp = mul(mul(constants.Model, constants.View), constants.Projection);
-
-        PSInput output;
-        output.Position = mul(float4(input.Position, 1.0), mvp);
-        output.Color = input.Color;
-
-        return output;
-    }
-    """;
-```
-
-`ConstantBuffer<Constants>` gives the shader access to the CPU-uploaded matrices.
-
-### Constant Buffer
-
-A constant buffer is created for the MVP matrices, updated every frame:
-
-```csharp
-constantsBuffer = App.Context.CreateBuffer(new()
-{
-    SizeInBytes = (uint)sizeof(Constants),
-    StrideInBytes = (uint)sizeof(Constants),
-    Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
-});
-```
-
-The `Constants` struct uses explicit layout to match HLSL/Slang packing rules:
-
-```csharp
-[StructLayout(LayoutKind.Explicit, Size = 192)]
-file struct Constants
-{
-    [FieldOffset(0)]
-    public Matrix4x4 Model;
-
-    [FieldOffset(64)]
-    public Matrix4x4 View;
-
-    [FieldOffset(128)]
-    public Matrix4x4 Projection;
-}
-```
-
-Each `Matrix4x4` is 64 bytes (4x4 floats), giving a total size of 192 bytes.
-
-### Animation
-
-The `Update` method accumulates time and builds transformation matrices:
-
-```csharp
-public void Update(double deltaTime)
-{
-    rotationAngle += (float)deltaTime;
-
-    Matrix4x4 model = Matrix4x4.CreateRotationY(rotationAngle) * Matrix4x4.CreateRotationX(rotationAngle * 0.5f);
-    Matrix4x4 view = Matrix4x4.CreateLookAt(new(0, 0, 3), Vector3.Zero, Vector3.UnitY);
-    Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(45.0f), (float)App.Width / App.Height, 0.1f, 100.0f);
-
-    constantsBuffer.Upload([new Constants() { Model = model, View = view, Projection = projection }], 0);
-}
-```
-
-| Matrix | Purpose |
-|--------|---------|
-| **Model** | Combined Y and X rotation, creating a tumbling effect |
-| **View** | Camera at `(0, 0, 3)` looking at the origin |
-| **Projection** | Perspective with 45-degree FOV |
-
-### Render States
-
-The pipeline now uses `CullBack` instead of `CullNone`:
-
-```csharp
-RasterizerState = RasterizerStates.CullBack,
-DepthStencilState = DepthStencilStates.Default,
-```
-
-Back-face culling discards triangles facing away from the camera, which is essential for 3D rendering performance.
+`Resize` disposes the old depth texture and creates one matching the new width and height. This is safe with the shared synchronous frame loop, and `Dispose` releases the final depth texture with the other renderer-owned resources. The shared `App` still owns final drawable presentation.
 
 ## Next Steps
 
-- [Compute Shader](../intermediate/compute-shader.md) - Process textures on the GPU with compute pipelines
-
-## Source Code
-
-> [!TIP]
-> View the complete source code on GitHub: [SpinningCubeRenderer.cs](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs)
+Continue with [Compute Shader](../intermediate/compute-shader.md) to move from graphics work to general GPU dispatch.

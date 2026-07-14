@@ -1,94 +1,139 @@
-﻿# Samplers
+# Samplers
 
-Samplers define how textures are read in shaders — controlling filtering, address wrapping, and level of detail.
+Samplers define filtering, address modes, comparison behavior, anisotropy, and level-of-detail selection independently from textures. Shaders access them through a bindless `ResourceHandle`.
 
-## Creating a Sampler
+## Common Samplers
+
+`SamplerDesc` provides helpers for the most common combinations:
 
 ```csharp
-Sampler sampler = context.CreateSampler(new SamplerDesc
-{
-    U = AddressMode.Wrap,
-    V = AddressMode.Wrap,
-    W = AddressMode.Wrap,
-    Filter = Filter.MinLinearMagLinearMipLinear,
-    MaxLod = uint.MaxValue
-});
+Sampler linearWrap = context.CreateSampler(SamplerDesc.LinearWrap());
+Sampler linearClamp = context.CreateSampler(SamplerDesc.LinearClamp());
+Sampler pointWrap = context.CreateSampler(SamplerDesc.PointWrap());
+Sampler pointClamp = context.CreateSampler(SamplerDesc.PointClamp());
+Sampler anisotropic = context.CreateSampler(SamplerDesc.Anisotropic(16));
 ```
 
-### SamplerDesc
+These helpers configure all descriptor fields, including comparison behavior, LOD range, and border color.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `U` | `AddressMode` | Horizontal address mode |
-| `V` | `AddressMode` | Vertical address mode |
-| `W` | `AddressMode` | Depth address mode (3D textures) |
-| `Filter` | `Filter` | Minification, magnification, and mipmap filtering |
-| `ComparisonFunc` | `ComparisonFunc` | Comparison function for shadow sampling |
-| `MaxAnisotropy` | `uint` | Maximum anisotropic filtering level |
-| `MinLod` | `float` | Minimum mip LOD clamp |
-| `MaxLod` | `float` | Maximum mip LOD clamp |
-| `LodBias` | `float` | LOD bias offset |
-| `BorderColor` | `BorderColor` | Border color when using `AddressMode.Border` |
+## Sampler Description
 
-## Address Modes
-
-Address modes control what happens when UV coordinates fall outside `[0, 1]`:
-
-| Mode | Behavior |
-|------|----------|
-| `Wrap` | Tile the texture by repeating |
-| `Mirror` | Tile with mirrored repetition |
-| `Clamp` | Clamp to the edge texel |
-| `Border` | Return the border color |
-
-## Filter Modes
-
-Filter modes combine minification, magnification, and mipmap filters:
-
-| Filter | Min | Mag | Mip |
-|--------|-----|-----|-----|
-| `MinPointMagPointMipPoint` | Point | Point | Point |
-| `MinLinearMagLinearMipLinear` | Linear | Linear | Linear |
-| `MinLinearMagLinearMipPoint` | Linear | Linear | Point |
-| `Anisotropic` | Anisotropic | Anisotropic | Linear |
-
-All 9 combinations of Point/Linear for each stage are available. `Anisotropic` provides the highest quality and should be paired with `MaxAnisotropy`.
-
-### Anisotropic Filtering
+Create a custom sampler when the helper descriptions do not match the workload:
 
 ```csharp
 Sampler sampler = context.CreateSampler(new()
 {
-    U = AddressMode.Wrap,
-    V = AddressMode.Wrap,
-    W = AddressMode.Wrap,
-    Filter = Filter.Anisotropic,
-    MaxAnisotropy = 16,
-    MaxLod = uint.MaxValue
+    MinFilter = FilterMode.Linear,
+    MagFilter = FilterMode.Linear,
+    MipFilter = FilterMode.Point,
+    AddressU = AddressMode.Wrap,
+    AddressV = AddressMode.Wrap,
+    AddressW = AddressMode.Clamp,
+    CompareOp = CompareOp.Never,
+    MaxAnisotropy = 1,
+    LodBias = 0.0f,
+    MinLod = 0.0f,
+    MaxLod = float.MaxValue,
+    BorderColor = BorderColor.TransparentBlack
 });
 ```
 
-## Level of Detail
-
 | Field | Purpose |
 |-------|---------|
-| `MinLod` | Clamp the minimum mip level (0 = highest resolution) |
-| `MaxLod` | Clamp the maximum mip level (`uint.MaxValue` = allow all levels) |
-| `LodBias` | Shift the computed LOD (positive = blurrier, negative = sharper) |
+| `MinFilter` | Filtering when a texture is minified |
+| `MagFilter` | Filtering when a texture is magnified |
+| `MipFilter` | Filtering between mip levels |
+| `AddressU`, `AddressV`, `AddressW` | Addressing outside the normalized texture range |
+| `CompareOp` | Comparison sampling operation; `Never` disables comparison sampling |
+| `MaxAnisotropy` | Maximum anisotropy; values greater than one enable anisotropic filtering |
+| `LodBias` | Bias added to the selected mip level |
+| `MinLod`, `MaxLod` | Allowed mip-level range |
+| `BorderColor` | Value returned by border addressing |
 
-## Shader Usage
+## Filter Modes
 
-In Slang/HLSL shaders, declare a `SamplerState` and sample textures:
+`FilterMode.Point` selects the nearest value. `FilterMode.Linear` interpolates adjacent values. Minification, magnification, and mip filtering are selected independently.
 
-```hlsl
-Texture2D albedo;
-SamplerState linearSampler;
-
-float4 color = albedo.Sample(linearSampler, uv);
-```
-
-Bind the sampler to a resource table at the corresponding binding index:
+Anisotropic filtering uses linear filtering with `MaxAnisotropy` greater than one:
 
 ```csharp
-resourceTable.Write(1, sampler);
+Sampler sampler = context.CreateSampler(SamplerDesc.Anisotropic(8));
 ```
+
+Choose a value supported by the target devices. Higher values improve oblique texture sampling at additional cost.
+
+## Address Modes
+
+| Mode | Behavior outside the texture range |
+|------|------------------------------------|
+| `Wrap` | Repeat the texture |
+| `Mirror` | Repeat and mirror alternating intervals |
+| `Clamp` | Clamp to the edge texel |
+| `Border` | Return `BorderColor` |
+
+Configure all three axes even for a 2D texture so the sampler description remains explicit and portable.
+
+## Comparison Sampling
+
+Set `CompareOp` to a comparison other than `Never` for shadow or depth comparisons:
+
+```csharp
+Sampler shadowSampler = context.CreateSampler(new()
+{
+    MinFilter = FilterMode.Linear,
+    MagFilter = FilterMode.Linear,
+    MipFilter = FilterMode.Linear,
+    AddressU = AddressMode.Clamp,
+    AddressV = AddressMode.Clamp,
+    AddressW = AddressMode.Clamp,
+    CompareOp = CompareOp.LessEqual,
+    MaxAnisotropy = 1,
+    LodBias = 0.0f,
+    MinLod = 0.0f,
+    MaxLod = float.MaxValue,
+    BorderColor = BorderColor.OpaqueWhite
+});
+```
+
+Use a matching Slang `SamplerComparisonState` declaration and comparison sampling operation.
+
+## Bindless Shader Access
+
+Store the sampler handle beside the sampled texture handle:
+
+```csharp
+[StructLayout(LayoutKind.Explicit, Size = 16)]
+file struct TextureConstants
+{
+    [FieldOffset(0)]
+    public ResourceHandle Texture;
+
+    [FieldOffset(8)]
+    public ResourceHandle Sampler;
+}
+```
+
+The matching Slang structure is:
+
+```slang
+struct TextureConstants
+{
+    DescriptorHandle<Texture2D> Texture;
+
+    DescriptorHandle<SamplerState> Sampler;
+};
+
+uniform TextureConstants constants;
+```
+
+Dereference both handles when sampling:
+
+```slang
+float4 color = (*constants.Texture).Sample(*constants.Sampler, uv);
+```
+
+See [Bindless Resources](../concepts/resource-binding.md) for constant-buffer layout and lifetime rules.
+
+## Lifetime
+
+A sampler handle does not own the sampler. Keep the `Sampler` alive until every submission that can dereference its handle has completed, then dispose it deterministically.

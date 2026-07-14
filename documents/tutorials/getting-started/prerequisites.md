@@ -1,118 +1,87 @@
 ﻿# Prerequisites
 
-Before starting the tutorials, you need to set up the project and create the shared framework code that all tutorials will use.
+This page creates the shared desktop application used by every tutorial. The application selects one Graphics API, creates a native surface and swap chain, drives a synchronous frame loop, and gives each renderer a command buffer plus the current drawable.
 
 ## Development Environment
 
-- .NET 10.0 SDK or later
-- A GPU with DirectX 12, Metal 4, or Vulkan 1.4 support
-- Visual Studio 2026, VS Code, or JetBrains Rider
+- .NET 10 SDK or later
+- DirectX 12 on Windows, Metal 4 on macOS, or Vulkan 1.4 with Zenith.NET's required bindless extensions on Linux
+- A compatible GPU and current driver
+- Visual Studio, VS Code, or JetBrains Rider
 
-> [!NOTE]
-> These tutorials target desktop platforms: Windows, macOS, and Linux.
+The Linux path below uses Xlib, matching the repository's current desktop experiment.
 
-## Creating the Project
+## Create the Project
 
 ```bash
 dotnet new console -n ZenithTutorials
 cd ZenithTutorials
-```
 
-### Required Packages
-
-```bash
 dotnet add package Zenith.NET.DirectX12
 dotnet add package Zenith.NET.Metal
 dotnet add package Zenith.NET.Vulkan
 dotnet add package Zenith.NET.Extensions.ImageSharp
-dotnet add package Zenith.NET.Extensions.Slang
 dotnet add package Silk.NET.Windowing
-dotnet add package Silk.NET.Input
 ```
 
-### Project Configuration
+Slang compilation is provided by `ZenithCompiler` in the core `Zenith.NET` package.
 
-Your `.csproj` should look like this:
+Enable unsafe code and copy tutorial assets to the output directory:
 
 ```xml
-<Project Sdk="Microsoft.NET.Sdk">
+<PropertyGroup>
+  <OutputType>Exe</OutputType>
+  <TargetFramework>net10.0</TargetFramework>
+  <Nullable>enable</Nullable>
+  <ImplicitUsings>enable</ImplicitUsings>
+  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+</PropertyGroup>
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
-
-  <ItemGroup>
-        <PackageReference Include="Silk.NET.Input" Version="*" />
-        <PackageReference Include="Silk.NET.Windowing" Version="*" />
-        <PackageReference Include="Zenith.NET.DirectX12" Version="*" />
-        <PackageReference Include="Zenith.NET.Extensions.ImageSharp" Version="*" />
-        <PackageReference Include="Zenith.NET.Extensions.Slang" Version="*" />
-        <PackageReference Include="Zenith.NET.Metal" Version="*" />
-        <PackageReference Include="Zenith.NET.Vulkan" Version="*" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="Assets\**\*">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
-</Project>
+<ItemGroup>
+  <None Update="Assets\**\*">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </None>
+</ItemGroup>
 ```
 
-> [!NOTE]
-> `AllowUnsafeBlocks` is required because the tutorials use `sizeof` with custom structs for GPU buffer sizing.
+`AllowUnsafeBlocks` is used for explicit unmanaged GPU data and pointer-based upload descriptions.
 
 ## Project Structure
 
-```
+```text
 ZenithTutorials/
-├── Program.cs
-├── App.cs
-├── IRenderer.cs
-├── CocoaHelper.cs
-├── Usings.cs
-├── Assets/
-│   └── shoko.png
-└── Renderers/
-    ├── HelloTriangleRenderer.cs
-    ├── TexturedQuadRenderer.cs
-    ├── SpinningCubeRenderer.cs
-    ├── ComputeShaderRenderer.cs
-    ├── IndirectDrawingRenderer.cs
-    ├── RayTracingRenderer.cs
-    └── MeshShadingRenderer.cs
+|-- Program.cs
+|-- App.cs
+|-- CocoaHelper.cs
+|-- IRenderer.cs
+|-- Usings.cs
+|-- Assets/
+|   |-- Textures/
+|   |   `-- shoko.png
+|   `-- Shaders/
+`-- Renderers/
+    `-- ClearRenderer.cs
 ```
 
-### Asset File
-
-Save the following image as `Assets/shoko.png` in your project (right-click → Save As):
+Save the tutorial image as `Assets/Textures/shoko.png`:
 
 ![shoko.png](../../images/shoko.png)
 
-## Framework Code
+## Global Usings
 
-The following files provide the shared infrastructure for all tutorials. Copy each file into your project.
-
-### Usings.cs
+Create `Usings.cs`:
 
 ```csharp
 global using System.Numerics;
-global using System.Runtime.CompilerServices;
 global using System.Runtime.InteropServices;
 global using Zenith.NET;
 global using Zenith.NET.Extensions.ImageSharp;
-global using Zenith.NET.Extensions.Slang;
 global using Buffer = Zenith.NET.Buffer;
 ```
 
-### IRenderer.cs
+## Renderer Contract
 
-All tutorial renderers implement this interface:
+Create `IRenderer.cs`:
 
 ```csharp
 namespace ZenithTutorials;
@@ -121,22 +90,17 @@ internal interface IRenderer : IDisposable
 {
     void Update(double deltaTime);
 
-    void Render();
+    void Render(CommandBuffer commandBuffer, Texture drawable);
 
     void Resize(uint width, uint height);
 }
 ```
 
-| Method | Called | Purpose |
-|--------|-------|---------|
-| `Update` | Every frame | Update logic (animations, transforms) |
-| `Render` | Every frame | Issue GPU commands |
-| `Resize` | On window resize | Recreate size-dependent resources |
-| `Dispose` | On exit | Clean up GPU resources |
+The application owns command-buffer acquisition, final transition to `Present`, submission, and presentation. A renderer records its workload into the supplied command buffer and transitions the drawable into the role it needs.
 
-### App.cs
+## Application Shell
 
-The application framework manages window creation, graphics context initialization, and the render loop:
+Create `App.cs`:
 
 ```csharp
 using Silk.NET.Windowing;
@@ -155,7 +119,7 @@ internal static class App
     {
         if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux())
         {
-            throw new PlatformNotSupportedException("This application only supports Windows, macOS, and Linux.");
+            throw new PlatformNotSupportedException("The tutorials support Windows, macOS, and Linux.");
         }
 
         if (OperatingSystem.IsWindows())
@@ -171,14 +135,15 @@ internal static class App
             Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
         }
 
-        Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
+        Context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
 
         window = Window.Create(WindowOptions.Default with
         {
             API = GraphicsAPI.None,
-            Title = "Zenith Tutorials",
+            Title = "Zenith.NET Tutorials",
             Size = new(1280, 720)
         });
+
         window.Initialize();
         window.Center();
 
@@ -196,16 +161,25 @@ internal static class App
             surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
         }
 
-        swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.B8G8R8A8UNorm, DepthStencilTargetFormat = PixelFormat.D32FloatS8UInt });
+        swapChain = Context.CreateSwapChain(new()
+        {
+            Surface = surface,
+            Format = PixelFormat.B8G8R8A8UNorm
+        });
     }
 
     public static GraphicsContext Context { get; }
+
+    public static PixelFormat ColorFormat => swapChain.Desc.Format;
 
     public static uint Width => (uint)window.FramebufferSize.X;
 
     public static uint Height => (uint)window.FramebufferSize.Y;
 
-    public static FrameBuffer FrameBuffer => swapChain.FrameBuffer;
+    public static string ShaderPath(string file)
+    {
+        return Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", file);
+    }
 
     public static void Run<TRenderer>() where TRenderer : IRenderer, new()
     {
@@ -223,18 +197,24 @@ internal static class App
                 renderer.Update(delta);
             };
 
-            window.Render += delta =>
+            window.Render += _ =>
             {
                 if (Width is 0 || Height is 0)
                 {
                     return;
                 }
 
-                renderer.Render();
+                Texture drawable = swapChain.Drawable;
+                CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
+
+                renderer.Render(commandBuffer, drawable);
+                commandBuffer.Transition(drawable, default, TextureLayout.Present);
+                commandBuffer.Submit().Wait();
+
                 swapChain.Present();
             };
 
-            window.Resize += size =>
+            window.Resize += _ =>
             {
                 if (Width is 0 || Height is 0)
                 {
@@ -251,25 +231,17 @@ internal static class App
         {
             swapChain.Dispose();
             window.Dispose();
-
             Context.Dispose();
         }
     }
 }
 ```
 
-`App` provides:
+The frame loop is intentionally synchronous. `Submit().Wait()` completes the recorded frame, and `SwapChain.Present()` performs its own queue timeline synchronization. Zenith.NET does not expose a frames-in-flight configuration.
 
-| Member | Description |
-|--------|-------------|
-| `Context` | The `GraphicsContext` for the current platform |
-| `Width` / `Height` | Current framebuffer dimensions |
-| `FrameBuffer` | The swap chain's current frame buffer |
-| `Run<T>()` | Creates a renderer, runs the window loop, and cleans up on exit |
+## macOS Surface Helper
 
-### CocoaHelper.cs
-
-Required for macOS to create a `CAMetalLayer` for the window surface:
+Create `CocoaHelper.cs`. It attaches a `CAMetalLayer` to the Silk.NET window:
 
 ```csharp
 namespace ZenithTutorials;
@@ -288,15 +260,14 @@ internal static partial class CocoaHelper
     private static partial nint Send(nint receiver, nint selector);
 
     [LibraryImport(LibObjC, EntryPoint = "objc_msgSend")]
-    private static partial nint Send(nint receiver, nint selector, [MarshalAs(UnmanagedType.I1)] bool arg);
+    private static partial nint Send(nint receiver, nint selector, [MarshalAs(UnmanagedType.I1)] bool value);
 
     [LibraryImport(LibObjC, EntryPoint = "objc_msgSend")]
-    private static partial nint Send(nint receiver, nint selector, nint arg);
+    private static partial nint Send(nint receiver, nint selector, nint value);
 
     public static nint CreateLayer(nint cocoa)
     {
         nint layer = Send(GetClass("CAMetalLayer"), Selector("layer"));
-        Send(layer, Selector("retain"));
 
         nint view = Send(cocoa, Selector("contentView"));
         Send(view, Selector("setWantsLayer:"), true);
@@ -307,53 +278,69 @@ internal static partial class CocoaHelper
 }
 ```
 
-> [!NOTE]
-> On Windows and Linux, this file is not used but must be present to compile.
+The file is compiled on every desktop platform, but the helper is called only on macOS.
 
-### Program.cs
+## First Renderer
 
-The entry point provides an interactive tutorial selector:
+Create `Renderers/ClearRenderer.cs`:
+
+```csharp
+namespace ZenithTutorials.Renderers;
+
+internal sealed class ClearRenderer : IRenderer
+{
+    public void Update(double deltaTime)
+    {
+    }
+
+    public void Render(CommandBuffer commandBuffer, Texture drawable)
+    {
+        commandBuffer.Transition(drawable, default, TextureLayout.ColorAttachment);
+        commandBuffer.BeginRenderPass([ColorAttachment.Clear(drawable, new(0.04f, 0.055f, 0.075f, 1.0f))], null);
+        commandBuffer.EndRenderPass();
+    }
+
+    public void Resize(uint width, uint height)
+    {
+    }
+
+    public void Dispose()
+    {
+    }
+}
+```
+
+The renderer changes the drawable from its current presentation state to `ColorAttachment`, clears it, and leaves the final transition to `App`.
+
+## Entry Point
+
+Replace `Program.cs`:
 
 ```csharp
 using ZenithTutorials;
 using ZenithTutorials.Renderers;
 
-(string Name, Action Run)[] tutorials =
-[
-    ("Hello Triangle",   App.Run<HelloTriangleRenderer>),
-    ("Textured Quad",    App.Run<TexturedQuadRenderer>),
-    ("Spinning Cube",    App.Run<SpinningCubeRenderer>),
-    ("Compute Shader",   App.Run<ComputeShaderRenderer>),
-    ("Indirect Drawing", App.Run<IndirectDrawingRenderer>),
-    ("Ray Tracing",      App.Run<RayTracingRenderer>),
-    ("Mesh Shading",     App.Run<MeshShadingRenderer>)
-];
-
-for (int i = 0; i < tutorials.Length; i++)
-{
-    Console.WriteLine($"{i + 1}. {tutorials[i].Name}");
-}
-
-Console.Write("Select a tutorial to run: ");
-
-if (int.TryParse(Console.ReadKey().KeyChar.ToString(), out int choice) && choice >= 1 && choice <= tutorials.Length)
-{
-    Console.WriteLine($"\nRunning '{tutorials[choice - 1].Name}' tutorial...");
-
-    tutorials[choice - 1].Run();
-}
+App.Run<ClearRenderer>();
 ```
 
-> [!TIP]
-> If you are following the tutorials sequentially, comment out renderers you haven't implemented yet to avoid build errors.
+Run the application:
 
-## Next Steps
+```bash
+dotnet run
+```
 
-With the framework in place, you're ready to start the first tutorial:
+You should see a dark blue-gray window. Validation output is written to the terminal.
 
-- [Hello Triangle](hello-triangle.md) - Render your first triangle with a graphics pipeline
+## Frame Ownership
 
-## Source Code
+The shared frame follows this order:
 
-> [!TIP]
-> View the complete tutorial project on GitHub: [ZenithTutorials](https://github.com/qian-o/ZenithTutorials)
+1. `App` obtains the current `SwapChain.Drawable`.
+2. `App` requests a pooled command buffer from `GraphicsQueue`.
+3. The renderer records transitions, passes, draws, or dispatches.
+4. `App` transitions the drawable to `TextureLayout.Present`.
+5. The command buffer is submitted and its `TimelineValue` is waited on.
+6. The swap chain presents synchronously.
+7. At shutdown, the renderer is disposed before the swap chain and context.
+
+Continue with [Hello Triangle](hello-triangle.md) to replace the clear-only renderer with a graphics pipeline and draw call.
