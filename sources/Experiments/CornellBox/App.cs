@@ -182,11 +182,11 @@ internal static class App
             activeRenderer.Update(camera);
             activeRenderer.Render(commandBuffer);
 
-            commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.ColorAttachment);
+            commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
 
             imGui.Render(commandBuffer, ColorAttachment.Load(swapChain.Drawable));
 
-            commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Present);
+            commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
 
             commandBuffer.Submit().Wait();
 

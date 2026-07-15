@@ -44,7 +44,7 @@ internal class Surface(GraphicsContext graphicsContext, uint width, uint height)
             SliceStrideInBytes = (uint)(lockedFramebuffer.RowBytes * Height)
         };
 
-        Drawable.Download(default, default, extent, data);
+        Drawable.Download(default, TextureLayout.ColorAttachment, TextureLayout.ColorAttachment, default, extent, data);
     }
 
     protected override void Destroy()

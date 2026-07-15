@@ -92,7 +92,7 @@ internal unsafe class Surface(GraphicsContext context, uint width, uint height) 
                 SliceStrideInBytes = (uint)pixels.Length
             };
 
-            Drawable.Download(default, default, extent, data);
+            Drawable.Download(default, TextureLayout.ColorAttachment, TextureLayout.ColorAttachment, default, extent, data);
         }
 
         if (ZenithViewHelper.DrawableFormat is PixelFormat.R8G8B8A8UNorm)

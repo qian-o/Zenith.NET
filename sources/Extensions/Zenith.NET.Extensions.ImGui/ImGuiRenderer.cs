@@ -196,7 +196,7 @@ float4 FSMain(VSOutput input) : SV_TARGET
                                 SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(texture.Desc.Format, extent.Width, extent.Height)
                             };
 
-                            commandBuffer.Upload(texture, default, default, extent, data);
+                            commandBuffer.Upload(texture, default, TextureLayout.Undefined, TextureLayout.Sampled, default, extent, data);
                         }
                         else
                         {
@@ -208,7 +208,7 @@ float4 FSMain(VSOutput input) : SV_TARGET
                                 SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(texture.Desc.Format, extent.Width, extent.Height)
                             };
 
-                            commandBuffer.Upload(texture, default, default, extent, data);
+                            commandBuffer.Upload(texture, default, TextureLayout.Undefined, TextureLayout.Sampled, default, extent, data);
                         }
 
                         textureData.SetTexID(Binding(texture));
@@ -259,7 +259,7 @@ float4 FSMain(VSOutput input) : SV_TARGET
                                         SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(texture.Desc.Format, extent.Width, extent.Height)
                                     };
 
-                                    commandBuffer.Upload(texture, default, offset, extent, data);
+                                    commandBuffer.Upload(texture, default, TextureLayout.Sampled, TextureLayout.Sampled, offset, extent, data);
                                 }
                                 else
                                 {
@@ -278,7 +278,7 @@ float4 FSMain(VSOutput input) : SV_TARGET
                                         SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(texture.Desc.Format, extent.Width, extent.Height)
                                     };
 
-                                    commandBuffer.Upload(texture, default, offset, extent, data);
+                                    commandBuffer.Upload(texture, default, TextureLayout.Sampled, TextureLayout.Sampled, offset, extent, data);
                                 }
                             }
                         }

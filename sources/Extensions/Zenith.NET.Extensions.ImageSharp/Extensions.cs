@@ -44,7 +44,7 @@ public static class Extensions
                         SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height)
                     };
 
-                    commandBuffer.Upload(texture, default, default, extent, data);
+                    commandBuffer.Upload(texture, default, TextureLayout.Undefined, TextureLayout.Sampled, default, extent, data);
                 }
 
                 for (uint i = 1; i < mipLevels; i++)
@@ -73,7 +73,7 @@ public static class Extensions
                             SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height)
                         };
 
-                        commandBuffer.Upload(texture, new() { MipLevel = i }, default, extent, data);
+                        commandBuffer.Upload(texture, new() { MipLevel = i }, TextureLayout.Undefined, TextureLayout.Sampled, default, extent, data);
                     }
                 }
             }
