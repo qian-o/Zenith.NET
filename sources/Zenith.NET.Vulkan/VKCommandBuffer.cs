@@ -61,12 +61,12 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         Context.Vk.CmdPipelineBarrier2(CommandBuffer, &dependencyInfo);
     }
 
-    protected override void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout srcLayout, TextureLayout dstLayout)
+    protected override void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout before, TextureLayout after)
     {
         VKTexture vkTexture = texture.Vulkan();
 
-        (PipelineStageFlags2 srcStage, AccessFlags2 srcAccess, ImageLayout oldLayout) = VKFormats.Vulkan(srcLayout);
-        (PipelineStageFlags2 dstStage, AccessFlags2 dstAccess, ImageLayout newLayout) = VKFormats.Vulkan(dstLayout);
+        (PipelineStageFlags2 srcStage, AccessFlags2 srcAccess, ImageLayout oldLayout) = VKFormats.Vulkan(before);
+        (PipelineStageFlags2 dstStage, AccessFlags2 dstAccess, ImageLayout newLayout) = VKFormats.Vulkan(after);
 
         ImageMemoryBarrier2 imageMemoryBarrier = new()
         {

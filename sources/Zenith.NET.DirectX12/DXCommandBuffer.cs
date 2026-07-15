@@ -47,12 +47,12 @@ internal unsafe class DXCommandBuffer : CommandBuffer
         CommandList.Barrier(1, &barrierGroup);
     }
 
-    protected override void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout srcLayout, TextureLayout dstLayout)
+    protected override void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout before, TextureLayout after)
     {
         DXTexture dxTexture = texture.DirectX12();
 
-        (BarrierSync syncBefore, BarrierAccess accessBefore, BarrierLayout layoutBefore) = DXFormats.DirectX12(srcLayout);
-        (BarrierSync syncAfter, BarrierAccess accessAfter, BarrierLayout layoutAfter) = DXFormats.DirectX12(dstLayout);
+        (BarrierSync syncBefore, BarrierAccess accessBefore, BarrierLayout layoutBefore) = DXFormats.DirectX12(before);
+        (BarrierSync syncAfter, BarrierAccess accessAfter, BarrierLayout layoutAfter) = DXFormats.DirectX12(after);
 
         DxTextureBarrier barrier = new()
         {

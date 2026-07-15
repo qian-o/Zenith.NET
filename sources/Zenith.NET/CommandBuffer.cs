@@ -18,16 +18,9 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         BarrierImpl(before, after);
     }
 
-    public void Transition(Texture texture, TextureSubresource subresource, TextureLayout layout)
+    public void Transition(Texture texture, TextureSubresource subresource, TextureLayout before, TextureLayout after)
     {
-        if (layout is TextureLayout.Undefined || texture[subresource] == layout)
-        {
-            return;
-        }
-
-        TransitionImpl(texture, subresource, texture[subresource], layout);
-
-        texture[subresource] = layout;
+        TransitionImpl(texture, subresource, before, after);
     }
 
     public void Upload(Buffer buffer, uint offsetInBytes, BufferData data)
@@ -58,8 +51,10 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CopyBuffer(buffer, offsetInBytes, transferBuffer, 0, data.SizeInBytes);
     }
 
-    public void Upload(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
+    public void Upload(Texture texture, TextureSubresource subresource, TextureLayout before, TextureLayout after, Offset3D offset, Extent3D extent, TextureData data)
     {
+        Transition(texture, subresource, before, TextureLayout.CopyDst);
+
         const uint RowPitchAlignment = 256;
         const uint DepthPitchAlignment = 512;
 
@@ -87,10 +82,14 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
             offset.Z++;
         }
+
+        Transition(texture, subresource, TextureLayout.CopyDst, after);
     }
 
-    public void Download(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
+    public void Download(Texture texture, TextureSubresource subresource, TextureLayout before, TextureLayout after, Offset3D offset, Extent3D extent, TextureData data)
     {
+        Transition(texture, subresource, before, TextureLayout.CopySrc);
+
         const uint RowPitchAlignment = 256;
         const uint DepthPitchAlignment = 512;
 
@@ -118,6 +117,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
             offset.Z++;
         }
+
+        Transition(texture, subresource, TextureLayout.CopySrc, after);
     }
 
     public void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes)
@@ -127,52 +128,22 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void CopyBufferToTexture(Buffer src, uint srcOffsetInBytes, uint srcRowStrideInBytes, uint srcSliceStrideInBytes, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D dstExtent)
     {
-        TextureLayout dstLayout = dst[dstSubresource];
-
-        Transition(dst, dstSubresource, TextureLayout.CopyDst);
-
         CopyBufferToTextureImpl(src, srcOffsetInBytes, srcRowStrideInBytes, srcSliceStrideInBytes, dst, dstSubresource, dstOffset, dstExtent);
-
-        Transition(dst, dstSubresource, dstLayout);
     }
 
     public void CopyTexture(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D extent)
     {
-        TextureLayout srcLayout = src[srcSubresource];
-        TextureLayout dstLayout = dst[dstSubresource];
-
-        Transition(src, srcSubresource, TextureLayout.CopySrc);
-        Transition(dst, dstSubresource, TextureLayout.CopyDst);
-
         CopyTextureImpl(src, srcSubresource, srcOffset, dst, dstSubresource, dstOffset, extent);
-
-        Transition(src, srcSubresource, srcLayout);
-        Transition(dst, dstSubresource, dstLayout);
     }
 
     public void CopyTextureToBuffer(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dst, uint dstOffsetInBytes, uint dstRowStrideInBytes, uint dstSliceStrideInBytes)
     {
-        TextureLayout srcLayout = src[srcSubresource];
-
-        Transition(src, srcSubresource, TextureLayout.CopySrc);
-
         CopyTextureToBufferImpl(src, srcSubresource, srcOffset, srcExtent, dst, dstOffsetInBytes, dstRowStrideInBytes, dstSliceStrideInBytes);
-
-        Transition(src, srcSubresource, srcLayout);
     }
 
     public void ResolveTexture(Texture src, TextureSubresource srcSubresource, Texture dst, TextureSubresource dstSubresource)
     {
-        TextureLayout srcLayout = src[srcSubresource];
-        TextureLayout dstLayout = dst[dstSubresource];
-
-        Transition(src, srcSubresource, TextureLayout.ResolveSrc);
-        Transition(dst, dstSubresource, TextureLayout.ResolveDst);
-
         ResolveTextureImpl(src, srcSubresource, dst, dstSubresource);
-
-        Transition(src, srcSubresource, srcLayout);
-        Transition(dst, dstSubresource, dstLayout);
     }
 
     public BottomLevelAccelerationStructure BuildAccelerationStructure(BottomLevelAccelerationStructureDesc desc)
@@ -511,7 +482,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void BarrierImpl(BarrierStages before, BarrierStages after);
 
-    protected abstract void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout srcLayout, TextureLayout dstLayout);
+    protected abstract void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout before, TextureLayout after);
 
     protected abstract void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes);
 

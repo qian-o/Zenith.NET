@@ -67,7 +67,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         Compute?.BarrierAfterStages(MTLFormats.Metal(before), MTLFormats.Metal(after), MTL4VisibilityOptions.Device);
     }
 
-    protected override void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout srcLayout, TextureLayout dstLayout)
+    protected override void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout before, TextureLayout after)
     {
     }
 
