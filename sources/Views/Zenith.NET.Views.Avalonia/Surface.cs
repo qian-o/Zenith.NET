@@ -16,7 +16,7 @@ internal class Surface(GraphicsContext graphicsContext, uint width, uint height)
         MipLevels = 1,
         ArrayLayers = 1,
         SampleCount = SampleCount.Count1,
-        Usages = TextureUsages.ColorAttachment | TextureUsages.TransferDst
+        Usages = TextureUsages.ColorAttachment | TextureUsages.TransferSrc | TextureUsages.TransferDst
     });
 
     public WriteableBitmap Bitmap { get; } = new(new((int)width, (int)height), new(96, 96), DrawableFormat(), AlphaFormat.Premul);

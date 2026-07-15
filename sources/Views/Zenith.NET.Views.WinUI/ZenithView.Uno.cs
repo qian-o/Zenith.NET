@@ -72,7 +72,7 @@ internal unsafe class Surface(GraphicsContext context, uint width, uint height) 
         MipLevels = 1,
         ArrayLayers = 1,
         SampleCount = SampleCount.Count1,
-        Usages = TextureUsages.ColorAttachment | TextureUsages.TransferDst
+        Usages = TextureUsages.ColorAttachment | TextureUsages.TransferSrc | TextureUsages.TransferDst
     });
 
     public WriteableBitmap Bitmap { get; } = new((int)width, (int)height);
