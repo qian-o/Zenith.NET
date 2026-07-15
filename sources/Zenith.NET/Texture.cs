@@ -10,19 +10,23 @@ public abstract class Texture(GraphicsContext context, TextureDesc desc) : Graph
 
     public abstract ResourceHandle StorageHandle { get; }
 
-    public void Upload(TextureSubresource subresource, TextureLayout before, TextureLayout after, Offset3D offset, Extent3D extent, TextureData data)
+    public void Upload(TextureSubresource subresource, TextureLayout currentLayout, TextureLayout finalLayout, Offset3D offset, Extent3D extent, TextureData data)
     {
-        CommandBuffer commandBuffer = Context.TransferQueue.CommandBuffer();
+        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
-        commandBuffer.Upload(this, subresource, before, after, offset, extent, data);
+        commandBuffer.Transition(this, subresource, currentLayout, TextureLayout.CopyDst);
+        commandBuffer.Upload(this, subresource, offset, extent, data);
+        commandBuffer.Transition(this, subresource, TextureLayout.CopyDst, finalLayout);
         commandBuffer.Submit().Wait();
     }
 
-    public void Download(TextureSubresource subresource, TextureLayout before, TextureLayout after, Offset3D offset, Extent3D extent, TextureData data)
+    public void Download(TextureSubresource subresource, TextureLayout currentLayout, TextureLayout finalLayout, Offset3D offset, Extent3D extent, TextureData data)
     {
-        CommandBuffer commandBuffer = Context.TransferQueue.CommandBuffer();
+        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
-        commandBuffer.Download(this, subresource, before, after, offset, extent, data);
+        commandBuffer.Transition(this, subresource, currentLayout, TextureLayout.CopySrc);
+        commandBuffer.Download(this, subresource, offset, extent, data);
+        commandBuffer.Transition(this, subresource, TextureLayout.CopySrc, finalLayout);
         commandBuffer.Submit().Wait();
     }
 }

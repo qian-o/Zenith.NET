@@ -51,10 +51,8 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         CopyBuffer(buffer, offsetInBytes, transferBuffer, 0, data.SizeInBytes);
     }
 
-    public void Upload(Texture texture, TextureSubresource subresource, TextureLayout before, TextureLayout after, Offset3D offset, Extent3D extent, TextureData data)
+    public void Upload(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {
-        Transition(texture, subresource, before, TextureLayout.CopyDst);
-
         const uint RowPitchAlignment = 256;
         const uint DepthPitchAlignment = 512;
 
@@ -82,14 +80,10 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
             offset.Z++;
         }
-
-        Transition(texture, subresource, TextureLayout.CopyDst, after);
     }
 
-    public void Download(Texture texture, TextureSubresource subresource, TextureLayout before, TextureLayout after, Offset3D offset, Extent3D extent, TextureData data)
+    public void Download(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {
-        Transition(texture, subresource, before, TextureLayout.CopySrc);
-
         const uint RowPitchAlignment = 256;
         const uint DepthPitchAlignment = 512;
 
@@ -117,8 +111,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
             offset.Z++;
         }
-
-        Transition(texture, subresource, TextureLayout.CopySrc, after);
     }
 
     public void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes)

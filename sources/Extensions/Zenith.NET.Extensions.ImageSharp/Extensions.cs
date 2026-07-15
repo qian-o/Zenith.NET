@@ -23,7 +23,7 @@ public static class Extensions
             Rgba32[] pixels = new Rgba32[image.Width * image.Height];
             image.CopyPixelDataTo(pixels);
 
-            CommandBuffer commandBuffer = context.TransferQueue.CommandBuffer();
+            CommandBuffer commandBuffer = context.GraphicsQueue.CommandBuffer();
 
             unsafe
             {
@@ -44,7 +44,9 @@ public static class Extensions
                         SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height)
                     };
 
-                    commandBuffer.Upload(texture, default, TextureLayout.Undefined, TextureLayout.Sampled, default, extent, data);
+                    commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.CopyDst);
+                    commandBuffer.Upload(texture, default, default, extent, data);
+                    commandBuffer.Transition(texture, default, TextureLayout.CopyDst, TextureLayout.Sampled);
                 }
 
                 for (uint i = 1; i < mipLevels; i++)
@@ -73,7 +75,9 @@ public static class Extensions
                             SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height)
                         };
 
-                        commandBuffer.Upload(texture, new() { MipLevel = i }, TextureLayout.Undefined, TextureLayout.Sampled, default, extent, data);
+                        commandBuffer.Transition(texture, new() { MipLevel = i }, TextureLayout.Undefined, TextureLayout.CopyDst);
+                        commandBuffer.Upload(texture, new() { MipLevel = i }, default, extent, data);
+                        commandBuffer.Transition(texture, new() { MipLevel = i }, TextureLayout.CopyDst, TextureLayout.Sampled);
                     }
                 }
             }

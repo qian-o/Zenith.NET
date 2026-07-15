@@ -196,7 +196,9 @@ float4 FSMain(VSOutput input) : SV_TARGET
                                 SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(texture.Desc.Format, extent.Width, extent.Height)
                             };
 
-                            commandBuffer.Upload(texture, default, TextureLayout.Undefined, TextureLayout.Sampled, default, extent, data);
+                            commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.CopyDst);
+                            commandBuffer.Upload(texture, default, default, extent, data);
+                            commandBuffer.Transition(texture, default, TextureLayout.CopyDst, TextureLayout.Sampled);
                         }
                         else
                         {
@@ -208,7 +210,9 @@ float4 FSMain(VSOutput input) : SV_TARGET
                                 SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(texture.Desc.Format, extent.Width, extent.Height)
                             };
 
-                            commandBuffer.Upload(texture, default, TextureLayout.Undefined, TextureLayout.Sampled, default, extent, data);
+                            commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.CopyDst);
+                            commandBuffer.Upload(texture, default, default, extent, data);
+                            commandBuffer.Transition(texture, default, TextureLayout.CopyDst, TextureLayout.Sampled);
                         }
 
                         textureData.SetTexID(Binding(texture));
@@ -259,7 +263,9 @@ float4 FSMain(VSOutput input) : SV_TARGET
                                         SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(texture.Desc.Format, extent.Width, extent.Height)
                                     };
 
-                                    commandBuffer.Upload(texture, default, TextureLayout.Sampled, TextureLayout.Sampled, offset, extent, data);
+                                    commandBuffer.Transition(texture, default, TextureLayout.Sampled, TextureLayout.CopyDst);
+                                    commandBuffer.Upload(texture, default, offset, extent, data);
+                                    commandBuffer.Transition(texture, default, TextureLayout.CopyDst, TextureLayout.Sampled);
                                 }
                                 else
                                 {
@@ -278,7 +284,9 @@ float4 FSMain(VSOutput input) : SV_TARGET
                                         SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(texture.Desc.Format, extent.Width, extent.Height)
                                     };
 
-                                    commandBuffer.Upload(texture, default, TextureLayout.Sampled, TextureLayout.Sampled, offset, extent, data);
+                                    commandBuffer.Transition(texture, default, TextureLayout.Sampled, TextureLayout.CopyDst);
+                                    commandBuffer.Upload(texture, default, offset, extent, data);
+                                    commandBuffer.Transition(texture, default, TextureLayout.CopyDst, TextureLayout.Sampled);
                                 }
                             }
                         }
