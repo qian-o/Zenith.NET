@@ -7,18 +7,18 @@ The API reference is generated from the current Zenith.NET source. Use it for ex
 | Namespace | Description |
 |-----------|-------------|
 | `Zenith.NET` | Shared RHI types, resource descriptions, pipelines, synchronization, presentation, and Slang compilation |
-| `Zenith.NET.DirectX12` | DirectX 12 Graphics API implementation |
-| `Zenith.NET.Metal` | Metal 4 Graphics API implementation |
-| `Zenith.NET.Vulkan` | Vulkan 1.4 Graphics API implementation |
+| `Zenith.NET.DirectX12` | DirectX 12 context creation |
+| `Zenith.NET.Metal` | Metal context creation |
+| `Zenith.NET.Vulkan` | Vulkan context creation |
 
 ## Core Model
 
 | Type | Role |
 |------|------|
 | `GraphicsContext` | Root object for Graphics API identity, capabilities, queues, validation, and resource creation |
-| `GraphicsApi` | Selected implementation: DirectX 12, Metal, or Vulkan |
+| `GraphicsApi` | Selected graphics API |
 | `Capabilities` | Device name plus Ray Tracing and Mesh Shading support |
-| `CommandQueue` | Owns pooled command buffers and one timeline |
+| `CommandQueue` | Creates command buffers and submits work on one timeline |
 | `CommandBuffer` | Records transitions, barriers, copies, render passes, draws, dispatches, queries, and acceleration-structure builds |
 | `TimelineValue` | Identifies one queue submission for GPU dependencies or CPU waiting |
 
@@ -28,7 +28,7 @@ Each context exposes `GraphicsQueue`, `ComputeQueue`, and `TransferQueue`.
 
 | Type | Description |
 |------|-------------|
-| `Surface` | Native window-system handles and drawable dimensions |
+| `Surface` | Window-system surface and drawable dimensions |
 | `SwapChain` | Owns presentation images and exposes the current `Drawable` texture |
 | `SwapChainDesc` | Surface and drawable format |
 | `ColorAttachment` | Color attachment plus load, store, subresource, and clear state |
@@ -50,9 +50,7 @@ Presentation is synchronous. Render passes receive attachment structs directly.
 
 ## Bindless Access
 
-Buffers, textures, views, samplers, and top-level acceleration structures expose `ResourceHandle` values. Applications place handles in explicitly laid-out constant data, bind that data with `CommandBuffer.SetConstantBuffer`, and resolve the handles in Slang through `DescriptorHandle<T>`.
-
-Use `BarrierStages` and `CommandBuffer.Barrier` for same-layout memory dependencies. Use `CommandBuffer.Transition` when a texture changes access role.
+Buffers, textures, views, samplers, and top-level acceleration structures expose `ResourceHandle` values for Slang `DescriptorHandle<T>` declarations. See [Bindless Resources](../docs/fundamentals/bindless-resources.md).
 
 ## Pipelines
 

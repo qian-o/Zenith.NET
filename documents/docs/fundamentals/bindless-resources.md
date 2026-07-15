@@ -1,4 +1,4 @@
-# Bindless Resources
+﻿# Bindless Resources
 
 Zenith.NET uses bindless resource handles instead of per-pipeline resource tables. Buffers, textures, views, samplers, and top-level acceleration structures expose compact `ResourceHandle` values that can be stored in constant data and resolved by Slang shaders.
 
@@ -9,7 +9,7 @@ The binding path is:
 3. Store that handle in an unmanaged constant structure.
 4. Upload the structure to a constant buffer.
 5. Bind that constant buffer with `SetConstantBuffer`.
-6. Resolve the handle through Slang `DescriptorHandle<T>`.
+6. Declare the matching Slang `DescriptorHandle<T>`.
 
 ## Resource Handles
 
@@ -25,7 +25,7 @@ Choose a handle that matches the shader declaration:
 | `Sampler` | `Handle` | `SamplerState` or `SamplerComparisonState` |
 | `TopLevelAccelerationStructure` | `Handle` | `RaytracingAccelerationStructure` |
 
-Requesting a handle creates or resolves the corresponding graphics API descriptor as needed. Keep the source resource or view alive for every submission that can use the handle.
+Keep the source resource or view alive for every submission that uses its handle.
 
 ## Constant Data
 
@@ -93,11 +93,11 @@ struct ComputeConstants
 uniform ComputeConstants constants;
 ```
 
-Dereference a handle before indexing or invoking resource operations:
+Slang implicitly converts `DescriptorHandle<T>` to `T` when the resource is used:
 
 ```slang
-float4 value = (*constants.Input)[index];
-(*constants.Output)[pixel] = value;
+float4 value = constants.Input[index];
+constants.Output[pixel] = value;
 ```
 
 The generic argument is part of the ABI. It must match the handle's access type and the resource data layout.
@@ -112,11 +112,11 @@ commandBuffer.SetConstantBuffer(constantBuffer, 0);
 commandBuffer.Dispatch(groupCountX, groupCountY, 1);
 ```
 
-`SetConstantBuffer` binds one constant-buffer record for the current pipeline. Store several aligned records in one buffer and vary `offsetInBytes` when issuing many draws or dispatches.
+`SetConstantBuffer` binds constant data at the supplied byte offset for the current pipeline.
 
 ## Views
 
-Resources expose handles for their default full-resource views. Create an explicit view when a shader should see only a subrange or when a texture needs another view type or format.
+Resources expose handles for their full range. Create a view for a buffer subrange or a selected texture range and format.
 
 ```csharp
 BufferView materialView = context.CreateBufferView(BufferViewDesc.StorageReadOnly(materialBuffer, offsetInBytes, sizeInBytes, (uint)sizeof(Material)));
@@ -132,7 +132,7 @@ TextureView mipView = context.CreateTextureView(TextureViewDesc.Texture2D(textur
 ResourceHandle sampledMip = mipView.SampledHandle;
 ```
 
-Dispose explicit views after the last submission that uses their handles. Disposing a resource also disposes its internal default view, but it does not dispose separately created views.
+Explicit views have their own lifetime and remain dependent on the source resource.
 
 ## Resource Usage and Layout
 
@@ -151,15 +151,8 @@ commandBuffer.Dispatch(groupCountX, groupCountY, 1);
 commandBuffer.Transition(output, default, TextureLayout.Sampled);
 ```
 
-See [Synchronization and Barriers](synchronization.md) for choosing between a barrier, a texture transition, and a timeline wait.
+See [Synchronization](synchronization.md) for choosing between a barrier, a texture transition, and a timeline wait.
 
 ## Handle Lifetime
 
-Treat a `ResourceHandle` as a non-owning reference:
-
-- Keep the resource or view alive while GPU work can dereference the handle.
-- Do not cache a handle after disposing its owner.
-- Rebuild constant data when replacing a resized texture or view.
-- Wait for the final dependent submission before disposing an owner.
-
-Handles are portable values inside Zenith.NET's shader ABI. Their internal representation is graphics API-specific and should not be decoded by application code.
+`ResourceHandle` does not own its resource or view. Keep that owner alive through the final submission that uses the handle, and refresh constant data when replacing the owner.

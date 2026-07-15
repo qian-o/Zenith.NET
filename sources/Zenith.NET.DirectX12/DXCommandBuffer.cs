@@ -297,17 +297,21 @@ internal unsafe class DXCommandBuffer : CommandBuffer
     protected override void SetPipelineImpl(GraphicsPipeline pipeline)
     {
         CommandList.SetPipelineState(pipeline.DirectX12().PipelineState);
+        CommandList.SetGraphicsRootSignature(Context.RootSignature);
+
         CommandList.IASetPrimitiveTopology(DXFormats.DirectX12(pipeline.Desc.PrimitiveTopology).Topology);
     }
 
     protected override void SetPipelineImpl(ComputePipeline pipeline)
     {
         CommandList.SetPipelineState(pipeline.DirectX12().PipelineState);
+        CommandList.SetComputeRootSignature(Context.RootSignature);
     }
 
     protected override void SetPipelineImpl(MeshShadingPipeline pipeline)
     {
         CommandList.SetPipelineState(pipeline.DirectX12().PipelineState);
+        CommandList.SetGraphicsRootSignature(Context.RootSignature);
     }
 
     protected override void SetViewportsImpl(ReadOnlySpan<Viewport> viewports)
@@ -394,12 +398,10 @@ internal unsafe class DXCommandBuffer : CommandBuffer
     {
         if (pipeline is ComputePipeline)
         {
-            CommandList.SetComputeRootSignature(Context.RootSignature);
             CommandList.SetComputeRootConstantBufferView(0, buffer.DirectX12().GPUVirtualAddress + offsetInBytes);
         }
         else
         {
-            CommandList.SetGraphicsRootSignature(Context.RootSignature);
             CommandList.SetGraphicsRootConstantBufferView(0, buffer.DirectX12().GPUVirtualAddress + offsetInBytes);
         }
     }

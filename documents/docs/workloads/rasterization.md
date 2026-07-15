@@ -1,6 +1,6 @@
-﻿# Graphics
+﻿# Rasterization
 
-Zenith.NET graphics uses explicit command recording on `GraphicsContext.GraphicsQueue` with Graphics API selection through `GraphicsApi` (`DirectX12`, `Metal`, `Vulkan`).
+Rasterization combines compiled Slang stages, vertex input, fixed-function state, compatible attachments, and draw commands inside a render pass.
 
 ## Compile Slang Vertex and Fragment Shaders
 
@@ -10,11 +10,6 @@ Use `ZenithCompiler` with the selected Graphics API and create `Shader` objects 
 using Shader vertexShader = context.CreateShader(ZenithCompiler.CompileFromFile(context.GraphicsApi, "Assets/Shaders/Rasterization.slang", "VSMain"));
 using Shader fragmentShader = context.CreateShader(ZenithCompiler.CompileFromFile(context.GraphicsApi, "Assets/Shaders/Rasterization.slang", "FSMain"));
 ```
-
-Slang stage attributes typically map to these entries:
-
-- `VSMain` with `[shader("vertex")]`
-- `FSMain` with `[shader("fragment")]`
 
 ## GraphicsPipelineDesc
 
@@ -55,34 +50,13 @@ GraphicsPipeline pipeline = context.CreateGraphicsPipeline(new()
 });
 ```
 
-## InputLayout and InputElement
+## Vertex Input
 
 `InputLayout` stores stream stride and `InputElement[]`. Calling `Add` appends an element and advances `StrideInBytes` automatically using the element format size.
 
-`InputElement` fields:
-
-- `Format`
-- `Semantic`
-- `SemanticIndex`
-- `OffsetInBytes` (filled by `InputLayout.Add`)
-
 Keep element order and semantics aligned with the Slang vertex input struct.
 
-## AttachmentFormats and RenderState
-
-`AttachmentFormats` defines pipeline compatibility:
-
-- `ColorFormats`
-- `DepthStencilFormat`
-- `SampleCount`
-
-`RenderState` groups fixed-function state:
-
-- `Rasterizer`
-- `DepthStencil`
-- `Blend`
-
-When using a pipeline, render-pass attachments must match `AttachmentFormats`.
+The render-pass attachments must match the pipeline's `AttachmentFormats`. `RenderState` groups rasterizer, depth/stencil, and blend state.
 
 ## Direct Attachment Render Passes
 
@@ -115,7 +89,7 @@ Graphics draw entry points:
 - `DrawIndirect(indirectBuffer, offsetInBytes, drawCount)`
 - `DrawIndexedIndirect(indirectBuffer, offsetInBytes, drawCount)`
 
-For indirect paths, ensure producer and consumer synchronization with `Barrier` or queue timeline waits. See [Synchronization and Barriers](../concepts/synchronization.md).
+See [Synchronization](../fundamentals/synchronization.md) when another GPU command produces indirect arguments.
 
 ## Viewport and Scissor
 
@@ -126,13 +100,4 @@ commandBuffer.SetViewports([new() { Width = width, Height = height, MaxDepth = 1
 commandBuffer.SetScissors([new() { Width = width, Height = height }]);
 ```
 
-## Submission and TimelineValue
-
-`Submit` returns a `TimelineValue` that can be used for cross-queue waits or CPU waiting:
-
-```csharp
-TimelineValue done = commandBuffer.Submit();
-done.Wait();
-```
-
-For bindless constant-buffer binding with `ResourceHandle` and Slang `DescriptorHandle<T>`, see [Bindless Resources](../concepts/resource-binding.md).
+For shader-visible resources, see [Bindless Resources](../fundamentals/bindless-resources.md).

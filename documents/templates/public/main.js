@@ -1,4 +1,89 @@
-﻿export default {
+﻿const shikiModuleUrl = 'https://esm.sh/shiki@4.3.1';
+const slangGrammarUrl = 'https://raw.githubusercontent.com/shader-slang/slang-vscode-extension/v2.0.10/syntaxes/slang.tmLanguage.json';
+const shikiLanguageAliases = {
+    bash: 'bash',
+    console: 'shellsession',
+    cs: 'csharp',
+    csharp: 'csharp',
+    json: 'json',
+    powershell: 'powershell',
+    shell: 'bash',
+    slang: 'slang',
+    text: 'text',
+    txt: 'text',
+    xml: 'xml',
+    yaml: 'yaml',
+    yml: 'yaml'
+};
+
+let fallbackHighlighter;
+let shikiHighlighter;
+
+const loadShiki = () => {
+    shikiHighlighter ??= Promise.all([
+        import(shikiModuleUrl),
+        fetch(slangGrammarUrl, { cache: 'force-cache' }).then(response => {
+            if (!response.ok) throw new Error(`Unable to load Slang grammar: HTTP ${response.status}`);
+            return response.json();
+        })
+    ]).then(([{ createHighlighter }, slangGrammar]) => {
+        slangGrammar.name = 'slang';
+
+        return createHighlighter({
+            themes: ['light-plus', 'dark-plus'],
+            langs: ['bash', 'csharp', 'json', 'powershell', 'shellsession', 'xml', 'yaml', slangGrammar]
+        });
+    });
+
+    return shikiHighlighter;
+};
+
+const highlightCode = async (code, language, source = code.textContent) => {
+    const pre = code.closest('pre');
+
+    try {
+        const highlighter = await loadShiki();
+        const highlighted = highlighter.codeToHtml(source, {
+            lang: shikiLanguageAliases[language] || 'text',
+            themes: { light: 'light-plus', dark: 'dark-plus' },
+            defaultColor: false
+        });
+        const template = document.createElement('template');
+        template.innerHTML = highlighted;
+        const shikiPre = template.content.querySelector('pre');
+        const shikiCode = shikiPre?.querySelector('code');
+        if (!pre || !shikiPre || !shikiCode) throw new Error('Shiki returned invalid markup.');
+
+        code.innerHTML = shikiCode.innerHTML;
+        code.classList.remove('hljs');
+        code.dataset.highlighted = 'yes';
+        code.dataset.shiki = 'true';
+        pre.classList.add('shiki', 'shiki-themes', 'light-plus', 'dark-plus');
+
+        for (const property of shikiPre.style) {
+            if (property.startsWith('--shiki-')) {
+                pre.style.setProperty(property, shikiPre.style.getPropertyValue(property));
+            }
+        }
+    } catch (error) {
+        console.warn('Shiki highlighting failed; using the DocFX highlighter.', error);
+        code.textContent = source;
+        code.classList.remove('hljs');
+        code.removeAttribute('data-highlighted');
+
+        try {
+            fallbackHighlighter?.highlightElement(code);
+        } catch {
+            code.dataset.highlighted = 'yes';
+        }
+    }
+};
+
+export default {
+    configureHljs: hljs => {
+        fallbackHighlighter = hljs;
+        hljs.registerAliases(['slang'], { languageName: 'cpp' });
+    },
     iconLinks: [
         {
             icon: 'github',
@@ -253,7 +338,7 @@
         if (navbar && !navbar.querySelector('.nav-cta')) {
             const getStarted = document.createElement('a');
             getStarted.className = 'nav-cta';
-            getStarted.href = `${rootPath}tutorials/getting-started/prerequisites.html`;
+            getStarted.href = `${rootPath}tutorials/project-setup.html`;
             getStarted.textContent = 'Get started';
             getStarted.setAttribute('aria-label', 'Get started with Zenith.NET');
             navbar.append(getStarted);
@@ -284,19 +369,20 @@
             json: 'JSON',
             powershell: 'PowerShell',
             shell: 'Shell',
+            slang: 'Slang',
             xml: 'XML',
             yaml: 'YAML',
             yml: 'YAML'
         };
 
-        for (const pre of document.querySelectorAll('body:not([data-layout="landing"]) article pre')) {
-            if (pre.closest('.doc-code-frame')) continue;
-
+        const createCodeFrame = (pre, sourceLink) => {
             const code = pre.querySelector('code');
-            if (!code) continue;
+            if (!code) return null;
 
             const languageClass = [...code.classList].find(name => name.startsWith('language-') || name.startsWith('lang-'));
             const language = languageClass?.replace(/^language-|^lang-/, '').toLowerCase() || 'text';
+            const existingFrame = pre.closest('.doc-code-frame');
+            if (existingFrame) return { frame: existingFrame, code, copy: existingFrame.querySelector('.doc-code-copy'), language };
             const frame = document.createElement('div');
             const toolbar = document.createElement('div');
             const languageLabel = document.createElement('span');
@@ -314,12 +400,67 @@
 
             pre.parentNode.insertBefore(frame, pre);
             frame.append(toolbar, pre);
-            toolbar.append(languageLabel, copy);
+            toolbar.append(languageLabel);
+            if (sourceLink) {
+                const viewSource = document.createElement('a');
+                viewSource.className = 'doc-code-source';
+                viewSource.href = sourceLink;
+                viewSource.target = '_blank';
+                viewSource.rel = 'noopener';
+                viewSource.innerHTML = 'View on GitHub <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>';
+                toolbar.append(viewSource);
+            }
+            toolbar.append(copy);
             pre.querySelector(':scope > .code-action')?.remove();
 
             copy.addEventListener('click', async () => {
                 await copyWithFeedback(copy, code.textContent);
             });
+
+            return { frame, code, copy, language };
+        };
+
+        for (const slot of document.querySelectorAll('[data-remote-source]')) {
+            const language = slot.dataset.language || 'text';
+            const pre = document.createElement('pre');
+            const code = document.createElement('code');
+            code.className = `language-${language}`;
+            code.textContent = 'Loading source...';
+            pre.append(code);
+            slot.append(pre);
+
+            const controls = createCodeFrame(pre, slot.dataset.sourceLink);
+            if (!controls) continue;
+
+            controls.frame.classList.add('remote-code-frame', 'is-loading');
+            controls.copy.disabled = true;
+
+            const requestUrl = new URL(slot.dataset.remoteSource);
+            requestUrl.searchParams.set('v', Date.now().toString());
+            fetch(requestUrl, { cache: 'no-store' })
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    return response.text();
+                })
+                .then(async source => {
+                    const normalizedSource = source.replace(/\r\n/g, '\n');
+                    controls.code.textContent = normalizedSource;
+                    await highlightCode(controls.code, controls.language, normalizedSource);
+                    controls.frame.classList.remove('is-loading');
+                    controls.copy.disabled = false;
+                })
+                .catch(() => {
+                    controls.code.textContent = 'Unable to load source from ZenithTutorials/master.';
+                    controls.frame.classList.remove('is-loading');
+                    controls.frame.classList.add('is-failed');
+                });
+        }
+
+        for (const pre of document.querySelectorAll('body:not([data-layout="landing"]) article pre')) {
+            if (pre.closest('[data-remote-source]')) continue;
+
+            const controls = createCodeFrame(pre);
+            if (controls) void highlightCode(controls.code, controls.language);
         }
 
         for (const table of document.querySelectorAll('body:not([data-layout="landing"]) article table')) {

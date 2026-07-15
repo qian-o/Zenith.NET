@@ -13,14 +13,6 @@ if (!context.Capabilities.MeshShadingSupported)
 }
 ```
 
-## Slang Stage Terminology
-
-Current stage naming in Slang should match pipeline roles:
-
-- `[shader("task")]` for optional task shader
-- `[shader("mesh")]` for required mesh shader
-- `[shader("fragment")]` for fragment shader
-
 ## MeshShadingPipelineDesc
 
 Create mesh shading pipelines with `GraphicsContext.CreateMeshShadingPipeline` and `MeshShadingPipelineDesc`.
@@ -31,8 +23,8 @@ Create mesh shading pipelines with `GraphicsContext.CreateMeshShadingPipeline` a
 | `MeshShader` | `Shader` | Required mesh shader |
 | `FragmentShader` | `Shader` | Fragment shader |
 | `PrimitiveTopology` | `PrimitiveTopology` | Primitive topology for rasterization |
-| `AttachmentFormats` | `AttachmentFormats` | Color/depth formats and sample count |
-| `RenderState` | `RenderState` | Rasterizer, depth/stencil, blend state |
+| `AttachmentFormats` | `AttachmentFormats` | Render-pass compatibility |
+| `RenderState` | `RenderState` | Rasterizer, depth/stencil, and blend state |
 
 ```csharp
 MeshShadingPipeline pipeline = context.CreateMeshShadingPipeline(new()
@@ -83,25 +75,4 @@ commandBuffer.DispatchMeshIndirect(indirectBuffer, offsetInBytes, dispatchCount)
 
 `IndirectDispatchMeshArgs` contains `GroupCountX`, `GroupCountY`, and `GroupCountZ`.
 
-If compute generates this indirect buffer, add synchronization before dispatching mesh work.
-
-## Bindless Resources and Barriers
-
-Mesh/task/fragment shader data follows the same bindless model:
-
-- Put `ResourceHandle` values in explicit-layout C# constants.
-- Bind constants with `SetConstantBuffer`.
-- Resolve handles in Slang with `DescriptorHandle<T>`.
-
-Typical dependency when compute culls or compacts before mesh shading:
-
-```csharp
-computeCommands.SetPipeline(cullingPipeline);
-computeCommands.SetConstantBuffer(cullingConstants, 0);
-computeCommands.Dispatch(cullX, cullY, cullZ);
-computeCommands.Barrier(BarrierStages.ComputeShading, BarrierStages.VertexShading);
-```
-
-Use texture `Transition(...)` for layout changes and `Barrier(...)` for producer/consumer ordering without layout changes.
-
-See [Synchronization and Barriers](../concepts/synchronization.md) and [Bindless Resources](../concepts/resource-binding.md).
+Use [Synchronization](../fundamentals/synchronization.md) when GPU work produces mesh data or indirect arguments. See [Bindless Resources](../fundamentals/bindless-resources.md) for shader-visible resources.

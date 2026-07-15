@@ -1,6 +1,6 @@
-# Synchronization and Barriers
+﻿# Synchronization
 
-GPU commands can execute in parallel unless a dependency orders them. Zenith.NET exposes three synchronization mechanisms so applications can describe those dependencies without using graphics API-specific barrier structures.
+GPU commands can execute in parallel unless a dependency orders them. Zenith.NET exposes three synchronization mechanisms:
 
 | Mechanism | Scope | Use it when |
 |-----------|-------|-------------|
@@ -74,7 +74,7 @@ TextureSubresource subresource = new() { MipLevel = mipLevel, ArrayLayer = array
 commandBuffer.Transition(texture, subresource, TextureLayout.CopyDst);
 ```
 
-A transition includes the texture-specific execution, memory, and layout dependency. Do not add an equivalent global barrier beside every transition.
+`Transition` includes the dependency for that layout change.
 
 ### Texture Layouts
 
@@ -110,49 +110,4 @@ TimelineValue computed = computeCommands.Submit(uploaded);
 computed.Wait();
 ```
 
-The CPU can continue after submitting both command buffers. Call `Wait()` only when the CPU must observe completion or before releasing resources still used by the submission.
-
-## Common Hazards
-
-### Write Then Read
-
-A producer writes storage and a consumer reads the same memory. Use a barrier when the layout does not change:
-
-```csharp
-commandBuffer.Dispatch(writeGroupCount, 1, 1);
-commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-commandBuffer.Dispatch(readGroupCount, 1, 1);
-```
-
-### Compute Then Indirect Draw
-
-Graphics indirect arguments are covered by `VertexShading`:
-
-```csharp
-commandBuffer.SetPipeline(cullingPipeline);
-commandBuffer.Dispatch(groupCountX, 1, 1);
-
-commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.VertexShading);
-
-commandBuffer.SetPipeline(graphicsPipeline);
-commandBuffer.DrawIndexedIndirect(indirectBuffer, 0, drawCount);
-```
-
-### Storage Then Sampled Texture
-
-The texture changes role, so use a transition instead of a global barrier:
-
-```csharp
-commandBuffer.Transition(texture, default, TextureLayout.Storage);
-commandBuffer.Dispatch(groupCountX, groupCountY, 1);
-commandBuffer.Transition(texture, default, TextureLayout.Sampled);
-```
-
-## Decision Guide
-
-1. If a texture changes role, call `Transition`.
-2. If later commands depend on earlier writes without a layout change, call `Barrier`.
-3. If the dependency crosses queue submissions, pass `TimelineValue` instances to `Submit`.
-4. If the CPU must observe completion, call `Wait()` on the final submission.
-
-Avoid adding synchronization without a dependency. Unnecessary barriers and waits reduce the parallelism that explicit GPU APIs are designed to preserve.
+The CPU can continue after submitting both command buffers. Call `Wait()` when host code must observe completion.

@@ -1,4 +1,4 @@
-# Textures and Views
+﻿# Textures and Sampling
 
 Textures store multidimensional formatted data for sampling, storage access, render attachments, copies, resolves, and presentation. A `TextureDesc` defines the shape and permitted usages; each subresource also has a tracked `TextureLayout`.
 
@@ -98,7 +98,7 @@ unsafe
 }
 ```
 
-`Texture.Upload` records on the transfer queue and waits. Use `CommandBuffer.Upload` to batch several subresources before one submission.
+`Texture.Upload` completes before returning. Use `CommandBuffer.Upload` to group several subresources in one submission.
 
 ## ImageSharp Loading
 
@@ -110,7 +110,7 @@ using Zenith.NET.Extensions.ImageSharp;
 Texture albedo = context.LoadTextureFromFile("Assets/Textures/Albedo.png", generateMipMaps: true);
 ```
 
-The extension resizes mip images on the CPU, records every mip upload on one transfer command buffer, then submits and waits once.
+Set `generateMipMaps` when the texture should include a complete mip chain.
 
 ## Subresources and Layouts
 
@@ -124,11 +124,11 @@ commandBuffer.Transition(texture, subresource, TextureLayout.Sampled);
 
 Use `default` for mip level zero and array layer zero. Layouts are tracked independently for all subresources.
 
-Texture transitions include the texture-specific synchronization dependency. See [Synchronization and Barriers](../concepts/synchronization.md) for layout definitions and barrier rules.
+Texture transitions include the texture-specific synchronization dependency. See [Synchronization](../fundamentals/synchronization.md) for layout definitions and barrier rules.
 
 ## Texture Views
 
-Full textures expose handles through an internal default view. Create an explicit `TextureView` to select another type, format, mip range, or array range:
+Textures expose handles for their full range. Create a `TextureView` to select another type, format, mip range, or array range:
 
 ```csharp
 TextureView mipView = context.CreateTextureView(TextureViewDesc.Texture2D(texture, texture.Desc.Format, mipLevel, 1));
@@ -148,13 +148,35 @@ Create a multisampled color attachment and a single-sampled resolve target with 
 commandBuffer.ResolveTexture(msaaColor, default, resolvedColor, default);
 ```
 
-`ResolveTexture` temporarily transitions the source and destination to their resolve layouts, performs the resolve, and restores their tracked layouts.
+The source and destination must use compatible formats and dimensions.
 
 ## Copies and Downloads
 
-Command buffers support texture-to-texture, buffer-to-texture, and texture-to-buffer copies. The copy helpers transition affected texture subresources to copy layouts and restore them afterward.
+Command buffers support texture-to-texture, buffer-to-texture, and texture-to-buffer copies. `Texture.Download` completes before returning; use `CommandBuffer.Download` when readback belongs to a larger submission.
 
-`Texture.Download` is synchronous and writes to a `TextureData` destination. Record `CommandBuffer.Download` directly when readback should remain part of a larger command sequence.
+## Samplers
+
+Samplers define filtering, addressing, comparison, anisotropy, and LOD independently from textures. Use a preset when possible:
+
+```csharp
+Sampler linearClamp = context.CreateSampler(SamplerDesc.LinearClamp());
+Sampler linearWrap = context.CreateSampler(SamplerDesc.LinearWrap());
+Sampler pointClamp = context.CreateSampler(SamplerDesc.PointClamp());
+Sampler anisotropic = context.CreateSampler(SamplerDesc.Anisotropic(16));
+```
+
+A custom `SamplerDesc` selects `MinFilter`, `MagFilter`, `MipFilter`, `AddressU/V/W`, `CompareOp`, anisotropy, LOD range, bias, and border color. Set `CompareOp` for depth comparison sampling.
+
+Store `Sampler.Handle` beside the sampled texture handle and use matching Slang descriptors:
+
+```slang
+DescriptorHandle<Texture2D> Texture;
+DescriptorHandle<SamplerState> Sampler;
+
+float4 color = Texture.Sample(Sampler, uv);
+```
+
+See [Bindless Resources](../fundamentals/bindless-resources.md) for handle layout and lifetime.
 
 ## Wrapped Native Textures
 
@@ -170,6 +192,4 @@ texture.OverrideLayout(default, TextureLayout.Sampled);
 
 ## Lifetime and Resizing
 
-Dispose explicit views before the source texture. Recreate size-dependent textures when the drawable dimensions change, then update every constant structure that stores their handles.
-
-Do not dispose `SwapChain.Drawable`; the swap chain owns it.
+Views depend on their source texture. When replacing a size-dependent texture, refresh every constant structure that stores one of its handles.

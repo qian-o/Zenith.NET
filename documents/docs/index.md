@@ -1,60 +1,31 @@
-﻿# Documentation
+﻿# RHI Guide
 
-Zenith.NET is an explicit, bindless rendering hardware interface for .NET. It presents one strongly typed model across DirectX 12, Metal 4, and Vulkan 1.4 while keeping queues, memory residency, synchronization, and resource state under application control.
+This guide defines the Zenith.NET programming model. It explains the contracts shared by DirectX 12, Metal 4, and Vulkan 1.4 without repeating tutorial setup or generated API details.
 
-These pages explain that model. For task-oriented, runnable examples, follow the [Tutorials](../tutorials/index.md).
+## Fundamentals
 
-## Design Boundaries
+Read these pages in order when learning the RHI:
 
-Zenith.NET exposes the common modern GPU model shared by its three graphics APIs. It intentionally avoids graphics API-specific feature branches in application code.
-
-The public capability surface contains two optional feature checks:
-
-- Ray Tracing, implemented through acceleration structures and inline `RayQuery`.
-- Mesh Shading, implemented through task and mesh shader pipelines.
-
-Swap-chain presentation is synchronous. Zenith.NET does not expose a frames-in-flight model.
-
-## Core Model
-
-| Topic | Description |
-|-------|-------------|
-| [Graphics Context](concepts/graphics-context.md) | Graphics API creation, queues, capabilities, validation, ownership, and resource factories |
-| [Commands](concepts/command-model.md) | Command buffer recording, render passes, dispatches, copies, queries, and submission |
-| [Synchronization and Barriers](concepts/synchronization.md) | Memory barriers, texture transitions, timeline values, and cross-queue dependencies |
-| [Bindless Resources](concepts/resource-binding.md) | Resource handles, explicitly laid-out constant data, and Slang `DescriptorHandle<T>` |
+1. [Runtime and Devices](fundamentals/runtime.md) covers graphics API selection, capabilities, queues, diagnostics, and ownership.
+2. [Queues and Commands](fundamentals/commands.md) defines recording, render passes, copies, submission, and timeline values.
+3. [Synchronization](fundamentals/synchronization.md) distinguishes memory barriers, texture transitions, and cross-queue waits.
+4. [Bindless Resources](fundamentals/bindless-resources.md) defines resource handles, constant data, shader descriptors, and handle lifetime.
 
 ## Resources
 
-| Topic | Description |
-|-------|-------------|
-| [Buffers and Memory](resources/buffers.md) | Buffer usages, memory residency, views, heaps, uploads, and downloads |
-| [Textures and Views](resources/textures.md) | Texture types, usages, subresources, views, layouts, and transfers |
-| [Samplers](resources/samplers.md) | Filtering, address modes, comparison sampling, anisotropy, and LOD |
+- [Buffers and Memory](resources/buffers.md) covers usages, residency, views, heaps, uploads, downloads, and mapping.
+- [Textures and Sampling](resources/textures.md) covers texture shapes, layouts, views, transfers, resolves, and samplers.
 
-## Rendering
+## Workloads
 
-| Topic | Description |
-|-------|-------------|
-| [Graphics Pipelines](features/graphics.md) | Rasterization pipelines, render state, attachments, draws, viewports, and scissors |
-| [Compute and Indirect](features/compute.md) | Compute pipelines, dispatch sizing, storage resources, barriers, and indirect commands |
-| [Ray Tracing](features/ray-tracing.md) | BLAS/TLAS creation, updates, bindless scene access, and inline `RayQuery` |
-| [Mesh Shading](features/mesh-shading.md) | Task and mesh shader pipelines, capability checks, and direct or indirect dispatch |
+- [Rasterization](workloads/rasterization.md) covers graphics pipelines, attachments, render state, and draw commands.
+- [Compute](workloads/compute.md) covers compute pipelines, dispatch sizing, storage access, and indirect dispatch.
+- [Ray Tracing](workloads/ray-tracing.md) covers acceleration structures and inline `RayQuery`.
+- [Mesh Shading](workloads/mesh-shading.md) covers task and mesh pipelines and dispatch.
 
-## Presentation and Integration
+## Presentation
 
-| Topic | Description |
-|-------|-------------|
-| [Graphics API Selection](platform/backend-selection.md) | Runtime selection for DirectX 12, Metal 4, and Vulkan 1.4 |
-| [Surfaces and Swap Chains](platform/presentation.md) | Native surfaces, drawables, layout transitions, resizing, and synchronous presentation |
-| [UI Framework Integration](platform/ui-frameworks.md) | Zenith views for Avalonia, MAUI, WinForms, WinUI, and WPF |
+- [Surfaces and Swap Chains](presentation/swap-chains.md) defines drawable acquisition, resize, and presentation.
+- [View Integrations](presentation/views.md) covers rendering through supported .NET UI controls.
 
-## Guidance
-
-[Best Practices](best-practices.md) covers ownership, synchronization scope, batching, validation, data layout, resizing, and deterministic disposal.
-
-## Next Steps
-
-- Start with [Graphics Context](concepts/graphics-context.md) to understand object ownership and queue access.
-- Continue with [Synchronization and Barriers](concepts/synchronization.md) before building multi-pass GPU workloads.
-- Use the [API Reference](../api/index.md) for complete type and member signatures.
+Use the [Tutorials](../tutorials/index.md) for complete applications and the [API Reference](../api/index.md) for exact signatures.

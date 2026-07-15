@@ -1,42 +1,34 @@
-﻿- name: Docs
+﻿- name: Overview
   href: index.md
-- name: Core Model
+- name: Fundamentals
   items:
-    - name: Graphics Context
-      href: concepts/graphics-context.md
-    - name: Commands
-      href: concepts/command-model.md
-    - name: Synchronization and Barriers
-      href: concepts/synchronization.md
+    - name: Runtime and Devices
+      href: fundamentals/runtime.md
+    - name: Queues and Commands
+      href: fundamentals/commands.md
+    - name: Synchronization
+      href: fundamentals/synchronization.md
     - name: Bindless Resources
-      href: concepts/resource-binding.md
+      href: fundamentals/bindless-resources.md
 - name: Resources
   items:
     - name: Buffers and Memory
       href: resources/buffers.md
-    - name: Textures and Views
+    - name: Textures and Sampling
       href: resources/textures.md
-    - name: Samplers
-      href: resources/samplers.md
-- name: Rendering
+- name: Workloads
   items:
-    - name: Graphics Pipelines
-      href: features/graphics.md
-    - name: Compute and Indirect
-      href: features/compute.md
+    - name: Rasterization
+      href: workloads/rasterization.md
+    - name: Compute
+      href: workloads/compute.md
     - name: Ray Tracing
-      href: features/ray-tracing.md
+      href: workloads/ray-tracing.md
     - name: Mesh Shading
-      href: features/mesh-shading.md
-- name: Presentation and Integration
+      href: workloads/mesh-shading.md
+- name: Presentation
   items:
-    - name: Graphics API Selection
-      href: platform/backend-selection.md
     - name: Surfaces and Swap Chains
-      href: platform/presentation.md
-    - name: UI Framework Integration
-      href: platform/ui-frameworks.md
-- name: Guidance
-  items:
-    - name: Best Practices
-      href: best-practices.md
+      href: presentation/swap-chains.md
+    - name: View Integrations
+      href: presentation/views.md

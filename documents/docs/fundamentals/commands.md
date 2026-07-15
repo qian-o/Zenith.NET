@@ -1,24 +1,12 @@
-﻿# Commands
+﻿# Queues and Commands
 
 Zenith.NET exposes GPU work through explicit command queues and command buffers. Recording commands does not execute them immediately. Work begins when the command buffer is submitted to its queue.
-
-## Command Queues
-
-Every `GraphicsContext` owns three queues:
-
-| Queue | Typical work |
-|-------|--------------|
-| `GraphicsQueue` | Render passes, draw calls, compute dispatches, and presentation work |
-| `ComputeQueue` | Compute dispatches and acceleration structure builds |
-| `TransferQueue` | Buffer and texture uploads, downloads, and copies |
 
 Request a command buffer from the queue that will execute the work:
 
 ```csharp
 CommandBuffer commandBuffer = context.ComputeQueue.CommandBuffer();
 ```
-
-Command buffers are pooled by their queue. Calling `Wait()` on a `TimelineValue` waits for that value, reclaims all completed command buffers on the same queue, and resets them before reuse.
 
 ## Recording Commands
 
@@ -37,11 +25,11 @@ TimelineValue submission = commandBuffer.Submit();
 submission.Wait();
 ```
 
-Pipeline-dependent commands are ignored when no compatible pipeline is currently set. Set a graphics, compute, or mesh shading pipeline before binding its state or issuing work.
+Set the matching pipeline before binding pipeline state or issuing draws and dispatches.
 
 ## Timeline Submission
 
-`Submit()` closes the command buffer, submits it to its queue, and returns the value signaled on that queue's timeline:
+`Submit()` queues the recorded work and returns a timeline value:
 
 ```csharp
 TimelineValue submission = commandBuffer.Submit();
@@ -56,15 +44,7 @@ if (!submission.IsCompleted)
 }
 ```
 
-## Synchronization Boundary
-
-Command recording meets synchronization at three explicit operations:
-
-- `Transition` changes a texture subresource's access role.
-- `Barrier` orders same-layout memory dependencies inside one command buffer.
-- `Submit(waitValues...)` orders work across queue submissions.
-
-See [Synchronization and Barriers](synchronization.md) for stage masks, texture layouts, cross-queue dependencies, and the decision guide.
+See [Synchronization](synchronization.md) for texture transitions, memory barriers, and cross-queue dependencies.
 
 ## Render Passes
 
@@ -89,7 +69,7 @@ commandBuffer.EndRenderPass();
 
 Command buffers support buffer copies, texture copies, buffer-to-texture copies, texture-to-buffer copies, resolves, uploads, and downloads. Copy helpers transition texture subresources to their required copy layouts and restore the tracked layouts afterward.
 
-Convenience methods such as `Buffer.Upload()` and `Texture.Upload()` record work on the transfer queue, submit it, and wait for completion. Record transfer commands directly when several operations should be batched or consumed asynchronously by another queue.
+`Buffer.Upload()` and `Texture.Upload()` are synchronous convenience methods. Record transfers directly when several operations should be batched or chained with later GPU work.
 
 ## Acceleration Structures
 

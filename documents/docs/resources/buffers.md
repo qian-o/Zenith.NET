@@ -1,4 +1,4 @@
-# Buffers and Memory
+﻿# Buffers and Memory
 
 Buffers store linear GPU data such as vertices, indices, constants, structured records, and indirect arguments. A `BufferDesc` defines the size, element stride, allowed usages, and memory residency.
 
@@ -38,7 +38,7 @@ Buffer materialBuffer = context.CreateBuffer(BufferDesc.StorageReadOnly(material
 Buffer outputBuffer = context.CreateBuffer(BufferDesc.StorageReadWrite(outputSizeInBytes, (uint)sizeof(Output)));
 ```
 
-These descriptions include `TransferDst` so data can be uploaded through the transfer queue. `BufferDesc.Staging` creates a CPU-write-only transfer source.
+`BufferDesc.Staging` creates a CPU-write-only staging buffer.
 
 ## Buffer Usages
 
@@ -67,7 +67,7 @@ Prefer `GpuOnly` for data used repeatedly by the GPU. Use `CpuWriteOnly` for con
 
 ## Uploading Data
 
-`Buffer.Upload` maps CPU-write-only buffers directly. Other residencies use a transfer command buffer and wait for completion:
+`Buffer.Upload` copies data into the buffer and completes before returning:
 
 ```csharp
 unsafe
@@ -83,7 +83,7 @@ unsafe
 }
 ```
 
-Batch uploads by recording them on one command buffer when the data should be consumed asynchronously:
+Use `CommandBuffer.Upload` to group transfers in one submission:
 
 ```csharp
 CommandBuffer transferCommands = context.TransferQueue.CommandBuffer();
@@ -92,11 +92,11 @@ transferCommands.Upload(indexBuffer, 0, indexData);
 TimelineValue uploaded = transferCommands.Submit();
 ```
 
-Pass `uploaded` to a dependent queue submission rather than waiting on the CPU.
+Pass `uploaded` to the submission that consumes the data.
 
 ## Downloading Data
 
-`Buffer.Download` reads mapped CPU-read-only memory directly or uses the transfer queue for other residencies:
+`Buffer.Download` copies data into caller-provided memory and completes before returning:
 
 ```csharp
 unsafe
@@ -112,7 +112,7 @@ unsafe
 }
 ```
 
-The convenience method is synchronous. Record `commandBuffer.Download` directly when readback should be grouped with other commands.
+Use `CommandBuffer.Download` when readback belongs to a larger submission.
 
 ## Mapping
 
@@ -129,7 +129,7 @@ unsafe
 constantBuffer.Unmap();
 ```
 
-`Upload` and `Download` are usually preferable because they choose the correct path for the buffer residency.
+Use `Map` for repeated direct CPU access and `Upload` or `Download` for individual transfers.
 
 ## Buffer Views
 
@@ -145,7 +145,7 @@ Available helper descriptions are `Constant`, `StorageReadOnly`, and `StorageRea
 ResourceHandle materials = materialView.StorageReadOnlyHandle;
 ```
 
-See [Bindless Resources](../concepts/resource-binding.md) for the matching Slang `DescriptorHandle<T>` declarations.
+See [Bindless Resources](../fundamentals/bindless-resources.md) for the matching Slang `DescriptorHandle<T>` declarations.
 
 ## Explicit Heaps
 
@@ -161,16 +161,8 @@ Align every placed offset to the resource's `AlignmentInBytes`. Keep the heap al
 
 ## Synchronization
 
-A buffer does not have a tracked layout. Use a memory barrier when later commands depend on earlier buffer writes in the same command stream:
-
-```csharp
-commandBuffer.Dispatch(writeGroupCount, 1, 1);
-commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-commandBuffer.Dispatch(readGroupCount, 1, 1);
-```
-
-Use a timeline dependency when the producer and consumer are submitted to different queues. See [Synchronization and Barriers](../concepts/synchronization.md).
+Buffers have no texture layout. Use [Synchronization](../fundamentals/synchronization.md) to order buffer producers and consumers.
 
 ## Lifetime
 
-Dispose explicit views before their underlying buffer. When a buffer is placed in a heap, dispose the buffer before the heap. Wait for the final submission that uses a buffer or any of its handles before disposing it.
+Views depend on their source buffer, and placed buffers depend on their heap. Keep each owner alive through the final submission that uses its dependent resources.

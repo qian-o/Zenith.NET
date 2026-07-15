@@ -1,8 +1,8 @@
-# Surfaces and Swap Chains
+﻿# Surfaces and Swap Chains
 
 A `Surface` connects Zenith.NET to a native window. A `SwapChain` owns the presentation images for that surface and exposes the current image through `Drawable`.
 
-Presentation is synchronous. Zenith.NET does not expose multiple frames in flight.
+Presentation is synchronous.
 
 ## Creating a Surface
 
@@ -46,23 +46,24 @@ Transition the current drawable before attachment access and again before presen
 
 ```csharp
 CommandBuffer commandBuffer = context.GraphicsQueue.CommandBuffer();
+Texture drawable = swapChain.Drawable;
 
-commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.ColorAttachment);
+commandBuffer.Transition(drawable, default, TextureLayout.ColorAttachment);
 
-commandBuffer.BeginRenderPass([ColorAttachment.Clear(swapChain.Drawable, new(0.05f, 0.05f, 0.08f, 1.0f))], null);
+commandBuffer.BeginRenderPass([ColorAttachment.Clear(drawable, new(0.05f, 0.05f, 0.08f, 1.0f))], null);
 
 commandBuffer.SetPipeline(graphicsPipeline);
 commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
 commandBuffer.Draw(vertexCount, 1, 0, 0);
 
 commandBuffer.EndRenderPass();
-commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Present);
+commandBuffer.Transition(drawable, default, TextureLayout.Present);
 
 commandBuffer.Submit().Wait();
 swapChain.Present();
 ```
 
-`Drawable` can refer to a different presentation image after `Present()`. Read it again when recording the next frame instead of retaining it as a permanent render target.
+Acquire `Drawable` for each frame because the current presentation image changes.
 
 ## Resizing
 
@@ -97,15 +98,3 @@ swapChain.Refresh(surface);
 
 Use `Resize` when only the dimensions change. Use `Refresh` when the native handle or surface type changes.
 
-## Lifetime
-
-Dispose the swap chain before disposing its `GraphicsContext`. Dispose application-owned size-dependent textures separately:
-
-```csharp
-depthStencil.Dispose();
-color.Dispose();
-swapChain.Dispose();
-context.Dispose();
-```
-
-Do not dispose `swapChain.Drawable`; the swap chain owns its presentation images.
