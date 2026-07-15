@@ -581,7 +581,7 @@ internal static class DXFormats
         return textureLayout switch
         {
             TextureLayout.Undefined => (BarrierSync.None, BarrierAccess.NoAccess, BarrierLayout.Undefined),
-            TextureLayout.General => (BarrierSync.All, BarrierAccess.Common, BarrierLayout.Common),
+            TextureLayout.Common => (BarrierSync.All, BarrierAccess.Common, BarrierLayout.Common),
             TextureLayout.Sampled => (BarrierSync.AllShading, BarrierAccess.ShaderResource, BarrierLayout.ShaderResource),
             TextureLayout.Storage => (BarrierSync.AllShading, BarrierAccess.UnorderedAccess, BarrierLayout.UnorderedAccess),
             TextureLayout.ColorAttachment => (BarrierSync.RenderTarget, BarrierAccess.RenderTarget, BarrierLayout.RenderTarget),

@@ -37,13 +37,21 @@ internal partial class MauiZenithView(ZenithViewHandler handler) : SurfaceView(h
 
     public void Tick()
     {
-        if (!ValidateSurface() || swapChain is null)
+        if (!ValidateSurface() || handler.VirtualView.GraphicsContext is null || swapChain is null)
         {
             return;
         }
 
+        CommandBuffer commandBuffer = handler.VirtualView.GraphicsContext.GraphicsQueue.CommandBuffer();
+
+        commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+
         handler.VirtualView.OnUpdateRequested();
-        handler.VirtualView.OnRenderRequested(swapChain.Drawable);
+        handler.VirtualView.OnRenderRequested(commandBuffer, swapChain.Drawable);
+
+        commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
+
+        commandBuffer.Submit().Wait();
     }
 
     public void Present()

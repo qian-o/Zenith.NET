@@ -104,19 +104,25 @@ public class ZenithView : TemplatedControl, IZenithView
 
     void IZenithView.Tick()
     {
-        if (surface is null)
+        if (GraphicsContext is null || surface is null)
         {
             return;
         }
 
+        CommandBuffer commandBuffer = GraphicsContext.GraphicsQueue.CommandBuffer();
+
+        commandBuffer.Transition(surface.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+
         UpdateRequested?.Invoke(this, new(scheduler.UpdateSeconds, scheduler.TotalSeconds));
-        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, surface.Drawable));
+        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, commandBuffer, surface.Drawable));
+
+        commandBuffer.Transition(surface.Drawable, default, TextureLayout.ColorAttachment, TextureLayout.CopySrc);
+
+        surface.Flush(commandBuffer);
     }
 
     void IZenithView.Present()
     {
-        surface?.Present();
-
         InvalidateVisual();
     }
 

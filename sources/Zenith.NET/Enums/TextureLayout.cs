@@ -4,7 +4,7 @@ public enum TextureLayout
 {
     Undefined,
 
-    General,
+    Common,
 
     Sampled,
 

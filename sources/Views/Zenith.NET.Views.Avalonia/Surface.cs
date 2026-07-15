@@ -25,7 +25,7 @@ internal class Surface(GraphicsContext graphicsContext, uint width, uint height)
 
     public uint Height { get; } = height;
 
-    public void Present()
+    public void Flush(CommandBuffer commandBuffer)
     {
         using ILockedFramebuffer lockedFramebuffer = Bitmap.Lock();
 
@@ -44,7 +44,9 @@ internal class Surface(GraphicsContext graphicsContext, uint width, uint height)
             SliceStrideInBytes = (uint)(lockedFramebuffer.RowBytes * Height)
         };
 
-        Drawable.Download(default, TextureLayout.ColorAttachment, TextureLayout.ColorAttachment, default, extent, data);
+        commandBuffer.Download(Drawable, default, default, extent, data);
+
+        commandBuffer.Submit().Wait();
     }
 
     protected override void Destroy()

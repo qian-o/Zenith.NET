@@ -29,15 +29,23 @@ internal unsafe partial class MauiZenithView(ZenithViewHandler handler) : SwapCh
 
     public void Tick()
     {
-        if (surface is null)
+        if (handler.VirtualView.GraphicsContext is null || surface is null)
         {
             return;
         }
 
         surface.AcquireSync();
 
+        CommandBuffer commandBuffer = handler.VirtualView.GraphicsContext.GraphicsQueue.CommandBuffer();
+
+        commandBuffer.Transition(surface.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+
         handler.VirtualView.OnUpdateRequested();
-        handler.VirtualView.OnRenderRequested(surface.Drawable);
+        handler.VirtualView.OnRenderRequested(commandBuffer, surface.Drawable);
+
+        commandBuffer.Transition(surface.Drawable, default, TextureLayout.ColorAttachment, TextureLayout.Common);
+
+        commandBuffer.Submit().Wait();
 
         surface.ReleaseSync();
     }

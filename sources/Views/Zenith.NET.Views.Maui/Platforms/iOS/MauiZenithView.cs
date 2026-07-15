@@ -38,13 +38,21 @@ internal class MauiZenithView(ZenithViewHandler handler) : UIView
 
     public void Tick()
     {
-        if (swapChain is null)
+        if (handler.VirtualView.GraphicsContext is null || swapChain is null)
         {
             return;
         }
 
+        CommandBuffer commandBuffer = handler.VirtualView.GraphicsContext.GraphicsQueue.CommandBuffer();
+
+        commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+
         handler.VirtualView.OnUpdateRequested();
-        handler.VirtualView.OnRenderRequested(swapChain.Drawable);
+        handler.VirtualView.OnRenderRequested(commandBuffer, swapChain.Drawable);
+
+        commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
+
+        commandBuffer.Submit().Wait();
     }
 
     public void Present()

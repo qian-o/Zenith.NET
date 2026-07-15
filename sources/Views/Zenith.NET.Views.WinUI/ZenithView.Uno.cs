@@ -29,13 +29,21 @@ public partial class ZenithView
 
     void IZenithView.Tick()
     {
-        if (surface is null)
+        if (GraphicsContext is null || surface is null)
         {
             return;
         }
 
+        CommandBuffer commandBuffer = GraphicsContext.GraphicsQueue.CommandBuffer();
+
+        commandBuffer.Transition(surface.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+
         UpdateRequested?.Invoke(this, new(scheduler.UpdateSeconds, scheduler.TotalSeconds));
-        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, surface.Drawable));
+        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, commandBuffer, surface.Drawable));
+
+        commandBuffer.Transition(surface.Drawable, default, TextureLayout.ColorAttachment, TextureLayout.CopySrc);
+
+        surface.Flush(commandBuffer);
     }
 
     void IZenithView.Present()
@@ -73,7 +81,7 @@ internal unsafe class Surface(GraphicsContext context, uint width, uint height) 
 
     public uint Height { get; } = height;
 
-    public void Present()
+    public void Flush(CommandBuffer commandBuffer)
     {
         fixed (byte* pPixels = pixels)
         {
@@ -92,7 +100,9 @@ internal unsafe class Surface(GraphicsContext context, uint width, uint height) 
                 SliceStrideInBytes = (uint)pixels.Length
             };
 
-            Drawable.Download(default, TextureLayout.ColorAttachment, TextureLayout.ColorAttachment, default, extent, data);
+            commandBuffer.Download(Drawable, default, default, extent, data);
+
+            commandBuffer.Submit().Wait();
         }
 
         if (ZenithViewHelper.DrawableFormat is PixelFormat.R8G8B8A8UNorm)
@@ -105,7 +115,10 @@ internal unsafe class Surface(GraphicsContext context, uint width, uint height) 
 
         using Stream stream = Bitmap.PixelBuffer.AsStream();
         stream.Write(pixels);
+    }
 
+    public void Present()
+    {
         Bitmap.Invalidate();
     }
 
