@@ -184,7 +184,7 @@ internal static class App
 
             commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
 
-            imGui.Render(commandBuffer, ColorAttachment.Load(swapChain.Drawable));
+            imGui.Render(commandBuffer, ColorAttachment.DontCare(swapChain.Drawable));
 
             commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
 
