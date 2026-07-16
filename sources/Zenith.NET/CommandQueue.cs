@@ -12,6 +12,8 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
     public CommandBuffer CommandBuffer()
     {
+        Reclaim();
+
         using Lock.Scope _ = @lock.EnterScope();
 
         CommandBuffer commandBuffer = commandBuffers.Count is 0 ? CreateCommandBuffer() : commandBuffers.Dequeue();
@@ -23,6 +25,8 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
     internal TimelineValue Submit(ReadOnlySpan<TimelineValue> waits, CommandBuffer commandBuffer)
     {
+        Reclaim();
+
         using Lock.Scope _ = @lock.EnterScope();
 
         commandBuffer.End();
@@ -38,6 +42,8 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
     internal void Reclaim()
     {
+        using Lock.Scope _ = @lock.EnterScope();
+
         while (submitteds.TryPeek(out Submitted submitted) && submitted.TimelineValue.IsCompleted)
         {
             submitteds.Dequeue();
