@@ -5,6 +5,8 @@ Buffers store linear GPU data such as vertices, indices, constants, structured r
 ## Buffer Description
 
 ```csharp
+using Buffer = Zenith.NET.Buffer;
+
 BufferDesc desc = new()
 {
     SizeInBytes = sizeInBytes,
@@ -35,7 +37,9 @@ Buffer constantBuffer = context.CreateBuffer(BufferDesc.Constant(constantSizeInB
 
 Buffer materialBuffer = context.CreateBuffer(BufferDesc.StorageReadOnly(materialSizeInBytes, (uint)sizeof(Material)));
 
-Buffer outputBuffer = context.CreateBuffer(BufferDesc.StorageReadWrite(outputSizeInBytes, (uint)sizeof(Output)));
+BufferDesc outputDesc = BufferDesc.StorageReadWrite(outputSizeInBytes, (uint)sizeof(Output));
+outputDesc.Usages |= BufferUsages.TransferSrc;
+Buffer outputBuffer = context.CreateBuffer(outputDesc);
 ```
 
 `BufferDesc.Staging` creates a CPU-write-only staging buffer.
@@ -50,8 +54,8 @@ Buffer outputBuffer = context.CreateBuffer(BufferDesc.StorageReadWrite(outputSiz
 | `Constant` | Bind through `SetConstantBuffer` or use `ConstantHandle` |
 | `StorageReadOnly` | Resolve through `StorageReadOnlyHandle` |
 | `StorageReadWrite` | Resolve through `StorageReadWriteHandle` |
-| `TransferSrc` | Copy or upload source |
-| `TransferDst` | Copy or upload destination |
+| `TransferSrc` | Source of copies and downloads |
+| `TransferDst` | Destination of copies and uploads |
 
 Combine only the usages required by the application. The resource must be created with a usage before commands or handles can use that role.
 

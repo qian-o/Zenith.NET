@@ -44,7 +44,7 @@ Presentation is synchronous. Render passes receive attachment structs directly.
 | `BufferDesc` / `BufferUsages` | Size, stride, permitted operations, and memory residency |
 | `Texture` / `TextureView` | Formatted multidimensional storage and selected subresource ranges |
 | `TextureDesc` / `TextureUsages` | Shape, format, sample count, and permitted operations |
-| `TextureLayout` / `TextureSubresource` | Tracked access role for each mip level and array layer |
+| `TextureLayout` / `TextureSubresource` | Explicit access role and selected mip level or array layer |
 | `Sampler` / `SamplerDesc` | Filtering, addressing, comparison, anisotropy, and LOD state |
 | `Heap` / `HeapDesc` | Explicit placed-resource allocation |
 

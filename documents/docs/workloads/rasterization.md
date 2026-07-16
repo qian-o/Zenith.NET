@@ -63,8 +63,8 @@ The render-pass attachments must match the pipeline's `AttachmentFormats`. `Rend
 Render passes receive explicit attachment structs directly:
 
 ```csharp
-commandBuffer.Transition(color, default, TextureLayout.ColorAttachment);
-commandBuffer.Transition(depthStencil, default, TextureLayout.DepthStencilAttachment);
+commandBuffer.Transition(color, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+commandBuffer.Transition(depthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
 
 commandBuffer.BeginRenderPass([ColorAttachment.Clear(color, new(0.51f, 0.518f, 0.557f, 1.0f))], DepthStencilAttachment.Clear(depthStencil, 1.0f, 0));
 
@@ -75,10 +75,10 @@ commandBuffer.SetConstantBuffer(constantBuffer, 0);
 commandBuffer.DrawIndexed(indexCount, 1, 0, 0, 0);
 
 commandBuffer.EndRenderPass();
-commandBuffer.Transition(color, default, TextureLayout.Sampled);
+commandBuffer.Transition(color, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
 ```
 
-Use `ColorAttachment.Clear/Load/DontCare` and `DepthStencilAttachment.Clear/Load/DontCare` to choose load/store behavior per pass.
+Use `ColorAttachment.Clear/Load/DontCare` and `DepthStencilAttachment.Clear/Load/DontCare` to choose load behavior. These helpers store the result; construct the attachment explicitly when another `StoreOp` is required.
 
 ## Draw and Indirect Commands
 

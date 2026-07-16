@@ -32,6 +32,10 @@ Keep the source resource or view alive for every submission that uses its handle
 Use explicit unmanaged layout when C# data must exactly match a shader structure:
 
 ```csharp
+using System.Numerics;
+using System.Runtime.InteropServices;
+using Buffer = Zenith.NET.Buffer;
+
 [StructLayout(LayoutKind.Explicit, Size = 80)]
 file struct ComputeConstants
 {
@@ -67,11 +71,14 @@ Buffer constantBuffer = context.CreateBuffer(new()
     Residency = MemoryResidency.CpuWriteOnly
 });
 
-constantBuffer.Upload(0, new()
+unsafe
 {
-    Pointer = (nint)(&constants),
-    SizeInBytes = (uint)sizeof(ComputeConstants)
-});
+    constantBuffer.Upload(0, new()
+    {
+        Pointer = (nint)(&constants),
+        SizeInBytes = (uint)sizeof(ComputeConstants)
+    });
+}
 ```
 
 The structure must be unmanaged. Verify every field offset against the Slang layout rather than relying on accidental CLR padding.
@@ -144,11 +151,11 @@ A handle does not transition a texture or insert a memory dependency. The resour
 - A producer/consumer dependency without a texture layout change requires `Barrier`.
 
 ```csharp
-commandBuffer.Transition(output, default, TextureLayout.Storage);
+commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.Storage);
 commandBuffer.SetPipeline(computePipeline);
 commandBuffer.SetConstantBuffer(constantBuffer, 0);
 commandBuffer.Dispatch(groupCountX, groupCountY, 1);
-commandBuffer.Transition(output, default, TextureLayout.Sampled);
+commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.Sampled);
 ```
 
 See [Synchronization](synchronization.md) for choosing between a barrier, a texture transition, and a timeline wait.

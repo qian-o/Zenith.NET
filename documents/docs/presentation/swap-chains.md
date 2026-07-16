@@ -2,7 +2,7 @@
 
 A `Surface` connects Zenith.NET to a native window. A `SwapChain` owns the presentation images for that surface and exposes the current image through `Drawable`.
 
-Presentation is synchronous.
+Presentation is synchronous. Submit and wait before calling `Present`; swap-chain frames in flight are not supported.
 
 ## Creating a Surface
 
@@ -48,7 +48,7 @@ Transition the current drawable before attachment access and again before presen
 CommandBuffer commandBuffer = context.GraphicsQueue.CommandBuffer();
 Texture drawable = swapChain.Drawable;
 
-commandBuffer.Transition(drawable, default, TextureLayout.ColorAttachment);
+commandBuffer.Transition(drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
 
 commandBuffer.BeginRenderPass([ColorAttachment.Clear(drawable, new(0.05f, 0.05f, 0.08f, 1.0f))], null);
 
@@ -57,13 +57,15 @@ commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
 commandBuffer.Draw(vertexCount, 1, 0, 0);
 
 commandBuffer.EndRenderPass();
-commandBuffer.Transition(drawable, default, TextureLayout.Present);
+commandBuffer.Transition(drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
 
 commandBuffer.Submit().Wait();
 swapChain.Present();
 ```
 
 Acquire `Drawable` for each frame because the current presentation image changes.
+
+This direct swap-chain flow owns its command buffer. View integrations instead supply a View-owned command buffer that subscribers may only record into.
 
 ## Resizing
 

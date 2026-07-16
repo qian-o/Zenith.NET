@@ -8,23 +8,17 @@ Create the shared desktop host used by every tutorial. It selects a graphics API
 - A platform and GPU supported by one Zenith.NET graphics API
 - A current GPU driver
 
-## Create the Project
+## Get the Project
 
-Create a console project and add the graphics API and ImageSharp packages used by the tutorials:
+Clone Zenith.NET and the tutorial repository into the same parent directory. The tutorial project currently references the local Zenith.NET projects:
 
 ```bash
-dotnet new console -n ZenithTutorials
-cd ZenithTutorials
-
-dotnet add package Zenith.NET.DirectX12
-dotnet add package Zenith.NET.Metal
-dotnet add package Zenith.NET.Vulkan
-dotnet add package Zenith.NET.Extensions.ImageSharp
-dotnet add package Silk.NET.Windowing
+git clone https://github.com/qian-o/Zenith.NET.git
+git clone https://github.com/qian-o/ZenithTutorials.git
+cd ZenithTutorials/ZenithTutorials
 ```
 
-> [!NOTE]
-> The tutorial repository temporarily uses local project references while the redesigned RHI is validated before publication. Those references will return to the Zenith.NET NuGet packages when the release is available; they are not part of the tutorial architecture.
+`Silk.NET.Windowing` supplies the cross-platform desktop window. The tutorial project references the DirectX 12, Metal, Vulkan, and ImageSharp projects from the adjacent Zenith.NET checkout.
 
 ## Project Structure
 
@@ -55,7 +49,13 @@ dotnet build
 dotnet run
 ```
 
-Choose **Project Setup** from the console menu. A dark blue-gray window confirms that context creation, presentation, command recording, submission, and cleanup are connected.
+Choose **Project Setup** from the console menu. A clear-only frame confirms that the host is connected.
+
+## Frame Ownership
+
+The host acquires the current swap-chain drawable and creates one graphics command buffer per frame. The renderer records into that borrowed command buffer and returns it in `ColorAttachment`; it does not submit, wait, or retain the command buffer. The host transitions the drawable to `Present`, submits, waits, and presents.
+
+Each renderer owns its workload resources and responds to drawable-size changes through `Resize`. The host owns the window, context, swap chain, and frame lifecycle.
 
 ## Source
 
@@ -75,18 +75,4 @@ Choose **Project Setup** from the console menu. A dark blue-gray window confirms
 
 <div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Renderers/ClearRenderer.cs" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/ClearRenderer.cs" data-language="csharp"></div>
 
-### Entry Point
-
-<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Program.cs" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Program.cs" data-language="csharp"></div>
-
-### Platform and Shared Usings
-
-<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/CocoaHelper.cs" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/CocoaHelper.cs" data-language="csharp"></div>
-
-<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Usings.cs" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Usings.cs" data-language="csharp"></div>
-
-## Frame Ownership
-
-The host acquires the current swap-chain drawable and creates one graphics command buffer per frame. The selected renderer records its workload, after which the host transitions the drawable for presentation, submits the command buffer, waits for completion, and presents.
-
-Each renderer owns only its workload resources and responds to drawable-size changes through `Resize`. The host retains window, context, swap-chain, submission, and presentation ownership for every tutorial.
+The repository also contains the [entry point](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Program.cs), [Apple layer helper](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/CocoaHelper.cs), and [shared usings](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Usings.cs).

@@ -50,7 +50,7 @@ Then guard bounds in shader with `SV_DispatchThreadID`.
 
 ## Indirect Dispatch
 
-For GPU-driven compute counts, write `IndirectDispatchArgs` into a buffer and call:
+Create the argument buffer with `BufferUsages.Indirect`. When another GPU command writes the count, also include the matching storage usage and synchronize the producer before dispatch:
 
 ```csharp
 commandBuffer.DispatchIndirect(indirectBuffer, 0);

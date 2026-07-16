@@ -5,7 +5,7 @@ GPU commands can execute in parallel unless a dependency orders them. Zenith.NET
 | Mechanism | Scope | Use it when |
 |-----------|-------|-------------|
 | `Barrier(before, after)` | One command buffer | Later work depends on earlier memory writes while resource layouts remain unchanged |
-| `Transition(texture, subresource, layout)` | One texture subresource | A texture changes how it will be accessed |
+| `Transition(texture, subresource, before, after)` | One texture subresource | A texture changes how it will be accessed |
 | `Submit(waitValues...)` | Queue submissions | Work on one queue depends on a submission from another queue |
 
 ## Memory Barriers
@@ -54,33 +54,35 @@ Prefer the narrowest stages that describe the dependency. `All` is valid for con
 
 ## Texture Transitions
 
-Zenith.NET tracks a layout for every texture mip level and array layer. Call `Transition` before a subresource is used in a different role:
+Zenith.NET does not track texture layouts. The application provides the known current layout and the required next layout for each transition:
 
 ```csharp
-commandBuffer.Transition(output, default, TextureLayout.Storage);
+commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.Storage);
 
 commandBuffer.SetPipeline(computePipeline);
 commandBuffer.SetConstantBuffer(constantBuffer, 0);
 commandBuffer.Dispatch(groupCountX, groupCountY, 1);
 
-commandBuffer.Transition(output, default, TextureLayout.Sampled);
+commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.Sampled);
 ```
+
+Use `Undefined` as the source layout only when previous contents may be discarded.
 
 `default` selects mip level zero and array layer zero. Select another subresource explicitly when required:
 
 ```csharp
 TextureSubresource subresource = new() { MipLevel = mipLevel, ArrayLayer = arrayLayer };
 
-commandBuffer.Transition(texture, subresource, TextureLayout.CopyDst);
+commandBuffer.Transition(texture, subresource, currentLayout, TextureLayout.CopyDst);
 ```
 
-`Transition` includes the dependency for that layout change.
+`Transition` includes the dependency for that layout change. Copy, upload, download, and resolve commands do not insert transitions.
 
 ### Texture Layouts
 
 | Layout | Intended access |
 |--------|-----------------|
-| `General` | General access when a more specific layout is unsuitable |
+| `Common` | General access and native shared-texture interop |
 | `Sampled` | Sampled texture reads |
 | `Storage` | Storage texture reads and writes |
 | `ColorAttachment` | Color attachment access |
@@ -90,7 +92,7 @@ commandBuffer.Transition(texture, subresource, TextureLayout.CopyDst);
 | `ResolveSrc` / `ResolveDst` | Resolve source or destination |
 | `Present` | Swap-chain presentation |
 
-`Undefined` represents unknown or discarded previous contents. It cannot be requested as a destination layout.
+`Undefined` represents discarded previous contents and is only valid as a source layout.
 
 ## Cross-Queue Dependencies
 

@@ -8,7 +8,7 @@ Read these pages in order when learning the RHI:
 
 1. [Runtime and Devices](fundamentals/runtime.md) covers graphics API selection, capabilities, queues, diagnostics, and ownership.
 2. [Queues and Commands](fundamentals/commands.md) defines recording, render passes, copies, submission, and timeline values.
-3. [Synchronization](fundamentals/synchronization.md) distinguishes memory barriers, texture transitions, and cross-queue waits.
+3. [Synchronization](fundamentals/synchronization.md) distinguishes memory barriers, explicit texture transitions, and cross-queue waits.
 4. [Bindless Resources](fundamentals/bindless-resources.md) defines resource handles, constant data, shader descriptors, and handle lifetime.
 
 ## Resources

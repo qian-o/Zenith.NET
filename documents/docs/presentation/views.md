@@ -8,24 +8,25 @@ Zenith.NET provides UI controls through `Zenith.NET.Views` and framework-specifi
 |---|---|
 | `GraphicsContext` | Assigned by app code; rendering is skipped when null |
 | `UpdateRequested` | Per-frame CPU update callback |
-| `RenderRequested` | Per-frame rendering callback with drawable texture |
+| `RenderRequested` | Per-frame callback with a command buffer and drawable texture |
 
-`UpdateEventArgs` exposes `DeltaSeconds` and `TotalSeconds`. `RenderEventArgs` adds the current `Drawable` texture.
+`UpdateEventArgs` exposes `DeltaSeconds` and `TotalSeconds`. `RenderEventArgs` adds the View-owned `CommandBuffer` and current `Drawable` texture.
 
-## Framework Paths
+## Framework Packages
 
-| Package | Framework | Final drawable layout |
-|---|---|---|
-| `Zenith.NET.Views.WinForms` | Windows Forms | `Present` |
-| `Zenith.NET.Views.Maui` | MAUI on Android and Apple platforms | `Present` |
-| `Zenith.NET.Views.WPF` | WPF | `ColorAttachment` |
-| `Zenith.NET.Views.WinUI` | WinUI 3 and Uno | `ColorAttachment` |
-| `Zenith.NET.Views.Maui` | MAUI on Windows | `ColorAttachment` |
-| `Zenith.NET.Views.Avalonia` | Avalonia | `ColorAttachment` |
+| Package | Framework |
+|---|---|
+| `Zenith.NET.Views.WinForms` | Windows Forms |
+| `Zenith.NET.Views.WPF` | WPF |
+| `Zenith.NET.Views.WinUI` | WinUI 3 and Uno |
+| `Zenith.NET.Views.Maui` | .NET MAUI |
+| `Zenith.NET.Views.Avalonia` | Avalonia |
+
+Each integration handles its own presentation path.
 
 ## Render Callback
 
-Assign a `GraphicsContext` and render into `args.Drawable` from `RenderRequested`. This example applies to controls whose final layout is `Present`:
+Assign a `GraphicsContext` and record rendering into the command buffer supplied by `RenderRequested`:
 
 ```csharp
 using Zenith.NET;
@@ -40,18 +41,12 @@ zenithView.UpdateRequested += (_, args) =>
 
 zenithView.RenderRequested += (_, args) =>
 {
-    CommandBuffer commandBuffer = context.GraphicsQueue.CommandBuffer();
-
-    commandBuffer.Transition(args.Drawable, default, TextureLayout.ColorAttachment);
-    commandBuffer.BeginRenderPass([ColorAttachment.Load(args.Drawable)], null);
+    args.CommandBuffer.BeginRenderPass([ColorAttachment.Clear(args.Drawable, new(0.05f, 0.05f, 0.08f, 1.0f))], null);
     // Record draw calls.
-    commandBuffer.EndRenderPass();
-    commandBuffer.Transition(args.Drawable, default, TextureLayout.Present);
-
-    commandBuffer.Submit().Wait();
+    args.CommandBuffer.EndRenderPass();
 };
 ```
 
-For controls whose final layout is `ColorAttachment`, end the pass in that layout. Submit and wait before the callback returns; the view presents after `RenderRequested` completes.
+The command buffer and drawable are borrowed for the duration of the synchronous callback. Record commands only: do not submit, wait, dispose, or retain either object. The drawable enters and leaves the callback in `ColorAttachment`; the View performs the platform-specific final transition, submits, waits, and presents or copies the result.
 
 For graphics API selection, see [Runtime and Devices](../fundamentals/runtime.md). For dependency rules, see [Synchronization](../fundamentals/synchronization.md).

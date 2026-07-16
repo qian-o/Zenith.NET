@@ -1,18 +1,8 @@
 ﻿# Compute Image Processing
 
-Convert the tutorial image to grayscale with a compute shader, then display the processed texture in the center of the window. Start from [Project Setup](project-setup.md), then choose **Image Processing** from the tutorial selector.
+Convert the tutorial image to grayscale with a compute shader, then display the processed texture in the center of the window. Start from [Project Setup](project-setup.md).
 
-![Compute Shader](https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/compute-shader.png)
-
-## Source
-
-### Renderer
-
-<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Renderers/ComputeShaderRenderer.cs" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/ComputeShaderRenderer.cs" data-language="csharp"></div>
-
-### Shader
-
-<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Shaders/ComputeShader.slang" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/ComputeShader.slang" data-language="slang"></div>
+![Compute Image Processing](https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/compute-shader.png)
 
 ## Compute Pass
 
@@ -25,3 +15,13 @@ The renderer calculates group counts by rounding each image dimension up to the 
 ## Display Pass
 
 A fullscreen-triangle graphics pipeline samples the processed texture without applying another effect. The renderer sets a centered viewport and scissor using the smaller of the image and drawable dimensions, preserving the image's pixel size when the window is larger and clipping it when the window is smaller.
+
+## Source
+
+### Renderer
+
+<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Renderers/ComputeShaderRenderer.cs" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/ComputeShaderRenderer.cs" data-language="csharp"></div>
+
+### Shader
+
+<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Shaders/ComputeShader.slang" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/ComputeShader.slang" data-language="slang"></div>

@@ -15,11 +15,11 @@ A command buffer is ready for recording when returned by `CommandBuffer()`. Reco
 ```csharp
 CommandBuffer commandBuffer = context.ComputeQueue.CommandBuffer();
 
-commandBuffer.Transition(output, default, TextureLayout.Storage);
+commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.Storage);
 commandBuffer.SetPipeline(computePipeline);
 commandBuffer.SetConstantBuffer(constantBuffer, 0);
 commandBuffer.Dispatch(groupCountX, groupCountY, 1);
-commandBuffer.Transition(output, default, TextureLayout.Sampled);
+commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.Sampled);
 
 TimelineValue submission = commandBuffer.Submit();
 submission.Wait();
@@ -51,8 +51,8 @@ See [Synchronization](synchronization.md) for texture transitions, memory barrie
 Render passes receive their attachments directly. Transition textures first, then begin the pass:
 
 ```csharp
-commandBuffer.Transition(color, default, TextureLayout.ColorAttachment);
-commandBuffer.Transition(depthStencil, default, TextureLayout.DepthStencilAttachment);
+commandBuffer.Transition(color, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+commandBuffer.Transition(depthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
 
 commandBuffer.BeginRenderPass([ColorAttachment.Clear(color, new(0.05f, 0.05f, 0.08f, 1.0f))], DepthStencilAttachment.Clear(depthStencil, 1.0f, 0));
 
@@ -67,7 +67,7 @@ commandBuffer.EndRenderPass();
 
 ## Copies and Transfers
 
-Command buffers support buffer copies, texture copies, buffer-to-texture copies, texture-to-buffer copies, resolves, uploads, and downloads. Copy helpers transition texture subresources to their required copy layouts and restore the tracked layouts afterward.
+Command buffers support buffer copies, texture copies, buffer-to-texture copies, texture-to-buffer copies, resolves, uploads, and downloads. These commands do not transition textures; record the required source and destination transitions explicitly.
 
 `Buffer.Upload()` and `Texture.Upload()` are synchronous convenience methods. Record transfers directly when several operations should be batched or chained with later GPU work.
 

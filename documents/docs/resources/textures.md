@@ -1,6 +1,6 @@
 ﻿# Textures and Sampling
 
-Textures store multidimensional formatted data for sampling, storage access, render attachments, copies, resolves, and presentation. A `TextureDesc` defines the shape and permitted usages; each subresource also has a tracked `TextureLayout`.
+Textures store multidimensional formatted data for sampling, storage access, render attachments, copies, resolves, and presentation. A `TextureDesc` defines the shape and permitted usages. The application owns the current layout of each subresource.
 
 ## Texture Description
 
@@ -41,7 +41,7 @@ TextureDesc albedoDesc = TextureDesc.Texture2D(PixelFormat.R8G8B8A8UNorm, width,
 TextureDesc cubeDesc = TextureDesc.TextureCube(PixelFormat.R16G16B16A16Float, size, mipLevels);
 ```
 
-Texture helpers create sampled transfer destinations by default. Extend `Usages` when the same texture also needs storage or attachment access.
+The dimensional helpers create sampled transfer destinations. Attachment helpers use attachment and sampled usages instead. Extend `Usages` when another role is required.
 
 ## Texture Usages
 
@@ -69,8 +69,8 @@ Texture depthStencil = context.CreateTexture(TextureDesc.DepthStencilAttachment(
 Transition attachments before beginning a render pass:
 
 ```csharp
-commandBuffer.Transition(color, default, TextureLayout.ColorAttachment);
-commandBuffer.Transition(depthStencil, default, TextureLayout.DepthStencilAttachment);
+commandBuffer.Transition(color, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+commandBuffer.Transition(depthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
 ```
 
 ## Uploading Data
@@ -82,7 +82,7 @@ unsafe
 {
     fixed (Rgba32* pointer = pixels)
     {
-        texture.Upload(default, default, new()
+        texture.Upload(default, TextureLayout.Undefined, TextureLayout.Sampled, default, new()
         {
             Width = width,
             Height = height,
@@ -98,7 +98,7 @@ unsafe
 }
 ```
 
-`Texture.Upload` completes before returning. Use `CommandBuffer.Upload` to group several subresources in one submission.
+`Texture.Upload` transitions through `CopyDst`, submits on the graphics queue, and completes before returning. Provide the current and final layouts. Use `CommandBuffer.Upload` with explicit transitions to group several transfers in one submission.
 
 ## ImageSharp Loading
 
@@ -119,10 +119,10 @@ A `TextureSubresource` selects one mip level and array layer:
 ```csharp
 TextureSubresource subresource = new() { MipLevel = mipLevel, ArrayLayer = arrayLayer };
 
-commandBuffer.Transition(texture, subresource, TextureLayout.Sampled);
+commandBuffer.Transition(texture, subresource, currentLayout, TextureLayout.Sampled);
 ```
 
-Use `default` for mip level zero and array layer zero. Layouts are tracked independently for all subresources.
+Use `default` for mip level zero and array layer zero. Keep the current layout for every subresource that the application transitions.
 
 Texture transitions include the texture-specific synchronization dependency. See [Synchronization](../fundamentals/synchronization.md) for layout definitions and barrier rules.
 
@@ -145,14 +145,19 @@ Explicit views expose `SampledHandle` and `StorageHandle`. Their selected range 
 Create a multisampled color attachment and a single-sampled resolve target with matching formats:
 
 ```csharp
+commandBuffer.Transition(msaaColor, default, TextureLayout.ColorAttachment, TextureLayout.ResolveSrc);
+commandBuffer.Transition(resolvedColor, default, TextureLayout.Undefined, TextureLayout.ResolveDst);
 commandBuffer.ResolveTexture(msaaColor, default, resolvedColor, default);
+commandBuffer.Transition(resolvedColor, default, TextureLayout.ResolveDst, TextureLayout.Sampled);
 ```
 
-The source and destination must use compatible formats and dimensions.
+The source and destination must use compatible formats and dimensions. Include `TransferSrc` on the source and `TransferDst` on the destination.
 
 ## Copies and Downloads
 
-Command buffers support texture-to-texture, buffer-to-texture, and texture-to-buffer copies. `Texture.Download` completes before returning; use `CommandBuffer.Download` when readback belongs to a larger submission.
+Command buffers support texture-to-texture, buffer-to-texture, and texture-to-buffer copies. They do not transition textures.
+
+`Texture.Download` requires `TransferSrc`, transitions through `CopySrc`, submits on the graphics queue, and completes before returning. Provide the current and final layouts. Use `CommandBuffer.Download` with explicit transitions when readback belongs to a larger submission.
 
 ## Samplers
 
@@ -182,13 +187,7 @@ See [Bindless Resources](../fundamentals/bindless-resources.md) for handle layou
 
 `CreateTexture(desc, nativeTextureType, nativeTexture)` wraps a supported native texture handle. The description must match the underlying native resource.
 
-Use `OverrideLayout` when importing a texture whose current layout is known outside Zenith.NET:
-
-```csharp
-texture.OverrideLayout(default, TextureLayout.Sampled);
-```
-
-`OverrideLayout` only changes Zenith.NET's tracked state. It does not record a GPU transition.
+Wrapping a native texture does not establish or store its layout. Track the imported subresource layout in application code and pass it as `before` to the first transition.
 
 ## Lifetime and Resizing
 

@@ -55,8 +55,8 @@ MeshShadingPipeline pipeline = context.CreateMeshShadingPipeline(new()
 Mesh dispatch runs inside a render pass, like graphics draws:
 
 ```csharp
-commandBuffer.Transition(color, default, TextureLayout.ColorAttachment);
-commandBuffer.Transition(depthStencil, default, TextureLayout.DepthStencilAttachment);
+commandBuffer.Transition(color, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+commandBuffer.Transition(depthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
 
 commandBuffer.BeginRenderPass([ColorAttachment.Clear(color, clearColor)], DepthStencilAttachment.Clear(depthStencil, 1.0f, 0));
 commandBuffer.SetPipeline(pipeline);
@@ -67,7 +67,7 @@ commandBuffer.EndRenderPass();
 
 ## Indirect Mesh Dispatch
 
-For GPU-driven group counts:
+Create the argument buffer with `BufferUsages.Indirect`. When GPU work writes the group counts, also include the matching storage usage and synchronize the producer before dispatch:
 
 ```csharp
 commandBuffer.DispatchMeshIndirect(indirectBuffer, offsetInBytes, dispatchCount);

@@ -57,7 +57,7 @@ Every context exposes three queues:
 |----------|------------|---------------|
 | `GraphicsQueue` | `CommandQueueType.Graphics` | Rendering, compute, copies, and presentation work |
 | `ComputeQueue` | `CommandQueueType.Compute` | Compute and acceleration structure work |
-| `TransferQueue` | `CommandQueueType.Transfer` | Uploads, downloads, and copies |
+| `TransferQueue` | `CommandQueueType.Transfer` | Buffer transfers and copy commands |
 
 Request command buffers directly from these queues:
 
@@ -98,6 +98,8 @@ Check an optional capability before creating its resources or pipelines.
 Enable validation during development and subscribe to messages:
 
 ```csharp
+using Buffer = Zenith.NET.Buffer;
+
 GraphicsContext context = GraphicsContext.CreateVulkan(useValidationLayer: true);
 context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
 
