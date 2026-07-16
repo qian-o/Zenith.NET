@@ -8,8 +8,6 @@ public abstract class Timeline(GraphicsContext context, CommandQueue queue) : Gr
 
     public CommandQueue Queue { get; } = queue;
 
-    public abstract ulong CompletedValue { get; }
-
     public TimelineValue Signal()
     {
         using Lock.Scope _ = @lock.EnterScope();
@@ -21,13 +19,18 @@ public abstract class Timeline(GraphicsContext context, CommandQueue queue) : Gr
 
     public void Wait(ulong value)
     {
-        using Lock.Scope _ = @lock.EnterScope();
-
-        if (CompletedValue < value)
+        using (Lock.Scope _ = @lock.EnterScope())
         {
-            WaitImpl(value);
+            if (value > GetCompletedValue())
+            {
+                WaitImpl(value);
+            }
         }
+
+        Queue.Recycle(value);
     }
+
+    protected abstract ulong GetCompletedValue();
 
     protected abstract void SignalImpl(ulong value);
 

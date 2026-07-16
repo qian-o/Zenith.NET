@@ -36,11 +36,11 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
         return timelineValue;
     }
 
-    internal void Reclaim()
+    internal void Recycle(ulong completedValue)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        while (submitteds.TryPeek(out Submitted submitted) && submitted.TimelineValue.IsCompleted)
+        while (submitteds.TryPeek(out Submitted submitted) && submitted.TimelineValue.Value <= completedValue)
         {
             submitteds.Dequeue();
 

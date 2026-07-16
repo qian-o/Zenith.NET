@@ -6,8 +6,6 @@ public readonly struct TimelineValue(Timeline timeline, ulong value)
 
     public readonly ulong Value = value;
 
-    public bool IsCompleted => Timeline.CompletedValue >= Value;
-
     public void Wait()
     {
         Timeline.Wait(Value);

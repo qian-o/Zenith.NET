@@ -19,19 +19,16 @@ internal unsafe class VKTimeline : Timeline
 
     public new VKCommandQueue Queue => (VKCommandQueue)base.Queue;
 
-    public override ulong CompletedValue
-    {
-        get
-        {
-            Context.Vk.GetSemaphoreCounterValue(Context.Device, Semaphore, out ulong value).Success();
-
-            return value;
-        }
-    }
-
     public override nint GetNativeObject(NativeObjectType type)
     {
         return 0;
+    }
+
+    protected override ulong GetCompletedValue()
+    {
+        Context.Vk.GetSemaphoreCounterValue(Context.Device, Semaphore, out ulong value).Success();
+
+        return value;
     }
 
     protected override void SignalImpl(ulong value)

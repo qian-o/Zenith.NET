@@ -6,11 +6,14 @@ internal class MTLTimeline(MTLGraphicsContext context, MTLCommandQueue queue) : 
 {
     public MTLSharedEvent Event = context.Device.MakeSharedEvent();
 
-    public override ulong CompletedValue => Event.SignaledValue;
-
     public override nint GetNativeObject(NativeObjectType type)
     {
         return 0;
+    }
+
+    protected override ulong GetCompletedValue()
+    {
+        return Event.SignaledValue;
     }
 
     protected override void SignalImpl(ulong value)

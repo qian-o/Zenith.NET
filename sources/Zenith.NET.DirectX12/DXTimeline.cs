@@ -18,11 +18,14 @@ internal unsafe class DXTimeline : Timeline
 
     public new DXCommandQueue Queue => (DXCommandQueue)base.Queue;
 
-    public override ulong CompletedValue => Fence.GetCompletedValue();
-
     public override nint GetNativeObject(NativeObjectType type)
     {
         return 0;
+    }
+
+    protected override ulong GetCompletedValue()
+    {
+        return Fence.GetCompletedValue();
     }
 
     protected override void SignalImpl(ulong value)
