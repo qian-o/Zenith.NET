@@ -17,17 +17,19 @@ public abstract class Timeline(GraphicsContext context, CommandQueue queue) : Gr
         return new(this, nextValue);
     }
 
-    public void Wait(ulong value)
+    internal bool IsCompleted(ulong value)
     {
-        using (Lock.Scope _ = @lock.EnterScope())
-        {
-            if (value > GetCompletedValue())
-            {
-                WaitImpl(value);
-            }
-        }
+        return value <= GetCompletedValue();
+    }
 
-        Queue.Recycle(value);
+    internal void Wait(ulong value)
+    {
+        using Lock.Scope _ = @lock.EnterScope();
+
+        if (!IsCompleted(value))
+        {
+            WaitImpl(value);
+        }
     }
 
     protected abstract ulong GetCompletedValue();

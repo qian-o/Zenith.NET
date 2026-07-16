@@ -6,8 +6,11 @@ public readonly struct TimelineValue(Timeline timeline, ulong value)
 
     public readonly ulong Value = value;
 
+    public bool IsCompleted => Timeline.IsCompleted(Value);
+
     public void Wait()
     {
         Timeline.Wait(Value);
+        Timeline.Queue.Recycle();
     }
 }

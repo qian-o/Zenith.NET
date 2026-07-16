@@ -12,6 +12,8 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
     public CommandBuffer CommandBuffer()
     {
+        Recycle();
+
         using Lock.Scope _ = @lock.EnterScope();
 
         CommandBuffer commandBuffer = commandBuffers.Count is 0 ? CreateCommandBuffer() : commandBuffers.Dequeue();
@@ -23,6 +25,8 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
     internal TimelineValue Submit(ReadOnlySpan<TimelineValue> waits, CommandBuffer commandBuffer)
     {
+        Recycle();
+
         using Lock.Scope _ = @lock.EnterScope();
 
         commandBuffer.End();
@@ -36,11 +40,11 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
         return timelineValue;
     }
 
-    internal void Recycle(ulong completedValue)
+    internal void Recycle()
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        while (submitteds.TryPeek(out Submitted submitted) && submitted.TimelineValue.Value <= completedValue)
+        while (submitteds.TryPeek(out Submitted submitted) && submitted.TimelineValue.IsCompleted)
         {
             submitteds.Dequeue();
 
