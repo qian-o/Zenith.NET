@@ -12,7 +12,7 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
     public CommandBuffer CommandBuffer()
     {
-        Recycle();
+        Poll();
 
         using Lock.Scope _ = @lock.EnterScope();
 
@@ -25,7 +25,7 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
 
     internal TimelineValue Submit(ReadOnlySpan<TimelineValue> waits, CommandBuffer commandBuffer)
     {
-        Recycle();
+        Poll();
 
         using Lock.Scope _ = @lock.EnterScope();
 
@@ -40,7 +40,7 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
         return timelineValue;
     }
 
-    internal void Recycle()
+    internal void Poll()
     {
         using Lock.Scope _ = @lock.EnterScope();
 
