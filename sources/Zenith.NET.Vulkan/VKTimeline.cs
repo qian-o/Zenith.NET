@@ -23,9 +23,9 @@ internal unsafe class VKTimeline : Timeline
     {
         get
         {
-            Context.Vk.GetSemaphoreCounterValue(Context.Device, Semaphore, out field).Success();
+            Context.Vk.GetSemaphoreCounterValue(Context.Device, Semaphore, out ulong value).Success();
 
-            return field;
+            return value;
         }
     }
 
