@@ -27,6 +27,8 @@ public abstract class Timeline(GraphicsContext context, CommandQueue queue) : Gr
         {
             WaitImpl(value);
         }
+
+        Queue.Reclaim();
     }
 
     protected abstract void SignalImpl(ulong value);

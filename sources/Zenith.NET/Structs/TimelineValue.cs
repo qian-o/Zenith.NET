@@ -11,6 +11,5 @@ public readonly struct TimelineValue(Timeline timeline, ulong value)
     public void Wait()
     {
         Timeline.Wait(Value);
-        Timeline.Queue.Reclaim();
     }
 }
