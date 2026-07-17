@@ -29,8 +29,10 @@ zenithView.UpdateRequested += (_, args) => simulation.Update(args.DeltaSeconds);
 zenithView.RenderRequested += (_, args) =>
 {
     args.CommandBuffer.BeginRenderPass([ColorAttachment.Clear(args.Drawable, clearColor)], null);
+
     args.CommandBuffer.SetPipeline(pipeline);
     args.CommandBuffer.Draw(vertexCount, 1, 0, 0);
+
     args.CommandBuffer.EndRenderPass();
 };
 ```

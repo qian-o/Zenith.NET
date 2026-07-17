@@ -1,28 +1,16 @@
 ﻿# Swap Chains
 
-A `Surface` identifies a window and its drawable size. A `SwapChain` provides the texture rendered for the next presentation.
+A `Surface` identifies a window and its drawable size. `SwapChain.Drawable` returns the texture to render for the current frame.
 
 ## Create a Surface
 
-Create the surface that matches the application's window system:
+Create the surface that matches the application's window system and native handles. For example:
 
 ```csharp
-Surface surface;
-if (OperatingSystem.IsWindows())
-{
-    surface = Surface.Win32(hwnd, width, height);
-}
-else if (OperatingSystem.IsMacOS())
-{
-    surface = Surface.Apple(layer, width, height);
-}
-else
-{
-    surface = Surface.Xlib(display, window, width, height);
-}
+Surface surface = Surface.Win32(hwnd, width, height);
 ```
 
-Zenith.NET provides `Win32`, `Wayland`, `Xlib`, `Android`, and `Apple` surface factories. Use a [View integration](views.md) when a supported UI framework should manage the surface.
+Zenith.NET provides `Win32`, `Wayland`, `Xlib`, `Android`, and `Apple` surface factories. Select the factory that corresponds to the handles supplied by the window host. Use a [View integration](views.md) when a supported UI framework should manage the surface.
 
 ## Create a Swap Chain
 
@@ -60,7 +48,7 @@ commandBuffer.Submit().Wait();
 swapChain.Present();
 ```
 
-Presentation is synchronous. Wait for the rendering submission before calling `Present()`. Request `Drawable` again for the next frame.
+Complete the rendering submission before calling `Present()`. Do not dispose the drawable or retain it for another frame; request `Drawable` again after presentation.
 
 ## Resize
 
@@ -75,10 +63,18 @@ if (width is 0 || height is 0)
 color.Dispose();
 depthStencil.Dispose();
 
-color = context.CreateTexture(
-    TextureDesc.ColorAttachment(PixelFormat.B8G8R8A8UNorm, width, height, 1, SampleCount.Count1));
-depthStencil = context.CreateTexture(
-    TextureDesc.DepthStencilAttachment(PixelFormat.D32FloatS8UInt, width, height, SampleCount.Count1));
+TextureDesc colorDesc = TextureDesc.ColorAttachment(PixelFormat.B8G8R8A8UNorm,
+                                                    width,
+                                                    height,
+                                                    1,
+                                                    SampleCount.Count1);
+TextureDesc depthDesc = TextureDesc.DepthStencilAttachment(PixelFormat.D32FloatS8UInt,
+                                                           width,
+                                                           height,
+                                                           SampleCount.Count1);
+
+color = context.CreateTexture(colorDesc);
+depthStencil = context.CreateTexture(depthDesc);
 
 swapChain.Resize(width, height);
 ```

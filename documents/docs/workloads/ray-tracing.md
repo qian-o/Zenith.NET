@@ -88,7 +88,7 @@ Keep every referenced BLAS alive while the TLAS is in use.
 
 ## Update an Acceleration Structure
 
-Include `AllowUpdate` when first building a structure that will be updated in place. Record later updates with the same flag:
+Set `AllowUpdate` on the initial build and every later in-place update:
 
 ```csharp
 commandBuffer.UpdateAccelerationStructure(tlas, new()

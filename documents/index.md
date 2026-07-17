@@ -56,7 +56,7 @@ _layout: landing
                 <article class="feature-card">
                     <div class="feature-icon feature-icon-cyan"><i class="bi bi-bounding-box-circles" aria-hidden="true"></i></div>
                     <h3>Modern workloads</h3>
-                    <p>Use rasterization, compute, indirect commands, inline Ray Tracing, and mesh shading.</p>
+                    <p>Use rasterization, compute, and indirect commands, with capability-gated Ray Tracing and mesh shading.</p>
                 </article>
             </div>
         </div>
@@ -99,7 +99,7 @@ _layout: landing
                 <a class="resource-card resource-card-community" href="api/index.md">
                     <span class="resource-icon"><i class="bi bi-braces" aria-hidden="true"></i></span>
                     <strong class="resource-title">API Reference</strong>
-                    <p>Look up public namespaces, types, members, and enum values generated from the source.</p>
+                    <p>Look up public namespaces, types, members, and enum values.</p>
                     <strong>Browse the API</strong>
                 </a>
             </div>

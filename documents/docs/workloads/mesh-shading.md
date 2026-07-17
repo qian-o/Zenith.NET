@@ -19,10 +19,11 @@ Compile the mesh and fragment entry points. A task shader is optional:
 
 ```csharp
 string shaderPath = "Assets/Shaders/MeshShading.slang";
-using Shader meshShader = context.CreateShader(
-    ZenithCompiler.CompileFromFile(context.GraphicsApi, shaderPath, "MSMain"));
-using Shader fragmentShader = context.CreateShader(
-    ZenithCompiler.CompileFromFile(context.GraphicsApi, shaderPath, "FSMain"));
+ShaderDesc meshDesc = ZenithCompiler.CompileFromFile(context.GraphicsApi, shaderPath, "MSMain");
+ShaderDesc fragmentDesc = ZenithCompiler.CompileFromFile(context.GraphicsApi, shaderPath, "FSMain");
+
+using Shader meshShader = context.CreateShader(meshDesc);
+using Shader fragmentShader = context.CreateShader(fragmentDesc);
 ```
 
 Create a pipeline whose attachment formats match the render pass:
@@ -58,9 +59,9 @@ Mesh dispatch runs inside a render pass:
 ```csharp
 commandBuffer.Transition(color, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
 commandBuffer.Transition(depthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
-commandBuffer.BeginRenderPass(
-    [ColorAttachment.Clear(color, clearColor)],
-    DepthStencilAttachment.Clear(depthStencil, 1.0f, 0));
+
+commandBuffer.BeginRenderPass([ColorAttachment.Clear(color, clearColor)],
+                              DepthStencilAttachment.Clear(depthStencil, 1.0f, 0));
 
 commandBuffer.SetPipeline(pipeline);
 commandBuffer.SetConstantBuffer(constantBuffer, 0);

@@ -20,7 +20,7 @@
 
 Zenith.NET provides a compact C# API for resources, pipelines, command recording, synchronization, and presentation. Applications can use the same rendering model with DirectX 12, Metal 4, or Vulkan 1.4.
 
-The RHI supports rasterization, compute, indirect commands, inline Ray Tracing, and mesh shading. Bindless resource handles keep shader binding straightforward, while explicit queues and resource states make execution order clear.
+The RHI exposes rasterization, compute, and indirect commands. Inline Ray Tracing and mesh shading are optional; check `Capabilities.RayTracingSupported` and `Capabilities.MeshShadingSupported` before use. Bindless resource handles expose shader resources, while queues, barriers, and texture layouts express ordering and access dependencies.
 
 ## Get Started
 

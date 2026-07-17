@@ -108,14 +108,15 @@ The offset selects the constant record used by the current pipeline.
 
 ## Use Views
 
-A resource handle represents the resource's default view. Create an explicit view for a buffer subrange or selected texture range:
+`Buffer` and `Texture` expose handles for the whole resource. Create an explicit view for a buffer subrange or selected texture range:
 
 ```csharp
-using BufferView materialView = context.CreateBufferView(BufferViewDesc.StorageReadOnly(
-    materialBuffer,
-    offsetInBytes,
-    sizeInBytes,
-    (uint)Marshal.SizeOf<Material>()));
+BufferViewDesc viewDesc = BufferViewDesc.StorageReadOnly(materialBuffer,
+                                                         offsetInBytes,
+                                                         sizeInBytes,
+                                                         (uint)Marshal.SizeOf<Material>());
+
+using BufferView materialView = context.CreateBufferView(viewDesc);
 
 ResourceHandle materials = materialView.StorageReadOnlyHandle;
 ```
@@ -123,8 +124,9 @@ ResourceHandle materials = materialView.StorageReadOnlyHandle;
 Texture views select mip levels and array layers:
 
 ```csharp
-using TextureView mipView = context.CreateTextureView(
-    TextureViewDesc.Texture2D(texture, texture.Desc.Format, mipLevel, 1));
+TextureViewDesc viewDesc = TextureViewDesc.Texture2D(texture, texture.Desc.Format, mipLevel, 1);
+
+using TextureView mipView = context.CreateTextureView(viewDesc);
 
 ResourceHandle sampledMip = mipView.SampledHandle;
 ```

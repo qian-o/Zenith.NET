@@ -32,7 +32,7 @@ Use `BarrierStages.All` only when a narrower dependency cannot describe the work
 
 ## Transition a Texture
 
-Zenith.NET does not track texture layouts. Supply the current and next layout whenever a texture changes how it is used:
+Supply the current and next layout whenever a texture changes how it is used:
 
 ```csharp
 commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.Storage);
@@ -47,11 +47,13 @@ commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.S
 `default` selects mip level zero and array layer zero. Select another subresource explicitly when needed:
 
 ```csharp
-commandBuffer.Transition(texture, new()
+TextureSubresource subresource = new()
 {
-	MipLevel = mipLevel,
-	ArrayLayer = arrayLayer
-}, currentLayout, TextureLayout.CopyDst);
+    MipLevel = mipLevel,
+    ArrayLayer = arrayLayer
+};
+
+commandBuffer.Transition(texture, subresource, currentLayout, TextureLayout.CopyDst);
 ```
 
 Use `Undefined` as the source only when previous contents can be discarded. Copy, resolve, and command-buffer upload or download operations do not insert transitions. The `Texture.Upload` and `Texture.Download` convenience methods perform their declared current-to-final layout transitions.
@@ -87,4 +89,4 @@ computeCommands.Dispatch(groupCountX, groupCountY, 1);
 computeCommands.Submit(uploadCompletion).Wait();
 ```
 
-The queue dependency is resolved by the GPU. The CPU can continue until it explicitly calls `Wait()`.
+Passing a producer `TimelineValue` to `Submit` orders the consumer submission after that value. Call `Wait()` when CPU code must observe completion.

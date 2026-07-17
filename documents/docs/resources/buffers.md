@@ -1,17 +1,15 @@
 ﻿# Buffers
 
-Buffers store linear data such as vertices, indices, constants, structured records, and indirect arguments. A `BufferDesc` defines the allocation size, permitted uses, and CPU access.
+Buffers store linear data such as vertices, indices, constants, structured records, and indirect arguments. A `BufferDesc` defines the byte size, structured-element stride, permitted uses, and residency.
 
-## Create a Buffer
+## Create a Standalone Buffer
 
-Use a helper for common buffer roles:
+When explicit heap placement is unnecessary, create a standalone buffer from the context. Use a helper for common buffer roles:
 
 ```csharp
 using Buffer = Zenith.NET.Buffer;
 
 using Buffer vertexBuffer = context.CreateBuffer(BufferDesc.Vertex(vertexSizeInBytes));
-using Buffer materialBuffer = context.CreateBuffer(
-    BufferDesc.StorageReadOnly(materialSizeInBytes, (uint)sizeof(Material)));
 ```
 
 The helpers create GPU-only buffers that can receive uploaded data. Use an explicit description for additional roles or CPU access:
@@ -84,34 +82,18 @@ Use mapping for repeated CPU access. Use `Upload` or `Download` for individual t
 A `BufferView` selects a byte range and structured element stride:
 
 ```csharp
-using BufferView materialView = context.CreateBufferView(BufferViewDesc.StorageReadOnly(
-    materialBuffer,
-    offsetInBytes,
-    sizeInBytes,
-    (uint)sizeof(Material)));
+BufferViewDesc viewDesc = BufferViewDesc.StorageReadOnly(materialBuffer,
+                                                         offsetInBytes,
+                                                         sizeInBytes,
+                                                         (uint)sizeof(Material));
+
+using BufferView materialView = context.CreateBufferView(viewDesc);
 
 ResourceHandle materials = materialView.StorageReadOnlyHandle;
 ```
 
 Use `BufferViewDesc.Constant`, `StorageReadOnly`, or `StorageReadWrite` to match the intended shader access. See [Bindless Resources](../fundamentals/bindless-resources.md) for shader declarations.
 
-## Place Buffers in a Heap
+See [Heaps](heaps.md) for allocation requirements and explicit buffer placement.
 
-Use a `Heap` to place compatible buffers in one allocation:
-
-```csharp
-BufferDesc vertexDesc = BufferDesc.Vertex(vertexSizeInBytes);
-BufferDesc indexDesc = BufferDesc.Index(indexSizeInBytes);
-
-SizeAndAlignment vertexRequirements = context.GetSizeAndAlignment(vertexDesc);
-SizeAndAlignment indexRequirements = context.GetSizeAndAlignment(indexDesc);
-ulong indexOffset = ZenithHelper.Align(vertexRequirements.SizeInBytes, indexRequirements.AlignmentInBytes);
-
-using Heap heap = context.CreateHeap(HeapDesc.GpuOnly(indexOffset + indexRequirements.SizeInBytes));
-using Buffer vertexBuffer = heap.CreateBuffer(0, vertexDesc);
-using Buffer indexBuffer = heap.CreateBuffer(indexOffset, indexDesc);
-```
-
-Query each description, align its offset, and size the heap through the final resource. The descriptions and heap must use the same residency. Dispose every placed resource before its heap.
-
-Buffer views depend on their source buffer. Keep buffers, views, and heaps alive until all submissions that use them have completed. Use a [memory barrier](../fundamentals/synchronization.md#add-a-memory-barrier) when later GPU work consumes buffer data written earlier in the same command stream.
+Buffer views depend on their source buffer. Keep buffers and views alive until all submissions that use them have completed. Use a [memory barrier](../fundamentals/synchronization.md#add-a-memory-barrier) when later GPU work consumes buffer data written earlier in the same command stream.

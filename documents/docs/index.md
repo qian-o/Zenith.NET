@@ -13,7 +13,8 @@ Start here if you are new to Zenith.NET:
 
 ## Resources
 
-- [Buffers](resources/buffers.md) covers creation, data transfer, mapping, views, and placed resources.
+- [Heaps](resources/heaps.md) covers placed resources, allocation requirements, offsets, and lifetime.
+- [Buffers](resources/buffers.md) covers creation, data transfer, mapping, and views.
 - [Textures](resources/textures.md) covers creation, views, uploads, layouts, resolves, and samplers.
 
 ## Workloads

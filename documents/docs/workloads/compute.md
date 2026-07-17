@@ -18,11 +18,11 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 Compile the entry point and create the pipeline:
 
 ```csharp
-using Shader computeShader = context.CreateShader(
-    ZenithCompiler.CompileFromFile(
-        context.GraphicsApi,
-        "Assets/Shaders/ImageProcessing.slang",
-        "CSMain"));
+ShaderDesc computeDesc = ZenithCompiler.CompileFromFile(context.GraphicsApi,
+                                                        "Assets/Shaders/ImageProcessing.slang",
+                                                        "CSMain");
+
+using Shader computeShader = context.CreateShader(computeDesc);
 
 using ComputePipeline pipeline = context.CreateComputePipeline(new() { ComputeShader = computeShader });
 ```

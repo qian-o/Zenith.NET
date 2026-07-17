@@ -15,6 +15,7 @@ Clone both repositories into the same parent directory. The tutorial project use
 ```bash
 git clone https://github.com/qian-o/Zenith.NET.git
 git clone https://github.com/qian-o/ZenithTutorials.git
+
 cd ZenithTutorials
 ```
 

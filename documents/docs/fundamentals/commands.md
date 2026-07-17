@@ -10,9 +10,11 @@ Request a command buffer from the queue that should execute the work:
 CommandBuffer commandBuffer = context.ComputeQueue.CommandBuffer();
 
 commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.Storage);
+
 commandBuffer.SetPipeline(computePipeline);
 commandBuffer.SetConstantBuffer(constantBuffer, 0);
 commandBuffer.Dispatch(groupCountX, groupCountY, 1);
+
 commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.Sampled);
 
 commandBuffer.Submit().Wait();
@@ -20,7 +22,7 @@ commandBuffer.Submit().Wait();
 
 A command buffer is ready for recording when returned by `CommandBuffer()`. Set the matching pipeline before binding pipeline state or issuing draw and dispatch commands, then submit the command buffer once.
 
-The queue owns its command buffers and reuses them after completed submissions. Do not dispose a command buffer or record more commands after submitting it.
+Submit each command buffer once. Do not dispose it, retain it for later recording, or record commands after submission.
 
 ## Track Completion
 

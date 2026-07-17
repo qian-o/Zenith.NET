@@ -8,10 +8,11 @@ Compile the vertex and fragment entry points for the active context:
 
 ```csharp
 string shaderPath = "Assets/Shaders/Rasterization.slang";
-using Shader vertexShader = context.CreateShader(
-    ZenithCompiler.CompileFromFile(context.GraphicsApi, shaderPath, "VSMain"));
-using Shader fragmentShader = context.CreateShader(
-    ZenithCompiler.CompileFromFile(context.GraphicsApi, shaderPath, "FSMain"));
+ShaderDesc vertexDesc = ZenithCompiler.CompileFromFile(context.GraphicsApi, shaderPath, "VSMain");
+ShaderDesc fragmentDesc = ZenithCompiler.CompileFromFile(context.GraphicsApi, shaderPath, "FSMain");
+
+using Shader vertexShader = context.CreateShader(vertexDesc);
+using Shader fragmentShader = context.CreateShader(fragmentDesc);
 ```
 
 ## Create the Pipeline
@@ -20,6 +21,7 @@ Define one `InputLayout` for each vertex-buffer slot. `Add` appends an element a
 
 ```csharp
 InputLayout inputLayout = new();
+
 inputLayout.Add(new()
 {
     Format = ElementFormat.Float4,
@@ -65,9 +67,9 @@ Transition the attachments, begin the pass, bind the pipeline state, and draw:
 ```csharp
 commandBuffer.Transition(color, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
 commandBuffer.Transition(depthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
-commandBuffer.BeginRenderPass(
-    [ColorAttachment.Clear(color, clearColor)],
-    DepthStencilAttachment.Clear(depthStencil, 1.0f, 0));
+
+commandBuffer.BeginRenderPass([ColorAttachment.Clear(color, clearColor)],
+                              DepthStencilAttachment.Clear(depthStencil, 1.0f, 0));
 
 commandBuffer.SetPipeline(pipeline);
 commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
@@ -89,6 +91,7 @@ commandBuffer.SetViewports([new()
     Height = height,
     MaxDepth = 1.0f
 }]);
+
 commandBuffer.SetScissors([new()
 {
     Width = width,

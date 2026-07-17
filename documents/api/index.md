@@ -1,6 +1,6 @@
 ﻿# API Reference
 
-The API reference is generated from the public Zenith.NET source. Use it to look up exact types, members, parameters, and enum values. Start with the [RHI Guide](../docs/index.md) when learning a workflow.
+The API reference documents the public Zenith.NET types, members, parameters, and enum values. Start with the [RHI Guide](../docs/index.md) when learning a workflow.
 
 ## Start Here
 
@@ -9,7 +9,7 @@ The API reference is generated from the public Zenith.NET source. Use it to look
 | `GraphicsContext` | Creates resources and exposes capabilities and command queues |
 | `CommandQueue` | Provides command buffers for one class of GPU work |
 | `CommandBuffer` | Records rendering, compute, transfer, and synchronization commands |
-| `TimelineValue` | Tracks a submitted command buffer |
+| `TimelineValue` | Represents a queue-submission completion point that can be queried or waited on |
 | `BufferDesc` / `TextureDesc` | Describe resources before creation |
 | `GraphicsPipelineDesc` / `ComputePipelineDesc` | Describe shader pipelines |
 | `Surface` / `SwapChain` | Connect rendering to a window |
@@ -28,4 +28,4 @@ The API reference is generated from the public Zenith.NET source. Use it to look
 | `Zenith.NET.Views` | Shared View contracts and frame event data |
 | `Zenith.NET.Views.*` | Framework-specific View controls |
 
-Browse the namespace tree to inspect the complete generated reference. The guide pages link related concepts, while the [Tutorials](../tutorials/index.md) show the types in complete applications.
+Browse the namespace tree to inspect the complete public API reference. The guide pages link related concepts, while the [Tutorials](../tutorials/index.md) show the types in complete applications.

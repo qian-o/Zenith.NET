@@ -12,6 +12,8 @@
       href: fundamentals/bindless-resources.md
 - name: Resources
   items:
+    - name: Heaps
+      href: resources/heaps.md
     - name: Buffers
       href: resources/buffers.md
     - name: Textures

@@ -111,5 +111,5 @@ swapChain.Dispose();
 context.Dispose();
 ```
 
-Objects returned by `CommandQueue.CommandBuffer()` are managed by their queue. Record and submit them, but do not dispose or retain them for later recording.
+Record and submit objects returned by `CommandQueue.CommandBuffer()`, but do not dispose or retain them for later recording.
 
