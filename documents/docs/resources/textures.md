@@ -1,178 +1,131 @@
-﻿# Textures and Sampling
+﻿# Textures
 
-Textures store multidimensional formatted data for sampling, storage access, render attachments, copies, resolves, and presentation. A `TextureDesc` defines the shape and permitted usages. The application owns the current layout of each subresource.
+Textures store formatted one-, two-, or three-dimensional data. A `TextureDesc` defines the shape, format, sample count, and permitted uses. Each texture subresource has a layout supplied by the application when recording commands.
 
-## Texture Description
+## Create a Texture
 
-```csharp
-Texture texture = context.CreateTexture(new()
-{
-    Type = TextureType.Texture2D,
-    Format = PixelFormat.R8G8B8A8UNorm,
-    Width = 1024,
-    Height = 1024,
-    Depth = 1,
-    MipLevels = 1,
-    ArrayLayers = 1,
-    SampleCount = SampleCount.Count1,
-    Usages = TextureUsages.Sampled | TextureUsages.TransferDst
-});
-```
-
-| Field | Description |
-|-------|-------------|
-| `Type` | Dimensionality, array behavior, and cube interpretation |
-| `Format` | Texel or depth/stencil format |
-| `Width`, `Height`, `Depth` | Base mip dimensions |
-| `MipLevels` | Number of mip levels |
-| `ArrayLayers` | Array layers; cube textures use six layers per cube |
-| `SampleCount` | Multisample count |
-| `Usages` | Permitted texture access roles |
-
-## Texture Types
-
-Zenith.NET supports `Texture1D`, `Texture1DArray`, `Texture2D`, `Texture2DArray`, `Texture3D`, `TextureCube`, and `TextureCubeArray`.
-
-Use the helper descriptions for common shapes:
+Use a helper for common shapes:
 
 ```csharp
-TextureDesc albedoDesc = TextureDesc.Texture2D(PixelFormat.R8G8B8A8UNorm, width, height, mipLevels, SampleCount.Count1);
-
-TextureDesc cubeDesc = TextureDesc.TextureCube(PixelFormat.R16G16B16A16Float, size, mipLevels);
+using Texture albedo = context.CreateTexture(
+    TextureDesc.Texture2D(PixelFormat.R8G8B8A8UNorm, width, height, mipLevels, SampleCount.Count1));
+using Texture environment = context.CreateTexture(
+    TextureDesc.TextureCube(PixelFormat.R16G16B16A16Float, size, mipLevels));
 ```
 
-The dimensional helpers create sampled transfer destinations. Attachment helpers use attachment and sampled usages instead. Extend `Usages` when another role is required.
+Dimensional helpers create sampled textures with `TransferDst` usage. Attachment helpers create sampled color or depth/stencil render targets.
 
-## Texture Usages
-
-| Usage | Purpose |
-|-------|---------|
-| `Sampled` | Read through `SampledHandle` |
-| `Storage` | Read or write through `StorageHandle` |
-| `ColorAttachment` | Use as a color attachment |
-| `DepthStencilAttachment` | Use as a depth/stencil attachment |
-| `TransferSrc` | Copy or download source |
-| `TransferDst` | Copy or upload destination |
-
-Usage declares what a texture may do. Layout declares what one subresource is doing at a particular point in the command stream.
-
-## Attachments
-
-Create color and depth/stencil attachments with the provided helpers:
+Add usages before creation when a texture needs another role:
 
 ```csharp
-Texture color = context.CreateTexture(TextureDesc.ColorAttachment(PixelFormat.B8G8R8A8UNorm, width, height, 1, SampleCount.Count1));
+TextureDesc outputDesc = TextureDesc.Texture2D(PixelFormat.R8G8B8A8UNorm, width, height, 1, SampleCount.Count1);
 
-Texture depthStencil = context.CreateTexture(TextureDesc.DepthStencilAttachment(PixelFormat.D32FloatS8UInt, width, height, SampleCount.Count1));
+outputDesc.Usages |= TextureUsages.Storage;
+
+using Texture output = context.CreateTexture(outputDesc);
 ```
 
-Transition attachments before beginning a render pass:
+Usage declares what the texture may do. Layout describes how one subresource is used by recorded commands.
+
+## Create Attachments
+
+Use the attachment helpers for render targets:
+
+```csharp
+using Texture color = context.CreateTexture(
+    TextureDesc.ColorAttachment(PixelFormat.B8G8R8A8UNorm, width, height, 1, SampleCount.Count1));
+using Texture depthStencil = context.CreateTexture(
+    TextureDesc.DepthStencilAttachment(PixelFormat.D32FloatS8UInt, width, height, SampleCount.Count1));
+```
+
+Transition each attachment before beginning a render pass:
 
 ```csharp
 commandBuffer.Transition(color, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-commandBuffer.Transition(depthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
 ```
 
-## Uploading Data
+## Upload Texture Data
 
-Provide row and slice strides explicitly:
+Provide the source pointer together with row and slice strides:
 
 ```csharp
-unsafe
+fixed (Rgba32* source = pixels)
 {
-    fixed (Rgba32* pointer = pixels)
-    {
-        texture.Upload(default, TextureLayout.Undefined, TextureLayout.Sampled, default, new()
+    texture.Upload(
+        default,
+        TextureLayout.Undefined,
+        TextureLayout.Sampled,
+        default,
+        new()
         {
             Width = width,
             Height = height,
             Depth = 1
-        }, new()
+        },
+        new()
         {
-            Pointer = (nint)pointer,
+            Pointer = (nint)source,
             SizeInBytes = (uint)(sizeof(Rgba32) * pixels.Length),
             RowStrideInBytes = rowStrideInBytes,
             SliceStrideInBytes = sliceStrideInBytes
         });
-    }
 }
 ```
 
-`Texture.Upload` transitions through `CopyDst`, submits on the graphics queue, and completes before returning. Provide the current and final layouts. Use `CommandBuffer.Upload` with explicit transitions to group several transfers in one submission.
+`Texture.Upload` transitions through `CopyDst`, submits the transfer, and waits before returning. Supply the known current layout and the layout required after the upload.
 
-## ImageSharp Loading
+Use `CommandBuffer.Upload` with explicit transitions when several transfers should share one submission.
 
-`Zenith.NET.Extensions.ImageSharp` loads RGBA images and optionally creates a full mip chain:
+## Load an Image
+
+`Zenith.NET.Extensions.ImageSharp` loads an image into a sampled texture:
 
 ```csharp
 using Zenith.NET.Extensions.ImageSharp;
 
-Texture albedo = context.LoadTextureFromFile("Assets/Textures/Albedo.png", generateMipMaps: true);
+using Texture albedo = context.LoadTextureFromFile("Assets/Textures/Albedo.png", generateMipMaps: true);
 ```
 
-Set `generateMipMaps` when the texture should include a complete mip chain.
+Enable `generateMipMaps` when the texture should contain a complete mip chain.
 
-## Subresources and Layouts
+## Select a Subresource
 
 A `TextureSubresource` selects one mip level and array layer:
 
 ```csharp
-TextureSubresource subresource = new() { MipLevel = mipLevel, ArrayLayer = arrayLayer };
-
-commandBuffer.Transition(texture, subresource, currentLayout, TextureLayout.Sampled);
+commandBuffer.Transition(texture, new()
+{
+    MipLevel = mipLevel,
+    ArrayLayer = arrayLayer
+}, currentLayout, TextureLayout.Sampled);
 ```
 
-Use `default` for mip level zero and array layer zero. Keep the current layout for every subresource that the application transitions.
+Use `default` for mip level zero and array layer zero. Track the current layout of every subresource used by the application. See [Synchronization](../fundamentals/synchronization.md#transition-a-texture) for layout rules.
 
-Texture transitions include the texture-specific synchronization dependency. See [Synchronization](../fundamentals/synchronization.md) for layout definitions and barrier rules.
+## Create a Texture View
 
-## Texture Views
-
-Textures expose handles for their full range. Create a `TextureView` to select another type, format, mip range, or array range:
+A `TextureView` selects a type, format, mip range, or array range:
 
 ```csharp
-TextureView mipView = context.CreateTextureView(TextureViewDesc.Texture2D(texture, texture.Desc.Format, mipLevel, 1));
+using TextureView mipView = context.CreateTextureView(
+    TextureViewDesc.Texture2D(texture, texture.Desc.Format, mipLevel, 1));
 
 ResourceHandle sampledMip = mipView.SampledHandle;
 ```
 
-Helper descriptions cover all supported texture types. Cube helpers accept cube indices and convert them to six-layer ranges.
+The selected range and format must be compatible with the source texture. Views do not own their source texture.
 
-Explicit views expose `SampledHandle` and `StorageHandle`. Their selected range must be compatible with the underlying texture description and usage.
+## Create a Sampler
 
-## Multisampling and Resolve
-
-Create a multisampled color attachment and a single-sampled resolve target with matching formats:
+Samplers define filtering and addressing independently from textures. Use a preset when it matches the required behavior:
 
 ```csharp
-commandBuffer.Transition(msaaColor, default, TextureLayout.ColorAttachment, TextureLayout.ResolveSrc);
-commandBuffer.Transition(resolvedColor, default, TextureLayout.Undefined, TextureLayout.ResolveDst);
-commandBuffer.ResolveTexture(msaaColor, default, resolvedColor, default);
-commandBuffer.Transition(resolvedColor, default, TextureLayout.ResolveDst, TextureLayout.Sampled);
+using Sampler sampler = context.CreateSampler(SamplerDesc.LinearWrap());
 ```
 
-The source and destination must use compatible formats and dimensions. Include `TransferSrc` on the source and `TransferDst` on the destination.
+Other presets include `LinearClamp`, `PointWrap`, `PointClamp`, and `Anisotropic`. Create a custom `SamplerDesc` for comparison sampling, border colors, or a specific LOD range.
 
-## Copies and Downloads
-
-Command buffers support texture-to-texture, buffer-to-texture, and texture-to-buffer copies. They do not transition textures.
-
-`Texture.Download` requires `TransferSrc`, transitions through `CopySrc`, submits on the graphics queue, and completes before returning. Provide the current and final layouts. Use `CommandBuffer.Download` with explicit transitions when readback belongs to a larger submission.
-
-## Samplers
-
-Samplers define filtering, addressing, comparison, anisotropy, and LOD independently from textures. Use a preset when possible:
-
-```csharp
-Sampler linearClamp = context.CreateSampler(SamplerDesc.LinearClamp());
-Sampler linearWrap = context.CreateSampler(SamplerDesc.LinearWrap());
-Sampler pointClamp = context.CreateSampler(SamplerDesc.PointClamp());
-Sampler anisotropic = context.CreateSampler(SamplerDesc.Anisotropic(16));
-```
-
-A custom `SamplerDesc` selects `MinFilter`, `MagFilter`, `MipFilter`, `AddressU/V/W`, `CompareOp`, anisotropy, LOD range, bias, and border color. Set `CompareOp` for depth comparison sampling.
-
-Store `Sampler.Handle` beside the sampled texture handle and use matching Slang descriptors:
+Pass `sampler.Handle` beside the sampled texture handle:
 
 ```slang
 DescriptorHandle<Texture2D> Texture;
@@ -181,14 +134,18 @@ DescriptorHandle<SamplerState> Sampler;
 float4 color = Texture.Sample(Sampler, uv);
 ```
 
-See [Bindless Resources](../fundamentals/bindless-resources.md) for handle layout and lifetime.
+## Resolve and Read Back
 
-## Wrapped Native Textures
+Resolve a multisampled texture into a compatible single-sampled texture:
 
-`CreateTexture(desc, nativeTextureType, nativeTexture)` wraps a supported native texture handle. The description must match the underlying native resource.
+```csharp
+commandBuffer.Transition(msaaColor, default, TextureLayout.ColorAttachment, TextureLayout.ResolveSrc);
+commandBuffer.Transition(resolvedColor, default, TextureLayout.Undefined, TextureLayout.ResolveDst);
+commandBuffer.ResolveTexture(msaaColor, default, resolvedColor, default);
+```
 
-Wrapping a native texture does not establish or store its layout. Track the imported subresource layout in application code and pass it as `before` to the first transition.
+Create resolve and download sources with `TextureUsages.TransferSrc`. Resolve destinations require `TextureUsages.TransferDst`.
 
-## Lifetime and Resizing
+Texture copy, resolve, and command-buffer upload or download operations do not insert layout transitions. `Texture.Download` is the synchronous convenience path and performs its declared current-to-final transitions; use `CommandBuffer.Download` with explicit transitions when readback belongs to a larger submission.
 
-Views depend on their source texture. When replacing a size-dependent texture, refresh every constant structure that stores one of its handles.
+Keep a texture alive while any view, handle, or submitted command refers to it. When replacing a size-dependent texture, recreate its views and update constant data that stores its handles.

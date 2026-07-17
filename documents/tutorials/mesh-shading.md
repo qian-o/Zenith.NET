@@ -1,27 +1,29 @@
 ﻿# Mesh Shading
 
-Render 1,000 instances of one sphere mesh with task-shader frustum culling and mesh-shader geometry output. The CPU uploads the source mesh; the GPU selects visible instances and emits their vertices and triangles. Start from [Project Setup](project-setup.md).
+Render 1,000 sphere instances with task-stage culling and mesh-stage geometry output. This tutorial introduces a mesh shading pipeline and `DispatchMesh`.
 
 ![Mesh Shading](https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/mesh-shading.png)
 
 > [!NOTE]
 > This tutorial requires `App.Context.Capabilities.MeshShadingSupported`.
 
-## Workload
+## Create the Source Mesh
 
-| Stage | Work |
-|-------|------|
-| Task | Tests 32 instances against six frustum planes and compacts visible IDs into a payload |
-| Mesh | Reads one visible instance, emits 62 vertices and 120 triangles, and applies its grid position and color |
-| Fragment | Applies ambient and directional diffuse lighting |
+Generate one UV sphere on the CPU with 62 vertices and 120 triangles. Upload both arrays to read-only structured buffers and store their handles in the frame constants.
 
-The 10 by 10 by 10 grid produces 1,000 possible instances. Only IDs emitted by the task stage reach the mesh stage.
+No vertex or index buffer is bound through the traditional input stage. The mesh shader reads the source geometry through those handles.
 
-## Mesh Data and Dispatch
+## Create the Pipeline
 
-The renderer generates one 62-vertex, 120-triangle UV sphere and uploads the two arrays once. Bindless structured-buffer handles expose that source mesh to the shader.
+Compile the task, mesh, and fragment entry points from `MeshShading.slang`. Create a mesh shading pipeline with the host color format, a depth format, back-face culling, and read-write depth testing.
 
-Per-frame constants contain the view-projection matrix, six frustum planes, light direction, and both mesh handles. `DispatchMesh(32, 1, 1)` launches enough task groups to cover all 1,000 instances. Each task group dispatches mesh work only for the visible IDs it collected.
+## Cull and Emit Instances
+
+The 10 by 10 by 10 grid contains 1,000 possible instances. Per-frame constants provide the view-projection matrix, six frustum planes, light direction, and source-mesh handles.
+
+Call `DispatchMesh(32, 1, 1)` to cover the full grid. Each task workgroup tests up to 32 instance bounds, writes visible IDs into its payload, and dispatches one mesh workgroup for each visible instance. The final group ignores threads beyond the 1,000-instance range.
+
+The mesh stage reads one visible ID, emits the sphere's vertices and triangles, and applies that instance's position and color. The fragment stage shades the generated geometry.
 
 ## Source
 

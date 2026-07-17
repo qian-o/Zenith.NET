@@ -1,22 +1,13 @@
 ﻿# Bindless Resources
 
-Zenith.NET uses bindless resource handles instead of per-pipeline resource tables. Buffers, textures, views, samplers, and top-level acceleration structures expose compact `ResourceHandle` values that can be stored in constant data and resolved by Slang shaders.
+Shaders access Zenith.NET resources through `ResourceHandle` values. Store the handles in constant data, upload that data to a constant buffer, and declare matching typed handles in Slang.
 
-The binding path is:
+## Select a Handle
 
-1. Create a resource with the required usage.
-2. Select the handle that represents the intended shader access.
-3. Store that handle in an unmanaged constant structure.
-4. Upload the structure to a constant buffer.
-5. Bind that constant buffer with `SetConstantBuffer`.
-6. Declare the matching Slang `DescriptorHandle<T>`.
+Choose the handle that matches the shader access:
 
-## Resource Handles
-
-Choose a handle that matches the shader declaration:
-
-| Zenith.NET resource | Handle | Slang target |
-|---------------------|--------|--------------|
+| C# resource | Handle | Slang resource |
+|--------------|--------|----------------|
 | `Buffer` / `BufferView` | `ConstantHandle` | `ConstantBuffer<T>` |
 | `Buffer` / `BufferView` | `StorageReadOnlyHandle` | `StructuredBuffer<T>` |
 | `Buffer` / `BufferView` | `StorageReadWriteHandle` | `RWStructuredBuffer<T>` |
@@ -25,11 +16,11 @@ Choose a handle that matches the shader declaration:
 | `Sampler` | `Handle` | `SamplerState` or `SamplerComparisonState` |
 | `TopLevelAccelerationStructure` | `Handle` | `RaytracingAccelerationStructure` |
 
-Keep the source resource or view alive for every submission that uses its handle.
+The resource description must include the usage required by the selected handle.
 
-## Constant Data
+## Define Constant Data
 
-Use explicit unmanaged layout when C# data must exactly match a shader structure:
+Use an unmanaged C# structure whose layout matches the shader structure:
 
 ```csharp
 using System.Numerics;
@@ -50,7 +41,7 @@ file struct ComputeConstants
 }
 ```
 
-Populate the handles from resources or views:
+Populate the structure with handles from the resources or views used by the command:
 
 ```csharp
 ComputeConstants constants = new()
@@ -61,31 +52,25 @@ ComputeConstants constants = new()
 };
 ```
 
-Create a CPU-writable constant buffer and upload the structure:
+Create a constant buffer and upload the structure:
 
 ```csharp
-Buffer constantBuffer = context.CreateBuffer(new()
-{
-    SizeInBytes = (uint)sizeof(ComputeConstants),
-    Usages = BufferUsages.Constant,
-    Residency = MemoryResidency.CpuWriteOnly
-});
+uint constantSize = (uint)Marshal.SizeOf<ComputeConstants>();
 
-unsafe
+using Buffer constantBuffer = context.CreateBuffer(BufferDesc.Constant(constantSize));
+
+constantBuffer.Upload(0, new()
 {
-    constantBuffer.Upload(0, new()
-    {
-        Pointer = (nint)(&constants),
-        SizeInBytes = (uint)sizeof(ComputeConstants)
-    });
-}
+    Pointer = (nint)(&constants),
+    SizeInBytes = constantSize
+});
 ```
 
-The structure must be unmanaged. Verify every field offset against the Slang layout rather than relying on accidental CLR padding.
+Verify field offsets against the Slang layout, especially when a structure contains vectors, matrices, or nested records.
 
-## Slang Declarations
+## Declare Shader Handles
 
-Declare the matching shader structure with typed descriptor handles:
+Declare the same fields with typed `DescriptorHandle<T>` values:
 
 ```slang
 struct ComputeConstants
@@ -100,18 +85,18 @@ struct ComputeConstants
 uniform ComputeConstants constants;
 ```
 
-Slang implicitly converts `DescriptorHandle<T>` to `T` when the resource is used:
+Use the handles as their declared resource types:
 
 ```slang
 float4 value = constants.Input[index];
 constants.Output[pixel] = value;
 ```
 
-The generic argument is part of the ABI. It must match the handle's access type and the resource data layout.
+The generic resource type is part of the C#/shader contract. Its access and element layout must match the handle stored by C#.
 
-## Binding the Constant Buffer
+## Bind the Constants
 
-Set the pipeline before binding constants, then provide the byte offset of the selected constant record:
+Set the pipeline, bind the constant buffer, and issue the command:
 
 ```csharp
 commandBuffer.SetPipeline(computePipeline);
@@ -119,14 +104,18 @@ commandBuffer.SetConstantBuffer(constantBuffer, 0);
 commandBuffer.Dispatch(groupCountX, groupCountY, 1);
 ```
 
-`SetConstantBuffer` binds constant data at the supplied byte offset for the current pipeline.
+The offset selects the constant record used by the current pipeline.
 
-## Views
+## Use Views
 
-Resources expose handles for their full range. Create a view for a buffer subrange or a selected texture range and format.
+A resource handle represents the resource's default view. Create an explicit view for a buffer subrange or selected texture range:
 
 ```csharp
-BufferView materialView = context.CreateBufferView(BufferViewDesc.StorageReadOnly(materialBuffer, offsetInBytes, sizeInBytes, (uint)sizeof(Material)));
+using BufferView materialView = context.CreateBufferView(BufferViewDesc.StorageReadOnly(
+    materialBuffer,
+    offsetInBytes,
+    sizeInBytes,
+    (uint)Marshal.SizeOf<Material>()));
 
 ResourceHandle materials = materialView.StorageReadOnlyHandle;
 ```
@@ -134,32 +123,21 @@ ResourceHandle materials = materialView.StorageReadOnlyHandle;
 Texture views select mip levels and array layers:
 
 ```csharp
-TextureView mipView = context.CreateTextureView(TextureViewDesc.Texture2D(texture, texture.Desc.Format, mipLevel, 1));
+using TextureView mipView = context.CreateTextureView(
+    TextureViewDesc.Texture2D(texture, texture.Desc.Format, mipLevel, 1));
 
 ResourceHandle sampledMip = mipView.SampledHandle;
 ```
 
-Explicit views have their own lifetime and remain dependent on the source resource.
+Views do not own their source resource. Keep both the view and its source alive while submitted work uses the handle.
 
-## Resource Usage and Layout
+## Match Usage and Synchronization
 
-A handle does not transition a texture or insert a memory dependency. The resource description and command stream must permit the requested access:
+A handle does not change a texture layout or create a memory dependency:
 
-- `SampledHandle` requires `TextureUsages.Sampled` and `TextureLayout.Sampled` while accessed.
-- `StorageHandle` requires `TextureUsages.Storage` and `TextureLayout.Storage` while accessed.
-- Storage buffer handles require the corresponding `BufferUsages.StorageReadOnly` or `StorageReadWrite` usage.
-- A producer/consumer dependency without a texture layout change requires `Barrier`.
+- Sampled access requires `TextureUsages.Sampled` and `TextureLayout.Sampled`.
+- Storage texture access requires `TextureUsages.Storage` and `TextureLayout.Storage`.
+- Storage buffer access requires the matching storage usage.
+- Producer/consumer access without a layout change requires a `Barrier`.
 
-```csharp
-commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.Storage);
-commandBuffer.SetPipeline(computePipeline);
-commandBuffer.SetConstantBuffer(constantBuffer, 0);
-commandBuffer.Dispatch(groupCountX, groupCountY, 1);
-commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.Sampled);
-```
-
-See [Synchronization](synchronization.md) for choosing between a barrier, a texture transition, and a timeline wait.
-
-## Handle Lifetime
-
-`ResourceHandle` does not own its resource or view. Keep that owner alive through the final submission that uses the handle, and refresh constant data when replacing the owner.
+`ResourceHandle` does not own its resource. Keep the resource or view alive through the final submission that uses the handle, and update constant data when replacing it.

@@ -1,20 +1,20 @@
 ﻿# Spinning Cube
 
-Render a rotating indexed cube with per-vertex colors. This workload adds Model-View-Projection data, back-face culling, depth testing, and a depth texture that follows the drawable size. Start from [Project Setup](../project-setup.md).
+Draw a rotating, depth-tested cube. This tutorial builds on indexed rasterization with transformation constants, back-face culling, a depth attachment, and resize handling.
 
 ![Spinning Cube](https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/spinning-cube.png)
 
-## Transform Data
+## Update the Transform
 
-Eight vertices and 36 indices describe the cube. The renderer accumulates elapsed time, composes the model rotation, builds the camera view, and recalculates perspective projection from the current drawable aspect ratio.
+Eight vertices and 36 indices describe the cube. `Update` advances the rotation, creates the model and view matrices, and calculates a perspective projection from the current drawable aspect ratio.
 
-The three `Matrix4x4` values occupy 192 bytes in one constant buffer. Their row-vector multiplication order in Slang matches `System.Numerics.Matrix4x4`.
+Upload the three `Matrix4x4` values to a 192-byte CPU-writable constant buffer. The Slang vertex shader uses the same row-vector convention as `System.Numerics.Matrix4x4`, applying the model, view, and projection transforms in that order.
 
-## Depth and Resize
+## Add Depth Testing
 
-The graphics pipeline enables back-face culling and read-write depth testing. Its attachment formats include the swap-chain color format and a `D32FloatS8UInt` depth-stencil format.
+Create a `D32FloatS8UInt` depth texture at the drawable size. Add that format to the pipeline, enable back-face culling, and use read-write depth testing.
 
-Each frame discards the previous color and depth contents, transitions both textures to their attachment layouts, clears them, and records an indexed draw. When the drawable size changes, `Resize` replaces the depth texture with one using the new dimensions.
+Each frame transitions and clears both attachments before drawing the cube. When the drawable size changes, `Resize` disposes the old depth texture and creates a replacement with the new dimensions.
 
 ## Source
 

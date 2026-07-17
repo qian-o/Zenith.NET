@@ -1,20 +1,24 @@
-﻿# Compute Image Processing
+﻿# Image Processing
 
-Convert the tutorial image to grayscale with a compute shader, then display the processed texture in the center of the window. Start from [Project Setup](project-setup.md).
+Convert the tutorial image to grayscale with a compute shader, then display the result. This tutorial introduces storage textures and compute dispatch.
 
 ![Compute Image Processing](https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/compute-shader.png)
 
-## Compute Pass
+## Create the Resources
 
-The source PNG is loaded as a sampled texture. A second texture with matching dimensions supports both storage writes and sampled reads.
+Load `shoko.png` as the sampled input. Create a second texture with the same dimensions and `Sampled | Storage` usage for the output.
 
-One constant buffer supplies the source sampled handle, output storage handle, output sampled handle, sampler handle, and image dimensions. `CSMain` uses 16 by 16 thread groups, rejects dispatch threads outside the image, reads each source pixel, converts RGB to linear space, computes luminance, and converts the grayscale result back to gamma space.
+The constant structure stores the image dimensions, the input sampled handle, the output storage and sampled handles, and a sampler handle. Create one compute pipeline for processing and one graphics pipeline for displaying the result.
 
-The renderer calculates group counts by rounding each image dimension up to the thread-group size. It performs the compute dispatch once, then transitions the output texture from `Storage` to `Sampled`.
+## Process the Image
 
-## Display Pass
+`CSMain` uses 16 by 16 thread groups. Round each image dimension up to that group size and reject threads outside the texture bounds.
 
-A fullscreen-triangle graphics pipeline samples the processed texture without applying another effect. The renderer sets a centered viewport and scissor using the smaller of the image and drawable dimensions, preserving the image's pixel size when the window is larger and clipping it when the window is smaller.
+The renderer transitions the output from `Undefined` to `Storage`, dispatches the compute pipeline once, then transitions the texture to `Sampled`. The shader reads each source pixel and writes its grayscale value to the output.
+
+## Display the Result
+
+Draw a fullscreen triangle that samples the processed texture. A centered viewport and scissor preserve the image's pixel size when the window is large enough and reduce each dimension to the available drawable size when it is smaller.
 
 ## Source
 

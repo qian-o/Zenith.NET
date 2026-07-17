@@ -1,12 +1,10 @@
-﻿# Surfaces and Swap Chains
+﻿# Swap Chains
 
-A `Surface` connects Zenith.NET to a native window. A `SwapChain` owns the presentation images for that surface and exposes the current image through `Drawable`.
+A `Surface` identifies a window and its drawable size. A `SwapChain` provides the texture rendered for the next presentation.
 
-Presentation is synchronous. Submit and wait before calling `Present`; swap-chain frames in flight are not supported.
+## Create a Surface
 
-## Creating a Surface
-
-Create the surface that matches the native window system:
+Create the surface that matches the application's window system:
 
 ```csharp
 Surface surface;
@@ -24,33 +22,32 @@ else
 }
 ```
 
-Zenith.NET provides constructors for Win32, Wayland, Xlib, Android, and Apple surfaces. The application or UI integration is responsible for obtaining the required native handles.
+Zenith.NET provides `Win32`, `Wayland`, `Xlib`, `Android`, and `Apple` surface factories. Use a [View integration](views.md) when a supported UI framework should manage the surface.
 
-## Creating a Swap Chain
+## Create a Swap Chain
 
-Create the swap chain through the active `GraphicsContext`:
+Create the swap chain from the same context used for rendering:
 
 ```csharp
-SwapChain swapChain = context.CreateSwapChain(new()
+using SwapChain swapChain = context.CreateSwapChain(new()
 {
     Surface = surface,
     Format = PixelFormat.B8G8R8A8UNorm
 });
 ```
 
-Choose a format supported by the application pipeline. Graphics pipelines that render directly to the drawable must declare the same color format.
+The graphics pipeline color format must match the swap-chain format.
 
-## Rendering a Frame
+## Render and Present
 
-Transition the current drawable before attachment access and again before presentation:
+Get the current drawable for each frame, transition it for rendering, then transition it for presentation:
 
 ```csharp
 CommandBuffer commandBuffer = context.GraphicsQueue.CommandBuffer();
 Texture drawable = swapChain.Drawable;
 
 commandBuffer.Transition(drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-
-commandBuffer.BeginRenderPass([ColorAttachment.Clear(drawable, new(0.05f, 0.05f, 0.08f, 1.0f))], null);
+commandBuffer.BeginRenderPass([ColorAttachment.Clear(drawable, clearColor)], null);
 
 commandBuffer.SetPipeline(graphicsPipeline);
 commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
@@ -63,13 +60,11 @@ commandBuffer.Submit().Wait();
 swapChain.Present();
 ```
 
-Acquire `Drawable` for each frame because the current presentation image changes.
+Presentation is synchronous. Wait for the rendering submission before calling `Present()`. Request `Drawable` again for the next frame.
 
-This direct swap-chain flow owns its command buffer. View integrations instead supply a View-owned command buffer that subscribers may only record into.
+## Resize
 
-## Resizing
-
-Skip rendering while either drawable dimension is zero. Resize size-dependent render targets before resizing the swap chain:
+Skip rendering while either dimension is zero. Recreate size-dependent textures and resize the swap chain before rendering again:
 
 ```csharp
 if (width is 0 || height is 0)
@@ -80,23 +75,23 @@ if (width is 0 || height is 0)
 color.Dispose();
 depthStencil.Dispose();
 
-color = context.CreateTexture(TextureDesc.ColorAttachment(PixelFormat.B8G8R8A8UNorm, width, height, 1, SampleCount.Count1));
-
-depthStencil = context.CreateTexture(TextureDesc.DepthStencilAttachment(PixelFormat.D32FloatS8UInt, width, height, SampleCount.Count1));
+color = context.CreateTexture(
+    TextureDesc.ColorAttachment(PixelFormat.B8G8R8A8UNorm, width, height, 1, SampleCount.Count1));
+depthStencil = context.CreateTexture(
+    TextureDesc.DepthStencilAttachment(PixelFormat.D32FloatS8UInt, width, height, SampleCount.Count1));
 
 swapChain.Resize(width, height);
 ```
 
-Recreate pipelines only when their declared `AttachmentFormats` change. A size change alone does not change the pipeline's attachment format contract.
+Recreate a pipeline only when its attachment formats or sample count change.
 
-## Refreshing Native Handles
+## Refresh a Surface
 
-Some UI frameworks recreate their native surface without changing the logical view. Build a new `Surface` and call `Refresh` when the underlying native handle changes:
+If the window system replaces its surface handle, create a new `Surface` and refresh the swap chain:
 
 ```csharp
-Surface surface = Surface.Win32(hwnd, width, height);
-swapChain.Refresh(surface);
+swapChain.Refresh(Surface.Win32(hwnd, width, height));
 ```
 
-Use `Resize` when only the dimensions change. Use `Refresh` when the native handle or surface type changes.
+Use `Resize` when only the dimensions change. Use `Refresh` when the handle or surface type changes.
 

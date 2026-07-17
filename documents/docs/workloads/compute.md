@@ -1,40 +1,35 @@
 ﻿# Compute
 
-Compute pipelines run outside render passes and are typically recorded on `GraphicsContext.ComputeQueue`.
+Compute pipelines process data outside a render pass. Record compute work on the compute or graphics queue according to the surrounding workload.
 
-## Pipeline
+## Create a Compute Pipeline
 
-Compile Slang entry points through `ZenithCompiler` and create a `Shader`:
-
-```csharp
-using Shader computeShader = context.CreateShader(ZenithCompiler.CompileFromFile(context.GraphicsApi, "Assets/Shaders/PathTracing.slang", "CSMain"));
-```
-
-In Slang, the entry point uses compute stage terminology:
+Define a Slang compute entry point and its thread-group size:
 
 ```slang
 [shader("compute")]
 [numthreads(16, 16, 1)]
 void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
+    // Process one element or pixel.
 }
 ```
 
-```csharp
-ComputePipeline pipeline = context.CreateComputePipeline(new() { ComputeShader = computeShader });
-```
-
-## Dispatch and Group Counts
-
-Use `Dispatch(groupCountX, groupCountY, groupCountZ)` after setting pipeline and constant buffer:
+Compile the entry point and create the pipeline:
 
 ```csharp
-commandBuffer.SetPipeline(pipeline);
-commandBuffer.SetConstantBuffer(constantBuffer, 0);
-commandBuffer.Dispatch(groupCountX, groupCountY, groupCountZ);
+using Shader computeShader = context.CreateShader(
+    ZenithCompiler.CompileFromFile(
+        context.GraphicsApi,
+        "Assets/Shaders/ImageProcessing.slang",
+        "CSMain"));
+
+using ComputePipeline pipeline = context.CreateComputePipeline(new() { ComputeShader = computeShader });
 ```
 
-Group counts should cover your workload size based on `[numthreads(x, y, z)]`:
+## Dispatch Work
+
+Calculate group counts from the workload dimensions and the shader's `[numthreads]` values:
 
 ```csharp
 const uint groupSizeX = 16;
@@ -42,24 +37,30 @@ const uint groupSizeY = 16;
 
 uint groupCountX = (width + groupSizeX - 1) / groupSizeX;
 uint groupCountY = (height + groupSizeY - 1) / groupSizeY;
-
-commandBuffer.Dispatch(groupCountX, groupCountY, 1);
 ```
 
-Then guard bounds in shader with `SV_DispatchThreadID`.
-
-## Indirect Dispatch
-
-Create the argument buffer with `BufferUsages.Indirect`. When another GPU command writes the count, also include the matching storage usage and synchronize the producer before dispatch:
+Bind the pipeline and constants, then dispatch:
 
 ```csharp
-commandBuffer.DispatchIndirect(indirectBuffer, 0);
+CommandBuffer commandBuffer = context.ComputeQueue.CommandBuffer();
+
+commandBuffer.SetPipeline(pipeline);
+commandBuffer.SetConstantBuffer(constantBuffer, 0);
+commandBuffer.Dispatch(groupCountX, groupCountY, 1);
+
+commandBuffer.Submit();
 ```
 
-`IndirectDispatchArgs` contains:
+Guard out-of-range threads in the shader when group counts round up the workload dimensions.
 
-- `GroupCountX`
-- `GroupCountY`
-- `GroupCountZ`
+## Dispatch Indirectly
 
-For shader-visible resources, see [Bindless Resources](../fundamentals/bindless-resources.md). Use [Synchronization](../fundamentals/synchronization.md) when dispatches produce data consumed by later GPU work.
+`DispatchIndirect` reads `GroupCountX`, `GroupCountY`, and `GroupCountZ` from an `IndirectDispatchArgs` record:
+
+```csharp
+commandBuffer.DispatchIndirect(indirectBuffer, offsetInBytes);
+```
+
+Create the argument buffer with `BufferUsages.Indirect`. If earlier GPU work writes the arguments, also add the appropriate storage usage and record a barrier before dispatch.
+
+See [Bindless Resources](../fundamentals/bindless-resources.md) for passing buffers and textures to the shader. See [Synchronization](../fundamentals/synchronization.md) when a dispatch consumes or produces data for other GPU work.

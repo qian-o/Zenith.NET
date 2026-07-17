@@ -1,172 +1,117 @@
-﻿# Buffers and Memory
+﻿# Buffers
 
-Buffers store linear GPU data such as vertices, indices, constants, structured records, and indirect arguments. A `BufferDesc` defines the size, element stride, allowed usages, and memory residency.
+Buffers store linear data such as vertices, indices, constants, structured records, and indirect arguments. A `BufferDesc` defines the allocation size, permitted uses, and CPU access.
 
-## Buffer Description
+## Create a Buffer
+
+Use a helper for common buffer roles:
 
 ```csharp
 using Buffer = Zenith.NET.Buffer;
 
-BufferDesc desc = new()
-{
-    SizeInBytes = sizeInBytes,
-    StrideInBytes = (uint)sizeof(Vertex),
-    Usages = BufferUsages.Vertex | BufferUsages.TransferDst,
-    Residency = MemoryResidency.GpuOnly
-};
-
-Buffer vertexBuffer = context.CreateBuffer(desc);
+using Buffer vertexBuffer = context.CreateBuffer(BufferDesc.Vertex(vertexSizeInBytes));
+using Buffer materialBuffer = context.CreateBuffer(
+    BufferDesc.StorageReadOnly(materialSizeInBytes, (uint)sizeof(Material)));
 ```
 
-| Field | Description |
-|-------|-------------|
-| `SizeInBytes` | Total allocation size visible through the buffer |
-| `StrideInBytes` | Structured element stride; use zero when no structured view is needed |
-| `Usages` | Operations and shader access permitted for the buffer |
-| `Residency` | CPU/GPU memory access strategy |
-
-## Convenience Descriptions
-
-`BufferDesc` provides common GPU-only descriptions:
+The helpers create GPU-only buffers that can receive uploaded data. Use an explicit description for additional roles or CPU access:
 
 ```csharp
-Buffer vertexBuffer = context.CreateBuffer(BufferDesc.Vertex(vertexSizeInBytes));
-Buffer indexBuffer = context.CreateBuffer(BufferDesc.Index(indexSizeInBytes));
-Buffer indirectBuffer = context.CreateBuffer(BufferDesc.Indirect(indirectSizeInBytes));
-Buffer constantBuffer = context.CreateBuffer(BufferDesc.Constant(constantSizeInBytes));
-
-Buffer materialBuffer = context.CreateBuffer(BufferDesc.StorageReadOnly(materialSizeInBytes, (uint)sizeof(Material)));
-
-BufferDesc outputDesc = BufferDesc.StorageReadWrite(outputSizeInBytes, (uint)sizeof(Output));
-outputDesc.Usages |= BufferUsages.TransferSrc;
-Buffer outputBuffer = context.CreateBuffer(outputDesc);
+using Buffer outputBuffer = context.CreateBuffer(new()
+{
+    SizeInBytes = outputSizeInBytes,
+    StrideInBytes = (uint)sizeof(Output),
+    Usages = BufferUsages.StorageReadWrite | BufferUsages.TransferSrc | BufferUsages.TransferDst,
+    Residency = MemoryResidency.GpuOnly
+});
 ```
 
-`BufferDesc.Staging` creates a CPU-write-only staging buffer.
+`StrideInBytes` describes structured elements. Use zero for unstructured data.
 
-## Buffer Usages
-
-| Usage | Purpose |
-|-------|---------|
-| `Vertex` | Bind through `SetVertexBuffer` |
-| `Index` | Bind through `SetIndexBuffer` |
-| `Indirect` | Use as indirect draw or dispatch arguments |
-| `Constant` | Bind through `SetConstantBuffer` or use `ConstantHandle` |
-| `StorageReadOnly` | Resolve through `StorageReadOnlyHandle` |
-| `StorageReadWrite` | Resolve through `StorageReadWriteHandle` |
-| `TransferSrc` | Source of copies and downloads |
-| `TransferDst` | Destination of copies and uploads |
-
-Combine only the usages required by the application. The resource must be created with a usage before commands or handles can use that role.
-
-## Memory Residency
+## Choose Memory Residency
 
 | Residency | CPU access | Typical use |
 |-----------|------------|-------------|
-| `GpuOnly` | No direct mapping | Persistent vertex, index, storage, indirect, and attachment data |
-| `CpuReadOnly` | Read through `Map()` | Readback buffers |
+| `GpuOnly` | Not mappable | Persistent GPU data |
 | `CpuWriteOnly` | Write through `Map()` | Frequently updated constants and staging data |
+| `CpuReadOnly` | Read through `Map()` | Readback data |
 
-Prefer `GpuOnly` for data used repeatedly by the GPU. Use `CpuWriteOnly` for constants updated by the CPU and `CpuReadOnly` when the CPU must inspect GPU results.
+Prefer `GpuOnly` unless CPU access is part of the buffer's regular use.
 
-## Uploading Data
+## Upload and Download
 
-`Buffer.Upload` copies data into the buffer and completes before returning:
+`Buffer.Upload` copies data into a buffer and completes before returning:
 
 ```csharp
-unsafe
+fixed (Vertex* source = vertices)
 {
-    fixed (Vertex* pointer = vertices)
+    vertexBuffer.Upload(0, new()
     {
-        vertexBuffer.Upload(0, new()
-        {
-            Pointer = (nint)pointer,
-            SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length)
-        });
-    }
+        Pointer = (nint)source,
+        SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length)
+    });
 }
 ```
 
-Use `CommandBuffer.Upload` to group transfers in one submission:
+`Buffer.Download` follows the same pattern and writes into caller-provided memory before returning.
+
+Use command-buffer transfers to batch several operations:
 
 ```csharp
 CommandBuffer transferCommands = context.TransferQueue.CommandBuffer();
 transferCommands.Upload(vertexBuffer, 0, vertexData);
 transferCommands.Upload(indexBuffer, 0, indexData);
-TimelineValue uploaded = transferCommands.Submit();
+
+TimelineValue uploadCompletion = transferCommands.Submit();
 ```
 
-Pass `uploaded` to the submission that consumes the data.
+Pass `uploadCompletion` to the submission that consumes the buffers. For `CommandBuffer.Download`, keep the destination memory valid until the submission's `TimelineValue` has been waited on.
 
-## Downloading Data
+## Map CPU-Visible Memory
 
-`Buffer.Download` copies data into caller-provided memory and completes before returning:
-
-```csharp
-unsafe
-{
-    fixed (Result* pointer = results)
-    {
-        outputBuffer.Download(0, new()
-        {
-            Pointer = (nint)pointer,
-            SizeInBytes = (uint)(sizeof(Result) * results.Length)
-        });
-    }
-}
-```
-
-Use `CommandBuffer.Download` when readback belongs to a larger submission.
-
-## Mapping
-
-Call `Map()` only for CPU-visible memory:
+Map only buffers created with `CpuWriteOnly` or `CpuReadOnly` residency:
 
 ```csharp
-nint pointer = constantBuffer.Map();
-
-unsafe
-{
-    *(Constants*)pointer = constants;
-}
-
+nint destination = constantBuffer.Map();
+*(Constants*)destination = constants;
 constantBuffer.Unmap();
 ```
 
-Use `Map` for repeated direct CPU access and `Upload` or `Download` for individual transfers.
+Use mapping for repeated CPU access. Use `Upload` or `Download` for individual transfers.
 
-## Buffer Views
+## Create a View
 
-A `BufferView` exposes a subrange with its own size and stride:
-
-```csharp
-BufferView materialView = context.CreateBufferView(BufferViewDesc.StorageReadOnly(materialBuffer, offsetInBytes, sizeInBytes, (uint)sizeof(Material)));
-```
-
-Available helper descriptions are `Constant`, `StorageReadOnly`, and `StorageReadWrite`. A view exposes the same typed handle categories as a full buffer:
+A `BufferView` selects a byte range and structured element stride:
 
 ```csharp
+using BufferView materialView = context.CreateBufferView(BufferViewDesc.StorageReadOnly(
+    materialBuffer,
+    offsetInBytes,
+    sizeInBytes,
+    (uint)sizeof(Material)));
+
 ResourceHandle materials = materialView.StorageReadOnlyHandle;
 ```
 
-See [Bindless Resources](../fundamentals/bindless-resources.md) for the matching Slang `DescriptorHandle<T>` declarations.
+Use `BufferViewDesc.Constant`, `StorageReadOnly`, or `StorageReadWrite` to match the intended shader access. See [Bindless Resources](../fundamentals/bindless-resources.md) for shader declarations.
 
-## Explicit Heaps
+## Place Buffers in a Heap
 
-Use a `Heap` when several resources should share one explicitly managed allocation:
+Use a `Heap` to place compatible buffers in one allocation:
 
 ```csharp
-SizeAndAlignment requirements = context.GetSizeAndAlignment(desc);
-Heap heap = context.CreateHeap(HeapDesc.GpuOnly(requirements.SizeInBytes));
-Buffer buffer = heap.CreateBuffer(0, desc);
+BufferDesc vertexDesc = BufferDesc.Vertex(vertexSizeInBytes);
+BufferDesc indexDesc = BufferDesc.Index(indexSizeInBytes);
+
+SizeAndAlignment vertexRequirements = context.GetSizeAndAlignment(vertexDesc);
+SizeAndAlignment indexRequirements = context.GetSizeAndAlignment(indexDesc);
+ulong indexOffset = ZenithHelper.Align(vertexRequirements.SizeInBytes, indexRequirements.AlignmentInBytes);
+
+using Heap heap = context.CreateHeap(HeapDesc.GpuOnly(indexOffset + indexRequirements.SizeInBytes));
+using Buffer vertexBuffer = heap.CreateBuffer(0, vertexDesc);
+using Buffer indexBuffer = heap.CreateBuffer(indexOffset, indexDesc);
 ```
 
-Align every placed offset to the resource's `AlignmentInBytes`. Keep the heap alive longer than all resources placed in it.
+Query each description, align its offset, and size the heap through the final resource. The descriptions and heap must use the same residency. Dispose every placed resource before its heap.
 
-## Synchronization
-
-Buffers have no texture layout. Use [Synchronization](../fundamentals/synchronization.md) to order buffer producers and consumers.
-
-## Lifetime
-
-Views depend on their source buffer, and placed buffers depend on their heap. Keep each owner alive through the final submission that uses its dependent resources.
+Buffer views depend on their source buffer. Keep buffers, views, and heaps alive until all submissions that use them have completed. Use a [memory barrier](../fundamentals/synchronization.md#add-a-memory-barrier) when later GPU work consumes buffer data written earlier in the same command stream.

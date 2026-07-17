@@ -1,24 +1,24 @@
 ﻿# Project Setup
 
-Create the shared desktop host used by every tutorial. It selects a graphics API, owns the window and swap chain, and passes each renderer a command buffer and the current drawable.
+Prepare the shared desktop host used by every tutorial. The host creates the window, graphics context, swap chain, and frame command buffer. Each tutorial supplies one renderer.
 
 ## Development Environment
 
-- .NET 10 SDK or later
-- A platform and GPU supported by one Zenith.NET graphics API
-- A current GPU driver
+- .NET 10 SDK
+- Windows with DirectX 12, macOS with Metal, or Linux with Vulkan on X11/XWayland
+- A compatible GPU and current driver
 
 ## Get the Project
 
-Clone Zenith.NET and the tutorial repository into the same parent directory. The tutorial project currently references the local Zenith.NET projects:
+Clone both repositories into the same parent directory. The tutorial project uses local project references to the adjacent Zenith.NET repository:
 
 ```bash
 git clone https://github.com/qian-o/Zenith.NET.git
 git clone https://github.com/qian-o/ZenithTutorials.git
-cd ZenithTutorials/ZenithTutorials
+cd ZenithTutorials
 ```
 
-`Silk.NET.Windowing` supplies the cross-platform desktop window. The tutorial project references the DirectX 12, Metal, Vulkan, and ImageSharp projects from the adjacent Zenith.NET checkout.
+The project references the three graphics API packages and the ImageSharp extension from the adjacent repository. `Silk.NET.Windowing` provides the desktop window.
 
 ## Project Structure
 
@@ -38,22 +38,29 @@ ZenithTutorials/
     `-- ClearRenderer.cs
 ```
 
-The tutorial image is maintained with the runnable project:
+Later tutorials use this texture:
 
 ![shoko.png](https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Textures/shoko.png)
 
 ## Build and Run
 
 ```bash
-dotnet build
-dotnet run
+dotnet build ZenithTutorials.slnx
+dotnet run --project ZenithTutorials/ZenithTutorials.csproj
 ```
 
 Choose **Project Setup** from the console menu. A clear-only frame confirms that the host is connected.
 
-## Frame Ownership
+## Renderer Contract
 
-The host acquires the current swap-chain drawable and creates one graphics command buffer per frame. The renderer records into that borrowed command buffer and returns it in `ColorAttachment`; it does not submit, wait, or retain the command buffer. The host transitions the drawable to `Present`, submits, waits, and presents.
+Every renderer implements `IRenderer`:
+
+- `Update` changes CPU-side state for the next frame.
+- `Render` records commands into the supplied command buffer.
+- `Resize` recreates size-dependent resources.
+- `Dispose` releases resources owned by the renderer.
+
+`Render` borrows its `CommandBuffer` and drawable from the host. It records the drawable in `ColorAttachment` and returns without submitting, waiting, disposing, or retaining either object. The host completes and presents the frame.
 
 Each renderer owns its workload resources and responds to drawable-size changes through `Resize`. The host owns the window, context, swap chain, and frame lifecycle.
 
@@ -75,4 +82,4 @@ Each renderer owns its workload resources and responds to drawable-size changes 
 
 <div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Renderers/ClearRenderer.cs" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/ClearRenderer.cs" data-language="csharp"></div>
 
-The repository also contains the [entry point](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Program.cs), [Apple layer helper](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/CocoaHelper.cs), and [shared usings](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Usings.cs).
+The complete repository also contains the entry point, platform setup, screenshot support, and shared usings used by the host.

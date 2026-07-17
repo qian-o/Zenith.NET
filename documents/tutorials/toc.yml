@@ -10,7 +10,7 @@
       href: rasterization/textured-quad.md
     - name: Spinning Cube
       href: rasterization/spinning-cube.md
-- name: Compute Image Processing
+- name: Image Processing
   href: image-processing.md
 - name: Indirect Drawing
   href: indirect-drawing.md

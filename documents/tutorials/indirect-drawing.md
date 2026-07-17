@@ -1,22 +1,34 @@
 ﻿# Indirect Drawing
 
-Render a 5 by 5 grid of independently rotating cubes with one `DrawIndexedIndirect` command. The CPU initializes the draw arguments and updates the instance data; the GPU reads both when it executes the draw. Start from [Project Setup](project-setup.md).
+Draw a 5 by 5 grid of rotating cubes with one indirect command. This tutorial builds on [Spinning Cube](rasterization/spinning-cube.md) with an argument buffer and per-instance data.
 
 ![Indirect Drawing](https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/indirect-drawing.png)
 
-## Indirect Arguments
+## Create the Argument Buffer
 
-The cube geometry uses the same eight vertices and 36 indices as the spinning-cube workload. A separate indirect buffer stores `IndirectDrawIndexedArgs` with an index count of 36 and an instance count of 25.
+Reuse the cube's eight vertices and 36 indices. Create a buffer with `BufferDesc.Indirect` and upload one `IndirectDrawIndexedArgs` record:
 
-The CPU initializes that argument record once. During rendering, `DrawIndexedIndirect` reads it from the buffer instead of receiving draw dimensions as direct command parameters.
+- `IndexCount` is 36.
+- `InstanceCount` is 25.
+- The remaining offsets start at zero.
 
-## Instance Data
+The record is initialized once. `DrawIndexedIndirect` reads it when the command executes.
 
-A CPU-writable structured buffer contains one model matrix and color for every cube. Each update calculates a grid position and an independent rotation, then uploads all 25 records.
+## Update Instance Data
 
-The constant buffer supplies the camera matrices and the instance buffer's `StorageReadOnlyHandle`. In Slang, `SV_InstanceID` indexes the typed `StructuredBuffer<InstanceData>` and selects the transform and color for the current instance.
+Create a CPU-writable structured buffer containing one model matrix and color for each cube. On every update, calculate the grid position and rotation for all 25 instances and upload the records.
 
-The workload retains the depth attachment and resize behavior introduced by [Spinning Cube](rasterization/spinning-cube.md), while replacing its direct indexed draw with one indirect, instanced command.
+Store the camera matrices and `instanceBuffer.StorageReadOnlyHandle` in the constant buffer. The vertex shader uses `SV_InstanceID` to read the matching `InstanceData` record.
+
+## Draw Indirectly
+
+Keep the depth attachment and pipeline from the cube example. Replace the direct indexed draw with:
+
+```csharp
+commandBuffer.DrawIndexedIndirect(indirectBuffer, 0, 1);
+```
+
+The final argument selects one indirect record, which draws 25 instances.
 
 ## Source
 

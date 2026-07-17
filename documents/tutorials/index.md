@@ -1,31 +1,24 @@
 ﻿# Tutorials
 
-Learn Zenith.NET through a sequence of runnable workloads, from a clear-only frame through rasterization, compute, indirect drawing, Ray Tracing, and Mesh Shading.
+Build a Zenith.NET application through a sequence of focused, runnable examples. Each tutorial introduces one rendering or compute technique and links to its complete C# and Slang source.
 
-The complete project lives in [qian-o/ZenithTutorials](https://github.com/qian-o/ZenithTutorials). Tutorial pages load C#, Slang, textures, and screenshots directly from its `master` branch.
+Complete tutorial source is available in [qian-o/ZenithTutorials](https://github.com/qian-o/ZenithTutorials). Each page includes the corresponding source files and rendered result.
 
-## Setup
+## Start Here
 
-[Project Setup](project-setup.md) creates the shared window, graphics context, swap chain, frame loop, and renderer contract.
+[Project Setup](project-setup.md) prepares the shared desktop host and renders a clear-only frame. Complete it before the workload tutorials.
 
 ## Rasterization
 
-| Tutorial | Result | New Mechanism |
-|----------|--------|---------------|
-| [Hello Triangle](rasterization/hello-triangle.md) | One interpolated-color triangle | Vertex input and direct drawing |
-| [Textured Quad](rasterization/textured-quad.md) | The tutorial image on an indexed quad | Bindless texture and sampler handles |
-| [Spinning Cube](rasterization/spinning-cube.md) | A rotating, depth-tested cube | Constant data, depth, and resize |
+1. [Hello Triangle](rasterization/hello-triangle.md) introduces vertex input, a graphics pipeline, and direct drawing.
+2. [Textured Quad](rasterization/textured-quad.md) adds indexed geometry, texture loading, a sampler, and resource handles.
+3. [Spinning Cube](rasterization/spinning-cube.md) adds transformation constants, depth testing, and resize handling.
 
-## Compute and Indirect Drawing
+## GPU Workloads
 
-| Tutorial | Result | New Mechanism |
-|----------|--------|---------------|
-| [Compute Image Processing](image-processing.md) | A grayscale version of the tutorial image | Storage texture dispatch |
-| [Indirect Drawing](indirect-drawing.md) | A 5 by 5 grid of animated cubes | CPU-authored indirect arguments and instance data |
+1. [Image Processing](image-processing.md) writes a texture with a compute shader.
+2. [Indirect Drawing](indirect-drawing.md) draws many instances from an argument buffer.
+3. [Ray Tracing](ray-tracing.md) builds acceleration structures and traces inline rays.
+4. [Mesh Shading](mesh-shading.md) generates and culls geometry with mesh shader workgroups.
 
-## Advanced Workloads
-
-| Tutorial | Result | Requirement |
-|----------|--------|-------------|
-| [Ray Tracing](ray-tracing.md) | Three reflective spheres over a checkerboard floor | `RayTracingSupported` |
-| [Mesh Shading](mesh-shading.md) | 1,000 sphere instances with GPU culling | `MeshShadingSupported` |
+Ray Tracing and mesh shading require the corresponding device capability.

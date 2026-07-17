@@ -1,16 +1,10 @@
-﻿# Queues and Commands
+﻿# Commands
 
-Zenith.NET exposes GPU work through explicit command queues and command buffers. Recording commands does not execute them immediately. Work begins when the command buffer is submitted to its queue.
+GPU work is recorded in a `CommandBuffer` and submitted to its `CommandQueue`. Recording preserves command order, but execution begins only after submission.
 
-Request a command buffer from the queue that will execute the work:
+## Record and Submit Work
 
-```csharp
-CommandBuffer commandBuffer = context.ComputeQueue.CommandBuffer();
-```
-
-## Recording Commands
-
-A command buffer is ready for recording when returned by `CommandBuffer()`. Record commands in execution order, then submit it once:
+Request a command buffer from the queue that should execute the work:
 
 ```csharp
 CommandBuffer commandBuffer = context.ComputeQueue.CommandBuffer();
@@ -21,40 +15,35 @@ commandBuffer.SetConstantBuffer(constantBuffer, 0);
 commandBuffer.Dispatch(groupCountX, groupCountY, 1);
 commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.Sampled);
 
-TimelineValue submission = commandBuffer.Submit();
-submission.Wait();
+commandBuffer.Submit().Wait();
 ```
 
-Set the matching pipeline before binding pipeline state or issuing draws and dispatches.
+A command buffer is ready for recording when returned by `CommandBuffer()`. Set the matching pipeline before binding pipeline state or issuing draw and dispatch commands, then submit the command buffer once.
 
-## Timeline Submission
+The queue owns its command buffers and reuses them after completed submissions. Do not dispose a command buffer or record more commands after submitting it.
 
-`Submit()` queues the recorded work and returns a timeline value:
+## Track Completion
 
-```csharp
-TimelineValue submission = commandBuffer.Submit();
-```
-
-The returned value can be inspected or waited on:
+`Submit()` returns a `TimelineValue` for that submission:
 
 ```csharp
-if (!submission.IsCompleted)
+TimelineValue completion = commandBuffer.Submit();
+
+if (!completion.IsCompleted)
 {
-    submission.Wait();
+    completion.Wait();
 }
 ```
 
-See [Synchronization](synchronization.md) for texture transitions, memory barriers, and cross-queue dependencies.
+Use `IsCompleted` for a non-blocking status check. Call `Wait()` only when CPU code must observe completion. To order work between queues without blocking the CPU, pass the producer value to the consumer submission. See [Synchronization](synchronization.md).
 
-## Render Passes
+## Record a Render Pass
 
-Render passes receive their attachments directly. Transition textures first, then begin the pass:
+Transition attachments before beginning a render pass:
 
 ```csharp
 commandBuffer.Transition(color, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-commandBuffer.Transition(depthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
-
-commandBuffer.BeginRenderPass([ColorAttachment.Clear(color, new(0.05f, 0.05f, 0.08f, 1.0f))], DepthStencilAttachment.Clear(depthStencil, 1.0f, 0));
+commandBuffer.BeginRenderPass([ColorAttachment.Clear(color, new(0.05f, 0.05f, 0.08f, 1.0f))], null);
 
 commandBuffer.SetPipeline(graphicsPipeline);
 commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
@@ -63,35 +52,24 @@ commandBuffer.Draw(vertexCount, 1, 0, 0);
 commandBuffer.EndRenderPass();
 ```
 
-`BeginRenderPass` sets viewports and scissors from the attachment dimensions. Override them after beginning the pass when a smaller rendering region is required.
+`BeginRenderPass` initializes viewports and scissors from the attachment size. Set them afterward when rendering to a smaller region.
 
-## Copies and Transfers
+## Transfer Data
 
-Command buffers support buffer copies, texture copies, buffer-to-texture copies, texture-to-buffer copies, resolves, uploads, and downloads. These commands do not transition textures; record the required source and destination transitions explicitly.
+Command buffers can upload, download, copy, and resolve resources. These operations can be batched with later GPU work.
 
-`Buffer.Upload()` and `Texture.Upload()` are synchronous convenience methods. Record transfers directly when several operations should be batched or chained with later GPU work.
+Texture transfer commands do not change texture layouts. Record the required `CopySrc`, `CopyDst`, `ResolveSrc`, or `ResolveDst` transitions around them.
 
-## Acceleration Structures
+For simple one-off transfers, `Buffer.Upload`, `Buffer.Download`, `Texture.Upload`, and `Texture.Download` complete the transfer before returning.
 
-`BuildAccelerationStructure` records BLAS or TLAS construction and returns the new acceleration structure. `UpdateAccelerationStructure` records an in-place update for an acceleration structure created with `AccelerationStructureBuildFlags.AllowUpdate`.
+## Label GPU Work
 
-Build related acceleration structures in dependency order, then submit the command buffer before using their handles:
-
-```csharp
-BottomLevelAccelerationStructure blas = commandBuffer.BuildAccelerationStructure(blasDesc);
-TopLevelAccelerationStructure tlas = commandBuffer.BuildAccelerationStructure(tlasDesc);
-
-commandBuffer.Submit().Wait();
-```
-
-## Queries and Debug Markers
-
-Query heaps support occlusion, binary occlusion, and timestamp queries. Record query operations with `BeginQuery`, `EndQuery`, or `WriteTimestamp`.
-
-Use `BeginDebugEvent`, `EndDebugEvent`, and `InsertDebugMarker` to label GPU work for graphics debuggers:
+Use debug events and markers to identify a group of commands:
 
 ```csharp
 commandBuffer.BeginDebugEvent("Post processing");
 commandBuffer.Dispatch(groupCountX, groupCountY, 1);
 commandBuffer.EndDebugEvent();
 ```
+
+Query and acceleration-structure commands follow the same record-then-submit model. See [Ray Tracing](../workloads/ray-tracing.md) for acceleration-structure builds and the [API Reference](../../api/index.md) for query operations.

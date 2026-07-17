@@ -1,10 +1,10 @@
 ﻿# Mesh Shading
 
-Mesh shading is an optional graphics path that replaces vertex/index assembly with task and mesh shader stages.
+Mesh shading is an optional graphics path that uses mesh shader workgroups instead of vertex and index input.
 
-## Capability Check
+## Check Support
 
-Mesh shading is gated per device:
+Check the capability before creating a mesh shading pipeline:
 
 ```csharp
 if (!context.Capabilities.MeshShadingSupported)
@@ -13,23 +13,24 @@ if (!context.Capabilities.MeshShadingSupported)
 }
 ```
 
-## MeshShadingPipelineDesc
+## Create the Pipeline
 
-Create mesh shading pipelines with `GraphicsContext.CreateMeshShadingPipeline` and `MeshShadingPipelineDesc`.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `TaskShader` | `Shader?` | Optional task shader |
-| `MeshShader` | `Shader` | Required mesh shader |
-| `FragmentShader` | `Shader` | Fragment shader |
-| `PrimitiveTopology` | `PrimitiveTopology` | Primitive topology for rasterization |
-| `AttachmentFormats` | `AttachmentFormats` | Render-pass compatibility |
-| `RenderState` | `RenderState` | Rasterizer, depth/stencil, and blend state |
+Compile the mesh and fragment entry points. A task shader is optional:
 
 ```csharp
-MeshShadingPipeline pipeline = context.CreateMeshShadingPipeline(new()
+string shaderPath = "Assets/Shaders/MeshShading.slang";
+using Shader meshShader = context.CreateShader(
+    ZenithCompiler.CompileFromFile(context.GraphicsApi, shaderPath, "MSMain"));
+using Shader fragmentShader = context.CreateShader(
+    ZenithCompiler.CompileFromFile(context.GraphicsApi, shaderPath, "FSMain"));
+```
+
+Create a pipeline whose attachment formats match the render pass:
+
+```csharp
+using MeshShadingPipeline pipeline = context.CreateMeshShadingPipeline(new()
 {
-    TaskShader = taskShader,
+    TaskShader = null,
     MeshShader = meshShader,
     FragmentShader = fragmentShader,
     PrimitiveTopology = PrimitiveTopology.TriangleList,
@@ -48,31 +49,36 @@ MeshShadingPipeline pipeline = context.CreateMeshShadingPipeline(new()
 });
 ```
 
-`TaskShader` may be `null` for mesh-only pipelines.
+Set `TaskShader` to a compiled task entry point when the workload uses a task stage.
 
-## DispatchMesh and Render Pass Flow
+## Dispatch Mesh Work
 
-Mesh dispatch runs inside a render pass, like graphics draws:
+Mesh dispatch runs inside a render pass:
 
 ```csharp
 commandBuffer.Transition(color, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
 commandBuffer.Transition(depthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
+commandBuffer.BeginRenderPass(
+    [ColorAttachment.Clear(color, clearColor)],
+    DepthStencilAttachment.Clear(depthStencil, 1.0f, 0));
 
-commandBuffer.BeginRenderPass([ColorAttachment.Clear(color, clearColor)], DepthStencilAttachment.Clear(depthStencil, 1.0f, 0));
 commandBuffer.SetPipeline(pipeline);
 commandBuffer.SetConstantBuffer(constantBuffer, 0);
 commandBuffer.DispatchMesh(groupCountX, groupCountY, groupCountZ);
+
 commandBuffer.EndRenderPass();
 ```
 
-## Indirect Mesh Dispatch
+The dispatch counts select mesh shader workgroups. The shader determines how many vertices and primitives each workgroup emits.
 
-Create the argument buffer with `BufferUsages.Indirect`. When GPU work writes the group counts, also include the matching storage usage and synchronize the producer before dispatch:
+## Dispatch Indirectly
+
+`DispatchMeshIndirect` reads one or more `IndirectDispatchMeshArgs` records:
 
 ```csharp
 commandBuffer.DispatchMeshIndirect(indirectBuffer, offsetInBytes, dispatchCount);
 ```
 
-`IndirectDispatchMeshArgs` contains `GroupCountX`, `GroupCountY`, and `GroupCountZ`.
+Create the argument buffer with `BufferUsages.Indirect`. If earlier GPU work writes the arguments, also add the matching storage usage and record a barrier before dispatch.
 
-Use [Synchronization](../fundamentals/synchronization.md) when GPU work produces mesh data or indirect arguments. See [Bindless Resources](../fundamentals/bindless-resources.md) for shader-visible resources.
+See [Bindless Resources](../fundamentals/bindless-resources.md) for shader-visible mesh data and [Synchronization](../fundamentals/synchronization.md) when GPU work produces mesh data or indirect arguments.

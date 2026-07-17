@@ -1,6 +1,6 @@
 ﻿---
-title: Zenith.NET - Cross-platform RHI for .NET
-description: An explicit, bindless rendering hardware interface for DirectX 12, Metal 4, and Vulkan 1.4.
+title: Zenith.NET - Modern RHI for .NET
+description: A modern rendering hardware interface for graphics and compute applications built with C#.
 _layout: landing
 ---
 
@@ -11,14 +11,14 @@ _layout: landing
         <div class="render-grid"></div>
         <div class="landing-shell render-hero-inner">
             <div class="hero-copy">
-                <h1>Zenith.NET<span>Explicit RHI for .NET.</span></h1>
-                <p class="hero-lede">A cross-platform rendering hardware interface that keeps queues, resource state, memory, and synchronization visible across DirectX 12, Metal 4, and Vulkan 1.4.</p>
+                <h1>Zenith.NET<span>Modern RHI for .NET.</span></h1>
+                <p class="hero-lede">Build graphics and compute applications with one consistent C# API for resources, pipelines, commands, and presentation.</p>
                 <div class="hero-actions">
                     <a class="landing-button landing-button-primary" href="docs/index.md">
-                        Explore the RHI
+                        Read the guide
                     </a>
                     <a class="landing-button landing-button-secondary" href="tutorials/index.md">
-                        Build a renderer
+                        Start a tutorial
                     </a>
                 </div>
                 <div class="backend-support" aria-label="Supported graphics APIs">
@@ -34,29 +34,29 @@ _layout: landing
         <div class="landing-shell">
             <header class="section-heading">
                 <span class="section-kicker">THE RHI</span>
-                <h2>Portable where it should be.<span>Explicit where it matters.</span></h2>
-                <p>Zenith.NET presents one compact model without replacing the decisions that define a renderer.</p>
+                <h2>One model for rendering.<span>Designed for modern C#.</span></h2>
+                <p>Start with a small set of objects and use the same workflow across supported graphics APIs.</p>
             </header>
             <div class="feature-grid">
                 <article class="feature-card">
                     <div class="feature-icon feature-icon-violet"><i class="bi bi-globe2" aria-hidden="true"></i></div>
-                    <h3>One renderer model</h3>
-                    <p>Share resource, pipeline, command, and presentation code across three native graphics APIs.</p>
+                    <h3>Consistent C# API</h3>
+                    <p>Create resources, pipelines, commands, and swap chains through a focused object model.</p>
                 </article>
                 <article class="feature-card">
                     <div class="feature-icon feature-icon-pink"><i class="bi bi-cpu" aria-hidden="true"></i></div>
-                    <h3>Explicit GPU work</h3>
-                    <p>Record commands, transition textures, place barriers, and connect queues with timeline values.</p>
+                    <h3>Clear command flow</h3>
+                    <p>Record work in order, submit it to a queue, and track completion with timeline values.</p>
                 </article>
                 <article class="feature-card">
                     <div class="feature-icon feature-icon-blue"><i class="bi bi-lightning-charge" aria-hidden="true"></i></div>
-                    <h3>Bindless by design</h3>
-                    <p>Pass compact resource handles through constant data and resolve them as typed Slang descriptors.</p>
+                    <h3>Simple shader binding</h3>
+                    <p>Pass compact resource handles in constant data and use them as typed Slang resources.</p>
                 </article>
                 <article class="feature-card">
                     <div class="feature-icon feature-icon-cyan"><i class="bi bi-bounding-box-circles" aria-hidden="true"></i></div>
                     <h3>Modern workloads</h3>
-                    <p>Use rasterization, compute, indirect drawing, inline RayQuery, and mesh shading in the same command model.</p>
+                    <p>Use rasterization, compute, indirect commands, inline Ray Tracing, and mesh shading.</p>
                 </article>
             </div>
         </div>
@@ -64,15 +64,15 @@ _layout: landing
     <section class="architecture-section">
         <div class="landing-shell architecture-grid">
             <div class="architecture-copy">
-                <span class="section-kicker">DESIGN BOUNDARY</span>
-                <h2>The abstraction stops<br><span>before control disappears.</span></h2>
-                <p>Zenith.NET presents one RHI while resource ownership and execution order remain application decisions.</p>
+                <span class="section-kicker">PROGRAMMING MODEL</span>
+                <h2>Small building blocks.<br><span>Predictable application flow.</span></h2>
+                <p>Create a context, choose a queue, record commands, and submit the result.</p>
             </div>
             <div class="architecture-copy">
                 <div class="architecture-points">
-                    <a href="docs/fundamentals/runtime.md"><i class="bi bi-check-circle" aria-hidden="true"></i><span><strong>Explicit device selection</strong><small>Select the graphics API and query the capabilities your workload needs.</small></span></a>
-                    <a href="docs/fundamentals/synchronization.md"><i class="bi bi-check-circle" aria-hidden="true"></i><span><strong>Explicit synchronization</strong><small>Express texture roles, memory dependencies, and queue ordering directly.</small></span></a>
-                    <a href="docs/fundamentals/bindless-resources.md"><i class="bi bi-check-circle" aria-hidden="true"></i><span><strong>Bindless shader access</strong><small>Pass resource handles through explicitly laid-out constant data.</small></span></a>
+                    <a href="docs/fundamentals/runtime.md"><i class="bi bi-check-circle" aria-hidden="true"></i><span><strong>Create the runtime</strong><small>Select a graphics API, inspect capabilities, and create application resources.</small></span></a>
+                    <a href="docs/fundamentals/commands.md"><i class="bi bi-check-circle" aria-hidden="true"></i><span><strong>Record GPU work</strong><small>Use command buffers for rendering, compute, copies, and resource transitions.</small></span></a>
+                    <a href="docs/fundamentals/bindless-resources.md"><i class="bi bi-check-circle" aria-hidden="true"></i><span><strong>Bind shader resources</strong><small>Store typed resource handles in C# constant data shared with Slang.</small></span></a>
                 </div>
             </div>
         </div>
@@ -81,25 +81,25 @@ _layout: landing
         <div class="landing-shell">
             <header class="resources-heading">
                 <span class="section-kicker">DOCUMENTATION</span>
-                <h2>Choose the level of detail.</h2>
+                <h2>Learn at your own pace.</h2>
             </header>
             <div class="resource-grid">
                 <a class="resource-card resource-card-docs" href="docs/index.md">
                     <span class="resource-icon"><i class="bi bi-book" aria-hidden="true"></i></span>
                     <strong class="resource-title">RHI Guide</strong>
-                    <p>Understand the runtime, command, resource, synchronization, workload, and presentation models.</p>
+                    <p>Learn the core objects and workflows used by Zenith.NET applications.</p>
                     <strong>Read the guide</strong>
                 </a>
                 <a class="resource-card resource-card-nuget" href="tutorials/index.md">
                     <span class="resource-icon"><i class="bi bi-play-circle" aria-hidden="true"></i></span>
                     <strong class="resource-title">Tutorials</strong>
-                    <p>Build rasterization, compute, Ray Tracing, and Mesh Shading workloads with the RHI.</p>
+                    <p>Build focused examples that progress from project setup to modern GPU workloads.</p>
                     <strong>Follow the tutorials</strong>
                 </a>
                 <a class="resource-card resource-card-community" href="api/index.md">
                     <span class="resource-icon"><i class="bi bi-braces" aria-hidden="true"></i></span>
                     <strong class="resource-title">API Reference</strong>
-                    <p>Inspect generated namespaces, types, members, descriptors, and enum values from the current source.</p>
+                    <p>Look up public namespaces, types, members, and enum values generated from the source.</p>
                     <strong>Browse the API</strong>
                 </a>
             </div>
@@ -109,7 +109,7 @@ _layout: landing
         <div class="landing-shell landing-footer-grid">
             <div class="landing-footer-brand">
                 <img class="landing-footer-logo" src="images/Zenith.NET-Logo.svg" alt="Zenith.NET">
-                <p>An explicit, bindless rendering hardware interface for DirectX 12, Metal 4, and Vulkan 1.4.</p>
+                <p>A modern rendering hardware interface for graphics and compute applications built with C#.</p>
                 <a class="landing-footer-github" href="https://github.com/qian-o/Zenith.NET" aria-label="Zenith.NET on GitHub"><i class="bi bi-github" aria-hidden="true"></i></a>
             </div>
             <div class="landing-footer-column">

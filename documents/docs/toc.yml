@@ -1,10 +1,10 @@
-﻿- name: Overview
+﻿- name: RHI Guide
   href: index.md
 - name: Fundamentals
   items:
-    - name: Runtime and Devices
+    - name: Runtime
       href: fundamentals/runtime.md
-    - name: Queues and Commands
+    - name: Commands
       href: fundamentals/commands.md
     - name: Synchronization
       href: fundamentals/synchronization.md
@@ -12,9 +12,9 @@
       href: fundamentals/bindless-resources.md
 - name: Resources
   items:
-    - name: Buffers and Memory
+    - name: Buffers
       href: resources/buffers.md
-    - name: Textures and Sampling
+    - name: Textures
       href: resources/textures.md
 - name: Workloads
   items:
@@ -28,7 +28,7 @@
       href: workloads/mesh-shading.md
 - name: Presentation
   items:
-    - name: Surfaces and Swap Chains
+    - name: Swap Chains
       href: presentation/swap-chains.md
-    - name: View Integrations
+    - name: Views
       href: presentation/views.md

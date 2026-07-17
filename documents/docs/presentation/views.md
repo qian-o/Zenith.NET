@@ -1,16 +1,6 @@
-﻿# View Integrations
+﻿# Views
 
-Zenith.NET provides UI controls through `Zenith.NET.Views` and framework-specific `Zenith.NET.Views.*` packages. Every control implements `IZenithView`.
-
-## View Contract
-
-| Member | Purpose |
-|---|---|
-| `GraphicsContext` | Assigned by app code; rendering is skipped when null |
-| `UpdateRequested` | Per-frame CPU update callback |
-| `RenderRequested` | Per-frame callback with a command buffer and drawable texture |
-
-`UpdateEventArgs` exposes `DeltaSeconds` and `TotalSeconds`. `RenderEventArgs` adds the View-owned `CommandBuffer` and current `Drawable` texture.
+Zenith.NET provides controls for supported .NET UI frameworks. Each control implements `IZenithView` and manages its own frame presentation.
 
 ## Framework Packages
 
@@ -22,11 +12,11 @@ Zenith.NET provides UI controls through `Zenith.NET.Views` and framework-specifi
 | `Zenith.NET.Views.Maui` | .NET MAUI |
 | `Zenith.NET.Views.Avalonia` | Avalonia |
 
-Each integration handles its own presentation path.
+Add the package for the framework used by the application.
 
-## Render Callback
+## Connect a View
 
-Assign a `GraphicsContext` and record rendering into the command buffer supplied by `RenderRequested`:
+Assign a `GraphicsContext`, then subscribe to updates and rendering:
 
 ```csharp
 using Zenith.NET;
@@ -34,19 +24,28 @@ using Zenith.NET.Views;
 
 zenithView.GraphicsContext = context;
 
-zenithView.UpdateRequested += (_, args) =>
-{
-    // Simulation and CPU-side updates.
-};
+zenithView.UpdateRequested += (_, args) => simulation.Update(args.DeltaSeconds);
 
 zenithView.RenderRequested += (_, args) =>
 {
-    args.CommandBuffer.BeginRenderPass([ColorAttachment.Clear(args.Drawable, new(0.05f, 0.05f, 0.08f, 1.0f))], null);
-    // Record draw calls.
+    args.CommandBuffer.BeginRenderPass([ColorAttachment.Clear(args.Drawable, clearColor)], null);
+    args.CommandBuffer.SetPipeline(pipeline);
+    args.CommandBuffer.Draw(vertexCount, 1, 0, 0);
     args.CommandBuffer.EndRenderPass();
 };
 ```
 
-The command buffer and drawable are borrowed for the duration of the synchronous callback. Record commands only: do not submit, wait, dispose, or retain either object. The drawable enters and leaves the callback in `ColorAttachment`; the View performs the platform-specific final transition, submits, waits, and presents or copies the result.
+Both event argument types provide `DeltaSeconds` and `TotalSeconds`. `RenderEventArgs` also provides the current `CommandBuffer` and `Drawable`.
 
-For graphics API selection, see [Runtime and Devices](../fundamentals/runtime.md). For dependency rules, see [Synchronization](../fundamentals/synchronization.md).
+## Follow the Callback Contract
+
+The command buffer and drawable are borrowed for the duration of the synchronous `RenderRequested` callback. Within the callback:
+
+- Record commands into `args.CommandBuffer`.
+- Treat `args.Drawable` as a `ColorAttachment`.
+- End every render pass before returning.
+- Do not submit, wait, dispose, or retain either object.
+
+The View completes and presents the frame after the callback returns. Dispose application-owned pipelines and resources separately, and keep the assigned context alive until the control has released its rendering resources.
+
+For graphics API selection, see [Runtime](../fundamentals/runtime.md). Use [Swap Chains](swap-chains.md) when the application manages a window without a View integration.

@@ -1,22 +1,22 @@
 ﻿# Textured Quad
 
-Render the tutorial image on two indexed triangles. This workload adds ImageSharp texture loading, mip levels, a sampler, and bindless resource handles. Start from [Project Setup](../project-setup.md).
+Draw the tutorial image on a quad. This tutorial builds on [Hello Triangle](hello-triangle.md) with indexed geometry, texture loading, a sampler, and shader resource handles.
 
 ![Textured Quad](https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/textured-quad.png)
 
-## Indexed Geometry
+## Create Indexed Geometry
 
-Four vertices define position and texture coordinates. Six indices reuse them to form two triangles, so the renderer binds both vertex and index buffers before issuing the indexed draw.
+Create four vertices containing position and texture coordinates. Six `uint` indices reuse those vertices to form two triangles.
 
-The input layout matches the shader's `POSITION0` and `TEXCOORD0` fields. The vertex entry point forwards texture coordinates to the fragment stage without modifying them.
+The input layout matches the shader's `POSITION0` and `TEXCOORD0` fields. Bind both buffers and call `DrawIndexed(6, 1, 0, 0, 0)`.
 
-## Bindless Sampling
+## Load and Bind the Texture
 
-`LoadTextureFromFile` decodes `Assets/Textures/shoko.png` and generates its mip chain. A linear clamp sampler controls filtering and address behavior.
+Load `Assets/Textures/shoko.png` with `LoadTextureFromFile` and generate its mip chain. Create a linear clamp sampler for filtering and addressing.
 
-The constant buffer stores the texture's `SampledHandle` and the sampler's `Handle`. Slang receives those values as typed `DescriptorHandle<Texture2D>` and `DescriptorHandle<SamplerState>` fields, then samples the texture directly.
+Store `texture.SampledHandle` and `sampler.Handle` in a 16-byte constant structure. The matching Slang structure declares `DescriptorHandle<Texture2D>` and `DescriptorHandle<SamplerState>` fields.
 
-The ImageSharp loader returns every mip in `Sampled`. Rendering binds those handles directly, clears the drawable, and records one indexed draw.
+Bind that constant buffer before drawing. The fragment shader samples the texture at the interpolated texture coordinate.
 
 ## Source
 

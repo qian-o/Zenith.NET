@@ -1,32 +1,29 @@
-﻿# Runtime and Devices
+﻿# Runtime
 
-`GraphicsContext` is the root object of Zenith.NET. It selects one graphics API and provides capabilities, queues, resource creation, and validation.
+`GraphicsContext` is the root of a Zenith.NET application. It identifies the selected graphics API, reports device capabilities, exposes command queues, and creates resources.
 
-Create resources from the context that will use them. Resources cannot be shared between contexts.
+Create resources that work together from the same context.
 
-## Graphics APIs
+## Create a Context
 
-Each graphics API is provided by a separate package and extension namespace:
+Add the core package and at least one graphics API package:
+
+| Package | Platform support |
+|---------|------------------|
+| `Zenith.NET.DirectX12` | Windows |
+| `Zenith.NET.Metal` | Apple platforms |
+| `Zenith.NET.Vulkan` | Windows, Apple platforms, Android, and Linux |
+
+Each package adds a context factory:
 
 ```csharp
 using Zenith.NET;
 using Zenith.NET.DirectX12;
 using Zenith.NET.Metal;
 using Zenith.NET.Vulkan;
-```
 
-| Package | Graphics API | Primary platform |
-|---------|--------------|------------------|
-| `Zenith.NET.DirectX12` | DirectX 12 | Windows |
-| `Zenith.NET.Metal` | Metal 4 | Apple platforms |
-| `Zenith.NET.Vulkan` | Vulkan 1.4 | Cross-platform |
-
-Reference the graphics API packages your application can select.
-
-Create the context appropriate for the current platform:
-
-```csharp
 GraphicsContext context;
+
 if (OperatingSystem.IsWindows())
 {
     context = GraphicsContext.CreateDirectX12(useValidationLayer: true);
@@ -41,77 +38,68 @@ else
 }
 ```
 
-`GraphicsApi` identifies the selected graphics API:
+Reference only the packages your application can select. The selected API is available through `context.GraphicsApi`.
 
-```csharp
-Console.WriteLine(context.GraphicsApi);
-```
+## Check Capabilities
 
-Its values are `DirectX12`, `Metal`, and `Vulkan`.
-
-## Command Queues
-
-Every context exposes three queues:
-
-| Property | Queue type | Intended work |
-|----------|------------|---------------|
-| `GraphicsQueue` | `CommandQueueType.Graphics` | Rendering, compute, copies, and presentation work |
-| `ComputeQueue` | `CommandQueueType.Compute` | Compute and acceleration structure work |
-| `TransferQueue` | `CommandQueueType.Transfer` | Buffer transfers and copy commands |
-
-Request command buffers directly from these queues:
-
-```csharp
-CommandBuffer commandBuffer = context.GraphicsQueue.CommandBuffer();
-```
-
-See [Queues and Commands](commands.md) for recording and [Synchronization](synchronization.md) for dependencies.
-
-## Capabilities
-
-`Capabilities` reports the selected device and optional RHI features:
+Inspect optional features before creating the resources that require them:
 
 ```csharp
 Console.WriteLine(context.Capabilities.DeviceName);
 
 if (context.Capabilities.RayTracingSupported)
 {
-    // Acceleration structures and inline RayQuery are available.
+    // Acceleration structures and inline RayQuery can be used.
 }
 
 if (context.Capabilities.MeshShadingSupported)
 {
-    // Task and mesh shader pipelines are available.
+    // Mesh shading pipelines can be created.
 }
 ```
 
-| Property | Description |
-|----------|-------------|
-| `DeviceName` | Name reported by the selected GPU device |
-| `RayTracingSupported` | Acceleration structure and inline `RayQuery` support |
-| `MeshShadingSupported` | Task and mesh shader pipeline support |
+Use capabilities to select an application feature or a compatible fallback.
 
-Check an optional capability before creating its resources or pipelines.
+## Choose a Queue
 
-## Diagnostics
+Every context exposes three command queues:
 
-Enable validation during development and subscribe to messages:
+| Property | Intended work |
+|----------|---------------|
+| `GraphicsQueue` | Rendering, compute, copies, and presentation |
+| `ComputeQueue` | Compute and acceleration-structure work |
+| `TransferQueue` | Buffer transfers and copy commands |
+
+Request command buffers from the queue that will execute the work:
 
 ```csharp
-using Buffer = Zenith.NET.Buffer;
+CommandBuffer commandBuffer = context.GraphicsQueue.CommandBuffer();
+```
 
-GraphicsContext context = GraphicsContext.CreateVulkan(useValidationLayer: true);
+See [Commands](commands.md) for recording and submission.
+
+## Enable Validation
+
+Enable validation during development and subscribe before creating resources:
+
+```csharp
+using GraphicsContext context = GraphicsContext.CreateVulkan(useValidationLayer: true);
+
 context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
+```
 
-Buffer vertexBuffer = context.CreateBuffer(BufferDesc.Vertex(sizeInBytes));
+Set resource names when they help identify objects in diagnostics:
+
+```csharp
+using Zenith.NET.Buffer vertexBuffer = context.CreateBuffer(BufferDesc.Vertex(sizeInBytes));
 vertexBuffer.Name = "Scene vertices";
 ```
 
-`MessageSeverity` is `Error`, `Warning`, or `Info`. Resource names appear in validation and graphics debugging tools.
+Validation messages have `Error`, `Warning`, or `Info` severity.
 
-## Ownership and Disposal
+## Dispose Objects
 
-Contexts and graphics resources implement `IDisposable`. Complete submitted work before releasing its resources, and dispose dependent resources before their context:
+Zenith.NET resources implement `IDisposable`. Wait for submitted work before disposing objects used by that work, then dispose the context last:
 
 ```csharp
 submission.Wait();
@@ -122,4 +110,6 @@ output.Dispose();
 swapChain.Dispose();
 context.Dispose();
 ```
+
+Objects returned by `CommandQueue.CommandBuffer()` are managed by their queue. Record and submit them, but do not dispose or retain them for later recording.
 

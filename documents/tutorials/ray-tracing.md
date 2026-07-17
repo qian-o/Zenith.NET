@@ -1,31 +1,34 @@
 ﻿# Ray Tracing
 
-Render three reflective spheres over a checkerboard floor with an orbiting camera, soft shadows, rough reflections, Fresnel response, and ACES tone mapping. The scene traces inline Slang `RayQuery` operations from a compute pipeline. Start from [Project Setup](project-setup.md).
+Render three spheres above a checkerboard floor with inline ray queries. This tutorial introduces acceleration structures and `RayQuery` in a compute pipeline.
 
 ![Ray Tracing](https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/ray-tracing.png)
 
 > [!NOTE]
 > This tutorial requires `App.Context.Capabilities.RayTracingSupported`.
 
-## Scene
+## Build the Scene
 
-The renderer builds two bottom-level acceleration structures and one top-level scene:
+Create two bottom-level acceleration structures (BLAS):
 
-| Structure | Geometry |
-|-----------|----------|
-| Floor BLAS | Two indexed triangles forming the checkerboard floor |
-| Sphere BLAS | Three AABBs enclosing the procedural spheres |
-| TLAS | One instance of each BLAS |
+- The floor BLAS contains two indexed triangles.
+- The sphere BLAS contains three axis-aligned bounding boxes.
 
-The AABBs accelerate candidate discovery. The shader performs the exact ray-sphere intersection and commits accepted procedural hits. Floor hits use checkerboard shading, while sphere hits use the corresponding material record.
+Create one top-level acceleration structure (TLAS) with an instance of each BLAS. Record all three builds on the compute queue and wait before tracing.
 
-## Trace and Display
+The sphere records remain in a structured buffer. Their bounding boxes identify candidates, while the shader performs the exact sphere intersection and commits accepted procedural hits.
 
-The constructor uploads the floor, AABBs, and sphere records before building the acceleration structures. Each frame updates the orbiting camera and dispatches `CSMain` over a floating-point storage texture.
+## Trace the Frame
 
-Primary, shadow, and reflection rays query the same TLAS. The shader distinguishes triangle and procedural commits, applies rough reflection and Fresnel response, and maps the final HDR color through `ACESFilm` before storage.
+Create a floating-point texture with `Sampled | Storage` usage. Each frame, update constants containing the camera position, TLAS handle, sphere-buffer handle, output handles, and sampler handle.
 
-After the compute pass, the renderer transitions the output texture to `Sampled` and displays it with a fullscreen graphics pass. `Resize` replaces that texture so the trace dimensions continue to match the drawable.
+Dispatch `CSMain` over the drawable dimensions. The shader traces the same TLAS for primary, shadow, and reflection rays, then writes the final color to the storage texture.
+
+## Display and Resize
+
+Transition the output texture from `Storage` to `Sampled` and draw it with a fullscreen triangle. `Resize` replaces the output texture so the dispatch dimensions continue to match the drawable.
+
+Keep both BLAS objects alive until after the TLAS is no longer used.
 
 ## Source
 

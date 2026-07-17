@@ -450,7 +450,7 @@ export default {
                     controls.copy.disabled = false;
                 })
                 .catch(() => {
-                    controls.code.textContent = 'Unable to load source from ZenithTutorials/master.';
+                    controls.code.textContent = 'Unable to load tutorial source.';
                     controls.frame.classList.remove('is-loading');
                     controls.frame.classList.add('is-failed');
                 });

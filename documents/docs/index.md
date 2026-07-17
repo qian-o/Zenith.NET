@@ -1,31 +1,31 @@
 ﻿# RHI Guide
 
-This guide defines the Zenith.NET programming model. It explains the contracts shared by DirectX 12, Metal 4, and Vulkan 1.4 without repeating tutorial setup or generated API details.
+Use this guide to learn the Zenith.NET programming model. It covers the C# objects and workflows used to create resources, record GPU work, and present results.
 
 ## Fundamentals
 
-Read these pages in order when learning the RHI:
+Start here if you are new to Zenith.NET:
 
-1. [Runtime and Devices](fundamentals/runtime.md) covers graphics API selection, capabilities, queues, diagnostics, and ownership.
-2. [Queues and Commands](fundamentals/commands.md) defines recording, render passes, copies, submission, and timeline values.
-3. [Synchronization](fundamentals/synchronization.md) distinguishes memory barriers, explicit texture transitions, and cross-queue waits.
-4. [Bindless Resources](fundamentals/bindless-resources.md) defines resource handles, constant data, shader descriptors, and handle lifetime.
+1. [Runtime](fundamentals/runtime.md) introduces the graphics context, capabilities, queues, and object lifetime.
+2. [Commands](fundamentals/commands.md) shows how to record and submit work.
+3. [Synchronization](fundamentals/synchronization.md) explains barriers, texture transitions, and queue dependencies.
+4. [Bindless Resources](fundamentals/bindless-resources.md) shows how shaders access resources through handles.
 
 ## Resources
 
-- [Buffers and Memory](resources/buffers.md) covers usages, residency, views, heaps, uploads, downloads, and mapping.
-- [Textures and Sampling](resources/textures.md) covers texture shapes, layouts, views, transfers, resolves, and samplers.
+- [Buffers](resources/buffers.md) covers creation, data transfer, mapping, views, and placed resources.
+- [Textures](resources/textures.md) covers creation, views, uploads, layouts, resolves, and samplers.
 
 ## Workloads
 
-- [Rasterization](workloads/rasterization.md) covers graphics pipelines, attachments, render state, and draw commands.
-- [Compute](workloads/compute.md) covers compute pipelines, dispatch sizing, storage access, and indirect dispatch.
-- [Ray Tracing](workloads/ray-tracing.md) covers acceleration structures and inline `RayQuery`.
-- [Mesh Shading](workloads/mesh-shading.md) covers task and mesh pipelines and dispatch.
+- [Rasterization](workloads/rasterization.md) covers graphics pipelines, render passes, and draw commands.
+- [Compute](workloads/compute.md) covers compute pipelines and dispatch commands.
+- [Ray Tracing](workloads/ray-tracing.md) covers acceleration structures and inline ray queries.
+- [Mesh Shading](workloads/mesh-shading.md) covers mesh shading pipelines and dispatch commands.
 
 ## Presentation
 
-- [Surfaces and Swap Chains](presentation/swap-chains.md) defines drawable acquisition, resize, and presentation.
-- [View Integrations](presentation/views.md) covers rendering through supported .NET UI controls.
+- [Swap Chains](presentation/swap-chains.md) shows how to render to a window and present a frame.
+- [Views](presentation/views.md) shows how to render through supported .NET UI controls.
 
-Use the [Tutorials](../tutorials/index.md) for complete applications and the [API Reference](../api/index.md) for exact signatures.
+Follow the [Tutorials](../tutorials/index.md) to build complete examples. Use the [API Reference](../api/index.md) for exact types and signatures.
