@@ -12,7 +12,11 @@ Define one `InputLayout` for each vertex-buffer slot. `Add` appends an element a
 
 ```csharp
 InputLayout inputLayout = new();
-inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Position });
+inputLayout.Add(new()
+{
+    Format = ElementFormat.Float4,
+    Semantic = ElementSemantic.Position
+});
 ```
 
 Add the remaining elements in the same order as the shader input.

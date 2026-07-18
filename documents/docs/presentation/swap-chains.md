@@ -13,7 +13,11 @@ Zenith.NET provides `Win32`, `Wayland`, `Xlib`, `Android`, and `Apple` surface f
 Create the swap chain from the same context used for rendering:
 
 ```csharp
-SwapChain swapChain = context.CreateSwapChain(new() { Surface = surface, Format = PixelFormat.B8G8R8A8UNorm });
+SwapChain swapChain = context.CreateSwapChain(new()
+{
+    Surface = surface,
+    Format = PixelFormat.B8G8R8A8UNorm
+});
 ```
 
 The graphics pipeline color format must match the swap-chain format.

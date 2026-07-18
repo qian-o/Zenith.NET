@@ -37,7 +37,11 @@ Prefer `GpuOnly` unless CPU access is part of the buffer's regular use.
 `Buffer.Upload` copies data into a buffer and completes before returning:
 
 ```csharp
-buffer.Upload(0, new() { Pointer = data, SizeInBytes = sizeof(Element) * count });
+buffer.Upload(0, new()
+{
+    Pointer = data,
+    SizeInBytes = sizeof(Element) * count
+});
 ```
 
 `Buffer.Download` follows the same pattern and writes into caller-provided memory before returning.

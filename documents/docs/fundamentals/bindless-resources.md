@@ -49,7 +49,11 @@ BufferDesc desc = new()
 };
 
 Buffer buffer = context.CreateBuffer(desc);
-buffer.Upload(0, new() { Pointer = &constants, SizeInBytes = sizeof(Constants) });
+buffer.Upload(0, new()
+{
+    Pointer = &constants,
+    SizeInBytes = sizeof(Constants)
+});
 ```
 
 Verify field offsets against the Slang layout, especially when a structure contains vectors, matrices, or nested records.
