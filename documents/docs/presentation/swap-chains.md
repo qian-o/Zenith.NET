@@ -20,27 +20,26 @@ The graphics pipeline color format must match the swap-chain format.
 
 ## Render and Present
 
-Borrow the current drawable and a graphics command buffer for each frame, record the frame, and submit it before presentation:
+Borrow a graphics command buffer for each frame, record the current drawable, and wait for the submission to complete before presentation:
 
 ```csharp
 CommandBuffer commandBuffer = context.GraphicsQueue.CommandBuffer();
-Texture texture = swapChain.Drawable;
 
-commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-commandBuffer.BeginRenderPass([ColorAttachment.Clear(texture, default)], null);
+commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+commandBuffer.BeginRenderPass([ColorAttachment.Clear(swapChain.Drawable, default)], null);
 
 commandBuffer.SetPipeline(pipeline);
 commandBuffer.SetVertexBuffer(buffer, 0, 0);
 commandBuffer.Draw(vertexCount, 1, 0, 0);
 
 commandBuffer.EndRenderPass();
-commandBuffer.Transition(texture, default, TextureLayout.ColorAttachment, TextureLayout.Present);
+commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
 
-commandBuffer.Submit();
+commandBuffer.Submit().Wait();
 swapChain.Present();
 ```
 
-`Present()` performs the required graphics-queue synchronization. Do not dispose or retain the command buffer or drawable; borrow both again for the next frame.
+Wait for the graphics submission before calling `Present()`. Do not dispose or retain the command buffer or drawable; borrow both again for the next frame.
 
 ## Resize
 

@@ -19,7 +19,7 @@ BufferDesc desc = new()
     Residency = MemoryResidency.GpuOnly
 };
 
-SizeAndAlignment requirements = context.GetSizeAndAlignment(desc);
+SizeAndAlignment sizeAndAlignment = context.GetSizeAndAlignment(desc);
 Buffer buffer = heap.CreateBuffer(0, desc);
 ```
 
@@ -45,7 +45,7 @@ TextureDesc desc = new()
     Usages = TextureUsages.Sampled | TextureUsages.TransferDst
 };
 
-SizeAndAlignment requirements = context.GetSizeAndAlignment(desc);
+SizeAndAlignment sizeAndAlignment = context.GetSizeAndAlignment(desc);
 Texture texture = heap.CreateTexture(0, desc);
 ```
 

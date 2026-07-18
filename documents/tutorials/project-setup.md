@@ -61,7 +61,7 @@ Every renderer implements `IRenderer`:
 - `Resize` recreates size-dependent resources.
 - `Dispose` releases resources owned by the renderer.
 
-`Render` borrows its `CommandBuffer` and drawable from the host. It records the drawable in `ColorAttachment` and returns without submitting, waiting, disposing, or retaining either object. The host completes and presents the frame.
+`Render` borrows its `CommandBuffer` and drawable from the host. It records the drawable in `ColorAttachment` and returns without submitting, waiting, disposing, or retaining either object. The host submits the command buffer, waits for completion, and presents the frame.
 
 Each renderer owns its workload resources and responds to drawable-size changes through `Resize`. The host owns the window, context, swap chain, and frame lifecycle.
 
