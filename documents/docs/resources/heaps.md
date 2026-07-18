@@ -1,4 +1,4 @@
-# Heaps
+﻿# Heaps
 
 A `Heap` is an explicit memory allocation. Create placed buffers and textures from it with `Heap.CreateBuffer` and `Heap.CreateTexture`, supplying each resource's byte offset. Use a heap when several compatible resources should share an allocation or when the application needs to control resource placement.
 
