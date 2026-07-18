@@ -1,6 +1,6 @@
 ﻿# Project Setup
 
-Prepare the shared desktop host used by every tutorial. The host creates the window, graphics context, swap chain, and frame command buffer. Each tutorial supplies one renderer.
+Prepare the shared desktop host used by every tutorial. The host creates the window, graphics context, and swap chain, then borrows a graphics command buffer for each frame. Each tutorial supplies one renderer.
 
 ## Development Environment
 
@@ -19,7 +19,7 @@ git clone https://github.com/qian-o/ZenithTutorials.git
 cd ZenithTutorials
 ```
 
-The project references the three graphics API packages and the ImageSharp extension from the adjacent repository. `Silk.NET.Windowing` provides the desktop window.
+The project references the three backend projects and the ImageSharp extension project from the adjacent repository. `Silk.NET.Windowing` provides the desktop window.
 
 ## Project Structure
 

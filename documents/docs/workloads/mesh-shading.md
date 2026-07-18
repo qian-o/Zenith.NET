@@ -4,50 +4,26 @@ Mesh shading is an optional graphics path that uses mesh shader workgroups inste
 
 ## Check Support
 
-Check the capability before creating a mesh shading pipeline:
-
-```csharp
-if (!context.Capabilities.MeshShadingSupported)
-{
-    return;
-}
-```
+Check `context.Capabilities.MeshShadingSupported` before creating a mesh shading pipeline.
 
 ## Create the Pipeline
 
-Compile the mesh and fragment entry points. A task shader is optional:
+Compile the mesh and fragment entry points for the active context. Compile a task entry point only when the workload uses a task stage.
+
+Create a pipeline from a description whose attachment formats match the render pass:
 
 ```csharp
-string shaderPath = "Assets/Shaders/MeshShading.slang";
-ShaderDesc meshDesc = ZenithCompiler.CompileFromFile(context.GraphicsApi, shaderPath, "MSMain");
-ShaderDesc fragmentDesc = ZenithCompiler.CompileFromFile(context.GraphicsApi, shaderPath, "FSMain");
-
-using Shader meshShader = context.CreateShader(meshDesc);
-using Shader fragmentShader = context.CreateShader(fragmentDesc);
-```
-
-Create a pipeline whose attachment formats match the render pass:
-
-```csharp
-using MeshShadingPipeline pipeline = context.CreateMeshShadingPipeline(new()
+MeshShadingPipelineDesc desc = new()
 {
     TaskShader = null,
     MeshShader = meshShader,
     FragmentShader = fragmentShader,
     PrimitiveTopology = PrimitiveTopology.TriangleList,
-    AttachmentFormats = new()
-    {
-        ColorFormats = [PixelFormat.B8G8R8A8SRgb],
-        DepthStencilFormat = PixelFormat.D32Float,
-        SampleCount = SampleCount.Count1
-    },
-    RenderState = new()
-    {
-        Rasterizer = RasterizerState.CullNone(),
-        DepthStencil = DepthStencilState.DepthReadWrite(),
-        Blend = BlendState.Opaque()
-    }
-});
+    AttachmentFormats = attachmentFormats,
+    RenderState = renderState
+};
+
+MeshShadingPipeline pipeline = context.CreateMeshShadingPipeline(desc);
 ```
 
 Set `TaskShader` to a compiled task entry point when the workload uses a task stage.
@@ -57,14 +33,10 @@ Set `TaskShader` to a compiled task entry point when the workload uses a task st
 Mesh dispatch runs inside a render pass:
 
 ```csharp
-commandBuffer.Transition(color, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-commandBuffer.Transition(depthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
-
-commandBuffer.BeginRenderPass([ColorAttachment.Clear(color, clearColor)],
-                              DepthStencilAttachment.Clear(depthStencil, 1.0f, 0));
+commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+commandBuffer.BeginRenderPass([ColorAttachment.Clear(texture, default)], null);
 
 commandBuffer.SetPipeline(pipeline);
-commandBuffer.SetConstantBuffer(constantBuffer, 0);
 commandBuffer.DispatchMesh(groupCountX, groupCountY, groupCountZ);
 
 commandBuffer.EndRenderPass();
@@ -74,11 +46,7 @@ The dispatch counts select mesh shader workgroups. The shader determines how man
 
 ## Dispatch Indirectly
 
-`DispatchMeshIndirect` reads one or more `IndirectDispatchMeshArgs` records:
-
-```csharp
-commandBuffer.DispatchMeshIndirect(indirectBuffer, offsetInBytes, dispatchCount);
-```
+`DispatchMeshIndirect` reads one or more `IndirectDispatchMeshArgs` records.
 
 Create the argument buffer with `BufferUsages.Indirect`. If earlier GPU work writes the arguments, also add the matching storage usage and record a barrier before dispatch.
 

@@ -14,7 +14,7 @@ Create two bottom-level acceleration structures (BLAS):
 - The floor BLAS contains two indexed triangles.
 - The sphere BLAS contains three axis-aligned bounding boxes.
 
-Create one top-level acceleration structure (TLAS) with an instance of each BLAS. Record all three builds on the compute queue and wait before tracing.
+Create one top-level acceleration structure (TLAS) with an instance of each BLAS. Record all three builds on the compute queue, submit them together, and wait for that initialization work to complete before rendering begins.
 
 The sphere records remain in a structured buffer. Their bounding boxes identify candidates, while the shader performs the exact sphere intersection and commits accepted procedural hits.
 

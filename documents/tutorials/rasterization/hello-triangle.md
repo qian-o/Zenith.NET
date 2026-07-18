@@ -6,7 +6,7 @@ Draw one triangle with interpolated vertex colors. This tutorial adds a vertex b
 
 ## Define the Vertices
 
-Create three vertices. Each vertex stores a `Vector3` position followed by a `Vector4` color. Upload the array to a buffer created with `BufferDesc.Vertex`.
+Create three vertices. Each vertex stores a `Vector3` position followed by a `Vector4` color. Upload the array to a GPU-only buffer with `Vertex | TransferDst` usage.
 
 Build an `InputLayout` with matching `Position` and `Color` elements. The layout calculates a 28-byte stride from those formats.
 

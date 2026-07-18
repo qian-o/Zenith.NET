@@ -13,20 +13,16 @@ Synchronization makes data produced by earlier GPU work available to later work.
 Use `Barrier` when a later command consumes memory written by an earlier command and the resource layout does not change:
 
 ```csharp
-commandBuffer.SetPipeline(producerPipeline);
-commandBuffer.Dispatch(producerGroupCount, 1, 1);
+commandBuffer.SetPipeline(pipeline);
+commandBuffer.Dispatch(groupCount, 1, 1);
 
 commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
-commandBuffer.SetPipeline(consumerPipeline);
-commandBuffer.Dispatch(consumerGroupCount, 1, 1);
+commandBuffer.SetPipeline(nextPipeline);
+commandBuffer.Dispatch(nextGroupCount, 1, 1);
 ```
 
-Common cases include storage-buffer producer/consumer chains and compute-generated indirect arguments. Select the stages that perform the producing and consuming work. Combine flags when several stages consume the result:
-
-```csharp
-commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.VertexShading | BarrierStages.FragmentShading);
-```
+Common cases include storage-buffer producer/consumer chains and compute-generated indirect arguments. Select the stages that perform the producing and consuming work, and combine flags when several stages consume the result.
 
 Use `BarrierStages.All` only when a narrower dependency cannot describe the work.
 
@@ -35,33 +31,25 @@ Use `BarrierStages.All` only when a narrower dependency cannot describe the work
 Supply the current and next layout whenever a texture changes how it is used:
 
 ```csharp
-commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.Storage);
+commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.Storage);
 
-commandBuffer.SetPipeline(computePipeline);
-commandBuffer.SetConstantBuffer(constantBuffer, 0);
+commandBuffer.SetPipeline(pipeline);
+commandBuffer.SetConstantBuffer(buffer, 0);
 commandBuffer.Dispatch(groupCountX, groupCountY, 1);
 
-commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.Sampled);
+commandBuffer.Transition(texture, default, TextureLayout.Storage, TextureLayout.Sampled);
 ```
 
-`default` selects mip level zero and array layer zero. Select another subresource explicitly when needed:
-
-```csharp
-TextureSubresource subresource = new()
-{
-    MipLevel = mipLevel,
-    ArrayLayer = arrayLayer
-};
-
-commandBuffer.Transition(texture, subresource, currentLayout, TextureLayout.CopyDst);
-```
+`default` selects mip level zero and array layer zero. Pass a `TextureSubresource` with the required `MipLevel` and `ArrayLayer` when another subresource is needed.
 
 Use `Undefined` as the source only when previous contents can be discarded. Copy, resolve, and command-buffer upload or download operations do not insert transitions. The `Texture.Upload` and `Texture.Download` convenience methods perform their declared current-to-final layout transitions.
 
-The principal layouts are:
+The principal layouts are listed in declaration order:
 
 | Layout | Access role |
 |--------|-------------|
+| `Undefined` | Previous contents are discarded |
+| `Common` | General access and shared-texture presentation paths |
 | `Sampled` | Sampled texture reads |
 | `Storage` | Storage texture reads and writes |
 | `ColorAttachment` | Color attachment access |
@@ -70,23 +58,22 @@ The principal layouts are:
 | `CopySrc` / `CopyDst` | Copy source or destination |
 | `ResolveSrc` / `ResolveDst` | Resolve source or destination |
 | `Present` | Presentation |
-| `Common` | General access and shared-texture presentation paths |
 
 ## Order Work Across Queues
 
 Pass a producer's `TimelineValue` to the dependent submission:
 
 ```csharp
-CommandBuffer transferCommands = context.TransferQueue.CommandBuffer();
-transferCommands.Upload(buffer, 0, data);
-TimelineValue uploadCompletion = transferCommands.Submit();
+CommandBuffer commandBuffer = context.TransferQueue.CommandBuffer();
+commandBuffer.Upload(buffer, 0, data);
+TimelineValue timelineValue = commandBuffer.Submit();
 
-CommandBuffer computeCommands = context.ComputeQueue.CommandBuffer();
-computeCommands.SetPipeline(computePipeline);
-computeCommands.SetConstantBuffer(constantBuffer, 0);
-computeCommands.Dispatch(groupCountX, groupCountY, 1);
+commandBuffer = context.ComputeQueue.CommandBuffer();
+commandBuffer.SetPipeline(pipeline);
+commandBuffer.SetConstantBuffer(buffer, 0);
+commandBuffer.Dispatch(groupCountX, groupCountY, 1);
 
-computeCommands.Submit(uploadCompletion).Wait();
+commandBuffer.Submit(timelineValue);
 ```
 
-Passing a producer `TimelineValue` to `Submit` orders the consumer submission after that value. Call `Wait()` when CPU code must observe completion.
+Passing a producer `TimelineValue` to `Submit` orders the consumer submission after that value without blocking the CPU. Call `Wait()` only when CPU code must observe GPU results.

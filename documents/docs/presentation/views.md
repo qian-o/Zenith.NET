@@ -19,16 +19,11 @@ Add the package for the framework used by the application.
 Assign a `GraphicsContext`, then subscribe to updates and rendering:
 
 ```csharp
-using Zenith.NET;
-using Zenith.NET.Views;
+view.GraphicsContext = context;
 
-zenithView.GraphicsContext = context;
-
-zenithView.UpdateRequested += (_, args) => simulation.Update(args.DeltaSeconds);
-
-zenithView.RenderRequested += (_, args) =>
+view.RenderRequested += (_, args) =>
 {
-    args.CommandBuffer.BeginRenderPass([ColorAttachment.Clear(args.Drawable, clearColor)], null);
+    args.CommandBuffer.BeginRenderPass([ColorAttachment.Clear(args.Drawable, default)], null);
 
     args.CommandBuffer.SetPipeline(pipeline);
     args.CommandBuffer.Draw(vertexCount, 1, 0, 0);

@@ -1,54 +1,41 @@
 ﻿# Commands
 
-GPU work is recorded in a `CommandBuffer` and submitted to its `CommandQueue`. Recording preserves command order, but execution begins only after submission.
+GPU work is recorded in a `CommandBuffer` borrowed from its `CommandQueue`. Recording preserves command order, but execution begins only after submission.
 
 ## Record and Submit Work
 
-Request a command buffer from the queue that should execute the work:
+Borrow a command buffer from the queue that should execute the work:
 
 ```csharp
 CommandBuffer commandBuffer = context.ComputeQueue.CommandBuffer();
 
-commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.Storage);
+commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.Storage);
 
-commandBuffer.SetPipeline(computePipeline);
-commandBuffer.SetConstantBuffer(constantBuffer, 0);
+commandBuffer.SetPipeline(pipeline);
+commandBuffer.SetConstantBuffer(buffer, 0);
 commandBuffer.Dispatch(groupCountX, groupCountY, 1);
 
-commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.Sampled);
+commandBuffer.Transition(texture, default, TextureLayout.Storage, TextureLayout.Sampled);
 
-commandBuffer.Submit().Wait();
+commandBuffer.Submit();
 ```
 
-A command buffer is ready for recording when returned by `CommandBuffer()`. Set the matching pipeline before binding pipeline state or issuing draw and dispatch commands, then submit the command buffer once.
-
-Submit each command buffer once. Do not dispose it, retain it for later recording, or record commands after submission.
+A command buffer is queue-owned and valid only for the current recording. Set the matching pipeline before binding state or issuing work, submit it immediately, and never store, reuse, or dispose it.
 
 ## Track Completion
 
-`Submit()` returns a `TimelineValue` for that submission:
-
-```csharp
-TimelineValue completion = commandBuffer.Submit();
-
-if (!completion.IsCompleted)
-{
-    completion.Wait();
-}
-```
-
-Use `IsCompleted` for a non-blocking status check. Call `Wait()` only when CPU code must observe completion. To order work between queues without blocking the CPU, pass the producer value to the consumer submission. See [Synchronization](synchronization.md).
+`Submit()` returns a `TimelineValue`. Use `IsCompleted` only for a non-blocking status query. Call `Wait()` when CPU code must observe GPU results, including command-buffer downloads. To order queues without blocking the CPU, pass the producer value to the consumer submission. See [Synchronization](synchronization.md).
 
 ## Record a Render Pass
 
 Transition attachments before beginning a render pass:
 
 ```csharp
-commandBuffer.Transition(color, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-commandBuffer.BeginRenderPass([ColorAttachment.Clear(color, new(0.05f, 0.05f, 0.08f, 1.0f))], null);
+commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+commandBuffer.BeginRenderPass([ColorAttachment.Clear(texture, default)], null);
 
-commandBuffer.SetPipeline(graphicsPipeline);
-commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
+commandBuffer.SetPipeline(pipeline);
+commandBuffer.SetVertexBuffer(buffer, 0, 0);
 commandBuffer.Draw(vertexCount, 1, 0, 0);
 
 commandBuffer.EndRenderPass();
@@ -66,12 +53,6 @@ For simple one-off transfers, `Buffer.Upload`, `Buffer.Download`, `Texture.Uploa
 
 ## Label GPU Work
 
-Use debug events and markers to identify a group of commands:
-
-```csharp
-commandBuffer.BeginDebugEvent("Post processing");
-commandBuffer.Dispatch(groupCountX, groupCountY, 1);
-commandBuffer.EndDebugEvent();
-```
+Use `BeginDebugEvent`, `EndDebugEvent`, and `InsertDebugMarker` to identify recorded GPU work in diagnostics.
 
 Query and acceleration-structure commands follow the same record-then-submit model. See [Ray Tracing](../workloads/ray-tracing.md) for acceleration-structure builds and the [API Reference](../../api/index.md) for query operations.

@@ -15,29 +15,15 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 }
 ```
 
-Compile the entry point and create the pipeline:
+Compile the entry point, then create the pipeline:
 
 ```csharp
-ShaderDesc computeDesc = ZenithCompiler.CompileFromFile(context.GraphicsApi,
-                                                        "Assets/Shaders/ImageProcessing.slang",
-                                                        "CSMain");
-
-using Shader computeShader = context.CreateShader(computeDesc);
-
-using ComputePipeline pipeline = context.CreateComputePipeline(new() { ComputeShader = computeShader });
+ComputePipeline pipeline = context.CreateComputePipeline(new() { ComputeShader = shader });
 ```
 
 ## Dispatch Work
 
-Calculate group counts from the workload dimensions and the shader's `[numthreads]` values:
-
-```csharp
-const uint groupSizeX = 16;
-const uint groupSizeY = 16;
-
-uint groupCountX = (width + groupSizeX - 1) / groupSizeX;
-uint groupCountY = (height + groupSizeY - 1) / groupSizeY;
-```
+Calculate group counts from the workload dimensions and the shader's `[numthreads]` values, rounding each dimension up to a complete group.
 
 Bind the pipeline and constants, then dispatch:
 
@@ -45,7 +31,7 @@ Bind the pipeline and constants, then dispatch:
 CommandBuffer commandBuffer = context.ComputeQueue.CommandBuffer();
 
 commandBuffer.SetPipeline(pipeline);
-commandBuffer.SetConstantBuffer(constantBuffer, 0);
+commandBuffer.SetConstantBuffer(buffer, 0);
 commandBuffer.Dispatch(groupCountX, groupCountY, 1);
 
 commandBuffer.Submit();
@@ -55,11 +41,7 @@ Guard out-of-range threads in the shader when group counts round up the workload
 
 ## Dispatch Indirectly
 
-`DispatchIndirect` reads `GroupCountX`, `GroupCountY`, and `GroupCountZ` from an `IndirectDispatchArgs` record:
-
-```csharp
-commandBuffer.DispatchIndirect(indirectBuffer, offsetInBytes);
-```
+`DispatchIndirect` reads `GroupCountX`, `GroupCountY`, and `GroupCountZ` from an `IndirectDispatchArgs` record.
 
 Create the argument buffer with `BufferUsages.Indirect`. If earlier GPU work writes the arguments, also add the appropriate storage usage and record a barrier before dispatch.
 

@@ -7,8 +7,8 @@ The API reference documents the public Zenith.NET types, members, parameters, an
 | Type | Purpose |
 |------|---------|
 | `GraphicsContext` | Creates resources and exposes capabilities and command queues |
-| `CommandQueue` | Provides command buffers for one class of GPU work |
-| `CommandBuffer` | Records rendering, compute, transfer, and synchronization commands |
+| `CommandQueue` | Owns and lends command buffers for one class of GPU work |
+| `CommandBuffer` | Queue-owned recorder borrowed for one immediate submission |
 | `TimelineValue` | Represents a queue-submission completion point that can be queried or waited on |
 | `BufferDesc` / `TextureDesc` | Describe resources before creation |
 | `GraphicsPipelineDesc` / `ComputePipelineDesc` | Describe shader pipelines |

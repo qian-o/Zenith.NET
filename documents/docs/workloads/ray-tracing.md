@@ -4,109 +4,51 @@ Zenith.NET Ray Tracing uses bottom-level and top-level acceleration structures w
 
 ## Check Support
 
-Check the capability before creating Ray Tracing resources:
-
-```csharp
-if (!context.Capabilities.RayTracingSupported)
-{
-    return;
-}
-```
+Check `context.Capabilities.RayTracingSupported` before creating Ray Tracing resources.
 
 ## Build a BLAS
 
-A bottom-level acceleration structure (BLAS) contains triangle or axis-aligned bounding-box geometry. Record its build in a command buffer:
+A bottom-level acceleration structure (BLAS) contains triangle or axis-aligned bounding-box geometry. Set `Geometries` and `BuildFlags` in its description, then record the build:
 
 ```csharp
-BottomLevelAccelerationStructure triangleBlas = commandBuffer.BuildAccelerationStructure(new()
+BottomLevelAccelerationStructureDesc desc = new()
 {
-    Geometries =
-    [
-        RayTracingGeometry.Triangles(new()
-        {
-            VertexBuffer = vertexBuffer,
-            VertexFormat = PixelFormat.R32G32B32Float,
-            VertexCount = vertexCount,
-            VertexStrideInBytes = vertexStrideInBytes,
-            IndexBuffer = indexBuffer,
-            IndexFormat = IndexFormat.UInt32,
-            IndexCount = indexCount,
-            Transform = Matrix4x4.Identity
-        }, isOpaque: true)
-    ],
+    Geometries = geometries,
     BuildFlags = AccelerationStructureBuildFlags.PreferFastTrace
-});
+};
+
+BottomLevelAccelerationStructure resource = commandBuffer.BuildAccelerationStructure(desc);
 ```
 
-Use `RayTracingGeometry.Aabbs` instead when the geometry is represented by bounding boxes:
-
-```csharp
-BottomLevelAccelerationStructure aabbBlas = commandBuffer.BuildAccelerationStructure(new()
-{
-    Geometries =
-    [
-        RayTracingGeometry.Aabbs(new()
-        {
-            Buffer = aabbBuffer,
-            Count = aabbCount,
-            StrideInBytes = aabbStrideInBytes
-        }, isOpaque: true)
-    ],
-    BuildFlags = AccelerationStructureBuildFlags.PreferFastTrace
-});
-```
+Use `RayTracingGeometry.Aabbs` instead when the geometry is represented by bounding boxes.
 
 ## Build a TLAS
 
-The top-level acceleration structure (TLAS) contains instances of existing BLAS objects:
+The top-level acceleration structure (TLAS) contains instances of existing BLAS objects. Set `Instances` and `BuildFlags` in its description, then record the build:
 
 ```csharp
-TopLevelAccelerationStructure tlas = commandBuffer.BuildAccelerationStructure(new()
+TopLevelAccelerationStructureDesc desc = new()
 {
-    Instances =
-    [
-        new()
-        {
-            AccelerationStructure = triangleBlas,
-            InstanceId = 0,
-            VisibilityMask = 0xFF,
-            Transform = Matrix4x4.Identity,
-            Flags = RayTracingInstanceFlags.None
-        }
-    ],
+    Instances = instances,
     BuildFlags = AccelerationStructureBuildFlags.PreferFastTrace
-});
+};
+
+TopLevelAccelerationStructure resource = commandBuffer.BuildAccelerationStructure(desc);
 ```
 
-Submit and complete the build before a later submission traces against the TLAS:
-
-```csharp
-commandBuffer.Submit().Wait();
-```
+Submit the build before tracing against the TLAS. Work submitted to the same queue remains ordered; when tracing on another queue, pass the build submission's `TimelineValue` to the tracing submission.
 
 Keep every referenced BLAS alive while the TLAS is in use.
 
 ## Update an Acceleration Structure
 
-Set `AllowUpdate` on the initial build and every later in-place update:
-
-```csharp
-commandBuffer.UpdateAccelerationStructure(tlas, new()
-{
-    Instances = updatedInstances,
-    BuildFlags = AccelerationStructureBuildFlags.AllowUpdate | AccelerationStructureBuildFlags.PreferFastTrace
-});
-```
+Set `AllowUpdate` on the initial build and every later in-place update, and pass the updated description to `UpdateAccelerationStructure`.
 
 Choose `PreferFastTrace`, `PreferFastBuild`, or `MinimizeMemory` according to how the structure is used.
 
 ## Trace Rays in Slang
 
-Store `tlas.Handle` in constant data and declare it as a typed descriptor:
-
-```slang
-DescriptorHandle<RaytracingAccelerationStructure> Scene;
-```
+Store the TLAS handle in constant data and declare the matching field as `DescriptorHandle<RaytracingAccelerationStructure>` in Slang.
 
 For triangle geometry, initialize a `RayQuery`, trace it, and inspect the committed result:
 
@@ -118,20 +60,13 @@ ray.TMin = 0.001;
 ray.TMax = 100000.0;
 
 RayQuery<RAY_FLAG_NONE> query;
-query.TraceRayInline(constants.Scene, RAY_FLAG_NONE, 0xFF, ray);
+query.TraceRayInline(*constants.Resource, RAY_FLAG_NONE, 0xFF, ray);
 
 while (query.Proceed())
 {
 }
 
-if (query.CommittedStatus() == COMMITTED_NOTHING)
-{
-    // Miss
-}
-else
-{
-    uint primitiveIndex = query.CommittedPrimitiveIndex();
-}
+bool hit = query.CommittedStatus() != COMMITTED_NOTHING;
 ```
 
 For procedural AABB geometry, handle each `CANDIDATE_PROCEDURAL_PRIMITIVE` during `Proceed()` and call `CommitProceduralPrimitiveHit` for an accepted intersection.

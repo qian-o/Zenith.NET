@@ -23,47 +23,33 @@ The resource description must include the usage required by the selected handle.
 Use an unmanaged C# structure whose layout matches the shader structure:
 
 ```csharp
-using System.Numerics;
-using System.Runtime.InteropServices;
-using Buffer = Zenith.NET.Buffer;
-
-[StructLayout(LayoutKind.Explicit, Size = 80)]
-file struct ComputeConstants
+[StructLayout(LayoutKind.Explicit, Size = 8)]
+file struct Constants
 {
     [FieldOffset(0)]
-    public Matrix4x4 Transform;
-
-    [FieldOffset(64)]
-    public ResourceHandle Input;
-
-    [FieldOffset(72)]
-    public ResourceHandle Output;
+    public ResourceHandle Resource;
 }
 ```
 
 Populate the structure with handles from the resources or views used by the command:
 
 ```csharp
-ComputeConstants constants = new()
-{
-    Transform = transform,
-    Input = input.StorageReadOnlyHandle,
-    Output = output.StorageHandle
-};
+Constants constants = new() { Resource = texture.SampledHandle };
 ```
 
 Create a constant buffer and upload the structure:
 
 ```csharp
-uint constantSize = (uint)Marshal.SizeOf<ComputeConstants>();
-
-using Buffer constantBuffer = context.CreateBuffer(BufferDesc.Constant(constantSize));
-
-constantBuffer.Upload(0, new()
+BufferDesc desc = new()
 {
-    Pointer = (nint)(&constants),
-    SizeInBytes = constantSize
-});
+    SizeInBytes = sizeof(Constants),
+    StrideInBytes = 0,
+    Usages = BufferUsages.Constant | BufferUsages.TransferDst,
+    Residency = MemoryResidency.GpuOnly
+};
+
+Buffer buffer = context.CreateBuffer(desc);
+buffer.Upload(0, new() { Pointer = &constants, SizeInBytes = sizeof(Constants) });
 ```
 
 Verify field offsets against the Slang layout, especially when a structure contains vectors, matrices, or nested records.
@@ -73,63 +59,29 @@ Verify field offsets against the Slang layout, especially when a structure conta
 Declare the same fields with typed `DescriptorHandle<T>` values:
 
 ```slang
-struct ComputeConstants
+struct Constants
 {
-    float4x4 Transform;
-
-    DescriptorHandle<StructuredBuffer<float4>> Input;
-
-    DescriptorHandle<RWTexture2D<float4>> Output;
+    DescriptorHandle<Texture2D> Resource;
 };
 
-uniform ComputeConstants constants;
-```
-
-Use the handles as their declared resource types:
-
-```slang
-float4 value = constants.Input[index];
-constants.Output[pixel] = value;
+uniform Constants constants;
 ```
 
 The generic resource type is part of the C#/shader contract. Its access and element layout must match the handle stored by C#.
 
 ## Bind the Constants
 
-Set the pipeline, bind the constant buffer, and issue the command:
+Bind the constant buffer after setting the pipeline:
 
 ```csharp
-commandBuffer.SetPipeline(computePipeline);
-commandBuffer.SetConstantBuffer(constantBuffer, 0);
-commandBuffer.Dispatch(groupCountX, groupCountY, 1);
+commandBuffer.SetConstantBuffer(buffer, 0);
 ```
 
 The offset selects the constant record used by the current pipeline.
 
 ## Use Views
 
-`Buffer` and `Texture` expose handles for the whole resource. Create an explicit view for a buffer subrange or selected texture range:
-
-```csharp
-BufferViewDesc viewDesc = BufferViewDesc.StorageReadOnly(materialBuffer,
-                                                         offsetInBytes,
-                                                         sizeInBytes,
-                                                         (uint)Marshal.SizeOf<Material>());
-
-using BufferView materialView = context.CreateBufferView(viewDesc);
-
-ResourceHandle materials = materialView.StorageReadOnlyHandle;
-```
-
-Texture views select mip levels and array layers:
-
-```csharp
-TextureViewDesc viewDesc = TextureViewDesc.Texture2D(texture, texture.Desc.Format, mipLevel, 1);
-
-using TextureView mipView = context.CreateTextureView(viewDesc);
-
-ResourceHandle sampledMip = mipView.SampledHandle;
-```
+`Buffer` and `Texture` expose handles for the whole resource. Create a `BufferView` when a shader needs a byte subrange with a specific stride, and create a `TextureView` when it needs selected mip levels or array layers. Use `sizeof(T)` for typed buffer sizes and strides.
 
 Views do not own their source resource. Keep both the view and its source alive while submitted work uses the handle.
 

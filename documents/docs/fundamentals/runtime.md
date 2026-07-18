@@ -14,31 +14,13 @@ Add the core package and at least one graphics API package:
 | `Zenith.NET.Metal` | Apple platforms |
 | `Zenith.NET.Vulkan` | Windows, Apple platforms, Android, and Linux |
 
-Each package adds a context factory:
+Each package adds a context factory. For example:
 
 ```csharp
-using Zenith.NET;
-using Zenith.NET.DirectX12;
-using Zenith.NET.Metal;
-using Zenith.NET.Vulkan;
-
-GraphicsContext context;
-
-if (OperatingSystem.IsWindows())
-{
-    context = GraphicsContext.CreateDirectX12(useValidationLayer: true);
-}
-else if (OperatingSystem.IsMacOS())
-{
-    context = GraphicsContext.CreateMetal(useValidationLayer: true);
-}
-else
-{
-    context = GraphicsContext.CreateVulkan(useValidationLayer: true);
-}
+GraphicsContext context = GraphicsContext.CreateVulkan(useValidationLayer: true);
 ```
 
-Reference only the packages your application can select. The selected API is available through `context.GraphicsApi`.
+Use `CreateDirectX12`, `CreateMetal`, or `CreateVulkan` for the selected backend. Reference only the packages your application can select. The selected API is available through `context.GraphicsApi`.
 
 ## Check Capabilities
 
@@ -70,11 +52,7 @@ Every context exposes three command queues:
 | `ComputeQueue` | Compute and acceleration-structure work |
 | `TransferQueue` | Buffer transfers and copy commands |
 
-Request command buffers from the queue that will execute the work:
-
-```csharp
-CommandBuffer commandBuffer = context.GraphicsQueue.CommandBuffer();
-```
+Borrow a command buffer from the queue that will execute the work, such as `context.GraphicsQueue.CommandBuffer()`. Record and submit it immediately; the queue owns and recycles it.
 
 See [Commands](commands.md) for recording and submission.
 
@@ -83,7 +61,7 @@ See [Commands](commands.md) for recording and submission.
 Enable validation during development and subscribe before creating resources:
 
 ```csharp
-using GraphicsContext context = GraphicsContext.CreateVulkan(useValidationLayer: true);
+GraphicsContext context = GraphicsContext.CreateVulkan(useValidationLayer: true);
 
 context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
 ```
@@ -91,25 +69,12 @@ context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Seve
 Set resource names when they help identify objects in diagnostics:
 
 ```csharp
-using Zenith.NET.Buffer vertexBuffer = context.CreateBuffer(BufferDesc.Vertex(sizeInBytes));
-vertexBuffer.Name = "Scene vertices";
+buffer.Name = "Buffer";
 ```
 
 Validation messages have `Error`, `Warning`, or `Info` severity.
 
 ## Dispose Objects
 
-Zenith.NET resources implement `IDisposable`. Wait for submitted work before disposing objects used by that work, then dispose the context last:
-
-```csharp
-submission.Wait();
-
-pipeline.Dispose();
-constantBuffer.Dispose();
-output.Dispose();
-swapChain.Dispose();
-context.Dispose();
-```
-
-Record and submit objects returned by `CommandQueue.CommandBuffer()`, but do not dispose or retain them for later recording.
+Zenith.NET resources implement `IDisposable`. After rendering has stopped, dispose application-owned resources and dispose the context last. Command buffers are queue-owned borrows for one recording and submission; never dispose or retain them.
 

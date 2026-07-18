@@ -6,7 +6,7 @@ Draw a 5 by 5 grid of rotating cubes with one indirect command. This tutorial bu
 
 ## Create the Argument Buffer
 
-Reuse the cube's eight vertices and 36 indices. Create a buffer with `BufferDesc.Indirect` and upload one `IndirectDrawIndexedArgs` record:
+Reuse the cube's eight vertices and 36 indices. Create a GPU-only buffer with `Indirect | TransferDst` usage and upload one `IndirectDrawIndexedArgs` record:
 
 - `IndexCount` is 36.
 - `InstanceCount` is 25.
@@ -22,11 +22,7 @@ Store the camera matrices and `instanceBuffer.StorageReadOnlyHandle` in the cons
 
 ## Draw Indirectly
 
-Keep the depth attachment and pipeline from the cube example. Replace the direct indexed draw with:
-
-```csharp
-commandBuffer.DrawIndexedIndirect(indirectBuffer, 0, 1);
-```
+Keep the depth attachment and pipeline from the cube example. Replace the direct indexed draw with `commandBuffer.DrawIndexedIndirect(indirectBuffer, 0, 1)`.
 
 The final argument selects one indirect record, which draws 25 instances.
 
