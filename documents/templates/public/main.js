@@ -94,6 +94,18 @@ export default {
     start: () => {
         const rootPath = document.querySelector('meta[name="docfx:rel"]')?.content || '';
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const observeUntil = (target, options, initialize, timeout = 5000) => {
+            if (initialize() || !target) return;
+
+            let timeoutId;
+            const observer = new MutationObserver(() => {
+                if (!initialize()) return;
+                observer.disconnect();
+                window.clearTimeout(timeoutId);
+            });
+            observer.observe(target, options);
+            timeoutId = window.setTimeout(() => observer.disconnect(), timeout);
+        };
         document.body.toggleAttribute('data-zenith-api', /\/api(?:\/|$)/i.test(window.location.pathname));
 
         const initializeThemeCycle = () => {
@@ -180,12 +192,7 @@ export default {
                 return true;
             };
 
-            if (enhanceThemeToggle()) return;
-            const observer = new MutationObserver(() => {
-                if (!enhanceThemeToggle()) return;
-                observer.disconnect();
-            });
-            observer.observe(navbar, { childList: true, subtree: true });
+            observeUntil(navbar, { childList: true, subtree: true }, enhanceThemeToggle);
         };
 
         const initializeExpandableSearch = () => {
@@ -530,23 +537,6 @@ export default {
         initializeThemeCycle();
         initializeExpandableSearch();
 
-        const installCopy = document.querySelector('[data-copy-command]');
-        if (installCopy) {
-            setCopyButtonState(installCopy, 'idle');
-            installCopy.addEventListener('click', async () => {
-                await copyWithFeedback(installCopy, installCopy.dataset.copyCommand);
-            });
-        }
-
-        const architectureCopy = document.querySelector('.architecture-code-copy');
-        const architectureCode = document.querySelector('.architecture-code code');
-        if (architectureCopy && architectureCode) {
-            setCopyButtonState(architectureCopy, 'idle');
-            architectureCopy.addEventListener('click', async () => {
-                await copyWithFeedback(architectureCopy, architectureCode.textContent);
-            });
-        }
-
         const languageNames = {
             bash: 'Shell',
             csharp: 'C#',
@@ -719,6 +709,7 @@ export default {
             const slides = [...carousel.querySelectorAll('.render-carousel-slide')];
             const title = carousel.querySelector('[data-carousel-title]');
             const position = carousel.querySelector('[data-carousel-position]');
+            const status = carousel.querySelector('[data-carousel-status]');
             const progress = carousel.querySelector('[data-carousel-progress]');
             const openLink = carousel.querySelector('[data-carousel-open]');
             const previousButton = carousel.querySelector('[data-carousel-prev]');
@@ -777,7 +768,7 @@ export default {
                 }, Math.max(16, autoPlayRemaining));
             };
 
-            const showSlide = index => {
+            const showSlide = (index, announce = false) => {
                 stopAutoPlay();
                 activeIndex = (index + slides.length) % slides.length;
                 prepareSlide(activeIndex);
@@ -787,6 +778,11 @@ export default {
                     const isActive = slideIndex === activeIndex;
                     slide.classList.toggle('is-active', isActive);
                     slide.setAttribute('aria-hidden', String(!isActive));
+                    if (isActive) {
+                        slide.setAttribute('aria-current', 'true');
+                    } else {
+                        slide.removeAttribute('aria-current');
+                    }
                     slide.tabIndex = isActive ? 0 : -1;
                 }
 
@@ -796,6 +792,9 @@ export default {
                 position.textContent = `${activeIndex + 1} / ${slides.length}`;
                 openLink.href = activeSlide.href;
                 openLink.setAttribute('aria-label', `Open ${activeTitle} tutorial`);
+                if (announce && status) {
+                    status.textContent = `${activeTitle}, slide ${activeIndex + 1} of ${slides.length}`;
+                }
 
                 autoPlayRemaining = autoPlayDuration;
                 progress.classList.remove('is-timing');
@@ -804,14 +803,14 @@ export default {
                 scheduleAutoPlay();
             };
 
-            previousButton.addEventListener('click', () => showSlide(activeIndex - 1));
-            nextButton.addEventListener('click', () => showSlide(activeIndex + 1));
+            previousButton.addEventListener('click', () => showSlide(activeIndex - 1, true));
+            nextButton.addEventListener('click', () => showSlide(activeIndex + 1, true));
 
             carousel.addEventListener('keydown', event => {
                 if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
 
                 event.preventDefault();
-                showSlide(activeIndex + (event.key === 'ArrowRight' ? 1 : -1));
+                showSlide(activeIndex + (event.key === 'ArrowRight' ? 1 : -1), true);
             });
             carousel.addEventListener('mouseenter', stopAutoPlay);
             carousel.addEventListener('mouseleave', scheduleAutoPlay);
@@ -828,7 +827,7 @@ export default {
                 const deltaX = touch.clientX - touchStartX;
                 const deltaY = touch.clientY - touchStartY;
                 if (Math.abs(deltaX) >= 44 && Math.abs(deltaX) > Math.abs(deltaY)) {
-                    showSlide(activeIndex + (deltaX < 0 ? 1 : -1));
+                    showSlide(activeIndex + (deltaX < 0 ? 1 : -1), true);
                 } else {
                     scheduleAutoPlay();
                 }
@@ -855,10 +854,7 @@ export default {
                 ? [
                     '.section-heading',
                     '.feature-card',
-                    '.architecture-code',
                     '.architecture-copy',
-                    '.install-heading',
-                    '.install-command',
                     '.resources-heading',
                     '.resource-card',
                     '.landing-footer-grid > *'
@@ -882,7 +878,7 @@ export default {
                 target.classList.add('zenith-reveal');
                 target.style.setProperty('--zenith-reveal-delay', `${Math.min(index % 4, 3) * 45}ms`);
                 if (document.body.matches('[data-layout="landing"]')) {
-                    const direction = target.matches('.architecture-code, .architecture-grid > .architecture-copy:first-child')
+                    const direction = target.matches('.architecture-grid > .architecture-copy:first-child')
                         ? 'left'
                         : target.matches('.architecture-grid > .architecture-copy:last-child')
                             ? 'right'
@@ -1060,24 +1056,25 @@ export default {
             }
         }
 
-        if (!initializeAffix()) {
-            const affixHost = document.querySelector('main > .affix');
-            if (affixHost) {
-                const affixObserver = new MutationObserver(() => {
-                    if (initializeAffix()) affixObserver.disconnect();
-                });
-                affixObserver.observe(affixHost, { childList: true, subtree: true });
-            }
-        }
+        observeUntil(
+            document.querySelector('main > .affix'),
+            { childList: true, subtree: true },
+            initializeAffix
+        );
 
         initializeRevealMotion();
 
         // Search results: navigate in same tab with back button support
-        document.addEventListener('click', (e) => {
-            const link = e.target.closest('#search-results .sr-item a');
+        document.addEventListener('click', event => {
+            const link = event.target instanceof Element
+                ? event.target.closest('#search-results .sr-item a')
+                : null;
             if (!link) return;
+            if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey ||
+                event.shiftKey || event.altKey || link.hasAttribute('download') ||
+                (link.target && link.target !== '_self')) return;
 
-            e.preventDefault();
+            event.preventDefault();
             const query = document.getElementById('search-query')?.value || '';
             history.replaceState({ search: true, query, scrollY: window.scrollY }, '');
             window.location.href = link.href;
@@ -1124,18 +1121,11 @@ export default {
             const input = document.getElementById('search-query');
             if (!input) return;
 
-            if (!input.disabled) {
-                restoreSearchState(history.state);
-                return;
-            }
-
-            const observer = new MutationObserver(() => {
+            observeUntil(input, { attributes: true, attributeFilter: ['disabled'] }, () => {
                 if (input.disabled) return;
-
-                observer.disconnect();
                 restoreSearchState(history.state);
+                return true;
             });
-            observer.observe(input, { attributes: true, attributeFilter: ['disabled'] });
         };
 
         restoreInitialSearchState();

@@ -1248,9 +1248,7 @@ article pre,
     border-color: rgba(180, 35, 24, 0.3);
 }
 
-.doc-code-copy,
-.architecture-code-copy,
-.install-copy {
+.doc-code-copy {
     display: inline-flex;
     width: var(--zenith-copy-size);
     min-width: var(--zenith-copy-size);
@@ -1270,39 +1268,31 @@ article pre,
     transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, transform 160ms var(--zenith-ease);
 }
 
-    .doc-code-copy:active,
-    .architecture-code-copy:active,
-    .install-copy:active {
+    .doc-code-copy:active {
         transform: scale(0.92);
     }
 
-    .doc-code-copy i,
-    .architecture-code-copy i {
+    .doc-code-copy i {
         font-size: 13px;
     }
 
-    .doc-code-copy:hover,
-    .architecture-code-copy:hover {
+    .doc-code-copy:hover {
         color: var(--zenith-code-accent);
         background: var(--zenith-code-hover);
         border-color: var(--zenith-code-accent-border);
     }
 
-    .doc-code-copy.is-copied,
-    .architecture-code-copy.is-copied {
+    .doc-code-copy.is-copied {
         color: var(--zenith-code-success);
         background: rgba(15, 118, 110, 0.1);
         border-color: rgba(15, 118, 110, 0.28);
     }
 
-        .doc-code-copy.is-copied i,
-        .architecture-code-copy.is-copied i,
-        .install-copy.is-copied i {
+        .doc-code-copy.is-copied i {
             animation: zenith-copy-confirm 320ms var(--zenith-ease) both;
         }
 
-    .doc-code-copy.is-failed,
-    .architecture-code-copy.is-failed {
+    .doc-code-copy.is-failed {
         color: #b42318;
         background: rgba(180, 35, 24, 0.08);
         border-color: rgba(180, 35, 24, 0.24);
@@ -1661,8 +1651,8 @@ article a[data-uid] + h3 {
 }
 
 /* ==========================================================================
-   Side navigation and in-page navigation
-   ========================================================================== */
+    Side navigation and in-page navigation
+    ========================================================================== */
 
 #sidetoggle {
     position: sticky;
@@ -1889,7 +1879,6 @@ main > .affix > .zenith-overlay-scrollbar {
                 border-radius: 2px;
                 transform: translateY(-50%);
             }
-        }
 
     .toc li.expander > a {
         color: var(--zenith-text);
@@ -2743,6 +2732,18 @@ body > footer {
     text-transform: uppercase;
 }
 
+.zenith-carousel-status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 .render-viewport-title > i {
     color: var(--zenith-purple-700);
     font-size: 12px;
@@ -3046,21 +3047,10 @@ body > footer {
     --backend-dot-glow: #d63b45;
 }
 
-article h2 {
-    border-bottom-color: var(--zenith-border);
-}
-
-article li::marker,
-.breadcrumb-item.active,
-.breadcrumb-item a:hover,
 .toc .nav > li > a:hover,
 .toc .nav > li.active > a,
 .toc .nav > li > a.active,
-#affix a:hover,
-#affix a.active,
-.edit-link:hover,
-body > footer a,
-#search-results .item-title {
+.edit-link:hover {
     color: var(--zenith-purple-700);
 }
 
@@ -3389,7 +3379,6 @@ body[data-layout="landing"] > footer {
 }
 
 .landing-page .section-heading,
-.landing-page .install-heading,
 .landing-page .resources-heading {
     max-width: 760px;
     margin: 0 auto 56px;
@@ -3409,7 +3398,6 @@ body[data-layout="landing"] > footer {
 
 .landing-page .section-heading h2,
 .landing-page .architecture-copy h2,
-.landing-page .install-heading h2,
 .landing-page .resources-heading h2 {
     margin: 0;
     padding: 0;
@@ -3422,8 +3410,7 @@ body[data-layout="landing"] > footer {
 }
 
     .landing-page .section-heading h2 span,
-    .landing-page .architecture-copy h2 span,
-    .landing-page .install-heading h2 span {
+    .landing-page .architecture-copy h2 span {
         padding: 6px 5px 7px;
         color: #512bd4;
         background: linear-gradient(100deg, #512bd4, #c416b9);
@@ -3432,8 +3419,7 @@ body[data-layout="landing"] > footer {
         -webkit-text-fill-color: transparent;
     }
 
-    .landing-page .section-heading h2 > span,
-    .landing-page .install-heading h2 > span {
+    .landing-page .section-heading h2 > span {
         display: block;
         width: fit-content;
         margin-inline: auto;
@@ -3444,8 +3430,7 @@ body[data-layout="landing"] > footer {
         margin-left: -5px;
     }
 
-    .landing-page .section-heading h2 > .anchorjs-link,
-    .landing-page .install-heading h2 > .anchorjs-link {
+    .landing-page .section-heading h2 > .anchorjs-link {
         display: none;
     }
 
@@ -3453,8 +3438,7 @@ body[data-layout="landing"] > footer {
     content: none;
 }
 
-.landing-page .section-heading p,
-.landing-page .install-heading p {
+.landing-page .section-heading p {
     max-width: 680px;
     margin: 18px auto 0;
     color: #6b7180;
@@ -3464,13 +3448,11 @@ body[data-layout="landing"] > footer {
 
 [data-bs-theme="dark"] .landing-page .section-heading h2,
 [data-bs-theme="dark"] .landing-page .architecture-copy h2,
-[data-bs-theme="dark"] .landing-page .install-heading h2,
 [data-bs-theme="dark"] .landing-page .resources-heading h2 {
     color: #f4f1fa;
 }
 
-[data-bs-theme="dark"] .landing-page .section-heading p,
-[data-bs-theme="dark"] .landing-page .install-heading p {
+[data-bs-theme="dark"] .landing-page .section-heading p {
     color: #aca4b7;
 }
 
@@ -3511,24 +3493,29 @@ body[data-layout="landing"] > footer {
     align-items: center;
     justify-content: center;
     margin-bottom: 22px;
-    color: #512bd4;
-    background: #f1edff !important;
     border: 0;
     border-radius: var(--zenith-panel-radius);
     font-size: 18px;
 }
 
-.landing-page .feature-card:nth-child(2) .feature-icon,
-.landing-page .feature-card:nth-child(4) .feature-icon,
-.landing-page .feature-card:nth-child(5) .feature-icon {
+.landing-page .feature-icon-violet {
+    color: #512bd4;
+    background: #f1edff !important;
+}
+
+.landing-page .feature-icon-pink {
     color: #d31491;
     background: #fff0f8 !important;
 }
 
-.landing-page .feature-card:nth-child(3) .feature-icon,
-.landing-page .feature-card:nth-child(6) .feature-icon {
+.landing-page .feature-icon-blue {
     color: #1671e9;
     background: #edf5ff !important;
+}
+
+.landing-page .feature-icon-cyan {
+    color: #087f9c;
+    background: #e9faff !important;
 }
 
 .landing-page .feature-card h3 {
@@ -3578,86 +3565,10 @@ body[data-layout="landing"] > footer {
     gap: clamp(48px, 6vw, 88px);
 }
 
-.architecture-code {
-    overflow: hidden;
-    color: var(--zenith-code-text);
-    background: var(--zenith-code-surface);
-    border: 1px solid var(--zenith-code-border);
-    border-radius: var(--zenith-panel-radius);
-    box-shadow: none;
-}
-
-.architecture-code-bar {
-    display: flex;
-    align-items: center;
-    height: var(--zenith-toolbar-height);
-    padding: 0 4px 0 12px;
-    color: var(--zenith-code-muted);
-    background: var(--zenith-code-toolbar);
-    border-bottom: 1px solid var(--zenith-code-border);
-    font-family: "Cascadia Code", "Cascadia Mono", Consolas, monospace;
-    font-size: 10px;
-}
-
-.architecture-code-title {
-    font-weight: 700;
-}
-
-.architecture-code pre > .code-action {
-    display: none;
-}
-
-.landing-page .architecture-code pre {
-    min-height: 430px;
-    margin: 0;
-    padding: 16px 18px;
-    color: var(--zenith-code-text);
-    background: transparent !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none;
-    font-family: "Cascadia Code", "Cascadia Mono", Consolas, monospace;
-    font-size: 12px;
-    line-height: 1.72;
-    white-space: pre;
-}
-
 @media (min-width: 768px) {
     .render-hero-inner {
         align-items: center;
     }
-}
-
-.landing-page .architecture-code code {
-    padding: 0;
-    color: inherit;
-    background: transparent;
-}
-
-.landing-page .architecture-code .code-keyword {
-    color: var(--zenith-syntax-keyword);
-}
-
-.landing-page .architecture-code .code-namespace,
-.landing-page .architecture-code .code-type {
-    color: var(--zenith-syntax-type);
-}
-
-.landing-page .architecture-code .code-method {
-    color: var(--zenith-syntax-function);
-    font-weight: 600;
-}
-
-.landing-page .architecture-code .code-value {
-    color: var(--zenith-syntax-string);
-}
-
-.landing-page .architecture-code .code-comment {
-    color: var(--zenith-syntax-comment);
-}
-
-.landing-page .architecture-code .code-number {
-    color: var(--zenith-syntax-number);
 }
 
 .architecture-copy .section-kicker {
@@ -3749,101 +3660,6 @@ body[data-layout="landing"] > footer {
 }
 
 [data-bs-theme="dark"] .architecture-points small {
-    color: #9e96aa;
-}
-
-.install-section {
-    padding: 82px 0 86px;
-    background: #ffffff;
-}
-
-.install-inner {
-    max-width: 760px;
-}
-
-.landing-page .install-heading {
-    margin-bottom: 32px;
-}
-
-    .landing-page .install-heading h2 {
-        font-size: 37px;
-    }
-
-.install-command {
-    display: flex;
-    align-items: center;
-    min-height: 58px;
-    padding: 0 16px 0 22px;
-    color: #edf4ff;
-    background: #092a5e;
-    border: 1px solid #173c72;
-    border-radius: var(--zenith-panel-radius);
-    box-shadow: 0 10px 26px rgba(9, 42, 94, 0.12);
-}
-
-    .install-command > code {
-        min-width: 0;
-        flex: 1;
-        padding: 0;
-        overflow-x: auto;
-        color: inherit;
-        background: transparent;
-        font-family: "Cascadia Code", "Cascadia Mono", Consolas, monospace;
-        font-size: 13px;
-        white-space: nowrap;
-    }
-
-        .install-command > code span {
-            color: #ff3cc7;
-        }
-
-        .install-command > code strong {
-            color: #5ce1b7;
-            font-weight: 650;
-        }
-
-.install-copy {
-    margin-left: 10px;
-    color: #b7c7e2;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-    .install-copy:hover {
-        color: #ffffff;
-        background: rgba(255, 255, 255, 0.11);
-        border-color: rgba(255, 255, 255, 0.24);
-    }
-
-    .install-copy.is-copied {
-        color: #70edc5;
-        background: rgba(92, 225, 183, 0.1);
-        border-color: rgba(92, 225, 183, 0.28);
-    }
-
-    .install-copy.is-failed {
-        color: #ff9b8f;
-        background: rgba(255, 113, 102, 0.1);
-        border-color: rgba(255, 113, 102, 0.28);
-    }
-
-.install-note {
-    margin: 14px 0 0;
-    color: #737988;
-    font-size: 12px;
-    text-align: center;
-}
-
-    .install-note a {
-        color: var(--zenith-purple-700);
-        font-weight: 700;
-    }
-
-[data-bs-theme="dark"] .install-section {
-    background: #100d16;
-}
-
-[data-bs-theme="dark"] .install-note {
     color: #9e96aa;
 }
 
@@ -3943,6 +3759,8 @@ body[data-layout="landing"] > footer {
     --landing-canvas: #fbfafc;
     --landing-canvas-rgb: 251 250 252;
     --landing-footer-text: #667187;
+    --landing-footer-heading-primary: #512bd4;
+    --landing-footer-heading-secondary: #d31491;
     --landing-footer-link: #60708a;
     --landing-footer-link-hover: #512bd4;
     --landing-footer-icon: #512bd4;
@@ -3956,6 +3774,8 @@ body[data-layout="landing"] > footer {
     --landing-canvas: #100d16;
     --landing-canvas-rgb: 16 13 22;
     --landing-footer-text: #9f98ab;
+    --landing-footer-heading-primary: #b9a5ff;
+    --landing-footer-heading-secondary: #ff70c0;
     --landing-footer-link: #aaa3b8;
     --landing-footer-link-hover: #d1c4ff;
     --landing-footer-icon: #b9a5ff;
@@ -3971,10 +3791,6 @@ body[data-layout="landing"] > footer {
 
 [data-bs-theme="dark"] .landing-page .architecture-section {
     background-image: linear-gradient(to bottom, var(--landing-canvas) 0%, rgb(var(--landing-canvas-rgb) / 0) 96px, rgb(var(--landing-canvas-rgb) / 0) calc(100% - 96px), var(--landing-canvas) 100%), linear-gradient(120deg, rgba(155, 123, 255, 0.07), rgba(239, 53, 170, 0.045));
-}
-
-.landing-page .install-section {
-    background: var(--landing-canvas);
 }
 
 .landing-page .resources-section {
@@ -4042,13 +3858,13 @@ body[data-layout="landing"] > footer {
     display: block;
     margin: 0 0 10px;
     padding: 0;
-    color: #7847ff;
+    color: var(--landing-footer-heading-primary);
     font-size: 14px;
     font-weight: 800;
 }
 
 .landing-footer-column:last-child .landing-footer-heading {
-    color: #ef35aa;
+    color: var(--landing-footer-heading-secondary);
 }
 
 .landing-footer-column a {
@@ -4103,7 +3919,6 @@ body[data-layout="landing"] > footer {
         gap: 46px;
     }
 
-    .architecture-code,
     .architecture-copy {
         max-width: 760px;
         width: 100%;
@@ -4118,14 +3933,12 @@ body[data-layout="landing"] > footer {
 
 @media (max-width: 767.98px) {
     .landing-page .section-heading,
-    .landing-page .install-heading,
     .landing-page .resources-heading {
         margin-bottom: 38px;
     }
 
         .landing-page .section-heading h2,
         .landing-page .architecture-copy h2,
-        .landing-page .install-heading h2,
         .landing-page .resources-heading h2 {
             font-size: 31px;
         }
@@ -4137,14 +3950,6 @@ body[data-layout="landing"] > footer {
 
     .landing-page .feature-card {
         min-height: 0;
-    }
-
-    .architecture-code pre {
-        min-height: 0;
-    }
-
-    .install-section {
-        padding: 68px 0 72px;
     }
 
     .landing-footer-grid {
@@ -4169,27 +3974,8 @@ body[data-layout="landing"] > footer {
         padding: 24px;
     }
 
-    .landing-page .architecture-code pre {
-        padding: 12px;
-        font-size: 10px;
-    }
-
     .architecture-points > a {
         padding: 13px 14px;
-    }
-
-    .install-command {
-        min-height: 54px;
-        padding-right: 10px;
-        padding-left: 15px;
-    }
-
-        .install-command > code {
-            font-size: 10px;
-        }
-
-    .install-copy {
-        margin-left: 8px;
     }
 
     .landing-footer {
