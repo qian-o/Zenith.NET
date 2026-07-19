@@ -6,7 +6,6 @@ _layout: landing
 
 <div class="landing-page">
     <section class="render-hero">
-        <img class="render-hero-media" src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/ray-tracing.png" alt="Ray-traced scene rendered with Zenith.NET">
         <div class="render-hero-scrim"></div>
         <div class="render-grid"></div>
         <div class="landing-shell render-hero-inner">
@@ -26,6 +25,39 @@ _layout: landing
                     <span class="backend-pill backend-directx">DirectX 12</span>
                     <span class="backend-pill backend-metal">Metal 4</span>
                     <span class="backend-pill backend-vulkan">Vulkan 1.4</span>
+                </div>
+            </div>
+            <div class="render-viewport" data-tutorial-carousel role="region" aria-roledescription="carousel" aria-label="Zenith.NET tutorial screenshots">
+                <div class="render-viewport-toolbar">
+                    <span class="render-viewport-title"><i class="bi bi-image" aria-hidden="true"></i><span data-carousel-title>Hello Triangle</span></span>
+                    <span class="render-viewport-details"><span class="render-viewport-position" data-carousel-position>1 / 7</span></span>
+                    <a class="render-viewport-open" data-carousel-open href="tutorials/rasterization/hello-triangle.md" aria-label="Open Hello Triangle tutorial" title="Open tutorial"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+                </div>
+                <div class="render-viewport-canvas">
+                    <a class="render-carousel-slide is-active" data-carousel-title="Hello Triangle" href="tutorials/rasterization/hello-triangle.md" role="group" aria-roledescription="slide" aria-label="1 of 7: Hello Triangle">
+                        <img class="render-hero-media" src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/hello-triangle.png" alt="Hello Triangle tutorial output rendered with Zenith.NET" fetchpriority="high">
+                    </a>
+                    <a class="render-carousel-slide" data-carousel-title="Textured Quad" href="tutorials/rasterization/textured-quad.md" role="group" aria-roledescription="slide" aria-label="2 of 7: Textured Quad" aria-hidden="true" tabindex="-1">
+                        <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/textured-quad.png" alt="Textured Quad tutorial output rendered with Zenith.NET">
+                    </a>
+                    <a class="render-carousel-slide" data-carousel-title="Spinning Cube" href="tutorials/rasterization/spinning-cube.md" role="group" aria-roledescription="slide" aria-label="3 of 7: Spinning Cube" aria-hidden="true" tabindex="-1">
+                        <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/spinning-cube.png" alt="Spinning Cube tutorial output rendered with Zenith.NET">
+                    </a>
+                    <a class="render-carousel-slide" data-carousel-title="Image Processing" href="tutorials/image-processing.md" role="group" aria-roledescription="slide" aria-label="4 of 7: Image Processing" aria-hidden="true" tabindex="-1">
+                        <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/compute-shader.png" alt="Image Processing tutorial output rendered with Zenith.NET">
+                    </a>
+                    <a class="render-carousel-slide" data-carousel-title="Indirect Drawing" href="tutorials/indirect-drawing.md" role="group" aria-roledescription="slide" aria-label="5 of 7: Indirect Drawing" aria-hidden="true" tabindex="-1">
+                        <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/indirect-drawing.png" alt="Indirect Drawing tutorial output rendered with Zenith.NET">
+                    </a>
+                    <a class="render-carousel-slide" data-carousel-title="Ray Tracing" href="tutorials/ray-tracing.md" role="group" aria-roledescription="slide" aria-label="6 of 7: Ray Tracing" aria-hidden="true" tabindex="-1">
+                        <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/ray-tracing.png" alt="Ray Tracing tutorial output rendered with Zenith.NET">
+                    </a>
+                    <a class="render-carousel-slide" data-carousel-title="Mesh Shading" href="tutorials/mesh-shading.md" role="group" aria-roledescription="slide" aria-label="7 of 7: Mesh Shading" aria-hidden="true" tabindex="-1">
+                        <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/mesh-shading.png" alt="Mesh Shading tutorial output rendered with Zenith.NET">
+                    </a>
+                    <button class="render-carousel-arrow render-carousel-arrow-prev" type="button" data-carousel-prev aria-label="Previous tutorial" title="Previous tutorial"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+                    <button class="render-carousel-arrow render-carousel-arrow-next" type="button" data-carousel-next aria-label="Next tutorial" title="Next tutorial"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+                    <div class="render-carousel-progress" aria-hidden="true"><span data-carousel-progress></span></div>
                 </div>
             </div>
         </div>
@@ -70,9 +102,9 @@ _layout: landing
             </div>
             <div class="architecture-copy">
                 <div class="architecture-points">
-                    <a href="docs/fundamentals/runtime.md"><i class="bi bi-check-circle" aria-hidden="true"></i><span><strong>Create the runtime</strong><small>Select a graphics API, inspect capabilities, and create application resources.</small></span></a>
-                    <a href="docs/fundamentals/commands.md"><i class="bi bi-check-circle" aria-hidden="true"></i><span><strong>Record GPU work</strong><small>Use command buffers for rendering, compute, copies, and resource transitions.</small></span></a>
-                    <a href="docs/fundamentals/bindless-resources.md"><i class="bi bi-check-circle" aria-hidden="true"></i><span><strong>Bind shader resources</strong><small>Store typed resource handles in C# constant data shared with Slang.</small></span></a>
+                    <a href="docs/fundamentals/runtime.md"><span class="architecture-step" aria-hidden="true">01</span><span><strong>Create the runtime</strong><small>Select a graphics API, inspect capabilities, and create application resources.</small></span></a>
+                    <a href="docs/fundamentals/commands.md"><span class="architecture-step" aria-hidden="true">02</span><span><strong>Record GPU work</strong><small>Use command buffers for rendering, compute, copies, and resource transitions.</small></span></a>
+                    <a href="docs/fundamentals/bindless-resources.md"><span class="architecture-step" aria-hidden="true">03</span><span><strong>Bind shader resources</strong><small>Store typed resource handles in C# constant data shared with Slang.</small></span></a>
                 </div>
             </div>
         </div>

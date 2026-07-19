@@ -96,6 +96,200 @@ export default {
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
         document.body.toggleAttribute('data-zenith-api', /\/api(?:\/|$)/i.test(window.location.pathname));
 
+        const initializeThemeCycle = () => {
+            const themes = [
+                { value: 'light', label: 'Light', icon: 'bi-sun' },
+                { value: 'dark', label: 'Dark', icon: 'bi-moon' },
+                { value: 'auto', label: 'Auto', icon: 'bi-circle-half' }
+            ];
+            const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+            const navbar = document.getElementById('navbar');
+            if (!navbar) return;
+
+            const enhanceThemeToggle = () => {
+                const dropdown = navbar.querySelector('.icons .dropdown');
+                const currentToggle = dropdown?.querySelector('.dropdown-toggle');
+                if (!dropdown || !currentToggle) return false;
+
+                const themeToggle = document.createElement('button');
+                const icon = document.createElement('i');
+                let animationTimer;
+
+                themeToggle.type = 'button';
+                themeToggle.className = 'btn border-0 zenith-theme-toggle';
+                icon.setAttribute('aria-hidden', 'true');
+                themeToggle.append(icon);
+                dropdown.replaceWith(themeToggle);
+
+                const getTheme = () => {
+                    const storedTheme = window.localStorage.getItem('theme');
+                    return themes.find(theme => theme.value === storedTheme) || themes[2];
+                };
+
+                const getNextTheme = theme => themes[(themes.indexOf(theme) + 1) % themes.length];
+
+                const renderTheme = theme => {
+                    const nextTheme = getNextTheme(theme);
+                    icon.className = `bi ${theme.icon}`;
+                    themeToggle.dataset.theme = theme.value;
+                    themeToggle.title = `${theme.label} theme; switch to ${nextTheme.label}`;
+                    themeToggle.setAttribute(
+                        'aria-label',
+                        `${theme.label} theme. Switch to ${nextTheme.label}.`
+                    );
+                };
+
+                const applyTheme = theme => {
+                    const resolvedTheme = theme.value === 'auto'
+                        ? (systemTheme.matches ? 'dark' : 'light')
+                        : theme.value;
+                    window.localStorage.setItem('theme', theme.value);
+                    document.documentElement.dataset.bsTheme = resolvedTheme;
+                    renderTheme(theme);
+                };
+
+                const switchTheme = () => {
+                    const nextTheme = getNextTheme(getTheme());
+                    window.clearTimeout(animationTimer);
+
+                    if (reducedMotion.matches) {
+                        applyTheme(nextTheme);
+                        return;
+                    }
+
+                    themeToggle.disabled = true;
+                    themeToggle.classList.remove('is-theme-entering');
+                    themeToggle.classList.add('is-theme-leaving');
+                    animationTimer = window.setTimeout(() => {
+                        applyTheme(nextTheme);
+                        themeToggle.classList.remove('is-theme-leaving');
+                        themeToggle.classList.add('is-theme-entering');
+                        animationTimer = window.setTimeout(() => {
+                            themeToggle.classList.remove('is-theme-entering');
+                            themeToggle.disabled = false;
+                        }, 260);
+                    }, 120);
+                };
+
+                themeToggle.addEventListener('click', switchTheme);
+                systemTheme.addEventListener('change', () => {
+                    const theme = getTheme();
+                    if (theme.value === 'auto') applyTheme(theme);
+                });
+                applyTheme(getTheme());
+                return true;
+            };
+
+            if (enhanceThemeToggle()) return;
+            const observer = new MutationObserver(() => {
+                if (!enhanceThemeToggle()) return;
+                observer.disconnect();
+            });
+            observer.observe(navbar, { childList: true, subtree: true });
+        };
+
+        const initializeExpandableSearch = () => {
+            const form = document.querySelector('#navbar form.search');
+            const input = form?.querySelector('#search-query');
+            const nativeIcon = form?.querySelector(':scope > i');
+            if (!form || !input || form.classList.contains('zenith-search')) return;
+
+            const toggle = document.createElement('button');
+            const icon = document.createElement('i');
+            toggle.type = 'button';
+            toggle.className = 'zenith-search-toggle';
+            toggle.setAttribute('aria-controls', input.id);
+            toggle.setAttribute('aria-expanded', 'false');
+            toggle.setAttribute('aria-label', 'Open search');
+            toggle.title = 'Search';
+            icon.className = 'bi bi-search';
+            icon.setAttribute('aria-hidden', 'true');
+            toggle.append(icon);
+            nativeIcon?.setAttribute('aria-hidden', 'true');
+            form.prepend(toggle);
+            form.classList.add('zenith-search');
+            const searchPlaceholder = input.placeholder || 'Search';
+
+            const updateAvailability = () => {
+                const ready = !input.disabled;
+                const expanded = form.classList.contains('is-expanded');
+                form.classList.toggle('is-loading', !ready);
+                form.setAttribute('aria-busy', String(!ready));
+                toggle.setAttribute('aria-label', expanded ? 'Close search' : 'Open search');
+                toggle.title = ready ? (expanded ? 'Close search' : 'Search') : 'Search is loading';
+                icon.className = 'bi bi-search';
+                input.placeholder = ready ? searchPlaceholder : 'Search is loading...';
+            };
+            const availabilityObserver = new MutationObserver(updateAvailability);
+            availabilityObserver.observe(input, { attributes: true, attributeFilter: ['disabled'] });
+            updateAvailability();
+            let pendingFocusObserver;
+
+            const setExpanded = (expanded, focusInput = false) => {
+                if (!expanded) {
+                    pendingFocusObserver?.disconnect();
+                    pendingFocusObserver = undefined;
+                }
+                form.classList.toggle('is-expanded', expanded);
+                toggle.setAttribute('aria-expanded', String(expanded));
+                toggle.setAttribute('aria-label', expanded ? 'Close search' : 'Open search');
+                toggle.title = input.disabled ? 'Search is loading' : (expanded ? 'Close search' : 'Search');
+
+                if (!focusInput) return;
+                const focusWhenReady = () => {
+                    if (input.disabled) return false;
+                    input.focus({ preventScroll: true });
+                    return true;
+                };
+                if (focusWhenReady()) return;
+
+                pendingFocusObserver?.disconnect();
+                pendingFocusObserver = new MutationObserver(() => {
+                    if (!form.classList.contains('is-expanded')) {
+                        pendingFocusObserver?.disconnect();
+                        pendingFocusObserver = undefined;
+                        return;
+                    }
+                    if (!focusWhenReady()) return;
+                    pendingFocusObserver?.disconnect();
+                    pendingFocusObserver = undefined;
+                });
+                pendingFocusObserver.observe(input, { attributes: true, attributeFilter: ['disabled'] });
+            };
+
+            const clearSearch = () => {
+                if (!input.value) return;
+                input.value = '';
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            };
+
+            toggle.addEventListener('click', () => {
+                const expanded = form.classList.contains('is-expanded');
+                if (expanded) {
+                    clearSearch();
+                    setExpanded(false);
+                    toggle.focus({ preventScroll: true });
+                } else {
+                    setExpanded(true, true);
+                }
+            });
+
+            input.addEventListener('focus', () => setExpanded(true));
+            input.addEventListener('keydown', event => {
+                if (event.key !== 'Escape') return;
+                event.preventDefault();
+                clearSearch();
+                setExpanded(false);
+                toggle.focus({ preventScroll: true });
+            });
+            document.addEventListener('pointerdown', event => {
+                if (!form.classList.contains('is-expanded') || form.contains(event.target)) return;
+                if (!input.value && !document.body.hasAttribute('data-search')) setExpanded(false);
+            });
+
+            if (input.value || document.body.hasAttribute('data-search')) setExpanded(true);
+        };
+
         const initializeReadingMotion = () => {
             const header = document.querySelector('body > header');
             if (!header) return;
@@ -329,20 +523,12 @@ export default {
             }
         };
 
-        const navbar = document.getElementById('navbar');
         const brand = document.querySelector('.navbar-brand');
         if (brand && !brand.hasAttribute('aria-label')) {
             brand.setAttribute('aria-label', 'Zenith.NET home');
         }
-
-        if (navbar && !navbar.querySelector('.nav-cta')) {
-            const getStarted = document.createElement('a');
-            getStarted.className = 'nav-cta';
-            getStarted.href = `${rootPath}tutorials/project-setup.html`;
-            getStarted.textContent = 'Get started';
-            getStarted.setAttribute('aria-label', 'Get started with Zenith.NET');
-            navbar.append(getStarted);
-        }
+        initializeThemeCycle();
+        initializeExpandableSearch();
 
         const installCopy = document.querySelector('[data-copy-command]');
         if (installCopy) {
@@ -526,9 +712,148 @@ export default {
             initializePendingFrames();
         };
 
+        const initializeTutorialCarousel = () => {
+            const carousel = document.querySelector('[data-tutorial-carousel]');
+            if (!carousel) return;
+
+            const slides = [...carousel.querySelectorAll('.render-carousel-slide')];
+            const title = carousel.querySelector('[data-carousel-title]');
+            const position = carousel.querySelector('[data-carousel-position]');
+            const progress = carousel.querySelector('[data-carousel-progress]');
+            const openLink = carousel.querySelector('[data-carousel-open]');
+            const previousButton = carousel.querySelector('[data-carousel-prev]');
+            const nextButton = carousel.querySelector('[data-carousel-next]');
+            const mobileViewport = window.matchMedia('(max-width: 767.98px)');
+            const autoPlayDuration = 6500;
+            let activeIndex = Math.max(0, slides.findIndex(slide => slide.classList.contains('is-active')));
+            let autoPlayTimer = 0;
+            let autoPlayRemaining = autoPlayDuration;
+            let autoPlayStartedAt = 0;
+            let isVisible = true;
+            let touchStartX = 0;
+            let touchStartY = 0;
+
+            if (slides.length < 2 || !title || !position || !progress || !openLink || !previousButton || !nextButton) return;
+
+            const prepareSlide = index => {
+                const image = slides[index]?.querySelector('img[data-src]');
+                if (!image?.dataset.src) return;
+
+                image.src = image.dataset.src;
+                image.removeAttribute('data-src');
+            };
+
+            const stopAutoPlay = () => {
+                window.clearTimeout(autoPlayTimer);
+                autoPlayTimer = 0;
+                if (autoPlayStartedAt) {
+                    autoPlayRemaining = Math.max(0, autoPlayRemaining - (performance.now() - autoPlayStartedAt));
+                    autoPlayStartedAt = 0;
+                }
+                carousel.classList.remove('is-carousel-playing');
+            };
+
+            const canAutoPlay = () => !reducedMotion.matches &&
+                !mobileViewport.matches &&
+                !document.hidden &&
+                isVisible &&
+                !carousel.matches(':hover') &&
+                !carousel.matches(':focus-within');
+
+            const scheduleAutoPlay = () => {
+                if (!canAutoPlay()) {
+                    stopAutoPlay();
+                    return;
+                }
+                if (autoPlayTimer) return;
+
+                autoPlayStartedAt = performance.now();
+                carousel.classList.add('is-carousel-playing');
+                autoPlayTimer = window.setTimeout(() => {
+                    autoPlayTimer = 0;
+                    autoPlayStartedAt = 0;
+                    autoPlayRemaining = autoPlayDuration;
+                    showSlide(activeIndex + 1);
+                }, Math.max(16, autoPlayRemaining));
+            };
+
+            const showSlide = index => {
+                stopAutoPlay();
+                activeIndex = (index + slides.length) % slides.length;
+                prepareSlide(activeIndex);
+                prepareSlide((activeIndex + 1) % slides.length);
+
+                for (const [slideIndex, slide] of slides.entries()) {
+                    const isActive = slideIndex === activeIndex;
+                    slide.classList.toggle('is-active', isActive);
+                    slide.setAttribute('aria-hidden', String(!isActive));
+                    slide.tabIndex = isActive ? 0 : -1;
+                }
+
+                const activeSlide = slides[activeIndex];
+                const activeTitle = activeSlide.dataset.carouselTitle || `Tutorial ${activeIndex + 1}`;
+                title.textContent = activeTitle;
+                position.textContent = `${activeIndex + 1} / ${slides.length}`;
+                openLink.href = activeSlide.href;
+                openLink.setAttribute('aria-label', `Open ${activeTitle} tutorial`);
+
+                autoPlayRemaining = autoPlayDuration;
+                progress.classList.remove('is-timing');
+                void progress.offsetWidth;
+                progress.classList.add('is-timing');
+                scheduleAutoPlay();
+            };
+
+            previousButton.addEventListener('click', () => showSlide(activeIndex - 1));
+            nextButton.addEventListener('click', () => showSlide(activeIndex + 1));
+
+            carousel.addEventListener('keydown', event => {
+                if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+
+                event.preventDefault();
+                showSlide(activeIndex + (event.key === 'ArrowRight' ? 1 : -1));
+            });
+            carousel.addEventListener('mouseenter', stopAutoPlay);
+            carousel.addEventListener('mouseleave', scheduleAutoPlay);
+            carousel.addEventListener('focusin', stopAutoPlay);
+            carousel.addEventListener('focusout', () => window.requestAnimationFrame(scheduleAutoPlay));
+            carousel.addEventListener('touchstart', event => {
+                const touch = event.changedTouches[0];
+                touchStartX = touch.clientX;
+                touchStartY = touch.clientY;
+                stopAutoPlay();
+            }, { passive: true });
+            carousel.addEventListener('touchend', event => {
+                const touch = event.changedTouches[0];
+                const deltaX = touch.clientX - touchStartX;
+                const deltaY = touch.clientY - touchStartY;
+                if (Math.abs(deltaX) >= 44 && Math.abs(deltaX) > Math.abs(deltaY)) {
+                    showSlide(activeIndex + (deltaX < 0 ? 1 : -1));
+                } else {
+                    scheduleAutoPlay();
+                }
+            }, { passive: true });
+
+            document.addEventListener('visibilitychange', scheduleAutoPlay);
+            reducedMotion.addEventListener('change', scheduleAutoPlay);
+            mobileViewport.addEventListener('change', scheduleAutoPlay);
+
+            if ('IntersectionObserver' in window) {
+                const observer = new IntersectionObserver(entries => {
+                    isVisible = entries[0]?.isIntersecting ?? true;
+                    scheduleAutoPlay();
+                }, { threshold: 0.2 });
+                observer.observe(carousel);
+            }
+
+            carousel.classList.add('is-carousel-ready');
+            showSlide(activeIndex);
+        };
+
         const initializeRevealMotion = () => {
             const selectors = document.body.matches('[data-layout="landing"]')
                 ? [
+                    '.section-heading',
                     '.feature-card',
                     '.architecture-code',
                     '.architecture-copy',
@@ -556,6 +881,14 @@ export default {
             for (const [index, target] of targets.entries()) {
                 target.classList.add('zenith-reveal');
                 target.style.setProperty('--zenith-reveal-delay', `${Math.min(index % 4, 3) * 45}ms`);
+                if (document.body.matches('[data-layout="landing"]')) {
+                    const direction = target.matches('.architecture-code, .architecture-grid > .architecture-copy:first-child')
+                        ? 'left'
+                        : target.matches('.architecture-grid > .architecture-copy:last-child')
+                            ? 'right'
+                            : 'up';
+                    target.dataset.revealFrom = direction;
+                }
             }
             document.documentElement.classList.add('zenith-motion-ready');
 
@@ -584,6 +917,7 @@ export default {
         initializeReadingMotion();
         initializeOverlayScrollbars();
         initializeTableScrollCues();
+        initializeTutorialCarousel();
 
         const initializeAffix = () => {
             const links = [...document.querySelectorAll('#affix a[href^="#"]')];
