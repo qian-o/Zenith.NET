@@ -60,7 +60,7 @@ Verify field offsets against the Slang layout, especially when a structure conta
 
 ## Declare Shader Handles
 
-Declare the same fields with typed `DescriptorHandle<T>` values, then expose the record through an explicit `ConstantBuffer<T>`:
+Declare matching typed handles and expose the record as `ConstantBuffer<T>`:
 
 ```slang
 struct Constants
@@ -71,8 +71,6 @@ struct Constants
 ConstantBuffer<Constants> constants;
 ```
 
-The generic resource type and the `ConstantBuffer<T>` declaration are part of the C#/shader contract. Their access and element layout must match the handle and constant buffer bound by C#.
-
 ## Bind the Constants
 
 Bind the constant buffer after setting the pipeline:
@@ -81,7 +79,7 @@ Bind the constant buffer after setting the pipeline:
 commandBuffer.SetConstantBuffer(buffer, 0);
 ```
 
-The offset selects the constant record used by the current pipeline.
+The second argument is the byte offset into the buffer.
 
 ## Use Views
 
