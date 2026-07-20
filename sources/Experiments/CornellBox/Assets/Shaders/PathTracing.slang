@@ -12,24 +12,21 @@ struct Vertex
 
     property float3 Position
     {
-        get
-        {
+        get {
             return PositionAndPadding.xyz;
         }
     }
 
     property float3 Normal
     {
-        get
-        {
+        get {
             return NormalAndMaterialId.xyz;
         }
     }
 
     property uint MaterialId
     {
-        get
-        {
+        get {
             return asuint(NormalAndMaterialId.w);
         }
     }
@@ -43,32 +40,28 @@ struct Material
 
     property float3 Albedo
     {
-        get
-        {
+        get {
             return AlbedoAndEmission.xyz;
         }
     }
 
     property float Emission
     {
-        get
-        {
+        get {
             return AlbedoAndEmission.w;
         }
     }
 
     property float Metallic
     {
-        get
-        {
+        get {
             return MetallicRoughnessAndPadding.x;
         }
     }
 
     property float Roughness
     {
-        get
-        {
+        get {
             return MetallicRoughnessAndPadding.y;
         }
     }
@@ -98,38 +91,34 @@ struct PathTracingConstants
 
     property float3 Position
     {
-        get
-        {
+        get {
             return PositionAndPadding.xyz;
         }
     }
 
     property uint FrameCount
     {
-        get
-        {
+        get {
             return FrameCountWidthHeightAndPadding.x;
         }
     }
 
     property uint Width
     {
-        get
-        {
+        get {
             return FrameCountWidthHeightAndPadding.y;
         }
     }
 
     property uint Height
     {
-        get
-        {
+        get {
             return FrameCountWidthHeightAndPadding.z;
         }
     }
 };
 
-uniform PathTracingConstants pathTracing;
+ConstantBuffer<PathTracingConstants> pathTracing;
 
 float DistributionGGX(float NdotH, float roughness)
 {
@@ -349,9 +338,7 @@ float3 TracePath(float3 origin, float3 direction, inout uint rng)
 
         if (query.CommittedStatus() == COMMITTED_NOTHING)
         {
-            float3 skyColor = lerp(float3(0.15, 0.12, 0.10),
-                                   float3(0.30, 0.35, 0.45),
-                                   saturate(direction.y * 0.5 + 0.5));
+            float3 skyColor = lerp(float3(0.15, 0.12, 0.10), float3(0.30, 0.35, 0.45), saturate(direction.y * 0.5 + 0.5));
             radiance += throughput * skyColor;
 
             break;
@@ -485,9 +472,7 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
         return;
     }
 
-    uint rng = PCGHash(pixel.x +
-                       pixel.y * pathTracing.Width +
-                       pathTracing.FrameCount * pathTracing.Width * pathTracing.Height);
+    uint rng = PCGHash(pixel.x + pixel.y * pathTracing.Width + pathTracing.FrameCount * pathTracing.Width * pathTracing.Height);
 
     uint sampleIndex = pathTracing.FrameCount + 1;
     float hx = Halton(sampleIndex, 2);
@@ -529,5 +514,5 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     avg = saturate(a / b);
 
     avg = pow(avg, 1.0 / 2.2);
-    (*pathTracing.OutputTexture)[pixel] = float4(avg, 1.0);
+    (*pathTracing.OutputTexture) [pixel] = float4(avg, 1.0);
 }

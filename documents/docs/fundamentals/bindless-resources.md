@@ -60,7 +60,7 @@ Verify field offsets against the Slang layout, especially when a structure conta
 
 ## Declare Shader Handles
 
-Declare the same fields with typed `DescriptorHandle<T>` values:
+Declare the same fields with typed `DescriptorHandle<T>` values, then expose the record through an explicit `ConstantBuffer<T>`:
 
 ```slang
 struct Constants
@@ -68,10 +68,10 @@ struct Constants
     DescriptorHandle<Texture2D> Resource;
 };
 
-uniform Constants constants;
+ConstantBuffer<Constants> constants;
 ```
 
-The generic resource type is part of the C#/shader contract. Its access and element layout must match the handle stored by C#.
+The generic resource type and the `ConstantBuffer<T>` declaration are part of the C#/shader contract. Their access and element layout must match the handle and constant buffer bound by C#.
 
 ## Bind the Constants
 

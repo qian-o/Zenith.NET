@@ -35,7 +35,7 @@ struct Constants
     DescriptorHandle<SamplerState> Sampler;
 };
 
-uniform Constants constants;
+ConstantBuffer<Constants> constants;
 
 float3 SrgbToLinear(float3 srgb)
 {

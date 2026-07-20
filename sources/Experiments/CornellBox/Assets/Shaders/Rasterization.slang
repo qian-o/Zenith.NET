@@ -8,32 +8,28 @@ struct Material
 
     property float3 Albedo
     {
-        get
-        {
+        get {
             return AlbedoAndEmission.xyz;
         }
     }
 
     property float Emission
     {
-        get
-        {
+        get {
             return AlbedoAndEmission.w;
         }
     }
 
     property float Metallic
     {
-        get
-        {
+        get {
             return MetallicRoughnessAndPadding.x;
         }
     }
 
     property float Roughness
     {
-        get
-        {
+        get {
             return MetallicRoughnessAndPadding.y;
         }
     }
@@ -57,24 +53,21 @@ struct RasterizationConstants
 
     property float3 LightPosition
     {
-        get
-        {
+        get {
             return LightPositionAndPadding.xyz;
         }
     }
 
     property float3 LightColor
     {
-        get
-        {
+        get {
             return LightColorAndPadding.xyz;
         }
     }
 
     property float3 CameraPosition
     {
-        get
-        {
+        get {
             return CameraPositionAndPadding.xyz;
         }
     }
@@ -88,24 +81,21 @@ struct VSInput
 
     property float3 Position
     {
-        get
-        {
+        get {
             return PositionAndPadding.xyz;
         }
     }
 
     property float3 Normal
     {
-        get
-        {
+        get {
             return NormalAndMaterialId.xyz;
         }
     }
 
     property uint MaterialId
     {
-        get
-        {
+        get {
             return asuint(NormalAndMaterialId.w);
         }
     }
@@ -122,7 +112,7 @@ struct FSInput
     nointerpolation uint MaterialId : TEXCOORD2;
 };
 
-uniform RasterizationConstants rasterization;
+ConstantBuffer<RasterizationConstants> rasterization;
 
 float3 ACESFilm(float3 x)
 {
