@@ -29,7 +29,7 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
 
         commandBuffer.Compute?.BarrierAfterEncoderStages(MTLStages.AccelerationStructure, MTLStages.AccelerationStructure, MTL4VisibilityOptions.Device);
         commandBuffer.Compute?.Build(AccelerationStructure, descriptor, new(Scratch.Buffer.GpuAddress, Scratch.Desc.SizeInBytes));
-        commandBuffer.Compute?.BarrierAfterStages(MTLStages.AccelerationStructure, MTLStages.Dispatch, MTL4VisibilityOptions.Device);
+        commandBuffer.Compute?.BarrierAfterEncoderStages(MTLStages.AccelerationStructure, MTLStages.Dispatch, MTL4VisibilityOptions.Device);
 
         Handle = AccelerationStructure.GpuResourceID.Impl.ToHandle();
     }
@@ -49,7 +49,7 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
 
         commandBuffer.Compute?.BarrierAfterEncoderStages(MTLStages.AccelerationStructure, MTLStages.AccelerationStructure, MTL4VisibilityOptions.Device);
         commandBuffer.Compute?.Refit(AccelerationStructure, descriptor, AccelerationStructure, new(Scratch.Buffer.GpuAddress, Scratch.Desc.SizeInBytes));
-        commandBuffer.Compute?.BarrierAfterStages(MTLStages.AccelerationStructure, MTLStages.Dispatch, MTL4VisibilityOptions.Device);
+        commandBuffer.Compute?.BarrierAfterEncoderStages(MTLStages.AccelerationStructure, MTLStages.Dispatch, MTL4VisibilityOptions.Device);
     }
 
     public override nint GetNativeObject(NativeObjectType type)

@@ -63,8 +63,8 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     protected override void BarrierImpl(BarrierStages before, BarrierStages after)
     {
-        Render?.BarrierAfterStages(MTLFormats.Metal(before), MTLFormats.Metal(after), MTL4VisibilityOptions.Device);
-        Compute?.BarrierAfterStages(MTLFormats.Metal(before), MTLFormats.Metal(after), MTL4VisibilityOptions.Device);
+        Render?.BarrierAfterEncoderStages(MTLFormats.Metal(before), MTLFormats.Metal(after), MTL4VisibilityOptions.Device);
+        Compute?.BarrierAfterEncoderStages(MTLFormats.Metal(before), MTLFormats.Metal(after), MTL4VisibilityOptions.Device);
     }
 
     protected override void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout before, TextureLayout after)
@@ -363,7 +363,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     {
         ArgumentTable.SetAddress(buffer.Metal().Buffer.GpuAddress + offsetInBytes, 0);
 
-        Render?.SetArgumentTable(ArgumentTable, MTLRenderStages.Vertex | MTLRenderStages.Fragment | MTLRenderStages.Mesh);
+        Render?.SetArgumentTable(ArgumentTable, MTLRenderStages.Vertex | MTLRenderStages.Fragment | MTLRenderStages.Object | MTLRenderStages.Mesh);
         Compute?.SetArgumentTable(ArgumentTable);
     }
 
@@ -549,7 +549,7 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     private void BeginRenderEncoding(MTL4RenderPassDescriptor descriptor)
     {
         Render = NSAutorelease.Own(CommandBuffer.MakeRenderCommandEncoder, descriptor);
-        Render.SetArgumentTable(ArgumentTable, MTLRenderStages.Vertex | MTLRenderStages.Fragment | MTLRenderStages.Mesh);
+        Render.SetArgumentTable(ArgumentTable, MTLRenderStages.Vertex | MTLRenderStages.Fragment | MTLRenderStages.Object | MTLRenderStages.Mesh);
 
         if (todoGraphicsPipeline is not null)
         {
@@ -602,12 +602,12 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     private void EndRenderEncoding()
     {
-        ResolveTimestamps();
-
-        Render?.BarrierAfterEncoderStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
+        Render?.BarrierAfterStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
         Render?.EndEncoding();
         Render?.Dispose();
         Render = null;
+
+        ResolveTimestamps();
     }
 
     private void BeginComputeEncoding()
@@ -631,12 +631,12 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     private void EndComputeEncoding()
     {
-        ResolveTimestamps();
-
-        Compute?.BarrierAfterEncoderStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
+        Compute?.BarrierAfterStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
         Compute?.EndEncoding();
         Compute?.Dispose();
         Compute = null;
+
+        ResolveTimestamps();
     }
 
     private void ResolveTimestamps()
