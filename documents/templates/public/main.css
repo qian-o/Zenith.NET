@@ -2199,10 +2199,7 @@ html.zenith-motion-ready .zenith-reveal[data-reveal-from="right"].is-visible {
 }
 
 .contribution {
-    width: 100%;
-    margin: 48px auto 0;
-    padding-top: 15px;
-    border-top: 1px solid var(--zenith-border);
+    display: none !important;
 }
 
 .edit-link {

@@ -1,27 +1,50 @@
 ﻿# Spinning Cube
 
-Draw a rotating, depth-tested cube. This tutorial builds on indexed rasterization with transformation constants, back-face culling, a depth attachment, and resize handling.
+This tutorial turns the flat quad into a rotating 3D cube. It reuses the indexed geometry and constant buffer from [Textured Quad](textured-quad.md), then adds the two things that make 3D work: transform matrices that animate each frame, and a depth buffer so nearer faces hide farther ones. Because the cube can resize with the window, it also handles resize.
 
 ![Spinning Cube](https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/spinning-cube.png)
 
-## Update the Transform
+## The Data Layout
 
-Eight vertices and 36 indices describe the cube. `Update` advances the rotation, creates the model and view matrices, and calculates a perspective projection from the current drawable aspect ratio.
+Each of the cube's eight corners has a position and a color. `Constants` holds the three matrices the vertex shader needs: model, view, and projection. Their explicit byte offsets match the layout the shader expects.
 
-Upload the three `Matrix4x4` values to a 192-byte CPU-writable constant buffer. The Slang vertex shader uses the same row-vector convention as `System.Numerics.Matrix4x4`, applying the model, view, and projection transforms in that order.
+<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs" data-source-region="host-data-layout" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs" data-language="csharp"></div>
 
-## Add Depth Testing
+## Build the Depth-Tested Pipeline
 
-Create a `D32FloatS8UInt` depth texture at the drawable size. Add that format to the pipeline, enable back-face culling, and use read-write depth testing.
+The constructor uploads the cube's vertices and indices the same way earlier tutorials did, then builds the pipeline through this helper. Compared with earlier pipelines, it adds a depth format, turns on back-face culling so the inside of the cube is skipped, and enables read-write depth testing.
 
-Each frame transitions and clears both attachments before drawing the cube. When the drawable size changes, `Resize` disposes the old depth texture and creates a replacement with the new dimensions.
+<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs" data-source-region="create-depth-pipeline" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs" data-language="csharp"></div>
 
-## Source
+## Animate the Transform
 
-### Renderer
+The host calls `Update` every frame. It advances the rotation, builds the model, view, and projection matrices, and uploads them to the constant buffer. The projection uses the current drawable aspect ratio, so the cube stays correctly proportioned. Slang matrices follow the same row-vector convention as `System.Numerics.Matrix4x4`.
 
-<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs" data-language="csharp"></div>
+<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs" data-source-region="update-transforms" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs" data-language="csharp"></div>
 
-### Shader
+## Draw With Depth
 
-<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Shaders/SpinningCube.slang" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/SpinningCube.slang" data-language="slang"></div>
+`Render` creates the depth texture on the first frame, then clears both the color and depth attachments before drawing. The depth attachment is what lets the cube's front faces correctly cover its back faces.
+
+<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs" data-source-region="render-with-depth" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs" data-language="csharp"></div>
+
+## Handle Resize
+
+When the window changes size, the depth texture no longer matches the drawable. `Resize` drops it so `Render` recreates it at the new size on the next frame.
+
+<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs" data-source-region="resize-depth-target" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs" data-language="csharp"></div>
+
+## The Shader
+
+The vertex shader multiplies each position by model, view, and projection in turn and passes the color through. The fragment shader returns the interpolated color.
+
+<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Shaders/SpinningCube.slang" data-source-region="cube-shader" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/SpinningCube.slang" data-language="slang"></div>
+
+## Full Source
+
+- [Renderer](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs)
+- [Shader](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/SpinningCube.slang)
+
+## Next
+
+One cube takes one draw call. [Indirect Drawing](indirect-drawing.md) reuses this depth-tested setup to render a thousand instances from a single indirect call, with per-instance data driving each one.

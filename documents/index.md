@@ -27,7 +27,7 @@ _layout: landing
                     <span class="backend-pill backend-vulkan" role="listitem">Vulkan 1.4</span>
                 </div>
             </div>
-            <div class="render-viewport" data-tutorial-carousel role="region" aria-roledescription="carousel" aria-label="Zenith.NET tutorial screenshots">
+            <div class="render-viewport" data-tutorial-carousel role="region" aria-roledescription="carousel" aria-label="Zenith.NET tutorial outputs">
                 <div class="render-viewport-toolbar">
                     <span class="render-viewport-title"><i class="bi bi-image" aria-hidden="true"></i><span data-carousel-title>Hello Triangle</span></span>
                     <span class="render-viewport-details"><span class="render-viewport-position" data-carousel-position>1 / 7</span></span>
@@ -44,16 +44,16 @@ _layout: landing
                     <a class="render-carousel-slide" data-carousel-title="Spinning Cube" href="tutorials/rasterization/spinning-cube.md" aria-label="3 of 7: Spinning Cube" aria-hidden="true" tabindex="-1">
                         <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/spinning-cube.png" alt="Spinning Cube tutorial output rendered with Zenith.NET">
                     </a>
-                    <a class="render-carousel-slide" data-carousel-title="Image Processing" href="tutorials/image-processing.md" aria-label="4 of 7: Image Processing" aria-hidden="true" tabindex="-1">
+                    <a class="render-carousel-slide" data-carousel-title="Image Processing" href="tutorials/workloads/image-processing.md" aria-label="4 of 7: Image Processing" aria-hidden="true" tabindex="-1">
                         <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/compute-shader.png" alt="Image Processing tutorial output rendered with Zenith.NET">
                     </a>
-                    <a class="render-carousel-slide" data-carousel-title="Indirect Drawing" href="tutorials/indirect-drawing.md" aria-label="5 of 7: Indirect Drawing" aria-hidden="true" tabindex="-1">
+                    <a class="render-carousel-slide" data-carousel-title="Indirect Drawing" href="tutorials/rasterization/indirect-drawing.md" aria-label="5 of 7: Indirect Drawing" aria-hidden="true" tabindex="-1">
                         <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/indirect-drawing.png" alt="Indirect Drawing tutorial output rendered with Zenith.NET">
                     </a>
-                    <a class="render-carousel-slide" data-carousel-title="Ray Tracing" href="tutorials/ray-tracing.md" aria-label="6 of 7: Ray Tracing" aria-hidden="true" tabindex="-1">
+                    <a class="render-carousel-slide" data-carousel-title="Ray Tracing" href="tutorials/workloads/ray-tracing.md" aria-label="6 of 7: Ray Tracing" aria-hidden="true" tabindex="-1">
                         <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/ray-tracing.png" alt="Ray Tracing tutorial output rendered with Zenith.NET">
                     </a>
-                    <a class="render-carousel-slide" data-carousel-title="Mesh Shading" href="tutorials/mesh-shading.md" aria-label="7 of 7: Mesh Shading" aria-hidden="true" tabindex="-1">
+                    <a class="render-carousel-slide" data-carousel-title="Mesh Shading" href="tutorials/workloads/mesh-shading.md" aria-label="7 of 7: Mesh Shading" aria-hidden="true" tabindex="-1">
                         <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/mesh-shading.png" alt="Mesh Shading tutorial output rendered with Zenith.NET">
                     </a>
                     <button class="render-carousel-arrow render-carousel-arrow-prev" type="button" data-carousel-prev aria-label="Previous tutorial" title="Previous tutorial"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>

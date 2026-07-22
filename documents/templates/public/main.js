@@ -596,6 +596,87 @@ export default {
             return { frame, code, copy, language };
         };
 
+        const indentWidth = line => line.match(/^[\t ]*/)[0].length;
+
+        const extractSourceRegion = (source, regionName) => {
+            const lines = source.split('\n');
+            const beginMarker = `// tutorial:begin ${regionName}`;
+            const endMarker = `// tutorial:end ${regionName}`;
+            const matchLines = marker => lines
+                .map((line, index) => (line.trim() === marker ? index : -1))
+                .filter(index => index !== -1);
+            const [beginIndex, ...extraBegins] = matchLines(beginMarker);
+            const [endIndex, ...extraEnds] = matchLines(endMarker);
+
+            if (beginIndex === undefined || endIndex === undefined
+                || extraBegins.length || extraEnds.length || endIndex <= beginIndex) {
+                throw new Error(`Invalid tutorial source region: ${regionName}`);
+            }
+
+            const regionLines = lines.slice(beginIndex + 1, endIndex);
+            while (regionLines[0]?.trim() === '') regionLines.shift();
+            while (regionLines.at(-1)?.trim() === '') regionLines.pop();
+
+            const contentLines = regionLines.filter(line => line.trim() !== '');
+            if (!contentLines.length) throw new Error(`Empty tutorial source region: ${regionName}`);
+
+            const indentation = Math.min(...contentLines.map(indentWidth));
+            return regionLines
+                .map(line => line.slice(Math.min(indentation, indentWidth(line))))
+                .join('\n');
+        };
+
+        const sourceRequests = new Map();
+
+        const fetchSource = (sourceUrl, options = {}) => {
+            const requestKey = `${sourceUrl}\n${options.headers?.Accept || ''}`;
+            if (sourceRequests.has(requestKey)) return sourceRequests.get(requestKey);
+
+            const requestUrl = new URL(sourceUrl);
+            requestUrl.searchParams.set('v', Date.now().toString());
+            const request = fetch(requestUrl, { cache: 'no-store', ...options })
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    return response.text();
+                });
+            sourceRequests.set(requestKey, request);
+            return request;
+        };
+
+        const getGitHubContentsUrl = sourceUrl => {
+            const rawUrl = new URL(sourceUrl);
+            if (rawUrl.hostname !== 'raw.githubusercontent.com') return null;
+
+            const [owner, repository, reference, ...sourcePath] = rawUrl.pathname.split('/').filter(Boolean);
+            if (!owner || !repository || !reference || !sourcePath.length) return null;
+
+            const contentsUrl = new URL(`https://api.github.com/repos/${owner}/${repository}/contents/${sourcePath.join('/')}`);
+            contentsUrl.searchParams.set('ref', reference);
+            return contentsUrl;
+        };
+
+        const selectSource = (source, regionName) => {
+            const normalizedSource = source.replace(/\r\n/g, '\n');
+            return regionName ? extractSourceRegion(normalizedSource, regionName) : normalizedSource;
+        };
+
+        const loadSource = async slot => {
+            const sourceUrl = slot.dataset.remoteSource;
+            const regionName = slot.dataset.sourceRegion;
+
+            try {
+                return selectSource(await fetchSource(sourceUrl), regionName);
+            } catch (error) {
+                const contentsUrl = getGitHubContentsUrl(sourceUrl);
+                if (!contentsUrl) throw error;
+
+                const source = await fetchSource(contentsUrl, {
+                    headers: { Accept: 'application/vnd.github.raw+json' }
+                });
+                return selectSource(source, regionName);
+            }
+        };
+
         for (const slot of document.querySelectorAll('[data-remote-source]')) {
             const language = slot.dataset.language || 'text';
             const pre = document.createElement('pre');
@@ -611,17 +692,10 @@ export default {
             controls.frame.classList.add('remote-code-frame', 'is-loading');
             controls.copy.disabled = true;
 
-            const requestUrl = new URL(slot.dataset.remoteSource);
-            requestUrl.searchParams.set('v', Date.now().toString());
-            fetch(requestUrl, { cache: 'no-store' })
-                .then(response => {
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    return response.text();
-                })
-                .then(async source => {
-                    const normalizedSource = source.replace(/\r\n/g, '\n');
-                    controls.code.textContent = normalizedSource;
-                    await highlightCode(controls.code, controls.language, normalizedSource);
+            loadSource(slot)
+                .then(async selectedSource => {
+                    controls.code.textContent = selectedSource;
+                    await highlightCode(controls.code, controls.language, selectedSource);
                     controls.frame.classList.remove('is-loading');
                     controls.copy.disabled = false;
                 })
