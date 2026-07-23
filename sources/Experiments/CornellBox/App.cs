@@ -215,7 +215,5 @@ internal static class App
         window.Dispose();
 
         Context.Dispose();
-
-        Console.WriteLine("Exited cleanly.");
     }
 }

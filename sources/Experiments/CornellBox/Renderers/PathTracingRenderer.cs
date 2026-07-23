@@ -218,17 +218,16 @@ internal unsafe class PathTracingRenderer : Renderer
 
     public override void Dispose()
     {
-        base.Dispose();
-
-        accumulationTexture?.Dispose();
         materialBuffer.Dispose();
         tlas.Dispose();
         blas.Dispose();
-
         pipeline.Dispose();
         constantBuffer.Dispose();
         indexBuffer.Dispose();
         vertexBuffer.Dispose();
+        accumulationTexture?.Dispose();
+
+        base.Dispose();
     }
 }
 

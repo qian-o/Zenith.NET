@@ -137,14 +137,13 @@ internal unsafe class RasterizationRenderer : Renderer
 
     public override void Dispose()
     {
-        base.Dispose();
-
         materialBuffer.Dispose();
-
         pipeline.Dispose();
         constantBuffer.Dispose();
         indexBuffer.Dispose();
         vertexBuffer.Dispose();
+
+        base.Dispose();
     }
 }
 

@@ -265,7 +265,7 @@ bool TraceShadowRay(float3 origin, float3 direction, float maxDist)
     }
 
     RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> shadowQuery;
-    shadowQuery.TraceRayInline(*pathTracing.Scene, RAY_FLAG_NONE, 0xFF, shadowRay);
+    shadowQuery.TraceRayInline(pathTracing.Scene, RAY_FLAG_NONE, 0xFF, shadowRay);
 
     while (shadowQuery.Proceed())
     {
@@ -304,7 +304,7 @@ float3 SampleLightDirect(float3 hitPos, float3 hitNormal, float3 geoNormal, floa
         return float3(0.0, 0.0, 0.0);
     }
 
-    Material lightMat = (*pathTracing.Materials)[3];
+    Material lightMat = pathTracing.Materials[3];
     float3 lightEmission = lightMat.Albedo * lightMat.Emission;
 
     float pdfLight = (dist * dist) / (lightCosine * LightArea);
@@ -330,7 +330,7 @@ float3 TracePath(float3 origin, float3 direction, inout uint rng)
         ray.TMax = 100000.0;
 
         RayQuery<RAY_FLAG_NONE> query;
-        query.TraceRayInline(*pathTracing.Scene, RAY_FLAG_NONE, 0xFF, ray);
+        query.TraceRayInline(pathTracing.Scene, RAY_FLAG_NONE, 0xFF, ray);
 
         while (query.Proceed())
         {
@@ -349,13 +349,13 @@ float3 TracePath(float3 origin, float3 direction, inout uint rng)
         float t = query.CommittedRayT();
         float3 hitPos = origin + direction * t;
 
-        uint i0 = (*pathTracing.Indices)[primIdx * 3 + 0];
-        uint i1 = (*pathTracing.Indices)[primIdx * 3 + 1];
-        uint i2 = (*pathTracing.Indices)[primIdx * 3 + 2];
+        uint i0 = pathTracing.Indices[primIdx * 3 + 0];
+        uint i1 = pathTracing.Indices[primIdx * 3 + 1];
+        uint i2 = pathTracing.Indices[primIdx * 3 + 2];
 
-        Vertex v0 = (*pathTracing.Vertices)[i0];
-        Vertex v1 = (*pathTracing.Vertices)[i1];
-        Vertex v2 = (*pathTracing.Vertices)[i2];
+        Vertex v0 = pathTracing.Vertices[i0];
+        Vertex v1 = pathTracing.Vertices[i1];
+        Vertex v2 = pathTracing.Vertices[i2];
 
         float3 baryWeights = float3(1.0 - bary.x - bary.y, bary.x, bary.y);
         float3 normal = normalize(v0.Normal * baryWeights.x + v1.Normal * baryWeights.y + v2.Normal * baryWeights.z);
@@ -366,7 +366,7 @@ float3 TracePath(float3 origin, float3 direction, inout uint rng)
             normal = -normal;
         }
 
-        Material mat = (*pathTracing.Materials)[v0.MaterialId];
+        Material mat = pathTracing.Materials[v0.MaterialId];
 
         if (mat.Emission > 0.0)
         {
@@ -492,7 +492,6 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     float3 color = TracePath(origin, direction, rng);
     color = min(color, float3(30.0, 30.0, 30.0));
 
-    float4 prev = (*pathTracing.AccumulationTexture)[pixel];
     float4 accumulated;
 
     if (pathTracing.FrameCount == 0)
@@ -501,10 +500,11 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     }
     else
     {
+        float4 prev = pathTracing.AccumulationTexture[pixel];
         accumulated = prev + float4(color, 1.0);
     }
 
-    (*pathTracing.AccumulationTexture)[pixel] = accumulated;
+    pathTracing.AccumulationTexture[pixel] = accumulated;
 
     float3 avg = accumulated.rgb / float(pathTracing.FrameCount + 1);
 
@@ -514,5 +514,5 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     avg = saturate(a / b);
 
     avg = pow(avg, 1.0 / 2.2);
-    (*pathTracing.OutputTexture) [pixel] = float4(avg, 1.0);
+    pathTracing.OutputTexture[pixel] = float4(avg, 1.0);
 }

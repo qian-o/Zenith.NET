@@ -168,7 +168,7 @@ FSInput VSMain(VSInput input)
 [shader("fragment")]
 float4 FSMain(FSInput input) : SV_TARGET
 {
-    Material mat = (*rasterization.Materials)[input.MaterialId];
+    Material mat = rasterization.Materials[input.MaterialId];
 
     if (mat.Emission > 0.0)
     {

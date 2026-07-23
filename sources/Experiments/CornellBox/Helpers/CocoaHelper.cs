@@ -24,7 +24,6 @@ internal static partial class CocoaHelper
     public static nint CreateLayer(nint cocoa)
     {
         nint layer = Send(GetClass("CAMetalLayer"), Selector("layer"));
-        Send(layer, Selector("retain"));
 
         nint view = Send(cocoa, Selector("contentView"));
         Send(view, Selector("setWantsLayer:"), true);
