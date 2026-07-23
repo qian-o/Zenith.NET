@@ -1,31 +1,41 @@
 ﻿# Textured Quad
 
-Draw the tutorial image on a quad. This tutorial builds on [Hello Triangle](hello-triangle.md) with indexed geometry, texture loading, a sampler, and shader resource handles.
+This tutorial draws the shared image on a flat quad. It reuses the pipeline and draw flow from [Hello Triangle](hello-triangle.md) and adds three things: indexed geometry so two triangles can share corners, a loaded texture, and a resource handle that lets the shader read that texture.
 
 ![Textured Quad](https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/textured-quad.png)
 
-## Create Indexed Geometry
+## The Data Layout
 
-Create four vertices containing position and texture coordinates. Six `uint` indices reuse those vertices to form two triangles.
+A quad has four corners, each carrying a position and a texture coordinate. `Constants` holds two handles the shader uses to reach the texture and the sampler. A handle is a small integer the GPU resolves to the actual resource, so no per-draw binding tables are needed.
 
-The input layout matches the shader's `POSITION0` and `TEXCOORD0` fields. Bind both buffers and call `DrawIndexed(6, 1, 0, 0, 0)`.
+<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Renderers/TexturedQuadRenderer.cs" data-source-region="host-data-layout" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/TexturedQuadRenderer.cs" data-language="csharp"></div>
 
-## Load and Bind the Texture
+## Set Up the Renderer
 
-Load `Assets/Textures/shoko.png` with `LoadTextureFromFile` and generate its mip chain. Create a linear clamp sampler for filtering and addressing.
+The constructor uploads the four vertices and six indices, where the indices reuse corners to form two triangles. It loads `shoko.png` with mipmaps, then writes the texture's sampled handle and the shared sampler's handle into a constant buffer. The pipeline setup matches Hello Triangle, with the input layout now carrying a texture coordinate instead of a color.
 
-Store `texture.SampledHandle` and `sampler.Handle` in a 16-byte constant structure. The matching Slang structure declares `DescriptorHandle<Texture2D>` and `DescriptorHandle<SamplerState>` fields.
+<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Renderers/TexturedQuadRenderer.cs" data-source-region="initialize-renderer" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/TexturedQuadRenderer.cs" data-language="csharp"></div>
 
-Bind that constant buffer before drawing. The fragment shader samples the texture at the interpolated texture coordinate.
+## The Shader
 
-## Source
+The shader's constant structure declares the two handles with the same layout as the CPU struct. The fragment shader resolves the handles and samples the texture at the interpolated coordinate.
 
-### Renderer
+<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Shaders/TexturedQuad.slang" data-source-region="textured-quad-shader" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/TexturedQuad.slang" data-language="slang"></div>
 
-<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Renderers/TexturedQuadRenderer.cs" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/TexturedQuadRenderer.cs" data-language="csharp"></div>
+## Draw
 
-### Shader
+`Render` binds the pipeline, both geometry buffers, and the constant buffer, then issues an indexed draw of six indices.
 
-<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Shaders/TexturedQuad.slang" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/TexturedQuad.slang" data-language="slang"></div>
+<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Renderers/TexturedQuadRenderer.cs" data-source-region="render-textured-quad" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/TexturedQuadRenderer.cs" data-language="csharp"></div>
 
-[Texture asset](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Textures/shoko.png)
+For more on handles, see [Bindless Resources](../../docs/fundamentals/bindless-resources.md).
+
+## Full Source
+
+- [Renderer](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/TexturedQuadRenderer.cs)
+- [Shader](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/TexturedQuad.slang)
+- [Texture asset](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Textures/shoko.png)
+
+## Next
+
+So far everything is flat and still. [Spinning Cube](spinning-cube.md) takes this textured geometry into 3D, adding transform constants, a depth buffer, back-face culling, and per-frame animation.

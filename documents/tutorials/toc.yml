@@ -1,7 +1,9 @@
 ﻿- name: Tutorials
   href: index.md
-- name: Project Setup
-  href: project-setup.md
+- name: Getting Started
+  items:
+    - name: Project Setup
+      href: getting-started/project-setup.md
 - name: Rasterization
   items:
     - name: Hello Triangle
@@ -10,11 +12,13 @@
       href: rasterization/textured-quad.md
     - name: Spinning Cube
       href: rasterization/spinning-cube.md
-- name: Image Processing
-  href: image-processing.md
-- name: Indirect Drawing
-  href: indirect-drawing.md
-- name: Ray Tracing
-  href: ray-tracing.md
-- name: Mesh Shading
-  href: mesh-shading.md
+    - name: Indirect Drawing
+      href: rasterization/indirect-drawing.md
+- name: Workloads
+  items:
+    - name: Image Processing
+      href: workloads/image-processing.md
+    - name: Ray Tracing
+      href: workloads/ray-tracing.md
+    - name: Mesh Shading
+      href: workloads/mesh-shading.md
