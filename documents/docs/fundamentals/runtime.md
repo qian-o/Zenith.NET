@@ -8,11 +8,11 @@ Create resources that work together from the same context.
 
 Add the core package and at least one graphics API package:
 
-| Package | Platform support |
-|---------|------------------|
-| `Zenith.NET.DirectX12` | Windows |
-| `Zenith.NET.Metal` | Apple platforms |
-| `Zenith.NET.Vulkan` | Windows, Apple platforms, Android, and Linux |
+| Package | Graphics API | Platform support |
+|---------|--------------|------------------|
+| `Zenith.NET.DirectX12` | DirectX 12 | Windows |
+| `Zenith.NET.Metal` | Metal 4 | Apple platforms |
+| `Zenith.NET.Vulkan` | Vulkan 1.4 | Windows, Apple platforms, Android, and Linux |
 
 Each package adds a context factory. For example:
 

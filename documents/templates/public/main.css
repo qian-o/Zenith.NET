@@ -58,7 +58,7 @@
     --zenith-search-focus: #7150e8;
     --zenith-accent: #512bd4;
     --zenith-accent-soft: rgba(81, 43, 212, 0.08);
-    --zenith-logo-width: 128px;
+    --zenith-logo-width: 115px;
     --zenith-info: var(--zenith-blue-500);
     --zenith-success: var(--zenith-green-500);
     --zenith-warning: #c76620;
@@ -378,7 +378,7 @@ body[data-layout="landing"] > header.is-scrolled {
     display: inline-flex;
     flex: 0 0 auto;
     align-items: center;
-    margin-right: 34px !important;
+    margin-right: 10px !important;
     padding: 0 !important;
 }
 
@@ -736,7 +736,6 @@ body[data-layout="landing"] {
     }
 
     body[data-layout="landing"] .actionbar,
-    body[data-layout="landing"] .contribution,
     body[data-layout="landing"] .next-article,
     body[data-layout="landing"] main > .affix {
         display: none !important;
@@ -1070,16 +1069,8 @@ article a:not(.btn):not(.landing-button) {
 }
 
 article .anchorjs-link {
-    opacity: 0;
-    transform: translateX(-4px);
-    transition: color 160ms ease, opacity 160ms ease, transform 200ms var(--zenith-ease);
+    display: none !important;
 }
-
-    article :is(h1, h2, h3, h4):hover > .anchorjs-link,
-    article .anchorjs-link:focus-visible {
-        opacity: 0.72;
-        transform: translateX(0);
-    }
 
 article hr {
     margin: 34px 0;
@@ -1184,37 +1175,6 @@ article pre,
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
-}
-
-.doc-code-source {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-left: auto;
-    color: var(--zenith-code-muted) !important;
-    font-size: 11px;
-    font-weight: 650;
-    text-decoration: none !important;
-}
-
-    .doc-code-source:hover {
-        color: var(--zenith-code-accent) !important;
-    }
-
-    .doc-code-source + .doc-code-copy {
-        margin-left: 8px;
-    }
-
-.remote-code-frame > pre {
-    max-height: min(68vh, 760px);
-}
-
-.remote-code-frame.is-loading > pre {
-    min-height: 86px;
-}
-
-.remote-code-frame.is-failed {
-    border-color: rgba(180, 35, 24, 0.3);
 }
 
 .doc-code-copy {
@@ -2034,7 +1994,7 @@ body[data-yaml-mime="ManagedReference"] #affix {
 }
 
 /* ==========================================================================
-   Search, footer, contribution, pagination
+    Search, footer, pagination
    ========================================================================== */
 
 #search-results {
@@ -2198,20 +2158,6 @@ html.zenith-motion-ready .zenith-reveal[data-reveal-from="right"].is-visible {
     }
 }
 
-.contribution {
-    display: none !important;
-}
-
-.edit-link {
-    color: var(--zenith-text-faint);
-    font-size: 12px;
-    text-decoration: none;
-}
-
-    .edit-link::before {
-        margin-right: 6px;
-    }
-
 .next-article {
     width: 100%;
     margin: 26px auto 0;
@@ -2285,12 +2231,12 @@ body > footer {
     }
 
     #logo {
-        width: 124px;
+        width: 109px;
         height: 34px;
     }
 
     .navbar-brand {
-        margin-right: 20px !important;
+        margin-right: 18px !important;
     }
 
     #navbar .nav-link {
@@ -2480,7 +2426,7 @@ body > footer {
 
 @media (max-width: 575.98px) {
     #logo {
-        width: 120px;
+        width: 102px;
         height: 32px;
     }
 
@@ -2548,7 +2494,6 @@ body > footer {
         #sidetoggle,
         main > .affix,
         body > footer,
-        .contribution,
         .next-article {
             display: none !important;
         }
@@ -2587,7 +2532,7 @@ body > footer {
     z-index: 2;
     display: grid;
     grid-template-columns: minmax(0, 0.9fr) minmax(470px, 1.1fr);
-    gap: clamp(36px, 4vw, 68px);
+    gap: clamp(28px, 3vw, 48px);
     min-height: calc(620px + var(--zenith-header-height));
     align-items: center;
     padding-top: calc(48px + var(--zenith-header-height));
@@ -2720,6 +2665,12 @@ body > footer {
         background: rgba(255, 255, 255, 0.08);
     }
 
+.render-carousel-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
 .render-viewport-canvas {
     position: relative;
     aspect-ratio: 16 / 9;
@@ -2750,40 +2701,26 @@ body > footer {
         pointer-events: auto;
     }
 
-.render-carousel-arrow {
-    position: absolute;
-    top: 50%;
-    z-index: 3;
+.render-carousel-control {
     display: none;
-    width: 34px;
-    height: 34px;
+    width: 28px;
+    height: 28px;
     align-items: center;
     justify-content: center;
     padding: 0;
-    color: #f6f3fa;
-    background: rgba(16, 13, 22, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: var(--render-viewport-muted);
+    background: transparent;
+    border: 1px solid transparent;
     border-radius: 4px;
-    opacity: 0;
-    transform: translateY(-50%);
-    backdrop-filter: blur(8px);
-    transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, opacity 160ms ease;
+    transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease;
 }
 
-    .render-carousel-arrow:hover,
-    .render-carousel-arrow:focus-visible {
-        color: #ffffff;
-        background: rgba(16, 13, 22, 0.9);
-        border-color: rgba(255, 255, 255, 0.32);
+    .render-carousel-control:hover,
+    .render-carousel-control:focus-visible {
+        color: var(--render-viewport-text);
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.12);
     }
-
-.render-carousel-arrow-prev {
-    left: 10px;
-}
-
-.render-carousel-arrow-next {
-    right: 10px;
-}
 
 .render-carousel-progress {
     position: absolute;
@@ -2813,18 +2750,13 @@ body > footer {
             animation-play-state: paused;
         }
 
-.render-viewport.is-carousel-ready .render-carousel-arrow,
+.render-viewport.is-carousel-ready .render-carousel-control,
 .render-viewport.is-carousel-ready .render-carousel-progress {
     display: flex;
 }
 
 .render-viewport.is-carousel-playing .render-carousel-progress > span.is-timing {
     animation-play-state: running;
-}
-
-.render-viewport:hover .render-carousel-arrow,
-.render-viewport:focus-within .render-carousel-arrow {
-    opacity: 1;
 }
 
 .render-hero-media {
@@ -2841,18 +2773,13 @@ body > footer {
 }
 
 @media (max-width: 767.98px) {
-    .render-carousel-arrow {
-        width: 32px;
-        height: 32px;
-        opacity: 0.86;
+    .render-carousel-control {
+        width: 26px;
+        height: 26px;
     }
 
-    .render-carousel-arrow-prev {
-        left: 7px;
-    }
-
-    .render-carousel-arrow-next {
-        right: 7px;
+    .render-carousel-control[data-carousel-toggle] {
+        display: none !important;
     }
 
     .render-carousel-progress {
@@ -2862,8 +2789,12 @@ body > footer {
 
 @media (prefers-reduced-motion: reduce) {
     .render-carousel-slide,
-    .render-carousel-arrow {
+    .render-carousel-control {
         transition: none !important;
+    }
+
+    .render-carousel-control[data-carousel-toggle] {
+        display: none !important;
     }
 
     .render-carousel-progress {
@@ -2903,6 +2834,12 @@ body > footer {
         white-space: nowrap;
         -webkit-text-fill-color: currentColor;
     }
+
+@media (min-width: 992px) {
+    .render-hero .hero-copy h1 {
+        font-size: clamp(41px, calc(4.4643vw - 3.2857px), 62px);
+    }
+}
 
 .render-hero .hero-lede {
     max-width: 620px;
@@ -2992,8 +2929,7 @@ body > footer {
 
 .toc .nav > li > a:hover,
 .toc .nav > li.active > a,
-.toc .nav > li > a.active,
-.edit-link:hover {
+.toc .nav > li > a.active {
     color: var(--zenith-purple-700);
 }
 
@@ -3129,7 +3065,7 @@ body > footer {
     }
 
     .navbar-brand {
-        margin-right: 26px !important;
+        margin-right: 10px !important;
     }
 
     #navbar {
@@ -3610,11 +3546,6 @@ body[data-layout="landing"] > footer {
     background-image: var(--landing-atmosphere), linear-gradient(var(--landing-grid-row) 1px, transparent 1px), linear-gradient(90deg, var(--landing-grid-column) 1px, transparent 1px);
     background-size: 100% 100%, 64px 64px, 64px 64px;
 }
-
-    .landing-page .render-hero-scrim,
-    .landing-page .render-grid {
-        display: none;
-    }
 
 :root:not([data-bs-theme="dark"]) .landing-page .render-hero {
     background-color: transparent;

@@ -38,7 +38,8 @@ const loadShiki = () => {
     return shikiHighlighter;
 };
 
-const highlightCode = async (code, language, source = code.textContent) => {
+const highlightCode = async (code, language) => {
+    const source = code.textContent;
     const pre = code.closest('pre');
 
     try {
@@ -551,14 +552,14 @@ export default {
             yml: 'YAML'
         };
 
-        const createCodeFrame = (pre, sourceLink) => {
+        const createCodeFrame = pre => {
             const code = pre.querySelector('code');
             if (!code) return null;
 
             const languageClass = [...code.classList].find(name => name.startsWith('language-') || name.startsWith('lang-'));
             const language = languageClass?.replace(/^language-|^lang-/, '').toLowerCase() || 'text';
             const existingFrame = pre.closest('.doc-code-frame');
-            if (existingFrame) return { frame: existingFrame, code, copy: existingFrame.querySelector('.doc-code-copy'), language };
+            if (existingFrame) return { code, language };
             const frame = document.createElement('div');
             const toolbar = document.createElement('div');
             const languageLabel = document.createElement('span');
@@ -577,15 +578,6 @@ export default {
             pre.parentNode.insertBefore(frame, pre);
             frame.append(toolbar, pre);
             toolbar.append(languageLabel);
-            if (sourceLink) {
-                const viewSource = document.createElement('a');
-                viewSource.className = 'doc-code-source';
-                viewSource.href = sourceLink;
-                viewSource.target = '_blank';
-                viewSource.rel = 'noopener';
-                viewSource.innerHTML = 'View on GitHub <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>';
-                toolbar.append(viewSource);
-            }
             toolbar.append(copy);
             pre.querySelector(':scope > .code-action')?.remove();
 
@@ -593,122 +585,10 @@ export default {
                 await copyWithFeedback(copy, code.textContent);
             });
 
-            return { frame, code, copy, language };
+            return { code, language };
         };
-
-        const indentWidth = line => line.match(/^[\t ]*/)[0].length;
-
-        const extractSourceRegion = (source, regionName) => {
-            const lines = source.split('\n');
-            const beginMarker = `// tutorial:begin ${regionName}`;
-            const endMarker = `// tutorial:end ${regionName}`;
-            const matchLines = marker => lines
-                .map((line, index) => (line.trim() === marker ? index : -1))
-                .filter(index => index !== -1);
-            const [beginIndex, ...extraBegins] = matchLines(beginMarker);
-            const [endIndex, ...extraEnds] = matchLines(endMarker);
-
-            if (beginIndex === undefined || endIndex === undefined
-                || extraBegins.length || extraEnds.length || endIndex <= beginIndex) {
-                throw new Error(`Invalid tutorial source region: ${regionName}`);
-            }
-
-            const regionLines = lines.slice(beginIndex + 1, endIndex);
-            while (regionLines[0]?.trim() === '') regionLines.shift();
-            while (regionLines.at(-1)?.trim() === '') regionLines.pop();
-
-            const contentLines = regionLines.filter(line => line.trim() !== '');
-            if (!contentLines.length) throw new Error(`Empty tutorial source region: ${regionName}`);
-
-            const indentation = Math.min(...contentLines.map(indentWidth));
-            return regionLines
-                .map(line => line.slice(Math.min(indentation, indentWidth(line))))
-                .join('\n');
-        };
-
-        const sourceRequests = new Map();
-
-        const fetchSource = (sourceUrl, options = {}) => {
-            const requestKey = `${sourceUrl}\n${options.headers?.Accept || ''}`;
-            if (sourceRequests.has(requestKey)) return sourceRequests.get(requestKey);
-
-            const requestUrl = new URL(sourceUrl);
-            requestUrl.searchParams.set('v', Date.now().toString());
-            const request = fetch(requestUrl, { cache: 'no-store', ...options })
-                .then(response => {
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    return response.text();
-                });
-            sourceRequests.set(requestKey, request);
-            return request;
-        };
-
-        const getGitHubContentsUrl = sourceUrl => {
-            const rawUrl = new URL(sourceUrl);
-            if (rawUrl.hostname !== 'raw.githubusercontent.com') return null;
-
-            const [owner, repository, reference, ...sourcePath] = rawUrl.pathname.split('/').filter(Boolean);
-            if (!owner || !repository || !reference || !sourcePath.length) return null;
-
-            const contentsUrl = new URL(`https://api.github.com/repos/${owner}/${repository}/contents/${sourcePath.join('/')}`);
-            contentsUrl.searchParams.set('ref', reference);
-            return contentsUrl;
-        };
-
-        const selectSource = (source, regionName) => {
-            const normalizedSource = source.replace(/\r\n/g, '\n');
-            return regionName ? extractSourceRegion(normalizedSource, regionName) : normalizedSource;
-        };
-
-        const loadSource = async slot => {
-            const sourceUrl = slot.dataset.remoteSource;
-            const regionName = slot.dataset.sourceRegion;
-
-            try {
-                return selectSource(await fetchSource(sourceUrl), regionName);
-            } catch (error) {
-                const contentsUrl = getGitHubContentsUrl(sourceUrl);
-                if (!contentsUrl) throw error;
-
-                const source = await fetchSource(contentsUrl, {
-                    headers: { Accept: 'application/vnd.github.raw+json' }
-                });
-                return selectSource(source, regionName);
-            }
-        };
-
-        for (const slot of document.querySelectorAll('[data-remote-source]')) {
-            const language = slot.dataset.language || 'text';
-            const pre = document.createElement('pre');
-            const code = document.createElement('code');
-            code.className = `language-${language}`;
-            code.textContent = 'Loading source...';
-            pre.append(code);
-            slot.append(pre);
-
-            const controls = createCodeFrame(pre, slot.dataset.sourceLink);
-            if (!controls) continue;
-
-            controls.frame.classList.add('remote-code-frame', 'is-loading');
-            controls.copy.disabled = true;
-
-            loadSource(slot)
-                .then(async selectedSource => {
-                    controls.code.textContent = selectedSource;
-                    await highlightCode(controls.code, controls.language, selectedSource);
-                    controls.frame.classList.remove('is-loading');
-                    controls.copy.disabled = false;
-                })
-                .catch(() => {
-                    controls.code.textContent = 'Unable to load tutorial source.';
-                    controls.frame.classList.remove('is-loading');
-                    controls.frame.classList.add('is-failed');
-                });
-        }
 
         for (const pre of document.querySelectorAll('body:not([data-layout="landing"]) article pre')) {
-            if (pre.closest('[data-remote-source]')) continue;
-
             const controls = createCodeFrame(pre);
             if (controls) void highlightCode(controls.code, controls.language);
         }
@@ -786,6 +666,7 @@ export default {
             const status = carousel.querySelector('[data-carousel-status]');
             const progress = carousel.querySelector('[data-carousel-progress]');
             const openLink = carousel.querySelector('[data-carousel-open]');
+            const toggleButton = carousel.querySelector('[data-carousel-toggle]');
             const previousButton = carousel.querySelector('[data-carousel-prev]');
             const nextButton = carousel.querySelector('[data-carousel-next]');
             const mobileViewport = window.matchMedia('(max-width: 767.98px)');
@@ -794,11 +675,12 @@ export default {
             let autoPlayTimer = 0;
             let autoPlayRemaining = autoPlayDuration;
             let autoPlayStartedAt = 0;
+            let isAutoPlayPaused = false;
             let isVisible = true;
             let touchStartX = 0;
             let touchStartY = 0;
 
-            if (slides.length < 2 || !title || !position || !progress || !openLink || !previousButton || !nextButton) return;
+            if (slides.length < 2 || !title || !position || !progress || !openLink || !toggleButton || !previousButton || !nextButton) return;
 
             const prepareSlide = index => {
                 const image = slides[index]?.querySelector('img[data-src]');
@@ -818,7 +700,8 @@ export default {
                 carousel.classList.remove('is-carousel-playing');
             };
 
-            const canAutoPlay = () => !reducedMotion.matches &&
+            const canAutoPlay = () => !isAutoPlayPaused &&
+                !reducedMotion.matches &&
                 !mobileViewport.matches &&
                 !document.hidden &&
                 isVisible &&
@@ -877,6 +760,23 @@ export default {
                 scheduleAutoPlay();
             };
 
+            const updateToggleButton = () => {
+                const label = isAutoPlayPaused ? 'Start automatic slide rotation' : 'Pause automatic slide rotation';
+                toggleButton.setAttribute('aria-label', label);
+                toggleButton.title = label;
+                toggleButton.innerHTML = `<i class="bi bi-${isAutoPlayPaused ? 'play-fill' : 'pause-fill'}" aria-hidden="true"></i>`;
+            };
+
+            toggleButton.addEventListener('click', () => {
+                isAutoPlayPaused = !isAutoPlayPaused;
+                updateToggleButton();
+                if (isAutoPlayPaused) {
+                    stopAutoPlay();
+                } else {
+                    autoPlayRemaining = autoPlayDuration;
+                    scheduleAutoPlay();
+                }
+            });
             previousButton.addEventListener('click', () => showSlide(activeIndex - 1, true));
             nextButton.addEventListener('click', () => showSlide(activeIndex + 1, true));
 

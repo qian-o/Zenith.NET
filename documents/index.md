@@ -6,8 +6,6 @@ _layout: landing
 
 <div class="landing-page">
     <section class="render-hero">
-        <div class="render-hero-scrim"></div>
-        <div class="render-grid"></div>
         <div class="landing-shell render-hero-inner">
             <div class="hero-copy">
                 <h1>Zenith.NET<span>Modern RHI for .NET.</span></h1>
@@ -30,34 +28,34 @@ _layout: landing
             <div class="render-viewport" data-tutorial-carousel role="region" aria-roledescription="carousel" aria-label="Zenith.NET tutorial outputs">
                 <div class="render-viewport-toolbar">
                     <span class="render-viewport-title"><i class="bi bi-image" aria-hidden="true"></i><span data-carousel-title>Hello Triangle</span></span>
-                    <span class="render-viewport-details"><span class="render-viewport-position" data-carousel-position>1 / 7</span></span>
+                    <span class="render-viewport-details"><span class="render-viewport-position" data-carousel-position>1 / 6</span></span>
                     <span class="zenith-carousel-status" data-carousel-status aria-live="polite" aria-atomic="true"></span>
-                    <a class="render-viewport-open" data-carousel-open href="tutorials/rasterization/hello-triangle.md" aria-label="Open Hello Triangle tutorial" title="Open tutorial"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+                    <span class="render-carousel-controls">
+                        <button class="render-carousel-control" type="button" data-carousel-toggle aria-label="Pause automatic slide rotation" title="Pause automatic slide rotation"><i class="bi bi-pause-fill" aria-hidden="true"></i></button>
+                        <button class="render-carousel-control" type="button" data-carousel-prev aria-label="Previous tutorial" title="Previous tutorial"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+                        <button class="render-carousel-control" type="button" data-carousel-next aria-label="Next tutorial" title="Next tutorial"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+                    </span>
+                    <a class="render-viewport-open" data-carousel-open href="tutorials/guides/hello-triangle.md" aria-label="Open Hello Triangle tutorial" title="Open tutorial"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
                 </div>
                 <div class="render-viewport-canvas">
-                    <a class="render-carousel-slide is-active" data-carousel-title="Hello Triangle" href="tutorials/rasterization/hello-triangle.md" aria-label="1 of 7: Hello Triangle" aria-current="true">
+                    <a class="render-carousel-slide is-active" data-carousel-title="Hello Triangle" href="tutorials/guides/hello-triangle.md" aria-label="1 of 6: Hello Triangle" aria-current="true">
                         <img class="render-hero-media" src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/hello-triangle.png" alt="Hello Triangle tutorial output rendered with Zenith.NET" fetchpriority="high">
                     </a>
-                    <a class="render-carousel-slide" data-carousel-title="Textured Quad" href="tutorials/rasterization/textured-quad.md" aria-label="2 of 7: Textured Quad" aria-hidden="true" tabindex="-1">
-                        <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/textured-quad.png" alt="Textured Quad tutorial output rendered with Zenith.NET">
-                    </a>
-                    <a class="render-carousel-slide" data-carousel-title="Spinning Cube" href="tutorials/rasterization/spinning-cube.md" aria-label="3 of 7: Spinning Cube" aria-hidden="true" tabindex="-1">
+                    <a class="render-carousel-slide" data-carousel-title="Spinning Cube" href="tutorials/guides/spinning-cube.md" aria-label="2 of 6: Spinning Cube" aria-hidden="true" tabindex="-1">
                         <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/spinning-cube.png" alt="Spinning Cube tutorial output rendered with Zenith.NET">
                     </a>
-                    <a class="render-carousel-slide" data-carousel-title="Image Processing" href="tutorials/workloads/image-processing.md" aria-label="4 of 7: Image Processing" aria-hidden="true" tabindex="-1">
-                        <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/compute-shader.png" alt="Image Processing tutorial output rendered with Zenith.NET">
+                    <a class="render-carousel-slide" data-carousel-title="Compute Shader" href="tutorials/guides/compute-shader.md" aria-label="3 of 6: Compute Shader" aria-hidden="true" tabindex="-1">
+                        <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/compute-shader.png" alt="Compute Shader tutorial output rendered with Zenith.NET">
                     </a>
-                    <a class="render-carousel-slide" data-carousel-title="Indirect Drawing" href="tutorials/rasterization/indirect-drawing.md" aria-label="5 of 7: Indirect Drawing" aria-hidden="true" tabindex="-1">
+                    <a class="render-carousel-slide" data-carousel-title="Indirect Drawing" href="tutorials/guides/indirect-drawing.md" aria-label="4 of 6: Indirect Drawing" aria-hidden="true" tabindex="-1">
                         <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/indirect-drawing.png" alt="Indirect Drawing tutorial output rendered with Zenith.NET">
                     </a>
-                    <a class="render-carousel-slide" data-carousel-title="Ray Tracing" href="tutorials/workloads/ray-tracing.md" aria-label="6 of 7: Ray Tracing" aria-hidden="true" tabindex="-1">
+                    <a class="render-carousel-slide" data-carousel-title="Ray Tracing" href="tutorials/guides/ray-tracing.md" aria-label="5 of 6: Ray Tracing" aria-hidden="true" tabindex="-1">
                         <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/ray-tracing.png" alt="Ray Tracing tutorial output rendered with Zenith.NET">
                     </a>
-                    <a class="render-carousel-slide" data-carousel-title="Mesh Shading" href="tutorials/workloads/mesh-shading.md" aria-label="7 of 7: Mesh Shading" aria-hidden="true" tabindex="-1">
+                    <a class="render-carousel-slide" data-carousel-title="Mesh Shading" href="tutorials/guides/mesh-shading.md" aria-label="6 of 6: Mesh Shading" aria-hidden="true" tabindex="-1">
                         <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/mesh-shading.png" alt="Mesh Shading tutorial output rendered with Zenith.NET">
                     </a>
-                    <button class="render-carousel-arrow render-carousel-arrow-prev" type="button" data-carousel-prev aria-label="Previous tutorial" title="Previous tutorial"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
-                    <button class="render-carousel-arrow render-carousel-arrow-next" type="button" data-carousel-next aria-label="Next tutorial" title="Next tutorial"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
                     <div class="render-carousel-progress" aria-hidden="true"><span data-carousel-progress></span></div>
                 </div>
             </div>
@@ -150,11 +148,11 @@ _layout: landing
                 <a href="docs/index.md">RHI guide</a>
                 <a href="tutorials/index.md">Tutorials</a>
                 <a href="api/index.md">API reference</a>
-                <a href="https://www.nuget.org/packages/Zenith.NET">NuGet packages</a>
+                <a href="https://www.nuget.org/packages?q=Zenith.NET">NuGet packages</a>
             </div>
             <div class="landing-footer-column">
                 <strong class="landing-footer-heading">Project</strong>
-                <a href="https://www.nuget.org/packages/Zenith.NET">NuGet</a>
+                <a href="https://www.nuget.org/packages?q=Zenith.NET">NuGet</a>
                 <a href="https://github.com/qian-o/Zenith.NET">Source code</a>
                 <a href="https://github.com/qian-o/Zenith.NET/issues">Issues</a>
                 <a href="https://github.com/qian-o/Zenith.NET/pulls">Pull requests</a>

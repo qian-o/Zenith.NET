@@ -1,38 +1,36 @@
-﻿# Tutorials
+# Tutorials
 
-These tutorials teach Zenith.NET by building real workloads with Slang shaders. Every page maps to a renderer in the runnable [ZenithTutorials](https://github.com/qian-o/ZenithTutorials) repository, so you can read the explanation here and run the exact same code locally.
+The Zenith.NET tutorials examine complete rendering workloads built with C# and the Slang shader language. Each guide focuses on the resources, pipelines, commands, data contracts, and lifetime rules that connect a workload to Zenith.NET.
 
-## How the Tutorials Work
+Begin with Project Setup and Application Host. The six guides then move from a first graphics pipeline to compute, indirect drawing, inline ray queries, and programmable geometry.
 
-The tutorial repository ships one desktop host application and one renderer per tutorial. The host owns everything a renderer needs to run: the graphics context, the window, the frame loop, and the shared assets. You do this setup once in [Project Setup](getting-started/project-setup.md). After that, each tutorial adds only the renderer for its topic and never repeats host plumbing.
+> [!NOTE]
+> The guides explain the Zenith.NET integration points in detail. Supporting graphics techniques such as sampling patterns, tone mapping, and procedural mesh generation are summarized when they are not essential to the API workflow. Their complete implementations remain available in the tutorial source.
 
-## Learning Path
+## Getting started
 
-Do the setup once, then follow Rasterization in order. Each page builds on the one before it, so by the end you have written every stage of a renderer yourself. The Workloads pages branch off from there into compute, ray tracing, and mesh shading.
+- [Project Setup](getting-started/project-setup.md) creates the .NET 10 project and configures runtime assets.
+- [Application Host](getting-started/application-host.md) follows the cross-platform window, swap chain, frame loop, and offscreen texture presenter.
 
-### Getting Started
+## Guides
 
-Run the host once so every later renderer has a window, a device, and shared assets ready to go.
+| Guide | Result | Focus |
+| --- | --- | --- |
+| [Hello Triangle](guides/hello-triangle.md) | A vertex-colored triangle | Vertex input, graphics pipeline, render pass, and draw command |
+| [Spinning Cube](guides/spinning-cube.md) | A rotating depth-tested cube | Indexed geometry, constant buffers, transforms, depth, and resize |
+| [Compute Shader](guides/compute-shader.md) | A grayscale image | Storage textures, descriptor handles, dispatch, and layout transitions |
+| [Indirect Drawing](guides/indirect-drawing.md) | A grid of animated cubes | Structured instance data and indirect draw arguments |
+| [Ray Tracing](guides/ray-tracing.md) | Procedural spheres above a floor | Acceleration structures, inline ray queries, and compute output |
+| [Mesh Shading](guides/mesh-shading.md) | A culled sphere grid | Task and mesh shaders, payload compaction, and mesh dispatch |
 
-- [Project Setup](getting-started/project-setup.md) — Clone, build, and run the sample host.
+The complete, runnable implementations are maintained in the [ZenithTutorials repository](https://github.com/qian-o/ZenithTutorials). Code shown in these pages is static so it remains readable and searchable with the rest of the documentation; each guide links its complete renderer and shader at the end.
 
-### Rasterization
+## Suggested paths
 
-The classic graphics pipeline, built up one concept at a time from a single triangle to a grid of instanced objects.
+Complete [Hello Triangle](guides/hello-triangle.md) first. From there:
 
-1. [Hello Triangle](rasterization/hello-triangle.md) — Your first pixels: vertex input, a pipeline, and a draw call.
-2. [Textured Quad](rasterization/textured-quad.md) — Indexed geometry plus a sampled texture and resource handles.
-3. [Spinning Cube](rasterization/spinning-cube.md) — Motion in 3D with transform constants, culling, and depth testing.
-4. [Indirect Drawing](rasterization/indirect-drawing.md) — A grid of instanced cubes from a single indirect, instanced draw call.
+- continue with [Spinning Cube](guides/spinning-cube.md) and [Indirect Drawing](guides/indirect-drawing.md) for the graphics path;
+- continue with [Compute Shader](guides/compute-shader.md) and [Ray Tracing](guides/ray-tracing.md) for compute-produced images;
+- read [Mesh Shading](guides/mesh-shading.md) after Spinning Cube when you are comfortable with graphics pipelines, depth attachments, and GPU thread groups.
 
-### Workloads
-
-GPU techniques beyond the fixed graphics pipeline.
-
-5. [Image Processing](workloads/image-processing.md) — Step off the graphics pipeline: a compute shader per pixel.
-6. [Ray Tracing](workloads/ray-tracing.md) — Trace rays for real shadows and reflections with inline ray queries.
-7. [Mesh Shading](workloads/mesh-shading.md) — Generate geometry on the GPU with the task and mesh stages.
-
-Later pages assume the resource-handle model from Textured Quad. Indirect Drawing reuses the depth-tested setup from Spinning Cube, and Ray Tracing builds on the compute workflow from Image Processing. Skip Ray Tracing or Mesh Shading if your device does not report the matching capability.
-
-For any API concept a tutorial does not cover in depth, see the [Zenith.NET documentation](../docs/index.md).
+Ray tracing and mesh shading are optional device capabilities. Their guides show how to test support before creating workload-specific resources.

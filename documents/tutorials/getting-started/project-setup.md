@@ -1,55 +1,134 @@
-﻿# Project Setup
+# Project Setup
 
-Do this once, then jump straight into [Hello Triangle](../rasterization/hello-triangle.md). Clone the tutorial repository, build it, and run it. The host application already provides the graphics context, the window, the frame loop, and the shared assets, so every tutorial focuses only on its own renderer.
+This page creates the .NET project used throughout the guides. It installs the current Zenith.NET packages, enables the low-level C# features used for GPU uploads, and configures shader and texture assets for the build output.
 
-## What You Need
+The runnable reference implementation is maintained separately in [ZenithTutorials](https://github.com/qian-o/ZenithTutorials). You do not need to clone that repository to follow the guides.
 
-- [Git](https://git-scm.com/downloads)
-- The [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- A GPU and driver that support one backend: DirectX 12 on Windows, Metal on Apple platforms, or Vulkan on Windows, Linux, or Android
+## Requirements
 
-## Clone and Run
+Install the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) and a current graphics driver. Verify the SDK from a terminal:
 
-Clone the repository and run it. The default renderer is Hello Triangle, so a triangle window confirms your setup works.
-
-```bash
-git clone https://github.com/qian-o/ZenithTutorials.git
-cd ZenithTutorials
-dotnet run --project ZenithTutorials
+```console
+dotnet --list-sdks
 ```
 
-The project already targets .NET 10, enables unsafe code, references the Zenith.NET packages, and copies the shaders and textures to the output directory. The Slang compiler is restored with Zenith.NET, so there is no separate install step. If the window opens, you are ready to start [Hello Triangle](../rasterization/hello-triangle.md).
+Zenith.NET selects a supported graphics API for the current operating system:
 
-## Under the Hood (Optional)
+| Operating system | Graphics API |
+| --- | --- |
+| Windows | DirectX 12 |
+| macOS | Metal 4 |
+| Linux | Vulkan 1.4 |
 
-The rest of this page is reference only. You never edit the host, and you can skip straight to Hello Triangle. Come back when you want to know where a renderer gets its graphics context and how a frame reaches the screen.
+Ray tracing and mesh shading are optional device capabilities. The corresponding guides check support at runtime before creating those resources.
 
-The host picks a backend from the current operating system and creates the graphics context. It turns on the validation layer, which reports incorrect API use to the console, and creates one sampler that several tutorials reuse.
+## Create the project
 
-<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/App.cs" data-source-region="initialize-graphics-context" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/App.cs" data-language="csharp"></div>
+Create a .NET 10 console application and enter its directory:
 
-It exposes those shared values, the current size, and a helper that resolves shader paths from the output directory. Every renderer reads from here instead of creating its own context.
+```console
+dotnet new console --framework net10.0 --name ZenithTutorials
+cd ZenithTutorials
+```
 
-<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/App.cs" data-source-region="shared-services" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/App.cs" data-language="csharp"></div>
+Add the windowing package, the Zenith.NET graphics packages, and the ImageSharp extension. No version is specified, so the CLI selects the latest compatible package available from the configured NuGet sources.
 
-Common namespaces are declared once as global usings, so tutorial files stay focused on rendering. The last line makes `Buffer` mean the Zenith.NET buffer rather than `System.Buffer`.
+```console
+dotnet package add Silk.NET.Windowing
+dotnet package add Zenith.NET
+dotnet package add Zenith.NET.DirectX12
+dotnet package add Zenith.NET.Metal
+dotnet package add Zenith.NET.Vulkan
+dotnet package add Zenith.NET.Extensions.ImageSharp
+```
 
-<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Usings.cs" data-source-region="global-usings" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Usings.cs" data-language="csharp"></div>
+All three graphics packages can remain in one project. The application host creates only the graphics context selected for the current operating system.
 
-### The Renderer Contract
+## Configure the project
 
-Every tutorial implements this interface. The host drives it: `Update` advances animation, `Render` records commands into the frame's drawable, and `Resize` rebuilds size-dependent resources. `RequiredLayout` tells the host what state the drawable must be in before `Render` runs.
+Open `ZenithTutorials.csproj`. Keep the package references generated by the CLI and make sure the main property group contains these settings:
 
-<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/IRenderer.cs" data-source-region="renderer-contract" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/IRenderer.cs" data-language="csharp"></div>
+```xml
+<PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+</PropertyGroup>
+```
 
-Running the host prints a numbered menu of every renderer. Type the number to launch that tutorial, so switching between tutorials needs no code changes.
+Several guides upload unmanaged structures by pointer, so `AllowUnsafeBlocks` is required. Nullable analysis remains enabled for resources that are created lazily or recreated after a resize.
 
-<div data-remote-source="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Program.cs" data-source-region="application-entry" data-source-link="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Program.cs" data-language="csharp"></div>
+`AllowUnsafeBlocks` permits unsafe code to compile; the type or method containing each pointer expression must still be declared `unsafe`. The reference host and the renderers that upload structures by pointer include that declaration in their complete source files.
 
-### The Shared Texture
+Shaders and textures are opened at runtime from the application directory. Add this item group after the package references:
 
-Textured Quad and Image Processing both load this image. It is already in the repository under `Assets/Textures/shoko.png`, so there is nothing to download.
+```xml
+<ItemGroup>
+    <None Update="Assets/Shaders/**/*;Assets/Textures/**/*">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+</ItemGroup>
+```
 
-[![Tutorial texture](https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Textures/shoko.png)](https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Textures/shoko.png)
+`PreserveNewest` copies changed assets without rewriting every file on every build.
 
-For the concepts behind the host, see [Runtime](../../docs/fundamentals/runtime.md) and [Commands](../../docs/fundamentals/commands.md).
+## Create the source layout
+
+Create the following folders and files as the guides introduce them:
+
+```text
+ZenithTutorials/
+├── Assets/
+│   ├── Shaders/
+│   └── Textures/
+├── Renderers/
+├── App.cs
+├── CocoaHelper.cs
+├── IRenderer.cs
+├── Program.cs
+├── TexturePresenter.cs
+├── Usings.cs
+└── ZenithTutorials.csproj
+```
+
+The application host is shared by every guide. Each workload adds one renderer under `Renderers` and one Slang source file under `Assets/Shaders`.
+
+These guides are walkthroughs of the current reference implementation rather than file-by-file listings. Each code fence is a contiguous excerpt from that implementation. Use the **Complete source** links at the end of a page when assembling the runnable file; the surrounding text explains why the excerpt exists and how it participates in the workload.
+
+## Add shared namespaces
+
+Create `Usings.cs`:
+
+```csharp
+global using System.Numerics;
+global using System.Runtime.CompilerServices;
+global using System.Runtime.InteropServices;
+global using Zenith.NET;
+global using Zenith.NET.Extensions.ImageSharp;
+global using Buffer = Zenith.NET.Buffer;
+```
+
+The alias on the final line resolves the name shared by `System.Buffer` and `Zenith.NET.Buffer`. `System.Numerics` supplies the vectors and matrices used by both the CPU data structures and the camera calculations.
+
+## Build the empty project
+
+Build once before adding the host:
+
+```console
+dotnet build
+```
+
+A successful build confirms that the SDK and packages restore correctly. No graphics device or window is created during `dotnet build`; those operations begin when the application runs.
+
+Continue with [Application Host](application-host.md) to add the shared window, graphics context, swap chain, and frame loop.
+
+## Reference project
+
+The finished project configuration and shared usings are available in the tutorial repository:
+
+- [ZenithTutorials.csproj](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/ZenithTutorials.csproj)
+- [Usings.cs](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Usings.cs)
+
+The reference repository uses local project references so it can track Zenith.NET development. For a standalone reader project, keep the NuGet package references created above.

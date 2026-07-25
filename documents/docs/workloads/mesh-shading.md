@@ -42,11 +42,11 @@ commandBuffer.DispatchMesh(groupCountX, groupCountY, groupCountZ);
 commandBuffer.EndRenderPass();
 ```
 
-The dispatch counts select mesh shader workgroups. The shader determines how many vertices and primitives each workgroup emits.
+Without a task stage, the dispatch counts select mesh shader workgroups directly. When `TaskShader` is present, they select task shader workgroups, and each task workgroup determines how many mesh shader workgroups to launch. Each mesh shader workgroup determines how many vertices and primitives it emits.
 
 ## Dispatch Indirectly
 
-`DispatchMeshIndirect` reads one or more `IndirectDispatchMeshArgs` records.
+`DispatchMeshIndirect` reads one or more `IndirectDispatchMeshArgs` records. Its counts follow the same task-versus-mesh workgroup interpretation as `DispatchMesh`.
 
 Create the argument buffer with `BufferUsages.Indirect`. If earlier GPU work writes the arguments, also add the matching storage usage and record a barrier before dispatch.
 
