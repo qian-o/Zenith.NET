@@ -1,5 +1,5 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 204 64" role="img" aria-labelledby="logo-title" shape-rendering="geometricPrecision">
-    <title id="logo-title">Zenith.NET</title>
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 204 64" role="img" aria-labelledby="title" shape-rendering="geometricPrecision">
+    <title id="title">Zenith.NET</title>
     <defs>
         <linearGradient id="logo-surface" x1="9" y1="5" x2="57" y2="61" gradientUnits="userSpaceOnUse">
             <stop offset="0" stop-color="#8A63FF" />
