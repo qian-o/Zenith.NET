@@ -1,4 +1,4 @@
-# Mesh Shading
+﻿# Mesh Shading
 
 Mesh Shading replaces fixed vertex and index fetch with programmable task and mesh stages. This workload renders a $10 \times 10 \times 10$ sphere grid. Task threads test candidate instances against the camera frustum, compact visible IDs into a payload, and launch one mesh workgroup for each surviving sphere.
 

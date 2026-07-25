@@ -1,4 +1,4 @@
-# Indirect Drawing
+﻿# Indirect Drawing
 
 Indirect Drawing reuses the depth-tested cube pipeline to render a $5 \times 5$ grid of animated instances. One structured buffer stores the model matrix and tint for each cube, while one indirect argument record supplies the indexed draw counts to the GPU.
 

@@ -1,4 +1,4 @@
-# Ray Tracing
+﻿# Ray Tracing
 
 Ray Tracing reuses the compute-output flow from Compute Shader, but each thread now traces a camera ray through an acceleration structure. The scene contains a triangle floor and three procedural spheres represented by axis-aligned bounding boxes.
 

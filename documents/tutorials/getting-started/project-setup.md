@@ -1,4 +1,4 @@
-# Project Setup
+﻿# Project Setup
 
 This page creates the .NET project used throughout the guides. It installs the current Zenith.NET packages, enables the low-level C# features used for GPU uploads, and configures shader and texture assets for the build output.
 

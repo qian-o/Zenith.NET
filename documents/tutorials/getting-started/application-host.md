@@ -1,4 +1,4 @@
-# Application Host
+﻿# Application Host
 
 Every workload guide runs inside the same application host. The host owns the window and graphics context, creates the swap chain, records the outer frame transitions, and presents textures produced by compute workloads.
 

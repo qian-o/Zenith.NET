@@ -2778,9 +2778,9 @@ body > footer {
         height: 26px;
     }
 
-    .render-carousel-control[data-carousel-toggle] {
-        display: none !important;
-    }
+        .render-carousel-control[data-carousel-toggle] {
+            display: none !important;
+        }
 
     .render-carousel-progress {
         display: none !important;
@@ -2793,9 +2793,9 @@ body > footer {
         transition: none !important;
     }
 
-    .render-carousel-control[data-carousel-toggle] {
-        display: none !important;
-    }
+        .render-carousel-control[data-carousel-toggle] {
+            display: none !important;
+        }
 
     .render-carousel-progress {
         display: none !important;

@@ -1,4 +1,4 @@
-# Compute Shader
+﻿# Compute Shader
 
 Compute Shader produces an image without a render pass. A compute pipeline reads a sampled texture, converts one pixel per thread to grayscale, and writes a storage texture. The host then presents that output with its shared fullscreen-triangle pipeline.
 

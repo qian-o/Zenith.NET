@@ -1,4 +1,4 @@
-# Spinning Cube
+﻿# Spinning Cube
 
 Spinning Cube extends the first graphics workload into three dimensions. It reuses vertex input and a graphics pipeline, then adds indexed geometry, model-view-projection constants, back-face culling, a depth attachment, animation, and size-dependent resource handling.
 

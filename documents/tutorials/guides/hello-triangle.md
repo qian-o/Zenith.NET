@@ -1,4 +1,4 @@
-# Hello Triangle
+﻿# Hello Triangle
 
 Hello Triangle is the smallest complete graphics workload in the series. It uploads three colored vertices, compiles one vertex and one fragment entry point, creates a graphics pipeline, and records a single draw into the swap-chain texture.
 
