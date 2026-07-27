@@ -128,21 +128,21 @@ internal unsafe class FluidTankRenderer : IDisposable
             ColorFormats = [PixelFormat.R32Float, PixelFormat.R16G16B16A16Float],
             DepthStencilFormat = PixelFormat.D32FloatS8UInt,
             SampleCount = SampleCount.Count1
-        }, RasterizerState.CullNone(), DepthStencilState.DepthReadWrite(), BlendState.Opaque());
+        }, RasterizerState.CullNone(), DepthStencilState.DepthReadWrite(), BlendState.Opaque(), PrimitiveTopology.TriangleStrip);
 
         fluidThicknessPipeline = CreateGraphicsPipeline("FluidSurface.slang", "SurfaceVS", "ThicknessFS", [], new()
         {
             ColorFormats = [PixelFormat.R16Float],
             DepthStencilFormat = PixelFormat.D32FloatS8UInt,
             SampleCount = SampleCount.Count1
-        }, RasterizerState.CullNone(), DepthStencilState.DepthRead(), AdditiveBlend());
+        }, RasterizerState.CullNone(), DepthStencilState.DepthRead(), AdditiveBlend(), PrimitiveTopology.TriangleStrip);
 
         particlePipeline = CreateGraphicsPipeline("FluidSurface.slang", "SurfaceVS", "ParticleFS", [], new()
         {
             ColorFormats = [PixelFormat.B8G8R8A8UNorm],
             DepthStencilFormat = PixelFormat.D32FloatS8UInt,
             SampleCount = SampleCount.Count1
-        }, RasterizerState.CullNone(), DepthStencilState.DepthReadWrite(), BlendState.Opaque());
+        }, RasterizerState.CullNone(), DepthStencilState.DepthReadWrite(), BlendState.Opaque(), PrimitiveTopology.TriangleStrip);
 
         blurPipeline = CreateComputePipeline("FluidBlur.slang", "BlurCS");
         blurThicknessPipeline = CreateComputePipeline("FluidBlur.slang", "BlurThicknessCS");
@@ -348,7 +348,7 @@ internal unsafe class FluidTankRenderer : IDisposable
         commandBuffer.BeginRenderPass([ColorAttachment.Clear(smoothThicknessA, Vector4.Zero)], DepthStencilAttachment.Clear(reconstructionDepth, 1.0f, 0));
         commandBuffer.SetPipeline(fluidThicknessPipeline);
         commandBuffer.SetConstantBuffer(surfaceConstantBuffer, 0);
-        commandBuffer.Draw(6, simulation.ParticleCount, 0, 0);
+        commandBuffer.Draw(4, simulation.ParticleCount, 0, 0);
         commandBuffer.EndRenderPass();
         commandBuffer.Transition(smoothThicknessA, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
 
@@ -362,7 +362,7 @@ internal unsafe class FluidTankRenderer : IDisposable
         ], DepthStencilAttachment.Clear(reconstructionDepth, 1.0f, 0));
         commandBuffer.SetPipeline(fluidDepthPipeline);
         commandBuffer.SetConstantBuffer(surfaceConstantBuffer, 0);
-        commandBuffer.Draw(6, simulation.ParticleCount, 0, 0);
+        commandBuffer.Draw(4, simulation.ParticleCount, 0, 0);
         commandBuffer.EndRenderPass();
 
         commandBuffer.Transition(smoothDepthA, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
@@ -621,7 +621,7 @@ internal unsafe class FluidTankRenderer : IDisposable
         commandBuffer.BeginRenderPass([ColorAttachment.Load(Color)], DepthStencilAttachment.Load(DepthStencil));
         commandBuffer.SetPipeline(particlePipeline);
         commandBuffer.SetConstantBuffer(surfaceConstantBuffer, 0);
-        commandBuffer.Draw(6, simulation.ParticleCount, 0, 0);
+        commandBuffer.Draw(4, simulation.ParticleCount, 0, 0);
         DrawGlass(commandBuffer);
         commandBuffer.EndRenderPass();
 
@@ -729,7 +729,8 @@ internal unsafe class FluidTankRenderer : IDisposable
                                                            AttachmentFormats formats,
                                                            RasterizerState rasterizer,
                                                            DepthStencilState depthStencil,
-                                                           BlendState blend)
+                                                           BlendState blend,
+                                                           PrimitiveTopology primitiveTopology = PrimitiveTopology.TriangleList)
     {
         string shaderPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", file);
         using Shader vertex = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, vertexEntry));
@@ -740,7 +741,7 @@ internal unsafe class FluidTankRenderer : IDisposable
             VertexShader = vertex,
             FragmentShader = fragment,
             InputLayouts = inputLayouts,
-            PrimitiveTopology = PrimitiveTopology.TriangleList,
+            PrimitiveTopology = primitiveTopology,
             AttachmentFormats = formats,
             RenderState = new()
             {

@@ -66,11 +66,9 @@ float2 QuadCorner(uint vertexId)
 {
     if (vertexId == 0) return float2(-1.0, -1.0);
     if (vertexId == 1) return float2(1.0, -1.0);
-    if (vertexId == 2) return float2(1.0, 1.0);
-    if (vertexId == 3) return float2(-1.0, -1.0);
-    if (vertexId == 4) return float2(1.0, 1.0);
+    if (vertexId == 2) return float2(-1.0, 1.0);
 
-    return float2(-1.0, 1.0);
+    return float2(1.0, 1.0);
 }
 
 [shader("vertex")]
@@ -82,13 +80,19 @@ SurfaceVSOutput SurfaceVS(uint vertexId : SV_VertexID, uint instanceId : SV_Inst
     float3 velocity = particle.VelocityLambda.xyz;
     float speed = length(velocity);
     float density = particle.PositionDensity.w / surface.RestDensity;
-    float2 projectedVelocity = float2(dot(velocity, surface.CameraRight), dot(velocity, surface.CameraUp));
-    float projectedSpeed = length(projectedVelocity);
-    float2 direction = projectedSpeed > 0.001 ? projectedVelocity / projectedSpeed : float2(1.0, 0.0);
-    float stretchWeight = surface.RenderMode == 0 ? smoothstep(0.35, 3.2, speed) * (0.45 + 0.55 * (1.0 - smoothstep(0.68, 1.05, density))) : 0.0;
-    float majorScale = 1.0 + stretchWeight * 1.65;
-    float minorScale = 1.0 - stretchWeight * 0.25;
-    float2 offset = direction * corner.x * majorScale + float2(-direction.y, direction.x) * corner.y * minorScale;
+    float2 offset = corner;
+
+    if (surface.RenderMode == 0)
+    {
+        float2 projectedVelocity = float2(dot(velocity, surface.CameraRight), dot(velocity, surface.CameraUp));
+        float projectedSpeed = length(projectedVelocity);
+        float2 direction = projectedSpeed > 0.001 ? projectedVelocity / projectedSpeed : float2(1.0, 0.0);
+        float stretchWeight = smoothstep(0.35, 3.2, speed) * (0.45 + 0.55 * (1.0 - smoothstep(0.68, 1.05, density)));
+        float majorScale = 1.0 + stretchWeight * 1.65;
+        float minorScale = 1.0 - stretchWeight * 0.25;
+        offset = direction * corner.x * majorScale + float2(-direction.y, direction.x) * corner.y * minorScale;
+    }
+
     float3 billboardPosition = worldPosition + (surface.CameraRight * offset.x + surface.CameraUp * offset.y) * surface.ParticleRadius;
     float4 centerView = mul(float4(worldPosition, 1.0), surface.View);
 

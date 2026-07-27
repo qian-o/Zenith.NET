@@ -24,23 +24,22 @@ internal unsafe class FluidSimulation : IDisposable
     private readonly Buffer pressureA;
 
     private readonly ComputePipeline resetPipeline;
-    private readonly ComputePipeline beginStepPipeline;
+    private readonly ComputePipeline initializeGridPipeline;
     private readonly ComputePipeline clearGridPipeline;
-    private readonly ComputePipeline clearPressurePipeline;
+    private readonly ComputePipeline beginParticleToGridPipeline;
     private readonly ComputePipeline particleToGridPipeline;
-    private readonly ComputePipeline normalizeGridPipeline;
-    private readonly ComputePipeline applyForcesPipeline;
+    private readonly ComputePipeline normalizeAndApplyForcesPipeline;
     private readonly ComputePipeline divergencePipeline;
     private readonly ComputePipeline pressureRedPipeline;
     private readonly ComputePipeline pressureBlackPipeline;
     private readonly ComputePipeline projectGridPipeline;
-    private readonly ComputePipeline gridToParticlePipeline;
-    private readonly ComputePipeline advectParticlesPipeline;
+    private readonly ComputePipeline gridToParticleAndAdvectPipeline;
 
     private bool resetRequested = true;
     private Vector3 interactionOrigin;
     private Vector3 interactionDirection;
     private float interactionStrength;
+    private readonly uint pressureParityDispatchCount;
     private TimelineValue ready;
 
     public FluidSimulation()
@@ -49,10 +48,11 @@ internal unsafe class FluidSimulation : IDisposable
 
         Vector3 tankExtent = TankMax - TankMin;
         GridDimensions = new((uint)MathF.Ceiling(tankExtent.X / GridSpacing),
-                     (uint)MathF.Ceiling(tankExtent.Y / GridSpacing),
-                     (uint)MathF.Ceiling(tankExtent.Z / GridSpacing));
+                             (uint)MathF.Ceiling(tankExtent.Y / GridSpacing),
+                             (uint)MathF.Ceiling(tankExtent.Z / GridSpacing));
         CellCount = GridDimensions.X * GridDimensions.Y * GridDimensions.Z;
         GridPointCount = (GridDimensions.X + 1) * (GridDimensions.Y + 1) * (GridDimensions.Z + 1);
+        pressureParityDispatchCount = (GridDimensions.X + 1) / 2 * GridDimensions.Y * GridDimensions.Z;
 
         constantBuffer = App.Context.CreateBuffer(new()
         {
@@ -63,29 +63,27 @@ internal unsafe class FluidSimulation : IDisposable
 
         particles = CreateStorageBuffer(ParticleCount, 32, includeReadOnly: true);
         previousPositions = CreateStorageBuffer(ParticleCount, 16, includeReadOnly: true);
-    particleAffine = CreateStorageBuffer(ParticleCount * 3, 16, includeReadOnly: false);
-    gridAccumulation = CreateStorageBuffer(GridPointCount * 6, sizeof(int), includeReadOnly: false);
-    gridVelocity = CreateStorageBuffer(GridPointCount, 16, includeReadOnly: false);
-    gridVelocityOld = CreateStorageBuffer(GridPointCount, 16, includeReadOnly: false);
-    cellTypes = CreateStorageBuffer(CellCount, sizeof(uint), includeReadOnly: false);
-    divergence = CreateStorageBuffer(CellCount, sizeof(float), includeReadOnly: false);
-    pressureA = CreateStorageBuffer(CellCount, sizeof(float), includeReadOnly: false);
+        particleAffine = CreateStorageBuffer(ParticleCount * 3, 16, includeReadOnly: false);
+        gridAccumulation = CreateStorageBuffer(GridPointCount * 6, sizeof(int), includeReadOnly: false);
+        gridVelocity = CreateStorageBuffer(GridPointCount, 16, includeReadOnly: false);
+        gridVelocityOld = CreateStorageBuffer(GridPointCount, 16, includeReadOnly: false);
+        cellTypes = CreateStorageBuffer(CellCount, sizeof(uint), includeReadOnly: false);
+        divergence = CreateStorageBuffer(CellCount, sizeof(float), includeReadOnly: false);
+        pressureA = CreateStorageBuffer(CellCount, sizeof(float), includeReadOnly: false);
 
-    string shaderPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "FluidSimulationAPIC.slang");
+        string shaderPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "FluidSimulationAPIC.slang");
 
         resetPipeline = CreatePipeline(shaderPath, "ResetCS");
-    beginStepPipeline = CreatePipeline(shaderPath, "BeginStepCS");
+        initializeGridPipeline = CreatePipeline(shaderPath, "InitializeGridCS");
         clearGridPipeline = CreatePipeline(shaderPath, "ClearGridCS");
-        clearPressurePipeline = CreatePipeline(shaderPath, "ClearPressureCS");
-    particleToGridPipeline = CreatePipeline(shaderPath, "ParticleToGridCS");
-    normalizeGridPipeline = CreatePipeline(shaderPath, "NormalizeGridCS");
-    applyForcesPipeline = CreatePipeline(shaderPath, "ApplyForcesCS");
-    divergencePipeline = CreatePipeline(shaderPath, "DivergenceCS");
-    pressureRedPipeline = CreatePipeline(shaderPath, "PressureRedCS");
-    pressureBlackPipeline = CreatePipeline(shaderPath, "PressureBlackCS");
-    projectGridPipeline = CreatePipeline(shaderPath, "ProjectGridCS");
-    gridToParticlePipeline = CreatePipeline(shaderPath, "GridToParticleCS");
-    advectParticlesPipeline = CreatePipeline(shaderPath, "AdvectParticlesCS");
+        beginParticleToGridPipeline = CreatePipeline(shaderPath, "BeginParticleToGridCS");
+        particleToGridPipeline = CreatePipeline(shaderPath, "ParticleToGridCS");
+        normalizeAndApplyForcesPipeline = CreatePipeline(shaderPath, "NormalizeAndApplyForcesCS");
+        divergencePipeline = CreatePipeline(shaderPath, "DivergenceCS");
+        pressureRedPipeline = CreatePipeline(shaderPath, "PressureRedCS");
+        pressureBlackPipeline = CreatePipeline(shaderPath, "PressureBlackCS");
+        projectGridPipeline = CreatePipeline(shaderPath, "ProjectGridCS");
+        gridToParticleAndAdvectPipeline = CreatePipeline(shaderPath, "GridToParticleAndAdvectCS");
     }
 
     public uint ParticleCount { get; }
@@ -197,28 +195,22 @@ internal unsafe class FluidSimulation : IDisposable
         {
             Dispatch(commandBuffer, resetPipeline, ParticleCount);
             commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-            Dispatch(commandBuffer, clearPressurePipeline, CellCount);
+            Dispatch(commandBuffer, initializeGridPipeline, CellCount);
             commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
             resetRequested = false;
         }
 
         if (!paused)
         {
-            Dispatch(commandBuffer, beginStepPipeline, ParticleCount);
-            commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-
             for (uint substep = 0; substep < Substeps; substep++)
             {
                 Dispatch(commandBuffer, clearGridPipeline, Math.Max(GridPointCount * 6, CellCount));
                 commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
-                Dispatch(commandBuffer, particleToGridPipeline, ParticleCount);
+                Dispatch(commandBuffer, substep is 0 ? beginParticleToGridPipeline : particleToGridPipeline, ParticleCount);
                 commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
-                Dispatch(commandBuffer, normalizeGridPipeline, GridPointCount);
-                commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-
-                Dispatch(commandBuffer, applyForcesPipeline, GridPointCount);
+                Dispatch(commandBuffer, normalizeAndApplyForcesPipeline, GridPointCount);
                 commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
                 Dispatch(commandBuffer, divergencePipeline, CellCount);
@@ -226,20 +218,17 @@ internal unsafe class FluidSimulation : IDisposable
 
                 for (int iteration = 0; iteration < PressureIterations; iteration++)
                 {
-                    Dispatch(commandBuffer, pressureRedPipeline, CellCount);
+                    Dispatch(commandBuffer, pressureRedPipeline, pressureParityDispatchCount);
                     commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
-                    Dispatch(commandBuffer, pressureBlackPipeline, CellCount);
+                    Dispatch(commandBuffer, pressureBlackPipeline, pressureParityDispatchCount);
                     commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
                 }
 
                 Dispatch(commandBuffer, projectGridPipeline, GridPointCount);
                 commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
-                Dispatch(commandBuffer, gridToParticlePipeline, ParticleCount);
-                commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-
-                Dispatch(commandBuffer, advectParticlesPipeline, ParticleCount);
+                Dispatch(commandBuffer, gridToParticleAndAdvectPipeline, ParticleCount);
                 commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
             }
         }
@@ -254,18 +243,16 @@ internal unsafe class FluidSimulation : IDisposable
 
     public void Dispose()
     {
-        advectParticlesPipeline.Dispose();
-        gridToParticlePipeline.Dispose();
+        gridToParticleAndAdvectPipeline.Dispose();
         projectGridPipeline.Dispose();
         pressureBlackPipeline.Dispose();
         pressureRedPipeline.Dispose();
         divergencePipeline.Dispose();
-        applyForcesPipeline.Dispose();
-        normalizeGridPipeline.Dispose();
+        normalizeAndApplyForcesPipeline.Dispose();
         particleToGridPipeline.Dispose();
-        clearPressurePipeline.Dispose();
+        beginParticleToGridPipeline.Dispose();
         clearGridPipeline.Dispose();
-        beginStepPipeline.Dispose();
+        initializeGridPipeline.Dispose();
         resetPipeline.Dispose();
 
         pressureA.Dispose();
