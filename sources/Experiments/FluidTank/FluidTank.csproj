@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>$(StandardTargetFramework)</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Extensions\Zenith.NET.Extensions.ImGui\Zenith.NET.Extensions.ImGui.csproj" />
+        <ProjectReference Include="..\..\Zenith.NET.DirectX12\Zenith.NET.DirectX12.csproj" />
+        <ProjectReference Include="..\..\Zenith.NET.Metal\Zenith.NET.Metal.csproj" />
+        <ProjectReference Include="..\..\Zenith.NET.Vulkan\Zenith.NET.Vulkan.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Silk.NET.Input" />
+        <PackageReference Include="Silk.NET.Windowing" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="Assets\**">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+</Project>
