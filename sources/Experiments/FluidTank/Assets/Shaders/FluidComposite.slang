@@ -133,12 +133,17 @@ float4 ShadeWater(FullscreenOutput input)
     }
 
     float thickness = (*composite.Thickness).SampleLevel(*composite.Sampler, uv, 0.0).r;
+    float4 attributes = (*composite.Attributes).SampleLevel(*composite.Sampler, uv, 0.0);
+    float surfaceConfidence = smoothstep(0.105, 0.135, thickness);
+
+    if (surfaceConfidence <= 0.01)
+    {
+        return float4(ToSRGB(ACESFilm(SceneAt(uv))), 1.0);
+    }
 
     float3 normalView = ReconstructNormal(uv, fluidDepth);
     float3 normalWorld = normalize(mul(float4(normalView, 0.0), composite.InvView).xyz);
 
-    float4 attributes = (*composite.Attributes).SampleLevel(*composite.Sampler, uv, 0.0);
-    float surfaceConfidence = smoothstep(0.008, 0.055, thickness);
     float3 worldPosition = ReconstructWorldPosition(uv, fluidDepth);
     float3 viewDirection = normalize(composite.CameraPosition - worldPosition);
     float ndotv = saturate(dot(normalWorld, viewDirection));
@@ -159,21 +164,17 @@ float4 ShadeWater(FullscreenOutput input)
     float3 lightDirection = normalize(-composite.SunDirection);
     float3 halfVector = normalize(viewDirection + lightDirection);
     float sunSpecular = pow(saturate(dot(normalWorld, halfVector)), 240.0) * 3.2;
-    float waveCaustic = pow(saturate(0.72 + 0.28 * sin(worldPosition.x * 7.0 + composite.Time * 2.2) * sin(worldPosition.z * 8.0 - composite.Time * 1.7)), 7.0);
-    float normalFocus = saturate(1.0 - abs(normalWorld.y - 0.72) * 2.2);
-    refracted += float3(0.18, 0.55, 0.72) * waveCaustic * normalFocus * (1.0 - transmission) * 0.18;
 
     float densityEdge = saturate((0.68 - attributes.y) * 3.0);
     float speedFoam = saturate((attributes.x - 0.28) * 1.8);
     float thinFoam = saturate((0.22 - thickness) * 5.0);
     float foam = saturate(speedFoam * thinFoam * 0.72 + densityEdge * speedFoam * 0.22);
-    foam *= 0.58 + 0.42 * sin(worldPosition.x * 21.0 + worldPosition.z * 17.0 + composite.Time * 4.0);
 
     float3 color = lerp(refracted, reflected, fresnel);
     color += sunSpecular * float3(1.0, 0.94, 0.78);
     color = lerp(color, float3(0.76, 0.92, 0.96), saturate(foam) * 0.72);
 
-    color = lerp(SceneAt(uv), color, surfaceConfidence * 0.94 + 0.06);
+    color = lerp(SceneAt(uv), color, surfaceConfidence);
 
     return float4(ToSRGB(ACESFilm(color)), 1.0);
 }

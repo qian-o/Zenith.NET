@@ -87,6 +87,42 @@ void BlurCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     float centerDepth = (*blur.InputTexture).Load(int3(pixel, 0));
     if (centerDepth <= 0.0)
     {
+        int2 direction = blur.Direction == 0 ? int2(1, 0) : int2(0, 1);
+        int bridgeRadius = min(int(blur.Radius), 4);
+        float negativeDepth = 0.0;
+        float positiveDepth = 0.0;
+        int negativeDistance = 0;
+        int positiveDistance = 0;
+
+        for (int offset = 1; offset <= bridgeRadius; offset++)
+        {
+            int2 negativePixel = clamp(int2(pixel) - direction * offset, int2(0, 0), int2(int(blur.Width) - 1, int(blur.Height) - 1));
+            int2 positivePixel = clamp(int2(pixel) + direction * offset, int2(0, 0), int2(int(blur.Width) - 1, int(blur.Height) - 1));
+
+            if (negativeDepth <= 0.0)
+            {
+                negativeDepth = (*blur.InputTexture).Load(int3(negativePixel, 0));
+                negativeDistance = negativeDepth > 0.0 ? offset : 0;
+            }
+
+            if (positiveDepth <= 0.0)
+            {
+                positiveDepth = (*blur.InputTexture).Load(int3(positivePixel, 0));
+                positiveDistance = positiveDepth > 0.0 ? offset : 0;
+            }
+        }
+
+        float depthDifference = abs(negativeDepth - positiveDepth);
+        float bridgeRange = blur.DepthSigma * (0.85 + min(negativeDepth, positiveDepth) * 0.015) * 2.5;
+
+        if (negativeDepth > 0.0 && positiveDepth > 0.0 && depthDifference < bridgeRange)
+        {
+            float distanceSum = float(negativeDistance + positiveDistance);
+            (*blur.OutputTexture)[pixel] = (negativeDepth * positiveDistance + positiveDepth * negativeDistance) / distanceSum;
+
+            return;
+        }
+
         (*blur.OutputTexture)[pixel] = 0.0;
 
         return;

@@ -14,6 +14,7 @@ struct SurfaceConstants
     property float3 CameraUp { get { return CameraUpAndRestDensity.xyz; } }
     property float RestDensity { get { return CameraUpAndRestDensity.w; } }
     property uint ParticleCount { get { return CountsAndPadding.x; } }
+    property uint RenderMode { get { return CountsAndPadding.y; } }
 };
 
 struct SurfaceVSOutput
@@ -63,15 +64,25 @@ SurfaceVSOutput SurfaceVS(uint vertexId : SV_VertexID, uint instanceId : SV_Inst
     Particle particle = surface.Particles[instanceId];
     float2 corner = QuadCorner(vertexId);
     float3 worldPosition = particle.PositionDensity.xyz;
-    float3 billboardPosition = worldPosition + (surface.CameraRight * corner.x + surface.CameraUp * corner.y) * surface.ParticleRadius;
+    float3 velocity = particle.VelocityLambda.xyz;
+    float speed = length(velocity);
+    float density = particle.PositionDensity.w / surface.RestDensity;
+    float2 projectedVelocity = float2(dot(velocity, surface.CameraRight), dot(velocity, surface.CameraUp));
+    float projectedSpeed = length(projectedVelocity);
+    float2 direction = projectedSpeed > 0.001 ? projectedVelocity / projectedSpeed : float2(1.0, 0.0);
+    float stretchWeight = surface.RenderMode == 0 ? smoothstep(0.35, 3.2, speed) * (0.45 + 0.55 * (1.0 - smoothstep(0.68, 1.05, density))) : 0.0;
+    float majorScale = 1.0 + stretchWeight * 1.65;
+    float minorScale = 1.0 - stretchWeight * 0.25;
+    float2 offset = direction * corner.x * majorScale + float2(-direction.y, direction.x) * corner.y * minorScale;
+    float3 billboardPosition = worldPosition + (surface.CameraRight * offset.x + surface.CameraUp * offset.y) * surface.ParticleRadius;
     float4 centerView = mul(float4(worldPosition, 1.0), surface.View);
 
     SurfaceVSOutput output;
     output.Position = mul(mul(float4(billboardPosition, 1.0), surface.View), surface.Projection);
     output.Corner = corner;
     output.CenterView = centerView.xyz;
-    output.Speed = length(particle.VelocityLambda.xyz);
-    output.Density = particle.PositionDensity.w / surface.RestDensity;
+    output.Speed = speed;
+    output.Density = density;
 
     return output;
 }

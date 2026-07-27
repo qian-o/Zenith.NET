@@ -87,6 +87,17 @@ uint CellIndex(int3 cell)
     return uint(cell.x) + uint(cell.y) * simulation.GridDimensions.x + uint(cell.z) * simulation.GridDimensions.x * simulation.GridDimensions.y;
 }
 
+int3 CellCoordinates(uint index)
+{
+    uint slice = simulation.GridDimensions.x * simulation.GridDimensions.y;
+    uint z = index / slice;
+    uint remainder = index - z * slice;
+    uint y = remainder / simulation.GridDimensions.x;
+    uint x = remainder - y * simulation.GridDimensions.x;
+
+    return int3(x, y, z);
+}
+
 float RoundedBoxSdf(float3 position, float3 center, float3 halfExtents, float radius)
 {
     float3 q = abs(position - center) - halfExtents + radius;
@@ -249,6 +260,9 @@ void BuildGridCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     int previousHead;
     InterlockedExchange(simulation.GridHeads[cell], int(index), previousHead);
     simulation.ParticleNext[index] = previousHead;
+    float4 velocityData = simulation.NewVelocities[index];
+    velocityData.w = asfloat(cell);
+    simulation.NewVelocities[index] = velocityData;
 }
 
 [shader("compute")]
@@ -263,7 +277,7 @@ void DensityCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     Particle particle = simulation.Particles[index];
     float3 position = ParticlePosition(particle);
-    int3 centerCell = PositionToCell(position);
+    int3 centerCell = CellCoordinates(asuint(simulation.NewVelocities[index].w));
     float density = 0.0;
     float3 gradientI = float3(0.0, 0.0, 0.0);
     float gradientSum = 0.0;
@@ -321,8 +335,10 @@ void DeltaCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     Particle particle = simulation.Particles[index];
     float3 position = ParticlePosition(particle);
-    int3 centerCell = PositionToCell(position);
+    int3 centerCell = CellCoordinates(asuint(simulation.NewVelocities[index].w));
     float3 delta = float3(0.0, 0.0, 0.0);
+    float3 viscosity = float3(0.0, 0.0, 0.0);
+    float3 cohesion = float3(0.0, 0.0, 0.0);
     float referenceKernel = Kernel(float3(simulation.SmoothingRadius * 0.30, 0.0, 0.0));
 
     for (int z = -1; z <= 1; z++)
@@ -351,6 +367,8 @@ void DeltaCS(uint3 dispatchThreadID : SV_DispatchThreadID)
                             float ratio = weight / max(referenceKernel, 0.0001);
                             float correction = -0.0025 * ratio * ratio * ratio * ratio;
                             delta += (particle.VelocityLambda.w + neighborParticle.VelocityLambda.w + correction) * KernelGradient(offset);
+                            viscosity += (ParticleVelocity(neighborParticle) - ParticleVelocity(particle)) * weight;
+                            cohesion -= offset * weight;
                         }
                     }
 
@@ -361,6 +379,8 @@ void DeltaCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     }
 
     simulation.DeltaPositions[index] = float4(delta / simulation.RestDensity, 0.0);
+    simulation.NewVelocities[index] = float4(viscosity * simulation.Viscosity + cohesion * simulation.SurfaceTension * simulation.TimeStep,
+                                             simulation.NewVelocities[index].w);
 }
 
 [shader("compute")]
@@ -399,44 +419,12 @@ void VelocityCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     Particle particle = simulation.Particles[index];
     float3 position = ParticlePosition(particle);
-    float3 velocity = (position - simulation.PreviousPositions[index].xyz) / simulation.TimeStep;
-    int3 centerCell = PositionToCell(position);
-    float3 viscosity = float3(0.0, 0.0, 0.0);
-    float3 cohesion = float3(0.0, 0.0, 0.0);
-
-    for (int z = -1; z <= 1; z++)
-    {
-        for (int y = -1; y <= 1; y++)
-        {
-            for (int x = -1; x <= 1; x++)
-            {
-                int3 cell = centerCell + int3(x, y, z);
-                if (any(cell < 0) || any(cell >= int3(simulation.GridDimensions)))
-                {
-                    continue;
-                }
-
-                int neighbor = simulation.GridHeads[CellIndex(cell)];
-                while (neighbor >= 0)
-                {
-                    if (uint(neighbor) != index)
-                    {
-                        Particle neighborParticle = simulation.Particles[neighbor];
-                        float3 offset = position - ParticlePosition(neighborParticle);
-                        float weight = Kernel(offset);
-
-                        viscosity += (ParticleVelocity(neighborParticle) - ParticleVelocity(particle)) * weight;
-                        cohesion -= offset * weight;
-                    }
-
-                    neighbor = simulation.ParticleNext[neighbor];
-                }
-            }
-        }
-    }
-
-    velocity += viscosity * simulation.Viscosity;
-    velocity += cohesion * simulation.SurfaceTension * simulation.TimeStep;
+    float3 velocity = (position - simulation.PreviousPositions[index].xyz) / simulation.TimeStep + simulation.NewVelocities[index].xyz;
+    float floorHeight = simulation.TankMin.y + simulation.ParticleRadius;
+    float floorContact = 1.0 - smoothstep(floorHeight, floorHeight + simulation.ParticleRadius * 0.6, position.y);
+    velocity.y = lerp(velocity.y, max(velocity.y, 0.0) * 0.08, floorContact);
+    velocity.y = floorContact > 0.9 && abs(velocity.y) < 0.08 ? 0.0 : velocity.y;
+    velocity.xz *= 1.0 - floorContact * 0.14;
     velocity *= 0.995;
 
     float speed = length(velocity);

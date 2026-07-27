@@ -94,7 +94,7 @@ internal unsafe class FluidSimulation : IDisposable
 
     public float WaveFrequency { get; set; } = 0.58f;
 
-    public bool WaveMakerEnabled { get; set; } = true;
+    public bool WaveMakerEnabled { get; set; }
 
     public int SolverIterations { get; set; } = 3;
 
@@ -112,7 +112,7 @@ internal unsafe class FluidSimulation : IDisposable
 
     public TimelineValue Step(double totalTime, double deltaSeconds, bool paused)
     {
-        const uint Substeps = 2;
+        const uint Substeps = 1;
 
         if (paused && !resetRequested)
         {
@@ -196,12 +196,6 @@ internal unsafe class FluidSimulation : IDisposable
                     commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
                     Dispatch(commandBuffer, applyDeltaPipeline, ParticleCount);
-                    commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-
-                    Dispatch(commandBuffer, clearGridPipeline, CellCount);
-                    commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-
-                    Dispatch(commandBuffer, buildGridPipeline, ParticleCount);
                     commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
                 }
 

@@ -525,6 +525,7 @@ internal unsafe class FluidTankRenderer : IDisposable
             CameraUp = cameraUp,
             RestDensity = FluidSimulation.RestDensity,
             ParticleCount = simulation.ParticleCount,
+            RenderMode = (uint)ViewMode,
             Particles = simulation.ParticleHandle
         };
         Upload(surfaceConstantBuffer, 0, &surface, (uint)sizeof(SurfaceConstants));
@@ -860,6 +861,7 @@ file struct SurfaceConstants
     [FieldOffset(144)] public Vector3 CameraUp;
     [FieldOffset(156)] public float RestDensity;
     [FieldOffset(160)] public uint ParticleCount;
+    [FieldOffset(164)] public uint RenderMode;
     [FieldOffset(176)] public ResourceHandle Particles;
 }
 
