@@ -75,7 +75,7 @@ float3 ReconstructWorldPosition(float2 uv, float linearDepth)
 
 float3 ReconstructNormal(float2 uv, float centerDepth)
 {
-    float2 texel = 8.0 / float2(composite.Width, composite.Height);
+    float2 texel = 5.0 / float2(composite.Width, composite.Height);
     float depthLeft = (*composite.FluidDepth).SampleLevel(*composite.Sampler, uv - float2(texel.x, 0.0), 0.0).r;
     float depthRight = (*composite.FluidDepth).SampleLevel(*composite.Sampler, uv + float2(texel.x, 0.0), 0.0).r;
     float depthUp = (*composite.FluidDepth).SampleLevel(*composite.Sampler, uv - float2(0.0, texel.y), 0.0).r;

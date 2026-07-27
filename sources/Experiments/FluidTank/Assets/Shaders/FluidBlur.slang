@@ -2,7 +2,6 @@ struct BlurConstants
 {
     private uint4 DimensionsAndDirection;
     private float4 FilterParameters;
-    private uint4 SourceDimensionsAndPadding;
     DescriptorHandle<Texture2D<float>> InputTexture;
     DescriptorHandle<RWTexture2D<float>> OutputTexture;
 
@@ -13,66 +12,9 @@ struct BlurConstants
     property float SpatialSigma { get { return FilterParameters.x; } }
     property float DepthSigma { get { return FilterParameters.y; } }
     property float ProjectedRadiusScale { get { return FilterParameters.z; } }
-    property uint SourceWidth { get { return SourceDimensionsAndPadding.x; } }
-    property uint SourceHeight { get { return SourceDimensionsAndPadding.y; } }
 };
 
 ConstantBuffer<BlurConstants> blur;
-
-[shader("compute")]
-[numthreads(16, 16, 1)]
-void DownsampleCS(uint3 dispatchThreadID : SV_DispatchThreadID)
-{
-    uint2 pixel = dispatchThreadID.xy;
-    if (pixel.x >= blur.Width || pixel.y >= blur.Height)
-    {
-        return;
-    }
-
-    uint2 source = pixel * 2;
-    float nearestDepth = 0.0;
-
-    for (uint y = 0; y < 2; y++)
-    {
-        for (uint x = 0; x < 2; x++)
-        {
-            uint2 samplePixel = min(source + uint2(x, y), uint2(blur.SourceWidth - 1, blur.SourceHeight - 1));
-            float depth = (*blur.InputTexture).Load(int3(samplePixel, 0));
-
-            if (depth > 0.0 && (nearestDepth <= 0.0 || depth < nearestDepth))
-            {
-                nearestDepth = depth;
-            }
-        }
-    }
-
-    (*blur.OutputTexture)[pixel] = nearestDepth;
-}
-
-[shader("compute")]
-[numthreads(16, 16, 1)]
-void DownsampleThicknessCS(uint3 dispatchThreadID : SV_DispatchThreadID)
-{
-    uint2 pixel = dispatchThreadID.xy;
-    if (pixel.x >= blur.Width || pixel.y >= blur.Height)
-    {
-        return;
-    }
-
-    uint2 source = pixel * 2;
-    float thickness = 0.0;
-
-    for (uint y = 0; y < 2; y++)
-    {
-        for (uint x = 0; x < 2; x++)
-        {
-            uint2 samplePixel = min(source + uint2(x, y), uint2(blur.SourceWidth - 1, blur.SourceHeight - 1));
-            thickness += (*blur.InputTexture).Load(int3(samplePixel, 0));
-        }
-    }
-
-    (*blur.OutputTexture)[pixel] = thickness * 0.25;
-}
 
 [shader("compute")]
 [numthreads(16, 16, 1)]

@@ -6,15 +6,22 @@ struct SurfaceConstants
     float4x4 Projection;
     private float4 CameraRightAndRadius;
     private float4 CameraUpAndRestDensity;
-    private uint4 CountsAndPadding;
+    private uint4 CountsAndDimensions;
+    private float4 InterpolationParameters;
     DescriptorHandle<StructuredBuffer<Particle>> Particles;
+    DescriptorHandle<StructuredBuffer<float4>> PreviousPositions;
+    DescriptorHandle<Texture2D> SceneDepth;
+    DescriptorHandle<SamplerState> Sampler;
 
     property float3 CameraRight { get { return CameraRightAndRadius.xyz; } }
     property float ParticleRadius { get { return CameraRightAndRadius.w; } }
     property float3 CameraUp { get { return CameraUpAndRestDensity.xyz; } }
     property float RestDensity { get { return CameraUpAndRestDensity.w; } }
-    property uint ParticleCount { get { return CountsAndPadding.x; } }
-    property uint RenderMode { get { return CountsAndPadding.y; } }
+    property uint ParticleCount { get { return CountsAndDimensions.x; } }
+    property uint RenderMode { get { return CountsAndDimensions.y; } }
+    property uint Width { get { return CountsAndDimensions.z; } }
+    property uint Height { get { return CountsAndDimensions.w; } }
+    property float InterpolationAlpha { get { return InterpolationParameters.x; } }
 };
 
 struct SurfaceVSOutput
@@ -47,6 +54,14 @@ struct ParticleOutput
 
 ConstantBuffer<SurfaceConstants> surface;
 
+bool OccludedByScene(SurfaceVSOutput input, float linearDepth)
+{
+    float2 uv = input.Position.xy / float2(surface.Width, surface.Height);
+    float sceneDepth = (*surface.SceneDepth).SampleLevel(*surface.Sampler, uv, 0.0).r;
+
+    return surface.RenderMode == 0 && sceneDepth > 0.0 && linearDepth >= sceneDepth;
+}
+
 float2 QuadCorner(uint vertexId)
 {
     if (vertexId == 0) return float2(-1.0, -1.0);
@@ -63,7 +78,7 @@ SurfaceVSOutput SurfaceVS(uint vertexId : SV_VertexID, uint instanceId : SV_Inst
 {
     Particle particle = surface.Particles[instanceId];
     float2 corner = QuadCorner(vertexId);
-    float3 worldPosition = particle.PositionDensity.xyz;
+    float3 worldPosition = lerp(surface.PreviousPositions[instanceId].xyz, particle.PositionDensity.xyz, surface.InterpolationAlpha);
     float3 velocity = particle.VelocityLambda.xyz;
     float speed = length(velocity);
     float density = particle.PositionDensity.w / surface.RestDensity;
@@ -100,6 +115,11 @@ DepthOutput DepthFS(SurfaceVSOutput input)
     float3 viewPosition = input.CenterView + float3(input.Corner * surface.ParticleRadius, surface.ParticleRadius * 0.62);
     float4 clipPosition = mul(float4(viewPosition, 1.0), surface.Projection);
 
+    if (OccludedByScene(input, -viewPosition.z))
+    {
+        discard;
+    }
+
     DepthOutput output;
     output.LinearDepth = -viewPosition.z;
     output.Attributes = float4(input.Speed, input.Density, sphereZ, 1.0);
@@ -120,6 +140,11 @@ ThicknessOutput ThicknessFS(SurfaceVSOutput input)
     float sphereZ = sqrt(max(1.0 - radiusSquared, 0.0));
     float3 viewPosition = input.CenterView + float3(input.Corner * surface.ParticleRadius, sphereZ * surface.ParticleRadius);
     float4 clipPosition = mul(float4(viewPosition, 1.0), surface.Projection);
+
+    if (OccludedByScene(input, -viewPosition.z))
+    {
+        discard;
+    }
 
     ThicknessOutput output;
     output.Thickness = 1.08 * surface.ParticleRadius * sphereZ;

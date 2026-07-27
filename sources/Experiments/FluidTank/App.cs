@@ -189,6 +189,7 @@ internal static class App
 
             ImGui.Separator();
             ImGui.Text("Simulation:");
+            ImGui.Text("Solver: APIC / FLIP");
 
             bool paused = renderer.Paused;
             if (ImGui.Checkbox("Pause", ref paused))
@@ -220,22 +221,22 @@ internal static class App
                 renderer.WaveFrequency = waveFrequency;
             }
 
-            float viscosity = renderer.Viscosity;
-            if (ImGui.SliderFloat("Viscosity", ref viscosity, 0.0f, 0.12f, "%.3f"))
+            float flipRatio = renderer.FlipRatio;
+            if (ImGui.SliderFloat("FLIP ratio", ref flipRatio, 0.0f, 1.0f, "%.2f"))
             {
-                renderer.Viscosity = viscosity;
+                renderer.FlipRatio = flipRatio;
             }
 
-            int solverIterations = renderer.SolverIterations;
-            if (ImGui.SliderInt("PBF iterations", ref solverIterations, 2, 6))
+            int pressureIterations = renderer.PressureIterations;
+            if (ImGui.SliderInt("Pressure iterations", ref pressureIterations, 4, 32))
             {
-                renderer.SolverIterations = solverIterations;
+                renderer.PressureIterations = pressureIterations;
             }
 
-            float surfaceTension = renderer.SurfaceTension;
-            if (ImGui.SliderFloat("Surface tension", ref surfaceTension, 0.0f, 0.08f, "%.3f"))
+            float velocityDamping = renderer.VelocityDamping;
+            if (ImGui.SliderFloat("Velocity damping", ref velocityDamping, 0.97f, 1.0f, "%.3f"))
             {
-                renderer.SurfaceTension = surfaceTension;
+                renderer.VelocityDamping = velocityDamping;
             }
 
             ImGui.Separator();

@@ -47,7 +47,7 @@ float3 WorldPosition(float2 uv, float linearDepth)
 
 float3 SurfaceNormal(uint2 pixel, float depth)
 {
-    const uint Radius = 8;
+    const uint Radius = 5;
     uint2 leftPixel = uint2(pixel.x > Radius ? pixel.x - Radius : 0, pixel.y);
     uint2 rightPixel = uint2(min(pixel.x + Radius, reflection.Width - 1), pixel.y);
     uint2 upPixel = uint2(pixel.x, pixel.y > Radius ? pixel.y - Radius : 0);
