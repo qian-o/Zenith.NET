@@ -28,6 +28,13 @@ internal class MTLCommandQueue : CommandQueue
         return new MTLCommandBuffer(Context, this);
     }
 
+    protected override double GetTimestampPeriod(out uint validBits)
+    {
+        validBits = 64;
+
+        return 1_000_000_000.0 / Context.Device.QueryTimestampFrequency();
+    }
+
     protected override void SubmitImpl(ReadOnlySpan<TimelineValue> waits, CommandBuffer commandBuffer)
     {
         foreach (TimelineValue wait in waits)

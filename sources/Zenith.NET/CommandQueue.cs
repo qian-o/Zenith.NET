@@ -23,6 +23,20 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
         return commandBuffer;
     }
 
+    public double GetElapsedNanoseconds(ulong startTimestamp, ulong endTimestamp)
+    {
+        double timestampPeriod = GetTimestampPeriod(out uint validBits);
+
+        ulong elapsedTicks = unchecked(endTimestamp - startTimestamp);
+
+        if (validBits is < 64)
+        {
+            elapsedTicks &= (1UL << (int)validBits) - 1;
+        }
+
+        return elapsedTicks * timestampPeriod;
+    }
+
     internal TimelineValue Submit(ReadOnlySpan<TimelineValue> waits, CommandBuffer commandBuffer)
     {
         Poll();
@@ -55,6 +69,8 @@ public abstract class CommandQueue(GraphicsContext context, CommandQueueType typ
     }
 
     protected abstract CommandBuffer CreateCommandBuffer();
+
+    protected abstract double GetTimestampPeriod(out uint validBits);
 
     protected abstract void SubmitImpl(ReadOnlySpan<TimelineValue> waits, CommandBuffer commandBuffer);
 

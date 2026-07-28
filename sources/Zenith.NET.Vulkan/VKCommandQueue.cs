@@ -30,6 +30,22 @@ internal unsafe class VKCommandQueue : CommandQueue
         return new VKCommandBuffer(Context, this);
     }
 
+    protected override double GetTimestampPeriod(out uint validBits)
+    {
+        PhysicalDeviceProperties properties;
+        Context.Vk.GetPhysicalDeviceProperties(Context.PhysicalDevice, &properties);
+
+        uint queueFamilyCount = 0;
+        Context.Vk.GetPhysicalDeviceQueueFamilyProperties(Context.PhysicalDevice, &queueFamilyCount, default);
+
+        QueueFamilyProperties* queueFamilies = stackalloc QueueFamilyProperties[(int)queueFamilyCount];
+        Context.Vk.GetPhysicalDeviceQueueFamilyProperties(Context.PhysicalDevice, &queueFamilyCount, queueFamilies);
+
+        validBits = queueFamilies[(int)QueueFamilyIndex].TimestampValidBits;
+
+        return properties.Limits.TimestampPeriod;
+    }
+
     protected override void SubmitImpl(ReadOnlySpan<TimelineValue> waits, CommandBuffer commandBuffer)
     {
         SemaphoreSubmitInfo* waitSemaphoreInfos = stackalloc SemaphoreSubmitInfo[waits.Length];

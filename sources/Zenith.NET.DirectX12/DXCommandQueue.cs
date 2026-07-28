@@ -30,6 +30,16 @@ internal unsafe class DXCommandQueue : CommandQueue
         return new DXCommandBuffer(Context, this);
     }
 
+    protected override double GetTimestampPeriod(out uint validBits)
+    {
+        validBits = 64;
+
+        ulong frequency = 0;
+        CommandQueue.GetTimestampFrequency(&frequency).Success();
+
+        return 1_000_000_000.0 / frequency;
+    }
+
     protected override void SubmitImpl(ReadOnlySpan<TimelineValue> waits, CommandBuffer commandBuffer)
     {
         foreach (TimelineValue wait in waits)
