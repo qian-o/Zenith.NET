@@ -602,9 +602,14 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     private void EndRenderEncoding()
     {
-        Render?.BarrierAfterStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
-        Render?.EndEncoding();
-        Render?.Dispose();
+        if (Render is null)
+        {
+            return;
+        }
+
+        Render.BarrierAfterStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
+        Render.EndEncoding();
+        Render.Dispose();
         Render = null;
 
         ResolveTimestamps();
@@ -631,9 +636,14 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     private void EndComputeEncoding()
     {
-        Compute?.BarrierAfterStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
-        Compute?.EndEncoding();
-        Compute?.Dispose();
+        if (Compute is null)
+        {
+            return;
+        }
+
+        Compute.BarrierAfterStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
+        Compute.EndEncoding();
+        Compute.Dispose();
         Compute = null;
 
         ResolveTimestamps();
