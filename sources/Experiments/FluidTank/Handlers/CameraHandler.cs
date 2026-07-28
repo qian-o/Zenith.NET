@@ -51,14 +51,9 @@ internal class CameraHandler
 
     public Matrix4x4 Projection => Matrix4x4.CreatePerspectiveFieldOfView(float.DegreesToRadians(Fov), AspectRatio, NearPlane, FarPlane);
 
-    public void Update(double delta, uint width, uint height, bool allowMovement)
+    public void Update(double delta, uint width, uint height)
     {
         Size = new(width, height);
-
-        if (!allowMovement)
-        {
-            return;
-        }
 
         float distance = Speed * (float)delta;
 
@@ -143,7 +138,7 @@ internal class CameraHandler
 
     private void OnMouseMove(IMouse mouse, Vector2 position)
     {
-        const float ClipRadians = 89.0f * MathF.PI / 180.0f;
+        const float clipRadians = 89.0f * MathF.PI / 180.0f;
 
         if (!lastMousePosition.HasValue)
         {
@@ -155,7 +150,7 @@ internal class CameraHandler
         Vector2 delta = position - lastMousePosition.Value;
         float yaw = -(delta.X * pixelToRadianX);
         float pitch = -(delta.Y * pixelToRadianY);
-        float newPitch = Math.Clamp(MathF.Asin(Forward.Y) + pitch, -ClipRadians, ClipRadians);
+        float newPitch = Math.Clamp(MathF.Asin(Forward.Y) + pitch, -clipRadians, clipRadians);
 
         pitch = newPitch - MathF.Asin(Forward.Y);
 
@@ -168,12 +163,12 @@ internal class CameraHandler
         lastMousePosition = position;
     }
 
-    private void OnKeyDown(IKeyboard keyboard, Key key, int arg3)
+    private void OnKeyDown(IKeyboard keyboard, Key key, int scanCode)
     {
         keyDowns.Add(key);
     }
 
-    private void OnKeyUp(IKeyboard keyboard, Key key, int arg3)
+    private void OnKeyUp(IKeyboard keyboard, Key key, int scanCode)
     {
         keyDowns.Remove(key);
     }

@@ -1,7 +1,6 @@
 using System.Numerics;
 using FluidTank.Handlers;
 using FluidTank.Helpers;
-using FluidTank.Renderers;
 using Hexa.NET.ImGui;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
@@ -116,7 +115,7 @@ internal static class App
             uint height = (uint)(Height / DpiScale.Y);
 
             imGui.Update(delta, width, height);
-            camera.Update(delta, width, height, !ImGui.GetIO().WantCaptureKeyboard);
+            camera.Update(delta, width, height);
             renderer.Update(camera, delta);
 
             if (camera.TryConsumeClickRay(out Vector3 origin, out Vector3 direction) && !ImGui.GetIO().WantCaptureMouse)

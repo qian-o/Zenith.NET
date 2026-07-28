@@ -429,7 +429,6 @@ float SampleGridComponent(float3 position, uint component)
 
 float3 SampleGridVelocity(float3 position)
 {
-
     return float3(SampleGridComponent(position, 0),
                   SampleGridComponent(position, 1),
                   SampleGridComponent(position, 2));

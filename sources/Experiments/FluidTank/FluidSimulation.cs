@@ -1,9 +1,10 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
+using FluidTank.Helpers;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
-namespace FluidTank.Simulation;
+namespace FluidTank;
 
 internal unsafe class FluidSimulation : IDisposable
 {
@@ -22,6 +23,7 @@ internal unsafe class FluidSimulation : IDisposable
     private readonly Buffer cellTypes;
     private readonly Buffer divergence;
     private readonly Buffer pressureA;
+    private readonly uint pressureParityDispatchCount;
 
     private readonly ComputePipeline resetPipeline;
     private readonly ComputePipeline initializeGridPipeline;
@@ -39,7 +41,6 @@ internal unsafe class FluidSimulation : IDisposable
     private Vector3 interactionOrigin;
     private Vector3 interactionDirection;
     private float interactionStrength;
-    private readonly uint pressureParityDispatchCount;
     private TimelineValue ready;
 
     public FluidSimulation()
@@ -54,36 +55,29 @@ internal unsafe class FluidSimulation : IDisposable
         GridPointCount = (GridDimensions.X + 1) * (GridDimensions.Y + 1) * (GridDimensions.Z + 1);
         pressureParityDispatchCount = (GridDimensions.X + 1) / 2 * GridDimensions.Y * GridDimensions.Z;
 
-        constantBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)sizeof(SimulationConstants),
-            Usages = BufferUsages.Constant,
-            Residency = MemoryResidency.CpuWriteOnly
-        });
+        constantBuffer = GraphicsHelper.CreateConstantBuffer<SimulationConstants>();
 
-        particles = CreateStorageBuffer(ParticleCount, 32, includeReadOnly: true);
-        previousPositions = CreateStorageBuffer(ParticleCount, 16, includeReadOnly: true);
-        particleAffine = CreateStorageBuffer(ParticleCount * 3, 16, includeReadOnly: false);
-        gridAccumulation = CreateStorageBuffer(GridPointCount * 6, sizeof(int), includeReadOnly: false);
-        gridVelocity = CreateStorageBuffer(GridPointCount, 16, includeReadOnly: false);
-        gridVelocityOld = CreateStorageBuffer(GridPointCount, 16, includeReadOnly: false);
-        cellTypes = CreateStorageBuffer(CellCount, sizeof(uint), includeReadOnly: false);
-        divergence = CreateStorageBuffer(CellCount, sizeof(float), includeReadOnly: false);
-        pressureA = CreateStorageBuffer(CellCount, sizeof(float), includeReadOnly: false);
+        particles = GraphicsHelper.CreateBuffer(ParticleCount, 32, BufferUsages.StorageReadOnly | BufferUsages.StorageReadWrite);
+        previousPositions = GraphicsHelper.CreateBuffer(ParticleCount, 16, BufferUsages.StorageReadOnly | BufferUsages.StorageReadWrite);
+        particleAffine = GraphicsHelper.CreateBuffer(ParticleCount * 3, 16, BufferUsages.StorageReadWrite);
+        gridAccumulation = GraphicsHelper.CreateBuffer(GridPointCount * 6, sizeof(int), BufferUsages.StorageReadWrite);
+        gridVelocity = GraphicsHelper.CreateBuffer(GridPointCount, 16, BufferUsages.StorageReadWrite);
+        gridVelocityOld = GraphicsHelper.CreateBuffer(GridPointCount, 16, BufferUsages.StorageReadWrite);
+        cellTypes = GraphicsHelper.CreateBuffer(CellCount, sizeof(uint), BufferUsages.StorageReadWrite);
+        divergence = GraphicsHelper.CreateBuffer(CellCount, sizeof(float), BufferUsages.StorageReadWrite);
+        pressureA = GraphicsHelper.CreateBuffer(CellCount, sizeof(float), BufferUsages.StorageReadWrite);
 
-        string shaderPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "FluidSimulationAPIC.slang");
-
-        resetPipeline = CreatePipeline(shaderPath, "ResetCS");
-        initializeGridPipeline = CreatePipeline(shaderPath, "InitializeGridCS");
-        clearGridPipeline = CreatePipeline(shaderPath, "ClearGridCS");
-        beginParticleToGridPipeline = CreatePipeline(shaderPath, "BeginParticleToGridCS");
-        particleToGridPipeline = CreatePipeline(shaderPath, "ParticleToGridCS");
-        normalizeAndApplyForcesPipeline = CreatePipeline(shaderPath, "NormalizeAndApplyForcesCS");
-        divergencePipeline = CreatePipeline(shaderPath, "DivergenceCS");
-        pressureRedPipeline = CreatePipeline(shaderPath, "PressureRedCS");
-        pressureBlackPipeline = CreatePipeline(shaderPath, "PressureBlackCS");
-        projectGridPipeline = CreatePipeline(shaderPath, "ProjectGridCS");
-        gridToParticleAndAdvectPipeline = CreatePipeline(shaderPath, "GridToParticleAndAdvectCS");
+        resetPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "ResetCS");
+        initializeGridPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "InitializeGridCS");
+        clearGridPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "ClearGridCS");
+        beginParticleToGridPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "BeginParticleToGridCS");
+        particleToGridPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "ParticleToGridCS");
+        normalizeAndApplyForcesPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "NormalizeAndApplyForcesCS");
+        divergencePipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "DivergenceCS");
+        pressureRedPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "PressureRedCS");
+        pressureBlackPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "PressureBlackCS");
+        projectGridPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "ProjectGridCS");
+        gridToParticleAndAdvectPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "GridToParticleAndAdvectCS");
     }
 
     public uint ParticleCount { get; }
@@ -132,7 +126,7 @@ internal unsafe class FluidSimulation : IDisposable
 
     public TimelineValue Step(double totalTime, double deltaSeconds, bool paused)
     {
-        const uint Substeps = 2;
+        const uint substeps = 2;
 
         if (paused && !resetRequested)
         {
@@ -140,7 +134,7 @@ internal unsafe class FluidSimulation : IDisposable
         }
 
         float frameTime = (float)deltaSeconds;
-        float timeStep = paused ? 0.0f : frameTime / Substeps;
+        float timeStep = paused ? 0.0f : frameTime / substeps;
 
         SimulationConstants parameters = new()
         {
@@ -171,7 +165,7 @@ internal unsafe class FluidSimulation : IDisposable
             DamX = DamDimensions.X,
             DamY = DamDimensions.Y,
             DamZ = DamDimensions.Z,
-            Substeps = Substeps,
+            Substeps = substeps,
             Particles = particles.StorageReadWriteHandle,
             PreviousPositions = previousPositions.StorageReadWriteHandle,
             ParticleAffine = particleAffine.StorageReadWriteHandle,
@@ -201,7 +195,7 @@ internal unsafe class FluidSimulation : IDisposable
 
         if (!paused)
         {
-            for (uint substep = 0; substep < Substeps; substep++)
+            for (uint substep = 0; substep < substeps; substep++)
             {
                 Dispatch(commandBuffer, clearGridPipeline, Math.Max(GridPointCount * 6, CellCount));
                 commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
@@ -266,24 +260,6 @@ internal unsafe class FluidSimulation : IDisposable
         constantBuffer.Dispose();
     }
 
-    private static Buffer CreateStorageBuffer(uint count, uint stride, bool includeReadOnly)
-    {
-        return App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = count * stride,
-            StrideInBytes = stride,
-            Usages = BufferUsages.StorageReadWrite | (includeReadOnly ? BufferUsages.StorageReadOnly : BufferUsages.None),
-            Residency = MemoryResidency.GpuOnly
-        });
-    }
-
-    private static ComputePipeline CreatePipeline(string shaderPath, string entryPoint)
-    {
-        using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, entryPoint));
-
-        return App.Context.CreateComputePipeline(new() { ComputeShader = shader });
-    }
-
     private void Dispatch(CommandBuffer commandBuffer, ComputePipeline pipeline, uint count)
     {
         uint groupSize = pipeline.Desc.ComputeShader.Desc.ThreadGroupSize.X;
@@ -297,41 +273,114 @@ internal unsafe class FluidSimulation : IDisposable
 [StructLayout(LayoutKind.Explicit, Size = 216)]
 file struct SimulationConstants
 {
-    [FieldOffset(0)] public Vector3 TankMin;
-    [FieldOffset(12)] public float TimeStep;
-    [FieldOffset(16)] public Vector3 TankMax;
-    [FieldOffset(28)] public float Time;
-    [FieldOffset(32)] public float GridSpacing;
-    [FieldOffset(36)] public float InverseGridSpacing;
-    [FieldOffset(40)] public float FlipRatio;
-    [FieldOffset(44)] public float VelocityDamping;
-    [FieldOffset(48)] public float WaveAmplitude;
-    [FieldOffset(52)] public float WaveFrequency;
-    [FieldOffset(56)] public float InteractionRadius;
-    [FieldOffset(60)] public float InteractionStrength;
-    [FieldOffset(64)] public Vector3 InteractionOrigin;
-    [FieldOffset(76)] public float ParticleRadius;
-    [FieldOffset(80)] public Vector3 InteractionDirection;
-    [FieldOffset(92)] public float RestDensity;
-    [FieldOffset(96)] public uint ParticleCount;
-    [FieldOffset(100)] public uint CellCount;
-    [FieldOffset(104)] public uint GridPointCount;
-    [FieldOffset(108)] public uint WaveMakerEnabled;
-    [FieldOffset(112)] public uint GridX;
-    [FieldOffset(116)] public uint GridY;
-    [FieldOffset(120)] public uint GridZ;
-    [FieldOffset(124)] public uint PressureIterations;
-    [FieldOffset(128)] public uint DamX;
-    [FieldOffset(132)] public uint DamY;
-    [FieldOffset(136)] public uint DamZ;
-    [FieldOffset(140)] public uint Substeps;
-    [FieldOffset(144)] public ResourceHandle Particles;
-    [FieldOffset(152)] public ResourceHandle PreviousPositions;
-    [FieldOffset(160)] public ResourceHandle ParticleAffine;
-    [FieldOffset(168)] public ResourceHandle GridAccumulation;
-    [FieldOffset(176)] public ResourceHandle GridVelocity;
-    [FieldOffset(184)] public ResourceHandle GridVelocityOld;
-    [FieldOffset(192)] public ResourceHandle CellTypes;
-    [FieldOffset(200)] public ResourceHandle Divergence;
-    [FieldOffset(208)] public ResourceHandle PressureA;
+    [FieldOffset(0)]
+    public Vector3 TankMin;
+
+    [FieldOffset(12)]
+    public float TimeStep;
+
+    [FieldOffset(16)]
+    public Vector3 TankMax;
+
+    [FieldOffset(28)]
+    public float Time;
+
+    [FieldOffset(32)]
+    public float GridSpacing;
+
+    [FieldOffset(36)]
+    public float InverseGridSpacing;
+
+    [FieldOffset(40)]
+    public float FlipRatio;
+
+    [FieldOffset(44)]
+    public float VelocityDamping;
+
+    [FieldOffset(48)]
+    public float WaveAmplitude;
+
+    [FieldOffset(52)]
+    public float WaveFrequency;
+
+    [FieldOffset(56)]
+    public float InteractionRadius;
+
+    [FieldOffset(60)]
+    public float InteractionStrength;
+
+    [FieldOffset(64)]
+    public Vector3 InteractionOrigin;
+
+    [FieldOffset(76)]
+    public float ParticleRadius;
+
+    [FieldOffset(80)]
+    public Vector3 InteractionDirection;
+
+    [FieldOffset(92)]
+    public float RestDensity;
+
+    [FieldOffset(96)]
+    public uint ParticleCount;
+
+    [FieldOffset(100)]
+    public uint CellCount;
+
+    [FieldOffset(104)]
+    public uint GridPointCount;
+
+    [FieldOffset(108)]
+    public uint WaveMakerEnabled;
+
+    [FieldOffset(112)]
+    public uint GridX;
+
+    [FieldOffset(116)]
+    public uint GridY;
+
+    [FieldOffset(120)]
+    public uint GridZ;
+
+    [FieldOffset(124)]
+    public uint PressureIterations;
+
+    [FieldOffset(128)]
+    public uint DamX;
+
+    [FieldOffset(132)]
+    public uint DamY;
+
+    [FieldOffset(136)]
+    public uint DamZ;
+
+    [FieldOffset(140)]
+    public uint Substeps;
+
+    [FieldOffset(144)]
+    public ResourceHandle Particles;
+
+    [FieldOffset(152)]
+    public ResourceHandle PreviousPositions;
+
+    [FieldOffset(160)]
+    public ResourceHandle ParticleAffine;
+
+    [FieldOffset(168)]
+    public ResourceHandle GridAccumulation;
+
+    [FieldOffset(176)]
+    public ResourceHandle GridVelocity;
+
+    [FieldOffset(184)]
+    public ResourceHandle GridVelocityOld;
+
+    [FieldOffset(192)]
+    public ResourceHandle CellTypes;
+
+    [FieldOffset(200)]
+    public ResourceHandle Divergence;
+
+    [FieldOffset(208)]
+    public ResourceHandle PressureA;
 }

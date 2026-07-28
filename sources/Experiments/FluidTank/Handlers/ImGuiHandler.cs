@@ -59,13 +59,13 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
         MouseWheel(new(offset.X, offset.Y));
     }
 
-    private void OnKeyDown(IKeyboard keyboard, Key key, int arg3)
+    private void OnKeyDown(IKeyboard keyboard, Key key, int scanCode)
     {
         KeyDown(TranslateInputKeyToImGuiKey(key));
         KeyDown(TranslateInputKeyToImGuiModifier(key));
     }
 
-    private void OnKeyUp(IKeyboard keyboard, Key key, int arg3)
+    private void OnKeyUp(IKeyboard keyboard, Key key, int scanCode)
     {
         KeyUp(TranslateInputKeyToImGuiKey(key));
         KeyUp(TranslateInputKeyToImGuiModifier(key));

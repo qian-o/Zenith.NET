@@ -2,11 +2,10 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using FluidTank.Handlers;
 using FluidTank.Helpers;
-using FluidTank.Simulation;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
-namespace FluidTank.Renderers;
+namespace FluidTank;
 
 internal enum FluidViewMode
 {
@@ -76,41 +75,20 @@ internal unsafe class FluidTankRenderer : IDisposable
         glassIndexCount = (uint)glassIndices.Length;
 
         CommandBuffer uploadCommandBuffer = App.Context.TransferQueue.CommandBuffer();
-        sceneVertexBuffer = CreateVertexBuffer(uploadCommandBuffer, sceneVertices, includeStorage: true);
-        sceneIndexBuffer = CreateIndexBuffer(uploadCommandBuffer, sceneIndices, includeStorage: true);
-        glassVertexBuffer = CreateVertexBuffer(uploadCommandBuffer, glassVertices, includeStorage: false);
-        glassIndexBuffer = CreateIndexBuffer(uploadCommandBuffer, glassIndices, includeStorage: false);
-
-        materialBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(SceneMaterial) * materials.Length),
-            StrideInBytes = (uint)sizeof(SceneMaterial),
-            Usages = BufferUsages.StorageReadOnly | BufferUsages.TransferDst,
-            Residency = MemoryResidency.GpuOnly
-        });
-
-        fixed (SceneMaterial* pointer = materials)
-        {
-            uploadCommandBuffer.Upload(materialBuffer, 0, new()
-            {
-                Pointer = (nint)pointer,
-                SizeInBytes = (uint)(sizeof(SceneMaterial) * materials.Length)
-            });
-        }
+        sceneVertexBuffer = GraphicsHelper.LoadBuffer(uploadCommandBuffer, sceneVertices, BufferUsages.Vertex | BufferUsages.StorageReadOnly);
+        sceneIndexBuffer = GraphicsHelper.LoadBuffer(uploadCommandBuffer, sceneIndices, BufferUsages.Index | BufferUsages.StorageReadOnly);
+        glassVertexBuffer = GraphicsHelper.LoadBuffer(uploadCommandBuffer, glassVertices, BufferUsages.Vertex);
+        glassIndexBuffer = GraphicsHelper.LoadBuffer(uploadCommandBuffer, glassIndices, BufferUsages.Index);
+        materialBuffer = GraphicsHelper.LoadBuffer(uploadCommandBuffer, materials, BufferUsages.StorageReadOnly);
 
         uploadCommandBuffer.Submit().Wait();
 
-        sceneConstantBuffer = CreateConstantBuffer<SceneConstants>();
-        surfaceConstantBuffer = CreateConstantBuffer<SurfaceConstants>();
-        blurConstantBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = 1024,
-            Usages = BufferUsages.Constant,
-            Residency = MemoryResidency.CpuWriteOnly
-        });
-        compositeConstantBuffer = CreateConstantBuffer<CompositeConstants>();
-        reflectionConstantBuffer = CreateConstantBuffer<ReflectionConstants>();
-        glassConstantBuffer = CreateConstantBuffer<GlassConstants>();
+        sceneConstantBuffer = GraphicsHelper.CreateConstantBuffer<SceneConstants>();
+        surfaceConstantBuffer = GraphicsHelper.CreateConstantBuffer<SurfaceConstants>();
+        blurConstantBuffer = GraphicsHelper.CreateConstantBuffer(1024);
+        compositeConstantBuffer = GraphicsHelper.CreateConstantBuffer<CompositeConstants>();
+        reflectionConstantBuffer = GraphicsHelper.CreateConstantBuffer<ReflectionConstants>();
+        glassConstantBuffer = GraphicsHelper.CreateConstantBuffer<GlassConstants>();
         linearSampler = App.Context.CreateSampler(SamplerDesc.LinearClamp());
 
         Resize(App.Width, App.Height);
@@ -119,47 +97,46 @@ internal unsafe class FluidTankRenderer : IDisposable
         inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Position });
         inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Normal });
 
-        scenePipeline = CreateGraphicsPipeline("Scene.slang", "VSMain", "FSMain", [inputLayout], new()
+        scenePipeline = GraphicsHelper.CreateGraphicsPipeline("Scene.slang", "VSMain", "FSMain", [inputLayout], new()
         {
             ColorFormats = [PixelFormat.R16G16B16A16Float, PixelFormat.R32Float],
             DepthStencilFormat = PixelFormat.D32FloatS8UInt,
             SampleCount = SampleCount.Count1
         }, RasterizerState.CullBack(), DepthStencilState.DepthReadWrite(), BlendState.Opaque());
 
-        string surfaceShaderPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "FluidSurface.slang");
-        using Shader surfaceVertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, surfaceShaderPath, "SurfaceVS"));
+        using Shader surfaceVertexShader = GraphicsHelper.LoadShader("FluidSurface.slang", "SurfaceVS");
 
-        fluidDepthPipeline = CreateGraphicsPipeline(surfaceVertexShader, surfaceShaderPath, "DepthFS", [], new()
+        fluidDepthPipeline = GraphicsHelper.CreateGraphicsPipeline(surfaceVertexShader, "FluidSurface.slang", "DepthFS", [], new()
         {
             ColorFormats = [PixelFormat.R32Float, PixelFormat.R16G16B16A16Float],
             DepthStencilFormat = PixelFormat.D32FloatS8UInt,
             SampleCount = SampleCount.Count1
         }, RasterizerState.CullNone(), DepthStencilState.DepthReadWrite(), BlendState.Opaque(), PrimitiveTopology.TriangleStrip);
 
-        fluidThicknessPipeline = CreateGraphicsPipeline(surfaceVertexShader, surfaceShaderPath, "ThicknessFS", [], new()
+        fluidThicknessPipeline = GraphicsHelper.CreateGraphicsPipeline(surfaceVertexShader, "FluidSurface.slang", "ThicknessFS", [], new()
         {
             ColorFormats = [PixelFormat.R16Float],
             DepthStencilFormat = PixelFormat.D32FloatS8UInt,
             SampleCount = SampleCount.Count1
         }, RasterizerState.CullNone(), DepthStencilState.DepthRead(), AdditiveBlend(), PrimitiveTopology.TriangleStrip);
 
-        particlePipeline = CreateGraphicsPipeline(surfaceVertexShader, surfaceShaderPath, "ParticleFS", [], new()
+        particlePipeline = GraphicsHelper.CreateGraphicsPipeline(surfaceVertexShader, "FluidSurface.slang", "ParticleFS", [], new()
         {
             ColorFormats = [PixelFormat.B8G8R8A8UNorm],
             DepthStencilFormat = PixelFormat.D32FloatS8UInt,
             SampleCount = SampleCount.Count1
         }, RasterizerState.CullNone(), DepthStencilState.DepthReadWrite(), BlendState.Opaque(), PrimitiveTopology.TriangleStrip);
 
-        blurPipeline = CreateComputePipeline("FluidBlur.slang", "BlurCS");
-        blurThicknessPipeline = CreateComputePipeline("FluidBlur.slang", "BlurThicknessCS");
+        blurPipeline = GraphicsHelper.CreateComputePipeline("FluidBlur.slang", "BlurCS");
+        blurThicknessPipeline = GraphicsHelper.CreateComputePipeline("FluidBlur.slang", "BlurThicknessCS");
 
-        compositePipeline = CreateGraphicsPipeline("FluidComposite.slang", "FullscreenVS", "CompositeFS", [], new()
+        compositePipeline = GraphicsHelper.CreateGraphicsPipeline("FluidComposite.slang", "FullscreenVS", "CompositeFS", [], new()
         {
             ColorFormats = [PixelFormat.B8G8R8A8UNorm],
             SampleCount = SampleCount.Count1
         }, RasterizerState.CullNone(), DepthStencilState.DepthNone(), BlendState.Opaque());
 
-        glassPipeline = CreateGraphicsPipeline("Glass.slang", "GlassVS", "GlassFS", [inputLayout], new()
+        glassPipeline = GraphicsHelper.CreateGraphicsPipeline("Glass.slang", "GlassVS", "GlassFS", [inputLayout], new()
         {
             ColorFormats = [PixelFormat.B8G8R8A8UNorm],
             DepthStencilFormat = PixelFormat.D32FloatS8UInt,
@@ -214,7 +191,7 @@ internal unsafe class FluidTankRenderer : IDisposable
 
             commandBuffer.Submit().Wait();
 
-            reflectionPipeline = CreateComputePipeline("FluidReflection.slang", "ReflectionCS");
+            reflectionPipeline = GraphicsHelper.CreateComputePipeline("FluidReflection.slang", "ReflectionCS");
         }
     }
 
@@ -304,13 +281,13 @@ internal unsafe class FluidTankRenderer : IDisposable
     {
         if (Paused)
         {
-            simulationReady = simulation.Step(simulationTime, FixedSimulationStep, paused: true);
+            simulationReady = simulation.Step(simulationTime, FixedSimulationStep, true);
         }
         else if (simulationAccumulator >= FixedSimulationStep)
         {
             simulationTime += FixedSimulationStep;
             simulationAccumulator -= FixedSimulationStep;
-            simulationReady = simulation.Step(simulationTime, FixedSimulationStep, paused: false);
+            simulationReady = simulation.Step(simulationTime, FixedSimulationStep, false);
         }
 
         UploadFrameConstants();
@@ -380,26 +357,26 @@ internal unsafe class FluidTankRenderer : IDisposable
         commandBuffer.Transition(smoothDepthB, default, TextureLayout.Undefined, TextureLayout.Storage);
         commandBuffer.SetPipeline(blurPipeline);
         commandBuffer.SetConstantBuffer(blurConstantBuffer, 0);
-        Dispatch(commandBuffer, blurPipeline, reconstructionWidth, reconstructionHeight);
+        GraphicsHelper.Dispatch(commandBuffer, blurPipeline, reconstructionWidth, reconstructionHeight);
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
         commandBuffer.Transition(smoothDepthB, default, TextureLayout.Storage, TextureLayout.Sampled);
 
         commandBuffer.Transition(smoothDepthA, default, TextureLayout.Sampled, TextureLayout.Storage);
         commandBuffer.SetConstantBuffer(blurConstantBuffer, 256);
-        Dispatch(commandBuffer, blurPipeline, reconstructionWidth, reconstructionHeight);
+        GraphicsHelper.Dispatch(commandBuffer, blurPipeline, reconstructionWidth, reconstructionHeight);
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
         commandBuffer.Transition(smoothDepthA, default, TextureLayout.Storage, TextureLayout.Sampled);
 
         commandBuffer.Transition(smoothThicknessB, default, TextureLayout.Undefined, TextureLayout.Storage);
         commandBuffer.SetPipeline(blurThicknessPipeline);
         commandBuffer.SetConstantBuffer(blurConstantBuffer, 512);
-        Dispatch(commandBuffer, blurThicknessPipeline, reconstructionWidth, reconstructionHeight);
+        GraphicsHelper.Dispatch(commandBuffer, blurThicknessPipeline, reconstructionWidth, reconstructionHeight);
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
         commandBuffer.Transition(smoothThicknessB, default, TextureLayout.Storage, TextureLayout.Sampled);
 
         commandBuffer.Transition(smoothThicknessA, default, TextureLayout.Sampled, TextureLayout.Storage);
         commandBuffer.SetConstantBuffer(blurConstantBuffer, 768);
-        Dispatch(commandBuffer, blurThicknessPipeline, reconstructionWidth, reconstructionHeight);
+        GraphicsHelper.Dispatch(commandBuffer, blurThicknessPipeline, reconstructionWidth, reconstructionHeight);
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.FragmentShading);
         commandBuffer.Transition(smoothThicknessA, default, TextureLayout.Storage, TextureLayout.Sampled);
 
@@ -408,7 +385,7 @@ internal unsafe class FluidTankRenderer : IDisposable
             commandBuffer.Transition(reflection!, default, TextureLayout.Undefined, TextureLayout.Storage);
             commandBuffer.SetPipeline(reflectionPipeline);
             commandBuffer.SetConstantBuffer(reflectionConstantBuffer, 0);
-            Dispatch(commandBuffer, reflectionPipeline, reconstructionWidth, reconstructionHeight);
+            GraphicsHelper.Dispatch(commandBuffer, reflectionPipeline, reconstructionWidth, reconstructionHeight);
             commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.FragmentShading);
             commandBuffer.Transition(reflection!, default, TextureLayout.Storage, TextureLayout.Sampled);
         }
@@ -420,7 +397,8 @@ internal unsafe class FluidTankRenderer : IDisposable
         commandBuffer.Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
 
-        commandBuffer.Barrier(BarrierStages.FragmentShading, BarrierStages.FragmentShading);
+        commandBuffer.Transition(Color, default, TextureLayout.ColorAttachment, TextureLayout.ColorAttachment);
+        commandBuffer.Transition(DepthStencil, default, TextureLayout.DepthStencilAttachment, TextureLayout.DepthStencilAttachment);
         commandBuffer.BeginRenderPass([ColorAttachment.Load(Color)], DepthStencilAttachment.Load(DepthStencil));
         DrawGlass(commandBuffer);
         commandBuffer.EndRenderPass();
@@ -432,20 +410,20 @@ internal unsafe class FluidTankRenderer : IDisposable
     {
         DisposeTargets();
 
-        Color = CreateTexture(PixelFormat.B8G8R8A8UNorm, width, height, TextureUsages.Sampled | TextureUsages.ColorAttachment);
-        DepthStencil = CreateTexture(PixelFormat.D32FloatS8UInt, width, height, TextureUsages.DepthStencilAttachment);
-        sceneColor = CreateTexture(PixelFormat.R16G16B16A16Float, width, height, TextureUsages.Sampled | TextureUsages.ColorAttachment);
-        sceneLinearDepth = CreateTexture(PixelFormat.R32Float, width, height, TextureUsages.Sampled | TextureUsages.ColorAttachment);
+        Color = GraphicsHelper.CreateTexture(PixelFormat.B8G8R8A8UNorm, width, height, TextureUsages.Sampled | TextureUsages.ColorAttachment);
+        DepthStencil = GraphicsHelper.CreateTexture(PixelFormat.D32FloatS8UInt, width, height, TextureUsages.DepthStencilAttachment);
+        sceneColor = GraphicsHelper.CreateTexture(PixelFormat.R16G16B16A16Float, width, height, TextureUsages.Sampled | TextureUsages.ColorAttachment);
+        sceneLinearDepth = GraphicsHelper.CreateTexture(PixelFormat.R32Float, width, height, TextureUsages.Sampled | TextureUsages.ColorAttachment);
         uint reconstructionWidth = Math.Max((width + 2) / 3, 1u);
         uint reconstructionHeight = Math.Max((height + 2) / 3, 1u);
-        reconstructionDepth = CreateTexture(PixelFormat.D32FloatS8UInt, reconstructionWidth, reconstructionHeight, TextureUsages.DepthStencilAttachment);
-        fluidAttributes = CreateTexture(PixelFormat.R16G16B16A16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.ColorAttachment);
-        smoothDepthA = CreateTexture(PixelFormat.R32Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment);
-        smoothDepthB = CreateTexture(PixelFormat.R32Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage);
-        smoothThicknessA = CreateTexture(PixelFormat.R16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment);
-        smoothThicknessB = CreateTexture(PixelFormat.R16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage);
+        reconstructionDepth = GraphicsHelper.CreateTexture(PixelFormat.D32FloatS8UInt, reconstructionWidth, reconstructionHeight, TextureUsages.DepthStencilAttachment);
+        fluidAttributes = GraphicsHelper.CreateTexture(PixelFormat.R16G16B16A16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.ColorAttachment);
+        smoothDepthA = GraphicsHelper.CreateTexture(PixelFormat.R32Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment);
+        smoothDepthB = GraphicsHelper.CreateTexture(PixelFormat.R32Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage);
+        smoothThicknessA = GraphicsHelper.CreateTexture(PixelFormat.R16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment);
+        smoothThicknessB = GraphicsHelper.CreateTexture(PixelFormat.R16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage);
         reflection = App.Context.Capabilities.RayTracingSupported
-            ? CreateTexture(PixelFormat.R16G16B16A16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage)
+            ? GraphicsHelper.CreateTexture(PixelFormat.R16G16B16A16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage)
             : null;
     }
 
@@ -499,7 +477,7 @@ internal unsafe class FluidTankRenderer : IDisposable
             LightIntensity = 1.55f,
             Materials = materialBuffer.StorageReadOnlyHandle
         };
-        Upload(sceneConstantBuffer, 0, &scene, (uint)sizeof(SceneConstants));
+        GraphicsHelper.Upload(sceneConstantBuffer, 0, &scene, (uint)sizeof(SceneConstants));
 
         SurfaceConstants surface = new()
         {
@@ -519,7 +497,7 @@ internal unsafe class FluidTankRenderer : IDisposable
             SceneDepth = sceneLinearDepth.SampledHandle,
             Sampler = linearSampler.Handle
         };
-        Upload(surfaceConstantBuffer, 0, &surface, (uint)sizeof(SurfaceConstants));
+        GraphicsHelper.Upload(surfaceConstantBuffer, 0, &surface, (uint)sizeof(SurfaceConstants));
 
         uint reconstructionWidth = smoothDepthA.Desc.Width;
         uint reconstructionHeight = smoothDepthA.Desc.Height;
@@ -548,7 +526,7 @@ internal unsafe class FluidTankRenderer : IDisposable
             Reflection = reflection?.SampledHandle ?? default,
             Sampler = linearSampler.Handle
         };
-        Upload(compositeConstantBuffer, 0, &composite, (uint)sizeof(CompositeConstants));
+        GraphicsHelper.Upload(compositeConstantBuffer, 0, &composite, (uint)sizeof(CompositeConstants));
 
         if (ViewMode is FluidViewMode.Water)
         {
@@ -564,26 +542,26 @@ internal unsafe class FluidTankRenderer : IDisposable
                 InputTexture = smoothDepthA.SampledHandle,
                 OutputTexture = smoothDepthB.StorageHandle
             };
-            Upload(blurConstantBuffer, 0, &horizontal, (uint)sizeof(BlurConstants));
+            GraphicsHelper.Upload(blurConstantBuffer, 0, &horizontal, (uint)sizeof(BlurConstants));
 
             BlurConstants vertical = horizontal;
             vertical.Direction = 1;
             vertical.InputTexture = smoothDepthB.SampledHandle;
             vertical.OutputTexture = smoothDepthA.StorageHandle;
-            Upload(blurConstantBuffer, 256, &vertical, (uint)sizeof(BlurConstants));
+            GraphicsHelper.Upload(blurConstantBuffer, 256, &vertical, (uint)sizeof(BlurConstants));
 
             BlurConstants horizontalThickness = horizontal;
             horizontalThickness.Radius = 12;
             horizontalThickness.SpatialSigma = 6.0f;
             horizontalThickness.InputTexture = smoothThicknessA.SampledHandle;
             horizontalThickness.OutputTexture = smoothThicknessB.StorageHandle;
-            Upload(blurConstantBuffer, 512, &horizontalThickness, (uint)sizeof(BlurConstants));
+            GraphicsHelper.Upload(blurConstantBuffer, 512, &horizontalThickness, (uint)sizeof(BlurConstants));
 
             BlurConstants verticalThickness = horizontalThickness;
             verticalThickness.Direction = 1;
             verticalThickness.InputTexture = smoothThicknessB.SampledHandle;
             verticalThickness.OutputTexture = smoothThicknessA.StorageHandle;
-            Upload(blurConstantBuffer, 768, &verticalThickness, (uint)sizeof(BlurConstants));
+            GraphicsHelper.Upload(blurConstantBuffer, 768, &verticalThickness, (uint)sizeof(BlurConstants));
 
             if (reflectionPipeline is not null)
             {
@@ -603,7 +581,7 @@ internal unsafe class FluidTankRenderer : IDisposable
                     Materials = materialBuffer.StorageReadOnlyHandle,
                     OutputTexture = reflection!.StorageHandle
                 };
-                Upload(reflectionConstantBuffer, 0, &reflectionParameters, (uint)sizeof(ReflectionConstants));
+                GraphicsHelper.Upload(reflectionConstantBuffer, 0, &reflectionParameters, (uint)sizeof(ReflectionConstants));
             }
         }
 
@@ -614,7 +592,7 @@ internal unsafe class FluidTankRenderer : IDisposable
             CameraPosition = cameraPosition,
             Time = (float)totalTime
         };
-        Upload(glassConstantBuffer, 0, &glass, (uint)sizeof(GlassConstants));
+        GraphicsHelper.Upload(glassConstantBuffer, 0, &glass, (uint)sizeof(GlassConstants));
     }
 
     private void RenderParticles(CommandBuffer commandBuffer)
@@ -626,7 +604,8 @@ internal unsafe class FluidTankRenderer : IDisposable
         commandBuffer.Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
 
-        commandBuffer.Barrier(BarrierStages.FragmentShading, BarrierStages.FragmentShading);
+        commandBuffer.Transition(Color, default, TextureLayout.ColorAttachment, TextureLayout.ColorAttachment);
+        commandBuffer.Transition(DepthStencil, default, TextureLayout.DepthStencilAttachment, TextureLayout.DepthStencilAttachment);
         commandBuffer.BeginRenderPass([ColorAttachment.Load(Color)], DepthStencilAttachment.Load(DepthStencil));
         commandBuffer.SetPipeline(particlePipeline);
         commandBuffer.SetConstantBuffer(surfaceConstantBuffer, 0);
@@ -661,137 +640,6 @@ internal unsafe class FluidTankRenderer : IDisposable
         Color?.Dispose();
     }
 
-    private static Texture CreateTexture(PixelFormat format, uint width, uint height, TextureUsages usages)
-    {
-        return App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = format,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Usages = usages
-        });
-    }
-
-    private static Buffer CreateConstantBuffer<T>() where T : unmanaged
-    {
-        return App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)sizeof(T),
-            Usages = BufferUsages.Constant,
-            Residency = MemoryResidency.CpuWriteOnly
-        });
-    }
-
-    private static Buffer CreateVertexBuffer(CommandBuffer commandBuffer, SceneVertex[] vertices, bool includeStorage)
-    {
-        Buffer buffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(SceneVertex) * vertices.Length),
-            StrideInBytes = (uint)sizeof(SceneVertex),
-            Usages = BufferUsages.Vertex | BufferUsages.TransferDst | (includeStorage ? BufferUsages.StorageReadOnly : BufferUsages.None),
-            Residency = MemoryResidency.GpuOnly
-        });
-
-        fixed (SceneVertex* pointer = vertices)
-        {
-            commandBuffer.Upload(buffer, 0, new()
-            {
-                Pointer = (nint)pointer,
-                SizeInBytes = (uint)(sizeof(SceneVertex) * vertices.Length)
-            });
-        }
-
-        return buffer;
-    }
-
-    private static Buffer CreateIndexBuffer(CommandBuffer commandBuffer, uint[] indices, bool includeStorage)
-    {
-        Buffer buffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(uint) * indices.Length),
-            StrideInBytes = sizeof(uint),
-            Usages = BufferUsages.Index | BufferUsages.TransferDst | (includeStorage ? BufferUsages.StorageReadOnly : BufferUsages.None),
-            Residency = MemoryResidency.GpuOnly
-        });
-
-        fixed (uint* pointer = indices)
-        {
-            commandBuffer.Upload(buffer, 0, new()
-            {
-                Pointer = (nint)pointer,
-                SizeInBytes = (uint)(sizeof(uint) * indices.Length)
-            });
-        }
-
-        return buffer;
-    }
-
-    private static GraphicsPipeline CreateGraphicsPipeline(string file,
-                                                           string vertexEntry,
-                                                           string fragmentEntry,
-                                                           InputLayout[] inputLayouts,
-                                                           AttachmentFormats formats,
-                                                           RasterizerState rasterizer,
-                                                           DepthStencilState depthStencil,
-                                                           BlendState blend,
-                                                           PrimitiveTopology primitiveTopology = PrimitiveTopology.TriangleList)
-    {
-        string shaderPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", file);
-        using Shader vertex = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, vertexEntry));
-
-        return CreateGraphicsPipeline(vertex, shaderPath, fragmentEntry, inputLayouts, formats, rasterizer, depthStencil, blend, primitiveTopology);
-    }
-
-    private static GraphicsPipeline CreateGraphicsPipeline(Shader vertex,
-                                                           string shaderPath,
-                                                           string fragmentEntry,
-                                                           InputLayout[] inputLayouts,
-                                                           AttachmentFormats formats,
-                                                           RasterizerState rasterizer,
-                                                           DepthStencilState depthStencil,
-                                                           BlendState blend,
-                                                           PrimitiveTopology primitiveTopology = PrimitiveTopology.TriangleList)
-    {
-        using Shader fragment = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, fragmentEntry));
-
-        return App.Context.CreateGraphicsPipeline(new()
-        {
-            VertexShader = vertex,
-            FragmentShader = fragment,
-            InputLayouts = inputLayouts,
-            PrimitiveTopology = primitiveTopology,
-            AttachmentFormats = formats,
-            RenderState = new()
-            {
-                Rasterizer = rasterizer,
-                DepthStencil = depthStencil,
-                Blend = blend
-            }
-        });
-    }
-
-    private static ComputePipeline CreateComputePipeline(string file, string entry)
-    {
-        string shaderPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", file);
-        using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, entry));
-
-        return App.Context.CreateComputePipeline(new() { ComputeShader = shader });
-    }
-
-    private static void Dispatch(CommandBuffer commandBuffer, ComputePipeline pipeline, uint width, uint height)
-    {
-        ThreadGroupSize groupSize = pipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
-
-        commandBuffer.Dispatch((width + groupSize.X - 1) / groupSize.X,
-                               (height + groupSize.Y - 1) / groupSize.Y,
-                               1);
-    }
-
     private static BlendState AdditiveBlend()
     {
         return new()
@@ -809,112 +657,235 @@ internal unsafe class FluidTankRenderer : IDisposable
             }
         };
     }
-
-    private static void Upload(Buffer buffer, uint offset, void* data, uint size)
-    {
-        buffer.Upload(offset, new()
-        {
-            Pointer = (nint)data,
-            SizeInBytes = size
-        });
-    }
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 176)]
 file struct SceneConstants
 {
-    [FieldOffset(0)] public Matrix4x4 View;
-    [FieldOffset(64)] public Matrix4x4 Projection;
-    [FieldOffset(128)] public Vector3 CameraPosition;
-    [FieldOffset(140)] public float Time;
-    [FieldOffset(144)] public Vector3 LightDirection;
-    [FieldOffset(156)] public float LightIntensity;
-    [FieldOffset(160)] public ResourceHandle Materials;
+    [FieldOffset(0)]
+    public Matrix4x4 View;
+
+    [FieldOffset(64)]
+    public Matrix4x4 Projection;
+
+    [FieldOffset(128)]
+    public Vector3 CameraPosition;
+
+    [FieldOffset(140)]
+    public float Time;
+
+    [FieldOffset(144)]
+    public Vector3 LightDirection;
+
+    [FieldOffset(156)]
+    public float LightIntensity;
+
+    [FieldOffset(160)]
+    public ResourceHandle Materials;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 224)]
 file struct SurfaceConstants
 {
-    [FieldOffset(0)] public Matrix4x4 View;
-    [FieldOffset(64)] public Matrix4x4 Projection;
-    [FieldOffset(128)] public Vector3 CameraRight;
-    [FieldOffset(140)] public float ParticleRadius;
-    [FieldOffset(144)] public Vector3 CameraUp;
-    [FieldOffset(156)] public float RestDensity;
-    [FieldOffset(160)] public uint ParticleCount;
-    [FieldOffset(164)] public uint RenderMode;
-    [FieldOffset(168)] public uint Width;
-    [FieldOffset(172)] public uint Height;
-    [FieldOffset(176)] public float InterpolationAlpha;
-    [FieldOffset(192)] public ResourceHandle Particles;
-    [FieldOffset(200)] public ResourceHandle PreviousPositions;
-    [FieldOffset(208)] public ResourceHandle SceneDepth;
-    [FieldOffset(216)] public ResourceHandle Sampler;
+    [FieldOffset(0)]
+    public Matrix4x4 View;
+
+    [FieldOffset(64)]
+    public Matrix4x4 Projection;
+
+    [FieldOffset(128)]
+    public Vector3 CameraRight;
+
+    [FieldOffset(140)]
+    public float ParticleRadius;
+
+    [FieldOffset(144)]
+    public Vector3 CameraUp;
+
+    [FieldOffset(156)]
+    public float RestDensity;
+
+    [FieldOffset(160)]
+    public uint ParticleCount;
+
+    [FieldOffset(164)]
+    public uint RenderMode;
+
+    [FieldOffset(168)]
+    public uint Width;
+
+    [FieldOffset(172)]
+    public uint Height;
+
+    [FieldOffset(176)]
+    public float InterpolationAlpha;
+
+    [FieldOffset(192)]
+    public ResourceHandle Particles;
+
+    [FieldOffset(200)]
+    public ResourceHandle PreviousPositions;
+
+    [FieldOffset(208)]
+    public ResourceHandle SceneDepth;
+
+    [FieldOffset(216)]
+    public ResourceHandle Sampler;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 48)]
 file struct BlurConstants
 {
-    [FieldOffset(0)] public uint Width;
-    [FieldOffset(4)] public uint Height;
-    [FieldOffset(8)] public uint Direction;
-    [FieldOffset(12)] public uint Radius;
-    [FieldOffset(16)] public float SpatialSigma;
-    [FieldOffset(20)] public float DepthSigma;
-    [FieldOffset(24)] public float ProjectedRadiusScale;
-    [FieldOffset(32)] public ResourceHandle InputTexture;
-    [FieldOffset(40)] public ResourceHandle OutputTexture;
+    [FieldOffset(0)]
+    public uint Width;
+
+    [FieldOffset(4)]
+    public uint Height;
+
+    [FieldOffset(8)]
+    public uint Direction;
+
+    [FieldOffset(12)]
+    public uint Radius;
+
+    [FieldOffset(16)]
+    public float SpatialSigma;
+
+    [FieldOffset(20)]
+    public float DepthSigma;
+
+    [FieldOffset(24)]
+    public float ProjectedRadiusScale;
+
+    [FieldOffset(32)]
+    public ResourceHandle InputTexture;
+
+    [FieldOffset(40)]
+    public ResourceHandle OutputTexture;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 272)]
 file struct CompositeConstants
 {
-    [FieldOffset(0)] public Matrix4x4 InvView;
-    [FieldOffset(64)] public Matrix4x4 InvProjection;
-    [FieldOffset(128)] public Vector3 CameraPosition;
-    [FieldOffset(140)] public float Time;
-    [FieldOffset(144)] public Vector3 SunDirection;
-    [FieldOffset(156)] public float Clarity;
-    [FieldOffset(160)] public Vector3 WaterColor;
-    [FieldOffset(172)] public float RefractionStrength;
-    [FieldOffset(176)] public Vector3 Absorption;
-    [FieldOffset(188)] public float Ior;
-    [FieldOffset(192)] public uint Width;
-    [FieldOffset(196)] public uint Height;
-    [FieldOffset(200)] public uint RenderMode;
-    [FieldOffset(204)] public uint RayTracingEnabled;
-    [FieldOffset(208)] public ResourceHandle SceneColor;
-    [FieldOffset(216)] public ResourceHandle SceneDepth;
-    [FieldOffset(224)] public ResourceHandle FluidDepth;
-    [FieldOffset(232)] public ResourceHandle Thickness;
-    [FieldOffset(240)] public ResourceHandle Attributes;
-    [FieldOffset(248)] public ResourceHandle Reflection;
-    [FieldOffset(256)] public ResourceHandle Sampler;
+    [FieldOffset(0)]
+    public Matrix4x4 InvView;
+
+    [FieldOffset(64)]
+    public Matrix4x4 InvProjection;
+
+    [FieldOffset(128)]
+    public Vector3 CameraPosition;
+
+    [FieldOffset(140)]
+    public float Time;
+
+    [FieldOffset(144)]
+    public Vector3 SunDirection;
+
+    [FieldOffset(156)]
+    public float Clarity;
+
+    [FieldOffset(160)]
+    public Vector3 WaterColor;
+
+    [FieldOffset(172)]
+    public float RefractionStrength;
+
+    [FieldOffset(176)]
+    public Vector3 Absorption;
+
+    [FieldOffset(188)]
+    public float Ior;
+
+    [FieldOffset(192)]
+    public uint Width;
+
+    [FieldOffset(196)]
+    public uint Height;
+
+    [FieldOffset(200)]
+    public uint RenderMode;
+
+    [FieldOffset(204)]
+    public uint RayTracingEnabled;
+
+    [FieldOffset(208)]
+    public ResourceHandle SceneColor;
+
+    [FieldOffset(216)]
+    public ResourceHandle SceneDepth;
+
+    [FieldOffset(224)]
+    public ResourceHandle FluidDepth;
+
+    [FieldOffset(232)]
+    public ResourceHandle Thickness;
+
+    [FieldOffset(240)]
+    public ResourceHandle Attributes;
+
+    [FieldOffset(248)]
+    public ResourceHandle Reflection;
+
+    [FieldOffset(256)]
+    public ResourceHandle Sampler;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 224)]
 file struct ReflectionConstants
 {
-    [FieldOffset(0)] public Matrix4x4 InvView;
-    [FieldOffset(64)] public Matrix4x4 InvProjection;
-    [FieldOffset(128)] public Vector3 CameraPosition;
-    [FieldOffset(140)] public float Time;
-    [FieldOffset(144)] public Vector3 SunDirection;
-    [FieldOffset(160)] public uint Width;
-    [FieldOffset(164)] public uint Height;
-    [FieldOffset(176)] public ResourceHandle FluidDepth;
-    [FieldOffset(184)] public ResourceHandle Scene;
-    [FieldOffset(192)] public ResourceHandle Vertices;
-    [FieldOffset(200)] public ResourceHandle Indices;
-    [FieldOffset(208)] public ResourceHandle Materials;
-    [FieldOffset(216)] public ResourceHandle OutputTexture;
+    [FieldOffset(0)]
+    public Matrix4x4 InvView;
+
+    [FieldOffset(64)]
+    public Matrix4x4 InvProjection;
+
+    [FieldOffset(128)]
+    public Vector3 CameraPosition;
+
+    [FieldOffset(140)]
+    public float Time;
+
+    [FieldOffset(144)]
+    public Vector3 SunDirection;
+
+    [FieldOffset(160)]
+    public uint Width;
+
+    [FieldOffset(164)]
+    public uint Height;
+
+    [FieldOffset(176)]
+    public ResourceHandle FluidDepth;
+
+    [FieldOffset(184)]
+    public ResourceHandle Scene;
+
+    [FieldOffset(192)]
+    public ResourceHandle Vertices;
+
+    [FieldOffset(200)]
+    public ResourceHandle Indices;
+
+    [FieldOffset(208)]
+    public ResourceHandle Materials;
+
+    [FieldOffset(216)]
+    public ResourceHandle OutputTexture;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 144)]
 file struct GlassConstants
 {
-    [FieldOffset(0)] public Matrix4x4 View;
-    [FieldOffset(64)] public Matrix4x4 Projection;
-    [FieldOffset(128)] public Vector3 CameraPosition;
-    [FieldOffset(140)] public float Time;
+    [FieldOffset(0)]
+    public Matrix4x4 View;
+
+    [FieldOffset(64)]
+    public Matrix4x4 Projection;
+
+    [FieldOffset(128)]
+    public Vector3 CameraPosition;
+
+    [FieldOffset(140)]
+    public float Time;
 }
