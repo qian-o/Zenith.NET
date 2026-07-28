@@ -1,0 +1,10 @@
+﻿{
+  "profiles": {
+    "FluidTank": {
+      "commandName": "Project"
+    },
+    "FluidTank (WSL)": {
+      "commandName": "WSL2"
+    }
+  }
+}
