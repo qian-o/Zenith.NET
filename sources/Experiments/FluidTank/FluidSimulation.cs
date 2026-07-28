@@ -10,8 +10,8 @@ internal unsafe class FluidSimulation : IDisposable
 {
     private static readonly Vector3 TankMin = new(-6.0f, 0.0f, -3.0f);
     private static readonly Vector3 TankMax = new(6.0f, 5.2f, 3.0f);
-    private static readonly (uint X, uint Y, uint Z) DamDimensions = (36, 44, 54);
-    private const float GridSpacing = 0.20f;
+    private static readonly (uint X, uint Y, uint Z) DamDimensions = (40, 48, 59);
+    private const float GridSpacing = 6.0f / 33.0f;
 
     private readonly Buffer constantBuffer;
     private readonly Buffer particles;
@@ -92,7 +92,7 @@ internal unsafe class FluidSimulation : IDisposable
 
     public ResourceHandle PreviousPositionHandle => previousPositions.StorageReadOnlyHandle;
 
-    public const float ParticleRadius = 0.0632f;
+    public const float ParticleRadius = GridSpacing * 0.316f;
 
     public const float RestDensity = 5.52f;
 
@@ -110,7 +110,7 @@ internal unsafe class FluidSimulation : IDisposable
     {
         get;
         set => field = Math.Clamp(value, 4, 32);
-    } = 16;
+    } = 18;
 
     public void Reset()
     {
