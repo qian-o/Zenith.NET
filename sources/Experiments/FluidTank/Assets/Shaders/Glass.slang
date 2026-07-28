@@ -3,7 +3,9 @@
 struct GlassConstants
 {
     float4x4 View;
+
     float4x4 Projection;
+
     private float4 CameraPositionAndTime;
 
     property float3 CameraPosition
@@ -12,6 +14,7 @@ struct GlassConstants
             return CameraPositionAndTime.xyz;
         }
     }
+
     property float Time
     {
         get {
@@ -23,13 +26,16 @@ struct GlassConstants
 struct VSInput
 {
     float4 Position : POSITION;
+
     float4 NormalAndMaterial : NORMAL;
 };
 
 struct VSOutput
 {
     float4 Position : SV_POSITION;
+
     float3 WorldPosition : TEXCOORD0;
+
     float3 Normal : TEXCOORD1;
 };
 

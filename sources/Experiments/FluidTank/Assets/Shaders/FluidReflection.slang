@@ -3,16 +3,25 @@
 struct ReflectionConstants
 {
     float4x4 InvView;
+
     float4x4 InvProjection;
+
     private float4 CameraPositionAndTime;
+
     private float4 SunDirectionAndPadding;
+
     private uint4 DimensionsAndPadding;
 
     DescriptorHandle<Texture2D<float>> FluidDepth;
+
     DescriptorHandle<RaytracingAccelerationStructure> Scene;
+
     DescriptorHandle<StructuredBuffer<SceneVertex>> Vertices;
+
     DescriptorHandle<StructuredBuffer<uint>> Indices;
+
     DescriptorHandle<StructuredBuffer<SceneMaterial>> Materials;
+
     DescriptorHandle<RWTexture2D<float4>> OutputTexture;
 
     property float3 CameraPosition
@@ -21,24 +30,28 @@ struct ReflectionConstants
             return CameraPositionAndTime.xyz;
         }
     }
+
     property float Time
     {
         get {
             return CameraPositionAndTime.w;
         }
     }
+
     property float3 SunDirection
     {
         get {
             return SunDirectionAndPadding.xyz;
         }
     }
+
     property uint Width
     {
         get {
             return DimensionsAndPadding.x;
         }
     }
+
     property uint Height
     {
         get {

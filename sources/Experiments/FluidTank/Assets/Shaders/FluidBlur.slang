@@ -1,8 +1,11 @@
 ﻿struct BlurConstants
 {
     private uint4 DimensionsAndDirection;
+
     private float4 FilterParameters;
+
     DescriptorHandle<Texture2D<float>> InputTexture;
+
     DescriptorHandle<RWTexture2D<float>> OutputTexture;
 
     property uint Width
@@ -11,36 +14,42 @@
             return DimensionsAndDirection.x;
         }
     }
+
     property uint Height
     {
         get {
             return DimensionsAndDirection.y;
         }
     }
+
     property uint Direction
     {
         get {
             return DimensionsAndDirection.z;
         }
     }
+
     property uint Radius
     {
         get {
             return DimensionsAndDirection.w;
         }
     }
+
     property float SpatialSigma
     {
         get {
             return FilterParameters.x;
         }
     }
+
     property float DepthSigma
     {
         get {
             return FilterParameters.y;
         }
     }
+
     property float ProjectedRadiusScale
     {
         get {

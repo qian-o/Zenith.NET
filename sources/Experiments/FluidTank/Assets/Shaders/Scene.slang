@@ -3,9 +3,13 @@
 struct SceneConstants
 {
     float4x4 View;
+
     float4x4 Projection;
+
     private float4 CameraPositionAndTime;
+
     private float4 LightDirectionAndIntensity;
+
     DescriptorHandle<StructuredBuffer<SceneMaterial>> Materials;
 
     property float3 CameraPosition
@@ -14,18 +18,21 @@ struct SceneConstants
             return CameraPositionAndTime.xyz;
         }
     }
+
     property float Time
     {
         get {
             return CameraPositionAndTime.w;
         }
     }
+
     property float3 LightDirection
     {
         get {
             return LightDirectionAndIntensity.xyz;
         }
     }
+
     property float LightIntensity
     {
         get {
@@ -37,21 +44,27 @@ struct SceneConstants
 struct VSInput
 {
     float4 Position : POSITION;
+
     float4 NormalAndMaterial : NORMAL;
 };
 
 struct VSOutput
 {
     float4 Position : SV_POSITION;
+
     float3 WorldPosition : TEXCOORD0;
+
     float3 Normal : TEXCOORD1;
+
     float ViewDepth : TEXCOORD2;
+
     nointerpolation uint MaterialId : TEXCOORD3;
 };
 
 struct FSOutput
 {
     float4 Color : SV_TARGET0;
+
     float LinearDepth : SV_TARGET1;
 };
 

@@ -9,23 +9,39 @@ static const float ParticleSpacingScale = 1.67;
 struct SimulationConstants
 {
     private float4 TankMinAndTimeStep;
+
     private float4 TankMaxAndTime;
+
     private float4 GridParameters;
+
     private float4 WaveAndInteraction;
+
     private float4 InteractionOriginAndRadius;
+
     private float4 InteractionDirectionAndDensity;
+
     private uint4 Counts;
+
     private uint4 GridAndPressure;
+
     private uint4 DamAndSubsteps;
 
     DescriptorHandle<RWStructuredBuffer<Particle>> Particles;
+
     DescriptorHandle<RWStructuredBuffer<float4>> PreviousPositions;
+
     DescriptorHandle<RWStructuredBuffer<float4>> ParticleAffine;
+
     DescriptorHandle<RWStructuredBuffer<int>> GridAccumulation;
+
     DescriptorHandle<RWStructuredBuffer<float4>> GridVelocity;
+
     DescriptorHandle<RWStructuredBuffer<float4>> GridVelocityOld;
+
     DescriptorHandle<RWStructuredBuffer<uint>> CellTypes;
+
     DescriptorHandle<RWStructuredBuffer<float>> Divergence;
+
     DescriptorHandle<RWStructuredBuffer<float>> PressureA;
 
     property float3 TankMin
@@ -34,138 +50,161 @@ struct SimulationConstants
             return TankMinAndTimeStep.xyz;
         }
     }
+
     property float TimeStep
     {
         get {
             return TankMinAndTimeStep.w;
         }
     }
+
     property float3 TankMax
     {
         get {
             return TankMaxAndTime.xyz;
         }
     }
+
     property float Time
     {
         get {
             return TankMaxAndTime.w;
         }
     }
+
     property float GridSpacing
     {
         get {
             return GridParameters.x;
         }
     }
+
     property float InverseGridSpacing
     {
         get {
             return GridParameters.y;
         }
     }
+
     property float FlipRatio
     {
         get {
             return GridParameters.z;
         }
     }
+
     property float VelocityDamping
     {
         get {
             return GridParameters.w;
         }
     }
+
     property float WaveAmplitude
     {
         get {
             return WaveAndInteraction.x;
         }
     }
+
     property float WaveFrequency
     {
         get {
             return WaveAndInteraction.y;
         }
     }
+
     property float InteractionRadius
     {
         get {
             return WaveAndInteraction.z;
         }
     }
+
     property float InteractionStrength
     {
         get {
             return WaveAndInteraction.w;
         }
     }
+
     property float3 InteractionOrigin
     {
         get {
             return InteractionOriginAndRadius.xyz;
         }
     }
+
     property float ParticleRadius
     {
         get {
             return InteractionOriginAndRadius.w;
         }
     }
+
     property float3 InteractionDirection
     {
         get {
             return InteractionDirectionAndDensity.xyz;
         }
     }
+
     property float RestDensity
     {
         get {
             return InteractionDirectionAndDensity.w;
         }
     }
+
     property uint ParticleCount
     {
         get {
             return Counts.x;
         }
     }
+
     property uint CellCount
     {
         get {
             return Counts.y;
         }
     }
+
     property uint GridPointCount
     {
         get {
             return Counts.z;
         }
     }
+
     property bool WaveMakerEnabled
     {
         get {
             return Counts.w != 0;
         }
     }
+
     property uint3 GridDimensions
     {
         get {
             return GridAndPressure.xyz;
         }
     }
+
     property uint PressureIterations
     {
         get {
             return GridAndPressure.w;
         }
     }
+
     property uint3 DamDimensions
     {
         get {
             return DamAndSubsteps.xyz;
         }
     }
+
     property uint Substeps
     {
         get {

@@ -3,6 +3,7 @@
 struct Particle
 {
     float4 PositionDensity;
+
     float4 VelocityLambda;
 };
 

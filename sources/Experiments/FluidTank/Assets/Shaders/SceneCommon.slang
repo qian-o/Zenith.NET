@@ -1,6 +1,7 @@
 ﻿struct SceneVertex
 {
     private float4 PositionAndPadding;
+
     private float4 NormalAndMaterial;
 
     property float3 Position
@@ -9,12 +10,14 @@
             return PositionAndPadding.xyz;
         }
     }
+
     property float3 Normal
     {
         get {
             return NormalAndMaterial.xyz;
         }
     }
+
     property uint MaterialId
     {
         get {
@@ -26,6 +29,7 @@
 struct SceneMaterial
 {
     private float4 AlbedoAndRoughness;
+
     private float4 MetallicEmissionAndPadding;
 
     property float3 Albedo
@@ -34,18 +38,21 @@ struct SceneMaterial
             return AlbedoAndRoughness.xyz;
         }
     }
+
     property float Roughness
     {
         get {
             return AlbedoAndRoughness.w;
         }
     }
+
     property float Metallic
     {
         get {
             return MetallicEmissionAndPadding.x;
         }
     }
+
     property float Emission
     {
         get {

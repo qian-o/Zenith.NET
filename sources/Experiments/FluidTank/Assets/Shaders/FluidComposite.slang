@@ -3,19 +3,31 @@
 struct CompositeConstants
 {
     float4x4 InvView;
+
     float4x4 InvProjection;
+
     private float4 CameraPositionAndTime;
+
     private float4 SunDirectionAndClarity;
+
     private float4 WaterColorAndRefraction;
+
     private float4 AbsorptionAndIor;
+
     private uint4 ScreenAndRenderMode;
 
     DescriptorHandle<Texture2D> SceneColor;
+
     DescriptorHandle<Texture2D> SceneDepth;
+
     DescriptorHandle<Texture2D> FluidDepth;
+
     DescriptorHandle<Texture2D> Thickness;
+
     DescriptorHandle<Texture2D> Attributes;
+
     DescriptorHandle<Texture2D> Reflection;
+
     DescriptorHandle<SamplerState> Sampler;
 
     property float3 CameraPosition
@@ -24,66 +36,77 @@ struct CompositeConstants
             return CameraPositionAndTime.xyz;
         }
     }
+
     property float Time
     {
         get {
             return CameraPositionAndTime.w;
         }
     }
+
     property float3 SunDirection
     {
         get {
             return SunDirectionAndClarity.xyz;
         }
     }
+
     property float Clarity
     {
         get {
             return SunDirectionAndClarity.w;
         }
     }
+
     property float3 WaterColor
     {
         get {
             return WaterColorAndRefraction.xyz;
         }
     }
+
     property float RefractionStrength
     {
         get {
             return WaterColorAndRefraction.w;
         }
     }
+
     property float3 Absorption
     {
         get {
             return AbsorptionAndIor.xyz;
         }
     }
+
     property float Ior
     {
         get {
             return AbsorptionAndIor.w;
         }
     }
+
     property uint Width
     {
         get {
             return ScreenAndRenderMode.x;
         }
     }
+
     property uint Height
     {
         get {
             return ScreenAndRenderMode.y;
         }
     }
+
     property uint RenderMode
     {
         get {
             return ScreenAndRenderMode.z;
         }
     }
+
     property bool RayTracingEnabled
     {
         get {
@@ -95,6 +118,7 @@ struct CompositeConstants
 struct FullscreenOutput
 {
     float4 Position : SV_POSITION;
+
     float2 UV : TEXCOORD0;
 };
 

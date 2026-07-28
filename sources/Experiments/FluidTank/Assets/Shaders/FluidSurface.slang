@@ -3,14 +3,23 @@
 struct SurfaceConstants
 {
     float4x4 View;
+
     float4x4 Projection;
+
     private float4 CameraRightAndRadius;
+
     private float4 CameraUpAndRestDensity;
+
     private uint4 CountsAndDimensions;
+
     private float4 InterpolationParameters;
+
     DescriptorHandle<StructuredBuffer<Particle>> Particles;
+
     DescriptorHandle<StructuredBuffer<float4>> PreviousPositions;
+
     DescriptorHandle<Texture2D> SceneDepth;
+
     DescriptorHandle<SamplerState> Sampler;
 
     property float3 CameraRight
@@ -19,48 +28,56 @@ struct SurfaceConstants
             return CameraRightAndRadius.xyz;
         }
     }
+
     property float ParticleRadius
     {
         get {
             return CameraRightAndRadius.w;
         }
     }
+
     property float3 CameraUp
     {
         get {
             return CameraUpAndRestDensity.xyz;
         }
     }
+
     property float RestDensity
     {
         get {
             return CameraUpAndRestDensity.w;
         }
     }
+
     property uint ParticleCount
     {
         get {
             return CountsAndDimensions.x;
         }
     }
+
     property uint RenderMode
     {
         get {
             return CountsAndDimensions.y;
         }
     }
+
     property uint Width
     {
         get {
             return CountsAndDimensions.z;
         }
     }
+
     property uint Height
     {
         get {
             return CountsAndDimensions.w;
         }
     }
+
     property float InterpolationAlpha
     {
         get {
@@ -72,28 +89,36 @@ struct SurfaceConstants
 struct SurfaceVSOutput
 {
     float4 Position : SV_POSITION;
+
     float2 Corner : TEXCOORD0;
+
     float3 CenterView : TEXCOORD1;
+
     float Speed : TEXCOORD2;
+
     float Density : TEXCOORD3;
 };
 
 struct DepthOutput
 {
     float LinearDepth : SV_TARGET0;
+
     float4 Attributes : SV_TARGET1;
+
     float DeviceDepth : SV_DEPTH;
 };
 
 struct ThicknessOutput
 {
     float Thickness : SV_TARGET;
+
     float DeviceDepth : SV_DEPTH;
 };
 
 struct ParticleOutput
 {
     float4 Color : SV_TARGET;
+
     float DeviceDepth : SV_DEPTH;
 };
 
