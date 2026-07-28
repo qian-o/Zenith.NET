@@ -96,9 +96,9 @@ internal unsafe class FluidSimulation : IDisposable
 
     public const float RestDensity = 5.52f;
 
-    public float FlipRatio { get; set; } = 0.92f;
+    public float FlipRatio { get; set; } = 0.97f;
 
-    public float VelocityDamping { get; set; } = 0.999f;
+    public float VelocityDamping { get; set; } = 0.9998f;
 
     public float WaveAmplitude { get; set; } = 0.12f;
 

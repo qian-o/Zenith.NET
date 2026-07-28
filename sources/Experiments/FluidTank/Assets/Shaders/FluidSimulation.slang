@@ -611,7 +611,7 @@ bool ResolveCollisions(inout float3 position, inout float3 velocity)
     {
         position.y = minimum.y;
         velocity.y = max(velocity.y, 0.0);
-        velocity.xz *= 0.985;
+        velocity.xz *= 0.998;
         collided = true;
     }
     else if (position.y > maximum.y)
@@ -640,7 +640,7 @@ bool ResolveCollisions(inout float3 position, inout float3 velocity)
         float3 normal = ObstacleNormal(position);
         position += normal * (simulation.ParticleRadius - distance);
         velocity -= normal * min(dot(velocity, normal), 0.0);
-        velocity *= 0.995;
+        velocity *= 0.999;
         collided = true;
     }
 

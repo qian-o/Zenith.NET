@@ -123,7 +123,7 @@ void BlurCS(uint3 dispatchThreadID: SV_DispatchThreadID)
     float weightSum = 1.0;
     int2 direction = blur.Direction == 0 ? int2(1, 0) : int2(0, 1);
     float projectedRadius = blur.ProjectedRadiusScale / max(centerDepth, 0.1);
-    int localRadius = clamp(int(projectedRadius * 0.62 + 0.5), 4, int(blur.Radius));
+    int localRadius = clamp(int(projectedRadius * 1.35 + 0.5), 4, int(blur.Radius));
     float spatialSigma = max(blur.SpatialSigma, float(localRadius) * 0.58);
     float range = blur.DepthSigma * (0.85 + centerDepth * 0.015);
 

@@ -16,6 +16,7 @@ internal enum FluidViewMode
 internal unsafe class FluidTankRenderer : IDisposable
 {
     private const double FixedSimulationStep = 1.0 / 30.0;
+    private const int DepthSmoothingIterations = 4;
 
     private readonly FluidSimulation simulation;
     private readonly Buffer sceneVertexBuffer;
@@ -354,18 +355,23 @@ internal unsafe class FluidTankRenderer : IDisposable
         uint reconstructionWidth = smoothDepthA.Desc.Width;
         uint reconstructionHeight = smoothDepthA.Desc.Height;
 
-        commandBuffer.Transition(smoothDepthB, default, TextureLayout.Undefined, TextureLayout.Storage);
         commandBuffer.SetPipeline(blurPipeline);
-        commandBuffer.SetConstantBuffer(blurConstantBuffer, 0);
-        GraphicsHelper.Dispatch(commandBuffer, blurPipeline, reconstructionWidth, reconstructionHeight);
-        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-        commandBuffer.Transition(smoothDepthB, default, TextureLayout.Storage, TextureLayout.Sampled);
 
-        commandBuffer.Transition(smoothDepthA, default, TextureLayout.Sampled, TextureLayout.Storage);
-        commandBuffer.SetConstantBuffer(blurConstantBuffer, 256);
-        GraphicsHelper.Dispatch(commandBuffer, blurPipeline, reconstructionWidth, reconstructionHeight);
-        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-        commandBuffer.Transition(smoothDepthA, default, TextureLayout.Storage, TextureLayout.Sampled);
+        for (int iteration = 0; iteration < DepthSmoothingIterations; iteration++)
+        {
+            TextureLayout smoothDepthBLayout = iteration is 0 ? TextureLayout.Undefined : TextureLayout.Sampled;
+            commandBuffer.Transition(smoothDepthB, default, smoothDepthBLayout, TextureLayout.Storage);
+            commandBuffer.SetConstantBuffer(blurConstantBuffer, 0);
+            GraphicsHelper.Dispatch(commandBuffer, blurPipeline, reconstructionWidth, reconstructionHeight);
+            commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
+            commandBuffer.Transition(smoothDepthB, default, TextureLayout.Storage, TextureLayout.Sampled);
+
+            commandBuffer.Transition(smoothDepthA, default, TextureLayout.Sampled, TextureLayout.Storage);
+            commandBuffer.SetConstantBuffer(blurConstantBuffer, 256);
+            GraphicsHelper.Dispatch(commandBuffer, blurPipeline, reconstructionWidth, reconstructionHeight);
+            commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
+            commandBuffer.Transition(smoothDepthA, default, TextureLayout.Storage, TextureLayout.Sampled);
+        }
 
         commandBuffer.Transition(smoothThicknessB, default, TextureLayout.Undefined, TextureLayout.Storage);
         commandBuffer.SetPipeline(blurThicknessPipeline);
