@@ -1,5 +1,3 @@
-static const float PI = 3.14159265359;
-
 struct SceneVertex
 {
     private float4 PositionAndPadding;
@@ -26,8 +24,9 @@ float3 SkyColor(float3 direction)
     float horizon = saturate(direction.y * 0.5 + 0.5);
     float3 sky = lerp(float3(0.62, 0.76, 0.82), float3(0.055, 0.18, 0.34), pow(horizon, 0.62));
     float3 sunDirection = normalize(float3(-0.38, 0.83, -0.42));
-    float sun = pow(saturate(dot(direction, sunDirection)), 720.0);
-    float halo = pow(saturate(dot(direction, sunDirection)), 18.0);
+    float sunAlignment = saturate(dot(direction, sunDirection));
+    float sun = pow(sunAlignment, 720.0);
+    float halo = pow(sunAlignment, 18.0);
 
     return sky + float3(10.0, 8.2, 5.3) * sun + float3(0.55, 0.42, 0.25) * halo;
 }

@@ -67,7 +67,9 @@ float3 SurfaceNormal(uint2 pixel, float depth)
     float3 right = ViewPosition((float2(rightPixel) + 0.5) / dimensions, depthRight);
     float3 up = ViewPosition((float2(upPixel) + 0.5) / dimensions, depthUp);
     float3 down = ViewPosition((float2(downPixel) + 0.5) / dimensions, depthDown);
-    float3 normal = normalize(cross(down - up, right - left));
+    float3 normalVector = cross(down - up, right - left);
+    float normalLengthSquared = dot(normalVector, normalVector);
+    float3 normal = normalLengthSquared > 0.0 ? normalVector * rsqrt(normalLengthSquared) : float3(0.0, 0.0, 1.0);
 
     if (normal.z < 0.0)
     {

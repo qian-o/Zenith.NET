@@ -676,11 +676,12 @@ void DivergenceCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     }
 
     int3 cell = CellCoordinates(index);
-    float velocityLeft = simulation.GridVelocity[GridIndex(cell)].x;
+    float3 negativeVelocity = simulation.GridVelocity[GridIndex(cell)].xyz;
+    float velocityLeft = negativeVelocity.x;
     float velocityRight = simulation.GridVelocity[GridIndex(cell + int3(1, 0, 0))].x;
-    float velocityBottom = simulation.GridVelocity[GridIndex(cell)].y;
+    float velocityBottom = negativeVelocity.y;
     float velocityTop = simulation.GridVelocity[GridIndex(cell + int3(0, 1, 0))].y;
-    float velocityBack = simulation.GridVelocity[GridIndex(cell)].z;
+    float velocityBack = negativeVelocity.z;
     float velocityFront = simulation.GridVelocity[GridIndex(cell + int3(0, 0, 1))].z;
     float divergence = (velocityRight - velocityLeft + velocityTop - velocityBottom + velocityFront - velocityBack) * simulation.InverseGridSpacing;
     float particleSpacing = simulation.ParticleRadius * ParticleSpacingScale;
@@ -765,20 +766,22 @@ void ProjectGridCS(uint3 dispatchThreadID : SV_DispatchThreadID)
         int3 negativeCell;
         int3 positiveCell;
         FaceCells(component, point, negativeCell, positiveCell);
+        uint negativeType = CellTypeAt(negativeCell);
+        uint positiveType = CellTypeAt(positiveCell);
 
-        if (!FaceIsOpen(component, point))
+        if (negativeType == CellSolid || positiveType == CellSolid)
         {
             velocity[component] = 0.0;
             continue;
         }
 
-        if (!FaceTouchesFluid(component, point))
+        if (negativeType != CellFluid && positiveType != CellFluid)
         {
             continue;
         }
 
-        float negativePressure = PressureAt(negativeCell);
-        float positivePressure = PressureAt(positiveCell);
+        float negativePressure = negativeType == CellFluid ? simulation.PressureA[CellIndex(negativeCell)] : 0.0;
+        float positivePressure = positiveType == CellFluid ? simulation.PressureA[CellIndex(positiveCell)] : 0.0;
         velocity[component] -= simulation.TimeStep * (positivePressure - negativePressure) * simulation.InverseGridSpacing;
         velocity[component] = clamp(velocity[component], -8.0, 8.0);
     }

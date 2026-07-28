@@ -52,6 +52,11 @@ void BlurCS(uint3 dispatchThreadID : SV_DispatchThreadID)
                 positiveDepth = (*blur.InputTexture).Load(int3(positivePixel, 0));
                 positiveDistance = positiveDepth > 0.0 ? offset : 0;
             }
+
+            if (negativeDepth > 0.0 && positiveDepth > 0.0)
+            {
+                break;
+            }
         }
 
         float depthDifference = abs(negativeDepth - positiveDepth);
@@ -76,9 +81,12 @@ void BlurCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     float projectedRadius = blur.ProjectedRadiusScale / max(centerDepth, 0.1);
     int localRadius = clamp(int(projectedRadius * 0.62 + 0.5), 4, int(blur.Radius));
     float spatialSigma = max(blur.SpatialSigma, float(localRadius) * 0.58);
+    float range = blur.DepthSigma * (0.85 + centerDepth * 0.015);
 
     for (int offset = 1; offset <= localRadius; offset++)
     {
+        float spatialWeight = exp(-float(offset * offset) / (2.0 * spatialSigma * spatialSigma));
+
         for (int sign = -1; sign <= 1; sign += 2)
         {
             int2 samplePixel = clamp(int2(pixel) + direction * offset * sign, int2(0, 0), int2(int(blur.Width) - 1, int(blur.Height) - 1));
@@ -89,9 +97,7 @@ void BlurCS(uint3 dispatchThreadID : SV_DispatchThreadID)
                 continue;
             }
 
-            float spatialWeight = exp(-float(offset * offset) / (2.0 * spatialSigma * spatialSigma));
             float difference = abs(sampleDepth - centerDepth);
-            float range = blur.DepthSigma * (0.85 + centerDepth * 0.015);
 
             if (difference > range * 2.5)
             {

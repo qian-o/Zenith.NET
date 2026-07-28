@@ -18,7 +18,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="Assets\**">
+        <None Include="Assets\Shaders\*.slang">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>

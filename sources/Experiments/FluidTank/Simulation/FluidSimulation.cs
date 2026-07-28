@@ -194,7 +194,6 @@ internal unsafe class FluidSimulation : IDisposable
         if (resetRequested)
         {
             Dispatch(commandBuffer, resetPipeline, ParticleCount);
-            commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
             Dispatch(commandBuffer, initializeGridPipeline, CellCount);
             commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
             resetRequested = false;

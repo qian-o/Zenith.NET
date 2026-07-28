@@ -75,10 +75,11 @@ internal unsafe class FluidTankRenderer : IDisposable
         sceneIndexCount = (uint)sceneIndices.Length;
         glassIndexCount = (uint)glassIndices.Length;
 
-        sceneVertexBuffer = CreateVertexBuffer(sceneVertices, includeStorage: true);
-        sceneIndexBuffer = CreateIndexBuffer(sceneIndices, includeStorage: true);
-        glassVertexBuffer = CreateVertexBuffer(glassVertices, includeStorage: false);
-        glassIndexBuffer = CreateIndexBuffer(glassIndices, includeStorage: false);
+        CommandBuffer uploadCommandBuffer = App.Context.TransferQueue.CommandBuffer();
+        sceneVertexBuffer = CreateVertexBuffer(uploadCommandBuffer, sceneVertices, includeStorage: true);
+        sceneIndexBuffer = CreateIndexBuffer(uploadCommandBuffer, sceneIndices, includeStorage: true);
+        glassVertexBuffer = CreateVertexBuffer(uploadCommandBuffer, glassVertices, includeStorage: false);
+        glassIndexBuffer = CreateIndexBuffer(uploadCommandBuffer, glassIndices, includeStorage: false);
 
         materialBuffer = App.Context.CreateBuffer(new()
         {
@@ -90,12 +91,14 @@ internal unsafe class FluidTankRenderer : IDisposable
 
         fixed (SceneMaterial* pointer = materials)
         {
-            materialBuffer.Upload(0, new()
+            uploadCommandBuffer.Upload(materialBuffer, 0, new()
             {
                 Pointer = (nint)pointer,
                 SizeInBytes = (uint)(sizeof(SceneMaterial) * materials.Length)
             });
         }
+
+        uploadCommandBuffer.Submit().Wait();
 
         sceneConstantBuffer = CreateConstantBuffer<SceneConstants>();
         surfaceConstantBuffer = CreateConstantBuffer<SurfaceConstants>();
@@ -123,21 +126,24 @@ internal unsafe class FluidTankRenderer : IDisposable
             SampleCount = SampleCount.Count1
         }, RasterizerState.CullBack(), DepthStencilState.DepthReadWrite(), BlendState.Opaque());
 
-        fluidDepthPipeline = CreateGraphicsPipeline("FluidSurface.slang", "SurfaceVS", "DepthFS", [], new()
+        string surfaceShaderPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "FluidSurface.slang");
+        using Shader surfaceVertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, surfaceShaderPath, "SurfaceVS"));
+
+        fluidDepthPipeline = CreateGraphicsPipeline(surfaceVertexShader, surfaceShaderPath, "DepthFS", [], new()
         {
             ColorFormats = [PixelFormat.R32Float, PixelFormat.R16G16B16A16Float],
             DepthStencilFormat = PixelFormat.D32FloatS8UInt,
             SampleCount = SampleCount.Count1
         }, RasterizerState.CullNone(), DepthStencilState.DepthReadWrite(), BlendState.Opaque(), PrimitiveTopology.TriangleStrip);
 
-        fluidThicknessPipeline = CreateGraphicsPipeline("FluidSurface.slang", "SurfaceVS", "ThicknessFS", [], new()
+        fluidThicknessPipeline = CreateGraphicsPipeline(surfaceVertexShader, surfaceShaderPath, "ThicknessFS", [], new()
         {
             ColorFormats = [PixelFormat.R16Float],
             DepthStencilFormat = PixelFormat.D32FloatS8UInt,
             SampleCount = SampleCount.Count1
         }, RasterizerState.CullNone(), DepthStencilState.DepthRead(), AdditiveBlend(), PrimitiveTopology.TriangleStrip);
 
-        particlePipeline = CreateGraphicsPipeline("FluidSurface.slang", "SurfaceVS", "ParticleFS", [], new()
+        particlePipeline = CreateGraphicsPipeline(surfaceVertexShader, surfaceShaderPath, "ParticleFS", [], new()
         {
             ColorFormats = [PixelFormat.B8G8R8A8UNorm],
             DepthStencilFormat = PixelFormat.D32FloatS8UInt,
@@ -379,7 +385,6 @@ internal unsafe class FluidTankRenderer : IDisposable
         commandBuffer.Transition(smoothDepthB, default, TextureLayout.Storage, TextureLayout.Sampled);
 
         commandBuffer.Transition(smoothDepthA, default, TextureLayout.Sampled, TextureLayout.Storage);
-        commandBuffer.SetPipeline(blurPipeline);
         commandBuffer.SetConstantBuffer(blurConstantBuffer, 256);
         Dispatch(commandBuffer, blurPipeline, reconstructionWidth, reconstructionHeight);
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
@@ -393,7 +398,6 @@ internal unsafe class FluidTankRenderer : IDisposable
         commandBuffer.Transition(smoothThicknessB, default, TextureLayout.Storage, TextureLayout.Sampled);
 
         commandBuffer.Transition(smoothThicknessA, default, TextureLayout.Sampled, TextureLayout.Storage);
-        commandBuffer.SetPipeline(blurThicknessPipeline);
         commandBuffer.SetConstantBuffer(blurConstantBuffer, 768);
         Dispatch(commandBuffer, blurThicknessPipeline, reconstructionWidth, reconstructionHeight);
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.FragmentShading);
@@ -416,6 +420,7 @@ internal unsafe class FluidTankRenderer : IDisposable
         commandBuffer.Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
 
+        commandBuffer.Barrier(BarrierStages.FragmentShading, BarrierStages.FragmentShading);
         commandBuffer.BeginRenderPass([ColorAttachment.Load(Color)], DepthStencilAttachment.Load(DepthStencil));
         DrawGlass(commandBuffer);
         commandBuffer.EndRenderPass();
@@ -519,39 +524,6 @@ internal unsafe class FluidTankRenderer : IDisposable
         uint reconstructionWidth = smoothDepthA.Desc.Width;
         uint reconstructionHeight = smoothDepthA.Desc.Height;
 
-        BlurConstants horizontal = new()
-        {
-            Width = reconstructionWidth,
-            Height = reconstructionHeight,
-            Direction = 0,
-            Radius = 18,
-            SpatialSigma = 4.0f,
-            DepthSigma = surfaceRadius * 1.4f,
-            ProjectedRadiusScale = surfaceRadius * projection.M22 * reconstructionHeight * 0.5f,
-            InputTexture = smoothDepthA.SampledHandle,
-            OutputTexture = smoothDepthB.StorageHandle
-        };
-        Upload(blurConstantBuffer, 0, &horizontal, (uint)sizeof(BlurConstants));
-
-        BlurConstants vertical = horizontal;
-        vertical.Direction = 1;
-        vertical.InputTexture = smoothDepthB.SampledHandle;
-        vertical.OutputTexture = smoothDepthA.StorageHandle;
-        Upload(blurConstantBuffer, 256, &vertical, (uint)sizeof(BlurConstants));
-
-        BlurConstants horizontalThickness = horizontal;
-        horizontalThickness.Radius = 12;
-        horizontalThickness.SpatialSigma = 6.0f;
-        horizontalThickness.InputTexture = smoothThicknessA.SampledHandle;
-        horizontalThickness.OutputTexture = smoothThicknessB.StorageHandle;
-        Upload(blurConstantBuffer, 512, &horizontalThickness, (uint)sizeof(BlurConstants));
-
-        BlurConstants verticalThickness = horizontalThickness;
-        verticalThickness.Direction = 1;
-        verticalThickness.InputTexture = smoothThicknessB.SampledHandle;
-        verticalThickness.OutputTexture = smoothThicknessA.StorageHandle;
-        Upload(blurConstantBuffer, 768, &verticalThickness, (uint)sizeof(BlurConstants));
-
         CompositeConstants composite = new()
         {
             InvView = invView,
@@ -578,25 +550,61 @@ internal unsafe class FluidTankRenderer : IDisposable
         };
         Upload(compositeConstantBuffer, 0, &composite, (uint)sizeof(CompositeConstants));
 
-        if (reflectionPipeline is not null)
+        if (ViewMode is FluidViewMode.Water)
         {
-            ReflectionConstants reflectionParameters = new()
+            BlurConstants horizontal = new()
             {
-                InvView = invView,
-                InvProjection = invProjection,
-                CameraPosition = cameraPosition,
-                Time = (float)totalTime,
-                SunDirection = sunDirection,
                 Width = reconstructionWidth,
                 Height = reconstructionHeight,
-                FluidDepth = smoothDepthA.SampledHandle,
-                Scene = sceneTlas!.Handle,
-                Vertices = sceneVertexBuffer.StorageReadOnlyHandle,
-                Indices = sceneIndexBuffer.StorageReadOnlyHandle,
-                Materials = materialBuffer.StorageReadOnlyHandle,
-                OutputTexture = reflection!.StorageHandle
+                Direction = 0,
+                Radius = 18,
+                SpatialSigma = 4.0f,
+                DepthSigma = surfaceRadius * 1.4f,
+                ProjectedRadiusScale = surfaceRadius * projection.M22 * reconstructionHeight * 0.5f,
+                InputTexture = smoothDepthA.SampledHandle,
+                OutputTexture = smoothDepthB.StorageHandle
             };
-            Upload(reflectionConstantBuffer, 0, &reflectionParameters, (uint)sizeof(ReflectionConstants));
+            Upload(blurConstantBuffer, 0, &horizontal, (uint)sizeof(BlurConstants));
+
+            BlurConstants vertical = horizontal;
+            vertical.Direction = 1;
+            vertical.InputTexture = smoothDepthB.SampledHandle;
+            vertical.OutputTexture = smoothDepthA.StorageHandle;
+            Upload(blurConstantBuffer, 256, &vertical, (uint)sizeof(BlurConstants));
+
+            BlurConstants horizontalThickness = horizontal;
+            horizontalThickness.Radius = 12;
+            horizontalThickness.SpatialSigma = 6.0f;
+            horizontalThickness.InputTexture = smoothThicknessA.SampledHandle;
+            horizontalThickness.OutputTexture = smoothThicknessB.StorageHandle;
+            Upload(blurConstantBuffer, 512, &horizontalThickness, (uint)sizeof(BlurConstants));
+
+            BlurConstants verticalThickness = horizontalThickness;
+            verticalThickness.Direction = 1;
+            verticalThickness.InputTexture = smoothThicknessB.SampledHandle;
+            verticalThickness.OutputTexture = smoothThicknessA.StorageHandle;
+            Upload(blurConstantBuffer, 768, &verticalThickness, (uint)sizeof(BlurConstants));
+
+            if (reflectionPipeline is not null)
+            {
+                ReflectionConstants reflectionParameters = new()
+                {
+                    InvView = invView,
+                    InvProjection = invProjection,
+                    CameraPosition = cameraPosition,
+                    Time = (float)totalTime,
+                    SunDirection = sunDirection,
+                    Width = reconstructionWidth,
+                    Height = reconstructionHeight,
+                    FluidDepth = smoothDepthA.SampledHandle,
+                    Scene = sceneTlas!.Handle,
+                    Vertices = sceneVertexBuffer.StorageReadOnlyHandle,
+                    Indices = sceneIndexBuffer.StorageReadOnlyHandle,
+                    Materials = materialBuffer.StorageReadOnlyHandle,
+                    OutputTexture = reflection!.StorageHandle
+                };
+                Upload(reflectionConstantBuffer, 0, &reflectionParameters, (uint)sizeof(ReflectionConstants));
+            }
         }
 
         GlassConstants glass = new()
@@ -618,6 +626,7 @@ internal unsafe class FluidTankRenderer : IDisposable
         commandBuffer.Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
 
+        commandBuffer.Barrier(BarrierStages.FragmentShading, BarrierStages.FragmentShading);
         commandBuffer.BeginRenderPass([ColorAttachment.Load(Color)], DepthStencilAttachment.Load(DepthStencil));
         commandBuffer.SetPipeline(particlePipeline);
         commandBuffer.SetConstantBuffer(surfaceConstantBuffer, 0);
@@ -678,7 +687,7 @@ internal unsafe class FluidTankRenderer : IDisposable
         });
     }
 
-    private static Buffer CreateVertexBuffer(SceneVertex[] vertices, bool includeStorage)
+    private static Buffer CreateVertexBuffer(CommandBuffer commandBuffer, SceneVertex[] vertices, bool includeStorage)
     {
         Buffer buffer = App.Context.CreateBuffer(new()
         {
@@ -690,7 +699,7 @@ internal unsafe class FluidTankRenderer : IDisposable
 
         fixed (SceneVertex* pointer = vertices)
         {
-            buffer.Upload(0, new()
+            commandBuffer.Upload(buffer, 0, new()
             {
                 Pointer = (nint)pointer,
                 SizeInBytes = (uint)(sizeof(SceneVertex) * vertices.Length)
@@ -700,7 +709,7 @@ internal unsafe class FluidTankRenderer : IDisposable
         return buffer;
     }
 
-    private static Buffer CreateIndexBuffer(uint[] indices, bool includeStorage)
+    private static Buffer CreateIndexBuffer(CommandBuffer commandBuffer, uint[] indices, bool includeStorage)
     {
         Buffer buffer = App.Context.CreateBuffer(new()
         {
@@ -712,7 +721,7 @@ internal unsafe class FluidTankRenderer : IDisposable
 
         fixed (uint* pointer = indices)
         {
-            buffer.Upload(0, new()
+            commandBuffer.Upload(buffer, 0, new()
             {
                 Pointer = (nint)pointer,
                 SizeInBytes = (uint)(sizeof(uint) * indices.Length)
@@ -734,6 +743,20 @@ internal unsafe class FluidTankRenderer : IDisposable
     {
         string shaderPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", file);
         using Shader vertex = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, vertexEntry));
+
+        return CreateGraphicsPipeline(vertex, shaderPath, fragmentEntry, inputLayouts, formats, rasterizer, depthStencil, blend, primitiveTopology);
+    }
+
+    private static GraphicsPipeline CreateGraphicsPipeline(Shader vertex,
+                                                           string shaderPath,
+                                                           string fragmentEntry,
+                                                           InputLayout[] inputLayouts,
+                                                           AttachmentFormats formats,
+                                                           RasterizerState rasterizer,
+                                                           DepthStencilState depthStencil,
+                                                           BlendState blend,
+                                                           PrimitiveTopology primitiveTopology = PrimitiveTopology.TriangleList)
+    {
         using Shader fragment = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderPath, fragmentEntry));
 
         return App.Context.CreateGraphicsPipeline(new()

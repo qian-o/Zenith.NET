@@ -63,7 +63,6 @@ FSOutput FSMain(VSOutput input)
     float3 halfVector = normalize(viewDirection + lightDirection);
 
     float ndotl = saturate(dot(normal, lightDirection));
-    float ndotv = saturate(dot(normal, viewDirection));
     float ndoth = saturate(dot(normal, halfVector));
     float roughness = max(material.Roughness, 0.035);
     float exponent = max(2.0 / (roughness * roughness) - 2.0, 1.0);

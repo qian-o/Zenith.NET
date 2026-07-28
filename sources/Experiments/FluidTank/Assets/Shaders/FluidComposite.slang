@@ -172,7 +172,7 @@ float4 ShadeWater(FullscreenOutput input)
 
     float3 color = lerp(refracted, reflected, fresnel);
     color += sunSpecular * float3(1.0, 0.94, 0.78);
-    color = lerp(color, float3(0.76, 0.92, 0.96), saturate(foam) * 0.72);
+    color = lerp(color, float3(0.76, 0.92, 0.96), foam * 0.72);
 
     color = lerp(SceneAt(uv), color, surfaceConfidence);
 
