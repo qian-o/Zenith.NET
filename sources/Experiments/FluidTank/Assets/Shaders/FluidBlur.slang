@@ -1,24 +1,59 @@
-struct BlurConstants
+﻿struct BlurConstants
 {
     private uint4 DimensionsAndDirection;
     private float4 FilterParameters;
     DescriptorHandle<Texture2D<float>> InputTexture;
     DescriptorHandle<RWTexture2D<float>> OutputTexture;
 
-    property uint Width { get { return DimensionsAndDirection.x; } }
-    property uint Height { get { return DimensionsAndDirection.y; } }
-    property uint Direction { get { return DimensionsAndDirection.z; } }
-    property uint Radius { get { return DimensionsAndDirection.w; } }
-    property float SpatialSigma { get { return FilterParameters.x; } }
-    property float DepthSigma { get { return FilterParameters.y; } }
-    property float ProjectedRadiusScale { get { return FilterParameters.z; } }
+    property uint Width
+    {
+        get {
+            return DimensionsAndDirection.x;
+        }
+    }
+    property uint Height
+    {
+        get {
+            return DimensionsAndDirection.y;
+        }
+    }
+    property uint Direction
+    {
+        get {
+            return DimensionsAndDirection.z;
+        }
+    }
+    property uint Radius
+    {
+        get {
+            return DimensionsAndDirection.w;
+        }
+    }
+    property float SpatialSigma
+    {
+        get {
+            return FilterParameters.x;
+        }
+    }
+    property float DepthSigma
+    {
+        get {
+            return FilterParameters.y;
+        }
+    }
+    property float ProjectedRadiusScale
+    {
+        get {
+            return FilterParameters.z;
+        }
+    }
 };
 
 ConstantBuffer<BlurConstants> blur;
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
-void BlurCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void BlurCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint2 pixel = dispatchThreadID.xy;
     if (pixel.x >= blur.Width || pixel.y >= blur.Height)
@@ -117,7 +152,7 @@ void BlurCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
-void BlurThicknessCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void BlurThicknessCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint2 pixel = dispatchThreadID.xy;
     if (pixel.x >= blur.Width || pixel.y >= blur.Height)

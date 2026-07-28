@@ -1,4 +1,4 @@
-#include "SceneCommon.slang"
+﻿#include "SceneCommon.slang"
 
 struct ReflectionConstants
 {
@@ -15,11 +15,36 @@ struct ReflectionConstants
     DescriptorHandle<StructuredBuffer<SceneMaterial>> Materials;
     DescriptorHandle<RWTexture2D<float4>> OutputTexture;
 
-    property float3 CameraPosition { get { return CameraPositionAndTime.xyz; } }
-    property float Time { get { return CameraPositionAndTime.w; } }
-    property float3 SunDirection { get { return SunDirectionAndPadding.xyz; } }
-    property uint Width { get { return DimensionsAndPadding.x; } }
-    property uint Height { get { return DimensionsAndPadding.y; } }
+    property float3 CameraPosition
+    {
+        get {
+            return CameraPositionAndTime.xyz;
+        }
+    }
+    property float Time
+    {
+        get {
+            return CameraPositionAndTime.w;
+        }
+    }
+    property float3 SunDirection
+    {
+        get {
+            return SunDirectionAndPadding.xyz;
+        }
+    }
+    property uint Width
+    {
+        get {
+            return DimensionsAndPadding.x;
+        }
+    }
+    property uint Height
+    {
+        get {
+            return DimensionsAndPadding.y;
+        }
+    }
 };
 
 ConstantBuffer<ReflectionConstants> reflection;
@@ -120,7 +145,7 @@ float3 TraceScene(float3 origin, float3 direction)
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
-void ReflectionCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void ReflectionCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint2 pixel = dispatchThreadID.xy;
     if (pixel.x >= reflection.Width || pixel.y >= reflection.Height)
@@ -131,7 +156,7 @@ void ReflectionCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     float depth = (*reflection.FluidDepth).Load(int3(pixel, 0));
     if (depth <= 0.0)
     {
-        (*reflection.OutputTexture)[pixel] = float4(0.0, 0.0, 0.0, 0.0);
+        (*reflection.OutputTexture) [pixel] = float4(0.0, 0.0, 0.0, 0.0);
 
         return;
     }
@@ -143,5 +168,5 @@ void ReflectionCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     float3 direction = reflect(-viewDirection, normal);
     float3 color = TraceScene(position + normal * 0.025, direction);
 
-    (*reflection.OutputTexture)[pixel] = float4(color, 1.0);
+    (*reflection.OutputTexture) [pixel] = float4(color, 1.0);
 }

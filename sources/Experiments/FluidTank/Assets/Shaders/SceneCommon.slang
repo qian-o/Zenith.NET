@@ -1,11 +1,26 @@
-struct SceneVertex
+﻿struct SceneVertex
 {
     private float4 PositionAndPadding;
     private float4 NormalAndMaterial;
 
-    property float3 Position { get { return PositionAndPadding.xyz; } }
-    property float3 Normal { get { return NormalAndMaterial.xyz; } }
-    property uint MaterialId { get { return asuint(NormalAndMaterial.w); } }
+    property float3 Position
+    {
+        get {
+            return PositionAndPadding.xyz;
+        }
+    }
+    property float3 Normal
+    {
+        get {
+            return NormalAndMaterial.xyz;
+        }
+    }
+    property uint MaterialId
+    {
+        get {
+            return asuint(NormalAndMaterial.w);
+        }
+    }
 };
 
 struct SceneMaterial
@@ -13,10 +28,30 @@ struct SceneMaterial
     private float4 AlbedoAndRoughness;
     private float4 MetallicEmissionAndPadding;
 
-    property float3 Albedo { get { return AlbedoAndRoughness.xyz; } }
-    property float Roughness { get { return AlbedoAndRoughness.w; } }
-    property float Metallic { get { return MetallicEmissionAndPadding.x; } }
-    property float Emission { get { return MetallicEmissionAndPadding.y; } }
+    property float3 Albedo
+    {
+        get {
+            return AlbedoAndRoughness.xyz;
+        }
+    }
+    property float Roughness
+    {
+        get {
+            return AlbedoAndRoughness.w;
+        }
+    }
+    property float Metallic
+    {
+        get {
+            return MetallicEmissionAndPadding.x;
+        }
+    }
+    property float Emission
+    {
+        get {
+            return MetallicEmissionAndPadding.y;
+        }
+    }
 };
 
 float3 SkyColor(float3 direction)

@@ -1,4 +1,4 @@
-#include "SceneCommon.slang"
+﻿#include "SceneCommon.slang"
 
 struct GlassConstants
 {
@@ -6,8 +6,18 @@ struct GlassConstants
     float4x4 Projection;
     private float4 CameraPositionAndTime;
 
-    property float3 CameraPosition { get { return CameraPositionAndTime.xyz; } }
-    property float Time { get { return CameraPositionAndTime.w; } }
+    property float3 CameraPosition
+    {
+        get {
+            return CameraPositionAndTime.xyz;
+        }
+    }
+    property float Time
+    {
+        get {
+            return CameraPositionAndTime.w;
+        }
+    }
 };
 
 struct VSInput

@@ -130,10 +130,12 @@ internal static class App
             ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(activeRenderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
 
             ImGui.SetNextWindowPos(new(10, 10), ImGuiCond.FirstUseEver);
+
             if (ImGui.Begin("Cornell Box", ImGuiWindowFlags.AlwaysAutoResize))
             {
-                ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
                 ImGui.Text(Context.Capabilities.DeviceName);
+                ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
+                ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
 
                 ImGui.Separator();
 
@@ -164,9 +166,8 @@ internal static class App
                 {
                     ImGui.Text($"SPP: {pathTracer.FrameCount}");
                 }
-
-                ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
             }
+
             ImGui.End();
         };
 

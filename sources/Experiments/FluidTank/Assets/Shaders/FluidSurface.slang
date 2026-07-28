@@ -1,4 +1,4 @@
-#include "FluidCommon.slang"
+﻿#include "FluidCommon.slang"
 
 struct SurfaceConstants
 {
@@ -13,15 +13,60 @@ struct SurfaceConstants
     DescriptorHandle<Texture2D> SceneDepth;
     DescriptorHandle<SamplerState> Sampler;
 
-    property float3 CameraRight { get { return CameraRightAndRadius.xyz; } }
-    property float ParticleRadius { get { return CameraRightAndRadius.w; } }
-    property float3 CameraUp { get { return CameraUpAndRestDensity.xyz; } }
-    property float RestDensity { get { return CameraUpAndRestDensity.w; } }
-    property uint ParticleCount { get { return CountsAndDimensions.x; } }
-    property uint RenderMode { get { return CountsAndDimensions.y; } }
-    property uint Width { get { return CountsAndDimensions.z; } }
-    property uint Height { get { return CountsAndDimensions.w; } }
-    property float InterpolationAlpha { get { return InterpolationParameters.x; } }
+    property float3 CameraRight
+    {
+        get {
+            return CameraRightAndRadius.xyz;
+        }
+    }
+    property float ParticleRadius
+    {
+        get {
+            return CameraRightAndRadius.w;
+        }
+    }
+    property float3 CameraUp
+    {
+        get {
+            return CameraUpAndRestDensity.xyz;
+        }
+    }
+    property float RestDensity
+    {
+        get {
+            return CameraUpAndRestDensity.w;
+        }
+    }
+    property uint ParticleCount
+    {
+        get {
+            return CountsAndDimensions.x;
+        }
+    }
+    property uint RenderMode
+    {
+        get {
+            return CountsAndDimensions.y;
+        }
+    }
+    property uint Width
+    {
+        get {
+            return CountsAndDimensions.z;
+        }
+    }
+    property uint Height
+    {
+        get {
+            return CountsAndDimensions.w;
+        }
+    }
+    property float InterpolationAlpha
+    {
+        get {
+            return InterpolationParameters.x;
+        }
+    }
 };
 
 struct SurfaceVSOutput
@@ -64,15 +109,18 @@ bool OccludedByScene(SurfaceVSOutput input, float linearDepth)
 
 float2 QuadCorner(uint vertexId)
 {
-    if (vertexId == 0) return float2(-1.0, -1.0);
-    if (vertexId == 1) return float2(1.0, -1.0);
-    if (vertexId == 2) return float2(-1.0, 1.0);
+    if (vertexId == 0)
+        return float2(-1.0, -1.0);
+    if (vertexId == 1)
+        return float2(1.0, -1.0);
+    if (vertexId == 2)
+        return float2(-1.0, 1.0);
 
     return float2(1.0, 1.0);
 }
 
 [shader("vertex")]
-SurfaceVSOutput SurfaceVS(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
+SurfaceVSOutput SurfaceVS(uint vertexId: SV_VertexID, uint instanceId: SV_InstanceID)
 {
     Particle particle = surface.Particles[instanceId];
     float2 corner = QuadCorner(vertexId);

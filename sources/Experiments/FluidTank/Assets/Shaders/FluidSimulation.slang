@@ -1,4 +1,4 @@
-#include "FluidCommon.slang"
+﻿#include "FluidCommon.slang"
 
 static const uint CellAir = 0;
 static const uint CellFluid = 1;
@@ -28,30 +28,150 @@ struct SimulationConstants
     DescriptorHandle<RWStructuredBuffer<float>> Divergence;
     DescriptorHandle<RWStructuredBuffer<float>> PressureA;
 
-    property float3 TankMin { get { return TankMinAndTimeStep.xyz; } }
-    property float TimeStep { get { return TankMinAndTimeStep.w; } }
-    property float3 TankMax { get { return TankMaxAndTime.xyz; } }
-    property float Time { get { return TankMaxAndTime.w; } }
-    property float GridSpacing { get { return GridParameters.x; } }
-    property float InverseGridSpacing { get { return GridParameters.y; } }
-    property float FlipRatio { get { return GridParameters.z; } }
-    property float VelocityDamping { get { return GridParameters.w; } }
-    property float WaveAmplitude { get { return WaveAndInteraction.x; } }
-    property float WaveFrequency { get { return WaveAndInteraction.y; } }
-    property float InteractionRadius { get { return WaveAndInteraction.z; } }
-    property float InteractionStrength { get { return WaveAndInteraction.w; } }
-    property float3 InteractionOrigin { get { return InteractionOriginAndRadius.xyz; } }
-    property float ParticleRadius { get { return InteractionOriginAndRadius.w; } }
-    property float3 InteractionDirection { get { return InteractionDirectionAndDensity.xyz; } }
-    property float RestDensity { get { return InteractionDirectionAndDensity.w; } }
-    property uint ParticleCount { get { return Counts.x; } }
-    property uint CellCount { get { return Counts.y; } }
-    property uint GridPointCount { get { return Counts.z; } }
-    property bool WaveMakerEnabled { get { return Counts.w != 0; } }
-    property uint3 GridDimensions { get { return GridAndPressure.xyz; } }
-    property uint PressureIterations { get { return GridAndPressure.w; } }
-    property uint3 DamDimensions { get { return DamAndSubsteps.xyz; } }
-    property uint Substeps { get { return DamAndSubsteps.w; } }
+    property float3 TankMin
+    {
+        get {
+            return TankMinAndTimeStep.xyz;
+        }
+    }
+    property float TimeStep
+    {
+        get {
+            return TankMinAndTimeStep.w;
+        }
+    }
+    property float3 TankMax
+    {
+        get {
+            return TankMaxAndTime.xyz;
+        }
+    }
+    property float Time
+    {
+        get {
+            return TankMaxAndTime.w;
+        }
+    }
+    property float GridSpacing
+    {
+        get {
+            return GridParameters.x;
+        }
+    }
+    property float InverseGridSpacing
+    {
+        get {
+            return GridParameters.y;
+        }
+    }
+    property float FlipRatio
+    {
+        get {
+            return GridParameters.z;
+        }
+    }
+    property float VelocityDamping
+    {
+        get {
+            return GridParameters.w;
+        }
+    }
+    property float WaveAmplitude
+    {
+        get {
+            return WaveAndInteraction.x;
+        }
+    }
+    property float WaveFrequency
+    {
+        get {
+            return WaveAndInteraction.y;
+        }
+    }
+    property float InteractionRadius
+    {
+        get {
+            return WaveAndInteraction.z;
+        }
+    }
+    property float InteractionStrength
+    {
+        get {
+            return WaveAndInteraction.w;
+        }
+    }
+    property float3 InteractionOrigin
+    {
+        get {
+            return InteractionOriginAndRadius.xyz;
+        }
+    }
+    property float ParticleRadius
+    {
+        get {
+            return InteractionOriginAndRadius.w;
+        }
+    }
+    property float3 InteractionDirection
+    {
+        get {
+            return InteractionDirectionAndDensity.xyz;
+        }
+    }
+    property float RestDensity
+    {
+        get {
+            return InteractionDirectionAndDensity.w;
+        }
+    }
+    property uint ParticleCount
+    {
+        get {
+            return Counts.x;
+        }
+    }
+    property uint CellCount
+    {
+        get {
+            return Counts.y;
+        }
+    }
+    property uint GridPointCount
+    {
+        get {
+            return Counts.z;
+        }
+    }
+    property bool WaveMakerEnabled
+    {
+        get {
+            return Counts.w != 0;
+        }
+    }
+    property uint3 GridDimensions
+    {
+        get {
+            return GridAndPressure.xyz;
+        }
+    }
+    property uint PressureIterations
+    {
+        get {
+            return GridAndPressure.w;
+        }
+    }
+    property uint3 DamDimensions
+    {
+        get {
+            return DamAndSubsteps.xyz;
+        }
+    }
+    property uint Substeps
+    {
+        get {
+            return DamAndSubsteps.w;
+        }
+    }
 };
 
 ConstantBuffer<SimulationConstants> simulation;
@@ -181,12 +301,7 @@ float ParticleDensityAt(int3 cell)
     uint index = GridIndex(cell);
     uint width = simulation.GridDimensions.x + 1;
     uint slice = width * (simulation.GridDimensions.y + 1);
-    float weight = float(simulation.GridAccumulation[simulation.GridPointCount + index])
-                 + float(simulation.GridAccumulation[simulation.GridPointCount + index + 1])
-                 + float(simulation.GridAccumulation[simulation.GridPointCount * 3 + index])
-                 + float(simulation.GridAccumulation[simulation.GridPointCount * 3 + index + width])
-                 + float(simulation.GridAccumulation[simulation.GridPointCount * 5 + index])
-                 + float(simulation.GridAccumulation[simulation.GridPointCount * 5 + index + slice]);
+    float weight = float(simulation.GridAccumulation[simulation.GridPointCount + index]) + float(simulation.GridAccumulation[simulation.GridPointCount + index + 1]) + float(simulation.GridAccumulation[simulation.GridPointCount * 3 + index]) + float(simulation.GridAccumulation[simulation.GridPointCount * 3 + index + width]) + float(simulation.GridAccumulation[simulation.GridPointCount * 5 + index]) + float(simulation.GridAccumulation[simulation.GridPointCount * 5 + index + slice]);
 
     return weight / (6.0 * AccumulationScale);
 }
@@ -497,7 +612,7 @@ bool ResolveCollisions(inout float3 position, inout float3 velocity)
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
-void ResetCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void ResetCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint index = dispatchThreadID.x;
     if (index >= simulation.ParticleCount)
@@ -525,7 +640,7 @@ void ResetCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
-void InitializeGridCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void InitializeGridCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint index = dispatchThreadID.x;
     if (index < simulation.CellCount)
@@ -539,7 +654,7 @@ void InitializeGridCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
-void ClearGridCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void ClearGridCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint index = dispatchThreadID.x;
 
@@ -580,21 +695,21 @@ void ParticleToGrid(uint index, bool savePreviousPosition)
 
 [shader("compute")]
 [numthreads(128, 1, 1)]
-void BeginParticleToGridCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void BeginParticleToGridCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     ParticleToGrid(dispatchThreadID.x, true);
 }
 
 [shader("compute")]
 [numthreads(128, 1, 1)]
-void ParticleToGridCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void ParticleToGridCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     ParticleToGrid(dispatchThreadID.x, false);
 }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
-void NormalizeAndApplyForcesCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void NormalizeAndApplyForcesCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint index = dispatchThreadID.x;
     if (index >= simulation.GridPointCount)
@@ -658,7 +773,7 @@ void NormalizeAndApplyForcesCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
-void DivergenceCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void DivergenceCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint index = dispatchThreadID.x;
     if (index >= simulation.CellCount)
@@ -684,8 +799,7 @@ void DivergenceCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     float velocityFront = simulation.GridVelocity[GridIndex(cell + int3(0, 0, 1))].z;
     float divergence = (velocityRight - velocityLeft + velocityTop - velocityBottom + velocityFront - velocityBack) * simulation.InverseGridSpacing;
     float particleSpacing = simulation.ParticleRadius * ParticleSpacingScale;
-    float targetDensity = simulation.GridSpacing * simulation.GridSpacing * simulation.GridSpacing
-                        / (particleSpacing * particleSpacing * particleSpacing);
+    float targetDensity = simulation.GridSpacing * simulation.GridSpacing * simulation.GridSpacing / (particleSpacing * particleSpacing * particleSpacing);
     float compression = max(ParticleDensityAt(cell) / targetDensity - 1.0, 0.0);
     float expansion = min(compression * 0.1 / simulation.TimeStep, 2.0);
     simulation.Divergence[index] = divergence - expansion;
@@ -705,11 +819,11 @@ void RelaxPressure(int3 cell)
     }
 
     int3 neighbors[6] =
-    {
-        cell + int3(-1, 0, 0), cell + int3(1, 0, 0),
-        cell + int3(0, -1, 0), cell + int3(0, 1, 0),
-        cell + int3(0, 0, -1), cell + int3(0, 0, 1)
-    };
+        {
+            cell + int3(-1, 0, 0), cell + int3(1, 0, 0),
+            cell + int3(0, -1, 0), cell + int3(0, 1, 0),
+            cell + int3(0, 0, -1), cell + int3(0, 0, 1)
+        };
     float sum = 0.0;
     float denominator = 0.0;
 
@@ -735,21 +849,21 @@ void RelaxPressure(int3 cell)
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
-void PressureRedCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void PressureRedCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     RelaxPressure(PressureCellCoordinates(dispatchThreadID.x, 0));
 }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
-void PressureBlackCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void PressureBlackCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     RelaxPressure(PressureCellCoordinates(dispatchThreadID.x, 1));
 }
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
-void ProjectGridCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void ProjectGridCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint index = dispatchThreadID.x;
     if (index >= simulation.GridPointCount)
@@ -790,7 +904,7 @@ void ProjectGridCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 
 [shader("compute")]
 [numthreads(128, 1, 1)]
-void GridToParticleAndAdvectCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void GridToParticleAndAdvectCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint index = dispatchThreadID.x;
     if (index >= simulation.ParticleCount)

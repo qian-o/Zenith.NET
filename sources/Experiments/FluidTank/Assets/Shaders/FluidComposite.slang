@@ -1,4 +1,4 @@
-#include "SceneCommon.slang"
+﻿#include "SceneCommon.slang"
 
 struct CompositeConstants
 {
@@ -18,18 +18,78 @@ struct CompositeConstants
     DescriptorHandle<Texture2D> Reflection;
     DescriptorHandle<SamplerState> Sampler;
 
-    property float3 CameraPosition { get { return CameraPositionAndTime.xyz; } }
-    property float Time { get { return CameraPositionAndTime.w; } }
-    property float3 SunDirection { get { return SunDirectionAndClarity.xyz; } }
-    property float Clarity { get { return SunDirectionAndClarity.w; } }
-    property float3 WaterColor { get { return WaterColorAndRefraction.xyz; } }
-    property float RefractionStrength { get { return WaterColorAndRefraction.w; } }
-    property float3 Absorption { get { return AbsorptionAndIor.xyz; } }
-    property float Ior { get { return AbsorptionAndIor.w; } }
-    property uint Width { get { return ScreenAndRenderMode.x; } }
-    property uint Height { get { return ScreenAndRenderMode.y; } }
-    property uint RenderMode { get { return ScreenAndRenderMode.z; } }
-    property bool RayTracingEnabled { get { return ScreenAndRenderMode.w != 0; } }
+    property float3 CameraPosition
+    {
+        get {
+            return CameraPositionAndTime.xyz;
+        }
+    }
+    property float Time
+    {
+        get {
+            return CameraPositionAndTime.w;
+        }
+    }
+    property float3 SunDirection
+    {
+        get {
+            return SunDirectionAndClarity.xyz;
+        }
+    }
+    property float Clarity
+    {
+        get {
+            return SunDirectionAndClarity.w;
+        }
+    }
+    property float3 WaterColor
+    {
+        get {
+            return WaterColorAndRefraction.xyz;
+        }
+    }
+    property float RefractionStrength
+    {
+        get {
+            return WaterColorAndRefraction.w;
+        }
+    }
+    property float3 Absorption
+    {
+        get {
+            return AbsorptionAndIor.xyz;
+        }
+    }
+    property float Ior
+    {
+        get {
+            return AbsorptionAndIor.w;
+        }
+    }
+    property uint Width
+    {
+        get {
+            return ScreenAndRenderMode.x;
+        }
+    }
+    property uint Height
+    {
+        get {
+            return ScreenAndRenderMode.y;
+        }
+    }
+    property uint RenderMode
+    {
+        get {
+            return ScreenAndRenderMode.z;
+        }
+    }
+    property bool RayTracingEnabled
+    {
+        get {
+            return ScreenAndRenderMode.w != 0;
+        }
+    }
 };
 
 struct FullscreenOutput
@@ -41,7 +101,7 @@ struct FullscreenOutput
 ConstantBuffer<CompositeConstants> composite;
 
 [shader("vertex")]
-FullscreenOutput FullscreenVS(uint vertexId : SV_VertexID)
+FullscreenOutput FullscreenVS(uint vertexId: SV_VertexID)
 {
     float2 uv = float2((vertexId << 1) & 2, vertexId & 2);
 

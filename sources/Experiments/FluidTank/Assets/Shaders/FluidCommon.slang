@@ -1,4 +1,4 @@
-static const float PI = 3.14159265359;
+﻿static const float PI = 3.14159265359;
 
 struct Particle
 {

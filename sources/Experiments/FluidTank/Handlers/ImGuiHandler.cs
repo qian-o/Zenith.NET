@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Hexa.NET.ImGui;
 using Silk.NET.Input;
 using Zenith.NET;
@@ -11,7 +11,7 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
     private readonly IMouse mouse;
     private readonly IKeyboard keyboard;
 
-    public ImGuiHandler(IInputContext input, AttachmentFormats attachmentFormats) : base(App.Context, attachmentFormats, ImGuiColorSpace.Legacy, null, OtherSetup)
+    public ImGuiHandler(IInputContext input, AttachmentFormats attachmentFormats) : base(App.Context, attachmentFormats, ImGuiColorSpace.Legacy, Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "msyh.ttf"), OtherSetup)
     {
         mouse = input.Mice[0];
         mouse.MouseDown += OnMouseDown;

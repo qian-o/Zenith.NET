@@ -1,4 +1,4 @@
-#include "SceneCommon.slang"
+﻿#include "SceneCommon.slang"
 
 struct SceneConstants
 {
@@ -8,10 +8,30 @@ struct SceneConstants
     private float4 LightDirectionAndIntensity;
     DescriptorHandle<StructuredBuffer<SceneMaterial>> Materials;
 
-    property float3 CameraPosition { get { return CameraPositionAndTime.xyz; } }
-    property float Time { get { return CameraPositionAndTime.w; } }
-    property float3 LightDirection { get { return LightDirectionAndIntensity.xyz; } }
-    property float LightIntensity { get { return LightDirectionAndIntensity.w; } }
+    property float3 CameraPosition
+    {
+        get {
+            return CameraPositionAndTime.xyz;
+        }
+    }
+    property float Time
+    {
+        get {
+            return CameraPositionAndTime.w;
+        }
+    }
+    property float3 LightDirection
+    {
+        get {
+            return LightDirectionAndIntensity.xyz;
+        }
+    }
+    property float LightIntensity
+    {
+        get {
+            return LightDirectionAndIntensity.w;
+        }
+    }
 };
 
 struct VSInput
