@@ -1,4 +1,4 @@
-# Queries
+﻿# Queries
 
 Queries report information produced while the GPU executes commands. Create a query heap from the same `GraphicsContext` as the command buffer, record query operations, and read the results after the submission has completed.
 

@@ -1,4 +1,4 @@
-# Shaders
+﻿# Shaders
 
 Zenith.NET compiles Slang entry points for the active `GraphicsApi`, then creates `Shader` objects from the resulting descriptions. Pipeline creation combines those shader objects with workload-specific state.
 
