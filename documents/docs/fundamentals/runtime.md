@@ -77,4 +77,3 @@ Validation messages have `Error`, `Warning`, or `Info` severity.
 ## Dispose Objects
 
 Zenith.NET resources implement `IDisposable`. After rendering has stopped, dispose application-owned resources and dispose the context last. Command buffers are queue-owned borrows for one recording and submission; never dispose or retain them.
-

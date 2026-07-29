@@ -58,4 +58,3 @@ internal unsafe class DXDescriptorHeap : DisposableObject
         Heap.Dispose();
     }
 }
-

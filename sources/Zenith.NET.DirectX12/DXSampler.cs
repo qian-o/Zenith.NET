@@ -44,4 +44,3 @@ internal unsafe class DXSampler : Sampler
         Token.Dispose();
     }
 }
-

@@ -56,4 +56,3 @@ Recreate a pipeline only when its attachment formats or sample count change.
 If the window system replaces its surface handle, create a new `Surface` and pass it to `swapChain.Refresh(...)`.
 
 Use `Resize` when only the dimensions change. Use `Refresh` when the handle or surface type changes.
-
