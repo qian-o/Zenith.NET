@@ -6,126 +6,139 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXBottomLevelAccelerationStructure : BottomLevelAccelerationStructure
 {
-    public DXBottomLevelAccelerationStructure(DXGraphicsContext context, BottomLevelAccelerationStructureDesc desc, DXCommandBuffer commandBuffer) : base(context, desc)
+    public DXBottomLevelAccelerationStructure(DXGraphicsContext context, DXCommandBuffer commandBuffer, BottomLevelAccelerationStructureDesc desc) : base(context, desc)
     {
         using ZenithMarshal.Scope scope = new();
 
-        uint geometryCount = (uint)desc.Geometries.Length;
-
-        TransformBuffer = new(context, new()
+        Transform = new(context, new()
         {
-            SizeInBytes = (uint)(sizeof(Matrix3X4<float>) * geometryCount),
-            StrideInBytes = (uint)sizeof(Matrix3X4<float>),
-            Flags = BufferUsageFlags.MapWrite
+            SizeInBytes = (uint)(sizeof(Matrix3X4<float>) * desc.Geometries.Length),
+            Residency = MemoryResidency.CpuWriteOnly
         });
 
-        MappedMemory mappedMemory = TransformBuffer.Map();
+        BuildRaytracingAccelerationStructureInputs inputs = Inputs(scope, desc);
 
-        desc.Geometries.Select(static item => DXFormats.DirectX12(item.Triangles.Transform)).ToArray().CopyTo(new Span<Matrix3X4<float>>((Matrix3X4<float>*)mappedMemory.Pointer, (int)geometryCount));
+        RaytracingAccelerationStructurePrebuildInfo prebuildInfo = new();
+        context.Device.GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &prebuildInfo);
 
-        TransformBuffer.Unmap();
+        AccelerationStructure = new(context, new()
+        {
+            SizeInBytes = (uint)prebuildInfo.ResultDataMaxSizeInBytes,
+            Residency = MemoryResidency.GpuOnly
+        }, ResourceFlags.RaytracingAccelerationStructure);
 
+        Scratch = new(context, new()
+        {
+            SizeInBytes = (uint)prebuildInfo.ScratchDataSizeInBytes,
+            Usages = BufferUsages.StorageReadWrite,
+            Residency = MemoryResidency.GpuOnly
+        });
+
+        BuildRaytracingAccelerationStructureDesc buildDesc = new()
+        {
+            DestAccelerationStructureData = AccelerationStructure.GPUVirtualAddress,
+            Inputs = inputs,
+            ScratchAccelerationStructureData = Scratch.GPUVirtualAddress
+        };
+
+        commandBuffer.CommandList.BuildRaytracingAccelerationStructure(&buildDesc, 0, default(RaytracingAccelerationStructurePostbuildInfoDesc*));
+    }
+
+    public DXBuffer Transform { get; }
+
+    public DXBuffer AccelerationStructure { get; }
+
+    public DXBuffer Scratch { get; }
+
+    public void Update(DXCommandBuffer commandBuffer, BottomLevelAccelerationStructureDesc newDesc)
+    {
+        using ZenithMarshal.Scope scope = new();
+
+        BuildRaytracingAccelerationStructureInputs inputs = Inputs(scope, newDesc);
+        inputs.Flags |= RaytracingAccelerationStructureBuildFlags.PerformUpdate;
+
+        BuildRaytracingAccelerationStructureDesc buildDesc = new()
+        {
+            DestAccelerationStructureData = AccelerationStructure.GPUVirtualAddress,
+            Inputs = inputs,
+            SourceAccelerationStructureData = AccelerationStructure.GPUVirtualAddress,
+            ScratchAccelerationStructureData = Scratch.GPUVirtualAddress
+        };
+
+        commandBuffer.CommandList.BuildRaytracingAccelerationStructure(&buildDesc, 0, default(RaytracingAccelerationStructurePostbuildInfoDesc*));
+    }
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
+
+    protected override void SetResourceName(string name)
+    {
+        AccelerationStructure.Name = name;
+    }
+
+    protected override void Destroy()
+    {
+        Scratch.Dispose();
+        AccelerationStructure.Dispose();
+        Transform.Dispose();
+    }
+
+    private BuildRaytracingAccelerationStructureInputs Inputs(ZenithMarshal.Scope scope, BottomLevelAccelerationStructureDesc desc)
+    {
+        uint geometryCount = (uint)desc.Geometries.Length;
+
+        nint pointer = Transform.Map();
+
+        Matrix3X4<float>* transforms = (Matrix3X4<float>*)pointer;
         RaytracingGeometryDesc* geometries = (RaytracingGeometryDesc*)ZenithMarshal.Allocate<RaytracingGeometryDesc>(scope, geometryCount);
         for (uint i = 0; i < geometryCount; i++)
         {
             RayTracingGeometry geometry = desc.Geometries[i];
 
+            transforms[i] = DXFormats.DirectX12(geometry.TriangleGeometry.Transform);
             geometries[i] = new()
             {
                 Type = DXFormats.DirectX12(geometry.Type),
-                Flags = DXFormats.DirectX12(geometry.Flags),
+                Flags = geometry.IsOpaque ? RaytracingGeometryFlags.Opaque : RaytracingGeometryFlags.None,
                 Anonymous = new
                 (
-                    triangles: geometry.Type is RayTracingGeometryType.Triangles ? new()
+                    triangles: geometry.Type is RayTracingGeometryType.Triangle ? new()
                     {
-                        Transform3x4 = TransformBuffer.GPUVirtualAddress + (uint)(sizeof(Matrix3X4<float>) * i),
-                        IndexFormat = geometry.Triangles.IndexBuffer is not null ? DXFormats.DirectX12(geometry.Triangles.IndexFormat) : Format.FormatUnknown,
-                        VertexFormat = DXFormats.DirectX12(geometry.Triangles.VertexFormat),
-                        IndexCount = geometry.Triangles.IndexCount,
-                        VertexCount = geometry.Triangles.VertexCount,
-                        IndexBuffer = geometry.Triangles.IndexBuffer is not null ? geometry.Triangles.IndexBuffer.DirectX12().GPUVirtualAddress + geometry.Triangles.IndexOffsetInBytes : 0,
+                        Transform3x4 = Transform.GPUVirtualAddress + (ulong)(sizeof(Matrix3X4<float>) * i),
+                        IndexFormat = geometry.TriangleGeometry.IndexBuffer is not null ? DXFormats.DirectX12(geometry.TriangleGeometry.IndexFormat) : Format.FormatUnknown,
+                        VertexFormat = DXFormats.DirectX12(geometry.TriangleGeometry.VertexFormat),
+                        IndexCount = geometry.TriangleGeometry.IndexCount,
+                        VertexCount = geometry.TriangleGeometry.VertexCount,
+                        IndexBuffer = geometry.TriangleGeometry.IndexBuffer is not null ? geometry.TriangleGeometry.IndexBuffer.DirectX12().GPUVirtualAddress + geometry.TriangleGeometry.IndexOffsetInBytes : 0ul,
                         VertexBuffer = new()
                         {
-                            StartAddress = geometry.Triangles.VertexBuffer.DirectX12().GPUVirtualAddress + geometry.Triangles.VertexOffsetInBytes,
-                            StrideInBytes = geometry.Triangles.VertexStrideInBytes
+                            StartAddress = geometry.TriangleGeometry.VertexBuffer.DirectX12().GPUVirtualAddress + geometry.TriangleGeometry.VertexOffsetInBytes,
+                            StrideInBytes = geometry.TriangleGeometry.VertexStrideInBytes
                         }
                     } : null,
-                    aABBs: geometry.Type is RayTracingGeometryType.AABBs ? new()
+                    aABBs: geometry.Type is RayTracingGeometryType.Aabb ? new()
                     {
-                        AABBCount = geometry.AABBs.Count,
+                        AABBCount = geometry.AabbGeometry.Count,
                         AABBs = new()
                         {
-                            StartAddress = geometry.AABBs.Buffer.DirectX12().GPUVirtualAddress + geometry.AABBs.OffsetInBytes,
-                            StrideInBytes = geometry.AABBs.StrideInBytes
+                            StartAddress = geometry.AabbGeometry.Buffer.DirectX12().GPUVirtualAddress + geometry.AabbGeometry.OffsetInBytes,
+                            StrideInBytes = geometry.AabbGeometry.StrideInBytes
                         }
                     } : null
                 )
             };
         }
 
-        BuildRaytracingAccelerationStructureInputs inputs = new()
+        Transform.Unmap();
+
+        return new()
         {
             Type = RaytracingAccelerationStructureType.BottomLevel,
-            Flags = DXFormats.DirectX12(desc.Flags),
+            Flags = DXFormats.DirectX12(desc.BuildFlags),
             NumDescs = geometryCount,
             PGeometryDescs = geometries
         };
-
-        RaytracingAccelerationStructurePrebuildInfo prebuildInfo = new();
-
-        context.Device5?.GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &prebuildInfo);
-
-        AccelerationStructureBuffer = new(context, new()
-        {
-            SizeInBytes = (uint)prebuildInfo.ResultDataMaxSizeInBytes,
-            StrideInBytes = (uint)prebuildInfo.ResultDataMaxSizeInBytes,
-            Flags = BufferUsageFlags.AccelerationStructure
-        });
-
-        ScratchBuffer = new(context, new()
-        {
-            SizeInBytes = (uint)prebuildInfo.ScratchDataSizeInBytes,
-            StrideInBytes = (uint)prebuildInfo.ScratchDataSizeInBytes,
-            Flags = BufferUsageFlags.UnorderedAccess
-        });
-
-        BuildRaytracingAccelerationStructureDesc buildDesc = new()
-        {
-            DestAccelerationStructureData = AccelerationStructureBuffer.GPUVirtualAddress,
-            Inputs = inputs,
-            ScratchAccelerationStructureData = ScratchBuffer.GPUVirtualAddress
-        };
-
-        commandBuffer.GraphicsCommandList4.BuildRaytracingAccelerationStructure(&buildDesc, 0, (RaytracingAccelerationStructurePostbuildInfoDesc*)null);
-
-        ResourceBarrier barrier = new()
-        {
-            Type = ResourceBarrierType.Uav,
-            UAV = new()
-            {
-                PResource = AccelerationStructureBuffer.Resource
-            }
-        };
-
-        commandBuffer.GraphicsCommandList4.ResourceBarrier(1, &barrier);
-    }
-
-    public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
-
-    public DXBuffer TransformBuffer { get; }
-
-    public DXBuffer AccelerationStructureBuffer { get; }
-
-    public DXBuffer ScratchBuffer { get; }
-
-    protected override void SetResourceName(string name)
-    {
-    }
-
-    protected override void Destroy()
-    {
-        ScratchBuffer.Dispose();
-        AccelerationStructureBuffer.Dispose();
-        TransformBuffer.Dispose();
     }
 }

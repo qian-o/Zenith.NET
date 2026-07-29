@@ -2,14 +2,13 @@
   <Folder Name="/Experiments/">
     <File Path="sources/Experiments/Directory.Packages.props" />
     <Project Path="sources/Experiments/CornellBox/CornellBox.csproj" />
-    <Project Path="sources/Experiments/MemoryPlayground/MemoryPlayground.csproj" />
+    <Project Path="sources/Experiments/FluidTank/FluidTank.csproj" />
     <Project Path="sources/Experiments/PlatformDetection/PlatformDetection.csproj" />
   </Folder>
   <Folder Name="/Extensions/">
     <Project Path="sources/Extensions/Zenith.NET.Extensions.ImageSharp/Zenith.NET.Extensions.ImageSharp.csproj" />
     <Project Path="sources/Extensions/Zenith.NET.Extensions.ImGui/Zenith.NET.Extensions.ImGui.csproj" />
     <Project Path="sources/Extensions/Zenith.NET.Extensions.Skia/Zenith.NET.Extensions.Skia.csproj" />
-    <Project Path="sources/Extensions/Zenith.NET.Extensions.Slang/Zenith.NET.Extensions.Slang.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="sources/Directory.Build.props" />

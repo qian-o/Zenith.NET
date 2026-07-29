@@ -14,39 +14,75 @@ public static class Extensions
 
             uint mipLevels = generateMipMaps ? ZenithHelper.MipLevels((uint)image.Width, (uint)image.Height, 1) : 1;
 
-            Texture texture = context.CreateTexture(new()
-            {
-                Type = TextureType.Texture2D,
-                Format = PixelFormat.R8G8B8A8UNorm,
-                Width = (uint)image.Width,
-                Height = (uint)image.Height,
-                Depth = 1,
-                MipLevels = mipLevels,
-                ArrayLayers = 1,
-                SampleCount = SampleCount.Count1,
-                Flags = TextureUsageFlags.ShaderResource
-            });
+            Texture texture = context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R8G8B8A8UNorm,
+                                                                          (uint)image.Width,
+                                                                          (uint)image.Height,
+                                                                          mipLevels,
+                                                                          SampleCount.Count1));
 
             Rgba32[] pixels = new Rgba32[image.Width * image.Height];
             image.CopyPixelDataTo(pixels);
 
-            CommandBuffer commandBuffer = context.Copy.CommandBuffer();
+            CommandBuffer commandBuffer = context.GraphicsQueue.CommandBuffer();
 
-            commandBuffer.Upload(texture, default, default, new() { Width = (uint)image.Width, Height = (uint)image.Height, Depth = 1 }, pixels);
-
-            for (uint i = 1; i < mipLevels; i++)
+            unsafe
             {
-                ZenithHelper.MipDimensions((uint)image.Width, (uint)image.Height, 1, i, out uint mipWidth, out uint mipHeight, out _);
+                fixed (Rgba32* pPixels = pixels)
+                {
+                    Extent3D extent = new()
+                    {
+                        Width = (uint)image.Width,
+                        Height = (uint)image.Height,
+                        Depth = 1
+                    };
 
-                using Image<Rgba32> mipImage = image.Clone(ctx => ctx.Resize((int)mipWidth, (int)mipHeight, KnownResamplers.MitchellNetravali));
+                    TextureData data = new()
+                    {
+                        Pointer = (nint)pPixels,
+                        SizeInBytes = (uint)(sizeof(Rgba32) * pixels.Length),
+                        RowStrideInBytes = ZenithHelper.RowStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height),
+                        SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height)
+                    };
 
-                pixels = new Rgba32[mipWidth * mipHeight];
-                mipImage.CopyPixelDataTo(pixels);
+                    commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.CopyDst);
+                    commandBuffer.Upload(texture, default, default, extent, data);
+                    commandBuffer.Transition(texture, default, TextureLayout.CopyDst, TextureLayout.Sampled);
+                }
 
-                commandBuffer.Upload(texture, new() { MipLevel = i }, default, new() { Width = mipWidth, Height = mipHeight, Depth = 1 }, pixels);
+                for (uint i = 1; i < mipLevels; i++)
+                {
+                    ZenithHelper.MipDimensions((uint)image.Width, (uint)image.Height, 1, i, out uint mipWidth, out uint mipHeight, out _);
+
+                    using Image<Rgba32> mipImage = image.Clone(ctx => ctx.Resize((int)mipWidth, (int)mipHeight, KnownResamplers.MitchellNetravali));
+
+                    pixels = new Rgba32[mipWidth * mipHeight];
+                    mipImage.CopyPixelDataTo(pixels);
+
+                    fixed (Rgba32* pPixels = pixels)
+                    {
+                        Extent3D extent = new()
+                        {
+                            Width = mipWidth,
+                            Height = mipHeight,
+                            Depth = 1
+                        };
+
+                        TextureData data = new()
+                        {
+                            Pointer = (nint)pPixels,
+                            SizeInBytes = (uint)(sizeof(Rgba32) * pixels.Length),
+                            RowStrideInBytes = ZenithHelper.RowStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height),
+                            SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height)
+                        };
+
+                        commandBuffer.Transition(texture, new() { MipLevel = i }, TextureLayout.Undefined, TextureLayout.CopyDst);
+                        commandBuffer.Upload(texture, new() { MipLevel = i }, default, extent, data);
+                        commandBuffer.Transition(texture, new() { MipLevel = i }, TextureLayout.CopyDst, TextureLayout.Sampled);
+                    }
+                }
             }
 
-            commandBuffer.Submit(true);
+            commandBuffer.Submit().Wait();
 
             return texture;
         }

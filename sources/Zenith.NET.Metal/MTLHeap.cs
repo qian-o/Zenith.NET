@@ -2,59 +2,44 @@
 
 namespace Zenith.NET.Metal;
 
-internal class MTLHeap : GraphicsResource
+internal class MTLHeap : Heap
 {
     public MtlHeap Heap;
 
-    public MTLHeap(MTLGraphicsContext context, BufferDesc desc, out MtlBuffer buffer) : base(context)
+    public MTLHeap(MTLGraphicsContext context, HeapDesc desc) : base(context, desc)
     {
-        context.AddAllocation(Heap = context.Device.MakeHeap(new()
+        Heap = context.Device.MakeHeap(new()
         {
-            Size = context.Device.HeapBufferSizeAndAlign(desc.SizeInBytes, MTLFormats.Metal(desc.Flags)).Size,
-            ResourceOptions = MTLFormats.Metal(desc.Flags),
-            Type = MTLHeapType.Automatic
-        }));
-
-        buffer = Heap.MakeBuffer(desc.SizeInBytes, MTLFormats.Metal(desc.Flags));
-    }
-
-    public MTLHeap(MTLGraphicsContext context, TextureDesc desc, out MtlTexture texture) : base(context)
-    {
-        MTLTextureDescriptor descriptor = new()
-        {
-            TextureType = MTLFormats.Metal(desc.Type),
-            PixelFormat = MTLFormats.Metal(desc.Format).PixelFormat,
-            Width = desc.Width,
-            Height = desc.Height,
-            Depth = desc.Depth,
-            MipmapLevelCount = desc.MipLevels,
-            SampleCount = MTLFormats.Metal(desc.SampleCount),
-            ArrayLength = desc.ArrayLayers,
-            ResourceOptions = MTLResourceOptions.StorageModePrivate | MTLResourceOptions.HazardTrackingModeUntracked,
-            Usage = MTLFormats.Metal(desc.Flags),
-            AllowGPUOptimizedContents = true
-        };
-
-        context.AddAllocation(Heap = context.Device.MakeHeap(new()
-        {
-            Size = context.Device.HeapTextureSizeAndAlign(descriptor).Size,
-            ResourceOptions = descriptor.ResourceOptions,
-            Type = MTLHeapType.Automatic
-        }));
-
-        texture = Heap.MakeTexture(descriptor);
+            Size = (nuint)desc.SizeInBytes,
+            ResourceOptions = MTLFormats.Metal(desc.Residency),
+            Type = MTLHeapType.Placement
+        });
     }
 
     public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
 
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
+
+    protected override Buffer CreateBufferImpl(ulong offsetInBytes, BufferDesc desc)
+    {
+        return new MTLBuffer(Context, desc, Heap.MakeBuffer(desc.SizeInBytes, MTLFormats.Metal(Desc.Residency), (nuint)offsetInBytes));
+    }
+
+    protected override Texture CreateTextureImpl(ulong offsetInBytes, TextureDesc desc)
+    {
+        return new MTLTexture(Context, desc, Heap.MakeTexture(MTLTexture.Descriptor(desc), (nuint)offsetInBytes));
+    }
+
     protected override void SetResourceName(string name)
     {
+        Heap.Label = name;
     }
 
     protected override void Destroy()
     {
-        Context.RemoveAllocation(Heap);
-
         Heap.Dispose();
     }
 }

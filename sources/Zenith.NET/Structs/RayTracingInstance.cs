@@ -2,13 +2,13 @@
 
 namespace Zenith.NET;
 
-public record struct RayTracingInstance
+public struct RayTracingInstance
 {
     public BottomLevelAccelerationStructure AccelerationStructure;
 
-    public uint ID;
+    public uint InstanceId;
 
-    public byte Mask;
+    public byte VisibilityMask;
 
     public Matrix4x4 Transform;
 

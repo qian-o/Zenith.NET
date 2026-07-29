@@ -1,36 +1,44 @@
-﻿- name: Docs
+﻿- name: RHI Guide
   href: index.md
-- name: Core Concepts
+
+- name: Fundamentals
   items:
-    - name: Graphics Context
-      href: concepts/graphics-context.md
-    - name: Command Model
-      href: concepts/command-model.md
-    - name: Resource Binding
-      href: concepts/resource-binding.md
+    - name: Runtime
+      href: fundamentals/runtime.md
+    - name: Commands
+      href: fundamentals/commands.md
+    - name: Synchronization
+      href: fundamentals/synchronization.md
+    - name: Shaders
+      href: fundamentals/shaders.md
+    - name: Bindless Resources
+      href: fundamentals/bindless-resources.md
+    - name: Queries
+      href: fundamentals/queries.md
+
 - name: Resources
   items:
+    - name: Heaps
+      href: resources/heaps.md
     - name: Buffers
       href: resources/buffers.md
     - name: Textures
       href: resources/textures.md
-    - name: Samplers
-      href: resources/samplers.md
-- name: Features
+
+- name: Workloads
   items:
-    - name: Graphics
-      href: features/graphics.md
+    - name: Rasterization
+      href: workloads/rasterization.md
     - name: Compute
-      href: features/compute.md
+      href: workloads/compute.md
     - name: Ray Tracing
-      href: features/ray-tracing.md
+      href: workloads/ray-tracing.md
     - name: Mesh Shading
-      href: features/mesh-shading.md
-- name: Platform
+      href: workloads/mesh-shading.md
+
+- name: Presentation
   items:
-    - name: Backend Selection
-      href: platform/backend-selection.md
-    - name: UI Framework Integration
-      href: platform/ui-frameworks.md
-- name: Best Practices
-  href: best-practices.md
+    - name: Swap Chains
+      href: presentation/swap-chains.md
+    - name: Views
+      href: presentation/views.md

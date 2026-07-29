@@ -7,29 +7,29 @@ namespace Zenith.NET.Views.Maui.Platforms.Windows;
 
 internal static unsafe class D3D
 {
-    public static ComPtr<IDXGIFactory2> Factory;
+    public static ComPtr<IDXGIFactory2> Factory = new();
 
-    public static ComPtr<ID3D11Device> Device;
+    public static ComPtr<ID3D11Device> Device = new();
 
-    public static ComPtr<ID3D11DeviceContext> DeviceContext;
+    public static ComPtr<ID3D11DeviceContext> DeviceContext = new();
 
     static D3D()
     {
         DXGI = DXGI.GetApi(null);
         D3D11 = D3D11.GetApi(null);
 
-        Success(DXGI.CreateDXGIFactory2(0, out Factory));
+        Success(DXGI.CreateDXGIFactory2(0, SilkMarshal.GuidPtrOf<IDXGIFactory2>(), (void**)Factory.GetAddressOf()));
 
-        Success(D3D11.CreateDevice(default(ComPtr<IDXGIAdapter>),
+        Success(D3D11.CreateDevice(default,
                                    D3DDriverType.Hardware,
                                    0,
                                    (uint)CreateDeviceFlag.BgraSupport,
-                                   null,
+                                   default,
                                    0,
                                    D3D11.SdkVersion,
-                                   ref Device,
-                                   null,
-                                   ref DeviceContext));
+                                   Device.GetAddressOf(),
+                                   default,
+                                   DeviceContext.GetAddressOf()));
     }
 
     public static DXGI DXGI { get; }

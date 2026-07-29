@@ -1,147 +1,163 @@
 ﻿---
-title: Zenith.NET - Unified Cross-Platform GPU Programming Interface
+title: Zenith.NET - Modern RHI for .NET
+description: A modern rendering hardware interface for .NET with one consistent C# API across DirectX 12, Metal 4, and Vulkan 1.4.
 _layout: landing
 ---
 
-<div class="hero">
-    <div class="hero-content">
-        <img src="images/Zenith.NET.svg" alt="Zenith.NET Logo" class="hero-logo" />
-        <h1>Zenith.NET</h1>
-        <p class="hero-tagline">Unified Cross-Platform GPU Programming for .NET</p>
-        <p class="hero-description">A modern graphics and compute library that provides a single API for DirectX 12, Metal 4, and Vulkan 1.4. Build high-performance rendering and GPU compute applications with ease.</p>
-        <div class="hero-buttons">
-            <a href="tutorials/index.md" class="btn btn-primary">Get Started</a>
-            <a href="api/index.md" class="btn btn-secondary">API Reference</a>
+<div class="landing-page">
+    <section class="render-hero">
+        <div class="landing-shell render-hero-inner">
+            <div class="hero-copy">
+                <h1>Zenith.NET<span>Modern RHI for .NET.</span></h1>
+                <p class="hero-lede">Build graphics and compute applications with one consistent C# API for resources, pipelines, commands, and presentation.</p>
+                <div class="hero-actions">
+                    <a class="landing-button landing-button-primary" href="docs/index.md">
+                        Read the guide
+                    </a>
+                    <a class="landing-button landing-button-secondary" href="tutorials/index.md">
+                        Start a tutorial
+                    </a>
+                </div>
+                <div class="backend-support" role="list" aria-label="Supported graphics APIs">
+                    <span class="backend-label" aria-hidden="true">GRAPHICS APIs</span>
+                    <span class="backend-pill backend-directx" role="listitem">DirectX 12</span>
+                    <span class="backend-pill backend-metal" role="listitem">Metal 4</span>
+                    <span class="backend-pill backend-vulkan" role="listitem">Vulkan 1.4</span>
+                </div>
+            </div>
+            <div class="render-viewport" data-tutorial-carousel role="region" aria-roledescription="carousel" aria-label="Zenith.NET tutorial outputs">
+                <div class="render-viewport-toolbar">
+                    <span class="render-viewport-title"><i class="bi bi-image" aria-hidden="true"></i><span data-carousel-title>Hello Triangle</span></span>
+                    <span class="render-viewport-details"><span class="render-viewport-position" data-carousel-position>1 / 6</span></span>
+                    <span class="zenith-carousel-status" data-carousel-status aria-live="polite" aria-atomic="true"></span>
+                    <span class="render-carousel-controls">
+                        <button class="render-carousel-control" type="button" data-carousel-toggle aria-label="Pause automatic slide rotation" title="Pause automatic slide rotation"><i class="bi bi-pause-fill" aria-hidden="true"></i></button>
+                        <button class="render-carousel-control" type="button" data-carousel-prev aria-label="Previous tutorial" title="Previous tutorial"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+                        <button class="render-carousel-control" type="button" data-carousel-next aria-label="Next tutorial" title="Next tutorial"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+                    </span>
+                    <a class="render-viewport-open" data-carousel-open href="tutorials/guides/hello-triangle.md" aria-label="Open Hello Triangle tutorial" title="Open tutorial"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+                </div>
+                <div class="render-viewport-canvas">
+                    <a class="render-carousel-slide is-active" data-carousel-title="Hello Triangle" href="tutorials/guides/hello-triangle.md" aria-label="1 of 6: Hello Triangle" aria-current="true">
+                        <img class="render-hero-media" src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/hello-triangle.png" alt="Hello Triangle tutorial output rendered with Zenith.NET" fetchpriority="high">
+                    </a>
+                    <a class="render-carousel-slide" data-carousel-title="Spinning Cube" href="tutorials/guides/spinning-cube.md" aria-label="2 of 6: Spinning Cube" aria-hidden="true" tabindex="-1">
+                        <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/spinning-cube.png" alt="Spinning Cube tutorial output rendered with Zenith.NET">
+                    </a>
+                    <a class="render-carousel-slide" data-carousel-title="Compute Shader" href="tutorials/guides/compute-shader.md" aria-label="3 of 6: Compute Shader" aria-hidden="true" tabindex="-1">
+                        <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/compute-shader.png" alt="Compute Shader tutorial output rendered with Zenith.NET">
+                    </a>
+                    <a class="render-carousel-slide" data-carousel-title="Indirect Drawing" href="tutorials/guides/indirect-drawing.md" aria-label="4 of 6: Indirect Drawing" aria-hidden="true" tabindex="-1">
+                        <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/indirect-drawing.png" alt="Indirect Drawing tutorial output rendered with Zenith.NET">
+                    </a>
+                    <a class="render-carousel-slide" data-carousel-title="Ray Tracing" href="tutorials/guides/ray-tracing.md" aria-label="5 of 6: Ray Tracing" aria-hidden="true" tabindex="-1">
+                        <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/ray-tracing.png" alt="Ray Tracing tutorial output rendered with Zenith.NET">
+                    </a>
+                    <a class="render-carousel-slide" data-carousel-title="Mesh Shading" href="tutorials/guides/mesh-shading.md" aria-label="6 of 6: Mesh Shading" aria-hidden="true" tabindex="-1">
+                        <img class="render-hero-media" data-src="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/mesh-shading.png" alt="Mesh Shading tutorial output rendered with Zenith.NET">
+                    </a>
+                    <div class="render-carousel-progress" aria-hidden="true"><span data-carousel-progress></span></div>
+                </div>
+            </div>
         </div>
-        <div class="hero-badges">
-            <a href="https://github.com/qian-o/Zenith.NET"><img src="https://img.shields.io/github/stars/qian-o/Zenith.NET?style=flat-square&logo=github&label=Stars" alt="GitHub Stars" /></a>
-            <a href="https://www.nuget.org/packages/Zenith.NET"><img src="https://img.shields.io/nuget/v/Zenith.NET?style=flat-square&logo=nuget&label=NuGet" alt="NuGet Version" /></a>
-            <a href="https://github.com/qian-o/Zenith.NET/blob/master/LICENSE"><img src="https://img.shields.io/github/license/qian-o/Zenith.NET?style=flat-square&label=License" alt="License" /></a>
+    </section>
+    <section class="features-section">
+        <div class="landing-shell">
+            <header class="section-heading">
+                <span class="section-kicker">THE RHI</span>
+                <h2>One model for rendering.<span>Designed for modern C#.</span></h2>
+                <p>Start with a small set of objects and use the same workflow across supported graphics APIs.</p>
+            </header>
+            <div class="feature-grid">
+                <article class="feature-card">
+                    <div class="feature-icon feature-icon-violet"><i class="bi bi-globe2" aria-hidden="true"></i></div>
+                    <h3>Consistent C# API</h3>
+                    <p>Create resources, pipelines, commands, and swap chains through a focused object model.</p>
+                </article>
+                <article class="feature-card">
+                    <div class="feature-icon feature-icon-pink"><i class="bi bi-cpu" aria-hidden="true"></i></div>
+                    <h3>Clear command flow</h3>
+                    <p>Record work in order, submit it to a queue, and track completion with timeline values.</p>
+                </article>
+                <article class="feature-card">
+                    <div class="feature-icon feature-icon-blue"><i class="bi bi-lightning-charge" aria-hidden="true"></i></div>
+                    <h3>Simple shader binding</h3>
+                    <p>Pass compact resource handles in constant data and use them as typed Slang resources.</p>
+                </article>
+                <article class="feature-card">
+                    <div class="feature-icon feature-icon-cyan"><i class="bi bi-bounding-box-circles" aria-hidden="true"></i></div>
+                    <h3>Modern workloads</h3>
+                    <p>Use rasterization, compute, and indirect commands, with capability-gated Ray Tracing and mesh shading.</p>
+                </article>
+            </div>
         </div>
-    </div>
-</div>
-
----
-
-<div class="tech-bar">
-    <div class="tech-bar-group">
-        <span class="tech-bar-label">Graphics APIs</span>
-        <span class="tech-bar-items">DirectX 12 · Metal 4 · Vulkan 1.4</span>
-    </div>
-    <div class="tech-bar-divider"></div>
-    <div class="tech-bar-group">
-        <span class="tech-bar-label">Platforms</span>
-        <span class="tech-bar-items">Windows · Apple · Android · Linux</span>
-    </div>
-</div>
-
----
-
-## Why Zenith.NET?
-
-<div class="highlight-grid">
-    <div class="highlight-item">
-        <div class="highlight-icon">🎯</div>
-        <div class="highlight-text">
-            <strong>Unified API</strong> — Write once, run everywhere. A single API abstracts DirectX 12, Metal 4, and Vulkan 1.4.
+    </section>
+    <section class="architecture-section">
+        <div class="landing-shell architecture-grid">
+            <div class="architecture-copy">
+                <span class="section-kicker">PROGRAMMING MODEL</span>
+                <h2>Small building blocks.<br><span>Predictable application flow.</span></h2>
+                <p>Create a context, choose a queue, record commands, and submit the result.</p>
+            </div>
+            <div class="architecture-copy">
+                <div class="architecture-points">
+                    <a href="docs/fundamentals/runtime.md"><span class="architecture-step" aria-hidden="true">01</span><span><strong>Create the runtime</strong><small>Select a graphics API, inspect capabilities, and create application resources.</small></span></a>
+                    <a href="docs/fundamentals/commands.md"><span class="architecture-step" aria-hidden="true">02</span><span><strong>Record GPU work</strong><small>Use command buffers for rendering, compute, copies, and resource transitions.</small></span></a>
+                    <a href="docs/fundamentals/bindless-resources.md"><span class="architecture-step" aria-hidden="true">03</span><span><strong>Bind shader resources</strong><small>Store typed resource handles in C# constant data shared with Slang.</small></span></a>
+                </div>
+            </div>
         </div>
-    </div>
-    <div class="highlight-item">
-        <div class="highlight-icon">⚡</div>
-        <div class="highlight-text">
-            <strong>High Performance</strong> — Direct access to ray tracing, mesh shading, and compute pipelines.
+    </section>
+    <section class="resources-section">
+        <div class="landing-shell">
+            <header class="resources-heading">
+                <span class="section-kicker">DOCUMENTATION</span>
+                <h2>Learn at your own pace.</h2>
+            </header>
+            <div class="resource-grid">
+                <a class="resource-card resource-card-docs" href="docs/index.md">
+                    <span class="resource-icon"><i class="bi bi-book" aria-hidden="true"></i></span>
+                    <strong class="resource-title">RHI Guide</strong>
+                    <p>Learn the core objects and workflows used by Zenith.NET applications.</p>
+                    <strong>Read the guide</strong>
+                </a>
+                <a class="resource-card resource-card-nuget" href="tutorials/index.md">
+                    <span class="resource-icon"><i class="bi bi-play-circle" aria-hidden="true"></i></span>
+                    <strong class="resource-title">Tutorials</strong>
+                    <p>Build focused examples that progress from project setup to modern GPU workloads.</p>
+                    <strong>Follow the tutorials</strong>
+                </a>
+                <a class="resource-card resource-card-community" href="api/index.md">
+                    <span class="resource-icon"><i class="bi bi-braces" aria-hidden="true"></i></span>
+                    <strong class="resource-title">API Reference</strong>
+                    <p>Look up public namespaces, types, members, and enum values.</p>
+                    <strong>Browse the API</strong>
+                </a>
+            </div>
         </div>
-    </div>
-    <div class="highlight-item">
-        <div class="highlight-icon">🔌</div>
-        <div class="highlight-text">
-            <strong>Framework Integration</strong> — Works with Avalonia, MAUI, WinForms, WinUI, WPF, and Uno Platform.
+    </section>
+    <footer class="landing-footer">
+        <div class="landing-shell landing-footer-grid">
+            <div class="landing-footer-brand">
+                <img class="landing-footer-logo" src="images/Zenith.NET-Logo.svg" alt="Zenith.NET">
+                <p>A modern rendering hardware interface for .NET with one consistent C# API across DirectX 12, Metal 4, and Vulkan 1.4.</p>
+                <a class="landing-footer-github" href="https://github.com/qian-o/Zenith.NET" aria-label="Zenith.NET on GitHub"><i class="bi bi-github" aria-hidden="true"></i></a>
+            </div>
+            <div class="landing-footer-column">
+                <strong class="landing-footer-heading">Explore</strong>
+                <a href="docs/index.md">RHI guide</a>
+                <a href="tutorials/index.md">Tutorials</a>
+                <a href="api/index.md">API reference</a>
+                <a href="https://www.nuget.org/packages?q=Zenith.NET">NuGet packages</a>
+            </div>
+            <div class="landing-footer-column">
+                <strong class="landing-footer-heading">Project</strong>
+                <a href="https://www.nuget.org/packages?q=Zenith.NET">NuGet</a>
+                <a href="https://github.com/qian-o/Zenith.NET">Source code</a>
+                <a href="https://github.com/qian-o/Zenith.NET/issues">Issues</a>
+                <a href="https://github.com/qian-o/Zenith.NET/pulls">Pull requests</a>
+            </div>
         </div>
-    </div>
-    <div class="highlight-item">
-        <div class="highlight-icon">🚀</div>
-        <div class="highlight-text">
-            <strong>Modern .NET</strong> — Built for .NET 10.0+ with nullable types, spans, and the latest C# features.
-        </div>
-    </div>
-</div>
-
----
-
-## GPU Features at a Glance
-
-<div class="feature-list">
-    <div class="feature-list-item">
-        <span class="feature-list-title">Graphics</span>
-        <span class="feature-list-desc">Vertex and pixel shaders with custom render states.</span>
-    </div>
-    <div class="feature-list-item">
-        <span class="feature-list-title">Compute</span>
-        <span class="feature-list-desc">General-purpose GPU computing for image processing, simulations, and more.</span>
-    </div>
-    <div class="feature-list-item">
-        <span class="feature-list-title">Ray Tracing</span>
-        <span class="feature-list-desc">Hardware-accelerated BLAS/TLAS with RayQuery in any shader stage.</span>
-    </div>
-    <div class="feature-list-item">
-        <span class="feature-list-title">Mesh Shading</span>
-        <span class="feature-list-desc">GPU-driven geometry with mesh and amplification shaders for meshlet processing.</span>
-    </div>
-</div>
-
----
-
-## How It Works
-
-<div class="workflow">
-    <div class="workflow-step">
-        <div class="step-number">1</div>
-        <div class="step-content">
-            <h4>Initialize</h4>
-            <p>Create a graphics context with your preferred backend (DirectX 12, Metal 4, or Vulkan 1.4).</p>
-        </div>
-    </div>
-    <div class="workflow-step">
-        <div class="step-number">2</div>
-        <div class="step-content">
-            <h4>Create Resources</h4>
-            <p>Define buffers, textures, shaders, and pipelines.</p>
-        </div>
-    </div>
-    <div class="workflow-step">
-        <div class="step-number">3</div>
-        <div class="step-content">
-            <h4>Record Commands</h4>
-            <p>Build command buffers with draw, compute, or mesh shading dispatches.</p>
-        </div>
-    </div>
-    <div class="workflow-step">
-        <div class="step-number">4</div>
-        <div class="step-content">
-            <h4>Submit & Present</h4>
-            <p>Execute on GPU and present to screen or export to textures.</p>
-        </div>
-    </div>
-</div>
-
----
-
-## Get Started
-
-<div class="cta-section">
-    <div class="cta-main">
-        <h3>Ready to build?</h3>
-        <p>Follow our step-by-step tutorials from Hello Triangle to advanced ray tracing and mesh shading.</p>
-        <a href="tutorials/index.md" class="btn btn-primary">Start Learning →</a>
-    </div>
-    <div class="cta-links">
-        <a href="api/index.md" class="cta-link">
-            <span class="cta-link-icon">📖</span>
-            <span class="cta-link-text">API Reference</span>
-        </a>
-        <a href="https://github.com/qian-o/Zenith.NET" class="cta-link">
-            <span class="cta-link-icon">💻</span>
-            <span class="cta-link-text">Source Code</span>
-        </a>
-    </div>
+        <div class="landing-shell landing-footer-bottom"><span>© 2026 Zenith.NET. MIT License.</span><span><a href="https://github.com/qian-o/Zenith.NET">GitHub</a><a href="docs/index.md">Docs</a></span></div>
+    </footer>
 </div>

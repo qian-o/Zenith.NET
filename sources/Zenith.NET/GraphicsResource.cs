@@ -11,15 +11,14 @@ public abstract class GraphicsResource(GraphicsContext context) : DisposableObje
             {
                 field = value;
 
-                if (!string.IsNullOrWhiteSpace(value))
-                {
-                    SetResourceName(value);
-                }
+                SetResourceName(value);
             }
         }
     } = string.Empty;
 
     protected GraphicsContext Context => context;
+
+    public abstract nint GetNativeObject(NativeObjectType type);
 
     protected abstract void SetResourceName(string name);
 }

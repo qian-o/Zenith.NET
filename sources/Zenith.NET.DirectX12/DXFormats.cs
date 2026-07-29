@@ -6,88 +6,370 @@ using Silk.NET.Maths;
 
 namespace Zenith.NET.DirectX12;
 
-internal static unsafe class DXFormats
+internal static class DXFormats
 {
-    public static (ResourceFlags Flags, ResourceStates States, HeapType Type) DirectX12(BufferUsageFlags bufferUsageFlags)
+    public static RaytracingAccelerationStructureBuildFlags DirectX12(AccelerationStructureBuildFlags accelerationStructureBuildFlags)
     {
-        ResourceFlags flags = ResourceFlags.None;
+        RaytracingAccelerationStructureBuildFlags result = default;
 
-        if (bufferUsageFlags.HasFlag(BufferUsageFlags.AccelerationStructure) || bufferUsageFlags.HasFlag(BufferUsageFlags.UnorderedAccess))
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowUpdate))
         {
-            flags |= ResourceFlags.AllowUnorderedAccess;
-
-            if (bufferUsageFlags.HasFlag(BufferUsageFlags.AccelerationStructure))
-            {
-                flags |= ResourceFlags.RaytracingAccelerationStructure;
-            }
+            result |= RaytracingAccelerationStructureBuildFlags.AllowUpdate;
         }
 
-        ResourceStates states = ResourceStates.Common;
-
-        if (bufferUsageFlags.HasFlag(BufferUsageFlags.Vertex) || bufferUsageFlags.HasFlag(BufferUsageFlags.Constant))
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowCompaction))
         {
-            states |= ResourceStates.VertexAndConstantBuffer;
+            result |= RaytracingAccelerationStructureBuildFlags.AllowCompaction;
         }
 
-        if (bufferUsageFlags.HasFlag(BufferUsageFlags.Index))
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PreferFastTrace))
         {
-            states |= ResourceStates.IndexBuffer;
+            result |= RaytracingAccelerationStructureBuildFlags.PreferFastTrace;
         }
 
-        if (bufferUsageFlags.HasFlag(BufferUsageFlags.Indirect))
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PreferFastBuild))
         {
-            states |= ResourceStates.IndirectArgument;
+            result |= RaytracingAccelerationStructureBuildFlags.PreferFastBuild;
         }
 
-        if (bufferUsageFlags.HasFlag(BufferUsageFlags.AccelerationStructure))
+        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.MinimizeMemory))
         {
-            states |= ResourceStates.RaytracingAccelerationStructure;
+            result |= RaytracingAccelerationStructureBuildFlags.MinimizeMemory;
         }
 
-        if (bufferUsageFlags.HasFlag(BufferUsageFlags.ShaderResource))
-        {
-            states |= ResourceStates.AllShaderResource;
-        }
-
-        if (bufferUsageFlags.HasFlag(BufferUsageFlags.UnorderedAccess))
-        {
-            states |= ResourceStates.UnorderedAccess;
-        }
-
-        HeapType type = HeapType.Default;
-
-        if (bufferUsageFlags.HasFlag(BufferUsageFlags.MapRead))
-        {
-            states = ResourceStates.CopyDest;
-
-            type = HeapType.Readback;
-        }
-
-        if (bufferUsageFlags.HasFlag(BufferUsageFlags.MapWrite))
-        {
-            states = ResourceStates.GenericRead;
-
-            type = HeapType.Upload;
-        }
-
-        return (flags, states, type);
+        return result;
     }
 
-    public static ResourceDimension DirectX12(TextureType textureType)
+    public static TextureAddressMode DirectX12(AddressMode addressMode)
     {
-        return textureType switch
+        return addressMode switch
         {
-            TextureType.Texture1D or
-            TextureType.Texture1DArray => ResourceDimension.Texture1D,
+            AddressMode.Wrap => TextureAddressMode.Wrap,
+            AddressMode.Mirror => TextureAddressMode.Mirror,
+            AddressMode.Clamp => TextureAddressMode.Clamp,
+            AddressMode.Border => TextureAddressMode.Border,
+            _ => default
+        };
+    }
 
-            TextureType.Texture2D or
-            TextureType.Texture2DArray or
-            TextureType.TextureCube or
-            TextureType.TextureCubeArray => ResourceDimension.Texture2D,
+    public static (BarrierSync Sync, BarrierAccess Access) DirectX12(BarrierStages barrierStages)
+    {
+        if (barrierStages is BarrierStages.None)
+        {
+            return (BarrierSync.None, BarrierAccess.NoAccess);
+        }
 
-            TextureType.Texture3D => ResourceDimension.Texture3D,
+        BarrierSync sync = default;
+        BarrierAccess access = default;
 
-            _ => ResourceDimension.Texture1D
+        if (barrierStages.HasFlag(BarrierStages.VertexShading))
+        {
+            sync |= BarrierSync.IndexInput | BarrierSync.VertexShading | BarrierSync.ExecuteIndirect;
+            access |= BarrierAccess.VertexBuffer | BarrierAccess.ConstantBuffer | BarrierAccess.IndexBuffer | BarrierAccess.UnorderedAccess | BarrierAccess.ShaderResource | BarrierAccess.IndirectArgument | BarrierAccess.RaytracingAccelerationStructureRead;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.FragmentShading))
+        {
+            sync |= BarrierSync.PixelShading | BarrierSync.DepthStencil | BarrierSync.RenderTarget;
+            access |= BarrierAccess.ConstantBuffer | BarrierAccess.RenderTarget | BarrierAccess.UnorderedAccess | BarrierAccess.DepthStencilWrite | BarrierAccess.DepthStencilRead | BarrierAccess.ShaderResource | BarrierAccess.RaytracingAccelerationStructureRead;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.ComputeShading))
+        {
+            sync |= BarrierSync.ComputeShading | BarrierSync.ExecuteIndirect;
+            access |= BarrierAccess.ConstantBuffer | BarrierAccess.UnorderedAccess | BarrierAccess.ShaderResource | BarrierAccess.IndirectArgument | BarrierAccess.RaytracingAccelerationStructureRead;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.Copy))
+        {
+            sync |= BarrierSync.Copy;
+            access |= BarrierAccess.CopyDest | BarrierAccess.CopySource;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.Resolve))
+        {
+            sync |= BarrierSync.Resolve;
+            access |= BarrierAccess.ResolveDest | BarrierAccess.ResolveSource;
+        }
+
+        if (barrierStages.HasFlag(BarrierStages.All))
+        {
+            sync = BarrierSync.All;
+            access = BarrierAccess.Common;
+        }
+
+        return (sync, access);
+    }
+
+    public static Blend DirectX12(BlendFactor blendFactor)
+    {
+        return blendFactor switch
+        {
+            BlendFactor.Zero => Blend.Zero,
+            BlendFactor.One => Blend.One,
+            BlendFactor.SrcColor => Blend.SrcColor,
+            BlendFactor.OneMinusSrcColor => Blend.InvSrcColor,
+            BlendFactor.DstColor => Blend.DestColor,
+            BlendFactor.OneMinusDstColor => Blend.InvDestColor,
+            BlendFactor.SrcAlpha => Blend.SrcAlpha,
+            BlendFactor.OneMinusSrcAlpha => Blend.InvSrcAlpha,
+            BlendFactor.DstAlpha => Blend.DestAlpha,
+            BlendFactor.OneMinusDstAlpha => Blend.InvDestAlpha,
+            BlendFactor.Constant => Blend.BlendFactor,
+            BlendFactor.OneMinusConstant => Blend.InvBlendFactor,
+            _ => default
+        };
+    }
+
+    public static DxBlendOp DirectX12(BlendOp blendOp)
+    {
+        return blendOp switch
+        {
+            BlendOp.Add => DxBlendOp.Add,
+            BlendOp.Subtract => DxBlendOp.Subtract,
+            BlendOp.ReverseSubtract => DxBlendOp.RevSubtract,
+            BlendOp.Min => DxBlendOp.Min,
+            BlendOp.Max => DxBlendOp.Max,
+            _ => default
+        };
+    }
+
+    public static (float R, float G, float B, float A) DirectX12(BorderColor borderColor)
+    {
+        return borderColor switch
+        {
+            BorderColor.TransparentBlack => (0.0f, 0.0f, 0.0f, 0.0f),
+            BorderColor.OpaqueBlack => (0.0f, 0.0f, 0.0f, 1.0f),
+            BorderColor.OpaqueWhite => (1.0f, 1.0f, 1.0f, 1.0f),
+            _ => default
+        };
+    }
+
+    public static ResourceFlags DirectX12(BufferUsages bufferUsages)
+    {
+        ResourceFlags result = default;
+
+        if (bufferUsages.HasFlag(BufferUsages.StorageReadWrite))
+        {
+            result |= ResourceFlags.AllowUnorderedAccess;
+        }
+
+        return result;
+    }
+
+    public static ColorWriteEnable DirectX12(ColorWrites colorWrites)
+    {
+        ColorWriteEnable result = default;
+
+        if (colorWrites.HasFlag(ColorWrites.Red))
+        {
+            result |= ColorWriteEnable.Red;
+        }
+
+        if (colorWrites.HasFlag(ColorWrites.Green))
+        {
+            result |= ColorWriteEnable.Green;
+        }
+
+        if (colorWrites.HasFlag(ColorWrites.Blue))
+        {
+            result |= ColorWriteEnable.Blue;
+        }
+
+        if (colorWrites.HasFlag(ColorWrites.Alpha))
+        {
+            result |= ColorWriteEnable.Alpha;
+        }
+
+        return result;
+    }
+
+    public static CommandListType DirectX12(CommandQueueType commandQueueType)
+    {
+        return commandQueueType switch
+        {
+            CommandQueueType.Graphics => CommandListType.Direct,
+            CommandQueueType.Compute => CommandListType.Compute,
+            CommandQueueType.Transfer => CommandListType.Copy,
+            _ => default
+        };
+    }
+
+    public static ComparisonFunc DirectX12(CompareOp compareOp)
+    {
+        return compareOp switch
+        {
+            CompareOp.Never => ComparisonFunc.Never,
+            CompareOp.Less => ComparisonFunc.Less,
+            CompareOp.Equal => ComparisonFunc.Equal,
+            CompareOp.LessEqual => ComparisonFunc.LessEqual,
+            CompareOp.Greater => ComparisonFunc.Greater,
+            CompareOp.NotEqual => ComparisonFunc.NotEqual,
+            CompareOp.GreaterEqual => ComparisonFunc.GreaterEqual,
+            CompareOp.Always => ComparisonFunc.Always,
+            _ => default
+        };
+    }
+
+    public static DxCullMode DirectX12(CullMode cullMode)
+    {
+        return cullMode switch
+        {
+            CullMode.None => DxCullMode.None,
+            CullMode.Front => DxCullMode.Front,
+            CullMode.Back => DxCullMode.Back,
+            _ => default
+        };
+    }
+
+    public static Format DirectX12(ElementFormat elementFormat)
+    {
+        return elementFormat switch
+        {
+            ElementFormat.UByte1 => Format.FormatR8Uint,
+            ElementFormat.UByte2 => Format.FormatR8G8Uint,
+            ElementFormat.UByte4 => Format.FormatR8G8B8A8Uint,
+
+            ElementFormat.Byte1 => Format.FormatR8Sint,
+            ElementFormat.Byte2 => Format.FormatR8G8Sint,
+            ElementFormat.Byte4 => Format.FormatR8G8B8A8Sint,
+
+            ElementFormat.UByte1UNorm => Format.FormatR8Unorm,
+            ElementFormat.UByte2UNorm => Format.FormatR8G8Unorm,
+            ElementFormat.UByte4UNorm => Format.FormatR8G8B8A8Unorm,
+
+            ElementFormat.Byte1SNorm => Format.FormatR8SNorm,
+            ElementFormat.Byte2SNorm => Format.FormatR8G8SNorm,
+            ElementFormat.Byte4SNorm => Format.FormatR8G8B8A8SNorm,
+
+            ElementFormat.UShort1 => Format.FormatR16Uint,
+            ElementFormat.UShort2 => Format.FormatR16G16Uint,
+            ElementFormat.UShort4 => Format.FormatR16G16B16A16Uint,
+
+            ElementFormat.Short1 => Format.FormatR16Sint,
+            ElementFormat.Short2 => Format.FormatR16G16Sint,
+            ElementFormat.Short4 => Format.FormatR16G16B16A16Sint,
+
+            ElementFormat.UShort1UNorm => Format.FormatR16Unorm,
+            ElementFormat.UShort2UNorm => Format.FormatR16G16Unorm,
+            ElementFormat.UShort4UNorm => Format.FormatR16G16B16A16Unorm,
+
+            ElementFormat.Short1SNorm => Format.FormatR16SNorm,
+            ElementFormat.Short2SNorm => Format.FormatR16G16SNorm,
+            ElementFormat.Short4SNorm => Format.FormatR16G16B16A16SNorm,
+
+            ElementFormat.Half1 => Format.FormatR16Float,
+            ElementFormat.Half2 => Format.FormatR16G16Float,
+            ElementFormat.Half4 => Format.FormatR16G16B16A16Float,
+
+            ElementFormat.Float1 => Format.FormatR32Float,
+            ElementFormat.Float2 => Format.FormatR32G32Float,
+            ElementFormat.Float3 => Format.FormatR32G32B32Float,
+            ElementFormat.Float4 => Format.FormatR32G32B32A32Float,
+
+            ElementFormat.UInt1 => Format.FormatR32Uint,
+            ElementFormat.UInt2 => Format.FormatR32G32Uint,
+            ElementFormat.UInt3 => Format.FormatR32G32B32Uint,
+            ElementFormat.UInt4 => Format.FormatR32G32B32A32Uint,
+
+            ElementFormat.Int1 => Format.FormatR32Sint,
+            ElementFormat.Int2 => Format.FormatR32G32Sint,
+            ElementFormat.Int3 => Format.FormatR32G32B32Sint,
+            ElementFormat.Int4 => Format.FormatR32G32B32A32Sint,
+
+            _ => default
+        };
+    }
+
+    public static DxFillMode DirectX12(FillMode fillMode)
+    {
+        return fillMode switch
+        {
+            FillMode.Solid => DxFillMode.Solid,
+            FillMode.Wireframe => DxFillMode.Wireframe,
+            _ => default
+        };
+    }
+
+    public static Filter DirectX12(FilterMode minFilter, FilterMode magFilter, FilterMode mipFilter, uint maxAnisotropy, CompareOp compareOp)
+    {
+        if (maxAnisotropy > 1)
+        {
+            return compareOp is CompareOp.Never ? Filter.Anisotropic : Filter.ComparisonAnisotropic;
+        }
+
+        return (minFilter, magFilter, mipFilter, compareOp) switch
+        {
+            (FilterMode.Point, FilterMode.Point, FilterMode.Point, CompareOp.Never) => Filter.MinMagMipPoint,
+            (FilterMode.Point, FilterMode.Point, FilterMode.Linear, CompareOp.Never) => Filter.MinMagPointMipLinear,
+            (FilterMode.Point, FilterMode.Linear, FilterMode.Point, CompareOp.Never) => Filter.MinPointMagLinearMipPoint,
+            (FilterMode.Point, FilterMode.Linear, FilterMode.Linear, CompareOp.Never) => Filter.MinPointMagMipLinear,
+            (FilterMode.Linear, FilterMode.Point, FilterMode.Point, CompareOp.Never) => Filter.MinLinearMagMipPoint,
+            (FilterMode.Linear, FilterMode.Point, FilterMode.Linear, CompareOp.Never) => Filter.MinLinearMagPointMipLinear,
+            (FilterMode.Linear, FilterMode.Linear, FilterMode.Point, CompareOp.Never) => Filter.MinMagLinearMipPoint,
+            (FilterMode.Linear, FilterMode.Linear, FilterMode.Linear, CompareOp.Never) => Filter.MinMagMipLinear,
+
+            (FilterMode.Point, FilterMode.Point, FilterMode.Point, _) => Filter.ComparisonMinMagMipPoint,
+            (FilterMode.Point, FilterMode.Point, FilterMode.Linear, _) => Filter.ComparisonMinMagPointMipLinear,
+            (FilterMode.Point, FilterMode.Linear, FilterMode.Point, _) => Filter.ComparisonMinPointMagLinearMipPoint,
+            (FilterMode.Point, FilterMode.Linear, FilterMode.Linear, _) => Filter.ComparisonMinPointMagMipLinear,
+            (FilterMode.Linear, FilterMode.Point, FilterMode.Point, _) => Filter.ComparisonMinLinearMagMipPoint,
+            (FilterMode.Linear, FilterMode.Point, FilterMode.Linear, _) => Filter.ComparisonMinLinearMagPointMipLinear,
+            (FilterMode.Linear, FilterMode.Linear, FilterMode.Point, _) => Filter.ComparisonMinMagLinearMipPoint,
+            (FilterMode.Linear, FilterMode.Linear, FilterMode.Linear, _) => Filter.ComparisonMinMagMipLinear,
+
+            _ => default
+        };
+    }
+
+    public static Format DirectX12(IndexFormat indexFormat)
+    {
+        return indexFormat switch
+        {
+            IndexFormat.UInt16 => Format.FormatR16Uint,
+            IndexFormat.UInt32 => Format.FormatR32Uint,
+            _ => default
+        };
+    }
+
+    public static RenderPassBeginningAccessType DirectX12(LoadOp loadOp)
+    {
+        return loadOp switch
+        {
+            LoadOp.Load => RenderPassBeginningAccessType.Preserve,
+            LoadOp.Clear => RenderPassBeginningAccessType.Clear,
+            LoadOp.DontCare => RenderPassBeginningAccessType.Discard,
+            _ => default
+        };
+    }
+
+    public static Matrix3X4<float> DirectX12(Matrix4x4 matrix4x4)
+    {
+        return new()
+        {
+            M11 = matrix4x4.M11,
+            M12 = matrix4x4.M21,
+            M13 = matrix4x4.M31,
+            M14 = matrix4x4.M41,
+            M21 = matrix4x4.M12,
+            M22 = matrix4x4.M22,
+            M23 = matrix4x4.M32,
+            M24 = matrix4x4.M42,
+            M31 = matrix4x4.M13,
+            M32 = matrix4x4.M23,
+            M33 = matrix4x4.M33,
+            M34 = matrix4x4.M43
+        };
+    }
+
+    public static DxHeapType DirectX12(MemoryResidency memoryResidency)
+    {
+        return memoryResidency switch
+        {
+            MemoryResidency.GpuOnly => DxHeapType.Default,
+            MemoryResidency.CpuReadOnly => DxHeapType.Readback,
+            MemoryResidency.CpuWriteOnly => DxHeapType.Upload,
+            _ => default
         };
     }
 
@@ -165,124 +447,11 @@ internal static unsafe class DXFormats
             PixelFormat.BC7UNorm => Format.FormatBC7Unorm,
             PixelFormat.BC7SRgb => Format.FormatBC7UnormSrgb,
 
-            _ => Format.FormatUnknown
+            _ => default
         };
     }
 
-    public static SampleDesc DirectX12(SampleCount sampleCount)
-    {
-        return sampleCount switch
-        {
-            SampleCount.Count1 => new() { Count = 1 },
-            SampleCount.Count2 => new() { Count = 2 },
-            SampleCount.Count4 => new() { Count = 4 },
-            SampleCount.Count8 => new() { Count = 8 },
-            SampleCount.Count16 => new() { Count = 16 },
-            SampleCount.Count32 => new() { Count = 32 },
-            _ => new() { Count = 1 }
-        };
-    }
-
-    public static (ResourceFlags Flags, ResourceStates States) DirectX12(TextureUsageFlags textureUsageFlags)
-    {
-        ResourceFlags flags = ResourceFlags.None;
-
-        if (textureUsageFlags.HasFlag(TextureUsageFlags.RenderTarget))
-        {
-            flags |= ResourceFlags.AllowRenderTarget;
-        }
-
-        if (textureUsageFlags.HasFlag(TextureUsageFlags.DepthStencil))
-        {
-            flags |= ResourceFlags.AllowDepthStencil;
-        }
-
-        if (textureUsageFlags.HasFlag(TextureUsageFlags.UnorderedAccess))
-        {
-            flags |= ResourceFlags.AllowUnorderedAccess;
-        }
-
-        ResourceStates states = ResourceStates.Common;
-
-        if (textureUsageFlags.HasFlag(TextureUsageFlags.RenderTarget))
-        {
-            states |= ResourceStates.RenderTarget;
-        }
-
-        if (textureUsageFlags.HasFlag(TextureUsageFlags.DepthStencil))
-        {
-            states |= ResourceStates.DepthWrite;
-        }
-
-        return (flags, states);
-    }
-
-    public static (DxFilter Filter, DxComparisonFunc ComparisonFunc) DirectX12(Filter filter, ComparisonFunc comparisonFunc)
-    {
-        bool isComparison = comparisonFunc is not ComparisonFunc.Never and not ComparisonFunc.Always;
-
-        return
-        (
-            filter switch
-            {
-                Filter.MinPointMagPointMipPoint => isComparison ? DxFilter.ComparisonMinMagMipPoint : DxFilter.MinMagMipPoint,
-                Filter.MinPointMagPointMipLinear => isComparison ? DxFilter.ComparisonMinMagPointMipLinear : DxFilter.MinMagPointMipLinear,
-                Filter.MinPointMagLinearMipPoint => isComparison ? DxFilter.ComparisonMinPointMagLinearMipPoint : DxFilter.MinPointMagLinearMipPoint,
-                Filter.MinPointMagLinearMipLinear => isComparison ? DxFilter.ComparisonMinPointMagMipLinear : DxFilter.MinPointMagMipLinear,
-                Filter.MinLinearMagPointMipPoint => isComparison ? DxFilter.ComparisonMinLinearMagMipPoint : DxFilter.MinLinearMagMipPoint,
-                Filter.MinLinearMagPointMipLinear => isComparison ? DxFilter.ComparisonMinLinearMagPointMipLinear : DxFilter.MinLinearMagPointMipLinear,
-                Filter.MinLinearMagLinearMipPoint => isComparison ? DxFilter.ComparisonMinMagLinearMipPoint : DxFilter.MinMagLinearMipPoint,
-                Filter.MinLinearMagLinearMipLinear => isComparison ? DxFilter.ComparisonMinMagMipLinear : DxFilter.MinMagMipLinear,
-                Filter.Anisotropic => isComparison ? DxFilter.ComparisonAnisotropic : DxFilter.Anisotropic,
-                _ => DxFilter.MinMagMipPoint
-            },
-            comparisonFunc switch
-            {
-                ComparisonFunc.Never => DxComparisonFunc.Never,
-                ComparisonFunc.Less => DxComparisonFunc.Less,
-                ComparisonFunc.Equal => DxComparisonFunc.Equal,
-                ComparisonFunc.LessEqual => DxComparisonFunc.LessEqual,
-                ComparisonFunc.Greater => DxComparisonFunc.Greater,
-                ComparisonFunc.NotEqual => DxComparisonFunc.NotEqual,
-                ComparisonFunc.GreaterEqual => DxComparisonFunc.GreaterEqual,
-                ComparisonFunc.Always => DxComparisonFunc.Always,
-                _ => DxComparisonFunc.None
-            }
-        );
-    }
-
-    public static TextureAddressMode DirectX12(AddressMode addressMode)
-    {
-        return addressMode switch
-        {
-            AddressMode.Wrap => TextureAddressMode.Wrap,
-            AddressMode.Mirror => TextureAddressMode.Mirror,
-            AddressMode.Clamp => TextureAddressMode.Clamp,
-            AddressMode.Border => TextureAddressMode.Border,
-            _ => TextureAddressMode.Wrap
-        };
-    }
-
-    public static DescriptorRangeType DirectX12(ResourceType resourceType)
-    {
-        return resourceType switch
-        {
-            ResourceType.ConstantBuffer => DescriptorRangeType.Cbv,
-
-            ResourceType.StructuredBuffer or
-            ResourceType.Texture or
-            ResourceType.AccelerationStructure => DescriptorRangeType.Srv,
-
-            ResourceType.StructuredBufferReadWrite or
-            ResourceType.TextureReadWrite => DescriptorRangeType.Uav,
-
-            ResourceType.Sampler => DescriptorRangeType.Sampler,
-
-            _ => DescriptorRangeType.Srv
-        };
-    }
-
-    public static (PrimitiveTopologyType PrimitiveTopologyType, D3DPrimitiveTopology PrimitiveTopology) DirectX12(PrimitiveTopology primitiveTopology)
+    public static (PrimitiveTopologyType TopologyType, D3DPrimitiveTopology Topology) DirectX12(PrimitiveTopology primitiveTopology)
     {
         return
         (
@@ -296,7 +465,7 @@ internal static unsafe class DXFormats
                 PrimitiveTopology.TriangleList or
                 PrimitiveTopology.TriangleStrip => PrimitiveTopologyType.Triangle,
 
-                _ => PrimitiveTopologyType.Undefined
+                _ => default
             },
             primitiveTopology switch
             {
@@ -305,54 +474,79 @@ internal static unsafe class DXFormats
                 PrimitiveTopology.LineStrip => D3DPrimitiveTopology.D3DPrimitiveTopologyLinestrip,
                 PrimitiveTopology.TriangleList => D3DPrimitiveTopology.D3DPrimitiveTopologyTrianglelist,
                 PrimitiveTopology.TriangleStrip => D3DPrimitiveTopology.D3DPrimitiveTopologyTrianglestrip,
-                _ => D3DPrimitiveTopology.D3DPrimitiveTopologyUndefined
+                _ => default
             }
         );
     }
 
-    public static ShaderVisibility DirectX12(ShaderStageFlags shaderStageFlags)
+    public static (QueryHeapType HeapType, DxQueryType Type) DirectX12(QueryType queryType)
     {
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.Vertex))
-        {
-            return ShaderVisibility.Vertex;
-        }
-
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.Pixel))
-        {
-            return ShaderVisibility.Pixel;
-        }
-
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.Amplification))
-        {
-            return ShaderVisibility.Amplification;
-        }
-
-        if (shaderStageFlags.HasFlag(ShaderStageFlags.Mesh))
-        {
-            return ShaderVisibility.Mesh;
-        }
-
-        return ShaderVisibility.All;
+        return
+        (
+            queryType switch
+            {
+                QueryType.Occlusion or QueryType.BinaryOcclusion => QueryHeapType.Occlusion,
+                QueryType.Timestamp => QueryHeapType.Timestamp,
+                _ => default
+            },
+            queryType switch
+            {
+                QueryType.Occlusion => DxQueryType.Occlusion,
+                QueryType.BinaryOcclusion => DxQueryType.BinaryOcclusion,
+                QueryType.Timestamp => DxQueryType.Timestamp,
+                _ => default
+            }
+        );
     }
 
-    public static DxFillMode DirectX12(FillMode fillMode)
+    public static RaytracingGeometryType DirectX12(RayTracingGeometryType rayTracingGeometryType)
     {
-        return fillMode switch
+        return rayTracingGeometryType switch
         {
-            FillMode.Solid => DxFillMode.Solid,
-            FillMode.Wireframe => DxFillMode.Wireframe,
-            _ => DxFillMode.None
+            RayTracingGeometryType.Triangle => RaytracingGeometryType.Triangles,
+            RayTracingGeometryType.Aabb => RaytracingGeometryType.ProceduralPrimitiveAabbs,
+            _ => default
         };
     }
 
-    public static DxCullMode DirectX12(CullMode cullMode)
+    public static RaytracingInstanceFlags DirectX12(RayTracingInstanceFlags rayTracingInstanceFlags)
     {
-        return cullMode switch
+        RaytracingInstanceFlags result = default;
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.FrontCounterClockwise))
         {
-            CullMode.None => DxCullMode.None,
-            CullMode.Front => DxCullMode.Front,
-            CullMode.Back => DxCullMode.Back,
-            _ => DxCullMode.None
+            result |= RaytracingInstanceFlags.TriangleFrontCounterclockwise;
+        }
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.DisableCull))
+        {
+            result |= RaytracingInstanceFlags.TriangleCullDisable;
+        }
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.ForceOpaque))
+        {
+            result |= RaytracingInstanceFlags.ForceOpaque;
+        }
+
+        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.ForceNonOpaque))
+        {
+            result |= RaytracingInstanceFlags.ForceNonOpaque;
+        }
+
+        return result;
+    }
+
+    public static SampleDesc DirectX12(SampleCount sampleCount)
+    {
+        return sampleCount switch
+        {
+            SampleCount.Count1 => new() { Count = 1 },
+            SampleCount.Count2 => new() { Count = 2 },
+            SampleCount.Count4 => new() { Count = 4 },
+            SampleCount.Count8 => new() { Count = 8 },
+            SampleCount.Count16 => new() { Count = 16 },
+            SampleCount.Count32 => new() { Count = 32 },
+            _ => default
         };
     }
 
@@ -368,278 +562,80 @@ internal static unsafe class DXFormats
             StencilOp.Invert => DxStencilOp.Invert,
             StencilOp.IncrementAndWrap => DxStencilOp.Incr,
             StencilOp.DecrementAndWrap => DxStencilOp.Decr,
-            _ => DxStencilOp.Keep
+            _ => default
         };
     }
 
-    public static DxBlend DirectX12(Blend blend)
+    public static RenderPassEndingAccessType DirectX12(StoreOp storeOp)
     {
-        return blend switch
+        return storeOp switch
         {
-            Blend.Zero => DxBlend.Zero,
-            Blend.One => DxBlend.One,
-            Blend.SrcAlpha => DxBlend.SrcAlpha,
-            Blend.InverseSrcAlpha => DxBlend.InvSrcAlpha,
-            Blend.DestAlpha => DxBlend.DestAlpha,
-            Blend.InverseDestAlpha => DxBlend.InvDestAlpha,
-            Blend.SrcColor => DxBlend.SrcColor,
-            Blend.InverseSrcColor => DxBlend.InvSrcColor,
-            Blend.DestColor => DxBlend.DestColor,
-            Blend.InverseDestColor => DxBlend.InvDestColor,
-            Blend.BlendFactor => DxBlend.BlendFactor,
-            Blend.InverseBlendFactor => DxBlend.InvBlendFactor,
-            _ => DxBlend.Zero
+            StoreOp.Store => RenderPassEndingAccessType.Preserve,
+            StoreOp.DontCare => RenderPassEndingAccessType.Discard,
+            _ => default
         };
     }
 
-    public static DxBlendOp DirectX12(BlendOp blendOp)
+    public static (BarrierSync Sync, BarrierAccess Access, BarrierLayout Layout) DirectX12(TextureLayout textureLayout)
     {
-        return blendOp switch
+        return textureLayout switch
         {
-            BlendOp.Add => DxBlendOp.Add,
-            BlendOp.Subtract => DxBlendOp.Subtract,
-            BlendOp.ReverseSubtract => DxBlendOp.RevSubtract,
-            BlendOp.Min => DxBlendOp.Min,
-            BlendOp.Max => DxBlendOp.Max,
-            _ => DxBlendOp.Add
+            TextureLayout.Undefined => (BarrierSync.None, BarrierAccess.NoAccess, BarrierLayout.Undefined),
+            TextureLayout.Common => (BarrierSync.All, BarrierAccess.Common, BarrierLayout.Common),
+            TextureLayout.Sampled => (BarrierSync.AllShading, BarrierAccess.ShaderResource, BarrierLayout.ShaderResource),
+            TextureLayout.Storage => (BarrierSync.AllShading, BarrierAccess.UnorderedAccess, BarrierLayout.UnorderedAccess),
+            TextureLayout.ColorAttachment => (BarrierSync.RenderTarget, BarrierAccess.RenderTarget, BarrierLayout.RenderTarget),
+            TextureLayout.DepthStencilAttachment => (BarrierSync.DepthStencil, BarrierAccess.DepthStencilWrite, BarrierLayout.DepthStencilWrite),
+            TextureLayout.DepthStencilReadOnly => (BarrierSync.DepthStencil, BarrierAccess.DepthStencilRead, BarrierLayout.DepthStencilRead),
+            TextureLayout.CopySrc => (BarrierSync.Copy, BarrierAccess.CopySource, BarrierLayout.Common),
+            TextureLayout.CopyDst => (BarrierSync.Copy, BarrierAccess.CopyDest, BarrierLayout.Common),
+            TextureLayout.ResolveSrc => (BarrierSync.Resolve, BarrierAccess.ResolveSource, BarrierLayout.ResolveSource),
+            TextureLayout.ResolveDst => (BarrierSync.Resolve, BarrierAccess.ResolveDest, BarrierLayout.ResolveDest),
+            TextureLayout.Present => (BarrierSync.All, BarrierAccess.Common, BarrierLayout.Present),
+            _ => (default, default, default)
         };
     }
 
-    public static ColorWriteEnable DirectX12(ColorComponentFlags colorComponentFlags)
+    public static ResourceDimension DirectX12(TextureType textureType)
     {
-        ColorWriteEnable result = ColorWriteEnable.None;
-
-        if (colorComponentFlags.HasFlag(ColorComponentFlags.Red))
+        return textureType switch
         {
-            result |= ColorWriteEnable.Red;
-        }
+            TextureType.Texture1D or
+            TextureType.Texture1DArray => ResourceDimension.Texture1D,
 
-        if (colorComponentFlags.HasFlag(ColorComponentFlags.Green))
-        {
-            result |= ColorWriteEnable.Green;
-        }
+            TextureType.Texture2D or
+            TextureType.Texture2DArray or
+            TextureType.TextureCube or
+            TextureType.TextureCubeArray => ResourceDimension.Texture2D,
 
-        if (colorComponentFlags.HasFlag(ColorComponentFlags.Blue))
-        {
-            result |= ColorWriteEnable.Blue;
-        }
+            TextureType.Texture3D => ResourceDimension.Texture3D,
 
-        if (colorComponentFlags.HasFlag(ColorComponentFlags.Alpha))
-        {
-            result |= ColorWriteEnable.Alpha;
-        }
-
-        return result;
-    }
-
-    public static Format DirectX12(ElementFormat elementFormat)
-    {
-        return elementFormat switch
-        {
-            ElementFormat.UByte1 => Format.FormatR8Uint,
-            ElementFormat.UByte2 => Format.FormatR8G8Uint,
-            ElementFormat.UByte4 => Format.FormatR8G8B8A8Uint,
-
-            ElementFormat.Byte1 => Format.FormatR8Sint,
-            ElementFormat.Byte2 => Format.FormatR8G8Sint,
-            ElementFormat.Byte4 => Format.FormatR8G8B8A8Sint,
-
-            ElementFormat.UByte1Normalized => Format.FormatR8Unorm,
-            ElementFormat.UByte2Normalized => Format.FormatR8G8Unorm,
-            ElementFormat.UByte4Normalized => Format.FormatR8G8B8A8Unorm,
-
-            ElementFormat.Byte1Normalized => Format.FormatR8SNorm,
-            ElementFormat.Byte2Normalized => Format.FormatR8G8SNorm,
-            ElementFormat.Byte4Normalized => Format.FormatR8G8B8A8SNorm,
-
-            ElementFormat.UShort1 => Format.FormatR16Uint,
-            ElementFormat.UShort2 => Format.FormatR16G16Uint,
-            ElementFormat.UShort4 => Format.FormatR16G16B16A16Uint,
-
-            ElementFormat.Short1 => Format.FormatR16Sint,
-            ElementFormat.Short2 => Format.FormatR16G16Sint,
-            ElementFormat.Short4 => Format.FormatR16G16B16A16Sint,
-
-            ElementFormat.UShort1Normalized => Format.FormatR16Unorm,
-            ElementFormat.UShort2Normalized => Format.FormatR16G16Unorm,
-            ElementFormat.UShort4Normalized => Format.FormatR16G16B16A16Unorm,
-
-            ElementFormat.Short1Normalized => Format.FormatR16SNorm,
-            ElementFormat.Short2Normalized => Format.FormatR16G16SNorm,
-            ElementFormat.Short4Normalized => Format.FormatR16G16B16A16SNorm,
-
-            ElementFormat.Half1 => Format.FormatR16Float,
-            ElementFormat.Half2 => Format.FormatR16G16Float,
-            ElementFormat.Half4 => Format.FormatR16G16B16A16Float,
-
-            ElementFormat.Float1 => Format.FormatR32Float,
-            ElementFormat.Float2 => Format.FormatR32G32Float,
-            ElementFormat.Float3 => Format.FormatR32G32B32Float,
-            ElementFormat.Float4 => Format.FormatR32G32B32A32Float,
-
-            ElementFormat.UInt1 => Format.FormatR32Uint,
-            ElementFormat.UInt2 => Format.FormatR32G32Uint,
-            ElementFormat.UInt3 => Format.FormatR32G32B32Uint,
-            ElementFormat.UInt4 => Format.FormatR32G32B32A32Uint,
-
-            ElementFormat.Int1 => Format.FormatR32Sint,
-            ElementFormat.Int2 => Format.FormatR32G32Sint,
-            ElementFormat.Int3 => Format.FormatR32G32B32Sint,
-            ElementFormat.Int4 => Format.FormatR32G32B32A32Sint,
-
-            _ => Format.FormatUnknown
+            _ => default
         };
     }
 
-    public static CommandListType DirectX12(CommandQueueType commandQueueType)
+    public static ResourceFlags DirectX12(TextureUsages textureUsages)
     {
-        return commandQueueType switch
+        ResourceFlags result = default;
+
+        if (!textureUsages.HasFlag(TextureUsages.Sampled))
         {
-            CommandQueueType.Graphics => CommandListType.Direct,
-            CommandQueueType.Compute => CommandListType.Compute,
-            CommandQueueType.Copy => CommandListType.Copy,
-            _ => CommandListType.None
-        };
-    }
-
-    public static Format DirectX12(IndexFormat indexFormat)
-    {
-        return indexFormat switch
-        {
-            IndexFormat.UInt16 => Format.FormatR16Uint,
-            IndexFormat.UInt32 => Format.FormatR32Uint,
-            _ => Format.FormatUnknown
-        };
-    }
-
-    public static (QueryHeapType HeapType, DxQueryType Type) DirectX12(QueryType queryType)
-    {
-        return
-        (
-            queryType switch
-            {
-                QueryType.Occlusion or
-                QueryType.BinaryOcclusion => QueryHeapType.Occlusion,
-
-                QueryType.Timestamp => QueryHeapType.Timestamp,
-
-                _ => QueryHeapType.Occlusion
-            },
-            queryType switch
-            {
-                QueryType.Occlusion => DxQueryType.Occlusion,
-                QueryType.BinaryOcclusion => DxQueryType.BinaryOcclusion,
-                QueryType.Timestamp => DxQueryType.Timestamp,
-                _ => DxQueryType.Occlusion
-            }
-        );
-    }
-
-    public static Matrix3X4<float> DirectX12(Matrix4x4 matrix4x4)
-    {
-        Matrix3X4<float> result;
-
-        float* pResult = (float*)&result;
-
-        pResult[0] = matrix4x4.M11;
-        pResult[1] = matrix4x4.M21;
-        pResult[2] = matrix4x4.M31;
-        pResult[3] = matrix4x4.M41;
-
-        pResult[4] = matrix4x4.M12;
-        pResult[5] = matrix4x4.M22;
-        pResult[6] = matrix4x4.M32;
-        pResult[7] = matrix4x4.M42;
-
-        pResult[8] = matrix4x4.M13;
-        pResult[9] = matrix4x4.M23;
-        pResult[10] = matrix4x4.M33;
-        pResult[11] = matrix4x4.M43;
-
-        return result;
-    }
-
-    public static RaytracingGeometryType DirectX12(RayTracingGeometryType rayTracingGeometryType)
-    {
-        return rayTracingGeometryType switch
-        {
-            RayTracingGeometryType.Triangles => RaytracingGeometryType.Triangles,
-            RayTracingGeometryType.AABBs => RaytracingGeometryType.ProceduralPrimitiveAabbs,
-            _ => RaytracingGeometryType.Triangles
-        };
-    }
-
-    public static RaytracingGeometryFlags DirectX12(RayTracingGeometryFlags rayTracingGeometryFlags)
-    {
-        RaytracingGeometryFlags result = RaytracingGeometryFlags.None;
-
-        if (rayTracingGeometryFlags.HasFlag(RayTracingGeometryFlags.Opaque))
-        {
-            result |= RaytracingGeometryFlags.Opaque;
+            result |= ResourceFlags.DenyShaderResource;
         }
 
-        return result;
-    }
-
-    public static RaytracingAccelerationStructureBuildFlags DirectX12(AccelerationStructureBuildFlags accelerationStructureBuildFlags)
-    {
-        RaytracingAccelerationStructureBuildFlags result = RaytracingAccelerationStructureBuildFlags.None;
-
-        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowUpdate))
+        if (textureUsages.HasFlag(TextureUsages.Storage))
         {
-            result |= RaytracingAccelerationStructureBuildFlags.AllowUpdate;
+            result |= ResourceFlags.AllowUnorderedAccess;
         }
 
-        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.AllowCompaction))
+        if (textureUsages.HasFlag(TextureUsages.ColorAttachment))
         {
-            result |= RaytracingAccelerationStructureBuildFlags.AllowCompaction;
+            result |= ResourceFlags.AllowRenderTarget;
         }
 
-        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PreferFastTrace))
+        if (textureUsages.HasFlag(TextureUsages.DepthStencilAttachment))
         {
-            result |= RaytracingAccelerationStructureBuildFlags.PreferFastTrace;
-        }
-
-        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PreferFastBuild))
-        {
-            result |= RaytracingAccelerationStructureBuildFlags.PreferFastBuild;
-        }
-
-        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.MinimizeMemory))
-        {
-            result |= RaytracingAccelerationStructureBuildFlags.MinimizeMemory;
-        }
-
-        if (accelerationStructureBuildFlags.HasFlag(AccelerationStructureBuildFlags.PerformUpdate))
-        {
-            result |= RaytracingAccelerationStructureBuildFlags.PerformUpdate;
-        }
-
-        return result;
-    }
-
-    public static RaytracingInstanceFlags DirectX12(RayTracingInstanceFlags rayTracingInstanceFlags)
-    {
-        RaytracingInstanceFlags result = RaytracingInstanceFlags.None;
-
-        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.TriangleCullDisable))
-        {
-            result |= RaytracingInstanceFlags.TriangleCullDisable;
-        }
-
-        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.TriangleFrontCounterClockwise))
-        {
-            result |= RaytracingInstanceFlags.TriangleFrontCounterclockwise;
-        }
-
-        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.ForceOpaque))
-        {
-            result |= RaytracingInstanceFlags.ForceOpaque;
-        }
-
-        if (rayTracingInstanceFlags.HasFlag(RayTracingInstanceFlags.ForceNoOpaque))
-        {
-            result |= RaytracingInstanceFlags.ForceNonOpaque;
+            result |= ResourceFlags.AllowDepthStencil;
         }
 
         return result;

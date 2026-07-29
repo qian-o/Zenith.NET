@@ -4,43 +4,77 @@ namespace Zenith.NET.Metal;
 
 internal class MTLSwapChain : SwapChain
 {
-    private readonly MTLSwapChainFrameBuffer swapChainFrameBuffer;
+    public CAMetalLayer MetalLayer = CAMetalLayer.Null;
 
-    public CAMetalLayer Layer = CAMetalLayer.Null;
+    public CAMetalDrawable MetalDrawable = CAMetalDrawable.Null;
 
-    public CAMetalDrawable Drawable = CAMetalDrawable.Null;
+    private MTLTexture? drawable;
 
     public MTLSwapChain(MTLGraphicsContext context, SwapChainDesc desc) : base(context, desc)
     {
-        swapChainFrameBuffer = new(context, this);
-
-        CreateSwapChain();
+        Initialize();
     }
 
     public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
 
-    public override FrameBuffer FrameBuffer => swapChainFrameBuffer.Get(Desc.Surface.Width, Desc.Surface.Height, Drawable);
-
-    public override void Present()
+    public override Texture Drawable
     {
-        Drawable.Present();
-        Drawable.Dispose();
+        get
+        {
+            if (drawable is null || drawable.Texture.NativePtr != MetalDrawable.Texture.NativePtr)
+            {
+                TextureDesc desc = new()
+                {
+                    Type = TextureType.Texture2D,
+                    Format = Desc.Format,
+                    Width = Desc.Surface.Width,
+                    Height = Desc.Surface.Height,
+                    Depth = 1,
+                    MipLevels = 1,
+                    ArrayLayers = 1,
+                    SampleCount = SampleCount.Count1,
+                    Usages = TextureUsages.ColorAttachment | TextureUsages.TransferDst
+                };
 
-        Drawable = NSAutorelease.Own(Layer.NextDrawable);
+                drawable?.Dispose();
+                drawable = new(Context, desc, MetalDrawable.Texture.Retain());
+            }
+
+            return drawable;
+        }
+    }
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
+
+    protected override void PresentImpl()
+    {
+        Context.GraphicsQueue.Metal().CommandQueue.SignalDrawable(MetalDrawable);
+
+        MetalDrawable.Present();
+        MetalDrawable.Dispose();
+        MetalDrawable = NSAutorelease.Own(MetalLayer.NextDrawable);
     }
 
     protected override void ResizeImpl()
     {
-        Drawable.Dispose();
+        MetalLayer.DrawableSize = new(Desc.Surface.Width, Desc.Surface.Height);
 
-        Layer.DrawableSize = new(Desc.Surface.Width, Desc.Surface.Height);
-
-        Drawable = NSAutorelease.Own(Layer.NextDrawable);
+        MetalDrawable.Dispose();
+        MetalDrawable = NSAutorelease.Own(MetalLayer.NextDrawable);
     }
 
     protected override void RefreshImpl()
     {
-        CreateSwapChain();
+        drawable?.Dispose();
+        drawable = null;
+
+        MetalDrawable.Dispose();
+        MetalLayer.Dispose();
+
+        Initialize();
     }
 
     protected override void SetResourceName(string name)
@@ -49,29 +83,22 @@ internal class MTLSwapChain : SwapChain
 
     protected override void Destroy()
     {
-        DestroySwapChain();
+        drawable?.Dispose();
 
-        swapChainFrameBuffer.Dispose();
+        MetalDrawable.Dispose();
+        MetalLayer.Dispose();
     }
 
-    private void CreateSwapChain()
+    private void Initialize()
     {
-        DestroySwapChain();
-
-        Layer = new(Desc.Surface.Handles[0], NativeObjectOwnership.Borrowed)
+        MetalLayer = new(Desc.Surface.Handles[0], NativeObjectOwnership.Borrowed)
         {
             Device = Context.Device,
-            PixelFormat = MTLFormats.Metal(Desc.ColorTargetFormat).PixelFormat,
+            PixelFormat = MTLFormats.Metal(Desc.Format).PixelFormat,
             FramebufferOnly = false,
             DrawableSize = new(Desc.Surface.Width, Desc.Surface.Height)
         };
 
-        Drawable = NSAutorelease.Own(Layer.NextDrawable);
-    }
-
-    private void DestroySwapChain()
-    {
-        Drawable.Dispose();
-        Layer.Dispose();
+        MetalDrawable = NSAutorelease.Own(MetalLayer.NextDrawable);
     }
 }

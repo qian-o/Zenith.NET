@@ -5,8 +5,6 @@ namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXComputePipeline : ComputePipeline
 {
-    public ComPtr<ID3D12RootSignature> RootSignature;
-
     public ComPtr<ID3D12PipelineState> PipelineState;
 
     public DXComputePipeline(DXGraphicsContext context, ComputePipelineDesc desc) : base(context, desc)
@@ -15,59 +13,16 @@ internal unsafe class DXComputePipeline : ComputePipeline
 
         ComputePipelineStateDesc computePipelineStateDesc = new()
         {
-            CS = desc.Compute.DirectX12().GetShaderBytecode(scope)
+            PRootSignature = context.RootSignature,
+            CS = desc.ComputeShader.DirectX12().GetShaderBytecode(scope)
         };
 
-        // ResourceLayout
-        {
-            List<RootParameter> parameters = [];
-            if (desc.ResourceLayout is not null && desc.ResourceLayout.DirectX12().DescriptorRanges(ShaderStageFlags.None, out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges))
-            {
-                if (cbvSrvUavRanges.Length > 0)
-                {
-                    parameters.Add(new()
-                    {
-                        ParameterType = RootParameterType.TypeDescriptorTable,
-                        DescriptorTable = new()
-                        {
-                            NumDescriptorRanges = (uint)cbvSrvUavRanges.Length,
-                            PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, cbvSrvUavRanges)
-                        }
-                    });
-                }
+        context.Device.CreateComputePipelineState(&computePipelineStateDesc, SilkMarshal.GuidPtrOf<ID3D12PipelineState>(), (void**)PipelineState.GetAddressOf()).Success();
+    }
 
-                if (samplerRanges.Length > 0)
-                {
-                    parameters.Add(new()
-                    {
-                        ParameterType = RootParameterType.TypeDescriptorTable,
-                        DescriptorTable = new()
-                        {
-                            NumDescriptorRanges = (uint)samplerRanges.Length,
-                            PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, samplerRanges)
-                        }
-                    });
-                }
-            }
-
-            RootSignatureDesc rootSignatureDesc = new()
-            {
-                NumParameters = (uint)parameters.Count,
-                PParameters = (RootParameter*)ZenithMarshal.AllocateAndFill(scope, [.. parameters]),
-                Flags = RootSignatureFlags.AllowInputAssemblerInputLayout
-            };
-
-            ComPtr<ID3D10Blob> blob = default;
-            ComPtr<ID3D10Blob> error = default;
-            context.D3D12.SerializeRootSignature(&rootSignatureDesc, D3DRootSignatureVersion.Version1, ref blob, ref error).Success();
-            context.Device.CreateRootSignature(0, blob.GetBufferPointer(), blob.GetBufferSize(), out RootSignature).Success();
-            blob.Dispose();
-            error.Dispose();
-
-            computePipelineStateDesc.PRootSignature = RootSignature;
-        }
-
-        context.Device.CreateComputePipelineState(&computePipelineStateDesc, out PipelineState).Success();
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
     }
 
     protected override void SetResourceName(string name)
@@ -78,6 +33,5 @@ internal unsafe class DXComputePipeline : ComputePipeline
     protected override void Destroy()
     {
         PipelineState.Dispose();
-        RootSignature.Dispose();
     }
 }

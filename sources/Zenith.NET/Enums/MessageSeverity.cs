@@ -6,5 +6,5 @@ public enum MessageSeverity
 
     Warning,
 
-    Message
+    Info
 }

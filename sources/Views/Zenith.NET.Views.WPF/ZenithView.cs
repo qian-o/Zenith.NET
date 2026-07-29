@@ -17,8 +17,7 @@ public class ZenithView : Control, IZenithView
     private readonly D3DImage image;
     private readonly FrameScheduler scheduler;
 
-    private D3DTexture? texture;
-    private SwapChain? swapChain;
+    private Surface? surface;
 
     public ZenithView()
     {
@@ -79,8 +78,8 @@ public class ZenithView : Control, IZenithView
                                          new SolidColorBrush(Colors.White) { Opacity = 0.98 },
                                          dpi);
 
-            float x = (float)(ActualWidth - mainText.Width) / 2;
-            float y = (float)(ActualHeight - mainText.Height) / 2;
+            double x = (ActualWidth - mainText.Width) / 2.0;
+            double y = (ActualHeight - mainText.Height) / 2.0;
 
             drawingContext.DrawText(shadowText, new(x + 1.0, y + 1.0));
             drawingContext.DrawText(mainText, new(x, y));
@@ -102,50 +101,47 @@ public class ZenithView : Control, IZenithView
         uint width = Math.Clamp((uint)Math.Ceiling(ActualWidth), 1, uint.MaxValue);
         uint height = Math.Clamp((uint)Math.Ceiling(ActualHeight), 1, uint.MaxValue);
 
-        if (texture is null || texture.Width != width || texture.Height != height || swapChain is null)
+        if (surface is null || surface.Width != width || surface.Height != height)
         {
             ((IZenithView)this).ReleaseResources();
 
-            texture = new(width, height, image);
-
-            swapChain = GraphicsContext.CreateSwapChain(new()
-            {
-                Surface = Surface.D3D11Interop(texture.SharedHandle, width, height),
-                ColorTargetFormat = ZenithViewHelper.ColorFormat,
-                DepthStencilTargetFormat = ZenithViewHelper.DepthStencilFormat
-            });
+            surface = new(GraphicsContext, width, height);
         }
     }
 
     void IZenithView.Tick()
     {
-        if (texture is null || swapChain is null)
+        if (GraphicsContext is null || surface is null)
         {
             return;
         }
 
-        texture.AcquireSync();
+        surface.AcquireSync();
+
+        CommandBuffer commandBuffer = GraphicsContext.GraphicsQueue.CommandBuffer();
+
+        commandBuffer.Transition(surface.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
 
         UpdateRequested?.Invoke(this, new(scheduler.UpdateSeconds, scheduler.TotalSeconds));
-        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, swapChain.FrameBuffer));
+        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, commandBuffer, surface.Drawable));
 
-        texture.ReleaseSync();
+        commandBuffer.Transition(surface.Drawable, default, TextureLayout.ColorAttachment, TextureLayout.Common);
+
+        commandBuffer.Submit().Wait();
+
+        surface.ReleaseSync();
     }
 
     void IZenithView.Present()
     {
-        swapChain?.Present();
-        texture?.Present();
+        surface?.Present(image);
 
         InvalidateVisual();
     }
 
     void IZenithView.ReleaseResources()
     {
-        swapChain?.Dispose();
-        swapChain = null;
-
-        texture?.Dispose();
-        texture = null;
+        surface?.Dispose();
+        surface = null;
     }
 }

@@ -2,11 +2,13 @@
 
 internal class Uploader(GraphicsContext context) : DisposableObject
 {
+    private static readonly TimeSpan LeaseLifetime = TimeSpan.FromSeconds(120);
+
     private readonly Lock @lock = new();
     private readonly List<Lease> available = [];
     private readonly Dictionary<CommandBuffer, List<Lease>> borrowed = [];
 
-    public Buffer Buffer(CommandBuffer commandBuffer, uint sizeInBytes)
+    public Buffer Buffer(CommandBuffer commandBuffer, uint sizeInBytes, TransferLayout layout)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
@@ -20,12 +22,12 @@ internal class Uploader(GraphicsContext context) : DisposableObject
             lease = new(context.CreateBuffer(new()
             {
                 SizeInBytes = sizeInBytes,
-                StrideInBytes = 1,
-                Flags = BufferUsageFlags.MapWrite
+                Usages = BufferUsages.TransferSrc,
+                Residency = MemoryResidency.CpuWriteOnly
             }));
         }
 
-        leases.Add(lease);
+        leases.Add(lease.Borrow(layout));
 
         return lease.Buffer;
     }
@@ -66,13 +68,20 @@ internal class Uploader(GraphicsContext context) : DisposableObject
 
     private class Lease(Buffer buffer)
     {
-        private DateTime expirationTime = DateTime.UtcNow + TimeSpan.FromSeconds(120);
+        private DateTime expirationTime = DateTime.UtcNow + LeaseLifetime;
 
         public Buffer Buffer { get; } = buffer;
 
         public bool HasCapacityFor(uint sizeInBytes)
         {
             return Buffer.Desc.SizeInBytes >= sizeInBytes;
+        }
+
+        public Lease Borrow(TransferLayout layout)
+        {
+            layout.Upload(Buffer);
+
+            return this;
         }
 
         public bool TryExpire()
@@ -89,7 +98,7 @@ internal class Uploader(GraphicsContext context) : DisposableObject
 
         public Lease Renew()
         {
-            expirationTime = DateTime.UtcNow + TimeSpan.FromSeconds(120);
+            expirationTime = DateTime.UtcNow + LeaseLifetime;
 
             return this;
         }

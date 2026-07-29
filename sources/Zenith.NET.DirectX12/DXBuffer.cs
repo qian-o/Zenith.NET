@@ -1,5 +1,6 @@
 ﻿using Silk.NET.Core.Native;
 using Silk.NET.Direct3D12;
+using Silk.NET.DXGI;
 
 namespace Zenith.NET.DirectX12;
 
@@ -11,74 +12,97 @@ internal unsafe class DXBuffer : Buffer
 
     public DXBuffer(DXGraphicsContext context, BufferDesc desc) : base(context, desc)
     {
-        ResourceDesc resourceDesc = new()
-        {
-            Dimension = ResourceDimension.Buffer,
-            Width = ZenithHelper.Align(desc.SizeInBytes, 256u),
-            Height = 1,
-            DepthOrArraySize = 1,
-            MipLevels = 1,
-            SampleDesc = new(1, 0),
-            Layout = TextureLayout.LayoutRowMajor,
-            Flags = DXFormats.DirectX12(desc.Flags).Flags
-        };
+        ResourceDesc1 resourceDesc = ResourceDesc(desc);
 
-        Heap = new(context, resourceDesc, DXFormats.DirectX12(desc.Flags).Type, HeapFlags.AllowOnlyBuffers);
+        HeapProperties heapProperties = new() { Type = DXFormats.DirectX12(desc.Residency) };
 
-        context.Device.CreatePlacedResource(Heap.Heap, 0, &resourceDesc, States = DXFormats.DirectX12(desc.Flags).States, null, out Resource).Success();
+        context.Device.CreateCommittedResource3(&heapProperties,
+                                                HeapFlags.None,
+                                                &resourceDesc,
+                                                BarrierLayout.Undefined,
+                                                default(ClearValue*),
+                                                default(ID3D12ProtectedResourceSession*),
+                                                0,
+                                                default(Format*),
+                                                SilkMarshal.GuidPtrOf<ID3D12Resource>(),
+                                                (void**)Resource.GetAddressOf()).Success();
 
         GPUVirtualAddress = Resource.GetGPUVirtualAddress();
 
         View = new(context, new()
         {
             Buffer = this,
-            OffsetInBytes = 0,
             SizeInBytes = desc.SizeInBytes,
             StrideInBytes = desc.StrideInBytes
         });
     }
 
-    public DXHeap Heap { get; }
+    public DXBuffer(DXGraphicsContext context, BufferDesc desc, ComPtr<ID3D12Resource> resource) : base(context, desc)
+    {
+        Resource = resource;
+
+        GPUVirtualAddress = Resource.GetGPUVirtualAddress();
+
+        View = new(context, new()
+        {
+            Buffer = this,
+            SizeInBytes = desc.SizeInBytes,
+            StrideInBytes = desc.StrideInBytes
+        });
+    }
+
+    public DXBuffer(DXGraphicsContext context, BufferDesc desc, ResourceFlags flags) : base(context, desc)
+    {
+        ResourceDesc1 resourceDesc = ResourceDesc(desc);
+        resourceDesc.Flags |= flags;
+
+        HeapProperties heapProperties = new() { Type = DXFormats.DirectX12(desc.Residency) };
+
+        context.Device.CreateCommittedResource3(&heapProperties,
+                                                HeapFlags.None,
+                                                &resourceDesc,
+                                                BarrierLayout.Undefined,
+                                                default(ClearValue*),
+                                                default(ID3D12ProtectedResourceSession*),
+                                                0,
+                                                default(Format*),
+                                                SilkMarshal.GuidPtrOf<ID3D12Resource>(),
+                                                (void**)Resource.GetAddressOf()).Success();
+
+        GPUVirtualAddress = Resource.GetGPUVirtualAddress();
+
+        View = new(context, new()
+        {
+            Buffer = this,
+            SizeInBytes = desc.SizeInBytes,
+            StrideInBytes = desc.StrideInBytes
+        });
+    }
 
     public DXBufferView View { get; }
 
-    public ResourceStates States { get; set; }
+    public override ResourceHandle ConstantHandle => View.ConstantHandle;
 
-    public override MappedMemory Map()
+    public override ResourceHandle StorageReadOnlyHandle => View.StorageReadOnlyHandle;
+
+    public override ResourceHandle StorageReadWriteHandle => View.StorageReadWriteHandle;
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
+
+    public override nint Map()
     {
         void* pointer;
-        Resource.Map(0, (DxRange*)null, &pointer).Success();
+        Resource.Map(0, default(DxRange*), &pointer).Success();
 
-        return new() { Pointer = (nint)pointer, SizeInBytes = Desc.SizeInBytes };
+        return (nint)pointer;
     }
 
     public override void Unmap()
     {
-        Resource.Unmap(0, (DxRange*)null);
-    }
-
-    public void TransitionStates(DXCommandBuffer commandBuffer, ResourceStates newStates)
-    {
-        if (Desc.Flags.HasFlag(BufferUsageFlags.MapRead) || Desc.Flags.HasFlag(BufferUsageFlags.MapWrite) || !commandBuffer.CanTransitionResourceStates || States == newStates)
-        {
-            return;
-        }
-
-        ResourceBarrier barrier = new()
-        {
-            Type = ResourceBarrierType.Transition,
-            Transition = new()
-            {
-                PResource = Resource,
-                Subresource = 0,
-                StateBefore = States,
-                StateAfter = newStates
-            }
-        };
-
-        commandBuffer.GraphicsCommandList4.ResourceBarrier(1, &barrier);
-
-        States = newStates;
+        Resource.Unmap(0, default(DxRange*));
     }
 
     protected override void SetResourceName(string name)
@@ -89,9 +113,21 @@ internal unsafe class DXBuffer : Buffer
     protected override void Destroy()
     {
         View.Dispose();
-
         Resource.Dispose();
+    }
 
-        Heap.Dispose();
+    public static ResourceDesc1 ResourceDesc(BufferDesc desc)
+    {
+        return new()
+        {
+            Dimension = ResourceDimension.Buffer,
+            Width = ZenithHelper.Align(desc.SizeInBytes, 256u),
+            Height = 1,
+            DepthOrArraySize = 1,
+            MipLevels = 1,
+            SampleDesc = new() { Count = 1 },
+            Layout = DxTextureLayout.LayoutRowMajor,
+            Flags = DXFormats.DirectX12(desc.Usages)
+        };
     }
 }

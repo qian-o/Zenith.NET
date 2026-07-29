@@ -4,7 +4,7 @@ using Silk.NET.Vulkan;
 
 namespace Zenith.NET.Vulkan;
 
-public static class Extensions
+public static unsafe class Extensions
 {
     extension(GraphicsContext)
     {
@@ -32,48 +32,21 @@ public static class Extensions
             next = default;
             next.StructureType();
 
-            unsafe
+            BaseInStructure* current = (BaseInStructure*)Unsafe.AsPointer(ref chain);
+            while (current->PNext is not null)
             {
-                BaseInStructure* current = (BaseInStructure*)Unsafe.AsPointer(ref chain);
-                while (current->PNext is not null)
-                {
-                    current = current->PNext;
-                }
-
-                current->PNext = (BaseInStructure*)Unsafe.AsPointer(ref next);
+                current = current->PNext;
             }
+
+            current->PNext = (BaseInStructure*)Unsafe.AsPointer(ref next);
         }
     }
 
-    extension(CommandBuffer commandBuffer)
+    extension(BottomLevelAccelerationStructure bottomLevelAccelerationStructure)
     {
-        internal VKCommandBuffer Vulkan()
+        internal VKBottomLevelAccelerationStructure Vulkan()
         {
-            return (VKCommandBuffer)commandBuffer;
-        }
-    }
-
-    extension(SwapChain swapChain)
-    {
-        internal VKSwapChain Vulkan()
-        {
-            return (VKSwapChain)swapChain;
-        }
-    }
-
-    extension(FrameBuffer frameBuffer)
-    {
-        internal VKFrameBuffer Vulkan()
-        {
-            return (VKFrameBuffer)frameBuffer;
-        }
-    }
-
-    extension(Shader shader)
-    {
-        internal VKShader Vulkan()
-        {
-            return (VKShader)shader;
+            return (VKBottomLevelAccelerationStructure)bottomLevelAccelerationStructure;
         }
     }
 
@@ -93,59 +66,35 @@ public static class Extensions
         }
     }
 
-    extension(Texture texture)
+    extension(CommandBuffer commandBuffer)
     {
-        internal VKTexture Vulkan()
+        internal VKCommandBuffer Vulkan()
         {
-            return (VKTexture)texture;
+            return (VKCommandBuffer)commandBuffer;
         }
     }
 
-    extension(TextureView textureView)
+    extension(CommandQueue commandQueue)
     {
-        internal VKTextureView Vulkan()
+        internal VKCommandQueue Vulkan()
         {
-            return (VKTextureView)textureView;
+            return (VKCommandQueue)commandQueue;
         }
     }
 
-    extension(Sampler sampler)
+    extension(Timeline timeline)
     {
-        internal VKSampler Vulkan()
+        internal VKTimeline Vulkan()
         {
-            return (VKSampler)sampler;
+            return (VKTimeline)timeline;
         }
     }
 
-    extension(BottomLevelAccelerationStructure bottomLevelAccelerationStructure)
+    extension(ComputePipeline computePipeline)
     {
-        internal VKBottomLevelAccelerationStructure Vulkan()
+        internal VKComputePipeline Vulkan()
         {
-            return (VKBottomLevelAccelerationStructure)bottomLevelAccelerationStructure;
-        }
-    }
-
-    extension(TopLevelAccelerationStructure topLevelAccelerationStructure)
-    {
-        internal VKTopLevelAccelerationStructure Vulkan()
-        {
-            return (VKTopLevelAccelerationStructure)topLevelAccelerationStructure;
-        }
-    }
-
-    extension(ResourceLayout resourceLayout)
-    {
-        internal VKResourceLayout Vulkan()
-        {
-            return (VKResourceLayout)resourceLayout;
-        }
-    }
-
-    extension(ResourceTable resourceTable)
-    {
-        internal VKResourceTable Vulkan()
-        {
-            return (VKResourceTable)resourceTable;
+            return (VKComputePipeline)computePipeline;
         }
     }
 
@@ -157,11 +106,11 @@ public static class Extensions
         }
     }
 
-    extension(ComputePipeline computePipeline)
+    extension(Heap heap)
     {
-        internal VKComputePipeline Vulkan()
+        internal VKHeap Vulkan()
         {
-            return (VKComputePipeline)computePipeline;
+            return (VKHeap)heap;
         }
     }
 
@@ -178,6 +127,54 @@ public static class Extensions
         internal VKQueryHeap Vulkan()
         {
             return (VKQueryHeap)queryHeap;
+        }
+    }
+
+    extension(Sampler sampler)
+    {
+        internal VKSampler Vulkan()
+        {
+            return (VKSampler)sampler;
+        }
+    }
+
+    extension(Shader shader)
+    {
+        internal VKShader Vulkan()
+        {
+            return (VKShader)shader;
+        }
+    }
+
+    extension(SwapChain swapChain)
+    {
+        internal VKSwapChain Vulkan()
+        {
+            return (VKSwapChain)swapChain;
+        }
+    }
+
+    extension(Texture texture)
+    {
+        internal VKTexture Vulkan()
+        {
+            return (VKTexture)texture;
+        }
+    }
+
+    extension(TextureView textureView)
+    {
+        internal VKTextureView Vulkan()
+        {
+            return (VKTextureView)textureView;
+        }
+    }
+
+    extension(TopLevelAccelerationStructure topLevelAccelerationStructure)
+    {
+        internal VKTopLevelAccelerationStructure Vulkan()
+        {
+            return (VKTopLevelAccelerationStructure)topLevelAccelerationStructure;
         }
     }
 }

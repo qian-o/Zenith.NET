@@ -6,77 +6,135 @@ internal unsafe class VKBuffer : Buffer
 {
     public VkBuffer Buffer;
 
+    public VKAllocation Allocation;
+
     public ulong DeviceAddress;
 
     public VKBuffer(VKGraphicsContext context, BufferDesc desc) : base(context, desc)
     {
-        using ZenithMarshal.Scope scope = new();
+        BufferCreateInfo createInfo = CreateInfo(desc, context.Capabilities, context.QueueFamilies);
 
-        (SharingMode sharingMode, uint queueFamilyIndexCount, nint pQueueFamilyIndices) = context.GetSharingModeInfo(scope);
+        context.Vk.CreateBuffer(context.Device, &createInfo, default, out Buffer).Success();
 
-        BufferCreateInfo createInfo = new()
+        BufferMemoryRequirementsInfo2 requirementsInfo2 = new()
         {
-            SType = StructureType.BufferCreateInfo,
-            Size = desc.SizeInBytes,
-            Usage = VKFormats.Vulkan(desc.Flags).UsageFlags,
-            SharingMode = sharingMode,
-            QueueFamilyIndexCount = queueFamilyIndexCount,
-            PQueueFamilyIndices = (uint*)pQueueFamilyIndices
+            SType = StructureType.BufferMemoryRequirementsInfo2,
+            Buffer = Buffer
         };
 
-        context.Vk.CreateBuffer(context.Device, &createInfo, null, out Buffer).Success();
+        MemoryRequirements2 requirements2 = new() { SType = StructureType.MemoryRequirements2 };
+        requirements2.AddNext(out MemoryDedicatedRequirements dedicatedRequirements);
 
-        DeviceMemory = new(context, this);
+        context.Vk.GetBufferMemoryRequirements2(context.Device, &requirementsInfo2, &requirements2);
 
-        BufferDeviceAddressInfo addressInfo = new()
+        MemoryAllocateInfo allocateInfo = new()
+        {
+            SType = StructureType.MemoryAllocateInfo,
+            AllocationSize = requirements2.MemoryRequirements.Size,
+            MemoryTypeIndex = context.FindMemoryTypeIndex(requirements2.MemoryRequirements.MemoryTypeBits, desc.Residency)
+        };
+
+        if (dedicatedRequirements.PrefersDedicatedAllocation || dedicatedRequirements.RequiresDedicatedAllocation)
+        {
+            allocateInfo.AddNext(out MemoryDedicatedAllocateInfo dedicatedAllocateInfo);
+            dedicatedAllocateInfo.Buffer = Buffer;
+        }
+
+        allocateInfo.AddNext(out MemoryAllocateFlagsInfo flagsInfo);
+        flagsInfo.Flags = MemoryAllocateFlags.DeviceAddressBit;
+
+        context.Vk.AllocateMemory(context.Device, &allocateInfo, default, out DeviceMemory deviceMemory).Success();
+        context.Vk.BindBufferMemory(context.Device, Buffer, deviceMemory, 0).Success();
+
+        Allocation = new(deviceMemory, 0, true, true);
+
+        BufferDeviceAddressInfo deviceAddressInfo = new()
         {
             SType = StructureType.BufferDeviceAddressInfo,
             Buffer = Buffer
         };
 
-        DeviceAddress = context.Vk.GetBufferDeviceAddress(context.Device, &addressInfo);
+        DeviceAddress = context.Vk.GetBufferDeviceAddress(context.Device, &deviceAddressInfo);
 
         View = new(context, new()
         {
             Buffer = this,
-            OffsetInBytes = 0,
             SizeInBytes = desc.SizeInBytes,
             StrideInBytes = desc.StrideInBytes
         });
     }
 
-    public VKBuffer(VKGraphicsContext context, BufferDesc desc, VkBufferUsageFlags otherUsageFlags) : base(context, desc)
+    public VKBuffer(VKGraphicsContext context, BufferDesc desc, BufferUsageFlags usage) : base(context, desc)
     {
-        using ZenithMarshal.Scope scope = new();
+        BufferCreateInfo createInfo = CreateInfo(desc, context.Capabilities, context.QueueFamilies);
+        createInfo.Usage |= usage;
 
-        (SharingMode sharingMode, uint queueFamilyIndexCount, nint pQueueFamilyIndices) = context.GetSharingModeInfo(scope);
+        context.Vk.CreateBuffer(context.Device, &createInfo, default, out Buffer).Success();
 
-        BufferCreateInfo createInfo = new()
+        BufferMemoryRequirementsInfo2 requirementsInfo2 = new()
         {
-            SType = StructureType.BufferCreateInfo,
-            Size = desc.SizeInBytes,
-            Usage = VKFormats.Vulkan(desc.Flags).UsageFlags | otherUsageFlags,
-            SharingMode = sharingMode,
-            QueueFamilyIndexCount = queueFamilyIndexCount,
-            PQueueFamilyIndices = (uint*)pQueueFamilyIndices
+            SType = StructureType.BufferMemoryRequirementsInfo2,
+            Buffer = Buffer
         };
 
-        context.Vk.CreateBuffer(context.Device, &createInfo, null, out Buffer).Success();
+        MemoryRequirements2 requirements2 = new() { SType = StructureType.MemoryRequirements2 };
+        requirements2.AddNext(out MemoryDedicatedRequirements dedicatedRequirements);
 
-        DeviceMemory = new(context, this);
+        context.Vk.GetBufferMemoryRequirements2(context.Device, &requirementsInfo2, &requirements2);
 
-        BufferDeviceAddressInfo addressInfo = new()
+        MemoryAllocateInfo allocateInfo = new()
+        {
+            SType = StructureType.MemoryAllocateInfo,
+            AllocationSize = requirements2.MemoryRequirements.Size,
+            MemoryTypeIndex = context.FindMemoryTypeIndex(requirements2.MemoryRequirements.MemoryTypeBits, desc.Residency)
+        };
+
+        if (dedicatedRequirements.PrefersDedicatedAllocation || dedicatedRequirements.RequiresDedicatedAllocation)
+        {
+            allocateInfo.AddNext(out MemoryDedicatedAllocateInfo dedicatedAllocateInfo);
+            dedicatedAllocateInfo.Buffer = Buffer;
+        }
+
+        allocateInfo.AddNext(out MemoryAllocateFlagsInfo flagsInfo);
+        flagsInfo.Flags = MemoryAllocateFlags.DeviceAddressBit;
+
+        context.Vk.AllocateMemory(context.Device, &allocateInfo, default, out DeviceMemory deviceMemory).Success();
+        context.Vk.BindBufferMemory(context.Device, Buffer, deviceMemory, 0).Success();
+
+        Allocation = new(deviceMemory, 0, true, true);
+
+        BufferDeviceAddressInfo deviceAddressInfo = new()
         {
             SType = StructureType.BufferDeviceAddressInfo,
             Buffer = Buffer
         };
 
-        DeviceAddress = context.Vk.GetBufferDeviceAddress(context.Device, &addressInfo);
+        DeviceAddress = context.Vk.GetBufferDeviceAddress(context.Device, &deviceAddressInfo);
 
         View = new(context, new()
         {
             Buffer = this,
-            OffsetInBytes = 0,
+            SizeInBytes = desc.SizeInBytes,
+            StrideInBytes = desc.StrideInBytes
+        });
+    }
+
+    public VKBuffer(VKGraphicsContext context, BufferDesc desc, VkBuffer buffer, VKAllocation allocation) : base(context, desc)
+    {
+        Buffer = buffer;
+        Allocation = allocation;
+
+        BufferDeviceAddressInfo deviceAddressInfo = new()
+        {
+            SType = StructureType.BufferDeviceAddressInfo,
+            Buffer = Buffer
+        };
+
+        DeviceAddress = context.Vk.GetBufferDeviceAddress(context.Device, &deviceAddressInfo);
+
+        View = new(context, new()
+        {
+            Buffer = this,
             SizeInBytes = desc.SizeInBytes,
             StrideInBytes = desc.StrideInBytes
         });
@@ -84,21 +142,30 @@ internal unsafe class VKBuffer : Buffer
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
-    public VKDeviceMemory DeviceMemory { get; }
-
     public VKBufferView View { get; }
 
-    public override MappedMemory Map()
+    public override ResourceHandle ConstantHandle => View.ConstantHandle;
+
+    public override ResourceHandle StorageReadOnlyHandle => View.StorageReadOnlyHandle;
+
+    public override ResourceHandle StorageReadWriteHandle => View.StorageReadWriteHandle;
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
+
+    public override nint Map()
     {
         void* pointer;
-        Context.Vk.MapMemory(Context.Device, DeviceMemory.DeviceMemory, 0, Desc.SizeInBytes, 0, &pointer).Success();
+        Context.Vk.MapMemory(Context.Device, Allocation.DeviceMemory, Allocation.OffsetInBytes, Desc.SizeInBytes, MemoryMapFlags.None, &pointer).Success();
 
-        return new() { Pointer = (nint)pointer, SizeInBytes = Desc.SizeInBytes };
+        return (nint)pointer;
     }
 
     public override void Unmap()
     {
-        Context.Vk.UnmapMemory(Context.Device, DeviceMemory.DeviceMemory);
+        Context.Vk.UnmapMemory(Context.Device, Allocation.DeviceMemory);
     }
 
     protected override void SetResourceName(string name)
@@ -120,8 +187,27 @@ internal unsafe class VKBuffer : Buffer
     {
         View.Dispose();
 
-        Context.Vk.DestroyBuffer(Context.Device, Buffer, null);
+        if (Allocation.OwnsResource)
+        {
+            Context.Vk.DestroyBuffer(Context.Device, Buffer, default);
+        }
 
-        DeviceMemory.Dispose();
+        if (Allocation.OwnsMemory)
+        {
+            Context.Vk.FreeMemory(Context.Device, Allocation.DeviceMemory, default);
+        }
+    }
+
+    public static BufferCreateInfo CreateInfo(BufferDesc desc, Capabilities capabilities, QueueFamilies queueFamilies)
+    {
+        return new()
+        {
+            SType = StructureType.BufferCreateInfo,
+            Size = desc.SizeInBytes,
+            Usage = VKFormats.Vulkan(desc.Usages, capabilities.RayTracingSupported),
+            SharingMode = queueFamilies.SharingMode,
+            QueueFamilyIndexCount = queueFamilies.IndexCount,
+            PQueueFamilyIndices = queueFamilies.Indices
+        };
     }
 }

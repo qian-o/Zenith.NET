@@ -2,89 +2,60 @@
 
 namespace Zenith.NET.Vulkan;
 
-internal unsafe class VKTextureView : TextureView
+internal unsafe class VKTextureView(VKGraphicsContext context, TextureViewDesc desc) : TextureView(context, desc)
 {
-    public ImageView ImageView;
+    private VKDescriptorToken? sampledToken;
+    private VKDescriptorToken? storageToken;
 
-    public VKTextureView(VKGraphicsContext context, TextureViewDesc desc) : base(context, desc)
+    public override ResourceHandle SampledHandle => (sampledToken ??= CreateToken(DescriptorType.SampledImage, ImageLayout.ShaderReadOnlyOptimal)).ResourceHandle;
+
+    public override ResourceHandle StorageHandle => (storageToken ??= CreateToken(DescriptorType.StorageImage, ImageLayout.General)).ResourceHandle;
+
+    public override nint GetNativeObject(NativeObjectType type)
     {
-        ImageViewCreateInfo createInfo = new()
-        {
-            SType = StructureType.ImageViewCreateInfo,
-            Image = desc.Texture.Vulkan().Image,
-            ViewType = Resolve(desc),
-            Format = VKFormats.Vulkan(desc.Texture.Desc.Format),
-            SubresourceRange = new()
-            {
-                AspectMask = VKFormats.Vulkan(desc.Texture.Desc.Format, desc.Texture.Desc.Flags).AspectFlags & ~ImageAspectFlags.StencilBit,
-                BaseMipLevel = desc.FirstMipLevel,
-                LevelCount = desc.MipLevelCount,
-                BaseArrayLayer = ZenithHelper.FlattenArrayLayerRange(desc).FlattenArrayLayerIndex,
-                LayerCount = ZenithHelper.FlattenArrayLayerRange(desc).FlattenArrayLayerCount
-            }
-        };
-
-        context.Vk.CreateImageView(context.Device, &createInfo, null, out ImageView).Success();
-
-        SrvImageInfo = new()
-        {
-            ImageView = ImageView,
-            ImageLayout = ImageLayout.ShaderReadOnlyOptimal
-        };
-
-        UavImageInfo = new()
-        {
-            ImageView = ImageView,
-            ImageLayout = ImageLayout.General
-        };
-    }
-
-    public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
-
-    public DescriptorImageInfo SrvImageInfo { get; }
-
-    public DescriptorImageInfo UavImageInfo { get; }
-
-    public void TransitionLayout(VKCommandBuffer commandBuffer, ImageLayout newLayout)
-    {
-        Desc.Texture.Vulkan().TransitionLayout(commandBuffer,
-                                               Desc.FirstMipLevel,
-                                               Desc.MipLevelCount,
-                                               Desc.FirstArrayLayer,
-                                               Desc.ArrayLayerCount,
-                                               0,
-                                               ZenithHelper.FaceCount(Desc.Texture.Desc),
-                                               newLayout);
+        return 0;
     }
 
     protected override void SetResourceName(string name)
     {
-        using ZenithMarshal.Scope scope = new();
-
-        DebugUtilsObjectNameInfoEXT nameInfo = new()
-        {
-            SType = StructureType.DebugUtilsObjectNameInfoExt,
-            ObjectType = ObjectType.ImageView,
-            ObjectHandle = ImageView.Handle,
-            PObjectName = (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8)
-        };
-
-        Context.DebugUtils?.SetDebugUtilsObjectName(Context.Device, &nameInfo).Success();
     }
 
     protected override void Destroy()
     {
-        Context.Vk.DestroyImageView(Context.Device, ImageView, null);
+        storageToken?.Dispose();
+        sampledToken?.Dispose();
     }
 
-    private static ImageViewType Resolve(TextureViewDesc desc)
+    private VKDescriptorToken CreateToken(DescriptorType type, ImageLayout layout)
     {
-        return VKFormats.Vulkan(desc.Texture.Desc.Type switch
+        ImageViewCreateInfo view = new()
         {
-            TextureType.Texture1DArray when desc.ArrayLayerCount is 1 => TextureType.Texture1D,
-            TextureType.Texture2DArray when desc.ArrayLayerCount is 1 => TextureType.Texture2D,
-            TextureType.TextureCubeArray when desc.ArrayLayerCount is 1 => TextureType.TextureCube,
-            _ => desc.Texture.Desc.Type
-        }).ViewType;
+            SType = StructureType.ImageViewCreateInfo,
+            Image = Desc.Texture.Vulkan().Image,
+            ViewType = VKFormats.Vulkan(Desc.Type).ViewType,
+            Format = VKFormats.Vulkan(Desc.Format).Format,
+            SubresourceRange = new()
+            {
+                AspectMask = VKFormats.Vulkan(Desc.Format).AspectFlags & ~ImageAspectFlags.StencilBit,
+                BaseMipLevel = Desc.Range.BaseMipLevel,
+                LevelCount = Desc.Range.LevelCount,
+                BaseArrayLayer = Desc.Range.BaseArrayLayer,
+                LayerCount = Desc.Range.LayerCount
+            }
+        };
+
+        ImageDescriptorInfoEXT image = new()
+        {
+            SType = StructureType.ImageDescriptorInfoExt(),
+            PView = &view,
+            Layout = layout
+        };
+
+        return context.ResourceHeap.Allocate(new ResourceDescriptorInfoEXT()
+        {
+            SType = StructureType.ResourceDescriptorInfoExt(),
+            Type = type,
+            Data = new() { PImage = &image }
+        });
     }
 }

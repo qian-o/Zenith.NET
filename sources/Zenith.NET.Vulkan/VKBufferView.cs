@@ -2,19 +2,22 @@
 
 namespace Zenith.NET.Vulkan;
 
-internal class VKBufferView : BufferView
+internal unsafe class VKBufferView(VKGraphicsContext context, BufferViewDesc desc) : BufferView(context, desc)
 {
-    public VKBufferView(VKGraphicsContext context, BufferViewDesc desc) : base(context, desc)
-    {
-        BufferInfo = new()
-        {
-            Buffer = desc.Buffer.Vulkan().Buffer,
-            Offset = desc.OffsetInBytes,
-            Range = desc.SizeInBytes
-        };
-    }
+    private VKDescriptorToken? constantToken;
+    private VKDescriptorToken? storageReadOnlyToken;
+    private VKDescriptorToken? storageReadWriteToken;
 
-    public DescriptorBufferInfo BufferInfo { get; }
+    public override ResourceHandle ConstantHandle => (constantToken ??= CreateToken(DescriptorType.UniformBuffer)).ResourceHandle;
+
+    public override ResourceHandle StorageReadOnlyHandle => (storageReadOnlyToken ??= CreateToken(DescriptorType.StorageBuffer)).ResourceHandle;
+
+    public override ResourceHandle StorageReadWriteHandle => (storageReadWriteToken ??= CreateToken(DescriptorType.StorageBuffer)).ResourceHandle;
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
 
     protected override void SetResourceName(string name)
     {
@@ -22,5 +25,24 @@ internal class VKBufferView : BufferView
 
     protected override void Destroy()
     {
+        storageReadWriteToken?.Dispose();
+        storageReadOnlyToken?.Dispose();
+        constantToken?.Dispose();
+    }
+
+    private VKDescriptorToken CreateToken(DescriptorType type)
+    {
+        DeviceAddressRangeEXT addressRange = new()
+        {
+            Address = Desc.Buffer.Vulkan().DeviceAddress + Desc.OffsetInBytes,
+            Size = Desc.SizeInBytes
+        };
+
+        return context.ResourceHeap.Allocate(new ResourceDescriptorInfoEXT()
+        {
+            SType = StructureType.ResourceDescriptorInfoExt(),
+            Type = type,
+            Data = new() { PAddressRange = &addressRange }
+        });
     }
 }

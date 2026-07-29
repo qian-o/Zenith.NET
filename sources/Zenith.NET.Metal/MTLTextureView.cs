@@ -1,6 +1,4 @@
-﻿using Metal.NET;
-
-namespace Zenith.NET.Metal;
+﻿namespace Zenith.NET.Metal;
 
 internal class MTLTextureView : TextureView
 {
@@ -8,15 +6,22 @@ internal class MTLTextureView : TextureView
 
     public MTLTextureView(MTLGraphicsContext context, TextureViewDesc desc) : base(context, desc)
     {
-        MTLTextureViewDescriptor descriptor = new()
-        {
-            PixelFormat = MTLFormats.Metal(desc.Texture.Desc.Format).PixelFormat,
-            TextureType = Resolve(desc),
-            LevelRange = new(desc.FirstMipLevel, desc.MipLevelCount),
-            SliceRange = new(ZenithHelper.FlattenArrayLayerRange(desc).FlattenArrayLayerIndex, ZenithHelper.FlattenArrayLayerRange(desc).FlattenArrayLayerCount)
-        };
+        Texture = desc.Texture.Metal().Texture.MakeTextureView(MTLFormats.Metal(desc.Format).PixelFormat,
+                                                               MTLFormats.Metal(desc.Type, desc.Texture.Desc.SampleCount),
+                                                               new(desc.Range.BaseMipLevel, desc.Range.LevelCount),
+                                                               new(desc.Range.BaseArrayLayer, desc.Range.LayerCount));
 
-        Texture = desc.Texture.Metal().Texture.MakeTextureView(descriptor);
+        SampledHandle = Texture.GpuResourceID.Impl.ToHandle();
+        StorageHandle = Texture.GpuResourceID.Impl.ToHandle();
+    }
+
+    public override ResourceHandle SampledHandle { get; }
+
+    public override ResourceHandle StorageHandle { get; }
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
     }
 
     protected override void SetResourceName(string name)
@@ -27,16 +32,5 @@ internal class MTLTextureView : TextureView
     protected override void Destroy()
     {
         Texture.Dispose();
-    }
-
-    private static MTLTextureType Resolve(TextureViewDesc desc)
-    {
-        return MTLFormats.Metal(desc.Texture.Desc.Type switch
-        {
-            TextureType.Texture1DArray when desc.ArrayLayerCount is 1 => TextureType.Texture1D,
-            TextureType.Texture2DArray when desc.ArrayLayerCount is 1 => TextureType.Texture2D,
-            TextureType.TextureCubeArray when desc.ArrayLayerCount is 1 => TextureType.TextureCube,
-            _ => desc.Texture.Desc.Type
-        });
     }
 }

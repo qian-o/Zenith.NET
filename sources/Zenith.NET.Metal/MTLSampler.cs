@@ -8,24 +8,32 @@ internal class MTLSampler : Sampler
 
     public MTLSampler(MTLGraphicsContext context, SamplerDesc desc) : base(context, desc)
     {
-        MTLSamplerDescriptor descriptor = new()
+        SamplerState = context.Device.MakeSamplerState(new()
         {
-            MinFilter = MTLFormats.Metal(desc.Filter).MinFilter,
-            MagFilter = MTLFormats.Metal(desc.Filter).MagFilter,
-            MipFilter = MTLFormats.Metal(desc.Filter).MipFilter,
-            MaxAnisotropy = desc.Filter is Filter.Anisotropic ? desc.MaxAnisotropy : 1,
-            SAddressMode = MTLFormats.Metal(desc.U),
-            TAddressMode = MTLFormats.Metal(desc.V),
-            RAddressMode = MTLFormats.Metal(desc.W),
+            MinFilter = MTLFormats.Metal(desc.MinFilter).MinMagFilter,
+            MagFilter = MTLFormats.Metal(desc.MagFilter).MinMagFilter,
+            MipFilter = MTLFormats.Metal(desc.MipFilter).MipFilter,
+            MaxAnisotropy = desc.MaxAnisotropy,
+            SAddressMode = MTLFormats.Metal(desc.AddressU),
+            TAddressMode = MTLFormats.Metal(desc.AddressV),
+            RAddressMode = MTLFormats.Metal(desc.AddressW),
             BorderColor = MTLFormats.Metal(desc.BorderColor),
+            NormalizedCoordinates = true,
             LodMinClamp = desc.MinLod,
             LodMaxClamp = desc.MaxLod,
             LodBias = desc.LodBias,
-            CompareFunction = MTLFormats.Metal(desc.ComparisonFunc),
+            CompareFunction = MTLFormats.Metal(desc.CompareOp),
             SupportArgumentBuffers = true
-        };
+        });
 
-        SamplerState = context.Device.MakeSamplerState(descriptor);
+        Handle = SamplerState.GpuResourceID.Impl.ToHandle();
+    }
+
+    public override ResourceHandle Handle { get; }
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
     }
 
     protected override void SetResourceName(string name)

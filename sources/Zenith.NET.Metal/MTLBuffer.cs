@@ -4,20 +4,48 @@ internal class MTLBuffer : Buffer
 {
     public MtlBuffer Buffer;
 
-    public nuint GpuAddress;
-
     public MTLBuffer(MTLGraphicsContext context, BufferDesc desc) : base(context, desc)
     {
-        Heap = new(context, desc, out Buffer);
+        context.Register(Buffer = context.Device.MakeBuffer(desc.SizeInBytes, MTLFormats.Metal(desc.Residency)));
 
-        GpuAddress = Buffer.GpuAddress;
+        View = new(context, new()
+        {
+            Buffer = this,
+            SizeInBytes = desc.SizeInBytes,
+            StrideInBytes = desc.StrideInBytes
+        });
     }
 
-    public MTLHeap Heap { get; }
-
-    public override MappedMemory Map()
+    public MTLBuffer(MTLGraphicsContext context, BufferDesc desc, MtlBuffer buffer) : base(context, desc)
     {
-        return new() { Pointer = Buffer.Contents(), SizeInBytes = Desc.SizeInBytes };
+        context.Register(Buffer = buffer);
+
+        View = new(context, new()
+        {
+            Buffer = this,
+            SizeInBytes = desc.SizeInBytes,
+            StrideInBytes = desc.StrideInBytes
+        });
+    }
+
+    public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
+
+    public MTLBufferView View { get; }
+
+    public override ResourceHandle ConstantHandle => View.ConstantHandle;
+
+    public override ResourceHandle StorageReadOnlyHandle => View.StorageReadOnlyHandle;
+
+    public override ResourceHandle StorageReadWriteHandle => View.StorageReadWriteHandle;
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
+
+    public override nint Map()
+    {
+        return Buffer.Contents();
     }
 
     public override void Unmap()
@@ -31,8 +59,9 @@ internal class MTLBuffer : Buffer
 
     protected override void Destroy()
     {
-        Buffer.Dispose();
+        Context.Unregister(Buffer);
 
-        Heap.Dispose();
+        View.Dispose();
+        Buffer.Dispose();
     }
 }

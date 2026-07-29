@@ -6,140 +6,101 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
 {
     public AccelerationStructureKHR AccelerationStructure;
 
-    public ulong DeviceAddress;
+    public VKDescriptorToken Token;
 
-    public VKTopLevelAccelerationStructure(VKGraphicsContext context, TopLevelAccelerationStructureDesc desc, VKCommandBuffer commandBuffer) : base(context, desc)
+    public VKTopLevelAccelerationStructure(VKGraphicsContext context, VKCommandBuffer commandBuffer, TopLevelAccelerationStructureDesc desc) : base(context, desc)
     {
         using ZenithMarshal.Scope scope = new();
 
-        InstanceBuffer = new(context, new()
+        Instance = new(context, new()
         {
             SizeInBytes = (uint)(sizeof(AccelerationStructureInstanceKHR) * desc.Instances.Length),
-            StrideInBytes = (uint)sizeof(AccelerationStructureInstanceKHR),
-            Flags = BufferUsageFlags.AccelerationStructure | BufferUsageFlags.MapWrite
-        });
+            Residency = MemoryResidency.CpuWriteOnly
+        }, BufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr);
 
-        FillInstanceBuffer(desc, out AccelerationStructureGeometryKHR geometry, out AccelerationStructureBuildRangeInfoKHR buildRangeInfo);
-
-        AccelerationStructureBuildGeometryInfoKHR buildInfo = new()
-        {
-            SType = StructureType.AccelerationStructureBuildGeometryInfoKhr,
-            Type = AccelerationStructureTypeKHR.TopLevelKhr,
-            Flags = VKFormats.Vulkan(desc.Flags),
-            Mode = BuildAccelerationStructureModeKHR.BuildKhr,
-            GeometryCount = 1,
-            PGeometries = &geometry
-        };
+        AccelerationStructureBuildGeometryInfoKHR info = Info(scope, desc, out uint* maxPrimitiveCounts, out AccelerationStructureBuildRangeInfoKHR* buildRangeInfos);
 
         AccelerationStructureBuildSizesInfoKHR sizeInfo = new() { SType = StructureType.AccelerationStructureBuildSizesInfoKhr };
+        context.AccelerationStructure?.GetAccelerationStructureBuildSizes(context.Device, AccelerationStructureBuildTypeKHR.DeviceKhr, &info, maxPrimitiveCounts, &sizeInfo);
 
-        context.AccelerationStructure?.GetAccelerationStructureBuildSizes(context.Device, AccelerationStructureBuildTypeKHR.DeviceKhr, &buildInfo, &buildRangeInfo.PrimitiveCount, &sizeInfo);
-
-        BufferDesc accelerationStructureBufferDesc = new()
+        Storage = new(context, new()
         {
             SizeInBytes = (uint)sizeInfo.AccelerationStructureSize,
-            StrideInBytes = (uint)sizeInfo.AccelerationStructureSize
-        };
+            Residency = MemoryResidency.GpuOnly
+        }, BufferUsageFlags.AccelerationStructureStorageBitKhr);
 
-        AccelerationStructureBuffer = new(context, accelerationStructureBufferDesc, VkBufferUsageFlags.AccelerationStructureStorageBitKhr);
+        Scratch = new(context, new()
+        {
+            SizeInBytes = (uint)Math.Max(sizeInfo.BuildScratchSize, sizeInfo.UpdateScratchSize),
+            Usages = BufferUsages.StorageReadWrite,
+            Residency = MemoryResidency.GpuOnly
+        });
 
         AccelerationStructureCreateInfoKHR createInfo = new()
         {
             SType = StructureType.AccelerationStructureCreateInfoKhr,
-            Buffer = AccelerationStructureBuffer.Buffer,
+            Buffer = Storage.Buffer,
             Size = sizeInfo.AccelerationStructureSize,
             Type = AccelerationStructureTypeKHR.TopLevelKhr
         };
 
-        context.AccelerationStructure?.CreateAccelerationStructure(context.Device, &createInfo, null, out AccelerationStructure).Success();
+        context.AccelerationStructure?.CreateAccelerationStructure(context.Device, &createInfo, default, out AccelerationStructure).Success();
 
-        AccelerationStructureDeviceAddressInfoKHR addressInfo = new()
+        info.DstAccelerationStructure = AccelerationStructure;
+        info.ScratchData = new() { DeviceAddress = Scratch.DeviceAddress };
+
+        BuildSyncBarrier(commandBuffer, PipelineStageFlags2.AccelerationStructureBuildBitKhr);
+        context.AccelerationStructure?.CmdBuildAccelerationStructures(commandBuffer.CommandBuffer, 1, &info, &buildRangeInfos);
+        BuildSyncBarrier(commandBuffer, PipelineStageFlags2.AllCommandsBit);
+
+        AccelerationStructureDeviceAddressInfoKHR deviceAddressInfo = new()
         {
             SType = StructureType.AccelerationStructureDeviceAddressInfoKhr,
             AccelerationStructure = AccelerationStructure
         };
 
-        DeviceAddress = context.AccelerationStructure?.GetAccelerationStructureDeviceAddress(context.Device, &addressInfo) ?? 0;
-
-        ScratchBuffer = new(context, new()
+        DeviceAddressRangeEXT addressRange = new()
         {
-            SizeInBytes = (uint)sizeInfo.BuildScratchSize,
-            StrideInBytes = (uint)sizeInfo.BuildScratchSize,
-            Flags = BufferUsageFlags.ShaderResource
-        });
-
-        buildInfo.DstAccelerationStructure = AccelerationStructure;
-        buildInfo.ScratchData = new() { DeviceAddress = ScratchBuffer.DeviceAddress };
-
-        AccelerationStructureBuildRangeInfoKHR* pBuildRangeInfo = &buildRangeInfo;
-
-        context.AccelerationStructure?.CmdBuildAccelerationStructures(commandBuffer.CommandBuffer, 1, &buildInfo, &pBuildRangeInfo);
-
-        MemoryBarrier barrier = new()
-        {
-            SType = StructureType.MemoryBarrier,
-            SrcAccessMask = AccessFlags.AccelerationStructureWriteBitKhr,
-            DstAccessMask = AccessFlags.AccelerationStructureReadBitKhr
+            Address = context.AccelerationStructure?.GetAccelerationStructureDeviceAddress(context.Device, &deviceAddressInfo) ?? 0,
+            Size = sizeInfo.AccelerationStructureSize
         };
 
-        context.Vk.CmdPipelineBarrier(commandBuffer.CommandBuffer,
-                                      PipelineStageFlags.AccelerationStructureBuildBitKhr,
-                                      PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit,
-                                      0,
-                                      1,
-                                      &barrier,
-                                      0,
-                                      null,
-                                      0,
-                                      null);
+        Token = context.ResourceHeap.Allocate(new ResourceDescriptorInfoEXT()
+        {
+            SType = StructureType.ResourceDescriptorInfoExt(),
+            Type = DescriptorType.AccelerationStructureKhr,
+            Data = new() { PAddressRange = &addressRange }
+        });
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
-    public VKBuffer InstanceBuffer { get; }
+    public VKBuffer Instance { get; }
 
-    public VKBuffer AccelerationStructureBuffer { get; }
+    public VKBuffer Storage { get; }
 
-    public VKBuffer ScratchBuffer { get; }
+    public VKBuffer Scratch { get; }
+
+    public override ResourceHandle Handle => Token.ResourceHandle;
 
     public void Update(VKCommandBuffer commandBuffer, TopLevelAccelerationStructureDesc newDesc)
     {
-        FillInstanceBuffer(newDesc, out AccelerationStructureGeometryKHR geometry, out AccelerationStructureBuildRangeInfoKHR buildRangeInfo);
+        using ZenithMarshal.Scope scope = new();
 
-        AccelerationStructureBuildGeometryInfoKHR buildInfo = new()
-        {
-            SType = StructureType.AccelerationStructureBuildGeometryInfoKhr,
-            Type = AccelerationStructureTypeKHR.TopLevelKhr,
-            Flags = VKFormats.Vulkan(newDesc.Flags),
-            Mode = BuildAccelerationStructureModeKHR.UpdateKhr,
-            SrcAccelerationStructure = AccelerationStructure,
-            DstAccelerationStructure = AccelerationStructure,
-            GeometryCount = 1,
-            PGeometries = &geometry,
-            ScratchData = new() { DeviceAddress = ScratchBuffer.DeviceAddress }
-        };
+        AccelerationStructureBuildGeometryInfoKHR info = Info(scope, newDesc, out _, out AccelerationStructureBuildRangeInfoKHR* buildRangeInfos);
+        info.Mode = BuildAccelerationStructureModeKHR.UpdateKhr;
+        info.SrcAccelerationStructure = AccelerationStructure;
+        info.DstAccelerationStructure = AccelerationStructure;
+        info.ScratchData = new() { DeviceAddress = Scratch.DeviceAddress };
 
-        AccelerationStructureBuildRangeInfoKHR* pBuildRangeInfo = &buildRangeInfo;
+        BuildSyncBarrier(commandBuffer, PipelineStageFlags2.AccelerationStructureBuildBitKhr);
+        Context.AccelerationStructure?.CmdBuildAccelerationStructures(commandBuffer.CommandBuffer, 1, &info, &buildRangeInfos);
+        BuildSyncBarrier(commandBuffer, PipelineStageFlags2.AllCommandsBit);
+    }
 
-        Context.AccelerationStructure?.CmdBuildAccelerationStructures(commandBuffer.CommandBuffer, 1, &buildInfo, &pBuildRangeInfo);
-
-        MemoryBarrier barrier = new()
-        {
-            SType = StructureType.MemoryBarrier,
-            SrcAccessMask = AccessFlags.AccelerationStructureWriteBitKhr,
-            DstAccessMask = AccessFlags.AccelerationStructureReadBitKhr
-        };
-
-        Context.Vk.CmdPipelineBarrier(commandBuffer.CommandBuffer,
-                                      PipelineStageFlags.AccelerationStructureBuildBitKhr,
-                                      PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit,
-                                      0,
-                                      1,
-                                      &barrier,
-                                      0,
-                                      null,
-                                      0,
-                                      null);
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
     }
 
     protected override void SetResourceName(string name)
@@ -159,20 +120,22 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
 
     protected override void Destroy()
     {
-        Context.AccelerationStructure?.DestroyAccelerationStructure(Context.Device, AccelerationStructure, null);
+        Token.Dispose();
 
-        ScratchBuffer.Dispose();
-        AccelerationStructureBuffer.Dispose();
-        InstanceBuffer.Dispose();
+        Context.AccelerationStructure?.DestroyAccelerationStructure(Context.Device, AccelerationStructure, default);
+
+        Scratch.Dispose();
+        Storage.Dispose();
+        Instance.Dispose();
     }
 
-    private void FillInstanceBuffer(TopLevelAccelerationStructureDesc desc, out AccelerationStructureGeometryKHR geometry, out AccelerationStructureBuildRangeInfoKHR buildRangeInfo)
+    private AccelerationStructureBuildGeometryInfoKHR Info(ZenithMarshal.Scope scope, TopLevelAccelerationStructureDesc desc, out uint* maxPrimitiveCounts, out AccelerationStructureBuildRangeInfoKHR* buildRangeInfos)
     {
         uint instanceCount = (uint)desc.Instances.Length;
 
-        MappedMemory mappedMemory = InstanceBuffer.Map();
+        nint pointer = Instance.Map();
 
-        AccelerationStructureInstanceKHR* instances = (AccelerationStructureInstanceKHR*)mappedMemory.Pointer;
+        AccelerationStructureInstanceKHR* instances = (AccelerationStructureInstanceKHR*)pointer;
         for (uint i = 0; i < instanceCount; i++)
         {
             RayTracingInstance instance = desc.Instances[i];
@@ -180,29 +143,62 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
             instances[i] = new()
             {
                 Transform = VKFormats.Vulkan(instance.Transform),
-                InstanceCustomIndex = instance.ID,
-                Mask = instance.Mask,
+                InstanceCustomIndex = instance.InstanceId,
+                Mask = instance.VisibilityMask,
                 Flags = VKFormats.Vulkan(instance.Flags),
                 AccelerationStructureReference = instance.AccelerationStructure.Vulkan().DeviceAddress
             };
         }
 
-        InstanceBuffer.Unmap();
+        Instance.Unmap();
 
-        geometry = new()
+        maxPrimitiveCounts = (uint*)ZenithMarshal.AllocateAndFill(scope, [instanceCount]);
+        buildRangeInfos = (AccelerationStructureBuildRangeInfoKHR*)ZenithMarshal.AllocateAndFill(scope, [new AccelerationStructureBuildRangeInfoKHR() { PrimitiveCount = instanceCount }]);
+
+        return new()
         {
-            SType = StructureType.AccelerationStructureGeometryKhr,
-            GeometryType = GeometryTypeKHR.InstancesKhr,
-            Geometry = new()
-            {
-                Instances = new()
+            SType = StructureType.AccelerationStructureBuildGeometryInfoKhr,
+            Type = AccelerationStructureTypeKHR.TopLevelKhr,
+            Flags = VKFormats.Vulkan(desc.BuildFlags),
+            Mode = BuildAccelerationStructureModeKHR.BuildKhr,
+            GeometryCount = 1,
+            PGeometries = (AccelerationStructureGeometryKHR*)ZenithMarshal.AllocateAndFill(scope,
+            [
+                new AccelerationStructureGeometryKHR()
                 {
-                    SType = StructureType.AccelerationStructureGeometryInstancesDataKhr,
-                    Data = new() { DeviceAddress = InstanceBuffer.DeviceAddress }
+                    SType = StructureType.AccelerationStructureGeometryKhr,
+                    GeometryType = GeometryTypeKHR.InstancesKhr,
+                    Geometry = new()
+                    {
+                        Instances = new()
+                        {
+                            SType = StructureType.AccelerationStructureGeometryInstancesDataKhr,
+                            Data = new() { DeviceAddress = Instance.DeviceAddress }
+                        }
+                    }
                 }
-            }
+            ])
+        };
+    }
+
+    private static void BuildSyncBarrier(VKCommandBuffer commandBuffer, PipelineStageFlags2 dstStage)
+    {
+        MemoryBarrier2 memoryBarrier = new()
+        {
+            SType = StructureType.MemoryBarrier2,
+            SrcStageMask = PipelineStageFlags2.AccelerationStructureBuildBitKhr,
+            SrcAccessMask = AccessFlags2.AccelerationStructureWriteBitKhr,
+            DstStageMask = dstStage,
+            DstAccessMask = AccessFlags2.AccelerationStructureReadBitKhr
         };
 
-        buildRangeInfo = new() { PrimitiveCount = instanceCount };
+        DependencyInfo dependencyInfo = new()
+        {
+            SType = StructureType.DependencyInfo,
+            MemoryBarrierCount = 1,
+            PMemoryBarriers = &memoryBarrier
+        };
+
+        commandBuffer.Context.Vk.CmdPipelineBarrier2(commandBuffer.CommandBuffer, &dependencyInfo);
     }
 }

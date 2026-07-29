@@ -6,296 +6,291 @@ namespace Zenith.NET.Vulkan;
 internal unsafe class VKSwapChain : SwapChain
 {
     private readonly VKFence fence;
-    private readonly VKSwapChainFrameBuffer swapChainFrameBuffer;
 
     public SurfaceKHR Surface;
 
     public SwapchainKHR Swapchain;
 
-    public uint ImageIndex;
+    private VKTexture[] textures = [];
+    private uint index;
 
     public VKSwapChain(VKGraphicsContext context, SwapChainDesc desc) : base(context, desc)
     {
         fence = new(context);
-        swapChainFrameBuffer = new(context, this);
 
-        CreateSurface();
         CreateSwapChain();
+        CreateTextures();
+        AcquireNextImage();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
-    public override FrameBuffer FrameBuffer => swapChainFrameBuffer[ImageIndex];
+    public override Texture Drawable => textures[index];
 
-    public override void Present()
+    public override nint GetNativeObject(NativeObjectType type)
     {
-        if (Swapchain.Handle is not 0)
+        return 0;
+    }
+
+    protected override void PresentImpl()
+    {
+        fixed (SwapchainKHR* swapchains = &Swapchain)
         {
-            fixed (SwapchainKHR* pSwapchains = &Swapchain)
+            fixed (uint* imageIndices = &index)
             {
-                fixed (uint* pImageIndices = &ImageIndex)
+                PresentInfoKHR presentInfo = new()
                 {
-                    PresentInfoKHR presentInfo = new()
-                    {
-                        SType = StructureType.PresentInfoKhr,
-                        SwapchainCount = 1,
-                        PSwapchains = pSwapchains,
-                        PImageIndices = pImageIndices
-                    };
+                    SType = StructureType.PresentInfoKhr,
+                    SwapchainCount = 1,
+                    PSwapchains = swapchains,
+                    PImageIndices = imageIndices
+                };
 
-                    (Context.Swapchain?.QueuePresent(Context.GraphicsQueue, &presentInfo) ?? Result.ErrorInitializationFailed).Success();
-
-                    AcquireNextImage();
-                }
+                Context.Swapchain?.QueuePresent(Context.GraphicsQueue.Vulkan().Queue, &presentInfo).Success();
             }
         }
+
+        AcquireNextImage();
     }
 
     protected override void ResizeImpl()
     {
+        DestroyTextures();
+        DestroySwapChain();
+
         CreateSwapChain();
+        CreateTextures();
+
+        AcquireNextImage();
     }
 
     protected override void RefreshImpl()
     {
-        CreateSurface();
+        DestroyTextures();
+        DestroySwapChain();
+
         CreateSwapChain();
+        CreateTextures();
+
+        AcquireNextImage();
     }
 
     protected override void SetResourceName(string name)
     {
-        if (Swapchain.Handle is not 0)
-        {
-            using ZenithMarshal.Scope scope = new();
-
-            DebugUtilsObjectNameInfoEXT nameInfo = new()
-            {
-                SType = StructureType.DebugUtilsObjectNameInfoExt,
-                ObjectType = ObjectType.SwapchainKhr,
-                ObjectHandle = Swapchain.Handle,
-                PObjectName = (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8)
-            };
-
-            Context.DebugUtils?.SetDebugUtilsObjectName(Context.Device, &nameInfo).Success();
-        }
     }
 
     protected override void Destroy()
     {
+        DestroyTextures();
         DestroySwapChain();
-        DestroySurface();
 
-        swapChainFrameBuffer.Dispose();
         fence.Dispose();
     }
 
-    private void CreateSurface()
+    private void CreateSwapChain()
     {
-        DestroySurface();
+        using ZenithMarshal.Scope scope = new();
 
         switch (Desc.Surface.Type)
         {
             case SurfaceType.Win32:
                 {
-                    Win32SurfaceCreateInfoKHR createInfo = new()
+                    Win32SurfaceCreateInfoKHR surfaceCreateInfo = new()
                     {
                         SType = StructureType.Win32SurfaceCreateInfoKhr,
                         Hinstance = Process.GetCurrentProcess().Handle,
                         Hwnd = Desc.Surface.Handles[0]
                     };
 
-                    Context.Win32Surface?.CreateWin32Surface(Context.Instance, &createInfo, null, out Surface).Success();
+                    Context.Win32Surface?.CreateWin32Surface(Context.Instance, &surfaceCreateInfo, default, out Surface).Success();
                 }
                 break;
 
             case SurfaceType.Wayland:
                 {
-                    WaylandSurfaceCreateInfoKHR createInfo = new()
+                    WaylandSurfaceCreateInfoKHR surfaceCreateInfo = new()
                     {
                         SType = StructureType.WaylandSurfaceCreateInfoKhr,
                         Display = (nint*)Desc.Surface.Handles[0],
                         Surface = (nint*)Desc.Surface.Handles[1]
                     };
 
-                    Context.WaylandSurface?.CreateWaylandSurface(Context.Instance, &createInfo, null, out Surface).Success();
+                    Context.WaylandSurface?.CreateWaylandSurface(Context.Instance, &surfaceCreateInfo, default, out Surface).Success();
                 }
                 break;
 
             case SurfaceType.Xlib:
                 {
-                    XlibSurfaceCreateInfoKHR createInfo = new()
+                    XlibSurfaceCreateInfoKHR surfaceCreateInfo = new()
                     {
                         SType = StructureType.XlibSurfaceCreateInfoKhr,
                         Dpy = (nint*)Desc.Surface.Handles[0],
                         Window = Desc.Surface.Handles[1]
                     };
 
-                    Context.XlibSurface?.CreateXlibSurface(Context.Instance, &createInfo, null, out Surface).Success();
+                    Context.XlibSurface?.CreateXlibSurface(Context.Instance, &surfaceCreateInfo, default, out Surface).Success();
                 }
                 break;
 
             case SurfaceType.Android:
                 {
-                    AndroidSurfaceCreateInfoKHR createInfo = new()
+                    AndroidSurfaceCreateInfoKHR surfaceCreateInfo = new()
                     {
                         SType = StructureType.AndroidSurfaceCreateInfoKhr,
                         Window = (nint*)Desc.Surface.Handles[0]
                     };
 
-                    Context.AndroidSurface?.CreateAndroidSurface(Context.Instance, &createInfo, null, out Surface).Success();
+                    Context.AndroidSurface?.CreateAndroidSurface(Context.Instance, &surfaceCreateInfo, default, out Surface).Success();
                 }
                 break;
 
             case SurfaceType.Apple:
                 {
-                    MetalSurfaceCreateInfoEXT createInfo = new()
+                    MetalSurfaceCreateInfoEXT surfaceCreateInfo = new()
                     {
                         SType = StructureType.MetalSurfaceCreateInfoExt,
                         PLayer = (nint*)Desc.Surface.Handles[0]
                     };
 
-                    Context.MetalSurface?.CreateMetalSurface(Context.Instance, &createInfo, null, out Surface).Success();
+                    Context.MetalSurface?.CreateMetalSurface(Context.Instance, &surfaceCreateInfo, default, out Surface).Success();
                 }
                 break;
         }
-    }
 
-    private void DestroySurface()
-    {
-        if (Surface.Handle is not 0)
+        SurfaceCapabilitiesKHR capabilities = default;
+        Context.Surface?.GetPhysicalDeviceSurfaceCapabilities(Context.PhysicalDevice, Surface, &capabilities).Success();
+
+        uint surfaceFormatCount = 0;
+        Context.Surface?.GetPhysicalDeviceSurfaceFormats(Context.PhysicalDevice, Surface, &surfaceFormatCount, default).Success();
+
+        SurfaceFormatKHR* surfaceFormats = (SurfaceFormatKHR*)ZenithMarshal.Allocate<SurfaceFormatKHR>(scope, surfaceFormatCount);
+        Context.Surface?.GetPhysicalDeviceSurfaceFormats(Context.PhysicalDevice, Surface, &surfaceFormatCount, surfaceFormats).Success();
+
+        uint presentModeCount = 0;
+        Context.Surface?.GetPhysicalDeviceSurfacePresentModes(Context.PhysicalDevice, Surface, &presentModeCount, null).Success();
+
+        PresentModeKHR* presentModes = (PresentModeKHR*)ZenithMarshal.Allocate<PresentModeKHR>(scope, presentModeCount);
+        Context.Surface?.GetPhysicalDeviceSurfacePresentModes(Context.PhysicalDevice, Surface, &presentModeCount, presentModes).Success();
+
+        uint minImageCount = capabilities.MinImageCount + 1;
+        if (capabilities.MaxImageCount > 0 && minImageCount > capabilities.MaxImageCount)
         {
-            Context.Surface?.DestroySurface(Context.Instance, Surface, null);
-
-            Surface = default;
+            minImageCount = capabilities.MaxImageCount;
         }
-    }
 
-    private void CreateSwapChain()
-    {
-        DestroySwapChain();
-
-        if (Desc.Surface.Type is not SurfaceType.D3D11Interop)
+        SurfaceFormatKHR surfaceFormat = default;
+        foreach (SurfaceFormatKHR item in new ReadOnlySpan<SurfaceFormatKHR>(surfaceFormats, (int)surfaceFormatCount))
         {
-            using ZenithMarshal.Scope scope = new();
-
-            (SharingMode sharingMode, uint queueFamilyIndexCount, nint pQueueFamilyIndices) = Context.GetSharingModeInfo(scope);
-
-            SurfaceCapabilitiesKHR capabilities = default;
-            Context.Surface?.GetPhysicalDeviceSurfaceCapabilities(Context.PhysicalDevice, Surface, &capabilities).Success();
-
-            uint surfaceFormatCount = 0;
-            Context.Surface?.GetPhysicalDeviceSurfaceFormats(Context.PhysicalDevice, Surface, &surfaceFormatCount, null).Success();
-
-            SurfaceFormatKHR* surfaceFormats = (SurfaceFormatKHR*)ZenithMarshal.Allocate<SurfaceFormatKHR>(scope, surfaceFormatCount);
-            Context.Surface?.GetPhysicalDeviceSurfaceFormats(Context.PhysicalDevice, Surface, &surfaceFormatCount, surfaceFormats).Success();
-
-            uint presentModeCount = 0;
-            Context.Surface?.GetPhysicalDeviceSurfacePresentModes(Context.PhysicalDevice, Surface, &presentModeCount, null).Success();
-
-            PresentModeKHR* presentModes = (PresentModeKHR*)ZenithMarshal.Allocate<PresentModeKHR>(scope, presentModeCount);
-            Context.Surface?.GetPhysicalDeviceSurfacePresentModes(Context.PhysicalDevice, Surface, &presentModeCount, presentModes).Success();
-
-            uint minImageCount = capabilities.MinImageCount + 1;
-            if (capabilities.MaxImageCount > 0 && minImageCount > capabilities.MaxImageCount)
+            if (item.Format == VKFormats.Vulkan(Desc.Format).Format)
             {
-                minImageCount = capabilities.MaxImageCount;
-            }
+                surfaceFormat = item;
 
-            SurfaceFormatKHR surfaceFormat = default;
-            foreach (SurfaceFormatKHR item in new ReadOnlySpan<SurfaceFormatKHR>(surfaceFormats, (int)surfaceFormatCount))
-            {
-                if (item.Format == VKFormats.Vulkan(Desc.ColorTargetFormat))
+                if (item.ColorSpace is ColorSpaceKHR.SpaceSrgbNonlinearKhr)
                 {
-                    surfaceFormat = item;
-
-                    if (item.ColorSpace is ColorSpaceKHR.SpaceSrgbNonlinearKhr)
-                    {
-                        break;
-                    }
-                }
-            }
-
-            Extent2D imageExtent = new()
-            {
-                Width = uint.Clamp(capabilities.MinImageExtent.Width, Desc.Surface.Width, capabilities.MaxImageExtent.Width),
-                Height = uint.Clamp(capabilities.MinImageExtent.Height, Desc.Surface.Height, capabilities.MaxImageExtent.Height)
-            };
-
-            SurfaceTransformFlagsKHR preTransform = SurfaceTransformFlagsKHR.InheritBitKhr;
-            if (capabilities.SupportedTransforms.HasFlag(SurfaceTransformFlagsKHR.IdentityBitKhr))
-            {
-                preTransform = SurfaceTransformFlagsKHR.IdentityBitKhr;
-            }
-
-            CompositeAlphaFlagsKHR compositeAlpha = CompositeAlphaFlagsKHR.InheritBitKhr;
-            if (capabilities.SupportedCompositeAlpha.HasFlag(CompositeAlphaFlagsKHR.OpaqueBitKhr))
-            {
-                compositeAlpha = CompositeAlphaFlagsKHR.OpaqueBitKhr;
-            }
-
-            PresentModeKHR presentMode = PresentModeKHR.FifoKhr;
-            foreach (PresentModeKHR item in new ReadOnlySpan<PresentModeKHR>(presentModes, (int)presentModeCount))
-            {
-                if (item is PresentModeKHR.MailboxKhr)
-                {
-                    presentMode = PresentModeKHR.MailboxKhr;
-
                     break;
                 }
             }
-
-            SwapchainCreateInfoKHR createInfo = new()
-            {
-                SType = StructureType.SwapchainCreateInfoKhr,
-                Surface = Surface,
-                MinImageCount = minImageCount,
-                ImageFormat = surfaceFormat.Format,
-                ImageColorSpace = surfaceFormat.ColorSpace,
-                ImageExtent = imageExtent,
-                ImageArrayLayers = 1,
-                ImageUsage = ImageUsageFlags.TransferSrcBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.ColorAttachmentBit,
-                ImageSharingMode = sharingMode,
-                QueueFamilyIndexCount = queueFamilyIndexCount,
-                PQueueFamilyIndices = (uint*)pQueueFamilyIndices,
-                PreTransform = preTransform,
-                CompositeAlpha = compositeAlpha,
-                PresentMode = presentMode,
-                Clipped = true
-            };
-
-            Context.Swapchain?.CreateSwapchain(Context.Device, &createInfo, null, out Swapchain).Success();
-
-            swapChainFrameBuffer.CreateFrameBuffers(createInfo.ImageExtent.Width, createInfo.ImageExtent.Height, []);
-
-            AcquireNextImage();
         }
-        else
+
+        SurfaceTransformFlagsKHR preTransform = SurfaceTransformFlagsKHR.InheritBitKhr;
+        if (capabilities.SupportedTransforms.HasFlag(SurfaceTransformFlagsKHR.IdentityBitKhr))
         {
-            swapChainFrameBuffer.CreateFrameBuffers(Desc.Surface.Width, Desc.Surface.Height, Desc.Surface.Handles);
+            preTransform = SurfaceTransformFlagsKHR.IdentityBitKhr;
         }
+
+        CompositeAlphaFlagsKHR compositeAlpha = CompositeAlphaFlagsKHR.InheritBitKhr;
+        if (capabilities.SupportedCompositeAlpha.HasFlag(CompositeAlphaFlagsKHR.OpaqueBitKhr))
+        {
+            compositeAlpha = CompositeAlphaFlagsKHR.OpaqueBitKhr;
+        }
+
+        PresentModeKHR presentMode = PresentModeKHR.FifoKhr;
+        foreach (PresentModeKHR item in new ReadOnlySpan<PresentModeKHR>(presentModes, (int)presentModeCount))
+        {
+            if (item is PresentModeKHR.MailboxKhr)
+            {
+                presentMode = PresentModeKHR.MailboxKhr;
+
+                break;
+            }
+        }
+
+        SwapchainCreateInfoKHR createInfo = new()
+        {
+            SType = StructureType.SwapchainCreateInfoKhr,
+            Surface = Surface,
+            MinImageCount = minImageCount,
+            ImageFormat = surfaceFormat.Format,
+            ImageColorSpace = surfaceFormat.ColorSpace,
+            ImageExtent = new()
+            {
+                Width = uint.Clamp(capabilities.MinImageExtent.Width, Desc.Surface.Width, capabilities.MaxImageExtent.Width),
+                Height = uint.Clamp(capabilities.MinImageExtent.Height, Desc.Surface.Height, capabilities.MaxImageExtent.Height)
+            },
+            ImageArrayLayers = 1,
+            ImageUsage = ImageUsageFlags.TransferDstBit | ImageUsageFlags.ColorAttachmentBit,
+            ImageSharingMode = Context.QueueFamilies.SharingMode,
+            QueueFamilyIndexCount = Context.QueueFamilies.IndexCount,
+            PQueueFamilyIndices = Context.QueueFamilies.Indices,
+            PreTransform = preTransform,
+            CompositeAlpha = compositeAlpha,
+            PresentMode = presentMode,
+            Clipped = true
+        };
+
+        Context.Swapchain?.CreateSwapchain(Context.Device, &createInfo, default, out Swapchain).Success();
     }
 
     private void DestroySwapChain()
     {
-        swapChainFrameBuffer.DestroyFrameBuffers();
+        Context.Swapchain?.DestroySwapchain(Context.Device, Swapchain, default);
+        Context.Surface?.DestroySurface(Context.Instance, Surface, default);
 
-        if (Swapchain.Handle is not 0)
+        index = 0;
+    }
+
+    private void CreateTextures()
+    {
+        using ZenithMarshal.Scope scope = new();
+
+        uint swapchainImageCount = 0;
+        Context.Swapchain?.GetSwapchainImages(Context.Device, Swapchain, &swapchainImageCount, default).Success();
+
+        Image* swapchainImages = (Image*)ZenithMarshal.Allocate<Image>(scope, swapchainImageCount);
+        Context.Swapchain?.GetSwapchainImages(Context.Device, Swapchain, &swapchainImageCount, swapchainImages).Success();
+
+        TextureDesc desc = new()
         {
-            Context.Swapchain?.DestroySwapchain(Context.Device, Swapchain, null);
+            Type = TextureType.Texture2D,
+            Format = Desc.Format,
+            Width = Desc.Surface.Width,
+            Height = Desc.Surface.Height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Usages = TextureUsages.ColorAttachment | TextureUsages.TransferDst
+        };
 
-            Swapchain = default;
+        textures = new VKTexture[swapchainImageCount];
+        for (uint i = 0; i < swapchainImageCount; i++)
+        {
+            textures[i] = new(Context, desc, swapchainImages[i], new(default, 0, false, false));
         }
+    }
 
-        ImageIndex = 0;
+    private void DestroyTextures()
+    {
+        for (int i = 0; i < textures.Length; i++)
+        {
+            textures[i].Dispose();
+        }
     }
 
     private void AcquireNextImage()
     {
-        fixed (uint* pImageIndex = &ImageIndex)
-        {
-            (Context.Swapchain?.AcquireNextImage(Context.Device, Swapchain, ulong.MaxValue, default, fence.Fence, pImageIndex) ?? Result.ErrorInitializationFailed).Success();
+        Context.Swapchain?.AcquireNextImage(Context.Device, Swapchain, ulong.MaxValue, default, fence.Fence, ref index).Success();
 
-            fence.Wait();
-        }
+        fence.Wait();
     }
 }

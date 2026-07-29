@@ -2,168 +2,147 @@
 
 public abstract class GraphicsContext : DisposableObject
 {
-    public const uint ConstantBufferAlignment = 256;
-
-    public const uint TextureRowPitchAlignment = 256;
-
-    public const uint TextureDepthPitchAlignment = 512;
-
-    protected GraphicsContext(Backend backend, bool useValidationLayer)
+    protected GraphicsContext(GraphicsApi graphicsApi, bool useValidationLayer)
     {
-        Backend = backend;
+        GraphicsApi = graphicsApi;
 
         Initialize(useValidationLayer,
                    out Capabilities capabilities,
-                   out CommandQueue graphics,
-                   out CommandQueue compute,
-                   out CommandQueue copy,
+                   out CommandQueue graphicsQueue,
+                   out CommandQueue computeQueue,
+                   out CommandQueue transferQueue,
                    out ValidationLayer? validationLayer);
 
         Capabilities = capabilities;
-        Graphics = graphics;
-        Compute = compute;
-        Copy = copy;
+        GraphicsQueue = graphicsQueue;
+        ComputeQueue = computeQueue;
+        TransferQueue = transferQueue;
         ValidationLayer = validationLayer;
 
         Uploader = new(this);
+        Downloader = new(this);
     }
 
-    public Backend Backend { get; }
+    public GraphicsApi GraphicsApi { get; }
 
     public Capabilities Capabilities { get; }
 
-    public CommandQueue Graphics { get; }
+    public CommandQueue GraphicsQueue { get; }
 
-    public CommandQueue Compute { get; }
+    public CommandQueue ComputeQueue { get; }
 
-    public CommandQueue Copy { get; }
+    public CommandQueue TransferQueue { get; }
 
     internal ValidationLayer? ValidationLayer { get; }
 
     internal Uploader Uploader { get; }
 
-    public event EventHandler<ValidationMessageArgs>? ValidationMessage;
+    internal Downloader Downloader { get; }
+
+    public event EventHandler<ValidationMessageEventArgs>? ValidationMessage;
 
     public SwapChain CreateSwapChain(SwapChainDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateSwapChainImpl(desc);
     }
 
-    public FrameBuffer CreateFrameBuffer(FrameBufferDesc desc)
+    public Heap CreateHeap(HeapDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
-        return CreateFrameBufferImpl(desc);
+        return CreateHeapImpl(desc);
     }
 
-    public Shader CreateShader(ShaderDesc desc)
+    public SizeAndAlignment GetSizeAndAlignment(BufferDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
+        return GetSizeAndAlignmentImpl(desc);
+    }
 
-        return CreateShaderImpl(desc);
+    public SizeAndAlignment GetSizeAndAlignment(TextureDesc desc)
+    {
+        return GetSizeAndAlignmentImpl(desc);
     }
 
     public Buffer CreateBuffer(BufferDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateBufferImpl(desc);
     }
 
     public BufferView CreateBufferView(BufferViewDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateBufferViewImpl(desc);
     }
 
     public Texture CreateTexture(TextureDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateTextureImpl(desc);
+    }
+
+    public Texture CreateTexture(TextureDesc desc, NativeTextureType nativeTextureType, nint nativeTexture)
+    {
+        return CreateTextureImpl(desc, nativeTextureType, nativeTexture);
     }
 
     public TextureView CreateTextureView(TextureViewDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateTextureViewImpl(desc);
     }
 
     public Sampler CreateSampler(SamplerDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateSamplerImpl(desc);
     }
 
-    public ResourceLayout CreateResourceLayout(ResourceLayoutDesc desc)
+    public Shader CreateShader(ShaderDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
-        return CreateResourceLayoutImpl(desc);
-    }
-
-    public ResourceTable CreateResourceTable(ResourceTableDesc desc)
-    {
-        ValidationLayer?.ValidateDesc(desc);
-
-        return CreateResourceTableImpl(desc);
+        return CreateShaderImpl(desc);
     }
 
     public GraphicsPipeline CreateGraphicsPipeline(GraphicsPipelineDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateGraphicsPipelineImpl(desc);
     }
 
     public ComputePipeline CreateComputePipeline(ComputePipelineDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateComputePipelineImpl(desc);
     }
 
     public MeshShadingPipeline CreateMeshShadingPipeline(MeshShadingPipelineDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateMeshShadingPipelineImpl(desc);
     }
 
     public QueryHeap CreateQueryHeap(QueryHeapDesc desc)
     {
-        ValidationLayer?.ValidateDesc(desc);
-
         return CreateQueryHeapImpl(desc);
     }
 
+    public abstract nint GetNativeObject(NativeObjectType type);
+
     protected override void Destroy()
     {
-        Graphics.Dispose();
-        Compute.Dispose();
-        Copy.Dispose();
+        GraphicsQueue.Dispose();
+        ComputeQueue.Dispose();
+        TransferQueue.Dispose();
         ValidationLayer?.Dispose();
 
         Uploader.Dispose();
+        Downloader.Dispose();
     }
 
     protected abstract void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
-                                       out CommandQueue graphics,
-                                       out CommandQueue compute,
-                                       out CommandQueue copy,
+                                       out CommandQueue graphicsQueue,
+                                       out CommandQueue computeQueue,
+                                       out CommandQueue transferQueue,
                                        out ValidationLayer? validationLayer);
 
     protected abstract SwapChain CreateSwapChainImpl(SwapChainDesc desc);
 
-    protected abstract FrameBuffer CreateFrameBufferImpl(FrameBufferDesc desc);
+    protected abstract Heap CreateHeapImpl(HeapDesc desc);
 
-    protected abstract Shader CreateShaderImpl(ShaderDesc desc);
+    protected abstract SizeAndAlignment GetSizeAndAlignmentImpl(BufferDesc desc);
+
+    protected abstract SizeAndAlignment GetSizeAndAlignmentImpl(TextureDesc desc);
 
     protected abstract Buffer CreateBufferImpl(BufferDesc desc);
 
@@ -171,13 +150,13 @@ public abstract class GraphicsContext : DisposableObject
 
     protected abstract Texture CreateTextureImpl(TextureDesc desc);
 
+    protected abstract Texture CreateTextureImpl(TextureDesc desc, NativeTextureType nativeTextureType, nint nativeTexture);
+
     protected abstract TextureView CreateTextureViewImpl(TextureViewDesc desc);
 
     protected abstract Sampler CreateSamplerImpl(SamplerDesc desc);
 
-    protected abstract ResourceLayout CreateResourceLayoutImpl(ResourceLayoutDesc desc);
-
-    protected abstract ResourceTable CreateResourceTableImpl(ResourceTableDesc desc);
+    protected abstract Shader CreateShaderImpl(ShaderDesc desc);
 
     protected abstract GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc);
 
@@ -187,7 +166,7 @@ public abstract class GraphicsContext : DisposableObject
 
     protected abstract QueryHeap CreateQueryHeapImpl(QueryHeapDesc desc);
 
-    internal void OnValidationMessage(ValidationMessageArgs args)
+    internal void OnValidationMessage(ValidationMessageEventArgs args)
     {
         ValidationMessage?.Invoke(this, args);
     }

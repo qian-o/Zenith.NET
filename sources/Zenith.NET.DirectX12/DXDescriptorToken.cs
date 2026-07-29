@@ -2,23 +2,18 @@
 
 namespace Zenith.NET.DirectX12;
 
-internal record struct DXDescriptorToken : IDisposable
+internal readonly struct DXDescriptorToken(DXDescriptorHeap heap, uint slot) : IDisposable
 {
-    public DXDescriptorPool Pool;
+    public readonly uint Slot = slot;
 
-    public CpuDescriptorHandle Handle;
+    public readonly ResourceHandle ResourceHandle = new(slot, 0);
 
-    public uint Length;
+    public readonly CpuDescriptorHandle CpuHandle = new() { Ptr = heap.CpuStartHandle.Ptr + (slot * heap.IncrementSize) };
 
-    public readonly CpuDescriptorHandle this[uint index] => index >= Length ? default : new(Handle.Ptr + (Pool.DescriptorSize * index));
+    public readonly GpuDescriptorHandle GpuHandle = new() { Ptr = heap.GpuStartHandle.Ptr + (slot * heap.IncrementSize) };
 
-    public readonly void Dispose()
+    public void Dispose()
     {
-        if (Length is 0)
-        {
-            return;
-        }
-
-        Pool.Free(Handle, Length);
+        heap.Free(this);
     }
 }

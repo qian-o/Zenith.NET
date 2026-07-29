@@ -26,35 +26,19 @@ public static class Extensions
         }
     }
 
-    extension(CommandBuffer commandBuffer)
+    extension(ulong value)
     {
-        internal MTLCommandBuffer Metal()
+        internal ResourceHandle ToHandle()
         {
-            return (MTLCommandBuffer)commandBuffer;
+            return new((uint)value, (uint)(value >> 32));
         }
     }
 
-    extension(SwapChain swapChain)
+    extension(BottomLevelAccelerationStructure bottomLevelAccelerationStructure)
     {
-        internal MTLSwapChain Metal()
+        internal MTLBottomLevelAccelerationStructure Metal()
         {
-            return (MTLSwapChain)swapChain;
-        }
-    }
-
-    extension(FrameBuffer frameBuffer)
-    {
-        internal MTLFrameBuffer Metal()
-        {
-            return (MTLFrameBuffer)frameBuffer;
-        }
-    }
-
-    extension(Shader shader)
-    {
-        internal MTLShader Metal()
-        {
-            return (MTLShader)shader;
+            return (MTLBottomLevelAccelerationStructure)bottomLevelAccelerationStructure;
         }
     }
 
@@ -74,59 +58,35 @@ public static class Extensions
         }
     }
 
-    extension(Texture texture)
+    extension(CommandBuffer commandBuffer)
     {
-        internal MTLTexture Metal()
+        internal MTLCommandBuffer Metal()
         {
-            return (MTLTexture)texture;
+            return (MTLCommandBuffer)commandBuffer;
         }
     }
 
-    extension(TextureView textureView)
+    extension(CommandQueue commandQueue)
     {
-        internal MTLTextureView Metal()
+        internal MTLCommandQueue Metal()
         {
-            return (MTLTextureView)textureView;
+            return (MTLCommandQueue)commandQueue;
         }
     }
 
-    extension(Sampler sampler)
+    extension(Timeline timeline)
     {
-        internal MTLSampler Metal()
+        internal MTLTimeline Metal()
         {
-            return (MTLSampler)sampler;
+            return (MTLTimeline)timeline;
         }
     }
 
-    extension(BottomLevelAccelerationStructure bottomLevelAccelerationStructure)
+    extension(ComputePipeline computePipeline)
     {
-        internal MTLBottomLevelAccelerationStructure Metal()
+        internal MTLComputePipeline Metal()
         {
-            return (MTLBottomLevelAccelerationStructure)bottomLevelAccelerationStructure;
-        }
-    }
-
-    extension(TopLevelAccelerationStructure topLevelAccelerationStructure)
-    {
-        internal MTLTopLevelAccelerationStructure Metal()
-        {
-            return (MTLTopLevelAccelerationStructure)topLevelAccelerationStructure;
-        }
-    }
-
-    extension(ResourceLayout resourceLayout)
-    {
-        internal MTLResourceLayout Metal()
-        {
-            return (MTLResourceLayout)resourceLayout;
-        }
-    }
-
-    extension(ResourceTable resourceTable)
-    {
-        internal MTLResourceTable Metal()
-        {
-            return (MTLResourceTable)resourceTable;
+            return (MTLComputePipeline)computePipeline;
         }
     }
 
@@ -138,11 +98,11 @@ public static class Extensions
         }
     }
 
-    extension(ComputePipeline computePipeline)
+    extension(Heap heap)
     {
-        internal MTLComputePipeline Metal()
+        internal MTLHeap Metal()
         {
-            return (MTLComputePipeline)computePipeline;
+            return (MTLHeap)heap;
         }
     }
 
@@ -159,6 +119,54 @@ public static class Extensions
         internal MTLQueryHeap Metal()
         {
             return (MTLQueryHeap)queryHeap;
+        }
+    }
+
+    extension(Sampler sampler)
+    {
+        internal MTLSampler Metal()
+        {
+            return (MTLSampler)sampler;
+        }
+    }
+
+    extension(Shader shader)
+    {
+        internal MTLShader Metal()
+        {
+            return (MTLShader)shader;
+        }
+    }
+
+    extension(SwapChain swapChain)
+    {
+        internal MTLSwapChain Metal()
+        {
+            return (MTLSwapChain)swapChain;
+        }
+    }
+
+    extension(Texture texture)
+    {
+        internal MTLTexture Metal()
+        {
+            return (MTLTexture)texture;
+        }
+    }
+
+    extension(TextureView textureView)
+    {
+        internal MTLTextureView Metal()
+        {
+            return (MTLTextureView)textureView;
+        }
+    }
+
+    extension(TopLevelAccelerationStructure topLevelAccelerationStructure)
+    {
+        internal MTLTopLevelAccelerationStructure Metal()
+        {
+            return (MTLTopLevelAccelerationStructure)topLevelAccelerationStructure;
         }
     }
 }

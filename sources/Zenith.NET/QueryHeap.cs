@@ -8,11 +8,6 @@ public abstract class QueryHeap(GraphicsContext context, QueryHeapDesc desc) : G
 
     public void GetResults(Span<ulong> results, uint startIndex)
     {
-        if (results.Length is 0)
-        {
-            return;
-        }
-
         GetResultsImpl(results, startIndex);
     }
 

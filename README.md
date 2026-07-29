@@ -5,46 +5,53 @@
 <h1 align="center">Zenith.NET</h1>
 
 <p align="center">
-  A modern, cross-platform graphics and compute library for .NET.<br/>
-  One API for DirectX 12, Metal 4, and Vulkan 1.4.
+  A modern rendering hardware interface for .NET.<br/>
+  One consistent C# API for graphics and compute across DirectX 12, Metal 4, and Vulkan 1.4.
 </p>
 
 <p align="center">
   <a href="https://www.nuget.org/packages/Zenith.NET"><img src="https://img.shields.io/nuget/v/Zenith.NET.svg?style=flat-square" alt="NuGet"></a>
-  <a href="https://github.com/qian-o/Zenith.NET/blob/master/LICENSE"><img src="https://img.shields.io/github/license/qian-o/Zenith.NET?style=flat-square" alt="License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/qian-o/Zenith.NET?style=flat-square" alt="License"></a>
 </p>
 
 ---
 
-## 📖 Overview
+## Overview
 
-Zenith.NET is a GPU abstraction layer that unifies DirectX 12, Metal 4, and Vulkan 1.4 under a single .NET API. It enables developers to build high-performance rendering and compute applications without writing backend-specific code. The library supports modern GPU features including ray tracing and mesh shading, and integrates seamlessly with popular .NET UI frameworks.
+Zenith.NET provides a consistent C# API for resources, pipelines, command recording, synchronization, and presentation across DirectX 12, Metal 4, and Vulkan 1.4.
 
-Visit the [documentation site](https://qian-o.github.io/Zenith.NET/) for tutorials and API reference.
+The RHI exposes rasterization, compute, and indirect commands. Inline Ray Tracing and mesh shading are optional; check `Capabilities.RayTracingSupported` and `Capabilities.MeshShadingSupported` before use. Bindless resource handles expose shader resources, while queues, barriers, and texture layouts express ordering and access dependencies.
 
-## ✨ Features
+## Get Started
 
-- 🎯 **Unified API** — Write once, run on DirectX 12, Metal 4, and Vulkan 1.4
-- 🎨 **Graphics** — Vertex and pixel shaders
-- ⚡ **Compute** — General-purpose GPU computing
-- 💡 **Ray Tracing** — Hardware-accelerated BLAS/TLAS with RayQuery in any shader stage
-- 🔷 **Mesh Shading** — GPU-driven geometry with mesh and amplification shaders
-- 🖼️ **UI Integrations** — Avalonia, MAUI, WinForms, WinUI, WPF, and Uno Platform
+Install the core package and one graphics API package:
 
----
+```powershell
+dotnet add package Zenith.NET
+dotnet add package Zenith.NET.Vulkan
+```
 
-## 🌍 Platform Support
+Create a graphics context in C#:
+
+```csharp
+using Zenith.NET;
+using Zenith.NET.Vulkan;
+
+using GraphicsContext context = GraphicsContext.CreateVulkan(useValidationLayer: true);
+```
+
+Continue with the [RHI Guide](https://qian-o.github.io/Zenith.NET/docs/) or build the examples in the [Tutorials](https://qian-o.github.io/Zenith.NET/tutorials/).
+
+## Platform Support
 
 |           | DirectX 12 | Metal 4 | Vulkan 1.4 |
 | :-------: | :--------: | :-----: | :--------: |
-| Windows   | ✅ |  | ✅ |
-| Apple     |  | ✅ | ✅ |
-| Android   |  |  | ✅ |
-| Linux     |  |  | ✅ |
+| Windows   | Yes |  | Yes |
+| Apple     |  | Yes | Yes |
+| Android   |  |  | Yes |
+| Linux     |  |  | Yes |
 
----
-
-## 📦 NuGet Packages
+## Packages
 
 ### Core
 
@@ -61,7 +68,6 @@ Visit the [documentation site](https://qian-o.github.io/Zenith.NET/) for tutoria
 [![ImageSharp](https://img.shields.io/nuget/v/Zenith.NET.Extensions.ImageSharp.svg?label=ImageSharp&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Extensions.ImageSharp)
 [![ImGui](https://img.shields.io/nuget/v/Zenith.NET.Extensions.ImGui.svg?label=ImGui&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Extensions.ImGui)
 [![Skia](https://img.shields.io/nuget/v/Zenith.NET.Extensions.Skia.svg?label=Skia&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Extensions.Skia)
-[![Slang](https://img.shields.io/nuget/v/Zenith.NET.Extensions.Slang.svg?label=Slang&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Extensions.Slang)
 
 ### Views
 
@@ -71,3 +77,9 @@ Visit the [documentation site](https://qian-o.github.io/Zenith.NET/) for tutoria
 [![WinForms](https://img.shields.io/nuget/v/Zenith.NET.Views.WinForms.svg?label=WinForms&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Views.WinForms)
 [![WinUI](https://img.shields.io/nuget/v/Zenith.NET.Views.WinUI.svg?label=WinUI&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Views.WinUI)
 [![WPF](https://img.shields.io/nuget/v/Zenith.NET.Views.WPF.svg?label=WPF&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Views.WPF)
+
+## Documentation
+
+- [RHI Guide](https://qian-o.github.io/Zenith.NET/docs/)
+- [Tutorials](https://qian-o.github.io/Zenith.NET/tutorials/)
+- [API Reference](https://qian-o.github.io/Zenith.NET/api/)

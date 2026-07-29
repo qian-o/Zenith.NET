@@ -4,7 +4,7 @@ namespace Zenith.NET.Vulkan;
 
 internal unsafe class VKValidationLayer : ValidationLayer
 {
-    private readonly PfnDebugUtilsMessengerCallbackEXT pfnUserCallback;
+    private readonly PfnDebugUtilsMessengerCallbackEXT callback;
     private readonly DebugUtilsMessengerEXT messenger;
 
     public VKValidationLayer(VKGraphicsContext context) : base(context)
@@ -19,13 +19,18 @@ internal unsafe class VKValidationLayer : ValidationLayer
             MessageType = DebugUtilsMessageTypeFlagsEXT.GeneralBitExt
                           | DebugUtilsMessageTypeFlagsEXT.ValidationBitExt
                           | DebugUtilsMessageTypeFlagsEXT.PerformanceBitExt,
-            PfnUserCallback = pfnUserCallback = new(UserCallback)
+            PfnUserCallback = callback = new(Callback)
         };
 
-        context.DebugUtils?.CreateDebugUtilsMessenger(context.Instance, &createInfo, null, out messenger).Success();
+        context.DebugUtils?.CreateDebugUtilsMessenger(context.Instance, &createInfo, default, out messenger).Success();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
 
     protected override void SetResourceName(string name)
     {
@@ -33,22 +38,19 @@ internal unsafe class VKValidationLayer : ValidationLayer
 
     protected override void Destroy()
     {
-        Context.DebugUtils?.DestroyDebugUtilsMessenger(Context.Instance, messenger, null);
+        Context.DebugUtils?.DestroyDebugUtilsMessenger(Context.Instance, messenger, default);
 
-        pfnUserCallback.Dispose();
+        callback.Dispose();
     }
 
-    private uint UserCallback(DebugUtilsMessageSeverityFlagsEXT messageSeverity,
-                              DebugUtilsMessageTypeFlagsEXT messageTypes,
-                              DebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                              void* pUserData)
+    private uint Callback(DebugUtilsMessageSeverityFlagsEXT severity, DebugUtilsMessageTypeFlagsEXT types, DebugUtilsMessengerCallbackDataEXT* callbackData, void* userData)
     {
-        Report(MessageSource.GraphicsAPI, messageSeverity switch
+        Report(severity switch
         {
             DebugUtilsMessageSeverityFlagsEXT.ErrorBitExt => MessageSeverity.Error,
             DebugUtilsMessageSeverityFlagsEXT.WarningBitExt => MessageSeverity.Warning,
-            _ => MessageSeverity.Message
-        }, ZenithMarshal.StringFromPointer((nint)pCallbackData->PMessage, StringEncoding.UTF8));
+            _ => MessageSeverity.Info
+        }, ZenithMarshal.StringFromPointer((nint)callbackData->PMessage, StringEncoding.UTF8));
 
         return Vk.False;
     }

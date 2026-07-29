@@ -1,12 +1,13 @@
 ﻿using Silk.NET.Core;
 using Silk.NET.Core.Contexts;
 using Silk.NET.Vulkan;
+using Silk.NET.Vulkan.Extensions.ANDROID;
 using Silk.NET.Vulkan.Extensions.EXT;
 using Silk.NET.Vulkan.Extensions.KHR;
 
 namespace Zenith.NET.Vulkan;
 
-internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsContext(Backend.Vulkan, useValidationLayer)
+internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsContext(GraphicsApi.Vulkan, useValidationLayer)
 {
     private static readonly string[] InstanceLayers =
     [
@@ -16,22 +17,28 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
     private static readonly string[] InstanceExtensions =
     [
         ExtDebugUtils.ExtensionName,
-        KhrSurface.ExtensionName,
-        KhrWin32Surface.ExtensionName,
-        KhrWaylandSurface.ExtensionName,
-        KhrXlibSurface.ExtensionName,
+        ExtMetalSurface.ExtensionName,
         KhrAndroidSurface.ExtensionName,
-        ExtMetalSurface.ExtensionName
+        KhrSurface.ExtensionName,
+        KhrWaylandSurface.ExtensionName,
+        KhrWin32Surface.ExtensionName,
+        KhrXlibSurface.ExtensionName
     ];
 
     private static readonly string[] DeviceExtensions =
     [
-        KhrSwapchain.ExtensionName,
-        KhrExternalMemoryWin32.ExtensionName,
-        KhrRayQuery.ExtensionName,
+        AndroidExternalMemoryAndroidHardwareBuffer.ExtensionName,
+        ExtDescriptorHeap.ExtensionName,
+        ExtMeshShader.ExtensionName,
+        ExtMetalObjects.ExtensionName,
         KhrAccelerationStructure.ExtensionName,
         KhrDeferredHostOperations.ExtensionName,
-        ExtMeshShader.ExtensionName
+        KhrExternalMemoryFd.ExtensionName,
+        KhrExternalMemoryWin32.ExtensionName,
+        KhrFragmentShadingRate.ExtensionName,
+        KhrRayQuery.ExtensionName,
+        KhrShaderUntypedPointers.ExtensionName,
+        KhrSwapchain.ExtensionName
     ];
 
     public Instance Instance;
@@ -40,78 +47,96 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public Device Device;
 
-    public Queue GraphicsQueue;
-
-    public Queue ComputeQueue;
-
-    public Queue CopyQueue;
-
     public Vk Vk { get; } = Vk.GetApi();
-
-    public VKDescriptorAllocator DescriptorAllocator => field ??= new(this);
 
     public ExtDebugUtils? DebugUtils { get; private set; }
 
-    public KhrSurface? Surface { get; private set; }
-
-    public KhrWin32Surface? Win32Surface { get; private set; }
-
-    public KhrWaylandSurface? WaylandSurface { get; private set; }
-
-    public KhrXlibSurface? XlibSurface { get; private set; }
+    public ExtMetalSurface? MetalSurface { get; private set; }
 
     public KhrAndroidSurface? AndroidSurface { get; private set; }
 
-    public ExtMetalSurface? MetalSurface { get; private set; }
+    public KhrSurface? Surface { get; private set; }
 
-    public uint[] QueueFamilyIndices { get; private set; } = [];
+    public KhrWaylandSurface? WaylandSurface { get; private set; }
 
-    public KhrSwapchain? Swapchain { get; private set; }
+    public KhrWin32Surface? Win32Surface { get; private set; }
 
-    public KhrExternalMemoryWin32? ExternalMemoryWin32 { get; private set; }
+    public KhrXlibSurface? XlibSurface { get; private set; }
+
+    public AndroidExternalMemoryAndroidHardwareBuffer? ExternalMemoryAndroidHardwareBuffer { get; private set; }
+
+    public ExtDescriptorHeap? DescriptorHeap { get; private set; }
+
+    public ExtMeshShader? MeshShader { get; private set; }
+
+    public ExtMetalObjects? MetalObjects { get; private set; }
 
     public KhrAccelerationStructure? AccelerationStructure { get; private set; }
 
     public KhrDeferredHostOperations? DeferredHostOperations { get; private set; }
 
-    public ExtMeshShader? MeshShader { get; private set; }
+    public KhrExternalMemoryFd? ExternalMemoryFd { get; private set; }
 
-    public (SharingMode SharingMode, uint QueueFamilyIndexCount, nint PQueueFamilyIndices) GetSharingModeInfo(ZenithMarshal.Scope scope)
-    {
-        if (QueueFamilyIndices.Length is 1)
-        {
-            return (SharingMode.Exclusive, 0, 0);
-        }
-        else
-        {
-            return (SharingMode.Concurrent, (uint)QueueFamilyIndices.Length, ZenithMarshal.AllocateAndFill(scope, QueueFamilyIndices));
-        }
-    }
+    public KhrExternalMemoryWin32? ExternalMemoryWin32 { get; private set; }
 
-    public uint FindMemoryTypeIndex(uint memoryTypeBits, MemoryPropertyFlags flags)
+    public KhrFragmentShadingRate? FragmentShadingRate { get; private set; }
+
+    public KhrSwapchain? Swapchain { get; private set; }
+
+    public QueueFamilies QueueFamilies { get; private set; }
+
+    public VKDescriptorHeap ResourceHeap => field ??= VKDescriptorHeap.CreateResourceHeap(this, 200000, 800000);
+
+    public VKDescriptorHeap SamplerHeap => field ??= VKDescriptorHeap.CreateSamplerHeap(this, 2048);
+
+    public uint FindMemoryTypeIndex(uint memoryTypeBits, MemoryResidency residency)
     {
         PhysicalDeviceMemoryProperties properties;
         Vk.GetPhysicalDeviceMemoryProperties(PhysicalDevice, &properties);
 
-        uint index = 0;
-        foreach (MemoryType memoryType in properties.MemoryTypes.AsSpan())
+        MemoryPropertyFlags[] candidates = residency switch
         {
-            if ((memoryTypeBits & (1 << (int)index)) is not 0 && memoryType.PropertyFlags.HasFlag(flags))
-            {
-                break;
-            }
+            MemoryResidency.GpuOnly =>
+            [
+                MemoryPropertyFlags.DeviceLocalBit
+            ],
+            MemoryResidency.CpuWriteOnly =>
+            [
+                MemoryPropertyFlags.DeviceLocalBit | MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit,
+                MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit
+            ],
+            MemoryResidency.CpuReadOnly =>
+            [
+                MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit | MemoryPropertyFlags.HostCachedBit,
+                MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit
+            ],
+            _ => []
+        };
 
-            index++;
+        foreach (MemoryPropertyFlags propertyFlags in candidates)
+        {
+            for (uint index = 0; index < properties.MemoryTypeCount; index++)
+            {
+                if ((memoryTypeBits & (1u << (int)index)) is not 0 && (properties.MemoryTypes[(int)index].PropertyFlags & propertyFlags) == propertyFlags)
+                {
+                    return index;
+                }
+            }
         }
 
-        return index;
+        return 0;
+    }
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
     }
 
     protected override void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
-                                       out CommandQueue graphics,
-                                       out CommandQueue compute,
-                                       out CommandQueue copy,
+                                       out CommandQueue graphicsQueue,
+                                       out CommandQueue computeQueue,
+                                       out CommandQueue transferQueue,
                                        out ValidationLayer? validationLayer)
     {
         Version32 apiVersion = new(1, 4, 0);
@@ -121,10 +146,10 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         // Create instance
         {
             uint extensionCount = 0;
-            Vk.EnumerateInstanceExtensionProperties((byte*)null, &extensionCount, (ExtensionProperties*)null).Success();
+            Vk.EnumerateInstanceExtensionProperties(default(byte*), &extensionCount, default).Success();
 
             ExtensionProperties* extensions = (ExtensionProperties*)ZenithMarshal.Allocate<ExtensionProperties>(scope, extensionCount);
-            Vk.EnumerateInstanceExtensionProperties((byte*)null, &extensionCount, extensions).Success();
+            Vk.EnumerateInstanceExtensionProperties(default(byte*), &extensionCount, extensions).Success();
 
             string[] enabledExtensions = [.. new ReadOnlySpan<ExtensionProperties>(extensions, (int)extensionCount).ToArray().Select(static item => ZenithMarshal.StringFromPointer((nint)item.ExtensionName, StringEncoding.UTF8))];
             enabledExtensions = [.. enabledExtensions.Intersect(InstanceExtensions)];
@@ -133,9 +158,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             {
                 SType = StructureType.ApplicationInfo,
                 PApplicationName = (byte*)ZenithMarshal.StringToPointer(scope, AppDomain.CurrentDomain.FriendlyName, StringEncoding.UTF8),
-                ApplicationVersion = new Version32(1, 0, 0),
                 PEngineName = (byte*)ZenithMarshal.StringToPointer(scope, "Zenith.NET", StringEncoding.UTF8),
-                EngineVersion = new Version32(1, 0, 0),
                 ApiVersion = apiVersion
             };
 
@@ -150,7 +173,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             if (useValidationLayer)
             {
                 uint layerCount = 0;
-                Vk.EnumerateInstanceLayerProperties(&layerCount, (LayerProperties*)null).Success();
+                Vk.EnumerateInstanceLayerProperties(&layerCount, default).Success();
 
                 LayerProperties* layers = (LayerProperties*)ZenithMarshal.Allocate<LayerProperties>(scope, layerCount);
                 Vk.EnumerateInstanceLayerProperties(&layerCount, layers).Success();
@@ -162,23 +185,25 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                 createInfo.PpEnabledLayerNames = (byte**)ZenithMarshal.StringArrayToPointer(scope, enabledLayers, StringEncoding.UTF8);
             }
 
-            Vk.CreateInstance(&createInfo, null, out Instance).Success();
+            Vk.CreateInstance(&createInfo, default, out Instance).Success();
 
             LamdaNativeContext context = new(proc => Vk.GetInstanceProcAddr(Instance, (byte*)ZenithMarshal.StringToPointer(scope, proc, StringEncoding.UTF8)));
 
             DebugUtils = enabledExtensions.Contains(ExtDebugUtils.ExtensionName) ? new(context) : null;
-            Surface = enabledExtensions.Contains(KhrSurface.ExtensionName) ? new(context) : null;
-            Win32Surface = enabledExtensions.Contains(KhrWin32Surface.ExtensionName) ? new(context) : null;
-            WaylandSurface = enabledExtensions.Contains(KhrWaylandSurface.ExtensionName) ? new(context) : null;
-            XlibSurface = enabledExtensions.Contains(KhrXlibSurface.ExtensionName) ? new(context) : null;
-            AndroidSurface = enabledExtensions.Contains(KhrAndroidSurface.ExtensionName) ? new(context) : null;
             MetalSurface = enabledExtensions.Contains(ExtMetalSurface.ExtensionName) ? new(context) : null;
+            AndroidSurface = enabledExtensions.Contains(KhrAndroidSurface.ExtensionName) ? new(context) : null;
+            Surface = enabledExtensions.Contains(KhrSurface.ExtensionName) ? new(context) : null;
+            WaylandSurface = enabledExtensions.Contains(KhrWaylandSurface.ExtensionName) ? new(context) : null;
+            Win32Surface = enabledExtensions.Contains(KhrWin32Surface.ExtensionName) ? new(context) : null;
+            XlibSurface = enabledExtensions.Contains(KhrXlibSurface.ExtensionName) ? new(context) : null;
         }
+
+        (Queue GraphicsQueue, uint GraphicsQueueFamilyIndex, Queue ComputeQueue, uint ComputeQueueFamilyIndex, Queue TransferQueue, uint TransferQueueFamilyIndex) queues = default;
 
         // Select physical device and create logical device
         {
             uint physicalDeviceCount = 0;
-            Vk.EnumeratePhysicalDevices(Instance, &physicalDeviceCount, (PhysicalDevice*)null).Success();
+            Vk.EnumeratePhysicalDevices(Instance, &physicalDeviceCount, default).Success();
 
             PhysicalDevice* physicalDevices = (PhysicalDevice*)ZenithMarshal.Allocate<PhysicalDevice>(scope, physicalDeviceCount);
             Vk.EnumeratePhysicalDevices(Instance, &physicalDeviceCount, physicalDevices).Success();
@@ -197,31 +222,58 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     continue;
                 }
 
-                ulong score = 0;
+                ulong score = properties.DeviceType switch
+                {
+                    PhysicalDeviceType.DiscreteGpu => 100000,
+                    PhysicalDeviceType.IntegratedGpu => 10000,
+                    PhysicalDeviceType.VirtualGpu => 1000,
+                    _ => 0
+                };
 
-                if (properties.DeviceType == PhysicalDeviceType.DiscreteGpu)
+                score += properties.Limits.MaxImageDimension2D;
+                score += properties.Limits.MaxImageDimension3D / 16;
+                score += properties.Limits.MaxImageArrayLayers;
+                score += properties.Limits.MaxComputeSharedMemorySize / 1024;
+                score += properties.Limits.MaxComputeWorkGroupInvocations;
+                score += properties.Limits.MaxSamplerAllocationCount / 1024;
+                score += properties.Limits.MaxStorageBufferRange / (1024 * 1024);
+                score += properties.Limits.MaxUniformBufferRange / 1024;
+                score += properties.Limits.MaxPushConstantsSize;
+
+                if (features.SamplerAnisotropy)
                 {
-                    score += 100000;
+                    score += 2000;
                 }
-                else if (properties.DeviceType == PhysicalDeviceType.IntegratedGpu)
-                {
-                    score += 10000;
-                }
-                else if (properties.DeviceType == PhysicalDeviceType.VirtualGpu)
+
+                if (features.MultiDrawIndirect)
                 {
                     score += 1000;
                 }
 
-                score += properties.Limits.MaxImageDimension2D / 1000;
-                score += properties.Limits.MaxMemoryAllocationCount / 1000;
-                score += properties.Limits.MaxComputeSharedMemorySize / 1024;
-                score += properties.Limits.MaxComputeWorkGroupInvocations / 64;
-                score += properties.Limits.MaxComputeWorkGroupCount[0] / 1024;
-                score += properties.Limits.MaxComputeWorkGroupCount[1] / 1024;
-                score += properties.Limits.MaxComputeWorkGroupCount[2] / 1024;
-                score += properties.Limits.MaxComputeWorkGroupSize[0] / 64;
-                score += properties.Limits.MaxComputeWorkGroupSize[1] / 64;
-                score += properties.Limits.MaxComputeWorkGroupSize[2] / 64;
+                if (features.DrawIndirectFirstInstance)
+                {
+                    score += 1000;
+                }
+
+                if (features.IndependentBlend)
+                {
+                    score += 500;
+                }
+
+                if (features.FillModeNonSolid)
+                {
+                    score += 250;
+                }
+
+                if (features.TextureCompressionBC)
+                {
+                    score += 500;
+                }
+
+                if (features.ShaderInt64)
+                {
+                    score += 250;
+                }
 
                 if (score > bestScore)
                 {
@@ -233,7 +285,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
             if (PhysicalDevice.Handle is 0)
             {
-                throw new NotSupportedException("No suitable Vulkan physical device found.");
+                throw new NotSupportedException("This device does not support Vulkan 1.4 or higher.");
             }
 
             uint graphicsQueueFamilyIndex = 0;
@@ -242,11 +294,11 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             uint computeQueueFamilyIndex = 0;
             uint computeQueueFamilyCount = 0;
 
-            uint copyQueueFamilyIndex = 0;
-            uint copyQueueFamilyCount = 0;
+            uint transferQueueFamilyIndex = 0;
+            uint transferQueueFamilyCount = 0;
 
             uint queueFamilyCount = 0;
-            Vk.GetPhysicalDeviceQueueFamilyProperties(PhysicalDevice, &queueFamilyCount, (QueueFamilyProperties*)null);
+            Vk.GetPhysicalDeviceQueueFamilyProperties(PhysicalDevice, &queueFamilyCount, default);
 
             QueueFamilyProperties* queueFamilies = (QueueFamilyProperties*)ZenithMarshal.Allocate<QueueFamilyProperties>(scope, queueFamilyCount);
             Vk.GetPhysicalDeviceQueueFamilyProperties(PhysicalDevice, &queueFamilyCount, queueFamilies);
@@ -264,20 +316,20 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     computeQueueFamilyIndex = index;
                     computeQueueFamilyCount = queueFamilyProperties.QueueCount;
                 }
-                else if (queueFamilyProperties.QueueFlags.HasFlag(QueueFlags.TransferBit) && queueFamilyProperties.QueueCount > copyQueueFamilyCount)
+                else if (queueFamilyProperties.QueueFlags.HasFlag(QueueFlags.TransferBit) && queueFamilyProperties.QueueCount > transferQueueFamilyCount)
                 {
-                    copyQueueFamilyIndex = index;
-                    copyQueueFamilyCount = queueFamilyProperties.QueueCount;
+                    transferQueueFamilyIndex = index;
+                    transferQueueFamilyCount = queueFamilyProperties.QueueCount;
                 }
 
                 index++;
             }
 
-            HashSet<uint> queueFamilyIndices = [graphicsQueueFamilyIndex, computeQueueFamilyIndex, copyQueueFamilyIndex];
+            HashSet<uint> queueFamilyIndices = [graphicsQueueFamilyIndex, computeQueueFamilyIndex, transferQueueFamilyIndex];
 
             uint queueCreateInfoCount;
             DeviceQueueCreateInfo* queueCreateInfos;
-            Func<(Queue GraphicsQueue, Queue ComputeQueue, Queue CopyQueue, uint[] QueueFamilyIndices)> getQueues;
+            Action loadQueues;
             if (queueFamilyIndices.Count is 3)
             {
                 queueCreateInfoCount = 3;
@@ -306,12 +358,12 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                 queueCreateInfos[2] = new()
                 {
                     SType = StructureType.DeviceQueueCreateInfo,
-                    QueueFamilyIndex = copyQueueFamilyIndex,
+                    QueueFamilyIndex = transferQueueFamilyIndex,
                     QueueCount = 1,
                     PQueuePriorities = queuePriorities
                 };
 
-                getQueues = () =>
+                loadQueues = () =>
                 {
                     Queue graphicsQueue = default;
                     Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
@@ -319,10 +371,10 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     Queue computeQueue = default;
                     Vk.GetDeviceQueue(Device, computeQueueFamilyIndex, 0, &computeQueue);
 
-                    Queue copyQueue = default;
-                    Vk.GetDeviceQueue(Device, copyQueueFamilyIndex, 0, &copyQueue);
+                    Queue transferQueue = default;
+                    Vk.GetDeviceQueue(Device, transferQueueFamilyIndex, 0, &transferQueue);
 
-                    return (graphicsQueue, computeQueue, copyQueue, [graphicsQueueFamilyIndex, computeQueueFamilyIndex, copyQueueFamilyIndex]);
+                    queues = (graphicsQueue, graphicsQueueFamilyIndex, computeQueue, computeQueueFamilyIndex, transferQueue, transferQueueFamilyIndex);
                 };
             }
             else if (graphicsQueueFamilyCount >= 3)
@@ -343,7 +395,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     PQueuePriorities = queuePriorities
                 };
 
-                getQueues = () =>
+                loadQueues = () =>
                 {
                     Queue graphicsQueue = default;
                     Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
@@ -351,10 +403,10 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     Queue computeQueue = default;
                     Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 1, &computeQueue);
 
-                    Queue copyQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 2, &copyQueue);
+                    Queue transferQueue = default;
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 2, &transferQueue);
 
-                    return (graphicsQueue, computeQueue, copyQueue, [graphicsQueueFamilyIndex]);
+                    queues = (graphicsQueue, graphicsQueueFamilyIndex, computeQueue, graphicsQueueFamilyIndex, transferQueue, graphicsQueueFamilyIndex);
                 };
             }
             else
@@ -373,20 +425,20 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     PQueuePriorities = queuePriorities
                 };
 
-                getQueues = () =>
+                loadQueues = () =>
                 {
                     Queue graphicsQueue = default;
                     Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
 
-                    return (graphicsQueue, graphicsQueue, graphicsQueue, [graphicsQueueFamilyIndex]);
+                    queues = (graphicsQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex);
                 };
             }
 
             uint extensionCount = 0;
-            Vk.EnumerateDeviceExtensionProperties(PhysicalDevice, (byte*)null, &extensionCount, (ExtensionProperties*)null).Success();
+            Vk.EnumerateDeviceExtensionProperties(PhysicalDevice, default(byte*), &extensionCount, default).Success();
 
             ExtensionProperties* extensions = (ExtensionProperties*)ZenithMarshal.Allocate<ExtensionProperties>(scope, extensionCount);
-            Vk.EnumerateDeviceExtensionProperties(PhysicalDevice, (byte*)null, &extensionCount, extensions).Success();
+            Vk.EnumerateDeviceExtensionProperties(PhysicalDevice, default(byte*), &extensionCount, extensions).Success();
 
             string[] enabledExtensions = [.. new ReadOnlySpan<ExtensionProperties>(extensions, (int)extensionCount).ToArray().Select(static item => ZenithMarshal.StringFromPointer((nint)item.ExtensionName, StringEncoding.UTF8))];
             enabledExtensions = [.. enabledExtensions.Intersect(DeviceExtensions)];
@@ -401,42 +453,67 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             };
 
             createInfo.AddNext(out PhysicalDeviceFeatures2 features2);
-            createInfo.AddNext(out PhysicalDeviceVulkan14Features _);
-            createInfo.AddNext(out PhysicalDeviceVulkan13Features _);
-            createInfo.AddNext(out PhysicalDeviceVulkan12Features _);
             createInfo.AddNext(out PhysicalDeviceVulkan11Features _);
+            createInfo.AddNext(out PhysicalDeviceVulkan12Features _);
+            createInfo.AddNext(out PhysicalDeviceVulkan13Features _);
+            createInfo.AddNext(out PhysicalDeviceVulkan14Features _);
 
-            if (enabledExtensions.Contains(KhrRayQuery.ExtensionName))
+            if (enabledExtensions.Contains(ExtDescriptorHeap.ExtensionName))
             {
-                createInfo.AddNext(out PhysicalDeviceRayQueryFeaturesKHR _);
-                createInfo.AddNext(out PhysicalDeviceAccelerationStructureFeaturesKHR _);
+                createInfo.AddNext(out PhysicalDeviceDescriptorHeapFeaturesEXT _);
             }
 
             if (enabledExtensions.Contains(ExtMeshShader.ExtensionName))
             {
                 createInfo.AddNext(out PhysicalDeviceMeshShaderFeaturesEXT _);
+            }
+
+            if (enabledExtensions.Contains(KhrAccelerationStructure.ExtensionName))
+            {
+                createInfo.AddNext(out PhysicalDeviceAccelerationStructureFeaturesKHR _);
+            }
+
+            if (enabledExtensions.Contains(KhrFragmentShadingRate.ExtensionName))
+            {
                 createInfo.AddNext(out PhysicalDeviceFragmentShadingRateFeaturesKHR _);
+            }
+
+            if (enabledExtensions.Contains(KhrRayQuery.ExtensionName))
+            {
+                createInfo.AddNext(out PhysicalDeviceRayQueryFeaturesKHR _);
+            }
+
+            if (enabledExtensions.Contains(KhrShaderUntypedPointers.ExtensionName))
+            {
+                createInfo.AddNext(out PhysicalDeviceShaderUntypedPointersFeaturesKHR _);
             }
 
             Vk.GetPhysicalDeviceFeatures2(PhysicalDevice, &features2);
 
-            Vk.CreateDevice(PhysicalDevice, &createInfo, null, out Device).Success();
-
-            (GraphicsQueue, ComputeQueue, CopyQueue, QueueFamilyIndices) = getQueues();
+            Vk.CreateDevice(PhysicalDevice, &createInfo, default, out Device).Success();
 
             LamdaNativeContext context = new((proc) => Vk.GetDeviceProcAddr(Device, (byte*)ZenithMarshal.StringToPointer(scope, proc, StringEncoding.UTF8)));
 
-            Swapchain = enabledExtensions.Contains(KhrSwapchain.ExtensionName) ? new(context) : null;
-            ExternalMemoryWin32 = enabledExtensions.Contains(KhrExternalMemoryWin32.ExtensionName) ? new(context) : null;
+            ExternalMemoryAndroidHardwareBuffer = enabledExtensions.Contains(AndroidExternalMemoryAndroidHardwareBuffer.ExtensionName) ? new(context) : null;
+            DescriptorHeap = enabledExtensions.Contains(ExtDescriptorHeap.ExtensionName) ? new(context) : null;
+            MeshShader = enabledExtensions.Contains(ExtMeshShader.ExtensionName) ? new(context) : null;
+            MetalObjects = enabledExtensions.Contains(ExtMetalObjects.ExtensionName) ? new(context) : null;
             AccelerationStructure = enabledExtensions.Contains(KhrAccelerationStructure.ExtensionName) ? new(context) : null;
             DeferredHostOperations = enabledExtensions.Contains(KhrDeferredHostOperations.ExtensionName) ? new(context) : null;
-            MeshShader = enabledExtensions.Contains(ExtMeshShader.ExtensionName) ? new(context) : null;
+            ExternalMemoryFd = enabledExtensions.Contains(KhrExternalMemoryFd.ExtensionName) ? new(context) : null;
+            ExternalMemoryWin32 = enabledExtensions.Contains(KhrExternalMemoryWin32.ExtensionName) ? new(context) : null;
+            FragmentShadingRate = enabledExtensions.Contains(KhrFragmentShadingRate.ExtensionName) ? new(context) : null;
+            Swapchain = enabledExtensions.Contains(KhrSwapchain.ExtensionName) ? new(context) : null;
+
+            loadQueues();
+
+            QueueFamilies = new([.. new HashSet<uint>() { queues.GraphicsQueueFamilyIndex, queues.ComputeQueueFamilyIndex, queues.TransferQueueFamilyIndex }]);
         }
 
         capabilities = new VKCapabilities(this);
-        graphics = new VKCommandQueue(this, CommandQueueType.Graphics, GraphicsQueue, QueueFamilyIndices[0]);
-        compute = new VKCommandQueue(this, CommandQueueType.Compute, ComputeQueue, QueueFamilyIndices.Length > 1 ? QueueFamilyIndices[1] : QueueFamilyIndices[0]);
-        copy = new VKCommandQueue(this, CommandQueueType.Copy, CopyQueue, QueueFamilyIndices.Length > 2 ? QueueFamilyIndices[2] : QueueFamilyIndices[0]);
+        graphicsQueue = new VKCommandQueue(this, CommandQueueType.Graphics, queues.GraphicsQueue, queues.GraphicsQueueFamilyIndex);
+        computeQueue = new VKCommandQueue(this, CommandQueueType.Compute, queues.ComputeQueue, queues.ComputeQueueFamilyIndex);
+        transferQueue = new VKCommandQueue(this, CommandQueueType.Transfer, queues.TransferQueue, queues.TransferQueueFamilyIndex);
         validationLayer = useValidationLayer ? new VKValidationLayer(this) : null;
     }
 
@@ -445,14 +522,46 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         return new VKSwapChain(this, desc);
     }
 
-    protected override FrameBuffer CreateFrameBufferImpl(FrameBufferDesc desc)
+    protected override Heap CreateHeapImpl(HeapDesc desc)
     {
-        return new VKFrameBuffer(this, desc);
+        return new VKHeap(this, desc);
     }
 
-    protected override Shader CreateShaderImpl(ShaderDesc desc)
+    protected override SizeAndAlignment GetSizeAndAlignmentImpl(BufferDesc desc)
     {
-        return new VKShader(this, desc);
+        BufferCreateInfo createInfo = VKBuffer.CreateInfo(desc, Capabilities, QueueFamilies);
+
+        DeviceBufferMemoryRequirements requirements = new()
+        {
+            SType = StructureType.DeviceBufferMemoryRequirements,
+            PCreateInfo = &createInfo
+        };
+
+        MemoryRequirements2 requirements2 = new() { SType = StructureType.MemoryRequirements2 };
+
+        Vk.GetDeviceBufferMemoryRequirements(Device, &requirements, &requirements2);
+
+        return new(requirements2.MemoryRequirements.Size, requirements2.MemoryRequirements.Alignment);
+    }
+
+    protected override SizeAndAlignment GetSizeAndAlignmentImpl(TextureDesc desc)
+    {
+        ImageCreateInfo createInfo = VKTexture.CreateInfo(desc, QueueFamilies);
+
+        DeviceImageMemoryRequirements requirements = new()
+        {
+            SType = StructureType.DeviceImageMemoryRequirements,
+            PCreateInfo = &createInfo
+        };
+
+        MemoryRequirements2 requirements2 = new() { SType = StructureType.MemoryRequirements2 };
+
+        Vk.GetDeviceImageMemoryRequirements(Device, &requirements, &requirements2);
+
+        PhysicalDeviceProperties properties;
+        Vk.GetPhysicalDeviceProperties(PhysicalDevice, &properties);
+
+        return new(requirements2.MemoryRequirements.Size, Math.Max(requirements2.MemoryRequirements.Alignment, properties.Limits.BufferImageGranularity));
     }
 
     protected override Buffer CreateBufferImpl(BufferDesc desc)
@@ -470,6 +579,101 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         return new VKTexture(this, desc);
     }
 
+    protected override Texture CreateTextureImpl(TextureDesc desc, NativeTextureType nativeTextureType, nint nativeTexture)
+    {
+        ImageCreateInfo createInfo = VKTexture.CreateInfo(desc, QueueFamilies);
+
+        if (nativeTextureType is NativeTextureType.MTLSharedTextureHandle or NativeTextureType.IOSurfaceRef)
+        {
+            switch (nativeTextureType)
+            {
+                case NativeTextureType.MTLSharedTextureHandle:
+                    {
+                        createInfo.AddNext(out ImportMetalTextureInfoEXT importInfo);
+                        importInfo.Plane = ImageAspectFlags.ColorBit;
+                        importInfo.MtlTexture = nativeTexture;
+                    }
+                    break;
+
+                case NativeTextureType.IOSurfaceRef:
+                    {
+                        createInfo.AddNext(out ImportMetalIOSurfaceInfoEXT importInfo);
+                        importInfo.IoSurface = nativeTexture;
+                    }
+                    break;
+            }
+
+            Vk.CreateImage(Device, &createInfo, default, out Image metalImage).Success();
+
+            return new VKTexture(this, desc, metalImage, new(default, 0, true, false));
+        }
+        else
+        {
+            createInfo.AddNext(out ExternalMemoryImageCreateInfo externalMemoryImageCreateInfo);
+            externalMemoryImageCreateInfo.HandleTypes = VKFormats.Vulkan(nativeTextureType);
+
+            Vk.CreateImage(Device, &createInfo, default, out Image image).Success();
+
+            ImageMemoryRequirementsInfo2 requirementsInfo2 = new()
+            {
+                SType = StructureType.ImageMemoryRequirementsInfo2,
+                Image = image
+            };
+
+            MemoryRequirements2 requirements2 = new() { SType = StructureType.MemoryRequirements2 };
+            Vk.GetImageMemoryRequirements2(Device, &requirementsInfo2, &requirements2);
+
+            MemoryAllocateInfo allocateInfo = new()
+            {
+                SType = StructureType.MemoryAllocateInfo,
+                AllocationSize = requirements2.MemoryRequirements.Size,
+                MemoryTypeIndex = FindMemoryTypeIndex(requirements2.MemoryRequirements.MemoryTypeBits, MemoryResidency.GpuOnly)
+            };
+
+            allocateInfo.AddNext(out MemoryDedicatedAllocateInfo dedicatedAllocateInfo);
+            dedicatedAllocateInfo.Image = image;
+
+            switch (nativeTextureType)
+            {
+                case NativeTextureType.D3D11TextureNtHandle:
+                case NativeTextureType.D3D12ResourceNtHandle:
+                case NativeTextureType.VulkanOpaqueNtHandle:
+                    {
+                        allocateInfo.AddNext(out ImportMemoryWin32HandleInfoKHR importInfo);
+                        importInfo.HandleType = VKFormats.Vulkan(nativeTextureType);
+                        importInfo.Handle = nativeTexture;
+                    }
+                    break;
+
+                case NativeTextureType.VulkanOpaquePosixFileDescriptor:
+                    {
+                        allocateInfo.AddNext(out ImportMemoryFdInfoKHR importInfo);
+                        importInfo.HandleType = VKFormats.Vulkan(nativeTextureType);
+                        importInfo.Fd = (int)nativeTexture;
+                    }
+                    break;
+
+                case NativeTextureType.VulkanAndroidHardwareBuffer:
+                    {
+                        AndroidHardwareBufferPropertiesANDROID properties = new() { SType = StructureType.AndroidHardwareBufferPropertiesAndroid };
+                        ExternalMemoryAndroidHardwareBuffer!.GetAndroidHardwareBufferProperties(Device, (nint*)nativeTexture, &properties).Success();
+
+                        allocateInfo.AllocationSize = properties.AllocationSize;
+                        allocateInfo.MemoryTypeIndex = FindMemoryTypeIndex(properties.MemoryTypeBits, MemoryResidency.GpuOnly);
+
+                        allocateInfo.AddNext(out ImportAndroidHardwareBufferInfoANDROID importInfo);
+                        importInfo.Buffer = (nint*)nativeTexture;
+                    }
+                    break;
+            }
+
+            Vk.AllocateMemory(Device, &allocateInfo, default, out DeviceMemory deviceMemory).Success();
+            Vk.BindImageMemory(Device, image, deviceMemory, 0).Success();
+
+            return new VKTexture(this, desc, image, new(deviceMemory, 0, true, true));
+        }
+    }
+
     protected override TextureView CreateTextureViewImpl(TextureViewDesc desc)
     {
         return new VKTextureView(this, desc);
@@ -480,14 +684,9 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         return new VKSampler(this, desc);
     }
 
-    protected override ResourceLayout CreateResourceLayoutImpl(ResourceLayoutDesc desc)
+    protected override Shader CreateShaderImpl(ShaderDesc desc)
     {
-        return new VKResourceLayout(this, desc);
-    }
-
-    protected override ResourceTable CreateResourceTableImpl(ResourceTableDesc desc)
-    {
-        return new VKResourceTable(this, desc);
+        return new VKShader(this, desc);
     }
 
     protected override GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc)
@@ -512,15 +711,15 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override void Destroy()
     {
-        Vk.DeviceWaitIdle(Device).Success();
-
         base.Destroy();
 
-        DescriptorAllocator.Dispose();
+        SamplerHeap.Dispose();
+        ResourceHeap.Dispose();
 
-        Vk.DestroyDevice(Device, null);
-        Vk.DestroyInstance(Instance, null);
+        QueueFamilies.Dispose();
 
+        Vk.DestroyDevice(Device, default);
+        Vk.DestroyInstance(Instance, default);
         Vk.Dispose();
     }
 }

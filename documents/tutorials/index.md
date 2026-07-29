@@ -1,75 +1,36 @@
 ﻿# Tutorials
 
-Welcome to the Zenith.NET tutorials! These step-by-step guides will help you learn how to use Zenith.NET for GPU programming.
+The Zenith.NET tutorials examine complete rendering workloads built with C# and the Slang shader language. Each guide focuses on the resources, pipelines, commands, data contracts, and lifetime rules that connect a workload to Zenith.NET.
 
-## Getting Started
-
-New to Zenith.NET? Start here to set up your environment and render your first graphics.
-
-| Tutorial | Description |
-|----------|-------------|
-| [Prerequisites](getting-started/prerequisites.md) | Set up your development environment with `App` framework, `IRenderer` interface, and `BindingHelper` |
-| [Hello Triangle](getting-started/hello-triangle.md) | Create vertex buffers, compile Slang shaders, and build your first graphics pipeline |
-| [Textured Quad](getting-started/textured-quad.md) | Load textures, create samplers, and bind resources with `ResourceLayout` and `ResourceTable` |
-| [Spinning Cube](getting-started/spinning-cube.md) | Use constant buffers for MVP matrices and render 3D geometry with depth testing |
-
-## Intermediate
-
-Build on the basics with GPU compute and advanced rendering techniques.
-
-| Tutorial | Description |
-|----------|-------------|
-| [Compute Shader](intermediate/compute-shader.md) | Create compute pipelines for GPU image processing (grayscale conversion) |
-| [Indirect Drawing](intermediate/indirect-drawing.md) | GPU-driven rendering with `DrawIndexedIndirect` for multi-instance drawing |
-
-## Advanced
-
-Explore cutting-edge GPU features for modern rendering (requires hardware support).
-
-| Tutorial | Description | Requirement |
-|----------|-------------|-------------|
-| [Ray Tracing](advanced/ray-tracing.md) | Build acceleration structures (BLAS/TLAS), use `RayQuery` for ray tracing with soft shadows, reflections, and ACES tonemapping | `RayTracingSupported` |
-| [Mesh Shading](advanced/mesh-shading.md) | Render 1,000 sphere instances with amplification shader frustum culling and mesh shading pipeline | `MeshShadingSupported` |
-
-## Tutorial Structure
-
-Each tutorial follows a consistent pattern:
-
-1. **Overview** - What you'll build and the key concepts covered
-2. **Key Concepts** (advanced tutorials) - In-depth explanation of new API features
-3. **Renderer Class** - Complete, runnable implementation code
-4. **Running the Tutorial** - How to switch renderers and run the example
-5. **Result** - Screenshot of the expected output
-6. **Code Breakdown** - Step-by-step explanation of important code sections
-
-All tutorials share the same `App` framework. Run `dotnet run` and select a tutorial from the interactive menu in `Program.cs`.
-
-## Learning Path
-
-| Stage | You Will Learn |
-|-------|----------------|
-| **Prerequisites** | Set up the application framework, graphics context, and cross-platform resource binding |
-| **Hello Triangle** | Create GPU buffers, compile shaders, configure graphics pipelines, and submit draw commands |
-| **Textured Quad** | Load and sample textures, use index buffers, and bind shader resources |
-| **Spinning Cube** | Pass data to shaders via constant buffers, implement 3D transformations, and enable depth testing |
-| **Compute Shader** | Run general-purpose GPU computations for image processing |
-| **Indirect Drawing** | Let the GPU control draw parameters for efficient multi-instance rendering |
-| **Ray Tracing** | Build acceleration structures, trace rays with `RayQuery`, implement soft shadows, reflections, Fresnel, and ACES tonemapping |
-| **Mesh Shading** | Use amplification shaders for GPU-driven frustum culling with mesh shading at scale (1,000 instances) |
-
-## Requirements
-
-Before starting, ensure you have:
-
-- .NET 10.0 SDK or later
-- A GPU with DirectX 12, Metal 4, or Vulkan 1.4 support
-- Visual Studio 2026, VS Code, or JetBrains Rider
+Begin with Project Setup and Application Host. The six guides then move from a first graphics pipeline to compute, indirect drawing, inline ray queries, and programmable geometry.
 
 > [!NOTE]
-> These tutorials are designed for desktop platforms (Windows, macOS, and Linux).
-> See [Prerequisites](getting-started/prerequisites.md) for detailed platform support and setup instructions.
+> The guides explain the Zenith.NET integration points in detail. Supporting graphics techniques such as sampling patterns, tone mapping, and procedural mesh generation are summarized when they are not essential to the API workflow. Their complete implementations remain available in the tutorial source.
 
-## Source Code
+## Getting started
 
-> [!TIP]
-> The complete source code for all tutorials is available on GitHub: [ZenithTutorials](https://github.com/qian-o/ZenithTutorials)
+- [Project Setup](getting-started/project-setup.md) creates the .NET 10 project and configures runtime assets.
+- [Application Host](getting-started/application-host.md) follows the cross-platform window, swap chain, frame loop, and offscreen texture presenter.
+
+## Guides
+
+| Guide | Result | Focus |
+| --- | --- | --- |
+| [Hello Triangle](guides/hello-triangle.md) | A vertex-colored triangle | Vertex input, graphics pipeline, render pass, and draw command |
+| [Spinning Cube](guides/spinning-cube.md) | A rotating depth-tested cube | Indexed geometry, constant buffers, transforms, depth, and resize |
+| [Compute Shader](guides/compute-shader.md) | A grayscale image | Storage textures, descriptor handles, dispatch, and layout transitions |
+| [Indirect Drawing](guides/indirect-drawing.md) | A grid of animated cubes | Structured instance data and indirect draw arguments |
+| [Ray Tracing](guides/ray-tracing.md) | Procedural spheres above a floor | Acceleration structures, inline ray queries, and compute output |
+| [Mesh Shading](guides/mesh-shading.md) | A culled sphere grid | Task and mesh shaders, payload compaction, and mesh dispatch |
+
+The complete, runnable implementations are maintained in the [ZenithTutorials repository](https://github.com/qian-o/ZenithTutorials). Code shown in these pages is static so it remains readable and searchable with the rest of the documentation; each guide links its complete renderer and shader at the end.
+
+## Suggested paths
+
+Complete [Hello Triangle](guides/hello-triangle.md) first. From there:
+
+- continue with [Spinning Cube](guides/spinning-cube.md) and [Indirect Drawing](guides/indirect-drawing.md) for the graphics path;
+- continue with [Compute Shader](guides/compute-shader.md) and [Ray Tracing](guides/ray-tracing.md) for compute-produced images;
+- read [Mesh Shading](guides/mesh-shading.md) after Spinning Cube when you are comfortable with graphics pipelines, depth attachments, and GPU thread groups.
+
+Ray tracing and mesh shading are optional device capabilities. Their guides show how to test support before creating workload-specific resources.

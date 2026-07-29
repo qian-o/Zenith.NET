@@ -4,8 +4,6 @@ namespace Zenith.NET.Vulkan;
 
 internal unsafe class VKComputePipeline : ComputePipeline
 {
-    public PipelineLayout PipelineLayout;
-
     public VkPipeline Pipeline;
 
     public VKComputePipeline(VKGraphicsContext context, ComputePipelineDesc desc) : base(context, desc)
@@ -15,27 +13,21 @@ internal unsafe class VKComputePipeline : ComputePipeline
         ComputePipelineCreateInfo createInfo = new()
         {
             SType = StructureType.ComputePipelineCreateInfo,
-            Stage = desc.Compute.Vulkan().GetPipelineShaderStageCreateInfo(scope)
+            Stage = desc.ComputeShader.Vulkan().GetPipelineShaderStageCreateInfo(scope, ShaderStageFlags.ComputeBit)
         };
 
-        // ResourceLayout
-        {
-            PipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
-            {
-                SType = StructureType.PipelineLayoutCreateInfo,
-                SetLayoutCount = desc.ResourceLayout is null ? 0u : 1u,
-                PSetLayouts = desc.ResourceLayout is null ? null : (DescriptorSetLayout*)ZenithMarshal.AllocateAndFill(scope, [desc.ResourceLayout.Vulkan().DescriptorSetLayout])
-            };
+        createInfo.AddNext(out PipelineCreateFlags2CreateInfo flags2CreateInfo);
+        flags2CreateInfo.Flags = PipelineCreateFlags2.Vk2DescriptorHeapBitExt();
 
-            context.Vk.CreatePipelineLayout(context.Device, &pipelineLayoutCreateInfo, null, out PipelineLayout).Success();
-
-            createInfo.Layout = PipelineLayout;
-        }
-
-        context.Vk.CreateComputePipelines(context.Device, default, 1, &createInfo, null, out Pipeline).Success();
+        context.Vk.CreateComputePipelines(context.Device, default, 1, &createInfo, default, out Pipeline).Success();
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
 
     protected override void SetResourceName(string name)
     {
@@ -54,7 +46,6 @@ internal unsafe class VKComputePipeline : ComputePipeline
 
     protected override void Destroy()
     {
-        Context.Vk.DestroyPipeline(Context.Device, Pipeline, null);
-        Context.Vk.DestroyPipelineLayout(Context.Device, PipelineLayout, null);
+        Context.Vk.DestroyPipeline(Context.Device, Pipeline, default);
     }
 }

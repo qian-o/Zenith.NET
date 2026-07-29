@@ -6,9 +6,14 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 
     public ref readonly SwapChainDesc Desc => ref desc;
 
-    public abstract FrameBuffer FrameBuffer { get; }
+    public abstract Texture Drawable { get; }
 
-    public abstract void Present();
+    public void Present()
+    {
+        PresentImpl();
+
+        Context.GraphicsQueue.Timeline.Signal().Wait();
+    }
 
     public void Resize(uint width, uint height)
     {
@@ -28,6 +33,8 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 
         SetResourceName(Name);
     }
+
+    protected abstract void PresentImpl();
 
     protected abstract void ResizeImpl();
 

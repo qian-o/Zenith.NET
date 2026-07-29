@@ -13,10 +13,10 @@ internal unsafe class VKCapabilities : Capabilities
         context.Vk.GetPhysicalDeviceProperties(context.PhysicalDevice, &properties);
 
         uint extensionCount = 0;
-        context.Vk.EnumerateDeviceExtensionProperties(context.PhysicalDevice, (byte*)null, &extensionCount, (ExtensionProperties*)null).Success();
+        context.Vk.EnumerateDeviceExtensionProperties(context.PhysicalDevice, default(byte*), &extensionCount, default).Success();
 
         ExtensionProperties* extensions = (ExtensionProperties*)ZenithMarshal.Allocate<ExtensionProperties>(scope, extensionCount);
-        context.Vk.EnumerateDeviceExtensionProperties(context.PhysicalDevice, (byte*)null, &extensionCount, extensions).Success();
+        context.Vk.EnumerateDeviceExtensionProperties(context.PhysicalDevice, default(byte*), &extensionCount, extensions).Success();
 
         string[] supportedExtensions = [.. new ReadOnlySpan<ExtensionProperties>(extensions, (int)extensionCount).ToArray().Select(static item => ZenithMarshal.StringFromPointer((nint)item.ExtensionName, StringEncoding.UTF8))];
 

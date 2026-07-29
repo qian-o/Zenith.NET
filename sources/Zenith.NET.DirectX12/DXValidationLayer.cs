@@ -1,4 +1,5 @@
-﻿using Silk.NET.Direct3D12;
+﻿using Silk.NET.Core.Native;
+using Silk.NET.Direct3D12;
 
 namespace Zenith.NET.DirectX12;
 
@@ -7,12 +8,21 @@ internal unsafe class DXValidationLayer : ValidationLayer
     private readonly PfnMessageFunc callback;
     private readonly uint callbackCookie;
 
+    public ComPtr<ID3D12InfoQueue1> InfoQueue;
+
     public DXValidationLayer(DXGraphicsContext context) : base(context)
     {
-        context.InfoQueue1?.RegisterMessageCallback(callback = new(Callback), MessageCallbackFlags.FlagNone, null, ref callbackCookie).Success();
+        context.Device.QueryInterface(SilkMarshal.GuidPtrOf<ID3D12InfoQueue1>(), (void**)InfoQueue.GetAddressOf()).Success();
+
+        InfoQueue.RegisterMessageCallback(callback = new(Callback), MessageCallbackFlags.FlagNone, default, ref callbackCookie).Success();
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
 
     protected override void SetResourceName(string name)
     {
@@ -20,18 +30,19 @@ internal unsafe class DXValidationLayer : ValidationLayer
 
     protected override void Destroy()
     {
-        Context.InfoQueue1?.UnregisterMessageCallback(callbackCookie).Success();
+        InfoQueue.UnregisterMessageCallback(callbackCookie).Success();
+        InfoQueue.Dispose();
 
         callback.Dispose();
     }
 
-    private void Callback(MessageCategory category, DxMessageSeverity severity, MessageID messageID, byte* pDescription, void* context)
+    private void Callback(MessageCategory category, DxMessageSeverity severity, MessageID messageID, byte* description, void* context)
     {
-        Report(MessageSource.GraphicsAPI, severity switch
+        Report(severity switch
         {
             DxMessageSeverity.Error => MessageSeverity.Error,
             DxMessageSeverity.Warning => MessageSeverity.Warning,
-            _ => MessageSeverity.Message
-        }, ZenithMarshal.StringFromPointer((nint)pDescription, StringEncoding.UTF8));
+            _ => MessageSeverity.Info
+        }, ZenithMarshal.StringFromPointer((nint)description, StringEncoding.UTF8));
     }
 }

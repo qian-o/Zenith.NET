@@ -2,7 +2,7 @@
 
 public enum StringEncoding
 {
-    Uni,
+    UTF8,
 
-    UTF8
+    UTF16
 }

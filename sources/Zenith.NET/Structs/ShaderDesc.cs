@@ -1,10 +1,10 @@
 ﻿namespace Zenith.NET;
 
-public record struct ShaderDesc
+public struct ShaderDesc
 {
-    public byte[] ShaderBytes;
+    public string Name;
 
-    public string EntryPoint;
+    public byte[] CodeBytes;
 
-    public ShaderStageFlags Stage;
+    public ThreadGroupSize ThreadGroupSize;
 }

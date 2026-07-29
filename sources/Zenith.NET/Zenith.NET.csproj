@@ -5,6 +5,10 @@
         <NoWarn>IDE0130</NoWarn>
     </PropertyGroup>
 
+    <ItemGroup>
+        <PackageReference Include="Slangc.NET" />
+    </ItemGroup>
+
     <Import Project="..\NuGet.Packaging.props" />
 
 </Project>

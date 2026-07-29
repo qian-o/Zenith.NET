@@ -15,23 +15,27 @@ internal unsafe class DXQueryHeap : QueryHeap
             Count = desc.Count
         };
 
-        context.Device.CreateQueryHeap(&queryHeapDesc, out QueryHeap).Success();
+        context.Device.CreateQueryHeap(&queryHeapDesc, SilkMarshal.GuidPtrOf<ID3D12QueryHeap>(), (void**)QueryHeap.GetAddressOf()).Success();
 
         Buffer = new(context, new()
         {
             SizeInBytes = sizeof(ulong) * desc.Count,
-            StrideInBytes = sizeof(ulong),
-            Flags = BufferUsageFlags.MapRead
+            Residency = MemoryResidency.CpuReadOnly
         });
     }
 
     public DXBuffer Buffer { get; }
 
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
+
     protected override void GetResultsImpl(Span<ulong> results, uint startIndex)
     {
-        MappedMemory mappedMemory = Buffer.Map();
+        nint pointer = Buffer.Map();
 
-        new Span<ulong>((void*)(mappedMemory.Pointer + (sizeof(ulong) * startIndex)), results.Length).CopyTo(results);
+        new Span<ulong>((void*)(pointer + (sizeof(ulong) * startIndex)), results.Length).CopyTo(results);
 
         Buffer.Unmap();
     }
@@ -44,7 +48,6 @@ internal unsafe class DXQueryHeap : QueryHeap
     protected override void Destroy()
     {
         Buffer.Dispose();
-
         QueryHeap.Dispose();
     }
 }

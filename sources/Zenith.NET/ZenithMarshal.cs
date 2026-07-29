@@ -9,15 +9,18 @@ public static unsafe class ZenithMarshal
     {
         private readonly List<nint> pointers = [];
 
+        internal nint Native<T>(uint length) where T : unmanaged
+        {
+            nint pointer = (nint)NativeMemory.AllocZeroed((nuint)(sizeof(T) * length));
+
+            pointers.Add(pointer);
+
+            return pointer;
+        }
+
         internal nint Native<T>(ReadOnlySpan<T> data) where T : unmanaged
         {
-            if (data.Length is 0)
-            {
-                return nint.Zero;
-            }
-
-            nint pointer = (nint)NativeMemory.Alloc((uint)(sizeof(T) * data.Length));
-
+            nint pointer = (nint)NativeMemory.Alloc((nuint)(sizeof(T) * data.Length));
             data.CopyTo(new((void*)pointer, data.Length));
 
             pointers.Add(pointer);
@@ -37,7 +40,7 @@ public static unsafe class ZenithMarshal
 
     public static nint Allocate<T>(Scope scope, uint length) where T : unmanaged
     {
-        return scope.Native(new T[length]);
+        return scope.Native<T>(length);
     }
 
     public static nint AllocateAndFill<T>(Scope scope, ReadOnlySpan<T> data) where T : unmanaged
@@ -47,14 +50,14 @@ public static unsafe class ZenithMarshal
 
     public static nint StringToPointer(Scope scope, string value, StringEncoding encoding)
     {
-        byte[] values = encoding switch
+        byte[] bytes = encoding switch
         {
-            StringEncoding.Uni => Encoding.Unicode.GetBytes(value + '\0'),
             StringEncoding.UTF8 => Encoding.UTF8.GetBytes(value + '\0'),
+            StringEncoding.UTF16 => Encoding.Unicode.GetBytes(value + '\0'),
             _ => []
         };
 
-        return scope.Native(values);
+        return scope.Native(bytes);
     }
 
     public static nint StringArrayToPointer(Scope scope, string[] values, StringEncoding encoding)
@@ -73,8 +76,8 @@ public static unsafe class ZenithMarshal
     {
         return encoding switch
         {
-            StringEncoding.Uni => Marshal.PtrToStringUni(pointer) ?? string.Empty,
             StringEncoding.UTF8 => Marshal.PtrToStringUTF8(pointer) ?? string.Empty,
+            StringEncoding.UTF16 => Marshal.PtrToStringUni(pointer) ?? string.Empty,
             _ => string.Empty
         };
     }
@@ -83,13 +86,13 @@ public static unsafe class ZenithMarshal
     {
         nint* pointers = (nint*)pointer;
 
-        string[] values = new string[length];
+        string[] strings = new string[length];
 
         for (uint i = 0; i < length; i++)
         {
-            values[i] = StringFromPointer(pointers[i], encoding);
+            strings[i] = StringFromPointer(pointers[i], encoding);
         }
 
-        return values;
+        return strings;
     }
 }

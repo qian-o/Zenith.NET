@@ -1,169 +1,24 @@
 ﻿using Silk.NET.Core.Native;
 using Silk.NET.Direct3D12;
-using Silk.NET.DXGI;
 
 namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXGraphicsPipeline : GraphicsPipeline
 {
-    public ComPtr<ID3D12RootSignature> RootSignature;
-
     public ComPtr<ID3D12PipelineState> PipelineState;
 
     public DXGraphicsPipeline(DXGraphicsContext context, GraphicsPipelineDesc desc) : base(context, desc)
     {
         using ZenithMarshal.Scope scope = new();
 
-        GraphicsPipelineStateDesc graphicsPipelineStateDesc = new()
+        PipelineStateStream2 pipelineStateStream = new()
         {
-            SampleMask = uint.MaxValue,
-            VS = desc.Vertex.DirectX12().GetShaderBytecode(scope),
-            PS = desc.Pixel.DirectX12().GetShaderBytecode(scope),
-            PrimitiveTopologyType = DXFormats.DirectX12(desc.PrimitiveTopology).PrimitiveTopologyType
+            PRootSignature = (nint)context.RootSignature.Handle,
+            PrimitiveTopologyType = DXFormats.DirectX12(desc.PrimitiveTopology).TopologyType,
+            VS = desc.VertexShader.DirectX12().GetShaderBytecode(scope),
+            PS = desc.FragmentShader.DirectX12().GetShaderBytecode(scope),
+            SampleMask = uint.MaxValue
         };
-
-        // RenderStates - Output
-        {
-            BlendStateRenderTarget[] blendStateRenderTargets =
-            [
-                desc.RenderStates.BlendState.RenderTarget0,
-                desc.RenderStates.BlendState.RenderTarget1,
-                desc.RenderStates.BlendState.RenderTarget2,
-                desc.RenderStates.BlendState.RenderTarget3,
-                desc.RenderStates.BlendState.RenderTarget4,
-                desc.RenderStates.BlendState.RenderTarget5,
-                desc.RenderStates.BlendState.RenderTarget6,
-                desc.RenderStates.BlendState.RenderTarget7
-            ];
-
-            graphicsPipelineStateDesc.RasterizerState = new()
-            {
-                FillMode = DXFormats.DirectX12(desc.RenderStates.RasterizerState.FillMode),
-                CullMode = DXFormats.DirectX12(desc.RenderStates.RasterizerState.CullMode),
-                FrontCounterClockwise = desc.RenderStates.RasterizerState.FrontFace is FrontFace.CounterClockwise,
-                DepthBias = desc.RenderStates.RasterizerState.DepthBias,
-                DepthBiasClamp = desc.RenderStates.RasterizerState.DepthBiasClamp,
-                SlopeScaledDepthBias = desc.RenderStates.RasterizerState.SlopeScaledDepthBias,
-                DepthClipEnable = desc.RenderStates.RasterizerState.DepthClipEnable,
-                MultisampleEnable = desc.Output.SampleCount is not SampleCount.Count1,
-                AntialiasedLineEnable = true
-            };
-
-            graphicsPipelineStateDesc.DepthStencilState = new()
-            {
-                DepthEnable = desc.RenderStates.DepthStencilState.DepthEnable,
-                DepthWriteMask = desc.RenderStates.DepthStencilState.DepthWriteEnable ? DepthWriteMask.All : DepthWriteMask.Zero,
-                DepthFunc = DXFormats.DirectX12(default, desc.RenderStates.DepthStencilState.DepthFunc).ComparisonFunc,
-                StencilEnable = desc.RenderStates.DepthStencilState.StencilEnable,
-                StencilReadMask = desc.RenderStates.DepthStencilState.StencilReadMask,
-                StencilWriteMask = desc.RenderStates.DepthStencilState.StencilWriteMask,
-                FrontFace = new()
-                {
-                    StencilFailOp = DXFormats.DirectX12(desc.RenderStates.DepthStencilState.FrontFace.StencilFailOp),
-                    StencilDepthFailOp = DXFormats.DirectX12(desc.RenderStates.DepthStencilState.FrontFace.StencilDepthFailOp),
-                    StencilPassOp = DXFormats.DirectX12(desc.RenderStates.DepthStencilState.FrontFace.StencilPassOp),
-                    StencilFunc = DXFormats.DirectX12(default, desc.RenderStates.DepthStencilState.FrontFace.StencilFunc).ComparisonFunc
-                },
-                BackFace = new()
-                {
-                    StencilFailOp = DXFormats.DirectX12(desc.RenderStates.DepthStencilState.BackFace.StencilFailOp),
-                    StencilDepthFailOp = DXFormats.DirectX12(desc.RenderStates.DepthStencilState.BackFace.StencilDepthFailOp),
-                    StencilPassOp = DXFormats.DirectX12(desc.RenderStates.DepthStencilState.BackFace.StencilPassOp),
-                    StencilFunc = DXFormats.DirectX12(default, desc.RenderStates.DepthStencilState.BackFace.StencilFunc).ComparisonFunc
-                }
-            };
-
-            graphicsPipelineStateDesc.BlendState = new()
-            {
-                AlphaToCoverageEnable = desc.RenderStates.BlendState.AlphaToCoverageEnable,
-                IndependentBlendEnable = desc.RenderStates.BlendState.IndependentBlendEnable
-            };
-
-            for (int i = 0; i < blendStateRenderTargets.Length; i++)
-            {
-                graphicsPipelineStateDesc.BlendState.RenderTarget[i] = new()
-                {
-                    BlendEnable = blendStateRenderTargets[i].BlendEnable,
-                    SrcBlend = DXFormats.DirectX12(blendStateRenderTargets[i].SrcBlend),
-                    DestBlend = DXFormats.DirectX12(blendStateRenderTargets[i].DestBlend),
-                    BlendOp = DXFormats.DirectX12(blendStateRenderTargets[i].BlendOp),
-                    SrcBlendAlpha = DXFormats.DirectX12(blendStateRenderTargets[i].SrcBlendAlpha),
-                    DestBlendAlpha = DXFormats.DirectX12(blendStateRenderTargets[i].DestBlendAlpha),
-                    BlendOpAlpha = DXFormats.DirectX12(blendStateRenderTargets[i].BlendOpAlpha),
-                    RenderTargetWriteMask = (byte)DXFormats.DirectX12(blendStateRenderTargets[i].Flags)
-                };
-            }
-
-            graphicsPipelineStateDesc.NumRenderTargets = (uint)desc.Output.ColorAttachments.Length;
-
-            for (int i = 0; i < desc.Output.ColorAttachments.Length; i++)
-            {
-                graphicsPipelineStateDesc.RTVFormats[i] = DXFormats.DirectX12(desc.Output.ColorAttachments[i]);
-            }
-
-            graphicsPipelineStateDesc.DSVFormat = desc.Output.DepthStencilAttachment.HasValue ? DXFormats.DirectX12(desc.Output.DepthStencilAttachment.Value) : Format.FormatUnknown;
-
-            graphicsPipelineStateDesc.SampleDesc = DXFormats.DirectX12(desc.Output.SampleCount);
-        }
-
-        // ResourceLayout
-        {
-            List<RootParameter> parameters = [];
-            if (desc.ResourceLayout is not null)
-            {
-                DXResourceLayout resourceLayout = desc.ResourceLayout.DirectX12();
-
-                foreach (ShaderStageFlags stage in ZenithHelper.GraphicShaderStages())
-                {
-                    if (resourceLayout.DescriptorRanges(stage, out DescriptorRange[] cbvSrvUavRanges, out DescriptorRange[] samplerRanges))
-                    {
-                        if (cbvSrvUavRanges.Length > 0)
-                        {
-                            parameters.Add(new()
-                            {
-                                ParameterType = RootParameterType.TypeDescriptorTable,
-                                ShaderVisibility = DXFormats.DirectX12(stage),
-                                DescriptorTable = new()
-                                {
-                                    NumDescriptorRanges = (uint)cbvSrvUavRanges.Length,
-                                    PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, cbvSrvUavRanges)
-                                }
-                            });
-                        }
-
-                        if (samplerRanges.Length > 0)
-                        {
-                            parameters.Add(new()
-                            {
-                                ParameterType = RootParameterType.TypeDescriptorTable,
-                                ShaderVisibility = DXFormats.DirectX12(stage),
-                                DescriptorTable = new()
-                                {
-                                    NumDescriptorRanges = (uint)samplerRanges.Length,
-                                    PDescriptorRanges = (DescriptorRange*)ZenithMarshal.AllocateAndFill(scope, samplerRanges)
-                                }
-                            });
-                        }
-                    }
-                }
-            }
-
-            RootSignatureDesc rootSignatureDesc = new()
-            {
-                NumParameters = (uint)parameters.Count,
-                PParameters = (RootParameter*)ZenithMarshal.AllocateAndFill(scope, [.. parameters]),
-                Flags = RootSignatureFlags.AllowInputAssemblerInputLayout
-            };
-
-            ComPtr<ID3D10Blob> blob = default;
-            ComPtr<ID3D10Blob> error = default;
-            context.D3D12.SerializeRootSignature(&rootSignatureDesc, D3DRootSignatureVersion.Version1, ref blob, ref error).Success();
-            context.Device.CreateRootSignature(0, blob.GetBufferPointer(), blob.GetBufferSize(), out RootSignature).Success();
-            blob.Dispose();
-            error.Dispose();
-
-            graphicsPipelineStateDesc.PRootSignature = RootSignature;
-        }
 
         // InputLayouts
         {
@@ -177,7 +32,7 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
                     inputElementDescs.Add(new()
                     {
                         SemanticName = (byte*)ZenithMarshal.StringToPointer(scope, element.Semantic.ToString().ToUpper(), StringEncoding.UTF8),
-                        SemanticIndex = element.Index,
+                        SemanticIndex = element.SemanticIndex,
                         Format = DXFormats.DirectX12(element.Format),
                         InputSlot = (uint)i,
                         AlignedByteOffset = element.OffsetInBytes
@@ -185,14 +40,114 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
                 }
             }
 
-            graphicsPipelineStateDesc.InputLayout = new()
+            pipelineStateStream.InputLayout = new()
             {
                 PInputElementDescs = (InputElementDesc*)ZenithMarshal.AllocateAndFill(scope, [.. inputElementDescs]),
                 NumElements = (uint)inputElementDescs.Count
             };
         }
 
-        context.Device.CreateGraphicsPipelineState(&graphicsPipelineStateDesc, out PipelineState).Success();
+        // AttachmentFormats
+        {
+            pipelineStateStream.DSVFormat = DXFormats.DirectX12(desc.AttachmentFormats.DepthStencilFormat ?? PixelFormat.Unknown);
+
+            pipelineStateStream.RTVFormats.NumRenderTargets = (uint)desc.AttachmentFormats.ColorFormats.Length;
+
+            for (int i = 0; i < desc.AttachmentFormats.ColorFormats.Length; i++)
+            {
+                pipelineStateStream.RTVFormats.RTFormats[i] = DXFormats.DirectX12(desc.AttachmentFormats.ColorFormats[i]);
+            }
+
+            pipelineStateStream.SampleDesc = DXFormats.DirectX12(desc.AttachmentFormats.SampleCount);
+        }
+
+        // RenderState
+        {
+            ColorAttachmentBlendState[] states =
+            [
+                desc.RenderState.Blend.ColorAttachment0,
+                desc.RenderState.Blend.ColorAttachment1,
+                desc.RenderState.Blend.ColorAttachment2,
+                desc.RenderState.Blend.ColorAttachment3,
+                desc.RenderState.Blend.ColorAttachment4,
+                desc.RenderState.Blend.ColorAttachment5,
+                desc.RenderState.Blend.ColorAttachment6,
+                desc.RenderState.Blend.ColorAttachment7
+            ];
+
+            pipelineStateStream.RasterizerState = new()
+            {
+                FillMode = DXFormats.DirectX12(desc.RenderState.Rasterizer.FillMode),
+                CullMode = DXFormats.DirectX12(desc.RenderState.Rasterizer.CullMode),
+                FrontCounterClockwise = desc.RenderState.Rasterizer.FrontFace is FrontFace.CounterClockwise,
+                DepthBias = desc.RenderState.Rasterizer.DepthBias,
+                DepthBiasClamp = desc.RenderState.Rasterizer.DepthBiasClamp,
+                SlopeScaledDepthBias = desc.RenderState.Rasterizer.DepthBiasSlopeScale,
+                DepthClipEnable = desc.RenderState.Rasterizer.IsDepthClipEnabled,
+                MultisampleEnable = desc.AttachmentFormats.SampleCount is not SampleCount.Count1
+            };
+
+            pipelineStateStream.DepthStencilState = new()
+            {
+                DepthEnable = desc.RenderState.DepthStencil.IsDepthEnabled,
+                DepthWriteMask = desc.RenderState.DepthStencil.IsDepthWriteEnabled ? DepthWriteMask.All : DepthWriteMask.Zero,
+                DepthFunc = DXFormats.DirectX12(desc.RenderState.DepthStencil.DepthCompareOp),
+                StencilEnable = desc.RenderState.DepthStencil.IsStencilEnabled,
+                StencilReadMask = desc.RenderState.DepthStencil.StencilReadMask,
+                StencilWriteMask = desc.RenderState.DepthStencil.StencilWriteMask,
+                FrontFace = new()
+                {
+                    StencilFailOp = DXFormats.DirectX12(desc.RenderState.DepthStencil.FrontFace.FailOp),
+                    StencilDepthFailOp = DXFormats.DirectX12(desc.RenderState.DepthStencil.FrontFace.DepthFailOp),
+                    StencilPassOp = DXFormats.DirectX12(desc.RenderState.DepthStencil.FrontFace.PassOp),
+                    StencilFunc = DXFormats.DirectX12(desc.RenderState.DepthStencil.FrontFace.CompareOp)
+                },
+                BackFace = new()
+                {
+                    StencilFailOp = DXFormats.DirectX12(desc.RenderState.DepthStencil.BackFace.FailOp),
+                    StencilDepthFailOp = DXFormats.DirectX12(desc.RenderState.DepthStencil.BackFace.DepthFailOp),
+                    StencilPassOp = DXFormats.DirectX12(desc.RenderState.DepthStencil.BackFace.PassOp),
+                    StencilFunc = DXFormats.DirectX12(desc.RenderState.DepthStencil.BackFace.CompareOp)
+                }
+            };
+
+            pipelineStateStream.BlendState = new()
+            {
+                AlphaToCoverageEnable = desc.RenderState.Blend.IsAlphaToCoverageEnabled,
+                IndependentBlendEnable = desc.RenderState.Blend.IsIndependentBlendEnabled
+            };
+
+            for (int i = 0; i < states.Length; i++)
+            {
+                ColorAttachmentBlendState blend = states[i];
+
+                pipelineStateStream.BlendState.RenderTarget[i] = new()
+                {
+                    BlendEnable = blend.IsBlendingEnabled,
+                    SrcBlend = DXFormats.DirectX12(blend.SrcRgbFactor),
+                    DestBlend = DXFormats.DirectX12(blend.DstRgbFactor),
+                    BlendOp = DXFormats.DirectX12(blend.RgbOp),
+                    SrcBlendAlpha = DXFormats.DirectX12(blend.SrcAlphaFactor),
+                    DestBlendAlpha = DXFormats.DirectX12(blend.DstAlphaFactor),
+                    BlendOpAlpha = DXFormats.DirectX12(blend.AlphaOp),
+                    LogicOp = LogicOp.Noop,
+                    RenderTargetWriteMask = (byte)DXFormats.DirectX12(blend.ColorWrites)
+                };
+            }
+        }
+
+        PipelineStateStreamDesc pipelineStateStreamDesc = new()
+        {
+            SizeInBytes = (uint)sizeof(PipelineStateStream2),
+            PPipelineStateSubobjectStream = &pipelineStateStream
+        };
+
+        context.Device.CreatePipelineState(&pipelineStateStreamDesc, SilkMarshal.GuidPtrOf<ID3D12PipelineState>(), (void**)PipelineState.GetAddressOf()).Success();
+    }
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
     }
 
     protected override void SetResourceName(string name)
@@ -203,6 +158,5 @@ internal unsafe class DXGraphicsPipeline : GraphicsPipeline
     protected override void Destroy()
     {
         PipelineState.Dispose();
-        RootSignature.Dispose();
     }
 }

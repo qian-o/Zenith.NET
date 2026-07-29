@@ -14,7 +14,12 @@ internal abstract class Renderer : IDisposable
 
     public Texture DepthStencil { get; private set; } = null!;
 
-    public FrameBuffer FrameBuffer { get; private set; } = null!;
+    public AttachmentFormats AttachmentFormats => new()
+    {
+        ColorFormats = [Color.Desc.Format],
+        DepthStencilFormat = DepthStencil.Desc.Format,
+        SampleCount = Color.Desc.SampleCount
+    };
 
     public abstract void Update(CameraHandler camera);
 
@@ -22,7 +27,6 @@ internal abstract class Renderer : IDisposable
 
     public virtual void Resize(uint width, uint height)
     {
-        FrameBuffer?.Dispose();
         DepthStencil?.Dispose();
         Color?.Dispose();
 
@@ -36,7 +40,7 @@ internal abstract class Renderer : IDisposable
             MipLevels = 1,
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.RenderTarget | TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
+            Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment
         });
 
         DepthStencil = App.Context.CreateTexture(new()
@@ -49,19 +53,12 @@ internal abstract class Renderer : IDisposable
             MipLevels = 1,
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.DepthStencil
-        });
-
-        FrameBuffer = App.Context.CreateFrameBuffer(new()
-        {
-            ColorAttachments = [new() { Target = Color }],
-            DepthStencilAttachment = new() { Target = DepthStencil }
+            Usages = TextureUsages.DepthStencilAttachment
         });
     }
 
     public virtual void Dispose()
     {
-        FrameBuffer.Dispose();
         DepthStencil.Dispose();
         Color.Dispose();
     }

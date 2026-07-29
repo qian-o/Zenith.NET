@@ -31,9 +31,9 @@ public static class ZenithHelper
         return pixelFormat is PixelFormat.D24UNormS8UInt or PixelFormat.D32FloatS8UInt;
     }
 
-    public static (uint BlockWidth, uint BlockHeight, uint BlocksWide, uint BlocksHigh) BlockLayout(PixelFormat format, uint width, uint height)
+    public static (uint BlockWidth, uint BlockHeight, uint BlocksWide, uint BlocksHigh) BlockLayout(PixelFormat pixelFormat, uint width, uint height)
     {
-        (uint blockWidth, uint blockHeight) = format switch
+        (uint blockWidth, uint blockHeight) = pixelFormat switch
         {
             PixelFormat.BC4UNorm or
             PixelFormat.BC4SNorm or
@@ -81,9 +81,9 @@ public static class ZenithHelper
         return (blockWidth, blockHeight, (width + blockWidth - 1) / blockWidth, (height + blockHeight - 1) / blockHeight);
     }
 
-    public static uint SizeInBytes(PixelFormat format)
+    public static uint SizeInBytes(PixelFormat pixelFormat)
     {
-        return format switch
+        return pixelFormat switch
         {
             PixelFormat.R8UNorm or
             PixelFormat.R8SNorm or
@@ -186,40 +186,54 @@ public static class ZenithHelper
         };
     }
 
-    public static uint SizeInBytes(PixelFormat format, uint width, uint height)
+    public static uint SizeInBytes(PixelFormat pixelFormat, uint width, uint height)
     {
-        (_, _, uint blocksWide, uint blocksHigh) = BlockLayout(format, width, height);
+        (_, _, uint blocksWide, uint blocksHigh) = BlockLayout(pixelFormat, width, height);
 
-        return blocksWide * blocksHigh * SizeInBytes(format);
+        return blocksWide * blocksHigh * SizeInBytes(pixelFormat);
     }
 
-    public static uint SizeInBytes(ElementFormat format)
+    public static uint RowStrideInBytes(PixelFormat pixelFormat, uint width, uint height)
     {
-        return format switch
+        (_, _, uint blocksWide, _) = BlockLayout(pixelFormat, width, height);
+
+        return SizeInBytes(pixelFormat) * blocksWide;
+    }
+
+    public static uint SliceStrideInBytes(PixelFormat pixelFormat, uint width, uint height)
+    {
+        (_, _, _, uint blocksHigh) = BlockLayout(pixelFormat, width, height);
+
+        return RowStrideInBytes(pixelFormat, width, height) * blocksHigh;
+    }
+
+    public static uint SizeInBytes(ElementFormat elementFormat)
+    {
+        return elementFormat switch
         {
             ElementFormat.UByte1 or
             ElementFormat.Byte1 or
-            ElementFormat.UByte1Normalized or
-            ElementFormat.Byte1Normalized => 1,
+            ElementFormat.UByte1UNorm or
+            ElementFormat.Byte1SNorm => 1,
 
             ElementFormat.UByte2 or
             ElementFormat.Byte2 or
-            ElementFormat.UByte2Normalized or
-            ElementFormat.Byte2Normalized or
+            ElementFormat.UByte2UNorm or
+            ElementFormat.Byte2SNorm or
             ElementFormat.UShort1 or
             ElementFormat.Short1 or
-            ElementFormat.UShort1Normalized or
-            ElementFormat.Short1Normalized or
+            ElementFormat.UShort1UNorm or
+            ElementFormat.Short1SNorm or
             ElementFormat.Half1 => 2,
 
             ElementFormat.UByte4 or
             ElementFormat.Byte4 or
-            ElementFormat.UByte4Normalized or
-            ElementFormat.Byte4Normalized or
+            ElementFormat.UByte4UNorm or
+            ElementFormat.Byte4SNorm or
             ElementFormat.UShort2 or
             ElementFormat.Short2 or
-            ElementFormat.UShort2Normalized or
-            ElementFormat.Short2Normalized or
+            ElementFormat.UShort2UNorm or
+            ElementFormat.Short2SNorm or
             ElementFormat.Half2 or
             ElementFormat.Float1 or
             ElementFormat.UInt1 or
@@ -227,8 +241,8 @@ public static class ZenithHelper
 
             ElementFormat.UShort4 or
             ElementFormat.Short4 or
-            ElementFormat.UShort4Normalized or
-            ElementFormat.Short4Normalized or
+            ElementFormat.UShort4UNorm or
+            ElementFormat.Short4SNorm or
             ElementFormat.Half4 or
             ElementFormat.Float2 or
             ElementFormat.UInt2 or
@@ -244,58 +258,5 @@ public static class ZenithHelper
 
             _ => 0
         };
-    }
-
-    public static uint FaceCount(TextureDesc desc)
-    {
-        return desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? 6u : 1u;
-    }
-
-    public static uint FaceIndex(TextureDesc desc, TextureSlice slice)
-    {
-        return desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? slice.Face : 0u;
-    }
-
-    public static uint FlattenArrayLayerCount(TextureDesc desc)
-    {
-        return desc.ArrayLayers * FaceCount(desc);
-    }
-
-    public static uint FlattenArrayLayerIndex(TextureDesc desc, TextureSlice slice)
-    {
-        return (slice.ArrayLayer * FaceCount(desc)) + FaceIndex(desc, slice);
-    }
-
-    public static (uint FlattenArrayLayerIndex, uint FlattenArrayLayerCount) FlattenArrayLayerRange(TextureViewDesc desc)
-    {
-        return (desc.FirstArrayLayer * FaceCount(desc.Texture.Desc), desc.ArrayLayerCount * FaceCount(desc.Texture.Desc));
-    }
-
-    public static uint SubresourceCount(TextureDesc desc)
-    {
-        return desc.MipLevels * desc.ArrayLayers * FaceCount(desc);
-    }
-
-    public static uint SubresourceIndex(TextureDesc desc, TextureSlice slice)
-    {
-        return (slice.MipLevel * desc.ArrayLayers * FaceCount(desc)) + (slice.ArrayLayer * FaceCount(desc)) + FaceIndex(desc, slice);
-    }
-
-    public static uint SubresourceSizeInBytes(TextureDesc desc, TextureSlice slice)
-    {
-        MipDimensions(desc.Width, desc.Height, desc.Depth, slice.MipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth);
-
-        return SizeInBytes(desc.Format, mipWidth, mipHeight) * mipDepth;
-    }
-
-    public static ShaderStageFlags[] GraphicShaderStages()
-    {
-        return
-        [
-            ShaderStageFlags.Vertex,
-            ShaderStageFlags.Pixel,
-            ShaderStageFlags.Amplification,
-            ShaderStageFlags.Mesh
-        ];
     }
 }

@@ -9,8 +9,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Silk.NET.MoltenVK.Native" />
         <PackageReference Include="Silk.NET.Vulkan" />
+        <PackageReference Include="Silk.NET.Vulkan.Extensions.ANDROID" />
         <PackageReference Include="Silk.NET.Vulkan.Extensions.EXT" />
         <PackageReference Include="Silk.NET.Vulkan.Extensions.KHR" />
     </ItemGroup>

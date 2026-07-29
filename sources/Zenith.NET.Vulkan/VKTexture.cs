@@ -4,300 +4,109 @@ namespace Zenith.NET.Vulkan;
 
 internal unsafe class VKTexture : Texture
 {
+    private readonly Dictionary<TextureSubresource, ImageView> attachmentViews = [];
+
     public Image Image;
+
+    public VKAllocation Allocation;
 
     public VKTexture(VKGraphicsContext context, TextureDesc desc) : base(context, desc)
     {
-        using ZenithMarshal.Scope scope = new();
+        ImageCreateInfo createInfo = CreateInfo(desc, context.QueueFamilies);
 
-        (SharingMode sharingMode, uint queueFamilyIndexCount, nint pQueueFamilyIndices) = context.GetSharingModeInfo(scope);
+        context.Vk.CreateImage(context.Device, &createInfo, default, out Image).Success();
 
-        ImageCreateInfo createInfo = new()
+        ImageMemoryRequirementsInfo2 requirementsInfo2 = new()
         {
-            SType = StructureType.ImageCreateInfo,
-            Flags = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? ImageCreateFlags.CreateCubeCompatibleBit : ImageCreateFlags.None,
-            ImageType = VKFormats.Vulkan(desc.Type).Type,
-            Format = VKFormats.Vulkan(desc.Format),
-            Extent = new()
-            {
-                Width = desc.Width,
-                Height = desc.Height,
-                Depth = desc.Type is TextureType.Texture3D ? desc.Depth : 1
-            },
-            MipLevels = desc.MipLevels,
-            ArrayLayers = ZenithHelper.FlattenArrayLayerCount(desc),
-            Samples = VKFormats.Vulkan(desc.SampleCount),
-            Usage = VKFormats.Vulkan(desc.Format, desc.Flags).UsageFlags,
-            SharingMode = sharingMode,
-            QueueFamilyIndexCount = queueFamilyIndexCount,
-            PQueueFamilyIndices = (uint*)pQueueFamilyIndices
+            SType = StructureType.ImageMemoryRequirementsInfo2,
+            Image = Image
         };
 
-        context.Vk.CreateImage(context.Device, &createInfo, null, out Image).Success();
+        MemoryRequirements2 requirements2 = new() { SType = StructureType.MemoryRequirements2 };
+        requirements2.AddNext(out MemoryDedicatedRequirements dedicatedRequirements);
 
-        DeviceMemory = new(context, this);
+        context.Vk.GetImageMemoryRequirements2(context.Device, &requirementsInfo2, &requirements2);
+
+        MemoryAllocateInfo allocateInfo = new()
+        {
+            SType = StructureType.MemoryAllocateInfo,
+            AllocationSize = requirements2.MemoryRequirements.Size,
+            MemoryTypeIndex = context.FindMemoryTypeIndex(requirements2.MemoryRequirements.MemoryTypeBits, MemoryResidency.GpuOnly)
+        };
+
+        if (dedicatedRequirements.PrefersDedicatedAllocation || dedicatedRequirements.RequiresDedicatedAllocation)
+        {
+            allocateInfo.AddNext(out MemoryDedicatedAllocateInfo dedicatedAllocateInfo);
+            dedicatedAllocateInfo.Image = Image;
+        }
+
+        context.Vk.AllocateMemory(context.Device, &allocateInfo, default, out DeviceMemory deviceMemory).Success();
+        context.Vk.BindImageMemory(context.Device, Image, deviceMemory, 0).Success();
+
+        Allocation = new(deviceMemory, 0, true, true);
 
         View = new(context, new()
         {
             Texture = this,
-            FirstMipLevel = 0,
-            MipLevelCount = desc.MipLevels,
-            FirstArrayLayer = 0,
-            ArrayLayerCount = desc.ArrayLayers
+            Type = desc.Type,
+            Format = desc.Format,
+            Range = TextureSubresourceRange.All(this)
         });
-
-        Layouts = new ImageLayout[ZenithHelper.SubresourceCount(desc)];
-        Array.Fill(Layouts, ImageLayout.Undefined);
     }
 
-    public VKTexture(VKGraphicsContext context, TextureDesc desc, Image image) : base(context, desc)
+    public VKTexture(VKGraphicsContext context, TextureDesc desc, Image image, VKAllocation allocation) : base(context, desc)
     {
         Image = image;
+        Allocation = allocation;
 
         View = new(context, new()
         {
             Texture = this,
-            FirstMipLevel = 0,
-            MipLevelCount = desc.MipLevels,
-            FirstArrayLayer = 0,
-            ArrayLayerCount = desc.ArrayLayers
+            Type = desc.Type,
+            Format = desc.Format,
+            Range = TextureSubresourceRange.All(this)
         });
-
-        Layouts = new ImageLayout[ZenithHelper.SubresourceCount(desc)];
-        Array.Fill(Layouts, ImageLayout.Undefined);
-    }
-
-    public VKTexture(VKGraphicsContext context, TextureDesc desc, ExternalMemoryHandleTypeFlags handleTypes, nint handle) : base(context, desc)
-    {
-        using ZenithMarshal.Scope scope = new();
-
-        (SharingMode sharingMode, uint queueFamilyIndexCount, nint pQueueFamilyIndices) = context.GetSharingModeInfo(scope);
-
-        ImageCreateInfo createInfo = new()
-        {
-            SType = StructureType.ImageCreateInfo,
-            Flags = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? ImageCreateFlags.CreateCubeCompatibleBit : ImageCreateFlags.None,
-            ImageType = VKFormats.Vulkan(desc.Type).Type,
-            Format = VKFormats.Vulkan(desc.Format),
-            Extent = new()
-            {
-                Width = desc.Width,
-                Height = desc.Height,
-                Depth = desc.Type is TextureType.Texture3D ? desc.Depth : 1
-            },
-            MipLevels = desc.MipLevels,
-            ArrayLayers = ZenithHelper.FlattenArrayLayerCount(desc),
-            Samples = VKFormats.Vulkan(desc.SampleCount),
-            Usage = VKFormats.Vulkan(desc.Format, desc.Flags).UsageFlags,
-            SharingMode = sharingMode,
-            QueueFamilyIndexCount = queueFamilyIndexCount,
-            PQueueFamilyIndices = (uint*)pQueueFamilyIndices
-        };
-
-        createInfo.AddNext(out ExternalMemoryImageCreateInfo externalMemoryImageCreateInfo);
-        externalMemoryImageCreateInfo.HandleTypes = handleTypes;
-
-        context.Vk.CreateImage(context.Device, &createInfo, null, out Image).Success();
-
-        DeviceMemory = new(context, this, handleTypes, handle);
-
-        View = new(context, new()
-        {
-            Texture = this,
-            FirstMipLevel = 0,
-            MipLevelCount = desc.MipLevels,
-            FirstArrayLayer = 0,
-            ArrayLayerCount = desc.ArrayLayers
-        });
-
-        Layouts = new ImageLayout[ZenithHelper.SubresourceCount(desc)];
-        Array.Fill(Layouts, ImageLayout.Undefined);
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
-    public VKDeviceMemory? DeviceMemory { get; }
-
     public VKTextureView View { get; }
 
-    public ImageLayout[] Layouts { get; }
+    public override ResourceHandle SampledHandle => View.SampledHandle;
 
-    public void TransitionLayout(VKCommandBuffer commandBuffer,
-                                 uint firstMipLevel,
-                                 uint mipLevelCount,
-                                 uint firstArrayLayer,
-                                 uint arrayLayerCount,
-                                 uint firstFace,
-                                 uint faceCount,
-                                 ImageLayout newLayout)
+    public override ResourceHandle StorageHandle => View.StorageHandle;
+
+    public override nint GetNativeObject(NativeObjectType type)
     {
-        if (newLayout is ImageLayout.Undefined)
-        {
-            return;
-        }
+        return 0;
+    }
 
-        for (uint i = 0; i < mipLevelCount; i++)
+    public ImageView GetAttachmentView(TextureSubresource subresource)
+    {
+        if (!attachmentViews.TryGetValue(subresource, out ImageView view))
         {
-            for (uint j = 0; j < arrayLayerCount; j++)
+            ImageViewCreateInfo createInfo = new()
             {
-                for (uint k = 0; k < faceCount; k++)
+                SType = StructureType.ImageViewCreateInfo,
+                Image = Image,
+                ViewType = VKFormats.Vulkan(Desc.Type).ViewType,
+                Format = VKFormats.Vulkan(Desc.Format).Format,
+                SubresourceRange = new()
                 {
-                    TextureSlice slice = new() { MipLevel = firstMipLevel + i, ArrayLayer = firstArrayLayer + j, Face = firstFace + k };
-
-                    uint index = ZenithHelper.SubresourceIndex(Desc, slice);
-
-                    ImageLayout oldLayout = Layouts[index];
-
-                    if (oldLayout == newLayout)
-                    {
-                        continue;
-                    }
-
-                    AccessFlags srcAccessMask = AccessFlags.None;
-                    PipelineStageFlags srcStageMask = PipelineStageFlags.None;
-
-                    if (oldLayout is ImageLayout.Undefined or ImageLayout.Preinitialized)
-                    {
-                        srcAccessMask = AccessFlags.None;
-                        srcStageMask = PipelineStageFlags.TopOfPipeBit;
-                    }
-                    else if (oldLayout == ImageLayout.General)
-                    {
-                        srcAccessMask = AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit;
-                        srcStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit;
-                    }
-                    else if (oldLayout == ImageLayout.ColorAttachmentOptimal)
-                    {
-                        srcAccessMask = AccessFlags.ColorAttachmentWriteBit;
-                        srcStageMask = PipelineStageFlags.ColorAttachmentOutputBit;
-                    }
-                    else if (oldLayout == ImageLayout.DepthStencilAttachmentOptimal)
-                    {
-                        srcAccessMask = AccessFlags.DepthStencilAttachmentWriteBit;
-                        srcStageMask = PipelineStageFlags.EarlyFragmentTestsBit | PipelineStageFlags.LateFragmentTestsBit;
-                    }
-                    else if (oldLayout == ImageLayout.ShaderReadOnlyOptimal)
-                    {
-                        srcAccessMask = AccessFlags.ShaderReadBit;
-                        srcStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit;
-                    }
-                    else if (oldLayout == ImageLayout.TransferSrcOptimal)
-                    {
-                        srcAccessMask = AccessFlags.TransferReadBit;
-                        srcStageMask = PipelineStageFlags.TransferBit;
-                    }
-                    else if (oldLayout == ImageLayout.TransferDstOptimal)
-                    {
-                        srcAccessMask = AccessFlags.TransferWriteBit;
-                        srcStageMask = PipelineStageFlags.TransferBit;
-                    }
-                    else if (oldLayout == ImageLayout.PresentSrcKhr)
-                    {
-                        srcAccessMask = AccessFlags.MemoryReadBit;
-                        srcStageMask = PipelineStageFlags.BottomOfPipeBit;
-                    }
-
-                    AccessFlags dstAccessMask = AccessFlags.None;
-                    PipelineStageFlags dstStageMask = PipelineStageFlags.None;
-
-                    if (newLayout is ImageLayout.General)
-                    {
-                        dstAccessMask = AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit;
-                        dstStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit;
-                    }
-                    else if (newLayout == ImageLayout.ColorAttachmentOptimal)
-                    {
-                        dstAccessMask = AccessFlags.ColorAttachmentWriteBit;
-                        dstStageMask = PipelineStageFlags.ColorAttachmentOutputBit;
-                    }
-                    else if (newLayout == ImageLayout.DepthStencilAttachmentOptimal)
-                    {
-                        dstAccessMask = AccessFlags.DepthStencilAttachmentWriteBit;
-                        dstStageMask = PipelineStageFlags.EarlyFragmentTestsBit | PipelineStageFlags.LateFragmentTestsBit;
-                    }
-                    else if (newLayout == ImageLayout.ShaderReadOnlyOptimal)
-                    {
-                        dstAccessMask = AccessFlags.ShaderReadBit;
-                        dstStageMask = PipelineStageFlags.FragmentShaderBit | PipelineStageFlags.ComputeShaderBit;
-                    }
-                    else if (newLayout == ImageLayout.TransferSrcOptimal)
-                    {
-                        dstAccessMask = AccessFlags.TransferReadBit;
-                        dstStageMask = PipelineStageFlags.TransferBit;
-                    }
-                    else if (newLayout == ImageLayout.TransferDstOptimal)
-                    {
-                        dstAccessMask = AccessFlags.TransferWriteBit;
-                        dstStageMask = PipelineStageFlags.TransferBit;
-                    }
-                    else if (newLayout == ImageLayout.PresentSrcKhr)
-                    {
-                        dstAccessMask = AccessFlags.MemoryReadBit;
-                        dstStageMask = PipelineStageFlags.BottomOfPipeBit;
-                    }
-
-                    ImageMemoryBarrier imageMemoryBarrier = new()
-                    {
-                        SType = StructureType.ImageMemoryBarrier,
-                        SrcAccessMask = srcAccessMask,
-                        DstAccessMask = dstAccessMask,
-                        OldLayout = oldLayout,
-                        NewLayout = newLayout,
-                        Image = Image,
-                        SubresourceRange = new()
-                        {
-                            AspectMask = VKFormats.Vulkan(Desc.Format, Desc.Flags).AspectFlags,
-                            BaseMipLevel = slice.MipLevel,
-                            LevelCount = 1,
-                            BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(Desc, slice),
-                            LayerCount = 1
-                        }
-                    };
-
-                    Context.Vk.CmdPipelineBarrier(commandBuffer.CommandBuffer,
-                                                  srcStageMask,
-                                                  dstStageMask,
-                                                  DependencyFlags.None,
-                                                  0,
-                                                  null,
-                                                  0,
-                                                  null,
-                                                  1,
-                                                  &imageMemoryBarrier);
-
-                    Layouts[index] = newLayout;
+                    AspectMask = VKFormats.Vulkan(Desc.Format).AspectFlags,
+                    BaseMipLevel = subresource.MipLevel,
+                    LevelCount = 1,
+                    BaseArrayLayer = subresource.ArrayLayer,
+                    LayerCount = 1
                 }
-            }
+            };
+
+            Context.Vk.CreateImageView(Context.Device, &createInfo, default, out view).Success();
+
+            attachmentViews[subresource] = view;
         }
-    }
 
-    public void TransitionLayout(VKCommandBuffer commandBuffer, TextureSlice slice, ImageLayout newLayout)
-    {
-        TransitionLayout(commandBuffer, slice.MipLevel, 1, slice.ArrayLayer, 1, slice.Face, 1, newLayout);
-    }
-
-    public ImageView CreateAttachmentView(TextureSlice slice)
-    {
-        ImageViewCreateInfo createInfo = new()
-        {
-            SType = StructureType.ImageViewCreateInfo,
-            Image = Image,
-            ViewType = ImageViewType.Type2D,
-            Format = VKFormats.Vulkan(Desc.Format),
-            SubresourceRange = new()
-            {
-                AspectMask = VKFormats.Vulkan(Desc.Format, Desc.Flags).AspectFlags,
-                BaseMipLevel = slice.MipLevel,
-                LevelCount = 1,
-                BaseArrayLayer = ZenithHelper.FlattenArrayLayerIndex(Desc, slice),
-                LayerCount = 1
-            }
-        };
-
-        ImageView imageView;
-        Context.Vk.CreateImageView(Context.Device, &createInfo, null, &imageView).Success();
-
-        return imageView;
+        return view;
     }
 
     protected override void SetResourceName(string name)
@@ -317,13 +126,46 @@ internal unsafe class VKTexture : Texture
 
     protected override void Destroy()
     {
+        foreach (ImageView attachmentView in attachmentViews.Values)
+        {
+            Context.Vk.DestroyImageView(Context.Device, attachmentView, default);
+        }
+        attachmentViews.Clear();
+
         View.Dispose();
 
-        if (DeviceMemory is not null)
+        if (Allocation.OwnsResource)
         {
-            Context.Vk.DestroyImage(Context.Device, Image, null);
-
-            DeviceMemory.Dispose();
+            Context.Vk.DestroyImage(Context.Device, Image, default);
         }
+
+        if (Allocation.OwnsMemory)
+        {
+            Context.Vk.FreeMemory(Context.Device, Allocation.DeviceMemory, default);
+        }
+    }
+
+    public static ImageCreateInfo CreateInfo(TextureDesc desc, QueueFamilies queueFamilies)
+    {
+        return new()
+        {
+            SType = StructureType.ImageCreateInfo,
+            Flags = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? ImageCreateFlags.CreateCubeCompatibleBit : ImageCreateFlags.None,
+            ImageType = VKFormats.Vulkan(desc.Type).Type,
+            Format = VKFormats.Vulkan(desc.Format).Format,
+            Extent = new()
+            {
+                Width = desc.Width,
+                Height = desc.Height,
+                Depth = desc.Depth
+            },
+            MipLevels = desc.MipLevels,
+            ArrayLayers = desc.ArrayLayers,
+            Samples = VKFormats.Vulkan(desc.SampleCount),
+            Usage = VKFormats.Vulkan(desc.Usages),
+            SharingMode = queueFamilies.SharingMode,
+            QueueFamilyIndexCount = queueFamilies.IndexCount,
+            PQueueFamilyIndices = queueFamilies.Indices
+        };
     }
 }

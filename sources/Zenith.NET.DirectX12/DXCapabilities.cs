@@ -9,7 +9,7 @@ internal unsafe class DXCapabilities : Capabilities
     public DXCapabilities(DXGraphicsContext context)
     {
         AdapterDesc desc;
-        context.Adapter4.GetDesc(&desc).Success();
+        context.Adapter.GetDesc(&desc).Success();
 
         FeatureDataD3D12Options5 options5 = new();
         context.Device.CheckFeatureSupport(Feature.D3D12Options5, &options5, (uint)sizeof(FeatureDataD3D12Options5)).Success();
@@ -17,9 +17,9 @@ internal unsafe class DXCapabilities : Capabilities
         FeatureDataD3D12Options7 options7 = new();
         context.Device.CheckFeatureSupport(Feature.D3D12Options7, &options7, (uint)sizeof(FeatureDataD3D12Options7)).Success();
 
-        DeviceName = ZenithMarshal.StringFromPointer((nint)desc.Description, StringEncoding.Uni);
+        DeviceName = ZenithMarshal.StringFromPointer((nint)desc.Description, StringEncoding.UTF16);
         RayTracingSupported = options5.RaytracingTier >= RaytracingTier.Tier11;
-        MeshShadingSupported = options7.MeshShaderTier is not MeshShaderTier.TierNotSupported;
+        MeshShadingSupported = options7.MeshShaderTier >= MeshShaderTier.Tier1;
     }
 
     public override string DeviceName { get; }

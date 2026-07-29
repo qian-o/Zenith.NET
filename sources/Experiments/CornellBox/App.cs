@@ -45,7 +45,7 @@ internal static class App
             Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
         }
 
-        Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Source} - {args.Severity}] {args.Message}");
+        Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
 
         window = Window.Create(WindowOptions.Default with
         {
@@ -72,9 +72,19 @@ internal static class App
             surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
         }
 
-        swapChain = Context.CreateSwapChain(new() { Surface = surface, ColorTargetFormat = PixelFormat.B8G8R8A8UNorm, DepthStencilTargetFormat = PixelFormat.D32FloatS8UInt });
-        imGui = new(input, swapChain.FrameBuffer.Output);
-        camera = new(input, Matrix4x4.CreateTranslation(278f, 273f, -800f))
+        swapChain = Context.CreateSwapChain(new()
+        {
+            Surface = surface,
+            Format = PixelFormat.B8G8R8A8UNorm
+        });
+
+        imGui = new(input, new()
+        {
+            ColorFormats = [PixelFormat.B8G8R8A8UNorm],
+            SampleCount = SampleCount.Count1
+        });
+
+        camera = new(input, Matrix4x4.CreateTranslation(278.0f, 273.0f, -800.0f))
         {
             Speed = 240.0f,
             FarPlane = 2000.0f
@@ -117,52 +127,45 @@ internal static class App
             imGui.Update(delta, width, height);
             camera.Update(delta, width, height);
 
-            // ImGui
+            ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(activeRenderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
+
+            ImGuiHelper.Overlay(() =>
             {
-                ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(activeRenderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
+                ImGui.Text(Context.Capabilities.DeviceName);
+                ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
+                ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
+            });
 
-                ImGui.SetNextWindowPos(new(10, 10), ImGuiCond.FirstUseEver);
-                if (ImGui.Begin("Cornell Box", ImGuiWindowFlags.AlwaysAutoResize))
+            ImGuiHelper.Settings(() =>
+            {
+                ImGui.Text("Render Mode:");
+
+                if (Context.Capabilities.RayTracingSupported)
                 {
-                    ImGui.Text($"Backend: {Context.Backend}");
-                    ImGui.Text(Context.Capabilities.DeviceName);
-
-                    ImGui.Separator();
-
-                    ImGui.Text("Render Mode:");
-
-                    if (Context.Capabilities.RayTracingSupported)
+                    if (ImGui.RadioButton("Path Tracing", currentMode is 0) && currentMode is not 0)
                     {
-                        if (ImGui.RadioButton("Path Tracing", currentMode is 0) && currentMode is not 0)
-                        {
-                            pathTracer!.FrameCount = 0;
+                        currentMode = 0;
+                        activeRenderer = pathTracer!;
 
-                            currentMode = 0;
-                            activeRenderer = pathTracer;
-                        }
-
-                        ImGui.SameLine();
+                        pathTracer!.FrameCount = 0;
                     }
 
-                    if (ImGui.RadioButton("Rasterization", currentMode is 1) && currentMode is not 1)
-                    {
-                        currentMode = 1;
-                        activeRenderer = rasterizer;
-                    }
-
-                    ImGui.Separator();
-
-                    if (currentMode is 0 && pathTracer is not null)
-                    {
-                        ImGui.Text($"SPP: {pathTracer.FrameCount}");
-                    }
-
-                    ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
+                    ImGui.SameLine();
                 }
-                ImGui.End();
-            }
 
-            activeRenderer.Update(camera);
+                if (ImGui.RadioButton("Rasterization", currentMode is 1) && currentMode is not 1)
+                {
+                    currentMode = 1;
+                    activeRenderer = rasterizer;
+                }
+
+                ImGui.Separator();
+
+                if (currentMode is 0 && pathTracer is not null)
+                {
+                    ImGui.Text($"SPP: {pathTracer.FrameCount}");
+                }
+            });
         };
 
         window.Render += _ =>
@@ -172,13 +175,18 @@ internal static class App
                 return;
             }
 
-            CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
+            CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
+            activeRenderer.Update(camera);
             activeRenderer.Render(commandBuffer);
 
-            imGui.Render(commandBuffer, swapChain.FrameBuffer, ClearValues.Default);
+            commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
 
-            commandBuffer.Submit(true);
+            imGui.Render(commandBuffer, ColorAttachment.DontCare(swapChain.Drawable));
+
+            commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
+
+            commandBuffer.Submit().Wait();
 
             swapChain.Present();
         };
@@ -205,7 +213,5 @@ internal static class App
         window.Dispose();
 
         Context.Dispose();
-
-        Console.WriteLine("Exited cleanly.");
     }
 }

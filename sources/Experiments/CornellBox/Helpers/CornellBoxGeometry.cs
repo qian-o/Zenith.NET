@@ -82,12 +82,48 @@ internal static class CornellBoxGeometry
         indices = [.. indicesList];
         materials =
         [
-            new() { Albedo = new(0.63f, 0.06f, 0.06f), Emission = 0.00f, Metallic = 0.0f, Roughness = 0.90f },
-            new() { Albedo = new(0.14f, 0.45f, 0.09f), Emission = 0.00f, Metallic = 0.0f, Roughness = 0.90f },
-            new() { Albedo = new(0.73f, 0.71f, 0.68f), Emission = 0.00f, Metallic = 0.0f, Roughness = 0.90f },
-            new() { Albedo = new(1.00f, 0.85f, 0.60f), Emission = 25.0f, Metallic = 0.0f, Roughness = 0.50f },
-            new() { Albedo = new(0.73f, 0.71f, 0.68f), Emission = 0.00f, Metallic = 0.0f, Roughness = 0.30f },
-            new() { Albedo = new(0.95f, 0.93f, 0.88f), Emission = 0.00f, Metallic = 1.0f, Roughness = 0.05f }
+            new()
+            {
+                Albedo = new(0.63f, 0.06f, 0.06f),
+                Emission = 0.00f,
+                Metallic = 0.0f,
+                Roughness = 0.90f
+            },
+            new()
+            {
+                Albedo = new(0.14f, 0.45f, 0.09f),
+                Emission = 0.00f,
+                Metallic = 0.0f,
+                Roughness = 0.90f
+            },
+            new()
+            {
+                Albedo = new(0.73f, 0.71f, 0.68f),
+                Emission = 0.00f,
+                Metallic = 0.0f,
+                Roughness = 0.90f
+            },
+            new()
+            {
+                Albedo = new(1.00f, 0.85f, 0.60f),
+                Emission = 25.0f,
+                Metallic = 0.0f,
+                Roughness = 0.50f
+            },
+            new()
+            {
+                Albedo = new(0.73f, 0.71f, 0.68f),
+                Emission = 0.00f,
+                Metallic = 0.0f,
+                Roughness = 0.30f
+            },
+            new()
+            {
+                Albedo = new(0.95f, 0.93f, 0.88f),
+                Emission = 0.00f,
+                Metallic = 1.0f,
+                Roughness = 0.05f
+            }
         ];
     }
 
@@ -97,16 +133,39 @@ internal static class CornellBoxGeometry
                                 Vector3 v1,
                                 Vector3 v2,
                                 Vector3 v3,
-                                uint materialID)
+                                uint materialId)
     {
         Vector3 normal = Vector3.Normalize(Vector3.Cross(v1 - v0, v2 - v0));
 
         uint startIndex = (uint)vertices.Count;
 
-        vertices.Add(new() { Position = v0, Normal = normal, MaterialID = materialID });
-        vertices.Add(new() { Position = v1, Normal = normal, MaterialID = materialID });
-        vertices.Add(new() { Position = v2, Normal = normal, MaterialID = materialID });
-        vertices.Add(new() { Position = v3, Normal = normal, MaterialID = materialID });
+        vertices.Add(new()
+        {
+            Position = v0,
+            Normal = normal,
+            MaterialId = materialId
+        });
+
+        vertices.Add(new()
+        {
+            Position = v1,
+            Normal = normal,
+            MaterialId = materialId
+        });
+
+        vertices.Add(new()
+        {
+            Position = v2,
+            Normal = normal,
+            MaterialId = materialId
+        });
+
+        vertices.Add(new()
+        {
+            Position = v3,
+            Normal = normal,
+            MaterialId = materialId
+        });
 
         indices.Add(startIndex);
         indices.Add(startIndex + 1);
@@ -127,7 +186,7 @@ internal struct Vertex
     public Vector3 Normal;
 
     [FieldOffset(28)]
-    public uint MaterialID;
+    public uint MaterialId;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 32)]

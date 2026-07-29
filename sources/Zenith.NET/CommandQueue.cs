@@ -3,68 +3,96 @@
 public abstract class CommandQueue(GraphicsContext context, CommandQueueType type) : GraphicsResource(context)
 {
     private readonly Lock @lock = new();
-    private readonly Queue<CommandBuffer> available = [];
-    private readonly Queue<CommandBuffer> execution = [];
+    private readonly Queue<CommandBuffer> commandBuffers = [];
+    private readonly Queue<Submitted> submitteds = [];
 
     public CommandQueueType Type { get; } = type;
 
+    public abstract Timeline Timeline { get; }
+
     public CommandBuffer CommandBuffer()
     {
+        Poll();
+
         using Lock.Scope _ = @lock.EnterScope();
 
-        CommandBuffer commandBuffer = available.Count is 0 ? CreateCommandBuffer() : available.Dequeue();
+        CommandBuffer commandBuffer = commandBuffers.Count is 0 ? CreateCommandBuffer() : commandBuffers.Dequeue();
 
         commandBuffer.Begin();
 
         return commandBuffer;
     }
 
-    public void WaitIdle()
+    public double GetElapsedNanoseconds(ulong startTimestamp, ulong endTimestamp)
     {
-        using Lock.Scope _ = @lock.EnterScope();
+        double timestampPeriod = GetTimestampPeriod(out uint validBits);
 
-        if (execution.Count is 0)
+        ulong elapsedTicks = unchecked(endTimestamp - startTimestamp);
+
+        if (validBits is < 64)
         {
-            return;
+            elapsedTicks &= (1UL << (int)validBits) - 1;
         }
 
-        WaitIdleImpl();
-
-        while (execution.TryDequeue(out CommandBuffer? commandBuffer))
-        {
-            commandBuffer.Reset();
-
-            available.Enqueue(commandBuffer);
-        }
+        return elapsedTicks * timestampPeriod;
     }
 
-    internal void Submit(CommandBuffer commandBuffer)
+    internal TimelineValue Submit(ReadOnlySpan<TimelineValue> waits, CommandBuffer commandBuffer)
     {
+        Poll();
+
         using Lock.Scope _ = @lock.EnterScope();
 
         commandBuffer.End();
 
-        SubmitImpl(commandBuffer);
+        SubmitImpl(waits, commandBuffer);
 
-        execution.Enqueue(commandBuffer);
+        TimelineValue timelineValue = Timeline.Signal();
+
+        submitteds.Enqueue(new(commandBuffer, timelineValue));
+
+        return timelineValue;
+    }
+
+    internal void Poll()
+    {
+        using Lock.Scope _ = @lock.EnterScope();
+
+        while (submitteds.TryPeek(out Submitted submitted) && submitted.TimelineValue.IsCompleted)
+        {
+            submitteds.Dequeue();
+
+            submitted.CommandBuffer.Reset();
+
+            commandBuffers.Enqueue(submitted.CommandBuffer);
+        }
     }
 
     protected abstract CommandBuffer CreateCommandBuffer();
 
-    protected abstract void WaitIdleImpl();
+    protected abstract double GetTimestampPeriod(out uint validBits);
 
-    protected abstract void SubmitImpl(CommandBuffer commandBuffer);
+    protected abstract void SubmitImpl(ReadOnlySpan<TimelineValue> waits, CommandBuffer commandBuffer);
 
     protected override void Destroy()
     {
-        while (available.TryDequeue(out CommandBuffer? commandBuffer))
+        Timeline.Dispose();
+
+        while (commandBuffers.TryDequeue(out CommandBuffer? commandBuffer))
         {
             commandBuffer.Dispose();
         }
 
-        while (execution.TryDequeue(out CommandBuffer? commandBuffer))
+        while (submitteds.TryDequeue(out Submitted submitted))
         {
-            commandBuffer.Dispose();
+            submitted.CommandBuffer.Dispose();
         }
+    }
+
+    private readonly struct Submitted(CommandBuffer commandBuffer, TimelineValue timelineValue)
+    {
+        public readonly CommandBuffer CommandBuffer = commandBuffer;
+
+        public readonly TimelineValue TimelineValue = timelineValue;
     }
 }

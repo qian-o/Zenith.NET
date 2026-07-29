@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct IndirectDispatchArgs
+public struct IndirectDispatchArgs
 {
     public uint GroupCountX;
 

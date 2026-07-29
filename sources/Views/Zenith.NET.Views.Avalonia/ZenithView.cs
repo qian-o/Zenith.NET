@@ -37,7 +37,7 @@ public class ZenithView : TemplatedControl, IZenithView
     {
         if (surface is not null)
         {
-            context.DrawImage(surface.WriteableBitmap, new(0, 0, Bounds.Width, Bounds.Height));
+            context.DrawImage(surface.Bitmap, new(0, 0, Bounds.Width, Bounds.Height));
         }
 
         if (Design.IsDesignMode)
@@ -55,7 +55,7 @@ public class ZenithView : TemplatedControl, IZenithView
 
             Typeface typeface = new(FontFamily, FontStyle, FontWeight, FontStretch);
             double fontSize = Math.Clamp(Bounds.Height / 15.0, 14.0, 48.0);
-            double dpi = VisualRoot?.RenderScaling ?? 1.0;
+            double dpi = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1.0;
 
             FormattedText shadowText = new("ZenithView",
                                            CultureInfo.CurrentCulture,
@@ -71,8 +71,8 @@ public class ZenithView : TemplatedControl, IZenithView
                                          fontSize * dpi,
                                          new SolidColorBrush(Colors.White) { Opacity = 0.98 });
 
-            float x = (float)(Bounds.Width - mainText.Width) / 2;
-            float y = (float)(Bounds.Height - mainText.Height) / 2;
+            double x = (Bounds.Width - mainText.Width) / 2.0;
+            double y = (Bounds.Height - mainText.Height) / 2.0;
 
             context.DrawText(shadowText, new(x + 1.0, y + 1.0));
             context.DrawText(mainText, new(x, y));
@@ -81,7 +81,7 @@ public class ZenithView : TemplatedControl, IZenithView
 
     void IZenithView.UI(Action action)
     {
-        Dispatcher.UIThread.Invoke(action);
+        Dispatcher.Invoke(action);
     }
 
     void IZenithView.EnsureResources()
@@ -104,19 +104,25 @@ public class ZenithView : TemplatedControl, IZenithView
 
     void IZenithView.Tick()
     {
-        if (surface is null)
+        if (GraphicsContext is null || surface is null)
         {
             return;
         }
 
+        CommandBuffer commandBuffer = GraphicsContext.GraphicsQueue.CommandBuffer();
+
+        commandBuffer.Transition(surface.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+
         UpdateRequested?.Invoke(this, new(scheduler.UpdateSeconds, scheduler.TotalSeconds));
-        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, surface.FrameBuffer));
+        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, commandBuffer, surface.Drawable));
+
+        commandBuffer.Transition(surface.Drawable, default, TextureLayout.ColorAttachment, TextureLayout.CopySrc);
+
+        surface.Flush(commandBuffer);
     }
 
     void IZenithView.Present()
     {
-        surface?.Present();
-
         InvalidateVisual();
     }
 

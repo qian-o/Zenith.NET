@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct IndirectDispatchMeshArgs
+public struct IndirectDispatchMeshArgs
 {
     public uint GroupCountX;
 
