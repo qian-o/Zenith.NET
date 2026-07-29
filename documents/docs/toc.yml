@@ -9,8 +9,12 @@
       href: fundamentals/commands.md
     - name: Synchronization
       href: fundamentals/synchronization.md
+    - name: Shaders
+      href: fundamentals/shaders.md
     - name: Bindless Resources
       href: fundamentals/bindless-resources.md
+    - name: Queries
+      href: fundamentals/queries.md
 
 - name: Resources
   items:

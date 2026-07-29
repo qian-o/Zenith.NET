@@ -8,7 +8,7 @@ Check `context.Capabilities.MeshShadingSupported` before creating a mesh shading
 
 ## Create the Pipeline
 
-Compile the mesh and fragment entry points for the active context. Compile a task entry point only when the workload uses a task stage.
+Compile the mesh and fragment entry points for the active context. Compile a task entry point only when the workload uses a task stage. See [Shaders](../fundamentals/shaders.md) for the shared compilation workflow.
 
 Create a pipeline from a description whose attachment formats match the render pass:
 

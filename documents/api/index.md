@@ -10,6 +10,7 @@ The API reference documents the public Zenith.NET types, members, parameters, an
 | `CommandQueue` | Owns and lends command buffers for one class of GPU work |
 | `CommandBuffer` | Queue-owned recorder borrowed for one immediate submission |
 | `TimelineValue` | Represents a queue-submission completion point that can be queried or waited on |
+| `QueryHeap` / `QueryHeapDesc` | Collect visibility results and GPU timestamps |
 | `BufferDesc` / `TextureDesc` | Describe resources before creation |
 | `GraphicsPipelineDesc` / `ComputePipelineDesc` | Describe shader pipelines |
 | `Surface` / `SwapChain` | Connect rendering to a window |

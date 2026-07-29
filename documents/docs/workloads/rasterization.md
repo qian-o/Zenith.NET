@@ -4,7 +4,7 @@ Rasterization draws vertices and indexed geometry into color and depth/stencil a
 
 ## Compile the Shaders
 
-Compile the vertex and fragment entry points for the active context with `ZenithCompiler`, then create both shaders from their descriptions.
+Compile the vertex and fragment entry points for the active context with `ZenithCompiler`, then create both shaders from their descriptions. See [Shaders](../fundamentals/shaders.md) for compilation from files or source strings.
 
 ## Create the Pipeline
 

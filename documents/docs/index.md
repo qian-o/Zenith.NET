@@ -9,7 +9,9 @@ Start here if you are new to Zenith.NET:
 1. [Runtime](fundamentals/runtime.md) introduces the graphics context, capabilities, queues, and object lifetime.
 2. [Commands](fundamentals/commands.md) shows how to record and submit work.
 3. [Synchronization](fundamentals/synchronization.md) explains barriers, texture transitions, and queue dependencies.
-4. [Bindless Resources](fundamentals/bindless-resources.md) shows how shaders access resources through handles.
+4. [Shaders](fundamentals/shaders.md) shows how to compile Slang entry points and create shader objects.
+5. [Bindless Resources](fundamentals/bindless-resources.md) shows how shaders access resources through handles.
+6. [Queries](fundamentals/queries.md) shows how to collect visibility results and measure GPU work.
 
 ## Resources
 

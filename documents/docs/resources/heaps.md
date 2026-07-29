@@ -8,7 +8,7 @@ Define every resource description explicitly and query it before sizing the heap
 
 ## Place Buffers
 
-Define the buffer description, query its requirements, then place it into an existing compatible heap. Offset zero satisfies the first resource's alignment requirement:
+Define the buffer description, query its requirements, then create a compatible heap and place the buffer. Offset zero satisfies the first resource's alignment requirement:
 
 ```csharp
 BufferDesc desc = new()
@@ -20,6 +20,7 @@ BufferDesc desc = new()
 };
 
 SizeAndAlignment sizeAndAlignment = context.GetSizeAndAlignment(desc);
+Heap heap = context.CreateHeap(HeapDesc.GpuOnly(sizeAndAlignment.SizeInBytes));
 Buffer buffer = heap.CreateBuffer(0, desc);
 ```
 
@@ -29,7 +30,7 @@ Use the `SizeInBytes` and `AlignmentInBytes` returned by `GetSizeAndAlignment` w
 
 ## Place Textures
 
-Define the texture description, query its requirements, then place it into an existing compatible heap. Offset zero satisfies the first resource's alignment requirement:
+Define the texture description, query its requirements, then create a compatible heap and place the texture. Offset zero satisfies the first resource's alignment requirement:
 
 ```csharp
 TextureDesc desc = new()
@@ -46,6 +47,7 @@ TextureDesc desc = new()
 };
 
 SizeAndAlignment sizeAndAlignment = context.GetSizeAndAlignment(desc);
+Heap heap = context.CreateHeap(HeapDesc.GpuOnly(sizeAndAlignment.SizeInBytes));
 Texture texture = heap.CreateTexture(0, desc);
 ```
 

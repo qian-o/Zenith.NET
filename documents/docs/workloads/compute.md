@@ -15,7 +15,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 }
 ```
 
-Compile the entry point, then create the pipeline:
+Compile the entry point and create its `Shader` as described in [Shaders](../fundamentals/shaders.md), then create the pipeline:
 
 ```csharp
 ComputePipeline pipeline = context.CreateComputePipeline(new() { ComputeShader = shader });

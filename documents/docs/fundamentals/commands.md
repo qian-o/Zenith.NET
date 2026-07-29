@@ -55,4 +55,4 @@ For simple one-off transfers, `Buffer.Upload`, `Buffer.Download`, `Texture.Uploa
 
 Use `BeginDebugEvent`, `EndDebugEvent`, and `InsertDebugMarker` to identify recorded GPU work in diagnostics.
 
-Query and acceleration-structure commands follow the same record-then-submit model. See [Ray Tracing](../workloads/ray-tracing.md) for acceleration-structure builds and the [API Reference](../../api/index.md) for query operations.
+Query and acceleration-structure commands follow the same record-then-submit model. See [Queries](queries.md) for visibility and timestamp results, and [Ray Tracing](../workloads/ray-tracing.md) for acceleration-structure builds.

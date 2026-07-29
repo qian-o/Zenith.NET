@@ -71,4 +71,4 @@ bool hit = query.CommittedStatus() != COMMITTED_NOTHING;
 
 For procedural AABB geometry, handle each `CANDIDATE_PROCEDURAL_PRIMITIVE` during `Proceed()` and call `CommitProceduralPrimitiveHit` for an accepted intersection.
 
-See [Bindless Resources](../fundamentals/bindless-resources.md) for the C#/Slang handle contract. Use a [timeline dependency](../fundamentals/synchronization.md#order-work-across-queues) when building and tracing on different queues.
+See [Shaders](../fundamentals/shaders.md) for compiling the entry point and [Bindless Resources](../fundamentals/bindless-resources.md) for the C#/Slang handle contract. Use a [timeline dependency](../fundamentals/synchronization.md#order-work-across-queues) when building and tracing on different queues.

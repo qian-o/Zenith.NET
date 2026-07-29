@@ -67,7 +67,7 @@ The selected range and format must be compatible with the source texture. Views 
 
 Samplers define filtering and addressing independently from textures. Use a `SamplerDesc` preset when it matches the required behavior.
 
-Other presets include `LinearClamp`, `PointWrap`, `PointClamp`, and `Anisotropic`. Create a custom `SamplerDesc` for comparison sampling, border colors, or a specific LOD range.
+Other presets include `LinearClamp`, `PointWrap`, `PointClamp`, and `Anisotropic(maxAnisotropy)`. Create a custom `SamplerDesc` for comparison sampling, border colors, or a specific LOD range.
 
 Pass `sampler.Handle` beside the sampled texture handle and declare matching `DescriptorHandle<Texture2D>` and `DescriptorHandle<SamplerState>` fields in Slang.
 
