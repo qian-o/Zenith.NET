@@ -20,6 +20,7 @@ BufferDesc desc = new()
 };
 
 SizeAndAlignment sizeAndAlignment = context.GetSizeAndAlignment(desc);
+
 Heap heap = context.CreateHeap(HeapDesc.GpuOnly(sizeAndAlignment.SizeInBytes));
 Buffer buffer = heap.CreateBuffer(0, desc);
 ```
@@ -47,6 +48,7 @@ TextureDesc desc = new()
 };
 
 SizeAndAlignment sizeAndAlignment = context.GetSizeAndAlignment(desc);
+
 Heap heap = context.CreateHeap(HeapDesc.GpuOnly(sizeAndAlignment.SizeInBytes));
 Texture texture = heap.CreateTexture(0, desc);
 ```

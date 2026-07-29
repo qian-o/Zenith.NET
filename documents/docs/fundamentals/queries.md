@@ -26,12 +26,12 @@ While a render pass is active, surround the drawing commands whose visibility yo
 
 ```csharp
 commandBuffer.BeginRenderPass([ColorAttachment.Load(colorTarget)], null);
-
 commandBuffer.BeginQuery(queryHeap, 0);
+
 commandBuffer.SetPipeline(pipeline);
 commandBuffer.Draw(vertexCount, 1, 0, 0);
-commandBuffer.EndQuery(queryHeap, 0);
 
+commandBuffer.EndQuery(queryHeap, 0);
 commandBuffer.EndRenderPass();
 ```
 
@@ -46,8 +46,10 @@ QueryHeap queryHeap = context.CreateQueryHeap(QueryHeapDesc.Timestamp(2));
 CommandBuffer commandBuffer = context.ComputeQueue.CommandBuffer();
 
 commandBuffer.WriteTimestamp(queryHeap, 0);
+
 commandBuffer.SetPipeline(pipeline);
 commandBuffer.Dispatch(groupCountX, groupCountY, groupCountZ);
+
 commandBuffer.WriteTimestamp(queryHeap, 1);
 
 TimelineValue completion = commandBuffer.Submit();
@@ -60,9 +62,7 @@ Read the two results and ask the same queue that recorded them for the elapsed t
 Span<ulong> timestamps = stackalloc ulong[2];
 queryHeap.GetResults(timestamps, 0);
 
-double elapsedNanoseconds = context.ComputeQueue.GetElapsedNanoseconds(
-    timestamps[0],
-    timestamps[1]);
+double elapsedNanoseconds = context.ComputeQueue.GetElapsedNanoseconds(timestamps[0], timestamps[1]);
 ```
 
 The two timestamp values must come from the same queue. `GetElapsedNanoseconds` returns the elapsed GPU time between the values; it does not represent a wall-clock time.

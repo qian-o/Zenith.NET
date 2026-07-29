@@ -7,10 +7,7 @@ Zenith.NET compiles Slang entry points for the active `GraphicsApi`, then create
 Pass the active graphics API, the source file, and the entry-point name to `ZenithCompiler.CompileFromFile`:
 
 ```csharp
-ShaderDesc vertexDesc = ZenithCompiler.CompileFromFile(
-    context.GraphicsApi,
-    "Shaders/Basic.slang",
-    "VSMain");
+ShaderDesc vertexDesc = ZenithCompiler.CompileFromFile(context.GraphicsApi, "Shaders/Basic.slang", "VSMain");
 
 Shader vertexShader = context.CreateShader(vertexDesc);
 ```
@@ -30,10 +27,7 @@ const string source = """
     }
     """;
 
-ShaderDesc computeDesc = ZenithCompiler.CompileFromSource(
-    context.GraphicsApi,
-    source,
-    "CSMain");
+ShaderDesc computeDesc = ZenithCompiler.CompileFromSource(context.GraphicsApi, source, "CSMain");
 
 Shader computeShader = context.CreateShader(computeDesc);
 ```
@@ -41,11 +35,7 @@ Shader computeShader = context.CreateShader(computeDesc);
 Provide additional lookup directories through `searchPaths` when the shader imports other source files:
 
 ```csharp
-ShaderDesc desc = ZenithCompiler.CompileFromFile(
-    context.GraphicsApi,
-    "Shaders/Lighting.slang",
-    "PSMain",
-    ["Shaders", "Shaders/Shared"]);
+ShaderDesc desc = ZenithCompiler.CompileFromFile(context.GraphicsApi, "Shaders/Lighting.slang", "PSMain", ["Shaders", "Shaders/Shared"]);
 ```
 
 ## Create a Pipeline
@@ -53,10 +43,7 @@ ShaderDesc desc = ZenithCompiler.CompileFromFile(
 Assign compiled shaders to the pipeline description that matches the workload:
 
 ```csharp
-ComputePipeline pipeline = context.CreateComputePipeline(new()
-{
-    ComputeShader = computeShader
-});
+ComputePipeline pipeline = context.CreateComputePipeline(new() { ComputeShader = computeShader });
 ```
 
 Graphics pipelines use vertex and fragment shaders, while mesh shading pipelines use mesh and fragment shaders and may also use a task shader. For both pipeline types, the attachment formats and render state must match the render pass where the pipeline is used.
