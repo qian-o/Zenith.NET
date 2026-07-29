@@ -116,8 +116,8 @@ internal static class FluidTankGeometry
             Vector3 radial0 = new(MathF.Cos(angle0) * radius, 0.0f, MathF.Sin(angle0) * radius);
             Vector3 radial1 = new(MathF.Cos(angle1) * radius, 0.0f, MathF.Sin(angle1) * radius);
 
-            AddQuad(vertices, indices, baseCenter + radial1, baseCenter + radial0, baseCenter + radial0 + Vector3.UnitY * height, baseCenter + radial1 + Vector3.UnitY * height, materialId);
-            AddTriangle(vertices, indices, baseCenter + Vector3.UnitY * height, baseCenter + radial1 + Vector3.UnitY * height, baseCenter + radial0 + Vector3.UnitY * height, materialId);
+            AddQuad(vertices, indices, baseCenter + radial1, baseCenter + radial0, baseCenter + radial0 + (Vector3.UnitY * height), baseCenter + radial1 + (Vector3.UnitY * height), materialId);
+            AddTriangle(vertices, indices, baseCenter + (Vector3.UnitY * height), baseCenter + radial1 + (Vector3.UnitY * height), baseCenter + radial0 + (Vector3.UnitY * height), materialId);
         }
     }
 

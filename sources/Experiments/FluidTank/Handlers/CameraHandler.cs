@@ -101,8 +101,8 @@ internal class CameraHandler
         Vector2 position = clickPosition.Value;
         clickPosition = null;
 
-        float x = (position.X / Size.X) * 2.0f - 1.0f;
-        float y = 1.0f - (position.Y / Size.Y) * 2.0f;
+        float x = (position.X / Size.X * 2.0f) - 1.0f;
+        float y = 1.0f - (position.Y / Size.Y * 2.0f);
 
         Matrix4x4.Invert(Projection, out Matrix4x4 invProjection);
         Matrix4x4.Invert(View, out Matrix4x4 invView);
