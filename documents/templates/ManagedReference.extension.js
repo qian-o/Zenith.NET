@@ -1,4 +1,4 @@
-﻿export function postTransform(model) {
+﻿exports.postTransform = function (model) {
     if (!model.namespace?.uid || !model.namespace.specName) {
         return model;
     }
@@ -8,4 +8,4 @@
     }
 
     return model;
-}
+};
