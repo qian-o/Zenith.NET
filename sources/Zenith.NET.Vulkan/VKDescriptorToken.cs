@@ -1,10 +1,13 @@
-﻿using Silk.NET.Vulkan;
+﻿namespace Zenith.NET.Vulkan;
 
-namespace Zenith.NET.Vulkan;
-
-internal record struct VKDescriptorToken
+internal readonly struct VKDescriptorToken(VKDescriptorRegion region, uint index) : IDisposable
 {
-    public VKDescriptorPool Pool;
+    public readonly uint Index = index;
 
-    public DescriptorSet Set;
+    public readonly ResourceHandle ResourceHandle = new(index, 0);
+
+    public void Dispose()
+    {
+        region.Free(this);
+    }
 }

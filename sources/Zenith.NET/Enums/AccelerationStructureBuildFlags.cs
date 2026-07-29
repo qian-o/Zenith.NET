@@ -13,7 +13,5 @@ public enum AccelerationStructureBuildFlags
 
     PreferFastBuild = 1 << 3,
 
-    MinimizeMemory = 1 << 4,
-
-    PerformUpdate = 1 << 5
+    MinimizeMemory = 1 << 4
 }

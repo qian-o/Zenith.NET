@@ -1,30 +1,16 @@
 ﻿namespace Zenith.NET;
 
-public record struct MeshShadingPipelineDesc
+public struct MeshShadingPipelineDesc
 {
-    public RenderStates RenderStates;
+    public Shader? TaskShader;
 
-    public Shader? Amplification;
+    public Shader MeshShader;
 
-    public Shader Mesh;
-
-    public Shader Pixel;
-
-    public ResourceLayout? ResourceLayout;
+    public Shader FragmentShader;
 
     public PrimitiveTopology PrimitiveTopology;
 
-    public Output Output;
+    public AttachmentFormats AttachmentFormats;
 
-    public uint AmplificationThreadGroupSizeX;
-
-    public uint AmplificationThreadGroupSizeY;
-
-    public uint AmplificationThreadGroupSizeZ;
-
-    public uint MeshThreadGroupSizeX;
-
-    public uint MeshThreadGroupSizeY;
-
-    public uint MeshThreadGroupSizeZ;
+    public RenderState RenderState;
 }

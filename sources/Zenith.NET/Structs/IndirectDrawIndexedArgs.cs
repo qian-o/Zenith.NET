@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct IndirectDrawIndexedArgs
+public struct IndirectDrawIndexedArgs
 {
     public uint IndexCount;
 

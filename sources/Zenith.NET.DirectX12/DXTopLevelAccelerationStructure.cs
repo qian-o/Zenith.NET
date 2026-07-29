@@ -7,147 +7,148 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
 {
     public DXDescriptorToken Token;
 
-    public DXTopLevelAccelerationStructure(DXGraphicsContext context, TopLevelAccelerationStructureDesc desc, DXCommandBuffer commandBuffer) : base(context, desc)
+    public DXTopLevelAccelerationStructure(DXGraphicsContext context, DXCommandBuffer commandBuffer, TopLevelAccelerationStructureDesc desc) : base(context, desc)
     {
-        using ZenithMarshal.Scope scope = new();
-
-        InstanceBuffer = new(context, new()
+        Instance = new(context, new()
         {
             SizeInBytes = (uint)(sizeof(RaytracingInstanceDesc) * desc.Instances.Length),
-            StrideInBytes = (uint)sizeof(RaytracingInstanceDesc),
-            Flags = BufferUsageFlags.MapWrite
+            Residency = MemoryResidency.CpuWriteOnly
         });
 
-        FillInstanceBuffer(desc, out BuildRaytracingAccelerationStructureInputs inputs);
+        BuildRaytracingAccelerationStructureInputs inputs = Inputs(desc);
 
         RaytracingAccelerationStructurePrebuildInfo prebuildInfo = new();
+        context.Device.GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &prebuildInfo);
 
-        context.Device5?.GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &prebuildInfo);
-
-        AccelerationStructureBuffer = new(context, new()
+        AccelerationStructure = new(context, new()
         {
             SizeInBytes = (uint)prebuildInfo.ResultDataMaxSizeInBytes,
-            StrideInBytes = (uint)prebuildInfo.ResultDataMaxSizeInBytes,
-            Flags = BufferUsageFlags.AccelerationStructure
-        });
+            Residency = MemoryResidency.GpuOnly
+        }, ResourceFlags.RaytracingAccelerationStructure);
 
-        ScratchBuffer = new(context, new()
+        Scratch = new(context, new()
         {
             SizeInBytes = (uint)prebuildInfo.ScratchDataSizeInBytes,
-            StrideInBytes = (uint)prebuildInfo.ScratchDataSizeInBytes,
-            Flags = BufferUsageFlags.UnorderedAccess
+            Usages = BufferUsages.StorageReadWrite,
+            Residency = MemoryResidency.GpuOnly
         });
 
         BuildRaytracingAccelerationStructureDesc buildDesc = new()
         {
-            DestAccelerationStructureData = AccelerationStructureBuffer.GPUVirtualAddress,
+            DestAccelerationStructureData = AccelerationStructure.GPUVirtualAddress,
             Inputs = inputs,
-            ScratchAccelerationStructureData = ScratchBuffer.GPUVirtualAddress
+            ScratchAccelerationStructureData = Scratch.GPUVirtualAddress
         };
 
-        commandBuffer.GraphicsCommandList4.BuildRaytracingAccelerationStructure(&buildDesc, 0, (RaytracingAccelerationStructurePostbuildInfoDesc*)null);
-
-        ResourceBarrier barrier = new()
-        {
-            Type = ResourceBarrierType.Uav,
-            UAV = new()
-            {
-                PResource = AccelerationStructureBuffer.Resource
-            }
-        };
-
-        commandBuffer.GraphicsCommandList4.ResourceBarrier(1, &barrier);
+        BuildSyncBarrier(commandBuffer, BarrierSync.BuildRaytracingAccelerationStructure);
+        commandBuffer.CommandList.BuildRaytracingAccelerationStructure(&buildDesc, 0, default(RaytracingAccelerationStructurePostbuildInfoDesc*));
+        BuildSyncBarrier(commandBuffer, BarrierSync.AllShading);
 
         ShaderResourceViewDesc viewDesc = new()
         {
             ViewDimension = SrvDimension.RaytracingAccelerationStructure,
             Shader4ComponentMapping = DXGraphicsContext.Shader4ComponentMapping,
-            RaytracingAccelerationStructure = new()
-            {
-                Location = AccelerationStructureBuffer.GPUVirtualAddress
-            }
+            RaytracingAccelerationStructure = new() { Location = AccelerationStructure.GPUVirtualAddress }
         };
 
-        context.Device.CreateShaderResourceView((ID3D12Resource*)null, &viewDesc, (Token = context.CbvSrvUavAllocator.Allocate(1)).Handle);
+        context.Device.CreateShaderResourceView(default(ID3D12Resource*), &viewDesc, (Token = context.CbvSrvUavHeap.Allocate()).CpuHandle);
     }
 
-    public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
+    public DXBuffer Instance { get; }
 
-    public DXBuffer InstanceBuffer { get; }
+    public DXBuffer AccelerationStructure { get; }
 
-    public DXBuffer AccelerationStructureBuffer { get; }
+    public DXBuffer Scratch { get; }
 
-    public DXBuffer ScratchBuffer { get; }
+    public override ResourceHandle Handle => Token.ResourceHandle;
 
     public void Update(DXCommandBuffer commandBuffer, TopLevelAccelerationStructureDesc newDesc)
     {
-        FillInstanceBuffer(newDesc, out BuildRaytracingAccelerationStructureInputs inputs);
+        BuildRaytracingAccelerationStructureInputs inputs = Inputs(newDesc);
+        inputs.Flags |= RaytracingAccelerationStructureBuildFlags.PerformUpdate;
 
         BuildRaytracingAccelerationStructureDesc buildDesc = new()
         {
-            DestAccelerationStructureData = AccelerationStructureBuffer.GPUVirtualAddress,
+            DestAccelerationStructureData = AccelerationStructure.GPUVirtualAddress,
             Inputs = inputs,
-            SourceAccelerationStructureData = AccelerationStructureBuffer.GPUVirtualAddress,
-            ScratchAccelerationStructureData = ScratchBuffer.GPUVirtualAddress
+            SourceAccelerationStructureData = AccelerationStructure.GPUVirtualAddress,
+            ScratchAccelerationStructureData = Scratch.GPUVirtualAddress
         };
 
-        commandBuffer.GraphicsCommandList4.BuildRaytracingAccelerationStructure(&buildDesc, 0, (RaytracingAccelerationStructurePostbuildInfoDesc*)null);
+        BuildSyncBarrier(commandBuffer, BarrierSync.BuildRaytracingAccelerationStructure);
+        commandBuffer.CommandList.BuildRaytracingAccelerationStructure(&buildDesc, 0, default(RaytracingAccelerationStructurePostbuildInfoDesc*));
+        BuildSyncBarrier(commandBuffer, BarrierSync.AllShading);
+    }
 
-        ResourceBarrier barrier = new()
-        {
-            Type = ResourceBarrierType.Uav,
-            UAV = new()
-            {
-                PResource = AccelerationStructureBuffer.Resource
-            }
-        };
-
-        commandBuffer.GraphicsCommandList4.ResourceBarrier(1, &barrier);
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
     }
 
     protected override void SetResourceName(string name)
     {
+        AccelerationStructure.Name = name;
     }
 
     protected override void Destroy()
     {
         Token.Dispose();
 
-        ScratchBuffer.Dispose();
-        AccelerationStructureBuffer.Dispose();
-        InstanceBuffer.Dispose();
+        Scratch.Dispose();
+        AccelerationStructure.Dispose();
+        Instance.Dispose();
     }
 
-    private void FillInstanceBuffer(TopLevelAccelerationStructureDesc desc, out BuildRaytracingAccelerationStructureInputs inputs)
+    private BuildRaytracingAccelerationStructureInputs Inputs(TopLevelAccelerationStructureDesc desc)
     {
         uint instanceCount = (uint)desc.Instances.Length;
 
-        MappedMemory mappedMemory = InstanceBuffer.Map();
+        nint pointer = Instance.Map();
 
-        RaytracingInstanceDesc* instances = (RaytracingInstanceDesc*)mappedMemory.Pointer;
+        RaytracingInstanceDesc* instances = (RaytracingInstanceDesc*)pointer;
         for (uint i = 0; i < instanceCount; i++)
         {
             RayTracingInstance instance = desc.Instances[i];
 
             instances[i] = new()
             {
-                InstanceID = instance.ID,
-                InstanceMask = instance.Mask,
+                InstanceID = instance.InstanceId,
+                InstanceMask = instance.VisibilityMask,
                 Flags = (uint)DXFormats.DirectX12(instance.Flags),
-                AccelerationStructure = instance.AccelerationStructure.DirectX12().AccelerationStructureBuffer.GPUVirtualAddress
+                AccelerationStructure = instance.AccelerationStructure.DirectX12().AccelerationStructure.GPUVirtualAddress
             };
 
             *(Matrix3X4<float>*)instances[i].Transform = DXFormats.DirectX12(instance.Transform);
         }
 
-        InstanceBuffer.Unmap();
+        Instance.Unmap();
 
-        inputs = new()
+        return new()
         {
             Type = RaytracingAccelerationStructureType.TopLevel,
-            Flags = DXFormats.DirectX12(desc.Flags),
+            Flags = DXFormats.DirectX12(desc.BuildFlags),
             NumDescs = instanceCount,
-            InstanceDescs = InstanceBuffer.GPUVirtualAddress
+            InstanceDescs = Instance.GPUVirtualAddress
         };
+    }
+
+    private static void BuildSyncBarrier(DXCommandBuffer commandBuffer, BarrierSync syncAfter)
+    {
+        GlobalBarrier barrier = new()
+        {
+            SyncBefore = BarrierSync.BuildRaytracingAccelerationStructure,
+            SyncAfter = syncAfter,
+            AccessBefore = BarrierAccess.RaytracingAccelerationStructureWrite,
+            AccessAfter = BarrierAccess.RaytracingAccelerationStructureRead
+        };
+
+        BarrierGroup barrierGroup = new()
+        {
+            Type = BarrierType.Global,
+            NumBarriers = 1,
+            PGlobalBarriers = &barrier
+        };
+
+        commandBuffer.CommandList.Barrier(1, &barrierGroup);
     }
 }

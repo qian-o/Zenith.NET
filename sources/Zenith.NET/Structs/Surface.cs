@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public record struct Surface
+public struct Surface
 {
     public SurfaceType Type;
 
@@ -60,17 +60,6 @@ public record struct Surface
         {
             Type = SurfaceType.Apple,
             Handles = [layer],
-            Width = width,
-            Height = height
-        };
-    }
-
-    public static Surface D3D11Interop(nint sharedHandle, uint width, uint height)
-    {
-        return new()
-        {
-            Type = SurfaceType.D3D11Interop,
-            Handles = [sharedHandle],
             Width = width,
             Height = height
         };

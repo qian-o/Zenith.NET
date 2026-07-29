@@ -1,178 +1,238 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Numerics;
 
 namespace Zenith.NET;
 
 public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue) : GraphicsResource(context)
 {
     private Pipeline? currentPipeline;
-    private FrameBuffer? currentFrameBuffer;
 
-    public void Submit(bool waitForCompletion = false)
+    public CommandQueue Queue => queue;
+
+    public TimelineValue Submit(params ReadOnlySpan<TimelineValue> waits)
     {
-        queue.Submit(this);
-
-        if (waitForCompletion)
-        {
-            queue.WaitIdle();
-        }
+        return queue.Submit(waits, this);
     }
 
-    public void Upload<T>(Buffer buffer, uint offsetInBytes, ReadOnlySpan<T> data) where T : unmanaged
+    public void Barrier(BarrierStages before, BarrierStages after)
     {
-        if (data.Length is 0)
-        {
-            return;
-        }
-
-        ReadOnlySpan<byte> byteData = MemoryMarshal.AsBytes(data);
-
-        Buffer temporary = Context.Uploader.Buffer(this, (uint)byteData.Length);
-        temporary.Upload(byteData, 0);
-
-        CopyBuffer(temporary, 0, buffer, offsetInBytes, (uint)byteData.Length);
+        BarrierImpl(before, after);
     }
 
-    public void Upload<T>(Texture texture, TextureSlice slice, TextureOffset offset, TextureExtent extent, ReadOnlySpan<T> data) where T : unmanaged
+    public void Transition(Texture texture, TextureSubresource subresource, TextureLayout before, TextureLayout after)
     {
-        if (data.Length is 0)
+        TransitionImpl(texture, subresource, before, after);
+    }
+
+    public void Upload(Buffer buffer, uint offsetInBytes, BufferData data)
+    {
+        Buffer transferBuffer = Context.Uploader.Buffer(this, data.SizeInBytes, new()
         {
-            return;
-        }
+            Pointer = data.Pointer,
+            RowSizeInBytes = data.SizeInBytes,
+            SrcRowStrideInBytes = data.SizeInBytes,
+            DstRowStrideInBytes = data.SizeInBytes,
+            Rows = 1
+        });
 
-        ReadOnlySpan<byte> byteData = MemoryMarshal.AsBytes(data);
+        CopyBuffer(transferBuffer, 0, buffer, offsetInBytes, data.SizeInBytes);
+    }
 
-        uint formatSizeInBytes = ZenithHelper.SizeInBytes(texture.Desc.Format);
+    public void Download(Buffer buffer, uint offsetInBytes, BufferData data)
+    {
+        Buffer transferBuffer = Context.Downloader.Buffer(this, data.SizeInBytes, new()
+        {
+            Pointer = data.Pointer,
+            RowSizeInBytes = data.SizeInBytes,
+            SrcRowStrideInBytes = data.SizeInBytes,
+            DstRowStrideInBytes = data.SizeInBytes,
+            Rows = 1
+        });
+
+        CopyBuffer(buffer, offsetInBytes, transferBuffer, 0, data.SizeInBytes);
+    }
+
+    public void Upload(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
+    {
+        const uint RowPitchAlignment = 256;
+        const uint DepthPitchAlignment = 512;
+
         (_, _, uint blocksWide, uint blocksHigh) = ZenithHelper.BlockLayout(texture.Desc.Format, extent.Width, extent.Height);
 
-        uint sliceRowPitchInBytes = formatSizeInBytes * blocksWide;
-        uint sliceDepthPitchInBytes = sliceRowPitchInBytes * blocksHigh;
+        uint rowPitchInBytes = ZenithHelper.SizeInBytes(texture.Desc.Format) * blocksWide;
 
-        uint sliceRowPitchAlignInBytes = ZenithHelper.Align(sliceRowPitchInBytes, GraphicsContext.TextureRowPitchAlignment);
-        uint sliceDepthPitchAlignInBytes = ZenithHelper.Align(sliceRowPitchAlignInBytes * blocksHigh, GraphicsContext.TextureDepthPitchAlignment);
+        uint alignedRowPitchInBytes = ZenithHelper.Align(rowPitchInBytes, RowPitchAlignment);
+        uint alignedDepthPitchInBytes = ZenithHelper.Align(alignedRowPitchInBytes * blocksHigh, DepthPitchAlignment);
 
-        TextureExtent sliceExtent = extent with { Depth = 1 };
+        Extent3D sliceExtent = extent with { Depth = 1 };
 
         for (uint i = 0; i < extent.Depth; i++)
         {
-            Buffer temporary = Context.Uploader.Buffer(this, sliceDepthPitchAlignInBytes);
-
-            MappedMemory mappedMemory = temporary.Map();
-
-            unsafe
+            Buffer transferBuffer = Context.Uploader.Buffer(this, alignedDepthPitchInBytes, new()
             {
-                for (uint j = 0; j < blocksHigh; j++)
-                {
-                    byteData.Slice((int)((sliceDepthPitchInBytes * i) + (sliceRowPitchInBytes * j)), (int)sliceRowPitchInBytes).CopyTo(new((void*)(mappedMemory.Pointer + (sliceRowPitchAlignInBytes * j)), (int)sliceRowPitchInBytes));
-                }
-            }
+                Pointer = (nint)(data.Pointer + (data.SliceStrideInBytes * i)),
+                RowSizeInBytes = rowPitchInBytes,
+                SrcRowStrideInBytes = data.RowStrideInBytes,
+                DstRowStrideInBytes = alignedRowPitchInBytes,
+                Rows = blocksHigh
+            });
 
-            temporary.Unmap();
-
-            CopyBufferToTexture(temporary, 0, texture, slice, offset, sliceExtent);
+            CopyBufferToTexture(transferBuffer, 0, alignedRowPitchInBytes, alignedDepthPitchInBytes, texture, subresource, offset, sliceExtent);
 
             offset.Z++;
         }
     }
 
-    public void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes)
+    public void Download(Texture texture, TextureSubresource subresource, Offset3D offset, Extent3D extent, TextureData data)
     {
-        CopyBufferImpl(src, srcOffsetInBytes, dest, destOffsetInBytes, sizeInBytes);
+        const uint RowPitchAlignment = 256;
+        const uint DepthPitchAlignment = 512;
+
+        (_, _, uint blocksWide, uint blocksHigh) = ZenithHelper.BlockLayout(texture.Desc.Format, extent.Width, extent.Height);
+
+        uint rowPitchInBytes = ZenithHelper.SizeInBytes(texture.Desc.Format) * blocksWide;
+
+        uint alignedRowPitchInBytes = ZenithHelper.Align(rowPitchInBytes, RowPitchAlignment);
+        uint alignedDepthPitchInBytes = ZenithHelper.Align(alignedRowPitchInBytes * blocksHigh, DepthPitchAlignment);
+
+        Extent3D sliceExtent = extent with { Depth = 1 };
+
+        for (uint i = 0; i < extent.Depth; i++)
+        {
+            Buffer transferBuffer = Context.Downloader.Buffer(this, alignedDepthPitchInBytes, new()
+            {
+                Pointer = (nint)(data.Pointer + (data.SliceStrideInBytes * i)),
+                RowSizeInBytes = rowPitchInBytes,
+                SrcRowStrideInBytes = alignedRowPitchInBytes,
+                DstRowStrideInBytes = data.RowStrideInBytes,
+                Rows = blocksHigh
+            });
+
+            CopyTextureToBuffer(texture, subresource, offset, sliceExtent, transferBuffer, 0, alignedRowPitchInBytes, alignedDepthPitchInBytes);
+
+            offset.Z++;
+        }
     }
 
-    public void CopyBufferToTexture(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent)
+    public void CopyBuffer(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes)
     {
-        CopyBufferToTextureImpl(src, srcOffsetInBytes, dest, destSlice, destOffset, destExtent);
+        CopyBufferImpl(src, srcOffsetInBytes, dst, dstOffsetInBytes, sizeInBytes);
     }
 
-    public void CopyTexture(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent)
+    public void CopyBufferToTexture(Buffer src, uint srcOffsetInBytes, uint srcRowStrideInBytes, uint srcSliceStrideInBytes, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D dstExtent)
     {
-        CopyTextureImpl(src, srcSlice, srcOffset, dest, destSlice, destOffset, extent);
+        CopyBufferToTextureImpl(src, srcOffsetInBytes, srcRowStrideInBytes, srcSliceStrideInBytes, dst, dstSubresource, dstOffset, dstExtent);
     }
 
-    public void CopyTextureToBuffer(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes)
+    public void CopyTexture(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D extent)
     {
-        CopyTextureToBufferImpl(src, srcSlice, srcOffset, srcExtent, dest, destOffsetInBytes);
+        CopyTextureImpl(src, srcSubresource, srcOffset, dst, dstSubresource, dstOffset, extent);
     }
 
-    public void ResolveTexture(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice)
+    public void CopyTextureToBuffer(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dst, uint dstOffsetInBytes, uint dstRowStrideInBytes, uint dstSliceStrideInBytes)
     {
-        ResolveTextureImpl(src, srcSlice, dest, destSlice);
+        CopyTextureToBufferImpl(src, srcSubresource, srcOffset, srcExtent, dst, dstOffsetInBytes, dstRowStrideInBytes, dstSliceStrideInBytes);
+    }
+
+    public void ResolveTexture(Texture src, TextureSubresource srcSubresource, Texture dst, TextureSubresource dstSubresource)
+    {
+        ResolveTextureImpl(src, srcSubresource, dst, dstSubresource);
     }
 
     public BottomLevelAccelerationStructure BuildAccelerationStructure(BottomLevelAccelerationStructureDesc desc)
     {
-        Context.ValidationLayer?.ValidateDesc(desc);
-
         return BuildAccelerationStructureImpl(desc);
     }
 
     public TopLevelAccelerationStructure BuildAccelerationStructure(TopLevelAccelerationStructureDesc desc)
     {
-        Context.ValidationLayer?.ValidateDesc(desc);
-
         return BuildAccelerationStructureImpl(desc);
     }
 
-    public void UpdateAccelerationStructure(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
+    public void UpdateAccelerationStructure(BottomLevelAccelerationStructure accelerationStructure, BottomLevelAccelerationStructureDesc newDesc)
     {
-        Context.ValidationLayer?.ValidateDesc(accelerationStructure.Desc, newDesc);
-
         UpdateAccelerationStructureImpl(accelerationStructure, newDesc);
 
         accelerationStructure.Refresh(newDesc);
     }
 
-    public void BeginRenderPass(FrameBuffer frameBuffer, ClearValue clearValue, params IEnumerable<ResourceTable> preprocessResourceTables)
+    public void UpdateAccelerationStructure(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
     {
-        Scissor[] scissors = new Scissor[Math.Max(frameBuffer.ColorAttachmentCount, 1)];
-        Viewport[] viewports = new Viewport[Math.Max(frameBuffer.ColorAttachmentCount, 1)];
+        UpdateAccelerationStructureImpl(accelerationStructure, newDesc);
 
-        Array.Fill(scissors, new() { Width = frameBuffer.Width, Height = frameBuffer.Height });
-        Array.Fill(viewports, new() { Width = frameBuffer.Width, Height = frameBuffer.Height, MaxDepth = 1 });
+        accelerationStructure.Refresh(newDesc);
+    }
 
-        SetScissorsImpl(scissors);
-        SetViewportsImpl(viewports);
+    public void BeginRenderPass(ReadOnlySpan<ColorAttachment> colorAttachments, DepthStencilAttachment? depthStencilAttachment)
+    {
+        int attachmentCount = colorAttachments.Length > 0 ? colorAttachments.Length : depthStencilAttachment is null ? 0 : 1;
 
-        foreach (ResourceTable resourceTable in preprocessResourceTables)
+        Span<Scissor> scissors = stackalloc Scissor[attachmentCount];
+        Span<Viewport> viewports = stackalloc Viewport[attachmentCount];
+
+        if (colorAttachments.Length > 0)
         {
-            resourceTable.Preprocess(this);
+            for (int i = 0; i < colorAttachments.Length; i++)
+            {
+                ColorAttachment attachment = colorAttachments[i];
+
+                ZenithHelper.MipDimensions(attachment.Texture.Desc.Width,
+                                           attachment.Texture.Desc.Height,
+                                           0,
+                                           attachment.Subresource.MipLevel,
+                                           out uint width,
+                                           out uint height,
+                                           out _);
+
+                scissors[i] = new()
+                {
+                    Width = width,
+                    Height = height
+                };
+
+                viewports[i] = new()
+                {
+                    Width = width,
+                    Height = height,
+                    MaxDepth = 1.0f
+                };
+            }
+        }
+        else if (depthStencilAttachment.HasValue)
+        {
+            DepthStencilAttachment attachment = depthStencilAttachment.Value;
+
+            ZenithHelper.MipDimensions(attachment.Texture.Desc.Width,
+                                       attachment.Texture.Desc.Height,
+                                       0,
+                                       attachment.Subresource.MipLevel,
+                                       out uint width,
+                                       out uint height,
+                                       out _);
+
+            scissors[0] = new()
+            {
+                Width = width,
+                Height = height
+            };
+
+            viewports[0] = new()
+            {
+                Width = width,
+                Height = height,
+                MaxDepth = 1.0f
+            };
         }
 
-        BeginRenderPassImpl(frameBuffer, clearValue);
-
-        currentFrameBuffer = frameBuffer;
+        SetViewportsImpl(viewports);
+        SetScissorsImpl(scissors);
+        SetBlendConstantImpl(Vector4.One);
+        SetStencilReferenceImpl(0);
+        BeginRenderPassImpl(colorAttachments, depthStencilAttachment);
     }
 
     public void EndRenderPass()
     {
-        if (currentFrameBuffer is null)
-        {
-            return;
-        }
-
-        EndRenderPassImpl(currentFrameBuffer);
-
-        currentFrameBuffer = null;
-    }
-
-    public void SetScissors(Scissor[] scissors)
-    {
-        if (scissors.Length is 0)
-        {
-            return;
-        }
-
-        SetScissorsImpl(scissors);
-    }
-
-    public void SetViewports(Viewport[] viewports)
-    {
-        if (viewports.Length is 0)
-        {
-            return;
-        }
-
-        SetViewportsImpl(viewports);
+        EndRenderPassImpl();
     }
 
     public void SetPipeline(GraphicsPipeline pipeline)
@@ -196,44 +256,59 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         currentPipeline = pipeline;
     }
 
-    public void SetVertexBuffer(Buffer buffer, uint offsetInBytes, uint index)
+    public void SetViewports(ReadOnlySpan<Viewport> viewports)
     {
-        if (currentPipeline is not GraphicsPipeline pipeline)
-        {
-            return;
-        }
-
-        SetVertexBufferImpl(pipeline, buffer, offsetInBytes, index);
+        SetViewportsImpl(viewports);
     }
 
-    public void SetIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat format)
+    public void SetScissors(ReadOnlySpan<Scissor> scissors)
     {
-        if (currentPipeline is not GraphicsPipeline pipeline)
-        {
-            return;
-        }
-
-        SetIndexBufferImpl(pipeline, buffer, offsetInBytes, format);
+        SetScissorsImpl(scissors);
     }
 
-    public void SetResourceTable(ResourceTable resourceTable)
+    public void SetBlendConstant(Vector4 blendConstant)
     {
-        if (currentPipeline is null)
+        SetBlendConstantImpl(blendConstant);
+    }
+
+    public void SetStencilReference(uint stencilReference)
+    {
+        SetStencilReferenceImpl(stencilReference);
+    }
+
+    public void SetVertexBuffer(Buffer buffer, uint offsetInBytes, uint slot)
+    {
+        if (!TryGetCurrentPipeline(out GraphicsPipeline pipeline))
         {
             return;
         }
 
-        SetResourceTableImpl(currentPipeline, resourceTable);
+        SetVertexBufferImpl(pipeline, buffer, offsetInBytes, slot);
+    }
 
-        if (currentFrameBuffer is null)
+    public void SetIndexBuffer(Buffer buffer, uint offsetInBytes, IndexFormat indexFormat)
+    {
+        if (!TryGetCurrentPipeline(out GraphicsPipeline pipeline))
         {
-            resourceTable.Preprocess(this);
+            return;
         }
+
+        SetIndexBufferImpl(pipeline, buffer, offsetInBytes, indexFormat);
+    }
+
+    public void SetConstantBuffer(Buffer buffer, uint offsetInBytes)
+    {
+        if (!TryGetCurrentPipeline(out Pipeline pipeline))
+        {
+            return;
+        }
+
+        SetConstantBufferImpl(pipeline, buffer, offsetInBytes);
     }
 
     public void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
     {
-        if (currentPipeline is not GraphicsPipeline pipeline)
+        if (!TryGetCurrentPipeline(out GraphicsPipeline pipeline))
         {
             return;
         }
@@ -243,7 +318,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void DrawIndirect(Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        if (currentPipeline is not GraphicsPipeline pipeline)
+        if (!TryGetCurrentPipeline(out GraphicsPipeline pipeline))
         {
             return;
         }
@@ -253,7 +328,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void DrawIndexed(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
     {
-        if (currentPipeline is not GraphicsPipeline pipeline)
+        if (!TryGetCurrentPipeline(out GraphicsPipeline pipeline))
         {
             return;
         }
@@ -263,7 +338,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void DrawIndexedIndirect(Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        if (currentPipeline is not GraphicsPipeline pipeline)
+        if (!TryGetCurrentPipeline(out GraphicsPipeline pipeline))
         {
             return;
         }
@@ -273,7 +348,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void Dispatch(uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        if (currentPipeline is not ComputePipeline pipeline)
+        if (!TryGetCurrentPipeline(out ComputePipeline pipeline))
         {
             return;
         }
@@ -283,7 +358,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void DispatchIndirect(Buffer indirectBuffer, uint offsetInBytes)
     {
-        if (currentPipeline is not ComputePipeline pipeline)
+        if (!TryGetCurrentPipeline(out ComputePipeline pipeline))
         {
             return;
         }
@@ -293,7 +368,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void DispatchMesh(uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        if (currentPipeline is not MeshShadingPipeline pipeline)
+        if (!TryGetCurrentPipeline(out MeshShadingPipeline pipeline))
         {
             return;
         }
@@ -303,7 +378,7 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void DispatchMeshIndirect(Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount)
     {
-        if (currentPipeline is not MeshShadingPipeline pipeline)
+        if (!TryGetCurrentPipeline(out MeshShadingPipeline pipeline))
         {
             return;
         }
@@ -313,41 +388,21 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void BeginQuery(QueryHeap queryHeap, uint index)
     {
-        if (queryHeap.Desc.Type is QueryType.Timestamp)
-        {
-            return;
-        }
-
         BeginQueryImpl(queryHeap, index);
     }
 
     public void EndQuery(QueryHeap queryHeap, uint index)
     {
-        if (queryHeap.Desc.Type is QueryType.Timestamp)
-        {
-            return;
-        }
-
         EndQueryImpl(queryHeap, index);
     }
 
     public void WriteTimestamp(QueryHeap queryHeap, uint index)
     {
-        if (queryHeap.Desc.Type is not QueryType.Timestamp)
-        {
-            return;
-        }
-
         WriteTimestampImpl(queryHeap, index);
     }
 
     public void BeginDebugEvent(string label)
     {
-        if (string.IsNullOrWhiteSpace(label))
-        {
-            return;
-        }
-
         BeginDebugEventImpl(label);
     }
 
@@ -358,11 +413,6 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void InsertDebugMarker(string label)
     {
-        if (string.IsNullOrWhiteSpace(label))
-        {
-            return;
-        }
-
         InsertDebugMarkerImpl(label);
     }
 
@@ -381,42 +431,72 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
         ResetImpl();
 
         Context.Uploader.Release(this);
+        Context.Downloader.Release(this);
 
         currentPipeline = null;
-        currentFrameBuffer = null;
     }
 
     protected override void Destroy()
     {
         Context.Uploader.Release(this);
+        Context.Downloader.Release(this);
 
         currentPipeline = null;
-        currentFrameBuffer = null;
     }
 
-    protected abstract void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes);
+    private bool TryGetCurrentPipeline(out Pipeline pipeline)
+    {
+        if (currentPipeline is not null)
+        {
+            pipeline = currentPipeline;
 
-    protected abstract void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent);
+            return true;
+        }
 
-    protected abstract void CopyTextureImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent);
+        pipeline = null!;
 
-    protected abstract void CopyTextureToBufferImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes);
+        return false;
+    }
 
-    protected abstract void ResolveTextureImpl(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice);
+    private bool TryGetCurrentPipeline<TPipeline>(out TPipeline pipeline) where TPipeline : Pipeline
+    {
+        if (currentPipeline is TPipeline typedPipeline)
+        {
+            pipeline = typedPipeline;
+
+            return true;
+        }
+
+        pipeline = null!;
+
+        return false;
+    }
+
+    protected abstract void BarrierImpl(BarrierStages before, BarrierStages after);
+
+    protected abstract void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout before, TextureLayout after);
+
+    protected abstract void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes);
+
+    protected abstract void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, uint srcRowStrideInBytes, uint srcSliceStrideInBytes, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D dstExtent);
+
+    protected abstract void CopyTextureImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D extent);
+
+    protected abstract void CopyTextureToBufferImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dst, uint dstOffsetInBytes, uint dstRowStrideInBytes, uint dstSliceStrideInBytes);
+
+    protected abstract void ResolveTextureImpl(Texture src, TextureSubresource srcSubresource, Texture dst, TextureSubresource dstSubresource);
 
     protected abstract BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc);
 
     protected abstract TopLevelAccelerationStructure BuildAccelerationStructureImpl(TopLevelAccelerationStructureDesc desc);
 
+    protected abstract void UpdateAccelerationStructureImpl(BottomLevelAccelerationStructure accelerationStructure, BottomLevelAccelerationStructureDesc newDesc);
+
     protected abstract void UpdateAccelerationStructureImpl(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc);
 
-    protected abstract void BeginRenderPassImpl(FrameBuffer frameBuffer, ClearValue clearValue);
+    protected abstract void BeginRenderPassImpl(ReadOnlySpan<ColorAttachment> colorAttachments, DepthStencilAttachment? depthStencilAttachment);
 
-    protected abstract void EndRenderPassImpl(FrameBuffer frameBuffer);
-
-    protected abstract void SetScissorsImpl(Scissor[] scissors);
-
-    protected abstract void SetViewportsImpl(Viewport[] viewports);
+    protected abstract void EndRenderPassImpl();
 
     protected abstract void SetPipelineImpl(GraphicsPipeline pipeline);
 
@@ -424,11 +504,19 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     protected abstract void SetPipelineImpl(MeshShadingPipeline pipeline);
 
-    protected abstract void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index);
+    protected abstract void SetViewportsImpl(ReadOnlySpan<Viewport> viewports);
 
-    protected abstract void SetIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format);
+    protected abstract void SetScissorsImpl(ReadOnlySpan<Scissor> scissors);
 
-    protected abstract void SetResourceTableImpl(Pipeline pipeline, ResourceTable resourceTable);
+    protected abstract void SetBlendConstantImpl(Vector4 blendConstant);
+
+    protected abstract void SetStencilReferenceImpl(uint stencilReference);
+
+    protected abstract void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint slot);
+
+    protected abstract void SetIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat indexFormat);
+
+    protected abstract void SetConstantBufferImpl(Pipeline pipeline, Buffer buffer, uint offsetInBytes);
 
     protected abstract void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance);
 

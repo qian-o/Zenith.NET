@@ -7,7 +7,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\Extensions\Zenith.NET.Extensions.ImGui\Zenith.NET.Extensions.ImGui.csproj" />
-        <ProjectReference Include="..\..\Extensions\Zenith.NET.Extensions.Slang\Zenith.NET.Extensions.Slang.csproj" />
         <ProjectReference Include="..\..\Zenith.NET.DirectX12\Zenith.NET.DirectX12.csproj" />
         <ProjectReference Include="..\..\Zenith.NET.Metal\Zenith.NET.Metal.csproj" />
         <ProjectReference Include="..\..\Zenith.NET.Vulkan\Zenith.NET.Vulkan.csproj" />

@@ -38,7 +38,7 @@ public class FrameScheduler(IZenithView view)
 
         double memoryThroughputMBps = iterations * bufferSize / (1024.0 * 1024.0) / stopwatch.Elapsed.TotalSeconds;
 
-        double performanceScore = Math.Clamp(memoryThroughputMBps / 5000.0, 0, 1);
+        double performanceScore = Math.Clamp(memoryThroughputMBps / 5000.0, 0.0, 1.0);
 
         Interval = TimeSpan.FromSeconds(double.Lerp(maxInterval, minInterval, performanceScore));
     }

@@ -1,4 +1,6 @@
-﻿namespace Zenith.NET.Metal;
+﻿using Metal.NET;
+
+namespace Zenith.NET.Metal;
 
 internal class MTLTexture : Texture
 {
@@ -6,15 +8,42 @@ internal class MTLTexture : Texture
 
     public MTLTexture(MTLGraphicsContext context, TextureDesc desc) : base(context, desc)
     {
-        Heap = new(context, desc, out Texture);
+        context.Register(Texture = context.Device.MakeTexture(Descriptor(desc)));
+
+        View = new(context, new()
+        {
+            Texture = this,
+            Type = desc.Type,
+            Format = desc.Format,
+            Range = TextureSubresourceRange.All(this)
+        });
     }
 
     public MTLTexture(MTLGraphicsContext context, TextureDesc desc, MtlTexture texture) : base(context, desc)
     {
-        Texture = texture;
+        context.Register(Texture = texture);
+
+        View = new(context, new()
+        {
+            Texture = this,
+            Type = desc.Type,
+            Format = desc.Format,
+            Range = TextureSubresourceRange.All(this)
+        });
     }
 
-    public MTLHeap? Heap { get; }
+    public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
+
+    public MTLTextureView View { get; }
+
+    public override ResourceHandle SampledHandle => View.SampledHandle;
+
+    public override ResourceHandle StorageHandle => View.StorageHandle;
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
 
     protected override void SetResourceName(string name)
     {
@@ -23,11 +52,27 @@ internal class MTLTexture : Texture
 
     protected override void Destroy()
     {
-        if (Heap is not null)
-        {
-            Texture.Dispose();
+        Context.Unregister(Texture);
 
-            Heap.Dispose();
-        }
+        View.Dispose();
+        Texture.Dispose();
+    }
+
+    public static MTLTextureDescriptor Descriptor(TextureDesc desc)
+    {
+        return new()
+        {
+            TextureType = MTLFormats.Metal(desc.Type, desc.SampleCount),
+            PixelFormat = MTLFormats.Metal(desc.Format).PixelFormat,
+            Width = desc.Width,
+            Height = desc.Height,
+            Depth = desc.Depth,
+            MipmapLevelCount = desc.MipLevels,
+            SampleCount = MTLFormats.Metal(desc.SampleCount),
+            ArrayLength = desc.ArrayLayers,
+            ResourceOptions = MTLResourceOptions.CPUCacheModeDefaultCache | MTLResourceOptions.StorageModePrivate | MTLResourceOptions.HazardTrackingModeUntracked,
+            Usage = MTLFormats.Metal(desc.Usages),
+            AllowGPUOptimizedContents = true
+        };
     }
 }

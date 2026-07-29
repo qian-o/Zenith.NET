@@ -5,4 +5,9 @@ public abstract class BottomLevelAccelerationStructure(GraphicsContext context, 
     private BottomLevelAccelerationStructureDesc desc = desc;
 
     public ref readonly BottomLevelAccelerationStructureDesc Desc => ref desc;
+
+    internal void Refresh(BottomLevelAccelerationStructureDesc newDesc)
+    {
+        desc = newDesc;
+    }
 }

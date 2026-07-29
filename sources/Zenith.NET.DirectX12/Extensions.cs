@@ -28,35 +28,11 @@ public static class Extensions
         }
     }
 
-    extension(CommandBuffer commandBuffer)
+    extension(BottomLevelAccelerationStructure bottomLevelAccelerationStructure)
     {
-        internal DXCommandBuffer DirectX12()
+        internal DXBottomLevelAccelerationStructure DirectX12()
         {
-            return (DXCommandBuffer)commandBuffer;
-        }
-    }
-
-    extension(SwapChain swapChain)
-    {
-        internal DXSwapChain DirectX12()
-        {
-            return (DXSwapChain)swapChain;
-        }
-    }
-
-    extension(FrameBuffer frameBuffer)
-    {
-        internal DXFrameBuffer DirectX12()
-        {
-            return (DXFrameBuffer)frameBuffer;
-        }
-    }
-
-    extension(Shader shader)
-    {
-        internal DXShader DirectX12()
-        {
-            return (DXShader)shader;
+            return (DXBottomLevelAccelerationStructure)bottomLevelAccelerationStructure;
         }
     }
 
@@ -76,59 +52,35 @@ public static class Extensions
         }
     }
 
-    extension(Texture texture)
+    extension(CommandBuffer commandBuffer)
     {
-        internal DXTexture DirectX12()
+        internal DXCommandBuffer DirectX12()
         {
-            return (DXTexture)texture;
+            return (DXCommandBuffer)commandBuffer;
         }
     }
 
-    extension(TextureView textureView)
+    extension(CommandQueue commandQueue)
     {
-        internal DXTextureView DirectX12()
+        internal DXCommandQueue DirectX12()
         {
-            return (DXTextureView)textureView;
+            return (DXCommandQueue)commandQueue;
         }
     }
 
-    extension(Sampler sampler)
+    extension(Timeline timeline)
     {
-        internal DXSampler DirectX12()
+        internal DXTimeline DirectX12()
         {
-            return (DXSampler)sampler;
+            return (DXTimeline)timeline;
         }
     }
 
-    extension(BottomLevelAccelerationStructure bottomLevelAccelerationStructure)
+    extension(ComputePipeline computePipeline)
     {
-        internal DXBottomLevelAccelerationStructure DirectX12()
+        internal DXComputePipeline DirectX12()
         {
-            return (DXBottomLevelAccelerationStructure)bottomLevelAccelerationStructure;
-        }
-    }
-
-    extension(TopLevelAccelerationStructure topLevelAccelerationStructure)
-    {
-        internal DXTopLevelAccelerationStructure DirectX12()
-        {
-            return (DXTopLevelAccelerationStructure)topLevelAccelerationStructure;
-        }
-    }
-
-    extension(ResourceLayout resourceLayout)
-    {
-        internal DXResourceLayout DirectX12()
-        {
-            return (DXResourceLayout)resourceLayout;
-        }
-    }
-
-    extension(ResourceTable resourceTable)
-    {
-        internal DXResourceTable DirectX12()
-        {
-            return (DXResourceTable)resourceTable;
+            return (DXComputePipeline)computePipeline;
         }
     }
 
@@ -140,11 +92,11 @@ public static class Extensions
         }
     }
 
-    extension(ComputePipeline computePipeline)
+    extension(Heap heap)
     {
-        internal DXComputePipeline DirectX12()
+        internal DXHeap DirectX12()
         {
-            return (DXComputePipeline)computePipeline;
+            return (DXHeap)heap;
         }
     }
 
@@ -161,6 +113,54 @@ public static class Extensions
         internal DXQueryHeap DirectX12()
         {
             return (DXQueryHeap)queryHeap;
+        }
+    }
+
+    extension(Sampler sampler)
+    {
+        internal DXSampler DirectX12()
+        {
+            return (DXSampler)sampler;
+        }
+    }
+
+    extension(Shader shader)
+    {
+        internal DXShader DirectX12()
+        {
+            return (DXShader)shader;
+        }
+    }
+
+    extension(SwapChain swapChain)
+    {
+        internal DXSwapChain DirectX12()
+        {
+            return (DXSwapChain)swapChain;
+        }
+    }
+
+    extension(Texture texture)
+    {
+        internal DXTexture DirectX12()
+        {
+            return (DXTexture)texture;
+        }
+    }
+
+    extension(TextureView textureView)
+    {
+        internal DXTextureView DirectX12()
+        {
+            return (DXTextureView)textureView;
+        }
+    }
+
+    extension(TopLevelAccelerationStructure topLevelAccelerationStructure)
+    {
+        internal DXTopLevelAccelerationStructure DirectX12()
+        {
+            return (DXTopLevelAccelerationStructure)topLevelAccelerationStructure;
         }
     }
 }

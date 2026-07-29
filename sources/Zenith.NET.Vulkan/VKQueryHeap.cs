@@ -15,12 +15,17 @@ internal unsafe class VKQueryHeap : QueryHeap
             QueryCount = desc.Count
         };
 
-        context.Vk.CreateQueryPool(context.Device, &createInfo, null, out QueryPool).Success();
+        context.Vk.CreateQueryPool(context.Device, &createInfo, default, out QueryPool).Success();
 
         context.Vk.ResetQueryPool(context.Device, QueryPool, 0, desc.Count);
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
 
     protected override void GetResultsImpl(Span<ulong> results, uint startIndex)
     {
@@ -30,7 +35,7 @@ internal unsafe class VKQueryHeap : QueryHeap
                                            QueryPool,
                                            startIndex,
                                            (uint)results.Length,
-                                           (uint)(sizeof(ulong) * results.Length),
+                                           (nuint)(sizeof(ulong) * results.Length),
                                            pResults,
                                            sizeof(ulong),
                                            QueryResultFlags.Result64Bit).Success();
@@ -54,6 +59,6 @@ internal unsafe class VKQueryHeap : QueryHeap
 
     protected override void Destroy()
     {
-        Context.Vk.DestroyQueryPool(Context.Device, QueryPool, null);
+        Context.Vk.DestroyQueryPool(Context.Device, QueryPool, default);
     }
 }

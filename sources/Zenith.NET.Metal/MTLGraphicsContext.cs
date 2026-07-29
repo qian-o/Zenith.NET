@@ -2,44 +2,47 @@
 
 namespace Zenith.NET.Metal;
 
-internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Backend.Metal, useValidationLayer)
+internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(GraphicsApi.Metal, useValidationLayer)
 {
-    public MTLDevice Device = MTLDevice.Null;
+    private readonly Lock @lock = new();
+
+    public MTLDevice Device = MTLDevice.CreateSystemDefaultDevice();
 
     public MTL4Compiler Compiler = MTL4Compiler.Null;
 
     public MTLResidencySet ResidencySet = MTLResidencySet.Null;
 
-    public MTL4CommandQueue GraphicsQueue = MTL4CommandQueue.Null;
-
-    public MTL4CommandQueue ComputeQueue = MTL4CommandQueue.Null;
-
-    public MTL4CommandQueue CopyQueue = MTL4CommandQueue.Null;
-
-    public void AddAllocation(MTLAllocation allocation)
+    public void Register(MTLAllocation allocation)
     {
+        using Lock.Scope _ = @lock.EnterScope();
+
         ResidencySet.AddAllocation(allocation);
         ResidencySet.Commit();
     }
 
-    public void RemoveAllocation(MTLAllocation allocation)
+    public void Unregister(MTLAllocation allocation)
     {
+        using Lock.Scope _ = @lock.EnterScope();
+
         ResidencySet.RemoveAllocation(allocation);
         ResidencySet.Commit();
     }
 
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
+
     protected override void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
-                                       out CommandQueue graphics,
-                                       out CommandQueue compute,
-                                       out CommandQueue copy,
+                                       out CommandQueue graphicsQueue,
+                                       out CommandQueue computeQueue,
+                                       out CommandQueue transferQueue,
                                        out ValidationLayer? validationLayer)
     {
-        Device = MTLDevice.CreateSystemDefaultDevice();
-
         if (!Device.SupportsFamily(MTLGPUFamily.Metal4))
         {
-            throw new NotSupportedException("Metal 4 is not supported on system default device.");
+            throw new NotSupportedException("This device does not support Metal 4.0 or higher.");
         }
 
         Compiler = Device.MakeCompiler(new(), out NSError error);
@@ -48,18 +51,10 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
         ResidencySet = Device.MakeResidencySet(new(), out error);
         error.Success();
 
-        GraphicsQueue = Device.MakeMTL4CommandQueue();
-        ComputeQueue = Device.MakeMTL4CommandQueue();
-        CopyQueue = Device.MakeMTL4CommandQueue();
-
-        GraphicsQueue.AddResidencySet(ResidencySet);
-        ComputeQueue.AddResidencySet(ResidencySet);
-        CopyQueue.AddResidencySet(ResidencySet);
-
         capabilities = new MTLCapabilities(this);
-        graphics = new MTLCommandQueue(this, CommandQueueType.Graphics, GraphicsQueue);
-        compute = new MTLCommandQueue(this, CommandQueueType.Compute, ComputeQueue);
-        copy = new MTLCommandQueue(this, CommandQueueType.Copy, CopyQueue);
+        graphicsQueue = new MTLCommandQueue(this, CommandQueueType.Graphics);
+        computeQueue = new MTLCommandQueue(this, CommandQueueType.Compute);
+        transferQueue = new MTLCommandQueue(this, CommandQueueType.Transfer);
         validationLayer = null;
     }
 
@@ -68,14 +63,23 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
         return new MTLSwapChain(this, desc);
     }
 
-    protected override FrameBuffer CreateFrameBufferImpl(FrameBufferDesc desc)
+    protected override Heap CreateHeapImpl(HeapDesc desc)
     {
-        return new MTLFrameBuffer(this, desc);
+        return new MTLHeap(this, desc);
     }
 
-    protected override Shader CreateShaderImpl(ShaderDesc desc)
+    protected override SizeAndAlignment GetSizeAndAlignmentImpl(BufferDesc desc)
     {
-        return new MTLShader(this, desc);
+        MTLSizeAndAlign sizeAndAlign = Device.HeapBufferSizeAndAlign(desc.SizeInBytes, MTLFormats.Metal(desc.Residency));
+
+        return new(sizeAndAlign.Size, sizeAndAlign.Align);
+    }
+
+    protected override SizeAndAlignment GetSizeAndAlignmentImpl(TextureDesc desc)
+    {
+        MTLSizeAndAlign sizeAndAlign = Device.HeapTextureSizeAndAlign(MTLTexture.Descriptor(desc));
+
+        return new(sizeAndAlign.Size, sizeAndAlign.Align);
     }
 
     protected override Buffer CreateBufferImpl(BufferDesc desc)
@@ -93,6 +97,16 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
         return new MTLTexture(this, desc);
     }
 
+    protected override Texture CreateTextureImpl(TextureDesc desc, NativeTextureType nativeTextureType, nint nativeTexture)
+    {
+        return new MTLTexture(this, desc, nativeTextureType switch
+        {
+            NativeTextureType.MTLSharedTextureHandle => Device.MakeSharedTexture(new MTLSharedTextureHandle(nativeTexture, NativeObjectOwnership.Borrowed)),
+            NativeTextureType.IOSurfaceRef => Device.MakeTexture(MTLTexture.Descriptor(desc), nativeTexture, 0),
+            _ => MtlTexture.Null
+        });
+    }
+
     protected override TextureView CreateTextureViewImpl(TextureViewDesc desc)
     {
         return new MTLTextureView(this, desc);
@@ -103,14 +117,9 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
         return new MTLSampler(this, desc);
     }
 
-    protected override ResourceLayout CreateResourceLayoutImpl(ResourceLayoutDesc desc)
+    protected override Shader CreateShaderImpl(ShaderDesc desc)
     {
-        return new MTLResourceLayout(this, desc);
-    }
-
-    protected override ResourceTable CreateResourceTableImpl(ResourceTableDesc desc)
-    {
-        return new MTLResourceTable(this, desc);
+        return new MTLShader(this, desc);
     }
 
     protected override GraphicsPipeline CreateGraphicsPipelineImpl(GraphicsPipelineDesc desc)
@@ -137,17 +146,8 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Bac
     {
         base.Destroy();
 
-        CopyQueue.RemoveResidencySet(ResidencySet);
-        ComputeQueue.RemoveResidencySet(ResidencySet);
-        GraphicsQueue.RemoveResidencySet(ResidencySet);
-
-        CopyQueue.Dispose();
-        ComputeQueue.Dispose();
-        GraphicsQueue.Dispose();
-
         ResidencySet.Dispose();
         Compiler.Dispose();
-
         Device.Dispose();
     }
 }

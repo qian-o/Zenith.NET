@@ -2,53 +2,47 @@
 
 namespace Zenith.NET.Vulkan;
 
-internal unsafe class VKSampler : Sampler
+internal class VKSampler : Sampler
 {
-    public VkSampler Sampler;
+    public VKDescriptorToken Token;
 
     public VKSampler(VKGraphicsContext context, SamplerDesc desc) : base(context, desc)
     {
-        SamplerCreateInfo createInfo = new()
+        Token = context.SamplerHeap.Allocate(new SamplerCreateInfo()
         {
             SType = StructureType.SamplerCreateInfo,
-            MagFilter = VKFormats.Vulkan(desc.Filter).MagFilter,
-            MinFilter = VKFormats.Vulkan(desc.Filter).MinFilter,
-            MipmapMode = VKFormats.Vulkan(desc.Filter).MipmapMode,
-            AddressModeU = VKFormats.Vulkan(desc.U),
-            AddressModeV = VKFormats.Vulkan(desc.V),
-            AddressModeW = VKFormats.Vulkan(desc.W),
+            MagFilter = VKFormats.Vulkan(desc.MagFilter).Filter,
+            MinFilter = VKFormats.Vulkan(desc.MinFilter).Filter,
+            MipmapMode = VKFormats.Vulkan(desc.MipFilter).MipmapMode,
+            AddressModeU = VKFormats.Vulkan(desc.AddressU),
+            AddressModeV = VKFormats.Vulkan(desc.AddressV),
+            AddressModeW = VKFormats.Vulkan(desc.AddressW),
             MipLodBias = desc.LodBias,
-            AnisotropyEnable = desc.Filter is Filter.Anisotropic,
+            AnisotropyEnable = desc.MaxAnisotropy > 1,
             MaxAnisotropy = desc.MaxAnisotropy,
-            CompareEnable = desc.ComparisonFunc is not ComparisonFunc.Never,
-            CompareOp = VKFormats.Vulkan(desc.ComparisonFunc),
+            CompareEnable = desc.CompareOp is not CompareOp.Never,
+            CompareOp = VKFormats.Vulkan(desc.CompareOp),
             MinLod = desc.MinLod,
             MaxLod = desc.MaxLod,
             BorderColor = VKFormats.Vulkan(desc.BorderColor)
-        };
-
-        context.Vk.CreateSampler(context.Device, &createInfo, null, out Sampler).Success();
+        });
     }
 
     public new VKGraphicsContext Context => (VKGraphicsContext)base.Context;
 
+    public override ResourceHandle Handle => Token.ResourceHandle;
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
+
     protected override void SetResourceName(string name)
     {
-        using ZenithMarshal.Scope scope = new();
-
-        DebugUtilsObjectNameInfoEXT nameInfo = new()
-        {
-            SType = StructureType.DebugUtilsObjectNameInfoExt,
-            ObjectType = ObjectType.Sampler,
-            ObjectHandle = Sampler.Handle,
-            PObjectName = (byte*)ZenithMarshal.StringToPointer(scope, name, StringEncoding.UTF8)
-        };
-
-        Context.DebugUtils?.SetDebugUtilsObjectName(Context.Device, &nameInfo).Success();
     }
 
     protected override void Destroy()
     {
-        Context.Vk.DestroySampler(Context.Device, Sampler, null);
+        Token.Dispose();
     }
 }

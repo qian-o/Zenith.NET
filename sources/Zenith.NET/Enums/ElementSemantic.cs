@@ -10,13 +10,11 @@ public enum ElementSemantic
 
     Tangent,
 
-    Binormal,
+    Bitangent,
 
     Color,
 
     BlendIndices,
 
-    BlendWeight,
-
-    Count
+    BlendWeight
 }

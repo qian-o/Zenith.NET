@@ -2,23 +2,47 @@
 
 namespace Zenith.NET.Metal;
 
-internal class MTLCommandQueue(MTLGraphicsContext context, CommandQueueType type, MTL4CommandQueue queue) : CommandQueue(context, type)
+internal class MTLCommandQueue : CommandQueue
 {
-    private readonly MTLFence fence = new(context);
+    public MTL4CommandQueue CommandQueue;
+
+    public MTLCommandQueue(MTLGraphicsContext context, CommandQueueType type) : base(context, type)
+    {
+        CommandQueue = context.Device.MakeMTL4CommandQueue();
+        CommandQueue.AddResidencySet(context.ResidencySet);
+
+        Timeline = new MTLTimeline(context, this);
+    }
+
+    public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
+
+    public override Timeline Timeline { get; }
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
 
     protected override CommandBuffer CreateCommandBuffer()
     {
-        return new MTLCommandBuffer(context, this);
+        return new MTLCommandBuffer(Context, this);
     }
 
-    protected override void WaitIdleImpl()
+    protected override double GetTimestampPeriod(out uint validBits)
     {
-        fence.Wait(queue);
+        validBits = 64;
+
+        return 1_000_000_000.0 / Context.Device.QueryTimestampFrequency();
     }
 
-    protected override void SubmitImpl(CommandBuffer commandBuffer)
+    protected override void SubmitImpl(ReadOnlySpan<TimelineValue> waits, CommandBuffer commandBuffer)
     {
-        queue.Commit([commandBuffer.Metal().CommandBuffer]);
+        foreach (TimelineValue wait in waits)
+        {
+            CommandQueue.WaitForEvent(wait.Timeline.Metal().Event, wait.Value);
+        }
+
+        CommandQueue.Commit([commandBuffer.Metal().CommandBuffer]);
     }
 
     protected override void SetResourceName(string name)
@@ -29,6 +53,7 @@ internal class MTLCommandQueue(MTLGraphicsContext context, CommandQueueType type
     {
         base.Destroy();
 
-        fence.Dispose();
+        CommandQueue.RemoveResidencySet(Context.ResidencySet);
+        CommandQueue.Dispose();
     }
 }

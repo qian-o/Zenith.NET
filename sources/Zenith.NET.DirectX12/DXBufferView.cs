@@ -8,11 +8,16 @@ internal unsafe class DXBufferView(DXGraphicsContext context, BufferViewDesc des
     private DXDescriptorToken? srvToken;
     private DXDescriptorToken? uavToken;
 
-    public CpuDescriptorHandle CbvHandle => (cbvToken ??= CreateCbvToken()).Handle;
+    public override ResourceHandle ConstantHandle => (cbvToken ??= CreateCbvToken()).ResourceHandle;
 
-    public CpuDescriptorHandle SrvHandle => (srvToken ??= CreateSrvToken()).Handle;
+    public override ResourceHandle StorageReadOnlyHandle => (srvToken ??= CreateSrvToken()).ResourceHandle;
 
-    public CpuDescriptorHandle UavHandle => (uavToken ??= CreateUavToken()).Handle;
+    public override ResourceHandle StorageReadWriteHandle => (uavToken ??= CreateUavToken()).ResourceHandle;
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
 
     protected override void SetResourceName(string name)
     {
@@ -27,7 +32,7 @@ internal unsafe class DXBufferView(DXGraphicsContext context, BufferViewDesc des
 
     private DXDescriptorToken CreateCbvToken()
     {
-        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate(1);
+        DXDescriptorToken token = context.CbvSrvUavHeap.Allocate();
 
         ConstantBufferViewDesc viewDesc = new()
         {
@@ -35,14 +40,14 @@ internal unsafe class DXBufferView(DXGraphicsContext context, BufferViewDesc des
             SizeInBytes = ZenithHelper.Align(Desc.SizeInBytes, 256u)
         };
 
-        context.Device.CreateConstantBufferView(&viewDesc, token.Handle);
+        context.Device.CreateConstantBufferView(&viewDesc, token.CpuHandle);
 
         return token;
     }
 
     private DXDescriptorToken CreateSrvToken()
     {
-        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate(1);
+        DXDescriptorToken token = context.CbvSrvUavHeap.Allocate();
 
         ShaderResourceViewDesc viewDesc = new()
         {
@@ -56,14 +61,14 @@ internal unsafe class DXBufferView(DXGraphicsContext context, BufferViewDesc des
             }
         };
 
-        context.Device.CreateShaderResourceView(Desc.Buffer.DirectX12().Resource, &viewDesc, token.Handle);
+        context.Device.CreateShaderResourceView(Desc.Buffer.DirectX12().Resource, &viewDesc, token.CpuHandle);
 
         return token;
     }
 
     private DXDescriptorToken CreateUavToken()
     {
-        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate(1);
+        DXDescriptorToken token = context.CbvSrvUavHeap.Allocate();
 
         UnorderedAccessViewDesc viewDesc = new()
         {
@@ -76,7 +81,7 @@ internal unsafe class DXBufferView(DXGraphicsContext context, BufferViewDesc des
             }
         };
 
-        context.Device.CreateUnorderedAccessView(Desc.Buffer.DirectX12().Resource, (ID3D12Resource*)null, &viewDesc, token.Handle);
+        context.Device.CreateUnorderedAccessView(Desc.Buffer.DirectX12().Resource, default(ID3D12Resource*), &viewDesc, token.CpuHandle);
 
         return token;
     }

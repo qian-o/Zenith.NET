@@ -6,65 +6,55 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
 {
     public MTLAccelerationStructure AccelerationStructure;
 
-    public MTLTopLevelAccelerationStructure(MTLGraphicsContext context, TopLevelAccelerationStructureDesc desc, MTLCommandBuffer commandBuffer) : base(context, desc)
+    public MTLTopLevelAccelerationStructure(MTLGraphicsContext context, MTLCommandBuffer commandBuffer, TopLevelAccelerationStructureDesc desc) : base(context, desc)
     {
-        uint instanceCount = (uint)desc.Instances.Length;
-
-        InstanceBuffer = new(context, new()
+        Instance = new(context, new()
         {
-            SizeInBytes = (uint)(sizeof(MTLIndirectAccelerationStructureInstanceDescriptor) * instanceCount),
-            StrideInBytes = (uint)sizeof(MTLIndirectAccelerationStructureInstanceDescriptor),
-            Flags = BufferUsageFlags.MapWrite
+            SizeInBytes = (uint)(sizeof(MTLIndirectAccelerationStructureInstanceDescriptor) * desc.Instances.Length),
+            Residency = MemoryResidency.CpuWriteOnly
         });
 
-        FillInstanceBuffer(desc);
-
-        MTL4InstanceAccelerationStructureDescriptor descriptor = new()
-        {
-            InstanceDescriptorBuffer = new(InstanceBuffer.Metal().GpuAddress, InstanceBuffer.Desc.SizeInBytes),
-            InstanceDescriptorStride = (uint)sizeof(MTLIndirectAccelerationStructureInstanceDescriptor),
-            InstanceCount = instanceCount,
-            InstanceDescriptorType = MTLAccelerationStructureInstanceDescriptorType.Indirect,
-            InstanceTransformationMatrixLayout = MTLMatrixLayout.RowMajor,
-            Usage = MTLFormats.Metal(desc.Flags)
-        };
+        MTL4InstanceAccelerationStructureDescriptor descriptor = Descriptor(desc);
 
         MTLAccelerationStructureSizes sizes = context.Device.AccelerationStructureSizes(descriptor);
 
-        AccelerationStructure = context.Device.MakeAccelerationStructure(sizes.AccelerationStructureSize);
-        context.AddAllocation(AccelerationStructure);
+        context.Register(AccelerationStructure = context.Device.MakeAccelerationStructure(sizes.AccelerationStructureSize));
 
-        ScratchBuffer = new(context, new()
+        Scratch = new(context, new()
         {
             SizeInBytes = (uint)sizes.BuildScratchBufferSize,
-            StrideInBytes = (uint)sizes.BuildScratchBufferSize,
-            Flags = BufferUsageFlags.ShaderResource
+            Usages = BufferUsages.StorageReadWrite,
+            Residency = MemoryResidency.GpuOnly
         });
 
-        commandBuffer.CommandEncoder.Compute?.Build(AccelerationStructure, descriptor, new(ScratchBuffer.Buffer.GpuAddress, ScratchBuffer.Desc.SizeInBytes));
+        commandBuffer.Compute?.BarrierAfterEncoderStages(MTLStages.AccelerationStructure, MTLStages.AccelerationStructure, MTL4VisibilityOptions.Device);
+        commandBuffer.Compute?.Build(AccelerationStructure, descriptor, new(Scratch.Buffer.GpuAddress, Scratch.Desc.SizeInBytes));
+        commandBuffer.Compute?.BarrierAfterEncoderStages(MTLStages.AccelerationStructure, MTLStages.Dispatch, MTL4VisibilityOptions.Device);
+
+        Handle = AccelerationStructure.GpuResourceID.Impl.ToHandle();
     }
 
     public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
 
-    public MTLBuffer InstanceBuffer { get; }
+    public MTLBuffer Instance { get; }
 
-    public MTLBuffer ScratchBuffer { get; }
+    public MTLBuffer Scratch { get; }
+
+    public override ResourceHandle Handle { get; }
 
     public void Update(MTLCommandBuffer commandBuffer, TopLevelAccelerationStructureDesc newDesc)
     {
-        FillInstanceBuffer(newDesc);
+        MTL4InstanceAccelerationStructureDescriptor descriptor = Descriptor(newDesc);
+        descriptor.Usage |= MTLAccelerationStructureUsage.Refit;
 
-        MTL4InstanceAccelerationStructureDescriptor descriptor = new()
-        {
-            InstanceDescriptorBuffer = new(InstanceBuffer.Metal().GpuAddress, InstanceBuffer.Desc.SizeInBytes),
-            InstanceDescriptorStride = (uint)sizeof(MTLIndirectAccelerationStructureInstanceDescriptor),
-            InstanceCount = (uint)newDesc.Instances.Length,
-            InstanceDescriptorType = MTLAccelerationStructureInstanceDescriptorType.Indirect,
-            InstanceTransformationMatrixLayout = MTLMatrixLayout.RowMajor,
-            Usage = MTLFormats.Metal(newDesc.Flags)
-        };
+        commandBuffer.Compute?.BarrierAfterEncoderStages(MTLStages.AccelerationStructure, MTLStages.AccelerationStructure, MTL4VisibilityOptions.Device);
+        commandBuffer.Compute?.Refit(AccelerationStructure, descriptor, AccelerationStructure, new(Scratch.Buffer.GpuAddress, Scratch.Desc.SizeInBytes));
+        commandBuffer.Compute?.BarrierAfterEncoderStages(MTLStages.AccelerationStructure, MTLStages.Dispatch, MTL4VisibilityOptions.Device);
+    }
 
-        commandBuffer.CommandEncoder.Compute?.Refit(AccelerationStructure, descriptor, AccelerationStructure, new(ScratchBuffer.Buffer.GpuAddress, ScratchBuffer.Desc.SizeInBytes));
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
     }
 
     protected override void SetResourceName(string name)
@@ -74,21 +64,20 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
 
     protected override void Destroy()
     {
-        Context.RemoveAllocation(AccelerationStructure);
+        Context.Unregister(AccelerationStructure);
 
+        Scratch.Dispose();
+        Instance.Dispose();
         AccelerationStructure.Dispose();
-
-        ScratchBuffer.Dispose();
-        InstanceBuffer.Dispose();
     }
 
-    private void FillInstanceBuffer(TopLevelAccelerationStructureDesc desc)
+    private MTL4InstanceAccelerationStructureDescriptor Descriptor(TopLevelAccelerationStructureDesc desc)
     {
         uint instanceCount = (uint)desc.Instances.Length;
 
-        MappedMemory mappedMemory = InstanceBuffer.Map();
+        nint pointer = Instance.Map();
 
-        MTLIndirectAccelerationStructureInstanceDescriptor* instances = (MTLIndirectAccelerationStructureInstanceDescriptor*)mappedMemory.Pointer;
+        MTLIndirectAccelerationStructureInstanceDescriptor* instances = (MTLIndirectAccelerationStructureInstanceDescriptor*)pointer;
         for (uint i = 0; i < instanceCount; i++)
         {
             RayTracingInstance instance = desc.Instances[i];
@@ -97,12 +86,26 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
             {
                 TransformationMatrix = MTLFormats.Metal(instance.Transform),
                 Options = MTLFormats.Metal(instance.Flags),
-                Mask = instance.Mask,
-                UserID = instance.ID,
+                Mask = instance.VisibilityMask,
+                UserID = instance.InstanceId,
                 AccelerationStructureID = instance.AccelerationStructure.Metal().AccelerationStructure.GpuResourceID
             };
         }
 
-        InstanceBuffer.Unmap();
+        Instance.Unmap();
+
+        return new()
+        {
+            InstanceDescriptorBuffer = new()
+            {
+                BufferAddress = Instance.Buffer.GpuAddress,
+                Length = Instance.Desc.SizeInBytes
+            },
+            InstanceDescriptorStride = (uint)sizeof(MTLIndirectAccelerationStructureInstanceDescriptor),
+            InstanceCount = instanceCount,
+            InstanceDescriptorType = MTLAccelerationStructureInstanceDescriptorType.Indirect,
+            InstanceTransformationMatrixLayout = MTLMatrixLayout.ColumnMajor,
+            Usage = MTLFormats.Metal(desc.BuildFlags)
+        };
     }
 }

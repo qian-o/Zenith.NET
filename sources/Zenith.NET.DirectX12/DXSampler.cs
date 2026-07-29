@@ -8,34 +8,31 @@ internal unsafe class DXSampler : Sampler
 
     public DXSampler(DXGraphicsContext context, SamplerDesc desc) : base(context, desc)
     {
+        Token = context.SamplerHeap.Allocate();
+
         DxSamplerDesc samplerDesc = new()
         {
-            Filter = DXFormats.DirectX12(desc.Filter, desc.ComparisonFunc).Filter,
-            AddressU = DXFormats.DirectX12(desc.U),
-            AddressV = DXFormats.DirectX12(desc.V),
-            AddressW = DXFormats.DirectX12(desc.W),
+            Filter = DXFormats.DirectX12(desc.MinFilter, desc.MagFilter, desc.MipFilter, desc.MaxAnisotropy, desc.CompareOp),
+            AddressU = DXFormats.DirectX12(desc.AddressU),
+            AddressV = DXFormats.DirectX12(desc.AddressV),
+            AddressW = DXFormats.DirectX12(desc.AddressW),
             MipLODBias = desc.LodBias,
             MaxAnisotropy = desc.MaxAnisotropy,
-            ComparisonFunc = DXFormats.DirectX12(desc.Filter, desc.ComparisonFunc).ComparisonFunc,
+            ComparisonFunc = DXFormats.DirectX12(desc.CompareOp),
             MinLOD = desc.MinLod,
             MaxLOD = desc.MaxLod
         };
 
-        switch (desc.BorderColor)
-        {
-            case BorderColor.OpaqueBlack:
-                samplerDesc.BorderColor[3] = 1.0f;
-                break;
+        (samplerDesc.BorderColor[0], samplerDesc.BorderColor[1], samplerDesc.BorderColor[2], samplerDesc.BorderColor[3]) = DXFormats.DirectX12(desc.BorderColor);
 
-            case BorderColor.OpaqueWhite:
-                samplerDesc.BorderColor[0] = 1.0f;
-                samplerDesc.BorderColor[1] = 1.0f;
-                samplerDesc.BorderColor[2] = 1.0f;
-                samplerDesc.BorderColor[3] = 1.0f;
-                break;
-        }
+        context.Device.CreateSampler(&samplerDesc, Token.CpuHandle);
+    }
 
-        context.Device.CreateSampler(&samplerDesc, (Token = context.SamplerAllocator.Allocate(1)).Handle);
+    public override ResourceHandle Handle => Token.ResourceHandle;
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
     }
 
     protected override void SetResourceName(string name)

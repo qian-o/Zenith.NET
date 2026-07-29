@@ -4,82 +4,81 @@ namespace Zenith.NET.Metal;
 
 internal class MTLMeshShadingPipeline : MeshShadingPipeline
 {
-    public MTLRenderPipelineState RenderPipelineState;
-
     public MTLDepthStencilState DepthStencilState;
+
+    public MTLRenderPipelineState RenderPipelineState;
 
     public MTLMeshShadingPipeline(MTLGraphicsContext context, MeshShadingPipelineDesc desc) : base(context, desc)
     {
         MTL4MeshRenderPipelineDescriptor descriptor = new()
         {
-            MeshFunctionDescriptor = desc.Mesh.Metal().Descriptor,
-            FragmentFunctionDescriptor = desc.Pixel.Metal().Descriptor,
-            RequiredThreadsPerMeshThreadgroup = new(desc.MeshThreadGroupSizeX, desc.MeshThreadGroupSizeY, desc.MeshThreadGroupSizeZ)
+            MeshFunctionDescriptor = desc.MeshShader.Metal().Descriptor,
+            FragmentFunctionDescriptor = desc.FragmentShader.Metal().Descriptor,
+            RequiredThreadsPerMeshThreadgroup = new(desc.MeshShader.Desc.ThreadGroupSize.X, desc.MeshShader.Desc.ThreadGroupSize.Y, desc.MeshShader.Desc.ThreadGroupSize.Z)
         };
 
-        if (desc.Amplification is not null)
+        if (desc.TaskShader is not null)
         {
-            descriptor.ObjectFunctionDescriptor = desc.Amplification.Metal().Descriptor;
-            descriptor.RequiredThreadsPerObjectThreadgroup = new(desc.AmplificationThreadGroupSizeX, desc.AmplificationThreadGroupSizeY, desc.AmplificationThreadGroupSizeZ);
+            descriptor.ObjectFunctionDescriptor = desc.TaskShader.Metal().Descriptor;
+            descriptor.RequiredThreadsPerObjectThreadgroup = new(desc.TaskShader.Desc.ThreadGroupSize.X, desc.TaskShader.Desc.ThreadGroupSize.Y, desc.TaskShader.Desc.ThreadGroupSize.Z);
         }
 
-        // RenderStates - Output
+        // AttachmentFormats and RenderState
         {
-            descriptor.AlphaToCoverageState = desc.RenderStates.BlendState.AlphaToCoverageEnable ? MTL4AlphaToCoverageState.Enabled : MTL4AlphaToCoverageState.Disabled;
-
-            BlendStateRenderTarget[] blendStateRenderTargets =
+            ColorAttachmentBlendState[] states =
             [
-                desc.RenderStates.BlendState.RenderTarget0,
-                desc.RenderStates.BlendState.RenderTarget1,
-                desc.RenderStates.BlendState.RenderTarget2,
-                desc.RenderStates.BlendState.RenderTarget3,
-                desc.RenderStates.BlendState.RenderTarget4,
-                desc.RenderStates.BlendState.RenderTarget5,
-                desc.RenderStates.BlendState.RenderTarget6,
-                desc.RenderStates.BlendState.RenderTarget7
+                desc.RenderState.Blend.ColorAttachment0,
+                desc.RenderState.Blend.ColorAttachment1,
+                desc.RenderState.Blend.ColorAttachment2,
+                desc.RenderState.Blend.ColorAttachment3,
+                desc.RenderState.Blend.ColorAttachment4,
+                desc.RenderState.Blend.ColorAttachment5,
+                desc.RenderState.Blend.ColorAttachment6,
+                desc.RenderState.Blend.ColorAttachment7
             ];
 
-            for (int i = 0; i < blendStateRenderTargets.Length; i++)
+            descriptor.RasterSampleCount = MTLFormats.Metal(desc.AttachmentFormats.SampleCount);
+            descriptor.AlphaToCoverageState = desc.RenderState.Blend.IsAlphaToCoverageEnabled ? MTL4AlphaToCoverageState.Enabled : MTL4AlphaToCoverageState.Disabled;
+
+            for (int i = 0; i < desc.AttachmentFormats.ColorFormats.Length; i++)
             {
-                BlendStateRenderTarget target = desc.RenderStates.BlendState.IndependentBlendEnable ? blendStateRenderTargets[i] : blendStateRenderTargets[0];
+                ColorAttachmentBlendState state = desc.RenderState.Blend.IsIndependentBlendEnabled ? states[i] : states[0];
 
                 descriptor.ColorAttachments[(uint)i] = new()
                 {
-                    PixelFormat = i < desc.Output.ColorAttachments.Length ? MTLFormats.Metal(desc.Output.ColorAttachments[i]).PixelFormat : MTLPixelFormat.Invalid,
-                    BlendingState = target.BlendEnable ? MTL4BlendState.Enabled : MTL4BlendState.Disabled,
-                    SourceRGBBlendFactor = MTLFormats.Metal(target.SrcBlend),
-                    DestinationRGBBlendFactor = MTLFormats.Metal(target.DestBlend),
-                    RgbBlendOperation = MTLFormats.Metal(target.BlendOp),
-                    SourceAlphaBlendFactor = MTLFormats.Metal(target.SrcBlendAlpha),
-                    DestinationAlphaBlendFactor = MTLFormats.Metal(target.DestBlendAlpha),
-                    AlphaBlendOperation = MTLFormats.Metal(target.BlendOpAlpha),
-                    WriteMask = MTLFormats.Metal(target.Flags)
+                    PixelFormat = MTLFormats.Metal(desc.AttachmentFormats.ColorFormats[i]).PixelFormat,
+                    BlendingState = state.IsBlendingEnabled ? MTL4BlendState.Enabled : MTL4BlendState.Disabled,
+                    SourceRGBBlendFactor = MTLFormats.Metal(state.SrcRgbFactor),
+                    DestinationRGBBlendFactor = MTLFormats.Metal(state.DstRgbFactor),
+                    RgbBlendOperation = MTLFormats.Metal(state.RgbOp),
+                    SourceAlphaBlendFactor = MTLFormats.Metal(state.SrcAlphaFactor),
+                    DestinationAlphaBlendFactor = MTLFormats.Metal(state.DstAlphaFactor),
+                    AlphaBlendOperation = MTLFormats.Metal(state.AlphaOp),
+                    WriteMask = MTLFormats.Metal(state.ColorWrites)
                 };
             }
 
-            descriptor.RasterSampleCount = MTLFormats.Metal(desc.Output.SampleCount);
-
             DepthStencilState = context.Device.MakeDepthStencilState(new()
             {
-                DepthCompareFunction = desc.RenderStates.DepthStencilState.DepthEnable ? MTLFormats.Metal(desc.RenderStates.DepthStencilState.DepthFunc) : MTLCompareFunction.Always,
-                IsDepthWriteEnabled = desc.RenderStates.DepthStencilState.DepthWriteEnable,
-                FrontFaceStencil = desc.RenderStates.DepthStencilState.StencilEnable ? new()
+                DepthCompareFunction = desc.RenderState.DepthStencil.IsDepthEnabled ? MTLFormats.Metal(desc.RenderState.DepthStencil.DepthCompareOp) : MTLCompareFunction.Always,
+                IsDepthWriteEnabled = desc.RenderState.DepthStencil.IsDepthWriteEnabled,
+                FrontFaceStencil = desc.RenderState.DepthStencil.IsStencilEnabled ? new()
                 {
-                    StencilCompareFunction = MTLFormats.Metal(desc.RenderStates.DepthStencilState.FrontFace.StencilFunc),
-                    StencilFailureOperation = MTLFormats.Metal(desc.RenderStates.DepthStencilState.FrontFace.StencilFailOp),
-                    DepthFailureOperation = MTLFormats.Metal(desc.RenderStates.DepthStencilState.FrontFace.StencilDepthFailOp),
-                    DepthStencilPassOperation = MTLFormats.Metal(desc.RenderStates.DepthStencilState.FrontFace.StencilPassOp),
-                    ReadMask = desc.RenderStates.DepthStencilState.StencilReadMask,
-                    WriteMask = desc.RenderStates.DepthStencilState.StencilWriteMask
+                    StencilCompareFunction = MTLFormats.Metal(desc.RenderState.DepthStencil.FrontFace.CompareOp),
+                    StencilFailureOperation = MTLFormats.Metal(desc.RenderState.DepthStencil.FrontFace.FailOp),
+                    DepthFailureOperation = MTLFormats.Metal(desc.RenderState.DepthStencil.FrontFace.DepthFailOp),
+                    DepthStencilPassOperation = MTLFormats.Metal(desc.RenderState.DepthStencil.FrontFace.PassOp),
+                    ReadMask = desc.RenderState.DepthStencil.StencilReadMask,
+                    WriteMask = desc.RenderState.DepthStencil.StencilWriteMask
                 } : MTLStencilDescriptor.Null,
-                BackFaceStencil = desc.RenderStates.DepthStencilState.StencilEnable ? new()
+                BackFaceStencil = desc.RenderState.DepthStencil.IsStencilEnabled ? new()
                 {
-                    StencilCompareFunction = MTLFormats.Metal(desc.RenderStates.DepthStencilState.BackFace.StencilFunc),
-                    StencilFailureOperation = MTLFormats.Metal(desc.RenderStates.DepthStencilState.BackFace.StencilFailOp),
-                    DepthFailureOperation = MTLFormats.Metal(desc.RenderStates.DepthStencilState.BackFace.StencilDepthFailOp),
-                    DepthStencilPassOperation = MTLFormats.Metal(desc.RenderStates.DepthStencilState.BackFace.StencilPassOp),
-                    ReadMask = desc.RenderStates.DepthStencilState.StencilReadMask,
-                    WriteMask = desc.RenderStates.DepthStencilState.StencilWriteMask
+                    StencilCompareFunction = MTLFormats.Metal(desc.RenderState.DepthStencil.BackFace.CompareOp),
+                    StencilFailureOperation = MTLFormats.Metal(desc.RenderState.DepthStencil.BackFace.FailOp),
+                    DepthFailureOperation = MTLFormats.Metal(desc.RenderState.DepthStencil.BackFace.DepthFailOp),
+                    DepthStencilPassOperation = MTLFormats.Metal(desc.RenderState.DepthStencil.BackFace.PassOp),
+                    ReadMask = desc.RenderState.DepthStencil.StencilReadMask,
+                    WriteMask = desc.RenderState.DepthStencil.StencilWriteMask
                 } : MTLStencilDescriptor.Null
             });
         }
@@ -88,13 +87,18 @@ internal class MTLMeshShadingPipeline : MeshShadingPipeline
         error.Success();
     }
 
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
+
     protected override void SetResourceName(string name)
     {
     }
 
     protected override void Destroy()
     {
-        DepthStencilState.Dispose();
         RenderPipelineState.Dispose();
+        DepthStencilState.Dispose();
     }
 }

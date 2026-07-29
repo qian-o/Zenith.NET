@@ -25,7 +25,7 @@ public unsafe class ImGuiController : DisposableObject
     private bool frameBegun;
     private ZenithMarshal.Scope? clipboardScope;
 
-    public ImGuiController(GraphicsContext context, Output output, ImGuiColorSpace colorSpace, string? fontPath = null, Action<ImGuiIOPtr>? otherSetup = null)
+    public ImGuiController(GraphicsContext context, AttachmentFormats attachmentFormats, ImGuiColorSpace colorSpace, string? fontPath = null, Action<ImGuiIOPtr>? otherSetup = null)
     {
         HexaImGui.SetCurrentContext(Context = HexaImGui.CreateContext());
 
@@ -46,7 +46,7 @@ public unsafe class ImGuiController : DisposableObject
 
         otherSetup?.Invoke(io);
 
-        renderer = new(context, output, colorSpace);
+        renderer = new(context, attachmentFormats, colorSpace);
 
         platformGetClipboardText = PlatformGetClipboardText;
         platformSetClipboardText = PlatformSetClipboardText;
@@ -140,7 +140,7 @@ public unsafe class ImGuiController : DisposableObject
         frameBegun = true;
     }
 
-    public void Render(CommandBuffer commandBuffer, FrameBuffer frameBuffer, ClearValue clearValue)
+    public void Render(CommandBuffer commandBuffer, ColorAttachment colorAttachment)
     {
         HexaImGui.SetCurrentContext(Context);
 
@@ -148,7 +148,7 @@ public unsafe class ImGuiController : DisposableObject
         {
             HexaImGui.Render();
 
-            renderer.Render(commandBuffer, frameBuffer, clearValue, HexaImGui.GetDrawData());
+            renderer.Render(commandBuffer, colorAttachment, HexaImGui.GetDrawData());
 
             frameBegun = false;
         }

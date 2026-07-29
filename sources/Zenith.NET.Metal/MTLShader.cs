@@ -10,18 +10,24 @@ internal class MTLShader : Shader
 
     public MTLShader(MTLGraphicsContext context, ShaderDesc desc) : base(context, desc)
     {
-        Library = context.Device.MakeLibrary(DispatchData.Create(desc.ShaderBytes), out NSError error);
+        Library = context.Device.MakeLibrary(DispatchData.Create(desc.CodeBytes), out NSError error);
         error.Success();
 
         Descriptor = new()
         {
-            Name = desc.EntryPoint,
+            Name = desc.Name,
             Library = Library
         };
     }
 
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
+    }
+
     protected override void SetResourceName(string name)
     {
+        Library.Label = name;
     }
 
     protected override void Destroy()

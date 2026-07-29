@@ -9,119 +9,137 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
 
     public MTL4CommandBuffer CommandBuffer;
 
-    public MTLCommandBuffer(MTLGraphicsContext context, CommandQueue queue) : base(context, queue)
+    public MTL4ArgumentTable ArgumentTable;
+
+    public MTL4RenderCommandEncoder? Render;
+
+    public MTL4ComputeCommandEncoder? Compute;
+
+    private readonly Dictionary<VisibilityKey, uint> activeVisibilityIndices = [];
+    private readonly List<VisibilityBinding> beginVisibilityBindings = [];
+    private readonly List<VisibilityBinding> endVisibilityBindings = [];
+    private readonly List<ResolveTimestamp> resolveTimestamps = [];
+
+    private uint visibilityIndex;
+    private IndexBinding indexBinding;
+
+    private GraphicsPipeline? todoGraphicsPipeline;
+    private ComputePipeline? todoComputePipeline;
+    private MeshShadingPipeline? todoMeshShadingPipeline;
+    private Viewport[]? todoViewports;
+    private Scissor[]? todoScissors;
+    private Vector4? todoBlendConstant;
+    private uint? todoStencilReference;
+
+    public MTLCommandBuffer(MTLGraphicsContext context, MTLCommandQueue queue) : base(context, queue)
     {
         CommandAllocator = context.Device.MakeCommandAllocator();
         CommandBuffer = NSAutorelease.Own(context.Device.MakeCommandBuffer);
 
-        CommandEncoder = new(context, CommandBuffer);
+        MTL4ArgumentTableDescriptor descriptor = new()
+        {
+            MaxBufferBindCount = 16,
+            SupportAttributeStrides = true
+        };
+
+        ArgumentTable = context.Device.MakeArgumentTable(descriptor, out NSError error);
+        error.Success();
+
+        Visibility = new(context, new()
+        {
+            SizeInBytes = sizeof(ulong) * 1024,
+            Residency = MemoryResidency.CpuReadOnly
+        });
     }
 
     public new MTLGraphicsContext Context => (MTLGraphicsContext)base.Context;
 
-    public MTLCommandEncoder CommandEncoder { get; }
+    public MTLBuffer Visibility { get; }
 
-    protected override void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dest, uint destOffsetInBytes, uint sizeInBytes)
+    public override nint GetNativeObject(NativeObjectType type)
     {
-        MTLBuffer mtlSrc = src.Metal();
-        MTLBuffer mtlDest = dest.Metal();
-
-        CommandEncoder.Compute?.Copy(mtlSrc.Buffer, srcOffsetInBytes, mtlDest.Buffer, destOffsetInBytes, sizeInBytes);
-
-        CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.Blit, MTLStages.Blit | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
+        return 0;
     }
 
-    protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent destExtent)
+    protected override void BarrierImpl(BarrierStages before, BarrierStages after)
     {
-        MTLBuffer mtlSrc = src.Metal();
-        MTLTexture mtlDest = dest.Metal();
-
-        (_, _, uint blocksWide, uint blocksHigh) = ZenithHelper.BlockLayout(mtlDest.Desc.Format, destExtent.Width, destExtent.Height);
-
-        uint formatSizeInBytes = ZenithHelper.SizeInBytes(mtlDest.Desc.Format);
-        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * blocksWide, GraphicsContext.TextureRowPitchAlignment);
-        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * blocksHigh, GraphicsContext.TextureDepthPitchAlignment);
-
-        CommandEncoder.Compute?.Copy(mtlSrc.Buffer,
-                                     srcOffsetInBytes,
-                                     sliceRowPitchInBytes,
-                                     sliceDepthPitchInBytes,
-                                     new(destExtent.Width, destExtent.Height, destExtent.Depth),
-                                     mtlDest.Texture,
-                                     ZenithHelper.FlattenArrayLayerIndex(mtlDest.Desc, destSlice),
-                                     destSlice.MipLevel,
-                                     new(destOffset.X, destOffset.Y, destOffset.Z));
-
-        CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.Blit, MTLStages.Blit | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
+        Render?.BarrierAfterEncoderStages(MTLFormats.Metal(before), MTLFormats.Metal(after), MTL4VisibilityOptions.Device);
+        Compute?.BarrierAfterEncoderStages(MTLFormats.Metal(before), MTLFormats.Metal(after), MTL4VisibilityOptions.Device);
     }
 
-    protected override void CopyTextureImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, Texture dest, TextureSlice destSlice, TextureOffset destOffset, TextureExtent extent)
+    protected override void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout before, TextureLayout after)
     {
-        MTLTexture mtlSrc = src.Metal();
-        MTLTexture mtlDest = dest.Metal();
-
-        CommandEncoder.Compute?.Copy(mtlSrc.Texture,
-                                     ZenithHelper.FlattenArrayLayerIndex(mtlSrc.Desc, srcSlice),
-                                     srcSlice.MipLevel,
-                                     new(srcOffset.X, srcOffset.Y, srcOffset.Z),
-                                     new(extent.Width, extent.Height, extent.Depth),
-                                     mtlDest.Texture,
-                                     ZenithHelper.FlattenArrayLayerIndex(mtlDest.Desc, destSlice),
-                                     destSlice.MipLevel,
-                                     new(destOffset.X, destOffset.Y, destOffset.Z));
-
-        CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.Blit, MTLStages.Blit | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
     }
 
-    protected override void CopyTextureToBufferImpl(Texture src, TextureSlice srcSlice, TextureOffset srcOffset, TextureExtent srcExtent, Buffer dest, uint destOffsetInBytes)
+    protected override void CopyBufferImpl(Buffer src, uint srcOffsetInBytes, Buffer dst, uint dstOffsetInBytes, uint sizeInBytes)
     {
-        MTLTexture mtlSrc = src.Metal();
-        MTLBuffer mtlDest = dest.Metal();
-
-        (_, _, uint blocksWide, uint blocksHigh) = ZenithHelper.BlockLayout(mtlSrc.Desc.Format, srcExtent.Width, srcExtent.Height);
-
-        uint formatSizeInBytes = ZenithHelper.SizeInBytes(mtlSrc.Desc.Format);
-        uint sliceRowPitchInBytes = ZenithHelper.Align(formatSizeInBytes * blocksWide, GraphicsContext.TextureRowPitchAlignment);
-        uint sliceDepthPitchInBytes = ZenithHelper.Align(sliceRowPitchInBytes * blocksHigh, GraphicsContext.TextureDepthPitchAlignment);
-
-        CommandEncoder.Compute?.Copy(mtlSrc.Texture,
-                                     ZenithHelper.FlattenArrayLayerIndex(mtlSrc.Desc, srcSlice),
-                                     srcSlice.MipLevel,
-                                     new(srcOffset.X, srcOffset.Y, srcOffset.Z),
-                                     new(srcExtent.Width, srcExtent.Height, srcExtent.Depth),
-                                     mtlDest.Buffer,
-                                     destOffsetInBytes,
-                                     sliceRowPitchInBytes,
-                                     sliceDepthPitchInBytes);
-
-        CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.Blit, MTLStages.Blit | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
+        Compute?.Copy(src.Metal().Buffer, srcOffsetInBytes, dst.Metal().Buffer, dstOffsetInBytes, sizeInBytes);
     }
 
-    protected override void ResolveTextureImpl(Texture src, TextureSlice srcSlice, Texture dest, TextureSlice destSlice)
+    protected override void CopyBufferToTextureImpl(Buffer src, uint srcOffsetInBytes, uint srcRowStrideInBytes, uint srcSliceStrideInBytes, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D dstExtent)
     {
-        MTLTexture mtlSrc = src.Metal();
-        MTLTexture mtlDest = dest.Metal();
+        Compute?.Copy(src.Metal().Buffer,
+                      srcOffsetInBytes,
+                      srcRowStrideInBytes,
+                      srcSliceStrideInBytes,
+                      new(dstExtent.Width, dstExtent.Height, dstExtent.Depth),
+                      dst.Metal().Texture,
+                      dstSubresource.ArrayLayer,
+                      dstSubresource.MipLevel,
+                      new(dstOffset.X, dstOffset.Y, dstOffset.Z));
+    }
 
-        CommandEncoder.Compute?.Copy(mtlSrc.Texture,
-                                     ZenithHelper.FlattenArrayLayerIndex(mtlSrc.Desc, srcSlice),
-                                     srcSlice.MipLevel,
-                                     mtlDest.Texture,
-                                     ZenithHelper.FlattenArrayLayerIndex(mtlDest.Desc, destSlice),
-                                     destSlice.MipLevel,
-                                     1,
-                                     1);
+    protected override void CopyTextureImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Texture dst, TextureSubresource dstSubresource, Offset3D dstOffset, Extent3D extent)
+    {
+        Compute?.Copy(src.Metal().Texture,
+                      srcSubresource.ArrayLayer,
+                      srcSubresource.MipLevel,
+                      new(srcOffset.X, srcOffset.Y, srcOffset.Z),
+                      new(extent.Width, extent.Height, extent.Depth),
+                      dst.Metal().Texture,
+                      dstSubresource.ArrayLayer,
+                      dstSubresource.MipLevel,
+                      new(dstOffset.X, dstOffset.Y, dstOffset.Z));
+    }
 
-        CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.Blit, MTLStages.Blit | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
+    protected override void CopyTextureToBufferImpl(Texture src, TextureSubresource srcSubresource, Offset3D srcOffset, Extent3D srcExtent, Buffer dst, uint dstOffsetInBytes, uint dstRowStrideInBytes, uint dstSliceStrideInBytes)
+    {
+        Compute?.Copy(src.Metal().Texture,
+                      srcSubresource.ArrayLayer,
+                      srcSubresource.MipLevel,
+                      new(srcOffset.X, srcOffset.Y, srcOffset.Z),
+                      new(srcExtent.Width, srcExtent.Height, srcExtent.Depth),
+                      dst.Metal().Buffer,
+                      dstOffsetInBytes,
+                      dstRowStrideInBytes,
+                      dstSliceStrideInBytes);
+    }
+
+    protected override void ResolveTextureImpl(Texture src, TextureSubresource srcSubresource, Texture dst, TextureSubresource dstSubresource)
+    {
+        Compute?.Copy(src.Metal().Texture,
+                      srcSubresource.ArrayLayer,
+                      srcSubresource.MipLevel,
+                      dst.Metal().Texture,
+                      dstSubresource.ArrayLayer,
+                      dstSubresource.MipLevel,
+                      1,
+                      1);
     }
 
     protected override BottomLevelAccelerationStructure BuildAccelerationStructureImpl(BottomLevelAccelerationStructureDesc desc)
     {
-        return new MTLBottomLevelAccelerationStructure(Context, desc, this);
+        return new MTLBottomLevelAccelerationStructure(Context, this, desc);
     }
 
     protected override TopLevelAccelerationStructure BuildAccelerationStructureImpl(TopLevelAccelerationStructureDesc desc)
     {
-        return new MTLTopLevelAccelerationStructure(Context, desc, this);
+        return new MTLTopLevelAccelerationStructure(Context, this, desc);
+    }
+
+    protected override void UpdateAccelerationStructureImpl(BottomLevelAccelerationStructure accelerationStructure, BottomLevelAccelerationStructureDesc newDesc)
+    {
+        accelerationStructure.Metal().Update(this, newDesc);
     }
 
     protected override void UpdateAccelerationStructureImpl(TopLevelAccelerationStructure accelerationStructure, TopLevelAccelerationStructureDesc newDesc)
@@ -129,254 +147,387 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
         accelerationStructure.Metal().Update(this, newDesc);
     }
 
-    protected override void BeginRenderPassImpl(FrameBuffer frameBuffer, ClearValue clearValue)
+    protected override void BeginRenderPassImpl(ReadOnlySpan<ColorAttachment> colorAttachments, DepthStencilAttachment? depthStencilAttachment)
     {
-        MTLFrameBuffer mtlFrameBuffer = frameBuffer.Metal();
+        EndComputeEncoding();
 
-        bool clearColor = clearValue.Flags.HasFlag(ClearFlags.Color);
-        bool clearDepth = clearValue.Flags.HasFlag(ClearFlags.Depth);
-        bool clearStencil = clearValue.Flags.HasFlag(ClearFlags.Stencil);
+        MTL4RenderPassDescriptor descriptor = new() { VisibilityResultBuffer = Visibility.Buffer };
 
-        for (uint i = 0; i < mtlFrameBuffer.ColorAttachmentCount; i++)
+        for (int i = 0; i < colorAttachments.Length; i++)
         {
-            MTLRenderPassColorAttachmentDescriptor colorAttachment = mtlFrameBuffer.Descriptor.ColorAttachments[i];
+            ColorAttachment attachment = colorAttachments[i];
 
-            colorAttachment.LoadAction = MTLLoadAction.Load;
+            MTLTexture texture = attachment.Texture.Metal();
 
-            if (clearColor)
+            descriptor.ColorAttachments[(uint)i] = new()
             {
-                colorAttachment.LoadAction = MTLLoadAction.Clear;
+                Texture = texture.Texture,
+                Level = attachment.Subresource.MipLevel,
+                Slice = attachment.Subresource.ArrayLayer,
+                LoadAction = MTLFormats.Metal(attachment.LoadOp),
+                StoreAction = MTLFormats.Metal(attachment.StoreOp),
+                ClearColor = new(attachment.ClearColor.X, attachment.ClearColor.Y, attachment.ClearColor.Z, attachment.ClearColor.W)
+            };
+        }
 
-                Vector4 color = clearValue.ColorValues[i];
+        if (depthStencilAttachment.HasValue)
+        {
+            DepthStencilAttachment attachment = depthStencilAttachment.Value;
 
-                colorAttachment.ClearColor = new()
+            MTLTexture texture = attachment.Texture.Metal();
+
+            if (ZenithHelper.HasDepth(texture.Desc.Format))
+            {
+                descriptor.DepthAttachment = new()
                 {
-                    Red = color.X,
-                    Green = color.Y,
-                    Blue = color.Z,
-                    Alpha = color.W
+                    Texture = texture.Texture,
+                    Level = attachment.Subresource.MipLevel,
+                    Slice = attachment.Subresource.ArrayLayer,
+                    LoadAction = MTLFormats.Metal(attachment.DepthLoadOp),
+                    StoreAction = MTLFormats.Metal(attachment.DepthStoreOp),
+                    ClearDepth = attachment.ClearDepth
+                };
+            }
+
+            if (ZenithHelper.HasStencil(texture.Desc.Format))
+            {
+                descriptor.StencilAttachment = new()
+                {
+                    Texture = texture.Texture,
+                    Level = attachment.Subresource.MipLevel,
+                    Slice = attachment.Subresource.ArrayLayer,
+                    LoadAction = MTLFormats.Metal(attachment.StencilLoadOp),
+                    StoreAction = MTLFormats.Metal(attachment.StencilStoreOp),
+                    ClearStencil = attachment.ClearStencil
                 };
             }
         }
 
-        if (mtlFrameBuffer.HasDepthStencilAttachment)
-        {
-            MTLRenderPassDepthAttachmentDescriptor depthAttachment = mtlFrameBuffer.Descriptor.DepthAttachment;
-
-            if (!depthAttachment.Texture.IsNull)
-            {
-                depthAttachment.LoadAction = MTLLoadAction.Load;
-
-                if (clearDepth)
-                {
-                    depthAttachment.LoadAction = MTLLoadAction.Clear;
-                    depthAttachment.ClearDepth = clearValue.Depth;
-                }
-            }
-
-            MTLRenderPassStencilAttachmentDescriptor stencilAttachment = mtlFrameBuffer.Descriptor.StencilAttachment;
-
-            if (!stencilAttachment.Texture.IsNull)
-            {
-                stencilAttachment.LoadAction = MTLLoadAction.Load;
-
-                if (clearStencil)
-                {
-                    stencilAttachment.LoadAction = MTLLoadAction.Clear;
-                    stencilAttachment.ClearStencil = clearValue.Stencil;
-                }
-            }
-        }
-
-        CommandEncoder.BeginRenderPass(mtlFrameBuffer.Descriptor);
+        BeginRenderEncoding(descriptor);
     }
 
-    protected override void EndRenderPassImpl(FrameBuffer frameBuffer)
+    protected override void EndRenderPassImpl()
     {
-        CommandEncoder.EndRenderPass();
-    }
-
-    protected override void SetScissorsImpl(Scissor[] scissors)
-    {
-        CommandEncoder.SetScissors(scissors);
-    }
-
-    protected override void SetViewportsImpl(Viewport[] viewports)
-    {
-        CommandEncoder.SetViewports(viewports);
+        EndRenderEncoding();
+        BeginComputeEncoding();
     }
 
     protected override void SetPipelineImpl(GraphicsPipeline pipeline)
     {
-        CommandEncoder.SetPipeline(pipeline);
+        if (Render is null)
+        {
+            todoGraphicsPipeline = pipeline;
+            todoComputePipeline = null;
+            todoMeshShadingPipeline = null;
+        }
+        else
+        {
+            todoGraphicsPipeline = null;
+            todoComputePipeline = null;
+            todoMeshShadingPipeline = null;
+
+            MTLGraphicsPipeline mtlPipeline = pipeline.Metal();
+
+            Render.SetDepthStencilState(mtlPipeline.DepthStencilState);
+            Render.SetRenderPipelineState(mtlPipeline.RenderPipelineState);
+            Render.SetCullMode(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.CullMode));
+            Render.SetFrontFacing(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.FrontFace));
+            Render.SetTriangleFillMode(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.FillMode));
+            Render.SetDepthClipMode(mtlPipeline.Desc.RenderState.Rasterizer.IsDepthClipEnabled ? MTLDepthClipMode.Clip : MTLDepthClipMode.Clamp);
+            Render.SetDepthBias(mtlPipeline.Desc.RenderState.Rasterizer.DepthBias, mtlPipeline.Desc.RenderState.Rasterizer.DepthBiasSlopeScale, mtlPipeline.Desc.RenderState.Rasterizer.DepthBiasClamp);
+        }
     }
 
     protected override void SetPipelineImpl(ComputePipeline pipeline)
     {
-        CommandEncoder.SetPipeline(pipeline);
+        if (Compute is null)
+        {
+            todoGraphicsPipeline = null;
+            todoComputePipeline = pipeline;
+            todoMeshShadingPipeline = null;
+        }
+        else
+        {
+            todoGraphicsPipeline = null;
+            todoComputePipeline = null;
+            todoMeshShadingPipeline = null;
+
+            Compute.SetComputePipelineState(pipeline.Metal().ComputePipelineState);
+        }
     }
 
     protected override void SetPipelineImpl(MeshShadingPipeline pipeline)
     {
-        CommandEncoder.SetPipeline(pipeline);
+        if (Render is null)
+        {
+            todoGraphicsPipeline = null;
+            todoComputePipeline = null;
+            todoMeshShadingPipeline = pipeline;
+        }
+        else
+        {
+            todoGraphicsPipeline = null;
+            todoComputePipeline = null;
+            todoMeshShadingPipeline = null;
+
+            MTLMeshShadingPipeline mtlPipeline = pipeline.Metal();
+
+            Render.SetDepthStencilState(mtlPipeline.DepthStencilState);
+            Render.SetRenderPipelineState(mtlPipeline.RenderPipelineState);
+            Render.SetCullMode(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.CullMode));
+            Render.SetFrontFacing(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.FrontFace));
+            Render.SetTriangleFillMode(MTLFormats.Metal(mtlPipeline.Desc.RenderState.Rasterizer.FillMode));
+            Render.SetDepthClipMode(mtlPipeline.Desc.RenderState.Rasterizer.IsDepthClipEnabled ? MTLDepthClipMode.Clip : MTLDepthClipMode.Clamp);
+            Render.SetDepthBias(mtlPipeline.Desc.RenderState.Rasterizer.DepthBias, mtlPipeline.Desc.RenderState.Rasterizer.DepthBiasSlopeScale, mtlPipeline.Desc.RenderState.Rasterizer.DepthBiasClamp);
+        }
     }
 
-    protected override void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint index)
+    protected override void SetViewportsImpl(ReadOnlySpan<Viewport> viewports)
     {
-        CommandEncoder.SetVertexBuffer(buffer, offsetInBytes, index);
+        if (Render is null)
+        {
+            todoViewports = [.. viewports];
+        }
+        else
+        {
+            MTLViewport[] mtlViewports = new MTLViewport[viewports.Length];
+            for (int i = 0; i < viewports.Length; i++)
+            {
+                Viewport viewport = viewports[i];
+
+                mtlViewports[i] = new(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
+            }
+
+            Render.SetViewports(mtlViewports);
+        }
     }
 
-    protected override void SetIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat format)
+    protected override void SetScissorsImpl(ReadOnlySpan<Scissor> scissors)
     {
-        CommandEncoder.SetIndexBuffer(buffer, offsetInBytes, format);
+        if (Render is null)
+        {
+            todoScissors = [.. scissors];
+        }
+        else
+        {
+            MTLScissorRect[] mtlScissors = new MTLScissorRect[scissors.Length];
+            for (int i = 0; i < scissors.Length; i++)
+            {
+                Scissor scissor = scissors[i];
+
+                mtlScissors[i] = new((uint)scissor.X, (uint)scissor.Y, scissor.Width, scissor.Height);
+            }
+
+            Render.SetScissorRects(mtlScissors);
+        }
     }
 
-    protected override void SetResourceTableImpl(Pipeline pipeline, ResourceTable resourceTable)
+    protected override void SetBlendConstantImpl(Vector4 blendConstant)
     {
-        CommandEncoder.SetResourceTable(resourceTable);
+        if (Render is null)
+        {
+            todoBlendConstant = blendConstant;
+        }
+        else
+        {
+            Render.SetBlendColor(blendConstant.X, blendConstant.Y, blendConstant.Z, blendConstant.W);
+        }
+    }
+
+    protected override void SetStencilReferenceImpl(uint stencilReference)
+    {
+        if (Render is null)
+        {
+            todoStencilReference = stencilReference;
+        }
+        else
+        {
+            Render.SetStencilReferenceValue(stencilReference);
+        }
+    }
+
+    protected override void SetVertexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, uint slot)
+    {
+        ArgumentTable.SetAddress(buffer.Metal().Buffer.GpuAddress + offsetInBytes, pipeline.Desc.InputLayouts[slot].StrideInBytes, 1 + slot);
+    }
+
+    protected override void SetIndexBufferImpl(GraphicsPipeline pipeline, Buffer buffer, uint offsetInBytes, IndexFormat indexFormat)
+    {
+        indexBinding = new(MTLFormats.Metal(indexFormat),
+                           buffer.Metal().Buffer.GpuAddress + offsetInBytes,
+                           indexFormat is IndexFormat.UInt16 ? 2u : 4u,
+                           buffer.Desc.SizeInBytes - offsetInBytes);
+    }
+
+    protected override void SetConstantBufferImpl(Pipeline pipeline, Buffer buffer, uint offsetInBytes)
+    {
+        ArgumentTable.SetAddress(buffer.Metal().Buffer.GpuAddress + offsetInBytes, 0);
+
+        Render?.SetArgumentTable(ArgumentTable, MTLRenderStages.Vertex | MTLRenderStages.Fragment | MTLRenderStages.Object | MTLRenderStages.Mesh);
+        Compute?.SetArgumentTable(ArgumentTable);
     }
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
     {
-        CommandEncoder.Bind();
-
-        CommandEncoder.Render?.DrawPrimitives(CommandEncoder.PrimitiveType, firstVertex, vertexCount, instanceCount, firstInstance);
+        Render?.DrawPrimitives(MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type, firstVertex, vertexCount, instanceCount, firstInstance);
     }
 
     protected override void DrawIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        CommandEncoder.Bind();
-
-        nuint indirectGpuAddress = indirectBuffer.Metal().GpuAddress + offsetInBytes;
+        nuint address = indirectBuffer.Metal().Buffer.GpuAddress + offsetInBytes;
 
         for (uint i = 0; i < drawCount; i++)
         {
-            CommandEncoder.Render?.DrawPrimitives(CommandEncoder.PrimitiveType, indirectGpuAddress + ((uint)sizeof(IndirectDrawArgs) * i));
+            Render?.DrawPrimitives(MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type, address + (uint)(sizeof(IndirectDrawArgs) * i));
         }
     }
 
     protected override void DrawIndexedImpl(GraphicsPipeline pipeline, uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
     {
-        CommandEncoder.Bind();
-
-        CommandEncoder.Render?.DrawIndexedPrimitives(CommandEncoder.PrimitiveType,
-                                                     indexCount,
-                                                     CommandEncoder.IndexType,
-                                                     CommandEncoder.IndexBuffer + (CommandEncoder.IndexStrideInBytes * firstIndex),
-                                                     CommandEncoder.IndexSizeInBytes - (CommandEncoder.IndexStrideInBytes * firstIndex),
-                                                     instanceCount,
-                                                     vertexOffset,
-                                                     firstInstance);
+        Render?.DrawIndexedPrimitives(MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type,
+                                      indexCount,
+                                      indexBinding.Type,
+                                      indexBinding.Address + (indexBinding.SizeInBytes * firstIndex),
+                                      indexBinding.LengthInBytes,
+                                      instanceCount,
+                                      vertexOffset,
+                                      firstInstance);
     }
 
     protected override void DrawIndexedIndirectImpl(GraphicsPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint drawCount)
     {
-        CommandEncoder.Bind();
-
-        nuint indirectGpuAddress = indirectBuffer.Metal().GpuAddress + offsetInBytes;
+        nuint address = indirectBuffer.Metal().Buffer.GpuAddress + offsetInBytes;
 
         for (uint i = 0; i < drawCount; i++)
         {
-            CommandEncoder.Render?.DrawIndexedPrimitives(CommandEncoder.PrimitiveType,
-                                                         CommandEncoder.IndexType,
-                                                         CommandEncoder.IndexBuffer + (CommandEncoder.IndexStrideInBytes * i),
-                                                         CommandEncoder.IndexSizeInBytes - (CommandEncoder.IndexStrideInBytes * i),
-                                                         indirectGpuAddress + ((uint)sizeof(IndirectDrawIndexedArgs) * i));
+            Render?.DrawIndexedPrimitives(MTLFormats.Metal(pipeline.Desc.PrimitiveTopology).Type,
+                                          indexBinding.Type,
+                                          indexBinding.Address,
+                                          indexBinding.LengthInBytes,
+                                          address + (uint)(sizeof(IndirectDrawIndexedArgs) * i));
         }
     }
 
     protected override void DispatchImpl(ComputePipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        CommandEncoder.Bind();
-
-        CommandEncoder.Compute?.DispatchThreadgroups(new MTLSize(groupCountX, groupCountY, groupCountZ), CommandEncoder.ThreadGroupSize);
-
-        CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.Dispatch, MTLStages.Blit | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
+        Compute?.DispatchThreadgroups(new MTLSize(groupCountX, groupCountY, groupCountZ), pipeline.Metal().ComputePipelineState.RequiredThreadsPerThreadgroup);
     }
 
     protected override void DispatchIndirectImpl(ComputePipeline pipeline, Buffer indirectBuffer, uint offsetInBytes)
     {
-        CommandEncoder.Bind();
-
-        CommandEncoder.Compute?.DispatchThreadgroups(indirectBuffer.Metal().GpuAddress + offsetInBytes, CommandEncoder.ThreadGroupSize);
-
-        CommandEncoder.Compute?.BarrierAfterEncoderStages(MTLStages.Dispatch, MTLStages.Blit | MTLStages.Dispatch, MTL4VisibilityOptions.Device);
+        Compute?.DispatchThreadgroups(indirectBuffer.Metal().Buffer.GpuAddress + offsetInBytes, pipeline.Metal().ComputePipelineState.RequiredThreadsPerThreadgroup);
     }
 
     protected override void DispatchMeshImpl(MeshShadingPipeline pipeline, uint groupCountX, uint groupCountY, uint groupCountZ)
     {
-        CommandEncoder.Bind();
-
-        CommandEncoder.Render?.DrawMeshThreadgroups(new MTLSize(groupCountX, groupCountY, groupCountZ),
-                                                    CommandEncoder.AmplificationThreadGroupSize,
-                                                    CommandEncoder.MeshThreadGroupSize);
+        Render?.DrawMeshThreadgroups(new MTLSize(groupCountX, groupCountY, groupCountZ),
+                                     pipeline.Metal().RenderPipelineState.RequiredThreadsPerObjectThreadgroup,
+                                     pipeline.Metal().RenderPipelineState.RequiredThreadsPerMeshThreadgroup);
     }
 
     protected override void DispatchMeshIndirectImpl(MeshShadingPipeline pipeline, Buffer indirectBuffer, uint offsetInBytes, uint dispatchCount)
     {
-        CommandEncoder.Bind();
-
-        nuint indirectGpuAddress = indirectBuffer.Metal().GpuAddress + offsetInBytes;
+        nuint address = indirectBuffer.Metal().Buffer.GpuAddress + offsetInBytes;
 
         for (uint i = 0; i < dispatchCount; i++)
         {
-            CommandEncoder.Render?.DrawMeshThreadgroups(indirectGpuAddress + ((uint)sizeof(IndirectDispatchMeshArgs) * i),
-                                                        CommandEncoder.AmplificationThreadGroupSize,
-                                                        CommandEncoder.MeshThreadGroupSize);
+            Render?.DrawMeshThreadgroups(address + (uint)(sizeof(IndirectDispatchMeshArgs) * i),
+                                         pipeline.Metal().RenderPipelineState.RequiredThreadsPerObjectThreadgroup,
+                                         pipeline.Metal().RenderPipelineState.RequiredThreadsPerMeshThreadgroup);
         }
     }
 
     protected override void BeginQueryImpl(QueryHeap queryHeap, uint index)
     {
-        CommandEncoder.BeginQuery(queryHeap, index);
+        MTLQueryHeap mtlQueryHeap = queryHeap.Metal();
+
+        uint scratchIndex = visibilityIndex++;
+
+        activeVisibilityIndices.Add(new(mtlQueryHeap, index), scratchIndex);
+
+        if (Render is null)
+        {
+            beginVisibilityBindings.Add(new(mtlQueryHeap, index, scratchIndex));
+        }
+        else
+        {
+            Render.SetVisibilityResultMode(MTLFormats.Metal(mtlQueryHeap.Desc.Type), sizeof(ulong) * scratchIndex);
+        }
     }
 
     protected override void EndQueryImpl(QueryHeap queryHeap, uint index)
     {
-        CommandEncoder.EndQuery(queryHeap, index);
+        MTLQueryHeap mtlQueryHeap = queryHeap.Metal();
+
+        if (activeVisibilityIndices.Remove(new(mtlQueryHeap, index), out uint scratchIndex))
+        {
+            Render?.SetVisibilityResultMode(MTLVisibilityResultMode.Disabled, 0);
+
+            endVisibilityBindings.Add(new(mtlQueryHeap, index, scratchIndex));
+        }
     }
 
     protected override void WriteTimestampImpl(QueryHeap queryHeap, uint index)
     {
         MTLQueryHeap mtlQueryHeap = queryHeap.Metal();
 
-        CommandBuffer.WriteTimestamp(mtlQueryHeap.CounterHeap, index);
-        CommandBuffer.ResolveCounterHeap(mtlQueryHeap.CounterHeap, new(index, 1), new(mtlQueryHeap.Buffer.GpuAddress + (sizeof(ulong) * index), sizeof(ulong)), MtlFence.Null, MtlFence.Null);
+        Render?.WriteTimestamp(MTL4TimestampGranularity.Precise, MTLRenderStages.Fragment, mtlQueryHeap.CounterHeap, index);
+        Compute?.WriteTimestamp(MTL4TimestampGranularity.Precise, mtlQueryHeap.CounterHeap, index);
+
+        resolveTimestamps.Add(new(mtlQueryHeap, index));
     }
 
     protected override void BeginDebugEventImpl(string label)
     {
-        CommandEncoder.BeginDebugEvent(label);
+        Render?.PushDebugGroup(label);
+        Compute?.PushDebugGroup(label);
     }
 
     protected override void EndDebugEventImpl()
     {
-        CommandEncoder.EndDebugEvent();
+        Render?.PopDebugGroup();
+        Compute?.PopDebugGroup();
     }
 
     protected override void InsertDebugMarkerImpl(string label)
     {
-        CommandEncoder.InsertDebugMarker(label);
+        Render?.InsertDebugSignpost(label);
+        Compute?.InsertDebugSignpost(label);
     }
 
     protected override void BeginImpl()
     {
         CommandBuffer.BeginCommandBuffer(CommandAllocator);
 
-        CommandBuffer.UseResidencySet(Context.ResidencySet);
-
-        CommandEncoder.Begin();
+        BeginComputeEncoding();
     }
 
     protected override void EndImpl()
     {
-        CommandEncoder.End();
+        EndRenderEncoding();
+        EndComputeEncoding();
 
         CommandBuffer.EndCommandBuffer();
     }
 
     protected override void ResetImpl()
     {
+        activeVisibilityIndices.Clear();
+        beginVisibilityBindings.Clear();
+        endVisibilityBindings.Clear();
+        resolveTimestamps.Clear();
+
+        visibilityIndex = 0;
+        indexBinding = default;
+
+        todoScissors = null;
+        todoViewports = null;
+        todoGraphicsPipeline = null;
+        todoComputePipeline = null;
+        todoMeshShadingPipeline = null;
+        todoStencilReference = null;
+        todoBlendConstant = null;
+
         CommandAllocator.Reset();
     }
 
@@ -389,9 +540,159 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     {
         base.Destroy();
 
-        CommandEncoder.Dispose();
-
+        Visibility.Dispose();
+        ArgumentTable.Dispose();
         CommandBuffer.Dispose();
         CommandAllocator.Dispose();
+    }
+
+    private void BeginRenderEncoding(MTL4RenderPassDescriptor descriptor)
+    {
+        Render = NSAutorelease.Own(CommandBuffer.MakeRenderCommandEncoder, descriptor);
+        Render.SetArgumentTable(ArgumentTable, MTLRenderStages.Vertex | MTLRenderStages.Fragment | MTLRenderStages.Object | MTLRenderStages.Mesh);
+
+        if (todoGraphicsPipeline is not null)
+        {
+            SetPipeline(todoGraphicsPipeline);
+
+            todoGraphicsPipeline = null;
+        }
+
+        if (todoMeshShadingPipeline is not null)
+        {
+            SetPipeline(todoMeshShadingPipeline);
+
+            todoMeshShadingPipeline = null;
+        }
+
+        if (todoViewports is not null)
+        {
+            SetViewports(todoViewports);
+
+            todoViewports = null;
+        }
+
+        if (todoScissors is not null)
+        {
+            SetScissors(todoScissors);
+
+            todoScissors = null;
+        }
+
+        if (todoBlendConstant is not null)
+        {
+            SetBlendConstant(todoBlendConstant.Value);
+
+            todoBlendConstant = null;
+        }
+
+        if (todoStencilReference is not null)
+        {
+            SetStencilReference(todoStencilReference.Value);
+
+            todoStencilReference = null;
+        }
+
+        foreach (VisibilityBinding visibilityBinding in beginVisibilityBindings)
+        {
+            Render.SetVisibilityResultMode(MTLFormats.Metal(visibilityBinding.QueryHeap.Desc.Type), sizeof(ulong) * visibilityBinding.ScratchIndex);
+        }
+        beginVisibilityBindings.Clear();
+    }
+
+    private void EndRenderEncoding()
+    {
+        if (Render is null)
+        {
+            return;
+        }
+
+        Render.BarrierAfterStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
+        Render.EndEncoding();
+        Render.Dispose();
+        Render = null;
+
+        ResolveTimestamps();
+    }
+
+    private void BeginComputeEncoding()
+    {
+        Compute = NSAutorelease.Own(CommandBuffer.MakeComputeCommandEncoder);
+        Compute.SetArgumentTable(ArgumentTable);
+
+        if (todoComputePipeline is not null)
+        {
+            SetPipeline(todoComputePipeline);
+
+            todoComputePipeline = null;
+        }
+
+        foreach (VisibilityBinding visibilityBinding in endVisibilityBindings)
+        {
+            CopyBuffer(Visibility, sizeof(ulong) * visibilityBinding.ScratchIndex, visibilityBinding.QueryHeap.Buffer, sizeof(ulong) * visibilityBinding.Index, sizeof(ulong));
+        }
+        endVisibilityBindings.Clear();
+    }
+
+    private void EndComputeEncoding()
+    {
+        if (Compute is null)
+        {
+            return;
+        }
+
+        Compute.BarrierAfterStages(MTLStages.All, MTLStages.All, MTL4VisibilityOptions.Device);
+        Compute.EndEncoding();
+        Compute.Dispose();
+        Compute = null;
+
+        ResolveTimestamps();
+    }
+
+    private void ResolveTimestamps()
+    {
+        foreach (ResolveTimestamp resolveTimestamp in resolveTimestamps)
+        {
+            CommandBuffer.ResolveCounterHeap(resolveTimestamp.QueryHeap.CounterHeap,
+                                             new(resolveTimestamp.Index, 1),
+                                             new(resolveTimestamp.QueryHeap.Buffer.Buffer.GpuAddress + (sizeof(ulong) * resolveTimestamp.Index), sizeof(ulong)),
+                                             MTLFence.Null,
+                                             MTLFence.Null);
+        }
+        resolveTimestamps.Clear();
+    }
+
+    private struct IndexBinding(MTLIndexType type, nuint address, uint sizeInBytes, uint lengthInBytes)
+    {
+        public MTLIndexType Type = type;
+
+        public nuint Address = address;
+
+        public uint SizeInBytes = sizeInBytes;
+
+        public uint LengthInBytes = lengthInBytes;
+    }
+
+    private struct VisibilityKey(MTLQueryHeap queryHeap, uint index)
+    {
+        public MTLQueryHeap QueryHeap = queryHeap;
+
+        public uint Index = index;
+    }
+
+    private struct VisibilityBinding(MTLQueryHeap queryHeap, uint index, uint scratchIndex)
+    {
+        public MTLQueryHeap QueryHeap = queryHeap;
+
+        public uint Index = index;
+
+        public uint ScratchIndex = scratchIndex;
+    }
+
+    private struct ResolveTimestamp(MTLQueryHeap queryHeap, uint index)
+    {
+        public MTLQueryHeap QueryHeap = queryHeap;
+
+        public uint Index = index;
     }
 }

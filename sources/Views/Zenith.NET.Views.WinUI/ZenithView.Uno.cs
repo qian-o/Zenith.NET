@@ -23,19 +23,27 @@ public partial class ZenithView
         {
             ((IZenithView)this).ReleaseResources();
 
-            Background = new ImageBrush() { ImageSource = (surface = new(GraphicsContext, width, height)).WriteableBitmap };
+            Background = new ImageBrush() { ImageSource = (surface = new(GraphicsContext, width, height)).Bitmap };
         }
     }
 
     void IZenithView.Tick()
     {
-        if (surface is null)
+        if (GraphicsContext is null || surface is null)
         {
             return;
         }
 
+        CommandBuffer commandBuffer = GraphicsContext.GraphicsQueue.CommandBuffer();
+
+        commandBuffer.Transition(surface.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+
         UpdateRequested?.Invoke(this, new(scheduler.UpdateSeconds, scheduler.TotalSeconds));
-        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, surface.FrameBuffer));
+        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, commandBuffer, surface.Drawable));
+
+        commandBuffer.Transition(surface.Drawable, default, TextureLayout.ColorAttachment, TextureLayout.CopySrc);
+
+        surface.Flush(commandBuffer);
     }
 
     void IZenithView.Present()
@@ -50,128 +58,74 @@ public partial class ZenithView
     }
 }
 
-internal unsafe class Surface : DisposableObject
+internal unsafe class Surface(GraphicsContext context, uint width, uint height) : DisposableObject
 {
-    private readonly Texture color;
-    private readonly Texture depthStencil;
-    private readonly Buffer pixels;
+    private readonly byte[] pixels = new byte[width * height * 4];
 
-    public Surface(GraphicsContext context, uint width, uint height)
+    public Texture Drawable { get; } = context.CreateTexture(new()
     {
-        color = context.CreateTexture(new()
+        Type = TextureType.Texture2D,
+        Format = ZenithViewHelper.DrawableFormat,
+        Width = width,
+        Height = height,
+        Depth = 1,
+        MipLevels = 1,
+        ArrayLayers = 1,
+        SampleCount = SampleCount.Count1,
+        Usages = TextureUsages.ColorAttachment | TextureUsages.TransferSrc | TextureUsages.TransferDst
+    });
+
+    public WriteableBitmap Bitmap { get; } = new((int)width, (int)height);
+
+    public uint Width { get; } = width;
+
+    public uint Height { get; } = height;
+
+    public void Flush(CommandBuffer commandBuffer)
+    {
+        fixed (byte* pPixels = pixels)
         {
-            Type = TextureType.Texture2D,
-            Format = ZenithViewHelper.ColorFormat,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.RenderTarget
-        });
+            Extent3D extent = new()
+            {
+                Width = Width,
+                Height = Height,
+                Depth = 1
+            };
 
-        depthStencil = context.CreateTexture(new()
+            TextureData data = new()
+            {
+                Pointer = (nint)pPixels,
+                SizeInBytes = (uint)pixels.Length,
+                RowStrideInBytes = Width * 4,
+                SliceStrideInBytes = (uint)pixels.Length
+            };
+
+            commandBuffer.Download(Drawable, default, default, extent, data);
+
+            commandBuffer.Submit().Wait();
+        }
+
+        if (ZenithViewHelper.DrawableFormat is PixelFormat.R8G8B8A8UNorm)
         {
-            Type = TextureType.Texture2D,
-            Format = ZenithViewHelper.DepthStencilFormat,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Flags = TextureUsageFlags.DepthStencil
-        });
+            for (int i = 0; i < pixels.Length; i += 4)
+            {
+                (pixels[i], pixels[i + 2]) = (pixels[i + 2], pixels[i]);
+            }
+        }
 
-        pixels = context.CreateBuffer(new()
-        {
-            SizeInBytes = ZenithHelper.Align(width * 4, GraphicsContext.TextureRowPitchAlignment) * height,
-            StrideInBytes = 4,
-            Flags = BufferUsageFlags.MapRead
-        });
-
-        FrameBuffer = context.CreateFrameBuffer(new()
-        {
-            ColorAttachments = [new() { Target = color }],
-            DepthStencilAttachment = new() { Target = depthStencil }
-        });
-
-        WriteableBitmap = new((int)width, (int)height);
-
-        Context = context;
-        Width = width;
-        Height = height;
+        using Stream stream = Bitmap.PixelBuffer.AsStream();
+        stream.Write(pixels);
     }
-
-    public FrameBuffer FrameBuffer { get; }
-
-    public WriteableBitmap WriteableBitmap { get; }
-
-    public GraphicsContext Context { get; }
-
-    public uint Width { get; }
-
-    public uint Height { get; }
 
     public void Present()
     {
-        CommandBuffer commandBuffer = Context.Graphics.CommandBuffer();
-        commandBuffer.CopyTextureToBuffer(color, default, default, new() { Width = Width, Height = Height, Depth = 1 }, pixels, 0);
-        commandBuffer.Submit(true);
-
-        uint rowPitchInBytes = ZenithHelper.Align(Width * 4, GraphicsContext.TextureRowPitchAlignment);
-
-        using (Stream stream = WriteableBitmap.PixelBuffer.AsStream())
-        {
-            MappedMemory mappedMemory = pixels.Map();
-
-            byte* pointer = (byte*)mappedMemory.Pointer;
-
-            switch (ZenithViewHelper.ColorFormat)
-            {
-                case PixelFormat.R8G8B8A8UNorm:
-                    for (uint y = 0; y < Height; y++)
-                    {
-                        for (uint x = 0; x < Width; x++)
-                        {
-                            stream.WriteByte(pointer[(x * 4) + 2]);
-                            stream.WriteByte(pointer[(x * 4) + 1]);
-                            stream.WriteByte(pointer[(x * 4) + 0]);
-                            stream.WriteByte(pointer[(x * 4) + 3]);
-                        }
-
-                        pointer += rowPitchInBytes;
-                    }
-                    break;
-
-                case PixelFormat.B8G8R8A8UNorm:
-                    for (uint y = 0; y < Height; y++)
-                    {
-                        stream.Write([.. new ReadOnlySpan<byte>(pointer, (int)(Width * 4))]);
-
-                        pointer += rowPitchInBytes;
-                    }
-                    break;
-
-                default:
-                    throw new NotSupportedException($"Pixel format {ZenithViewHelper.ColorFormat} is not supported.");
-            }
-
-            pixels.Unmap();
-        }
-
-        WriteableBitmap.Invalidate();
+        Bitmap.Invalidate();
     }
 
     protected override void Destroy()
     {
-        WriteableBitmap.Dispose();
-        FrameBuffer.Dispose();
-
-        pixels.Dispose();
-        depthStencil.Dispose();
-        color.Dispose();
+        Bitmap.Dispose();
+        Drawable.Dispose();
     }
 }
 #endif

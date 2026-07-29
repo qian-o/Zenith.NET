@@ -10,12 +10,17 @@ internal class MTLComputePipeline : ComputePipeline
     {
         MTL4ComputePipelineDescriptor descriptor = new()
         {
-            ComputeFunctionDescriptor = desc.Compute.Metal().Descriptor,
-            RequiredThreadsPerThreadgroup = new(desc.ThreadGroupSizeX, desc.ThreadGroupSizeY, desc.ThreadGroupSizeZ)
+            ComputeFunctionDescriptor = desc.ComputeShader.Metal().Descriptor,
+            RequiredThreadsPerThreadgroup = new(desc.ComputeShader.Desc.ThreadGroupSize.X, desc.ComputeShader.Desc.ThreadGroupSize.Y, desc.ComputeShader.Desc.ThreadGroupSize.Z)
         };
 
         ComputePipelineState = context.Compiler.MakeComputePipelineState(descriptor, MTL4CompilerTaskOptions.Null, out NSError error);
         error.Success();
+    }
+
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
     }
 
     protected override void SetResourceName(string name)

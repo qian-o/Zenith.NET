@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 using CornellBox.Handlers;
 using CornellBox.Helpers;
 using Zenith.NET;
-using Zenith.NET.Extensions.Slang;
 using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Renderers;
@@ -14,15 +13,13 @@ internal unsafe class PathTracingRenderer : Renderer
 
     private readonly Buffer vertexBuffer;
     private readonly Buffer indexBuffer;
-    private readonly Buffer materialBuffer;
-    private readonly Buffer cameraBuffer;
-    private readonly BottomLevelAccelerationStructure blas;
-    private readonly TopLevelAccelerationStructure tlas;
-    private readonly ResourceLayout resourceLayout;
+    private readonly Buffer constantBuffer;
     private readonly ComputePipeline pipeline;
 
+    private readonly BottomLevelAccelerationStructure blas;
+    private readonly TopLevelAccelerationStructure tlas;
+    private readonly Buffer materialBuffer;
     private Texture? accumulationTexture;
-    private ResourceTable? resourceTable;
 
     private Matrix4x4 lastView;
     private Matrix4x4 lastProjection;
@@ -35,34 +32,48 @@ internal unsafe class PathTracingRenderer : Renderer
         {
             SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length),
             StrideInBytes = (uint)sizeof(Vertex),
-            Flags = BufferUsageFlags.ShaderResource | BufferUsageFlags.AccelerationStructure
+            Usages = BufferUsages.StorageReadOnly | BufferUsages.TransferDst,
+            Residency = MemoryResidency.GpuOnly
         });
-        vertexBuffer.Upload(vertices, 0);
+
+        fixed (Vertex* pointer = vertices)
+        {
+            vertexBuffer.Upload(0, new()
+            {
+                Pointer = (nint)pointer,
+                SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length)
+            });
+        }
 
         indexBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)(sizeof(uint) * indices.Length),
             StrideInBytes = sizeof(uint),
-            Flags = BufferUsageFlags.ShaderResource | BufferUsageFlags.AccelerationStructure
+            Usages = BufferUsages.StorageReadOnly | BufferUsages.TransferDst,
+            Residency = MemoryResidency.GpuOnly
         });
-        indexBuffer.Upload(indices, 0);
 
-        materialBuffer = App.Context.CreateBuffer(new()
+        fixed (uint* pointer = indices)
         {
-            SizeInBytes = (uint)(sizeof(Material) * materials.Length),
-            StrideInBytes = (uint)sizeof(Material),
-            Flags = BufferUsageFlags.ShaderResource
-        });
-        materialBuffer.Upload(materials, 0);
+            indexBuffer.Upload(0, new()
+            {
+                Pointer = (nint)pointer,
+                SizeInBytes = (uint)(sizeof(uint) * indices.Length)
+            });
+        }
 
-        cameraBuffer = App.Context.CreateBuffer(new()
+        constantBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)sizeof(CameraParams),
-            StrideInBytes = (uint)sizeof(CameraParams),
-            Flags = BufferUsageFlags.Constant | BufferUsageFlags.MapWrite
+            SizeInBytes = (uint)sizeof(PathTracingConstants),
+            Usages = BufferUsages.Constant,
+            Residency = MemoryResidency.CpuWriteOnly
         });
 
-        CommandBuffer commandBuffer = App.Context.Graphics.CommandBuffer();
+        using Shader computeShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("PathTracing.slang"), "CSMain"));
+
+        pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = computeShader });
+
+        CommandBuffer commandBuffer = App.Context.ComputeQueue.CommandBuffer();
 
         blas = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
         {
@@ -70,8 +81,8 @@ internal unsafe class PathTracingRenderer : Renderer
             [
                 new()
                 {
-                    Type = RayTracingGeometryType.Triangles,
-                    Triangles = new()
+                    Type = RayTracingGeometryType.Triangle,
+                    TriangleGeometry = new()
                     {
                         VertexBuffer = vertexBuffer,
                         VertexFormat = PixelFormat.R32G32B32Float,
@@ -82,10 +93,10 @@ internal unsafe class PathTracingRenderer : Renderer
                         IndexCount = (uint)indices.Length,
                         Transform = Matrix4x4.Identity
                     },
-                    Flags = RayTracingGeometryFlags.Opaque
+                    IsOpaque = true
                 }
             ],
-            Flags = AccelerationStructureBuildFlags.PreferFastTrace
+            BuildFlags = AccelerationStructureBuildFlags.PreferFastTrace
         });
 
         tlas = commandBuffer.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
@@ -95,41 +106,33 @@ internal unsafe class PathTracingRenderer : Renderer
                 new()
                 {
                     AccelerationStructure = blas,
-                    ID = 0,
-                    Mask = 0xFF,
+                    InstanceId = 0,
+                    VisibilityMask = 0xFF,
                     Transform = Matrix4x4.Identity,
                     Flags = RayTracingInstanceFlags.None
                 }
             ],
-            Flags = AccelerationStructureBuildFlags.PreferFastTrace
+            BuildFlags = AccelerationStructureBuildFlags.PreferFastTrace
         });
 
-        commandBuffer.Submit(waitForCompletion: true);
+        commandBuffer.Submit().Wait();
 
-        resourceLayout = App.Context.CreateResourceLayout(new()
+        materialBuffer = App.Context.CreateBuffer(new()
         {
-            Bindings = BindingHelper.Bindings
-            (
-                new() { Type = ResourceType.AccelerationStructure, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.ConstantBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.StructuredBuffer, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute },
-                new() { Type = ResourceType.TextureReadWrite, Count = 1, StageFlags = ShaderStageFlags.Compute }
-            )
+            SizeInBytes = (uint)(sizeof(Material) * materials.Length),
+            StrideInBytes = (uint)sizeof(Material),
+            Usages = BufferUsages.StorageReadOnly | BufferUsages.TransferDst,
+            Residency = MemoryResidency.GpuOnly
         });
 
-        using Shader computeShader = App.Context.LoadShaderFromFile(ShaderPath("PathTracing.slang"), "CSMain", ShaderStageFlags.Compute);
-
-        pipeline = App.Context.CreateComputePipeline(new()
+        fixed (Material* pointer = materials)
         {
-            Compute = computeShader,
-            ResourceLayout = resourceLayout,
-            ThreadGroupSizeX = ThreadGroupSize,
-            ThreadGroupSizeY = ThreadGroupSize,
-            ThreadGroupSizeZ = 1
-        });
+            materialBuffer.Upload(0, new()
+            {
+                Pointer = (nint)pointer,
+                SizeInBytes = (uint)(sizeof(Material) * materials.Length)
+            });
+        }
     }
 
     public uint FrameCount { get; set; }
@@ -150,45 +153,44 @@ internal unsafe class PathTracingRenderer : Renderer
         Matrix4x4.Invert(view, out Matrix4x4 invView);
         Matrix4x4.Invert(projection, out Matrix4x4 invProjection);
 
-        cameraBuffer.Upload<CameraParams>([new()
+        PathTracingConstants parameters = new()
         {
             InvView = invView,
             InvProjection = invProjection,
             Position = camera.Position,
             FrameCount = FrameCount,
             Width = App.Width,
-            Height = App.Height
-        }], 0);
+            Height = App.Height,
+            Scene = tlas.Handle,
+            Vertices = vertexBuffer.StorageReadOnlyHandle,
+            Indices = indexBuffer.StorageReadOnlyHandle,
+            Materials = materialBuffer.StorageReadOnlyHandle,
+            AccumulationTexture = accumulationTexture!.StorageHandle,
+            OutputTexture = Color.StorageHandle
+        };
+
+        constantBuffer.Upload(0, new()
+        {
+            Pointer = (nint)(&parameters),
+            SizeInBytes = (uint)sizeof(PathTracingConstants)
+        });
     }
 
     public override void Render(CommandBuffer commandBuffer)
     {
-        if (resourceTable is null || accumulationTexture is null)
-        {
-            accumulationTexture = App.Context.CreateTexture(new()
-            {
-                Type = TextureType.Texture2D,
-                Format = PixelFormat.R32G32B32A32Float,
-                Width = App.Width,
-                Height = App.Height,
-                Depth = 1,
-                MipLevels = 1,
-                ArrayLayers = 1,
-                SampleCount = SampleCount.Count1,
-                Flags = TextureUsageFlags.ShaderResource | TextureUsageFlags.UnorderedAccess
-            });
+        commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.Storage);
 
-            resourceTable = App.Context.CreateResourceTable(new()
-            {
-                Layout = resourceLayout,
-                Resources = [tlas, cameraBuffer, vertexBuffer, indexBuffer, materialBuffer, accumulationTexture, Color]
-            });
+        if (FrameCount is 0)
+        {
+            commandBuffer.Transition(accumulationTexture!, default, TextureLayout.Undefined, TextureLayout.Storage);
         }
 
         commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetResourceTable(resourceTable);
+        commandBuffer.SetConstantBuffer(constantBuffer, 0);
 
         commandBuffer.Dispatch((App.Width + ThreadGroupSize - 1) / ThreadGroupSize, (App.Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
+
+        commandBuffer.Transition(Color, default, TextureLayout.Storage, TextureLayout.Sampled);
 
         FrameCount++;
     }
@@ -197,35 +199,40 @@ internal unsafe class PathTracingRenderer : Renderer
     {
         base.Resize(width, height);
 
-        resourceTable?.Dispose();
-        resourceTable = null;
-
         accumulationTexture?.Dispose();
-        accumulationTexture = null;
+        accumulationTexture = App.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = PixelFormat.R32G32B32A32Float,
+            Width = width,
+            Height = height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Usages = TextureUsages.Sampled | TextureUsages.Storage
+        });
 
         FrameCount = 0;
     }
 
     public override void Dispose()
     {
-        base.Dispose();
-
-        resourceTable?.Dispose();
-        accumulationTexture?.Dispose();
-
-        pipeline.Dispose();
-        resourceLayout.Dispose();
+        materialBuffer.Dispose();
         tlas.Dispose();
         blas.Dispose();
-        cameraBuffer.Dispose();
-        materialBuffer.Dispose();
+        pipeline.Dispose();
+        constantBuffer.Dispose();
         indexBuffer.Dispose();
         vertexBuffer.Dispose();
+        accumulationTexture?.Dispose();
+
+        base.Dispose();
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 160)]
-file struct CameraParams
+[StructLayout(LayoutKind.Explicit, Size = 208)]
+file struct PathTracingConstants
 {
     [FieldOffset(0)]
     public Matrix4x4 InvView;
@@ -244,4 +251,22 @@ file struct CameraParams
 
     [FieldOffset(152)]
     public uint Height;
+
+    [FieldOffset(160)]
+    public ResourceHandle Scene;
+
+    [FieldOffset(168)]
+    public ResourceHandle Vertices;
+
+    [FieldOffset(176)]
+    public ResourceHandle Indices;
+
+    [FieldOffset(184)]
+    public ResourceHandle Materials;
+
+    [FieldOffset(192)]
+    public ResourceHandle AccumulationTexture;
+
+    [FieldOffset(200)]
+    public ResourceHandle OutputTexture;
 }

@@ -81,8 +81,7 @@ public class ZenithView : Control, IZenithView
             swapChain = GraphicsContext.CreateSwapChain(new()
             {
                 Surface = Surface.Win32(Handle, width, height),
-                ColorTargetFormat = ZenithViewHelper.ColorFormat,
-                DepthStencilTargetFormat = ZenithViewHelper.DepthStencilFormat
+                Format = ZenithViewHelper.DrawableFormat
             });
         }
         else if (swapChain.Desc.Surface.Width != width || swapChain.Desc.Surface.Height != height)
@@ -93,13 +92,21 @@ public class ZenithView : Control, IZenithView
 
     void IZenithView.Tick()
     {
-        if (swapChain is null)
+        if (GraphicsContext is null || swapChain is null)
         {
             return;
         }
 
+        CommandBuffer commandBuffer = GraphicsContext.GraphicsQueue.CommandBuffer();
+
+        commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+
         UpdateRequested?.Invoke(this, new(scheduler.UpdateSeconds, scheduler.TotalSeconds));
-        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, swapChain.FrameBuffer));
+        RenderRequested?.Invoke(this, new(scheduler.RenderSeconds, scheduler.TotalSeconds, commandBuffer, swapChain.Drawable));
+
+        commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
+
+        commandBuffer.Submit().Wait();
     }
 
     void IZenithView.Present()

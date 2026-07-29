@@ -1,5 +1,4 @@
 ﻿using Silk.NET.Direct3D12;
-using Silk.NET.DXGI;
 
 namespace Zenith.NET.DirectX12;
 
@@ -8,20 +7,13 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
     private DXDescriptorToken? srvToken;
     private DXDescriptorToken? uavToken;
 
-    public CpuDescriptorHandle SrvHandle => (srvToken ??= CreateSrvToken()).Handle;
+    public override ResourceHandle SampledHandle => (srvToken ??= CreateSrvToken()).ResourceHandle;
 
-    public CpuDescriptorHandle UavHandle => (uavToken ??= CreateUavToken()).Handle;
+    public override ResourceHandle StorageHandle => (uavToken ??= CreateUavToken()).ResourceHandle;
 
-    public void TransitionStates(DXCommandBuffer commandBuffer, ResourceStates newStates)
+    public override nint GetNativeObject(NativeObjectType type)
     {
-        Desc.Texture.DirectX12().TransitionStates(commandBuffer,
-                                                  Desc.FirstMipLevel,
-                                                  Desc.MipLevelCount,
-                                                  Desc.FirstArrayLayer,
-                                                  Desc.ArrayLayerCount,
-                                                  0,
-                                                  ZenithHelper.FaceCount(Desc.Texture.Desc),
-                                                  newStates);
+        return 0;
     }
 
     protected override void SetResourceName(string name)
@@ -36,40 +28,34 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
 
     private DXDescriptorToken CreateSrvToken()
     {
-        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate(1);
+        DXDescriptorToken token = context.CbvSrvUavHeap.Allocate();
 
         ShaderResourceViewDesc viewDesc = new()
         {
-            Format = Resolve(Desc.Texture.Desc.Format),
+            Format = DXFormats.DirectX12(Desc.Format),
             Shader4ComponentMapping = DXGraphicsContext.Shader4ComponentMapping
         };
 
-        switch (Desc.Texture.Desc.Type)
+        switch (Desc.Type)
         {
             case TextureType.Texture1D:
+                viewDesc.ViewDimension = SrvDimension.Texture1D;
+                viewDesc.Texture1D = new()
                 {
-                    viewDesc.ViewDimension = SrvDimension.Texture1D;
-                    viewDesc.Texture1D.MostDetailedMip = Desc.FirstMipLevel;
-                    viewDesc.Texture1D.MipLevels = Desc.MipLevelCount;
-                }
-                break;
-
-            case TextureType.Texture1DArray:
-                {
-                    viewDesc.ViewDimension = SrvDimension.Texture1Darray;
-                    viewDesc.Texture1DArray.MostDetailedMip = Desc.FirstMipLevel;
-                    viewDesc.Texture1DArray.MipLevels = Desc.MipLevelCount;
-                    viewDesc.Texture1DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerIndex;
-                    viewDesc.Texture1DArray.ArraySize = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerCount;
-                }
+                    MostDetailedMip = Desc.Range.BaseMipLevel,
+                    MipLevels = Desc.Range.LevelCount
+                };
                 break;
 
             case TextureType.Texture2D:
                 if (Desc.Texture.Desc.SampleCount is SampleCount.Count1)
                 {
                     viewDesc.ViewDimension = SrvDimension.Texture2D;
-                    viewDesc.Texture2D.MostDetailedMip = Desc.FirstMipLevel;
-                    viewDesc.Texture2D.MipLevels = Desc.MipLevelCount;
+                    viewDesc.Texture2D = new()
+                    {
+                        MostDetailedMip = Desc.Range.BaseMipLevel,
+                        MipLevels = Desc.Range.LevelCount
+                    };
                 }
                 else
                 {
@@ -77,132 +63,136 @@ internal unsafe class DXTextureView(DXGraphicsContext context, TextureViewDesc d
                 }
                 break;
 
+            case TextureType.Texture3D:
+                viewDesc.ViewDimension = SrvDimension.Texture3D;
+                viewDesc.Texture3D = new()
+                {
+                    MostDetailedMip = Desc.Range.BaseMipLevel,
+                    MipLevels = Desc.Range.LevelCount
+                };
+                break;
+
+            case TextureType.TextureCube:
+                viewDesc.ViewDimension = SrvDimension.Texturecube;
+                viewDesc.TextureCube = new()
+                {
+                    MostDetailedMip = Desc.Range.BaseMipLevel,
+                    MipLevels = Desc.Range.LevelCount
+                };
+                break;
+
+            case TextureType.Texture1DArray:
+                viewDesc.ViewDimension = SrvDimension.Texture1Darray;
+                viewDesc.Texture1DArray = new()
+                {
+                    MostDetailedMip = Desc.Range.BaseMipLevel,
+                    MipLevels = Desc.Range.LevelCount,
+                    FirstArraySlice = Desc.Range.BaseArrayLayer,
+                    ArraySize = Desc.Range.LayerCount
+                };
+                break;
+
             case TextureType.Texture2DArray:
                 if (Desc.Texture.Desc.SampleCount is SampleCount.Count1)
                 {
                     viewDesc.ViewDimension = SrvDimension.Texture2Darray;
-                    viewDesc.Texture2DArray.MostDetailedMip = Desc.FirstMipLevel;
-                    viewDesc.Texture2DArray.MipLevels = Desc.MipLevelCount;
-                    viewDesc.Texture2DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerIndex;
-                    viewDesc.Texture2DArray.ArraySize = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerCount;
+                    viewDesc.Texture2DArray = new()
+                    {
+                        MostDetailedMip = Desc.Range.BaseMipLevel,
+                        MipLevels = Desc.Range.LevelCount,
+                        FirstArraySlice = Desc.Range.BaseArrayLayer,
+                        ArraySize = Desc.Range.LayerCount
+                    };
                 }
                 else
                 {
                     viewDesc.ViewDimension = SrvDimension.Texture2Dmsarray;
-                    viewDesc.Texture2DMSArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerIndex;
-                    viewDesc.Texture2DMSArray.ArraySize = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerCount;
-                }
-                break;
-
-            case TextureType.Texture3D:
-                {
-                    viewDesc.ViewDimension = SrvDimension.Texture3D;
-                    viewDesc.Texture3D.MostDetailedMip = Desc.FirstMipLevel;
-                    viewDesc.Texture3D.MipLevels = Desc.MipLevelCount;
-                }
-                break;
-
-            case TextureType.TextureCube:
-                {
-                    viewDesc.ViewDimension = SrvDimension.Texturecube;
-                    viewDesc.TextureCube.MostDetailedMip = Desc.FirstMipLevel;
-                    viewDesc.TextureCube.MipLevels = Desc.MipLevelCount;
+                    viewDesc.Texture2DMSArray = new()
+                    {
+                        FirstArraySlice = Desc.Range.BaseArrayLayer,
+                        ArraySize = Desc.Range.LayerCount
+                    };
                 }
                 break;
 
             case TextureType.TextureCubeArray:
+                viewDesc.ViewDimension = SrvDimension.Texturecubearray;
+                viewDesc.TextureCubeArray = new()
                 {
-                    viewDesc.ViewDimension = SrvDimension.Texturecubearray;
-                    viewDesc.TextureCubeArray.MostDetailedMip = Desc.FirstMipLevel;
-                    viewDesc.TextureCubeArray.MipLevels = Desc.MipLevelCount;
-                    viewDesc.TextureCubeArray.First2DArrayFace = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerIndex;
-                    viewDesc.TextureCubeArray.NumCubes = Desc.ArrayLayerCount;
-                }
+                    MostDetailedMip = Desc.Range.BaseMipLevel,
+                    MipLevels = Desc.Range.LevelCount,
+                    First2DArrayFace = Desc.Range.BaseArrayLayer,
+                    NumCubes = Desc.Range.LayerCount / 6
+                };
                 break;
         }
 
-        context.Device.CreateShaderResourceView(Desc.Texture.DirectX12().Resource, &viewDesc, token.Handle);
+        context.Device.CreateShaderResourceView(Desc.Texture.DirectX12().Resource, &viewDesc, token.CpuHandle);
 
         return token;
     }
 
     private DXDescriptorToken CreateUavToken()
     {
-        DXDescriptorToken token = context.CbvSrvUavAllocator.Allocate(1);
+        DXDescriptorToken token = context.CbvSrvUavHeap.Allocate();
 
-        UnorderedAccessViewDesc viewDesc = new() { Format = Resolve(Desc.Texture.Desc.Format) };
+        UnorderedAccessViewDesc viewDesc = new() { Format = DXFormats.DirectX12(Desc.Format) };
 
-        switch (Desc.Texture.Desc.Type)
+        switch (Desc.Type)
         {
             case TextureType.Texture1D:
-                {
-                    viewDesc.ViewDimension = UavDimension.Texture1D;
-                    viewDesc.Texture1D.MipSlice = Desc.FirstMipLevel;
-                }
-                break;
-
-            case TextureType.Texture1DArray:
-                {
-                    viewDesc.ViewDimension = UavDimension.Texture1Darray;
-                    viewDesc.Texture1DArray.MipSlice = Desc.FirstMipLevel;
-                    viewDesc.Texture1DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerIndex;
-                    viewDesc.Texture1DArray.ArraySize = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerCount;
-                }
+                viewDesc.ViewDimension = UavDimension.Texture1D;
+                viewDesc.Texture1D = new() { MipSlice = Desc.Range.BaseMipLevel };
                 break;
 
             case TextureType.Texture2D:
-                if (Desc.Texture.Desc.SampleCount is SampleCount.Count1)
-                {
-                    viewDesc.ViewDimension = UavDimension.Texture2D;
-                    viewDesc.Texture2D.MipSlice = Desc.FirstMipLevel;
-                }
-                else
-                {
-                    viewDesc.ViewDimension = UavDimension.Texture2Dms;
-                }
-                break;
-
-            case TextureType.Texture2DArray:
-            case TextureType.TextureCube:
-            case TextureType.TextureCubeArray:
-                if (Desc.Texture.Desc.SampleCount is SampleCount.Count1)
-                {
-                    viewDesc.ViewDimension = UavDimension.Texture2Darray;
-                    viewDesc.Texture2DArray.MipSlice = Desc.FirstMipLevel;
-                    viewDesc.Texture2DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerIndex;
-                    viewDesc.Texture2DArray.ArraySize = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerCount;
-                }
-                else
-                {
-                    viewDesc.ViewDimension = UavDimension.Texture2Dmsarray;
-                    viewDesc.Texture2DMSArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerIndex;
-                    viewDesc.Texture2DMSArray.ArraySize = ZenithHelper.FlattenArrayLayerRange(Desc).FlattenArrayLayerCount;
-                }
+                viewDesc.ViewDimension = UavDimension.Texture2D;
+                viewDesc.Texture2D = new() { MipSlice = Desc.Range.BaseMipLevel };
                 break;
 
             case TextureType.Texture3D:
+                viewDesc.ViewDimension = UavDimension.Texture3D;
+                viewDesc.Texture3D = new()
                 {
-                    viewDesc.ViewDimension = UavDimension.Texture3D;
-                    viewDesc.Texture3D.MipSlice = Desc.FirstMipLevel;
-                    viewDesc.Texture3D.WSize = Desc.Texture.Desc.Depth;
-                }
+                    MipSlice = Desc.Range.BaseMipLevel,
+                    WSize = Desc.Texture.Desc.Depth
+                };
+                break;
+
+            case TextureType.TextureCube:
+                viewDesc.ViewDimension = UavDimension.Texture2Darray;
+                viewDesc.Texture2DArray = new()
+                {
+                    MipSlice = Desc.Range.BaseMipLevel,
+                    FirstArraySlice = Desc.Range.BaseArrayLayer,
+                    ArraySize = Desc.Range.LayerCount
+                };
+                break;
+
+            case TextureType.Texture1DArray:
+                viewDesc.ViewDimension = UavDimension.Texture1Darray;
+                viewDesc.Texture1DArray = new()
+                {
+                    MipSlice = Desc.Range.BaseMipLevel,
+                    FirstArraySlice = Desc.Range.BaseArrayLayer,
+                    ArraySize = Desc.Range.LayerCount
+                };
+                break;
+
+            case TextureType.Texture2DArray:
+            case TextureType.TextureCubeArray:
+                viewDesc.ViewDimension = UavDimension.Texture2Darray;
+                viewDesc.Texture2DArray = new()
+                {
+                    MipSlice = Desc.Range.BaseMipLevel,
+                    FirstArraySlice = Desc.Range.BaseArrayLayer,
+                    ArraySize = Desc.Range.LayerCount
+                };
                 break;
         }
 
-        context.Device.CreateUnorderedAccessView(Desc.Texture.DirectX12().Resource, (ID3D12Resource*)null, &viewDesc, token.Handle);
+        context.Device.CreateUnorderedAccessView(Desc.Texture.DirectX12().Resource, default(ID3D12Resource*), &viewDesc, token.CpuHandle);
 
         return token;
-    }
-
-    private static Format Resolve(PixelFormat pixelFormat)
-    {
-        return pixelFormat switch
-        {
-            PixelFormat.D16UNorm => Format.FormatR16Unorm,
-            PixelFormat.D24UNormS8UInt => Format.FormatR24G8Typeless,
-            PixelFormat.D32Float => Format.FormatR32Float,
-            PixelFormat.D32FloatS8UInt => Format.FormatR32G8X24Typeless,
-            _ => DXFormats.DirectX12(pixelFormat)
-        };
     }
 }

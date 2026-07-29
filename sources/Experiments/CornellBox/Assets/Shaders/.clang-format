@@ -4,13 +4,14 @@ BasedOnStyle: Microsoft
 
 # Indentation
 IndentWidth: 4
+ContinuationIndentWidth: 4
 TabWidth: 4
 UseTab: Never
 IndentCaseLabels: true
-AccessModifierOffset: -4
+NamespaceIndentation: All
 
-# Braces - Allman style
-BreakBeforeBraces: Allman
+# Brace placement
+BreakBeforeBraces: Custom
 BraceWrapping:
   AfterCaseLabel: true
   AfterClass: true
@@ -19,64 +20,27 @@ BraceWrapping:
   AfterFunction: true
   AfterNamespace: true
   AfterStruct: true
-  AfterUnion: true
   BeforeCatch: true
   BeforeElse: true
+  BeforeWhile: false
   IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyNamespace: true
+  SplitEmptyRecord: true
 
-# Column limit
-ColumnLimit: 120
-
-# Line breaking
-BreakBeforeBinaryOperators: None
-BreakBeforeTernaryOperators: false
-AlwaysBreakAfterReturnType: None
-
-# Alignment
-AlignAfterOpenBracket: Align
-AlignConsecutiveAssignments: None
-AlignConsecutiveDeclarations: None
-AlignOperands: Align
-AlignTrailingComments: false
-
-# Function arguments and parameters - one per line when wrapped
-BinPackArguments: false
-BinPackParameters: true
-AllowAllArgumentsOnNextLine: false
-AllowAllParametersOfDeclarationOnNextLine: false
-
-# Short statements
+# Block bodies
 AllowShortBlocksOnASingleLine: Never
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
 
-# Spaces
-SpaceAfterCStyleCast: false
-SpaceBeforeAssignmentOperators: true
-SpaceBeforeParens: ControlStatements
-SpaceInEmptyParentheses: false
-SpacesBeforeTrailingComments: 1
-SpacesInAngles: false
-SpacesInParentheses: false
-SpacesInSquareBrackets: false
-
-# Empty lines
+# Line wrapping
+ColumnLimit: 0
 KeepEmptyLinesAtTheStartOfBlocks: false
 MaxEmptyLinesToKeep: 1
-
-# Other
-NamespaceIndentation: All
-PointerAlignment: Left
-SortIncludes: false
-SortUsingDeclarations: false
 ReflowComments: false
 
-# Penalty settings
-PenaltyBreakAssignment: 1000000
-PenaltyBreakBeforeFirstCallParameter: 500
-PenaltyBreakComment: 300
-PenaltyBreakString: 1000
-PenaltyExcessCharacter: 1
-PenaltyReturnTypeOnItsOwnLine: 1000000
+# Declaration order
+SortIncludes: false
+SortUsingDeclarations: false

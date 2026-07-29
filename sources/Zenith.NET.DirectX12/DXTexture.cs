@@ -1,62 +1,40 @@
 ﻿using Silk.NET.Core.Native;
 using Silk.NET.Direct3D12;
+using Silk.NET.DXGI;
 
 namespace Zenith.NET.DirectX12;
 
 internal unsafe class DXTexture : Texture
 {
+    private readonly Dictionary<TextureSubresource, DXDescriptorToken> rtvTokens = [];
+    private readonly Dictionary<TextureSubresource, DXDescriptorToken> dsvTokens = [];
+
     public ComPtr<ID3D12Resource> Resource;
 
     public DXTexture(DXGraphicsContext context, TextureDesc desc) : base(context, desc)
     {
-        bool isRenderTargetOrDepthStencil = desc.Flags.HasFlag(TextureUsageFlags.RenderTarget) || desc.Flags.HasFlag(TextureUsageFlags.DepthStencil);
+        ResourceDesc1 resourceDesc = ResourceDesc(desc);
 
-        ResourceDesc resourceDesc = new()
-        {
-            Dimension = DXFormats.DirectX12(desc.Type),
-            Width = desc.Width,
-            Height = desc.Height,
-            DepthOrArraySize = (ushort)(desc.Type is TextureType.Texture3D ? desc.Depth : ZenithHelper.FlattenArrayLayerCount(desc)),
-            MipLevels = (ushort)desc.MipLevels,
-            Format = DXFormats.DirectX12(desc.Format),
-            SampleDesc = DXFormats.DirectX12(desc.SampleCount),
-            Flags = DXFormats.DirectX12(desc.Flags).Flags
-        };
+        HeapProperties heapProperties = new() { Type = DxHeapType.Default };
 
-        Heap = new(context, resourceDesc, HeapType.Default, isRenderTargetOrDepthStencil ? HeapFlags.AllowOnlyRTDSTextures : HeapFlags.AllowOnlyNonRTDSTextures);
-
-        if (isRenderTargetOrDepthStencil)
-        {
-            DxClearValue clearValue = new() { Format = DXFormats.DirectX12(desc.Format) };
-
-            if (desc.Flags.HasFlag(TextureUsageFlags.RenderTarget))
-            {
-                clearValue.Anonymous.Color[3] = 1.0f;
-            }
-
-            if (desc.Flags.HasFlag(TextureUsageFlags.DepthStencil))
-            {
-                clearValue.Anonymous.DepthStencil.Depth = 1.0f;
-            }
-
-            context.Device.CreatePlacedResource(Heap.Heap, 0, &resourceDesc, DXFormats.DirectX12(desc.Flags).States, &clearValue, out Resource).Success();
-        }
-        else
-        {
-            context.Device.CreatePlacedResource(Heap.Heap, 0, &resourceDesc, DXFormats.DirectX12(desc.Flags).States, null, out Resource).Success();
-        }
+        context.Device.CreateCommittedResource3(&heapProperties,
+                                                HeapFlags.None,
+                                                &resourceDesc,
+                                                BarrierLayout.Undefined,
+                                                default(ClearValue*),
+                                                default(ID3D12ProtectedResourceSession*),
+                                                0,
+                                                default(Format*),
+                                                SilkMarshal.GuidPtrOf<ID3D12Resource>(),
+                                                (void**)Resource.GetAddressOf()).Success();
 
         View = new(context, new()
         {
             Texture = this,
-            FirstMipLevel = 0,
-            MipLevelCount = desc.MipLevels,
-            FirstArrayLayer = 0,
-            ArrayLayerCount = desc.ArrayLayers
+            Type = desc.Type,
+            Format = desc.Format,
+            Range = TextureSubresourceRange.All(this)
         });
-
-        States = new ResourceStates[ZenithHelper.SubresourceCount(desc)];
-        Array.Fill(States, DXFormats.DirectX12(desc.Flags).States);
     }
 
     public DXTexture(DXGraphicsContext context, TextureDesc desc, ComPtr<ID3D12Resource> resource) : base(context, desc)
@@ -66,207 +44,174 @@ internal unsafe class DXTexture : Texture
         View = new(context, new()
         {
             Texture = this,
-            FirstMipLevel = 0,
-            MipLevelCount = desc.MipLevels,
-            FirstArrayLayer = 0,
-            ArrayLayerCount = desc.ArrayLayers
+            Type = desc.Type,
+            Format = desc.Format,
+            Range = TextureSubresourceRange.All(this)
         });
-
-        States = new ResourceStates[ZenithHelper.SubresourceCount(desc)];
-        Array.Fill(States, ResourceStates.Common);
     }
 
     public new DXGraphicsContext Context => (DXGraphicsContext)base.Context;
 
-    public DXHeap? Heap { get; }
-
     public DXTextureView View { get; }
 
-    public ResourceStates[] States { get; }
+    public override ResourceHandle SampledHandle => View.SampledHandle;
 
-    public void TransitionStates(DXCommandBuffer commandBuffer,
-                                 uint firstMipLevel,
-                                 uint mipLevelCount,
-                                 uint firstArrayLayer,
-                                 uint arrayLayerCount,
-                                 uint firstFace,
-                                 uint faceCount,
-                                 ResourceStates newStates)
+    public override ResourceHandle StorageHandle => View.StorageHandle;
+
+    public uint SubresourceIndex(TextureSubresource subresource)
     {
-        if (!commandBuffer.CanTransitionResourceStates)
-        {
-            return;
-        }
+        return subresource.MipLevel + (subresource.ArrayLayer * Desc.MipLevels);
+    }
 
-        for (uint i = 0; i < mipLevelCount; i++)
+    public CpuDescriptorHandle GetRtvHandle(TextureSubresource subresource)
+    {
+        if (!rtvTokens.TryGetValue(subresource, out DXDescriptorToken token))
         {
-            for (uint j = 0; j < arrayLayerCount; j++)
+            rtvTokens[subresource] = token = Context.RtvHeap.Allocate();
+
+            RenderTargetViewDesc viewDesc = new() { Format = DXFormats.DirectX12(Desc.Format) };
+
+            switch (Desc.Type)
             {
-                for (uint k = 0; k < faceCount; k++)
-                {
-                    TextureSlice slice = new() { MipLevel = firstMipLevel + i, ArrayLayer = firstArrayLayer + j, Face = firstFace + k };
-
-                    uint index = ZenithHelper.SubresourceIndex(Desc, slice);
-
-                    ResourceStates oldStates = States[index];
-
-                    if (oldStates == newStates)
-                    {
-                        continue;
-                    }
-
-                    ResourceBarrier barrier = new()
-                    {
-                        Type = ResourceBarrierType.Transition,
-                        Transition = new()
-                        {
-                            PResource = Resource,
-                            Subresource = index,
-                            StateBefore = oldStates,
-                            StateAfter = newStates
-                        }
-                    };
-
-                    commandBuffer.GraphicsCommandList4.ResourceBarrier(1, &barrier);
-
-                    States[index] = newStates;
-                }
-            }
-        }
-    }
-
-    public void TransitionStates(DXCommandBuffer commandBuffer, TextureSlice slice, ResourceStates newStates)
-    {
-        TransitionStates(commandBuffer, slice.MipLevel, 1, slice.ArrayLayer, 1, slice.Face, 1, newStates);
-    }
-
-    public DXDescriptorToken CreateRtvToken(TextureSlice slice)
-    {
-        DXDescriptorToken token = Context.RtvAllocator.Allocate(1);
-
-        RenderTargetViewDesc viewDesc = new() { Format = DXFormats.DirectX12(Desc.Format) };
-
-        switch (Desc.Type)
-        {
-            case TextureType.Texture1D:
-                {
+                case TextureType.Texture1D:
                     viewDesc.ViewDimension = RtvDimension.Texture1D;
-                    viewDesc.Texture1D.MipSlice = slice.MipLevel;
-                }
-                break;
+                    viewDesc.Texture1D = new() { MipSlice = subresource.MipLevel };
+                    break;
 
-            case TextureType.Texture1DArray:
-                {
+                case TextureType.Texture1DArray:
                     viewDesc.ViewDimension = RtvDimension.Texture1Darray;
-                    viewDesc.Texture1DArray.MipSlice = slice.MipLevel;
-                    viewDesc.Texture1DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerIndex(Desc, slice);
-                    viewDesc.Texture1DArray.ArraySize = 1;
-                }
-                break;
+                    viewDesc.Texture1DArray = new()
+                    {
+                        MipSlice = subresource.MipLevel,
+                        FirstArraySlice = subresource.ArrayLayer,
+                        ArraySize = 1
+                    };
+                    break;
 
-            case TextureType.Texture2D:
-                if (Desc.SampleCount is SampleCount.Count1)
-                {
-                    viewDesc.ViewDimension = RtvDimension.Texture2D;
-                    viewDesc.Texture2D.MipSlice = slice.MipLevel;
-                }
-                else
-                {
-                    viewDesc.ViewDimension = RtvDimension.Texture2Dms;
-                }
-                break;
+                case TextureType.Texture2D:
+                    if (Desc.SampleCount is SampleCount.Count1)
+                    {
+                        viewDesc.ViewDimension = RtvDimension.Texture2D;
+                        viewDesc.Texture2D = new() { MipSlice = subresource.MipLevel };
+                    }
+                    else
+                    {
+                        viewDesc.ViewDimension = RtvDimension.Texture2Dms;
+                    }
+                    break;
 
-            case TextureType.Texture2DArray:
-            case TextureType.TextureCube:
-            case TextureType.TextureCubeArray:
-                if (Desc.SampleCount is SampleCount.Count1)
-                {
-                    viewDesc.ViewDimension = RtvDimension.Texture2Darray;
-                    viewDesc.Texture2DArray.MipSlice = slice.MipLevel;
-                    viewDesc.Texture2DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerIndex(Desc, slice);
-                    viewDesc.Texture2DArray.ArraySize = 1;
-                }
-                else
-                {
-                    viewDesc.ViewDimension = RtvDimension.Texture2Dmsarray;
-                    viewDesc.Texture2DMSArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerIndex(Desc, slice);
-                    viewDesc.Texture2DMSArray.ArraySize = 1;
-                }
-                break;
+                case TextureType.Texture2DArray:
+                case TextureType.TextureCube:
+                case TextureType.TextureCubeArray:
+                    if (Desc.SampleCount is SampleCount.Count1)
+                    {
+                        viewDesc.ViewDimension = RtvDimension.Texture2Darray;
+                        viewDesc.Texture2DArray = new()
+                        {
+                            MipSlice = subresource.MipLevel,
+                            FirstArraySlice = subresource.ArrayLayer,
+                            ArraySize = 1
+                        };
+                    }
+                    else
+                    {
+                        viewDesc.ViewDimension = RtvDimension.Texture2Dmsarray;
+                        viewDesc.Texture2DMSArray = new()
+                        {
+                            FirstArraySlice = subresource.ArrayLayer,
+                            ArraySize = 1
+                        };
+                    }
+                    break;
 
-            case TextureType.Texture3D:
-                {
+                case TextureType.Texture3D:
                     viewDesc.ViewDimension = RtvDimension.Texture3D;
-                    viewDesc.Texture3D.MipSlice = slice.MipLevel;
-                    viewDesc.Texture3D.WSize = Desc.Depth;
-                }
-                break;
+                    viewDesc.Texture3D = new()
+                    {
+                        MipSlice = subresource.MipLevel,
+                        FirstWSlice = subresource.ArrayLayer,
+                        WSize = 1
+                    };
+                    break;
+            }
+
+            Context.Device.CreateRenderTargetView(Resource, &viewDesc, token.CpuHandle);
         }
 
-        Context.Device.CreateRenderTargetView(Resource, &viewDesc, token.Handle);
-
-        return token;
+        return token.CpuHandle;
     }
 
-    public DXDescriptorToken CreateDsvToken(TextureSlice slice)
+    public CpuDescriptorHandle GetDsvHandle(TextureSubresource subresource)
     {
-        DXDescriptorToken token = Context.DsvAllocator.Allocate(1);
-
-        DepthStencilViewDesc viewDesc = new() { Format = DXFormats.DirectX12(Desc.Format) };
-
-        switch (Desc.Type)
+        if (!dsvTokens.TryGetValue(subresource, out DXDescriptorToken token))
         {
-            case TextureType.Texture1D:
-                {
+            dsvTokens[subresource] = token = Context.DsvHeap.Allocate();
+
+            DepthStencilViewDesc viewDesc = new() { Format = DXFormats.DirectX12(Desc.Format) };
+
+            switch (Desc.Type)
+            {
+                case TextureType.Texture1D:
                     viewDesc.ViewDimension = DsvDimension.Texture1D;
-                    viewDesc.Texture1D.MipSlice = slice.MipLevel;
-                }
-                break;
+                    viewDesc.Texture1D = new() { MipSlice = subresource.MipLevel };
+                    break;
 
-            case TextureType.Texture1DArray:
-                {
+                case TextureType.Texture1DArray:
                     viewDesc.ViewDimension = DsvDimension.Texture1Darray;
-                    viewDesc.Texture1DArray.MipSlice = slice.MipLevel;
-                    viewDesc.Texture1DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerIndex(Desc, slice);
-                    viewDesc.Texture1DArray.ArraySize = 1;
-                }
-                break;
+                    viewDesc.Texture1DArray = new()
+                    {
+                        MipSlice = subresource.MipLevel,
+                        FirstArraySlice = subresource.ArrayLayer,
+                        ArraySize = 1
+                    };
+                    break;
 
-            case TextureType.Texture2D:
-            case TextureType.Texture3D:
-                if (Desc.SampleCount is SampleCount.Count1)
-                {
-                    viewDesc.ViewDimension = DsvDimension.Texture2D;
-                    viewDesc.Texture2D.MipSlice = slice.MipLevel;
-                }
-                else
-                {
-                    viewDesc.ViewDimension = DsvDimension.Texture2Dms;
-                }
-                break;
+                case TextureType.Texture2D:
+                    if (Desc.SampleCount is SampleCount.Count1)
+                    {
+                        viewDesc.ViewDimension = DsvDimension.Texture2D;
+                        viewDesc.Texture2D = new() { MipSlice = subresource.MipLevel };
+                    }
+                    else
+                    {
+                        viewDesc.ViewDimension = DsvDimension.Texture2Dms;
+                    }
+                    break;
 
-            case TextureType.Texture2DArray:
-            case TextureType.TextureCube:
-            case TextureType.TextureCubeArray:
-                if (Desc.SampleCount is SampleCount.Count1)
-                {
-                    viewDesc.ViewDimension = DsvDimension.Texture2Darray;
-                    viewDesc.Texture2DArray.MipSlice = slice.MipLevel;
-                    viewDesc.Texture2DArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerIndex(Desc, slice);
-                    viewDesc.Texture2DArray.ArraySize = 1;
-                }
-                else
-                {
-                    viewDesc.ViewDimension = DsvDimension.Texture2Dmsarray;
-                    viewDesc.Texture2DMSArray.FirstArraySlice = ZenithHelper.FlattenArrayLayerIndex(Desc, slice);
-                    viewDesc.Texture2DMSArray.ArraySize = 1;
-                }
-                break;
+                case TextureType.Texture2DArray:
+                case TextureType.TextureCube:
+                case TextureType.TextureCubeArray:
+                    if (Desc.SampleCount is SampleCount.Count1)
+                    {
+                        viewDesc.ViewDimension = DsvDimension.Texture2Darray;
+                        viewDesc.Texture2DArray = new()
+                        {
+                            MipSlice = subresource.MipLevel,
+                            FirstArraySlice = subresource.ArrayLayer,
+                            ArraySize = 1
+                        };
+                    }
+                    else
+                    {
+                        viewDesc.ViewDimension = DsvDimension.Texture2Dmsarray;
+                        viewDesc.Texture2DMSArray = new()
+                        {
+                            FirstArraySlice = subresource.ArrayLayer,
+                            ArraySize = 1
+                        };
+                    }
+                    break;
+            }
+
+            Context.Device.CreateDepthStencilView(Resource, &viewDesc, token.CpuHandle);
         }
 
-        Context.Device.CreateDepthStencilView(Resource, &viewDesc, token.Handle);
+        return token.CpuHandle;
+    }
 
-        return token;
+    public override nint GetNativeObject(NativeObjectType type)
+    {
+        return 0;
     }
 
     protected override void SetResourceName(string name)
@@ -276,10 +221,34 @@ internal unsafe class DXTexture : Texture
 
     protected override void Destroy()
     {
+        foreach (DXDescriptorToken token in rtvTokens.Values)
+        {
+            token.Dispose();
+        }
+        rtvTokens.Clear();
+
+        foreach (DXDescriptorToken token in dsvTokens.Values)
+        {
+            token.Dispose();
+        }
+        dsvTokens.Clear();
+
         View.Dispose();
-
         Resource.Dispose();
+    }
 
-        Heap?.Dispose();
+    public static ResourceDesc1 ResourceDesc(TextureDesc desc)
+    {
+        return new()
+        {
+            Dimension = DXFormats.DirectX12(desc.Type),
+            Width = desc.Width,
+            Height = desc.Height,
+            DepthOrArraySize = (ushort)(desc.Type is TextureType.Texture3D ? desc.Depth : desc.ArrayLayers),
+            MipLevels = (ushort)desc.MipLevels,
+            Format = DXFormats.DirectX12(desc.Format),
+            SampleDesc = DXFormats.DirectX12(desc.SampleCount),
+            Flags = DXFormats.DirectX12(desc.Usages)
+        };
     }
 }
