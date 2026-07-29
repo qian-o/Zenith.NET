@@ -6,7 +6,7 @@
 
 <p align="center">
   A modern rendering hardware interface for .NET.<br/>
-  Build graphics and compute workloads with one consistent C# API.
+  One consistent C# API for graphics and compute across DirectX 12, Metal 4, and Vulkan 1.4.
 </p>
 
 <p align="center">
@@ -18,7 +18,7 @@
 
 ## Overview
 
-Zenith.NET provides a compact C# API for resources, pipelines, command recording, synchronization, and presentation. Applications can use the same rendering model with DirectX 12, Metal 4, or Vulkan 1.4.
+Zenith.NET provides a consistent C# API for resources, pipelines, command recording, synchronization, and presentation across DirectX 12, Metal 4, and Vulkan 1.4.
 
 The RHI exposes rasterization, compute, and indirect commands. Inline Ray Tracing and mesh shading are optional; check `Capabilities.RayTracingSupported` and `Capabilities.MeshShadingSupported` before use. Bindless resource handles expose shader resources, while queues, barriers, and texture layouts express ordering and access dependencies.
 

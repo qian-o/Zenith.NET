@@ -1,6 +1,6 @@
 ﻿---
 title: Zenith.NET - Modern RHI for .NET
-description: A modern rendering hardware interface for graphics and compute applications built with C#.
+description: A modern rendering hardware interface for .NET with one consistent C# API across DirectX 12, Metal 4, and Vulkan 1.4.
 _layout: landing
 ---
 
@@ -140,7 +140,7 @@ _layout: landing
         <div class="landing-shell landing-footer-grid">
             <div class="landing-footer-brand">
                 <img class="landing-footer-logo" src="images/Zenith.NET-Logo.svg" alt="Zenith.NET">
-                <p>A modern rendering hardware interface for graphics and compute applications built with C#.</p>
+                <p>A modern rendering hardware interface for .NET with one consistent C# API across DirectX 12, Metal 4, and Vulkan 1.4.</p>
                 <a class="landing-footer-github" href="https://github.com/qian-o/Zenith.NET" aria-label="Zenith.NET on GitHub"><i class="bi bi-github" aria-hidden="true"></i></a>
             </div>
             <div class="landing-footer-column">

@@ -20,12 +20,12 @@ Use `CompileFromSource` when the Slang source is already available as a string:
 
 ```csharp
 const string source = """
-    [shader("compute")]
-    [numthreads(8, 8, 1)]
-    void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
-    {
-    }
-    """;
+[shader("compute")]
+[numthreads(8, 8, 1)]
+void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+}
+""";
 
 ShaderDesc computeDesc = ZenithCompiler.CompileFromSource(context.GraphicsApi, source, "CSMain");
 
