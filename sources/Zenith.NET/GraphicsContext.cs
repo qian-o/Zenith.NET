@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public abstract class GraphicsContext : DisposableObject, INativeObject
+public abstract class GraphicsContext : DisposableObject
 {
     protected GraphicsContext(GraphicsApi graphicsApi, bool useValidationLayer)
     {

@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET;
 
-public abstract class GraphicsResource(GraphicsContext context) : DisposableObject, INativeObject
+public abstract class GraphicsResource(GraphicsContext context) : DisposableObject
 {
     public string Name
     {
