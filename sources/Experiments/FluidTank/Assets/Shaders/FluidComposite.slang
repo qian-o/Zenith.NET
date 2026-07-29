@@ -160,10 +160,10 @@ float3 ReconstructWorldPosition(float2 uv, float linearDepth)
 float3 ReconstructNormal(float2 uv, float centerDepth)
 {
     float2 texel = 5.0 / float2(composite.Width, composite.Height);
-    float depthLeft = (*composite.FluidDepth).SampleLevel(*composite.Sampler, uv - float2(texel.x, 0.0), 0.0).r;
-    float depthRight = (*composite.FluidDepth).SampleLevel(*composite.Sampler, uv + float2(texel.x, 0.0), 0.0).r;
-    float depthUp = (*composite.FluidDepth).SampleLevel(*composite.Sampler, uv - float2(0.0, texel.y), 0.0).r;
-    float depthDown = (*composite.FluidDepth).SampleLevel(*composite.Sampler, uv + float2(0.0, texel.y), 0.0).r;
+    float depthLeft = composite.FluidDepth.SampleLevel(composite.Sampler, uv - float2(texel.x, 0.0), 0.0).r;
+    float depthRight = composite.FluidDepth.SampleLevel(composite.Sampler, uv + float2(texel.x, 0.0), 0.0).r;
+    float depthUp = composite.FluidDepth.SampleLevel(composite.Sampler, uv - float2(0.0, texel.y), 0.0).r;
+    float depthDown = composite.FluidDepth.SampleLevel(composite.Sampler, uv + float2(0.0, texel.y), 0.0).r;
 
     depthLeft = depthLeft > 0.0 && abs(depthLeft - centerDepth) < 0.75 ? depthLeft : centerDepth;
     depthRight = depthRight > 0.0 && abs(depthRight - centerDepth) < 0.75 ? depthRight : centerDepth;
@@ -186,7 +186,7 @@ float3 ReconstructNormal(float2 uv, float centerDepth)
 
 float3 SceneAt(float2 uv)
 {
-    float depth = (*composite.SceneDepth).SampleLevel(*composite.Sampler, uv, 0.0).r;
+    float depth = composite.SceneDepth.SampleLevel(composite.Sampler, uv, 0.0).r;
     if (depth <= 0.0)
     {
         float3 rayView = ViewRay(uv);
@@ -195,7 +195,7 @@ float3 SceneAt(float2 uv)
         return SkyColor(rayWorld);
     }
 
-    return (*composite.SceneColor).SampleLevel(*composite.Sampler, uv, 0.0).rgb;
+    return composite.SceneColor.SampleLevel(composite.Sampler, uv, 0.0).rgb;
 }
 
 float4 ShadeWater(FullscreenOutput input)
@@ -207,7 +207,7 @@ float4 ShadeWater(FullscreenOutput input)
         return float4(ToSRGB(ACESFilm(SceneAt(uv))), 1.0);
     }
 
-    float fluidDepth = (*composite.FluidDepth).SampleLevel(*composite.Sampler, uv, 0.0).r;
+    float fluidDepth = composite.FluidDepth.SampleLevel(composite.Sampler, uv, 0.0).r;
 
     if (fluidDepth <= 0.0)
     {
@@ -216,8 +216,8 @@ float4 ShadeWater(FullscreenOutput input)
         return float4(ToSRGB(ACESFilm(background)), 1.0);
     }
 
-    float thickness = (*composite.Thickness).SampleLevel(*composite.Sampler, uv, 0.0).r;
-    float4 attributes = (*composite.Attributes).SampleLevel(*composite.Sampler, uv, 0.0);
+    float thickness = composite.Thickness.SampleLevel(composite.Sampler, uv, 0.0).r;
+    float4 attributes = composite.Attributes.SampleLevel(composite.Sampler, uv, 0.0);
     float surfaceConfidence = smoothstep(0.105, 0.135, thickness);
 
     if (surfaceConfidence <= 0.01)
@@ -237,7 +237,7 @@ float4 ShadeWater(FullscreenOutput input)
     float distortionScale = composite.RefractionStrength * (0.008 + min(thickness, 3.0) * 0.0035) / (0.35 + fluidDepth * 0.055);
     float2 refractedUv = clamp(uv + normalView.xy * distortionScale, 0.001, 0.999);
 
-    float3 reflected = composite.RayTracingEnabled ? (*composite.Reflection).SampleLevel(*composite.Sampler, uv, 0.0).rgb : SkyColor(reflect(-viewDirection, normalWorld));
+    float3 reflected = composite.RayTracingEnabled ? composite.Reflection.SampleLevel(composite.Sampler, uv, 0.0).rgb : SkyColor(reflect(-viewDirection, normalWorld));
     float3 refracted = SceneAt(refractedUv);
 
     float opticalDepth = min(thickness * 0.82, 6.0);

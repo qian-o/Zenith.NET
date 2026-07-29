@@ -90,10 +90,10 @@ float3 SurfaceNormal(uint2 pixel, float depth)
     uint2 rightPixel = uint2(min(pixel.x + Radius, reflection.Width - 1), pixel.y);
     uint2 upPixel = uint2(pixel.x, pixel.y > Radius ? pixel.y - Radius : 0);
     uint2 downPixel = uint2(pixel.x, min(pixel.y + Radius, reflection.Height - 1));
-    float depthLeft = (*reflection.FluidDepth).Load(int3(leftPixel, 0));
-    float depthRight = (*reflection.FluidDepth).Load(int3(rightPixel, 0));
-    float depthUp = (*reflection.FluidDepth).Load(int3(upPixel, 0));
-    float depthDown = (*reflection.FluidDepth).Load(int3(downPixel, 0));
+    float depthLeft = reflection.FluidDepth.Load(int3(leftPixel, 0));
+    float depthRight = reflection.FluidDepth.Load(int3(rightPixel, 0));
+    float depthUp = reflection.FluidDepth.Load(int3(upPixel, 0));
+    float depthDown = reflection.FluidDepth.Load(int3(downPixel, 0));
 
     depthLeft = depthLeft > 0.0 && abs(depthLeft - depth) < 0.75 ? depthLeft : depth;
     depthRight = depthRight > 0.0 && abs(depthRight - depth) < 0.75 ? depthRight : depth;
@@ -166,10 +166,10 @@ void ReflectionCS(uint3 dispatchThreadID: SV_DispatchThreadID)
         return;
     }
 
-    float depth = (*reflection.FluidDepth).Load(int3(pixel, 0));
+    float depth = reflection.FluidDepth.Load(int3(pixel, 0));
     if (depth <= 0.0)
     {
-        (*reflection.OutputTexture) [pixel] = float4(0.0, 0.0, 0.0, 0.0);
+        reflection.OutputTexture[pixel] = float4(0.0, 0.0, 0.0, 0.0);
 
         return;
     }
@@ -181,5 +181,5 @@ void ReflectionCS(uint3 dispatchThreadID: SV_DispatchThreadID)
     float3 direction = reflect(-viewDirection, normal);
     float3 color = TraceScene(position + normal * 0.025, direction);
 
-    (*reflection.OutputTexture) [pixel] = float4(color, 1.0);
+    reflection.OutputTexture[pixel] = float4(color, 1.0);
 }

@@ -127,7 +127,7 @@ ConstantBuffer<SurfaceConstants> surface;
 bool OccludedByScene(SurfaceVSOutput input, float linearDepth)
 {
     float2 uv = input.Position.xy / float2(surface.Width, surface.Height);
-    float sceneDepth = (*surface.SceneDepth).SampleLevel(*surface.Sampler, uv, 0.0).r;
+    float sceneDepth = surface.SceneDepth.SampleLevel(surface.Sampler, uv, 0.0).r;
 
     return surface.RenderMode == 0 && sceneDepth > 0.0 && linearDepth >= sceneDepth;
 }
