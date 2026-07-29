@@ -1,6 +1,6 @@
 ﻿using Hexa.NET.ImGui;
 
-namespace CornellBox.Helpers;
+namespace FluidTank.Helpers;
 
 internal static class ImGuiHelper
 {

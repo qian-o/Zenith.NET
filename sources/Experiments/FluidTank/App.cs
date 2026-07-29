@@ -126,17 +126,16 @@ internal static class App
 
             ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(renderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
 
-            ImGui.SetNextWindowPos(new(10, 10), ImGuiCond.FirstUseEver);
-
-            if (ImGui.Begin("Fluid Tank", ImGuiWindowFlags.AlwaysAutoResize))
+            ImGuiHelper.Overlay(() =>
             {
                 ImGui.Text(Context.Capabilities.DeviceName);
                 ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
                 ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
                 ImGui.Text($"Particles: {renderer.ParticleCount:N0}");
+            });
 
-                ImGui.Separator();
-
+            ImGuiHelper.Settings(() =>
+            {
                 ImGui.Text("Run");
 
                 bool paused = renderer.Paused;
@@ -231,9 +230,7 @@ internal static class App
 
                     ImGui.Text("Solver: APIC / FLIP");
                 }
-            }
-
-            ImGui.End();
+            });
         };
 
         window.Render += _ =>
