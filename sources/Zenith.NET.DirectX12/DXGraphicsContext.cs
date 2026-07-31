@@ -167,7 +167,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         ComPtr<ID3D12Resource> resource = new();
         Device.OpenSharedHandle((void*)nativeTexture, SilkMarshal.GuidPtrOf<ID3D12Resource>(), (void**)resource.GetAddressOf()).Success();
 
-        return new DXTexture(this, desc, resource);
+        return new DXTexture(this, desc, resource, false);
     }
 
     protected override TextureView CreateTextureViewImpl(TextureViewDesc desc)

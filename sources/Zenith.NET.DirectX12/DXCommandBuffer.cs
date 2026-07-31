@@ -51,6 +51,11 @@ internal unsafe class DXCommandBuffer : CommandBuffer
     {
         DXTexture dxTexture = texture.DirectX12();
 
+        if (!dxTexture.CanTransition)
+        {
+            return;
+        }
+
         (BarrierSync syncBefore, BarrierAccess accessBefore, BarrierLayout layoutBefore) = DXFormats.DirectX12(before);
         (BarrierSync syncAfter, BarrierAccess accessAfter, BarrierLayout layoutAfter) = DXFormats.DirectX12(after);
 

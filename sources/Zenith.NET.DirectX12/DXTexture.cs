@@ -11,6 +11,8 @@ internal unsafe class DXTexture : Texture
 
     public ComPtr<ID3D12Resource> Resource;
 
+    public bool CanTransition;
+
     public DXTexture(DXGraphicsContext context, TextureDesc desc) : base(context, desc)
     {
         ResourceDesc1 resourceDesc = ResourceDesc(desc);
@@ -28,6 +30,8 @@ internal unsafe class DXTexture : Texture
                                                 SilkMarshal.GuidPtrOf<ID3D12Resource>(),
                                                 (void**)Resource.GetAddressOf()).Success();
 
+        CanTransition = true;
+
         View = new(context, new()
         {
             Texture = this,
@@ -37,9 +41,10 @@ internal unsafe class DXTexture : Texture
         });
     }
 
-    public DXTexture(DXGraphicsContext context, TextureDesc desc, ComPtr<ID3D12Resource> resource) : base(context, desc)
+    public DXTexture(DXGraphicsContext context, TextureDesc desc, ComPtr<ID3D12Resource> resource, bool canTransition) : base(context, desc)
     {
         Resource = resource;
+        CanTransition = canTransition;
 
         View = new(context, new()
         {
