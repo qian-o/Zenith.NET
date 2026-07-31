@@ -89,7 +89,7 @@ public class ZenithView : Control, IZenithView
 
     void IZenithView.UI(Action action)
     {
-        Dispatcher.InvokeAsync(action, DispatcherPriority.Render);
+        Dispatcher.InvokeAsync(action);
     }
 
     void IZenithView.EnsureResources()
