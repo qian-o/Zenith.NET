@@ -207,7 +207,7 @@ internal unsafe partial class Surface : DisposableObject
         D3D.DeviceContext.CopyResource((ID3D11Resource*)backBuffer.Handle, (ID3D11Resource*)Texture.Handle);
         D3D.DeviceContext.End(Query);
 
-        while (D3D.DeviceContext.GetData(Query, default, 0, 0) is not 0)
+        while (D3D.DeviceContext.GetData(Query, default, 0, 0) is 1)
         {
             Thread.Yield();
         }
