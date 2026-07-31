@@ -63,7 +63,7 @@ public class ZenithView : Control, IZenithView
 
     void IZenithView.UI(Action action)
     {
-        Invoke(action);
+        InvokeAsync(action);
     }
 
     void IZenithView.EnsureResources()

@@ -81,7 +81,7 @@ public class ZenithView : TemplatedControl, IZenithView
 
     void IZenithView.UI(Action action)
     {
-        Dispatcher.Invoke(action);
+        Dispatcher.Post(action, DispatcherPriority.Render);
     }
 
     void IZenithView.EnsureResources()

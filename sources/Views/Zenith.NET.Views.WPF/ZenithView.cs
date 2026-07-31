@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace Zenith.NET.Views.WPF;
 
@@ -88,7 +89,7 @@ public class ZenithView : Control, IZenithView
 
     void IZenithView.UI(Action action)
     {
-        Dispatcher.Invoke(action);
+        Dispatcher.InvokeAsync(action, DispatcherPriority.Render);
     }
 
     void IZenithView.EnsureResources()
