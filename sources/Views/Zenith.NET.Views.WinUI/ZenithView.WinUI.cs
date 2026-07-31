@@ -113,6 +113,8 @@ internal unsafe partial class Surface : DisposableObject
     [LibraryImport("kernel32")]
     private static partial int CloseHandle(nint hObject);
 
+    public ComPtr<ID3D11Query> Query = new();
+
     public ComPtr<IDXGISwapChain1> SwapChain = new();
 
     public ComPtr<ID3D11Texture2D> Texture = new();
@@ -125,6 +127,9 @@ internal unsafe partial class Surface : DisposableObject
 
     public Surface(GraphicsContext graphicsContext, uint width, uint height)
     {
+        QueryDesc queryDesc = new();
+        D3D.Success(D3D.Device.CreateQuery(&queryDesc, Query.GetAddressOf()));
+
         SwapChainDesc1 swapChainDesc = new()
         {
             Width = width,
@@ -198,8 +203,14 @@ internal unsafe partial class Surface : DisposableObject
 
         AcquireSync();
 
+        D3D.DeviceContext.Begin(Query);
         D3D.DeviceContext.CopyResource((ID3D11Resource*)backBuffer.Handle, (ID3D11Resource*)Texture.Handle);
-        D3D.DeviceContext.Flush();
+        D3D.DeviceContext.End(Query);
+
+        while (D3D.DeviceContext.GetData(Query, default, 0, 0) is not 0)
+        {
+            Thread.Yield();
+        }
 
         ReleaseSync();
 
@@ -218,6 +229,7 @@ internal unsafe partial class Surface : DisposableObject
         Mutex.Dispose();
         Texture.Dispose();
         SwapChain.Dispose();
+        Query.Dispose();
     }
 
     private static Format DrawableFormat()
