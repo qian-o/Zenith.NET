@@ -21,11 +21,7 @@ internal class MTLTextureView : TextureView
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return type switch
-        {
-            NativeObjectType.MTLTexture => Texture.NativePtr,
-            _ => default
-        };
+        return 0;
     }
 
     protected override void SetResourceName(string name)
