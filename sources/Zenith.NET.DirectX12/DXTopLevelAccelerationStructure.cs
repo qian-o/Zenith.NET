@@ -82,7 +82,12 @@ internal unsafe class DXTopLevelAccelerationStructure : TopLevelAccelerationStru
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.D3D12GpuVirtualAddress => (nint)AccelerationStructure.GPUVirtualAddress,
+            NativeObjectType.D3D12Resource => (nint)AccelerationStructure.Resource.Handle,
+            _ => default
+        };
     }
 
     protected override void SetResourceName(string name)

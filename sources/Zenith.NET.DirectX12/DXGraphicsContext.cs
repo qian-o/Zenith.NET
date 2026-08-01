@@ -40,7 +40,12 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.D3D12Adapter => (nint)Adapter.Handle,
+            NativeObjectType.D3D12Device => (nint)Device.Handle,
+            _ => default
+        };
     }
 
     protected override void Initialize(bool useValidationLayer,

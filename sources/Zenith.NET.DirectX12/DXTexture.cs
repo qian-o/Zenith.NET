@@ -216,7 +216,11 @@ internal unsafe class DXTexture : Texture
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.D3D12Resource => (nint)Resource.Handle,
+            _ => default
+        };
     }
 
     protected override void SetResourceName(string name)
