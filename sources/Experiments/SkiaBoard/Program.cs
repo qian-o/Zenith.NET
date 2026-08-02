@@ -1,0 +1,3 @@
+﻿using SkiaBoard;
+
+App.Run();
