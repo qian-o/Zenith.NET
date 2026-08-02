@@ -4,27 +4,48 @@ namespace Zenith.NET.Extensions.Skia;
 
 public class SKTexture : DisposableObject
 {
-    private SKTextureDesc desc;
+    private readonly Texture texture;
+    private readonly SKSurface surface;
 
-    internal SKTexture(GraphicsContext context, GRContext grContext, SKTextureDesc desc)
+    internal SKTexture(SKRenderer renderer, SKTextureDesc desc)
     {
-        throw new NotImplementedException();
+        Renderer = renderer;
+
+        using GRBackendTexture backendTexture = renderer.CreateBackendTexture(texture = renderer.Context.CreateTexture(new()
+        {
+            Type = TextureType.Texture2D,
+            Format = desc.Format,
+            Width = desc.Width,
+            Height = desc.Height,
+            Depth = 1,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            SampleCount = SampleCount.Count1,
+            Usages = desc.Usages | TextureUsages.Sampled | TextureUsages.ColorAttachment | TextureUsages.TransferSrc | TextureUsages.TransferDst
+        }));
+
+        surface = SKSurface.Create(renderer.GRContext, backendTexture, GRSurfaceOrigin.TopLeft, (int)SKFormats.Skia(desc.SampleCount), SKFormats.Skia(desc.Format));
     }
 
-    public ref readonly SKTextureDesc Desc => ref desc;
+    internal SKRenderer Renderer { get; }
 
-    public void Render(TextureLayout currentLayout, TextureLayout finalLayout, Action<SKCanvas> render)
+    public ref readonly TextureDesc Desc => ref texture.Desc;
+
+    public void Render(Action<SKCanvas> render)
     {
-        throw new NotImplementedException();
+        Renderer.Render(surface, render);
     }
 
     protected override void Destroy()
     {
-        throw new NotImplementedException();
+        surface.Dispose();
+        texture.Dispose();
+
+        Extensions.ReleaseRenderer(Renderer);
     }
 
     public static implicit operator Texture(SKTexture texture)
     {
-        throw new NotImplementedException();
+        return texture.texture;
     }
 }

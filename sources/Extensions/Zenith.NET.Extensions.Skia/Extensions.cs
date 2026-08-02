@@ -1,21 +1,34 @@
-﻿using SkiaSharp;
-
-namespace Zenith.NET.Extensions.Skia;
+﻿namespace Zenith.NET.Extensions.Skia;
 
 public static class Extensions
 {
-    private readonly static Dictionary<GraphicsContext, GRContext> grContexts = [];
+    private static readonly Lock @lock = new();
+    private static readonly Dictionary<GraphicsContext, SKRenderer> renderers = [];
 
     extension(GraphicsContext context)
     {
         public SKTexture CreateSKTexture(SKTextureDesc desc)
         {
-            if (!grContexts.TryGetValue(context, out GRContext? grContext))
+            using Lock.Scope _ = @lock.EnterScope();
+
+            if (!renderers.TryGetValue(context, out SKRenderer? renderer))
             {
-                grContexts.Add(context, grContext = GRContext.CreateGl());
+                renderers[context] = renderer = new(context);
             }
 
-            return new(context, grContext, desc);
+            renderer.AddReference();
+
+            return new(renderer, desc);
+        }
+    }
+
+    internal static void ReleaseRenderer(SKRenderer renderer)
+    {
+        using Lock.Scope _ = @lock.EnterScope();
+
+        if (renderer.RemoveReference() && renderers.Remove(renderer.Context))
+        {
+            renderer.Dispose();
         }
     }
 }
