@@ -19,6 +19,7 @@ internal static class App
     private static readonly Board board;
 
     private static SKTexture texture;
+    private static Vector2 dpiScale = Vector2.One;
     private static float logicalWidth;
     private static float logicalHeight;
 
@@ -95,6 +96,7 @@ internal static class App
         mouse.MouseUp += MouseUp;
 
         window.Render += Render;
+        window.Resize += _ => Resize();
 
         window.Run();
 
@@ -107,7 +109,7 @@ internal static class App
         Context.Dispose();
     }
 
-    private static void Render(double delta)
+    private static void Render(double _)
     {
         uint width = Width;
         uint height = Height;
@@ -117,11 +119,10 @@ internal static class App
             return;
         }
 
-        Vector2 dpiScale = DpiScale;
+        dpiScale = DpiScale;
         logicalWidth = width / dpiScale.X;
         logicalHeight = height / dpiScale.Y;
 
-        Resize(width, height);
         texture.Render(DrawBoard);
 
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
@@ -144,8 +145,6 @@ internal static class App
 
     private static void DrawBoard(SKCanvas canvas)
     {
-        Vector2 dpiScale = DpiScale;
-
         canvas.Save();
         canvas.Scale(dpiScale.X, dpiScale.Y);
         board.Draw(canvas, logicalWidth, logicalHeight);
@@ -159,13 +158,9 @@ internal static class App
 
     private static void MouseDown(IMouse mouse, MouseButton button)
     {
-        if (button is MouseButton.Left)
+        if (button is MouseButton.Left or MouseButton.Right)
         {
-            board.PointerDown(new(mouse.Position.X, mouse.Position.Y), erase: false);
-        }
-        else if (button is MouseButton.Right)
-        {
-            board.PointerDown(new(mouse.Position.X, mouse.Position.Y), erase: true);
+            board.PointerDown(new(mouse.Position.X, mouse.Position.Y), button is MouseButton.Right);
         }
     }
 
@@ -173,7 +168,7 @@ internal static class App
     {
         if (button is MouseButton.Left or MouseButton.Right)
         {
-            board.PointerUp();
+            board.PointerUp(button is MouseButton.Right);
         }
     }
 
@@ -188,17 +183,18 @@ internal static class App
         });
     }
 
-    private static void Resize(uint width, uint height)
+    private static void Resize()
     {
-        if (texture.Desc.Width == width && texture.Desc.Height == height)
+        uint width = Width;
+        uint height = Height;
+
+        if (width is not 0 && height is not 0)
         {
-            return;
+            SKTexture oldTexture = texture;
+
+            swapChain.Resize(width, height);
+            texture = CreateTexture(width, height);
+            oldTexture.Dispose();
         }
-
-        swapChain.Resize(width, height);
-
-        SKTexture oldTexture = texture;
-        texture = CreateTexture(width, height);
-        oldTexture.Dispose();
     }
 }

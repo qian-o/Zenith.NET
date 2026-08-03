@@ -35,7 +35,7 @@ internal sealed class Board : IDisposable
     private readonly List<Stroke> strokes = [];
     private readonly SKRect[] swatchRects = new SKRect[Palette.Length];
     private readonly SKRect[] widthRects = new SKRect[Widths.Length];
-    private readonly SKTypeface typeface;
+    private readonly SKPathBuilder eraserBuilder = new();
     private readonly SKFont labelFont;
     private readonly SKPaint fillPaint = new() { IsAntialias = true };
     private readonly SKPaint strokePaint = new()
@@ -46,28 +46,28 @@ internal sealed class Board : IDisposable
         StrokeJoin = SKStrokeJoin.Round
     };
 
-    private SKPicture? bakedStrokes;
+    private SKPicture? bakedCanvas;
     private Stroke? activeStroke;
-    private SKRect stage;
     private SKRect canvasArea;
-    private SKRect eraserRect;
     private SKRect clearRect;
     private SKPoint pointer;
-    private SKPoint eraserLast;
     private int colorIndex;
     private int widthIndex = 1;
-    private bool eraserMode;
+    private int nodeCount;
     private bool erasing;
-    private bool pointerInside;
+    private bool erasePending;
     private bool bakeDirty = true;
     private float layoutWidth = -1.0f;
     private float layoutHeight = -1.0f;
+
+    private bool CanClear => strokes.Count > 0 || activeStroke is not null || erasing || erasePending;
 
     public Board()
     {
         string family = OperatingSystem.IsMacOS() ? "SF Pro Text" : OperatingSystem.IsWindows() ? "Segoe UI" : "Noto Sans";
 
-        typeface = SKTypeface.FromFamilyName(family, SKFontStyle.Normal);
+        using SKTypeface typeface = SKTypeface.FromFamilyName(family, SKFontStyle.Normal);
+
         labelFont = new(typeface, 12.0f)
         {
             Edging = SKFontEdging.SubpixelAntialias,
@@ -80,28 +80,34 @@ internal sealed class Board : IDisposable
     {
         EnsureLayout(width, height);
 
-        fillPaint.Color = Surface;
-        canvas.DrawRect(stage, fillPaint);
+        if (erasePending)
+        {
+            ApplyEraser();
+        }
 
-        DrawGrid(canvas);
+        fillPaint.Color = Surface;
+        canvas.DrawRect(0.0f, 0.0f, width, height, fillPaint);
 
         if (bakeDirty)
         {
-            bakedStrokes?.Dispose();
-            bakedStrokes = BakeStrokes();
+            bakedCanvas?.Dispose();
+            bakedCanvas = BakeCanvas();
             bakeDirty = false;
         }
 
         canvas.Save();
         canvas.ClipRect(canvasArea);
-        canvas.DrawPicture(bakedStrokes!);
+        canvas.DrawPicture(bakedCanvas!);
 
         if (activeStroke is not null)
         {
-            DrawStroke(canvas, activeStroke);
+            strokePaint.Color = activeStroke.Color;
+            strokePaint.StrokeWidth = activeStroke.Width;
+            canvas.DrawPath(activeStroke.Path, strokePaint);
+            canvas.DrawLine(activeStroke.TailStart, activeStroke.TailEnd, strokePaint);
         }
 
-        if ((eraserMode || erasing) && pointerInside)
+        if (erasing && canvasArea.Contains(pointer.X, pointer.Y))
         {
             DrawEraserCursor(canvas);
         }
@@ -115,12 +121,11 @@ internal sealed class Board : IDisposable
     public void PointerMove(SKPoint position)
     {
         pointer = position;
-        pointerInside = canvasArea.Contains(position.X, position.Y);
 
         if (erasing)
         {
-            Erase(eraserLast, position);
-            eraserLast = position;
+            eraserBuilder.LineTo(position);
+            erasePending = true;
         }
         else
         {
@@ -130,79 +135,58 @@ internal sealed class Board : IDisposable
 
     public void PointerDown(SKPoint position, bool erase)
     {
-        pointer = position;
-
-        if (position.Y <= ToolbarHeight)
+        if (!erase && clearRect.Contains(position.X, position.Y))
         {
-            HandleToolbarClick(position);
-
-            return;
+            pointer = position;
+            ClearCanvas();
         }
-
-        if (!canvasArea.Contains(position.X, position.Y))
+        else if (activeStroke is null && !erasing)
         {
-            return;
+            pointer = position;
+
+            if (!erase && position.Y <= ToolbarHeight)
+            {
+                HandleToolbarClick(position);
+            }
+            else if (canvasArea.Contains(position.X, position.Y))
+            {
+                if (erase)
+                {
+                    erasing = true;
+                    eraserBuilder.MoveTo(position);
+                    eraserBuilder.LineTo(position);
+                    erasePending = true;
+                }
+                else
+                {
+                    activeStroke = new(Palette[colorIndex], Widths[widthIndex]);
+                    activeStroke.Add(position);
+                }
+            }
         }
-
-        pointerInside = true;
-
-        if (erase || eraserMode)
-        {
-            erasing = true;
-            eraserLast = position;
-            Erase(position, position);
-
-            return;
-        }
-
-        activeStroke = new(Palette[colorIndex], Widths[widthIndex]);
-        activeStroke.Add(position);
     }
 
-    public void PointerUp()
+    public void PointerUp(bool erase)
     {
-        erasing = false;
-
-        if (activeStroke is null)
+        if (erase)
         {
-            return;
+            if (erasing)
+            {
+                erasing = false;
+
+                if (erasePending)
+                {
+                    ApplyEraser();
+                }
+            }
         }
-
-        strokes.Add(activeStroke);
-        activeStroke = null;
-        bakeDirty = true;
-    }
-
-    public void Clear()
-    {
-        if (strokes.Count is 0)
+        else if (activeStroke is not null)
         {
-            return;
+            activeStroke.Complete(strokePaint);
+            strokes.Add(activeStroke);
+            activeStroke = null;
+            bakeDirty = true;
         }
-
-        foreach (Stroke stroke in strokes)
-        {
-            stroke.Dispose();
-        }
-
-        strokes.Clear();
-        bakeDirty = true;
-    }
-
-    public void SelectColor(int index)
-    {
-        colorIndex = Math.Clamp(index, 0, Palette.Length - 1);
-        eraserMode = false;
-    }
-
-    public void SelectWidth(int index)
-    {
-        widthIndex = Math.Clamp(index, 0, Widths.Length - 1);
-    }
-
-    public void ToggleEraser()
-    {
-        eraserMode = !eraserMode;
     }
 
     public void Dispose()
@@ -214,11 +198,11 @@ internal sealed class Board : IDisposable
 
         strokes.Clear();
         activeStroke?.Dispose();
-        bakedStrokes?.Dispose();
+        bakedCanvas?.Dispose();
+        eraserBuilder.Dispose();
         strokePaint.Dispose();
         fillPaint.Dispose();
         labelFont.Dispose();
-        typeface.Dispose();
     }
 
     private void EnsureLayout(float width, float height)
@@ -233,7 +217,6 @@ internal sealed class Board : IDisposable
 
         layoutWidth = width;
         layoutHeight = height;
-        stage = new(0.0f, 0.0f, width, height);
         canvasArea = new(0.0f, ToolbarHeight, width, MathF.Max(ToolbarHeight, height - StatusHeight));
 
         for (int index = 0; index < swatchRects.Length; index++)
@@ -250,48 +233,42 @@ internal sealed class Board : IDisposable
             widthRects[index] = new(left, top, left + SwatchSize, bottom);
         }
 
-        float eraserLeft = widthRects[^1].Right + (SwatchGap * 2.0f);
-        eraserRect = new(eraserLeft, top, eraserLeft + ButtonWidth, bottom);
-
-        float clearLeft = MathF.Max(eraserRect.Right + (SwatchGap * 2.0f), width - SwatchGap - ButtonWidth);
+        float clearLeft = MathF.Max(widthRects[^1].Right + (SwatchGap * 2.0f), width - SwatchGap - ButtonWidth);
         clearRect = new(clearLeft, top, clearLeft + ButtonWidth, bottom);
+        bakeDirty = true;
     }
 
-    private SKPicture BakeStrokes()
-    {
-        using SKPictureRecorder recorder = new();
-        SKCanvas canvas = recorder.BeginRecording(canvasArea);
-
-        foreach (Stroke stroke in strokes)
-        {
-            DrawStroke(canvas, stroke);
-        }
-
-        return recorder.EndRecording();
-    }
-
-    private void DrawStroke(SKCanvas canvas, Stroke stroke)
-    {
-        strokePaint.Color = stroke.Color;
-        strokePaint.StrokeWidth = stroke.Width;
-        canvas.DrawPath(stroke.Path, strokePaint);
-    }
-
-    private void DrawGrid(SKCanvas canvas)
+    private SKPicture BakeCanvas()
     {
         const float spacing = 32.0f;
 
-        fillPaint.Color = Grid;
+        using SKPictureRecorder recorder = new();
+        SKCanvas canvas = recorder.BeginRecording(canvasArea);
+        int nodes = 0;
 
-        for (float x = spacing; x < canvasArea.Right; x += spacing)
+        strokePaint.Color = Grid;
+        strokePaint.StrokeWidth = 1.0f;
+
+        for (float x = canvasArea.Left + spacing; x < canvasArea.Right; x += spacing)
         {
-            canvas.DrawRect(x, canvasArea.Top, 1.0f, canvasArea.Height, fillPaint);
+            canvas.DrawLine(x, canvasArea.Top, x, canvasArea.Bottom, strokePaint);
         }
 
         for (float y = canvasArea.Top + spacing; y < canvasArea.Bottom; y += spacing)
         {
-            canvas.DrawRect(canvasArea.Left, y, canvasArea.Width, 1.0f, fillPaint);
+            canvas.DrawLine(canvasArea.Left, y, canvasArea.Right, y, strokePaint);
         }
+
+        foreach (Stroke stroke in strokes)
+        {
+            fillPaint.Color = stroke.Color;
+            canvas.DrawPath(stroke.Path, fillPaint);
+            nodes += stroke.NodeCount;
+        }
+
+        nodeCount = nodes;
+
+        return recorder.EndRecording();
     }
 
     private void DrawEraserCursor(SKCanvas canvas)
@@ -304,10 +281,10 @@ internal sealed class Board : IDisposable
     private void DrawToolbar(SKCanvas canvas)
     {
         fillPaint.Color = Panel;
-        canvas.DrawRect(0.0f, 0.0f, stage.Width, ToolbarHeight, fillPaint);
+        canvas.DrawRect(0.0f, 0.0f, layoutWidth, ToolbarHeight, fillPaint);
 
         fillPaint.Color = Divider;
-        canvas.DrawRect(0.0f, ToolbarHeight - 1.0f, stage.Width, 1.0f, fillPaint);
+        canvas.DrawRect(0.0f, ToolbarHeight - 1.0f, layoutWidth, 1.0f, fillPaint);
 
         for (int index = 0; index < Palette.Length; index++)
         {
@@ -316,7 +293,7 @@ internal sealed class Board : IDisposable
             fillPaint.Color = Palette[index];
             canvas.DrawRoundRect(swatch, 6.0f, 6.0f, fillPaint);
 
-            if (index == colorIndex && !eraserMode)
+            if (index == colorIndex)
             {
                 strokePaint.Color = Highlight;
                 strokePaint.StrokeWidth = 2.0f;
@@ -331,98 +308,117 @@ internal sealed class Board : IDisposable
             fillPaint.Color = index == widthIndex ? Selected : Panel;
             canvas.DrawRoundRect(slot, 6.0f, 6.0f, fillPaint);
 
-            fillPaint.Color = eraserMode ? Label : Palette[colorIndex];
+            fillPaint.Color = Palette[colorIndex];
             canvas.DrawCircle(slot.MidX, slot.MidY, Widths[index] * 0.5f, fillPaint);
         }
 
-        DrawButton(canvas, eraserRect, "ERASE", eraserMode, true);
-        DrawButton(canvas, clearRect, "CLEAR", false, strokes.Count > 0);
-    }
+        SKColor accent = CanClear ? Label : Divider;
 
-    private void DrawButton(SKCanvas canvas, SKRect rect, string text, bool active, bool enabled)
-    {
-        SKColor accent = active ? Highlight : enabled ? Label : Divider;
-
-        fillPaint.Color = active ? Selected : Panel;
-        canvas.DrawRoundRect(rect, 6.0f, 6.0f, fillPaint);
+        fillPaint.Color = Panel;
+        canvas.DrawRoundRect(clearRect, 6.0f, 6.0f, fillPaint);
 
         strokePaint.Color = accent;
         strokePaint.StrokeWidth = 1.5f;
-        canvas.DrawRoundRect(rect, 6.0f, 6.0f, strokePaint);
+        canvas.DrawRoundRect(clearRect, 6.0f, 6.0f, strokePaint);
 
         fillPaint.Color = accent;
-        canvas.DrawText(text, rect.MidX, rect.MidY + 4.0f, SKTextAlign.Center, labelFont, fillPaint);
+        canvas.DrawText("CLEAR", clearRect.MidX, clearRect.MidY + 4.0f, SKTextAlign.Center, labelFont, fillPaint);
     }
 
     private void DrawStatus(SKCanvas canvas)
     {
-        float top = stage.Height - StatusHeight;
+        float top = layoutHeight - StatusHeight;
 
         fillPaint.Color = Panel;
-        canvas.DrawRect(0.0f, top, stage.Width, StatusHeight, fillPaint);
+        canvas.DrawRect(0.0f, top, layoutWidth, StatusHeight, fillPaint);
 
         fillPaint.Color = Divider;
-        canvas.DrawRect(0.0f, top, stage.Width, 1.0f, fillPaint);
-
-        int points = 0;
-
-        foreach (Stroke stroke in strokes)
-        {
-            points += stroke.PointCount;
-        }
+        canvas.DrawRect(0.0f, top, layoutWidth, 1.0f, fillPaint);
 
         float baseline = top + (StatusHeight * 0.5f) + 4.0f;
 
         fillPaint.Color = Label;
-        canvas.DrawText($"STROKES {strokes.Count}   POINTS {points}", SwatchGap, baseline, SKTextAlign.Left, labelFont, fillPaint);
-        canvas.DrawText("DRAG TO DRAW   RIGHT DRAG TO ERASE", stage.Width - SwatchGap, baseline, SKTextAlign.Right, labelFont, fillPaint);
+        canvas.DrawText($"STROKES {strokes.Count}   NODES {nodeCount}", SwatchGap, baseline, SKTextAlign.Left, labelFont, fillPaint);
+        canvas.DrawText("DRAG TO DRAW   RIGHT DRAG TO ERASE", layoutWidth - SwatchGap, baseline, SKTextAlign.Right, labelFont, fillPaint);
     }
 
     private void HandleToolbarClick(SKPoint position)
     {
-        for (int index = 0; index < Palette.Length; index++)
-        {
-            if (swatchRects[index].Contains(position.X, position.Y))
-            {
-                SelectColor(index);
+        int swatch = IndexAt(swatchRects, position);
+        int slot = IndexAt(widthRects, position);
 
-                return;
-            }
+        if (swatch >= 0)
+        {
+            colorIndex = swatch;
         }
-
-        for (int index = 0; index < Widths.Length; index++)
+        else if (slot >= 0)
         {
-            if (widthRects[index].Contains(position.X, position.Y))
-            {
-                SelectWidth(index);
-
-                return;
-            }
-        }
-
-        if (eraserRect.Contains(position.X, position.Y))
-        {
-            ToggleEraser();
-        }
-        else if (clearRect.Contains(position.X, position.Y))
-        {
-            Clear();
+            widthIndex = slot;
         }
     }
 
-    private void Erase(SKPoint from, SKPoint to)
+    private void ClearCanvas()
     {
-        for (int index = strokes.Count - 1; index >= 0; index--)
+        if (CanClear)
         {
-            if (strokes[index].Split(from, to, EraserRadius) is not { } fragments)
+            foreach (Stroke stroke in strokes)
             {
-                continue;
+                stroke.Dispose();
             }
 
-            strokes[index].Dispose();
-            strokes.RemoveAt(index);
-            strokes.InsertRange(index, fragments);
+            strokes.Clear();
+            activeStroke?.Dispose();
+            activeStroke = null;
+            eraserBuilder.Reset();
+            erasing = false;
+            erasePending = false;
             bakeDirty = true;
+        }
+    }
+
+    private static int IndexAt(SKRect[] rects, SKPoint position)
+    {
+        for (int index = 0; index < rects.Length; index++)
+        {
+            if (rects[index].Contains(position.X, position.Y))
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    private void ApplyEraser()
+    {
+        using SKPath centerline = eraserBuilder.Detach();
+
+        if (erasing)
+        {
+            eraserBuilder.MoveTo(pointer);
+        }
+
+        strokePaint.StrokeWidth = EraserRadius * 2.0f;
+
+        using SKPath eraser = strokePaint.GetFillPath(centerline)!;
+        SKRect eraserBounds = eraser.Bounds;
+
+        erasePending = false;
+
+        for (int index = strokes.Count - 1; index >= 0; index--)
+        {
+            Stroke stroke = strokes[index];
+
+            if (stroke.Erase(eraser, eraserBounds))
+            {
+                if (stroke.IsEmpty)
+                {
+                    stroke.Dispose();
+                    strokes.RemoveAt(index);
+                }
+
+                bakeDirty = true;
+            }
         }
     }
 }
