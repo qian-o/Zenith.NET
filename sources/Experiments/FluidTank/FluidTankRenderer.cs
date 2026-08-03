@@ -10,6 +10,7 @@ namespace FluidTank;
 internal enum FluidViewMode
 {
     Water,
+
     Particles
 }
 
@@ -339,11 +340,7 @@ internal unsafe class FluidTankRenderer : IDisposable
         commandBuffer.Transition(smoothDepthA, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
         commandBuffer.Transition(fluidAttributes, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
 
-        commandBuffer.BeginRenderPass(
-        [
-            ColorAttachment.Clear(smoothDepthA, Vector4.Zero),
-            ColorAttachment.Clear(fluidAttributes, Vector4.Zero)
-        ], DepthStencilAttachment.Clear(reconstructionDepth, 1.0f, 0));
+        commandBuffer.BeginRenderPass([ColorAttachment.Clear(smoothDepthA, Vector4.Zero), ColorAttachment.Clear(fluidAttributes, Vector4.Zero)], DepthStencilAttachment.Clear(reconstructionDepth, 1.0f, 0));
         commandBuffer.SetPipeline(fluidDepthPipeline);
         commandBuffer.SetConstantBuffer(surfaceConstantBuffer, 0);
         commandBuffer.Draw(4, simulation.ParticleCount, 0, 0);
@@ -428,9 +425,7 @@ internal unsafe class FluidTankRenderer : IDisposable
         smoothDepthB = GraphicsHelper.CreateTexture(PixelFormat.R32Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage);
         smoothThicknessA = GraphicsHelper.CreateTexture(PixelFormat.R16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment);
         smoothThicknessB = GraphicsHelper.CreateTexture(PixelFormat.R16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage);
-        reflection = App.Context.Capabilities.RayTracingSupported
-            ? GraphicsHelper.CreateTexture(PixelFormat.R16G16B16A16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage)
-            : null;
+        reflection = App.Context.Capabilities.RayTracingSupported ? GraphicsHelper.CreateTexture(PixelFormat.R16G16B16A16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage) : null;
     }
 
     public void Dispose()
