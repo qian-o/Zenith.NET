@@ -1,13 +1,14 @@
-﻿using SkiaSharp;
+using SkiaSharp;
 
-namespace InkCanvas;
+namespace InkCanvas.Drawing;
 
-internal sealed class Stroke(SKColor color, float width) : IDisposable
+internal class Stroke(SKColor color, float width) : IDisposable
 {
     private const float MinimumPointDistance = 1.5f;
 
     private SKPathBuilder? builder = new();
     private SKPath? path;
+
     private SKRect bounds;
     private SKPoint tailStart;
     private SKPoint tailEnd;
