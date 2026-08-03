@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using InkCanvas.Helpers;
 using Silk.NET.Input;
 using Silk.NET.Windowing;

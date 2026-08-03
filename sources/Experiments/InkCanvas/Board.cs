@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 
 namespace InkCanvas;
 
@@ -122,9 +122,9 @@ internal sealed class Board : IDisposable
             Erase(eraserLast, position);
             eraserLast = position;
         }
-        else if (activeStroke is not null)
+        else
         {
-            activeStroke.Add(position);
+            activeStroke?.Add(position);
         }
     }
 
@@ -223,6 +223,9 @@ internal sealed class Board : IDisposable
 
     private void EnsureLayout(float width, float height)
     {
+        const float top = (ToolbarHeight - SwatchSize) * 0.5f;
+        const float bottom = top + SwatchSize;
+
         if (width == layoutWidth && height == layoutHeight)
         {
             return;
@@ -232,9 +235,6 @@ internal sealed class Board : IDisposable
         layoutHeight = height;
         stage = new(0.0f, 0.0f, width, height);
         canvasArea = new(0.0f, ToolbarHeight, width, MathF.Max(ToolbarHeight, height - StatusHeight));
-
-        float top = (ToolbarHeight - SwatchSize) * 0.5f;
-        float bottom = top + SwatchSize;
 
         for (int index = 0; index < swatchRects.Length; index++)
         {

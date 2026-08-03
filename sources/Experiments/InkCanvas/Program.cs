@@ -1,3 +1,3 @@
-using InkCanvas;
+﻿using InkCanvas;
 
 App.Run();
