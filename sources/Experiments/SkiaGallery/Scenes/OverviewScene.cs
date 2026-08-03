@@ -1,8 +1,8 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 
-namespace SkiaGallery;
+namespace SkiaGallery.Scenes;
 
-internal sealed class OverviewScene(GalleryResources resources) : GalleryScene(resources)
+internal class OverviewScene(GalleryResources resources) : GalleryScene(resources)
 {
     private SKRect stage;
 
@@ -82,7 +82,7 @@ internal sealed class OverviewScene(GalleryResources resources) : GalleryScene(r
     private static void DrawDarkFieldDetails(SKCanvas canvas, SKPaint paint, SKRect rect, float gap)
     {
         float barWidth = MathF.Max(3.0f, rect.Width * 0.012f);
-        float startX = rect.Left + gap * 1.6f;
+        float startX = rect.Left + (gap * 1.6f);
         float bottom = rect.Bottom - (gap * 1.6f);
 
         for (int i = 0; i < 7; i++)

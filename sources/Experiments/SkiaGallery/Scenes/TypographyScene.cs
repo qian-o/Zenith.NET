@@ -1,8 +1,8 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 
-namespace SkiaGallery;
+namespace SkiaGallery.Scenes;
 
-internal sealed class TypographyScene(GalleryResources resources) : GalleryScene(resources)
+internal class TypographyScene(GalleryResources resources) : GalleryScene(resources)
 {
     private const float MaximumHeroSize = 94.0f;
 

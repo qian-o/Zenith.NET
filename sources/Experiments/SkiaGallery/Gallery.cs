@@ -1,10 +1,11 @@
-using System.Numerics;
+﻿using System.Numerics;
+using SkiaGallery.Scenes;
 using SkiaSharp;
 using Zenith.NET;
 
 namespace SkiaGallery;
 
-internal sealed class Gallery : IDisposable
+internal class Gallery : IDisposable
 {
     private const float ExpandedSidebarWidth = 228.0f;
     private const float CompactSidebarWidth = 80.0f;
@@ -84,19 +85,19 @@ internal sealed class Gallery : IDisposable
 
         for (int i = 0; i < scenes.Length; i++)
         {
-            titleBlobs[i] = resources.CreateText(scenes[i].Title, resources.TitleFont);
+            titleBlobs[i] = GalleryResources.CreateText(scenes[i].Title, resources.TitleFont);
             descriptionTexts[i] = scenes[i].Description;
-            descriptionBlobs[i] = resources.CreateText(descriptionTexts[i], resources.BodyFont);
-            compactTitleBlobs[i] = resources.CreateText(scenes[i].Navigation, resources.SectionFont);
+            descriptionBlobs[i] = GalleryResources.CreateText(descriptionTexts[i], resources.BodyFont);
+            compactTitleBlobs[i] = GalleryResources.CreateText(scenes[i].Navigation, resources.SectionFont);
         }
 
         const string pausedHeader = "GPU scene paused at this window size";
         const string pausedTitle = "More room needed";
         const string pausedDescription = "Increase the window size to continue.";
 
-        pausedHeaderBlob = resources.CreateText(pausedHeader, resources.BodyFont);
-        pausedTitleBlob = resources.CreateText(pausedTitle, resources.SectionFont);
-        pausedDescriptionBlob = resources.CreateText(pausedDescription, resources.BodyFont);
+        pausedHeaderBlob = GalleryResources.CreateText(pausedHeader, resources.BodyFont);
+        pausedTitleBlob = GalleryResources.CreateText(pausedTitle, resources.SectionFont);
+        pausedDescriptionBlob = GalleryResources.CreateText(pausedDescription, resources.BodyFont);
         pausedHeaderWidth = resources.BodyFont.MeasureText(pausedHeader);
         pausedTitleWidth = resources.SectionFont.MeasureText(pausedTitle);
         pausedDescriptionWidth = resources.BodyFont.MeasureText(pausedDescription);
@@ -465,7 +466,7 @@ internal sealed class Gallery : IDisposable
 
             descriptionTexts[i] = text;
             descriptionBlobs[i].Dispose();
-            descriptionBlobs[i] = resources.CreateText(text, resources.BodyFont);
+            descriptionBlobs[i] = GalleryResources.CreateText(text, resources.BodyFont);
         }
     }
 

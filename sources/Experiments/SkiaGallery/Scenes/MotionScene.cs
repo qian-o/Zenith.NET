@@ -1,8 +1,8 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 
-namespace SkiaGallery;
+namespace SkiaGallery.Scenes;
 
-internal sealed class MotionScene : GalleryScene
+internal class MotionScene : GalleryScene
 {
     private static readonly SKColor[] ParticleColors = [new(77, 151, 235, 220), new(52, 194, 146, 220), new(245, 112, 103, 220), new(247, 190, 80, 220)];
 

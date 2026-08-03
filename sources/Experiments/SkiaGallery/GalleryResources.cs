@@ -1,8 +1,8 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 
 namespace SkiaGallery;
 
-internal sealed class GalleryResources : IDisposable
+internal class GalleryResources : IDisposable
 {
     public GalleryResources()
     {
@@ -32,11 +32,6 @@ internal sealed class GalleryResources : IDisposable
 
     public SKFont TitleFont { get; }
 
-    public SKTextBlob CreateText(string text, SKFont font)
-    {
-        return SKTextBlob.Create(text, font, default)!;
-    }
-
     public void Dispose()
     {
         TitleFont.Dispose();
@@ -46,6 +41,11 @@ internal sealed class GalleryResources : IDisposable
         CaptionFont.Dispose();
         MediumTypeface.Dispose();
         RegularTypeface.Dispose();
+    }
+
+    public static SKTextBlob CreateText(string text, SKFont font)
+    {
+        return SKTextBlob.Create(text, font, default)!;
     }
 
     private static SKFont CreateFont(SKTypeface typeface, float size)

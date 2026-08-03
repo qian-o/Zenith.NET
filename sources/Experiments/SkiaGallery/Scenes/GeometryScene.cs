@@ -1,8 +1,8 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 
-namespace SkiaGallery;
+namespace SkiaGallery.Scenes;
 
-internal sealed class GeometryScene : GalleryScene
+internal class GeometryScene : GalleryScene
 {
     private static readonly SKColor[] DotColors =
     [

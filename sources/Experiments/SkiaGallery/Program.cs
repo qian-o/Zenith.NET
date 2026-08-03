@@ -1,3 +1,3 @@
-using SkiaGallery;
+﻿using SkiaGallery;
 
 App.Run();

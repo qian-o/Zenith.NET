@@ -1,8 +1,8 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 
-namespace SkiaGallery;
+namespace SkiaGallery.Scenes;
 
-internal sealed class PaintScene : GalleryScene
+internal class PaintScene : GalleryScene
 {
     private readonly SKBitmap bitmap;
     private readonly SKImage image;
