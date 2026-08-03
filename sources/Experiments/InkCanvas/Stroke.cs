@@ -75,7 +75,7 @@ internal sealed class Stroke(SKColor color, float width) : IDisposable
 
             using SKPath? overlap = source.Op(eraser, SKPathOp.Intersect);
 
-            if (overlap is not null && !overlap.IsEmpty && source.Op(eraser, SKPathOp.Difference) is { } result)
+            if (overlap?.IsEmpty is false && source.Op(eraser, SKPathOp.Difference) is { } result)
             {
                 source.Dispose();
                 path = result;

@@ -2,7 +2,6 @@
 using InkCanvas.Helpers;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
-using SkiaSharp;
 using Zenith.NET;
 using Zenith.NET.DirectX12;
 using Zenith.NET.Extensions.Skia;
@@ -19,9 +18,6 @@ internal static class App
     private static readonly Board board;
 
     private static SKTexture texture;
-    private static Vector2 dpiScale = Vector2.One;
-    private static float logicalWidth;
-    private static float logicalHeight;
 
     static App()
     {
@@ -76,8 +72,15 @@ internal static class App
             Format = PixelFormat.B8G8R8A8UNorm
         });
 
-        texture = CreateTexture(Width, Height);
         board = new();
+
+        texture = Context.CreateSKTexture(new()
+        {
+            Format = PixelFormat.B8G8R8A8UNorm,
+            Width = Width,
+            Height = Height,
+            SampleCount = SampleCount.Count1
+        });
     }
 
     public static GraphicsContext Context { get; }
@@ -90,13 +93,83 @@ internal static class App
 
     public static void Run()
     {
-        IMouse mouse = input.Mice[0];
-        mouse.MouseMove += MouseMove;
-        mouse.MouseDown += MouseDown;
-        mouse.MouseUp += MouseUp;
+        window.Render += _ =>
+        {
+            if (Width is 0 || Height is 0)
+            {
+                return;
+            }
 
-        window.Render += Render;
-        window.Resize += _ => Resize();
+            uint width = (uint)(Width / DpiScale.X);
+            uint height = (uint)(Height / DpiScale.Y);
+
+            texture.Render((canvas) =>
+            {
+                canvas.Save();
+                canvas.Scale(DpiScale.X, DpiScale.Y);
+
+                board.Draw(canvas, Width / DpiScale.X, Height / DpiScale.Y);
+
+                canvas.Restore();
+            });
+
+            CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
+
+            commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.CopyDst);
+            commandBuffer.Transition(texture, default, TextureLayout.ColorAttachment, TextureLayout.CopySrc);
+
+            commandBuffer.CopyTexture(texture, default, default, swapChain.Drawable, default, default, new()
+            {
+                Width = width,
+                Height = height,
+                Depth = 1
+            });
+
+            commandBuffer.Transition(texture, default, TextureLayout.CopySrc, TextureLayout.ColorAttachment);
+            commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.CopyDst, TextureLayout.Present);
+
+            commandBuffer.Submit().Wait();
+
+            swapChain.Present();
+        };
+
+        window.Resize += _ =>
+        {
+            if (Width is 0 || Height is 0)
+            {
+                return;
+            }
+
+            texture.Dispose();
+            texture = Context.CreateSKTexture(new()
+            {
+                Format = PixelFormat.B8G8R8A8UNorm,
+                Width = Width,
+                Height = Height,
+                SampleCount = SampleCount.Count1
+            });
+
+            swapChain.Resize(Width, Height);
+        };
+
+        IMouse mouse = input.Mice[0];
+        mouse.MouseMove += (_, position) => board.PointerMove(new(position.X, position.Y));
+
+        mouse.MouseDown += (_, button) =>
+        {
+            if (button is MouseButton.Left or MouseButton.Right)
+            {
+                board.PointerDown(new(mouse.Position.X, mouse.Position.Y), button is MouseButton.Right);
+            }
+        };
+
+        mouse.MouseUp += (_, button) =>
+        {
+            if (button is MouseButton.Left or MouseButton.Right)
+            {
+                board.PointerUp(button is MouseButton.Right);
+            }
+        };
 
         window.Run();
 
@@ -107,94 +180,5 @@ internal static class App
         window.Dispose();
 
         Context.Dispose();
-    }
-
-    private static void Render(double _)
-    {
-        uint width = Width;
-        uint height = Height;
-
-        if (width is 0 || height is 0)
-        {
-            return;
-        }
-
-        dpiScale = DpiScale;
-        logicalWidth = width / dpiScale.X;
-        logicalHeight = height / dpiScale.Y;
-
-        texture.Render(DrawBoard);
-
-        CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
-
-        commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.CopyDst);
-        commandBuffer.Transition(texture, default, TextureLayout.ColorAttachment, TextureLayout.CopySrc);
-        commandBuffer.CopyTexture(texture, default, default, swapChain.Drawable, default, default, new()
-        {
-            Width = width,
-            Height = height,
-            Depth = 1
-        });
-        commandBuffer.Transition(texture, default, TextureLayout.CopySrc, TextureLayout.ColorAttachment);
-        commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.CopyDst, TextureLayout.Present);
-
-        commandBuffer.Submit().Wait();
-
-        swapChain.Present();
-    }
-
-    private static void DrawBoard(SKCanvas canvas)
-    {
-        canvas.Save();
-        canvas.Scale(dpiScale.X, dpiScale.Y);
-        board.Draw(canvas, logicalWidth, logicalHeight);
-        canvas.Restore();
-    }
-
-    private static void MouseMove(IMouse _, Vector2 position)
-    {
-        board.PointerMove(new(position.X, position.Y));
-    }
-
-    private static void MouseDown(IMouse mouse, MouseButton button)
-    {
-        if (button is MouseButton.Left or MouseButton.Right)
-        {
-            board.PointerDown(new(mouse.Position.X, mouse.Position.Y), button is MouseButton.Right);
-        }
-    }
-
-    private static void MouseUp(IMouse _, MouseButton button)
-    {
-        if (button is MouseButton.Left or MouseButton.Right)
-        {
-            board.PointerUp(button is MouseButton.Right);
-        }
-    }
-
-    private static SKTexture CreateTexture(uint width, uint height)
-    {
-        return Context.CreateSKTexture(new()
-        {
-            Format = PixelFormat.B8G8R8A8UNorm,
-            Width = width,
-            Height = height,
-            SampleCount = SampleCount.Count1
-        });
-    }
-
-    private static void Resize()
-    {
-        uint width = Width;
-        uint height = Height;
-
-        if (width is not 0 && height is not 0)
-        {
-            SKTexture oldTexture = texture;
-
-            swapChain.Resize(width, height);
-            texture = CreateTexture(width, height);
-            oldTexture.Dispose();
-        }
     }
 }

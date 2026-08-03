@@ -97,7 +97,7 @@ internal sealed class Board : IDisposable
 
         canvas.Save();
         canvas.ClipRect(canvasArea);
-        canvas.DrawPicture(bakedCanvas!);
+        canvas.DrawPicture(bakedCanvas);
 
         if (activeStroke is not null)
         {
