@@ -21,7 +21,7 @@ public class SKTexture : DisposableObject
             MipLevels = 1,
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
-            Usages = TextureUsages.ColorAttachment | TextureUsages.TransferSrc
+            Usages = TextureUsages.Sampled | TextureUsages.ColorAttachment | TextureUsages.TransferSrc | TextureUsages.TransferDst
         }));
 
         surface = SKSurface.Create(renderer.GRContext, backendTexture, GRSurfaceOrigin.TopLeft, (int)SKFormats.Skia(desc.SampleCount), SKFormats.Skia(desc.Format));
