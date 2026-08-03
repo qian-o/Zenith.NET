@@ -1,6 +1,6 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 
-namespace SkiaBoard.Helpers;
+namespace SkiaGallery.Helpers;
 
 internal static partial class CocoaHelper
 {

@@ -4,7 +4,7 @@
     <Project Path="sources/Experiments/CornellBox/CornellBox.csproj" />
     <Project Path="sources/Experiments/FluidTank/FluidTank.csproj" />
     <Project Path="sources/Experiments/PlatformDetection/PlatformDetection.csproj" />
-    <Project Path="sources/Experiments/SkiaBoard/SkiaBoard.csproj" />
+    <Project Path="sources/Experiments/SkiaGallery/SkiaGallery.csproj" />
   </Folder>
   <Folder Name="/Extensions/">
     <Project Path="sources/Extensions/Zenith.NET.Extensions.ImageSharp/Zenith.NET.Extensions.ImageSharp.csproj" />
