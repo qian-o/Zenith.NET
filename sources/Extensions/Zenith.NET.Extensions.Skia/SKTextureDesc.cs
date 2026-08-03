@@ -9,6 +9,4 @@ public struct SKTextureDesc
     public uint Height;
 
     public SampleCount SampleCount;
-
-    public TextureUsages Usages;
 }
