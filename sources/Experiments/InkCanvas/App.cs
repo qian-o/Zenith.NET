@@ -41,9 +41,9 @@ internal static class App
 
         window = Window.Create(WindowOptions.Default with
         {
+            Size = new(1280, 800),
             API = GraphicsAPI.None,
-            Title = "Ink Canvas - Zenith.NET",
-            Size = new(1280, 800)
+            Title = "Ink Canvas - Zenith.NET"
         });
         window.Initialize();
         window.Center();

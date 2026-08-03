@@ -54,9 +54,9 @@ internal class Toolbar : IDisposable
 
         labelFont = new(typeface, 12.0f)
         {
+            Subpixel = true,
             Edging = SKFontEdging.SubpixelAntialias,
-            Hinting = SKFontHinting.Slight,
-            Subpixel = true
+            Hinting = SKFontHinting.Slight
         };
     }
 

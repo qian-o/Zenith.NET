@@ -49,9 +49,9 @@ internal static class App
 
         window = Window.Create(WindowOptions.Default with
         {
+            Size = new(1280, 720),
             API = GraphicsAPI.None,
-            Title = "Cornell Box - Zenith.NET",
-            Size = new(1280, 720)
+            Title = "Cornell Box - Zenith.NET"
         });
         window.Initialize();
         window.Center();
@@ -86,8 +86,8 @@ internal static class App
 
         camera = new(input, Matrix4x4.CreateTranslation(278.0f, 273.0f, -800.0f))
         {
-            Speed = 240.0f,
-            FarPlane = 2000.0f
+            FarPlane = 2000.0f,
+            Speed = 240.0f
         };
 
         rasterizer = new();
