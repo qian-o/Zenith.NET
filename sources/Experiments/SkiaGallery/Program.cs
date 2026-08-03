@@ -1,3 +1,0 @@
-﻿using SkiaGallery;
-
-App.Run();

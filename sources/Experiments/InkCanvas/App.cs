@@ -1,7 +1,7 @@
-﻿using System.Numerics;
+using System.Numerics;
+using InkCanvas.Helpers;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
-using SkiaGallery.Helpers;
 using SkiaSharp;
 using Zenith.NET;
 using Zenith.NET.DirectX12;
@@ -9,20 +9,18 @@ using Zenith.NET.Extensions.Skia;
 using Zenith.NET.Metal;
 using Zenith.NET.Vulkan;
 
-namespace SkiaGallery;
+namespace InkCanvas;
 
 internal static class App
 {
     private static readonly IWindow window;
     private static readonly IInputContext input;
     private static readonly SwapChain swapChain;
-    private static readonly Gallery gallery;
-    private static readonly Action<SKCanvas> drawGallery = DrawGallery;
+    private static readonly Board board;
 
     private static SKTexture texture;
     private static float logicalWidth;
     private static float logicalHeight;
-    private static double totalSeconds;
 
     static App()
     {
@@ -49,15 +47,11 @@ internal static class App
         window = Window.Create(WindowOptions.Default with
         {
             API = GraphicsAPI.None,
-            Title = "Skia Gallery - Zenith.NET",
-            Size = new(1280, 800),
-            Position = new(80, 60),
-            IsVisible = true,
-            FramesPerSecond = 60.0,
-            UpdatesPerSecond = 60.0,
-            VSync = true
+            Title = "Ink Canvas - Zenith.NET",
+            Size = new(1280, 800)
         });
         window.Initialize();
+        window.Center();
 
         input = window.CreateInput();
 
@@ -70,13 +64,9 @@ internal static class App
         {
             surface = Surface.Apple(CocoaHelper.CreateLayer(window.Native!.Cocoa!.Value), Width, Height);
         }
-        else if (window.Native?.X11 is { } x11)
-        {
-            surface = Surface.Xlib(x11.Display, (nint)x11.Window, Width, Height);
-        }
         else
         {
-            throw new PlatformNotSupportedException("SkiaGallery requires an X11 or XWayland window on Linux.");
+            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
         }
 
         swapChain = Context.CreateSwapChain(new()
@@ -86,7 +76,7 @@ internal static class App
         });
 
         texture = CreateTexture(Width, Height);
-        gallery = new(Context.GraphicsApi, Context.Capabilities.DeviceName);
+        board = new();
     }
 
     public static GraphicsContext Context { get; }
@@ -102,25 +92,19 @@ internal static class App
         IMouse mouse = input.Mice[0];
         mouse.MouseMove += MouseMove;
         mouse.MouseDown += MouseDown;
-
-        IKeyboard keyboard = input.Keyboards[0];
-        keyboard.KeyDown += KeyDown;
+        mouse.MouseUp += MouseUp;
 
         window.Render += Render;
 
-        try
-        {
-            window.Run();
-        }
-        finally
-        {
-            gallery.Dispose();
-            texture.Dispose();
-            swapChain.Dispose();
-            input.Dispose();
-            window.Dispose();
-            Context.Dispose();
-        }
+        window.Run();
+
+        board.Dispose();
+        texture.Dispose();
+        swapChain.Dispose();
+        input.Dispose();
+        window.Dispose();
+
+        Context.Dispose();
     }
 
     private static void Render(double delta)
@@ -134,21 +118,11 @@ internal static class App
         }
 
         Vector2 dpiScale = DpiScale;
-        float nextLogicalWidth = width / dpiScale.X;
-        float nextLogicalHeight = height / dpiScale.Y;
-        bool viewportChanged = logicalWidth != nextLogicalWidth || logicalHeight != nextLogicalHeight;
+        logicalWidth = width / dpiScale.X;
+        logicalHeight = height / dpiScale.Y;
 
-        logicalWidth = nextLogicalWidth;
-        logicalHeight = nextLogicalHeight;
-        totalSeconds += Math.Min(delta, 0.1);
-
-        bool resized = Resize(width, height);
-        bool shouldRender = resized || viewportChanged || gallery.ShouldRender(totalSeconds);
-
-        if (shouldRender)
-        {
-            texture.Render(drawGallery);
-        }
+        Resize(width, height);
+        texture.Render(DrawBoard);
 
         CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
@@ -168,46 +142,38 @@ internal static class App
         swapChain.Present();
     }
 
-    private static void DrawGallery(SKCanvas canvas)
+    private static void DrawBoard(SKCanvas canvas)
     {
         Vector2 dpiScale = DpiScale;
 
         canvas.Save();
         canvas.Scale(dpiScale.X, dpiScale.Y);
-        gallery.Draw(canvas, logicalWidth, logicalHeight, totalSeconds);
+        board.Draw(canvas, logicalWidth, logicalHeight);
         canvas.Restore();
     }
 
     private static void MouseMove(IMouse _, Vector2 position)
     {
-        gallery.PointerMove(position);
+        board.PointerMove(new(position.X, position.Y));
     }
 
     private static void MouseDown(IMouse mouse, MouseButton button)
     {
         if (button is MouseButton.Left)
         {
-            gallery.PointerDown(mouse.Position);
+            board.PointerDown(new(mouse.Position.X, mouse.Position.Y), erase: false);
+        }
+        else if (button is MouseButton.Right)
+        {
+            board.PointerDown(new(mouse.Position.X, mouse.Position.Y), erase: true);
         }
     }
 
-    private static void KeyDown(IKeyboard _, Key key, int code)
+    private static void MouseUp(IMouse _, MouseButton button)
     {
-        if (key is Key.Left)
+        if (button is MouseButton.Left or MouseButton.Right)
         {
-            gallery.Previous();
-        }
-        else if (key is Key.Right)
-        {
-            gallery.Next();
-        }
-        else if (key is Key.Home)
-        {
-            gallery.Select(0);
-        }
-        else if (key is Key.End)
-        {
-            gallery.Select(gallery.SceneCount - 1);
+            board.PointerUp();
         }
     }
 
@@ -222,11 +188,11 @@ internal static class App
         });
     }
 
-    private static bool Resize(uint width, uint height)
+    private static void Resize(uint width, uint height)
     {
         if (texture.Desc.Width == width && texture.Desc.Height == height)
         {
-            return false;
+            return;
         }
 
         swapChain.Resize(width, height);
@@ -234,7 +200,5 @@ internal static class App
         SKTexture oldTexture = texture;
         texture = CreateTexture(width, height);
         oldTexture.Dispose();
-
-        return true;
     }
 }

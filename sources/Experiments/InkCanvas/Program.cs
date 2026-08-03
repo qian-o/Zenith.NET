@@ -1,0 +1,3 @@
+using InkCanvas;
+
+App.Run();
