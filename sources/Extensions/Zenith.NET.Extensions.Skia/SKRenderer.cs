@@ -17,7 +17,6 @@ internal unsafe class SKRenderer : DisposableObject
         GRContextOptions options = new()
         {
             AvoidStencilBuffers = true,
-            AllowPathMaskCaching = true,
             RuntimeProgramCacheSize = 1024,
             GlyphCacheTextureMaximumBytes = 32 * 1024 * 1024
         };
