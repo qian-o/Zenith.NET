@@ -37,7 +37,16 @@ internal static class App
             Context = GraphicsContext.CreateVulkan(useValidationLayer: true);
         }
 
-        Context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
+        Context.ValidationMessage += static (_, args) =>
+        {
+            // This is a warning from Skia when using the old D3D12 API, not a real error message, so it can be ignored.
+            if (args.Message.Contains("ID3D12CommandList::ClearRenderTargetView"))
+            {
+                return;
+            }
+
+            Console.WriteLine($"[{args.Severity}] {args.Message}");
+        };
 
         window = Window.Create(WindowOptions.Default with
         {
