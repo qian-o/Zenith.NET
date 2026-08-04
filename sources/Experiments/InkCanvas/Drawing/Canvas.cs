@@ -37,6 +37,8 @@ internal class Canvas : IDisposable
 
     private bool CanClear => strokes.Count > 0 || activeStroke is not null || erasing || erasePending;
 
+    public bool IsMultisamplingEnabled => toolbar.IsMultisamplingEnabled;
+
     public void Draw(SKCanvas canvas, float width, float height)
     {
         EnsureLayout(width, height);

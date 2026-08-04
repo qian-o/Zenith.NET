@@ -10,6 +10,8 @@ internal class Toolbar : IDisposable
     private const float SwatchSize = 30.0f;
     private const float SwatchGap = 12.0f;
     private const float ButtonWidth = 64.0f;
+    private const float CheckboxSize = 18.0f;
+    private const float MultisamplingWidth = 72.0f;
 
     private static readonly SKColor Panel = new(31, 34, 43);
     private static readonly SKColor Divider = new(48, 52, 63);
@@ -41,6 +43,7 @@ internal class Toolbar : IDisposable
     };
 
     private SKRect clearRect;
+    private SKRect multisamplingRect;
     private SKSize size;
 
     private int colorIndex;
@@ -64,6 +67,8 @@ internal class Toolbar : IDisposable
 
     public float SelectedStrokeWidth => StrokeWidths[strokeWidthIndex];
 
+    public bool IsMultisamplingEnabled { get; private set; } = true;
+
     public void Resize(float width, float height)
     {
         const float top = (ToolbarHeight - SwatchSize) * 0.5f;
@@ -85,7 +90,11 @@ internal class Toolbar : IDisposable
             strokeWidthRects[index] = new(left, top, left + SwatchSize, bottom);
         }
 
-        float clearLeft = MathF.Max(strokeWidthRects[^1].Right + (SwatchGap * 2.0f), width - SwatchGap - ButtonWidth);
+        float multisamplingLeft = strokeWidthRects[^1].Right + (SwatchGap * 2.0f);
+
+        multisamplingRect = new(multisamplingLeft, top, multisamplingLeft + MultisamplingWidth, bottom);
+
+        float clearLeft = MathF.Max(multisamplingRect.Right + (SwatchGap * 2.0f), width - SwatchGap - ButtonWidth);
         clearRect = new(clearLeft, top, clearLeft + ButtonWidth, bottom);
     }
 
@@ -112,6 +121,10 @@ internal class Toolbar : IDisposable
         else if (strokeWidth >= 0)
         {
             strokeWidthIndex = strokeWidth;
+        }
+        else if (multisamplingRect.Contains(position.X, position.Y))
+        {
+            IsMultisamplingEnabled = !IsMultisamplingEnabled;
         }
     }
 
@@ -155,6 +168,26 @@ internal class Toolbar : IDisposable
             fillPaint.Color = Palette[colorIndex];
             canvas.DrawCircle(slot.MidX, slot.MidY, StrokeWidths[index] * 0.5f, fillPaint);
         }
+
+        float checkboxTop = (ToolbarHeight - CheckboxSize) * 0.5f;
+        SKRect checkbox = new(multisamplingRect.Left, checkboxTop, multisamplingRect.Left + CheckboxSize, checkboxTop + CheckboxSize);
+
+        fillPaint.Color = IsMultisamplingEnabled ? Selected : Panel;
+        canvas.DrawRoundRect(checkbox, 4.0f, 4.0f, fillPaint);
+
+        strokePaint.Color = IsMultisamplingEnabled ? Highlight : Label;
+        strokePaint.StrokeWidth = 1.5f;
+        canvas.DrawRoundRect(checkbox, 4.0f, 4.0f, strokePaint);
+
+        if (IsMultisamplingEnabled)
+        {
+            strokePaint.StrokeWidth = 2.0f;
+            canvas.DrawLine(checkbox.Left + 4.0f, checkbox.MidY, checkbox.Left + 8.0f, checkbox.Bottom - 4.0f, strokePaint);
+            canvas.DrawLine(checkbox.Left + 8.0f, checkbox.Bottom - 4.0f, checkbox.Right - 3.0f, checkbox.Top + 4.0f, strokePaint);
+        }
+
+        fillPaint.Color = Label;
+        canvas.DrawText("MSAA", checkbox.Right + 8.0f, multisamplingRect.MidY + 4.0f, SKTextAlign.Left, labelFont, fillPaint);
 
         SKColor accent = canClear ? Label : Divider;
 

@@ -69,7 +69,7 @@ internal class CanvasController : IDisposable
             Format = PixelFormat.B8G8R8A8UNorm,
             Width = width,
             Height = height,
-            IsMultisamplingEnabled = true
+            IsMultisamplingEnabled = canvas.IsMultisamplingEnabled
         });
     }
 
@@ -77,7 +77,14 @@ internal class CanvasController : IDisposable
     {
         if (button is MouseButton.Left or MouseButton.Right)
         {
+            bool isMultisamplingEnabled = canvas.IsMultisamplingEnabled;
+
             canvas.PointerDown(new(mouse.Position.X, mouse.Position.Y), button is MouseButton.Right);
+
+            if (isMultisamplingEnabled != canvas.IsMultisamplingEnabled)
+            {
+                Resize(texture.Desc.Width, texture.Desc.Height);
+            }
         }
     }
 
