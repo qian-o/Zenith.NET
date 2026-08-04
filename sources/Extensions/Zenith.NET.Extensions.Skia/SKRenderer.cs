@@ -17,8 +17,7 @@ internal unsafe class SKRenderer : DisposableObject
         GRContextOptions options = new()
         {
             AvoidStencilBuffers = true,
-            RuntimeProgramCacheSize = 1024,
-            GlyphCacheTextureMaximumBytes = 32 * 1024 * 1024
+            RuntimeProgramCacheSize = 1024
         };
 
         switch (context.GraphicsApi)
@@ -89,8 +88,6 @@ internal unsafe class SKRenderer : DisposableObject
                 GRContext = default!;
                 break;
         }
-
-        GRContext.SetResourceCacheLimit(256 * 1024 * 1024);
     }
 
     public GraphicsContext Context { get; }
