@@ -118,7 +118,7 @@ internal unsafe class SKRenderer : DisposableObject
         }
     }
 
-    public GRBackendTexture CreateBackendTexture(Texture texture, TextureLayout layout)
+    public GRBackendTexture CreateBackendTexture(Texture texture, bool isMultisamplingEnabled)
     {
         switch (Context.GraphicsApi)
         {
@@ -126,11 +126,11 @@ internal unsafe class SKRenderer : DisposableObject
                 return new((int)texture.Desc.Width, (int)texture.Desc.Height, new GRD3DTextureResourceInfo
                 {
                     Resource = texture.GetNativeObject(NativeObjectType.D3D12Resource),
-                    ResourceState = SKFormats.DirectX12(layout),
+                    ResourceState = isMultisamplingEnabled ? 0x1000u : 0x4u,
                     Format = SKFormats.DirectX12(texture.Desc.Format),
                     SampleCount = 1,
                     LevelCount = 1,
-                    SampleQualityPattern = layout is TextureLayout.ResolveDst ? uint.MaxValue : 0
+                    SampleQualityPattern = isMultisamplingEnabled ? uint.MaxValue : 0
                 });
 
             case GraphicsApi.Metal:
@@ -153,7 +153,7 @@ internal unsafe class SKRenderer : DisposableObject
                     },
                     Format = SKFormats.Vulkan(texture.Desc.Format),
                     ImageUsageFlags = SKFormats.Vulkan(texture.Desc.Usages),
-                    ImageLayout = SKFormats.Vulkan(layout),
+                    ImageLayout = isMultisamplingEnabled ? 7u : 2u,
                     SampleCount = 1,
                     LevelCount = 1,
                     CurrentQueueFamily = concurrent ? uint.MaxValue : graphicsQueueFamily,

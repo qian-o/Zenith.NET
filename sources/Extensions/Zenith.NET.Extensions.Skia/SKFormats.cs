@@ -4,9 +4,24 @@ namespace Zenith.NET.Extensions.Skia;
 
 internal static class SKFormats
 {
-    public static SKColorType Skia(PixelFormat format)
+    public static uint DirectX12(PixelFormat pixelFormat)
     {
-        return format switch
+        return pixelFormat switch
+        {
+            PixelFormat.R8UNorm => 61,
+            PixelFormat.R16Float => 54,
+            PixelFormat.R8G8B8A8UNorm => 28,
+            PixelFormat.R8G8B8A8SRgb => 29,
+            PixelFormat.R16G16B16A16Float => 10,
+            PixelFormat.R32G32B32A32Float => 2,
+            PixelFormat.B8G8R8A8UNorm => 87,
+            _ => default
+        };
+    }
+
+    public static SKColorType Skia(PixelFormat pixelFormat)
+    {
+        return pixelFormat switch
         {
             PixelFormat.R8UNorm => SKColorType.Gray8,
             PixelFormat.R16Float => SKColorType.AlphaF16,
@@ -15,6 +30,21 @@ internal static class SKFormats
             PixelFormat.R16G16B16A16Float => SKColorType.RgbaF16,
             PixelFormat.R32G32B32A32Float => SKColorType.RgbaF32,
             PixelFormat.B8G8R8A8UNorm => SKColorType.Bgra8888,
+            _ => default
+        };
+    }
+
+    public static uint Vulkan(PixelFormat pixelFormat)
+    {
+        return pixelFormat switch
+        {
+            PixelFormat.R8UNorm => 9,
+            PixelFormat.R16Float => 76,
+            PixelFormat.R8G8B8A8UNorm => 37,
+            PixelFormat.R8G8B8A8SRgb => 43,
+            PixelFormat.R16G16B16A16Float => 97,
+            PixelFormat.R32G32B32A32Float => 109,
+            PixelFormat.B8G8R8A8UNorm => 44,
             _ => default
         };
     }
@@ -29,46 +59,6 @@ internal static class SKFormats
             SampleCount.Count8 => 8,
             SampleCount.Count16 => 16,
             SampleCount.Count32 => 32,
-            _ => default
-        };
-    }
-
-    public static uint DirectX12(PixelFormat format)
-    {
-        return format switch
-        {
-            PixelFormat.R8UNorm => 61,
-            PixelFormat.R16Float => 54,
-            PixelFormat.R8G8B8A8UNorm => 28,
-            PixelFormat.R8G8B8A8SRgb => 29,
-            PixelFormat.R16G16B16A16Float => 10,
-            PixelFormat.R32G32B32A32Float => 2,
-            PixelFormat.B8G8R8A8UNorm => 87,
-            _ => default
-        };
-    }
-
-    public static uint DirectX12(TextureLayout textureLayout)
-    {
-        return textureLayout switch
-        {
-            TextureLayout.ColorAttachment => 0x4,
-            TextureLayout.ResolveDst => 0x1000,
-            _ => default
-        };
-    }
-
-    public static uint Vulkan(PixelFormat format)
-    {
-        return format switch
-        {
-            PixelFormat.R8UNorm => 9,
-            PixelFormat.R16Float => 76,
-            PixelFormat.R8G8B8A8UNorm => 37,
-            PixelFormat.R8G8B8A8SRgb => 43,
-            PixelFormat.R16G16B16A16Float => 97,
-            PixelFormat.R32G32B32A32Float => 109,
-            PixelFormat.B8G8R8A8UNorm => 44,
             _ => default
         };
     }
@@ -108,15 +98,5 @@ internal static class SKFormats
         }
 
         return result;
-    }
-
-    public static uint Vulkan(TextureLayout textureLayout)
-    {
-        return textureLayout switch
-        {
-            TextureLayout.ColorAttachment => 2,
-            TextureLayout.ResolveDst => 7,
-            _ => default
-        };
     }
 }

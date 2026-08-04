@@ -39,7 +39,7 @@ public class SKTexture : DisposableObject
 
         commandBuffer.Submit().Wait();
 
-        using GRBackendTexture backendTexture = renderer.CreateBackendTexture(texture, Layout);
+        using GRBackendTexture backendTexture = renderer.CreateBackendTexture(texture, desc.IsMultisamplingEnabled);
 
         surface = SKSurface.Create(renderer.GRContext, backendTexture, GRSurfaceOrigin.TopLeft, desc.IsMultisamplingEnabled ? 4 : 1, SKFormats.Skia(desc.Format));
     }
