@@ -104,7 +104,8 @@ internal unsafe class SKRenderer : DisposableObject
 
         render(surface.Canvas);
 
-        GRContext.Flush(true, true);
+        GRContext.Flush(surface);
+        GRContext.Submit(true);
     }
 
     protected override void Destroy()
