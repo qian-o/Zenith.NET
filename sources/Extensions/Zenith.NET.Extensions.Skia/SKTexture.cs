@@ -1,4 +1,5 @@
-﻿using SkiaSharp;
+﻿using System.Numerics;
+using SkiaSharp;
 
 namespace Zenith.NET.Extensions.Skia;
 
@@ -10,7 +11,6 @@ public class SKTexture : DisposableObject
     internal SKTexture(SKRenderer renderer, SKTextureDesc desc)
     {
         Renderer = renderer;
-        Layout = desc.IsMultisamplingEnabled ? TextureLayout.ResolveDst : TextureLayout.ColorAttachment;
 
         texture = renderer.Context.CreateTexture(new()
         {
@@ -28,10 +28,11 @@ public class SKTexture : DisposableObject
         CommandBuffer commandBuffer = renderer.Context.GraphicsQueue.CommandBuffer();
 
         commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-        commandBuffer.BeginRenderPass([ColorAttachment.Clear(texture, default)], null);
+
+        commandBuffer.BeginRenderPass([ColorAttachment.Clear(texture, Vector4.Zero)], null);
         commandBuffer.EndRenderPass();
 
-        if (Layout is not TextureLayout.ColorAttachment)
+        if ((Layout = desc.IsMultisamplingEnabled ? TextureLayout.ResolveDst : TextureLayout.ColorAttachment) is not TextureLayout.ColorAttachment)
         {
             commandBuffer.Transition(texture, default, TextureLayout.ColorAttachment, Layout);
         }
