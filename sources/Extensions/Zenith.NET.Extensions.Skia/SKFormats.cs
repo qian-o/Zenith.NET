@@ -4,21 +4,6 @@ namespace Zenith.NET.Extensions.Skia;
 
 internal static class SKFormats
 {
-    public static uint DirectX12(PixelFormat pixelFormat)
-    {
-        return pixelFormat switch
-        {
-            PixelFormat.R8UNorm => 61,
-            PixelFormat.R16Float => 54,
-            PixelFormat.R8G8B8A8UNorm => 28,
-            PixelFormat.R8G8B8A8SRgb => 29,
-            PixelFormat.R16G16B16A16Float => 10,
-            PixelFormat.R32G32B32A32Float => 2,
-            PixelFormat.B8G8R8A8UNorm => 87,
-            _ => default
-        };
-    }
-
     public static SKColorType Skia(PixelFormat pixelFormat)
     {
         return pixelFormat switch
@@ -34,6 +19,21 @@ internal static class SKFormats
         };
     }
 
+    public static uint DirectX12(PixelFormat pixelFormat)
+    {
+        return pixelFormat switch
+        {
+            PixelFormat.R8UNorm => 61,
+            PixelFormat.R16Float => 54,
+            PixelFormat.R8G8B8A8UNorm => 28,
+            PixelFormat.R8G8B8A8SRgb => 29,
+            PixelFormat.R16G16B16A16Float => 10,
+            PixelFormat.R32G32B32A32Float => 2,
+            PixelFormat.B8G8R8A8UNorm => 87,
+            _ => default
+        };
+    }
+
     public static uint Vulkan(PixelFormat pixelFormat)
     {
         return pixelFormat switch
@@ -45,20 +45,6 @@ internal static class SKFormats
             PixelFormat.R16G16B16A16Float => 97,
             PixelFormat.R32G32B32A32Float => 109,
             PixelFormat.B8G8R8A8UNorm => 44,
-            _ => default
-        };
-    }
-
-    public static uint Skia(SampleCount sampleCount)
-    {
-        return sampleCount switch
-        {
-            SampleCount.Count1 => 1,
-            SampleCount.Count2 => 2,
-            SampleCount.Count4 => 4,
-            SampleCount.Count8 => 8,
-            SampleCount.Count16 => 16,
-            SampleCount.Count32 => 32,
             _ => default
         };
     }

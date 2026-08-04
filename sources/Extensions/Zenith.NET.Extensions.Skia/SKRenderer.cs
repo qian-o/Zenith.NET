@@ -123,7 +123,7 @@ internal unsafe class SKRenderer : DisposableObject
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                return new((int)texture.Desc.Width, (int)texture.Desc.Height, new GRD3DTextureResourceInfo
+                return new((int)texture.Desc.Width, (int)texture.Desc.Height, new GRD3DTextureResourceInfo()
                 {
                     Resource = texture.GetNativeObject(NativeObjectType.D3D12Resource),
                     ResourceState = isMultisamplingEnabled ? 0x1000u : 0x4u,
