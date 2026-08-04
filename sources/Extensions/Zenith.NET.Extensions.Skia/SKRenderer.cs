@@ -14,6 +14,14 @@ internal unsafe class SKRenderer : DisposableObject
     {
         Context = context;
 
+        GRContextOptions options = new()
+        {
+            AvoidStencilBuffers = true,
+            AllowPathMaskCaching = true,
+            RuntimeProgramCacheSize = 1024,
+            GlyphCacheTextureMaximumBytes = 32 * 1024 * 1024
+        };
+
         switch (context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
@@ -25,7 +33,7 @@ internal unsafe class SKRenderer : DisposableObject
                         Queue = context.GraphicsQueue.GetNativeObject(NativeObjectType.D3D12CommandQueue)
                     };
 
-                    GRContext = GRContext.CreateDirect3D(backendContext);
+                    GRContext = GRContext.CreateDirect3D(backendContext, options);
                 }
                 break;
 
@@ -39,7 +47,7 @@ internal unsafe class SKRenderer : DisposableObject
                         QueueHandle = commandQueue = SKObjectiveC.SendMessage(device, "newCommandQueue")
                     };
 
-                    GRContext = GRContext.CreateMetal(backendContext);
+                    GRContext = GRContext.CreateMetal(backendContext, options);
                 }
                 break;
 
@@ -65,7 +73,7 @@ internal unsafe class SKRenderer : DisposableObject
                         GetProcedureAddress = GetProcedureAddress
                     };
 
-                    GRContext = GRContext.CreateVulkan(backendContext);
+                    GRContext = GRContext.CreateVulkan(backendContext, options);
 
                     nint GetProcedureAddress(string name, nint instance, nint device)
                     {
@@ -82,6 +90,8 @@ internal unsafe class SKRenderer : DisposableObject
                 GRContext = default!;
                 break;
         }
+
+        GRContext.SetResourceCacheLimit(256 * 1024 * 1024);
     }
 
     public GraphicsContext Context { get; }

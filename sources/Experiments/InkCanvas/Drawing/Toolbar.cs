@@ -35,12 +35,8 @@ internal class Toolbar : IDisposable
     private readonly SKRect[] strokeWidthRects = new SKRect[StrokeWidths.Length];
 
     private readonly SKFont labelFont;
-    private readonly SKPaint fillPaint = new() { IsAntialias = true };
-    private readonly SKPaint strokePaint = new()
-    {
-        IsAntialias = true,
-        Style = SKPaintStyle.Stroke
-    };
+    private readonly SKPaint fillPaint = new();
+    private readonly SKPaint strokePaint = new() { Style = SKPaintStyle.Stroke };
 
     private SKRect msaaRect;
     private SKRect clearRect;

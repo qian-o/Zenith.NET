@@ -14,10 +14,9 @@ internal class Canvas : IDisposable
     private readonly List<Stroke> strokes = [];
 
     private readonly SKPathBuilder eraserBuilder = new();
-    private readonly SKPaint fillPaint = new() { IsAntialias = true };
+    private readonly SKPaint fillPaint = new();
     private readonly SKPaint strokePaint = new()
     {
-        IsAntialias = true,
         Style = SKPaintStyle.Stroke,
         StrokeCap = SKStrokeCap.Round,
         StrokeJoin = SKStrokeJoin.Round
