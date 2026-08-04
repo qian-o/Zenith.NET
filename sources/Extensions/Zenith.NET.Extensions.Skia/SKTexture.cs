@@ -10,8 +10,9 @@ public class SKTexture : DisposableObject
     internal SKTexture(SKRenderer renderer, SKTextureDesc desc)
     {
         Renderer = renderer;
+        Layout = desc.IsMultisamplingEnabled ? TextureLayout.ResolveDst : TextureLayout.ColorAttachment;
 
-        using GRBackendTexture backendTexture = renderer.CreateBackendTexture(texture = renderer.Context.CreateTexture(new()
+        texture = renderer.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
             Format = desc.Format,
@@ -22,7 +23,22 @@ public class SKTexture : DisposableObject
             ArrayLayers = 1,
             SampleCount = SampleCount.Count1,
             Usages = TextureUsages.Sampled | TextureUsages.ColorAttachment | TextureUsages.TransferSrc | TextureUsages.TransferDst
-        }));
+        });
+
+        CommandBuffer commandBuffer = renderer.Context.GraphicsQueue.CommandBuffer();
+
+        commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+        commandBuffer.BeginRenderPass([ColorAttachment.Clear(texture, default)], null);
+        commandBuffer.EndRenderPass();
+
+        if (Layout is not TextureLayout.ColorAttachment)
+        {
+            commandBuffer.Transition(texture, default, TextureLayout.ColorAttachment, Layout);
+        }
+
+        commandBuffer.Submit().Wait();
+
+        using GRBackendTexture backendTexture = renderer.CreateBackendTexture(texture, Layout);
 
         surface = SKSurface.Create(renderer.GRContext, backendTexture, GRSurfaceOrigin.TopLeft, desc.IsMultisamplingEnabled ? 4 : 1, SKFormats.Skia(desc.Format));
     }
@@ -30,6 +46,8 @@ public class SKTexture : DisposableObject
     internal SKRenderer Renderer { get; }
 
     public ref readonly TextureDesc Desc => ref texture.Desc;
+
+    public TextureLayout Layout { get; }
 
     public void Render(Action<SKCanvas> render)
     {

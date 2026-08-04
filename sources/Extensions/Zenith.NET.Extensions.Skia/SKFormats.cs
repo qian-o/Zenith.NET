@@ -48,6 +48,16 @@ internal static class SKFormats
         };
     }
 
+    public static uint DirectX12(TextureLayout textureLayout)
+    {
+        return textureLayout switch
+        {
+            TextureLayout.ColorAttachment => 0x4,
+            TextureLayout.ResolveDst => 0x1000,
+            _ => default
+        };
+    }
+
     public static uint Vulkan(PixelFormat format)
     {
         return format switch
@@ -98,5 +108,15 @@ internal static class SKFormats
         }
 
         return result;
+    }
+
+    public static uint Vulkan(TextureLayout textureLayout)
+    {
+        return textureLayout switch
+        {
+            TextureLayout.ColorAttachment => 2,
+            TextureLayout.ResolveDst => 7,
+            _ => default
+        };
     }
 }
