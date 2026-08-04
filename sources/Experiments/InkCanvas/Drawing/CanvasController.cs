@@ -69,7 +69,7 @@ internal class CanvasController : IDisposable
             Format = PixelFormat.B8G8R8A8UNorm,
             Width = width,
             Height = height,
-            SampleCount = SampleCount.Count1
+            IsMultisamplingEnabled = true
         });
     }
 

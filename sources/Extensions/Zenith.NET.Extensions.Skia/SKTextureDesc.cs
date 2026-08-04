@@ -8,5 +8,5 @@ public struct SKTextureDesc
 
     public uint Height;
 
-    public SampleCount SampleCount;
+    public bool IsMultisamplingEnabled;
 }

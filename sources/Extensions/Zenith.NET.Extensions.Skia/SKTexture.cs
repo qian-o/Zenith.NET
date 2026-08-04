@@ -24,7 +24,7 @@ public class SKTexture : DisposableObject
             Usages = TextureUsages.Sampled | TextureUsages.ColorAttachment | TextureUsages.TransferSrc | TextureUsages.TransferDst
         }));
 
-        surface = SKSurface.Create(renderer.GRContext, backendTexture, GRSurfaceOrigin.TopLeft, (int)SKFormats.Skia(desc.SampleCount), SKFormats.Skia(desc.Format));
+        surface = SKSurface.Create(renderer.GRContext, backendTexture, GRSurfaceOrigin.TopLeft, desc.IsMultisamplingEnabled ? 4 : 1, SKFormats.Skia(desc.Format));
     }
 
     internal SKRenderer Renderer { get; }
