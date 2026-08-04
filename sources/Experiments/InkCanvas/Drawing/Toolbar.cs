@@ -67,7 +67,7 @@ internal class Toolbar : IDisposable
 
     public float SelectedStrokeWidth => StrokeWidths[strokeWidthIndex];
 
-    public bool IsMultisamplingEnabled { get; private set; } = true;
+    public bool MSAA { get; private set; } = true;
 
     public void Resize(float width, float height)
     {
@@ -124,7 +124,7 @@ internal class Toolbar : IDisposable
         }
         else if (multisamplingRect.Contains(position.X, position.Y))
         {
-            IsMultisamplingEnabled = !IsMultisamplingEnabled;
+            MSAA = !MSAA;
         }
     }
 
@@ -137,6 +137,8 @@ internal class Toolbar : IDisposable
 
     private void DrawToolbar(SKCanvas canvas, bool canClear)
     {
+        const float checkboxTop = (ToolbarHeight - CheckboxSize) * 0.5f;
+
         fillPaint.Color = Panel;
         canvas.DrawRect(0.0f, 0.0f, size.Width, ToolbarHeight, fillPaint);
 
@@ -169,17 +171,16 @@ internal class Toolbar : IDisposable
             canvas.DrawCircle(slot.MidX, slot.MidY, StrokeWidths[index] * 0.5f, fillPaint);
         }
 
-        float checkboxTop = (ToolbarHeight - CheckboxSize) * 0.5f;
         SKRect checkbox = new(multisamplingRect.Left, checkboxTop, multisamplingRect.Left + CheckboxSize, checkboxTop + CheckboxSize);
 
-        fillPaint.Color = IsMultisamplingEnabled ? Selected : Panel;
+        fillPaint.Color = MSAA ? Selected : Panel;
         canvas.DrawRoundRect(checkbox, 4.0f, 4.0f, fillPaint);
 
-        strokePaint.Color = IsMultisamplingEnabled ? Highlight : Label;
+        strokePaint.Color = MSAA ? Highlight : Label;
         strokePaint.StrokeWidth = 1.5f;
         canvas.DrawRoundRect(checkbox, 4.0f, 4.0f, strokePaint);
 
-        if (IsMultisamplingEnabled)
+        if (MSAA)
         {
             strokePaint.StrokeWidth = 2.0f;
             canvas.DrawLine(checkbox.Left + 4.0f, checkbox.MidY, checkbox.Left + 8.0f, checkbox.Bottom - 4.0f, strokePaint);
