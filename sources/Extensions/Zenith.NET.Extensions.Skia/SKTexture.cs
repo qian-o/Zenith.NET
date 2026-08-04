@@ -32,9 +32,9 @@ public class SKTexture : DisposableObject
         commandBuffer.BeginRenderPass([ColorAttachment.Clear(texture, Vector4.Zero)], null);
         commandBuffer.EndRenderPass();
 
-        if ((Layout = desc.IsMultisamplingEnabled ? TextureLayout.ResolveDst : TextureLayout.ColorAttachment) is not TextureLayout.ColorAttachment)
+        if ((RequiredLayout = desc.IsMultisamplingEnabled ? TextureLayout.ResolveDst : TextureLayout.ColorAttachment) is not TextureLayout.ColorAttachment)
         {
-            commandBuffer.Transition(texture, default, TextureLayout.ColorAttachment, Layout);
+            commandBuffer.Transition(texture, default, TextureLayout.ColorAttachment, RequiredLayout);
         }
 
         commandBuffer.Submit().Wait();
@@ -48,7 +48,7 @@ public class SKTexture : DisposableObject
 
     public ref readonly TextureDesc Desc => ref texture.Desc;
 
-    public TextureLayout Layout { get; }
+    public TextureLayout RequiredLayout { get; }
 
     public void Render(Action<SKCanvas> render)
     {

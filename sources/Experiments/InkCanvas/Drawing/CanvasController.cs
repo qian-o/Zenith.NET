@@ -40,14 +40,14 @@ internal class CanvasController : IDisposable
             skiaCanvas.Restore();
         });
 
-        commandBuffer.Transition(texture, default, texture.Layout, TextureLayout.CopySrc);
+        commandBuffer.Transition(texture, default, texture.RequiredLayout, TextureLayout.CopySrc);
         commandBuffer.CopyTexture(texture, default, default, target, default, default, new()
         {
             Width = texture.Desc.Width,
             Height = texture.Desc.Height,
             Depth = 1
         });
-        commandBuffer.Transition(texture, default, TextureLayout.CopySrc, texture.Layout);
+        commandBuffer.Transition(texture, default, TextureLayout.CopySrc, texture.RequiredLayout);
     }
 
     public void Resize(uint width, uint height)
