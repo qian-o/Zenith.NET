@@ -35,9 +35,9 @@ internal class Canvas : IDisposable
     private SKRect drawingArea;
     private SKSize size;
 
-    private bool CanClear => strokes.Count > 0 || activeStroke is not null || erasing || erasePending;
-
     public bool IsMultisamplingEnabled => toolbar.IsMultisamplingEnabled;
+
+    private bool CanClear => strokes.Count > 0 || activeStroke is not null || erasing || erasePending;
 
     public void Draw(SKCanvas canvas, float width, float height)
     {
