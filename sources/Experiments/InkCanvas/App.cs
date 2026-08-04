@@ -39,8 +39,10 @@ internal static class App
 
         Context.ValidationMessage += static (_, args) =>
         {
-            // This is a warning from Skia when using the old D3D12 API, not a real error message, so it can be ignored.
-            if (args.Message.Contains("ID3D12CommandList::ClearRenderTargetView"))
+            // These validation messages are caused by known issues in Skia's D3D12 backend.
+            if (args.Message.StartsWith("ID3D12DescriptorHeap::GetGPUDescriptorHandleForHeapStart:", StringComparison.Ordinal)
+                || args.Message.StartsWith("ID3D12Device::CreateSampler2:", StringComparison.Ordinal)
+                || args.Message.StartsWith("ID3D12CommandList::ClearRenderTargetView:", StringComparison.Ordinal))
             {
                 return;
             }
