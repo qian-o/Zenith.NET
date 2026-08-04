@@ -11,7 +11,7 @@ internal class Toolbar : IDisposable
     private const float SwatchGap = 12.0f;
     private const float ButtonWidth = 64.0f;
     private const float CheckboxSize = 18.0f;
-    private const float MultisamplingWidth = 72.0f;
+    private const float MSAAWidth = 72.0f;
 
     private static readonly SKColor Panel = new(31, 34, 43);
     private static readonly SKColor Divider = new(48, 52, 63);
@@ -42,8 +42,8 @@ internal class Toolbar : IDisposable
         Style = SKPaintStyle.Stroke
     };
 
+    private SKRect msaaRect;
     private SKRect clearRect;
-    private SKRect multisamplingRect;
     private SKSize size;
 
     private int colorIndex;
@@ -90,11 +90,10 @@ internal class Toolbar : IDisposable
             strokeWidthRects[index] = new(left, top, left + SwatchSize, bottom);
         }
 
-        float multisamplingLeft = strokeWidthRects[^1].Right + (SwatchGap * 2.0f);
+        float msaaLeft = strokeWidthRects[^1].Right + (SwatchGap * 2.0f);
+        msaaRect = new(msaaLeft, top, msaaLeft + MSAAWidth, bottom);
 
-        multisamplingRect = new(multisamplingLeft, top, multisamplingLeft + MultisamplingWidth, bottom);
-
-        float clearLeft = MathF.Max(multisamplingRect.Right + (SwatchGap * 2.0f), width - SwatchGap - ButtonWidth);
+        float clearLeft = MathF.Max(msaaRect.Right + (SwatchGap * 2.0f), width - SwatchGap - ButtonWidth);
         clearRect = new(clearLeft, top, clearLeft + ButtonWidth, bottom);
     }
 
@@ -122,7 +121,7 @@ internal class Toolbar : IDisposable
         {
             strokeWidthIndex = strokeWidth;
         }
-        else if (multisamplingRect.Contains(position.X, position.Y))
+        else if (msaaRect.Contains(position.X, position.Y))
         {
             MSAA = !MSAA;
         }
@@ -171,7 +170,7 @@ internal class Toolbar : IDisposable
             canvas.DrawCircle(slot.MidX, slot.MidY, StrokeWidths[index] * 0.5f, fillPaint);
         }
 
-        SKRect checkbox = new(multisamplingRect.Left, checkboxTop, multisamplingRect.Left + CheckboxSize, checkboxTop + CheckboxSize);
+        SKRect checkbox = new(msaaRect.Left, checkboxTop, msaaRect.Left + CheckboxSize, checkboxTop + CheckboxSize);
 
         fillPaint.Color = MSAA ? Selected : Panel;
         canvas.DrawRoundRect(checkbox, 4.0f, 4.0f, fillPaint);
@@ -188,7 +187,7 @@ internal class Toolbar : IDisposable
         }
 
         fillPaint.Color = Label;
-        canvas.DrawText("MSAA", checkbox.Right + 8.0f, multisamplingRect.MidY + 4.0f, SKTextAlign.Left, labelFont, fillPaint);
+        canvas.DrawText("MSAA", checkbox.Right + 8.0f, msaaRect.MidY + 4.0f, SKTextAlign.Left, labelFont, fillPaint);
 
         SKColor accent = canClear ? Label : Divider;
 

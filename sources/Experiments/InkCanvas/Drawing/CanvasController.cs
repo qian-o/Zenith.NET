@@ -77,11 +77,11 @@ internal class CanvasController : IDisposable
     {
         if (button is MouseButton.Left or MouseButton.Right)
         {
-            bool isMultisamplingEnabled = canvas.MSAA;
+            bool msaa = canvas.MSAA;
 
             canvas.PointerDown(new(mouse.Position.X, mouse.Position.Y), button is MouseButton.Right);
 
-            if (isMultisamplingEnabled != canvas.MSAA)
+            if (msaa != canvas.MSAA)
             {
                 Resize(texture.Desc.Width, texture.Desc.Height);
             }
