@@ -48,9 +48,7 @@ internal unsafe class FluidSimulation : IDisposable
         ParticleCount = DamDimensions.X * DamDimensions.Y * DamDimensions.Z;
 
         Vector3 tankExtent = TankMax - TankMin;
-        GridDimensions = new((uint)MathF.Ceiling(tankExtent.X / GridSpacing),
-                             (uint)MathF.Ceiling(tankExtent.Y / GridSpacing),
-                             (uint)MathF.Ceiling(tankExtent.Z / GridSpacing));
+        GridDimensions = new((uint)MathF.Ceiling(tankExtent.X / GridSpacing), (uint)MathF.Ceiling(tankExtent.Y / GridSpacing), (uint)MathF.Ceiling(tankExtent.Z / GridSpacing));
         CellCount = GridDimensions.X * GridDimensions.Y * GridDimensions.Z;
         GridPointCount = (GridDimensions.X + 1) * (GridDimensions.Y + 1) * (GridDimensions.Z + 1);
         pressureParityDispatchCount = (GridDimensions.X + 1) / 2 * GridDimensions.Y * GridDimensions.Z;

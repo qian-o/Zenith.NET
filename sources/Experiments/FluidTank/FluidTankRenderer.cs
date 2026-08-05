@@ -303,11 +303,7 @@ internal unsafe class FluidTankRenderer : IDisposable
         commandBuffer.Transition(sceneLinearDepth, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
         commandBuffer.Transition(DepthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
 
-        commandBuffer.BeginRenderPass(
-        [
-            ColorAttachment.Clear(sceneColor, Vector4.Zero),
-            ColorAttachment.Clear(sceneLinearDepth, Vector4.Zero)
-        ], DepthStencilAttachment.Clear(DepthStencil, 1.0f, 0));
+        commandBuffer.BeginRenderPass([ColorAttachment.Clear(sceneColor, Vector4.Zero), ColorAttachment.Clear(sceneLinearDepth, Vector4.Zero)], DepthStencilAttachment.Clear(DepthStencil, 1.0f, 0));
         commandBuffer.SetPipeline(scenePipeline);
         commandBuffer.SetVertexBuffer(sceneVertexBuffer, 0, 0);
         commandBuffer.SetIndexBuffer(sceneIndexBuffer, 0, IndexFormat.UInt32);
