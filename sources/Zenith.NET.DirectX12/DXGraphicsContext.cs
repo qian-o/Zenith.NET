@@ -40,7 +40,12 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.D3D12Adapter => (nint)Adapter.Handle,
+            NativeObjectType.D3D12Device => (nint)Device.Handle,
+            _ => default
+        };
     }
 
     protected override void Initialize(bool useValidationLayer,
@@ -167,7 +172,7 @@ internal unsafe class DXGraphicsContext(bool useValidationLayer) : GraphicsConte
         ComPtr<ID3D12Resource> resource = new();
         Device.OpenSharedHandle((void*)nativeTexture, SilkMarshal.GuidPtrOf<ID3D12Resource>(), (void**)resource.GetAddressOf()).Success();
 
-        return new DXTexture(this, desc, resource);
+        return new DXTexture(this, desc, resource, false);
     }
 
     protected override TextureView CreateTextureViewImpl(TextureViewDesc desc)

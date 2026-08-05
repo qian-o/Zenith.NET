@@ -184,9 +184,8 @@ float3 ReconstructNormal(float2 uv, float centerDepth)
     return normal;
 }
 
-float3 SceneAt(float2 uv)
+float3 SceneAt(float2 uv, float depth)
 {
-    float depth = composite.SceneDepth.SampleLevel(composite.Sampler, uv, 0.0).r;
     if (depth <= 0.0)
     {
         float3 rayView = ViewRay(uv);
@@ -198,22 +197,62 @@ float3 SceneAt(float2 uv)
     return composite.SceneColor.SampleLevel(composite.Sampler, uv, 0.0).rgb;
 }
 
+float3 SceneAt(float2 uv)
+{
+    float depth = composite.SceneDepth.SampleLevel(composite.Sampler, uv, 0.0).r;
+
+    return SceneAt(uv, depth);
+}
+
+bool FrameOccludesFluid(FullscreenOutput input, float sceneDepth)
+{
+    if (composite.SceneColor.Load(int3(int2(input.Position.xy), 0)).a < 0.5)
+    {
+        return false;
+    }
+
+    int2 fluidDimensions = int2(composite.Width, composite.Height);
+    int2 baseFluidPixel = int2(floor(input.UV * float2(fluidDimensions) - 0.5));
+    float closestFluidDepth = 0.0;
+
+    for (int y = 0; y < 2; y++)
+    {
+        for (int x = 0; x < 2; x++)
+        {
+            int2 samplePixel = clamp(baseFluidPixel + int2(x, y), int2(0, 0), fluidDimensions - 1);
+            float sampleDepth = composite.Attributes.Load(int3(samplePixel, 0)).w;
+
+            if (sampleDepth > 0.0 && (closestFluidDepth <= 0.0 || sampleDepth < closestFluidDepth))
+            {
+                closestFluidDepth = sampleDepth;
+            }
+        }
+    }
+
+    return closestFluidDepth <= 0.0 || closestFluidDepth >= sceneDepth;
+}
+
 float4 ShadeWater(FullscreenOutput input)
 {
     float2 uv = input.UV;
+    float sceneDepth = composite.SceneDepth.Load(int3(int2(input.Position.xy), 0)).r;
+    float3 scene = SceneAt(uv, sceneDepth);
 
     if (composite.RenderMode == 1)
     {
-        return float4(ToSRGB(ACESFilm(SceneAt(uv))), 1.0);
+        return float4(ToSRGB(ACESFilm(scene)), 1.0);
     }
 
     float fluidDepth = composite.FluidDepth.SampleLevel(composite.Sampler, uv, 0.0).r;
 
     if (fluidDepth <= 0.0)
     {
-        float3 background = SceneAt(uv);
+        return float4(ToSRGB(ACESFilm(scene)), 1.0);
+    }
 
-        return float4(ToSRGB(ACESFilm(background)), 1.0);
+    if (sceneDepth > 0.0 && (fluidDepth >= sceneDepth || FrameOccludesFluid(input, sceneDepth)))
+    {
+        return float4(ToSRGB(ACESFilm(scene)), 1.0);
     }
 
     float thickness = composite.Thickness.SampleLevel(composite.Sampler, uv, 0.0).r;
@@ -222,7 +261,7 @@ float4 ShadeWater(FullscreenOutput input)
 
     if (surfaceConfidence <= 0.01)
     {
-        return float4(ToSRGB(ACESFilm(SceneAt(uv))), 1.0);
+        return float4(ToSRGB(ACESFilm(scene)), 1.0);
     }
 
     float3 normalView = ReconstructNormal(uv, fluidDepth);
@@ -258,7 +297,7 @@ float4 ShadeWater(FullscreenOutput input)
     color += sunSpecular * float3(1.0, 0.94, 0.78);
     color = lerp(color, float3(0.76, 0.92, 0.96), foam * 0.72);
 
-    color = lerp(SceneAt(uv), color, surfaceConfidence);
+    color = lerp(scene, color, surfaceConfidence);
 
     return float4(ToSRGB(ACESFilm(color)), 1.0);
 }

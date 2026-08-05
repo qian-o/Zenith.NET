@@ -30,7 +30,11 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.MTLDevice => Device.NativePtr,
+            _ => default
+        };
     }
 
     protected override void Initialize(bool useValidationLayer,

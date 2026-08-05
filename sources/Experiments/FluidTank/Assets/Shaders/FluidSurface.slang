@@ -191,15 +191,16 @@ DepthOutput DepthFS(SurfaceVSOutput input)
     float sphereZ = sqrt(max(1.0 - radiusSquared, 0.0));
     float3 viewPosition = input.CenterView + float3(input.Corner * surface.ParticleRadius, surface.ParticleRadius * 0.62);
     float4 clipPosition = mul(float4(viewPosition, 1.0), surface.Projection);
+    float linearDepth = -viewPosition.z;
 
-    if (OccludedByScene(input, -viewPosition.z))
+    if (OccludedByScene(input, linearDepth))
     {
         discard;
     }
 
     DepthOutput output;
-    output.LinearDepth = -viewPosition.z;
-    output.Attributes = float4(input.Speed, input.Density, sphereZ, 1.0);
+    output.LinearDepth = linearDepth;
+    output.Attributes = float4(input.Speed, input.Density, sphereZ, linearDepth);
     output.DeviceDepth = clipPosition.z / clipPosition.w;
 
     return output;

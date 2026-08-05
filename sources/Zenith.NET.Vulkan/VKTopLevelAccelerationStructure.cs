@@ -100,7 +100,11 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.VulkanAccelerationStructure => (nint)AccelerationStructure.Handle,
+            _ => default
+        };
     }
 
     protected override void SetResourceName(string name)

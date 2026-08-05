@@ -618,11 +618,6 @@ internal static class DXFormats
     {
         ResourceFlags result = default;
 
-        if (!textureUsages.HasFlag(TextureUsages.Sampled))
-        {
-            result |= ResourceFlags.DenyShaderResource;
-        }
-
         if (textureUsages.HasFlag(TextureUsages.Storage))
         {
             result |= ResourceFlags.AllowUnorderedAccess;
@@ -635,6 +630,11 @@ internal static class DXFormats
 
         if (textureUsages.HasFlag(TextureUsages.DepthStencilAttachment))
         {
+            if (!textureUsages.HasFlag(TextureUsages.Sampled))
+            {
+                result |= ResourceFlags.DenyShaderResource;
+            }
+
             result |= ResourceFlags.AllowDepthStencil;
         }
 

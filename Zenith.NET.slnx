@@ -3,6 +3,7 @@
     <File Path="sources/Experiments/Directory.Packages.props" />
     <Project Path="sources/Experiments/CornellBox/CornellBox.csproj" />
     <Project Path="sources/Experiments/FluidTank/FluidTank.csproj" />
+    <Project Path="sources/Experiments/InkCanvas/InkCanvas.csproj" />
     <Project Path="sources/Experiments/PlatformDetection/PlatformDetection.csproj" />
   </Folder>
   <Folder Name="/Extensions/">

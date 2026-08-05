@@ -20,7 +20,11 @@ internal unsafe class DXTimeline : Timeline
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.D3D12Fence => (nint)Fence.Handle,
+            _ => default
+        };
     }
 
     protected override ulong GetCompletedValue()
