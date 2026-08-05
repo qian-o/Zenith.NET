@@ -61,8 +61,8 @@ internal static class VKFormats
 
         if (barrierStages.HasFlag(BarrierStages.VertexShading))
         {
-            stage |= PipelineStageFlags2.IndexInputBit | PipelineStageFlags2.VertexAttributeInputBit | PipelineStageFlags2.VertexShaderBit | PipelineStageFlags2.DrawIndirectBit;
-            access |= AccessFlags2.VertexAttributeReadBit | AccessFlags2.UniformReadBit | AccessFlags2.IndexReadBit | AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit | AccessFlags2.IndirectCommandReadBit | AccessFlags2.AccelerationStructureReadBitKhr;
+            stage |= PipelineStageFlags2.DrawIndirectBit | PipelineStageFlags2.VertexShaderBit | PipelineStageFlags2.IndexInputBit | PipelineStageFlags2.VertexAttributeInputBit;
+            access |= AccessFlags2.IndirectCommandReadBit | AccessFlags2.IndexReadBit | AccessFlags2.VertexAttributeReadBit | AccessFlags2.UniformReadBit | AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit | AccessFlags2.AccelerationStructureReadBitKhr;
         }
 
         if (barrierStages.HasFlag(BarrierStages.FragmentShading))
@@ -73,8 +73,8 @@ internal static class VKFormats
 
         if (barrierStages.HasFlag(BarrierStages.ComputeShading))
         {
-            stage |= PipelineStageFlags2.ComputeShaderBit | PipelineStageFlags2.DrawIndirectBit;
-            access |= AccessFlags2.UniformReadBit | AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit | AccessFlags2.IndirectCommandReadBit | AccessFlags2.AccelerationStructureReadBitKhr;
+            stage |= PipelineStageFlags2.DrawIndirectBit | PipelineStageFlags2.ComputeShaderBit;
+            access |= AccessFlags2.IndirectCommandReadBit | AccessFlags2.UniformReadBit | AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit | AccessFlags2.AccelerationStructureReadBitKhr;
         }
 
         if (barrierStages.HasFlag(BarrierStages.Copy))

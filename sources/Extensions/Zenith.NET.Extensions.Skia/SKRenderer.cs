@@ -157,9 +157,9 @@ internal unsafe class SKRenderer : DisposableObject
                         Offset = (ulong)texture.GetNativeObject(NativeObjectType.VulkanDeviceMemoryOffset),
                         Size = Context.GetSizeAndAlignment(texture.Desc).SizeInBytes
                     },
+                    ImageLayout = isMultisamplingEnabled ? 7u : 2u,
                     Format = SKFormats.Vulkan(texture.Desc.Format),
                     ImageUsageFlags = SKFormats.Vulkan(texture.Desc.Usages),
-                    ImageLayout = isMultisamplingEnabled ? 7u : 2u,
                     SampleCount = 1,
                     LevelCount = 1,
                     CurrentQueueFamily = concurrent ? uint.MaxValue : graphicsQueueFamily,

@@ -285,12 +285,12 @@ internal unsafe class DXCommandBuffer : CommandBuffer
                     Type = DXFormats.DirectX12(attachment.DepthLoadOp),
                     Clear = new() { ClearValue = clearValue }
                 },
-                DepthEndingAccess = new() { Type = ZenithHelper.HasDepth(texture.Desc.Format) ? DXFormats.DirectX12(attachment.DepthStoreOp) : RenderPassEndingAccessType.NoAccess },
                 StencilBeginningAccess = new()
                 {
                     Type = ZenithHelper.HasStencil(texture.Desc.Format) ? DXFormats.DirectX12(attachment.StencilLoadOp) : RenderPassBeginningAccessType.NoAccess,
                     Clear = new() { ClearValue = clearValue }
                 },
+                DepthEndingAccess = new() { Type = ZenithHelper.HasDepth(texture.Desc.Format) ? DXFormats.DirectX12(attachment.DepthStoreOp) : RenderPassEndingAccessType.NoAccess },
                 StencilEndingAccess = new() { Type = ZenithHelper.HasStencil(texture.Desc.Format) ? DXFormats.DirectX12(attachment.StencilStoreOp) : RenderPassEndingAccessType.NoAccess }
             };
         }

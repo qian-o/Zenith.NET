@@ -9,9 +9,9 @@ internal class Toolbar : IDisposable
 
     private const float SwatchSize = 30.0f;
     private const float SwatchGap = 12.0f;
-    private const float ButtonWidth = 64.0f;
     private const float CheckboxSize = 18.0f;
     private const float MSAAWidth = 72.0f;
+    private const float ButtonWidth = 64.0f;
 
     private static readonly SKColor Panel = new(31, 34, 43);
     private static readonly SKColor Divider = new(48, 52, 63);
@@ -99,11 +99,6 @@ internal class Toolbar : IDisposable
         DrawStatus(canvas, strokeCount, nodeCount);
     }
 
-    public bool IsClearButton(SKPoint position)
-    {
-        return clearRect.Contains(position.X, position.Y);
-    }
-
     public void SelectAt(SKPoint position)
     {
         int swatch = IndexAt(swatchRects, position);
@@ -121,6 +116,11 @@ internal class Toolbar : IDisposable
         {
             MSAA = !MSAA;
         }
+    }
+
+    public bool IsClearButton(SKPoint position)
+    {
+        return clearRect.Contains(position.X, position.Y);
     }
 
     public void Dispose()
