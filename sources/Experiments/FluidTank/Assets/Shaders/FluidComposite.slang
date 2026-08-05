@@ -204,39 +204,38 @@ float3 SceneAt(float2 uv)
     return SceneAt(uv, depth);
 }
 
-bool FrameOccludesFluid(float2 uv, int2 scenePixel, float sceneDepth)
+bool FrameOccludesFluid(FullscreenOutput input, float sceneDepth)
 {
-    if (composite.SceneColor.Load(int3(scenePixel, 0)).a < 0.5)
+    if (composite.SceneColor.Load(int3(int2(input.Position.xy), 0)).a < 0.5)
     {
         return false;
     }
 
-    int2 dimensions = int2(composite.Width, composite.Height);
-    int2 basePixel = int2(floor(uv * float2(dimensions) - 0.5));
-    float closestDepth = 0.0;
+    int2 fluidDimensions = int2(composite.Width, composite.Height);
+    int2 baseFluidPixel = int2(floor(input.UV * float2(fluidDimensions) - 0.5));
+    float closestFluidDepth = 0.0;
 
     for (int y = 0; y < 2; y++)
     {
         for (int x = 0; x < 2; x++)
         {
-            int2 pixel = clamp(basePixel + int2(x, y), int2(0, 0), dimensions - 1);
-            float depth = composite.Attributes.Load(int3(pixel, 0)).w;
+            int2 samplePixel = clamp(baseFluidPixel + int2(x, y), int2(0, 0), fluidDimensions - 1);
+            float sampleDepth = composite.Attributes.Load(int3(samplePixel, 0)).w;
 
-            if (depth > 0.0 && (closestDepth <= 0.0 || depth < closestDepth))
+            if (sampleDepth > 0.0 && (closestFluidDepth <= 0.0 || sampleDepth < closestFluidDepth))
             {
-                closestDepth = depth;
+                closestFluidDepth = sampleDepth;
             }
         }
     }
 
-    return closestDepth <= 0.0 || closestDepth >= sceneDepth;
+    return closestFluidDepth <= 0.0 || closestFluidDepth >= sceneDepth;
 }
 
 float4 ShadeWater(FullscreenOutput input)
 {
     float2 uv = input.UV;
-    int2 scenePixel = int2(input.Position.xy);
-    float sceneDepth = composite.SceneDepth.Load(int3(scenePixel, 0)).r;
+    float sceneDepth = composite.SceneDepth.Load(int3(int2(input.Position.xy), 0)).r;
     float3 scene = SceneAt(uv, sceneDepth);
 
     if (composite.RenderMode == 1)
@@ -251,7 +250,7 @@ float4 ShadeWater(FullscreenOutput input)
         return float4(ToSRGB(ACESFilm(scene)), 1.0);
     }
 
-    if (sceneDepth > 0.0 && (fluidDepth >= sceneDepth || FrameOccludesFluid(uv, scenePixel, sceneDepth)))
+    if (sceneDepth > 0.0 && (fluidDepth >= sceneDepth || FrameOccludesFluid(input, sceneDepth)))
     {
         return float4(ToSRGB(ACESFilm(scene)), 1.0);
     }

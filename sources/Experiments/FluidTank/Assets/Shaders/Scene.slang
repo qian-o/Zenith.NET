@@ -1,5 +1,7 @@
 ﻿#include "SceneCommon.slang"
 
+static const uint FrameMaterialId = 4;
+
 struct SceneConstants
 {
     float4x4 View;
@@ -69,8 +71,6 @@ struct FSOutput
 };
 
 ConstantBuffer<SceneConstants> scene;
-
-static const uint FrameMaterialId = 4;
 
 [shader("vertex")]
 VSOutput VSMain(VSInput input)

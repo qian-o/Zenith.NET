@@ -420,8 +420,8 @@ internal unsafe class FluidTankRenderer : IDisposable
         uint reconstructionWidth = Math.Max((width + 2) / 3, 1u);
         uint reconstructionHeight = Math.Max((height + 2) / 3, 1u);
         reconstructionDepth = GraphicsHelper.CreateTexture(PixelFormat.D32FloatS8UInt, reconstructionWidth, reconstructionHeight, TextureUsages.DepthStencilAttachment);
-        fluidAttributes = GraphicsHelper.CreateTexture(PixelFormat.R32G32B32A32Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.ColorAttachment);
         smoothDepthA = GraphicsHelper.CreateTexture(PixelFormat.R32Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment);
+        fluidAttributes = GraphicsHelper.CreateTexture(PixelFormat.R32G32B32A32Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.ColorAttachment);
         smoothDepthB = GraphicsHelper.CreateTexture(PixelFormat.R32Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage);
         smoothThicknessA = GraphicsHelper.CreateTexture(PixelFormat.R16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment);
         smoothThicknessB = GraphicsHelper.CreateTexture(PixelFormat.R16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage);
