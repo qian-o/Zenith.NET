@@ -110,7 +110,7 @@ internal unsafe class FluidTankRenderer : IDisposable
 
         fluidDepthPipeline = GraphicsHelper.CreateGraphicsPipeline(surfaceVertexShader, "FluidSurface.slang", "DepthFS", [], new()
         {
-            ColorFormats = [PixelFormat.R32Float, PixelFormat.R16G16B16A16Float],
+            ColorFormats = [PixelFormat.R32Float, PixelFormat.R32G32B32A32Float],
             DepthStencilFormat = PixelFormat.D32FloatS8UInt,
             SampleCount = SampleCount.Count1
         }, RasterizerState.CullNone(), DepthStencilState.DepthReadWrite(), BlendState.Opaque(), PrimitiveTopology.TriangleStrip);
@@ -305,7 +305,7 @@ internal unsafe class FluidTankRenderer : IDisposable
 
         commandBuffer.BeginRenderPass(
         [
-            ColorAttachment.Clear(sceneColor, new(0.0f, 0.0f, 0.0f, 1.0f)),
+            ColorAttachment.Clear(sceneColor, Vector4.Zero),
             ColorAttachment.Clear(sceneLinearDepth, Vector4.Zero)
         ], DepthStencilAttachment.Clear(DepthStencil, 1.0f, 0));
         commandBuffer.SetPipeline(scenePipeline);
@@ -420,7 +420,7 @@ internal unsafe class FluidTankRenderer : IDisposable
         uint reconstructionWidth = Math.Max((width + 2) / 3, 1u);
         uint reconstructionHeight = Math.Max((height + 2) / 3, 1u);
         reconstructionDepth = GraphicsHelper.CreateTexture(PixelFormat.D32FloatS8UInt, reconstructionWidth, reconstructionHeight, TextureUsages.DepthStencilAttachment);
-        fluidAttributes = GraphicsHelper.CreateTexture(PixelFormat.R16G16B16A16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.ColorAttachment);
+        fluidAttributes = GraphicsHelper.CreateTexture(PixelFormat.R32G32B32A32Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.ColorAttachment);
         smoothDepthA = GraphicsHelper.CreateTexture(PixelFormat.R32Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment);
         smoothDepthB = GraphicsHelper.CreateTexture(PixelFormat.R32Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage);
         smoothThicknessA = GraphicsHelper.CreateTexture(PixelFormat.R16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment);

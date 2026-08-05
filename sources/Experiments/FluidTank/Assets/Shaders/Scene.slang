@@ -70,6 +70,8 @@ struct FSOutput
 
 ConstantBuffer<SceneConstants> scene;
 
+static const uint FrameMaterialId = 4;
+
 [shader("vertex")]
 VSOutput VSMain(VSInput input)
 {
@@ -115,7 +117,7 @@ FSOutput FSMain(VSOutput input)
     float3 color = diffuse + specular + environment + material.Albedo * material.Emission;
 
     FSOutput output;
-    output.Color = float4(color, 1.0);
+    output.Color = float4(color, input.MaterialId == FrameMaterialId ? 1.0 : 0.0);
     output.LinearDepth = input.ViewDepth;
 
     return output;

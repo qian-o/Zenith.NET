@@ -199,7 +199,7 @@ DepthOutput DepthFS(SurfaceVSOutput input)
 
     DepthOutput output;
     output.LinearDepth = -viewPosition.z;
-    output.Attributes = float4(input.Speed, input.Density, sphereZ, 1.0);
+    output.Attributes = float4(input.Speed, input.Density, sphereZ, output.LinearDepth);
     output.DeviceDepth = clipPosition.z / clipPosition.w;
 
     return output;
