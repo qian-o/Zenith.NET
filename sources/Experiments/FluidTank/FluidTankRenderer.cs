@@ -10,6 +10,7 @@ namespace FluidTank;
 internal enum FluidViewMode
 {
     Water,
+
     Particles
 }
 
@@ -109,7 +110,7 @@ internal unsafe class FluidTankRenderer : IDisposable
 
         fluidDepthPipeline = GraphicsHelper.CreateGraphicsPipeline(surfaceVertexShader, "FluidSurface.slang", "DepthFS", [], new()
         {
-            ColorFormats = [PixelFormat.R32Float, PixelFormat.R16G16B16A16Float],
+            ColorFormats = [PixelFormat.R32Float, PixelFormat.R32G32B32A32Float],
             DepthStencilFormat = PixelFormat.D32FloatS8UInt,
             SampleCount = SampleCount.Count1
         }, RasterizerState.CullNone(), DepthStencilState.DepthReadWrite(), BlendState.Opaque(), PrimitiveTopology.TriangleStrip);
@@ -302,11 +303,7 @@ internal unsafe class FluidTankRenderer : IDisposable
         commandBuffer.Transition(sceneLinearDepth, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
         commandBuffer.Transition(DepthStencil, default, TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
 
-        commandBuffer.BeginRenderPass(
-        [
-            ColorAttachment.Clear(sceneColor, new(0.0f, 0.0f, 0.0f, 1.0f)),
-            ColorAttachment.Clear(sceneLinearDepth, Vector4.Zero)
-        ], DepthStencilAttachment.Clear(DepthStencil, 1.0f, 0));
+        commandBuffer.BeginRenderPass([ColorAttachment.Clear(sceneColor, Vector4.Zero), ColorAttachment.Clear(sceneLinearDepth, Vector4.Zero)], DepthStencilAttachment.Clear(DepthStencil, 1.0f, 0));
         commandBuffer.SetPipeline(scenePipeline);
         commandBuffer.SetVertexBuffer(sceneVertexBuffer, 0, 0);
         commandBuffer.SetIndexBuffer(sceneIndexBuffer, 0, IndexFormat.UInt32);
@@ -339,11 +336,7 @@ internal unsafe class FluidTankRenderer : IDisposable
         commandBuffer.Transition(smoothDepthA, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
         commandBuffer.Transition(fluidAttributes, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
 
-        commandBuffer.BeginRenderPass(
-        [
-            ColorAttachment.Clear(smoothDepthA, Vector4.Zero),
-            ColorAttachment.Clear(fluidAttributes, Vector4.Zero)
-        ], DepthStencilAttachment.Clear(reconstructionDepth, 1.0f, 0));
+        commandBuffer.BeginRenderPass([ColorAttachment.Clear(smoothDepthA, Vector4.Zero), ColorAttachment.Clear(fluidAttributes, Vector4.Zero)], DepthStencilAttachment.Clear(reconstructionDepth, 1.0f, 0));
         commandBuffer.SetPipeline(fluidDepthPipeline);
         commandBuffer.SetConstantBuffer(surfaceConstantBuffer, 0);
         commandBuffer.Draw(4, simulation.ParticleCount, 0, 0);
@@ -423,14 +416,12 @@ internal unsafe class FluidTankRenderer : IDisposable
         uint reconstructionWidth = Math.Max((width + 2) / 3, 1u);
         uint reconstructionHeight = Math.Max((height + 2) / 3, 1u);
         reconstructionDepth = GraphicsHelper.CreateTexture(PixelFormat.D32FloatS8UInt, reconstructionWidth, reconstructionHeight, TextureUsages.DepthStencilAttachment);
-        fluidAttributes = GraphicsHelper.CreateTexture(PixelFormat.R16G16B16A16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.ColorAttachment);
         smoothDepthA = GraphicsHelper.CreateTexture(PixelFormat.R32Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment);
+        fluidAttributes = GraphicsHelper.CreateTexture(PixelFormat.R32G32B32A32Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.ColorAttachment);
         smoothDepthB = GraphicsHelper.CreateTexture(PixelFormat.R32Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage);
         smoothThicknessA = GraphicsHelper.CreateTexture(PixelFormat.R16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.ColorAttachment);
         smoothThicknessB = GraphicsHelper.CreateTexture(PixelFormat.R16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage);
-        reflection = App.Context.Capabilities.RayTracingSupported
-            ? GraphicsHelper.CreateTexture(PixelFormat.R16G16B16A16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage)
-            : null;
+        reflection = App.Context.Capabilities.RayTracingSupported ? GraphicsHelper.CreateTexture(PixelFormat.R16G16B16A16Float, reconstructionWidth, reconstructionHeight, TextureUsages.Sampled | TextureUsages.Storage) : null;
     }
 
     public void Dispose()

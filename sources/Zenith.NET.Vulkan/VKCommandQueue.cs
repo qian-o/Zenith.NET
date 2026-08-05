@@ -22,7 +22,12 @@ internal unsafe class VKCommandQueue : CommandQueue
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.VulkanQueue => Queue.Handle,
+            NativeObjectType.VulkanQueueFamilyIndex => (nint)QueueFamilyIndex,
+            _ => default
+        };
     }
 
     protected override CommandBuffer CreateCommandBuffer()

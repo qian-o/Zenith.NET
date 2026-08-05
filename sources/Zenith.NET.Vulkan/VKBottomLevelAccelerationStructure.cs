@@ -83,7 +83,12 @@ internal unsafe class VKBottomLevelAccelerationStructure : BottomLevelAccelerati
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.VulkanAccelerationStructure => (nint)AccelerationStructure.Handle,
+            NativeObjectType.VulkanDeviceAddress => (nint)DeviceAddress,
+            _ => default
+        };
     }
 
     protected override void SetResourceName(string name)

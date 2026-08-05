@@ -25,7 +25,11 @@ internal unsafe class VKHeap : Heap
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.VulkanDeviceMemory => (nint)DeviceMemory.Handle,
+            _ => default
+        };
     }
 
     protected override Buffer CreateBufferImpl(ulong offsetInBytes, BufferDesc desc)

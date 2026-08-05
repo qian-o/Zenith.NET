@@ -129,7 +129,15 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.VulkanDevice => Device.Handle,
+            NativeObjectType.VulkanGetDeviceProcAddr => Vk.GetInstanceProcAddr(Instance, "vkGetDeviceProcAddr"),
+            NativeObjectType.VulkanGetInstanceProcAddr => Vk.GetInstanceProcAddr(default, "vkGetInstanceProcAddr"),
+            NativeObjectType.VulkanInstance => Instance.Handle,
+            NativeObjectType.VulkanPhysicalDevice => PhysicalDevice.Handle,
+            _ => default
+        };
     }
 
     protected override void Initialize(bool useValidationLayer,

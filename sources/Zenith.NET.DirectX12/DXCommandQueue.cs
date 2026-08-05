@@ -22,7 +22,11 @@ internal unsafe class DXCommandQueue : CommandQueue
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.D3D12CommandQueue => (nint)CommandQueue.Handle,
+            _ => default
+        };
     }
 
     protected override CommandBuffer CreateCommandBuffer()

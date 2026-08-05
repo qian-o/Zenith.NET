@@ -89,7 +89,12 @@ internal unsafe class DXBuffer : Buffer
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.D3D12GpuVirtualAddress => (nint)GPUVirtualAddress,
+            NativeObjectType.D3D12Resource => (nint)Resource.Handle,
+            _ => default
+        };
     }
 
     public override nint Map()

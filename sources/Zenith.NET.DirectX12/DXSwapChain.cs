@@ -112,7 +112,7 @@ internal unsafe class DXSwapChain : SwapChain
             ComPtr<ID3D12Resource> resource = new();
             SwapChain.GetBuffer((uint)i, SilkMarshal.GuidPtrOf<ID3D12Resource>(), (void**)resource.GetAddressOf()).Success();
 
-            textures[i] = new(Context, desc, resource);
+            textures[i] = new(Context, desc, resource, true);
         }
 
         index = SwapChain.GetCurrentBackBufferIndex();

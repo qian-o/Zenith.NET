@@ -15,6 +15,8 @@ internal unsafe partial class Surface : DisposableObject
     [LibraryImport("kernel32")]
     private static partial int CloseHandle(nint hObject);
 
+    public ComPtr<ID3D11Query> Query = new();
+
     public ComPtr<IDirect3DTexture9> D3D9RenderTarget = new();
 
     public ComPtr<IDirect3DSurface9> D3D9RenderSurface = new();
@@ -31,6 +33,9 @@ internal unsafe partial class Surface : DisposableObject
 
     public Surface(GraphicsContext graphicsContext, uint width, uint height)
     {
+        QueryDesc queryDesc = new();
+        D3D.Success(D3D.D3D11Device.CreateQuery(&queryDesc, Query.GetAddressOf()));
+
         void* sharedHandle = null;
         D3D.Success(D3D.D3D9DeviceEx.CreateTexture(width,
                                                    height,
@@ -104,7 +109,12 @@ internal unsafe partial class Surface : DisposableObject
         AcquireSync();
 
         D3D.D3D11DeviceContext.CopyResource((ID3D11Resource*)D3D9SharedTexture.Handle, (ID3D11Resource*)D3D11RenderTarget.Handle);
-        D3D.D3D11DeviceContext.Flush();
+        D3D.D3D11DeviceContext.End(Query);
+
+        while (D3D.D3D11DeviceContext.GetData(Query, default, 0, 0) is 1)
+        {
+            Thread.Yield();
+        }
 
         ReleaseSync();
 
@@ -126,6 +136,7 @@ internal unsafe partial class Surface : DisposableObject
         D3D9SharedTexture.Dispose();
         D3D9RenderSurface.Dispose();
         D3D9RenderTarget.Dispose();
+        Query.Dispose();
     }
 
     private static DXGIFormat DrawableFormat()

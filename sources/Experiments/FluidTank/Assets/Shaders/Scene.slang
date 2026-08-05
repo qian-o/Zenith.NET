@@ -1,5 +1,7 @@
 ﻿#include "SceneCommon.slang"
 
+static const uint FrameMaterialId = 4;
+
 struct SceneConstants
 {
     float4x4 View;
@@ -115,7 +117,7 @@ FSOutput FSMain(VSOutput input)
     float3 color = diffuse + specular + environment + material.Albedo * material.Emission;
 
     FSOutput output;
-    output.Color = float4(color, 1.0);
+    output.Color = float4(color, input.MaterialId == FrameMaterialId ? 1.0 : 0.0);
     output.LinearDepth = input.ViewDepth;
 
     return output;

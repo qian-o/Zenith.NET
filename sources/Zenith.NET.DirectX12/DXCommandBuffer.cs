@@ -21,7 +21,11 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.D3D12GraphicsCommandList => (nint)CommandList.Handle,
+            _ => default
+        };
     }
 
     protected override void BarrierImpl(BarrierStages before, BarrierStages after)
@@ -50,6 +54,11 @@ internal unsafe class DXCommandBuffer : CommandBuffer
     protected override void TransitionImpl(Texture texture, TextureSubresource subresource, TextureLayout before, TextureLayout after)
     {
         DXTexture dxTexture = texture.DirectX12();
+
+        if (!dxTexture.CanTransition)
+        {
+            return;
+        }
 
         (BarrierSync syncBefore, BarrierAccess accessBefore, BarrierLayout layoutBefore) = DXFormats.DirectX12(before);
         (BarrierSync syncAfter, BarrierAccess accessAfter, BarrierLayout layoutAfter) = DXFormats.DirectX12(after);
@@ -276,12 +285,12 @@ internal unsafe class DXCommandBuffer : CommandBuffer
                     Type = DXFormats.DirectX12(attachment.DepthLoadOp),
                     Clear = new() { ClearValue = clearValue }
                 },
-                DepthEndingAccess = new() { Type = ZenithHelper.HasDepth(texture.Desc.Format) ? DXFormats.DirectX12(attachment.DepthStoreOp) : RenderPassEndingAccessType.NoAccess },
                 StencilBeginningAccess = new()
                 {
                     Type = ZenithHelper.HasStencil(texture.Desc.Format) ? DXFormats.DirectX12(attachment.StencilLoadOp) : RenderPassBeginningAccessType.NoAccess,
                     Clear = new() { ClearValue = clearValue }
                 },
+                DepthEndingAccess = new() { Type = ZenithHelper.HasDepth(texture.Desc.Format) ? DXFormats.DirectX12(attachment.DepthStoreOp) : RenderPassEndingAccessType.NoAccess },
                 StencilEndingAccess = new() { Type = ZenithHelper.HasStencil(texture.Desc.Format) ? DXFormats.DirectX12(attachment.StencilStoreOp) : RenderPassEndingAccessType.NoAccess }
             };
         }

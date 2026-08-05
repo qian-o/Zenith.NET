@@ -78,7 +78,13 @@ internal unsafe class VKTexture : Texture
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.VulkanDeviceMemory => (nint)Allocation.DeviceMemory.Handle,
+            NativeObjectType.VulkanDeviceMemoryOffset => (nint)Allocation.OffsetInBytes,
+            NativeObjectType.VulkanImage => (nint)Image.Handle,
+            _ => default
+        };
     }
 
     public ImageView GetAttachmentView(TextureSubresource subresource)

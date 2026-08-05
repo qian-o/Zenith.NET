@@ -44,9 +44,9 @@ internal static class App
 
         window = Window.Create(WindowOptions.Default with
         {
+            Size = new(1280, 720),
             API = GraphicsAPI.None,
-            Title = "Fluid Tank - Zenith.NET",
-            Size = new(1280, 720)
+            Title = "Fluid Tank - Zenith.NET"
         });
         window.Initialize();
         window.Center();
@@ -86,10 +86,10 @@ internal static class App
 
         camera = new(input, new(9.2f, 5.3f, -10.8f), new(0.0f, 1.45f, 0.0f))
         {
-            Speed = 4.0f,
             NearPlane = 0.05f,
             FarPlane = 80.0f,
-            Fov = 48.0f
+            Fov = 48.0f,
+            Speed = 4.0f
         };
 
         renderer = new();

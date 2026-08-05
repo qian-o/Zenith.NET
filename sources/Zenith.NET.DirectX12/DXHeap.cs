@@ -60,7 +60,7 @@ internal unsafe class DXHeap : Heap
                                              SilkMarshal.GuidPtrOf<ID3D12Resource>(),
                                              (void**)resource.GetAddressOf()).Success();
 
-        return new DXTexture(Context, desc, resource);
+        return new DXTexture(Context, desc, resource, true);
     }
 
     protected override void SetResourceName(string name)

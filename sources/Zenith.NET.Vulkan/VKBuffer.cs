@@ -152,7 +152,14 @@ internal unsafe class VKBuffer : Buffer
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.VulkanBuffer => (nint)Buffer.Handle,
+            NativeObjectType.VulkanDeviceAddress => (nint)DeviceAddress,
+            NativeObjectType.VulkanDeviceMemory => (nint)Allocation.DeviceMemory.Handle,
+            NativeObjectType.VulkanDeviceMemoryOffset => (nint)Allocation.OffsetInBytes,
+            _ => default
+        };
     }
 
     public override nint Map()
