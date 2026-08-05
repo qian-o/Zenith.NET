@@ -108,7 +108,6 @@ internal unsafe partial class Surface : DisposableObject
 
         AcquireSync();
 
-        D3D.D3D11DeviceContext.Begin(Query);
         D3D.D3D11DeviceContext.CopyResource((ID3D11Resource*)D3D9SharedTexture.Handle, (ID3D11Resource*)D3D11RenderTarget.Handle);
         D3D.D3D11DeviceContext.End(Query);
 
