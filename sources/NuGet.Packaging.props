@@ -7,7 +7,7 @@
         <PackageOutputPath>$(MSBuildThisFileDirectory)..\.nuget</PackageOutputPath>
 
         <!-- Package Metadata -->
-        <Version>1.0.0-rc</Version>
+        <Version>1.0.0</Version>
         <Authors>qian-o</Authors>
         <Copyright>Copyright (c) 2026 qian-o</Copyright>
         <Description>Zenith.NET is a modern rendering hardware interface for .NET with one consistent C# API for graphics and compute across DirectX 12, Metal 4, and Vulkan 1.4.</Description>
