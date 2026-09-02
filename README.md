@@ -68,6 +68,7 @@ Continue with the [RHI Guide](https://qian-o.github.io/Zenith.NET/docs/) or buil
 [![ImageSharp](https://img.shields.io/nuget/v/Zenith.NET.Extensions.ImageSharp.svg?label=ImageSharp&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Extensions.ImageSharp)
 [![ImGui](https://img.shields.io/nuget/v/Zenith.NET.Extensions.ImGui.svg?label=ImGui&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Extensions.ImGui)
 [![Skia](https://img.shields.io/nuget/v/Zenith.NET.Extensions.Skia.svg?label=Skia&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Extensions.Skia)
+[![Upscaling](https://img.shields.io/nuget/v/Zenith.NET.Extensions.Upscaling.svg?label=Upscaling&style=flat-square)](https://www.nuget.org/packages/Zenith.NET.Extensions.Upscaling)
 
 ### Views
 

@@ -297,7 +297,7 @@ internal unsafe class FluidTankRenderer : IDisposable
         return simulationReady;
     }
 
-    public void RenderScene(CommandBuffer commandBuffer)
+    public void Render(CommandBuffer commandBuffer)
     {
         commandBuffer.Transition(sceneColor, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
         commandBuffer.Transition(sceneLinearDepth, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
@@ -313,10 +313,7 @@ internal unsafe class FluidTankRenderer : IDisposable
 
         commandBuffer.Transition(sceneColor, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
         commandBuffer.Transition(sceneLinearDepth, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
-    }
 
-    public void RenderFluid(CommandBuffer commandBuffer)
-    {
         if (ViewMode is FluidViewMode.Particles)
         {
             RenderParticles(commandBuffer);

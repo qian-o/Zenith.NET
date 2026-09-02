@@ -42,13 +42,15 @@ public class SKTexture : DisposableObject
         using GRBackendTexture backendTexture = renderer.CreateBackendTexture(texture, desc.IsMultisamplingEnabled);
 
         surface = SKSurface.Create(renderer.GRContext, backendTexture, GRSurfaceOrigin.TopLeft, desc.IsMultisamplingEnabled ? 4 : 1, SKFormats.Skia(desc.Format));
+
+        Desc = desc;
     }
 
-    internal SKRenderer Renderer { get; }
-
-    public ref readonly TextureDesc Desc => ref texture.Desc;
+    public SKTextureDesc Desc { get; }
 
     public TextureLayout RequiredLayout { get; }
+
+    internal SKRenderer Renderer { get; }
 
     public void Render(Action<SKCanvas> render)
     {

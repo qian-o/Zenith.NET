@@ -362,9 +362,6 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     protected override void SetConstantBufferImpl(Pipeline pipeline, Buffer buffer, uint offsetInBytes)
     {
         ArgumentTable.SetAddress(buffer.Metal().Buffer.GpuAddress + offsetInBytes, 0);
-
-        Render?.SetArgumentTable(ArgumentTable, MTLRenderStages.Vertex | MTLRenderStages.Fragment | MTLRenderStages.Object | MTLRenderStages.Mesh);
-        Compute?.SetArgumentTable(ArgumentTable);
     }
 
     protected override void DrawImpl(GraphicsPipeline pipeline, uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)

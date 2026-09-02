@@ -73,8 +73,8 @@ internal class MTLTexture : Texture
             Depth = desc.Depth,
             MipmapLevelCount = desc.MipLevels,
             SampleCount = MTLFormats.Metal(desc.SampleCount),
-            ArrayLength = desc.ArrayLayers,
-            ResourceOptions = MTLResourceOptions.CPUCacheModeDefaultCache | MTLResourceOptions.StorageModePrivate | MTLResourceOptions.HazardTrackingModeUntracked,
+            ArrayLength = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? desc.ArrayLayers / 6 : desc.ArrayLayers,
+            ResourceOptions = MTLResourceOptions.StorageModePrivate | MTLResourceOptions.HazardTrackingModeUntracked,
             Usage = MTLFormats.Metal(desc.Usages),
             AllowGPUOptimizedContents = true
         };

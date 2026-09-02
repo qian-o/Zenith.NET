@@ -13,12 +13,7 @@ internal static class FluidTankGeometry
         AddBox(verticesList, indicesList, new(-6.25f, -0.28f, -3.25f), new(6.25f, 0.0f, 3.25f), 0);
         AddBox(verticesList, indicesList, new(-2.17f, 0.0f, 0.23f), new(-0.73f, 1.64f, 1.67f), 1);
         AddCylinder(verticesList, indicesList, new(1.15f, 0.0f, -0.85f), 0.62f, 1.84f, 32, 2);
-        AddTransformedBox(verticesList,
-                          indicesList,
-                          new(3.45f, 0.62f, 0.55f),
-                          new(1.15f, 0.16f, 1.05f),
-                          Matrix4x4.CreateRotationZ(-0.35f),
-                          3);
+        AddTransformedBox(verticesList, indicesList, new(3.45f, 0.62f, 0.55f), new(1.15f, 0.16f, 1.05f), Matrix4x4.CreateRotationZ(-0.35f), 3);
 
         const float frameWidth = 0.075f;
 

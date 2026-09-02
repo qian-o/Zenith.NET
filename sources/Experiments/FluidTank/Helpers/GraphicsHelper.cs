@@ -5,11 +5,6 @@ namespace FluidTank.Helpers;
 
 internal static unsafe class GraphicsHelper
 {
-    public static string ShaderPath(params string[] paths)
-    {
-        return Path.Combine([AppContext.BaseDirectory, "Assets", "Shaders", .. paths]);
-    }
-
     public static Buffer CreateBuffer(uint count, uint strideInBytes, BufferUsages usages)
     {
         return App.Context.CreateBuffer(new()
@@ -70,7 +65,7 @@ internal static unsafe class GraphicsHelper
 
     public static Shader LoadShader(string file, string entryPoint)
     {
-        return App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath(file), entryPoint));
+        return App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine([AppContext.BaseDirectory, "Assets", "Shaders", file]), entryPoint));
     }
 
     public static GraphicsPipeline CreateGraphicsPipeline(string file,

@@ -34,11 +34,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return type switch
-        {
-            NativeObjectType.VulkanCommandBuffer => CommandBuffer.Handle,
-            _ => default
-        };
+        return 0;
     }
 
     protected override void BarrierImpl(BarrierStages before, BarrierStages after)
@@ -349,8 +345,6 @@ internal unsafe class VKCommandBuffer : CommandBuffer
     {
         uint width = 0;
         uint height = 0;
-        bool hasDepth = false;
-        bool hasStencil = false;
 
         RenderingAttachmentInfo* pColorAttachments = stackalloc RenderingAttachmentInfo[colorAttachments.Length];
         for (int i = 0; i < colorAttachments.Length; i++)
@@ -391,7 +385,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
             ZenithHelper.MipDimensions(texture.Desc.Width, texture.Desc.Height, texture.Desc.Depth, attachment.Subresource.MipLevel, out width, out height, out _);
 
-            if (hasDepth = ZenithHelper.HasDepth(texture.Desc.Format))
+            if (ZenithHelper.HasDepth(texture.Desc.Format))
             {
                 pDepthAttachment[0] = new()
                 {
@@ -410,8 +404,12 @@ internal unsafe class VKCommandBuffer : CommandBuffer
                     }
                 };
             }
+            else
+            {
+                pDepthAttachment = null;
+            }
 
-            if (hasStencil = ZenithHelper.HasStencil(texture.Desc.Format))
+            if (ZenithHelper.HasStencil(texture.Desc.Format))
             {
                 pStencilAttachment[0] = new()
                 {
@@ -429,6 +427,10 @@ internal unsafe class VKCommandBuffer : CommandBuffer
                         }
                     }
                 };
+            }
+            else
+            {
+                pStencilAttachment = null;
             }
         }
 

@@ -40,7 +40,11 @@ internal class MTLBuffer : Buffer
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.MTLBuffer => Buffer.NativePtr,
+            _ => default
+        };
     }
 
     public override nint Map()

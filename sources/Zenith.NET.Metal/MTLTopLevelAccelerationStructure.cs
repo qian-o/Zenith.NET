@@ -54,7 +54,11 @@ internal unsafe class MTLTopLevelAccelerationStructure : TopLevelAccelerationStr
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.MTLAccelerationStructure => AccelerationStructure.NativePtr,
+            _ => default
+        };
     }
 
     protected override void SetResourceName(string name)

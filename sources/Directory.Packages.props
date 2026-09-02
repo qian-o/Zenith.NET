@@ -8,9 +8,9 @@
         <PackageVersion Include="Avalonia" Version="12.1.1" />
         <PackageVersion Include="Hexa.NET.ImGui" Version="2.2.9" />
         <PackageVersion Include="Metal.NET" Version="2.4.0" />
-        <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.90" />
-        <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.3.1" />
-        <PackageVersion Include="Roslynator.Analyzers" Version="4.15.0" />
+        <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.100" />
+        <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
+        <PackageVersion Include="Roslynator.Analyzers" Version="5.0.0" />
         <PackageVersion Include="Silk.NET.Direct3D11" Version="2.23.0" />
         <PackageVersion Include="Silk.NET.Direct3D12" Version="2.23.0" />
         <PackageVersion Include="Silk.NET.Direct3D9" Version="2.23.0" />
@@ -18,9 +18,9 @@
         <PackageVersion Include="Silk.NET.Vulkan.Extensions.ANDROID" Version="2.23.0" />
         <PackageVersion Include="Silk.NET.Vulkan.Extensions.EXT" Version="2.23.0" />
         <PackageVersion Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.23.0" />
-        <PackageVersion Include="SixLabors.ImageSharp" Version="4.0.0" />
-        <PackageVersion Include="SkiaSharp" Version="4.151.0" />
-        <PackageVersion Include="Slangc.NET" Version="2026.14.1" />
+        <PackageVersion Include="SixLabors.ImageSharp" Version="4.1.1" />
+        <PackageVersion Include="SkiaSharp" Version="4.151.1" />
+        <PackageVersion Include="Slangc.NET" Version="2026.16.0" />
         <PackageVersion Include="Uno.WinUI" Version="6.6.184" />
     </ItemGroup>
 

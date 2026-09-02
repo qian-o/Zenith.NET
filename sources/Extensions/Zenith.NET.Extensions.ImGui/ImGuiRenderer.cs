@@ -61,7 +61,7 @@ VSOutput VSMain(VSInput input)
 [shader("fragment")]
 float4 FSMain(VSOutput input) : SV_TARGET
 {
-    return input.Color * (*constants.Texture).Sample(*constants.Sampler, input.UV);
+    return input.Color * constants.Texture.Sample(constants.Sampler, input.UV);
 }
 """;
 

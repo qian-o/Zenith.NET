@@ -64,12 +64,7 @@ internal static class App
         }
         else
         {
-            if (window.Native?.X11 is not { } x11)
-            {
-                throw new PlatformNotSupportedException("FluidTank requires an X11 or XWayland window on Linux.");
-            }
-
-            surface = Surface.Xlib(x11.Display, (nint)x11.Window, Width, Height);
+            surface = Surface.Xlib(window.Native!.X11!.Value.Display, (nint)window.Native.X11.Value.Window, Width, Height);
         }
 
         swapChain = Context.CreateSwapChain(new()
@@ -242,15 +237,12 @@ internal static class App
 
             TimelineValue simulationReady = renderer.Simulate();
 
-            CommandBuffer sceneCommandBuffer = Context.GraphicsQueue.CommandBuffer();
-            renderer.RenderScene(sceneCommandBuffer);
-            sceneCommandBuffer.Submit();
-
             CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
-            renderer.RenderFluid(commandBuffer);
+
+            renderer.Render(commandBuffer);
 
             commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-            imGui.Render(commandBuffer, ColorAttachment.DontCare(swapChain.Drawable));
+            imGui.Render(commandBuffer, ColorAttachment.Clear(swapChain.Drawable, default));
             commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
 
             commandBuffer.Submit(simulationReady).Wait();

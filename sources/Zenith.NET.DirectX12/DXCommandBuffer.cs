@@ -21,11 +21,7 @@ internal unsafe class DXCommandBuffer : CommandBuffer
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return type switch
-        {
-            NativeObjectType.D3D12GraphicsCommandList => (nint)CommandList.Handle,
-            _ => default
-        };
+        return 0;
     }
 
     protected override void BarrierImpl(BarrierStages before, BarrierStages after)
