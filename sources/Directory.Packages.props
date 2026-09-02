@@ -20,8 +20,8 @@
         <PackageVersion Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.23.0" />
         <PackageVersion Include="SixLabors.ImageSharp" Version="4.1.1" />
         <PackageVersion Include="SkiaSharp" Version="4.151.1" />
-        <PackageVersion Include="Slangc.NET" Version="2026.16.0" />
-        <PackageVersion Include="Uno.WinUI" Version="6.6.184" />
+        <PackageVersion Include="Slangc.NET" Version="2026.16.1" />
+        <PackageVersion Include="Uno.WinUI" Version="6.7.65" />
     </ItemGroup>
 
 </Project>
