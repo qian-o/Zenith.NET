@@ -2,8 +2,8 @@
 
 internal partial class ImGuiRenderer
 {
-    #region DirectX12LegacyVertex
-    private static readonly ShaderDesc DirectX12LegacyVertex = new()
+    #region DirectX12LegacyVSMain
+    private static readonly ShaderDesc DirectX12LegacyVSMain = new()
     {
         Name = "VSMain",
         CodeBytes =
@@ -310,8 +310,8 @@ internal partial class ImGuiRenderer
     };
     #endregion
 
-    #region DirectX12LegacyFragment
-    private static readonly ShaderDesc DirectX12LegacyFragment = new()
+    #region DirectX12LegacyFSMain
+    private static readonly ShaderDesc DirectX12LegacyFSMain = new()
     {
         Name = "FSMain",
         CodeBytes =
@@ -606,8 +606,8 @@ internal partial class ImGuiRenderer
     };
     #endregion
 
-    #region DirectX12LinearVertex
-    private static readonly ShaderDesc DirectX12LinearVertex = new()
+    #region DirectX12LinearVSMain
+    private static readonly ShaderDesc DirectX12LinearVSMain = new()
     {
         Name = "VSMain",
         CodeBytes =
@@ -920,8 +920,8 @@ internal partial class ImGuiRenderer
     };
     #endregion
 
-    #region DirectX12LinearFragment
-    private static readonly ShaderDesc DirectX12LinearFragment = new()
+    #region DirectX12LinearFSMain
+    private static readonly ShaderDesc DirectX12LinearFSMain = new()
     {
         Name = "FSMain",
         CodeBytes =
@@ -1216,8 +1216,8 @@ internal partial class ImGuiRenderer
     };
     #endregion
 
-    #region MetalLegacyVertex
-    private static readonly ShaderDesc MetalLegacyVertex = new()
+    #region MetalLegacyVSMain
+    private static readonly ShaderDesc MetalLegacyVSMain = new()
     {
         Name = "VSMain",
         CodeBytes =
@@ -1570,8 +1570,8 @@ internal partial class ImGuiRenderer
     };
     #endregion
 
-    #region MetalLegacyFragment
-    private static readonly ShaderDesc MetalLegacyFragment = new()
+    #region MetalLegacyFSMain
+    private static readonly ShaderDesc MetalLegacyFSMain = new()
     {
         Name = "FSMain",
         CodeBytes =
@@ -1927,8 +1927,8 @@ internal partial class ImGuiRenderer
     };
     #endregion
 
-    #region MetalLinearVertex
-    private static readonly ShaderDesc MetalLinearVertex = new()
+    #region MetalLinearVSMain
+    private static readonly ShaderDesc MetalLinearVSMain = new()
     {
         Name = "VSMain",
         CodeBytes =
@@ -2288,8 +2288,8 @@ internal partial class ImGuiRenderer
     };
     #endregion
 
-    #region MetalLinearFragment
-    private static readonly ShaderDesc MetalLinearFragment = new()
+    #region MetalLinearFSMain
+    private static readonly ShaderDesc MetalLinearFSMain = new()
     {
         Name = "FSMain",
         CodeBytes =
@@ -2645,8 +2645,8 @@ internal partial class ImGuiRenderer
     };
     #endregion
 
-    #region VulkanLegacyVertex
-    private static readonly ShaderDesc VulkanLegacyVertex = new()
+    #region VulkanLegacyVSMain
+    private static readonly ShaderDesc VulkanLegacyVSMain = new()
     {
         Name = "VSMain",
         CodeBytes =
@@ -2737,8 +2737,8 @@ internal partial class ImGuiRenderer
     };
     #endregion
 
-    #region VulkanLegacyFragment
-    private static readonly ShaderDesc VulkanLegacyFragment = new()
+    #region VulkanLegacyFSMain
+    private static readonly ShaderDesc VulkanLegacyFSMain = new()
     {
         Name = "FSMain",
         CodeBytes =
@@ -2849,8 +2849,8 @@ internal partial class ImGuiRenderer
     };
     #endregion
 
-    #region VulkanLinearVertex
-    private static readonly ShaderDesc VulkanLinearVertex = new()
+    #region VulkanLinearVSMain
+    private static readonly ShaderDesc VulkanLinearVSMain = new()
     {
         Name = "VSMain",
         CodeBytes =
@@ -2964,8 +2964,8 @@ internal partial class ImGuiRenderer
     };
     #endregion
 
-    #region VulkanLinearFragment
-    private static readonly ShaderDesc VulkanLinearFragment = new()
+    #region VulkanLinearFSMain
+    private static readonly ShaderDesc VulkanLinearFSMain = new()
     {
         Name = "FSMain",
         CodeBytes =

@@ -10,6 +10,7 @@ const string ClassName = "ImGuiRenderer";
 const string SourceFileName = "ImGui.slang";
 const string GeneratedFileName = "ImGuiRenderer.g.cs";
 const int BytesPerLine = 16;
+const string LineEnding = "\r\n";
 
 GraphicsApi[] graphicsApis =
 [
@@ -25,10 +26,10 @@ string source = File.ReadAllText(sourcePath);
 
 ShaderDefinition[] shaders =
 [
-    new("LegacyVertex", "VSMain", "0"),
-    new("LegacyFragment", "FSMain", "0"),
-    new("LinearVertex", "VSMain", "1"),
-    new("LinearFragment", "FSMain", "1")
+    new("Legacy", "VSMain", "0"),
+    new("Legacy", "FSMain", "0"),
+    new("Linear", "VSMain", "1"),
+    new("Linear", "FSMain", "1")
 ];
 
 string[] regionNames = [.. GetRegionNames(graphicsApis, shaders)];
@@ -38,7 +39,7 @@ foreach (GraphicsApi graphicsApi in graphicsApis)
 {
     foreach (ShaderDefinition shader in shaders)
     {
-        string regionName = $"{graphicsApi}{shader.Suffix}";
+        string regionName = $"{graphicsApi}{shader.ModeName}{shader.EntryPoint}";
         text = CompileShader(text, source, graphicsApi, shader, regionName);
     }
 }
@@ -53,12 +54,12 @@ static string CompileShader(string text, string source, GraphicsApi graphicsApi,
     {
         ShaderDesc shaderDesc = ZenithCompiler.CompileFromSource(graphicsApi, variantSource, shader.EntryPoint);
         string compiledText = ReplaceRegion(text, regionName, FormatShaderDesc(regionName, shaderDesc));
-        Console.WriteLine($"compiled {shader.Suffix} {graphicsApi} ({shaderDesc.CodeBytes.Length} bytes)");
+        Console.WriteLine($"compiled {shader.ModeName}{shader.EntryPoint} {graphicsApi} ({shaderDesc.CodeBytes.Length} bytes)");
         return compiledText;
     }
     catch (Exception exception)
     {
-        Console.WriteLine($"skip {shader.Suffix} {graphicsApi}: {exception.Message}");
+        Console.WriteLine($"skip {shader.ModeName}{shader.EntryPoint} {graphicsApi}: {exception.Message}");
         return text;
     }
 }
@@ -80,7 +81,7 @@ static IEnumerable<string> GetRegionNames(GraphicsApi[] graphicsApis, ShaderDefi
     {
         foreach (ShaderDefinition shader in shaders)
         {
-            yield return $"{graphicsApi}{shader.Suffix}";
+            yield return $"{graphicsApi}{shader.ModeName}{shader.EntryPoint}";
         }
     }
 }
@@ -103,7 +104,7 @@ static string CreateSkeleton(GraphicsApi[] graphicsApis, ShaderDefinition[] shad
                 builder.AppendLine();
             }
 
-            string regionName = $"{graphicsApi}{shader.Suffix}";
+            string regionName = $"{graphicsApi}{shader.ModeName}{shader.EntryPoint}";
             ShaderDesc emptyShader = CreateEmptyShader(shader.EntryPoint);
             builder.AppendLine(FormatRegion(regionName, FormatShaderDesc(regionName, emptyShader)));
             regionIndex++;
@@ -121,7 +122,7 @@ static string EnsureRegions(string text, GraphicsApi[] graphicsApis, ShaderDefin
     {
         foreach (ShaderDefinition shader in shaders)
         {
-            string regionName = $"{graphicsApi}{shader.Suffix}";
+            string regionName = $"{graphicsApi}{shader.ModeName}{shader.EntryPoint}";
             if (!FindRegion(text, regionName, out _, out _))
             {
                 text = InsertRegion(text, regionName, shader.EntryPoint, regionNames, regionIndex);
@@ -220,8 +221,8 @@ static string NormalizeGeneratedText(string text)
 
 static void WriteGeneratedFile(string path, string text)
 {
-    string normalizedText = NormalizeGeneratedText(text);
-    File.WriteAllText(path, $"{normalizedText}\n", new UTF8Encoding(true));
+    string normalizedText = NormalizeGeneratedText(text).Replace("\n", LineEnding, StringComparison.Ordinal);
+    File.WriteAllText(path, $"{normalizedText}{LineEnding}", new UTF8Encoding(true));
     Console.WriteLine($"wrote {path}");
 }
 
@@ -290,9 +291,9 @@ static string GetShadersDirectory([CallerFilePath] string filePath = "")
     return Path.GetDirectoryName(filePath) ?? Directory.GetCurrentDirectory();
 }
 
-file readonly struct ShaderDefinition(string suffix, string entryPoint, string colorSpace)
+file readonly struct ShaderDefinition(string modeName, string entryPoint, string colorSpace)
 {
-    public readonly string Suffix = suffix;
+    public readonly string ModeName = modeName;
 
     public readonly string EntryPoint = entryPoint;
 

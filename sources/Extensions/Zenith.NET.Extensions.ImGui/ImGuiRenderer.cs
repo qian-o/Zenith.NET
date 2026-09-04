@@ -24,16 +24,16 @@ internal unsafe partial class ImGuiRenderer : DisposableObject
 
         using Shader vertex = context.CreateShader(context.GraphicsApi switch
         {
-            GraphicsApi.DirectX12 => colorSpace is ImGuiColorSpace.Legacy ? DirectX12LegacyVertex : DirectX12LinearVertex,
-            GraphicsApi.Metal => colorSpace is ImGuiColorSpace.Legacy ? MetalLegacyVertex : MetalLinearVertex,
-            GraphicsApi.Vulkan => colorSpace is ImGuiColorSpace.Legacy ? VulkanLegacyVertex : VulkanLinearVertex,
+            GraphicsApi.DirectX12 => colorSpace is ImGuiColorSpace.Legacy ? DirectX12LegacyVSMain : DirectX12LinearVSMain,
+            GraphicsApi.Metal => colorSpace is ImGuiColorSpace.Legacy ? MetalLegacyVSMain : MetalLinearVSMain,
+            GraphicsApi.Vulkan => colorSpace is ImGuiColorSpace.Legacy ? VulkanLegacyVSMain : VulkanLinearVSMain,
             _ => default
         });
         using Shader fragment = context.CreateShader(context.GraphicsApi switch
         {
-            GraphicsApi.DirectX12 => colorSpace is ImGuiColorSpace.Legacy ? DirectX12LegacyFragment : DirectX12LinearFragment,
-            GraphicsApi.Metal => colorSpace is ImGuiColorSpace.Legacy ? MetalLegacyFragment : MetalLinearFragment,
-            GraphicsApi.Vulkan => colorSpace is ImGuiColorSpace.Legacy ? VulkanLegacyFragment : VulkanLinearFragment,
+            GraphicsApi.DirectX12 => colorSpace is ImGuiColorSpace.Legacy ? DirectX12LegacyFSMain : DirectX12LinearFSMain,
+            GraphicsApi.Metal => colorSpace is ImGuiColorSpace.Legacy ? MetalLegacyFSMain : MetalLinearFSMain,
+            GraphicsApi.Vulkan => colorSpace is ImGuiColorSpace.Legacy ? VulkanLegacyFSMain : VulkanLinearFSMain,
             _ => default
         });
 

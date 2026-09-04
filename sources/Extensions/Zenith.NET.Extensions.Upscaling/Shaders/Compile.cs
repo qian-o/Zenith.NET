@@ -7,6 +7,7 @@ using Zenith.NET;
 
 const string EntryPoint = "Main";
 const int BytesPerLine = 16;
+const string LineEnding = "\r\n";
 
 GraphicsApi[] graphicsApis =
 [
@@ -212,8 +213,8 @@ static string NormalizeGeneratedText(string text)
 
 static void WriteGeneratedFile(string path, string text)
 {
-    string normalizedText = NormalizeGeneratedText(text);
-    File.WriteAllText(path, $"{normalizedText}\n", new UTF8Encoding(true));
+    string normalizedText = NormalizeGeneratedText(text).Replace("\n", LineEnding, StringComparison.Ordinal);
+    File.WriteAllText(path, $"{normalizedText}{LineEnding}", new UTF8Encoding(true));
     Console.WriteLine($"wrote {path}");
 }
 
