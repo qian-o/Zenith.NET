@@ -84,7 +84,7 @@ foreach (PassDesc pass in passes)
     StringBuilder builder = new();
     builder.AppendLine("namespace Zenith.NET.Extensions.Upscaling.Passes;");
     builder.AppendLine();
-    builder.AppendLine($"internal unsafe partial class {pass.Name}");
+    builder.AppendLine($"internal partial class {pass.Name}");
     builder.AppendLine("{");
 
     bool firstConstant = true;
