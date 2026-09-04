@@ -230,12 +230,12 @@ file struct Constants
 
     public Constants(SpatialUpscalerDesc desc, SpatialUpscalerArgs args, ResourceHandle sampler)
     {
-        ViewportInfoX = 1.0f / args.InputWidth;
-        ViewportInfoY = 1.0f / args.InputHeight;
-        ViewportInfoZ = args.InputWidth;
-        ViewportInfoW = args.InputHeight;
-        InputWidth = args.InputWidth;
-        InputHeight = args.InputHeight;
+        ViewportInfoX = 1.0f / desc.InputWidth;
+        ViewportInfoY = 1.0f / desc.InputHeight;
+        ViewportInfoZ = desc.InputWidth;
+        ViewportInfoW = desc.InputHeight;
+        InputWidth = desc.InputWidth;
+        InputHeight = desc.InputHeight;
         OutputWidth = desc.OutputWidth;
         OutputHeight = desc.OutputHeight;
         Input = args.Input;
