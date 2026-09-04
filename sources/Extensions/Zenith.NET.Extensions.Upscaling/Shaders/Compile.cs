@@ -1,5 +1,4 @@
-﻿#:property TargetFramework=net10.0
-#:project ../../../Zenith.NET/Zenith.NET.csproj
+﻿#:project ../../../Zenith.NET/Zenith.NET.csproj
 
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -31,7 +30,7 @@ static void CompilePass(Pass pass, string shadersDirectory, string passesDirecto
     ShaderDesc emptyShader = new() { Name = EntryPoint, CodeBytes = [] };
     string text = ReadGeneratedFile(generatedPath);
 
-    if (text.Contains("#region ", StringComparison.Ordinal) is false)
+    if (!text.Contains("#region ", StringComparison.Ordinal))
     {
         text = CreateSkeleton(pass.Name, regionNames, emptyShader);
     }
@@ -101,7 +100,7 @@ static string EnsureRegions(string text, string[] regionNames, ShaderDesc emptyS
 {
     for (int index = 0; index < regionNames.Length; index++)
     {
-        if (FindRegion(text, regionNames[index], out _, out _) is false)
+        if (!FindRegion(text, regionNames[index], out _, out _))
         {
             text = InsertRegion(text, regionNames[index], regionNames, index, emptyShader);
         }
@@ -116,24 +115,24 @@ static string InsertRegion(string text, string regionName, string[] regionNames,
 
     for (int index = regionIndex + 1; index < regionNames.Length; index++)
     {
-        if (FindRegion(text, regionNames[index], out int start, out _) is true)
+        if (FindRegion(text, regionNames[index], out int start, out _))
         {
             insertionIndex = start;
             break;
         }
     }
 
-    string prefix = text.Substring(0, insertionIndex).TrimEnd('\n');
-    string suffix = text.Substring(insertionIndex).TrimStart('\n');
-    string before = prefix.EndsWith("{", StringComparison.Ordinal) ? "\n" : "\n\n";
-    string after = suffix.StartsWith("}", StringComparison.Ordinal) ? "\n" : "\n\n";
+    string prefix = text[..insertionIndex].TrimEnd('\n');
+    string suffix = text[insertionIndex..].TrimStart('\n');
+    string before = prefix.EndsWith('{') ? "\n" : "\n\n";
+    string after = suffix.StartsWith('}') ? "\n" : "\n\n";
     string body = FormatShaderDesc(regionName, emptyShader);
     return string.Concat(prefix, before, FormatRegion(regionName, body), after, suffix);
 }
 
 static string ReplaceRegion(string text, string regionName, string body)
 {
-    if (FindRegion(text, regionName, out int start, out int end) is false)
+    if (!FindRegion(text, regionName, out int start, out int end))
     {
         throw new InvalidOperationException($"Region '{regionName}' was not found.");
     }
@@ -172,7 +171,7 @@ static string FormatRegion(string regionName, string body)
 
 static string ReadGeneratedFile(string path)
 {
-    if (File.Exists(path) is false)
+    if (!File.Exists(path))
     {
         return string.Empty;
     }
