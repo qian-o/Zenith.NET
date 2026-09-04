@@ -1932,5 +1932,4 @@ internal partial class Sgsr1Pass
         }
     };
     #endregion
-
 }

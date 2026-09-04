@@ -1925,5 +1925,4 @@ internal partial class ImGuiRenderer
         }
     };
     #endregion
-
 }

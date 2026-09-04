@@ -20,26 +20,22 @@ internal unsafe partial class ImGuiRenderer : DisposableObject
 
     public ImGuiRenderer(GraphicsContext context, AttachmentFormats attachmentFormats, ImGuiColorSpace colorSpace)
     {
-        ShaderDesc vertexDesc = context.GraphicsApi switch
+        sampler = context.CreateSampler(SamplerDesc.PointClamp());
+
+        using Shader vertex = context.CreateShader(context.GraphicsApi switch
         {
             GraphicsApi.DirectX12 => colorSpace is ImGuiColorSpace.Legacy ? DirectX12LegacyVertex : DirectX12LinearVertex,
             GraphicsApi.Metal => colorSpace is ImGuiColorSpace.Legacy ? MetalLegacyVertex : MetalLinearVertex,
             GraphicsApi.Vulkan => colorSpace is ImGuiColorSpace.Legacy ? VulkanLegacyVertex : VulkanLinearVertex,
             _ => default
-        };
-
-        ShaderDesc fragmentDesc = context.GraphicsApi switch
+        });
+        using Shader fragment = context.CreateShader(context.GraphicsApi switch
         {
             GraphicsApi.DirectX12 => colorSpace is ImGuiColorSpace.Legacy ? DirectX12LegacyFragment : DirectX12LinearFragment,
             GraphicsApi.Metal => colorSpace is ImGuiColorSpace.Legacy ? MetalLegacyFragment : MetalLinearFragment,
             GraphicsApi.Vulkan => colorSpace is ImGuiColorSpace.Legacy ? VulkanLegacyFragment : VulkanLinearFragment,
             _ => default
-        };
-
-        sampler = context.CreateSampler(SamplerDesc.PointClamp());
-
-        using Shader vertex = context.CreateShader(vertexDesc);
-        using Shader fragment = context.CreateShader(fragmentDesc);
+        });
 
         InputLayout inputLayout = new();
         inputLayout.Add(new()
