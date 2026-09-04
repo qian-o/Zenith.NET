@@ -1,5 +1,4 @@
-﻿﻿#:property TargetFramework=net10.0
-#:project ../../../Zenith.NET/Zenith.NET.csproj
+﻿#:project ../../../Zenith.NET/Zenith.NET.csproj
 
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -28,7 +27,7 @@ GraphicsApi[] graphicsApis = Enum.GetValues<GraphicsApi>();
 string[] regionNames = [.. RegionNames(graphicsApis, shaders)];
 string text = ReadGeneratedFile(generatedPath);
 
-if (text.Contains("#region ", StringComparison.Ordinal) is false)
+if (!text.Contains("#region ", StringComparison.Ordinal))
 {
     text = CreateSkeleton(graphicsApis, shaders);
 }
@@ -83,7 +82,7 @@ static string CreateSkeleton(GraphicsApi[] graphicsApis, ShaderDefinition[] shad
     {
         foreach (ShaderDefinition shader in shaders)
         {
-            if (firstRegion is false)
+            if (!firstRegion)
             {
                 builder.AppendLine();
             }
@@ -112,7 +111,7 @@ static string EnsureRegions(string text, GraphicsApi[] graphicsApis, ShaderDefin
         foreach (ShaderDefinition shader in shaders)
         {
             string regionName = $"{graphicsApi}{shader.Suffix}";
-            if (FindRegion(text, regionName, out _, out _) is false)
+            if (!FindRegion(text, regionName, out _, out _))
             {
                 text = InsertRegion(text, regionName, shader.EntryPoint, regionNames, regionIndex);
             }
@@ -130,7 +129,7 @@ static string InsertRegion(string text, string regionName, string entryPoint, st
 
     for (int index = regionIndex + 1; index < regionNames.Length; index++)
     {
-        if (FindRegion(text, regionNames[index], out int start, out _) is true)
+        if (FindRegion(text, regionNames[index], out int start, out _))
         {
             insertionIndex = start;
             break;
@@ -152,7 +151,7 @@ static string InsertRegion(string text, string regionName, string entryPoint, st
 
 static string ReplaceRegion(string text, string regionName, string body)
 {
-    if (FindRegion(text, regionName, out int start, out int end) is false)
+    if (!FindRegion(text, regionName, out int start, out int end))
     {
         throw new InvalidOperationException($"Region '{regionName}' was not found.");
     }
@@ -190,7 +189,7 @@ static string FormatRegion(string regionName, string body)
 
 static string ReadGeneratedFile(string path)
 {
-    if (File.Exists(path) is false)
+    if (!File.Exists(path))
     {
         return string.Empty;
     }
