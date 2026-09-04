@@ -1,6 +1,5 @@
-﻿#!/usr/bin/env dotnet
+﻿#:property TargetFramework=net10.0
 #:project ../../../Zenith.NET/Zenith.NET.csproj
-#:property TargetFramework=net10.0
 
 using System.Globalization;
 using System.Text;

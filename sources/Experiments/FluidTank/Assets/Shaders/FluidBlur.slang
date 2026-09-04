@@ -82,8 +82,10 @@ void BlurCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 
         for (int offset = 1; offset <= bridgeRadius; offset++)
         {
-            int2 negativePixel = clamp(int2(pixel) - direction * offset, int2(0, 0), int2(int(blur.Width) - 1, int(blur.Height) - 1));
-            int2 positivePixel = clamp(int2(pixel) + direction * offset, int2(0, 0), int2(int(blur.Width) - 1, int(blur.Height) - 1));
+            int2 negativePixel =
+                clamp(int2(pixel) - direction * offset, int2(0, 0), int2(int(blur.Width) - 1, int(blur.Height) - 1));
+            int2 positivePixel =
+                clamp(int2(pixel) + direction * offset, int2(0, 0), int2(int(blur.Width) - 1, int(blur.Height) - 1));
 
             if (negativeDepth <= 0.0)
             {
@@ -109,7 +111,8 @@ void BlurCS(uint3 dispatchThreadID: SV_DispatchThreadID)
         if (negativeDepth > 0.0 && positiveDepth > 0.0 && depthDifference < bridgeRange)
         {
             float distanceSum = float(negativeDistance + positiveDistance);
-            blur.OutputTexture[pixel] = (negativeDepth * positiveDistance + positiveDepth * negativeDistance) / distanceSum;
+            blur.OutputTexture[pixel] =
+                (negativeDepth * positiveDistance + positiveDepth * negativeDistance) / distanceSum;
 
             return;
         }
@@ -133,7 +136,8 @@ void BlurCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 
         for (int sign = -1; sign <= 1; sign += 2)
         {
-            int2 samplePixel = clamp(int2(pixel) + direction * offset * sign, int2(0, 0), int2(int(blur.Width) - 1, int(blur.Height) - 1));
+            int2 samplePixel = clamp(int2(pixel) + direction * offset * sign, int2(0, 0),
+                                     int2(int(blur.Width) - 1, int(blur.Height) - 1));
             float sampleDepth = blur.InputTexture.Load(int3(samplePixel, 0));
 
             if (sampleDepth <= 0.0)
@@ -179,7 +183,8 @@ void BlurThicknessCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 
         for (int sign = -1; sign <= 1; sign += 2)
         {
-            int2 samplePixel = clamp(int2(pixel) + direction * offset * sign, int2(0, 0), int2(int(blur.Width) - 1, int(blur.Height) - 1));
+            int2 samplePixel = clamp(int2(pixel) + direction * offset * sign, int2(0, 0),
+                                     int2(int(blur.Width) - 1, int(blur.Height) - 1));
             weightedThickness += blur.InputTexture.Load(int3(samplePixel, 0)) * weight;
             weightSum += weight;
         }

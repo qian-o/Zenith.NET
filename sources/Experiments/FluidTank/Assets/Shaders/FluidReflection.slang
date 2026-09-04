@@ -153,7 +153,8 @@ float3 TraceScene(float3 origin, float3 direction)
     float3 f0 = lerp(float3(0.035), material.Albedo, material.Metallic);
     float3 fresnel = FresnelSchlick(saturate(dot(-direction, normal)), f0);
 
-    return material.Albedo * diffuse * (1.0 - material.Metallic) + environment * fresnel * (1.0 - material.Roughness * 0.7);
+    return material.Albedo * diffuse * (1.0 - material.Metallic) +
+           environment * fresnel * (1.0 - material.Roughness * 0.7);
 }
 
 [shader("compute")]

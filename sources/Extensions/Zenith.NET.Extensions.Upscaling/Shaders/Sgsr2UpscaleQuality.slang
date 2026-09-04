@@ -1,4 +1,4 @@
-//============================================================================================================
+﻿//============================================================================================================
 //
 //
 //                  Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
@@ -62,10 +62,13 @@ float3 DecodeColor(uint sample32)
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
+void Main(uint3 dispatchThreadId: SV_DispatchThreadID)
 {
-    float Biasmax_viewportXScale = min(float(constants.RenderDisplaySize.z) / float(constants.RenderDisplaySize.x), 1.99);
-    float scalefactor = min(20.0, pow((float(constants.RenderDisplaySize.z) / float(constants.RenderDisplaySize.x)) * (float(constants.RenderDisplaySize.w) / float(constants.RenderDisplaySize.y)), 3.0));
+    float Biasmax_viewportXScale =
+        min(float(constants.RenderDisplaySize.z) / float(constants.RenderDisplaySize.x), 1.99);
+    float scalefactor = min(20.0, pow((float(constants.RenderDisplaySize.z) / float(constants.RenderDisplaySize.x)) *
+                                          (float(constants.RenderDisplaySize.w) / float(constants.RenderDisplaySize.y)),
+                                      3.0));
     float2 HistoryInfoViewportSizeInverse = constants.ViewportDisplayRcp.zw;
     float2 HistoryInfoViewportSize = float2(constants.RenderDisplaySize.zw);
     float2 InputJitter = constants.JitterPadding.xy;
@@ -118,8 +121,10 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
     float2 gatherCoord = float2(InputPos) * constants.ViewportDisplayRcp.xy;
     uint btmRight = constants.YCoCg.Load(int3(InputPosBtmRight, 0));
     uint4 topleft = constants.YCoCg.Gather(constants.PointSampler, gatherCoord);
-    uint2 topRight = constants.YCoCg.Gather(constants.PointSampler, gatherCoord + float2(constants.ViewportDisplayRcp.x, 0.0)).yz;
-    uint2 bottomLeft = constants.YCoCg.Gather(constants.PointSampler, gatherCoord + float2(0.0, constants.ViewportDisplayRcp.y)).xy;
+    uint2 topRight =
+        constants.YCoCg.Gather(constants.PointSampler, gatherCoord + float2(constants.ViewportDisplayRcp.x, 0.0)).yz;
+    uint2 bottomLeft =
+        constants.YCoCg.Gather(constants.PointSampler, gatherCoord + float2(0.0, constants.ViewportDisplayRcp.y)).xy;
 
     float3 rectboxmin;
     float3 rectboxmax;
@@ -263,7 +268,8 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
     rectboxvar *= rectboxweight;
     rectboxvar = sqrt(abs(rectboxvar - rectboxcenter * rectboxcenter));
 
-    Upsampledcw.xyz = clamp(Upsampledcw.xyz / Upsampledcw.w, rectboxmin - float3(0.05, 0.05, 0.05), rectboxmax + float3(0.05, 0.05, 0.05));
+    Upsampledcw.xyz = clamp(Upsampledcw.xyz / Upsampledcw.w, rectboxmin - float3(0.05, 0.05, 0.05),
+                            rectboxmax + float3(0.05, 0.05, 0.05));
     Upsampledcw.w = Upsampledcw.w * (1.0 / 3.0);
 
     float tcontribute = history_value * clamp(rectboxvar.x * 10.0, 0.0, 1.0);
@@ -298,10 +304,7 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
     constants.HistoryOutput[int2(dispatchThreadId.xy)] = float4(Upsampledcw.xyz, Wfactor);
 
     float x_z = Upsampledcw.x - Upsampledcw.z;
-    Upsampledcw.xyz = float3(
-        x_z + Upsampledcw.y,
-        Upsampledcw.x + Upsampledcw.z,
-        x_z - Upsampledcw.y);
+    Upsampledcw.xyz = float3(x_z + Upsampledcw.y, Upsampledcw.x + Upsampledcw.z, x_z - Upsampledcw.y);
 
     float compMax = max(Upsampledcw.x, Upsampledcw.y);
     compMax = max(compMax, Upsampledcw.z);

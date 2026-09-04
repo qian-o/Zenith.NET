@@ -273,10 +273,12 @@ float4 ShadeWater(FullscreenOutput input)
     float f0 = pow((composite.Ior - 1.0) / (composite.Ior + 1.0), 2.0);
     float fresnel = f0 + (1.0 - f0) * pow(1.0 - ndotv, 5.0);
 
-    float distortionScale = composite.RefractionStrength * (0.008 + min(thickness, 3.0) * 0.0035) / (0.35 + fluidDepth * 0.055);
+    float distortionScale =
+        composite.RefractionStrength * (0.008 + min(thickness, 3.0) * 0.0035) / (0.35 + fluidDepth * 0.055);
     float2 refractedUv = clamp(uv + normalView.xy * distortionScale, 0.001, 0.999);
 
-    float3 reflected = composite.RayTracingEnabled ? composite.Reflection.SampleLevel(composite.Sampler, uv, 0.0).rgb : SkyColor(reflect(-viewDirection, normalWorld));
+    float3 reflected = composite.RayTracingEnabled ? composite.Reflection.SampleLevel(composite.Sampler, uv, 0.0).rgb
+                                                   : SkyColor(reflect(-viewDirection, normalWorld));
     float3 refracted = SceneAt(refractedUv);
 
     float opticalDepth = min(thickness * 0.82, 6.0);

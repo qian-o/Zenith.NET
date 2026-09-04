@@ -1,4 +1,4 @@
-namespace Zenith.NET.Extensions.Upscaling.Passes;
+﻿namespace Zenith.NET.Extensions.Upscaling.Passes;
 
 internal unsafe partial class Sgsr2UpscalePass
 {

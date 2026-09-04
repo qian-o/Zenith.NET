@@ -1,4 +1,4 @@
-//============================================================================================================
+﻿//============================================================================================================
 //
 //
 //                  Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
@@ -49,7 +49,7 @@ float2 DecodeVelocityFromTexture(float2 ev)
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
+void Main(uint3 dispatchThreadId: SV_DispatchThreadID)
 {
     float Exposure_co_rcp = constants.ExposureFovNearMinLerp.x;
     float2 ViewportSizeInverse = constants.ViewportDisplayRcp.xy;

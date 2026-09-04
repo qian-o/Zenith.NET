@@ -1,4 +1,4 @@
-//============================================================================================================
+﻿//============================================================================================================
 //
 //
 //                  Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
@@ -45,7 +45,7 @@ float DecodeColorY(uint sample32)
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
+void Main(uint3 dispatchThreadId: SV_DispatchThreadID)
 {
     int2 sampleOffset[4];
     sampleOffset[0] = int2(-1, -1);
@@ -94,7 +94,8 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
             float weight = Bilinweights[index];
             Wdepth += clamp(Depthsep / (abs(fPrevdepth - depth) + EPSILON), 0.0, 1.0) * weight;
 
-            float2 gPrevdepth2 = constants.MotionDepthAlpha.GatherBlue(constants.Sampler, PrevUV, sampleOffset[index + int(1)]).zw;
+            float2 gPrevdepth2 =
+                constants.MotionDepthAlpha.GatherBlue(constants.Sampler, PrevUV, sampleOffset[index + int(1)]).zw;
             fPrevdepth = min(min(gPrevdepth2.x, gPrevdepth2.y), tdepth2);
             Depthsep = Ksep_Kfov_diagonal * (1.0 - min(fPrevdepth, depth));
             weight = Bilinweights[index + int(1)];
@@ -123,10 +124,15 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
     else
     {
         current_luma_diff.x = luma_reference;
-        current_luma_diff.y = (prev_luma_diff.y != 0.0) ? ((sign(luma_diff) == sign(prev_luma_diff.y)) ? (sign(luma_diff) * min(abs(prev_luma_diff.y), abs(luma_diff))) : prev_luma_diff.y) : luma_diff;
+        current_luma_diff.y = (prev_luma_diff.y != 0.0)
+                                  ? ((sign(luma_diff) == sign(prev_luma_diff.y))
+                                         ? (sign(luma_diff) * min(abs(prev_luma_diff.y), abs(luma_diff)))
+                                         : prev_luma_diff.y)
+                                  : luma_diff;
     }
 
-    alphamask = floor(alphamask) + 0.5 * float((current_luma_diff.x != 0.0) && (abs(current_luma_diff.y) != abs(luma_diff)));
+    alphamask =
+        floor(alphamask) + 0.5 * float((current_luma_diff.x != 0.0) && (abs(current_luma_diff.y) != abs(luma_diff)));
     uint pack = (f32tof16(current_luma_diff.x) << 16) | f32tof16(current_luma_diff.y);
     constants.LumaHistory[int2(dispatchThreadId.xy)] = pack;
     constants.MotionDepthClipAlpha[int2(dispatchThreadId.xy)] = float4(motion, depthclip, alphamask);

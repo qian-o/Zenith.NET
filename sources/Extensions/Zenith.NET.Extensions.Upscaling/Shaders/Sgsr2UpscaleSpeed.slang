@@ -1,4 +1,4 @@
-//============================================================================================================
+﻿//============================================================================================================
 //
 //
 //                  Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
@@ -62,10 +62,13 @@ float3 DecodeColor(uint sample32)
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
+void Main(uint3 dispatchThreadId: SV_DispatchThreadID)
 {
-    float Biasmax_viewportXScale = min(float(constants.RenderDisplaySize.z) / float(constants.RenderDisplaySize.x), 1.99);
-    float scalefactor = min(20.0, pow((float(constants.RenderDisplaySize.z) / float(constants.RenderDisplaySize.x)) * (float(constants.RenderDisplaySize.w) / float(constants.RenderDisplaySize.y)), 3.0));
+    float Biasmax_viewportXScale =
+        min(float(constants.RenderDisplaySize.z) / float(constants.RenderDisplaySize.x), 1.99);
+    float scalefactor = min(20.0, pow((float(constants.RenderDisplaySize.z) / float(constants.RenderDisplaySize.x)) *
+                                          (float(constants.RenderDisplaySize.w) / float(constants.RenderDisplaySize.y)),
+                                      3.0));
     float2 HistoryInfoViewportSizeInverse = constants.ViewportDisplayRcp.zw;
     float2 HistoryInfoViewportSize = float2(constants.RenderDisplaySize.zw);
     float2 InputJitter = constants.JitterPadding.xy;
@@ -121,12 +124,19 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     if (sameCameraFrmNum != 0)
     {
-        topRight = constants.YCoCg.Gather(constants.PointSampler, gatherCoord + float2(constants.ViewportDisplayRcp.x, 0.0)).yz;
-        bottomLeft = constants.YCoCg.Gather(constants.PointSampler, gatherCoord + float2(0.0, constants.ViewportDisplayRcp.y)).xy;
+        topRight =
+            constants.YCoCg.Gather(constants.PointSampler, gatherCoord + float2(constants.ViewportDisplayRcp.x, 0.0))
+                .yz;
+        bottomLeft =
+            constants.YCoCg.Gather(constants.PointSampler, gatherCoord + float2(0.0, constants.ViewportDisplayRcp.y))
+                .xy;
     }
     else
     {
-        uint2 btmRightGather = constants.YCoCg.Gather(constants.PointSampler, gatherCoord + float2(constants.ViewportDisplayRcp.x, constants.ViewportDisplayRcp.y)).xz;
+        uint2 btmRightGather = constants.YCoCg
+                                   .Gather(constants.PointSampler, gatherCoord + float2(constants.ViewportDisplayRcp.x,
+                                                                                        constants.ViewportDisplayRcp.y))
+                                   .xz;
         bottomLeft.y = btmRightGather.x;
         topRight.x = btmRightGather.y;
     }
@@ -278,7 +288,8 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
     rectboxvar *= rectboxweight;
     rectboxvar = sqrt(abs(rectboxvar - rectboxcenter * rectboxcenter));
 
-    Upsampledcw.xyz = clamp(Upsampledcw.xyz / Upsampledcw.w, rectboxmin - float3(0.05, 0.05, 0.05), rectboxmax + float3(0.05, 0.05, 0.05));
+    Upsampledcw.xyz = clamp(Upsampledcw.xyz / Upsampledcw.w, rectboxmin - float3(0.05, 0.05, 0.05),
+                            rectboxmax + float3(0.05, 0.05, 0.05));
     Upsampledcw.w = Upsampledcw.w * (1.0 / 3.0);
 
     float OneMinusWfactor = 1.0 - Wfactor;
@@ -316,10 +327,8 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
     constants.HistoryOutput[int2(dispatchThreadId.xy)] = float4(Upsampledcw.xyz, Wfactor);
 
     float x_z = Upsampledcw.x - Upsampledcw.z;
-    Upsampledcw.xyz = float3(
-        clamp(x_z + Upsampledcw.y, 0.0, 1.0),
-        clamp(Upsampledcw.x + Upsampledcw.z, 0.0, 1.0),
-        clamp(x_z - Upsampledcw.y, 0.0, 1.0));
+    Upsampledcw.xyz = float3(clamp(x_z + Upsampledcw.y, 0.0, 1.0), clamp(Upsampledcw.x + Upsampledcw.z, 0.0, 1.0),
+                             clamp(x_z - Upsampledcw.y, 0.0, 1.0));
 
     float compMax = max(Upsampledcw.x, Upsampledcw.y);
     compMax = clamp(max(compMax, Upsampledcw.z), 0.0, 1.0);

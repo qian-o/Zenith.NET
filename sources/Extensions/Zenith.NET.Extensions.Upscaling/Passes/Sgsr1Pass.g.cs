@@ -1,6 +1,6 @@
-namespace Zenith.NET.Extensions.Upscaling.Passes;
+﻿namespace Zenith.NET.Extensions.Upscaling.Passes;
 
-internal unsafe partial class Sgsr1Pass
+internal partial class Sgsr1Pass
 {
     private static readonly ShaderDesc DirectX12Main = new()
     {

@@ -10,26 +10,13 @@ internal unsafe partial class Sgsr1Pass : DisposableObject
 
     public Sgsr1Pass(GraphicsContext context)
     {
-        ShaderDesc shaderDesc;
-        switch (context.GraphicsApi)
+        using Shader shader = context.CreateShader(context.GraphicsApi switch
         {
-            case GraphicsApi.DirectX12:
-                shaderDesc = DirectX12Main;
-                break;
-
-            case GraphicsApi.Metal:
-                shaderDesc = MetalMain;
-                break;
-
-            case GraphicsApi.Vulkan:
-                shaderDesc = VulkanMain;
-                break;
-
-            default:
-                throw new NotSupportedException();
-        }
-
-        using Shader shader = context.CreateShader(shaderDesc);
+            GraphicsApi.DirectX12 => DirectX12Main,
+            GraphicsApi.Metal => MetalMain,
+            GraphicsApi.Vulkan => VulkanMain,
+            _ => default
+        });
 
         buffer = context.CreateBuffer(new()
         {

@@ -149,7 +149,8 @@ SurfaceVSOutput SurfaceVS(uint vertexId: SV_VertexID, uint instanceId: SV_Instan
 {
     Particle particle = surface.Particles[instanceId];
     float2 corner = QuadCorner(vertexId);
-    float3 worldPosition = lerp(surface.PreviousPositions[instanceId].xyz, particle.PositionDensity.xyz, surface.InterpolationAlpha);
+    float3 worldPosition =
+        lerp(surface.PreviousPositions[instanceId].xyz, particle.PositionDensity.xyz, surface.InterpolationAlpha);
     float3 velocity = particle.VelocityLambda.xyz;
     float speed = length(velocity);
     float density = particle.PositionDensity.w / surface.RestDensity;
@@ -166,7 +167,8 @@ SurfaceVSOutput SurfaceVS(uint vertexId: SV_VertexID, uint instanceId: SV_Instan
         offset = direction * corner.x * majorScale + float2(-direction.y, direction.x) * corner.y * minorScale;
     }
 
-    float3 billboardPosition = worldPosition + (surface.CameraRight * offset.x + surface.CameraUp * offset.y) * surface.ParticleRadius;
+    float3 billboardPosition =
+        worldPosition + (surface.CameraRight * offset.x + surface.CameraUp * offset.y) * surface.ParticleRadius;
     float4 centerView = mul(float4(worldPosition, 1.0), surface.View);
 
     SurfaceVSOutput output;
@@ -189,7 +191,8 @@ DepthOutput DepthFS(SurfaceVSOutput input)
     }
 
     float sphereZ = sqrt(max(1.0 - radiusSquared, 0.0));
-    float3 viewPosition = input.CenterView + float3(input.Corner * surface.ParticleRadius, surface.ParticleRadius * 0.62);
+    float3 viewPosition =
+        input.CenterView + float3(input.Corner * surface.ParticleRadius, surface.ParticleRadius * 0.62);
     float4 clipPosition = mul(float4(viewPosition, 1.0), surface.Projection);
     float linearDepth = -viewPosition.z;
 
@@ -216,7 +219,8 @@ ThicknessOutput ThicknessFS(SurfaceVSOutput input)
     }
 
     float sphereZ = sqrt(max(1.0 - radiusSquared, 0.0));
-    float3 viewPosition = input.CenterView + float3(input.Corner * surface.ParticleRadius, sphereZ * surface.ParticleRadius);
+    float3 viewPosition =
+        input.CenterView + float3(input.Corner * surface.ParticleRadius, sphereZ * surface.ParticleRadius);
     float4 clipPosition = mul(float4(viewPosition, 1.0), surface.Projection);
 
     if (OccludedByScene(input, -viewPosition.z))
@@ -268,7 +272,8 @@ ParticleOutput ParticleFS(SurfaceVSOutput input)
     float specular = pow(saturate(dot(reflect(-lightDirection, normal), float3(0.0, 0.0, 1.0))), 36.0) * 0.42;
     float rim = pow(1.0 - sphereZ, 3.0) * 0.12;
     float3 color = SpeedColor(input.Speed) * (diffuse + rim) + specular;
-    float3 viewPosition = input.CenterView + float3(input.Corner * surface.ParticleRadius, sphereZ * surface.ParticleRadius);
+    float3 viewPosition =
+        input.CenterView + float3(input.Corner * surface.ParticleRadius, sphereZ * surface.ParticleRadius);
     float4 clipPosition = mul(float4(viewPosition, 1.0), surface.Projection);
 
     ParticleOutput output;

@@ -12,26 +12,13 @@ internal unsafe partial class Sgsr2UpscalePass : DisposableObject
 
     public Sgsr2UpscalePass(GraphicsContext context, TemporalUpscalerMode mode)
     {
-        ShaderDesc shaderDesc;
-        switch (context.GraphicsApi)
+        using Shader shader = context.CreateShader(context.GraphicsApi switch
         {
-            case GraphicsApi.DirectX12:
-                shaderDesc = mode is TemporalUpscalerMode.Quality ? DirectX12QualityMain : DirectX12SpeedMain;
-                break;
-
-            case GraphicsApi.Metal:
-                shaderDesc = mode is TemporalUpscalerMode.Quality ? MetalQualityMain : MetalSpeedMain;
-                break;
-
-            case GraphicsApi.Vulkan:
-                shaderDesc = mode is TemporalUpscalerMode.Quality ? VulkanQualityMain : VulkanSpeedMain;
-                break;
-
-            default:
-                throw new NotSupportedException();
-        }
-
-        using Shader shader = context.CreateShader(shaderDesc);
+            GraphicsApi.DirectX12 => mode is TemporalUpscalerMode.Speed ? DirectX12SpeedMain : DirectX12QualityMain,
+            GraphicsApi.Metal => mode is TemporalUpscalerMode.Speed ? MetalSpeedMain : MetalQualityMain,
+            GraphicsApi.Vulkan => mode is TemporalUpscalerMode.Speed ? VulkanSpeedMain : VulkanQualityMain,
+            _ => default
+        });
 
         buffer = context.CreateBuffer(new()
         {

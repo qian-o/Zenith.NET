@@ -1,4 +1,4 @@
-//============================================================================================================
+﻿//============================================================================================================
 //
 //
 //                  Copyright (c) 2025, Qualcomm Innovation Center, Inc. All rights reserved.
@@ -73,7 +73,7 @@ float4 GatherOperation(float2 coord)
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
+void Main(uint3 dispatchThreadId: SV_DispatchThreadID)
 {
     uint2 pixel = dispatchThreadId.xy;
 
@@ -109,7 +109,9 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
         upDown = upDown - float4(mean, mean, mean, mean);
         color.w = color[OperationMode] - mean;
 
-        float sum = (((((abs(left.x) + abs(left.y)) + abs(left.z)) + abs(left.w)) + (((abs(right.x) + abs(right.y)) + abs(right.z)) + abs(right.w))) + (((abs(upDown.x) + abs(upDown.y)) + abs(upDown.z)) + abs(upDown.w)));
+        float sum = (((((abs(left.x) + abs(left.y)) + abs(left.z)) + abs(left.w)) +
+                      (((abs(right.x) + abs(right.y)) + abs(right.z)) + abs(right.w))) +
+                     (((abs(upDown.x) + abs(upDown.y)) + abs(upDown.z)) + abs(upDown.w)));
         float sumMean = 1.014185e+01 / sum;
         float std = (sumMean * sumMean);
 

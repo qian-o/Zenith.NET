@@ -2,17 +2,21 @@
 
     <PropertyGroup>
         <TargetFramework>$(StandardTargetFramework)</TargetFramework>
-        <DefaultItemExcludes>$(DefaultItemExcludes);Shaders/**</DefaultItemExcludes>
     </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="Shaders\**" />
+        <Compile Remove="Shaders\**" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(Configuration)' == 'Release'">
+        <None Include="ThirdParty\SGSR-LICENSE.txt" Pack="true" PackagePath="third-party-notices\SGSR-LICENSE.txt" />
+    </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\..\Zenith.NET\Zenith.NET.csproj" />
     </ItemGroup>
 
     <Import Project="..\..\NuGet.Packaging.props" />
-
-    <ItemGroup Condition="'$(Configuration)' == 'Release'">
-        <None Include="ThirdParty\SGSR-LICENSE.txt" Pack="true" PackagePath="third-party-notices\SGSR-LICENSE.txt" />
-    </ItemGroup>
 
 </Project>
