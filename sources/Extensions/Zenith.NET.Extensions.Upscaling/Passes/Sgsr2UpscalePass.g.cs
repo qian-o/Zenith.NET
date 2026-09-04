@@ -5543,5 +5543,4 @@ internal partial class Sgsr2UpscalePass
         }
     };
     #endregion
-
 }

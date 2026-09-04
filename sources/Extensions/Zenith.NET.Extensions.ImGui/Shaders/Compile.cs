@@ -9,6 +9,14 @@ const string NamespaceName = "Zenith.NET.Extensions.ImGui";
 const string ClassName = "ImGuiRenderer";
 const string SourceFileName = "ImGui.slang";
 const string GeneratedFileName = "ImGuiRenderer.g.cs";
+const int BytesPerLine = 16;
+
+GraphicsApi[] graphicsApis =
+[
+    GraphicsApi.DirectX12,
+    GraphicsApi.Metal,
+    GraphicsApi.Vulkan
+];
 
 string shadersDirectory = GetShadersDirectory();
 string sourcePath = Path.Combine(shadersDirectory, SourceFileName);
@@ -23,42 +31,50 @@ ShaderDefinition[] shaders =
     new("LinearFragment", "FSMain", "1")
 ];
 
-GraphicsApi[] graphicsApis = Enum.GetValues<GraphicsApi>();
-string[] regionNames = [.. RegionNames(graphicsApis, shaders)];
-string text = ReadGeneratedFile(generatedPath);
-
-if (!text.Contains("#region ", StringComparison.Ordinal))
-{
-    text = CreateSkeleton(graphicsApis, shaders);
-}
-else
-{
-    text = EnsureRegions(text, graphicsApis, shaders, regionNames);
-}
+string[] regionNames = [.. GetRegionNames(graphicsApis, shaders)];
+string text = PrepareGeneratedFile(generatedPath, graphicsApis, shaders, regionNames);
 
 foreach (GraphicsApi graphicsApi in graphicsApis)
 {
     foreach (ShaderDefinition shader in shaders)
     {
         string regionName = $"{graphicsApi}{shader.Suffix}";
-        string variantSource = source.Replace("#if 0", $"#if {shader.ColorSpace}", StringComparison.Ordinal);
-
-        try
-        {
-            ShaderDesc shaderDesc = ZenithCompiler.CompileFromSource(graphicsApi, variantSource, shader.EntryPoint);
-            text = ReplaceRegion(text, regionName, FormatShaderDesc(regionName, shaderDesc));
-            Console.WriteLine($"compiled {shader.Suffix} {graphicsApi} ({shaderDesc.CodeBytes.Length} bytes)");
-        }
-        catch (Exception exception)
-        {
-            Console.WriteLine($"skip {shader.Suffix} {graphicsApi}: {exception.Message}");
-        }
+        text = CompileShader(text, source, graphicsApi, shader, regionName);
     }
 }
 
 WriteGeneratedFile(generatedPath, text);
 
-static IEnumerable<string> RegionNames(GraphicsApi[] graphicsApis, ShaderDefinition[] shaders)
+static string CompileShader(string text, string source, GraphicsApi graphicsApi, ShaderDefinition shader, string regionName)
+{
+    string variantSource = source.Replace("#if 0", $"#if {shader.ColorSpace}", StringComparison.Ordinal);
+
+    try
+    {
+        ShaderDesc shaderDesc = ZenithCompiler.CompileFromSource(graphicsApi, variantSource, shader.EntryPoint);
+        string compiledText = ReplaceRegion(text, regionName, FormatShaderDesc(regionName, shaderDesc));
+        Console.WriteLine($"compiled {shader.Suffix} {graphicsApi} ({shaderDesc.CodeBytes.Length} bytes)");
+        return compiledText;
+    }
+    catch (Exception exception)
+    {
+        Console.WriteLine($"skip {shader.Suffix} {graphicsApi}: {exception.Message}");
+        return text;
+    }
+}
+
+static string PrepareGeneratedFile(string path, GraphicsApi[] graphicsApis, ShaderDefinition[] shaders, string[] regionNames)
+{
+    string text = ReadGeneratedFile(path);
+    if (!text.Contains("#region ", StringComparison.Ordinal))
+    {
+        return CreateSkeleton(graphicsApis, shaders);
+    }
+
+    return EnsureRegions(text, graphicsApis, shaders, regionNames);
+}
+
+static IEnumerable<string> GetRegionNames(GraphicsApi[] graphicsApis, ShaderDefinition[] shaders)
 {
     foreach (GraphicsApi graphicsApi in graphicsApis)
     {
@@ -77,28 +93,23 @@ static string CreateSkeleton(GraphicsApi[] graphicsApis, ShaderDefinition[] shad
     builder.AppendLine($"internal partial class {ClassName}");
     builder.AppendLine("{");
 
-    bool firstRegion = true;
+    int regionIndex = 0;
     foreach (GraphicsApi graphicsApi in graphicsApis)
     {
         foreach (ShaderDefinition shader in shaders)
         {
-            if (!firstRegion)
+            if (regionIndex > 0)
             {
                 builder.AppendLine();
             }
 
             string regionName = $"{graphicsApi}{shader.Suffix}";
-            ShaderDesc emptyShader = new()
-            {
-                Name = shader.EntryPoint,
-                CodeBytes = []
-            };
+            ShaderDesc emptyShader = CreateEmptyShader(shader.EntryPoint);
             builder.AppendLine(FormatRegion(regionName, FormatShaderDesc(regionName, emptyShader)));
-            firstRegion = false;
+            regionIndex++;
         }
     }
 
-    builder.AppendLine();
     builder.AppendLine("}");
     return NormalizeGeneratedText(builder.ToString());
 }
@@ -140,11 +151,7 @@ static string InsertRegion(string text, string regionName, string entryPoint, st
     string suffix = text[insertionIndex..].TrimStart('\n');
     string before = prefix.EndsWith('{') ? "\n" : "\n\n";
     string after = suffix.StartsWith('}') ? "\n" : "\n\n";
-    ShaderDesc emptyShader = new()
-    {
-        Name = entryPoint,
-        CodeBytes = []
-    };
+    ShaderDesc emptyShader = CreateEmptyShader(entryPoint);
     string body = FormatShaderDesc(regionName, emptyShader);
     return string.Concat(prefix, before, FormatRegion(regionName, body), after, suffix);
 }
@@ -166,13 +173,13 @@ static bool FindRegion(string text, string regionName, out int start, out int en
 
     start = text.IndexOf(startMarker, StringComparison.Ordinal);
     end = -1;
-    if (start is < 0)
+    if (start < 0)
     {
         return false;
     }
 
     int finishStart = text.IndexOf($"\n{EndMarker}", start + startMarker.Length, StringComparison.Ordinal);
-    if (finishStart is < 0)
+    if (finishStart < 0)
     {
         return false;
     }
@@ -199,14 +206,22 @@ static string ReadGeneratedFile(string path)
 
 static string NormalizeGeneratedText(string text)
 {
-    text = text.ReplaceLineEndings("\n").TrimEnd('\n');
-    text = text.Replace("#endregion\n    #region", "#endregion\n\n    #region", StringComparison.Ordinal);
-    return text.Replace("#endregion\n}", "#endregion\n\n}", StringComparison.Ordinal);
+    string normalizedText = text.ReplaceLineEndings("\n").TrimEnd('\n');
+    normalizedText = normalizedText.Replace("#endregion\n    #region", "#endregion\n\n    #region", StringComparison.Ordinal);
+
+    int closingBraceIndex = normalizedText.LastIndexOf("\n}", StringComparison.Ordinal);
+    if (closingBraceIndex < 0)
+    {
+        return normalizedText;
+    }
+
+    return string.Concat(normalizedText[..closingBraceIndex].TrimEnd('\n'), normalizedText[closingBraceIndex..]);
 }
 
 static void WriteGeneratedFile(string path, string text)
 {
-    File.WriteAllText(path, $"{NormalizeGeneratedText(text)}\n", new UTF8Encoding(true));
+    string normalizedText = NormalizeGeneratedText(text);
+    File.WriteAllText(path, $"{normalizedText}\n", new UTF8Encoding(true));
     Console.WriteLine($"wrote {path}");
 }
 
@@ -216,36 +231,7 @@ static string FormatShaderDesc(string constantName, ShaderDesc shaderDesc)
     builder.AppendLine($"    private static readonly ShaderDesc {constantName} = new()");
     builder.AppendLine("    {");
     builder.AppendLine($"        Name = \"{shaderDesc.Name}\",");
-    builder.AppendLine("        CodeBytes =");
-    builder.AppendLine("        [");
-
-    byte[] codeBytes = shaderDesc.CodeBytes;
-    const int BytesPerLine = 16;
-    for (int index = 0; index < codeBytes.Length; index += BytesPerLine)
-    {
-        int count = Math.Min(BytesPerLine, codeBytes.Length - index);
-
-        builder.Append("            ");
-        for (int offset = 0; offset < count; offset++)
-        {
-            if (offset is not 0)
-            {
-                builder.Append(", ");
-            }
-
-            builder.Append("0x");
-            builder.Append(codeBytes[index + offset].ToString("X2", CultureInfo.InvariantCulture));
-        }
-
-        if (index + count != codeBytes.Length)
-        {
-            builder.Append(',');
-        }
-
-        builder.AppendLine();
-    }
-
-    builder.AppendLine("        ],");
+    AppendCodeBytes(builder, shaderDesc.CodeBytes);
     builder.AppendLine("        ThreadGroupSize = new()");
     builder.AppendLine("        {");
     builder.AppendLine($"            X = {shaderDesc.ThreadGroupSize.X},");
@@ -254,6 +240,49 @@ static string FormatShaderDesc(string constantName, ShaderDesc shaderDesc)
     builder.AppendLine("        }");
     builder.AppendLine("    };");
     return builder.ToString();
+}
+
+static void AppendCodeBytes(StringBuilder builder, byte[] codeBytes)
+{
+    if (codeBytes.Length == 0)
+    {
+        builder.AppendLine("        CodeBytes = [],");
+        return;
+    }
+
+    builder.AppendLine("        CodeBytes =");
+    builder.AppendLine("        [");
+
+    for (int index = 0; index < codeBytes.Length; index += BytesPerLine)
+    {
+        int count = Math.Min(BytesPerLine, codeBytes.Length - index);
+
+        builder.Append("            ");
+        for (int offset = 0; offset < count; offset++)
+        {
+            if (offset > 0)
+            {
+                builder.Append(", ");
+            }
+
+            builder.Append("0x");
+            builder.Append(codeBytes[index + offset].ToString("X2", CultureInfo.InvariantCulture));
+        }
+
+        if (index + count < codeBytes.Length)
+        {
+            builder.Append(',');
+        }
+
+        builder.AppendLine();
+    }
+
+    builder.AppendLine("        ],");
+}
+
+static ShaderDesc CreateEmptyShader(string entryPoint)
+{
+    return new() { Name = entryPoint, CodeBytes = [] };
 }
 
 static string GetShadersDirectory([CallerFilePath] string filePath = "")

@@ -3011,5 +3011,4 @@ internal partial class Sgsr2ConvertPass
         }
     };
     #endregion
-
 }

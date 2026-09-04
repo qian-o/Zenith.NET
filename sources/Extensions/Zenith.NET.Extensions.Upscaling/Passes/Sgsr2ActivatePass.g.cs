@@ -1735,5 +1735,4 @@ internal partial class Sgsr2ActivatePass
         }
     };
     #endregion
-
 }

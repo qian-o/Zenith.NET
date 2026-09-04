@@ -6,9 +6,7 @@ internal partial class ImGuiRenderer
     private static readonly ShaderDesc DirectX12LegacyVertex = new()
     {
         Name = "VSMain",
-        CodeBytes =
-        [
-        ],
+        CodeBytes = [],
         ThreadGroupSize = new()
         {
             X = 0,
@@ -22,9 +20,7 @@ internal partial class ImGuiRenderer
     private static readonly ShaderDesc DirectX12LegacyFragment = new()
     {
         Name = "FSMain",
-        CodeBytes =
-        [
-        ],
+        CodeBytes = [],
         ThreadGroupSize = new()
         {
             X = 0,
@@ -38,9 +34,7 @@ internal partial class ImGuiRenderer
     private static readonly ShaderDesc DirectX12LinearVertex = new()
     {
         Name = "VSMain",
-        CodeBytes =
-        [
-        ],
+        CodeBytes = [],
         ThreadGroupSize = new()
         {
             X = 0,
@@ -54,9 +48,7 @@ internal partial class ImGuiRenderer
     private static readonly ShaderDesc DirectX12LinearFragment = new()
     {
         Name = "FSMain",
-        CodeBytes =
-        [
-        ],
+        CodeBytes = [],
         ThreadGroupSize = new()
         {
             X = 0,
