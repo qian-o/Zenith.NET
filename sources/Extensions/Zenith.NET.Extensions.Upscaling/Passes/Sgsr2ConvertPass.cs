@@ -113,7 +113,6 @@ float2 DecodeVelocityFromTexture(float2 ev)
     const float inv_div = 1.0 / (0.499 * 0.5);
     float2 dv;
     dv.xy = ev.xy * inv_div - 32767.0 / 65535.0 * inv_div;
-    //dv.z = uintBitsToFloat((uint(round(ev.z * 65535.0f)) << 16) | uint(round(ev.w * 65535.0f)));
     return dv;
 }
 
@@ -132,9 +131,6 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     float2 gatherCoord = float2(dispatchThreadId.xy) * ViewportSizeInverse;
     float2 ViewportUV = gatherCoord + float2(0.5, 0.5) * ViewportSizeInverse;
-
-    //derived from ffx_fsr2_reconstruct_dilated_velocity_and_previous_depth.h
-    //FindNearestDepth
 
     float4 topleft = constants.Depth.Gather(constants.Sampler, gatherCoord);
     float2 v10 = float2(ViewportSizeInverse.x * 2.0, 0.0);
@@ -169,8 +165,6 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
         depthclip = clamp(1.0 - Wdepth * 0.25, 0.0, 1.0);
     }
 
-    //refer to ue/fsr2 PostProcessFFX_FSR2ConvertVelocity.usf, and using nearest depth for dilated motion
-
     float4 EncodedVelocity = constants.MotionVectors.Load(int3(int2(dispatchThreadId.xy), 0));
 
     float2 motion;
@@ -187,10 +181,7 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
         motion = Position.xy - PreScreen;
     }
 
-    ////////////compute luma
     float3 Colorrgb = constants.Input.Load(int3(int2(InputPos), 0)).xyz;
-
-    ///simple tonemap
     float ColorMax = max(max(Colorrgb.x, Colorrgb.y), Colorrgb.z) + Exposure_co_rcp;
     Colorrgb /= float3(ColorMax, ColorMax, ColorMax);
 
@@ -198,8 +189,6 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
     Colorycocg.x = 0.25 * (Colorrgb.x + 2.0 * Colorrgb.y + Colorrgb.z);
     Colorycocg.y = clamp(0.5 * Colorrgb.x + 0.5 - 0.5 * Colorrgb.z, 0.0, 1.0);
     Colorycocg.z = clamp(Colorycocg.x + Colorycocg.y - Colorrgb.x, 0.0, 1.0);
-
-    //now color YCoCG all in the range of [0,1]
     uint x11 = uint(Colorycocg.x * 2047.5);
     uint y11 = uint(Colorycocg.y * 2047.5);
     uint z10 = uint(Colorycocg.z * 1023.5);
@@ -258,7 +247,6 @@ float2 DecodeVelocityFromTexture(float2 ev)
     const float inv_div = 1.0 / (0.499 * 0.5);
     float2 dv;
     dv.xy = ev.xy * inv_div - 32767.0 / 65535.0 * inv_div;
-    //dv.z = uintBitsToFloat((uint(round(ev.z * 65535.0f)) << 16) | uint(round(ev.w * 65535.0f)));
     return dv;
 }
 
@@ -277,9 +265,6 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     float2 gatherCoord = float2(dispatchThreadId.xy) * ViewportSizeInverse;
     float2 ViewportUV = gatherCoord + float2(0.5, 0.5) * ViewportSizeInverse;
-
-    //derived from ffx_fsr2_reconstruct_dilated_velocity_and_previous_depth.h
-    //FindNearestDepth
 
     int2 InputPosBtmRight = int2(1, 1) + int2(dispatchThreadId.xy);
     float NearestZ = constants.Depth.Load(int3(InputPosBtmRight, 0)).x;
@@ -302,8 +287,6 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
     NearestZ = min(bottomLeft.x, NearestZ);
     NearestZ = min(bottomLeft.y, NearestZ);
 
-    //refer to ue/fsr2 PostProcessFFX_FSR2ConvertVelocity.usf, and using nearest depth for dilated motion
-
     float4 EncodedVelocity = constants.MotionVectors.Load(int3(int2(dispatchThreadId.xy), 0));
 
     float2 motion;
@@ -320,25 +303,18 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
         motion = Position.xy - PreScreen;
     }
 
-    ////////////compute luma
     float3 Colorrgb = constants.Input.Load(int3(int2(InputPos), 0)).xyz;
-
-    ///simple tonemap
     Colorrgb /= max(max(Colorrgb.x, Colorrgb.y), Colorrgb.z) + h0;
 
     float3 Colorycocg;
     Colorycocg.x = 0.25 * (Colorrgb.x + 2.0 * Colorrgb.y + Colorrgb.z);
     Colorycocg.y = clamp(0.5 * Colorrgb.x + 0.5 - 0.5 * Colorrgb.z, 0.0, 1.0);
     Colorycocg.z = clamp(Colorycocg.x + Colorycocg.y - Colorrgb.x, 0.0, 1.0);
-
-    //now color YCoCG all in the range of [0,1]
     uint x11 = uint(Colorycocg.x * 2047.5);
     uint y11 = uint(Colorycocg.y * 2047.5);
     uint z10 = uint(Colorycocg.z * 1023.5);
 
     float3 Colorprergb = constants.OpaqueInput.Load(int3(int2(InputPos), 0)).xyz;
-
-    ///simple tonemap
     Colorprergb /= max(max(Colorprergb.x, Colorprergb.y), Colorprergb.z) + h0;
     float3 delta = abs(Colorrgb - Colorprergb);
     float alpha_mask = max(delta.x, max(delta.y, delta.z));

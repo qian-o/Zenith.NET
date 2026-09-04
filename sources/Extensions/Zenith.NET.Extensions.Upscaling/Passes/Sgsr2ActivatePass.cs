@@ -114,9 +114,6 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
     sampleOffset[2] = int2(0, -1);
     sampleOffset[3] = int2(0, 0);
 
-    uint4 InputInfo_ViewportMin = uint4(0, 0, 0, 0);
-    uint2 InputPos = InputInfo_ViewportMin.xy + dispatchThreadId.xy;
-
     float2 ViewportUV = (float2(dispatchThreadId.xy) + float2(0.5, 0.5)) * constants.ViewportDisplayRcp.xy;
     float2 gatherCoord = ViewportUV + 0.5 * constants.ViewportDisplayRcp.xy;
     uint luma_reference32 = constants.YCoCg.Gather(constants.Sampler, gatherCoord).w;
@@ -144,7 +141,6 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
 
         float diagonal_length = length(float2(constants.RenderDisplaySize.xy));
         float Wdepth = 0.0;
-        float Wsum = 0.0;
         float Ksep = 1.37e-05;
         float Kfov = constants.ExposureFovNearMinLerp.y;
         float Ksep_Kfov_diagonal = Ksep * Kfov * diagonal_length;

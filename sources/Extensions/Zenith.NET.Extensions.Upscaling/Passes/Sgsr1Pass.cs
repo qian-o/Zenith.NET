@@ -133,76 +133,57 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
     float2 texCoord = (float2(pixel) + 0.5) / float2(constants.Dimensions.z, constants.Dimensions.w);
 
     float4 color;
-    if (OperationMode == 1)
+    color.xyz = constants.Input.SampleLevel(constants.Sampler, texCoord, 0.0).xyz;
+
+    float2 imgCoord = ((texCoord * constants.ViewportInfo.zw) + float2(-0.5, 0.5));
+    float2 imgCoordPixel = floor(imgCoord);
+    float2 coord = (imgCoordPixel * constants.ViewportInfo.xy);
+    float2 pl = (imgCoord + (-imgCoordPixel));
+    float4 left = GatherOperation(coord);
+
+    float edgeVote = abs(left.z - left.y) + abs(color[OperationMode] - left.y) + abs(color[OperationMode] - left.z);
+    if (edgeVote > EdgeThreshold)
     {
-        color.xyz = constants.Input.SampleLevel(constants.Sampler, texCoord, 0.0).xyz;
-    }
-    else
-    {
-        color.xyzw = constants.Input.SampleLevel(constants.Sampler, texCoord, 0.0).xyzw;
-    }
+        coord.x += constants.ViewportInfo.x;
 
-    float xCenter;
-    xCenter = abs(texCoord.x + -0.5);
-    float yCenter;
-    yCenter = abs(texCoord.y + -0.5);
+        float4 right = GatherOperation(coord + float2(constants.ViewportInfo.x, 0.0));
+        float4 upDown;
+        upDown.xy = GatherOperation(coord + float2(0.0, -constants.ViewportInfo.y)).wz;
+        upDown.zw = GatherOperation(coord + float2(0.0, constants.ViewportInfo.y)).yx;
 
-    //todo: config the SR region based on needs
-    //if ( OperationMode!=4 && xCenter*xCenter+yCenter*yCenter<=0.4 * 0.4)
-    if (OperationMode != 4)
-    {
-        float2 imgCoord = ((texCoord * constants.ViewportInfo.zw) + float2(-0.5, 0.5));
-        float2 imgCoordPixel = floor(imgCoord);
-        float2 coord = (imgCoordPixel * constants.ViewportInfo.xy);
-        float2 pl = (imgCoord + (-imgCoordPixel));
-        float4 left = GatherOperation(coord);
+        float mean = (left.y + left.z + right.x + right.w) * 0.25;
+        left = left - float4(mean, mean, mean, mean);
+        right = right - float4(mean, mean, mean, mean);
+        upDown = upDown - float4(mean, mean, mean, mean);
+        color.w = color[OperationMode] - mean;
 
-        float edgeVote = abs(left.z - left.y) + abs(color[OperationMode] - left.y) + abs(color[OperationMode] - left.z);
-        if (edgeVote > EdgeThreshold)
-        {
-            coord.x += constants.ViewportInfo.x;
+        float sum = (((((abs(left.x) + abs(left.y)) + abs(left.z)) + abs(left.w)) + (((abs(right.x) + abs(right.y)) + abs(right.z)) + abs(right.w))) + (((abs(upDown.x) + abs(upDown.y)) + abs(upDown.z)) + abs(upDown.w)));
+        float sumMean = 1.014185e+01 / sum;
+        float std = (sumMean * sumMean);
 
-            float4 right = GatherOperation(coord + float2(constants.ViewportInfo.x, 0.0));
-            float4 upDown;
-            upDown.xy = GatherOperation(coord + float2(0.0, -constants.ViewportInfo.y)).wz;
-            upDown.zw = GatherOperation(coord + float2(0.0, constants.ViewportInfo.y)).yx;
+        float3 data = float3(std, EdgeDirection(left, right));
+        float2 aWY = WeightY(pl.x, pl.y + 1.0, upDown.x, data);
+        aWY += WeightY(pl.x - 1.0, pl.y + 1.0, upDown.y, data);
+        aWY += WeightY(pl.x - 1.0, pl.y - 2.0, upDown.z, data);
+        aWY += WeightY(pl.x, pl.y - 2.0, upDown.w, data);
+        aWY += WeightY(pl.x + 1.0, pl.y - 1.0, left.x, data);
+        aWY += WeightY(pl.x, pl.y - 1.0, left.y, data);
+        aWY += WeightY(pl.x, pl.y, left.z, data);
+        aWY += WeightY(pl.x + 1.0, pl.y, left.w, data);
+        aWY += WeightY(pl.x - 1.0, pl.y - 1.0, right.x, data);
+        aWY += WeightY(pl.x - 2.0, pl.y - 1.0, right.y, data);
+        aWY += WeightY(pl.x - 2.0, pl.y, right.z, data);
+        aWY += WeightY(pl.x - 1.0, pl.y, right.w, data);
 
-            float mean = (left.y + left.z + right.x + right.w) * 0.25;
-            left = left - float4(mean, mean, mean, mean);
-            right = right - float4(mean, mean, mean, mean);
-            upDown = upDown - float4(mean, mean, mean, mean);
-            color.w = color[OperationMode] - mean;
+        float finalY = aWY.y / aWY.x;
+        float maxY = max(max(left.y, left.z), max(right.x, right.w));
+        float minY = min(min(left.y, left.z), min(right.x, right.w));
+        float deltaY = clamp(EdgeSharpness * finalY, minY, maxY) - color.w;
+        deltaY = clamp(deltaY, -23.0 / 255.0, 23.0 / 255.0);
 
-            float sum = (((((abs(left.x) + abs(left.y)) + abs(left.z)) + abs(left.w)) + (((abs(right.x) + abs(right.y)) + abs(right.z)) + abs(right.w))) + (((abs(upDown.x) + abs(upDown.y)) + abs(upDown.z)) + abs(upDown.w)));
-            float sumMean = 1.014185e+01 / sum;
-            float std = (sumMean * sumMean);
-
-            float3 data = float3(std, EdgeDirection(left, right));
-            float2 aWY = WeightY(pl.x, pl.y + 1.0, upDown.x, data);
-            aWY += WeightY(pl.x - 1.0, pl.y + 1.0, upDown.y, data);
-            aWY += WeightY(pl.x - 1.0, pl.y - 2.0, upDown.z, data);
-            aWY += WeightY(pl.x, pl.y - 2.0, upDown.w, data);
-            aWY += WeightY(pl.x + 1.0, pl.y - 1.0, left.x, data);
-            aWY += WeightY(pl.x, pl.y - 1.0, left.y, data);
-            aWY += WeightY(pl.x, pl.y, left.z, data);
-            aWY += WeightY(pl.x + 1.0, pl.y, left.w, data);
-            aWY += WeightY(pl.x - 1.0, pl.y - 1.0, right.x, data);
-            aWY += WeightY(pl.x - 2.0, pl.y - 1.0, right.y, data);
-            aWY += WeightY(pl.x - 2.0, pl.y, right.z, data);
-            aWY += WeightY(pl.x - 1.0, pl.y, right.w, data);
-
-            float finalY = aWY.y / aWY.x;
-            float maxY = max(max(left.y, left.z), max(right.x, right.w));
-            float minY = min(min(left.y, left.z), min(right.x, right.w));
-            float deltaY = clamp(EdgeSharpness * finalY, minY, maxY) - color.w;
-
-            //smooth high contrast input
-            deltaY = clamp(deltaY, -23.0 / 255.0, 23.0 / 255.0);
-
-            color.x = clamp((color.x + deltaY), 0.0, 1.0);
-            color.y = clamp((color.y + deltaY), 0.0, 1.0);
-            color.z = clamp((color.z + deltaY), 0.0, 1.0);
-        }
+        color.x = clamp((color.x + deltaY), 0.0, 1.0);
+        color.y = clamp((color.y + deltaY), 0.0, 1.0);
+        color.z = clamp((color.z + deltaY), 0.0, 1.0);
     }
 
     color.w = 1.0;

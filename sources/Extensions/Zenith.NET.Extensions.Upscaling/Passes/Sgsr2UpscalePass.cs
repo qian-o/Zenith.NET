@@ -132,7 +132,6 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     float Biasmax_viewportXScale = min(float(constants.RenderDisplaySize.z) / float(constants.RenderDisplaySize.x), 1.99);
     float scalefactor = min(20.0, pow((float(constants.RenderDisplaySize.z) / float(constants.RenderDisplaySize.x)) * (float(constants.RenderDisplaySize.w) / float(constants.RenderDisplaySize.y)), 3.0));
-    float f2 = constants.ExposureFovNearMinLerp.x;
     float2 HistoryInfoViewportSizeInverse = constants.ViewportDisplayRcp.zw;
     float2 HistoryInfoViewportSize = float2(constants.RenderDisplaySize.zw);
     float2 InputJitter = constants.JitterPadding.xy;
@@ -475,7 +474,6 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     float Biasmax_viewportXScale = min(float(constants.RenderDisplaySize.z) / float(constants.RenderDisplaySize.x), 1.99);
     float scalefactor = min(20.0, pow((float(constants.RenderDisplaySize.z) / float(constants.RenderDisplaySize.x)) * (float(constants.RenderDisplaySize.w) / float(constants.RenderDisplaySize.y)), 3.0));
-    float f2 = constants.ExposureFovNearMinLerp.x;
     float2 HistoryInfoViewportSizeInverse = constants.ViewportDisplayRcp.zw;
     float2 HistoryInfoViewportSize = float2(constants.RenderDisplaySize.zw);
     float2 InputJitter = constants.JitterPadding.xy;

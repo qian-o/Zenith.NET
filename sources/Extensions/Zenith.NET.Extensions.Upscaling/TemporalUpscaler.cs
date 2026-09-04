@@ -23,6 +23,7 @@ public class TemporalUpscaler : DisposableObject
         convertPass = new(context, desc.Mode);
         activatePass = desc.Mode is TemporalUpscalerMode.Quality ? new(context) : null;
         upscalePass = new(context, desc.Mode);
+
         yCoCg = context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
@@ -89,6 +90,7 @@ public class TemporalUpscaler : DisposableObject
                 Usages = TextureUsages.Sampled | TextureUsages.Storage
             })
             : null;
+
         history0 = context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
