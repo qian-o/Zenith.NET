@@ -89,7 +89,6 @@ static string CreateSkeleton(string passName, GraphicsApi[] graphicsApis, Shader
             if (shaderIndex > 0)
             {
                 regionBuilder.AppendLine();
-                regionBuilder.AppendLine();
             }
 
             string constantName = GetConstantName(graphicsApi, shaders[shaderIndex]);
