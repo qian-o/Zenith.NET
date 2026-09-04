@@ -10,4 +10,8 @@
 
     <Import Project="..\..\NuGet.Packaging.props" />
 
+    <ItemGroup Condition="'$(Configuration)' == 'Release'">
+        <None Include="ThirdParty\SGSR-LICENSE.txt" Pack="true" PackagePath="third-party-notices\SGSR-LICENSE.txt" />
+    </ItemGroup>
+
 </Project>
