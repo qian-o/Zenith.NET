@@ -125,11 +125,6 @@ float3 DecodeColor(uint sample32)
 [numthreads(8, 8, 1)]
 void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    if (dispatchThreadId.x >= constants.RenderDisplaySize.z || dispatchThreadId.y >= constants.RenderDisplaySize.w)
-    {
-        return;
-    }
-
     float Biasmax_viewportXScale = min(float(constants.RenderDisplaySize.z) / float(constants.RenderDisplaySize.x), 1.99);
     float scalefactor = min(20.0, pow((float(constants.RenderDisplaySize.z) / float(constants.RenderDisplaySize.x)) * (float(constants.RenderDisplaySize.w) / float(constants.RenderDisplaySize.y)), 3.0));
     float2 HistoryInfoViewportSizeInverse = constants.ViewportDisplayRcp.zw;
@@ -467,11 +462,6 @@ float3 DecodeColor(uint sample32)
 [numthreads(8, 8, 1)]
 void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    if (dispatchThreadId.x >= constants.RenderDisplaySize.z || dispatchThreadId.y >= constants.RenderDisplaySize.w)
-    {
-        return;
-    }
-
     float Biasmax_viewportXScale = min(float(constants.RenderDisplaySize.z) / float(constants.RenderDisplaySize.x), 1.99);
     float scalefactor = min(20.0, pow((float(constants.RenderDisplaySize.z) / float(constants.RenderDisplaySize.x)) * (float(constants.RenderDisplaySize.w) / float(constants.RenderDisplaySize.y)), 3.0));
     float2 HistoryInfoViewportSizeInverse = constants.ViewportDisplayRcp.zw;
@@ -818,12 +808,12 @@ file struct Constants
                      ResourceHandle linearSampler,
                      ResourceHandle pointSampler)
     {
-        RenderWidth = args.InputWidth;
-        RenderHeight = args.InputHeight;
+        RenderWidth = desc.InputWidth;
+        RenderHeight = desc.InputHeight;
         DisplayWidth = desc.OutputWidth;
         DisplayHeight = desc.OutputHeight;
-        RenderRcpX = 1.0f / args.InputWidth;
-        RenderRcpY = 1.0f / args.InputHeight;
+        RenderRcpX = 1.0f / desc.InputWidth;
+        RenderRcpY = 1.0f / desc.InputHeight;
         DisplayRcpX = 1.0f / desc.OutputWidth;
         DisplayRcpY = 1.0f / desc.OutputHeight;
         JitterOffsetX = args.JitterOffsetX;

@@ -14,10 +14,6 @@ public struct TemporalUpscalerArgs
 
     public ResourceHandle Output;
 
-    public uint InputWidth;
-
-    public uint InputHeight;
-
     public float JitterOffsetX;
 
     public float JitterOffsetY;

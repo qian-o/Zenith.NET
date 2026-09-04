@@ -2,9 +2,9 @@
 
 public struct TemporalUpscalerDesc
 {
-    public uint MaxInputWidth;
+    public uint InputWidth;
 
-    public uint MaxInputHeight;
+    public uint InputHeight;
 
     public uint OutputWidth;
 

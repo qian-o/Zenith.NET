@@ -103,11 +103,6 @@ float DecodeColorY(uint sample32)
 [numthreads(8, 8, 1)]
 void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    if (dispatchThreadId.x >= constants.RenderDisplaySize.x || dispatchThreadId.y >= constants.RenderDisplaySize.y)
-    {
-        return;
-    }
-
     int2 sampleOffset[4];
     sampleOffset[0] = int2(-1, -1);
     sampleOffset[1] = int2(-1, 0);
@@ -288,12 +283,12 @@ file struct Constants
                      ResourceHandle lumaHistory,
                      ResourceHandle sampler)
     {
-        RenderWidth = args.InputWidth;
-        RenderHeight = args.InputHeight;
+        RenderWidth = desc.InputWidth;
+        RenderHeight = desc.InputHeight;
         DisplayWidth = desc.OutputWidth;
         DisplayHeight = desc.OutputHeight;
-        ViewportInvX = 1.0f / args.InputWidth;
-        ViewportInvY = 1.0f / args.InputHeight;
+        ViewportInvX = 1.0f / desc.InputWidth;
+        ViewportInvY = 1.0f / desc.InputHeight;
         DisplayRcpX = 1.0f / desc.OutputWidth;
         DisplayRcpY = 1.0f / desc.OutputHeight;
         JitterOffsetX = args.JitterOffsetX;

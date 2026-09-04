@@ -120,11 +120,6 @@ float2 DecodeVelocityFromTexture(float2 ev)
 [numthreads(8, 8, 1)]
 void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    if (dispatchThreadId.x >= constants.RenderDisplaySize.x || dispatchThreadId.y >= constants.RenderDisplaySize.y)
-    {
-        return;
-    }
-
     float Exposure_co_rcp = constants.ExposureFovNearMinLerp.x;
     float2 ViewportSizeInverse = constants.ViewportDisplayRcp.xy;
     uint2 InputPos = dispatchThreadId.xy;
@@ -254,11 +249,6 @@ float2 DecodeVelocityFromTexture(float2 ev)
 [numthreads(8, 8, 1)]
 void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    if (dispatchThreadId.x >= constants.RenderDisplaySize.x || dispatchThreadId.y >= constants.RenderDisplaySize.y)
-    {
-        return;
-    }
-
     float h0 = constants.ExposureFovNearMinLerp.x;
     float2 ViewportSizeInverse = constants.ViewportDisplayRcp.xy;
     uint2 InputPos = dispatchThreadId.xy;
@@ -417,12 +407,12 @@ file struct Constants
 
     public Constants(TemporalUpscalerDesc desc, TemporalUpscalerArgs args, ResourceHandle yCoCg, ResourceHandle motion, ResourceHandle sampler)
     {
-        RenderWidth = args.InputWidth;
-        RenderHeight = args.InputHeight;
+        RenderWidth = desc.InputWidth;
+        RenderHeight = desc.InputHeight;
         DisplayWidth = desc.OutputWidth;
         DisplayHeight = desc.OutputHeight;
-        ViewportInvX = 1.0f / args.InputWidth;
-        ViewportInvY = 1.0f / args.InputHeight;
+        ViewportInvX = 1.0f / desc.InputWidth;
+        ViewportInvY = 1.0f / desc.InputHeight;
         DisplayRcpX = 1.0f / desc.OutputWidth;
         DisplayRcpY = 1.0f / desc.OutputHeight;
         JitterOffsetX = args.JitterOffsetX;
