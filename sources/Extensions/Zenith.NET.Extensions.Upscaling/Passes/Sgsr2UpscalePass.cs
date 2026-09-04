@@ -27,14 +27,7 @@ internal unsafe class Sgsr2UpscalePass : DisposableObject
         pipeline = context.CreateComputePipeline(new() { ComputeShader = shader });
     }
 
-    public void Record(CommandBuffer commandBuffer,
-                       TemporalUpscalerDesc desc,
-                       TemporalUpscalerArgs args,
-                       ResourceHandle history,
-                       ResourceHandle motion,
-                       ResourceHandle yCoCg,
-                       ResourceHandle sceneOutput,
-                       ResourceHandle historyOutput)
+    public void Record(CommandBuffer commandBuffer, TemporalUpscalerDesc desc, TemporalUpscalerArgs args, ResourceHandle history, ResourceHandle motion, ResourceHandle yCoCg, ResourceHandle sceneOutput, ResourceHandle historyOutput)
     {
         Constants constants = new(desc, args, history, motion, yCoCg, sceneOutput, historyOutput, linearSampler.Handle, pointSampler.Handle);
 
@@ -712,129 +705,89 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 208)]
-file struct Constants
+file struct Constants(TemporalUpscalerDesc desc, TemporalUpscalerArgs args, ResourceHandle history, ResourceHandle motion, ResourceHandle yCoCg, ResourceHandle sceneOutput, ResourceHandle historyOutput, ResourceHandle linearSampler, ResourceHandle pointSampler)
 {
     [FieldOffset(0)]
-    public uint RenderWidth;
+    public uint RenderWidth = desc.InputWidth;
 
     [FieldOffset(4)]
-    public uint RenderHeight;
+    public uint RenderHeight = desc.InputHeight;
 
     [FieldOffset(8)]
-    public uint DisplayWidth;
+    public uint DisplayWidth = desc.OutputWidth;
 
     [FieldOffset(12)]
-    public uint DisplayHeight;
+    public uint DisplayHeight = desc.OutputHeight;
 
     [FieldOffset(16)]
-    public float RenderRcpX;
+    public float RenderRcpX = 1.0f / desc.InputWidth;
 
     [FieldOffset(20)]
-    public float RenderRcpY;
+    public float RenderRcpY = 1.0f / desc.InputHeight;
 
     [FieldOffset(24)]
-    public float DisplayRcpX;
+    public float DisplayRcpX = 1.0f / desc.OutputWidth;
 
     [FieldOffset(28)]
-    public float DisplayRcpY;
+    public float DisplayRcpY = 1.0f / desc.OutputHeight;
 
     [FieldOffset(32)]
-    public float JitterOffsetX;
+    public float JitterOffsetX = args.JitterOffsetX;
 
     [FieldOffset(36)]
-    public float JitterOffsetY;
+    public float JitterOffsetY = args.JitterOffsetY;
 
     [FieldOffset(40)]
-    public float PaddingX;
+    public float PaddingX = 0.0f;
 
     [FieldOffset(44)]
-    public float PaddingY;
+    public float PaddingY = 0.0f;
 
     [FieldOffset(48)]
-    public Matrix4x4 ClipToPrevClip;
+    public Matrix4x4 ClipToPrevClip = args.ClipToPrevClip;
 
     [FieldOffset(112)]
-    public float PreExposure;
+    public float PreExposure = args.PreExposure;
 
     [FieldOffset(116)]
-    public float CameraFovAngleHor;
+    public float CameraFovAngleHor = args.CameraFovAngleHor;
 
     [FieldOffset(120)]
-    public float CameraNear;
+    public float CameraNear = 0.0f;
 
     [FieldOffset(124)]
-    public float MinLerpContribution;
+    public float MinLerpContribution = args.MinLerpContribution;
 
     [FieldOffset(128)]
-    public uint SameCamera;
+    public uint SameCamera = args.SameCamera ? 1u : 0u;
 
     [FieldOffset(132)]
-    public uint Reset;
+    public uint Reset = args.Reset ? 1u : 0u;
 
     [FieldOffset(136)]
-    public uint SameCameraResetZ;
+    public uint SameCameraResetZ = 0;
 
     [FieldOffset(140)]
-    public uint SameCameraResetW;
+    public uint SameCameraResetW = 0;
 
     [FieldOffset(144)]
-    public ResourceHandle History;
+    public ResourceHandle History = history;
 
     [FieldOffset(152)]
-    public ResourceHandle Motion;
+    public ResourceHandle Motion = motion;
 
     [FieldOffset(160)]
-    public ResourceHandle YCoCg;
+    public ResourceHandle YCoCg = yCoCg;
 
     [FieldOffset(168)]
-    public ResourceHandle SceneOutput;
+    public ResourceHandle SceneOutput = sceneOutput;
 
     [FieldOffset(176)]
-    public ResourceHandle HistoryOutput;
+    public ResourceHandle HistoryOutput = historyOutput;
 
     [FieldOffset(184)]
-    public ResourceHandle LinearSampler;
+    public ResourceHandle LinearSampler = linearSampler;
 
     [FieldOffset(192)]
-    public ResourceHandle PointSampler;
-
-    public Constants(TemporalUpscalerDesc desc,
-                     TemporalUpscalerArgs args,
-                     ResourceHandle history,
-                     ResourceHandle motion,
-                     ResourceHandle yCoCg,
-                     ResourceHandle sceneOutput,
-                     ResourceHandle historyOutput,
-                     ResourceHandle linearSampler,
-                     ResourceHandle pointSampler)
-    {
-        RenderWidth = desc.InputWidth;
-        RenderHeight = desc.InputHeight;
-        DisplayWidth = desc.OutputWidth;
-        DisplayHeight = desc.OutputHeight;
-        RenderRcpX = 1.0f / desc.InputWidth;
-        RenderRcpY = 1.0f / desc.InputHeight;
-        DisplayRcpX = 1.0f / desc.OutputWidth;
-        DisplayRcpY = 1.0f / desc.OutputHeight;
-        JitterOffsetX = args.JitterOffsetX;
-        JitterOffsetY = args.JitterOffsetY;
-        PaddingX = 0.0f;
-        PaddingY = 0.0f;
-        ClipToPrevClip = args.ClipToPrevClip;
-        PreExposure = args.PreExposure;
-        CameraFovAngleHor = args.CameraFovAngleHor;
-        CameraNear = 0.0f;
-        MinLerpContribution = args.MinLerpContribution;
-        SameCamera = args.SameCamera ? 1u : 0u;
-        Reset = args.Reset ? 1u : 0u;
-        SameCameraResetZ = 0;
-        SameCameraResetW = 0;
-        History = history;
-        Motion = motion;
-        YCoCg = yCoCg;
-        SceneOutput = sceneOutput;
-        HistoryOutput = historyOutput;
-        LinearSampler = linearSampler;
-        PointSampler = pointSampler;
-    }
+    public ResourceHandle PointSampler = pointSampler;
 }

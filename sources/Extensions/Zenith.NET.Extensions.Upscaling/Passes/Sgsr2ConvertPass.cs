@@ -39,11 +39,7 @@ internal unsafe class Sgsr2ConvertPass : DisposableObject
         pipeline = context.CreateComputePipeline(new() { ComputeShader = shader });
     }
 
-    public void Record(CommandBuffer commandBuffer,
-                       TemporalUpscalerDesc desc,
-                       TemporalUpscalerArgs args,
-                       ResourceHandle yCoCg,
-                       ResourceHandle motion)
+    public void Record(CommandBuffer commandBuffer, TemporalUpscalerDesc desc, TemporalUpscalerArgs args, ResourceHandle yCoCg, ResourceHandle motion)
     {
         Constants constants = new(desc, args, yCoCg, motion, sampler.Handle);
 
@@ -319,121 +315,89 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 208)]
-file struct Constants
+file struct Constants(TemporalUpscalerDesc desc, TemporalUpscalerArgs args, ResourceHandle yCoCg, ResourceHandle motion, ResourceHandle sampler)
 {
     [FieldOffset(0)]
-    public uint RenderWidth;
+    public uint RenderWidth = desc.InputWidth;
 
     [FieldOffset(4)]
-    public uint RenderHeight;
+    public uint RenderHeight = desc.InputHeight;
 
     [FieldOffset(8)]
-    public uint DisplayWidth;
+    public uint DisplayWidth = desc.OutputWidth;
 
     [FieldOffset(12)]
-    public uint DisplayHeight;
+    public uint DisplayHeight = desc.OutputHeight;
 
     [FieldOffset(16)]
-    public float ViewportInvX;
+    public float ViewportInvX = 1.0f / desc.InputWidth;
 
     [FieldOffset(20)]
-    public float ViewportInvY;
+    public float ViewportInvY = 1.0f / desc.InputHeight;
 
     [FieldOffset(24)]
-    public float DisplayRcpX;
+    public float DisplayRcpX = 1.0f / desc.OutputWidth;
 
     [FieldOffset(28)]
-    public float DisplayRcpY;
+    public float DisplayRcpY = 1.0f / desc.OutputHeight;
 
     [FieldOffset(32)]
-    public float JitterOffsetX;
+    public float JitterOffsetX = args.JitterOffsetX;
 
     [FieldOffset(36)]
-    public float JitterOffsetY;
+    public float JitterOffsetY = args.JitterOffsetY;
 
     [FieldOffset(40)]
-    public float PaddingX;
+    public float PaddingX = 0.0f;
 
     [FieldOffset(44)]
-    public float PaddingY;
+    public float PaddingY = 0.0f;
 
     [FieldOffset(48)]
-    public Matrix4x4 ClipToPrevClip;
+    public Matrix4x4 ClipToPrevClip = args.ClipToPrevClip;
 
     [FieldOffset(112)]
-    public float PreExposure;
+    public float PreExposure = args.PreExposure;
 
     [FieldOffset(116)]
-    public float CameraFovAngleHor;
+    public float CameraFovAngleHor = args.CameraFovAngleHor;
 
     [FieldOffset(120)]
-    public float CameraNear;
+    public float CameraNear = 0.0f;
 
     [FieldOffset(124)]
-    public float MinLerpContribution;
+    public float MinLerpContribution = args.MinLerpContribution;
 
     [FieldOffset(128)]
-    public uint SameCamera;
+    public uint SameCamera = args.SameCamera ? 1u : 0u;
 
     [FieldOffset(132)]
-    public uint Reset;
+    public uint Reset = args.Reset ? 1u : 0u;
 
     [FieldOffset(136)]
-    public uint SameCameraResetZ;
+    public uint SameCameraResetZ = 0;
 
     [FieldOffset(140)]
-    public uint SameCameraResetW;
+    public uint SameCameraResetW = 0;
 
     [FieldOffset(144)]
-    public ResourceHandle Input;
+    public ResourceHandle Input = args.Input;
 
     [FieldOffset(152)]
-    public ResourceHandle OpaqueInput;
+    public ResourceHandle OpaqueInput = args.OpaqueInput;
 
     [FieldOffset(160)]
-    public ResourceHandle Depth;
+    public ResourceHandle Depth = args.Depth;
 
     [FieldOffset(168)]
-    public ResourceHandle MotionVectors;
+    public ResourceHandle MotionVectors = args.MotionVectors;
 
     [FieldOffset(176)]
-    public ResourceHandle YCoCg;
+    public ResourceHandle YCoCg = yCoCg;
 
     [FieldOffset(184)]
-    public ResourceHandle Motion;
+    public ResourceHandle Motion = motion;
 
     [FieldOffset(192)]
-    public ResourceHandle Sampler;
-
-    public Constants(TemporalUpscalerDesc desc, TemporalUpscalerArgs args, ResourceHandle yCoCg, ResourceHandle motion, ResourceHandle sampler)
-    {
-        RenderWidth = desc.InputWidth;
-        RenderHeight = desc.InputHeight;
-        DisplayWidth = desc.OutputWidth;
-        DisplayHeight = desc.OutputHeight;
-        ViewportInvX = 1.0f / desc.InputWidth;
-        ViewportInvY = 1.0f / desc.InputHeight;
-        DisplayRcpX = 1.0f / desc.OutputWidth;
-        DisplayRcpY = 1.0f / desc.OutputHeight;
-        JitterOffsetX = args.JitterOffsetX;
-        JitterOffsetY = args.JitterOffsetY;
-        PaddingX = 0.0f;
-        PaddingY = 0.0f;
-        ClipToPrevClip = args.ClipToPrevClip;
-        PreExposure = args.PreExposure;
-        CameraFovAngleHor = args.CameraFovAngleHor;
-        CameraNear = 0.0f;
-        MinLerpContribution = args.MinLerpContribution;
-        SameCamera = args.SameCamera ? 1u : 0u;
-        Reset = args.Reset ? 1u : 0u;
-        SameCameraResetZ = 0;
-        SameCameraResetW = 0;
-        Input = args.Input;
-        OpaqueInput = args.OpaqueInput;
-        Depth = args.Depth;
-        MotionVectors = args.MotionVectors;
-        YCoCg = yCoCg;
-        Motion = motion;
-        Sampler = sampler;
-    }
+    public ResourceHandle Sampler = sampler;
 }

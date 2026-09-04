@@ -193,53 +193,38 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 64)]
-file struct Constants
+file struct Constants(SpatialUpscalerDesc desc, SpatialUpscalerArgs args, ResourceHandle sampler)
 {
     [FieldOffset(0)]
-    public float ViewportInfoX;
+    public float ViewportInfoX = 1.0f / desc.InputWidth;
 
     [FieldOffset(4)]
-    public float ViewportInfoY;
+    public float ViewportInfoY = 1.0f / desc.InputHeight;
 
     [FieldOffset(8)]
-    public float ViewportInfoZ;
+    public float ViewportInfoZ = desc.InputWidth;
 
     [FieldOffset(12)]
-    public float ViewportInfoW;
+    public float ViewportInfoW = desc.InputHeight;
 
     [FieldOffset(16)]
-    public uint InputWidth;
+    public uint InputWidth = desc.InputWidth;
 
     [FieldOffset(20)]
-    public uint InputHeight;
+    public uint InputHeight = desc.InputHeight;
 
     [FieldOffset(24)]
-    public uint OutputWidth;
+    public uint OutputWidth = desc.OutputWidth;
 
     [FieldOffset(28)]
-    public uint OutputHeight;
+    public uint OutputHeight = desc.OutputHeight;
 
     [FieldOffset(32)]
-    public ResourceHandle Input;
+    public ResourceHandle Input = args.Input;
 
     [FieldOffset(40)]
-    public ResourceHandle Output;
+    public ResourceHandle Output = args.Output;
 
     [FieldOffset(48)]
-    public ResourceHandle Sampler;
-
-    public Constants(SpatialUpscalerDesc desc, SpatialUpscalerArgs args, ResourceHandle sampler)
-    {
-        ViewportInfoX = 1.0f / desc.InputWidth;
-        ViewportInfoY = 1.0f / desc.InputHeight;
-        ViewportInfoZ = desc.InputWidth;
-        ViewportInfoW = desc.InputHeight;
-        InputWidth = desc.InputWidth;
-        InputHeight = desc.InputHeight;
-        OutputWidth = desc.OutputWidth;
-        OutputHeight = desc.OutputHeight;
-        Input = args.Input;
-        Output = args.Output;
-        Sampler = sampler;
-    }
+    public ResourceHandle Sampler = sampler;
 }
