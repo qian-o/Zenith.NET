@@ -2,182 +2,195 @@
 #:project ../../../Zenith.NET/Zenith.NET.csproj
 
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Zenith.NET;
 
-const string EntryName = "Main";
+const string EntryPoint = "Main";
 
-string shadersDirectory = ResolveShadersDirectory();
+string shadersDirectory = GetShadersDirectory();
 string passesDirectory = Path.GetFullPath(Path.Combine(shadersDirectory, "..", "Passes"));
 
-PassDesc[] passes =
+Pass[] passes =
 [
-    new()
-    {
-        Name = "Sgsr1Pass",
-        GeneratedFileName = "Sgsr1Pass.g.cs",
-        Shaders =
-        [
-            new()
-            {
-                ConstantSuffix = "Main",
-                FileName = "Sgsr1.slang"
-            }
-        ]
-    },
-    new()
-    {
-        Name = "Sgsr2ConvertPass",
-        GeneratedFileName = "Sgsr2ConvertPass.g.cs",
-        Shaders =
-        [
-            new()
-            {
-                ConstantSuffix = "SpeedMain",
-                FileName = "Sgsr2ConvertSpeed.slang"
-            },
-            new()
-            {
-                ConstantSuffix = "QualityMain",
-                FileName = "Sgsr2ConvertQuality.slang"
-            }
-        ]
-    },
-    new()
-    {
-        Name = "Sgsr2ActivatePass",
-        GeneratedFileName = "Sgsr2ActivatePass.g.cs",
-        Shaders =
-        [
-            new()
-            {
-                ConstantSuffix = "Main",
-                FileName = "Sgsr2Activate.slang"
-            }
-        ]
-    },
-    new()
-    {
-        Name = "Sgsr2UpscalePass",
-        GeneratedFileName = "Sgsr2UpscalePass.g.cs",
-        Shaders =
-        [
-            new()
-            {
-                ConstantSuffix = "SpeedMain",
-                FileName = "Sgsr2UpscaleSpeed.slang"
-            },
-            new()
-            {
-                ConstantSuffix = "QualityMain",
-                FileName = "Sgsr2UpscaleQuality.slang"
-            }
-        ]
-    }
+    new("Sgsr1Pass", [new("Main", "Sgsr1.slang")]),
+    new("Sgsr2ConvertPass", [new("SpeedMain", "Sgsr2ConvertSpeed.slang"), new("QualityMain", "Sgsr2ConvertQuality.slang")]),
+    new("Sgsr2ActivatePass", [new("Main", "Sgsr2Activate.slang")]),
+    new("Sgsr2UpscalePass", [new("SpeedMain", "Sgsr2UpscaleSpeed.slang"), new("QualityMain", "Sgsr2UpscaleQuality.slang")])
 ];
 
-foreach (PassDesc pass in passes)
+foreach (Pass pass in passes)
 {
-    string generatedPath = Path.Combine(passesDirectory, pass.GeneratedFileName);
-    Dictionary<string, string> previousConstants = ReadPreviousConstants(generatedPath);
+    CompilePass(pass, shadersDirectory, passesDirectory);
+}
 
-    StringBuilder builder = new();
-    builder.AppendLine("namespace Zenith.NET.Extensions.Upscaling.Passes;");
-    builder.AppendLine();
-    builder.AppendLine($"internal partial class {pass.Name}");
-    builder.AppendLine("{");
+static void CompilePass(Pass pass, string shadersDirectory, string passesDirectory)
+{
+    string generatedPath = Path.Combine(passesDirectory, $"{pass.Name}.g.cs");
+    string[] regionNames = [.. RegionNames(pass)];
+    ShaderDesc emptyShader = new() { Name = EntryPoint, CodeBytes = [] };
+    string text = ReadGeneratedFile(generatedPath);
 
-    bool firstConstant = true;
+    if (text.Contains("#region ", StringComparison.Ordinal) is false)
+    {
+        text = CreateSkeleton(pass.Name, regionNames, emptyShader);
+    }
+    else
+    {
+        text = EnsureRegions(text, regionNames, emptyShader);
+    }
+
     foreach (GraphicsApi graphicsApi in Enum.GetValues<GraphicsApi>())
     {
         foreach (ShaderSource shader in pass.Shaders)
         {
-            string constantName = $"{graphicsApi}{shader.ConstantSuffix}";
+            string regionName = $"{graphicsApi}{shader.ConstantSuffix}";
             string shaderPath = Path.Combine(shadersDirectory, shader.FileName);
 
             try
             {
-                ShaderDesc shaderDesc = ZenithCompiler.CompileFromFile(graphicsApi, shaderPath, EntryName);
-
-                if (firstConstant is false)
-                {
-                    builder.AppendLine();
-                }
-
-                builder.Append(FormatShaderDesc(constantName, shaderDesc));
-                firstConstant = false;
-
+                ShaderDesc shaderDesc = ZenithCompiler.CompileFromFile(graphicsApi, shaderPath, EntryPoint);
+                text = ReplaceRegion(text, regionName, FormatShaderDesc(regionName, shaderDesc));
                 Console.WriteLine($"compiled {shader.FileName} {graphicsApi} ({shaderDesc.CodeBytes.Length} bytes, threads={shaderDesc.ThreadGroupSize.X}x{shaderDesc.ThreadGroupSize.Y}x{shaderDesc.ThreadGroupSize.Z})");
             }
             catch (Exception exception)
             {
                 Console.WriteLine($"skip {shader.FileName} {graphicsApi}: {exception.Message}");
-
-                if (firstConstant is false)
-                {
-                    builder.AppendLine();
-                }
-
-                if (previousConstants.TryGetValue(constantName, out string? previousConstant))
-                {
-                    builder.Append(previousConstant);
-
-                    if (previousConstant.EndsWith('\n') is false)
-                    {
-                        builder.AppendLine();
-                    }
-                }
-                else
-                {
-                    Console.WriteLine($"missing {constantName} (no previous result)");
-                    builder.Append(FormatShaderDesc(constantName, new()
-                    {
-                        Name = EntryName,
-                        CodeBytes = []
-                    }));
-                }
-
-                firstConstant = false;
             }
         }
+    }
+
+    WriteGeneratedFile(generatedPath, text);
+}
+
+static IEnumerable<string> RegionNames(Pass pass)
+{
+    foreach (GraphicsApi graphicsApi in Enum.GetValues<GraphicsApi>())
+    {
+        foreach (ShaderSource shader in pass.Shaders)
+        {
+            yield return $"{graphicsApi}{shader.ConstantSuffix}";
+        }
+    }
+}
+
+static string CreateSkeleton(string passName, string[] regionNames, ShaderDesc emptyShader)
+{
+    StringBuilder builder = new();
+    builder.AppendLine("namespace Zenith.NET.Extensions.Upscaling.Passes;");
+    builder.AppendLine();
+    builder.AppendLine($"internal partial class {passName}");
+    builder.AppendLine("{");
+
+    for (int index = 0; index < regionNames.Length; index++)
+    {
+        if (index is not 0)
+        {
+            builder.AppendLine();
+        }
+
+        builder.AppendLine(FormatRegion(regionNames[index], FormatShaderDesc(regionNames[index], emptyShader)));
     }
 
     builder.AppendLine("}");
-    File.WriteAllText(generatedPath, builder.ToString());
-    Console.WriteLine($"wrote {generatedPath}");
+
+    return NormalizeGeneratedText(builder.ToString());
 }
 
-static string ResolveShadersDirectory()
+static string EnsureRegions(string text, string[] regionNames, ShaderDesc emptyShader)
 {
-    string[] candidates =
-    [
-        Directory.GetCurrentDirectory(),
-        AppContext.BaseDirectory
-    ];
-
-    foreach (string candidate in candidates)
+    for (int index = 0; index < regionNames.Length; index++)
     {
-        string directory = Path.GetFullPath(candidate);
-        while (true)
+        if (FindRegion(text, regionNames[index], out _, out _) is false)
         {
-            string compilePath = Path.Combine(directory, "Compile.cs");
-            string shaderPath = Path.Combine(directory, "Sgsr1.slang");
-            if (File.Exists(compilePath) && File.Exists(shaderPath))
-            {
-                return directory;
-            }
-
-            DirectoryInfo? parent = Directory.GetParent(directory);
-            if (parent is null)
-            {
-                break;
-            }
-
-            directory = parent.FullName;
+            text = InsertRegion(text, regionNames[index], regionNames, index, emptyShader);
         }
     }
 
-    throw new InvalidOperationException("Shaders directory not found.");
+    return text;
+}
+
+static string InsertRegion(string text, string regionName, string[] regionNames, int regionIndex, ShaderDesc emptyShader)
+{
+    int insertionIndex = text.LastIndexOf("\n}", StringComparison.Ordinal) + 1;
+
+    for (int index = regionIndex + 1; index < regionNames.Length; index++)
+    {
+        if (FindRegion(text, regionNames[index], out int start, out _) is true)
+        {
+            insertionIndex = start;
+            break;
+        }
+    }
+
+    string prefix = text.Substring(0, insertionIndex).TrimEnd('\n');
+    string suffix = text.Substring(insertionIndex).TrimStart('\n');
+    string before = prefix.EndsWith("{", StringComparison.Ordinal) ? "\n" : "\n\n";
+    string after = suffix.StartsWith("}", StringComparison.Ordinal) ? "\n" : "\n\n";
+    string body = FormatShaderDesc(regionName, emptyShader);
+    return string.Concat(prefix, before, FormatRegion(regionName, body), after, suffix);
+}
+
+static string ReplaceRegion(string text, string regionName, string body)
+{
+    if (FindRegion(text, regionName, out int start, out int end) is false)
+    {
+        throw new InvalidOperationException($"Region '{regionName}' was not found.");
+    }
+
+    return string.Concat(text.AsSpan(0, start), FormatRegion(regionName, body), text.AsSpan(end));
+}
+
+static bool FindRegion(string text, string regionName, out int start, out int end)
+{
+    string startMarker = $"    #region {regionName}\n";
+    const string EndMarker = "    #endregion";
+
+    start = text.IndexOf(startMarker, StringComparison.Ordinal);
+    end = -1;
+    if (start is < 0)
+    {
+        return false;
+    }
+
+    int finishStart = text.IndexOf($"\n{EndMarker}", start + startMarker.Length, StringComparison.Ordinal);
+    if (finishStart is < 0)
+    {
+        return false;
+    }
+
+    end = finishStart + 1 + EndMarker.Length;
+
+    return true;
+}
+
+static string FormatRegion(string regionName, string body)
+{
+    body = body.ReplaceLineEndings("\n").TrimEnd('\n');
+    return $"    #region {regionName}\n{body}\n    #endregion";
+}
+
+static string ReadGeneratedFile(string path)
+{
+    if (File.Exists(path) is false)
+    {
+        return string.Empty;
+    }
+
+    return NormalizeGeneratedText(File.ReadAllText(path));
+}
+
+static string NormalizeGeneratedText(string text)
+{
+    text = text.ReplaceLineEndings("\n").TrimEnd('\n');
+    text = text.Replace("#endregion\n    #region", "#endregion\n\n    #region", StringComparison.Ordinal);
+    return text.Replace("#endregion\n}", "#endregion\n\n}", StringComparison.Ordinal);
+}
+
+static void WriteGeneratedFile(string path, string text)
+{
+    File.WriteAllText(path, $"{NormalizeGeneratedText(text)}\n", new UTF8Encoding(true));
+    Console.WriteLine($"wrote {path}");
 }
 
 static string FormatShaderDesc(string constantName, ShaderDesc shaderDesc)
@@ -190,23 +203,24 @@ static string FormatShaderDesc(string constantName, ShaderDesc shaderDesc)
     builder.AppendLine("        [");
 
     byte[] codeBytes = shaderDesc.CodeBytes;
-    for (int i = 0; i < codeBytes.Length; i += 16)
+    const int BytesPerLine = 16;
+    for (int index = 0; index < codeBytes.Length; index += BytesPerLine)
     {
-        int count = Math.Min(16, codeBytes.Length - i);
+        int count = Math.Min(BytesPerLine, codeBytes.Length - index);
 
         builder.Append("            ");
-        for (int j = 0; j < count; j++)
+        for (int offset = 0; offset < count; offset++)
         {
-            if (j is not 0)
+            if (offset is not 0)
             {
                 builder.Append(", ");
             }
 
             builder.Append("0x");
-            builder.Append(codeBytes[i + j].ToString("X2", CultureInfo.InvariantCulture));
+            builder.Append(codeBytes[index + offset].ToString("X2", CultureInfo.InvariantCulture));
         }
 
-        if (i + count != codeBytes.Length)
+        if (index + count != codeBytes.Length)
         {
             builder.Append(',');
         }
@@ -226,86 +240,21 @@ static string FormatShaderDesc(string constantName, ShaderDesc shaderDesc)
     return builder.ToString();
 }
 
-static Dictionary<string, string> ReadPreviousConstants(string path)
+static string GetShadersDirectory([CallerFilePath] string filePath = "")
 {
-    Dictionary<string, string> constants = [];
-    if (File.Exists(path) is false)
-    {
-        return constants;
-    }
-
-    string text = File.ReadAllText(path);
-    const string Prefix = "    private static readonly ShaderDesc ";
-
-    int index = 0;
-    while (true)
-    {
-        int start = text.IndexOf(Prefix, index, StringComparison.Ordinal);
-        if (start is < 0)
-        {
-            return constants;
-        }
-
-        int nameStart = start + Prefix.Length;
-        int nameEnd = text.IndexOf(" = new()", nameStart, StringComparison.Ordinal);
-        if (nameEnd is < 0)
-        {
-            return constants;
-        }
-
-        string name = text[nameStart..nameEnd];
-        int brace = text.IndexOf('{', nameEnd);
-        if (brace is < 0)
-        {
-            return constants;
-        }
-
-        int depth = 0;
-        int end = brace;
-        for (; end < text.Length; end++)
-        {
-            if (text[end] is '{')
-            {
-                depth++;
-            }
-            else if (text[end] is '}')
-            {
-                depth--;
-                if (depth is 0)
-                {
-                    break;
-                }
-            }
-        }
-
-        if (depth is not 0)
-        {
-            return constants;
-        }
-
-        int terminator = text.IndexOf(';', end);
-        if (terminator is < 0)
-        {
-            return constants;
-        }
-
-        constants[name] = text[start..(terminator + 1)] + Environment.NewLine;
-        index = terminator + 1;
-    }
+    return Path.GetDirectoryName(filePath) ?? Directory.GetCurrentDirectory();
 }
 
-file struct PassDesc
+file readonly struct Pass(string name, ShaderSource[] shaders)
 {
-    public string Name;
+    public readonly string Name = name;
 
-    public string GeneratedFileName;
-
-    public ShaderSource[] Shaders;
+    public readonly ShaderSource[] Shaders = shaders;
 }
 
-file struct ShaderSource
+file readonly struct ShaderSource(string constantSuffix, string fileName)
 {
-    public string ConstantSuffix;
+    public readonly string ConstantSuffix = constantSuffix;
 
-    public string FileName;
+    public readonly string FileName = fileName;
 }
