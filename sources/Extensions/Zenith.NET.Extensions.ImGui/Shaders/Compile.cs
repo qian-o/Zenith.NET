@@ -32,28 +32,27 @@ ShaderDefinition[] shaders =
     new("Linear", "FSMain", "1")
 ];
 
-string[] regionNames = [.. GetRegionNames(graphicsApis, shaders)];
-string text = PrepareGeneratedFile(generatedPath, graphicsApis, shaders, regionNames);
+string text = CreateSkeleton(graphicsApis, shaders);
 
 foreach (GraphicsApi graphicsApi in graphicsApis)
 {
     foreach (ShaderDefinition shader in shaders)
     {
-        string regionName = $"{graphicsApi}{shader.ModeName}{shader.EntryPoint}";
-        text = CompileShader(text, source, graphicsApi, shader, regionName);
+        string constantName = GetConstantName(graphicsApi, shader);
+        text = CompileShader(text, source, graphicsApi, shader, constantName);
     }
 }
 
 WriteGeneratedFile(generatedPath, text);
 
-static string CompileShader(string text, string source, GraphicsApi graphicsApi, ShaderDefinition shader, string regionName)
+static string CompileShader(string text, string source, GraphicsApi graphicsApi, ShaderDefinition shader, string constantName)
 {
     string variantSource = source.Replace("#if 0", $"#if {shader.ColorSpace}", StringComparison.Ordinal);
 
     try
     {
         ShaderDesc shaderDesc = ZenithCompiler.CompileFromSource(graphicsApi, variantSource, shader.EntryPoint);
-        string compiledText = ReplaceRegion(text, regionName, FormatShaderDesc(regionName, shaderDesc));
+        string compiledText = ReplaceShader(text, constantName, FormatShaderDesc(constantName, shaderDesc));
         Console.WriteLine($"compiled {shader.ModeName}{shader.EntryPoint} {graphicsApi} ({shaderDesc.CodeBytes.Length} bytes)");
         return compiledText;
     }
@@ -61,28 +60,6 @@ static string CompileShader(string text, string source, GraphicsApi graphicsApi,
     {
         Console.WriteLine($"skip {shader.ModeName}{shader.EntryPoint} {graphicsApi}: {exception.Message}");
         return text;
-    }
-}
-
-static string PrepareGeneratedFile(string path, GraphicsApi[] graphicsApis, ShaderDefinition[] shaders, string[] regionNames)
-{
-    string text = ReadGeneratedFile(path);
-    if (!text.Contains("#region ", StringComparison.Ordinal))
-    {
-        return CreateSkeleton(graphicsApis, shaders);
-    }
-
-    return EnsureRegions(text, graphicsApis, shaders, regionNames);
-}
-
-static IEnumerable<string> GetRegionNames(GraphicsApi[] graphicsApis, ShaderDefinition[] shaders)
-{
-    foreach (GraphicsApi graphicsApi in graphicsApis)
-    {
-        foreach (ShaderDefinition shader in shaders)
-        {
-            yield return $"{graphicsApi}{shader.ModeName}{shader.EntryPoint}";
-        }
     }
 }
 
@@ -94,83 +71,54 @@ static string CreateSkeleton(GraphicsApi[] graphicsApis, ShaderDefinition[] shad
     builder.AppendLine($"internal partial class {ClassName}");
     builder.AppendLine("{");
 
-    int regionIndex = 0;
-    foreach (GraphicsApi graphicsApi in graphicsApis)
+    for (int graphicsApiIndex = 0; graphicsApiIndex < graphicsApis.Length; graphicsApiIndex++)
     {
-        foreach (ShaderDefinition shader in shaders)
+        if (graphicsApiIndex > 0)
         {
-            if (regionIndex > 0)
+            builder.AppendLine();
+        }
+
+        GraphicsApi graphicsApi = graphicsApis[graphicsApiIndex];
+        StringBuilder regionBuilder = new();
+        for (int shaderIndex = 0; shaderIndex < shaders.Length; shaderIndex++)
+        {
+            if (shaderIndex > 0)
             {
-                builder.AppendLine();
+                regionBuilder.AppendLine();
+                regionBuilder.AppendLine();
             }
 
-            string regionName = $"{graphicsApi}{shader.ModeName}{shader.EntryPoint}";
-            ShaderDesc emptyShader = CreateEmptyShader(shader.EntryPoint);
-            builder.AppendLine(FormatRegion(regionName, FormatShaderDesc(regionName, emptyShader)));
-            regionIndex++;
+            string constantName = GetConstantName(graphicsApi, shaders[shaderIndex]);
+            ShaderDesc emptyShader = CreateEmptyShader(shaders[shaderIndex].EntryPoint);
+            regionBuilder.Append(FormatShaderDesc(constantName, emptyShader).TrimEnd('\n'));
         }
+
+        builder.AppendLine(FormatRegion(graphicsApi.ToString(), regionBuilder.ToString()));
     }
 
     builder.AppendLine("}");
     return NormalizeGeneratedText(builder.ToString());
 }
 
-static string EnsureRegions(string text, GraphicsApi[] graphicsApis, ShaderDefinition[] shaders, string[] regionNames)
+static string GetConstantName(GraphicsApi graphicsApi, ShaderDefinition shader)
 {
-    int regionIndex = 0;
-    foreach (GraphicsApi graphicsApi in graphicsApis)
-    {
-        foreach (ShaderDefinition shader in shaders)
-        {
-            string regionName = $"{graphicsApi}{shader.ModeName}{shader.EntryPoint}";
-            if (!FindRegion(text, regionName, out _, out _))
-            {
-                text = InsertRegion(text, regionName, shader.EntryPoint, regionNames, regionIndex);
-            }
-
-            regionIndex++;
-        }
-    }
-
-    return text;
+    return $"{graphicsApi}{shader.ModeName}{shader.EntryPoint}";
 }
 
-static string InsertRegion(string text, string regionName, string entryPoint, string[] regionNames, int regionIndex)
+static string ReplaceShader(string text, string constantName, string body)
 {
-    int insertionIndex = text.LastIndexOf("\n}", StringComparison.Ordinal) + 1;
-
-    for (int index = regionIndex + 1; index < regionNames.Length; index++)
+    if (!FindShader(text, constantName, out int start, out int end))
     {
-        if (FindRegion(text, regionNames[index], out int start, out _))
-        {
-            insertionIndex = start;
-            break;
-        }
+        throw new InvalidOperationException($"Shader '{constantName}' was not found.");
     }
 
-    string prefix = text[..insertionIndex].TrimEnd('\n');
-    string suffix = text[insertionIndex..].TrimStart('\n');
-    string before = prefix.EndsWith('{') ? "\n" : "\n\n";
-    string after = suffix.StartsWith('}') ? "\n" : "\n\n";
-    ShaderDesc emptyShader = CreateEmptyShader(entryPoint);
-    string body = FormatShaderDesc(regionName, emptyShader);
-    return string.Concat(prefix, before, FormatRegion(regionName, body), after, suffix);
+    return string.Concat(text.AsSpan(0, start), body.TrimEnd('\n'), text.AsSpan(end));
 }
 
-static string ReplaceRegion(string text, string regionName, string body)
+static bool FindShader(string text, string constantName, out int start, out int end)
 {
-    if (!FindRegion(text, regionName, out int start, out int end))
-    {
-        throw new InvalidOperationException($"Region '{regionName}' was not found.");
-    }
-
-    return string.Concat(text.AsSpan(0, start), FormatRegion(regionName, body), text.AsSpan(end));
-}
-
-static bool FindRegion(string text, string regionName, out int start, out int end)
-{
-    string startMarker = $"    #region {regionName}\n";
-    const string EndMarker = "    #endregion";
+    string startMarker = $"    private static readonly ShaderDesc {constantName} = new()\n";
+    const string EndMarker = "    };";
 
     start = text.IndexOf(startMarker, StringComparison.Ordinal);
     end = -1;
@@ -195,20 +143,9 @@ static string FormatRegion(string regionName, string body)
     return $"    #region {regionName}\n{body}\n    #endregion";
 }
 
-static string ReadGeneratedFile(string path)
-{
-    if (!File.Exists(path))
-    {
-        return string.Empty;
-    }
-
-    return NormalizeGeneratedText(File.ReadAllText(path));
-}
-
 static string NormalizeGeneratedText(string text)
 {
     string normalizedText = text.ReplaceLineEndings("\n").TrimEnd('\n');
-    normalizedText = normalizedText.Replace("#endregion\n    #region", "#endregion\n\n    #region", StringComparison.Ordinal);
 
     int closingBraceIndex = normalizedText.LastIndexOf("\n}", StringComparison.Ordinal);
     if (closingBraceIndex < 0)
