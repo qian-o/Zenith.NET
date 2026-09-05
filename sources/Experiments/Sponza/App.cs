@@ -4,6 +4,7 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 using Sponza.Handlers;
 using Sponza.Helpers;
+using Sponza.Models;
 using Zenith.NET;
 using Zenith.NET.DirectX12;
 using Zenith.NET.Metal;
@@ -19,6 +20,10 @@ internal static class App
     private static readonly ImGuiHandler imGui;
     private static readonly CameraHandler camera;
     private static readonly Renderer renderer;
+
+    private static float renderScale = 1.0f;
+    private static UpscalingMode upscalingMode = UpscalingMode.None;
+    private static float timeOfDay = 12.0f;
 
     static App()
     {
@@ -118,9 +123,33 @@ internal static class App
 
             ImGuiHelper.Settings(() =>
             {
-                // 控制超分模式，不启用、空间超分、时域超分。
+                ImGui.SliderFloat("Render scale", ref renderScale, 0.5f, 1.0f, "%.2fx", ImGuiSliderFlags.AlwaysClamp);
 
-                // 控制一天的时间线，6点到18点。
+                ImGui.Separator();
+
+                if (ImGui.BeginCombo("Upscaling", upscalingMode.ToString()))
+                {
+                    foreach (UpscalingMode mode in Enum.GetValues<UpscalingMode>())
+                    {
+                        bool selected = upscalingMode == mode;
+
+                        if (ImGui.Selectable(mode.ToString(), selected))
+                        {
+                            upscalingMode = mode;
+                        }
+
+                        if (selected)
+                        {
+                            ImGui.SetItemDefaultFocus();
+                        }
+                    }
+
+                    ImGui.EndCombo();
+                }
+
+                ImGui.Separator();
+
+                ImGui.SliderFloat("Time of day", ref timeOfDay, 6.0f, 18.0f, "%.2f h", ImGuiSliderFlags.AlwaysClamp);
             });
         };
 
