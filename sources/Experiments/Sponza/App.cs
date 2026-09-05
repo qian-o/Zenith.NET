@@ -133,13 +133,13 @@ internal static class App
 
                 if (ImGui.BeginCombo("Upscaling", renderer.Settings.UpscalingMode.ToString()))
                 {
-                    foreach (UpscalingMode mode in Enum.GetValues<UpscalingMode>())
+                    foreach (UpscalingMode upscalingMode in Enum.GetValues<UpscalingMode>())
                     {
-                        bool selected = renderer.Settings.UpscalingMode == mode;
+                        bool selected = renderer.Settings.UpscalingMode == upscalingMode;
 
-                        if (ImGui.Selectable(mode.ToString(), selected))
+                        if (ImGui.Selectable(upscalingMode.ToString(), selected))
                         {
-                            renderer.Settings.UpscalingMode = mode;
+                            renderer.Settings.UpscalingMode = upscalingMode;
                         }
 
                         if (selected)

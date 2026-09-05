@@ -1,4 +1,4 @@
-namespace Sponza.Models;
+﻿namespace Sponza.Models;
 
 internal struct RenderSettings
 {
