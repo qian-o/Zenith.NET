@@ -21,10 +21,6 @@ internal static class App
     private static readonly CameraHandler camera;
     private static readonly Renderer renderer;
 
-    private static float renderScale = 1.0f;
-    private static UpscalingMode upscalingMode = UpscalingMode.None;
-    private static float timeOfDay = 12.0f;
-
     static App()
     {
         if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux())
@@ -86,7 +82,15 @@ internal static class App
 
         camera = new(input, Matrix4x4.CreateRotationY(float.DegreesToRadians(90.0f)) * Matrix4x4.CreateTranslation(new(0.0f, 1.2f, 0.0f)));
 
-        renderer = new();
+        renderer = new()
+        {
+            Settings = new()
+            {
+                RenderScale = 1.0f,
+                UpscalingMode = UpscalingMode.None,
+                TimeOfDay = 12.0f
+            }
+        };
     }
 
     public static GraphicsContext Context { get; }
@@ -123,19 +127,19 @@ internal static class App
 
             ImGuiHelper.Settings(() =>
             {
-                ImGui.SliderFloat("Render scale", ref renderScale, 0.5f, 1.0f, "%.2fx", ImGuiSliderFlags.AlwaysClamp);
+                ImGui.SliderFloat("Render scale", ref renderer.Settings.RenderScale, 0.5f, 1.0f, "%.2fx", ImGuiSliderFlags.AlwaysClamp);
 
                 ImGui.Separator();
 
-                if (ImGui.BeginCombo("Upscaling", upscalingMode.ToString()))
+                if (ImGui.BeginCombo("Upscaling", renderer.Settings.UpscalingMode.ToString()))
                 {
                     foreach (UpscalingMode mode in Enum.GetValues<UpscalingMode>())
                     {
-                        bool selected = upscalingMode == mode;
+                        bool selected = renderer.Settings.UpscalingMode == mode;
 
                         if (ImGui.Selectable(mode.ToString(), selected))
                         {
-                            upscalingMode = mode;
+                            renderer.Settings.UpscalingMode = mode;
                         }
 
                         if (selected)
@@ -149,7 +153,7 @@ internal static class App
 
                 ImGui.Separator();
 
-                ImGui.SliderFloat("Time of day", ref timeOfDay, 6.0f, 18.0f, "%.2f h", ImGuiSliderFlags.AlwaysClamp);
+                ImGui.SliderFloat("Time of day", ref renderer.Settings.TimeOfDay, 6.0f, 18.0f, "%.2f h", ImGuiSliderFlags.AlwaysClamp);
             });
         };
 
