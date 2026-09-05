@@ -4,11 +4,13 @@
 
 文中路径如未另行说明，均相对于仓库根目录。标为“当前”的内容是已有代码；其余文件、接口扩展、默认画面和验收项均是待实现要求，不能据此宣称渲染功能已经完成。
 
+本次核对基线为仓库提交 `ba292279329e2f0e6b3ce5cb6acc2e03df705f65`：设置结构体和 App 控制方式已经落地，Sponza 模型及贴图已经入库；Renderer、Pass 和 Shader 仍待实现。后续 agent 应直接使用本地资产完成 M0/M1，不再执行下载模型或重做设置重构的步骤。第 4 节的数量和校验值用于核对这批资产，不能写死在通用加载逻辑中。
+
 **变更边界：保留现有宿主和框架逻辑。** 不修改 `ImGuiHelper` 的实现、签名、窗口位置或折叠行为；控件仍写在 App 的 `ImGuiHelper.Settings(Action)` 回调中。`RenderSettings` 使用普通结构体，Renderer 通过公开字段持有，由 App 初始化和编辑。保留 App 中 Color 的直接绑定、Update/Render/Resize 回调顺序、输入、交换链和提交逻辑，不添加空 Color 分支、占位提示或移动 renderer.Update 的调用。渲染实现应遵守这些已有接口；发现共享框架或扩展的问题时记录证据，在 Sponza 范围内处理，不将本文当作修改框架代码的授权。
 
 ## 1. 最终画面与范围
 
-默认画面为 **16:00 的暖色斜阳中庭**：阳光穿过上层建筑，在地面和柱廊形成有节奏的明暗；阴影略冷但保留石材细节；织物、石材、金属有清楚的粗糙度差异；远处有很薄的空气感；天空有自然的天顶、地平线、太阳和疏薄云层。最终按实际模型方向调整太阳方位和相机构图。
+主展示预设为 **16:00 的暖色斜阳中庭**：阳光穿过上层建筑，在地面和柱廊形成有节奏的明暗；阴影略冷但保留石材细节；织物、石材、金属有清楚的粗糙度差异；远处有很薄的空气感；天空有自然的天顶、地平线、太阳和疏薄云层。该预设是后续调画目标，当前 App 的初值仍为 `1.0 / None / 12:00`，不能为落实展示预设自行覆盖用户保留的初值。
 
 视觉优先级：材质与色彩正确 → 光影构图 → 阴影与间接光层次 → 抗锯齿及运动稳定 → 克制的反射、体积光和后期。允许艺术化光强、补光、材质微调和天空色彩，不追求照度标定或严格能量守恒；不能用全局过曝、过强 AO、镜面地板或浓雾掩盖问题。
 
@@ -35,8 +37,11 @@
 | 已引用 | SharpGLTF.Core、ImageSharp/ImGui/Upscaling 扩展、DirectX12/Metal/Vulkan 后端 |
 | 后端选择 | Windows → DirectX12；macOS → Metal；Linux → Vulkan/Xlib，沿用现有选择 |
 | 资源路径 | `Assets/**` 已复制到输出目录；从 `AppContext.BaseDirectory` 定位，不依赖启动工作目录 |
+| 模型入口 | 已有 `Assets/Models/Sponza.gltf`、同级 `Sponza.bin` 和 `textures/` 下 65 张贴图；不增加另一层 Sponza/glTF 目录 |
 | renderer | 保留 `Update(CameraHandler)`；`public RenderSettings Settings;` 由 App 控制；Render/Resize/Dispose 待实现 |
 | 设置 | `Models/RenderSettings.cs` 为普通 struct，成员为公开字段；初值和控件范围由 App 管理 |
+| 初始化次序 | `new Renderer()` 先运行构造函数，随后 App 的对象初始化器才赋值 Settings；构造时不能依赖 Settings 的有效渲染比例 |
+| 相机基线 | App 初始位置 `(0, 1.2, 0)`、朝向约 `+X`；CameraHandler 当前 near/far=0.1/200、FOV=45°、Speed=12，沿用现有设置与输入逻辑 |
 | 骨架状态 | `Color => null!` 仍是原有占位实现，当前不能据编译成功宣称窗口可运行；后续由 Renderer 创建有效 Color，不改变 App 的直接绑定 |
 
 先阅读 `Sponza/App.cs`、`Renderer.cs`、`Helpers/ImGuiHelper.cs`、`Models/RenderSettings.cs`；参考 `CornellBox/Renderers/RasterizationRenderer.cs` 的基础绘制、`FluidTank/Helpers/GraphicsHelper.cs` 的资源辅助方法。可以提取适用做法，但不要复制 FluidTank 的光追反射或庞大的单文件结构。
@@ -89,7 +94,7 @@ sources/Experiments/Sponza/
 │   ├── AmbientOcclusionPass.cs
 │   ├── SkyPass.cs
 │   ├── EnvironmentPass.cs            # 天空 IBL、探针捕获/预过滤
-│   ├── ForwardPass.cs                # opaque/mask + 单独透明阶段
+│   ├── ForwardPass.cs                # 本地资产为 opaque/mask；BLEND 留作扩展
 │   ├── VolumetricFogPass.cs
 │   ├── AntiAliasingPass.cs           # None/Spatial 路径的 FXAA
 │   ├── UpscalingPass.cs              # 适配已有 SGSR 扩展
@@ -97,7 +102,11 @@ sources/Experiments/Sponza/
 │   └── ToneMappingPass.cs
 └── Assets/
     ├── Fonts/msyh.ttf
-    ├── Models/Sponza/                # glTF、bin、贴图、来源和授权原文
+    ├── Models/
+    │   ├── Sponza.gltf               # 已有；保持相对 URI
+    │   ├── Sponza.bin                # 已有；保持原始数据
+    │   ├── textures/                # 已有 65 张 JPG/PNG
+    │   └── SOURCE.md                # 待补充可核实的来源/授权记录
     └── Shaders/
         ├── Common.slang
         ├── Material.slang
@@ -112,25 +121,63 @@ Pass 按需提供构造、`Update`、`Render(CommandBuffer, ...)`、`Resize`、`
 
 代码使用文件作用域 namespace、四空格、private camelCase 字段、PascalCase 方法/属性、target-typed `new`。公共设置不直接变成 GPU 常量结构，禁止 shader 参数和 ImGui 临时变量相互混用。仅为重复使用的操作抽取 helper，保留可以直接阅读的渲染顺序。
 
+构造与首帧的分工必须符合当前 App：Renderer 构造函数先创建输出尺寸的 Color、静态场景资源和不依赖设置的管线；不能在这里读取尚未由对象初始化器赋值的 `Settings.RenderScale` 来创建内部尺寸纹理或 upscaler。第一次 `Update(camera)` 才消费 App 写好的 Settings，创建内部目标、设置太阳并初始化历史。这样 App 在 Update 回调中直接绑定 Color 时，Color 已存在，而真正渲染又使用正确参数。不要移动 App 调用、增设构造参数或在 Renderer 中塞入第二份设置默认值来绕开初始化顺序。
+
 ## 4. 模型资产和材质导入
 
-默认使用 [Khronos glTF Sample Assets 的 Sponza](https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/Sponza/README.md) 版本，目标入口为 `Assets/Models/Sponza/glTF/Sponza.gltf`。该版本已有 PBR 贴图和切线，适合现有 SharpGLTF.Core 依赖。官方预览中的灯光不属于模型本身，必须自行布光。
+### 4.1 使用已经入库的资产
 
-资产阶段按下面顺序执行：
+唯一默认入口为 `Path.Combine(AppContext.BaseDirectory, "Assets", "Models", "Sponza.gltf")`。glTF 的 buffer URI 是同级 `Sponza.bin`，图像 URI 是 `textures/...`。模型目录的占位文件已被删除，不再下载、替换、重命名或移动这批资产，也不要重新套用旧文档中的嵌套目录。资源复制规则已经存在，无需改动 csproj。
 
-1. 检查用户是否已放入可用 glTF/glb；有则优先使用并记录路径。否则从上述仓库取得 `Models/Sponza` 及其引用的授权文件，保留 glTF URI 对应的相对目录；可用稀疏检出，避免下载整个模型库。
-2. 在 `Assets/Models/Sponza/SOURCE.md` 记录实际来源、获取日期、仓库完整 commit SHA、文件清单/校验值和复制的授权文件位置；不编造固定版本号，不把资产许可自动当作本仓库代码许可。
-3. 删除模型目录占位文件，核对不是 Git LFS 指针，并确认 bin 和所有贴图存在。资源取得失败时给出缺失路径和原因，继续独立 Pass 工作，但资产验收保持未完成。
-4. 实现可选 `SPONZA_MODEL` 环境变量覆盖默认入口，支持绝对路径；最终 README 给出用法。发行或运行无需联网获取贴图。
-5. 加载失败提供包含资源路径的明确错误，不改写 App 的显示/异常流程；不能静默以测试立方体替代最终场景。
+当前文件声明 glTF 2.0、generator=`glTF-Transform v1.2.3`。这只能说明文件元数据，不能证明某个特定上游仓库修订或许可。`Assets/Models` 内暂未发现来源/授权记录；后续在该目录的 `SOURCE.md` 中记录可核实的来源、授权文件位置及本仓库资产 commit，尚不确定的内容明确留待核实，不根据文件名猜测，也不为补元数据重新下载覆盖用户资产。元数据补充与渲染导入分开验收。
+
+加载失败提供包含资源路径的明确错误，不改写 App 的显示/异常流程，不静默使用其他模型。额外的 glb/环境变量入口不属于当前必需范围；先保证现有 glTF 从任意工作目录启动都能离线加载。
+
+### 4.2 已核对的资产数据
+
+| 项目 | 当前资产事实 | 对实现的要求 |
+| --- | --- | --- |
+| 场景/节点 | 1 scene、1 node：`Sponza Root`，引用 mesh 0 | 读取默认场景和节点变换，不能只读取裸 mesh |
+| 根节点缩放 | 三轴均约 `0.008`，无平移/旋转 | 应用一次且仅一次；不忽略，不再乘 0.01，不把 glTF 改写成单位缩放 |
+| 几何 | 1 mesh、103 个 triangle primitive、25 个材质 | 为 103 个 primitive 建 draw 记录；材质按索引复用，不能按材质数量替代绘制数量 |
+| 数量 | POSITION accessor 去重后合计 192,496 个顶点；786,801 个索引；262,267 个三角形 | 导入后核对这些数值；初始可逐 primitive 绘制，裁剪后统计另列 |
+| 索引/顶点类型 | 全部索引为 UInt16（5123），顶点属性为 Float（5126） | 合并顶点时处理 primitive 的局部索引/baseVertex，或显式转换为 UInt32；不默认输入本来就是 UInt32 |
+| 顶点属性 | 103 个 primitive 均有 POSITION/NORMAL/TEXCOORD_0；102 个有 TANGENT | 不强制要求 TEXCOORD_1；保留已有切线及其 w 手性 |
+| 唯一缺切线项 | primitive 50（零起始）、material 2 `plain_white`，36 个顶点 | 无 normalTexture，可走几何法线分支；统一顶点布局如需切线，填稳定正交基，不必为此重建全场景切线 |
+| 材质分支 | 22 个 OPAQUE 材质对应 89 个 primitive；3 个 MASK 材质对应 14 个 primitive；无 BLEND | 主线优先完成 OPAQUE/MASK，BLEND 不作为当前资产验收的前置条件 |
+| MASK | `ivy_leaves`、`hanging_chain`、`thorn_vines`，均 cutoff=0.5、doubleSided=true | 阴影、预深度、Forward 使用完全一致的遮罩与双面规则 |
+| 贴图 | 65 个 image/texture；61 张 JPG，4 张 PNG | 全部按 glTF 索引和相对 URI 读取，不用文件名决定用途 |
+| 贴图尺寸 | 64 张为 1024²；`plain_white_base_color.png` 为 4² | 按原尺寸建立 mip；不可假定每张贴图都为 1024² |
+| 采样器 | 唯一 sampler 0：线性放大、三线性缩小、S/T repeat | 使用与原数据相符的采样方式，再配置适当 anisotropy |
+| 扩展/动画 | 无 extensionsUsed/Required、skin、animation、camera 或场景灯光 | 不引入 Draco/KTX2/动画/蒙皮依赖；太阳、天空与探针由实验生成 |
+
+本次静态核对已确认：glTF 引用的 bin 和全部 65 张图像存在；bufferView/accessor 字节范围、各 primitive 索引范围及 POSITION 的 min/max 与实际二进制数据一致。图片头的格式/尺寸已读取；完整图片解码、SharpGLTF 导入、GPU 上传和视觉正确性仍待实现与验证。
+
+- `Sponza.bin` 字节数：`9,528,220`，与 glTF 声明一致。
+- `Sponza.gltf` SHA-256：`55ef6fff4019f6bff646d66270b292b4c5e2d81ceb11c64e347547a707f89dd2`。
+- `Sponza.bin` SHA-256：`fdbdbfb6a76edeb6626f28a1401bc1536bb1c864131a64e90fbc3df2d2d191bd`。
+
+这些校验值仅供开发记录和基线比对，不能在程序中拒绝用户后续更新的合法资产。
+
+### 4.3 导入与尺度
 
 通过 `SharpGLTF.Schema2.ModelRoot` 读取默认场景及节点树。访问 accessor 使用库接口，不自行猜测 buffer 的紧密排列；同一个 Mesh 的每个 Primitive 都有独立材质，且可能被多个节点实例化。库用法查 [SharpGLTF 源码](https://github.com/vpenades/SharpGLTF/tree/master/src/SharpGLTF.Core/Schema2)，签名以项目固定的包版本为准。
 
-必须处理：节点累计变换、非均匀缩放的逆转置法线矩阵、负行列式的绕序/切线手性、索引类型到统一 UInt32 的转换、无索引 primitive、POSITION/NORMAL/TANGENT/TEXCOORD_0，以及材质实际引用的 TEXCOORD_1。缺失法线则按三角形生成；缺失切线则生成与法线贴图兼容的切线并处理退化 UV。静态实例优先共享几何，通过 draw 数据提供世界矩阵。只要求 triangle primitives；不支持的必需扩展或拓扑应明确报错，不能悄悄丢掉几何。
+当前加载器首先覆盖上表中的实际数据：通过库的 accessor 接口处理 byteOffset/byteStride；保留 primitive 到材质的映射；通过 draw 数据提供节点世界矩阵；按 normalTexture 是否存在选择法线分支。不要把 103 个 primitive 合成一个没有材质索引的 draw，也不要为 25 个材质重复上传共享图像。
 
-保持 glTF 的米单位、Y-up 和场景比例；不要把从旧 OBJ 示例看到的 `0.01` 缩放无条件套在 glTF 上。计算 AABB 后设置相机 near/far、移动速度、初始位置和灯光范围。第一视角约离地 1.6 m，沿中庭长轴斜向远处看，同时保留部分天空。
+节点累计变换、逆转置法线矩阵和切线手性按正确数学实现。若以后输入含非均匀/负缩放、无索引 primitive、TEXCOORD_1 或缺失且确实需要的法线/切线，再补充对应路径或给出明确的不支持错误；当前不存在的动画和扩展不应扩大主线工作。未来生成切线时要匹配法线贴图约定并处理退化 UV，不覆盖这批资产已有切线。
+
+局部坐标 AABB 约为 `(-1920.946, -126.442, -1182.807)` 到 `(1799.908, 1429.433, 1105.426)`；应用根节点 scale 后，世界 AABB 约为 `(-15.368, -1.012, -9.462)` 到 `(14.399, 11.435, 8.843)`，尺寸约 `29.767 × 12.447 × 18.306 m`，长轴为 X。该结果是所有几何的包围盒，不代表全场地板高度；不能简单把 minY 平移到 0。Renderer 的阴影、AO、雾和 probe 距离统一使用变换后的世界尺度。
+
+先沿用 App 的 `(0, 1.2, 0)`、朝向 `+X` 和现有相机参数验收模型比例，不将文档原先设想的 1.6 m 镜头覆盖进 App。展示构图通过现有相机操作选择并记录，不修改 CameraHandler；probe 位置和太阳方向按这个实际坐标系校准。
+
+### 4.4 材质与纹理规则
 
 材质语义遵循 [glTF 2.0 规范](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html)：保留贴图与 factor 的乘积、纹理坐标选择、sampler、normal scale、occlusion strength、alpha mode/cutoff 和 double-sided；不要因画面偏暗而删除资产原有的 baseColorFactor。材质调试视图先验明颜色空间，再调灯光。
+
+当前 25 个材质的 baseColorFactor 均约为 `(0.588, 0.588, 0.588, 1)`；它应在线性空间乘到已解码的 base color 上。24 个材质有法线和 metallic-roughness 贴图；`plain_white` 只有 base color，明确 metallicFactor=0，应得到非金属、默认粗糙的表面。未显式给出的 factor 按 glTF 默认值处理，不能直接使用零初始化后的 GPU 常量。
+
+本地材质没有 occlusionTexture 或 emissiveTexture；对应项使用确定的默认值，不从 metallic-roughness 图片的 R 通道擅自推断 AO，不从名称猜自发光。`ornate_drape_blue/red/green` 共享 normal/MR，`woven_fabric_blue/green/red` 也共享 normal/MR，缓存需复用这些资源。三种 MASK 的 base color PNG 为 RGBA；白色 PNG 无 alpha，其余 JPG 按 alpha=1 处理。
 
 | 贴图用途 | GPU 采样与 mip 要求 | 缺失时 |
 | --- | --- | --- |
@@ -142,7 +189,9 @@ Pass 按需提供构造、`Update`、`Render(CommandBuffer, ...)`、`Resize`、`
 
 现有 `LoadTextureFromStream` 创建 `R8G8B8A8UNorm` 并直接对原图缩放，不满足全部颜色/mip 语义。在 Sponza 的 `TextureHelper` 中按用途创建 `R8G8B8A8SRgb` 或 UNorm 纹理并上传每级 mip，不修改共享 ImageSharp 扩展。缓存键至少包含图像身份和颜色空间/用途；同一图像兼作数据图时不能错用 sRGB。支持内嵌图像和相对 URI，不依赖文件名猜材质用途。默认使用三线性过滤和 8× anisotropy，按 glTF sampler 的 wrap 方式调整。
 
-OPAQUE/MASK 参与阴影、预深度和主渲染；MASK 的裁剪逻辑放进共享 shader，三个阶段一致。双面材质正确处理背面法线，不全场景关闭背面剔除。BLEND 使用单独的深度只读前向阶段，按距离由远到近，采用明确一致的 straight-alpha 混合；不要把叶片/旗帜的 MASK 当作 BLEND。
+原分辨率的 65 张图像按 RGBA8 并生成完整 mip chain，纹理像素数据合计约 341.3 MiB（不含 GPU 对齐、上传临时内存和其他渲染目标）；压缩 JPG/PNG 的磁盘体积不能当显存占用。按唯一图像/用途缓存，上传后释放可丢弃的 CPU 像素副本，Medium/High 不隐式重采样或改写原始文件。
+
+OPAQUE/MASK 参与阴影、预深度和主渲染；MASK 的裁剪逻辑放进本实验共享 shader，三个阶段一致。只对三种明确 doubleSided 的材质启用双面处理；本地 drape/fabric 材质仍是 OPAQUE，不能因其表现为布料就自动改为双面或 BLEND。未来若加入 BLEND，采用单独的深度只读、由远到近的 straight-alpha 阶段；当前空透明列表直接跳过该阶段，不为展示“透明功能”修改原材质。
 
 ## 5. 坐标、深度、颜色和尺寸约定
 
@@ -172,7 +221,7 @@ OPAQUE/MASK 参与阴影、预深度和主渲染；MASK 的裁剪逻辑放进共
 5. Forward opaque：直射 PBR + CSM + 天空/局部探针间接光 + AO + emissive，写 HDR。
 6. Sky：只覆盖背景深度，使用同一太阳方向和天空函数。若实现 SSR，在此后用独立颜色副本合成，不能边采样边写同一 HDR 纹理。
 7. Volumetric fog：计算散射和透射率，双边上采样，合成到独立 HDR 目标。
-8. 保存 **OpaqueInput**（已含天空与雾）；Forward transparent 写另一个场景目标，并在透明表面深度计算一致的雾。没有透明物体可令 Input/OpaqueInput 引用同一有效纹理。
+8. 当前资产无 BLEND，令 **Input 与 OpaqueInput 引用同一张已含天空/雾的有效 HDR 纹理**，跳过透明绘制及额外复制。仅在未来存在 BLEND draw 时，保留合成前 OpaqueInput，再在另一个目标完成透明与透明雾。
 9. 按下面的抗锯齿/超分分支处理，得到输出尺寸的最终 LDR `Color`。
 10. `Color` 转为 Sampled；App 绘制 ImGui 到交换链，再 Present。UI 不参加曝光、AA 或超分。
 
@@ -195,7 +244,7 @@ OPAQUE/MASK 参与阴影、预深度和主渲染；MASK 的裁剪逻辑放进共
 | EncodedMotion | `R16G16Float`，R | SGSR 编码；只在 Temporal 分支需要 |
 | ShadowMap | `D32Float`，4 层 2D array | 每层 2048²；DepthStencilAttachment + Sampled |
 | LinearDepthPyramid / AO | `R32Float` mip / `R16Float` 半分辨率 | Sampled + Storage；AO 禁用时提供全 1 默认纹理 |
-| HdrA / HdrB / OpaqueInput | `R16G16B16A16Float`，R | HDR 合成 ping-pong；分清 CopySrc/CopyDst 与 Storage/附件状态 |
+| HdrA / HdrB | `R16G16B16A16Float`，R | HDR 合成 ping-pong；当前 OpaqueInput 复用最终 HDR 的只读句柄，有 BLEND 时才另存副本 |
 | FogScattering / FogTransmittance | RGBA16F / R16F，半分辨率 | 积分结果，必须带深度引导上采样 |
 | Sky/Probe cubes | `R16G16B16A16Float`，6 面及 mip | 静态尺寸；按环境变更更新，不随窗口重建 |
 | BRDF LUT | `R16G16Float`，256² | 启动生成一次；无效句柄不能代替缺省数据 |
@@ -213,6 +262,7 @@ OPAQUE/MASK 参与阴影、预深度和主渲染；MASK 的裁剪逻辑放进共
 - 每级阴影、每个 cube face 和每个 draw 所需的常量必须拥有独立缓冲区或正确对齐的不同 offset；不能反复覆盖同一常量内存后假定已经记录的 draw 会保留旧值。
 - 第一版沿用一条 GraphicsQueue 记录图形和 compute，及 App 的 `Submit().Wait()`。不在每个 Pass 中 Submit/Wait；上传批量提交。以后取消逐帧等待时才引入帧资源轮转，不能提前重用仍在 GPU 使用的内存。
 - 输出 Color 在 Renderer 构造/原有 Resize 入口中按输出尺寸创建；内部 renderScale 变化只重建内部目标，不替换已经被 App 绑定的 Color。Renderer 在原有 Update 中处理设置变化，内部延迟回收仍可能被 UI/GPU 引用的资源，不为重建移动 App 的 Binding/Update 时机。
+- App 的对象初始化器在 Renderer 构造之后才设置 RenderScale/TimeOfDay。依赖这些值的内部纹理、upscaler 和环境内容在首个 Update 中初始化；Color 的尺寸只依赖输出 framebuffer，构造阶段不按零初始化的 RenderScale 分配资源。
 - `Renderer` 构造成功后必须提供有效且非空的 Color，不修改 Color 的非空类型合同，不在 App 加 null 检查。Dispose 逆序释放所拥有资源，局部初始化异常也要释放已创建部分。
 
 ## 7. 画质实现规格
@@ -227,7 +277,7 @@ BRDF 用 GGX 分布、Smith visibility、Schlick Fresnel、金属度工作流；
 
 `TimeOfDay` 是艺术化白昼时钟，范围 6..18，不接入真实日期经纬度。定义 `a = pi * (hour - 6) / 12`，初始 surface-to-sun 方向为 `(cos(a), sin(a), 0)`，再绕 Y 轴旋转 `SunAzimuth`；太阳投射方向为其相反数。6/18 点方向保持有限，光强平滑趋近 0；正午接近上方，默认 16 点斜射。颜色在低高度暖色与高高度中性日光间平滑变化。调整 `SunAzimuth` 使光影横跨中庭，在预设里保存实际值。
 
-CSM：4 cascades；以未 jitter 的相机视锥计算分割，log/uniform 混合 lambda=0.7 起步，shadow distance 60 m 起步并根据场景 AABB 校准。每级固定球包围、正交投影并按 shadow texel 对齐；计算 caster 范围时包含视锥外会投进来的遮挡物。分割边界约 10% 区域平滑混合，远端淡出。
+CSM：4 cascades；以未 jitter 的相机视锥计算分割，log/uniform 混合 lambda=0.7 起步，shadow distance 60 m 起步，依据约 30×12×18 m 的世界 AABB 校准，不使用未乘 0.008 的局部包围盒。每级固定球包围、正交投影并按 shadow texel 对齐；计算 caster 范围时包含视锥外会投进来的遮挡物。分割边界约 10% 区域平滑混合，远端淡出。
 
 先完成固定 PCF，再做 PCSS 的 blocker search 和可变半影；High 起点为 16 blocker + 32 filter samples，限制最大半影半径。投射器为方向光，使用光空间距离/太阳角半径推导尺度，不照搬透视光的深度比值。材质遮罩参与 shadow pass。bias 结合 slope/normal offset、级联 texel 世界尺寸调节，禁止用超大 bias 隐藏 acne。PCSS 原理参考 [NVIDIA 技术文档](https://developer.download.nvidia.com/assets/gamedev/docs/PCSS_Integration.pdf)。
 
@@ -257,7 +307,7 @@ diffuse probe 作为近似一次反弹和艺术间接光；specular probe 使用
 
 AO 默认 GTAO：半分辨率，线性深度 mip，High 从 3 slices × 每侧 3 samples 起步，世界半径约 0.75 m，深度/法线引导空间降噪并双边上采样。无时域模式使用固定采样旋转，Temporal 模式才使用逐帧变化噪声并让 SGSR 稳定最终图像；不要为第一版再增加独立 AO 历史链。参考 [XeGTAO 的算法和降噪实现](https://github.com/GameTechDev/XeGTAO)，移植源码时保留其许可，不能照搬示例工程的后端。强度 1 起步；验收重点是接触层次、细节保留和轮廓无光晕。
 
-雾默认半分辨率 32 steps，按视线深度积分指数高度密度、太阳散射与 CSM 可见性，输出散射 S 和透射率 T，按 `scene * T + S` 合成。最大积分距离受相机 far 和 fog distance 限制；使用抖动减轻条带，空间双边滤波保持柱子轮廓。透明材质按其自身深度应用相同的雾模型，不能直接使用已积分到后方不透明表面的值。默认雾密度低，逆光才出现柔和光束，面板设为 0 时有完全无雾的 neutral 路径。
+雾默认半分辨率 32 steps，按视线深度积分指数高度密度、太阳散射与 CSM 可见性，输出散射 S 和透射率 T，按 `scene * T + S` 合成。最大积分距离受相机 far 和 fog distance 限制；使用抖动减轻条带，空间双边滤波保持柱子轮廓。当前材质只需处理不透明与遮罩表面的深度；未来启用 BLEND 时才补充按透明表面自身深度计算的雾，不能套用后方不透明表面的积分。默认雾密度低，逆光才出现柔和光束，面板设为 0 时有完全无雾的 neutral 路径。
 
 SSR 为全部必需里程碑完成后的可选项：基于深度金字塔和当前帧独立 HDR 颜色副本，按 roughness、边缘、厚度和命中可信度与 probe 反射混合。只替换对应 specular 间接项，不能把整幅 scene color 当纯反射再全量相加。无命中、屏幕外和粗糙表面回退 probe；不追踪三角形，不以黑色填失败区域。出现明显拖影或轮廓漏光时默认关闭，记录为可选增强未完成。
 
@@ -269,7 +319,7 @@ SSR 为全部必需里程碑完成后的可选项：基于深度金字塔和当�
 
 ## 8. 时域与超分适配合同
 
-复用 `App.Context.CreateSpatialUpscaler(...)` 和 `CreateTemporalUpscaler(...)`；Temporal 默认 `TemporalUpscalerMode.Quality`。Desc 包含 input/output 尺寸且实例没有 Resize API，所以尺寸或相关模式变化时 Dispose/重建实例。`UpscalingMode` 是实验的路径选择，不要与扩展的 Speed/Quality 混用。只有通过下面验证后，才把最终 High 默认模式改为 Temporal。
+复用 `App.Context.CreateSpatialUpscaler(...)` 和 `CreateTemporalUpscaler(...)`；Temporal 默认 `TemporalUpscalerMode.Quality`。Desc 包含 input/output 尺寸且实例没有 Resize API，所以尺寸或相关模式变化时 Dispose/重建实例。`UpscalingMode` 是实验的路径选择，不要与扩展的 Speed/Quality 混用。只有通过下面验证后，才在 High 预设中启用 Temporal；预设由 App 显式应用，不覆盖现有启动初值。
 
 `UpscalingPass` 负责适配，不要求其他 Pass 了解 SGSR 的私有编码。以下合同来自仓库当前 shader，实施时重新核对这些文件而不是从第三方引擎复制常量：
 
@@ -280,8 +330,8 @@ SSR 为全部必需里程碑完成后的可选项：基于深度金字塔和当�
 
 | `TemporalUpscalerArgs` 字段 | 应提供的数据 |
 | --- | --- |
-| Input | 当前帧线性 HDR，已经合成天空/雾/透明，尚未 Bloom/tone map/UI |
-| OpaqueInput | 同一帧、同一 HDR 标度、同一尺寸，在透明合成前保存；用于反应性估计，不可无条件填黑 |
+| Input | 当前帧线性 HDR，已合成天空/雾，尚未 Bloom/tone map/UI；存在 BLEND 时包含透明结果 |
+| OpaqueInput | 当前资产无 BLEND，与 Input 为同一有效 HDR 纹理；未来有透明时提供同帧、同标度/尺寸的透明合成前结果，不可填黑 |
 | Depth | R32Float 普通 device depth，0 near / 1 far；不传线性米深度或 reversed-Z |
 | MotionVectors | 下述专用编码纹理；不能直接传原始 UV/pixel velocity |
 | Output | D 尺寸 RGBA16F Storage 句柄，之后显式转换供采样 |
@@ -341,6 +391,8 @@ renderer.Render(commandBuffer);
 
 当前 `RenderSettings` 包含 RenderScale、UpscalingMode、TimeOfDay 三个公开字段，不使用 record、init、属性包装或不可变快照传递。App 负责初值 scale=1、mode=None、time=12，并在现有控件中限制 renderScale=0.5..1、timeOfDay=6..18。App 不再保存重复的散落字段，控件直接读写 `renderer.Settings`，不要复制结构体到局部变量后忘记回写。
 
+以上是现有代码约定，不是待重构任务。新增设置仍由 App 的对象初始化器及原有 Settings(Action) 回调控制；延续当前 `upscalingMode` 等有明确含义的局部命名。Renderer 只在 Update 中读取已赋值字段并转换成 GPU 数据，不在构造阶段假定公开结构体已经收到这些初值。
+
 当前完成的是 **App → Renderer 公开设置字段**，并没有 GPU 常量上传、内部尺寸调整、太阳计算或 SGSR Dispatch。后续阶段必须由 Renderer 从 Settings 读取并应用到下表的实际消费者。保持原有 Color 绑定；先补齐 Renderer 内的资源实现，不能靠修改调用方的空值行为或一张占位颜色图宣称完工。
 
 扩展设置时按实际消费需要增加普通字段；确实需要分组时可增加 `SkySettings`、`ShadowSettings`、`PostProcessSettings` 等普通子结构体，仍由 App 控制。不要引入不可变子记录、泛型参数注册表或 ImGui 对象进入 renderer。Renderer 如需比较上帧值，可在内部保存值副本并逐字段比较，不改变公开可写字段的接口。
@@ -348,7 +400,7 @@ renderer.Render(commandBuffer);
 | 设置 | 建议默认/范围 | 消费者与生效方式 |
 | --- | --- | --- |
 | RenderScale | 1 / 0.5..1 | 改变 R；在帧边界重建 R 资源、upscaler 并 Reset；不重建 D 的 Color |
-| UpscalingMode | 当前 None，最终 High 为 Temporal | 切换第 6 节路径；销毁旧 upscaler/history，更新 jitter 策略 |
+| UpscalingMode | 当前 None；High 预设为 Temporal | 切换第 6 节路径；销毁旧 upscaler/history，更新 jitter 策略 |
 | TimeOfDay | 当前初值 12；GoldenHour 预设 16 / 6..18 | 更新太阳方向/色彩/光强、阴影、天空；标记 IBL/probes dirty |
 | SunAzimuth | 25° 起步 / -180..180° | 太阳方向、阴影和环境；保存构图调好的实际值 |
 | SunIntensity | 6 起步 / 0..20 相对单位 | 太阳 HDR 辐射常量；触发 probe 更新 |
@@ -374,17 +426,20 @@ renderer 比较新旧字段后分别处理常量变化、尺寸变化、环境�
 
 - [x] RenderSettings 使用普通结构体，Renderer 持有公开 Settings 字段，由 App 初始化和直接编辑。
 - [x] 保持 ImGuiHelper、Color 直接绑定及 App 原有 Update/Render/Resize 流程。
-- [ ] 在 Renderer 内实现 Color 创建、清屏/输出、内部尺寸资源、异常和 Dispose。
+- [ ] Renderer 构造中创建合法的输出 Color，首个 Update 再依据 App 已赋值的 Settings 创建内部尺寸资源/upscaler；完成清屏/输出、异常和 Dispose。
 - [ ] 在 App 原有设置回调中显示实际设置/尺寸；Renderer 仅在实际渲染时推进帧状态。
 - [ ] 完成 Renderer 的资源初始化后可见原有 UI；编辑控件有效，缩放/最小化不崩溃。此阶段不要求场景效果。
 
-### M1：资产和材质基线
+### M1：本地资产导入和材质基线
 
-- [ ] 完成第 4 节的资产取得、来源记录和 glTF 导入；替换模型目录占位文件。
-- [ ] 生成 vertex/index/material buffer，批量上传；按用途加载贴图/mip/default textures。
+- [x] 本地 `Assets/Models/Sponza.gltf`、`Sponza.bin`、65 张贴图已入库，模型目录占位文件已移除。
+- [x] 静态核对引用文件、bin 大小、bufferView/accessor/索引范围和 POSITION 包围盒，与第 4 节基线一致。
+- [ ] 补充可核实的资产来源/授权记录；不猜上游版本，不重新下载或移动现有资产。
+- [ ] 用 SharpGLTF 读取本地入口，保留 103 个 primitive、25 个材质以及根节点 0.008 缩放；验证数量和世界 AABB。
+- [ ] 生成 vertex/index/material buffer，批量上传；完整解码 65 张图像，按用途加载 mip/default textures 并复用共享贴图。
 - [ ] 实现 DepthPrepass 和基础 Forward，输出 BaseColor/Normal/Roughness/Metallic/UV/Depth 调试视图。
-- [ ] 以真实 Sponza 验证节点实例、比例、法线、MASK、双面材质，设置默认相机。
-- [ ] 验收：材质没有错位、纯黑缺图、镜像法线、植被矩形、全场景塑料高光；缺失路径错误可诊断。
+- [ ] 沿用现有相机验证模型尺度；验证 primitive 50 的无 normalTexture 路径和三种 MASK 的 14 个 primitive。
+- [ ] 验收：baseColorFactor 0.588 保留，`plain_white` 不发金属光；材质无错位、纯黑缺图、镜像法线、叶片/链条矩形；布料保持资产规定的 OPAQUE 行为。
 
 ### M2：直接光、PBR 和基础后期
 
@@ -410,16 +465,16 @@ renderer 比较新旧字段后分别处理常量变化、尺寸变化、环境�
 
 ### M5：空气感和完整合成
 
-- [ ] 完成体积雾与 CSM 阴影采样、透明材质及透明雾；保存正确的 OpaqueInput。
+- [ ] 完成体积雾与 CSM 阴影采样；当前无 BLEND 时，Input/OpaqueInput 复用同一有效 HDR 结果。
 - [ ] 实现 HDR Bloom，完善曝光/tone mapping；各效果都能独立开关比较。
 - [ ] 校准 GoldenHour/Noon/Overcast 外观预设；Overcast 可降低太阳、增加薄云和柔和 sky，不要求天气模拟。
-- [ ] 验收：逆光有空气感，顺光不灰；透明物体边缘无黑边，亮部不过度泛白，石材细节保持清楚。
+- [ ] 验收：逆光有空气感，顺光不灰；MASK 镂空轮廓无黑边或雾光晕，亮部不过度泛白，石材细节保持清楚。BLEND/透明雾不作为本地资产主线的前置条件。
 
 ### M6：空间/时域超分和稳定性
 
 - [ ] 完成 Spatial LDR 路径与 Temporal HDR 路径；只读审计第 8 节问题，必要时在 Sponza 中适配边界与首帧历史。
-- [ ] 校验 motion 编码、jitter、深度、透明反应性、SameCamera/Reset，完成相机 cut 和尺寸切换处理。
-- [ ] 将最终 High 默认改为 Temporal/scale=1，保留 None 作为 FXAA 对比路径。
+- [ ] 校验 motion 编码、jitter、深度、MASK 边缘、SameCamera/Reset，以及无 BLEND 时 Input/OpaqueInput 同源的反应性路径；完成相机 cut 和尺寸切换处理。
+- [ ] 提供 Temporal/scale=1 的 High 预设，由 App 显式应用；保持启动初值，保留 None 作为 FXAA 对比路径。
 - [ ] 验收：三模式与全部 scale 均真实生效；细柱/高光稳定，快速转头/新显露区域无持续重影，天空不随平移产生视差。
 
 ### M7：性能、后端与最终画面
@@ -430,13 +485,13 @@ renderer 比较新旧字段后分别处理常量变化、尺寸变化、环境�
 - [ ] 编写最终 `README.md`：运行命令、模型来源、操作、渲染架构简述、截图、硬件与未验证项。
 - [ ] 按构图和材质细节做最后调画；只有本节和必需验收通过，才报告整个实验完成。
 
-M0 中已勾选项仅表示本次设置重构，不表示 M0 整体或完整渲染器已完成。可选 SSR/完整大气 LUT/自动曝光等在 M7 之后处理；不能扩大可选范围导致必需项长期未交付。
+M0/M1 中已勾选项分别表示现有设置接口、已经入库的资产和本次静态核对，不表示 Renderer、材质导入或 GPU 验收已经完成。可选 SSR/BLEND 与透明雾/完整大气 LUT/自动曝光等在主线之后处理；不能扩大可选范围导致必需项长期未交付。
 
 ## 11. 质量预设和验收
 
-画质默认 High；分辨率/模式仍允许手动设置，并显示修改后的状态。预设从同一份设置模型生成，不散落在 UI 和 shader 中。
+推荐展示使用 High；启动初值仍取自当前 App 的 `1.0 / None / 12:00`，选择预设后才更新相应字段。分辨率/模式仍允许手动设置，并显示修改后的状态。预设统一由 App 构造 RenderSettings，不散落在 UI helper 和 shader 中。
 
-| 项目 | Medium | High（最终默认） | Ultra（截图/余量充足时） |
+| 项目 | Medium | High（推荐展示） | Ultra（截图/余量充足时） |
 | --- | --- | --- | --- |
 | RenderScale / AA | 0.75 / Temporal Quality | 1 / Temporal Quality | 1 / Temporal Quality |
 | CSM | 4×1024，PCF | 4×2048，PCSS 16+32 | 4×4096，PCSS 32+64 |
@@ -449,14 +504,17 @@ M0 中已勾选项仅表示本次设置重构，不表示 M0 整体或完整渲�
 
 性能目标未达时按 GPU 数据定位，先调雾/AO/阴影过滤与环境更新预算，再考虑 renderScale；保留正确材质、色彩和时域合同。Report 明确实际结果和妥协，不能只给理论采样数。不把离屏 probe 的完整重建成本隐藏在计时范围外；分别记录稳态和环境刷新峰值。
 
+显存记录以现有资产约 341.3 MiB 的 RGBA8 完整 mip 像素数据为起点，加上几何、阴影、HDR/历史、环境探针及上传峰值分别统计；驱动对齐会产生额外占用。固定相机启动时，未裁剪基线为 103 个 primitive；材质排序、各阴影视角或六面 probe 捕获会改变 draw 数，应按 Pass 记录，不能把 25 个材质计为整场景仅 25 次绘制。
+
 固定三个相机位置：A 中庭全景、B 拱廊近景、C 逆光向上看天空；在模型实际加载后保存精确位置/朝向/FOV。以 12:00、16:00 各生成三张最终输出 PNG，共六张；固定参数/噪声种子，等待至少 32 个稳定帧并等环境更新完成。另保存 AO、shadow visibility、normal/roughness、motion 调试截图及关键效果开关对比。截图回读只在按需时执行，保存到默认 git 忽略的本地输出目录，README 记录路径；需要提交展示图时只选少量压缩结果。
 
 | 验收主题 | 必须执行的操作 | 通过标准 |
 | --- | --- | --- |
-| 资产 | 默认路径启动；缺贴图/错误路径；修正后重启 | 正确场景/明确路径错误，无静默替换 |
+| 资产 | 从不同工作目录加载已入库路径；在临时资产副本中模拟缺贴图后重启 | 正确解析全部资源、primitive 和材质；错误带路径，无下载/移动/静默替换 |
+| 根节点与尺度 | 核对 0.008 只应用一次，并对比导入后的世界 AABB | 约 29.767×12.447×18.306 m；相机、AO、雾、阴影均使用世界尺度 |
 | 参数 | 每个 slider、mode、预设、Reset | renderer 实际常量/资源/画面变化；无假控件 |
 | 光影 | 6→12→16→18 点，缓慢走动，靠近柱脚 | 有限数值、稳定级联、接触阴影和合理过渡 |
-| 材质 | 石材、旗帜、金属近看/远看，调试通道 | 通道、alpha、法线方向和 mip 正确，无闪点 |
+| 材质 | 石材/布料/金属近看远看；检查 plain_white、三种 MASK 和共享 normal/MR | factor、通道、材质分支和 mip 正确；无切线的白色材质也正常，无重复贴图上传 |
 | AA | 每个 mode × scale 0.5/0.75/1 | 输出铺满窗口，UI 清晰，分支颜色一致 |
 | 时域 | 静止、慢移、快速转头、camera cut、切 FOV | 细节稳定，无持续拖影；cut/尺寸变化正确 Reset |
 | 环境 | 改时间/薄云，跨 probe 边界 | 更新有进度，完整资源切换，无接缝和明显穿墙光 |
