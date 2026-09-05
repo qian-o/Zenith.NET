@@ -18,7 +18,7 @@ internal static class App
     private static readonly SwapChain swapChain;
     private static readonly ImGuiHandler imGui;
     private static readonly CameraHandler camera;
-    private static readonly FluidTankRenderer renderer;
+    private static readonly Renderer renderer;
 
     static App()
     {

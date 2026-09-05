@@ -18,6 +18,7 @@ internal static class App
     private static readonly SwapChain swapChain;
     private static readonly ImGuiHandler imGui;
     private static readonly CameraHandler camera;
+    private static readonly Renderer renderer;
 
     static App()
     {
@@ -79,6 +80,8 @@ internal static class App
         });
 
         camera = new(input, Matrix4x4.CreateRotationY(float.DegreesToRadians(90.0f)) * Matrix4x4.CreateTranslation(new(0.0f, 1.2f, 0.0f)));
+
+        renderer = new();
     }
 
     public static GraphicsContext Context { get; }
@@ -104,7 +107,7 @@ internal static class App
             imGui.Update(delta, width, height);
             camera.Update(delta, width, height);
 
-            // ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(renderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
+            ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(renderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
 
             ImGuiHelper.Overlay(() =>
             {
@@ -130,8 +133,8 @@ internal static class App
 
             CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
-            // renderer.Update(camera);
-            // renderer.Render(commandBuffer);
+            renderer.Update(camera);
+            renderer.Render(commandBuffer);
 
             commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
             imGui.Render(commandBuffer, ColorAttachment.Clear(swapChain.Drawable, default));
@@ -149,13 +152,13 @@ internal static class App
                 return;
             }
 
-            // renderer.Resize(Width, Height);
+            renderer.Resize(Width, Height);
             swapChain.Resize(Width, Height);
         };
 
         window.Run();
 
-        // renderer.Dispose();
+        renderer.Dispose();
         imGui.Dispose();
         swapChain.Dispose();
         input.Dispose();

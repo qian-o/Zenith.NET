@@ -14,7 +14,7 @@ internal enum FluidViewMode
     Particles
 }
 
-internal unsafe class FluidTankRenderer : IDisposable
+internal unsafe class Renderer : IDisposable
 {
     private const double FixedSimulationStep = 1.0 / 30.0;
     private const int DepthSmoothingIterations = 4;
@@ -68,7 +68,7 @@ internal unsafe class FluidTankRenderer : IDisposable
     private double simulationAccumulator = FixedSimulationStep;
     private TimelineValue simulationReady;
 
-    public FluidTankRenderer()
+    public Renderer()
     {
         FluidTankGeometry.CreateScene(out SceneVertex[] sceneVertices, out uint[] sceneIndices, out SceneMaterial[] materials);
         FluidTankGeometry.CreateGlass(out SceneVertex[] glassVertices, out uint[] glassIndices);
