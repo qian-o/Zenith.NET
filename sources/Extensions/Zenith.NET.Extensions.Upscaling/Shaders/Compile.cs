@@ -35,36 +35,40 @@ foreach (Pass pass in passes)
 static void CompilePass(Pass pass, GraphicsApi[] graphicsApis, string shadersDirectory, string passesDirectory)
 {
     string generatedPath = Path.Combine(passesDirectory, $"{pass.Name}.g.cs");
-    string text = CreateSkeleton(pass.Name, graphicsApis, pass.Shaders);
+    string text = File.Exists(generatedPath)
+        ? NormalizeGeneratedText(File.ReadAllText(generatedPath))
+        : CreateSkeleton(pass.Name, graphicsApis, pass.Shaders);
 
     foreach (GraphicsApi graphicsApi in graphicsApis)
     {
         foreach (ShaderSource shader in pass.Shaders)
         {
-            string constantName = GetConstantName(graphicsApi, shader);
-            string shaderPath = Path.Combine(shadersDirectory, shader.FileName);
-
-            text = CompileShader(text, graphicsApi, shaderPath, shader.FileName, constantName);
+            text = CompileShader(text, graphicsApi, shadersDirectory, shader);
         }
     }
 
     WriteGeneratedFile(generatedPath, text);
 }
 
-static string CompileShader(string text, GraphicsApi graphicsApi, string shaderPath, string shaderFileName, string constantName)
+static string CompileShader(string generatedText, GraphicsApi graphicsApi, string shadersDirectory, ShaderSource shader)
 {
+    string shaderPath = Path.Combine(shadersDirectory, shader.FileName);
+    ShaderDesc shaderDesc;
+
     try
     {
-        ShaderDesc shaderDesc = ZenithCompiler.CompileFromFile(graphicsApi, shaderPath, EntryPoint);
-        string compiledText = ReplaceShader(text, constantName, FormatShaderDesc(constantName, shaderDesc));
-        Console.WriteLine($"compiled {shaderFileName} {graphicsApi} ({shaderDesc.CodeBytes.Length} bytes, threads={shaderDesc.ThreadGroupSize.X}x{shaderDesc.ThreadGroupSize.Y}x{shaderDesc.ThreadGroupSize.Z})");
-        return compiledText;
+        shaderDesc = ZenithCompiler.CompileFromFile(graphicsApi, shaderPath, EntryPoint);
     }
     catch (Exception exception)
     {
-        Console.WriteLine($"skip {shaderFileName} {graphicsApi}: {exception.Message}");
-        return text;
+        Console.WriteLine($"skip {shader.FileName} {graphicsApi}: {exception.Message}");
+        return generatedText;
     }
+
+    string fieldName = GetShaderFieldName(graphicsApi, shader);
+    string compiledText = ReplaceShader(generatedText, fieldName, FormatShaderDesc(fieldName, shaderDesc));
+    Console.WriteLine($"compiled {shader.FileName} {graphicsApi} ({shaderDesc.CodeBytes.Length} bytes, threads={shaderDesc.ThreadGroupSize.X}x{shaderDesc.ThreadGroupSize.Y}x{shaderDesc.ThreadGroupSize.Z})");
+    return compiledText;
 }
 
 static string CreateSkeleton(string passName, GraphicsApi[] graphicsApis, ShaderSource[] shaders)
@@ -83,81 +87,54 @@ static string CreateSkeleton(string passName, GraphicsApi[] graphicsApis, Shader
         }
 
         GraphicsApi graphicsApi = graphicsApis[graphicsApiIndex];
-        StringBuilder regionBuilder = new();
+        builder.AppendLine($"    #region {graphicsApi}");
+
         for (int shaderIndex = 0; shaderIndex < shaders.Length; shaderIndex++)
         {
             if (shaderIndex > 0)
             {
-                regionBuilder.AppendLine();
+                builder.AppendLine();
             }
 
-            string constantName = GetConstantName(graphicsApi, shaders[shaderIndex]);
+            string fieldName = GetShaderFieldName(graphicsApi, shaders[shaderIndex]);
             ShaderDesc emptyShader = CreateEmptyShader(EntryPoint);
-            regionBuilder.Append(FormatShaderDesc(constantName, emptyShader).TrimEnd('\n'));
+            builder.AppendLine(FormatShaderDesc(fieldName, emptyShader));
         }
 
-        builder.AppendLine(FormatRegion(graphicsApi.ToString(), regionBuilder.ToString()));
+        builder.AppendLine("    #endregion");
     }
 
-    builder.AppendLine("}");
+    builder.Append('}');
 
     return NormalizeGeneratedText(builder.ToString());
 }
 
-static string GetConstantName(GraphicsApi graphicsApi, ShaderSource shader)
+static string GetShaderFieldName(GraphicsApi graphicsApi, ShaderSource shader)
 {
-    return $"{graphicsApi}{shader.ConstantSuffix}";
+    return $"{graphicsApi}{shader.FieldNameSuffix}";
 }
 
-static string ReplaceShader(string text, string constantName, string body)
+static string ReplaceShader(string generatedText, string fieldName, string shaderText)
 {
-    if (!FindShader(text, constantName, out int start, out int end))
-    {
-        throw new InvalidOperationException($"Shader '{constantName}' was not found.");
-    }
-
-    return string.Concat(text.AsSpan(0, start), body.TrimEnd('\n'), text.AsSpan(end));
-}
-
-static bool FindShader(string text, string constantName, out int start, out int end)
-{
-    string startMarker = $"    private static readonly ShaderDesc {constantName} = new()\n";
+    string startMarker = $"    private static readonly ShaderDesc {fieldName} = new()\n";
     const string EndMarker = "    };";
 
-    start = text.IndexOf(startMarker, StringComparison.Ordinal);
-    end = -1;
-    if (start < 0)
+    int start = generatedText.IndexOf(startMarker, StringComparison.Ordinal);
+    int finishStart = start < 0
+        ? -1
+        : generatedText.IndexOf($"\n{EndMarker}", start + startMarker.Length, StringComparison.Ordinal);
+    if (start < 0 || finishStart < 0)
     {
-        return false;
+        throw new InvalidOperationException($"Shader field '{fieldName}' was not found.");
     }
 
-    int finishStart = text.IndexOf($"\n{EndMarker}", start + startMarker.Length, StringComparison.Ordinal);
-    if (finishStart < 0)
-    {
-        return false;
-    }
-
-    end = finishStart + 1 + EndMarker.Length;
-    return true;
-}
-
-static string FormatRegion(string regionName, string body)
-{
-    body = body.ReplaceLineEndings("\n").TrimEnd('\n');
-    return $"    #region {regionName}\n{body}\n    #endregion";
+    int end = finishStart + 1 + EndMarker.Length;
+    return string.Concat(generatedText.AsSpan(0, start), shaderText, generatedText.AsSpan(end));
 }
 
 static string NormalizeGeneratedText(string text)
 {
-    string normalizedText = text.ReplaceLineEndings("\n").TrimEnd('\n');
-
-    int closingBraceIndex = normalizedText.LastIndexOf("\n}", StringComparison.Ordinal);
-    if (closingBraceIndex < 0)
-    {
-        return normalizedText;
-    }
-
-    return string.Concat(normalizedText[..closingBraceIndex].TrimEnd('\n'), normalizedText[closingBraceIndex..]);
+    return text.ReplaceLineEndings("\n").TrimEnd('\n');
 }
 
 static void WriteGeneratedFile(string path, string text)
@@ -172,10 +149,10 @@ static ShaderDesc CreateEmptyShader(string entryPoint)
     return new() { Name = entryPoint, CodeBytes = [] };
 }
 
-static string FormatShaderDesc(string constantName, ShaderDesc shaderDesc)
+static string FormatShaderDesc(string fieldName, ShaderDesc shaderDesc)
 {
     StringBuilder builder = new();
-    builder.AppendLine($"    private static readonly ShaderDesc {constantName} = new()");
+    builder.AppendLine($"    private static readonly ShaderDesc {fieldName} = new()");
     builder.AppendLine("    {");
     builder.AppendLine($"        Name = \"{shaderDesc.Name}\",");
     AppendCodeBytes(builder, shaderDesc.CodeBytes);
@@ -187,7 +164,7 @@ static string FormatShaderDesc(string constantName, ShaderDesc shaderDesc)
     builder.AppendLine("        }");
     builder.AppendLine("    };");
 
-    return builder.ToString();
+    return NormalizeGeneratedText(builder.ToString());
 }
 
 static void AppendCodeBytes(StringBuilder builder, byte[] codeBytes)
@@ -230,7 +207,7 @@ static void AppendCodeBytes(StringBuilder builder, byte[] codeBytes)
 
 static string GetShadersDirectory([CallerFilePath] string filePath = "")
 {
-    return Path.GetDirectoryName(filePath) ?? Directory.GetCurrentDirectory();
+    return Path.GetDirectoryName(filePath)!;
 }
 
 file readonly struct Pass(string name, ShaderSource[] shaders)
@@ -240,9 +217,9 @@ file readonly struct Pass(string name, ShaderSource[] shaders)
     public readonly ShaderSource[] Shaders = shaders;
 }
 
-file readonly struct ShaderSource(string constantSuffix, string fileName)
+file readonly struct ShaderSource(string fieldNameSuffix, string fileName)
 {
-    public readonly string ConstantSuffix = constantSuffix;
+    public readonly string FieldNameSuffix = fieldNameSuffix;
 
     public readonly string FileName = fileName;
 }
