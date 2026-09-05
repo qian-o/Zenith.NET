@@ -60,6 +60,7 @@ static string CompileShader(string generatedText, string source, GraphicsApi gra
     }
 
     string fieldName = GetShaderFieldName(graphicsApi, shader);
+
     return ReplaceShader(generatedText, fieldName, FormatShaderDesc(fieldName, shaderDesc));
 }
 
@@ -165,6 +166,7 @@ static void AppendCodeBytes(StringBuilder builder, byte[] codeBytes)
     if (codeBytes.Length == 0)
     {
         builder.AppendLine("        CodeBytes = [],");
+
         return;
     }
 

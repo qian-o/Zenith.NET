@@ -64,6 +64,7 @@ static string CompileShader(string generatedText, GraphicsApi graphicsApi, strin
     }
 
     string fieldName = GetShaderFieldName(graphicsApi, shader);
+
     return ReplaceShader(generatedText, fieldName, FormatShaderDesc(fieldName, shaderDesc));
 }
 
@@ -145,7 +146,11 @@ static void WriteGeneratedFile(string path, string text)
 
 static ShaderDesc CreateEmptyShader(string entryPoint)
 {
-    return new() { Name = entryPoint, CodeBytes = [] };
+    return new()
+    {
+        Name = entryPoint,
+        CodeBytes = []
+    };
 }
 
 static string FormatShaderDesc(string fieldName, ShaderDesc shaderDesc)
@@ -174,6 +179,7 @@ static void AppendCodeBytes(StringBuilder builder, byte[] codeBytes)
     if (codeBytes.Length == 0)
     {
         builder.AppendLine("        CodeBytes = [],");
+
         return;
     }
 
