@@ -32,9 +32,7 @@ ShaderDefinition[] shaders =
     new("Linear", "FSMain", "1")
 ];
 
-string text = File.Exists(generatedPath)
-    ? NormalizeGeneratedText(File.ReadAllText(generatedPath))
-    : CreateSkeleton(graphicsApis, shaders);
+string text = File.Exists(generatedPath) ? NormalizeGeneratedText(File.ReadAllText(generatedPath)) : CreateSkeleton(graphicsApis, shaders);
 
 foreach (GraphicsApi graphicsApi in graphicsApis)
 {
@@ -48,28 +46,31 @@ WriteGeneratedFile(generatedPath, text);
 
 static string CompileShader(string generatedText, string source, GraphicsApi graphicsApi, ShaderDefinition shader)
 {
-    string variantSource = source.Replace("#if 0", $"#if {shader.ColorSpace}", StringComparison.Ordinal);
     ShaderDesc shaderDesc;
 
     try
     {
-        shaderDesc = ZenithCompiler.CompileFromSource(graphicsApi, variantSource, shader.EntryPoint);
+        shaderDesc = ZenithCompiler.CompileFromSource(graphicsApi, source.Replace("#if 0", $"#if {shader.ColorSpace}", StringComparison.Ordinal), shader.EntryPoint);
     }
     catch (Exception exception)
     {
         Console.WriteLine($"skip {shader.ModeName}{shader.EntryPoint} {graphicsApi}: {exception.Message}");
+
         return generatedText;
     }
 
     string fieldName = GetShaderFieldName(graphicsApi, shader);
     string compiledText = ReplaceShader(generatedText, fieldName, FormatShaderDesc(fieldName, shaderDesc));
+
     Console.WriteLine($"compiled {shader.ModeName}{shader.EntryPoint} {graphicsApi} ({shaderDesc.CodeBytes.Length} bytes)");
+
     return compiledText;
 }
 
 static string CreateSkeleton(GraphicsApi[] graphicsApis, ShaderDefinition[] shaders)
 {
     StringBuilder builder = new();
+
     builder.AppendLine($"namespace {NamespaceName};");
     builder.AppendLine();
     builder.AppendLine($"internal partial class {ClassName}");
@@ -83,6 +84,7 @@ static string CreateSkeleton(GraphicsApi[] graphicsApis, ShaderDefinition[] shad
         }
 
         GraphicsApi graphicsApi = graphicsApis[graphicsApiIndex];
+
         builder.AppendLine($"    #region {graphicsApi}");
 
         for (int shaderIndex = 0; shaderIndex < shaders.Length; shaderIndex++)
@@ -94,6 +96,7 @@ static string CreateSkeleton(GraphicsApi[] graphicsApis, ShaderDefinition[] shad
 
             string fieldName = GetShaderFieldName(graphicsApi, shaders[shaderIndex]);
             ShaderDesc emptyShader = CreateEmptyShader(shaders[shaderIndex].EntryPoint);
+
             builder.AppendLine(FormatShaderDesc(fieldName, emptyShader));
         }
 
@@ -101,6 +104,7 @@ static string CreateSkeleton(GraphicsApi[] graphicsApis, ShaderDefinition[] shad
     }
 
     builder.Append('}');
+
     return NormalizeGeneratedText(builder.ToString());
 }
 
@@ -115,15 +119,15 @@ static string ReplaceShader(string generatedText, string fieldName, string shade
     const string EndMarker = "    };";
 
     int start = generatedText.IndexOf(startMarker, StringComparison.Ordinal);
-    int finishStart = start < 0
-        ? -1
-        : generatedText.IndexOf($"\n{EndMarker}", start + startMarker.Length, StringComparison.Ordinal);
+    int finishStart = start < 0 ? -1 : generatedText.IndexOf($"\n{EndMarker}", start + startMarker.Length, StringComparison.Ordinal);
+
     if (start < 0 || finishStart < 0)
     {
         throw new InvalidOperationException($"Shader field '{fieldName}' was not found.");
     }
 
     int end = finishStart + 1 + EndMarker.Length;
+
     return string.Concat(generatedText.AsSpan(0, start), shaderText, generatedText.AsSpan(end));
 }
 
@@ -134,18 +138,21 @@ static string NormalizeGeneratedText(string text)
 
 static void WriteGeneratedFile(string path, string text)
 {
-    string normalizedText = NormalizeGeneratedText(text).Replace("\n", LineEnding, StringComparison.Ordinal);
-    File.WriteAllText(path, $"{normalizedText}{LineEnding}", new UTF8Encoding(true));
+    File.WriteAllText(path, NormalizeGeneratedText(text).Replace("\n", LineEnding, StringComparison.Ordinal) + LineEnding, new UTF8Encoding(true));
+
     Console.WriteLine($"wrote {path}");
 }
 
 static string FormatShaderDesc(string fieldName, ShaderDesc shaderDesc)
 {
     StringBuilder builder = new();
+
     builder.AppendLine($"    private static readonly ShaderDesc {fieldName} = new()");
     builder.AppendLine("    {");
     builder.AppendLine($"        Name = \"{shaderDesc.Name}\",");
+
     AppendCodeBytes(builder, shaderDesc.CodeBytes);
+
     builder.AppendLine("        ThreadGroupSize = new()");
     builder.AppendLine("        {");
     builder.AppendLine($"            X = {shaderDesc.ThreadGroupSize.X},");
@@ -153,6 +160,7 @@ static string FormatShaderDesc(string fieldName, ShaderDesc shaderDesc)
     builder.AppendLine($"            Z = {shaderDesc.ThreadGroupSize.Z}");
     builder.AppendLine("        }");
     builder.AppendLine("    };");
+
     return NormalizeGeneratedText(builder.ToString());
 }
 
@@ -196,7 +204,11 @@ static void AppendCodeBytes(StringBuilder builder, byte[] codeBytes)
 
 static ShaderDesc CreateEmptyShader(string entryPoint)
 {
-    return new() { Name = entryPoint, CodeBytes = [] };
+    return new()
+    {
+        Name = entryPoint,
+        CodeBytes = []
+    };
 }
 
 static string GetShadersDirectory([CallerFilePath] string filePath = "")
