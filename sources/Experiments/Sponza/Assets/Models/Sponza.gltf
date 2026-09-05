@@ -6410,47 +6410,47 @@
     {
       "source": 4,
       "sampler": 0,
-      "name": "hanging_chain_base_color"
+      "name": "flowers_and_leaves_base_color"
     },
     {
       "source": 3,
       "sampler": 0,
-      "name": "hanging_chain_normal"
+      "name": "flowers_and_leaves_normal"
     },
     {
       "source": 5,
       "sampler": 0,
-      "name": "hanging_chain_metallic_roughness"
+      "name": "flowers_and_leaves_metallic_roughness"
     },
     {
       "source": 10,
       "sampler": 0,
-      "name": "weathered_stone_trim_base_color"
+      "name": "stone_shield_ornament_base_color"
     },
     {
       "source": 9,
       "sampler": 0,
-      "name": "weathered_stone_trim_normal"
+      "name": "stone_shield_ornament_normal"
     },
     {
       "source": 11,
       "sampler": 0,
-      "name": "weathered_stone_trim_metallic_roughness"
+      "name": "stone_shield_ornament_metallic_roughness"
     },
     {
       "source": 13,
       "sampler": 0,
-      "name": "red_brick_base_color"
+      "name": "masonry_wall_base_color"
     },
     {
       "source": 12,
       "sampler": 0,
-      "name": "red_brick_normal"
+      "name": "masonry_wall_normal"
     },
     {
       "source": 14,
       "sampler": 0,
-      "name": "red_brick_metallic_roughness"
+      "name": "masonry_wall_metallic_roughness"
     },
     {
       "source": 16,
@@ -6530,32 +6530,32 @@
     {
       "source": 31,
       "sampler": 0,
-      "name": "pale_marble_wall_base_color"
+      "name": "door_window_atlas_base_color"
     },
     {
       "source": 30,
       "sampler": 0,
-      "name": "pale_marble_wall_normal"
+      "name": "door_window_atlas_normal"
     },
     {
       "source": 32,
       "sampler": 0,
-      "name": "pale_marble_wall_metallic_roughness"
+      "name": "door_window_atlas_metallic_roughness"
     },
     {
       "source": 34,
       "sampler": 0,
-      "name": "mosaic_ceiling_base_color"
+      "name": "architectural_stone_atlas_base_color"
     },
     {
       "source": 33,
       "sampler": 0,
-      "name": "mosaic_ceiling_normal"
+      "name": "architectural_stone_atlas_normal"
     },
     {
       "source": 35,
       "sampler": 0,
-      "name": "mosaic_ceiling_metallic_roughness"
+      "name": "architectural_stone_atlas_metallic_roughness"
     },
     {
       "source": 37,
@@ -6575,7 +6575,7 @@
     {
       "source": 40,
       "sampler": 0,
-      "name": "ornate_drape_blue_base_color"
+      "name": "ornate_drape_green_base_color"
     },
     {
       "source": 39,
@@ -6590,12 +6590,12 @@
     {
       "source": 42,
       "sampler": 0,
-      "name": "ornate_drape_red_base_color"
+      "name": "ornate_drape_blue_base_color"
     },
     {
       "source": 43,
       "sampler": 0,
-      "name": "ornate_drape_green_base_color"
+      "name": "ornate_drape_red_base_color"
     },
     {
       "source": 45,
@@ -6615,27 +6615,27 @@
     {
       "source": 47,
       "sampler": 0,
-      "name": "woven_fabric_green_base_color"
+      "name": "woven_fabric_red_base_color"
     },
     {
       "source": 48,
       "sampler": 0,
-      "name": "woven_fabric_red_base_color"
+      "name": "woven_fabric_green_base_color"
     },
     {
       "source": 50,
       "sampler": 0,
-      "name": "thorn_vines_base_color"
+      "name": "hanging_chain_base_color"
     },
     {
       "source": 49,
       "sampler": 0,
-      "name": "thorn_vines_normal"
+      "name": "hanging_chain_normal"
     },
     {
       "source": 51,
       "sampler": 0,
-      "name": "thorn_vines_metallic_roughness"
+      "name": "hanging_chain_metallic_roughness"
     },
     {
       "source": 53,
@@ -6655,32 +6655,32 @@
     {
       "source": 56,
       "sampler": 0,
-      "name": "gilded_ornament_base_color"
+      "name": "carved_stone_trim_base_color"
     },
     {
       "source": 55,
       "sampler": 0,
-      "name": "gilded_ornament_normal"
+      "name": "carved_stone_trim_normal"
     },
     {
       "source": 57,
       "sampler": 0,
-      "name": "gilded_ornament_metallic_roughness"
+      "name": "carved_stone_trim_metallic_roughness"
     },
     {
       "source": 59,
       "sampler": 0,
-      "name": "stone_floor_base_color"
+      "name": "lion_head_relief_base_color"
     },
     {
       "source": 58,
       "sampler": 0,
-      "name": "stone_floor_normal"
+      "name": "lion_head_relief_normal"
     },
     {
       "source": 60,
       "sampler": 0,
-      "name": "stone_floor_metallic_roughness"
+      "name": "lion_head_relief_metallic_roughness"
     },
     {
       "source": 62,
@@ -6716,18 +6716,18 @@
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/hanging_chain_normal.jpg",
-      "name": "hanging_chain_normal"
+      "uri": "textures/flowers_and_leaves_normal.jpg",
+      "name": "flowers_and_leaves_normal"
     },
     {
       "mimeType": "image/png",
-      "uri": "textures/hanging_chain_base_color.png",
-      "name": "hanging_chain_base_color"
+      "uri": "textures/flowers_and_leaves_base_color.png",
+      "name": "flowers_and_leaves_base_color"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/hanging_chain_metallic_roughness.jpg",
-      "name": "hanging_chain_metallic_roughness"
+      "uri": "textures/flowers_and_leaves_metallic_roughness.jpg",
+      "name": "flowers_and_leaves_metallic_roughness"
     },
     {
       "mimeType": "image/jpeg",
@@ -6746,33 +6746,33 @@
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/weathered_stone_trim_normal.jpg",
-      "name": "weathered_stone_trim_normal"
+      "uri": "textures/stone_shield_ornament_normal.jpg",
+      "name": "stone_shield_ornament_normal"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/weathered_stone_trim_base_color.jpg",
-      "name": "weathered_stone_trim_base_color"
+      "uri": "textures/stone_shield_ornament_base_color.jpg",
+      "name": "stone_shield_ornament_base_color"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/weathered_stone_trim_metallic_roughness.jpg",
-      "name": "weathered_stone_trim_metallic_roughness"
+      "uri": "textures/stone_shield_ornament_metallic_roughness.jpg",
+      "name": "stone_shield_ornament_metallic_roughness"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/red_brick_normal.jpg",
-      "name": "red_brick_normal"
+      "uri": "textures/masonry_wall_normal.jpg",
+      "name": "masonry_wall_normal"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/red_brick_base_color.jpg",
-      "name": "red_brick_base_color"
+      "uri": "textures/masonry_wall_base_color.jpg",
+      "name": "masonry_wall_base_color"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/red_brick_metallic_roughness.jpg",
-      "name": "red_brick_metallic_roughness"
+      "uri": "textures/masonry_wall_metallic_roughness.jpg",
+      "name": "masonry_wall_metallic_roughness"
     },
     {
       "mimeType": "image/jpeg",
@@ -6851,33 +6851,33 @@
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/pale_marble_wall_normal.jpg",
-      "name": "pale_marble_wall_normal"
+      "uri": "textures/door_window_atlas_normal.jpg",
+      "name": "door_window_atlas_normal"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/pale_marble_wall_base_color.jpg",
-      "name": "pale_marble_wall_base_color"
+      "uri": "textures/door_window_atlas_base_color.jpg",
+      "name": "door_window_atlas_base_color"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/pale_marble_wall_metallic_roughness.jpg",
-      "name": "pale_marble_wall_metallic_roughness"
+      "uri": "textures/door_window_atlas_metallic_roughness.jpg",
+      "name": "door_window_atlas_metallic_roughness"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/mosaic_ceiling_normal.jpg",
-      "name": "mosaic_ceiling_normal"
+      "uri": "textures/architectural_stone_atlas_normal.jpg",
+      "name": "architectural_stone_atlas_normal"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/mosaic_ceiling_base_color.jpg",
-      "name": "mosaic_ceiling_base_color"
+      "uri": "textures/architectural_stone_atlas_base_color.jpg",
+      "name": "architectural_stone_atlas_base_color"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/mosaic_ceiling_metallic_roughness.jpg",
-      "name": "mosaic_ceiling_metallic_roughness"
+      "uri": "textures/architectural_stone_atlas_metallic_roughness.jpg",
+      "name": "architectural_stone_atlas_metallic_roughness"
     },
     {
       "mimeType": "image/jpeg",
@@ -6901,8 +6901,8 @@
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/ornate_drape_blue_base_color.jpg",
-      "name": "ornate_drape_blue_base_color"
+      "uri": "textures/ornate_drape_green_base_color.jpg",
+      "name": "ornate_drape_green_base_color"
     },
     {
       "mimeType": "image/jpeg",
@@ -6911,13 +6911,13 @@
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/ornate_drape_red_base_color.jpg",
-      "name": "ornate_drape_red_base_color"
+      "uri": "textures/ornate_drape_blue_base_color.jpg",
+      "name": "ornate_drape_blue_base_color"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/ornate_drape_green_base_color.jpg",
-      "name": "ornate_drape_green_base_color"
+      "uri": "textures/ornate_drape_red_base_color.jpg",
+      "name": "ornate_drape_red_base_color"
     },
     {
       "mimeType": "image/jpeg",
@@ -6936,28 +6936,28 @@
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/woven_fabric_green_base_color.jpg",
-      "name": "woven_fabric_green_base_color"
-    },
-    {
-      "mimeType": "image/jpeg",
       "uri": "textures/woven_fabric_red_base_color.jpg",
       "name": "woven_fabric_red_base_color"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/thorn_vines_normal.jpg",
-      "name": "thorn_vines_normal"
-    },
-    {
-      "mimeType": "image/png",
-      "uri": "textures/thorn_vines_base_color.png",
-      "name": "thorn_vines_base_color"
+      "uri": "textures/woven_fabric_green_base_color.jpg",
+      "name": "woven_fabric_green_base_color"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/thorn_vines_metallic_roughness.jpg",
-      "name": "thorn_vines_metallic_roughness"
+      "uri": "textures/hanging_chain_normal.jpg",
+      "name": "hanging_chain_normal"
+    },
+    {
+      "mimeType": "image/png",
+      "uri": "textures/hanging_chain_base_color.png",
+      "name": "hanging_chain_base_color"
+    },
+    {
+      "mimeType": "image/jpeg",
+      "uri": "textures/hanging_chain_metallic_roughness.jpg",
+      "name": "hanging_chain_metallic_roughness"
     },
     {
       "mimeType": "image/jpeg",
@@ -6976,33 +6976,33 @@
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/gilded_ornament_normal.jpg",
-      "name": "gilded_ornament_normal"
+      "uri": "textures/carved_stone_trim_normal.jpg",
+      "name": "carved_stone_trim_normal"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/gilded_ornament_base_color.jpg",
-      "name": "gilded_ornament_base_color"
+      "uri": "textures/carved_stone_trim_base_color.jpg",
+      "name": "carved_stone_trim_base_color"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/gilded_ornament_metallic_roughness.jpg",
-      "name": "gilded_ornament_metallic_roughness"
+      "uri": "textures/carved_stone_trim_metallic_roughness.jpg",
+      "name": "carved_stone_trim_metallic_roughness"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/stone_floor_normal.jpg",
-      "name": "stone_floor_normal"
+      "uri": "textures/lion_head_relief_normal.jpg",
+      "name": "lion_head_relief_normal"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/stone_floor_base_color.jpg",
-      "name": "stone_floor_base_color"
+      "uri": "textures/lion_head_relief_base_color.jpg",
+      "name": "lion_head_relief_base_color"
     },
     {
       "mimeType": "image/jpeg",
-      "uri": "textures/stone_floor_metallic_roughness.jpg",
-      "name": "stone_floor_metallic_roughness"
+      "uri": "textures/lion_head_relief_metallic_roughness.jpg",
+      "name": "lion_head_relief_metallic_roughness"
     },
     {
       "mimeType": "image/jpeg",
@@ -7111,7 +7111,7 @@
       "normalTexture": {
         "index": 8
       },
-      "name": "hanging_chain"
+      "name": "flowers_and_leaves"
     },
     {
       "pbrMetallicRoughness": {
@@ -7131,7 +7131,7 @@
       "normalTexture": {
         "index": 11
       },
-      "name": "weathered_stone_trim"
+      "name": "stone_shield_ornament"
     },
     {
       "pbrMetallicRoughness": {
@@ -7151,7 +7151,7 @@
       "normalTexture": {
         "index": 14
       },
-      "name": "red_brick"
+      "name": "masonry_wall"
     },
     {
       "pbrMetallicRoughness": {
@@ -7271,7 +7271,7 @@
       "normalTexture": {
         "index": 32
       },
-      "name": "pale_marble_wall"
+      "name": "door_window_atlas"
     },
     {
       "pbrMetallicRoughness": {
@@ -7291,7 +7291,7 @@
       "normalTexture": {
         "index": 35
       },
-      "name": "mosaic_ceiling"
+      "name": "architectural_stone_atlas"
     },
     {
       "pbrMetallicRoughness": {
@@ -7331,7 +7331,7 @@
       "normalTexture": {
         "index": 41
       },
-      "name": "ornate_drape_blue"
+      "name": "ornate_drape_green"
     },
     {
       "pbrMetallicRoughness": {
@@ -7351,7 +7351,7 @@
       "normalTexture": {
         "index": 41
       },
-      "name": "ornate_drape_red"
+      "name": "ornate_drape_blue"
     },
     {
       "pbrMetallicRoughness": {
@@ -7371,7 +7371,7 @@
       "normalTexture": {
         "index": 41
       },
-      "name": "ornate_drape_green"
+      "name": "ornate_drape_red"
     },
     {
       "pbrMetallicRoughness": {
@@ -7411,7 +7411,7 @@
       "normalTexture": {
         "index": 46
       },
-      "name": "woven_fabric_green"
+      "name": "woven_fabric_red"
     },
     {
       "pbrMetallicRoughness": {
@@ -7431,7 +7431,7 @@
       "normalTexture": {
         "index": 46
       },
-      "name": "woven_fabric_red"
+      "name": "woven_fabric_green"
     },
     {
       "alphaMode": "MASK",
@@ -7454,7 +7454,7 @@
       "normalTexture": {
         "index": 51
       },
-      "name": "thorn_vines"
+      "name": "hanging_chain"
     },
     {
       "pbrMetallicRoughness": {
@@ -7494,7 +7494,7 @@
       "normalTexture": {
         "index": 57
       },
-      "name": "gilded_ornament"
+      "name": "carved_stone_trim"
     },
     {
       "pbrMetallicRoughness": {
@@ -7514,7 +7514,7 @@
       "normalTexture": {
         "index": 60
       },
-      "name": "stone_floor"
+      "name": "lion_head_relief"
     },
     {
       "pbrMetallicRoughness": {
