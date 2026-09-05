@@ -56,19 +56,15 @@ static string CompileShader(string generatedText, GraphicsApi graphicsApi, strin
     {
         shaderDesc = ZenithCompiler.CompileFromFile(graphicsApi, Path.Combine(shadersDirectory, shader.FileName), EntryPoint);
     }
-    catch (Exception exception)
+    catch (Exception)
     {
-        Console.WriteLine($"skip {shader.FileName} {graphicsApi}: {exception.Message}");
+        Console.WriteLine($"skip {graphicsApi} {shader.FileName}");
 
         return generatedText;
     }
 
     string fieldName = GetShaderFieldName(graphicsApi, shader);
-    string compiledText = ReplaceShader(generatedText, fieldName, FormatShaderDesc(fieldName, shaderDesc));
-
-    Console.WriteLine($"compiled {shader.FileName} {graphicsApi} ({shaderDesc.CodeBytes.Length} bytes, threads={shaderDesc.ThreadGroupSize.X}x{shaderDesc.ThreadGroupSize.Y}x{shaderDesc.ThreadGroupSize.Z})");
-
-    return compiledText;
+    return ReplaceShader(generatedText, fieldName, FormatShaderDesc(fieldName, shaderDesc));
 }
 
 static string CreateSkeleton(string passName, GraphicsApi[] graphicsApis, ShaderSource[] shaders)
@@ -144,7 +140,7 @@ static void WriteGeneratedFile(string path, string text)
 {
     File.WriteAllText(path, NormalizeGeneratedText(text).Replace("\n", LineEnding, StringComparison.Ordinal) + LineEnding, new UTF8Encoding(true));
 
-    Console.WriteLine($"wrote {path}");
+    Console.WriteLine($"wrote {Path.GetFileName(path)}");
 }
 
 static ShaderDesc CreateEmptyShader(string entryPoint)
