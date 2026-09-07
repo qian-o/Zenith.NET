@@ -1,6 +1,6 @@
 ﻿# Sponza 超分展示实验开发文档
 
-**状态：v1.1 开发基线，替代 v1.0。** 本轮只开发渲染和完善既有 UI 内的展示；窗口、输入、相机与操作功能已经完成。文档规定工作边界和验收要求，不代表实际画质或跨平台运行已通过验收。
+**状态：v1.2 开发基线，替代 v1.1。** 本轮只开发渲染和完善既有 UI 内的展示；窗口、输入、相机与操作功能已经完成。文档规定工作边界、代码与数据设计和验收要求，不代表实际画质或跨平台运行已通过验收。
 
 ## 1. 目标与边界
 
@@ -61,16 +61,30 @@ Agent 的执行指令统一存放在本项目的 DEVELOPMENT.md 中。开始任�
 
 ## 3. 职责、数据流与画质方案
 
-下表是本轮六个职责模块的划分；一个逻辑 Pass 可以包含几个固定的 GPU 子步骤。无需通用 Pass 基类、RenderGraph 或依赖注入框架。
+### 3.1 代码组织与风格
+
+以下规则只约束允许修改的实现代码，不授权整理受保护文件、全仓格式化或新增配置。沿用本实验和现有核心库的写法，不照搬其他实验或共享扩展的后端分支。
+
+- 新 C# 文件使用 UTF-8 BOM、LF、4 空格、Allman 大括号及文件作用域 namespace。私有字段 camelCase 且无下划线前缀，类型、公开字段和成员 PascalCase；字段 → 构造函数 → 属性 → 方法，方法体按逻辑段留空行。
+- 调用、声明和表达式优先保持单行，不按固定列宽自动拆行。只有特别长时才换行；参数续行与首个参数所在列对齐，表达式续行与对应表达式起始列对齐，不采用额外缩进 4 空格的悬挂排版。链式调用和三元表达式保持单行；代码块和多字段初始化器仍沿用 Allman 结构换行。
+- 局部变量显式声明类型，不用 `var`；目标类型明确时使用 `new()` / `new(...)`，集合用 `[]`，不捕获的 lambda 加 `static`。优先模式匹配；方法使用块体。注释简短，新增代码注释用英文说明单位、约定或原因，不复述代码。
+- Renderer、Pass 和资源所有者使用 `internal class`；CPU 参数、绘制记录和 Pass 输入输出使用 `internal struct` 与公开字段，用对象初始化器组装。纯数据不加属性包装，不使用 `record` 或 `in/scoped` 参数。“只读”表示组装后只读使用，不要求另建不可变对象体系。
+- 跨文件数据类型放在 `Models/`，文件名与类型名一致；Pass 放在 `Passes/`，Slang 放在 `Assets/Shaders/`。单个 Pass 私有的 GPU 常量使用该 C# 文件末尾的 `file struct XxxConstants`，不放进共享 FrameData。
+- Renderer 负责快照、模式选择、缓存失效及调用顺序；Pass 负责自己的 GPU 工作；Helper 只提取实际重复的加载、资源创建或计算操作。不得把渲染流程藏进 Helper，也不引入通用 Pass 基类、接口体系、RenderGraph、资源注册表或依赖注入框架。
+- 实验资源类沿用 `IDisposable` 与明确的释放清单，不改 Renderer 基类，不另造终结器或自动释放框架。避免逐层 Guard、Assert、try/catch 包装及吞错；算法所需的边界检查、数值下限和真实失败报告仍必须保留。修复新增诊断，不通过改配置或整理范围外代码清零。
+
+### 3.2 Pass 数据契约
+
+下表是本轮六个职责模块；一个逻辑 Pass 可以包含几个固定的 GPU 子步骤。所有命令记录方法以 `CommandBuffer` 为第一参数；输入按值传递具名 Args，小量单一参数可直接传入。构造时传入现有 `GraphicsContext` 等长期依赖；Pass 不持有或调用其他 Pass，不访问 App 的设置、尺寸或相机，不保存 CommandBuffer。
 
 | Pass | 显式输入 | 输出 / 更新时机 |
 | --- | --- | --- |
-| `EnvironmentPass` | 太阳/天空参数 | 预过滤环境 cubemap；首次及天空参数变化时更新 |
-| `ShadowPass` | 场景绘制数据、太阳参数 | 阴影图和光照矩阵；首次及太阳/场景变化时更新 |
-| `ScenePass` | 场景、相机帧数据、阴影数据、环境数据 | HDR、IndirectDiffuse、DeviceDepth、EncodedMotion；每帧 |
-| `AmbientOcclusionPass` | HDR、IndirectDiffuse、DeviceDepth、相机帧数据 | 合成 AO 后的新 HDR；内部完成求解、滤波、合成，无历史 |
-| `ToneMappingPass` | HDR、曝光 | 编码后的 LDR；每帧 |
-| `UpscalingPass` | 颜色、输入/输出尺寸，Temporal 另需 depth/motion/帧数据 | 放大结果；只封装现有扩展和 None 双线性输出 |
+| `EnvironmentPass.Record` | `SkyData` | 返回 `EnvironmentData`；首次及天空参数变化时更新，否则借用有效缓存 |
+| `ShadowPass.Record` | `SceneData`、`SkyData` | 返回 `ShadowData`；首次及太阳/场景变化时更新，否则借用有效缓存 |
+| `ScenePass.Record` | `SceneData`、`FrameData`、`SkyData`、`ShadowData`、`EnvironmentData` | 返回 `SceneOutput`；每帧 |
+| `AmbientOcclusionPass.Record` | HDR、IndirectDiffuse、DeviceDepth、`FrameData`、AO 参数 | 返回合成后的新 HDR Texture；内部求解、滤波、合成，无历史 |
+| `ToneMappingPass.Record` | HDR、曝光、借用的 LDR 输出目标及其当前 layout | 写满目标，不分配另一张输出纹理 |
+| `UpscalingPass` | Bilinear/Spatial 接收 LDR 和借用输出目标及其当前 layout；Temporal 接收 HDR、depth/motion、`FrameData` | `RecordBilinear` / `RecordSpatial` 写目标；`RecordTemporal` 返回本 Pass 自有的 D 尺寸 HDR；只封装现有扩展和双线性输出 |
 
 ```mermaid
 flowchart LR
@@ -82,9 +96,53 @@ flowchart LR
     O --> C[Color]
 ```
 
-Renderer 统一准备只读的 `FrameData`、太阳参数和资源记录，并显式传给 Pass。Pass 不持有或调用其他 Pass，不读取其他 Pass 的私有状态，不自行访问或修改 `renderer.Settings`。每帧使用同一份参数快照；Renderer 只管理渲染帧序号、jitter 和上一帧矩阵副本，不持有相机控制权；只有现有 Temporal 扩展保有重建历史。
+跨 Pass 数据只分为以下几类，不把所有内容塞进一个 FrameContext：
 
-文件继续放在 `Models/`、`Passes/`、`Helpers/`、`Assets/Shaders/`；新增数据结构只表达实际输入输出。Renderer 持有 Color、场景和 Pass，资源由创建者释放，输出只借给下游使用。跨 Pass 的纹理以 Sampled 布局交接，各 Pass 负责本次读写和内部子步骤的转换。PBR、天空和 MASK 裁剪使用共享 Slang 函数。
+| 类型 | 内容与语义 |
+| --- | --- |
+| `FrameData` | 同一渲染帧的相机值、明确区分的未 jitter / 已 jitter 矩阵及所需逆矩阵、上一渲染帧矩阵、R/D、像素单位 jitter、帧序号及历史 reset；不含设置对象、场景资源、Pass 或相机引用 |
+| `SkyData` | Renderer 从当帧 TimeOfDay 计算的太阳世界方向、线性辐射颜色及天空参数；阴影、场景和环境共用，不分别计算 |
+| `SceneData` | 借用的顶点/索引/材质资源、纹理及绘制记录；记录明确索引范围、材质索引和世界变换。加载后复用，Pass 不改材质、数组内容或模型变换 |
+| `ShadowData` / `EnvironmentData` | 借用阴影 Texture、光照 ViewProjection 和所需采样参数 / 借用预过滤环境 Texture；缓存状态留在 Renderer/所有者，不暴露 Pass 对象 |
+| `SceneOutput` | 具名字段 `HdrColor`、`IndirectDiffuse`、`DeviceDepth`、`EncodedMotion`，均为借用 Texture；格式、颜色域及深度/motion 语义见第 4、5 节，硬件深度附件不对下游暴露 |
+| `XxxPassArgs` | 只组合该次调用需要的上述数据、算法参数和资源；不放 Renderer、CameraHandler、其他 Pass、回调、`object`、字符串资源表或靠下标约定含义的 Texture 数组 |
+
+例如 Renderer 组装场景输入，再把明确的输出交给 AO；下游不接收整个 ScenePass，也不为了拿深度而接收无关资源：
+
+```csharp
+ScenePassArgs sceneArgs = new()
+{
+    Scene = sceneData,
+    Frame = frameData,
+    Sky = skyData,
+    Shadow = shadowData,
+    Environment = environmentData
+};
+
+SceneOutput sceneOutput = scenePass.Record(commandBuffer, sceneArgs);
+
+AmbientOcclusionPassArgs aoArgs = new()
+{
+    HdrColor = sceneOutput.HdrColor,
+    IndirectDiffuse = sceneOutput.IndirectDiffuse,
+    DeviceDepth = sceneOutput.DeviceDepth,
+    Frame = frameData,
+    RadiusInMeters = aoRadiusInMeters,
+    Strength = aoStrength
+};
+
+Texture hdrColor = ambientOcclusionPass.Record(commandBuffer, aoArgs);
+```
+
+Args 不强求每个标量另包一层；按本表语义补齐实际消费的字段，不预建空类型或可空的“全模式参数包”。坐标空间、颜色域和单位通过具名字段表达，例如 `CameraPositionWorld`、`JitterInPixels`、`RadiusInMeters`，避免含糊的 `Matrix`、`Texture1`。纹理格式和实际尺寸读取 `Texture.Desc`，不建立另一套可独立修改的描述信息。
+
+`Update(camera)` 在 Renderer 内复制 Settings 和相机值，组装同帧快照；Pass 不修改输入或重新读取活动状态。只有完整记录一帧后才推进帧序号、jitter 和上一帧矩阵，跳过渲染时不推进。只有现有 Temporal 扩展持有重建历史，其他 Pass 不另存一份上一帧相机或历史。
+
+跨 Pass 传递 Texture/Buffer 引用，不能只传 ResourceHandle 丢失布局转换所需的对象。struct 复制只复制引用，不复制 GPU 资源、不转移所有权。下游只在当前记录流程借用，不缓存上游纹理、视图或句柄；Renderer 每帧重新取得输出，Resize/重建后旧记录失效。`Record` 返回表示命令已记录，不代表 GPU 已完成；下游通过同一 command buffer 的顺序和同步读取。
+
+### 3.3 画质实现
+
+PBR、天空和 MASK 裁剪使用共享 Slang 函数，避免 Scene、Shadow 和 Environment 各写一份不同实现。
 
 **阴影与直射光。** 对约 30 m 的静态场景使用单张 4096² 正交深度图，以世界 AABB 拟合视锥并留边界；固定光照时不跟随相机。采用固定 5×5 PCF、少量 slope/normal bias，处理太阳接近参考 up 向量时的退化。与 Scene 共用 alpha cutoff，双面材质保持一致；分辨率和滤波核在超分对比中固定。目标是稳定、清楚且边缘柔和的阴影，不追求距离相关半影。
 
@@ -139,14 +197,28 @@ ScenePass 直接写编码后的 motion，不额外增加打包 Pass。定义 `mo
 
 ## 5. 必须保持的数据与生命周期约定
 
+**唯一所有者。** 创建资源的对象负责重建和释放；Args/输出结构不实现 IDisposable，借用者不得释放输入、替换其对象或改变其内容。只有显式输出目标允许写入。
+
+| 所有者 | 自有资源 |
+| --- | --- |
+| Renderer | 最终 Color、None/Spatial 需要的 R 尺寸 LDR 中间图、场景资源对象和六个 Pass；不额外持有相同结果的副本 |
+| 场景资源对象 | 顶点/索引/材质缓冲及去重后的材质纹理；多个材质引用同一纹理时只释放一次 |
+| 各 Pass | 自己的管线、常量缓冲和采样器；Environment/Shadow 的缓存、Scene 的 MRT/硬件深度、AO 的中间图/合成 HDR、Upscaling 的扩展实例/Temporal 输出；ToneMapping 不拥有外部目标 |
+
+None 且 R=D 时 ToneMapping 直接写 Color；低分辨率 None 和 Spatial 先写 Renderer 的 R/LDR，再由 Upscaling 写 Color；Temporal 先写 Upscaling 自有的 D/HDR，再由 ToneMapping 写 Color。只为当前路径创建所需中间图，不能让两个 Pass 各创建一个最终 Color。
+
+- CPU 数据与 GPU 布局分开：FrameData、Args 和资源记录不能整体上传。每个 Pass 将所需字段写入自己的 `file struct XxxConstants`，使用 `StructLayout(LayoutKind.Explicit, Size=...)` 和 `FieldOffset` 与 Slang 逐项对应，初始化全部字段及 padding；GPU 标志使用 uint，不直接放 C# bool、Texture/Buffer、数组或其他托管引用。ResourceHandle 仅在组装实际 GPU 数据（包括常量、材质缓冲）或现有扩展 Args 时提取，并核对大小、偏移和绑定用途；不作为跨 Pass 的资源所有权凭据。
+- 常量缓冲上传不是 GPU 命令的值快照。同一帧多个 primitive、cube face/mip 或子步骤读取不同参数时，使用独立缓冲或符合公共 RHI 对齐要求的不同区域，不能多次覆盖同一地址后连续 Draw/Dispatch。常量区直到本帧提交完成前保持有效，单队列 Wait 只保证跨帧复用。
 - 输出尺寸 D 使用 framebuffer 像素，内部尺寸 R 为 `max(1, floor(D * RenderScale))`，宽高分别计算；Color 始终为 D，UI 使用逻辑尺寸。未抖动投影沿用 `camera.Projection`；R/D 只决定纹理尺寸和 jitter 换算，不重新定义相机视场或控制逻辑，SGSR 的 FOV 系数依据实际基准投影计算。
 - C# 与 Slang 沿用 row-major、行向量：`ViewProjection = View * Projection`，shader 使用 `mul(position, matrix)`；普通 Z、clear=1、LessEqual。GPU 常量显式对齐，不额外转置矩阵。
 - ScenePass 的 R 尺寸 MRT 为 HDR `RGBA16F`、IndirectDiffuse `RGBA16F`、DeviceDepth `R32Float`、EncodedMotion `R16G16UNorm`，另有硬件深度附件。IndirectDiffuse 是已乘材质系数的线性间接漫反射，已包含在 HDR 中。天空写 depth=1、旋转 motion、IndirectDiffuse=0，所有输入首帧有效。
 - AO 中间图为 `R16Float`、尺寸 `max(1, ceil(R/2))`，合成输出为另一张 R 尺寸 `RGBA16F`；不原地修改输入 HDR。环境 cube 使用 `RGBA16F`，阴影使用 `D32Float`；这两类资源独立于 RenderScale 和窗口尺寸，缓存失效只由相关场景/天空数据决定。
-- `Color` 为 `R8G8B8A8UNorm`、已编码的 LDR。保持现有 `ImGuiColorSpace.Legacy` 和 UNorm 交换链，避免重复 gamma。Temporal 的中间输出为 D 尺寸 RGBA16F。
+- `Color` 为 `R8G8B8A8UNorm`、已编码的 LDR，创建时包含三种路径所需的 Sampled/ColorAttachment/Storage 用途，不因模式切换替换对象。保持现有 `ImGuiColorSpace.Legacy` 和 UNorm 交换链，避免重复 gamma。Temporal 的中间输出为 D 尺寸 RGBA16F。
 - Renderer 构造时 App 尚未通过对象初始化器赋值 Settings。构造先创建 D 尺寸 Color；首个 `Update(camera)` 才依据有效 Settings 创建 R 资源/upscaler。不加空 Color 判断，不移动 App 的 Binding/Update。
 - Scale 变化只重建内部资源和 upscaler；Color 仅随输出尺寸改变。保持原有 Resize 入口，确保旧资源仍被 UI/GPU 引用时不会提前销毁。最小化期间不推进渲染历史。
-- 保留 App 的单队列 `Submit().Wait()`；帧内 Pass 不自行提交/等待，已有加载扩展保留其内部流程。显式处理实际 layout、逐 mip/layer 转换和写后读依赖，不采样未初始化资源，不在同一子资源上边读边写。纹理及视图随 Resize/Dispose 正确释放。
+- 跨 Pass 的采样纹理输入必须有效并处于 Sampled，生产者完成写入和依赖转换后再交接；纯读取的下游不改输入 layout。自有目标的实际 layout 由所有者跟踪；写借用目标时由 Args 显式传入 Texture 和当前 layout，写入 Pass 返回时恢复 Sampled，所有者据此更新状态。新资源初始为 Undefined，不能假报 Sampled；ToneMapping/Upscaling 不各存一份 Color 的状态。
+- 保留 App 的单队列 `Submit().Wait()`；帧内 Pass 不自行提交/等待，不释放借用 CommandBuffer，已有加载扩展保留其内部流程。使用现有 Transition/Barrier 表达实际逐 mip/layer 转换和写后读依赖；Upscaling 在扩展 Dispatch 外处理外部输入/输出布局，不能假设仅接收句柄的扩展代管这些纹理。不采样未初始化资源，不在同一子资源上边读边写。
+- 资源创建/重建放在构造、初始化或 Resize/缓存失效处理，不在稳定帧逐次分配纹理、创建管线或复制场景数组。Resize/Dispose 共用清楚的自有目标释放方法，先释放依赖视图再释放纹理；临时 Shader 用 using 声明，不增加通用资源池来代替明确所有权。
 
 ## 6. 原生画质门槛与展示
 
@@ -183,14 +255,16 @@ ScenePass 直接写编码后的 motion，不额外增加打包 Pass。定义 `mo
 
 | 阶段 | 工作 | 通过条件 |
 | --- | --- | --- |
-| 0. 能力与边界 | 完整读取本文，记录起始状态，核对公共 API 与原有相机操作 | 确认可写位置、MRT/cube/采样/计时入口，记录 SGSR 风险；不修改操作功能 |
-| 1. 原生材质基线 | None/scale=1：资产、Scene/ToneMapping、Color 和基础光照 | 默认镜头下几何、颜色、因子、法线、MASK 正确，有原始运行截图 |
+| 0. 能力与边界 | 完整读取本文，记录起始状态，核对公共 API、代码惯例和原有相机操作 | 确认可写位置、Pass 参数/输出/所有者以及 MRT/cube/采样/计时入口，记录 SGSR 风险；不修改操作功能 |
+| 1. 原生材质基线 | None/scale=1：资产、Scene/ToneMapping、Color 和基础光照 | CPU/GPU 数据分离，输入输出符合第 3、5 节；默认镜头下几何、颜色、因子、法线、MASK 正确，有原始运行截图 |
 | 2. 原生光照 | Shadow、程序化天空、Environment 预过滤及 PBR 调整 | 同镜头验证明暗层次、材质区分、稳定阴影/反射及时间变化，保留前后图 |
 | 3. 原生画质完成 | AO 求解/滤波/合成，整体调参 | 第 6 节原生检查全部通过；操作行为不变，此后冻结超分对比用画质参数 |
 | 4. 超分接入 | None 双线性、SGSR 1，再完成 SGSR 2 的 motion/jitter/history | 0.5/0.75/1 尺寸和颜色正确，静态/运动/新显露区域稳定；不回改镜头或材质迎合某种模式 |
 | 5. 展示交付 | 只读统计、截图、GPU 计时、生命周期与边界审查 | 原生画质、超分收益、既有操作回归均有证据，交付简短 README 与 Evidence/ |
 
 按表顺序推进，每阶段自主构建、运行、查看截图和修正；未通过画质门槛时继续定位该阶段问题，不叠效果或用超分遮掩。无需每阶段等待用户批准，但无证据不得勾选通过；独立工作可在受阻时继续，最终状态必须明确区分已完成、未验证和受阻。
+
+每阶段同时审查代码设计：Pass 不引用其他 Pass/活动设置/相机；Args 无无关资源，CPU 数据不直接上传；每个目标只有一个所有者；Resize 后不使用旧绑定；帧内多次绘制不会覆盖仍待读取的常量。最终 README 只记录实际类型和资源归属相对本契约的必要说明，不另写一套设计规范。
 
 最终覆盖三模式、scale=0.5/0.75/1、奇数尺寸、连续 Resize、最小化恢复及时间切换；无越界、NaN、资源泄漏或失效句柄，原始镜头与操作不变。对矩阵、motion、AO 重建/合成和缓存失效做针对性验证；motion 编码精度用独立数值或小型 GPU 回读校验静止、±0.25 和 ±1 像素，实际重投影通过已有操作验证。校验不得替换正式帧相机或新增控制器，不建设庞大的测试/基准框架。
 
@@ -203,4 +277,4 @@ dotnet run --project sources/Experiments/Sponza/Sponza.csproj -c Release --no-bu
 
 最终 README 记录运行方式、既有控制项、渲染/超分顺序、原生及对比截图、实测耗时、操作回归、已知限制和未验证平台。同一实现按可用设备验证 D3D12/Metal/Vulkan；差异或失败按第 1 节处理。功能代码齐全、只有远景截图、编译成功或界面选项存在，都不能当作画质与整个实验完成。
 
-Agent 启动指令：`先完整读取 sources/Experiments/Sponza/DEVELOPMENT.md，按 v1.1 实施。任务仅为渲染与约定展示，已有操作功能不在范围内；先通过原生画质门槛，再接入超分。逐阶段提供实际图像证据和边界检查结果，不自行扩大授权。`
+Agent 启动指令：`先完整读取 sources/Experiments/Sponza/DEVELOPMENT.md，按 v1.2 实施。遵守第 3、5 节的代码风格、Pass 数据契约和资源所有权。任务仅为渲染与约定展示，已有操作功能不在范围内；先通过原生画质门槛，再接入超分。逐阶段提供实际图像证据和边界/设计检查结果，不自行扩大授权。`
