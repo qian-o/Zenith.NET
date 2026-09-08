@@ -147,9 +147,7 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
 
             PipelineViewportStateCreateInfo viewportState = new()
             {
-                SType = StructureType.PipelineViewportStateCreateInfo,
-                ViewportCount = Math.Max(attachmentCount, 1),
-                ScissorCount = Math.Max(attachmentCount, 1)
+                SType = StructureType.PipelineViewportStateCreateInfo
             };
 
             PipelineMultisampleStateCreateInfo multisampleState = new()
@@ -170,7 +168,7 @@ internal unsafe class VKMeshShadingPipeline : MeshShadingPipeline
         {
             SType = StructureType.PipelineDynamicStateCreateInfo,
             DynamicStateCount = 4,
-            PDynamicStates = (DynamicState*)ZenithMarshal.AllocateAndFill(scope, [DynamicState.Viewport, DynamicState.Scissor, DynamicState.BlendConstants, DynamicState.StencilReference])
+            PDynamicStates = (DynamicState*)ZenithMarshal.AllocateAndFill(scope, [DynamicState.BlendConstants, DynamicState.StencilReference, DynamicState.ViewportWithCount, DynamicState.ScissorWithCount])
         };
 
         createInfo.PDynamicState = &dynamicState;

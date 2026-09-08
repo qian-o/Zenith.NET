@@ -493,7 +493,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
             };
         }
 
-        Context.Vk.CmdSetViewport(CommandBuffer, 0, (uint)viewports.Length, pViewports);
+        Context.Vk.CmdSetViewportWithCount(CommandBuffer, (uint)viewports.Length, pViewports);
     }
 
     protected override void SetScissorsImpl(ReadOnlySpan<Scissor> scissors)
@@ -518,7 +518,7 @@ internal unsafe class VKCommandBuffer : CommandBuffer
             };
         }
 
-        Context.Vk.CmdSetScissor(CommandBuffer, 0, (uint)scissors.Length, pScissors);
+        Context.Vk.CmdSetScissorWithCount(CommandBuffer, (uint)scissors.Length, pScissors);
     }
 
     protected override void SetBlendConstantImpl(Vector4 blendConstant)
