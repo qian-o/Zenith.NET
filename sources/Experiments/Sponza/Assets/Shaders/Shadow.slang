@@ -23,10 +23,6 @@ struct ShadowVertexInput
 {
     float3 Position : POSITION0;
 
-    float3 Normal : NORMAL0;
-
-    float4 Tangent : TANGENT0;
-
     float2 TexCoord : TEXCOORD0;
 };
 

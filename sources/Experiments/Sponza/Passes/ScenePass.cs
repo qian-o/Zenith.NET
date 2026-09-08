@@ -13,7 +13,6 @@ internal class ScenePass : IDisposable
     private readonly GraphicsPipeline opaquePipeline;
     private readonly GraphicsPipeline doubleSidedPipeline;
     private readonly GraphicsPipeline skyPipeline;
-    private readonly Buffer frameConstants;
     private readonly Buffer skyConstants;
     private readonly Sampler materialSampler;
     private readonly Sampler shadowSampler;
@@ -73,13 +72,10 @@ internal class ScenePass : IDisposable
         desc.RenderState.DepthStencil = DepthStencilState.DepthRead();
         skyPipeline = context.CreateGraphicsPipeline(desc);
 
-        frameConstants = GraphicsHelper.CreateConstantBuffer<SceneFrameConstants>(context);
         skyConstants = GraphicsHelper.CreateConstantBuffer<SceneConstants>(context);
         materialSampler = context.CreateSampler(SamplerDesc.Anisotropic(8));
         shadowSampler = context.CreateSampler(SamplerDesc.PointClamp());
         environmentSampler = context.CreateSampler(SamplerDesc.LinearClamp());
-
-        GraphicsHelper.Upload<SceneConstants>(skyConstants, new() { World = Matrix4x4.Identity, NormalWorld = Matrix4x4.Identity, Frame = frameConstants.ConstantHandle, MaterialIndex = 0, WorldOrientation = 1.0f });
     }
 
     public void Resize(uint width, uint height)
@@ -112,7 +108,7 @@ internal class ScenePass : IDisposable
             }
         }
 
-        GraphicsHelper.Upload<SceneFrameConstants>(frameConstants, new()
+        SceneFrameConstants frame = new()
         {
             ViewProjection = args.Frame.ViewProjection,
             UnjitteredViewProjection = args.Frame.UnjitteredViewProjection,
@@ -128,12 +124,14 @@ internal class ScenePass : IDisposable
             ShadowParameters = new(args.Shadow.NormalBiasInMeters, args.Shadow.DepthBias, args.Shadow.TexelSize, args.Environment.PrefilteredEnvironment.Desc.MipLevels - 1),
             Materials = args.Scene.MaterialBuffer.StorageReadOnlyHandle,
             MaterialSampler = materialSampler.Handle,
-            ShadowTexture = args.Shadow.Texture.SampledHandle,
+            ShadowTexture = args.Shadow.SampledView.SampledHandle,
             ShadowSampler = shadowSampler.Handle,
             EnvironmentTexture = args.Environment.PrefilteredEnvironment.SampledHandle,
             EnvironmentSampler = environmentSampler.Handle,
             RenderSize = new(args.Frame.RenderWidth, args.Frame.RenderHeight, 0.0f, 0.0f)
-        });
+        };
+
+        GraphicsHelper.Upload<SceneConstants>(skyConstants, new() { World = Matrix4x4.Identity, NormalWorld = Matrix4x4.Identity, Frame = frame, MaterialIndex = 0, WorldOrientation = 1.0f, Padding0 = 0, Padding1 = 0 });
 
         for (int i = 0; i < args.Scene.Draws.Length; i++)
         {
@@ -142,9 +140,11 @@ internal class ScenePass : IDisposable
             {
                 World = draw.World,
                 NormalWorld = draw.NormalWorld,
-                Frame = frameConstants.ConstantHandle,
+                Frame = frame,
                 MaterialIndex = draw.MaterialIndex,
-                WorldOrientation = draw.World.GetDeterminant() < 0.0f ? -1.0f : 1.0f
+                WorldOrientation = draw.World.GetDeterminant() < 0.0f ? -1.0f : 1.0f,
+                Padding0 = 0,
+                Padding1 = 0
             });
         }
 
@@ -199,7 +199,6 @@ internal class ScenePass : IDisposable
         shadowSampler.Dispose();
         materialSampler.Dispose();
         skyConstants.Dispose();
-        frameConstants.Dispose();
         skyPipeline.Dispose();
         doubleSidedPipeline.Dispose();
         opaquePipeline.Dispose();
@@ -215,7 +214,7 @@ internal class ScenePass : IDisposable
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 144)]
+[StructLayout(LayoutKind.Explicit, Size = 640)]
 file struct SceneConstants
 {
     [FieldOffset(0)]
@@ -225,13 +224,19 @@ file struct SceneConstants
     public Matrix4x4 NormalWorld;
 
     [FieldOffset(128)]
-    public ResourceHandle Frame;
+    public SceneFrameConstants Frame;
 
-    [FieldOffset(136)]
+    [FieldOffset(624)]
     public uint MaterialIndex;
 
-    [FieldOffset(140)]
+    [FieldOffset(628)]
     public float WorldOrientation;
+
+    [FieldOffset(632)]
+    public uint Padding0;
+
+    [FieldOffset(636)]
+    public uint Padding1;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 496)]

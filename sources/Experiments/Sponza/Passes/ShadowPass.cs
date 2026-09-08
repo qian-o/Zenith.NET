@@ -11,6 +11,7 @@ internal class ShadowPass : IDisposable
 {
     private readonly GraphicsContext context;
     private readonly Texture shadow;
+    private readonly TextureView sampledView;
     private readonly Sampler materialSampler;
     private readonly GraphicsPipeline opaquePipeline;
     private readonly GraphicsPipeline opaqueDoubleSidedPipeline;
@@ -26,13 +27,18 @@ internal class ShadowPass : IDisposable
     {
         this.context = context;
         shadow = context.CreateTexture(TextureDesc.DepthStencilAttachment(PixelFormat.D32Float, 4096, 4096, SampleCount.Count1));
+        sampledView = context.CreateTextureView(TextureViewDesc.Texture2D(shadow, PixelFormat.R32Float, 0, 1));
         materialSampler = context.CreateSampler(SamplerDesc.Anisotropic(8));
 
-        InputLayout inputLayout = new();
-        inputLayout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position });
-        inputLayout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Normal });
-        inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Tangent });
-        inputLayout.Add(new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.TexCoord });
+        InputLayout inputLayout = new()
+        {
+            Elements =
+            [
+                new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position, OffsetInBytes = 0 },
+                new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.TexCoord, OffsetInBytes = 40 }
+            ],
+            StrideInBytes = 48
+        };
 
         using Shader vertexShader = GraphicsHelper.LoadShader(context, "Shadow.slang", "VSMain");
         using Shader opaqueShader = GraphicsHelper.LoadShader(context, "Shadow.slang", "OpaqueFS");
@@ -119,6 +125,7 @@ internal class ShadowPass : IDisposable
         opaqueDoubleSidedPipeline.Dispose();
         opaquePipeline.Dispose();
         materialSampler.Dispose();
+        sampledView.Dispose();
         shadow.Dispose();
     }
 
@@ -149,7 +156,7 @@ internal class ShadowPass : IDisposable
     {
         return new()
         {
-            Texture = shadow,
+            SampledView = sampledView,
             ViewProjection = viewProjection,
             NormalBiasInMeters = 0.015f,
             DepthBias = 0.0002f,

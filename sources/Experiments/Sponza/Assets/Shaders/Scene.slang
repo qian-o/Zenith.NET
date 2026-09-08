@@ -40,11 +40,15 @@ struct SceneConstants
 
     float4x4 NormalWorld;
 
-    DescriptorHandle<ConstantBuffer<SceneFrameConstants>> Frame;
+    SceneFrameConstants Frame;
 
     uint MaterialIndex;
 
     float WorldOrientation;
+
+    uint Padding0;
+
+    uint Padding1;
 };
 
 struct VSInput
@@ -175,7 +179,7 @@ float2 EnvironmentBrdf(float roughness, float nDotV)
 [shader("vertex")]
 VSOutput VSMain(VSInput input)
 {
-    SceneFrameConstants frame = *scene.Frame;
+    SceneFrameConstants frame = scene.Frame;
     float4 positionWorld = mul(float4(input.Position, 1.0), scene.World);
 
     VSOutput output;
@@ -193,7 +197,7 @@ VSOutput VSMain(VSInput input)
 [shader("fragment")]
 SceneTargets FSMain(VSOutput input, bool frontFace : SV_IsFrontFace)
 {
-    SceneFrameConstants frame = *scene.Frame;
+    SceneFrameConstants frame = scene.Frame;
     MaterialConstants material = frame.Materials[scene.MaterialIndex];
     float4 baseColor = SampleBaseColor(material, input.TexCoord, *frame.MaterialSampler);
     ClipMaterial(material, baseColor.a);
@@ -277,7 +281,7 @@ SkyVertex SkyVSMain(uint vertexId : SV_VertexID)
 [shader("fragment")]
 SceneTargets SkyFSMain(SkyVertex input)
 {
-    SceneFrameConstants frame = *scene.Frame;
+    SceneFrameConstants frame = scene.Frame;
     float2 ndc = input.TexCoord * float2(2.0, -2.0) + float2(-1.0, 1.0);
     float4 world = mul(float4(ndc, 1.0, 1.0), frame.InverseViewProjection);
     float3 direction = normalize(world.xyz / world.w - frame.CameraPositionWorld.xyz);
