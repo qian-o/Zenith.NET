@@ -53,10 +53,16 @@ commandBuffer.Draw(vertexCount, 1, 0, 0);
 commandBuffer.EndRenderPass();
 ```
 
-Choose `Load`, `Clear`, or `DontCare` for each attachment according to whether previous contents are needed. `BeginRenderPass` initializes the viewport and scissor from the attachment size.
+Choose `Load`, `Clear`, or `DontCare` for each attachment according to whether previous contents are needed. `BeginRenderPass` initializes one viewport/scissor pair, independent of the color attachment count. Its dimensions come from the first color attachment's selected mip level, or the depth/stencil attachment's selected mip level when there are no color attachments.
 
-Set a smaller viewport and scissor after beginning the pass when rendering to only part of an attachment.
+Set a smaller viewport and scissor after beginning the pass when rendering to only part of an attachment. To change the number of active viewports, set both arrays with matching counts before drawing. See [Commands](../fundamentals/commands.md#record-a-render-pass) for the count and device requirements.
 
 Use `Draw` for non-indexed geometry and `DrawIndexed` for indexed geometry. `DrawIndirect` and `DrawIndexedIndirect` read commands from a buffer created with `BufferUsages.Indirect`.
+
+## MRT and Viewports
+
+Multiple render targets (MRT) use fragment shader outputs `SV_Target0`, `SV_Target1`, and so on to write to color attachments at the corresponding indices. Keep the output indices aligned with both `AttachmentFormats.ColorFormats` and the `colorAttachments` array passed to `BeginRenderPass`. These outputs share the viewport transform and scissor selected for the primitive. Multiple color attachments do not require multiple viewports or scissors.
+
+Multiple viewports instead let different primitives select different viewport transforms and scissor rectangles. The pre-rasterization shader output `SV_ViewportArrayIndex` selects the viewport/scissor pair for a primitive, not a color attachment. Without this output, primitives use pair zero. Setting multiple viewports does not duplicate geometry or create additional render targets.
 
 See [Bindless Resources](../fundamentals/bindless-resources.md) for shader-visible resources and [Synchronization](../fundamentals/synchronization.md) when GPU work produces indirect arguments.
