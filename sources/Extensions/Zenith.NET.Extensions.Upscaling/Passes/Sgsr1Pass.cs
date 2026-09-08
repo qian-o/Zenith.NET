@@ -41,7 +41,7 @@ internal unsafe partial class Sgsr1Pass : DisposableObject
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(buffer, 0);
         commandBuffer.Dispatch((constants.OutputWidth + 7) / 8, (constants.OutputHeight + 7) / 8, 1);
-        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.All);
+        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
     }
 
     protected override void Destroy()

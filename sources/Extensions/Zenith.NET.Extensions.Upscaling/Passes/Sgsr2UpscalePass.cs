@@ -44,7 +44,7 @@ internal unsafe partial class Sgsr2UpscalePass : DisposableObject
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(buffer, 0);
         commandBuffer.Dispatch((constants.DisplayWidth + 7) / 8, (constants.DisplayHeight + 7) / 8, 1);
-        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.All);
+        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
     }
 
     protected override void Destroy()
