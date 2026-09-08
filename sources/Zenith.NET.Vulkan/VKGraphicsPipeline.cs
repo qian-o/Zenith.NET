@@ -183,8 +183,8 @@ internal unsafe class VKGraphicsPipeline : GraphicsPipeline
             PipelineViewportStateCreateInfo viewportState = new()
             {
                 SType = StructureType.PipelineViewportStateCreateInfo,
-                ViewportCount = attachmentCount,
-                ScissorCount = attachmentCount
+                ViewportCount = Math.Max(attachmentCount, 1),
+                ScissorCount = Math.Max(attachmentCount, 1)
             };
 
             PipelineMultisampleStateCreateInfo multisampleState = new()
