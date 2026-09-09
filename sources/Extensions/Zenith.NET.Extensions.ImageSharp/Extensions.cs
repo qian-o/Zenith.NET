@@ -8,16 +8,11 @@ public static class Extensions
 {
     extension(GraphicsContext context)
     {
-        public Texture LoadTextureFromStream(Stream stream, bool generateMipMaps = true)
-        {
-            return context.LoadTextureFromStream(stream, generateMipMaps, false);
-        }
-
-        public Texture LoadTextureFromStream(Stream stream, bool generateMipMaps, bool srgb)
+        public Texture LoadTextureFromStream(Stream stream, bool compand = true, bool generateMipMaps = true)
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(stream);
 
-            PixelFormat format = srgb ? PixelFormat.R8G8B8A8SRgb : PixelFormat.R8G8B8A8UNorm;
+            PixelFormat format = compand ? PixelFormat.R8G8B8A8SRgb : PixelFormat.R8G8B8A8UNorm;
             uint mipLevels = generateMipMaps ? ZenithHelper.MipLevels((uint)image.Width, (uint)image.Height, 1) : 1;
 
             Texture texture = context.CreateTexture(TextureDesc.Texture2D(format, (uint)image.Width, (uint)image.Height, mipLevels, SampleCount.Count1));
@@ -55,7 +50,7 @@ public static class Extensions
                 {
                     ZenithHelper.MipDimensions((uint)image.Width, (uint)image.Height, 1, i, out uint mipWidth, out uint mipHeight, out _);
 
-                    using Image<Rgba32> mipImage = image.Clone(ctx => ctx.Resize((int)mipWidth, (int)mipHeight, KnownResamplers.MitchellNetravali, srgb));
+                    using Image<Rgba32> mipImage = image.Clone(ctx => ctx.Resize((int)mipWidth, (int)mipHeight, KnownResamplers.MitchellNetravali, compand));
 
                     pixels = new Rgba32[mipWidth * mipHeight];
                     mipImage.CopyPixelDataTo(pixels);
@@ -89,16 +84,11 @@ public static class Extensions
             return texture;
         }
 
-        public Texture LoadTextureFromFile(string file, bool generateMipMaps = true)
-        {
-            return context.LoadTextureFromFile(file, generateMipMaps, false);
-        }
-
-        public Texture LoadTextureFromFile(string file, bool generateMipMaps, bool srgb)
+        public Texture LoadTextureFromFile(string file, bool compand = true, bool generateMipMaps = true)
         {
             using FileStream stream = File.OpenRead(file);
 
-            return context.LoadTextureFromStream(stream, generateMipMaps, srgb);
+            return context.LoadTextureFromStream(stream, compand, generateMipMaps);
         }
     }
 }
