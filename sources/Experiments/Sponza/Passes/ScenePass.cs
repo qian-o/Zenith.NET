@@ -124,7 +124,7 @@ internal class ScenePass : IDisposable
             ShadowParameters = new(args.Shadow.NormalBiasInMeters, args.Shadow.DepthBias, args.Shadow.TexelSize, args.Environment.PrefilteredEnvironment.Desc.MipLevels - 1),
             Materials = args.Scene.MaterialBuffer.StorageReadOnlyHandle,
             MaterialSampler = materialSampler.Handle,
-            ShadowTexture = args.Shadow.SampledView.SampledHandle,
+            ShadowTexture = args.Shadow.Texture.SampledHandle,
             ShadowSampler = shadowSampler.Handle,
             EnvironmentTexture = args.Environment.PrefilteredEnvironment.SampledHandle,
             EnvironmentSampler = environmentSampler.Handle,

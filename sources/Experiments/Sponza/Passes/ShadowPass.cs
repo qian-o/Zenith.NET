@@ -11,7 +11,6 @@ internal class ShadowPass : IDisposable
 {
     private readonly GraphicsContext context;
     private readonly Texture shadow;
-    private readonly TextureView sampledView;
     private readonly Sampler materialSampler;
     private readonly GraphicsPipeline opaquePipeline;
     private readonly GraphicsPipeline opaqueDoubleSidedPipeline;
@@ -27,7 +26,6 @@ internal class ShadowPass : IDisposable
     {
         this.context = context;
         shadow = context.CreateTexture(TextureDesc.DepthStencilAttachment(PixelFormat.D32Float, 4096, 4096, SampleCount.Count1));
-        sampledView = context.CreateTextureView(TextureViewDesc.Texture2D(shadow, PixelFormat.R32Float, 0, 1));
         materialSampler = context.CreateSampler(SamplerDesc.Anisotropic(8));
 
         InputLayout inputLayout = new()
@@ -125,7 +123,6 @@ internal class ShadowPass : IDisposable
         opaqueDoubleSidedPipeline.Dispose();
         opaquePipeline.Dispose();
         materialSampler.Dispose();
-        sampledView.Dispose();
         shadow.Dispose();
     }
 
@@ -156,7 +153,7 @@ internal class ShadowPass : IDisposable
     {
         return new()
         {
-            SampledView = sampledView,
+            Texture = shadow,
             ViewProjection = viewProjection,
             NormalBiasInMeters = 0.015f,
             DepthBias = 0.0002f,

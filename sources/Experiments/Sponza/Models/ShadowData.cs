@@ -5,7 +5,7 @@ namespace Sponza.Models;
 
 internal struct ShadowData
 {
-    public TextureView SampledView;
+    public Texture Texture;
 
     public Matrix4x4 ViewProjection;
 
