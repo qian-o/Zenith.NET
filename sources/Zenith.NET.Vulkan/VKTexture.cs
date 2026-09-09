@@ -156,7 +156,7 @@ internal unsafe class VKTexture : Texture
         return new()
         {
             SType = StructureType.ImageCreateInfo,
-            Flags = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? ImageCreateFlags.CreateCubeCompatibleBit : ImageCreateFlags.None,
+            Flags = ImageCreateFlags.CreateMutableFormatBit | (desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? ImageCreateFlags.CreateCubeCompatibleBit : ImageCreateFlags.None),
             ImageType = VKFormats.Vulkan(desc.Type).Type,
             Format = VKFormats.Vulkan(desc.Format).Format,
             Extent = new()
