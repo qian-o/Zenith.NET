@@ -23,6 +23,8 @@
 
 用户另行授权修复两处后端问题：Vulkan GetAttachmentView 的单面视图类型，以及 DirectX12 的 3D 非零 mip UAV 深度范围。该授权仅限这两处，不扩大渲染项目对其他 RHI/后端/扩展的修改权限；第 6 节区分源码修复、构建与实际 GPU 验证状态。
 
+用户另行授权 ImageSharp 加载扩展增加 sRGB 选项及相应 mip 颜色处理，保留旧签名、默认行为和依赖。Sponza 的材质绑定、颜色解码与按颜色语义缓存纹理留到管线重构中一起调整，本次扩展变更不提前修改材质代码。
+
 保留以下宿主契约：
 
 - `RenderSettings` 保持现有普通 struct 和三个字段，由 Renderer 的 `public RenderSettings Settings;` 持有，App 初始化并直接控制。默认 `None + RenderScale=1 + TimeOfDay=12`。新增效果参数由 Renderer 组装具名 Args，不增加设置控件或统计 UI。
@@ -160,7 +162,11 @@ D 为 framebuffer 像素尺寸；R 各维为 `max(1, floor(D * RenderScale))`，
 | NORMAL/TANGENT/UV | 保留原数据和 tangent.w；plain_white 无法线贴图且缺切线，可直接用几何法线 |
 | MASK | ivy_leaves、flowers_and_leaves、hanging_chain 双面、cutoff=0.5；其余 OPAQUE，无 BLEND；颜色和阴影共用裁剪 |
 | 材质因子 | 保留约 (0.588,0.588,0.588,1) 的 baseColorFactor；plain_white metallicFactor=0，其余缺项按 glTF 默认值；无 AO/emissive 贴图，不猜通道 |
-| 纹理语义 | base color RGB 由 sRGB 解码为线性，alpha 不转换；normal/MR 为线性，roughness=G、metallic=B。当前基础色 UNorm 采样后解码不等同于线性颜色过滤，应按第 6 节核验；法线使用普通线性 mip 并非错误，不因缺少专用处理判定加载器有 bug。实际质量问题先说明，不自行改加载器或重建替代 mip 链 |
+| 纹理语义 | base color RGB 由 sRGB 解码为线性，alpha 不转换；normal/MR 为线性，roughness=G、metallic=B。扩展已支持 sRGB 加载，但当前材质仍走原默认 UNorm 与采样后解码，需在重构中成套迁移；法线使用普通线性 mip 并非错误，不因缺少专用处理判定加载器有 bug |
+
+ImageSharp 的旧 `LoadTextureFromStream(Stream stream, bool generateMipMaps = true)` 与 File 对应签名保留，转发 `srgb=false`。新增三参数重载 `LoadTextureFromStream(Stream stream, bool generateMipMaps, bool srgb)` 与 File 对应入口：true 创建 R8G8B8A8SRgb，基础层上传原始编码字节，各 mip 使用现有 Resize 的 compand=true；false 保持原 R8G8B8A8UNorm/compand=false 路径。alpha 处理、重采样器与上传流程不变，传入 Stream 仍由调用方所有。
+
+重构时，基础色调用三参数 sRGB 入口并删除 Shader 中对应的重复 DecodeSrgb；法线/MR 继续走线性数据路径。缓存键区分图像与颜色语义，同一图像用于颜色和数据时分别生成相应 mip 链；不能只改变材质绑定的一半，也不能仅用不同 view 共享处理语义不同的 mip 链。
 
 材质法线贴图属于线性数据，不进行 sRGB 转换，但可以用 mipmap 做缩小过滤。对本资产的 RGB 法线编码，线性平均与向量平均相容，采样后按 `2 * sample - 1` 解码、应用法线强度，再在照明前归一化。高频法线引起的镜面闪烁需要实际验收，不能将法线方差/粗糙度联合预过滤等高级方案预设为所有纹理的必要条件；新增方案仍先讨论。GBuffer 的当帧法线资源与材质法线贴图区分，当前方案不为 GBuffer 法线建立 mip。基础语义参见 [glTF 材质规范](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#materials)。
 
@@ -262,7 +268,7 @@ Halton(2,3) 的 8 帧序列减 0.5，输入像素 jitter=(jx,jy)，NDC 偏移 `(
 | 条件性 3D 非零 mip 问题 | DXTextureView 的 Texture3D UAV 已将 WSize 改为 uint.MaxValue，使用原生 UINT(-1) 语义从 FirstWSlice=0 覆盖所选 mip 的全部深度切片，不再使用原始 Depth | 源码修复及构建已完成，实际非零 mip GPU 回归未验证。原单 mip froxel 不触发旧错误；3D 深度随 mip 缩小，2D Array 的数组层数不缩小 |
 | 单根常量与同步 | SetConstantBuffer 为单根入口加字节偏移；各后端 Transition/Barrier 行为不同，Metal Transition 本身为空 | 独立/对齐常量区、真实阶段屏障属于调用方责任，不是阻挡；完整合法链失败后再定位 |
 | 体积光/反射 + SGSR | 已核对官方 3-pass 文档与 Convert 源码：透明前/后颜色差分为官方机制，无透明内容时允许同图；相关扩展实现一致 | 按第 5 节提供输入并验收，属于 Sponza 集成验证，不列为 RHI/SGSR 已知阻挡；不自制 mask/补丁，不悄悄移动体积 Pass |
-| 材质过滤与 mip | ImageSharp 固定 RGBA8UNorm 与通用 Resize mip；基础色采样后 sRGB 解码与线性颜色过滤有差别。法线为线性向量数据，常规 mip 加照明前归一化是可用基础路径，不能据此判定扩展 bug | 基础色过滤和目标场景的远处细节需验收；不因缺少高级法线预过滤宣布受阻，不以 sRGB GBuffer 代替材质输入核验，不自行改扩展或造 mip 链 |
+| 材质过滤与 mip | ImageSharp 已提供 sRGB/线性两条颜色语义路径，旧调用默认不变；Metal 公共加载、采样与读回已验证基础颜色、mip、alpha、奇数尺寸和无 mip 情况，DX12/Vulkan 新路径未运行验证 | Sponza 材质迁移推迟到重构；基础色绑定、Shader 解码和缓存键一起调整，再验收实际场景。法线保留线性 mip 与归一化，不预设新增高级预过滤 |
 | 能力信息 | Capabilities 不公开逐格式用途、MRT 或工作组上限查询 | 这是核验手段限制，不等于设备不支持；以实际创建/公共读写/目标设备运行验证，不加私有探测或平台分支 |
 
 Cube 问题定位在 `sources/Zenith.NET.Vulkan/VKTexture.cs` 的 GetAttachmentView 与 VKFormats 的 TextureType 映射；与 [Vulkan Cube 视图层数规则](https://docs.vulkan.org/refpages/latest/refpages/source/VkImageViewCreateInfo.html) 对照。资源创建层数与单面附件视图范围是两件事，不能混淆。此前“普通 2D 附件 → CopyTexture → Cube”的建议绕开该视图创建，增加中间资源、传输用途与同步成本，已撤出默认技术路线，未经用户决定不实施。
