@@ -104,23 +104,18 @@ internal class Renderer : IDisposable
         Matrix4x4 viewProjection = unjitteredViewProjection * jitterMatrix;
         Matrix4x4 previousViewProjection = reset ? unjitteredViewProjection : previousFrame.UnjitteredViewProjection;
 
-        Matrix4x4.Invert(view, out Matrix4x4 inverseView);
         Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
         Matrix4x4.Invert(viewProjection, out Matrix4x4 inverseViewProjection);
 
         frame = new()
         {
-            View = view,
             Projection = projection,
             UnjitteredProjection = unjitteredProjection,
             ViewProjection = viewProjection,
             UnjitteredViewProjection = unjitteredViewProjection,
-            InverseView = inverseView,
             InverseProjection = inverseProjection,
             InverseViewProjection = inverseViewProjection,
             PreviousViewProjection = previousViewProjection,
-            PreviousView = reset ? view : previousFrame.View,
-            PreviousProjection = reset ? unjitteredProjection : previousFrame.UnjitteredProjection,
             ClipToPrevClip = inverseViewProjection * (previousViewProjection * jitterMatrix),
             CameraPositionWorld = camera.Position,
             CameraForwardWorld = camera.Forward,
@@ -136,10 +131,10 @@ internal class Renderer : IDisposable
         };
 
         frameSettings = settings;
-        sky = CreateSky(settings.TimeOfDay);
 
         if (frameIndex is 0 || settings.TimeOfDay != previousTimeOfDay)
         {
+            sky = CreateSky(settings.TimeOfDay);
             environmentPass.Invalidate();
             shadowPass.Invalidate();
         }

@@ -30,8 +30,6 @@ struct SceneFrameConstants
     DescriptorHandle<TextureCube<float4>> EnvironmentTexture;
 
     DescriptorHandle<SamplerState> EnvironmentSampler;
-
-    float4 RenderSize;
 };
 
 struct SceneConstants
@@ -240,14 +238,20 @@ SceneTargets FSMain(VSOutput input, bool frontFace : SV_IsFrontFace)
     float vDotH = saturate(dot(view, halfVector));
     float alpha = roughness * roughness;
     float alphaSquared = alpha * alpha;
-    float denominator = nDotH * nDotH * (alphaSquared - 1.0) + 1.0;
-    float distribution = alphaSquared / max(3.14159265 * denominator * denominator, 0.0000001);
+    float nDotHSquared = nDotH * nDotH;
+    float denominator = (1.0 - nDotHSquared) + alphaSquared * nDotHSquared;
+    float distribution = alphaSquared / (3.14159265 * denominator * denominator);
     float visibility = 0.5 / max(nDotL * sqrt(nDotV * nDotV * (1.0 - alphaSquared) + alphaSquared) + nDotV * sqrt(nDotL * nDotL * (1.0 - alphaSquared) + alphaSquared), 0.0001);
     float3 f0 = lerp(float3(0.04), baseColor.rgb, metallic);
     float3 fresnel = FresnelSchlick(vDotH, f0);
     float3 diffuse = baseColor.rgb * (1.0 - metallic) * (1.0 - fresnel) / 3.14159265;
     float3 specular = distribution * visibility * fresnel;
-    float shadow = ShadowVisibility(input.PositionWorld, geometricNormal, saturate(dot(geometricNormal, light)), frame);
+    float shadow = 0.0;
+    if (nDotL > 0.0)
+    {
+        shadow = ShadowVisibility(input.PositionWorld, geometricNormal, saturate(dot(geometricNormal, light)), frame);
+    }
+
     float3 direct = (diffuse + specular) * frame.Sky.SunRadiance.xyz * (nDotL * shadow);
 
     float skyWeight = saturate(normal.y * 0.5 + 0.5);

@@ -15,4 +15,6 @@ internal struct DrawData
     public Matrix4x4 World;
 
     public Matrix4x4 NormalWorld;
+
+    public float WorldOrientation;
 }

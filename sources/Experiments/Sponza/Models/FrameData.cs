@@ -4,8 +4,6 @@ namespace Sponza.Models;
 
 internal struct FrameData
 {
-    public Matrix4x4 View;
-
     public Matrix4x4 Projection;
 
     public Matrix4x4 UnjitteredProjection;
@@ -14,17 +12,11 @@ internal struct FrameData
 
     public Matrix4x4 UnjitteredViewProjection;
 
-    public Matrix4x4 InverseView;
-
     public Matrix4x4 InverseProjection;
 
     public Matrix4x4 InverseViewProjection;
 
     public Matrix4x4 PreviousViewProjection;
-
-    public Matrix4x4 PreviousView;
-
-    public Matrix4x4 PreviousProjection;
 
     public Matrix4x4 ClipToPrevClip;
 

@@ -93,15 +93,25 @@ internal class ShadowPass : IDisposable
         commandBuffer.Transition(shadow, default, initialized ? TextureLayout.Sampled : TextureLayout.Undefined, TextureLayout.DepthStencilAttachment);
         commandBuffer.BeginRenderPass([], DepthStencilAttachment.Clear(shadow, 1.0f, 0));
 
+        GraphicsPipeline? currentPipeline = null;
         for (int index = 0; index < scene.Draws.Length; index++)
         {
             DrawData draw = scene.Draws[index];
             MaterialData material = scene.Materials[draw.MaterialIndex];
             GraphicsPipeline pipeline = material.AlphaMasked ? material.DoubleSided ? maskDoubleSidedPipeline : maskPipeline : material.DoubleSided ? opaqueDoubleSidedPipeline : opaquePipeline;
 
-            commandBuffer.SetPipeline(pipeline);
-            commandBuffer.SetVertexBuffer(scene.VertexBuffer, 0, 0);
-            commandBuffer.SetIndexBuffer(scene.IndexBuffer, 0, IndexFormat.UInt16);
+            if (pipeline != currentPipeline)
+            {
+                commandBuffer.SetPipeline(pipeline);
+                if (currentPipeline is null)
+                {
+                    commandBuffer.SetVertexBuffer(scene.VertexBuffer, 0, 0);
+                    commandBuffer.SetIndexBuffer(scene.IndexBuffer, 0, IndexFormat.UInt16);
+                }
+
+                currentPipeline = pipeline;
+            }
+
             commandBuffer.SetConstantBuffer(constantBuffers[index], 0);
             commandBuffer.DrawIndexed(draw.IndexCount, 1, draw.FirstIndex, draw.VertexOffset, 0);
         }

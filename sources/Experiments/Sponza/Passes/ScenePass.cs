@@ -127,8 +127,7 @@ internal class ScenePass : IDisposable
             ShadowTexture = args.Shadow.Texture.SampledHandle,
             ShadowSampler = shadowSampler.Handle,
             EnvironmentTexture = args.Environment.PrefilteredEnvironment.SampledHandle,
-            EnvironmentSampler = environmentSampler.Handle,
-            RenderSize = new(args.Frame.RenderWidth, args.Frame.RenderHeight, 0.0f, 0.0f)
+            EnvironmentSampler = environmentSampler.Handle
         };
 
         GraphicsHelper.Upload<SceneConstants>(skyConstants, new() { World = Matrix4x4.Identity, NormalWorld = Matrix4x4.Identity, Frame = frame, MaterialIndex = 0, WorldOrientation = 1.0f, Padding0 = 0, Padding1 = 0 });
@@ -142,7 +141,7 @@ internal class ScenePass : IDisposable
                 NormalWorld = draw.NormalWorld,
                 Frame = frame,
                 MaterialIndex = draw.MaterialIndex,
-                WorldOrientation = draw.World.GetDeterminant() < 0.0f ? -1.0f : 1.0f,
+                WorldOrientation = draw.WorldOrientation,
                 Padding0 = 0,
                 Padding1 = 0
             });
@@ -155,19 +154,30 @@ internal class ScenePass : IDisposable
         commandBuffer.Transition(hardwareDepth, default, depthLayout, TextureLayout.DepthStencilAttachment);
         commandBuffer.BeginRenderPass([ColorAttachment.DontCare(hdrColor), ColorAttachment.DontCare(indirectDiffuse), ColorAttachment.DontCare(deviceDepth), ColorAttachment.DontCare(encodedMotion)], DepthStencilAttachment.Clear(hardwareDepth, 1.0f, 0));
 
-        commandBuffer.SetPipeline(skyPipeline);
-        commandBuffer.SetConstantBuffer(skyConstants, 0);
-        commandBuffer.Draw(3, 1, 0, 0);
-
+        GraphicsPipeline? currentPipeline = null;
         for (int i = 0; i < args.Scene.Draws.Length; i++)
         {
             DrawData draw = args.Scene.Draws[i];
-            commandBuffer.SetPipeline(args.Scene.Materials[draw.MaterialIndex].DoubleSided ? doubleSidedPipeline : opaquePipeline);
-            commandBuffer.SetVertexBuffer(args.Scene.VertexBuffer, 0, 0);
-            commandBuffer.SetIndexBuffer(args.Scene.IndexBuffer, 0, IndexFormat.UInt16);
+            GraphicsPipeline pipeline = args.Scene.Materials[draw.MaterialIndex].DoubleSided ? doubleSidedPipeline : opaquePipeline;
+            if (pipeline != currentPipeline)
+            {
+                commandBuffer.SetPipeline(pipeline);
+                if (currentPipeline is null)
+                {
+                    commandBuffer.SetVertexBuffer(args.Scene.VertexBuffer, 0, 0);
+                    commandBuffer.SetIndexBuffer(args.Scene.IndexBuffer, 0, IndexFormat.UInt16);
+                }
+
+                currentPipeline = pipeline;
+            }
+
             commandBuffer.SetConstantBuffer(drawConstants[i], 0);
             commandBuffer.DrawIndexed(draw.IndexCount, 1, draw.FirstIndex, draw.VertexOffset, 0);
         }
+
+        commandBuffer.SetPipeline(skyPipeline);
+        commandBuffer.SetConstantBuffer(skyConstants, 0);
+        commandBuffer.Draw(3, 1, 0, 0);
 
         commandBuffer.EndRenderPass();
         commandBuffer.Transition(hdrColor, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
@@ -214,7 +224,7 @@ internal class ScenePass : IDisposable
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 640)]
+[StructLayout(LayoutKind.Explicit, Size = 624)]
 file struct SceneConstants
 {
     [FieldOffset(0)]
@@ -226,20 +236,20 @@ file struct SceneConstants
     [FieldOffset(128)]
     public SceneFrameConstants Frame;
 
-    [FieldOffset(624)]
+    [FieldOffset(608)]
     public uint MaterialIndex;
 
-    [FieldOffset(628)]
+    [FieldOffset(612)]
     public float WorldOrientation;
 
-    [FieldOffset(632)]
+    [FieldOffset(616)]
     public uint Padding0;
 
-    [FieldOffset(636)]
+    [FieldOffset(620)]
     public uint Padding1;
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 496)]
+[StructLayout(LayoutKind.Explicit, Size = 480)]
 file struct SceneFrameConstants
 {
     [FieldOffset(0)]
@@ -295,7 +305,4 @@ file struct SceneFrameConstants
 
     [FieldOffset(472)]
     public ResourceHandle EnvironmentSampler;
-
-    [FieldOffset(480)]
-    public Vector4 RenderSize;
 }

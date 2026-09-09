@@ -71,6 +71,7 @@ internal unsafe class SceneResources : IDisposable
             Matrix4x4 world = node.WorldMatrix;
             Matrix4x4.Invert(world, out Matrix4x4 inverseWorld);
             Matrix4x4 normalWorld = Matrix4x4.Transpose(inverseWorld);
+            float worldOrientation = world.GetDeterminant() < 0.0f ? -1.0f : 1.0f;
 
             foreach (MeshPrimitive primitive in node.Mesh.Primitives)
             {
@@ -87,7 +88,8 @@ internal unsafe class SceneResources : IDisposable
                     VertexOffset = vertices.Count,
                     MaterialIndex = (uint)primitive.Material.LogicalIndex,
                     World = world,
-                    NormalWorld = normalWorld
+                    NormalWorld = normalWorld,
+                    WorldOrientation = worldOrientation
                 });
 
                 for (int i = 0; i < positions.Count; i++)
