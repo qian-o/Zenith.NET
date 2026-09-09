@@ -11,6 +11,8 @@ namespace Sponza.Helpers;
 
 internal unsafe class SceneResources : IDisposable
 {
+    public readonly SceneData Data;
+
     public SceneResources(GraphicsContext context)
     {
         ModelRoot model = ModelRoot.Load(Path.Combine(AppContext.BaseDirectory, "Assets", "Models", "Sponza.gltf"));
@@ -133,8 +135,6 @@ internal unsafe class SceneResources : IDisposable
         };
     }
 
-    public SceneData Data { get; }
-
     public void Dispose()
     {
         Data.MaterialBuffer.Dispose();
@@ -176,7 +176,11 @@ internal unsafe class SceneResources : IDisposable
 
         fixed (T* pointer = data)
         {
-            commandBuffer.Upload(buffer, 0, new() { Pointer = (nint)pointer, SizeInBytes = buffer.Desc.SizeInBytes });
+            commandBuffer.Upload(buffer, 0, new()
+            {
+                Pointer = (nint)pointer,
+                SizeInBytes = buffer.Desc.SizeInBytes
+            });
         }
 
         return buffer;

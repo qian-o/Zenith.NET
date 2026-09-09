@@ -32,10 +32,26 @@ internal class ScenePass : IDisposable
         this.context = context;
 
         InputLayout inputLayout = new();
-        inputLayout.Add(new() { Semantic = ElementSemantic.Position, Format = ElementFormat.Float3 });
-        inputLayout.Add(new() { Semantic = ElementSemantic.Normal, Format = ElementFormat.Float3 });
-        inputLayout.Add(new() { Semantic = ElementSemantic.Tangent, Format = ElementFormat.Float4 });
-        inputLayout.Add(new() { Semantic = ElementSemantic.TexCoord, Format = ElementFormat.Float2 });
+        inputLayout.Add(new()
+        {
+            Semantic = ElementSemantic.Position,
+            Format = ElementFormat.Float3
+        });
+        inputLayout.Add(new()
+        {
+            Semantic = ElementSemantic.Normal,
+            Format = ElementFormat.Float3
+        });
+        inputLayout.Add(new()
+        {
+            Semantic = ElementSemantic.Tangent,
+            Format = ElementFormat.Float4
+        });
+        inputLayout.Add(new()
+        {
+            Semantic = ElementSemantic.TexCoord,
+            Format = ElementFormat.Float2
+        });
 
         using Shader vertex = GraphicsHelper.LoadShader(context, "Scene.slang", "VSMain");
         using Shader fragment = GraphicsHelper.LoadShader(context, "Scene.slang", "FSMain");
@@ -130,7 +146,16 @@ internal class ScenePass : IDisposable
             EnvironmentSampler = environmentSampler.Handle
         };
 
-        GraphicsHelper.Upload<SceneConstants>(skyConstants, new() { World = Matrix4x4.Identity, NormalWorld = Matrix4x4.Identity, Frame = frame, MaterialIndex = 0, WorldOrientation = 1.0f, Padding0 = 0, Padding1 = 0 });
+        GraphicsHelper.Upload<SceneConstants>(skyConstants, new()
+        {
+            World = Matrix4x4.Identity,
+            NormalWorld = Matrix4x4.Identity,
+            Frame = frame,
+            MaterialIndex = 0,
+            WorldOrientation = 1.0f,
+            Padding0 = 0,
+            Padding1 = 0
+        });
 
         for (int i = 0; i < args.Scene.Draws.Length; i++)
         {

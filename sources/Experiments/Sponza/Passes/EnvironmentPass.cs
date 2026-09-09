@@ -65,7 +65,11 @@ internal class EnvironmentPass : IDisposable
 
             for (uint face = 0; face < environment.Desc.ArrayLayers; face++)
             {
-                commandBuffer.Transition(environment, new() { MipLevel = mip, ArrayLayer = face }, previousLayout, TextureLayout.Storage);
+                commandBuffer.Transition(environment, new()
+                {
+                    MipLevel = mip,
+                    ArrayLayer = face
+                }, previousLayout, TextureLayout.Storage);
             }
 
             commandBuffer.SetConstantBuffer(constantBuffers[mip], 0);
@@ -73,7 +77,11 @@ internal class EnvironmentPass : IDisposable
 
             for (uint face = 0; face < environment.Desc.ArrayLayers; face++)
             {
-                commandBuffer.Transition(environment, new() { MipLevel = mip, ArrayLayer = face }, TextureLayout.Storage, TextureLayout.Sampled);
+                commandBuffer.Transition(environment, new()
+                {
+                    MipLevel = mip,
+                    ArrayLayer = face
+                }, TextureLayout.Storage, TextureLayout.Sampled);
             }
         }
 

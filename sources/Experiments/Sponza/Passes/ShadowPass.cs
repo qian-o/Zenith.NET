@@ -32,8 +32,18 @@ internal class ShadowPass : IDisposable
         {
             Elements =
             [
-                new() { Format = ElementFormat.Float3, Semantic = ElementSemantic.Position, OffsetInBytes = 0 },
-                new() { Format = ElementFormat.Float2, Semantic = ElementSemantic.TexCoord, OffsetInBytes = 40 }
+                new()
+                {
+                    Format = ElementFormat.Float3,
+                    Semantic = ElementSemantic.Position,
+                    OffsetInBytes = 0
+                },
+                new()
+                {
+                    Format = ElementFormat.Float2,
+                    Semantic = ElementSemantic.TexCoord,
+                    OffsetInBytes = 40
+                }
             ],
             StrideInBytes = 48
         };
@@ -152,7 +162,11 @@ internal class ShadowPass : IDisposable
             },
             RenderState = new()
             {
-                Rasterizer = RasterizerState.CullBack() with { CullMode = cullMode, DepthBiasSlopeScale = 1.1f },
+                Rasterizer = RasterizerState.CullBack() with
+                {
+                    CullMode = cullMode,
+                    DepthBiasSlopeScale = 1.1f
+                },
                 DepthStencil = DepthStencilState.DepthReadWrite(),
                 Blend = BlendState.ColorDisabled()
             }

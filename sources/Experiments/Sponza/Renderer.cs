@@ -146,7 +146,11 @@ internal class Renderer : IDisposable
     {
         EnvironmentData environment = environmentPass.Record(commandBuffer, sky);
 
-        ShadowData shadow = shadowPass.Record(commandBuffer, new() { Scene = scene.Data, Sky = sky });
+        ShadowData shadow = shadowPass.Record(commandBuffer, new()
+        {
+            Scene = scene.Data,
+            Sky = sky
+        });
 
         SceneOutput sceneOutput = scenePass.Record(commandBuffer, new()
         {
@@ -178,7 +182,13 @@ internal class Renderer : IDisposable
                 Frame = frame
             });
 
-            toneMappingPass.Record(commandBuffer, new() { HdrColor = hdr, Exposure = Exposure, Target = Color, TargetLayout = colorLayout });
+            toneMappingPass.Record(commandBuffer, new()
+            {
+                HdrColor = hdr,
+                Exposure = Exposure,
+                Target = Color,
+                TargetLayout = colorLayout
+            });
         }
         else
         {
@@ -193,7 +203,12 @@ internal class Renderer : IDisposable
             if (renderLdr is not null)
             {
                 renderLdrLayout = TextureLayout.Sampled;
-                UpscalingPassArgs args = new() { Input = renderLdr, Target = Color, TargetLayout = colorLayout };
+                UpscalingPassArgs args = new()
+                {
+                    Input = renderLdr,
+                    Target = Color,
+                    TargetLayout = colorLayout
+                };
 
                 if (frameSettings.UpscalingMode is UpscalingMode.Spatial)
                 {
@@ -230,13 +245,6 @@ internal class Renderer : IDisposable
 
     public void Dispose()
     {
-        upscalingPass.Dispose();
-        toneMappingPass.Dispose();
-        ambientOcclusionPass.Dispose();
-        scenePass.Dispose();
-        shadowPass.Dispose();
-        environmentPass.Dispose();
-        scene.Dispose();
         renderLdr?.Dispose();
 
         while (retiredColors.TryDequeue(out (Texture Texture, uint LastFrame) retired))
@@ -244,6 +252,13 @@ internal class Renderer : IDisposable
             retired.Texture.Dispose();
         }
 
+        upscalingPass.Dispose();
+        toneMappingPass.Dispose();
+        ambientOcclusionPass.Dispose();
+        scenePass.Dispose();
+        shadowPass.Dispose();
+        environmentPass.Dispose();
+        scene.Dispose();
         Color.Dispose();
     }
 
