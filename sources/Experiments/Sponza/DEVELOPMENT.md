@@ -6,6 +6,8 @@
 
 采用公共 BLAS/TLAS、Compute RayQuery、材质与光源重要性采样、SVGF 实时降噪、自动曝光、Bloom、色调映射及共享 SGSR。每帧产生新路径样本，移动和静止使用同一实时渲染管线。
 
+光传输以 PBRT 的渲染方程与蒙特卡洛估计为依据，材质采用明确的线性 RGB 反射模型。物理正确性针对所定义的材质和光源验证；RGB、法线贴图、天空 LUT 与纹理足迹均为建模近似，不等同于光谱测量或 PBRT 的全部功能。
+
 | 范围 | 约定 |
 | --- | --- |
 | 实现 | 完成 Renderer.cs，并在现有 Passes、Models、Helpers、Assets/Shaders 目录内添加所需类型和着色器 |
@@ -21,10 +23,10 @@
 ## 2. 管线与职责
 
 ```text
-场景与材质 ── 加速结构 ─┐
-                       ├─ 路径追踪 ── SVGF 降噪 ── 输出分支 ── Color / UI
-太阳与天空 ────────────┘                   │
-                                          └─ 曝光测光
+场景资源（几何、材质、BLAS/TLAS） ─┐
+                                 ├─ 路径追踪 ── SVGF 降噪 ── 输出分支 ── Color / UI
+太阳与天空 ──────────────────────┘                   │
+                                                    └─ 曝光测光
 ```
 
 Renderer 统一组装输入并按依赖录制命令。Pass 不调用或持有其他 Pass，不读取 App、Settings 或相机，不保存、提交、等待或释放借用的 CommandBuffer。
@@ -33,10 +35,9 @@ SceneResources 与重复的资源创建辅助放 Helpers；各 Pass 放 Passes�
 
 | 模块 | 输入与职责 | 输出及所有权 |
 | --- | --- | --- |
-| SceneResources | SharpGLTF 场景、材质语义、顶点与索引、实例变换 | 拥有几何、材质、实例表、纹理与视图；借出 SceneData |
-| AccelerationStructurePass | SceneData、几何版本；构建静态 BLAS/TLAS | 拥有加速结构；借出 AccelerationStructureData |
+| SceneResources | 加载场景及材质，上传几何并构建 BLAS/TLAS | 拥有几何、材质、实例表、纹理、视图及加速结构；完成加载后借出 SceneData |
 | EnvironmentPass | TimeOfDay、太阳与大气参数 | 拥有大气 LUT、天空环境图和重要性分布；借出同版本 EnvironmentData |
-| PathTracingPass | FrameData、SceneData、加速结构、EnvironmentData、采样参数 | 拥有两路原始辐亮度、首次命中引导和镜面重投影引导；借出 PathTracingOutput |
+| PathTracingPass | FrameData、含 TLAS 的 SceneData、EnvironmentData、采样参数 | 拥有两路原始辐亮度、首次命中引导和镜面重投影引导；借出 PathTracingOutput |
 | DenoisePass | 原始两路信号、当前/上一帧引导、FrameData | 拥有 SVGF 历史、亮度矩、方差、滤波中间图和 DenoisedHdr |
 | ExposurePass | DenoisedHdr、深度、实际帧间隔 | 拥有 GPU 内 1×1 曝光状态 |
 | BloomPass | 输出分支中的 HDR、曝光、显示尺寸 | 拥有辉光金字塔；输出未曝光 Bloom |
@@ -55,21 +56,38 @@ SceneResources 与重复的资源创建辅助放 Helpers；各 Pass 放 Passes�
 
 OPAQUE 几何标为 opaque，MASK 几何标为 non-opaque。主射线、反弹射线和阴影射线共用 alpha-test：在 RayQuery 候选命中时重建 UV，读取相同的 alpha 与 cutoff，通过后才确认命中。双面材质按实际入射侧构造着色基底；单面材质的背面命中吸收并终止路径，阴影射线仍视其为遮挡，不透过它查找后方亮面。实例绕序与 glTF 及镜像变换一致。
 
-BLAS/TLAS 在静态场景加载后构建，相机、太阳、RenderScale 和窗口变化不重建。构建顺序为几何输入就绪、BLAS、TLAS、追踪消费，使用公共命令路径及其构建同步契约。运行设备要求 `RayTracingSupported=true`；能力或正确调用存在阻挡时报告，不另设替代渲染路线。
+BLAS/TLAS 是 SceneResources 持有的静态资源，不参与逐帧 Pass 调度。几何上传完成后，加载代码借用公共队列的 CommandBuffer，在同一构建批次中依次建立 BLAS、TLAS，并完成一次 `Submit().Wait()` 后发布 SceneData。现有纹理和缓冲加载器的同步仅发生在加载期，借用的 CommandBuffer 不释放。
+
+相机、太阳、窗口、RenderScale 及普通材质参数变化不重建加速结构。只有几何、索引、实例变换或 OPAQUE/MASK 分类改变时才重新建立场景资源。SceneData 借出 TLAS 对象引用，PathTracingPass 录制常量时读取 Handle；最后一次使用完成后由 SceneResources 按 TLAS、BLAS、几何缓冲的顺序释放。运行设备要求 `RayTracingSupported=true`；能力或正确调用存在阻挡时报告。
 
 ## 4. 光传输
 
-### 4.1 表面与采样
+### 4.1 表面、估计器与采样
 
-材质使用金属粗糙度工作流：能量守恒的漫反射与 GGX 微表面镜面、相关 Smith 遮蔽及 Schlick Fresnel。感知粗糙度与微表面参数满足 `alpha=roughness²`；零粗糙度按理想镜面处理。几何法线负责两侧判定、合法半球和射线偏移，着色法线负责 BSDF，并使用一致的着色法线修正。
+所有方向采用从表面向外的约定，辐亮度保持非负线性 RGB，使用同一辐射尺度。积分目标为 `Lo=Le+∫ f(wo,wi) Li(wi) |n·wi| dω`；几何可见性包含在入射光中。BSDF 的求值、采样、PDF 与反射/delta 标志必须相互一致。
 
-在单个 Compute 内核内循环追踪路径。每像素共享一次主命中，在非零漫反射和镜面分量上各采样一条延续路径，分别估计两路辐亮度；其余命中按完整 BSDF 的混合概率采样。主表面的光源样本由两路共享，分别使用对应 BSDF/PDF；不能将完整 BSDF 的贡献任意归入某一分量。每条路径最多包含四次表面命中（含共享主命中），第三次命中后使用俄罗斯轮盘赌，并以存活概率补偿吞吐量。
+材质采用 [PBRT FresnelBlend](https://pbr-book.org/3ed-2018/Reflection_Models/Fresnel_Incidence_Effects) 的漫反射与镜面耦合，微表面分布使用 Trowbridge–Reitz（GGX）。令线性基础色为 C、金属度为 m，`Rd=(1-m)C`、`Rs=lerp(0.04,C,m)`；二者是 [0,1] 反射参数，BRDF 值本身不裁到 1。令 `ci=|Ns·wi|`、`co=|Ns·wo|`、`h=normalize(wi+wo)`，同侧非 delta 求值为：
 
-每个非 delta 命中显式采样光源方向，使用遮挡射线求可见性；BSDF 采样命中天空或太阳时应用 MIS。主命中的两路光源估计分别与本分量的延续 PDF 配对，不混入不存在的主分量选择概率；其余命中使用实际混合 PDF。Delta 分量不参加连续光源采样，delta 路径命中环境时权重为 1。达到命中上限、不再发出 BSDF 延续的顶点，其光源估计权重为 1。各项只计入一次。
+```text
+F(c) = Rs + (1-Rs)(1-c)^5
+fd = 28/(23π) · Rd(1-Rs) · [1-(1-ci/2)^5] · [1-(1-co/2)^5]
+fs = D_GGX(h) F(|wo·h|) / [4|wo·h| max(ci,co)]
+f  = fd + fs
+```
 
-主射线从相机位置按当前投影反推像素方向，按相机近、远平面换算 T 范围；颜色与首次命中引导共用该射线。所有反弹访问完整场景加速结构，射线距离覆盖场景范围，不受屏幕边缘或主相机远裁面限制。射线原点根据命中浮点误差和几何法线偏移，避免自交，同时保留叶片、链条和近接触遮挡。
+镜面按上述分母求值，GGX 可见法线采样中的 G1 仅用于采样 PDF；Fresnel 采用 Schlick 近似。glTF 感知粗糙度映射为 `alpha=roughness²`，与 PBRT 对照时直接匹配 alpha，不再施加第二次 roughness 映射。零粗糙度仅将镜面项变为权重 `F(co)` 的 delta，漫反射项仍保留；纯金属的漫反射为零。
 
-材质纹理通过 ray cone 估计 footprint 并显式选择 mip：主射线由像素角尺寸初始化，随传播距离与散射粗糙度扩展，通过三角形 UV 映射转换为纹理足迹。颜色、法线和 alpha 的缩小过滤使用一致足迹，不能把所有反弹固定采样 mip0。
+几何法线 Ng 由三角形确定，用于朝向、射线偏移和反射支撑域；着色法线 Ns 用于 BSDF 正交坐标系，采用 Radiance 传输约定。求值、采样和 PDF 使用一致的合法半球；非法样本贡献为零，不反复重采样后沿用未归一化的 PDF。
+
+每像素共享一次主命中，对非零的漫反射、镜面各抽取一个延续样本。漫反射使用余弦半球提议，`pd=ci/π`；镜面使用 GGX 可见法线提议，`ps=p_h(h|wo)/(4|wo·h|)`。主分量 k 的吞吐量为 `βk=fk·ci/pk`；其余顶点按完整 BSDF 采样，`pB=Σ qj pj`、`β←β·f·|Ns·wi|/pB`，所有非零分量都有正的选择概率。两路标签由主分量决定，随后散射类型变化不更换标签；最终两路相加，不除以二。
+
+每个命中先计入到达处的发光，未命中则计入环境；本资产表面 Le 为零。非 delta 顶点显式采样光源并追踪遮挡射线。光源与 BSDF PDF 均以单位立体角表示，采用 power heuristic：`wL=pL²/(pL²+pB²)`，BSDF 命中光源使用互补权重。主顶点分别使用本分量的 pk，其他顶点使用实际混合 pB；保存上一散射处的 PDF 和光采样上下文，不能用新命中处的 PDF 替代。Delta 使用离散概率质量，不参加连续光源 NEE，直接可见及 delta 路径命中环境的权重为 1。
+
+路径通过逃逸、零吞吐量或俄罗斯轮盘赌结束，不设固定散射深度截断。从第三次散射更新吞吐量后，以 `s=clamp(maxComponent(β),0.05,0.95)` 和独立随机维度决定存活，存活路径执行 `β/=s`。不裁剪高能量贡献，也不按帧超时丢弃仍存活的路径；每帧工作量通过样本数量与实现效率控制。随机维度按像素、样本序号、路径分支及散射次数分配，不能在各反弹重复使用同一随机数。
+
+主射线从相机位置按当前投影反推像素方向，按相机近、远平面换算 T 范围；颜色与首次命中引导共用该射线。反弹和阴影射线访问完整场景，不受主相机裁面或屏幕边缘限制。命中位置误差结合几何法线确定原点偏移，避免自交，同时保留薄片和近接触遮挡。
+
+颜色与法线纹理通过 ray cone 估计 footprint 并显式选择 mip：由像素角尺寸初始化，随传播与粗糙散射扩展，经三角形 UV 映射转换为纹理足迹。MASK 交集使用基础层 alpha 和统一采样/cutoff，保证各类射线看到同一遮挡几何；拒绝候选不消耗散射次数、不再乘一次 alpha，也不改为连续透明度的随机接受。
 
 ### 4.2 太阳与天空
 
@@ -77,7 +95,7 @@ BLAS/TLAS 在静态场景加载后构建，相机、太阳、RenderScale 和窗�
 
 天空采用 Rayleigh/Mie 散射及多次散射近似的大气 LUT，在场景中心的固定观察高度生成 512×256 经纬环境图。该环境作为场景共同的远场照明边界；相机旋转或移动不改变它。环境图保存散射天空，不含锐利太阳盘。太阳盘辐亮度由同一太阳辐照度、角面积和大气透射率推导，所有路径与相机可见背景使用同一太阳/天空模型。
 
-光源采样使用太阳圆锥与天空亮度重要性分布的混合提议，混合概率由两者的积分亮度确定。天空 texel 概率包含其立体角，GPU 生成行、列 CDF；采样和 PDF 查询使用相同分布。无论从哪一提议取样，求值均为该方向完整的太阳加天空辐亮度，混合 PDF 与 BSDF PDF 用于 MIS。一条遮挡射线判定该方向的场景可见性。
+光源采样使用太阳圆锥与天空亮度重要性分布的混合提议，混合概率由两者的积分亮度确定。天空 texel 概率包含其立体角，GPU 生成行、列 CDF；选中 texel 后在其方位角与 cos(天顶角)区间内均匀采样，方向密度为 texel 概率除以其立体角。CDF 与 PDF 使用同一分布，不能把经纬 UV 均匀密度当作立体角密度。无论从哪一提议取样，求值均为该方向完整的太阳加天空辐亮度，混合 PDF 与 BSDF PDF 用于 MIS。一条遮挡射线判定该方向的场景可见性。
 
 太阳或大气参数改变时，在同一帧更新环境图、分布和光照版本后再追踪，避免画面与采样分布属于不同时刻。大气基础 LUT 只随其物理参数更新。
 
@@ -100,7 +118,7 @@ DenoisePass 内部执行以下固定处理：
 
 漫反射使用首次命中的表面 motion。镜面 GGX 命中是随机样本，不直接视为稳定光流。低粗糙度且局部平面近似、命中引导可信时，使用反射命中点相对切平面映射出的虚拟位置重投影；环境反射使用方向重投影。按各自坐标验证主表面、反射距离/法线和粗糙度，曲率或随机命中变化造成失配时拒绝或缩短历史。高粗糙度使用受限的表面重投影，两类权重连续过渡，实际移动验收须排除镜面粘连与拖影。
 
-火花点由正确 PDF、MIS、合法半球和方差引导滤波共同处理；不通过固定裁掉高亮路径、扩大模糊或削弱灯光隐藏问题。降噪适用于 None、Spatial、Temporal 三种模式，SGSR2 不承担路径追踪降噪。
+SVGF 与超分是有偏的图像重建，不反馈到 BSDF、光源或路径吞吐量。物理正确性使用未降噪的线性 HDR 样本统计验证，显示稳定性另行验收。火花点通过采样正确性与方差引导处理，不靠固定裁剪路径贡献。降噪适用于三种模式，SGSR2 不承担路径追踪降噪。
 
 ## 6. 尺寸、运动与输出
 
@@ -136,7 +154,7 @@ Temporal 使用现有 `CreateTemporalUpscaler`，Spatial 使用 `CreateSpatialUp
 
 | 数据 | 内容 |
 | --- | --- |
-| SceneData / AccelerationStructureData | 几何、索引、材质、实例表、纹理借用引用；BLAS/TLAS 和几何版本 |
+| SceneData | SceneResources 拥有的几何、索引、材质、实例表、纹理及 TLAS 借用引用；场景内容版本 |
 | EnvironmentData | 太阳参数、天空辐亮度、重要性分布、大气参数与光照版本 |
 | FrameData | 当前/上一帧矩阵及逆矩阵、相机位置/朝向、R/D、jitter、帧序号、实际帧间隔、历史有效性与内容版本 |
 | PathTracingOutput | 两路原始信号、当前表面引导、镜面命中引导、背景有效性 |
@@ -169,7 +187,7 @@ GPU 常量使用显式布局的文件尾 `file struct`，字段偏移、大小�
 - Update 获取设置和相机快照；完整记录一帧后才交换历史、推进帧号及 jitter。
 - 几何、材质、光照、分辨率、模式或投影不连续时重置相关降噪与超分历史；连续移动通过重投影处理。普通曝光适应不重置未曝光历史。
 - Resize 只重建尺寸相关资源；最小化不推进历史，恢复时处理时间间隔和历史失效。静态场景加速结构与天空数据不随窗口大小重建。
-- App 保持单次 `Submit().Wait()`；Pass 使用现有构建、Transition 和 Barrier 契约完成生产/消费依赖，不增加独立队列或隐藏等待。
+- 逐帧渲染由 App 单次 `Submit().Wait()`；Pass 只录制计算、Transition 与 Barrier。SceneResources 的上传及加速结构构建等待属于一次性加载，不放入逐帧调度。
 - 新纹理从 Undefined 开始，记录真实 layout；跨 Pass 采样前进入 Sampled。采样输入和写目标不为同一子资源，当前与历史不混用。
 - UI 使用本帧开始时绑定的 Color；替换 Color 后须等待该绑定对应的提交完成再释放。视图先于底层资源释放，TLAS 先于 BLAS 释放，几何缓冲最后释放；借用输入及 CommandBuffer 不释放。
 - 稳态帧不创建管线、纹理或场景数组；完整释放降噪历史、超分实例、加速结构及场景资源。
@@ -178,15 +196,19 @@ GPU 常量使用显式布局的文件尾 `file struct`，字段偏移、大小�
 
 - 几何命中与 glTF 变换、材质、法线和 MASK 一致，叶片与链条的主可见性、反射及阴影轮廓正确。
 - 直接光、天空、反弹和反射遵守同一能量与颜色语义；无漏光、重复计光、自交、悬浮阴影或材质引起的错误亮斑。
-- 用同一积分器的高样本参考检查室内外、侧廊、曲面、粗糙与近镜面材质；高样本累积仅用于验证，不替代移动时的实时输出。
+- 验证 BSDF 非负、互易及半球积分不超过 1；检查白炉子、纯漫反射解析值、纯金属零漫反射、delta 极限、掠射与法线扰动。PDF 归一化检查须包含无效样本和 delta 概率质量。
+- 对相同光源与材质分别使用 BSDF-only、NEE+MIS、不同提议概率及 RR 参数，高样本均值应在统计误差范围内一致。采样直方图须匹配所报告 PDF，两路分量之和须匹配完整估计。
+- 使用 PBRT 官方实现的对应模型及独立解析用例核对线性 HDR，匹配参数、色彩空间、纹理过滤和相机采样。室内外、侧廊、曲面及镜面比较记录均值、方差、置信区间和误差；同一实现的高样本图不能单独证明自身正确，高样本累积不替代实时输出。
 - 缓慢移动、快速转向、停止和显露时实时降噪有效，无持续颗粒、明显拖影、过度模糊或曝光抽动；降噪与超分分别对照，不能用后处理掩盖光传输错误。
 - 覆盖 None/Spatial/Temporal 与 1/.75/.5 比例、6/9/12/18 时刻、奇数尺寸、连续 Resize、最小化恢复、模式切换和退出。
-- 性能目标为 Apple M4、D=2560×1440、Temporal/.5 在持续移动时达到 30 FPS。记录真实整帧时间、采样与反弹参数、内存和启动开销；静止读数不代替移动结果，FPS 不代替 GPU 时间。
+- 性能目标为 Apple M4、D=2560×1440、Temporal/.5 在持续移动时达到 30 FPS。记录真实整帧时间、样本与 RR 参数、散射次数分布、内存和启动开销；静止读数不代替移动结果，FPS 不代替 GPU 时间。
 - 构建无警告和错误；着色器编译、资源同步、加速结构与 RayQuery 在可用设备上运行验证。图像与历史无 NaN/Inf、越界、失效句柄或持续资源增长；未运行的后端不宣称通过。
 
 ## 9. 参考
 
-- [PBRT：路径追踪与 MIS](https://pbr-book.org/4ed/Light_Transport_I_Surface_Reflection/A_Better_Path_Tracer)
+- [PBRT：路径追踪、MIS 与俄罗斯轮盘赌](https://pbr-book.org/4ed/Light_Transport_I_Surface_Reflection/A_Better_Path_Tracer)
+- [PBRT：FresnelBlend 材质耦合](https://pbr-book.org/3ed-2018/Reflection_Models/Fresnel_Incidence_Effects)
+- [PBRT：微表面分布与采样](https://pbr-book.org/4ed/Reflection_Models/Roughness_Using_Microfacet_Theory)
 - [SVGF：实时路径追踪重建](https://research.nvidia.com/labs/rtr/publication/schied2017spatiotemporal/)
 - [glTF 2.0 材质规范](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#materials)
 - [天空大气模型](https://github.com/sebh/UnrealEngineSkyAtmosphere)
