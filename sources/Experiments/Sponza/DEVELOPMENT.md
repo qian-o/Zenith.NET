@@ -1,170 +1,156 @@
-﻿# Sponza 路径追踪渲染设计
+﻿# Sponza 实时 PBR 渲染设计
 
 ## 1. 目标与边界
 
-实现静态 Sponza 场景的实时路径追踪，支持自由移动相机，采用经典 SVGF 降噪，提供 None、Spatial、Temporal 三种输出。主可见性、直接光、多次反弹、反射、阴影及接触遮蔽统一通过硬件光追计算。光源为太阳和简单天空，显示使用固定曝光与色调映射。
-
-光传输以 PBRT 的渲染方程和蒙特卡洛估计为依据，使用本文定义的 RGB 材质、法线贴图、纹理足迹与天空模型。
+通过光栅化呈现材质清晰、明暗有层次、阴影稳定的 Sponza 场景。采用金属度/粗糙度 PBR、太阳阴影、天空/地面双色环境光、预过滤 IBL 和 GTAO，提供抗锯齿与超分输出。间接光采用全场统一的环境近似，不计算物体之间的光照反弹。
 
 | 范围 | 约定 |
 | --- | --- |
 | 实现 | 完成 Renderer.cs，在现有 Passes、Models、Helpers、Assets/Shaders 中添加必要文件 |
-| 保持不变 | App、Program、Handlers、CocoaHelper、ImGuiHelper、RenderSettings、UpscalingMode、模型与字体资产；保留现有相机、输入、窗口和 UI 操作 |
-| 项目边界 | 不修改 Sponza 外代码、RHI、后端、共享扩展、工程、依赖或目录结构；遇到范围外阻挡时提供证据并告知用户 |
-| 接口 | 只用公共 RHI 与现有扩展，不获取原生图形句柄、不强转后端、不通过反射或原生调用补充能力 |
+| 保持不变 | App、Program、Handlers、CocoaHelper、ImGuiHelper、RenderSettings、UpscalingMode、模型与字体资产；保留相机、输入、窗口和 UI 操作 |
+| 项目边界 | 不修改 Sponza 外代码、RHI、后端、共享扩展、工程、依赖或目录结构；范围外阻挡须提供证据并告知用户 |
+| 接口 | 只用公共 RHI 与现有扩展，不通过原生句柄、后端强转、反射或原生调用补充能力 |
 | 验证文件 | 验证程序、日志、截图放仓库外，不加入项目或解决方案 |
 
-保留 Renderer 的无参构造、外部只读 Color、`public RenderSettings Settings;`、`Update(CameraHandler camera)`、`Render(CommandBuffer commandBuffer)`、`Resize(uint width, uint height)` 和 `Dispose()`。App 在构造后设置 `None / RenderScale=1 / TimeOfDay=12`。
+保留 Renderer 的无参构造、外部只读 Color、`public RenderSettings Settings;`、`Update(CameraHandler camera)`、`Render(CommandBuffer commandBuffer)`、`Resize(uint width, uint height)` 和 `Dispose()`。App 构造后设置 `None / RenderScale=1 / TimeOfDay=12`。
 
-遵循 [Zenith.NET 代码风格与规范](<../../../Zenith.NET 代码风格与规范.md>)。实现前阅读核心 RHI、三个后端、相关扩展、Sponza 宿主和 CornellBox 光追调用，核实 API、同步与资源生命周期。
+遵循 [Zenith.NET 代码风格与规范](<../../../Zenith.NET 代码风格与规范.md>)。实现前核对核心 RHI、三个后端、相关扩展、Sponza 宿主和 CornellBox 光栅化用例的接口、同步与生命周期。
 
-## 2. 三个 Pass
+## 2. 四个 Pass
 
 ```text
-PathTracingPass → DenoisePass → OutputPass → Color
+ShadowPass → ScenePass → AmbientOcclusionPass → OutputPass → Color
 ```
 
-| Pass | 输入 → 输出 | 实现 |
+| Pass | 输入 → 输出 | 职责 |
 | --- | --- | --- |
-| PathTracingPass | 场景、相机、光照 → 单路原始 HDR 与主命中引导 | 一次 Compute Dispatch，通过 RayQuery 完成每个样本的一条完整路径 |
-| DenoisePass | 原始 HDR、引导、历史 → 降噪 HDR | 经典 SVGF 的重投影、方差估计和四轮空间滤波 |
-| OutputPass | 降噪 HDR、输出设置 → Color | 调用现有 SGSR，完成固定曝光、色调映射和显示转换 |
+| ShadowPass | 静态场景、太阳方向 → 阴影纹理与光源矩阵 | 生成固定场景范围的太阳阴影，光照未变化时复用 |
+| ScenePass | 场景、相机、阴影、IBL → 光照分量、深度、法线、motion | 前向 PBR 着色，随后绘制天空盒背景 |
+| AmbientOcclusionPass | 场景深度、法线、光照分量 → 合成 HDR | GTAO、保边滤波及环境漫反射合成 |
+| OutputPass | 合成 HDR、深度、motion、输出设置 → Color | FXAA、所选 SGSR、固定曝光和显示转换 |
 
-SceneResources 位于 Helpers，负责场景加载与资源所有权。Renderer 管理设置、尺寸、历史失效、Pass 调度和最终 Color。
+Renderer 管理设置、尺寸、帧状态、调用顺序和 Color。SceneResources 位于 Helpers，加载场景并初始化 IBL。
 
-三个 Pass 放 Passes，着色器放 Assets/Shaders。SVGF 和超分的多次 GPU 调度由 Pass 内部私有方法组织。Pass 的 context 和输入显式传入，不读取 App、Settings 或 Camera，也不相互调用；提交由 App 负责。
+Pass 放 Passes，着色器放 Assets/Shaders；内部可包含多次绘制或计算。context 与输入显式传入，Pass 不读取 App、Settings 或 Camera，也不相互调用。Models 只存放跨模块数据。加入实际文件时删除对应目录的占位文本。
 
-Models 存放跨模块数据；不引入逐调度包装或通用渲染框架。资源按具名引用借用，接收方不释放；DenoisePass 直接返回纹理。加入实际文件时删除对应目录的占位文本。
+## 3. 场景与材质
 
-## 3. 场景资源
+通过 `AppContext.BaseDirectory` 定位 Assets，使用现有 SharpGLTF.Core 加载 Sponza.gltf。按 accessor、primitive、材质与节点变换读取数据；保留物体空间位置、法线、切线、UV 和局部索引，绘制时应用节点变换与顶点基址。世界法线使用逆转置，切线处理手性与镜像变换；缺失或退化切线由几何和 UV 构造。场景包围盒由变换后的几何计算。
 
-以 `AppContext.BaseDirectory` 定位 Assets，使用现有 SharpGLTF.Core 加载 Sponza.gltf。按 accessor、primitive、材质引用与节点变换读取数据；顶点保留物体空间位置、法线、切线和 UV，节点变换只应用一次。法线用逆转置，切线保留手性并处理镜像变换；缺失或退化切线由有效几何和 UV 构造。
+纹理使用现有 ImageSharp 扩展加载并生成 mip。基础色使用 `compand=true`，法线和金属粗糙度使用 `compand=false`，缓存键包含图像引用与颜色语义。基础色只做一次 sRGB 解码，alpha 保持线性；粗糙度取 G、金属度取 B，并应用材质因子。材质采样遵循 glTF 的寻址方式，颜色贴图使用三线性及适当的各向异性过滤。
 
-纹理通过现有 ImageSharp 扩展加载并生成 mip。基础色使用 `compand=true`，法线与金属粗糙度使用 `compand=false`，缓存键包含图像引用和颜色语义。基础色只做一次 sRGB 解码，alpha 保持线性；粗糙度取 G、金属度取 B，并应用 glTF 材质因子。法线贴图应用 NormalScale、TBN 与归一化。
+材质依据 [glTF 金属度/粗糙度模型](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#appendix-b-brdf-implementation)，采用 Cook–Torrance GGX、Smith 高度相关可见性、Schlick Fresnel 和 Lambert 漫反射。N、视线及光照方向均为世界空间单位向量；NoV、NoL、VoH 分别为法线与视线、法线与光照、视线与半程向量的夹角余弦。
 
-每个共享 primitive 建一个 BLAS，每个节点中的 primitive 建一个 TLAS 实例，使用 PreferFastTrace 和 `0xFF` 可见性掩码。实例表保存材质、顶点与索引范围、世界与法线变换；按实例 ID、primitive index、重心坐标重建命中属性，分别处理局部 UInt16 索引和顶点基址。
+线性基础色 C、金属度 m 对应 `F0=lerp(0.04,C,m)`。为控制尖锐高光，着色粗糙度取 `r=clamp(roughness,0.045,1)`，`alpha=r²`。直接光使用 `F=F0+(1-F0)*(1-VoH)^5`、`fd=(1-F)*(1-m)*C/π`、`fs=D_GGX*V_Smith*F`；V_Smith 已包含 `1/(4*NoL*NoV)`。NoL 或 NoV 非正时直接光贡献为零；BRDF 不裁到 1，纯金属没有漫反射。
 
-OPAQUE 几何标为 opaque，MASK 标为 non-opaque。主射线、反弹射线和阴影射线共用候选命中的 alpha-test，使用基础 mip 的相同 alpha、采样方式和 cutoff；拒绝候选不消耗散射次数，不再乘一次 alpha。双面材质按入射侧构造着色基底；单面背面吸收并终止路径，阴影射线仍视其为遮挡。实例绕序正确处理镜像变换。
+ScenePass 将颜色附件清零、深度清为 1，使用深度读写和 Opaque 混合。片元中应用 NormalScale、正交化 TBN 并归一化法线。单面材质背面剔除，双面材质按朝向翻转着色基底；镜像节点同步调整绕序。OPAQUE 忽略 alpha，MASK 在场景和阴影绘制中使用相同基础色 alpha、材质因子与 cutoff，各自按纹理足迹选择 mip。
 
-要求 `RayTracingSupported=true`。几何上传后，在加载期借用公共队列 CommandBuffer，依次构建 BLAS、TLAS，同一批次 `Submit().Wait()` 完成后发布 SceneData。静态场景运行期间复用 AS；只有几何、实例变换或 OPAQUE/MASK 分类改变才重建。场景上传与 AS 构建的同步仅发生在加载期。
+## 4. 光照、环境反射与天空盒
 
-## 4. 路径追踪
+世界单位为米、Y 向上。太阳是唯一的直接光源，`θ=π(TimeOfDay-6)/12`，指向太阳的方向为 `L=(0,sinθ,-cosθ)`；6/12/18 时对应 −Z/+Y/+Z。直接光为 `Ldirect=(fd+fs)·Esun·max(dot(N,L),0)·shadowVisibility`。灯光强度使用统一的相对线性尺度。
 
-### 4.1 材质与采样
+环境由天空色 S 和地面色 G 定义：`Lenv(w)=lerp(G,S,(w.y+1)/2)`。背景和镜面 IBL 共用此环境。漫反射使用其余弦卷积的解析值 `H(N)=(S+G)/2+(S-G)·N.y/3`，H 已包含除以 π 的因子；环境漫反射为 `Lambient=C·(1-m)·(1-Fview)·H(N)`，Fview 为按 NoV 求值的 Schlick Fresnel，不重复除以 π。
 
-使用非负线性 RGB 和一致的相对辐射单位，方向均从表面向外。积分目标为 `Lo=Le+∫ f(wo,wi) Li(wi) |n·wi| dω`，可见性由射线求解。BSDF 求值、采样、PDF 和 delta 标志保持一致。
+默认线性参数为 `Esun=(3.0,2.9,2.7)`、`S=(0.12,0.16,0.22)`、`G=(0.035,0.025,0.02)`、曝光 1，集中在 Renderer 内。TimeOfDay 控制太阳方向，环境颜色固定。
 
-材质采用 [PBRT FresnelBlend](https://pbr-book.org/3ed-2018/Reflection_Models/Fresnel_Incidence_Effects)，分布为 Trowbridge–Reitz（GGX）。线性基础色 C、金属度 m 对应 `Rd=(1-m)C`、`Rs=lerp(0.04,C,m)`，均在 [0,1]；感知粗糙度映射 `alpha=roughness²`。令 `ci=|Ns·wi|`、`co=|Ns·wo|`、`h=normalize(wi+wo)`，同侧非 delta 求值为：
+镜面 IBL 采用 [split-sum 的单次散射形式](https://google.github.io/filament/main/filament.html#lighting/imagebasedlights)。加载时生成 128×128×6 环境立方体的 8 个 mip：第 i 层对应感知粗糙度 i/7，首层直接写 Lenv，其余层按 GGX 重要性采样并以 NoL 归一化加权。另生成 128×128 RG16Float BRDF LUT，坐标为 `(NoV,r)`；预过滤和 LUT 各使用 256 个固定 Hammersley 样本，均以 alpha=r² 计算。
 
-```text
-F(c) = Rs + (1-Rs)(1-c)^5
-fd = 28/(23π) · Rd(1-Rs) · [1-(1-ci/2)^5] · [1-(1-co/2)^5]
-fs = D_GGX(h) F(|wo·h|) / [4|wo·h| max(ci,co)]
-f  = fd + fs
-```
+LUT 两通道存储 Schlick 的系数 A、B，沿用与直接光一致的 Smith 可见性；`Lspecular=PrefilteredEnv(reflect(-view,N),lod=r*7)*(F0*A+B)`。生成和查表必须使用同一通道定义，不混用多次散射 LUT。环境不含太阳圆盘及局部场景几何，只在加载时生成；背景与材质使用一致的立方体方向约定。
 
-镜面项沿用此分母，不额外乘 Smith G；可见法线采样的 G1 属于采样 PDF，BRDF 值不裁到 1。与 PBRT 对照时直接匹配 alpha，不再次映射粗糙度。零粗糙度镜面使用权重 F(co) 的 delta，保留非零漫反射；纯金属没有漫反射。Ng 用于几何朝向、支撑域和原点偏移，Ns 用于 Radiance 模式的着色坐标系；非法半球样本贡献为零，不重采样后沿用原 PDF。
+### 天空盒绘制
 
-每个内部像素每帧产生一个路径样本。每个顶点只选择一条散射延续，完整 BSDF 使用漫反射与镜面提议的混合采样；两项非零时各以 1/2 概率选择，仅一项非零时选择概率为 1。漫反射提议 `pd=ci/π`，GGX 可见法线提议 `ps=p_h(h|wo)/(4|wo·h|)`；连续密度 `pB=qd·pd+qs·ps`，吞吐量更新为 `β←β·f·ci/pB`。Delta 用离散选择概率更新吞吐量，不能代入连续密度。
+ScenePass 在几何之后用全屏三角形绘制天空，复用附件；使用 CullNone、Opaque 和 DepthStencilState.DepthRead()（LessEqual、深度只读），clip z=w、depth=1，仅填充背景。
 
-命中发光表面或逃逸到环境时计入相应贡献；本资产表面 Le 为零。存在非 delta 分量的顶点采样一个光源方向并追踪遮挡射线，与 BSDF 采样采用 power MIS。两类 PDF 均为单位立体角密度；BSDF 命中光源使用上一散射点的实际 PDF 与光源采样上下文计算互补权重。直接可见光源和经 delta 到达光源的权重为 1。直接光和后续反弹累加到同一 HDR。
+由实际投影（含 Temporal jitter）和视图逆旋转重建世界方向 w，求值 Lenv(w)，排除相机平移。背景写入 BaseHdr，AmbientHdr 与法线写零；motion 写入第 6 节定义的旋转位移，与场景共用输出流程。
 
-路径通过逃逸、零吞吐量或俄罗斯轮盘赌结束，不设固定散射深度截断。从第三次散射更新吞吐量后，以 `s=clamp(maxComponent(β),0.05,0.95)` 决定存活，存活时 `β/=s`。不裁剪路径贡献，不通过增大材质粗糙度或丢弃超时路径控制噪声。BSDF、光源与轮盘赌使用独立随机维度，随机状态按像素、帧号和散射次数区分。
+## 5. 阴影与环境遮蔽
 
-### 4.2 主射线与纹理
+### 5.1 太阳阴影
 
-主射线由相机矩阵和亚像素位置生成，颜色、深度、法线和 motion 共用同一次主命中。近远平面只约束主可见性，反弹与阴影射线访问完整场景。原点偏移根据命中位置误差与 Ng 确定，保留薄片和近接触遮挡。
+采用覆盖完整静态场景的 4096×4096 D32Float 正交阴影图。光源视图朝向场景中心，up 取 +X；按变换后的场景包围盒确定 XY 范围及完整投影深度范围，并为过滤保留边界。投影不随主相机变化，首帧或太阳方向变化时更新。
 
-颜色与法线贴图采用 ray cone 估计纹理足迹：由像素角尺寸初始化，随距离和粗糙散射扩展，经三角形 UV 映射选择 mip。
+深度清为 1，使用普通 0～1 深度。光源 NDC 转 UV 为 `(0.5*x+0.5,0.5-0.5*y)`，比较深度直接使用 z；以 `z-bias <= storedDepth` 得到可见性，再做固定 3×3 PCF。正偏移考虑斜率、阴影 texel 世界尺寸及光源深度跨度，校准时同时检查自阴影和接触脱离。
 
-### 4.3 太阳与天空
+阴影绘制使用 CullNone，MASK 执行 alpha-test；所有遮挡物参与，不能用主相机可见物列表裁掉投影来源。阴影投影外视为无遮挡，投影内的过滤核必须落在预留边界中。
 
-世界单位为米、Y 向上。`θ=π(TimeOfDay-6)/12`，`sunDirection=(0,sinθ,-cosθ)`，6/12/18 时对应 −Z/+Y/+Z。太阳为半角 `α=0.27°` 的均匀圆盘，法平面辐照度 E 对应 `Lsun=E/(π sin²α)`，半影由遮挡射线自然产生。
+### 5.2 GTAO 与合成
 
-天空为 `Lsky(ω)=lerp(Lbottom,Ltop,(ω.y+1)/2)`；Lbottom、Ltop、E 是固定非负光照参数。主背景、路径逃逸和光源采样共用天空加太阳的解析求值。
+以 [XeGTAO 固定提交 a5b1686c7ea37788eeb3576b5be47f7c03db532c](https://github.com/GameTechDev/XeGTAO/tree/a5b1686c7ea37788eeb3576b5be47f7c03db532c/Source/Rendering/Shaders) 的 XeGTAO.h、XeGTAO.hlsli 和 vaGTAO.hlsl 为参考，在公共 Compute RHI 内移植，保留来源与许可。内部完成深度预过滤、GTAO 求值、一次空间保边滤波和光照合成。
 
-以均匀球面和均匀太阳圆锥混合采样。`Ωsun=4π sin²(α/2)`，`pL(ω)=(1-p)/(4π)+p·1cone/Ωsun`；天空权重 `Wsky=2π[Y(Lbottom)+Y(Ltop)]`，太阳权重 `Wsun=Y(Lsun)Ωsun`，`p=Wsun/(Wsky+Wsun)`。全零环境返回零贡献。两种提议均按方位角与 cos(极角)均匀采样，并使用完整环境值和完整混合 PDF 做 MIS。
+AO 在内部渲染分辨率运行，使用 High 预设、Radius=0.5 米、DenoisePasses=1，其余核与启发式沿用固定参考。深度链最多 5 个有效 mip，处理小尺寸与非整除调度边界。None/Spatial 的 NoiseIndex 固定为 0；Temporal 使用 frameIndex % 64，由 SGSR2 处理最终图像的时间重建，不另设 AO 历史。
 
-## 5. SVGF 实时降噪
+ScenePass 的法线附件存储右手视空间单位法线。XeGTAO 使用向前为正 Z 的视空间，接入时将重建位置和法线同时转换为 `(x,y,-z)`；深度解包与 NDCToView 常量对应当前实际投影，包含 Temporal jitter。背景 depth=1，AO 可见度为 1，邻域不能将背景当作遮挡。
 
-依据 [SVGF 论文](https://research.nvidia.com/labs/rtr/publication/schied2017spatiotemporal/)和固定的 [Falcor SVGFPass 源码（eb540f6748774680ce0039aaf3ac9279266ec521）](https://github.com/NVIDIAGameWorks/Falcor/tree/eb540f6748774680ce0039aaf3ac9279266ec521/Source/RenderPasses/SVGFPass)，通过公共 Compute RHI 移植滤波流程，保留来源与必要许可。
+沿用参考的 AO 编码、滤波和最终解码，获得 0～1 的可见度 A。ScenePass 将直接光、镜面 IBL、背景写入 BaseHdr，将环境漫反射单独写入 AmbientHdr；合成为 `SceneHdr=BaseHdr+A·AmbientHdr`。AO 只调制环境漫反射，不能将整幅图像统一压暗。
 
-过滤单路、未曝光的完整 HDR 辐亮度。参考接口中的 Albedo 固定为 1，省略纹理和颜色解调；表面 Emission 为零。主射线未命中时标为背景，直接输出解析环境颜色，不参与表面滤波。
+## 6. 抗锯齿、超分与显示
 
-DenoisePass 内部流程：
+D 为 framebuffer 像素尺寸，`R=max(1,floor(D*RenderScale))`，逐维计算。场景和 AO 使用 R，Color 使用 D；相机投影沿用宿主矩阵，不按 R 重建。
 
-1. 准备几何引导：由主命中深度、法线和身份生成局部深度与法线变化量，重建当前命中在前帧的预期线性深度。当前邻域差分只读取已完成的主命中结果，不跨轮廓扩大容差。
-2. 重投影并验证历史：四个双线性 tap 分别检查实际坐标、表面身份、法线及前帧深度，有效权重重新归一；无有效 tap 时按参考流程检查前帧 3×3 兼容邻域，仍无有效样本则使用当前帧。深度比较为“前帧存储深度与当前命中在前帧的预期深度”，容差也在前帧深度坐标系计算。
-3. 时间累积与方差：历史计数 `h=min(32,previousH+1)`，无历史时 h=1；颜色当前权重 `max(0.05,1/h)`，亮度一、二阶矩当前权重 `max(0.2,1/h)`。方差为 `max(0,M2-M1²)`；h<4 时按参考的 7×7 保边邻域滤颜色与矩，以 `4/h` 放大所得非负方差。这里的 32 是指数累积的计数上限，不是固定窗口平均。
-4. 空间滤波与反馈：四轮 5×5 à-trous，步长 1、2、4、8；核、方差预滤和深度/法线/亮度权重沿用固定参考，PhiColor=10、PhiNormal=128。每轮同时传播颜色与方差，`Vout=Σ(w²Vin)/(Σw)²`。第四轮输出当前图像；FeedbackTap=1，即第二轮颜色用于下帧历史。亮度矩保存时间累积结果，不以空间滤过的矩覆盖。
+光照在线性 HDR 中计算。显示转换统一为：`x=max(Exposure*HDR,0)`，应用 [Narkowicz 的 ACES 风格拟合曲线](https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/) `T(x)=saturate(x*(2.51*x+0.03)/(x*(2.43*x+0.59)+0.14))`，再做一次标准分段 sRGB 编码。LDR 使用 UNorm 纹理保存已编码值，避免采样或写入时再次转换。
 
-Compute 中以兼容邻域差分替代像素导数。所有 tap 先检查边界与有效性，历史长度从实际通过验证的位置取得；历史双缓冲，读写分离。
-
-SVGF 与超分是有偏图像重建，不改变 BSDF、光源或路径吞吐量。单路辐亮度滤波在低采样下可能损失纹理细节，运动镜面与暗部噪声需按第 8 节验收。
-
-## 6. 分辨率、运动与输出
-
-D 为 framebuffer 像素尺寸，`R=max(1,floor(D*RenderScale))`，逐维计算。路径追踪和 SVGF 工作在 R，Color 工作在 D。Renderer 使用原相机矩阵的内部 jitter 副本。
-
-三种模式均使用 Halton(2,3) 八相减 0.5 的亚像素采样，jitter 单位为 R 像素，投影 NDC 偏移 `(2*jx/Rw,-2*jy/Rh)`。颜色与引导保留当前 jittered R 网格；Temporal 将同一 jitter 传入 SGSR2，不叠加第二次像素抖动或独立 TAA。
-
-矩阵使用 row-major 与行向量。主命中 motion 为 `previousUnjitteredUv-currentUnjitteredUv`；降噪读取历史时加 `previousJitter/R-currentJitter/R`，重建世界位置时使用当前实际采样坐标和对应矩阵。天空 motion 只包含方向的旋转变化。
-
-OutputPass 固定曝光默认为 1，ACES fitted 色调映射和 sRGB 编码各做一次；曝光只影响显示，不改变路径和历史的辐射单位。None/Spatial 在显示转换时以 `sourceUV=outputUV+currentJitter/R` 双线性采样 HDR，恢复稳定网格，边界使用 ClampToEdge；R=D 时也进行此采样。Temporal 保留 jittered 输入，由 SGSR2 使用同一 jitter 完成重建。输出顺序如下：
-
-| 模式 | 输出链 |
+| 模式 | OutputPass 内部流程 |
 | --- | --- |
-| None | 降噪 HDR(R) → 按稳定 D 网格采样、曝光/色调映射/sRGB → Color(D) |
-| Spatial | 降噪 HDR(R) → 按稳定 R 网格采样、曝光/色调映射/sRGB → R/LDR → SGSR1 → Color(D) |
-| Temporal | 降噪 HDR(R) → SGSR2 Quality → HDR(D) → 曝光/色调映射/sRGB → Color(D) |
+| None | SceneHdr(R) → 双线性采样到 D 并做显示转换 → FXAA(D) → Color |
+| Spatial | SceneHdr(R) → 显示转换到 LDR(R) → FXAA(R) → SGSR1 → Color(D) |
+| Temporal | SceneHdr(R)＋深度/motion/jitter → SGSR2 Quality → HDR(D) → 显示转换 → Color |
 
-使用现有 CreateSpatialUpscaler、CreateTemporalUpscaler。SGSR1 输入为 [0,1] 显示颜色，SGSR2 输入为降噪后的非负线性 HDR。
+None/Spatial 使用 [FXAA 3.11](https://docs.nvidia.com/gameworks/content/gameworkslibrary/graphicssamples/d3d_samples/fxaa311sample.htm) 的 Quality 路径，不施加投影 jitter。输入采用 RGBL：RGB 为显示颜色，alpha 为 `dot(RGB,(0.299,0.587,0.114))`，配置 FXAA 读取 alpha 亮度；输入与输出分离，边界使用 Clamp，最终 Color alpha=1。FXAA 平滑单帧轮廓；纹理与高光还依赖 mip、过滤及粗糙度处理。
+
+Temporal 由 SGSR2 同时完成时域抗锯齿和超分。在内部投影副本上施加 Halton(2,3) 八相减 0.5 的 jitter，单位为 R 像素，NDC 偏移 `(2*jx/Rw,-2*jy/Rh)`。颜色、深度、AO 和 motion 的像素位置对应同一投影；motion 的位移值仍排除 jitter。阴影图不抖动，输出不叠加 FXAA 或独立 TAA。
+
+使用现有 CreateSpatialUpscaler、CreateTemporalUpscaler，保持共享扩展算法不变。SGSR1 接收 [0,1] 显示颜色；SGSR2 接收非负线性 HDR。UI 由 App 在最终 Color 上以原生分辨率绘制。
 
 | SGSR2 输入 | 契约 |
 | --- | --- |
-| Input / OpaqueInput | 同一降噪 HDR；场景只有 OPAQUE/MASK |
-| Depth | 主命中的普通 device Z，near=0、far=1，背景为 1 |
-| MotionVectors | 当前减上一帧的未 jitter NDC 位移 m；由上述 UV motion 转换为 `m=(-2*motion.x,2*motion.y)`，编码 `m*0.2495+32767/65535` 到 RG16UNorm；超出编码范围时使用零编码触发矩阵回退，静止为编码中值 |
-| JitterOffsetX/Y | 当前 R 像素单位 jitter，与主射线一致 |
-| ClipToPrevClip | `inverse(currentJitteredVP)*(previousUnjitteredVP*currentJitterMatrix)` |
+| Input / OpaqueInput | 同一 SceneHdr，场景只有 OPAQUE/MASK |
+| Depth | ScenePass 的普通 device Z，near=0、far=1，背景为 1 |
+| MotionVectors | 当前减上一帧的未 jitter NDC 位移 m，编码 `m*0.2495+32767/65535` 到 RG16UNorm；超出范围时写零编码供矩阵回退，静止为编码中值 |
+| JitterOffsetX/Y | 当前 R 像素单位 jitter |
+| ClipToPrevClip | `inverse(currentJitteredVP)*(previousUnjitteredVP*currentJitterMatrix)`，row-major、行向量 |
 | PreExposure / CameraFovAngleHor | 1 / `1/unjitteredProjection.M11`，后者为水平半视角正切 |
 | SameCamera / MinLerpContribution / Reset | 未 jitter 相机是否相同 / 0 / 相关历史是否失效 |
 
+Motion 在片元中由同一表面位置的当前/前帧 clip 坐标透视除法后计算，不能在线性插值前逐顶点完成除法。背景使用方向的旋转 motion，不引入相机平移。首帧使用零位移并重置历史。
+
 ## 7. 资源与生命周期
 
-SceneData 借出几何、材质、实例、纹理和 TLAS 引用；FrameData 保存相机、尺寸、jitter 与历史状态；PathTracingOutput 借出原始 HDR 和主命中引导。Pass 录制常量时读取资源 Handle，GPU 常量以文件尾显式布局 file struct 与 Slang 对齐，布尔使用 uint。
-
-| 资源 | 所有者与内容 |
+| 所有者 | 资源与语义 |
 | --- | --- |
-| 场景资源 | SceneResources；BLAS/TLAS、几何、材质和纹理 |
-| 原始 HDR 与引导 | PathTracingPass；RGBA32Float 辐亮度、R32Float device Z 与正线性深度、RGBA16Float 世界空间着色法线 Ns、RG32Float UV motion、实例/材质身份；保留历史验证需要的前帧引导，背景使用明确身份标志 |
-| SVGF 内部资源 | DenoisePass；单套颜色历史、时间矩、历史计数、局部变化量及滤波 ping-pong；辐亮度与矩使用 32 位浮点，颜色/方差可共用 RGBA，计数可随矩打包；背景不写入有效表面历史 |
-| 输出资源 | OutputPass；所需 R/LDR、D/HDR 中间图、RG16UNorm 编码 motion 与共享超分实例；超分内部纹理由扩展拥有 |
-| Color | Renderer；D / RGBA8UNorm，存 sRGB 编码值，仅 D 改变时替换；模式与 RenderScale 改变复用 Color |
+| SceneResources | 几何、材质、纹理、场景边界、环境立方体与 BRDF LUT |
+| ShadowPass | 固定尺寸深度纹理、光源矩阵及阴影绘制状态 |
+| ScenePass | R 尺寸的 BaseHdr、AmbientHdr、视空间法线、device Z 和 RG16UNorm motion；深度同时可采样，motion 供 Temporal 使用 |
+| AmbientOcclusionPass | 预过滤深度 mip、AO/边缘工作纹理、合成 SceneHdr；不持有跨帧颜色历史 |
+| OutputPass | 所选流程必需的 LDR/HDR 中间图、FXAA 与共享超分实例；超分历史归扩展所有 |
+| Renderer | D / RGBA8UNorm Color，存 sRGB 编码值；仅 D 改变时替换 |
 
-背景的 device Z 为 1，线性深度为相机 far，以身份标志区分。前帧预期深度通过当前 device Z、逆矩阵和前帧视图重建，无需世界位置历史。
+场景与输出中间 HDR 使用 RGBA32Float，法线使用 RGBA16Float，着色运算使用 float；主场景深度为 D32Float，GTAO 的正线性深度工作图为 R32Float。AO 工作图遵循参考编码，可用 R32UInt 承载整数 AO、R8UNorm 承载边缘信息。所有模式的场景附件均为 SampleCount.Count1，ScenePass 使用同一组 MRT 输出；背景 AmbientHdr=0。
 
-- 无参构造返回前建立有效 Color；Settings 在构造后赋值，设置相关内部资源由首次 Update 建立。App 在 Renderer.Update 前绑定 Color，尺寸变化替换旧 Color 时保留其有效期至已绑定它的提交完成。
-- 完整录制一帧后交换历史、推进帧号和 jitter。Resize、比例、模式、光照、相机或投影不连续使相关历史失效；普通移动使用重投影。最小化不推进历史，恢复时处理失效。
-- 逐帧借用 App 的 CommandBuffer，由 App 单次 Submit/Wait；借用 CommandBuffer 不保留、不释放。
-- 采样输入和写目标分离，按真实 layout 记录计算依赖。SetConstantBuffer 的第二参数为字节偏移，同帧不同参数使用独立常量区域，不覆盖未消费的常量。
-- 稳态不创建管线、纹理或场景数组；尺寸以 Texture.Desc 为准，预算包含历史、纹理、AS 与构建峰值。最后一次使用完成后，按视图先于纹理、TLAS 先于 BLAS、AS 先于几何缓冲释放。
+- 无参构造返回前创建有效 Color。Settings 在构造后赋值，设置相关内部资源在首次 Update 建立。App 在 Renderer.Update 前绑定 Color，旧 Color 保留至使用它的提交完成。
+- 模式与 RenderScale 改变复用 Color，只重建所需内部资源。Resize、模式、比例、光照、相机或投影不连续使 SGSR2 历史失效；普通移动保留历史。最小化不推进帧号，恢复时处理失效。
+- 加载期完成上传、IBL 初始化及必要同步。逐帧由 Pass 录制命令，App 单次 Submit/Wait；借用 CommandBuffer 不保留、不释放。固定阴影与 IBL 不随输出尺寸重建。
+- 资源以具名引用借用，所有权不转移。采样输入与写目标分离，按真实 layout 记录绘制、计算及采样依赖，包括 GTAO 的 mip 和工作图。
+- GPU 常量采用与 Slang 对齐的显式布局 file struct，布尔使用 uint。SetConstantBuffer 的第二参数为字节偏移，同帧不同绘制或调度使用独立常量区域。
+- 稳态不创建管线、纹理或场景数组；按实际 Texture.Desc 管理尺寸，记录峰值内存。最后一次使用完成后释放所有自有资源，视图先于纹理；不释放借用对象。
 
-## 8. 验收与验证
+## 8. 验收
 
-固定参考版本、光照和验证机位，对照原始 HDR、SVGF 输出与超分输出。
+固定光照和机位，对照直接光、环境光、阴影、AO 及最终输出。亮度、偏移与 AO 参数以同一组图像校准，验收依据运行结果。
 
-- 几何变换、法线、材质、MASK 与资产一致；叶片和链条在主可见性、反射及阴影中的轮廓正确，无漏光、自交、重复计光或错误亮斑。
-- BSDF 验证非负、互易、反射率半球积分不超过 1 及白炉子；覆盖纯金属、delta、掠射和法线扰动。PDF 检查包含无效样本及 delta 概率质量。
-- 使用 PBRT 对应材质和独立解析用例核对未降噪线性 HDR。相同场景的 BSDF-only、NEE+MIS、不同混合概率与 RR 参数，其高样本均值应在统计误差内一致；同一实现的高样本图不单独证明物理正确。
-- SVGF 检查静止、缓慢移动、快速转向、停止与显露区域；移动时噪声受控，纹理与轮廓清晰，无明显持续拖影或过度模糊。使用一致输入对照固定参考，记录残余噪声和细节损失。
-- 覆盖 None/Spatial/Temporal、1/.75/.5 比例、6/9/12/18 时刻、奇数尺寸、连续 Resize、最小化恢复、模式切换与退出；超分前后曝光和颜色语义一致。
-- 性能目标为 Apple M4、D=2560×1440、Temporal/.5 持续移动时达到 30 FPS。记录整帧及模块耗时、样本数量、散射次数分布、内存和启动开销，区分 CPU/提交等待与 GPU 计时。
-- 构建和着色器编译无警告、错误；在可用设备上验证 RayQuery、同步与生命周期，无 NaN/Inf、越界、失效句柄或持续资源增长。记录已验证后端，报告接口或性能阻挡的证据及影响。
+- glTF 变换、颜色空间、金属度、粗糙度、法线、MASK 和双面材质正确。对照标准材质球验证金属/非金属、粗糙度变化与掠射高光，纯金属不出现漫反射。
+- 常量环境下，环境卷积和各层预过滤保持常量，镜面 LUT 与相同 BRDF 的数值积分在采样误差内一致；检查 LUT 通道、粗糙度 mip、立方体方向和色彩编码，避免重复 Fresnel、重复除以 π 或额外曝光。
+- 主光方向清晰，侧廊和拱顶有层次；无大面积过曝、塑料感高光或过亮环境反射。接受环境光近似，不以增加补光点或加重 AO 掩盖材质与阴影错误。
+- 天空覆盖背景并被建筑、叶片和链条正确遮挡；平移相机时无视差，转动及 Temporal 抖动时与场景坐标一致，无背景黑边或遮蔽污染。
+- 阴影完整覆盖场景，移动相机时稳定；无明显漏光、自阴影条纹、接触脱离，叶片与链条的阴影轮廓合理。
+- AO 加强墙角、柱脚和接触处，不形成大范围黑边、光晕或脏斑。其屏幕空间边界及显露区域表现稳定。
+- None/Spatial 平滑轮廓，Temporal 重点验收细线、纹理、显露区域和运动高光；无明显重影、过度模糊或重复锐化，三种模式的整体亮度与颜色一致，UI 清晰。
+- 覆盖 None/Spatial/Temporal、1/.75/.5 比例、6/9/12/18 时刻、奇数尺寸、连续 Resize、最小化恢复、模式切换和退出。
+- Apple M4、D=2560×1440、Temporal/.5 持续移动时目标至少 30 FPS。记录整帧及模块耗时、内存和启动开销，区分 CPU/提交等待与 GPU 计时。
+- 构建与着色器编译无警告、错误；无 NaN/Inf、越界、失效句柄或持续资源增长。记录已验证后端，遇到接口或性能阻挡时报告证据与影响。
 
-## 9. 补充参考
+## 9. 参考
 
-- [PBRT：路径追踪、MIS、俄罗斯轮盘赌](https://pbr-book.org/4ed/Light_Transport_I_Surface_Reflection/A_Better_Path_Tracer)
-- [PBRT：微表面与可见法线采样](https://pbr-book.org/4ed/Reflection_Models/Roughness_Using_Microfacet_Theory)
-- [glTF 2.0 材质规范](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#materials)
-- 仓库接口：Zenith.NET/CommandBuffer.cs、Zenith.NET/ZenithCompiler.cs、Experiments/CornellBox/Renderers/PathTracingRenderer.cs、Extensions/Zenith.NET.Extensions.Upscaling。
+- [阴影深度图、投影范围与偏移](https://learn.microsoft.com/en-us/windows/win32/dxtecharts/common-techniques-to-improve-shadow-depth-maps)
+- [SGSR1 输入与接入](https://github.com/SnapdragonGameStudios/snapdragon-gsr/tree/main/sgsr/v1)
+- [SGSR2 时域重建](https://github.com/SnapdragonGameStudios/snapdragon-gsr/tree/main/sgsr/v2)
+- 仓库用例：Experiments/CornellBox/Renderers/RasterizationRenderer.cs、Zenith.NET/CommandBuffer.cs、Zenith.NET/Structs、Extensions/Zenith.NET.Extensions.Upscaling。
