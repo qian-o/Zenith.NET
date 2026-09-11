@@ -8,13 +8,13 @@
 
 | 范围 | 约定 |
 | --- | --- |
-| 实现 | Sponza 内的 Renderer、Passes、渲染用 Models/Helpers、Assets/Shaders |
+| 实现 | 完成 Renderer.cs，并在现有 Passes、Models、Helpers、Assets/Shaders 目录内添加所需类型和着色器 |
 | 保持不变 | App、Program、Handlers、CocoaHelper、ImGuiHelper、RenderSettings、UpscalingMode、模型及字体资产 |
 | 项目边界 | 不修改实验外代码、RHI、后端、共享扩展、工程、依赖或现有目录结构；需要扩展这些范围时告知用户 |
 | 接口 | 只使用现有公共 RHI 与扩展，不访问原生图形句柄、不强转后端、不使用反射或原生调用补充渲染能力 |
 | 文档与验证 | 设计维护于本文；验证程序、日志和截图放仓库外，不加入项目或解决方案 |
 
-保留 `Renderer.Color`、`Update(CameraHandler camera)`、`Render(CommandBuffer commandBuffer)`、`Resize(uint width, uint height)` 和 App 的提交时序。`public RenderSettings Settings;` 保留三个字段，默认 `None / RenderScale=1 / TimeOfDay=12`；保持现有相机、WASDQE、鼠标、窗口及 UI 操作。
+保留 Renderer 的无参构造、外部只读 `Color`、`public RenderSettings Settings;`、`Update(CameraHandler camera)`、`Render(CommandBuffer commandBuffer)`、`Resize(uint width, uint height)` 和 `Dispose()`。App 在构造 Renderer 后通过对象初始化器设置 `None / RenderScale=1 / TimeOfDay=12`，并保持现有相机、WASDQE、鼠标、窗口及 UI 操作。
 
 代码遵循 [Zenith.NET 代码风格与规范](<../../../Zenith.NET 代码风格与规范.md>)。实现前阅读核心 RHI、DirectX12/Metal/Vulkan、相关扩展及 CornellBox 光追调用，核对实际接口、同步和生命周期。普通数据采用公开字段的 `struct`；资源所有者采用 `IDisposable`；C# 不用 `var`、`record` 或 `in/scoped` 参数，不引入通用渲染框架。代码单行优先，过长续行对齐。
 
@@ -28,6 +28,8 @@
 ```
 
 Renderer 统一组装输入并按依赖录制命令。Pass 不调用或持有其他 Pass，不读取 App、Settings 或相机，不保存、提交、等待或释放借用的 CommandBuffer。
+
+SceneResources 与重复的资源创建辅助放 Helpers；各 Pass 放 Passes；跨文件的数据、Args 和 Output 放 Models；Slang 放 Assets/Shaders。RenderSettings、UpscalingMode 和宿主辅助类型保持不变。Passes 与 Assets/Shaders 的占位文本分别在加入实际类和着色器时删除，不作为交付内容。
 
 | 模块 | 输入与职责 | 输出及所有权 |
 | --- | --- | --- |
@@ -45,7 +47,7 @@ Renderer 统一组装输入并按依赖录制命令。Pass 不调用或持有其
 
 ## 3. 场景、材质与加速结构
 
-通过 SharpGLTF.Core 加载 `Assets/Models/Sponza.gltf`，按 accessor、primitive、材质引用和节点变换读取，不按文件名推断数据。顶点保留物体空间位置、法线、切线及 UV；节点变换只在 TLAS 实例和对应着色变换中应用一次。法线使用逆转置，切线保留手性并处理镜像变换。
+模型与着色器路径均基于 `AppContext.BaseDirectory`，由现有工程复制 Assets 到输出目录。通过 SharpGLTF.Core 加载 `Assets/Models/Sponza.gltf`，按 accessor、primitive、材质引用和节点变换读取，不按文件名推断数据。顶点保留物体空间位置、法线、切线及 UV；节点变换只在 TLAS 实例和对应着色变换中应用一次。法线使用逆转置，切线保留手性并处理镜像变换。
 
 图像使用现有 ImageSharp 扩展。基础色传 `compand=true`，法线与金属粗糙度传 `compand=false`，均生成 mip；缓存键包含图像引用和颜色语义。基础色由 sRGB 采样解码一次，alpha 保持线性；粗糙度取 G、金属度取 B，材质因子遵循 glTF。法线贴图解码后应用 NormalScale、TBN 并归一化；缺失或退化切线由有效几何和 UV 构造，不修改资产。
 
@@ -102,7 +104,7 @@ DenoisePass 内部执行以下固定处理：
 
 ## 6. 尺寸、运动与输出
 
-D 为 framebuffer 像素尺寸；`R=max(1,floor(D*RenderScale))`，逐维计算。路径追踪和降噪工作在 R，最终 Color 工作在 D。相机投影使用 D 的宽高比，不随 RenderScale 改变。
+D 为 framebuffer 像素尺寸；`R=max(1,floor(D*RenderScale))`，逐维计算。路径追踪和降噪工作在 R，最终 Color 工作在 D。Renderer 直接读取 `camera.View` 和 `camera.Projection`；相机尺寸由 App 更新，不因 RenderScale 或内部资源尺寸重新生成主相机投影。
 
 | 模式 | 输出链 |
 | --- | --- |
@@ -163,7 +165,8 @@ Temporal 使用现有 `CreateTemporalUpscaler`，Spatial 使用 `CreateSpatialUp
 
 GPU 常量使用显式布局的文件尾 `file struct`，字段偏移、大小及 padding 与 Slang 对齐，GPU 布尔用 uint。`SetConstantBuffer` 第二参数是字节偏移；同帧不同用途使用独立缓冲或独立对齐区域，不能覆盖尚未消费的数据。
 
-- 构造时建立有效 Color，Update 获取设置和相机快照；完整记录一帧后才交换历史、推进帧号及 jitter。
+- 无参构造从 App 获取 GraphicsContext 和 D，返回前建立可供 UI 绑定的 Color；构造时不读取尚未由对象初始化器赋值的 Settings。首个 Update 根据设置快照建立 R 尺寸资源，Render 写完 Color 并使其可采样，再由 App 绘制 UI；不要求宿主添加空值判断或额外初始化调用。
+- Update 获取设置和相机快照；完整记录一帧后才交换历史、推进帧号及 jitter。
 - 几何、材质、光照、分辨率、模式或投影不连续时重置相关降噪与超分历史；连续移动通过重投影处理。普通曝光适应不重置未曝光历史。
 - Resize 只重建尺寸相关资源；最小化不推进历史，恢复时处理时间间隔和历史失效。静态场景加速结构与天空数据不随窗口大小重建。
 - App 保持单次 `Submit().Wait()`；Pass 使用现有构建、Transition 和 Barrier 契约完成生产/消费依赖，不增加独立队列或隐藏等待。
