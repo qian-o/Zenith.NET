@@ -36,11 +36,11 @@ internal static class FluidTankGeometry
         indices = [.. indicesList];
         materials =
         [
-            new() { Albedo = new(0.38f, 0.52f, 0.55f), Roughness = 0.48f, Metallic = 0.04f },
-            new() { Albedo = new(0.12f, 0.28f, 0.31f), Roughness = 0.24f, Metallic = 0.18f },
-            new() { Albedo = new(0.56f, 0.63f, 0.66f), Roughness = 0.16f, Metallic = 0.72f },
-            new() { Albedo = new(0.08f, 0.20f, 0.28f), Roughness = 0.18f, Metallic = 0.35f },
-            new() { Albedo = new(0.55f, 0.68f, 0.72f), Roughness = 0.10f, Metallic = 0.88f }
+            new() { Albedo = new(0.48f, 0.45f, 0.40f), Roughness = 0.60f, Metallic = 0.0f },
+            new() { Albedo = new(0.50f, 0.15f, 0.055f), Roughness = 0.40f, Metallic = 0.0f },
+            new() { Albedo = new(0.58f, 0.60f, 0.62f), Roughness = 0.24f, Metallic = 0.90f },
+            new() { Albedo = new(0.17f, 0.16f, 0.14f), Roughness = 0.50f, Metallic = 0.0f },
+            new() { Albedo = new(0.62f, 0.63f, 0.64f), Roughness = 0.25f, Metallic = 0.90f }
         ];
     }
 

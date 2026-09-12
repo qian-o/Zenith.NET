@@ -1,50 +1,89 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using FluidTank.Helpers;
+using FluidTank.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank;
 
-internal unsafe class FluidSimulation : IDisposable
+internal unsafe class Simulation : IDisposable
 {
-    private static readonly Vector3 TankMin = new(-6.0f, 0.0f, -3.0f);
-    private static readonly Vector3 TankMax = new(6.0f, 5.2f, 3.0f);
-    private static readonly (uint X, uint Y, uint Z) DamDimensions = (40, 48, 59);
+    public const float ParticleRadius = GridSpacing * 0.316f;
+
+    public const float RestDensity = 5.52f;
+
+    // Matches ParticleSpacingScale in FluidSimulation.slang.
+    public const float ParticleSpacing = ParticleRadius * 1.67f;
+
     private const float GridSpacing = 6.0f / 33.0f;
 
+    private static readonly Vector3 TankMin = new(-6.0f, 0.0f, -3.0f);
+
+    private static readonly Vector3 TankMax = new(6.0f, 5.2f, 3.0f);
+
+    private static readonly (uint X, uint Y, uint Z) DamDimensions = (40, 48, 59);
+
+    private readonly GraphicsContext context;
+
     private readonly Buffer constantBuffer;
+
     private readonly Buffer particles;
+
     private readonly Buffer previousPositions;
+
     private readonly Buffer particleAffine;
+
     private readonly Buffer gridAccumulation;
+
     private readonly Buffer gridVelocity;
+
     private readonly Buffer gridVelocityOld;
+
     private readonly Buffer cellTypes;
+
     private readonly Buffer divergence;
+
     private readonly Buffer pressureA;
+
     private readonly uint pressureParityDispatchCount;
 
     private readonly ComputePipeline resetPipeline;
+
     private readonly ComputePipeline initializeGridPipeline;
+
     private readonly ComputePipeline clearGridPipeline;
+
     private readonly ComputePipeline beginParticleToGridPipeline;
+
     private readonly ComputePipeline particleToGridPipeline;
+
     private readonly ComputePipeline normalizeAndApplyForcesPipeline;
+
     private readonly ComputePipeline divergencePipeline;
+
     private readonly ComputePipeline pressureRedPipeline;
+
     private readonly ComputePipeline pressureBlackPipeline;
+
     private readonly ComputePipeline projectGridPipeline;
+
     private readonly ComputePipeline gridToParticleAndAdvectPipeline;
 
     private bool resetRequested = true;
+
     private Vector3 interactionOrigin;
+
     private Vector3 interactionDirection;
+
     private float interactionStrength;
+
     private TimelineValue ready;
 
-    public FluidSimulation()
+    public Simulation(GraphicsContext context)
     {
+        this.context = context;
+
         ParticleCount = DamDimensions.X * DamDimensions.Y * DamDimensions.Z;
 
         Vector3 tankExtent = TankMax - TankMin;
@@ -53,29 +92,29 @@ internal unsafe class FluidSimulation : IDisposable
         GridPointCount = (GridDimensions.X + 1) * (GridDimensions.Y + 1) * (GridDimensions.Z + 1);
         pressureParityDispatchCount = (GridDimensions.X + 1) / 2 * GridDimensions.Y * GridDimensions.Z;
 
-        constantBuffer = GraphicsHelper.CreateConstantBuffer<SimulationConstants>();
+        constantBuffer = GraphicsHelper.CreateConstantBuffer<SimulationConstants>(context);
 
-        particles = GraphicsHelper.CreateBuffer(ParticleCount, 32, BufferUsages.StorageReadOnly | BufferUsages.StorageReadWrite);
-        previousPositions = GraphicsHelper.CreateBuffer(ParticleCount, 16, BufferUsages.StorageReadOnly | BufferUsages.StorageReadWrite);
-        particleAffine = GraphicsHelper.CreateBuffer(ParticleCount * 3, 16, BufferUsages.StorageReadWrite);
-        gridAccumulation = GraphicsHelper.CreateBuffer(GridPointCount * 6, sizeof(int), BufferUsages.StorageReadWrite);
-        gridVelocity = GraphicsHelper.CreateBuffer(GridPointCount, 16, BufferUsages.StorageReadWrite);
-        gridVelocityOld = GraphicsHelper.CreateBuffer(GridPointCount, 16, BufferUsages.StorageReadWrite);
-        cellTypes = GraphicsHelper.CreateBuffer(CellCount, sizeof(uint), BufferUsages.StorageReadWrite);
-        divergence = GraphicsHelper.CreateBuffer(CellCount, sizeof(float), BufferUsages.StorageReadWrite);
-        pressureA = GraphicsHelper.CreateBuffer(CellCount, sizeof(float), BufferUsages.StorageReadWrite);
+        particles = GraphicsHelper.CreateBuffer(context, ParticleCount, 32, BufferUsages.StorageReadOnly | BufferUsages.StorageReadWrite);
+        previousPositions = GraphicsHelper.CreateBuffer(context, ParticleCount, 16, BufferUsages.StorageReadOnly | BufferUsages.StorageReadWrite);
+        particleAffine = GraphicsHelper.CreateBuffer(context, ParticleCount * 3, 16, BufferUsages.StorageReadWrite);
+        gridAccumulation = GraphicsHelper.CreateBuffer(context, GridPointCount * 6, sizeof(int), BufferUsages.StorageReadWrite);
+        gridVelocity = GraphicsHelper.CreateBuffer(context, GridPointCount, 16, BufferUsages.StorageReadWrite);
+        gridVelocityOld = GraphicsHelper.CreateBuffer(context, GridPointCount, 16, BufferUsages.StorageReadWrite);
+        cellTypes = GraphicsHelper.CreateBuffer(context, CellCount, sizeof(uint), BufferUsages.StorageReadWrite);
+        divergence = GraphicsHelper.CreateBuffer(context, CellCount, sizeof(float), BufferUsages.StorageReadWrite);
+        pressureA = GraphicsHelper.CreateBuffer(context, CellCount, sizeof(float), BufferUsages.StorageReadWrite);
 
-        resetPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "ResetCS");
-        initializeGridPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "InitializeGridCS");
-        clearGridPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "ClearGridCS");
-        beginParticleToGridPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "BeginParticleToGridCS");
-        particleToGridPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "ParticleToGridCS");
-        normalizeAndApplyForcesPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "NormalizeAndApplyForcesCS");
-        divergencePipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "DivergenceCS");
-        pressureRedPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "PressureRedCS");
-        pressureBlackPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "PressureBlackCS");
-        projectGridPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "ProjectGridCS");
-        gridToParticleAndAdvectPipeline = GraphicsHelper.CreateComputePipeline("FluidSimulation.slang", "GridToParticleAndAdvectCS");
+        resetPipeline = GraphicsHelper.CreateComputePipeline(context, "FluidSimulation.slang", "ResetCS");
+        initializeGridPipeline = GraphicsHelper.CreateComputePipeline(context, "FluidSimulation.slang", "InitializeGridCS");
+        clearGridPipeline = GraphicsHelper.CreateComputePipeline(context, "FluidSimulation.slang", "ClearGridCS");
+        beginParticleToGridPipeline = GraphicsHelper.CreateComputePipeline(context, "FluidSimulation.slang", "BeginParticleToGridCS");
+        particleToGridPipeline = GraphicsHelper.CreateComputePipeline(context, "FluidSimulation.slang", "ParticleToGridCS");
+        normalizeAndApplyForcesPipeline = GraphicsHelper.CreateComputePipeline(context, "FluidSimulation.slang", "NormalizeAndApplyForcesCS");
+        divergencePipeline = GraphicsHelper.CreateComputePipeline(context, "FluidSimulation.slang", "DivergenceCS");
+        pressureRedPipeline = GraphicsHelper.CreateComputePipeline(context, "FluidSimulation.slang", "PressureRedCS");
+        pressureBlackPipeline = GraphicsHelper.CreateComputePipeline(context, "FluidSimulation.slang", "PressureBlackCS");
+        projectGridPipeline = GraphicsHelper.CreateComputePipeline(context, "FluidSimulation.slang", "ProjectGridCS");
+        gridToParticleAndAdvectPipeline = GraphicsHelper.CreateComputePipeline(context, "FluidSimulation.slang", "GridToParticleAndAdvectCS");
     }
 
     public uint ParticleCount { get; }
@@ -86,29 +125,13 @@ internal unsafe class FluidSimulation : IDisposable
 
     public (uint X, uint Y, uint Z) GridDimensions { get; }
 
-    public ResourceHandle ParticleHandle => particles.StorageReadOnlyHandle;
+    public Vector3 Minimum => TankMin;
 
-    public ResourceHandle PreviousPositionHandle => previousPositions.StorageReadOnlyHandle;
+    public Vector3 Maximum => TankMax;
 
-    public const float ParticleRadius = GridSpacing * 0.316f;
+    public Buffer Particles => particles;
 
-    public const float RestDensity = 5.52f;
-
-    public float FlipRatio { get; set; } = 0.97f;
-
-    public float VelocityDamping { get; set; } = 0.9998f;
-
-    public float WaveAmplitude { get; set; } = 0.12f;
-
-    public float WaveFrequency { get; set; } = 0.58f;
-
-    public bool WaveMakerEnabled { get; set; }
-
-    public int PressureIterations
-    {
-        get;
-        set => field = Math.Clamp(value, 4, 32);
-    } = 18;
+    public Buffer PreviousPositions => previousPositions;
 
     public void Reset()
     {
@@ -122,9 +145,9 @@ internal unsafe class FluidSimulation : IDisposable
         interactionStrength = 4.8f;
     }
 
-    public TimelineValue Step(double totalTime, double deltaSeconds, bool paused)
+    public TimelineValue Step(double totalTime, double deltaSeconds, bool paused, SimulationSettings settings)
     {
-        const uint substeps = 2;
+        const uint Substeps = 2;
 
         if (paused && !resetRequested)
         {
@@ -132,7 +155,8 @@ internal unsafe class FluidSimulation : IDisposable
         }
 
         float frameTime = (float)deltaSeconds;
-        float timeStep = paused ? 0.0f : frameTime / substeps;
+        float timeStep = paused ? 0.0f : frameTime / Substeps;
+        int pressureIterations = Math.Clamp(settings.PressureIterations, 4, 32);
 
         SimulationConstants parameters = new()
         {
@@ -142,10 +166,10 @@ internal unsafe class FluidSimulation : IDisposable
             Time = (float)totalTime,
             GridSpacing = GridSpacing,
             InverseGridSpacing = 1.0f / GridSpacing,
-            FlipRatio = FlipRatio,
-            VelocityDamping = VelocityDamping,
-            WaveAmplitude = WaveAmplitude,
-            WaveFrequency = WaveFrequency,
+            FlipRatio = settings.FlipRatio,
+            VelocityDamping = settings.VelocityDamping,
+            WaveAmplitude = settings.WaveAmplitude,
+            WaveFrequency = settings.WaveFrequency,
             InteractionRadius = 1.15f,
             InteractionStrength = interactionStrength,
             InteractionOrigin = interactionOrigin,
@@ -155,15 +179,15 @@ internal unsafe class FluidSimulation : IDisposable
             ParticleCount = ParticleCount,
             CellCount = CellCount,
             GridPointCount = GridPointCount,
-            WaveMakerEnabled = WaveMakerEnabled ? 1u : 0u,
+            WaveMakerEnabled = settings.WaveMakerEnabled ? 1u : 0u,
             GridX = GridDimensions.X,
             GridY = GridDimensions.Y,
             GridZ = GridDimensions.Z,
-            PressureIterations = (uint)PressureIterations,
+            PressureIterations = (uint)pressureIterations,
             DamX = DamDimensions.X,
             DamY = DamDimensions.Y,
             DamZ = DamDimensions.Z,
-            Substeps = substeps,
+            Substeps = Substeps,
             Particles = particles.StorageReadWriteHandle,
             PreviousPositions = previousPositions.StorageReadWriteHandle,
             ParticleAffine = particleAffine.StorageReadWriteHandle,
@@ -181,7 +205,7 @@ internal unsafe class FluidSimulation : IDisposable
             SizeInBytes = (uint)sizeof(SimulationConstants)
         });
 
-        CommandBuffer commandBuffer = App.Context.ComputeQueue.CommandBuffer();
+        CommandBuffer commandBuffer = context.ComputeQueue.CommandBuffer();
 
         if (resetRequested)
         {
@@ -193,7 +217,7 @@ internal unsafe class FluidSimulation : IDisposable
 
         if (!paused)
         {
-            for (uint substep = 0; substep < substeps; substep++)
+            for (uint substep = 0; substep < Substeps; substep++)
             {
                 Dispatch(commandBuffer, clearGridPipeline, Math.Max(GridPointCount * 6, CellCount));
                 commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
@@ -207,7 +231,7 @@ internal unsafe class FluidSimulation : IDisposable
                 Dispatch(commandBuffer, divergencePipeline, CellCount);
                 commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
-                for (int iteration = 0; iteration < PressureIterations; iteration++)
+                for (int iteration = 0; iteration < pressureIterations; iteration++)
                 {
                     Dispatch(commandBuffer, pressureRedPipeline, pressureParityDispatchCount);
                     commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);

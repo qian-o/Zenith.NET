@@ -1,4 +1,5 @@
 ﻿#include "SceneCommon.slang"
+#include "SurfaceCommon.slang"
 
 struct CompositeConstants
 {
@@ -6,7 +7,7 @@ struct CompositeConstants
 
     float4x4 InvProjection;
 
-    private float4 CameraPositionAndTime;
+    private float4 CameraPositionAndIntensity;
 
     private float4 SunDirectionAndClarity;
 
@@ -24,7 +25,7 @@ struct CompositeConstants
 
     DescriptorHandle<Texture2D> Thickness;
 
-    DescriptorHandle<Texture2D> Attributes;
+    DescriptorHandle<Texture2D<float4>> Normal;
 
     DescriptorHandle<Texture2D> Reflection;
 
@@ -32,84 +33,96 @@ struct CompositeConstants
 
     property float3 CameraPosition
     {
-        get {
-            return CameraPositionAndTime.xyz;
+        get
+        {
+            return CameraPositionAndIntensity.xyz;
         }
     }
 
-    property float Time
+    property float LightIntensity
     {
-        get {
-            return CameraPositionAndTime.w;
+        get
+        {
+            return CameraPositionAndIntensity.w;
         }
     }
 
     property float3 SunDirection
     {
-        get {
+        get
+        {
             return SunDirectionAndClarity.xyz;
         }
     }
 
     property float Clarity
     {
-        get {
+        get
+        {
             return SunDirectionAndClarity.w;
         }
     }
 
     property float3 WaterColor
     {
-        get {
+        get
+        {
             return WaterColorAndRefraction.xyz;
         }
     }
 
     property float RefractionStrength
     {
-        get {
+        get
+        {
             return WaterColorAndRefraction.w;
         }
     }
 
     property float3 Absorption
     {
-        get {
+        get
+        {
             return AbsorptionAndIor.xyz;
         }
     }
 
     property float Ior
     {
-        get {
+        get
+        {
             return AbsorptionAndIor.w;
         }
     }
 
     property uint Width
     {
-        get {
+        get
+        {
             return ScreenAndRenderMode.x;
         }
     }
 
     property uint Height
     {
-        get {
+        get
+        {
             return ScreenAndRenderMode.y;
         }
     }
 
     property uint RenderMode
     {
-        get {
+        get
+        {
             return ScreenAndRenderMode.z;
         }
     }
 
     property bool RayTracingEnabled
     {
-        get {
+        get
+        {
             return ScreenAndRenderMode.w != 0;
         }
     }
@@ -125,7 +138,7 @@ struct FullscreenOutput
 ConstantBuffer<CompositeConstants> composite;
 
 [shader("vertex")]
-FullscreenOutput FullscreenVS(uint vertexId: SV_VertexID)
+FullscreenOutput FullscreenVS(uint vertexId : SV_VertexID)
 {
     float2 uv = float2((vertexId << 1) & 2, vertexId & 2);
 
@@ -136,172 +149,187 @@ FullscreenOutput FullscreenVS(uint vertexId: SV_VertexID)
     return output;
 }
 
-float3 ViewRay(float2 uv)
-{
-    float2 ndc = uv * 2.0 - 1.0;
-    ndc.y = -ndc.y;
-    float4 target = mul(float4(ndc, 1.0, 1.0), composite.InvProjection);
-
-    return normalize(target.xyz / target.w);
-}
-
 float3 ReconstructViewPosition(float2 uv, float linearDepth)
 {
-    float3 ray = ViewRay(uv);
-
-    return ray * linearDepth / max(-ray.z, 0.0001);
-}
-
-float3 ReconstructWorldPosition(float2 uv, float linearDepth)
-{
-    return mul(float4(ReconstructViewPosition(uv, linearDepth), 1.0), composite.InvView).xyz;
-}
-
-float3 ReconstructNormal(float2 uv, float centerDepth)
-{
-    float2 texel = 5.0 / float2(composite.Width, composite.Height);
-    float depthLeft = composite.FluidDepth.SampleLevel(composite.Sampler, uv - float2(texel.x, 0.0), 0.0).r;
-    float depthRight = composite.FluidDepth.SampleLevel(composite.Sampler, uv + float2(texel.x, 0.0), 0.0).r;
-    float depthUp = composite.FluidDepth.SampleLevel(composite.Sampler, uv - float2(0.0, texel.y), 0.0).r;
-    float depthDown = composite.FluidDepth.SampleLevel(composite.Sampler, uv + float2(0.0, texel.y), 0.0).r;
-
-    depthLeft = depthLeft > 0.0 && abs(depthLeft - centerDepth) < 0.75 ? depthLeft : centerDepth;
-    depthRight = depthRight > 0.0 && abs(depthRight - centerDepth) < 0.75 ? depthRight : centerDepth;
-    depthUp = depthUp > 0.0 && abs(depthUp - centerDepth) < 0.75 ? depthUp : centerDepth;
-    depthDown = depthDown > 0.0 && abs(depthDown - centerDepth) < 0.75 ? depthDown : centerDepth;
-
-    float3 left = ReconstructViewPosition(uv - float2(texel.x, 0.0), depthLeft);
-    float3 right = ReconstructViewPosition(uv + float2(texel.x, 0.0), depthRight);
-    float3 up = ReconstructViewPosition(uv - float2(0.0, texel.y), depthUp);
-    float3 down = ReconstructViewPosition(uv + float2(0.0, texel.y), depthDown);
-    float3 normal = normalize(cross(down - up, right - left));
-
-    if (normal.z < 0.0)
-    {
-        normal = -normal;
-    }
-
-    return normal;
-}
-
-float3 SceneAt(float2 uv, float depth)
-{
-    if (depth <= 0.0)
-    {
-        float3 rayView = ViewRay(uv);
-        float3 rayWorld = normalize(mul(float4(rayView, 0.0), composite.InvView).xyz);
-
-        return SkyColor(rayWorld);
-    }
-
-    return composite.SceneColor.SampleLevel(composite.Sampler, uv, 0.0).rgb;
+    return SurfaceViewPosition(uv, linearDepth, composite.InvProjection);
 }
 
 float3 SceneAt(float2 uv)
 {
-    float depth = composite.SceneDepth.SampleLevel(composite.Sampler, uv, 0.0).r;
-
-    return SceneAt(uv, depth);
+    return composite.SceneColor.SampleLevel(composite.Sampler, uv, 0.0).rgb;
 }
 
-bool FrameOccludesFluid(FullscreenOutput input, float sceneDepth)
+float3 SampleFluid(float2 uv, float sceneDepth, out float3 normal)
 {
-    if (composite.SceneColor.Load(int3(int2(input.Position.xy), 0)).a < 0.5)
-    {
-        return false;
-    }
-
-    int2 fluidDimensions = int2(composite.Width, composite.Height);
-    int2 baseFluidPixel = int2(floor(input.UV * float2(fluidDimensions) - 0.5));
-    float closestFluidDepth = 0.0;
+    int2 dimensions = int2(composite.Width, composite.Height);
+    float2 position = uv * float2(dimensions) - 0.5;
+    int2 basePixel = int2(floor(position));
+    float2 fraction = frac(position);
+    float closestDepth = 0.0;
 
     for (int y = 0; y < 2; y++)
     {
         for (int x = 0; x < 2; x++)
         {
-            int2 samplePixel = clamp(baseFluidPixel + int2(x, y), int2(0, 0), fluidDimensions - 1);
-            float sampleDepth = composite.Attributes.Load(int3(samplePixel, 0)).w;
+            int2 samplePixel = clamp(basePixel + int2(x, y), int2(0, 0), dimensions - 1);
+            float sampleDepth = composite.FluidDepth.Load(int3(samplePixel, 0)).r;
 
-            if (sampleDepth > 0.0 && (closestFluidDepth <= 0.0 || sampleDepth < closestFluidDepth))
+            if (sampleDepth > 0.0 && (closestDepth <= 0.0 || sampleDepth < closestDepth))
             {
-                closestFluidDepth = sampleDepth;
+                closestDepth = sampleDepth;
             }
         }
     }
 
-    return closestFluidDepth <= 0.0 || closestFluidDepth >= sceneDepth;
+    normal = float3(0.0);
+    float depth = 0.0;
+    float thickness = 0.0;
+    float weightSum = 0.0;
+    float range = SurfaceDepthRange(closestDepth);
+
+    for (int y = 0; y < 2; y++)
+    {
+        for (int x = 0; x < 2; x++)
+        {
+            int2 samplePixel = clamp(basePixel + int2(x, y), int2(0, 0), dimensions - 1);
+            float sampleDepth = composite.FluidDepth.Load(int3(samplePixel, 0)).r;
+
+            if (sampleDepth <= 0.0 || abs(sampleDepth - closestDepth) > range || (sceneDepth > 0.0 && sampleDepth >= sceneDepth))
+            {
+                continue;
+            }
+
+            float weight = (x == 0 ? 1.0 - fraction.x : fraction.x) * (y == 0 ? 1.0 - fraction.y : fraction.y);
+            depth += sampleDepth * weight;
+            thickness += composite.Thickness.Load(int3(samplePixel, 0)).r * weight;
+            normal += composite.Normal.Load(int3(samplePixel, 0)).xyz * weight;
+            weightSum += weight;
+        }
+    }
+
+    return weightSum > 0.0 ? float3(depth / weightSum, thickness / weightSum, weightSum) : float3(0.0);
+}
+
+float2 ProjectViewPosition(float3 position)
+{
+    float2 ndc = position.xy / -position.z / float2(composite.InvProjection[0][0], composite.InvProjection[1][1]);
+
+    return ndc * float2(0.5, -0.5) + 0.5;
+}
+
+float3 RefractionPositionAtDepth(float3 origin, float3 incident, float3 direction, float thickness, float depth, out float waterDistance)
+{
+    waterDistance = min((depth + origin.z) / -direction.z, thickness);
+    float3 position = origin + direction * waterDistance;
+    float airDistance = max((depth + position.z) / -incident.z, 0.0);
+
+    return position + incident * airDistance;
+}
+
+float4 TraceRefraction(float2 uv, float sceneDepth, float3 viewPosition, float3 incident, float3 normal, float thickness)
+{
+    float3 direction = normalize(lerp(incident, refract(incident, normal, 1.0 / composite.Ior), composite.RefractionStrength));
+    float fluidDepth = -viewPosition.z;
+
+    if (sceneDepth <= 0.0 || direction.z >= 0.0)
+    {
+        return float4(uv, thickness, 0.0);
+    }
+
+    uint width;
+    uint height;
+    composite.SceneDepth.GetDimensions(width, height);
+    float2 dimensions = float2(width, height);
+    float targetDepth = sceneDepth;
+    float waterDistance = thickness;
+    float depthError = 0.0;
+    float2 sampleUv = uv;
+
+    for (int iteration = 0; iteration < 4; iteration++)
+    {
+        float3 position = RefractionPositionAtDepth(viewPosition, incident, direction, thickness, targetDepth, waterDistance);
+        sampleUv = ProjectViewPosition(position);
+
+        if (any(sampleUv < 0.0) || any(sampleUv >= 1.0))
+        {
+            return float4(uv, thickness, 0.0);
+        }
+
+        float sampledDepth = composite.SceneDepth.Load(int3(int2(sampleUv * dimensions), 0)).r;
+
+        if (sampledDepth <= fluidDepth)
+        {
+            return float4(uv, thickness, 0.0);
+        }
+
+        depthError = abs(sampledDepth - targetDepth);
+        targetDepth = sampledDepth;
+    }
+
+    float pixelSize = 2.0 * targetDepth * max(composite.InvProjection[0][0] / dimensions.x, composite.InvProjection[1][1] / dimensions.y);
+    float tolerance = max(pixelSize * 2.0, 0.025);
+    float confidence = 1.0 - smoothstep(tolerance, tolerance * 4.0, depthError);
+
+    return float4(sampleUv, waterDistance, confidence);
 }
 
 float4 ShadeWater(FullscreenOutput input)
 {
     float2 uv = input.UV;
     float sceneDepth = composite.SceneDepth.Load(int3(int2(input.Position.xy), 0)).r;
-    float3 scene = SceneAt(uv, sceneDepth);
+    float3 scene = SceneAt(uv);
 
     if (composite.RenderMode == 1)
     {
-        return float4(ToSRGB(ACESFilm(scene)), 1.0);
+        return float4(scene, 1.0);
     }
 
-    float fluidDepth = composite.FluidDepth.SampleLevel(composite.Sampler, uv, 0.0).r;
-
-    if (fluidDepth <= 0.0)
-    {
-        return float4(ToSRGB(ACESFilm(scene)), 1.0);
-    }
-
-    if (sceneDepth > 0.0 && (fluidDepth >= sceneDepth || FrameOccludesFluid(input, sceneDepth)))
-    {
-        return float4(ToSRGB(ACESFilm(scene)), 1.0);
-    }
-
-    float thickness = composite.Thickness.SampleLevel(composite.Sampler, uv, 0.0).r;
-    float4 attributes = composite.Attributes.SampleLevel(composite.Sampler, uv, 0.0);
-    float surfaceConfidence = smoothstep(0.105, 0.135, thickness);
+    float3 normal;
+    float3 fluid = SampleFluid(uv, sceneDepth, normal);
+    float fluidDepth = fluid.x;
+    float thickness = fluid.y;
+    float surfaceConfidence = fluid.z * smoothstep(0.0, 0.025, thickness);
 
     if (surfaceConfidence <= 0.01)
     {
-        return float4(ToSRGB(ACESFilm(scene)), 1.0);
+        return float4(scene, 1.0);
     }
 
-    float3 normalView = ReconstructNormal(uv, fluidDepth);
-    float3 normalWorld = normalize(mul(float4(normalView, 0.0), composite.InvView).xyz);
+    float3 normalWorld = normalize(normal);
+    float3 normalView = normalize(mul((float3x3)composite.InvView, normalWorld));
 
-    float3 worldPosition = ReconstructWorldPosition(uv, fluidDepth);
+    float3 viewPosition = ReconstructViewPosition(uv, fluidDepth);
+    float3 worldPosition = mul(float4(viewPosition, 1.0), composite.InvView).xyz;
     float3 viewDirection = normalize(composite.CameraPosition - worldPosition);
     float ndotv = saturate(dot(normalWorld, viewDirection));
-    float f0 = pow((composite.Ior - 1.0) / (composite.Ior + 1.0), 2.0);
-    float fresnel = f0 + (1.0 - f0) * pow(1.0 - ndotv, 5.0);
+    float iorRatio = (composite.Ior - 1.0) / (composite.Ior + 1.0);
+    float3 f0 = float3(iorRatio * iorRatio);
+    float3 fresnel = FresnelSchlick(ndotv, f0);
+    float3 incident = normalize(viewPosition);
+    float opticalDepth = sceneDepth > 0.0 ? min(thickness, (sceneDepth - fluidDepth) / -incident.z) : thickness;
+    float4 refraction = TraceRefraction(uv, sceneDepth, viewPosition, incident, normalView, thickness);
+    opticalDepth = lerp(opticalDepth, refraction.z, refraction.w);
 
-    float distortionScale =
-        composite.RefractionStrength * (0.008 + min(thickness, 3.0) * 0.0035) / (0.35 + fluidDepth * 0.055);
-    float2 refractedUv = clamp(uv + normalView.xy * distortionScale, 0.001, 0.999);
+    float3 reflected = EnvironmentColor(reflect(-viewDirection, normalWorld));
 
-    float3 reflected = composite.RayTracingEnabled ? composite.Reflection.SampleLevel(composite.Sampler, uv, 0.0).rgb
-                                                   : SkyColor(reflect(-viewDirection, normalWorld));
-    float3 refracted = SceneAt(refractedUv);
+    if (composite.RayTracingEnabled)
+    {
+        float4 reflectionSample = composite.Reflection.SampleLevel(composite.Sampler, uv, 0.0);
+        reflected = reflectionSample.rgb / reflectionSample.a;
+    }
 
-    float opticalDepth = min(thickness * 0.82, 6.0);
-    float3 transmission = exp(-composite.Absorption * opticalDepth / max(composite.Clarity, 0.05));
-    float3 inScatter = composite.WaterColor * (1.0 - transmission) * (0.34 + 0.26 * saturate(normalWorld.y));
-    refracted = refracted * transmission + inScatter;
-
+    float3 transmission = exp(-composite.Absorption * opticalDepth / composite.Clarity);
+    float3 inScatter = composite.WaterColor * (1.0 - transmission) * EnvironmentColor(normalWorld);
+    float3 refracted = lerp(scene, SceneAt(refraction.xy), refraction.w) * transmission + inScatter;
     float3 lightDirection = normalize(-composite.SunDirection);
-    float3 halfVector = normalize(viewDirection + lightDirection);
-    float sunSpecular = pow(saturate(dot(normalWorld, halfVector)), 240.0) * 3.2;
-
-    float densityEdge = saturate((0.68 - attributes.y) * 3.0);
-    float speedFoam = saturate((attributes.x - 0.28) * 1.8);
-    float thinFoam = saturate((0.22 - thickness) * 5.0);
-    float foam = saturate(speedFoam * thinFoam * 0.72 + densityEdge * speedFoam * 0.22);
+    float3 sunSpecular = DirectSpecular(normalWorld, viewDirection, lightDirection, 0.12, f0) * SunColor * composite.LightIntensity;
 
     float3 color = lerp(refracted, reflected, fresnel);
-    color += sunSpecular * float3(1.0, 0.94, 0.78);
-    color = lerp(color, float3(0.76, 0.92, 0.96), foam * 0.72);
+    color += sunSpecular;
 
     color = lerp(scene, color, surfaceConfidence);
 
-    return float4(ToSRGB(ACESFilm(color)), 1.0);
+    return float4(color, 1.0);
 }
 
 [shader("fragment")]

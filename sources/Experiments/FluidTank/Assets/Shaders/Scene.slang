@@ -16,28 +16,32 @@ struct SceneConstants
 
     property float3 CameraPosition
     {
-        get {
+        get
+        {
             return CameraPositionAndTime.xyz;
         }
     }
 
     property float Time
     {
-        get {
+        get
+        {
             return CameraPositionAndTime.w;
         }
     }
 
     property float3 LightDirection
     {
-        get {
+        get
+        {
             return LightDirectionAndIntensity.xyz;
         }
     }
 
     property float LightIntensity
     {
-        get {
+        get
+        {
             return LightDirectionAndIntensity.w;
         }
     }
@@ -95,26 +99,7 @@ FSOutput FSMain(VSOutput input)
     float3 normal = normalize(input.Normal);
     float3 viewDirection = normalize(scene.CameraPosition - input.WorldPosition);
     float3 lightDirection = normalize(-scene.LightDirection);
-    float3 halfVector = normalize(viewDirection + lightDirection);
-
-    float ndotl = saturate(dot(normal, lightDirection));
-    float ndoth = saturate(dot(normal, halfVector));
-    float roughness = max(material.Roughness, 0.035);
-    float exponent = max(2.0 / (roughness * roughness) - 2.0, 1.0);
-    float3 f0 = lerp(float3(0.035, 0.038, 0.04), material.Albedo, material.Metallic);
-    float3 fresnel = FresnelSchlick(saturate(dot(halfVector, viewDirection)), f0);
-    float3 diffuse = material.Albedo * (1.0 - material.Metallic) * (0.20 + ndotl * scene.LightIntensity);
-    float3 specular = fresnel * pow(ndoth, exponent) * (0.18 + scene.LightIntensity * 1.8);
-    float3 environment = SkyColor(reflect(-viewDirection, normal)) * fresnel * (0.18 + 0.82 * (1.0 - roughness));
-
-    if (input.MaterialId == 0)
-    {
-        float gridX = smoothstep(0.42, 0.49, abs(frac(input.WorldPosition.x * 0.5) - 0.5));
-        float gridZ = smoothstep(0.42, 0.49, abs(frac(input.WorldPosition.z * 0.5) - 0.5));
-        diffuse *= lerp(0.84, 1.07, max(gridX, gridZ));
-    }
-
-    float3 color = diffuse + specular + environment + material.Albedo * material.Emission;
+    float3 color = ShadeSceneMaterial(material, input.MaterialId, input.WorldPosition, normal, viewDirection, lightDirection, scene.LightIntensity);
 
     FSOutput output;
     output.Color = float4(color, input.MaterialId == FrameMaterialId ? 1.0 : 0.0);

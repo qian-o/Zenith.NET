@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using FluidTank.Handlers;
 using FluidTank.Helpers;
+using FluidTank.Models;
 using Hexa.NET.ImGui;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
@@ -87,7 +88,7 @@ internal static class App
             Speed = 4.0f
         };
 
-        renderer = new();
+        renderer = new(Context, Width, Height);
     }
 
     public static GraphicsContext Context { get; }
@@ -100,7 +101,7 @@ internal static class App
 
     public static void Run()
     {
-        window.Update += delta =>
+        window.Update += static delta =>
         {
             if (Width is 0 || Height is 0)
             {
@@ -121,7 +122,7 @@ internal static class App
 
             ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(renderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
 
-            ImGuiHelper.Overlay(() =>
+            ImGuiHelper.Overlay(static () =>
             {
                 ImGui.Text(Context.Capabilities.DeviceName);
                 ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
@@ -129,16 +130,10 @@ internal static class App
                 ImGui.Text($"Particles: {renderer.ParticleCount:N0}");
             });
 
-            ImGuiHelper.Settings(() =>
+            ImGuiHelper.Settings(static () =>
             {
                 ImGui.Text("Run");
-
-                bool paused = renderer.Paused;
-                if (ImGui.Checkbox("Pause", ref paused))
-                {
-                    renderer.Paused = paused;
-                }
-
+                ImGui.Checkbox("Pause", ref renderer.Paused);
                 ImGui.SameLine();
 
                 if (ImGui.Button("Reset dam"))
@@ -147,88 +142,55 @@ internal static class App
                 }
 
                 ImGui.Separator();
-
                 ImGui.Text("Motion");
-
-                bool waveMakerEnabled = renderer.WaveMakerEnabled;
-                if (ImGui.Checkbox("Wave maker", ref waveMakerEnabled))
-                {
-                    renderer.WaveMakerEnabled = waveMakerEnabled;
-                }
-
-                ImGui.BeginDisabled(!waveMakerEnabled);
-
-                float waveAmplitude = renderer.WaveAmplitude;
-                if (ImGui.SliderFloat("Wave amplitude", ref waveAmplitude, 0.0f, 0.34f, "%.2f m"))
-                {
-                    renderer.WaveAmplitude = waveAmplitude;
-                }
-
-                float waveFrequency = renderer.WaveFrequency;
-                if (ImGui.SliderFloat("Wave frequency", ref waveFrequency, 0.2f, 2.5f, "%.2f Hz"))
-                {
-                    renderer.WaveFrequency = waveFrequency;
-                }
-
+                ImGui.Checkbox("Wave maker", ref renderer.SimulationSettings.WaveMakerEnabled);
+                ImGui.BeginDisabled(!renderer.SimulationSettings.WaveMakerEnabled);
+                ImGui.SliderFloat("Wave amplitude", ref renderer.SimulationSettings.WaveAmplitude, 0.0f, 0.34f, "%.2f m", ImGuiSliderFlags.AlwaysClamp);
+                ImGui.SliderFloat("Wave frequency", ref renderer.SimulationSettings.WaveFrequency, 0.2f, 2.5f, "%.2f Hz", ImGuiSliderFlags.AlwaysClamp);
                 ImGui.EndDisabled();
 
                 ImGui.Separator();
-
                 ImGui.Text("Display");
 
-                if (ImGui.RadioButton("Water", renderer.ViewMode == FluidViewMode.Water))
+                if (ImGui.RadioButton("Water", renderer.Settings.ViewMode is FluidViewMode.Water))
                 {
-                    renderer.ViewMode = FluidViewMode.Water;
+                    renderer.Settings.ViewMode = FluidViewMode.Water;
                 }
 
                 ImGui.SameLine();
 
-                if (ImGui.RadioButton("Particles", renderer.ViewMode == FluidViewMode.Particles))
+                if (ImGui.RadioButton("Particles", renderer.Settings.ViewMode is FluidViewMode.Particles))
                 {
-                    renderer.ViewMode = FluidViewMode.Particles;
+                    renderer.Settings.ViewMode = FluidViewMode.Particles;
                 }
 
-                if (renderer.ViewMode is FluidViewMode.Water)
+                if (renderer.Settings.ViewMode is FluidViewMode.Water)
                 {
-                    float clarity = renderer.Clarity;
-                    if (ImGui.SliderFloat("Clarity", ref clarity, 0.25f, 2.0f, "%.2f"))
-                    {
-                        renderer.Clarity = clarity;
-                    }
+                    ImGui.SliderFloat("Clarity", ref renderer.Settings.Clarity, 0.25f, 2.0f, "%.2f", ImGuiSliderFlags.AlwaysClamp);
+                    ImGui.SliderFloat("Refraction", ref renderer.Settings.RefractionStrength, 0.0f, 1.5f, "%.2f", ImGuiSliderFlags.AlwaysClamp);
+                }
 
-                    float refraction = renderer.RefractionStrength;
-                    if (ImGui.SliderFloat("Refraction", ref refraction, 0.0f, 1.5f, "%.2f"))
-                    {
-                        renderer.RefractionStrength = refraction;
-                    }
+                if (ImGui.CollapsingHeader("Rendering"))
+                {
+                    ImGui.SliderFloat("Surface scale", ref renderer.Settings.SurfaceScale, 0.33f, 1.0f, "%.2f", ImGuiSliderFlags.AlwaysClamp);
+                    ImGui.SliderFloat("Exposure", ref renderer.Settings.Exposure, 0.5f, 2.0f, "%.2f", ImGuiSliderFlags.AlwaysClamp);
+                    ImGui.Checkbox("Antialiasing", ref renderer.Settings.AntialiasingEnabled);
+                    ImGui.BeginDisabled(!Context.Capabilities.RayTracingSupported);
+                    ImGui.Checkbox("Ray-traced reflections", ref renderer.Settings.RayTracingEnabled);
+                    ImGui.EndDisabled();
                 }
 
                 if (ImGui.CollapsingHeader("Advanced simulation"))
                 {
-                    float flipRatio = renderer.FlipRatio;
-                    if (ImGui.SliderFloat("FLIP ratio", ref flipRatio, 0.0f, 1.0f, "%.2f"))
-                    {
-                        renderer.FlipRatio = flipRatio;
-                    }
-
-                    int pressureIterations = renderer.PressureIterations;
-                    if (ImGui.SliderInt("Pressure iterations", ref pressureIterations, 4, 32))
-                    {
-                        renderer.PressureIterations = pressureIterations;
-                    }
-
-                    float velocityDamping = renderer.VelocityDamping;
-                    if (ImGui.SliderFloat("Velocity damping", ref velocityDamping, 0.97f, 1.0f, "%.3f"))
-                    {
-                        renderer.VelocityDamping = velocityDamping;
-                    }
-
+                    ImGui.SliderFloat("FLIP ratio", ref renderer.SimulationSettings.FlipRatio, 0.0f, 1.0f, "%.2f", ImGuiSliderFlags.AlwaysClamp);
+                    ImGui.SliderInt("Pressure iterations", ref renderer.SimulationSettings.PressureIterations, 4, 32, "%d", ImGuiSliderFlags.AlwaysClamp);
+                    ImGui.SliderFloat("Velocity damping", ref renderer.SimulationSettings.VelocityDamping, 0.97f, 1.0f, "%.3f", ImGuiSliderFlags.AlwaysClamp);
                     ImGui.Text("Solver: APIC / FLIP");
                 }
             });
         };
 
-        window.Render += _ =>
+        window.Render += static _ =>
         {
             if (Width is 0 || Height is 0)
             {
@@ -250,7 +212,7 @@ internal static class App
             swapChain.Present();
         };
 
-        window.Resize += _ =>
+        window.Resize += static _ =>
         {
             if (Width is 0 || Height is 0)
             {
