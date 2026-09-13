@@ -5,7 +5,6 @@
     <Project Path="sources/Experiments/FluidTank/FluidTank.csproj" />
     <Project Path="sources/Experiments/InkCanvas/InkCanvas.csproj" />
     <Project Path="sources/Experiments/PlatformDetection/PlatformDetection.csproj" />
-    <Project Path="sources/Experiments/Sponza/Sponza.csproj" />
   </Folder>
   <Folder Name="/Extensions/">
     <Project Path="sources/Extensions/Zenith.NET.Extensions.ImageSharp/Zenith.NET.Extensions.ImageSharp.csproj" />

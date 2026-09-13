@@ -1,3 +1,0 @@
-﻿using Sponza;
-
-App.Run();
