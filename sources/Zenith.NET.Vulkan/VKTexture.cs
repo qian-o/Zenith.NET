@@ -95,7 +95,12 @@ internal unsafe class VKTexture : Texture
             {
                 SType = StructureType.ImageViewCreateInfo,
                 Image = Image,
-                ViewType = ImageViewType.Type2D,
+                ViewType = Desc.Type switch
+                {
+                    TextureType.Texture1D or TextureType.Texture1DArray => ImageViewType.Type1D,
+                    TextureType.Texture3D => ImageViewType.Type3D,
+                    _ => ImageViewType.Type2D
+                },
                 Format = VKFormats.Vulkan(Desc.Format).Format,
                 SubresourceRange = new()
                 {
