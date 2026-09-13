@@ -16,32 +16,28 @@ struct ParticleConstants
 
     property float3 CameraRight
     {
-        get
-        {
+        get {
             return CameraRightAndRadius.xyz;
         }
     }
 
     property float Radius
     {
-        get
-        {
+        get {
             return CameraRightAndRadius.w;
         }
     }
 
     property float3 CameraUp
     {
-        get
-        {
+        get {
             return CameraUpAndInterpolation.xyz;
         }
     }
 
     property float InterpolationAlpha
     {
-        get
-        {
+        get {
             return CameraUpAndInterpolation.w;
         }
     }
@@ -68,11 +64,12 @@ struct ParticleOutput
 ConstantBuffer<ParticleConstants> particles;
 
 [shader("vertex")]
-ParticleVertex ParticleVS(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
+ParticleVertex ParticleVS(uint vertexId: SV_VertexID, uint instanceId: SV_InstanceID)
 {
     float2 corner = float2(vertexId & 1, vertexId >> 1) * 2.0 - 1.0;
     Particle particle = particles.Particles[instanceId];
-    float3 position = lerp(particles.PreviousPositions[instanceId].xyz, particle.PositionDensity.xyz, particles.InterpolationAlpha);
+    float3 position =
+        lerp(particles.PreviousPositions[instanceId].xyz, particle.PositionDensity.xyz, particles.InterpolationAlpha);
     float3 billboard = position + (particles.CameraRight * corner.x + particles.CameraUp * corner.y) * particles.Radius;
 
     ParticleVertex output;

@@ -49,88 +49,77 @@ struct DensitySurfaceConstants
 
     property float3 Origin
     {
-        get
-        {
+        get {
             return OriginAndCellSize.xyz;
         }
     }
 
     property float CellSize
     {
-        get
-        {
+        get {
             return OriginAndCellSize.w;
         }
     }
 
     property float3 Minimum
     {
-        get
-        {
+        get {
             return MinimumAndInverseCellSize.xyz;
         }
     }
 
     property float InverseCellSize
     {
-        get
-        {
+        get {
             return MinimumAndInverseCellSize.w;
         }
     }
 
     property float3 Maximum
     {
-        get
-        {
+        get {
             return MaximumAndIsoValue.xyz;
         }
     }
 
     property float IsoValue
     {
-        get
-        {
+        get {
             return MaximumAndIsoValue.w;
         }
     }
 
     property uint3 GridDimensions
     {
-        get
-        {
+        get {
             return GridAndParticleCount.xyz;
         }
     }
 
     property uint ParticleCount
     {
-        get
-        {
+        get {
             return GridAndParticleCount.w;
         }
     }
 
     property uint2 ScreenDimensions
     {
-        get
-        {
+        get {
             return ScreenAndParameters.xy;
         }
     }
 
     property float InterpolationAlpha
     {
-        get
-        {
+        get {
             return asfloat(ScreenAndParameters.z);
         }
     }
 
     property float VolumeScale
     {
-        get
-        {
+        get {
             return asfloat(ScreenAndParameters.w);
         }
     }
@@ -154,7 +143,8 @@ int3 ClampGrid(int3 position)
 
 float3 QuadraticWeights(float fraction)
 {
-    return float3(0.5 * (1.5 - fraction) * (1.5 - fraction), 0.75 - (fraction - 1.0) * (fraction - 1.0), 0.5 * (fraction - 0.5) * (fraction - 0.5));
+    return float3(0.5 * (1.5 - fraction) * (1.5 - fraction), 0.75 - (fraction - 1.0) * (fraction - 1.0),
+                  0.5 * (fraction - 0.5) * (fraction - 0.5));
 }
 
 void DepositPosition(float3 position)
@@ -188,12 +178,14 @@ float ReadDensity(int3 position)
 
 float4 SampleField(float3 position)
 {
-    float3 uv = (position - densitySurface.Origin) * densitySurface.InverseCellSize / float3(densitySurface.GridDimensions);
+    float3 uv =
+        (position - densitySurface.Origin) * densitySurface.InverseCellSize / float3(densitySurface.GridDimensions);
 
     return densitySurface.FieldRead.SampleLevel(densitySurface.Sampler, uv, 0.0);
 }
 
-bool IntersectTank(float3 origin, float3 direction, out float nearDistance, out float farDistance, out float3 entryNormal)
+bool IntersectTank(float3 origin, float3 direction, out float nearDistance, out float farDistance,
+                   out float3 entryNormal)
 {
     nearDistance = -1.0e30;
     farDistance = 1.0e30;
@@ -246,7 +238,8 @@ float BrickExitDistance(float3 origin, float3 direction, int3 brick)
             continue;
         }
 
-        float boundary = densitySurface.Origin[axis] + (float(brick[axis] * 4 + (direction[axis] > 0.0 ? 4 : 0)) + 0.5) * densitySurface.CellSize;
+        float boundary = densitySurface.Origin[axis] +
+                         (float(brick[axis] * 4 + (direction[axis] > 0.0 ? 4 : 0)) + 0.5) * densitySurface.CellSize;
         distance = min(distance, (boundary - origin[axis]) / direction[axis]);
     }
 
@@ -275,7 +268,7 @@ float RefineIntersection(float3 origin, float3 direction, float nearDistance, fl
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
-void ClearCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void ClearCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint3 dimensions = densitySurface.GridDimensions;
 
@@ -287,7 +280,7 @@ void ClearCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 
 [shader("compute")]
 [numthreads(128, 1, 1)]
-void DepositCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void DepositCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint index = dispatchThreadID.x;
 
@@ -296,7 +289,8 @@ void DepositCS(uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
-    float3 position = lerp(densitySurface.PreviousPositions[index].xyz, ParticlePosition(densitySurface.Particles[index]), densitySurface.InterpolationAlpha);
+    float3 position = lerp(densitySurface.PreviousPositions[index].xyz,
+                           ParticlePosition(densitySurface.Particles[index]), densitySurface.InterpolationAlpha);
     float3 mirrored = position;
     uint3 copies = uint3(1);
     float mirrorRange = densitySurface.CellSize * 2.5;
@@ -321,7 +315,8 @@ void DepositCS(uint3 dispatchThreadID : SV_DispatchThreadID)
         {
             for (uint x = 0; x < copies.x; x++)
             {
-                DepositPosition(float3(x == 0 ? position.x : mirrored.x, y == 0 ? position.y : mirrored.y, z == 0 ? position.z : mirrored.z));
+                DepositPosition(float3(x == 0 ? position.x : mirrored.x, y == 0 ? position.y : mirrored.y,
+                                       z == 0 ? position.z : mirrored.z));
             }
         }
     }
@@ -329,7 +324,7 @@ void DepositCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 
 [shader("compute")]
 [numthreads(4, 4, 4)]
-void SmoothCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void SmoothCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     int3 cell = int3(dispatchThreadID);
     float density = 0.0;
@@ -351,12 +346,14 @@ void SmoothCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 
 [shader("compute")]
 [numthreads(4, 4, 4)]
-void BuildFieldCS(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
+void BuildFieldCS(uint3 dispatchThreadID: SV_DispatchThreadID, uint3 groupID: SV_GroupID,
+                  uint groupIndex: SV_GroupIndex)
 {
     int3 cell = int3(dispatchThreadID);
     float3 gradient = float3(ReadDensity(cell + int3(1, 0, 0)) - ReadDensity(cell - int3(1, 0, 0)),
-                            ReadDensity(cell + int3(0, 1, 0)) - ReadDensity(cell - int3(0, 1, 0)),
-                            ReadDensity(cell + int3(0, 0, 1)) - ReadDensity(cell - int3(0, 0, 1))) * (0.5 * densitySurface.InverseCellSize);
+                             ReadDensity(cell + int3(0, 1, 0)) - ReadDensity(cell - int3(0, 1, 0)),
+                             ReadDensity(cell + int3(0, 0, 1)) - ReadDensity(cell - int3(0, 0, 1))) *
+                      (0.5 * densitySurface.InverseCellSize);
     densitySurface.FieldWrite[dispatchThreadID] = float4(-gradient, ReadDensity(cell));
 
     float maximum = 0.0;
@@ -393,7 +390,7 @@ void BuildFieldCS(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupID : 
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void TraceCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void TraceCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint2 pixel = dispatchThreadID.xy;
 

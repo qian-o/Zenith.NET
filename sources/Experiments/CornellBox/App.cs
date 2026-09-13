@@ -114,7 +114,7 @@ internal static class App
 
     public static void Run()
     {
-        window.Update += delta =>
+        window.Update += static delta =>
         {
             if (Width is 0 || Height is 0)
             {
@@ -168,7 +168,7 @@ internal static class App
             });
         };
 
-        window.Render += _ =>
+        window.Render += static _ =>
         {
             if (Width is 0 || Height is 0)
             {
@@ -189,7 +189,7 @@ internal static class App
             swapChain.Present();
         };
 
-        window.Resize += _ =>
+        window.Resize += static _ =>
         {
             if (Width is 0 || Height is 0)
             {

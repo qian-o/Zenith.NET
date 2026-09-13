@@ -29,48 +29,42 @@ struct ReflectionConstants
 
     property float3 CameraPosition
     {
-        get
-        {
+        get {
             return CameraPositionAndTime.xyz;
         }
     }
 
     property float Time
     {
-        get
-        {
+        get {
             return CameraPositionAndTime.w;
         }
     }
 
     property float3 SunDirection
     {
-        get
-        {
+        get {
             return SunDirectionAndIntensity.xyz;
         }
     }
 
     property float LightIntensity
     {
-        get
-        {
+        get {
             return SunDirectionAndIntensity.w;
         }
     }
 
     property uint Width
     {
-        get
-        {
+        get {
             return Dimensions.x;
         }
     }
 
     property uint Height
     {
-        get
-        {
+        get {
             return Dimensions.y;
         }
     }
@@ -121,12 +115,13 @@ float3 TraceScene(float3 origin, float3 direction)
     float3 worldPosition = v0.Position * weights.x + v1.Position * weights.y + v2.Position * weights.z;
     float3 lightDirection = normalize(-reflection.SunDirection);
 
-    return ShadeSceneMaterial(material, v0.MaterialId, worldPosition, normal, -direction, lightDirection, reflection.LightIntensity);
+    return ShadeSceneMaterial(material, v0.MaterialId, worldPosition, normal, -direction, lightDirection,
+                              reflection.LightIntensity);
 }
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
-void ReflectionCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+void ReflectionCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
     uint2 pixel = dispatchThreadID.xy;
     if (pixel.x >= reflection.Width || pixel.y >= reflection.Height)

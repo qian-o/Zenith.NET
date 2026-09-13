@@ -21,7 +21,7 @@ struct FullscreenOutput
 ConstantBuffer<OutputConstants> output;
 
 [shader("vertex")]
-FullscreenOutput FullscreenVS(uint vertexId : SV_VertexID)
+FullscreenOutput FullscreenVS(uint vertexId: SV_VertexID)
 {
     float2 uv = float2((vertexId << 1) & 2, vertexId & 2);
 
@@ -70,12 +70,17 @@ float4 AntialiasingFS(FullscreenOutput input) : SV_TARGET
         return float4(center.rgb, 1.0);
     }
 
-    float2 direction = float2(-(northwest + northeast - southwest - southeast), northwest + southwest - northeast - southeast);
+    float2 direction =
+        float2(-(northwest + northeast - southwest - southeast), northwest + southwest - northeast - southeast);
     float reduction = max((northwest + northeast + southwest + southeast) * 0.03125, 0.0078125);
     direction = clamp(direction / (min(abs(direction.x), abs(direction.y)) + reduction), -8.0, 8.0) * texel;
 
-    float3 inner = (output.Input.SampleLevel(output.Sampler, input.UV - direction / 6.0, 0.0).rgb + output.Input.SampleLevel(output.Sampler, input.UV + direction / 6.0, 0.0).rgb) * 0.5;
-    float3 outer = inner * 0.5 + (output.Input.SampleLevel(output.Sampler, input.UV - direction * 0.5, 0.0).rgb + output.Input.SampleLevel(output.Sampler, input.UV + direction * 0.5, 0.0).rgb) * 0.25;
+    float3 inner = (output.Input.SampleLevel(output.Sampler, input.UV - direction / 6.0, 0.0).rgb +
+                    output.Input.SampleLevel(output.Sampler, input.UV + direction / 6.0, 0.0).rgb) *
+                   0.5;
+    float3 outer = inner * 0.5 + (output.Input.SampleLevel(output.Sampler, input.UV - direction * 0.5, 0.0).rgb +
+                                  output.Input.SampleLevel(output.Sampler, input.UV + direction * 0.5, 0.0).rgb) *
+                                     0.25;
     float luminance = Luminance(outer);
 
     return float4(luminance < minimum || luminance > maximum ? inner : outer, 1.0);

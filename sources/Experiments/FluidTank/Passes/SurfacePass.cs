@@ -92,12 +92,9 @@ internal unsafe class SurfacePass : IDisposable
 
     public void Render(CommandBuffer commandBuffer, FrameData frame, ParticleData particles, Texture sceneDepth)
     {
-        if (density is null)
-        {
-            density = CreateVolume(particles);
-        }
+        density ??= CreateVolume(particles);
 
-        DensityConstants parameters = new()
+        GraphicsHelper.Upload(constants, 0, new DensityConstants()
         {
             View = frame.View,
             InvView = frame.InvView,
@@ -130,8 +127,7 @@ internal unsafe class SurfacePass : IDisposable
             ThicknessOutput = thickness.StorageHandle,
             NormalOutput = normal.StorageHandle,
             Sampler = sampler.Handle
-        };
-        GraphicsHelper.Upload(constants, 0, &parameters, (uint)sizeof(DensityConstants));
+        });
 
         if (!fieldReady || particleVersion != particles.Version || interpolationAlpha != frame.InterpolationAlpha)
         {
@@ -170,7 +166,7 @@ internal unsafe class SurfacePass : IDisposable
 
     public void RenderParticles(CommandBuffer commandBuffer, FrameData frame, ParticleData particles, Texture color, Texture sceneDepthStencil)
     {
-        ParticleConstants parameters = new()
+        GraphicsHelper.Upload(particleConstants, 0, new ParticleConstants()
         {
             View = frame.View,
             Projection = frame.Projection,
@@ -180,8 +176,7 @@ internal unsafe class SurfacePass : IDisposable
             InterpolationAlpha = frame.InterpolationAlpha,
             Particles = particles.Particles.StorageReadOnlyHandle,
             PreviousPositions = particles.PreviousPositions.StorageReadOnlyHandle
-        };
-        GraphicsHelper.Upload(particleConstants, 0, &parameters, (uint)sizeof(ParticleConstants));
+        });
 
         commandBuffer.Transition(color, default, TextureLayout.Sampled, TextureLayout.ColorAttachment);
         commandBuffer.Transition(sceneDepthStencil, default, TextureLayout.DepthStencilAttachment, TextureLayout.DepthStencilAttachment);

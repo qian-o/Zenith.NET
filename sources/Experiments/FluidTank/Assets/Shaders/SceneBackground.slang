@@ -27,7 +27,7 @@ struct BackgroundOutput
 ConstantBuffer<BackgroundConstants> background;
 
 [shader("vertex")]
-FullscreenOutput FullscreenVS(uint vertexId : SV_VertexID)
+FullscreenOutput FullscreenVS(uint vertexId: SV_VertexID)
 {
     float2 uv = float2((vertexId << 1) & 2, vertexId & 2);
 

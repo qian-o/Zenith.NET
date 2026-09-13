@@ -7,7 +7,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Passes;
 
-internal unsafe class GlassPass : IDisposable
+internal class GlassPass : IDisposable
 {
     private readonly Buffer constantBuffer;
 
@@ -59,14 +59,13 @@ internal unsafe class GlassPass : IDisposable
             }
         }
 
-        GlassConstants constants = new()
+        GraphicsHelper.Upload(constantBuffer, 0, new GlassConstants()
         {
             View = frame.View,
             Projection = frame.Projection,
             CameraPosition = frame.Position,
             Time = frame.Time
-        };
-        GraphicsHelper.Upload(constantBuffer, 0, &constants, (uint)sizeof(GlassConstants));
+        });
 
         commandBuffer.Transition(color, default, TextureLayout.Sampled, TextureLayout.ColorAttachment);
         commandBuffer.Transition(depthStencil, default, TextureLayout.DepthStencilAttachment, TextureLayout.DepthStencilAttachment);

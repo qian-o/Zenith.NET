@@ -94,7 +94,7 @@ internal static class App
 
     public static void Run()
     {
-        window.Render += _ =>
+        window.Render += static _ =>
         {
             if (Width is 0 || Height is 0)
             {
@@ -112,7 +112,7 @@ internal static class App
             swapChain.Present();
         };
 
-        window.FramebufferResize += _ =>
+        window.Resize += static _ =>
         {
             if (Width is 0 || Height is 0)
             {

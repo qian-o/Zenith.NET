@@ -7,7 +7,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Passes;
 
-internal unsafe class ScenePass : IDisposable
+internal class ScenePass : IDisposable
 {
     private readonly GraphicsContext context;
 
@@ -54,7 +54,7 @@ internal unsafe class ScenePass : IDisposable
 
     public void Render(CommandBuffer commandBuffer, FrameData frame, SceneResources scene)
     {
-        SceneConstants constants = new()
+        GraphicsHelper.Upload(constantBuffer, 0, new SceneConstants()
         {
             View = frame.View,
             Projection = frame.Projection,
@@ -63,16 +63,14 @@ internal unsafe class ScenePass : IDisposable
             LightDirection = frame.SunDirection,
             LightIntensity = frame.LightIntensity,
             Materials = scene.Materials.StorageReadOnlyHandle
-        };
-        GraphicsHelper.Upload(constantBuffer, 0, &constants, (uint)sizeof(SceneConstants));
+        });
 
-        BackgroundConstants background = new()
+        GraphicsHelper.Upload(backgroundConstantBuffer, 0, new BackgroundConstants()
         {
             InvView = frame.InvView,
             InvProjection = frame.InvProjection,
             SunDirection = frame.SunDirection
-        };
-        GraphicsHelper.Upload(backgroundConstantBuffer, 0, &background, (uint)sizeof(BackgroundConstants));
+        });
 
         TextureLayout colorLayout = initialized ? TextureLayout.Sampled : TextureLayout.Undefined;
         TextureLayout depthLayout = initialized ? TextureLayout.DepthStencilAttachment : TextureLayout.Undefined;

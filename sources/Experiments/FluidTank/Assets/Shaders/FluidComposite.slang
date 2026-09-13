@@ -33,96 +33,84 @@ struct CompositeConstants
 
     property float3 CameraPosition
     {
-        get
-        {
+        get {
             return CameraPositionAndIntensity.xyz;
         }
     }
 
     property float LightIntensity
     {
-        get
-        {
+        get {
             return CameraPositionAndIntensity.w;
         }
     }
 
     property float3 SunDirection
     {
-        get
-        {
+        get {
             return SunDirectionAndClarity.xyz;
         }
     }
 
     property float Clarity
     {
-        get
-        {
+        get {
             return SunDirectionAndClarity.w;
         }
     }
 
     property float3 WaterColor
     {
-        get
-        {
+        get {
             return WaterColorAndRefraction.xyz;
         }
     }
 
     property float RefractionStrength
     {
-        get
-        {
+        get {
             return WaterColorAndRefraction.w;
         }
     }
 
     property float3 Absorption
     {
-        get
-        {
+        get {
             return AbsorptionAndIor.xyz;
         }
     }
 
     property float Ior
     {
-        get
-        {
+        get {
             return AbsorptionAndIor.w;
         }
     }
 
     property uint Width
     {
-        get
-        {
+        get {
             return ScreenAndRenderMode.x;
         }
     }
 
     property uint Height
     {
-        get
-        {
+        get {
             return ScreenAndRenderMode.y;
         }
     }
 
     property uint RenderMode
     {
-        get
-        {
+        get {
             return ScreenAndRenderMode.z;
         }
     }
 
     property bool RayTracingEnabled
     {
-        get
-        {
+        get {
             return ScreenAndRenderMode.w != 0;
         }
     }
@@ -138,7 +126,7 @@ struct FullscreenOutput
 ConstantBuffer<CompositeConstants> composite;
 
 [shader("vertex")]
-FullscreenOutput FullscreenVS(uint vertexId : SV_VertexID)
+FullscreenOutput FullscreenVS(uint vertexId: SV_VertexID)
 {
     float2 uv = float2((vertexId << 1) & 2, vertexId & 2);
 
@@ -194,7 +182,8 @@ float3 SampleFluid(float2 uv, float sceneDepth, out float3 normal)
             int2 samplePixel = clamp(basePixel + int2(x, y), int2(0, 0), dimensions - 1);
             float sampleDepth = composite.FluidDepth.Load(int3(samplePixel, 0)).r;
 
-            if (sampleDepth <= 0.0 || abs(sampleDepth - closestDepth) > range || (sceneDepth > 0.0 && sampleDepth >= sceneDepth))
+            if (sampleDepth <= 0.0 || abs(sampleDepth - closestDepth) > range ||
+                (sceneDepth > 0.0 && sampleDepth >= sceneDepth))
             {
                 continue;
             }
@@ -217,7 +206,8 @@ float2 ProjectViewPosition(float3 position)
     return ndc * float2(0.5, -0.5) + 0.5;
 }
 
-float3 RefractionPositionAtDepth(float3 origin, float3 incident, float3 direction, float thickness, float depth, out float waterDistance)
+float3 RefractionPositionAtDepth(float3 origin, float3 incident, float3 direction, float thickness, float depth,
+                                 out float waterDistance)
 {
     waterDistance = min((depth + origin.z) / -direction.z, thickness);
     float3 position = origin + direction * waterDistance;
@@ -226,9 +216,11 @@ float3 RefractionPositionAtDepth(float3 origin, float3 incident, float3 directio
     return position + incident * airDistance;
 }
 
-float4 TraceRefraction(float2 uv, float sceneDepth, float3 viewPosition, float3 incident, float3 normal, float thickness)
+float4 TraceRefraction(float2 uv, float sceneDepth, float3 viewPosition, float3 incident, float3 normal,
+                       float thickness)
 {
-    float3 direction = normalize(lerp(incident, refract(incident, normal, 1.0 / composite.Ior), composite.RefractionStrength));
+    float3 direction =
+        normalize(lerp(incident, refract(incident, normal, 1.0 / composite.Ior), composite.RefractionStrength));
     float fluidDepth = -viewPosition.z;
 
     if (sceneDepth <= 0.0 || direction.z >= 0.0)
@@ -247,7 +239,8 @@ float4 TraceRefraction(float2 uv, float sceneDepth, float3 viewPosition, float3 
 
     for (int iteration = 0; iteration < 4; iteration++)
     {
-        float3 position = RefractionPositionAtDepth(viewPosition, incident, direction, thickness, targetDepth, waterDistance);
+        float3 position =
+            RefractionPositionAtDepth(viewPosition, incident, direction, thickness, targetDepth, waterDistance);
         sampleUv = ProjectViewPosition(position);
 
         if (any(sampleUv < 0.0) || any(sampleUv >= 1.0))
@@ -266,7 +259,8 @@ float4 TraceRefraction(float2 uv, float sceneDepth, float3 viewPosition, float3 
         targetDepth = sampledDepth;
     }
 
-    float pixelSize = 2.0 * targetDepth * max(composite.InvProjection[0][0] / dimensions.x, composite.InvProjection[1][1] / dimensions.y);
+    float pixelSize = 2.0 * targetDepth *
+                      max(composite.InvProjection[0][0] / dimensions.x, composite.InvProjection[1][1] / dimensions.y);
     float tolerance = max(pixelSize * 2.0, 0.025);
     float confidence = 1.0 - smoothstep(tolerance, tolerance * 4.0, depthError);
 
@@ -322,7 +316,8 @@ float4 ShadeWater(FullscreenOutput input)
     float3 inScatter = composite.WaterColor * (1.0 - transmission) * EnvironmentColor(normalWorld);
     float3 refracted = lerp(scene, SceneAt(refraction.xy), refraction.w) * transmission + inScatter;
     float3 lightDirection = normalize(-composite.SunDirection);
-    float3 sunSpecular = DirectSpecular(normalWorld, viewDirection, lightDirection, 0.12, f0) * SunColor * composite.LightIntensity;
+    float3 sunSpecular =
+        DirectSpecular(normalWorld, viewDirection, lightDirection, 0.12, f0) * SunColor * composite.LightIntensity;
 
     float3 color = lerp(refracted, reflected, fresnel);
     color += sunSpecular;

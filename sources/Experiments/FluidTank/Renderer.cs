@@ -73,8 +73,6 @@ internal class Renderer : IDisposable
 
     public Texture Color { get; private set; } = null!;
 
-    public uint ParticleCount => simulation.ParticleCount;
-
     public void Update(CameraHandler camera, double delta)
     {
         frame.View = camera.View;
@@ -133,11 +131,11 @@ internal class Renderer : IDisposable
         {
             Particles = simulation.Particles,
             PreviousPositions = simulation.PreviousPositions,
-            Count = simulation.ParticleCount,
+            Count = Simulation.ParticleCount,
             Radius = Simulation.ParticleRadius,
             Spacing = Simulation.ParticleSpacing,
-            Minimum = simulation.Minimum,
-            Maximum = simulation.Maximum,
+            Minimum = Simulation.TankMin,
+            Maximum = Simulation.TankMax,
             Version = simulationReady.Value
         };
 

@@ -7,7 +7,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Passes;
 
-internal unsafe class WaterPass : IDisposable
+internal class WaterPass : IDisposable
 {
     private readonly GraphicsContext context;
 
@@ -66,7 +66,7 @@ internal unsafe class WaterPass : IDisposable
 
         if (rayTracing)
         {
-            ReflectionConstants constants = new()
+            GraphicsHelper.Upload(reflectionConstants, 0, new ReflectionConstants()
             {
                 InvView = frame.InvView,
                 InvProjection = frame.InvProjection,
@@ -83,8 +83,7 @@ internal unsafe class WaterPass : IDisposable
                 Indices = scene.Indices.StorageReadOnlyHandle,
                 Materials = scene.Materials.StorageReadOnlyHandle,
                 OutputTexture = reflection!.StorageHandle
-            };
-            GraphicsHelper.Upload(reflectionConstants, 0, &constants, (uint)sizeof(ReflectionConstants));
+            });
 
             commandBuffer.Transition(reflection, default, TextureLayout.Undefined, TextureLayout.Storage);
             commandBuffer.SetPipeline(reflectionPipeline!);
@@ -94,7 +93,7 @@ internal unsafe class WaterPass : IDisposable
             commandBuffer.Transition(reflection, default, TextureLayout.Storage, TextureLayout.Sampled);
         }
 
-        CompositeConstants composite = new()
+        GraphicsHelper.Upload(compositeConstants, 0, new CompositeConstants()
         {
             InvView = frame.InvView,
             InvProjection = frame.InvProjection,
@@ -117,8 +116,7 @@ internal unsafe class WaterPass : IDisposable
             Normal = surface.Normal.SampledHandle,
             Reflection = reflection?.SampledHandle ?? default,
             Sampler = sampler.Handle
-        };
-        GraphicsHelper.Upload(compositeConstants, 0, &composite, (uint)sizeof(CompositeConstants));
+        });
 
         commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
         commandBuffer.BeginRenderPass([ColorAttachment.DontCare(Color)], null);

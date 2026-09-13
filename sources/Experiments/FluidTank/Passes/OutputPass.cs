@@ -6,7 +6,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Passes;
 
-internal unsafe class OutputPass : IDisposable
+internal class OutputPass : IDisposable
 {
     private readonly GraphicsContext context;
 
@@ -40,23 +40,27 @@ internal unsafe class OutputPass : IDisposable
 
     public void Render(CommandBuffer commandBuffer, Texture input, Texture output, float exposure, bool antialiasing)
     {
-        OutputConstants toneMapping = new()
+        GraphicsHelper.Upload(constants, 0, new OutputConstants()
         {
             TexelSize = new(1.0f / output.Desc.Width, 1.0f / output.Desc.Height),
             Exposure = exposure,
             EncodeLuminance = antialiasing ? 1u : 0u,
             Input = input.SampledHandle,
             Sampler = sampler.Handle
-        };
-        GraphicsHelper.Upload(constants, 0, &toneMapping, (uint)sizeof(OutputConstants));
+        });
 
         Draw(commandBuffer, toneMappingPipeline, antialiasing ? displayColor : output, 0);
 
         if (antialiasing)
         {
-            OutputConstants filter = toneMapping;
-            filter.Input = displayColor.SampledHandle;
-            GraphicsHelper.Upload(constants, 256, &filter, (uint)sizeof(OutputConstants));
+            GraphicsHelper.Upload(constants, 256, new OutputConstants()
+            {
+                TexelSize = new(1.0f / output.Desc.Width, 1.0f / output.Desc.Height),
+                Exposure = exposure,
+                EncodeLuminance = 1u,
+                Input = displayColor.SampledHandle,
+                Sampler = sampler.Handle
+            });
 
             Draw(commandBuffer, antialiasingPipeline, output, 256);
         }

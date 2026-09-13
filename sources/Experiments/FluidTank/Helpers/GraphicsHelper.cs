@@ -125,12 +125,12 @@ internal static unsafe class GraphicsHelper
         commandBuffer.Dispatch((width + groupSize.X - 1) / groupSize.X, (height + groupSize.Y - 1) / groupSize.Y, 1);
     }
 
-    public static void Upload(Buffer buffer, uint offsetInBytes, void* data, uint sizeInBytes)
+    public static void Upload<T>(Buffer buffer, uint offsetInBytes, T data) where T : unmanaged
     {
         buffer.Upload(offsetInBytes, new()
         {
-            Pointer = (nint)data,
-            SizeInBytes = sizeInBytes
+            Pointer = (nint)(&data),
+            SizeInBytes = (uint)sizeof(T)
         });
     }
 }

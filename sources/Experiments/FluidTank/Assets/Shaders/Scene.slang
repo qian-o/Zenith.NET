@@ -16,32 +16,28 @@ struct SceneConstants
 
     property float3 CameraPosition
     {
-        get
-        {
+        get {
             return CameraPositionAndTime.xyz;
         }
     }
 
     property float Time
     {
-        get
-        {
+        get {
             return CameraPositionAndTime.w;
         }
     }
 
     property float3 LightDirection
     {
-        get
-        {
+        get {
             return LightDirectionAndIntensity.xyz;
         }
     }
 
     property float LightIntensity
     {
-        get
-        {
+        get {
             return LightDirectionAndIntensity.w;
         }
     }
@@ -99,7 +95,8 @@ FSOutput FSMain(VSOutput input)
     float3 normal = normalize(input.Normal);
     float3 viewDirection = normalize(scene.CameraPosition - input.WorldPosition);
     float3 lightDirection = normalize(-scene.LightDirection);
-    float3 color = ShadeSceneMaterial(material, input.MaterialId, input.WorldPosition, normal, viewDirection, lightDirection, scene.LightIntensity);
+    float3 color = ShadeSceneMaterial(material, input.MaterialId, input.WorldPosition, normal, viewDirection,
+                                      lightDirection, scene.LightIntensity);
 
     FSOutput output;
     output.Color = float4(color, input.MaterialId == FrameMaterialId ? 1.0 : 0.0);

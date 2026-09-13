@@ -10,16 +10,14 @@ struct GlassConstants
 
     property float3 CameraPosition
     {
-        get
-        {
+        get {
             return CameraPositionAndTime.xyz;
         }
     }
 
     property float Time
     {
-        get
-        {
+        get {
             return CameraPositionAndTime.w;
         }
     }

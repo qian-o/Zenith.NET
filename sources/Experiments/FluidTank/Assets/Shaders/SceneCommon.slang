@@ -6,24 +6,21 @@
 
     property float3 Position
     {
-        get
-        {
+        get {
             return PositionAndPadding.xyz;
         }
     }
 
     property float3 Normal
     {
-        get
-        {
+        get {
             return NormalAndMaterial.xyz;
         }
     }
 
     property uint MaterialId
     {
-        get
-        {
+        get {
             return asuint(NormalAndMaterial.w);
         }
     }
@@ -37,32 +34,28 @@ struct SceneMaterial
 
     property float3 Albedo
     {
-        get
-        {
+        get {
             return AlbedoAndRoughness.xyz;
         }
     }
 
     property float Roughness
     {
-        get
-        {
+        get {
             return AlbedoAndRoughness.w;
         }
     }
 
     property float Metallic
     {
-        get
-        {
+        get {
             return MetallicEmissionAndPadding.x;
         }
     }
 
     property float Emission
     {
-        get
-        {
+        get {
             return MetallicEmissionAndPadding.y;
         }
     }
@@ -128,7 +121,8 @@ float3 DirectSpecular(float3 normal, float3 viewDirection, float3 lightDirection
     return distribution * visibility * fresnel * ndotl;
 }
 
-float3 ShadeSceneMaterial(SceneMaterial material, uint materialId, float3 worldPosition, float3 normal, float3 viewDirection, float3 lightDirection, float lightIntensity)
+float3 ShadeSceneMaterial(SceneMaterial material, uint materialId, float3 worldPosition, float3 normal,
+                          float3 viewDirection, float3 lightDirection, float lightIntensity)
 {
     float3 albedo = material.Albedo;
 
@@ -156,7 +150,8 @@ float3 ShadeSceneMaterial(SceneMaterial material, uint materialId, float3 worldP
 
     float3 reflectedDirection = reflect(-viewDirection, normal);
     float3 ambientDiffuse = EnvironmentColor(normal) * diffuseColor * (1.0 - viewFresnel) * 0.65;
-    float3 ambientSpecular = lerp(EnvironmentColor(reflectedDirection), EnvironmentColor(normal), roughness * roughness) * viewFresnel;
+    float3 ambientSpecular =
+        lerp(EnvironmentColor(reflectedDirection), EnvironmentColor(normal), roughness * roughness) * viewFresnel;
 
     return direct * SunColor * lightIntensity + ambientDiffuse + ambientSpecular + albedo * material.Emission;
 }
