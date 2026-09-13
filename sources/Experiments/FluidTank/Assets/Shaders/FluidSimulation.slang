@@ -273,7 +273,8 @@ bool GridPointInBounds(int3 point)
 
 uint CellIndex(int3 cell)
 {
-    return uint(cell.x) + uint(cell.y) * simulation.GridDimensions.x + uint(cell.z) * simulation.GridDimensions.x * simulation.GridDimensions.y;
+    return uint(cell.x) + uint(cell.y) * simulation.GridDimensions.x +
+           uint(cell.z) * simulation.GridDimensions.x * simulation.GridDimensions.y;
 }
 
 uint GridIndex(int3 point)
@@ -340,7 +341,12 @@ float ParticleDensityAt(int3 cell)
     uint index = GridIndex(cell);
     uint width = simulation.GridDimensions.x + 1;
     uint slice = width * (simulation.GridDimensions.y + 1);
-    float weight = float(simulation.GridAccumulation[simulation.GridPointCount + index]) + float(simulation.GridAccumulation[simulation.GridPointCount + index + 1]) + float(simulation.GridAccumulation[simulation.GridPointCount * 3 + index]) + float(simulation.GridAccumulation[simulation.GridPointCount * 3 + index + width]) + float(simulation.GridAccumulation[simulation.GridPointCount * 5 + index]) + float(simulation.GridAccumulation[simulation.GridPointCount * 5 + index + slice]);
+    float weight = float(simulation.GridAccumulation[simulation.GridPointCount + index]) +
+                   float(simulation.GridAccumulation[simulation.GridPointCount + index + 1]) +
+                   float(simulation.GridAccumulation[simulation.GridPointCount * 3 + index]) +
+                   float(simulation.GridAccumulation[simulation.GridPointCount * 3 + index + width]) +
+                   float(simulation.GridAccumulation[simulation.GridPointCount * 5 + index]) +
+                   float(simulation.GridAccumulation[simulation.GridPointCount * 5 + index + slice]);
 
     return weight / (6.0 * AccumulationScale);
 }
@@ -424,8 +430,7 @@ bool FaceTouchesFluid(uint component, int3 point)
 
 float3 QuadraticWeights(float value)
 {
-    return float3(0.5 * (1.5 - value) * (1.5 - value),
-                  0.75 - (value - 1.0) * (value - 1.0),
+    return float3(0.5 * (1.5 - value) * (1.5 - value), 0.75 - (value - 1.0) * (value - 1.0),
                   0.5 * (value - 0.5) * (value - 0.5));
 }
 
@@ -479,13 +484,11 @@ bool FaceCanSample(uint component, int3 point)
     uint negativeType = CellTypeAt(negativeCell);
     uint positiveType = CellTypeAt(positiveCell);
 
-    return negativeType != CellSolid && positiveType != CellSolid && (negativeType == CellFluid || positiveType == CellFluid);
+    return negativeType != CellSolid && positiveType != CellSolid &&
+           (negativeType == CellFluid || positiveType == CellFluid);
 }
 
-void SampleComponentPair(float3 position,
-                         uint component,
-                         out float currentVelocity,
-                         out float previousVelocity,
+void SampleComponentPair(float3 position, uint component, out float currentVelocity, out float previousVelocity,
                          out float3 affineRow)
 {
     float3 offset = FaceOffset(component);
@@ -583,9 +586,7 @@ float SampleGridComponent(float3 position, uint component)
 
 float3 SampleGridVelocity(float3 position)
 {
-    return float3(SampleGridComponent(position, 0),
-                  SampleGridComponent(position, 1),
-                  SampleGridComponent(position, 2));
+    return float3(SampleGridComponent(position, 0), SampleGridComponent(position, 1), SampleGridComponent(position, 2));
 }
 
 bool ResolveCollisions(inout float3 position, inout float3 velocity)
@@ -724,8 +725,8 @@ void ParticleToGrid(uint index, bool savePreviousPosition)
         simulation.PreviousPositions[index] = float4(position, 0.0);
     }
 
-    int3 cell = clamp(int3(floor((position - simulation.TankMin) * simulation.InverseGridSpacing)),
-                      int3(0, 0, 0), int3(simulation.GridDimensions) - 1);
+    int3 cell = clamp(int3(floor((position - simulation.TankMin) * simulation.InverseGridSpacing)), int3(0, 0, 0),
+                      int3(simulation.GridDimensions) - 1);
     InterlockedMax(simulation.CellTypes[CellIndex(cell)], CellFluid);
     ScatterComponent(position, velocity, simulation.ParticleAffine[index * 3 + 0].xyz, 0);
     ScatterComponent(position, velocity, simulation.ParticleAffine[index * 3 + 1].xyz, 1);
@@ -796,13 +797,15 @@ void NormalizeAndApplyForcesCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 
             float3 facePosition = simulation.TankMin + (float3(point) + FaceOffset(component)) * simulation.GridSpacing;
             float rayDistance = dot(facePosition - simulation.InteractionOrigin, simulation.InteractionDirection);
-            float3 closestPoint = simulation.InteractionOrigin + simulation.InteractionDirection * max(rayDistance, 0.0);
+            float3 closestPoint =
+                simulation.InteractionOrigin + simulation.InteractionDirection * max(rayDistance, 0.0);
             float distance = length(facePosition - closestPoint);
 
             if (rayDistance > 0.0 && distance < simulation.InteractionRadius)
             {
                 float falloff = 1.0 - distance / simulation.InteractionRadius;
-                velocity[component] += (simulation.InteractionDirection[component] + (component == 1 ? 0.45 : 0.0)) * simulation.InteractionStrength * falloff / float(simulation.Substeps);
+                velocity[component] += (simulation.InteractionDirection[component] + (component == 1 ? 0.45 : 0.0)) *
+                                       simulation.InteractionStrength * falloff / float(simulation.Substeps);
             }
         }
     }
@@ -836,9 +839,11 @@ void DivergenceCS(uint3 dispatchThreadID: SV_DispatchThreadID)
     float velocityTop = simulation.GridVelocity[GridIndex(cell + int3(0, 1, 0))].y;
     float velocityBack = negativeVelocity.z;
     float velocityFront = simulation.GridVelocity[GridIndex(cell + int3(0, 0, 1))].z;
-    float divergence = (velocityRight - velocityLeft + velocityTop - velocityBottom + velocityFront - velocityBack) * simulation.InverseGridSpacing;
+    float divergence = (velocityRight - velocityLeft + velocityTop - velocityBottom + velocityFront - velocityBack) *
+                       simulation.InverseGridSpacing;
     float particleSpacing = simulation.ParticleRadius * ParticleSpacingScale;
-    float targetDensity = simulation.GridSpacing * simulation.GridSpacing * simulation.GridSpacing / (particleSpacing * particleSpacing * particleSpacing);
+    float targetDensity = simulation.GridSpacing * simulation.GridSpacing * simulation.GridSpacing /
+                          (particleSpacing * particleSpacing * particleSpacing);
     float compression = max(ParticleDensityAt(cell) / targetDensity - 1.0, 0.0);
     float expansion = min(compression * 0.1 / simulation.TimeStep, 2.0);
     simulation.Divergence[index] = divergence - expansion;
@@ -857,12 +862,8 @@ void RelaxPressure(int3 cell)
         return;
     }
 
-    int3 neighbors[6] =
-        {
-            cell + int3(-1, 0, 0), cell + int3(1, 0, 0),
-            cell + int3(0, -1, 0), cell + int3(0, 1, 0),
-            cell + int3(0, 0, -1), cell + int3(0, 0, 1)
-        };
+    int3 neighbors[6] = { cell + int3(-1, 0, 0), cell + int3(1, 0, 0),  cell + int3(0, -1, 0),
+                          cell + int3(0, 1, 0),  cell + int3(0, 0, -1), cell + int3(0, 0, 1) };
     float sum = 0.0;
     float denominator = 0.0;
 
@@ -881,7 +882,8 @@ void RelaxPressure(int3 cell)
         }
     }
 
-    float rightHandSide = simulation.Divergence[index] * simulation.GridSpacing * simulation.GridSpacing / simulation.TimeStep;
+    float rightHandSide =
+        simulation.Divergence[index] * simulation.GridSpacing * simulation.GridSpacing / simulation.TimeStep;
     float pressure = denominator > 0.0 ? (sum - rightHandSide) / denominator : 0.0;
     simulation.PressureA[index] = lerp(simulation.PressureA[index], pressure, 1.6);
 }
@@ -934,7 +936,8 @@ void ProjectGridCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 
         float negativePressure = negativeType == CellFluid ? simulation.PressureA[CellIndex(negativeCell)] : 0.0;
         float positivePressure = positiveType == CellFluid ? simulation.PressureA[CellIndex(positiveCell)] : 0.0;
-        velocity[component] -= simulation.TimeStep * (positivePressure - negativePressure) * simulation.InverseGridSpacing;
+        velocity[component] -=
+            simulation.TimeStep * (positivePressure - negativePressure) * simulation.InverseGridSpacing;
         velocity[component] = clamp(velocity[component], -8.0, 8.0);
     }
 

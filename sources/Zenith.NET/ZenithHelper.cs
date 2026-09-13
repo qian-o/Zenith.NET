@@ -16,9 +16,9 @@ public static class ZenithHelper
 
     public static void MipDimensions(uint width, uint height, uint depth, uint mipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth)
     {
-        mipWidth = Math.Max(1, width >> (int)mipLevel);
-        mipHeight = Math.Max(1, height >> (int)mipLevel);
-        mipDepth = Math.Max(1, depth >> (int)mipLevel);
+        mipWidth = Math.Max(width >> (int)mipLevel, 1);
+        mipHeight = Math.Max(height >> (int)mipLevel, 1);
+        mipDepth = Math.Max(depth >> (int)mipLevel, 1);
     }
 
     public static bool HasDepth(PixelFormat pixelFormat)

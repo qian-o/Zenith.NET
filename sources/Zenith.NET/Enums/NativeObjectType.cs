@@ -8,25 +8,23 @@ public enum NativeObjectType
 
     D3D12Device,
 
-    D3D12Fence,
-
     D3D12GpuVirtualAddress,
-
-    D3D12GraphicsCommandList,
 
     D3D12Resource,
 
+    MTLAccelerationStructure,
+
+    MTLBuffer,
+
     MTLDevice,
 
-    MTLSharedEvent,
-
     MTLTexture,
+
+    MTL4CommandQueue,
 
     VulkanAccelerationStructure,
 
     VulkanBuffer,
-
-    VulkanCommandBuffer,
 
     VulkanDevice,
 
@@ -48,7 +46,5 @@ public enum NativeObjectType
 
     VulkanQueue,
 
-    VulkanQueueFamilyIndex,
-
-    VulkanSemaphore
+    VulkanQueueFamilyIndex
 }

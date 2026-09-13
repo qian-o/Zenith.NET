@@ -8,11 +8,7 @@ internal class MTLTimeline(MTLGraphicsContext context, MTLCommandQueue queue) : 
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return type switch
-        {
-            NativeObjectType.MTLSharedEvent => Event.NativePtr,
-            _ => default
-        };
+        return 0;
     }
 
     protected override ulong GetCompletedValue()

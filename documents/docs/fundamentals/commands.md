@@ -41,7 +41,11 @@ commandBuffer.Draw(vertexCount, 1, 0, 0);
 commandBuffer.EndRenderPass();
 ```
 
-`BeginRenderPass` initializes viewports and scissors from the attachment size. Set them afterward when rendering to a smaller region.
+`BeginRenderPass` resets the viewport and scissor state to one pair, regardless of the number of color attachments. The pair covers the selected mip level of the first color attachment. When there are no color attachments, its dimensions come from the depth/stencil attachment's selected mip level instead.
+
+`SetViewports` and `SetScissors` replace the corresponding active arrays, including their counts. Call them after `BeginRenderPass` to change the rendering region or configure multiple viewports. Both arrays must be nonempty and within the device's supported limits, and their counts must match before drawing. Using more than one pair requires device support for multiple viewports.
+
+The array indices identify viewport/scissor slots, not color attachments. See [MRT and Viewports](../workloads/rasterization.md#mrt-and-viewports) for the distinction.
 
 ## Transfer Data
 
