@@ -16,17 +16,17 @@ internal class Simulation(GraphicsContext context) : IDisposable
 
     public const float ParticleSpacing = ParticleRadius * 1.67f;
 
-    private const float FlipRatio = 0.97f;
+    public const float FlipRatio = 0.97f;
 
-    private const float VelocityDamping = 0.9998f;
+    public const float VelocityDamping = 0.9998f;
 
-    private const float WaveAmplitude = 0.12f;
+    public const float WaveAmplitude = 0.12f;
 
-    private const float WaveFrequency = 0.58f;
+    public const float WaveFrequency = 0.58f;
 
-    private const uint Substeps = 2;
+    public const uint Substeps = 2;
 
-    private const uint PressureIterations = 18;
+    public const uint PressureIterations = 18;
 
     public static readonly (uint X, uint Y, uint Z) DamDimensions = (40, 48, 59);
 
