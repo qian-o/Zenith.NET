@@ -61,20 +61,20 @@ internal static class VKFormats
 
         if (barrierStages.HasFlag(BarrierStages.VertexShading))
         {
-            stage |= PipelineStageFlags2.DrawIndirectBit | PipelineStageFlags2.VertexShaderBit | PipelineStageFlags2.IndexInputBit | PipelineStageFlags2.VertexAttributeInputBit;
-            access |= AccessFlags2.IndirectCommandReadBit | AccessFlags2.IndexReadBit | AccessFlags2.VertexAttributeReadBit | AccessFlags2.UniformReadBit | AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit | AccessFlags2.AccelerationStructureReadBitKhr;
+            stage |= PipelineStageFlags2.DrawIndirectBit | PipelineStageFlags2.IndexInputBit | PipelineStageFlags2.VertexAttributeInputBit | PipelineStageFlags2.PreRasterizationShadersBit;
+            access |= AccessFlags2.IndirectCommandReadBit | AccessFlags2.IndexReadBit | AccessFlags2.VertexAttributeReadBit | AccessFlags2.UniformReadBit | AccessFlags2.ShaderSampledReadBit | AccessFlags2.ShaderStorageReadBit | AccessFlags2.ShaderStorageWriteBit;
         }
 
         if (barrierStages.HasFlag(BarrierStages.FragmentShading))
         {
-            stage |= PipelineStageFlags2.FragmentShaderBit | PipelineStageFlags2.EarlyFragmentTestsBit | PipelineStageFlags2.LateFragmentTestsBit | PipelineStageFlags2.ColorAttachmentOutputBit;
-            access |= AccessFlags2.UniformReadBit | AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit | AccessFlags2.ColorAttachmentReadBit | AccessFlags2.ColorAttachmentWriteBit | AccessFlags2.DepthStencilAttachmentReadBit | AccessFlags2.DepthStencilAttachmentWriteBit | AccessFlags2.AccelerationStructureReadBitKhr;
+            stage |= PipelineStageFlags2.AllCommandsBit;
+            access |= AccessFlags2.UniformReadBit | AccessFlags2.ShaderSampledReadBit | AccessFlags2.ShaderStorageReadBit | AccessFlags2.ShaderStorageWriteBit;
         }
 
         if (barrierStages.HasFlag(BarrierStages.ComputeShading))
         {
             stage |= PipelineStageFlags2.DrawIndirectBit | PipelineStageFlags2.ComputeShaderBit;
-            access |= AccessFlags2.IndirectCommandReadBit | AccessFlags2.UniformReadBit | AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit | AccessFlags2.AccelerationStructureReadBitKhr;
+            access |= AccessFlags2.IndirectCommandReadBit | AccessFlags2.UniformReadBit | AccessFlags2.ShaderSampledReadBit | AccessFlags2.ShaderStorageReadBit | AccessFlags2.ShaderStorageWriteBit;
         }
 
         if (barrierStages.HasFlag(BarrierStages.Copy))
@@ -633,8 +633,8 @@ internal static class VKFormats
         {
             TextureLayout.Undefined => (PipelineStageFlags2.None, AccessFlags2.None, ImageLayout.Undefined),
             TextureLayout.Common => (PipelineStageFlags2.AllCommandsBit, AccessFlags2.MemoryReadBit | AccessFlags2.MemoryWriteBit, ImageLayout.General),
-            TextureLayout.Sampled => (PipelineStageFlags2.VertexShaderBit | PipelineStageFlags2.FragmentShaderBit | PipelineStageFlags2.ComputeShaderBit, AccessFlags2.ShaderReadBit, ImageLayout.ShaderReadOnlyOptimal),
-            TextureLayout.Storage => (PipelineStageFlags2.VertexShaderBit | PipelineStageFlags2.FragmentShaderBit | PipelineStageFlags2.ComputeShaderBit, AccessFlags2.ShaderReadBit | AccessFlags2.ShaderWriteBit, ImageLayout.General),
+            TextureLayout.Sampled => (PipelineStageFlags2.AllCommandsBit, AccessFlags2.ShaderSampledReadBit, ImageLayout.ShaderReadOnlyOptimal),
+            TextureLayout.Storage => (PipelineStageFlags2.AllCommandsBit, AccessFlags2.ShaderStorageReadBit | AccessFlags2.ShaderStorageWriteBit, ImageLayout.General),
             TextureLayout.ColorAttachment => (PipelineStageFlags2.ColorAttachmentOutputBit, AccessFlags2.ColorAttachmentReadBit | AccessFlags2.ColorAttachmentWriteBit, ImageLayout.ColorAttachmentOptimal),
             TextureLayout.DepthStencilAttachment => (PipelineStageFlags2.EarlyFragmentTestsBit | PipelineStageFlags2.LateFragmentTestsBit, AccessFlags2.DepthStencilAttachmentReadBit | AccessFlags2.DepthStencilAttachmentWriteBit, ImageLayout.DepthStencilAttachmentOptimal),
             TextureLayout.DepthStencilReadOnly => (PipelineStageFlags2.EarlyFragmentTestsBit | PipelineStageFlags2.LateFragmentTestsBit, AccessFlags2.DepthStencilAttachmentReadBit, ImageLayout.DepthStencilReadOnlyOptimal),
@@ -642,7 +642,7 @@ internal static class VKFormats
             TextureLayout.CopyDst => (PipelineStageFlags2.CopyBit, AccessFlags2.TransferWriteBit, ImageLayout.TransferDstOptimal),
             TextureLayout.ResolveSrc => (PipelineStageFlags2.ResolveBit, AccessFlags2.TransferReadBit, ImageLayout.TransferSrcOptimal),
             TextureLayout.ResolveDst => (PipelineStageFlags2.ResolveBit, AccessFlags2.TransferWriteBit, ImageLayout.TransferDstOptimal),
-            TextureLayout.Present => (PipelineStageFlags2.AllCommandsBit, AccessFlags2.None, ImageLayout.PresentSrcKhr),
+            TextureLayout.Present => (PipelineStageFlags2.None, AccessFlags2.None, ImageLayout.PresentSrcKhr),
             _ => (default, default, default)
         };
     }

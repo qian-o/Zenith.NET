@@ -6,6 +6,8 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
 {
     public AccelerationStructureKHR AccelerationStructure;
 
+    public ulong DeviceAddress;
+
     public VKDescriptorToken Token;
 
     public VKTopLevelAccelerationStructure(VKGraphicsContext context, VKCommandBuffer commandBuffer, TopLevelAccelerationStructureDesc desc) : base(context, desc)
@@ -59,9 +61,11 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
             AccelerationStructure = AccelerationStructure
         };
 
+        DeviceAddress = context.AccelerationStructure?.GetAccelerationStructureDeviceAddress(context.Device, &deviceAddressInfo) ?? 0;
+
         DeviceAddressRangeEXT addressRange = new()
         {
-            Address = context.AccelerationStructure?.GetAccelerationStructureDeviceAddress(context.Device, &deviceAddressInfo) ?? 0,
+            Address = DeviceAddress,
             Size = sizeInfo.AccelerationStructureSize
         };
 
@@ -103,6 +107,7 @@ internal unsafe class VKTopLevelAccelerationStructure : TopLevelAccelerationStru
         return type switch
         {
             NativeObjectType.VulkanAccelerationStructure => (nint)AccelerationStructure.Handle,
+            NativeObjectType.VulkanDeviceAddress => (nint)DeviceAddress,
             _ => default
         };
     }

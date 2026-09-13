@@ -338,7 +338,8 @@ float3 TracePath(float3 origin, float3 direction, inout uint rng)
 
         if (query.CommittedStatus() == COMMITTED_NOTHING)
         {
-            float3 skyColor = lerp(float3(0.15, 0.12, 0.10), float3(0.30, 0.35, 0.45), saturate(direction.y * 0.5 + 0.5));
+            float3 skyColor =
+                lerp(float3(0.15, 0.12, 0.10), float3(0.30, 0.35, 0.45), saturate(direction.y * 0.5 + 0.5));
             radiance += throughput * skyColor;
 
             break;
@@ -472,7 +473,8 @@ void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
         return;
     }
 
-    uint rng = PCGHash(pixel.x + pixel.y * pathTracing.Width + pathTracing.FrameCount * pathTracing.Width * pathTracing.Height);
+    uint rng = PCGHash(pixel.x + pixel.y * pathTracing.Width +
+                       pathTracing.FrameCount * pathTracing.Width * pathTracing.Height);
 
     uint sampleIndex = pathTracing.FrameCount + 1;
     float hx = Halton(sampleIndex, 2);

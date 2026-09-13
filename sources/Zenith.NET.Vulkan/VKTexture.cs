@@ -95,7 +95,12 @@ internal unsafe class VKTexture : Texture
             {
                 SType = StructureType.ImageViewCreateInfo,
                 Image = Image,
-                ViewType = VKFormats.Vulkan(Desc.Type).ViewType,
+                ViewType = Desc.Type switch
+                {
+                    TextureType.Texture1D or TextureType.Texture1DArray => ImageViewType.Type1D,
+                    TextureType.Texture3D => ImageViewType.Type3D,
+                    _ => ImageViewType.Type2D
+                },
                 Format = VKFormats.Vulkan(Desc.Format).Format,
                 SubresourceRange = new()
                 {
@@ -156,7 +161,7 @@ internal unsafe class VKTexture : Texture
         return new()
         {
             SType = StructureType.ImageCreateInfo,
-            Flags = desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? ImageCreateFlags.CreateCubeCompatibleBit : ImageCreateFlags.None,
+            Flags = ImageCreateFlags.CreateMutableFormatBit | (desc.Type is TextureType.TextureCube or TextureType.TextureCubeArray ? ImageCreateFlags.CreateCubeCompatibleBit : ImageCreateFlags.None),
             ImageType = VKFormats.Vulkan(desc.Type).Type,
             Format = VKFormats.Vulkan(desc.Format).Format,
             Extent = new()

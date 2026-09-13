@@ -114,7 +114,7 @@ internal static class App
 
     public static void Run()
     {
-        window.Update += delta =>
+        window.Update += static delta =>
         {
             if (Width is 0 || Height is 0)
             {
@@ -129,14 +129,14 @@ internal static class App
 
             ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(activeRenderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
 
-            ImGuiHelper.Overlay(() =>
+            ImGuiHelper.Overlay(static () =>
             {
                 ImGui.Text(Context.Capabilities.DeviceName);
                 ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
                 ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
             });
 
-            ImGuiHelper.Settings(() =>
+            ImGuiHelper.Settings(static () =>
             {
                 ImGui.Text("Render Mode:");
 
@@ -168,7 +168,7 @@ internal static class App
             });
         };
 
-        window.Render += _ =>
+        window.Render += static _ =>
         {
             if (Width is 0 || Height is 0)
             {
@@ -181,9 +181,7 @@ internal static class App
             activeRenderer.Render(commandBuffer);
 
             commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-
-            imGui.Render(commandBuffer, ColorAttachment.DontCare(swapChain.Drawable));
-
+            imGui.Render(commandBuffer, ColorAttachment.Clear(swapChain.Drawable, default));
             commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
 
             commandBuffer.Submit().Wait();
@@ -191,7 +189,7 @@ internal static class App
             swapChain.Present();
         };
 
-        window.Resize += _ =>
+        window.Resize += static _ =>
         {
             if (Width is 0 || Height is 0)
             {

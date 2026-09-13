@@ -296,9 +296,9 @@ internal static class MTLFormats
     {
         return memoryResidency switch
         {
-            MemoryResidency.GpuOnly => MTLResourceOptions.CPUCacheModeDefaultCache | MTLResourceOptions.StorageModePrivate | MTLResourceOptions.HazardTrackingModeUntracked,
-            MemoryResidency.CpuReadOnly => MTLResourceOptions.CPUCacheModeDefaultCache | MTLResourceOptions.StorageModeShared | MTLResourceOptions.HazardTrackingModeUntracked,
-            MemoryResidency.CpuWriteOnly => MTLResourceOptions.CPUCacheModeWriteCombined | MTLResourceOptions.StorageModeShared | MTLResourceOptions.HazardTrackingModeUntracked,
+            MemoryResidency.GpuOnly => MTLResourceOptions.StorageModePrivate | MTLResourceOptions.HazardTrackingModeUntracked,
+            MemoryResidency.CpuReadOnly => MTLResourceOptions.HazardTrackingModeUntracked,
+            MemoryResidency.CpuWriteOnly => MTLResourceOptions.CPUCacheModeWriteCombined | MTLResourceOptions.HazardTrackingModeUntracked,
             _ => default
         };
     }
@@ -597,7 +597,7 @@ internal static class MTLFormats
 
         if (textureUsages.HasFlag(TextureUsages.Storage))
         {
-            result |= MTLTextureUsage.ShaderWrite;
+            result |= MTLTextureUsage.ShaderRead | MTLTextureUsage.ShaderWrite;
         }
 
         if (textureUsages.HasFlag(TextureUsages.ColorAttachment) || textureUsages.HasFlag(TextureUsages.DepthStencilAttachment))

@@ -164,38 +164,19 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
 
     public void BeginRenderPass(ReadOnlySpan<ColorAttachment> colorAttachments, DepthStencilAttachment? depthStencilAttachment)
     {
-        int attachmentCount = colorAttachments.Length > 0 ? colorAttachments.Length : depthStencilAttachment is null ? 0 : 1;
-
-        Span<Scissor> scissors = stackalloc Scissor[attachmentCount];
-        Span<Viewport> viewports = stackalloc Viewport[attachmentCount];
-
+        uint width = 0;
+        uint height = 0;
         if (colorAttachments.Length > 0)
         {
-            for (int i = 0; i < colorAttachments.Length; i++)
-            {
-                ColorAttachment attachment = colorAttachments[i];
+            ColorAttachment attachment = colorAttachments[0];
 
-                ZenithHelper.MipDimensions(attachment.Texture.Desc.Width,
-                                           attachment.Texture.Desc.Height,
-                                           0,
-                                           attachment.Subresource.MipLevel,
-                                           out uint width,
-                                           out uint height,
-                                           out _);
-
-                scissors[i] = new()
-                {
-                    Width = width,
-                    Height = height
-                };
-
-                viewports[i] = new()
-                {
-                    Width = width,
-                    Height = height,
-                    MaxDepth = 1.0f
-                };
-            }
+            ZenithHelper.MipDimensions(attachment.Texture.Desc.Width,
+                                       attachment.Texture.Desc.Height,
+                                       0,
+                                       attachment.Subresource.MipLevel,
+                                       out width,
+                                       out height,
+                                       out _);
         }
         else if (depthStencilAttachment.HasValue)
         {
@@ -205,26 +186,22 @@ public abstract class CommandBuffer(GraphicsContext context, CommandQueue queue)
                                        attachment.Texture.Desc.Height,
                                        0,
                                        attachment.Subresource.MipLevel,
-                                       out uint width,
-                                       out uint height,
+                                       out width,
+                                       out height,
                                        out _);
-
-            scissors[0] = new()
-            {
-                Width = width,
-                Height = height
-            };
-
-            viewports[0] = new()
-            {
-                Width = width,
-                Height = height,
-                MaxDepth = 1.0f
-            };
         }
 
-        SetViewportsImpl(viewports);
-        SetScissorsImpl(scissors);
+        SetViewportsImpl([new()
+        {
+            Width = width,
+            Height = height,
+            MaxDepth = 1.0f
+        }]);
+        SetScissorsImpl([new()
+        {
+            Width = width,
+            Height = height
+        }]);
         SetBlendConstantImpl(Vector4.One);
         SetStencilReferenceImpl(0);
         BeginRenderPassImpl(colorAttachments, depthStencilAttachment);

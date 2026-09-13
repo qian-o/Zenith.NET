@@ -21,11 +21,7 @@ internal unsafe class VKTimeline : Timeline
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return type switch
-        {
-            NativeObjectType.VulkanSemaphore => (nint)Semaphore.Handle,
-            _ => default
-        };
+        return 0;
     }
 
     protected override ulong GetCompletedValue()

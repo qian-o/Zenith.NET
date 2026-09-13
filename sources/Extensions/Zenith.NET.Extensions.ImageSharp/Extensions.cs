@@ -8,17 +8,14 @@ public static class Extensions
 {
     extension(GraphicsContext context)
     {
-        public Texture LoadTextureFromStream(Stream stream, bool generateMipMaps = true)
+        public Texture LoadTextureFromStream(Stream stream, bool srgb = true, bool mipmaps = true)
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(stream);
 
-            uint mipLevels = generateMipMaps ? ZenithHelper.MipLevels((uint)image.Width, (uint)image.Height, 1) : 1;
+            PixelFormat format = srgb ? PixelFormat.R8G8B8A8SRgb : PixelFormat.R8G8B8A8UNorm;
+            uint mipLevels = mipmaps ? ZenithHelper.MipLevels((uint)image.Width, (uint)image.Height, 1) : 1;
 
-            Texture texture = context.CreateTexture(TextureDesc.Texture2D(PixelFormat.R8G8B8A8UNorm,
-                                                                          (uint)image.Width,
-                                                                          (uint)image.Height,
-                                                                          mipLevels,
-                                                                          SampleCount.Count1));
+            Texture texture = context.CreateTexture(TextureDesc.Texture2D(format, (uint)image.Width, (uint)image.Height, mipLevels, SampleCount.Count1));
 
             Rgba32[] pixels = new Rgba32[image.Width * image.Height];
             image.CopyPixelDataTo(pixels);
@@ -40,8 +37,8 @@ public static class Extensions
                     {
                         Pointer = (nint)pPixels,
                         SizeInBytes = (uint)(sizeof(Rgba32) * pixels.Length),
-                        RowStrideInBytes = ZenithHelper.RowStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height),
-                        SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height)
+                        RowStrideInBytes = ZenithHelper.RowStrideInBytes(format, extent.Width, extent.Height),
+                        SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(format, extent.Width, extent.Height)
                     };
 
                     commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.CopyDst);
@@ -53,7 +50,7 @@ public static class Extensions
                 {
                     ZenithHelper.MipDimensions((uint)image.Width, (uint)image.Height, 1, i, out uint mipWidth, out uint mipHeight, out _);
 
-                    using Image<Rgba32> mipImage = image.Clone(ctx => ctx.Resize((int)mipWidth, (int)mipHeight, KnownResamplers.MitchellNetravali));
+                    using Image<Rgba32> mipImage = image.Clone(ctx => ctx.Resize((int)mipWidth, (int)mipHeight, KnownResamplers.MitchellNetravali, srgb));
 
                     pixels = new Rgba32[mipWidth * mipHeight];
                     mipImage.CopyPixelDataTo(pixels);
@@ -71,8 +68,8 @@ public static class Extensions
                         {
                             Pointer = (nint)pPixels,
                             SizeInBytes = (uint)(sizeof(Rgba32) * pixels.Length),
-                            RowStrideInBytes = ZenithHelper.RowStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height),
-                            SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(PixelFormat.R8G8B8A8UNorm, extent.Width, extent.Height)
+                            RowStrideInBytes = ZenithHelper.RowStrideInBytes(format, extent.Width, extent.Height),
+                            SliceStrideInBytes = ZenithHelper.SliceStrideInBytes(format, extent.Width, extent.Height)
                         };
 
                         commandBuffer.Transition(texture, new() { MipLevel = i }, TextureLayout.Undefined, TextureLayout.CopyDst);
@@ -87,11 +84,11 @@ public static class Extensions
             return texture;
         }
 
-        public Texture LoadTextureFromFile(string file, bool generateMipMaps = true)
+        public Texture LoadTextureFromFile(string file, bool srgb = true, bool mipmaps = true)
         {
             using FileStream stream = File.OpenRead(file);
 
-            return context.LoadTextureFromStream(stream, generateMipMaps);
+            return context.LoadTextureFromStream(stream, srgb, mipmaps);
         }
     }
 }

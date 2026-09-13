@@ -20,7 +20,11 @@ internal class MTLCommandQueue : CommandQueue
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.MTL4CommandQueue => CommandQueue.NativePtr,
+            _ => default
+        };
     }
 
     protected override CommandBuffer CreateCommandBuffer()
