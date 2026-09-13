@@ -9,12 +9,6 @@ namespace FluidTank.Passes;
 
 internal unsafe class SurfacePass : IDisposable
 {
-    public Texture Depth = null!;
-
-    public Texture Thickness = null!;
-
-    public Texture Normal = null!;
-
     private readonly GraphicsContext context;
 
     private readonly Buffer constants;
@@ -73,6 +67,12 @@ internal unsafe class SurfacePass : IDisposable
             SampleCount = SampleCount.Count1
         }, RasterizerState.CullNone(), DepthStencilState.DepthReadWrite(), BlendState.Opaque(), PrimitiveTopology.TriangleStrip);
     }
+
+    public Texture Depth { get; private set; } = null!;
+
+    public Texture Thickness { get; private set; } = null!;
+
+    public Texture Normal { get; private set; } = null!;
 
     public void Resize(uint width, uint height)
     {

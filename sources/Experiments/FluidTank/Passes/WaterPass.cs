@@ -9,8 +9,6 @@ namespace FluidTank.Passes;
 
 internal class WaterPass : IDisposable
 {
-    public Texture Color = null!;
-
     private readonly GraphicsContext context;
 
     private readonly Buffer compositeConstants;
@@ -44,6 +42,8 @@ internal class WaterPass : IDisposable
             reflectionPipeline = GraphicsHelper.CreateComputePipeline(context, "FluidReflection.slang", "ReflectionCS");
         }
     }
+
+    public Texture Color { get; private set; } = null!;
 
     public void Resize(uint width, uint height, uint surfaceWidth, uint surfaceHeight)
     {

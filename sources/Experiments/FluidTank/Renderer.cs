@@ -13,8 +13,6 @@ internal class Renderer : IDisposable
 
     private const float SurfaceScale = 0.5f;
 
-    public Texture Color = null!;
-
     public FluidViewMode ViewMode;
 
     public bool RayTracingEnabled = true;
@@ -63,6 +61,8 @@ internal class Renderer : IDisposable
 
         Resize(width, height);
     }
+
+    public Texture Color { get; private set; } = null!;
 
     public void Update(CameraHandler camera, double delta)
     {

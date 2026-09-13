@@ -42,10 +42,6 @@ internal class Simulation(GraphicsContext context) : IDisposable
 
     public static readonly uint GridPointCount = (GridDimensions.X + 1) * (GridDimensions.Y + 1) * (GridDimensions.Z + 1);
 
-    public Buffer Particles = GraphicsHelper.CreateBuffer(context, ParticleCount, 32, BufferUsages.StorageReadOnly | BufferUsages.StorageReadWrite);
-
-    public Buffer PreviousPositions = GraphicsHelper.CreateBuffer(context, ParticleCount, 16, BufferUsages.StorageReadOnly | BufferUsages.StorageReadWrite);
-
     private readonly Buffer constantBuffer = GraphicsHelper.CreateConstantBuffer<SimulationConstants>(context);
 
     private readonly Buffer particleAffine = GraphicsHelper.CreateBuffer(context, ParticleCount * 3, 16, BufferUsages.StorageReadWrite);
@@ -93,6 +89,10 @@ internal class Simulation(GraphicsContext context) : IDisposable
     private float interactionStrength;
 
     private TimelineValue ready;
+
+    public Buffer Particles { get; } = GraphicsHelper.CreateBuffer(context, ParticleCount, 32, BufferUsages.StorageReadOnly | BufferUsages.StorageReadWrite);
+
+    public Buffer PreviousPositions { get; } = GraphicsHelper.CreateBuffer(context, ParticleCount, 16, BufferUsages.StorageReadOnly | BufferUsages.StorageReadWrite);
 
     public void Reset()
     {

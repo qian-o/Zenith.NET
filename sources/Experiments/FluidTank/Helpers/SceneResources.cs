@@ -6,21 +6,7 @@ namespace FluidTank.Helpers;
 
 internal unsafe class SceneResources : IDisposable
 {
-    public Buffer Vertices;
-
-    public Buffer Indices;
-
-    public Buffer GlassVertices;
-
-    public Buffer GlassIndices;
-
-    public Buffer Materials;
-
-    public TopLevelAccelerationStructure? Scene;
-
     public uint SceneIndexCount;
-
-    public (Vector3 Center, Vector3 Normal)[] GlassFaces;
 
     private readonly BottomLevelAccelerationStructure? geometry;
 
@@ -94,6 +80,20 @@ internal unsafe class SceneResources : IDisposable
             commandBuffer.Submit().Wait();
         }
     }
+
+    public Buffer Vertices { get; }
+
+    public Buffer Indices { get; }
+
+    public Buffer GlassVertices { get; }
+
+    public Buffer GlassIndices { get; }
+
+    public Buffer Materials { get; }
+
+    public TopLevelAccelerationStructure? Scene { get; }
+
+    public (Vector3 Center, Vector3 Normal)[] GlassFaces { get; }
 
     public void Dispose()
     {
