@@ -6,9 +6,23 @@ namespace FluidTank.Helpers;
 
 internal unsafe class SceneResources : IDisposable
 {
-    private readonly BottomLevelAccelerationStructure? geometry;
+    public Buffer Vertices;
 
-    private readonly (Vector3 Center, Vector3 Normal)[] glassFaces;
+    public Buffer Indices;
+
+    public Buffer GlassVertices;
+
+    public Buffer GlassIndices;
+
+    public Buffer Materials;
+
+    public TopLevelAccelerationStructure? Scene;
+
+    public uint SceneIndexCount;
+
+    public (Vector3 Center, Vector3 Normal)[] GlassFaces;
+
+    private readonly BottomLevelAccelerationStructure? geometry;
 
     public SceneResources(GraphicsContext context)
     {
@@ -16,14 +30,13 @@ internal unsafe class SceneResources : IDisposable
         FluidTankGeometry.CreateGlass(out SceneVertex[] glassVertices, out uint[] glassIndices);
 
         SceneIndexCount = (uint)sceneIndices.Length;
-        GlassIndexCount = (uint)glassIndices.Length;
-        glassFaces = new (Vector3 Center, Vector3 Normal)[glassIndices.Length / 6];
+        GlassFaces = new (Vector3 Center, Vector3 Normal)[glassIndices.Length / 6];
 
-        for (int i = 0; i < glassFaces.Length; i++)
+        for (int i = 0; i < GlassFaces.Length; i++)
         {
             SceneVertex first = glassVertices[glassIndices[i * 6]];
             SceneVertex opposite = glassVertices[glassIndices[(i * 6) + 2]];
-            glassFaces[i] = ((first.Position + opposite.Position) * 0.5f, first.Normal);
+            GlassFaces[i] = ((first.Position + opposite.Position) * 0.5f, first.Normal);
         }
 
         CommandBuffer uploadCommandBuffer = context.TransferQueue.CommandBuffer();
@@ -81,24 +94,6 @@ internal unsafe class SceneResources : IDisposable
             commandBuffer.Submit().Wait();
         }
     }
-
-    public Buffer Vertices { get; }
-
-    public Buffer Indices { get; }
-
-    public Buffer GlassVertices { get; }
-
-    public Buffer GlassIndices { get; }
-
-    public Buffer Materials { get; }
-
-    public TopLevelAccelerationStructure? Scene { get; }
-
-    public uint SceneIndexCount { get; }
-
-    public uint GlassIndexCount { get; }
-
-    public ReadOnlySpan<(Vector3 Center, Vector3 Normal)> GlassFaces => glassFaces;
 
     public void Dispose()
     {

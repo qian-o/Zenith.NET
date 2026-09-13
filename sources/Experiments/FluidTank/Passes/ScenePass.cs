@@ -9,6 +9,12 @@ namespace FluidTank.Passes;
 
 internal class ScenePass : IDisposable
 {
+    public Texture Color = null!;
+
+    public Texture LinearDepth = null!;
+
+    public Texture DepthStencil = null!;
+
     private readonly GraphicsContext context;
 
     private readonly Buffer constantBuffer;
@@ -24,6 +30,7 @@ internal class ScenePass : IDisposable
     public ScenePass(GraphicsContext context)
     {
         this.context = context;
+
         constantBuffer = GraphicsHelper.CreateConstantBuffer<SceneConstants>(context);
         backgroundConstantBuffer = GraphicsHelper.CreateConstantBuffer<BackgroundConstants>(context);
 
@@ -45,12 +52,6 @@ internal class ScenePass : IDisposable
             SampleCount = SampleCount.Count1
         }, RasterizerState.CullNone(), DepthStencilState.DepthNone(), BlendState.Opaque());
     }
-
-    public Texture Color { get; private set; } = null!;
-
-    public Texture LinearDepth { get; private set; } = null!;
-
-    public Texture DepthStencil { get; private set; } = null!;
 
     public void Render(CommandBuffer commandBuffer, FrameData frame, SceneResources scene)
     {

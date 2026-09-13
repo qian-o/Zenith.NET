@@ -13,6 +13,18 @@ internal class Renderer : IDisposable
 
     private const float SurfaceScale = 0.5f;
 
+    public Texture Color = null!;
+
+    public FluidViewMode ViewMode;
+
+    public bool RayTracingEnabled = true;
+
+    public bool AntialiasingEnabled = true;
+
+    public bool Paused;
+
+    public bool WaveMakerEnabled;
+
     private readonly GraphicsContext context;
 
     private readonly Simulation simulation;
@@ -37,16 +49,6 @@ internal class Renderer : IDisposable
 
     private TimelineValue simulationReady;
 
-    public RenderSettings Settings = new()
-    {
-        RayTracingEnabled = true,
-        AntialiasingEnabled = true
-    };
-
-    public bool Paused;
-
-    public bool WaveMakerEnabled;
-
     public Renderer(GraphicsContext context, uint width, uint height)
     {
         this.context = context;
@@ -61,8 +63,6 @@ internal class Renderer : IDisposable
 
         Resize(width, height);
     }
-
-    public Texture Color { get; private set; } = null!;
 
     public void Update(CameraHandler camera, double delta)
     {
@@ -131,20 +131,20 @@ internal class Renderer : IDisposable
         scenePass.Render(commandBuffer, frame, scene);
         glassPass.Render(commandBuffer, frame, scene, scenePass.Color, scenePass.DepthStencil, false);
 
-        if (Settings.ViewMode is FluidViewMode.Water)
+        if (ViewMode is FluidViewMode.Water)
         {
             surfacePass.Render(commandBuffer, frame, particles, scenePass.LinearDepth);
         }
 
-        waterPass.Render(commandBuffer, frame, Settings, scene, scenePass.Color, scenePass.LinearDepth, surfacePass.Output);
+        waterPass.Render(commandBuffer, frame, ViewMode, RayTracingEnabled, scene, scenePass.Color, scenePass.LinearDepth, surfacePass.Depth, surfacePass.Thickness, surfacePass.Normal);
 
-        if (Settings.ViewMode is FluidViewMode.Particles)
+        if (ViewMode is FluidViewMode.Particles)
         {
             surfacePass.RenderParticles(commandBuffer, frame, particles, waterPass.Color, scenePass.DepthStencil);
         }
 
         glassPass.Render(commandBuffer, frame, scene, waterPass.Color, scenePass.DepthStencil, true);
-        outputPass.Render(commandBuffer, waterPass.Color, Color, 1.0f, Settings.AntialiasingEnabled);
+        outputPass.Render(commandBuffer, waterPass.Color, Color, AntialiasingEnabled);
     }
 
     public void Resize(uint width, uint height)

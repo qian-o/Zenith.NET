@@ -9,6 +9,12 @@ namespace FluidTank.Passes;
 
 internal unsafe class SurfacePass : IDisposable
 {
+    public Texture Depth = null!;
+
+    public Texture Thickness = null!;
+
+    public Texture Normal = null!;
+
     private readonly GraphicsContext context;
 
     private readonly Buffer constants;
@@ -36,12 +42,6 @@ internal unsafe class SurfacePass : IDisposable
     private Texture field = null!;
 
     private Texture occupancy = null!;
-
-    private Texture depth = null!;
-
-    private Texture thickness = null!;
-
-    private Texture normal = null!;
 
     private Vector3 origin;
 
@@ -74,20 +74,18 @@ internal unsafe class SurfacePass : IDisposable
         }, RasterizerState.CullNone(), DepthStencilState.DepthReadWrite(), BlendState.Opaque(), PrimitiveTopology.TriangleStrip);
     }
 
-    public SurfaceData Output => new() { Depth = depth, Thickness = thickness, Normal = normal };
-
     public void Resize(uint width, uint height)
     {
-        if (depth is not null && depth.Desc.Width == width && depth.Desc.Height == height)
+        if (Depth is not null && Depth.Desc.Width == width && Depth.Desc.Height == height)
         {
             return;
         }
 
         DisposeTargets();
 
-        depth = GraphicsHelper.CreateTexture(context, PixelFormat.R32Float, width, height, TextureUsages.Sampled | TextureUsages.Storage);
-        thickness = GraphicsHelper.CreateTexture(context, PixelFormat.R16Float, width, height, TextureUsages.Sampled | TextureUsages.Storage);
-        normal = GraphicsHelper.CreateTexture(context, PixelFormat.R16G16B16A16Float, width, height, TextureUsages.Sampled | TextureUsages.Storage);
+        Depth = GraphicsHelper.CreateTexture(context, PixelFormat.R32Float, width, height, TextureUsages.Sampled | TextureUsages.Storage);
+        Thickness = GraphicsHelper.CreateTexture(context, PixelFormat.R16Float, width, height, TextureUsages.Sampled | TextureUsages.Storage);
+        Normal = GraphicsHelper.CreateTexture(context, PixelFormat.R16G16B16A16Float, width, height, TextureUsages.Sampled | TextureUsages.Storage);
     }
 
     public void Render(CommandBuffer commandBuffer, FrameData frame, ParticleData particles, Texture sceneDepth)
@@ -109,8 +107,8 @@ internal unsafe class SurfacePass : IDisposable
             GridY = density.Desc.Height,
             GridZ = density.Desc.Depth,
             ParticleCount = particles.Count,
-            Width = depth.Desc.Width,
-            Height = depth.Desc.Height,
+            Width = Depth.Desc.Width,
+            Height = Depth.Desc.Height,
             InterpolationAlpha = frame.InterpolationAlpha,
             VolumeScale = particles.Spacing * particles.Spacing * particles.Spacing / (cellSize * cellSize * cellSize),
             Particles = particles.Particles.StorageReadOnlyHandle,
@@ -123,9 +121,9 @@ internal unsafe class SurfacePass : IDisposable
             OccupancyWrite = occupancy.StorageHandle,
             OccupancyRead = occupancy.SampledHandle,
             SceneDepth = sceneDepth.SampledHandle,
-            DepthOutput = depth.StorageHandle,
-            ThicknessOutput = thickness.StorageHandle,
-            NormalOutput = normal.StorageHandle,
+            DepthOutput = Depth.StorageHandle,
+            ThicknessOutput = Thickness.StorageHandle,
+            NormalOutput = Normal.StorageHandle,
             Sampler = sampler.Handle
         });
 
@@ -154,14 +152,14 @@ internal unsafe class SurfacePass : IDisposable
             fieldReady = true;
         }
 
-        commandBuffer.Transition(depth, default, TextureLayout.Undefined, TextureLayout.Storage);
-        commandBuffer.Transition(thickness, default, TextureLayout.Undefined, TextureLayout.Storage);
-        commandBuffer.Transition(normal, default, TextureLayout.Undefined, TextureLayout.Storage);
-        Dispatch(commandBuffer, tracePipeline, depth.Desc.Width, depth.Desc.Height, 1);
+        commandBuffer.Transition(Depth, default, TextureLayout.Undefined, TextureLayout.Storage);
+        commandBuffer.Transition(Thickness, default, TextureLayout.Undefined, TextureLayout.Storage);
+        commandBuffer.Transition(Normal, default, TextureLayout.Undefined, TextureLayout.Storage);
+        Dispatch(commandBuffer, tracePipeline, Depth.Desc.Width, Depth.Desc.Height, 1);
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading | BarrierStages.FragmentShading);
-        commandBuffer.Transition(depth, default, TextureLayout.Storage, TextureLayout.Sampled);
-        commandBuffer.Transition(thickness, default, TextureLayout.Storage, TextureLayout.Sampled);
-        commandBuffer.Transition(normal, default, TextureLayout.Storage, TextureLayout.Sampled);
+        commandBuffer.Transition(Depth, default, TextureLayout.Storage, TextureLayout.Sampled);
+        commandBuffer.Transition(Thickness, default, TextureLayout.Storage, TextureLayout.Sampled);
+        commandBuffer.Transition(Normal, default, TextureLayout.Storage, TextureLayout.Sampled);
     }
 
     public void RenderParticles(CommandBuffer commandBuffer, FrameData frame, ParticleData particles, Texture color, Texture sceneDepthStencil)
@@ -235,9 +233,9 @@ internal unsafe class SurfacePass : IDisposable
 
     private void DisposeTargets()
     {
-        normal?.Dispose();
-        thickness?.Dispose();
-        depth?.Dispose();
+        Normal?.Dispose();
+        Thickness?.Dispose();
+        Depth?.Dispose();
     }
 }
 

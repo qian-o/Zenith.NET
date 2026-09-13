@@ -79,20 +79,6 @@ internal static unsafe class GraphicsHelper
                                                           PrimitiveTopology primitiveTopology = PrimitiveTopology.TriangleList)
     {
         using Shader vertexShader = LoadShader(context, file, vertexEntryPoint);
-
-        return CreateGraphicsPipeline(context, vertexShader, file, fragmentEntryPoint, inputLayouts, attachmentFormats, rasterizer, depthStencil, blend, primitiveTopology);
-    }
-
-    public static GraphicsPipeline CreateGraphicsPipeline(GraphicsContext context, Shader vertexShader,
-                                                          string file,
-                                                          string fragmentEntryPoint,
-                                                          InputLayout[] inputLayouts,
-                                                          AttachmentFormats attachmentFormats,
-                                                          RasterizerState rasterizer,
-                                                          DepthStencilState depthStencil,
-                                                          BlendState blend,
-                                                          PrimitiveTopology primitiveTopology = PrimitiveTopology.TriangleList)
-    {
         using Shader fragmentShader = LoadShader(context, file, fragmentEntryPoint);
 
         return context.CreateGraphicsPipeline(new()

@@ -145,22 +145,22 @@ internal static class App
 
                 ImGui.Separator();
 
-                if (ImGui.RadioButton("Water", renderer.Settings.ViewMode is FluidViewMode.Water))
+                if (ImGui.RadioButton("Water", renderer.ViewMode is FluidViewMode.Water))
                 {
-                    renderer.Settings.ViewMode = FluidViewMode.Water;
+                    renderer.ViewMode = FluidViewMode.Water;
                 }
 
                 ImGui.SameLine();
 
-                if (ImGui.RadioButton("Particles", renderer.Settings.ViewMode is FluidViewMode.Particles))
+                if (ImGui.RadioButton("Particles", renderer.ViewMode is FluidViewMode.Particles))
                 {
-                    renderer.Settings.ViewMode = FluidViewMode.Particles;
+                    renderer.ViewMode = FluidViewMode.Particles;
                 }
 
                 ImGui.Separator();
-                ImGui.Checkbox("Antialiasing", ref renderer.Settings.AntialiasingEnabled);
+                ImGui.Checkbox("Antialiasing", ref renderer.AntialiasingEnabled);
                 ImGui.BeginDisabled(!Context.Capabilities.RayTracingSupported);
-                ImGui.Checkbox("Ray-traced reflections", ref renderer.Settings.RayTracingEnabled);
+                ImGui.Checkbox("Ray-traced reflections", ref renderer.RayTracingEnabled);
                 ImGui.EndDisabled();
             });
         };

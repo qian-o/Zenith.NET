@@ -38,12 +38,12 @@ internal class OutputPass : IDisposable
         displayColor = GraphicsHelper.CreateTexture(context, PixelFormat.B8G8R8A8UNorm, width, height, TextureUsages.ColorAttachment | TextureUsages.Sampled);
     }
 
-    public void Render(CommandBuffer commandBuffer, Texture input, Texture output, float exposure, bool antialiasing)
+    public void Render(CommandBuffer commandBuffer, Texture input, Texture output, bool antialiasing)
     {
         GraphicsHelper.Upload(constants, 0, new OutputConstants()
         {
             TexelSize = new(1.0f / output.Desc.Width, 1.0f / output.Desc.Height),
-            Exposure = exposure,
+            Exposure = 1.0f,
             EncodeLuminance = antialiasing ? 1u : 0u,
             Input = input.SampledHandle,
             Sampler = sampler.Handle
@@ -56,7 +56,7 @@ internal class OutputPass : IDisposable
             GraphicsHelper.Upload(constants, 256, new OutputConstants()
             {
                 TexelSize = new(1.0f / output.Desc.Width, 1.0f / output.Desc.Height),
-                Exposure = exposure,
+                Exposure = 1.0f,
                 EncodeLuminance = 1u,
                 Input = displayColor.SampledHandle,
                 Sampler = sampler.Handle

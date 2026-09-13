@@ -9,6 +9,8 @@ namespace FluidTank.Passes;
 
 internal class WaterPass : IDisposable
 {
+    public Texture Color = null!;
+
     private readonly GraphicsContext context;
 
     private readonly Buffer compositeConstants;
@@ -43,8 +45,6 @@ internal class WaterPass : IDisposable
         }
     }
 
-    public Texture Color { get; private set; } = null!;
-
     public void Resize(uint width, uint height, uint surfaceWidth, uint surfaceHeight)
     {
         if (Color is null || Color.Desc.Width != width || Color.Desc.Height != height)
@@ -60,9 +60,9 @@ internal class WaterPass : IDisposable
         }
     }
 
-    public void Render(CommandBuffer commandBuffer, FrameData frame, RenderSettings settings, SceneResources scene, Texture sceneColor, Texture sceneDepth, SurfaceData surface)
+    public void Render(CommandBuffer commandBuffer, FrameData frame, FluidViewMode viewMode, bool rayTracingEnabled, SceneResources scene, Texture sceneColor, Texture sceneDepth, Texture fluidDepth, Texture thickness, Texture normal)
     {
-        bool rayTracing = settings.RayTracingEnabled && reflectionPipeline is not null && settings.ViewMode is FluidViewMode.Water;
+        bool rayTracing = rayTracingEnabled && reflectionPipeline is not null && viewMode is FluidViewMode.Water;
 
         if (rayTracing)
         {
@@ -74,10 +74,10 @@ internal class WaterPass : IDisposable
                 Time = frame.Time,
                 SunDirection = frame.SunDirection,
                 LightIntensity = frame.LightIntensity,
-                Width = surface.Depth.Desc.Width,
-                Height = surface.Depth.Desc.Height,
-                FluidDepth = surface.Depth.SampledHandle,
-                Normal = surface.Normal.SampledHandle,
+                Width = fluidDepth.Desc.Width,
+                Height = fluidDepth.Desc.Height,
+                FluidDepth = fluidDepth.SampledHandle,
+                Normal = normal.SampledHandle,
                 Scene = scene.Scene!.Handle,
                 Vertices = scene.Vertices.StorageReadOnlyHandle,
                 Indices = scene.Indices.StorageReadOnlyHandle,
@@ -105,15 +105,15 @@ internal class WaterPass : IDisposable
             RefractionStrength = 0.45f,
             Absorption = new(0.18f, 0.045f, 0.015f),
             Ior = 1.333f,
-            Width = surface.Depth.Desc.Width,
-            Height = surface.Depth.Desc.Height,
-            RenderMode = (uint)settings.ViewMode,
+            Width = fluidDepth.Desc.Width,
+            Height = fluidDepth.Desc.Height,
+            RenderMode = (uint)viewMode,
             RayTracingEnabled = rayTracing ? 1u : 0u,
             SceneColor = sceneColor.SampledHandle,
             SceneDepth = sceneDepth.SampledHandle,
-            FluidDepth = surface.Depth.SampledHandle,
-            Thickness = surface.Thickness.SampledHandle,
-            Normal = surface.Normal.SampledHandle,
+            FluidDepth = fluidDepth.SampledHandle,
+            Thickness = thickness.SampledHandle,
+            Normal = normal.SampledHandle,
             Reflection = reflection?.SampledHandle ?? default,
             Sampler = sampler.Handle
         });
