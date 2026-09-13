@@ -21,7 +21,6 @@ public class TemporalUpscaler : DisposableObject
     internal TemporalUpscaler(GraphicsContext context, TemporalUpscalerDesc desc)
     {
         convertPass = new(context, desc.Mode);
-        activatePass = desc.Mode is TemporalUpscalerMode.Quality ? new(context) : null;
         upscalePass = new(context, desc.Mode);
 
         yCoCg = context.CreateTexture(new()
@@ -36,20 +35,6 @@ public class TemporalUpscaler : DisposableObject
             SampleCount = SampleCount.Count1,
             Usages = TextureUsages.Sampled | TextureUsages.Storage
         });
-        motionDepthAlpha = desc.Mode is TemporalUpscalerMode.Quality
-            ? context.CreateTexture(new()
-            {
-                Type = TextureType.Texture2D,
-                Format = PixelFormat.R16G16B16A16Float,
-                Width = desc.InputWidth,
-                Height = desc.InputHeight,
-                Depth = 1,
-                MipLevels = 1,
-                ArrayLayers = 1,
-                SampleCount = SampleCount.Count1,
-                Usages = TextureUsages.Sampled | TextureUsages.Storage
-            })
-            : null;
         motionDepthClipAlpha = context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
@@ -62,35 +47,6 @@ public class TemporalUpscaler : DisposableObject
             SampleCount = SampleCount.Count1,
             Usages = TextureUsages.Sampled | TextureUsages.Storage
         });
-        luma0 = desc.Mode is TemporalUpscalerMode.Quality
-            ? context.CreateTexture(new()
-            {
-                Type = TextureType.Texture2D,
-                Format = PixelFormat.R32UInt,
-                Width = desc.InputWidth,
-                Height = desc.InputHeight,
-                Depth = 1,
-                MipLevels = 1,
-                ArrayLayers = 1,
-                SampleCount = SampleCount.Count1,
-                Usages = TextureUsages.Sampled | TextureUsages.Storage
-            })
-            : null;
-        luma1 = desc.Mode is TemporalUpscalerMode.Quality
-            ? context.CreateTexture(new()
-            {
-                Type = TextureType.Texture2D,
-                Format = PixelFormat.R32UInt,
-                Width = desc.InputWidth,
-                Height = desc.InputHeight,
-                Depth = 1,
-                MipLevels = 1,
-                ArrayLayers = 1,
-                SampleCount = SampleCount.Count1,
-                Usages = TextureUsages.Sampled | TextureUsages.Storage
-            })
-            : null;
-
         history0 = context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
@@ -116,6 +72,48 @@ public class TemporalUpscaler : DisposableObject
             Usages = TextureUsages.Sampled | TextureUsages.Storage
         });
 
+        if (desc.Mode is TemporalUpscalerMode.Quality)
+        {
+            activatePass = new(context);
+
+            motionDepthAlpha = context.CreateTexture(new()
+            {
+                Type = TextureType.Texture2D,
+                Format = PixelFormat.R16G16B16A16Float,
+                Width = desc.InputWidth,
+                Height = desc.InputHeight,
+                Depth = 1,
+                MipLevels = 1,
+                ArrayLayers = 1,
+                SampleCount = SampleCount.Count1,
+                Usages = TextureUsages.Sampled | TextureUsages.Storage
+            });
+            luma0 = context.CreateTexture(new()
+            {
+                Type = TextureType.Texture2D,
+                Format = PixelFormat.R32UInt,
+                Width = desc.InputWidth,
+                Height = desc.InputHeight,
+                Depth = 1,
+                MipLevels = 1,
+                ArrayLayers = 1,
+                SampleCount = SampleCount.Count1,
+                Usages = TextureUsages.Sampled | TextureUsages.Storage
+            });
+            luma1 = context.CreateTexture(new()
+            {
+                Type = TextureType.Texture2D,
+                Format = PixelFormat.R32UInt,
+                Width = desc.InputWidth,
+                Height = desc.InputHeight,
+                Depth = 1,
+                MipLevels = 1,
+                ArrayLayers = 1,
+                SampleCount = SampleCount.Count1,
+                Usages = TextureUsages.Sampled | TextureUsages.Storage
+            });
+        }
+
         Desc = desc;
     }
 
@@ -123,7 +121,7 @@ public class TemporalUpscaler : DisposableObject
 
     public void Dispatch(CommandBuffer commandBuffer, TemporalUpscalerArgs args)
     {
-        commandBuffer.BeginDebugEvent("TemporalUpscaler");
+        commandBuffer.BeginDebugEvent("Temporal Upscaling");
 
         Texture historyRead = historySelect ? history1 : history0;
         Texture historyWrite = historySelect ? history0 : history1;
@@ -170,8 +168,11 @@ public class TemporalUpscaler : DisposableObject
             }
         }
 
-        ResourceHandle convertMotion = motionDepthAlpha is not null ? motionDepthAlpha.StorageHandle : motionDepthClipAlpha.StorageHandle;
-        convertPass.Record(commandBuffer, Desc, args, yCoCg.StorageHandle, convertMotion);
+        convertPass.Record(commandBuffer,
+                           Desc,
+                           args,
+                           yCoCg.StorageHandle,
+                           motionDepthAlpha is not null ? motionDepthAlpha.StorageHandle : motionDepthClipAlpha.StorageHandle);
 
         commandBuffer.Transition(yCoCg, default, TextureLayout.Storage, TextureLayout.Sampled);
 

@@ -17,7 +17,7 @@ public class SpatialUpscaler : DisposableObject
 
     public void Dispatch(CommandBuffer commandBuffer, SpatialUpscalerArgs args)
     {
-        commandBuffer.BeginDebugEvent("SpatialUpscaler");
+        commandBuffer.BeginDebugEvent("Spatial Upscaling");
 
         sgsr1Pass.Record(commandBuffer, Desc, args);
 
