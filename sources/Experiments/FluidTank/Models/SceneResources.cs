@@ -1,8 +1,9 @@
 ﻿using System.Numerics;
+using FluidTank.Helpers;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
-namespace FluidTank.Helpers;
+namespace FluidTank.Models;
 
 internal unsafe class SceneResources : IDisposable
 {
