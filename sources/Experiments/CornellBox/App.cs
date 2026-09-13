@@ -129,14 +129,14 @@ internal static class App
 
             ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(activeRenderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
 
-            ImGuiHelper.Overlay(() =>
+            ImGuiHelper.Overlay(static () =>
             {
                 ImGui.Text(Context.Capabilities.DeviceName);
                 ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
                 ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
             });
 
-            ImGuiHelper.Settings(() =>
+            ImGuiHelper.Settings(static () =>
             {
                 ImGui.Text("Render Mode:");
 

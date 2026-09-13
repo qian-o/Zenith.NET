@@ -118,14 +118,14 @@ internal static class App
 
             ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(renderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
 
-            ImGuiHelper.Overlay(() =>
+            ImGuiHelper.Overlay(static () =>
             {
                 ImGui.Text(Context.Capabilities.DeviceName);
                 ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
                 ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
             });
 
-            ImGuiHelper.Settings(() =>
+            ImGuiHelper.Settings(static () =>
             {
                 ImGui.SliderFloat("Render scale", ref renderer.Settings.RenderScale, 0.5f, 1.0f, "%.2fx", ImGuiSliderFlags.AlwaysClamp);
 

@@ -11,6 +11,8 @@ internal class Renderer : IDisposable
 {
     private const double SimulationStep = 1.0 / 30.0;
 
+    private const float SurfaceScale = 0.5f;
+
     private readonly GraphicsContext context;
 
     private readonly Simulation simulation;
@@ -37,24 +39,13 @@ internal class Renderer : IDisposable
 
     public RenderSettings Settings = new()
     {
-        SurfaceScale = 0.5f,
-        Clarity = 1.05f,
-        RefractionStrength = 0.45f,
-        Exposure = 1.0f,
         RayTracingEnabled = true,
         AntialiasingEnabled = true
     };
 
-    public SimulationSettings SimulationSettings = new()
-    {
-        FlipRatio = 0.97f,
-        VelocityDamping = 0.9998f,
-        WaveAmplitude = 0.12f,
-        WaveFrequency = 0.58f,
-        PressureIterations = 18
-    };
-
     public bool Paused;
+
+    public bool WaveMakerEnabled;
 
     public Renderer(GraphicsContext context, uint width, uint height)
     {
@@ -89,8 +80,6 @@ internal class Renderer : IDisposable
         {
             accumulator = Math.Min(accumulator + Math.Min(delta, SimulationStep), SimulationStep * 2.0);
         }
-
-        ResizeSurface();
     }
 
     public void PushFluid(Vector3 origin, Vector3 direction)
@@ -110,13 +99,13 @@ internal class Renderer : IDisposable
     {
         if (Paused)
         {
-            simulationReady = simulation.Step(simulationTime, SimulationStep, true, SimulationSettings);
+            simulationReady = simulation.Step(simulationTime, SimulationStep, true, WaveMakerEnabled);
         }
         else if (accumulator >= SimulationStep)
         {
             simulationTime += SimulationStep;
             accumulator -= SimulationStep;
-            simulationReady = simulation.Step(simulationTime, SimulationStep, false, SimulationSettings);
+            simulationReady = simulation.Step(simulationTime, SimulationStep, false, WaveMakerEnabled);
         }
 
         frame.Time = (float)simulationTime;
@@ -155,7 +144,7 @@ internal class Renderer : IDisposable
         }
 
         glassPass.Render(commandBuffer, frame, scene, waterPass.Color, scenePass.DepthStencil, true);
-        outputPass.Render(commandBuffer, waterPass.Color, Color, Settings.Exposure, Settings.AntialiasingEnabled);
+        outputPass.Render(commandBuffer, waterPass.Color, Color, 1.0f, Settings.AntialiasingEnabled);
     }
 
     public void Resize(uint width, uint height)
@@ -186,8 +175,8 @@ internal class Renderer : IDisposable
 
     private void ResizeSurface()
     {
-        uint width = Math.Max((uint)(Color.Desc.Width * Settings.SurfaceScale), 1u);
-        uint height = Math.Max((uint)(Color.Desc.Height * Settings.SurfaceScale), 1u);
+        uint width = Math.Max((uint)(Color.Desc.Width * SurfaceScale), 1u);
+        uint height = Math.Max((uint)(Color.Desc.Height * SurfaceScale), 1u);
 
         surfacePass.Resize(width, height);
         waterPass.Resize(Color.Desc.Width, Color.Desc.Height, width, height);

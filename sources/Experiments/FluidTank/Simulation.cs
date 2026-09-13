@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using FluidTank.Helpers;
-using FluidTank.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
@@ -16,6 +15,18 @@ internal class Simulation(GraphicsContext context) : IDisposable
     public const float RestDensity = 5.52f;
 
     public const float ParticleSpacing = ParticleRadius * 1.67f;
+
+    private const float FlipRatio = 0.97f;
+
+    private const float VelocityDamping = 0.9998f;
+
+    private const float WaveAmplitude = 0.12f;
+
+    private const float WaveFrequency = 0.58f;
+
+    private const uint Substeps = 2;
+
+    private const uint PressureIterations = 18;
 
     public static readonly (uint X, uint Y, uint Z) DamDimensions = (40, 48, 59);
 
@@ -95,10 +106,8 @@ internal class Simulation(GraphicsContext context) : IDisposable
         interactionStrength = 4.8f;
     }
 
-    public TimelineValue Step(double totalTime, double deltaSeconds, bool paused, SimulationSettings settings)
+    public TimelineValue Step(double totalTime, double deltaSeconds, bool paused, bool waveMakerEnabled)
     {
-        const uint Substeps = 2;
-
         if (paused && !resetRequested)
         {
             return ready;
@@ -106,7 +115,6 @@ internal class Simulation(GraphicsContext context) : IDisposable
 
         float frameTime = (float)deltaSeconds;
         float timeStep = paused ? 0.0f : frameTime / Substeps;
-        int pressureIterations = Math.Clamp(settings.PressureIterations, 4, 32);
 
         GraphicsHelper.Upload(constantBuffer, 0, new SimulationConstants()
         {
@@ -116,10 +124,10 @@ internal class Simulation(GraphicsContext context) : IDisposable
             Time = (float)totalTime,
             GridSpacing = GridSpacing,
             InverseGridSpacing = 1.0f / GridSpacing,
-            FlipRatio = settings.FlipRatio,
-            VelocityDamping = settings.VelocityDamping,
-            WaveAmplitude = settings.WaveAmplitude,
-            WaveFrequency = settings.WaveFrequency,
+            FlipRatio = FlipRatio,
+            VelocityDamping = VelocityDamping,
+            WaveAmplitude = WaveAmplitude,
+            WaveFrequency = WaveFrequency,
             InteractionRadius = 1.15f,
             InteractionStrength = interactionStrength,
             InteractionOrigin = interactionOrigin,
@@ -129,11 +137,11 @@ internal class Simulation(GraphicsContext context) : IDisposable
             ParticleCount = ParticleCount,
             CellCount = CellCount,
             GridPointCount = GridPointCount,
-            WaveMakerEnabled = settings.WaveMakerEnabled ? 1u : 0u,
+            WaveMakerEnabled = waveMakerEnabled ? 1u : 0u,
             GridX = GridDimensions.X,
             GridY = GridDimensions.Y,
             GridZ = GridDimensions.Z,
-            PressureIterations = (uint)pressureIterations,
+            PressureIterations = PressureIterations,
             DamX = DamDimensions.X,
             DamY = DamDimensions.Y,
             DamZ = DamDimensions.Z,
@@ -177,7 +185,7 @@ internal class Simulation(GraphicsContext context) : IDisposable
                 Dispatch(commandBuffer, divergencePipeline, CellCount);
                 commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
-                for (int iteration = 0; iteration < pressureIterations; iteration++)
+                for (uint iteration = 0; iteration < PressureIterations; iteration++)
                 {
                     Dispatch(commandBuffer, pressureRedPipeline, pressureParityDispatchCount);
                     commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
