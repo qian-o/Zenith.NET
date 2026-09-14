@@ -8,10 +8,6 @@ namespace CornellBox;
 
 internal class Renderer : DisposableObject
 {
-    public float RenderPrecision = 0.67f;
-
-    public UpscaleMode UpscaleMode = UpscaleMode.Temporal;
-
     private readonly PathTracingPass pathTracing;
     private readonly DenoisePass denoise;
     private readonly UpscalePass upscale;
@@ -22,8 +18,6 @@ internal class Renderer : DisposableObject
     private uint renderWidth;
     private uint renderHeight;
     private uint frameIndex;
-    private float renderPrecision;
-    private UpscaleMode upscaleMode;
     private Matrix4x4 previousViewProjection;
     private Vector2 previousJitter;
     private bool history;
@@ -38,20 +32,35 @@ internal class Renderer : DisposableObject
         Resize(App.Width, App.Height);
     }
 
-    public Texture Color => tonemap.Color;
-
-    public void Update()
+    public float RenderPrecision
     {
-        if (renderPrecision != RenderPrecision)
+        get;
+        set
         {
-            Resize(outputWidth, outputHeight);
+            if (field != value)
+            {
+                field = value;
+
+                Resize(outputWidth, outputHeight);
+            }
         }
-        else if (upscaleMode != UpscaleMode)
+    } = 0.67f;
+
+    public UpscaleMode UpscaleMode
+    {
+        get;
+        set
         {
-            upscaleMode = UpscaleMode;
-            upscale.Resize(renderWidth, renderHeight, outputWidth, outputHeight, upscaleMode);
+            if (field != value)
+            {
+                field = value;
+
+                upscale.Resize(renderWidth, renderHeight, outputWidth, outputHeight, UpscaleMode);
+            }
         }
-    }
+    } = UpscaleMode.Temporal;
+
+    public Texture Color => tonemap.Color;
 
     public void Render(CommandBuffer commandBuffer, CameraHandler camera)
     {
@@ -71,35 +80,37 @@ internal class Renderer : DisposableObject
 
         bool sameCamera = viewProjection == previousViewProjection;
         Matrix4x4 clipToPrevClip = sameCamera ? Matrix4x4.Identity : inverseProjection * (inverseView * previousViewProjection);
-        float cameraFovAngleHor = 2.0f * MathF.Atan(MathF.Tan(float.DegreesToRadians(camera.Fov) * 0.5f) * camera.AspectRatio);
 
         pathTracing.Render(commandBuffer, camera, previousViewProjection, jitter, frameIndex);
         denoise.Render(commandBuffer, pathTracing.Color, pathTracing.Normal, pathTracing.Depth, jitter, previousJitter, sameCamera, clipToPrevClip);
-        Texture denoised = upscaleMode is UpscaleMode.Temporal ? denoise.Color : denoise.ResolvedColor;
-        Texture hdr = upscale.Render(commandBuffer, denoised, pathTracing.Depth, pathTracing.MotionVectors, jitter, clipToPrevClip, cameraFovAngleHor, sameCamera);
+
+        Texture hdr = upscale.Render(commandBuffer,
+                                     UpscaleMode is UpscaleMode.Temporal ? denoise.Color : denoise.ResolvedColor,
+                                     pathTracing.Depth,
+                                     pathTracing.MotionVectors,
+                                     jitter,
+                                     clipToPrevClip,
+                                     2.0f * MathF.Atan(MathF.Tan(float.DegreesToRadians(camera.Fov) * 0.5f) * camera.AspectRatio),
+                                     sameCamera);
+
         tonemap.Render(commandBuffer, hdr, frameIndex);
 
         previousViewProjection = viewProjection;
         previousJitter = jitter;
         history = true;
+
         frameIndex++;
     }
 
     public void Resize(uint width, uint height)
     {
-        renderPrecision = RenderPrecision;
-        upscaleMode = UpscaleMode;
-        renderWidth = Math.Max(1, (uint)(width * renderPrecision));
-        renderHeight = Math.Max(1, (uint)(height * renderPrecision));
+        renderWidth = Math.Max(1, (uint)(width * RenderPrecision));
+        renderHeight = Math.Max(1, (uint)(height * RenderPrecision));
 
         pathTracing.Resize(renderWidth, renderHeight);
         denoise.Resize(renderWidth, renderHeight);
-        upscale.Resize(renderWidth, renderHeight, width, height, upscaleMode);
-
-        if (outputWidth != width || outputHeight != height)
-        {
-            tonemap.Resize(width, height);
-        }
+        upscale.Resize(renderWidth, renderHeight, width, height, UpscaleMode);
+        tonemap.Resize(width, height);
 
         outputWidth = width;
         outputHeight = height;

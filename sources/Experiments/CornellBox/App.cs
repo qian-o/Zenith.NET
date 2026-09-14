@@ -128,14 +128,18 @@ internal static class App
 
             ImGuiHelper.Settings(static () =>
             {
-                ImGui.SliderFloat("Render Precision", ref renderer.RenderPrecision, 0.5f, 1.0f, "%.2f");
+                float renderPrecision = renderer.RenderPrecision;
+                if (ImGui.SliderFloat("Render Precision", ref renderPrecision, 0.5f, 1.0f, "%.2f"))
+                {
+                    renderer.RenderPrecision = renderPrecision;
+                }
 
                 int upscaleMode = (int)renderer.UpscaleMode;
-                ImGui.Combo("Upscale Mode", ref upscaleMode, "None\0Spatial\0Temporal\0");
-                renderer.UpscaleMode = (UpscaleMode)upscaleMode;
+                if (ImGui.Combo("Upscale Mode", ref upscaleMode, "None\0Spatial\0Temporal\0"))
+                {
+                    renderer.UpscaleMode = (UpscaleMode)upscaleMode;
+                }
             });
-
-            renderer.Update();
         };
 
         window.Render += static _ =>
