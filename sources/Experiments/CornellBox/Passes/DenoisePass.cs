@@ -130,6 +130,7 @@ internal unsafe class DenoisePass : DisposableObject
     private void Temporal(CommandBuffer commandBuffer, Texture color, Texture normal, Texture depth, Vector2 jitter, Vector2 previousJitter, bool sameCamera, Matrix4x4 clipToPrevClip)
     {
         int previousIndex = 1 - historyIndex;
+
         TemporalConstants constants = new()
         {
             SizeRcp = new(color.Desc.Width, color.Desc.Height, 1.0f / color.Desc.Width, 1.0f / color.Desc.Height),
@@ -171,8 +172,10 @@ internal unsafe class DenoisePass : DisposableObject
 
     private void Atrous(CommandBuffer commandBuffer, Texture normal, Texture depth, Vector2 jitter, Vector2 previousJitter, bool sameCamera, Matrix4x4 clipToPrevClip, uint iteration)
     {
+        uint offset = (iteration + 1) * 256;
         Texture input = filtered[iteration % 2];
         Texture output = filtered[1 - (iteration % 2)];
+
         AtrousConstants constants = new()
         {
             SizeRcp = new(input.Desc.Width, input.Desc.Height, 1.0f / input.Desc.Width, 1.0f / input.Desc.Height),
@@ -189,7 +192,6 @@ internal unsafe class DenoisePass : DisposableObject
             Jitter = new(jitter, previousJitter.X, previousJitter.Y),
             ClipToPrevClip = clipToPrevClip
         };
-        uint offset = (iteration + 1) * 256;
 
         buffer.Upload(offset, new()
         {

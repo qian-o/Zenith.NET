@@ -23,7 +23,7 @@ uint Hash(uint value)
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+void CSMain(uint3 dispatchThreadId: SV_DispatchThreadID)
 {
     uint2 pixel = dispatchThreadId.xy;
     uint2 outputSize = uint2(constants.OutputSizeFrame.xy);

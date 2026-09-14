@@ -12,24 +12,21 @@ struct Vertex
 
     property float3 Position
     {
-        get
-        {
+        get {
             return PositionAndPadding.xyz;
         }
     }
 
     property float3 Normal
     {
-        get
-        {
+        get {
             return NormalAndMaterialId.xyz;
         }
     }
 
     property uint MaterialId
     {
-        get
-        {
+        get {
             return asuint(NormalAndMaterialId.w);
         }
     }
@@ -43,32 +40,28 @@ struct Material
 
     property float3 Albedo
     {
-        get
-        {
+        get {
             return AlbedoAndEmission.xyz;
         }
     }
 
     property float Emission
     {
-        get
-        {
+        get {
             return AlbedoAndEmission.w;
         }
     }
 
     property float Metallic
     {
-        get
-        {
+        get {
             return MetallicRoughnessAndPadding.x;
         }
     }
 
     property float Roughness
     {
-        get
-        {
+        get {
             return MetallicRoughnessAndPadding.y;
         }
     }
@@ -259,7 +252,8 @@ bool TraceShadowRay(float3 origin, float3 direction, float maxDist)
         return false;
     }
 
-    RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> shadowQuery;
+    RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES>
+        shadowQuery;
     shadowQuery.TraceRayInline(constants.Scene, RAY_FLAG_NONE, 0xFF, shadowRay);
 
     shadowQuery.Proceed();
@@ -267,7 +261,8 @@ bool TraceShadowRay(float3 origin, float3 direction, float maxDist)
     return shadowQuery.CommittedStatus() != COMMITTED_NOTHING;
 }
 
-float3 SampleLightDirect(float3 hitPos, float3 hitNormal, float3 geoNormal, float3 V, Material mat, float roughness, float specProb, inout uint rng)
+float3 SampleLightDirect(float3 hitPos, float3 hitNormal, float3 geoNormal, float3 V, Material mat, float roughness,
+                         float specProb, inout uint rng)
 {
     float r1 = RandomFloat(rng);
     float r2 = RandomFloat(rng);
@@ -332,10 +327,13 @@ float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng)
             {
                 constants.Depth[pixel] = 1.0;
                 constants.Normal[pixel] = float4(0.0);
-                constants.MotionVectors[pixel] = EncodeMotion(mul(float4(direction, 0.0), constants.ViewProjection), mul(float4(direction, 0.0), constants.PreviousViewProjection));
+                constants.MotionVectors[pixel] =
+                    EncodeMotion(mul(float4(direction, 0.0), constants.ViewProjection),
+                                 mul(float4(direction, 0.0), constants.PreviousViewProjection));
             }
 
-            float3 skyColor = lerp(float3(0.15, 0.12, 0.10), float3(0.30, 0.35, 0.45), saturate(direction.y * 0.5 + 0.5));
+            float3 skyColor =
+                lerp(float3(0.15, 0.12, 0.10), float3(0.30, 0.35, 0.45), saturate(direction.y * 0.5 + 0.5));
             radiance += throughput * skyColor;
 
             break;
@@ -453,7 +451,7 @@ float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng)
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+void CSMain(uint3 dispatchThreadId: SV_DispatchThreadID)
 {
     uint2 pixel = dispatchThreadId.xy;
     uint2 size = uint2(constants.RenderSizeJitter.xy);

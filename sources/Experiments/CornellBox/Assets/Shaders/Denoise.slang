@@ -73,7 +73,8 @@ float4 CubicWeights(float fraction)
     float square = fraction * fraction;
     float cube = square * fraction;
 
-    return float4(-0.5 * fraction + square - 0.5 * cube, 1.0 - 2.5 * square + 1.5 * cube, 0.5 * fraction + 2.0 * square - 1.5 * cube, -0.5 * square + 0.5 * cube);
+    return float4(-0.5 * fraction + square - 0.5 * cube, 1.0 - 2.5 * square + 1.5 * cube,
+                  0.5 * fraction + 2.0 * square - 1.5 * cube, -0.5 * square + 0.5 * cube);
 }
 
 float GeometryWeight(float4 center, float4 sample, float lumaError = 0.0)
@@ -109,7 +110,7 @@ bool ReprojectMotion(int2 pixel, float4 sizeRcp, float4 jitter, float depth, flo
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
-void TemporalMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+void TemporalMain(uint3 dispatchThreadId: SV_DispatchThreadID)
 {
     int2 pixel = int2(dispatchThreadId.xy);
     int2 size = int2(temporal.SizeRcp.xy);
@@ -178,10 +179,12 @@ void TemporalMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     if (temporal.ResetCameraPadding.y == 0)
     {
-        validHistory = ReprojectMotion(pixel, temporal.SizeRcp, temporal.Jitter, temporal.Depth.Load(int3(pixel, 0)), temporal.ClipToPrevClip, motion);
+        validHistory = ReprojectMotion(pixel, temporal.SizeRcp, temporal.Jitter, temporal.Depth.Load(int3(pixel, 0)),
+                                       temporal.ClipToPrevClip, motion);
     }
 
-    float2 previousUV = (float2(pixel) + 0.5 + temporal.Jitter.zw - temporal.Jitter.xy) * temporal.SizeRcp.zw + motion * float2(-0.5, 0.5);
+    float2 previousUV = (float2(pixel) + 0.5 + temporal.Jitter.zw - temporal.Jitter.xy) * temporal.SizeRcp.zw +
+                        motion * float2(-0.5, 0.5);
     float2 previousPosition = previousUV * temporal.SizeRcp.xy - 0.5;
     int2 previousBase = int2(floor(previousPosition));
     float2 fraction = frac(previousPosition);
@@ -224,7 +227,10 @@ void TemporalMain(uint3 dispatchThreadId : SV_DispatchThreadID)
                     float weight = (x == 0 ? 1.0 - fraction.x : fraction.x) * (y == 0 ? 1.0 - fraction.y : fraction.y);
                     previousColor += sampleColor * weight;
                     float4 sampleMoments = temporal.PreviousMoments.Load(int3(samplePixel, 0));
-                    previousMoments += float4(sampleMoments.x, max(sampleMoments.y - sampleMoments.x * sampleMoments.x, 0.0), sampleMoments.zw) * weight;
+                    previousMoments +=
+                        float4(sampleMoments.x, max(sampleMoments.y - sampleMoments.x * sampleMoments.x, 0.0),
+                               sampleMoments.zw) *
+                        weight;
                     historyWeight += weight;
                 }
             }
@@ -250,8 +256,10 @@ void TemporalMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 
         float motionPixels = length(motion * temporal.SizeRcp.xy * 0.5);
         float motionWeight = saturate(motionPixels * 0.25);
-        float alpha = max(temporal.ResetCameraPadding.y != 0 ? 0.025 : lerp(0.25, 0.5, motionWeight), 1.0 / historyLength);
-        float momentsAlpha = max(temporal.ResetCameraPadding.y != 0 ? 0.04 : lerp(0.3, 0.5, motionWeight), 1.0 / historyLength);
+        float alpha =
+            max(temporal.ResetCameraPadding.y != 0 ? 0.025 : lerp(0.25, 0.5, motionWeight), 1.0 / historyLength);
+        float momentsAlpha =
+            max(temporal.ResetCameraPadding.y != 0 ? 0.04 : lerp(0.3, 0.5, motionWeight), 1.0 / historyLength);
 
         // Track temporal weights without modeling spatial covariance.
         squaredWeightSum = (1.0 - alpha) * (1.0 - alpha) * previousMoments.w + alpha * alpha;
@@ -297,7 +305,8 @@ void Resolve(int2 pixel, int2 size, float3 color, float4 normal)
         {
             float2 motion;
 
-            if (ReprojectMotion(pixel, atrous.SizeRcp, atrous.Jitter, atrous.Depth.Load(int3(pixel, 0)), atrous.ClipToPrevClip, motion))
+            if (ReprojectMotion(pixel, atrous.SizeRcp, atrous.Jitter, atrous.Depth.Load(int3(pixel, 0)),
+                                atrous.ClipToPrevClip, motion))
             {
                 float2 motionPixels = motion * atrous.SizeRcp.xy * float2(-0.5, 0.5);
                 float2 previousPosition = float2(pixel) + motionPixels;
@@ -317,7 +326,8 @@ void Resolve(int2 pixel, int2 size, float3 color, float4 normal)
                             continue;
                         }
 
-                        int2 sampleGeometryPixel = int2(floor(float2(samplePixel) + atrous.Jitter.zw - atrous.Jitter.xy + 0.5));
+                        int2 sampleGeometryPixel =
+                            int2(floor(float2(samplePixel) + atrous.Jitter.zw - atrous.Jitter.xy + 0.5));
 
                         if (any(sampleGeometryPixel < 0) || any(sampleGeometryPixel >= size))
                         {
@@ -329,7 +339,8 @@ void Resolve(int2 pixel, int2 size, float3 color, float4 normal)
                             continue;
                         }
 
-                        float weight = (x == 0 ? 1.0 - fraction.x : fraction.x) * (y == 0 ? 1.0 - fraction.y : fraction.y);
+                        float weight =
+                            (x == 0 ? 1.0 - fraction.x : fraction.x) * (y == 0 ? 1.0 - fraction.y : fraction.y);
                         previous += atrous.PreviousResolved.Load(int3(samplePixel, 0)) * weight;
                         historyWeight += weight;
                     }
@@ -360,7 +371,8 @@ void Resolve(int2 pixel, int2 size, float3 color, float4 normal)
 
                     float historyLength = min(previous.a + 1.0, 64.0);
                     float alpha = max(lerp(0.125, 0.5, saturate(length(motionPixels) * 0.25)), 1.0 / historyLength);
-                    resolved = float4(lerp(clamp(previous.rgb, minimum, maximum), color, alpha), min(historyLength, 1.0 / alpha));
+                    resolved = float4(lerp(clamp(previous.rgb, minimum, maximum), color, alpha),
+                                      min(historyLength, 1.0 / alpha));
                 }
             }
         }
@@ -371,7 +383,7 @@ void Resolve(int2 pixel, int2 size, float3 color, float4 normal)
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
-void AtrousMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+void AtrousMain(uint3 dispatchThreadId: SV_DispatchThreadID)
 {
     int2 pixel = int2(dispatchThreadId.xy);
     int2 size = int2(atrous.SizeRcp.xy);
@@ -437,7 +449,8 @@ void AtrousMain(uint3 dispatchThreadId : SV_DispatchThreadID)
             float4 sampleNormal = atrous.Normal.Load(int3(samplePixel, 0));
             float4 sampleColor = atrous.Input.Load(int3(samplePixel, 0));
             float sampleLuma = Luminance(sampleColor.rgb);
-            float weight = Kernel(x) * Kernel(y) * GeometryWeight(normal, sampleNormal, abs(sampleLuma - centerLuma) / lumaScale);
+            float weight =
+                Kernel(x) * Kernel(y) * GeometryWeight(normal, sampleNormal, abs(sampleLuma - centerLuma) / lumaScale);
 
             sum += sampleColor.rgb * weight;
             sumVariance += sampleColor.a * weight * weight;

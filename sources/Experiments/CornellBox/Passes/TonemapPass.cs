@@ -56,7 +56,6 @@ internal unsafe class TonemapPass : DisposableObject
     public void Resize(uint width, uint height)
     {
         Color?.Dispose();
-
         Color = App.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,

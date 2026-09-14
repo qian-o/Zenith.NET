@@ -117,6 +117,8 @@ internal static class App
             imGui.Update(delta, width, height);
             camera.Update(delta, width, height);
 
+            ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(renderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
+
             ImGuiHelper.Overlay(static () =>
             {
                 ImGui.Text(Context.Capabilities.DeviceName);
@@ -134,8 +136,6 @@ internal static class App
             });
 
             renderer.Update();
-
-            ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(renderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
         };
 
         window.Render += static _ =>

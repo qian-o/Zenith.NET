@@ -185,11 +185,6 @@ internal unsafe class PathTracingPass : DisposableObject
 
     public void Resize(uint width, uint height)
     {
-        MotionVectors?.Dispose();
-        Normal?.Dispose();
-        Depth?.Dispose();
-        Color?.Dispose();
-
         TextureDesc desc = new()
         {
             Type = TextureType.Texture2D,
@@ -203,9 +198,16 @@ internal unsafe class PathTracingPass : DisposableObject
             Usages = TextureUsages.Sampled | TextureUsages.Storage
         };
 
+        Color?.Dispose();
         Color = App.Context.CreateTexture(desc);
+
+        Depth?.Dispose();
         Depth = App.Context.CreateTexture(desc with { Format = PixelFormat.R32Float });
+
+        Normal?.Dispose();
         Normal = App.Context.CreateTexture(desc);
+
+        MotionVectors?.Dispose();
         MotionVectors = App.Context.CreateTexture(desc with { Format = PixelFormat.R16G16Float });
     }
 
