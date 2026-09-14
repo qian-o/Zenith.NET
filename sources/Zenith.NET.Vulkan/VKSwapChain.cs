@@ -167,7 +167,7 @@ internal unsafe class VKSwapChain : SwapChain
         Context.Surface?.GetPhysicalDeviceSurfaceFormats(Context.PhysicalDevice, Surface, &surfaceFormatCount, surfaceFormats).Success();
 
         uint presentModeCount = 0;
-        Context.Surface?.GetPhysicalDeviceSurfacePresentModes(Context.PhysicalDevice, Surface, &presentModeCount, null).Success();
+        Context.Surface?.GetPhysicalDeviceSurfacePresentModes(Context.PhysicalDevice, Surface, &presentModeCount, default).Success();
 
         PresentModeKHR* presentModes = (PresentModeKHR*)ZenithMarshal.Allocate<PresentModeKHR>(scope, presentModeCount);
         Context.Surface?.GetPhysicalDeviceSurfacePresentModes(Context.PhysicalDevice, Surface, &presentModeCount, presentModes).Success();

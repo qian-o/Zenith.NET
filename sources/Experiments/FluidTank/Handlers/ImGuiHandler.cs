@@ -156,11 +156,10 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
         };
     }
 
-    private static unsafe void OtherSetup(ImGuiIOPtr io)
+    private static void OtherSetup(ImGuiIOPtr io)
     {
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
         io.DisplayFramebufferScale = App.DpiScale;
-        io.IniFilename = null;
     }
 
     public void SetCursor(ImGuiMouseCursor cursor)
@@ -192,5 +191,6 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
 
     public void SetImeData(ImGuiViewportPtr viewport, ImGuiPlatformImeDataPtr data)
     {
+        // IME not supported.
     }
 }
