@@ -120,14 +120,11 @@ internal static class App
                 renderer.PushFluid(origin, direction);
             }
 
-            ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(renderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
-
             ImGuiHelper.Overlay(static () =>
             {
                 ImGui.Text(Context.Capabilities.DeviceName);
                 ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
                 ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
-                ImGui.Text($"Particles: {Simulation.ParticleCount:N0}");
             });
 
             ImGuiHelper.Settings(static () =>
@@ -159,10 +156,13 @@ internal static class App
 
                 ImGui.Separator();
                 ImGui.Checkbox("Antialiasing", ref renderer.AntialiasingEnabled);
+
                 ImGui.BeginDisabled(!Context.Capabilities.RayTracingSupported);
                 ImGui.Checkbox("Ray-traced reflections", ref renderer.RayTracingEnabled);
                 ImGui.EndDisabled();
             });
+
+            ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(renderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
         };
 
         window.Render += static _ =>
