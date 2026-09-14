@@ -442,8 +442,7 @@ void AtrousMain(uint3 dispatchThreadId: SV_DispatchThreadID)
             float4 sampleNormal = atrous.Normal.Load(int3(samplePixel, 0));
             float4 sampleColor = atrous.Input.Load(int3(samplePixel, 0));
             float colorDifference = length(sampleColor.rgb - center.rgb);
-            float weight =
-                Kernel(x) * Kernel(y) * GeometryWeight(normal, sampleNormal, colorDifference / colorScale);
+            float weight = Kernel(x) * Kernel(y) * GeometryWeight(normal, sampleNormal, colorDifference / colorScale);
 
             sum += sampleColor.rgb * weight;
             sumVariance += sampleColor.a * weight * weight;
