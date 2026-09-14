@@ -7,7 +7,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Passes;
 
-internal unsafe partial class PathTracingPass : DisposableObject
+internal unsafe class PathTracingPass : DisposableObject
 {
     private const uint ThreadGroupSize = 8;
 
@@ -64,13 +64,7 @@ internal unsafe partial class PathTracingPass : DisposableObject
             Residency = MemoryResidency.CpuWriteOnly
         });
 
-        using Shader computeShader = App.Context.CreateShader(App.Context.GraphicsApi switch
-        {
-            GraphicsApi.DirectX12 => DirectX12CSMain,
-            GraphicsApi.Metal => MetalCSMain,
-            GraphicsApi.Vulkan => VulkanCSMain,
-            _ => default
-        });
+        using Shader computeShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "PathTracing.slang"), "CSMain"));
 
         pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = computeShader });
 

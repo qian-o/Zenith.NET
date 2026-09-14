@@ -5,7 +5,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Passes;
 
-internal unsafe partial class TonemapPass : DisposableObject
+internal unsafe class TonemapPass : DisposableObject
 {
     private readonly Buffer buffer;
     private readonly Sampler sampler;
@@ -14,13 +14,7 @@ internal unsafe partial class TonemapPass : DisposableObject
 
     public TonemapPass()
     {
-        using Shader shader = App.Context.CreateShader(App.Context.GraphicsApi switch
-        {
-            GraphicsApi.DirectX12 => DirectX12CSMain,
-            GraphicsApi.Metal => MetalCSMain,
-            GraphicsApi.Vulkan => VulkanCSMain,
-            _ => default
-        });
+        using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Tonemap.slang"), "CSMain"));
 
         buffer = App.Context.CreateBuffer(new()
         {

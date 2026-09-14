@@ -5,7 +5,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Passes;
 
-internal unsafe partial class DenoisePass : DisposableObject
+internal unsafe class DenoisePass : DisposableObject
 {
     private const uint ThreadGroupSize = 16;
 
@@ -24,20 +24,10 @@ internal unsafe partial class DenoisePass : DisposableObject
 
     public DenoisePass()
     {
-        using Shader temporalShader = App.Context.CreateShader(App.Context.GraphicsApi switch
-        {
-            GraphicsApi.DirectX12 => DirectX12TemporalMain,
-            GraphicsApi.Metal => MetalTemporalMain,
-            GraphicsApi.Vulkan => VulkanTemporalMain,
-            _ => default
-        });
-        using Shader atrousShader = App.Context.CreateShader(App.Context.GraphicsApi switch
-        {
-            GraphicsApi.DirectX12 => DirectX12AtrousMain,
-            GraphicsApi.Metal => MetalAtrousMain,
-            GraphicsApi.Vulkan => VulkanAtrousMain,
-            _ => default
-        });
+        string shaderFile = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Denoise.slang");
+
+        using Shader temporalShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderFile, "TemporalMain"));
+        using Shader atrousShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderFile, "AtrousMain"));
 
         buffer = App.Context.CreateBuffer(new()
         {
@@ -155,6 +145,7 @@ internal unsafe partial class DenoisePass : DisposableObject
             MomentsHistory = momentsHistory[historyIndex].StorageHandle,
             GeometryHistory = geometryHistory[historyIndex].StorageHandle,
             Output = filtered[0].StorageHandle,
+            ColorHistory = colorHistory[historyIndex].StorageHandle,
             ClipToPrevClip = clipToPrevClip
         };
 
@@ -164,6 +155,7 @@ internal unsafe partial class DenoisePass : DisposableObject
             SizeInBytes = (uint)sizeof(TemporalConstants)
         });
 
+        commandBuffer.Transition(colorHistory[historyIndex], default, TextureLayout.Sampled, TextureLayout.Storage);
         commandBuffer.Transition(momentsHistory[historyIndex], default, TextureLayout.Sampled, TextureLayout.Storage);
         commandBuffer.Transition(geometryHistory[historyIndex], default, TextureLayout.Sampled, TextureLayout.Storage);
         commandBuffer.Transition(filtered[0], default, TextureLayout.Sampled, TextureLayout.Storage);
@@ -171,6 +163,7 @@ internal unsafe partial class DenoisePass : DisposableObject
         commandBuffer.SetConstantBuffer(buffer, 0);
         commandBuffer.Dispatch((color.Desc.Width + ThreadGroupSize - 1) / ThreadGroupSize, (color.Desc.Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
+        commandBuffer.Transition(colorHistory[historyIndex], default, TextureLayout.Storage, TextureLayout.Sampled);
         commandBuffer.Transition(momentsHistory[historyIndex], default, TextureLayout.Storage, TextureLayout.Sampled);
         commandBuffer.Transition(geometryHistory[historyIndex], default, TextureLayout.Storage, TextureLayout.Sampled);
         commandBuffer.Transition(filtered[0], default, TextureLayout.Storage, TextureLayout.Sampled);
@@ -189,7 +182,6 @@ internal unsafe partial class DenoisePass : DisposableObject
             Normal = normal.SampledHandle,
             Input = input.SampledHandle,
             Output = output.StorageHandle,
-            ColorHistory = colorHistory[historyIndex].StorageHandle,
             Depth = depth.SampledHandle,
             PreviousGeometry = geometryHistory[1 - historyIndex].SampledHandle,
             PreviousResolved = resolveHistory[1 - historyIndex].SampledHandle,
@@ -204,11 +196,6 @@ internal unsafe partial class DenoisePass : DisposableObject
             Pointer = (nint)(&constants),
             SizeInBytes = (uint)sizeof(AtrousConstants)
         });
-
-        if (iteration is 0)
-        {
-            commandBuffer.Transition(colorHistory[historyIndex], default, TextureLayout.Sampled, TextureLayout.Storage);
-        }
 
         commandBuffer.Transition(output, default, TextureLayout.Sampled, TextureLayout.Storage);
 
@@ -225,7 +212,6 @@ internal unsafe partial class DenoisePass : DisposableObject
 
         if (iteration is 4)
         {
-            commandBuffer.Transition(colorHistory[historyIndex], default, TextureLayout.Storage, TextureLayout.Sampled);
             commandBuffer.Transition(resolveHistory[historyIndex], default, TextureLayout.Storage, TextureLayout.Sampled);
         }
     }
@@ -279,6 +265,9 @@ file struct TemporalConstants
     [FieldOffset(112)]
     public ResourceHandle Output;
 
+    [FieldOffset(120)]
+    public ResourceHandle ColorHistory;
+
     [FieldOffset(128)]
     public Matrix4x4 ClipToPrevClip;
 }
@@ -311,18 +300,15 @@ file struct AtrousConstants
     public ResourceHandle Output;
 
     [FieldOffset(56)]
-    public ResourceHandle ColorHistory;
-
-    [FieldOffset(64)]
     public ResourceHandle Depth;
 
-    [FieldOffset(72)]
+    [FieldOffset(64)]
     public ResourceHandle PreviousGeometry;
 
-    [FieldOffset(80)]
+    [FieldOffset(72)]
     public ResourceHandle PreviousResolved;
 
-    [FieldOffset(88)]
+    [FieldOffset(80)]
     public ResourceHandle ResolvedHistory;
 
     [FieldOffset(96)]
