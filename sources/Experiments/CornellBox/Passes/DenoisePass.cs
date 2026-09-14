@@ -24,10 +24,8 @@ internal unsafe class DenoisePass : Pass
 
     public DenoisePass()
     {
-        string shaderFile = ShaderPath("Denoise.slang");
-
-        using Shader temporalShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderFile, "TemporalMain"));
-        using Shader atrousShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderFile, "AtrousMain"));
+        using Shader temporalShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Denoise.slang"), "TemporalMain"));
+        using Shader atrousShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Denoise.slang"), "AtrousMain"));
 
         buffer = App.Context.CreateBuffer(new()
         {

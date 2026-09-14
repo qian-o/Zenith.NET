@@ -64,9 +64,9 @@ internal unsafe class PathTracingPass : Pass
             Residency = MemoryResidency.CpuWriteOnly
         });
 
-        using Shader computeShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("PathTracing.slang"), "CSMain"));
+        using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("PathTracing.slang"), "CSMain"));
 
-        pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = computeShader });
+        pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = shader });
 
         CommandBuffer commandBuffer = App.Context.ComputeQueue.CommandBuffer();
 
@@ -173,10 +173,12 @@ internal unsafe class PathTracingPass : Pass
         commandBuffer.Transition(Depth, default, TextureLayout.Undefined, TextureLayout.Storage);
         commandBuffer.Transition(Normal, default, TextureLayout.Undefined, TextureLayout.Storage);
         commandBuffer.Transition(MotionVectors, default, TextureLayout.Undefined, TextureLayout.Storage);
+
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(constantBuffer, 0);
         commandBuffer.Dispatch((Color.Desc.Width + ThreadGroupSize - 1) / ThreadGroupSize, (Color.Desc.Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
+
         commandBuffer.Transition(Color, default, TextureLayout.Storage, TextureLayout.Sampled);
         commandBuffer.Transition(Depth, default, TextureLayout.Storage, TextureLayout.Sampled);
         commandBuffer.Transition(Normal, default, TextureLayout.Storage, TextureLayout.Sampled);
