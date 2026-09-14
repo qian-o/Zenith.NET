@@ -58,11 +58,6 @@ ConstantBuffer<TemporalConstants> temporal : register(b0);
 
 ConstantBuffer<AtrousConstants> atrous : register(b0);
 
-float Luminance(float3 color)
-{
-    return dot(color, float3(0.2126, 0.7152, 0.0722));
-}
-
 float Kernel(int offset)
 {
     return offset == 0 ? 0.375 : (abs(offset) == 1 ? 0.25 : 0.0625);
@@ -77,10 +72,10 @@ float4 CubicWeights(float fraction)
                   0.5 * fraction + 2.0 * square - 1.5 * cube, -0.5 * square + 0.5 * cube);
 }
 
-float GeometryWeight(float4 center, float4 sample, float lumaError = 0.0)
+float GeometryWeight(float4 center, float4 sample, float colorError = 0.0)
 {
     // Static quads store identical normal and plane offset values.
-    return all(center == sample) ? exp(-lumaError) : 0.0;
+    return all(center == sample) ? exp(-colorError) : 0.0;
 }
 
 bool ReprojectMotion(int2 pixel, float4 sizeRcp, float4 jitter, float depth, float4x4 clipToPrevClip, out float2 motion)
@@ -122,11 +117,10 @@ void TemporalMain(uint3 dispatchThreadId: SV_DispatchThreadID)
 
     float3 current = max(temporal.Color.Load(int3(pixel, 0)).rgb, 0.0);
     float4 normal = temporal.Normal.Load(int3(pixel, 0));
-    float currentLuma = Luminance(current);
 
     if (all(normal.xyz == 0.0))
     {
-        temporal.MomentsHistory[pixel] = float4(currentLuma, currentLuma * currentLuma, 1.0, 1.0);
+        temporal.MomentsHistory[pixel] = float4(0.0, 0.0, 1.0, 1.0);
         temporal.GeometryHistory[pixel] = normal;
         temporal.Output[pixel] = float4(current, 0.0);
         temporal.ColorHistory[pixel] = float4(current, 1.0);
@@ -138,7 +132,6 @@ void TemporalMain(uint3 dispatchThreadId: SV_DispatchThreadID)
     float3 neighborhoodSecond = 0.0;
     float3 neighborhoodMin = current;
     float3 neighborhoodMax = current;
-    float2 spatialMoments = 0.0;
     float neighborhoodWeight = 0.0;
 
     for (int y = -2; y <= 2; y++)
@@ -150,11 +143,9 @@ void TemporalMain(uint3 dispatchThreadId: SV_DispatchThreadID)
             float4 sampleNormal = temporal.Normal.Load(int3(samplePixel, 0));
             float3 sampleColor = max(temporal.Color.Load(int3(samplePixel, 0)).rgb, 0.0);
             float weight = GeometryWeight(normal, sampleNormal) * Kernel(x) * Kernel(y);
-            float sampleLuma = Luminance(sampleColor);
 
             neighborhoodMean += sampleColor * weight;
             neighborhoodSecond += sampleColor * sampleColor * weight;
-            spatialMoments += float2(sampleLuma, sampleLuma * sampleLuma) * weight;
             neighborhoodWeight += weight;
 
             if (weight > 0.001)
@@ -167,7 +158,6 @@ void TemporalMain(uint3 dispatchThreadId: SV_DispatchThreadID)
 
     neighborhoodMean /= neighborhoodWeight;
     neighborhoodSecond /= neighborhoodWeight;
-    spatialMoments /= neighborhoodWeight;
 
     float3 previousColor = 0.0;
     float3 cubicColor = 0.0;
@@ -227,10 +217,7 @@ void TemporalMain(uint3 dispatchThreadId: SV_DispatchThreadID)
                     float weight = (x == 0 ? 1.0 - fraction.x : fraction.x) * (y == 0 ? 1.0 - fraction.y : fraction.y);
                     previousColor += sampleColor * weight;
                     float4 sampleMoments = temporal.PreviousMoments.Load(int3(samplePixel, 0));
-                    previousMoments +=
-                        float4(sampleMoments.x, max(sampleMoments.y - sampleMoments.x * sampleMoments.x, 0.0),
-                               sampleMoments.zw) *
-                        weight;
+                    previousMoments += sampleMoments * weight;
                     historyWeight += weight;
                 }
             }
@@ -240,13 +227,12 @@ void TemporalMain(uint3 dispatchThreadId: SV_DispatchThreadID)
     float historyLength = 1.0;
     float squaredWeightSum = 1.0;
     float3 accumulated = current;
-    float2 moments = float2(currentLuma, currentLuma * currentLuma);
+    float colorVariance = 0.0;
 
     if (historyWeight > 0.01)
     {
         previousColor = cubicValid ? cubicColor : previousColor / historyWeight;
         previousMoments /= historyWeight;
-        previousMoments.y += previousMoments.x * previousMoments.x;
 
         float3 deviation = sqrt(max(neighborhoodSecond - neighborhoodMean * neighborhoodMean, 0.0));
         float3 minimum = max(neighborhoodMin, neighborhoodMean - 3.0 * deviation);
@@ -258,13 +244,14 @@ void TemporalMain(uint3 dispatchThreadId: SV_DispatchThreadID)
         float motionWeight = saturate(motionPixels * 0.25);
         float alpha =
             max(temporal.ResetCameraPadding.y != 0 ? 0.025 : lerp(0.25, 0.5, motionWeight), 1.0 / historyLength);
-        float momentsAlpha =
-            max(temporal.ResetCameraPadding.y != 0 ? 0.04 : lerp(0.3, 0.5, motionWeight), 1.0 / historyLength);
 
         // Track temporal weights without modeling spatial covariance.
         squaredWeightSum = (1.0 - alpha) * (1.0 - alpha) * previousMoments.w + alpha * alpha;
         accumulated = lerp(previousColor, current, alpha);
-        moments = lerp(previousMoments.xy, moments, momentsAlpha);
+        float3 difference = current - previousColor;
+
+        // Update the sum of RGB central variances with the color history weights.
+        colorVariance = (1.0 - alpha) * (previousMoments.x + alpha * dot(difference, difference));
 
         if (temporal.ResetCameraPadding.y == 0)
         {
@@ -272,15 +259,22 @@ void TemporalMain(uint3 dispatchThreadId: SV_DispatchThreadID)
         }
     }
 
-    float variance = max(moments.y - moments.x * moments.x, 0.0) * squaredWeightSum;
+    // Estimate variance of the temporal mean from its weighted central moment.
+    float variance = colorVariance * squaredWeightSum;
+
+    if (historyLength > 1.0)
+    {
+        variance /= 1.0 - squaredWeightSum;
+    }
 
     if (historyLength < 4.0)
     {
-        float spatialVariance = max(spatialMoments.y - spatialMoments.x * spatialMoments.x, 0.0);
+        float3 spatialVarianceRgb = max(neighborhoodSecond - neighborhoodMean * neighborhoodMean, 0.0);
+        float spatialVariance = spatialVarianceRgb.x + spatialVarianceRgb.y + spatialVarianceRgb.z;
         variance = max(variance, spatialVariance * 4.0 / historyLength);
     }
 
-    temporal.MomentsHistory[pixel] = float4(moments, historyLength, squaredWeightSum);
+    temporal.MomentsHistory[pixel] = float4(colorVariance, 0.0, historyLength, squaredWeightSum);
     temporal.GeometryHistory[pixel] = normal;
     temporal.Output[pixel] = float4(accumulated, min(variance, 65504.0));
 
@@ -412,7 +406,6 @@ void AtrousMain(uint3 dispatchThreadId: SV_DispatchThreadID)
     }
 
     float4 center = atrous.Input.Load(int3(pixel, 0));
-    float centerLuma = Luminance(center.rgb);
     float variance = 0.0;
     float varianceWeight = 0.0;
 
@@ -429,7 +422,7 @@ void AtrousMain(uint3 dispatchThreadId: SV_DispatchThreadID)
         }
     }
 
-    float lumaScale = 4.0 * sqrt(max(variance / varianceWeight, 0.0)) + 0.001;
+    float colorScale = 4.0 * sqrt(max(variance / varianceWeight, 0.0)) + sqrt(3.0) * 0.001;
     float3 sum = 0.0;
     float sumVariance = 0.0;
     float sumWeight = 0.0;
@@ -448,9 +441,9 @@ void AtrousMain(uint3 dispatchThreadId: SV_DispatchThreadID)
 
             float4 sampleNormal = atrous.Normal.Load(int3(samplePixel, 0));
             float4 sampleColor = atrous.Input.Load(int3(samplePixel, 0));
-            float sampleLuma = Luminance(sampleColor.rgb);
+            float colorDifference = length(sampleColor.rgb - center.rgb);
             float weight =
-                Kernel(x) * Kernel(y) * GeometryWeight(normal, sampleNormal, abs(sampleLuma - centerLuma) / lumaScale);
+                Kernel(x) * Kernel(y) * GeometryWeight(normal, sampleNormal, colorDifference / colorScale);
 
             sum += sampleColor.rgb * weight;
             sumVariance += sampleColor.a * weight * weight;
