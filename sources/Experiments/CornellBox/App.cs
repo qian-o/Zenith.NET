@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using CornellBox.Handlers;
 using CornellBox.Helpers;
-using CornellBox.Renderers;
+using CornellBox.Models;
 using Hexa.NET.ImGui;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
@@ -19,11 +19,7 @@ internal static class App
     private static readonly SwapChain swapChain;
     private static readonly ImGuiHandler imGui;
     private static readonly CameraHandler camera;
-    private static readonly PathTracingRenderer? pathTracer;
-    private static readonly RasterizationRenderer rasterizer;
-
-    private static Renderer activeRenderer;
-    private static int currentMode;
+    private static readonly Renderer renderer;
 
     static App()
     {
@@ -46,6 +42,11 @@ internal static class App
         }
 
         Context.ValidationMessage += static (sender, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
+
+        if (!Context.Capabilities.RayTracingSupported)
+        {
+            throw new NotSupportedException("Cornell Box requires ray tracing support.");
+        }
 
         window = Window.Create(WindowOptions.Default with
         {
@@ -90,18 +91,7 @@ internal static class App
             Speed = 240.0f
         };
 
-        rasterizer = new();
-
-        if (Context.Capabilities.RayTracingSupported)
-        {
-            activeRenderer = pathTracer = new();
-            currentMode = 0;
-        }
-        else
-        {
-            activeRenderer = rasterizer;
-            currentMode = 1;
-        }
+        renderer = new();
     }
 
     public static GraphicsContext Context { get; }
@@ -127,8 +117,6 @@ internal static class App
             imGui.Update(delta, width, height);
             camera.Update(delta, width, height);
 
-            ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(activeRenderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
-
             ImGuiHelper.Overlay(static () =>
             {
                 ImGui.Text(Context.Capabilities.DeviceName);
@@ -138,34 +126,16 @@ internal static class App
 
             ImGuiHelper.Settings(static () =>
             {
-                ImGui.Text("Render Mode:");
+                ImGui.SliderFloat("Render Precision", ref renderer.RenderPrecision, 0.5f, 1.0f, "%.2f");
 
-                if (Context.Capabilities.RayTracingSupported)
-                {
-                    if (ImGui.RadioButton("Path Tracing", currentMode is 0) && currentMode is not 0)
-                    {
-                        currentMode = 0;
-                        activeRenderer = pathTracer!;
-
-                        pathTracer!.FrameCount = 0;
-                    }
-
-                    ImGui.SameLine();
-                }
-
-                if (ImGui.RadioButton("Rasterization", currentMode is 1) && currentMode is not 1)
-                {
-                    currentMode = 1;
-                    activeRenderer = rasterizer;
-                }
-
-                ImGui.Separator();
-
-                if (currentMode is 0 && pathTracer is not null)
-                {
-                    ImGui.Text($"SPP: {pathTracer.FrameCount}");
-                }
+                int upscaleMode = (int)renderer.UpscaleMode;
+                ImGui.Combo("Upscale Mode", ref upscaleMode, "None\0Spatial\0Temporal\0");
+                renderer.UpscaleMode = (UpscaleMode)upscaleMode;
             });
+
+            renderer.Update();
+
+            ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(renderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
         };
 
         window.Render += static _ =>
@@ -177,8 +147,7 @@ internal static class App
 
             CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
-            activeRenderer.Update(camera);
-            activeRenderer.Render(commandBuffer);
+            renderer.Render(commandBuffer, camera);
 
             commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
             imGui.Render(commandBuffer, ColorAttachment.Clear(swapChain.Drawable, default));
@@ -196,15 +165,13 @@ internal static class App
                 return;
             }
 
-            pathTracer?.Resize(Width, Height);
-            rasterizer.Resize(Width, Height);
+            renderer.Resize(Width, Height);
             swapChain.Resize(Width, Height);
         };
 
         window.Run();
 
-        pathTracer?.Dispose();
-        rasterizer.Dispose();
+        renderer.Dispose();
         imGui.Dispose();
         swapChain.Dispose();
         input.Dispose();

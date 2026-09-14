@@ -12,21 +12,24 @@ struct Vertex
 
     property float3 Position
     {
-        get {
+        get
+        {
             return PositionAndPadding.xyz;
         }
     }
 
     property float3 Normal
     {
-        get {
+        get
+        {
             return NormalAndMaterialId.xyz;
         }
     }
 
     property uint MaterialId
     {
-        get {
+        get
+        {
             return asuint(NormalAndMaterialId.w);
         }
     }
@@ -40,42 +43,50 @@ struct Material
 
     property float3 Albedo
     {
-        get {
+        get
+        {
             return AlbedoAndEmission.xyz;
         }
     }
 
     property float Emission
     {
-        get {
+        get
+        {
             return AlbedoAndEmission.w;
         }
     }
 
     property float Metallic
     {
-        get {
+        get
+        {
             return MetallicRoughnessAndPadding.x;
         }
     }
 
     property float Roughness
     {
-        get {
+        get
+        {
             return MetallicRoughnessAndPadding.y;
         }
     }
 };
 
-struct PathTracingConstants
+struct Constants
 {
-    float4x4 InvView;
+    float4x4 InverseView;
 
-    float4x4 InvProjection;
+    float4x4 InverseProjection;
 
-    private float4 PositionAndPadding;
+    float4x4 ViewProjection;
 
-    private uint4 FrameCountWidthHeightAndPadding;
+    float4x4 PreviousViewProjection;
+
+    float4 PositionFrame;
+
+    float4 RenderSizeJitter;
 
     DescriptorHandle<RaytracingAccelerationStructure> Scene;
 
@@ -85,40 +96,24 @@ struct PathTracingConstants
 
     DescriptorHandle<StructuredBuffer<Material>> Materials;
 
-    DescriptorHandle<RWTexture2D<float4>> AccumulationTexture;
+    DescriptorHandle<RWTexture2D<float4>> Color;
 
-    DescriptorHandle<RWTexture2D<float4>> OutputTexture;
+    DescriptorHandle<RWTexture2D<float>> Depth;
 
-    property float3 Position
-    {
-        get {
-            return PositionAndPadding.xyz;
-        }
-    }
+    DescriptorHandle<RWTexture2D<float4>> Normal;
 
-    property uint FrameCount
-    {
-        get {
-            return FrameCountWidthHeightAndPadding.x;
-        }
-    }
-
-    property uint Width
-    {
-        get {
-            return FrameCountWidthHeightAndPadding.y;
-        }
-    }
-
-    property uint Height
-    {
-        get {
-            return FrameCountWidthHeightAndPadding.z;
-        }
-    }
+    DescriptorHandle<RWTexture2D<float2>> MotionVectors;
 };
 
-ConstantBuffer<PathTracingConstants> pathTracing;
+ConstantBuffer<Constants> constants;
+
+float2 EncodeMotion(float4 currentClip, float4 previousClip)
+{
+    float2 motion = currentClip.xy / currentClip.w - previousClip.xy / previousClip.w;
+
+    // Keep neutral velocity exactly representable in the half texture.
+    return motion * (0.499 * 0.5) + 0.5;
+}
 
 float DistributionGGX(float NdotH, float roughness)
 {
@@ -264,18 +259,15 @@ bool TraceShadowRay(float3 origin, float3 direction, float maxDist)
         return false;
     }
 
-    RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> shadowQuery;
-    shadowQuery.TraceRayInline(pathTracing.Scene, RAY_FLAG_NONE, 0xFF, shadowRay);
+    RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> shadowQuery;
+    shadowQuery.TraceRayInline(constants.Scene, RAY_FLAG_NONE, 0xFF, shadowRay);
 
-    while (shadowQuery.Proceed())
-    {
-    }
+    shadowQuery.Proceed();
 
     return shadowQuery.CommittedStatus() != COMMITTED_NOTHING;
 }
 
-float3 SampleLightDirect(float3 hitPos, float3 hitNormal, float3 geoNormal, float3 V, Material mat, float roughness,
-                         float specProb, inout uint rng)
+float3 SampleLightDirect(float3 hitPos, float3 hitNormal, float3 geoNormal, float3 V, Material mat, float roughness, float specProb, inout uint rng)
 {
     float r1 = RandomFloat(rng);
     float r2 = RandomFloat(rng);
@@ -304,7 +296,7 @@ float3 SampleLightDirect(float3 hitPos, float3 hitNormal, float3 geoNormal, floa
         return float3(0.0, 0.0, 0.0);
     }
 
-    Material lightMat = pathTracing.Materials[3];
+    Material lightMat = constants.Materials[3];
     float3 lightEmission = lightMat.Albedo * lightMat.Emission;
 
     float pdfLight = (dist * dist) / (lightCosine * LightArea);
@@ -316,7 +308,7 @@ float3 SampleLightDirect(float3 hitPos, float3 hitNormal, float3 geoNormal, floa
     return lightEmission * brdf * NdotL * misWeight / pdfLight;
 }
 
-float3 TracePath(float3 origin, float3 direction, inout uint rng)
+float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng)
 {
     float3 throughput = float3(1.0, 1.0, 1.0);
     float3 radiance = float3(0.0, 0.0, 0.0);
@@ -329,17 +321,21 @@ float3 TracePath(float3 origin, float3 direction, inout uint rng)
         ray.TMin = 0.001;
         ray.TMax = 100000.0;
 
-        RayQuery<RAY_FLAG_NONE> query;
-        query.TraceRayInline(pathTracing.Scene, RAY_FLAG_NONE, 0xFF, ray);
+        RayQuery<RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> query;
+        query.TraceRayInline(constants.Scene, RAY_FLAG_NONE, 0xFF, ray);
 
-        while (query.Proceed())
-        {
-        }
+        query.Proceed();
 
         if (query.CommittedStatus() == COMMITTED_NOTHING)
         {
-            float3 skyColor =
-                lerp(float3(0.15, 0.12, 0.10), float3(0.30, 0.35, 0.45), saturate(direction.y * 0.5 + 0.5));
+            if (bounce == 0)
+            {
+                constants.Depth[pixel] = 1.0;
+                constants.Normal[pixel] = float4(0.0);
+                constants.MotionVectors[pixel] = EncodeMotion(mul(float4(direction, 0.0), constants.ViewProjection), mul(float4(direction, 0.0), constants.PreviousViewProjection));
+            }
+
+            float3 skyColor = lerp(float3(0.15, 0.12, 0.10), float3(0.30, 0.35, 0.45), saturate(direction.y * 0.5 + 0.5));
             radiance += throughput * skyColor;
 
             break;
@@ -350,13 +346,13 @@ float3 TracePath(float3 origin, float3 direction, inout uint rng)
         float t = query.CommittedRayT();
         float3 hitPos = origin + direction * t;
 
-        uint i0 = pathTracing.Indices[primIdx * 3 + 0];
-        uint i1 = pathTracing.Indices[primIdx * 3 + 1];
-        uint i2 = pathTracing.Indices[primIdx * 3 + 2];
+        uint i0 = constants.Indices[primIdx * 3 + 0];
+        uint i1 = constants.Indices[primIdx * 3 + 1];
+        uint i2 = constants.Indices[primIdx * 3 + 2];
 
-        Vertex v0 = pathTracing.Vertices[i0];
-        Vertex v1 = pathTracing.Vertices[i1];
-        Vertex v2 = pathTracing.Vertices[i2];
+        Vertex v0 = constants.Vertices[i0];
+        Vertex v1 = constants.Vertices[i1];
+        Vertex v2 = constants.Vertices[i2];
 
         float3 baryWeights = float3(1.0 - bary.x - bary.y, bary.x, bary.y);
         float3 normal = normalize(v0.Normal * baryWeights.x + v1.Normal * baryWeights.y + v2.Normal * baryWeights.z);
@@ -367,7 +363,17 @@ float3 TracePath(float3 origin, float3 direction, inout uint rng)
             normal = -normal;
         }
 
-        Material mat = pathTracing.Materials[v0.MaterialId];
+        Material mat = constants.Materials[v0.MaterialId];
+
+        if (bounce == 0)
+        {
+            float4 currentClip = mul(float4(hitPos, 1.0), constants.ViewProjection);
+            float4 previousClip = mul(float4(hitPos, 1.0), constants.PreviousViewProjection);
+            float3 guideNormal = dot(v0.Normal, direction) > 0.0 ? -v0.Normal : v0.Normal;
+            constants.Depth[pixel] = saturate(currentClip.z / currentClip.w);
+            constants.Normal[pixel] = float4(guideNormal, dot(guideNormal, v0.Position));
+            constants.MotionVectors[pixel] = EncodeMotion(currentClip, previousClip);
+        }
 
         if (mat.Emission > 0.0)
         {
@@ -445,76 +451,24 @@ float3 TracePath(float3 origin, float3 direction, inout uint rng)
     return radiance;
 }
 
-float Halton(uint index, uint base)
-{
-    float result = 0.0;
-    float f = 1.0;
-
-    uint i = index;
-
-    while (i > 0)
-    {
-        f /= float(base);
-        result += f * float(i % base);
-        i /= base;
-    }
-
-    return result;
-}
-
 [shader("compute")]
-[numthreads(16, 16, 1)]
-void CSMain(uint3 dispatchThreadID: SV_DispatchThreadID)
+[numthreads(8, 8, 1)]
+void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    uint2 pixel = dispatchThreadID.xy;
+    uint2 pixel = dispatchThreadId.xy;
+    uint2 size = uint2(constants.RenderSizeJitter.xy);
 
-    if (pixel.x >= pathTracing.Width || pixel.y >= pathTracing.Height)
+    if (any(pixel >= size))
     {
         return;
     }
 
-    uint rng = PCGHash(pixel.x + pixel.y * pathTracing.Width +
-                       pathTracing.FrameCount * pathTracing.Width * pathTracing.Height);
+    uint seed = PCGHash(pixel.x + pixel.y * size.x + asuint(constants.PositionFrame.w) * size.x * size.y);
+    float2 uv = (float2(pixel) + 0.5 - constants.RenderSizeJitter.zw) / float2(size);
+    float2 ndc = float2(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0);
+    float4 target = mul(float4(ndc, 1.0, 1.0), constants.InverseProjection);
+    float3 direction = normalize(mul(float4(target.xyz / target.w, 0.0), constants.InverseView).xyz);
+    float3 color = TracePath(pixel, constants.PositionFrame.xyz, direction, seed);
 
-    uint sampleIndex = pathTracing.FrameCount + 1;
-    float hx = Halton(sampleIndex, 2);
-    float hy = Halton(sampleIndex, 3);
-    float ox = RandomFloat(rng) * 0.5 - 0.25;
-    float oy = RandomFloat(rng) * 0.5 - 0.25;
-    float2 jitter = frac(float2(hx + ox, hy + oy));
-    float2 uv = (float2(pixel) + jitter) / float2(pathTracing.Width, pathTracing.Height);
-    float2 ndc = uv * 2.0 - 1.0;
-    ndc.y = -ndc.y;
-
-    float4 target = mul(float4(ndc, 1.0, 1.0), pathTracing.InvProjection);
-    float3 localDir = normalize(target.xyz / target.w);
-    float3 direction = normalize(mul(float4(localDir, 0.0), pathTracing.InvView).xyz);
-    float3 origin = pathTracing.Position;
-
-    float3 color = TracePath(origin, direction, rng);
-    color = min(color, float3(30.0, 30.0, 30.0));
-
-    float4 accumulated;
-
-    if (pathTracing.FrameCount == 0)
-    {
-        accumulated = float4(color, 1.0);
-    }
-    else
-    {
-        float4 prev = pathTracing.AccumulationTexture[pixel];
-        accumulated = prev + float4(color, 1.0);
-    }
-
-    pathTracing.AccumulationTexture[pixel] = accumulated;
-
-    float3 avg = accumulated.rgb / float(pathTracing.FrameCount + 1);
-
-    // ACES tonemapping
-    float3 a = avg * (avg * 2.51 + 0.03);
-    float3 b = avg * (avg * 2.43 + 0.59) + 0.14;
-    avg = saturate(a / b);
-
-    avg = pow(avg, 1.0 / 2.2);
-    pathTracing.OutputTexture[pixel] = float4(avg, 1.0);
+    constants.Color[pixel] = float4(min(color, float3(30.0)), 1.0);
 }

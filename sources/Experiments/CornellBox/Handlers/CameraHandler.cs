@@ -86,25 +86,25 @@ internal class CameraHandler
         }
     }
 
-    private void OnMouseDown(IMouse arg1, MouseButton arg2)
+    private void OnMouseDown(IMouse mouse, MouseButton button)
     {
-        if (arg2 is MouseButton.Right)
+        if (button is MouseButton.Right)
         {
-            lastMousePosition = arg1.Position;
+            lastMousePosition = mouse.Position;
         }
     }
 
-    private void OnMouseUp(IMouse arg1, MouseButton arg2)
+    private void OnMouseUp(IMouse mouse, MouseButton button)
     {
-        if (arg2 is MouseButton.Right)
+        if (button is MouseButton.Right)
         {
             lastMousePosition = null;
         }
     }
 
-    private void OnMouseMove(IMouse mouse, Vector2 vector)
+    private void OnMouseMove(IMouse mouse, Vector2 position)
     {
-        const float clipRadians = 89.0f * MathF.PI / 180.0f;
+        const float ClipRadians = 89.0f * MathF.PI / 180.0f;
 
         if (lastMousePosition.HasValue)
         {
@@ -118,13 +118,13 @@ internal class CameraHandler
 
             float newPitch = MathF.Asin(Forward.Y) + pitch;
 
-            if (newPitch > clipRadians)
+            if (newPitch > ClipRadians)
             {
-                newPitch = clipRadians;
+                newPitch = ClipRadians;
             }
-            else if (newPitch < -clipRadians)
+            else if (newPitch < -ClipRadians)
             {
-                newPitch = -clipRadians;
+                newPitch = -ClipRadians;
             }
 
             pitch = newPitch - MathF.Asin(Forward.Y);
@@ -139,12 +139,12 @@ internal class CameraHandler
         }
     }
 
-    private void OnKeyDown(IKeyboard keyboard, Key key, int arg3)
+    private void OnKeyDown(IKeyboard keyboard, Key key, int scanCode)
     {
         keyDowns.Add(key);
     }
 
-    private void OnKeyUp(IKeyboard keyboard, Key key, int arg3)
+    private void OnKeyUp(IKeyboard keyboard, Key key, int scanCode)
     {
         keyDowns.Remove(key);
     }

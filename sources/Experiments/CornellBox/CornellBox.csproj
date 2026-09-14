@@ -19,7 +19,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="Assets\**">
+        <Compile Remove="Shaders\**" />
+
+        <None Include="Assets\Fonts\**">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
