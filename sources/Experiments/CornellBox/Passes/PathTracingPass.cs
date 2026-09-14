@@ -7,7 +7,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Passes;
 
-internal unsafe class PathTracingPass : DisposableObject
+internal unsafe class PathTracingPass : Pass
 {
     private const uint ThreadGroupSize = 8;
 
@@ -64,7 +64,7 @@ internal unsafe class PathTracingPass : DisposableObject
             Residency = MemoryResidency.CpuWriteOnly
         });
 
-        using Shader computeShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "PathTracing.slang"), "CSMain"));
+        using Shader computeShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("PathTracing.slang"), "CSMain"));
 
         pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = computeShader });
 
@@ -185,30 +185,17 @@ internal unsafe class PathTracingPass : DisposableObject
 
     public void Resize(uint width, uint height)
     {
-        TextureDesc desc = new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R16G16B16A16Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Usages = TextureUsages.Sampled | TextureUsages.Storage
-        };
-
         Color?.Dispose();
-        Color = App.Context.CreateTexture(desc);
+        Color = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
 
         Depth?.Dispose();
-        Depth = App.Context.CreateTexture(desc with { Format = PixelFormat.R32Float });
+        Depth = CreateTexture(width, height, PixelFormat.R32Float);
 
         Normal?.Dispose();
-        Normal = App.Context.CreateTexture(desc);
+        Normal = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
 
         MotionVectors?.Dispose();
-        MotionVectors = App.Context.CreateTexture(desc with { Format = PixelFormat.R16G16Float });
+        MotionVectors = CreateTexture(width, height, PixelFormat.R16G16Float);
     }
 
     protected override void Destroy()

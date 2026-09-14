@@ -5,7 +5,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Passes;
 
-internal unsafe class DenoisePass : DisposableObject
+internal unsafe class DenoisePass : Pass
 {
     private const uint ThreadGroupSize = 16;
 
@@ -24,7 +24,7 @@ internal unsafe class DenoisePass : DisposableObject
 
     public DenoisePass()
     {
-        string shaderFile = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Denoise.slang");
+        string shaderFile = ShaderPath("Denoise.slang");
 
         using Shader temporalShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderFile, "TemporalMain"));
         using Shader atrousShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, shaderFile, "AtrousMain"));
@@ -85,26 +85,13 @@ internal unsafe class DenoisePass : DisposableObject
         filtered = new Texture[2];
         resolveHistory = new Texture[2];
 
-        TextureDesc desc = new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R16G16B16A16Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Usages = TextureUsages.Sampled | TextureUsages.Storage
-        };
-
         for (int index = 0; index < 2; index++)
         {
-            colorHistory[index] = App.Context.CreateTexture(desc);
-            momentsHistory[index] = App.Context.CreateTexture(desc with { Format = PixelFormat.R32G32B32A32Float });
-            geometryHistory[index] = App.Context.CreateTexture(desc);
-            filtered[index] = App.Context.CreateTexture(desc);
-            resolveHistory[index] = App.Context.CreateTexture(desc with { Format = PixelFormat.R32G32B32A32Float });
+            colorHistory[index] = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
+            momentsHistory[index] = CreateTexture(width, height, PixelFormat.R32G32B32A32Float);
+            geometryHistory[index] = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
+            filtered[index] = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
+            resolveHistory[index] = CreateTexture(width, height, PixelFormat.R32G32B32A32Float);
         }
 
         resourcesInitialized = false;

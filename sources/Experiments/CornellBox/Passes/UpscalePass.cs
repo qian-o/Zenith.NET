@@ -5,7 +5,7 @@ using Zenith.NET.Extensions.Upscaling;
 
 namespace CornellBox.Passes;
 
-internal class UpscalePass : DisposableObject
+internal class UpscalePass : Pass
 {
     private SpatialUpscaler? spatialUpscaler;
     private TemporalUpscaler? temporalUpscaler;
@@ -90,18 +90,7 @@ internal class UpscalePass : DisposableObject
 
         if (mode is not UpscaleMode.None)
         {
-            output = App.Context.CreateTexture(new()
-            {
-                Type = TextureType.Texture2D,
-                Format = PixelFormat.R16G16B16A16Float,
-                Width = outputWidth,
-                Height = outputHeight,
-                Depth = 1,
-                MipLevels = 1,
-                ArrayLayers = 1,
-                SampleCount = SampleCount.Count1,
-                Usages = TextureUsages.Sampled | TextureUsages.Storage
-            });
+            output = CreateTexture(outputWidth, outputHeight, PixelFormat.R16G16B16A16Float);
         }
     }
 
