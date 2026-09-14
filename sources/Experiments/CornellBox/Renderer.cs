@@ -13,10 +13,6 @@ internal class Renderer : DisposableObject
     private readonly UpscalePass upscale;
     private readonly TonemapPass tonemap;
 
-    private uint outputWidth;
-    private uint outputHeight;
-    private uint renderWidth;
-    private uint renderHeight;
     private uint frameIndex;
     private Matrix4x4 previousViewProjection;
     private Vector2 previousJitter;
@@ -41,7 +37,7 @@ internal class Renderer : DisposableObject
             {
                 field = value;
 
-                Resize(outputWidth, outputHeight);
+                Resize(App.Width, App.Height);
             }
         }
     } = 0.67f;
@@ -55,7 +51,10 @@ internal class Renderer : DisposableObject
             {
                 field = value;
 
-                upscale.Resize(renderWidth, renderHeight, outputWidth, outputHeight, UpscaleMode);
+                uint renderWidth = Math.Max((uint)(App.Width * RenderPrecision), 1);
+                uint renderHeight = Math.Max((uint)(App.Height * RenderPrecision), 1);
+
+                upscale.Resize(renderWidth, renderHeight, App.Width, App.Height, UpscaleMode);
             }
         }
     } = UpscaleMode.Temporal;
@@ -104,16 +103,14 @@ internal class Renderer : DisposableObject
 
     public void Resize(uint width, uint height)
     {
-        renderWidth = Math.Max(1, (uint)(width * RenderPrecision));
-        renderHeight = Math.Max(1, (uint)(height * RenderPrecision));
+        uint renderWidth = Math.Max((uint)(width * RenderPrecision), 1);
+        uint renderHeight = Math.Max((uint)(height * RenderPrecision), 1);
 
         pathTracing.Resize(renderWidth, renderHeight);
         denoise.Resize(renderWidth, renderHeight);
         upscale.Resize(renderWidth, renderHeight, width, height, UpscaleMode);
         tonemap.Resize(width, height);
 
-        outputWidth = width;
-        outputHeight = height;
         history = false;
     }
 
