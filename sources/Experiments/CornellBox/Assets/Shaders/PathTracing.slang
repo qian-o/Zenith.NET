@@ -3,6 +3,7 @@ static const float3 LightMax = float3(343.0, 547.0, 332.0);
 static const float LightArea = (343.0 - 213.0) * (332.0 - 227.0);
 static const float3 LightNormal = float3(0.0, -1.0, 0.0);
 static const float PI = 3.14159265;
+static const int MaxBounces = 8;
 
 struct Vertex
 {
@@ -308,7 +309,7 @@ float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng)
     float3 throughput = float3(1.0, 1.0, 1.0);
     float3 radiance = float3(0.0, 0.0, 0.0);
 
-    for (int bounce = 0; bounce < 8; bounce++)
+    for (int bounce = 0; bounce < MaxBounces; bounce++)
     {
         RayDesc ray;
         ray.Origin = origin;
@@ -393,6 +394,11 @@ float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng)
         float specProb = specWeight / total;
 
         radiance += throughput * SampleLightDirect(hitPos, normal, geoNormal, V, mat, roughness, specProb, rng);
+
+        if (bounce == MaxBounces - 1)
+        {
+            break;
+        }
 
         float3 newDir;
         float NdotV = max(dot(normal, V), 0.001);

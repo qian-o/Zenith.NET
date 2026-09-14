@@ -55,6 +55,11 @@ internal unsafe class TonemapPass : Pass
 
     public void Resize(uint width, uint height)
     {
+        if (Color is not null && Color.Desc.Width == width && Color.Desc.Height == height)
+        {
+            return;
+        }
+
         Color?.Dispose();
         Color = CreateTexture(width, height, PixelFormat.B8G8R8A8UNorm);
 

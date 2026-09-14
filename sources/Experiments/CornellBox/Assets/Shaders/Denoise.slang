@@ -120,10 +120,8 @@ void TemporalMain(uint3 dispatchThreadId: SV_DispatchThreadID)
 
     if (all(normal.xyz == 0.0))
     {
-        temporal.MomentsHistory[pixel] = float4(0.0, 0.0, 1.0, 1.0);
         temporal.GeometryHistory[pixel] = normal;
         temporal.Output[pixel] = float4(current, 0.0);
-        temporal.ColorHistory[pixel] = float4(current, 1.0);
 
         return;
     }
