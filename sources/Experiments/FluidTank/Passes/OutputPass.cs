@@ -6,7 +6,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Passes;
 
-internal unsafe class OutputPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
+internal unsafe class OutputPass(uint width, uint height) : Pass(width, height)
 {
     private Buffer constants = null!;
     private Sampler sampler = null!;
@@ -63,15 +63,15 @@ internal unsafe class OutputPass(uint renderWidth, uint renderHeight, uint displ
             }
         });
 
-        Color = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.B8G8R8A8UNorm, TextureUsages.ColorAttachment | TextureUsages.Sampled);
-        displayColor = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.B8G8R8A8UNorm, TextureUsages.ColorAttachment | TextureUsages.Sampled);
+        Color = CreateTexture(Width, Height, PixelFormat.B8G8R8A8UNorm, TextureUsages.ColorAttachment | TextureUsages.Sampled);
+        displayColor = CreateTexture(Width, Height, PixelFormat.B8G8R8A8UNorm, TextureUsages.ColorAttachment | TextureUsages.Sampled);
     }
 
     protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
     {
         OutputConstants toneMappingConstants = new()
         {
-            TexelSize = new(1.0f / DisplayWidth, 1.0f / DisplayHeight),
+            TexelSize = new(1.0f / Width, 1.0f / Height),
             Exposure = 1.0f,
             EncodeLuminance = args.AntialiasingEnabled ? 1u : 0u,
             Input = args.Color.SampledHandle,
@@ -90,7 +90,7 @@ internal unsafe class OutputPass(uint renderWidth, uint renderHeight, uint displ
         {
             OutputConstants antialiasingConstants = new()
             {
-                TexelSize = new(1.0f / DisplayWidth, 1.0f / DisplayHeight),
+                TexelSize = new(1.0f / Width, 1.0f / Height),
                 Exposure = 1.0f,
                 EncodeLuminance = 1u,
                 Input = displayColor.SampledHandle,
@@ -109,7 +109,7 @@ internal unsafe class OutputPass(uint renderWidth, uint renderHeight, uint displ
 
     protected override void ResizeImpl()
     {
-        if (Color.Desc.Width == DisplayWidth && Color.Desc.Height == DisplayHeight)
+        if (Color.Desc.Width == Width && Color.Desc.Height == Height)
         {
             return;
         }
@@ -117,8 +117,8 @@ internal unsafe class OutputPass(uint renderWidth, uint renderHeight, uint displ
         Color.Dispose();
         displayColor.Dispose();
 
-        Color = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.B8G8R8A8UNorm, TextureUsages.ColorAttachment | TextureUsages.Sampled);
-        displayColor = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.B8G8R8A8UNorm, TextureUsages.ColorAttachment | TextureUsages.Sampled);
+        Color = CreateTexture(Width, Height, PixelFormat.B8G8R8A8UNorm, TextureUsages.ColorAttachment | TextureUsages.Sampled);
+        displayColor = CreateTexture(Width, Height, PixelFormat.B8G8R8A8UNorm, TextureUsages.ColorAttachment | TextureUsages.Sampled);
     }
 
     protected override void Destroy()

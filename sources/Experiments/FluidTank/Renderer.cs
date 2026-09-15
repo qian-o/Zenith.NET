@@ -9,7 +9,6 @@ namespace FluidTank;
 internal class Renderer : DisposableObject
 {
     private const double SimulationStep = 1.0 / 30.0;
-    private const float SurfaceScale = 0.5f;
 
     private readonly Simulation simulation;
     private readonly SceneResources scene;
@@ -25,16 +24,13 @@ internal class Renderer : DisposableObject
 
     public Renderer()
     {
-        uint renderWidth = Math.Max((uint)(App.Width * SurfaceScale), 1);
-        uint renderHeight = Math.Max((uint)(App.Height * SurfaceScale), 1);
-
         simulation = new();
         scene = new();
-        scenePass = new(renderWidth, renderHeight, App.Width, App.Height);
-        surfacePass = new(renderWidth, renderHeight, App.Width, App.Height);
-        waterPass = new(renderWidth, renderHeight, App.Width, App.Height);
-        glassPass = new(renderWidth, renderHeight, App.Width, App.Height);
-        outputPass = new(renderWidth, renderHeight, App.Width, App.Height);
+        scenePass = new(App.Width, App.Height);
+        surfacePass = new(App.Width, App.Height);
+        waterPass = new(App.Width, App.Height);
+        glassPass = new(App.Width, App.Height);
+        outputPass = new(App.Width, App.Height);
     }
 
     public FluidViewMode ViewMode { get; set; }
@@ -161,19 +157,16 @@ internal class Renderer : DisposableObject
 
     public void Resize(uint width, uint height)
     {
-        uint renderWidth = Math.Max((uint)(width * SurfaceScale), 1);
-        uint renderHeight = Math.Max((uint)(height * SurfaceScale), 1);
-
-        if (outputPass.DisplayWidth == width && outputPass.DisplayHeight == height)
+        if (outputPass.Width == width && outputPass.Height == height)
         {
             return;
         }
 
-        scenePass.Resize(renderWidth, renderHeight, width, height);
-        surfacePass.Resize(renderWidth, renderHeight, width, height);
-        waterPass.Resize(renderWidth, renderHeight, width, height);
-        glassPass.Resize(renderWidth, renderHeight, width, height);
-        outputPass.Resize(renderWidth, renderHeight, width, height);
+        scenePass.Resize(width, height);
+        surfacePass.Resize(width, height);
+        waterPass.Resize(width, height);
+        glassPass.Resize(width, height);
+        outputPass.Resize(width, height);
     }
 
     protected override void Destroy()

@@ -6,7 +6,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Passes;
 
-internal unsafe class GlassPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
+internal unsafe class GlassPass(uint width, uint height) : Pass(width, height)
 {
     private Buffer constantBuffer = null!;
     private GraphicsPipeline pipeline = null!;

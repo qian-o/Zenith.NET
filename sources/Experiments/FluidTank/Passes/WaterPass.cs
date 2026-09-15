@@ -6,7 +6,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Passes;
 
-internal unsafe class WaterPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
+internal unsafe class WaterPass(uint width, uint height) : Pass(width, height)
 {
     private Buffer compositeConstants = null!;
     private Buffer reflectionConstants = null!;
@@ -78,17 +78,14 @@ internal unsafe class WaterPass(uint renderWidth, uint renderHeight, uint displa
 
     protected override void ResizeImpl()
     {
-        if (Color is null || Color.Desc.Width != DisplayWidth || Color.Desc.Height != DisplayHeight)
+        if (Color is null || Color.Desc.Width != Width || Color.Desc.Height != Height)
         {
             Color?.Dispose();
-            Color = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.R16G16B16A16Float, TextureUsages.ColorAttachment | TextureUsages.Sampled);
+            Color = CreateTexture(Width, Height, PixelFormat.R16G16B16A16Float, TextureUsages.ColorAttachment | TextureUsages.Sampled);
         }
 
-        if (reflectionPipeline is not null && (reflection is null || reflection.Desc.Width != RenderWidth || reflection.Desc.Height != RenderHeight))
-        {
-            reflection?.Dispose();
-            reflection = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
-        }
+        reflection?.Dispose();
+        reflection = null;
     }
 
     protected override void Destroy()
@@ -104,6 +101,15 @@ internal unsafe class WaterPass(uint renderWidth, uint renderHeight, uint displa
 
     private void RecordReflection(CommandBuffer commandBuffer, in PassArgs args)
     {
+        uint fluidWidth = args.FluidDepth.Desc.Width;
+        uint fluidHeight = args.FluidDepth.Desc.Height;
+
+        if (reflection is null || reflection.Desc.Width != fluidWidth || reflection.Desc.Height != fluidHeight)
+        {
+            reflection?.Dispose();
+            reflection = CreateTexture(fluidWidth, fluidHeight, PixelFormat.R16G16B16A16Float);
+        }
+
         ReflectionConstants reflectionData = new()
         {
             InvView = args.InverseView,
@@ -112,15 +118,15 @@ internal unsafe class WaterPass(uint renderWidth, uint renderHeight, uint displa
             Time = args.Time,
             SunDirection = args.SunDirection,
             LightIntensity = args.LightIntensity,
-            Width = RenderWidth,
-            Height = RenderHeight,
+            Width = fluidWidth,
+            Height = fluidHeight,
             FluidDepth = args.FluidDepth.SampledHandle,
             Normal = args.Normal.SampledHandle,
             Scene = args.Scene.Scene!.Handle,
             Vertices = args.Scene.Vertices.StorageReadOnlyHandle,
             Indices = args.Scene.Indices.StorageReadOnlyHandle,
             Materials = args.Scene.Materials.StorageReadOnlyHandle,
-            OutputTexture = reflection!.StorageHandle
+            OutputTexture = reflection.StorageHandle
         };
 
         reflectionConstants.Upload(0, new()
@@ -133,7 +139,7 @@ internal unsafe class WaterPass(uint renderWidth, uint renderHeight, uint displa
         commandBuffer.SetPipeline(reflectionPipeline!);
         commandBuffer.SetConstantBuffer(reflectionConstants, 0);
         ThreadGroupSize group = reflectionPipeline!.Desc.ComputeShader.Desc.ThreadGroupSize;
-        commandBuffer.Dispatch((RenderWidth + group.X - 1) / group.X, (RenderHeight + group.Y - 1) / group.Y, 1);
+        commandBuffer.Dispatch((fluidWidth + group.X - 1) / group.X, (fluidHeight + group.Y - 1) / group.Y, 1);
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.FragmentShading);
         commandBuffer.Transition(reflection, default, TextureLayout.Storage, TextureLayout.Sampled);
     }
@@ -152,8 +158,8 @@ internal unsafe class WaterPass(uint renderWidth, uint renderHeight, uint displa
             RefractionStrength = 0.45f,
             Absorption = new(0.18f, 0.045f, 0.015f),
             Ior = 1.333f,
-            Width = RenderWidth,
-            Height = RenderHeight,
+            Width = args.FluidDepth.Desc.Width,
+            Height = args.FluidDepth.Desc.Height,
             RenderMode = (uint)args.ViewMode,
             RayTracingEnabled = rayTracing ? 1u : 0u,
             SceneColor = args.Color.SampledHandle,

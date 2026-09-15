@@ -6,8 +6,10 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Passes;
 
-internal unsafe class SurfacePass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
+internal unsafe class SurfacePass(uint width, uint height) : Pass(width, height)
 {
+    private const float SurfaceScale = 0.5f;
+
     private Buffer constants = null!;
     private Buffer particleConstants = null!;
     private Sampler sampler = null!;
@@ -105,16 +107,19 @@ internal unsafe class SurfacePass(uint renderWidth, uint renderHeight, uint disp
 
     protected override void ResizeImpl()
     {
-        if (Depth is not null && Depth.Desc.Width == RenderWidth && Depth.Desc.Height == RenderHeight)
+        uint width = Math.Max((uint)(Width * SurfaceScale), 1);
+        uint height = Math.Max((uint)(Height * SurfaceScale), 1);
+
+        if (Depth is not null && Depth.Desc.Width == width && Depth.Desc.Height == height)
         {
             return;
         }
 
         DisposeTargets();
 
-        Depth = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32Float);
-        Thickness = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16Float);
-        Normal = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
+        Depth = CreateTexture(width, height, PixelFormat.R32Float);
+        Thickness = CreateTexture(width, height, PixelFormat.R16Float);
+        Normal = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
     }
 
     protected override void Destroy()
@@ -157,8 +162,8 @@ internal unsafe class SurfacePass(uint renderWidth, uint renderHeight, uint disp
             GridY = density.Desc.Height,
             GridZ = density.Desc.Depth,
             ParticleCount = particles.Count,
-            Width = RenderWidth,
-            Height = RenderHeight,
+            Width = Depth.Desc.Width,
+            Height = Depth.Desc.Height,
             InterpolationAlpha = args.InterpolationAlpha,
             VolumeScale = particles.Spacing * particles.Spacing * particles.Spacing / (cellSize * cellSize * cellSize),
             Particles = particles.Particles.StorageReadOnlyHandle,
@@ -211,7 +216,7 @@ internal unsafe class SurfacePass(uint renderWidth, uint renderHeight, uint disp
         commandBuffer.Transition(Depth, default, TextureLayout.Undefined, TextureLayout.Storage);
         commandBuffer.Transition(Thickness, default, TextureLayout.Undefined, TextureLayout.Storage);
         commandBuffer.Transition(Normal, default, TextureLayout.Undefined, TextureLayout.Storage);
-        Dispatch(commandBuffer, tracePipeline, RenderWidth, RenderHeight, 1);
+        Dispatch(commandBuffer, tracePipeline, Depth.Desc.Width, Depth.Desc.Height, 1);
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading | BarrierStages.FragmentShading);
         commandBuffer.Transition(Depth, default, TextureLayout.Storage, TextureLayout.Sampled);
         commandBuffer.Transition(Thickness, default, TextureLayout.Storage, TextureLayout.Sampled);

@@ -6,7 +6,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Passes;
 
-internal unsafe class ScenePass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
+internal unsafe class ScenePass(uint width, uint height) : Pass(width, height)
 {
     private Buffer constantBuffer = null!;
     private Buffer backgroundConstantBuffer = null!;
@@ -148,9 +148,9 @@ internal unsafe class ScenePass(uint renderWidth, uint renderHeight, uint displa
     {
         DisposeTargets();
 
-        Color = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.R16G16B16A16Float, TextureUsages.Sampled | TextureUsages.ColorAttachment);
-        LinearDepth = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.R32Float, TextureUsages.Sampled | TextureUsages.ColorAttachment);
-        DepthStencil = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.D32FloatS8UInt, TextureUsages.DepthStencilAttachment);
+        Color = CreateTexture(Width, Height, PixelFormat.R16G16B16A16Float, TextureUsages.Sampled | TextureUsages.ColorAttachment);
+        LinearDepth = CreateTexture(Width, Height, PixelFormat.R32Float, TextureUsages.Sampled | TextureUsages.ColorAttachment);
+        DepthStencil = CreateTexture(Width, Height, PixelFormat.D32FloatS8UInt, TextureUsages.DepthStencilAttachment);
         initialized = false;
     }
 
