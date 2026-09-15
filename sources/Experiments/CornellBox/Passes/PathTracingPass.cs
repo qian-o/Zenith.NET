@@ -18,7 +18,7 @@ internal unsafe class PathTracingPass : Pass
     private readonly TopLevelAccelerationStructure tlas;
     private readonly Buffer materialBuffer;
 
-    public PathTracingPass()
+    public PathTracingPass(uint width, uint height)
     {
         CornellBoxGeometry.Create(out Vertex[] vertices, out uint[] indices, out Material[] materials);
 
@@ -127,15 +127,20 @@ internal unsafe class PathTracingPass : Pass
                 SizeInBytes = (uint)(sizeof(Material) * materials.Length)
             });
         }
+
+        Color = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
+        Depth = CreateTexture(width, height, PixelFormat.R32Float);
+        Normal = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
+        MotionVectors = CreateTexture(width, height, PixelFormat.R16G16Float);
     }
 
-    public Texture Color { get; private set; } = null!;
+    public Texture Color { get; private set; }
 
-    public Texture Depth { get; private set; } = null!;
+    public Texture Depth { get; private set; }
 
-    public Texture Normal { get; private set; } = null!;
+    public Texture Normal { get; private set; }
 
-    public Texture MotionVectors { get; private set; } = null!;
+    public Texture MotionVectors { get; private set; }
 
     public override void Record(CommandBuffer commandBuffer, in PassArgs args)
     {
@@ -181,16 +186,16 @@ internal unsafe class PathTracingPass : Pass
 
     public override void Resize(uint width, uint height)
     {
-        Color?.Dispose();
+        Color.Dispose();
         Color = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
 
-        Depth?.Dispose();
+        Depth.Dispose();
         Depth = CreateTexture(width, height, PixelFormat.R32Float);
 
-        Normal?.Dispose();
+        Normal.Dispose();
         Normal = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
 
-        MotionVectors?.Dispose();
+        MotionVectors.Dispose();
         MotionVectors = CreateTexture(width, height, PixelFormat.R16G16Float);
     }
 

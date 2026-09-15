@@ -8,11 +8,17 @@ internal class UpscalePass : Pass
 {
     private SpatialUpscaler? spatialUpscaler;
     private TemporalUpscaler? temporalUpscaler;
-    private Texture output = null!;
+    private Texture output;
     private bool resourcesInitialized;
     private bool temporalHistory;
 
-    public Texture Color { get; private set; } = null!;
+    public UpscalePass(uint width, uint height)
+    {
+        output = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
+        Color = output;
+    }
+
+    public Texture Color { get; private set; }
 
     public override void Record(CommandBuffer commandBuffer, in PassArgs args)
     {
@@ -45,8 +51,9 @@ internal class UpscalePass : Pass
 
     public override void Resize(uint width, uint height)
     {
-        output?.Dispose();
+        output.Dispose();
         output = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
+        Color = output;
 
         temporalUpscaler?.Dispose();
         temporalUpscaler = null;

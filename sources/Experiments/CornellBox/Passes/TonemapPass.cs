@@ -13,7 +13,7 @@ internal unsafe class TonemapPass : Pass
     private readonly ComputePipeline pipeline;
     private bool resourcesInitialized;
 
-    public TonemapPass()
+    public TonemapPass(uint width, uint height)
     {
         using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Tonemap.slang"), "CSMain"));
 
@@ -25,9 +25,10 @@ internal unsafe class TonemapPass : Pass
         });
         sampler = App.Context.CreateSampler(SamplerDesc.LinearClamp());
         pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = shader });
+        Color = CreateTexture(width, height, PixelFormat.B8G8R8A8UNorm);
     }
 
-    public Texture Color { get; private set; } = null!;
+    public Texture Color { get; private set; }
 
     public override void Record(CommandBuffer commandBuffer, in PassArgs args)
     {
@@ -56,12 +57,12 @@ internal unsafe class TonemapPass : Pass
 
     public override void Resize(uint width, uint height)
     {
-        if (Color is not null && Color.Desc.Width == width && Color.Desc.Height == height)
+        if (Color.Desc.Width == width && Color.Desc.Height == height)
         {
             return;
         }
 
-        Color?.Dispose();
+        Color.Dispose();
         Color = CreateTexture(width, height, PixelFormat.B8G8R8A8UNorm);
 
         resourcesInitialized = false;

@@ -23,7 +23,7 @@ internal unsafe class DenoisePass : Pass
     private bool resourcesInitialized;
     private int historyIndex;
 
-    public DenoisePass()
+    public DenoisePass(uint width, uint height)
     {
         using Shader temporalShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Denoise.slang"), "TemporalMain"));
         using Shader atrousShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Denoise.slang"), "AtrousMain"));
@@ -36,6 +36,8 @@ internal unsafe class DenoisePass : Pass
         });
         temporalPipeline = App.Context.CreateComputePipeline(new() { ComputeShader = temporalShader });
         atrousPipeline = App.Context.CreateComputePipeline(new() { ComputeShader = atrousShader });
+
+        CreateTextures(width, height);
     }
 
     public Texture Color => filtered[1];
@@ -78,20 +80,7 @@ internal unsafe class DenoisePass : Pass
             colorHistory[index].Dispose();
         }
 
-        colorHistory = new Texture[2];
-        momentsHistory = new Texture[2];
-        geometryHistory = new Texture[2];
-        filtered = new Texture[2];
-        resolveHistory = new Texture[2];
-
-        for (int index = 0; index < 2; index++)
-        {
-            colorHistory[index] = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
-            momentsHistory[index] = CreateTexture(width, height, PixelFormat.R32G32B32A32Float);
-            geometryHistory[index] = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
-            filtered[index] = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
-            resolveHistory[index] = CreateTexture(width, height, PixelFormat.R32G32B32A32Float);
-        }
+        CreateTextures(width, height);
 
         resourcesInitialized = false;
         historyIndex = 0;
@@ -111,6 +100,24 @@ internal unsafe class DenoisePass : Pass
         atrousPipeline.Dispose();
         temporalPipeline.Dispose();
         buffer.Dispose();
+    }
+
+    private void CreateTextures(uint width, uint height)
+    {
+        colorHistory = new Texture[2];
+        momentsHistory = new Texture[2];
+        geometryHistory = new Texture[2];
+        filtered = new Texture[2];
+        resolveHistory = new Texture[2];
+
+        for (int index = 0; index < 2; index++)
+        {
+            colorHistory[index] = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
+            momentsHistory[index] = CreateTexture(width, height, PixelFormat.R32G32B32A32Float);
+            geometryHistory[index] = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
+            filtered[index] = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
+            resolveHistory[index] = CreateTexture(width, height, PixelFormat.R32G32B32A32Float);
+        }
     }
 
     private void Temporal(CommandBuffer commandBuffer, in PassArgs args)

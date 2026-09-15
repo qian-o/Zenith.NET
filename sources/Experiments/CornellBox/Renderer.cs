@@ -20,12 +20,15 @@ internal class Renderer : DisposableObject
 
     public Renderer()
     {
-        pathTracing = new();
-        denoise = new();
-        upscale = new();
-        tonemap = new();
+        uint width = App.Width;
+        uint height = App.Height;
+        uint renderWidth = Math.Max((uint)(width * RenderPrecision), 1);
+        uint renderHeight = Math.Max((uint)(height * RenderPrecision), 1);
 
-        Resize(App.Width, App.Height);
+        pathTracing = new(renderWidth, renderHeight);
+        denoise = new(renderWidth, renderHeight);
+        upscale = new(width, height);
+        tonemap = new(width, height);
     }
 
     public float RenderPrecision { get; set; } = 0.67f;
@@ -107,8 +110,7 @@ internal class Renderer : DisposableObject
         uint renderHeight = Math.Max((uint)(height * renderPrecision), 1);
         Texture pathColor = pathTracing.Color;
 
-        if (pathColor is not null &&
-            pathColor.Desc.Width == renderWidth && pathColor.Desc.Height == renderHeight &&
+        if (pathColor.Desc.Width == renderWidth && pathColor.Desc.Height == renderHeight &&
             Color.Desc.Width == width && Color.Desc.Height == height)
         {
             return;
