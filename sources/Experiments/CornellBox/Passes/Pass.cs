@@ -1,9 +1,14 @@
-﻿using Zenith.NET;
+﻿using CornellBox.Models;
+using Zenith.NET;
 
 namespace CornellBox.Passes;
 
 internal abstract class Pass : DisposableObject
 {
+    public abstract void Record(CommandBuffer commandBuffer, in PassArgs args);
+
+    public abstract void Resize(uint width, uint height);
+
     protected static string ShaderPath(string file)
     {
         return Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", file);

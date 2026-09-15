@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
-using CornellBox.Handlers;
 using CornellBox.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
@@ -138,21 +137,16 @@ internal unsafe class PathTracingPass : Pass
 
     public Texture MotionVectors { get; private set; } = null!;
 
-    public void Render(CommandBuffer commandBuffer, CameraHandler camera, Matrix4x4 previousViewProjection, Vector2 jitter, uint frameIndex)
+    public override void Record(CommandBuffer commandBuffer, in PassArgs args)
     {
-        Matrix4x4 view = camera.View;
-        Matrix4x4 projection = camera.Projection;
-        Matrix4x4.Invert(view, out Matrix4x4 inverseView);
-        Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
-
         Constants constants = new()
         {
-            InverseView = inverseView,
-            InverseProjection = inverseProjection,
-            ViewProjection = view * projection,
-            PreviousViewProjection = previousViewProjection,
-            PositionFrame = new(camera.Position, BitConverter.UInt32BitsToSingle(frameIndex)),
-            RenderSizeJitter = new(Color.Desc.Width, Color.Desc.Height, jitter.X, jitter.Y),
+            InverseView = args.InverseView,
+            InverseProjection = args.InverseProjection,
+            ViewProjection = args.ViewProjection,
+            PreviousViewProjection = args.PreviousViewProjection,
+            PositionFrame = new(args.CameraPosition, BitConverter.UInt32BitsToSingle(args.FrameIndex)),
+            RenderSizeJitter = new(Color.Desc.Width, Color.Desc.Height, args.Jitter.X, args.Jitter.Y),
             Scene = tlas.Handle,
             Vertices = vertexBuffer.StorageReadOnlyHandle,
             Indices = indexBuffer.StorageReadOnlyHandle,
@@ -185,7 +179,7 @@ internal unsafe class PathTracingPass : Pass
         commandBuffer.Transition(MotionVectors, default, TextureLayout.Storage, TextureLayout.Sampled);
     }
 
-    public void Resize(uint width, uint height)
+    public override void Resize(uint width, uint height)
     {
         Color?.Dispose();
         Color = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);

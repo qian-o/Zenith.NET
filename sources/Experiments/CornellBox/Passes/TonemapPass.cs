@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
+using CornellBox.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
@@ -28,12 +29,12 @@ internal unsafe class TonemapPass : Pass
 
     public Texture Color { get; private set; } = null!;
 
-    public void Render(CommandBuffer commandBuffer, Texture hdr, uint frameIndex)
+    public override void Record(CommandBuffer commandBuffer, in PassArgs args)
     {
         Constants constants = new()
         {
-            OutputSizeFrame = new(Color.Desc.Width, Color.Desc.Height, BitConverter.UInt32BitsToSingle(frameIndex), 0.0f),
-            Input = hdr.SampledHandle,
+            OutputSizeFrame = new(Color.Desc.Width, Color.Desc.Height, BitConverter.UInt32BitsToSingle(args.FrameIndex), 0.0f),
+            Input = args.Color.SampledHandle,
             Output = Color.StorageHandle,
             Sampler = sampler.Handle
         };
@@ -53,7 +54,7 @@ internal unsafe class TonemapPass : Pass
         resourcesInitialized = true;
     }
 
-    public void Resize(uint width, uint height)
+    public override void Resize(uint width, uint height)
     {
         if (Color is not null && Color.Desc.Width == width && Color.Desc.Height == height)
         {

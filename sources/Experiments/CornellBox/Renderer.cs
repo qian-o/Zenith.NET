@@ -28,41 +28,17 @@ internal class Renderer : DisposableObject
         Resize(App.Width, App.Height);
     }
 
-    public float RenderPrecision
-    {
-        get;
-        set
-        {
-            if (field != value)
-            {
-                field = value;
+    public float RenderPrecision { get; set; } = 0.67f;
 
-                Resize(App.Width, App.Height);
-            }
-        }
-    } = 0.67f;
-
-    public UpscaleMode UpscaleMode
-    {
-        get;
-        set
-        {
-            if (field != value)
-            {
-                field = value;
-
-                uint renderWidth = Math.Max((uint)(App.Width * RenderPrecision), 1);
-                uint renderHeight = Math.Max((uint)(App.Height * RenderPrecision), 1);
-
-                upscale.Resize(renderWidth, renderHeight, App.Width, App.Height, UpscaleMode);
-            }
-        }
-    } = UpscaleMode.Temporal;
+    public UpscaleMode UpscaleMode { get; set; } = UpscaleMode.Temporal;
 
     public Texture Color => tonemap.Color;
 
     public void Render(CommandBuffer commandBuffer, CameraHandler camera)
     {
+        Resize(Color.Desc.Width, Color.Desc.Height);
+
+        UpscaleMode upscaleMode = UpscaleMode;
         Matrix4x4 view = camera.View;
         Matrix4x4 projection = camera.Projection;
         Matrix4x4 viewProjection = view * projection;
@@ -80,19 +56,42 @@ internal class Renderer : DisposableObject
         bool sameCamera = viewProjection == previousViewProjection;
         Matrix4x4 clipToPrevClip = sameCamera ? Matrix4x4.Identity : inverseProjection * (inverseView * previousViewProjection);
 
-        pathTracing.Render(commandBuffer, camera, previousViewProjection, jitter, frameIndex);
-        denoise.Render(commandBuffer, pathTracing.Color, pathTracing.Normal, pathTracing.Depth, jitter, previousJitter, sameCamera, clipToPrevClip);
+        PassArgs args = new()
+        {
+            InverseView = inverseView,
+            InverseProjection = inverseProjection,
+            ViewProjection = viewProjection,
+            PreviousViewProjection = previousViewProjection,
+            ClipToPrevClip = clipToPrevClip,
+            CameraPosition = camera.Position,
+            CameraFovAngleHor = 2.0f * MathF.Atan(MathF.Tan(float.DegreesToRadians(camera.Fov) * 0.5f) * camera.AspectRatio),
+            Jitter = jitter,
+            PreviousJitter = previousJitter,
+            FrameIndex = frameIndex,
+            SameCamera = sameCamera,
+            UpscaleMode = upscaleMode
+        };
 
-        Texture hdr = upscale.Render(commandBuffer,
-                                     UpscaleMode is UpscaleMode.Temporal ? denoise.Color : denoise.ResolvedColor,
-                                     pathTracing.Depth,
-                                     pathTracing.MotionVectors,
-                                     jitter,
-                                     clipToPrevClip,
-                                     2.0f * MathF.Atan(MathF.Tan(float.DegreesToRadians(camera.Fov) * 0.5f) * camera.AspectRatio),
-                                     sameCamera);
+        pathTracing.Record(commandBuffer, in args);
 
-        tonemap.Render(commandBuffer, hdr, frameIndex);
+        args = args with
+        {
+            Color = pathTracing.Color,
+            Normal = pathTracing.Normal,
+            Depth = pathTracing.Depth,
+            MotionVectors = pathTracing.MotionVectors
+        };
+        denoise.Record(commandBuffer, in args);
+
+        args = args with
+        {
+            Color = denoise.Color,
+            ResolvedColor = denoise.ResolvedColor
+        };
+        upscale.Record(commandBuffer, in args);
+
+        args = args with { Color = upscale.Color };
+        tonemap.Record(commandBuffer, in args);
 
         previousViewProjection = viewProjection;
         previousJitter = jitter;
@@ -103,12 +102,21 @@ internal class Renderer : DisposableObject
 
     public void Resize(uint width, uint height)
     {
-        uint renderWidth = Math.Max((uint)(width * RenderPrecision), 1);
-        uint renderHeight = Math.Max((uint)(height * RenderPrecision), 1);
+        float renderPrecision = RenderPrecision;
+        uint renderWidth = Math.Max((uint)(width * renderPrecision), 1);
+        uint renderHeight = Math.Max((uint)(height * renderPrecision), 1);
+        Texture pathColor = pathTracing.Color;
+
+        if (pathColor is not null &&
+            pathColor.Desc.Width == renderWidth && pathColor.Desc.Height == renderHeight &&
+            Color.Desc.Width == width && Color.Desc.Height == height)
+        {
+            return;
+        }
 
         pathTracing.Resize(renderWidth, renderHeight);
         denoise.Resize(renderWidth, renderHeight);
-        upscale.Resize(renderWidth, renderHeight, width, height, UpscaleMode);
+        upscale.Resize(width, height);
         tonemap.Resize(width, height);
 
         history = false;

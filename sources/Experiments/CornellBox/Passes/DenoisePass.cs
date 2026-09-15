@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
+using CornellBox.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
@@ -41,7 +42,7 @@ internal unsafe class DenoisePass : Pass
 
     public Texture ResolvedColor => resolveHistory[1 - historyIndex];
 
-    public void Render(CommandBuffer commandBuffer, Texture color, Texture normal, Texture depth, Vector2 jitter, Vector2 previousJitter, bool sameCamera, Matrix4x4 clipToPrevClip)
+    public override void Record(CommandBuffer commandBuffer, in PassArgs args)
     {
         if (!resourcesInitialized)
         {
@@ -55,18 +56,18 @@ internal unsafe class DenoisePass : Pass
             }
         }
 
-        Temporal(commandBuffer, color, normal, depth, jitter, previousJitter, sameCamera, clipToPrevClip);
+        Temporal(commandBuffer, in args);
 
         for (uint iteration = 0; iteration < 5; iteration++)
         {
-            Atrous(commandBuffer, normal, depth, jitter, previousJitter, sameCamera, clipToPrevClip, iteration);
+            Atrous(commandBuffer, in args, iteration);
         }
 
         historyIndex = 1 - historyIndex;
         resourcesInitialized = true;
     }
 
-    public void Resize(uint width, uint height)
+    public override void Resize(uint width, uint height)
     {
         for (int index = filtered.Length - 1; index >= 0; index--)
         {
@@ -112,19 +113,20 @@ internal unsafe class DenoisePass : Pass
         buffer.Dispose();
     }
 
-    private void Temporal(CommandBuffer commandBuffer, Texture color, Texture normal, Texture depth, Vector2 jitter, Vector2 previousJitter, bool sameCamera, Matrix4x4 clipToPrevClip)
+    private void Temporal(CommandBuffer commandBuffer, in PassArgs args)
     {
+        Texture color = args.Color;
         int previousIndex = 1 - historyIndex;
 
         TemporalConstants constants = new()
         {
             SizeRcp = new(color.Desc.Width, color.Desc.Height, 1.0f / color.Desc.Width, 1.0f / color.Desc.Height),
-            Jitter = new(jitter, previousJitter.X, previousJitter.Y),
+            Jitter = new(args.Jitter, args.PreviousJitter.X, args.PreviousJitter.Y),
             Reset = resourcesInitialized ? 0u : 1u,
-            SameCamera = sameCamera ? 1u : 0u,
+            SameCamera = args.SameCamera ? 1u : 0u,
             Color = color.SampledHandle,
-            Normal = normal.SampledHandle,
-            Depth = depth.SampledHandle,
+            Normal = args.Normal.SampledHandle,
+            Depth = args.Depth.SampledHandle,
             PreviousColor = colorHistory[previousIndex].SampledHandle,
             PreviousMoments = momentsHistory[previousIndex].SampledHandle,
             PreviousGeometry = geometryHistory[previousIndex].SampledHandle,
@@ -132,7 +134,7 @@ internal unsafe class DenoisePass : Pass
             GeometryHistory = geometryHistory[historyIndex].StorageHandle,
             Output = filtered[0].StorageHandle,
             ColorHistory = colorHistory[historyIndex].StorageHandle,
-            ClipToPrevClip = clipToPrevClip
+            ClipToPrevClip = args.ClipToPrevClip
         };
 
         buffer.Upload(0, new()
@@ -155,7 +157,7 @@ internal unsafe class DenoisePass : Pass
         commandBuffer.Transition(filtered[0], default, TextureLayout.Storage, TextureLayout.Sampled);
     }
 
-    private void Atrous(CommandBuffer commandBuffer, Texture normal, Texture depth, Vector2 jitter, Vector2 previousJitter, bool sameCamera, Matrix4x4 clipToPrevClip, uint iteration)
+    private void Atrous(CommandBuffer commandBuffer, in PassArgs args, uint iteration)
     {
         uint offset = (iteration + 1) * 256;
         Texture input = filtered[iteration % 2];
@@ -166,16 +168,16 @@ internal unsafe class DenoisePass : Pass
             SizeRcp = new(input.Desc.Width, input.Desc.Height, 1.0f / input.Desc.Width, 1.0f / input.Desc.Height),
             Step = 1u << (int)iteration,
             Reset = resourcesInitialized ? 0u : 1u,
-            SameCamera = sameCamera ? 1u : 0u,
-            Normal = normal.SampledHandle,
+            SameCamera = args.SameCamera ? 1u : 0u,
+            Normal = args.Normal.SampledHandle,
             Input = input.SampledHandle,
             Output = output.StorageHandle,
-            Depth = depth.SampledHandle,
+            Depth = args.Depth.SampledHandle,
             PreviousGeometry = geometryHistory[1 - historyIndex].SampledHandle,
             PreviousResolved = resolveHistory[1 - historyIndex].SampledHandle,
             ResolvedHistory = resolveHistory[historyIndex].StorageHandle,
-            Jitter = new(jitter, previousJitter.X, previousJitter.Y),
-            ClipToPrevClip = clipToPrevClip
+            Jitter = new(args.Jitter, args.PreviousJitter.X, args.PreviousJitter.Y),
+            ClipToPrevClip = args.ClipToPrevClip
         };
 
         buffer.Upload(offset, new()

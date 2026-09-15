@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using CornellBox.Models;
+﻿using CornellBox.Models;
 using Zenith.NET;
 using Zenith.NET.Extensions.Upscaling;
 
@@ -9,52 +8,45 @@ internal class UpscalePass : Pass
 {
     private SpatialUpscaler? spatialUpscaler;
     private TemporalUpscaler? temporalUpscaler;
-    private Texture? output;
+    private Texture output = null!;
     private bool resourcesInitialized;
+    private bool temporalHistory;
 
-    public Texture Render(CommandBuffer commandBuffer, Texture color, Texture depth, Texture motionVectors, Vector2 jitter, Matrix4x4 clipToPrevClip, float cameraFovAngleHor, bool sameCamera)
+    public Texture Color { get; private set; } = null!;
+
+    public override void Record(CommandBuffer commandBuffer, in PassArgs args)
     {
-        if (output is null)
+        if (args.UpscaleMode is UpscaleMode.None)
         {
-            return color;
+            temporalHistory = false;
+            Color = args.ResolvedColor;
+            return;
         }
 
         commandBuffer.Transition(output, default, resourcesInitialized ? TextureLayout.Sampled : TextureLayout.Undefined, TextureLayout.Storage);
 
-        spatialUpscaler?.Dispatch(commandBuffer, new()
+        switch (args.UpscaleMode)
         {
-            Input = color.SampledHandle,
-            Output = output.StorageHandle
-        });
+            case UpscaleMode.Spatial:
+                RecordSpatial(commandBuffer, in args);
+                break;
 
-        temporalUpscaler?.Dispatch(commandBuffer, new()
-        {
-            Input = color.SampledHandle,
-            OpaqueInput = color.SampledHandle,
-            Depth = depth.SampledHandle,
-            MotionVectors = motionVectors.SampledHandle,
-            Output = output.StorageHandle,
-            JitterOffsetX = jitter.X,
-            JitterOffsetY = jitter.Y,
-            ClipToPrevClip = clipToPrevClip,
-            PreExposure = 1.0f,
-            CameraFovAngleHor = cameraFovAngleHor,
-            MinLerpContribution = 0.0f,
-            SameCamera = sameCamera,
-            Reset = !resourcesInitialized
-        });
+            case UpscaleMode.Temporal:
+                RecordTemporal(commandBuffer, in args);
+                break;
+        }
 
         commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.Sampled);
 
         resourcesInitialized = true;
-
-        return output;
+        temporalHistory = args.UpscaleMode is UpscaleMode.Temporal;
+        Color = output;
     }
 
-    public void Resize(uint inputWidth, uint inputHeight, uint outputWidth, uint outputHeight, UpscaleMode mode)
+    public override void Resize(uint width, uint height)
     {
         output?.Dispose();
-        output = null;
+        output = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
 
         temporalUpscaler?.Dispose();
         temporalUpscaler = null;
@@ -63,35 +55,7 @@ internal class UpscalePass : Pass
         spatialUpscaler = null;
 
         resourcesInitialized = false;
-
-        switch (mode)
-        {
-            case UpscaleMode.Spatial:
-                spatialUpscaler = App.Context.CreateSpatialUpscaler(new()
-                {
-                    InputWidth = inputWidth,
-                    InputHeight = inputHeight,
-                    OutputWidth = outputWidth,
-                    OutputHeight = outputHeight
-                });
-                break;
-
-            case UpscaleMode.Temporal:
-                temporalUpscaler = App.Context.CreateTemporalUpscaler(new()
-                {
-                    InputWidth = inputWidth,
-                    InputHeight = inputHeight,
-                    OutputWidth = outputWidth,
-                    OutputHeight = outputHeight,
-                    Mode = TemporalUpscalerMode.Quality
-                });
-                break;
-        }
-
-        if (mode is not UpscaleMode.None)
-        {
-            output = CreateTexture(outputWidth, outputHeight, PixelFormat.R16G16B16A16Float);
-        }
+        temporalHistory = false;
     }
 
     protected override void Destroy()
@@ -99,5 +63,51 @@ internal class UpscalePass : Pass
         output?.Dispose();
         temporalUpscaler?.Dispose();
         spatialUpscaler?.Dispose();
+    }
+
+    private void RecordSpatial(CommandBuffer commandBuffer, in PassArgs args)
+    {
+        spatialUpscaler ??= App.Context.CreateSpatialUpscaler(new()
+        {
+            InputWidth = args.ResolvedColor.Desc.Width,
+            InputHeight = args.ResolvedColor.Desc.Height,
+            OutputWidth = output.Desc.Width,
+            OutputHeight = output.Desc.Height
+        });
+
+        spatialUpscaler.Dispatch(commandBuffer, new()
+        {
+            Input = args.ResolvedColor.SampledHandle,
+            Output = output.StorageHandle
+        });
+    }
+
+    private void RecordTemporal(CommandBuffer commandBuffer, in PassArgs args)
+    {
+        temporalUpscaler ??= App.Context.CreateTemporalUpscaler(new()
+        {
+            InputWidth = args.Color.Desc.Width,
+            InputHeight = args.Color.Desc.Height,
+            OutputWidth = output.Desc.Width,
+            OutputHeight = output.Desc.Height,
+            Mode = TemporalUpscalerMode.Quality
+        });
+
+        temporalUpscaler.Dispatch(commandBuffer, new()
+        {
+            Input = args.Color.SampledHandle,
+            OpaqueInput = args.Color.SampledHandle,
+            Depth = args.Depth.SampledHandle,
+            MotionVectors = args.MotionVectors.SampledHandle,
+            Output = output.StorageHandle,
+            JitterOffsetX = args.Jitter.X,
+            JitterOffsetY = args.Jitter.Y,
+            ClipToPrevClip = args.ClipToPrevClip,
+            PreExposure = 1.0f,
+            CameraFovAngleHor = args.CameraFovAngleHor,
+            MinLerpContribution = 0.0f,
+            SameCamera = args.SameCamera,
+            Reset = !temporalHistory
+        });
     }
 }
