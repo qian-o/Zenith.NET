@@ -1,21 +1,24 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
-using FluidTank.Helpers;
 using FluidTank.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Passes;
 
-internal class GlassPass : IDisposable
+internal unsafe class GlassPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
 {
-    private readonly Buffer constantBuffer;
+    private Buffer constantBuffer = null!;
+    private GraphicsPipeline pipeline = null!;
 
-    private readonly GraphicsPipeline pipeline;
-
-    public GlassPass(GraphicsContext context)
+    protected override void Initialize()
     {
-        constantBuffer = GraphicsHelper.CreateConstantBuffer<GlassConstants>(context);
+        constantBuffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)sizeof(GlassConstants),
+            Usages = BufferUsages.Constant,
+            Residency = MemoryResidency.CpuWriteOnly
+        });
 
         InputLayout inputLayout = new();
         inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Position });
@@ -24,16 +27,35 @@ internal class GlassPass : IDisposable
         BlendState blend = BlendState.AlphaBlend();
         blend.ColorAttachment0.ColorWrites = ColorWrites.Red | ColorWrites.Green | ColorWrites.Blue;
 
-        pipeline = GraphicsHelper.CreateGraphicsPipeline(context, "Glass.slang", "GlassVS", "GlassFS", [inputLayout], new()
+        using Shader vertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Glass.slang"), "GlassVS"));
+        using Shader fragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Glass.slang"), "GlassFS"));
+
+        pipeline = App.Context.CreateGraphicsPipeline(new()
         {
-            ColorFormats = [PixelFormat.R16G16B16A16Float],
-            DepthStencilFormat = PixelFormat.D32FloatS8UInt,
-            SampleCount = SampleCount.Count1
-        }, RasterizerState.CullNone(), DepthStencilState.DepthRead(), blend);
+            VertexShader = vertexShader,
+            FragmentShader = fragmentShader,
+            InputLayouts = [inputLayout],
+            PrimitiveTopology = PrimitiveTopology.TriangleList,
+            AttachmentFormats = new()
+            {
+                ColorFormats = [PixelFormat.R16G16B16A16Float],
+                DepthStencilFormat = PixelFormat.D32FloatS8UInt,
+                SampleCount = SampleCount.Count1
+            },
+            RenderState = new()
+            {
+                Rasterizer = RasterizerState.CullNone(),
+                DepthStencil = DepthStencilState.DepthRead(),
+                Blend = blend
+            }
+        });
     }
 
-    public void Render(CommandBuffer commandBuffer, FrameData frame, SceneResources scene, Texture color, Texture depthStencil, bool frontFaces)
+    protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
     {
+        SceneResources scene = args.Scene;
+        Texture color = args.Color;
+        Texture depthStencil = args.DepthStencil;
         ReadOnlySpan<(Vector3 Center, Vector3 Normal)> faces = scene.GlassFaces;
         Span<(uint FirstIndex, float Depth)> sortedFaces = stackalloc (uint FirstIndex, float Depth)[faces.Length];
         int faceCount = 0;
@@ -41,11 +63,11 @@ internal class GlassPass : IDisposable
         for (int i = 0; i < faces.Length; i++)
         {
             (Vector3 center, Vector3 normal) = faces[i];
-            bool frontFace = Vector3.Dot(normal, frame.Position - center) < 0.0f;
+            bool frontFace = Vector3.Dot(normal, args.CameraPosition - center) < 0.0f;
 
-            if (frontFace == frontFaces)
+            if (frontFace == args.FrontFaces)
             {
-                float depth = -Vector3.Transform(center, frame.View).Z;
+                float depth = -Vector3.Transform(center, args.View).Z;
                 int position = faceCount;
 
                 while (position > 0 && sortedFaces[position - 1].Depth < depth)
@@ -59,12 +81,18 @@ internal class GlassPass : IDisposable
             }
         }
 
-        GraphicsHelper.Upload(constantBuffer, 0, new GlassConstants()
+        GlassConstants constants = new()
         {
-            View = frame.View,
-            Projection = frame.Projection,
-            CameraPosition = frame.Position,
-            Time = frame.Time
+            View = args.View,
+            Projection = args.Projection,
+            CameraPosition = args.CameraPosition,
+            Time = args.Time
+        };
+
+        constantBuffer.Upload(0, new()
+        {
+            Pointer = (nint)(&constants),
+            SizeInBytes = (uint)sizeof(GlassConstants)
         });
 
         commandBuffer.Transition(color, default, TextureLayout.Sampled, TextureLayout.ColorAttachment);
@@ -84,7 +112,11 @@ internal class GlassPass : IDisposable
         commandBuffer.Transition(color, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
     }
 
-    public void Dispose()
+    protected override void ResizeImpl()
+    {
+    }
+
+    protected override void Destroy()
     {
         pipeline.Dispose();
         constantBuffer.Dispose();

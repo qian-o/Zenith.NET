@@ -1,81 +1,56 @@
 ﻿using System.Numerics;
 using FluidTank.Handlers;
-using FluidTank.Helpers;
 using FluidTank.Models;
 using FluidTank.Passes;
 using Zenith.NET;
 
 namespace FluidTank;
 
-internal class Renderer : IDisposable
+internal class Renderer : DisposableObject
 {
     private const double SimulationStep = 1.0 / 30.0;
-
     private const float SurfaceScale = 0.5f;
 
-    public FluidViewMode ViewMode;
-
-    public bool RayTracingEnabled = true;
-
-    public bool AntialiasingEnabled = true;
-
-    public bool Paused;
-
-    public bool WaveMakerEnabled;
-
-    private readonly GraphicsContext context;
-
     private readonly Simulation simulation;
-
     private readonly SceneResources scene;
-
     private readonly ScenePass scenePass;
-
     private readonly SurfacePass surfacePass;
-
     private readonly WaterPass waterPass;
-
     private readonly GlassPass glassPass;
-
     private readonly OutputPass outputPass;
 
-    private FrameData frame;
-
     private double simulationTime;
-
     private double accumulator = SimulationStep;
-
     private TimelineValue simulationReady;
 
-    public Renderer(GraphicsContext context, uint width, uint height)
+    public Renderer()
     {
-        this.context = context;
+        uint renderWidth = Math.Max((uint)(App.Width * SurfaceScale), 1);
+        uint renderHeight = Math.Max((uint)(App.Height * SurfaceScale), 1);
 
-        simulation = new(context);
-        scene = new(context);
-        scenePass = new(context);
-        surfacePass = new(context);
-        waterPass = new(context);
-        glassPass = new(context);
-        outputPass = new(context);
-
-        Resize(width, height);
+        simulation = new();
+        scene = new();
+        scenePass = new(renderWidth, renderHeight, App.Width, App.Height);
+        surfacePass = new(renderWidth, renderHeight, App.Width, App.Height);
+        waterPass = new(renderWidth, renderHeight, App.Width, App.Height);
+        glassPass = new(renderWidth, renderHeight, App.Width, App.Height);
+        outputPass = new(renderWidth, renderHeight, App.Width, App.Height);
     }
 
-    public Texture Color { get; private set; } = null!;
+    public FluidViewMode ViewMode { get; set; }
 
-    public void Update(CameraHandler camera, double delta)
+    public bool RayTracingEnabled { get; set; } = true;
+
+    public bool AntialiasingEnabled { get; set; } = true;
+
+    public bool Paused { get; set; }
+
+    public bool WaveMakerEnabled { get; set; }
+
+    public Texture Color => outputPass.Color;
+
+    public void Update(double delta)
     {
-        frame.View = camera.View;
-        frame.Projection = camera.Projection;
-        Matrix4x4.Invert(frame.View, out frame.InvView);
-        Matrix4x4.Invert(frame.Projection, out frame.InvProjection);
-        frame.Position = camera.Position;
-        frame.Right = camera.Right;
-        frame.Up = camera.Up;
-        frame.SunDirection = Vector3.Normalize(new(-0.38f, -0.83f, -0.42f));
-        frame.LightIntensity = 2.7f;
-
         if (!Paused)
         {
             accumulator = Math.Min(accumulator + Math.Min(delta, SimulationStep), SimulationStep * 2.0);
@@ -108,60 +83,100 @@ internal class Renderer : IDisposable
             simulationReady = simulation.Step(simulationTime, SimulationStep, false, WaveMakerEnabled);
         }
 
-        frame.Time = (float)simulationTime;
-        frame.InterpolationAlpha = Paused ? 1.0f : (float)Math.Clamp(accumulator / SimulationStep, 0.0, 1.0);
-
         return simulationReady;
     }
 
-    public void Render(CommandBuffer commandBuffer)
+    public void Render(CommandBuffer commandBuffer, CameraHandler camera)
     {
-        ParticleData particles = new()
+        Matrix4x4 view = camera.View;
+        Matrix4x4 projection = camera.Projection;
+        Matrix4x4.Invert(view, out Matrix4x4 inverseView);
+        Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
+
+        PassArgs args = new()
         {
-            Particles = simulation.Particles,
-            PreviousPositions = simulation.PreviousPositions,
-            Count = Simulation.ParticleCount,
-            Radius = Simulation.ParticleRadius,
-            Spacing = Simulation.ParticleSpacing,
-            Minimum = Simulation.TankMin,
-            Maximum = Simulation.TankMax,
-            Version = simulationReady.Value
+            View = view,
+            Projection = projection,
+            InverseView = inverseView,
+            InverseProjection = inverseProjection,
+            CameraPosition = camera.Position,
+            CameraRight = camera.Right,
+            CameraUp = camera.Up,
+            SunDirection = Vector3.Normalize(new(-0.38f, -0.83f, -0.42f)),
+            LightIntensity = 2.7f,
+            Time = (float)simulationTime,
+            InterpolationAlpha = Paused ? 1.0f : (float)Math.Clamp(accumulator / SimulationStep, 0.0, 1.0),
+            Particles = new()
+            {
+                Particles = simulation.Particles,
+                PreviousPositions = simulation.PreviousPositions,
+                Count = Simulation.ParticleCount,
+                Radius = Simulation.ParticleRadius,
+                Spacing = Simulation.ParticleSpacing,
+                Minimum = Simulation.TankMin,
+                Maximum = Simulation.TankMax,
+                Version = simulationReady.Value
+            },
+            Scene = scene,
+            ViewMode = ViewMode,
+            RayTracingEnabled = RayTracingEnabled,
+            AntialiasingEnabled = AntialiasingEnabled
         };
 
-        scenePass.Render(commandBuffer, frame, scene);
-        glassPass.Render(commandBuffer, frame, scene, scenePass.Color, scenePass.DepthStencil, false);
+        scenePass.Record(commandBuffer, in args);
 
-        if (ViewMode is FluidViewMode.Water)
+        args = args with
         {
-            surfacePass.Render(commandBuffer, frame, particles, scenePass.LinearDepth);
+            Color = scenePass.Color,
+            SceneDepth = scenePass.LinearDepth,
+            DepthStencil = scenePass.DepthStencil,
+            FrontFaces = false
+        };
+        glassPass.Record(commandBuffer, in args);
+
+        if (args.ViewMode is FluidViewMode.Water)
+        {
+            surfacePass.Record(commandBuffer, in args);
         }
 
-        waterPass.Render(commandBuffer, frame, ViewMode, RayTracingEnabled, scene, scenePass.Color, scenePass.LinearDepth, surfacePass.Depth, surfacePass.Thickness, surfacePass.Normal);
-
-        if (ViewMode is FluidViewMode.Particles)
+        args = args with
         {
-            surfacePass.RenderParticles(commandBuffer, frame, particles, waterPass.Color, scenePass.DepthStencil);
+            FluidDepth = surfacePass.Depth,
+            Thickness = surfacePass.Thickness,
+            Normal = surfacePass.Normal
+        };
+        waterPass.Record(commandBuffer, in args);
+
+        args = args with { Color = waterPass.Color };
+
+        if (args.ViewMode is FluidViewMode.Particles)
+        {
+            surfacePass.Record(commandBuffer, in args);
         }
 
-        glassPass.Render(commandBuffer, frame, scene, waterPass.Color, scenePass.DepthStencil, true);
-        outputPass.Render(commandBuffer, waterPass.Color, Color, AntialiasingEnabled);
+        args = args with { FrontFaces = true };
+        glassPass.Record(commandBuffer, in args);
+        outputPass.Record(commandBuffer, in args);
     }
 
     public void Resize(uint width, uint height)
     {
-        if (Color is not null && Color.Desc.Width == width && Color.Desc.Height == height)
+        uint renderWidth = Math.Max((uint)(width * SurfaceScale), 1);
+        uint renderHeight = Math.Max((uint)(height * SurfaceScale), 1);
+
+        if (outputPass.DisplayWidth == width && outputPass.DisplayHeight == height)
         {
             return;
         }
 
-        Color?.Dispose();
-        Color = GraphicsHelper.CreateTexture(context, PixelFormat.B8G8R8A8UNorm, width, height, TextureUsages.ColorAttachment | TextureUsages.Sampled);
-        scenePass.Resize(width, height);
-        outputPass.Resize(width, height);
-        ResizeSurface();
+        scenePass.Resize(renderWidth, renderHeight, width, height);
+        surfacePass.Resize(renderWidth, renderHeight, width, height);
+        waterPass.Resize(renderWidth, renderHeight, width, height);
+        glassPass.Resize(renderWidth, renderHeight, width, height);
+        outputPass.Resize(renderWidth, renderHeight, width, height);
     }
 
-    public void Dispose()
+    protected override void Destroy()
     {
         outputPass.Dispose();
         glassPass.Dispose();
@@ -170,15 +185,5 @@ internal class Renderer : IDisposable
         scenePass.Dispose();
         scene.Dispose();
         simulation.Dispose();
-        Color.Dispose();
-    }
-
-    private void ResizeSurface()
-    {
-        uint width = Math.Max((uint)(Color.Desc.Width * SurfaceScale), 1u);
-        uint height = Math.Max((uint)(Color.Desc.Height * SurfaceScale), 1u);
-
-        surfacePass.Resize(width, height);
-        waterPass.Resize(Color.Desc.Width, Color.Desc.Height, width, height);
     }
 }

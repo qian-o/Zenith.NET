@@ -88,7 +88,7 @@ internal static class App
             Speed = 4.0f
         };
 
-        renderer = new(Context, Width, Height);
+        renderer = new();
     }
 
     public static GraphicsContext Context { get; }
@@ -113,7 +113,7 @@ internal static class App
 
             imGui.Update(delta, width, height);
             camera.Update(delta, width, height);
-            renderer.Update(camera, delta);
+            renderer.Update(delta);
 
             if (camera.TryConsumeClickRay(out Vector3 origin, out Vector3 direction) && !ImGui.GetIO().WantCaptureMouse)
             {
@@ -129,7 +129,12 @@ internal static class App
 
             ImGuiHelper.Settings(static () =>
             {
-                ImGui.Checkbox("Pause", ref renderer.Paused);
+                bool paused = renderer.Paused;
+                if (ImGui.Checkbox("Pause", ref paused))
+                {
+                    renderer.Paused = paused;
+                }
+
                 ImGui.SameLine();
 
                 if (ImGui.Button("Reset"))
@@ -138,7 +143,11 @@ internal static class App
                 }
 
                 ImGui.Separator();
-                ImGui.Checkbox("Wave maker", ref renderer.WaveMakerEnabled);
+                bool waveMakerEnabled = renderer.WaveMakerEnabled;
+                if (ImGui.Checkbox("Wave maker", ref waveMakerEnabled))
+                {
+                    renderer.WaveMakerEnabled = waveMakerEnabled;
+                }
 
                 ImGui.Separator();
 
@@ -155,10 +164,19 @@ internal static class App
                 }
 
                 ImGui.Separator();
-                ImGui.Checkbox("Antialiasing", ref renderer.AntialiasingEnabled);
+                bool antialiasingEnabled = renderer.AntialiasingEnabled;
+                if (ImGui.Checkbox("Antialiasing", ref antialiasingEnabled))
+                {
+                    renderer.AntialiasingEnabled = antialiasingEnabled;
+                }
 
                 ImGui.BeginDisabled(!Context.Capabilities.RayTracingSupported);
-                ImGui.Checkbox("Ray-traced reflections", ref renderer.RayTracingEnabled);
+                bool rayTracingEnabled = renderer.RayTracingEnabled;
+                if (ImGui.Checkbox("Ray-traced reflections", ref rayTracingEnabled))
+                {
+                    renderer.RayTracingEnabled = rayTracingEnabled;
+                }
+
                 ImGui.EndDisabled();
             });
 
@@ -176,7 +194,7 @@ internal static class App
 
             CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
-            renderer.Render(commandBuffer);
+            renderer.Render(commandBuffer, camera);
 
             commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
             imGui.Render(commandBuffer, ColorAttachment.Clear(swapChain.Drawable, default));
