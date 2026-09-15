@@ -8,19 +8,24 @@ internal class UpscalePass : Pass
 {
     private SpatialUpscaler? spatialUpscaler;
     private TemporalUpscaler? temporalUpscaler;
-    private Texture output;
+    private Texture output = null!;
     private bool resourcesInitialized;
     private bool temporalHistory;
 
-    public UpscalePass(uint width, uint height)
+    public UpscalePass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight)
+        : base(renderWidth, renderHeight, displayWidth, displayHeight)
     {
-        output = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
+    }
+
+    public Texture Color { get; private set; } = null!;
+
+    protected override void Initialize()
+    {
+        output = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.R16G16B16A16Float);
         Color = output;
     }
 
-    public Texture Color { get; private set; }
-
-    public override void Record(CommandBuffer commandBuffer, in PassArgs args)
+    protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
     {
         if (args.UpscaleMode is UpscaleMode.None)
         {
@@ -49,10 +54,10 @@ internal class UpscalePass : Pass
         Color = output;
     }
 
-    public override void Resize(uint width, uint height)
+    protected override void ResizeImpl()
     {
         output.Dispose();
-        output = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
+        output = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.R16G16B16A16Float);
         Color = output;
 
         temporalUpscaler?.Dispose();
@@ -76,10 +81,10 @@ internal class UpscalePass : Pass
     {
         spatialUpscaler ??= App.Context.CreateSpatialUpscaler(new()
         {
-            InputWidth = args.ResolvedColor.Desc.Width,
-            InputHeight = args.ResolvedColor.Desc.Height,
-            OutputWidth = output.Desc.Width,
-            OutputHeight = output.Desc.Height
+            InputWidth = RenderWidth,
+            InputHeight = RenderHeight,
+            OutputWidth = DisplayWidth,
+            OutputHeight = DisplayHeight
         });
 
         spatialUpscaler.Dispatch(commandBuffer, new()
@@ -93,10 +98,10 @@ internal class UpscalePass : Pass
     {
         temporalUpscaler ??= App.Context.CreateTemporalUpscaler(new()
         {
-            InputWidth = args.Color.Desc.Width,
-            InputHeight = args.Color.Desc.Height,
-            OutputWidth = output.Desc.Width,
-            OutputHeight = output.Desc.Height,
+            InputWidth = RenderWidth,
+            InputHeight = RenderHeight,
+            OutputWidth = DisplayWidth,
+            OutputHeight = DisplayHeight,
             Mode = TemporalUpscalerMode.Quality
         });
 

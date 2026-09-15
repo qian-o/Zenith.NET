@@ -10,15 +10,28 @@ internal unsafe class PathTracingPass : Pass
 {
     private const uint ThreadGroupSize = 8;
 
-    private readonly Buffer vertexBuffer;
-    private readonly Buffer indexBuffer;
-    private readonly Buffer constantBuffer;
-    private readonly ComputePipeline pipeline;
-    private readonly BottomLevelAccelerationStructure blas;
-    private readonly TopLevelAccelerationStructure tlas;
-    private readonly Buffer materialBuffer;
+    private Buffer vertexBuffer = null!;
+    private Buffer indexBuffer = null!;
+    private Buffer constantBuffer = null!;
+    private ComputePipeline pipeline = null!;
+    private BottomLevelAccelerationStructure blas = null!;
+    private TopLevelAccelerationStructure tlas = null!;
+    private Buffer materialBuffer = null!;
 
-    public PathTracingPass(uint width, uint height)
+    public PathTracingPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight)
+        : base(renderWidth, renderHeight, displayWidth, displayHeight)
+    {
+    }
+
+    public Texture Color { get; private set; } = null!;
+
+    public Texture Depth { get; private set; } = null!;
+
+    public Texture Normal { get; private set; } = null!;
+
+    public Texture MotionVectors { get; private set; } = null!;
+
+    protected override void Initialize()
     {
         CornellBoxGeometry.Create(out Vertex[] vertices, out uint[] indices, out Material[] materials);
 
@@ -128,21 +141,13 @@ internal unsafe class PathTracingPass : Pass
             });
         }
 
-        Color = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
-        Depth = CreateTexture(width, height, PixelFormat.R32Float);
-        Normal = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
-        MotionVectors = CreateTexture(width, height, PixelFormat.R16G16Float);
+        Color = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
+        Depth = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32Float);
+        Normal = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
+        MotionVectors = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16Float);
     }
 
-    public Texture Color { get; private set; }
-
-    public Texture Depth { get; private set; }
-
-    public Texture Normal { get; private set; }
-
-    public Texture MotionVectors { get; private set; }
-
-    public override void Record(CommandBuffer commandBuffer, in PassArgs args)
+    protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
     {
         Constants constants = new()
         {
@@ -151,7 +156,7 @@ internal unsafe class PathTracingPass : Pass
             ViewProjection = args.ViewProjection,
             PreviousViewProjection = args.PreviousViewProjection,
             PositionFrame = new(args.CameraPosition, BitConverter.UInt32BitsToSingle(args.FrameIndex)),
-            RenderSizeJitter = new(Color.Desc.Width, Color.Desc.Height, args.Jitter.X, args.Jitter.Y),
+            RenderSizeJitter = new(RenderWidth, RenderHeight, args.Jitter.X, args.Jitter.Y),
             Scene = tlas.Handle,
             Vertices = vertexBuffer.StorageReadOnlyHandle,
             Indices = indexBuffer.StorageReadOnlyHandle,
@@ -175,7 +180,7 @@ internal unsafe class PathTracingPass : Pass
 
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(constantBuffer, 0);
-        commandBuffer.Dispatch((Color.Desc.Width + ThreadGroupSize - 1) / ThreadGroupSize, (Color.Desc.Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
+        commandBuffer.Dispatch((RenderWidth + ThreadGroupSize - 1) / ThreadGroupSize, (RenderHeight + ThreadGroupSize - 1) / ThreadGroupSize, 1);
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
         commandBuffer.Transition(Color, default, TextureLayout.Storage, TextureLayout.Sampled);
@@ -184,19 +189,19 @@ internal unsafe class PathTracingPass : Pass
         commandBuffer.Transition(MotionVectors, default, TextureLayout.Storage, TextureLayout.Sampled);
     }
 
-    public override void Resize(uint width, uint height)
+    protected override void ResizeImpl()
     {
         Color.Dispose();
-        Color = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
+        Color = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
 
         Depth.Dispose();
-        Depth = CreateTexture(width, height, PixelFormat.R32Float);
+        Depth = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32Float);
 
         Normal.Dispose();
-        Normal = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
+        Normal = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
 
         MotionVectors.Dispose();
-        MotionVectors = CreateTexture(width, height, PixelFormat.R16G16Float);
+        MotionVectors = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16Float);
     }
 
     protected override void Destroy()

@@ -10,9 +10,9 @@ internal unsafe class DenoisePass : Pass
 {
     private const uint ThreadGroupSize = 16;
 
-    private readonly Buffer buffer;
-    private readonly ComputePipeline temporalPipeline;
-    private readonly ComputePipeline atrousPipeline;
+    private Buffer buffer = null!;
+    private ComputePipeline temporalPipeline = null!;
+    private ComputePipeline atrousPipeline = null!;
 
     private Texture[] colorHistory = [];
     private Texture[] momentsHistory = [];
@@ -23,7 +23,16 @@ internal unsafe class DenoisePass : Pass
     private bool resourcesInitialized;
     private int historyIndex;
 
-    public DenoisePass(uint width, uint height)
+    public DenoisePass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight)
+        : base(renderWidth, renderHeight, displayWidth, displayHeight)
+    {
+    }
+
+    public Texture Color => filtered[1];
+
+    public Texture ResolvedColor => resolveHistory[1 - historyIndex];
+
+    protected override void Initialize()
     {
         using Shader temporalShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Denoise.slang"), "TemporalMain"));
         using Shader atrousShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Denoise.slang"), "AtrousMain"));
@@ -37,14 +46,10 @@ internal unsafe class DenoisePass : Pass
         temporalPipeline = App.Context.CreateComputePipeline(new() { ComputeShader = temporalShader });
         atrousPipeline = App.Context.CreateComputePipeline(new() { ComputeShader = atrousShader });
 
-        CreateTextures(width, height);
+        CreateTextures();
     }
 
-    public Texture Color => filtered[1];
-
-    public Texture ResolvedColor => resolveHistory[1 - historyIndex];
-
-    public override void Record(CommandBuffer commandBuffer, in PassArgs args)
+    protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
     {
         if (!resourcesInitialized)
         {
@@ -69,7 +74,7 @@ internal unsafe class DenoisePass : Pass
         resourcesInitialized = true;
     }
 
-    public override void Resize(uint width, uint height)
+    protected override void ResizeImpl()
     {
         for (int index = filtered.Length - 1; index >= 0; index--)
         {
@@ -80,7 +85,7 @@ internal unsafe class DenoisePass : Pass
             colorHistory[index].Dispose();
         }
 
-        CreateTextures(width, height);
+        CreateTextures();
 
         resourcesInitialized = false;
         historyIndex = 0;
@@ -102,7 +107,7 @@ internal unsafe class DenoisePass : Pass
         buffer.Dispose();
     }
 
-    private void CreateTextures(uint width, uint height)
+    private void CreateTextures()
     {
         colorHistory = new Texture[2];
         momentsHistory = new Texture[2];
@@ -112,11 +117,11 @@ internal unsafe class DenoisePass : Pass
 
         for (int index = 0; index < 2; index++)
         {
-            colorHistory[index] = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
-            momentsHistory[index] = CreateTexture(width, height, PixelFormat.R32G32B32A32Float);
-            geometryHistory[index] = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
-            filtered[index] = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
-            resolveHistory[index] = CreateTexture(width, height, PixelFormat.R32G32B32A32Float);
+            colorHistory[index] = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
+            momentsHistory[index] = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32G32B32A32Float);
+            geometryHistory[index] = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
+            filtered[index] = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
+            resolveHistory[index] = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32G32B32A32Float);
         }
     }
 
@@ -127,7 +132,7 @@ internal unsafe class DenoisePass : Pass
 
         TemporalConstants constants = new()
         {
-            SizeRcp = new(color.Desc.Width, color.Desc.Height, 1.0f / color.Desc.Width, 1.0f / color.Desc.Height),
+            SizeRcp = new(RenderWidth, RenderHeight, 1.0f / RenderWidth, 1.0f / RenderHeight),
             Jitter = new(args.Jitter, args.PreviousJitter.X, args.PreviousJitter.Y),
             Reset = resourcesInitialized ? 0u : 1u,
             SameCamera = args.SameCamera ? 1u : 0u,
@@ -156,7 +161,7 @@ internal unsafe class DenoisePass : Pass
         commandBuffer.Transition(filtered[0], default, TextureLayout.Sampled, TextureLayout.Storage);
         commandBuffer.SetPipeline(temporalPipeline);
         commandBuffer.SetConstantBuffer(buffer, 0);
-        commandBuffer.Dispatch((color.Desc.Width + ThreadGroupSize - 1) / ThreadGroupSize, (color.Desc.Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
+        commandBuffer.Dispatch((RenderWidth + ThreadGroupSize - 1) / ThreadGroupSize, (RenderHeight + ThreadGroupSize - 1) / ThreadGroupSize, 1);
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
         commandBuffer.Transition(colorHistory[historyIndex], default, TextureLayout.Storage, TextureLayout.Sampled);
         commandBuffer.Transition(momentsHistory[historyIndex], default, TextureLayout.Storage, TextureLayout.Sampled);
@@ -172,7 +177,7 @@ internal unsafe class DenoisePass : Pass
 
         AtrousConstants constants = new()
         {
-            SizeRcp = new(input.Desc.Width, input.Desc.Height, 1.0f / input.Desc.Width, 1.0f / input.Desc.Height),
+            SizeRcp = new(RenderWidth, RenderHeight, 1.0f / RenderWidth, 1.0f / RenderHeight),
             Step = 1u << (int)iteration,
             Reset = resourcesInitialized ? 0u : 1u,
             SameCamera = args.SameCamera ? 1u : 0u,
@@ -202,7 +207,7 @@ internal unsafe class DenoisePass : Pass
 
         commandBuffer.SetPipeline(atrousPipeline);
         commandBuffer.SetConstantBuffer(buffer, offset);
-        commandBuffer.Dispatch((input.Desc.Width + ThreadGroupSize - 1) / ThreadGroupSize, (input.Desc.Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
+        commandBuffer.Dispatch((RenderWidth + ThreadGroupSize - 1) / ThreadGroupSize, (RenderHeight + ThreadGroupSize - 1) / ThreadGroupSize, 1);
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
         commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.Sampled);
 

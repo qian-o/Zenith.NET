@@ -5,9 +5,49 @@ namespace CornellBox.Passes;
 
 internal abstract class Pass : DisposableObject
 {
-    public abstract void Record(CommandBuffer commandBuffer, in PassArgs args);
+    protected Pass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight)
+    {
+        RenderWidth = renderWidth;
+        RenderHeight = renderHeight;
+        DisplayWidth = displayWidth;
+        DisplayHeight = displayHeight;
 
-    public abstract void Resize(uint width, uint height);
+        Initialize();
+    }
+
+    public uint RenderWidth { get; private set; }
+
+    public uint RenderHeight { get; private set; }
+
+    public uint DisplayWidth { get; private set; }
+
+    public uint DisplayHeight { get; private set; }
+
+    public void Record(CommandBuffer commandBuffer, in PassArgs args)
+    {
+        if (RenderWidth is 0 || RenderHeight is 0 || DisplayWidth is 0 || DisplayHeight is 0)
+        {
+            return;
+        }
+
+        RecordImpl(commandBuffer, args);
+    }
+
+    public void Resize(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight)
+    {
+        RenderWidth = renderWidth;
+        RenderHeight = renderHeight;
+        DisplayWidth = displayWidth;
+        DisplayHeight = displayHeight;
+
+        ResizeImpl();
+    }
+
+    protected abstract void Initialize();
+
+    protected abstract void RecordImpl(CommandBuffer commandBuffer, in PassArgs args);
+
+    protected abstract void ResizeImpl();
 
     protected static string ShaderPath(string file)
     {

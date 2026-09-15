@@ -25,10 +25,10 @@ internal class Renderer : DisposableObject
         uint renderWidth = Math.Max((uint)(width * RenderPrecision), 1);
         uint renderHeight = Math.Max((uint)(height * RenderPrecision), 1);
 
-        pathTracing = new(renderWidth, renderHeight);
-        denoise = new(renderWidth, renderHeight);
-        upscale = new(width, height);
-        tonemap = new(width, height);
+        pathTracing = new(renderWidth, renderHeight, width, height);
+        denoise = new(renderWidth, renderHeight, width, height);
+        upscale = new(renderWidth, renderHeight, width, height);
+        tonemap = new(renderWidth, renderHeight, width, height);
     }
 
     public float RenderPrecision { get; set; } = 0.67f;
@@ -39,7 +39,7 @@ internal class Renderer : DisposableObject
 
     public void Render(CommandBuffer commandBuffer, CameraHandler camera)
     {
-        Resize(Color.Desc.Width, Color.Desc.Height);
+        Resize(tonemap.DisplayWidth, tonemap.DisplayHeight);
 
         UpscaleMode upscaleMode = UpscaleMode;
         Matrix4x4 view = camera.View;
@@ -108,18 +108,17 @@ internal class Renderer : DisposableObject
         float renderPrecision = RenderPrecision;
         uint renderWidth = Math.Max((uint)(width * renderPrecision), 1);
         uint renderHeight = Math.Max((uint)(height * renderPrecision), 1);
-        Texture pathColor = pathTracing.Color;
 
-        if (pathColor.Desc.Width == renderWidth && pathColor.Desc.Height == renderHeight &&
-            Color.Desc.Width == width && Color.Desc.Height == height)
+        if (pathTracing.RenderWidth == renderWidth && pathTracing.RenderHeight == renderHeight &&
+            pathTracing.DisplayWidth == width && pathTracing.DisplayHeight == height)
         {
             return;
         }
 
-        pathTracing.Resize(renderWidth, renderHeight);
-        denoise.Resize(renderWidth, renderHeight);
-        upscale.Resize(width, height);
-        tonemap.Resize(width, height);
+        pathTracing.Resize(renderWidth, renderHeight, width, height);
+        denoise.Resize(renderWidth, renderHeight, width, height);
+        upscale.Resize(renderWidth, renderHeight, width, height);
+        tonemap.Resize(renderWidth, renderHeight, width, height);
 
         history = false;
     }
