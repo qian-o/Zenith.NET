@@ -4,7 +4,7 @@ using Zenith.NET.Extensions.Upscaling;
 
 namespace CornellBox.Passes;
 
-internal class UpscalePass : Pass
+internal class UpscalePass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
 {
     private SpatialUpscaler? spatialUpscaler;
     private TemporalUpscaler? temporalUpscaler;
@@ -12,17 +12,11 @@ internal class UpscalePass : Pass
     private bool resourcesInitialized;
     private bool temporalHistory;
 
-    public UpscalePass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight)
-        : base(renderWidth, renderHeight, displayWidth, displayHeight)
-    {
-    }
-
     public Texture Color { get; private set; } = null!;
 
     protected override void Initialize()
     {
-        output = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.R16G16B16A16Float);
-        Color = output;
+        Color = output = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.R16G16B16A16Float);
     }
 
     protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
@@ -31,6 +25,7 @@ internal class UpscalePass : Pass
         {
             temporalHistory = false;
             Color = args.ResolvedColor;
+
             return;
         }
 
@@ -57,8 +52,7 @@ internal class UpscalePass : Pass
     protected override void ResizeImpl()
     {
         output.Dispose();
-        output = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.R16G16B16A16Float);
-        Color = output;
+        Color = output = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.R16G16B16A16Float);
 
         temporalUpscaler?.Dispose();
         temporalUpscaler = null;

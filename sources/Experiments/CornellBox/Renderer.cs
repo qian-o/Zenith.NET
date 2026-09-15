@@ -20,15 +20,13 @@ internal class Renderer : DisposableObject
 
     public Renderer()
     {
-        uint width = App.Width;
-        uint height = App.Height;
-        uint renderWidth = Math.Max((uint)(width * RenderPrecision), 1);
-        uint renderHeight = Math.Max((uint)(height * RenderPrecision), 1);
+        uint renderWidth = Math.Max((uint)(App.Width * RenderPrecision), 1);
+        uint renderHeight = Math.Max((uint)(App.Height * RenderPrecision), 1);
 
-        pathTracing = new(renderWidth, renderHeight, width, height);
-        denoise = new(renderWidth, renderHeight, width, height);
-        upscale = new(renderWidth, renderHeight, width, height);
-        tonemap = new(renderWidth, renderHeight, width, height);
+        pathTracing = new(renderWidth, renderHeight, App.Width, App.Height);
+        denoise = new(renderWidth, renderHeight, App.Width, App.Height);
+        upscale = new(renderWidth, renderHeight, App.Width, App.Height);
+        tonemap = new(renderWidth, renderHeight, App.Width, App.Height);
     }
 
     public float RenderPrecision { get; set; } = 0.67f;
@@ -105,15 +103,8 @@ internal class Renderer : DisposableObject
 
     public void Resize(uint width, uint height)
     {
-        float renderPrecision = RenderPrecision;
-        uint renderWidth = Math.Max((uint)(width * renderPrecision), 1);
-        uint renderHeight = Math.Max((uint)(height * renderPrecision), 1);
-
-        if (pathTracing.RenderWidth == renderWidth && pathTracing.RenderHeight == renderHeight &&
-            pathTracing.DisplayWidth == width && pathTracing.DisplayHeight == height)
-        {
-            return;
-        }
+        uint renderWidth = Math.Max((uint)(App.Width * RenderPrecision), 1);
+        uint renderHeight = Math.Max((uint)(App.Height * RenderPrecision), 1);
 
         pathTracing.Resize(renderWidth, renderHeight, width, height);
         denoise.Resize(renderWidth, renderHeight, width, height);

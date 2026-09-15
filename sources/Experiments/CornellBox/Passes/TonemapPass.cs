@@ -6,17 +6,12 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Passes;
 
-internal unsafe class TonemapPass : Pass
+internal unsafe class TonemapPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
 {
     private Buffer buffer = null!;
     private Sampler sampler = null!;
     private ComputePipeline pipeline = null!;
     private bool resourcesInitialized;
-
-    public TonemapPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight)
-        : base(renderWidth, renderHeight, displayWidth, displayHeight)
-    {
-    }
 
     public Texture Color { get; private set; } = null!;
 

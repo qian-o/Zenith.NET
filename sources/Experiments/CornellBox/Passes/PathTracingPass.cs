@@ -6,7 +6,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Passes;
 
-internal unsafe class PathTracingPass : Pass
+internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
 {
     private const uint ThreadGroupSize = 8;
 
@@ -17,11 +17,6 @@ internal unsafe class PathTracingPass : Pass
     private BottomLevelAccelerationStructure blas = null!;
     private TopLevelAccelerationStructure tlas = null!;
     private Buffer materialBuffer = null!;
-
-    public PathTracingPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight)
-        : base(renderWidth, renderHeight, displayWidth, displayHeight)
-    {
-    }
 
     public Texture Color { get; private set; } = null!;
 

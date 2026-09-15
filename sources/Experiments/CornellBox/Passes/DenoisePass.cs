@@ -6,7 +6,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Passes;
 
-internal unsafe class DenoisePass : Pass
+internal unsafe class DenoisePass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
 {
     private const uint ThreadGroupSize = 16;
 
@@ -22,11 +22,6 @@ internal unsafe class DenoisePass : Pass
 
     private bool resourcesInitialized;
     private int historyIndex;
-
-    public DenoisePass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight)
-        : base(renderWidth, renderHeight, displayWidth, displayHeight)
-    {
-    }
 
     public Texture Color => filtered[1];
 
