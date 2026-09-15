@@ -18,6 +18,4 @@ internal readonly struct ParticleData
     public Vector3 Minimum { get; init; }
 
     public Vector3 Maximum { get; init; }
-
-    public ulong Version { get; init; }
 }

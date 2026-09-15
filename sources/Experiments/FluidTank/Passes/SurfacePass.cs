@@ -27,9 +27,6 @@ internal unsafe class SurfacePass(uint width, uint height) : Pass(width, height)
 
     private Vector3 origin;
     private float cellSize;
-    private ulong particleVersion;
-    private float interpolationAlpha;
-    private bool fieldReady;
 
     public Texture Depth { get; private set; } = null!;
 
@@ -188,30 +185,22 @@ internal unsafe class SurfacePass(uint width, uint height) : Pass(width, height)
             SizeInBytes = (uint)sizeof(DensityConstants)
         });
 
-        if (!fieldReady || particleVersion != particles.Version || interpolationAlpha != args.InterpolationAlpha)
-        {
-            Dispatch(commandBuffer, clearPipeline, density.Desc.Width * density.Desc.Height * density.Desc.Depth, 1, 1);
-            commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-            Dispatch(commandBuffer, depositPipeline, particles.Count, 1, 1);
-            commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
+        Dispatch(commandBuffer, clearPipeline, density.Desc.Width * density.Desc.Height * density.Desc.Depth, 1, 1);
+        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
+        Dispatch(commandBuffer, depositPipeline, particles.Count, 1, 1);
+        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
-            TextureLayout previousLayout = fieldReady ? TextureLayout.Sampled : TextureLayout.Undefined;
-            commandBuffer.Transition(density, default, previousLayout, TextureLayout.Storage);
-            Dispatch(commandBuffer, smoothPipeline, density.Desc.Width, density.Desc.Height, density.Desc.Depth);
-            commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-            commandBuffer.Transition(density, default, TextureLayout.Storage, TextureLayout.Sampled);
+        commandBuffer.Transition(density, default, TextureLayout.Undefined, TextureLayout.Storage);
+        Dispatch(commandBuffer, smoothPipeline, density.Desc.Width, density.Desc.Height, density.Desc.Depth);
+        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
+        commandBuffer.Transition(density, default, TextureLayout.Storage, TextureLayout.Sampled);
 
-            commandBuffer.Transition(field, default, previousLayout, TextureLayout.Storage);
-            commandBuffer.Transition(occupancy, default, previousLayout, TextureLayout.Storage);
-            Dispatch(commandBuffer, fieldPipeline, density.Desc.Width, density.Desc.Height, density.Desc.Depth);
-            commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-            commandBuffer.Transition(field, default, TextureLayout.Storage, TextureLayout.Sampled);
-            commandBuffer.Transition(occupancy, default, TextureLayout.Storage, TextureLayout.Sampled);
-
-            particleVersion = particles.Version;
-            interpolationAlpha = args.InterpolationAlpha;
-            fieldReady = true;
-        }
+        commandBuffer.Transition(field, default, TextureLayout.Undefined, TextureLayout.Storage);
+        commandBuffer.Transition(occupancy, default, TextureLayout.Undefined, TextureLayout.Storage);
+        Dispatch(commandBuffer, fieldPipeline, density.Desc.Width, density.Desc.Height, density.Desc.Depth);
+        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
+        commandBuffer.Transition(field, default, TextureLayout.Storage, TextureLayout.Sampled);
+        commandBuffer.Transition(occupancy, default, TextureLayout.Storage, TextureLayout.Sampled);
 
         commandBuffer.Transition(Depth, default, TextureLayout.Undefined, TextureLayout.Storage);
         commandBuffer.Transition(Thickness, default, TextureLayout.Undefined, TextureLayout.Storage);

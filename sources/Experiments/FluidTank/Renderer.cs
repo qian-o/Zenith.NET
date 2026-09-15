@@ -106,8 +106,7 @@ internal class Renderer : DisposableObject
                 Radius = Simulation.ParticleRadius,
                 Spacing = Simulation.ParticleSpacing,
                 Minimum = Simulation.TankMin,
-                Maximum = Simulation.TankMax,
-                Version = simulationReady.Value
+                Maximum = Simulation.TankMax
             },
             Scene = scene,
             ViewMode = ViewMode
