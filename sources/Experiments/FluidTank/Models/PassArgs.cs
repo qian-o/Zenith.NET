@@ -45,9 +45,5 @@ internal readonly struct PassArgs
 
     public FluidViewMode ViewMode { get; init; }
 
-    public bool RayTracingEnabled { get; init; }
-
-    public bool AntialiasingEnabled { get; init; }
-
     public bool FrontFaces { get; init; }
 }

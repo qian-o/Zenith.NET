@@ -35,10 +35,6 @@ internal class Renderer : DisposableObject
 
     public FluidViewMode ViewMode { get; set; }
 
-    public bool RayTracingEnabled { get; set; } = true;
-
-    public bool AntialiasingEnabled { get; set; } = true;
-
     public bool Paused { get; set; }
 
     public bool WaveMakerEnabled { get; set; }
@@ -114,9 +110,7 @@ internal class Renderer : DisposableObject
                 Version = simulationReady.Value
             },
             Scene = scene,
-            ViewMode = ViewMode,
-            RayTracingEnabled = RayTracingEnabled,
-            AntialiasingEnabled = AntialiasingEnabled
+            ViewMode = ViewMode
         };
 
         scenePass.Record(commandBuffer, in args);

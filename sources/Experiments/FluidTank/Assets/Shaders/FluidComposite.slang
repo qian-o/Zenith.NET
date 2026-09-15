@@ -107,13 +107,6 @@ struct CompositeConstants
             return ScreenAndRenderMode.z;
         }
     }
-
-    property bool RayTracingEnabled
-    {
-        get {
-            return ScreenAndRenderMode.w != 0;
-        }
-    }
 };
 
 struct FullscreenOutput
@@ -267,7 +260,7 @@ float4 TraceRefraction(float2 uv, float sceneDepth, float3 viewPosition, float3 
     return float4(sampleUv, waterDistance, confidence);
 }
 
-float4 ShadeWater(FullscreenOutput input)
+float4 ShadeWater<let rayTracing : bool>(FullscreenOutput input)
 {
     float2 uv = input.UV;
     float sceneDepth = composite.SceneDepth.Load(int3(int2(input.Position.xy), 0)).r;
@@ -306,7 +299,7 @@ float4 ShadeWater(FullscreenOutput input)
 
     float3 reflected = EnvironmentColor(reflect(-viewDirection, normalWorld));
 
-    if (composite.RayTracingEnabled)
+    if (rayTracing)
     {
         float4 reflectionSample = composite.Reflection.SampleLevel(composite.Sampler, uv, 0.0);
         reflected = reflectionSample.rgb / reflectionSample.a;
@@ -330,5 +323,11 @@ float4 ShadeWater(FullscreenOutput input)
 [shader("fragment")]
 float4 CompositeFS(FullscreenOutput input) : SV_TARGET
 {
-    return ShadeWater(input);
+    return ShadeWater<true>(input);
+}
+
+[shader("fragment")]
+float4 EnvironmentFS(FullscreenOutput input) : SV_TARGET
+{
+    return ShadeWater<false>(input);
 }

@@ -73,7 +73,6 @@ internal unsafe class OutputPass(uint width, uint height) : Pass(width, height)
         {
             TexelSize = new(1.0f / Width, 1.0f / Height),
             Exposure = 1.0f,
-            EncodeLuminance = args.AntialiasingEnabled ? 1u : 0u,
             Input = args.Color.SampledHandle,
             Sampler = sampler.Handle
         };
@@ -84,27 +83,23 @@ internal unsafe class OutputPass(uint width, uint height) : Pass(width, height)
             SizeInBytes = (uint)sizeof(OutputConstants)
         });
 
-        Draw(commandBuffer, toneMappingPipeline, args.AntialiasingEnabled ? displayColor : Color, 0);
+        Draw(commandBuffer, toneMappingPipeline, displayColor, 0);
 
-        if (args.AntialiasingEnabled)
+        OutputConstants antialiasingConstants = new()
         {
-            OutputConstants antialiasingConstants = new()
-            {
-                TexelSize = new(1.0f / Width, 1.0f / Height),
-                Exposure = 1.0f,
-                EncodeLuminance = 1u,
-                Input = displayColor.SampledHandle,
-                Sampler = sampler.Handle
-            };
+            TexelSize = new(1.0f / Width, 1.0f / Height),
+            Exposure = 1.0f,
+            Input = displayColor.SampledHandle,
+            Sampler = sampler.Handle
+        };
 
-            constants.Upload(256, new()
-            {
-                Pointer = (nint)(&antialiasingConstants),
-                SizeInBytes = (uint)sizeof(OutputConstants)
-            });
+        constants.Upload(256, new()
+        {
+            Pointer = (nint)(&antialiasingConstants),
+            SizeInBytes = (uint)sizeof(OutputConstants)
+        });
 
-            Draw(commandBuffer, antialiasingPipeline, Color, 256);
-        }
+        Draw(commandBuffer, antialiasingPipeline, Color, 256);
     }
 
     protected override void ResizeImpl()
@@ -151,9 +146,6 @@ file struct OutputConstants
 
     [FieldOffset(8)]
     public float Exposure;
-
-    [FieldOffset(12)]
-    public uint EncodeLuminance;
 
     [FieldOffset(16)]
     public ResourceHandle Input;

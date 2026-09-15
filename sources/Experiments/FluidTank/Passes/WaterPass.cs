@@ -34,7 +34,7 @@ internal unsafe class WaterPass(uint width, uint height) : Pass(width, height)
         sampler = App.Context.CreateSampler(SamplerDesc.LinearClamp());
 
         using Shader compositeVertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("FluidComposite.slang"), "FullscreenVS"));
-        using Shader compositeFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("FluidComposite.slang"), "CompositeFS"));
+        using Shader compositeFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("FluidComposite.slang"), App.Context.Capabilities.RayTracingSupported ? "CompositeFS" : "EnvironmentFS"));
 
         compositePipeline = App.Context.CreateGraphicsPipeline(new()
         {
@@ -66,14 +66,12 @@ internal unsafe class WaterPass(uint width, uint height) : Pass(width, height)
 
     protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
     {
-        bool rayTracing = args.RayTracingEnabled && reflectionPipeline is not null && args.ViewMode is FluidViewMode.Water;
-
-        if (rayTracing)
+        if (reflectionPipeline is not null && args.ViewMode is FluidViewMode.Water)
         {
             RecordReflection(commandBuffer, in args);
         }
 
-        RecordComposite(commandBuffer, in args, rayTracing);
+        RecordComposite(commandBuffer, in args);
     }
 
     protected override void ResizeImpl()
@@ -144,7 +142,7 @@ internal unsafe class WaterPass(uint width, uint height) : Pass(width, height)
         commandBuffer.Transition(reflection, default, TextureLayout.Storage, TextureLayout.Sampled);
     }
 
-    private void RecordComposite(CommandBuffer commandBuffer, in PassArgs args, bool rayTracing)
+    private void RecordComposite(CommandBuffer commandBuffer, in PassArgs args)
     {
         CompositeConstants compositeData = new()
         {
@@ -161,7 +159,6 @@ internal unsafe class WaterPass(uint width, uint height) : Pass(width, height)
             Width = args.FluidDepth.Desc.Width,
             Height = args.FluidDepth.Desc.Height,
             RenderMode = (uint)args.ViewMode,
-            RayTracingEnabled = rayTracing ? 1u : 0u,
             SceneColor = args.Color.SampledHandle,
             SceneDepth = args.SceneDepth.SampledHandle,
             FluidDepth = args.FluidDepth.SampledHandle,
@@ -228,9 +225,6 @@ file struct CompositeConstants
 
     [FieldOffset(200)]
     public uint RenderMode;
-
-    [FieldOffset(204)]
-    public uint RayTracingEnabled;
 
     [FieldOffset(208)]
     public ResourceHandle SceneColor;

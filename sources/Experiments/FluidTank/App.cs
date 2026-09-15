@@ -136,6 +136,7 @@ internal static class App
                 }
 
                 ImGui.SameLine();
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize("Reset").X - (ImGui.GetStyle().FramePadding.X * 2.0f));
 
                 if (ImGui.Button("Reset"))
                 {
@@ -143,41 +144,18 @@ internal static class App
                 }
 
                 ImGui.Separator();
+
+                int viewMode = (int)renderer.ViewMode;
+                if (ImGui.Combo("View", ref viewMode, "Water\0Particles\0"))
+                {
+                    renderer.ViewMode = (FluidViewMode)viewMode;
+                }
+
                 bool waveMakerEnabled = renderer.WaveMakerEnabled;
-                if (ImGui.Checkbox("Wave maker", ref waveMakerEnabled))
+                if (ImGui.Checkbox("Waves", ref waveMakerEnabled))
                 {
                     renderer.WaveMakerEnabled = waveMakerEnabled;
                 }
-
-                ImGui.Separator();
-
-                if (ImGui.RadioButton("Water", renderer.ViewMode is FluidViewMode.Water))
-                {
-                    renderer.ViewMode = FluidViewMode.Water;
-                }
-
-                ImGui.SameLine();
-
-                if (ImGui.RadioButton("Particles", renderer.ViewMode is FluidViewMode.Particles))
-                {
-                    renderer.ViewMode = FluidViewMode.Particles;
-                }
-
-                ImGui.Separator();
-                bool antialiasingEnabled = renderer.AntialiasingEnabled;
-                if (ImGui.Checkbox("Antialiasing", ref antialiasingEnabled))
-                {
-                    renderer.AntialiasingEnabled = antialiasingEnabled;
-                }
-
-                ImGui.BeginDisabled(!Context.Capabilities.RayTracingSupported);
-                bool rayTracingEnabled = renderer.RayTracingEnabled;
-                if (ImGui.Checkbox("Ray-traced reflections", ref rayTracingEnabled))
-                {
-                    renderer.RayTracingEnabled = rayTracingEnabled;
-                }
-
-                ImGui.EndDisabled();
             });
 
             ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(renderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
