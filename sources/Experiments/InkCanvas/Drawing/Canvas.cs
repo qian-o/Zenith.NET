@@ -1,8 +1,9 @@
 ﻿using SkiaSharp;
+using Zenith.NET;
 
 namespace InkCanvas.Drawing;
 
-internal class Canvas : IDisposable
+internal class Canvas : DisposableObject
 {
     private const float EraserRadius = 22.0f;
 
@@ -147,7 +148,7 @@ internal class Canvas : IDisposable
         }
     }
 
-    public void Dispose()
+    protected override void Destroy()
     {
         foreach (Stroke stroke in strokes)
         {

@@ -1,72 +1,32 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
-using FluidTank.Helpers;
 using FluidTank.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Passes;
 
-internal unsafe class SurfacePass : IDisposable
+internal unsafe class SurfacePass(uint width, uint height) : Pass(width, height)
 {
-    private readonly GraphicsContext context;
+    private const float SurfaceScale = 0.5f;
 
-    private readonly Buffer constants;
-
-    private readonly Buffer particleConstants;
-
-    private readonly Sampler sampler;
-
-    private readonly ComputePipeline clearPipeline;
-
-    private readonly ComputePipeline depositPipeline;
-
-    private readonly ComputePipeline smoothPipeline;
-
-    private readonly ComputePipeline fieldPipeline;
-
-    private readonly ComputePipeline tracePipeline;
-
-    private readonly GraphicsPipeline particlePipeline;
+    private Buffer constants = null!;
+    private Buffer particleConstants = null!;
+    private Sampler sampler = null!;
+    private ComputePipeline clearPipeline = null!;
+    private ComputePipeline depositPipeline = null!;
+    private ComputePipeline smoothPipeline = null!;
+    private ComputePipeline fieldPipeline = null!;
+    private ComputePipeline tracePipeline = null!;
+    private GraphicsPipeline particlePipeline = null!;
 
     private Buffer accumulation = null!;
-
     private Texture density = null!;
-
     private Texture field = null!;
-
     private Texture occupancy = null!;
 
     private Vector3 origin;
-
     private float cellSize;
-
-    private ulong particleVersion;
-
-    private float interpolationAlpha;
-
-    private bool fieldReady;
-
-    public SurfacePass(GraphicsContext context)
-    {
-        this.context = context;
-
-        constants = GraphicsHelper.CreateConstantBuffer<DensityConstants>(context);
-        particleConstants = GraphicsHelper.CreateConstantBuffer<ParticleConstants>(context);
-        sampler = context.CreateSampler(SamplerDesc.LinearClamp());
-        clearPipeline = GraphicsHelper.CreateComputePipeline(context, "DensitySurface.slang", "ClearCS");
-        depositPipeline = GraphicsHelper.CreateComputePipeline(context, "DensitySurface.slang", "DepositCS");
-        smoothPipeline = GraphicsHelper.CreateComputePipeline(context, "DensitySurface.slang", "SmoothCS");
-        fieldPipeline = GraphicsHelper.CreateComputePipeline(context, "DensitySurface.slang", "BuildFieldCS");
-        tracePipeline = GraphicsHelper.CreateComputePipeline(context, "DensitySurface.slang", "TraceCS");
-
-        particlePipeline = GraphicsHelper.CreateGraphicsPipeline(context, "Particles.slang", "ParticleVS", "ParticleFS", [], new()
-        {
-            ColorFormats = [PixelFormat.R16G16B16A16Float],
-            DepthStencilFormat = PixelFormat.D32FloatS8UInt,
-            SampleCount = SampleCount.Count1
-        }, RasterizerState.CullNone(), DepthStencilState.DepthReadWrite(), BlendState.Opaque(), PrimitiveTopology.TriangleStrip);
-    }
 
     public Texture Depth { get; private set; } = null!;
 
@@ -74,8 +34,79 @@ internal unsafe class SurfacePass : IDisposable
 
     public Texture Normal { get; private set; } = null!;
 
-    public void Resize(uint width, uint height)
+    protected override void Initialize()
     {
+        constants = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)sizeof(DensityConstants),
+            Usages = BufferUsages.Constant,
+            Residency = MemoryResidency.CpuWriteOnly
+        });
+        particleConstants = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)sizeof(ParticleConstants),
+            Usages = BufferUsages.Constant,
+            Residency = MemoryResidency.CpuWriteOnly
+        });
+        sampler = App.Context.CreateSampler(SamplerDesc.LinearClamp());
+
+        using Shader clearShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("DensitySurface.slang"), "ClearCS"));
+        using Shader depositShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("DensitySurface.slang"), "DepositCS"));
+        using Shader smoothShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("DensitySurface.slang"), "SmoothCS"));
+        using Shader fieldShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("DensitySurface.slang"), "BuildFieldCS"));
+        using Shader traceShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("DensitySurface.slang"), "TraceCS"));
+
+        clearPipeline = App.Context.CreateComputePipeline(new() { ComputeShader = clearShader });
+        depositPipeline = App.Context.CreateComputePipeline(new() { ComputeShader = depositShader });
+        smoothPipeline = App.Context.CreateComputePipeline(new() { ComputeShader = smoothShader });
+        fieldPipeline = App.Context.CreateComputePipeline(new() { ComputeShader = fieldShader });
+        tracePipeline = App.Context.CreateComputePipeline(new() { ComputeShader = traceShader });
+
+        using Shader particleVertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Particles.slang"), "ParticleVS"));
+        using Shader particleFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Particles.slang"), "ParticleFS"));
+
+        particlePipeline = App.Context.CreateGraphicsPipeline(new()
+        {
+            VertexShader = particleVertexShader,
+            FragmentShader = particleFragmentShader,
+            InputLayouts = [],
+            PrimitiveTopology = PrimitiveTopology.TriangleStrip,
+            AttachmentFormats = new()
+            {
+                ColorFormats = [PixelFormat.R16G16B16A16Float],
+                DepthStencilFormat = PixelFormat.D32FloatS8UInt,
+                SampleCount = SampleCount.Count1
+            },
+            RenderState = new()
+            {
+                Rasterizer = RasterizerState.CullNone(),
+                DepthStencil = DepthStencilState.DepthReadWrite(),
+                Blend = BlendState.Opaque()
+            }
+        });
+
+        ResizeImpl();
+    }
+
+    protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
+    {
+        switch (args.ViewMode)
+        {
+            case FluidViewMode.Water:
+                RecordSurface(commandBuffer, in args);
+                break;
+
+            case FluidViewMode.Particles:
+                RecordParticles(commandBuffer, in args);
+                break;
+        }
+    }
+
+    protected override void ResizeImpl()
+    {
+        uint width = Math.Max((uint)(Width * SurfaceScale), 1);
+        uint height = Math.Max((uint)(Height * SurfaceScale), 1);
+
         if (Depth is not null && Depth.Desc.Width == width && Depth.Desc.Height == height)
         {
             return;
@@ -83,110 +114,12 @@ internal unsafe class SurfacePass : IDisposable
 
         DisposeTargets();
 
-        Depth = GraphicsHelper.CreateTexture(context, PixelFormat.R32Float, width, height, TextureUsages.Sampled | TextureUsages.Storage);
-        Thickness = GraphicsHelper.CreateTexture(context, PixelFormat.R16Float, width, height, TextureUsages.Sampled | TextureUsages.Storage);
-        Normal = GraphicsHelper.CreateTexture(context, PixelFormat.R16G16B16A16Float, width, height, TextureUsages.Sampled | TextureUsages.Storage);
+        Depth = CreateTexture(width, height, PixelFormat.R32Float);
+        Thickness = CreateTexture(width, height, PixelFormat.R16Float);
+        Normal = CreateTexture(width, height, PixelFormat.R16G16B16A16Float);
     }
 
-    public void Render(CommandBuffer commandBuffer, FrameData frame, ParticleData particles, Texture sceneDepth)
-    {
-        density ??= CreateVolume(particles);
-
-        GraphicsHelper.Upload(constants, 0, new DensityConstants()
-        {
-            View = frame.View,
-            InvView = frame.InvView,
-            InvProjection = frame.InvProjection,
-            Origin = origin,
-            CellSize = cellSize,
-            Minimum = particles.Minimum,
-            InverseCellSize = 1.0f / cellSize,
-            Maximum = particles.Maximum,
-            IsoValue = 0.5f,
-            GridX = density.Desc.Width,
-            GridY = density.Desc.Height,
-            GridZ = density.Desc.Depth,
-            ParticleCount = particles.Count,
-            Width = Depth.Desc.Width,
-            Height = Depth.Desc.Height,
-            InterpolationAlpha = frame.InterpolationAlpha,
-            VolumeScale = particles.Spacing * particles.Spacing * particles.Spacing / (cellSize * cellSize * cellSize),
-            Particles = particles.Particles.StorageReadOnlyHandle,
-            PreviousPositions = particles.PreviousPositions.StorageReadOnlyHandle,
-            Accumulation = accumulation.StorageReadWriteHandle,
-            DensityWrite = density.StorageHandle,
-            DensityRead = density.SampledHandle,
-            FieldWrite = field.StorageHandle,
-            FieldRead = field.SampledHandle,
-            OccupancyWrite = occupancy.StorageHandle,
-            OccupancyRead = occupancy.SampledHandle,
-            SceneDepth = sceneDepth.SampledHandle,
-            DepthOutput = Depth.StorageHandle,
-            ThicknessOutput = Thickness.StorageHandle,
-            NormalOutput = Normal.StorageHandle,
-            Sampler = sampler.Handle
-        });
-
-        if (!fieldReady || particleVersion != particles.Version || interpolationAlpha != frame.InterpolationAlpha)
-        {
-            Dispatch(commandBuffer, clearPipeline, density.Desc.Width * density.Desc.Height * density.Desc.Depth, 1, 1);
-            commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-            Dispatch(commandBuffer, depositPipeline, particles.Count, 1, 1);
-            commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-
-            TextureLayout previousLayout = fieldReady ? TextureLayout.Sampled : TextureLayout.Undefined;
-            commandBuffer.Transition(density, default, previousLayout, TextureLayout.Storage);
-            Dispatch(commandBuffer, smoothPipeline, density.Desc.Width, density.Desc.Height, density.Desc.Depth);
-            commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-            commandBuffer.Transition(density, default, TextureLayout.Storage, TextureLayout.Sampled);
-
-            commandBuffer.Transition(field, default, previousLayout, TextureLayout.Storage);
-            commandBuffer.Transition(occupancy, default, previousLayout, TextureLayout.Storage);
-            Dispatch(commandBuffer, fieldPipeline, density.Desc.Width, density.Desc.Height, density.Desc.Depth);
-            commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
-            commandBuffer.Transition(field, default, TextureLayout.Storage, TextureLayout.Sampled);
-            commandBuffer.Transition(occupancy, default, TextureLayout.Storage, TextureLayout.Sampled);
-
-            particleVersion = particles.Version;
-            interpolationAlpha = frame.InterpolationAlpha;
-            fieldReady = true;
-        }
-
-        commandBuffer.Transition(Depth, default, TextureLayout.Undefined, TextureLayout.Storage);
-        commandBuffer.Transition(Thickness, default, TextureLayout.Undefined, TextureLayout.Storage);
-        commandBuffer.Transition(Normal, default, TextureLayout.Undefined, TextureLayout.Storage);
-        Dispatch(commandBuffer, tracePipeline, Depth.Desc.Width, Depth.Desc.Height, 1);
-        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading | BarrierStages.FragmentShading);
-        commandBuffer.Transition(Depth, default, TextureLayout.Storage, TextureLayout.Sampled);
-        commandBuffer.Transition(Thickness, default, TextureLayout.Storage, TextureLayout.Sampled);
-        commandBuffer.Transition(Normal, default, TextureLayout.Storage, TextureLayout.Sampled);
-    }
-
-    public void RenderParticles(CommandBuffer commandBuffer, FrameData frame, ParticleData particles, Texture color, Texture sceneDepthStencil)
-    {
-        GraphicsHelper.Upload(particleConstants, 0, new ParticleConstants()
-        {
-            View = frame.View,
-            Projection = frame.Projection,
-            CameraRight = frame.Right,
-            Radius = particles.Radius * 0.78f,
-            CameraUp = frame.Up,
-            InterpolationAlpha = frame.InterpolationAlpha,
-            Particles = particles.Particles.StorageReadOnlyHandle,
-            PreviousPositions = particles.PreviousPositions.StorageReadOnlyHandle
-        });
-
-        commandBuffer.Transition(color, default, TextureLayout.Sampled, TextureLayout.ColorAttachment);
-        commandBuffer.Transition(sceneDepthStencil, default, TextureLayout.DepthStencilAttachment, TextureLayout.DepthStencilAttachment);
-        commandBuffer.BeginRenderPass([ColorAttachment.Load(color)], DepthStencilAttachment.Load(sceneDepthStencil));
-        commandBuffer.SetPipeline(particlePipeline);
-        commandBuffer.SetConstantBuffer(particleConstants, 0);
-        commandBuffer.Draw(4, particles.Count, 0, 0);
-        commandBuffer.EndRenderPass();
-        commandBuffer.Transition(color, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
-    }
-
-    public void Dispose()
+    protected override void Destroy()
     {
         DisposeTargets();
 
@@ -205,6 +138,113 @@ internal unsafe class SurfacePass : IDisposable
         constants.Dispose();
     }
 
+    private void RecordSurface(CommandBuffer commandBuffer, in PassArgs args)
+    {
+        ParticleData particles = args.Particles;
+
+        density ??= CreateVolume(particles);
+
+        DensityConstants densityData = new()
+        {
+            View = args.View,
+            InvView = args.InverseView,
+            InvProjection = args.InverseProjection,
+            Origin = origin,
+            CellSize = cellSize,
+            Minimum = particles.Minimum,
+            InverseCellSize = 1.0f / cellSize,
+            Maximum = particles.Maximum,
+            IsoValue = 0.5f,
+            GridX = density.Desc.Width,
+            GridY = density.Desc.Height,
+            GridZ = density.Desc.Depth,
+            ParticleCount = particles.Count,
+            Width = Depth.Desc.Width,
+            Height = Depth.Desc.Height,
+            InterpolationAlpha = args.InterpolationAlpha,
+            VolumeScale = particles.Spacing * particles.Spacing * particles.Spacing / (cellSize * cellSize * cellSize),
+            Particles = particles.Particles.StorageReadOnlyHandle,
+            PreviousPositions = particles.PreviousPositions.StorageReadOnlyHandle,
+            Accumulation = accumulation.StorageReadWriteHandle,
+            DensityWrite = density.StorageHandle,
+            DensityRead = density.SampledHandle,
+            FieldWrite = field.StorageHandle,
+            FieldRead = field.SampledHandle,
+            OccupancyWrite = occupancy.StorageHandle,
+            OccupancyRead = occupancy.SampledHandle,
+            SceneDepth = args.SceneDepth.SampledHandle,
+            DepthOutput = Depth.StorageHandle,
+            ThicknessOutput = Thickness.StorageHandle,
+            NormalOutput = Normal.StorageHandle,
+            Sampler = sampler.Handle
+        };
+
+        constants.Upload(0, new()
+        {
+            Pointer = (nint)(&densityData),
+            SizeInBytes = (uint)sizeof(DensityConstants)
+        });
+
+        Dispatch(commandBuffer, clearPipeline, density.Desc.Width * density.Desc.Height * density.Desc.Depth, 1, 1);
+        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
+        Dispatch(commandBuffer, depositPipeline, particles.Count, 1, 1);
+        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
+
+        commandBuffer.Transition(density, default, TextureLayout.Undefined, TextureLayout.Storage);
+        Dispatch(commandBuffer, smoothPipeline, density.Desc.Width, density.Desc.Height, density.Desc.Depth);
+        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
+        commandBuffer.Transition(density, default, TextureLayout.Storage, TextureLayout.Sampled);
+
+        commandBuffer.Transition(field, default, TextureLayout.Undefined, TextureLayout.Storage);
+        commandBuffer.Transition(occupancy, default, TextureLayout.Undefined, TextureLayout.Storage);
+        Dispatch(commandBuffer, fieldPipeline, density.Desc.Width, density.Desc.Height, density.Desc.Depth);
+        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
+        commandBuffer.Transition(field, default, TextureLayout.Storage, TextureLayout.Sampled);
+        commandBuffer.Transition(occupancy, default, TextureLayout.Storage, TextureLayout.Sampled);
+
+        commandBuffer.Transition(Depth, default, TextureLayout.Undefined, TextureLayout.Storage);
+        commandBuffer.Transition(Thickness, default, TextureLayout.Undefined, TextureLayout.Storage);
+        commandBuffer.Transition(Normal, default, TextureLayout.Undefined, TextureLayout.Storage);
+        Dispatch(commandBuffer, tracePipeline, Depth.Desc.Width, Depth.Desc.Height, 1);
+        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading | BarrierStages.FragmentShading);
+        commandBuffer.Transition(Depth, default, TextureLayout.Storage, TextureLayout.Sampled);
+        commandBuffer.Transition(Thickness, default, TextureLayout.Storage, TextureLayout.Sampled);
+        commandBuffer.Transition(Normal, default, TextureLayout.Storage, TextureLayout.Sampled);
+    }
+
+    private void RecordParticles(CommandBuffer commandBuffer, in PassArgs args)
+    {
+        ParticleData particles = args.Particles;
+        Texture color = args.Color;
+        Texture sceneDepthStencil = args.DepthStencil;
+        ParticleConstants particleData = new()
+        {
+            View = args.View,
+            Projection = args.Projection,
+            CameraRight = args.CameraRight,
+            Radius = particles.Radius * 0.78f,
+            CameraUp = args.CameraUp,
+            InterpolationAlpha = args.InterpolationAlpha,
+            Particles = particles.Particles.StorageReadOnlyHandle,
+            PreviousPositions = particles.PreviousPositions.StorageReadOnlyHandle
+        };
+
+        particleConstants.Upload(0, new()
+        {
+            Pointer = (nint)(&particleData),
+            SizeInBytes = (uint)sizeof(ParticleConstants)
+        });
+
+        commandBuffer.Transition(color, default, TextureLayout.Sampled, TextureLayout.ColorAttachment);
+        commandBuffer.Transition(sceneDepthStencil, default, TextureLayout.DepthStencilAttachment, TextureLayout.DepthStencilAttachment);
+        commandBuffer.BeginRenderPass([ColorAttachment.Load(color)], DepthStencilAttachment.Load(sceneDepthStencil));
+        commandBuffer.SetPipeline(particlePipeline);
+        commandBuffer.SetConstantBuffer(particleConstants, 0);
+        commandBuffer.Draw(4, particles.Count, 0, 0);
+        commandBuffer.EndRenderPass();
+        commandBuffer.Transition(color, default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
+    }
+
     private Texture CreateVolume(ParticleData particles)
     {
         cellSize = particles.Spacing * 1.4f;
@@ -214,10 +254,16 @@ internal unsafe class SurfacePass : IDisposable
         uint height = ((uint)MathF.Ceiling(extent.Y) + 12) / 4 * 4;
         uint depth = ((uint)MathF.Ceiling(extent.Z) + 12) / 4 * 4;
 
-        accumulation = GraphicsHelper.CreateBuffer(context, width * height * depth, sizeof(int), BufferUsages.StorageReadWrite);
-        Texture density = context.CreateTexture(TextureDesc.Texture3D(PixelFormat.R16Float, width, height, depth, 1) with { Usages = TextureUsages.Sampled | TextureUsages.Storage });
-        field = context.CreateTexture(TextureDesc.Texture3D(PixelFormat.R16G16B16A16Float, width, height, depth, 1) with { Usages = TextureUsages.Sampled | TextureUsages.Storage });
-        occupancy = context.CreateTexture(TextureDesc.Texture3D(PixelFormat.R16Float, width / 4, height / 4, depth / 4, 1) with { Usages = TextureUsages.Sampled | TextureUsages.Storage });
+        accumulation = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = width * height * depth * sizeof(int),
+            StrideInBytes = sizeof(int),
+            Usages = BufferUsages.StorageReadWrite,
+            Residency = MemoryResidency.GpuOnly
+        });
+        Texture density = App.Context.CreateTexture(TextureDesc.Texture3D(PixelFormat.R16Float, width, height, depth, 1) with { Usages = TextureUsages.Sampled | TextureUsages.Storage });
+        field = App.Context.CreateTexture(TextureDesc.Texture3D(PixelFormat.R16G16B16A16Float, width, height, depth, 1) with { Usages = TextureUsages.Sampled | TextureUsages.Storage });
+        occupancy = App.Context.CreateTexture(TextureDesc.Texture3D(PixelFormat.R16Float, width / 4, height / 4, depth / 4, 1) with { Usages = TextureUsages.Sampled | TextureUsages.Storage });
 
         return density;
     }

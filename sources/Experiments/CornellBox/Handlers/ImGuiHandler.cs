@@ -27,6 +27,38 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
         PlatformBindings = this;
     }
 
+    public void SetCursor(ImGuiMouseCursor cursor)
+    {
+        mouse.Cursor.StandardCursor = cursor switch
+        {
+            ImGuiMouseCursor.Arrow => StandardCursor.Arrow,
+            ImGuiMouseCursor.TextInput => StandardCursor.IBeam,
+            ImGuiMouseCursor.ResizeAll => StandardCursor.ResizeAll,
+            ImGuiMouseCursor.ResizeNs => StandardCursor.VResize,
+            ImGuiMouseCursor.ResizeEw => StandardCursor.HResize,
+            ImGuiMouseCursor.ResizeNesw => StandardCursor.NeswResize,
+            ImGuiMouseCursor.ResizeNwse => StandardCursor.NwseResize,
+            ImGuiMouseCursor.Hand => StandardCursor.Hand,
+            ImGuiMouseCursor.NotAllowed => StandardCursor.NotAllowed,
+            _ => StandardCursor.Default
+        };
+    }
+
+    public string GetClipboardText()
+    {
+        return keyboard.ClipboardText;
+    }
+
+    public void SetClipboardText(string text)
+    {
+        keyboard.ClipboardText = text;
+    }
+
+    public void SetImeData(ImGuiViewportPtr viewport, ImGuiPlatformImeDataPtr data)
+    {
+        // IME not supported.
+    }
+
     private void OnMouseDown(IMouse mouse, MouseButton button)
     {
         MouseDown(button switch
@@ -59,13 +91,13 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
         MouseWheel(new(offset.X, offset.Y));
     }
 
-    private void OnKeyDown(IKeyboard keyboard, Key key, int arg3)
+    private void OnKeyDown(IKeyboard keyboard, Key key, int scanCode)
     {
         KeyDown(TranslateInputKeyToImGuiKey(key));
         KeyDown(TranslateInputKeyToImGuiModifier(key));
     }
 
-    private void OnKeyUp(IKeyboard keyboard, Key key, int arg3)
+    private void OnKeyUp(IKeyboard keyboard, Key key, int scanCode)
     {
         KeyUp(TranslateInputKeyToImGuiKey(key));
         KeyUp(TranslateInputKeyToImGuiModifier(key));
@@ -137,66 +169,9 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
             Key.AltRight => ImGuiKey.RightAlt,
             Key.SuperRight => ImGuiKey.RightSuper,
             Key.Menu => ImGuiKey.Menu,
-            Key.Number0 => ImGuiKey.Key0,
-            Key.Number1 => ImGuiKey.Key1,
-            Key.Number2 => ImGuiKey.Key2,
-            Key.Number3 => ImGuiKey.Key3,
-            Key.Number4 => ImGuiKey.Key4,
-            Key.Number5 => ImGuiKey.Key5,
-            Key.Number6 => ImGuiKey.Key6,
-            Key.Number7 => ImGuiKey.Key7,
-            Key.Number8 => ImGuiKey.Key8,
-            Key.Number9 => ImGuiKey.Key9,
-            Key.A => ImGuiKey.A,
-            Key.B => ImGuiKey.B,
-            Key.C => ImGuiKey.C,
-            Key.D => ImGuiKey.D,
-            Key.E => ImGuiKey.E,
-            Key.F => ImGuiKey.F,
-            Key.G => ImGuiKey.G,
-            Key.H => ImGuiKey.H,
-            Key.I => ImGuiKey.I,
-            Key.J => ImGuiKey.J,
-            Key.K => ImGuiKey.K,
-            Key.L => ImGuiKey.L,
-            Key.M => ImGuiKey.M,
-            Key.N => ImGuiKey.N,
-            Key.O => ImGuiKey.O,
-            Key.P => ImGuiKey.P,
-            Key.Q => ImGuiKey.Q,
-            Key.R => ImGuiKey.R,
-            Key.S => ImGuiKey.S,
-            Key.T => ImGuiKey.T,
-            Key.U => ImGuiKey.U,
-            Key.V => ImGuiKey.V,
-            Key.W => ImGuiKey.W,
-            Key.X => ImGuiKey.X,
-            Key.Y => ImGuiKey.Y,
-            Key.Z => ImGuiKey.Z,
-            Key.F1 => ImGuiKey.F1,
-            Key.F2 => ImGuiKey.F2,
-            Key.F3 => ImGuiKey.F3,
-            Key.F4 => ImGuiKey.F4,
-            Key.F5 => ImGuiKey.F5,
-            Key.F6 => ImGuiKey.F6,
-            Key.F7 => ImGuiKey.F7,
-            Key.F8 => ImGuiKey.F8,
-            Key.F9 => ImGuiKey.F9,
-            Key.F10 => ImGuiKey.F10,
-            Key.F11 => ImGuiKey.F11,
-            Key.F12 => ImGuiKey.F12,
-            Key.F13 => ImGuiKey.F13,
-            Key.F14 => ImGuiKey.F14,
-            Key.F15 => ImGuiKey.F15,
-            Key.F16 => ImGuiKey.F16,
-            Key.F17 => ImGuiKey.F17,
-            Key.F18 => ImGuiKey.F18,
-            Key.F19 => ImGuiKey.F19,
-            Key.F20 => ImGuiKey.F20,
-            Key.F21 => ImGuiKey.F21,
-            Key.F22 => ImGuiKey.F22,
-            Key.F23 => ImGuiKey.F23,
-            Key.F24 => ImGuiKey.F24,
+            >= Key.Number0 and <= Key.Number9 => ImGuiKey.Key0 + (key - Key.Number0),
+            >= Key.A and <= Key.Z => ImGuiKey.A + (key - Key.A),
+            >= Key.F1 and <= Key.F24 => ImGuiKey.F1 + (key - Key.F1),
             _ => ImGuiKey.None
         };
     }
@@ -217,37 +192,5 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
     {
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
         io.DisplayFramebufferScale = App.DpiScale;
-    }
-
-    public void SetCursor(ImGuiMouseCursor cursor)
-    {
-        mouse.Cursor.StandardCursor = cursor switch
-        {
-            ImGuiMouseCursor.Arrow => StandardCursor.Arrow,
-            ImGuiMouseCursor.TextInput => StandardCursor.IBeam,
-            ImGuiMouseCursor.ResizeAll => StandardCursor.ResizeAll,
-            ImGuiMouseCursor.ResizeNs => StandardCursor.VResize,
-            ImGuiMouseCursor.ResizeEw => StandardCursor.HResize,
-            ImGuiMouseCursor.ResizeNesw => StandardCursor.NeswResize,
-            ImGuiMouseCursor.ResizeNwse => StandardCursor.NwseResize,
-            ImGuiMouseCursor.Hand => StandardCursor.Hand,
-            ImGuiMouseCursor.NotAllowed => StandardCursor.NotAllowed,
-            _ => StandardCursor.Default
-        };
-    }
-
-    public string GetClipboardText()
-    {
-        return keyboard.ClipboardText;
-    }
-
-    public void SetClipboardText(string text)
-    {
-        keyboard.ClipboardText = text;
-    }
-
-    public void SetImeData(ImGuiViewportPtr viewport, ImGuiPlatformImeDataPtr data)
-    {
-        // IME not supported.
     }
 }

@@ -1,8 +1,9 @@
 ﻿using SkiaSharp;
+using Zenith.NET;
 
 namespace InkCanvas.Drawing;
 
-internal class Toolbar : IDisposable
+internal class Toolbar : DisposableObject
 {
     public const float ToolbarHeight = 64.0f;
     public const float StatusHeight = 34.0f;
@@ -123,7 +124,7 @@ internal class Toolbar : IDisposable
         return clearRect.Contains(position.X, position.Y);
     }
 
-    public void Dispose()
+    protected override void Destroy()
     {
         strokePaint.Dispose();
         fillPaint.Dispose();

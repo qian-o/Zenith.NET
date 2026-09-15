@@ -3,21 +3,19 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Models;
 
-internal struct ParticleData
+internal readonly struct ParticleData
 {
-    public Buffer Particles;
+    public Buffer Particles { get; init; }
 
-    public Buffer PreviousPositions;
+    public Buffer PreviousPositions { get; init; }
 
-    public uint Count;
+    public uint Count { get; init; }
 
-    public float Radius;
+    public float Radius { get; init; }
 
-    public float Spacing;
+    public float Spacing { get; init; }
 
-    public Vector3 Minimum;
+    public Vector3 Minimum { get; init; }
 
-    public Vector3 Maximum;
-
-    public ulong Version;
+    public Vector3 Maximum { get; init; }
 }

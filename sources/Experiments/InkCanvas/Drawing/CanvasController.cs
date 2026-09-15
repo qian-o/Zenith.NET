@@ -5,7 +5,7 @@ using Zenith.NET.Extensions.Skia;
 
 namespace InkCanvas.Drawing;
 
-internal class CanvasController : IDisposable
+internal class CanvasController : DisposableObject
 {
     private readonly Canvas canvas = new();
 
@@ -56,7 +56,7 @@ internal class CanvasController : IDisposable
         texture = CreateTexture(width, height);
     }
 
-    public void Dispose()
+    protected override void Destroy()
     {
         canvas.Dispose();
         texture.Dispose();

@@ -1,30 +1,32 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
-using CornellBox.Handlers;
-using CornellBox.Helpers;
+using CornellBox.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
-namespace CornellBox.Renderers;
+namespace CornellBox.Passes;
 
-internal unsafe class PathTracingRenderer : Renderer
+internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
 {
-    private const uint ThreadGroupSize = 16;
+    private const uint ThreadGroupSize = 8;
 
-    private readonly Buffer vertexBuffer;
-    private readonly Buffer indexBuffer;
-    private readonly Buffer constantBuffer;
-    private readonly ComputePipeline pipeline;
+    private Buffer vertexBuffer = null!;
+    private Buffer indexBuffer = null!;
+    private Buffer constantBuffer = null!;
+    private ComputePipeline pipeline = null!;
+    private BottomLevelAccelerationStructure blas = null!;
+    private TopLevelAccelerationStructure tlas = null!;
+    private Buffer materialBuffer = null!;
 
-    private readonly BottomLevelAccelerationStructure blas;
-    private readonly TopLevelAccelerationStructure tlas;
-    private readonly Buffer materialBuffer;
-    private Texture? accumulationTexture;
+    public Texture Color { get; private set; } = null!;
 
-    private Matrix4x4 lastView;
-    private Matrix4x4 lastProjection;
+    public Texture Depth { get; private set; } = null!;
 
-    public PathTracingRenderer()
+    public Texture Normal { get; private set; } = null!;
+
+    public Texture MotionVectors { get; private set; } = null!;
+
+    protected override void Initialize()
     {
         CornellBoxGeometry.Create(out Vertex[] vertices, out uint[] indices, out Material[] materials);
 
@@ -64,14 +66,14 @@ internal unsafe class PathTracingRenderer : Renderer
 
         constantBuffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)sizeof(PathTracingConstants),
+            SizeInBytes = (uint)sizeof(Constants),
             Usages = BufferUsages.Constant,
             Residency = MemoryResidency.CpuWriteOnly
         });
 
-        using Shader computeShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("PathTracing.slang"), "CSMain"));
+        using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("PathTracing.slang"), "CSMain"));
 
-        pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = computeShader });
+        pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = shader });
 
         CommandBuffer commandBuffer = App.Context.ComputeQueue.CommandBuffer();
 
@@ -133,91 +135,76 @@ internal unsafe class PathTracingRenderer : Renderer
                 SizeInBytes = (uint)(sizeof(Material) * materials.Length)
             });
         }
+
+        Color = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
+        Depth = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32Float);
+        Normal = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
+        MotionVectors = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16Float);
     }
 
-    public uint FrameCount { get; set; }
-
-    public override void Update(CameraHandler camera)
+    protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
     {
-        Matrix4x4 view = camera.View;
-        Matrix4x4 projection = camera.Projection;
-
-        if (view != lastView || projection != lastProjection)
+        Constants constants = new()
         {
-            lastView = view;
-            lastProjection = projection;
-
-            FrameCount = 0;
-        }
-
-        Matrix4x4.Invert(view, out Matrix4x4 invView);
-        Matrix4x4.Invert(projection, out Matrix4x4 invProjection);
-
-        PathTracingConstants parameters = new()
-        {
-            InvView = invView,
-            InvProjection = invProjection,
-            Position = camera.Position,
-            FrameCount = FrameCount,
-            Width = App.Width,
-            Height = App.Height,
+            InverseView = args.InverseView,
+            InverseProjection = args.InverseProjection,
+            ViewProjection = args.ViewProjection,
+            PreviousViewProjection = args.PreviousViewProjection,
+            PositionFrame = new(args.CameraPosition, BitConverter.UInt32BitsToSingle(args.FrameIndex)),
+            RenderSizeJitter = new(RenderWidth, RenderHeight, args.Jitter.X, args.Jitter.Y),
             Scene = tlas.Handle,
             Vertices = vertexBuffer.StorageReadOnlyHandle,
             Indices = indexBuffer.StorageReadOnlyHandle,
             Materials = materialBuffer.StorageReadOnlyHandle,
-            AccumulationTexture = accumulationTexture!.StorageHandle,
-            OutputTexture = Color.StorageHandle
+            Color = Color.StorageHandle,
+            Depth = Depth.StorageHandle,
+            Normal = Normal.StorageHandle,
+            MotionVectors = MotionVectors.StorageHandle
         };
 
         constantBuffer.Upload(0, new()
         {
-            Pointer = (nint)(&parameters),
-            SizeInBytes = (uint)sizeof(PathTracingConstants)
+            Pointer = (nint)(&constants),
+            SizeInBytes = (uint)sizeof(Constants)
         });
-    }
 
-    public override void Render(CommandBuffer commandBuffer)
-    {
         commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.Storage);
-
-        if (FrameCount is 0)
-        {
-            commandBuffer.Transition(accumulationTexture!, default, TextureLayout.Undefined, TextureLayout.Storage);
-        }
+        commandBuffer.Transition(Depth, default, TextureLayout.Undefined, TextureLayout.Storage);
+        commandBuffer.Transition(Normal, default, TextureLayout.Undefined, TextureLayout.Storage);
+        commandBuffer.Transition(MotionVectors, default, TextureLayout.Undefined, TextureLayout.Storage);
 
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(constantBuffer, 0);
-
-        commandBuffer.Dispatch((App.Width + ThreadGroupSize - 1) / ThreadGroupSize, (App.Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
+        commandBuffer.Dispatch((RenderWidth + ThreadGroupSize - 1) / ThreadGroupSize, (RenderHeight + ThreadGroupSize - 1) / ThreadGroupSize, 1);
+        commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
         commandBuffer.Transition(Color, default, TextureLayout.Storage, TextureLayout.Sampled);
-
-        FrameCount++;
+        commandBuffer.Transition(Depth, default, TextureLayout.Storage, TextureLayout.Sampled);
+        commandBuffer.Transition(Normal, default, TextureLayout.Storage, TextureLayout.Sampled);
+        commandBuffer.Transition(MotionVectors, default, TextureLayout.Storage, TextureLayout.Sampled);
     }
 
-    public override void Resize(uint width, uint height)
+    protected override void ResizeImpl()
     {
-        base.Resize(width, height);
+        Color.Dispose();
+        Color = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
 
-        accumulationTexture?.Dispose();
-        accumulationTexture = App.Context.CreateTexture(new()
-        {
-            Type = TextureType.Texture2D,
-            Format = PixelFormat.R32G32B32A32Float,
-            Width = width,
-            Height = height,
-            Depth = 1,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            SampleCount = SampleCount.Count1,
-            Usages = TextureUsages.Sampled | TextureUsages.Storage
-        });
+        Depth.Dispose();
+        Depth = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32Float);
 
-        FrameCount = 0;
+        Normal.Dispose();
+        Normal = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
+
+        MotionVectors.Dispose();
+        MotionVectors = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16Float);
     }
 
-    public override void Dispose()
+    protected override void Destroy()
     {
+        MotionVectors?.Dispose();
+        Normal?.Dispose();
+        Depth?.Dispose();
+        Color?.Dispose();
         materialBuffer.Dispose();
         tlas.Dispose();
         blas.Dispose();
@@ -225,48 +212,51 @@ internal unsafe class PathTracingRenderer : Renderer
         constantBuffer.Dispose();
         indexBuffer.Dispose();
         vertexBuffer.Dispose();
-        accumulationTexture?.Dispose();
-
-        base.Dispose();
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 208)]
-file struct PathTracingConstants
+[StructLayout(LayoutKind.Explicit, Size = 352)]
+file struct Constants
 {
     [FieldOffset(0)]
-    public Matrix4x4 InvView;
+    public Matrix4x4 InverseView;
 
     [FieldOffset(64)]
-    public Matrix4x4 InvProjection;
+    public Matrix4x4 InverseProjection;
 
     [FieldOffset(128)]
-    public Vector3 Position;
-
-    [FieldOffset(144)]
-    public uint FrameCount;
-
-    [FieldOffset(148)]
-    public uint Width;
-
-    [FieldOffset(152)]
-    public uint Height;
-
-    [FieldOffset(160)]
-    public ResourceHandle Scene;
-
-    [FieldOffset(168)]
-    public ResourceHandle Vertices;
-
-    [FieldOffset(176)]
-    public ResourceHandle Indices;
-
-    [FieldOffset(184)]
-    public ResourceHandle Materials;
+    public Matrix4x4 ViewProjection;
 
     [FieldOffset(192)]
-    public ResourceHandle AccumulationTexture;
+    public Matrix4x4 PreviousViewProjection;
 
-    [FieldOffset(200)]
-    public ResourceHandle OutputTexture;
+    [FieldOffset(256)]
+    public Vector4 PositionFrame;
+
+    [FieldOffset(272)]
+    public Vector4 RenderSizeJitter;
+
+    [FieldOffset(288)]
+    public ResourceHandle Scene;
+
+    [FieldOffset(296)]
+    public ResourceHandle Vertices;
+
+    [FieldOffset(304)]
+    public ResourceHandle Indices;
+
+    [FieldOffset(312)]
+    public ResourceHandle Materials;
+
+    [FieldOffset(320)]
+    public ResourceHandle Color;
+
+    [FieldOffset(328)]
+    public ResourceHandle Depth;
+
+    [FieldOffset(336)]
+    public ResourceHandle Normal;
+
+    [FieldOffset(344)]
+    public ResourceHandle MotionVectors;
 }

@@ -1,8 +1,9 @@
 ﻿using SkiaSharp;
+using Zenith.NET;
 
 namespace InkCanvas.Drawing;
 
-internal class Stroke(SKColor color, float width) : IDisposable
+internal class Stroke(SKColor color, float width) : DisposableObject
 {
     private const float MinimumPointDistance = 1.5f;
 
@@ -89,7 +90,7 @@ internal class Stroke(SKColor color, float width) : IDisposable
         return false;
     }
 
-    public void Dispose()
+    protected override void Destroy()
     {
         path?.Dispose();
         builder?.Dispose();

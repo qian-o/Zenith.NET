@@ -107,13 +107,6 @@ struct CompositeConstants
             return ScreenAndRenderMode.z;
         }
     }
-
-    property bool RayTracingEnabled
-    {
-        get {
-            return ScreenAndRenderMode.w != 0;
-        }
-    }
 };
 
 struct FullscreenOutput
@@ -154,6 +147,7 @@ float3 SampleFluid(float2 uv, float sceneDepth, out float3 normal)
     int2 basePixel = int2(floor(position));
     float2 fraction = frac(position);
     float closestDepth = 0.0;
+    float coverage = 0.0;
 
     for (int y = 0; y < 2; y++)
     {
@@ -161,10 +155,16 @@ float3 SampleFluid(float2 uv, float sceneDepth, out float3 normal)
         {
             int2 samplePixel = clamp(basePixel + int2(x, y), int2(0, 0), dimensions - 1);
             float sampleDepth = composite.FluidDepth.Load(int3(samplePixel, 0)).r;
+            float weight = (x == 0 ? 1.0 - fraction.x : fraction.x) * (y == 0 ? 1.0 - fraction.y : fraction.y);
 
-            if (sampleDepth > 0.0 && (closestDepth <= 0.0 || sampleDepth < closestDepth))
+            if (weight > 0.0 && sampleDepth > 0.0 && (sceneDepth <= 0.0 || sampleDepth < sceneDepth))
             {
-                closestDepth = sampleDepth;
+                coverage += weight;
+
+                if (closestDepth <= 0.0 || sampleDepth < closestDepth)
+                {
+                    closestDepth = sampleDepth;
+                }
             }
         }
     }
@@ -172,7 +172,7 @@ float3 SampleFluid(float2 uv, float sceneDepth, out float3 normal)
     normal = float3(0.0);
     float depth = 0.0;
     float thickness = 0.0;
-    float weightSum = 0.0;
+    float geometryWeightSum = 0.0;
     float range = SurfaceDepthRange(closestDepth);
 
     for (int y = 0; y < 2; y++)
@@ -192,11 +192,12 @@ float3 SampleFluid(float2 uv, float sceneDepth, out float3 normal)
             depth += sampleDepth * weight;
             thickness += composite.Thickness.Load(int3(samplePixel, 0)).r * weight;
             normal += composite.Normal.Load(int3(samplePixel, 0)).xyz * weight;
-            weightSum += weight;
+            geometryWeightSum += weight;
         }
     }
 
-    return weightSum > 0.0 ? float3(depth / weightSum, thickness / weightSum, weightSum) : float3(0.0);
+    return geometryWeightSum > 0.0 ? float3(depth / geometryWeightSum, thickness / geometryWeightSum, coverage)
+                                   : float3(0.0);
 }
 
 float2 ProjectViewPosition(float3 position)
@@ -267,7 +268,7 @@ float4 TraceRefraction(float2 uv, float sceneDepth, float3 viewPosition, float3 
     return float4(sampleUv, waterDistance, confidence);
 }
 
-float4 ShadeWater(FullscreenOutput input)
+float4 ShadeWater<let rayTracing : bool>(FullscreenOutput input)
 {
     float2 uv = input.UV;
     float sceneDepth = composite.SceneDepth.Load(int3(int2(input.Position.xy), 0)).r;
@@ -306,7 +307,7 @@ float4 ShadeWater(FullscreenOutput input)
 
     float3 reflected = EnvironmentColor(reflect(-viewDirection, normalWorld));
 
-    if (composite.RayTracingEnabled)
+    if (rayTracing)
     {
         float4 reflectionSample = composite.Reflection.SampleLevel(composite.Sampler, uv, 0.0);
         reflected = reflectionSample.rgb / reflectionSample.a;
@@ -330,5 +331,11 @@ float4 ShadeWater(FullscreenOutput input)
 [shader("fragment")]
 float4 CompositeFS(FullscreenOutput input) : SV_TARGET
 {
-    return ShadeWater(input);
+    return ShadeWater<true>(input);
+}
+
+[shader("fragment")]
+float4 EnvironmentFS(FullscreenOutput input) : SV_TARGET
+{
+    return ShadeWater<false>(input);
 }

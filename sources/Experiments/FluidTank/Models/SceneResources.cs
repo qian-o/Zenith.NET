@@ -1,17 +1,14 @@
 ﻿using System.Numerics;
-using FluidTank.Helpers;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Models;
 
-internal unsafe class SceneResources : IDisposable
+internal unsafe class SceneResources : DisposableObject
 {
-    public uint SceneIndexCount;
-
     private readonly BottomLevelAccelerationStructure? geometry;
 
-    public SceneResources(GraphicsContext context)
+    public SceneResources()
     {
         FluidTankGeometry.CreateScene(out SceneVertex[] sceneVertices, out uint[] sceneIndices, out SceneMaterial[] materials);
         FluidTankGeometry.CreateGlass(out SceneVertex[] glassVertices, out uint[] glassIndices);
@@ -26,17 +23,17 @@ internal unsafe class SceneResources : IDisposable
             GlassFaces[i] = ((first.Position + opposite.Position) * 0.5f, first.Normal);
         }
 
-        CommandBuffer uploadCommandBuffer = context.TransferQueue.CommandBuffer();
-        Vertices = GraphicsHelper.LoadBuffer(context, uploadCommandBuffer, sceneVertices, BufferUsages.Vertex | BufferUsages.StorageReadOnly);
-        Indices = GraphicsHelper.LoadBuffer(context, uploadCommandBuffer, sceneIndices, BufferUsages.Index | BufferUsages.StorageReadOnly);
-        GlassVertices = GraphicsHelper.LoadBuffer(context, uploadCommandBuffer, glassVertices, BufferUsages.Vertex);
-        GlassIndices = GraphicsHelper.LoadBuffer(context, uploadCommandBuffer, glassIndices, BufferUsages.Index);
-        Materials = GraphicsHelper.LoadBuffer(context, uploadCommandBuffer, materials, BufferUsages.StorageReadOnly);
+        CommandBuffer uploadCommandBuffer = App.Context.TransferQueue.CommandBuffer();
+        Vertices = LoadBuffer(uploadCommandBuffer, sceneVertices, BufferUsages.Vertex | BufferUsages.StorageReadOnly);
+        Indices = LoadBuffer(uploadCommandBuffer, sceneIndices, BufferUsages.Index | BufferUsages.StorageReadOnly);
+        GlassVertices = LoadBuffer(uploadCommandBuffer, glassVertices, BufferUsages.Vertex);
+        GlassIndices = LoadBuffer(uploadCommandBuffer, glassIndices, BufferUsages.Index);
+        Materials = LoadBuffer(uploadCommandBuffer, materials, BufferUsages.StorageReadOnly);
         uploadCommandBuffer.Submit().Wait();
 
-        if (context.Capabilities.RayTracingSupported)
+        if (App.Context.Capabilities.RayTracingSupported)
         {
-            CommandBuffer commandBuffer = context.ComputeQueue.CommandBuffer();
+            CommandBuffer commandBuffer = App.Context.ComputeQueue.CommandBuffer();
 
             geometry = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
             {
@@ -82,6 +79,8 @@ internal unsafe class SceneResources : IDisposable
         }
     }
 
+    public uint SceneIndexCount { get; }
+
     public Buffer Vertices { get; }
 
     public Buffer Indices { get; }
@@ -96,7 +95,7 @@ internal unsafe class SceneResources : IDisposable
 
     public (Vector3 Center, Vector3 Normal)[] GlassFaces { get; }
 
-    public void Dispose()
+    protected override void Destroy()
     {
         Scene?.Dispose();
         geometry?.Dispose();
@@ -105,5 +104,27 @@ internal unsafe class SceneResources : IDisposable
         GlassVertices.Dispose();
         Indices.Dispose();
         Vertices.Dispose();
+    }
+
+    private static Buffer LoadBuffer<T>(CommandBuffer commandBuffer, T[] data, BufferUsages usages) where T : unmanaged
+    {
+        Buffer buffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)(sizeof(T) * data.Length),
+            StrideInBytes = (uint)sizeof(T),
+            Usages = usages | BufferUsages.TransferDst,
+            Residency = MemoryResidency.GpuOnly
+        });
+
+        fixed (T* pointer = data)
+        {
+            commandBuffer.Upload(buffer, 0, new()
+            {
+                Pointer = (nint)pointer,
+                SizeInBytes = (uint)(sizeof(T) * data.Length)
+            });
+        }
+
+        return buffer;
     }
 }

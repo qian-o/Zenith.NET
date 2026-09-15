@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 
-namespace FluidTank.Helpers;
+namespace FluidTank.Models;
 
 internal static class FluidTankGeometry
 {

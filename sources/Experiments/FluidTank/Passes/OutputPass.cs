@@ -1,73 +1,124 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
-using FluidTank.Helpers;
+using FluidTank.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Passes;
 
-internal class OutputPass : IDisposable
+internal unsafe class OutputPass(uint width, uint height) : Pass(width, height)
 {
-    private readonly GraphicsContext context;
-
-    private readonly Buffer constants;
-
-    private readonly Sampler sampler;
-
-    private readonly GraphicsPipeline toneMappingPipeline;
-
-    private readonly GraphicsPipeline antialiasingPipeline;
-
+    private Buffer constants = null!;
+    private Sampler sampler = null!;
+    private GraphicsPipeline toneMappingPipeline = null!;
+    private GraphicsPipeline antialiasingPipeline = null!;
     private Texture displayColor = null!;
 
-    public OutputPass(GraphicsContext context)
-    {
-        this.context = context;
+    public Texture Color { get; private set; } = null!;
 
-        constants = GraphicsHelper.CreateConstantBuffer(context, 512);
-        sampler = context.CreateSampler(SamplerDesc.LinearClamp());
+    protected override void Initialize()
+    {
+        constants = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = 512,
+            Usages = BufferUsages.Constant,
+            Residency = MemoryResidency.CpuWriteOnly
+        });
+        sampler = App.Context.CreateSampler(SamplerDesc.LinearClamp());
 
         AttachmentFormats formats = new() { ColorFormats = [PixelFormat.B8G8R8A8UNorm], SampleCount = SampleCount.Count1 };
-        toneMappingPipeline = GraphicsHelper.CreateGraphicsPipeline(context, "Output.slang", "FullscreenVS", "ToneMappingFS", [], formats, RasterizerState.CullNone(), DepthStencilState.DepthNone(), BlendState.Opaque());
-        antialiasingPipeline = GraphicsHelper.CreateGraphicsPipeline(context, "Output.slang", "FullscreenVS", "AntialiasingFS", [], formats, RasterizerState.CullNone(), DepthStencilState.DepthNone(), BlendState.Opaque());
-    }
+        using Shader toneMappingVertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Output.slang"), "FullscreenVS"));
+        using Shader toneMappingFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Output.slang"), "ToneMappingFS"));
 
-    public void Resize(uint width, uint height)
-    {
-        displayColor?.Dispose();
-        displayColor = GraphicsHelper.CreateTexture(context, PixelFormat.B8G8R8A8UNorm, width, height, TextureUsages.ColorAttachment | TextureUsages.Sampled);
-    }
-
-    public void Render(CommandBuffer commandBuffer, Texture input, Texture output, bool antialiasing)
-    {
-        GraphicsHelper.Upload(constants, 0, new OutputConstants()
+        toneMappingPipeline = App.Context.CreateGraphicsPipeline(new()
         {
-            TexelSize = new(1.0f / output.Desc.Width, 1.0f / output.Desc.Height),
-            Exposure = 1.0f,
-            EncodeLuminance = antialiasing ? 1u : 0u,
-            Input = input.SampledHandle,
-            Sampler = sampler.Handle
+            VertexShader = toneMappingVertexShader,
+            FragmentShader = toneMappingFragmentShader,
+            InputLayouts = [],
+            PrimitiveTopology = PrimitiveTopology.TriangleList,
+            AttachmentFormats = formats,
+            RenderState = new()
+            {
+                Rasterizer = RasterizerState.CullNone(),
+                DepthStencil = DepthStencilState.DepthNone(),
+                Blend = BlendState.Opaque()
+            }
         });
 
-        Draw(commandBuffer, toneMappingPipeline, antialiasing ? displayColor : output, 0);
+        using Shader antialiasingVertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Output.slang"), "FullscreenVS"));
+        using Shader antialiasingFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Output.slang"), "AntialiasingFS"));
 
-        if (antialiasing)
+        antialiasingPipeline = App.Context.CreateGraphicsPipeline(new()
         {
-            GraphicsHelper.Upload(constants, 256, new OutputConstants()
+            VertexShader = antialiasingVertexShader,
+            FragmentShader = antialiasingFragmentShader,
+            InputLayouts = [],
+            PrimitiveTopology = PrimitiveTopology.TriangleList,
+            AttachmentFormats = formats,
+            RenderState = new()
             {
-                TexelSize = new(1.0f / output.Desc.Width, 1.0f / output.Desc.Height),
-                Exposure = 1.0f,
-                EncodeLuminance = 1u,
-                Input = displayColor.SampledHandle,
-                Sampler = sampler.Handle
-            });
+                Rasterizer = RasterizerState.CullNone(),
+                DepthStencil = DepthStencilState.DepthNone(),
+                Blend = BlendState.Opaque()
+            }
+        });
 
-            Draw(commandBuffer, antialiasingPipeline, output, 256);
-        }
+        Color = CreateTexture(Width, Height, PixelFormat.B8G8R8A8UNorm, TextureUsages.ColorAttachment | TextureUsages.Sampled);
+        displayColor = CreateTexture(Width, Height, PixelFormat.B8G8R8A8UNorm, TextureUsages.ColorAttachment | TextureUsages.Sampled);
     }
 
-    public void Dispose()
+    protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
     {
+        OutputConstants toneMappingConstants = new()
+        {
+            TexelSize = new(1.0f / Width, 1.0f / Height),
+            Exposure = 1.0f,
+            Input = args.Color.SampledHandle,
+            Sampler = sampler.Handle
+        };
+
+        constants.Upload(0, new()
+        {
+            Pointer = (nint)(&toneMappingConstants),
+            SizeInBytes = (uint)sizeof(OutputConstants)
+        });
+
+        Draw(commandBuffer, toneMappingPipeline, displayColor, 0);
+
+        OutputConstants antialiasingConstants = new()
+        {
+            TexelSize = new(1.0f / Width, 1.0f / Height),
+            Exposure = 1.0f,
+            Input = displayColor.SampledHandle,
+            Sampler = sampler.Handle
+        };
+
+        constants.Upload(256, new()
+        {
+            Pointer = (nint)(&antialiasingConstants),
+            SizeInBytes = (uint)sizeof(OutputConstants)
+        });
+
+        Draw(commandBuffer, antialiasingPipeline, Color, 256);
+    }
+
+    protected override void ResizeImpl()
+    {
+        if (Color.Desc.Width == Width && Color.Desc.Height == Height)
+        {
+            return;
+        }
+
+        Color.Dispose();
+        displayColor.Dispose();
+
+        Color = CreateTexture(Width, Height, PixelFormat.B8G8R8A8UNorm, TextureUsages.ColorAttachment | TextureUsages.Sampled);
+        displayColor = CreateTexture(Width, Height, PixelFormat.B8G8R8A8UNorm, TextureUsages.ColorAttachment | TextureUsages.Sampled);
+    }
+
+    protected override void Destroy()
+    {
+        Color?.Dispose();
         displayColor?.Dispose();
         antialiasingPipeline.Dispose();
         toneMappingPipeline.Dispose();
@@ -95,9 +146,6 @@ file struct OutputConstants
 
     [FieldOffset(8)]
     public float Exposure;
-
-    [FieldOffset(12)]
-    public uint EncodeLuminance;
 
     [FieldOffset(16)]
     public ResourceHandle Input;

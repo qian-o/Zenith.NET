@@ -7,7 +7,14 @@ struct BackgroundConstants
 
     float4x4 InvProjection;
 
-    float3 SunDirection;
+    private float4 SunDirectionAndPadding;
+
+    property float3 SunDirection
+    {
+        get {
+            return SunDirectionAndPadding.xyz;
+        }
+    }
 };
 
 struct FullscreenOutput
