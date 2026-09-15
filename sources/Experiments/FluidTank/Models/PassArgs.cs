@@ -23,8 +23,6 @@ internal readonly struct PassArgs
 
     public float LightIntensity { get; init; }
 
-    public float Time { get; init; }
-
     public float InterpolationAlpha { get; init; }
 
     public ParticleData Particles { get; init; }

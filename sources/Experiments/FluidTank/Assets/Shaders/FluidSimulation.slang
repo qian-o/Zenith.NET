@@ -10,17 +10,15 @@ struct SimulationConstants
 {
     private float4 TankMinAndTimeStep;
 
-    private float4 TankMaxAndTime;
+    private float4 TankMaxAndInteractionRadius;
 
     private float4 GridParameters;
-
-    private float4 WaveAndInteraction;
 
     private float4 InteractionOriginAndRadius;
 
     private float4 InteractionDirectionAndDensity;
 
-    private uint4 Counts;
+    private uint4 CountsAndInteractionStrength;
 
     private uint4 GridAndPressure;
 
@@ -61,14 +59,7 @@ struct SimulationConstants
     property float3 TankMax
     {
         get {
-            return TankMaxAndTime.xyz;
-        }
-    }
-
-    property float Time
-    {
-        get {
-            return TankMaxAndTime.w;
+            return TankMaxAndInteractionRadius.xyz;
         }
     }
 
@@ -100,31 +91,17 @@ struct SimulationConstants
         }
     }
 
-    property float WaveAmplitude
-    {
-        get {
-            return WaveAndInteraction.x;
-        }
-    }
-
-    property float WaveFrequency
-    {
-        get {
-            return WaveAndInteraction.y;
-        }
-    }
-
     property float InteractionRadius
     {
         get {
-            return WaveAndInteraction.z;
+            return TankMaxAndInteractionRadius.w;
         }
     }
 
     property float InteractionStrength
     {
         get {
-            return WaveAndInteraction.w;
+            return asfloat(CountsAndInteractionStrength.w);
         }
     }
 
@@ -159,28 +136,21 @@ struct SimulationConstants
     property uint ParticleCount
     {
         get {
-            return Counts.x;
+            return CountsAndInteractionStrength.x;
         }
     }
 
     property uint CellCount
     {
         get {
-            return Counts.y;
+            return CountsAndInteractionStrength.y;
         }
     }
 
     property uint GridPointCount
     {
         get {
-            return Counts.z;
-        }
-    }
-
-    property bool WaveMakerEnabled
-    {
-        get {
-            return Counts.w != 0;
+            return CountsAndInteractionStrength.z;
         }
     }
 
@@ -779,13 +749,6 @@ void NormalizeAndApplyForcesCS(uint3 dispatchThreadID: SV_DispatchThreadID)
         velocity.y -= 9.81 * simulation.TimeStep;
     }
 
-    if (simulation.WaveMakerEnabled && point.x <= 2 && FaceIsOpen(0, point) && FaceTouchesFluid(0, point))
-    {
-        float phase = simulation.Time * simulation.WaveFrequency * 2.0 * PI + float(point.z) * 0.13;
-        float targetVelocity = simulation.WaveAmplitude * simulation.WaveFrequency * 2.0 * PI * cos(phase);
-        velocity.x = lerp(velocity.x, targetVelocity, exp(-float(point.x) * 0.65));
-    }
-
     if (simulation.InteractionStrength > 0.0)
     {
         for (uint component = 0; component < 3; component++)
@@ -975,7 +938,7 @@ void GridToParticleAndAdvectCS(uint3 dispatchThreadID: SV_DispatchThreadID)
         velocity *= 7.5 / speed;
     }
 
-    if (speed < 0.012 && !simulation.WaveMakerEnabled && simulation.InteractionStrength <= 0.0)
+    if (speed < 0.012 && simulation.InteractionStrength <= 0.0)
     {
         velocity = float3(0.0, 0.0, 0.0);
     }

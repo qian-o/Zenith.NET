@@ -96,7 +96,6 @@ internal unsafe class ScenePass(uint width, uint height) : Pass(width, height)
             View = args.View,
             Projection = args.Projection,
             CameraPosition = args.CameraPosition,
-            Time = args.Time,
             LightDirection = args.SunDirection,
             LightIntensity = args.LightIntensity,
             Materials = scene.Materials.StorageReadOnlyHandle
@@ -195,9 +194,6 @@ file struct SceneConstants
 
     [FieldOffset(128)]
     public Vector3 CameraPosition;
-
-    [FieldOffset(140)]
-    public float Time;
 
     [FieldOffset(144)]
     public Vector3 LightDirection;

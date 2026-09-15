@@ -13,8 +13,6 @@ internal unsafe class Simulation : DisposableObject
     public const float ParticleSpacing = ParticleRadius * 1.67f;
     public const float FlipRatio = 0.97f;
     public const float VelocityDamping = 0.9998f;
-    public const float WaveAmplitude = 0.12f;
-    public const float WaveFrequency = 0.58f;
     public const uint Substeps = 2;
     public const uint PressureIterations = 18;
 
@@ -100,7 +98,7 @@ internal unsafe class Simulation : DisposableObject
         interactionStrength = 4.8f;
     }
 
-    public TimelineValue Step(double totalTime, double deltaSeconds, bool paused, bool waveMakerEnabled)
+    public TimelineValue Step(double deltaSeconds, bool paused)
     {
         if (paused && !resetRequested)
         {
@@ -114,13 +112,10 @@ internal unsafe class Simulation : DisposableObject
             TankMin = TankMin,
             TimeStep = MathF.Max(timeStep, 0.000001f),
             TankMax = TankMax,
-            Time = (float)totalTime,
             GridSpacing = GridSpacing,
             InverseGridSpacing = 1.0f / GridSpacing,
             FlipRatio = FlipRatio,
             VelocityDamping = VelocityDamping,
-            WaveAmplitude = WaveAmplitude,
-            WaveFrequency = WaveFrequency,
             InteractionRadius = 1.15f,
             InteractionStrength = interactionStrength,
             InteractionOrigin = interactionOrigin,
@@ -130,7 +125,6 @@ internal unsafe class Simulation : DisposableObject
             ParticleCount = ParticleCount,
             CellCount = CellCount,
             GridPointCount = GridPointCount,
-            WaveMakerEnabled = waveMakerEnabled ? 1u : 0u,
             GridX = GridDimensions.X,
             GridY = GridDimensions.Y,
             GridZ = GridDimensions.Z,
@@ -260,7 +254,7 @@ internal unsafe class Simulation : DisposableObject
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 216)]
+[StructLayout(LayoutKind.Explicit, Size = 200)]
 file struct SimulationConstants
 {
     [FieldOffset(0)]
@@ -273,7 +267,7 @@ file struct SimulationConstants
     public Vector3 TankMax;
 
     [FieldOffset(28)]
-    public float Time;
+    public float InteractionRadius;
 
     [FieldOffset(32)]
     public float GridSpacing;
@@ -288,89 +282,77 @@ file struct SimulationConstants
     public float VelocityDamping;
 
     [FieldOffset(48)]
-    public float WaveAmplitude;
-
-    [FieldOffset(52)]
-    public float WaveFrequency;
-
-    [FieldOffset(56)]
-    public float InteractionRadius;
-
-    [FieldOffset(60)]
-    public float InteractionStrength;
-
-    [FieldOffset(64)]
     public Vector3 InteractionOrigin;
 
-    [FieldOffset(76)]
+    [FieldOffset(60)]
     public float ParticleRadius;
 
-    [FieldOffset(80)]
+    [FieldOffset(64)]
     public Vector3 InteractionDirection;
 
-    [FieldOffset(92)]
+    [FieldOffset(76)]
     public float RestDensity;
 
-    [FieldOffset(96)]
+    [FieldOffset(80)]
     public uint ParticleCount;
 
-    [FieldOffset(100)]
+    [FieldOffset(84)]
     public uint CellCount;
 
-    [FieldOffset(104)]
+    [FieldOffset(88)]
     public uint GridPointCount;
 
-    [FieldOffset(108)]
-    public uint WaveMakerEnabled;
+    [FieldOffset(92)]
+    public float InteractionStrength;
 
-    [FieldOffset(112)]
+    [FieldOffset(96)]
     public uint GridX;
 
-    [FieldOffset(116)]
+    [FieldOffset(100)]
     public uint GridY;
 
-    [FieldOffset(120)]
+    [FieldOffset(104)]
     public uint GridZ;
 
-    [FieldOffset(124)]
+    [FieldOffset(108)]
     public uint PressureIterations;
 
-    [FieldOffset(128)]
+    [FieldOffset(112)]
     public uint DamX;
 
-    [FieldOffset(132)]
+    [FieldOffset(116)]
     public uint DamY;
 
-    [FieldOffset(136)]
+    [FieldOffset(120)]
     public uint DamZ;
 
-    [FieldOffset(140)]
+    [FieldOffset(124)]
     public uint Substeps;
 
-    [FieldOffset(144)]
+    [FieldOffset(128)]
     public ResourceHandle Particles;
 
-    [FieldOffset(152)]
+    [FieldOffset(136)]
     public ResourceHandle PreviousPositions;
 
-    [FieldOffset(160)]
+    [FieldOffset(144)]
     public ResourceHandle ParticleAffine;
 
-    [FieldOffset(168)]
+    [FieldOffset(152)]
     public ResourceHandle GridAccumulation;
 
-    [FieldOffset(176)]
+    [FieldOffset(160)]
     public ResourceHandle GridVelocity;
 
-    [FieldOffset(184)]
+    [FieldOffset(168)]
     public ResourceHandle GridVelocityOld;
 
-    [FieldOffset(192)]
+    [FieldOffset(176)]
     public ResourceHandle CellTypes;
 
-    [FieldOffset(200)]
+    [FieldOffset(184)]
     public ResourceHandle Divergence;
 
-    [FieldOffset(208)]
+    [FieldOffset(192)]
     public ResourceHandle PressureA;
 }

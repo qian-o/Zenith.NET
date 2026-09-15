@@ -150,12 +150,6 @@ internal static class App
                 {
                     renderer.ViewMode = (FluidViewMode)viewMode;
                 }
-
-                bool waveMakerEnabled = renderer.WaveMakerEnabled;
-                if (ImGui.Checkbox("Waves", ref waveMakerEnabled))
-                {
-                    renderer.WaveMakerEnabled = waveMakerEnabled;
-                }
             });
 
             ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(renderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));

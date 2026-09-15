@@ -113,7 +113,6 @@ internal unsafe class WaterPass(uint width, uint height) : Pass(width, height)
             InvView = args.InverseView,
             InvProjection = args.InverseProjection,
             CameraPosition = args.CameraPosition,
-            Time = args.Time,
             SunDirection = args.SunDirection,
             LightIntensity = args.LightIntensity,
             Width = fluidWidth,
@@ -259,9 +258,6 @@ file struct ReflectionConstants
 
     [FieldOffset(128)]
     public Vector3 CameraPosition;
-
-    [FieldOffset(140)]
-    public float Time;
 
     [FieldOffset(144)]
     public Vector3 SunDirection;

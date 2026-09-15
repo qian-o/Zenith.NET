@@ -18,7 +18,6 @@ internal class Renderer : DisposableObject
     private readonly GlassPass glassPass;
     private readonly OutputPass outputPass;
 
-    private double simulationTime;
     private double accumulator = SimulationStep;
     private TimelineValue simulationReady;
 
@@ -36,8 +35,6 @@ internal class Renderer : DisposableObject
     public FluidViewMode ViewMode { get; set; }
 
     public bool Paused { get; set; }
-
-    public bool WaveMakerEnabled { get; set; }
 
     public Texture Color => outputPass.Color;
 
@@ -58,7 +55,6 @@ internal class Renderer : DisposableObject
     {
         simulation.Reset();
         Paused = false;
-        simulationTime = 0.0;
         accumulator = SimulationStep;
     }
 
@@ -66,13 +62,12 @@ internal class Renderer : DisposableObject
     {
         if (Paused)
         {
-            simulationReady = simulation.Step(simulationTime, SimulationStep, true, WaveMakerEnabled);
+            simulationReady = simulation.Step(SimulationStep, true);
         }
         else if (accumulator >= SimulationStep)
         {
-            simulationTime += SimulationStep;
             accumulator -= SimulationStep;
-            simulationReady = simulation.Step(simulationTime, SimulationStep, false, WaveMakerEnabled);
+            simulationReady = simulation.Step(SimulationStep, false);
         }
 
         return simulationReady;
@@ -96,7 +91,6 @@ internal class Renderer : DisposableObject
             CameraUp = camera.Up,
             SunDirection = Vector3.Normalize(new(-0.38f, -0.83f, -0.42f)),
             LightIntensity = 2.7f,
-            Time = (float)simulationTime,
             InterpolationAlpha = Paused ? 1.0f : (float)Math.Clamp(accumulator / SimulationStep, 0.0, 1.0),
             Particles = new()
             {

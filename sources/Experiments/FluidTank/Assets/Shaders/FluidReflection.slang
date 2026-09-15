@@ -7,7 +7,7 @@ struct ReflectionConstants
 
     float4x4 InvProjection;
 
-    private float4 CameraPositionAndTime;
+    private float4 CameraPositionAndPadding;
 
     private float4 SunDirectionAndIntensity;
 
@@ -30,14 +30,7 @@ struct ReflectionConstants
     property float3 CameraPosition
     {
         get {
-            return CameraPositionAndTime.xyz;
-        }
-    }
-
-    property float Time
-    {
-        get {
-            return CameraPositionAndTime.w;
+            return CameraPositionAndPadding.xyz;
         }
     }
 
