@@ -130,6 +130,7 @@ internal static class App
                 if (ImGui.SliderFloat("Render Precision", ref renderPrecision, 0.5f, 1.0f, "%.2f"))
                 {
                     renderer.RenderPrecision = renderPrecision;
+                    renderer.Resize(Width, Height);
                 }
 
                 int upscaleMode = (int)renderer.UpscaleMode;

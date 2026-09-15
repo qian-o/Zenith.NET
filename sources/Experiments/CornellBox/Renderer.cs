@@ -37,9 +37,6 @@ internal class Renderer : DisposableObject
 
     public void Render(CommandBuffer commandBuffer, CameraHandler camera)
     {
-        Resize(tonemap.DisplayWidth, tonemap.DisplayHeight);
-
-        UpscaleMode upscaleMode = UpscaleMode;
         Matrix4x4 view = camera.View;
         Matrix4x4 projection = camera.Projection;
         Matrix4x4 viewProjection = view * projection;
@@ -70,7 +67,7 @@ internal class Renderer : DisposableObject
             PreviousJitter = previousJitter,
             FrameIndex = frameIndex,
             SameCamera = sameCamera,
-            UpscaleMode = upscaleMode
+            UpscaleMode = UpscaleMode
         };
 
         pathTracing.Record(commandBuffer, in args);
