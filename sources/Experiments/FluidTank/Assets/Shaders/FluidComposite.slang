@@ -196,8 +196,8 @@ float3 SampleFluid(float2 uv, float sceneDepth, out float3 normal)
         }
     }
 
-    return geometryWeightSum > 0.0 ? float3(depth / geometryWeightSum, thickness / geometryWeightSum, coverage) :
-                                     float3(0.0);
+    return geometryWeightSum > 0.0 ? float3(depth / geometryWeightSum, thickness / geometryWeightSum, coverage)
+                                   : float3(0.0);
 }
 
 float2 ProjectViewPosition(float3 position)
