@@ -8,7 +8,7 @@ struct SceneConstants
 
     float4x4 Projection;
 
-    private float4 CameraPositionAndTime;
+    private float4 CameraPositionAndPadding;
 
     private float4 LightDirectionAndIntensity;
 
@@ -17,14 +17,7 @@ struct SceneConstants
     property float3 CameraPosition
     {
         get {
-            return CameraPositionAndTime.xyz;
-        }
-    }
-
-    property float Time
-    {
-        get {
-            return CameraPositionAndTime.w;
+            return CameraPositionAndPadding.xyz;
         }
     }
 

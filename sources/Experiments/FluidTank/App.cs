@@ -88,7 +88,7 @@ internal static class App
             Speed = 4.0f
         };
 
-        renderer = new(Context, Width, Height);
+        renderer = new();
     }
 
     public static GraphicsContext Context { get; }
@@ -113,27 +113,30 @@ internal static class App
 
             imGui.Update(delta, width, height);
             camera.Update(delta, width, height);
-            renderer.Update(camera, delta);
+            renderer.Update(delta);
 
             if (camera.TryConsumeClickRay(out Vector3 origin, out Vector3 direction) && !ImGui.GetIO().WantCaptureMouse)
             {
                 renderer.PushFluid(origin, direction);
             }
 
-            ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(renderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
-
             ImGuiHelper.Overlay(static () =>
             {
                 ImGui.Text(Context.Capabilities.DeviceName);
                 ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
                 ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
-                ImGui.Text($"Particles: {Simulation.ParticleCount:N0}");
             });
 
             ImGuiHelper.Settings(static () =>
             {
-                ImGui.Checkbox("Pause", ref renderer.Paused);
+                bool paused = renderer.Paused;
+                if (ImGui.Checkbox("Pause", ref paused))
+                {
+                    renderer.Paused = paused;
+                }
+
                 ImGui.SameLine();
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize("Reset").X - (ImGui.GetStyle().FramePadding.X * 2.0f));
 
                 if (ImGui.Button("Reset"))
                 {
@@ -141,28 +144,15 @@ internal static class App
                 }
 
                 ImGui.Separator();
-                ImGui.Checkbox("Wave maker", ref renderer.WaveMakerEnabled);
 
-                ImGui.Separator();
-
-                if (ImGui.RadioButton("Water", renderer.ViewMode is FluidViewMode.Water))
+                int viewMode = (int)renderer.ViewMode;
+                if (ImGui.Combo("View", ref viewMode, "Water\0Particles\0"))
                 {
-                    renderer.ViewMode = FluidViewMode.Water;
+                    renderer.ViewMode = (FluidViewMode)viewMode;
                 }
-
-                ImGui.SameLine();
-
-                if (ImGui.RadioButton("Particles", renderer.ViewMode is FluidViewMode.Particles))
-                {
-                    renderer.ViewMode = FluidViewMode.Particles;
-                }
-
-                ImGui.Separator();
-                ImGui.Checkbox("Antialiasing", ref renderer.AntialiasingEnabled);
-                ImGui.BeginDisabled(!Context.Capabilities.RayTracingSupported);
-                ImGui.Checkbox("Ray-traced reflections", ref renderer.RayTracingEnabled);
-                ImGui.EndDisabled();
             });
+
+            ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(renderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
         };
 
         window.Render += static _ =>
@@ -176,7 +166,7 @@ internal static class App
 
             CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
-            renderer.Render(commandBuffer);
+            renderer.Render(commandBuffer, camera);
 
             commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
             imGui.Render(commandBuffer, ColorAttachment.Clear(swapChain.Drawable, default));

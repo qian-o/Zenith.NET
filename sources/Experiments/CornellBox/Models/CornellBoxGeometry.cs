@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
-using System.Runtime.InteropServices;
 
-namespace CornellBox.Helpers;
+namespace CornellBox.Models;
 
 internal static class CornellBoxGeometry
 {
@@ -174,33 +173,4 @@ internal static class CornellBoxGeometry
         indices.Add(startIndex + 2);
         indices.Add(startIndex + 3);
     }
-}
-
-[StructLayout(LayoutKind.Explicit, Size = 32)]
-internal struct Vertex
-{
-    [FieldOffset(0)]
-    public Vector3 Position;
-
-    [FieldOffset(16)]
-    public Vector3 Normal;
-
-    [FieldOffset(28)]
-    public uint MaterialId;
-}
-
-[StructLayout(LayoutKind.Explicit, Size = 32)]
-internal struct Material
-{
-    [FieldOffset(0)]
-    public Vector3 Albedo;
-
-    [FieldOffset(12)]
-    public float Emission;
-
-    [FieldOffset(16)]
-    public float Metallic;
-
-    [FieldOffset(20)]
-    public float Roughness;
 }

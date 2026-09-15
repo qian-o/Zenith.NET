@@ -4,8 +4,6 @@
 
     float Exposure;
 
-    uint EncodeLuminance;
-
     DescriptorHandle<Texture2D> Input;
 
     DescriptorHandle<SamplerState> Sampler;
@@ -50,7 +48,7 @@ float4 ToneMappingFS(FullscreenOutput input) : SV_TARGET
 {
     float3 color = DisplayColor(output.Input.SampleLevel(output.Sampler, input.UV, 0.0).rgb);
 
-    return float4(color, output.EncodeLuminance != 0 ? Luminance(color) : 1.0);
+    return float4(color, Luminance(color));
 }
 
 [shader("fragment")]

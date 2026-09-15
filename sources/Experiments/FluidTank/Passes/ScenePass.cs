@@ -1,51 +1,18 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
-using FluidTank.Helpers;
 using FluidTank.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
 namespace FluidTank.Passes;
 
-internal class ScenePass : IDisposable
+internal unsafe class ScenePass(uint width, uint height) : Pass(width, height)
 {
-    private readonly GraphicsContext context;
-
-    private readonly Buffer constantBuffer;
-
-    private readonly Buffer backgroundConstantBuffer;
-
-    private readonly GraphicsPipeline pipeline;
-
-    private readonly GraphicsPipeline backgroundPipeline;
-
+    private Buffer constantBuffer = null!;
+    private Buffer backgroundConstantBuffer = null!;
+    private GraphicsPipeline pipeline = null!;
+    private GraphicsPipeline backgroundPipeline = null!;
     private bool initialized;
-
-    public ScenePass(GraphicsContext context)
-    {
-        this.context = context;
-
-        constantBuffer = GraphicsHelper.CreateConstantBuffer<SceneConstants>(context);
-        backgroundConstantBuffer = GraphicsHelper.CreateConstantBuffer<BackgroundConstants>(context);
-
-        InputLayout inputLayout = new();
-        inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Position });
-        inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Normal });
-
-        pipeline = GraphicsHelper.CreateGraphicsPipeline(context, "Scene.slang", "VSMain", "FSMain", [inputLayout], new()
-        {
-            ColorFormats = [PixelFormat.R16G16B16A16Float, PixelFormat.R32Float],
-            DepthStencilFormat = PixelFormat.D32FloatS8UInt,
-            SampleCount = SampleCount.Count1
-        }, RasterizerState.CullBack(), DepthStencilState.DepthReadWrite(), BlendState.Opaque());
-
-        backgroundPipeline = GraphicsHelper.CreateGraphicsPipeline(context, "SceneBackground.slang", "FullscreenVS", "BackgroundFS", [], new()
-        {
-            ColorFormats = [PixelFormat.R16G16B16A16Float, PixelFormat.R32Float],
-            DepthStencilFormat = PixelFormat.D32FloatS8UInt,
-            SampleCount = SampleCount.Count1
-        }, RasterizerState.CullNone(), DepthStencilState.DepthNone(), BlendState.Opaque());
-    }
 
     public Texture Color { get; private set; } = null!;
 
@@ -53,24 +20,104 @@ internal class ScenePass : IDisposable
 
     public Texture DepthStencil { get; private set; } = null!;
 
-    public void Render(CommandBuffer commandBuffer, FrameData frame, SceneResources scene)
+    protected override void Initialize()
     {
-        GraphicsHelper.Upload(constantBuffer, 0, new SceneConstants()
+        constantBuffer = App.Context.CreateBuffer(new()
         {
-            View = frame.View,
-            Projection = frame.Projection,
-            CameraPosition = frame.Position,
-            Time = frame.Time,
-            LightDirection = frame.SunDirection,
-            LightIntensity = frame.LightIntensity,
-            Materials = scene.Materials.StorageReadOnlyHandle
+            SizeInBytes = (uint)sizeof(SceneConstants),
+            Usages = BufferUsages.Constant,
+            Residency = MemoryResidency.CpuWriteOnly
+        });
+        backgroundConstantBuffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)sizeof(BackgroundConstants),
+            Usages = BufferUsages.Constant,
+            Residency = MemoryResidency.CpuWriteOnly
         });
 
-        GraphicsHelper.Upload(backgroundConstantBuffer, 0, new BackgroundConstants()
+        InputLayout inputLayout = new();
+        inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Position });
+        inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Normal });
+
+        using Shader vertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Scene.slang"), "VSMain"));
+        using Shader fragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Scene.slang"), "FSMain"));
+
+        pipeline = App.Context.CreateGraphicsPipeline(new()
         {
-            InvView = frame.InvView,
-            InvProjection = frame.InvProjection,
-            SunDirection = frame.SunDirection
+            VertexShader = vertexShader,
+            FragmentShader = fragmentShader,
+            InputLayouts = [inputLayout],
+            PrimitiveTopology = PrimitiveTopology.TriangleList,
+            AttachmentFormats = new()
+            {
+                ColorFormats = [PixelFormat.R16G16B16A16Float, PixelFormat.R32Float],
+                DepthStencilFormat = PixelFormat.D32FloatS8UInt,
+                SampleCount = SampleCount.Count1
+            },
+            RenderState = new()
+            {
+                Rasterizer = RasterizerState.CullBack(),
+                DepthStencil = DepthStencilState.DepthReadWrite(),
+                Blend = BlendState.Opaque()
+            }
+        });
+
+        using Shader backgroundVertexShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("SceneBackground.slang"), "FullscreenVS"));
+        using Shader backgroundFragmentShader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("SceneBackground.slang"), "BackgroundFS"));
+
+        backgroundPipeline = App.Context.CreateGraphicsPipeline(new()
+        {
+            VertexShader = backgroundVertexShader,
+            FragmentShader = backgroundFragmentShader,
+            InputLayouts = [],
+            PrimitiveTopology = PrimitiveTopology.TriangleList,
+            AttachmentFormats = new()
+            {
+                ColorFormats = [PixelFormat.R16G16B16A16Float, PixelFormat.R32Float],
+                DepthStencilFormat = PixelFormat.D32FloatS8UInt,
+                SampleCount = SampleCount.Count1
+            },
+            RenderState = new()
+            {
+                Rasterizer = RasterizerState.CullNone(),
+                DepthStencil = DepthStencilState.DepthNone(),
+                Blend = BlendState.Opaque()
+            }
+        });
+
+        ResizeImpl();
+    }
+
+    protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
+    {
+        SceneResources scene = args.Scene;
+        SceneConstants sceneConstants = new()
+        {
+            View = args.View,
+            Projection = args.Projection,
+            CameraPosition = args.CameraPosition,
+            LightDirection = args.SunDirection,
+            LightIntensity = args.LightIntensity,
+            Materials = scene.Materials.StorageReadOnlyHandle
+        };
+
+        constantBuffer.Upload(0, new()
+        {
+            Pointer = (nint)(&sceneConstants),
+            SizeInBytes = (uint)sizeof(SceneConstants)
+        });
+
+        BackgroundConstants backgroundConstants = new()
+        {
+            InvView = args.InverseView,
+            InvProjection = args.InverseProjection,
+            SunDirection = args.SunDirection
+        };
+
+        backgroundConstantBuffer.Upload(0, new()
+        {
+            Pointer = (nint)(&backgroundConstants),
+            SizeInBytes = (uint)sizeof(BackgroundConstants)
         });
 
         TextureLayout colorLayout = initialized ? TextureLayout.Sampled : TextureLayout.Undefined;
@@ -96,17 +143,17 @@ internal class ScenePass : IDisposable
         initialized = true;
     }
 
-    public void Resize(uint width, uint height)
+    protected override void ResizeImpl()
     {
         DisposeTargets();
 
-        Color = GraphicsHelper.CreateTexture(context, PixelFormat.R16G16B16A16Float, width, height, TextureUsages.Sampled | TextureUsages.ColorAttachment);
-        LinearDepth = GraphicsHelper.CreateTexture(context, PixelFormat.R32Float, width, height, TextureUsages.Sampled | TextureUsages.ColorAttachment);
-        DepthStencil = GraphicsHelper.CreateTexture(context, PixelFormat.D32FloatS8UInt, width, height, TextureUsages.DepthStencilAttachment);
+        Color = CreateTexture(Width, Height, PixelFormat.R16G16B16A16Float, TextureUsages.Sampled | TextureUsages.ColorAttachment);
+        LinearDepth = CreateTexture(Width, Height, PixelFormat.R32Float, TextureUsages.Sampled | TextureUsages.ColorAttachment);
+        DepthStencil = CreateTexture(Width, Height, PixelFormat.D32FloatS8UInt, TextureUsages.DepthStencilAttachment);
         initialized = false;
     }
 
-    public void Dispose()
+    protected override void Destroy()
     {
         backgroundPipeline.Dispose();
         pipeline.Dispose();
@@ -147,9 +194,6 @@ file struct SceneConstants
 
     [FieldOffset(128)]
     public Vector3 CameraPosition;
-
-    [FieldOffset(140)]
-    public float Time;
 
     [FieldOffset(144)]
     public Vector3 LightDirection;
