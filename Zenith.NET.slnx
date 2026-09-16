@@ -25,6 +25,7 @@
     <Project Path="sources/Views/Zenith.NET.Views.WPF/Zenith.NET.Views.WPF.csproj" />
     <Project Path="sources/Views/Zenith.NET.Views/Zenith.NET.Views.csproj" />
   </Folder>
+  <Project Path="sources/Zenith.NET.Compiler/Zenith.NET.Compiler.csproj" />
   <Project Path="sources/Zenith.NET.DirectX12/Zenith.NET.DirectX12.csproj" />
   <Project Path="sources/Zenith.NET.Metal/Zenith.NET.Metal.csproj" />
   <Project Path="sources/Zenith.NET.Vulkan/Zenith.NET.Vulkan.csproj" />
