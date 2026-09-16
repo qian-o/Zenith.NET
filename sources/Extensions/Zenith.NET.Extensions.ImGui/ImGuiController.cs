@@ -7,7 +7,9 @@ namespace Zenith.NET.Extensions.ImGui;
 
 public unsafe class ImGuiController : DisposableObject
 {
-    private readonly GCHandle handle;
+    [ThreadStatic]
+    internal static ImGuiController? Current;
+
     private readonly ImGuiRenderer renderer;
     private readonly PlatformGetClipboardTextFn platformGetClipboardText;
     private readonly PlatformSetClipboardTextFn platformSetClipboardText;
@@ -37,7 +39,6 @@ public unsafe class ImGuiController : DisposableObject
         io.BackendFlags |= ImGuiBackendFlags.HasMouseCursors;
         io.BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
         io.BackendFlags |= ImGuiBackendFlags.RendererHasTextures;
-        io.BackendRendererUserData = (void*)GCHandle.ToIntPtr(handle = GCHandle.Alloc(this, GCHandleType.Weak));
 
         if (fontPath is not null)
         {
@@ -130,6 +131,8 @@ public unsafe class ImGuiController : DisposableObject
         HexaImGui.NewFrame();
 
         frameBegun = true;
+
+        Current = this;
     }
 
     public void Render(CommandBuffer commandBuffer, ColorAttachment colorAttachment)
@@ -183,16 +186,12 @@ public unsafe class ImGuiController : DisposableObject
 
     protected override void Destroy()
     {
-        HexaImGui.SetCurrentContext(Context);
-        HexaImGui.GetIO().Handle->BackendRendererUserData = null;
-
         clipboardScope?.Dispose();
 
         platformSetImeDataHandle.Free();
         platformSetClipboardTextHandle.Free();
         platformGetClipboardTextHandle.Free();
         renderer.Dispose();
-        handle.Free();
 
         HexaImGui.SetCurrentContext(null);
         HexaImGui.DestroyContext(Context);

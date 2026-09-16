@@ -1,6 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using Hexa.NET.ImGui;
-using HexaImGui = Hexa.NET.ImGui.ImGui;
+﻿using Hexa.NET.ImGui;
 
 namespace Zenith.NET.Extensions.ImGui;
 
@@ -8,16 +6,11 @@ public static class Extensions
 {
     extension(Texture texture)
     {
-        public ImTextureRef ImGuiBinding => Controller().Binding(texture);
+        public ImTextureRef ImGuiBinding => ImGuiController.Current?.Binding(texture) ?? default;
     }
 
     extension(TextureView textureView)
     {
-        public ImTextureRef ImGuiBinding => Controller().Binding(textureView);
-    }
-
-    private static unsafe ImGuiController Controller()
-    {
-        return (ImGuiController)GCHandle.FromIntPtr((nint)HexaImGui.GetIO().BackendRendererUserData).Target!;
+        public ImTextureRef ImGuiBinding => ImGuiController.Current?.Binding(textureView) ?? default;
     }
 }
