@@ -7,6 +7,7 @@ namespace Zenith.NET.Extensions.ImGui;
 
 public unsafe class ImGuiController : DisposableObject
 {
+    private readonly GCHandle handle;
     private readonly ImGuiRenderer renderer;
     private readonly PlatformGetClipboardTextFn platformGetClipboardText;
     private readonly PlatformSetClipboardTextFn platformSetClipboardText;
@@ -36,6 +37,7 @@ public unsafe class ImGuiController : DisposableObject
         io.BackendFlags |= ImGuiBackendFlags.HasMouseCursors;
         io.BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
         io.BackendFlags |= ImGuiBackendFlags.RendererHasTextures;
+        io.BackendRendererUserData = (void*)GCHandle.ToIntPtr(handle = GCHandle.Alloc(this, GCHandleType.Weak));
 
         if (fontPath is not null)
         {
@@ -65,16 +67,6 @@ public unsafe class ImGuiController : DisposableObject
     public ImGuiContextPtr Context { get; }
 
     public IImGuiPlatformBindings? PlatformBindings { get; set; }
-
-    public ImTextureRef Binding(Texture texture)
-    {
-        return new(null, renderer.Binding(texture));
-    }
-
-    public ImTextureRef Binding(TextureView textureView)
-    {
-        return new(null, renderer.Binding(textureView));
-    }
 
     public void Update(double delta, uint width, uint height)
     {
@@ -191,15 +183,29 @@ public unsafe class ImGuiController : DisposableObject
 
     protected override void Destroy()
     {
+        HexaImGui.SetCurrentContext(Context);
+        HexaImGui.GetIO().Handle->BackendRendererUserData = null;
+
         clipboardScope?.Dispose();
 
         platformSetImeDataHandle.Free();
         platformSetClipboardTextHandle.Free();
         platformGetClipboardTextHandle.Free();
         renderer.Dispose();
+        handle.Free();
 
         HexaImGui.SetCurrentContext(null);
         HexaImGui.DestroyContext(Context);
+    }
+
+    internal ImTextureRef Binding(Texture texture)
+    {
+        return new(null, renderer.Binding(texture));
+    }
+
+    internal ImTextureRef Binding(TextureView textureView)
+    {
+        return new(null, renderer.Binding(textureView));
     }
 
     private byte* PlatformGetClipboardText(ImGuiContext* context)
