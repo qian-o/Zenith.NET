@@ -147,6 +147,8 @@ public unsafe class ImGuiController : DisposableObject
 
             frameBegun = false;
         }
+
+        Current = null;
     }
 
     public void MouseDown(ImGuiMouseButton button)
