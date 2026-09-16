@@ -1,4 +1,4 @@
-﻿#:project ../../../Zenith.NET/Zenith.NET.csproj
+﻿#:project ../../../Zenith.NET.Compiler/Zenith.NET.Compiler.csproj
 
 using System.Globalization;
 using System.Runtime.CompilerServices;
