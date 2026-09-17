@@ -1,0 +1,13 @@
+{{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
+{{#children}}
+<section class="api-group" aria-labelledby="{{id}}">
+  <div class="api-group-heading"><h2 id="{{id}}">{{apiTitle}}</h2></div>
+  <div class="api-type-grid">
+    {{#children}}
+    <div class="api-type-entry"><a href="{{href}}">{{name.0.value}}</a>{{#summary}}<div class="api-summary">{{{summary}}}</div>{{/summary}}</div>
+    {{/children}}
+  </div>
+</section>
+{{/children}}
+{{#remarks}}<section class="api-group"><h2 id="{{id}}_remarks">Remarks</h2>{{{remarks}}}</section>{{/remarks}}
+{{#example.0}}<section class="api-group"><h2 id="{{id}}_examples">Examples</h2>{{#example}}{{{.}}}{{/example}}</section>{{/example.0}}

@@ -1,0 +1,11 @@
+{{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
+<details class="api-relationships">
+  <summary><span class="api-when-closed">Show inherited members and related types</span><span class="api-when-open">Hide inherited members and related types</span></summary>
+  <div class="api-relationships-body">
+    {{#inheritance.0}}<div class="api-relation"><h4>Inheritance</h4><ul>{{#inheritance}}<li>{{{specName.0.value}}}</li>{{/inheritance}}<li>{{apiName}}</li></ul></div>{{/inheritance.0}}
+    {{#implements.0}}<div class="api-relation"><h4>Interfaces</h4><ul>{{#implements}}<li>{{{specName.0.value}}}</li>{{/implements}}</ul></div>{{/implements.0}}
+    {{#derivedClasses.0}}<div class="api-relation"><h4>Derived types</h4><ul>{{#derivedClasses}}<li>{{{specName.0.value}}}</li>{{/derivedClasses}}</ul></div>{{/derivedClasses.0}}
+    {{#inheritedMembers.0}}<div class="api-relation"><h4>Inherited members</h4><ul>{{#inheritedMembers}}<li>{{#definition}}<xref uid="{{definition}}" text="{{nameWithType.0.value}}" alt="{{fullName.0.value}}"/>{{/definition}}{{^definition}}<xref uid="{{uid}}" text="{{nameWithType.0.value}}" alt="{{fullName.0.value}}"/>{{/definition}}</li>{{/inheritedMembers}}</ul></div>{{/inheritedMembers.0}}
+    {{#extensionMethods.0}}<div class="api-relation"><h4>Extension methods</h4><ul>{{#extensionMethods}}<li>{{#definition}}<xref uid="{{definition}}" altProperty="fullName" displayProperty="nameWithType"/>{{/definition}}{{^definition}}<xref uid="{{uid}}" altProperty="fullName" displayProperty="nameWithType"/>{{/definition}}</li>{{/extensionMethods}}</ul></div>{{/extensionMethods.0}}
+  </div>
+</details>

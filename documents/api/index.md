@@ -1,32 +1,13 @@
-﻿# API Reference
+---
+title: API Reference
+description: Explore the types and members in Zenith.NET.
+---
 
-The API reference documents the public Zenith.NET types, members, parameters, and enum values. Start with the [RHI Guide](../docs/index.md) when learning a workflow.
-
-## Start Here
-
-| Type | Purpose |
-|------|---------|
-| `GraphicsContext` | Creates resources and exposes capabilities and command queues |
-| `CommandQueue` | Owns and lends command buffers for one class of GPU work |
-| `CommandBuffer` | Queue-owned recorder borrowed for one immediate submission |
-| `TimelineValue` | Represents a queue-submission completion point that can be queried or waited on |
-| `QueryHeap` / `QueryHeapDesc` | Collect visibility results and GPU timestamps |
-| `BufferDesc` / `TextureDesc` | Describe resources before creation |
-| `GraphicsPipelineDesc` / `ComputePipelineDesc` | Describe shader pipelines |
-| `Surface` / `SwapChain` | Connect rendering to a window |
-| `ZenithCompiler` | Compiles Slang source for the selected graphics API |
-
-## Public Namespaces
-
-| Namespace | Contents |
-|-----------|----------|
-| `Zenith.NET` | Core RHI types and Slang compilation |
-| `Zenith.NET.DirectX12` | DirectX 12 context factory |
-| `Zenith.NET.Metal` | Metal context factory |
-| `Zenith.NET.Vulkan` | Vulkan context factory |
-| `Zenith.NET.Extensions.ImageSharp` | Image loading and mip generation |
-| `Zenith.NET.Extensions.ImGui` | Dear ImGui integration |
-| `Zenith.NET.Views` | Shared View contracts and frame event data |
-| `Zenith.NET.Views.*` | Framework-specific View controls |
-
-Browse the namespace tree to inspect the complete public API reference. The guide pages link related concepts, while the [Tutorials](../tutorials/index.md) show the types in complete applications.
+<div class="api-reference">
+  <header class="api-heading"><div class="api-heading-meta"><span class="api-kind">Reference</span></div><h1>API Reference</h1><p class="api-intro">Types and members for graphics, compute, and platform integration.</p></header>
+  <div class="api-start-grid">
+    <a href="Zenith.NET.GraphicsContext.yml"><span>Start here</span><strong>GraphicsContext</strong><p>Create and manage your graphics resources.</p></a>
+    <a href="Zenith.NET.CommandBuffer.yml"><span>Record work</span><strong>CommandBuffer</strong><p>Build graphics and compute command sequences.</p></a>
+  </div>
+  <section class="api-group"><div class="api-group-heading"><h2>Namespaces</h2></div><div class="api-namespace-grid" id="api-namespace-grid"></div><noscript><p><a href="Zenith.NET.yml">Browse the core API.</a></p></noscript></section>
+</div>

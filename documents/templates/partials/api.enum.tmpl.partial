@@ -1,0 +1,18 @@
+{{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
+{{#children}}
+<section class="api-group" aria-labelledby="{{id}}">
+  <div class="api-group-heading"><h2 id="{{id}}">{{apiTitle}}</h2></div>
+  <div class="api-enum-values">
+    {{#children}}
+    <div class="api-enum-value">
+      <h3 id="{{id}}" data-uid="{{uid}}"><code>{{syntax.content.0.value}}</code></h3>
+      {{#summary}}<div class="api-summary">{{{summary}}}</div>{{/summary}}
+      {{#remarks}}<div class="api-summary">{{{remarks}}}</div>{{/remarks}}
+    </div>
+    {{/children}}
+  </div>
+</section>
+{{/children}}
+{{#remarks}}<section class="api-group"><h2 id="{{id}}_remarks">Remarks</h2>{{{remarks}}}</section>{{/remarks}}
+{{#example.0}}<section class="api-group"><h2 id="{{id}}_examples">Examples</h2>{{#example}}{{{.}}}{{/example}}</section>{{/example.0}}
+{{>partials/api.seealso}}

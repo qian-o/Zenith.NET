@@ -1,14 +1,16 @@
 <p align="center">
-  <img src="documents/images/Zenith.NET-Logo.svg" alt="Zenith.NET" width="378">
+  <img src="documents/images/Zenith.NET.svg" alt="Zenith.NET icon" width="128" height="128">
 </p>
+
+<h1 align="center">Zenith.NET</h1>
 
 <p align="center">
   A modern rendering hardware interface for .NET.
 </p>
 
 <p align="center">
-  <a href="https://qian-o.github.io/Zenith.NET/docs/">Documentation</a> ·
-  <a href="https://qian-o.github.io/Zenith.NET/tutorials/">Tutorials</a> ·
+  <a href="https://qian-o.github.io/Zenith.NET/learn/">Learn</a> ·
+  <a href="https://qian-o.github.io/Zenith.NET/learn/samples.html">Samples</a> ·
   <a href="https://qian-o.github.io/Zenith.NET/api/">API Reference</a> ·
   <a href="https://www.nuget.org/packages?q=Zenith.NET">NuGet</a>
 </p>
@@ -37,7 +39,7 @@ using Zenith.NET.Vulkan;
 using GraphicsContext context = GraphicsContext.CreateVulkan(useValidationLayer: true);
 ```
 
-Follow [Project Setup](https://qian-o.github.io/Zenith.NET/tutorials/getting-started/project-setup.html) to configure a complete application, then continue with [Hello Triangle](https://qian-o.github.io/Zenith.NET/tutorials/guides/hello-triangle.html) for the first rendering workload.
+The [First Triangle](https://qian-o.github.io/Zenith.NET/learn/first-triangle.html) tutorial is being prepared.
 
 ## Packages
 
@@ -73,12 +75,12 @@ Choose packages by their role in your application. Add a graphics backend, then 
 | `Zenith.NET.Views.WinUI` | WinUI 3 and Uno rendering control. |
 | `Zenith.NET.Views.WPF` | WPF rendering control. |
 
-See [Views](https://qian-o.github.io/Zenith.NET/docs/presentation/views.html) for integrating rendering into a UI application.
+The [Platform Integration](https://qian-o.github.io/Zenith.NET/learn/concepts/platform-integration.html) guide is being prepared.
 
 ## Documentation and Examples
 
-- [RHI Guide](https://qian-o.github.io/Zenith.NET/docs/) — resources, shaders, pipelines, commands, synchronization, and presentation.
-- [Tutorials](https://qian-o.github.io/Zenith.NET/tutorials/) — rendering and compute walkthroughs, from a triangle to ray tracing and mesh shading.
+- [Learn](https://qian-o.github.io/Zenith.NET/learn/) — the documentation outline; content is being prepared.
+- [Samples](https://qian-o.github.io/Zenith.NET/learn/samples.html) — the sample index placeholder.
 - [API Reference](https://qian-o.github.io/Zenith.NET/api/) — types and members.
 - [Experiments](sources/Experiments/) — sample applications and utilities in this repository.
 

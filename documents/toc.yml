@@ -1,10 +1,6 @@
-﻿- name: Docs
-  href: docs/
-  homepage: docs/index.md
-
-- name: Tutorials
-  href: tutorials/
-  homepage: tutorials/index.md
+﻿- name: Learn
+  href: learn/
+  homepage: learn/index.md
 
 - name: API
   href: api/

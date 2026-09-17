@@ -1,0 +1,25 @@
+{{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
+{{#children}}
+<section class="api-group" aria-labelledby="{{id}}">
+  <div class="api-group-heading"><h2 id="{{id}}">{{apiTitle}}</h2></div>
+  <div class="api-members">
+    {{#children}}
+    {{#overload}}<a id="{{id}}" data-uid="{{uid}}"></a>{{/overload}}
+    <section class="api-member" aria-labelledby="{{id}}">
+      <div class="api-member-heading"><h3 id="{{id}}" data-uid="{{uid}}">{{name.0.value}}</h3>{{#sourceurl}}<a class="api-source" href="{{sourceurl}}">Source</a>{{/sourceurl}}</div>
+      {{#summary}}<div class="api-summary">{{{summary}}}</div>{{/summary}}
+      {{#conceptual}}<div class="api-summary">{{{conceptual}}}</div>{{/conceptual}}
+      {{#syntax.content.0.value}}<pre><code class="lang-csharp">{{syntax.content.0.value}}</code></pre>{{/syntax.content.0.value}}
+      {{#syntax}}{{>partials/api.signature}}{{/syntax}}
+      {{#remarks}}<div class="api-member-notes"><h4 id="{{id}}_remarks">Remarks</h4>{{{remarks}}}</div>{{/remarks}}
+      {{#example.0}}<div class="api-member-notes"><h4 id="{{id}}_examples">Examples</h4>{{#example}}{{{.}}}{{/example}}</div>{{/example.0}}
+      {{#exceptions.0}}<div class="api-member-notes"><h4>Exceptions</h4><dl class="api-parameters">{{#exceptions}}<div><dt>{{{type.specName.0.value}}}</dt><dd>{{{description}}}</dd></div>{{/exceptions}}</dl></div>{{/exceptions.0}}
+      {{>partials/api.seealso}}
+    </section>
+    {{/children}}
+  </div>
+</section>
+{{/children}}
+{{#remarks}}<section class="api-group"><h2 id="{{id}}_remarks">Remarks</h2>{{{remarks}}}</section>{{/remarks}}
+{{#example.0}}<section class="api-group"><h2 id="{{id}}_examples">Examples</h2>{{#example}}{{{.}}}{{/example}}</section>{{/example.0}}
+{{>partials/api.seealso}}

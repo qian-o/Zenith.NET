@@ -1,0 +1,13 @@
+{{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
+<header class="api-heading">
+  <div class="api-heading-meta"><span class="api-kind">{{apiKind}}</span>{{#sourceurl}}<a class="api-source" href="{{sourceurl}}">Source</a>{{/sourceurl}}</div>
+  <h1 id="{{id}}" data-uid="{{uid}}">{{name.0.value}}</h1>
+  {{#namespace.uid}}<div class="api-identity"><span>{{{namespace.specName.0.value}}}</span>{{#assemblies.0}}<span class="api-assembly">{{assemblies.0}}.dll</span>{{/assemblies.0}}</div>{{/namespace.uid}}
+  {{#summary}}<div class="api-summary">{{{summary}}}</div>{{/summary}}
+  {{#conceptual}}<div class="api-summary">{{{conceptual}}}</div>{{/conceptual}}
+</header>
+{{#syntax.content.0.value}}
+<section class="api-declaration" aria-label="C# type declaration"><div class="api-code-label">C# type declaration</div><pre><code class="lang-csharp">{{syntax.content.0.value}}</code></pre></section>
+{{/syntax.content.0.value}}
+{{#syntax}}{{>partials/api.signature}}{{/syntax}}
+{{#apiHasRelationships}}{{>partials/api.relationships}}{{/apiHasRelationships}}

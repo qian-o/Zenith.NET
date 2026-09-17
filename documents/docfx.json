@@ -22,8 +22,7 @@
       {
         "files": [
           "api/**/*.{md,yml}",
-          "docs/**/*.{md,yml}",
-          "tutorials/**/*.{md,yml}",
+          "learn/**/*.{md,yml}",
           "index.md",
           "toc.yml"
         ]
@@ -41,6 +40,21 @@
       "modern",
       "templates"
     ],
+    "fileMetadata": {
+      "_section": {
+        "learn/**": "learn",
+        "api/**": "api"
+      },
+      "_apiReference": {
+        "api/**": true
+      },
+      "_disableAffix": {
+        "api/**": true
+      },
+      "_disableTocFilter": {
+        "learn/**": true
+      }
+    },
     "globalMetadata": {
       "_appTitle": "Zenith.NET",
       "_appLogoPath": "images/Zenith.NET-Logo.svg",

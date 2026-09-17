@@ -1,0 +1,7 @@
+{{!master(layout/_master.tmpl)}}
+<div class="api-reference">
+  {{>partials/api.header}}
+  {{#isNamespace}}{{>partials/api.namespace}}{{/isNamespace}}
+  {{#isEnum}}{{>partials/api.enum}}{{/isEnum}}
+  {{^isNamespace}}{{^isEnum}}{{>partials/api.type}}{{/isEnum}}{{/isNamespace}}
+</div>
