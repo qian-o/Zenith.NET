@@ -1,3 +1,3 @@
-# Resource Management
+﻿# Resource Management
 
 <!-- Content pending. -->
