@@ -1,29 +1,7 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title" shape-rendering="geometricPrecision">
-    <title id="title">Zenith.NET</title>
-    <defs>
-        <linearGradient id="mark-surface" x1="9" y1="5" x2="57" y2="61" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#8A63FF" />
-            <stop offset="0.5" stop-color="#6540DF" />
-            <stop offset="1" stop-color="#2B76D9" />
-        </linearGradient>
-        <linearGradient id="mark-lines" x1="20" y1="12" x2="47" y2="54" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#FFFFFF" />
-            <stop offset="1" stop-color="#DDF7FF" />
-        </linearGradient>
-    </defs>
-    <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#mark-surface)" />
-    <g transform="translate(9.6 9.6) scale(0.7)" fill="none" stroke="url(#mark-lines)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
-        <g>
-            <path d="M32 9.5 42 15.5v13L32 34.5 22 28.5v-13L32 9.5Z" />
-            <path d="m22 15.5 10 6 10-6M32 21.5v13" />
-        </g>
-        <g>
-            <path d="m21.5 28.5 10 6v13l-10 6-10-6v-13l10-6Z" />
-            <path d="m11.5 34.5 10 6 10-6m-10 6v13" />
-        </g>
-        <g>
-            <path d="m42.5 28.5 10 6v13l-10 6-10-6v-13l10-6Z" />
-            <path d="m32.5 34.5 10 6 10-6m-10 6v13" />
-        </g>
-    </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="zenith-icon-title zenith-icon-description" shape-rendering="geometricPrecision">
+  <title id="zenith-icon-title">Zenith.NET</title>
+  <desc id="zenith-icon-description">A white Z on a solid graphite rounded square, with a thin, even inner edge for dark backgrounds.</desc>
+  <rect x="12" y="12" width="488" height="488" rx="106" fill="#262A32" />
+  <rect x="14" y="14" width="484" height="484" rx="104" fill="none" stroke-width="4" stroke="#FFFFFF" stroke-opacity=".16" />
+  <path id="zenith-icon-letter" d="M277.784575 369.06875 Q327 369.06875 333.4539 350.31875 L351.2039 350.31875 L397.192375 396.90875 Q387.511525 407.705 372.182625 416.2275 Q356.85195 424.75 342.3289 424.75 L130.942375 424.75 Q114.807625 390.09125 114.807625 370.7725 L304.409575 161.68125 L234.215425 161.68125 Q185 161.68125 178.5461 180.43125 L160.7961 180.43125 L114.807625 133.84125 Q124.488475 123.045 139.817375 114.5225 Q155.14805 106 169.6711 106 L277.784575 106 Q327 106 333.4539 87.25 L351.2039 87.25 Q362.5 98.045 379.847075 126.73875 Q397.192375 155.43125 397.192375 161.11375 L214.0461 369.06875 Z" fill="#FFFFFF" />
 </svg>
