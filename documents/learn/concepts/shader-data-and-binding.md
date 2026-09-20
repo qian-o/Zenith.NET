@@ -1,12 +1,12 @@
-# Shader Data and Binding
+---
+title: '@concepts.shaders.title'
+---
 
-A shader receives data supplied by the application. Vertex attributes describe individual vertices; buffers hold parameters or arrays; resource handles identify other resources the shader will access. The C# declarations and Slang declarations must agree on what those values mean. Matching a field name is not enough: layout, resource access and binding all need to match.
-
-## Compile an entry point for the selected context
-
-[`ZenithCompiler`](xref:Zenith.NET.ZenithCompiler) compiles a named Slang entry point and returns a [`ShaderDesc`](xref:Zenith.NET.ShaderDesc). Use the context's `GraphicsApi` so the result targets the backend that will create the shader: DXIL for DirectX 12, a Metal library for Metal, or SPIR-V for Vulkan.
-
-For example, with an existing `context` and the triangle's shader copied beside the executable:
+<h1 id="shader-data-and-binding"><resource key="concepts.shaders.title"></resource></h1>
+<p><resource key="concepts.shaders.description"></resource></p>
+<h2 id="compile-an-entry-point-for-the-selected-context"><resource key="concepts.shaders.compilation.title"></resource></h2>
+<p><resource key="concepts.shaders.compilation.description"><slot name="zenithCompiler"><a class="xref" href="~/api/Zenith.NET.ZenithCompiler.yml"><code>ZenithCompiler</code></a></slot><slot name="shaderDesc"><a class="xref" href="~/api/Zenith.NET.ShaderDesc.yml"><code>ShaderDesc</code></a></slot><slot name="graphicsApi"><code>GraphicsApi</code></slot></resource></p>
+<p><resource key="concepts.shaders.compilation.details"><slot name="context"><code>context</code></slot></resource></p>
 
 ```csharp
 string shaderPath = Path.Combine(AppContext.BaseDirectory, "Triangle.slang");
@@ -14,18 +14,13 @@ string shaderPath = Path.Combine(AppContext.BaseDirectory, "Triangle.slang");
 Shader vertexShader = context.CreateShader(ZenithCompiler.CompileFromFile(context.GraphicsApi, shaderPath, "VSMain"));
 ```
 
-`VSMain` must match the entry-point name in the file. Create the pipeline while its shader objects are valid; they can be disposed after pipeline creation, as shown in [First Triangle](../first-triangle.md#pipeline). Compile shaders and create pipelines during initialization rather than repeating that work for every frame.
-
-<a id="data-layout"></a>
-## Vertex input and shader data have different layout rules
-
-For vertex input, the pipeline's [`InputLayout`](xref:Zenith.NET.InputLayout) describes formats, offsets, stride and semantics. The triangle's `Float3` position followed by a `Float4` color occupies 28 bytes, with color at byte 12. `InputLayout.Add` computes this packed layout; it does not inspect the C# struct. If the C# fields contain padding, supply a matching layout instead of assuming the fields are packed.
-
-Constant buffers hold shader parameters, while structured buffers hold arrays of elements of a declared type. Both are read according to their Slang declarations. They do not use `InputLayout`. Verify field offsets and element sizes for the compiled shader representation, including padding. An unmanaged C# type is suitable for copying as bytes, but that alone does not prove it matches a shader type. In particular, do not apply a vertex's tightly packed `float3` layout to every shader buffer.
-
-A resource handle is a small value that refers to an existing resource. Copying the handle into a constant buffer does not copy the resource's contents.
-
-The [compute sample's C# constants](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/ComputeShaderRenderer.cs) make their offsets explicit. This declaration needs `System.Runtime.InteropServices` and `Zenith.NET` in scope:
+<p><resource key="concepts.shaders.compilation.guidance"><slot name="vSMain"><code>VSMain</code></slot><slot name="link"><a href="~/learn/first-triangle.md#pipeline"><resource key="concepts.shaders.compilation.guidance.link"></resource></a></slot></resource></p>
+<p><a id="data-layout"></a></p>
+<h2 id="vertex-input-and-shader-data-have-different-layout-rules"><resource key="concepts.shaders.layout.title"></resource></h2>
+<p><resource key="concepts.shaders.layout.description"><slot name="inputLayout"><a class="xref" href="~/api/Zenith.NET.InputLayout.yml"><code>InputLayout</code></a></slot><slot name="float3"><code>Float3</code></slot><slot name="float4"><code>Float4</code></slot><slot name="inputLayoutAdd"><code>InputLayout.Add</code></slot></resource></p>
+<p><resource key="concepts.shaders.layout.details"><slot name="inputLayout"><code>InputLayout</code></slot><slot name="float3"><code>float3</code></slot></resource></p>
+<p><resource key="concepts.shaders.layout.guidance"></resource></p>
+<p><resource key="concepts.shaders.layout.context"><slot name="link"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/ComputeShaderRenderer.cs"><resource key="concepts.shaders.layout.context.link"></resource></a></slot><slot name="systemRuntimeInteropServices"><code>System.Runtime.InteropServices</code></slot><slot name="zenithNET"><code>Zenith.NET</code></slot></resource></p>
 
 ```csharp
 [StructLayout(LayoutKind.Explicit, Size = 256)]
@@ -45,7 +40,7 @@ file struct Constants
 }
 ```
 
-The corresponding declaration in [ComputeShader.slang](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/ComputeShader.slang) is:
+<p><resource key="concepts.shaders.layout.notes"><slot name="computeShaderSlang"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/ComputeShader.slang">ComputeShader.slang</a></slot></resource></p>
 
 ```slang
 struct Constants
@@ -62,20 +57,14 @@ struct Constants
 ConstantBuffer<Constants> constants;
 ```
 
-The dimensions occupy the first eight bytes, followed by two eight-byte resource handles. The C# sample reserves 256 bytes in total. That size is the sample's chosen storage size, not a rule that all Slang structs or constant payloads occupy 256 bytes. Padding the total size also does not correct a field at the wrong offset.
-
-### Keep matrix storage and multiplication consistent
-
-The compiler requests row-major matrix storage, which stores each row's elements together. The [spinning cube renderer](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs) places three `Matrix4x4` values at offsets 0, 64 and 128. Its [shader](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/SpinningCube.slang) uses `mul(vector, matrix)` in model, view and projection order.
-
-Storage order determines how matrix elements occupy memory; multiplication order determines the transformation. Keep both sides consistent. Adding a transpose without checking those two choices can conceal one mismatch while introducing another.
-
-<a id="resource-handles"></a>
-## Bind the constant buffer and the resources it describes
-
-[`SetConstantBuffer`](xref:Zenith.NET.CommandBuffer.SetConstantBuffer(Zenith.NET.Buffer,System.UInt32)) binds a buffer and byte offset for the current pipeline's constant data. It binds existing GPU-visible storage; it does not upload a C# value. Fill the buffer first, and ensure earlier GPU readers have finished before overwriting its bytes.
-
-Set the pipeline before its constant buffer. For a compute workload with resources already created and uploaded, recording uses this order:
+<p><resource key="concepts.shaders.layout.reference"></resource></p>
+<h3 id="keep-matrix-storage-and-multiplication-consistent"><resource key="concepts.shaders.matrices.title"></resource></h3>
+<p><resource key="concepts.shaders.matrices.description"><slot name="link"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs"><resource key="concepts.shaders.matrices.description.link"></resource></a></slot><slot name="matrix4x4"><code>Matrix4x4</code></slot><slot name="detail"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/SpinningCube.slang"><resource key="concepts.shaders.matrices.description.detail"></resource></a></slot><slot name="mulVectorMatrix"><code>mul(vector, matrix)</code></slot></resource></p>
+<p><resource key="concepts.shaders.matrices.details"></resource></p>
+<p><a id="resource-handles"></a></p>
+<h2 id="bind-the-constant-buffer-and-the-resources-it-describes"><resource key="concepts.shaders.binding.title"></resource></h2>
+<p><resource key="concepts.shaders.binding.description"><slot name="setConstantBuffer"><a class="xref" href="~/api/Zenith.NET.CommandBuffer.yml#Zenith_NET_CommandBuffer_SetConstantBuffer_Zenith_NET_Buffer_System_UInt32_"><code>SetConstantBuffer</code></a></slot></resource></p>
+<p><resource key="concepts.shaders.binding.details"></resource></p>
 
 ```csharp
 commandBuffer.SetPipeline(computePipeline);
@@ -83,24 +72,46 @@ commandBuffer.SetConstantBuffer(constantBuffer, 0);
 commandBuffer.Dispatch(groupCountX, groupCountY, 1);
 ```
 
-This fragment assumes an already-recording `commandBuffer`, a `computePipeline`, an uploaded `constantBuffer` with `BufferUsages.Constant`, and the thread-group counts for the workload. Offset 0 binds the beginning of the buffer. If several constant-data records share a buffer, each record's starting offset must satisfy the backend's binding alignment. That requirement is separate from the layout of fields inside each record.
-
-In the compute sample, `Input` is filled with `inputTexture.SampledHandle` and `Output` with `outputTexture.StorageHandle`. Slang's typed `DescriptorHandle` tells the shader how to access each resource:
-
-| C# handle | Slang field type | Intended access |
-| --- | --- | --- |
-| `texture.SampledHandle` | `DescriptorHandle<Texture2D>` | Read a texture. |
-| `texture.StorageHandle` | `DescriptorHandle<RWTexture2D<float4>>` | Read or write a storage texture. |
-| `buffer.StorageReadOnlyHandle` | `DescriptorHandle<StructuredBuffer<T>>` | Read structured elements of shader type `T`. |
-| `buffer.StorageReadWriteHandle` | `DescriptorHandle<RWStructuredBuffer<T>>` | Read or write structured elements of shader type `T`. |
-| `sampler.Handle` | `DescriptorHandle<SamplerState>` | Supply texture sampling state. |
-
-[`ResourceHandle`](xref:Zenith.NET.ResourceHandle) stores two 32-bit fields, but its interpretation belongs to the backend. Do not treat it as a universal descriptor index, address or value that can be transferred between contexts. A handle does not create a resource, add a missing usage or perform synchronization.
-
-Keep references to the resource and any view used to obtain its handle, and dispose them only after the shader's last use completes. When replacing a texture or view, update the constants that contain its old handle. [Resource Management](resource-management.md#views-and-lifetime) explains that lifetime relationship.
-
-## Dispatch thread groups, not pixels
-
-`Dispatch` takes the number of thread groups. The compute sample's `[numthreads(16, 16, 1)]` entry point runs 16 × 16 threads per group. Divide the image dimensions by 16 and round up to find the group counts. For example, a 17 × 19 image needs 2 × 2 groups. The shader checks its pixel coordinates against the image dimensions because the last groups can contain threads outside the image.
-
-The compiler stores the entry point's declared group size in `ShaderDesc.ThreadGroupSize`; it does not convert pixel dimensions supplied to `Dispatch` into group counts. Use [ComputeShaderRenderer.cs](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/ComputeShaderRenderer.cs) with its shader for the complete binding and dispatch example, and [Synchronization](synchronization.md#layouts) before another pass consumes the output.
+<p><resource key="concepts.shaders.binding.guidance"><slot name="commandBuffer"><code>commandBuffer</code></slot><slot name="computePipeline"><code>computePipeline</code></slot><slot name="constantBuffer"><code>constantBuffer</code></slot><slot name="bufferUsagesConstant"><code>BufferUsages.Constant</code></slot></resource></p>
+<p><resource key="concepts.shaders.binding.context"><slot name="input"><code>Input</code></slot><slot name="inputTextureSampledHandle"><code>inputTexture.SampledHandle</code></slot><slot name="output"><code>Output</code></slot><slot name="outputTextureStorageHandle"><code>outputTexture.StorageHandle</code></slot><slot name="descriptorHandle"><code>DescriptorHandle</code></slot></resource></p>
+<table>
+<thead>
+<tr>
+<th><resource key="concepts.shaders.binding.table.headings.cHandle"></resource></th>
+<th><resource key="concepts.shaders.binding.table.headings.slangFieldType"></resource></th>
+<th><resource key="concepts.shaders.binding.table.headings.access"></resource></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>texture.SampledHandle</code></td>
+<td><code>DescriptorHandle&lt;Texture2D&gt;</code></td>
+<td><resource key="concepts.shaders.binding.table.textureSampledHandle.access"></resource></td>
+</tr>
+<tr>
+<td><code>texture.StorageHandle</code></td>
+<td><code>DescriptorHandle&lt;RWTexture2D&lt;float4&gt;&gt;</code></td>
+<td><resource key="concepts.shaders.binding.table.textureStorageHandle.access"></resource></td>
+</tr>
+<tr>
+<td><code>buffer.StorageReadOnlyHandle</code></td>
+<td><code>DescriptorHandle&lt;StructuredBuffer&lt;T&gt;&gt;</code></td>
+<td><resource key="concepts.shaders.binding.table.bufferStorageReadOnlyHandle.access"><slot name="t"><code>T</code></slot></resource></td>
+</tr>
+<tr>
+<td><code>buffer.StorageReadWriteHandle</code></td>
+<td><code>DescriptorHandle&lt;RWStructuredBuffer&lt;T&gt;&gt;</code></td>
+<td><resource key="concepts.shaders.binding.table.bufferStorageReadWriteHandle.access"><slot name="t"><code>T</code></slot></resource></td>
+</tr>
+<tr>
+<td><code>sampler.Handle</code></td>
+<td><code>DescriptorHandle&lt;SamplerState&gt;</code></td>
+<td><resource key="concepts.shaders.binding.table.samplerHandle.access"></resource></td>
+</tr>
+</tbody>
+</table>
+<p><resource key="concepts.shaders.binding.notes"><slot name="resourceHandle"><a class="xref" href="~/api/Zenith.NET.ResourceHandle.yml"><code>ResourceHandle</code></a></slot></resource></p>
+<p><resource key="concepts.shaders.binding.reference"><slot name="link"><a href="~/learn/concepts/resource-management.md#views-and-lifetime"><resource key="concepts.shaders.binding.reference.link"></resource></a></slot></resource></p>
+<h2 id="dispatch-thread-groups-not-pixels"><resource key="concepts.shaders.dispatch.title"></resource></h2>
+<p><resource key="concepts.shaders.dispatch.description"><slot name="dispatch"><code>Dispatch</code></slot><slot name="numthreads"><code>[numthreads(16, 16, 1)]</code></slot></resource></p>
+<p><resource key="concepts.shaders.dispatch.details"><slot name="shaderDescThreadGroupSize"><code>ShaderDesc.ThreadGroupSize</code></slot><slot name="dispatch"><code>Dispatch</code></slot><slot name="computeShaderRendererCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/ComputeShaderRenderer.cs">ComputeShaderRenderer.cs</a></slot><slot name="link"><a href="~/learn/concepts/synchronization.md#layouts"><resource key="concepts.shaders.dispatch.details.link"></resource></a></slot></resource></p>

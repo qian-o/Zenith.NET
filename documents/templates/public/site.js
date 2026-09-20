@@ -1,8 +1,13 @@
 export const isApplePlatform = /Mac|iPhone|iPad/.test(navigator.platform);
 
-export function closeNavigation() {
+export function closeHeaderMenu() {
     document.getElementById('menu-toggle')?.setAttribute('aria-expanded', 'false');
     document.querySelector('.site-header')?.classList.remove('menu-open');
+}
+
+export function closeNavigation() {
+    document.getElementById('language-menu')?.removeAttribute('open');
+    closeHeaderMenu();
 }
 
 export function closeContents() {
@@ -18,6 +23,7 @@ export function initializeSite() {
     const header = document.querySelector('.site-header');
     if (menu && header) {
         menu.addEventListener('click', () => {
+            document.getElementById('language-menu')?.removeAttribute('open');
             const open = menu.getAttribute('aria-expanded') !== 'true';
             menu.setAttribute('aria-expanded', String(open));
             header.classList.toggle('menu-open', open);
@@ -39,33 +45,7 @@ export function initializeSite() {
 
     // Preserve deep-link IDs while disabling DocFX's decorative heading anchors.
     for (const heading of document.querySelectorAll('article h2, article h3, article h4')) heading.classList.add('no-anchor');
-    initializeLearnToc();
     labelCodeBlocks();
-}
-
-function initializeLearnToc() {
-    const toc = document.getElementById('toc');
-    if (!toc || document.body.dataset.section !== 'learn') return;
-    const flattenGroups = () => {
-        if (!toc.querySelector(':scope > .overflow-y-auto')) return false;
-        for (const group of toc.querySelectorAll('li.expander')) {
-            group.classList.add('expanded');
-            group.querySelector(':scope > .expand-stub')?.remove();
-            const link = group.querySelector(':scope > a[href="#"]');
-            if (link) {
-                const heading = document.createElement('span');
-                heading.className = 'toc-group-title';
-                heading.textContent = link.textContent;
-                group.replaceChild(heading, link);
-            }
-        }
-        return true;
-    };
-    if (flattenGroups()) return;
-    const observer = new MutationObserver(() => {
-        if (flattenGroups()) observer.disconnect();
-    });
-    observer.observe(toc, { childList: true, subtree: true });
 }
 
 function labelCodeBlocks() {

@@ -1,3 +1,6 @@
+import { t } from './resources.js';
+import { pageUrl } from './languages.js';
+
 // Use DocFX's generated TOC as the source of truth for the custom API browser.
 export async function initializeApi() {
     const browser = document.getElementById('api-browser');
@@ -7,6 +10,7 @@ export async function initializeApi() {
     const filter = document.getElementById('api-type-filter');
     const clear = document.getElementById('api-type-clear');
     const list = document.getElementById('api-type-list');
+    const scroller = browser.querySelector('.api-type-scroll');
     const status = document.getElementById('api-browser-status');
     const scope = document.getElementById('api-type-scope');
     filter.disabled = true;
@@ -19,11 +23,11 @@ export async function initializeApi() {
     }
 
     try {
-        const tocUrl = new URL(document.querySelector('meta[name="docfx:tocrel"]').content, location.href);
-        const response = await fetch(tocUrl);
+        const tocUrl = new URL(document.querySelector('meta[name="site:api-toc"]').content, location.href);
+        const response = await fetch(tocUrl, { cache: 'no-cache' });
         if (!response.ok) throw new Error('API navigation could not be loaded.');
         const documentToc = new DOMParser().parseFromString(await response.text(), 'text/html');
-        const readLink = link => ({ name: link.textContent.trim(), href: new URL(link.getAttribute('href'), tocUrl).href });
+        const readLink = link => ({ name: link.textContent.trim(), href: pageUrl(new URL(link.getAttribute('href'), tocUrl).href) });
         const namespaces = [...documentToc.querySelectorAll('.nav.level1 > li')].map(item => {
             const link = item.querySelector(':scope > a');
             return { ...readLink(link), types: [...item.querySelectorAll(':scope > ul > li > a')].map(readLink) };
@@ -50,7 +54,7 @@ export async function initializeApi() {
         writeNamespace(selectedName, activeNamespace.name);
         picker.addEventListener('change', () => location.assign(picker.value));
 
-        function renderTypes() {
+        function renderTypes(resetScroll = true) {
             const query = filter.value.trim().toLowerCase();
             clear.hidden = !filter.value;
             const entries = query
@@ -79,11 +83,12 @@ export async function initializeApi() {
                 fragment.append(item);
             }
             list.replaceChildren(fragment);
-            scope.textContent = query ? 'Matching types' : 'Types';
+            if (resetScroll) scroller.scrollTop = 0;
+            scope.textContent = query ? t('ui.api.matchingTypes') : t('ui.api.types');
             status.hidden = entries.length > 0;
-            status.textContent = query ? 'No matching types.' : 'No types in this namespace.';
+            status.textContent = query ? t('ui.api.noTypes') : t('ui.api.noNamespaceTypes');
         }
-        filter.addEventListener('input', renderTypes);
+        filter.addEventListener('input', () => renderTypes());
         clear.addEventListener('click', () => {
             filter.value = '';
             renderTypes();
@@ -100,10 +105,10 @@ export async function initializeApi() {
         });
         renderTypes();
         const active = list.querySelector('[aria-current="page"]');
-        if (active) browser.querySelector('.api-type-scroll').scrollTop = active.offsetTop - 160;
+        if (active) scroller.scrollTop = active.offsetTop - 160;
         window.addEventListener('pageshow', () => setTimeout(() => {
             picker.value = activeNamespace.href;
-            renderTypes();
+            renderTypes(false);
         }, 0));
 
         const grid = document.getElementById('api-namespace-grid');
@@ -120,6 +125,6 @@ export async function initializeApi() {
         }
     } catch {
         status.hidden = false;
-        status.textContent = 'Could not load types. Reload this page to try again.';
+        status.textContent = t('ui.api.loadError');
     }
 }

@@ -35,14 +35,6 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     background: var(--zenith-surface);
 }
 
-.api-namespace-picker {
-    border-radius: calc(var(--zenith-radius) - 1px) calc(var(--zenith-radius) - 1px) 0 0;
-}
-
-.api-type-search {
-    border-radius: 0 0 calc(var(--zenith-radius) - 1px) calc(var(--zenith-radius) - 1px);
-}
-
 .api-namespace-label {
     display: block;
     margin-bottom: 4px;
@@ -51,11 +43,12 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 .api-namespace-picker {
+    border-radius: calc(var(--zenith-radius) - 1px) calc(var(--zenith-radius) - 1px) 0 0;
     position: relative;
     flex-shrink: 0;
     min-height: 44px;
     padding: 11px 32px 11px 12px;
-    color: #e0ebfa;
+    color: var(--zenith-text);
     font: 500 13px/1.6 var(--bs-body-font-family);
 }
 
@@ -79,6 +72,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 .api-namespace-picker, .api-type-search {
+    border-radius: 0 0 calc(var(--zenith-radius) - 1px) calc(var(--zenith-radius) - 1px);
     transition: box-shadow 180ms, background-color 180ms;
 }
 
@@ -96,7 +90,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     right: 12px;
     top: 50%;
     transform: translateY(-50%);
-    color: #9eb5d1;
+    color: var(--zenith-muted);
     pointer-events: none;
 }
 
@@ -121,12 +115,12 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     outline: 0;
     box-shadow: none;
     background: none;
-    color: #eef4ff;
+    color: var(--zenith-text);
     font: 13px/1.5 var(--bs-body-font-family);
 }
 
 .api-type-search input::placeholder {
-    color: #95a1b2;
+    color: var(--zenith-muted);
 }
 
 .api-type-search input::-webkit-search-cancel-button, .api-type-search input::-webkit-search-decoration {
@@ -153,7 +147,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 #api-type-clear:hover {
-    color: #fff;
+    color: var(--zenith-text);
 }
 
 #api-type-clear:focus-visible {
@@ -163,7 +157,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 .api-browser-caption {
     flex-shrink: 0;
     margin-bottom: 10px;
-    color: #929fb1;
+    color: var(--zenith-muted);
     font-size: 11px;
 }
 
@@ -200,7 +194,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 
 #api-type-list a:hover {
     background: var(--zenith-surface);
-    color: #f2f6fc;
+    color: var(--zenith-text);
 }
 
 #api-type-list a[aria-current] {
@@ -212,12 +206,12 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 #api-type-list small {
     display: block;
     margin-top: 3px;
-    color: #90a6c3;
+    color: var(--zenith-muted);
     font-size: 10px;
 }
 
 .api-browser-status {
-    color: #aab5c4;
+    color: var(--zenith-muted);
     font-size: 12px;
 }
 
@@ -241,7 +235,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 .api-summary {
-    color: #afbac9;
+    color: var(--zenith-body);
     font-size: 14px;
     line-height: 1.75;
 }
@@ -269,7 +263,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 .api-intro {
     max-width: 620px;
     margin: 0;
-    color: #abb9cc;
+    color: var(--zenith-body);
     font-size: 16px;
 }
 
@@ -300,7 +294,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     top: 7px;
     right: 5px;
     padding: 4px 8px;
-    color: #9eb5d1;
+    color: var(--zenith-muted);
     font-size: 13px;
 }
 
@@ -368,17 +362,13 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     color: var(--zenith-body);
 }
 
-.api-reference a.xref > code {
-    color: #bedbfa;
-}
-
 .api-reference a.xref {
-    color: #c5d9f2;
+    color: var(--zenith-link);
     text-decoration: none;
 }
 
 .api-reference a.xref:hover {
-    color: #fff;
+    color: var(--zenith-text);
     text-decoration: underline;
 }
 
@@ -419,7 +409,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 .api-reference summary:hover {
-    color: #edf6ff;
+    color: var(--zenith-text);
 }
 
 .api-relationships > summary {
@@ -472,7 +462,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 
 .api-reference .api-relation h4 {
     margin: 0 0 10px;
-    color: #dce7f6;
+    color: var(--zenith-text);
     font-size: 12px;
 }
 
@@ -501,7 +491,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 
 @keyframes api-location-cue {
     from {
-        color: #fff;
+        color: var(--zenith-text);
         text-shadow: 0 0 18px #a9cfff99;
     }
 
@@ -533,7 +523,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 /* Namespace directories use one dense, scannable grid. */
-.api-type-grid {
+.api-type-grid, .api-enum-values {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0;
@@ -556,6 +546,12 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     transition: background-color 180ms;
 }
 
+.api-type-entry > .api-summary a {
+    position: relative;
+    z-index: 1;
+    pointer-events: auto;
+}
+
 .api-type-entry, .api-enum-value {
     box-shadow: inset -1px -1px 0 var(--zenith-border);
 }
@@ -567,7 +563,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 .api-type-entry > a {
     flex: 1;
     min-width: 0;
-    color: #e0ebfa;
+    color: var(--zenith-text);
     font: 500 13px/1.6 var(--bs-font-monospace);
     text-decoration: none;
     overflow-wrap: anywhere;
@@ -584,23 +580,14 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 .api-type-entry:focus-within {
-    outline: 2px solid #bdd8fa;
+    outline: 2px solid var(--zenith-focus);
     outline-offset: -3px;
 }
 
 .api-type-entry > .api-summary {
+    pointer-events: none;
     flex-basis: 100%;
     font-size: 12px;
-}
-
-.api-enum-values {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0;
-    overflow: hidden;
-    border: 1px solid var(--zenith-control-border);
-    border-radius: var(--zenith-radius);
-    background: var(--zenith-surface);
 }
 
 .api-enum-value {
@@ -619,13 +606,13 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 .api-reference .api-enum-value code {
     padding: 0;
     background: none;
-    color: #c8dffb;
+    color: var(--zenith-body);
     font: inherit;
     font-family: var(--bs-font-monospace);
 }
 
 .api-enum-value:has(:target) {
-    background: #253b58;
+    background: var(--zenith-hover);
 }
 
 .api-enum-value > .api-summary {
@@ -649,7 +636,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 .api-member:target, .api-member:has(:target) {
-    border-color: #91b4df;
+    border-color: var(--zenith-focus);
 }
 
 /* Focus from the finder belongs to the member block, not a box around static text. */
@@ -658,13 +645,13 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 .api-member:has(.api-member-heading h3:focus) {
-    border-color: #b2cef1;
+    border-color: var(--zenith-focus);
     box-shadow: inset 0 0 0 1px #8aafd338;
 }
 
 .api-enum-value:has(h3:focus) {
-    background: #253b58;
-    box-shadow: inset 0 0 0 1px #91b4df;
+    background: var(--zenith-hover);
+    box-shadow: inset 0 0 0 1px var(--zenith-focus);
 }
 
 .api-member-heading {
@@ -683,7 +670,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 .api-reference .api-member h3 {
     min-width: 0;
     margin: 0;
-    color: #edf4ff;
+    color: var(--zenith-text);
     font: 550 17px/1.5 var(--bs-font-monospace);
     letter-spacing: -.04em;
     overflow-wrap: anywhere;
@@ -702,14 +689,14 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 .api-value > dt {
-    color: #879bb6;
+    color: var(--zenith-muted);
     font-weight: 400;
 }
 
 .api-value > dd {
     min-width: 0;
     margin: 0;
-    color: #b8c9df;
+    color: var(--zenith-body);
 }
 
 .api-value dd > div {
@@ -756,13 +743,13 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     align-items: baseline;
     gap: 8px 12px;
     min-width: 0;
-    color: #d0dced;
+    color: var(--zenith-body);
     font-weight: 400;
 }
 
 .api-parameters dd {
     margin: 0;
-    color: #adbbcd;
+    color: var(--zenith-body);
 }
 
 .api-parameters dd:empty {
@@ -778,7 +765,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 .api-member-notes {
-    color: #b7c4d6;
+    color: var(--zenith-body);
     font-size: 13px;
 }
 
@@ -813,26 +800,26 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 .api-start-grid > a:hover {
-    border-color: #9dbde6;
+    border-color: var(--zenith-border-hover);
     background: var(--zenith-hover);
 }
 
 .api-start-grid span {
     display: block;
     margin-bottom: 14px;
-    color: #a5bddc;
+    color: var(--zenith-muted);
     font-size: 11px;
 }
 
 .api-start-grid strong {
-    color: #edf5ff;
+    color: var(--zenith-text);
     font: 500 18px/1.5 var(--bs-font-monospace);
     overflow-wrap: anywhere;
 }
 
 .api-start-grid p {
     margin: 12px 0 0;
-    color: #b0c1d7;
+    color: var(--zenith-body);
     font-size: 13px;
 }
 
@@ -848,15 +835,15 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     border: 1px solid var(--zenith-control-border);
     border-radius: 5px;
     background: var(--zenith-surface);
-    color: #dceafa;
+    color: var(--zenith-link);
     text-decoration: none;
     overflow-wrap: anywhere;
 }
 
 .api-namespace-card:hover {
     background: var(--zenith-hover);
-    border-color: #748fb0;
-    color: #fff;
+    border-color: var(--zenith-border-hover);
+    color: var(--zenith-text);
 }
 
 .api-namespace-card strong {
@@ -869,7 +856,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     flex-shrink: 0;
     margin-top: 14px;
     padding-top: 14px;
-    border-top: 1px solid #303e52;
+    border-top: 1px solid var(--zenith-border);
 }
 
 .api-member-access:has(.api-member-launcher[hidden]) {
@@ -903,14 +890,14 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 
 .api-member-launcher:hover {
     background: var(--zenith-hover);
-    color: #fff;
+    color: var(--zenith-text);
 }
 
 .api-member-launcher kbd {
     margin-left: auto;
     padding: 0;
     background: none;
-    color: #a7bedb;
+    color: var(--zenith-muted);
     font: 10px/1.5 var(--bs-font-monospace);
 }
 
@@ -924,141 +911,6 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 
 .api-menu-member kbd, .api-mobile-tools .api-member-launcher kbd {
     display: none;
-}
-
-.api-finder-heading {
-    display: flex;
-    flex-shrink: 0;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 20px 24px 18px;
-}
-
-.api-finder-heading > div {
-    min-width: 0;
-}
-
-.api-finder-heading h2 {
-    margin: 0 0 7px;
-    color: var(--zenith-text);
-    font-size: 20px;
-    line-height: 1.35;
-    font-weight: 600;
-    letter-spacing: -.4px;
-}
-
-.api-finder-heading p {
-    margin: 0;
-    color: #9db4d2;
-    font: 12px/1.6 var(--bs-font-monospace);
-}
-
-#api-member-close {
-    flex-shrink: 0;
-    min-height: 32px;
-    padding: 6px 8px;
-    border: 0;
-    background: none;
-    color: #c8daf2;
-    font: 11px/1.5 var(--bs-font-monospace);
-    cursor: pointer;
-}
-
-#api-member-close:hover {
-    color: #fff;
-}
-
-.api-member-filter {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    gap: 12px;
-    padding: 15px 24px;
-    border-block: 1px solid #37465c;
-    color: #9db4d2;
-}
-
-.api-member-filter:focus-within {
-    border-color: #708eb5;
-}
-
-#api-member-query {
-    width: 100%;
-    min-width: 0;
-    padding: 0;
-    border: 0;
-    outline: 0;
-    background: none;
-    color: #edf5ff;
-    font: 16px/1.6 var(--bs-body-font-family);
-}
-
-#api-member-query::placeholder {
-    color: #8fa2bc;
-}
-
-#api-member-query::-webkit-search-cancel-button {
-    display: none;
-}
-
-#api-member-clear {
-    flex-shrink: 0;
-    width: 30px;
-    height: 30px;
-    padding: 0;
-    border: 0;
-    border-radius: 4px;
-    background: none;
-    color: #9eb7d8;
-    font-size: 12px;
-    cursor: pointer;
-}
-
-#api-member-clear:hover {
-    background: var(--zenith-hover);
-    color: #fff;
-}
-
-#api-member-results > section + section {
-    margin-top: 18px;
-}
-
-#api-member-results h3 {
-    margin: 5px 12px 8px;
-    color: #94acca;
-    font: 500 11px/1.5 var(--bs-body-font-family);
-}
-
-#api-member-results ul {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
-#api-member-results a {
-    display: block;
-    padding: 11px 12px;
-    border-radius: 4px;
-    color: #e1edfc;
-    font: 12px/1.65 var(--bs-font-monospace);
-    text-decoration: none;
-    overflow-wrap: anywhere;
-}
-
-#api-member-results a:hover, #api-member-results a:focus-visible {
-    background: var(--zenith-hover);
-    color: #fff;
-}
-
-#api-member-results a:focus-visible {
-    outline-offset: -2px;
-}
-
-.api-finder-empty {
-    margin: 18px 12px 28px;
-    color: #a7b8cd;
-    font-size: 13px;
 }
 
 @media (max-width: 1199.98px) {
@@ -1103,15 +955,12 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
         padding: 18px 16px;
     }
 
-    .api-reference .api-member h3 {
-        font-size: 15px;
-    }
-
     .api-member-heading {
         padding-right: 0;
     }
 
     .api-reference .api-member h3 {
+        font-size: 15px;
         min-height: 32px;
         padding-right: 76px;
     }
@@ -1143,14 +992,6 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
         display: none;
     }
 
-    .api-finder-heading {
-        padding: 18px 16px 16px;
-    }
-
-    .api-member-filter {
-        padding: 13px 16px;
-    }
-
     .api-start-grid {
         grid-template-columns: 1fr;
     }
@@ -1168,12 +1009,5 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 
     .api-reference .api-heading h1 {
         font-size: 30px;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .api-reference *, .api-browser * {
-        animation: none !important;
-        transition: none !important;
     }
 }

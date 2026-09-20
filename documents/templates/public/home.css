@@ -41,7 +41,7 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
 
 .render-description {
     max-width: 460px;
-    color: #c1cad7;
+    color: var(--zenith-body);
     font-size: 18px;
     line-height: 1.65;
 }
@@ -56,7 +56,7 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
 
 .backend-note {
     margin: 24px 0 0;
-    color: #98a4b4;
+    color: var(--zenith-muted);
     font-size: 13px;
 }
 
@@ -133,7 +133,7 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
     border: 0;
     border-radius: 0;
     background: none;
-    color: #a8b5c7;
+    color: var(--zenith-muted);
     font: 500 12px/1.5 var(--bs-body-font-family);
     cursor: pointer;
 }
@@ -163,7 +163,7 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
 
 .home-paths {
     padding-top: 38px;
-    border-top: 1px solid #343b47;
+    border-top: 1px solid var(--zenith-border);
 }
 
 .paths-intro {
@@ -213,7 +213,7 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
 .path-label {
     display: flex;
     justify-content: space-between;
-    color: #9cb5d6;
+    color: var(--zenith-muted);
     font: 11px/1.5 var(--bs-font-monospace);
 }
 
@@ -234,7 +234,7 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
 
 .path-card h3 {
     margin: 90px 0 12px;
-    color: #edf5ff;
+    color: var(--zenith-text);
     font-size: 24px;
     font-weight: 550;
     letter-spacing: -.65px;
@@ -243,7 +243,7 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
 .path-card p {
     max-width: 310px;
     margin: 0 0 24px;
-    color: #aabbd1;
+    color: var(--zenith-muted);
     font-size: 13px;
     line-height: 1.8;
 }
@@ -258,7 +258,7 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
 }
 
 .path-card:hover {
-    border-color: #abc9ef;
+    border-color: var(--zenith-border-hover);
     color: #fff;
     box-shadow: inset 0 0 32px #b3d3ff0a;
 }
@@ -288,7 +288,7 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
 }
 
 .learning-entry:hover {
-    border-color: #7f91aa;
+    border-color: var(--zenith-border-hover);
     color: var(--zenith-text);
     box-shadow: inset 0 0 0 1px #c3d6f029, inset 0 0 36px #c3d6f009;
 }
@@ -310,10 +310,6 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
 
 .learning-entry:is(:hover, :focus-visible) .entry-action {
     color: #fff;
-}
-
-body.zenith-theme[data-page-kind="hub"] > main.container-xxl {
-    grid-template-columns: var(--zenith-sidebar-width) minmax(0, 1fr);
 }
 
 .learn-hub {
@@ -408,10 +404,6 @@ body.zenith-theme[data-page-kind="hub"] > main.container-xxl {
 }
 
 @media (max-width: 767.98px) {
-    body.zenith-theme[data-page-kind="hub"] > main.container-xxl {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
     .home-page {
         padding-block: 8px 44px;
     }

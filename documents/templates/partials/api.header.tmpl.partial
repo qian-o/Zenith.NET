@@ -5,7 +5,7 @@
   {{#conceptual}}<div class="api-summary">{{{conceptual}}}</div>{{/conceptual}}
 </header>
 {{#syntax.content.0.value}}
-<section class="api-declaration" aria-label="C# type declaration">
+<section class="api-declaration" data-resource-label="ui.reference.declaration" aria-label="{{r.ui.reference.declaration}}">
   {{>partials/api.source}}
   {{>partials/api.code}}
 </section>

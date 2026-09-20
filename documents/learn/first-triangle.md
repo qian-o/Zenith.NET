@@ -1,37 +1,52 @@
-# First Triangle
+---
+title: '@tutorial.title'
+---
 
-In this tutorial, you will build a .NET console application that opens a window and draws a triangle with a smooth color gradient between its corners. You will create the resources it needs, describe how the GPU reads them, and record the commands that turn three vertices into a displayed image.
-
-The application has two parts. Initialization creates the window and the resources needed to draw. The frame loop records drawing commands and presents the result repeatedly. Resources that stay the same between frames are created once, before that loop.
-
-<a id="prerequisites"></a>
-## 1. Before you begin
-
-You need the **.NET 10 SDK**, a code editor or IDE, and a desktop with a GPU and driver supported by a Zenith.NET backend. Basic familiarity with C# is enough; the graphics concepts are introduced as they are used. This is an ordinary `net10.0` console project. A backend translates Zenith.NET operations into calls to a graphics API, such as DirectX 12, Metal or Vulkan. The application chooses one at startup:
-
-| Platform | Graphics backend | Window surface |
-| --- | --- | --- |
-| Windows | DirectX 12 | Win32 window handle |
-| macOS | Metal 4 | Metal layer attached to the window |
-| Linux | Vulkan 1.4 | X11 window and display; XWayland is also suitable |
-
-Linux needs an X11-compatible window session for the windowing path used here. Optional ray tracing and mesh shading features are not needed for this triangle.
-
-Zenith.NET renders into a surface supplied by the application. Silk.NET.Windowing will create the desktop window and process its events. On macOS, the presentation target is a Metal layer ([CAMetalLayer.cs](https://github.com/qian-o/Metal.NET/blob/master/Metal.NET/CoreAnimation/CAMetalLayer.cs)); the tutorial's window helper attaches that layer for us.
-
-You can follow this page from an empty project. The [Hello Triangle sample](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/HelloTriangleRenderer.cs) and its [shared host](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/App.cs) are available as a reference for the rendering and windowing APIs used here.
-
-<a id="project"></a>
-## 2. Create a console project
-
-Create the project and enter its directory:
+<h1 id="first-triangle"><resource key="tutorial.title"></resource></h1>
+<p><resource key="tutorial.description"></resource></p>
+<p><resource key="tutorial.details"></resource></p>
+<p><a id="prerequisites"></a></p>
+<h2 id="1-before-you-begin">1. <resource key="tutorial.requirements.title"></resource></h2>
+<p><resource key="tutorial.requirements.description"><slot name="emphasis"><strong><resource key="tutorial.requirements.description.emphasis"></resource></strong></slot><slot name="net10"><code>net10.0</code></slot></resource></p>
+<table>
+<thead>
+<tr>
+<th><resource key="tutorial.requirements.table.headings.platform"></resource></th>
+<th><resource key="tutorial.requirements.table.headings.graphicsBackend"></resource></th>
+<th><resource key="tutorial.requirements.table.headings.windowSurface"></resource></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><resource key="tutorial.requirements.table.windows.platform"></resource></td>
+<td><resource key="tutorial.requirements.table.windows.graphicsBackend"></resource></td>
+<td><resource key="tutorial.requirements.table.windows.windowSurface"></resource></td>
+</tr>
+<tr>
+<td><resource key="tutorial.requirements.table.macOS.platform"></resource></td>
+<td><resource key="tutorial.requirements.table.macOS.graphicsBackend"></resource></td>
+<td><resource key="tutorial.requirements.table.macOS.windowSurface"></resource></td>
+</tr>
+<tr>
+<td><resource key="tutorial.requirements.table.linux.platform"></resource></td>
+<td><resource key="tutorial.requirements.table.linux.graphicsBackend"></resource></td>
+<td><resource key="tutorial.requirements.table.linux.windowSurface"></resource></td>
+</tr>
+</tbody>
+</table>
+<p><resource key="tutorial.requirements.details"></resource></p>
+<p><resource key="tutorial.requirements.guidance"><slot name="cAMetalLayerCs"><a href="https://github.com/qian-o/Metal.NET/blob/master/Metal.NET/CoreAnimation/CAMetalLayer.cs">CAMetalLayer.cs</a></slot></resource></p>
+<p><resource key="tutorial.requirements.context"><slot name="link"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/HelloTriangleRenderer.cs"><resource key="tutorial.requirements.context.link"></resource></a></slot><slot name="detail"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/App.cs"><resource key="tutorial.requirements.context.detail"></resource></a></slot></resource></p>
+<p><a id="project"></a></p>
+<h2 id="2-create-a-console-project">2. <resource key="tutorial.project.title"></resource></h2>
+<p><resource key="tutorial.project.description"></resource></p>
 
 ```sh
 dotnet new console -n FirstTriangle -f net10.0
 cd FirstTriangle
 ```
 
-Install the packages:
+<p><resource key="tutorial.project.details"></resource></p>
 
 ```sh
 dotnet add package Zenith.NET
@@ -42,16 +57,12 @@ dotnet add package Zenith.NET.Vulkan
 dotnet add package Silk.NET.Windowing
 ```
 
-`Zenith.NET` supplies the shared rendering API. The three backend packages let the same program select the implementation for its platform. `Zenith.NET.Compiler` compiles Slang shaders, the small GPU programs we will write later, for that implementation. Silk.NET supplies the window and event loop.
-
-Enable **Allow unsafe code** (`AllowUnsafeBlocks`) in the project's build settings. We will use it to pass vertex data to the GPU and for the window helper's native calls.
-
-<a id="window"></a>
-## 3. Open a window
-
-Add [CocoaHelper.cs](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/CocoaHelper.cs) to the project. It handles the Metal layer on macOS; the program calls it only on that platform.
-
-Replace the generated `Program.cs` with the following code. It uses top-level statements, which execute in order without an explicit `Main` method. Later sections will tell you where to add code to this same file:
+<p><resource key="tutorial.project.guidance"><slot name="zenithNET"><code>Zenith.NET</code></slot><slot name="zenithNETCompiler"><code>Zenith.NET.Compiler</code></slot></resource></p>
+<p><resource key="tutorial.project.context"><slot name="emphasis"><strong><resource key="tutorial.project.context.emphasis"></resource></strong></slot><slot name="allowUnsafeBlocks"><code>AllowUnsafeBlocks</code></slot></resource></p>
+<p><a id="window"></a></p>
+<h2 id="3-open-a-window">3. <resource key="tutorial.window.title"></resource></h2>
+<p><resource key="tutorial.window.description"><slot name="cocoaHelperCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/CocoaHelper.cs">CocoaHelper.cs</a></slot></resource></p>
+<p><resource key="tutorial.window.details"><slot name="programCs"><code>Program.cs</code></slot><slot name="main"><code>Main</code></slot></resource></p>
 
 ```csharp
 global using System.Runtime.InteropServices;
@@ -78,20 +89,14 @@ window.Run();
 window.Dispose();
 ```
 
-`GraphicsAPI.None` asks Silk.NET to create a window without its own graphics context. We will create that context with Zenith.NET. `Initialize()` creates the native window and makes its handles available. A handle is an identifier supplied by the windowing system. `Center()` centers the window, and `Run()` processes events until it closes. Execution then continues to `Dispose()`, which releases the window.
-
-`using ZenithTutorials` imports the helper's namespace. The global using supplies its interop attributes, and the `Buffer` alias distinguishes Zenith.NET's GPU buffer from `System.Buffer`.
-
-Run `dotnet run`. An empty window should open and respond to moving, resizing and closing. Its contents are not defined yet because we have not submitted any rendering commands. Close it before continuing.
-
-<a id="context"></a>
-## 4. Connect the GPU to the window
-
-### Create the graphics context
-
-The window is ready, but it has no connection to a GPU yet. A [`GraphicsContext`](xref:Zenith.NET.GraphicsContext) provides that connection and the queues that accept recorded commands for execution on the GPU.
-
-Insert this block **after the using directives, before `IWindow window`**:
+<p><resource key="tutorial.window.guidance"><slot name="graphicsAPINone"><code>GraphicsAPI.None</code></slot><slot name="initialize"><code>Initialize()</code></slot><slot name="center"><code>Center()</code></slot><slot name="run"><code>Run()</code></slot><slot name="dispose"><code>Dispose()</code></slot></resource></p>
+<p><resource key="tutorial.window.context"><slot name="usingZenithTutorials"><code>using ZenithTutorials</code></slot><slot name="buffer"><code>Buffer</code></slot><slot name="systemBuffer"><code>System.Buffer</code></slot></resource></p>
+<p><resource key="tutorial.window.notes"><slot name="dotnetRun"><code>dotnet run</code></slot></resource></p>
+<p><a id="context"></a></p>
+<h2 id="4-connect-the-gpu-to-the-window">4. <resource key="tutorial.presentation.title"></resource></h2>
+<h3 id="create-the-graphics-context"><resource key="tutorial.context.title"></resource></h3>
+<p><resource key="tutorial.context.description"><slot name="graphicsContext"><a class="xref" href="~/api/Zenith.NET.GraphicsContext.yml"><code>GraphicsContext</code></a></slot></resource></p>
+<p><resource key="tutorial.context.details"><slot name="emphasis"><strong><resource key="tutorial.context.details.emphasis"><slot name="iWindowWindow"><code>IWindow window</code></slot></resource></strong></slot></resource></p>
 
 ```csharp
 GraphicsContext context;
@@ -111,11 +116,9 @@ else
 context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
 ```
 
-For the three desktop platforms covered here, this chooses DirectX 12 on Windows, Metal on macOS and Vulkan on Linux. The operations after initialization use the same Zenith.NET API. We request validation during development and print diagnostics reported through `ValidationMessage`. The available diagnostics depend on the backend and installed validation components.
-
-### Describe the native surface
-
-The context also needs to know where to display its output. Add the following **after `window.Center()` and before `window.Run()`**:
+<p><resource key="tutorial.context.guidance"><slot name="validationMessage"><code>ValidationMessage</code></slot></resource></p>
+<h3 id="describe-the-native-surface"><resource key="tutorial.surface.title"></resource></h3>
+<p><resource key="tutorial.surface.description"><slot name="emphasis"><strong><resource key="tutorial.surface.description.emphasis"><slot name="windowCenter"><code>window.Center()</code></slot><slot name="windowRun"><code>window.Run()</code></slot></resource></strong></slot></resource></p>
 
 ```csharp
 uint width = (uint)window.FramebufferSize.X;
@@ -136,13 +139,10 @@ else
 }
 ```
 
-[`Surface`](xref:Zenith.NET.Surface) describes a native presentation target and its pixel dimensions. The framebuffer is the pixel image associated with the window. `FramebufferSize` gives its dimensions in pixels; the window's logical dimensions can differ when display scaling is enabled.
-
-The surface matches the backend selected above. Windows supplies a window handle, Linux supplies an X11 display and window, and the macOS helper supplies the attached Metal layer. This is the only platform-specific part of connecting our window to rendering.
-
-### Create the swap chain
-
-Use the surface description to create the images that will be presented. Immediately after the surface block, add:
+<p><resource key="tutorial.surface.details"><slot name="surface"><a class="xref" href="~/api/Zenith.NET.Surface.yml"><code>Surface</code></a></slot><slot name="framebufferSize"><code>FramebufferSize</code></slot></resource></p>
+<p><resource key="tutorial.surface.guidance"></resource></p>
+<h3 id="create-the-swap-chain"><resource key="tutorial.swapChain.title"></resource></h3>
+<p><resource key="tutorial.swapChain.description"></resource></p>
 
 ```csharp
 SwapChain swapChain = context.CreateSwapChain(new()
@@ -152,11 +152,9 @@ SwapChain swapChain = context.CreateSwapChain(new()
 });
 ```
 
-The [`SwapChain`](xref:Zenith.NET.SwapChain) manages the images displayed in the window. Each frame, `Drawable` gives us the current image as a `Texture`, the API type for image data. After drawing, `Present()` requests display of the result and advances to the next drawable.
-
-`B8G8R8A8UNorm` stores four 8-bit color channels in blue, green, red and alpha order. `UNorm` means integer values from 0 to 255 represent values from 0 to 1. The shader will still return a logical RGBA value; this format determines how those channels are stored in the image. Later, the graphics pipeline will use `swapChain.Desc.Format` to match this attachment.
-
-The swap chain uses both the context and the native window. Replace the `window.Dispose();` line at the bottom of `Program.cs` with this cleanup order:
+<p><resource key="tutorial.swapChain.details"><slot name="swapChain"><a class="xref" href="~/api/Zenith.NET.SwapChain.yml"><code>SwapChain</code></a></slot><slot name="drawable"><code>Drawable</code></slot><slot name="texture"><code>Texture</code></slot><slot name="present"><code>Present()</code></slot></resource></p>
+<p><resource key="tutorial.swapChain.guidance"><slot name="b8G8R8A8UNorm"><code>B8G8R8A8UNorm</code></slot><slot name="uNorm"><code>UNorm</code></slot><slot name="swapChainDescFormat"><code>swapChain.Desc.Format</code></slot></resource></p>
+<p><resource key="tutorial.swapChain.context"><slot name="windowDispose"><code>window.Dispose();</code></slot><slot name="programCs"><code>Program.cs</code></slot></resource></p>
 
 ```csharp
 swapChain.Dispose();
@@ -165,12 +163,10 @@ window.Dispose();
 context.Dispose();
 ```
 
-<a id="frame-loop"></a>
-## 5. Display a background color
-
-Start by filling the image with one background color, an operation called a clear. Seeing that color confirms that the context, surface, command submission and swap chain work together before we add geometry.
-
-A render callback is code that Silk.NET calls when it is time to draw a frame. This callback does not need the event's elapsed-time argument, so it is named `_`. Register it **before `window.Run();`**:
+<p><a id="frame-loop"></a></p>
+<h2 id="5-display-a-background-color">5. <resource key="tutorial.frame.title"></resource></h2>
+<p><resource key="tutorial.frame.description"></resource></p>
+<p><resource key="tutorial.frame.details"><slot name="value"><code>_</code></slot><slot name="emphasis"><strong><resource key="tutorial.frame.details.emphasis"><slot name="windowRun"><code>window.Run();</code></slot></resource></strong></slot></resource></p>
 
 ```csharp
 window.Render += _ =>
@@ -198,27 +194,17 @@ window.Render += _ =>
 };
 ```
 
-### Prepare the drawable
-
-`GraphicsQueue.CommandBuffer()` obtains a command buffer with recording already begun. Recording describes work for the GPU; it does not execute that work immediately.
-
-The first `Transition` prepares the drawable for color-attachment access. `default` selects mip level 0 and array layer 0. We use `Undefined` as the previous layout because we will clear the entire image and discard its previous contents. A pass that needs to preserve existing content must use its actual previous layout instead.
-
-Use the swap chain's current drawable each frame. Presentation can change which image is available, so a texture saved from an earlier frame is not a permanent window render target.
-
-### Clear, submit and present
-
-A render pass groups drawing operations that use the same attachments. Here, the color attachment is the swap chain's drawable, the image that receives our drawing. [`ColorAttachment.Clear`](xref:Zenith.NET.ColorAttachment.Clear(Zenith.NET.Texture,System.Numerics.Vector4)) creates a description telling the pass to clear to the given RGBA color and keep the result when the pass ends. `BeginRenderPass` records those instructions; the GPU performs the clear after the commands are submitted.
-
-The brackets contain our single color attachment. The `null` argument means that there is no depth/stencil attachment, which would store depth values and stencil masks for depth and stencil tests.
-
-`BeginRenderPass` sets a viewport and scissor covering the attachment. The viewport maps the rendered coordinates to pixels, and the scissor limits which pixels can be written. These defaults cover the whole drawable, which is what this triangle needs.
-
-After `EndRenderPass`, the second transition prepares the image for presentation. `Submit()` finishes recording and submits the command buffer; `Wait()` waits for the GPU to complete that submission. `Present()` then requests display of the rendered image.
-
-### Respond to resizing
-
-The swap chain's images must follow the framebuffer dimensions. Use `FramebufferResize` to respond to changes in pixel size, including changes caused by display scaling. After the render callback, still before `window.Run();`, add:
+<h3 id="prepare-the-drawable"><resource key="tutorial.frame.target.title"></resource></h3>
+<p><resource key="tutorial.frame.target.description"><slot name="graphicsQueueCommandBuffer"><code>GraphicsQueue.CommandBuffer()</code></slot></resource></p>
+<p><resource key="tutorial.frame.target.details"><slot name="transition"><code>Transition</code></slot><slot name="default"><code>default</code></slot><slot name="undefined"><code>Undefined</code></slot></resource></p>
+<p><resource key="tutorial.frame.target.guidance"></resource></p>
+<h3 id="clear-submit-and-present"><resource key="tutorial.frame.commands.title"></resource></h3>
+<p><resource key="tutorial.frame.commands.description"><slot name="colorAttachmentClear"><a class="xref" href="~/api/Zenith.NET.ColorAttachment.yml#Zenith_NET_ColorAttachment_Clear_Zenith_NET_Texture_System_Numerics_Vector4_"><code>ColorAttachment.Clear</code></a></slot><slot name="beginRenderPass"><code>BeginRenderPass</code></slot></resource></p>
+<p><resource key="tutorial.frame.commands.details"><slot name="null"><code>null</code></slot></resource></p>
+<p><resource key="tutorial.frame.commands.guidance"><slot name="beginRenderPass"><code>BeginRenderPass</code></slot></resource></p>
+<p><resource key="tutorial.frame.commands.context"><slot name="endRenderPass"><code>EndRenderPass</code></slot><slot name="submit"><code>Submit()</code></slot><slot name="wait"><code>Wait()</code></slot><slot name="present"><code>Present()</code></slot></resource></p>
+<h3 id="respond-to-resizing"><resource key="tutorial.resize.title"></resource></h3>
+<p><resource key="tutorial.resize.description"><slot name="framebufferResize"><code>FramebufferResize</code></slot><slot name="windowRun"><code>window.Run();</code></slot></resource></p>
 
 ```csharp
 window.FramebufferResize += _ =>
@@ -235,20 +221,14 @@ window.FramebufferResize += _ =>
 };
 ```
 
-Silk.NET distinguishes window-size changes from [framebuffer-size changes](https://github.com/dotnet/Silk.NET/blob/main/src/Windowing/Silk.NET.Windowing.Common/Interfaces/IView.cs). We need the latter because the swap chain stores pixels. A minimized window can have a zero-size framebuffer. Both callbacks skip their GPU work in that case. After a resize, the render pass will use the new attachment dimensions for its viewport and scissor.
-
-We wait after every submission, so no earlier frame is still using the images when the resize handler replaces them. The current `Present()` implementation also waits on the graphics queue. This simple loop keeps one frame's work complete before the next begins; [Synchronization](concepts/synchronization.md#cpu-and-gpu) covers more advanced scheduling.
-
-Run `dotnet run` again. The window should now have a uniform dark background that continues to fill it after resizing. Keep this callback: the triangle will be drawn inside its existing render pass.
-
-<a id="resources"></a>
-## 6. Give the GPU three vertices
-
-A vertex is a point together with the data used to draw it. Our triangle has three vertices, one for each corner. Each contains a position and a color. The GPU will interpolate the colors, calculating intermediate values across the triangle.
-
-### Define a vertex
-
-Append this declaration **at the end of `Program.cs`, after the cleanup statements**:
+<p><resource key="tutorial.resize.details"><slot name="link"><a href="https://github.com/dotnet/Silk.NET/blob/main/src/Windowing/Silk.NET.Windowing.Common/Interfaces/IView.cs"><resource key="tutorial.resize.details.link"></resource></a></slot></resource></p>
+<p><resource key="tutorial.resize.guidance"><slot name="present"><code>Present()</code></slot><slot name="link"><a href="~/learn/concepts/synchronization.md#cpu-and-gpu"><resource key="tutorial.resize.guidance.link"></resource></a></slot></resource></p>
+<p><resource key="tutorial.resize.context"><slot name="dotnetRun"><code>dotnet run</code></slot></resource></p>
+<p><a id="resources"></a></p>
+<h2 id="6-give-the-gpu-three-vertices">6. <resource key="tutorial.geometry.title"></resource></h2>
+<p><resource key="tutorial.geometry.description"></resource></p>
+<h3 id="define-a-vertex"><resource key="tutorial.geometry.format.title"></resource></h3>
+<p><resource key="tutorial.geometry.format.description"><slot name="emphasis"><strong><resource key="tutorial.geometry.format.description.emphasis"><slot name="programCs"><code>Program.cs</code></slot></resource></strong></slot></resource></p>
 
 ```csharp
 [StructLayout(LayoutKind.Sequential)]
@@ -260,11 +240,9 @@ file struct Vertex(Vector3 position, Vector4 color)
 }
 ```
 
-`file` limits this type to `Program.cs`, and the constructor initializes its position and color fields. `LayoutKind.Sequential` keeps the fields in declaration order. `Position` contains three 32-bit floats and `Color` contains four. In this struct, position begins at byte 0, color begins at byte 12, and the complete vertex occupies 28 bytes. We will describe that same layout to the graphics pipeline.
-
-### Choose the corners
-
-Add this array **before `window.Render += _ =>`**. The following resource-creation steps also belong before that callback, in the order shown.
+<p><resource key="tutorial.geometry.format.details"><slot name="file"><code>file</code></slot><slot name="programCs"><code>Program.cs</code></slot><slot name="layoutKindSequential"><code>LayoutKind.Sequential</code></slot><slot name="position"><code>Position</code></slot><slot name="color"><code>Color</code></slot></resource></p>
+<h3 id="choose-the-corners"><resource key="tutorial.geometry.data.title"></resource></h3>
+<p><resource key="tutorial.geometry.data.description"><slot name="emphasis"><strong><resource key="tutorial.geometry.data.description.emphasis"><slot name="windowRender"><code>window.Render += _ =&gt;</code></slot></resource></strong></slot></resource></p>
 
 ```csharp
 Vertex[] vertices =
@@ -275,13 +253,10 @@ Vertex[] vertices =
 ];
 ```
 
-Each array entry creates a `Vertex`; the two inner `new` expressions create its `Vector3` position and `Vector4` color. These are the top, lower-right and lower-left corners. The vertex shader will give each position a fourth coordinate, `w = 1`, so x and y directly correspond to normalized device coordinates. -1 and +1 are the image edges, and 0 is the center. The coordinates do not depend on the number of pixels in the window.
-
-Each color contains red, green, blue and alpha components. Alpha is 1 at all three corners. All three positions have z = 0, placing them in the same plane. These positions need no camera or transformation matrix because they already describe the coordinates we want to render. For this single flat triangle, we will also disable blending and depth testing and omit a depth buffer.
-
-### Allocate a buffer and upload the array
-
-The managed array is CPU data. A [`Buffer`](xref:Zenith.NET.Buffer) gives the GPU storage from which it can read the vertices. After the array, add:
+<p><resource key="tutorial.geometry.data.details"><slot name="vertex"><code>Vertex</code></slot><slot name="new"><code>new</code></slot><slot name="vector3"><code>Vector3</code></slot><slot name="vector4"><code>Vector4</code></slot><slot name="w"><code>w = 1</code></slot></resource></p>
+<p><resource key="tutorial.geometry.data.guidance"></resource></p>
+<h3 id="allocate-a-buffer-and-upload-the-array"><resource key="tutorial.geometry.upload.title"></resource></h3>
+<p><resource key="tutorial.geometry.upload.description"><slot name="buffer"><a class="xref" href="~/api/Zenith.NET.Buffer.yml"><code>Buffer</code></a></slot></resource></p>
 
 ```csharp
 Buffer vertexBuffer;
@@ -307,20 +282,14 @@ unsafe
 }
 ```
 
-The total size is `sizeof(Vertex) * vertices.Length`: 28 bytes per vertex, three vertices, 84 bytes in all. `BufferUsages.Vertex` permits vertex-input access. `CpuWriteOnly` lets the CPU initialize this small buffer directly. The descriptor's stride records the element size; the input layout we create below will tell vertex fetching how to read the individual attributes.
-
-Creating a buffer does not populate it. `Upload` copies the array into that allocation starting at destination byte offset 0. Its source description supplies a pointer and the number of bytes to copy.
-
-`fixed` prevents the garbage collector from moving the array while its address is used. For this CPU-writable buffer, `Upload` maps, copies and unmaps the memory before returning, so the array does not need to stay pinned afterward. The buffer must remain alive throughout rendering, and the upload only needs to happen once because the vertices do not change.
-
-Add `vertexBuffer.Dispose();` immediately before `swapChain.Dispose();` in the cleanup at the bottom of `Program.cs`. For larger static geometry, [Resource Management](concepts/resource-management.md#memory-placement) explains when to choose GPU-only memory and transfer uploads instead.
-
-<a id="shader"></a>
-## 7. Write the two shader stages
-
-A shader is a program executed by the GPU. This draw needs a vertex shader to position vertices and a fragment shader to produce the colors inside the triangle. We will write them in Slang, a shader language, and compile two entry points from the same file. An entry point is the function where a shader stage begins executing.
-
-Create `Triangle.slang`, starting with these two structures:
+<p><resource key="tutorial.geometry.upload.details"><slot name="sizeofVertexVerticesLength"><code>sizeof(Vertex) * vertices.Length</code></slot><slot name="bufferUsagesVertex"><code>BufferUsages.Vertex</code></slot><slot name="cpuWriteOnly"><code>CpuWriteOnly</code></slot></resource></p>
+<p><resource key="tutorial.geometry.upload.guidance"><slot name="upload"><code>Upload</code></slot></resource></p>
+<p><resource key="tutorial.geometry.upload.context"><slot name="fixed"><code>fixed</code></slot><slot name="upload"><code>Upload</code></slot></resource></p>
+<p><resource key="tutorial.geometry.upload.notes"><slot name="vertexBufferDispose"><code>vertexBuffer.Dispose();</code></slot><slot name="swapChainDispose"><code>swapChain.Dispose();</code></slot><slot name="programCs"><code>Program.cs</code></slot><slot name="link"><a href="~/learn/concepts/resource-management.md#memory-placement"><resource key="tutorial.geometry.upload.notes.link"></resource></a></slot></resource></p>
+<p><a id="shader"></a></p>
+<h2 id="7-write-the-two-shader-stages">7. <resource key="tutorial.shaders.title"></resource></h2>
+<p><resource key="tutorial.shaders.description"></resource></p>
+<p><resource key="tutorial.shaders.details"><slot name="triangleSlang"><code>Triangle.slang</code></slot></resource></p>
 
 ```slang
 struct VSInput
@@ -338,13 +307,10 @@ struct FSInput
 };
 ```
 
-`VSInput` describes what the vertex shader receives from the vertex buffer. The semantics `POSITION0` and `COLOR0` identify the inputs; C# field names alone do not establish that mapping.
-
-`FSInput` connects the vertex shader's output to the fragment shader's input. When written by the vertex shader, `SV_POSITION` supplies a clip-space position: the four coordinates the GPU uses to determine what lies inside the visible image. `COLOR0` carries the color to interpolate between vertices. The two stages must agree on its type and semantic.
-
-### Position each vertex
-
-Append the vertex entry point to `Triangle.slang`:
+<p><resource key="tutorial.shaders.guidance"><slot name="vSInput"><code>VSInput</code></slot><slot name="pOSITION0"><code>POSITION0</code></slot><slot name="cOLOR0"><code>COLOR0</code></slot></resource></p>
+<p><resource key="tutorial.shaders.context"><slot name="fSInput"><code>FSInput</code></slot><slot name="sVPOSITION"><code>SV_POSITION</code></slot><slot name="cOLOR0"><code>COLOR0</code></slot></resource></p>
+<h3 id="position-each-vertex"><resource key="tutorial.shaders.vertex.title"></resource></h3>
+<p><resource key="tutorial.shaders.vertex.description"><slot name="triangleSlang"><code>Triangle.slang</code></slot></resource></p>
 
 ```slang
 [shader("vertex")]
@@ -358,11 +324,9 @@ FSInput VSMain(VSInput input)
 }
 ```
 
-The GPU invokes this entry point for each input vertex. It adds the homogeneous coordinate `w = 1` to the position and forwards the color. After the vertex stage, position is divided by w; here that division leaves x, y and z unchanged. This is why the positions chosen above can be understood directly in normalized device coordinates.
-
-### Color the fragments
-
-Append the fragment entry point to the same file:
+<p><resource key="tutorial.shaders.vertex.details"><slot name="w"><code>w = 1</code></slot></resource></p>
+<h3 id="color-the-fragments"><resource key="tutorial.shaders.fragment.title"></resource></h3>
+<p><resource key="tutorial.shaders.fragment.description"></resource></p>
 
 ```slang
 [shader("fragment")]
@@ -372,15 +336,11 @@ float4 FSMain(FSInput input) : SV_TARGET
 }
 ```
 
-Rasterization determines which image locations the triangle covers. It produces fragments, the data processed by the fragment shader, with vertex colors interpolated across the covered area. `FSMain` returns this interpolated color through `SV_TARGET`, which identifies the first color attachment.
-
-Vertex-color interpolation is separate from attachment blending. Blending combines a fragment's output with the color already stored in the attachment. Our opaque blend state disables that combination, so the interpolated color replaces the background inside the triangle.
-
-### Compile for the selected backend
-
-In the file properties for `Triangle.slang`, set **Copy to Output Directory** to **Copy if newer**. This makes the shader available beside the executable.
-
-Return to `Program.cs`. After the vertex upload, add these initialization statements before the render callback:
+<p><resource key="tutorial.shaders.fragment.details"><slot name="fSMain"><code>FSMain</code></slot><slot name="sVTARGET"><code>SV_TARGET</code></slot></resource></p>
+<p><resource key="tutorial.shaders.fragment.guidance"></resource></p>
+<h3 id="compile-for-the-selected-backend"><resource key="tutorial.shaders.compilation.title"></resource></h3>
+<p><resource key="tutorial.shaders.compilation.description"><slot name="triangleSlang"><code>Triangle.slang</code></slot><slot name="emphasis"><strong><resource key="tutorial.shaders.compilation.description.emphasis"></resource></strong></slot><slot name="detail"><strong><resource key="tutorial.shaders.compilation.description.detail"></resource></strong></slot></resource></p>
+<p><resource key="tutorial.shaders.compilation.details"><slot name="programCs"><code>Program.cs</code></slot></resource></p>
 
 ```csharp
 string shaderPath = Path.Combine(AppContext.BaseDirectory, "Triangle.slang");
@@ -389,14 +349,11 @@ Shader vertexShader = context.CreateShader(ZenithCompiler.CompileFromFile(contex
 Shader fragmentShader = context.CreateShader(ZenithCompiler.CompileFromFile(context.GraphicsApi, shaderPath, "FSMain"));
 ```
 
-[`ZenithCompiler`](xref:Zenith.NET.ZenithCompiler) returns a shader description containing code for the requested graphics API. `CreateShader` creates the corresponding backend object. Both the graphics API and entry-point names matter: use `context.GraphicsApi`, and spell `VSMain` and `FSMain` exactly as in the Slang file.
-
-Compilation happens once during initialization. `AppContext.BaseDirectory` locates the copied shader beside the executable, independently of the current working directory. These shaders only consume vertex input, so there are no constant buffers, textures or resource handles to bind yet.
-
-<a id="vertex-layout"></a>
-## 8. Describe the vertex input layout
-
-The GPU now has the bytes and shader code, but it still needs to know how to interpret each vertex. An attribute is one value carried by a vertex, such as its position or color. The layout identifies each attribute's format and byte offset, and the stride is the distance in bytes from one vertex to the next. Add the following initialization block after shader creation:
+<p><resource key="tutorial.shaders.compilation.guidance"><slot name="zenithCompiler"><a class="xref" href="~/api/Zenith.NET.ZenithCompiler.yml"><code>ZenithCompiler</code></a></slot><slot name="createShader"><code>CreateShader</code></slot><slot name="contextGraphicsApi"><code>context.GraphicsApi</code></slot><slot name="vSMain"><code>VSMain</code></slot><slot name="fSMain"><code>FSMain</code></slot></resource></p>
+<p><resource key="tutorial.shaders.compilation.context"><slot name="appContextBaseDirectory"><code>AppContext.BaseDirectory</code></slot></resource></p>
+<p><a id="vertex-layout"></a></p>
+<h2 id="8-describe-the-vertex-input-layout">8. <resource key="tutorial.input.title"></resource></h2>
+<p><resource key="tutorial.input.description"></resource></p>
 
 ```csharp
 InputLayout inputLayout = new();
@@ -404,30 +361,50 @@ inputLayout.Add(new() { Format = ElementFormat.Float3, Semantic = ElementSemanti
 inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemantic.Color });
 ```
 
-[`InputLayout.Add`](xref:Zenith.NET.InputLayout.Add(Zenith.NET.InputElement)) appends an element at the current stride and increases that stride by the element's size. It does not inspect the C# struct. Here it produces the following agreement between CPU memory and shader inputs:
-
-| C# field | Byte offset | Format | Shader input |
-| --- | --- | --- | --- |
-| `Vertex.Position` | 0 | `Float3` (12 bytes) | `POSITION0` |
-| `Vertex.Color` | 12 | `Float4` (16 bytes) | `COLOR0` |
-| Next vertex | 28 | Total stride: 28 bytes | Next input record |
-
-Changing the C# field order or padding without updating this description would make the GPU read the wrong bytes. The default `SemanticIndex` is zero, matching `POSITION0` and `COLOR0`. Both elements belong to the same buffer, so the pipeline will contain one input layout and we will bind that buffer to slot 0.
-
-<a id="pipeline"></a>
-## 9. Connect the shaders and vertex layout
-
-We now have vertex data, an input layout and two shaders. The [`GraphicsPipeline`](xref:Zenith.NET.GraphicsPipeline) connects them and specifies how the GPU assembles vertices into primitives and writes the result to an attachment.
-
-A pipeline combines programmable shader stages with fixed-function settings, which control GPU operations such as triangle assembly, face culling and blending. For this triangle, choose these settings:
-
-- `TriangleList` assembles each consecutive group of three vertices into one triangle. We will supply three vertices and draw once, so no index buffer is needed.
-- The color format comes from `swapChain.Desc.Format`. It must match the image used by the render pass. `Count1` means one sample per pixel.
-- `CullNone()` fills the triangle without discarding either face orientation. The order of its vertices determines the face winding, so disabling culling prevents that order from hiding our first triangle.
-- `DepthNone()` disables depth testing and writing, matching the pass without a depth attachment.
-- `Opaque()` disables blending, so the fragment shader's color replaces the background inside the triangle.
-
-After the input layout, add:
+<p><resource key="tutorial.input.details"><slot name="inputLayoutAdd"><a class="xref" href="~/api/Zenith.NET.InputLayout.yml#Zenith_NET_InputLayout_Add_Zenith_NET_InputElement_"><code>InputLayout.Add</code></a></slot></resource></p>
+<table>
+<thead>
+<tr>
+<th><resource key="tutorial.input.table.headings.cField"></resource></th>
+<th><resource key="tutorial.input.table.headings.byteOffset"></resource></th>
+<th><resource key="tutorial.input.table.headings.format"></resource></th>
+<th><resource key="tutorial.input.table.headings.shaderInput"></resource></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Vertex.Position</code></td>
+<td>0</td>
+<td><resource key="tutorial.input.table.vertexPosition.format"><slot name="float3"><code>Float3</code></slot></resource></td>
+<td><code>POSITION0</code></td>
+</tr>
+<tr>
+<td><code>Vertex.Color</code></td>
+<td>12</td>
+<td><resource key="tutorial.input.table.vertexColor.format"><slot name="float4"><code>Float4</code></slot></resource></td>
+<td><code>COLOR0</code></td>
+</tr>
+<tr>
+<td><resource key="tutorial.input.table.nextVertex.cField"></resource></td>
+<td>28</td>
+<td><resource key="tutorial.input.table.nextVertex.format"></resource></td>
+<td><resource key="tutorial.input.table.nextVertex.shaderInput"></resource></td>
+</tr>
+</tbody>
+</table>
+<p><resource key="tutorial.input.guidance"><slot name="semanticIndex"><code>SemanticIndex</code></slot><slot name="pOSITION0"><code>POSITION0</code></slot><slot name="cOLOR0"><code>COLOR0</code></slot></resource></p>
+<p><a id="pipeline"></a></p>
+<h2 id="9-connect-the-shaders-and-vertex-layout">9. <resource key="tutorial.pipeline.title"></resource></h2>
+<p><resource key="tutorial.pipeline.description"><slot name="graphicsPipeline"><a class="xref" href="~/api/Zenith.NET.GraphicsPipeline.yml"><code>GraphicsPipeline</code></a></slot></resource></p>
+<p><resource key="tutorial.pipeline.details"></resource></p>
+<ul>
+<li><resource key="tutorial.pipeline.item"><slot name="triangleList"><code>TriangleList</code></slot></resource></li>
+<li><resource key="tutorial.pipeline.guidance"><slot name="swapChainDescFormat"><code>swapChain.Desc.Format</code></slot><slot name="count1"><code>Count1</code></slot></resource></li>
+<li><resource key="tutorial.pipeline.context"><slot name="cullNone"><code>CullNone()</code></slot></resource></li>
+<li><resource key="tutorial.pipeline.notes"><slot name="depthNone"><code>DepthNone()</code></slot></resource></li>
+<li><resource key="tutorial.pipeline.reference"><slot name="opaque"><code>Opaque()</code></slot></resource></li>
+</ul>
+<p><resource key="tutorial.pipeline.behavior"></resource></p>
 
 ```csharp
 GraphicsPipeline pipeline = context.CreateGraphicsPipeline(new()
@@ -453,14 +430,11 @@ vertexShader.Dispose();
 fragmentShader.Dispose();
 ```
 
-The pipeline description declares the attachment configuration; it does not create another image. `InputLayouts` has one entry because position and color are stored together in one buffer.
-
-The shader objects can be disposed after creating the pipeline, as they are in the sample renderer. Keep the pipeline itself alive for every frame that draws with it. Add `pipeline.Dispose();` before `vertexBuffer.Dispose();` in the cleanup. Pipeline creation is the final initialization step before the render callback.
-
-<a id="draw"></a>
-## 10. Draw the triangle inside the pass
-
-In the `window.Render` callback, replace `// Add the triangle draw commands here later.` with these three commands, between `BeginRenderPass` and `EndRenderPass`:
+<p><resource key="tutorial.pipeline.validation"><slot name="inputLayouts"><code>InputLayouts</code></slot></resource></p>
+<p><resource key="tutorial.pipeline.usage"><slot name="pipelineDispose"><code>pipeline.Dispose();</code></slot><slot name="vertexBufferDispose"><code>vertexBuffer.Dispose();</code></slot></resource></p>
+<p><a id="draw"></a></p>
+<h2 id="10-draw-the-triangle-inside-the-pass">10. <resource key="tutorial.draw.title"></resource></h2>
+<p><resource key="tutorial.draw.description"><slot name="windowRender"><code>window.Render</code></slot><slot name="addTheTriangleDrawCommandsHereLater"><code>// Add the triangle draw commands here later.</code></slot><slot name="beginRenderPass"><code>BeginRenderPass</code></slot><slot name="endRenderPass"><code>EndRenderPass</code></slot></resource></p>
 
 ```csharp
 commandBuffer.SetPipeline(pipeline);
@@ -469,38 +443,54 @@ commandBuffer.SetVertexBuffer(vertexBuffer, 0, 0);
 commandBuffer.Draw(3, 1, 0, 0);
 ```
 
-`SetPipeline` selects the shaders and state we just created. Set it before binding vertex data: the backend uses the pipeline's input layout to interpret the binding.
-
-`SetVertexBuffer(vertexBuffer, 0, 0)` binds the buffer starting at byte offset 0 to input slot 0. That slot corresponds to the single entry in `InputLayouts`. It does not copy or upload the data again.
-
-The arguments to `Draw` are:
-
-| Argument | Value | Meaning |
-| --- | --- | --- |
-| `vertexCount` | 3 | Read three vertices. |
-| `instanceCount` | 1 | Draw one copy of the triangle. |
-| `firstVertex` | 0 | Start with the first vertex in the buffer. |
-| `firstInstance` | 0 | Start instance numbering at zero. |
-
-The commands are still only recorded at this point. The `Submit().Wait()` and `Present()` calls already at the end of the render callback execute the work and display its result. Clearing remains necessary because the triangle covers only part of the image; the background must also receive a defined color each frame.
-
-<a id="run"></a>
-## 11. Run, resize and close
-
-Build and run from the `FirstTriangle` directory:
+<p><resource key="tutorial.draw.details"><slot name="setPipeline"><code>SetPipeline</code></slot></resource></p>
+<p><resource key="tutorial.draw.guidance"><slot name="setVertexBufferVertexBuffer"><code>SetVertexBuffer(vertexBuffer, 0, 0)</code></slot><slot name="inputLayouts"><code>InputLayouts</code></slot></resource></p>
+<p><resource key="tutorial.draw.context"><slot name="draw"><code>Draw</code></slot></resource></p>
+<table>
+<thead>
+<tr>
+<th><resource key="tutorial.draw.table.headings.argument"></resource></th>
+<th><resource key="tutorial.draw.table.headings.description"></resource></th>
+<th><resource key="tutorial.draw.table.headings.meaning"></resource></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>vertexCount</code></td>
+<td>3</td>
+<td><resource key="tutorial.draw.table.vertexCount.meaning"></resource></td>
+</tr>
+<tr>
+<td><code>instanceCount</code></td>
+<td>1</td>
+<td><resource key="tutorial.draw.table.instanceCount.meaning"></resource></td>
+</tr>
+<tr>
+<td><code>firstVertex</code></td>
+<td>0</td>
+<td><resource key="tutorial.draw.table.firstVertex.meaning"></resource></td>
+</tr>
+<tr>
+<td><code>firstInstance</code></td>
+<td>0</td>
+<td><resource key="tutorial.draw.table.firstInstance.meaning"></resource></td>
+</tr>
+</tbody>
+</table>
+<p><resource key="tutorial.draw.notes"><slot name="submitWait"><code>Submit().Wait()</code></slot><slot name="present"><code>Present()</code></slot></resource></p>
+<p><a id="run"></a></p>
+<h2 id="11-run-resize-and-close">11. <resource key="tutorial.execution.title"></resource></h2>
+<p><resource key="tutorial.execution.description"><slot name="firstTriangle"><code>FirstTriangle</code></slot></resource></p>
 
 ```sh
 dotnet build
 dotnet run --no-build
 ```
 
-The window should display a triangle with a red upper corner, green lower-right corner and blue lower-left corner against a dark background. The interior should show a smooth gradient between those colors.
-
-Resize the window. The resize callback updates the framebuffer dimensions and resizes the swap chain. The render pass establishes a viewport matching that image. Because the vertex positions remain in normalized coordinates, the triangle keeps the same fraction of the window's width and height; changing the aspect ratio can stretch its shape. Preserving an object's aspect ratio requires a projection or viewport policy, which is beyond this first draw.
-
-### Follow the lifetime of one frame
-
-The finished application repeats this sequence:
+<p><resource key="tutorial.execution.details"></resource></p>
+<p><resource key="tutorial.execution.guidance"></resource></p>
+<h3 id="follow-the-lifetime-of-one-frame"><resource key="tutorial.lifecycle.title"></resource></h3>
+<p><resource key="tutorial.lifecycle.description"></resource></p>
 
 ```text
 Get the current drawable
@@ -516,7 +506,7 @@ Submit and wait
 Present
 ```
 
-Closing the window returns from `Run`. Each rendered frame has already waited for its GPU work to complete, so we can now dispose the resources it used. The cleanup after `window.Run();` should be:
+<p><resource key="tutorial.lifecycle.details"><slot name="run"><code>Run</code></slot><slot name="windowRun"><code>window.Run();</code></slot></resource></p>
 
 ```csharp
 pipeline.Dispose();
@@ -527,18 +517,37 @@ window.Dispose();
 context.Dispose();
 ```
 
-Release the swap chain before its native window and the context after all of its resources. The queue owns and recycles submitted command buffers, and the swap chain owns its drawable; neither needs a separate `Dispose()` call in this application.
-
-### Check the stage that failed
-
-Read any error in the console first, then use the earlier checkpoints to identify the stage that failed:
-
-| Symptom | Check |
-| --- | --- |
-| No window opens | Confirm the .NET project builds and the window-only step runs in a desktop session. On Linux, check that X11 or XWayland is available. |
-| Backend creation fails | Check that the selected backend is supported by the device and installed graphics driver. |
-| The clear-color step works, but shader loading fails | Check the copied `Triangle.slang`, entry-point spelling and the compiler's reported diagnostic. |
-| The background appears but the triangle does not | Check the upload size, input layout, pipeline selection and the placement of the draw commands inside the render pass. |
-| Vertex positions or colors are corrupted | Check the 28-byte stride and the position/color offsets of 0 and 12. |
-
-For comparison, the [sample renderer](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/HelloTriangleRenderer.cs) and [Slang shader](https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/HelloTriangle.slang) use the same vertex data, input layout and draw. The sample factors windowing and submission into its shared host; on this page, you have assembled those parts in `Program.cs` as well. Continue with [Spinning Cube](samples.md#spinning-cube) for indexed geometry, transformations and depth testing.
+<p><resource key="tutorial.lifecycle.guidance"><slot name="dispose"><code>Dispose()</code></slot></resource></p>
+<h3 id="check-the-stage-that-failed"><resource key="tutorial.troubleshooting.title"></resource></h3>
+<p><resource key="tutorial.troubleshooting.description"></resource></p>
+<table>
+<thead>
+<tr>
+<th><resource key="tutorial.troubleshooting.table.headings.symptom"></resource></th>
+<th><resource key="tutorial.troubleshooting.table.headings.check"></resource></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><resource key="tutorial.troubleshooting.table.window.symptom"></resource></td>
+<td><resource key="tutorial.troubleshooting.table.window.check"></resource></td>
+</tr>
+<tr>
+<td><resource key="tutorial.troubleshooting.table.backend.symptom"></resource></td>
+<td><resource key="tutorial.troubleshooting.table.backend.check"></resource></td>
+</tr>
+<tr>
+<td><resource key="tutorial.troubleshooting.table.shaders.symptom"></resource></td>
+<td><resource key="tutorial.troubleshooting.table.shaders.check"><slot name="triangleSlang"><code>Triangle.slang</code></slot></resource></td>
+</tr>
+<tr>
+<td><resource key="tutorial.troubleshooting.table.drawing.symptom"></resource></td>
+<td><resource key="tutorial.troubleshooting.table.drawing.check"></resource></td>
+</tr>
+<tr>
+<td><resource key="tutorial.troubleshooting.table.input.symptom"></resource></td>
+<td><resource key="tutorial.troubleshooting.table.input.check"></resource></td>
+</tr>
+</tbody>
+</table>
+<p><resource key="tutorial.troubleshooting.details"><slot name="link"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/HelloTriangleRenderer.cs"><resource key="tutorial.troubleshooting.details.link"></resource></a></slot><slot name="detail"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/HelloTriangle.slang"><resource key="tutorial.troubleshooting.details.detail"></resource></a></slot><slot name="programCs"><code>Program.cs</code></slot><slot name="context"><a href="~/learn/samples.md#spinning-cube"><resource key="tutorial.troubleshooting.details.context"></resource></a></slot></resource></p>

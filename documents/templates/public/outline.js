@@ -1,3 +1,5 @@
+import { t } from './resources.js';
+
 // Article navigation owns its markup and active state; links keep native hashes/history.
 export function initializeOutline() {
     const nav = document.getElementById('article-outline');
@@ -10,7 +12,7 @@ export function initializeOutline() {
 
     const label = document.createElement('div');
     label.className = 'outline-title';
-    label.textContent = 'On this page';
+    label.textContent = t('ui.outline.title');
     const list = document.createElement('ul');
     list.className = 'outline-list';
     let group;

@@ -1,17 +1,14 @@
-const groupTitles = {
-    classes: 'Classes', structs: 'Structs', interfaces: 'Interfaces', enums: 'Enums',
-    delegates: 'Delegates', constructors: 'Constructors', fields: 'Fields', properties: 'Properties',
-    methods: 'Methods', events: 'Events', operators: 'Operators', eii: 'Explicit implementations'
-};
+const resources = require('./resources.common.js');
 const relationshipKeys = ['inheritance', 'implements', 'derivedClasses', 'inheritedMembers', 'extensionMethods'];
 
-function prepareSignature(syntax) {
+function prepareSignature(syntax, strings) {
     if (!syntax) return;
     const value = syntax.fieldValue || syntax.propertyValue || syntax.eventType || syntax.return;
     if (value) {
         syntax.apiValueReference = value.type?.specName?.[0]?.value;
         syntax.apiResult = {
-            label: syntax.return ? 'Returns' : 'Value',
+            labelKey: 'ui.reference.' + (syntax.return ? 'returns' : 'value'),
+            label: resources.get(strings, 'ui.reference.' + (syntax.return ? 'returns' : 'value')),
             type: syntax.apiValueReference,
             description: value.description,
             showType: !syntax.content?.[0]?.value
@@ -28,13 +25,16 @@ function uidSuffix(uid) {
 }
 
 exports.postTransform = function (model) {
+    const strings = resources.prepare(model);
     model.apiName = model.name?.[0]?.value || model.uid;
+    model.title = model.apiName;
     model.apiHasMemberFinder = !model.isNamespace;
     model.apiSeeAlsoId = 'seealso';
     model.apiHasRelationships = relationshipKeys.some(key => model[key]?.length > 0);
     model.apiHasTypeDetails = !model.isNamespace && (model.apiHasRelationships || !!model.namespace?.uid || !!model.assemblies?.length);
-    model.apiTypeDetailsLabel = model.apiHasRelationships ? 'Inheritance and metadata' : 'Type metadata';
-    prepareSignature(model.syntax);
+    model.apiTypeDetailsKey = 'ui.reference.' + (model.apiHasRelationships ? 'relationships' : 'metadata');
+    model.apiTypeDetailsLabel = resources.get(strings, model.apiTypeDetailsKey);
+    prepareSignature(model.syntax, strings);
     if (model.syntax) {
         model.syntax.apiBaseReferences = [...(model.inheritance || []), ...(model.implements || [])]
             .map(type => ({ type: type.specName?.[0]?.value })).filter(reference => reference.type);
@@ -43,7 +43,8 @@ exports.postTransform = function (model) {
     const anchors = new Set([model.id]);
     const overloads = new Set();
     for (const group of model.children || []) {
-        group.apiTitle = model.isEnum ? 'Values' : groupTitles[group.id] || group.id.replace(/[-_]/g, ' ');
+        group.apiTitleKey = 'ui.reference.' + (model.isEnum ? 'values' : group.id === 'eii' ? 'implementations' : group.id);
+        group.apiTitle = resources.get(strings, group.apiTitleKey);
         for (const item of group.children || []) {
             item.apiName = item.name?.[0]?.value || item.uid;
             // DocFX normalizes pointer/by-ref UIDs to identical IDs in some overloads.
@@ -57,7 +58,7 @@ exports.postTransform = function (model) {
                 item.apiOverload = item.overload;
                 overloads.add(item.overload.id);
             }
-            prepareSignature(item.syntax);
+            prepareSignature(item.syntax, strings);
         }
     }
     if (model.namespace?.uid && model.namespace.specName) {

@@ -1,3 +1,4 @@
+import { t } from './resources.js';
 import { closeContents, closeNavigation, isApplePlatform, isEditing } from './site.js';
 import { bindDialogKeys, isBackdropClick } from './dialog.js';
 
@@ -19,14 +20,14 @@ export function initializeMemberFinder() {
             signature: heading.closest('.api-member')?.querySelector(':scope > pre > code')?.textContent || heading.textContent
         }))
     })).filter(group => group.members.length);
-    if (!groups.length) empty.textContent = 'This type has no declared members.';
+    if (!groups.length) empty.textContent = t('ui.members.undeclared');
 
     let opener;
     let restoreFocus = true;
     const shortcut = isApplePlatform ? '⌥ M' : 'Alt M';
     for (const launcher of launchers) {
         launcher.hidden = false;
-        launcher.title = `Find a member (${shortcut})`;
+        launcher.title = `${t('ui.members.title')} (${shortcut})`;
         const key = launcher.querySelector('[data-member-shortcut]');
         if (key) key.textContent = shortcut;
         launcher.addEventListener('click', () => open(launcher));

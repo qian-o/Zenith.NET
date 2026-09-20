@@ -12,11 +12,11 @@ Keep scratch pages, validation scripts and preview fixtures outside the reposito
 
 ## Page responsibilities
 
-Paths below are relative to `documents/`. A Markdown filename determines its corresponding `.html` route.
+Shared page paths below are relative to `documents/`. English text lives exclusively in `locales/en-US/strings.yml`. A Markdown filename determines its corresponding `.html` route.
 
 | Page | Responsibility |
 | --- | --- |
-| `index.md` | A concise product introduction and the existing entry points. Preserve the homepage composition. |
+| `index.md` | The shared homepage composition, bound to `home.*` text resources. |
 | `learn/index.md` | Orient readers and link to the tutorial, samples and concepts. Keep the existing card structure. |
 | `learn/first-triangle.md` | One complete, runnable triangle tutorial, from an empty project to the first rendered frame. |
 | `learn/samples.md` | Curated links to actual sample source, with a short explanation of what each demonstrates and any prerequisites. |
@@ -31,7 +31,7 @@ Do not turn the samples index into a sequence of advanced tutorials. The triangl
 
 ## Content rules
 
-- Write published prose in English, matching the existing site. Keep C# identifiers and namespace names exact.
+- Maintain the canonical prose in American English in `documents/locales/en-US/strings.yml`. Other `documents/locales/<language>/` directories hold translated dictionaries and follow that directory's permanent `translation.md`. Keep C# identifiers and namespace names exact.
 - Describe the current API directly. Avoid release histories, migration narratives, product-version badges, "new in" labels and temporary preview-package instructions. A new package release alone does not require a documentation edit when the documented behavior remains accurate.
 - Omit package versions and `--prerelease` from installation commands. Necessary platform/SDK prerequisites and target frameworks may be stated when needed to run the example; these are environment requirements, not a product-version narrative.
 - Request validation by default with `useValidationLayer: true` in documented context creation. Runnable tutorials should connect `ValidationMessage` to console output so reported diagnostics are visible.
@@ -40,7 +40,7 @@ Do not turn the samples index into a sequence of advanced tutorials. The triangl
 - Start each article with its practical purpose. Explain the reason for a non-obvious choice close to the relevant code. Avoid restating signatures, generic graphics introductions, decorative statistics and repeated navigation instructions.
 - Preserve source declaration order when listing enum members or writing combinations of flags.
 - Introduce enum types through the meaning and scope of their members. Use concise explanations or tables; do not turn an enum introduction into a resource-construction walkthrough.
-- Use one H1 and a clear H2/H3 hierarchy. Give explicit anchors to sections linked from other pages when their headings may change. Prefer ordinary Markdown; use tables for comparisons, notices for necessary constraints and diagrams only when they clarify a relationship.
+- Use one H1 and a clear H2/H3 hierarchy. Give explicit anchors to sections linked from other pages when their headings may change. Use the existing shared Markdown/HTML components with resource-bound text; use tables for comparisons, notices for necessary constraints and diagrams only when they clarify a relationship.
 - Keep diagrams small enough to read on a phone. Prefer a vertical sequence to a wide horizontal graph when scaling would make its labels too small.
 - Replace `<!-- Content pending. -->` when a page is filled. Check the existing homepage, Learn overview and README for placeholder wording that has become inaccurate; update that wording without redesigning those pages.
 
@@ -124,6 +124,42 @@ Use `<see cref="..."/>` for references in prose, `<paramref>` and `<typeparamref
 
 Keep XML `<code>` contents literal using `CDATA`. Put `<see>` references in the surrounding prose: DocFX extracts the text of XML code examples and discards nested reference elements, which can remove the referenced identifier. The HTML `xref` form above applies to authored Markdown pages.
 
+## Resource dictionaries and shared pages
+
+This is a WPF-style resource model. `index.md`, `learn/` and `api/index.md` contain the single shared page structure, anchors, links, illustrations and code. `toc.yml` is the only hand-maintained navigation tree. The API TOC is generated from C# metadata; it is not another authored navigation or a language-specific copy.
+
+`locales/en-US/strings.yml` is the sole English source dictionary. Other language folders contain only their permanent `translation.md` until translation begins. A translator adds just `strings.yml`, keeping the `### YamlMime:Resources` header and the complete source key set. No localized pages, TOCs, images, templates, scripts or configuration are needed. All resource values are strings.
+
+Language folders, registrations and menus use code order: `de-DE`, `en-US`, `es-ES`, `fr-FR`, `ja-JP`, `ko-KR`, `pt-BR`, `ru-RU`, `zh-CN`, `zh-TW`. English is explicitly the source and fallback. Complete resource dictionaries become available automatically after the normal DocFX build. Missing keys, stale extra keys, non-string values and changed placeholder names fail that build.
+
+Pages share the same URL paths. `?lang=<code>` selects a dictionary, retaining the page and fragment. Without an explicit language, the site uses a saved manual selection, browser preferences, then English. An explicit unsupported or unpublished language falls back to English, without substituting a different saved language. A missing, stale or malformed downloaded dictionary is rejected before any translated text is applied, keeping the complete English page usable. The English HTML is fully rendered during the build; other static dictionaries bind to that same markup in the browser. No translation API is used. Search uses translated resources with the shared generated API index.
+
+All images remain in `images/`; all generated API YAML remains in `api/`. This is a complete refactor, with no legacy route or compatibility layer. Do not create `pages/`, `snippets/`, a parallel content graph or an additional build command for localization.
+
+## Resource keys and placeholders
+
+Keys name stable roles or concepts, such as `tutorial.context.description`, `concepts.resources.memory.description` or `ui.search.title`. Do not encode current wording, article numbers, screen positions, language codes or release versions. A copy edit changes the value, not the key. Give different meanings separate keys even if their current English values happen to match.
+
+Values are plain text, not HTML or Markdown. Keep a complete sentence or paragraph together. Inline code, links and emphasis live in named slots in the shared page, so translations can move those slots without copying their markup or changing their destinations.
+
+For example, in the dictionary:
+
+```yaml
+tutorial.context.description: A {context} provides the graphics connection.
+```
+
+And in the shared page:
+
+```html
+<p><resource key="tutorial.context.description"><slot name="context"><xref uid="Zenith.NET.GraphicsContext" text="GraphicsContext"/></slot></resource></p>
+```
+
+The binding escapes text values and inserts only the shared slot markup. Preserve every placeholder name, including case, when translating. Reordering is allowed; adding or removing names is not. Use descriptive slot names for new content. Nested emphasis or link labels can have their own resources when they contain translatable prose. Executable examples, shader code and diagnostic/illustrative code blocks stay in shared Markdown unchanged.
+
+Page front matter uses `title: '@tutorial.title'` and an optional resource-bound `description`. Navigation names bind keys through `name: '@tutorial.title'` in the root TOC. Keep heading IDs in shared markup so rewording or translating a title cannot change links.
+
+The binding is implemented inside the existing template system: one native resource schema loads flat dictionaries, a small shared formatter handles named placeholders, and the conceptual template resolves English text at build time. The browser uses the same placeholder format. Do not add a general Markdown interpreter, external translation service or content-generation pipeline.
+
 ## Validation
 
 After changing XML comments, run the full extraction and build from the repository root:
@@ -148,11 +184,18 @@ Before handing off a content change, ensure the DocFX build has no warnings or e
 
 The template keeps DocFX's existing entry points and the `layout`, `partials` and `public` directories.
 
-- `layout/_master.tmpl` assembles the page shell from the `site.*` partials.
+- `layout/_master.tmpl` assembles the fixed dark page shell from the `site.*` partials. The header uses `primary-navigation` and the API browser uses `site:api-toc`, avoiding DocFX’s automatic navigation and theme controls.
 - `api.*` partials render generated reference data. `ManagedReference.extension.js` prepares names, descriptions and unique member anchors.
-- `public/main.css` is the stylesheet entry. Theme, layout, search, content, home and motion styles have separate files; `api.css` is loaded only on reference pages.
-- `public/main.js` is DocFX's extension entry. `site.js` owns navigation and content setup; `dialog.js` shares keyboard and backdrop behavior between the search dialogs.
+- `public/main.css` is the stylesheet entry. `theme.css` defines the palette and typography; `layout.css` owns the shell and navigation; `search.css` owns both search dialogs; `content.css` owns code, tables and prose links. Home and motion styles remain separate. `api.css` is loaded only for API pages. Reuse semantic theme colors instead of adding slightly different control and text colors.
+- `public/main.js` is DocFX's extension entry. `site.js` owns mobile header interactions and code-block labels; `dialog.js` shares keyboard and backdrop behavior between the search dialogs.
+- `languages.js` selects a resource dictionary and owns the language menu. `navigation.js` renders the header and Learn sidebar from the same root TOC. `search.js` owns page-index loading and search recovery. `resources.js` validates complete page bindings before applying translated text, while `resource-format.js` shares placeholder parsing with the build host. `resources.common.js` and the conceptual extension bind and validate the English resource values; `Resources.json.primary.js` publishes the dictionaries through DocFX's native schema processor.
 - `outline.js` builds the article's nested heading navigation and tracks the current section. `syntax.js` configures the bundled highlighter for documentation code; it does not add links.
 - `code-links.js` preserves authored references through highlighting. `signature-links.js` supplies the bounded, metadata-driven references for API declarations.
 
 Keep the generated `_site` and API metadata out of source edits. Rebuild after template changes, and check existing page URLs, fragment links and copy behavior before publishing.
+
+## Framework maintenance boundary
+
+The resource-dictionary model and current theme are the framework baseline. New translations add only a complete `strings.yml`; ordinary copy changes edit values without renaming keys. Keep the single authored TOC, shared pages, generated API, and common images. Do not recreate compatibility routes, language-specific pages, a second navigation tree, a separate build command, or a repository test directory.
+
+For a framework change, check the homepage, Learn overview, a long article, a namespace, a type/member page and an enum. Check a wide viewport and a 320-pixel viewport, keyboard focus, menu exclusivity, search return/retry behavior, and member navigation. Translation fixtures must remain outside the repository and cover successful switching, explicit-language priority, unchanged fragments, and invalid dictionary fallback. Retain the original English text and code unless the task explicitly includes content edits.

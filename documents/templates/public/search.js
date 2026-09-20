@@ -1,5 +1,26 @@
+import { getStrings, t } from './resources.js';
+import { loadNavigation } from './navigation.js';
 import { closeContents, closeNavigation, isApplePlatform, isEditing } from './site.js';
 import { bindDialogKeys, isBackdropClick } from './dialog.js';
+import { edition, sourceLanguage, pageUrl, siteRoot } from './languages.js';
+
+function pageTitles(items) {
+    const titles = new Map([['index.html', 'home.title'], ['api/index.html', 'reference.title']]);
+    const visit = item => {
+        const href = item.topicHref || item.href;
+        if (href && item.resourceKey?.endsWith('.title')) titles.set(href, item.resourceKey);
+        for (const child of item.items || []) visit(child);
+    };
+    items.forEach(visit);
+    return titles;
+}
+
+async function loadPageCatalog() {
+    const response = await fetch(new URL('index.json', siteRoot), { cache: 'no-cache' });
+    if (!response.ok) throw new Error('Page index unavailable');
+    const index = await response.json();
+    return Object.keys(index).sort().map(key => index[key]);
+}
 
 // Custom search presentation using DocFX's generated index and search worker.
 export function initializeSearch() {
@@ -13,13 +34,15 @@ export function initializeSearch() {
     const shortcuts = document.getElementById('search-shortcuts');
     const results = document.getElementById('site-search-results');
     const more = document.getElementById('search-more');
-    const root = new URL(document.querySelector('meta[name="docfx:rel"]').content || './', location.href);
     const pendingQueries = [];
     let worker;
     let ready = false;
+    let localEntries = [];
+    let loadingCatalog = false;
     let hits = [];
     let shown = 0;
     let closeTimer;
+    const normalize = text => String(text || '').normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
 
     function rememberSearch(open = dialog.open) {
         history.replaceState({
@@ -29,7 +52,7 @@ export function initializeSearch() {
     }
 
     const shortcut = isApplePlatform ? '⌘ K' : 'Ctrl K';
-    trigger.title = `Search documentation (${shortcut})`;
+    trigger.title = `${t('ui.search.title')} (${shortcut})`;
     trigger.setAttribute('aria-keyshortcuts', shortcut === '⌘ K' ? 'Meta+K' : 'Control+K');
 
     function runQuery() {
@@ -38,14 +61,33 @@ export function initializeSearch() {
         more.hidden = true;
         shortcuts.hidden = query !== '';
         if (!query) {
-            status.textContent = 'Search the docs, concepts, and API.';
+            status.textContent = t('ui.search.hint');
             return;
         }
-        status.textContent = ready ? 'Searching…' : 'Loading search…';
+        status.textContent = ready ? t('ui.search.pending') : t('ui.search.loading');
         if (!ready) return;
+        if (edition.code !== sourceLanguage) {
+            const normalizedQuery = normalize(query);
+            const terms = normalizedQuery.split(/\s+/).filter(Boolean);
+            const matches = localEntries
+                .filter(item => terms.every(term => item.body.includes(term)))
+                .map(item => ({ page: item.page, score: item.title === normalizedQuery ? terms.length + 1 : terms.filter(term => item.title.includes(term)).length }))
+                .sort((a, b) => b.score - a.score)
+                .map(item => item.page);
+            showResults(query, matches);
+            return;
+        }
         const terms = query.split(/\s+/).map(term => '+' + term.replace(/[+\-:^~*\\]/g, '\\$&')).join(' ');
         pendingQueries.push(query);
         worker.postMessage({ q: terms });
+    }
+
+    function showResults(query, matches) {
+        hits = matches;
+        shown = 0;
+        results.replaceChildren();
+        status.textContent = hits.length ? t('ui.search.resultCount', { count: hits.length }) : t('ui.search.empty', { query });
+        appendResults();
     }
 
     function appendResults() {
@@ -56,19 +98,20 @@ export function initializeSearch() {
             const heading = document.createElement('span');
             const title = document.createElement('strong');
             const category = document.createElement('small');
-            const apiResult = hit.href.startsWith('api/');
-            link.href = new URL(hit.href, root).href;
+            const path = hit.href;
+            const apiResult = path.startsWith('api/');
+            link.href = pageUrl(hit.href);
             link.setAttribute('data-search-item', '');
             heading.className = 'search-result-heading';
             title.textContent = hit.title.replace(/\s*\|\s*Zenith\.NET\s*$/, '');
-            category.textContent = apiResult ? 'API' : hit.href === 'index.html' ? 'Home' : 'Learn';
+            category.textContent = apiResult ? 'API' : path === 'index.html' ? t('ui.navigation.home') : t('learning.title');
             heading.append(title, category);
             link.append(heading);
             if (apiResult || hit.summary) {
                 const excerpt = document.createElement('p');
                 // API results identify the fully qualified type, without indexing UI labels into the preview.
                 let text = apiResult
-                    ? hit.href === 'api/index.html' ? 'Browse namespaces and types.' : decodeURIComponent(new URL(hit.href, root).pathname.split('/').pop()).replace(/\.html$/, '')
+                    ? path === 'api/index.html' ? t('ui.api.browse') : decodeURIComponent(new URL(hit.href, siteRoot).pathname.split('/').pop()).replace(/\.html$/, '')
                     : hit.summary.replace(/\s+/g, ' ').trim();
                 if (text.startsWith(title.textContent)) text = text.slice(title.textContent.length).trim();
                 if (text) {
@@ -95,8 +138,34 @@ export function initializeSearch() {
         input.focus();
         input.select();
         rememberSearch();
+        if (edition.code !== sourceLanguage) {
+            if (ready) runQuery();
+            else if (!loadingCatalog) {
+                loadingCatalog = true;
+                Promise.all([loadPageCatalog(), loadNavigation()]).then(([index, navigation]) => {
+                    const titles = pageTitles(navigation);
+                    const strings = getStrings();
+                    localEntries = index.map(original => {
+                        const key = titles.get(original.href);
+                        if (!key) return {
+                            page: original,
+                            title: normalize(original.title.replace(/\s*\|\s*Zenith\.NET\s*$/, '')),
+                            body: normalize(`${original.title} ${original.keywords || ''} ${original.summary || ''}`)
+                        };
+                        const prefix = key.slice(0, -'.title'.length);
+                        const values = Object.entries(strings).filter(([key]) => key.startsWith(prefix + '.')).map(([, value]) => value);
+                        const description = strings[prefix + '.description'] || strings[prefix + '.meta.description'];
+                        const page = { ...original, title: t(key), summary: description && !description.includes('{') ? description : '' };
+                        return { page, title: normalize(page.title), body: normalize(values.join(' ')) };
+                    });
+                    ready = true;
+                    runQuery();
+                }).catch(showUnavailable).finally(() => { loadingCatalog = false; });
+            }
+            return;
+        }
         if (worker) return;
-        worker = new Worker(new URL('public/search-worker.min.js', root), { type: 'module' });
+        worker = new Worker(new URL('public/search-worker.min.js', siteRoot), { type: 'module' });
         worker.addEventListener('message', event => {
             if (event.data.e === 'index-ready') {
                 ready = true;
@@ -104,18 +173,24 @@ export function initializeSearch() {
             } else if (event.data.e === 'query-ready') {
                 const query = pendingQueries.shift();
                 if (query !== input.value.trim()) return;
-                hits = event.data.d;
-                shown = 0;
-                results.replaceChildren();
-                status.textContent = hits.length ? `${hits.length} result${hits.length === 1 ? '' : 's'}` : `No results for “${query}”.`;
-                appendResults();
+                showResults(query, event.data.d);
             }
         });
         worker.addEventListener('error', () => {
-            status.textContent = 'Search is unavailable. You can still open the pages below.';
-            shortcuts.hidden = false;
+            worker.terminate();
+            worker = undefined;
+            ready = false;
+            pendingQueries.length = 0;
+            showUnavailable();
         });
         worker.postMessage({ init: {} });
+    }
+
+    function showUnavailable() {
+        results.replaceChildren();
+        more.hidden = true;
+        status.textContent = t('ui.search.unavailable');
+        shortcuts.hidden = false;
     }
 
     function closeSearch() {

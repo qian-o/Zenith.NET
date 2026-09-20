@@ -1,7 +1,7 @@
 {{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
 {{#apiTypeParameterDescriptions.0}}
 <div class="api-signature-section">
-  <h4>Type parameters</h4>
+  <h4 data-resource="ui.reference.typeParameters">{{r.ui.reference.typeParameters}}</h4>
   <dl class="api-parameters">
     {{#apiTypeParameterDescriptions}}
     <div><dt><code>{{id}}</code></dt><dd>{{{description}}}</dd></div>
@@ -11,7 +11,7 @@
 {{/apiTypeParameterDescriptions.0}}
 {{#apiParameterDescriptions.0}}
 <div class="api-signature-section">
-  <h4>Parameters</h4>
+  <h4 data-resource="ui.reference.parameters">{{r.ui.reference.parameters}}</h4>
   <dl class="api-parameters">
     {{#apiParameterDescriptions}}
     <div><dt><code>{{id}}</code></dt><dd>{{{description}}}</dd></div>
@@ -22,14 +22,14 @@
 {{#apiResult}}
 {{#showType}}
 <dl class="api-value">
-  <dt>{{label}}</dt>
+  <dt data-resource="{{labelKey}}">{{label}}</dt>
   <dd>{{{type}}}{{#description}}<div>{{{description}}}</div>{{/description}}</dd>
 </dl>
 {{/showType}}
 {{^showType}}
 {{#description}}
 <div class="api-signature-section">
-  <h4>{{label}}</h4>
+  <h4 data-resource="{{labelKey}}">{{label}}</h4>
   <div class="api-value-description">{{{description}}}</div>
 </div>
 {{/description}}

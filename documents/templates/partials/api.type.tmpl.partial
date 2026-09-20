@@ -1,7 +1,7 @@
 {{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
 {{#children}}
 <section class="api-group" aria-labelledby="{{id}}">
-  <div class="api-group-heading"><h2 id="{{id}}">{{apiTitle}}</h2></div>
+  <div class="api-group-heading"><h2 id="{{id}}" data-resource="{{apiTitleKey}}">{{apiTitle}}</h2></div>
   <div class="api-members">
     {{#children}}
     {{#apiOverload}}<a id="{{id}}" data-uid="{{uid}}"></a>{{/apiOverload}}
@@ -14,15 +14,15 @@
       {{#summary}}<div class="api-summary">{{{summary}}}</div>{{/summary}}
       {{#conceptual}}<div class="api-summary">{{{conceptual}}}</div>{{/conceptual}}
       {{#syntax}}{{>partials/api.signature}}{{/syntax}}
-      {{#remarks}}<div class="api-member-notes"><h4 id="{{apiAnchor}}_remarks">Remarks</h4>{{{remarks}}}</div>{{/remarks}}
-      {{#example.0}}<div class="api-member-notes"><h4 id="{{apiAnchor}}_examples">Examples</h4>{{#example}}{{{.}}}{{/example}}</div>{{/example.0}}
-      {{#exceptions.0}}<div class="api-member-notes"><h4>Exceptions</h4><dl class="api-parameters">{{#exceptions}}<div><dt>{{{type.specName.0.value}}}</dt><dd>{{{description}}}</dd></div>{{/exceptions}}</dl></div>{{/exceptions.0}}
+      {{#remarks}}<div class="api-member-notes"><h4 id="{{apiAnchor}}_remarks" data-resource="ui.reference.remarks">{{r.ui.reference.remarks}}</h4>{{{remarks}}}</div>{{/remarks}}
+      {{#example.0}}<div class="api-member-notes"><h4 id="{{apiAnchor}}_examples" data-resource="ui.reference.examples">{{r.ui.reference.examples}}</h4>{{#example}}{{{.}}}{{/example}}</div>{{/example.0}}
+      {{#exceptions.0}}<div class="api-member-notes"><h4 data-resource="ui.reference.exceptions">{{r.ui.reference.exceptions}}</h4><dl class="api-parameters">{{#exceptions}}<div><dt>{{{type.specName.0.value}}}</dt><dd>{{{description}}}</dd></div>{{/exceptions}}</dl></div>{{/exceptions.0}}
       {{>partials/api.seealso}}
     </section>
     {{/children}}
   </div>
 </section>
 {{/children}}
-{{#remarks}}<section class="api-group"><h2 id="{{id}}_remarks">Remarks</h2>{{{remarks}}}</section>{{/remarks}}
-{{#example.0}}<section class="api-group"><h2 id="{{id}}_examples">Examples</h2>{{#example}}{{{.}}}{{/example}}</section>{{/example.0}}
+{{#remarks}}<section class="api-group"><h2 id="{{id}}_remarks" data-resource="ui.reference.remarks">{{r.ui.reference.remarks}}</h2>{{{remarks}}}</section>{{/remarks}}
+{{#example.0}}<section class="api-group"><h2 id="{{id}}_examples" data-resource="ui.reference.examples">{{r.ui.reference.examples}}</h2>{{#example}}{{{.}}}{{/example}}</section>{{/example.0}}
 {{>partials/api.seealso}}

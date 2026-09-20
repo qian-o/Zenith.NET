@@ -1,3 +1,5 @@
+import { t } from './resources.js';
+
 // Explicit DocFX references and generated API signatures share this DOM renderer.
 const pendingReferences = new WeakMap();
 
@@ -59,7 +61,7 @@ export function linkCodeRange(code, start, end, reference) {
         if (reference.hasAttribute(attribute)) link.setAttribute(attribute, reference.getAttribute(attribute));
     }
     link.className = 'code-reference';
-    link.title = reference.getAttribute('title') || `Open ${range.toString()} reference`;
+    link.title = reference.getAttribute('title') || t('ui.reference.open', { name: range.toString() });
     link.append(range.extractContents());
     range.insertNode(link);
     range.detach();

@@ -15,6 +15,8 @@
     --zenith-body: #d0d4dc;
     --zenith-muted: #a0a8b5;
     --zenith-link: #dce5f2;
+    --zenith-code-link: #bedbfa;
+    --zenith-border-hover: #626a78;
     --zenith-code: #0d0f13;
     --zenith-focus: #cad5e5;
     --zenith-action: #e1e8f2;
@@ -164,41 +166,6 @@ article :is(img, video, svg) {
     max-width: 100%;
 }
 
-/* References in prose and code keep the same meaning on API and tutorial pages. */
-article code a.code-reference, article a.xref > code {
-    color: #bedbfa;
-    font-weight: 500;
-    text-decoration: none;
-    transition: color 180ms, background-color 180ms;
-}
-
-.zenith-theme article code a.code-reference * {
-    color: inherit;
-}
-
-article code a.code-reference:hover, article a.xref:hover > code {
-    color: #fff;
-    background: #2d3b4c;
-}
-
-article code a.code-reference:focus-visible {
-    outline-offset: 2px;
-}
-
-article code[data-api-symbol] :is(.hljs-type, .hljs-title, .hljs-built_in) {
-    color: var(--zenith-body);
-}
-
-article code[data-api-symbol] a.code-reference,
-article code[data-api-symbol] a.code-reference * {
-    color: #bedbfa;
-    cursor: pointer;
-}
-
-article code[data-api-symbol] a.code-reference:hover,
-article code[data-api-symbol] a.code-reference:hover * {
-    color: #fff;
-}
 
 article img {
     height: auto;

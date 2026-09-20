@@ -1,15 +1,17 @@
-import { initializeSite } from './site.js';
-import { initializeSearch } from './search.js';
-import { initializeHomeScene } from './home.js';
-import { initializeMotion } from './motion.js';
 import { initializeApi } from './api.js';
-import { initializeMemberFinder } from './member-finder.js';
-import { initializeOutline } from './outline.js';
-import { configureSyntax } from './syntax.js';
-import { linkSignatureType } from './signature-links.js';
 import { preserveCodeReferences, restoreCodeReferences } from './code-links.js';
+import { initializeHomeScene } from './home.js';
+import { initializeLanguages } from './languages.js';
+import { initializeMemberFinder } from './member-finder.js';
+import { initializeMotion } from './motion.js';
+import { initializeNavigation } from './navigation.js';
+import { initializeOutline } from './outline.js';
+import { initializeSearch } from './search.js';
+import { linkSignatureType } from './signature-links.js';
+import { initializeSite } from './site.js';
+import { configureSyntax } from './syntax.js';
 
-// Retain DocFX's generated navigation, reference pages, and code tools.
+// Keep DocFX's generated API and code tools; the site owns navigation and resources.
 // The master template sets the fixed dark appearance before the first paint.
 export default {
     defaultTheme: 'dark',
@@ -43,8 +45,10 @@ export default {
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
         }
     },
-    start: () => {
+    start: async () => {
         initializeSite();
+        await initializeLanguages();
+        initializeNavigation().catch(console.error);
         initializeOutline();
         initializeSearch();
         initializeHomeScene();

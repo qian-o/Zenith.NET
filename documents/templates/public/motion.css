@@ -152,17 +152,20 @@
 }
 
 /* Surface feedback: color and inset light, without moving hit targets. */
-#navbar .nav-link,
+#primary-navigation .nav-link,
 #toc li > a,
 .build-button,
 .path-card,
 .search-launcher,
+.language-menu > summary,
+.language-options a,
 .source-link,
 .contents-toggle,
 .contents-close,
 .menu-toggle,
 .scene-options button,
 #search-close,
+#api-member-close,
 .search-more,
 .learning-entry,
 .concept-list > a,
@@ -174,17 +177,20 @@
     transition-timing-function: var(--zenith-state-ease);
 }
 
-#navbar .nav-link:active,
+#primary-navigation .nav-link:active,
 #toc li > a:active,
 .build-button:active,
 .path-card:active,
 .search-launcher:active,
+.language-menu > summary:active,
+.language-options a:active,
 .source-link:active,
 .contents-toggle:active,
 .contents-close:active,
 .menu-toggle:active,
 .scene-options button:active,
 #search-close:active,
+#api-member-close:active,
 .search-more:active,
 .learning-entry:active,
 .concept-list > a:active,
@@ -193,7 +199,7 @@
     transition-duration: var(--zenith-press-duration);
 }
 
-#navbar .nav-link:active, .build-button.secondary:active,
+#primary-navigation .nav-link:active, .build-button.secondary:active,
 .search-launcher:active, .source-link:active, .scene-options button:active {
     color: #92afd3;
 }
