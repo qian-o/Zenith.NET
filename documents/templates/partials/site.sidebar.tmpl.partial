@@ -1,0 +1,37 @@
+{{^_disableToc}}
+<div class="toc-offcanvas">
+  <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title" id="tocOffcanvasLabel">Contents</h5>
+      <button type="button" class="contents-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close contents"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+    </div>
+    <div class="offcanvas-body">
+      {{#_apiReference}}
+      <nav class="api-browser" id="api-browser" aria-label="API types">
+        <div class="api-browser-controls">
+          <div class="api-namespace-picker">
+            <label class="api-namespace-label" for="api-namespace">Namespace</label>
+            <span id="api-namespace-name" aria-hidden="true">Loading namespaces…</span>
+            <select id="api-namespace" aria-label="API namespace" disabled><option>Loading namespaces…</option></select>
+            <i class="bi bi-chevron-down" aria-hidden="true"></i>
+          </div>
+          <div class="api-type-search">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input id="api-type-filter" type="search" aria-label="Find a type" aria-controls="api-type-list" placeholder="Find a type…" autocomplete="off">
+            <button id="api-type-clear" type="button" aria-label="Clear type search" hidden><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+          </div>
+        </div>
+        <div class="api-browser-caption" id="api-type-scope">Types</div>
+        <div class="api-type-scroll"><ul id="api-type-list"></ul><p class="api-browser-status" id="api-browser-status" role="status">Loading types…</p></div>
+        {{#apiHasMemberFinder}}
+        <div class="api-member-access">{{>partials/api.member-launcher}}</div>
+        {{/apiHasMemberFinder}}
+      </nav>
+      {{/_apiReference}}
+      {{^_apiReference}}
+      <nav class="toc" id="toc"></nav>
+      {{/_apiReference}}
+    </div>
+  </div>
+</div>
+{{/_disableToc}}

@@ -1,7 +1,5 @@
 {{!Licensed to the .NET Foundation under one or more agreements. The .NET Foundation licenses this file to you under the MIT license.}}
 {{!include(/^public/.*/)}}
-{{!include(favicon.ico)}}
-{{!include(logo.svg)}}
 <!DOCTYPE html>
 <html lang="{{_lang}}{{^_lang}}en{{/_lang}}" data-bs-theme="dark">
   <head>
@@ -16,7 +14,7 @@
       <meta name="title" content="{{#title}}{{title}}{{/title}}{{^title}}{{>partials/title}}{{/title}} {{#_appTitle}}| {{_appTitle}} {{/_appTitle}}">
       {{#_description}}<meta name="description" content="{{_description}}">{{/_description}}
       {{#description}}<meta name="description" content="{{description}}">{{/description}}
-      <link rel="icon" href="{{_rel}}{{{_appFaviconPath}}}{{^_appFaviconPath}}favicon.ico{{/_appFaviconPath}}">
+      <link rel="icon" href="{{_rel}}{{{_appFaviconPath}}}">
       <link rel="stylesheet" href="{{_rel}}public/main.css">
       {{#_apiReference}}<link rel="stylesheet" href="{{_rel}}public/api.css">{{/_apiReference}}
       <meta name="docfx:navrel" content="{{_navRel}}">
@@ -37,7 +35,7 @@
       <meta name="loc:copy" content="{{__global.copy}}">
       <meta name="loc:downloadPdf" content="{{__global.downloadPdf}}">
 
-      <script type="module" src="./{{_rel}}public/docfx.min.js"></script>
+      <script type="module" src="{{_rel}}public/docfx.min.js"></script>
 
       <script>
         // Keep DocFX initialization aligned with the fixed dark page, including old saved preferences.
@@ -58,58 +56,10 @@
 
   {{^redirect_url}}
   <body class="tex2jax_ignore zenith-theme" data-layout="{{_layout}}{{layout}}" data-yaml-mime="{{yamlmime}}" data-page-kind="{{_pageKind}}" data-section="{{_section}}">
-    <header class="site-header">
-      {{^_disableNavbar}}
-      <nav class="site-nav container-xxl" aria-label="Main navigation">
-        <a class="navbar-brand" aria-label="Zenith.NET home" href="{{_appLogoUrl}}{{^_appLogoUrl}}{{_rel}}index.html{{/_appLogoUrl}}">
-          <img id="logo" src="{{_rel}}{{{_appLogoPath}}}{{^_appLogoPath}}logo.svg{{/_appLogoPath}}" width="252" height="64" alt="">
-        </a>
-        <div id="site-menu" class="site-menu">
-          <div id="navbar"></div>
-          {{#apiHasMemberFinder}}<button class="api-member-launcher api-menu-member" type="button" data-member-find aria-haspopup="dialog" aria-controls="api-member-dialog" hidden><i class="bi bi-list-ul" aria-hidden="true"></i><span>Find a member</span></button>{{/apiHasMemberFinder}}
-        </div>
-        <div class="site-actions">
-          {{#_enableSearch}}
-          <button class="search-launcher" id="search-open" type="button" aria-label="Search documentation" aria-haspopup="dialog" aria-controls="search-dialog">
-            <i class="bi bi-search" aria-hidden="true"></i><span>Search</span><kbd data-search-shortcut>⌘ K</kbd>
-          </button>
-          {{/_enableSearch}}
-          <a class="source-link" href="https://github.com/qian-o/Zenith.NET" aria-label="GitHub"><i class="bi bi-github" aria-hidden="true"></i></a>
-          <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Toggle navigation" aria-controls="site-menu" aria-expanded="false"><span></span><span></span></button>
-        </div>
-      </nav>
-      {{/_disableNavbar}}
-    </header>
+    {{>partials/site.header}}
 
     <main class="container-xxl">
-      {{^_disableToc}}
-      <div class="toc-offcanvas">
-        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
-          <div class="offcanvas-header">
-            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Contents</h5>
-            <button type="button" class="contents-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close contents"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
-          </div>
-          <div class="offcanvas-body">
-            {{#_apiReference}}
-            <nav class="api-browser" id="api-browser" aria-label="API types">
-              <a class="api-browser-home" href="{{_rel}}api/index.html"><i class="bi bi-braces" aria-hidden="true"></i>API Reference</a>
-              <label class="api-namespace-label" for="api-namespace">Namespace</label>
-              <div class="api-namespace-picker"><span id="api-namespace-name" aria-hidden="true">Loading namespaces…</span><select id="api-namespace" aria-label="API namespace" disabled><option>Loading namespaces…</option></select><i class="bi bi-chevron-expand" aria-hidden="true"></i></div>
-              <label class="api-type-search"><i class="bi bi-search" aria-hidden="true"></i><input id="api-type-filter" type="search" aria-label="Find a type" placeholder="Find a type…" autocomplete="off"></label>
-              <div class="api-browser-caption" id="api-type-scope">Types</div>
-              <div class="api-type-scroll"><ul id="api-type-list"></ul><p class="api-browser-status" id="api-browser-status" role="status">Loading types…</p></div>
-              {{#apiHasMemberFinder}}
-              <div class="api-member-access"><button class="api-member-launcher" type="button" data-member-find aria-haspopup="dialog" aria-controls="api-member-dialog" aria-keyshortcuts="Alt+M" hidden><i class="bi bi-list-ul" aria-hidden="true"></i><span>Find a member</span><kbd data-member-shortcut>Alt M</kbd></button></div>
-              {{/apiHasMemberFinder}}
-            </nav>
-            {{/_apiReference}}
-            {{^_apiReference}}
-            <nav class="toc" id="toc"></nav>
-            {{/_apiReference}}
-          </div>
-        </div>
-      </div>
-      {{/_disableToc}}
+      {{>partials/site.sidebar}}
 
       <div class="content">
         {{^_disableToc}}
@@ -118,7 +68,7 @@
           <i class="bi bi-list" aria-hidden="true"></i><span>Contents</span>
         </button>
         {{#apiHasMemberFinder}}
-        <button class="api-member-launcher" type="button" data-member-find aria-haspopup="dialog" aria-controls="api-member-dialog" aria-keyshortcuts="Alt+M" hidden><i class="bi bi-list-ul" aria-hidden="true"></i><span>Find a member</span></button>
+        {{>partials/api.member-launcher}}
         </div>
         {{/apiHasMemberFinder}}
         {{/_disableToc}}
@@ -135,50 +85,11 @@
       {{/_disableAffix}}
     </main>
 
-    {{#apiHasMemberFinder}}
-    <dialog class="site-search api-member-finder" id="api-member-dialog" aria-labelledby="api-member-title" aria-describedby="api-member-context">
-      <header class="api-finder-heading"><div><h2 id="api-member-title">Find a member</h2><p class="text-break" id="api-member-context">{{uid}}</p></div><button id="api-member-close" type="button" aria-label="Close member finder">Esc</button></header>
-      <form class="api-member-filter" id="api-member-form" role="search"><i class="bi bi-search" aria-hidden="true"></i><input id="api-member-query" type="search" aria-label="Search members" placeholder="Name or signature…" autocomplete="off" aria-controls="api-member-results" autofocus><button id="api-member-clear" type="button" aria-label="Clear member search" hidden><i class="bi bi-x-lg" aria-hidden="true"></i></button></form>
-      <div class="search-scroll"><div id="api-member-results"></div><p id="api-member-empty" class="api-finder-empty" role="status" hidden>No matching members.</p></div>
-      <div class="search-footer"><span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span><span><kbd>Enter</kbd> Go to member</span></div>
-    </dialog>
-    {{/apiHasMemberFinder}}
+    {{>partials/site.member-finder}}
 
-    {{#_enableSearch}}
-    <dialog class="site-search" id="search-dialog" aria-labelledby="search-title">
-      <h2 id="search-title" class="visually-hidden">Search documentation</h2>
-      <form class="search-input-row" role="search" id="site-search-form">
-        <i class="bi bi-search" aria-hidden="true"></i>
-        <input id="site-search-input" type="search" placeholder="What are you looking for?" autocomplete="off" aria-label="Search documentation" aria-describedby="search-status" autofocus>
-        <button id="search-close" type="button" aria-label="Close search">Esc</button>
-      </form>
-      <div class="search-scroll">
-        <p id="search-status" role="status" aria-live="polite">Search the docs, concepts, and API.</p>
-        <div class="search-shortcuts" id="search-shortcuts">
-          <a href="{{_rel}}learn/first-triangle.html" data-search-item><span>First Triangle</span><small>Tutorial</small></a>
-          <a href="{{_rel}}learn/samples.html" data-search-item><span>Samples</span><small>Source code</small></a>
-          <a href="{{_rel}}api/index.html" data-search-item><span>API Reference</span><small>Reference</small></a>
-        </div>
-        <ul id="site-search-results"></ul>
-        <button id="search-more" class="search-more" type="button" hidden>Show more results</button>
-      </div>
-      <div class="search-footer"><span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span><span><kbd>Enter</kbd> Open</span></div>
-    </dialog>
-    {{/_enableSearch}}
+    {{>partials/site.search}}
 
-    <footer class="text-secondary">
-      <div class="container-xxl">
-        <div class="footer-brand">
-          <img src="{{_rel}}images/Zenith.NET.svg" width="28" height="28" alt="" aria-hidden="true">
-          <span class="footer-caption">Modern RHI for .NET.</span>
-        </div>
-        <nav class="footer-links" aria-label="Footer">
-          <a href="{{_rel}}learn/index.html">Learn</a>
-          <a href="{{_rel}}api/index.html">API</a>
-          <a href="https://github.com/qian-o/Zenith.NET">GitHub</a>
-        </nav>
-      </div>
-    </footer>
+    {{>partials/site.footer}}
   </body>
   {{/redirect_url}}
 </html>

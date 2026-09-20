@@ -1,0 +1,23 @@
+{{#apiHasMemberFinder}}
+<dialog class="site-search api-member-finder" id="api-member-dialog" aria-labelledby="api-member-title" aria-describedby="api-member-context">
+  <header class="api-finder-heading">
+    <div>
+      <h2 id="api-member-title">Find a member</h2>
+      <p class="text-break" id="api-member-context">{{fullName.0.value}}</p>
+    </div>
+    <button id="api-member-close" type="button" aria-label="Close member finder">Esc</button>
+  </header>
+  <form class="api-member-filter" id="api-member-form" role="search">
+    <i class="bi bi-search" aria-hidden="true"></i>
+    <input id="api-member-query" type="search" aria-label="Search members" placeholder="Name or signature…" autocomplete="off" aria-controls="api-member-results" autofocus>
+    <button id="api-member-clear" type="button" aria-label="Clear member search" hidden><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+  </form>
+  <div class="search-scroll">
+    <div id="api-member-results"></div>
+    <p id="api-member-empty" class="api-finder-empty" role="status" hidden>No matching members.</p>
+  </div>
+  <div class="search-footer">
+    <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span><span><kbd>Enter</kbd> Go to member</span>
+  </div>
+</dialog>
+{{/apiHasMemberFinder}}

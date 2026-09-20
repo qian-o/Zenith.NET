@@ -1,0 +1,13 @@
+<footer class="text-secondary">
+  <div class="container-xxl">
+    <div class="footer-brand">
+      <img src="{{_rel}}images/Zenith.NET.svg" width="28" height="28" alt="" aria-hidden="true">
+      <span class="footer-caption">Modern RHI for .NET.</span>
+    </div>
+    <nav class="footer-links" aria-label="Footer">
+      <a href="{{_rel}}learn/index.html">Learn</a>
+      <a href="{{_rel}}api/index.html">API</a>
+      <a href="https://github.com/qian-o/Zenith.NET">GitHub</a>
+    </nav>
+  </div>
+</footer>

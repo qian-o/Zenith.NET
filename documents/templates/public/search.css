@@ -1,0 +1,213 @@
+.site-search {
+    width: min(720px, calc(100% - 32px));
+    max-width: none;
+    max-height: calc(100dvh - 64px);
+    margin: min(12vh, 100px) auto auto;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid #555f70;
+    border-radius: 4px;
+    background: #171b22;
+    color: var(--zenith-text);
+    box-shadow: 0 32px 120px #0009;
+}
+
+.site-search::backdrop {
+    background: #07090dbd;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.site-search[open] {
+    display: flex;
+    flex-direction: column;
+    transform-origin: 50% 0;
+    animation: zenith-panel-in var(--zenith-panel-duration) cubic-bezier(.16, 1, .3, 1);
+}
+
+.site-search[open]::backdrop {
+    animation: zenith-backdrop-in var(--zenith-panel-duration) ease-out;
+}
+
+.site-search.is-closing {
+    animation: zenith-panel-out 160ms ease-in both;
+}
+
+.site-search.is-closing::backdrop {
+    animation: zenith-backdrop-in 160ms ease-in reverse both;
+}
+
+html:has(.site-search[open]),
+body:has(.site-search[open]) {
+    overflow: hidden;
+}
+
+.search-input-row {
+    display: grid;
+    flex: 0 0 auto;
+    grid-template-columns: 20px minmax(0, 1fr) 36px;
+    align-items: center;
+    gap: 18px;
+    min-height: 88px;
+    padding: 20px 24px;
+    border-bottom: 1px solid #3a4351;
+}
+
+.search-input-row > i {
+    color: #a6b2c4;
+    font-size: 20px;
+}
+
+.search-input-row:focus-within {
+    border-bottom-color: #75849a;
+}
+
+#site-search-input {
+    width: 100%;
+    min-width: 0;
+    padding: 6px 0;
+    border: 0;
+    outline: none;
+    background: none;
+    color: var(--zenith-text);
+    font: 400 21px/1.5 var(--bs-body-font-family);
+}
+
+#site-search-input::placeholder {
+    color: #99a3b3;
+}
+
+#site-search-input::-webkit-search-cancel-button {
+    display: none;
+}
+
+#search-close {
+    min-height: 32px;
+    padding: 4px 6px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    color: #b4bfce;
+    font: 11px/1.5 var(--bs-font-monospace);
+    cursor: pointer;
+}
+
+.search-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: min(55vh, 520px);
+    padding: 18px 12px 12px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+}
+
+#search-status {
+    margin: 0 12px 12px;
+    color: #a0acbc;
+    font: 12px/1.5 var(--bs-body-font-family);
+}
+
+#site-search-results {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.search-shortcuts > a,
+#site-search-results a {
+    display: block;
+    padding: 14px 16px;
+    border-radius: 3px;
+    color: var(--zenith-text);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+.search-shortcuts > a,
+.search-result-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.search-shortcuts > a:hover,
+.search-shortcuts > a:focus-visible,
+#site-search-results a:hover,
+#site-search-results a:focus-visible {
+    background: #2b3441;
+}
+
+.search-result-heading strong {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.site-search small {
+    flex-shrink: 0;
+    color: #a5b4c8;
+    font: 10px/1.5 var(--bs-font-monospace);
+    text-transform: uppercase;
+}
+
+#site-search-results p {
+    margin: 7px 0 0;
+    color: #9faaba;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.search-more {
+    width: 100%;
+    padding: 12px;
+    border: 0;
+    background: none;
+    color: var(--zenith-text);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.search-footer {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 24px;
+    padding: 12px 24px;
+    border-top: 1px solid #303846;
+    color: #929eaf;
+    font-size: 11px;
+}
+
+.search-footer kbd {
+    padding: 0 4px;
+    background: none;
+    color: #c2ccda;
+    font-size: 11px;
+}
+
+@media (max-width: 767.98px) {
+    .site-search {
+        width: calc(100% - 24px);
+        margin-top: 16px;
+        max-height: calc(100dvh - 32px);
+    }
+
+    .search-input-row {
+        gap: 12px;
+        min-height: 76px;
+        padding: 16px;
+    }
+
+    #site-search-input {
+        font-size: 16px;
+    }
+
+    .search-scroll {
+        max-height: calc(100dvh - 172px);
+    }
+
+    .search-footer {
+        padding: 12px 16px;
+    }
+}
+

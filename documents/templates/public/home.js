@@ -5,6 +5,7 @@ export function initializeHomeScene() {
     const context = canvas.getContext('2d');
     if (!context) return;
     const stage = canvas.parentElement;
+    const modeButtons = [...stage.querySelectorAll('[data-scene-mode]')];
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
     const faces = [];
     const steps = 144;
@@ -43,7 +44,9 @@ export function initializeHomeScene() {
     };
     for (let i = 0; i < steps; i++) {
         for (let j = 0; j < sides; j++) {
-            faces.push([point(i, j), point(i + 1, j), point(i + 1, j + 1), point(i, j + 1)]);
+            const vertices = [point(i, j), point(i + 1, j), point(i + 1, j + 1), point(i, j + 1)];
+            const normal = normalize(cross(vertices[3].map((v, index) => v - vertices[0][index]), vertices[1].map((v, index) => v - vertices[0][index])));
+            faces.push({ vertices, normal });
         }
     }
 
@@ -62,11 +65,10 @@ export function initializeHomeScene() {
             return [width / 2 + x * scale * perspective, height / 2 + y * scale * perspective];
         };
         const transformed = faces.map(face => {
-            const vertices = face.map(rotate);
-            return { vertices, depth: vertices.reduce((sum, v) => sum + v[2], 0) / 4 };
+            const vertices = face.vertices.map(rotate);
+            return { vertices, normal: rotate(face.normal), depth: vertices.reduce((sum, v) => sum + v[2], 0) / 4 };
         }).sort((a, b) => a.depth - b.depth);
-        for (const { vertices, depth } of transformed) {
-            const normal = normalize(cross(vertices[3].map((v, i) => v - vertices[0][i]), vertices[1].map((v, i) => v - vertices[0][i])));
+        for (const { vertices, normal, depth } of transformed) {
             const diffuse = Math.max(0, dot(normal, lightDirection));
             const highlight = Math.pow(Math.max(0, dot(normal, halfDirection)), 28);
             const brightness = Math.round(18 + diffuse * 135 + highlight * 70 + (depth + 2) * 5);
@@ -121,10 +123,10 @@ export function initializeHomeScene() {
 
     preference.addEventListener('change', syncMotion);
 
-    stage.querySelectorAll('[data-scene-mode]').forEach(button => {
+    modeButtons.forEach(button => {
         button.addEventListener('click', () => {
             mode = button.dataset.sceneMode;
-            stage.querySelectorAll('[data-scene-mode]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+            modeButtons.forEach(item => item.setAttribute('aria-pressed', String(item === button)));
             render();
         });
     });
@@ -184,6 +186,7 @@ export function initializeHomeScene() {
     });
     window.addEventListener('pageshow', () => {
         suspended = false;
+        dirty = true;
         syncMotion();
     });
     syncMotion();

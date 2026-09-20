@@ -1,3 +1,6 @@
+import { closeContents, closeNavigation, isApplePlatform, isEditing } from './site.js';
+import { bindDialogKeys, isBackdropClick } from './dialog.js';
+
 // Custom search presentation using DocFX's generated index and search worker.
 export function initializeSearch() {
     const dialog = document.getElementById('search-dialog');
@@ -25,9 +28,9 @@ export function initializeSearch() {
         }, '');
     }
 
-    if (!/Mac|iPhone|iPad/.test(navigator.platform)) {
-        document.querySelector('[data-search-shortcut]').textContent = 'Ctrl K';
-    }
+    const shortcut = isApplePlatform ? '⌘ K' : 'Ctrl K';
+    trigger.title = `Search documentation (${shortcut})`;
+    trigger.setAttribute('aria-keyshortcuts', shortcut === '⌘ K' ? 'Meta+K' : 'Control+K');
 
     function runQuery() {
         const query = input.value.trim();
@@ -86,8 +89,8 @@ export function initializeSearch() {
         clearTimeout(closeTimer);
         closeTimer = undefined;
         dialog.classList.remove('is-closing');
-        document.getElementById('menu-toggle').setAttribute('aria-expanded', 'false');
-        document.querySelector('.site-header').classList.remove('menu-open');
+        closeNavigation();
+        closeContents();
         if (!dialog.open) dialog.showModal();
         input.focus();
         input.select();
@@ -143,7 +146,7 @@ export function initializeSearch() {
     });
     dialog.addEventListener('click', event => {
         if (event.target.closest('[data-search-item]')) rememberSearch();
-        if (event.target === dialog) closeSearch();
+        if (isBackdropClick(event, dialog)) closeSearch();
     });
     document.getElementById('site-search-form').addEventListener('submit', event => {
         event.preventDefault();
@@ -155,30 +158,16 @@ export function initializeSearch() {
         results.children[next]?.querySelector('a').focus();
     });
     document.addEventListener('keydown', event => {
+        if (event.isComposing || event.repeat) return;
         const command = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
         const slash = event.key === '/' && !event.metaKey && !event.ctrlKey && !event.altKey;
-        const editing = event.target.closest('input, textarea, select, [contenteditable]');
-        if (command || slash && !editing) {
+        if (command || slash && !isEditing(event.target)) {
             event.preventDefault();
             if (dialog.open && command && !closeTimer) closeSearch();
             else openSearch();
         }
     });
-    dialog.addEventListener('keydown', event => {
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            event.stopPropagation();
-            closeSearch();
-            return;
-        }
-        if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
-        const links = [...dialog.querySelectorAll('[data-search-item]')].filter(link => link.getClientRects().length);
-        if (!links.length) return;
-        event.preventDefault();
-        const current = links.indexOf(document.activeElement);
-        const next = event.key === 'ArrowDown' ? (current + 1) % links.length : (current <= 0 ? links.length - 1 : current - 1);
-        links[next].focus();
-    }, { capture: true });
+    bindDialogKeys(dialog, { items: '[data-search-item]', close: closeSearch });
 
     // Restore the search when returning from a result, including a full reload.
     function restoreSearch() {

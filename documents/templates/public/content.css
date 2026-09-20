@@ -1,0 +1,190 @@
+/* Code, tables, notices, and generated API content */
+article :not(pre) > code {
+    padding: 2px 5px;
+    border-radius: 4px;
+    background: var(--zenith-graphite);
+    color: var(--zenith-text);
+    font-size: .875em;
+}
+
+article pre {
+    position: relative;
+    margin-block: 24px;
+    padding: 20px;
+    border: 1px solid var(--zenith-border);
+    border-radius: var(--zenith-radius);
+    background: var(--zenith-code);
+    color: var(--zenith-body);
+    font-size: 14px;
+    line-height: 1.65;
+    scrollbar-width: thin;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 12%), inset 0 1px rgb(255 255 255 / 3%);
+}
+
+article pre[data-language] {
+    padding-top: 52px;
+}
+
+article pre[data-language]::before {
+    content: attr(data-language);
+    position: absolute;
+    inset: 0 0 auto;
+    height: 36px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--zenith-border);
+    background: #22262e;
+    color: var(--zenith-muted);
+    font-family: var(--bs-body-font-family);
+    font-size: 11px;
+}
+
+.zenith-theme article pre code.hljs {
+    display: block;
+    padding: 0;
+    overflow: visible;
+    background: transparent;
+    color: var(--zenith-body);
+}
+
+article pre .code-action {
+    display: inline-flex;
+    top: 0;
+    right: 4px;
+    z-index: 1;
+    padding: 5px 9px;
+    opacity: 1;
+    font-size: 14px;
+}
+
+.zenith-theme article :is(.hljs-keyword, .hljs-selector-tag, .hljs-meta) {
+    color: #b9b5e7;
+}
+
+.zenith-theme article :is(.hljs-title, .hljs-built_in, .hljs-type) {
+    color: #a8cce4;
+}
+
+.zenith-theme article :is(.hljs-string, .hljs-regexp, .hljs-addition) {
+    color: #b8cba6;
+}
+
+.zenith-theme article :is(.hljs-number, .hljs-literal, .hljs-symbol) {
+    color: #d7bf9a;
+}
+
+.zenith-theme article :is(.hljs-attr, .hljs-attribute, .hljs-variable, .hljs-params) {
+    color: #d0d4dc;
+}
+
+.zenith-theme article :is(.hljs-comment, .hljs-quote) {
+    color: #969fac;
+}
+
+.zenith-theme article .hljs-deletion {
+    color: #e5a4aa;
+}
+
+.zenith-theme article :is(.hljs-section, .hljs-name) {
+    color: #c6d7e9;
+}
+
+.line-highlight {
+    background: var(--zenith-graphite);
+}
+
+article .table-responsive {
+    margin-block: 24px;
+    border: 1px solid var(--zenith-border);
+    border-radius: var(--zenith-radius);
+    scrollbar-width: thin;
+}
+
+article .table {
+    --bs-table-color: var(--zenith-body);
+    --bs-table-bg: var(--zenith-canvas);
+    --bs-table-border-color: var(--zenith-border);
+    --bs-table-striped-bg: var(--zenith-surface);
+    --bs-table-striped-color: var(--zenith-body);
+    --bs-table-hover-bg: var(--zenith-surface);
+    --bs-table-hover-color: var(--zenith-text);
+    margin: 0;
+    font-size: 14px;
+}
+
+article .table > :not(caption) > * > * {
+    padding: 12px 16px;
+    border-width: 0 0 1px;
+}
+
+article .table th {
+    background: var(--zenith-surface);
+    color: var(--zenith-text);
+    font-weight: 600;
+}
+
+article .table tbody tr:last-child > * {
+    border-bottom: 0;
+}
+
+article .alert {
+    --zenith-notice: #a8cce4;
+    margin-block: 24px;
+    padding: 16px 20px;
+    border: 1px solid var(--zenith-border);
+    border-left: 3px solid var(--zenith-notice);
+    border-radius: var(--zenith-radius);
+    background: var(--zenith-surface);
+    color: var(--zenith-body);
+}
+
+article .alert-warning {
+    --zenith-notice: #d7bf9a;
+}
+
+article .alert-danger {
+    --zenith-notice: #e5a4aa;
+}
+
+article .alert-success {
+    --zenith-notice: #b8cba6;
+}
+
+article .alert > h5 {
+    margin: 0 0 8px;
+    color: var(--zenith-notice);
+    font-size: 14px;
+}
+
+article .alert > :last-child {
+    margin-bottom: 0;
+}
+
+article .tabGroup .nav-link {
+    color: var(--zenith-muted);
+    font-size: 14px;
+}
+
+article .tabGroup .nav-link.active,
+article .tabGroup > section.card {
+    background: var(--zenith-surface);
+    border-color: var(--zenith-border);
+    color: var(--zenith-text);
+}
+
+article pre.mermaid {
+    padding: 24px;
+    text-align: center;
+    background: var(--zenith-surface);
+}
+
+article :is(.memberName, .header-action, .xref) {
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 767.98px) {
+    article pre {
+        padding-inline: 14px;
+        font-size: 13px;
+    }
+}
+

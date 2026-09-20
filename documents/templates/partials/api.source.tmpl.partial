@@ -1,0 +1,5 @@
+{{#sourceurl}}
+<a class="api-source" href="{{sourceurl}}" target="_blank" rel="noopener noreferrer" title="View source" aria-label="View source for {{apiName}}">
+  <i class="bi bi-code-slash" aria-hidden="true"></i>
+</a>
+{{/sourceurl}}

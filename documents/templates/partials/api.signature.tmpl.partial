@@ -1,7 +1,37 @@
 {{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
-{{#parameters.0}}<div class="api-signature-section"><h4>Parameters</h4><dl class="api-parameters">{{#parameters}}<div><dt><code>{{id}}</code><span>{{{type.specName.0.value}}}</span></dt><dd>{{{description}}}</dd></div>{{/parameters}}</dl></div>{{/parameters.0}}
-{{#typeParameters.0}}<div class="api-signature-section"><h4>Type parameters</h4><dl class="api-parameters">{{#typeParameters}}<div><dt><code>{{id}}</code></dt><dd>{{{description}}}</dd></div>{{/typeParameters}}</dl></div>{{/typeParameters.0}}
-{{#return}}<dl class="api-value"><dt>Returns</dt><dd>{{{type.specName.0.value}}}{{#description}}<div>{{{description}}}</div>{{/description}}</dd></dl>{{/return}}
-{{#fieldValue}}<dl class="api-value"><dt>Type</dt><dd>{{{type.specName.0.value}}}{{#description}}<div>{{{description}}}</div>{{/description}}</dd></dl>{{/fieldValue}}
-{{#propertyValue}}<dl class="api-value"><dt>Type</dt><dd>{{{type.specName.0.value}}}{{#description}}<div>{{{description}}}</div>{{/description}}</dd></dl>{{/propertyValue}}
-{{#eventType}}<dl class="api-value"><dt>Type</dt><dd>{{{type.specName.0.value}}}{{#description}}<div>{{{description}}}</div>{{/description}}</dd></dl>{{/eventType}}
+{{#apiTypeParameterDescriptions.0}}
+<div class="api-signature-section">
+  <h4>Type parameters</h4>
+  <dl class="api-parameters">
+    {{#apiTypeParameterDescriptions}}
+    <div><dt><code>{{id}}</code></dt><dd>{{{description}}}</dd></div>
+    {{/apiTypeParameterDescriptions}}
+  </dl>
+</div>
+{{/apiTypeParameterDescriptions.0}}
+{{#apiParameterDescriptions.0}}
+<div class="api-signature-section">
+  <h4>Parameters</h4>
+  <dl class="api-parameters">
+    {{#apiParameterDescriptions}}
+    <div><dt><code>{{id}}</code></dt><dd>{{{description}}}</dd></div>
+    {{/apiParameterDescriptions}}
+  </dl>
+</div>
+{{/apiParameterDescriptions.0}}
+{{#apiResult}}
+{{#showType}}
+<dl class="api-value">
+  <dt>{{label}}</dt>
+  <dd>{{{type}}}{{#description}}<div>{{{description}}}</div>{{/description}}</dd>
+</dl>
+{{/showType}}
+{{^showType}}
+{{#description}}
+<div class="api-signature-section">
+  <h4>{{label}}</h4>
+  <div class="api-value-description">{{{description}}}</div>
+</div>
+{{/description}}
+{{/showType}}
+{{/apiResult}}

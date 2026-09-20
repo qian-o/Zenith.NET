@@ -4,9 +4,9 @@ export function initializeMotion() {
     if (preference.matches) return;
 
     const selector = document.querySelector('.home-page')
-        ? '.render-copy > *, .geometry-stage, .paths-intro, .path-card'
+        ? '.render-copy > *, .geometry-stage, .paths-intro, .path-grid'
         : document.querySelector('.learn-hub')
-            ? '.learn-hub > h1, .page-intro, .learning-entry, .hub-section-title, .section-description, .concept-list > a'
+            ? '.learn-hub > h1, .page-intro, .learning-entries, .hub-section-title, .section-description, .concept-list > a'
             : document.querySelector('.api-reference')
                 ? '.api-heading, .api-declaration, .api-start-grid, .api-group-heading'
                 : 'article > h1, article > p, article > section';

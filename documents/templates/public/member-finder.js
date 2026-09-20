@@ -1,4 +1,7 @@
-// A page-local symbol finder. Every result points to an existing DocFX member ID.
+import { closeContents, closeNavigation, isApplePlatform, isEditing } from './site.js';
+import { bindDialogKeys, isBackdropClick } from './dialog.js';
+
+// A page-local symbol finder. Every result points to a stable member anchor.
 export function initializeMemberFinder() {
     const dialog = document.getElementById('api-member-dialog');
     if (!dialog) return;
@@ -20,7 +23,7 @@ export function initializeMemberFinder() {
 
     let opener;
     let restoreFocus = true;
-    const shortcut = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌥ M' : 'Alt M';
+    const shortcut = isApplePlatform ? '⌥ M' : 'Alt M';
     for (const launcher of launchers) {
         launcher.hidden = false;
         launcher.title = `Find a member (${shortcut})`;
@@ -76,9 +79,8 @@ export function initializeMemberFinder() {
         if (document.querySelector('dialog[open]')) return;
         opener = button || visibleLauncher();
         restoreFocus = true;
-        document.querySelector('#tocOffcanvas.show .contents-close')?.click();
-        document.getElementById('menu-toggle').setAttribute('aria-expanded', 'false');
-        document.querySelector('.site-header').classList.remove('menu-open');
+        closeContents();
+        closeNavigation();
         render();
         dialog.showModal();
         input.focus();
@@ -99,8 +101,7 @@ export function initializeMemberFinder() {
     });
     dialog.addEventListener('click', event => {
         if (event.target === dialog) {
-            const bounds = dialog.getBoundingClientRect();
-            if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
+            if (isBackdropClick(event, dialog)) dialog.close();
             return;
         }
         const link = event.target.closest('[data-member-target]');
@@ -125,24 +126,10 @@ export function initializeMemberFinder() {
         event.preventDefault();
         results.querySelector('a')?.click();
     });
-    dialog.addEventListener('keydown', event => {
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            event.stopPropagation();
-            dialog.close();
-            return;
-        }
-        if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
-        const links = [...results.querySelectorAll('a')];
-        if (!links.length) return;
-        event.preventDefault();
-        const current = links.indexOf(document.activeElement);
-        const next = event.key === 'ArrowDown' ? (current + 1) % links.length : (current <= 0 ? links.length - 1 : current - 1);
-        links[next].focus();
-    }, { capture: true });
+    bindDialogKeys(dialog, { items: '#api-member-results a', close: () => dialog.close() });
     document.addEventListener('keydown', event => {
-        if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.repeat || event.code !== 'KeyM' && event.key.toLowerCase() !== 'm') return;
-        if (event.target.closest('input, textarea, select, [contenteditable]')) return;
+        if (event.isComposing || !event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.repeat || event.code !== 'KeyM' && event.key.toLowerCase() !== 'm') return;
+        if (isEditing(event.target)) return;
         event.preventDefault();
         if (dialog.open) dialog.close();
         else open();

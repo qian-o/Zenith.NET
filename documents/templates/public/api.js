@@ -5,6 +5,7 @@ export async function initializeApi() {
 
     const picker = document.getElementById('api-namespace');
     const filter = document.getElementById('api-type-filter');
+    const clear = document.getElementById('api-type-clear');
     const list = document.getElementById('api-type-list');
     const status = document.getElementById('api-browser-status');
     const scope = document.getElementById('api-type-scope');
@@ -32,6 +33,8 @@ export async function initializeApi() {
         });
         const current = href => new URL(href).pathname === location.pathname;
         const activeNamespace = namespaces.find(item => current(item.href) || item.types.some(type => current(type.href))) || namespaces[0];
+        if (!activeNamespace) throw new Error('No namespaces were generated.');
+        const allTypes = namespaces.flatMap(namespace => namespace.types.map(type => ({ ...type, namespace: namespace.name })));
         picker.replaceChildren(...namespaces.map(item => {
             const option = document.createElement('option');
             option.value = item.href;
@@ -49,9 +52,9 @@ export async function initializeApi() {
 
         function renderTypes() {
             const query = filter.value.trim().toLowerCase();
+            clear.hidden = !filter.value;
             const entries = query
-                ? namespaces.flatMap(namespace => namespace.types.map(type => ({ ...type, namespace: namespace.name })))
-                    .filter(type => `${type.name} ${type.namespace}`.toLowerCase().includes(query))
+                ? allTypes.filter(type => `${type.name} ${type.namespace}`.toLowerCase().includes(query))
                 : activeNamespace.types;
             const fragment = document.createDocumentFragment();
             for (const type of entries) {
@@ -81,6 +84,11 @@ export async function initializeApi() {
             status.textContent = query ? 'No matching types.' : 'No types in this namespace.';
         }
         filter.addEventListener('input', renderTypes);
+        clear.addEventListener('click', () => {
+            filter.value = '';
+            renderTypes();
+            filter.focus();
+        });
         filter.addEventListener('keydown', event => {
             if (event.key === 'Escape') {
                 filter.value = '';

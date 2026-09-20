@@ -1,0 +1,22 @@
+<header class="site-header">
+  {{^_disableNavbar}}
+  <nav class="site-nav container-xxl" aria-label="Main navigation">
+    <a class="navbar-brand" aria-label="Zenith.NET home" href="{{_appLogoUrl}}{{^_appLogoUrl}}{{_rel}}index.html{{/_appLogoUrl}}">
+      <img id="logo" src="{{_rel}}{{{_appLogoPath}}}" width="252" height="64" alt="">
+    </a>
+    <div id="site-menu" class="site-menu">
+      <div id="navbar"></div>
+      {{#apiHasMemberFinder}}<div class="api-menu-member">{{>partials/api.member-launcher}}</div>{{/apiHasMemberFinder}}
+    </div>
+    <div class="site-actions">
+      {{#_enableSearch}}
+      <button class="search-launcher" id="search-open" type="button" aria-label="Search documentation" aria-haspopup="dialog" aria-controls="search-dialog">
+        <i class="bi bi-search" aria-hidden="true"></i>
+      </button>
+      {{/_enableSearch}}
+      <a class="source-link" href="https://github.com/qian-o/Zenith.NET" aria-label="GitHub"><i class="bi bi-github" aria-hidden="true"></i></a>
+      <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Toggle navigation" aria-controls="site-menu" aria-expanded="false"><span></span><span></span></button>
+    </div>
+  </nav>
+  {{/_disableNavbar}}
+</header>

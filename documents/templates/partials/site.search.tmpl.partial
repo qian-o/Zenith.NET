@@ -1,0 +1,21 @@
+{{#_enableSearch}}
+<dialog class="site-search" id="search-dialog" aria-labelledby="search-title">
+  <h2 id="search-title" class="visually-hidden">Search documentation</h2>
+  <form class="search-input-row" role="search" id="site-search-form">
+    <i class="bi bi-search" aria-hidden="true"></i>
+    <input id="site-search-input" type="search" placeholder="What are you looking for?" autocomplete="off" aria-label="Search documentation" aria-describedby="search-status" autofocus>
+    <button id="search-close" type="button" aria-label="Close search">Esc</button>
+  </form>
+  <div class="search-scroll">
+    <p id="search-status" role="status" aria-live="polite">Search the docs, concepts, and API.</p>
+    <div class="search-shortcuts" id="search-shortcuts">
+      <a href="{{_rel}}learn/first-triangle.html" data-search-item><span>First Triangle</span><small>Tutorial</small></a>
+      <a href="{{_rel}}learn/samples.html" data-search-item><span>Samples</span><small>Source code</small></a>
+      <a href="{{_rel}}api/index.html" data-search-item><span>API Reference</span><small>Reference</small></a>
+    </div>
+    <ul id="site-search-results"></ul>
+    <button id="search-more" class="search-more" type="button" hidden>Show more results</button>
+  </div>
+  <div class="search-footer"><span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span><span><kbd>Enter</kbd> Open</span></div>
+</dialog>
+{{/_enableSearch}}
