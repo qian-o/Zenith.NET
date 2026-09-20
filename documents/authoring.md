@@ -58,6 +58,8 @@ Teach the triangle in cumulative steps: an empty window, a presented clear color
 
 Follow the established tutorial source's code style: explicit control flow, target-typed initialization, and its blank lines between logical operations and fields. Do not compress branches into nested conditional expressions, manually wrap method calls to fit the page, or introduce constants and helper functions solely to reorganize the article. Long code lines scroll within the existing code blocks.
 
+Use ordinary file-level `using` directives in the standalone tutorial. A support file copied from the tutorial repository may rely on that repository's global imports; state the imports it needs in the reader's project instead of introducing a global import to make the file compile.
+
 Introduce file settings when the file is created. For a shader, describe its Copy to Output Directory setting after writing the shader; do not front-load project XML for files the reader has not created. Prefer a directly linked support filename with a short purpose statement over raw-file download instructions.
 
 Keep snippets consistent with the complete application. The assembled source must not depend on omitted setup or unexplained helper methods. Keep platform-specific alternatives only where they are necessary to run it.
@@ -68,13 +70,25 @@ Compile the complete tutorial using its documented setup and run it to verify th
 
 ## Inline references
 
-Use DocFX UIDs so links follow the generated API reference:
+In Learn prose and tables, link every explicitly named Zenith.NET API identifier that has a reference on this site. Use DocFX UIDs so the build checks the target and the link follows the generated API. Link a type to its type page, a member to its member entry, and a method family to its overload group when the discussion applies to all overloads. Repeated mentions follow the same rule; do not link only an arbitrary first occurrence.
 
-```markdown
-Create a [`GraphicsContext`](xref:Zenith.NET.GraphicsContext).
+Keep the link and code styling in the shared page's slot. The English dictionary contains the complete sentence and its named placeholder, as described under [Resource keys and placeholders](#resource-keys-and-placeholders):
+
+```html
+<slot name="graphicsContext"><a class="xref" href="xref:Zenith.NET.GraphicsContext"><code>GraphicsContext</code></a></slot>
 ```
 
-Plain backticks mark code without adding a link. Specify a UID when a reference is intended; identical names alone do not establish which symbol they refer to.
+For a code expression, link only the API symbols. Keep local variables, arguments, punctuation and operators as text within the same slot so translators can move the complete expression:
+
+```html
+<slot name="contextGraphicsApi"><code>context.<a class="code-reference" href="xref:Zenith.NET.GraphicsContext.GraphicsApi">GraphicsApi</a></code></slot>
+```
+
+Plain code is intentional for variables, parameter names, keywords, literals, sample-defined types, package names, filenames and external symbols without a local reference. Resolve the meaning in context: the sample's `Vertex` struct differs from `BufferUsages.Vertex`, and the `Zenith.NET` package name differs from the namespace. A window's `Dispose()` must not link to the RHI's disposal method just because they share a name.
+
+If a documented API is absent from the generated reference, keep its identifier plain and provide a clearly labeled source link nearby. Do not substitute a containing type or unrelated member. Links belong to the shared markup, not translated strings; translators retain and may reorder the named placeholders without choosing API destinations.
+
+Ordinary tutorial code fences remain unlinked. Syntax coloring does not imply a reference. The explicit linked-block mechanism and the generated declaration scope below remain separate from this prose rule.
 
 ## Linked code blocks
 
