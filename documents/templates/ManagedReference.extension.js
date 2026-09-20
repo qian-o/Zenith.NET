@@ -5,10 +5,11 @@ function prepareSignature(syntax, strings) {
     if (!syntax) return;
     const value = syntax.fieldValue || syntax.propertyValue || syntax.eventType || syntax.return;
     if (value) {
+        const labelKey = 'ui.reference.' + (syntax.return ? 'returns' : 'value');
         syntax.apiValueReference = value.type?.specName?.[0]?.value;
         syntax.apiResult = {
-            labelKey: 'ui.reference.' + (syntax.return ? 'returns' : 'value'),
-            label: resources.get(strings, 'ui.reference.' + (syntax.return ? 'returns' : 'value')),
+            labelKey,
+            label: resources.get(strings, labelKey),
             type: syntax.apiValueReference,
             description: value.description,
             showType: !syntax.content?.[0]?.value
@@ -30,9 +31,9 @@ exports.postTransform = function (model) {
     model.title = model.apiName;
     model.apiHasMemberFinder = !model.isNamespace;
     model.apiSeeAlsoId = 'seealso';
-    model.apiHasRelationships = relationshipKeys.some(key => model[key]?.length > 0);
-    model.apiHasTypeDetails = !model.isNamespace && (model.apiHasRelationships || !!model.namespace?.uid || !!model.assemblies?.length);
-    model.apiTypeDetailsKey = 'ui.reference.' + (model.apiHasRelationships ? 'relationships' : 'metadata');
+    const hasRelationships = relationshipKeys.some(key => model[key]?.length > 0);
+    model.apiHasTypeDetails = !model.isNamespace && (hasRelationships || !!model.namespace?.uid || !!model.assemblies?.length);
+    model.apiTypeDetailsKey = 'ui.reference.' + (hasRelationships ? 'relationships' : 'metadata');
     model.apiTypeDetailsLabel = resources.get(strings, model.apiTypeDetailsKey);
     prepareSignature(model.syntax, strings);
     if (model.syntax) {

@@ -45,7 +45,6 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 .api-namespace-picker {
     border-radius: calc(var(--zenith-radius) - 1px) calc(var(--zenith-radius) - 1px) 0 0;
     position: relative;
-    flex-shrink: 0;
     min-height: 44px;
     padding: 11px 32px 11px 12px;
     color: var(--zenith-text);
@@ -72,7 +71,6 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 .api-namespace-picker, .api-type-search {
-    border-radius: 0 0 calc(var(--zenith-radius) - 1px) calc(var(--zenith-radius) - 1px);
     transition: box-shadow 180ms, background-color 180ms;
 }
 
@@ -101,6 +99,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     min-height: 42px;
     padding: 8px 12px;
     border-top: 1px solid var(--zenith-border);
+    border-radius: 0 0 calc(var(--zenith-radius) - 1px) calc(var(--zenith-radius) - 1px);
     color: var(--zenith-muted);
 }
 
@@ -242,10 +241,6 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 
 .api-heading > .api-summary {
     margin-top: 18px;
-}
-
-.api-summary > :last-child {
-    margin-bottom: 0;
 }
 
 .api-reference :is(.api-summary, .api-value-description, .api-parameters dd, .api-member-notes) > :is(p, ul, ol, dl) {
@@ -709,10 +704,6 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     font-size: 13px;
 }
 
-.api-value-description > :last-child {
-    margin-bottom: 0;
-}
-
 .api-signature-section, .api-member-notes, .api-related {
     margin-top: 18px;
 }
@@ -901,11 +892,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     font: 10px/1.5 var(--bs-font-monospace);
 }
 
-.api-mobile-tools {
-    display: none;
-}
-
-.api-menu-member {
+.api-mobile-tools, .api-menu-member {
     display: none;
 }
 
@@ -919,7 +906,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
         column-gap: 28px;
     }
 
-    .api-type-grid, .api-namespace-grid {
+    .api-namespace-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
@@ -979,7 +966,6 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 
     .api-mobile-tools > .api-member-launcher {
         width: auto;
-        min-height: 40px;
     }
 
     .menu-open .api-menu-member {

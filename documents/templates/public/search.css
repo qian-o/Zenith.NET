@@ -67,22 +67,27 @@ body:has(.site-search[open]) {
     border-bottom-color: var(--zenith-focus);
 }
 
-#site-search-input {
+#site-search-input, #api-member-query {
     width: 100%;
     min-width: 0;
-    padding: 6px 0;
+    padding: 0;
     border: 0;
     outline: none;
     background: none;
     color: var(--zenith-text);
+    font: 16px/1.6 var(--bs-body-font-family);
+}
+
+#site-search-input {
+    padding: 6px 0;
     font: 400 21px/1.5 var(--bs-body-font-family);
 }
 
-#site-search-input::placeholder {
+#site-search-input::placeholder, #api-member-query::placeholder {
     color: var(--zenith-muted);
 }
 
-#site-search-input::-webkit-search-cancel-button {
+#site-search-input::-webkit-search-cancel-button, #api-member-query::-webkit-search-cancel-button {
     display: none;
 }
 
@@ -113,7 +118,7 @@ body:has(.site-search[open]) {
     font: 12px/1.5 var(--bs-body-font-family);
 }
 
-#site-search-results {
+#site-search-results, #api-member-results ul {
     margin: 0;
     padding: 0;
     list-style: none;
@@ -233,25 +238,6 @@ body:has(.site-search[open]) {
     border-color: var(--zenith-focus);
 }
 
-#api-member-query {
-    width: 100%;
-    min-width: 0;
-    padding: 0;
-    border: 0;
-    outline: 0;
-    background: none;
-    color: var(--zenith-text);
-    font: 16px/1.6 var(--bs-body-font-family);
-}
-
-#api-member-query::placeholder {
-    color: var(--zenith-muted);
-}
-
-#api-member-query::-webkit-search-cancel-button {
-    display: none;
-}
-
 #api-member-clear {
     flex-shrink: 0;
     width: 30px;
@@ -280,12 +266,6 @@ body:has(.site-search[open]) {
     font: 500 11px/1.5 var(--bs-body-font-family);
 }
 
-#api-member-results ul {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
 #api-member-results a {
     display: block;
     padding: 11px 12px;
@@ -298,7 +278,6 @@ body:has(.site-search[open]) {
 
 #api-member-results a:hover, #api-member-results a:focus-visible {
     background: var(--zenith-hover);
-    color: var(--zenith-text);
 }
 
 #api-member-results a:focus-visible {
@@ -344,4 +323,3 @@ body:has(.site-search[open]) {
         padding: 12px 16px;
     }
 }
-

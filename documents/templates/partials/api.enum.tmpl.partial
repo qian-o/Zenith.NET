@@ -13,6 +13,3 @@
   </div>
 </section>
 {{/children}}
-{{#remarks}}<section class="api-group"><h2 id="{{id}}_remarks" data-resource="ui.reference.remarks">{{r.ui.reference.remarks}}</h2>{{{remarks}}}</section>{{/remarks}}
-{{#example.0}}<section class="api-group"><h2 id="{{id}}_examples" data-resource="ui.reference.examples">{{r.ui.reference.examples}}</h2>{{#example}}{{{.}}}{{/example}}</section>{{/example.0}}
-{{>partials/api.seealso}}
