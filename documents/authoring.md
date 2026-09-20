@@ -8,6 +8,8 @@ The DocFX framework, content paths, navigation and single dark theme are the acc
 
 Keep the existing filenames, routes and `toc.yml` hierarchy. Retain the original brand assets and the shared templates. Use the existing Markdown components instead of introducing page-specific CSS, scripts, controls or a second theme. A reproducible rendering or accessibility defect can receive a focused fix; new visual directions and navigation changes are separate work.
 
+The brand footer belongs only to the landing page. Learn and API pages end with their content, keeping the reading layout and sidebars continuous to the bottom.
+
 Keep scratch pages, validation scripts and preview fixtures outside the repository. Do not recreate `documents/tests`, publish test content, or reintroduce the temporary `Buffer` XML comments. Do not edit generated `documents/api/*.yml` or `documents/_site` files.
 
 ## Page responsibilities

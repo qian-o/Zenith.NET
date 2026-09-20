@@ -397,6 +397,49 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
     font-size: 12px;
 }
 
+/* Landing-page footer */
+body.zenith-theme > footer {
+    flex: 0 0 auto;
+    height: auto;
+    padding: 0;
+    background: var(--zenith-canvas);
+    font-size: 12px;
+}
+
+.zenith-theme > footer > div {
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 88px;
+    padding-block: 24px;
+}
+
+.footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--zenith-text);
+    font-weight: 500;
+}
+
+.footer-caption {
+    color: var(--zenith-muted);
+    font-weight: 400;
+}
+
+.footer-links {
+    display: flex;
+    gap: 24px;
+}
+
+.footer-links a {
+    color: var(--zenith-muted);
+    text-decoration: none;
+}
+
+.footer-links a:hover {
+    color: var(--zenith-text);
+}
+
 @media (min-width: 768px) and (max-width: 899.98px) {
     .learning-entries {
         grid-template-columns: 1fr;
@@ -404,6 +447,15 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
 }
 
 @media (max-width: 767.98px) {
+    .zenith-theme > footer > div {
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .footer-links {
+        gap: 20px;
+    }
+
     .home-page {
         padding-block: 8px 44px;
     }

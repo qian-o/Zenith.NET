@@ -401,48 +401,6 @@ body.zenith-theme > main.container-xxl > .toc-offcanvas {
     outline: none;
 }
 
-body.zenith-theme > footer {
-    flex: 0 0 auto;
-    height: auto;
-    padding: 0;
-    background: var(--zenith-canvas);
-    font-size: 12px;
-}
-
-.zenith-theme > footer > div {
-    justify-content: space-between;
-    gap: 24px;
-    min-height: 88px;
-    padding-block: 24px;
-}
-
-.footer-brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--zenith-text);
-    font-weight: 500;
-}
-
-.footer-caption {
-    color: var(--zenith-muted);
-    font-weight: 400;
-}
-
-.footer-links {
-    display: flex;
-    gap: 24px;
-}
-
-.footer-links a {
-    color: var(--zenith-muted);
-    text-decoration: none;
-}
-
-.footer-links a:hover {
-    color: var(--zenith-text);
-}
-
 @media (min-width: 1200px) {
     body.zenith-theme > main.container-xxl:has(> .article-outline:not([hidden])) {
         grid-template-columns: var(--zenith-sidebar-width) minmax(0, 1fr) var(--zenith-outline-width);
@@ -532,15 +490,6 @@ body.zenith-theme > footer {
     body.zenith-theme > main > .content > .contents-toggle {
         display: inline-flex;
         margin-bottom: 24px;
-    }
-
-    .zenith-theme > footer > div {
-        flex-wrap: wrap;
-        gap: 20px;
-    }
-
-    .footer-links {
-        gap: 20px;
     }
 }
 

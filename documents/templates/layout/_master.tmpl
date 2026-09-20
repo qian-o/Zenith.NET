@@ -66,6 +66,6 @@
 
     {{>partials/site.search}}
 
-    {{>partials/site.footer}}
+    {{#_isLanding}}{{>partials/site.footer}}{{/_isLanding}}
   </body>
 </html>
