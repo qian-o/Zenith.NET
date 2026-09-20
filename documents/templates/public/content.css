@@ -61,7 +61,19 @@ article pre .code-action {
 }
 
 .zenith-theme article :is(.hljs-title, .hljs-built_in, .hljs-type) {
-    color: #a8cce4;
+    color: #a8d3c5;
+}
+
+.zenith-theme article :is(.hljs-title.function_, .hljs-function > .hljs-title) {
+    color: #dfcda8;
+}
+
+.zenith-theme article .hljs-property {
+    color: #c5d3e7;
+}
+
+.zenith-theme article .hljs-operator {
+    color: #a8b3c3;
 }
 
 .zenith-theme article :is(.hljs-string, .hljs-regexp, .hljs-addition) {
@@ -109,6 +121,7 @@ article .table {
     --bs-table-hover-color: var(--zenith-text);
     margin: 0;
     font-size: 14px;
+    overflow-wrap: normal;
 }
 
 article .table > :not(caption) > * > * {
@@ -187,4 +200,3 @@ article :is(.memberName, .header-action, .xref) {
         font-size: 13px;
     }
 }
-

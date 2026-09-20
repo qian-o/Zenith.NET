@@ -71,7 +71,7 @@ function initializeLearnToc() {
 function labelCodeBlocks() {
     const labels = {
         bash: 'Shell', console: 'Console', cs: 'C#', csharp: 'C#', json: 'JSON',
-        powershell: 'PowerShell', shell: 'Shell', slang: 'Slang', text: 'Text',
+        powershell: 'PowerShell', sh: 'Shell', shell: 'Shell', slang: 'Slang', text: 'Text',
         xml: 'XML', yaml: 'YAML', yml: 'YAML'
     };
     for (const code of document.querySelectorAll('article pre > code')) {

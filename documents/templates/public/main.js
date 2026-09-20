@@ -4,6 +4,8 @@ import { initializeHomeScene } from './home.js';
 import { initializeMotion } from './motion.js';
 import { initializeApi } from './api.js';
 import { initializeMemberFinder } from './member-finder.js';
+import { initializeOutline } from './outline.js';
+import { configureSyntax } from './syntax.js';
 import { linkSignatureType } from './signature-links.js';
 import { preserveCodeReferences, restoreCodeReferences } from './code-links.js';
 
@@ -12,8 +14,7 @@ import { preserveCodeReferences, restoreCodeReferences } from './code-links.js';
 export default {
     defaultTheme: 'dark',
     configureHljs: hljs => {
-        hljs.registerAliases(['slang'], { languageName: 'cpp' });
-        hljs.registerAliases(['console'], { languageName: 'shell' });
+        configureSyntax(hljs);
         hljs.addPlugin({
             'before:highlightElement': preserveCodeReferences,
             'after:highlightElement': event => {
@@ -44,6 +45,7 @@ export default {
     },
     start: () => {
         initializeSite();
+        initializeOutline();
         initializeSearch();
         initializeHomeScene();
         initializeApi();

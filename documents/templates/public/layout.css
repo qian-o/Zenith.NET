@@ -163,7 +163,8 @@ body.zenith-theme > main.container-xxl > :is(.toc-offcanvas, .affix) {
 
 body.zenith-theme > main.container-xxl > .affix {
     grid-column: 3;
-    padding-top: 42px;
+    padding-block: 36px 24px;
+    overflow: hidden;
 }
 
 body.zenith-theme > main.container-xxl > .toc-offcanvas {
@@ -276,30 +277,78 @@ body.zenith-theme > main.container-xxl > .toc-offcanvas {
     font-weight: 600;
 }
 
-#affix {
+#article-outline {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - var(--zenith-header-height) - 60px);
     font-size: 13px;
     line-height: 1.55;
 }
 
-#affix h5 {
-    display: block;
-    margin: 0 0 14px;
-    padding: 0 0 6px;
-    color: var(--zenith-muted);
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0;
-    text-transform: none;
+.outline-title {
+    flex: 0 0 auto;
+    padding: 0 10px 14px;
+    color: var(--zenith-text);
+    font-size: 13px;
+    font-weight: 600;
 }
 
-#affix a {
+#article-outline ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+#article-outline .outline-list {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--zenith-border) transparent;
+    padding: 2px 4px 2px 2px;
+}
+
+#article-outline .outline-list > li + li {
+    margin-top: 5px;
+}
+
+#article-outline li > ul {
+    padding-left: 14px;
+    margin-block: 2px 6px;
+    font-size: 12px;
+}
+
+.outline-link {
     display: block;
-    padding-block: 3px;
+    padding: 6px 9px;
+    border-radius: 5px;
+    color: var(--zenith-muted);
+    overflow-wrap: break-word;
+    text-decoration: none;
+    transition: color var(--zenith-state-duration), background-color var(--zenith-state-duration);
+}
+
+.outline-section-current > .outline-link {
+    color: var(--zenith-text);
+}
+
+.outline-link:hover {
+    color: var(--zenith-text);
+    background: var(--zenith-surface);
     text-decoration: none;
 }
 
-#affix a:hover {
-    text-decoration: underline;
+.outline-link[aria-current] {
+    color: var(--zenith-text);
+    background: var(--zenith-graphite);
+}
+
+.outline-link:focus-visible {
+    outline-offset: -2px;
+}
+
+.outline-target:focus {
+    outline: none;
 }
 
 body.zenith-theme > footer {
@@ -458,4 +507,3 @@ body.zenith-theme > footer {
         display: none !important;
     }
 }
-

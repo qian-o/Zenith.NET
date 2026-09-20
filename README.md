@@ -17,13 +17,13 @@
 
 ## Overview
 
-Zenith.NET provides one C# API for graphics and compute across DirectX 12, Metal 4, and Vulkan 1.4. It gives applications explicit control over GPU resources, pipelines, command recording, synchronization, and presentation.
+Zenith.NET is a rendering hardware interface (RHI) that provides one C# API for graphics and compute across DirectX 12, Metal 4, and Vulkan 1.4. It gives applications explicit control over GPU resources, pipelines, command recording, synchronization, and presentation.
 
 Build rasterization and compute workloads, access shader resources through bindless handles, and coordinate GPU work through queues, barriers, and timelines. Inline ray tracing and mesh shading are available through the same API when the device exposes the corresponding capabilities.
 
 ## Getting Started
 
-In a .NET 10 project, install the core package and the backend you want to use. For Vulkan:
+In a .NET 10 project, install the core package and a backend supported by your platform and graphics driver. For Vulkan:
 
 ```console
 dotnet add package Zenith.NET
@@ -37,9 +37,11 @@ using Zenith.NET;
 using Zenith.NET.Vulkan;
 
 using GraphicsContext context = GraphicsContext.CreateVulkan(useValidationLayer: true);
+
+context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Severity}] {args.Message}");
 ```
 
-The [First Triangle](https://qian-o.github.io/Zenith.NET/learn/first-triangle.html) tutorial is being prepared.
+Follow [First Triangle](https://qian-o.github.io/Zenith.NET/learn/first-triangle.html) to build a .NET console application with NuGet packages, from an empty window to the first rendered frame.
 
 ## Packages
 
@@ -75,12 +77,12 @@ Choose packages by their role in your application. Add a graphics backend, then 
 | `Zenith.NET.Views.WinUI` | WinUI 3 and Uno rendering control. |
 | `Zenith.NET.Views.WPF` | WPF rendering control. |
 
-The [Platform Integration](https://qian-o.github.io/Zenith.NET/learn/concepts/platform-integration.html) guide is being prepared.
+See [Platform Integration](https://qian-o.github.io/Zenith.NET/learn/concepts/platform-integration.html) for native surfaces, frame ownership and UI integration choices.
 
 ## Documentation and Examples
 
-- [Learn](https://qian-o.github.io/Zenith.NET/learn/) — the documentation outline; content is being prepared.
-- [Samples](https://qian-o.github.io/Zenith.NET/learn/samples.html) — the sample index placeholder.
+- [Learn](https://qian-o.github.io/Zenith.NET/learn/) — a complete triangle tutorial and guides to the programming model.
+- [Samples](https://qian-o.github.io/Zenith.NET/learn/samples.html) — focused examples with C# and Slang source links.
 - [API Reference](https://qian-o.github.io/Zenith.NET/api/) — types and members.
 - [Experiments](sources/Experiments/) — sample applications and utilities in this repository.
 
