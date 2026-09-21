@@ -1,0 +1,31 @@
+﻿<header class="site-header">
+    <nav class="site-nav container-xxl" data-resource-label="ui.navigation.label" aria-label="{{r.ui.navigation.label}}">
+        <a class="skip-link visually-hidden-focusable" href="#main-content" data-resource="ui.navigation.skip">{{r.ui.navigation.skip}}</a>
+        <a class="navbar-brand" data-resource-label="ui.navigation.home" aria-label="{{r.ui.navigation.home}}" href="{{_rel}}index.html">
+            <img id="logo" src="{{_rel}}{{{_appLogoPath}}}" width="252" height="64" alt="">
+        </a>
+        <div id="site-menu" class="site-menu">
+            <div id="primary-navigation"></div>
+            {{#apiHasMemberFinder}}
+                <div class="api-menu-member">
+                    {{>partials/api.member-launcher}}
+                </div>
+            {{/apiHasMemberFinder}}
+        </div>
+        <div class="site-actions">
+            {{>partials/site.language}}
+            {{#_enableSearch}}
+                <button class="search-launcher" id="search-open" type="button" data-resource-label="ui.search.title" aria-label="{{r.ui.search.title}}" aria-haspopup="dialog" aria-controls="search-dialog">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                </button>
+            {{/_enableSearch}}
+            <a class="source-link" href="https://github.com/qian-o/Zenith.NET" aria-label="GitHub">
+                <i class="bi bi-github" aria-hidden="true"></i>
+            </a>
+            <button class="menu-toggle" id="menu-toggle" type="button" data-resource-label="ui.navigation.toggle" aria-label="{{r.ui.navigation.toggle}}" aria-controls="site-menu" aria-expanded="false">
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+</header>

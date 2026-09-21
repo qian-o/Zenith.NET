@@ -1,0 +1,538 @@
+﻿/* Home: typography and an interactive geometry study */
+body.zenith-theme[data-layout="landing"] > main.container-xxl {
+    display: block;
+}
+
+body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
+    padding: 0;
+}
+
+.home-page {
+    padding-block: 12px 76px;
+}
+
+.render-hero {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px;
+    align-items: start;
+}
+
+.render-copy {
+    position: relative;
+    z-index: 1;
+    padding-top: clamp(48px, 4vw, 80px);
+}
+
+.render-copy h1 {
+    margin: 0 0 24px;
+    font-size: clamp(46px, 5.1vw, 88px);
+    font-weight: 600;
+    letter-spacing: -.035em;
+    line-height: 1.08;
+}
+
+.render-copy h1 span {
+    color: #bdd7f7;
+}
+
+.render-description {
+    max-width: 460px;
+    color: var(--zenith-body);
+    font-size: 18px;
+    line-height: 1.65;
+}
+
+.hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 28px;
+}
+
+.backend-note {
+    margin: 24px 0 0;
+    color: var(--zenith-muted);
+    font-size: 13px;
+}
+
+.build-button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 9px 16px;
+    border: 0;
+    background: var(--zenith-action);
+    color: #15191f;
+    font: 600 14px/1.5 var(--bs-body-font-family);
+    text-decoration: none;
+    border-radius: 5px;
+}
+
+.build-button:hover {
+    color: #101216;
+    background: #f7f9fc;
+    box-shadow: 0 0 20px #d8e4f31a;
+}
+
+.build-button.secondary {
+    background: var(--zenith-control-bg);
+    color: var(--zenith-action);
+    font-weight: 500;
+}
+
+.build-button.secondary:hover {
+    background: var(--zenith-hover);
+    color: #fff;
+}
+
+.geometry-stage {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 16px;
+    min-width: 0;
+    height: clamp(540px, 30vw, 640px);
+    padding-bottom: 16px;
+    background: radial-gradient(ellipse closest-side at 50% 45%, #789ac82b, #789ac800);
+}
+
+#home-geometry {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    touch-action: pan-y;
+    cursor: grab;
+}
+
+#home-geometry.is-dragging {
+    cursor: grabbing;
+}
+
+.scene-toolbar {
+    min-width: 0;
+    justify-self: center;
+}
+
+.scene-options {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0 24px;
+}
+
+.scene-options button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 8px 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    color: var(--zenith-muted);
+    font: 500 12px/1.5 var(--bs-body-font-family);
+    cursor: pointer;
+}
+
+.scene-options button::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border: 1px solid #69788b;
+    border-radius: 50%;
+    transition: background-color 240ms, border-color 240ms, box-shadow 240ms;
+}
+
+.scene-options button:hover {
+    color: #fff;
+}
+
+.scene-options button[aria-pressed="true"] {
+    color: #e9f3ff;
+}
+
+.scene-options button[aria-pressed="true"]::before {
+    border-color: var(--zenith-action);
+    background: var(--zenith-action);
+    box-shadow: 0 0 10px #c6ddfa4d;
+}
+
+.home-paths {
+    padding-top: 38px;
+    border-top: 1px solid var(--zenith-border);
+}
+
+.paths-intro {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 28px;
+}
+
+.paths-intro h2 {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: clamp(28px, 3vw, 38px);
+    line-height: 1.15;
+    letter-spacing: -1.5px;
+}
+
+.paths-intro p {
+    margin: 0;
+    color: var(--zenith-muted);
+    font-size: 13px;
+    line-height: 1.8;
+}
+
+.path-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.path-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 310px;
+    padding: 26px;
+    border: 1px solid var(--zenith-control-border);
+    border-radius: var(--zenith-radius);
+    background: var(--zenith-surface);
+    color: var(--zenith-text);
+    text-decoration: none;
+}
+
+.path-label {
+    display: flex;
+    justify-content: space-between;
+    color: var(--zenith-muted);
+    font: 11px/1.5 var(--bs-font-monospace);
+}
+
+.path-label > span {
+    color: #6f89ac;
+}
+
+.path-art {
+    position: absolute;
+    top: 48px;
+    right: 22px;
+    width: 136px;
+    height: 76px;
+    opacity: .8;
+    pointer-events: none;
+    transition: opacity 240ms;
+}
+
+.path-card h3 {
+    margin: 90px 0 12px;
+    color: var(--zenith-text);
+    font-size: 24px;
+    font-weight: 550;
+    letter-spacing: -.65px;
+}
+
+.path-card p {
+    max-width: 310px;
+    margin: 0 0 24px;
+    color: var(--zenith-muted);
+    font-size: 13px;
+    line-height: 1.8;
+}
+
+.path-cta, .entry-action {
+    align-self: flex-start;
+    margin-top: auto;
+    color: var(--zenith-action);
+    font-size: 13px;
+    font-weight: 600;
+    transition: color var(--zenith-state-duration);
+}
+
+.path-card:hover {
+    border-color: var(--zenith-border-hover);
+    color: #fff;
+    box-shadow: inset 0 0 32px #b3d3ff0a;
+}
+
+.path-card:hover .path-art {
+    opacity: 1;
+}
+
+.path-card:is(:hover, :focus-visible) .path-cta {
+    color: #fff;
+}
+
+/* Learning hub */
+.learning-entry {
+    position: relative;
+    display: grid;
+    grid-template-rows: 92px auto 1fr auto;
+    align-content: start;
+    gap: 0;
+    min-width: 0;
+    padding: 28px;
+    border: 1px solid var(--zenith-control-border);
+    border-radius: var(--zenith-radius);
+    background: var(--zenith-surface);
+    color: var(--zenith-text);
+    text-decoration: none;
+}
+
+.learning-entry:hover {
+    border-color: var(--zenith-border-hover);
+    color: var(--zenith-text);
+    box-shadow: inset 0 0 0 1px #c3d6f029, inset 0 0 36px #c3d6f009;
+}
+
+.learning-entry h2 {
+    margin: 0 0 10px;
+    padding: 0;
+    border: 0;
+    font-size: 22px;
+    letter-spacing: -.6px;
+}
+
+.learning-entry p {
+    margin: 0 0 24px;
+    color: var(--zenith-muted);
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.learning-entry:is(:hover, :focus-visible) .entry-action {
+    color: #fff;
+}
+
+.learn-hub > h1 {
+    margin-bottom: 12px;
+    font-size: clamp(34px, 3.3vw, 48px);
+    letter-spacing: -1.5px;
+}
+
+.page-intro {
+    max-width: 640px;
+    color: var(--zenith-muted);
+    font-size: 16px;
+    line-height: 1.8;
+}
+
+.learning-entries {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 32px;
+}
+
+.triangle-diagram {
+    width: 80px;
+    height: 80px;
+    justify-self: start;
+    margin: -8px 0 0 -8px;
+    overflow: visible;
+}
+
+.learn-hub .hub-section-title {
+    margin: 44px 0 6px;
+    padding: 0;
+    border: 0;
+    font-size: 22px;
+}
+
+.section-description {
+    color: var(--zenith-muted);
+    font-size: 14px;
+}
+
+.concept-list {
+    border-top: 1px solid var(--zenith-border);
+}
+
+.concept-list > a {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+    padding: 19px 8px;
+    border-bottom: 1px solid var(--zenith-border);
+    text-decoration: none;
+}
+
+.concept-list > a:hover {
+    background: #ffffff04;
+}
+
+.concept-list > a > i:first-child {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    background: none;
+    color: #bbc6d6;
+}
+
+.concept-list strong {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.concept-list small {
+    display: block;
+    margin-top: 2px;
+    color: var(--zenith-muted);
+    font-size: 12px;
+}
+
+/* Landing-page footer */
+body.zenith-theme > footer {
+    flex: 0 0 auto;
+    height: auto;
+    padding: 0;
+    background: var(--zenith-canvas);
+    font-size: 12px;
+}
+
+.zenith-theme > footer > div {
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 88px;
+    padding-block: 24px;
+}
+
+.footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--zenith-text);
+    font-weight: 500;
+}
+
+.footer-caption {
+    color: var(--zenith-muted);
+    font-weight: 400;
+}
+
+.footer-links {
+    display: flex;
+    gap: 24px;
+}
+
+.footer-links a {
+    color: var(--zenith-muted);
+    text-decoration: none;
+}
+
+.footer-links a:hover {
+    color: var(--zenith-text);
+}
+
+@media (min-width: 768px) and (max-width: 899.98px) {
+    .learning-entries {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .zenith-theme > footer > div {
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .footer-links {
+        gap: 20px;
+    }
+
+    .home-page {
+        padding-block: 8px 44px;
+    }
+
+    .render-hero {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .render-copy {
+        padding-top: 24px;
+    }
+
+    .render-copy h1 {
+        font-size: clamp(38px, 8.8vw, 56px);
+        letter-spacing: -.03em;
+    }
+
+    .render-description {
+        font-size: 16px;
+    }
+
+    .hero-actions {
+        margin-top: 24px;
+    }
+
+    .geometry-stage {
+        height: 360px;
+        padding-bottom: 12px;
+    }
+
+    .home-paths {
+        padding-top: 30px;
+    }
+
+    .paths-intro {
+        display: block;
+        margin-bottom: 22px;
+    }
+
+    .paths-intro h2 {
+        margin-bottom: 12px;
+        font-size: 32px;
+    }
+
+    .path-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .path-card {
+        min-height: 240px;
+        padding: 24px;
+    }
+
+    .path-card h3 {
+        margin-top: 48px;
+        font-size: 23px;
+    }
+
+    .path-art {
+        top: 48px;
+        width: 96px;
+        height: 54px;
+        opacity: .6;
+    }
+
+    .path-card p {
+        max-width: 420px;
+    }
+
+    .learning-entries {
+        grid-template-columns: 1fr;
+    }
+
+    .learning-entry {
+        padding: 24px;
+    }
+
+    .concept-list > a {
+        gap: 12px;
+    }
+}

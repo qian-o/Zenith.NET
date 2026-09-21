@@ -1,0 +1,213 @@
+﻿/* Zenith.NET — a single graphite theme, based on the brand icon. */
+/* Tokens and DocFX / Bootstrap integration */
+:root {
+    color-scheme: dark;
+    scroll-behavior: auto;
+    --zenith-state-duration: 180ms;
+    --zenith-press-duration: 60ms;
+    --zenith-panel-duration: 280ms;
+    --zenith-panel-exit-duration: 160ms;
+    --zenith-state-ease: cubic-bezier(.2, 0, .2, 1);
+    --zenith-canvas: #101216;
+    --zenith-surface: #181b21;
+    --zenith-graphite: #262a32;
+    --zenith-border: #2d323b;
+    --zenith-text: #f2f3f5;
+    --zenith-body: #d0d4dc;
+    --zenith-muted: #a0a8b5;
+    --zenith-link: #dce5f2;
+    --zenith-code-link: #bedbfa;
+    --zenith-border-hover: #626a78;
+    --zenith-code: #0d0f13;
+    --zenith-focus: #cad5e5;
+    --zenith-action: #e1e8f2;
+    --zenith-control-bg: #1c2026;
+    --zenith-control-border: #343a44;
+    --zenith-hover: #272c34;
+    --zenith-radius: 8px;
+    --zenith-header-height: 72px;
+    --zenith-anchor-gap: 24px;
+    --zenith-width: 1920px;
+    --zenith-reading-width: 1080px;
+    --zenith-sidebar-width: 264px;
+    --zenith-outline-width: 208px;
+    --zenith-gap: 40px;
+    --zenith-gutter: clamp(40px, 3vw, 64px);
+    --bs-body-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --bs-font-monospace: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --bs-body-bg: var(--zenith-canvas);
+    --bs-body-bg-rgb: 16, 18, 22;
+    --bs-body-color: var(--zenith-body);
+    --bs-body-color-rgb: 208, 212, 220;
+    --bs-emphasis-color: var(--zenith-text);
+    --bs-emphasis-color-rgb: 242, 243, 245;
+    --bs-heading-color: var(--zenith-text);
+    --bs-secondary-color: var(--zenith-muted);
+    --bs-secondary-color-rgb: 160, 168, 181;
+    --bs-secondary-bg: var(--zenith-graphite);
+    --bs-secondary-bg-rgb: 38, 42, 50;
+    --bs-tertiary-color: var(--zenith-muted);
+    --bs-tertiary-bg: var(--zenith-surface);
+    --bs-tertiary-bg-rgb: 24, 27, 33;
+    --bs-link-color: var(--zenith-link);
+    --bs-link-color-rgb: 220, 229, 242;
+    --bs-link-hover-color: var(--zenith-text);
+    --bs-link-hover-color-rgb: 242, 243, 245;
+    --bs-border-color: var(--zenith-border);
+    --bs-border-color-translucent: var(--zenith-border);
+    --bs-border-radius: var(--zenith-radius);
+    --bs-code-color: var(--zenith-text);
+    --bs-highlight-color: var(--zenith-text);
+    --bs-highlight-bg: var(--zenith-graphite);
+}
+
+/* Page and typography */
+html {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: var(--zenith-canvas);
+    overflow-y: auto;
+    /* Keep the centered shell stable when long and short pages switch scrollbars. */
+    scrollbar-gutter: stable;
+    overscroll-behavior-y: none;
+    scroll-padding-top: var(--zenith-header-height);
+    scrollbar-color: var(--zenith-border-hover) var(--zenith-canvas);
+    scrollbar-width: thin;
+}
+
+body.zenith-theme {
+    width: 100%;
+    min-width: 0;
+    min-height: 100dvh;
+    margin: 0;
+    padding-top: 0;
+    background: var(--zenith-canvas);
+    font-size: 16px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+    background: #414b5b;
+    color: var(--zenith-text);
+}
+
+:focus-visible {
+    outline: 2px solid var(--zenith-focus);
+    outline-offset: 3px;
+}
+
+a {
+    text-underline-offset: 3px;
+    text-decoration-color: #737f91;
+}
+
+a:hover {
+    text-decoration-color: currentColor;
+}
+
+article a.external[href]::after {
+    content: none;
+}
+
+article {
+    overflow-wrap: anywhere;
+}
+
+article :is(h1, h2, h3, h4, h5, h6) {
+    color: var(--zenith-text);
+    font-weight: 650;
+    line-height: 1.3;
+}
+
+body.zenith-theme > main > .content > article,
+body.zenith-theme > main > .content > article [id] {
+    scroll-margin-top: var(--zenith-anchor-gap);
+}
+
+article h1 {
+    margin: 0 0 24px;
+    font-size: clamp(32px, 3vw, 42px);
+    letter-spacing: -1.2px;
+}
+
+article h2 {
+    margin: 40px 0 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--zenith-border);
+    font-size: 25px;
+    letter-spacing: -.5px;
+}
+
+article h3 {
+    margin: 30px 0 14px;
+    font-size: 20px;
+}
+
+article :is(h4, h5, h6) {
+    margin: 24px 0 12px;
+    font-size: 17px;
+}
+
+article :is(p, ul, ol, dl) {
+    margin-bottom: 20px;
+}
+
+article :is(ul, ol) {
+    padding-left: 24px;
+}
+
+article li {
+    margin-block: 6px;
+}
+
+article strong {
+    color: var(--zenith-text);
+    font-weight: 600;
+}
+
+article :is(img, video, svg) {
+    max-width: 100%;
+}
+
+article img {
+    height: auto;
+    border-radius: var(--zenith-radius);
+}
+
+article blockquote {
+    margin: 24px 0;
+    padding: 4px 0 4px 20px;
+    border-left: 2px solid var(--zenith-muted);
+    color: var(--zenith-muted);
+}
+
+article blockquote > :last-child {
+    margin-bottom: 0;
+}
+
+hr {
+    margin: 28px 0;
+    opacity: 1;
+    border-color: var(--zenith-border);
+}
+
+@media (max-width: 1199.98px) {
+    :root {
+        --zenith-sidebar-width: 220px;
+        --zenith-gap: 28px;
+        --zenith-gutter: 24px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    :root {
+        --zenith-header-height: 64px;
+        --zenith-gutter: 20px;
+    }
+
+    article h2 {
+        font-size: 23px;
+    }
+}

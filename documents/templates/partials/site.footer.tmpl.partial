@@ -1,0 +1,13 @@
+﻿<footer class="text-secondary">
+    <div class="container-xxl">
+        <div class="footer-brand">
+            <img src="{{_rel}}images/Zenith.NET.svg" width="28" height="28" alt="" aria-hidden="true">
+            <span class="footer-caption" data-resource="ui.footer.caption">{{r.ui.footer.caption}}</span>
+        </div>
+        <nav class="footer-links" data-resource-label="ui.footer.label" aria-label="{{r.ui.footer.label}}">
+            <a href="{{_rel}}learn/index.html" data-resource="learning.title">{{r.learning.title}}</a>
+            <a href="{{_rel}}api/index.html">API</a>
+            <a href="https://github.com/qian-o/Zenith.NET">GitHub</a>
+        </nav>
+    </div>
+</footer>

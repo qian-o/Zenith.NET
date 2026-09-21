@@ -7,6 +7,9 @@ namespace Zenith.NET.Extensions.ImGui;
 
 public unsafe class ImGuiController : DisposableObject
 {
+    [ThreadStatic]
+    internal static ImGuiController? Current;
+
     private readonly ImGuiRenderer renderer;
     private readonly PlatformGetClipboardTextFn platformGetClipboardText;
     private readonly PlatformSetClipboardTextFn platformSetClipboardText;
@@ -65,16 +68,6 @@ public unsafe class ImGuiController : DisposableObject
     public ImGuiContextPtr Context { get; }
 
     public IImGuiPlatformBindings? PlatformBindings { get; set; }
-
-    public ImTextureRef Binding(Texture texture)
-    {
-        return new(null, renderer.Binding(texture));
-    }
-
-    public ImTextureRef Binding(TextureView textureView)
-    {
-        return new(null, renderer.Binding(textureView));
-    }
 
     public void Update(double delta, uint width, uint height)
     {
@@ -138,6 +131,8 @@ public unsafe class ImGuiController : DisposableObject
         HexaImGui.NewFrame();
 
         frameBegun = true;
+
+        Current = this;
     }
 
     public void Render(CommandBuffer commandBuffer, ColorAttachment colorAttachment)
@@ -152,6 +147,8 @@ public unsafe class ImGuiController : DisposableObject
 
             frameBegun = false;
         }
+
+        Current = null;
     }
 
     public void MouseDown(ImGuiMouseButton button)
@@ -200,6 +197,16 @@ public unsafe class ImGuiController : DisposableObject
 
         HexaImGui.SetCurrentContext(null);
         HexaImGui.DestroyContext(Context);
+    }
+
+    internal ImTextureRef Binding(Texture texture)
+    {
+        return new(null, renderer.Binding(texture));
+    }
+
+    internal ImTextureRef Binding(TextureView textureView)
+    {
+        return new(null, renderer.Binding(textureView));
     }
 
     private byte* PlatformGetClipboardText(ImGuiContext* context)

@@ -7,6 +7,7 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 using Zenith.NET;
 using Zenith.NET.DirectX12;
+using Zenith.NET.Extensions.ImGui;
 using Zenith.NET.Metal;
 using Zenith.NET.Vulkan;
 
@@ -152,7 +153,7 @@ internal static class App
                 }
             });
 
-            ImGui.GetBackgroundDrawList().AddImage(imGui.Binding(renderer.Color), new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
+            ImGui.GetBackgroundDrawList().AddImage(renderer.Color.ImGuiBinding, new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
         };
 
         window.Render += static _ =>
