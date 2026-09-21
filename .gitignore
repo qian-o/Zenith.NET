@@ -433,5 +433,5 @@ FodyWeavers.xsd
 ## macOS generated files
 .DS_Store
 
-## DocFx generated files
+## DocFX generated files
 _site/

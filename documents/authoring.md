@@ -1,6 +1,6 @@
 ﻿# Documentation authoring and maintenance
 
-This is the handoff reference for filling in the documentation. It is excluded from the published site and its navigation.
+This is the contributor reference for maintaining the documentation and its translations. It is excluded from the published site and its navigation.
 
 ## Architecture and theme baseline
 
@@ -49,7 +49,7 @@ Do not turn the samples index into a sequence of advanced tutorials. The triangl
 - Introduce enum types through the meaning and scope of their members. Use concise explanations or tables; do not turn an enum introduction into a resource-construction walkthrough.
 - Use one H1 and a clear H2/H3 hierarchy. Give explicit anchors to sections linked from other pages when their headings may change. Use the existing shared Markdown/HTML components with resource-bound text; use tables for comparisons, notices for necessary constraints and diagrams only when they clarify a relationship.
 - Keep diagrams small enough to read on a phone. Prefer a vertical sequence to a wide horizontal graph when scaling would make its labels too small.
-- Replace `<!-- Content pending. -->` when a page is filled. Check the existing homepage, Learn overview and README for placeholder wording that has become inaccurate; update that wording without redesigning those pages.
+- Keep the homepage, Learn overview and README consistent with the documentation's contents. Do not publish placeholder pages or temporary validation notes.
 
 ## Editorial style
 
@@ -199,13 +199,17 @@ The binding is implemented inside the existing template system: one native resou
 
 ## Validation
 
-After changing XML comments, run the full extraction and build from the repository root:
+Install DocFX as a .NET tool and use the repository's .NET 10 SDK, required workloads, and platform SDKs. Full API extraction loads the projects under `sources/`, including the MAUI integration; its workload and Android SDK must be available even when only reviewing documentation.
+
+On a fresh checkout, or after changing C# source or XML comments, run the full extraction and build from the repository root:
 
 ```sh
 docfx documents/docfx.json --warningsAsErrors
 ```
 
-For Markdown or theme-only changes, run `docfx build documents/docfx.json --warningsAsErrors`.
+Once API metadata has been generated and matches the current source, Markdown, resource-dictionary, or theme-only changes can use `docfx build documents/docfx.json --warningsAsErrors`.
+
+The build produces ignored API YAML and `.manifest` files under `documents/api/`, and the published site under `documents/_site/`. Commit the authored `api/index.md`, shared pages, dictionaries, images, and templates; keep generated output out of the PR. `authoring.md` and the permanent `locales/*/translation.md` files are contributor documentation, not temporary files.
 
 Preview the generated site from the repository root:
 
