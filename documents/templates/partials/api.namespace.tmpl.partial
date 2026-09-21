@@ -6,7 +6,8 @@
         </div>
         <div class="api-type-grid">
             {{#children}}
-                <div class="api-type-entry"><a href="{{href}}">{{name.0.value}}</a>
+                <div class="api-type-entry">
+                    <a href="{{href}}">{{name.0.value}}</a>
                     {{#summary}}
                         <div class="api-summary">{{{summary}}}</div>
                     {{/summary}}

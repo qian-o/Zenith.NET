@@ -7,7 +7,9 @@
         <div class="api-enum-values">
             {{#children}}
                 <div class="api-enum-value">
-                    <h3 id="{{apiAnchor}}" data-uid="{{uid}}"><code>{{syntax.content.0.value}}</code></h3>
+                    <h3 id="{{apiAnchor}}" data-uid="{{uid}}">
+                        <code>{{syntax.content.0.value}}</code>
+                    </h3>
                     {{#summary}}
                         <div class="api-summary">{{{summary}}}</div>
                     {{/summary}}

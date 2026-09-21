@@ -3,7 +3,9 @@
         <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel" data-bs-scroll="true">
             <div class="offcanvas-header">
                 <h5 class="offcanvas-title" id="tocOffcanvasLabel" data-resource="ui.contents.title">{{r.ui.contents.title}}</h5>
-                <button type="button" class="contents-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" data-resource-label="ui.contents.close" aria-label="{{r.ui.contents.close}}"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+                <button type="button" class="contents-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" data-resource-label="ui.contents.close" aria-label="{{r.ui.contents.close}}">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
             </div>
             <div class="offcanvas-body">
                 {{#_apiReference}}
@@ -20,7 +22,9 @@
                             <div class="api-type-search">
                                 <i class="bi bi-search" aria-hidden="true"></i>
                                 <input id="api-type-filter" type="search" data-resource-label="ui.api.findType" aria-label="{{r.ui.api.findType}}" aria-controls="api-type-list" data-resource-placeholder="ui.api.findType" placeholder="{{r.ui.api.findType}}" autocomplete="off">
-                                <button id="api-type-clear" type="button" data-resource-label="ui.api.clearTypeSearch" aria-label="{{r.ui.api.clearTypeSearch}}" hidden><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+                                <button id="api-type-clear" type="button" data-resource-label="ui.api.clearTypeSearch" aria-label="{{r.ui.api.clearTypeSearch}}" hidden>
+                                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                                </button>
                             </div>
                         </div>
                         <div class="api-browser-caption" id="api-type-scope" data-resource="ui.api.types">{{r.ui.api.types}}</div>

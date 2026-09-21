@@ -19,8 +19,13 @@
                     <i class="bi bi-search" aria-hidden="true"></i>
                 </button>
             {{/_enableSearch}}
-            <a class="source-link" href="https://github.com/qian-o/Zenith.NET" aria-label="GitHub"><i class="bi bi-github" aria-hidden="true"></i></a>
-            <button class="menu-toggle" id="menu-toggle" type="button" data-resource-label="ui.navigation.toggle" aria-label="{{r.ui.navigation.toggle}}" aria-controls="site-menu" aria-expanded="false"><span></span><span></span></button>
+            <a class="source-link" href="https://github.com/qian-o/Zenith.NET" aria-label="GitHub">
+                <i class="bi bi-github" aria-hidden="true"></i>
+            </a>
+            <button class="menu-toggle" id="menu-toggle" type="button" data-resource-label="ui.navigation.toggle" aria-label="{{r.ui.navigation.toggle}}" aria-controls="site-menu" aria-expanded="false">
+                <span></span>
+                <span></span>
+            </button>
         </div>
     </nav>
 </header>
