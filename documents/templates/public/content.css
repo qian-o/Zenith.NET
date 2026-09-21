@@ -255,7 +255,6 @@ article code[data-api-symbol] a.code-reference:hover * {
     color: #fff;
 }
 
-
 @media (max-width: 767.98px) {
     article pre {
         --code-padding-inline: 14px;

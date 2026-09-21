@@ -171,7 +171,6 @@ article :is(img, video, svg) {
     max-width: 100%;
 }
 
-
 article img {
     height: auto;
     border-radius: var(--zenith-radius);
