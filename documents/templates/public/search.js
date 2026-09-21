@@ -77,7 +77,9 @@ export function initializeSearch() {
             showResults(query, matches);
             return;
         }
-        const terms = query.split(/\s+/).map(term => '+' + term.replace(/[+\-:^~*\\]/g, '\\$&')).join(' ');
+        // Use the same separators as DocFX's index for filenames and qualified API names.
+        const terms = query.split(/[\s\-.()]+/).filter(Boolean).map(term => '+' + term.replace(/[+\-:^~*\\]/g, '\\$&')).join(' ');
+        if (!terms) return showResults(query, []);
         pendingQueries.push(query);
         worker.postMessage({ q: terms });
     }
@@ -150,13 +152,15 @@ export function initializeSearch() {
                         if (!key) return {
                             page: original,
                             title: normalize(original.title.replace(/\s*\|\s*Zenith\.NET\s*$/, '')),
-                            body: normalize(`${original.title} ${original.keywords || ''} ${original.summary || ''}`)
+                            body: normalize(`${original.href} ${original.title} ${original.keywords || ''} ${original.summary || ''}`)
                         };
                         const prefix = key.slice(0, -'.title'.length);
                         const values = Object.entries(strings).filter(([key]) => key.startsWith(prefix + '.')).map(([, value]) => value);
                         const description = strings[prefix + '.description'] || strings[prefix + '.meta.description'];
                         const page = { ...original, title: t(key), summary: description && !description.includes('{') ? description : '' };
-                        return { page, title: normalize(page.title), body: normalize(values.join(' ')) };
+                        // Keep shared code, filenames and API identifiers searchable in every language.
+                        const body = `${values.join(' ')} ${original.href} ${original.keywords || ''} ${original.summary || ''}`;
+                        return { page, title: normalize(page.title), body: normalize(body) };
                     });
                     ready = true;
                     runQuery();

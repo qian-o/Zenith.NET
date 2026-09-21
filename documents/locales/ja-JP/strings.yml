@@ -1,0 +1,604 @@
+### YamlMime:Resources
+concepts.execution.context.description: "{graphicsContext} は 1 つのバックエンドデバイスを表し、そのグラフィックス、コンピュート、転送の各キューを提供します。ワークロード用のバッファー、テクスチャ、シェーダー、パイプラインは同じコンテキストを通じて作成してください。別のコンテキストによって作成されたリソースやハンドルを、このコンテキストのコマンドバッファーにそのままバインドすることはできません。"
+concepts.execution.context.details: プラットフォームとプレゼンテーションサーフェスに適したバックエンドを選択してください。API は共有されますが、デバイスのサポート状況は依然として重要です。{capabilities} はデバイス名と、{rayTracingSupported} および {meshShadingSupported} フラグを公開します。{link} や {detail} サンプルのように、オプションのワークロードを作成する前に対応するフラグを確認してください。これらのフラグは、フォーマット、メモリ、またはプラットフォームの制限に関する完全なリストではありません。
+concepts.execution.context.details.detail: メッシュシェーディング
+concepts.execution.context.details.link: レイトレーシング
+concepts.execution.context.title: コンテキストがリソースとキューを接続する
+concepts.execution.description: Zenith.NET アプリケーションは GPU リソースを作成し、それらを使用するコマンドを記録して、それらのコマンドをキューにサブミットします。GPU がサブミットを実行している間も CPU は処理を続行できます。記録呼び出しが戻った後でも、その処理が終了するまでリソースを有効に保ってください。
+concepts.execution.ownership.description: "ここでの所有権とは、破棄に対する責任を意味します。C# の参照はマネージドオブジェクトへの到達可能性を維持しますが、明示的な {dispose} がネイティブリソースを破棄することを防ぐわけではありません。同様に、バッファーを使用するコマンドをサブミットしても、そのバッファーの所有権がキューに移るわけではありません。"
+concepts.execution.ownership.details: シャットダウン時には、新しい作業のサブミットを停止し、関係するすべてのキューでの最後の使用を待機し、アプリケーションのリソースを解放してから、コンテキストを破棄してください。コンテキストの破棄はその独自のキューや内部ヘルパーを解放しますが、アプリケーションのすべての作業を待機したり、アプリケーションが作成したすべてのリソースを解放したりするわけではありません。
+concepts.execution.ownership.guidance: レンダリング中も同じライフサイクルのルールを適用してください。リソースの最後の使用に対する完了値を保持し、そのバイトがいつ上書き可能になるか、またはリソースがいつ交換可能になるかを把握できるようにします。ビューと基盤となるリソースの有効期間については、{link} を参照してください。
+concepts.execution.ownership.guidance.link: リソース管理
+concepts.execution.ownership.table.applicationResources.object: アプリケーションが作成したリソース
+concepts.execution.ownership.table.applicationResources.ownership: アプリケーションが最後の GPU 使用後に解放します。
+concepts.execution.ownership.table.commandBuffers.object: 借用したコマンドバッファー
+concepts.execution.ownership.table.commandBuffers.ownership: キューが管理およびリサイクルします。
+concepts.execution.ownership.table.headings.object: オブジェクト
+concepts.execution.ownership.table.headings.ownership: 誰が解放するか？
+concepts.execution.ownership.table.queues.object: コンテキストキューとそのタイムライン
+concepts.execution.ownership.table.queues.ownership: コンテキストとキューが管理します。
+concepts.execution.ownership.table.swapChainDrawable.ownership: スワップチェーンが管理します。
+concepts.execution.ownership.title: 所有権と GPU 完了を明確に区別する
+concepts.execution.pipelines.description: グラフィックスパイプラインは、シェーダー、頂点入力レイアウト、頂点をプリミティブに組み立てるルール、アタッチメントフォーマット、レンダー状態を結合します。頂点、インデックス、定数データをバインドし、描画コマンドを発行する前に設定してください。そのアタッチメントフォーマットとサンプル数は、レンダーパスのアタッチメントと一致している必要があります。
+concepts.execution.pipelines.details: コンピュートパイプラインは、GPU スレッドのグループを起動するディスパッチ用のシェーダーエントリポイントを提供します。ディスパッチの前に、パイプラインとその定数を設定してください。コンピュートディスパッチはグラフィックスレンダーパスの外側に配置します。パイプラインの変更は、後続のコマンドがその入力を解釈する方法の変更を意味します。選択したパイプラインに必要なデータは、使用する前にバインドしてください。
+concepts.execution.pipelines.guidance: "{link} は完全なグラフィックスシーケンスを示しています。{detail} はディスパッチを記録し、その後に結果を表示するグラフィックスパスを記録します。"
+concepts.execution.pipelines.guidance.detail: コンピュートサンプル
+concepts.execution.pipelines.guidance.link: 三角形の描画コールバック
+concepts.execution.pipelines.title: パイプラインがコマンドによるデータの解釈方法を決定する
+concepts.execution.queues.description: 1 つのフレームで描画、コンピュート、コピーを組み合わせる場合は、{graphicsQueue} から始めてください。依存する作業を 1 つのキューにまとめることで、その順序付けを追跡しやすくなります。
+concepts.execution.queues.details: "キューは、まとめられたコマンドを受け付けて実行します。別々のキューが別々のハードウェアエンジンに対応するとは限らないため、同時に実行されるとは限りません。処理を重ねて進める利点がある場合に別のキューを使い、一方のキューが他方の結果を使う場合は明示的な依存関係を設定してください。"
+concepts.execution.queues.guidance: 後続のコマンドが先行の書き込みに依存する場合、アプリケーションはそれらの書き込みが後続のコマンドから利用可能であることも保証しなければなりません。両方のコマンドバッファーを同じキューにサブミットするだけでは、そのような依存関係が自動的にすべて確立されるわけではありません。コマンドは異なる GPU ステージを使用する可能性があり、後続のアクセスにはバリアやテクスチャ遷移が必要になる場合があります。{link} で、サブミットの順序とリソースの可視性の違いについて説明しています。
+concepts.execution.queues.guidance.link: 同期
+concepts.execution.queues.table.computeQueue.workToRecord: グラフィックスレンダーパスを含まない、コンピュートディスパッチおよび互換性のある転送作業。
+concepts.execution.queues.table.graphicsQueue.workToRecord: レンダーパスと描画、およびフレームで使用されるコンピュート操作と転送操作。
+concepts.execution.queues.table.headings.queue: キュー
+concepts.execution.queues.table.headings.workToRecord: 記録する作業
+concepts.execution.queues.table.transferQueue.workToRecord: 描画やコンピュートディスパッチを含まない、アップロード、ダウンロード、コピーの作業。
+concepts.execution.queues.title: 実行する作業に応じたキューを選択する
+concepts.execution.recording.context: キューは完了をポーリングし、終了したコマンドバッファーをリサイクルします。新しい記録ごとに {queueCommandBuffer} を呼び出してください。リサイクルされたインスタンスが返される場合があります。借用したコマンドバッファーを独自に破棄したり、2 回サブミットしたり、サブミット後も記録を続けたりしないでください。特定のコマンドバッファーへの記録は一度に 1 つのスレッドから行ってください。キューの内部ロックは、コマンドバッファーへの同時編集を保護しません。
+concepts.execution.recording.description: "{queueCommandBuffer} は、すでに記録が開始された {commandBuffer} を返します。コマンドとその依存関係を記録し、一度 {submit} を呼び出します。サブミットにより記録が終了し、そのキュー上の完了ポイントを識別する {timelineValue} が返されます。"
+concepts.execution.recording.details: "たとえば、{commandBuffer} にフレームを記録した後、三角形のチュートリアルでは次のようにサブミットして完了を待機します:"
+concepts.execution.recording.guidance: "{submit} は作業をスケジュールし、{wait} はそのサブミットが完了するまで CPU の続行を待機させます。描画の記録、レンダーパスの終了、コマンドバッファーのサブミットはそれぞれ別の操作です。描画の記録もパスの終了も、GPU を待機することはありません。"
+concepts.execution.recording.title: 記録してもコマンドは実行されない
+concepts.execution.title: 実行モデル
+concepts.platforms.description: アプリケーションがネイティブウィンドウとフレームループを自ら所有するか、UI レンダリングコントロールを使用するかを選択します。その選択によって、誰が出力テクスチャを取得し、コマンドをサブミットし、結果を提示するかが決まります。出力テクスチャとは、現在のフレームの出力として使用されるテクスチャのことです。オフスクリーンのグラフィックスやコンピュート処理には、ウィンドウやスワップチェーンは不要です。
+concepts.platforms.frame.context: そのパスの内部にパイプラインバインディングと描画コマンドを追加してください。戻る前にパスを終了します。提供されたコマンドバッファーを独自にサブミットしたり個別に提示したりしないでください。また、コマンドバッファーや出力テクスチャを破棄しないでください。ハンドラーが出力テクスチャを別のレイアウトで使用する場合は、コントロールの最終遷移のために {colorAttachment} に戻してください。
+concepts.platforms.frame.description: 各統合機能は {iZenithView} を実装しています。アプリケーションはその {graphicsContext} を提供し、{updateRequested} でシーンデータを更新し、{renderEventArgs} を使用して {renderRequested} でレンダリングを記録します。
+concepts.platforms.frame.details: "コントロールが各フレームの一連の処理を管理します。出力テクスチャとコマンドバッファーを取得し、出力テクスチャを {colorAttachment} に遷移させ、ハンドラーを呼び出した後、そのフレームワークで必要なサブミットとプレゼンテーションを行います。"
+concepts.platforms.frame.guidance: "コンテキストが割り当てられた {view} という名前の初期化済み {iZenithView} の場合、このハンドラーは完全なクリアパスを記録します。これには {usingZenithNET} が必要です:"
+concepts.platforms.frame.notes: 各コントロールは各フレームの開始時に {undefined} から遷移するため、アプリケーションは出力テクスチャの以前の内容が保持されることに依存できません。フレームごとに必要な画像をクリアまたはレンダリングしてください。持続的な累積やキャッシュされたレンダリングはアプリケーションが所有するテクスチャに保持し、そのテクスチャをビュー経由で表示してください。
+concepts.platforms.frame.reference: "{zenithViewHelperDrawableFormat} は統合のデフォルトのカラーフォーマットを提供します。アタッチメントフォーマット、サンプル数、寸法を一致させる際は、実際のイベントの出力テクスチャを確認してください。"
+concepts.platforms.frame.title: UI コントロールから提供されたフレームに記録する
+concepts.platforms.integration.context: WinForms、WPF、および Windows の WinUI パスには Windows が必要です。MAUI アプリケーションにはターゲットプラットフォームのワークロードが必要であり、{useZenithView} を使用してコントロールハンドラーを登録する必要があります。{extensionsCs} を参照してください。フレームワークのサポートとバックエンドのサポートの両方が満たされている必要があります。
+concepts.platforms.integration.description: "各コントロールはイベントインターフェイスを共有していますが、すべてが同じ方法で提示されるわけではありません:"
+concepts.platforms.integration.details: ビットマップリードバックは、UI が表示する前にレンダリングされたピクセルを CPU メモリにコピーします。共有テクスチャの相互運用はそのリードバックを回避しますが、GPU コピーと同期が依然として必要になる場合があります。したがって、共有の {renderRequested} インターフェイスが同じプレゼンテーションコストやネイティブ相互運用要件を意味するわけではありません。
+concepts.platforms.integration.guidance: "アプリケーションのフレームワーク用のパッケージを使用してください。例:"
+concepts.platforms.integration.table.avalonia.integration: Avalonia
+concepts.platforms.integration.table.avalonia.presentation: テクスチャにレンダリングし、ピクセルを {writeableBitmap} にダウンロードします。{zenithViewCs} および {surfaceCs} を参照してください。
+concepts.platforms.integration.table.headings.integration: 統合
+concepts.platforms.integration.table.headings.presentation: 画像が UI に届く仕組み
+concepts.platforms.integration.table.maui.integration: .NET MAUI
+concepts.platforms.integration.table.maui.presentation: Android、iOS、Mac Catalyst ではネイティブサーフェスを使用し、Windows では共有テクスチャコンポジションを使用します。{link} を参照してください。
+concepts.platforms.integration.table.maui.presentation.link: プラットフォーム実装
+concepts.platforms.integration.table.uno.integration: Uno パス
+concepts.platforms.integration.table.uno.presentation: ピクセルを {writeableBitmap} にダウンロードします。{zenithViewUnoCs} を参照してください。
+concepts.platforms.integration.table.winForms.integration: WinForms
+concepts.platforms.integration.table.winForms.presentation: コントロールの {hWND} 用に Zenith.NET スワップチェーンを作成します。{zenithViewCs} を参照してください。
+concepts.platforms.integration.table.winUI.integration: Windows 上の WinUI
+concepts.platforms.integration.table.winUI.presentation: インポートされた共有 Direct3D 11 テクスチャにレンダリングし、{swapChainPanel} に接続されたコンポジションスワップチェーンにコピーします。{zenithViewWinUICs} を参照してください。
+concepts.platforms.integration.table.wpf.integration: WPF
+concepts.platforms.integration.table.wpf.presentation: 共有 Direct3D 11 テクスチャをインポートし、Direct3D 相互運用を介して {d3DImage} によって表示されるサーフェスにコピーします。{surfaceCs} を参照してください。
+concepts.platforms.integration.title: フレームワークだけでなくプレゼンテーションパスも選択する
+concepts.platforms.lifecycle.context: UI ビューの場合、一致するレンダリングリソースを作成する際に、イベントの出力テクスチャの {descWidth}、{descHeight}、{descFormat}、{descSampleCount} を使用してください。コントロールがその出力テクスチャの解像度を決定します。論理寸法やディスプレイスケールが常にテクスチャ寸法と等しいとは仮定しないでください。
+concepts.platforms.lifecycle.description: ネイティブスワップチェーンの場合、ピクセル単位のフレームバッファーサイズを渡してください。ディスプレイのスケーリングが有効な場合、論理単位で表されたウィンドウサイズとは異なることがあります。サイズがゼロのフレームバッファーはスキップし、ピクセルサイズが変化したときにスワップチェーンをリサイズし、フレームごとに {swapChainDrawable} を取得してください。出力テクスチャはスワップチェーンが所有しており、プレゼンテーションやリサイズ後に変更される可能性があります。
+concepts.platforms.lifecycle.details: "{swapChainResize} は既存のサーフェスの寸法を変更します。{swapChainRefresh} はネイティブハンドルを含むサーフェス記述を置き換えます。どちらの操作の前にも、影響を受けるリソースの未完了の使用を完了させてください。ネイティブプレゼンテーションターゲットを破棄する前に、スワップチェーンを解放してください。"
+concepts.platforms.lifecycle.guidance: ウィンドウに従ってサイズが変わるアプリケーション所有の深度テクスチャやオフスクリーンテクスチャを再作成し、そのハンドルを含む定数を更新してください。アタッチメントフォーマットとサンプル数に互換性が維持されている場合、サイズ変更をまたいでパイプラインを使い続けることができます。{link} は深度テクスチャを置き換えながらパイプラインを維持します。
+concepts.platforms.lifecycle.guidance.link: 回転する立方体のレンダラー
+concepts.platforms.lifecycle.title: 出力テクスチャのサイズとライフサイクルをホストに委ねる
+concepts.platforms.ownership.description: アプリケーションは、割り当てたコンテキストおよびレンダリングのために作成したリソースを所有します。コントロールは独自のプレゼンテーションリソースを所有します。ビューの {graphicsContext} プロパティを変更すると、スケジューラはコントロールのリソースを再作成しますが、新しいコンテキスト用にアプリケーションのパイプライン、バッファー、テクスチャを再作成するわけではありません。
+concepts.platforms.ownership.details: リソースの置き換えはビューのフレームライフサイクルと協調させてください。アプリケーションのリソースや割り当てられたコンテキストを破棄する前に、ビューのフレームアクティビティを停止し、未完了の GPU 使用を終了させてください。ビューを削除しても、コンテキストの所有権がコントロールに移るわけではありません。
+concepts.platforms.ownership.guidance: 共有の {frameSchedulerCs} は、ビューの UI ディスパッチャーを介してフレーム処理をディスパッチします。フレームハンドラーはフレームの更新と記録に集中させてください。そこでの長時間の CPU 処理は UI の遅延にもつながります。
+concepts.platforms.ownership.title: アプリケーションリソースをコントロールの所有権外に保つ
+concepts.platforms.surface.context: ウィンドウライブラリや UI フレームワークが特定のオペレーティングシステムをサポートしていても、そこで選択した GPU バックエンドが利用可能であるとは限りません。デバイス機能、ドライバー、およびネイティブサーフェスのサポートが一致している必要があります。オプションのレイトレーシングやメッシュシェーディングのワークロードを作成する前に、{contextCapabilities} で確認してください。
+concepts.platforms.surface.description: "{link} は Silk.NET を使用してウィンドウを作成し、イベントを処理します。Zenith.NET は、{surface} の記述と {swapChain} を介してそのウィンドウに接続します。サーフェスにはネイティブハンドルとサイズが含まれます。その記述を構築しても、オペレーティングシステムのウィンドウが作成または所有されるわけではありません。"
+concepts.platforms.surface.description.link: 三角形チュートリアル
+concepts.platforms.surface.details: "ハンドルは選択したバックエンドと一致している必要があります:"
+concepts.platforms.surface.guidance: チュートリアルの {appCs} は Windows、macOS、X11 の選択肢を示しています。その Linux ホストは Xlib ハンドルを提供するため、Wayland セッションで使用するには XWayland が必要です。ネイティブ Wayland アプリケーションの場合は、{surfaceWayland} を通じて異なるハンドルを提供することになります。
+concepts.platforms.surface.table.android.backend: Android 上の Vulkan。
+concepts.platforms.surface.table.apple.backend: Apple プラットフォーム上の Metal。
+concepts.platforms.surface.table.headings.backend: バックエンドパス
+concepts.platforms.surface.table.headings.factory: サーフェスファクトリ
+concepts.platforms.surface.table.headings.handles: ホストから提供されるハンドル
+concepts.platforms.surface.table.wayland.backend: ネイティブ Wayland ホストを使用した Vulkan。
+concepts.platforms.surface.table.wayland.handles: Wayland ディスプレイおよびサーフェス
+concepts.platforms.surface.table.win32.backend: Windows 上の DirectX 12 または Vulkan。
+concepts.platforms.surface.table.xlib.backend: X11 または XWayland を使用した Linux 上の Vulkan。
+concepts.platforms.surface.table.xlib.handles: X11 ディスプレイおよびウィンドウ
+concepts.platforms.surface.title: アプリケーションがプレゼンテーションを所有する場合はネイティブサーフェスを提供する
+concepts.platforms.title: プラットフォーム統合
+concepts.resources.allocation.context: "独自のアロケーターが必要でなければ、まずコンテキストで作成するリソースを使ってください。ヒープを使う場合は、それらを使用するすべての GPU 処理が完了してから、配置したリソースを先に解放し、最後にヒープ自体を解放します。"
+concepts.resources.allocation.description: "{heap} は、明示したバイトオフセットにリソースを配置するためのメモリを提供します。アプリケーションがオフセットを選び、使用中の領域を追跡します。"
+concepts.resources.allocation.details: "配置前に、正確なバッファーまたはテクスチャの記述を指定して {contextGetSizeAndAlignment} を呼び出します。返されたアライメントの倍数をオフセットに選び、返されたサイズを確保して、リソースがヒープの総バイト数の範囲内に収まるようにしてください。使用中の割り当て領域は重ねないでください。テクスチャの格納にはバックエンド固有のパディングやアライメントが含まれることがあるため、ピクセル数と 1 ピクセル当たりのバイト数の積では割り当てサイズを求められません。"
+concepts.resources.allocation.guidance: "配置したバッファーの常駐特性は、ヒープの常駐特性と一致させてください。ここで扱う通常の GPU テクスチャには GPU 専用ヒープを使います。サイズとアライメントは配置の要件であり、すべてのバックエンドで任意のリソースを任意のヒープに配置できるという保証ではありません。"
+concepts.resources.allocation.title: 割り当て制御が必要な場合はヒープにリソースを配置する
+concepts.resources.bufferUsages.table.constant.role: 定数バッファーバインディングを介して読み取られるシェーダーパラメーター。
+concepts.resources.bufferUsages.table.headings.role: "役割"
+concepts.resources.bufferUsages.table.headings.usage: 用途
+concepts.resources.bufferUsages.table.index.role: インデックス描画で使用されるインデックス。
+concepts.resources.bufferUsages.table.indirect.role: "間接描画または間接ディスパッチのコマンドが読み取る引数。"
+concepts.resources.bufferUsages.table.none.role: "バッファーの用途フラグは宣言されていません。"
+concepts.resources.bufferUsages.table.storageReadOnly.role: "読み取り専用のシェーダーバインディングを介してアクセスするバッファーデータ。"
+concepts.resources.bufferUsages.table.storageReadWrite.role: "読み書き可能なシェーダーバインディングを介してアクセスするバッファーデータ。"
+concepts.resources.bufferUsages.table.transferDst.role: "GPU コピーの転送先ストレージ。"
+concepts.resources.bufferUsages.table.transferSrc.role: "GPU コピーの転送元データ。"
+concepts.resources.bufferUsages.table.vertex.role: 描画のためにフェッチされる頂点属性。
+concepts.resources.bufferUsages.title: バッファーの用途
+concepts.resources.description: "リソースを使用する処理に合わせて、その記述を選びます。描画先となり、シェーダーでサンプリングされ、さらに CPU に読み戻されるテクスチャには、3 つすべての用途の宣言と、それらの処理間の同期が必要です。メモリの配置とリソースの有効期間も別途検討します。"
+concepts.resources.memory.context: CPU アクセス可能なバッファーの場合、{map} は CPU にアドレスを与えます。GPU が同じバイトへのアクセスを停止するのを待つことはありません。同様に {unmap} も作業をサブミットしたり完了を待ったりしません。CPU 書き込み可能なデータを上書きする前に、以前の内容を必要とする GPU 読み取りを終了させてください。
+concepts.resources.memory.description: "{bufferDesc} には {residency} フィールドがあります。CPU と GPU がデータにどのようにアクセスするかに応じて選択してください:"
+concepts.resources.memory.details: 常駐特性は、割り当てに対する想定された CPU アクセスを記述します。これは、すべてのデバイスが物理的に分離された CPU および GPU メモリを持つことを意味するわけではありません。三角形チュートリアルでは、小さな頂点バッファーを直接初期化するために {cpuWriteOnly} を使用します。大規模な静的メッシュは、代わりに 1 回限りのアップロードを伴う GPU 専用ストレージの恩恵を受けることができます。
+concepts.resources.memory.guidance: "{textureDesc} には常駐特性フィールドがありません。通常のコンテキスト作成テクスチャは GPU ストレージを使用します。その公開 API は CPU データ転送のためのアップロードおよびダウンロード操作を提供し、直接マッピングメソッドは公開しません。明示的なヒープは、以下で説明するように配置の制御を提供します。"
+concepts.resources.memory.table.cpuReadOnly.cPUAccess: "GPU コピーの完了後にマップされたメモリを読み取る。"
+concepts.resources.memory.table.cpuReadOnly.typicalRole: "GPU が生成したリードバックデータ"
+concepts.resources.memory.table.cpuWriteOnly.cPUAccess: "先行する GPU 読み取りの完了後にマップされたメモリへ書き込む。"
+concepts.resources.memory.table.cpuWriteOnly.typicalRole: "CPU が供給または更新するデータ"
+concepts.resources.memory.table.gpuOnly.cPUAccess: "アップロードバッファーまたはリードバックバッファーを介してバイトを転送する。"
+concepts.resources.memory.table.gpuOnly.typicalRole: "静的ジオメトリと GPU の作業用データ"
+concepts.resources.memory.table.headings.cPUAccess: CPU アクセス
+concepts.resources.memory.table.headings.residency: 常駐特性
+concepts.resources.memory.table.headings.typicalRole: 典型的な役割
+concepts.resources.memory.title: "必要な CPU アクセスに合わせてメモリを選ぶ"
+concepts.resources.textureUsages.description: "転送用の用途フラグは GPU コピーの方向を表します。CPU アクセスは、それとは別のメモリ配置の選択であり、後で説明します。"
+concepts.resources.textureUsages.details: "用途フラグの組み合わせは複数の役割を宣言するだけで、処理の実行やアクセス順序の制御は行いません。テクスチャには適切な{link}が引き続き必要であり、選択したデバイス上でそのフォーマットが要求する用途をサポートしている必要があります。"
+concepts.resources.textureUsages.details.link: "レイアウトと同期"
+concepts.resources.textureUsages.table.colorAttachment.role: "レンダーパスのカラーアタッチメント。"
+concepts.resources.textureUsages.table.depthStencilAttachment.role: "レンダーパスの深度／ステンシルアタッチメント。"
+concepts.resources.textureUsages.table.headings.role: "役割"
+concepts.resources.textureUsages.table.headings.usage: 用途
+concepts.resources.textureUsages.table.none.role: "テクスチャの用途フラグは宣言されていません。"
+concepts.resources.textureUsages.table.sampled.role: "サンプリング用テクスチャのバインディングを介して読み取るテクスチャデータ。"
+concepts.resources.textureUsages.table.storage.role: "ストレージテクスチャのバインディングを介してシェーダーが読み書きするテクスチャデータ。"
+concepts.resources.textureUsages.table.transferDst.role: "GPU コピーの転送先画像ストレージ。"
+concepts.resources.textureUsages.table.transferSrc.role: "GPU コピーの転送元画像データ。"
+concepts.resources.textureUsages.title: テクスチャの用途
+concepts.resources.title: リソース管理
+concepts.resources.transfers.context: ダウンロードは、内部のリードバックストレージへの GPU コピーを記録します。ライブラリは、完了したコマンドバッファーを再利用のためにリセットするときに、それらのバイトを指定された CPU 転送先にコピーします。サブミット値の {wait} が戻るまで、転送先の割り当てを維持し、マネージドメモリを固定したままにしてください。
+concepts.resources.transfers.description: "アップロードは CPU データを GPU リソースへコピーし、ダウンロードはリソースのデータを CPU メモリへコピーします。リソース自体のメソッドは、その転送が完了してから戻ります。"
+concepts.resources.transfers.details: "これらの待機が対象とするのは、各メソッドがサブミットした転送です。別のキューですでにリソースを読み書きしていた処理との依存関係は検出しません。リソースのメソッドを呼ぶ前に、その依存関係を設定してください。マップされたメモリ経由の直接コピーでも、関連する GPU 処理の完了を確認するのは呼び出し側の責任です。"
+concepts.resources.transfers.guidance: "コピーを他の作業と一緒に記録する必要がある場合は、{commandBufferUpload} または {commandBufferDownload} を使用してください。ポインターの有効期間はそれぞれ異なります:"
+concepts.resources.transfers.item: "アップロードは呼び出し中に CPU 側の転送元を内部のアップロードバッファー、別名ステージングメモリへコピーします。転送元ポインターは、その呼び出しの間だけ有効であれば十分です。"
+concepts.resources.transfers.notes: "テクスチャの行ストライドは CPU データの隣接する行の間のバイト距離であり、スライスストライドは隣接する深度スライスの間のバイト距離です。これらはテクスチャ内部の GPU メモリレイアウトを表しません。GPU 処理の完了とリードバックの違いは{link}を参照してください。"
+concepts.resources.transfers.notes.link: 同期
+concepts.resources.transfers.table.bufferDownload.transfer: "{cpuReadOnly} の直接 CPU コピー。それ以外の場合は転送キューのダウンロードをサブミットして待機します。"
+concepts.resources.transfers.table.bufferUpload.transfer: "{cpuWriteOnly} の直接 CPU コピー。それ以外の場合は転送キューのアップロードをサブミットして待機します。"
+concepts.resources.transfers.table.headings.method: 方法
+concepts.resources.transfers.table.headings.transfer: "データの転送方法"
+concepts.resources.transfers.table.textureTransfers.method: "{textureUpload} / {textureDownload}"
+concepts.resources.transfers.table.textureTransfers.transfer: "グラフィックスキューを使い、選択したサブリソースをコピー用のレイアウトへ遷移させ、コピー後に指定された最終レイアウトへ遷移させて、完了を待ちます。"
+concepts.resources.transfers.title: "即時に完了する転送とコマンドに記録する転送を選ぶ"
+concepts.resources.usages.description: "{bufferUsages} と {textureUsages} は、リソースの想定される役割を宣言するフラグ列挙型です。これらはそれぞれ {bufferDescUsages} と {textureDescUsages} に割り当てられます。フラグ列挙型を使用すると、リソースに複数の役割がある場合に {value} を使用して複数のメンバーを組み合わせることができます。"
+concepts.resources.usages.title: リソースを作成する前に必要な用途を宣言する
+concepts.resources.views.description: "{bufferView} は、バッファー領域とその解釈を記述します。{textureView} は、互換性のあるテクスチャタイプ、フォーマット、およびサブリソース範囲を選択します。ビューは基盤となるストレージを共有します。データをコピーしたり、リソース作成時に欠落していた用途を追加したりすることはありません。また、その範囲はシェーダーの境界チェックのポータブルな保証にはなりません。"
+concepts.resources.views.details: "デフォルトビューにはリソース自体のハンドルを使い、別の領域や互換性のある別の解釈が必要ならビューを作成します。GPU 処理が利用する可能性がある間は、ビューとその基になるリソースの両方への C# 参照を保持してください。リソースハンドルだけでは、どちらのオブジェクトも存続しません。最後の GPU 使用が完了してから解放してください。どちらかを置き換えたら、その古い{link}を含む定数も更新します。"
+concepts.resources.views.details.link: "リソースハンドル"
+concepts.resources.views.guidance: "{link} はリサイズ時に置き換えられる深度テクスチャを示しています。{detail} は、書き込み可能な出力から分離して保持される入力テクスチャを示しています。どちらも、リソースの有効期間をそれを実際に使用する処理に従わせています。"
+concepts.resources.views.guidance.detail: コンピュートサンプル
+concepts.resources.views.guidance.link: 回転する立方体のレンダラー
+concepts.resources.views.title: "ビューとその基になるリソースを共に使用可能に保つ"
+concepts.shaders.binding.context: "コンピュートサンプルでは、{input} には {inputTextureSampledHandle} が、{output} には {outputTextureStorageHandle} が入力されます。Slang の型付き {descriptorHandle} は、各リソースへのアクセス方法をシェーダーに伝えます:"
+concepts.shaders.binding.description: "{setConstantBuffer} は、現在のパイプラインの定数データ用にバッファーとバイトオフセットをバインドします。これは既存の GPU から見えるストレージをバインドするものであり、C# の値をアップロードするわけではありません。最初にバッファーを埋め、以前の GPU 読み取り側が終了していることを確認してから、そのバイトを上書きしてください。"
+concepts.shaders.binding.details: "定数バッファーの前にパイプラインを設定してください。リソースがすでに作成およびアップロードされているコンピュートワークロードの場合、記録はこの順序を使用します:"
+concepts.shaders.binding.guidance: このコード片は、記録中の {commandBuffer}、{computePipeline}、{bufferUsagesConstant} 用途でアップロードされた {constantBuffer}、およびワークロードのスレッドグループ数を前提としています。オフセット 0 はバッファーの先頭をバインドします。複数の定数データレコードが 1 つのバッファーを共有する場合、各レコードの開始オフセットはバックエンドのバインディングアライメントを満たす必要があります。その要件は、レコード内のフィールドレイアウトとは別個のものです。
+concepts.shaders.binding.notes: "{resourceHandle} は 2 つの 32 ビットフィールドを格納しますが、その解釈はバックエンドに属します。これをコンテキスト間で転送可能なユニバーサル記述子インデックス、アドレス、または値として扱わないでください。ハンドルはリソースを作成せず、欠落している用途を追加せず、同期も実行しません。"
+concepts.shaders.binding.reference: リソースおよびそのハンドルの取得に使用したビューへの参照を保持し、シェーダーの最後の使用が完了した後にのみ破棄してください。テクスチャまたはビューを交換する際は、その古いハンドルを含む定数を更新してください。{link} でそのライフサイクルの関係について説明しています。
+concepts.shaders.binding.reference.link: リソース管理
+concepts.shaders.binding.table.bufferStorageReadOnlyHandle.access: シェーダー型 {t} の構造化要素を読み取ります。
+concepts.shaders.binding.table.bufferStorageReadWriteHandle.access: シェーダー型 {t} の構造化要素の読み取りまたは書き込みを行います。
+concepts.shaders.binding.table.headings.access: 想定されるアクセス
+concepts.shaders.binding.table.headings.cHandle: "C# ハンドル"
+concepts.shaders.binding.table.headings.slangFieldType: Slang フィールド型
+concepts.shaders.binding.table.samplerHandle.access: テクスチャサンプリング状態を提供します。
+concepts.shaders.binding.table.textureSampledHandle.access: テクスチャを読み取ります。
+concepts.shaders.binding.table.textureStorageHandle.access: ストレージテクスチャの読み取りまたは書き込みを行います。
+concepts.shaders.binding.title: 定数バッファーとそれが記述するリソースをバインドする
+concepts.shaders.compilation.description: "{zenithCompiler} は指定された Slang エントリポイントをコンパイルし、{shaderDesc} を返します。コンテキストの {graphicsApi} を使用して、シェーダーを作成するバックエンド (DirectX 12 用の DXIL、Metal 用の Metal ライブラリ、Vulkan 用の SPIR-V) をターゲットにします。"
+concepts.shaders.compilation.details: "たとえば、既存の {context} があり、三角形のシェーダーが実行可能ファイルの横にコピーされている場合は次のようになります:"
+concepts.shaders.compilation.guidance: "{vSMain} はシェーダーファイル内のエントリポイント名と完全に一致している必要があります。パイプライン作成中はシェーダーオブジェクトを有効に維持し、{link} に示されているようにパイプライン作成後に破棄してください。フレームごとに再コンパイルするのではなく、この初期化を 1 回実行します。"
+concepts.shaders.compilation.guidance.link: 最初の三角形
+concepts.shaders.compilation.title: 選択したコンテキスト用にエントリポイントをコンパイルする
+concepts.shaders.description: "シェーダーはアプリケーションから提供されたデータを受け取ります。頂点属性は個々の頂点を記述し、バッファーはパラメーターや配列を保持し、リソースハンドルはシェーダーがアクセスする他のリソースを識別します。C# の宣言と Slang の宣言は、それらの値の意味について一致している必要があります。フィールド名を一致させるだけでは不十分です。レイアウト、リソースアクセス、バインディングのすべてが一致している必要があります。"
+concepts.shaders.dispatch.description: "{dispatch} はスレッドグループの数を受け取ります。コンピュートサンプルの {numthreads} エントリポイントは、グループあたり 16 × 16 スレッドを実行します。画像寸法を 16 で除算し、切り上げてグループ数を求めます。たとえば、17 × 19 の画像には 2 × 2 のグループが必要です。最後のグループに画像外のスレッドが含まれる可能性があるため、シェーダーはそのピクセル座標を画像寸法と照合してチェックします。"
+concepts.shaders.dispatch.details: コンパイラは、宣言されたエントリポイントのグループサイズを {shaderDescThreadGroupSize} に格納します。{dispatch} に指定されたピクセル寸法をグループ数に変換することはありません。完全なバインディングとディスパッチの例については、シェーダー付きの {computeShaderRendererCs} を使用し、別のパスが出力を消費する前には {link} を使用してください。
+concepts.shaders.dispatch.details.link: 同期
+concepts.shaders.dispatch.title: ピクセルではなくスレッドグループをディスパッチする
+concepts.shaders.layout.context: "{link} はそのオフセットを明示しています。この宣言にはスコープ内に {systemRuntimeInteropServices} と {zenithNET} が必要です:"
+concepts.shaders.layout.context.link: "コンピュートサンプルの C# 定数"
+concepts.shaders.layout.description: "頂点入力の場合、パイプラインの {inputLayout} がフォーマット、オフセット、ストライド、セマンティクスを記述します。三角形の {float3} 位置に続く {float4} 色は 28 バイトを占め、色はバイト 12 にあります。{inputLayoutAdd} はこのパックされたレイアウトを計算します。C# の構造体を検査するわけではありません。C# フィールドにパディングが含まれている場合は、フィールドがパックされていると仮定せずに、一致するレイアウトを提供してください。"
+concepts.shaders.layout.details: "定数バッファーはシェーダーパラメーターを保持し、構造化バッファーは宣言された型の要素の配列を保持します。どちらも Slang の宣言に従って読み取られます。{inputLayout} は使用しません。パディングを含め、コンパイルされたシェーダー表現のフィールドオフセットと要素サイズを確認してください。アンマネージド C# 型はバイト単位でのコピーに適していますが、それだけでシェーダー型と一致することが証明されるわけではありません。特に、頂点の密集した {float3} レイアウトをすべてのシェーダーバッファーに適用しないでください。"
+concepts.shaders.layout.guidance: リソースハンドルは、既存のリソースを参照する小さな値です。ハンドルを定数バッファーにコピーしても、リソースの内容はコピーされません。
+concepts.shaders.layout.notes: "{computeShaderSlang} 内の対応する宣言は次のとおりです:"
+concepts.shaders.layout.reference: "寸法が最初の 8 バイトを占め、その後に 2 つの 8 バイトリソースハンドルが続きます。C# サンプルは合計 256 バイトを予約しています。そのサイズはサンプルが選択したストレージサイズであり、すべての Slang 構造体や定数ペイロードが 256 バイトを占めるという規則ではありません。合計サイズをパディングしても、間違ったオフセットにあるフィールドは修正されません。"
+concepts.shaders.layout.title: 頂点入力とシェーダーデータには異なるレイアウト規則がある
+concepts.shaders.matrices.description: コンパイラは、各行の要素をまとめて格納する行優先 (row-major) の行列ストレージを要求します。{link} は 3 つの {matrix4x4} 値をオフセット 0、64、128 に配置します。その {detail} は、モデル、ビュー、プロジェクションの順序で {mulVectorMatrix} を使用します。
+concepts.shaders.matrices.description.detail: シェーダー
+concepts.shaders.matrices.description.link: 回転する立方体のレンダラー
+concepts.shaders.matrices.details: 格納順序は行列要素がどのようにメモリを占有するかを決定し、乗算順序は変換を決定します。両側の一貫性を維持してください。これら 2 つの選択を確認せずに転置を追加すると、別の不一致を招きながら 1 つの不一致を覆い隠してしまう可能性があります。
+concepts.shaders.matrices.title: 行列の格納と乗算の一貫性を維持する
+concepts.shaders.title: シェーダーデータとバインディング
+concepts.synchronization.backends.description: DirectX 12 と Vulkan は、レイアウトおよびアクセス情報とともにテクスチャ遷移をエンコードします。Metal は Zenith.NET の {transition} 実装において操作を持ちません。Metal は記録された作業をレンダーエンコーダーおよびコンピュートエンコーダーにグループ化します。バックエンドはこれらのグループを終了するときに可視性バリアを挿入し、先行の書き込みを後続の作業で利用可能にします。明示的な {barrier} 呼び出しは、同じエンコーダー内の連続するコンピュートディスパッチなどの依存関係を処理します。
+concepts.synchronization.backends.details: この違いはワークロードを変更する際に重要になります。{link} では、ディスパッチの後にグラフィックスレンダーパスが続き、Metal 上でもエンコーダー境界が作成されます。2 つの依存するコンピュートディスパッチは、テクスチャの宣言されたレイアウトを変更するだけではその境界を作成しません。共有 API で要求される遷移を維持し、実際のプロデューサーコマンドとコンシューマーコマンドの間の依存関係を個別に特定してください。
+concepts.synchronization.backends.details.link: コンピュートサンプル
+concepts.synchronization.backends.title: 遷移はすべてのバックエンドで同一ではない
+concepts.synchronization.barriers.context: "{barrierStagesAll} はより広いスコープであり、自動依存関係検出機能ではありません。処理を実際にカバーするステージを選択し、それらの操作をサポートするキューでのみ使用してください。"
+concepts.synchronization.barriers.description: "2 つのコンピュートディスパッチを考えてみましょう。1 つ目がシミュレーションデータを書き込み、2 つ目が次のステップを実行するためにそのデータを読み取ります。両方ともストレージバッファーを使用するため、変更すべきテクスチャレイアウトはありません。コマンドバッファー上のディスパッチの間に次を挿入します:"
+concepts.synchronization.barriers.details: 第 1 引数はプロデューサーステージを識別し、第 2 引数はコンシューマーステージを識別します。バリアは、GPU 上に対応する実行およびメモリの依存関係を確立します。バックエンドはそれらのステージを実行規則およびメモリアクセス規則に変換します。このバリアはテクスチャのレイアウトを変更せず、デバイス上のすべての処理を待機するわけでもありません。
+concepts.synchronization.barriers.guidance: "{link} は依存するディスパッチ間でこのパターンを使用しています。依存関係が発生する場所にバリアを配置してください。コンシューマーがすでに記録された後に配置されたバリアは、そのコンシューマーを先行のプロデューサーの後に順序付けることはできません。"
+concepts.synchronization.barriers.guidance.link: FluidTank シミュレーション
+concepts.synchronization.barriers.title: バリアで依存するコマンドを順序付ける
+concepts.synchronization.dependencies.description: 共有リソースごとに、最初にアクセスする操作、それに続く操作、およびいずれかのアクセスが書き込みを行うかどうかを特定します。同じデータを 2 回読み取る場合、内容を保護するための順序付けは不要ですが、レイアウト変更やプレゼンテーションによって他の要件が課されることがあります。書き込みに続く読み取り、読み取りに続く上書き、または 2 回の書き込みには依存関係が必要になる場合があります。
+concepts.synchronization.dependencies.details: "次に、それらの操作が実行される場所に応じたメカニズムを選択します:"
+concepts.synchronization.dependencies.guidance: "これらの仕組みは関連していますが、互いの代わりにはなりません。コマンドを順にサブミットするだけでは、すべてのメモリ依存関係を満たせません。キューの待機は新しいテクスチャレイアウトを宣言せず、コマンドバリアは呼び出し元の CPU スレッドを待機させません。"
+concepts.synchronization.dependencies.table.cpuAccess.mechanism: 該当する完了値に対して {wait} を呼び出します。
+concepts.synchronization.dependencies.table.cpuAccess.situation: データへのアクセスまたは解放の前に CPU が待機する必要がある場合
+concepts.synchronization.dependencies.table.crossQueue.mechanism: その {timelineValue} をコンシューマー側のコマンドバッファーの {submit} に渡します。
+concepts.synchronization.dependencies.table.crossQueue.situation: 別のキューでのサブミットがデータを生成する場合
+concepts.synchronization.dependencies.table.headings.mechanism: メカニズム
+concepts.synchronization.dependencies.table.headings.situation: 状況
+concepts.synchronization.dependencies.table.layoutChange.mechanism: 以前のレイアウトと次のレイアウトを指定した {commandBufferTransition}。
+concepts.synchronization.dependencies.table.layoutChange.situation: テクスチャサブリソースの使用方法の変更
+concepts.synchronization.dependencies.table.pipelineStages.mechanism: プロデューサーステージとコンシューマーステージを指定した {commandBufferBarrier}。
+concepts.synchronization.dependencies.table.pipelineStages.situation: コマンドストリーム内の依存する GPU ステージ
+concepts.synchronization.dependencies.title: プロデューサーとコンシューマーから始める
+concepts.synchronization.description: 先行のコマンドによって書き込まれたデータを読み取るコマンドは、それらの書き込みが完了し、自身に対して可視化されていることに依存します。書き込み側がプロデューサーであり、読み取り側がコンシューマーです。CPU も共有データの読み取り、上書き、解放の前に完了ポイントを必要とします。Zenith.NET は、これらの異なる依存関係のためにバリア、テクスチャ遷移、タイムラインを提供します。
+concepts.synchronization.layouts.context: "{undefined} は、以前の内容を保持する必要がないことを意味します。これは新しい画像や完全にクリアされるアタッチメントに適しています。内容が読み込まれたり、サンプリングされたり、蓄積されたりする画像のレイアウト追跡を回避するための手段ではありません。"
+concepts.synchronization.layouts.description: "用途フラグはテクスチャがサポートする役割を記述します。{textureLayout} は、特定の操作のために特定のサブリソースがどのようにアクセスされるかを記述します。サブリソースとは、選択されたミップレベルと配列レイヤーです。そのレイアウトを変更することでそのアクセスの準備が行われますが、テクスチャが異なるピクセルフォーマットに変換されるわけではありません。たとえば、コンピュートサンプルは {storage} レイアウトで出力テクスチャを書き込み、その後グラフィックスパスでそれをサンプリングします。それらの使用の間に次を記録します:"
+concepts.synchronization.layouts.details: このコード片は、{outputTexture} が {sampledStorage} 用途で作成され、その選択されたサブリソースが {storage} レイアウトにあることを前提としています。{default} はミップレベル 0 と配列レイヤー 0 を選択します。この操作は、テクスチャのすべてのミップやレイヤーを遷移させるわけではありません。
+concepts.synchronization.layouts.guidance: アプリケーションが以前のレイアウトを提供します。{transition} はアプリケーションから見えるレイアウトトラッカーを保持せず、先行のコマンドからその値を推測することもありません。リソースがレンダリングステージ間を通過する場所では、常にレイアウトを追跡してください。
+concepts.synchronization.layouts.title: 各テクスチャサブリソースのレイアウトを追跡する
+concepts.synchronization.readback.description: "{isCompleted} は、GPU タイムラインが値に達したかどうかのみを問い合わせます。それ自体がコマンドバッファーを回収したり、ステージングされたダウンロードをアプリケーションの宛先ポインターにコピーしたりするわけではありません。"
+concepts.synchronization.readback.details: "{commandBufferDownload} は、まず内部リードバックストレージへのコピーを記録します。完了したコマンドバッファーを再利用のためにリセットすると、指定されたポインターへの CPU コピーが行われます。そのダウンロードのサブミット値に対する {wait} が戻るまで、転送先を有効に保ち、マネージドメモリを固定してください。データの読み取りやメモリの解放はその後に行います。別のキューの後続サブミットを待っても、ダウンロードを管理するキュー自体はポーリングされません。"
+concepts.synchronization.readback.guidance: そのため、{isCompleted} をポーリングして非同期ダウンロードの宛先を直ちに読み取るだけでは不十分です。{link} で直接コピーパスとステージング転送パスについて説明しています。
+concepts.synchronization.readback.guidance.link: リソース管理
+concepts.synchronization.readback.title: GPU 完了とダウンロードされた CPU データは別のステップである
+concepts.synchronization.reuse.description: "最初のレンダラーでは、毎フレーム直後に待機する方法がわかりやすいでしょう。複数フレームの処理を重ねて進めるには、未完了のフレームごとに変更可能なデータを分け、各フレームの最終使用の完了値を保持してください。定数バッファーの更新、テクスチャの交換、パイプラインの破棄の前に、対象リソースへのすべての未完了アクセスを終わらせてください。"
+concepts.synchronization.reuse.details: リサイズ時やシャットダウン時には、古い作業を待機する前に新しい使用を停止してください。{swapChainResize}、リソースの破棄、コンテキストの破棄は、アプリケーションの作業に対する一般的な待機の役割を果たしません。前の各フレームがすでにサブミットを完了しているため、三角形チュートリアルはコールバック間で安全にリサイズできます。
+concepts.synchronization.reuse.guidance: "現在の {swapChainPresent} も、プレゼンテーション操作の後にグラフィックスキューでシグナルを送って待機します。そのため、三角形の明示的なサブミット待機を削除するだけでは、複数フレームの処理を重ねて進める表示ループにはなりません。グラフィックスキューでの待機は、別のキューで実行中の独立した処理の完了も保証しません。"
+concepts.synchronization.reuse.title: 最後のアクセス後にのみデータを再利用する
+concepts.synchronization.timelines.context: "CPU がこれらのリソースの読み取り、上書き、解放を行う前に、その最後の使用を待機してください:"
+concepts.synchronization.timelines.description: タイムラインは増加する値を使用してキュー上の完了を追跡します。{submit} はそのタイムラインとサブミットに関連付けられた値を含む {timelineValue} を返します。異なるタイムラインの完了値は、数値の {value} フィールドだけで比較することはできません。
+concepts.synchronization.timelines.details: "{producer} と {consumer} が同じコンテキストの 2 つのキューからすでに記録されたコマンドバッファーであると仮定します。プロデューサーはコンシューマーが使用するデータを書き込みます。次のようにサブミットします:"
+concepts.synchronization.timelines.guidance: 生成された値を渡すと、コンシューマーキューは GPU 上でそれを待機します。CPU はここで {producedWait} を呼び出しません。{consumed} が完了するまで共有リソースを有効に保ち、コンシューマーに必要なテクスチャレイアウトの変更を記録してください。
+concepts.synchronization.timelines.notes: "{wait} はそのタイムライン値を待機し、完了したサブミットがないか所有キューを確認します。完了したコマンドバッファーは再利用のためにリセットされ、ステージングされたダウンロードは指定された CPU 宛先にコピーされます。{queueTimelineSignal} は、すでにそのキューにサブミットされた作業の後に完了ポイントをエンキューすることもできます。{signal} を呼び出しても、GPU がすでにそのポイントに達したことを意味するわけではありません。"
+concepts.synchronization.timelines.title: 完了およびキューの引き渡しにタイムラインを使用する
+concepts.synchronization.title: 同期
+home.actions.reference: API を参照
+home.actions.tutorial: 三角形から始める
+home.entries.description: 最初のフレーム。焦点を絞ったサンプル。API の詳細。
+home.entries.label: ドキュメントを探索
+home.entries.reference.action: API を探索
+home.entries.reference.category: リファレンス
+home.entries.reference.description: アプリケーションの基盤となる型、シグネチャ、メンバーを確認できます。
+home.entries.reference.title: API リファレンス
+home.entries.samples.action: サンプルを参照
+home.entries.samples.category: サンプル
+home.entries.samples.description: ソースコードを通じて、焦点を絞ったレンダリングやコンピュートの技術を調べます。
+home.entries.samples.title: サンプル
+home.entries.title: 開発を始めましょう。
+home.entries.tutorial.action: チュートリアルを開始
+home.entries.tutorial.category: チュートリアル
+home.entries.tutorial.description: セットアップから最初のフレームまで、完全なレンダリングアプリケーションを構築します。
+home.entries.tutorial.title: 最初の三角形
+home.introduction.accent: "C# で構築。"
+home.introduction.description: 単一の .NET API を通じて、リソースの作成、コマンドの記録、グラフィックスやコンピュート処理のサブミットを行います。
+home.introduction.title: 独自のレンダラーを構築。
+home.meta.description: "DirectX、Metal、Vulkan を横断する、グラフィックスとコンピュートのための統一された C# API です。"
+home.scene.description: 回転するジオメトリの研究です。ドラッグまたは矢印キーで視点を調整できます。
+home.scene.label: ジオメトリ表示
+home.scene.surface: サーフェス
+home.scene.wireframe: ワイヤーフレーム
+home.title: ".NET 向けモダン RHI"
+learning.concepts.description: レンダリングパスを組み合わせる前に、コマンド、リソース、シェーダーデータ、同期がどのように連携するかを理解します。
+learning.concepts.execution.description: GPU 処理を記録してサブミットし、そのリソースを有効に維持します。
+learning.concepts.platforms.description: ネイティブウィンドウまたは UI レンダリングコントロールを接続します。
+learning.concepts.resources.description: リソースの用途、メモリ配置、ビューを選択します。
+learning.concepts.shaders.description: "C# のレイアウトとリソースハンドルを Slang と一致させます。"
+learning.concepts.synchronization.description: 依存するアクセスを順序付け、処理が完了するタイミングを把握します。
+learning.concepts.title: 基本概念
+learning.description: 完全な三角形チュートリアルから始めます。その後、焦点を絞ったサンプルと概念ガイドを活用して、より大規模なレンダラーの背景にあるリソース、データ、依存関係を理解します。
+learning.entries.samples.action: サンプルを参照
+learning.entries.samples.description: "ジオメトリ、コンピュート、レイクエリ、メッシュシェーディングに関する C# と Slang のサンプルを確認できます。"
+learning.entries.tutorial.action: チュートリアルを開く
+learning.entries.tutorial.description: コンソールアプリケーションを作成し、ウィンドウを開いて三角形を描画します。
+learning.meta.description: Zenith.NET の基本を学び、そのプログラミングモデルを調べます。
+learning.title: 学習
+reference.description: リソース型、コマンドシグネチャ、プラットフォーム統合を調べます。
+reference.entries.commands.description: グラフィックス、コンピュート、転送コマンドを記録します。
+reference.entries.commands.label: 処理を記録
+reference.entries.context.description: 選択したバックエンド用の GPU リソースを作成します。
+reference.entries.context.label: ここから開始
+reference.meta.description: Zenith.NET の型とメンバーを調べます。
+reference.navigation.core: コア API を参照します。
+reference.title: API リファレンス
+samples.computeShader.description: コンピュートディスパッチで画像をグレースケールに変換し、結果のテクスチャを表示します。サンプリングされる入力テクスチャと書き込み可能な出力テクスチャのリソースハンドル、切り上げられたスレッドグループ数、シェーダー内の境界チェックを示します。付属の {assetsTexturesShokoPng} アセットを保持してください。レンダラーはこれを一度処理し、以降のフレームで結果を提示します。
+samples.computeShader.details: "{computeShaderRendererCs} · {computeShaderSlang}"
+samples.computeShader.title: コンピュートシェーダー
+samples.cube.description: インデックス描画、定数バッファー内のモデル・ビュー・プロジェクション行列、深度テストを追加します。深度テクスチャはリサイズ時に再作成されます。クリップ空間ジオメトリから変換されたオブジェクトへ移行する際にご利用ください。レンダラーは {d32FloatS8UInt} 深度／ステンシルアタッチメントを使用します。
+samples.cube.details: "{spinningCubeRendererCs} · {spinningCubeSlang}"
+samples.cube.title: 回転する立方体
+samples.description: "調べたい機能に応じた焦点を絞ったサンプルを選択してください。各サンプルから C# レンダラーとその Slang シェーダーにリンクしています。空のプロジェクトから完全なアプリケーションを段階的に理解したい場合は、{link} から始めてください。"
+samples.description.link: 最初の三角形
+samples.execution.description: "{link} には、1 つのデスクトップアプリケーション内に 6 つの独立したレンダラーが含まれています。.NET 10 SDK と、以下で説明するサポート対象のデスクトップバックエンドを使用してください。アプリケーションをビルドして実行し、コンソールメニューからサンプルを選択します。"
+samples.execution.description.link: ZenithTutorials
+samples.execution.details: ホストは Windows では DirectX 12、macOS では Metal、Linux では Vulkan を選択します。選択したバックエンドでサポートされているデバイス、ドライバー、シェーダーコンパイラ環境を使用してください。Linux のウィンドウパスには X11 または XWayland が必要です。{link} はパッケージの依存関係を宣言し、実行時に必要なシェーダーとテクスチャのアセットをコピーします。
+samples.execution.details.link: プロジェクトファイル
+samples.execution.guidance: 各サンプルはウィンドウ処理とプレゼンテーションのコードを共有しています。学習したい機能に応じて、任意のサンプルを個別に選択できます。
+samples.execution.title: チュートリアルサンプルを実行する
+samples.host.description: "{appCs} はコンテキスト、ウィンドウ、スワップチェーンを作成します。コマンドバッファーを取得し、選択したレンダラーを呼び出し、フレームをサブミットして提示します。{iRendererCs} はレンダラーの更新、レンダリング、リサイズ、破棄の各メソッドを定義します。"
+samples.host.details: コンピュートとレイトレーシングはオフスクリーンテクスチャを生成します。{texturePresenterCs} と {presentTextureSlang} は、それらのテクスチャをウィンドウの現在のフレームの出力テクスチャに描画します。ホストは引き続きサブミットとスワップチェーンのプレゼンテーションを所有します。
+samples.host.title: 共有ホストとプレゼンテーション
+samples.indirectDrawing.description: インデックス付きの間接引数バッファーと構造化バッファー内のインスタンスごとのデータを使用して、立方体の複数のコピーを描画します。CPU が描画引数を提供し、変換を更新します。GPU 生成の引数を追加する前に、間接引数のレイアウトとインスタンスデータへのシェーダーアクセスを理解するためにご利用ください。
+samples.indirectDrawing.details: "{indirectDrawingRendererCs} · {indirectDrawingSlang}"
+samples.indirectDrawing.title: 間接描画
+samples.meshShading.description: タスクシェーダーを使用して球体のインスタンスをカリングし、そのインデックスをジオメトリを出力するメッシュシェーダーに渡します。レンダラーはパイプラインを作成する前に {contextCapabilitiesMeshShadingSupported} を確認します。タスクステージとメッシュステージを通じてリソースハンドルとペイロードデータを追跡するためにご利用ください。
+samples.meshShading.details: "{meshShadingRendererCs} · {meshShadingSlang}"
+samples.meshShading.title: メッシュシェーディング
+samples.rayTracing.description: "地面とプロシージャルな球体のボトムレベルおよびトップレベルのアクセラレーション構造を構築し、コンピュートシェーダー内でインラインのレイクエリを実行します。レンダラーはワークロードを構築する前に {contextCapabilitiesRayTracingSupported} を確認します。アクセラレーション構造の入力とシェーダー側のレイ走査の確認にご利用ください。"
+samples.rayTracing.details: "{rayTracingRendererCs} · {rayTracingSlang}"
+samples.rayTracing.title: レイトレーシング
+samples.title: サンプル
+samples.triangle.description: 頂点バッファーと一致する入力レイアウトを作成し、グラフィックスパイプラインを介して 3 つの頂点を描画します。リソースの作成とレンダーパス内のコマンドを結びつけるためにご利用ください。
+samples.triangle.details: "{helloTriangleRendererCs} · {helloTriangleSlang} · {link}"
+samples.triangle.details.link: 完全なチュートリアル
+samples.triangle.title: Hello Triangle
+samples.workloads.description: "メインリポジトリの {link} には、複数の機能を組み合わせたアプリケーションが含まれています。それらのプロジェクトはライブラリのソースコードを参照します。Zenith.NET のチェックアウトから、目的のプロジェクトを実行してください。例:"
+samples.workloads.description.link: Experiments ディレクトリ
+samples.workloads.details: ウィンドウ表示の実験では、Windows、macOS、Linux/X11 で同じホスト選択を使用します。Avalonia、WinForms、WPF、WinUI/Uno、MAUI 内での描画、コントロールのフレームライフサイクル、実装リンクについては、{link} を参照してください。
+samples.workloads.details.link: プラットフォーム統合
+samples.workloads.table.cornellBox.example: "{link}"
+samples.workloads.table.cornellBox.example.link: CornellBox
+samples.workloads.table.cornellBox.whatItDemonstratesAndRequires: パストレーシング、デノイズ、トーンマッピング、アップスケーリング、ImGui コントロールを実証します。レイトレーシングのサポートと、デスクトップバックエンド用のシェーダーコンパイル環境が必要です。
+samples.workloads.table.fluidTank.example: "{link}"
+samples.workloads.table.fluidTank.example.link: FluidTank
+samples.workloads.table.fluidTank.whatItDemonstratesAndRequires: コンピュートによる流体シミュレーション、シミュレーションステージ間の依存関係、マルチパスのサーフェスレンダリングを実証します。デスクトップバックエンドとシェーダーコンパイル環境が必要です。
+samples.workloads.table.headings.example: 例
+samples.workloads.table.headings.whatItDemonstratesAndRequires: 実証内容と要件
+samples.workloads.table.inkCanvas.example: "{link}"
+samples.workloads.table.inkCanvas.example.link: InkCanvas
+samples.workloads.table.inkCanvas.whatItDemonstratesAndRequires: ネイティブウィンドウでの Skia 描画と入力処理を実証します。ターゲットプラットフォーム用のバックエンドと Skia ネイティブライブラリが必要です。
+samples.workloads.table.platformDetection.example: "{link}"
+samples.workloads.table.platformDetection.example.link: PlatformDetection
+samples.workloads.table.platformDetection.whatItDemonstratesAndRequires: 各バックエンドのコンテキスト作成を試行し、デバイス機能を報告します。コンテキスト作成が失敗した場合はサポートされていないと報告されます。この結果は、ドライバーやランタイム依存関係の欠如を示している可能性もあります。
+samples.workloads.title: より大規模なワークロードを探索する
+tutorial.context.description: これでウィンドウを開くことができるようになりましたが、ウィンドウ内にレンダリングを行う GPU オブジェクトはまだ作成していません。{graphicsContext} は、選択したグラフィックスバックエンドとそのコマンドキューへのアクセスを提供します。
+tutorial.context.details: "このブロックを {emphasis} に挿入します:"
+tutorial.context.details.emphasis: using ディレクティブの後、{iWindowWindow} の前
+tutorial.context.guidance: 分岐処理により、Windows では DirectX 12、macOS では Metal、Linux では Vulkan が選択されます。その後のレンダリングコードは共通の Zenith.NET API を使用します。開発中は検証を要求し、{validationMessage} を通じて報告されるメッセージを出力します。診断情報は、バックエンドおよびマシンで利用可能な検証コンポーネントによって異なります。
+tutorial.context.title: グラフィックスコンテキストを作成する
+tutorial.description: ウィンドウを開き、滑らかなグラデーションの三角形を描画する .NET コンソールアプリケーションを作成します。頂点データ、シェーダー、パイプライン状態がどのように連携するかを学び、画像を生成するコマンドを記録してサブミットします。
+tutorial.details: 各セクションを順番に進めてください。まず空のウィンドウを開き、次に背景色を表示し、最後に三角形を描画します。各チェックポイントで、次の段階に進む前にアプリケーションの一部が正しく動作することを確認します。初期化は 1 回実行され、描画コールバックは呼び出されるたびに新しいフレームを記録します。
+tutorial.draw.context: "{draw} の引数は次のとおりです:"
+tutorial.draw.description: "{windowRender} コールバックで、{beginRenderPass} と {endRenderPass} の間にある {addTheTriangleDrawCommandsHereLater} を次の 3 つのコマンドに置き換えます:"
+tutorial.draw.details: "{setPipeline} は、先ほど作成したシェーダーと状態を選択します。頂点データをバインドする前に設定してください。バックエンドはパイプラインの入力レイアウトを使用してバインディングを解釈します。"
+tutorial.draw.guidance: "{setVertexBufferVertexBuffer} は、バイトオフセット 0 から始まるバッファーを入力スロット 0 にバインドします。そのスロットは {inputLayouts} の単一エントリに対応します。これによりデータが再コピーされたり再アップロードされたりすることはありません。"
+tutorial.draw.notes: この時点では、コマンドはまだ記録されただけです。描画コールバックの最後にある {submitWait} と {present} の呼び出しが処理を実行し、その結果を表示します。三角形は画像の一部しか覆わないため、クリア操作は引き続き必要です。背景も各フレームで定義された色を受け取る必要があります。
+tutorial.draw.table.firstInstance.meaning: インスタンスの番号付けをゼロから開始します。
+tutorial.draw.table.firstVertex.meaning: バッファー内の最初の頂点から開始します。
+tutorial.draw.table.headings.argument: 引数
+tutorial.draw.table.headings.description: 値
+tutorial.draw.table.headings.meaning: 意味
+tutorial.draw.table.instanceCount.meaning: 三角形のコピーを 1 つ描画します。
+tutorial.draw.table.vertexCount.meaning: 3 つの頂点を読み取ります。
+tutorial.draw.title: パス内で三角形を描画する
+tutorial.execution.description: "{firstTriangle} ディレクトリからビルドして実行します:"
+tutorial.execution.details: 暗い背景に対して、上が赤、右下が緑、左下が青の角を持つ三角形がウィンドウに表示されるはずです。内部はこれらの色間で滑らかなグラデーションを示す必要があります。
+tutorial.execution.guidance: ウィンドウのサイズを変更してください。リサイズコールバックがフレームバッファーのサイズを更新し、スワップチェーンをリサイズします。レンダーパスはその画像に一致するビューポートを確立します。頂点位置は正規化座標のままであるため、三角形はウィンドウの幅と高さに対する同じ比率を維持します。アスペクト比を変更すると形状が引き伸ばされることがあります。オブジェクトのアスペクト比を維持するには、この最初の描画の範囲を超えるプロジェクションまたはビューポートポリシーが必要です。
+tutorial.execution.title: 実行、リサイズ、および閉じる
+tutorial.frame.commands.context: "{endRenderPass} の後、2 つ目の遷移によって画像がプレゼンテーション用に準備されます。{submit} は記録を完了してコマンドバッファーをサブミットし、{wait} は GPU がそのサブミットを完了するのを待機します。その後、{present} はレンダリングされた画像の表示を要求します。"
+tutorial.frame.commands.description: レンダーパスは、同じアタッチメントを使用する描画操作をグループ化します。ここでは、カラーアタッチメントはスワップチェーンの出力テクスチャ、すなわち描画を受け取る画像です。{colorAttachmentClear} は、指定した RGBA カラーでクリアし、パスの終了時に結果を保持するよう指示する記述を作成します。{beginRenderPass} はこれらの命令を記録し、コマンドがサブミットされた後に GPU がクリアを実行します。
+tutorial.frame.commands.details: 角括弧には単一のカラーアタッチメントが含まれています。引数 {null} は、深度およびステンシルテスト用の深度値とステンシルマスクを格納する深度／ステンシルアタッチメントが存在しないことを意味します。
+tutorial.frame.commands.guidance: "{beginRenderPass} は、アタッチメントをカバーするビューポートとシザーを設定します。ビューポートはレンダリング座標をピクセルにマッピングし、シザーは書き込み可能なピクセルを制限します。これらのデフォルト設定は出力テクスチャ全体をカバーし、この三角形の描画に適しています。"
+tutorial.frame.commands.title: クリア、サブミット、およびプレゼンテーション
+tutorial.frame.description: まず画像を単一の背景色で塗りつぶします。この操作はクリアと呼ばれます。その色がウィンドウに表示されれば、サーフェス、コマンドのサブミット、およびプレゼンテーションパスが正常に連携しています。このチェックポイントにより、ジオメトリやシェーダーを追加する前にフレームループを検証できます。
+tutorial.frame.details: "描画コールバックは、フレームを描画するタイミングで Silk.NET が呼び出すコードです。このコールバックではイベントの経過時間引数は不要なため、{value} と命名されています。これを {emphasis} に登録します:"
+tutorial.frame.details.emphasis: "{windowRun} の前"
+tutorial.frame.target.description: "{graphicsQueueCommandBuffer} は、すでに記録が開始されたコマンドバッファーを取得します。記録は GPU に対する処理を記述するものであり、その処理を即時に実行するわけではありません。"
+tutorial.frame.target.details: 最初の {transition} は、カラーアタッチメントとしてのアクセスのために出力テクスチャを準備します。{default} はミップレベル 0 と配列レイヤー 0 を選択します。画像全体をクリアして以前の内容を破棄するため、以前のレイアウトとして {undefined} を使用します。既存の内容を保持する必要があるパスでは、代わりに実際の以前のレイアウトを使用する必要があります。
+tutorial.frame.target.guidance: 各フレームでスワップチェーンの現在の出力テクスチャを使用してください。プレゼンテーションによって利用可能な画像が変わる可能性があるため、以前のフレームから保存したテクスチャは永続的なウィンドウのレンダーターゲットにはなりません。
+tutorial.frame.target.title: 出力テクスチャを準備する
+tutorial.frame.title: 背景色を表示する
+tutorial.geometry.data.description: この配列を {emphasis} に追加します。後続のリソース作成ステップも、示された順序でこのコールバックの前に配置します。
+tutorial.geometry.data.description.emphasis: "{windowRender} の前"
+tutorial.geometry.data.details: 配列の各エントリが 1 つの {vertex} を作成します。内側の 2 つの {new} 式は、その {vector3} 位置と {vector4} 色を作成します。頂点は上、右下、左下のコーナーを記述します。頂点シェーダーは 4 番目の位置座標 {w} を提供します。w が 1 の場合、x と y は正規化デバイス座標を直接表します。-1 と +1 が画像の端で、0 が中心です。これらの座標はウィンドウのピクセルサイズに依存しません。
+tutorial.geometry.data.guidance: 各色には赤、緑、青、アルファの成分が含まれます。3 つのコーナーすべてでアルファは 1 です。3 つの位置はすべて z = 0 であり、同じ平面上に配置されます。これらの位置はレンダリングしたい座標をすでに直接記述しているため、カメラや変換行列は不要です。この単一の平坦な三角形では、ブレンディングと深度テストも無効にし、深度バッファーも省略します。
+tutorial.geometry.data.title: コーナーの位置を選択する
+tutorial.geometry.description: 頂点は、描画に使用されるデータと結びついた点です。この三角形には、各コーナーに 1 つずつ、計 3 つの頂点があります。各頂点には位置と色が含まれます。GPU は色を補間し、三角形全体の中間値を計算します。
+tutorial.geometry.format.description: "この宣言を {emphasis} に追加します:"
+tutorial.geometry.format.description.emphasis: "{programCs} の末尾、クリーンアップステートメントの後"
+tutorial.geometry.format.details: "{file} はこの型を {programCs} に限定し、コンストラクターがその位置と色のフィールドを初期化します。{layoutKindSequential} はフィールドを宣言順に維持します。{position} は 3 つの 32 ビット浮動小数点数を含み、{color} は 4 つを含みます。この構造体では、位置はバイト 0 から、色はバイト 12 から始まり、完全な頂点は 28 バイトを占めます。この同じレイアウトをグラフィックスパイプラインに記述します。"
+tutorial.geometry.format.title: 頂点を定義する
+tutorial.geometry.title: GPU に 3 つの頂点を提供する
+tutorial.geometry.upload.context: "{fixed} は、アドレスが使用されている間にガベージコレクターが配列を移動するのを防ぎます。この CPU 書き込み可能バッファーの場合、{upload} は戻る前にメモリをマップ、コピー、アンマップするため、その後配列を固定したままにする必要はありません。バッファーはレンダリング全体を通じて存続する必要があり、頂点は変化しないためアップロードは 1 回だけ行えば十分です。"
+tutorial.geometry.upload.description: "マネージド配列は CPU データです。{buffer} は、GPU が頂点を読み取るためのストレージを提供します。配列の後に次を追加します:"
+tutorial.geometry.upload.details: "合計サイズは {sizeofVertexVerticesLength} です。頂点あたり 28 バイト、3 つの頂点で合計 84 バイトになります。{bufferUsagesVertex} は頂点入力アクセスを許可します。{cpuWriteOnly} は、CPU がこの小さなバッファーを直接初期化することを可能にします。記述子の ストライド は要素サイズを記録し、後で作成する入力レイアウトが個々の属性の読み取り方法を頂点フェッチに伝えます。"
+tutorial.geometry.upload.guidance: バッファーを作成しただけではデータは格納されません。{upload} は、宛先のバイトオフセット 0 から始まる割り当てに配列をコピーします。そのソース記述はポインターとコピーするバイト数を提供します。
+tutorial.geometry.upload.notes: "{programCs} の末尾のクリーンアップで、{swapChainDispose} の直前に {vertexBufferDispose} を追加します。より大規模な静的ジオメトリについては、GPU 専用メモリと転送アップロードを選択する基準について {link} で説明しています。"
+tutorial.geometry.upload.notes.link: リソース管理
+tutorial.geometry.upload.title: バッファーを割り当てて配列をアップロードする
+tutorial.input.description: "頂点バイトとシェーダーの準備が整いました。次に、GPU が各頂点をどのように読み取るかを記述します。属性とは、位置や色などの 1 つの値です。入力レイアウトは各属性にフォーマットとバイトオフセットを与え、ストライド は 1 つの頂点から次の頂点までのバイト単位の距離を与えます。シェーダー作成後に次の初期化ブロックを追加します:"
+tutorial.input.details: "{inputLayoutAdd} は現在の ストライド に要素を追加し、その ストライド を要素のサイズ分だけ増加させます。C# の構造体を検査するわけではありません。ここでは、CPU メモリとシェーダー入力との間で次の一致関係を生成します:"
+tutorial.input.guidance: "この記述を更新せずに C# フィールドの順序やパディングを変更すると、GPU は間違ったバイトを読み取ることになります。デフォルトの {semanticIndex} はゼロで、{pOSITION0} および {cOLOR0} と一致します。両方の要素は同じバッファーに属するため、パイプラインには 1 つの入力レイアウトが含まれ、そのバッファーをスロット 0 にバインドします。"
+tutorial.input.table.headings.byteOffset: バイトオフセット
+tutorial.input.table.headings.cField: "C# フィールド"
+tutorial.input.table.headings.format: フォーマット
+tutorial.input.table.headings.shaderInput: シェーダー入力
+tutorial.input.table.nextVertex.cField: 次の頂点
+tutorial.input.table.nextVertex.format: "合計 ストライド: 28 バイト"
+tutorial.input.table.nextVertex.shaderInput: 次の入力レコード
+tutorial.input.table.vertexColor.format: "{float4} (16 バイト)"
+tutorial.input.table.vertexPosition.format: "{float3} (12 バイト)"
+tutorial.input.title: 頂点入力レイアウトを記述する
+tutorial.lifecycle.description: "完成したアプリケーションはこのシーケンスを繰り返します:"
+tutorial.lifecycle.details: "ウィンドウを閉じると {run} から戻ります。描画された各フレームはすでに GPU 処理の完了を待機しているため、使用されたリソースを安全に破棄できます。{windowRun} 後のクリーンアップは次のようになります:"
+tutorial.lifecycle.guidance: "ネイティブウィンドウより先にスワップチェーンを解放し、すべてのリソースを解放した後にコンテキストを解放してください。サブミットされたコマンドバッファーはキューが所有して再利用し、出力テクスチャはスワップチェーンが所有します。このアプリケーションでは、それらのコマンドバッファーと出力テクスチャに個別の {dispose} 呼び出しは不要です。"
+tutorial.lifecycle.title: 1 つのフレームのライフサイクルを追跡する
+tutorial.pipeline.behavior: "入力レイアウトの後に次を追加します:"
+tutorial.pipeline.context: "{cullNone} は、どちらの面の向きも破棄せずに三角形を塗りつぶします。頂点の順序が面の巻き方向を決定するため、カリングを無効にすることで、その順序によって最初の三角形が隠れてしまうのを防ぎます。"
+tutorial.pipeline.description: これで頂点データ、入力レイアウト、2 つのシェーダーが揃いました。{graphicsPipeline} はこれらを接続し、GPU が頂点をプリミティブに組み立てて結果をアタッチメントに書き込む方法を指定します。
+tutorial.pipeline.details: "パイプラインは、プログラム可能なシェーダーステージと、三角形の組み立て、面カリング、ブレンディングなどの GPU 操作を制御する固定機能設定を結合します。この三角形には、以下の設定を選択します:"
+tutorial.pipeline.guidance: カラーフォーマットは {swapChainDescFormat} から取得します。これはレンダーパスで使用される画像と一致している必要があります。{count1} はピクセルあたり 1 つのサンプルを意味します。
+tutorial.pipeline.item: "{triangleList} は、連続する 3 つの頂点ごとに 1 つの三角形を組み立てます。3 つの頂点を提供して 1 回描画するため、インデックスバッファーは不要です。"
+tutorial.pipeline.notes: "{depthNone} は深度テストと書き込みを無効にし、深度アタッチメントのないパスと一致させます。"
+tutorial.pipeline.reference: "{opaque} はブレンディングを無効にするため、三角形の内側ではフラグメントシェーダーの色が背景を置き換えます。"
+tutorial.pipeline.title: シェーダーと頂点レイアウトを接続する
+tutorial.pipeline.usage: シェーダーオブジェクトは、サンプルレンダラーのようにパイプラインを作成した後に破棄できます。パイプライン自体は、これを使用して描画するすべてのフレームで有効に保ってください。クリーンアップで {vertexBufferDispose} の前に {pipelineDispose} を追加します。パイプラインの作成は、描画コールバック前の最後の初期化ステップです。
+tutorial.pipeline.validation: パイプライン記述はアタッチメント構成を宣言するものであり、別の画像を作成するわけではありません。位置と色が 1 つのバッファーにまとめて格納されているため、{inputLayouts} には 1 つのエントリがあります。
+tutorial.presentation.title: GPU をウィンドウに接続する
+tutorial.project.context: プロジェクトのビルド設定で {emphasis} ({allowUnsafeBlocks}) を有効にしてください。これは頂点データを GPU に渡す際や、ウィンドウヘルパーのネイティブ呼び出しに使用します。
+tutorial.project.context.emphasis: アンセーフコードの許可
+tutorial.project.description: "プロジェクトを作成し、そのディレクトリに移動します:"
+tutorial.project.details: "パッケージをインストールします:"
+tutorial.project.guidance: "{zenithNET} は共通のレンダリング API を提供します。3 つのバックエンドパッケージにより、同じプログラムがそのプラットフォームに適した実装を選択できます。{zenithNETCompiler} は、後で作成する小さな GPU プログラムである Slang シェーダーをその実装用にコンパイルします。Silk.NET はウィンドウとイベントループを提供します。"
+tutorial.project.title: コンソールプロジェクトを作成する
+tutorial.requirements.context: 空のプロジェクトからこのページに沿って進めることができます。ここで使用するレンダリング API とウィンドウ処理 API のリファレンスとして、{link} とその {detail} を参照できます。
+tutorial.requirements.context.detail: 共有ホスト
+tutorial.requirements.context.link: Hello Triangle サンプル
+tutorial.requirements.description: "{emphasis}、コードエディターまたは IDE、および Zenith.NET バックエンドでサポートされている GPU とドライバーを備えたデスクトップ環境が必要です。C# の基礎知識があれば十分です。グラフィックスの概念は使用する場面で説明します。これは通常の {net10} コンソールプロジェクトです。バックエンドは、Zenith.NET の操作を DirectX 12、Metal、Vulkan などのグラフィックス API の呼び出しに変換します。アプリケーションは起動時にそのうちの 1 つを選択します:"
+tutorial.requirements.description.emphasis: .NET 10 SDK
+tutorial.requirements.details: Linux では、ここで使用するウィンドウパスに X11 互換のウィンドウセッションが必要です。この三角形を描画するにあたり、オプションのレイトレーシングやメッシュシェーディング機能は不要です。
+tutorial.requirements.guidance: Zenith.NET は、アプリケーションが提供するサーフェスに描画します。Silk.NET.Windowing がデスクトップウィンドウを作成し、そのイベントを処理します。macOS では、プレゼンテーションターゲットは Metal レイヤー ({cAMetalLayerCs}) です。チュートリアルのウィンドウヘルパーがそのレイヤーを自動的に接続します。
+tutorial.requirements.table.headings.graphicsBackend: グラフィックスバックエンド
+tutorial.requirements.table.headings.platform: プラットフォーム
+tutorial.requirements.table.headings.windowSurface: ウィンドウサーフェス
+tutorial.requirements.table.linux.graphicsBackend: Vulkan 1.4
+tutorial.requirements.table.linux.platform: Linux
+tutorial.requirements.table.linux.windowSurface: X11 ウィンドウとディスプレイ (XWayland も使用可能)
+tutorial.requirements.table.macOS.graphicsBackend: Metal 4
+tutorial.requirements.table.macOS.platform: macOS
+tutorial.requirements.table.macOS.windowSurface: ウィンドウに接続された Metal レイヤー
+tutorial.requirements.table.windows.graphicsBackend: DirectX 12
+tutorial.requirements.table.windows.platform: Windows
+tutorial.requirements.table.windows.windowSurface: Win32 ウィンドウハンドル
+tutorial.requirements.title: 始める前に
+tutorial.resize.context: "{dotnetRun} を再度実行してください。ウィンドウは均一な暗い背景色になり、リサイズ後も塗りつぶされた状態が維持されるはずです。このコールバックは保持してください。三角形はこの既存のレンダーパス内で描画されます。"
+tutorial.resize.description: "スワップチェーンの画像はフレームバッファーのサイズに従う必要があります。{framebufferResize} を使用して、ディスプレイのスケーリングによる変化を含め、ピクセルサイズの変化に対応します。描画コールバックの後、引き続き {windowRun} の前に次を追加します:"
+tutorial.resize.details: Silk.NET はウィンドウサイズの変化と {link} を区別します。スワップチェーンはピクセルを格納するため、後者が必要です。最小化されたウィンドウではフレームバッファーのサイズがゼロになることがあります。その場合、両方のコールバックは GPU の処理をスキップします。リサイズ後、レンダーパスはそのビューポートとシザーに新しいアタッチメントサイズを使用します。
+tutorial.resize.details.link: フレームバッファーサイズの変化
+tutorial.resize.guidance: サブミットごとに待機するため、リサイズハンドラーが画像を置き換える際に、以前のフレームがその画像を使用していることはありません。現在の {present} 実装もグラフィックスキューで待機します。このシンプルなループにより、次のフレームが開始する前に 1 つのフレームの処理が確実に完了します。より高度なスケジューリングについては {link} で解説しています。
+tutorial.resize.guidance.link: 同期
+tutorial.resize.title: リサイズに対応する
+tutorial.shaders.compilation.context: コンパイルは初期化中に 1 回だけ行われます。{appContextBaseDirectory} は現在の作業ディレクトリに関係なく、実行可能ファイルの横にあるコピーされたシェーダーを見つけます。これらのシェーダーは頂点入力のみを消費するため、定数バッファー、テクスチャ、リソースハンドルをバインドする必要はまだありません。
+tutorial.shaders.compilation.description: "{triangleSlang} のファイルプロパティで、{emphasis} を {detail} に設定します。これにより、シェーダーが実行可能ファイルの横で使用可能になります。"
+tutorial.shaders.compilation.description.detail: 新しい場合はコピーする
+tutorial.shaders.compilation.description.emphasis: 出力ディレクトリにコピー
+tutorial.shaders.compilation.details: "{programCs} に戻ります。頂点アップロードの後、描画コールバックの前にこれらの初期化ステートメントを追加します:"
+tutorial.shaders.compilation.guidance: "{zenithCompiler} は要求されたグラフィックス API 用のコードを含むシェーダー記述を返します。{createShader} は対応するバックエンドオブジェクトを作成します。グラフィックス API とエントリポイント名の両方が重要です。{contextGraphicsApi} を使用し、{vSMain} と {fSMain} は Slang ファイルと完全に同じスペルで指定してください。"
+tutorial.shaders.compilation.title: 選択したバックエンド用にコンパイルする
+tutorial.shaders.context: "{fSInput} は、頂点シェーダーの出力とフラグメントシェーダーの入力を接続します。頂点シェーダーによって書き込まれた場合、{sVPOSITION} はクリップ空間の位置を提供します。これは、GPU が可視画像の内側にあるものを判定するために使用する 4 つの座標です。{cOLOR0} は頂点間で補間する色を伝達します。2 つのステージはその型とセマンティクスで一致している必要があります。"
+tutorial.shaders.description: シェーダーは GPU によって実行されるプログラムです。この描画には、頂点を配置する頂点シェーダーと、三角形の内側の色を生成するフラグメントシェーダーが必要です。これらをシェーダー言語である Slang で記述し、同じファイルから 2 つのエントリポイントをコンパイルします。エントリポイントとは、シェーダーステージの実行が開始される関数です。
+tutorial.shaders.details: "次の 2 つの構造体から始めて、{triangleSlang} を作成します:"
+tutorial.shaders.fragment.description: "同じファイルにフラグメントエントリポイントを追加します:"
+tutorial.shaders.fragment.details: ラスタライズによって、三角形がカバーする画像領域が決定されます。カバーされた領域全体にわたって頂点色が補間され、フラグメントシェーダーによって処理されるデータであるフラグメントが生成されます。{fSMain} は {sVTARGET} を介してこの補間された色を返します。これは最初のカラーアタッチメントを識別します。
+tutorial.shaders.fragment.guidance: 頂点色の補間はアタッチメントのブレンディングとは別個の処理です。ブレンディングは、フラグメントの出力とアタッチメントにすでに格納されている色を結合します。今回の不透明ブレンド状態はその結合を無効にするため、三角形の内側では補間された色が背景を置き換えます。
+tutorial.shaders.fragment.title: フラグメントを着色する
+tutorial.shaders.guidance: "{vSInput} は、頂点シェーダーが頂点バッファーから受け取る内容を記述します。セマンティクス {pOSITION0} と {cOLOR0} が入力を識別します。C# のフィールド名だけではそのマッピングは確立されません。"
+tutorial.shaders.title: 2 つのシェーダーステージを作成する
+tutorial.shaders.vertex.description: "頂点エントリポイントを {triangleSlang} に追加します:"
+tutorial.shaders.vertex.details: "GPU は入力頂点ごとにこのエントリポイントを呼び出します。位置に同次座標 {w} を加え、色を引き渡します。頂点ステージの後で位置は w で除算されますが、ここでは x、y、z は変化しません。そのため、上で選んだ位置を正規化デバイス座標として直接理解できます。"
+tutorial.shaders.vertex.title: 各頂点を配置する
+tutorial.surface.description: "コンテキストは、出力を表示する場所も認識する必要があります。以下を {emphasis} に追加します:"
+tutorial.surface.description.emphasis: "{windowCenter} の後、{windowRun} の前"
+tutorial.surface.details: "{surface} はネイティブプレゼンテーションターゲットとそのピクセルサイズを記述します。フレームバッファーは、ウィンドウに関連付けられたピクセル画像です。{framebufferSize} はそのピクセル単位のサイズを示します。ディスプレイのスケーリングが有効な場合、ウィンドウの論理サイズとは異なることがあります。"
+tutorial.surface.guidance: サーフェスは上で選択したバックエンドと一致します。Windows はウィンドウハンドルを提供し、Linux は X11 ディスプレイとウィンドウを提供し、macOS ヘルパーは接続された Metal レイヤーを提供します。これはウィンドウをレンダリングに接続するための唯一のプラットフォーム固有の部分です。
+tutorial.surface.title: ネイティブサーフェスを記述する
+tutorial.swapChain.context: "スワップチェーンはコンテキストとネイティブウィンドウの両方を使用します。{programCs} の末尾にある {windowDispose} の行を、次のクリーンアップ順序に置き換えます:"
+tutorial.swapChain.description: "サーフェスの記述を使用して、表示される画像を作成します。サーフェスブロックの直後に以下を追加してください:"
+tutorial.swapChain.details: "{swapChain} はウィンドウに表示される画像を管理します。各フレームで、{drawable} は画像データの API 型である {texture} として現在の画像を提供します。描画後、{present} は結果の表示を要求し、次の drawable へ進みます。"
+tutorial.swapChain.guidance: "{b8G8R8A8UNorm} は、青、緑、赤、アルファの順序で 4 つの 8 ビットカラーチャンネルを格納します。{uNorm} は、0 から 255 の整数値が 0 から 1 の値を表すことを意味します。シェーダーは論理的な RGBA 値を返しますが、この形式によって画像内でのチャンネルの格納方法が決まります。後ほどグラフィックスパイプラインは {swapChainDescFormat} を使用してこのアタッチメントと一致させます。"
+tutorial.swapChain.title: スワップチェーンを作成する
+tutorial.title: 最初の三角形
+tutorial.troubleshooting.description: "まずコンソールでエラーを確認し、前のチェックポイントを使用して失敗したステージを特定します:"
+tutorial.troubleshooting.details: "{link} と {detail} を使用して、頂点データ、入力レイアウト、描画操作を比較してください。そのサンプルではウィンドウ処理とサブミットを共有ホストに配置していますが、このチュートリアルではアプリケーションフローを {programCs} 内に保持しています。インデックス描画、変換、深度テストを学習するには、{context} に進んでください。"
+tutorial.troubleshooting.details.context: 回転する立方体
+tutorial.troubleshooting.details.detail: Slang シェーダー
+tutorial.troubleshooting.details.link: サンプルレンダラー
+tutorial.troubleshooting.table.backend.check: 選択したバックエンドがデバイスおよびインストールされているグラフィックスドライバーでサポートされていることを確認してください。
+tutorial.troubleshooting.table.backend.symptom: バックエンドの作成に失敗する
+tutorial.troubleshooting.table.drawing.check: アップロードサイズ、入力レイアウト、パイプラインの選択、およびレンダーパス内の描画コマンドの配置を確認してください。
+tutorial.troubleshooting.table.drawing.symptom: 背景は表示されるが三角形が表示されない
+tutorial.troubleshooting.table.headings.check: 確認事項
+tutorial.troubleshooting.table.headings.symptom: 症状
+tutorial.troubleshooting.table.input.check: "28 バイトの ストライド と、0 および 12 の位置／色のオフセットを確認してください。"
+tutorial.troubleshooting.table.input.symptom: 頂点の位置や色が破損している
+tutorial.troubleshooting.table.shaders.check: コピーされた {triangleSlang}、エントリポイントのスペル、およびコンパイラが報告した診断情報を確認してください。
+tutorial.troubleshooting.table.shaders.symptom: クリア色のステップは機能するが、シェーダーの読み込みに失敗する
+tutorial.troubleshooting.table.window.check: .NET プロジェクトがビルドされ、ウィンドウ単体のステップがデスクトップセッションで実行されることを確認してください。Linux では、X11 または XWayland が利用可能であることを確認してください。
+tutorial.troubleshooting.table.window.symptom: ウィンドウが開かない
+tutorial.troubleshooting.title: 失敗したステージを確認する
+tutorial.window.context: "{usingZenithTutorials} はヘルパーの名前空間をインポートします。各 C# ファイルは通常の using ディレクティブを使用するため、相互運用機能のインポートは両方のファイルで必要です。エイリアス {buffer} は Zenith.NET のバッファー型を指し、{systemBuffer} と区別します。"
+tutorial.window.description: "{cocoaHelperCs} を名前空間を維持したままプロジェクトに追加します。そのファイルの先頭、名前空間宣言の前に {interopUsing} を追加してください。このヘルパーは macOS で Metal レイヤーをウィンドウに接続します。他のプラットフォームブランチではこれを呼び出しません。"
+tutorial.window.details: "生成された {programCs} を次のコードに置き換えます。明示的な {main} メソッドなしで順番に実行される最上位レベルのステートメントを使用しています。以降のセクションで、この同じファイルにコードを追加する場所を説明します:"
+tutorial.window.guidance: "{graphicsAPINone} は、Silk.NET に独自のグラフィックスコンテキストを持たないウィンドウを作成するよう要求します。そのコンテキストは Zenith.NET で作成します。{initialize} はネイティブウィンドウを作成し、そのハンドルを使用可能にします。ハンドルとは、ウィンドウシステムによって提供される識別子です。{center} はウィンドウを中央に配置し、{run} はウィンドウが閉じるまでイベントを処理します。その後、実行はウィンドウを解放する {dispose} に進みます。"
+tutorial.window.notes: "{dotnetRun} を実行してください。空のウィンドウが開き、移動、サイズ変更、閉じる操作に応答するはずです。レンダリングコマンドをまだサブミットしていないため、内容はまだ定義されていません。確認したら閉じて次に進んでください。"
+tutorial.window.title: ウィンドウを開く
+ui.action.copy: コピー
+ui.action.navigate: 移動
+ui.action.open: 開く
+ui.action.source: ソースを表示
+ui.api.browse: 名前空間と型を参照します。
+ui.api.clearTypeSearch: 型の検索をクリア
+ui.api.findType: 型を検索
+ui.api.loadError: 型を読み込めませんでした。このページを再読み込みしてやり直してください。
+ui.api.loadingNamespaces: 名前空間を読み込み中…
+ui.api.loadingTypes: 型を読み込み中…
+ui.api.matchingTypes: 一致する型
+ui.api.namespace: 名前空間
+ui.api.namespaces: 名前空間
+ui.api.noNamespaceTypes: この名前空間には型がありません。
+ui.api.noTypes: 一致する型はありません。
+ui.api.types: 型
+ui.content.reference: リファレンス
+ui.content.source: ソースコード
+ui.content.tutorial: チュートリアル
+ui.contents.close: 目次を閉じる
+ui.contents.open: 目次を開く
+ui.contents.title: 目次
+ui.footer.caption: .NET 向けモダン RHI。
+ui.footer.label: フッター
+ui.language.label: 言語
+ui.language.unavailable: 未翻訳
+ui.members.clear: メンバー検索をクリア
+ui.members.close: メンバー検索を閉じる
+ui.members.empty: 一致するメンバーはありません。
+ui.members.open: メンバーへ移動
+ui.members.placeholder: 名前またはシグネチャ…
+ui.members.search: メンバーを検索
+ui.members.title: メンバーを検索
+ui.members.undeclared: この型には宣言されたメンバーがありません。
+ui.navigation.api: API
+ui.navigation.concepts: 概念
+ui.navigation.home: ホーム
+ui.navigation.label: メインナビゲーション
+ui.navigation.toggle: ナビゲーションの切り替え
+ui.outline.title: このページの内容
+ui.reference.assembly: アセンブリ
+ui.reference.classes: クラス
+ui.reference.constructors: コンストラクター
+ui.reference.declaration: "C# 型宣言"
+ui.reference.delegates: デリゲート
+ui.reference.derived: 派生型
+ui.reference.enums: 列挙型
+ui.reference.events: イベント
+ui.reference.examples: 例
+ui.reference.exceptions: 例外
+ui.reference.extensionMethods: 拡張メソッド
+ui.reference.fields: フィールド
+ui.reference.implementations: 明示的なインターフェイスの実装
+ui.reference.implements: 実装
+ui.reference.inheritance: 継承
+ui.reference.inheritedMembers: 継承されたメンバー
+ui.reference.interfaces: インターフェイス
+ui.reference.metadata: 型のメタデータ
+ui.reference.methods: メソッド
+ui.reference.namespace: 名前空間
+ui.reference.open: "{name} のリファレンスを開く"
+ui.reference.operators: 演算子
+ui.reference.parameters: パラメーター
+ui.reference.properties: プロパティ
+ui.reference.related: 関連項目
+ui.reference.relationships: 継承とメタデータ
+ui.reference.remarks: 注記
+ui.reference.returns: 戻り値
+ui.reference.structs: 構造体
+ui.reference.typeParameters: 型パラメーター
+ui.reference.value: 値
+ui.reference.values: 値
+ui.search.close: 検索を閉じる
+ui.search.empty: 「{query}」に一致する結果は見つかりませんでした。
+ui.search.hint: チュートリアル、概念、サンプル、API リファレンスを検索します。
+ui.search.loading: 検索を読み込み中…
+ui.search.more: さらに結果を表示
+ui.search.pending: 検索中…
+ui.search.placeholder: 何をお探しですか？
+ui.search.resultCount: "検索結果: {count} 件"
+ui.search.title: ドキュメントを検索
+ui.search.unavailable: 検索は利用できません。以下のページを直接開くことができます。

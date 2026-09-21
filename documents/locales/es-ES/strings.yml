@@ -1,0 +1,604 @@
+### YamlMime:Resources
+concepts.execution.context.description: Un {graphicsContext} representa un dispositivo de backend y proporciona sus colas de gráficos, cálculo y transferencia. Cree los búferes, texturas, sombreadores y canalizaciones para una carga de trabajo a través del mismo contexto. Un recurso o identificador creado por otro contexto no se puede vincular simplemente a los búferes de comandos de este.
+concepts.execution.context.details: Elija el backend para la plataforma y la superficie de presentación. La API sigue siendo compartida, pero la compatibilidad del dispositivo sigue siendo importante. {capabilities} expone el nombre del dispositivo y los indicadores {rayTracingSupported} y {meshShadingSupported}. Compruebe el indicador correspondiente antes de crear una carga de trabajo opcional, como hacen los ejemplos {link} y {detail}. Estos indicadores no son una lista completa de restricciones de formato, memoria o plataforma.
+concepts.execution.context.details.detail: sombreado de mallas
+concepts.execution.context.details.link: trazado de rayos
+concepts.execution.context.title: El contexto conecta recursos y colas
+concepts.execution.description: Una aplicación de Zenith.NET crea recursos de GPU, graba comandos que los utilizan y envía esos comandos a una cola. La CPU puede continuar mientras la GPU ejecuta el envío. Mantenga los recursos válidos hasta que finalice ese trabajo, incluso después de que las llamadas de grabación hayan regresado.
+concepts.execution.ownership.description: "Aquí, la propiedad significa responsabilidad de liberación. Una referencia de C# mantiene accesible un objeto administrado; no evita que un {dispose} explícito destruya el recurso nativo. Del mismo modo, enviar un comando que utiliza un búfer no transfiere la propiedad de ese búfer a la cola."
+concepts.execution.ownership.details: Al apagar, deje de enviar nuevo trabajo, espere los últimos usos en cada cola involucrada, libere los recursos de la aplicación y luego libere el contexto. La liberación del contexto libera sus propias colas y asistentes internos; no espera todo el trabajo de la aplicación ni libera cada recurso que la aplicación creó.
+concepts.execution.ownership.guidance: Aplique las mismas reglas de tiempo de vida durante el renderizado. Conserve el valor de finalización del último uso de un recurso para saber cuándo se pueden sobrescribir sus bytes o reemplazar el recurso. Consulte {link} para obtener información sobre vistas y tiempos de vida de recursos de respaldo.
+concepts.execution.ownership.guidance.link: Administración de recursos
+concepts.execution.ownership.table.applicationResources.object: Recursos creados por la aplicación
+concepts.execution.ownership.table.applicationResources.ownership: La aplicación los libera después de su último uso en la GPU.
+concepts.execution.ownership.table.commandBuffers.object: Búferes de comandos prestados
+concepts.execution.ownership.table.commandBuffers.ownership: La cola los gestiona y los recicla.
+concepts.execution.ownership.table.headings.object: Objeto
+concepts.execution.ownership.table.headings.ownership: ¿Quién lo libera?
+concepts.execution.ownership.table.queues.object: Colas de contexto y sus líneas de tiempo
+concepts.execution.ownership.table.queues.ownership: El contexto y las colas los gestionan.
+concepts.execution.ownership.table.swapChainDrawable.ownership: La cadena de intercambio lo gestiona.
+concepts.execution.ownership.title: Mantener la propiedad separada de la finalización en la GPU
+concepts.execution.pipelines.description: "Una canalización de gráficos combina sombreadores, el diseño de entrada de vértices, la regla para ensamblar vértices en primitivas, formatos de adjuntos y estado de renderizado. Establézcala antes de enlazar datos de vértices, índices o constantes y de emitir comandos de dibujo. Sus formatos de adjuntos y recuento de muestras deben coincidir con los adjuntos de la pasada de renderizado."
+concepts.execution.pipelines.details: Una canalización de cálculo proporciona el punto de entrada del sombreador para un dispatch, que inicia grupos de subprocesos de GPU. Establézcala y configure sus constantes antes del dispatching. Los dispatches de cálculo pertenecen a fuera de las pasadas de renderizado gráfico. Cambiar la canalización es un cambio en la forma en que los comandos posteriores interpretan sus entradas; enlace los datos requeridos por la canalización seleccionada antes de usarla.
+concepts.execution.pipelines.guidance: "La {link} muestra la secuencia gráfica completa. El {detail} graba un dispatch seguido de una pasada gráfica que muestra el resultado."
+concepts.execution.pipelines.guidance.detail: ejemplo de cálculo
+concepts.execution.pipelines.guidance.link: devolución de llamada de renderizado del triángulo
+concepts.execution.pipelines.title: Una canalización determina cómo interpretan los datos los comandos
+concepts.execution.queues.description: Comience con {graphicsQueue} cuando un fotograma combine dibujo, cálculo y copias. Mantener el trabajo dependiente en una cola facilita seguir su ordenación.
+concepts.execution.queues.details: Una cola acepta lotes de comandos para su ejecución. Las colas separadas no corresponden necesariamente a motores de hardware independientes, por lo que su trabajo podría no ejecutarse simultáneamente. Utilice otra cola cuando la carga de trabajo pueda beneficiarse de la superposición y agregue una dependencia explícita cuando una cola consuma los resultados de otra cola.
+concepts.execution.queues.guidance: Cuando los comandos posteriores dependen de escrituras anteriores, la aplicación también debe asegurarse de que esas escrituras estén disponibles para los comandos posteriores. Enviar ambos búferes de comandos a la misma cola no establece automáticamente cada dependencia de este tipo. Los comandos pueden usar diferentes etapas de GPU, y los accesos posteriores pueden necesitar una barrera o una transición de textura. {link} explica la distinción entre el orden de envío y la visibilidad de los recursos.
+concepts.execution.queues.guidance.link: Sincronización
+concepts.execution.queues.table.computeQueue.workToRecord: Dispatches de cálculo y trabajo de transferencia compatible, sin pasadas de renderizado gráfico.
+concepts.execution.queues.table.graphicsQueue.workToRecord: Pasadas de renderizado y dibujo, más operaciones de cálculo y transferencia utilizadas por el fotograma.
+concepts.execution.queues.table.headings.queue: Cola
+concepts.execution.queues.table.headings.workToRecord: Trabajo a grabar
+concepts.execution.queues.table.transferQueue.workToRecord: Trabajo de carga, descarga y copia, sin dibujo ni dispatches de cálculo.
+concepts.execution.queues.title: Elegir una cola para el trabajo que ejecutará
+concepts.execution.recording.context: La cola sondea la finalización y recicla los búferes de comandos terminados. Llame a {queueCommandBuffer} para cada nueva grabación; puede devolver una instancia reciclada. No libere un búfer de comandos prestado, no lo envíe dos veces ni continúe grabando en él después del envío. Grabe un búfer de comandos determinado desde un solo subproceso a la vez; el bloqueo interno de la cola no protege contra modificaciones simultáneas en un búfer de comandos.
+concepts.execution.recording.description: "{queueCommandBuffer} devuelve un {commandBuffer} con la grabación ya iniciada. Grabe los comandos y sus dependencias, luego llame a {submit} una vez. El envío finaliza la grabación y devuelve un {timelineValue} que identifica un punto de finalización en esa cola."
+concepts.execution.recording.details: "Por ejemplo, después de grabar un fotograma en {commandBuffer}, el triángulo lo envía y espera a que se complete con:"
+concepts.execution.recording.guidance: "{submit} programa el trabajo; {wait} evita que la CPU continúe hasta que se haya completado ese envío. Grabar un dibujo, finalizar una pasada de renderizado y enviar un búfer de comandos son operaciones independientes. Ni grabar el dibujo ni finalizar la pasada esperan a la GPU."
+concepts.execution.recording.title: La grabación no ejecuta comandos
+concepts.execution.title: Modelo de ejecución
+concepts.platforms.description: Elija si su aplicación posee la ventana nativa y el bucle de fotogramas o si utiliza un control de renderizado de interfaz de usuario. Esa elección determina quién obtiene la textura de salida, envía comandos y presenta el resultado. La textura de salida es la textura utilizada como salida del fotograma actual. El trabajo de gráficos y cálculo fuera de pantalla no necesita una ventana ni una cadena de intercambio.
+concepts.platforms.frame.context: Agregue sus enlaces de canalización y comandos de dibujo dentro de esa pasada. Finalice la pasada antes de regresar. No envíe el búfer de comandos suministrado ni presente de forma independiente, y no libere el búfer de comandos ni la textura de salida. Si su controlador utiliza la textura de salida en otro layout, devuélvala a {colorAttachment} para la transición final del control.
+concepts.platforms.frame.description: Las integraciones implementan {iZenithView}. La aplicación suministra su {graphicsContext}, actualiza datos de escena en {updateRequested} y graba el renderizado en {renderRequested} mediante {renderEventArgs}.
+concepts.platforms.frame.details: "El control gestiona el ciclo completo de cada fotograma. Obtiene la textura de salida y el búfer de comandos, cambia la textura a {colorAttachment}, invoca los controladores de eventos y realiza el envío y la presentación que requiere el framework."
+concepts.platforms.frame.guidance: "Para un {iZenithView} inicializado llamado {view}, con un contexto asignado, este controlador graba una pasada de borrado completa. Requiere {usingZenithNET}:"
+concepts.platforms.frame.notes: Los controles pasan de {undefined} al inicio de cada fotograma, por lo que las aplicaciones no pueden depender de que se conserve el contenido anterior de la textura de salida. Borre o renderice la imagen requerida en cada fotograma. Mantenga la acumulación persistente o el renderizado almacenado en caché en una textura propiedad de la aplicación y luego muestre esa textura a través de la vista.
+concepts.platforms.frame.reference: "{zenithViewHelperDrawableFormat} suministra el formato de color predeterminado de las integraciones. Compruebe la textura de salida real del evento al hacer coincidir los formatos de adjuntos, los recuentos de muestras y las dimensiones."
+concepts.platforms.frame.title: Grabar en el fotograma suministrado por un control de interfaz de usuario
+concepts.platforms.integration.context: WinForms, WPF y la ruta de WinUI de Windows requieren Windows. Las aplicaciones MAUI necesitan la carga de trabajo de su plataforma de destino y deben registrar el controlador del control con {useZenithView}; consulte {extensionsCs}. Se deben cumplir tanto la compatibilidad del marco como la del backend.
+concepts.platforms.integration.description: "Los controles comparten la interfaz de eventos, pero no todos presentan de la misma manera:"
+concepts.platforms.integration.details: La lectura de mapas de bits (bitmap readback) copia los píxeles renderizados en la memoria de la CPU antes de que la interfaz de usuario los muestre. La interoperabilidad de texturas compartidas evita esa lectura, pero aún puede requerir copias y sincronización de GPU. Por lo tanto, la interfaz {renderRequested} compartida no implica costos de presentación idénticos o requisitos de interoperabilidad nativa iguales.
+concepts.platforms.integration.guidance: "Utilice el paquete para el marco de la aplicación; por ejemplo:"
+concepts.platforms.integration.table.avalonia.integration: Avalonia
+concepts.platforms.integration.table.avalonia.presentation: Renderiza en una textura y descarga píxeles en un {writeableBitmap}. Consulte {zenithViewCs} y {surfaceCs}.
+concepts.platforms.integration.table.headings.integration: Integración
+concepts.platforms.integration.table.headings.presentation: Cómo llega su imagen a la interfaz de usuario
+concepts.platforms.integration.table.maui.integration: .NET MAUI
+concepts.platforms.integration.table.maui.presentation: Utiliza superficies nativas en Android, iOS y Mac Catalyst, y composición de texturas compartidas en Windows. Consulte las {link}.
+concepts.platforms.integration.table.maui.presentation.link: implementaciones de plataforma
+concepts.platforms.integration.table.uno.integration: Ruta de Uno
+concepts.platforms.integration.table.uno.presentation: Descarga píxeles en un {writeableBitmap}. Consulte {zenithViewUnoCs}.
+concepts.platforms.integration.table.winForms.integration: WinForms
+concepts.platforms.integration.table.winForms.presentation: Crea una cadena de intercambio de Zenith.NET para el {hWND} del control. Consulte {zenithViewCs}.
+concepts.platforms.integration.table.winUI.integration: WinUI en Windows
+concepts.platforms.integration.table.winUI.presentation: Renderiza en una textura compartida de Direct3D 11 importada y luego copia a una cadena de intercambio de composición conectada a {swapChainPanel}. Consulte {zenithViewWinUICs}.
+concepts.platforms.integration.table.wpf.integration: WPF
+concepts.platforms.integration.table.wpf.presentation: Importa una textura compartida de Direct3D 11 y luego copia a través de interoperabilidad Direct3D a una superficie mostrada por {d3DImage}. Consulte {surfaceCs}.
+concepts.platforms.integration.title: Elegir la ruta de presentación así como el marco de trabajo
+concepts.platforms.lifecycle.context: Para una vista de interfaz de usuario, utilice {descWidth}, {descHeight}, {descFormat} y {descSampleCount} de la textura de salida del evento al crear recursos de renderizado coincidentes. El control determina la resolución de esa textura de salida; no asuma que sus dimensiones lógicas o escala de pantalla siempre son iguales a las dimensiones de la textura.
+concepts.platforms.lifecycle.description: Para una cadena de intercambio nativa, pase las dimensiones del búfer de fotogramas en píxeles. Los tamaños de ventana expresados en unidades lógicas pueden diferir cuando la escala de pantalla está activada. Omita los búferes de fotogramas de tamaño cero, cambie el tamaño de la cadena de intercambio cuando cambie su tamaño de píxeles y obtenga {swapChainDrawable} para cada fotograma. La textura de salida es propiedad de la cadena de intercambio y puede cambiar después de la presentación o del cambio de tamaño.
+concepts.platforms.lifecycle.details: "{swapChainResize} cambia las dimensiones de la superficie existente. {swapChainRefresh} reemplaza la descripción de la superficie, incluidos sus identificadores nativos. Antes de cualquiera de las operaciones, complete los usos pendientes de los recursos afectados. Libere la cadena de intercambio antes de destruir su destino de presentación nativo."
+concepts.platforms.lifecycle.guidance: "Vuelva a crear texturas fuera de pantalla o de profundidad propiedad de la aplicación cuyo tamaño siga a la ventana y actualice las constantes que contengan sus identificadores. Una canalización puede seguir en uso a través de un cambio de tamaño cuando sus formatos de adjuntos y recuento de muestras siguen siendo compatibles. El {link} mantiene su canalización mientras reemplaza su textura de profundidad."
+concepts.platforms.lifecycle.guidance.link: renderizador de cubo giratorio
+concepts.platforms.lifecycle.title: Mantener el tamaño y el tiempo de vida de la textura de salida con su host
+concepts.platforms.ownership.description: "La aplicación es propietaria del contexto que asigna y de los recursos que crea para renderizar. El control posee sus propios recursos de presentación. Cambiar la propiedad {graphicsContext} de la vista hace que el planificador recree los recursos del control; no recrea las canalizaciones, los búferes ni las texturas de la aplicación para el nuevo contexto."
+concepts.platforms.ownership.details: Coordine el reemplazo de recursos con el ciclo de vida de los fotogramas de la vista. Detenga la actividad de fotogramas de la vista y finalice los usos pendientes de la GPU antes de liberar los recursos de la aplicación o el contexto asignado. Quitar una vista no transfiere la propiedad del contexto al control.
+concepts.platforms.ownership.guidance: El archivo compartido {frameSchedulerCs} despacha el trabajo del fotograma a través del despachador de interfaz de usuario de la vista. Mantenga los controladores de fotogramas enfocados en actualizar y grabar el fotograma; el trabajo prolongado de la CPU allí también retrasa la interfaz de usuario.
+concepts.platforms.ownership.title: Mantener los recursos de la aplicación fuera de la propiedad del control
+concepts.platforms.surface.context: Que una biblioteca de ventanas o un marco de interfaz de usuario sea compatible con un sistema operativo no garantiza que el backend de GPU seleccionado esté disponible allí. Las funciones del dispositivo, los controladores y la compatibilidad con superficies nativas aún deben coincidir. Compruebe el trazado de rayos y el sombreado de mallas opcionales a través de {contextCapabilities} antes de crear esas cargas de trabajo.
+concepts.platforms.surface.description: El {link} utiliza Silk.NET para crear una ventana y procesar eventos. Zenith.NET se conecta a esa ventana a través de una descripción de {surface} y una {swapChain}. Una superficie contiene identificadores y dimensiones nativas; construir la descripción no crea ni posee la ventana del sistema operativo.
+concepts.platforms.surface.description.link: triángulo
+concepts.platforms.surface.details: "El identificador debe coincidir con el backend seleccionado:"
+concepts.platforms.surface.guidance: El archivo {appCs} del tutorial muestra las opciones de Windows, macOS y X11. Su host de Linux suministra identificadores Xlib; usarlo en una sesión Wayland requiere XWayland. Una aplicación nativa de Wayland suministraría diferentes identificadores a través de {surfaceWayland}.
+concepts.platforms.surface.table.android.backend: Vulkan en Android.
+concepts.platforms.surface.table.apple.backend: Metal en plataformas Apple.
+concepts.platforms.surface.table.headings.backend: Ruta de backend
+concepts.platforms.surface.table.headings.factory: Fábrica de superficies
+concepts.platforms.surface.table.headings.handles: Identificadores suministrados por el host
+concepts.platforms.surface.table.wayland.backend: Vulkan con un host Wayland nativo.
+concepts.platforms.surface.table.wayland.handles: Pantalla y superficie Wayland
+concepts.platforms.surface.table.win32.backend: DirectX 12 o Vulkan en Windows.
+concepts.platforms.surface.table.xlib.backend: Vulkan en Linux con X11 o XWayland.
+concepts.platforms.surface.table.xlib.handles: Pantalla y ventana X11
+concepts.platforms.surface.title: Suministrar una superficie nativa cuando la aplicación posee la presentación
+concepts.platforms.title: Integración de plataforma
+concepts.resources.allocation.context: "Empiece con recursos creados por el contexto, salvo que necesite su propio asignador de memoria. Al usar un montículo, espere a que termine todo el trabajo de GPU que utiliza sus recursos; después libere los recursos ubicados y, por último, el propio montículo."
+concepts.resources.allocation.description: "Un {heap} proporciona memoria en la que se ubican recursos en desplazamientos explícitos en bytes. La aplicación elige esos desplazamientos y lleva el control de las regiones en uso."
+concepts.resources.allocation.details: "Antes de ubicar un recurso, utilice {contextGetSizeAndAlignment} con su descripción exacta de búfer o textura. Elija un desplazamiento múltiplo de la alineación devuelta, reserve el tamaño devuelto y mantenga el recurso dentro del tamaño total del montículo. Las asignaciones en uso no deben solaparse. El almacenamiento de texturas puede incluir relleno y alineación específicos del backend; multiplicar el número de píxeles por los bytes por píxel no permite calcular el tamaño de la asignación."
+concepts.resources.allocation.guidance: "Para los búferes ubicados, mantenga la residencia del búfer coherente con la del montículo. Utilice montículos exclusivos de GPU para las texturas de GPU ordinarias descritas aquí. El tamaño y la alineación son requisitos de ubicación, no una garantía de que cualquier recurso pueda ubicarse en cualquier montículo en todos los backends."
+concepts.resources.allocation.title: Ubicar recursos en un montículo cuando se necesita control de asignación
+concepts.resources.bufferUsages.table.constant.role: Parámetros de sombreador leídos a través de un enlace de búfer de constantes.
+concepts.resources.bufferUsages.table.headings.role: "Rol"
+concepts.resources.bufferUsages.table.headings.usage: Uso
+concepts.resources.bufferUsages.table.index.role: Índices utilizados por el dibujo indexado.
+concepts.resources.bufferUsages.table.indirect.role: "Argumentos leídos por comandos de dibujo o dispatch indirectos."
+concepts.resources.bufferUsages.table.none.role: "No se declaran indicadores de uso del búfer."
+concepts.resources.bufferUsages.table.storageReadOnly.role: "Datos de búfer accedidos mediante un enlace de sombreador de solo lectura."
+concepts.resources.bufferUsages.table.storageReadWrite.role: "Datos de búfer accedidos mediante un enlace de sombreador de lectura y escritura."
+concepts.resources.bufferUsages.table.transferDst.role: "Almacenamiento de destino para una copia de GPU."
+concepts.resources.bufferUsages.table.transferSrc.role: "Datos de origen para una copia de GPU."
+concepts.resources.bufferUsages.table.vertex.role: Atributos de vértice capturados para dibujar.
+concepts.resources.bufferUsages.title: Usos de búfer
+concepts.resources.description: "Elija la descripción de un recurso según las operaciones que lo utilizarán. Una textura que recibe renderizado, se muestrea en un sombreador y se descarga a la CPU necesita declarar esos tres usos y sincronizar los accesos entre ellos. La ubicación de memoria y el tiempo de vida del recurso son decisiones adicionales."
+concepts.resources.memory.context: Para un búfer accesible por la CPU, {map} proporciona a la CPU una dirección. No espera a que la GPU deje de acceder a los mismos bytes. {unmap} igualmente no envía trabajo ni espera a que se complete. Antes de sobrescribir datos editables por la CPU, finalice las lecturas de GPU que aún necesiten su contenido anterior.
+concepts.resources.memory.description: "Un {bufferDesc} tiene un campo {residency}. Elíjalo según cómo accederán a los datos la CPU y la GPU:"
+concepts.resources.memory.details: La residencia describe el acceso previsto de la CPU a la asignación. No implica que cada dispositivo tenga memoria física de CPU y GPU separada. El triángulo utiliza {cpuWriteOnly} para inicializar un pequeño búfer de vértices directamente. Una malla estática grande puede beneficiarse en cambio del almacenamiento exclusivo de GPU con una carga única.
+concepts.resources.memory.guidance: "{textureDesc} no tiene campo de residencia. Las texturas ordinarias creadas por el contexto utilizan almacenamiento de GPU. Su API pública proporciona operaciones de carga y descarga para transferir datos de CPU, sin exponer un método de mapeo directo. Los montículos explícitos permiten controlar la ubicación, como se explica más abajo."
+concepts.resources.memory.table.cpuReadOnly.cPUAccess: "Leer la memoria mapeada después de que termine la copia de GPU."
+concepts.resources.memory.table.cpuReadOnly.typicalRole: "Datos producidos por la GPU para su lectura en la CPU"
+concepts.resources.memory.table.cpuWriteOnly.cPUAccess: "Escribir la memoria mapeada cuando hayan terminado los lectores anteriores de GPU."
+concepts.resources.memory.table.cpuWriteOnly.typicalRole: "Datos proporcionados o actualizados por la CPU"
+concepts.resources.memory.table.gpuOnly.cPUAccess: "Transferir bytes mediante un búfer de carga o de lectura desde la GPU."
+concepts.resources.memory.table.gpuOnly.typicalRole: "Geometría estática y datos de trabajo de la GPU"
+concepts.resources.memory.table.headings.cPUAccess: Acceso de CPU
+concepts.resources.memory.table.headings.residency: Residencia
+concepts.resources.memory.table.headings.typicalRole: Rol típico
+concepts.resources.memory.title: "Elegir memoria según el acceso de CPU necesario"
+concepts.resources.textureUsages.description: "Los indicadores de uso para transferencias describen la dirección de las copias de GPU. El acceso de CPU es una decisión independiente de ubicación de memoria, descrita más abajo."
+concepts.resources.textureUsages.details: "Combinar indicadores de uso declara varios roles; no ejecuta las operaciones ni ordena sus accesos. Las texturas siguen necesitando {link} adecuados, y sus formatos deben admitir los usos solicitados en el dispositivo seleccionado."
+concepts.resources.textureUsages.details.link: "layout y sincronización"
+concepts.resources.textureUsages.table.colorAttachment.role: "Un adjunto de color en una pasada de renderizado."
+concepts.resources.textureUsages.table.depthStencilAttachment.role: "Un adjunto de profundidad y plantilla en una pasada de renderizado."
+concepts.resources.textureUsages.table.headings.role: "Rol"
+concepts.resources.textureUsages.table.headings.usage: Uso
+concepts.resources.textureUsages.table.none.role: "No se declaran indicadores de uso de la textura."
+concepts.resources.textureUsages.table.sampled.role: "Datos de textura leídos mediante un enlace de textura muestreada."
+concepts.resources.textureUsages.table.storage.role: "Datos de textura accedidos mediante un enlace de textura de almacenamiento para lecturas o escrituras del sombreador."
+concepts.resources.textureUsages.table.transferDst.role: "Almacenamiento de imagen de destino para una copia de GPU."
+concepts.resources.textureUsages.table.transferSrc.role: "Datos de imagen de origen para una copia de GPU."
+concepts.resources.textureUsages.title: Usos de textura
+concepts.resources.title: Administración de recursos
+concepts.resources.transfers.context: Una descarga graba una copia de GPU en el almacenamiento interno de lectura. La biblioteca copia esos bytes en el destino de CPU suministrado cuando restablece el búfer de comandos completado para su reutilización. Mantenga el destino asignado y mantenga la memoria administrada anclada hasta que regrese el {wait} del valor de envío.
+concepts.resources.transfers.description: "Una carga copia datos de CPU a un recurso de GPU; una descarga copia datos del recurso a la memoria de CPU. Los métodos del propio recurso completan esa transferencia antes de devolver el control:"
+concepts.resources.transfers.details: "Estas esperas cubren la transferencia que envían esos métodos. No descubren dependencias con otra cola que ya estuviera leyendo o escribiendo el recurso. Establezca esas dependencias antes de llamar al método del recurso. Una copia directa mediante memoria mapeada también exige que quien llama garantice la finalización del trabajo de GPU correspondiente."
+concepts.resources.transfers.guidance: "Utilice {commandBufferUpload} o {commandBufferDownload} cuando las copias deban grabarse con otro trabajo. Los tiempos de vida de sus punteros difieren:"
+concepts.resources.transfers.item: "Durante la llamada, una carga copia los datos de origen de CPU en un búfer de carga interno, también llamado memoria provisional o staging. El puntero de origen solo debe permanecer válido durante esa llamada."
+concepts.resources.transfers.notes: "Para una textura, el paso de fila es la distancia en bytes entre filas consecutivas de datos de CPU, y el paso de corte es la distancia en bytes entre cortes de profundidad consecutivos. No describen la distribución interna de la textura en memoria de GPU. Consulte {link} para distinguir la finalización de GPU de la disponibilidad de los datos leídos."
+concepts.resources.transfers.notes.link: Sincronización
+concepts.resources.transfers.table.bufferDownload.transfer: Copia directa de CPU para {cpuReadOnly}; de lo contrario, envía una descarga en la cola de transferencia y espera.
+concepts.resources.transfers.table.bufferUpload.transfer: Copia directa de CPU para {cpuWriteOnly}; de lo contrario, envía una carga en la cola de transferencia y espera.
+concepts.resources.transfers.table.headings.method: Método
+concepts.resources.transfers.table.headings.transfer: "Cómo transfiere los datos"
+concepts.resources.transfers.table.textureTransfers.method: "{textureUpload} / {textureDownload}"
+concepts.resources.transfers.table.textureTransfers.transfer: "Utiliza la cola gráfica, cambia el layout del subrecurso seleccionado para realizar la copia, lo cambia al layout final solicitado y espera a que termine la transferencia."
+concepts.resources.transfers.title: "Elegir entre transferencias inmediatas y transferencias grabadas"
+concepts.resources.usages.description: "{bufferUsages} y {textureUsages} son enumeraciones de indicadores que declaran los roles previstos de un recurso. Se asignan a {bufferDescUsages} y {textureDescUsages}, respectivamente. Una enumeración de indicadores permite combinar varios miembros con {value} cuando un recurso tiene más de un rol."
+concepts.resources.usages.title: Declarar los usos requeridos antes de crear un recurso
+concepts.resources.views.description: Una {bufferView} describe una región de búfer y su interpretación. Una {textureView} selecciona un tipo de textura compatible, un formato y un rango de subrecursos. Una vista comparte el almacenamiento de respaldo; no copia los datos ni añade usos que faltaban cuando se creó el recurso. Su rango tampoco es una garantía portátil de comprobación de límites en el sombreador.
+concepts.resources.views.details: "Utilice el handle del propio recurso para su vista predeterminada, o cree una vista cuando necesite otra región o una interpretación compatible distinta. Mantenga referencias de C# a la vista y al recurso subyacente mientras el trabajo de GPU pueda utilizarlos; un handle de recurso por sí solo no mantiene vivo ninguno de los dos objetos. Libérelos únicamente tras su último uso en la GPU. Después de reemplazar cualquiera de ellos, actualice las constantes que contengan su antiguo {link}."
+concepts.resources.views.details.link: "handle de recurso"
+concepts.resources.views.guidance: El {link} muestra una textura de profundidad reemplazada al cambiar el tamaño. El {detail} muestra una textura de entrada que se mantiene separada de su salida editable. Ambos hacen que el tiempo de vida del recurso siga al trabajo que realmente lo utiliza.
+concepts.resources.views.guidance.detail: ejemplo de cálculo
+concepts.resources.views.guidance.link: renderizador de cubo giratorio
+concepts.resources.views.title: "Mantener disponibles las vistas y sus recursos subyacentes durante su uso"
+concepts.shaders.binding.context: "En el ejemplo de cálculo, {input} se llena con {inputTextureSampledHandle} y {output} con {outputTextureStorageHandle}. El {descriptorHandle} con tipo de Slang indica al sombreador cómo acceder a cada recurso:"
+concepts.shaders.binding.description: "{setConstantBuffer} enlaza un búfer y un desplazamiento de bytes para los datos de constantes de la canalización actual. Enlaza el almacenamiento visible por GPU existente; no carga un valor de C#. Llene el búfer primero y asegúrese de que los lectores de GPU anteriores hayan finalizado antes de sobrescribir sus bytes."
+concepts.shaders.binding.details: "Establezca la canalización antes de su búfer de constantes. Para una carga de trabajo de cálculo con recursos ya creados y cargados, la grabación utiliza este orden:"
+concepts.shaders.binding.guidance: Este fragmento asume un {commandBuffer} de grabación, una {computePipeline}, un {constantBuffer} cargado con uso {bufferUsagesConstant} y los recuentos de grupos de subprocesos para la carga de trabajo. El desplazamiento 0 enlaza el inicio del búfer. Si varios registros de datos de constantes comparten un búfer, el desplazamiento inicial de cada registro debe cumplir con la alineación de enlace del backend. Ese requisito es independiente del diseño de campos dentro del registro.
+concepts.shaders.binding.notes: "{resourceHandle} almacena dos campos de 32 bits, pero su interpretación pertenece al backend. No lo trate como un índice de descriptor universal, dirección o valor que se pueda transferir entre contextos. Un identificador no crea un recurso, no añade un uso faltante ni realiza sincronización."
+concepts.shaders.binding.reference: Conserve referencias al recurso y a cualquier vista utilizada para obtener su identificador, y libérelos solo después de que se complete el último uso del sombreador. Al reemplazar una textura o vista, actualice las constantes que contengan su identificador anterior. {link} explica esa relación de tiempo de vida.
+concepts.shaders.binding.reference.link: Administración de recursos
+concepts.shaders.binding.table.bufferStorageReadOnlyHandle.access: Leer elementos estructurados del tipo de sombreador {t}.
+concepts.shaders.binding.table.bufferStorageReadWriteHandle.access: Leer o escribir elementos estructurados del tipo de sombreador {t}.
+concepts.shaders.binding.table.headings.access: Acceso previsto
+concepts.shaders.binding.table.headings.cHandle: "Identificador de C#"
+concepts.shaders.binding.table.headings.slangFieldType: Tipo de campo Slang
+concepts.shaders.binding.table.samplerHandle.access: Suministrar estado de muestreo de textura.
+concepts.shaders.binding.table.textureSampledHandle.access: Leer una textura.
+concepts.shaders.binding.table.textureStorageHandle.access: Leer o escribir una textura de almacenamiento.
+concepts.shaders.binding.title: Enlazar el búfer de constantes y los recursos que describe
+concepts.shaders.compilation.description: "{zenithCompiler} compila un punto de entrada de Slang con nombre y devuelve un {shaderDesc}. Utilice el {graphicsApi} del contexto para que el resultado se dirija al backend que creará el sombreador: DXIL para DirectX 12, una biblioteca Metal para Metal o SPIR-V para Vulkan."
+concepts.shaders.compilation.details: "Por ejemplo, con un {context} existente y el sombreador del triángulo copiado junto al ejecutable:"
+concepts.shaders.compilation.guidance: "{vSMain} debe coincidir exactamente con el nombre del punto de entrada en el archivo del sombreador. Mantenga válidos los objetos de sombreador mientras crea la canalización, luego libérelos después de la creación de la canalización, como se muestra en {link}. Realice esta inicialización una vez en lugar de recompilar en cada fotograma."
+concepts.shaders.compilation.guidance.link: Primer triángulo
+concepts.shaders.compilation.title: Compilar un punto de entrada para el contexto seleccionado
+concepts.shaders.description: "Un sombreador recibe datos suministrados por la aplicación. Los atributos de vértice describen vértices individuales; los búferes contienen parámetros o matrices; los identificadores de recursos identifican otros recursos a los que accederá el sombreador. Las declaraciones de C# y las declaraciones de Slang deben coincidir en lo que significan esos valores. Hacer coincidir un nombre de campo no es suficiente: el diseño, el acceso a recursos y el enlace deben coincidir."
+concepts.shaders.dispatch.description: "{dispatch} toma el número de grupos de subprocesos. El punto de entrada {numthreads} del ejemplo de cálculo ejecuta 16 × 16 subprocesos por grupo. Divida las dimensiones de la imagen entre 16 y redondee hacia arriba para encontrar los recuentos de grupos. Por ejemplo, una imagen de 17 × 19 necesita 2 × 2 grupos. El sombreador comprueba sus coordenadas de píxeles con las dimensiones de la imagen porque los últimos grupos pueden contener subprocesos fuera de la imagen."
+concepts.shaders.dispatch.details: El compilador almacena el tamaño de grupo declarado del punto de entrada en {shaderDescThreadGroupSize}; no convierte las dimensiones en píxeles suministradas a {dispatch} en recuentos de grupos. Utilice {computeShaderRendererCs} con su sombreador para el ejemplo completo de enlace y dispatch, y {link} antes de que otra pasada consuma la salida.
+concepts.shaders.dispatch.details.link: Sincronización
+concepts.shaders.dispatch.title: Despachar grupos de subprocesos, no píxeles
+concepts.shaders.layout.context: "Las {link} hacen explícitos sus desplazamientos. Esta declaración necesita {systemRuntimeInteropServices} y {zenithNET} en el ámbito:"
+concepts.shaders.layout.context.link: "constantes de C# del ejemplo de cálculo"
+concepts.shaders.layout.description: "Para la entrada de vértices, el {inputLayout} de la canalización describe formatos, desplazamientos, stride y semánticas. La posición {float3} del triángulo seguida de un color {float4} ocupa 28 bytes, con el color en el byte 12. {inputLayoutAdd} calcula este diseño empaquetado; no inspecciona la estructura de C#. Si los campos de C# contienen relleno, proporcione un diseño coincidente en lugar de asumir que los campos están empaquetados."
+concepts.shaders.layout.details: "Los búferes de constantes contienen parámetros de sombreador, mientras que los búferes estructurados contienen matrices de elementos de un tipo declarado. Ambos se leen de acuerdo con sus declaraciones de Slang. No utilizan {inputLayout}. Verifique los desplazamientos de campos y los tamaños de elementos para la representación de sombreador compilada, incluido el relleno. Un tipo de C# no administrado es adecuado para copiarlo como bytes, pero eso por sí solo no demuestra que coincida con un tipo de sombreador. En particular, no aplique el diseño {float3} estrechamente empaquetado de un vértice a cada búfer de sombreador."
+concepts.shaders.layout.guidance: Un identificador de recurso es un valor pequeño que hace referencia a un recurso existente. Copiar el identificador en un búfer de constantes no copia el contenido del recurso.
+concepts.shaders.layout.notes: "La declaración correspondiente en {computeShaderSlang} es:"
+concepts.shaders.layout.reference: "Las dimensiones ocupan los primeros ocho bytes, seguidas de dos identificadores de recursos de ocho bytes. El ejemplo de C# reserva 256 bytes en total. Ese tamaño es el tamaño de almacenamiento elegido por el ejemplo, no una regla de que todas las estructuras de Slang o cargas útiles de constantes deban ocupar 256 bytes. Rellenar el tamaño total tampoco corrige un campo en el desplazamiento incorrecto."
+concepts.shaders.layout.title: La entrada de vértices y los datos de sombreadores tienen reglas de diseño diferentes
+concepts.shaders.matrices.description: El compilador solicita almacenamiento de matrices en orden principal de filas (row-major), que almacena juntos los elementos de cada fila. El {link} coloca tres valores {matrix4x4} en los desplazamientos 0, 64 y 128. Su {detail} utiliza {mulVectorMatrix} en orden de modelo, vista y proyección.
+concepts.shaders.matrices.description.detail: sombreador
+concepts.shaders.matrices.description.link: renderizador de cubo giratorio
+concepts.shaders.matrices.details: El orden de almacenamiento determina cómo ocupan memoria los elementos de la matriz; el orden de multiplicación determina la transformación. Mantenga ambos lados coherentes. Agregar una transposición sin verificar esas dos opciones puede ocultar una falta de coincidencia mientras introduce otra.
+concepts.shaders.matrices.title: Mantener coherentes el almacenamiento y la multiplicación de matrices
+concepts.shaders.title: Datos de sombreadores y enlace
+concepts.synchronization.backends.description: DirectX 12 y Vulkan codifican transiciones de textura con información de layout y acceso. Metal no tiene ninguna operación en la implementación de {transition} de Zenith.NET. Metal agrupa el trabajo grabado en codificadores de renderizado y cálculo. El backend inserta barreras de visibilidad cuando finaliza estos grupos, haciendo que las escrituras anteriores estén disponibles para el trabajo posterior. Las llamadas explícitas a {barrier} manejan dependencias como dispatches de cálculo sucesivos dentro del mismo codificador.
+concepts.synchronization.backends.details: Esta distinción es importante al cambiar una carga de trabajo. En el {link}, el dispatch va seguido de una pasada de renderizado gráfico, que también crea un límite de codificador en Metal. Dos dispatches de cálculo dependientes no crean ese límite simplemente cambiando el layout declarado de la textura. Conserve las transiciones requeridas por la API compartida e identifique por separado la dependencia entre los comandos reales de producción y consumo.
+concepts.synchronization.backends.details.link: ejemplo de cálculo
+concepts.synchronization.backends.title: Una transición no es idéntica en todos los backends
+concepts.synchronization.barriers.context: "{barrierStagesAll} es un ámbito más amplio, no un detector automático de dependencias. Seleccione etapas que realmente cubran el trabajo y utilícelas solo en una cola que admita esas operaciones."
+concepts.synchronization.barriers.description: "Considere dos dispatches de cálculo: el primero escribe datos de simulación y el segundo lee esos datos para realizar el siguiente paso. Ambos usan búferes de almacenamiento, por lo que no hay un layout de textura que cambiar. Inserte esto entre los dispatches en su búfer de comandos:"
+concepts.synchronization.barriers.details: El primer argumento identifica la etapa productora y el segundo la etapa consumidora. La barrera establece la dependencia de ejecución y memoria correspondiente en la GPU. El backend traduce esas etapas a sus reglas de ejecución y acceso a memoria. Esta barrera no cambia el layout de una textura ni espera todo el trabajo en el dispositivo.
+concepts.synchronization.barriers.guidance: "La {link} utiliza este patrón entre dispatches dependientes. Coloque la barrera donde se produce la dependencia. Una barrera grabada después del consumidor no puede ordenar ese consumidor después de un productor anterior."
+concepts.synchronization.barriers.guidance.link: simulación FluidTank
+concepts.synchronization.barriers.title: Ordenar comandos dependientes con una barrera
+concepts.synchronization.dependencies.description: Para cada recurso compartido, identifique la operación que accede a él primero, la operación que le sigue y si alguno de los accesos escribe. Leer los mismos datos dos veces no requiere ordenación para proteger su contenido, aunque los cambios de layout o la presentación pueden imponer otros requisitos. Una escritura seguida de una lectura, una lectura seguida de una sobrescritura o dos escrituras pueden requerir una dependencia.
+concepts.synchronization.dependencies.details: "Luego elija el mecanismo según dónde se ejecuten esas operaciones:"
+concepts.synchronization.dependencies.guidance: Estos mecanismos están relacionados, pero no son intercambiables. Enviar comandos en orden no reemplaza cada dependencia de memoria. Una espera de cola no declara un nuevo layout de textura, y una barrera de comandos no espera en el subproceso de CPU que llama.
+concepts.synchronization.dependencies.table.cpuAccess.mechanism: Llamar a {wait} en el valor de finalización correspondiente.
+concepts.synchronization.dependencies.table.cpuAccess.situation: La CPU debe esperar antes de acceder a los datos o liberarlos
+concepts.synchronization.dependencies.table.crossQueue.mechanism: Pasar su {timelineValue} al {submit} del búfer de comandos consumidor.
+concepts.synchronization.dependencies.table.crossQueue.situation: Un envío en otra cola produce los datos
+concepts.synchronization.dependencies.table.headings.mechanism: Mecanismo
+concepts.synchronization.dependencies.table.headings.situation: Situación
+concepts.synchronization.dependencies.table.layoutChange.mechanism: "{commandBufferTransition} con sus layouts anterior y siguiente."
+concepts.synchronization.dependencies.table.layoutChange.situation: Un subrecurso de textura cambia cómo se utiliza
+concepts.synchronization.dependencies.table.pipelineStages.mechanism: "{commandBufferBarrier} con las etapas productora y consumidora."
+concepts.synchronization.dependencies.table.pipelineStages.situation: Etapas de GPU dependientes en un flujo de comandos
+concepts.synchronization.dependencies.title: Comenzar con el productor y el consumidor
+concepts.synchronization.description: Un comando que lee datos escritos por un comando anterior depende de que esas escrituras estén finalizadas y sean visibles para él. El escritor es el productor; el lector es el consumidor. La CPU también necesita un punto de finalización antes de leer, sobrescribir o liberar datos compartidos. Zenith.NET proporciona barreras, transiciones de textura y líneas de tiempo para estas diferentes dependencias.
+concepts.synchronization.layouts.context: "{undefined} significa que no es necesario conservar el contenido anterior. Es adecuado para una nueva imagen o un adjunto que se borrará por completo. No es una forma de evitar rastrear el layout de una imagen cuyo contenido se cargará, muestreará o acumulará."
+concepts.synchronization.layouts.description: "Los indicadores de uso describen qué roles admite una textura. {textureLayout} describe cómo se accederá a un subrecurso determinado para una operación. Un subrecurso es un nivel mip y una capa de matriz seleccionados. Cambiar su layout prepara ese acceso; no convierte la textura a un formato de píxeles diferente. Por ejemplo, el ejemplo de cálculo escribe una textura de salida en el layout {storage} y luego la muestrea en una pasada gráfica. Entre esos usos graba:"
+concepts.synchronization.layouts.details: "Este fragmento supone que {outputTexture} se creó con el uso {sampledStorage} y que el subrecurso seleccionado está en el layout {storage}. {default} selecciona el nivel mip 0 y la capa de matriz 0. La operación no cambia el layout de todos los niveles mip ni de todas las capas de una textura."
+concepts.synchronization.layouts.guidance: La aplicación proporciona el layout anterior. {transition} no mantiene un rastreador de layouts visible para la aplicación ni infiere ese valor a partir de comandos anteriores. Rastree el layout dondequiera que un recurso pase entre etapas de renderizado.
+concepts.synchronization.layouts.title: Rastrear el layout de cada subrecurso de textura
+concepts.synchronization.readback.description: "{isCompleted} solo consulta si la línea de tiempo de la GPU ha alcanzado un valor. No reclama por sí mismo los búferes de comandos ni copia descargas intermedias en el puntero de destino de la aplicación."
+concepts.synchronization.readback.details: "{commandBufferDownload} graba primero una copia en el almacenamiento interno de lectura. Al restablecer el búfer de comandos completado para reutilizarlo, la CPU copia los datos al puntero suministrado. Mantenga ese destino válido y la memoria administrada anclada hasta que retorne {wait} para el envío de descarga. Solo entonces lea los datos o libere la memoria. Esperar a un envío posterior de otra cola no sondea la cola que gestiona la descarga."
+concepts.synchronization.readback.guidance: "Por eso no basta con sondear {isCompleted} y leer inmediatamente el destino de una descarga asíncrona. En {link} se explican la copia directa y las transferencias mediante almacenamiento provisional."
+concepts.synchronization.readback.guidance.link: Administración de recursos
+concepts.synchronization.readback.title: La finalización en la GPU y los datos descargados en la CPU son pasos independientes
+concepts.synchronization.reuse.description: Para un primer renderizador, una espera inmediata después de cada fotograma es sencilla. Para superponer trabajo, proporcione a los fotogramas pendientes datos mutables separados y conserve el valor de finalización del uso final de cada fotograma. Antes de actualizar un búfer de constantes, reemplazar una textura o liberar una canalización, finalice cada acceso pendiente al recurso afectado.
+concepts.synchronization.reuse.details: Al cambiar el tamaño o apagar, detenga los nuevos usos antes de esperar los antiguos. {swapChainResize}, la liberación de recursos y la liberación del contexto no sirven como esperas generales para el trabajo de la aplicación. El triángulo puede cambiar de tamaño de forma segura entre devoluciones de llamada porque cada fotograma anterior ya ha completado su envío.
+concepts.synchronization.reuse.guidance: El {swapChainPresent} actual también envía señales y espera en la cola de gráficos después de su operación de presentación. Por lo tanto, quitar la espera de envío explícita del triángulo no establece por sí sola un bucle de presentación superpuesto. Una espera en la cola de gráficos tampoco dice nada sobre el trabajo independiente que aún se está ejecutando en otra cola.
+concepts.synchronization.reuse.title: Reutilizar datos solo después de su acceso final
+concepts.synchronization.timelines.context: "Antes de que la CPU lea, sobrescriba o libere esos recursos, espere su uso final:"
+concepts.synchronization.timelines.description: Una línea de tiempo realiza un seguimiento de la finalización en una cola mediante valores crecientes. {submit} devuelve un {timelineValue} que contiene esa línea de tiempo y el valor asociado con el envío. Los valores de finalización de diferentes líneas de tiempo no son comparables únicamente por sus campos numéricos {value}.
+concepts.synchronization.timelines.details: "Supongamos que {producer} y {consumer} son búferes de comandos ya grabados de dos colas del mismo contexto. El productor escribe datos que utiliza el consumidor. Envíelos de esta manera:"
+concepts.synchronization.timelines.guidance: Pasar el valor producido hace que la cola consumidora espere por él en la GPU. La CPU no llama a {producedWait} aquí. Mantenga válidos los recursos compartidos hasta que se complete {consumed} y grabe cualquier cambio de layout de textura requerido por el consumidor.
+concepts.synchronization.timelines.notes: "{wait} espera ese valor de línea de tiempo y luego comprueba la cola propietaria en busca de envíos completados. Los búferes de comandos terminados se restablecen para su reutilización y sus descargas intermedias se copian en los destinos de CPU suministrados. {queueTimelineSignal} también puede poner en cola un punto de finalización después del trabajo ya enviado a esa cola. Llamar a {signal} no significa que la GPU ya haya alcanzado el punto."
+concepts.synchronization.timelines.title: Usar una línea de tiempo para la finalización y transferencias de colas
+concepts.synchronization.title: Sincronización
+home.actions.reference: Explorar API
+home.actions.tutorial: Comenzar con un triángulo
+home.entries.description: Un primer fotograma. Un ejemplo enfocado. Una mirada detallada a la API.
+home.entries.label: Explorar la documentación
+home.entries.reference.action: Explorar la API
+home.entries.reference.category: Referencia
+home.entries.reference.description: Encuentre los tipos, firmas y miembros que respaldan su aplicación.
+home.entries.reference.title: Referencia de la API
+home.entries.samples.action: Examinar ejemplos
+home.entries.samples.category: Ejemplos
+home.entries.samples.description: Explore técnicas enfocadas de renderizado y cálculo a través de su código fuente.
+home.entries.samples.title: Ejemplos
+home.entries.title: "Empiece a crear."
+home.entries.tutorial.action: Iniciar tutorial
+home.entries.tutorial.category: Tutorial
+home.entries.tutorial.description: Cree una aplicación de renderizado completa, desde la configuración hasta el primer fotograma.
+home.entries.tutorial.title: Primer triángulo
+home.introduction.accent: "En C#."
+home.introduction.description: Cree recursos, grabe comandos y envíe trabajo de gráficos o cálculo a través de una única API de .NET.
+home.introduction.title: Cree su propio renderizador.
+home.meta.description: "Una API coherente de C# para gráficos y cálculo en DirectX, Metal y Vulkan."
+home.scene.description: Estudio de geometría rotatoria. Arrastre o use las teclas de dirección para ajustar la vista.
+home.scene.label: Visualización geométrica
+home.scene.surface: Superficie
+home.scene.wireframe: Estructura alámbrica
+home.title: RHI moderno para .NET
+learning.concepts.description: Comprenda cómo encajan los comandos, los recursos, los datos de sombreadores y la sincronización antes de combinar pasadas de renderizado.
+learning.concepts.execution.description: Grabe trabajo de GPU, envíelo y mantenga vivos sus recursos.
+learning.concepts.platforms.description: Conecte una ventana nativa o un control de renderizado de interfaz de usuario.
+learning.concepts.resources.description: Elija usos de recursos, ubicación de memoria y vistas.
+learning.concepts.shaders.description: "Haga coincidir diseños de C# e identificadores de recursos con Slang."
+learning.concepts.synchronization.description: Ordene accesos dependientes y sepa cuándo finaliza el trabajo.
+learning.concepts.title: Conceptos básicos
+learning.description: Comience con un tutorial completo sobre un triángulo. Luego use los ejemplos enfocados y las guías conceptuales para comprender los recursos, los datos y las dependencias detrás de un renderizador más grande.
+learning.entries.samples.action: Examinar ejemplos
+learning.entries.samples.description: "Encuentre ejemplos de C# y Slang para geometría, cálculo, consultas de rayos y sombreado de mallas."
+learning.entries.tutorial.action: Abrir tutorial
+learning.entries.tutorial.description: Cree una aplicación de consola, abra una ventana y dibuje un triángulo.
+learning.meta.description: Comience con Zenith.NET y explore su modelo de programación.
+learning.title: Aprender
+reference.description: Consulte tipos de recursos, firmas de comandos e integraciones de plataforma.
+reference.entries.commands.description: Grabe comandos de gráficos, cálculo y transferencia.
+reference.entries.commands.label: Grabar trabajo
+reference.entries.context.description: Cree recursos de GPU para el backend seleccionado.
+reference.entries.context.label: Comience aquí
+reference.meta.description: Explore los tipos y miembros en Zenith.NET.
+reference.navigation.core: Examinar la API principal.
+reference.title: Referencia de la API
+samples.computeShader.description: Convierte una imagen a escala de grises con un dispatch de cálculo y muestra la textura resultante. Muestra identificadores de recursos para una textura de entrada muestreada y una textura de salida editable, recuentos de grupos de subprocesos redondeados hacia arriba y una comprobación de límites en el sombreador. Conserve el recurso {assetsTexturesShokoPng} incluido; el renderizador lo procesa una vez y presenta el resultado en los fotogramas subsiguientes.
+samples.computeShader.details: "{computeShaderRendererCs} · {computeShaderSlang}"
+samples.computeShader.title: Sombreador de cálculo
+samples.cube.description: "Agrega dibujo indexado, matrices de modelo, vista y proyección en un búfer de constantes y prueba de profundidad. La textura de profundidad se vuelve a crear al cambiar el tamaño. Úselo al pasar de geometría en espacio de recorte a un objeto transformado; el renderizador utiliza un adjunto de profundidad/plantilla {d32FloatS8UInt}."
+samples.cube.details: "{spinningCubeRendererCs} · {spinningCubeSlang}"
+samples.cube.title: Cubo giratorio
+samples.description: "Elija un ejemplo enfocado para la característica que desea estudiar. Cada ejemplo se vincula al renderizador de C# y a su sombreador Slang. Comience con {link} si desea una aplicación completa explicada desde un proyecto vacío."
+samples.description.link: Primer triángulo
+samples.execution.description: "{link} contiene seis renderizadores independientes en una aplicación de escritorio. Utilice el SDK de .NET 10 y un backend de escritorio compatible, como se describe a continuación. Compile y ejecute la aplicación, luego elija un ejemplo del menú de la consola:"
+samples.execution.description.link: ZenithTutorials
+samples.execution.details: El host selecciona DirectX 12 en Windows, Metal en macOS y Vulkan en Linux. Utilice un entorno de dispositivo, controlador y compilador de sombreadores compatible con el backend seleccionado. La ruta de ventana de Linux requiere X11 o XWayland. El {link} declara las dependencias de paquetes y copia los recursos de sombreador y textura necesarios en tiempo de ejecución.
+samples.execution.details.link: archivo de proyecto
+samples.execution.guidance: Los ejemplos comparten código de ventanas y presentación. Puede elegir cualquier ejemplo de forma independiente según la característica que desee estudiar.
+samples.execution.title: Ejecutar los ejemplos del tutorial
+samples.host.description: "{appCs} crea el contexto, la ventana y la cadena de intercambio. Obtiene un búfer de comandos, llama al renderizador seleccionado, envía el fotograma y lo presenta. {iRendererCs} define los métodos de actualización, renderizado, cambio de tamaño y liberación del renderizador."
+samples.host.details: El cálculo y el trazado de rayos producen texturas fuera de pantalla. {texturePresenterCs} y {presentTextureSlang} dibujan esas texturas en la textura de salida del fotograma actual de la ventana. El host sigue siendo el propietario del envío y de la presentación de la cadena de intercambio.
+samples.host.title: Host y presentación compartidos
+samples.indirectDrawing.description: Dibuja varias copias de un cubo utilizando un búfer de argumentos indirectos indexados y datos por instancia en un búfer estructurado. La CPU suministra los argumentos de dibujo y actualiza las transformaciones. Úselo para comprender el diseño de argumentos indirectos y el acceso de sombreadores a datos de instancia antes de agregar argumentos generados por GPU.
+samples.indirectDrawing.details: "{indirectDrawingRendererCs} · {indirectDrawingSlang}"
+samples.indirectDrawing.title: Dibujo indirecto
+samples.meshShading.description: Utiliza un sombreador de tareas para descartar instancias de esferas y pasar sus índices a un sombreador de mallas que emite geometría. El renderizador comprueba {contextCapabilitiesMeshShadingSupported} antes de crear su canalización. Úselo para seguir los identificadores de recursos y los datos de carga útil a través de las etapas de tarea y malla.
+samples.meshShading.details: "{meshShadingRendererCs} · {meshShadingSlang}"
+samples.meshShading.title: Sombreado de mallas
+samples.rayTracing.description: Crea estructuras de aceleración de nivel inferior y superior para un suelo y esferas procedimentales, y luego traza consultas de rayos en línea en un sombreador de cálculo. El renderizador comprueba {contextCapabilitiesRayTracingSupported} antes de construir la carga de trabajo. Utilice este ejemplo para entradas de estructuras de aceleración y recorrido de rayos del lado del sombreador.
+samples.rayTracing.details: "{rayTracingRendererCs} · {rayTracingSlang}"
+samples.rayTracing.title: Trazado de rayos
+samples.title: Ejemplos
+samples.triangle.description: Crea un búfer de vértices y un diseño de entrada coincidente, y luego dibuja tres vértices a través de una canalización de gráficos. Úselo para conectar la creación de recursos con los comandos en una pasada de renderizado.
+samples.triangle.details: "{helloTriangleRendererCs} · {helloTriangleSlang} · {link}"
+samples.triangle.details.link: Tutorial completo
+samples.triangle.title: Hola triángulo
+samples.workloads.description: "El {link} del repositorio principal contiene aplicaciones que combinan varias características. Sus proyectos hacen referencia al código fuente de la biblioteca. Desde una copia de Zenith.NET, ejecute el proyecto elegido, por ejemplo:"
+samples.workloads.description.link: directorio Experiments
+samples.workloads.details: Los experimentos con ventanas utilizan las mismas opciones de host para Windows, macOS y Linux/X11. Para dibujar dentro de Avalonia, WinForms, WPF, WinUI/Uno o MAUI, consulte {link} para obtener información sobre el ciclo de vida de los fotogramas del control y los vínculos de implementación.
+samples.workloads.details.link: Integración de plataforma
+samples.workloads.table.cornellBox.example: "{link}"
+samples.workloads.table.cornellBox.example.link: CornellBox
+samples.workloads.table.cornellBox.whatItDemonstratesAndRequires: "Trazado de caminos, reducción de ruido, asignación de tonos, aumento de resolución y controles ImGui. Requiere compatibilidad con trazado de rayos y el entorno de compilación de sombreadores para su backend de escritorio."
+samples.workloads.table.fluidTank.example: "{link}"
+samples.workloads.table.fluidTank.example.link: FluidTank
+samples.workloads.table.fluidTank.whatItDemonstratesAndRequires: Simulación de fluidos por cálculo, dependencias entre etapas de simulación y renderizado de superficies multipasada. Requiere su backend de escritorio y el entorno de compilación de sombreadores.
+samples.workloads.table.headings.example: Ejemplo
+samples.workloads.table.headings.whatItDemonstratesAndRequires: Qué demuestra y qué requiere
+samples.workloads.table.inkCanvas.example: "{link}"
+samples.workloads.table.inkCanvas.example.link: InkCanvas
+samples.workloads.table.inkCanvas.whatItDemonstratesAndRequires: Dibujo con Skia y control de entrada en una ventana nativa. Requiere el backend y la biblioteca nativa de Skia para la plataforma de destino.
+samples.workloads.table.platformDetection.example: "{link}"
+samples.workloads.table.platformDetection.example.link: PlatformDetection
+samples.workloads.table.platformDetection.whatItDemonstratesAndRequires: Intenta la creación de contexto para cada backend e informa de las funcionalidades del dispositivo. Si la creación del contexto falla, se informa como no compatible; ese resultado también puede indicar la falta de un controlador o una dependencia en tiempo de ejecución.
+samples.workloads.title: Explorar cargas de trabajo más amplias
+tutorial.context.description: La ventana ahora puede abrirse, pero aún no hemos creado los objetos de GPU que renderizarán en ella. Un {graphicsContext} proporciona acceso al backend gráfico seleccionado y a sus colas de comandos.
+tutorial.context.details: "Inserte este bloque {emphasis}:"
+tutorial.context.details.emphasis: después de las directivas using, antes de {iWindowWindow}
+tutorial.context.guidance: Las ramas seleccionan DirectX 12 en Windows, Metal en macOS y Vulkan en Linux. El código de renderizado que sigue utiliza la API compartida de Zenith.NET. Solicitamos validación durante el desarrollo e imprimimos los mensajes notificados a través de {validationMessage}. Los diagnósticos dependen del backend y de los componentes de validación disponibles en el equipo.
+tutorial.context.title: Crear el contexto gráfico
+tutorial.description: Cree una aplicación de consola .NET que abra una ventana y dibuje un triángulo con un degradado de color suave. Aprenderá cómo interactúan los datos de vértices, los sombreadores y el estado de la canalización, y luego grabará y enviará los comandos que producen la imagen.
+tutorial.details: Siga las secciones en orden. Primero abrirá una ventana vacía, luego mostrará un color de fondo y finalmente dibujará el triángulo. Cada punto de comprobación confirma una parte de la aplicación antes de agregar la siguiente. La inicialización se ejecuta una vez; la devolución de llamada de renderizado graba un nuevo fotograma cada vez que se invoca.
+tutorial.draw.context: "Los argumentos para {draw} son:"
+tutorial.draw.description: "En la devolución de llamada {windowRender}, reemplace {addTheTriangleDrawCommandsHereLater} por estos tres comandos, entre {beginRenderPass} y {endRenderPass}:"
+tutorial.draw.details: "{setPipeline} selecciona los sombreadores y el estado que acabamos de crear. Establézcalo antes de enlazar datos de vértices: el backend utiliza el diseño de entrada de la canalización para interpretar el enlace."
+tutorial.draw.guidance: "{setVertexBufferVertexBuffer} enlaza el búfer comenzando en el desplazamiento de bytes 0 a la ranura de entrada 0. Esa ranura corresponde a la única entrada en {inputLayouts}. No vuelve a copiar ni a cargar los datos."
+tutorial.draw.notes: Los comandos aún solo están grabados en este punto. Las llamadas a {submitWait} y {present} que ya están al final de la devolución de llamada de renderizado ejecutan el trabajo y muestran su resultado. El borrado sigue siendo necesario porque el triángulo cubre solo una parte de la imagen; el fondo también debe recibir un color definido en cada fotograma.
+tutorial.draw.table.firstInstance.meaning: Comenzar la numeración de instancias en cero.
+tutorial.draw.table.firstVertex.meaning: Comenzar con el primer vértice en el búfer.
+tutorial.draw.table.headings.argument: Argumento
+tutorial.draw.table.headings.description: Valor
+tutorial.draw.table.headings.meaning: Significado
+tutorial.draw.table.instanceCount.meaning: Dibujar una copia del triángulo.
+tutorial.draw.table.vertexCount.meaning: Leer tres vértices.
+tutorial.draw.title: Dibujar el triángulo dentro de la pasada
+tutorial.execution.description: "Compile y ejecute desde el directorio {firstTriangle}:"
+tutorial.execution.details: La ventana debería mostrar un triángulo con una esquina superior roja, una esquina inferior derecha verde y una esquina inferior izquierda azul contra un fondo oscuro. El interior debe mostrar un degradado suave entre esos colores.
+tutorial.execution.guidance: Cambie el tamaño de la ventana. La devolución de llamada de cambio de tamaño actualiza las dimensiones del búfer de fotogramas y cambia el tamaño de la cadena de intercambio. La pasada de renderizado establece una ventana gráfica que coincide con esa imagen. Debido a que las posiciones de los vértices permanecen en coordenadas normalizadas, el triángulo conserva la misma fracción del ancho y alto de la ventana; cambiar la relación de aspecto puede estirar su forma. Conservar la relación de aspecto de un objeto requiere una directiva de proyección o ventana gráfica, lo cual va más allá de este primer dibujo.
+tutorial.execution.title: Ejecutar, cambiar tamaño y cerrar
+tutorial.frame.commands.context: Después de {endRenderPass}, la segunda transición prepara la imagen para su presentación. {submit} finaliza la grabación y envía el búfer de comandos; {wait} espera a que la GPU complete ese envío. Luego, {present} solicita la visualización de la imagen renderizada.
+tutorial.frame.commands.description: "Una pasada de renderizado agrupa operaciones de dibujo que utilizan los mismos adjuntos. Aquí, el adjunto de color es la textura de salida de la cadena de intercambio, la imagen que recibe nuestro dibujo. {colorAttachmentClear} crea una descripción que indica a la pasada que borre al color RGBA indicado y conserve el resultado cuando termine la pasada. {beginRenderPass} graba esas instrucciones; la GPU realiza el borrado después de que se envían los comandos."
+tutorial.frame.commands.details: "Los corchetes contienen nuestro único adjunto de color. El argumento {null} significa que no hay un adjunto de profundidad/plantilla, que almacenaría valores de profundidad y máscaras de plantilla para pruebas de profundidad y plantilla."
+tutorial.frame.commands.guidance: "{beginRenderPass} establece una ventana gráfica (viewport) y un recorte (scissor) que cubren el adjunto. La ventana gráfica asigna las coordenadas renderizadas a píxeles, y el recorte limita qué píxeles se pueden escribir. Estos valores predeterminados cubren toda la textura de salida, que es lo que necesita este triángulo."
+tutorial.frame.commands.title: Borrar, enviar y presentar
+tutorial.frame.description: Primero llene la imagen con un único color de fondo. Esta operación se denomina borrado (clear). Si ese color aparece en la ventana, la superficie, el envío de comandos y la ruta de presentación están funcionando juntos. Este punto de comprobación le permite verificar el bucle de fotogramas antes de agregar geometría y sombreadores.
+tutorial.frame.details: "Una devolución de llamada de renderizado es código que Silk.NET llama cuando es hora de dibujar un fotograma. Esta devolución de llamada no necesita el argumento de tiempo transcurrido del evento, por lo que se denomina {value}. Regístrela {emphasis}:"
+tutorial.frame.details.emphasis: antes de {windowRun}
+tutorial.frame.target.description: "{graphicsQueueCommandBuffer} obtiene un búfer de comandos con la grabación ya iniciada. La grabación describe trabajo para la GPU; no ejecuta ese trabajo de inmediato."
+tutorial.frame.target.details: "La primera {transition} prepara la textura de salida para el acceso como adjunto de color. {default} selecciona el nivel mip 0 y la capa de matriz 0. Usamos {undefined} como layout anterior porque borraremos toda la imagen y descartaremos su contenido anterior. Una pasada que deba conservar el contenido existente debe usar su layout anterior real en su lugar."
+tutorial.frame.target.guidance: Utilice la textura de salida actual de la cadena de intercambio en cada fotograma. La presentación puede cambiar qué imagen está disponible, por lo que una textura guardada de un fotograma anterior no es un destino de renderizado de ventana permanente.
+tutorial.frame.target.title: Preparar la textura de salida
+tutorial.frame.title: Mostrar un color de fondo
+tutorial.geometry.data.description: Agregue esta matriz {emphasis}. Los siguientes pasos de creación de recursos también pertenecen a antes de esa devolución de llamada, en el orden mostrado.
+tutorial.geometry.data.description.emphasis: antes de {windowRender}
+tutorial.geometry.data.details: "Cada entrada de la matriz crea un {vertex}. Las dos expresiones {new} internas crean su posición {vector3} y su color {vector4}. Los vértices describen las esquinas superior, inferior derecha e inferior izquierda. El sombreador de vértices suministrará una cuarta coordenada de posición, {w}. Con w igual a 1, x e y describen directamente coordenadas de dispositivo normalizadas: -1 y +1 son los bordes de la imagen y 0 es el centro. Estas coordenadas no dependen de las dimensiones en píxeles de la ventana."
+tutorial.geometry.data.guidance: Cada color contiene componentes rojo, verde, azul y alfa. Alfa es 1 en las tres esquinas. Las tres posiciones tienen z = 0, situándolas en el mismo plano. Estas posiciones no necesitan cámara ni matriz de transformación porque ya describen las coordenadas que queremos renderizar. Para este triángulo plano único, también desactivaremos la mezcla y la prueba de profundidad y omitiremos un búfer de profundidad.
+tutorial.geometry.data.title: Elegir las esquinas
+tutorial.geometry.description: Un vértice es un punto junto con los datos utilizados para dibujarlo. Nuestro triángulo tiene tres vértices, uno para cada esquina. Cada uno contiene una posición y un color. La GPU interpolará los colores calculando valores intermedios a través del triángulo.
+tutorial.geometry.format.description: "Agregue esta declaración {emphasis}:"
+tutorial.geometry.format.description.emphasis: al final de {programCs}, después de las instrucciones de limpieza
+tutorial.geometry.format.details: "{file} limita este tipo a {programCs}, y el constructor inicializa sus campos de posición y color. {layoutKindSequential} mantiene los campos en el orden de declaración. {position} contiene tres flotantes de 32 bits y {color} contiene cuatro. En esta estructura, la posición comienza en el byte 0, el color comienza en el byte 12 y el vértice completo ocupa 28 bytes. Describiremos ese mismo diseño a la canalización de gráficos."
+tutorial.geometry.format.title: Definir un vértice
+tutorial.geometry.title: Dar a la GPU tres vértices
+tutorial.geometry.upload.context: "{fixed} evita que el recolector de elementos no utilizados mueva la matriz mientras se usa su dirección. Para este búfer al que puede escribir la CPU, {upload} mapea la memoria, copia los datos y deshace el mapeo antes de devolver el control. Por tanto, la matriz no necesita seguir anclada después. El búfer debe permanecer vivo durante todo el renderizado, y basta con cargar los datos una vez porque los vértices no cambian."
+tutorial.geometry.upload.description: "La matriz administrada son datos de CPU. Un {buffer} proporciona a la GPU almacenamiento desde el que puede leer los vértices. Después de la matriz, agregue:"
+tutorial.geometry.upload.details: "El tamaño total es {sizeofVertexVerticesLength}: 28 bytes por vértice, tres vértices, 84 bytes en total. {bufferUsagesVertex} permite el acceso de entrada de vértices. {cpuWriteOnly} permite a la CPU inicializar este pequeño búfer directamente. El stride del descriptor registra el tamaño del elemento; el diseño de entrada que crearemos a continuación indicará a la captura de vértices cómo leer los atributos individuales."
+tutorial.geometry.upload.guidance: Crear un búfer no lo rellena. {upload} copia la matriz en esa asignación comenzando en el desplazamiento de byte de destino 0. Su descripción de origen proporciona un puntero y el número de bytes que se van a copiar.
+tutorial.geometry.upload.notes: Agregue {vertexBufferDispose} inmediatamente antes de {swapChainDispose} en la limpieza al final de {programCs}. Para geometrías estáticas más grandes, {link} explica cuándo elegir almacenamiento exclusivo de GPU y transferencias de carga en su lugar.
+tutorial.geometry.upload.notes.link: Administración de recursos
+tutorial.geometry.upload.title: Asignar un búfer y cargar la matriz
+tutorial.input.description: "Los bytes de vértices y los sombreadores están listos. A continuación, describa cómo debe leer la GPU cada vértice. Un atributo es un valor único, como posición o color. El diseño de entrada proporciona a cada atributo un formato y un desplazamiento de bytes; el stride proporciona la distancia en bytes de un vértice al siguiente. Agregue este bloque de inicialización después de la creación del sombreador:"
+tutorial.input.details: "{inputLayoutAdd} agrega un elemento en el stride actual y aumenta ese stride en el tamaño del elemento. No inspecciona la estructura de C#. Aquí produce la siguiente concordancia entre la memoria de la CPU y las entradas del sombreador:"
+tutorial.input.guidance: "Cambiar el orden de los campos de C# o el relleno sin actualizar esta descripción haría que la GPU leyera los bytes incorrectos. El {semanticIndex} predeterminado es cero, coincidiendo con {pOSITION0} y {cOLOR0}. Ambos elementos pertenecen al mismo búfer, por lo que la canalización contendrá un diseño de entrada y enlazaremos ese búfer a la ranura 0."
+tutorial.input.table.headings.byteOffset: Desplazamiento de bytes
+tutorial.input.table.headings.cField: "Campo de C#"
+tutorial.input.table.headings.format: Formato
+tutorial.input.table.headings.shaderInput: Entrada del sombreador
+tutorial.input.table.nextVertex.cField: Siguiente vértice
+tutorial.input.table.nextVertex.format: "Stride total: 28 bytes"
+tutorial.input.table.nextVertex.shaderInput: Siguiente registro de entrada
+tutorial.input.table.vertexColor.format: "{float4} (16 bytes)"
+tutorial.input.table.vertexPosition.format: "{float3} (12 bytes)"
+tutorial.input.title: Describir el diseño de entrada de vértices
+tutorial.lifecycle.description: "La aplicación terminada repite esta secuencia:"
+tutorial.lifecycle.details: "Cerrar la ventana regresa de {run}. Cada fotograma renderizado ya ha esperado a que se complete su trabajo de GPU, por lo que ahora podemos liberar los recursos que utilizó. La limpieza después de {windowRun} debe ser:"
+tutorial.lifecycle.guidance: "Libere la cadena de intercambio antes que su ventana nativa, y el contexto después de todos sus recursos. La cola posee y recicla los búferes de comandos enviados; la cadena de intercambio posee su textura de salida. Esos búferes de comandos y esa textura no necesitan una llamada {dispose} independiente en esta aplicación."
+tutorial.lifecycle.title: Seguir el ciclo de vida de un fotograma
+tutorial.pipeline.behavior: "Después del diseño de entrada, agregue:"
+tutorial.pipeline.context: "{cullNone} rellena el triángulo sin descartarlo por la orientación de sus caras. El orden de los vértices determina esa orientación; desactivar el descarte evita que dicho orden oculte nuestro primer triángulo."
+tutorial.pipeline.description: "Ahora tenemos datos de vértices, un diseño de entrada y dos sombreadores. La {graphicsPipeline} los conecta y especifica cómo la GPU ensambla los vértices en primitivas y escribe el resultado en un adjunto."
+tutorial.pipeline.details: "Una canalización combina etapas de sombreador programables con configuraciones de función fija, que controlan operaciones de GPU como ensamblado de triángulos, descarte de caras y mezcla. Para este triángulo, elija estas configuraciones:"
+tutorial.pipeline.guidance: El formato de color proviene de {swapChainDescFormat}. Debe coincidir con la imagen utilizada por la pasada de renderizado. {count1} significa una muestra por píxel.
+tutorial.pipeline.item: "{triangleList} ensambla cada grupo consecutivo de tres vértices en un triángulo. Suministraremos tres vértices y dibujaremos una vez, por lo que no se necesita un búfer de índices."
+tutorial.pipeline.notes: "{depthNone} deshabilita la prueba y la escritura de profundidad, coincidiendo con la pasada sin adjunto de profundidad."
+tutorial.pipeline.reference: "{opaque} deshabilita la mezcla, por lo que el color del sombreador de fragmentos reemplaza el fondo dentro del triángulo."
+tutorial.pipeline.title: Conectar los sombreadores y el diseño de vértices
+tutorial.pipeline.usage: Los objetos de sombreador se pueden liberar después de crear la canalización, como se hace en el renderizador de ejemplo. Mantenga viva la canalización en sí para cada fotograma que dibuje con ella. Agregue {pipelineDispose} antes de {vertexBufferDispose} en la limpieza. La creación de la canalización es el paso final de inicialización antes de la devolución de llamada de renderizado.
+tutorial.pipeline.validation: "La descripción de la canalización declara la configuración del adjunto; no crea otra imagen. {inputLayouts} tiene una entrada porque la posición y el color se almacenan juntos en un solo búfer."
+tutorial.presentation.title: Conectar la GPU a la ventana
+tutorial.project.context: Habilite {emphasis} ({allowUnsafeBlocks}) en la configuración de compilación del proyecto. Lo utilizaremos para pasar datos de vértices a la GPU y para las llamadas nativas del asistente de ventanas.
+tutorial.project.context.emphasis: Permitir código no seguro
+tutorial.project.description: "Cree el proyecto y entre en su directorio:"
+tutorial.project.details: "Instale los paquetes:"
+tutorial.project.guidance: "{zenithNET} proporciona la API de renderizado compartida. Los tres paquetes de backend permiten que el mismo programa seleccione la implementación para su plataforma. {zenithNETCompiler} compila sombreadores Slang, los pequeños programas de GPU que escribiremos más adelante, para esa implementación. Silk.NET suministra la ventana y el bucle de eventos."
+tutorial.project.title: Crear un proyecto de consola
+tutorial.requirements.context: Puede seguir esta página desde un proyecto vacío. El {link} y su {detail} están disponibles como referencia para las API de renderizado y ventanas utilizadas aquí.
+tutorial.requirements.context.detail: host compartido
+tutorial.requirements.context.link: ejemplo Hola triángulo
+tutorial.requirements.description: "Necesita el {emphasis}, un editor de código o IDE y un equipo de escritorio con una GPU y un controlador compatibles con un backend de Zenith.NET. Basta con tener conocimientos básicos de C#; los conceptos gráficos se introducen a medida que se utilizan. Este es un proyecto de consola {net10} ordinario. Un backend traduce las operaciones de Zenith.NET en llamadas a una API gráfica, como DirectX 12, Metal o Vulkan. La aplicación elige una al inicio:"
+tutorial.requirements.description.emphasis: SDK de .NET 10
+tutorial.requirements.details: Linux necesita una sesión de ventanas compatible con X11 para la ruta de ventanas utilizada aquí. Las funciones opcionales de trazado de rayos y sombreado de mallas no son necesarias para este triángulo.
+tutorial.requirements.guidance: Zenith.NET renderiza en una superficie suministrada por la aplicación. Silk.NET.Windowing creará la ventana de escritorio y procesará sus eventos. En macOS, el destino de presentación es una capa Metal ({cAMetalLayerCs}); el asistente de ventana del tutorial conecta esa capa por nosotros.
+tutorial.requirements.table.headings.graphicsBackend: Backend gráfico
+tutorial.requirements.table.headings.platform: Plataforma
+tutorial.requirements.table.headings.windowSurface: Superficie de ventana
+tutorial.requirements.table.linux.graphicsBackend: Vulkan 1.4
+tutorial.requirements.table.linux.platform: Linux
+tutorial.requirements.table.linux.windowSurface: Ventana y pantalla X11; XWayland también es adecuado
+tutorial.requirements.table.macOS.graphicsBackend: Metal 4
+tutorial.requirements.table.macOS.platform: macOS
+tutorial.requirements.table.macOS.windowSurface: Capa Metal conectada a la ventana
+tutorial.requirements.table.windows.graphicsBackend: DirectX 12
+tutorial.requirements.table.windows.platform: Windows
+tutorial.requirements.table.windows.windowSurface: Identificador de ventana Win32
+tutorial.requirements.title: Antes de comenzar
+tutorial.resize.context: "Ejecute {dotnetRun} nuevamente. La ventana ahora debería tener un fondo oscuro uniforme que continúe llenándola después de cambiar el tamaño. Conserve esta devolución de llamada: el triángulo se dibujará dentro de su pasada de renderizado existente."
+tutorial.resize.description: "Las imágenes de la cadena de intercambio deben seguir las dimensiones del búfer de fotogramas. Utilice {framebufferResize} para responder a los cambios en el tamaño de píxeles, incluidos los cambios causados por la escala de pantalla. Después de la devolución de llamada de renderizado, aún antes de {windowRun}, agregue:"
+tutorial.resize.details: "Silk.NET distingue los cambios de tamaño de ventana de los {link}. Necesitamos estos últimos porque la cadena de intercambio almacena píxeles. Una ventana minimizada puede tener un búfer de fotogramas de tamaño cero. En ese caso, ambas devoluciones de llamada omiten su trabajo de GPU. Después de cambiar el tamaño, la pasada de renderizado utilizará las nuevas dimensiones del adjunto para su ventana gráfica y recorte."
+tutorial.resize.details.link: cambios de tamaño del búfer de fotogramas
+tutorial.resize.guidance: Esperamos después de cada envío, por lo que ningún fotograma anterior sigue utilizando las imágenes cuando el controlador de cambio de tamaño las reemplaza. La implementación actual de {present} también espera en la cola de gráficos. Este bucle simple mantiene completo el trabajo de un fotograma antes de que comience el siguiente; {link} cubre una programación más avanzada.
+tutorial.resize.guidance.link: Sincronización
+tutorial.resize.title: Responder al cambio de tamaño
+tutorial.shaders.compilation.context: La compilación se realiza una vez durante la inicialización. {appContextBaseDirectory} localiza el sombreador copiado junto al ejecutable, independientemente del directorio de trabajo actual. Estos sombreadores solo consumen entrada de vértices, por lo que aún no hay búferes de constantes, texturas ni identificadores de recursos para enlazar.
+tutorial.shaders.compilation.description: En las propiedades del archivo para {triangleSlang}, establezca {emphasis} en {detail}. Esto hace que el sombreador esté disponible junto al ejecutable.
+tutorial.shaders.compilation.description.detail: Copiar si es posterior
+tutorial.shaders.compilation.description.emphasis: Copiar en el directorio de salida
+tutorial.shaders.compilation.details: "Regrese a {programCs}. Después de la carga de vértices, agregue estas instrucciones de inicialización antes de la devolución de llamada de renderizado:"
+tutorial.shaders.compilation.guidance: "{zenithCompiler} devuelve una descripción de sombreador que contiene código para la API gráfica solicitada. {createShader} crea el objeto de backend correspondiente. Tanto la API gráfica como los nombres de los puntos de entrada son importantes: use {contextGraphicsApi} y escriba {vSMain} y {fSMain} exactamente como en el archivo Slang."
+tutorial.shaders.compilation.title: Compilar para el backend seleccionado
+tutorial.shaders.context: "{fSInput} conecta la salida del sombreador de vértices con la entrada del sombreador de fragmentos. Cuando lo escribe el sombreador de vértices, {sVPOSITION} suministra una posición en espacio de recorte: las cuatro coordenadas que utiliza la GPU para determinar qué queda dentro de la imagen visible. {cOLOR0} transporta el color para interpolar entre vértices. Las dos etapas deben coincidir en su tipo y semántica."
+tutorial.shaders.description: Un sombreador es un programa ejecutado por la GPU. Este dibujo necesita un sombreador de vértices para posicionar los vértices y un sombreador de fragmentos para producir los colores dentro del triángulo. Los escribiremos en Slang, un lenguaje de sombreadores, y compilaremos dos puntos de entrada desde el mismo archivo. Un punto de entrada es la función donde comienza a ejecutarse una etapa de sombreador.
+tutorial.shaders.details: "Cree {triangleSlang}, comenzando con estas dos estructuras:"
+tutorial.shaders.fragment.description: "Agregue el punto de entrada de fragmentos al mismo archivo:"
+tutorial.shaders.fragment.details: "La rasterización determina qué ubicaciones de imagen cubre el triángulo. Produce fragmentos (los datos procesados por el sombreador de fragmentos) con los colores de los vértices interpolados en el área cubierta. {fSMain} devuelve este color interpolado a través de {sVTARGET}, que identifica el primer adjunto de color."
+tutorial.shaders.fragment.guidance: "La interpolación del color de los vértices es independiente de la mezcla del adjunto. La mezcla combina la salida de un fragmento con el color ya almacenado en el adjunto. Nuestro estado de mezcla opaco desactiva esa combinación, por lo que el color interpolado reemplaza el fondo dentro del triángulo."
+tutorial.shaders.fragment.title: Colorear los fragmentos
+tutorial.shaders.guidance: "{vSInput} describe lo que recibe el sombreador de vértices desde el búfer de vértices. Las semánticas {pOSITION0} y {cOLOR0} identifican las entradas; los nombres de campos de C# por sí solos no establecen esa asignación."
+tutorial.shaders.title: Escribir las dos etapas del sombreador
+tutorial.shaders.vertex.description: "Agregue el punto de entrada de vértices a {triangleSlang}:"
+tutorial.shaders.vertex.details: La GPU invoca este punto de entrada para cada vértice de entrada. Agrega la coordenada homogénea {w} a la posición y reenvía el color. Después de la etapa de vértices, la posición se divide por w; aquí esa división deja x, y y z sin cambios. Es por eso que las posiciones elegidas anteriormente se pueden entender directamente en coordenadas de dispositivo normalizadas.
+tutorial.shaders.vertex.title: Posicionar cada vértice
+tutorial.surface.description: "El contexto también necesita saber dónde mostrar su salida. Agregue lo siguiente {emphasis}:"
+tutorial.surface.description.emphasis: después de {windowCenter} y antes de {windowRun}
+tutorial.surface.details: "{surface} describe un destino de presentación nativo y sus dimensiones en píxeles. El búfer de fotogramas es la imagen de píxeles asociada a la ventana. {framebufferSize} proporciona sus dimensiones en píxeles; las dimensiones lógicas de la ventana pueden diferir cuando la escala de pantalla está activada."
+tutorial.surface.guidance: La superficie coincide con el backend seleccionado anteriormente. Windows suministra un identificador de ventana, Linux suministra una pantalla y ventana X11, y el asistente de macOS suministra la capa Metal conectada. Esta es la única parte específica de la plataforma para conectar nuestra ventana al renderizado.
+tutorial.surface.title: Describir la superficie nativa
+tutorial.swapChain.context: "La cadena de intercambio utiliza tanto el contexto como la ventana nativa. Reemplace la línea {windowDispose} al final de {programCs} por este orden de limpieza:"
+tutorial.swapChain.description: "Utilice la descripción de la superficie para crear las imágenes que se presentarán. Inmediatamente después del bloque de superficie, agregue:"
+tutorial.swapChain.details: La {swapChain} gestiona las imágenes mostradas en la ventana. En cada fotograma, {drawable} nos proporciona la imagen actual como una {texture}, el tipo de API para datos de imagen. Después de dibujar, {present} solicita mostrar el resultado y avanza al siguiente drawable.
+tutorial.swapChain.guidance: "{b8G8R8A8UNorm} almacena cuatro canales de color de 8 bits en orden azul, verde, rojo y alfa. {uNorm} significa que los valores enteros de 0 a 255 representan valores de 0 a 1. El sombreador seguirá devolviendo un valor RGBA lógico; este formato determina cómo se almacenan esos canales en la imagen. Más adelante, la canalización de gráficos utilizará {swapChainDescFormat} para coincidir con este adjunto."
+tutorial.swapChain.title: Crear la cadena de intercambio
+tutorial.title: Primer triángulo
+tutorial.troubleshooting.description: "Lea primero cualquier error en la consola y luego use los puntos de comprobación anteriores para identificar la etapa que falló:"
+tutorial.troubleshooting.details: Utilice el {link} y el {detail} para comparar los datos de vértices, el diseño de entrada y la operación de dibujo. Ese ejemplo coloca las ventanas y el envío en un host compartido; este tutorial mantiene el flujo de la aplicación en {programCs}. Continúe con {context} para aprender dibujo indexado, transformaciones y pruebas de profundidad.
+tutorial.troubleshooting.details.context: Cubo giratorio
+tutorial.troubleshooting.details.detail: sombreador Slang
+tutorial.troubleshooting.details.link: renderizador de ejemplo
+tutorial.troubleshooting.table.backend.check: Compruebe que el backend seleccionado sea compatible con el dispositivo y el controlador de gráficos instalado.
+tutorial.troubleshooting.table.backend.symptom: Falla la creación del backend
+tutorial.troubleshooting.table.drawing.check: Compruebe el tamaño de carga, el diseño de entrada, la selección de canalización y la ubicación de los comandos de dibujo dentro de la pasada de renderizado.
+tutorial.troubleshooting.table.drawing.symptom: Aparece el fondo pero no el triángulo
+tutorial.troubleshooting.table.headings.check: Comprobación
+tutorial.troubleshooting.table.headings.symptom: Síntoma
+tutorial.troubleshooting.table.input.check: Compruebe el stride de 28 bytes y los desplazamientos de posición/color de 0 y 12.
+tutorial.troubleshooting.table.input.symptom: Las posiciones o colores de los vértices están dañados
+tutorial.troubleshooting.table.shaders.check: Compruebe el archivo {triangleSlang} copiado, la ortografía del punto de entrada y el diagnóstico notificado por el compilador.
+tutorial.troubleshooting.table.shaders.symptom: El paso del color de borrado funciona, pero la carga del sombreador falla
+tutorial.troubleshooting.table.window.check: Confirme que el proyecto .NET se compila y que el paso de solo ventana se ejecuta en una sesión de escritorio. En Linux, compruebe que X11 o XWayland estén disponibles.
+tutorial.troubleshooting.table.window.symptom: No se abre ninguna ventana
+tutorial.troubleshooting.title: Comprobar la etapa que falló
+tutorial.window.context: "{usingZenithTutorials} importa el espacio de nombres del asistente. Cada archivo de C# usa sus propias directivas using habituales, por lo que la importación de interoperabilidad es necesaria en ambos archivos. El alias {buffer} se refiere al tipo de búfer de Zenith.NET y lo distingue de {systemBuffer}."
+tutorial.window.description: Agregue {cocoaHelperCs} al proyecto, conservando su espacio de nombres. Agregue {interopUsing} en la parte superior de ese archivo, antes de su declaración de espacio de nombres. El asistente conecta una capa Metal a la ventana en macOS; las ramas de otras plataformas no lo llaman.
+tutorial.window.details: "Reemplace el archivo {programCs} generado por el siguiente código. Utiliza instrucciones de nivel superior, que se ejecutan en orden sin un método {main} explícito. Las secciones posteriores le indicarán dónde agregar código a este mismo archivo:"
+tutorial.window.guidance: "{graphicsAPINone} solicita a Silk.NET que cree una ventana sin su propio contexto gráfico. Crearemos ese contexto con Zenith.NET. {initialize} crea la ventana nativa y pone a disposición sus identificadores. Un identificador es proporcionado por el sistema de ventanas. {center} centra la ventana y {run} procesa eventos hasta que se cierra. La ejecución continúa luego hacia {dispose}, que libera la ventana."
+tutorial.window.notes: Ejecute {dotnetRun}. Debería abrirse una ventana vacía y responder a mover, cambiar de tamaño y cerrar. Su contenido aún no está definido porque no hemos enviado ningún comando de renderizado. Ciérrela antes de continuar.
+tutorial.window.title: Abrir una ventana
+ui.action.copy: Copiar
+ui.action.navigate: Navegar
+ui.action.open: Abrir
+ui.action.source: Ver código fuente
+ui.api.browse: Examinar espacios de nombres y tipos.
+ui.api.clearTypeSearch: Borrar búsqueda de tipos
+ui.api.findType: Buscar un tipo
+ui.api.loadError: No se pudieron cargar los tipos. Recargue esta página para intentarlo de nuevo.
+ui.api.loadingNamespaces: Cargando espacios de nombres…
+ui.api.loadingTypes: Cargando tipos…
+ui.api.matchingTypes: Tipos coincidentes
+ui.api.namespace: Espacio de nombres
+ui.api.namespaces: Espacios de nombres
+ui.api.noNamespaceTypes: No hay tipos en este espacio de nombres.
+ui.api.noTypes: No hay tipos coincidentes.
+ui.api.types: Tipos
+ui.content.reference: Referencia
+ui.content.source: Código fuente
+ui.content.tutorial: Tutorial
+ui.contents.close: Cerrar contenido
+ui.contents.open: Abrir contenido
+ui.contents.title: Contenido
+ui.footer.caption: RHI moderno para .NET.
+ui.footer.label: Pie de página
+ui.language.label: Idioma
+ui.language.unavailable: No traducido
+ui.members.clear: Borrar búsqueda de miembros
+ui.members.close: Cerrar buscador de miembros
+ui.members.empty: No hay miembros coincidentes.
+ui.members.open: Ir al miembro
+ui.members.placeholder: Nombre o firma…
+ui.members.search: Buscar miembros
+ui.members.title: Buscar un miembro
+ui.members.undeclared: Este tipo no tiene miembros declarados.
+ui.navigation.api: API
+ui.navigation.concepts: Conceptos
+ui.navigation.home: Inicio
+ui.navigation.label: Navegación principal
+ui.navigation.toggle: Alternar navegación
+ui.outline.title: En esta página
+ui.reference.assembly: Ensamblado
+ui.reference.classes: Clases
+ui.reference.constructors: Constructores
+ui.reference.declaration: "Declaración de tipo C#"
+ui.reference.delegates: Delegados
+ui.reference.derived: Tipos derivados
+ui.reference.enums: Enumeraciones
+ui.reference.events: Eventos
+ui.reference.examples: Ejemplos
+ui.reference.exceptions: Excepciones
+ui.reference.extensionMethods: Métodos de extensión
+ui.reference.fields: Campos
+ui.reference.implementations: Implementaciones explícitas de interfaz
+ui.reference.implements: Implementa
+ui.reference.inheritance: Herencia
+ui.reference.inheritedMembers: Miembros heredados
+ui.reference.interfaces: Interfaces
+ui.reference.metadata: Metadatos de tipo
+ui.reference.methods: Métodos
+ui.reference.namespace: Espacio de nombres
+ui.reference.open: Abrir referencia de {name}
+ui.reference.operators: Operadores
+ui.reference.parameters: Parámetros
+ui.reference.properties: Propiedades
+ui.reference.related: Vea también
+ui.reference.relationships: Herencia y metadatos
+ui.reference.remarks: Comentarios
+ui.reference.returns: Devuelve
+ui.reference.structs: Estructuras
+ui.reference.typeParameters: Parámetros de tipo
+ui.reference.value: Valor
+ui.reference.values: Valores
+ui.search.close: Cerrar búsqueda
+ui.search.empty: No hay resultados para «{query}».
+ui.search.hint: Busque en tutoriales, conceptos, ejemplos y en la referencia de la API.
+ui.search.loading: Cargando búsqueda…
+ui.search.more: Mostrar más resultados
+ui.search.pending: Buscando…
+ui.search.placeholder: ¿Qué está buscando?
+ui.search.resultCount: "Resultados: {count}"
+ui.search.title: Buscar en la documentación
+ui.search.unavailable: La búsqueda no está disponible. Aún puede abrir las páginas siguientes.

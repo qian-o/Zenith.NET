@@ -11,13 +11,16 @@ export function setStrings(value) {
     if (!value || Array.isArray(value) || typeof value !== 'object' || Object.values(value).some(text => typeof text !== 'string' || !text.trim())) {
         throw new Error('Invalid resource dictionary');
     }
+    if (Object.keys(value).length !== Object.keys(resourceState.placeholders).length) {
+        throw new Error('Resource key set differs');
+    }
     const requireKey = (key, slots) => {
         if (!has(value, key)) throw new Error(`Missing text resource: ${key}`);
         if (slots && JSON.stringify(format.placeholders(value[key])) !== JSON.stringify([...slots].sort())) {
             throw new Error(`Resource placeholders differ: ${key}`);
         }
     };
-    for (const [key, text] of Object.entries(resourceState.strings)) requireKey(key, format.placeholders(text));
+    for (const [key, slots] of Object.entries(resourceState.placeholders)) requireKey(key, slots);
     for (const element of document.querySelectorAll('[data-resource]')) {
         const slots = element.querySelector(':scope > template[data-resource-slots]')?.content.children || [];
         requireKey(element.dataset.resource, [...slots].map(slot => slot.dataset.slot));

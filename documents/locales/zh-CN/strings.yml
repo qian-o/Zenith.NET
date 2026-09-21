@@ -1,0 +1,604 @@
+### YamlMime:Resources
+concepts.execution.context.description: "{graphicsContext} 代表一个后端设备，并提供其图形、计算和传输队列。同一工作负载所需的缓冲区、纹理、着色器和管线应通过同一个图形上下文创建。由另一个图形上下文创建的资源或句柄不能简单地绑定到该上下文的命令缓冲区中。"
+concepts.execution.context.details: 根据平台和呈现表面选择后端。API 保持统一共享，但设备支持仍然至关重要。{capabilities} 公开了设备名称以及 {rayTracingSupported} 和 {meshShadingSupported} 标志。在创建可选工作负载之前，请像 {link} 和 {detail} 示例那样先检查对应的标志。这些标志并不构成格式、内存或平台限制的完整清单。
+concepts.execution.context.details.detail: 网格着色（mesh shading）
+concepts.execution.context.details.link: 光线追踪
+concepts.execution.context.title: 图形上下文连接资源与队列
+concepts.execution.description: Zenith.NET 应用程序创建 GPU 资源，录制使用这些资源的命令，并将这些命令提交给队列。在 GPU 执行提交的工作时，CPU 可以继续运行。即便录制命令的调用已返回，也必须保持资源有效，直到该工作完成。
+concepts.execution.ownership.description: "在这里，所有权意味着释放资源的责任。C# 引用可以保持托管对象处于可达状态；但它无法阻止显式调用 {dispose} 销毁底层原生资源。同样，提交使用缓冲区的命令并不会将该缓冲区的所有权转移给队列。"
+concepts.execution.ownership.details: "关闭时，停止提交新工作，等待涉及的每个队列完成对资源的最后一次使用，再释放应用程序创建的资源，最后释放图形上下文。释放上下文会释放它自身的队列和内部辅助对象；它不会等待所有应用程序工作，也不会释放应用程序创建的全部资源。"
+concepts.execution.ownership.guidance: "渲染过程中也要遵循相同的生命周期规则。保留资源最后一次使用的完成值，以便判断何时可以覆盖其数据或替换资源。关于视图及其底层资源的生命周期，请参阅{link}。"
+concepts.execution.ownership.guidance.link: 资源管理
+concepts.execution.ownership.table.applicationResources.object: 应用程序创建的资源
+concepts.execution.ownership.table.applicationResources.ownership: 应用程序在其最后一次 GPU 使用后释放它们。
+concepts.execution.ownership.table.commandBuffers.object: 借用的命令缓冲区
+concepts.execution.ownership.table.commandBuffers.ownership: 队列对其进行管理和回收。
+concepts.execution.ownership.table.headings.object: 对象
+concepts.execution.ownership.table.headings.ownership: 谁负责释放？
+concepts.execution.ownership.table.queues.object: 图形上下文的队列及其时间线
+concepts.execution.ownership.table.queues.ownership: 图形上下文与队列对其进行管理。
+concepts.execution.ownership.table.swapChainDrawable.ownership: 交换链对其进行管理。
+concepts.execution.ownership.title: 将所有权与 GPU 完成区分开来
+concepts.execution.pipelines.description: 图形管线结合了着色器、顶点输入布局、将顶点组装为图元的规则、附件格式和渲染状态。在绑定顶点、索引或常量数据以及发出绘制命令之前设置它。其附件格式和采样数必须与渲染通道的附件匹配。
+concepts.execution.pipelines.details: 计算管线为分派提供着色器入口点，以启动 GPU 线程组。在分派之前设置它及其常量。计算分派属于图形渲染通道之外。更改管线意味着后续命令解释其输入的方式发生变化；在使用所选管线之前，请先绑定该管线所需的数据。
+concepts.execution.pipelines.guidance: "{link}展示了完整的图形执行序列。{detail}录制了一次分派，随后通过图形通道显示其结果。"
+concepts.execution.pipelines.guidance.detail: 计算示例
+concepts.execution.pipelines.guidance.link: 三角形的渲染回调
+concepts.execution.pipelines.title: 管线决定了命令如何解释数据
+concepts.execution.queues.description: 当一个帧结合了绘制、计算和复制时，请从 {graphicsQueue} 开始。将存在依赖关系的工作保持在单个队列上可以让其执行顺序更容易理清。
+concepts.execution.queues.details: 队列接收成批的命令以供执行。独立的队列并不一定对应独立的硬件引擎，因此它们的工作可能无法同时并行运行。当工作负载可以从重叠执行中获益时使用其他队列，并在一个队列消费另一个队列的结果时添加显式依赖关系。
+concepts.execution.queues.guidance: 当后续命令依赖于先前的写入时，应用程序还必须确保这些写入对后续命令可见可用。将两个命令缓冲区提交到同一个队列并不会自动建立所有此类依赖。命令可以使用不同的 GPU 阶段，后续访问可能需要屏障或纹理布局转换。{link}解释了提交顺序与资源可见性之间的区别。
+concepts.execution.queues.guidance.link: 同步
+concepts.execution.queues.table.computeQueue.workToRecord: 计算分派以及兼容的传输工作，不含图形渲染通道。
+concepts.execution.queues.table.graphicsQueue.workToRecord: 渲染通道与绘制，以及帧所使用的计算和传输操作。
+concepts.execution.queues.table.headings.queue: 队列
+concepts.execution.queues.table.headings.workToRecord: 录制的工作
+concepts.execution.queues.table.transferQueue.workToRecord: 上传、回读与复制工作，不含绘制或计算分派。
+concepts.execution.queues.title: 根据所要执行的工作选择队列
+concepts.execution.recording.context: 队列会轮询完成状态并回收已完成的命令缓冲区。为每次新录制调用 {queueCommandBuffer}；它可能会返回回收的实例。请勿释放借用的命令缓冲区、请勿重复提交两次，也不要在提交后继续向其中录制。一次仅从一个线程录制给定的命令缓冲区；队列的内部锁无法保护对命令缓冲区的并发修改。
+concepts.execution.recording.description: "{queueCommandBuffer} 返回一个已开始录制的 {commandBuffer}。录制命令及其依赖关系，然后调用一次 {submit}。提交操作结束录制，并返回一个标识该队列上完成点的 {timelineValue}。"
+concepts.execution.recording.details: 例如，在将一帧录制到 {commandBuffer} 之后，三角形示例提交它并等待完成：
+concepts.execution.recording.guidance: "{submit} 调度工作；{wait} 阻止 CPU 继续向下执行，直到该提交操作完成。录制绘制、结束渲染通道与提交命令缓冲区是互不相同的独立操作。录制绘制和结束渲染通道均不会等待 GPU。"
+concepts.execution.recording.title: 录制命令并不等于执行命令
+concepts.execution.title: 执行模型
+concepts.platforms.description: 选择您的应用程序是自行拥有原生窗口和帧循环，还是使用 UI 渲染控件。该选择决定了谁来获取输出纹理、提交命令并呈现结果。输出纹理是用作当前帧输出的纹理。离屏图形和计算工作不需要窗口或交换链。
+concepts.platforms.frame.context: 在该通道内部添加您的管线绑定和绘制命令。在返回之前结束通道。不要独立提交所提供的命令缓冲区或自行呈现，也不要释放命令缓冲区或输出纹理。如果您的处理程序在其他布局中使用了输出纹理，请将其恢复为 {colorAttachment} 以供控件进行最终转换。
+concepts.platforms.frame.description: 这些集成实现了 {iZenithView}。应用程序提供其 {graphicsContext}，在 {updateRequested} 中更新场景数据，并在 {renderRequested} 中使用 {renderEventArgs} 录制渲染命令。
+concepts.platforms.frame.details: "控件负责每帧的完整流程：获取输出纹理和命令缓冲区，将输出纹理转换为 {colorAttachment}，调用处理程序，然后执行该框架所需的提交和呈现步骤。"
+concepts.platforms.frame.guidance: 对于名为 {view} 且已分配上下文的已初始化 {iZenithView}，此处理程序录制一个完整的清除通道。它需要 {usingZenithNET}：
+concepts.platforms.frame.notes: 控件在每帧开始时均从 {undefined} 转换而来，因此应用程序不能依赖于输出纹理先前内容的保留。每帧都要清除或渲染所需的图像。将持久累积或缓存的渲染内容保存在应用程序自有的纹理中，然后通过视图显示该纹理。
+concepts.platforms.frame.reference: "{zenithViewHelperDrawableFormat} 提供集成的默认颜色格式。在匹配附件格式、采样数和尺寸时，请检查实际事件中的输出纹理。"
+concepts.platforms.frame.title: 录制到 UI 控件提供的帧中
+concepts.platforms.integration.context: WinForms、WPF 和 Windows 的 WinUI 路径需要 Windows。MAUI 应用程序需要其目标平台的工作负载，并且必须使用 {useZenithView} 注册控件处理程序；参见 {extensionsCs}。框架支持和后端支持都必须满足。
+concepts.platforms.integration.description: 控件共享事件接口，但呈现方式并非全都相同：
+concepts.platforms.integration.details: 位图回读在 UI 显示之前将渲染的像素复制到 CPU 内存中。共享纹理互操作避免了这种回读，但仍可能需要 GPU 复制和同步。因此，共享的 {renderRequested} 接口并不意味着相同的呈现开销或原生互操作要求。
+concepts.platforms.integration.guidance: 使用对应于应用程序框架的包；例如：
+concepts.platforms.integration.table.avalonia.integration: Avalonia
+concepts.platforms.integration.table.avalonia.presentation: "渲染到纹理，再将像素回读到 {writeableBitmap}。参见 {zenithViewCs} 和 {surfaceCs}。"
+concepts.platforms.integration.table.headings.integration: 集成
+concepts.platforms.integration.table.headings.presentation: 图像如何到达 UI
+concepts.platforms.integration.table.maui.integration: .NET MAUI
+concepts.platforms.integration.table.maui.presentation: 在 Android、iOS 和 Mac Catalyst 上使用原生呈现目标，在 Windows 上使用共享纹理合成。参见{link}。
+concepts.platforms.integration.table.maui.presentation.link: 平台实现
+concepts.platforms.integration.table.uno.integration: Uno 路径
+concepts.platforms.integration.table.uno.presentation: "将像素回读到 {writeableBitmap}。参见 {zenithViewUnoCs}。"
+concepts.platforms.integration.table.winForms.integration: WinForms
+concepts.platforms.integration.table.winForms.presentation: 为控件的 {hWND} 创建 Zenith.NET 交换链。参见 {zenithViewCs}。
+concepts.platforms.integration.table.winUI.integration: Windows 上的 WinUI
+concepts.platforms.integration.table.winUI.presentation: 渲染到导入的共享 Direct3D 11 纹理中，然后复制到连接至 {swapChainPanel} 的合成交换链。参见 {zenithViewWinUICs}。
+concepts.platforms.integration.table.wpf.integration: WPF
+concepts.platforms.integration.table.wpf.presentation: 导入共享 Direct3D 11 纹理，然后通过 Direct3D 互操作复制到由 {d3DImage} 显示的表面。参见 {surfaceCs}。
+concepts.platforms.integration.title: 选择呈现路径以及框架
+concepts.platforms.lifecycle.context: 对于 UI 视图，在创建匹配的渲染资源时，使用事件输出纹理的 {descWidth}、{descHeight}、{descFormat} 和 {descSampleCount}。控件决定该输出纹理的分辨率；不要假定其逻辑尺寸或显示缩放比例始终等于纹理尺寸。
+concepts.platforms.lifecycle.description: 对于原生交换链，请以像素为单位传递帧缓冲区尺寸。启用显示缩放时，以逻辑单位表示的窗口大小可能会有所不同。跳过零尺寸的帧缓冲区，在像素大小变化时调整交换链大小，并为每帧获取 {swapChainDrawable}。输出纹理归交换链所有，并可能在呈现或调整大小后发生改变。
+concepts.platforms.lifecycle.details: "{swapChainResize} 更改现有呈现目标的尺寸。{swapChainRefresh} 替换呈现目标描述，包括原生句柄。在执行任一操作前，应先完成对受影响资源的所有未完成访问。销毁原生呈现目标前，应先释放交换链。"
+concepts.platforms.lifecycle.guidance: 重新创建尺寸跟随窗口变化的应用程序自有深度或离屏纹理，并更新包含其句柄的常量。当附件格式和采样数保持兼容时，管线可以在尺寸变化后继续使用。{link}在替换深度纹理的同时保留了其管线。
+concepts.platforms.lifecycle.guidance.link: 旋转立方体渲染器
+concepts.platforms.lifecycle.title: 输出纹理的尺寸和生命周期由宿主决定
+concepts.platforms.ownership.description: 应用程序拥有其分配的图形上下文以及为渲染创建的资源。控件拥有其自身的呈现资源。更改视图的 {graphicsContext} 属性会使调度程序重新创建控件的资源；它不会为新上下文重新创建应用程序的管线、缓冲区或纹理。
+concepts.platforms.ownership.details: 将资源替换与视图的帧生命周期协调一致。在释放应用程序资源或分配的上下文之前，停止视图的帧活动并完成未决的 GPU 使用。移除视图不会将上下文所有权转移给控件。
+concepts.platforms.ownership.guidance: 共享的 {frameSchedulerCs} 通过视图的 UI 调度程序调度帧工作。使帧处理程序集中于更新和录制帧；在那里进行冗长的 CPU 任务也会使 UI 卡顿。
+concepts.platforms.ownership.title: 将应用程序资源保留在控件所有权之外
+concepts.platforms.surface.context: 窗口库或 UI 框架支持某种操作系统并不保证所选的 GPU 后端在其中可用。设备特性、驱动程序和原生呈现目标支持仍需匹配。在创建这些工作负载之前，通过 {contextCapabilities} 检查可选的光线追踪和网格着色（mesh shading）。
+concepts.platforms.surface.description: "{link}使用 Silk.NET 创建窗口并处理事件。Zenith.NET 通过 {surface} 描述和交换链 {swapChain} 连接到该窗口。原生呈现目标包含原生句柄和尺寸；构造该描述不会创建或拥有操作系统窗口。"
+concepts.platforms.surface.description.link: 三角形教程
+concepts.platforms.surface.details: 句柄必须与所选后端匹配：
+concepts.platforms.surface.guidance: 教程中的 {appCs} 显示了 Windows、macOS 和 X11 的选择。其 Linux 宿主提供 Xlib 句柄；在 Wayland 会话中使用它需要 XWayland。原生 Wayland 应用程序将通过 {surfaceWayland} 提供不同的句柄。
+concepts.platforms.surface.table.android.backend: Android 上的 Vulkan。
+concepts.platforms.surface.table.apple.backend: Apple 平台上的 Metal。
+concepts.platforms.surface.table.headings.backend: 后端路径
+concepts.platforms.surface.table.headings.factory: 呈现目标工厂
+concepts.platforms.surface.table.headings.handles: 宿主提供的句柄
+concepts.platforms.surface.table.wayland.backend: 带有原生 Wayland 宿主的 Vulkan。
+concepts.platforms.surface.table.wayland.handles: Wayland 显示与表面
+concepts.platforms.surface.table.win32.backend: Windows 上的 DirectX 12 或 Vulkan。
+concepts.platforms.surface.table.xlib.backend: Linux 上带有 X11 或 XWayland 的 Vulkan。
+concepts.platforms.surface.table.xlib.handles: X11 显示与窗口
+concepts.platforms.surface.title: 当应用程序拥有呈现所有权时提供原生呈现目标
+concepts.platforms.title: 平台集成
+concepts.resources.allocation.context: "除非需要自行实现内存分配器，否则先使用图形上下文创建的资源。使用堆时，应先等待所有使用这些资源的 GPU 工作完成，再释放堆中放置的资源，最后释放堆本身。"
+concepts.resources.allocation.description: "{heap} 提供内存，供您在指定的字节偏移量处放置资源。应用程序负责选择这些偏移量，并跟踪哪些区域正在使用。"
+concepts.resources.allocation.details: "放置资源前，使用准确的缓冲区或纹理描述调用 {contextGetSizeAndAlignment}。所选偏移量必须是返回的对齐值的整数倍，预留空间必须满足返回的大小，资源也必须位于堆的总字节范围内。仍在使用的分配区域不得重叠。纹理存储可能包含后端特有的填充和对齐，因此不能用像素数量乘以每像素字节数来计算分配大小。"
+concepts.resources.allocation.guidance: "对于放置在堆中的缓冲区，其内存驻留设置应与堆一致。这里介绍的常规 GPU 纹理应使用仅 GPU 堆。大小和对齐是放置资源的要求，并不保证所有后端都能将任意资源放入任意堆。"
+concepts.resources.allocation.title: 在需要分配控制时将资源放置在堆中
+concepts.resources.bufferUsages.table.constant.role: 通过常量缓冲区绑定读取的着色器参数。
+concepts.resources.bufferUsages.table.headings.role: "作用"
+concepts.resources.bufferUsages.table.headings.usage: 用途
+concepts.resources.bufferUsages.table.index.role: 索引绘制所使用的索引。
+concepts.resources.bufferUsages.table.indirect.role: "间接绘制或分派命令读取的参数。"
+concepts.resources.bufferUsages.table.none.role: "未声明任何缓冲区用途标志。"
+concepts.resources.bufferUsages.table.storageReadOnly.role: "通过只读着色器绑定访问的缓冲区数据。"
+concepts.resources.bufferUsages.table.storageReadWrite.role: "通过读写着色器绑定访问的缓冲区数据。"
+concepts.resources.bufferUsages.table.transferDst.role: "GPU 复制操作的目标存储。"
+concepts.resources.bufferUsages.table.transferSrc.role: "GPU 复制操作的源数据。"
+concepts.resources.bufferUsages.table.vertex.role: 为绘制提取的顶点属性。
+concepts.resources.bufferUsages.title: 缓冲区用途
+concepts.resources.description: "根据将要使用资源的操作选择资源描述。如果一个纹理既要接收渲染结果，又要被着色器采样，还要回读到 CPU，就需要声明这三种用途，并处理这些操作之间的同步。内存放置位置和资源生命周期则是另外需要考虑的问题。"
+concepts.resources.memory.context: 对于 CPU 可访问的缓冲区，{map} 为 CPU 提供内存地址。它不会等待 GPU 停止访问相同的字节。{unmap} 同样不会提交工作或等待完成。在覆盖 CPU 可写数据之前，请先完成仍需要其旧内容的 GPU 读取。
+concepts.resources.memory.description: "{bufferDesc} 具有 {residency} 字段。请根据 CPU 和 GPU 访问数据的方式进行选择："
+concepts.resources.memory.details: 内存驻留描述了 CPU 对所分配内存的预期访问方式。它并不意味着每个设备都具有物理分离的 CPU 和 GPU 内存。三角形示例使用 {cpuWriteOnly} 直接初始化较小的顶点缓冲区。大型静态网格则可以从单次上传的仅 GPU 存储中获益。
+concepts.resources.memory.guidance: "{textureDesc} 没有内存驻留字段。由图形上下文创建的常规纹理使用 GPU 存储。其公共 API 提供上传和回读操作来传输 CPU 数据，但不提供直接映射方法。显式堆提供内存放置控制，下文将介绍。"
+concepts.resources.memory.table.cpuReadOnly.cPUAccess: "在 GPU 复制完成后读取映射的内存。"
+concepts.resources.memory.table.cpuReadOnly.typicalRole: "GPU 生成的回读数据"
+concepts.resources.memory.table.cpuWriteOnly.cPUAccess: "在先前的 GPU 读取完成后写入映射的内存。"
+concepts.resources.memory.table.cpuWriteOnly.typicalRole: "CPU 提供或更新的数据"
+concepts.resources.memory.table.gpuOnly.cPUAccess: "通过上传缓冲区或回读缓冲区传输字节。"
+concepts.resources.memory.table.gpuOnly.typicalRole: "静态几何体和 GPU 工作数据"
+concepts.resources.memory.table.headings.cPUAccess: CPU 访问
+concepts.resources.memory.table.headings.residency: 内存驻留
+concepts.resources.memory.table.headings.typicalRole: "典型用途"
+concepts.resources.memory.title: "根据所需的 CPU 访问方式选择内存"
+concepts.resources.textureUsages.description: "传输用途标志描述 GPU 复制的方向。CPU 访问则是另一项内存放置选择，下文将介绍。"
+concepts.resources.textureUsages.details: "组合用途标志只是声明多个作用，不会执行相应操作，也不会安排访问顺序。纹理仍然需要适当的{link}，而且其格式必须在所选设备上支持请求的用途。"
+concepts.resources.textureUsages.details.link: "布局与同步"
+concepts.resources.textureUsages.table.colorAttachment.role: "渲染通道中的颜色附件。"
+concepts.resources.textureUsages.table.depthStencilAttachment.role: "渲染通道中的深度／模板附件。"
+concepts.resources.textureUsages.table.headings.role: "作用"
+concepts.resources.textureUsages.table.headings.usage: 用途
+concepts.resources.textureUsages.table.none.role: "未声明任何纹理用途标志。"
+concepts.resources.textureUsages.table.sampled.role: "通过采样纹理绑定读取的纹理数据。"
+concepts.resources.textureUsages.table.storage.role: "通过存储纹理绑定供着色器读取或写入的纹理数据。"
+concepts.resources.textureUsages.table.transferDst.role: "GPU 复制操作的目标图像存储。"
+concepts.resources.textureUsages.table.transferSrc.role: "GPU 复制操作的源图像数据。"
+concepts.resources.textureUsages.title: 纹理用途
+concepts.resources.title: 资源管理
+concepts.resources.transfers.context: "回读操作会录制一条将 GPU 数据复制到内部回读存储的命令。当库重置已完成的命令缓冲区以供复用时，才会将这些字节复制到提供的 CPU 目标中。在该提交完成值的 {wait} 返回之前，目标内存必须保持已分配状态，托管内存也必须保持固定。"
+concepts.resources.transfers.description: "上传将 CPU 数据复制到 GPU 资源，回读将资源数据复制回 CPU 内存。资源自身提供的方法会在返回前完成该次传输："
+concepts.resources.transfers.details: "这些等待只涵盖方法自身提交的传输。它们不会发现另一个队列上已有读写操作对该资源的依赖关系。调用资源自身的传输方法前，应先建立这些依赖。直接通过映射内存复制数据时，也需要调用方确保相关 GPU 工作已经完成。"
+concepts.resources.transfers.guidance: 当复制操作需要与其他工作一起录制时，请使用 {commandBufferUpload} 或 {commandBufferDownload}。它们的指针生命周期有所不同：
+concepts.resources.transfers.item: "上传会在调用期间将 CPU 源数据复制到内部上传缓冲区，也称暂存内存。源指针只需在该次调用期间保持有效。"
+concepts.resources.transfers.notes: "对于纹理，行步幅是 CPU 数据相邻两行之间的字节距离，切片步幅是相邻深度切片之间的字节距离。它们并不代表纹理内部的 GPU 内存布局。有关工作完成与数据回读的区别，请参阅{link}。"
+concepts.resources.transfers.notes.link: 同步
+concepts.resources.transfers.table.bufferDownload.transfer: 对 {cpuReadOnly} 进行直接 CPU 复制；否则在传输队列上提交下载并等待。
+concepts.resources.transfers.table.bufferUpload.transfer: 对 {cpuWriteOnly} 进行直接 CPU 复制；否则在传输队列上提交上传并等待。
+concepts.resources.transfers.table.headings.method: 方法
+concepts.resources.transfers.table.headings.transfer: "数据传输方式"
+concepts.resources.transfers.table.textureTransfers.method: "{textureUpload} / {textureDownload}"
+concepts.resources.transfers.table.textureTransfers.transfer: "使用图形队列，将所选子资源转换为复制所需的布局，完成复制后转换为请求的最终布局，并等待传输完成。"
+concepts.resources.transfers.title: "选择立即完成的传输或随命令录制的传输"
+concepts.resources.usages.description: "{bufferUsages} 和 {textureUsages} 是声明资源预期角色的标志枚举。它们分别分配给 {bufferDescUsages} 和 {textureDescUsages}。当资源具有多个角色时，标志枚举允许使用 {value} 组合多个成员。"
+concepts.resources.usages.title: 在创建资源之前声明所需的用途
+concepts.resources.views.description: "{bufferView} 描述缓冲区区域及其解释方式。{textureView} 选择兼容的纹理类型、格式和子资源范围。视图共享底层存储，不会复制数据，也不会添加创建资源时遗漏的用途。指定视图范围也不意味着各后端都会进行着色器边界检查。"
+concepts.resources.views.details: "默认视图可以直接使用资源自身的句柄；如果需要不同区域或兼容的解释方式，则创建视图。在 GPU 工作可能使用视图及其底层资源期间，应保留二者的 C# 引用；仅有资源句柄并不能保持任一对象存活。只有在最后一次 GPU 使用完成后才能释放它们。替换其中任一对象后，还应更新包含其旧{link}的常量。"
+concepts.resources.views.details.link: "资源句柄"
+concepts.resources.views.guidance: "{link}展示了在调整大小时替换深度纹理。{detail}展示了输入纹理与其可写输出保持分离。两者都让资源的生命周期跟随实际使用它的工作。"
+concepts.resources.views.guidance.detail: 计算示例
+concepts.resources.views.guidance.link: 旋转立方体渲染器
+concepts.resources.views.title: "让视图及其底层资源在使用期间保持有效"
+concepts.shaders.binding.context: 在计算示例中，{input} 填充为 {inputTextureSampledHandle}，{output} 填充为 {outputTextureStorageHandle}。Slang 的类型化 {descriptorHandle} 告知着色器如何访问每个资源：
+concepts.shaders.binding.description: "{setConstantBuffer} 为当前管线的常量数据绑定缓冲区和字节偏移量。它绑定现有的 GPU 可见存储；它不会上传 C# 值。请先填充缓冲区，并确保先前的 GPU 读取操作已完成，然后再覆盖其字节。"
+concepts.shaders.binding.details: 在设置常量缓冲区之前先设置管线。对于已创建并上传资源的计算工作负载，录制使用以下顺序：
+concepts.shaders.binding.guidance: 此代码片段假定存在正在录制的 {commandBuffer}、{computePipeline}、具有 {bufferUsagesConstant} 用途的已上传 {constantBuffer}，以及工作负载的线程组计数。偏移量 0 绑定缓冲区的起始位置。如果多个常量数据记录共享一个缓冲区，则每个记录的起始偏移量必须满足后端的绑定对齐要求。该要求与记录内部的字段布局相互独立。
+concepts.shaders.binding.notes: "{resourceHandle} 存储两个 32 位字段，但其解释归后端所有。不要将其视为可在上下文之间转移的通用描述符索引、地址或值。句柄不会创建资源，不会添加缺失的用途，也不会执行同步。"
+concepts.shaders.binding.reference: 保留对资源及用于获取其句柄的任何视图的引用，并在着色器的最后一次使用完成后再释放它们。在替换纹理或视图时，更新包含其旧句柄的常量。{link}解释了这种生命周期关系。
+concepts.shaders.binding.reference.link: 资源管理
+concepts.shaders.binding.table.bufferStorageReadOnlyHandle.access: 读取着色器类型 {t} 的结构化元素。
+concepts.shaders.binding.table.bufferStorageReadWriteHandle.access: 读取或写入着色器类型 {t} 的结构化元素。
+concepts.shaders.binding.table.headings.access: 预期访问
+concepts.shaders.binding.table.headings.cHandle: "C# 句柄"
+concepts.shaders.binding.table.headings.slangFieldType: Slang 字段类型
+concepts.shaders.binding.table.samplerHandle.access: 提供纹理采样状态。
+concepts.shaders.binding.table.textureSampledHandle.access: 读取纹理。
+concepts.shaders.binding.table.textureStorageHandle.access: 读取或写入存储纹理。
+concepts.shaders.binding.title: 绑定常量缓冲区及其描述的资源
+concepts.shaders.compilation.description: "{zenithCompiler} 编译具名的 Slang 入口点并返回 {shaderDesc}。使用上下文的 {graphicsApi}，以便编译结果针对将创建着色器的后端：针对 DirectX 12 的 DXIL、针对 Metal 的 Metal 库，或针对 Vulkan 的 SPIR-V。"
+concepts.shaders.compilation.details: 例如，在已有 {context} 且三角形着色器已复制到可执行文件旁的情况下：
+concepts.shaders.compilation.guidance: "{vSMain} 必须与着色器文件中的入口点名称完全匹配。在创建管线期间保持着色器对象有效，然后在管线创建完成后将其释放，如{link}所示。执行一次此初始化，而不是在每帧中重新编译。"
+concepts.shaders.compilation.guidance.link: 第一个三角形
+concepts.shaders.compilation.title: 为所选上下文编译入口点
+concepts.shaders.description: "着色器接收由应用程序提供的数据。顶点属性描述单个顶点；缓冲区保存参数或数组；资源句柄标识着色器将访问的其他资源。C# 声明与 Slang 声明必须在这些值的含义上达成一致。仅仅匹配字段名是不够的：内存布局、资源访问和绑定方式都必须匹配。"
+concepts.shaders.dispatch.description: "{dispatch} 接收线程组的数量。计算示例的 {numthreads} 入口点每组运行 16 × 16 个线程。将图像尺寸除以 16 并向上取整以求得组数。例如，17 × 19 的图像需要 2 × 2 组。着色器会根据图像尺寸检查其像素坐标，因为最后一组可能包含位于图像外部的线程。"
+concepts.shaders.dispatch.details: 编译器将入口点声明的组大小保存在 {shaderDescThreadGroupSize} 中；它不会将提供给 {dispatch} 的像素尺寸自动转换为组数。完整的绑定和分派示例请结合使用 {computeShaderRendererCs} 及其着色器，并在另一个通道消费输出之前参阅{link}。
+concepts.shaders.dispatch.details.link: 同步
+concepts.shaders.dispatch.title: 分派线程组，而非像素
+concepts.shaders.layout.context: "{link}显式指定了它们的偏移量。此声明的作用域需要 {systemRuntimeInteropServices} 和 {zenithNET}："
+concepts.shaders.layout.context.link: "计算示例的 C# 常量"
+concepts.shaders.layout.description: "对于顶点输入，管线的 {inputLayout} 描述了格式、偏移量、步幅和语义。三角形的 {float3} 位置后跟 {float4} 颜色占用 28 字节，颜色位于字节 12 处。{inputLayoutAdd} 计算这个紧凑布局；它不会检查 C# 结构体。如果 C# 字段包含填充，请提供匹配的布局，而不要假定字段是紧凑排列的。"
+concepts.shaders.layout.details: "常量缓冲区保存着色器参数，而结构化缓冲区保存声明类型的元素数组。两者都根据其 Slang 声明进行读取。它们不使用 {inputLayout}。请核实编译后着色器表示形式的字段偏移量和元素大小（包括填充）。非托管 C# 类型适合按字节复制，但这本身并不能证明它与着色器类型匹配。特别是，不要将顶点的紧凑 {float3} 布局应用于每个着色器缓冲区。"
+concepts.shaders.layout.guidance: 资源句柄是引用现有资源的一个较小数值。将句柄复制到常量缓冲区中并不会复制该资源的内容。
+concepts.shaders.layout.notes: "{computeShaderSlang} 中的相应声明为："
+concepts.shaders.layout.reference: "尺寸占用前 8 个字节，后跟两个 8 字节的资源句柄。C# 示例总共保留了 256 字节。该大小是示例选择的存储大小，并非所有 Slang 结构体或常量有效负载都占用 256 字节的规则。填充总大小也不会修正处于错误偏移量处的字段。"
+concepts.shaders.layout.title: 顶点输入与着色器数据具有不同的布局规则
+concepts.shaders.matrices.description: 编译器请求行优先（row-major）矩阵存储，该存储将每行的元素保存在一起。{link}将三个 {matrix4x4} 值放置在偏移量 0、64 和 128 处。其{detail}按模型、视图和投影的顺序使用 {mulVectorMatrix}。
+concepts.shaders.matrices.description.detail: 着色器
+concepts.shaders.matrices.description.link: 旋转立方体渲染器
+concepts.shaders.matrices.details: 存储顺序决定了矩阵元素如何占用内存；乘法顺序决定了变换。请保持两端一致。在不检查这两个选择的情况下添加转置可能会掩盖一个不匹配，同时引入另一个不匹配。
+concepts.shaders.matrices.title: 保持矩阵存储与乘法顺序一致
+concepts.shaders.title: 着色器数据与绑定
+concepts.synchronization.backends.description: DirectX 12 和 Vulkan 对带有布局和访问信息的纹理转换进行编码。Metal 在 Zenith.NET 的 {transition} 实现中没有对应的显式操作。Metal 将录制的工作分组到渲染和计算编码器中。后端在结束这些组时插入可见性屏障，使先前的写入可供后续工作使用。显式的 {barrier} 调用处理诸如同一个编码器内连续计算分派等依赖关系。
+concepts.synchronization.backends.details: 在更改工作负载时，这种区别非常重要。在{link}中，分派之后是图形渲染通道，这在 Metal 上也会创建编码器边界。仅仅更改纹理声明的布局并不能为两个依赖的计算分派创建该边界。保持共享 API 所需的转换，并单独识别实际生产命令与消费命令之间的依赖关系。
+concepts.synchronization.backends.details.link: 计算示例
+concepts.synchronization.backends.title: 布局转换在每个后端上并非完全相同
+concepts.synchronization.barriers.context: "{barrierStagesAll} 是一个更宽的范围，而不是自动依赖项检测器。请选择实际覆盖该工作的阶段，并且仅在支持这些操作的队列上使用它们。"
+concepts.synchronization.barriers.description: 考虑两个计算分派：第一个写入模拟数据，第二个读取该数据以执行下一步。两者都使用存储缓冲区，因此没有需要更改的纹理布局。在命令缓冲区中的两次分派之间插入以下内容：
+concepts.synchronization.barriers.details: 第一个参数标识生产者阶段，第二个参数标识消费者阶段。屏障在 GPU 上建立对应的执行和内存依赖关系。后端将这些阶段转换为其执行和内存访问规则。该屏障不会更改纹理的布局，也不会等待设备上的所有工作。
+concepts.synchronization.barriers.guidance: "{link}在依赖的分派之间使用了这种模式。在发生依赖关系的地方放置屏障。在消费者已经录制之后放置屏障，无法将该消费者排在较早的生产者之后。"
+concepts.synchronization.barriers.guidance.link: FluidTank 模拟
+concepts.synchronization.barriers.title: 使用屏障对有依赖关系的命令进行排序
+concepts.synchronization.dependencies.description: 对于每个共享资源，确定首先访问它的操作、随后的操作，以及是否有任一访问执行写入。两次读取相同的数据不需要进行排序以保护其内容，尽管布局更改或呈现可能会施加其他要求。写后读、读后覆写或两次写入可能都需要建立依赖关系。
+concepts.synchronization.dependencies.details: 然后根据这些操作执行的位置选择对应的机制：
+concepts.synchronization.dependencies.guidance: 这些机制彼此相关，但不可互换。按顺序提交命令并不能取代所有的内存依赖。队列等待不会声明新的纹理布局，命令屏障也不会等待调用方的 CPU 线程。
+concepts.synchronization.dependencies.table.cpuAccess.mechanism: 对相关的完成值调用 {wait}。
+concepts.synchronization.dependencies.table.cpuAccess.situation: CPU 在访问或释放数据之前必须等待
+concepts.synchronization.dependencies.table.crossQueue.mechanism: 将其 {timelineValue} 传递给消费方命令缓冲区的 {submit}。
+concepts.synchronization.dependencies.table.crossQueue.situation: 另一个队列上的提交操作生成了数据
+concepts.synchronization.dependencies.table.headings.mechanism: 机制
+concepts.synchronization.dependencies.table.headings.situation: 情况
+concepts.synchronization.dependencies.table.layoutChange.mechanism: 带有先前和后续布局的 {commandBufferTransition}。
+concepts.synchronization.dependencies.table.layoutChange.situation: 纹理子资源更改其使用方式
+concepts.synchronization.dependencies.table.pipelineStages.mechanism: 带有生产者和消费者阶段的 {commandBufferBarrier}。
+concepts.synchronization.dependencies.table.pipelineStages.situation: 命令流中存在依赖关系的 GPU 阶段
+concepts.synchronization.dependencies.title: 从生产者和消费者开始分析
+concepts.synchronization.description: 读取先前命令写入数据的命令，依赖于这些写入操作已完成且对其可见。写入方是生产者（producer）；读取方是消费者（consumer）。CPU 在读取、覆写或释放共享数据之前也需要一个完成点。Zenith.NET 针对这些不同的依赖关系提供了屏障、纹理布局转换和时间线。
+concepts.synchronization.layouts.context: "{undefined} 意味着不需要保留以前的内容。它适用于新图像或将被完全清除的附件。它不能用作避免跟踪需要加载、采样或累积内容的图像布局的手段。"
+concepts.synchronization.layouts.description: 用途标志描述了纹理支持哪些角色。{textureLayout} 描述了某个特定操作将如何访问特定子资源。子资源是选定的 mip 级别和数组层。更改其布局是为此类访问做准备；它不会将纹理转换为不同的像素格式。例如，计算示例在 {storage} 布局中写入输出纹理，然后在图形通道中对其进行采样。在这些使用之间，它录制了：
+concepts.synchronization.layouts.details: 此代码片段假定 {outputTexture} 是使用 {sampledStorage} 用途创建的，并且其选定的子资源处于 {storage} 布局中。{default} 选择 mip 级别 0 和数组层 0。该操作不会转换纹理的每个 mip 或层。
+concepts.synchronization.layouts.guidance: 应用程序提供先前的布局。{transition} 不会维护应用程序可见的布局跟踪器，也不会从较早的命令推断该值。只要资源在渲染阶段之间传递，就应该显式跟踪布局。
+concepts.synchronization.layouts.title: 跟踪每个纹理子资源的布局
+concepts.synchronization.readback.description: "{isCompleted} 仅查询 GPU 时间线是否已达到某个值。它本身不会回收命令缓冲区，也不会将暂存的回读数据复制到应用程序的目标指针所指向的内存中。"
+concepts.synchronization.readback.details: "{commandBufferDownload} 首先录制将数据复制到内部回读存储的命令。重置已完成的命令缓冲区以供复用时，才会由 CPU 将数据复制到提供的指针所指向的内存。在该次回读提交的 {wait} 返回之前，目标内存必须保持有效，托管内存必须保持固定；返回后才能读取数据或释放内存。等待另一个队列上的后续提交，本身不会轮询回读操作所属的队列。"
+concepts.synchronization.readback.guidance: "因此，仅轮询 {isCompleted} 然后立即读取异步回读的目标内存是不够的。{link}介绍了直接复制与通过暂存内存传输的路径。"
+concepts.synchronization.readback.guidance.link: 资源管理
+concepts.synchronization.readback.title: GPU 完成与 CPU 下载数据是不同的步骤
+concepts.synchronization.reuse.description: 对于第一个渲染器，在每帧之后立即等待是最直观的做法。要实现重叠工作，请为未决帧分配单独的可变数据，并保留每个帧最终用途的完成值。在更新常量缓冲区、替换纹理或释放管线之前，请完成对受影响资源的所有未决访问。
+concepts.synchronization.reuse.details: 在调整大小或关闭时，在等待旧工作之前先停止新用途。{swapChainResize}、资源释放和上下文释放不能用作应用程序工作的通用等待机制。三角形示例可以在回调之间安全地调整大小，因为每个先前的帧都已经完成了其提交操作。
+concepts.synchronization.reuse.guidance: 当前的 {swapChainPresent} 在其呈现操作之后也会在图形队列上发出信号并等待。因此，仅仅移除三角形显式的提交等待并不能自动建立起重叠的呈现循环。在图形队列上的等待对于仍在另一个队列上运行的独立工作也不起作用。
+concepts.synchronization.reuse.title: 仅在最后一次访问完成后重用数据
+concepts.synchronization.timelines.context: 在 CPU 读取、覆写或释放这些资源之前，请等待其最终使用：
+concepts.synchronization.timelines.description: 时间线使用递增的值跟踪队列上的完成进度。{submit} 返回包含该时间线和与提交关联的值的 {timelineValue}。来自不同时间线的完成值不能仅通过其数字 {value} 字段进行比较。
+concepts.synchronization.timelines.details: 假设 {producer} 和 {consumer} 是来自同一上下文的两个队列中已录制的命令缓冲区。生产者写入消费者使用的数据。像这样提交它们：
+concepts.synchronization.timelines.guidance: 传递生成的值会使消费队列在 GPU 上等待该值。CPU 在此处不调用 {producedWait}。在 {consumed} 完成之前保持共享资源有效，并录制消费者所需的任何纹理布局更改。
+concepts.synchronization.timelines.notes: "{wait} 等待该时间线值，然后检查其所属队列中已完成的提交。完成的命令缓冲区会被重置以供复用，其中暂存的回读数据会复制到提供的 CPU 目标中。{queueTimelineSignal} 也可以在已提交到该队列的工作之后排入一个完成点。调用 {signal} 不代表 GPU 已经到达该点。"
+concepts.synchronization.timelines.title: 使用时间线进行完成通知与队列交接
+concepts.synchronization.title: 同步
+home.actions.reference: 浏览 API
+home.actions.tutorial: 从三角形开始
+home.entries.description: 第一帧画面。针对性的示例。深入了解 API。
+home.entries.label: 浏览文档
+home.entries.reference.action: 探索 API
+home.entries.reference.category: 参考
+home.entries.reference.description: 查找支撑您应用程序的类型、签名与成员。
+home.entries.reference.title: API 参考
+home.entries.samples.action: 浏览示例
+home.entries.samples.category: 示例
+home.entries.samples.description: 通过源代码探索针对性的渲染与计算技术。
+home.entries.samples.title: 示例
+home.entries.title: 开始构建。
+home.entries.tutorial.action: 开始教程
+home.entries.tutorial.category: 教程
+home.entries.tutorial.description: 从项目搭建到第一帧画面，构建一个完整的渲染应用程序。
+home.entries.tutorial.title: 第一个三角形
+home.introduction.accent: "基于 C#。"
+home.introduction.description: 通过单一的 .NET API 创建资源、录制命令并提交图形或计算工作。
+home.introduction.title: 构建您的渲染器。
+home.meta.description: "一套统一的 C# API，跨越 DirectX、Metal 与 Vulkan 提供图形与计算能力。"
+home.scene.description: 旋转几何体研究。拖动或使用方向键调整视角。
+home.scene.label: 几何体显示
+home.scene.surface: 表面
+home.scene.wireframe: 线框
+home.title: 适用于 .NET 的现代 RHI
+learning.concepts.description: 在组合渲染通道之前，了解命令、资源、着色器数据和同步是如何相互配合的。
+learning.concepts.execution.description: 录制 GPU 工作，提交该工作，并保持其资源处于有效状态。
+learning.concepts.platforms.description: 连接原生窗口或 UI 渲染控件。
+learning.concepts.resources.description: 选择资源用途、内存分配位置和视图。
+learning.concepts.shaders.description: "使 C# 内存布局与资源句柄同 Slang 保持一致。"
+learning.concepts.synchronization.description: 对有依赖关系的访问进行排序，并掌握工作完成的时间点。
+learning.concepts.title: 核心概念
+learning.description: 从完整的三角形教程开始。然后利用针对性的示例和概念指南，理解更大型渲染器背后的资源、数据与依赖关系。
+learning.entries.samples.action: 浏览示例
+learning.entries.samples.description: "查找涵盖几何体、计算、光线查询与网格着色（mesh shading）的 C# 和 Slang 示例。"
+learning.entries.tutorial.action: 打开教程
+learning.entries.tutorial.description: 创建控制台应用程序，打开窗口并绘制一个三角形。
+learning.meta.description: 开始使用 Zenith.NET 并探索其编程模型。
+learning.title: 学习
+reference.description: 查询资源类型、命令签名和平台集成。
+reference.entries.commands.description: 录制图形、计算和传输命令。
+reference.entries.commands.label: 录制工作
+reference.entries.context.description: 为所选后端创建 GPU 资源。
+reference.entries.context.label: 从这里开始
+reference.meta.description: 探索 Zenith.NET 中的类型与成员。
+reference.navigation.core: 浏览核心 API。
+reference.title: API 参考
+samples.computeShader.description: 通过计算分派将图像转换为灰度并显示结果纹理。演示了用于采样输入纹理和可写输出纹理的资源句柄、向上取整的线程组计数以及着色器内部的边界检查。请保留包含的 {assetsTexturesShokoPng} 资产；渲染器对其处理一次并在后续帧中呈现结果。
+samples.computeShader.details: "{computeShaderRendererCs} · {computeShaderSlang}"
+samples.computeShader.title: 计算着色器
+samples.cube.description: 添加了索引绘制、常量缓冲区中的模型、视图和投影矩阵以及深度测试。深度纹理会在窗口大小改变时重新创建。在从裁剪空间几何体过渡到变换对象时使用此示例；渲染器使用 {d32FloatS8UInt} 深度／模板附件。
+samples.cube.details: "{spinningCubeRendererCs} · {spinningCubeSlang}"
+samples.cube.title: 旋转立方体
+samples.description: "选择针对您要学习的功能的专项示例。每个示例都会链接到 C# 渲染器及其 Slang 着色器。如果您希望从空项目开始阅读完整应用程序的讲解，请从 {link} 开始。"
+samples.description.link: 第一个三角形
+samples.execution.description: "{link} 在一个桌面应用程序中包含了六个独立的渲染器。请使用 .NET 10 SDK 和下述受支持的桌面后端。构建并运行该应用程序，然后从控制台菜单中选择一个示例："
+samples.execution.description.link: ZenithTutorials
+samples.execution.details: 宿主程序在 Windows 上选择 DirectX 12，在 macOS 上选择 Metal，在 Linux 上选择 Vulkan。请使用所选后端支持的设备、驱动程序和着色器编译器环境。Linux 窗口路径需要 X11 或 XWayland。{link} 声明了包依赖项，并复制运行时所需的着色器和纹理资产。
+samples.execution.details.link: 项目文件
+samples.execution.guidance: 这些示例共享窗口和呈现代码。您可以根据要研究的功能独立选择任何示例。
+samples.execution.title: 运行教程示例
+samples.host.description: "{appCs} 创建图形上下文、窗口和交换链。它获取命令缓冲区，调用所选的渲染器，提交帧并进行呈现。{iRendererCs} 定义了渲染器的更新、渲染、调整大小和释放方法。"
+samples.host.details: 计算与光线追踪会产生离屏纹理。{texturePresenterCs} 和 {presentTextureSlang} 将这些纹理绘制到窗口当前帧的输出纹理中。宿主程序仍然拥有提交操作和交换链呈现的所有权。
+samples.host.title: 共享宿主与呈现
+samples.indirectDrawing.description: 使用索引间接参数缓冲区和结构化缓冲区中的逐实例数据绘制立方体的多个副本。CPU 提供绘制参数并更新变换。在添加 GPU 生成的参数之前，可利用此示例了解间接参数布局以及着色器对实例数据的访问。
+samples.indirectDrawing.details: "{indirectDrawingRendererCs} · {indirectDrawingSlang}"
+samples.indirectDrawing.title: 间接绘制
+samples.meshShading.description: 使用任务着色器（task shader）剔除球体实例，并将其索引传递给输出几何体的网格着色器（mesh shader）。渲染器在创建管线前会检查 {contextCapabilitiesMeshShadingSupported}。可利用此示例跟踪贯穿任务与网格阶段的资源句柄与有效负载数据。
+samples.meshShading.details: "{meshShadingRendererCs} · {meshShadingSlang}"
+samples.meshShading.title: 网格着色（Mesh Shading）
+samples.rayTracing.description: 为地面和程序化球体构建底层与顶层加速结构，然后在计算着色器中执行内联光线查询。渲染器在构建工作负载之前会检查 {contextCapabilitiesRayTracingSupported}。此示例适用于学习加速结构输入以及着色器端的光线遍历。
+samples.rayTracing.details: "{rayTracingRendererCs} · {rayTracingSlang}"
+samples.rayTracing.title: 光线追踪
+samples.title: 示例
+samples.triangle.description: 创建顶点缓冲区及匹配的输入布局，然后通过图形管线绘制三个顶点。利用此示例将资源创建与渲染通道中的命令关联起来。
+samples.triangle.details: "{helloTriangleRendererCs} · {helloTriangleSlang} · {link}"
+samples.triangle.details.link: 完整教程
+samples.triangle.title: Hello Triangle
+samples.workloads.description: 主仓库的 {link} 包含组合了多项特性的应用程序。它们各自的项目直接引用库源码。在检出的 Zenith.NET 源码树中，运行所选项目即可，例如：
+samples.workloads.description.link: Experiments 目录
+samples.workloads.details: 这些窗口实验项目在 Windows、macOS 和 Linux/X11 上使用相同的宿主选项。关于在 Avalonia、WinForms、WPF、WinUI/Uno 或 MAUI 中绘制，以及控件帧生命周期和实现链接，请参阅{link}。
+samples.workloads.details.link: 平台集成
+samples.workloads.table.cornellBox.example: "{link}"
+samples.workloads.table.cornellBox.example.link: CornellBox
+samples.workloads.table.cornellBox.whatItDemonstratesAndRequires: "路径追踪、降噪、色调映射、分辨率放大以及 ImGui 控件。需要光线追踪支持以及对应桌面后端的着色器编译环境。"
+samples.workloads.table.fluidTank.example: "{link}"
+samples.workloads.table.fluidTank.example.link: FluidTank
+samples.workloads.table.fluidTank.whatItDemonstratesAndRequires: 计算流体模拟、模拟各阶段之间的依赖关系以及多通道表面渲染。需要对应桌面后端与着色器编译环境。
+samples.workloads.table.headings.example: 示例
+samples.workloads.table.headings.whatItDemonstratesAndRequires: 演示内容与运行要求
+samples.workloads.table.inkCanvas.example: "{link}"
+samples.workloads.table.inkCanvas.example.link: InkCanvas
+samples.workloads.table.inkCanvas.whatItDemonstratesAndRequires: 原生窗口中的 Skia 绘制与输入处理。需要对应目标平台的后端和 Skia 原生库。
+samples.workloads.table.platformDetection.example: "{link}"
+samples.workloads.table.platformDetection.example.link: PlatformDetection
+samples.workloads.table.platformDetection.whatItDemonstratesAndRequires: 尝试为每个后端创建图形上下文并报告设备功能。若上下文创建失败，则报告为不支持；该结果也可能意味着缺少驱动程序或运行时依赖。
+samples.workloads.title: 探索更大型的工作负载
+tutorial.context.description: 窗口现在可以打开了，但我们尚未创建向其进行渲染的 GPU 对象。{graphicsContext} 提供对所选图形后端及其命令队列的访问。
+tutorial.context.details: 在{emphasis}插入此代码块：
+tutorial.context.details.emphasis: using 指令之后、{iWindowWindow} 之前
+tutorial.context.guidance: 分支逻辑在 Windows 上选择 DirectX 12，在 macOS 上选择 Metal，在 Linux 上选择 Vulkan。接下来的渲染代码均使用共享的 Zenith.NET API。我们在开发期间请求启用验证层，并打印通过 {validationMessage} 报告的消息。诊断信息取决于后端以及机器上可用的验证组件。
+tutorial.context.title: 创建图形上下文
+tutorial.description: 构建一个 .NET 控制台应用程序，打开窗口并绘制一个具有平滑颜色渐变的三角形。您将学习顶点数据、着色器和管线状态是如何协同工作的，然后录制并提交生成该图像的命令。
+tutorial.details: 请按顺序完成各个部分。您将首先打开一个空窗口，然后显示背景颜色，最后绘制三角形。在添加下一部分之前，每个检查点都会确认应用程序当前部分的正常运行。初始化只执行一次；每次调用渲染回调时都会录制新的一帧。
+tutorial.draw.context: "{draw} 的参数如下："
+tutorial.draw.description: 在 {windowRender} 回调中，在 {beginRenderPass} 和 {endRenderPass} 之间，将 {addTheTriangleDrawCommandsHereLater} 替换为以下三个命令：
+tutorial.draw.details: "{setPipeline} 选择我们刚才创建的着色器和状态。在绑定顶点数据之前设置它：后端使用管线的输入布局来解释该绑定。"
+tutorial.draw.guidance: "{setVertexBufferVertexBuffer} 将从字节偏移量 0 开始的缓冲区绑定到输入槽 0。该槽对应于 {inputLayouts} 中的单个条目。它不会再次复制或上传数据。"
+tutorial.draw.notes: 此时命令仍仅处于已录制状态。位于渲染回调末尾的 {submitWait} 和 {present} 调用会执行工作并显示其结果。清除操作仍然是必要的，因为三角形只覆盖图像的一部分；背景在每帧中也必须接收到已定义的颜色。
+tutorial.draw.table.firstInstance.meaning: 从零开始进行实例编号。
+tutorial.draw.table.firstVertex.meaning: 从缓冲区中的第一个顶点开始。
+tutorial.draw.table.headings.argument: 参数
+tutorial.draw.table.headings.description: 值
+tutorial.draw.table.headings.meaning: 含义
+tutorial.draw.table.instanceCount.meaning: 绘制三角形的一个副本。
+tutorial.draw.table.vertexCount.meaning: 读取三个顶点。
+tutorial.draw.title: 在通道内绘制三角形
+tutorial.execution.description: 从 {firstTriangle} 目录构建并运行：
+tutorial.execution.details: 窗口中应显示一个三角形，在深色背景下具有红色的上顶点、绿色的右下角顶点和蓝色的左下角顶点。内部应显示这些颜色之间的平滑渐变。
+tutorial.execution.guidance: 调整窗口大小。调整大小的回调会更新帧缓冲区尺寸并重设交换链的大小。渲染通道建立与该图像匹配的视口。由于顶点位置保持为归一化坐标，三角形保持窗口宽度和高度的相同比例；改变纵横比可能会拉伸其形状。保持对象的纵横比需要投影或视口策略，这超出了本次基础绘制的范围。
+tutorial.execution.title: 运行、调整大小与关闭
+tutorial.frame.commands.context: 在 {endRenderPass} 之后，第二次转换准备将图像用于呈现。{submit} 结束录制并提交命令缓冲区；{wait} 等待 GPU 完成该提交。然后 {present} 请求显示渲染出的图像。
+tutorial.frame.commands.description: 渲染通道（render pass）将使用相同附件的绘制操作组合在一起。此处，颜色附件是交换链的输出纹理，即接收我们绘制内容的图像。{colorAttachmentClear} 创建一个描述，指示通道清除为给定的 RGBA 颜色，并在通道结束时保留结果。{beginRenderPass} 录制这些指令；GPU 在命令提交后执行清除。
+tutorial.frame.commands.details: 方括号中包含我们唯一的颜色附件。{null} 参数表示没有深度／模板附件，该附件通常用于存储深度值和模板掩码以进行深度与模板测试。
+tutorial.frame.commands.guidance: "{beginRenderPass} 设置覆盖附件的视口和裁剪区域。视口将渲染坐标映射到像素，裁剪区域限制可以写入的像素。这些默认设置覆盖整个输出纹理，这正是该三角形所需的。"
+tutorial.frame.commands.title: 清除、提交与呈现
+tutorial.frame.description: 首先用一种背景颜色填充图像。此操作称为清除（clear）。如果该颜色出现在窗口中，则说明原生呈现目标、命令提交和呈现路径工作正常。在添加几何体和着色器之前，此检查点可让您验证帧循环。
+tutorial.frame.details: 渲染回调是 Silk.NET 在需要绘制帧时调用的代码。此回调不需要事件的流逝时间参数，因此将其命名为 {value}。在{emphasis}注册它：
+tutorial.frame.details.emphasis: "{windowRun} 之前"
+tutorial.frame.target.description: "{graphicsQueueCommandBuffer} 获取一个已开始录制的命令缓冲区。录制是为 GPU 描述工作；它不会立即执行该工作。"
+tutorial.frame.target.details: 第一个 {transition} 为颜色附件访问准备输出纹理。{default} 选择 mip 级别 0 和数组层 0。我们使用 {undefined} 作为先前布局，因为我们将清除整个图像并丢弃其先前的内部数据。需要保留现有内容的通道必须改用其实际的先前布局。
+tutorial.frame.target.guidance: 每帧都使用交换链当前的输出纹理。呈现操作可能会改变当前可用的图像，因此从较早帧保存的纹理并不是永久性的窗口渲染目标。
+tutorial.frame.target.title: 准备输出纹理
+tutorial.frame.title: 显示背景颜色
+tutorial.geometry.data.description: 在{emphasis}添加此数组。接下来的资源创建步骤也按所示顺序位于该回调之前。
+tutorial.geometry.data.description.emphasis: "{windowRender} 之前"
+tutorial.geometry.data.details: 数组的每个元素创建一个 {vertex}。内部的两个 {new} 表达式创建其 {vector3} 位置和 {vector4} 颜色。各顶点描述了顶部、右下角和左下角。顶点着色器将提供第四个位置坐标 {w}。当 w 等于 1 时，x 和 y 直接描述归一化设备坐标：-1 和 +1 是图像边缘，0 是中心。这些坐标不依赖于窗口的像素尺寸。
+tutorial.geometry.data.guidance: 每种颜色包含红、绿、蓝和阿尔法分量。三个顶点的阿尔法均为 1。所有三个位置的 z 坐标均为 0，将它们置于同一平面上。这些位置不需要相机或变换矩阵，因为它们已经直接描述了我们想要渲染的坐标。对于这个单一的平面三角形，我们还将禁用混合与深度测试，并省略深度缓冲区。
+tutorial.geometry.data.title: 选择顶点坐标
+tutorial.geometry.description: "顶点由一个位置以及绘制时使用的数据组成。我们的三角形有三个顶点，每个角一个。每个顶点都包含位置和颜色。GPU 会对颜色进行插值，计算三角形内部各处的中间值。"
+tutorial.geometry.format.description: 在{emphasis}追加此声明：
+tutorial.geometry.format.description.emphasis: "{programCs} 的末尾、清理语句之后"
+tutorial.geometry.format.details: "{file} 将此类型限制在 {programCs} 内部，构造函数初始化其位置和颜色字段。{layoutKindSequential} 保持字段按照声明顺序排列。{position} 包含三个 32 位浮点数，{color} 包含四个。在该结构体中，位置从字节 0 开始，颜色从字节 12 开始，完整的顶点占用 28 个字节。我们将向图形管线描述这完全相同的布局。"
+tutorial.geometry.format.title: 定义顶点
+tutorial.geometry.title: 向 GPU 提供三个顶点
+tutorial.geometry.upload.context: "{fixed} 防止垃圾回收器在使用数组地址时移动该数组。对于此 CPU 可写缓冲区，{upload} 在返回之前会映射、复制并取消映射内存，因此之后无需保持数组固定。缓冲区必须在整个渲染过程中保持有效，并且上传只需进行一次，因为顶点不会发生变化。"
+tutorial.geometry.upload.description: 托管数组是 CPU 数据。{buffer} 为 GPU 提供存储空间，以便其可以从中读取顶点。在数组之后，添加：
+tutorial.geometry.upload.details: 总大小为 {sizeofVertexVerticesLength}：每个顶点 28 字节，三个顶点，总共 84 字节。{bufferUsagesVertex} 允许顶点输入访问。{cpuWriteOnly} 允许 CPU 直接初始化这个小缓冲区。描述符的步幅（stride）记录了元素大小；我们稍后创建的输入布局将告知顶点获取机制如何读取各个属性。
+tutorial.geometry.upload.guidance: 创建缓冲区并不会填充数据。{upload} 将数组复制到该分配中，从目标字节偏移量 0 开始。其源描述提供了指针和要复制的字节数。
+tutorial.geometry.upload.notes: 在 {programCs} 底部的清理代码中，紧邻 {swapChainDispose} 之前添加 {vertexBufferDispose}。对于更大的静态几何体，{link}解释了何时应选择仅 GPU 内存并通过传输进行上传。
+tutorial.geometry.upload.notes.link: 资源管理
+tutorial.geometry.upload.title: 分配缓冲区并上传数组
+tutorial.input.description: 顶点字节和着色器均已就绪。接下来描述 GPU 应该如何读取每个顶点。属性是一个单独的值，例如位置或颜色。输入布局为每个属性赋予格式和字节偏移量；步幅（stride）给出从一个顶点到下一个顶点的字节距离。在创建着色器之后添加此初始化块：
+tutorial.input.details: "{inputLayoutAdd} 在当前步幅处追加一个元素，并将该步幅增加该元素的大小。它不会检查 C# 结构体。在此处它生成了 CPU 内存与着色器输入之间的以下契约："
+tutorial.input.guidance: "更改 C# 字段顺序或填充而不更新此描述会导致 GPU 读取错误的字节。默认的 {semanticIndex} 为 0，匹配 {pOSITION0} 和 {cOLOR0}。这两个元素属于同一个缓冲区，因此管线将包含一个输入布局，并且我们将该缓冲区绑定到槽 0。"
+tutorial.input.table.headings.byteOffset: 字节偏移量
+tutorial.input.table.headings.cField: "C# 字段"
+tutorial.input.table.headings.format: 格式
+tutorial.input.table.headings.shaderInput: 着色器输入
+tutorial.input.table.nextVertex.cField: 下一个顶点
+tutorial.input.table.nextVertex.format: 总步幅：28 字节
+tutorial.input.table.nextVertex.shaderInput: 下一个输入记录
+tutorial.input.table.vertexColor.format: "{float4}（16 字节）"
+tutorial.input.table.vertexPosition.format: "{float3}（12 字节）"
+tutorial.input.title: 描述顶点输入布局
+tutorial.lifecycle.description: 完成的应用程序重复执行以下序列：
+tutorial.lifecycle.details: 关闭窗口将从 {run} 返回。每个渲染的帧都已经等待其 GPU 工作完成，因此我们现在可以安全释放它所使用的资源。{windowRun} 之后的清理代码应为：
+tutorial.lifecycle.guidance: "在销毁原生窗口前释放交换链，并在释放所有资源后释放图形上下文。队列拥有并回收提交的命令缓冲区，交换链拥有其输出纹理。因此，本应用程序不需要单独对这些命令缓冲区或输出纹理调用 {dispose}。"
+tutorial.lifecycle.title: 跟踪一帧的生命周期
+tutorial.pipeline.behavior: 在输入布局之后，添加：
+tutorial.pipeline.context: "{cullNone} 填充三角形，并且不因面的朝向而将其剔除。顶点顺序决定面的环绕方向；关闭剔除可以避免因这个顺序而使第一个三角形不可见。"
+tutorial.pipeline.description: 我们现在拥有顶点数据、输入布局和两个着色器。{graphicsPipeline} 将它们连接起来，并指定 GPU 如何将顶点组装为图元并将结果写入附件。
+tutorial.pipeline.details: 管线将可编程着色器阶段与固定功能设置相结合，后者控制诸如三角形组装、面剔除和混合等 GPU 操作。对于这个三角形，选择以下设置：
+tutorial.pipeline.guidance: 颜色格式取自 {swapChainDescFormat}。它必须与渲染通道使用的图像匹配。{count1} 表示每像素一个采样点。
+tutorial.pipeline.item: "{triangleList} 将每组连续的三个顶点组装成一个三角形。我们将提供三个顶点并绘制一次，因此不需要索引缓冲区。"
+tutorial.pipeline.notes: "{depthNone} 禁用深度测试和写入，与没有深度附件的通道相匹配。"
+tutorial.pipeline.reference: "{opaque} 禁用混合，因此片元着色器的颜色会替换三角形内部的背景。"
+tutorial.pipeline.title: 连接着色器与顶点布局
+tutorial.pipeline.usage: 着色器对象在创建管线后即可释放，正如示例渲染器中所做的那样。对于使用它进行绘制的每一帧，保持管线本身处于有效状态。在清理代码中将 {pipelineDispose} 添加到 {vertexBufferDispose} 之前。管线创建是渲染回调之前的最后一步初始化。
+tutorial.pipeline.validation: 管线描述声明了附件配置；它不会创建另一个图像。{inputLayouts} 具有一个条目，因为位置和颜色一起存储在一个缓冲区中。
+tutorial.presentation.title: 将 GPU 连接到窗口
+tutorial.project.context: 在项目的构建设置中启用{emphasis}（{allowUnsafeBlocks}）。我们将使用它将顶点数据传递给 GPU，并用于窗口辅助类的原生调用。
+tutorial.project.context.emphasis: 允许不安全代码
+tutorial.project.description: 创建项目并进入其目录：
+tutorial.project.details: 安装软件包：
+tutorial.project.guidance: "{zenithNET} 提供共享的渲染 API。三个后端包允许同一个程序选择适合其平台的实现。{zenithNETCompiler} 负责为该实现编译 Slang 着色器（我们稍后将编写的小型 GPU 程序）。Silk.NET 提供窗口和事件循环。"
+tutorial.project.title: 创建控制台项目
+tutorial.requirements.context: 您可以从一个空项目开始跟随本页操作。{link}及其{detail}可作为此处使用的渲染和窗口 API 的参考。
+tutorial.requirements.context.detail: 共享宿主
+tutorial.requirements.context.link: Hello Triangle 示例
+tutorial.requirements.description: "您需要 {emphasis}、代码编辑器或 IDE，以及配备了 Zenith.NET 后端支持的 GPU 和驱动程序的桌面设备。具备基本的 C# 知识即可；图形概念会在首次使用时予以介绍。这是一个普通的 {net10} 控制台项目。后端负责将 Zenith.NET 操作转换为对图形 API（例如 DirectX 12、Metal 或 Vulkan）的调用。应用程序在启动时选择其中之一："
+tutorial.requirements.description.emphasis: .NET 10 SDK
+tutorial.requirements.details: 对于此处使用的窗口路径，Linux 需要与 X11 兼容的窗口会话。对于本三角形而言，不需要可选的光线追踪和网格着色（mesh shading）特性。
+tutorial.requirements.guidance: Zenith.NET 渲染到由应用程序提供的表面中。Silk.NET.Windowing 将创建桌面窗口并处理其事件。在 macOS 上，呈现目标是 Metal 图层（{cAMetalLayerCs}）；教程中的窗口辅助类会为我们附加该图层。
+tutorial.requirements.table.headings.graphicsBackend: 图形后端
+tutorial.requirements.table.headings.platform: 平台
+tutorial.requirements.table.headings.windowSurface: 窗口表面
+tutorial.requirements.table.linux.graphicsBackend: Vulkan 1.4
+tutorial.requirements.table.linux.platform: Linux
+tutorial.requirements.table.linux.windowSurface: X11 窗口与显示；XWayland 也同样适用
+tutorial.requirements.table.macOS.graphicsBackend: Metal 4
+tutorial.requirements.table.macOS.platform: macOS
+tutorial.requirements.table.macOS.windowSurface: 附加到窗口的 Metal 图层
+tutorial.requirements.table.windows.graphicsBackend: DirectX 12
+tutorial.requirements.table.windows.platform: Windows
+tutorial.requirements.table.windows.windowSurface: Win32 窗口句柄
+tutorial.requirements.title: 开始之前
+tutorial.resize.context: 再次运行 {dotnetRun}。窗口现在应该具有均匀的暗色背景，并且在调整大小后继续填满窗口。保留此回调：三角形将在其现有的渲染通道内绘制。
+tutorial.resize.description: 交换链的图像必须跟随帧缓冲区尺寸。使用 {framebufferResize} 响应像素大小的变化，包括由显示缩放引起的变化。在渲染回调之后、仍处于 {windowRun} 之前，添加：
+tutorial.resize.details: Silk.NET 区分窗口大小变化与{link}。我们需要后者，因为交换链存储的是像素。最小化的窗口可以具有零大小的帧缓冲区。在那种情况下，两个回调都会跳过它们的 GPU 工作。调整大小后，渲染通道将为其视口和裁剪区域使用新的附件尺寸。
+tutorial.resize.details.link: 帧缓冲区大小变化
+tutorial.resize.guidance: 我们在每次提交后都会等待，因此当调整大小处理程序替换图像时，之前的帧不会继续使用这些图像。当前的 {present} 实现也会在图形队列上等待。这个简单的循环确保一帧的工作在下一帧开始前完成；{link}涵盖了更高级的调度方式。
+tutorial.resize.guidance.link: 同步
+tutorial.resize.title: 响应窗口大小调整
+tutorial.shaders.compilation.context: 编译在初始化期间执行一次。{appContextBaseDirectory} 负责在可执行文件旁定位复制的着色器，而与当前工作目录无关。这些着色器仅使用顶点输入，因此目前还没有常量缓冲区、纹理或资源句柄需要绑定。
+tutorial.shaders.compilation.description: 在 {triangleSlang} 的文件属性中，将{emphasis}设置为{detail}。这会使着色器在可执行文件旁可用。
+tutorial.shaders.compilation.description.detail: 如果较新则复制
+tutorial.shaders.compilation.description.emphasis: 复制到输出目录
+tutorial.shaders.compilation.details: 返回 {programCs}。在顶点上传之后、渲染回调之前添加这些初始化语句：
+tutorial.shaders.compilation.guidance: "{zenithCompiler} 返回包含所请求图形 API 代码的着色器描述。{createShader} 创建对应的后端对象。图形 API 和入口点名称都很关键：使用 {contextGraphicsApi}，并将 {vSMain} 和 {fSMain} 的拼写保持与 Slang 文件中完全一致。"
+tutorial.shaders.compilation.title: 针对所选后端进行编译
+tutorial.shaders.context: "{fSInput} 将顶点着色器的输出连接到片元着色器的输入。由顶点着色器写入时，{sVPOSITION} 提供裁剪空间位置，即 GPU 用来判断哪些内容位于可见图像范围内的四个坐标。{cOLOR0} 传递需要在顶点之间插值的颜色。两个阶段使用的类型与语义必须一致。"
+tutorial.shaders.description: 着色器是由 GPU 执行的程序。本次绘制需要一个顶点着色器来确定顶点位置，以及一个片元着色器来生成三角形内部的颜色。我们将使用 Slang 着色器语言编写它们，并从同一文件中编译两个入口点。入口点是着色器阶段开始执行的函数。
+tutorial.shaders.details: 创建 {triangleSlang}，从以下两个结构体开始：
+tutorial.shaders.fragment.description: 将片元入口点追加到同一个文件中：
+tutorial.shaders.fragment.details: 光栅化确定三角形覆盖了哪些图像位置。它生成片元（由片元着色器处理的数据），并在覆盖区域内插值顶点颜色。{fSMain} 通过 {sVTARGET} 返回此插值颜色，该语义标识第一个颜色附件。
+tutorial.shaders.fragment.guidance: 顶点颜色插值与附件混合是相互独立的。混合是将片元的输出与附件中已存储的颜色相结合。我们设置的不透明混合状态禁用了该组合，因此插值得到的颜色将直接替换三角形内部的背景。
+tutorial.shaders.fragment.title: 为片元着色
+tutorial.shaders.guidance: "{vSInput} 描述顶点着色器从顶点缓冲区接收的内容。语义 {pOSITION0} 和 {cOLOR0} 标识输入；仅凭 C# 字段名称无法建立该映射。"
+tutorial.shaders.title: 编写两个着色器阶段
+tutorial.shaders.vertex.description: 将顶点入口点追加到 {triangleSlang} 中：
+tutorial.shaders.vertex.details: GPU 对每个输入顶点调用此入口点。它为位置添加齐次坐标 {w} 并传递颜色。在顶点阶段之后，位置会被除以 w；在此处该除法保持 x、y 和 z 不变。这就是为什么上面选择的位置可以直接理解为归一化设备坐标的原因。
+tutorial.shaders.vertex.title: 定位每个顶点
+tutorial.surface.description: 图形上下文还需要知道在何处显示其输出。在{emphasis}添加以下内容：
+tutorial.surface.description.emphasis: "{windowCenter} 之后、{windowRun} 之前"
+tutorial.surface.details: "{surface} 描述了原生呈现目标及其像素尺寸。帧缓冲区是与窗口关联的像素图像。{framebufferSize} 以像素为单位给出其尺寸；启用显示缩放时，窗口的逻辑尺寸可能会有所不同。"
+tutorial.surface.guidance: 该表面与上面选定的后端相匹配。Windows 提供窗口句柄，Linux 提供 X11 显示与窗口，macOS 辅助类提供附加的 Metal 图层。这是将我们的窗口连接到渲染流程中唯一与平台相关的部分。
+tutorial.surface.title: 描述原生呈现目标
+tutorial.swapChain.context: 交换链同时使用了图形上下文与原生窗口。将 {programCs} 底部的 {windowDispose} 行替换为以下清理顺序：
+tutorial.swapChain.description: 使用表面描述来创建将要呈现的图像。紧随表面代码块之后，添加：
+tutorial.swapChain.details: "{swapChain} 管理窗口中显示的图像。在每一帧中，{drawable} 为我们提供作为 {texture}（用于图像数据的 API 类型）的当前图像。绘制完成后，{present} 请求显示结果并前进到下一个 drawable。"
+tutorial.swapChain.guidance: "{b8G8R8A8UNorm} 按蓝、绿、红和阿尔法通道的顺序存储四个 8 位颜色通道。{uNorm} 表示从 0 到 255 的整数值对应从 0 到 1 的值。着色器仍将返回逻辑 RGBA 值；此格式决定这些通道在图像中的存储方式。稍后，图形管线将使用 {swapChainDescFormat} 来匹配此附件。"
+tutorial.swapChain.title: 创建交换链
+tutorial.title: 第一个三角形
+tutorial.troubleshooting.description: 首先查看控制台中的任何错误，然后利用前面的检查点确定失败的阶段：
+tutorial.troubleshooting.details: 使用{link}和{detail}来对比顶点数据、输入布局和绘制操作。该示例将窗口和提交逻辑放在共享宿主中；本教程将应用程序流程保留在 {programCs} 中。继续阅读{context}以学习索引绘制、变换和深度测试。
+tutorial.troubleshooting.details.context: 旋转立方体
+tutorial.troubleshooting.details.detail: Slang 着色器
+tutorial.troubleshooting.details.link: 示例渲染器
+tutorial.troubleshooting.table.backend.check: 检查所选后端是否受设备和已安装的图形驱动程序支持。
+tutorial.troubleshooting.table.backend.symptom: 后端创建失败
+tutorial.troubleshooting.table.drawing.check: 检查上传大小、输入布局、管线选择以及渲染通道内绘制命令的位置。
+tutorial.troubleshooting.table.drawing.symptom: 背景出现但三角形未出现
+tutorial.troubleshooting.table.headings.check: 检查项
+tutorial.troubleshooting.table.headings.symptom: 现象
+tutorial.troubleshooting.table.input.check: 检查 28 字节步幅以及 0 和 12 的位置／颜色偏移量。
+tutorial.troubleshooting.table.input.symptom: 顶点位置或颜色损坏
+tutorial.troubleshooting.table.shaders.check: 检查复制的 {triangleSlang}、入口点拼写以及编译器报告的诊断信息。
+tutorial.troubleshooting.table.shaders.symptom: 清除颜色步骤有效，但着色器加载失败
+tutorial.troubleshooting.table.window.check: 确认 .NET 项目能够构建成功，并且仅包含窗口的步骤可以在桌面会话中运行。在 Linux 上，检查 X11 或 XWayland 是否可用。
+tutorial.troubleshooting.table.window.symptom: 没有窗口打开
+tutorial.troubleshooting.title: 检查失败的阶段
+tutorial.window.context: "{usingZenithTutorials} 导入辅助类的命名空间。每个 C# 文件使用各自的常规 using 指令，因此互操作导入在两个文件中都是必需的。别名 {buffer} 指向 Zenith.NET 的缓冲区类型，以将其与 {systemBuffer} 区分开来。"
+tutorial.window.description: 将 {cocoaHelperCs} 添加到项目中，保持其命名空间不变。在该文件顶部、其命名空间声明之前添加 {interopUsing}。该辅助类在 macOS 上为窗口附加 Metal 图层；其他平台分支不会调用它。
+tutorial.window.details: 将生成的 {programCs} 替换为以下代码。它使用顶级语句，按顺序执行而无需显式的 {main} 方法。后续部分将告诉您在该文件的何处添加代码：
+tutorial.window.guidance: "{graphicsAPINone} 要求 Silk.NET 创建一个没有自身图形上下文的窗口。我们将使用 Zenith.NET 创建该上下文。{initialize} 创建原生窗口并使其句柄可用。句柄是由窗口系统提供的标识符。{center} 使窗口居中，{run} 处理事件直到窗口关闭。然后执行进入 {dispose}，释放窗口。"
+tutorial.window.notes: 运行 {dotnetRun}。应该会打开一个空窗口，并对移动、调整大小和关闭做出响应。由于我们尚未提交任何渲染命令，其内容尚未定义。在继续之前将其关闭。
+tutorial.window.title: 打开窗口
+ui.action.copy: 复制
+ui.action.navigate: 导航
+ui.action.open: 打开
+ui.action.source: 查看源码
+ui.api.browse: 浏览命名空间和类型。
+ui.api.clearTypeSearch: 清除类型搜索
+ui.api.findType: 查找类型
+ui.api.loadError: 无法加载类型。刷新此页面以重试。
+ui.api.loadingNamespaces: 正在加载命名空间…
+ui.api.loadingTypes: 正在加载类型…
+ui.api.matchingTypes: 匹配的类型
+ui.api.namespace: 命名空间
+ui.api.namespaces: 命名空间
+ui.api.noNamespaceTypes: 此命名空间中没有类型。
+ui.api.noTypes: 没有匹配的类型。
+ui.api.types: 类型
+ui.content.reference: 参考
+ui.content.source: 源代码
+ui.content.tutorial: 教程
+ui.contents.close: 关闭目录
+ui.contents.open: 打开目录
+ui.contents.title: 目录
+ui.footer.caption: 适用于 .NET 的现代 RHI。
+ui.footer.label: 页脚
+ui.language.label: 语言
+ui.language.unavailable: 未翻译
+ui.members.clear: 清除成员搜索
+ui.members.close: 关闭成员查找器
+ui.members.empty: 没有匹配的成员。
+ui.members.open: 转到成员
+ui.members.placeholder: 名称或签名…
+ui.members.search: 搜索成员
+ui.members.title: 查找成员
+ui.members.undeclared: 此类型没有声明的成员。
+ui.navigation.api: API
+ui.navigation.concepts: 概念
+ui.navigation.home: 首页
+ui.navigation.label: 主导航
+ui.navigation.toggle: 切换导航
+ui.outline.title: 本页导读
+ui.reference.assembly: 程序集
+ui.reference.classes: 类
+ui.reference.constructors: 构造函数
+ui.reference.declaration: "C# 类型声明"
+ui.reference.delegates: 委托
+ui.reference.derived: 派生类型
+ui.reference.enums: 枚举
+ui.reference.events: 事件
+ui.reference.examples: 示例
+ui.reference.exceptions: 异常
+ui.reference.extensionMethods: 扩展方法
+ui.reference.fields: 字段
+ui.reference.implementations: 显式接口实现
+ui.reference.implements: 实现
+ui.reference.inheritance: 继承
+ui.reference.inheritedMembers: 继承的成员
+ui.reference.interfaces: 接口
+ui.reference.metadata: 类型元数据
+ui.reference.methods: 方法
+ui.reference.namespace: 命名空间
+ui.reference.open: 打开 {name} 的参考文档
+ui.reference.operators: 运算符
+ui.reference.parameters: 参数
+ui.reference.properties: 属性
+ui.reference.related: 另请参阅
+ui.reference.relationships: 继承与元数据
+ui.reference.remarks: 备注
+ui.reference.returns: 返回值
+ui.reference.structs: 结构体
+ui.reference.typeParameters: 类型参数
+ui.reference.value: 值
+ui.reference.values: 值
+ui.search.close: 关闭搜索
+ui.search.empty: 没有找到与“{query}”相关的结果。
+ui.search.hint: 搜索教程、概念、示例和 API 参考。
+ui.search.loading: 正在加载搜索…
+ui.search.more: 显示更多结果
+ui.search.pending: 正在搜索…
+ui.search.placeholder: 您在寻找什么？
+ui.search.resultCount: 结果：{count}
+ui.search.title: 搜索文档
+ui.search.unavailable: 搜索暂不可用。您仍然可以直接打开下方页面。

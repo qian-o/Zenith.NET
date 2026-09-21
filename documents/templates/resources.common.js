@@ -66,6 +66,7 @@ exports.prepare = function (model) {
     model._resourceState = json({
         sourceLanguage: model._sourceLanguage,
         languages: model._languages,
+        placeholders: Object.fromEntries(Object.entries(source).map(([key, value]) => [key, format.placeholders(value)])),
         strings: Object.fromEntries(interfaceEntries)
     });
     return source;
