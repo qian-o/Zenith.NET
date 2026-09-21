@@ -1,0 +1,15 @@
+﻿{
+  "$schema": "https://dotnet.github.io/docfx/schemas/v1.0/schema.json#",
+  "version": "1.0.0",
+  "title": "Resources",
+  "type": "object",
+  "metadata": "/_metadata",
+  "additionalProperties": {
+    "type": "string"
+  },
+  "properties": {
+    "_metadata": {
+      "type": "object"
+    }
+  }
+}

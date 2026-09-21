@@ -1,0 +1,58 @@
+﻿{{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
+{{#children}}
+    <section class="api-group" aria-labelledby="{{id}}">
+        <div class="api-group-heading">
+            <h2 id="{{id}}" data-resource="{{apiTitleKey}}">{{apiTitle}}</h2>
+        </div>
+        <div class="api-members">
+            {{#children}}
+                {{#apiOverload}}
+                    <a id="{{id}}" data-uid="{{uid}}"></a>
+                {{/apiOverload}}
+                <section class="api-member" aria-labelledby="{{apiAnchor}}">
+                    <div class="api-member-heading">
+                        <h3 id="{{apiAnchor}}" data-uid="{{uid}}">{{apiName}}</h3>
+                        {{>partials/api.source}}
+                    </div>
+                    {{>partials/api.code}}
+                    {{#summary}}
+                        <div class="api-summary">{{{summary}}}</div>
+                    {{/summary}}
+                    {{#conceptual}}
+                        <div class="api-summary">{{{conceptual}}}</div>
+                    {{/conceptual}}
+                    {{#syntax}}
+                        {{>partials/api.signature}}
+                    {{/syntax}}
+                    {{#remarks}}
+                        <div class="api-member-notes">
+                            <h4 id="{{apiAnchor}}_remarks" data-resource="ui.reference.remarks">{{r.ui.reference.remarks}}</h4>{{{remarks}}}
+                        </div>
+                    {{/remarks}}
+                    {{#example.0}}
+                        <div class="api-member-notes">
+                            <h4 id="{{apiAnchor}}_examples" data-resource="ui.reference.examples">{{r.ui.reference.examples}}</h4>
+                            {{#example}}
+                                {{{.}}}
+                            {{/example}}
+                        </div>
+                    {{/example.0}}
+                    {{#exceptions.0}}
+                        <div class="api-member-notes">
+                            <h4 data-resource="ui.reference.exceptions">{{r.ui.reference.exceptions}}</h4>
+                            <dl class="api-parameters">
+                                {{#exceptions}}
+                                    <div>
+                                        <dt>{{{type.specName.0.value}}}</dt>
+                                        <dd>{{{description}}}</dd>
+                                    </div>
+                                {{/exceptions}}
+                            </dl>
+                        </div>
+                    {{/exceptions.0}}
+                    {{>partials/api.seealso}}
+                </section>
+            {{/children}}
+        </div>
+    </section>
+{{/children}}

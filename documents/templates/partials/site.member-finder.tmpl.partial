@@ -1,0 +1,33 @@
+﻿{{#apiHasMemberFinder}}
+    <dialog class="site-search api-member-finder" id="api-member-dialog" aria-labelledby="api-member-title" aria-describedby="api-member-context">
+        <header class="api-finder-heading">
+            <div>
+                <h2 id="api-member-title" data-resource="ui.members.title">{{r.ui.members.title}}</h2>
+                <p class="text-break" id="api-member-context">{{fullName.0.value}}</p>
+            </div>
+            <button id="api-member-close" type="button" data-resource-label="ui.members.close" aria-label="{{r.ui.members.close}}">Esc</button>
+        </header>
+        <form class="api-member-filter" id="api-member-form" role="search">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input id="api-member-query" type="search" data-resource-label="ui.members.search" aria-label="{{r.ui.members.search}}" data-resource-placeholder="ui.members.placeholder" placeholder="{{r.ui.members.placeholder}}" autocomplete="off" aria-controls="api-member-results" autofocus>
+            <button id="api-member-clear" type="button" data-resource-label="ui.members.clear" aria-label="{{r.ui.members.clear}}" hidden>
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </form>
+        <div class="search-body">
+            <div id="api-member-results"></div>
+            <p id="api-member-empty" class="api-finder-empty" role="status" hidden data-resource="ui.members.empty">{{r.ui.members.empty}}</p>
+        </div>
+        <div class="search-footer">
+            <span>
+                <kbd>↑</kbd>
+                <kbd>↓</kbd>
+                <span data-resource="ui.action.navigate">{{r.ui.action.navigate}}</span>
+            </span>
+            <span>
+                <kbd>Enter</kbd>
+                <span data-resource="ui.members.open">{{r.ui.members.open}}</span>
+            </span>
+        </div>
+    </dialog>
+{{/apiHasMemberFinder}}

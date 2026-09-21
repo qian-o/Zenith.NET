@@ -1,11 +1,21 @@
-﻿- name: Docs
-  href: docs/
-  homepage: docs/index.md
-
-- name: Tutorials
-  href: tutorials/
-  homepage: tutorials/index.md
-
-- name: API
-  href: api/
-  homepage: api/index.md
+﻿- name: '@learning.title'
+  href: learn/index.md
+  items:
+    - name: '@tutorial.title'
+      href: learn/first-triangle.md
+    - name: '@samples.title'
+      href: learn/samples.md
+    - name: '@ui.navigation.concepts'
+      items:
+        - name: '@concepts.execution.title'
+          href: learn/concepts/execution-model.md
+        - name: '@concepts.resources.title'
+          href: learn/concepts/resource-management.md
+        - name: '@concepts.shaders.title'
+          href: learn/concepts/shader-data-and-binding.md
+        - name: '@concepts.synchronization.title'
+          href: learn/concepts/synchronization.md
+        - name: '@concepts.platforms.title'
+          href: learn/concepts/platform-integration.md
+- name: '@ui.navigation.api'
+  href: api/index.md

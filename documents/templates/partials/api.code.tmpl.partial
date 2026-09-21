@@ -1,0 +1,14 @@
+﻿{{#syntax.content.0.value}}
+    <pre><code class="lang-csharp" data-api-symbol="{{apiName}}" data-api-kind="{{type}}">{{syntax.content.0.value}}</code></pre>
+    <span class="api-signature-references" hidden>
+        {{#syntax.apiValueReference}}
+            <span data-signature-value>{{{syntax.apiValueReference}}}</span>
+        {{/syntax.apiValueReference}}
+        {{#syntax.parameters}}
+            <span data-signature-parameter="{{id}}">{{{type.specName.0.value}}}</span>
+        {{/syntax.parameters}}
+        {{#syntax.apiBaseReferences}}
+            <span data-signature-base>{{{type}}}</span>
+        {{/syntax.apiBaseReferences}}
+    </span>
+{{/syntax.content.0.value}}

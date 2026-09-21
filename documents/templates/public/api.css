@@ -1,0 +1,983 @@
+﻿/* Zenith API reference: generated content, site-owned presentation. */
+body.zenith-theme[data-section="api"] > main > .content {
+    padding-block: 40px 72px;
+}
+
+body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
+    padding: 40px 22px 24px 0;
+}
+
+.api-reference {
+    min-width: 0;
+}
+
+/* A namespace picker and flat type list replace the expanding namespace tree. */
+.api-browser {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    font-size: 13px;
+}
+
+.api-browser-controls {
+    flex-shrink: 0;
+    margin-bottom: 24px;
+    overflow: hidden;
+    border: 1px solid var(--zenith-control-border);
+    border-radius: var(--zenith-radius);
+    background: var(--zenith-surface);
+}
+
+.api-namespace-label {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--zenith-muted);
+    font: 11px/1.4 var(--bs-body-font-family);
+}
+
+.api-namespace-picker {
+    border-radius: calc(var(--zenith-radius) - 1px) calc(var(--zenith-radius) - 1px) 0 0;
+    position: relative;
+    min-height: 44px;
+    padding: 11px 32px 11px 12px;
+    color: var(--zenith-text);
+    font: 500 13px/1.6 var(--bs-body-font-family);
+}
+
+#api-namespace-name {
+    display: block;
+    overflow-wrap: anywhere;
+    pointer-events: none;
+}
+
+.api-namespace-picker select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.api-namespace-picker select:focus {
+    outline: none;
+}
+
+.api-namespace-picker, .api-type-search {
+    transition: box-shadow var(--zenith-state-duration), background-color var(--zenith-state-duration);
+}
+
+.api-namespace-picker:hover, .api-type-search:hover {
+    background: var(--zenith-control-bg);
+}
+
+/* The focus edge stays inside the field, clear of the scrolling sidebar's clip. */
+.api-namespace-picker:focus-within, .api-type-search:focus-within {
+    box-shadow: inset 0 0 0 2px var(--zenith-focus);
+}
+
+.api-namespace-picker > i {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--zenith-muted);
+    pointer-events: none;
+}
+
+.api-type-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 42px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--zenith-border);
+    border-radius: 0 0 calc(var(--zenith-radius) - 1px) calc(var(--zenith-radius) - 1px);
+    color: var(--zenith-muted);
+}
+
+.api-type-search input {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    outline: 0;
+    box-shadow: none;
+    background: none;
+    color: var(--zenith-text);
+    font: 13px/1.5 var(--bs-body-font-family);
+}
+
+.api-type-search input::placeholder {
+    color: var(--zenith-muted);
+}
+
+.api-type-search input::-webkit-search-cancel-button, .api-type-search input::-webkit-search-decoration {
+    display: none;
+}
+
+#api-type-clear {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    margin: -2px -6px -2px 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #aebdd0;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+#api-type-clear[hidden] {
+    display: none;
+}
+
+#api-type-clear:hover {
+    color: var(--zenith-text);
+}
+
+#api-type-clear:focus-visible {
+    outline-offset: -2px;
+}
+
+.api-browser-caption {
+    flex-shrink: 0;
+    margin-bottom: 10px;
+    color: var(--zenith-muted);
+    font-size: 11px;
+}
+
+.api-type-scroll {
+    position: relative;
+    /* Keep wrapped links usable; the outer pane scrolls on short screens. */
+    min-height: 4lh;
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+}
+
+#api-type-list {
+    margin: 0;
+    padding: 0 6px 0 0;
+    list-style: none;
+}
+
+#api-type-list li {
+    margin: 2px 0;
+}
+
+#api-type-list a {
+    display: block;
+    padding: 8px 10px;
+    border-radius: 4px;
+    color: #aeb8c7;
+    font-size: 13px;
+    line-height: 1.5;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+    transition: background-color var(--zenith-state-duration), color var(--zenith-state-duration);
+}
+
+#api-type-list a:hover {
+    background: var(--zenith-surface);
+    color: var(--zenith-text);
+}
+
+#api-type-list a:focus-visible {
+    outline-offset: -2px;
+}
+
+#api-type-list a[aria-current] {
+    background: var(--zenith-graphite);
+    color: var(--zenith-text);
+    font-weight: 600;
+}
+
+#api-type-list small {
+    display: block;
+    margin-top: 3px;
+    color: var(--zenith-muted);
+    font-size: 10px;
+}
+
+.api-browser-status {
+    color: var(--zenith-muted);
+    font-size: 12px;
+}
+
+/* Identity and compact declarations. */
+.api-heading {
+    margin-bottom: 26px;
+}
+
+.api-reference .api-heading h1 {
+    margin: 0;
+    min-width: 0;
+    font-size: clamp(30px, 3.1vw, 46px);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -.045em;
+    overflow-wrap: anywhere;
+}
+
+.api-heading > .api-intro {
+    margin-top: 16px;
+}
+
+.api-summary {
+    color: var(--zenith-body);
+    font-size: 14px;
+    line-height: 1.75;
+}
+
+.api-heading > .api-summary {
+    margin-top: 18px;
+}
+
+.api-reference :is(.api-summary, .api-value-description, .api-parameters dd, .api-member-notes) > :is(p, ul, ol, dl) {
+    margin: 0 0 12px;
+}
+
+.api-reference :is(.api-summary, .api-value-description, .api-parameters dd, .api-member-notes) > :last-child {
+    margin-bottom: 0;
+}
+
+.api-reference :is(.api-summary, .api-member-notes) :is(ul, ol) {
+    padding-left: 20px;
+}
+
+.api-intro {
+    max-width: 620px;
+    margin: 0;
+    color: var(--zenith-body);
+    font-size: 16px;
+}
+
+.api-declaration {
+    position: relative;
+    margin-bottom: 12px;
+    border: 1px solid var(--zenith-control-border);
+    border-radius: var(--zenith-radius);
+    background: var(--zenith-surface);
+}
+
+.api-reference pre, .api-reference pre[data-language] {
+    --code-content-padding: 15px 16px;
+    margin: 14px 0;
+    padding: var(--code-content-padding);
+    border: 1px solid var(--zenith-border);
+    border-radius: 5px;
+    background: var(--zenith-code);
+    font-size: 13px;
+    line-height: 1.7;
+    box-shadow: none;
+}
+
+/* Declarations stay compact; examples retain the shared language/copy header. */
+.api-reference pre[data-language]:has(> code[data-api-symbol])::before {
+    content: none;
+}
+
+.api-reference .api-declaration pre {
+    position: static;
+    margin: 0;
+    padding: 20px 98px 20px 20px;
+    border: 0;
+    background: none;
+}
+
+.api-declaration pre > code, .api-member > pre > code {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+/* Source and copy share one quiet corner instead of competing with each text row. */
+.api-reference .api-source,
+.api-reference :is(.api-declaration, .api-member) > pre .code-action {
+    position: absolute;
+    top: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    min-height: 32px;
+    padding: 5px;
+    border: 0;
+    border-radius: 5px;
+    background: none;
+    color: var(--zenith-action);
+    font-size: 15px;
+    line-height: 1;
+    text-decoration: none;
+    opacity: .45;
+    transition: opacity var(--zenith-state-duration), background-color var(--zenith-state-duration);
+}
+
+.api-reference .api-source {
+    right: 50px;
+}
+
+.api-reference :is(.api-declaration, .api-member) > pre .code-action {
+    right: 14px;
+}
+
+.api-reference :is(.api-declaration, .api-member):is(:hover, :focus-within) :is(.api-source, .code-action) {
+    opacity: 1;
+}
+
+.api-reference .api-source:hover, .api-reference :is(.api-declaration, .api-member) > pre .code-action:hover {
+    background: var(--zenith-hover);
+}
+
+@media (hover: none) {
+    .api-reference .api-source, .api-reference :is(.api-declaration, .api-member) > pre .code-action {
+        opacity: .8;
+    }
+}
+
+.api-reference :not(pre) > code {
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: var(--zenith-control-bg);
+    color: var(--zenith-body);
+}
+
+.api-reference a.xref {
+    color: var(--zenith-link);
+    text-decoration: none;
+}
+
+.api-reference a.xref:hover {
+    color: var(--zenith-text);
+    text-decoration: underline;
+}
+
+/* Context stays available without competing with the API itself. */
+.api-relationships {
+    margin: 0 0 24px;
+    border-block: 1px solid var(--zenith-border);
+    font-size: 12px;
+}
+
+.api-reference summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 13px 2px;
+    color: #a6bad5;
+    cursor: pointer;
+    list-style: none;
+}
+
+.api-reference summary::-webkit-details-marker {
+    display: none;
+}
+
+.api-reference summary::after {
+    content: "+";
+    flex-shrink: 0;
+    width: 20px;
+    color: #c4daf6;
+    font: 18px/1 var(--bs-font-monospace);
+    text-align: center;
+    transition: transform var(--zenith-state-duration);
+}
+
+.api-reference details[open] > summary::after {
+    transform: rotate(45deg);
+}
+
+.api-reference summary:hover {
+    color: var(--zenith-text);
+}
+
+.api-relationships > summary {
+    padding: 12px 8px;
+    color: var(--zenith-body);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.api-relationships > summary:hover {
+    background: var(--zenith-surface);
+}
+
+.api-reference details[open] > :not(summary) {
+    animation: zenith-panel-in 220ms ease-out;
+}
+
+.api-relationships-body {
+    display: grid;
+    gap: 22px;
+    padding: 10px 14px 20px;
+}
+
+.api-reference .api-metadata {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+}
+
+.api-metadata:empty {
+    display: none;
+}
+
+.api-metadata > div {
+    display: grid;
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: 12px;
+}
+
+.api-metadata dt {
+    color: var(--zenith-muted);
+    font-weight: 400;
+}
+
+.api-metadata dd {
+    margin: 0;
+    color: var(--zenith-body);
+    overflow-wrap: anywhere;
+}
+
+.api-reference .api-relation h4 {
+    margin: 0 0 10px;
+    color: var(--zenith-text);
+    font-size: 12px;
+}
+
+.api-relation ul, .api-related ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.api-relation li {
+    max-width: 100%;
+    margin: 0;
+    padding: 5px 9px;
+    border: 1px solid var(--zenith-border);
+    border-radius: 4px;
+    background: var(--zenith-surface);
+    overflow-wrap: anywhere;
+}
+
+.api-reference :is(.api-group-heading h2, .api-member-heading h3, .api-enum-value h3):target {
+    animation: api-location-cue 900ms ease-out;
+}
+
+@keyframes api-location-cue {
+    from {
+        color: var(--zenith-text);
+        text-shadow: 0 0 18px #a9cfff99;
+    }
+
+    to {
+        color: var(--zenith-text);
+        text-shadow: none;
+    }
+}
+
+.api-group {
+    min-width: 0;
+    margin: 0 0 40px;
+}
+
+.api-group-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.api-reference .api-group-heading h2 {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 22px;
+    font-weight: 550;
+    letter-spacing: -.5px;
+}
+
+/* Namespace directories use one dense, scannable grid. */
+.api-type-grid, .api-enum-values {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid var(--zenith-control-border);
+    border-radius: var(--zenith-radius);
+    background: var(--zenith-surface);
+}
+
+.api-type-entry {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    gap: 9px;
+    min-width: 0;
+    min-height: 68px;
+    padding: 17px 18px;
+    background: var(--zenith-surface);
+    transition: background-color var(--zenith-state-duration);
+}
+
+.api-type-entry > .api-summary a {
+    position: relative;
+    z-index: 1;
+    pointer-events: auto;
+}
+
+.api-type-entry, .api-enum-value {
+    box-shadow: inset -1px -1px 0 var(--zenith-border);
+}
+
+.api-type-entry:hover, .api-type-entry:focus-within {
+    background: var(--zenith-hover);
+}
+
+.api-type-entry > a {
+    flex: 1;
+    min-width: 0;
+    color: var(--zenith-text);
+    font: 500 13px/1.6 var(--bs-font-monospace);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+.api-type-entry > a::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+}
+
+.api-type-entry > a:focus-visible {
+    outline: none;
+}
+
+.api-type-entry:focus-within {
+    outline: 2px solid var(--zenith-focus);
+    outline-offset: -3px;
+}
+
+.api-type-entry > .api-summary {
+    pointer-events: none;
+    flex-basis: 100%;
+    font-size: 12px;
+}
+
+.api-enum-value {
+    min-width: 0;
+    padding: 17px 18px;
+    background: var(--zenith-surface);
+}
+
+.api-reference .api-enum-value h3 {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.7;
+    font-weight: 400;
+}
+
+.api-reference .api-enum-value code {
+    padding: 0;
+    background: none;
+    color: var(--zenith-body);
+    font: inherit;
+    font-family: var(--bs-font-monospace);
+}
+
+.api-enum-value:has(:target) {
+    background: var(--zenith-hover);
+}
+
+.api-enum-value > .api-summary {
+    margin-top: 10px;
+    font-size: 12px;
+}
+
+/* Members keep their original IDs and complete signatures. */
+.api-members {
+    display: grid;
+    gap: 14px;
+}
+
+.api-member {
+    position: relative;
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid var(--zenith-control-border);
+    border-radius: var(--zenith-radius);
+    background: var(--zenith-surface);
+}
+
+.api-member:target, .api-member:has(:target) {
+    border-color: var(--zenith-focus);
+}
+
+/* Focus from the finder belongs to the member block, not a box around static text. */
+.api-reference :is(.api-member-heading h3, .api-enum-value h3)[tabindex="-1"]:focus {
+    outline: none;
+}
+
+.api-member:has(.api-member-heading h3:focus) {
+    border-color: var(--zenith-focus);
+    box-shadow: inset 0 0 0 1px #8aafd338;
+}
+
+.api-enum-value:has(h3:focus) {
+    background: var(--zenith-hover);
+    box-shadow: inset 0 0 0 1px var(--zenith-focus);
+}
+
+.api-member-heading {
+    padding-right: 76px;
+}
+
+.api-reference .api-member > pre {
+    position: static;
+    margin: 7px 0 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+}
+
+.api-reference .api-member-heading h3 {
+    min-width: 0;
+    margin: 0;
+    color: var(--zenith-text);
+    font: 550 17px/1.5 var(--bs-font-monospace);
+    letter-spacing: -.04em;
+    overflow-wrap: anywhere;
+}
+
+.api-member > .api-summary {
+    margin-top: 12px;
+}
+
+.api-reference .api-value {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin: 0;
+    font-size: 12px;
+}
+
+.api-value > dt {
+    color: var(--zenith-muted);
+    font-weight: 400;
+}
+
+.api-value > dd {
+    min-width: 0;
+    margin: 0;
+    color: var(--zenith-body);
+}
+
+.api-value dd > div {
+    margin-top: 8px;
+}
+
+.api-value-description {
+    margin: 0;
+    color: var(--zenith-body);
+    font-size: 13px;
+}
+
+.api-signature-section, .api-member-notes, .api-related {
+    margin-top: 18px;
+}
+
+.api-reference :is(.api-signature-section, .api-member-notes, .api-related) > h4 {
+    margin: 0 0 10px;
+    color: #bbc9dc;
+    font: 600 12px/1.5 var(--bs-body-font-family);
+}
+
+.api-reference .api-parameters {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.api-parameters > div {
+    display: grid;
+    grid-template-columns: minmax(120px, 20%) minmax(0, 1fr);
+    gap: 20px;
+    padding: 10px 0;
+    border-top: 1px solid var(--zenith-border);
+}
+
+.api-parameters dt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 12px;
+    min-width: 0;
+    color: var(--zenith-body);
+    font-weight: 400;
+}
+
+.api-parameters dd {
+    margin: 0;
+    color: var(--zenith-body);
+}
+
+.api-parameters dd:empty {
+    display: none;
+}
+
+.api-parameters > div:has(dd:empty) {
+    grid-template-columns: 1fr;
+}
+
+.api-parameters :is(dt, dd) > :last-child {
+    margin-bottom: 0;
+}
+
+.api-member-notes {
+    color: var(--zenith-body);
+    font-size: 13px;
+}
+
+.api-member-notes table {
+    margin: 0;
+    font-size: 13px;
+}
+
+.api-member-notes :is(th, td) {
+    padding: 9px 12px;
+}
+
+.api-related li {
+    margin: 0;
+    font-size: 12px;
+}
+
+/* API overview. */
+.api-start-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin: 32px 0 38px;
+}
+
+.api-start-grid > a {
+    padding: 24px;
+    border: 1px solid var(--zenith-control-border);
+    border-radius: var(--zenith-radius);
+    background: var(--zenith-surface);
+    text-decoration: none;
+}
+
+.api-start-grid > a:hover {
+    border-color: var(--zenith-border-hover);
+    background: var(--zenith-hover);
+}
+
+.api-start-grid span {
+    display: block;
+    margin-bottom: 14px;
+    color: var(--zenith-muted);
+    font-size: 11px;
+}
+
+.api-start-grid strong {
+    color: var(--zenith-text);
+    font: 500 18px/1.5 var(--bs-font-monospace);
+    overflow-wrap: anywhere;
+}
+
+.api-start-grid p {
+    margin: 12px 0 0;
+    color: var(--zenith-body);
+    font-size: 13px;
+}
+
+.api-namespace-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.api-namespace-card {
+    display: block;
+    padding: 20px;
+    border: 1px solid var(--zenith-control-border);
+    border-radius: 5px;
+    background: var(--zenith-surface);
+    color: var(--zenith-link);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+.api-namespace-card:hover {
+    background: var(--zenith-hover);
+    border-color: var(--zenith-border-hover);
+    color: var(--zenith-text);
+}
+
+.api-namespace-card strong {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Page-local member lookup stays in navigation until requested. */
+.api-member-access {
+    flex-shrink: 0;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--zenith-border);
+}
+
+.api-member-access:has(.api-member-launcher[hidden]) {
+    display: none;
+}
+
+.api-member-launcher {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 9px;
+    width: 100%;
+    min-height: 40px;
+    padding: 10px;
+    border: 0;
+    border-radius: 5px;
+    background: var(--zenith-control-bg);
+    color: var(--zenith-action);
+    font: 500 12px/1.5 var(--bs-body-font-family);
+    cursor: pointer;
+    transition: color var(--zenith-state-duration), background-color var(--zenith-state-duration);
+}
+
+.api-member-launcher:focus-visible {
+    outline-offset: -2px;
+}
+
+.api-member-launcher[hidden] {
+    display: none;
+}
+
+.api-member-launcher:hover {
+    background: var(--zenith-hover);
+    color: var(--zenith-text);
+}
+
+.api-member-launcher kbd {
+    margin-left: auto;
+    padding: 0;
+    background: none;
+    color: var(--zenith-muted);
+    font: 10px/1.5 var(--bs-font-monospace);
+}
+
+.api-mobile-tools, .api-menu-member {
+    display: none;
+}
+
+.api-menu-member kbd, .api-mobile-tools .api-member-launcher kbd {
+    display: none;
+}
+
+@media (max-width: 1199.98px) {
+    .api-namespace-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 768px) and (max-width: 999.98px) {
+    .api-type-grid, .api-enum-values, .api-start-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767.98px) {
+    body.zenith-theme[data-section="api"] > main > .content {
+        padding-top: 0;
+    }
+
+    body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
+        padding: 0;
+    }
+
+    .api-type-search input {
+        font-size: 16px;
+    }
+
+    .api-reference .api-heading h1 {
+        font-size: 34px;
+    }
+
+    .api-member {
+        padding: 18px 16px;
+    }
+
+    .api-member-heading {
+        padding-right: 0;
+    }
+
+    .api-reference .api-member-heading h3 {
+        font-size: 15px;
+        min-height: 32px;
+        padding-right: 76px;
+    }
+
+    body.zenith-theme > main > .content > .api-mobile-tools {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 24px;
+    }
+
+    .api-mobile-tools > .contents-toggle {
+        display: inline-flex;
+        margin: 0;
+    }
+
+    .api-mobile-tools > .api-member-launcher {
+        width: auto;
+    }
+
+    .menu-open .api-menu-member {
+        display: flex;
+        justify-content: flex-start;
+        margin-top: 14px;
+    }
+
+    .api-member-access kbd {
+        display: none;
+    }
+
+    .api-start-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .api-parameters > div {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+}
+
+@media (max-width: 479.98px) {
+    .api-type-grid, .api-enum-values, .api-namespace-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .api-reference .api-heading h1 {
+        font-size: 30px;
+    }
+}

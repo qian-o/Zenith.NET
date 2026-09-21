@@ -1,0 +1,93 @@
+﻿{{!Licensed to the .NET Foundation under one or more agreements. The .NET Foundation licenses this file to you under the MIT license.}}
+{{!include(/^public/.*/)}}
+<!DOCTYPE html>
+<html lang="{{_lang}}" data-bs-theme="dark">
+    <head>
+        <meta charset="utf-8">
+        <meta name="color-scheme" content="dark">
+        <title>{{#title}}{{title}}{{/title}}{{^title}}{{>partials/title}}{{/title}} {{#_appTitle}}| {{_appTitle}} {{/_appTitle}}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="title" content="{{#title}}{{title}}{{/title}}{{^title}}{{>partials/title}}{{/title}} {{#_appTitle}}| {{_appTitle}} {{/_appTitle}}">
+        {{#description}}
+            <meta name="description" content="{{description}}">
+        {{/description}}
+        {{^description}}
+            {{#_description}}
+                <meta name="description" content="{{_description}}">
+            {{/_description}}
+        {{/description}}
+
+        <link rel="icon" href="{{_rel}}{{{_appFaviconPath}}}">
+        <link rel="stylesheet" href="{{_rel}}public/main.css">
+        {{#_apiReference}}
+            <link rel="stylesheet" href="{{_rel}}public/api.css">
+        {{/_apiReference}}
+
+        <meta name="site:root" content="{{_rel}}">
+        {{#_apiReference}}
+            <meta name="site:api-toc" content="{{_rel}}api/toc.html">
+        {{/_apiReference}}
+        {{#_noindex}}
+            <meta name="searchOption" content="noindex">
+        {{/_noindex}}
+
+        <meta name="loc:copy" content="{{r.ui.action.copy}}">
+
+        <script id="resource-state" type="application/json">{{{_resourceState}}}</script>
+        {{#_resourceTitle}}
+            <meta name="resource:title" content="{{_resourceTitle}}">
+        {{/_resourceTitle}}
+        {{#_resourceDescription}}
+            <meta name="resource:description" content="{{_resourceDescription}}">
+        {{/_resourceDescription}}
+        <script type="module" src="{{_rel}}public/docfx.min.js"></script>
+
+        <script>
+            // Keep DocFX initialization aligned with the fixed dark page, including old saved preferences.
+            localStorage.setItem('theme', 'dark')
+        </script>
+    </head>
+
+    <body class="tex2jax_ignore zenith-theme" data-layout="{{_layout}}" data-yaml-mime="{{yamlmime}}" data-page-kind="{{_pageKind}}" data-section="{{_section}}">
+        {{>partials/site.header}}
+
+        <main class="container-xxl">
+            {{>partials/site.sidebar}}
+
+            <div class="content">
+                {{^_disableToc}}
+                    {{#apiHasMemberFinder}}<div class="api-mobile-tools">{{/apiHasMemberFinder}}
+                    <button class="contents-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" data-resource-label="ui.contents.open" aria-label="{{r.ui.contents.open}}">
+                        <i class="bi bi-list" aria-hidden="true"></i>
+                        <span data-resource="ui.contents.title">{{r.ui.contents.title}}</span>
+                    </button>
+                    {{#apiHasMemberFinder}}
+                        {{>partials/api.member-launcher}}
+                    </div>
+                    {{/apiHasMemberFinder}}
+                {{/_disableToc}}
+
+                <article id="main-content" tabindex="-1" data-uid="{{uid}}">
+                    {{!body}}
+                </article>
+            </div>
+
+            {{^_disableAffix}}
+                <aside class="affix article-outline">
+                    <nav id="article-outline" data-resource-label="ui.outline.title" aria-label="{{r.ui.outline.title}}">
+                    </nav>
+                </aside>
+            {{/_disableAffix}}
+        </main>
+
+        {{! Keep translation slot templates outside the article indexed by DocFX.}}
+        {{{_resourceTemplates}}}
+
+        {{>partials/site.member-finder}}
+        {{>partials/site.search}}
+
+        {{#_isLanding}}
+            {{>partials/site.footer}}
+        {{/_isLanding}}
+    </body>
+</html>
