@@ -45,13 +45,11 @@ title: '@concepts.platforms.title'
 </tbody>
 </table>
 <p><resource key="concepts.platforms.surface.guidance"><slot name="appCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/App.cs">App.cs</a></slot><slot name="surfaceWayland"><a class="xref" href="xref:Zenith.NET.Surface.Wayland(System.IntPtr,System.IntPtr,System.UInt32,System.UInt32)"><code>Surface.Wayland</code></a></slot></resource></p>
-<p><resource key="concepts.platforms.surface.context"><slot name="contextCapabilities"><code>context.<a class="code-reference" href="xref:Zenith.NET.GraphicsContext.Capabilities">Capabilities</a></code></slot></resource></p>
 <p><a id="resize"></a></p>
 <h2 id="keep-the-drawables-size-and-lifetime-with-its-host"><resource key="concepts.platforms.lifecycle.title"></resource></h2>
 <p><resource key="concepts.platforms.lifecycle.description"><slot name="swapChainDrawable"><a class="xref" href="xref:Zenith.NET.SwapChain.Drawable"><code>SwapChain.Drawable</code></a></slot></resource></p>
 <p><resource key="concepts.platforms.lifecycle.details"><slot name="swapChainResize"><a class="xref" href="xref:Zenith.NET.SwapChain.Resize(System.UInt32,System.UInt32)"><code>SwapChain.Resize</code></a></slot><slot name="swapChainRefresh"><a class="xref" href="xref:Zenith.NET.SwapChain.Refresh(Zenith.NET.Surface)"><code>SwapChain.Refresh</code></a></slot></resource></p>
 <p><resource key="concepts.platforms.lifecycle.guidance"><slot name="link"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/SpinningCubeRenderer.cs"><resource key="concepts.platforms.lifecycle.guidance.link"></resource></a></slot></resource></p>
-<p><resource key="concepts.platforms.lifecycle.context"><slot name="descWidth"><code><a class="code-reference" href="xref:Zenith.NET.Texture.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.TextureDesc.Width">Width</a></code></slot><slot name="descHeight"><code><a class="code-reference" href="xref:Zenith.NET.Texture.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.TextureDesc.Height">Height</a></code></slot><slot name="descFormat"><code><a class="code-reference" href="xref:Zenith.NET.Texture.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.TextureDesc.Format">Format</a></code></slot><slot name="descSampleCount"><code><a class="code-reference" href="xref:Zenith.NET.Texture.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.TextureDesc.SampleCount">SampleCount</a></code></slot></resource></p>
 <p><a id="ui-views"></a></p>
 <h2 id="record-into-the-frame-supplied-by-a-ui-control"><resource key="concepts.platforms.frame.title"></resource></h2>
 <p><resource key="concepts.platforms.frame.description"><slot name="iZenithView"><a class="xref" href="xref:Zenith.NET.Views.IZenithView"><code>IZenithView</code></a></slot><slot name="graphicsContext"><a class="xref" href="xref:Zenith.NET.Views.IZenithView.GraphicsContext"><code>GraphicsContext</code></a></slot><slot name="updateRequested"><a class="xref" href="xref:Zenith.NET.Views.IZenithView.UpdateRequested"><code>UpdateRequested</code></a></slot><slot name="renderRequested"><a class="xref" href="xref:Zenith.NET.Views.IZenithView.RenderRequested"><code>RenderRequested</code></a></slot><slot name="renderEventArgs"><a class="xref" href="xref:Zenith.NET.Views.RenderEventArgs"><code>RenderEventArgs</code></a></slot></resource></p>
@@ -70,6 +68,7 @@ view.RenderRequested += (_, args) =>
 <p><resource key="concepts.platforms.frame.context"><slot name="colorAttachment"><a class="xref" href="xref:Zenith.NET.TextureLayout.ColorAttachment"><code>ColorAttachment</code></a></slot></resource></p>
 <p><resource key="concepts.platforms.frame.notes"><slot name="undefined"><a class="xref" href="xref:Zenith.NET.TextureLayout.Undefined"><code>Undefined</code></a></slot></resource></p>
 <p><resource key="concepts.platforms.frame.reference"><slot name="zenithViewHelperDrawableFormat"><a class="xref" href="xref:Zenith.NET.Views.ZenithViewHelper.DrawableFormat"><code>ZenithViewHelper.DrawableFormat</code></a></slot></resource></p>
+<p><resource key="concepts.platforms.lifecycle.context"><slot name="descWidth"><code><a class="code-reference" href="xref:Zenith.NET.Texture.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.TextureDesc.Width">Width</a></code></slot><slot name="descHeight"><code><a class="code-reference" href="xref:Zenith.NET.Texture.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.TextureDesc.Height">Height</a></code></slot><slot name="descFormat"><code><a class="code-reference" href="xref:Zenith.NET.Texture.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.TextureDesc.Format">Format</a></code></slot><slot name="descSampleCount"><code><a class="code-reference" href="xref:Zenith.NET.Texture.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.TextureDesc.SampleCount">SampleCount</a></code></slot></resource></p>
 <h2 id="choose-the-presentation-path-as-well-as-the-framework"><resource key="concepts.platforms.integration.title"></resource></h2>
 <p><resource key="concepts.platforms.integration.description"></resource></p>
 <table>
@@ -107,11 +106,7 @@ view.RenderRequested += (_, args) =>
 </tbody>
 </table>
 <p><resource key="concepts.platforms.integration.details"><slot name="renderRequested"><a class="xref" href="xref:Zenith.NET.Views.IZenithView.RenderRequested"><code>RenderRequested</code></a></slot></resource></p>
-<p><resource key="concepts.platforms.integration.guidance"></resource></p>
-
-```sh
-dotnet add package Zenith.NET.Views.Avalonia
-```
+<p><resource key="concepts.platforms.integration.guidance"><slot name="avaloniaPackage"><code>Zenith.NET.Views.Avalonia</code></slot></resource></p>
 
 <p><resource key="concepts.platforms.integration.context"><slot name="useZenithView"><code>UseZenithView</code></slot><slot name="extensionsCs"><a href="https://github.com/qian-o/Zenith.NET/blob/master/sources/Views/Zenith.NET.Views.Maui/Extensions.cs">Extensions.cs</a></slot></resource></p>
 <h2 id="keep-application-resources-outside-the-controls-ownership"><resource key="concepts.platforms.ownership.title"></resource></h2>

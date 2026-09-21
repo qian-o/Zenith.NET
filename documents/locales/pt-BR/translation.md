@@ -8,6 +8,16 @@ Navegação, ordem dos capítulos, âncoras, links, formatação, código e imag
 
 Altere apenas os valores da `strings.yml` deste idioma. O conjunto de chaves deve corresponder exatamente ao inglês. Não adicione, remova ou renomeie chaves por conta própria, mesmo que os textos pareçam iguais ou ainda não tenham aparecido na interface. Se encontrar um problema no original, informe a chave e o problema aos responsáveis pelo projeto. Corrija primeiro a fonte inglesa e as páginas compartilhadas; depois, atualize as traduções.
 
+## Estilo e contexto
+
+Adote o tom de um manual técnico: preciso, sóbrio e acessível. Explique a relação entre as operações antes de apresentar suas restrições. Nos tutoriais, mantenha instruções claras e resultados verificáveis. Rigor não exige voz passiva nem frases longas.
+
+Revise cada artigo na ordem de leitura, considerando os parágrafos, tabelas e código ao redor. As chaves delimitam o armazenamento, não unidades isoladas de tradução. Confira concordância, artigos e preposições dos links e trechos destacados na frase completa.
+
+Títulos, rótulos, textos curtos visíveis da página inicial e legenda do rodapé não levam ponto final. Parágrafos, diagnósticos e instruções de acessibilidade mantêm a pontuação normal. Use um termo consagrado por conceito, sem acrescentar equivalentes ingleses entre parênteses de forma seletiva. Preserve identificadores de API, arquivos e configurações. Use pipeline no masculino.
+
+Mantenha uma frase quando ela explicar a operação atual, uma escolha de projeto, um resultado verificável ou uma condição necessária. Elimine listas de funções não utilizadas, ressalvas genéricas e requisitos repetidos. Traduza títulos e frases separados pela formatação como um todo, na ordem natural do português. Os marcadores `{accent}` e `{lineBreak}` do título inicial podem ser movidos; o estilo visual não deve impor a ordem inglesa. A manutenção coordena a retirada de um trecho e de suas chaves no original, na marcação compartilhada e em todos os dicionários.
+
 ## Texto e marcadores
 
 Traduza frases ou parágrafos completos para um português brasileiro técnico, claro e natural. Preserve condições, negações, unidades, etapas e restrições de tempo de vida. Não acrescente garantias técnicas, requisitos de plataforma, versões de pacotes ou notas de versão ausentes no original. Mantenha nomes de produtos, pacotes e arquivos, além dos identificadores C# e Slang, inclusive maiúsculas e minúsculas.

@@ -8,6 +8,16 @@ La navegación, el orden de los capítulos, las anclas, los enlaces, el formato,
 
 Modifique únicamente los valores de la propia `strings.yml`. El conjunto de claves debe coincidir exactamente con el inglés. No añada, elimine ni renombre claves por iniciativa propia, aunque parezcan repetidas o correspondan a textos de interfaz que aún no haya visto. Si encuentra un error en el original, comunique la clave y el problema a los responsables del proyecto. Primero se corrigen la fuente inglesa y las páginas compartidas; después, las traducciones.
 
+## Estilo y contexto
+
+Emplear un estilo de manual técnico: preciso, sobrio y comprensible. Explicar la relación entre las operaciones antes de sus restricciones. En los tutoriales, mantener instrucciones concretas y resultados comprobables. El rigor no requiere pasivas ni frases innecesariamente largas.
+
+Revisar cada artículo en su orden de lectura, junto con los párrafos, tablas y código que lo rodean. Las claves son límites de almacenamiento, no unidades de traducción aisladas. Comprobar las concordancias y preposiciones de los enlaces y fragmentos destacados dentro de la frase completa.
+
+Los títulos, etiquetas, textos breves visibles de la portada y leyenda del pie no llevan punto final. Los párrafos, diagnósticos e instrucciones de accesibilidad conservan la puntuación normal. Utilizar un término asentado por concepto, sin añadir de forma selectiva equivalentes ingleses entre paréntesis. Conservar los identificadores de API, archivos y ajustes.
+
+Conserve una frase si explica la operación actual, una decisión de diseño, un resultado comprobable o una condición necesaria. Elimine listas de funciones que no se usan, advertencias genéricas y requisitos repetidos. Traduzca los títulos y las frases divididas por el formato como una unidad, con el orden natural del español. Los marcadores `{accent}` y `{lineBreak}` del título de portada pueden moverse; el diseño no debe imponer la sintaxis inglesa. La eliminación de un pasaje y sus claves se coordina en el original, el marcado común y todos los diccionarios.
+
 ## Texto y marcadores
 
 Traduzca frases o párrafos completos con un español técnico claro y natural. Conserve las condiciones, negaciones, unidades, pasos y restricciones de vida útil. No añada garantías técnicas, requisitos de plataforma, versiones de paquetes ni notas de versiones ausentes del original. Mantenga los nombres de productos, paquetes y archivos, así como los identificadores de C# y Slang, incluidas sus mayúsculas y minúsculas.

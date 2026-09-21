@@ -73,7 +73,7 @@ exports.prepare = function (model) {
 };
 
 // Only the two authored binding tags are parsed. All other HTML is opaque shared markup.
-exports.bind = function (html, dictionary) {
+exports.bind = function (html, dictionary, templates) {
     const root = { children: [] };
     const stack = [root];
     let offset = 0;
@@ -108,8 +108,13 @@ exports.bind = function (html, dictionary) {
             throw new Error(`Binding slots differ: ${node.name}`);
         }
         const content = format.parts(value).map(part => part.text !== undefined ? escape(part.text) : slots[part.slot]).join('');
-        const template = Object.keys(slots).length ? `<template data-resource-slots>${Object.entries(slots).map(([name, content]) => `<span data-slot="${name}">${content}</span>`).join('')}</template>` : '';
-        return `<doc-text data-resource="${node.name}">${content}${template}</doc-text>`;
+        let reference = '';
+        if (Object.keys(slots).length) {
+            const id = `resource-slots-${templates.length}`;
+            templates.push(`<template id="${id}">${Object.entries(slots).map(([name, content]) => `<span data-slot="${name}">${content}</span>`).join('')}</template>`);
+            reference = ` data-resource-slots="${id}"`;
+        }
+        return `<doc-text data-resource="${node.name}"${reference}>${content}</doc-text>`;
     };
-    return renderChildren(root).replace(/(aria-label|title|placeholder)="@([^"]+)"/g, (_, attribute, key) => `${attribute}="${escape(exports.get(dictionary, key))}"`);
+    return renderChildren(root).replace(/(aria-label|title|placeholder|alt)="@([^"]+)"/g, (_, attribute, key) => `${attribute}="${escape(exports.get(dictionary, key))}"`);
 };

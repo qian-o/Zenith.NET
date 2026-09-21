@@ -8,6 +8,16 @@ La navigation, l’ordre des chapitres, les ancres, les liens, la mise en forme,
 
 Modifier uniquement les valeurs du fichier `strings.yml` de cette langue. L’ensemble des clés doit être strictement identique à celui de l’anglais. Ne pas ajouter, supprimer ou renommer de clés de sa propre initiative, même si les textes semblent identiques ou ne sont pas encore apparus dans l’interface. Signaler toute erreur de l’original aux responsables du projet en indiquant la clé concernée. Corriger d’abord la source anglaise et les pages communes, puis les traductions.
 
+## Style et contexte
+
+Adopter le ton d’un manuel technique : précis, sobre et accessible. Expliquer les relations entre opérations avant leurs contraintes. Dans les tutoriels, conserver des étapes explicites et des résultats vérifiables. La rigueur ne demande ni tournures passives ni phrases inutilement longues.
+
+Réviser chaque article dans son ordre de lecture, avec les paragraphes voisins, tableaux et extraits de code. Les clés délimitent le stockage, pas les unités de traduction. Vérifier les accords et les prépositions des liens et fragments mis en valeur dans la phrase complète.
+
+Ne pas terminer par un point les titres, libellés, textes courts visibles de l’accueil et légende du pied de page. Conserver la ponctuation normale dans les paragraphes, diagnostics et instructions d’accessibilité. Employer un terme établi par notion, sans ajouter ponctuellement son équivalent anglais entre parenthèses. Préserver les identifiants d’API, fichiers et réglages.
+
+Conserver une phrase si elle explique l’opération en cours, un choix de conception, un résultat vérifiable ou une condition nécessaire. Supprimer les listes de fonctions inutilisées, les réserves générales et les prérequis répétés. Traduire les titres et les phrases découpées par la mise en forme comme un tout, dans l’ordre naturel du français. Les emplacements `{accent}` et `{lineBreak}` du titre d’accueil sont déplaçables : la présentation ne doit pas imposer la syntaxe anglaise. La suppression d’un passage et de ses clés est coordonnée par la maintenance dans le texte source, le balisage commun et tous les dictionnaires.
+
 ## Texte et espaces réservés
 
 Traduire des phrases ou paragraphes complets dans un français technique clair et naturel. Préserver les conditions, négations, unités, étapes et contraintes de durée de vie. Ne pas ajouter de garanties techniques, de prérequis de plateforme, de versions de paquets ou de notes de version absents de l’original. Conserver les noms de produits, de paquets et de fichiers, ainsi que les identifiants C# et Slang, en respectant leur casse.

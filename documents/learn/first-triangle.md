@@ -13,67 +13,46 @@ title: '@tutorial.title'
 <tr>
 <th><resource key="tutorial.requirements.table.headings.platform"></resource></th>
 <th><resource key="tutorial.requirements.table.headings.graphicsBackend"></resource></th>
-<th><resource key="tutorial.requirements.table.headings.windowSurface"></resource></th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><resource key="tutorial.requirements.table.windows.platform"></resource></td>
 <td><resource key="tutorial.requirements.table.windows.graphicsBackend"></resource></td>
-<td><resource key="tutorial.requirements.table.windows.windowSurface"></resource></td>
 </tr>
 <tr>
 <td><resource key="tutorial.requirements.table.macOS.platform"></resource></td>
 <td><resource key="tutorial.requirements.table.macOS.graphicsBackend"></resource></td>
-<td><resource key="tutorial.requirements.table.macOS.windowSurface"></resource></td>
 </tr>
 <tr>
 <td><resource key="tutorial.requirements.table.linux.platform"></resource></td>
 <td><resource key="tutorial.requirements.table.linux.graphicsBackend"></resource></td>
-<td><resource key="tutorial.requirements.table.linux.windowSurface"></resource></td>
 </tr>
 </tbody>
 </table>
-<p><resource key="tutorial.requirements.details"></resource></p>
 <p><resource key="tutorial.requirements.guidance"><slot name="cAMetalLayerCs"><a href="https://github.com/qian-o/Metal.NET/blob/master/Metal.NET/CoreAnimation/CAMetalLayer.cs">CAMetalLayer.cs</a></slot></resource></p>
 <p><resource key="tutorial.requirements.context"><slot name="link"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/HelloTriangleRenderer.cs"><resource key="tutorial.requirements.context.link"></resource></a></slot><slot name="detail"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/App.cs"><resource key="tutorial.requirements.context.detail"></resource></a></slot></resource></p>
 <p><a id="project"></a></p>
 <h2 id="2-create-a-console-project">2. <resource key="tutorial.project.title"></resource></h2>
-<p><resource key="tutorial.project.description"></resource></p>
-
-```sh
-dotnet new console -n FirstTriangle -f net10.0
-cd FirstTriangle
-```
-
+<p><resource key="tutorial.project.description"><slot name="firstTriangle"><code>FirstTriangle</code></slot></resource></p>
 <p><resource key="tutorial.project.details"></resource></p>
-
-```sh
-dotnet add package Zenith.NET
-dotnet add package Zenith.NET.Compiler
-dotnet add package Zenith.NET.DirectX12
-dotnet add package Zenith.NET.Metal
-dotnet add package Zenith.NET.Vulkan
-dotnet add package Silk.NET.Windowing
-```
-
+<ul>
+<li><code>Silk.NET.Windowing</code></li>
+<li><code>Zenith.NET</code></li>
+<li><code>Zenith.NET.Compiler</code></li>
+<li><code>Zenith.NET.DirectX12</code></li>
+<li><code>Zenith.NET.Metal</code></li>
+<li><code>Zenith.NET.Vulkan</code></li>
+</ul>
 <p><resource key="tutorial.project.guidance"><slot name="zenithNET"><code>Zenith.NET</code></slot><slot name="zenithNETCompiler"><code>Zenith.NET.Compiler</code></slot></resource></p>
 <p><resource key="tutorial.project.context"><slot name="emphasis"><strong><resource key="tutorial.project.context.emphasis"></resource></strong></slot><slot name="allowUnsafeBlocks"><code>AllowUnsafeBlocks</code></slot></resource></p>
 <p><a id="window"></a></p>
 <h2 id="3-open-a-window">3. <resource key="tutorial.window.title"></resource></h2>
-<p><resource key="tutorial.window.description"><slot name="cocoaHelperCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/CocoaHelper.cs">CocoaHelper.cs</a></slot><slot name="interopUsing"><code>using System.Runtime.InteropServices;</code></slot></resource></p>
+<p><resource key="tutorial.window.description"><slot name="cocoaHelperCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/CocoaHelper.cs">CocoaHelper.cs</a></slot></resource></p>
 <p><resource key="tutorial.window.details"><slot name="programCs"><code>Program.cs</code></slot><slot name="main"><code>Main</code></slot></resource></p>
 
 ```csharp
-using System.Numerics;
-using System.Runtime.InteropServices;
 using Silk.NET.Windowing;
-using Zenith.NET;
-using Zenith.NET.DirectX12;
-using Zenith.NET.Metal;
-using Zenith.NET.Vulkan;
-using ZenithTutorials;
-using Buffer = Zenith.NET.Buffer;
 
 IWindow window = Window.Create(WindowOptions.Default with
 {
@@ -90,12 +69,20 @@ window.Dispose();
 ```
 
 <p><resource key="tutorial.window.guidance"><slot name="graphicsAPINone"><code>GraphicsAPI.None</code></slot><slot name="initialize"><code>Initialize()</code></slot><slot name="center"><code>Center()</code></slot><slot name="run"><code>Run()</code></slot><slot name="dispose"><code>Dispose()</code></slot></resource></p>
-<p><resource key="tutorial.window.context"><slot name="usingZenithTutorials"><code>using ZenithTutorials</code></slot><slot name="buffer"><a class="xref" href="xref:Zenith.NET.Buffer"><code>Buffer</code></a></slot><slot name="systemBuffer"><code>System.Buffer</code></slot></resource></p>
-<p><resource key="tutorial.window.notes"><slot name="dotnetRun"><code>dotnet run</code></slot></resource></p>
+<p><resource key="tutorial.window.notes"></resource></p>
 <p><a id="context"></a></p>
 <h2 id="4-connect-the-gpu-to-the-window">4. <resource key="tutorial.presentation.title"></resource></h2>
 <h3 id="create-the-graphics-context"><resource key="tutorial.context.title"></resource></h3>
 <p><resource key="tutorial.context.description"><slot name="graphicsContext"><a class="xref" href="xref:Zenith.NET.GraphicsContext"><code>GraphicsContext</code></a></slot></resource></p>
+<p><resource key="tutorial.context.imports"><slot name="programCs"><code>Program.cs</code></slot></resource></p>
+
+```csharp
+using Zenith.NET;
+using Zenith.NET.DirectX12;
+using Zenith.NET.Metal;
+using Zenith.NET.Vulkan;
+```
+
 <p><resource key="tutorial.context.details"><slot name="emphasis"><strong><resource key="tutorial.context.details.emphasis"><slot name="iWindowWindow"><code>IWindow window</code></slot></resource></strong></slot></resource></p>
 
 ```csharp
@@ -223,11 +210,18 @@ window.FramebufferResize += _ =>
 
 <p><resource key="tutorial.resize.details"><slot name="link"><a href="https://github.com/dotnet/Silk.NET/blob/main/src/Windowing/Silk.NET.Windowing.Common/Interfaces/IView.cs"><resource key="tutorial.resize.details.link"></resource></a></slot></resource></p>
 <p><resource key="tutorial.resize.guidance"><slot name="present"><a class="xref" href="xref:Zenith.NET.SwapChain.Present"><code>Present()</code></a></slot><slot name="link"><a href="~/learn/concepts/synchronization.md#cpu-and-gpu"><resource key="tutorial.resize.guidance.link"></resource></a></slot></resource></p>
-<p><resource key="tutorial.resize.context"><slot name="dotnetRun"><code>dotnet run</code></slot></resource></p>
+<p><resource key="tutorial.resize.context"></resource></p>
 <p><a id="resources"></a></p>
 <h2 id="6-give-the-gpu-three-vertices">6. <resource key="tutorial.geometry.title"></resource></h2>
 <p><resource key="tutorial.geometry.description"></resource></p>
 <h3 id="define-a-vertex"><resource key="tutorial.geometry.format.title"></resource></h3>
+<p><resource key="tutorial.geometry.format.imports"><slot name="programCs"><code>Program.cs</code></slot></resource></p>
+
+```csharp
+using System.Numerics;
+using System.Runtime.InteropServices;
+```
+
 <p><resource key="tutorial.geometry.format.description"><slot name="emphasis"><strong><resource key="tutorial.geometry.format.description.emphasis"><slot name="programCs"><code>Program.cs</code></slot></resource></strong></slot></resource></p>
 
 ```csharp
@@ -256,6 +250,7 @@ Vertex[] vertices =
 <p><resource key="tutorial.geometry.data.details"><slot name="vertex"><code>Vertex</code></slot><slot name="new"><code>new</code></slot><slot name="vector3"><code>Vector3</code></slot><slot name="vector4"><code>Vector4</code></slot><slot name="w"><code>w = 1</code></slot></resource></p>
 <p><resource key="tutorial.geometry.data.guidance"></resource></p>
 <h3 id="allocate-a-buffer-and-upload-the-array"><resource key="tutorial.geometry.upload.title"></resource></h3>
+<p><resource key="tutorial.geometry.upload.imports"><slot name="programCs"><code>Program.cs</code></slot><slot name="bufferAlias"><code>using Buffer = <a class="code-reference" href="xref:Zenith.NET.Buffer">Zenith.NET.Buffer</a>;</code></slot><slot name="systemBuffer"><code>System.Buffer</code></slot></resource></p>
 <p><resource key="tutorial.geometry.upload.description"><slot name="buffer"><a class="xref" href="xref:Zenith.NET.Buffer"><code>Buffer</code></a></slot></resource></p>
 
 ```csharp
@@ -337,7 +332,6 @@ float4 FSMain(FSInput input) : SV_TARGET
 ```
 
 <p><resource key="tutorial.shaders.fragment.details"><slot name="fSMain"><code>FSMain</code></slot><slot name="sVTARGET"><code>SV_TARGET</code></slot></resource></p>
-<p><resource key="tutorial.shaders.fragment.guidance"></resource></p>
 <h3 id="compile-for-the-selected-backend"><resource key="tutorial.shaders.compilation.title"></resource></h3>
 <p><resource key="tutorial.shaders.compilation.description"><slot name="triangleSlang"><code>Triangle.slang</code></slot><slot name="emphasis"><strong><resource key="tutorial.shaders.compilation.description.emphasis"></resource></strong></slot><slot name="detail"><strong><resource key="tutorial.shaders.compilation.description.detail"></resource></strong></slot></resource></p>
 <p><resource key="tutorial.shaders.compilation.details"><slot name="programCs"><code>Program.cs</code></slot></resource></p>
@@ -430,7 +424,6 @@ vertexShader.Dispose();
 fragmentShader.Dispose();
 ```
 
-<p><resource key="tutorial.pipeline.validation"><slot name="inputLayouts"><a class="xref" href="xref:Zenith.NET.GraphicsPipelineDesc.InputLayouts"><code>InputLayouts</code></a></slot></resource></p>
 <p><resource key="tutorial.pipeline.usage"><slot name="pipelineDispose"><code>pipeline.<a class="code-reference" href="xref:Zenith.NET.DisposableObject.Dispose">Dispose</a>();</code></slot><slot name="vertexBufferDispose"><code>vertexBuffer.<a class="code-reference" href="xref:Zenith.NET.DisposableObject.Dispose">Dispose</a>();</code></slot></resource></p>
 <p><a id="draw"></a></p>
 <h2 id="10-draw-the-triangle-inside-the-pass">10. <resource key="tutorial.draw.title"></resource></h2>
@@ -481,11 +474,6 @@ commandBuffer.Draw(3, 1, 0, 0);
 <p><a id="run"></a></p>
 <h2 id="11-run-resize-and-close">11. <resource key="tutorial.execution.title"></resource></h2>
 <p><resource key="tutorial.execution.description"><slot name="firstTriangle"><code>FirstTriangle</code></slot></resource></p>
-
-```sh
-dotnet build
-dotnet run --no-build
-```
 
 <p><resource key="tutorial.execution.details"></resource></p>
 <p><resource key="tutorial.execution.guidance"></resource></p>

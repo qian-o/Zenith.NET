@@ -8,6 +8,16 @@ Navigation, Kapitelreihenfolge, Anker, Links, Formatierung, Code und Bilder werd
 
 Bei der Übersetzung nur die Werte der eigenen `strings.yml` ändern. Die Schlüsselmenge muss exakt der englischen entsprechen. Keine Schlüssel eigenständig hinzufügen, löschen oder umbenennen, auch nicht bei ähnlich lautenden oder noch nicht gesehenen Oberflächentexten. Fehler im Original mit dem betroffenen Schlüssel an die Projektverantwortlichen melden. Zuerst die englische Quelle und die gemeinsamen Seiten berichtigen, dann die Übersetzungen nachziehen.
 
+## Stil und Kontext
+
+Der Text soll wie eine technische Einführung lesbar sein: präzise, sachlich und zusammenhängend. Zuerst die Beziehung zwischen Vorgängen erklären, dann die Bedingungen und Grenzen. In Tutorials klare Arbeitsschritte und überprüfbare Ergebnisse nennen. Ein wissenschaftlicher Stil verlangt weder Passivkonstruktionen noch unnötig lange Sätze.
+
+Jeden Artikel in seiner Lesereihenfolge bearbeiten, mit angrenzenden Absätzen, Tabellen und Code. Ressourcenschlüssel sind Speichergrenzen, keine isolierten Übersetzungseinheiten. Linktexte und hervorgehobene Fragmente müssen im vollständigen Satz grammatisch passen.
+
+Überschriften, Bedienelemente sowie die sichtbaren Kurztexte der Startseite und die Fußzeilenbeschriftung erhalten keinen Schlusspunkt. Fließtext, Diagnosen und Bedienhinweise für assistive Technik behalten reguläre Satzzeichen. Pro Begriff eine etablierte Bezeichnung verwenden; englische Entsprechungen nicht vereinzelt in Klammern ergänzen. API-Namen, Dateien und Bezeichner tatsächlicher Einstellungen bleiben unverändert.
+
+Ein Satz sollte die aktuelle Handlung, eine Entwurfsentscheidung, ein überprüfbares Ergebnis oder eine notwendige Bedingung erklären. Aufzählungen ungenutzter Funktionen, pauschale Plattformhinweise und wiederholte Voraussetzungen entfallen. Überschriften und stilistisch aufgeteilte Sätze werden als Ganzes in natürlicher deutscher Wortstellung übersetzt. Die Slots `{accent}` und `{lineBreak}` des Startseitentitels sind verschiebbar; Gestaltung legt keine englische Wortstellung fest. Entfernte Passagen und ihre Schlüssel werden von der Projektpflege in Ausgangstext, gemeinsamem Markup und allen Wörterbüchern zusammen bereinigt.
+
 ## Texte und Platzhalter
 
 Ganze Sätze oder Absätze in natürliches, sachliches Deutsch übersetzen. Voraussetzungen, Verneinungen, Einheiten, Handlungsschritte und Lebensdauerbedingungen erhalten. Keine zusätzlichen technischen Zusagen, Plattformanforderungen, Paketversionen oder Versionshinweise einführen. Produkt- und Paketnamen, Dateinamen sowie C#- und Slang-Bezeichner einschließlich Groß- und Kleinschreibung unverändert lassen.
@@ -71,5 +81,5 @@ Vor der Abgabe Schlüssel und Platzhalter abgleichen. Startseite, Learn-Einstieg
 | shader | Shader |
 | swap chain | Swapchain |
 | texture | Textur |
-| timeline | Zeitleiste |
+| timeline | Timeline |
 | upload | Hochladen von Daten |

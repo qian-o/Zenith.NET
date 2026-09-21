@@ -5,6 +5,7 @@ let strings = resourceState.strings;
 export const getStrings = () => strings;
 const has = (dictionary, key) => Object.prototype.hasOwnProperty.call(dictionary, key);
 const format = globalThis.zenithResourceFormat;
+const slotTemplate = element => element.dataset.resourceSlots ? document.getElementById(element.dataset.resourceSlots) : null;
 
 // Validate before changing the DOM: an old or incomplete download must not mix languages.
 export function setStrings(value) {
@@ -22,10 +23,10 @@ export function setStrings(value) {
     };
     for (const [key, slots] of Object.entries(resourceState.placeholders)) requireKey(key, slots);
     for (const element of document.querySelectorAll('[data-resource]')) {
-        const slots = element.querySelector(':scope > template[data-resource-slots]')?.content.children || [];
+        const slots = slotTemplate(element)?.content.children || [];
         requireKey(element.dataset.resource, [...slots].map(slot => slot.dataset.slot));
     }
-    for (const attribute of ['label', 'title', 'placeholder']) {
+    for (const attribute of ['label', 'title', 'placeholder', 'alt']) {
         for (const element of document.querySelectorAll(`[data-resource-${attribute}]`)) requireKey(element.getAttribute(`data-resource-${attribute}`), []);
     }
     for (const meta of document.querySelectorAll('meta[name="resource:title"], meta[name="resource:description"]')) requireKey(meta.content, []);
@@ -40,7 +41,7 @@ export function t(key, values = {}) {
 function bind(element) {
     const key = element.dataset.resource;
     if (!has(strings, key)) return;
-    const template = element.querySelector(':scope > template[data-resource-slots]');
+    const template = slotTemplate(element);
     const slots = new Map();
     for (const slot of template?.content.children || []) {
         const content = document.createDocumentFragment();
@@ -59,7 +60,6 @@ function bind(element) {
         }
     }
     element.replaceChildren(content);
-    if (template) element.append(template);
 }
 
 export function applyResources(code) {
@@ -67,7 +67,7 @@ export function applyResources(code) {
     for (const element of document.querySelectorAll('[data-resource]')) {
         if (element.isConnected) bind(element);
     }
-    for (const [attribute, target] of [['label', 'aria-label'], ['title', 'title'], ['placeholder', 'placeholder']]) {
+    for (const [attribute, target] of [['label', 'aria-label'], ['title', 'title'], ['placeholder', 'placeholder'], ['alt', 'alt']]) {
         for (const element of document.querySelectorAll(`[data-resource-${attribute}]`)) {
             const key = element.getAttribute(`data-resource-${attribute}`);
             if (has(strings, key)) element.setAttribute(target, t(key));

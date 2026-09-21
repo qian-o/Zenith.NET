@@ -9,7 +9,7 @@ _disableAffix: true
 <div class="home-page">
 <section class="render-hero">
 <div class="render-copy">
-<h1><resource key="home.introduction.title"></resource><br/><span><resource key="home.introduction.accent"></resource></span></h1>
+<h1><resource key="home.introduction.title"><slot name="accent"><span><resource key="home.introduction.accent"></resource></span></slot><slot name="lineBreak"><br/></slot></resource></h1>
 <p class="render-description"><resource key="home.introduction.description"></resource></p>
 <div class="hero-actions">
 <a class="build-button primary" href="~/learn/first-triangle.md"><resource key="home.actions.tutorial"></resource></a>
