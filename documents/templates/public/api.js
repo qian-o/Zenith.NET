@@ -1,4 +1,4 @@
-import { t } from './resources.js';
+﻿import { t } from './resources.js';
 import { pageUrl } from './languages.js';
 
 // Use DocFX's generated TOC as the source of truth for the custom API browser.

@@ -1,4 +1,4 @@
-### YamlMime:Resources
+﻿### YamlMime:Resources
 concepts.execution.context.description: "{graphicsContext} 透過特定後端連接應用程式與 GPU 裝置，並提供圖形、計算與傳輸佇列。一起使用的資源必須屬於同一上下文；緩衝區、紋理、著色器、管線及其控制代碼不能跨上下文繫結。"
 concepts.execution.context.details: "{capabilities} 提供裝置名稱與支援的功能。建立光線追蹤或網格著色所需的資源前，分別透過 {rayTracingSupported} 與 {meshShadingSupported} 確認支援情況。{link}與{detail}範例展示了初始化時的檢查方式。"
 concepts.execution.context.details.detail: "網格著色"

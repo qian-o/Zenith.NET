@@ -1,4 +1,4 @@
-### YamlMime:Resources
+﻿### YamlMime:Resources
 concepts.execution.context.description: "Ein {graphicsContext} verbindet die Anwendung über ein bestimmtes Backend mit einem GPU-Gerät und stellt dessen Grafik-, Compute- und Transferwarteschlangen bereit. Gemeinsam verwendete Ressourcen müssen demselben Kontext angehören: Puffer, Texturen, Shader, Pipelines und ihre Handles lassen sich nicht über Kontextgrenzen hinweg binden."
 concepts.execution.context.details: "{capabilities} liefert den Gerätenamen und die unterstützten Funktionen. Prüfen Sie mit {rayTracingSupported} und {meshShadingSupported}, ob die jeweilige Funktion verfügbar ist, bevor Sie ihre Ressourcen erstellen. Die Beispiele für {link} und {detail} zeigen diese Prüfung bei der Initialisierung."
 concepts.execution.context.details.detail: Mesh-Shading

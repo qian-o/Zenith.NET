@@ -1,4 +1,4 @@
-# Übersetzungsrichtlinien für Deutsch
+﻿# Übersetzungsrichtlinien für Deutsch
 
 ## Ressourcen und Aufbau
 

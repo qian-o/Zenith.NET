@@ -1,4 +1,4 @@
-export const isApplePlatform = /Mac|iPhone|iPad/.test(navigator.platform);
+﻿export const isApplePlatform = /Mac|iPhone|iPad/.test(navigator.platform);
 
 export function closeHeaderMenu() {
     document.getElementById('menu-toggle')?.setAttribute('aria-expanded', 'false');

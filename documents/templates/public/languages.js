@@ -1,4 +1,4 @@
-import { applyResources, resourceState, setStrings } from './resources.js';
+﻿import { applyResources, resourceState, setStrings } from './resources.js';
 import { closeHeaderMenu } from './site.js';
 
 export const siteRoot = new URL(document.querySelector('meta[name="site:root"]').content || './', location.href);

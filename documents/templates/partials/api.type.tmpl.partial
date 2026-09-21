@@ -1,4 +1,4 @@
-{{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
+﻿{{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
 {{#children}}
 <section class="api-group" aria-labelledby="{{id}}">
   <div class="api-group-heading"><h2 id="{{id}}" data-resource="{{apiTitleKey}}">{{apiTitle}}</h2></div>

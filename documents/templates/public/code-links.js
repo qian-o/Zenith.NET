@@ -1,4 +1,4 @@
-import { t } from './resources.js';
+﻿import { t } from './resources.js';
 
 // Explicit DocFX references and generated API signatures share this DOM renderer.
 const pendingReferences = new WeakMap();

@@ -1,4 +1,4 @@
-// A slowly rotating Canvas geometry study, rendered only while visible.
+﻿// A slowly rotating Canvas geometry study, rendered only while visible.
 export function initializeHomeScene() {
     const canvas = document.getElementById('home-geometry');
     if (!canvas) return;

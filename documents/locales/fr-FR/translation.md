@@ -1,4 +1,4 @@
-# Consignes de traduction en français
+﻿# Consignes de traduction en français
 
 ## Ressources et structure
 

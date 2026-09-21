@@ -1,4 +1,4 @@
-import { pageUrl, siteRoot } from './languages.js';
+﻿import { pageUrl, siteRoot } from './languages.js';
 import { t } from './resources.js';
 
 let navigationPromise;

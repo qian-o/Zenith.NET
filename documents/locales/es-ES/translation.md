@@ -1,4 +1,4 @@
-# Criterios de traducción al español
+﻿# Criterios de traducción al español
 
 ## Recursos y estructura
 

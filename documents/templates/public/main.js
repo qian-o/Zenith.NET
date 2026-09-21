@@ -1,4 +1,4 @@
-import { initializeApi } from './api.js';
+﻿import { initializeApi } from './api.js';
 import { preserveCodeReferences, restoreCodeReferences } from './code-links.js';
 import { initializeHomeScene } from './home.js';
 import { initializeLanguages } from './languages.js';

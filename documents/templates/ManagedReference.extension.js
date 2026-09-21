@@ -1,4 +1,4 @@
-const resources = require('./resources.common.js');
+﻿const resources = require('./resources.common.js');
 const relationshipKeys = ['inheritance', 'implements', 'derivedClasses', 'inheritedMembers', 'extensionMethods'];
 
 function prepareSignature(syntax, strings) {

@@ -1,4 +1,4 @@
-{{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
+﻿{{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
 <details class="api-relationships">
   <summary data-resource="{{apiTypeDetailsKey}}">{{apiTypeDetailsLabel}}</summary>
   <div class="api-relationships-body">

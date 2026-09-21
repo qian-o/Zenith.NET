@@ -1,4 +1,4 @@
-{
+﻿{
   "$schema": "https://raw.githubusercontent.com/dotnet/docfx/main/schemas/docfx.schema.json",
   "metadata": [{
     "src": [{"src": "../sources", "files": "**/*.csproj", "exclude": "Experiments/**"}],

@@ -1,4 +1,4 @@
-import { t } from './resources.js';
+﻿import { t } from './resources.js';
 
 // Article navigation owns its markup and active state; links keep native hashes/history.
 export function initializeOutline() {

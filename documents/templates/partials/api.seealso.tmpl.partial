@@ -1,4 +1,4 @@
-{{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
+﻿{{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
 {{#seealso.0}}
 <div class="api-related">
   <h4 id="{{apiSeeAlsoId}}" data-resource="ui.reference.related">{{r.ui.reference.related}}</h4>

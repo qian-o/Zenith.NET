@@ -1,4 +1,4 @@
-<details class="language-menu" id="language-menu">
+﻿<details class="language-menu" id="language-menu">
   <summary data-resource-label="ui.language.label" data-resource-title="ui.language.label" aria-label="{{r.ui.language.label}}" title="{{r.ui.language.label}}"><i class="bi bi-translate" aria-hidden="true"></i></summary>
   <nav class="language-options" data-resource-label="ui.language.label" aria-label="{{r.ui.language.label}}">
     {{#_languages}}

@@ -1,4 +1,4 @@
-### YamlMime:Resources
+﻿### YamlMime:Resources
 concepts.execution.context.description: A {graphicsContext} connects the application to a GPU device through a particular
   backend and provides its graphics, compute, and transfer queues. Resources used together must belong to the same
   context; buffers, textures, shaders, pipelines, and their handles cannot be bound across contexts.

@@ -1,4 +1,4 @@
-{{#apiHasMemberFinder}}
+﻿{{#apiHasMemberFinder}}
 <dialog class="site-search api-member-finder" id="api-member-dialog" aria-labelledby="api-member-title" aria-describedby="api-member-context">
   <header class="api-finder-heading">
     <div>

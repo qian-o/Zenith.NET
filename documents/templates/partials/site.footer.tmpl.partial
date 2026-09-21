@@ -1,4 +1,4 @@
-<footer class="text-secondary">
+﻿<footer class="text-secondary">
   <div class="container-xxl">
     <div class="footer-brand">
       <img src="{{_rel}}images/Zenith.NET.svg" width="28" height="28" alt="" aria-hidden="true">

@@ -1,4 +1,4 @@
-{{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
+﻿{{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
 <header class="api-heading">
   <h1 id="{{id}}" data-uid="{{uid}}">{{apiName}}</h1>
   {{#summary}}<div class="api-summary">{{{summary}}}</div>{{/summary}}

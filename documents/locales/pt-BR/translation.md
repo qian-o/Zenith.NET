@@ -1,4 +1,4 @@
-# Diretrizes de tradução para português brasileiro
+﻿# Diretrizes de tradução para português brasileiro
 
 ## Recursos e estrutura
 

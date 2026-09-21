@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="documents/images/Zenith.NET.svg" alt="Zenith.NET icon" width="128" height="128">
 </p>
 

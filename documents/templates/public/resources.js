@@ -1,4 +1,4 @@
-import './resource-format.js';
+﻿import './resource-format.js';
 
 export const resourceState = JSON.parse(document.getElementById('resource-state').textContent);
 let strings = resourceState.strings;

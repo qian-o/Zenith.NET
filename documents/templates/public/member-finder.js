@@ -1,4 +1,4 @@
-import { t } from './resources.js';
+﻿import { t } from './resources.js';
 import { closeContents, closeNavigation, isApplePlatform, isEditing } from './site.js';
 import { bindDialogKeys, isBackdropClick } from './dialog.js';
 

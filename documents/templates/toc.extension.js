@@ -1,4 +1,4 @@
-const resources = require('./resources.common.js');
+﻿const resources = require('./resources.common.js');
 exports.postTransform = function (model) {
     const strings = resources.source(model);
     const visit = item => {

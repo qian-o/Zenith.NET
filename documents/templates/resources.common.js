@@ -1,4 +1,4 @@
-const format = require('./public/resource-format.js');
+﻿const format = require('./public/resource-format.js');
 const keyPattern = /^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+$/;
 const escape = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
 const json = value => JSON.stringify(value).replace(/</g, '\\u003c');

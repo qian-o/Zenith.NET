@@ -1,4 +1,4 @@
-/* DocFX entry point. Keep framework styles below the site-owned theme. */
+﻿/* DocFX entry point. Keep framework styles below the site-owned theme. */
 @import url("./docfx.min.css") layer(docfx);
 @import url("./theme.css");
 @import url("./layout.css");

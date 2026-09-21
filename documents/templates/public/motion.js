@@ -1,4 +1,4 @@
-// Reveal content once as it enters the viewport; navigation itself stays immediate.
+﻿// Reveal content once as it enters the viewport; navigation itself stays immediate.
 export function initializeMotion() {
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
     if (preference.matches) return;

@@ -1,4 +1,4 @@
-// Shared by DocFX's template host and the browser. Values are text, never HTML.
+﻿// Shared by DocFX's template host and the browser. Values are text, never HTML.
 (function (api) {
     api.parts = function (value) {
         const parts = [];

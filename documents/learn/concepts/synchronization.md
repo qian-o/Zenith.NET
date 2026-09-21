@@ -1,4 +1,4 @@
----
+﻿---
 title: '@concepts.synchronization.title'
 ---
 

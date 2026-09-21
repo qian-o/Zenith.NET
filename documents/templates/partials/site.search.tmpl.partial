@@ -1,4 +1,4 @@
-{{#_enableSearch}}
+﻿{{#_enableSearch}}
 <dialog class="site-search" id="search-dialog" aria-labelledby="search-title">
   <h2 id="search-title" class="visually-hidden" data-resource="ui.search.title">{{r.ui.search.title}}</h2>
   <form class="search-input-row" role="search" id="site-search-form">

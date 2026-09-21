@@ -1,4 +1,4 @@
-// Extend DocFX's bundled highlighter; coloring never creates navigation links.
+﻿// Extend DocFX's bundled highlighter; coloring never creates navigation links.
 // Modes use highlight.js's public grammar API:
 // https://highlightjs.readthedocs.io/en/latest/mode-reference.html
 const configured = new WeakSet();

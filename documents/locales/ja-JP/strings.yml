@@ -1,4 +1,4 @@
-### YamlMime:Resources
+﻿### YamlMime:Resources
 concepts.execution.context.description: "{graphicsContext} は特定のバックエンドを介してアプリケーションを GPU デバイスに接続し、描画、計算、転送のキューを提供します。一緒に使うリソースは同じコンテキストに属している必要があります。バッファー、テクスチャ、シェーダー、パイプラインとそのハンドルを、コンテキストをまたいでバインドすることはできません。"
 concepts.execution.context.details: "{capabilities} はデバイス名と対応機能を提供します。レイトレーシングやメッシュシェーディング用のリソースを作成する前に、{rayTracingSupported} と {meshShadingSupported} で対応を確認します。{link}と{detail}のサンプルでは、初期化時にこの確認を行っています。"
 concepts.execution.context.details.detail: "メッシュシェーディング"

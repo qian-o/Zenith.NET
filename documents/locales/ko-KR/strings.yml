@@ -1,4 +1,4 @@
-### YamlMime:Resources
+﻿### YamlMime:Resources
 concepts.execution.context.description: "{graphicsContext}는 특정 백엔드를 통해 애플리케이션을 GPU 장치에 연결하고 그래픽스, 컴퓨트, 전송 큐를 제공합니다. 함께 사용하는 리소스는 같은 컨텍스트에 속해야 합니다. 버퍼, 텍스처, 셰이더, 파이프라인과 그 핸들은 서로 다른 컨텍스트 사이에서 바인딩할 수 없습니다."
 concepts.execution.context.details: "{capabilities}는 장치 이름과 지원 기능을 알려 줍니다. 해당 기능의 리소스를 만들기 전에 {rayTracingSupported}와 {meshShadingSupported}로 지원 여부를 확인합니다. {link} 및 {detail} 예제는 초기화 과정에서 이 검사를 수행합니다."
 concepts.execution.context.details.detail: 메시 셰이딩

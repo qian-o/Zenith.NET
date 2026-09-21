@@ -1,4 +1,4 @@
-{{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
+﻿{{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
 {{#apiTypeParameterDescriptions.0}}
 <div class="api-signature-section">
   <h4 data-resource="ui.reference.typeParameters">{{r.ui.reference.typeParameters}}</h4>

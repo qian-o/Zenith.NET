@@ -1,4 +1,4 @@
-### YamlMime:Resources
+﻿### YamlMime:Resources
 concepts.execution.context.description: "Um {graphicsContext} conecta a aplicação a um dispositivo GPU por meio de um backend específico e fornece suas filas gráfica, de computação e de transferência. Recursos usados em conjunto devem pertencer ao mesmo contexto; buffers, texturas, shaders, pipelines e seus identificadores não podem ser vinculados entre contextos diferentes."
 concepts.execution.context.details: "{capabilities} informa o nome do dispositivo e as funcionalidades disponíveis. Consulte {rayTracingSupported} e {meshShadingSupported} antes de criar os recursos necessários a essas operações. Os exemplos de {link} e {detail} fazem essas verificações durante a inicialização."
 concepts.execution.context.details.detail: "sombreamento de malha"

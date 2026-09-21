@@ -1,4 +1,4 @@
-{{#sourceurl}}
+﻿{{#sourceurl}}
 <a class="api-source" href="{{sourceurl}}" target="_blank" rel="noopener noreferrer" data-resource-title="ui.action.source" data-resource-label="ui.action.source" title="{{r.ui.action.source}}" aria-label="{{r.ui.action.source}}">
   <i class="bi bi-code-slash" aria-hidden="true"></i>
 </a>

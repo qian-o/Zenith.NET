@@ -1,4 +1,4 @@
-import { collectCodeReferences, linkCodeRange } from './code-links.js';
+﻿import { collectCodeReferences, linkCodeRange } from './code-links.js';
 
 const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const maskLiterals = text => text.replace(/@"(?:""|[^"])*"|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\/\/[^\n]*|\/\*[\s\S]*?\*\//g, match => ' '.repeat(match.length));

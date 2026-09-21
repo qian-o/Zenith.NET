@@ -1,4 +1,4 @@
-# Documentation authoring and maintenance
+﻿# Documentation authoring and maintenance
 
 This is the handoff reference for filling in the documentation. It is excluded from the published site and its navigation.
 

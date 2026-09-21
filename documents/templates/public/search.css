@@ -1,4 +1,4 @@
-.site-search {
+﻿.site-search {
     width: min(720px, calc(100% - 32px));
     max-width: none;
     max-height: calc(100dvh - 64px);

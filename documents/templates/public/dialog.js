@@ -1,4 +1,4 @@
-export function isBackdropClick(event, dialog) {
+﻿export function isBackdropClick(event, dialog) {
     if (event.target !== dialog) return false;
     const bounds = dialog.getBoundingClientRect();
     return event.clientX < bounds.left || event.clientX > bounds.right
