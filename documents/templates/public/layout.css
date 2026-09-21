@@ -1,12 +1,18 @@
 ﻿/* Navigation and command search */
 .zenith-theme > .site-header {
-    position: fixed;
-    inset: 0 0 auto;
+    /* Use the same scrollbar-adjusted width as the document. */
+    position: sticky;
+    top: 0;
     z-index: 1030;
     height: var(--zenith-header-height);
     min-height: var(--zenith-header-height);
     background: var(--zenith-canvas);
     border-bottom: 1px solid #ffffff09;
+}
+
+/* Lock the viewport; a scrolling body would become the sticky header's container. */
+html:has(.site-search[open], #tocOffcanvas:is(.showing, .show, .hiding)) {
+    overflow: hidden;
 }
 
 .zenith-theme .container-xxl {
@@ -500,10 +506,6 @@ body.zenith-theme > main.container-xxl > .toc-offcanvas {
 }
 
 @media print {
-    body.zenith-theme {
-        padding-top: 0;
-    }
-
     body.zenith-theme > main.container-xxl {
         display: block;
         padding: 0;

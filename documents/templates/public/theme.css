@@ -67,6 +67,8 @@ html {
     background: var(--zenith-canvas);
     overflow-x: clip;
     overflow-y: auto;
+    /* Keep the centered shell stable when long and short pages switch scrollbars. */
+    scrollbar-gutter: stable;
     overscroll-behavior-y: none;
     scroll-padding-top: var(--zenith-header-height);
     scrollbar-color: #626a78 var(--zenith-canvas);
@@ -78,7 +80,7 @@ body.zenith-theme {
     min-width: 0;
     min-height: 100dvh;
     margin: 0;
-    padding-top: var(--zenith-header-height);
+    padding-top: 0;
     background: var(--zenith-canvas);
     font-size: 16px;
     line-height: 1.75;

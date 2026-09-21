@@ -42,11 +42,6 @@
     animation: zenith-backdrop-in 160ms ease-in reverse both;
 }
 
-html:has(.site-search[open]),
-body:has(.site-search[open]) {
-    overflow: hidden;
-}
-
 .search-input-row {
     display: grid;
     flex: 0 0 auto;

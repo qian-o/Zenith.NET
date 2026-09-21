@@ -1,6 +1,6 @@
 ﻿{{^_disableToc}}
 <div class="toc-offcanvas">
-  <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+  <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel" data-bs-scroll="true">
     <div class="offcanvas-header">
       <h5 class="offcanvas-title" id="tocOffcanvasLabel" data-resource="ui.contents.title">{{r.ui.contents.title}}</h5>
       <button type="button" class="contents-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" data-resource-label="ui.contents.close" aria-label="{{r.ui.contents.close}}"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
