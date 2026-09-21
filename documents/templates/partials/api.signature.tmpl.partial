@@ -5,8 +5,7 @@
         <dl class="api-parameters">
             {{#apiTypeParameterDescriptions}}
                 <div>
-                    <dt><code>{{id}}</code>
-                    </dt>
+                    <dt><code>{{id}}</code></dt>
                     <dd>{{{description}}}</dd>
                 </div>
             {{/apiTypeParameterDescriptions}}
@@ -19,8 +18,7 @@
         <dl class="api-parameters">
             {{#apiParameterDescriptions}}
                 <div>
-                    <dt><code>{{id}}</code>
-                    </dt>
+                    <dt><code>{{id}}</code></dt>
                     <dd>{{{description}}}</dd>
                 </div>
             {{/apiParameterDescriptions}}

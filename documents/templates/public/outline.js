@@ -58,8 +58,7 @@ export function initializeOutline() {
         }
         const page = document.scrollingElement;
         // The last section may never reach the header in a tall viewport.
-        if (page.scrollTop > 0 && Math.ceil(page.scrollTop + page.clientHeight) >= page.scrollHeight)
-            current = entries.at(-1);
+        if (page.scrollTop > 0 && Math.ceil(page.scrollTop + page.clientHeight) >= page.scrollHeight) current = entries.at(-1);
         if (active === current && !forceReveal) return;
         active?.link.removeAttribute('aria-current');
         active?.group.classList.remove('outline-section-current');

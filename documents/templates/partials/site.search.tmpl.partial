@@ -3,44 +3,24 @@
         <h2 id="search-title" class="visually-hidden" data-resource="ui.search.title">{{r.ui.search.title}}</h2>
         <form class="search-input-row" role="search" id="site-search-form">
             <i class="bi bi-search" aria-hidden="true"></i>
-            <input id="site-search-input" type="search" data-resource-placeholder="ui.search.placeholder"
-                placeholder="{{r.ui.search.placeholder}}" autocomplete="off" data-resource-label="ui.search.title"
-                aria-label="{{r.ui.search.title}}" aria-describedby="search-status" autofocus>
-            <button id="search-close" type="button" data-resource-label="ui.search.close"
-                aria-label="{{r.ui.search.close}}">Esc</button>
+            <input id="site-search-input" type="search" data-resource-placeholder="ui.search.placeholder" placeholder="{{r.ui.search.placeholder}}" autocomplete="off" data-resource-label="ui.search.title" aria-label="{{r.ui.search.title}}" aria-describedby="search-status" autofocus>
+            <button id="search-close" type="button" data-resource-label="ui.search.close" aria-label="{{r.ui.search.close}}">Esc</button>
         </form>
         <div class="search-body">
-            <p id="search-status" role="status" aria-live="polite" data-resource="ui.search.hint">{{r.ui.search.hint}}
-            </p>
+            <p id="search-status" role="status" aria-live="polite" data-resource="ui.search.hint">{{r.ui.search.hint}}</p>
             <div class="search-shortcuts" id="search-shortcuts">
-                <a href="{{_rel}}learn/first-triangle.html" data-search-item>
-                    <span data-resource="tutorial.title">{{r.tutorial.title}}</span>
-                    <small data-resource="ui.content.tutorial">{{r.ui.content.tutorial}}</small>
-                </a>
-                <a href="{{_rel}}learn/samples.html" data-search-item>
-                    <span data-resource="samples.title">{{r.samples.title}}</span>
-                    <small data-resource="ui.content.source">{{r.ui.content.source}}</small>
-                </a>
-                <a href="{{_rel}}api/index.html" data-search-item>
-                    <span data-resource="reference.title">{{r.reference.title}}</span>
-                    <small data-resource="ui.content.reference">{{r.ui.content.reference}}</small>
-                </a>
+                <a href="{{_rel}}learn/first-triangle.html" data-search-item><span data-resource="tutorial.title">{{r.tutorial.title}}</span><small data-resource="ui.content.tutorial">{{r.ui.content.tutorial}}</small></a>
+                <a href="{{_rel}}learn/samples.html" data-search-item><span data-resource="samples.title">{{r.samples.title}}</span><small data-resource="ui.content.source">{{r.ui.content.source}}</small></a>
+                <a href="{{_rel}}api/index.html" data-search-item><span data-resource="reference.title">{{r.reference.title}}</span><small data-resource="ui.content.reference">{{r.ui.content.reference}}</small></a>
             </div>
             <ul id="site-search-results"></ul>
-            <button id="search-more" class="search-more" type="button" hidden data-resource="ui.search.more">
-                {{r.ui.search.more}}
-            </button>
+            <button id="search-more" class="search-more" type="button" hidden data-resource="ui.search.more">{{r.ui.search.more}}</button>
         </div>
-        <div class="search-footer">
-            <span>
+        <div class="search-footer"><span>
                 <kbd>↑</kbd>
-                <kbd>↓</kbd>
-                <span data-resource="ui.action.navigate">{{r.ui.action.navigate}}</span>
-            </span>
-            <span>
-                <kbd>Enter</kbd>
-                <span data-resource="ui.action.open">{{r.ui.action.open}}</span>
-            </span>
-        </div>
+                <kbd>↓</kbd> <span data-resource="ui.action.navigate">{{r.ui.action.navigate}}</span>
+            </span><span>
+                <kbd>Enter</kbd> <span data-resource="ui.action.open">{{r.ui.action.open}}</span>
+            </span></div>
     </dialog>
 {{/_enableSearch}}

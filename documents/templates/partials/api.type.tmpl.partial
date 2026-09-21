@@ -26,16 +26,12 @@
                     {{/syntax}}
                     {{#remarks}}
                         <div class="api-member-notes">
-                            <h4 id="{{apiAnchor}}_remarks" data-resource="ui.reference.remarks">
-                                {{r.ui.reference.remarks}}
-                            </h4>{{{remarks}}}
+                            <h4 id="{{apiAnchor}}_remarks" data-resource="ui.reference.remarks">{{r.ui.reference.remarks}}</h4>{{{remarks}}}
                         </div>
                     {{/remarks}}
                     {{#example.0}}
                         <div class="api-member-notes">
-                            <h4 id="{{apiAnchor}}_examples" data-resource="ui.reference.examples">
-                                {{r.ui.reference.examples}}
-                            </h4>
+                            <h4 id="{{apiAnchor}}_examples" data-resource="ui.reference.examples">{{r.ui.reference.examples}}</h4>
                             {{#example}}
                                 {{{.}}}
                             {{/example}}

@@ -5,18 +5,12 @@ let strings = resourceState.strings;
 export const getStrings = () => strings;
 const has = (dictionary, key) => Object.prototype.hasOwnProperty.call(dictionary, key);
 const format = globalThis.zenithResourceFormat;
-const slotTemplate = element =>
-    element.dataset.resourceSlots ? document.getElementById(element.dataset.resourceSlots) : null;
+const slotTemplate = element => element.dataset.resourceSlots ? document.getElementById(element.dataset.resourceSlots) : null;
 const resourceAttributes = { label: 'aria-label', title: 'title', placeholder: 'placeholder', alt: 'alt' };
 
 // Validate before changing the DOM: an old or incomplete download must not mix languages.
 export function setStrings(value) {
-    if (
-        !value ||
-        Array.isArray(value) ||
-        typeof value !== 'object' ||
-        Object.values(value).some(text => typeof text !== 'string' || !text.trim())
-    ) {
+    if (!value || Array.isArray(value) || typeof value !== 'object' || Object.values(value).some(text => typeof text !== 'string' || !text.trim())) {
         throw new Error('Invalid resource dictionary');
     }
     if (Object.keys(value).length !== Object.keys(resourceState.placeholders).length) {
@@ -31,17 +25,12 @@ export function setStrings(value) {
     for (const [key, slots] of Object.entries(resourceState.placeholders)) requireKey(key, slots);
     for (const element of document.querySelectorAll('[data-resource]')) {
         const slots = slotTemplate(element)?.content.children || [];
-        requireKey(
-            element.dataset.resource,
-            [...slots].map(slot => slot.dataset.slot)
-        );
+        requireKey(element.dataset.resource, [...slots].map(slot => slot.dataset.slot));
     }
     for (const attribute of Object.keys(resourceAttributes)) {
-        for (const element of document.querySelectorAll(`[data-resource-${attribute}]`))
-            requireKey(element.getAttribute(`data-resource-${attribute}`), []);
+        for (const element of document.querySelectorAll(`[data-resource-${attribute}]`)) requireKey(element.getAttribute(`data-resource-${attribute}`), []);
     }
-    for (const meta of document.querySelectorAll('meta[name="resource:title"], meta[name="resource:description"]'))
-        requireKey(meta.content, []);
+    for (const meta of document.querySelectorAll('meta[name="resource:title"], meta[name="resource:description"]')) requireKey(meta.content, []);
     strings = value;
 }
 
@@ -88,8 +77,7 @@ export function applyResources(code) {
     const title = document.querySelector('meta[name="resource:title"]')?.content;
     if (title) document.title = `${t(title)} | Zenith.NET`;
     const description = document.querySelector('meta[name="resource:description"]')?.content;
-    if (description && has(strings, description))
-        document.querySelector('meta[name="description"]').content = t(description);
+    if (description && has(strings, description)) document.querySelector('meta[name="description"]').content = t(description);
     document.querySelector('meta[name="loc:copy"]').content = t('ui.action.copy');
     for (const copy of document.querySelectorAll('.code-action[title]')) copy.title = t('ui.action.copy');
 }

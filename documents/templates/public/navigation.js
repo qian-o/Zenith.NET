@@ -3,23 +3,20 @@ import { t } from './resources.js';
 
 let navigationPromise;
 export function loadNavigation() {
-    return (navigationPromise ??= fetch(new URL('toc.json', siteRoot), { cache: 'no-cache' })
-        .then(response => {
-            if (!response.ok) throw new Error('Navigation unavailable');
-            return response.json();
-        })
-        .then(model => model.items)
-        .catch(error => {
-            navigationPromise = undefined;
-            throw error;
-        }));
+    return navigationPromise ??= fetch(new URL('toc.json', siteRoot), { cache: 'no-cache' }).then(response => {
+        if (!response.ok) throw new Error('Navigation unavailable');
+        return response.json();
+    }).then(model => model.items).catch(error => {
+        navigationPromise = undefined;
+        throw error;
+    });
 }
 
 export async function initializeNavigation() {
     const items = await loadNavigation();
     const currentPath = location.pathname.slice(siteRoot.pathname.length).replace(/\/$/, '/index.html');
     const active = items.find(item => (item.topicHref || item.href)?.split('/')[0] === currentPath.split('/')[0]);
-    const label = item => (item.resourceKey ? t(item.resourceKey) : item.name);
+    const label = item => item.resourceKey ? t(item.resourceKey) : item.name;
     const linkFor = item => {
         const link = document.createElement('a');
         link.href = pageUrl(item.topicHref || item.href);
@@ -37,8 +34,7 @@ export async function initializeNavigation() {
             link.classList.add('active');
             link.setAttribute('aria-current', 'true');
         }
-        li.append(link);
-        navbar.append(li);
+        li.append(link); navbar.append(li);
     }
     document.getElementById('primary-navigation').replaceChildren(navbar);
     const toc = document.getElementById('toc');
@@ -59,9 +55,7 @@ export async function initializeNavigation() {
             } else {
                 li.className = 'expander expanded';
                 const title = document.createElement('span');
-                title.className = 'toc-group-title';
-                title.textContent = label(item);
-                li.append(title);
+                title.className = 'toc-group-title'; title.textContent = label(item); li.append(title);
             }
             if (item.items?.length) li.append(listFor(item.items, level + 1));
             list.append(li);

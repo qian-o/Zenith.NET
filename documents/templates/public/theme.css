@@ -7,7 +7,7 @@
     --zenith-press-duration: 60ms;
     --zenith-panel-duration: 280ms;
     --zenith-panel-exit-duration: 160ms;
-    --zenith-state-ease: cubic-bezier(0.2, 0, 0.2, 1);
+    --zenith-state-ease: cubic-bezier(.2, 0, .2, 1);
     --zenith-canvas: #101216;
     --zenith-surface: #181b21;
     --zenith-graphite: #262a32;
@@ -33,8 +33,8 @@
     --zenith-outline-width: 208px;
     --zenith-gap: 40px;
     --zenith-gutter: clamp(40px, 3vw, 64px);
-    --bs-body-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --bs-font-monospace: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+    --bs-body-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --bs-font-monospace: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
     --bs-body-bg: var(--zenith-canvas);
     --bs-body-bg-rgb: 16, 18, 22;
     --bs-body-color: var(--zenith-body);
@@ -138,7 +138,7 @@ article h2 {
     padding-bottom: 12px;
     border-bottom: 1px solid var(--zenith-border);
     font-size: 25px;
-    letter-spacing: -0.5px;
+    letter-spacing: -.5px;
 }
 
 article h3 {
@@ -171,6 +171,7 @@ article strong {
 article :is(img, video, svg) {
     max-width: 100%;
 }
+
 
 article img {
     height: auto;

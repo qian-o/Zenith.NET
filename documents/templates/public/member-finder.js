@@ -12,20 +12,14 @@ export function initializeMemberFinder() {
     const empty = document.getElementById('api-member-empty');
     const clear = document.getElementById('api-member-clear');
     const launchers = [...document.querySelectorAll('[data-member-find]')];
-    const groups = [...document.querySelectorAll('.api-reference > .api-group')]
-        .map(section => ({
-            name: section.querySelector('.api-group-heading h2')?.textContent.trim(),
-            members: [...section.querySelectorAll('.api-member-heading h3[id], .api-enum-value h3[id]')].map(
-                heading => ({
-                    heading,
-                    name: heading.textContent.trim(),
-                    signature:
-                        heading.closest('.api-member')?.querySelector(':scope > pre > code')?.textContent ||
-                        heading.textContent
-                })
-            )
+    const groups = [...document.querySelectorAll('.api-reference > .api-group')].map(section => ({
+        name: section.querySelector('.api-group-heading h2')?.textContent.trim(),
+        members: [...section.querySelectorAll('.api-member-heading h3[id], .api-enum-value h3[id]')].map(heading => ({
+            heading,
+            name: heading.textContent.trim(),
+            signature: heading.closest('.api-member')?.querySelector(':scope > pre > code')?.textContent || heading.textContent
         }))
-        .filter(group => group.members.length);
+    })).filter(group => group.members.length);
     if (!groups.length) empty.textContent = t('ui.members.undeclared');
 
     let opener;
@@ -71,15 +65,9 @@ export function initializeMemberFinder() {
     }
 
     function isVisible(button) {
-        if (!button || !button.getClientRects().length || getComputedStyle(button).visibility !== 'visible')
-            return false;
+        if (!button || !button.getClientRects().length || getComputedStyle(button).visibility !== 'visible') return false;
         const drawer = button.closest('#tocOffcanvas');
-        if (
-            drawer &&
-            window.matchMedia('(max-width: 767.98px)').matches &&
-            (!drawer.classList.contains('show') || drawer.classList.contains('hiding'))
-        )
-            return false;
+        if (drawer && window.matchMedia('(max-width: 767.98px)').matches && (!drawer.classList.contains('show') || drawer.classList.contains('hiding'))) return false;
         const bounds = button.getBoundingClientRect();
         return bounds.right > 0 && bounds.left < innerWidth && bounds.bottom > 0 && bounds.top < innerHeight;
     }
@@ -141,16 +129,7 @@ export function initializeMemberFinder() {
     });
     bindDialogKeys(dialog, { items: '#api-member-results a', close: () => dialog.close() });
     document.addEventListener('keydown', event => {
-        if (
-            event.isComposing ||
-            !event.altKey ||
-            event.ctrlKey ||
-            event.metaKey ||
-            event.shiftKey ||
-            event.repeat ||
-            (event.code !== 'KeyM' && event.key.toLowerCase() !== 'm')
-        )
-            return;
+        if (event.isComposing || !event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.repeat || event.code !== 'KeyM' && event.key.toLowerCase() !== 'm') return;
         if (isEditing(event.target)) return;
         event.preventDefault();
         if (dialog.open) dialog.close();

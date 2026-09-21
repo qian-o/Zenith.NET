@@ -1,53 +1,32 @@
 ﻿{{^_disableToc}}
     <div class="toc-offcanvas">
-        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel"
-            data-bs-scroll="true">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel" data-bs-scroll="true">
             <div class="offcanvas-header">
-                <h5 class="offcanvas-title" id="tocOffcanvasLabel" data-resource="ui.contents.title">
-                    {{r.ui.contents.title}}
-                </h5>
-                <button type="button" class="contents-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas"
-                    data-resource-label="ui.contents.close" aria-label="{{r.ui.contents.close}}">
-                    <i class="bi bi-x-lg" aria-hidden="true"></i>
-                </button>
+                <h5 class="offcanvas-title" id="tocOffcanvasLabel" data-resource="ui.contents.title">{{r.ui.contents.title}}</h5>
+                <button type="button" class="contents-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" data-resource-label="ui.contents.close" aria-label="{{r.ui.contents.close}}"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
             </div>
             <div class="offcanvas-body">
                 {{#_apiReference}}
-                    <nav class="api-browser" id="api-browser" data-resource-label="ui.api.types"
-                        aria-label="{{r.ui.api.types}}">
+                    <nav class="api-browser" id="api-browser" data-resource-label="ui.api.types" aria-label="{{r.ui.api.types}}">
                         <div class="api-browser-controls">
                             <div class="api-namespace-picker">
-                                <label class="api-namespace-label" for="api-namespace" data-resource="ui.api.namespace">
-                                    {{r.ui.api.namespace}}
-                                </label>
-                                <span id="api-namespace-name" aria-hidden="true"
-                                    data-resource="ui.api.loadingNamespaces">{{r.ui.api.loadingNamespaces}}</span>
-                                <select id="api-namespace" data-resource-label="ui.api.namespace"
-                                    aria-label="{{r.ui.api.namespace}}" disabled>
-                                    <option data-resource="ui.api.loadingNamespaces">{{r.ui.api.loadingNamespaces}}
-                                    </option>
+                                <label class="api-namespace-label" for="api-namespace" data-resource="ui.api.namespace">{{r.ui.api.namespace}}</label>
+                                <span id="api-namespace-name" aria-hidden="true" data-resource="ui.api.loadingNamespaces">{{r.ui.api.loadingNamespaces}}</span>
+                                <select id="api-namespace" data-resource-label="ui.api.namespace" aria-label="{{r.ui.api.namespace}}" disabled>
+                                    <option data-resource="ui.api.loadingNamespaces">{{r.ui.api.loadingNamespaces}}</option>
                                 </select>
                                 <i class="bi bi-chevron-down" aria-hidden="true"></i>
                             </div>
                             <div class="api-type-search">
                                 <i class="bi bi-search" aria-hidden="true"></i>
-                                <input id="api-type-filter" type="search" data-resource-label="ui.api.findType"
-                                    aria-label="{{r.ui.api.findType}}" aria-controls="api-type-list"
-                                    data-resource-placeholder="ui.api.findType" placeholder="{{r.ui.api.findType}}"
-                                    autocomplete="off">
-                                <button id="api-type-clear" type="button" data-resource-label="ui.api.clearTypeSearch"
-                                    aria-label="{{r.ui.api.clearTypeSearch}}" hidden>
-                                    <i class="bi bi-x-lg" aria-hidden="true"></i>
-                                </button>
+                                <input id="api-type-filter" type="search" data-resource-label="ui.api.findType" aria-label="{{r.ui.api.findType}}" aria-controls="api-type-list" data-resource-placeholder="ui.api.findType" placeholder="{{r.ui.api.findType}}" autocomplete="off">
+                                <button id="api-type-clear" type="button" data-resource-label="ui.api.clearTypeSearch" aria-label="{{r.ui.api.clearTypeSearch}}" hidden><i class="bi bi-x-lg" aria-hidden="true"></i></button>
                             </div>
                         </div>
-                        <div class="api-browser-caption" id="api-type-scope" data-resource="ui.api.types">
-                            {{r.ui.api.types}}
-                        </div>
+                        <div class="api-browser-caption" id="api-type-scope" data-resource="ui.api.types">{{r.ui.api.types}}</div>
                         <div class="api-type-scroll">
                             <ul id="api-type-list"></ul>
-                            <p class="api-browser-status" id="api-browser-status" role="status"
-                                data-resource="ui.api.loadingTypes">{{r.ui.api.loadingTypes}}</p>
+                            <p class="api-browser-status" id="api-browser-status" role="status" data-resource="ui.api.loadingTypes">{{r.ui.api.loadingTypes}}</p>
                         </div>
                         {{#apiHasMemberFinder}}
                             <div class="api-member-access">

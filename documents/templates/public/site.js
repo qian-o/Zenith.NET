@@ -44,8 +44,7 @@ export function initializeSite() {
     }
 
     // Preserve deep-link IDs while disabling DocFX's decorative heading anchors.
-    for (const heading of document.querySelectorAll('article h2, article h3, article h4'))
-        heading.classList.add('no-anchor');
+    for (const heading of document.querySelectorAll('article h2, article h3, article h4')) heading.classList.add('no-anchor');
     labelCodeBlocks();
     // DocFX adds scrolling wrappers after this hook; the table retains its focus target.
     for (const table of document.querySelectorAll('article table')) table.tabIndex = 0;
@@ -53,24 +52,13 @@ export function initializeSite() {
 
 function labelCodeBlocks() {
     const labels = {
-        bash: 'Shell',
-        console: 'Console',
-        cs: 'C#',
-        csharp: 'C#',
-        json: 'JSON',
-        powershell: 'PowerShell',
-        sh: 'Shell',
-        shell: 'Shell',
-        slang: 'Slang',
-        text: 'Text',
-        xml: 'XML',
-        yaml: 'YAML',
-        yml: 'YAML'
+        bash: 'Shell', console: 'Console', cs: 'C#', csharp: 'C#', json: 'JSON',
+        powershell: 'PowerShell', sh: 'Shell', shell: 'Shell', slang: 'Slang', text: 'Text',
+        xml: 'XML', yaml: 'YAML', yml: 'YAML'
     };
     for (const code of document.querySelectorAll('article pre > code')) {
-        const language =
-            [...code.classList].find(name => /^(?:lang|language)-/.test(name))?.replace(/^(?:lang|language)-/, '') ||
-            'text';
+        const language = [...code.classList].find(name => /^(?:lang|language)-/.test(name))
+            ?.replace(/^(?:lang|language)-/, '') || 'text';
         if (language === 'mermaid') continue;
         code.parentElement.dataset.language = labels[language] || language;
         // Native keyboard scrolling for examples; API declarations already wrap.

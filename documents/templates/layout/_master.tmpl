@@ -7,8 +7,7 @@
         <meta name="color-scheme" content="dark">
         <title>{{#title}}{{title}}{{/title}}{{^title}}{{>partials/title}}{{/title}} {{#_appTitle}}| {{_appTitle}} {{/_appTitle}}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta name="title"
-            content="{{#title}}{{title}}{{/title}}{{^title}}{{>partials/title}}{{/title}} {{#_appTitle}}| {{_appTitle}} {{/_appTitle}}">
+        <meta name="title" content="{{#title}}{{title}}{{/title}}{{^title}}{{>partials/title}}{{/title}} {{#_appTitle}}| {{_appTitle}} {{/_appTitle}}">
         {{#description}}
             <meta name="description" content="{{description}}">
         {{/description}}
@@ -49,8 +48,7 @@
         </script>
     </head>
 
-    <body class="tex2jax_ignore zenith-theme" data-layout="{{_layout}}" data-yaml-mime="{{yamlmime}}"
-        data-page-kind="{{_pageKind}}" data-section="{{_section}}">
+    <body class="tex2jax_ignore zenith-theme" data-layout="{{_layout}}" data-yaml-mime="{{yamlmime}}" data-page-kind="{{_pageKind}}" data-section="{{_section}}">
         {{>partials/site.header}}
 
         <main class="container-xxl">
@@ -59,9 +57,7 @@
             <div class="content">
                 {{^_disableToc}}
                     {{#apiHasMemberFinder}}<div class="api-mobile-tools">{{/apiHasMemberFinder}}
-                    <button class="contents-toggle" type="button" data-bs-toggle="offcanvas"
-                        data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas"
-                        data-resource-label="ui.contents.open" aria-label="{{r.ui.contents.open}}">
+                    <button class="contents-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" data-resource-label="ui.contents.open" aria-label="{{r.ui.contents.open}}">
                         <i class="bi bi-list" aria-hidden="true"></i>
                         <span data-resource="ui.contents.title">{{r.ui.contents.title}}</span>
                     </button>
