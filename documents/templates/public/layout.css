@@ -21,6 +21,7 @@ html:has(.site-search[open], #tocOffcanvas:is(.showing, .show, .hiding)) {
 }
 
 .site-nav {
+    position: relative;
     display: grid;
     grid-template-columns: auto auto minmax(0, 1fr);
     align-items: center;
@@ -28,7 +29,24 @@ html:has(.site-search[open], #tocOffcanvas:is(.showing, .show, .hiding)) {
     min-height: var(--zenith-header-height);
 }
 
+.skip-link {
+    position: absolute;
+    z-index: 1;
+    top: 12px;
+    left: var(--zenith-gutter);
+    padding: 8px 12px;
+    border-radius: 5px;
+    background: var(--zenith-action);
+    color: var(--zenith-canvas);
+    font-size: 14px;
+}
+
+#main-content:focus {
+    outline: none;
+}
+
 .site-nav .navbar-brand {
+    min-width: 0;
     justify-self: start;
     margin: 0;
     padding: 16px 0;
@@ -36,7 +54,9 @@ html:has(.site-search[open], #tocOffcanvas:is(.showing, .show, .hiding)) {
 
 .site-nav #logo {
     width: auto;
+    max-width: 100%;
     height: 36px;
+    object-fit: contain;
 }
 
 #primary-navigation .navbar-nav {
@@ -244,12 +264,14 @@ body.zenith-theme > main.container-xxl > .toc-offcanvas {
     --bs-offcanvas-bg: var(--zenith-surface);
     --bs-offcanvas-width: min(320px, 90vw);
     --bs-offcanvas-color: var(--zenith-body);
-    --bs-offcanvas-transition: transform 280ms cubic-bezier(.16, 1, .3, 1);
+    --bs-offcanvas-transition: transform var(--zenith-panel-duration) cubic-bezier(.16, 1, .3, 1);
 }
 
 .zenith-theme #tocOffcanvas .offcanvas-body {
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
+    scrollbar-width: thin;
 }
 
 #toc {
@@ -280,6 +302,10 @@ body.zenith-theme > main.container-xxl > .toc-offcanvas {
 #toc li > a:hover {
     background: var(--zenith-surface);
     color: var(--zenith-text);
+}
+
+#toc li > a:focus-visible {
+    outline-offset: -2px;
 }
 
 #toc li.active:not(.expander) > a {
@@ -427,7 +453,7 @@ body.zenith-theme > main.container-xxl > .toc-offcanvas {
 
 @media (max-width: 767.98px) {
     .site-nav {
-        grid-template-columns: 1fr auto;
+        grid-template-columns: minmax(0, 1fr) auto;
         gap: 12px;
     }
 
@@ -459,12 +485,14 @@ body.zenith-theme > main.container-xxl > .toc-offcanvas {
         position: absolute;
         inset: var(--zenith-header-height) 0 auto;
         padding: 16px var(--zenith-gutter) 20px;
+        max-height: calc(100dvh - var(--zenith-header-height));
+        overflow-y: auto;
         border-bottom: 1px solid var(--zenith-border);
         background: var(--zenith-canvas);
         opacity: 0;
         visibility: hidden;
         clip-path: inset(0 0 100%);
-        transition: clip-path var(--zenith-panel-duration) cubic-bezier(.16, 1, .3, 1), opacity 180ms, visibility var(--zenith-panel-duration);
+        transition: clip-path var(--zenith-panel-duration) cubic-bezier(.16, 1, .3, 1), opacity var(--zenith-state-duration), visibility var(--zenith-panel-duration);
     }
 
     .menu-open .site-menu {

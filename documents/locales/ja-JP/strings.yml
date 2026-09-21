@@ -546,6 +546,7 @@ ui.navigation.api: "API"
 ui.navigation.concepts: "概念"
 ui.navigation.home: "ホーム"
 ui.navigation.label: "メインナビゲーション"
+ui.navigation.skip: 本文へ移動
 ui.navigation.toggle: "ナビゲーションの切り替え"
 ui.outline.title: "このページの内容"
 ui.reference.assembly: "アセンブリ"

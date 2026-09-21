@@ -546,6 +546,7 @@ ui.navigation.api: "API"
 ui.navigation.concepts: "概念"
 ui.navigation.home: "首頁"
 ui.navigation.label: "主要導覽"
+ui.navigation.skip: 跳至正文
 ui.navigation.toggle: "切換導覽"
 ui.outline.title: "本頁內容"
 ui.reference.assembly: "組件"

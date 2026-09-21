@@ -135,6 +135,10 @@ article .table th {
     font-weight: 600;
 }
 
+article table:focus-visible {
+    outline-offset: -2px;
+}
+
 article .table tbody tr:last-child > * {
     border-bottom: 0;
 }
@@ -199,7 +203,7 @@ article code a.code-reference, article a.xref > code {
     color: var(--zenith-code-link);
     font-weight: 500;
     text-decoration: none;
-    transition: color 180ms, background-color 180ms;
+    transition: color var(--zenith-state-duration), background-color var(--zenith-state-duration);
 }
 
 .zenith-theme article code a.code-reference * {

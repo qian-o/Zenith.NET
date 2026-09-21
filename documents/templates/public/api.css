@@ -65,7 +65,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 .api-namespace-picker, .api-type-search {
-    transition: box-shadow 180ms, background-color 180ms;
+    transition: box-shadow var(--zenith-state-duration), background-color var(--zenith-state-duration);
 }
 
 .api-namespace-picker:hover, .api-type-search:hover {
@@ -156,7 +156,8 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 
 .api-type-scroll {
     position: relative;
-    min-height: 0;
+    /* Keep wrapped links usable; the outer pane scrolls on short screens. */
+    min-height: 4lh;
     flex: 1;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -182,12 +183,16 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     line-height: 1.5;
     text-decoration: none;
     overflow-wrap: anywhere;
-    transition: background-color 180ms, color 180ms;
+    transition: background-color var(--zenith-state-duration), color var(--zenith-state-duration);
 }
 
 #api-type-list a:hover {
     background: var(--zenith-surface);
     color: var(--zenith-text);
+}
+
+#api-type-list a:focus-visible {
+    outline-offset: -2px;
 }
 
 #api-type-list a[aria-current] {
@@ -319,7 +324,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     line-height: 1;
     text-decoration: none;
     opacity: .45;
-    transition: opacity 180ms, background-color 180ms;
+    transition: opacity var(--zenith-state-duration), background-color var(--zenith-state-duration);
 }
 
 .api-reference .api-source {
@@ -390,7 +395,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     color: #c4daf6;
     font: 18px/1 var(--bs-font-monospace);
     text-align: center;
-    transition: transform 180ms;
+    transition: transform var(--zenith-state-duration);
 }
 
 .api-reference details[open] > summary::after {
@@ -532,7 +537,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     min-height: 68px;
     padding: 17px 18px;
     background: var(--zenith-surface);
-    transition: background-color 180ms;
+    transition: background-color var(--zenith-state-duration);
 }
 
 .api-type-entry > .api-summary a {
@@ -862,7 +867,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     color: var(--zenith-action);
     font: 500 12px/1.5 var(--bs-body-font-family);
     cursor: pointer;
-    transition: color 180ms, background-color 180ms;
+    transition: color var(--zenith-state-duration), background-color var(--zenith-state-duration);
 }
 
 .api-member-launcher:focus-visible {

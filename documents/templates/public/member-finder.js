@@ -61,7 +61,7 @@ export function initializeMemberFinder() {
         results.replaceChildren(fragment);
         empty.hidden = results.childElementCount > 0;
         clear.hidden = !input.value;
-        dialog.querySelector('.search-scroll').scrollTop = 0;
+        dialog.scrollTop = 0;
     }
 
     function isVisible(button) {

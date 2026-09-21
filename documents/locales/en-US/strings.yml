@@ -892,6 +892,7 @@ ui.navigation.api: API
 ui.navigation.concepts: Concepts
 ui.navigation.home: Home
 ui.navigation.label: Main navigation
+ui.navigation.skip: Skip to content
 ui.navigation.toggle: Toggle navigation
 ui.outline.title: On this page
 ui.reference.assembly: Assembly

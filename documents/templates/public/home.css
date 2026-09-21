@@ -252,7 +252,7 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
     color: var(--zenith-action);
     font-size: 13px;
     font-weight: 600;
-    transition: color 180ms;
+    transition: color var(--zenith-state-duration);
 }
 
 .path-card:hover {

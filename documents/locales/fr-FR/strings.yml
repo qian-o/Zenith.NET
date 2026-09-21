@@ -546,6 +546,7 @@ ui.navigation.api: API
 ui.navigation.concepts: Concepts
 ui.navigation.home: Accueil
 ui.navigation.label: Navigation principale
+ui.navigation.skip: Aller au contenu
 ui.navigation.toggle: Basculer la navigation
 ui.outline.title: Sur cette page
 ui.reference.assembly: Assembly

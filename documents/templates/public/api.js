@@ -105,7 +105,8 @@ export async function initializeApi() {
         });
         renderTypes();
         const active = list.querySelector('[aria-current="page"]');
-        if (active) scroller.scrollTop = active.offsetTop - 160;
+        if (active) scroller.scrollTop = active.offsetTop - (scroller.clientHeight - active.offsetHeight) / 2;
+        // Apply page-owned state after history restores the browser's form values.
         window.addEventListener('pageshow', () => setTimeout(() => {
             picker.value = activeNamespace.href;
             renderTypes(false);

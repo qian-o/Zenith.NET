@@ -546,6 +546,7 @@ ui.navigation.api: API
 ui.navigation.concepts: 개념
 ui.navigation.home: 홈
 ui.navigation.label: 기본 탐색
+ui.navigation.skip: 본문으로 건너뛰기
 ui.navigation.toggle: 탐색 전환
 ui.outline.title: 이 페이지의 내용
 ui.reference.assembly: 어셈블리

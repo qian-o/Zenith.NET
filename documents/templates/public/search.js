@@ -4,6 +4,9 @@ import { closeContents, closeNavigation, isApplePlatform, isEditing } from './si
 import { bindDialogKeys, isBackdropClick } from './dialog.js';
 import { edition, sourceLanguage, pageUrl, siteRoot } from './languages.js';
 
+const resultsPerPage = 30;
+const excerptLength = 160;
+
 function pageTitles(items) {
     const titles = new Map([['index.html', 'home.title'], ['api/index.html', 'reference.title']]);
     const visit = item => {
@@ -41,7 +44,7 @@ export function initializeSearch() {
     let loadingCatalog = false;
     let hits = [];
     let shown = 0;
-    let closeTimer;
+    let closeRequest;
     const normalize = text => String(text || '').normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
 
     function rememberSearch(open = dialog.open) {
@@ -94,7 +97,7 @@ export function initializeSearch() {
 
     function appendResults() {
         const fragment = document.createDocumentFragment();
-        for (const hit of hits.slice(shown, shown + 30)) {
+        for (const hit of hits.slice(shown, shown + resultsPerPage)) {
             const item = document.createElement('li');
             const link = document.createElement('a');
             const heading = document.createElement('span');
@@ -117,22 +120,21 @@ export function initializeSearch() {
                     : hit.summary.replace(/\s+/g, ' ').trim();
                 if (text.startsWith(title.textContent)) text = text.slice(title.textContent.length).trim();
                 if (text) {
-                    excerpt.textContent = text.length > 160 ? text.slice(0, 160) + '…' : text;
+                    excerpt.textContent = text.length > excerptLength ? text.slice(0, excerptLength) + '…' : text;
                     link.append(excerpt);
                 }
             }
             item.append(link);
             fragment.append(item);
         }
-        shown = Math.min(shown + 30, hits.length);
+        shown = Math.min(shown + resultsPerPage, hits.length);
         results.append(fragment);
         more.hidden = shown === hits.length;
     }
 
     function openSearch() {
         document.getElementById('api-member-dialog')?.close();
-        clearTimeout(closeTimer);
-        closeTimer = undefined;
+        closeRequest = undefined;
         dialog.classList.remove('is-closing');
         closeNavigation();
         closeContents();
@@ -198,14 +200,15 @@ export function initializeSearch() {
     }
 
     function closeSearch() {
-        if (!dialog.open || closeTimer) return;
+        if (!dialog.open || closeRequest) return;
         rememberSearch(false);
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            dialog.close();
-            return;
-        }
         dialog.classList.add('is-closing');
-        closeTimer = setTimeout(() => dialog.close(), 160);
+        const request = Promise.allSettled(dialog.getAnimations().map(animation => animation.finished));
+        closeRequest = request;
+        request.then(() => {
+            // Reopening cancels this close, including when animations are disabled.
+            if (closeRequest === request) dialog.close();
+        });
     }
 
     trigger.addEventListener('click', openSearch);
@@ -213,8 +216,7 @@ export function initializeSearch() {
     document.getElementById('search-close').addEventListener('click', closeSearch);
     dialog.addEventListener('close', () => {
         if (dialog.open) return;
-        clearTimeout(closeTimer);
-        closeTimer = undefined;
+        closeRequest = undefined;
         dialog.classList.remove('is-closing');
         rememberSearch();
         trigger.focus({ preventScroll: true });
@@ -242,7 +244,7 @@ export function initializeSearch() {
         const slash = event.key === '/' && !event.metaKey && !event.ctrlKey && !event.altKey;
         if (command || slash && !isEditing(event.target)) {
             event.preventDefault();
-            if (dialog.open && command && !closeTimer) closeSearch();
+            if (dialog.open && command && !closeRequest) closeSearch();
             else openSearch();
         }
     });

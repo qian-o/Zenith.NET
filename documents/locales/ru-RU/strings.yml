@@ -546,6 +546,7 @@ ui.navigation.api: API
 ui.navigation.concepts: "Основные понятия"
 ui.navigation.home: Главная
 ui.navigation.label: Основная навигация
+ui.navigation.skip: Перейти к содержимому
 ui.navigation.toggle: Переключить навигацию
 ui.outline.title: На этой странице
 ui.reference.assembly: Сборка

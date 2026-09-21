@@ -46,6 +46,8 @@ export function initializeSite() {
     // Preserve deep-link IDs while disabling DocFX's decorative heading anchors.
     for (const heading of document.querySelectorAll('article h2, article h3, article h4')) heading.classList.add('no-anchor');
     labelCodeBlocks();
+    // DocFX adds scrolling wrappers after this hook; the table retains its focus target.
+    for (const table of document.querySelectorAll('article table')) table.tabIndex = 0;
 }
 
 function labelCodeBlocks() {
@@ -57,6 +59,9 @@ function labelCodeBlocks() {
     for (const code of document.querySelectorAll('article pre > code')) {
         const language = [...code.classList].find(name => /^(?:lang|language)-/.test(name))
             ?.replace(/^(?:lang|language)-/, '') || 'text';
-        if (language !== 'mermaid') code.parentElement.dataset.language = labels[language] || language;
+        if (language === 'mermaid') continue;
+        code.parentElement.dataset.language = labels[language] || language;
+        // Native keyboard scrolling for examples; API declarations already wrap.
+        if (!code.hasAttribute('data-api-symbol')) code.parentElement.tabIndex = 0;
     }
 }

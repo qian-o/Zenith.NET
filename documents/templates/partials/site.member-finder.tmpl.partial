@@ -12,7 +12,7 @@
     <input id="api-member-query" type="search" data-resource-label="ui.members.search" aria-label="{{r.ui.members.search}}" data-resource-placeholder="ui.members.placeholder" placeholder="{{r.ui.members.placeholder}}" autocomplete="off" aria-controls="api-member-results" autofocus>
     <button id="api-member-clear" type="button" data-resource-label="ui.members.clear" aria-label="{{r.ui.members.clear}}" hidden><i class="bi bi-x-lg" aria-hidden="true"></i></button>
   </form>
-  <div class="search-scroll">
+  <div class="search-body">
     <div id="api-member-results"></div>
     <p id="api-member-empty" class="api-finder-empty" role="status" hidden data-resource="ui.members.empty">{{r.ui.members.empty}}</p>
   </div>

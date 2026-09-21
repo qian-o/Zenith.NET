@@ -6,7 +6,7 @@
     <input id="site-search-input" type="search" data-resource-placeholder="ui.search.placeholder" placeholder="{{r.ui.search.placeholder}}" autocomplete="off" data-resource-label="ui.search.title" aria-label="{{r.ui.search.title}}" aria-describedby="search-status" autofocus>
     <button id="search-close" type="button" data-resource-label="ui.search.close" aria-label="{{r.ui.search.close}}">Esc</button>
   </form>
-  <div class="search-scroll">
+  <div class="search-body">
     <p id="search-status" role="status" aria-live="polite" data-resource="ui.search.hint">{{r.ui.search.hint}}</p>
     <div class="search-shortcuts" id="search-shortcuts">
       <a href="{{_rel}}learn/first-triangle.html" data-search-item><span data-resource="tutorial.title">{{r.tutorial.title}}</span><small data-resource="ui.content.tutorial">{{r.ui.content.tutorial}}</small></a>

@@ -41,7 +41,6 @@ export function initializeOutline() {
     });
     nav.append(label, list);
 
-    const desktop = window.matchMedia('(min-width: 1200px)');
     let active;
     let frame;
     let reveal = false;
@@ -49,13 +48,17 @@ export function initializeOutline() {
         frame = undefined;
         const forceReveal = reveal;
         reveal = false;
-        if (!desktop.matches) return;
-        const threshold = document.querySelector('.site-header').getBoundingClientRect().bottom + 36;
+        if (!nav.getClientRects().length) return;
+        const headerBottom = document.querySelector('.site-header').getBoundingClientRect().bottom;
         let current = entries[0];
         for (const entry of entries) {
-            if (entry.heading.getBoundingClientRect().top > threshold) break;
+            const threshold = headerBottom + Number.parseFloat(getComputedStyle(entry.heading).scrollMarginTop);
+            if (Math.round(entry.heading.getBoundingClientRect().top) > Math.round(threshold)) break;
             current = entry;
         }
+        const page = document.scrollingElement;
+        // The last section may never reach the header in a tall viewport.
+        if (page.scrollTop > 0 && Math.ceil(page.scrollTop + page.clientHeight) >= page.scrollHeight) current = entries.at(-1);
         if (active === current && !forceReveal) return;
         active?.link.removeAttribute('aria-current');
         active?.group.classList.remove('outline-section-current');
@@ -68,8 +71,8 @@ export function initializeOutline() {
         if (forceReveal || !nav.matches(':hover, :focus-within')) {
             const bounds = list.getBoundingClientRect();
             const target = current.link.getBoundingClientRect();
-            if (target.top < bounds.top + 8) list.scrollTop += target.top - bounds.top - 8;
-            else if (target.bottom > bounds.bottom - 8) list.scrollTop += target.bottom - bounds.bottom + 8;
+            if (target.top < bounds.top) list.scrollTop += target.top - bounds.top;
+            else if (target.bottom > bounds.bottom) list.scrollTop += target.bottom - bounds.bottom;
         }
     };
     const schedule = (force = false) => {
