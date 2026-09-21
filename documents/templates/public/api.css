@@ -270,8 +270,9 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 .api-reference pre, .api-reference pre[data-language] {
+    --code-content-padding: 15px 16px;
     margin: 14px 0;
-    padding: 15px 44px 15px 16px;
+    padding: var(--code-content-padding);
     border: 1px solid var(--zenith-border);
     border-radius: 5px;
     background: var(--zenith-code);
@@ -280,16 +281,9 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     box-shadow: none;
 }
 
-.api-reference pre[data-language]::before {
+/* Declarations stay compact; examples retain the shared language/copy header. */
+.api-reference pre[data-language]:has(> code[data-api-symbol])::before {
     content: none;
-}
-
-.api-reference pre .code-action {
-    top: 7px;
-    right: 5px;
-    padding: 4px 8px;
-    color: var(--zenith-muted);
-    font-size: 13px;
 }
 
 .api-reference .api-declaration pre {

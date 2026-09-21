@@ -249,6 +249,8 @@ body.zenith-theme > main.container-xxl > :is(.toc-offcanvas, .affix) {
 }
 
 body.zenith-theme > main.container-xxl > .affix {
+    display: flex;
+    flex-direction: column;
     grid-column: 3;
     padding-block: 36px 24px;
     overflow: hidden;
@@ -368,7 +370,7 @@ body.zenith-theme > main.container-xxl > .toc-offcanvas {
 #article-outline {
     display: flex;
     flex-direction: column;
-    max-height: calc(100dvh - var(--zenith-header-height) - 60px);
+    min-height: 0;
     font-size: 13px;
     line-height: 1.55;
 }
@@ -457,16 +459,8 @@ body.zenith-theme > main.container-xxl > .toc-offcanvas {
         gap: 12px;
     }
 
-    .site-header.menu-open {
-        height: auto;
-    }
-
     .site-nav .navbar-brand {
         padding-block: 14px;
-    }
-
-    .site-nav #logo {
-        height: 36px;
     }
 
     .site-actions {

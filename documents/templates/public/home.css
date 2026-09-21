@@ -91,16 +91,20 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
 }
 
 .geometry-stage {
-    position: relative;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 16px;
     min-width: 0;
     height: clamp(540px, 30vw, 640px);
+    padding-bottom: 16px;
     background: radial-gradient(ellipse closest-side at 50% 45%, #789ac82b, #789ac800);
 }
 
 #home-geometry {
     display: block;
     width: 100%;
-    height: calc(100% - 76px);
+    height: 100%;
+    min-height: 0;
     touch-action: pan-y;
     cursor: grab;
 }
@@ -110,16 +114,15 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
 }
 
 .scene-toolbar {
-    position: absolute;
-    bottom: 16px;
-    left: 50%;
-    transform: translateX(-50%);
-    white-space: nowrap;
+    min-width: 0;
+    justify-self: center;
 }
 
 .scene-options {
     display: flex;
-    gap: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0 24px;
 }
 
 .scene-options button {
@@ -469,7 +472,6 @@ body.zenith-theme > footer {
     }
 
     .render-description {
-        max-width: 460px;
         font-size: 16px;
     }
 
@@ -479,10 +481,7 @@ body.zenith-theme > footer {
 
     .geometry-stage {
         height: 360px;
-    }
-
-    .scene-toolbar {
-        bottom: 12px;
+        padding-bottom: 12px;
     }
 
     .home-paths {

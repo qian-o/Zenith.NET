@@ -1,5 +1,6 @@
 ﻿// Reveal content once as it enters the viewport; navigation itself stays immediate.
 export function initializeMotion() {
+    const maxStaggeredItems = 4;
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
     if (preference.matches) return;
 
@@ -15,12 +16,12 @@ export function initializeMotion() {
         for (const { target, isIntersecting } of entries) {
             if (!isIntersecting) continue;
             observer.unobserve(target);
-            target.style.setProperty('--entrance-delay', `${Math.min(order++, 3) * 55}ms`);
+            target.style.setProperty('--entrance-order', Math.min(order++, maxStaggeredItems - 1));
             target.classList.add('motion-enter');
             target.addEventListener('animationend', event => {
                 if (event.target === target && event.animationName === 'zenith-reveal') {
                     target.classList.remove('motion-enter');
-                    target.style.removeProperty('--entrance-delay');
+                    target.style.removeProperty('--entrance-order');
                 }
             });
         }
@@ -31,7 +32,7 @@ export function initializeMotion() {
         observer.disconnect();
         for (const element of document.querySelectorAll('.motion-enter')) {
             element.classList.remove('motion-enter');
-            element.style.removeProperty('--entrance-delay');
+            element.style.removeProperty('--entrance-order');
         }
     };
     // Cached pages return in their completed state, without replaying an entrance.

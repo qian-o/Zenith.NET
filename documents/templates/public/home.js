@@ -10,6 +10,13 @@ export function initializeHomeScene() {
     const faces = [];
     const steps = 144;
     const sides = 12;
+    const rotationSpeed = .16;
+    const rotationAcceleration = .2;
+    const pointerSensitivity = .008;
+    const keyboardStep = .15;
+    const keyboardPauseMs = 1000;
+    const maxFrameSeconds = .05;
+    const maxPixelRatio = 2;
     let yaw = .4;
     let pitch = -.45;
     let mode = 'surface';
@@ -95,12 +102,12 @@ export function initializeHomeScene() {
 
     function tick(time) {
         frame = 0;
-        const elapsed = lastTime ? Math.min((time - lastTime) / 1000, .05) : 0;
+        const elapsed = lastTime ? Math.min((time - lastTime) / 1000, maxFrameSeconds) : 0;
         lastTime = time;
         const rotating = !preference.matches && !pointer && time >= pauseUntil;
         if (rotating) {
             // Ease back into a roughly 40-second revolution after manual input.
-            speed = Math.min(.16, speed + elapsed * .2);
+            speed = Math.min(rotationSpeed, speed + elapsed * rotationAcceleration);
             yaw = (yaw - speed * elapsed) % (Math.PI * 2);
         }
         if (dirty || rotating) draw();
@@ -139,8 +146,8 @@ export function initializeHomeScene() {
     });
     canvas.addEventListener('pointermove', event => {
         if (!pointer || pointer.id !== event.pointerId) return;
-        yaw += (event.clientX - pointer.x) * .008;
-        pitch += (event.clientY - pointer.y) * .008;
+        yaw += (event.clientX - pointer.x) * pointerSensitivity;
+        pitch += (event.clientY - pointer.y) * pointerSensitivity;
         pointer.x = event.clientX;
         pointer.y = event.clientY;
         render();
@@ -155,18 +162,18 @@ export function initializeHomeScene() {
     canvas.addEventListener('pointercancel', release);
     canvas.addEventListener('lostpointercapture', release);
     canvas.addEventListener('keydown', event => {
-        const delta = { ArrowLeft: [-.15, 0], ArrowRight: [.15, 0], ArrowUp: [0, -.15], ArrowDown: [0, .15] }[event.key];
+        const delta = { ArrowLeft: [-keyboardStep, 0], ArrowRight: [keyboardStep, 0], ArrowUp: [0, -keyboardStep], ArrowDown: [0, keyboardStep] }[event.key];
         if (!delta) return;
         event.preventDefault();
         yaw += delta[0];
         pitch += delta[1];
-        pauseUntil = performance.now() + 1000;
+        pauseUntil = performance.now() + keyboardPauseMs;
         speed = 0;
         render();
     });
     new ResizeObserver(() => {
         ({ width, height } = canvas.getBoundingClientRect());
-        ratio = Math.min(devicePixelRatio || 1, 2);
+        ratio = Math.min(devicePixelRatio || 1, maxPixelRatio);
         const pixelWidth = Math.round(width * ratio), pixelHeight = Math.round(height * ratio);
         if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
             canvas.width = pixelWidth;

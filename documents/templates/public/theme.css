@@ -67,13 +67,12 @@ html {
     margin: 0;
     padding: 0;
     background: var(--zenith-canvas);
-    overflow-x: clip;
     overflow-y: auto;
     /* Keep the centered shell stable when long and short pages switch scrollbars. */
     scrollbar-gutter: stable;
     overscroll-behavior-y: none;
     scroll-padding-top: var(--zenith-header-height);
-    scrollbar-color: #626a78 var(--zenith-canvas);
+    scrollbar-color: var(--zenith-border-hover) var(--zenith-canvas);
     scrollbar-width: thin;
 }
 

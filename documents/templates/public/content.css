@@ -8,9 +8,12 @@ article :not(pre) > code {
 }
 
 article pre {
+    --code-padding-inline: 20px;
+    --code-content-padding: 20px var(--code-padding-inline);
+    --code-header-height: 0px;
     position: relative;
     margin-block: 24px;
-    padding: 20px;
+    padding: var(--code-content-padding);
     border: 1px solid var(--zenith-border);
     border-radius: var(--zenith-radius);
     background: var(--zenith-code);
@@ -22,14 +25,15 @@ article pre {
 }
 
 article pre[data-language] {
-    padding-top: 52px;
+    --code-header-height: 36px;
+    --code-content-padding: 16px var(--code-padding-inline) 20px;
 }
 
 article pre[data-language]::before {
     content: attr(data-language);
     position: absolute;
     inset: 0 0 auto;
-    height: 36px;
+    height: var(--code-header-height);
     padding: 8px 14px;
     border-bottom: 1px solid var(--zenith-border);
     background: #22262e;
@@ -46,10 +50,21 @@ article pre[data-language]::before {
     color: var(--zenith-body);
 }
 
-/* Keep the language header and copy action outside the scrolling code body. */
-.zenith-theme article pre code.hljs:not([data-api-symbol]) {
+/* The body owns its padding so the scrollbar sits at the frame's bottom edge. */
+.zenith-theme article pre:has(> code:not([data-api-symbol])) {
+    padding: var(--code-header-height) 0 0;
+    overflow: hidden;
+}
+
+.zenith-theme article pre > code:not([data-api-symbol]) {
+    display: block;
+    padding: var(--code-content-padding);
     overflow-x: auto;
     scrollbar-width: thin;
+}
+
+.zenith-theme article pre > code:not([data-api-symbol]):focus-visible {
+    outline-offset: -2px;
 }
 
 article pre .code-action {
@@ -243,7 +258,7 @@ article code[data-api-symbol] a.code-reference:hover * {
 
 @media (max-width: 767.98px) {
     article pre {
-        padding-inline: 14px;
+        --code-padding-inline: 14px;
         font-size: 13px;
     }
 }

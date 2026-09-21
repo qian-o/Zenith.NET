@@ -95,6 +95,7 @@ export async function initializeApi() {
             filter.focus();
         });
         filter.addEventListener('keydown', event => {
+            if (event.isComposing) return;
             if (event.key === 'Escape') {
                 filter.value = '';
                 renderTypes();

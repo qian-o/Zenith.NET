@@ -6,6 +6,7 @@ export const sourceLanguage = resourceState.sourceLanguage;
 export const edition = { code: sourceLanguage };
 const preferenceKey = 'zenith-language:' + siteRoot.pathname;
 const available = resourceState.languages.filter(language => language.available);
+const resourceTimeoutMs = 8000;
 
 function savedLanguage() {
     try { return localStorage.getItem(preferenceKey); } catch { return null; }
@@ -39,7 +40,7 @@ export async function initializeLanguages() {
     edition.code = preferredLanguage();
     if (edition.code !== sourceLanguage) {
         try {
-            const response = await fetch(new URL(`locales/${edition.code}/strings.json`, siteRoot), { cache: 'no-cache', signal: AbortSignal.timeout(8000) });
+            const response = await fetch(new URL(`locales/${edition.code}/strings.json`, siteRoot), { cache: 'no-cache', signal: AbortSignal.timeout(resourceTimeoutMs) });
             if (!response.ok) throw new Error('Language resources unavailable');
             setStrings(await response.json());
         } catch {
