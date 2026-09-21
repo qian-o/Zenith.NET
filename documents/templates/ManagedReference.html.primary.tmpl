@@ -1,10 +1,31 @@
 ﻿{{!master(layout/_master.tmpl)}}
 <div class="api-reference">
-  {{>partials/api.header}}
-  {{#isNamespace}}{{>partials/api.namespace}}{{/isNamespace}}
-  {{#isEnum}}{{>partials/api.enum}}{{/isEnum}}
-  {{^isNamespace}}{{^isEnum}}{{>partials/api.type}}{{/isEnum}}{{/isNamespace}}
-  {{#remarks}}<section class="api-group"><h2 id="{{id}}_remarks" data-resource="ui.reference.remarks">{{r.ui.reference.remarks}}</h2>{{{remarks}}}</section>{{/remarks}}
-  {{#example.0}}<section class="api-group"><h2 id="{{id}}_examples" data-resource="ui.reference.examples">{{r.ui.reference.examples}}</h2>{{#example}}{{{.}}}{{/example}}</section>{{/example.0}}
-  {{^isNamespace}}{{>partials/api.seealso}}{{/isNamespace}}
+    {{>partials/api.header}}
+    {{#isNamespace}}
+        {{>partials/api.namespace}}
+    {{/isNamespace}}
+    {{#isEnum}}
+        {{>partials/api.enum}}
+    {{/isEnum}}
+    {{^isNamespace}}
+        {{^isEnum}}
+            {{>partials/api.type}}
+        {{/isEnum}}
+    {{/isNamespace}}
+    {{#remarks}}
+        <section class="api-group">
+            <h2 id="{{id}}_remarks" data-resource="ui.reference.remarks">{{r.ui.reference.remarks}}</h2>{{{remarks}}}
+        </section>
+    {{/remarks}}
+    {{#example.0}}
+        <section class="api-group">
+            <h2 id="{{id}}_examples" data-resource="ui.reference.examples">{{r.ui.reference.examples}}</h2>
+            {{#example}}
+                {{{.}}}
+            {{/example}}
+        </section>
+    {{/example.0}}
+    {{^isNamespace}}
+        {{>partials/api.seealso}}
+    {{/isNamespace}}
 </div>

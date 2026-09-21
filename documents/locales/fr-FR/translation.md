@@ -2,7 +2,7 @@
 
 ## Ressources et structure
 
-Le [dictionnaire de ressources anglais](../en-US/strings.yml) est l’unique source du texte. Les règles du projet figurent dans le [guide de maintenance de la documentation](../../authoring.md). Pour commencer une traduction, copier l’intégralité du fichier anglais dans `strings.yml`, dans ce répertoire. Conserver la première ligne `### YamlMime:Resources` et l’encodage UTF-8. Pour les mises à jour, reporter les changements de l’original sans écraser les traductions existantes. Ce fichier `translation.md` est conservé durablement et n’est pas publié sur le site.
+Le [dictionnaire de ressources anglais](../en-US/strings.yml) est l’unique source du texte. Les règles du projet figurent dans le [guide de maintenance de la documentation](../../maintenance.md). Pour commencer une traduction, copier l’intégralité du fichier anglais dans `strings.yml`, dans ce répertoire. Conserver la première ligne `### YamlMime:Resources` et l’encodage UTF-8. Pour les mises à jour, reporter les changements de l’original sans écraser les traductions existantes. Ce fichier `translation.md` est conservé durablement et n’est pas publié sur le site.
 
 La navigation, l’ordre des chapitres, les ancres, les liens, la mise en forme, le code et les images sont partagés et restent hors de `locales/`. Ne pas ajouter ici d’articles, de TOC, de modèles, de scripts ou de configuration.
 
@@ -65,21 +65,21 @@ Avant livraison, vérifier les clés et les espaces réservés. Contrôler l’a
 
 ## Terminologie
 
-| Terme anglais | Forme retenue |
-| --- | --- |
-| API / GPU / RHI | Conserver les sigles et les expliquer selon l’original |
-| barrier | barrière |
-| buffer | tampon ; conserver `Buffer` |
-| command buffer | tampon de commandes |
-| command queue | file de commandes |
-| drawable | texture de sortie de l’image en cours de rendu ; conserver `Drawable`, sans supposer qu’elle appartient à une chaîne d’échange |
-| graphics context | contexte graphique |
-| pipeline | pipeline |
-| readback | lecture de données depuis le GPU |
-| render pass | passe de rendu |
-| resource | ressource |
-| shader | shader |
-| swap chain | chaîne d’échange |
-| texture | texture |
-| timeline | ligne de temps |
-| upload | transfert de données vers le GPU |
+| Terme anglais    | Forme retenue                                                                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| API / GPU / RHI  | Conserver les sigles et les expliquer selon l’original                                                                         |
+| barrier          | barrière                                                                                                                       |
+| buffer           | tampon ; conserver `Buffer`                                                                                                    |
+| command buffer   | tampon de commandes                                                                                                            |
+| command queue    | file de commandes                                                                                                              |
+| drawable         | texture de sortie de l’image en cours de rendu ; conserver `Drawable`, sans supposer qu’elle appartient à une chaîne d’échange |
+| graphics context | contexte graphique                                                                                                             |
+| pipeline         | pipeline                                                                                                                       |
+| readback         | lecture de données depuis le GPU                                                                                               |
+| render pass      | passe de rendu                                                                                                                 |
+| resource         | ressource                                                                                                                      |
+| shader           | shader                                                                                                                         |
+| swap chain       | chaîne d’échange                                                                                                               |
+| texture          | texture                                                                                                                        |
+| timeline         | ligne de temps                                                                                                                 |
+| upload           | transfert de données vers le GPU                                                                                               |

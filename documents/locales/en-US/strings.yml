@@ -1,8 +1,10 @@
 ﻿### YamlMime:Resources
-concepts.execution.context.description: A {graphicsContext} connects the application to a GPU device through a particular
+concepts.execution.context.description:
+  A {graphicsContext} connects the application to a GPU device through a particular
   backend and provides its graphics, compute, and transfer queues. Resources used together must belong to the same
   context; buffers, textures, shaders, pipelines, and their handles cannot be bound across contexts.
-concepts.execution.context.details: '{capabilities} reports the device name and supported features. Use {rayTracingSupported}
+concepts.execution.context.details:
+  '{capabilities} reports the device name and supported features. Use {rayTracingSupported}
   and {meshShadingSupported} to check support before creating the resources for those workloads. The {link} and
   {detail} samples show these checks during initialization.'
 concepts.execution.context.details.detail: mesh shading
@@ -48,7 +50,8 @@ concepts.execution.queues.details: Separate queues allow independent workloads t
   do not necessarily correspond to independent hardware engines. Use additional queues when the work can benefit
   from overlapping execution. When one queue uses data produced by another, connect their submissions with an explicit
   dependency.
-concepts.execution.queues.guidance: Within a queue, dependent operations can also require barriers or texture transitions
+concepts.execution.queues.guidance:
+  Within a queue, dependent operations can also require barriers or texture transitions
   so that later accesses observe earlier writes. These memory dependencies are distinct from submission order; {link}
   explains how to express them.
 concepts.execution.queues.guidance.link: Synchronization
@@ -61,7 +64,8 @@ concepts.execution.queues.table.headings.workToRecord: Supported work
 concepts.execution.queues.table.transferQueue.workToRecord: Upload, download and copy work, without drawing or compute
   dispatches.
 concepts.execution.queues.title: Queue selection
-concepts.execution.recording.context: 'The queue reclaims completed command buffers for reuse. Obtain one with {queueCommandBuffer}
+concepts.execution.recording.context:
+  'The queue reclaims completed command buffers for reuse. Obtain one with {queueCommandBuffer}
   for each recording, record from one thread at a time, and submit it once. After submission, leave the buffer to
   the queue: do not modify, resubmit, or dispose it.'
 concepts.execution.recording.description: '{queueCommandBuffer} returns a {commandBuffer} with recording already
@@ -106,7 +110,8 @@ concepts.platforms.integration.details: These implementations differ in how the 
 concepts.platforms.integration.guidance: Add the integration package for your UI framework through NuGet. For Avalonia,
   use {avaloniaPackage}.
 concepts.platforms.integration.table.avalonia.integration: Avalonia
-concepts.platforms.integration.table.avalonia.presentation: Renders to a texture and downloads pixels into a {writeableBitmap}.
+concepts.platforms.integration.table.avalonia.presentation:
+  Renders to a texture and downloads pixels into a {writeableBitmap}.
   See {zenithViewCs} and {surfaceCs}.
 concepts.platforms.integration.table.headings.integration: Integration
 concepts.platforms.integration.table.headings.presentation: Presentation mechanism
@@ -129,10 +134,10 @@ concepts.platforms.integration.title: Framework and presentation path
 concepts.platforms.lifecycle.context: Use {descWidth}, {descHeight}, {descFormat}, and {descSampleCount} from the
   drawable supplied by the render event when creating matching attachments. The event texture gives the render target's
   actual dimensions; they should not be inferred from the control's layout size or display scale.
-concepts.platforms.lifecycle.description: 'The swap chain uses the framebuffer''s width and height in pixels, which
-  can differ from the window''s logical dimensions under display scaling. Defer rendering and swap-chain resizing
+concepts.platforms.lifecycle.description: "The swap chain uses the framebuffer's width and height in pixels, which
+  can differ from the window's logical dimensions under display scaling. Defer rendering and swap-chain resizing
   while either dimension is zero. Obtain {swapChainDrawable} for each frame: the swap chain owns this texture and
-  may replace it after presentation or resizing.'
+  may replace it after presentation or resizing."
 concepts.platforms.lifecycle.details: When framebuffer dimensions change, wait for outstanding GPU uses of the old
   images before calling {swapChainResize}. To replace the native presentation target, pass its new surface description
   and handles to {swapChainRefresh} after those uses finish. At shutdown, release the swap chain before destroying
@@ -150,7 +155,8 @@ concepts.platforms.ownership.description: The application owns the assigned cont
 concepts.platforms.ownership.details: Before replacing rendering resources, stop the view's frame activity and wait
   for the GPU work that uses them. Only then release the old resources or context. The application remains responsible
   for releasing the assigned context when the view is removed.
-concepts.platforms.ownership.guidance: The shared {frameSchedulerCs} runs frame handlers through the view's UI dispatcher.
+concepts.platforms.ownership.guidance:
+  The shared {frameSchedulerCs} runs frame handlers through the view's UI dispatcher.
   Keep those handlers focused on updating scene data and recording commands; lengthy CPU work there also delays
   the interface.
 concepts.platforms.ownership.title: Application and control ownership
@@ -249,7 +255,7 @@ concepts.resources.transfers.description: 'Uploads copy CPU data into a GPU reso
 concepts.resources.transfers.details: Before calling these methods, resolve any conflicting accesses on other queues.
   A wait inside the method covers its own transfer; it does not establish a dependency on another queue. The direct
   mapped-memory paths rely entirely on the caller to wait for conflicting GPU accesses.
-concepts.resources.transfers.guidance: "To submit transfers together with other GPU work, record them with {commandBufferUpload} or {commandBufferDownload}. Upload sources and download destinations have different lifetime requirements:"
+concepts.resources.transfers.guidance: 'To submit transfers together with other GPU work, record them with {commandBufferUpload} or {commandBufferDownload}. Upload sources and download destinations have different lifetime requirements:'
 concepts.resources.transfers.item: During an upload call, the library copies the source data into temporary upload
   storage, called staging memory. The GPU later reads from this storage, so the application's source pointer is
   needed only until the call returns.
@@ -282,7 +288,8 @@ concepts.resources.views.details: A resource's own handle provides its default v
   constants containing the old {link}.
 concepts.resources.views.details.link: resource handle
 concepts.resources.views.title: Views and backing resources
-concepts.shaders.binding.context: 'The compute sample assigns {inputTextureSampledHandle} to {input} and {outputTextureStorageHandle}
+concepts.shaders.binding.context:
+  'The compute sample assigns {inputTextureSampledHandle} to {input} and {outputTextureStorageHandle}
   to {output}. In Slang, the type parameter of {descriptorHandle} defines how the shader accesses each resource:'
 concepts.shaders.binding.description: '{setConstantBuffer} selects an existing buffer and byte offset from which
   the current pipeline reads its constants. Upload the parameter data into that storage before it is used by the
@@ -310,9 +317,9 @@ concepts.shaders.binding.table.samplerHandle.access: Texture sampling state
 concepts.shaders.binding.table.textureSampledHandle.access: Texture reads
 concepts.shaders.binding.table.textureStorageHandle.access: Storage-texture reads and writes
 concepts.shaders.binding.title: Constant buffers and resource handles
-concepts.shaders.compilation.description: '{zenithCompiler} compiles a named Slang entry point into a {shaderDesc}.
-  The context''s {graphicsApi} selects the required target: DXIL for DirectX 12, a Metal library for Metal, or SPIR-V
-  for Vulkan.'
+concepts.shaders.compilation.description: "{zenithCompiler} compiles a named Slang entry point into a {shaderDesc}.
+  The context's {graphicsApi} selects the required target: DXIL for DirectX 12, a Metal library for Metal, or SPIR-V
+  for Vulkan."
 concepts.shaders.compilation.details: 'With a graphics context named {context} already created, compile the triangle
   shader from the copy placed beside the executable:'
 concepts.shaders.compilation.guidance: The entry-point name {vSMain} must match the declaration in the shader file.
@@ -323,10 +330,10 @@ concepts.shaders.compilation.title: Shader compilation
 concepts.shaders.description: The C# and Slang declarations must agree on where each value is stored and how the
   shader accesses it. Vertex input layouts describe vertex attributes; shader buffer declarations describe parameters
   and arrays; resource handles identify the resources used by a shader.
-concepts.shaders.dispatch.description: '{dispatch} specifies how many thread groups to execute. The compute sample
+concepts.shaders.dispatch.description: "{dispatch} specifies how many thread groups to execute. The compute sample
   declares {numthreads}, so each group contains 16 × 16 threads. To cover an image, divide its width and height
-  by 16 and round each result up: a 17 × 19 image requires 2 × 2 groups. The shader checks each thread''s coordinates
-  and skips those outside the image.'
+  by 16 and round each result up: a 17 × 19 image requires 2 × 2 groups. The shader checks each thread's coordinates
+  and skips those outside the image."
 concepts.shaders.dispatch.details: The declared group size is available in {shaderDescThreadGroupSize} and can be
   used to calculate the group counts passed to {dispatch}. {computeShaderRendererCs} shows the complete calculation.
   After the dispatch, access to the resulting image must follow the requirements described in {link}.
@@ -335,11 +342,11 @@ concepts.shaders.dispatch.title: Thread groups
 concepts.shaders.layout.context: 'The {link} illustrate this arrangement with image dimensions and two texture handles.
   Explicit offsets specify where each field begins. The declaration uses {systemRuntimeInteropServices} and {zenithNET}:'
 concepts.shaders.layout.context.link: compute sample's C# constants
-concepts.shaders.layout.description: 'For vertex input, {inputLayout} describes each attribute''s format, offset,
+concepts.shaders.layout.description: "For vertex input, {inputLayout} describes each attribute's format, offset,
   and semantic, together with the stride between vertices. The triangle places a {float3} position before a {float4}
   color: the color starts at byte offset 12, and each vertex occupies 28 bytes. {inputLayoutAdd} calculates this
   packed layout from the element formats. If the C# struct contains padding, supply offsets and a stride that account
-  for it.'
+  for it."
 concepts.shaders.layout.details: "Constant buffers hold shader parameters, and structured buffers hold arrays of typed elements. Their layouts follow the Slang declarations rather than {inputLayout}. Match the C# field offsets, element sizes, and padding to the compiled shader layout. A C# unmanaged type can be copied as bytes, but its memory layout does not necessarily match the shader's layout; the tightly packed {float3} used for a vertex may require different alignment in a shader buffer."
 concepts.shaders.layout.guidance: Shader parameters can include resource handles as well as ordinary values. A handle
   identifies storage that already exists, so copying the handle into a constant buffer does not copy the resource's
@@ -410,22 +417,22 @@ concepts.synchronization.description: Synchronization establishes the order in w
 concepts.synchronization.layouts.context: Use {undefined} as the previous layout when the existing contents can
   be discarded, such as for a new image or an attachment that will be cleared completely. To preserve the contents
   for loading, sampling, or accumulation, use the layout from the preceding access.
-concepts.synchronization.layouts.description: 'A texture''s usage flags declare its permitted roles. {textureLayout}
+concepts.synchronization.layouts.description: "A texture's usage flags declare its permitted roles. {textureLayout}
   describes how a particular subresource, identified by a mip level and array layer, is accessed at a given point
   in the command sequence. When that access changes, record a transition. For example, the compute sample writes
-  an output texture in {storage} layout, then prepares it for sampling in a graphics pass:'
+  an output texture in {storage} layout, then prepares it for sampling in a graphics pass:"
 concepts.synchronization.layouts.details: Here, {outputTexture} was created with {sampledStorage} usage and the
   selected subresource is in {storage} layout. {default} selects mip level 0 and array layer 0. Other mip levels
   and layers are unaffected by this transition.
 concepts.synchronization.layouts.guidance: For {transition}, supply the layout from the subresource's previous use.
   The application tracks this state as it records commands and passes textures between rendering stages.
 concepts.synchronization.layouts.title: Texture layouts
-concepts.synchronization.readback.description: '{isCompleted} reports GPU completion. A recorded download has one
-  further step: copying the result from internal readback storage into the application''s destination memory.'
-concepts.synchronization.readback.details: '{commandBufferDownload} records the GPU copy into that internal storage.
+concepts.synchronization.readback.description: "{isCompleted} reports GPU completion. A recorded download has one
+  further step: copying the result from internal readback storage into the application's destination memory."
+concepts.synchronization.readback.details: "{commandBufferDownload} records the GPU copy into that internal storage.
   After the submission finishes, the library performs the CPU copy while reclaiming the completed command buffer.
-  Calling {wait} on the download''s submission value waits for the GPU and processes that queue''s completed buffers,
-  completing both steps. Keep the destination allocated, and managed memory pinned, until the call returns.'
+  Calling {wait} on the download's submission value waits for the GPU and processes that queue's completed buffers,
+  completing both steps. Keep the destination allocated, and managed memory pinned, until the call returns."
 concepts.synchronization.readback.guidance: Polling {isCompleted} alone does not perform the final CPU copy. A wait
   on another queue does not reclaim the download queue's completed buffers either. {link} describes when uploads
   and downloads use direct memory access or staging storage.
@@ -490,7 +497,8 @@ learning.concepts.resources.description: Resource usages, memory placement, and 
 learning.concepts.shaders.description: Data-layout and binding conventions for C# and Slang
 learning.concepts.synchronization.description: Dependencies, visibility, and completion
 learning.concepts.title: Core concepts
-learning.description: Start with the triangle tutorial to build your first application. Then explore resource management,
+learning.description:
+  Start with the triangle tutorial to build your first application. Then explore resource management,
   shader data, and synchronization in the concept articles, or choose a sample for the technique you want to implement.
 learning.entries.samples.action: Browse samples
 learning.entries.samples.description: C# and Slang implementations of geometry, compute, ray queries, and mesh shading
@@ -522,9 +530,9 @@ samples.description.link: First Triangle
 samples.execution.description: Run the {link} project and choose an example from its console menu.
 samples.execution.description.link: ZenithTutorials
 samples.execution.title: Running the examples
-samples.host.description: '{appCs} initializes the context, window, and swap chain. On each frame it obtains a command
+samples.host.description: "{appCs} initializes the context, window, and swap chain. On each frame it obtains a command
   buffer, invokes the selected renderer, submits the commands, and presents the result. {iRendererCs} defines the
-  renderer''s update, render, resize, and disposal operations.'
+  renderer's update, render, resize, and disposal operations."
 samples.host.details: The compute and ray tracing renderers produce offscreen textures. {texturePresenterCs} and
   {presentTextureSlang} draw those textures into the current drawable; the shared host then submits the commands
   and presents the frame.
@@ -582,7 +590,7 @@ tutorial.context.details: 'Insert the context initialization {emphasis}:'
 tutorial.context.details.emphasis: after the using directives, before {iWindowWindow}
 tutorial.context.guidance: Each branch selects a backend for the current platform and requests validation. Messages
   from {validationMessage} are printed in the console.
-tutorial.context.imports: "Add the following using directives at the top of {programCs}:"
+tutorial.context.imports: 'Add the following using directives at the top of {programCs}:'
 tutorial.context.title: Graphics context
 tutorial.description: In this tutorial, you will build a .NET console application that opens a window and draws
   a colored triangle, starting from an empty project.
@@ -591,8 +599,8 @@ tutorial.details: 'The tutorial has three checkpoints: an empty window, a solid 
 tutorial.draw.context: 'The arguments to {draw} are:'
 tutorial.draw.description: 'In the {windowRender} callback, replace {addTheTriangleDrawCommandsHereLater} with the
   following commands, between {beginRenderPass} and {endRenderPass}:'
-tutorial.draw.details: '{setPipeline} selects the shaders and render state. It must precede vertex binding because
-  the backend interprets that binding using the pipeline''s input layout.'
+tutorial.draw.details: "{setPipeline} selects the shaders and render state. It must precede vertex binding because
+  the backend interprets that binding using the pipeline's input layout."
 tutorial.draw.guidance: '{setVertexBufferVertexBuffer} binds the uploaded vertex data at byte offset 0 to input
   slot 0, corresponding to the single entry in {inputLayouts}.'
 tutorial.draw.notes: These calls record the draw commands. The existing {submitWait} submits them and waits for
@@ -634,7 +642,8 @@ tutorial.frame.details: 'Silk.NET invokes the render callback when a frame is du
 tutorial.frame.details.emphasis: before {windowRun}
 tutorial.frame.target.description: '{graphicsQueueCommandBuffer} returns a command buffer ready for recording. Recording
   defines the GPU workload; execution begins only after submission.'
-tutorial.frame.target.details: A texture layout describes the kind of access an operation requires. The first {transition}
+tutorial.frame.target.details:
+  A texture layout describes the kind of access an operation requires. The first {transition}
   prepares the drawable for use as a color attachment. Here, {default} selects mip level 0 and array layer 0, the
   drawable's base image. Specifying {undefined} allows the previous contents to be discarded because this pass clears
   the entire image.
@@ -660,7 +669,7 @@ tutorial.geometry.format.details: '{file} limits the type to {programCs}, and {l
   in declaration order. {position} contains three 32-bit floats and starts at byte offset 0; {color} contains four
   and starts at byte offset 12. Each vertex therefore occupies 28 bytes. The input layout will describe this arrangement
   so the GPU can read the fields correctly.'
-tutorial.geometry.format.imports: "Add these using directives at the top of {programCs} for the vector types and the struct layout attribute:"
+tutorial.geometry.format.imports: 'Add these using directives at the top of {programCs} for the vector types and the struct layout attribute:'
 tutorial.geometry.format.title: Vertex representation
 tutorial.geometry.title: Vertex data
 tutorial.geometry.upload.context: '{fixed} prevents the garbage collector from moving the array while its address
@@ -669,13 +678,13 @@ tutorial.geometry.upload.context: '{fixed} prevents the garbage collector from m
   keep the buffer alive until rendering has finished.'
 tutorial.geometry.upload.description: 'Store the vertices in a {buffer} so the GPU can read them during drawing.
   Add the allocation and upload immediately after the array:'
-tutorial.geometry.upload.details: 'The allocation size is {sizeofVertexVerticesLength}: three 28-byte vertices,
+tutorial.geometry.upload.details: "The allocation size is {sizeofVertexVerticesLength}: three 28-byte vertices,
   or 84 bytes. {bufferUsagesVertex} declares vertex-input access, while {cpuWriteOnly} permits direct initialization
-  by the CPU. The descriptor''s stride records the element size. The input layout defined below specifies how vertex
-  fetching interprets each attribute.'
+  by the CPU. The descriptor's stride records the element size. The input layout defined below specifies how vertex
+  fetching interprets each attribute."
 tutorial.geometry.upload.guidance: Allocation does not initialize the buffer's contents. {upload} copies the array
   to destination byte offset 0 using the source pointer and byte count supplied in the data description.
-tutorial.geometry.upload.imports: "In {programCs}, add {bufferAlias} to the using directives to distinguish the Zenith.NET buffer type from {systemBuffer}."
+tutorial.geometry.upload.imports: 'In {programCs}, add {bufferAlias} to the using directives to distinguish the Zenith.NET buffer type from {systemBuffer}.'
 tutorial.geometry.upload.notes: Add {vertexBufferDispose} immediately before {swapChainDispose} in the cleanup at
   the end of {programCs}. For larger static geometry, {link} discusses GPU-only storage and transfer uploads.
 tutorial.geometry.upload.notes.link: Resource Management
@@ -719,10 +728,11 @@ tutorial.pipeline.guidance: The pipeline's color format must match the render-pa
 tutorial.pipeline.item: '{triangleList} assembles each consecutive group of three vertices into a triangle.'
 tutorial.pipeline.notes: '{depthNone} disables depth testing and depth writes, consistent with the absence of a
   depth attachment.'
-tutorial.pipeline.reference: '{opaque} disables blending. The fragment shader''s output therefore replaces the background
-  color inside the triangle.'
+tutorial.pipeline.reference: "{opaque} disables blending. The fragment shader's output therefore replaces the background
+  color inside the triangle."
 tutorial.pipeline.title: Graphics pipeline
-tutorial.pipeline.usage: Shader objects may be released after pipeline creation. Keep the pipeline alive while rendering,
+tutorial.pipeline.usage:
+  Shader objects may be released after pipeline creation. Keep the pipeline alive while rendering,
   and add {pipelineDispose} before {vertexBufferDispose} in the cleanup.
 tutorial.presentation.title: Graphics context and presentation
 tutorial.project.context: Enable {emphasis} ({allowUnsafeBlocks}) in the project's build settings. Native calls
@@ -755,8 +765,9 @@ tutorial.requirements.title: Prerequisites
 tutorial.resize.context: 'Build and run the application again. The background should continue to fill the window
   when you resize it: each new render pass sets its viewport and scissor from the resized attachment. Keep the render
   callback in place; the triangle will be drawn inside this pass.'
-tutorial.resize.description: 'The swap chain must follow changes to the framebuffer''s size. Register a {framebufferResize}
-  callback after the render callback and before {windowRun}:'
+tutorial.resize.description:
+  "The swap chain must follow changes to the framebuffer's size. Register a {framebufferResize}
+  callback after the render callback and before {windowRun}:"
 tutorial.resize.details: Listen for {link}, which are measured in pixels, rather than changes to the window's logical
   size. If minimizing the window sets either framebuffer dimension to zero, the resize callback leaves the swap
   chain unchanged. The render callback also returns while either dimension is zero, pausing rendering until the
@@ -776,7 +787,8 @@ tutorial.shaders.compilation.description.detail: Copy if newer
 tutorial.shaders.compilation.description.emphasis: Copy to Output Directory
 tutorial.shaders.compilation.details: 'Return to {programCs} and add shader initialization after the vertex upload,
   before the render callback:'
-tutorial.shaders.compilation.guidance: '{zenithCompiler} compiles the source for {contextGraphicsApi}, and {createShader}
+tutorial.shaders.compilation.guidance:
+  '{zenithCompiler} compiles the source for {contextGraphicsApi}, and {createShader}
   creates a shader object from the compiled description. The entry-point names {vSMain} and {fSMain} select the
   two functions defined in the Slang file.'
 tutorial.shaders.compilation.title: Compiling the shaders
@@ -793,15 +805,15 @@ tutorial.shaders.fragment.details: Rasterization determines where the triangle c
   for those locations. Each fragment receives a color interpolated from the three vertex colors. {fSMain} returns
   this color, and {sVTARGET} directs the result to the first color attachment.
 tutorial.shaders.fragment.title: Fragment shading
-tutorial.shaders.guidance: '{vSInput} defines the vertex shader''s inputs. {pOSITION0} and {cOLOR0} identify the
-  attributes by semantic; the C# field names alone do not establish this mapping.'
+tutorial.shaders.guidance: "{vSInput} defines the vertex shader's inputs. {pOSITION0} and {cOLOR0} identify the
+  attributes by semantic; the C# field names alone do not establish this mapping."
 tutorial.shaders.title: Shader stages
 tutorial.shaders.vertex.description: 'Append the vertex entry point to {triangleSlang}:'
 tutorial.shaders.vertex.details: The GPU invokes this entry point for each input vertex. It adds the homogeneous
   coordinate {w} and forwards the color. After vertex processing, position is divided by w. Since w is 1 here, x,
   y, and z are unchanged and may be interpreted directly as normalized device coordinates.
 tutorial.shaders.vertex.title: Vertex shading
-tutorial.surface.description: "Specify the native presentation target {emphasis}:"
+tutorial.surface.description: 'Specify the native presentation target {emphasis}:'
 tutorial.surface.description.emphasis: after {windowCenter} and before {windowRun}
 tutorial.surface.details: The framebuffer is the window's image in pixels. {surface} describes the native presentation
   target and its dimensions, and {framebufferSize} gives the size in pixels. With display scaling, this can differ
@@ -845,7 +857,7 @@ tutorial.troubleshooting.table.window.check: Confirm the .NET project builds and
   desktop session. On Linux, check that X11 or XWayland is available.
 tutorial.troubleshooting.table.window.symptom: No window opens
 tutorial.troubleshooting.title: Troubleshooting
-tutorial.window.description: "Download {cocoaHelperCs} into the project. This helper class attaches the Metal layer to the macOS window."
+tutorial.window.description: 'Download {cocoaHelperCs} into the project. This helper class attaches the Metal layer to the macOS window.'
 tutorial.window.details: 'Replace the generated {programCs} with the code below. It uses top-level statements, which
   run in order without an explicit {main} method. Each later section will show where to add its code:'
 tutorial.window.guidance: '{graphicsAPINone} leaves graphics-context creation to Zenith.NET. {initialize} creates

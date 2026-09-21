@@ -11,10 +11,23 @@
         if (offset < value.length) parts.push({ text: value.slice(offset) });
         return parts;
     };
-    api.placeholders = value => [...new Set(api.parts(value).filter(part => part.slot).map(part => part.slot))].sort();
-    api.format = (value, slots) => api.parts(value).map(part => {
-        if (part.text !== undefined) return part.text;
-        if (!Object.prototype.hasOwnProperty.call(slots, part.slot)) throw new Error(`Missing resource placeholder: ${part.slot}`);
-        return slots[part.slot];
-    }).join('');
+    api.placeholders = value =>
+        [
+            ...new Set(
+                api
+                    .parts(value)
+                    .filter(part => part.slot)
+                    .map(part => part.slot)
+            )
+        ].sort();
+    api.format = (value, slots) =>
+        api
+            .parts(value)
+            .map(part => {
+                if (part.text !== undefined) return part.text;
+                if (!Object.prototype.hasOwnProperty.call(slots, part.slot))
+                    throw new Error(`Missing resource placeholder: ${part.slot}`);
+                return slots[part.slot];
+            })
+            .join('');
 })(typeof exports === 'object' ? exports : (globalThis.zenithResourceFormat = {}));

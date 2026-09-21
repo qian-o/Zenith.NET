@@ -3,12 +3,12 @@
     --diagram-line: #adc6e7;
     --diagram-light: #edf6ff;
     --diagram-duration: 1500ms;
-    --diagram-ease: cubic-bezier(.35, 0, .25, 1);
+    --diagram-ease: cubic-bezier(0.35, 0, 0.25, 1);
     pointer-events: none;
 }
 
 .card-art .art-wire {
-    --art-rest-opacity: .7;
+    --art-rest-opacity: 0.7;
     fill: none;
     stroke: var(--diagram-line);
     stroke-width: 1.35;
@@ -16,7 +16,7 @@
 }
 
 .card-art .art-detail {
-    --art-rest-opacity: .22;
+    --art-rest-opacity: 0.22;
     fill: none;
     stroke: var(--diagram-line);
     stroke-width: 1;
@@ -28,14 +28,14 @@
 }
 
 .triangle-diagram .art-detail {
-    --art-rest-opacity: .35;
+    --art-rest-opacity: 0.35;
     stroke-width: 1.5;
 }
 
 .card-art .art-face {
     fill: #b8d8ff;
     stroke: none;
-    opacity: .055;
+    opacity: 0.055;
 }
 
 .card-art .art-node {
@@ -49,7 +49,7 @@
     fill: none;
     stroke: var(--diagram-line);
     stroke-width: 3.5;
-    opacity: .45;
+    opacity: 0.45;
 }
 
 .card-art .art-flow {
@@ -99,8 +99,9 @@
         stroke-dashoffset: 100;
     }
 
-    18%, 65% {
-        opacity: .95;
+    18%,
+    65% {
+        opacity: 0.95;
     }
 
     100% {
@@ -110,7 +111,8 @@
 }
 
 @keyframes diagram-node {
-    0%, 100% {
+    0%,
+    100% {
         transform: scale(1);
         filter: none;
     }
@@ -122,32 +124,37 @@
 }
 
 @keyframes diagram-face {
-    0%, 100% {
-        opacity: .055;
+    0%,
+    100% {
+        opacity: 0.055;
     }
 
     48% {
-        opacity: .2;
+        opacity: 0.2;
     }
 }
 
 @keyframes diagram-mark {
-    0%, 100% {
+    0%,
+    100% {
         opacity: var(--art-rest-opacity);
     }
 
     48% {
-        opacity: .95;
+        opacity: 0.95;
     }
 }
 
 @keyframes diagram-cursor {
-    0%, 35%, 100% {
+    0%,
+    35%,
+    100% {
         opacity: 0;
     }
 
-    50%, 78% {
-        opacity: .9;
+    50%,
+    78% {
+        opacity: 0.9;
     }
 }
 
@@ -199,8 +206,11 @@
     transition-duration: var(--zenith-press-duration);
 }
 
-#primary-navigation .nav-link:active, .build-button.secondary:active,
-.search-launcher:active, .source-link:active, .scene-options button:active {
+#primary-navigation .nav-link:active,
+.build-button.secondary:active,
+.search-launcher:active,
+.source-link:active,
+.scene-options button:active {
     color: #92afd3;
 }
 
@@ -219,19 +229,23 @@
     border-color: #586a82;
 }
 
-.concept-list > a:active, #toc li > a:active {
+.concept-list > a:active,
+#toc li > a:active {
     background: #1a2432;
 }
 
-.search-shortcuts > a:active, #site-search-results a:active {
+.search-shortcuts > a:active,
+#site-search-results a:active {
     background: #1c2838;
 }
 
-#search-close:hover, .search-more:hover {
+#search-close:hover,
+.search-more:hover {
     color: #fff;
 }
 
-#search-close:active, .search-more:active {
+#search-close:active,
+.search-more:active {
     color: #92afd3;
 }
 
@@ -251,7 +265,7 @@
 }
 
 :is(.build-button, .path-card, .learning-entry)::before {
-    content: "";
+    content: '';
     position: absolute;
     inset: 0;
     z-index: -1;
@@ -262,12 +276,15 @@
 
 @media (hover: hover) {
     :is(.build-button, .path-card, .learning-entry):hover::before {
-        animation: zenith-sweep 620ms cubic-bezier(.2, .65, .3, 1);
+        animation: zenith-sweep 620ms cubic-bezier(0.2, 0.65, 0.3, 1);
     }
 }
 
 .concept-list > a > i:first-child {
-    transition: background-color 240ms, border-color 240ms, color 240ms;
+    transition:
+        background-color 240ms,
+        border-color 240ms,
+        color 240ms;
 }
 
 .concept-list > a:is(:hover, :focus-visible) > i:first-child {
@@ -275,7 +292,7 @@
 }
 
 .motion-enter {
-    animation: zenith-reveal 480ms cubic-bezier(.16, 1, .3, 1) var(--entrance-delay, 0ms) backwards;
+    animation: zenith-reveal 480ms cubic-bezier(0.16, 1, 0.3, 1) var(--entrance-delay, 0ms) backwards;
 }
 
 @keyframes zenith-sweep {
@@ -299,7 +316,7 @@
 @keyframes zenith-panel-in {
     from {
         opacity: 0;
-        transform: translateY(-10px) scale(.98);
+        transform: translateY(-10px) scale(0.98);
     }
 
     to {
@@ -311,7 +328,7 @@
 @keyframes zenith-panel-out {
     to {
         opacity: 0;
-        transform: translateY(-6px) scale(.99);
+        transform: translateY(-6px) scale(0.99);
     }
 }
 
@@ -334,9 +351,11 @@
         scroll-behavior: auto;
     }
 
-    *, *::before, *::after, *::backdrop {
+    *,
+    *::before,
+    *::after,
+    *::backdrop {
         animation: none !important;
         transition: none !important;
     }
 }
-

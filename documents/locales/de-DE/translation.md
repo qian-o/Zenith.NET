@@ -2,7 +2,7 @@
 
 ## Ressourcen und Aufbau
 
-Das [englische Ressourcenwörterbuch](../en-US/strings.yml) ist die einzige Textquelle. Die Projektregeln stehen im [Leitfaden zur Dokumentationspflege](../../authoring.md). Für eine neue Übersetzung die vollständige englische Datei als `strings.yml` in dieses Verzeichnis kopieren. Die erste Zeile `### YamlMime:Resources` und die UTF-8-Kodierung beibehalten. Spätere Änderungen mit dem englischen Stand abgleichen, ohne vorhandene Übersetzungen zu überschreiben. Diese `translation.md` bleibt dauerhaft erhalten und wird nicht auf der Website veröffentlicht.
+Das [englische Ressourcenwörterbuch](../en-US/strings.yml) ist die einzige Textquelle. Die Projektregeln stehen im [Leitfaden zur Dokumentationspflege](../../maintenance.md). Für eine neue Übersetzung die vollständige englische Datei als `strings.yml` in dieses Verzeichnis kopieren. Die erste Zeile `### YamlMime:Resources` und die UTF-8-Kodierung beibehalten. Spätere Änderungen mit dem englischen Stand abgleichen, ohne vorhandene Übersetzungen zu überschreiben. Diese `translation.md` bleibt dauerhaft erhalten und wird nicht auf der Website veröffentlicht.
 
 Navigation, Kapitelreihenfolge, Anker, Links, Formatierung, Code und Bilder werden außerhalb von `locales/` gemeinsam gepflegt. Hier keine Artikel, TOCs, Vorlagen, Skripte oder Konfigurationen anlegen.
 
@@ -65,21 +65,21 @@ Vor der Abgabe Schlüssel und Platzhalter abgleichen. Startseite, Learn-Einstieg
 
 ## Terminologie
 
-| Englischer Begriff | Festgelegte Form |
-| --- | --- |
-| API / GPU / RHI | Abkürzungen beibehalten; nach dem Original erläutern |
-| barrier | Barriere |
-| buffer | Puffer; `Buffer` bleibt unverändert |
-| command buffer | Befehlspuffer |
-| command queue | Befehlswarteschlange |
-| drawable | Ausgabetextur des aktuellen Frames; `Drawable` bleibt unverändert, nicht grundsätzlich als Swapchain-Bild bezeichnen |
-| graphics context | Grafikkontext |
-| pipeline | Pipeline |
-| readback | Rücklesen von GPU-Daten |
-| render pass | Renderpass |
-| resource | Ressource |
-| shader | Shader |
-| swap chain | Swapchain |
-| texture | Textur |
-| timeline | Timeline |
-| upload | Hochladen von Daten |
+| Englischer Begriff | Festgelegte Form                                                                                                     |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| API / GPU / RHI    | Abkürzungen beibehalten; nach dem Original erläutern                                                                 |
+| barrier            | Barriere                                                                                                             |
+| buffer             | Puffer; `Buffer` bleibt unverändert                                                                                  |
+| command buffer     | Befehlspuffer                                                                                                        |
+| command queue      | Befehlswarteschlange                                                                                                 |
+| drawable           | Ausgabetextur des aktuellen Frames; `Drawable` bleibt unverändert, nicht grundsätzlich als Swapchain-Bild bezeichnen |
+| graphics context   | Grafikkontext                                                                                                        |
+| pipeline           | Pipeline                                                                                                             |
+| readback           | Rücklesen von GPU-Daten                                                                                              |
+| render pass        | Renderpass                                                                                                           |
+| resource           | Ressource                                                                                                            |
+| shader             | Shader                                                                                                               |
+| swap chain         | Swapchain                                                                                                            |
+| texture            | Textur                                                                                                               |
+| timeline           | Timeline                                                                                                             |
+| upload             | Hochladen von Daten                                                                                                  |

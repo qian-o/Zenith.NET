@@ -16,23 +16,13 @@
   "build": {
     "content": [
       {
-        "files": [
-          "api/**/*.{md,yml}",
-          "learn/**/*.md",
-          "index.md",
-          "toc.yml",
-          "locales/*/strings.yml"
-        ]
+        "files": ["api/**/*.{md,yml}", "learn/**/*.md", "index.md", "toc.yml", "locales/*/strings.yml"]
       }
     ],
     "resource": {
       "files": "images/**"
     },
-    "template": [
-      "default",
-      "modern",
-      "templates"
-    ],
+    "template": ["default", "modern", "templates"],
     "fileMetadata": {
       "_section": {
         "learn/**": "learn",

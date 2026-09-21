@@ -27,24 +27,34 @@ export async function initializeApi() {
         const response = await fetch(tocUrl, { cache: 'no-cache' });
         if (!response.ok) throw new Error('API navigation could not be loaded.');
         const documentToc = new DOMParser().parseFromString(await response.text(), 'text/html');
-        const readLink = link => ({ name: link.textContent.trim(), href: pageUrl(new URL(link.getAttribute('href'), tocUrl).href) });
-        const namespaces = [...documentToc.querySelectorAll('.nav.level1 > li')].map(item => {
-            const link = item.querySelector(':scope > a');
-            return { ...readLink(link), types: [...item.querySelectorAll(':scope > ul > li > a')].map(readLink) };
-        }).sort((a, b) => {
-            const rank = name => name === 'Zenith.NET' ? 0 : name.startsWith('Zenith.NET.') ? 1 : 2;
-            return rank(a.name) - rank(b.name) || a.name.localeCompare(b.name);
+        const readLink = link => ({
+            name: link.textContent.trim(),
+            href: pageUrl(new URL(link.getAttribute('href'), tocUrl).href)
         });
+        const namespaces = [...documentToc.querySelectorAll('.nav.level1 > li')]
+            .map(item => {
+                const link = item.querySelector(':scope > a');
+                return { ...readLink(link), types: [...item.querySelectorAll(':scope > ul > li > a')].map(readLink) };
+            })
+            .sort((a, b) => {
+                const rank = name => (name === 'Zenith.NET' ? 0 : name.startsWith('Zenith.NET.') ? 1 : 2);
+                return rank(a.name) - rank(b.name) || a.name.localeCompare(b.name);
+            });
         const current = href => new URL(href).pathname === location.pathname;
-        const activeNamespace = namespaces.find(item => current(item.href) || item.types.some(type => current(type.href))) || namespaces[0];
+        const activeNamespace =
+            namespaces.find(item => current(item.href) || item.types.some(type => current(type.href))) || namespaces[0];
         if (!activeNamespace) throw new Error('No namespaces were generated.');
-        const allTypes = namespaces.flatMap(namespace => namespace.types.map(type => ({ ...type, namespace: namespace.name })));
-        picker.replaceChildren(...namespaces.map(item => {
-            const option = document.createElement('option');
-            option.value = item.href;
-            option.textContent = item.name;
-            return option;
-        }));
+        const allTypes = namespaces.flatMap(namespace =>
+            namespace.types.map(type => ({ ...type, namespace: namespace.name }))
+        );
+        picker.replaceChildren(
+            ...namespaces.map(item => {
+                const option = document.createElement('option');
+                option.value = item.href;
+                option.textContent = item.name;
+                return option;
+            })
+        );
         picker.disabled = false;
         filter.disabled = false;
         picker.value = activeNamespace.href;
@@ -107,10 +117,12 @@ export async function initializeApi() {
         const active = list.querySelector('[aria-current="page"]');
         if (active) scroller.scrollTop = active.offsetTop - (scroller.clientHeight - active.offsetHeight) / 2;
         // Apply page-owned state after history restores the browser's form values.
-        window.addEventListener('pageshow', () => setTimeout(() => {
-            picker.value = activeNamespace.href;
-            renderTypes(false);
-        }, 0));
+        window.addEventListener('pageshow', () =>
+            setTimeout(() => {
+                picker.value = activeNamespace.href;
+                renderTypes(false);
+            }, 0)
+        );
 
         const grid = document.getElementById('api-namespace-grid');
         if (grid) {

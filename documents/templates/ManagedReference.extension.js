@@ -16,7 +16,9 @@ function prepareSignature(syntax, strings) {
         };
     }
     syntax.apiParameterDescriptions = (syntax.parameters || []).filter(parameter => parameter.description?.trim());
-    syntax.apiTypeParameterDescriptions = (syntax.typeParameters || []).filter(parameter => parameter.description?.trim());
+    syntax.apiTypeParameterDescriptions = (syntax.typeParameters || []).filter(parameter =>
+        parameter.description?.trim()
+    );
 }
 
 function uidSuffix(uid) {
@@ -32,19 +34,22 @@ exports.postTransform = function (model) {
     model.apiHasMemberFinder = !model.isNamespace;
     model.apiSeeAlsoId = 'seealso';
     const hasRelationships = relationshipKeys.some(key => model[key]?.length > 0);
-    model.apiHasTypeDetails = !model.isNamespace && (hasRelationships || !!model.namespace?.uid || !!model.assemblies?.length);
+    model.apiHasTypeDetails =
+        !model.isNamespace && (hasRelationships || !!model.namespace?.uid || !!model.assemblies?.length);
     model.apiTypeDetailsKey = 'ui.reference.' + (hasRelationships ? 'relationships' : 'metadata');
     model.apiTypeDetailsLabel = resources.get(strings, model.apiTypeDetailsKey);
     prepareSignature(model.syntax, strings);
     if (model.syntax) {
         model.syntax.apiBaseReferences = [...(model.inheritance || []), ...(model.implements || [])]
-            .map(type => ({ type: type.specName?.[0]?.value })).filter(reference => reference.type);
+            .map(type => ({ type: type.specName?.[0]?.value }))
+            .filter(reference => reference.type);
     }
 
     const anchors = new Set([model.id]);
     const overloads = new Set();
     for (const group of model.children || []) {
-        group.apiTitleKey = 'ui.reference.' + (model.isEnum ? 'values' : group.id === 'eii' ? 'implementations' : group.id);
+        group.apiTitleKey =
+            'ui.reference.' + (model.isEnum ? 'values' : group.id === 'eii' ? 'implementations' : group.id);
         group.apiTitle = resources.get(strings, group.apiTitleKey);
         for (const item of group.children || []) {
             item.apiName = item.name?.[0]?.value || item.uid;

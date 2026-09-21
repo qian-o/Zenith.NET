@@ -1,6 +1,10 @@
 ﻿const format = require('./public/resource-format.js');
 const keyPattern = /^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+$/;
-const escape = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+const escape = value =>
+    String(value).replace(
+        /[&<>"']/g,
+        character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]
+    );
 const json = value => JSON.stringify(value).replace(/</g, '\\u003c');
 const setting = (model, key) => model[key] ?? model._metadata?.[key];
 
@@ -30,7 +34,8 @@ exports.get = function (dictionary, key) {
 exports.validate = function (model) {
     const code = model._key.split('/').at(-2);
     const languages = setting(model, '_languages');
-    if (!languages.some(language => language.code === code)) throw new Error(`Unregistered dictionary language: ${code}`);
+    if (!languages.some(language => language.code === code))
+        throw new Error(`Unregistered dictionary language: ${code}`);
     const source = exports.source(model);
     const dictionary = exports.dictionary(model);
     for (const key of new Set([...Object.keys(source), ...Object.keys(dictionary)])) {
@@ -66,7 +71,9 @@ exports.prepare = function (model) {
     model._resourceState = json({
         sourceLanguage: model._sourceLanguage,
         languages: model._languages,
-        placeholders: Object.fromEntries(Object.entries(source).map(([key, value]) => [key, format.placeholders(value)])),
+        placeholders: Object.fromEntries(
+            Object.entries(source).map(([key, value]) => [key, format.placeholders(value)])
+        ),
         strings: Object.fromEntries(interfaceEntries)
     });
     return source;
@@ -80,7 +87,8 @@ exports.bind = function (html, dictionary, templates) {
     for (const match of html.matchAll(/<\/?(resource|slot)\b[^>]*>/g)) {
         stack.at(-1).children.push(html.slice(offset, match.index));
         if (match[0].startsWith('</')) {
-            if (stack.length === 1 || stack.at(-1).type !== match[1]) throw new Error('Unbalanced resource binding tags');
+            if (stack.length === 1 || stack.at(-1).type !== match[1])
+                throw new Error('Unbalanced resource binding tags');
             stack.pop();
         } else {
             const name = /(?:key|name)="([^"]+)"/.exec(match[0])?.[1];
@@ -107,14 +115,24 @@ exports.bind = function (html, dictionary, templates) {
         if (JSON.stringify(Object.keys(slots).sort()) !== JSON.stringify(format.placeholders(value))) {
             throw new Error(`Binding slots differ: ${node.name}`);
         }
-        const content = format.parts(value).map(part => part.text !== undefined ? escape(part.text) : slots[part.slot]).join('');
+        const content = format
+            .parts(value)
+            .map(part => (part.text !== undefined ? escape(part.text) : slots[part.slot]))
+            .join('');
         let reference = '';
         if (Object.keys(slots).length) {
             const id = `resource-slots-${templates.length}`;
-            templates.push(`<template id="${id}">${Object.entries(slots).map(([name, content]) => `<span data-slot="${name}">${content}</span>`).join('')}</template>`);
+            templates.push(
+                `<template id="${id}">${Object.entries(slots)
+                    .map(([name, content]) => `<span data-slot="${name}">${content}</span>`)
+                    .join('')}</template>`
+            );
             reference = ` data-resource-slots="${id}"`;
         }
         return `<doc-text data-resource="${node.name}"${reference}>${content}</doc-text>`;
     };
-    return renderChildren(root).replace(/(aria-label|title|placeholder|alt)="@([^"]+)"/g, (_, attribute, key) => `${attribute}="${escape(exports.get(dictionary, key))}"`);
+    return renderChildren(root).replace(
+        /(aria-label|title|placeholder|alt)="@([^"]+)"/g,
+        (_, attribute, key) => `${attribute}="${escape(exports.get(dictionary, key))}"`
+    );
 };

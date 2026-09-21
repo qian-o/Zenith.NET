@@ -1,9 +1,9 @@
 ﻿/* Zenith API reference: generated content, site-owned presentation. */
-body.zenith-theme[data-section="api"] > main > .content {
+body.zenith-theme[data-section='api'] > main > .content {
     padding-block: 40px 72px;
 }
 
-body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
+body.zenith-theme[data-section='api'] > main > .toc-offcanvas {
     padding: 40px 22px 24px 0;
 }
 
@@ -64,16 +64,21 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     outline: none;
 }
 
-.api-namespace-picker, .api-type-search {
-    transition: box-shadow var(--zenith-state-duration), background-color var(--zenith-state-duration);
+.api-namespace-picker,
+.api-type-search {
+    transition:
+        box-shadow var(--zenith-state-duration),
+        background-color var(--zenith-state-duration);
 }
 
-.api-namespace-picker:hover, .api-type-search:hover {
+.api-namespace-picker:hover,
+.api-type-search:hover {
     background: var(--zenith-control-bg);
 }
 
 /* The focus edge stays inside the field, clear of the scrolling sidebar's clip. */
-.api-namespace-picker:focus-within, .api-type-search:focus-within {
+.api-namespace-picker:focus-within,
+.api-type-search:focus-within {
     box-shadow: inset 0 0 0 2px var(--zenith-focus);
 }
 
@@ -116,7 +121,8 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     color: var(--zenith-muted);
 }
 
-.api-type-search input::-webkit-search-cancel-button, .api-type-search input::-webkit-search-decoration {
+.api-type-search input::-webkit-search-cancel-button,
+.api-type-search input::-webkit-search-decoration {
     display: none;
 }
 
@@ -183,7 +189,9 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     line-height: 1.5;
     text-decoration: none;
     overflow-wrap: anywhere;
-    transition: background-color var(--zenith-state-duration), color var(--zenith-state-duration);
+    transition:
+        background-color var(--zenith-state-duration),
+        color var(--zenith-state-duration);
 }
 
 #api-type-list a:hover {
@@ -224,7 +232,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     font-size: clamp(30px, 3.1vw, 46px);
     font-weight: 600;
     line-height: 1.15;
-    letter-spacing: -.045em;
+    letter-spacing: -0.045em;
     overflow-wrap: anywhere;
 }
 
@@ -269,7 +277,8 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     background: var(--zenith-surface);
 }
 
-.api-reference pre, .api-reference pre[data-language] {
+.api-reference pre,
+.api-reference pre[data-language] {
     margin: 14px 0;
     padding: 15px 44px 15px 16px;
     border: 1px solid var(--zenith-border);
@@ -300,7 +309,8 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     background: none;
 }
 
-.api-declaration pre > code, .api-member > pre > code {
+.api-declaration pre > code,
+.api-member > pre > code {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
@@ -323,8 +333,10 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     font-size: 15px;
     line-height: 1;
     text-decoration: none;
-    opacity: .45;
-    transition: opacity var(--zenith-state-duration), background-color var(--zenith-state-duration);
+    opacity: 0.45;
+    transition:
+        opacity var(--zenith-state-duration),
+        background-color var(--zenith-state-duration);
 }
 
 .api-reference .api-source {
@@ -339,13 +351,15 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     opacity: 1;
 }
 
-.api-reference .api-source:hover, .api-reference :is(.api-declaration, .api-member) > pre .code-action:hover {
+.api-reference .api-source:hover,
+.api-reference :is(.api-declaration, .api-member) > pre .code-action:hover {
     background: var(--zenith-hover);
 }
 
 @media (hover: none) {
-    .api-reference .api-source, .api-reference :is(.api-declaration, .api-member) > pre .code-action {
-        opacity: .8;
+    .api-reference .api-source,
+    .api-reference :is(.api-declaration, .api-member) > pre .code-action {
+        opacity: 0.8;
     }
 }
 
@@ -389,7 +403,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 .api-reference summary::after {
-    content: "+";
+    content: '+';
     flex-shrink: 0;
     width: 20px;
     color: #c4daf6;
@@ -460,7 +474,8 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     font-size: 12px;
 }
 
-.api-relation ul, .api-related ul {
+.api-relation ul,
+.api-related ul {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
@@ -513,11 +528,12 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     border: 0;
     font-size: 22px;
     font-weight: 550;
-    letter-spacing: -.5px;
+    letter-spacing: -0.5px;
 }
 
 /* Namespace directories use one dense, scannable grid. */
-.api-type-grid, .api-enum-values {
+.api-type-grid,
+.api-enum-values {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0;
@@ -546,11 +562,13 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     pointer-events: auto;
 }
 
-.api-type-entry, .api-enum-value {
+.api-type-entry,
+.api-enum-value {
     box-shadow: inset -1px -1px 0 var(--zenith-border);
 }
 
-.api-type-entry:hover, .api-type-entry:focus-within {
+.api-type-entry:hover,
+.api-type-entry:focus-within {
     background: var(--zenith-hover);
 }
 
@@ -564,7 +582,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 .api-type-entry > a::after {
-    content: "";
+    content: '';
     position: absolute;
     inset: 0;
 }
@@ -629,12 +647,13 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     background: var(--zenith-surface);
 }
 
-.api-member:target, .api-member:has(:target) {
+.api-member:target,
+.api-member:has(:target) {
     border-color: var(--zenith-focus);
 }
 
 /* Focus from the finder belongs to the member block, not a box around static text. */
-.api-reference :is(.api-member-heading h3, .api-enum-value h3)[tabindex="-1"]:focus {
+.api-reference :is(.api-member-heading h3, .api-enum-value h3)[tabindex='-1']:focus {
     outline: none;
 }
 
@@ -666,7 +685,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     margin: 0;
     color: var(--zenith-text);
     font: 550 17px/1.5 var(--bs-font-monospace);
-    letter-spacing: -.04em;
+    letter-spacing: -0.04em;
     overflow-wrap: anywhere;
 }
 
@@ -703,7 +722,9 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     font-size: 13px;
 }
 
-.api-signature-section, .api-member-notes, .api-related {
+.api-signature-section,
+.api-member-notes,
+.api-related {
     margin-top: 18px;
 }
 
@@ -867,7 +888,9 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     color: var(--zenith-action);
     font: 500 12px/1.5 var(--bs-body-font-family);
     cursor: pointer;
-    transition: color var(--zenith-state-duration), background-color var(--zenith-state-duration);
+    transition:
+        color var(--zenith-state-duration),
+        background-color var(--zenith-state-duration);
 }
 
 .api-member-launcher:focus-visible {
@@ -891,11 +914,13 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     font: 10px/1.5 var(--bs-font-monospace);
 }
 
-.api-mobile-tools, .api-menu-member {
+.api-mobile-tools,
+.api-menu-member {
     display: none;
 }
 
-.api-menu-member kbd, .api-mobile-tools .api-member-launcher kbd {
+.api-menu-member kbd,
+.api-mobile-tools .api-member-launcher kbd {
     display: none;
 }
 
@@ -906,17 +931,19 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 @media (min-width: 768px) and (max-width: 999.98px) {
-    .api-type-grid, .api-enum-values, .api-start-grid {
+    .api-type-grid,
+    .api-enum-values,
+    .api-start-grid {
         grid-template-columns: 1fr;
     }
 }
 
 @media (max-width: 767.98px) {
-    body.zenith-theme[data-section="api"] > main > .content {
+    body.zenith-theme[data-section='api'] > main > .content {
         padding-top: 0;
     }
 
-    body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
+    body.zenith-theme[data-section='api'] > main > .toc-offcanvas {
         padding: 0;
     }
 
@@ -979,7 +1006,9 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
 }
 
 @media (max-width: 479.98px) {
-    .api-type-grid, .api-enum-values, .api-namespace-grid {
+    .api-type-grid,
+    .api-enum-values,
+    .api-namespace-grid {
         grid-template-columns: 1fr;
     }
 

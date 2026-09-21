@@ -4,7 +4,7 @@ article :not(pre) > code {
     border-radius: 4px;
     background: var(--zenith-graphite);
     color: var(--zenith-text);
-    font-size: .875em;
+    font-size: 0.875em;
 }
 
 article pre {
@@ -18,7 +18,9 @@ article pre {
     font-size: 14px;
     line-height: 1.65;
     scrollbar-width: thin;
-    box-shadow: 0 8px 24px rgb(0 0 0 / 12%), inset 0 1px rgb(255 255 255 / 3%);
+    box-shadow:
+        0 8px 24px rgb(0 0 0 / 12%),
+        inset 0 1px rgb(255 255 255 / 3%);
 }
 
 article pre[data-language] {
@@ -199,18 +201,22 @@ article .xref {
 }
 
 /* References in prose and code keep the same meaning on API and tutorial pages. */
-article code a.code-reference, article a.xref > code {
+article code a.code-reference,
+article a.xref > code {
     color: var(--zenith-code-link);
     font-weight: 500;
     text-decoration: none;
-    transition: color var(--zenith-state-duration), background-color var(--zenith-state-duration);
+    transition:
+        color var(--zenith-state-duration),
+        background-color var(--zenith-state-duration);
 }
 
 .zenith-theme article code a.code-reference * {
     color: inherit;
 }
 
-article code a.code-reference:hover, article a.xref:hover > code {
+article code a.code-reference:hover,
+article a.xref:hover > code {
     color: #fff;
     background: #2d3b4c;
 }
@@ -233,7 +239,6 @@ article code[data-api-symbol] a.code-reference:hover,
 article code[data-api-symbol] a.code-reference:hover * {
     color: #fff;
 }
-
 
 @media (max-width: 767.98px) {
     article pre {

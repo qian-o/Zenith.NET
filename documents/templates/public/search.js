@@ -8,7 +8,10 @@ const resultsPerPage = 30;
 const excerptLength = 160;
 
 function pageTitles(items) {
-    const titles = new Map([['index.html', 'home.title'], ['api/index.html', 'reference.title']]);
+    const titles = new Map([
+        ['index.html', 'home.title'],
+        ['api/index.html', 'reference.title']
+    ]);
     const visit = item => {
         const href = item.topicHref || item.href;
         if (href && item.resourceKey?.endsWith('.title')) titles.set(href, item.resourceKey);
@@ -22,7 +25,9 @@ async function loadPageCatalog() {
     const response = await fetch(new URL('index.json', siteRoot), { cache: 'no-cache' });
     if (!response.ok) throw new Error('Page index unavailable');
     const index = await response.json();
-    return Object.keys(index).sort().map(key => index[key]);
+    return Object.keys(index)
+        .sort()
+        .map(key => index[key]);
 }
 
 // Custom search presentation using DocFX's generated index and search worker.
@@ -45,13 +50,20 @@ export function initializeSearch() {
     let hits = [];
     let shown = 0;
     let closeRequest;
-    const normalize = text => String(text || '').normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
+    const normalize = text =>
+        String(text || '')
+            .normalize('NFKD')
+            .replace(/\p{M}/gu, '')
+            .toLowerCase();
 
     function rememberSearch(open = dialog.open) {
-        history.replaceState({
-            ...history.state,
-            zenithSearch: { open, query: input.value }
-        }, '');
+        history.replaceState(
+            {
+                ...history.state,
+                zenithSearch: { open, query: input.value }
+            },
+            ''
+        );
     }
 
     const shortcut = isApplePlatform ? '⌘ K' : 'Ctrl K';
@@ -74,14 +86,24 @@ export function initializeSearch() {
             const terms = normalizedQuery.split(/\s+/).filter(Boolean);
             const matches = localEntries
                 .filter(item => terms.every(term => item.body.includes(term)))
-                .map(item => ({ page: item.page, score: item.title === normalizedQuery ? terms.length + 1 : terms.filter(term => item.title.includes(term)).length }))
+                .map(item => ({
+                    page: item.page,
+                    score:
+                        item.title === normalizedQuery
+                            ? terms.length + 1
+                            : terms.filter(term => item.title.includes(term)).length
+                }))
                 .sort((a, b) => b.score - a.score)
                 .map(item => item.page);
             showResults(query, matches);
             return;
         }
         // Use the same separators as DocFX's index for filenames and qualified API names.
-        const terms = query.split(/[\s\-.()]+/).filter(Boolean).map(term => '+' + term.replace(/[+\-:^~*\\]/g, '\\$&')).join(' ');
+        const terms = query
+            .split(/[\s\-.()]+/)
+            .filter(Boolean)
+            .map(term => '+' + term.replace(/[+\-:^~*\\]/g, '\\$&'))
+            .join(' ');
         if (!terms) return showResults(query, []);
         pendingQueries.push(query);
         worker.postMessage({ q: terms });
@@ -91,7 +113,9 @@ export function initializeSearch() {
         hits = matches;
         shown = 0;
         results.replaceChildren();
-        status.textContent = hits.length ? t('ui.search.resultCount', { count: hits.length }) : t('ui.search.empty', { query });
+        status.textContent = hits.length
+            ? t('ui.search.resultCount', { count: hits.length })
+            : t('ui.search.empty', { query });
         appendResults();
     }
 
@@ -109,14 +133,23 @@ export function initializeSearch() {
             link.setAttribute('data-search-item', '');
             heading.className = 'search-result-heading';
             title.textContent = hit.title.replace(/\s*\|\s*Zenith\.NET\s*$/, '');
-            category.textContent = apiResult ? 'API' : path === 'index.html' ? t('ui.navigation.home') : t('learning.title');
+            category.textContent = apiResult
+                ? 'API'
+                : path === 'index.html'
+                  ? t('ui.navigation.home')
+                  : t('learning.title');
             heading.append(title, category);
             link.append(heading);
             if (apiResult || hit.summary) {
                 const excerpt = document.createElement('p');
                 // API results identify the fully qualified type, without indexing UI labels into the preview.
                 let text = apiResult
-                    ? path === 'api/index.html' ? t('ui.api.browse') : decodeURIComponent(new URL(hit.href, siteRoot).pathname.split('/').pop()).replace(/\.html$/, '')
+                    ? path === 'api/index.html'
+                        ? t('ui.api.browse')
+                        : decodeURIComponent(new URL(hit.href, siteRoot).pathname.split('/').pop()).replace(
+                              /\.html$/,
+                              ''
+                          )
                     : hit.summary.replace(/\s+/g, ' ').trim();
                 if (text.startsWith(title.textContent)) text = text.slice(title.textContent.length).trim();
                 if (text) {
@@ -146,27 +179,42 @@ export function initializeSearch() {
             if (ready) runQuery();
             else if (!loadingCatalog) {
                 loadingCatalog = true;
-                Promise.all([loadPageCatalog(), loadNavigation()]).then(([index, navigation]) => {
-                    const titles = pageTitles(navigation);
-                    const strings = getStrings();
-                    localEntries = index.map(original => {
-                        const key = titles.get(original.href);
-                        if (!key) return {
-                            page: original,
-                            title: normalize(original.title.replace(/\s*\|\s*Zenith\.NET\s*$/, '')),
-                            body: normalize(`${original.href} ${original.title} ${original.keywords || ''} ${original.summary || ''}`)
-                        };
-                        const prefix = key.slice(0, -'.title'.length);
-                        const values = Object.entries(strings).filter(([key]) => key.startsWith(prefix + '.')).map(([, value]) => value);
-                        const description = strings[prefix + '.description'] || strings[prefix + '.meta.description'];
-                        const page = { ...original, title: t(key), summary: description && !description.includes('{') ? description : '' };
-                        // Keep shared code, filenames and API identifiers searchable in every language.
-                        const body = `${values.join(' ')} ${original.href} ${original.keywords || ''} ${original.summary || ''}`;
-                        return { page, title: normalize(page.title), body: normalize(body) };
+                Promise.all([loadPageCatalog(), loadNavigation()])
+                    .then(([index, navigation]) => {
+                        const titles = pageTitles(navigation);
+                        const strings = getStrings();
+                        localEntries = index.map(original => {
+                            const key = titles.get(original.href);
+                            if (!key)
+                                return {
+                                    page: original,
+                                    title: normalize(original.title.replace(/\s*\|\s*Zenith\.NET\s*$/, '')),
+                                    body: normalize(
+                                        `${original.href} ${original.title} ${original.keywords || ''} ${original.summary || ''}`
+                                    )
+                                };
+                            const prefix = key.slice(0, -'.title'.length);
+                            const values = Object.entries(strings)
+                                .filter(([key]) => key.startsWith(prefix + '.'))
+                                .map(([, value]) => value);
+                            const description =
+                                strings[prefix + '.description'] || strings[prefix + '.meta.description'];
+                            const page = {
+                                ...original,
+                                title: t(key),
+                                summary: description && !description.includes('{') ? description : ''
+                            };
+                            // Keep shared code, filenames and API identifiers searchable in every language.
+                            const body = `${values.join(' ')} ${original.href} ${original.keywords || ''} ${original.summary || ''}`;
+                            return { page, title: normalize(page.title), body: normalize(body) };
+                        });
+                        ready = true;
+                        runQuery();
+                    })
+                    .catch(showUnavailable)
+                    .finally(() => {
+                        loadingCatalog = false;
                     });
-                    ready = true;
-                    runQuery();
-                }).catch(showUnavailable).finally(() => { loadingCatalog = false; });
             }
             return;
         }
@@ -242,7 +290,7 @@ export function initializeSearch() {
         if (event.isComposing || event.repeat) return;
         const command = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
         const slash = event.key === '/' && !event.metaKey && !event.ctrlKey && !event.altKey;
-        if (command || slash && !isEditing(event.target)) {
+        if (command || (slash && !isEditing(event.target))) {
             event.preventDefault();
             if (dialog.open && command && !closeRequest) closeSearch();
             else openSearch();

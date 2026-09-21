@@ -1,9 +1,19 @@
 ﻿<details class="language-menu" id="language-menu">
-  <summary data-resource-label="ui.language.label" data-resource-title="ui.language.label" aria-label="{{r.ui.language.label}}" title="{{r.ui.language.label}}"><i class="bi bi-translate" aria-hidden="true"></i></summary>
-  <nav class="language-options" data-resource-label="ui.language.label" aria-label="{{r.ui.language.label}}">
-    {{#_languages}}
-    {{#available}}<a href="?lang={{code}}" lang="{{code}}" hreflang="{{code}}" data-language-code="{{code}}">{{label}}</a>{{/available}}
-    {{^available}}<span class="language-pending" data-language-code="{{code}}" aria-disabled="true"><span lang="{{code}}">{{label}}</span><small data-resource="ui.language.unavailable">{{r.ui.language.unavailable}}</small></span>{{/available}}
-    {{/_languages}}
-  </nav>
+    <summary data-resource-label="ui.language.label" data-resource-title="ui.language.label"
+        aria-label="{{r.ui.language.label}}" title="{{r.ui.language.label}}">
+        <i class="bi bi-translate" aria-hidden="true"></i>
+    </summary>
+    <nav class="language-options" data-resource-label="ui.language.label" aria-label="{{r.ui.language.label}}">
+        {{#_languages}}
+            {{#available}}
+                <a href="?lang={{code}}" lang="{{code}}" hreflang="{{code}}" data-language-code="{{code}}">{{label}}</a>
+            {{/available}}
+            {{^available}}
+                <span class="language-pending" data-language-code="{{code}}" aria-disabled="true">
+                    <span lang="{{code}}">{{label}}</span>
+                    <small data-resource="ui.language.unavailable">{{r.ui.language.unavailable}}</small>
+                </span>
+            {{/available}}
+        {{/_languages}}
+    </nav>
 </details>

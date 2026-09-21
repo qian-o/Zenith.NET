@@ -2,7 +2,7 @@
 
 ## 리소스와 구조
 
-[영문 리소스 사전](../en-US/strings.yml)을 유일한 원문으로 사용합니다. 프로젝트 규칙은 [문서 유지 관리 지침](../../authoring.md)을 참고합니다. 새 번역을 시작할 때는 영문 파일 전체를 이 디렉터리의 `strings.yml`로 복사하고, 첫 줄의 `### YamlMime:Resources`와 UTF-8 인코딩을 유지합니다. 이후에는 영문 변경 사항을 기존 번역에 반영하며, 번역 파일 전체를 원문으로 덮어쓰지 않습니다. 이 `translation.md`는 번역 후에도 보존하며 사이트에는 게시하지 않습니다.
+[영문 리소스 사전](../en-US/strings.yml)을 유일한 원문으로 사용합니다. 프로젝트 규칙은 [문서 유지 관리 지침](../../maintenance.md)을 참고합니다. 새 번역을 시작할 때는 영문 파일 전체를 이 디렉터리의 `strings.yml`로 복사하고, 첫 줄의 `### YamlMime:Resources`와 UTF-8 인코딩을 유지합니다. 이후에는 영문 변경 사항을 기존 번역에 반영하며, 번역 파일 전체를 원문으로 덮어쓰지 않습니다. 이 `translation.md`는 번역 후에도 보존하며 사이트에는 게시하지 않습니다.
 
 탐색 구조, 장 순서, 앵커, 링크, 서식, 코드 및 이미지는 `locales/` 밖에서 공통으로 관리합니다. 이 디렉터리에 문서, TOC, 템플릿, 스크립트 또는 설정을 추가하지 않습니다.
 
@@ -65,21 +65,21 @@ docfx serve documents/_site --hostname 127.0.0.1 --port 8080
 
 ## 용어
 
-| 영어 | 사용할 표현 |
-| --- | --- |
-| API / GPU / RHI | 약어를 유지하고 원문에 따라 설명 |
-| barrier | 배리어 |
-| buffer | 버퍼. `Buffer`는 유지 |
-| command buffer | 명령 버퍼 |
-| command queue | 명령 큐 |
-| drawable | 현재 프레임의 출력 텍스처. `Drawable`은 유지하며 항상 스왑 체인 이미지로 해석하지 않음 |
-| graphics context | 그래픽스 컨텍스트 |
-| pipeline | 파이프라인 |
-| readback | 리드백 |
-| render pass | 렌더 패스 |
-| resource | 리소스 |
-| shader | 셰이더 |
-| swap chain | 스왑 체인 |
-| texture | 텍스처 |
-| timeline | 타임라인 |
-| upload | 업로드 |
+| 영어             | 사용할 표현                                                                            |
+| ---------------- | -------------------------------------------------------------------------------------- |
+| API / GPU / RHI  | 약어를 유지하고 원문에 따라 설명                                                       |
+| barrier          | 배리어                                                                                 |
+| buffer           | 버퍼. `Buffer`는 유지                                                                  |
+| command buffer   | 명령 버퍼                                                                              |
+| command queue    | 명령 큐                                                                                |
+| drawable         | 현재 프레임의 출력 텍스처. `Drawable`은 유지하며 항상 스왑 체인 이미지로 해석하지 않음 |
+| graphics context | 그래픽스 컨텍스트                                                                      |
+| pipeline         | 파이프라인                                                                             |
+| readback         | 리드백                                                                                 |
+| render pass      | 렌더 패스                                                                              |
+| resource         | 리소스                                                                                 |
+| shader           | 셰이더                                                                                 |
+| swap chain       | 스왑 체인                                                                              |
+| texture          | 텍스처                                                                                 |
+| timeline         | 타임라인                                                                               |
+| upload           | 업로드                                                                                 |

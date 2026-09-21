@@ -1,4 +1,4 @@
-﻿# Documentation authoring and maintenance
+﻿# Documentation maintenance guide
 
 This is the contributor reference for maintaining the documentation and its translations. It is excluded from the published site and its navigation.
 
@@ -20,17 +20,17 @@ Keep scratch pages, validation scripts and preview fixtures outside the reposito
 
 Shared page paths below are relative to `documents/`. English text lives exclusively in `locales/en-US/strings.yml`. A Markdown filename determines its corresponding `.html` route.
 
-| Page | Responsibility |
-| --- | --- |
-| `index.md` | The shared homepage composition, bound to `home.*` text resources. |
-| `learn/index.md` | Orient readers and link to the tutorial, samples and concepts. Keep the existing card structure. |
-| `learn/first-triangle.md` | One complete, runnable triangle tutorial, from an empty project to the first rendered frame. |
-| `learn/samples.md` | Curated links to actual sample source, with a short explanation of what each demonstrates and any prerequisites. |
-| `learn/concepts/execution-model.md` | Contexts, queues, command recording, submission and ownership. |
-| `learn/concepts/resource-management.md` | Resource creation, usages, memory placement, heaps, views and lifetime. |
-| `learn/concepts/shader-data-and-binding.md` | Slang shaders, data layout and resource handles/binding. |
-| `learn/concepts/synchronization.md` | Execution order, resource visibility, barriers, timelines and CPU/GPU coordination. |
-| `learn/concepts/platform-integration.md` | Surfaces, presentation, resize/lifecycle and integration with supported UI frameworks. |
+| Page                                         | Responsibility                                                                                                        |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `index.md`                                   | The shared homepage composition, bound to `home.*` text resources.                                                    |
+| `learn/index.md`                             | Orient readers and link to the tutorial, samples and concepts. Keep the existing card structure.                      |
+| `learn/first-triangle.md`                    | One complete, runnable triangle tutorial, from an empty project to the first rendered frame.                          |
+| `learn/samples.md`                           | Curated links to actual sample source, with a short explanation of what each demonstrates and any prerequisites.      |
+| `learn/concepts/execution-model.md`          | Contexts, queues, command recording, submission and ownership.                                                        |
+| `learn/concepts/resource-management.md`      | Resource creation, usages, memory placement, heaps, views and lifetime.                                               |
+| `learn/concepts/shader-data-and-binding.md`  | Slang shaders, data layout and resource handles/binding.                                                              |
+| `learn/concepts/synchronization.md`          | Execution order, resource visibility, barriers, timelines and CPU/GPU coordination.                                   |
+| `learn/concepts/platform-integration.md`     | Surfaces, presentation, resize/lifecycle and integration with supported UI frameworks.                                |
 | `api/index.md` and generated reference pages | Look up namespaces, declarations and members. API behavior comes from source and any intentional source XML comments. |
 
 Do not turn the samples index into a sequence of advanced tutorials. The triangle can have ordered sections within its single page; other examples remain independent. Concepts explain decisions and constraints, linking to the tutorial, samples or API instead of duplicating them.
@@ -209,7 +209,7 @@ docfx documents/docfx.json --warningsAsErrors
 
 Once API metadata has been generated and matches the current source, Markdown, resource-dictionary, or theme-only changes can use `docfx build documents/docfx.json --warningsAsErrors`.
 
-The build produces ignored API YAML and `.manifest` files under `documents/api/`, and the published site under `documents/_site/`. Commit the authored `api/index.md`, shared pages, dictionaries, images, and templates; keep generated output out of the PR. `authoring.md` and the permanent `locales/*/translation.md` files are contributor documentation, not temporary files.
+The build produces ignored API YAML and `.manifest` files under `documents/api/`, and the published site under `documents/_site/`. Commit the authored `api/index.md`, shared pages, dictionaries, images, and templates; keep generated output out of the PR. `maintenance.md` and the permanent `locales/*/translation.md` files are contributor documentation, not temporary files.
 
 Preview the generated site from the repository root:
 

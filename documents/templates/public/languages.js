@@ -8,7 +8,11 @@ const preferenceKey = 'zenith-language:' + siteRoot.pathname;
 const available = resourceState.languages.filter(language => language.available);
 
 function savedLanguage() {
-    try { return localStorage.getItem(preferenceKey); } catch { return null; }
+    try {
+        return localStorage.getItem(preferenceKey);
+    } catch {
+        return null;
+    }
 }
 
 function matchLanguage(code) {
@@ -16,10 +20,16 @@ function matchLanguage(code) {
     const exact = available.find(language => language.code.toLowerCase() === code.toLowerCase());
     if (exact) return exact.code;
     let locale;
-    try { locale = new Intl.Locale(code); } catch { return; }
-    return (locale.language === 'zh'
-        ? available.find(language => language.code === (locale.maximize().script === 'Hant' ? 'zh-TW' : 'zh-CN'))
-        : available.find(language => language.code.split('-')[0] === locale.language))?.code;
+    try {
+        locale = new Intl.Locale(code);
+    } catch {
+        return;
+    }
+    return (
+        locale.language === 'zh'
+            ? available.find(language => language.code === (locale.maximize().script === 'Hant' ? 'zh-TW' : 'zh-CN'))
+            : available.find(language => language.code.split('-')[0] === locale.language)
+    )?.code;
 }
 
 function preferredLanguage() {
@@ -30,7 +40,12 @@ function preferredLanguage() {
 
 export function pageUrl(path) {
     const url = new URL(path, siteRoot);
-    if (url.origin === siteRoot.origin && url.pathname.startsWith(siteRoot.pathname) && (url.pathname.endsWith('.html') || url.pathname.endsWith('/'))) url.searchParams.set('lang', edition.code);
+    if (
+        url.origin === siteRoot.origin &&
+        url.pathname.startsWith(siteRoot.pathname) &&
+        (url.pathname.endsWith('.html') || url.pathname.endsWith('/'))
+    )
+        url.searchParams.set('lang', edition.code);
     return url.href;
 }
 
@@ -39,7 +54,10 @@ export async function initializeLanguages() {
     edition.code = preferredLanguage();
     if (edition.code !== sourceLanguage) {
         try {
-            const response = await fetch(new URL(`locales/${edition.code}/strings.json`, siteRoot), { cache: 'no-cache', signal: AbortSignal.timeout(8000) });
+            const response = await fetch(new URL(`locales/${edition.code}/strings.json`, siteRoot), {
+                cache: 'no-cache',
+                signal: AbortSignal.timeout(8000)
+            });
             if (!response.ok) throw new Error('Language resources unavailable');
             setStrings(await response.json());
         } catch {
@@ -47,11 +65,16 @@ export async function initializeLanguages() {
         }
     }
     applyResources(edition.code);
-    if (location.hash) requestAnimationFrame(() => {
-        let id;
-        try { id = decodeURIComponent(location.hash.slice(1)); } catch { return; }
-        document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'auto' });
-    });
+    if (location.hash)
+        requestAnimationFrame(() => {
+            let id;
+            try {
+                id = decodeURIComponent(location.hash.slice(1));
+            } catch {
+                return;
+            }
+            document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'auto' });
+        });
     const current = new URL(location.href);
     if (current.searchParams.has('lang') || edition.code !== sourceLanguage) {
         current.searchParams.set('lang', edition.code);
@@ -91,10 +114,16 @@ function initializeMenu() {
     menu.addEventListener('click', event => {
         const link = event.target.closest('a[data-language-code]');
         if (link) {
-            try { localStorage.setItem(preferenceKey, link.dataset.languageCode); } catch { /* Optional preference. */ }
+            try {
+                localStorage.setItem(preferenceKey, link.dataset.languageCode);
+            } catch {
+                /* Optional preference. */
+            }
         }
     });
-    document.addEventListener('click', event => { if (!menu.contains(event.target)) menu.open = false; });
+    document.addEventListener('click', event => {
+        if (!menu.contains(event.target)) menu.open = false;
+    });
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape' && menu.open) {
             menu.open = false;

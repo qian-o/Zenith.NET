@@ -1,48 +1,85 @@
 ﻿{{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
 <details class="api-relationships">
-  <summary data-resource="{{apiTypeDetailsKey}}">{{apiTypeDetailsLabel}}</summary>
-  <div class="api-relationships-body">
-    <dl class="api-metadata">
-      {{#namespace.uid}}<div><dt data-resource="ui.reference.namespace">{{r.ui.reference.namespace}}</dt><dd>{{{namespace.specName.0.value}}}</dd></div>{{/namespace.uid}}
-      {{#assemblies.0}}<div><dt data-resource="ui.reference.assembly">{{r.ui.reference.assembly}}</dt><dd>{{assemblies.0}}.dll</dd></div>{{/assemblies.0}}
-    </dl>
-    {{#inheritance.0}}
-    <div class="api-relation">
-      <h4 data-resource="ui.reference.inheritance">{{r.ui.reference.inheritance}}</h4>
-      <ul>{{#inheritance}}<li>{{{specName.0.value}}}</li>{{/inheritance}}<li>{{apiName}}</li></ul>
+    <summary data-resource="{{apiTypeDetailsKey}}">{{apiTypeDetailsLabel}}</summary>
+    <div class="api-relationships-body">
+        <dl class="api-metadata">
+            {{#namespace.uid}}
+                <div>
+                    <dt data-resource="ui.reference.namespace">{{r.ui.reference.namespace}}</dt>
+                    <dd>{{{namespace.specName.0.value}}}</dd>
+                </div>
+            {{/namespace.uid}}
+            {{#assemblies.0}}
+                <div>
+                    <dt data-resource="ui.reference.assembly">{{r.ui.reference.assembly}}</dt>
+                    <dd>{{assemblies.0}}.dll</dd>
+                </div>
+            {{/assemblies.0}}
+        </dl>
+        {{#inheritance.0}}
+            <div class="api-relation">
+                <h4 data-resource="ui.reference.inheritance">{{r.ui.reference.inheritance}}</h4>
+                <ul>
+                    {{#inheritance}}
+                        <li>{{{specName.0.value}}}</li>
+                    {{/inheritance}}
+                    <li>{{apiName}}</li>
+                </ul>
+            </div>
+        {{/inheritance.0}}
+        {{#implements.0}}
+            <div class="api-relation">
+                <h4 data-resource="ui.reference.interfaces">{{r.ui.reference.interfaces}}</h4>
+                <ul>
+                    {{#implements}}
+                        <li>{{{specName.0.value}}}</li>
+                    {{/implements}}
+                </ul>
+            </div>
+        {{/implements.0}}
+        {{#derivedClasses.0}}
+            <div class="api-relation">
+                <h4 data-resource="ui.reference.derived">{{r.ui.reference.derived}}</h4>
+                <ul>
+                    {{#derivedClasses}}
+                        <li>{{{specName.0.value}}}</li>
+                    {{/derivedClasses}}
+                </ul>
+            </div>
+        {{/derivedClasses.0}}
+        {{#inheritedMembers.0}}
+            <div class="api-relation">
+                <h4 data-resource="ui.reference.inheritedMembers">{{r.ui.reference.inheritedMembers}}</h4>
+                <ul>
+                    {{#inheritedMembers}}
+                        <li>
+                            {{#definition}}
+                                <xref uid="{{definition}}" text="{{nameWithType.0.value}}" alt="{{fullName.0.value}}" />
+                            {{/definition}}
+                            {{^definition}}
+                                <xref uid="{{uid}}" text="{{nameWithType.0.value}}" alt="{{fullName.0.value}}" />
+                            {{/definition}}
+                        </li>
+                    {{/inheritedMembers}}
+                </ul>
+            </div>
+        {{/inheritedMembers.0}}
+        {{#extensionMethods.0}}
+            <div class="api-relation">
+                <h4 data-resource="ui.reference.extensionMethods">{{r.ui.reference.extensionMethods}}</h4>
+                <ul>
+                    {{#extensionMethods}}
+                        <li>
+                            {{#definition}}
+                                <xref uid="{{definition}}" altProperty="fullName" displayProperty="nameWithType" />
+                            {{/definition}}
+                            {{^definition}}
+                                <xref uid="{{uid}}" altProperty="fullName" displayProperty="nameWithType" />
+                            {{/definition}}
+                        </li>
+                    {{/extensionMethods}}
+                </ul>
+            </div>
+        {{/extensionMethods.0}}
     </div>
-    {{/inheritance.0}}
-    {{#implements.0}}
-    <div class="api-relation">
-      <h4 data-resource="ui.reference.interfaces">{{r.ui.reference.interfaces}}</h4>
-      <ul>{{#implements}}<li>{{{specName.0.value}}}</li>{{/implements}}</ul>
-    </div>
-    {{/implements.0}}
-    {{#derivedClasses.0}}
-    <div class="api-relation">
-      <h4 data-resource="ui.reference.derived">{{r.ui.reference.derived}}</h4>
-      <ul>{{#derivedClasses}}<li>{{{specName.0.value}}}</li>{{/derivedClasses}}</ul>
-    </div>
-    {{/derivedClasses.0}}
-    {{#inheritedMembers.0}}
-    <div class="api-relation">
-      <h4 data-resource="ui.reference.inheritedMembers">{{r.ui.reference.inheritedMembers}}</h4>
-      <ul>
-        {{#inheritedMembers}}
-        <li>{{#definition}}<xref uid="{{definition}}" text="{{nameWithType.0.value}}" alt="{{fullName.0.value}}"/>{{/definition}}{{^definition}}<xref uid="{{uid}}" text="{{nameWithType.0.value}}" alt="{{fullName.0.value}}"/>{{/definition}}</li>
-        {{/inheritedMembers}}
-      </ul>
-    </div>
-    {{/inheritedMembers.0}}
-    {{#extensionMethods.0}}
-    <div class="api-relation">
-      <h4 data-resource="ui.reference.extensionMethods">{{r.ui.reference.extensionMethods}}</h4>
-      <ul>
-        {{#extensionMethods}}
-        <li>{{#definition}}<xref uid="{{definition}}" altProperty="fullName" displayProperty="nameWithType"/>{{/definition}}{{^definition}}<xref uid="{{uid}}" altProperty="fullName" displayProperty="nameWithType"/>{{/definition}}</li>
-        {{/extensionMethods}}
-      </ul>
-    </div>
-    {{/extensionMethods.0}}
-  </div>
 </details>

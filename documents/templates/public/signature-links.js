@@ -1,7 +1,10 @@
 ﻿import { collectCodeReferences, linkCodeRange } from './code-links.js';
 
 const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const maskLiterals = text => text.replace(/@"(?:""|[^"])*"|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\/\/[^\n]*|\/\*[\s\S]*?\*\//g, match => ' '.repeat(match.length));
+const maskLiterals = text =>
+    text.replace(/@"(?:""|[^"])*"|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\/\/[^\n]*|\/\*[\s\S]*?\*\//g, match =>
+        ' '.repeat(match.length)
+    );
 
 // Generated declarations link local reference pages only. Authored xrefs are explicit.
 export function isLocalTypeReference(link) {
@@ -34,7 +37,7 @@ function parameterTypeRanges(text, open, parameters) {
             defaultStart = -1;
         } else if (!stack.length && char === '=' && defaultStart < 0) {
             defaultStart = pos;
-        } else if ('([{'.includes(char) || char === '<' && defaultStart < 0) {
+        } else if ('([{'.includes(char) || (char === '<' && defaultStart < 0)) {
             stack.push({ '(': ')', '[': ']', '{': '}', '<': '>' }[char]);
         } else if (stack.length && char === stack[stack.length - 1]) {
             stack.pop();
@@ -53,9 +56,12 @@ export function linkSignatureType({ el, text }) {
     const masked = maskLiterals(text);
     const declaration = new RegExp(`(?:^|\\s)${escapeRegex(symbol)}(?=\\s*(?:[({\\[;=:]|$))`).exec(masked);
     // The value type precedes the member name; conversion operators put it before "(".
-    const end = el.dataset.apiKind === 'operator'
-        ? text.indexOf('(', declaration ? declaration.index + declaration[0].length : 0)
-        : declaration ? declaration.index + declaration[0].length - symbol.length : -1;
+    const end =
+        el.dataset.apiKind === 'operator'
+            ? text.indexOf('(', declaration ? declaration.index + declaration[0].length : 0)
+            : declaration
+              ? declaration.index + declaration[0].length - symbol.length
+              : -1;
     const valueReferences = references.querySelector('[data-signature-value]');
     if (end >= 0 && valueReferences) linkRange(el, 0, end, valueReferences);
 
@@ -72,8 +78,11 @@ export function linkSignatureType({ el, text }) {
     }
     const opening = /[([]/.exec(text.slice(afterSymbol));
     const parameters = [...references.querySelectorAll('[data-signature-parameter]')];
-    const ranges = parameterTypeRanges(text, opening ? afterSymbol + opening.index : -1,
-        parameters.map(parameter => parameter.dataset.signatureParameter));
+    const ranges = parameterTypeRanges(
+        text,
+        opening ? afterSymbol + opening.index : -1,
+        parameters.map(parameter => parameter.dataset.signatureParameter)
+    );
     for (const range of ranges) linkRange(el, range.start, range.end, parameters[range.index]);
 }
 
@@ -82,9 +91,14 @@ function linkRange(el, start, end, references) {
     if (!links.length) return;
     // Match the whole type expression. Equal spellings can refer to different symbols.
     // Nullable annotations may be absent from DocFX's type display, but remain in copied code.
-    const tokenize = (text, offset = 0) => [...text.matchAll(/@?[\p{ID_Start}_][\p{ID_Continue}]*|[^\s]/gu)]
-        .filter(match => match[0] !== '?')
-        .map(match => ({ value: match[0].replace(/^@/, ''), start: offset + match.index, end: offset + match.index + match[0].length }));
+    const tokenize = (text, offset = 0) =>
+        [...text.matchAll(/@?[\p{ID_Start}_][\p{ID_Continue}]*|[^\s]/gu)]
+            .filter(match => match[0] !== '?')
+            .map(match => ({
+                value: match[0].replace(/^@/, ''),
+                start: offset + match.index,
+                end: offset + match.index + match[0].length
+            }));
     const expected = tokenize(references.textContent);
     const actual = tokenize(el.textContent.slice(start, end), start);
     if (!expected.length) return;
@@ -104,12 +118,17 @@ function linkRange(el, start, end, references) {
         const previous = expected[index - 1]?.value;
         const next = expected[index + 1]?.value;
         // Tuple element names are labels, even when DocFX supplies a member xref for them.
-        token.label = tupleDepth > 0 && /^[\p{ID_Start}_]/u.test(token.value)
-            && [',', ')'].includes(next) && previous && !['(', ',', '<', '.'].includes(previous);
+        token.label =
+            tupleDepth > 0 &&
+            /^[\p{ID_Start}_]/u.test(token.value) &&
+            [',', ')'].includes(next) &&
+            previous &&
+            !['(', ',', '<', '.'].includes(previous);
         if (token.value === ')') tupleDepth--;
     }
     for (const reference of links.reverse()) {
-        const positions = expected.map((token, index) => ({ token, index }))
+        const positions = expected
+            .map((token, index) => ({ token, index }))
             .filter(({ token }) => !token.label && token.start >= reference.start && token.end <= reference.end);
         if (!positions.length) continue;
         const first = actual[offset + positions[0].index];

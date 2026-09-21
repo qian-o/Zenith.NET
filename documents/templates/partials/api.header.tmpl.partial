@@ -1,14 +1,23 @@
 ﻿{{!Based on the .NET Foundation DocFX templates, licensed under the MIT license.}}
 <header class="api-heading">
-  <h1 id="{{id}}" data-uid="{{uid}}">{{apiName}}</h1>
-  {{#summary}}<div class="api-summary">{{{summary}}}</div>{{/summary}}
-  {{#conceptual}}<div class="api-summary">{{{conceptual}}}</div>{{/conceptual}}
+    <h1 id="{{id}}" data-uid="{{uid}}">{{apiName}}</h1>
+    {{#summary}}
+        <div class="api-summary">{{{summary}}}</div>
+    {{/summary}}
+    {{#conceptual}}
+        <div class="api-summary">{{{conceptual}}}</div>
+    {{/conceptual}}
 </header>
 {{#syntax.content.0.value}}
-<section class="api-declaration" data-resource-label="ui.reference.declaration" aria-label="{{r.ui.reference.declaration}}">
-  {{>partials/api.source}}
-  {{>partials/api.code}}
-</section>
+    <section class="api-declaration" data-resource-label="ui.reference.declaration"
+        aria-label="{{r.ui.reference.declaration}}">
+        {{>partials/api.source}}
+        {{>partials/api.code}}
+    </section>
 {{/syntax.content.0.value}}
-{{#syntax}}{{>partials/api.signature}}{{/syntax}}
-{{#apiHasTypeDetails}}{{>partials/api.relationships}}{{/apiHasTypeDetails}}
+{{#syntax}}
+    {{>partials/api.signature}}
+{{/syntax}}
+{{#apiHasTypeDetails}}
+    {{>partials/api.relationships}}
+{{/apiHasTypeDetails}}

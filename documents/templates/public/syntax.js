@@ -4,8 +4,11 @@
 const configured = new WeakSet();
 
 function expressionModes(keywords) {
-    const reserved = new Set(Object.values(keywords).flatMap(words =>
-        (Array.isArray(words) ? words : words.split(/\s+/)).map(word => word.split('|')[0])));
+    const reserved = new Set(
+        Object.values(keywords).flatMap(words =>
+            (Array.isArray(words) ? words : words.split(/\s+/)).map(word => word.split('|')[0])
+        )
+    );
     return [
         {
             scope: 'title.function',
@@ -45,7 +48,8 @@ export function configureSyntax(hljs) {
 
 function slang(hljs) {
     const keywords = {
-        keyword: 'struct class interface extension enum namespace using import public private internal static const uniform groupshared in out inout ref let var typedef typealias generic where __init __subscript if else for while do break continue return discard switch case default true false nullptr this sizeof reinterpret_cast no_diff differentiable',
+        keyword:
+            'struct class interface extension enum namespace using import public private internal static const uniform groupshared in out inout ref let var typedef typealias generic where __init __subscript if else for while do break continue return discard switch case default true false nullptr this sizeof reinterpret_cast no_diff differentiable',
         type: 'void bool int uint half float double int8_t uint8_t int16_t uint16_t int32_t uint32_t int64_t uint64_t'
     };
     return {
@@ -59,7 +63,10 @@ function slang(hljs) {
             hljs.APOS_STRING_MODE,
             { scope: 'meta', begin: /^\s*#/, end: /$/, contains: [hljs.QUOTE_STRING_MODE] },
             hljs.C_NUMBER_MODE,
-            { scope: 'meta', match: /(?<=\[)(?:shader|numthreads|unroll|loop|branch|flatten|earlydepthstencil|outputtopology|mesh|domain|partitioning|patchconstantfunc|outputcontrolpoints)\b/ },
+            {
+                scope: 'meta',
+                match: /(?<=\[)(?:shader|numthreads|unroll|loop|branch|flatten|earlydepthstencil|outputtopology|mesh|domain|partitioning|patchconstantfunc|outputcontrolpoints)\b/
+            },
             { scope: 'type', match: /\b(?:bool|int|uint|half|float|double)[1-4](?:x[1-4])?\b/ },
             { scope: 'meta', match: /\b(?:SV_\w+|(?:POSITION|NORMAL|TEXCOORD|COLOR|TANGENT|BINORMAL)\d*)\b/ },
             ...expressionModes(keywords)

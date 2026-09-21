@@ -1,5 +1,6 @@
-﻿<button class="api-member-launcher" type="button" data-member-find aria-haspopup="dialog" aria-controls="api-member-dialog" aria-keyshortcuts="Alt+M" hidden>
-  <i class="bi bi-list-ul" aria-hidden="true"></i>
-  <span data-resource="ui.members.title">{{r.ui.members.title}}</span>
-  <kbd data-member-shortcut>Alt M</kbd>
+﻿<button class="api-member-launcher" type="button" data-member-find aria-haspopup="dialog"
+    aria-controls="api-member-dialog" aria-keyshortcuts="Alt+M" hidden>
+    <i class="bi bi-list-ul" aria-hidden="true"></i>
+    <span data-resource="ui.members.title">{{r.ui.members.title}}</span>
+    <kbd data-member-shortcut>Alt M</kbd>
 </button>

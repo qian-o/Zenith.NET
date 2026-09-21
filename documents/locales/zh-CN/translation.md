@@ -2,7 +2,7 @@
 
 ## 资源与结构
 
-[英文资源字典](../en-US/strings.yml)是唯一原文；项目约定见[文档维护指南](../../authoring.md)。开始新译本时，将英文文件完整复制为本目录的 `strings.yml`，保留首行 `### YamlMime:Resources`，使用 UTF-8 编码。后续更新应对照英文变更修订现有译文，不要重新覆盖整个文件。本文件 `translation.md` 永久保留，不发布到网站。
+[英文资源字典](../en-US/strings.yml)是唯一原文；项目约定见[文档维护指南](../../maintenance.md)。开始新译本时，将英文文件完整复制为本目录的 `strings.yml`，保留首行 `### YamlMime:Resources`，使用 UTF-8 编码。后续更新应对照英文变更修订现有译文，不要重新覆盖整个文件。本文件 `translation.md` 永久保留，不发布到网站。
 
 导航、章节顺序、锚点、链接、格式、代码和图片都在 `locales/` 外统一维护。不要在语言目录内新增文章、TOC、模板、脚本或配置。
 
@@ -65,36 +65,36 @@ docfx serve documents/_site --hostname 127.0.0.1 --port 8080
 
 ## 术语
 
-| 英文 | 约定译法或处理 |
-| --- | --- |
-| rendering hardware interface / RHI | 渲染硬件接口（RHI）；之后可直接使用 RHI |
-| graphics context | 图形上下文 |
-| command queue | 命令队列 |
-| command buffer | 命令缓冲区 |
-| command recording | 命令录制 |
-| submit / submission | 提交／提交操作；与 GPU 执行区分 |
-| resource | 资源 |
-| resource usage | 资源用途 |
-| resource ownership / lifetime | 资源所有权／生命周期 |
-| buffer | 缓冲区；标识符 `Buffer` 保持原样 |
-| texture | 纹理 |
-| heap | 堆 |
-| view | 视图；区分资源视图与 UI 控件 |
-| render pass | 渲染通道 |
-| render target | 渲染目标 |
-| color attachment | 颜色附件 |
-| depth/stencil | 深度／模板 |
-| pipeline | 管线；按上下文使用图形管线或计算管线 |
-| shader / entry point | 着色器／入口点 |
-| vertex / fragment | 顶点／片元 |
-| rasterization | 光栅化 |
-| viewport / scissor | 视口／裁剪区域 |
-| swap chain / presentation | 交换链／呈现 |
-| surface（呈现语境） | 原生呈现目标；`Surface` 标识符不译 |
-| drawable | 当前帧的输出纹理；`Drawable` 标识符不译，不一律称为交换链图像 |
-| framebuffer | 帧缓冲区；尺寸以原文规定的像素单位表述 |
-| barrier / timeline | 屏障／时间线 |
-| bindless | 无绑定；保留 API 标识符 |
-| upload | 上传 |
-| download / readback | GPU 数据语境使用“回读”；下载文件时使用“下载” |
-| undefined | 未定义；不能改写为某个具体默认结果 |
+| 英文                               | 约定译法或处理                                                |
+| ---------------------------------- | ------------------------------------------------------------- |
+| rendering hardware interface / RHI | 渲染硬件接口（RHI）；之后可直接使用 RHI                       |
+| graphics context                   | 图形上下文                                                    |
+| command queue                      | 命令队列                                                      |
+| command buffer                     | 命令缓冲区                                                    |
+| command recording                  | 命令录制                                                      |
+| submit / submission                | 提交／提交操作；与 GPU 执行区分                               |
+| resource                           | 资源                                                          |
+| resource usage                     | 资源用途                                                      |
+| resource ownership / lifetime      | 资源所有权／生命周期                                          |
+| buffer                             | 缓冲区；标识符 `Buffer` 保持原样                              |
+| texture                            | 纹理                                                          |
+| heap                               | 堆                                                            |
+| view                               | 视图；区分资源视图与 UI 控件                                  |
+| render pass                        | 渲染通道                                                      |
+| render target                      | 渲染目标                                                      |
+| color attachment                   | 颜色附件                                                      |
+| depth/stencil                      | 深度／模板                                                    |
+| pipeline                           | 管线；按上下文使用图形管线或计算管线                          |
+| shader / entry point               | 着色器／入口点                                                |
+| vertex / fragment                  | 顶点／片元                                                    |
+| rasterization                      | 光栅化                                                        |
+| viewport / scissor                 | 视口／裁剪区域                                                |
+| swap chain / presentation          | 交换链／呈现                                                  |
+| surface（呈现语境）                | 原生呈现目标；`Surface` 标识符不译                            |
+| drawable                           | 当前帧的输出纹理；`Drawable` 标识符不译，不一律称为交换链图像 |
+| framebuffer                        | 帧缓冲区；尺寸以原文规定的像素单位表述                        |
+| barrier / timeline                 | 屏障／时间线                                                  |
+| bindless                           | 无绑定；保留 API 标识符                                       |
+| upload                             | 上传                                                          |
+| download / readback                | GPU 数据语境使用“回读”；下载文件时使用“下载”                  |
+| undefined                          | 未定义；不能改写为某个具体默认结果                            |
