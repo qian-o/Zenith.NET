@@ -655,7 +655,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
     background: none;
 }
 
-.api-reference .api-member h3 {
+.api-reference .api-member-heading h3 {
     min-width: 0;
     margin: 0;
     color: var(--zenith-text);
@@ -930,7 +930,7 @@ body.zenith-theme[data-section="api"] > main > .toc-offcanvas {
         padding-right: 0;
     }
 
-    .api-reference .api-member h3 {
+    .api-reference .api-member-heading h3 {
         font-size: 15px;
         min-height: 32px;
         padding-right: 76px;

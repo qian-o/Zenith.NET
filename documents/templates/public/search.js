@@ -7,6 +7,16 @@ import { edition, sourceLanguage, pageUrl, siteRoot } from './languages.js';
 const resultsPerPage = 30;
 const excerptLength = 160;
 
+// A directory index and an implicit current language identify the same document.
+function pageIdentity(href) {
+    const url = new URL(href, location.href);
+    url.pathname = url.pathname.replace(/\/$/, '/index.html');
+    if (!url.searchParams.has('lang')) url.searchParams.set('lang', edition.code);
+    url.searchParams.sort();
+    url.hash = '';
+    return url.href;
+}
+
 function pageTitles(items) {
     const titles = new Map([['index.html', 'home.title'], ['api/index.html', 'reference.title']]);
     const visit = item => {
@@ -142,9 +152,9 @@ export function initializeSearch() {
         input.focus();
         input.select();
         rememberSearch();
+        if (ready) return runQuery();
         if (edition.code !== sourceLanguage) {
-            if (ready) runQuery();
-            else if (!loadingCatalog) {
+            if (!loadingCatalog) {
                 loadingCatalog = true;
                 Promise.all([loadPageCatalog(), loadNavigation()]).then(([index, navigation]) => {
                     const titles = pageTitles(navigation);
@@ -200,19 +210,24 @@ export function initializeSearch() {
     }
 
     function closeSearch() {
-        if (!dialog.open || closeRequest) return;
+        if (!dialog.open || closeRequest) return closeRequest;
         rememberSearch(false);
         dialog.classList.add('is-closing');
-        const request = Promise.allSettled(dialog.getAnimations().map(animation => animation.finished));
-        closeRequest = request;
-        request.then(() => {
+        const request = Promise.allSettled(dialog.getAnimations().map(animation => animation.finished)).then(() => {
             // Reopening cancels this close, including when animations are disabled.
-            if (closeRequest === request) dialog.close();
+            if (closeRequest !== request) return false;
+            dialog.close();
+            return true;
         });
+        closeRequest = request;
+        return request;
     }
 
     trigger.addEventListener('click', openSearch);
-    input.addEventListener('input', runQuery);
+    input.addEventListener('input', () => {
+        rememberSearch();
+        runQuery();
+    });
     document.getElementById('search-close').addEventListener('click', closeSearch);
     dialog.addEventListener('close', () => {
         if (dialog.open) return;
@@ -225,8 +240,25 @@ export function initializeSearch() {
         event.preventDefault();
         closeSearch();
     });
-    dialog.addEventListener('click', event => {
-        if (event.target.closest('[data-search-item]')) rememberSearch();
+    dialog.addEventListener('click', async event => {
+        const link = event.target.closest('a[data-search-item]');
+        if (link) {
+            rememberSearch();
+            if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            if (pageIdentity(link.href) !== pageIdentity(location.href)) return;
+            event.preventDefault();
+            const url = new URL(link.href);
+            if (await closeSearch() && url.hash) {
+                location.hash = url.hash;
+                const target = document.getElementById(decodeURIComponent(url.hash.slice(1)));
+                if (target) requestAnimationFrame(() => {
+                    target.tabIndex = -1;
+                    target.focus({ preventScroll: true });
+                    target.scrollIntoView({ block: 'start', behavior: 'auto' });
+                });
+            }
+            return;
+        }
         if (isBackdropClick(event, dialog)) closeSearch();
     });
     document.getElementById('site-search-form').addEventListener('submit', event => {
@@ -250,22 +282,21 @@ export function initializeSearch() {
     });
     bindDialogKeys(dialog, { items: '[data-search-item]', close: closeSearch });
 
-    // Restore the search when returning from a result, including a full reload.
+    // History owns the open state and query, including same-document traversal.
     function restoreSearch() {
         const saved = history.state?.zenithSearch;
-        if (!saved?.open) return;
-        const queryChanged = input.value !== saved.query;
-        input.value = saved.query;
-        if (!dialog.open) {
-            openSearch();
-            runQuery();
-        } else {
-            input.focus();
-            input.select();
-            if (queryChanged) runQuery();
+        if (!saved?.open) {
+            closeRequest = undefined;
+            dialog.classList.remove('is-closing');
+            dialog.close();
+            return;
         }
+        input.value = saved.query;
+        openSearch();
     }
     // Run after history traversal restores form controls, including Safari's search input.
-    window.addEventListener('pageshow', () => setTimeout(restoreSearch, 0));
+    const restoreAfterNavigation = () => setTimeout(restoreSearch, 0);
+    window.addEventListener('pageshow', restoreAfterNavigation);
+    window.addEventListener('popstate', restoreAfterNavigation);
     restoreSearch();
 }
