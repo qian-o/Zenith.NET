@@ -1,7 +1,10 @@
 ﻿/* Home: typography and an interactive geometry study */
+body.zenith-theme[data-layout="landing"] {
+    --zenith-width: 100%;
+}
+
 body.zenith-theme[data-layout="landing"] > main.container-xxl {
     display: block;
-    max-width: 1560px;
 }
 
 body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
@@ -15,21 +18,20 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
 .render-hero {
     position: relative;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 28px;
     align-items: start;
-    min-height: 540px;
 }
 
 .render-copy {
     position: relative;
     z-index: 1;
-    padding-top: 48px;
+    padding-top: clamp(48px, 4vw, 112px);
 }
 
 .render-copy h1 {
     margin: 0 0 24px;
-    font-size: clamp(46px, 5.1vw, 80px);
+    font-size: clamp(46px, 5.1vw, 104px);
     font-weight: 600;
     letter-spacing: -.035em;
     line-height: 1.08;
@@ -95,8 +97,8 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
 .geometry-stage {
     position: relative;
     min-width: 0;
-    height: 540px;
-    background: radial-gradient(ellipse at 55% 42%, #789ac82b 0, transparent 65%);
+    height: clamp(540px, 30vw, 760px);
+    background: radial-gradient(ellipse closest-side at 50% 45%, #789ac82b, #789ac800);
 }
 
 #home-geometry {
@@ -440,6 +442,12 @@ body.zenith-theme > footer {
     color: var(--zenith-text);
 }
 
+@media (min-width: 1200px) {
+    body.zenith-theme[data-layout="landing"] {
+        --zenith-gutter: clamp(40px, 3vw, 120px);
+    }
+}
+
 @media (min-width: 768px) and (max-width: 899.98px) {
     .learning-entries {
         grid-template-columns: 1fr;
@@ -462,7 +470,6 @@ body.zenith-theme > footer {
 
     .render-hero {
         grid-template-columns: 1fr;
-        min-height: 0;
         gap: 8px;
     }
 
@@ -544,4 +551,3 @@ body.zenith-theme > footer {
         gap: 12px;
     }
 }
-

@@ -10,6 +10,8 @@ Keep the existing filenames, routes and `toc.yml` hierarchy. Retain the original
 
 The brand footer belongs only to the landing page. Learn and API pages end with their content, keeping the reading layout and sidebars continuous to the bottom.
 
+The landing page, including its header and footer, uses the available viewport width with shared responsive gutters. Documentation pages keep the reading layout's width limit. Set shell dimensions through the shared tokens instead of adding independent limits to the homepage. The home scene's glow must fade to transparent within its bounds.
+
 Keep scratch pages, validation scripts and preview fixtures outside the repository. Do not recreate `documents/tests`, publish test content, or reintroduce the temporary `Buffer` XML comments. Do not edit generated `documents/api/*.yml` or `documents/_site` files.
 
 ## Page responsibilities

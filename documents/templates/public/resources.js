@@ -6,6 +6,7 @@ export const getStrings = () => strings;
 const has = (dictionary, key) => Object.prototype.hasOwnProperty.call(dictionary, key);
 const format = globalThis.zenithResourceFormat;
 const slotTemplate = element => element.dataset.resourceSlots ? document.getElementById(element.dataset.resourceSlots) : null;
+const resourceAttributes = { label: 'aria-label', title: 'title', placeholder: 'placeholder', alt: 'alt' };
 
 // Validate before changing the DOM: an old or incomplete download must not mix languages.
 export function setStrings(value) {
@@ -17,7 +18,7 @@ export function setStrings(value) {
     }
     const requireKey = (key, slots) => {
         if (!has(value, key)) throw new Error(`Missing text resource: ${key}`);
-        if (slots && JSON.stringify(format.placeholders(value[key])) !== JSON.stringify([...slots].sort())) {
+        if (JSON.stringify(format.placeholders(value[key])) !== JSON.stringify([...slots].sort())) {
             throw new Error(`Resource placeholders differ: ${key}`);
         }
     };
@@ -26,7 +27,7 @@ export function setStrings(value) {
         const slots = slotTemplate(element)?.content.children || [];
         requireKey(element.dataset.resource, [...slots].map(slot => slot.dataset.slot));
     }
-    for (const attribute of ['label', 'title', 'placeholder', 'alt']) {
+    for (const attribute of Object.keys(resourceAttributes)) {
         for (const element of document.querySelectorAll(`[data-resource-${attribute}]`)) requireKey(element.getAttribute(`data-resource-${attribute}`), []);
     }
     for (const meta of document.querySelectorAll('meta[name="resource:title"], meta[name="resource:description"]')) requireKey(meta.content, []);
@@ -67,7 +68,7 @@ export function applyResources(code) {
     for (const element of document.querySelectorAll('[data-resource]')) {
         if (element.isConnected) bind(element);
     }
-    for (const [attribute, target] of [['label', 'aria-label'], ['title', 'title'], ['placeholder', 'placeholder'], ['alt', 'alt']]) {
+    for (const [attribute, target] of Object.entries(resourceAttributes)) {
         for (const element of document.querySelectorAll(`[data-resource-${attribute}]`)) {
             const key = element.getAttribute(`data-resource-${attribute}`);
             if (has(strings, key)) element.setAttribute(target, t(key));
