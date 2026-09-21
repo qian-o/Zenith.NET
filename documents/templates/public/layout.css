@@ -205,6 +205,12 @@ body.zenith-theme > main.container-xxl > .content {
     padding-block: 36px 80px;
 }
 
+/* Keep prose readable inside the same shell used by the home and API pages. */
+body.zenith-theme[data-section="learn"]:not([data-page-kind="hub"]) > main > .content {
+    max-width: var(--zenith-reading-width);
+    justify-self: center;
+}
+
 body.zenith-theme > main.container-xxl > :is(.toc-offcanvas, .affix) {
     position: sticky;
     top: var(--zenith-header-height);

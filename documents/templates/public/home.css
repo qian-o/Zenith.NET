@@ -1,8 +1,4 @@
 ﻿/* Home: typography and an interactive geometry study */
-body.zenith-theme[data-layout="landing"] {
-    --zenith-width: 100%;
-}
-
 body.zenith-theme[data-layout="landing"] > main.container-xxl {
     display: block;
 }
@@ -26,12 +22,12 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
 .render-copy {
     position: relative;
     z-index: 1;
-    padding-top: clamp(48px, 4vw, 112px);
+    padding-top: clamp(48px, 4vw, 80px);
 }
 
 .render-copy h1 {
     margin: 0 0 24px;
-    font-size: clamp(46px, 5.1vw, 104px);
+    font-size: clamp(46px, 5.1vw, 88px);
     font-weight: 600;
     letter-spacing: -.035em;
     line-height: 1.08;
@@ -97,7 +93,7 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
 .geometry-stage {
     position: relative;
     min-width: 0;
-    height: clamp(540px, 30vw, 760px);
+    height: clamp(540px, 30vw, 640px);
     background: radial-gradient(ellipse closest-side at 50% 45%, #789ac82b, #789ac800);
 }
 
@@ -314,10 +310,6 @@ body.zenith-theme[data-layout="landing"] > main.container-xxl > .content {
     color: #fff;
 }
 
-.learn-hub {
-    max-width: 1040px;
-}
-
 .learn-hub > h1 {
     margin-bottom: 12px;
     font-size: clamp(34px, 3.3vw, 48px);
@@ -440,12 +432,6 @@ body.zenith-theme > footer {
 
 .footer-links a:hover {
     color: var(--zenith-text);
-}
-
-@media (min-width: 1200px) {
-    body.zenith-theme[data-layout="landing"] {
-        --zenith-gutter: clamp(40px, 3vw, 120px);
-    }
 }
 
 @media (min-width: 768px) and (max-width: 899.98px) {

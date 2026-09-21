@@ -25,11 +25,12 @@
     --zenith-hover: #272c34;
     --zenith-radius: 8px;
     --zenith-header-height: 72px;
-    --zenith-width: 1560px;
-    --zenith-sidebar-width: 240px;
+    --zenith-width: 1920px;
+    --zenith-reading-width: 1080px;
+    --zenith-sidebar-width: 264px;
     --zenith-outline-width: 208px;
-    --zenith-gap: 48px;
-    --zenith-gutter: 40px;
+    --zenith-gap: 40px;
+    --zenith-gutter: clamp(40px, 3vw, 64px);
     --bs-body-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     --bs-font-monospace: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
     --bs-body-bg: var(--zenith-canvas);
