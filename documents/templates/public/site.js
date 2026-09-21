@@ -62,6 +62,6 @@ function labelCodeBlocks() {
         if (language === 'mermaid') continue;
         code.parentElement.dataset.language = labels[language] || language;
         // Native keyboard scrolling for examples; API declarations already wrap.
-        if (!code.hasAttribute('data-api-symbol')) code.parentElement.tabIndex = 0;
+        if (!code.hasAttribute('data-api-symbol')) code.tabIndex = 0;
     }
 }

@@ -46,6 +46,12 @@ article pre[data-language]::before {
     color: var(--zenith-body);
 }
 
+/* Keep the language header and copy action outside the scrolling code body. */
+.zenith-theme article pre code.hljs:not([data-api-symbol]) {
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
 article pre .code-action {
     display: inline-flex;
     top: 0;
