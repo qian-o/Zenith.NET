@@ -17,7 +17,7 @@
 
 Zenith.NET is a rendering hardware interface (RHI) for .NET, with a shared C# API for graphics and compute across **DirectX 12, Metal 4, and Vulkan 1.4**.
 
-It supports Slang shaders and explicit GPU resource management, with ray tracing and mesh shading on supported devices. [Rendering controls](https://qian-o.github.io/Zenith.NET/learn/concepts/platform-integration.html#ui-views) are available for Avalonia, .NET MAUI, Uno, Windows Forms, WinUI, and WPF.
+It gives applications explicit control over GPU resources, command recording, and synchronization.
 
 ## Getting started
 
@@ -30,7 +30,7 @@ Follow [First Triangle](https://qian-o.github.io/Zenith.NET/learn/first-triangle
 | Package | Purpose |
 | --- | --- |
 | [Zenith.NET](https://www.nuget.org/packages/Zenith.NET) | Shared graphics and compute API. |
-| [Zenith.NET.Compiler](https://www.nuget.org/packages/Zenith.NET.Compiler) | Slang shader compilation for each graphics backend. |
+| [Zenith.NET.Compiler](https://www.nuget.org/packages/Zenith.NET.Compiler) | Compiles Slang shaders for the selected graphics backend. |
 | [Zenith.NET.DirectX12](https://www.nuget.org/packages/Zenith.NET.DirectX12) | DirectX 12 backend. |
 | [Zenith.NET.Metal](https://www.nuget.org/packages/Zenith.NET.Metal) | Metal 4 backend. |
 | [Zenith.NET.Vulkan](https://www.nuget.org/packages/Zenith.NET.Vulkan) | Vulkan 1.4 backend. |
@@ -39,7 +39,7 @@ Follow [First Triangle](https://qian-o.github.io/Zenith.NET/learn/first-triangle
 
 | Package | Purpose |
 | --- | --- |
-| [Zenith.NET.Extensions.ImageSharp](https://www.nuget.org/packages/Zenith.NET.Extensions.ImageSharp) | Image loading and texture creation with ImageSharp. |
+| [Zenith.NET.Extensions.ImageSharp](https://www.nuget.org/packages/Zenith.NET.Extensions.ImageSharp) | Loads images into GPU textures using ImageSharp. |
 | [Zenith.NET.Extensions.ImGui](https://www.nuget.org/packages/Zenith.NET.Extensions.ImGui) | Dear ImGui rendering and input integration. |
 | [Zenith.NET.Extensions.Skia](https://www.nuget.org/packages/Zenith.NET.Extensions.Skia) | SkiaSharp drawing on GPU textures. |
 | [Zenith.NET.Extensions.Upscaling](https://www.nuget.org/packages/Zenith.NET.Extensions.Upscaling) | Spatial and temporal image upscaling. |
