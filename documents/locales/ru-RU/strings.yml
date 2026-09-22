@@ -270,7 +270,7 @@ home.scene.description: 'Интерактивная вращающаяся ге�
 home.scene.label: Отображение геометрии
 home.scene.surface: Поверхность
 home.scene.wireframe: Каркас
-home.title: 'Графический API для .NET'
+home.title: 'Современный RHI для .NET'
 learning.concepts.description: 'Выбор назначений ресурсов, описание данных шейдеров и координация работы GPU'
 learning.concepts.execution.description: 'Запись команд, отправка и время жизни ресурсов'
 learning.concepts.platforms.description: 'Нативный вывод и графические элементы интерфейса'
@@ -498,7 +498,7 @@ ui.content.tutorial: 'Урок'
 ui.contents.close: Закрыть оглавление
 ui.contents.open: Открыть оглавление
 ui.contents.title: Содержание
-ui.footer.caption: 'Графический API для .NET'
+ui.footer.caption: 'Современный RHI для .NET'
 ui.footer.label: Нижний колонтитул
 ui.language.label: Язык
 ui.language.unavailable: Не переведено
