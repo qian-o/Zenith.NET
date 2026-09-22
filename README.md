@@ -15,44 +15,45 @@
   <a href="https://www.nuget.org/packages/Zenith.NET">NuGet</a>
 </p>
 
-Zenith.NET is a rendering hardware interface (RHI) for building graphics and compute applications in C#. A shared API connects your rendering code to DirectX 12, Metal, and Vulkan, while giving you control over GPU resources and execution.
+Zenith.NET is a rendering hardware interface (RHI) for .NET, with a shared C# API for graphics and compute across **DirectX 12, Metal 4, and Vulkan 1.4**.
 
-[![Reflective spheres above a checkerboard floor, rendered with Zenith.NET](https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/ray-tracing.png)](https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/ray-tracing.png)
+It supports Slang shaders and explicit GPU resource management, with ray tracing and mesh shading on supported devices. [Rendering controls](https://qian-o.github.io/Zenith.NET/learn/concepts/platform-integration.html#ui-views) are available for Avalonia, .NET MAUI, Uno, Windows Forms, WinUI, and WPF.
 
-<p align="center">
-  <a href="https://qian-o.github.io/Zenith.NET/learn/samples.html#ray-tracing">Ray tracing sample</a>
-</p>
+## Getting started
 
-## Features
+Follow [First Triangle](https://qian-o.github.io/Zenith.NET/learn/first-triangle.html) to create a .NET 10 console application and draw your first triangle.
 
-- **Graphics and compute.** Combine rasterization, compute shaders, and indirect drawing within the same rendering API.
-- **Slang shaders.** Compile shared shader source for each backend, and pass resource handles alongside shader parameters.
-- **Explicit GPU control.** Manage memory allocation, command recording, synchronization, and resource lifetime to suit your renderer.
-- **Ray queries and mesh shaders.** Use hardware ray tracing and task/mesh shading on devices that support them.
+## Packages
 
-## Get started
+### Core and backends
 
-Use a .NET 10 project with the [Zenith.NET](https://www.nuget.org/packages/Zenith.NET) core package. Add [Zenith.NET.Compiler](https://www.nuget.org/packages/Zenith.NET.Compiler) to compile Slang shaders, and choose a backend for your target platform:
+| Package | Purpose |
+| --- | --- |
+| [Zenith.NET](https://www.nuget.org/packages/Zenith.NET) | Shared graphics and compute API. |
+| [Zenith.NET.Compiler](https://www.nuget.org/packages/Zenith.NET.Compiler) | Slang shader compilation for each graphics backend. |
+| [Zenith.NET.DirectX12](https://www.nuget.org/packages/Zenith.NET.DirectX12) | DirectX 12 backend. |
+| [Zenith.NET.Metal](https://www.nuget.org/packages/Zenith.NET.Metal) | Metal 4 backend. |
+| [Zenith.NET.Vulkan](https://www.nuget.org/packages/Zenith.NET.Vulkan) | Vulkan 1.4 backend. |
 
-| Backend package | Graphics API | Platforms |
-| --- | --- | --- |
-| [Zenith.NET.DirectX12](https://www.nuget.org/packages/Zenith.NET.DirectX12) | DirectX 12 | Windows |
-| [Zenith.NET.Metal](https://www.nuget.org/packages/Zenith.NET.Metal) | Metal 4 | Apple platforms |
-| [Zenith.NET.Vulkan](https://www.nuget.org/packages/Zenith.NET.Vulkan) | Vulkan 1.4 | Windows, Linux, Android |
+### Extensions
 
-The [First Triangle tutorial](https://qian-o.github.io/Zenith.NET/learn/first-triangle.html) takes you from an empty console project to a rendered triangle, explaining the window, vertex data, shaders, and drawing commands along the way.
+| Package | Purpose |
+| --- | --- |
+| [Zenith.NET.Extensions.ImageSharp](https://www.nuget.org/packages/Zenith.NET.Extensions.ImageSharp) | Image loading and texture creation with ImageSharp. |
+| [Zenith.NET.Extensions.ImGui](https://www.nuget.org/packages/Zenith.NET.Extensions.ImGui) | Dear ImGui rendering and input integration. |
+| [Zenith.NET.Extensions.Skia](https://www.nuget.org/packages/Zenith.NET.Extensions.Skia) | SkiaSharp drawing on GPU textures. |
+| [Zenith.NET.Extensions.Upscaling](https://www.nuget.org/packages/Zenith.NET.Extensions.Upscaling) | Spatial and temporal image upscaling. |
 
-Explore [ZenithTutorials](https://github.com/qian-o/ZenithTutorials) for examples of compute, indirect drawing, ray queries, and mesh shading. The [Experiments directory](https://github.com/qian-o/Zenith.NET/tree/master/sources/Experiments) contains larger applications, including a room scene, a water simulation, and a drawing canvas.
+### UI integrations
 
-## Integrations
-
-Embed rendering in [Avalonia](https://www.nuget.org/packages/Zenith.NET.Views.Avalonia), [.NET MAUI](https://www.nuget.org/packages/Zenith.NET.Views.Maui), [Windows Forms](https://www.nuget.org/packages/Zenith.NET.Views.WinForms), [WinUI and Uno Platform](https://www.nuget.org/packages/Zenith.NET.Views.WinUI), or [WPF](https://www.nuget.org/packages/Zenith.NET.Views.WPF) applications. The controls share a rendering event interface; [Platform Integration](https://qian-o.github.io/Zenith.NET/learn/concepts/platform-integration.html) explains their presentation and lifecycle responsibilities.
-
-Optional extensions provide [ImageSharp image loading](https://www.nuget.org/packages/Zenith.NET.Extensions.ImageSharp), [Dear ImGui integration](https://www.nuget.org/packages/Zenith.NET.Extensions.ImGui), [SkiaSharp drawing](https://www.nuget.org/packages/Zenith.NET.Extensions.Skia), and [spatial and temporal upscaling](https://www.nuget.org/packages/Zenith.NET.Extensions.Upscaling).
-
-## Contributing
-
-[Bug reports and feature requests](https://github.com/qian-o/Zenith.NET/issues/new/choose), code contributions, and documentation improvements are welcome. For documentation and translations, see the [maintenance guide](https://github.com/qian-o/Zenith.NET/blob/master/documents/maintenance.md).
+| Package | Purpose |
+| --- | --- |
+| [Zenith.NET.Views](https://www.nuget.org/packages/Zenith.NET.Views) | Shared interfaces and frame events for rendering controls. |
+| [Zenith.NET.Views.Avalonia](https://www.nuget.org/packages/Zenith.NET.Views.Avalonia) | Avalonia rendering control. |
+| [Zenith.NET.Views.Maui](https://www.nuget.org/packages/Zenith.NET.Views.Maui) | .NET MAUI rendering control. |
+| [Zenith.NET.Views.WinForms](https://www.nuget.org/packages/Zenith.NET.Views.WinForms) | Windows Forms rendering control. |
+| [Zenith.NET.Views.WinUI](https://www.nuget.org/packages/Zenith.NET.Views.WinUI) | WinUI and Uno Platform rendering control. |
+| [Zenith.NET.Views.WPF](https://www.nuget.org/packages/Zenith.NET.Views.WPF) | WPF rendering control. |
 
 ## License
 
