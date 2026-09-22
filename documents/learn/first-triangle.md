@@ -67,12 +67,6 @@ title: '@tutorial.title'
     </resource>
 </p>
 <p>
-    <resource key="tutorial.requirements.context">
-        <slot name="link"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/HelloTriangleRenderer.cs"><resource key="tutorial.requirements.context.link"></resource></a></slot>
-        <slot name="detail"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/App.cs"><resource key="tutorial.requirements.context.detail"></resource></a></slot>
-    </resource>
-</p>
-<p>
     <a id="project"></a>
 </p>
 <h2 id="2-create-a-console-project">

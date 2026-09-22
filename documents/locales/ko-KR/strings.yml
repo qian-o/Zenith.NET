@@ -434,9 +434,6 @@ tutorial.project.description: '.NET 10을 대상으로 하는 {firstTriangle} C#
 tutorial.project.details: '다음 NuGet 패키지를 프로젝트에 추가합니다.'
 tutorial.project.guidance: '{zenithNET}은 공통 렌더링 API를, 백엔드 패키지 세 개는 플랫폼 구현을 제공합니다. {zenithNETCompiler}는 뒤에서 작성할 Slang 셰이더를 선택한 백엔드에 맞게 컴파일합니다. Silk.NET은 창 생성과 이벤트 처리를 담당합니다.'
 tutorial.project.title: '프로젝트 준비'
-tutorial.requirements.context: '{link}와 해당 {detail}에서 이 튜토리얼의 참조 구현을 확인할 수 있습니다.'
-tutorial.requirements.context.detail: 공유 호스트
-tutorial.requirements.context.link: 'Hello Triangle 예제'
 tutorial.requirements.description: '{emphasis}와 기본 C# 지식이 필요합니다. 애플리케이션의 대상 프레임워크는 {net10}입니다. GPU와 드라이버는 사용 중인 플랫폼에 맞춰 선택한 다음 백엔드를 지원해야 합니다.'
 tutorial.requirements.description.emphasis: .NET 10 SDK
 tutorial.requirements.guidance: 'Zenith.NET은 애플리케이션이 제공하는 네이티브 서피스에 렌더링합니다. Silk.NET.Windowing은 창을 만들고 이벤트를 처리합니다. macOS에서는 {cAMetalLayerCs}로 표현되는 Metal 레이어로 표시하며, 창 보조 코드가 이 레이어를 창에 연결합니다.'

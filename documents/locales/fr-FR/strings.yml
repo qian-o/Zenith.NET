@@ -434,9 +434,6 @@ tutorial.project.description: 'Créez un projet console C# nommé {firstTriangle
 tutorial.project.details: 'Ajoutez les paquets NuGet suivants au projet :'
 tutorial.project.guidance: '{zenithNET} fournit l’API de rendu commune, et les trois paquets de backend en fournissent les implémentations propres aux plateformes. {zenithNETCompiler} compile les shaders Slang présentés plus bas pour le backend choisi. Silk.NET assure la création de la fenêtre et le traitement des événements.'
 tutorial.project.title: 'Configuration du projet'
-tutorial.requirements.context: 'L’{link} et son {detail} fournissent les implémentations de référence de ce tutoriel.'
-tutorial.requirements.context.detail: hôte partagé
-tutorial.requirements.context.link: exemple Bonjour triangle
 tutorial.requirements.description: 'Vous devez disposer du {emphasis} et connaître les bases de C#. L’application cible {net10}. Le GPU et son pilote doivent prendre en charge le backend choisi pour votre plateforme :'
 tutorial.requirements.description.emphasis: SDK .NET 10
 tutorial.requirements.guidance: 'Zenith.NET rend dans une surface native fournie par l’application. Silk.NET.Windowing crée la fenêtre et gère les événements. Sous macOS, une couche Metal représentée par {cAMetalLayerCs} reçoit la sortie ; le code auxiliaire la rattache à la fenêtre.'

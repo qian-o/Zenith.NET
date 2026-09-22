@@ -434,9 +434,6 @@ tutorial.project.description: 'Erstellen Sie ein C#-Konsolenprojekt namens {firs
 tutorial.project.details: 'Fügen Sie dem Projekt die folgenden NuGet-Pakete hinzu:'
 tutorial.project.guidance: '{zenithNET} liefert die gemeinsame API, die drei Backend-Pakete ihre Plattformimplementierungen. {zenithNETCompiler} übersetzt die unten eingeführten Slang-Shader für das Backend. Silk.NET übernimmt Fenster und Ereignisse.'
 tutorial.project.title: 'Projekteinrichtung'
-tutorial.requirements.context: 'Das {link} und sein {detail} dienen als Referenzimplementierungen für dieses Tutorial.'
-tutorial.requirements.context.detail: gemeinsamer Host
-tutorial.requirements.context.link: Hallo-Dreieck-Beispiel
 tutorial.requirements.description: 'Sie benötigen das {emphasis} und C#-Grundkenntnisse. Die Anwendung verwendet das Zielframework {net10}. GPU und Treiber müssen das für Ihre Plattform gewählte Backend unterstützen:'
 tutorial.requirements.description.emphasis: .NET 10 SDK
 tutorial.requirements.guidance: 'Zenith.NET rendert in ein von der Anwendung bereitgestelltes Präsentationsziel. Silk.NET.Windowing erstellt das Fenster und verarbeitet Ereignisse. Unter macOS dient ein in {cAMetalLayerCs} repräsentierter Metal-Layer als Ziel; der Fenster-Helper verbindet ihn mit dem Fenster.'

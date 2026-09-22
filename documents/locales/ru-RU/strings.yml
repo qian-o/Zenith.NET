@@ -434,9 +434,6 @@ tutorial.project.description: 'Создайте консольный проек�
 tutorial.project.details: 'Добавьте в проект следующие пакеты NuGet:'
 tutorial.project.guidance: '{zenithNET} предоставляет общий API рендеринга, а три пакета бэкендов — его платформенные реализации. {zenithNETCompiler} компилирует шейдеры Slang для выбранного бэкенда. Silk.NET создаёт окно и обрабатывает события.'
 tutorial.project.title: 'Настройка проекта'
-tutorial.requirements.context: 'Образцы кода для этого урока — {link} и его {detail}.'
-tutorial.requirements.context.detail: 'общая оболочка'
-tutorial.requirements.context.link: 'пример Hello Triangle'
 tutorial.requirements.description: 'Нужны {emphasis} и базовое знание C#. Приложение предназначено для {net10}. GPU и драйвер должны поддерживать бэкенд, выбранный для вашей платформы:'
 tutorial.requirements.description.emphasis: .NET 10 SDK
 tutorial.requirements.guidance: 'Zenith.NET выполняет рендеринг на нативной поверхности, предоставленной приложением. Silk.NET.Windowing создаёт окно и обрабатывает его события. На macOS для вывода используется слой Metal, представленный в {cAMetalLayerCs}; вспомогательный код связывает его с окном.'

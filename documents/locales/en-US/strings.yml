@@ -744,9 +744,6 @@ tutorial.project.guidance: '{zenithNET} provides the shared rendering API, and t
   its platform implementations. {zenithNETCompiler} compiles the Slang shaders introduced below for the selected
   backend. Silk.NET provides window creation and event processing.'
 tutorial.project.title: Project setup
-tutorial.requirements.context: The {link} and its {detail} provide reference implementations for this tutorial.
-tutorial.requirements.context.detail: shared host
-tutorial.requirements.context.link: Hello Triangle sample
 tutorial.requirements.description: 'You need the {emphasis} and basic C# knowledge. The application targets {net10}.
   Your GPU and driver must support the backend selected for your platform:'
 tutorial.requirements.description.emphasis: .NET 10 SDK
