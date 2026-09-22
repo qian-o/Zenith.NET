@@ -74,7 +74,7 @@ concepts.platforms.lifecycle.guidance: 'Richten sich anwendungseigene Tiefen- od
 concepts.platforms.lifecycle.guidance.link: Renderer des rotierenden Würfels
 concepts.platforms.lifecycle.title: 'Swapchain-Abmessungen und Lebensdauer'
 concepts.platforms.ownership.description: 'Die Anwendung besitzt den zugewiesenen Kontext und ihre Rendering-Ressourcen, das Steuerelement seine Präsentationsressourcen. Ändert sich {graphicsContext} der Ansicht, erstellt der Scheduler die Steuerelement-Ressourcen für den neuen Kontext neu. Auch die Anwendung muss ihre Pipelines, Puffer und Texturen für diesen Kontext neu erstellen.'
-concepts.platforms.ownership.details: 'Halten Sie vor dem Ersetzen von Rendering-Ressourcen die Frame-Verarbeitung der Ansicht an und warten Sie auf die GPU-Arbeit, die diese Ressourcen verwendet. Geben Sie danach die alten Ressourcen frei. Der Kontext darf erst freigegeben werden, wenn jede Ansicht ihre Präsentationsressourcen für diesen Kontext freigegeben hat und alle daraus erstellten Anwendungsressourcen freigegeben wurden.'
+concepts.platforms.ownership.details: 'Halten Sie vor dem Ersetzen von Rendering-Ressourcen die Frame-Schleife der Ansicht an und warten Sie auf die GPU-Arbeit, die diese Ressourcen verwendet. Geben Sie danach die alten Ressourcen frei. Der Kontext darf erst freigegeben werden, wenn jede Ansicht ihre Präsentationsressourcen für diesen Kontext freigegeben hat und alle daraus erstellten Anwendungsressourcen freigegeben wurden.'
 concepts.platforms.ownership.guidance: 'Der gemeinsame {frameSchedulerCs} führt die Frame-Handler über den UI-Dispatcher der Ansicht aus. Beschränken Sie diese Handler auf Szenenaktualisierung und Befehlsaufzeichnung; aufwendige CPU-Arbeit verzögert dort auch die Benutzeroberfläche.'
 concepts.platforms.ownership.title: 'Verantwortung von Anwendung und Steuerelement'
 concepts.platforms.surface.description: 'Das {link} verwendet Silk.NET für Fenstererstellung und Ereignisverarbeitung. Zenith.NET erhält die nativen Fensterhandles und Abmessungen in einer {surface}-Beschreibung und erstellt damit eine {swapChain}. Für das Betriebssystemfenster bleibt die Anwendung verantwortlich.'
@@ -175,7 +175,7 @@ concepts.shaders.binding.table.samplerHandle.access: 'Zustand für die Texturabt
 concepts.shaders.binding.table.textureSampledHandle.access: 'Lesen von Texturdaten'
 concepts.shaders.binding.table.textureStorageHandle.access: 'Lese- und Schreibzugriff auf Speichertexturen'
 concepts.shaders.binding.title: 'Konstantenpuffer und Ressourcenhandles'
-concepts.shaders.compilation.description: '{zenithCompiler} kompiliert einen benannten Slang-Einstiegspunkt zu einer {shaderDesc}. Die Eigenschaft {graphicsApi} bestimmt das Ziel: DXIL für DirectX 12, eine Metal-Bibliothek für Metal oder SPIR-V für Vulkan.'
+concepts.shaders.compilation.description: '{zenithCompiler} kompiliert einen Slang-Einstiegspunkt und gibt eine {shaderDesc} zurück. Die Eigenschaft {graphicsApi} des Kontexts bestimmt das Ausgabeformat: {dxil} für DirectX 12, {metallib} für Metal oder {spirv} für Vulkan.'
 concepts.shaders.compilation.details: 'Mit einem bereits erstellten Grafikkontext namens {context} wird der Dreieck-Shader aus der Kopie neben der ausführbaren Datei kompiliert:'
 concepts.shaders.compilation.guidance: 'Der Einstiegspunktname {vSMain} muss mit der Deklaration in der Shader-Datei übereinstimmen. Kompilieren Sie Shader und erstellen Sie Pipelines während der Initialisierung; beim Rendering werden die Pipelines wiederverwendet. Nach Abschluss der Pipeline-Erstellung dürfen die Shader-Objekte freigegeben werden, wie im Tutorial {link} gezeigt.'
 concepts.shaders.compilation.guidance.link: Erstes Dreieck
@@ -405,9 +405,8 @@ tutorial.input.table.vertexColor.format: '{float4} (16 Bytes)'
 tutorial.input.table.vertexPosition.format: '{float3} (12 Bytes)'
 tutorial.input.title: 'Vertex-Eingabelayout'
 tutorial.lifecycle.description: 'Jeder Frame folgt dieser Sequenz:'
-tutorial.lifecycle.details: 'Nach dem Schließen des Fensters kehrt {run} zurück, und die Ausführung wird mit der Bereinigung fortgesetzt. Da jeder Frame bereits auf den Abschluss seiner eingereichten Befehle gewartet hat, können die dafür verwendeten Ressourcen nun freigegeben werden. Nach {windowRun} steht die vollständige Bereinigung:'
+tutorial.lifecycle.details: 'Nach dem Schließen des Fensters kehrt {run} zurück, und die Ausführung wird mit der Bereinigung fortgesetzt. Da der Render-Callback bereits auf den Abschluss der Befehle jedes Frames gewartet hat, können die dafür verwendeten Ressourcen nun freigegeben werden. Nach {windowRun} steht die vollständige Bereinigung:'
 tutorial.lifecycle.guidance: 'Geben Sie die Swapchain vor ihrem nativen Fenster und den Kontext nach seinen Ressourcen frei. Eingereichte Befehlspuffer werden von der Warteschlange wiederverwendet; die Ausgabetextur wird von der Swapchain verwaltet. Beide benötigen daher keinen eigenen {dispose}-Aufruf.'
-tutorial.lifecycle.title: 'Frame-Ablauf und Bereinigung'
 tutorial.pipeline.behavior: 'Erstellen Sie nach dem Eingabelayout die Pipeline:'
 tutorial.pipeline.context: '{cullNone} deaktiviert das Face-Culling. Das Dreieck wird dadurch gezeichnet, unabhängig davon, ob seine Vertices im oder gegen den Uhrzeigersinn angeordnet erscheinen.'
 tutorial.pipeline.description: 'Eine {graphicsPipeline} verbindet das Vertexlayout und die beiden Shader mit den Einstellungen für die Zusammenstellung der Primitive und die Ausgabe in Attachments.'
@@ -418,7 +417,7 @@ tutorial.pipeline.reference: '{opaque} deaktiviert Blending. Die Fragmentfarbe e
 tutorial.pipeline.title: 'Grafikpipeline'
 tutorial.pipeline.usage: 'Shader-Objekte dürfen nach der Pipeline-Erstellung freigegeben werden. Geben Sie die Pipeline dagegen erst nach Abschluss des Renderings frei und ergänzen Sie dafür {pipelineDispose} vor {vertexBufferDispose} in der Bereinigung.'
 tutorial.presentation.title: 'Grafikkontext und Präsentation'
-tutorial.project.context: 'Aktivieren Sie {emphasis} ({allowUnsafeBlocks}) in den Buildeinstellungen. Die nativen Fensteraufrufe und der Vertexupload benötigen unsicheren Code.'
+tutorial.project.context: 'Aktivieren Sie {emphasis} ({allowUnsafeBlocks}) in den Buildeinstellungen. Die nativen Aufrufe der Fensterhilfsklasse und der Vertexupload benötigen unsicheren Code.'
 tutorial.project.context.emphasis: Unsicheren Code zulassen
 tutorial.project.description: 'Erstellen Sie ein C#-Konsolenprojekt namens {firstTriangle} mit .NET 10 als Zielframework.'
 tutorial.project.details: 'Fügen Sie dem Projekt die folgenden NuGet-Pakete hinzu:'
@@ -472,27 +471,9 @@ tutorial.swapChain.details: 'Die {swapChain} verwaltet die angezeigten Bilder. {
 tutorial.swapChain.guidance: '{b8G8R8A8UNorm} speichert vier 8-Bit-Kanäle in Blau-, Grün-, Rot- und Alpha-Reihenfolge. {uNorm} bildet die Ganzzahlen von 0 bis 255 auf den Bereich von 0 bis 1 ab. Der Shader gibt die Farbe weiterhin in der logischen RGBA-Reihenfolge aus; das Format bestimmt ihre Speicherung.'
 tutorial.swapChain.title: 'Swapchain'
 tutorial.title: Erstes Dreieck
-tutorial.troubleshooting.description: 'Konsolendiagnosen und die drei Kontrollpunkte grenzen den Fehler ein:'
-tutorial.troubleshooting.details: "Der {link} und der {detail} dienen als Referenz für Vertexdaten, Eingabelayout und Zeichenbefehle. Das Beispiel {context} ergänzt indexiertes Zeichnen, Transformationen und Tiefentests."
-tutorial.troubleshooting.details.context: Rotierender Würfel
-tutorial.troubleshooting.details.detail: Slang-Shader
-tutorial.troubleshooting.details.link: Beispiel-Renderer
-tutorial.troubleshooting.table.backend.check: Überprüfen Sie, ob das ausgewählte Backend vom Gerät und dem installierten Grafiktreiber unterstützt wird.
-tutorial.troubleshooting.table.backend.symptom: Backend-Erstellung schlägt fehl
-tutorial.troubleshooting.table.drawing.check: Überprüfen Sie die Upload-Größe, das Eingabelayout, die Pipeline-Auswahl und die Platzierung der Zeichenbefehle innerhalb des Renderpasses.
-tutorial.troubleshooting.table.drawing.symptom: Der Hintergrund erscheint, aber das Dreieck nicht
-tutorial.troubleshooting.table.headings.check: Prüfung
-tutorial.troubleshooting.table.headings.symptom: Symptom
-tutorial.troubleshooting.table.input.check: Überprüfen Sie den Stride von 28 Bytes und die Positions-/Farboffsets von 0 und 12.
-tutorial.troubleshooting.table.input.symptom: 'Vertexpositionen oder -farben sind fehlerhaft'
-tutorial.troubleshooting.table.shaders.check: Überprüfen Sie die kopierte Datei {triangleSlang}, die Schreibweise des Einstiegspunkts und die vom Compiler gemeldete Diagnose.
-tutorial.troubleshooting.table.shaders.symptom: Der Schritt mit der Hintergrundfarbe funktioniert, aber das Laden der Shader schlägt fehl
-tutorial.troubleshooting.table.window.check: Bestätigen Sie, dass das .NET-Projekt kompiliert wird und der reine Fensterschritt in einer Desktop-Sitzung ausgeführt wird. Überprüfen Sie unter Linux, ob X11 oder XWayland verfügbar ist.
-tutorial.troubleshooting.table.window.symptom: Es öffnet sich kein Fenster
-tutorial.troubleshooting.title: 'Fehlerdiagnose'
 tutorial.window.description: 'Laden Sie {cocoaHelperCs} in das Projekt herunter. Die Hilfsklasse bindet den Metal-Layer an das macOS-Fenster.'
 tutorial.window.details: "Ersetzen Sie den Inhalt von {programCs} durch den folgenden Code:"
-tutorial.window.guidance: '{graphicsAPINone} überlässt den Grafikkontext Zenith.NET. {initialize} erstellt das native Fenster und macht die Handles des Fenstersystems verfügbar. {center} platziert das Fenster in der Bildschirmmitte. {run} verarbeitet Ereignisse bis zum Schließen; danach gibt {dispose} das Fenster frei.'
+tutorial.window.guidance: '{graphicsAPINone} überlässt die Erstellung des Grafikkontexts Zenith.NET. {initialize} erstellt das native Fenster und macht die Handles des Fenstersystems verfügbar. {center} platziert das Fenster in der Bildschirmmitte. {run} verarbeitet Ereignisse bis zum Schließen; danach gibt {dispose} das Fenster frei.'
 tutorial.window.notes: 'Erstellen und starten Sie die Anwendung. Prüfen Sie, ob sich das Fenster öffnen, verschieben, in der Größe ändern und schließen lässt. Sein Inhalt ist noch nicht definiert, da keine Renderbefehle eingereicht wurden. Schließen Sie das Fenster, bevor Sie fortfahren.'
 tutorial.window.title: 'Fenstererstellung'
 ui.action.copy: Kopieren

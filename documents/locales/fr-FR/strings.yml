@@ -74,7 +74,7 @@ concepts.platforms.lifecycle.guidance: 'Si les textures de profondeur ou hors é
 concepts.platforms.lifecycle.guidance.link: moteur de rendu du cube en rotation
 concepts.platforms.lifecycle.title: 'Dimensions et durée de vie de la chaîne d’échange'
 concepts.platforms.ownership.description: 'L’application possède le contexte assigné et ses ressources de rendu ; le contrôle possède ses ressources de présentation. Lorsque la propriété {graphicsContext} de la vue change, l’ordonnanceur recrée les ressources du contrôle pour le nouveau contexte. L’application doit également recréer ses pipelines, tampons et textures pour ce contexte.'
-concepts.platforms.ownership.details: 'Avant de remplacer des ressources de rendu, arrêter le traitement des images de la vue et attendre le travail GPU qui les utilise. Libérer ensuite les anciennes ressources. Ne libérer le contexte que lorsque chaque vue a libéré ses ressources de présentation associées à ce contexte et que toutes les ressources de l’application créées à partir de ce contexte ont été libérées.'
+concepts.platforms.ownership.details: 'Avant de remplacer des ressources de rendu, arrêter la boucle de rendu de la vue et attendre le travail GPU qui les utilise. Libérer ensuite les anciennes ressources. Ne libérer le contexte que lorsque chaque vue a libéré ses ressources de présentation associées à ce contexte et que toutes les ressources de l’application créées à partir de ce contexte ont été libérées.'
 concepts.platforms.ownership.guidance: 'Le {frameSchedulerCs} commun exécute les gestionnaires d’image via le dispatcher de l’interface de la vue. Limiter leur travail à la mise à jour de la scène et à l’enregistrement des commandes : un traitement CPU prolongé à cet endroit retarde aussi l’interface.'
 concepts.platforms.ownership.title: 'Responsabilités de l’application et du contrôle'
 concepts.platforms.surface.description: 'Le {link} utilise Silk.NET pour créer la fenêtre et traiter ses événements. Zenith.NET reçoit les handles natifs et les dimensions dans une description {surface}, à partir de laquelle il crée une {swapChain}. L’application reste responsable de la fenêtre du système d’exploitation.'
@@ -175,7 +175,7 @@ concepts.shaders.binding.table.samplerHandle.access: 'État d’échantillonnage
 concepts.shaders.binding.table.textureSampledHandle.access: 'Lecture de textures'
 concepts.shaders.binding.table.textureStorageHandle.access: 'Lecture et écriture de textures de stockage'
 concepts.shaders.binding.title: 'Constantes et handles de ressources'
-concepts.shaders.compilation.description: '{zenithCompiler} compile un point d’entrée Slang en {shaderDesc}. {graphicsApi} détermine la cible : DXIL pour DirectX 12, bibliothèque Metal pour Metal, SPIR-V pour Vulkan.'
+concepts.shaders.compilation.description: '{zenithCompiler} compile un point d’entrée Slang et renvoie un {shaderDesc}. La propriété {graphicsApi} du contexte détermine le format de sortie : {dxil} pour DirectX 12, {metallib} pour Metal ou {spirv} pour Vulkan.'
 concepts.shaders.compilation.details: 'Avec un contexte graphique nommé {context} déjà créé, compiler le shader du triangle à partir de la copie placée à côté de l’exécutable :'
 concepts.shaders.compilation.guidance: 'Le nom de point d’entrée {vSMain} doit correspondre à la déclaration dans le fichier de shader. Compiler les shaders et créer les pipelines à l’initialisation, puis réutiliser les pipelines pendant le rendu. Les objets shader peuvent être libérés une fois le pipeline créé, comme dans le tutoriel {link}.'
 concepts.shaders.compilation.guidance.link: Premier triangle
@@ -405,9 +405,8 @@ tutorial.input.table.vertexColor.format: '{float4} (16 octets)'
 tutorial.input.table.vertexPosition.format: '{float3} (12 octets)'
 tutorial.input.title: 'Disposition des sommets en entrée'
 tutorial.lifecycle.description: 'Chaque image suit cette séquence :'
-tutorial.lifecycle.details: 'À la fermeture de la fenêtre, {run} retourne et l’exécution se poursuit avec le nettoyage. Chaque image ayant déjà attendu la fin de ses commandes, les ressources utilisées par ces commandes peuvent être libérées. Le nettoyage complet après {windowRun} est le suivant :'
+tutorial.lifecycle.details: 'À la fermeture de la fenêtre, {run} retourne et l’exécution se poursuit avec le nettoyage. La boucle de rendu a déjà attendu la fin des commandes de chaque image ; les ressources utilisées par ces commandes peuvent donc être libérées. Le nettoyage complet après {windowRun} est le suivant :'
 tutorial.lifecycle.guidance: 'Libérez la chaîne d’échange avant sa fenêtre native, et le contexte après ses ressources. La file recycle les tampons de commandes soumis, tandis que la chaîne d’échange gère sa texture de sortie. Aucun de ces objets ne nécessite donc d’appel distinct à {dispose}.'
-tutorial.lifecycle.title: 'Cycle d’image et libération'
 tutorial.pipeline.behavior: 'Après la disposition d’entrée, créez le pipeline :'
 tutorial.pipeline.context: '{cullNone} désactive l’élimination des faces. Le triangle est donc dessiné que ses sommets apparaissent dans le sens horaire ou antihoraire.'
 tutorial.pipeline.description: 'Un {graphicsPipeline} réunit la disposition des sommets, les deux shaders et les réglages d’assemblage des primitives et d’écriture dans les attachements.'
@@ -418,7 +417,7 @@ tutorial.pipeline.reference: '{opaque} désactive le mélange. La couleur du fra
 tutorial.pipeline.title: 'Pipeline graphique'
 tutorial.pipeline.usage: 'Les objets shader peuvent être libérés après la création du pipeline. Conservez le pipeline pendant le rendu et ajoutez {pipelineDispose} avant {vertexBufferDispose} dans le nettoyage.'
 tutorial.presentation.title: 'Contexte graphique et présentation'
-tutorial.project.context: 'Activez {emphasis} ({allowUnsafeBlocks}) dans les paramètres de compilation. Les appels natifs du code de fenêtre et le transfert des sommets nécessitent du code unsafe.'
+tutorial.project.context: 'Activez {emphasis} ({allowUnsafeBlocks}) dans les paramètres de compilation. Les appels natifs de la classe auxiliaire de fenêtre et le transfert des sommets nécessitent du code unsafe.'
 tutorial.project.context.emphasis: Autoriser le code non sécurisé
 tutorial.project.description: 'Créez un projet console C# nommé {firstTriangle} ciblant .NET 10.'
 tutorial.project.details: 'Ajoutez les paquets NuGet suivants au projet :'
@@ -472,24 +471,6 @@ tutorial.swapChain.details: 'La {swapChain} gère les images présentées. {draw
 tutorial.swapChain.guidance: '{b8G8R8A8UNorm} stocke quatre canaux de 8 bits dans l’ordre bleu, vert, rouge, alpha. {uNorm} fait correspondre les entiers de 0 à 255 aux valeurs de 0 à 1. Le shader produit des valeurs RGBA ; le format détermine leur stockage en mémoire.'
 tutorial.swapChain.title: 'Chaîne d’échange'
 tutorial.title: Premier triangle
-tutorial.troubleshooting.description: 'Les diagnostics console et les trois points de contrôle permettent d’isoler l’étape en échec :'
-tutorial.troubleshooting.details: "Le {link} et le {detail} servent de référence pour les données des sommets, la disposition d’entrée et les commandes de dessin. L’exemple {context} introduit le dessin indexé, les transformations et le test de profondeur."
-tutorial.troubleshooting.details.context: Cube en rotation
-tutorial.troubleshooting.details.detail: shader Slang
-tutorial.troubleshooting.details.link: moteur de rendu d’exemple
-tutorial.troubleshooting.table.backend.check: Vérifiez que le backend sélectionné est pris en charge par l’appareil et le pilote graphique installé.
-tutorial.troubleshooting.table.backend.symptom: La création du backend échoue
-tutorial.troubleshooting.table.drawing.check: Vérifiez la taille du transfert, l’agencement d’entrée, la sélection du pipeline et le placement des commandes de dessin à l’intérieur de la passe de rendu.
-tutorial.troubleshooting.table.drawing.symptom: L’arrière-plan apparaît mais pas le triangle
-tutorial.troubleshooting.table.headings.check: Vérification
-tutorial.troubleshooting.table.headings.symptom: Symptôme
-tutorial.troubleshooting.table.input.check: 'Vérifiez le pas de 28 octets et les décalages de la position et de la couleur : respectivement 0 et 12 octets.'
-tutorial.troubleshooting.table.input.symptom: Les positions ou les couleurs des sommets sont corrompues
-tutorial.troubleshooting.table.shaders.check: Vérifiez le fichier {triangleSlang} copié, l’orthographe du point d’entrée et le diagnostic signalé par le compilateur.
-tutorial.troubleshooting.table.shaders.symptom: 'Le fond s’affiche, mais le chargement des shaders échoue'
-tutorial.troubleshooting.table.window.check: Confirmez que le projet .NET se compile et que l’étape de fenêtre seule s’exécute dans une session de bureau. Sous Linux, vérifiez que X11 ou XWayland est disponible.
-tutorial.troubleshooting.table.window.symptom: Aucune fenêtre ne s’ouvre
-tutorial.troubleshooting.title: 'Diagnostic des erreurs'
 tutorial.window.description: 'Téléchargez {cocoaHelperCs} dans le projet. Cette classe auxiliaire attache la couche Metal à la fenêtre macOS.'
 tutorial.window.details: "Remplacez le contenu de {programCs} par le code suivant :"
 tutorial.window.guidance: '{graphicsAPINone} laisse à Zenith.NET la création du contexte graphique. {initialize} crée la fenêtre native et rend ses handles disponibles. {center} la place au centre de l’écran. {run} traite les événements jusqu’à sa fermeture, puis l’exécution passe à {dispose} pour la libérer.'

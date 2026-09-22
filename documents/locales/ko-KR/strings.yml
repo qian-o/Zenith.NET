@@ -74,7 +74,7 @@ concepts.platforms.lifecycle.guidance: '애플리케이션이 소유한 깊이 �
 concepts.platforms.lifecycle.guidance.link: 회전하는 큐브 렌더러
 concepts.platforms.lifecycle.title: '스왑 체인의 크기와 수명'
 concepts.platforms.ownership.description: '애플리케이션은 할당한 컨텍스트와 자체 렌더링 리소스를 소유하고, 컨트롤은 화면 표시 리소스를 소유합니다. 뷰의 {graphicsContext}가 바뀌면 스케줄러는 새 컨텍스트에 맞게 컨트롤 리소스를 다시 만듭니다. 애플리케이션의 파이프라인, 버퍼, 텍스처도 새 컨텍스트에서 다시 만들어야 합니다.'
-concepts.platforms.ownership.details: '렌더링 리소스를 교체하기 전에 뷰의 프레임 처리를 중단하고 해당 리소스를 사용하는 GPU 작업이 끝날 때까지 기다립니다. 그런 다음 이전 리소스를 해제합니다. 모든 뷰가 해당 컨텍스트의 화면 표시 리소스를 해제하고, 그 컨텍스트에서 만든 애플리케이션 리소스도 모두 해제된 뒤에만 컨텍스트를 해제합니다.'
+concepts.platforms.ownership.details: '렌더링 리소스를 교체하기 전에 뷰의 프레임 루프를 중단하고 해당 리소스를 사용하는 GPU 작업이 끝날 때까지 기다립니다. 그런 다음 이전 리소스를 해제합니다. 모든 뷰가 해당 컨텍스트의 화면 표시 리소스를 해제하고, 그 컨텍스트에서 만든 애플리케이션 리소스도 모두 해제된 뒤에만 컨텍스트를 해제합니다.'
 concepts.platforms.ownership.guidance: '공통 {frameSchedulerCs}는 뷰의 UI 디스패처를 통해 프레임 핸들러를 실행합니다. 핸들러에서는 장면 데이터 갱신과 명령 기록에 집중합니다. 여기서 CPU 작업이 오래 걸리면 인터페이스의 응답도 지연됩니다.'
 concepts.platforms.ownership.title: '애플리케이션과 컨트롤의 소유권'
 concepts.platforms.surface.description: '{link}은 Silk.NET으로 창을 만들고 이벤트를 처리합니다. Zenith.NET은 네이티브 창 핸들과 크기를 {surface} 설명으로 전달받아 {swapChain}을 만듭니다. 운영체제 창의 관리는 애플리케이션이 계속 맡습니다.'
@@ -175,7 +175,7 @@ concepts.shaders.binding.table.samplerHandle.access: '텍스처 샘플링 상태
 concepts.shaders.binding.table.textureSampledHandle.access: '텍스처 읽기'
 concepts.shaders.binding.table.textureStorageHandle.access: '스토리지 텍스처 읽기 및 쓰기'
 concepts.shaders.binding.title: '상수 버퍼와 리소스 핸들'
-concepts.shaders.compilation.description: '{zenithCompiler}는 지정한 Slang 진입점을 {shaderDesc}로 컴파일합니다. 컨텍스트의 {graphicsApi}에 따라 DirectX 12용 DXIL, Metal 라이브러리, Vulkan용 SPIR-V를 생성합니다.'
+concepts.shaders.compilation.description: '{zenithCompiler}는 Slang 진입점을 컴파일하고 {shaderDesc}를 반환합니다. 컨텍스트의 {graphicsApi}가 출력 형식을 결정합니다. DirectX 12에는 {dxil}, Metal에는 {metallib}, Vulkan에는 {spirv}를 사용합니다.'
 concepts.shaders.compilation.details: '{context}라는 그래픽스 컨텍스트를 이미 만든 상태에서, 실행 파일 옆에 복사해 둔 삼각형 셰이더를 다음과 같이 컴파일합니다.'
 concepts.shaders.compilation.guidance: '진입점 이름 {vSMain}은 셰이더 파일의 선언과 일치해야 합니다. 초기화 중에 셰이더를 컴파일하고 파이프라인을 만든 뒤, 렌더링 중에는 파이프라인을 재사용합니다. 파이프라인 생성이 끝나면 셰이더 객체를 해제할 수 있습니다. {link} 튜토리얼에서 이 순서를 확인할 수 있습니다.'
 concepts.shaders.compilation.guidance.link: 첫 번째 삼각형
@@ -225,7 +225,7 @@ concepts.synchronization.dependencies.table.pipelineStages.situation: 명령 스
 concepts.synchronization.dependencies.title: '접근 의존 관계'
 concepts.synchronization.description: '동기화는 공유 데이터에 접근하는 순서를 정하고, 뒤의 작업이 필요한 결과를 볼 수 있게 합니다. 쓰기에서 읽기로 이어지는 의존성에서 쓰는 작업을 생산자, 읽는 작업을 소비자라고 합니다. 배리어와 텍스처 전환은 GPU 접근을 조율하며, 타임라인은 제출 간 의존성을 연결하고 CPU가 GPU 완료를 기다릴 수 있게 합니다.'
 concepts.synchronization.layouts.context: '새 이미지나 전체를 지울 어태치먼트처럼 기존 내용을 버려도 되는 경우 이전 레이아웃에 {undefined}를 사용합니다. 로드, 샘플링, 누적에 기존 내용이 필요하다면 직전 접근의 레이아웃을 지정합니다.'
-concepts.synchronization.layouts.description: '용도 플래그는 텍스처에 허용된 역할을 선언합니다. {textureLayout}은 밉 레벨과 배열 레이어로 식별한 하위 리소스를 명령 시퀀스의 특정 지점에서 어떻게 접근하는지 나타냅니다. 접근 방식이 바뀌면 전환을 기록합니다. 예를 들어 컴퓨트 예제는 출력 텍스처를 {storage} 레이아웃에서 쓴 뒤 그래픽스 패스에서 샘플링할 수 있도록 준비합니다.'
+concepts.synchronization.layouts.description: '용도 플래그는 텍스처에 허용된 역할을 선언합니다. {textureLayout}은 밉 레벨과 배열 레이어로 식별한 하위 리소스에 명령 시퀀스의 특정 지점에서 어떻게 접근하는지를 나타냅니다. 접근 방식이 바뀌면 전환을 기록합니다. 예를 들어 컴퓨트 예제는 출력 텍스처를 {storage} 레이아웃에서 쓴 뒤 그래픽스 패스에서 샘플링할 수 있도록 준비합니다.'
 concepts.synchronization.layouts.details: '여기서는 {outputTexture}를 {sampledStorage} 용도로 만들었고 선택한 하위 리소스는 {storage} 상태입니다. {default}는 mip 레벨 0과 배열 레이어 0을 선택합니다. 다른 레벨이나 레이어에는 영향을 주지 않습니다.'
 concepts.synchronization.layouts.guidance: '{transition}에는 하위 리소스의 직전 사용 레이아웃을 전달합니다. 애플리케이션은 명령을 기록하고 렌더링 단계 사이에 텍스처를 전달하면서 이 상태를 추적합니다.'
 concepts.synchronization.layouts.title: '텍스처 레이아웃'
@@ -405,9 +405,8 @@ tutorial.input.table.vertexColor.format: '{float4} (16바이트)'
 tutorial.input.table.vertexPosition.format: '{float3} (12바이트)'
 tutorial.input.title: '정점 입력 레이아웃'
 tutorial.lifecycle.description: '각 프레임은 다음 순서를 따릅니다.'
-tutorial.lifecycle.details: '창을 닫으면 {run}이 반환하고 정리 코드가 이어서 실행됩니다. 각 프레임에서 제출한 작업이 끝날 때까지 이미 기다렸으므로 명령에 사용한 리소스를 해제할 수 있습니다. {windowRun} 뒤에 들어갈 전체 정리 코드는 다음과 같습니다.'
+tutorial.lifecycle.details: '창을 닫으면 {run}이 반환하고 정리 코드가 이어서 실행됩니다. 렌더링 콜백이 제출된 모든 프레임의 완료를 기다렸으므로 명령에 사용한 리소스를 해제할 수 있습니다. {windowRun} 뒤에 들어갈 전체 정리 코드는 다음과 같습니다.'
 tutorial.lifecycle.guidance: '네이티브 창을 파괴하기 전에 스왑 체인을 해제하고, 컨텍스트는 그 리소스들을 해제한 뒤 정리합니다. 제출한 명령 버퍼는 큐가 재사용하고 출력 텍스처는 스왑 체인이 관리하므로 각각 {dispose}를 호출할 필요가 없습니다.'
-tutorial.lifecycle.title: '프레임 흐름과 해제'
 tutorial.pipeline.behavior: '입력 레이아웃 다음에 파이프라인을 생성합니다.'
 tutorial.pipeline.context: '{cullNone}은 면 컬링을 끕니다. 따라서 정점이 시계 방향으로 보이든 반시계 방향으로 보이든 삼각형을 그립니다.'
 tutorial.pipeline.description: '{graphicsPipeline}은 정점 레이아웃, 두 셰이더, 프리미티브 조립과 어태치먼트 출력 설정을 하나로 묶습니다.'
@@ -418,7 +417,7 @@ tutorial.pipeline.reference: '{opaque}는 블렌딩을 끕니다. 따라서 프�
 tutorial.pipeline.title: '그래픽스 파이프라인'
 tutorial.pipeline.usage: '셰이더 객체는 파이프라인을 생성한 뒤 해제할 수 있습니다. 파이프라인은 렌더링 동안 유지하고, 해제 코드에서 {vertexBufferDispose} 앞에 {pipelineDispose}를 추가합니다.'
 tutorial.presentation.title: '그래픽스 컨텍스트와 표시'
-tutorial.project.context: '프로젝트 빌드 설정에서 {emphasis}({allowUnsafeBlocks})를 켭니다. 창 보조 코드의 네이티브 호출과 정점 업로드에는 unsafe 코드가 필요합니다.'
+tutorial.project.context: '프로젝트 빌드 설정에서 {emphasis}({allowUnsafeBlocks})를 켭니다. 창 보조 클래스의 네이티브 호출과 정점 업로드에는 unsafe 코드가 필요합니다.'
 tutorial.project.context.emphasis: 안전하지 않은 코드 허용
 tutorial.project.description: '.NET 10을 대상으로 하는 {firstTriangle} C# 콘솔 프로젝트를 만듭니다.'
 tutorial.project.details: '다음 NuGet 패키지를 프로젝트에 추가합니다.'
@@ -472,24 +471,6 @@ tutorial.swapChain.details: '{swapChain}은 창에 표시할 이미지를 관리
 tutorial.swapChain.guidance: '{b8G8R8A8UNorm}은 파랑, 초록, 빨강, 알파 순서로 8비트 채널 네 개를 저장합니다. {uNorm}은 정수 0–255를 0–1에 대응시킵니다. 셰이더 출력은 논리적인 RGBA 값이며, 포맷은 메모리에 저장하는 방식을 정합니다.'
 tutorial.swapChain.title: '스왑 체인'
 tutorial.title: 첫 번째 삼각형
-tutorial.troubleshooting.description: '콘솔 진단과 세 단계의 결과를 이용해 문제가 생긴 지점을 찾습니다.'
-tutorial.troubleshooting.details: '{link}와 {detail}에서 정점 데이터, 입력 레이아웃, 그리기를 확인할 수 있습니다. {context}에서는 인덱스 그리기, 변환, 깊이 테스트를 소개합니다.'
-tutorial.troubleshooting.details.context: 회전하는 큐브
-tutorial.troubleshooting.details.detail: Slang 셰이더
-tutorial.troubleshooting.details.link: '예제 렌더러'
-tutorial.troubleshooting.table.backend.check: 선택한 백엔드가 장치 및 설치된 그래픽 드라이버에서 지원되는지 확인합니다.
-tutorial.troubleshooting.table.backend.symptom: 백엔드 생성 실패
-tutorial.troubleshooting.table.drawing.check: '업로드 크기, 입력 레이아웃, 파이프라인 선택 및 렌더 패스 내부의 그리기 명령 배치를 확인합니다.'
-tutorial.troubleshooting.table.drawing.symptom: 배경은 나타나지만 삼각형은 나타나지 않음
-tutorial.troubleshooting.table.headings.check: 확인 사항
-tutorial.troubleshooting.table.headings.symptom: 증상
-tutorial.troubleshooting.table.input.check: '스트라이드가 28바이트이고 위치와 색상의 오프셋이 각각 0과 12바이트인지 확인합니다.'
-tutorial.troubleshooting.table.input.symptom: 정점 위치 또는 색상이 손상됨
-tutorial.troubleshooting.table.shaders.check: 복사된 {triangleSlang}, 진입점 철자 및 컴파일러에서 보고된 진단을 확인합니다.
-tutorial.troubleshooting.table.shaders.symptom: '배경색은 표시되지만 셰이더를 불러오지 못함'
-tutorial.troubleshooting.table.window.check: '.NET 프로젝트가 빌드되고 창 전용 단계가 데스크톱 세션에서 실행되는지 확인합니다. Linux의 경우 X11 또는 XWayland를 사용할 수 있는지 확인합니다.'
-tutorial.troubleshooting.table.window.symptom: '창이 열리지 않음'
-tutorial.troubleshooting.title: '문제 진단'
 tutorial.window.description: '{cocoaHelperCs}를 다운로드해 프로젝트에 추가합니다. 이 보조 클래스는 macOS 창에 Metal 레이어를 연결합니다.'
 tutorial.window.details: '{programCs} 내용을 다음 코드로 바꿉니다.'
 tutorial.window.guidance: '{graphicsAPINone}은 그래픽스 컨텍스트 생성을 Zenith.NET에 맡깁니다. {initialize}는 네이티브 창을 만들고 창 시스템 핸들을 사용할 수 있게 합니다. {center}는 창을 화면 가운데 놓습니다. {run}이 창을 닫을 때까지 이벤트를 처리한 뒤 {dispose}가 실행되어 창을 해제합니다.'
@@ -576,4 +557,4 @@ ui.search.pending: 검색 중…
 ui.search.placeholder: 무엇을 찾으시나요?
 ui.search.resultCount: '결과: {count}개'
 ui.search.title: 문서 검색
-ui.search.unavailable: 검색을 사용할 수 없습니다. 아래 페이지를 계속 열 수 있습니다.
+ui.search.unavailable: 검색을 사용할 수 없습니다. 아래 페이지는 열 수 있습니다.

@@ -74,7 +74,7 @@ concepts.platforms.lifecycle.guidance: 'Если размеры принадле
 concepts.platforms.lifecycle.guidance.link: 'примере вращающегося куба'
 concepts.platforms.lifecycle.title: 'Размеры и время жизни цепочки обмена'
 concepts.platforms.ownership.description: 'Приложение владеет назначенным контекстом и своими ресурсами рендеринга, а элемент управления — ресурсами вывода. При изменении {graphicsContext} представления планировщик пересоздаёт ресурсы элемента управления для нового контекста. Приложение также должно пересоздать для этого контекста свои конвейеры, буферы и текстуры.'
-concepts.platforms.ownership.details: 'Перед заменой ресурсов рендеринга остановите обработку кадров представления и дождитесь использующей их работы GPU. Затем освободите старые ресурсы. Освобождайте контекст только после того, как каждое представление освободит свои ресурсы вывода, относящиеся к этому контексту, и будут освобождены все ресурсы приложения, созданные из него.'
+concepts.platforms.ownership.details: 'Перед заменой ресурсов рендеринга остановите цикл обработки кадров представления и дождитесь использующей их работы GPU. Затем освободите старые ресурсы. Освобождайте контекст только после того, как каждое представление освободит свои ресурсы вывода, относящиеся к этому контексту, и будут освобождены все ресурсы приложения, созданные из него.'
 concepts.platforms.ownership.guidance: 'Общий {frameSchedulerCs} выполняет обработчики кадров через диспетчер UI представления. Ограничивайте их работу обновлением сцены и записью команд: длительные вычисления на CPU здесь задерживают и отклик интерфейса.'
 concepts.platforms.ownership.title: 'Ресурсы приложения и элемента интерфейса'
 concepts.platforms.surface.description: 'В {link} Silk.NET создаёт окно и обрабатывает события. Zenith.NET получает нативные дескрипторы окна и его размеры через описание {surface}, по которому создаёт {swapChain}. За само окно операционной системы по-прежнему отвечает приложение.'
@@ -175,7 +175,7 @@ concepts.shaders.binding.table.samplerHandle.access: 'Состояние выб�
 concepts.shaders.binding.table.textureSampledHandle.access: 'Чтение текстур'
 concepts.shaders.binding.table.textureStorageHandle.access: 'Чтение и запись текстур хранения'
 concepts.shaders.binding.title: 'Буферы констант и дескрипторы ресурсов'
-concepts.shaders.compilation.description: '{zenithCompiler} компилирует именованную точку входа Slang в {shaderDesc}. {graphicsApi} контекста определяет результат: DXIL для DirectX 12, библиотеку Metal для Metal или SPIR-V для Vulkan.'
+concepts.shaders.compilation.description: '{zenithCompiler} компилирует точку входа Slang и возвращает {shaderDesc}. Свойство {graphicsApi} контекста определяет формат результата: {dxil} для DirectX 12, {metallib} для Metal или {spirv} для Vulkan.'
 concepts.shaders.compilation.details: 'Используя уже созданный графический контекст {context}, скомпилируйте шейдер треугольника из копии рядом с исполняемым файлом:'
 concepts.shaders.compilation.guidance: 'Имя точки входа {vSMain} должно совпадать с её объявлением в файле шейдера. Компилируйте шейдеры и создавайте конвейеры при инициализации, а во время рендеринга используйте готовые конвейеры повторно. После создания конвейера объекты шейдеров можно освободить, как показано в {link}.'
 concepts.shaders.compilation.guidance.link: 'учебном примере треугольника'
@@ -405,9 +405,8 @@ tutorial.input.table.vertexColor.format: '{float4} (16 байт)'
 tutorial.input.table.vertexPosition.format: '{float3} (12 байт)'
 tutorial.input.title: 'Описание вершинного входа'
 tutorial.lifecycle.description: 'Каждый кадр выполняется в таком порядке:'
-tutorial.lifecycle.details: 'После закрытия окна {run} возвращает управление, и выполнение продолжается в коде освобождения ресурсов. Каждый кадр уже дождался завершения своих команд, поэтому использованные ими ресурсы можно освободить. Полный код после {windowRun} выглядит так:'
+tutorial.lifecycle.details: 'После закрытия окна {run} возвращает управление, и выполнение продолжается в коде освобождения ресурсов. В цикле рендеринга приложение уже дождалось выполнения команд каждого кадра, поэтому использованные ими ресурсы можно освободить. Полный код после {windowRun} выглядит так:'
 tutorial.lifecycle.guidance: 'Освободите цепочку обмена перед уничтожением её окна, а контекст — после его ресурсов. Очередь повторно использует отправленные командные буферы, а цепочка обмена управляет своей выходной текстурой. Отдельный вызов {dispose} для этих объектов не нужен.'
-tutorial.lifecycle.title: 'Цикл кадра и освобождение ресурсов'
 tutorial.pipeline.behavior: 'После описания входа создайте конвейер:'
 tutorial.pipeline.context: '{cullNone} отключает отбрасывание граней. Треугольник будет нарисован независимо от того, расположены ли его вершины на экране по часовой стрелке или против неё.'
 tutorial.pipeline.description: '{graphicsPipeline} объединяет описание вершин, два шейдера и настройки сборки примитивов и записи во вложения.'
@@ -418,7 +417,7 @@ tutorial.pipeline.reference: '{opaque} отключает смешивание. 
 tutorial.pipeline.title: 'Графический конвейер'
 tutorial.pipeline.usage: 'Объекты шейдеров можно освободить после создания конвейера. Сам конвейер сохраняйте на время рендеринга; в коде освобождения добавьте {pipelineDispose} перед {vertexBufferDispose}.'
 tutorial.presentation.title: 'Графический контекст и вывод'
-tutorial.project.context: 'В настройках сборки включите «{emphasis}» ({allowUnsafeBlocks}). Небезопасный код нужен для нативных вызовов вспомогательного оконного кода и загрузки вершин.'
+tutorial.project.context: 'В настройках сборки включите «{emphasis}» ({allowUnsafeBlocks}). Небезопасный код нужен для нативных вызовов вспомогательного класса для окна и загрузки вершин.'
 tutorial.project.context.emphasis: Разрешить небезопасный код
 tutorial.project.description: 'Создайте консольный проект C# с именем {firstTriangle} для .NET 10.'
 tutorial.project.details: 'Добавьте в проект следующие пакеты NuGet:'
@@ -472,24 +471,6 @@ tutorial.swapChain.details: '{swapChain} управляет изображени
 tutorial.swapChain.guidance: '{b8G8R8A8UNorm} хранит четыре 8-битных канала в порядке синий, зелёный, красный, альфа. {uNorm} отображает целые 0–255 в значения 0–1. Шейдер выдаёт логическое значение RGBA, а формат определяет его представление в памяти.'
 tutorial.swapChain.title: 'Цепочка обмена'
 tutorial.title: Первый треугольник
-tutorial.troubleshooting.description: 'Используйте сообщения консоли и три контрольных результата, чтобы определить этап ошибки:'
-tutorial.troubleshooting.details: "{link} и {detail} служат образцами для проверки данных вершин, описания вершинного ввода и команд рисования. Пример «{context}» знакомит с индексированным рисованием, преобразованиями и проверкой глубины."
-tutorial.troubleshooting.details.context: Вращающийся куб
-tutorial.troubleshooting.details.detail: шейдер Slang
-tutorial.troubleshooting.details.link: 'Демонстрационный рендерер'
-tutorial.troubleshooting.table.backend.check: Убедитесь, что выбранный бэкенд поддерживается устройством и установленным графическим драйвером.
-tutorial.troubleshooting.table.backend.symptom: Сбой создания бэкенда
-tutorial.troubleshooting.table.drawing.check: 'Проверьте размер загрузки, описание вершинного входа, выбор конвейера и расположение команд рисования внутри прохода.'
-tutorial.troubleshooting.table.drawing.symptom: Фон отображается, но треугольника нет
-tutorial.troubleshooting.table.headings.check: Что проверить
-tutorial.troubleshooting.table.headings.symptom: Симптом
-tutorial.troubleshooting.table.input.check: 'Проверьте шаг в 28 байт и смещения положения и цвета: 0 и 12.'
-tutorial.troubleshooting.table.input.symptom: Искажены координаты или цвета вершин
-tutorial.troubleshooting.table.shaders.check: Проверьте скопированный файл {triangleSlang}, правильность написания точек входа и сообщения об ошибках от компилятора.
-tutorial.troubleshooting.table.shaders.symptom: Очистка цветом работает, но загрузка шейдеров завершается ошибкой
-tutorial.troubleshooting.table.window.check: Убедитесь, что проект .NET собирается и шаг с простым окном выполняется в сессии рабочего стола. В Linux проверьте доступность X11 или XWayland.
-tutorial.troubleshooting.table.window.symptom: Окно не открывается
-tutorial.troubleshooting.title: 'Диагностика ошибок'
 tutorial.window.description: 'Скачайте {cocoaHelperCs} в проект. Этот вспомогательный класс связывает слой Metal с окном macOS.'
 tutorial.window.details: "Замените содержимое {programCs} следующим кодом:"
 tutorial.window.guidance: '{graphicsAPINone} оставляет создание графического контекста за Zenith.NET. {initialize} создаёт нативное окно и открывает доступ к дескрипторам оконной системы. {center} размещает окно по центру экрана. {run} обрабатывает события до закрытия окна, после чего {dispose} освобождает его.'

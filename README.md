@@ -23,12 +23,7 @@ Build rasterization and compute workloads, access shader resources through bindl
 
 ## Getting Started
 
-In a .NET 10 project, install the core package and a backend supported by your platform and graphics driver. For Vulkan:
-
-```console
-dotnet add package Zenith.NET
-dotnet add package Zenith.NET.Vulkan
-```
+In a .NET 10 project, add the `Zenith.NET` NuGet package and a backend supported by your platform and graphics driver, such as `Zenith.NET.Vulkan`.
 
 Create a graphics context:
 

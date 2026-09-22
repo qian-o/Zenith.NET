@@ -148,7 +148,7 @@ concepts.platforms.ownership.description: The application owns the assigned cont
   the control owns its presentation resources. When the view's {graphicsContext} changes, the scheduler recreates
   the control's resources for the new context. Recreate the application's pipelines, buffers, and textures for that
   context as well.
-concepts.platforms.ownership.details: Before replacing rendering resources, stop the view's frame activity
+concepts.platforms.ownership.details: Before replacing rendering resources, stop the view's frame loop
   and wait for the GPU work that uses them. Then release the old resources. Release the context only after
   every view has released its presentation resources for that context and all application resources created
   from it have been released.
@@ -314,9 +314,9 @@ concepts.shaders.binding.table.samplerHandle.access: Texture sampling state
 concepts.shaders.binding.table.textureSampledHandle.access: Texture reads
 concepts.shaders.binding.table.textureStorageHandle.access: Storage-texture reads and writes
 concepts.shaders.binding.title: Constant buffers and resource handles
-concepts.shaders.compilation.description: "{zenithCompiler} compiles a named Slang entry point into a {shaderDesc}.
-  The context's {graphicsApi} selects the required target: DXIL for DirectX 12, a Metal library for Metal, or SPIR-V
-  for Vulkan."
+concepts.shaders.compilation.description: '{zenithCompiler} compiles a Slang entry point and returns a {shaderDesc}.
+  The context''s {graphicsApi} selects the output format: {dxil} for DirectX 12, {metallib} for Metal, or {spirv}
+  for Vulkan.'
 concepts.shaders.compilation.details: 'With a graphics context named {context} already created, compile the triangle
   shader from the copy placed beside the executable:'
 concepts.shaders.compilation.guidance: The entry-point name {vSMain} must match the declaration in the shader file.
@@ -684,12 +684,11 @@ tutorial.input.table.vertexPosition.format: '{float3} (12 bytes)'
 tutorial.input.title: Vertex input layout
 tutorial.lifecycle.description: 'Each frame follows this sequence:'
 tutorial.lifecycle.details: 'When the window closes, {run} returns and execution continues to the cleanup code.
-  Each frame has already waited for its submitted work to finish, so the resources used by those commands can now
+  The render callback has waited for every submitted frame to finish, so the resources used by those commands can now
   be released. The complete cleanup after {windowRun} is:'
 tutorial.lifecycle.guidance: Release the swap chain before destroying its native window, and release the context
   after its resources. Submitted command buffers are recycled by the queue, and the drawable is managed by the swap
   chain, so neither needs a separate {dispose} call.
-tutorial.lifecycle.title: Frame lifecycle and cleanup
 tutorial.pipeline.behavior: 'After the input layout, create the pipeline:'
 tutorial.pipeline.context: '{cullNone} disables face culling, so the triangle is drawn whether its vertices appear
   clockwise or counterclockwise.'
@@ -708,7 +707,7 @@ tutorial.pipeline.usage:
   and add {pipelineDispose} before {vertexBufferDispose} in the cleanup.
 tutorial.presentation.title: Graphics context and presentation
 tutorial.project.context: Enable {emphasis} ({allowUnsafeBlocks}) in the project's build settings. Native calls
-  in the window helper and the vertex upload require unsafe code.
+  in the window helper class and the vertex upload require unsafe code.
 tutorial.project.context.emphasis: Allow unsafe code
 tutorial.project.description: Create a C# console project named {firstTriangle} targeting .NET 10.
 tutorial.project.details: 'Add the following NuGet packages to the project:'
@@ -799,30 +798,6 @@ tutorial.swapChain.guidance: '{b8G8R8A8UNorm} stores four 8-bit channels in blue
   its storage representation.'
 tutorial.swapChain.title: Swap chain
 tutorial.title: First Triangle
-tutorial.troubleshooting.description: 'Use console diagnostics and the three checkpoints to identify the failing
-  stage:'
-tutorial.troubleshooting.details: The {link} and {detail} provide a reference for the vertex data, input layout,
-  and draw operation. {context} introduces indexed drawing, transformations, and depth testing.
-tutorial.troubleshooting.details.context: Spinning Cube
-tutorial.troubleshooting.details.detail: Slang shader
-tutorial.troubleshooting.details.link: sample renderer
-tutorial.troubleshooting.table.backend.check: Check that the selected backend is supported by the device and installed
-  graphics driver.
-tutorial.troubleshooting.table.backend.symptom: Backend creation fails
-tutorial.troubleshooting.table.drawing.check: Check the upload size, input layout, pipeline selection and the placement
-  of the draw commands inside the render pass.
-tutorial.troubleshooting.table.drawing.symptom: The background appears but the triangle does not
-tutorial.troubleshooting.table.headings.check: Check
-tutorial.troubleshooting.table.headings.symptom: Symptom
-tutorial.troubleshooting.table.input.check: Check the 28-byte stride and the position/color offsets of 0 and 12.
-tutorial.troubleshooting.table.input.symptom: Vertex positions or colors are corrupted
-tutorial.troubleshooting.table.shaders.check: Check the copied {triangleSlang}, entry-point spelling and the compiler's
-  reported diagnostic.
-tutorial.troubleshooting.table.shaders.symptom: The clear-color step works, but shader loading fails
-tutorial.troubleshooting.table.window.check: Confirm the .NET project builds and the window-only step runs in a
-  desktop session. On Linux, check that X11 or XWayland is available.
-tutorial.troubleshooting.table.window.symptom: No window opens
-tutorial.troubleshooting.title: Troubleshooting
 tutorial.window.description: 'Download {cocoaHelperCs} into the project. This helper class attaches the Metal layer to the macOS window.'
 tutorial.window.details: 'Replace the contents of {programCs} with the code below:'
 tutorial.window.guidance: '{graphicsAPINone} leaves graphics-context creation to Zenith.NET. {initialize} creates

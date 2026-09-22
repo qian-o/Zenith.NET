@@ -969,10 +969,7 @@ commandBuffer.Draw(3, 1, 0, 0);
 <p>
     <resource key="tutorial.execution.guidance"></resource>
 </p>
-<h3 id="follow-the-lifetime-of-one-frame">
-    <resource key="tutorial.lifecycle.title"></resource>
-</h3>
-<p>
+<p id="follow-the-lifetime-of-one-frame">
     <resource key="tutorial.lifecycle.description"></resource>
 </p>
 
@@ -1009,74 +1006,5 @@ context.Dispose();
 <p>
     <resource key="tutorial.lifecycle.guidance">
         <slot name="dispose"><a class="xref" href="xref:Zenith.NET.DisposableObject.Dispose"><code>Dispose()</code></a></slot>
-    </resource>
-</p>
-<h3 id="check-the-stage-that-failed">
-    <resource key="tutorial.troubleshooting.title"></resource>
-</h3>
-<p>
-    <resource key="tutorial.troubleshooting.description"></resource>
-</p>
-<table>
-    <thead>
-        <tr>
-            <th>
-                <resource key="tutorial.troubleshooting.table.headings.symptom"></resource>
-            </th>
-            <th>
-                <resource key="tutorial.troubleshooting.table.headings.check"></resource>
-            </th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-                <resource key="tutorial.troubleshooting.table.window.symptom"></resource>
-            </td>
-            <td>
-                <resource key="tutorial.troubleshooting.table.window.check"></resource>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <resource key="tutorial.troubleshooting.table.backend.symptom"></resource>
-            </td>
-            <td>
-                <resource key="tutorial.troubleshooting.table.backend.check"></resource>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <resource key="tutorial.troubleshooting.table.shaders.symptom"></resource>
-            </td>
-            <td>
-                <resource key="tutorial.troubleshooting.table.shaders.check">
-                    <slot name="triangleSlang"><code>Triangle.slang</code></slot>
-                </resource>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <resource key="tutorial.troubleshooting.table.drawing.symptom"></resource>
-            </td>
-            <td>
-                <resource key="tutorial.troubleshooting.table.drawing.check"></resource>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <resource key="tutorial.troubleshooting.table.input.symptom"></resource>
-            </td>
-            <td>
-                <resource key="tutorial.troubleshooting.table.input.check"></resource>
-            </td>
-        </tr>
-    </tbody>
-</table>
-<p>
-    <resource key="tutorial.troubleshooting.details">
-        <slot name="link"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/HelloTriangleRenderer.cs"><resource key="tutorial.troubleshooting.details.link"></resource></a></slot>
-        <slot name="detail"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/HelloTriangle.slang"><resource key="tutorial.troubleshooting.details.detail"></resource></a></slot>
-        <slot name="context"><a href="~/learn/samples.md#spinning-cube"><resource key="tutorial.troubleshooting.details.context"></resource></a></slot>
     </resource>
 </p>
