@@ -83,7 +83,7 @@ Introduce file settings when the file is created. For a shader, describe its Cop
 
 Keep snippets consistent with the complete application. The assembled source must not depend on omitted setup or unexplained helper methods. Keep platform-specific alternatives only where they are necessary to run it.
 
-For each sample, provide a verified source link, its purpose and relevant requirements. Avoid copying its implementation into the page. Use the repository's normal branch links rather than transient local paths or release-specific URLs unless the example requires otherwise.
+For each sample, briefly describe the visible result and the main technique it demonstrates, then provide verified source links. Include a prerequisite when it determines whether the sample can run. Keep API call sequences, resource formats, helper implementation details, and unrelated navigation out of the catalog. Use the repository's normal branch links rather than transient local paths or release-specific URLs unless the example requires otherwise.
 
 For screenshots maintained in the tutorial repository, use its main-branch raw image URLs in shared Markdown. Link each preview to the full-size image, include its intrinsic dimensions, and use native lazy loading. Bind alternative text with `alt="@resource.key"` and `data-resource-alt="resource.key"`; an existing sample title can identify its preview when the adjacent prose explains the result. The build renders English alternative text, and language switching updates it from the selected dictionary.
 
@@ -219,7 +219,7 @@ docfx serve documents/_site --hostname 127.0.0.1 --port 8080
 
 Check the resulting type page and a tutorial page in the browser. Verify links after highlighting, keyboard focus, copied code, long generic signatures and narrow layouts. A documented member should keep its summary, parameter descriptions, return/value explanation, remarks, examples and exceptions. An undocumented member should remain compact.
 
-Before handing off a content change, ensure the DocFX build has no warnings or errors, local links and fragments resolve, and the filled pages work at desktop and phone widths. Check headings, code/table overflow, search results and keyboard navigation on the changed pages. Summarize the pages filled, the source used, compilation/rendering checks performed and any unfinished content.
+Before handing off a content change, review the rendered articles in reading order for necessity, teaching sequence, and continuity across paragraphs. Review translations in that same context. Separately, ensure the DocFX build has no warnings or errors, local links and fragments resolve, and the filled pages work at desktop and phone widths. Check headings, code/table overflow, search results and keyboard navigation on the changed pages. Report editorial findings separately from compilation, rendering, and structural checks; passing those checks does not establish the quality of the prose.
 
 ## Template organization
 

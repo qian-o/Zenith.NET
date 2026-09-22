@@ -20,7 +20,6 @@ title: '@tutorial.title'
 <p>
     <resource key="tutorial.requirements.description">
         <slot name="emphasis"><strong><resource key="tutorial.requirements.description.emphasis"></resource></strong></slot>
-        <slot name="net10"><code>net10.0</code></slot>
     </resource>
 </p>
 <table>
@@ -62,9 +61,7 @@ title: '@tutorial.title'
     </tbody>
 </table>
 <p>
-    <resource key="tutorial.requirements.guidance">
-        <slot name="cAMetalLayerCs"><a href="https://github.com/qian-o/Metal.NET/blob/master/Metal.NET/CoreAnimation/CAMetalLayer.cs">CAMetalLayer.cs</a></slot>
-    </resource>
+    <resource key="tutorial.requirements.guidance"></resource>
 </p>
 <p>
     <a id="project"></a>
@@ -119,14 +116,8 @@ title: '@tutorial.title'
     3. <resource key="tutorial.window.title"></resource>
 </h2>
 <p>
-    <resource key="tutorial.window.description">
-        <slot name="cocoaHelperCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/CocoaHelper.cs">CocoaHelper.cs</a></slot>
-    </resource>
-</p>
-<p>
     <resource key="tutorial.window.details">
         <slot name="programCs"><code>Program.cs</code></slot>
-        <slot name="main"><code>Main</code></slot>
     </resource>
 </p>
 
@@ -222,6 +213,11 @@ context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Seve
     <resource key="tutorial.surface.title"></resource>
 </h3>
 <p>
+    <resource key="tutorial.window.description">
+        <slot name="cocoaHelperCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/CocoaHelper.cs">CocoaHelper.cs</a></slot>
+    </resource>
+</p>
+<p>
     <resource key="tutorial.surface.description">
         <slot name="emphasis"><strong><resource key="tutorial.surface.description.emphasis"><slot name="windowCenter"><code>window.Center()</code></slot>
         <slot name="windowRun"><code>window.Run()</code></slot>
@@ -286,7 +282,6 @@ SwapChain swapChain = context.CreateSwapChain(new()
     <resource key="tutorial.swapChain.guidance">
         <slot name="b8G8R8A8UNorm"><a class="xref" href="xref:Zenith.NET.PixelFormat.B8G8R8A8UNorm"><code>B8G8R8A8UNorm</code></a></slot>
         <slot name="uNorm"><code>UNorm</code></slot>
-        <slot name="swapChainDescFormat"><code>swapChain.<a class="code-reference" href="xref:Zenith.NET.SwapChain.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.SwapChainDesc.Format">Format</a></code></slot>
     </resource>
 </p>
 <p>
@@ -314,7 +309,6 @@ context.Dispose();
 </p>
 <p>
     <resource key="tutorial.frame.details">
-        <slot name="value"><code>_</code></slot>
         <slot name="emphasis"><strong><resource key="tutorial.frame.details.emphasis"><slot name="windowRun"><code>window.Run();</code></slot>
     </resource>
     </strong>
@@ -476,8 +470,6 @@ file struct Vertex(Vector3 position, Vector4 color)
 
 <p>
     <resource key="tutorial.geometry.format.details">
-        <slot name="file"><code>file</code></slot>
-        <slot name="programCs"><code>Program.cs</code></slot>
         <slot name="layoutKindSequential"><code>LayoutKind.Sequential</code></slot>
         <slot name="position"><code>Position</code></slot>
         <slot name="color"><code>Color</code></slot>
@@ -505,13 +497,7 @@ Vertex[] vertices =
 ```
 
 <p>
-    <resource key="tutorial.geometry.data.details">
-        <slot name="vertex"><code>Vertex</code></slot>
-        <slot name="new"><code>new</code></slot>
-        <slot name="vector3"><code>Vector3</code></slot>
-        <slot name="vector4"><code>Vector4</code></slot>
-        <slot name="w"><code>w = 1</code></slot>
-    </resource>
+    <resource key="tutorial.geometry.data.details"></resource>
 </p>
 <p>
     <resource key="tutorial.geometry.data.guidance"></resource>
@@ -579,7 +565,6 @@ unsafe
         <slot name="vertexBufferDispose"><code>vertexBuffer.<a class="code-reference" href="xref:Zenith.NET.DisposableObject.Dispose">Dispose</a>();</code></slot>
         <slot name="swapChainDispose"><code>swapChain.<a class="code-reference" href="xref:Zenith.NET.DisposableObject.Dispose">Dispose</a>();</code></slot>
         <slot name="programCs"><code>Program.cs</code></slot>
-        <slot name="link"><a href="~/learn/concepts/resource-management.md#memory-placement"><resource key="tutorial.geometry.upload.notes.link"></resource></a></slot>
     </resource>
 </p>
 <p>
@@ -810,9 +795,6 @@ inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemanti
         <slot name="graphicsPipeline"><a class="xref" href="xref:Zenith.NET.GraphicsPipeline"><code>GraphicsPipeline</code></a></slot>
     </resource>
 </p>
-<p>
-    <resource key="tutorial.pipeline.details"></resource>
-</p>
 <ul>
     <li>
         <resource key="tutorial.pipeline.item">
@@ -967,10 +949,7 @@ commandBuffer.Draw(3, 1, 0, 0);
     </tbody>
 </table>
 <p>
-    <resource key="tutorial.draw.notes">
-        <slot name="submitWait"><code><a class="code-reference" href="xref:Zenith.NET.CommandBuffer.Submit(System.ReadOnlySpan{Zenith.NET.TimelineValue})">Submit</a>().<a class="code-reference" href="xref:Zenith.NET.TimelineValue.Wait">Wait</a>()</code></slot>
-        <slot name="present"><a class="xref" href="xref:Zenith.NET.SwapChain.Present"><code>Present()</code></a></slot>
-    </resource>
+    <resource key="tutorial.draw.notes"></resource>
 </p>
 <p>
     <a id="run"></a>
@@ -1098,7 +1077,6 @@ context.Dispose();
     <resource key="tutorial.troubleshooting.details">
         <slot name="link"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/HelloTriangleRenderer.cs"><resource key="tutorial.troubleshooting.details.link"></resource></a></slot>
         <slot name="detail"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/HelloTriangle.slang"><resource key="tutorial.troubleshooting.details.detail"></resource></a></slot>
-        <slot name="programCs"><code>Program.cs</code></slot>
         <slot name="context"><a href="~/learn/samples.md#spinning-cube"><resource key="tutorial.troubleshooting.details.context"></resource></a></slot>
     </resource>
 </p>

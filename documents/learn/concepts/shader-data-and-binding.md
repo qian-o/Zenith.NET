@@ -146,9 +146,6 @@ commandBuffer.Dispatch(groupCountX, groupCountY, 1);
 
 <p>
     <resource key="concepts.shaders.binding.guidance">
-        <slot name="commandBuffer"><code>commandBuffer</code></slot>
-        <slot name="computePipeline"><code>computePipeline</code></slot>
-        <slot name="constantBuffer"><code>constantBuffer</code></slot>
         <slot name="bufferUsagesConstant"><a class="xref" href="xref:Zenith.NET.BufferUsages.Constant"><code>BufferUsages.Constant</code></a></slot>
     </resource>
 </p>

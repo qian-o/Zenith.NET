@@ -82,9 +82,9 @@ concepts.platforms.description: Presentation can be managed by the application o
   determines who acquires the current frame's output texture, records and submits the frame, and presents the result.
   That output texture is called the drawable.
 concepts.platforms.frame.context: Record pipeline bindings and draw commands inside the pass, then end it before
-  the handler returns. The control submits the commands and presents the result. The handler must not submit the
-  command buffer or dispose either supplied object. If it changes the drawable's layout, restore {colorAttachment}
-  before returning so the control can perform its final transition.
+  the handler returns. The handler must not submit the command buffer or dispose either supplied object. If
+  it changes the drawable's layout, restore {colorAttachment} before returning so the control can perform its
+  final transition.
 concepts.platforms.frame.description: The controls implement {iZenithView}. The application assigns {graphicsContext},
   updates scene data in {updateRequested}, and records commands in {renderRequested} using the supplied {renderEventArgs}.
 concepts.platforms.frame.details: For each frame, the control acquires a drawable and a command buffer, transitions
@@ -95,8 +95,6 @@ concepts.platforms.frame.guidance: 'Add {usingZenithNET} to the file. For an ini
 concepts.platforms.frame.notes: The initial transition uses {undefined}, which allows the previous image contents
   to be discarded. Draw or clear the full image on each frame. Keep accumulated or cached rendering in an application-owned
   texture, then draw that texture into the control's drawable.
-concepts.platforms.frame.reference: '{zenithViewHelperDrawableFormat} provides the default color format used by
-  these integrations.'
 concepts.platforms.frame.title: Rendering through a UI control
 concepts.platforms.integration.context: WinForms, WPF, and the Windows WinUI integration run on Windows. For MAUI,
   install the workload for the target platform and register the control handler with {useZenithView}, as shown in
@@ -107,8 +105,6 @@ concepts.platforms.integration.details: These implementations differ in how the 
   readback copies pixels into CPU memory before display. Shared-texture interop avoids that CPU copy but can still
   require GPU copies and synchronization. Consider this presentation path, as well as the shared {renderRequested}
   event, when choosing an integration.
-concepts.platforms.integration.guidance: Add the integration package for your UI framework through NuGet. For Avalonia,
-  use {avaloniaPackage}.
 concepts.platforms.integration.table.avalonia.integration: Avalonia
 concepts.platforms.integration.table.avalonia.presentation:
   Renders to a texture and downloads pixels into a {writeableBitmap}.
@@ -152,9 +148,10 @@ concepts.platforms.ownership.description: The application owns the assigned cont
   the control owns its presentation resources. When the view's {graphicsContext} changes, the scheduler recreates
   the control's resources for the new context. Recreate the application's pipelines, buffers, and textures for that
   context as well.
-concepts.platforms.ownership.details: Before replacing rendering resources, stop the view's frame activity and wait
-  for the GPU work that uses them. Only then release the old resources or context. The application remains responsible
-  for releasing the assigned context when the view is removed.
+concepts.platforms.ownership.details: Before replacing rendering resources, stop the view's frame activity
+  and wait for the GPU work that uses them. Then release the old resources. Release the context only after
+  every view has released its presentation resources for that context and all application resources created
+  from it have been released.
 concepts.platforms.ownership.guidance:
   The shared {frameSchedulerCs} runs frame handlers through the view's UI dispatcher.
   Keep those handlers focused on updating scene data and recording commands; lengthy CPU work there also delays
@@ -259,11 +256,12 @@ concepts.resources.transfers.guidance: 'To submit transfers together with other 
 concepts.resources.transfers.item: During an upload call, the library copies the source data into temporary upload
   storage, called staging memory. The GPU later reads from this storage, so the application's source pointer is
   needed only until the call returns.
-concepts.resources.transfers.notes: For texture transfers, row stride is the byte distance between successive rows
-  of CPU data; slice stride is the distance between successive depth slices. These values let the transfer copy
-  the CPU data into or out of the texture's GPU storage. {link} explains why GPU completion and delivery to a download
-  destination are separate steps.
-concepts.resources.transfers.notes.link: Synchronization
+concepts.resources.transfers.layouts: Recorded texture transfers do not include layout transitions. Uploads
+  require {copyDst}; downloads require {copySrc}. Record transitions to these layouts before the copy and to
+  the layout required by the next use afterward.
+concepts.resources.transfers.notes: For texture transfers, row stride is the byte distance between successive
+  rows of CPU data; slice stride is the distance between successive depth slices. These values let the transfer
+  copy the CPU data into or out of the texture's GPU storage.
 concepts.resources.transfers.table.bufferDownload.transfer: Copies directly from mapped memory for {cpuReadOnly}.
   Otherwise, submits the download to the transfer queue and waits for it to finish.
 concepts.resources.transfers.table.bufferUpload.transfer: Copies directly into mapped memory for {cpuWriteOnly}.
@@ -297,10 +295,9 @@ concepts.shaders.binding.description: '{setConstantBuffer} selects an existing b
 concepts.shaders.binding.details: 'With a command buffer, compute pipeline, populated constant buffer, and thread-group
   counts ready, record the dispatch in this order. Select the pipeline first, because the constant-buffer binding
   applies to that pipeline:'
-concepts.shaders.binding.guidance: Here, {commandBuffer} records a dispatch using {computePipeline} and the parameters
-  stored in {constantBuffer}. The buffer requires {bufferUsagesConstant} usage, and offset 0 selects its beginning.
-  If several constant records share one buffer, each record's starting offset must also meet the backend's binding
-  alignment, independently of the layout of fields within the record.
+concepts.shaders.binding.guidance: The constant buffer requires {bufferUsagesConstant} usage. If several constant
+  records share one buffer, each record's starting offset must meet the backend's binding alignment, independently
+  of the layout of fields within the record.
 concepts.shaders.binding.notes: '{resourceHandle} contains two 32-bit fields whose interpretation depends on the
   backend. Its values are valid only within the context that created the resource.'
 concepts.shaders.binding.reference: Retain the resource and any view used to obtain its handle until the shader's
@@ -352,9 +349,10 @@ concepts.shaders.layout.guidance: Shader parameters can include resource handles
   identifies storage that already exists, so copying the handle into a constant buffer does not copy the resource's
   contents.
 concepts.shaders.layout.notes: 'The matching declaration in {computeShaderSlang} is:'
-concepts.shaders.layout.reference: The two dimensions occupy the first eight bytes, followed by two eight-byte handles.
-  The C# sample reserves 256 bytes for the complete record. For another record, determine its size from its own
-  fields and the required layout and alignment.
+concepts.shaders.layout.reference: 'The C# fields occupy the first 24 bytes: eight for the dimensions and eight
+  for each handle. The 256-byte record leaves the remaining bytes as padding. For a different parameter block,
+  match the field offsets to its shader layout. If multiple records share a buffer, include enough padding
+  between them to meet the backend''s binding alignment.'
 concepts.shaders.layout.title: Data layout
 concepts.shaders.matrices.description: The compiler selects row-major matrix storage, keeping each row contiguous.
   The {link} stores three {matrix4x4} values at offsets 0, 64, and 128. Its {detail} applies {mulVectorMatrix} in
@@ -369,10 +367,9 @@ concepts.synchronization.backends.description: DirectX 12 and Vulkan encode text
   changes. Metal has no equivalent operation in Zenith.NET's {transition} implementation. The Metal backend instead
   groups commands into render and compute encoders and inserts visibility barriers when an encoder ends. Dependent
   operations within one encoder, such as successive compute dispatches, use explicit {barrier} calls.
-concepts.synchronization.backends.details: In the {link}, starting the graphics render pass ends the compute encoder,
-  making its output visible to the graphics work. Two successive compute dispatches remain in the same encoder,
-  so their dependency needs a barrier even if a texture transition is recorded between them. This is why portable
-  command sequences account for access dependencies as well as texture layouts.
+concepts.synchronization.backends.details: In the {link}, starting the graphics render pass ends the compute
+  encoder, making its output visible to the graphics work. Two successive compute dispatches remain in the
+  same encoder, so their dependency needs a barrier even if a texture transition is recorded between them.
 concepts.synchronization.backends.details.link: compute sample
 concepts.synchronization.backends.title: Backend behavior
 concepts.synchronization.barriers.context: Choose stages that include the relevant accesses and are supported by
@@ -384,8 +381,7 @@ concepts.synchronization.barriers.description: 'Consider two compute dispatches 
 concepts.synchronization.barriers.details: The first argument identifies the stages that produced the data; the
   second identifies the stages that will consume it. Together they describe the execution order and memory visibility
   required between the two dispatches.
-concepts.synchronization.barriers.guidance: The {link} uses this pattern between simulation steps. Each barrier
-  follows the dispatch that produces the data and precedes the dispatch that uses it.
+concepts.synchronization.barriers.guidance: The {link} uses this pattern between simulation steps.
 concepts.synchronization.barriers.guidance.link: FluidTank simulation
 concepts.synchronization.barriers.title: Pipeline barriers
 concepts.synchronization.dependencies.description: For each resource, identify the accesses that touch the same
@@ -514,82 +510,63 @@ reference.entries.context.label: Start here
 reference.meta.description: Namespaces, types, and members of Zenith.NET
 reference.navigation.core: Core API reference
 reference.title: API Reference
-samples.computeShader.description: The sample loads {assetsTexturesShokoPng}, converts it to grayscale in a compute
-  dispatch, and displays the output texture. The conversion runs once; later frames display the same result. The
-  renderer shows how to bind sampled and writable textures, round up thread-group counts to cover the image, and
-  check image bounds in the shader.
+samples.computeShader.description: Converts a color image to grayscale with a compute shader, demonstrating
+  image processing on the GPU.
 samples.computeShader.details: '{computeShaderRendererCs} · {computeShaderSlang}'
 samples.computeShader.title: Compute Shader
-samples.cube.description: The cube adds indexed drawing, model, view, and projection matrices in a constant buffer,
-  and depth testing. Its {d32FloatS8UInt} depth/stencil texture is recreated on resize.
+samples.cube.description: A rotating cube introduces indexed geometry, 3D transformations, and depth testing.
 samples.cube.details: '{spinningCubeRendererCs} · {spinningCubeSlang}'
 samples.cube.title: Spinning Cube
-samples.description: Each example pairs a C# renderer with its Slang shader and concentrates on a particular technique.
-  For the complete application setup and rendering sequence, begin with {link}.
-samples.description.link: First Triangle
+samples.description: These examples cover rendering and compute, from a single triangle to interactive applications
+  and diagnostic tools.
 samples.execution.description: Run the {link} project and choose an example from its console menu.
 samples.execution.description.link: ZenithTutorials
 samples.execution.title: Running the examples
-samples.host.description: "{appCs} initializes the context, window, and swap chain. On each frame it obtains a command
-  buffer, invokes the selected renderer, submits the commands, and presents the result. {iRendererCs} defines the
-  renderer's update, render, resize, and disposal operations."
-samples.host.details: The compute and ray tracing renderers produce offscreen textures. {texturePresenterCs} and
-  {presentTextureSlang} draw those textures into the current drawable; the shared host then submits the commands
-  and presents the frame.
-samples.host.title: Host and presentation
-samples.indirectDrawing.description: Indirect drawing renders multiple cube instances from a buffer of indexed draw
-  arguments and a structured buffer of per-instance data. The CPU supplies the arguments and updates the transforms.
+samples.indirectDrawing.description: A grid of rotating, individually colored cubes demonstrates indirect drawing
+  from a buffer of draw arguments.
 samples.indirectDrawing.details: '{indirectDrawingRendererCs} · {indirectDrawingSlang}'
 samples.indirectDrawing.title: Indirect Drawing
-samples.meshShading.description: A task shader culls sphere instances and passes the retained indices to a mesh
-  shader that emits geometry. The renderer checks {contextCapabilitiesMeshShadingSupported} before creating the
-  pipeline.
+samples.meshShading.description: Renders a grid of colored spheres with task and mesh shaders, skipping spheres
+  outside the camera's view. Requires mesh shading support.
 samples.meshShading.details: '{meshShadingRendererCs} · {meshShadingSlang}'
 samples.meshShading.title: Mesh Shading
-samples.rayTracing.description: This example builds bottom-level and top-level acceleration structures for a floor
-  and procedural spheres, then performs inline ray queries in a compute shader. It checks {contextCapabilitiesRayTracingSupported}
-  before initialization.
+samples.rayTracing.description: Renders reflective spheres and shadows on a checkerboard floor using ray queries.
+  Requires ray tracing support.
 samples.rayTracing.details: '{rayTracingRendererCs} · {rayTracingSlang}'
 samples.rayTracing.title: Ray Tracing
 samples.title: Samples
-samples.triangle.description: The triangle associates a vertex buffer with a matching input layout and draws three
-  vertices through a graphics pipeline.
+samples.triangle.description: A triangle with smoothly blended vertex colors introduces the basic graphics
+  pipeline.
 samples.triangle.details: '{helloTriangleRendererCs} · {helloTriangleSlang} · {link}'
 samples.triangle.details.link: Complete tutorial
 samples.triangle.title: Hello Triangle
-samples.workloads.description: The main repository's {link} contains larger applications that reference the library
-  source.
+samples.workloads.description: The main repository's {link} contains the following applications and utilities.
 samples.workloads.description.link: Experiments directory
-samples.workloads.details: The windowed experiments use the same Windows, macOS, and Linux/X11 presentation paths.
-  UI controls for Avalonia, WinForms, WPF, WinUI/Uno, and MAUI are covered in {link}, including their frame lifecycle
-  and implementation sources.
-samples.workloads.details.link: Platform Integration
 samples.workloads.table.cornellBox.example: '{link}'
 samples.workloads.table.cornellBox.example.link: CornellBox
-samples.workloads.table.cornellBox.whatItDemonstratesAndRequires: Path tracing, denoising, tone mapping, upscaling,
-  and ImGui controls. Requires ray tracing support.
+samples.workloads.table.cornellBox.whatItDemonstratesAndRequires: An interactive room scene for exploring lighting
+  and reflections. Requires ray tracing support.
 samples.workloads.table.fluidTank.example: '{link}'
 samples.workloads.table.fluidTank.example.link: FluidTank
-samples.workloads.table.fluidTank.whatItDemonstratesAndRequires: Compute fluid simulation, dependencies between
-  simulation stages, and multipass surface rendering.
+samples.workloads.table.fluidTank.whatItDemonstratesAndRequires: A water simulation in a tank, with surface
+  and particle views.
 samples.workloads.table.headings.example: Example
-samples.workloads.table.headings.whatItDemonstratesAndRequires: Techniques and requirements
+samples.workloads.table.headings.whatItDemonstratesAndRequires: Description
 samples.workloads.table.inkCanvas.example: '{link}'
 samples.workloads.table.inkCanvas.example.link: InkCanvas
-samples.workloads.table.inkCanvas.whatItDemonstratesAndRequires: Skia drawing and input handling in a native window.
-  Requires the backend and Skia native library for the target platform.
+samples.workloads.table.inkCanvas.whatItDemonstratesAndRequires: A canvas for drawing and erasing freehand
+  strokes.
 samples.workloads.table.platformDetection.example: '{link}'
 samples.workloads.table.platformDetection.example.link: PlatformDetection
-samples.workloads.table.platformDetection.whatItDemonstratesAndRequires: Attempts to create a context for each backend
-  and reports device capabilities. It reports a failed attempt as unsupported; the failure may be due to the device,
-  driver, or a missing runtime dependency.
-samples.workloads.title: Larger applications
+samples.workloads.table.platformDetection.whatItDemonstratesAndRequires: A console tool that reports graphics
+  backend availability and device features.
+samples.workloads.title: Applications and utilities
 tutorial.context.description: A {graphicsContext} connects the application to the GPU through a backend and provides
   the methods used to create rendering resources.
 tutorial.context.details: 'Insert the context initialization {emphasis}:'
 tutorial.context.details.emphasis: after the using directives, before {iWindowWindow}
-tutorial.context.guidance: Each branch selects a backend for the current platform and requests validation. Messages
-  from {validationMessage} are printed in the console.
+tutorial.context.guidance: Each branch selects a backend for the current platform and requests validation to
+  help diagnose incorrect API use. Messages from {validationMessage} are printed in the console.
 tutorial.context.imports: 'Add the following using directives at the top of {programCs}:'
 tutorial.context.title: Graphics context
 tutorial.description: In this tutorial, you will build a .NET console application that opens a window and draws
@@ -603,9 +580,8 @@ tutorial.draw.details: "{setPipeline} selects the shaders and render state. It m
   the backend interprets that binding using the pipeline's input layout."
 tutorial.draw.guidance: '{setVertexBufferVertexBuffer} binds the uploaded vertex data at byte offset 0 to input
   slot 0, corresponding to the single entry in {inputLayouts}.'
-tutorial.draw.notes: These calls record the draw commands. The existing {submitWait} submits them and waits for
-  the GPU to finish; {present} then requests display of the completed image. Keep the clear operation at the start
-  of the pass so the area outside the triangle has a defined background color.
+tutorial.draw.notes: Keep the clear operation at the start of the pass so the area outside the triangle has
+  a defined background color.
 tutorial.draw.table.firstInstance.meaning: Start instance numbering at zero.
 tutorial.draw.table.firstVertex.meaning: Start with the first vertex in the buffer.
 tutorial.draw.table.headings.argument: Argument
@@ -632,16 +608,16 @@ tutorial.frame.commands.description: A render pass groups drawing operations tha
 tutorial.frame.commands.details: The collection contains one color attachment. {null} specifies that the pass has
   no depth/stencil attachment.
 tutorial.frame.commands.guidance: '{beginRenderPass} sets the viewport and scissor to cover the whole attachment.
-  The viewport maps rendering coordinates to pixel positions; the scissor limits where pixels can be written.'
+  The viewport maps rendering coordinates to pixel positions; the scissor limits which pixels drawing can affect.'
 tutorial.frame.commands.title: Clear, submission, and presentation
 tutorial.frame.description: Start by filling the window with a single background color. This operation is called
   clearing. Once the background appears, the surface, command submission, and presentation are working together,
   ready for the triangle's geometry and shaders.
-tutorial.frame.details: 'Silk.NET invokes the render callback when a frame is due. This example does not use the
-  elapsed-time argument, so the parameter is named {value}. Register the callback {emphasis}:'
+tutorial.frame.details: 'Silk.NET invokes the render callback when a frame is due. Register the callback {emphasis}:'
 tutorial.frame.details.emphasis: before {windowRun}
-tutorial.frame.target.description: '{graphicsQueueCommandBuffer} returns a command buffer ready for recording. Recording
-  defines the GPU workload; execution begins only after submission.'
+tutorial.frame.target.description: A command queue receives recorded work for GPU execution. {graphicsQueueCommandBuffer}
+  returns a command buffer from the graphics queue, ready to record a frame. Recording defines the GPU workload;
+  execution begins only after submission.
 tutorial.frame.target.details:
   A texture layout describes the kind of access an operation requires. The first {transition}
   prepares the drawable for use as a color attachment. Here, {default} selects mip level 0 and array layer 0, the
@@ -654,10 +630,9 @@ tutorial.frame.title: The first frame
 tutorial.geometry.data.description: Add the vertex array {emphasis}. Keep the subsequent resource initialization
   before this callback as well, in the order presented.
 tutorial.geometry.data.description.emphasis: before {windowRender}
-tutorial.geometry.data.details: 'Each entry constructs a {vertex}; the two inner {new} expressions provide its {vector3}
-  position and {vector4} color. The positions form the upper, lower-right, and lower-left corners. The vertex shader
-  adds {w} as the fourth position coordinate. With w equal to 1, x and y are also normalized device coordinates:
-  -1 and +1 mark the image boundaries, and 0 marks the center. Their interpretation is independent of pixel dimensions.'
+tutorial.geometry.data.details: 'The three positions form the upper, lower-right, and lower-left corners. In
+  this example, x and y use the range -1 to +1 across the image: 0 is the center, positive x points right,
+  and positive y points up.'
 tutorial.geometry.data.guidance: Each color has red, green, blue, and alpha components, with alpha set to 1. All
   three vertices have z = 0 and lie in the same plane.
 tutorial.geometry.data.title: Vertex positions and colors
@@ -665,10 +640,10 @@ tutorial.geometry.description: Each of the triangle's three vertices has a posit
   positions to determine the triangle's shape and interpolates the colors across its surface.
 tutorial.geometry.format.description: 'Append the vertex declaration {emphasis}:'
 tutorial.geometry.format.description.emphasis: at the end of {programCs}, after the cleanup statements
-tutorial.geometry.format.details: '{file} limits the type to {programCs}, and {layoutKindSequential} keeps its fields
-  in declaration order. {position} contains three 32-bit floats and starts at byte offset 0; {color} contains four
-  and starts at byte offset 12. Each vertex therefore occupies 28 bytes. The input layout will describe this arrangement
-  so the GPU can read the fields correctly.'
+tutorial.geometry.format.details: '{layoutKindSequential} keeps the fields in declaration order. {position}
+  contains three 32-bit floats and starts at byte offset 0; {color} contains four and starts at byte offset
+  12. Each vertex therefore occupies 28 bytes. The input layout will describe this arrangement so the GPU can
+  read the fields correctly.'
 tutorial.geometry.format.imports: 'Add these using directives at the top of {programCs} for the vector types and the struct layout attribute:'
 tutorial.geometry.format.title: Vertex representation
 tutorial.geometry.title: Vertex data
@@ -685,9 +660,8 @@ tutorial.geometry.upload.details: "The allocation size is {sizeofVertexVerticesL
 tutorial.geometry.upload.guidance: Allocation does not initialize the buffer's contents. {upload} copies the array
   to destination byte offset 0 using the source pointer and byte count supplied in the data description.
 tutorial.geometry.upload.imports: 'In {programCs}, add {bufferAlias} to the using directives to distinguish the Zenith.NET buffer type from {systemBuffer}.'
-tutorial.geometry.upload.notes: Add {vertexBufferDispose} immediately before {swapChainDispose} in the cleanup at
-  the end of {programCs}. For larger static geometry, {link} discusses GPU-only storage and transfer uploads.
-tutorial.geometry.upload.notes.link: Resource Management
+tutorial.geometry.upload.notes: Add {vertexBufferDispose} immediately before {swapChainDispose} in the cleanup
+  at the end of {programCs}.
 tutorial.geometry.upload.title: Buffer allocation and upload
 tutorial.input.description: 'The GPU needs to know where each vertex attribute, such as position or color, is stored.
   The input layout supplies its format and byte offset. It also sets the stride: the number of bytes from one vertex
@@ -721,8 +695,6 @@ tutorial.pipeline.context: '{cullNone} disables face culling, so the triangle is
   clockwise or counterclockwise.'
 tutorial.pipeline.description: A {graphicsPipeline} brings together the vertex layout, the two shaders, and the
   settings that determine how primitives are assembled and written to attachments.
-tutorial.pipeline.details: 'The shaders process vertices and fragments. The other pipeline settings control primitive
-  assembly, face culling, depth testing, and blending:'
 tutorial.pipeline.guidance: The pipeline's color format must match the render-pass attachment, so it is taken from
   {swapChainDescFormat}. {count1} specifies one sample per pixel.
 tutorial.pipeline.item: '{triangleList} assembles each consecutive group of three vertices into a triangle.'
@@ -742,14 +714,13 @@ tutorial.project.description: Create a C# console project named {firstTriangle} 
 tutorial.project.details: 'Add the following NuGet packages to the project:'
 tutorial.project.guidance: '{zenithNET} provides the shared rendering API, and the three backend packages supply
   its platform implementations. {zenithNETCompiler} compiles the Slang shaders introduced below for the selected
-  backend. Silk.NET provides window creation and event processing.'
+  backend.'
 tutorial.project.title: Project setup
-tutorial.requirements.description: 'You need the {emphasis} and basic C# knowledge. The application targets {net10}.
-  Your GPU and driver must support the backend selected for your platform:'
+tutorial.requirements.description: 'You need the {emphasis} and basic C# knowledge. Your GPU and driver must
+  support the backend selected for your platform:'
 tutorial.requirements.description.emphasis: .NET 10 SDK
 tutorial.requirements.guidance: Zenith.NET renders into a native surface provided by the application. Silk.NET.Windowing
-  creates the window and processes its events. On macOS, presentation uses a Metal layer, represented by {cAMetalLayerCs};
-  the window helper attaches it to the window.
+  creates the window and processes its events.
 tutorial.requirements.table.headings.graphicsBackend: Graphics backend
 tutorial.requirements.table.headings.platform: Platform
 tutorial.requirements.table.linux.graphicsBackend: Vulkan 1.4
@@ -759,9 +730,8 @@ tutorial.requirements.table.macOS.platform: macOS
 tutorial.requirements.table.windows.graphicsBackend: DirectX 12
 tutorial.requirements.table.windows.platform: Windows
 tutorial.requirements.title: Prerequisites
-tutorial.resize.context: 'Build and run the application again. The background should continue to fill the window
-  when you resize it: each new render pass sets its viewport and scissor from the resized attachment. Keep the render
-  callback in place; the triangle will be drawn inside this pass.'
+tutorial.resize.context: Build and run the application again. The background should continue to fill the window
+  when you resize it. Keep the render callback in place; the triangle will be drawn inside this pass.
 tutorial.resize.description:
   "The swap chain must follow changes to the framebuffer's size. Register a {framebufferResize}
   callback after the render callback and before {windowRun}:"
@@ -796,7 +766,7 @@ tutorial.shaders.context: '{fSInput} connects the two shader stages. The vertex 
 tutorial.shaders.description: Shaders are programs that run on the GPU. The vertex shader determines each vertex's
   position, and the fragment shader determines the color at each covered image location. Both stages will be written
   in one Slang file, with a separate entry point—the function where execution begins—for each stage.
-tutorial.shaders.details: 'Create {triangleSlang} with these input and output structures:'
+tutorial.shaders.details: 'Create {triangleSlang} in the project root with these input and output structures:'
 tutorial.shaders.fragment.description: 'Append the fragment entry point to the same file:'
 tutorial.shaders.fragment.details: Rasterization determines where the triangle covers the image and generates fragments
   for those locations. Each fragment receives a color interpolated from the three vertex colors. {fSMain} returns
@@ -806,9 +776,9 @@ tutorial.shaders.guidance: "{vSInput} defines the vertex shader's inputs. {pOSIT
   attributes by semantic; the C# field names alone do not establish this mapping."
 tutorial.shaders.title: Shader stages
 tutorial.shaders.vertex.description: 'Append the vertex entry point to {triangleSlang}:'
-tutorial.shaders.vertex.details: The GPU invokes this entry point for each input vertex. It adds the homogeneous
-  coordinate {w} and forwards the color. After vertex processing, position is divided by w. Since w is 1 here, x,
-  y, and z are unchanged and may be interpreted directly as normalized device coordinates.
+tutorial.shaders.vertex.details: The GPU runs this function for each input vertex. It adds a fourth position
+  component, {w}, and passes on the color. After vertex processing, the GPU divides x, y, and z by w to obtain
+  normalized device coordinates. With w equal to 1, these values are unchanged.
 tutorial.shaders.vertex.title: Vertex shading
 tutorial.surface.description: 'Specify the native presentation target {emphasis}:'
 tutorial.surface.description.emphasis: after {windowCenter} and before {windowRun}
@@ -824,16 +794,15 @@ tutorial.swapChain.description: 'Create the swap chain immediately after the sur
 tutorial.swapChain.details: The {swapChain} manages the images presented by the window. {drawable} supplies the
   current image as a {texture}, the API's image resource. After rendering, {present} requests display of that image
   and advances to the next drawable.
-tutorial.swapChain.guidance: '{b8G8R8A8UNorm} stores four 8-bit channels in blue, green, red, and alpha order. {uNorm}
-  maps integer values 0–255 to values 0–1. Shader output remains a logical RGBA value; the format specifies its
-  storage representation. The pipeline will use {swapChainDescFormat} to match this attachment.'
+tutorial.swapChain.guidance: '{b8G8R8A8UNorm} stores four 8-bit channels in blue, green, red, and alpha order.
+  {uNorm} maps integer values 0–255 to values 0–1. Shader output remains a logical RGBA value; the format specifies
+  its storage representation.'
 tutorial.swapChain.title: Swap chain
 tutorial.title: First Triangle
 tutorial.troubleshooting.description: 'Use console diagnostics and the three checkpoints to identify the failing
   stage:'
 tutorial.troubleshooting.details: The {link} and {detail} provide a reference for the vertex data, input layout,
-  and draw operation. That example separates windowing and submission into a shared host; this tutorial retains
-  the application flow in {programCs}. {context} introduces indexed drawing, transformations, and depth testing.
+  and draw operation. {context} introduces indexed drawing, transformations, and depth testing.
 tutorial.troubleshooting.details.context: Spinning Cube
 tutorial.troubleshooting.details.detail: Slang shader
 tutorial.troubleshooting.details.link: sample renderer
@@ -855,8 +824,7 @@ tutorial.troubleshooting.table.window.check: Confirm the .NET project builds and
 tutorial.troubleshooting.table.window.symptom: No window opens
 tutorial.troubleshooting.title: Troubleshooting
 tutorial.window.description: 'Download {cocoaHelperCs} into the project. This helper class attaches the Metal layer to the macOS window.'
-tutorial.window.details: 'Replace the generated {programCs} with the code below. It uses top-level statements, which
-  run in order without an explicit {main} method. Each later section will show where to add its code:'
+tutorial.window.details: 'Replace the contents of {programCs} with the code below:'
 tutorial.window.guidance: '{graphicsAPINone} leaves graphics-context creation to Zenith.NET. {initialize} creates
   the native window and makes its window-system handles available. {center} places the window in the center of the
   screen. {run} processes events until the window closes, then execution continues to {dispose} to release it.'
@@ -917,7 +885,6 @@ ui.reference.exceptions: Exceptions
 ui.reference.extensionMethods: Extension methods
 ui.reference.fields: Fields
 ui.reference.implementations: Explicit interface implementations
-ui.reference.implements: Implements
 ui.reference.inheritance: Inheritance
 ui.reference.inheritedMembers: Inherited members
 ui.reference.interfaces: Interfaces
