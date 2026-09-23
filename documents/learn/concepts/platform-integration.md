@@ -182,11 +182,6 @@ view.RenderRequested += (_, args) =>
     </resource>
 </p>
 <p>
-    <resource key="concepts.platforms.frame.reference">
-        <slot name="zenithViewHelperDrawableFormat"><a class="xref" href="xref:Zenith.NET.Views.ZenithViewHelper.DrawableFormat"><code>ZenithViewHelper.DrawableFormat</code></a></slot>
-    </resource>
-</p>
-<p>
     <resource key="concepts.platforms.lifecycle.context">
         <slot name="descWidth"><code><a class="code-reference" href="xref:Zenith.NET.Texture.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.TextureDesc.Width">Width</a></code></slot>
         <slot name="descHeight"><code><a class="code-reference" href="xref:Zenith.NET.Texture.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.TextureDesc.Height">Height</a></code></slot>
@@ -285,12 +280,6 @@ view.RenderRequested += (_, args) =>
         <slot name="renderRequested"><a class="xref" href="xref:Zenith.NET.Views.IZenithView.RenderRequested"><code>RenderRequested</code></a></slot>
     </resource>
 </p>
-<p>
-    <resource key="concepts.platforms.integration.guidance">
-        <slot name="avaloniaPackage"><code>Zenith.NET.Views.Avalonia</code></slot>
-    </resource>
-</p>
-
 <p>
     <resource key="concepts.platforms.integration.context">
         <slot name="useZenithView"><code>UseZenithView</code></slot>

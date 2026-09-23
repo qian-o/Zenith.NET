@@ -20,7 +20,6 @@ title: '@tutorial.title'
 <p>
     <resource key="tutorial.requirements.description">
         <slot name="emphasis"><strong><resource key="tutorial.requirements.description.emphasis"></resource></strong></slot>
-        <slot name="net10"><code>net10.0</code></slot>
     </resource>
 </p>
 <table>
@@ -62,15 +61,7 @@ title: '@tutorial.title'
     </tbody>
 </table>
 <p>
-    <resource key="tutorial.requirements.guidance">
-        <slot name="cAMetalLayerCs"><a href="https://github.com/qian-o/Metal.NET/blob/master/Metal.NET/CoreAnimation/CAMetalLayer.cs">CAMetalLayer.cs</a></slot>
-    </resource>
-</p>
-<p>
-    <resource key="tutorial.requirements.context">
-        <slot name="link"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/HelloTriangleRenderer.cs"><resource key="tutorial.requirements.context.link"></resource></a></slot>
-        <slot name="detail"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/App.cs"><resource key="tutorial.requirements.context.detail"></resource></a></slot>
-    </resource>
+    <resource key="tutorial.requirements.guidance"></resource>
 </p>
 <p>
     <a id="project"></a>
@@ -125,14 +116,8 @@ title: '@tutorial.title'
     3. <resource key="tutorial.window.title"></resource>
 </h2>
 <p>
-    <resource key="tutorial.window.description">
-        <slot name="cocoaHelperCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/CocoaHelper.cs">CocoaHelper.cs</a></slot>
-    </resource>
-</p>
-<p>
     <resource key="tutorial.window.details">
         <slot name="programCs"><code>Program.cs</code></slot>
-        <slot name="main"><code>Main</code></slot>
     </resource>
 </p>
 
@@ -194,10 +179,7 @@ using Zenith.NET.Vulkan;
 
 <p>
     <resource key="tutorial.context.details">
-        <slot name="emphasis"><strong><resource key="tutorial.context.details.emphasis"><slot name="iWindowWindow"><code>IWindow window</code></slot>
-    </resource>
-    </strong>
-    </slot>
+        <slot name="emphasis"><strong><resource key="tutorial.context.details.emphasis"><slot name="iWindowWindow"><code>IWindow window</code></slot></resource></strong></slot>
     </resource>
 </p>
 
@@ -228,12 +210,14 @@ context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Seve
     <resource key="tutorial.surface.title"></resource>
 </h3>
 <p>
+    <resource key="tutorial.window.description">
+        <slot name="cocoaHelperCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/CocoaHelper.cs">CocoaHelper.cs</a></slot>
+    </resource>
+</p>
+<p>
     <resource key="tutorial.surface.description">
         <slot name="emphasis"><strong><resource key="tutorial.surface.description.emphasis"><slot name="windowCenter"><code>window.Center()</code></slot>
-        <slot name="windowRun"><code>window.Run()</code></slot>
-    </resource>
-    </strong>
-    </slot>
+        <slot name="windowRun"><code>window.Run()</code></slot></resource></strong></slot>
     </resource>
 </p>
 
@@ -292,7 +276,6 @@ SwapChain swapChain = context.CreateSwapChain(new()
     <resource key="tutorial.swapChain.guidance">
         <slot name="b8G8R8A8UNorm"><a class="xref" href="xref:Zenith.NET.PixelFormat.B8G8R8A8UNorm"><code>B8G8R8A8UNorm</code></a></slot>
         <slot name="uNorm"><code>UNorm</code></slot>
-        <slot name="swapChainDescFormat"><code>swapChain.<a class="code-reference" href="xref:Zenith.NET.SwapChain.Desc">Desc</a>.<a class="code-reference" href="xref:Zenith.NET.SwapChainDesc.Format">Format</a></code></slot>
     </resource>
 </p>
 <p>
@@ -320,11 +303,7 @@ context.Dispose();
 </p>
 <p>
     <resource key="tutorial.frame.details">
-        <slot name="value"><code>_</code></slot>
-        <slot name="emphasis"><strong><resource key="tutorial.frame.details.emphasis"><slot name="windowRun"><code>window.Run();</code></slot>
-    </resource>
-    </strong>
-    </slot>
+        <slot name="emphasis"><strong><resource key="tutorial.frame.details.emphasis"><slot name="windowRun"><code>window.Run()</code></slot></resource></strong></slot>
     </resource>
 </p>
 
@@ -405,7 +384,7 @@ window.Render += _ =>
 <p>
     <resource key="tutorial.resize.description">
         <slot name="framebufferResize"><code>FramebufferResize</code></slot>
-        <slot name="windowRun"><code>window.Run();</code></slot>
+        <slot name="windowRun"><code>window.Run()</code></slot>
     </resource>
 </p>
 
@@ -463,10 +442,7 @@ using System.Runtime.InteropServices;
 
 <p>
     <resource key="tutorial.geometry.format.description">
-        <slot name="emphasis"><strong><resource key="tutorial.geometry.format.description.emphasis"><slot name="programCs"><code>Program.cs</code></slot>
-    </resource>
-    </strong>
-    </slot>
+        <slot name="emphasis"><strong><resource key="tutorial.geometry.format.description.emphasis"><slot name="programCs"><code>Program.cs</code></slot></resource></strong></slot>
     </resource>
 </p>
 
@@ -482,8 +458,6 @@ file struct Vertex(Vector3 position, Vector4 color)
 
 <p>
     <resource key="tutorial.geometry.format.details">
-        <slot name="file"><code>file</code></slot>
-        <slot name="programCs"><code>Program.cs</code></slot>
         <slot name="layoutKindSequential"><code>LayoutKind.Sequential</code></slot>
         <slot name="position"><code>Position</code></slot>
         <slot name="color"><code>Color</code></slot>
@@ -494,10 +468,7 @@ file struct Vertex(Vector3 position, Vector4 color)
 </h3>
 <p>
     <resource key="tutorial.geometry.data.description">
-        <slot name="emphasis"><strong><resource key="tutorial.geometry.data.description.emphasis"><slot name="windowRender"><code>window.Render += _ =&gt;</code></slot>
-    </resource>
-    </strong>
-    </slot>
+        <slot name="emphasis"><strong><resource key="tutorial.geometry.data.description.emphasis"><slot name="windowRender"><code>window.Render += _ =&gt;</code></slot></resource></strong></slot>
     </resource>
 </p>
 
@@ -511,13 +482,7 @@ Vertex[] vertices =
 ```
 
 <p>
-    <resource key="tutorial.geometry.data.details">
-        <slot name="vertex"><code>Vertex</code></slot>
-        <slot name="new"><code>new</code></slot>
-        <slot name="vector3"><code>Vector3</code></slot>
-        <slot name="vector4"><code>Vector4</code></slot>
-        <slot name="w"><code>w = 1</code></slot>
-    </resource>
+    <resource key="tutorial.geometry.data.details"></resource>
 </p>
 <p>
     <resource key="tutorial.geometry.data.guidance"></resource>
@@ -585,7 +550,6 @@ unsafe
         <slot name="vertexBufferDispose"><code>vertexBuffer.<a class="code-reference" href="xref:Zenith.NET.DisposableObject.Dispose">Dispose</a>();</code></slot>
         <slot name="swapChainDispose"><code>swapChain.<a class="code-reference" href="xref:Zenith.NET.DisposableObject.Dispose">Dispose</a>();</code></slot>
         <slot name="programCs"><code>Program.cs</code></slot>
-        <slot name="link"><a href="~/learn/concepts/resource-management.md#memory-placement"><resource key="tutorial.geometry.upload.notes.link"></resource></a></slot>
     </resource>
 </p>
 <p>
@@ -816,9 +780,6 @@ inputLayout.Add(new() { Format = ElementFormat.Float4, Semantic = ElementSemanti
         <slot name="graphicsPipeline"><a class="xref" href="xref:Zenith.NET.GraphicsPipeline"><code>GraphicsPipeline</code></a></slot>
     </resource>
 </p>
-<p>
-    <resource key="tutorial.pipeline.details"></resource>
-</p>
 <ul>
     <li>
         <resource key="tutorial.pipeline.item">
@@ -973,10 +934,7 @@ commandBuffer.Draw(3, 1, 0, 0);
     </tbody>
 </table>
 <p>
-    <resource key="tutorial.draw.notes">
-        <slot name="submitWait"><code><a class="code-reference" href="xref:Zenith.NET.CommandBuffer.Submit(System.ReadOnlySpan{Zenith.NET.TimelineValue})">Submit</a>().<a class="code-reference" href="xref:Zenith.NET.TimelineValue.Wait">Wait</a>()</code></slot>
-        <slot name="present"><a class="xref" href="xref:Zenith.NET.SwapChain.Present"><code>Present()</code></a></slot>
-    </resource>
+    <resource key="tutorial.draw.notes"></resource>
 </p>
 <p>
     <a id="run"></a>
@@ -996,31 +954,14 @@ commandBuffer.Draw(3, 1, 0, 0);
 <p>
     <resource key="tutorial.execution.guidance"></resource>
 </p>
-<h3 id="follow-the-lifetime-of-one-frame">
-    <resource key="tutorial.lifecycle.title"></resource>
-</h3>
-<p>
+<p id="follow-the-lifetime-of-one-frame">
     <resource key="tutorial.lifecycle.description"></resource>
 </p>
-
-```text
-Get the current drawable
-          ↓
-Transition to ColorAttachment
-          ↓
-Clear and draw the triangle
-          ↓
-Transition to Present
-          ↓
-Submit and wait
-          ↓
-Present
-```
 
 <p>
     <resource key="tutorial.lifecycle.details">
         <slot name="run"><code>Run</code></slot>
-        <slot name="windowRun"><code>window.Run();</code></slot>
+        <slot name="windowRun"><code>window.Run()</code></slot>
     </resource>
 </p>
 
@@ -1036,75 +977,5 @@ context.Dispose();
 <p>
     <resource key="tutorial.lifecycle.guidance">
         <slot name="dispose"><a class="xref" href="xref:Zenith.NET.DisposableObject.Dispose"><code>Dispose()</code></a></slot>
-    </resource>
-</p>
-<h3 id="check-the-stage-that-failed">
-    <resource key="tutorial.troubleshooting.title"></resource>
-</h3>
-<p>
-    <resource key="tutorial.troubleshooting.description"></resource>
-</p>
-<table>
-    <thead>
-        <tr>
-            <th>
-                <resource key="tutorial.troubleshooting.table.headings.symptom"></resource>
-            </th>
-            <th>
-                <resource key="tutorial.troubleshooting.table.headings.check"></resource>
-            </th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-                <resource key="tutorial.troubleshooting.table.window.symptom"></resource>
-            </td>
-            <td>
-                <resource key="tutorial.troubleshooting.table.window.check"></resource>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <resource key="tutorial.troubleshooting.table.backend.symptom"></resource>
-            </td>
-            <td>
-                <resource key="tutorial.troubleshooting.table.backend.check"></resource>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <resource key="tutorial.troubleshooting.table.shaders.symptom"></resource>
-            </td>
-            <td>
-                <resource key="tutorial.troubleshooting.table.shaders.check">
-                    <slot name="triangleSlang"><code>Triangle.slang</code></slot>
-                </resource>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <resource key="tutorial.troubleshooting.table.drawing.symptom"></resource>
-            </td>
-            <td>
-                <resource key="tutorial.troubleshooting.table.drawing.check"></resource>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <resource key="tutorial.troubleshooting.table.input.symptom"></resource>
-            </td>
-            <td>
-                <resource key="tutorial.troubleshooting.table.input.check"></resource>
-            </td>
-        </tr>
-    </tbody>
-</table>
-<p>
-    <resource key="tutorial.troubleshooting.details">
-        <slot name="link"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/HelloTriangleRenderer.cs"><resource key="tutorial.troubleshooting.details.link"></resource></a></slot>
-        <slot name="detail"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/HelloTriangle.slang"><resource key="tutorial.troubleshooting.details.detail"></resource></a></slot>
-        <slot name="programCs"><code>Program.cs</code></slot>
-        <slot name="context"><a href="~/learn/samples.md#spinning-cube"><resource key="tutorial.troubleshooting.details.context"></resource></a></slot>
     </resource>
 </p>

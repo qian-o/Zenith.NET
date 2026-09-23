@@ -381,9 +381,13 @@ title: '@concepts.resources.title'
     </li>
 </ul>
 <p>
-    <resource key="concepts.resources.transfers.notes">
-        <slot name="link"><a href="~/learn/concepts/synchronization.md#cpu-and-gpu"><resource key="concepts.resources.transfers.notes.link"></resource></a></slot>
+    <resource key="concepts.resources.transfers.layouts">
+        <slot name="copyDst"><a class="xref" href="xref:Zenith.NET.TextureLayout.CopyDst"><code>CopyDst</code></a></slot>
+        <slot name="copySrc"><a class="xref" href="xref:Zenith.NET.TextureLayout.CopySrc"><code>CopySrc</code></a></slot>
     </resource>
+</p>
+<p>
+    <resource key="concepts.resources.transfers.notes"></resource>
 </p>
 <h2 id="place-resources-in-a-heap-when-allocation-control-is-needed">
     <resource key="concepts.resources.allocation.title"></resource>

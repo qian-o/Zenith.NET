@@ -16,6 +16,9 @@ title: '@concepts.shaders.title'
         <slot name="zenithCompiler"><a class="xref" href="xref:Zenith.NET.ZenithCompiler"><code>ZenithCompiler</code></a></slot>
         <slot name="shaderDesc"><a class="xref" href="xref:Zenith.NET.ShaderDesc"><code>ShaderDesc</code></a></slot>
         <slot name="graphicsApi"><a class="xref" href="xref:Zenith.NET.GraphicsContext.GraphicsApi"><code>GraphicsApi</code></a></slot>
+        <slot name="dxil"><code>DXIL</code></slot>
+        <slot name="metallib"><code>metallib</code></slot>
+        <slot name="spirv"><code>SPIR-V</code></slot>
     </resource>
 </p>
 <p>
@@ -146,9 +149,6 @@ commandBuffer.Dispatch(groupCountX, groupCountY, 1);
 
 <p>
     <resource key="concepts.shaders.binding.guidance">
-        <slot name="commandBuffer"><code>commandBuffer</code></slot>
-        <slot name="computePipeline"><code>computePipeline</code></slot>
-        <slot name="constantBuffer"><code>constantBuffer</code></slot>
         <slot name="bufferUsagesConstant"><a class="xref" href="xref:Zenith.NET.BufferUsages.Constant"><code>BufferUsages.Constant</code></a></slot>
     </resource>
 </p>

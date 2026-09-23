@@ -26,7 +26,7 @@ _disableAffix: true
                     <resource key="home.actions.reference"></resource>
                 </a>
             </div>
-            <p class="backend-note">DirectX · Metal · Vulkan</p>
+            <p class="backend-note">DirectX 12 · Metal 4 · Vulkan 1.4</p>
         </div>
         <div class="geometry-stage" data-home-scene="">
             <canvas aria-label="@home.scene.description" data-resource-label="home.scene.description" id="home-geometry" role="img" tabindex="0"></canvas>

@@ -15,7 +15,7 @@
                 </a>
                 <a href="{{_rel}}learn/samples.html" data-search-item>
                     <span data-resource="samples.title">{{r.samples.title}}</span>
-                    <small data-resource="ui.content.source">{{r.ui.content.source}}</small>
+                    <small data-resource="ui.content.examples">{{r.ui.content.examples}}</small>
                 </a>
                 <a href="{{_rel}}api/index.html" data-search-item>
                     <span data-resource="reference.title">{{r.reference.title}}</span>
