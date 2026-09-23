@@ -6,9 +6,7 @@ title: '@samples.title'
     <resource key="samples.title"></resource>
 </h1>
 <p>
-    <resource key="samples.description">
-        <slot name="link"><a href="~/learn/first-triangle.md"><resource key="samples.description.link"></resource></a></slot>
-    </resource>
+    <resource key="samples.description"></resource>
 </p>
 <p>
     <a id="tutorial-sources"></a>
@@ -43,9 +41,7 @@ title: '@samples.title'
     <resource key="samples.cube.title"></resource>
 </h3>
 <p>
-    <resource key="samples.cube.description">
-        <slot name="d32FloatS8UInt"><a class="xref" href="xref:Zenith.NET.PixelFormat.D32FloatS8UInt"><code>D32FloatS8UInt</code></a></slot>
-    </resource>
+    <resource key="samples.cube.description"></resource>
 </p>
 <p>
     <a href="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/spinning-cube.png">
@@ -62,9 +58,7 @@ title: '@samples.title'
     <resource key="samples.computeShader.title"></resource>
 </h3>
 <p>
-    <resource key="samples.computeShader.description">
-        <slot name="assetsTexturesShokoPng"><code>Assets/Textures/shoko.png</code></slot>
-    </resource>
+    <resource key="samples.computeShader.description"></resource>
 </p>
 <p>
     <a href="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/compute-shader.png">
@@ -98,9 +92,7 @@ title: '@samples.title'
     <resource key="samples.rayTracing.title"></resource>
 </h3>
 <p>
-    <resource key="samples.rayTracing.description">
-        <slot name="contextCapabilitiesRayTracingSupported"><code>context.<a class="code-reference" href="xref:Zenith.NET.GraphicsContext.Capabilities">Capabilities</a>.<a class="code-reference" href="xref:Zenith.NET.Capabilities.RayTracingSupported">RayTracingSupported</a></code></slot>
-    </resource>
+    <resource key="samples.rayTracing.description"></resource>
 </p>
 <p>
     <a href="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/ray-tracing.png">
@@ -117,9 +109,7 @@ title: '@samples.title'
     <resource key="samples.meshShading.title"></resource>
 </h3>
 <p>
-    <resource key="samples.meshShading.description">
-        <slot name="contextCapabilitiesMeshShadingSupported"><code>context.<a class="code-reference" href="xref:Zenith.NET.GraphicsContext.Capabilities">Capabilities</a>.<a class="code-reference" href="xref:Zenith.NET.Capabilities.MeshShadingSupported">MeshShadingSupported</a></code></slot>
-    </resource>
+    <resource key="samples.meshShading.description"></resource>
 </p>
 <p>
     <a href="https://raw.githubusercontent.com/qian-o/ZenithTutorials/master/ZenithTutorials/Assets/Screenshots/mesh-shading.png">
@@ -130,21 +120,6 @@ title: '@samples.title'
     <resource key="samples.meshShading.details">
         <slot name="meshShadingRendererCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Renderers/MeshShadingRenderer.cs">MeshShadingRenderer.cs</a></slot>
         <slot name="meshShadingSlang"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/MeshShading.slang">MeshShading.slang</a></slot>
-    </resource>
-</p>
-<h3 id="shared-host-and-presentation">
-    <resource key="samples.host.title"></resource>
-</h3>
-<p>
-    <resource key="samples.host.description">
-        <slot name="appCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/App.cs">App.cs</a></slot>
-        <slot name="iRendererCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/IRenderer.cs">IRenderer.cs</a></slot>
-    </resource>
-</p>
-<p>
-    <resource key="samples.host.details">
-        <slot name="texturePresenterCs"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/TexturePresenter.cs">TexturePresenter.cs</a></slot>
-        <slot name="presentTextureSlang"><a href="https://github.com/qian-o/ZenithTutorials/blob/master/ZenithTutorials/Assets/Shaders/PresentTexture.slang">PresentTexture.slang</a></slot>
     </resource>
 </p>
 <p>
@@ -213,8 +188,3 @@ title: '@samples.title'
         </tr>
     </tbody>
 </table>
-<p>
-    <resource key="samples.workloads.details">
-        <slot name="link"><a href="~/learn/concepts/platform-integration.md#ui-views"><resource key="samples.workloads.details.link"></resource></a></slot>
-    </resource>
-</p>

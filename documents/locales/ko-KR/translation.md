@@ -65,6 +65,8 @@ docfx serve documents/_site --hostname 127.0.0.1 --port 8080
 
 ## 용어
 
+DirectX 12, Metal 4, Vulkan 1.4는 "그래픽스 API"로, 이를 지원하는 코드와 패키지는 "각 API의 구현"으로 표현합니다.
+
 | 영어             | 사용할 표현                                                                            |
 | ---------------- | -------------------------------------------------------------------------------------- |
 | API / GPU / RHI  | 약어를 유지하고 원문에 따라 설명                                                       |
@@ -73,6 +75,7 @@ docfx serve documents/_site --hostname 127.0.0.1 --port 8080
 | command buffer   | 명령 버퍼                                                                              |
 | command queue    | 명령 큐                                                                                |
 | drawable         | 현재 프레임의 출력 텍스처. `Drawable`은 유지하며 항상 스왑 체인 이미지로 해석하지 않음 |
+| graphics API     | 그래픽스 API                                                                           |
 | graphics context | 그래픽스 컨텍스트                                                                      |
 | pipeline         | 파이프라인                                                                             |
 | readback         | 리드백                                                                                 |

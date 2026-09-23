@@ -50,6 +50,7 @@ Do not turn the samples index into a sequence of advanced tutorials. The triangl
 - Use one H1 and a clear H2/H3 hierarchy. Give explicit anchors to sections linked from other pages when their headings may change. Use the existing shared Markdown/HTML components with resource-bound text; use tables for comparisons, notices for necessary constraints and diagrams only when they clarify a relationship.
 - Keep diagrams small enough to read on a phone. Prefer a vertical sequence to a wide horizontal graph when scaling would make its labels too small.
 - Keep the homepage, Learn overview and README consistent with the documentation's contents. Do not publish placeholder pages or temporary validation notes.
+- Call DirectX 12, Metal 4 and Vulkan 1.4 graphics APIs, and describe their packages as implementations of the shared API. Use full graphics API versions when stating support; generic API names are appropriate when discussing behavior independent of a version. State .NET versions where readers need a concrete SDK or target framework to build or run an example, rather than in general project descriptions. Refer to framework controls as UI integrations or rendering controls.
 
 ## Editorial style
 
@@ -71,7 +72,7 @@ First locate and inspect the existing tutorial/sample source. This checkout has 
 
 The first triangle is a general .NET console application using NuGet packages. Specify the project name, target framework, and required packages. Do not replace package installation with source project references or cloning the main repository to accommodate the validation machine. Keep any explicitly authorized test-only package selection in a temporary project outside the repository.
 
-Introduce the windowing library, backend selection and native-surface differences before graphics setup. Use one shared application flow for Windows, macOS and Linux, identify the windowing requirements, and keep platform interop in a small, verified support file where possible. Do not turn this into a platform-specific SDK setup tutorial.
+Introduce the windowing library, graphics API selection and native-surface differences before graphics setup. Use one shared application flow for Windows, macOS and Linux, identify the windowing requirements, and keep platform interop in a small, verified support file where possible. Do not turn this into a platform-specific SDK setup tutorial.
 
 Teach the triangle in cumulative steps: an empty window, a presented clear color, vertex data and upload, shaders, input layout, pipeline state, drawing, presentation and cleanup. Explain what each step contributes, why its settings are chosen and how its data connects to the next stage. Mark the exact file and insertion or replacement point for every partial snippet. Provide observable checkpoints, and ensure the assembled result is complete. Link to concepts for deeper decisions; do not substitute a finished-project code dump or a validation report for the reader's learning sequence.
 
@@ -83,9 +84,9 @@ Introduce file settings when the file is created. For a shader, describe its Cop
 
 Keep snippets consistent with the complete application. The assembled source must not depend on omitted setup or unexplained helper methods. Keep platform-specific alternatives only where they are necessary to run it.
 
-For each sample, provide a verified source link, its purpose and relevant requirements. Avoid copying its implementation into the page. Use the repository's normal branch links rather than transient local paths or release-specific URLs unless the example requires otherwise.
+For each sample, briefly describe the visible result and the main technique it demonstrates, then provide verified source links. Include a prerequisite when it determines whether the sample can run. Keep API call sequences, resource formats, helper implementation details, and unrelated navigation out of the catalog. Link to the repository's default branch rather than transient local paths or release-specific URLs unless the example requires otherwise.
 
-For screenshots maintained in the tutorial repository, use its main-branch raw image URLs in shared Markdown. Link each preview to the full-size image, include its intrinsic dimensions, and use native lazy loading. Bind alternative text with `alt="@resource.key"` and `data-resource-alt="resource.key"`; an existing sample title can identify its preview when the adjacent prose explains the result. The build renders English alternative text, and language switching updates it from the selected dictionary.
+For screenshots maintained in the tutorial repository, use raw image URLs from its default branch in shared Markdown. Link each preview to the full-size image, include its intrinsic dimensions, and use native lazy loading. Bind alternative text with `alt="@resource.key"` and `data-resource-alt="resource.key"`; an existing sample title can identify its preview when the adjacent prose explains the result. The build renders English alternative text, and language switching updates it from the selected dictionary.
 
 Compile the complete tutorial using its documented setup and run it to verify the visible triangle on the selected platform. A DocFX build validates the documentation, not the C# or shader examples. Report any platform that could not be exercised; do not claim cross-platform execution from a single-platform check.
 
@@ -167,11 +168,11 @@ This is a WPF-style resource model. `index.md`, `learn/` and `api/index.md` cont
 
 `locales/en-US/strings.yml` is the sole English source dictionary. Each other language folder retains its permanent `translation.md` and, when translated, a `strings.yml`. A translator adds or updates only `strings.yml`, keeping the `### YamlMime:Resources` header and the complete source key set. No localized pages, TOCs, images, templates, scripts or configuration are needed. All resource values are strings.
 
-Language folders, registrations and menus use code order: `de-DE`, `en-US`, `es-ES`, `fr-FR`, `ja-JP`, `ko-KR`, `pt-BR`, `ru-RU`, `zh-CN`, `zh-TW`. English is explicitly the source and fallback. Complete resource dictionaries become available automatically after the normal DocFX build. Missing keys, stale extra keys, non-string values and changed placeholder names fail that build.
+Language folders, registrations and menus use language-code order: `de-DE`, `en-US`, `es-ES`, `fr-FR`, `ja-JP`, `ko-KR`, `pt-BR`, `ru-RU`, `zh-CN`, `zh-TW`. English is the source and fallback. Complete resource dictionaries become available automatically after the normal DocFX build. Missing keys, stale extra keys, non-string values and changed placeholder names fail that build.
 
 Pages share the same URL paths. `?lang=<code>` selects a dictionary, retaining the page and fragment. Without an explicit language, the site uses a saved manual selection, browser preferences, then English. An explicit unsupported or unpublished language falls back to English, without substituting a different saved language. A missing, stale or malformed downloaded dictionary is rejected before any translated text is applied, keeping the complete English page usable. The English HTML is fully rendered during the build; other static dictionaries bind to that same markup in the browser. No translation API is used. Search uses translated resources with the shared generated API index.
 
-Site-owned images remain in `images/`; screenshots maintained in the tutorial repository are referenced by their main-branch URLs. All generated API YAML remains in `api/`. This is a complete refactor, with no legacy route or compatibility layer. Do not create `pages/`, `snippets/`, a parallel content graph or an additional build command for localization.
+Site-owned images remain in `images/`; screenshots maintained in the tutorial repository are referenced by URLs from its default branch. All generated API YAML remains in `api/`. Localization uses the shared routes without a separate compatibility layer. Do not create `pages/`, `snippets/`, a parallel content graph or an additional build command for localization.
 
 ## Resource keys and placeholders
 
@@ -191,7 +192,7 @@ And in the shared page:
 <p><resource key="tutorial.context.description"><slot name="context"><xref uid="Zenith.NET.GraphicsContext" text="GraphicsContext"/></slot></resource></p>
 ```
 
-The binding escapes text values and inserts only the shared slot markup. Preserve every placeholder name, including case, when translating. Reordering is allowed; adding or removing names is not. Use descriptive slot names for new content. Nested emphasis or link labels can have their own resources when they contain translatable prose. Executable examples, shader code and diagnostic/illustrative code blocks stay in shared Markdown unchanged.
+The binding escapes text values and inserts only the shared slot markup. Preserve every placeholder name, including case, when translating. Reordering is allowed; adding or removing names is not. Use descriptive slot names for new content. Nested emphasis or link labels can have their own resources when they contain translatable prose. Executable examples, shader code and code-like diagnostics stay in shared Markdown unchanged; explanatory flow summaries belong in localized prose.
 
 Page front matter uses `title: '@tutorial.title'` and an optional resource-bound `description`. Navigation names bind keys through `name: '@tutorial.title'` in the root TOC. Keep heading IDs in shared markup so rewording or translating a title cannot change links.
 
@@ -219,7 +220,7 @@ docfx serve documents/_site --hostname 127.0.0.1 --port 8080
 
 Check the resulting type page and a tutorial page in the browser. Verify links after highlighting, keyboard focus, copied code, long generic signatures and narrow layouts. A documented member should keep its summary, parameter descriptions, return/value explanation, remarks, examples and exceptions. An undocumented member should remain compact.
 
-Before handing off a content change, ensure the DocFX build has no warnings or errors, local links and fragments resolve, and the filled pages work at desktop and phone widths. Check headings, code/table overflow, search results and keyboard navigation on the changed pages. Summarize the pages filled, the source used, compilation/rendering checks performed and any unfinished content.
+Before handing off a content change, review the rendered articles in reading order for necessity, teaching sequence, and continuity across paragraphs. Review translations in that same context. Separately, ensure the DocFX build has no warnings or errors, local links and fragments resolve, and the filled pages work at desktop and phone widths. Check headings, code/table overflow, search results and keyboard navigation on the changed pages. Report editorial findings separately from compilation, rendering, and structural checks; passing those checks does not establish the quality of the prose.
 
 ## Template organization
 
