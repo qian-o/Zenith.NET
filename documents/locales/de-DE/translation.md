@@ -74,8 +74,8 @@ Vor der Abgabe Schlüssel und Platzhalter abgleichen. Startseite, Learn-Einstieg
 | command queue      | Befehlswarteschlange                                                                                                 |
 | drawable           | Ausgabetextur des aktuellen Frames; `Drawable` bleibt unverändert, nicht grundsätzlich als Swapchain-Bild bezeichnen |
 | graphics context   | Grafikkontext                                                                                                        |
-| graphics API       | Grafik-API; DirectX 12, Metal oder Vulkan                                                                            |
-| API implementation | Implementierung der Grafik-API; für technische Unterschiede zwischen den Implementierungen                           |
+| graphics API       | Grafik-API; DirectX 12, Metal 4 oder Vulkan 1.4                                                                     |
+| implementation     | Implementierung der Grafik-API; für technische Unterschiede zwischen den Implementierungen                         |
 | pipeline           | Pipeline                                                                                                             |
 | readback           | Rücklesen von GPU-Daten                                                                                              |
 | render pass        | Renderpass                                                                                                           |

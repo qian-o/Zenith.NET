@@ -303,7 +303,7 @@ context.Dispose();
 </p>
 <p>
     <resource key="tutorial.frame.details">
-        <slot name="emphasis"><strong><resource key="tutorial.frame.details.emphasis"><slot name="windowRun"><code>window.Run();</code></slot></resource></strong></slot>
+        <slot name="emphasis"><strong><resource key="tutorial.frame.details.emphasis"><slot name="windowRun"><code>window.Run()</code></slot></resource></strong></slot>
     </resource>
 </p>
 
@@ -384,7 +384,7 @@ window.Render += _ =>
 <p>
     <resource key="tutorial.resize.description">
         <slot name="framebufferResize"><code>FramebufferResize</code></slot>
-        <slot name="windowRun"><code>window.Run();</code></slot>
+        <slot name="windowRun"><code>window.Run()</code></slot>
     </resource>
 </p>
 
@@ -958,24 +958,10 @@ commandBuffer.Draw(3, 1, 0, 0);
     <resource key="tutorial.lifecycle.description"></resource>
 </p>
 
-```text
-Get the current drawable
-          ↓
-Transition to ColorAttachment
-          ↓
-Clear and draw the triangle
-          ↓
-Transition to Present
-          ↓
-Submit and wait
-          ↓
-Present
-```
-
 <p>
     <resource key="tutorial.lifecycle.details">
         <slot name="run"><code>Run</code></slot>
-        <slot name="windowRun"><code>window.Run();</code></slot>
+        <slot name="windowRun"><code>window.Run()</code></slot>
     </resource>
 </p>
 

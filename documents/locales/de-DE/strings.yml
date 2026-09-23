@@ -17,7 +17,7 @@ concepts.execution.ownership.table.headings.object: Objekt
 concepts.execution.ownership.table.headings.ownership: 'Verantwortung für die Freigabe'
 concepts.execution.ownership.table.queues.object: 'Kontextwarteschlangen und ihre Timelines'
 concepts.execution.ownership.table.queues.ownership: Der Kontext und die Warteschlangen verwalten sie.
-concepts.execution.ownership.table.swapChainDrawable.ownership: Die Swapchain verwaltet sie.
+concepts.execution.ownership.table.swapChainDrawable.ownership: Die Swapchain verwaltet diese Textur.
 concepts.execution.ownership.title: 'Besitz und Lebensdauer'
 concepts.execution.pipelines.description: 'Eine Grafikpipeline legt Shader, Vertex-Eingabelayout, Primitivzusammensetzung, Attachment-Formate und Renderzustand für Zeichenbefehle fest. Wählen Sie die Pipeline, bevor Sie Vertex-, Index- oder Konstantendaten binden. Attachment-Formate und Sample-Anzahl müssen mit dem Renderpass übereinstimmen.'
 concepts.execution.pipelines.details: 'Eine Compute-Pipeline wählt den Shader-Einstiegspunkt für einen Dispatch. Binden Sie Pipeline und Konstanten vor dem Dispatch, außerhalb eines Grafik-Renderpasses.'
@@ -26,7 +26,7 @@ concepts.execution.pipelines.guidance.detail: Compute-Beispiel
 concepts.execution.pipelines.guidance.link: Render-Callback des Dreiecks
 concepts.execution.pipelines.title: 'Pipeline-Zustand'
 concepts.execution.queues.description: '{graphicsQueue} ist der übliche Ausgangspunkt für Frames mit Zeichnen, Berechnungen und Kopien. Abhängige Operationen auf einer Warteschlange lassen sich einfacher anordnen.'
-concepts.execution.queues.details: 'Mit getrennten Warteschlangen lassen sich unabhängige Aufgaben getrennt einreichen. Daraus folgt jedoch nicht, dass ihnen unabhängige Hardwareeinheiten zugeordnet sind. Zusätzliche Warteschlangen sind sinnvoll, wenn Aufgaben von einer überlappenden Ausführung profitieren. Verwendet eine Warteschlange Daten aus einer anderen, benötigen ihre Einreichungen eine explizite Abhängigkeit.'
+concepts.execution.queues.details: 'Zusätzliche Warteschlangen können die überlappende Ausführung unabhängiger Aufgaben erleichtern, entsprechen aber nicht zwangsläufig unabhängigen Hardwareeinheiten. Nutzt eine Warteschlange Daten aus einer anderen, verbinden Sie ihre Einreichungen durch eine explizite Abhängigkeit.'
 concepts.execution.queues.guidance: 'Auch innerhalb einer Warteschlange können abhängige Operationen Barrieren oder Texturübergänge benötigen, damit spätere Zugriffe die Ergebnisse früherer Schreibvorgänge sehen. Diese Speicherabhängigkeiten sind von der Einreichungsreihenfolge zu unterscheiden. Wie sie angegeben werden, erläutert {link}.'
 concepts.execution.queues.guidance.link: Synchronisation
 concepts.execution.queues.table.computeQueue.workToRecord: Compute-Dispatches und kompatible Transferarbeiten, ohne Grafik-Renderpässe.
@@ -50,7 +50,7 @@ concepts.platforms.frame.notes: 'Der anfängliche Übergang verwendet {undefined
 concepts.platforms.frame.title: 'Rendering über UI-Steuerelemente'
 concepts.platforms.integration.context: 'WinForms, WPF und die Windows-Integration von WinUI laufen unter Windows. Installieren Sie für MAUI die Workload der Zielplattform und registrieren Sie den Steuerelement-Handler mit {useZenithView}, wie in {extensionsCs} gezeigt.'
 concepts.platforms.integration.description: 'Die Ereignisschnittstelle ist gemeinsam, der Präsentationsmechanismus hängt jedoch vom Framework ab:'
-concepts.platforms.integration.details: 'Die Implementierungen unterscheiden sich darin, wie das GPU-Bild in die Oberfläche gelangt. Beim Bitmap-Rücklesen werden die Pixel vor der Anzeige in CPU-Speicher kopiert. Interop über gemeinsam genutzte Texturen vermeidet diese CPU-Kopie, kann aber weiterhin GPU-Kopien und Synchronisation erfordern. Berücksichtigen Sie bei der Wahl der Integration neben dem gemeinsamen Ereignis {renderRequested} auch diesen Präsentationsweg.'
+concepts.platforms.integration.details: 'Die UI-Integrationen unterscheiden sich darin, wie das GPU-Bild in die Benutzeroberfläche gelangt. Beim Bitmap-Rücklesen werden die Pixel vor der Anzeige in CPU-Speicher kopiert. Interop über gemeinsam genutzte Texturen vermeidet diese CPU-Kopie, kann aber weiterhin GPU-Kopien und Synchronisation erfordern. Berücksichtigen Sie bei der Wahl der Integration neben dem gemeinsamen Ereignis {renderRequested} auch diesen Präsentationsweg.'
 concepts.platforms.integration.table.avalonia.integration: Avalonia
 concepts.platforms.integration.table.avalonia.presentation: 'Rendert in eine Textur und liest die Pixel in {writeableBitmap} zurück. Implementierung: {zenithViewCs} und {surfaceCs}.'
 concepts.platforms.integration.table.headings.integration: Integration
@@ -58,7 +58,7 @@ concepts.platforms.integration.table.headings.presentation: 'Präsentationsmecha
 concepts.platforms.integration.table.maui.integration: .NET MAUI
 concepts.platforms.integration.table.maui.presentation: 'Verwendet native Oberflächen unter Android, iOS und Mac Catalyst sowie Komposition über gemeinsam genutzte Texturen unter Windows. Siehe die {link}.'
 concepts.platforms.integration.table.maui.presentation.link: Plattformimplementierungen
-concepts.platforms.integration.table.uno.integration: Uno-Pfad
+concepts.platforms.integration.table.uno.integration: Uno Platform
 concepts.platforms.integration.table.uno.presentation: 'Liest Pixel in {writeableBitmap} zurück. Implementierung: {zenithViewUnoCs}.'
 concepts.platforms.integration.table.winForms.integration: WinForms
 concepts.platforms.integration.table.winForms.presentation: 'Erstellt eine Zenith.NET-Swapchain für das Fensterhandle {hWND} des Steuerelements. Implementierung: {zenithViewCs}.'
@@ -68,7 +68,7 @@ concepts.platforms.integration.table.wpf.integration: WPF
 concepts.platforms.integration.table.wpf.presentation: 'Importiert eine gemeinsam genutzte Direct3D 11-Textur und kopiert ihren Inhalt über Direct3D-Interop in eine von {d3DImage} angezeigte Oberfläche. Siehe {surfaceCs}.'
 concepts.platforms.integration.title: 'Framework und Präsentationspfad'
 concepts.platforms.lifecycle.context: 'Verwenden Sie {descWidth}, {descHeight}, {descFormat} und {descSampleCount} der im Render-Ereignis bereitgestellten Ausgabetextur, um passende Attachments zu erstellen. Diese Textur liefert die tatsächlichen Maße des Renderziels. Richten Sie sich nach diesen Maßen, statt sie aus der Layoutgröße des Steuerelements oder der Anzeigeskalierung zu berechnen.'
-concepts.platforms.lifecycle.description: 'Die Swapchain verwendet Breite und Höhe des Framebuffers in Pixeln. Bei Anzeigeskalierung können sie von den logischen Fenstermaßen abweichen. Verschieben Sie Rendering und Swapchain-Größenanpassung, solange eine Abmessung null ist. Beziehen Sie {swapChainDrawable} für jeden Frame neu: Diese Textur gehört der Swapchain und kann nach Präsentation oder Größenänderung ersetzt werden.'
+concepts.platforms.lifecycle.description: 'Die Swapchain verwendet Breite und Höhe des Framebuffers in Pixeln. Bei Anzeigeskalierung können sie von den logischen Fenstermaßen abweichen. Setzen Sie Rendering und die Größenanpassung der Swapchain aus, solange eine Abmessung null ist. Beziehen Sie {swapChainDrawable} für jeden Frame neu: Diese Textur gehört der Swapchain und kann nach Präsentation oder Größenänderung ersetzt werden.'
 concepts.platforms.lifecycle.details: 'Ändern sich die Framebuffer-Maße, warten Sie vor {swapChainResize} auf alle noch laufenden GPU-Zugriffe auf die alten Bilder. Soll das native Präsentationsziel ersetzt werden, übergeben Sie nach Abschluss dieser Zugriffe seine neue Beschreibung und Handles an {swapChainRefresh}. Geben Sie beim Beenden die Swapchain vor ihrem nativen Präsentationsziel frei.'
 concepts.platforms.lifecycle.guidance: 'Richten sich anwendungseigene Tiefen- oder Offscreen-Texturen nach der Fenstergröße, erstellen Sie sie bei einer Größenänderung neu und aktualisieren Sie Konstanten mit ihren Handles. Die Pipeline bleibt verwendbar, solange Attachment-Formate und Sample-Anzahlen weiterhin übereinstimmen. Der {link} zeigt, wie angepasste Texturen und eine wiederverwendete Pipeline zusammenarbeiten.'
 concepts.platforms.lifecycle.guidance.link: Renderer des rotierenden Würfels
@@ -211,7 +211,7 @@ concepts.synchronization.barriers.guidance.link: FluidTank-Simulation
 concepts.synchronization.barriers.title: 'Pipeline-Barrieren'
 concepts.synchronization.dependencies.description: 'Ermitteln Sie für jede Ressource, welche Zugriffe dieselben Daten betreffen. Sobald einer davon schreibt, muss die benötigte Reihenfolge erhalten bleiben. Zwei Lesezugriffe stehen nicht im Konflikt; Anforderungen an Texturlayout und Präsentation gelten dennoch. Auch CPU-Aktualisierungen und Ressourcenfreigaben müssen warten, bis die GPU den betroffenen Speicher nicht mehr verwendet.'
 concepts.synchronization.dependencies.details: 'Der Mechanismus richtet sich nach dem Ausführungsort der Operationen:'
-concepts.synchronization.dependencies.guidance: 'Eine Aufgabe kann mehrere Mechanismen benötigen. Stammt eine Textur etwa aus einer anderen Warteschlange, sind sowohl eine Einreichungsabhängigkeit als auch das passende Layout für den nächsten Zugriff erforderlich. Die CPU muss dafür nur blockiert werden, wenn sie selbst auf die Daten zugreifen oder deren Speicher freigeben soll.'
+concepts.synchronization.dependencies.guidance: 'Eine Aufgabe kann mehrere Mechanismen benötigen. Schreibt etwa eine Warteschlange in eine Textur und verwendet eine andere diese Daten, benötigt die weiterverarbeitende Warteschlange sowohl eine Einreichungsabhängigkeit als auch das passende Layout. Keiner dieser Schritte blockiert die CPU, sofern sie nicht selbst auf die Daten zugreifen oder sie freigeben muss.'
 concepts.synchronization.dependencies.table.cpuAccess.mechanism: '{wait} auf dem relevanten Abschlusswert aufrufen.'
 concepts.synchronization.dependencies.table.cpuAccess.situation: 'CPU-Zugriff oder Ressourcenfreigabe erfordert den Abschluss der GPU-Arbeit'
 concepts.synchronization.dependencies.table.crossQueue.mechanism: 'Den {timelineValue} der erzeugenden Einreichung an {submit} der weiterverarbeitenden Einreichung übergeben.'
@@ -254,7 +254,7 @@ home.entries.reference.category: Referenz
 home.entries.reference.description: 'API-Typen, Member und Deklarationen nachschlagen'
 home.entries.reference.title: API-Referenz
 home.entries.samples.action: Beispiele durchsuchen
-home.entries.samples.category: Beispiele
+home.entries.samples.category: Codebeispiele
 home.entries.samples.description: 'Ausführbare Beispiele für Grafik- und Compute-Verfahren'
 home.entries.samples.title: Beispiele
 home.entries.title: 'Dokumentation'
@@ -262,11 +262,11 @@ home.entries.tutorial.action: Tutorial starten
 home.entries.tutorial.category: Tutorial
 home.entries.tutorial.description: 'Vom leeren Projekt zum ersten Dreieck auf dem Bildschirm'
 home.entries.tutorial.title: Erstes Dreieck
-home.introduction.accent: 'auf mehreren Plattformen'
-home.introduction.description: 'Zenith.NET bündelt Grafik und Compute für DirectX, Metal und Vulkan in einer gemeinsamen API'
-home.introduction.title: 'Grafik für .NET{lineBreak}{accent}'
-home.meta.description: 'Plattformübergreifende Grafik und Compute für .NET mit einer gemeinsamen API für DirectX, Metal und Vulkan'
-home.scene.description: 'Interaktive rotierende Geometrie. Ansicht durch Ziehen oder mit den Pfeiltasten verändern.'
+home.introduction.accent: 'für .NET'
+home.introduction.description: 'Zenith.NET bündelt Grafik und Compute für DirectX 12, Metal 4 und Vulkan 1.4 in einer gemeinsamen API'
+home.introduction.title: 'Plattformübergreifende Grafik{lineBreak}{accent}'
+home.meta.description: 'Plattformübergreifende Grafik und Compute für .NET mit einer gemeinsamen API für DirectX 12, Metal 4 und Vulkan 1.4'
+home.scene.description: 'Interaktive rotierende Geometrie. Ziehen Sie die Geometrie oder verwenden Sie die Pfeiltasten, um die Ansicht zu ändern.'
 home.scene.label: Geometrieanzeige
 home.scene.surface: Oberfläche
 home.scene.wireframe: Drahtgitter
@@ -278,7 +278,7 @@ learning.concepts.resources.description: 'Ressourcennutzungen, Speicherplatzieru
 learning.concepts.shaders.description: 'Layout- und Bindungskonventionen für C# und Slang'
 learning.concepts.synchronization.description: 'Abhängigkeiten, Sichtbarkeit und Abschluss'
 learning.concepts.title: Kernkonzepte
-learning.description: 'Beginnen Sie mit dem Dreieck-Tutorial und erstellen Sie Ihre erste Anwendung. Anschließend erläutern die Konzeptartikel Ressourcenverwaltung, Shader-Daten und Synchronisation. Für einzelne Grafikverfahren stehen ausführbare Beispiele bereit.'
+learning.description: 'Beginnen Sie mit dem Dreieck-Tutorial und erstellen Sie Ihre erste Anwendung. Lesen Sie danach die Konzeptartikel über Ressourcenverwaltung, Shader-Daten und Synchronisation oder wählen Sie ein Beispiel für das Verfahren, das Sie umsetzen möchten.'
 learning.entries.samples.action: Beispiele durchsuchen
 learning.entries.samples.description: 'C#- und Slang-Implementierungen für Geometrie, Compute, Ray-Queries und Mesh-Shading'
 learning.entries.tutorial.action: Tutorial öffnen
@@ -293,7 +293,7 @@ reference.entries.context.label: Hier beginnen
 reference.meta.description: 'Namespaces, Typen und Member von Zenith.NET'
 reference.navigation.core: 'Referenz der Kern-API'
 reference.title: API-Referenz
-samples.computeShader.description: 'Wandelt ein Farbbild mit einem Compute-Shader in Graustufen um und demonstriert damit Bildverarbeitung auf der GPU.'
+samples.computeShader.description: 'Ein Compute-Shader wandelt ein Farbbild in Graustufen um und demonstriert damit Bildverarbeitung auf der GPU.'
 samples.computeShader.details: '{computeShaderRendererCs} · {computeShaderSlang}'
 samples.computeShader.title: Compute-Shader
 samples.cube.description: 'Ein rotierender Würfel führt in indexierte Geometrie, 3D-Transformationen und Tiefentests ein.'
@@ -306,10 +306,10 @@ samples.execution.title: 'Beispiele ausführen'
 samples.indirectDrawing.description: 'Ein Raster aus rotierenden, unterschiedlich gefärbten Würfeln zeigt indirektes Zeichnen mit Zeichenargumenten aus einem Puffer.'
 samples.indirectDrawing.details: '{indirectDrawingRendererCs} · {indirectDrawingSlang}'
 samples.indirectDrawing.title: Indirektes Zeichnen
-samples.meshShading.description: 'Zeigt mit Task- und Mesh-Shadern ein Raster farbiger Kugeln und lässt Kugeln außerhalb des Kamerasichtbereichs aus. Erfordert Mesh-Shading-Unterstützung.'
+samples.meshShading.description: 'Dieses Beispiel verwendet Task- und Mesh-Shader, um ein Raster farbiger Kugeln zu zeichnen und Kugeln außerhalb des Kamerasichtbereichs auszulassen. Erfordert Mesh-Shading-Unterstützung.'
 samples.meshShading.details: '{meshShadingRendererCs} · {meshShadingSlang}'
 samples.meshShading.title: Mesh-Shading
-samples.rayTracing.description: 'Stellt mit Ray-Queries reflektierende Kugeln und Schatten auf einem Schachbrettboden dar. Erfordert Raytracing-Unterstützung.'
+samples.rayTracing.description: 'Dieses Beispiel verwendet Ray-Queries, um reflektierende Kugeln und Schatten auf einem Schachbrettboden darzustellen. Erfordert Raytracing-Unterstützung.'
 samples.rayTracing.details: '{rayTracingRendererCs} · {rayTracingSlang}'
 samples.rayTracing.title: Raytracing
 samples.title: Beispiele
@@ -317,7 +317,7 @@ samples.triangle.description: 'Ein Dreieck mit fließenden Übergängen zwischen
 samples.triangle.details: '{helloTriangleRendererCs} · {helloTriangleSlang} · {link}'
 samples.triangle.details.link: Vollständiges Tutorial
 samples.triangle.title: Hallo Dreieck
-samples.workloads.description: 'Das {link} im Haupt-Repository enthält die folgenden Anwendungen und Hilfsprogramme.'
+samples.workloads.description: 'Das {link} im Zenith.NET-Repository enthält diese Anwendungen und Hilfsprogramme.'
 samples.workloads.description.link: Verzeichnis Experiments
 samples.workloads.table.cornellBox.example: '{link}'
 samples.workloads.table.cornellBox.example.link: CornellBox
@@ -329,7 +329,7 @@ samples.workloads.table.headings.example: Beispiel
 samples.workloads.table.headings.whatItDemonstratesAndRequires: 'Beschreibung'
 samples.workloads.table.inkCanvas.example: '{link}'
 samples.workloads.table.inkCanvas.example.link: InkCanvas
-samples.workloads.table.inkCanvas.whatItDemonstratesAndRequires: Eine Zeichenfläche zum Zeichnen und Radieren von Freihandstrichen.
+samples.workloads.table.inkCanvas.whatItDemonstratesAndRequires: Eine Zeichenfläche, auf der sich Freihandstriche zeichnen und wieder löschen lassen.
 samples.workloads.table.platformDetection.example: '{link}'
 samples.workloads.table.platformDetection.example.link: PlatformDetection
 samples.workloads.table.platformDetection.whatItDemonstratesAndRequires: 'Ein Konsolenprogramm, das die verfügbaren Grafik-APIs und die Gerätefunktionen anzeigt.'
@@ -364,7 +364,7 @@ tutorial.frame.commands.description: 'Ein Renderpass fasst Zeichenoperationen zu
 tutorial.frame.commands.details: 'Die Sammlung enthält ein Farb-Attachment. {null} gibt an, dass der Pass kein Tiefen-/Stencil-Attachment verwendet.'
 tutorial.frame.commands.guidance: '{beginRenderPass} setzt Viewport und Scissor auf die gesamte Attachment-Fläche. Der Viewport bildet Renderkoordinaten auf Pixelpositionen ab; der Scissor begrenzt den Pixelbereich, den Zeichenoperationen verändern können.'
 tutorial.frame.commands.title: 'Löschen, Einreichung und Präsentation'
-tutorial.frame.description: 'Füllen Sie das Fenster zunächst mit einer Hintergrundfarbe. Diese Operation heißt Löschen. Sobald die Farbe sichtbar ist, arbeiten das native Präsentationsziel, die Befehlseinreichung und die Präsentation zusammen. Darauf bauen die Vertices und Shader des Dreiecks auf.'
+tutorial.frame.description: 'Füllen Sie das Fenster zunächst mit einer Hintergrundfarbe. Diese Operation heißt Löschen. Erscheint die Farbe im Fenster, sind das native Präsentationsziel, die Befehlseinreichung und die Präsentation eingerichtet. Danach können Sie die Vertices und Shader des Dreiecks hinzufügen.'
 tutorial.frame.details: 'Silk.NET ruft den Render-Callback auf, sobald ein Frame ansteht. Registrieren Sie den Callback {emphasis}:'
 tutorial.frame.details.emphasis: vor {windowRun}
 tutorial.frame.target.description: 'Eine Befehlswarteschlange nimmt aufgezeichnete Arbeit zur Ausführung auf der GPU entgegen. {graphicsQueueCommandBuffer} liefert einen Befehlspuffer aus der Grafikwarteschlange, in dem die Aufzeichnung bereits läuft. Die aufgezeichneten Befehle legen die GPU-Arbeit fest; ihre Ausführung beginnt erst nach der Einreichung.'
@@ -404,7 +404,7 @@ tutorial.input.table.nextVertex.shaderInput: Nächster Eingabedatensatz
 tutorial.input.table.vertexColor.format: '{float4} (16 Bytes)'
 tutorial.input.table.vertexPosition.format: '{float3} (12 Bytes)'
 tutorial.input.title: 'Vertex-Eingabelayout'
-tutorial.lifecycle.description: 'Jeder Frame folgt dieser Sequenz:'
+tutorial.lifecycle.description: 'Für jeden Frame bezieht die Anwendung die aktuelle Ausgabetextur, überführt sie in das Layout für ein Farb-Attachment, füllt den Hintergrund und zeichnet das Dreieck. Danach überführt sie die Ausgabetextur in das Präsentationslayout, reicht die aufgezeichneten Befehle ein, wartet auf deren Abschluss und präsentiert das Bild.'
 tutorial.lifecycle.details: 'Nach dem Schließen des Fensters kehrt {run} zurück, und die Ausführung wird mit der Bereinigung fortgesetzt. Da der Render-Callback bereits auf den Abschluss der Befehle jedes Frames gewartet hat, können die dafür verwendeten Ressourcen nun freigegeben werden. Nach {windowRun} steht die vollständige Bereinigung:'
 tutorial.lifecycle.guidance: 'Geben Sie die Swapchain vor ihrem nativen Fenster und den Kontext nach seinen Ressourcen frei. Eingereichte Befehlspuffer werden von der Warteschlange wiederverwendet; die Ausgabetextur wird von der Swapchain verwaltet. Beide benötigen daher keinen eigenen {dispose}-Aufruf.'
 tutorial.pipeline.behavior: 'Erstellen Sie nach dem Eingabelayout die Pipeline:'
@@ -493,11 +493,11 @@ ui.api.noNamespaceTypes: Keine Typen in diesem Namespace.
 ui.api.noTypes: Keine passenden Typen.
 ui.api.types: Typen
 ui.content.reference: Referenz
-ui.content.source: Quellcode
+ui.content.examples: Codebeispiele
 ui.content.tutorial: Tutorial
 ui.contents.close: Inhaltsverzeichnis schließen
 ui.contents.open: Inhaltsverzeichnis öffnen
-ui.contents.title: Inhalt
+ui.contents.title: Inhaltsverzeichnis
 ui.footer.caption: 'Modernes RHI für .NET'
 ui.footer.label: Fußzeile
 ui.language.label: Sprache

@@ -6,7 +6,7 @@ O [dicionário de recursos em inglês](../en-US/strings.yml) é a única fonte d
 
 Navegação, ordem dos capítulos, âncoras, links, formatação, código e imagens são mantidos fora de `locales/` e compartilhados entre idiomas. Não adicione artigos, TOC, templates, scripts ou configurações neste diretório.
 
-Altere apenas os valores da `strings.yml` deste idioma. O conjunto de chaves deve corresponder exatamente ao inglês. Não adicione, remova ou renomeie chaves por conta própria, mesmo que os textos pareçam iguais ou ainda não tenham aparecido na interface. Se encontrar um problema no original, informe a chave e o problema aos responsáveis pelo projeto. Corrija primeiro a fonte inglesa e as páginas compartilhadas; depois, atualize as traduções.
+Altere apenas os valores do arquivo `strings.yml` deste idioma. O conjunto de chaves deve corresponder exatamente ao inglês. Não adicione, remova ou renomeie chaves por conta própria, mesmo que os textos pareçam iguais ou ainda não tenham aparecido na interface. Se encontrar um problema no original, informe a chave e o problema aos responsáveis pelo projeto. Corrija primeiro a fonte inglesa e as páginas compartilhadas; depois, atualize as traduções.
 
 ## Estilo e contexto
 
@@ -38,7 +38,7 @@ Preserve estas distinções:
 
 - Gravar comandos, enviá-los, executá-los na GPU e concluí-los são etapas distintas.
 - Uso de recursos, residência de memória ou intenção de acesso da CPU, layout de textura e formato de pixel são conceitos distintos.
-- A propriedade indica a responsabilidade de liberar um recurso. Um handle não mantém o recurso vivo por si só; o envio de comandos também não transfere a propriedade.
+- A propriedade indica a responsabilidade de liberar um recurso. Um identificador não mantém o recurso vivo por si só; o envio de comandos também não transfere a propriedade.
 - A conclusão na GPU nem sempre significa que os dados de leitura temporários já foram copiados para o destino de CPU da aplicação. Preserve as instruções sobre aguardar a fila responsável.
 - Um drawable é a textura de saída do quadro atual, não necessariamente uma imagem da cadeia de troca. Distinga as visualizações de recursos dos controles de interface.
 
@@ -61,7 +61,7 @@ Este idioma já está registrado. O dicionário completo fica disponível após 
 
 Todos os idiomas compartilham os caminhos das páginas. `?lang=pt-BR` seleciona português brasileiro; a troca de idioma mantém o caminho e a âncora. Sem uma escolha explícita, são usadas, nesta ordem, a escolha manual salva, as preferências do navegador e o inglês. Se esta tradução ainda não estiver publicada, ou se o carregamento ou a validação dos recursos da página falhar, a página fica em inglês, sem misturar idiomas frase a frase. A lista de idiomas é ordenada por código.
 
-Antes de entregar, confira as chaves e os marcadores. Revise a página inicial, a entrada de Learn, o tutorial do triângulo, os conceitos, os exemplos e a interface de API no desktop e com 320 pixels de largura. Leia o tutorial como iniciante e confira terminologia, botões, busca, cópia de código, links de API e a posição da seção após trocar de idioma. Identificadores, declarações e código continuam compartilhados; traduza apenas os textos fornecidos pelo dicionário. Mantenha dicionários de teste e arquivos temporários fora do repositório e não entregue traduções com texto de preenchimento.
+Antes de entregar, confira as chaves e os marcadores. Revise a página inicial, a seção Aprender, o tutorial do triângulo, os conceitos, os exemplos e a interface da API no computador e com 320 pixels de largura. Leia o tutorial como iniciante e confira terminologia, botões, busca, cópia de código, links de API e a posição da seção após trocar de idioma. Identificadores, declarações e código continuam compartilhados; traduza apenas os textos fornecidos pelo dicionário. Mantenha dicionários de teste e arquivos temporários fora do repositório e não entregue traduções com texto de preenchimento.
 
 ## Terminologia
 
@@ -72,16 +72,17 @@ Antes de entregar, confira as chaves e os marcadores. Revise a página inicial, 
 | buffer           | buffer; preservar `Buffer`                                                                                  |
 | command buffer   | buffer de comandos                                                                                          |
 | command queue    | fila de comandos                                                                                            |
+| command recording | gravação de comandos; não alternar com registro de comandos                                               |
 | drawable         | textura de saída do quadro atual; preservar `Drawable`, sem presumir que seja uma imagem da cadeia de troca |
 | graphics context | contexto gráfico                                                                                            |
-| graphics API     | API gráfica; DirectX 12, Metal ou Vulkan                                                                     |
+| graphics API     | API gráfica; DirectX 12, Metal 4 ou Vulkan 1.4                                                              |
 | API implementation | implementação da API gráfica; para diferenças técnicas entre implementações                               |
 | pipeline         | pipeline                                                                                                    |
-| readback         | leitura de dados da GPU                                                                                     |
+| readback / download | download ou leitura de dados da GPU                                                                       |
 | render pass      | passagem de renderização                                                                                    |
 | resource         | recurso                                                                                                     |
 | shader           | shader                                                                                                      |
 | swap chain       | cadeia de troca                                                                                             |
 | texture          | textura                                                                                                     |
 | timeline         | linha do tempo                                                                                              |
-| upload           | envio de dados à GPU                                                                                        |
+| upload           | upload de dados para a GPU; distinto do envio de comandos à fila                                            |

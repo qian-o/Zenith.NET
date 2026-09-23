@@ -68,7 +68,7 @@ docfx serve documents/_site --hostname 127.0.0.1 --port 8080
 | 英文                               | 约定译法或处理                                                |
 | ---------------------------------- | ------------------------------------------------------------- |
 | rendering hardware interface / RHI | 渲染硬件接口（RHI）；之后可直接使用 RHI                       |
-| graphics API / implementation       | 图形 API／图形 API 实现；DirectX 12、Metal、Vulkan 是图形 API，相关包是各自的实现包 |
+| graphics API / implementation       | 图形 API／图形 API 实现；本项目对应 DirectX 12、Metal 4 和 Vulkan 1.4，相关包是各自的实现包 |
 | graphics context                   | 图形上下文                                                    |
 | command queue                      | 命令队列                                                      |
 | command buffer                     | 命令缓冲区                                                    |

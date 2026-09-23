@@ -46,10 +46,9 @@ concepts.execution.pipelines.guidance.link: triangle's render callback
 concepts.execution.pipelines.title: Pipeline state
 concepts.execution.queues.description: '{graphicsQueue} is the usual starting point for a frame that combines drawing,
   computation, and copies. Keeping dependent operations on one queue simplifies their ordering.'
-concepts.execution.queues.details: Separate queues allow independent workloads to be submitted separately, but they
-  do not necessarily correspond to independent hardware engines. Use additional queues when the work can benefit
-  from overlapping execution. When one queue uses data produced by another, connect their submissions with an explicit
-  dependency.
+concepts.execution.queues.details: Additional queues can help overlap independent workloads, although they do not
+  necessarily map to independent hardware engines. When one queue uses data produced by another, connect their
+  submissions with an explicit dependency.
 concepts.execution.queues.guidance:
   Within a queue, dependent operations can also require barriers or texture transitions
   so that later accesses observe earlier writes. These memory dependencies are distinct from submission order; {link}
@@ -101,7 +100,7 @@ concepts.platforms.integration.context: WinForms, WPF, and the Windows WinUI int
   {extensionsCs}.
 concepts.platforms.integration.description: 'The event interface is shared, but the presentation mechanism depends
   on the framework:'
-concepts.platforms.integration.details: These implementations differ in how the GPU image reaches the UI. Bitmap
+concepts.platforms.integration.details: These UI integrations differ in how the GPU image reaches the interface. Bitmap
   readback copies pixels into CPU memory before display. Shared-texture interop avoids that CPU copy but can still
   require GPU copies and synchronization. Consider this presentation path, as well as the shared {renderRequested}
   event, when choosing an integration.
@@ -115,7 +114,7 @@ concepts.platforms.integration.table.maui.integration: .NET MAUI
 concepts.platforms.integration.table.maui.presentation: Uses native surfaces on Android, iOS and Mac Catalyst, and
   shared-texture composition on Windows. See the {link}.
 concepts.platforms.integration.table.maui.presentation.link: platform implementations
-concepts.platforms.integration.table.uno.integration: Uno path
+concepts.platforms.integration.table.uno.integration: Uno Platform
 concepts.platforms.integration.table.uno.presentation: Downloads pixels into a {writeableBitmap}. See {zenithViewUnoCs}.
 concepts.platforms.integration.table.winForms.integration: WinForms
 concepts.platforms.integration.table.winForms.presentation: Creates a Zenith.NET swap chain for the control's {hWND}.
@@ -389,9 +388,9 @@ concepts.synchronization.dependencies.description: For each resource, identify t
   layout and presentation requirements still apply. CPU updates and resource disposal also need to wait until the
   GPU has finished using the affected storage.
 concepts.synchronization.dependencies.details: 'The appropriate mechanism depends on where the operations execute:'
-concepts.synchronization.dependencies.guidance: A workload may need more than one mechanism. For example, a texture
-  produced on another queue needs a submission dependency and the appropriate layout for its next use. Neither operation
-  requires blocking the CPU unless the CPU itself needs to access or release the data.
+concepts.synchronization.dependencies.guidance: A workload may need more than one mechanism. For example, when one
+  queue writes a texture and another uses it, the consumer needs both a submission dependency and the appropriate
+  layout. Neither step blocks the CPU unless it needs to access or release the data.
 concepts.synchronization.dependencies.table.cpuAccess.mechanism: Call {wait} on the relevant completion value.
 concepts.synchronization.dependencies.table.cpuAccess.situation: CPU access or resource release depends on GPU completion
 concepts.synchronization.dependencies.table.crossQueue.mechanism: Pass the producer's {timelineValue} to the consumer's
@@ -469,7 +468,7 @@ home.entries.reference.category: Reference
 home.entries.reference.description: Look up API types, members, and declarations
 home.entries.reference.title: API Reference
 home.entries.samples.action: Browse samples
-home.entries.samples.category: Examples
+home.entries.samples.category: Code examples
 home.entries.samples.description: Working examples of graphics and compute techniques
 home.entries.samples.title: Samples
 home.entries.title: Documentation
@@ -478,9 +477,9 @@ home.entries.tutorial.category: Tutorial
 home.entries.tutorial.description: From an empty project to your first triangle on screen
 home.entries.tutorial.title: First Triangle
 home.introduction.accent: for .NET
-home.introduction.description: Zenith.NET provides one API for graphics and compute across DirectX, Metal, and Vulkan
+home.introduction.description: Zenith.NET provides one API for graphics and compute across DirectX 12, Metal 4, and Vulkan 1.4
 home.introduction.title: Cross-platform graphics{lineBreak}{accent}
-home.meta.description: Cross-platform graphics and compute for .NET with one API for DirectX, Metal, and Vulkan
+home.meta.description: Cross-platform graphics and compute for .NET with one API for DirectX 12, Metal 4, and Vulkan 1.4
 home.scene.description: Interactive rotating geometry. Drag or use the arrow keys to adjust the view.
 home.scene.label: Geometry display
 home.scene.surface: Surface
@@ -510,8 +509,8 @@ reference.entries.context.label: Start here
 reference.meta.description: Namespaces, types, and members of Zenith.NET
 reference.navigation.core: Core API reference
 reference.title: API Reference
-samples.computeShader.description: Converts a color image to grayscale with a compute shader, demonstrating
-  image processing on the GPU.
+samples.computeShader.description: A compute shader converts a color image to grayscale, demonstrating GPU image
+  processing.
 samples.computeShader.details: '{computeShaderRendererCs} · {computeShaderSlang}'
 samples.computeShader.title: Compute Shader
 samples.cube.description: A rotating cube introduces indexed geometry, 3D transformations, and depth testing.
@@ -526,12 +525,12 @@ samples.indirectDrawing.description: A grid of rotating, individually colored cu
   from a buffer of draw arguments.
 samples.indirectDrawing.details: '{indirectDrawingRendererCs} · {indirectDrawingSlang}'
 samples.indirectDrawing.title: Indirect Drawing
-samples.meshShading.description: Renders a grid of colored spheres with task and mesh shaders, skipping spheres
-  outside the camera's view. Requires mesh shading support.
+samples.meshShading.description: This sample uses task and mesh shaders to render a grid of colored spheres, skipping
+  spheres outside the camera's view. Requires mesh shading support.
 samples.meshShading.details: '{meshShadingRendererCs} · {meshShadingSlang}'
 samples.meshShading.title: Mesh Shading
-samples.rayTracing.description: Renders reflective spheres and shadows on a checkerboard floor using ray queries.
-  Requires ray tracing support.
+samples.rayTracing.description: This sample uses ray queries to render reflective spheres and shadows on a
+  checkerboard floor. Requires ray tracing support.
 samples.rayTracing.details: '{rayTracingRendererCs} · {rayTracingSlang}'
 samples.rayTracing.title: Ray Tracing
 samples.title: Samples
@@ -540,7 +539,7 @@ samples.triangle.description: A triangle with smoothly blended vertex colors int
 samples.triangle.details: '{helloTriangleRendererCs} · {helloTriangleSlang} · {link}'
 samples.triangle.details.link: Complete tutorial
 samples.triangle.title: Hello Triangle
-samples.workloads.description: The main repository's {link} contains the following applications and utilities.
+samples.workloads.description: The Zenith.NET repository's {link} contains these applications and utilities.
 samples.workloads.description.link: Experiments directory
 samples.workloads.table.cornellBox.example: '{link}'
 samples.workloads.table.cornellBox.example.link: CornellBox
@@ -682,7 +681,9 @@ tutorial.input.table.nextVertex.shaderInput: Next input record
 tutorial.input.table.vertexColor.format: '{float4} (16 bytes)'
 tutorial.input.table.vertexPosition.format: '{float3} (12 bytes)'
 tutorial.input.title: Vertex input layout
-tutorial.lifecycle.description: 'Each frame follows this sequence:'
+tutorial.lifecycle.description: Each frame gets the current drawable, transitions it for use as a color attachment,
+  clears the background, and draws the triangle. The application then transitions the drawable for presentation,
+  submits the recorded commands, waits for completion, and presents the image.
 tutorial.lifecycle.details: 'When the window closes, {run} returns and execution continues to the cleanup code.
   The render callback has waited for every submitted frame to finish, so the resources used by those commands can now
   be released. The complete cleanup after {windowRun} is:'
@@ -824,7 +825,7 @@ ui.api.noNamespaceTypes: No types in this namespace.
 ui.api.noTypes: No matching types.
 ui.api.types: Types
 ui.content.reference: Reference
-ui.content.source: Source code
+ui.content.examples: Code examples
 ui.content.tutorial: Tutorial
 ui.contents.close: Close contents
 ui.contents.open: Open contents

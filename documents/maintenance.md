@@ -50,7 +50,7 @@ Do not turn the samples index into a sequence of advanced tutorials. The triangl
 - Use one H1 and a clear H2/H3 hierarchy. Give explicit anchors to sections linked from other pages when their headings may change. Use the existing shared Markdown/HTML components with resource-bound text; use tables for comparisons, notices for necessary constraints and diagrams only when they clarify a relationship.
 - Keep diagrams small enough to read on a phone. Prefer a vertical sequence to a wide horizontal graph when scaling would make its labels too small.
 - Keep the homepage, Learn overview and README consistent with the documentation's contents. Do not publish placeholder pages or temporary validation notes.
-- Call DirectX 12, Metal 4 and Vulkan 1.4 graphics APIs. Describe their packages as implementations of the shared API; use the same terms in the README and translated prose.
+- Call DirectX 12, Metal 4 and Vulkan 1.4 graphics APIs, and describe their packages as implementations of the shared API. Use full graphics API versions when stating support; generic API names are appropriate when discussing behavior independent of a version. State .NET versions where readers need a concrete SDK or target framework to build or run an example, rather than in general project descriptions. Refer to framework controls as UI integrations or rendering controls.
 
 ## Editorial style
 
@@ -84,9 +84,9 @@ Introduce file settings when the file is created. For a shader, describe its Cop
 
 Keep snippets consistent with the complete application. The assembled source must not depend on omitted setup or unexplained helper methods. Keep platform-specific alternatives only where they are necessary to run it.
 
-For each sample, briefly describe the visible result and the main technique it demonstrates, then provide verified source links. Include a prerequisite when it determines whether the sample can run. Keep API call sequences, resource formats, helper implementation details, and unrelated navigation out of the catalog. Use the repository's normal branch links rather than transient local paths or release-specific URLs unless the example requires otherwise.
+For each sample, briefly describe the visible result and the main technique it demonstrates, then provide verified source links. Include a prerequisite when it determines whether the sample can run. Keep API call sequences, resource formats, helper implementation details, and unrelated navigation out of the catalog. Link to the repository's default branch rather than transient local paths or release-specific URLs unless the example requires otherwise.
 
-For screenshots maintained in the tutorial repository, use its main-branch raw image URLs in shared Markdown. Link each preview to the full-size image, include its intrinsic dimensions, and use native lazy loading. Bind alternative text with `alt="@resource.key"` and `data-resource-alt="resource.key"`; an existing sample title can identify its preview when the adjacent prose explains the result. The build renders English alternative text, and language switching updates it from the selected dictionary.
+For screenshots maintained in the tutorial repository, use raw image URLs from its default branch in shared Markdown. Link each preview to the full-size image, include its intrinsic dimensions, and use native lazy loading. Bind alternative text with `alt="@resource.key"` and `data-resource-alt="resource.key"`; an existing sample title can identify its preview when the adjacent prose explains the result. The build renders English alternative text, and language switching updates it from the selected dictionary.
 
 Compile the complete tutorial using its documented setup and run it to verify the visible triangle on the selected platform. A DocFX build validates the documentation, not the C# or shader examples. Report any platform that could not be exercised; do not claim cross-platform execution from a single-platform check.
 
@@ -172,7 +172,7 @@ Language folders, registrations and menus use language-code order: `de-DE`, `en-
 
 Pages share the same URL paths. `?lang=<code>` selects a dictionary, retaining the page and fragment. Without an explicit language, the site uses a saved manual selection, browser preferences, then English. An explicit unsupported or unpublished language falls back to English, without substituting a different saved language. A missing, stale or malformed downloaded dictionary is rejected before any translated text is applied, keeping the complete English page usable. The English HTML is fully rendered during the build; other static dictionaries bind to that same markup in the browser. No translation API is used. Search uses translated resources with the shared generated API index.
 
-Site-owned images remain in `images/`; screenshots maintained in the tutorial repository are referenced by their main-branch URLs. All generated API YAML remains in `api/`. Localization uses the shared routes without a separate compatibility layer. Do not create `pages/`, `snippets/`, a parallel content graph or an additional build command for localization.
+Site-owned images remain in `images/`; screenshots maintained in the tutorial repository are referenced by URLs from its default branch. All generated API YAML remains in `api/`. Localization uses the shared routes without a separate compatibility layer. Do not create `pages/`, `snippets/`, a parallel content graph or an additional build command for localization.
 
 ## Resource keys and placeholders
 
@@ -192,7 +192,7 @@ And in the shared page:
 <p><resource key="tutorial.context.description"><slot name="context"><xref uid="Zenith.NET.GraphicsContext" text="GraphicsContext"/></slot></resource></p>
 ```
 
-The binding escapes text values and inserts only the shared slot markup. Preserve every placeholder name, including case, when translating. Reordering is allowed; adding or removing names is not. Use descriptive slot names for new content. Nested emphasis or link labels can have their own resources when they contain translatable prose. Executable examples, shader code and diagnostic/illustrative code blocks stay in shared Markdown unchanged.
+The binding escapes text values and inserts only the shared slot markup. Preserve every placeholder name, including case, when translating. Reordering is allowed; adding or removing names is not. Use descriptive slot names for new content. Nested emphasis or link labels can have their own resources when they contain translatable prose. Executable examples, shader code and code-like diagnostics stay in shared Markdown unchanged; explanatory flow summaries belong in localized prose.
 
 Page front matter uses `title: '@tutorial.title'` and an optional resource-bound `description`. Navigation names bind keys through `name: '@tutorial.title'` in the root TOC. Keep heading IDs in shared markup so rewording or translating a title cannot change links.
 
