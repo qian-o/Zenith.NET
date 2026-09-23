@@ -75,7 +75,7 @@ Avant livraison, vérifier les clés et les espaces réservés. Contrôler l’a
 | drawable         | texture de sortie de l’image en cours de rendu ; conserver `Drawable`, sans supposer qu’elle appartient à une chaîne d’échange |
 | graphics context | contexte graphique                                                                                                             |
 | graphics API     | API graphique ; DirectX 12, Metal 4 ou Vulkan 1.4                                                                              |
-| implementation   | implémentation de l’API graphique ; pour les différences techniques entre implémentations                                       |
+| implementation   | implémentation de l’API graphique ; pour les différences techniques entre implémentations                                      |
 | pipeline         | pipeline                                                                                                                       |
 | readback         | lecture de données depuis le GPU                                                                                               |
 | render pass      | passe de rendu                                                                                                                 |

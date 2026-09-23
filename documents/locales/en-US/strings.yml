@@ -311,9 +311,9 @@ concepts.shaders.binding.table.samplerHandle.access: Texture sampling state
 concepts.shaders.binding.table.textureSampledHandle.access: Texture reads
 concepts.shaders.binding.table.textureStorageHandle.access: Storage-texture reads and writes
 concepts.shaders.binding.title: Constant buffers and resource handles
-concepts.shaders.compilation.description: '{zenithCompiler} compiles a Slang entry point and returns a {shaderDesc}.
-  The context''s {graphicsApi} selects the output format: {dxil} for DirectX 12, {metallib} for Metal, or {spirv}
-  for Vulkan.'
+concepts.shaders.compilation.description: "{zenithCompiler} compiles a Slang entry point and returns a {shaderDesc}.
+  The context's {graphicsApi} selects the output format: {dxil} for DirectX 12, {metallib} for Metal, or {spirv}
+  for Vulkan."
 concepts.shaders.compilation.details: 'With a graphics context named {context} already created, compile the triangle
   shader from the copy placed beside the executable:'
 concepts.shaders.compilation.guidance: The entry-point name {vSMain} must match the declaration in the shader file.
@@ -611,7 +611,8 @@ tutorial.frame.description: Start by filling the window with a solid color, an o
   color appears, command submission and presentation are working. Then add the triangle's vertices and shaders.
 tutorial.frame.details: 'Silk.NET invokes the render callback when a frame is due. Register the callback {emphasis}:'
 tutorial.frame.details.emphasis: before {windowRun}
-tutorial.frame.target.description: A command queue receives recorded work for GPU execution. {graphicsQueueCommandBuffer}
+tutorial.frame.target.description:
+  A command queue receives recorded work for GPU execution. {graphicsQueueCommandBuffer}
   returns a command buffer from the graphics queue with recording already in progress. The recorded commands define
   the GPU workload; execution begins only after submission.
 tutorial.frame.target.details:
@@ -678,7 +679,8 @@ tutorial.input.table.nextVertex.shaderInput: Next input record
 tutorial.input.table.vertexColor.format: '{float4} (16 bytes)'
 tutorial.input.table.vertexPosition.format: '{float3} (12 bytes)'
 tutorial.input.title: Vertex input layout
-tutorial.lifecycle.description: For each frame, get the current drawable, transition it for use as a color attachment, clear
+tutorial.lifecycle.description:
+  For each frame, get the current drawable, transition it for use as a color attachment, clear
   the background and draw the triangle, transition it for presentation, then submit, wait, and present.
 tutorial.lifecycle.details: 'When the window closes, {run} returns and execution continues to the cleanup code.
   The render callback has waited for every submitted frame to finish, so the resources used by those commands can now

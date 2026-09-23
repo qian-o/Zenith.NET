@@ -42,7 +42,7 @@ concepts.execution.recording.guidance: 'L’enregistrement construit la séquenc
 concepts.execution.recording.title: 'Enregistrement et soumission'
 concepts.execution.title: Modèle d’exécution
 concepts.platforms.description: 'La présentation est gérée par l’application ou par un contrôle d’interface. Ce choix détermine qui obtient la texture de sortie de l’image, enregistre et soumet les commandes, puis présente le résultat. Cette texture de sortie est appelée drawable.'
-concepts.platforms.frame.context: "Enregistrer les liaisons de pipeline et les commandes de dessin dans la passe, puis la terminer avant que le gestionnaire retourne. Le gestionnaire ne doit ni soumettre le tampon de commandes ni libérer l’un ou l’autre des objets fournis. S’il modifie le layout de la texture de sortie, il doit rétablir {colorAttachment} avant de retourner pour permettre au contrôle d’effectuer la transition finale."
+concepts.platforms.frame.context: 'Enregistrer les liaisons de pipeline et les commandes de dessin dans la passe, puis la terminer avant que le gestionnaire retourne. Le gestionnaire ne doit ni soumettre le tampon de commandes ni libérer l’un ou l’autre des objets fournis. S’il modifie le layout de la texture de sortie, il doit rétablir {colorAttachment} avant de retourner pour permettre au contrôle d’effectuer la transition finale.'
 concepts.platforms.frame.description: 'Les contrôles implémentent {iZenithView}. L’application assigne {graphicsContext}, met à jour les données de la scène dans {updateRequested} et enregistre les commandes dans {renderRequested} à l’aide des {renderEventArgs} fournis.'
 concepts.platforms.frame.details: 'Pour chaque image, le contrôle obtient une texture de sortie et un tampon de commandes, passe la texture au layout {colorAttachment}, puis appelle les gestionnaires de mise à jour et de rendu. Il soumet ensuite les commandes enregistrées et présente l’image par le mécanisme du framework.'
 concepts.platforms.frame.guidance: 'Ajouter {usingZenithNET} au fichier. Pour un {iZenithView} initialisé, nommé {view} et associé à un contexte graphique, enregistrer ce gestionnaire afin de remplir sa texture de sortie avec une couleur :'
@@ -145,7 +145,7 @@ concepts.resources.transfers.details: 'Avant ces appels, résoudre les conflits 
 concepts.resources.transfers.guidance: 'Pour soumettre des transferts avec d’autres opérations GPU, les enregistrer avec {commandBufferUpload} ou {commandBufferDownload}. La mémoire source d’un transfert vers le GPU et la mémoire de destination d’un transfert depuis le GPU ont des exigences de durée de vie différentes :'
 concepts.resources.transfers.item: 'Pendant l’appel de transfert vers le GPU, la bibliothèque copie les données source dans une mémoire de transfert temporaire. Le GPU lit ensuite cette copie intermédiaire. Le pointeur source de l’application n’est donc nécessaire que jusqu’au retour de l’appel.'
 concepts.resources.transfers.layouts: 'Les transferts de texture enregistrés n’incluent pas de transitions de layout. Un transfert vers la texture exige {copyDst} ; un transfert depuis la texture exige {copySrc}. Enregistrer le passage au layout correspondant avant la copie, puis, après la copie, le passage au layout requis par l’utilisation suivante.'
-concepts.resources.transfers.notes: "Pour les transferts de texture, le pas de ligne est la distance en octets entre deux lignes successives des données CPU ; le pas de tranche est la distance entre deux tranches de profondeur. Ces valeurs permettent de copier les données entre la mémoire CPU et la texture GPU."
+concepts.resources.transfers.notes: 'Pour les transferts de texture, le pas de ligne est la distance en octets entre deux lignes successives des données CPU ; le pas de tranche est la distance entre deux tranches de profondeur. Ces valeurs permettent de copier les données entre la mémoire CPU et la texture GPU.'
 concepts.resources.transfers.table.bufferDownload.transfer: 'Copie directement depuis la mémoire mappée pour {cpuReadOnly}. Sinon, soumet le transfert à la file de transfert et attend qu’il soit terminé.'
 concepts.resources.transfers.table.bufferUpload.transfer: 'Copie directement dans la mémoire mappée pour {cpuWriteOnly}. Sinon, soumet le transfert à la file de transfert et attend qu’il soit terminé.'
 concepts.resources.transfers.table.headings.method: Méthode
@@ -200,7 +200,7 @@ concepts.shaders.matrices.details: 'L’ordre de stockage définit la dispositio
 concepts.shaders.matrices.title: 'Conventions matricielles'
 concepts.shaders.title: Données de shaders et liaison
 concepts.synchronization.backends.description: 'DirectX 12 et Vulkan encodent les transitions de texture sous forme de changements de layout et d’accès. Dans l’implémentation Metal de Zenith.NET, {transition} n’effectue pas d’opération GPU équivalente. Cette implémentation regroupe les commandes dans des encodeurs de rendu et de calcul, puis insère des barrières de visibilité à la fermeture d’un encodeur. Les opérations dépendantes dans un même encodeur, comme deux calculs successifs, exigent des appels explicites à {barrier}.'
-concepts.synchronization.backends.details: "Dans l’{link}, l’ouverture de la passe de rendu ferme l’encodeur de calcul et rend sa sortie visible aux commandes graphiques. Deux calculs successifs restent en revanche dans le même encodeur. Leur dépendance exige donc une barrière, même si une transition de texture est enregistrée entre eux."
+concepts.synchronization.backends.details: 'Dans l’{link}, l’ouverture de la passe de rendu ferme l’encodeur de calcul et rend sa sortie visible aux commandes graphiques. Deux calculs successifs restent en revanche dans le même encodeur. Leur dépendance exige donc une barrière, même si une transition de texture est enregistrée entre eux.'
 concepts.synchronization.backends.details.link: exemple de calcul
 concepts.synchronization.backends.title: 'Synchronisation selon l’API graphique'
 concepts.synchronization.barriers.context: 'Choisir des étapes qui couvrent les accès concernés et sont prises en charge par la file. {barrierStagesAll} inclut toutes les étapes disponibles ; une sélection plus restreinte convient lorsque la dépendance ne concerne que certaines d’entre elles.'
@@ -299,7 +299,7 @@ samples.computeShader.title: Shader de calcul
 samples.cube.description: 'Un cube en rotation introduit la géométrie indexée, les transformations 3D et le test de profondeur.'
 samples.cube.details: '{spinningCubeRendererCs} · {spinningCubeSlang}'
 samples.cube.title: Cube en rotation
-samples.description: "Ces exemples abordent le rendu et le calcul, du simple triangle aux applications interactives et aux outils de diagnostic."
+samples.description: 'Ces exemples abordent le rendu et le calcul, du simple triangle aux applications interactives et aux outils de diagnostic.'
 samples.execution.description: 'Exécutez le projet {link} et choisissez un exemple dans le menu de la console.'
 samples.execution.description.link: ZenithTutorials
 samples.execution.title: 'Exécution des exemples'
@@ -389,7 +389,7 @@ tutorial.geometry.upload.description: 'Placez les sommets dans un {buffer} afin 
 tutorial.geometry.upload.details: '{sizeofVertexVerticesLength} représente trois sommets de 28 octets, soit 84 octets. {bufferUsagesVertex} déclare l’usage du tampon pour les données de sommets, tandis que {cpuWriteOnly} autorise son initialisation directe par le CPU. Le pas du descripteur indique la taille de chaque élément ; la disposition d’entrée définie plus loin précise comment lire chaque attribut.'
 tutorial.geometry.upload.guidance: 'L’allocation n’initialise pas le contenu. {upload} copie le tableau au décalage de destination 0 à partir du pointeur source et du nombre d’octets de la description.'
 tutorial.geometry.upload.imports: 'Dans {programCs}, ajoutez {bufferAlias} aux directives using pour distinguer le type de tampon de Zenith.NET de {systemBuffer}.'
-tutorial.geometry.upload.notes: "Ajoutez {vertexBufferDispose} juste avant {swapChainDispose} dans le code de nettoyage à la fin de {programCs}."
+tutorial.geometry.upload.notes: 'Ajoutez {vertexBufferDispose} juste avant {swapChainDispose} dans le code de nettoyage à la fin de {programCs}.'
 tutorial.geometry.upload.title: 'Allocation et transfert du tampon'
 tutorial.input.description: 'Le GPU doit savoir où se trouvent les attributs de chaque sommet, comme la position et la couleur. La disposition d’entrée indique leur format et leur décalage, ainsi que le pas, la distance en octets entre deux sommets successifs. Ajoutez ce code après la création des shaders :'
 tutorial.input.details: '{inputLayoutAdd} place chaque attribut immédiatement après le précédent et ajoute sa taille au pas entre sommets. Les décalages sont calculés à partir des formats fournis, sans examiner la structure C#. Pour ces deux champs, la disposition obtenue est la suivante :'
@@ -472,7 +472,7 @@ tutorial.swapChain.guidance: '{b8G8R8A8UNorm} stocke quatre canaux de 8 bits dan
 tutorial.swapChain.title: 'Chaîne d’échange'
 tutorial.title: Premier triangle
 tutorial.window.description: 'Téléchargez {cocoaHelperCs} dans le projet. Cette classe auxiliaire attache la couche Metal à la fenêtre macOS.'
-tutorial.window.details: "Remplacez le contenu de {programCs} par le code suivant :"
+tutorial.window.details: 'Remplacez le contenu de {programCs} par le code suivant :'
 tutorial.window.guidance: '{graphicsAPINone} empêche Silk.NET de créer son propre contexte graphique pour la fenêtre ; l’application créera ensuite un contexte Zenith.NET. {initialize} crée la fenêtre native et rend ses handles disponibles. {center} la place au centre de l’écran. {run} traite les événements jusqu’à sa fermeture, puis {dispose} libère la fenêtre.'
 tutorial.window.notes: 'Compilez et lancez l’application. Vérifiez que la fenêtre s’ouvre et se ferme correctement, et que vous pouvez la déplacer et la redimensionner. Son contenu n’est pas encore défini, car aucune commande de rendu n’a été soumise. Fermez la fenêtre avant de poursuivre.'
 tutorial.window.title: 'Création de la fenêtre'

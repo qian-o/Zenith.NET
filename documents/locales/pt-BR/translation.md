@@ -65,24 +65,24 @@ Antes de entregar, confira as chaves e os marcadores. Revise a página inicial, 
 
 ## Terminologia
 
-| Termo em inglês  | Forma adotada                                                                                               |
-| ---------------- | ----------------------------------------------------------------------------------------------------------- |
-| API / GPU / RHI  | Preservar as siglas e explicá-las conforme o original                                                       |
-| barrier          | barreira                                                                                                    |
-| buffer           | buffer; preservar `Buffer`                                                                                  |
-| command buffer   | buffer de comandos                                                                                          |
-| command queue    | fila de comandos                                                                                            |
-| command recording | gravação de comandos; não alternar com registro de comandos                                               |
-| drawable         | textura de saída do quadro atual; preservar `Drawable`, sem presumir que seja uma imagem da cadeia de troca |
-| graphics context | contexto gráfico                                                                                            |
-| graphics API     | API gráfica; DirectX 12, Metal 4 ou Vulkan 1.4                                                              |
-| API implementation | implementação da API gráfica; para diferenças técnicas entre implementações                               |
-| pipeline         | pipeline                                                                                                    |
-| readback / download | download ou leitura de dados da GPU                                                                       |
-| render pass      | passagem de renderização                                                                                    |
-| resource         | recurso                                                                                                     |
-| shader           | shader                                                                                                      |
-| swap chain       | cadeia de troca                                                                                             |
-| texture          | textura                                                                                                     |
-| timeline         | linha do tempo                                                                                              |
-| upload           | upload de dados para a GPU; distinto do envio de comandos à fila                                            |
+| Termo em inglês     | Forma adotada                                                                                               |
+| ------------------- | ----------------------------------------------------------------------------------------------------------- |
+| API / GPU / RHI     | Preservar as siglas e explicá-las conforme o original                                                       |
+| barrier             | barreira                                                                                                    |
+| buffer              | buffer; preservar `Buffer`                                                                                  |
+| command buffer      | buffer de comandos                                                                                          |
+| command queue       | fila de comandos                                                                                            |
+| command recording   | gravação de comandos; não alternar com registro de comandos                                                 |
+| drawable            | textura de saída do quadro atual; preservar `Drawable`, sem presumir que seja uma imagem da cadeia de troca |
+| graphics context    | contexto gráfico                                                                                            |
+| graphics API        | API gráfica; DirectX 12, Metal 4 ou Vulkan 1.4                                                              |
+| API implementation  | implementação da API gráfica; para diferenças técnicas entre implementações                                 |
+| pipeline            | pipeline                                                                                                    |
+| readback / download | download ou leitura de dados da GPU                                                                         |
+| render pass         | passagem de renderização                                                                                    |
+| resource            | recurso                                                                                                     |
+| shader              | shader                                                                                                      |
+| swap chain          | cadeia de troca                                                                                             |
+| texture             | textura                                                                                                     |
+| timeline            | linha do tempo                                                                                              |
+| upload              | upload de dados para a GPU; distinto do envio de comandos à fila                                            |

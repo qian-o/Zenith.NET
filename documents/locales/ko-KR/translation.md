@@ -75,7 +75,7 @@ DirectX 12, Metal 4, Vulkan 1.4는 "그래픽스 API"로, 이를 지원하는 �
 | command buffer   | 명령 버퍼                                                                              |
 | command queue    | 명령 큐                                                                                |
 | drawable         | 현재 프레임의 출력 텍스처. `Drawable`은 유지하며 항상 스왑 체인 이미지로 해석하지 않음 |
-| graphics API     | 그래픽스 API                                                                            |
+| graphics API     | 그래픽스 API                                                                           |
 | graphics context | 그래픽스 컨텍스트                                                                      |
 | pipeline         | 파이프라인                                                                             |
 | readback         | 리드백                                                                                 |

@@ -65,40 +65,40 @@ docfx serve documents/_site --hostname 127.0.0.1 --port 8080
 
 ## 術語
 
-| 英文                          | 約定用語                                                  |
-| ----------------------------- | --------------------------------------------------------- |
-| API / GPU / RHI               | 保留縮寫，首次依原文說明                                  |
+| 英文                          | 約定用語                                                                                        |
+| ----------------------------- | ----------------------------------------------------------------------------------------------- |
+| API / GPU / RHI               | 保留縮寫，首次依原文說明                                                                        |
 | graphics API / implementation | 圖形 API／圖形 API 實作；本專案對應 DirectX 12、Metal 4 與 Vulkan 1.4，相關套件是各自的實作套件 |
-| barrier                       | 屏障                                                      |
-| bindless                      | 無繫結                                                    |
-| buffer                        | 緩衝區；`Buffer` 不變                                     |
-| color attachment              | 色彩附件                                                  |
-| command buffer                | 命令緩衝區                                                |
-| command queue                 | 命令佇列                                                  |
-| command recording             | 命令記錄                                                  |
-| depth/stencil                 | 深度／樣板                                                |
-| drawable                      | 目前影格的輸出紋理；`Drawable` 不變，不一律稱為交換鏈影像 |
-| framebuffer                   | 畫面緩衝區，尺寸依原文的像素單位表述                      |
-| graphics context              | 圖形上下文                                                |
-| heap                          | 堆積                                                      |
-| pipeline                      | 管線；依情境區分圖形或計算管線                            |
-| rasterization                 | 光柵化                                                    |
-| readback                      | 從 GPU 回讀資料；下載檔案另用「下載」                     |
-| render pass                   | 渲染通道                                                  |
-| render target                 | 渲染目標                                                  |
-| resource                      | 資源                                                      |
-| resource ownership / lifetime | 資源所有權／生命週期                                      |
-| resource usage                | 資源用途                                                  |
-| shader / entry point          | 著色器／進入點                                            |
-| submit / submission           | 提交／提交操作，與 GPU 執行區分                           |
-| surface                       | 呈現情境使用「原生呈現目標」；`Surface` 不變              |
-| swap chain / presentation     | 交換鏈／呈現                                              |
-| texture                       | 紋理                                                      |
-| timeline                      | 時間線                                                    |
-| undefined                     | 未定義，不能改寫為某個預設結果                            |
-| upload                        | 上傳資料                                                  |
-| vertex / fragment             | 頂點／片元                                                |
-| view                          | 資源檢視；與 UI 檢視區分                                  |
-| viewport / scissor            | 視口／裁剪區域                                            |
+| barrier                       | 屏障                                                                                            |
+| bindless                      | 無繫結                                                                                          |
+| buffer                        | 緩衝區；`Buffer` 不變                                                                           |
+| color attachment              | 色彩附件                                                                                        |
+| command buffer                | 命令緩衝區                                                                                      |
+| command queue                 | 命令佇列                                                                                        |
+| command recording             | 命令記錄                                                                                        |
+| depth/stencil                 | 深度／樣板                                                                                      |
+| drawable                      | 目前影格的輸出紋理；`Drawable` 不變，不一律稱為交換鏈影像                                       |
+| framebuffer                   | 畫面緩衝區，尺寸依原文的像素單位表述                                                            |
+| graphics context              | 圖形上下文                                                                                      |
+| heap                          | 堆積                                                                                            |
+| pipeline                      | 管線；依情境區分圖形或計算管線                                                                  |
+| rasterization                 | 光柵化                                                                                          |
+| readback                      | 從 GPU 回讀資料；下載檔案另用「下載」                                                           |
+| render pass                   | 渲染通道                                                                                        |
+| render target                 | 渲染目標                                                                                        |
+| resource                      | 資源                                                                                            |
+| resource ownership / lifetime | 資源所有權／生命週期                                                                            |
+| resource usage                | 資源用途                                                                                        |
+| shader / entry point          | 著色器／進入點                                                                                  |
+| submit / submission           | 提交／提交操作，與 GPU 執行區分                                                                 |
+| surface                       | 呈現情境使用「原生呈現目標」；`Surface` 不變                                                    |
+| swap chain / presentation     | 交換鏈／呈現                                                                                    |
+| texture                       | 紋理                                                                                            |
+| timeline                      | 時間線                                                                                          |
+| undefined                     | 未定義，不能改寫為某個預設結果                                                                  |
+| upload                        | 上傳資料                                                                                        |
+| vertex / fragment             | 頂點／片元                                                                                      |
+| view                          | 資源檢視；與 UI 檢視區分                                                                        |
+| viewport / scissor            | 視口／裁剪區域                                                                                  |
 
 列與行的用法依臺灣慣例：row 譯為「列」，column 譯為「行」。row-major 為「列優先」，row stride 為「列跨距」。記憶體配置與資料佈局須依語境區分。

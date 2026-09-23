@@ -42,7 +42,7 @@ concepts.execution.recording.guidance: 'A gravação define a sequência de coma
 concepts.execution.recording.title: 'Gravação e envio'
 concepts.execution.title: 'Modelo de execução'
 concepts.platforms.description: 'A apresentação pode ser gerenciada pela aplicação ou por um controle de interface. Essa escolha define quem obtém a textura de saída do quadro, grava e envia os comandos e apresenta o resultado. Essa textura de saída é o drawable.'
-concepts.platforms.frame.context: "Grave os comandos de vinculação de pipeline e de desenho dentro da passagem e encerre-a antes de o manipulador retornar. O manipulador não deve enviar o buffer de comandos nem liberar qualquer um dos objetos recebidos. Se alterar o layout da textura de saída, restaure {colorAttachment} antes de retornar para que o controle realize a transição final."
+concepts.platforms.frame.context: 'Grave os comandos de vinculação de pipeline e de desenho dentro da passagem e encerre-a antes de o manipulador retornar. O manipulador não deve enviar o buffer de comandos nem liberar qualquer um dos objetos recebidos. Se alterar o layout da textura de saída, restaure {colorAttachment} antes de retornar para que o controle realize a transição final.'
 concepts.platforms.frame.description: 'Os controles implementam {iZenithView}. A aplicação atribui {graphicsContext}, atualiza a cena em {updateRequested} e grava comandos em {renderRequested} usando o {renderEventArgs} recebido.'
 concepts.platforms.frame.details: 'A cada quadro, o controle obtém uma textura de saída e um buffer de comandos, faz a transição da textura para {colorAttachment} e chama os manipuladores de atualização e renderização. Depois, envia os comandos gravados e apresenta a imagem pelo mecanismo do framework.'
 concepts.platforms.frame.guidance: 'Adicione {usingZenithNET} ao arquivo. Para uma instância de {iZenithView} chamada {view}, já inicializada e com um contexto gráfico atribuído, registre este manipulador para limpar sua textura de saída:'
@@ -144,8 +144,8 @@ concepts.resources.transfers.description: 'Uploads copiam dados da CPU para um r
 concepts.resources.transfers.details: 'Antes de chamar esses métodos, resolva os acessos conflitantes em outras filas. A espera interna do método abrange sua própria transferência; ela não estabelece uma dependência de outra fila. Nas cópias diretas por memória mapeada, cabe inteiramente a quem chama esperar os acessos conflitantes da GPU.'
 concepts.resources.transfers.guidance: 'Para incluir transferências no mesmo envio que outras operações da GPU, grave-as com {commandBufferUpload} ou {commandBufferDownload}. A memória de origem de um upload e a de destino de um download precisam permanecer válidas por períodos diferentes:'
 concepts.resources.transfers.item: 'Durante uma chamada de upload, a biblioteca copia os dados de origem para uma área temporária de transferência. A GPU lê dessa área posteriormente, portanto o ponteiro de origem da aplicação só é necessário até o retorno da chamada.'
-concepts.resources.transfers.layouts: "As transferências de textura gravadas no buffer de comandos não incluem transições de layout. Uploads exigem {copyDst}, e downloads exigem {copySrc}. Grave as transições para esses layouts antes da cópia e, depois dela, para o layout exigido pelo próximo uso."
-concepts.resources.transfers.notes: "Nas transferências de textura, o passo de linha é a distância em bytes entre linhas consecutivas dos dados da CPU; o passo de fatia é a distância entre fatias de profundidade consecutivas. Esses valores orientam a cópia entre os dados da CPU e o armazenamento da textura na GPU."
+concepts.resources.transfers.layouts: 'As transferências de textura gravadas no buffer de comandos não incluem transições de layout. Uploads exigem {copyDst}, e downloads exigem {copySrc}. Grave as transições para esses layouts antes da cópia e, depois dela, para o layout exigido pelo próximo uso.'
+concepts.resources.transfers.notes: 'Nas transferências de textura, o passo de linha é a distância em bytes entre linhas consecutivas dos dados da CPU; o passo de fatia é a distância entre fatias de profundidade consecutivas. Esses valores orientam a cópia entre os dados da CPU e o armazenamento da textura na GPU.'
 concepts.resources.transfers.table.bufferDownload.transfer: 'Para {cpuReadOnly}, copia diretamente da memória mapeada. Nos demais casos, envia o download à fila de transferência e espera sua conclusão.'
 concepts.resources.transfers.table.bufferUpload.transfer: 'Para {cpuWriteOnly}, copia diretamente para a memória mapeada. Nos demais casos, envia o upload à fila de transferência e espera sua conclusão.'
 concepts.resources.transfers.table.headings.method: 'Método'
@@ -162,7 +162,7 @@ concepts.resources.views.title: 'Visualizações e recursos subjacentes'
 concepts.shaders.binding.context: 'O exemplo de computação atribui {inputTextureSampledHandle} a {input} e {outputTextureStorageHandle} a {output}. Em Slang, o parâmetro de tipo de {descriptorHandle} define como o shader acessa cada recurso:'
 concepts.shaders.binding.description: '{setConstantBuffer} seleciona um buffer existente e o deslocamento de byte a partir do qual o pipeline atual lê suas constantes. Faça o upload dos parâmetros para esse armazenamento antes de serem usados pelo shader. Se um trabalho anterior da GPU ainda estiver lendo os mesmos bytes, espere sua conclusão antes de atualizá-los.'
 concepts.shaders.binding.details: 'Com o buffer de comandos, o pipeline de computação, o buffer de constantes preenchido e as quantidades de grupos de threads prontos, grave o despacho nesta ordem. Selecione primeiro o pipeline, pois a vinculação do buffer de constantes se aplica a ele:'
-concepts.shaders.binding.guidance: "O buffer de constantes precisa do uso {bufferUsagesConstant}. Se vários registros de constantes compartilharem um buffer, o deslocamento inicial de cada registro deve atender ao alinhamento exigido para a vinculação. Essa exigência é independente do layout dos campos internos de cada registro."
+concepts.shaders.binding.guidance: 'O buffer de constantes precisa do uso {bufferUsagesConstant}. Se vários registros de constantes compartilharem um buffer, o deslocamento inicial de cada registro deve atender ao alinhamento exigido para a vinculação. Essa exigência é independente do layout dos campos internos de cada registro.'
 concepts.shaders.binding.notes: '{resourceHandle} contém dois campos de 32 bits cuja interpretação depende da implementação da API gráfica. Seus valores são válidos apenas no contexto em que o recurso foi criado.'
 concepts.shaders.binding.reference: 'Mantenha o recurso e a visualização usada para obter seu identificador até a conclusão do último acesso do shader. Ao substituir uma textura ou visualização, atualize as constantes que ainda contenham o identificador antigo. O artigo {link} apresenta as regras de propriedade e tempo de vida.'
 concepts.shaders.binding.reference.link: 'Gerenciamento de recursos'
@@ -200,7 +200,7 @@ concepts.shaders.matrices.details: 'A ordem de armazenamento determina a disposi
 concepts.shaders.matrices.title: 'Convenções de matrizes'
 concepts.shaders.title: 'Dados de shaders e vinculação'
 concepts.synchronization.backends.description: 'DirectX 12 e Vulkan codificam as transições de textura como mudanças de layout e acesso. Na implementação de Metal do Zenith.NET, {transition} não gera uma operação equivalente na GPU. Essa implementação reúne os comandos em codificadores de renderização e computação e insere barreiras de visibilidade ao encerrar cada codificador. Operações dependentes no mesmo codificador, como despachos de computação sucessivos, exigem chamadas explícitas a {barrier}.'
-concepts.synchronization.backends.details: "No {link}, iniciar a passagem gráfica encerra o codificador de computação e torna sua saída visível ao trabalho gráfico. Dois despachos consecutivos permanecem no mesmo codificador, portanto sua dependência exige uma barreira mesmo que haja uma transição de textura entre eles."
+concepts.synchronization.backends.details: 'No {link}, iniciar a passagem gráfica encerra o codificador de computação e torna sua saída visível ao trabalho gráfico. Dois despachos consecutivos permanecem no mesmo codificador, portanto sua dependência exige uma barreira mesmo que haja uma transição de textura entre eles.'
 concepts.synchronization.backends.details.link: 'exemplo de computação'
 concepts.synchronization.backends.title: 'Sincronização conforme a API gráfica'
 concepts.synchronization.barriers.context: 'Escolha etapas que incluam os acessos envolvidos e sejam compatíveis com a fila. {barrierStagesAll} inclui todas as etapas compatíveis; selecione um conjunto menor quando a dependência envolver apenas essas etapas.'
@@ -389,7 +389,7 @@ tutorial.geometry.upload.description: 'Armazene os vértices em um {buffer} para
 tutorial.geometry.upload.details: 'O tamanho é {sizeofVertexVerticesLength}: três vértices de 28 bytes, ou 84 bytes. {bufferUsagesVertex} declara o uso como entrada de vértices, e {cpuWriteOnly} permite a inicialização direta pela CPU. O passo do descritor informa o tamanho do elemento. O layout definido adiante especifica como cada atributo será lido.'
 tutorial.geometry.upload.guidance: 'A alocação não inicializa o conteúdo do buffer. {upload} copia o array para o deslocamento 0 do destino, usando o ponteiro de origem e a quantidade de bytes da descrição de dados.'
 tutorial.geometry.upload.imports: 'Em {programCs}, adicione {bufferAlias} às diretivas using para distinguir o tipo de buffer do Zenith.NET de {systemBuffer}.'
-tutorial.geometry.upload.notes: "Na limpeza ao final de {programCs}, insira {vertexBufferDispose} imediatamente antes de {swapChainDispose}."
+tutorial.geometry.upload.notes: 'Na limpeza ao final de {programCs}, insira {vertexBufferDispose} imediatamente antes de {swapChainDispose}.'
 tutorial.geometry.upload.title: 'Alocação do buffer e upload dos dados'
 tutorial.input.description: 'A GPU precisa saber onde estão os atributos de cada vértice, como posição e cor. O layout de entrada fornece o formato e o deslocamento de cada atributo, além do passo: a distância em bytes até o próximo vértice. Adicione este código após criar os shaders:'
 tutorial.input.details: '{inputLayoutAdd} coloca cada atributo após o anterior e soma seu tamanho ao passo entre vértices. Os deslocamentos são calculados a partir dos formatos informados, sem inspecionar a estrutura C#. Para esses dois campos, o resultado é:'
@@ -423,7 +423,7 @@ tutorial.project.description: 'Crie um projeto de console C# chamado {firstTrian
 tutorial.project.details: 'Adicione os seguintes pacotes NuGet ao projeto:'
 tutorial.project.guidance: '{zenithNET} fornece a API comum para gráficos e computação; os três pacotes de API gráfica a implementam. {zenithNETCompiler} compila shaders Slang para a API escolhida.'
 tutorial.project.title: 'Configuração do projeto'
-tutorial.requirements.description: "São necessários o {emphasis} e conhecimentos básicos de C#. A GPU e o driver devem oferecer o suporte gráfico indicado para sua plataforma:"
+tutorial.requirements.description: 'São necessários o {emphasis} e conhecimentos básicos de C#. A GPU e o driver devem oferecer o suporte gráfico indicado para sua plataforma:'
 tutorial.requirements.description.emphasis: 'SDK do .NET 10'
 tutorial.requirements.guidance: 'Zenith.NET renderiza em uma superfície nativa fornecida pela aplicação. Silk.NET.Windowing cria a janela e processa seus eventos.'
 tutorial.requirements.table.headings.graphicsBackend: 'Suporte gráfico'
@@ -472,7 +472,7 @@ tutorial.swapChain.guidance: '{b8G8R8A8UNorm} armazena quatro canais de 8 bits n
 tutorial.swapChain.title: 'Cadeia de troca'
 tutorial.title: 'Primeiro triângulo'
 tutorial.window.description: 'Baixe {cocoaHelperCs} para o diretório do projeto. Essa classe auxiliar conecta a camada Metal à janela do macOS.'
-tutorial.window.details: "Substitua o conteúdo de {programCs} pelo código abaixo:"
+tutorial.window.details: 'Substitua o conteúdo de {programCs} pelo código abaixo:'
 tutorial.window.guidance: '{graphicsAPINone} impede que Silk.NET crie um contexto gráfico próprio para a janela; a aplicação criará depois um contexto do Zenith.NET. {initialize} cria a janela nativa e disponibiliza os identificadores do sistema de janelas. {center} a coloca no centro da tela. {run} processa eventos até seu fechamento; depois, {dispose} libera a janela.'
 tutorial.window.notes: 'Compile e execute a aplicação. Verifique se a janela abre e fecha normalmente e se é possível movê-la e redimensioná-la. O conteúdo ainda não está definido, pois nenhum comando de renderização foi enviado. Feche a janela antes de continuar.'
 tutorial.window.title: 'Criação da janela'
