@@ -50,6 +50,7 @@ Do not turn the samples index into a sequence of advanced tutorials. The triangl
 - Use one H1 and a clear H2/H3 hierarchy. Give explicit anchors to sections linked from other pages when their headings may change. Use the existing shared Markdown/HTML components with resource-bound text; use tables for comparisons, notices for necessary constraints and diagrams only when they clarify a relationship.
 - Keep diagrams small enough to read on a phone. Prefer a vertical sequence to a wide horizontal graph when scaling would make its labels too small.
 - Keep the homepage, Learn overview and README consistent with the documentation's contents. Do not publish placeholder pages or temporary validation notes.
+- Call DirectX 12, Metal 4 and Vulkan 1.4 graphics APIs. Describe their packages as implementations of the shared API; use the same terms in the README and translated prose.
 
 ## Editorial style
 
@@ -71,7 +72,7 @@ First locate and inspect the existing tutorial/sample source. This checkout has 
 
 The first triangle is a general .NET console application using NuGet packages. Specify the project name, target framework, and required packages. Do not replace package installation with source project references or cloning the main repository to accommodate the validation machine. Keep any explicitly authorized test-only package selection in a temporary project outside the repository.
 
-Introduce the windowing library, backend selection and native-surface differences before graphics setup. Use one shared application flow for Windows, macOS and Linux, identify the windowing requirements, and keep platform interop in a small, verified support file where possible. Do not turn this into a platform-specific SDK setup tutorial.
+Introduce the windowing library, graphics API selection and native-surface differences before graphics setup. Use one shared application flow for Windows, macOS and Linux, identify the windowing requirements, and keep platform interop in a small, verified support file where possible. Do not turn this into a platform-specific SDK setup tutorial.
 
 Teach the triangle in cumulative steps: an empty window, a presented clear color, vertex data and upload, shaders, input layout, pipeline state, drawing, presentation and cleanup. Explain what each step contributes, why its settings are chosen and how its data connects to the next stage. Mark the exact file and insertion or replacement point for every partial snippet. Provide observable checkpoints, and ensure the assembled result is complete. Link to concepts for deeper decisions; do not substitute a finished-project code dump or a validation report for the reader's learning sequence.
 
@@ -167,11 +168,11 @@ This is a WPF-style resource model. `index.md`, `learn/` and `api/index.md` cont
 
 `locales/en-US/strings.yml` is the sole English source dictionary. Each other language folder retains its permanent `translation.md` and, when translated, a `strings.yml`. A translator adds or updates only `strings.yml`, keeping the `### YamlMime:Resources` header and the complete source key set. No localized pages, TOCs, images, templates, scripts or configuration are needed. All resource values are strings.
 
-Language folders, registrations and menus use code order: `de-DE`, `en-US`, `es-ES`, `fr-FR`, `ja-JP`, `ko-KR`, `pt-BR`, `ru-RU`, `zh-CN`, `zh-TW`. English is explicitly the source and fallback. Complete resource dictionaries become available automatically after the normal DocFX build. Missing keys, stale extra keys, non-string values and changed placeholder names fail that build.
+Language folders, registrations and menus use language-code order: `de-DE`, `en-US`, `es-ES`, `fr-FR`, `ja-JP`, `ko-KR`, `pt-BR`, `ru-RU`, `zh-CN`, `zh-TW`. English is the source and fallback. Complete resource dictionaries become available automatically after the normal DocFX build. Missing keys, stale extra keys, non-string values and changed placeholder names fail that build.
 
 Pages share the same URL paths. `?lang=<code>` selects a dictionary, retaining the page and fragment. Without an explicit language, the site uses a saved manual selection, browser preferences, then English. An explicit unsupported or unpublished language falls back to English, without substituting a different saved language. A missing, stale or malformed downloaded dictionary is rejected before any translated text is applied, keeping the complete English page usable. The English HTML is fully rendered during the build; other static dictionaries bind to that same markup in the browser. No translation API is used. Search uses translated resources with the shared generated API index.
 
-Site-owned images remain in `images/`; screenshots maintained in the tutorial repository are referenced by their main-branch URLs. All generated API YAML remains in `api/`. This is a complete refactor, with no legacy route or compatibility layer. Do not create `pages/`, `snippets/`, a parallel content graph or an additional build command for localization.
+Site-owned images remain in `images/`; screenshots maintained in the tutorial repository are referenced by their main-branch URLs. All generated API YAML remains in `api/`. Localization uses the shared routes without a separate compatibility layer. Do not create `pages/`, `snippets/`, a parallel content graph or an additional build command for localization.
 
 ## Resource keys and placeholders
 

@@ -74,6 +74,8 @@ Antes de entregar, confira as chaves e os marcadores. Revise a página inicial, 
 | command queue    | fila de comandos                                                                                            |
 | drawable         | textura de saída do quadro atual; preservar `Drawable`, sem presumir que seja uma imagem da cadeia de troca |
 | graphics context | contexto gráfico                                                                                            |
+| graphics API     | API gráfica; DirectX 12, Metal ou Vulkan                                                                     |
+| API implementation | implementação da API gráfica; para diferenças técnicas entre implementações                               |
 | pipeline         | pipeline                                                                                                    |
 | readback         | leitura de dados da GPU                                                                                     |
 | render pass      | passagem de renderização                                                                                    |

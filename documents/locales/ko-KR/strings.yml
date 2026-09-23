@@ -1,5 +1,5 @@
 ﻿### YamlMime:Resources
-concepts.execution.context.description: '{graphicsContext}는 특정 백엔드를 통해 애플리케이션을 GPU 장치에 연결하고 그래픽스, 컴퓨트, 전송 큐를 제공합니다. 함께 사용하는 리소스는 같은 컨텍스트에 속해야 합니다. 버퍼, 텍스처, 셰이더, 파이프라인과 그 핸들은 서로 다른 컨텍스트 사이에서 바인딩할 수 없습니다.'
+concepts.execution.context.description: '{graphicsContext}는 선택한 그래픽스 API를 통해 애플리케이션을 GPU 장치에 연결하고 그래픽스, 컴퓨트, 전송 큐를 제공합니다. 함께 사용하는 리소스는 같은 컨텍스트에 속해야 합니다. 버퍼, 텍스처, 셰이더, 파이프라인과 그 핸들은 서로 다른 컨텍스트 사이에서 바인딩할 수 없습니다.'
 concepts.execution.context.details: '{capabilities}는 장치 이름과 지원 기능을 알려 줍니다. 해당 기능의 리소스를 만들기 전에 {rayTracingSupported}와 {meshShadingSupported}로 지원 여부를 확인합니다. {link} 및 {detail} 예제는 초기화 과정에서 이 검사를 수행합니다.'
 concepts.execution.context.details.detail: 메시 셰이딩
 concepts.execution.context.details.link: 레이 트레이싱
@@ -79,11 +79,11 @@ concepts.platforms.ownership.guidance: '공통 {frameSchedulerCs}는 뷰의 UI �
 concepts.platforms.ownership.title: '애플리케이션과 컨트롤의 소유권'
 concepts.platforms.surface.description: '{link}은 Silk.NET으로 창을 만들고 이벤트를 처리합니다. Zenith.NET은 네이티브 창 핸들과 크기를 {surface} 설명으로 전달받아 {swapChain}을 만듭니다. 운영체제 창의 관리는 애플리케이션이 계속 맡습니다.'
 concepts.platforms.surface.description.link: '삼각형 튜토리얼'
-concepts.platforms.surface.details: '서피스 핸들은 선택한 백엔드와 일치해야 합니다.'
+concepts.platforms.surface.details: '서피스 핸들은 선택한 그래픽스 API에 맞아야 합니다.'
 concepts.platforms.surface.guidance: '{appCs}의 예제 호스트는 Windows, macOS, X11을 지원합니다. Linux 창에서 Xlib 핸들을 제공하므로 Wayland 세션에서 실행하려면 XWayland가 필요합니다. 네이티브 Wayland 애플리케이션은 {surfaceWayland}로 디스플레이와 서피스 핸들을 전달합니다.'
 concepts.platforms.surface.table.android.backend: Android의 Vulkan.
 concepts.platforms.surface.table.apple.backend: Apple 플랫폼의 Metal.
-concepts.platforms.surface.table.headings.backend: '백엔드와 플랫폼'
+concepts.platforms.surface.table.headings.backend: '그래픽스 API와 플랫폼'
 concepts.platforms.surface.table.headings.factory: 서피스 팩토리
 concepts.platforms.surface.table.headings.handles: 호스트에서 제공하는 핸들
 concepts.platforms.surface.table.wayland.backend: 네이티브 Wayland 호스트를 사용하는 Vulkan.
@@ -95,7 +95,7 @@ concepts.platforms.surface.title: '네이티브 표시 서피스'
 concepts.platforms.title: 플랫폼 통합
 concepts.resources.allocation.context: '힙에 배치한 리소스는 수명 내내 그 힙의 저장 공간에 의존합니다. GPU의 마지막 사용이 끝난 뒤 리소스를 먼저 해제하고 힙을 해제합니다.'
 concepts.resources.allocation.description: '애플리케이션이 메모리 할당을 직접 관리해야 한다면 {heap}을 사용합니다. 힙은 리소스를 지정한 바이트 오프셋에 배치할 저장 공간을 제공합니다. 오프셋을 선택하고 어느 영역이 사용 중인지 추적하는 일은 애플리케이션이 맡습니다.'
-concepts.resources.allocation.details: '리소스를 만들 때 사용할 버퍼 또는 텍스처 설명으로 {contextGetSizeAndAlignment}를 호출합니다. 반환된 정렬 값의 배수인 오프셋에 반환된 크기만큼 공간을 확보하되, 힙의 범위를 벗어나거나 아직 사용 중인 다른 할당과 겹치지 않도록 합니다. 텍스처에는 백엔드별 패딩이 포함될 수 있으므로 픽셀 수와 픽셀당 바이트 수만으로 할당 크기를 계산할 수 없습니다.'
+concepts.resources.allocation.details: '리소스를 만들 때 사용할 버퍼 또는 텍스처 설명으로 {contextGetSizeAndAlignment}를 호출합니다. 반환된 정렬 값의 배수인 오프셋에 반환된 크기만큼 공간을 확보하되, 힙의 범위를 벗어나거나 아직 사용 중인 다른 할당과 겹치지 않도록 합니다. 텍스처에는 그래픽스 API 구현에 따른 패딩이 포함될 수 있으므로 픽셀 수와 픽셀당 바이트 수만으로 할당 크기를 계산할 수 없습니다.'
 concepts.resources.allocation.guidance: '힙에 배치하는 버퍼의 상주 특성은 힙과 같아야 합니다. 텍스처를 저장할 때는 GPU 전용 힙을 사용합니다.'
 concepts.resources.allocation.title: '힙에 리소스 배치'
 concepts.resources.bufferUsages.table.constant.role: 상수 버퍼 바인딩을 통해 읽는 셰이더 매개 변수.
@@ -155,15 +155,15 @@ concepts.resources.transfers.table.textureTransfers.transfer: '복사와 텍스�
 concepts.resources.transfers.title: '즉시 전송과 기록된 전송'
 concepts.resources.usages.description: '{bufferUsages}와 {textureUsages}는 리소스 용도를 선언하는 플래그 열거형입니다. 각각 {bufferDescUsages}와 {textureDescUsages}에 지정합니다. 여러 용도가 필요하면 {value}로 해당 멤버를 결합합니다.'
 concepts.resources.usages.title: '리소스 용도'
-concepts.resources.views.description: '{bufferView}는 버퍼의 영역과 그 데이터를 해석하는 방식을 기술합니다. {textureView}는 하위 리소스 범위를 선택하고, 호환되는 텍스처 유형과 포맷을 지정합니다. 둘 다 기존 저장 공간을 참조하며, 생성 시 선언한 용도를 따릅니다. 뷰 범위는 접근 대상을 기술하지만 모든 백엔드에서 동일한 셰이더 범위 검사를 보장하지는 않습니다.'
+concepts.resources.views.description: '{bufferView}는 버퍼의 영역과 그 데이터를 해석하는 방식을 기술합니다. {textureView}는 하위 리소스 범위를 선택하고, 호환되는 텍스처 유형과 포맷을 지정합니다. 둘 다 기존 저장 공간을 참조하며, 생성 시 선언한 용도를 따릅니다. 뷰 범위는 접근 대상을 기술하지만 모든 그래픽스 API에서 동일한 셰이더 범위 검사를 보장하지는 않습니다.'
 concepts.resources.views.details: '리소스 자체의 핸들은 기본 뷰를 제공합니다. 다른 영역이나 호환되는 다른 해석 방식이 필요하면 별도 뷰를 만듭니다. GPU가 사용을 마칠 때까지 뷰와 원본 리소스를 모두 유지해야 합니다. 핸들만으로는 어느 객체의 수명도 유지되지 않습니다. 둘 중 하나를 교체하면 이전 {link}이 들어 있는 상수도 갱신합니다.'
 concepts.resources.views.details.link: '리소스 핸들'
 concepts.resources.views.title: '뷰와 원본 리소스'
 concepts.shaders.binding.context: '컴퓨트 예제는 {input}에 {inputTextureSampledHandle}을, {output}에 {outputTextureStorageHandle}을 지정합니다. Slang의 {descriptorHandle} 형식 인수가 각 리소스의 셰이더 접근 방식을 정합니다.'
 concepts.shaders.binding.description: '{setConstantBuffer}는 현재 파이프라인이 상수를 읽을 버퍼와 시작 바이트 오프셋을 선택합니다. 셰이더가 사용하기 전에 해당 공간에 매개변수를 업로드합니다. 이전 GPU 작업이 같은 바이트를 아직 읽고 있다면 그 작업이 끝난 뒤 데이터를 갱신합니다.'
 concepts.shaders.binding.details: '명령 버퍼, 컴퓨트 파이프라인, 데이터가 채워진 상수 버퍼, 스레드 그룹 수를 준비한 뒤 다음 순서로 디스패치를 기록합니다. 상수 버퍼 바인딩은 현재 파이프라인에 적용되므로 파이프라인을 먼저 선택합니다.'
-concepts.shaders.binding.guidance: '상수 버퍼에는 {bufferUsagesConstant} 용도가 필요합니다. 여러 상수 레코드가 한 버퍼를 공유한다면 각 레코드의 시작 오프셋은 백엔드의 바인딩 정렬을 따라야 합니다. 이는 레코드 내부의 필드 배치와 별개의 조건입니다.'
-concepts.shaders.binding.notes: '{resourceHandle}은 32비트 필드 두 개를 포함하며 해석은 백엔드에 따라 다릅니다. 이 값은 리소스를 생성한 컨텍스트에서만 유효합니다.'
+concepts.shaders.binding.guidance: '상수 버퍼에는 {bufferUsagesConstant} 용도가 필요합니다. 여러 상수 레코드가 한 버퍼를 공유한다면 각 레코드의 시작 오프셋은 선택한 그래픽스 API의 바인딩 정렬을 따라야 합니다. 이는 레코드 내부의 필드 배치와 별개의 조건입니다.'
+concepts.shaders.binding.notes: '{resourceHandle}은 32비트 필드 두 개를 포함하며 해석은 그래픽스 API에 따라 다릅니다. 이 값은 리소스를 생성한 컨텍스트에서만 유효합니다.'
 concepts.shaders.binding.reference: '핸들을 얻은 리소스와 뷰는 셰이더의 마지막 접근이 끝날 때까지 유지합니다. 텍스처나 뷰를 교체하면 이전 핸들을 담은 상수를 갱신합니다. 소유권 규칙은 {link}에서 설명합니다.'
 concepts.shaders.binding.reference.link: 리소스 관리
 concepts.shaders.binding.table.bufferStorageReadOnlyHandle.access: '셰이더 형식 {t}의 구조화 요소 읽기'
@@ -191,7 +191,7 @@ concepts.shaders.layout.description: '정점 입력에서 {inputLayout}은 각 �
 concepts.shaders.layout.details: '상수 버퍼에는 셰이더 매개변수를, 구조화 버퍼에는 형식이 지정된 요소의 배열을 저장합니다. 이들의 배치는 {inputLayout}이 아니라 Slang 선언을 따릅니다. C#의 필드 오프셋, 요소 크기, 패딩을 컴파일된 셰이더 레이아웃에 맞춥니다. 관리되지 않는 C# 형식은 바이트로 복사할 수 있지만, 그 메모리 배치가 셰이더의 배치와 반드시 일치하는 것은 아닙니다. 정점에서 촘촘히 배치한 {float3}도 셰이더 버퍼에서는 다른 정렬이 필요할 수 있습니다.'
 concepts.shaders.layout.guidance: '셰이더 매개변수에는 일반 값뿐 아니라 리소스 핸들도 포함할 수 있습니다. 핸들은 이미 존재하는 저장 공간을 가리키므로 상수 버퍼에 핸들을 복사해도 리소스의 내용까지 복사되지는 않습니다.'
 concepts.shaders.layout.notes: '{computeShaderSlang}의 대응 선언은 다음과 같습니다.'
-concepts.shaders.layout.reference: 'C# 필드는 처음 24바이트를 차지합니다. 크기 값에 총 8바이트, 각 핸들에 8바이트를 사용합니다. 256바이트 레코드의 나머지는 패딩입니다. 다른 매개변수 블록을 사용한다면 필드 오프셋을 해당 셰이더 레이아웃에 맞춥니다. 여러 레코드가 버퍼 하나를 공유할 때는 각 시작 위치가 백엔드의 바인딩 정렬을 충족하도록 레코드 사이에 충분한 패딩을 둡니다.'
+concepts.shaders.layout.reference: 'C# 필드는 처음 24바이트를 차지합니다. 크기 값에 총 8바이트, 각 핸들에 8바이트를 사용합니다. 256바이트 레코드의 나머지는 패딩입니다. 다른 매개변수 블록을 사용한다면 필드 오프셋을 해당 셰이더 레이아웃에 맞춥니다. 여러 레코드가 버퍼 하나를 공유할 때는 각 시작 위치가 선택한 그래픽스 API의 바인딩 정렬을 충족하도록 레코드 사이에 충분한 패딩을 둡니다.'
 concepts.shaders.layout.title: '데이터 배치'
 concepts.shaders.matrices.description: '컴파일러는 각 행을 연속으로 저장하는 행 우선 행렬 배치를 사용합니다. {link}에서는 {matrix4x4} 세 개를 오프셋 0, 64, 128에 저장합니다. 해당 {detail}는 {mulVectorMatrix}를 모델, 뷰, 투영 순으로 적용합니다.'
 concepts.shaders.matrices.description.detail: 셰이더
@@ -199,10 +199,10 @@ concepts.shaders.matrices.description.link: 회전하는 큐브 렌더러
 concepts.shaders.matrices.details: '저장 순서는 메모리의 행렬 요소 배치를, 곱셈 순서는 변환을 정합니다. C#과 Slang에서 서로 맞는 규약을 사용해야 합니다.'
 concepts.shaders.matrices.title: '행렬 규약'
 concepts.shaders.title: 셰이더 데이터 및 바인딩
-concepts.synchronization.backends.description: 'DirectX 12와 Vulkan은 텍스처 전환을 레이아웃 및 접근 변경 명령으로 기록합니다. Metal에서는 Zenith.NET의 {transition} 구현이 이에 해당하는 GPU 작업을 수행하지 않습니다. 대신 Metal 백엔드는 명령을 렌더 인코더와 컴퓨트 인코더로 묶고 인코더가 끝날 때 가시성 배리어를 삽입합니다. 연속된 컴퓨트 디스패치처럼 같은 인코더 안에서 의존하는 작업에는 {barrier}를 명시적으로 호출합니다.'
+concepts.synchronization.backends.description: 'DirectX 12와 Vulkan은 텍스처 전환을 레이아웃 및 접근 변경 명령으로 기록합니다. Metal에서는 Zenith.NET의 {transition} 구현이 이에 해당하는 GPU 작업을 수행하지 않습니다. 대신 Metal용 구현은 명령을 렌더 인코더와 컴퓨트 인코더로 묶고 인코더가 끝날 때 가시성 배리어를 삽입합니다. 연속된 컴퓨트 디스패치처럼 같은 인코더 안에서 의존하는 작업에는 {barrier}를 명시적으로 호출합니다.'
 concepts.synchronization.backends.details: '{link}에서는 그래픽스 렌더 패스를 시작하면서 컴퓨트 인코더를 끝내므로 그래픽스 작업이 컴퓨트 결과를 볼 수 있습니다. 연속된 두 컴퓨트 디스패치는 같은 인코더에 남아 있으므로 중간에 텍스처 전환을 기록하더라도 의존성을 위한 배리어가 필요합니다.'
 concepts.synchronization.backends.details.link: '컴퓨트 예제'
-concepts.synchronization.backends.title: '백엔드별 동작'
+concepts.synchronization.backends.title: '그래픽스 API별 동기화'
 concepts.synchronization.barriers.context: '관련 접근을 포함하고 큐에서 지원하는 단계를 선택합니다. {barrierStagesAll}은 지원되는 모든 단계를 포함합니다. 의존성이 일부 단계에만 관련된다면 해당 단계만 선택합니다.'
 concepts.synchronization.barriers.description: '같은 명령 버퍼에 두 컴퓨트 디스패치를 기록한다고 가정합니다. 첫 번째는 시뮬레이션 데이터를 쓰고 두 번째는 이를 읽습니다. 두 번째가 완료된 쓰기를 볼 수 있도록 디스패치 사이에 배리어를 둡니다. 스토리지 버퍼라면 텍스처 레이아웃을 전환하지 않고 다음과 같이 접근 순서를 정할 수 있습니다.'
 concepts.synchronization.barriers.details: '첫 번째 인수는 데이터를 만든 단계를, 두 번째는 데이터를 사용할 단계를 지정합니다. 두 인수는 디스패치 사이에 필요한 실행 순서와 메모리 가시성을 기술합니다.'
@@ -288,7 +288,7 @@ learning.title: 학습
 reference.description: '리소스, 명령, 플랫폼 통합 참조'
 reference.entries.commands.description: '그래픽스, 컴퓨트, 전송 명령'
 reference.entries.commands.label: '명령 기록'
-reference.entries.context.description: '선택한 백엔드의 GPU 리소스 생성'
+reference.entries.context.description: '그래픽스 컨텍스트를 통한 GPU 리소스 생성'
 reference.entries.context.label: 여기서 시작
 reference.meta.description: 'Zenith.NET 네임스페이스, 형식, 멤버'
 reference.navigation.core: '핵심 API 참조'
@@ -332,12 +332,12 @@ samples.workloads.table.inkCanvas.example.link: InkCanvas
 samples.workloads.table.inkCanvas.whatItDemonstratesAndRequires: '자유롭게 선을 그리고 지울 수 있는 캔버스입니다.'
 samples.workloads.table.platformDetection.example: '{link}'
 samples.workloads.table.platformDetection.example.link: PlatformDetection
-samples.workloads.table.platformDetection.whatItDemonstratesAndRequires: '그래픽스 백엔드 사용 가능 여부와 장치 기능을 알려 주는 콘솔 도구입니다.'
+samples.workloads.table.platformDetection.whatItDemonstratesAndRequires: '그래픽스 API 사용 가능 여부와 장치 기능을 알려 주는 콘솔 도구입니다.'
 samples.workloads.title: '애플리케이션과 도구'
-tutorial.context.description: '{graphicsContext}는 백엔드를 통해 애플리케이션을 GPU에 연결하고 렌더링 리소스를 만드는 메서드를 제공합니다.'
+tutorial.context.description: '{graphicsContext}는 선택한 그래픽스 API를 통해 애플리케이션을 GPU에 연결하고 렌더링 리소스를 만드는 메서드를 제공합니다.'
 tutorial.context.details: '컨텍스트 초기화를 {emphasis}에 추가합니다.'
 tutorial.context.details.emphasis: using 지시문 뒤, {iWindowWindow} 앞
-tutorial.context.guidance: '각 분기는 현재 플랫폼의 백엔드를 선택하고 API 사용 오류를 진단하기 위해 검증을 요청합니다. {validationMessage} 메시지는 콘솔에 출력합니다.'
+tutorial.context.guidance: '각 분기는 현재 플랫폼에서 사용할 그래픽스 API를 선택하고 API 사용 오류를 진단하기 위해 검증을 요청합니다. {validationMessage} 메시지는 콘솔에 출력합니다.'
 tutorial.context.imports: '{programCs} 맨 위에 다음 using 지시문을 추가합니다.'
 tutorial.context.title: '그래픽스 컨텍스트'
 tutorial.description: '이 튜토리얼에서는 빈 .NET 콘솔 프로젝트에서 시작해 창을 열고 색상이 있는 삼각형을 그리는 애플리케이션을 만듭니다.'
@@ -367,7 +367,7 @@ tutorial.frame.commands.title: '지우기, 제출, 표시'
 tutorial.frame.description: '먼저 창을 하나의 배경색으로 채웁니다. 이 작업을 지우기라고 합니다. 배경색이 보이면 서피스, 명령 제출, 표시 과정이 연결된 것입니다. 이제 삼각형의 정점과 셰이더를 추가할 수 있습니다.'
 tutorial.frame.details: 'Silk.NET은 프레임을 그릴 시점에 렌더링 콜백을 호출합니다. 콜백을 {emphasis}에 등록합니다.'
 tutorial.frame.details.emphasis: '{windowRun} 앞'
-tutorial.frame.target.description: '명령 큐는 GPU에서 실행할 작업을 기록된 형태로 전달받습니다. {graphicsQueueCommandBuffer}는 그래픽스 큐에서 명령 버퍼를 가져와 프레임을 기록할 준비가 된 상태로 반환합니다. 기록은 GPU 작업을 정의하는 단계이며 실행은 제출 후 시작됩니다.'
+tutorial.frame.target.description: '명령 큐는 GPU에서 실행할 작업을 기록된 형태로 전달받습니다. {graphicsQueueCommandBuffer}는 이미 기록이 시작된 명령 버퍼를 반환합니다. 기록된 명령이 GPU 작업을 정의하며 실행은 제출 후 시작됩니다.'
 tutorial.frame.target.details: '텍스처 레이아웃은 작업에 필요한 접근 방식을 나타냅니다. 첫 번째 {transition} 호출은 출력 텍스처를 색상 어태치먼트로 사용할 수 있도록 준비합니다. 여기서 {default}는 출력 텍스처의 기본 이미지인 밉 레벨 0과 배열 레이어 0을 선택합니다. 이 패스는 이미지 전체를 지우므로 {undefined}를 지정해 이전 내용을 버릴 수 있습니다.'
 tutorial.frame.target.guidance: '화면에 표시한 뒤에는 다른 이미지로 넘어갈 수 있으므로 매 프레임 현재 출력 텍스처를 가져옵니다.'
 tutorial.frame.target.title: '출력 텍스처 준비'
@@ -421,12 +421,12 @@ tutorial.project.context: '프로젝트 빌드 설정에서 {emphasis}({allowUns
 tutorial.project.context.emphasis: 안전하지 않은 코드 허용
 tutorial.project.description: '.NET 10을 대상으로 하는 {firstTriangle} C# 콘솔 프로젝트를 만듭니다.'
 tutorial.project.details: '다음 NuGet 패키지를 프로젝트에 추가합니다.'
-tutorial.project.guidance: '{zenithNET}은 공통 렌더링 API를, 백엔드 패키지 세 개는 플랫폼 구현을 제공합니다. {zenithNETCompiler}는 뒤에서 작성할 Slang 셰이더를 선택한 백엔드에 맞게 컴파일합니다.'
+tutorial.project.guidance: '{zenithNET}은 그래픽스와 컴퓨트를 위한 공통 API를 제공하고, DirectX 12·Metal·Vulkan용 패키지 세 개는 각 API의 구현을 제공합니다. {zenithNETCompiler}는 뒤에서 작성할 Slang 셰이더를 선택한 그래픽스 API에 맞게 컴파일합니다.'
 tutorial.project.title: '프로젝트 준비'
-tutorial.requirements.description: '{emphasis}와 기본 C# 지식이 필요합니다. GPU와 드라이버는 사용 중인 플랫폼에 맞춰 선택한 다음 백엔드를 지원해야 합니다.'
+tutorial.requirements.description: '{emphasis}와 기본 C# 지식이 필요합니다. GPU와 드라이버는 현재 플랫폼에서 선택한 그래픽스 API를 지원해야 합니다.'
 tutorial.requirements.description.emphasis: .NET 10 SDK
 tutorial.requirements.guidance: 'Zenith.NET은 애플리케이션이 제공하는 네이티브 서피스에 렌더링합니다. Silk.NET.Windowing은 창을 만들고 이벤트를 처리합니다.'
-tutorial.requirements.table.headings.graphicsBackend: 그래픽 백엔드
+tutorial.requirements.table.headings.graphicsBackend: 그래픽스 API
 tutorial.requirements.table.headings.platform: 플랫폼
 tutorial.requirements.table.linux.graphicsBackend: Vulkan 1.4
 tutorial.requirements.table.linux.platform: 'Linux(X11 또는 XWayland)'
@@ -463,7 +463,7 @@ tutorial.shaders.vertex.title: '정점 셰이더'
 tutorial.surface.description: '네이티브 표시 대상을 {emphasis}에 지정합니다.'
 tutorial.surface.description.emphasis: '{windowCenter} 뒤, {windowRun} 앞'
 tutorial.surface.details: '프레임버퍼는 창에 표시할 픽셀 이미지입니다. {surface}는 네이티브 표시 대상과 크기를 설명하고 {framebufferSize}는 픽셀 단위 크기를 제공합니다. 화면 배율에 따라 창의 논리 크기와 다를 수 있습니다.'
-tutorial.surface.guidance: '서피스는 백엔드가 요구하는 네이티브 핸들을 제공합니다. Windows에서는 Win32 창, Linux에서는 X11 디스플레이와 창, macOS에서는 연결한 Metal 레이어를 사용합니다.'
+tutorial.surface.guidance: '서피스는 선택한 그래픽스 API에서 필요한 네이티브 핸들을 제공합니다. Windows에서는 Win32 창, Linux에서는 X11 디스플레이와 창, macOS에서는 연결한 Metal 레이어를 사용합니다.'
 tutorial.surface.title: '네이티브 서피스'
 tutorial.swapChain.context: '스왑 체인은 컨텍스트와 창 모두에 의존합니다. {programCs} 끝의 {windowDispose}를 다음 해제 순서로 바꿉니다.'
 tutorial.swapChain.description: '서피스 설명 바로 다음에 스왑 체인을 생성합니다.'
@@ -473,7 +473,7 @@ tutorial.swapChain.title: '스왑 체인'
 tutorial.title: 첫 번째 삼각형
 tutorial.window.description: '{cocoaHelperCs}를 다운로드해 프로젝트에 추가합니다. 이 보조 클래스는 macOS 창에 Metal 레이어를 연결합니다.'
 tutorial.window.details: '{programCs} 내용을 다음 코드로 바꿉니다.'
-tutorial.window.guidance: '{graphicsAPINone}은 그래픽스 컨텍스트 생성을 Zenith.NET에 맡깁니다. {initialize}는 네이티브 창을 만들고 창 시스템 핸들을 사용할 수 있게 합니다. {center}는 창을 화면 가운데 놓습니다. {run}이 창을 닫을 때까지 이벤트를 처리한 뒤 {dispose}가 실행되어 창을 해제합니다.'
+tutorial.window.guidance: '{graphicsAPINone}은 Silk.NET이 그래픽스 컨텍스트를 만들지 않도록 설정합니다. 그래픽스 컨텍스트는 이후 Zenith.NET에서 만듭니다. {initialize}는 네이티브 창을 만들고 창 시스템 핸들을 사용할 수 있게 합니다. {center}는 창을 화면 가운데 놓습니다. {run}이 창을 닫을 때까지 이벤트를 처리한 뒤 {dispose}가 실행되어 창을 해제합니다.'
 tutorial.window.notes: '애플리케이션을 빌드하고 실행합니다. 창을 열고 닫을 수 있는지, 이동하거나 크기를 바꿀 수 있는지 확인합니다. 아직 렌더링 명령을 제출하지 않아 창 내부의 내용은 정의되지 않았습니다. 다음 단계로 넘어가기 전에 창을 닫습니다.'
 tutorial.window.title: '창 생성'
 ui.action.copy: 복사

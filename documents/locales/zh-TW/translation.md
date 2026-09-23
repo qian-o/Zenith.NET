@@ -68,6 +68,7 @@ docfx serve documents/_site --hostname 127.0.0.1 --port 8080
 | 英文                          | 約定用語                                                  |
 | ----------------------------- | --------------------------------------------------------- |
 | API / GPU / RHI               | 保留縮寫，首次依原文說明                                  |
+| graphics API / implementation | 圖形 API／圖形 API 實作；DirectX 12、Metal、Vulkan 是圖形 API，相關套件是各自的實作套件 |
 | barrier                       | 屏障                                                      |
 | bindless                      | 無繫結                                                    |
 | buffer                        | 緩衝區；`Buffer` 不變                                     |

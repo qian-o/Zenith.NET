@@ -1,5 +1,5 @@
 ﻿### YamlMime:Resources
-concepts.execution.context.description: 'Ein {graphicsContext} verbindet die Anwendung über ein bestimmtes Backend mit einem GPU-Gerät und stellt dessen Grafik-, Compute- und Transferwarteschlangen bereit. Gemeinsam verwendete Ressourcen müssen demselben Kontext angehören: Puffer, Texturen, Shader, Pipelines und ihre Handles lassen sich nicht über Kontextgrenzen hinweg binden.'
+concepts.execution.context.description: 'Ein {graphicsContext} verbindet die Anwendung über die gewählte Grafik-API mit einem GPU-Gerät und stellt dessen Grafik-, Compute- und Transferwarteschlangen bereit. Gemeinsam verwendete Ressourcen müssen demselben Kontext angehören: Puffer, Texturen, Shader, Pipelines und ihre Handles lassen sich nicht über Kontextgrenzen hinweg binden.'
 concepts.execution.context.details: '{capabilities} liefert den Gerätenamen und die unterstützten Funktionen. Prüfen Sie mit {rayTracingSupported} und {meshShadingSupported}, ob die jeweilige Funktion verfügbar ist, bevor Sie ihre Ressourcen erstellen. Die Beispiele für {link} und {detail} zeigen diese Prüfung bei der Initialisierung.'
 concepts.execution.context.details.detail: Mesh-Shading
 concepts.execution.context.details.link: Raytracing
@@ -79,11 +79,11 @@ concepts.platforms.ownership.guidance: 'Der gemeinsame {frameSchedulerCs} führt
 concepts.platforms.ownership.title: 'Verantwortung von Anwendung und Steuerelement'
 concepts.platforms.surface.description: 'Das {link} verwendet Silk.NET für Fenstererstellung und Ereignisverarbeitung. Zenith.NET erhält die nativen Fensterhandles und Abmessungen in einer {surface}-Beschreibung und erstellt damit eine {swapChain}. Für das Betriebssystemfenster bleibt die Anwendung verantwortlich.'
 concepts.platforms.surface.description.link: 'Dreieck-Tutorial'
-concepts.platforms.surface.details: 'Die nativen Handles müssen zum Backend passen:'
+concepts.platforms.surface.details: 'Die nativen Handles müssen zur gewählten Grafik-API passen:'
 concepts.platforms.surface.guidance: 'Der Beispielhost in {appCs} unterstützt Windows, macOS und X11. Unter Linux liefert sein Fenster Xlib-Handles; eine Wayland-Sitzung benötigt deshalb XWayland. Eine native Wayland-Anwendung übergibt Display- und Surface-Handles über {surfaceWayland}.'
 concepts.platforms.surface.table.android.backend: Vulkan unter Android.
 concepts.platforms.surface.table.apple.backend: Metal auf Apple-Plattformen.
-concepts.platforms.surface.table.headings.backend: 'Backend und Plattform'
+concepts.platforms.surface.table.headings.backend: 'Grafik-API und Plattform'
 concepts.platforms.surface.table.headings.factory: Oberflächen-Factory
 concepts.platforms.surface.table.headings.handles: Vom Host bereitgestellte Handles
 concepts.platforms.surface.table.wayland.backend: Vulkan mit einem nativen Wayland-Host.
@@ -95,7 +95,7 @@ concepts.platforms.surface.title: 'Native Präsentationsziele'
 concepts.platforms.title: Plattformintegration
 concepts.resources.allocation.context: 'Platzierte Ressourcen benötigen den Speicher ihres Heaps während ihrer gesamten Lebensdauer. Warten Sie auf ihre letzte GPU-Nutzung und geben Sie anschließend zuerst die Ressourcen und dann den Heap frei.'
 concepts.resources.allocation.description: 'Verwenden Sie einen {heap}, wenn die Anwendung die Speicherzuteilung selbst verwalten soll. Ressourcen werden darin an expliziten Byte-Offsets platziert. Die Anwendung legt diese Offsets fest und verfolgt die belegten Bereiche.'
-concepts.resources.allocation.details: 'Rufen Sie für jede Ressource {contextGetSizeAndAlignment} mit der Puffer- oder Texturbeschreibung auf, die auch für die Erstellung verwendet wird. Reservieren Sie die zurückgegebene Größe an einem Offset, der ein Vielfaches der angegebenen Ausrichtung ist. Die Allokation muss innerhalb des Heaps liegen und darf keine andere noch aktive Allokation überlappen. Texturgrößen können backendabhängige Auffüllungen enthalten und lassen sich deshalb nicht allein aus Pixelzahl und Bytes pro Pixel berechnen.'
+concepts.resources.allocation.details: 'Rufen Sie für jede Ressource {contextGetSizeAndAlignment} mit der Puffer- oder Texturbeschreibung auf, die auch für die Erstellung verwendet wird. Reservieren Sie die zurückgegebene Größe an einem Offset, der ein Vielfaches der angegebenen Ausrichtung ist. Die Allokation muss innerhalb des Heaps liegen und darf keine andere noch aktive Allokation überlappen. Der Speicherbedarf einer Textur kann je nach Implementierung zusätzliche Auffüllung enthalten und lässt sich deshalb nicht allein aus Pixelzahl und Bytes pro Pixel berechnen.'
 concepts.resources.allocation.guidance: 'Ein in einem Heap platzierter Puffer muss dieselbe Residenz wie der Heap angeben. Verwenden Sie für Texturen einen Heap mit GPU-only-Residenz.'
 concepts.resources.allocation.title: 'Heap-Allokation'
 concepts.resources.bufferUsages.table.constant.role: Shader-Parameter, die über eine Konstantenpuffer-Bindung gelesen werden.
@@ -155,15 +155,15 @@ concepts.resources.transfers.table.textureTransfers.transfer: 'Reicht die Kopie 
 concepts.resources.transfers.title: 'Sofortige und aufgezeichnete Übertragungen'
 concepts.resources.usages.description: '{bufferUsages} und {textureUsages} sind Flag-Enums für die vorgesehenen Ressourcenrollen. Sie werden {bufferDescUsages} beziehungsweise {textureDescUsages} zugewiesen. Für mehrere Rollen lassen sich die benötigten Member mit {value} kombinieren.'
 concepts.resources.usages.title: 'Ressourcennutzungen'
-concepts.resources.views.description: 'Eine {bufferView} beschreibt einen Pufferbereich und die Interpretation seiner Daten. Eine {textureView} wählt einen Unterressourcenbereich sowie einen kompatiblen Texturtyp und ein passendes Format. Beide beziehen sich auf vorhandenen Speicher mit den bei seiner Erstellung angegebenen Nutzungen. Ansichtsbereiche beschreiben den Zugriff, gewährleisten aber keine einheitliche shaderseitige Bereichsprüfung über alle Backends hinweg.'
+concepts.resources.views.description: 'Eine {bufferView} beschreibt einen Pufferbereich und die Interpretation seiner Daten. Eine {textureView} wählt einen Unterressourcenbereich sowie einen kompatiblen Texturtyp und ein passendes Format. Beide beziehen sich auf vorhandenen Speicher mit den bei seiner Erstellung angegebenen Nutzungen. Ansichtsbereiche beschreiben den Zugriff, gewährleisten aber keine einheitliche Bereichsprüfung im Shader über alle Grafik-APIs hinweg.'
 concepts.resources.views.details: 'Der eigene Handle einer Ressource stellt ihre Standardansicht bereit. Erstellen Sie eine separate Ansicht, wenn ein anderer Bereich oder eine andere kompatible Interpretation benötigt wird. Ansicht und zugrunde liegende Ressource müssen bis zum Ende ihrer GPU-Nutzung erhalten bleiben; ein Ressourcenhandle hält keines dieser Objekte am Leben. Wird eines ersetzt, aktualisieren Sie alle Konstanten mit dem bisherigen {link}.'
 concepts.resources.views.details.link: 'Ressourcenhandle'
 concepts.resources.views.title: 'Ansichten und zugrunde liegende Ressourcen'
 concepts.shaders.binding.context: 'Im Compute-Beispiel erhält {input} den Wert {inputTextureSampledHandle} und {output} den Wert {outputTextureStorageHandle}. In Slang bestimmt der Typparameter von {descriptorHandle} den Ressourcenzugriff:'
 concepts.shaders.binding.description: '{setConstantBuffer} wählt einen vorhandenen Puffer und den Byte-Offset, ab dem die aktuelle Pipeline ihre Konstanten liest. Laden Sie die Parameterdaten in diesen Speicher, bevor der Shader darauf zugreift. Liest frühere GPU-Arbeit noch dieselben Bytes, muss sie vor der Aktualisierung abgeschlossen sein.'
 concepts.shaders.binding.details: 'Der Befehlspuffer, die Compute-Pipeline, der mit Daten gefüllte Konstantenpuffer und die Anzahl der Threadgruppen müssen bereits vorliegen. Zeichnen Sie den Dispatch dann in dieser Reihenfolge auf. Wählen Sie zuerst die Pipeline, da die Konstantenpufferbindung für diese Pipeline gilt:'
-concepts.shaders.binding.guidance: "Der Konstantenpuffer benötigt die Nutzung {bufferUsagesConstant}. Teilen sich mehrere Konstantendatensätze einen Puffer, muss jeder Anfangsoffset die Bindungsausrichtung des Backends erfüllen. Diese Anforderung gilt unabhängig von der Feldanordnung innerhalb des Datensatzes."
-concepts.shaders.binding.notes: '{resourceHandle} enthält zwei 32-Bit-Felder, deren Interpretation vom Backend abhängt. Die Werte gelten nur innerhalb des Kontexts, in dem die Ressource erstellt wurde.'
+concepts.shaders.binding.guidance: "Der Konstantenpuffer benötigt die Nutzung {bufferUsagesConstant}. Teilen sich mehrere Konstantendatensätze einen Puffer, muss jeder Anfangsoffset die Bindungsausrichtung der gewählten Grafik-API erfüllen. Diese Anforderung gilt unabhängig von der Feldanordnung innerhalb des Datensatzes."
+concepts.shaders.binding.notes: '{resourceHandle} enthält zwei 32-Bit-Felder, deren Interpretation von der Implementierung der Grafik-API abhängt. Die Werte gelten nur innerhalb des Kontexts, in dem die Ressource erstellt wurde.'
 concepts.shaders.binding.reference: 'Ressource und zugehörige Ansicht müssen bis zum Abschluss des letzten Shader-Zugriffs erhalten bleiben. Ihr Ersatz erfordert eine Aktualisierung der Konstanten mit alten Handles. Die Besitzregeln erläutert {link}.'
 concepts.shaders.binding.reference.link: Ressourcenverwaltung
 concepts.shaders.binding.table.bufferStorageReadOnlyHandle.access: 'Lesen strukturierter Elemente des im Shader verwendeten Datentyps {t}'
@@ -191,7 +191,7 @@ concepts.shaders.layout.description: 'Für Vertexeingaben beschreibt {inputLayou
 concepts.shaders.layout.details: 'Konstantenpuffer enthalten Shader-Parameter, strukturierte Puffer Arrays typisierter Elemente. Ihre Anordnung folgt den Slang-Deklarationen und nicht {inputLayout}. Stimmen Sie C#-Feldoffsets, Elementgrößen und Auffüllungen mit dem kompilierten Shader-Layout ab. Ein nicht verwalteter C#-Typ lässt sich als Bytes kopieren, doch seine Speicheranordnung entspricht nicht zwangsläufig dem Shader-Layout. Ein im Vertex dicht gepacktes {float3} kann in einem Shader-Puffer eine andere Ausrichtung benötigen.'
 concepts.shaders.layout.guidance: 'Shader-Parameter können neben gewöhnlichen Werten auch Ressourcenhandles enthalten. Ein Handle bezeichnet bereits vorhandenen Speicher. Wird er in einen Konstantenpuffer kopiert, werden deshalb nicht die Inhalte der Ressource mitkopiert.'
 concepts.shaders.layout.notes: 'Die zugehörige Deklaration in {computeShaderSlang} lautet:'
-concepts.shaders.layout.reference: 'Die C#-Felder belegen die ersten 24 Bytes: acht für die Abmessungen und je acht für die beiden Handles. Im 256-Byte-Datensatz bleiben die übrigen Bytes als Auffüllung frei. Stimmen Sie bei einem anderen Parameterblock die Feldoffsets auf dessen Shader-Layout ab. Teilen sich mehrere Datensätze einen Puffer, muss die Auffüllung zwischen ihnen ausreichen, um die Bindungsausrichtung des Backends einzuhalten.'
+concepts.shaders.layout.reference: 'Die C#-Felder belegen die ersten 24 Bytes: acht für die Abmessungen und je acht für die beiden Handles. Im 256-Byte-Datensatz bleiben die übrigen Bytes als Auffüllung frei. Stimmen Sie bei einem anderen Parameterblock die Feldoffsets auf dessen Shader-Layout ab. Teilen sich mehrere Datensätze einen Puffer, muss die Auffüllung zwischen ihnen ausreichen, um die Bindungsausrichtung der gewählten Grafik-API einzuhalten.'
 concepts.shaders.layout.title: 'Datenlayout'
 concepts.shaders.matrices.description: 'Der Compiler wählt zeilenweise Matrixspeicherung mit zusammenhängenden Zeilen. Der {link} speichert drei {matrix4x4}-Werte an den Byte-Offsets 0, 64 und 128. Sein {detail} führt {mulVectorMatrix} in Modell-, View- und Projektionsreihenfolge aus.'
 concepts.shaders.matrices.description.detail: Shader
@@ -199,10 +199,10 @@ concepts.shaders.matrices.description.link: Renderer des rotierenden Würfels
 concepts.shaders.matrices.details: 'Die Speicherreihenfolge bestimmt die Anordnung der Matrixelemente; die Multiplikationsreihenfolge bestimmt die Transformation. C# und Slang müssen aufeinander abgestimmte Konventionen verwenden.'
 concepts.shaders.matrices.title: 'Matrixkonventionen'
 concepts.shaders.title: Shader-Daten und Bindung
-concepts.synchronization.backends.description: 'DirectX 12 und Vulkan setzen Texturübergänge als Layout- und Zugriffsänderungen um. Für Metal führt die Implementierung von {transition} in Zenith.NET keine entsprechende Operation aus. Das Metal-Backend fasst Befehle stattdessen in Render- und Compute-Encodern zusammen und fügt beim Ende eines Encoders Sichtbarkeitsbarrieren ein. Abhängige Operationen innerhalb desselben Encoders, etwa aufeinanderfolgende Compute-Dispatches, verwenden explizite Aufrufe von {barrier}.'
+concepts.synchronization.backends.description: 'DirectX 12 und Vulkan setzen Texturübergänge als Layout- und Zugriffsänderungen um. In der Metal-Implementierung von Zenith.NET löst {transition} keine entsprechende GPU-Operation aus. Diese Implementierung fasst Befehle in Render- und Compute-Encodern zusammen und fügt beim Ende eines Encoders Sichtbarkeitsbarrieren ein. Abhängige Operationen innerhalb desselben Encoders, etwa aufeinanderfolgende Compute-Dispatches, erfordern explizite Aufrufe von {barrier}.'
 concepts.synchronization.backends.details: "Im {link} beendet der Beginn des Grafik-Renderpasses den Compute-Encoder und macht dessen Ausgabe für die Grafikbefehle sichtbar. Zwei aufeinanderfolgende Compute-Dispatches bleiben dagegen im selben Encoder. Ihre Abhängigkeit benötigt deshalb eine Barriere, auch wenn dazwischen ein Texturübergang aufgezeichnet wird."
 concepts.synchronization.backends.details.link: Compute-Beispiel
-concepts.synchronization.backends.title: 'Backend-Verhalten'
+concepts.synchronization.backends.title: 'Synchronisierung je nach Grafik-API'
 concepts.synchronization.barriers.context: 'Wählen Sie Stufen, die die relevanten Zugriffe umfassen und von der Warteschlange unterstützt werden. {barrierStagesAll} schließt alle unterstützten Stufen ein. Beschränken Sie die Auswahl, wenn die Abhängigkeit nur einen Teil davon betrifft.'
 concepts.synchronization.barriers.description: 'Angenommen, zwei Compute-Dispatches stehen im selben Befehlspuffer: Der erste schreibt Simulationsdaten, der zweite liest sie. Eine Barriere dazwischen stellt sicher, dass der zweite Dispatch die abgeschlossenen Schreibvorgänge sieht. Bei einem Speicherpuffer genügt es, die Zugriffe zu ordnen; ein Texturlayoutübergang ist nicht erforderlich:'
 concepts.synchronization.barriers.details: 'Das erste Argument benennt die Stufen, die die Daten erzeugt haben; das zweite die Stufen, die sie verwenden werden. Gemeinsam beschreiben sie die benötigte Ausführungsreihenfolge und Speichersichtbarkeit zwischen den beiden Dispatches.'
@@ -288,7 +288,7 @@ learning.title: Lernen
 reference.description: 'Referenz zu Ressourcen, Befehlen und Plattformintegration'
 reference.entries.commands.description: 'Grafik-, Compute- und Transferbefehle'
 reference.entries.commands.label: 'Befehle aufzeichnen'
-reference.entries.context.description: 'GPU-Ressourcenerstellung für das gewählte Backend'
+reference.entries.context.description: 'Erstellung von GPU-Ressourcen über einen Grafikkontext'
 reference.entries.context.label: Hier beginnen
 reference.meta.description: 'Namespaces, Typen und Member von Zenith.NET'
 reference.navigation.core: 'Referenz der Kern-API'
@@ -332,19 +332,19 @@ samples.workloads.table.inkCanvas.example.link: InkCanvas
 samples.workloads.table.inkCanvas.whatItDemonstratesAndRequires: Eine Zeichenfläche zum Zeichnen und Radieren von Freihandstrichen.
 samples.workloads.table.platformDetection.example: '{link}'
 samples.workloads.table.platformDetection.example.link: PlatformDetection
-samples.workloads.table.platformDetection.whatItDemonstratesAndRequires: 'Ein Konsolenprogramm, das die Verfügbarkeit der Grafik-Backends und die Gerätefunktionen meldet.'
+samples.workloads.table.platformDetection.whatItDemonstratesAndRequires: 'Ein Konsolenprogramm, das die verfügbaren Grafik-APIs und die Gerätefunktionen anzeigt.'
 samples.workloads.title: 'Anwendungen und Hilfsprogramme'
-tutorial.context.description: 'Ein {graphicsContext} verbindet die Anwendung über ein Backend mit der GPU und stellt die Methoden zum Erstellen der Rendering-Ressourcen bereit.'
+tutorial.context.description: 'Ein {graphicsContext} verbindet die Anwendung über die gewählte Grafik-API mit der GPU und stellt Methoden zur Erstellung von Rendering-Ressourcen bereit.'
 tutorial.context.details: 'Fügen Sie die Kontextinitialisierung {emphasis} ein:'
 tutorial.context.details.emphasis: nach den using-Direktiven, vor {iWindowWindow}
-tutorial.context.guidance: 'Jeder Zweig wählt ein Backend für die aktuelle Plattform und fordert Validierung an, um fehlerhafte API-Aufrufe erkennen zu können. Meldungen von {validationMessage} werden in der Konsole ausgegeben.'
+tutorial.context.guidance: 'Jeder Zweig wählt eine Grafik-API für die aktuelle Plattform und fordert die Validierung an, um fehlerhafte API-Aufrufe erkennen zu können. Meldungen von {validationMessage} werden in der Konsole ausgegeben.'
 tutorial.context.imports: 'Ergänzen Sie am Anfang von {programCs} die folgenden using-Direktiven:'
 tutorial.context.title: 'Grafikkontext'
 tutorial.description: 'In diesem Tutorial entsteht aus einem leeren .NET-Konsolenprojekt eine Anwendung, die ein Fenster öffnet und ein farbiges Dreieck zeichnet.'
 tutorial.details: 'Das Tutorial führt über drei überprüfbare Zwischenstände zum Ergebnis: ein leeres Fenster, eine einfarbige Fläche und schließlich das farbige Dreieck. Führen Sie die Anwendung nach jedem dieser Schritte aus, bevor Sie den nächsten Teil ergänzen.'
 tutorial.draw.context: 'Die Argumente für {draw} sind:'
 tutorial.draw.description: 'Ersetzen Sie im Callback {windowRender} den Kommentar {addTheTriangleDrawCommandsHereLater} durch folgende Befehle zwischen {beginRenderPass} und {endRenderPass}:'
-tutorial.draw.details: '{setPipeline} wählt Shader und Renderzustand. Der Aufruf muss vor der Vertexbindung stehen, weil deren Interpretation vom Eingabelayout der Pipeline abhängt.'
+tutorial.draw.details: '{setPipeline} wählt Shader und Renderzustand aus. Binden Sie die Pipeline vor dem Vertexpuffer, damit ihr Eingabelayout bestimmt, wie die Vertexdaten gelesen werden.'
 tutorial.draw.guidance: '{setVertexBufferVertexBuffer} bindet die hochgeladenen Vertexdaten ab Byte-Offset 0 an Eingabeslot 0. Dieser entspricht dem einzigen Eintrag in {inputLayouts}.'
 tutorial.draw.notes: 'Behalten Sie das Füllen mit der Hintergrundfarbe am Anfang des Passes bei, damit die Fläche außerhalb des Dreiecks eine definierte Hintergrundfarbe hat.'
 tutorial.draw.table.firstInstance.meaning: Instanznummerierung bei null beginnen.
@@ -367,7 +367,7 @@ tutorial.frame.commands.title: 'Löschen, Einreichung und Präsentation'
 tutorial.frame.description: 'Füllen Sie das Fenster zunächst mit einer Hintergrundfarbe. Diese Operation heißt Löschen. Sobald die Farbe sichtbar ist, arbeiten das native Präsentationsziel, die Befehlseinreichung und die Präsentation zusammen. Darauf bauen die Vertices und Shader des Dreiecks auf.'
 tutorial.frame.details: 'Silk.NET ruft den Render-Callback auf, sobald ein Frame ansteht. Registrieren Sie den Callback {emphasis}:'
 tutorial.frame.details.emphasis: vor {windowRun}
-tutorial.frame.target.description: 'Eine Befehlswarteschlange nimmt aufgezeichnete Arbeit zur Ausführung auf der GPU entgegen. {graphicsQueueCommandBuffer} liefert einen Befehlspuffer aus der Grafikwarteschlange, der für die Aufzeichnung eines Frames bereit ist. Die Aufzeichnung legt die GPU-Arbeit fest; ihre Ausführung beginnt erst nach der Einreichung.'
+tutorial.frame.target.description: 'Eine Befehlswarteschlange nimmt aufgezeichnete Arbeit zur Ausführung auf der GPU entgegen. {graphicsQueueCommandBuffer} liefert einen Befehlspuffer aus der Grafikwarteschlange, in dem die Aufzeichnung bereits läuft. Die aufgezeichneten Befehle legen die GPU-Arbeit fest; ihre Ausführung beginnt erst nach der Einreichung.'
 tutorial.frame.target.details: 'Ein Texturlayout beschreibt, welchen Zugriff eine Operation benötigt. Der erste Aufruf von {transition} bereitet die Ausgabetextur als Farb-Attachment vor. {default} wählt Mip-Level 0 und Array-Layer 0, also das Basisbild dieser Textur. Da der Pass das gesamte Bild mit einer Hintergrundfarbe füllt, darf {undefined} den bisherigen Inhalt verwerfen.'
 tutorial.frame.target.guidance: 'Verwenden Sie in jedem Frame die aktuelle Ausgabetextur, da die Präsentation zum nächsten Bild wechseln kann.'
 tutorial.frame.target.title: Ausgabetextur vorbereiten
@@ -421,12 +421,12 @@ tutorial.project.context: 'Aktivieren Sie {emphasis} ({allowUnsafeBlocks}) in de
 tutorial.project.context.emphasis: Unsicheren Code zulassen
 tutorial.project.description: 'Erstellen Sie ein C#-Konsolenprojekt namens {firstTriangle} mit .NET 10 als Zielframework.'
 tutorial.project.details: 'Fügen Sie dem Projekt die folgenden NuGet-Pakete hinzu:'
-tutorial.project.guidance: '{zenithNET} liefert die gemeinsame Rendering-API, die drei Backend-Pakete ihre Plattformimplementierungen. {zenithNETCompiler} kompiliert die unten eingeführten Slang-Shader für das gewählte Backend.'
+tutorial.project.guidance: '{zenithNET} liefert die gemeinsame Grafik- und Compute-API. Die drei API-spezifischen Pakete stellen Implementierungen für DirectX 12, Metal 4 und Vulkan 1.4 bereit. {zenithNETCompiler} kompiliert die unten eingeführten Slang-Shader für die gewählte Grafik-API.'
 tutorial.project.title: 'Projekteinrichtung'
-tutorial.requirements.description: "Sie benötigen das {emphasis} und C#-Grundkenntnisse. GPU und Treiber müssen das für Ihre Plattform gewählte Backend unterstützen:"
+tutorial.requirements.description: "Sie benötigen das {emphasis} und C#-Grundkenntnisse. GPU und Treiber müssen die für Ihre Plattform gewählte Grafik-API unterstützen:"
 tutorial.requirements.description.emphasis: .NET 10 SDK
 tutorial.requirements.guidance: 'Zenith.NET rendert in ein von der Anwendung bereitgestelltes natives Präsentationsziel. Silk.NET.Windowing erstellt das Fenster und verarbeitet seine Ereignisse.'
-tutorial.requirements.table.headings.graphicsBackend: Grafik-Backend
+tutorial.requirements.table.headings.graphicsBackend: Grafik-API
 tutorial.requirements.table.headings.platform: Plattform
 tutorial.requirements.table.linux.graphicsBackend: Vulkan 1.4
 tutorial.requirements.table.linux.platform: 'Linux (X11 oder XWayland)'
@@ -463,7 +463,7 @@ tutorial.shaders.vertex.title: 'Vertex-Shading'
 tutorial.surface.description: 'Definieren Sie das native Präsentationsziel {emphasis}:'
 tutorial.surface.description.emphasis: nach {windowCenter} und vor {windowRun}
 tutorial.surface.details: 'Der Framebuffer ist das Fensterbild in Pixeln. {surface} beschreibt das native Präsentationsziel und seine Abmessungen; {framebufferSize} liefert die Pixelgröße. Bei aktiver Anzeigeskalierung kann sie von der logischen Fenstergröße abweichen.'
-tutorial.surface.guidance: 'Die Oberflächenbeschreibung liefert die nativen Handles des gewählten Backends: ein Win32-Fenster unter Windows, X11-Display und -Fenster unter Linux oder den angebundenen Metal-Layer unter macOS.'
+tutorial.surface.guidance: 'Die Oberflächenbeschreibung enthält die nativen Handles für die gewählte Grafik-API: ein Win32-Fenster unter Windows, ein X11-Display und -Fenster unter Linux oder den angebundenen Metal-Layer unter macOS.'
 tutorial.surface.title: 'Native Oberfläche'
 tutorial.swapChain.context: 'Die Swapchain hängt von Kontext und Fenster ab. Ersetzen Sie {windowDispose} am Ende von {programCs} durch diese Freigabereihenfolge:'
 tutorial.swapChain.description: 'Erstellen Sie unmittelbar nach der Oberflächenbeschreibung die Swapchain:'
@@ -473,7 +473,7 @@ tutorial.swapChain.title: 'Swapchain'
 tutorial.title: Erstes Dreieck
 tutorial.window.description: 'Laden Sie {cocoaHelperCs} in das Projekt herunter. Die Hilfsklasse bindet den Metal-Layer an das macOS-Fenster.'
 tutorial.window.details: "Ersetzen Sie den Inhalt von {programCs} durch den folgenden Code:"
-tutorial.window.guidance: '{graphicsAPINone} überlässt die Erstellung des Grafikkontexts Zenith.NET. {initialize} erstellt das native Fenster und macht die Handles des Fenstersystems verfügbar. {center} platziert das Fenster in der Bildschirmmitte. {run} verarbeitet Ereignisse bis zum Schließen; danach gibt {dispose} das Fenster frei.'
+tutorial.window.guidance: '{graphicsAPINone} verhindert, dass Silk.NET einen eigenen Grafikkontext für das Fenster erstellt; die Anwendung erstellt später einen Zenith.NET-Kontext. {initialize} erstellt das native Fenster und macht die Handles des Fenstersystems verfügbar. {center} platziert es in der Bildschirmmitte. {run} verarbeitet Ereignisse bis zum Schließen; danach gibt {dispose} das Fenster frei.'
 tutorial.window.notes: 'Erstellen und starten Sie die Anwendung. Prüfen Sie, ob sich das Fenster öffnen, verschieben, in der Größe ändern und schließen lässt. Sein Inhalt ist noch nicht definiert, da keine Renderbefehle eingereicht wurden. Schließen Sie das Fenster, bevor Sie fortfahren.'
 tutorial.window.title: 'Fenstererstellung'
 ui.action.copy: Kopieren

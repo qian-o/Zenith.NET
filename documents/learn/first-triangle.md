@@ -179,10 +179,7 @@ using Zenith.NET.Vulkan;
 
 <p>
     <resource key="tutorial.context.details">
-        <slot name="emphasis"><strong><resource key="tutorial.context.details.emphasis"><slot name="iWindowWindow"><code>IWindow window</code></slot>
-    </resource>
-    </strong>
-    </slot>
+        <slot name="emphasis"><strong><resource key="tutorial.context.details.emphasis"><slot name="iWindowWindow"><code>IWindow window</code></slot></resource></strong></slot>
     </resource>
 </p>
 
@@ -220,10 +217,7 @@ context.ValidationMessage += static (_, args) => Console.WriteLine($"[{args.Seve
 <p>
     <resource key="tutorial.surface.description">
         <slot name="emphasis"><strong><resource key="tutorial.surface.description.emphasis"><slot name="windowCenter"><code>window.Center()</code></slot>
-        <slot name="windowRun"><code>window.Run()</code></slot>
-    </resource>
-    </strong>
-    </slot>
+        <slot name="windowRun"><code>window.Run()</code></slot></resource></strong></slot>
     </resource>
 </p>
 
@@ -309,10 +303,7 @@ context.Dispose();
 </p>
 <p>
     <resource key="tutorial.frame.details">
-        <slot name="emphasis"><strong><resource key="tutorial.frame.details.emphasis"><slot name="windowRun"><code>window.Run();</code></slot>
-    </resource>
-    </strong>
-    </slot>
+        <slot name="emphasis"><strong><resource key="tutorial.frame.details.emphasis"><slot name="windowRun"><code>window.Run();</code></slot></resource></strong></slot>
     </resource>
 </p>
 
@@ -451,10 +442,7 @@ using System.Runtime.InteropServices;
 
 <p>
     <resource key="tutorial.geometry.format.description">
-        <slot name="emphasis"><strong><resource key="tutorial.geometry.format.description.emphasis"><slot name="programCs"><code>Program.cs</code></slot>
-    </resource>
-    </strong>
-    </slot>
+        <slot name="emphasis"><strong><resource key="tutorial.geometry.format.description.emphasis"><slot name="programCs"><code>Program.cs</code></slot></resource></strong></slot>
     </resource>
 </p>
 
@@ -480,10 +468,7 @@ file struct Vertex(Vector3 position, Vector4 color)
 </h3>
 <p>
     <resource key="tutorial.geometry.data.description">
-        <slot name="emphasis"><strong><resource key="tutorial.geometry.data.description.emphasis"><slot name="windowRender"><code>window.Render += _ =&gt;</code></slot>
-    </resource>
-    </strong>
-    </slot>
+        <slot name="emphasis"><strong><resource key="tutorial.geometry.data.description.emphasis"><slot name="windowRender"><code>window.Render += _ =&gt;</code></slot></resource></strong></slot>
     </resource>
 </p>
 

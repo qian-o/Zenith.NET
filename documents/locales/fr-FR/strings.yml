@@ -1,5 +1,5 @@
 ﻿### YamlMime:Resources
-concepts.execution.context.description: 'Un {graphicsContext} relie l’application à un périphérique GPU par un backend donné et fournit ses files graphiques, de calcul et de transfert. Les ressources utilisées ensemble doivent appartenir au même contexte : tampons, textures, shaders, pipelines et handles ne peuvent pas être liés d’un contexte à un autre.'
+concepts.execution.context.description: 'Un {graphicsContext} relie l’application à un périphérique GPU par l’API graphique choisie et fournit ses files graphiques, de calcul et de transfert. Les ressources utilisées ensemble doivent appartenir au même contexte : tampons, textures, shaders, pipelines et handles ne peuvent pas être liés d’un contexte à un autre.'
 concepts.execution.context.details: '{capabilities} indique le nom du périphérique et les fonctions prises en charge. Vérifiez {rayTracingSupported} et {meshShadingSupported} avant de créer les ressources nécessaires à ces fonctions. Les exemples de {link} et de {detail} effectuent ces vérifications à l’initialisation.'
 concepts.execution.context.details.detail: mesh shading
 concepts.execution.context.details.link: lancer de rayons
@@ -71,7 +71,7 @@ concepts.platforms.lifecycle.context: 'Pour créer des attachements compatibles,
 concepts.platforms.lifecycle.description: 'La chaîne d’échange utilise la largeur et la hauteur du framebuffer en pixels, qui peuvent différer des dimensions logiques de la fenêtre avec la mise à l’échelle de l’affichage. Différer le rendu et le redimensionnement tant qu’une dimension est nulle. Obtenir {swapChainDrawable} pour chaque image : la chaîne d’échange possède cette texture et peut la remplacer après une présentation ou un redimensionnement.'
 concepts.platforms.lifecycle.details: 'Lors d’un changement de dimensions du framebuffer, attendre les accès GPU en cours aux anciennes images avant d’appeler {swapChainResize}. Pour remplacer la cible native de présentation, transmettre sa nouvelle description et ses handles à {swapChainRefresh}, une fois ces accès terminés. À l’arrêt, libérer la chaîne d’échange avant de détruire sa cible native.'
 concepts.platforms.lifecycle.guidance: 'Si les textures de profondeur ou hors écran de l’application suivent la taille de la fenêtre, les recréer quand celle-ci change et mettre à jour les constantes contenant leurs handles. Le pipeline reste utilisable tant que les formats des attachements et les nombres d’échantillons correspondent. Le {link} montre comment recréer les textures tout en conservant le pipeline.'
-concepts.platforms.lifecycle.guidance.link: moteur de rendu du cube en rotation
+concepts.platforms.lifecycle.guidance.link: code de rendu du cube en rotation
 concepts.platforms.lifecycle.title: 'Dimensions et durée de vie de la chaîne d’échange'
 concepts.platforms.ownership.description: 'L’application possède le contexte assigné et ses ressources de rendu ; le contrôle possède ses ressources de présentation. Lorsque la propriété {graphicsContext} de la vue change, l’ordonnanceur recrée les ressources du contrôle pour le nouveau contexte. L’application doit également recréer ses pipelines, tampons et textures pour ce contexte.'
 concepts.platforms.ownership.details: 'Avant de remplacer des ressources de rendu, arrêter la boucle de rendu de la vue et attendre le travail GPU qui les utilise. Libérer ensuite les anciennes ressources. Ne libérer le contexte que lorsque chaque vue a libéré ses ressources de présentation associées à ce contexte et que toutes les ressources de l’application créées à partir de ce contexte ont été libérées.'
@@ -79,11 +79,11 @@ concepts.platforms.ownership.guidance: 'Le {frameSchedulerCs} commun exécute le
 concepts.platforms.ownership.title: 'Responsabilités de l’application et du contrôle'
 concepts.platforms.surface.description: 'Le {link} utilise Silk.NET pour créer la fenêtre et traiter ses événements. Zenith.NET reçoit les handles natifs et les dimensions dans une description {surface}, à partir de laquelle il crée une {swapChain}. L’application reste responsable de la fenêtre du système d’exploitation.'
 concepts.platforms.surface.description.link: 'tutoriel du triangle'
-concepts.platforms.surface.details: 'Les handles natifs doivent correspondre au backend :'
+concepts.platforms.surface.details: 'Les handles natifs doivent correspondre à l’API graphique choisie :'
 concepts.platforms.surface.guidance: 'L’hôte des exemples dans {appCs} prend en charge Windows, macOS et X11. Sous Linux, sa fenêtre fournit des handles Xlib ; une session Wayland doit donc disposer de XWayland pour l’exécuter. Une application Wayland native transmet ses handles de display et de surface via {surfaceWayland}.'
 concepts.platforms.surface.table.android.backend: Vulkan sous Android.
 concepts.platforms.surface.table.apple.backend: Metal sur les plateformes Apple.
-concepts.platforms.surface.table.headings.backend: 'Backend et plateforme'
+concepts.platforms.surface.table.headings.backend: 'API graphique et plateforme'
 concepts.platforms.surface.table.headings.factory: Fabrique de surface
 concepts.platforms.surface.table.headings.handles: Handles fournis par l’hôte
 concepts.platforms.surface.table.wayland.backend: Vulkan avec un hôte Wayland natif.
@@ -95,7 +95,7 @@ concepts.platforms.surface.title: 'Surfaces de présentation natives'
 concepts.platforms.title: Intégration de plateforme
 concepts.resources.allocation.context: 'Les ressources placées dans un tas dépendent de sa mémoire pendant toute leur durée de vie. Après leur dernière utilisation par le GPU, libérer les ressources avant de libérer le tas.'
 concepts.resources.allocation.description: 'Un {heap} permet à l’application de gérer elle-même les allocations. Il fournit une mémoire où placer les ressources à des décalages explicites en octets. L’application choisit ces emplacements et suit les régions occupées.'
-concepts.resources.allocation.details: 'Pour chaque ressource, appeler {contextGetSizeAndAlignment} avec la description de tampon ou de texture qui servira à sa création. Réserver la taille renvoyée à un décalage multiple de l’alignement demandé, dans les limites du tas et sans chevaucher une allocation encore active. La taille d’une texture peut inclure du remplissage propre au backend ; le nombre de pixels et le nombre d’octets par pixel ne suffisent donc pas à calculer la taille de son allocation.'
+concepts.resources.allocation.details: 'Pour chaque ressource, appeler {contextGetSizeAndAlignment} avec la description de tampon ou de texture qui servira à sa création. Réserver la taille renvoyée à un décalage multiple de l’alignement demandé, dans les limites du tas et sans chevaucher une allocation encore active. La taille de l’allocation d’une texture peut inclure du remplissage propre à l’implémentation ; le nombre de pixels et le nombre d’octets par pixel ne suffisent donc pas à la calculer.'
 concepts.resources.allocation.guidance: 'Un tampon placé dans un tas doit déclarer la même résidence que ce tas. Pour les textures, utiliser un tas destiné exclusivement au GPU.'
 concepts.resources.allocation.title: 'Allocation dans un tas'
 concepts.resources.bufferUsages.table.constant.role: Paramètres de shader lus via une liaison de tampon de constantes.
@@ -155,15 +155,15 @@ concepts.resources.transfers.table.textureTransfers.transfer: 'Soumet la copie e
 concepts.resources.transfers.title: 'Transferts immédiats et enregistrés'
 concepts.resources.usages.description: '{bufferUsages} et {textureUsages} sont des énumérations d’indicateurs qui déclarent les usages d’une ressource. Leurs valeurs sont affectées à {bufferDescUsages} et {textureDescUsages}, respectivement. Plusieurs membres peuvent être combinés avec {value} pour déclarer plusieurs usages.'
 concepts.resources.usages.title: 'Usages des ressources'
-concepts.resources.views.description: 'Une {bufferView} décrit une région de tampon et l’interprétation de ses données. Une {textureView} sélectionne une plage de sous-ressources, ainsi qu’un type de texture et un format compatibles. Toutes deux désignent une mémoire existante, avec les usages déclarés à sa création. Les plages des vues décrivent l’accès, mais n’offrent pas de contrôle des limites uniforme dans les shaders sur tous les backends.'
+concepts.resources.views.description: 'Une {bufferView} décrit une région de tampon et l’interprétation de ses données. Une {textureView} sélectionne une plage de sous-ressources, ainsi qu’un type de texture et un format compatibles. Toutes deux désignent une mémoire existante, avec les usages déclarés à sa création. Les plages des vues décrivent l’accès, mais ne garantissent pas que les shaders contrôlent les limites de la même façon pour toutes les API graphiques.'
 concepts.resources.views.details: 'Le handle propre à une ressource fournit sa vue par défaut. Créer une vue distincte pour sélectionner une autre région ou une autre interprétation compatible. La vue et sa ressource sous-jacente doivent rester disponibles jusqu’à la fin de leur utilisation par le GPU : un handle ne maintient aucun de ces objets en vie. Si l’un d’eux est remplacé, mettre à jour les constantes contenant l’ancien {link}.'
 concepts.resources.views.details.link: 'handle de ressource'
 concepts.resources.views.title: 'Vues et ressources sous-jacentes'
 concepts.shaders.binding.context: 'L’exemple de calcul affecte {inputTextureSampledHandle} à {input} et {outputTextureStorageHandle} à {output}. En Slang, le paramètre de type de {descriptorHandle} définit l’accès à la ressource :'
 concepts.shaders.binding.description: '{setConstantBuffer} sélectionne un tampon existant et le décalage en octets à partir duquel le pipeline courant lit ses constantes. Transférer les paramètres dans cette mémoire avant leur utilisation par le shader. Si un travail GPU antérieur lit encore les mêmes octets, attendre sa fin avant de les mettre à jour.'
 concepts.shaders.binding.details: 'Préparer le tampon de commandes, le pipeline de calcul, le tampon de constantes rempli et le nombre de groupes de threads. Enregistrer ensuite le calcul dans l’ordre ci-dessous. Sélectionner d’abord le pipeline, car la liaison du tampon de constantes s’applique à ce pipeline :'
-concepts.shaders.binding.guidance: "Le tampon de constantes doit déclarer l’usage {bufferUsagesConstant}. Si plusieurs enregistrements de constantes partagent un tampon, le décalage de chacun doit respecter l’alignement de liaison du backend, indépendamment de la disposition des champs à l’intérieur de l’enregistrement."
-concepts.shaders.binding.notes: '{resourceHandle} contient deux champs de 32 bits dont l’interprétation dépend du backend. Leurs valeurs ne sont valables que dans le contexte où la ressource a été créée.'
+concepts.shaders.binding.guidance: "Le tampon de constantes doit déclarer l’usage {bufferUsagesConstant}. Si plusieurs enregistrements de constantes partagent un tampon, le décalage de chacun doit respecter l’alignement de liaison de l’API graphique choisie, indépendamment de la disposition des champs à l’intérieur de l’enregistrement."
+concepts.shaders.binding.notes: '{resourceHandle} contient deux champs de 32 bits dont l’interprétation dépend de l’implémentation de l’API graphique. Leurs valeurs ne sont valables que dans le contexte où la ressource a été créée.'
 concepts.shaders.binding.reference: 'Conserver la ressource et toute vue utilisée pour obtenir son handle jusqu’à la fin du dernier accès du shader. Lorsqu’une texture ou une vue est remplacée, mettre à jour les constantes contenant encore son ancien handle. Les règles de propriété sont détaillées dans {link}.'
 concepts.shaders.binding.reference.link: Gestion des ressources
 concepts.shaders.binding.table.bufferStorageReadOnlyHandle.access: 'Lecture d’éléments structurés de type {t} dans le shader'
@@ -191,18 +191,18 @@ concepts.shaders.layout.description: 'Pour les sommets, {inputLayout} décrit le
 concepts.shaders.layout.details: 'Les tampons de constantes contiennent des paramètres de shader, et les tampons structurés des tableaux d’éléments typés. Leur disposition suit les déclarations Slang, et non {inputLayout}. Les décalages des champs C#, les tailles des éléments et le remplissage doivent correspondre à la disposition mémoire du shader compilé. Un type C# non managé peut être copié sous forme d’octets, mais sa disposition mémoire ne correspond pas nécessairement à celle attendue par le shader : un {float3} compact dans un sommet peut nécessiter un autre alignement dans un tampon de shader.'
 concepts.shaders.layout.guidance: 'Les paramètres de shader peuvent contenir des handles de ressources en plus des valeurs ordinaires. Un handle désigne une mémoire déjà allouée : le copier dans un tampon de constantes ne copie donc pas le contenu de la ressource.'
 concepts.shaders.layout.notes: 'La déclaration correspondante dans {computeShaderSlang} est :'
-concepts.shaders.layout.reference: 'Les champs C# occupent les 24 premiers octets : huit pour les dimensions et huit pour chacun des deux handles. Le reste de l’enregistrement de 256 octets sert de remplissage. Pour un autre bloc de paramètres, faire correspondre les décalages des champs à sa disposition dans le shader. Si plusieurs enregistrements partagent un tampon, prévoir entre eux un remplissage suffisant pour respecter l’alignement de liaison du backend.'
+concepts.shaders.layout.reference: 'Les champs C# occupent les 24 premiers octets : huit pour les dimensions et huit pour chacun des deux handles. Le reste de l’enregistrement de 256 octets sert de remplissage. Pour un autre bloc de paramètres, faire correspondre les décalages des champs à sa disposition dans le shader. Si plusieurs enregistrements partagent un tampon, prévoir entre eux un remplissage suffisant pour respecter l’alignement de liaison de l’API graphique choisie.'
 concepts.shaders.layout.title: 'Disposition des données'
 concepts.shaders.matrices.description: 'Le compilateur choisit un stockage des matrices par lignes contiguës. Le {link} place trois valeurs {matrix4x4} aux décalages de 0, 64 et 128 octets. Son {detail} applique {mulVectorMatrix} dans l’ordre modèle, vue et projection.'
 concepts.shaders.matrices.description.detail: shader
-concepts.shaders.matrices.description.link: moteur de rendu du cube en rotation
+concepts.shaders.matrices.description.link: code de rendu du cube en rotation
 concepts.shaders.matrices.details: 'L’ordre de stockage définit la disposition des éléments de matrice en mémoire ; l’ordre de multiplication définit la transformation. Les conventions C# et Slang doivent correspondre.'
 concepts.shaders.matrices.title: 'Conventions matricielles'
 concepts.shaders.title: Données de shaders et liaison
-concepts.synchronization.backends.description: 'DirectX 12 et Vulkan encodent les transitions de texture sous forme de changements de layout et d’accès. L’implémentation de {transition} dans Zenith.NET n’effectue pas d’opération équivalente sur Metal. Le backend Metal regroupe les commandes dans des encodeurs de rendu et de calcul, puis insère des barrières de visibilité à la fermeture d’un encodeur. Les opérations dépendantes dans un même encodeur, comme deux calculs successifs, utilisent des appels explicites à {barrier}.'
+concepts.synchronization.backends.description: 'DirectX 12 et Vulkan encodent les transitions de texture sous forme de changements de layout et d’accès. Dans l’implémentation Metal de Zenith.NET, {transition} n’effectue pas d’opération GPU équivalente. Cette implémentation regroupe les commandes dans des encodeurs de rendu et de calcul, puis insère des barrières de visibilité à la fermeture d’un encodeur. Les opérations dépendantes dans un même encodeur, comme deux calculs successifs, exigent des appels explicites à {barrier}.'
 concepts.synchronization.backends.details: "Dans l’{link}, l’ouverture de la passe de rendu ferme l’encodeur de calcul et rend sa sortie visible aux commandes graphiques. Deux calculs successifs restent en revanche dans le même encodeur. Leur dépendance exige donc une barrière, même si une transition de texture est enregistrée entre eux."
 concepts.synchronization.backends.details.link: exemple de calcul
-concepts.synchronization.backends.title: 'Comportement des backends'
+concepts.synchronization.backends.title: 'Synchronisation selon l’API graphique'
 concepts.synchronization.barriers.context: 'Choisir des étapes qui couvrent les accès concernés et sont prises en charge par la file. {barrierStagesAll} inclut toutes les étapes disponibles ; une sélection plus restreinte convient lorsque la dépendance ne concerne que certaines d’entre elles.'
 concepts.synchronization.barriers.description: 'Considérons deux calculs enregistrés dans le même tampon de commandes : le premier écrit des données de simulation, le second les lit. Une barrière entre les deux garantit que le second voit les écritures achevées. Pour un tampon de stockage, elle ordonne les accès sans transition de layout de texture :'
 concepts.synchronization.barriers.details: 'Le premier argument indique les étapes qui ont produit les données ; le second indique celles qui vont les utiliser. Ensemble, ils décrivent l’ordre d’exécution et la visibilité mémoire nécessaires entre les deux calculs.'
@@ -288,7 +288,7 @@ learning.title: Apprendre
 reference.description: 'Référence des ressources, commandes et intégrations de plateforme'
 reference.entries.commands.description: 'Commandes graphiques, de calcul et de transfert'
 reference.entries.commands.label: 'Enregistrer des commandes'
-reference.entries.context.description: 'Création de ressources GPU pour le backend sélectionné'
+reference.entries.context.description: 'Création de ressources GPU au moyen d’un contexte graphique'
 reference.entries.context.label: Commencer ici
 reference.meta.description: 'Espaces de noms, types et membres de Zenith.NET'
 reference.navigation.core: 'Référence de l’API principale'
@@ -332,19 +332,19 @@ samples.workloads.table.inkCanvas.example.link: InkCanvas
 samples.workloads.table.inkCanvas.whatItDemonstratesAndRequires: Une toile pour dessiner et effacer des traits à main levée.
 samples.workloads.table.platformDetection.example: '{link}'
 samples.workloads.table.platformDetection.example.link: PlatformDetection
-samples.workloads.table.platformDetection.whatItDemonstratesAndRequires: 'Un outil en console qui indique la disponibilité des backends graphiques et les capacités du périphérique.'
+samples.workloads.table.platformDetection.whatItDemonstratesAndRequires: 'Un outil en console qui indique les API graphiques disponibles et les capacités du périphérique.'
 samples.workloads.title: 'Applications et utilitaires'
-tutorial.context.description: 'Un {graphicsContext} relie l’application au GPU par l’intermédiaire d’un backend et fournit les méthodes de création des ressources de rendu.'
+tutorial.context.description: 'Un {graphicsContext} relie l’application au GPU au moyen de l’API graphique choisie et fournit les méthodes de création des ressources de rendu.'
 tutorial.context.details: 'Insérez l’initialisation du contexte {emphasis} :'
 tutorial.context.details.emphasis: après les directives using, avant {iWindowWindow}
-tutorial.context.guidance: 'Chaque branche sélectionne un backend pour la plateforme actuelle et demande la validation afin de repérer les usages incorrects de l’API. Les messages de {validationMessage} sont affichés dans la console.'
+tutorial.context.guidance: 'Chaque branche choisit une API graphique pour la plateforme actuelle et demande la validation afin de repérer les usages incorrects de l’API. Les messages de {validationMessage} sont affichés dans la console.'
 tutorial.context.imports: 'Ajoutez les directives using suivantes au début de {programCs} :'
 tutorial.context.title: 'Contexte graphique'
 tutorial.description: 'Ce tutoriel part d’un projet console .NET vide pour créer une application qui ouvre une fenêtre et dessine un triangle coloré.'
 tutorial.details: 'Le tutoriel comporte trois étapes de vérification : une fenêtre vide, un fond uni, puis le triangle coloré. Exécutez l’application à chaque étape avant d’ajouter la partie suivante.'
 tutorial.draw.context: 'Les arguments de {draw} sont :'
 tutorial.draw.description: 'Dans {windowRender}, remplacez {addTheTriangleDrawCommandsHereLater} par ces commandes, entre {beginRenderPass} et {endRenderPass} :'
-tutorial.draw.details: '{setPipeline} sélectionne les shaders et l’état de rendu. Cet appel doit précéder la liaison du tampon de sommets, car le backend l’interprète selon la disposition d’entrée du pipeline.'
+tutorial.draw.details: '{setPipeline} sélectionne les shaders et l’état de rendu. Sélectionnez le pipeline avant de lier le tampon de sommets pour que sa disposition d’entrée détermine la lecture des données.'
 tutorial.draw.guidance: '{setVertexBufferVertexBuffer} lie les données de sommets déjà transférées, à partir du décalage de 0 octet, à l’emplacement d’entrée 0. Celui-ci correspond à l’unique entrée de {inputLayouts}.'
 tutorial.draw.notes: 'Conservez l’effacement au début de la passe pour que la zone extérieure au triangle ait une couleur de fond définie.'
 tutorial.draw.table.firstInstance.meaning: Commencer la numérotation des instances à zéro.
@@ -367,7 +367,7 @@ tutorial.frame.commands.title: 'Effacement, soumission et présentation'
 tutorial.frame.description: 'Commencez par remplir la fenêtre d’une couleur de fond. Cette opération s’appelle l’effacement. Lorsque le fond s’affiche, la surface, la soumission et la présentation fonctionnent ensemble ; vous pouvez ajouter les sommets et les shaders du triangle.'
 tutorial.frame.details: 'Silk.NET appelle le rappel de rendu lorsqu’une image doit être produite. Enregistrez le rappel {emphasis} :'
 tutorial.frame.details.emphasis: avant {windowRun}
-tutorial.frame.target.description: 'Une file de commandes reçoit le travail enregistré pour le faire exécuter par le GPU. {graphicsQueueCommandBuffer} renvoie un tampon de commandes provenant de la file graphique, prêt à recevoir les commandes d’une image. L’enregistrement définit le travail du GPU ; son exécution ne commence qu’après la soumission.'
+tutorial.frame.target.description: 'Une file de commandes reçoit le travail enregistré pour le faire exécuter par le GPU. {graphicsQueueCommandBuffer} renvoie un tampon de commandes provenant de la file graphique, dont l’enregistrement est déjà en cours. Les commandes enregistrées définissent le travail du GPU ; son exécution ne commence qu’après la soumission.'
 tutorial.frame.target.details: 'Le layout d’une texture décrit le type d’accès nécessaire à une opération. Le premier appel à {transition} prépare la texture de sortie à servir d’attachement de couleur. Ici, {default} sélectionne le niveau de mip 0 et la couche de tableau 0, soit l’image de base de cette texture. Comme la passe remplit toute l’image avec la couleur de fond, {undefined} autorise l’abandon de son contenu précédent.'
 tutorial.frame.target.guidance: 'Utilisez la texture de sortie courante à chaque image, car la présentation peut faire passer la chaîne d’échange à une autre texture.'
 tutorial.frame.target.title: 'Préparation de la sortie'
@@ -421,12 +421,12 @@ tutorial.project.context: 'Activez {emphasis} ({allowUnsafeBlocks}) dans les par
 tutorial.project.context.emphasis: Autoriser le code non sécurisé
 tutorial.project.description: 'Créez un projet console C# nommé {firstTriangle} ciblant .NET 10.'
 tutorial.project.details: 'Ajoutez les paquets NuGet suivants au projet :'
-tutorial.project.guidance: '{zenithNET} fournit l’API de rendu commune, et les trois paquets de backend en fournissent les implémentations propres aux plateformes. {zenithNETCompiler} compile les shaders Slang présentés plus bas pour le backend choisi.'
+tutorial.project.guidance: '{zenithNET} fournit l’API commune pour le rendu et le calcul. Les trois paquets propres à chaque API fournissent les implémentations de DirectX 12, Metal 4 et Vulkan 1.4. {zenithNETCompiler} compile les shaders Slang présentés plus bas pour l’API graphique choisie.'
 tutorial.project.title: 'Configuration du projet'
-tutorial.requirements.description: "Vous devez disposer du {emphasis} et connaître les bases de C#. Le GPU et son pilote doivent prendre en charge le backend choisi pour votre plateforme :"
+tutorial.requirements.description: "Vous devez disposer du {emphasis} et connaître les bases de C#. Le GPU et son pilote doivent prendre en charge l’API graphique choisie pour votre plateforme :"
 tutorial.requirements.description.emphasis: SDK .NET 10
 tutorial.requirements.guidance: 'Zenith.NET effectue le rendu sur une surface native fournie par l’application. Silk.NET.Windowing crée la fenêtre et traite ses événements.'
-tutorial.requirements.table.headings.graphicsBackend: Backend graphique
+tutorial.requirements.table.headings.graphicsBackend: API graphique
 tutorial.requirements.table.headings.platform: Plateforme
 tutorial.requirements.table.linux.graphicsBackend: Vulkan 1.4
 tutorial.requirements.table.linux.platform: 'Linux (X11 ou XWayland)'
@@ -463,7 +463,7 @@ tutorial.shaders.vertex.title: 'Traitement des sommets'
 tutorial.surface.description: 'Définissez la cible de présentation native {emphasis} :'
 tutorial.surface.description.emphasis: après {windowCenter} et avant {windowRun}
 tutorial.surface.details: 'Le framebuffer est l’image de la fenêtre en pixels. {surface} décrit la cible de présentation native et ses dimensions ; {framebufferSize} donne la taille en pixels. Avec la mise à l’échelle de l’affichage, cette taille peut différer de la taille logique de la fenêtre.'
-tutorial.surface.guidance: 'La surface fournit les handles natifs du backend choisi : une fenêtre Win32 sous Windows, un affichage et une fenêtre X11 sous Linux, ou la couche Metal attachée sous macOS.'
+tutorial.surface.guidance: 'La description de la surface contient les handles natifs requis par l’API graphique choisie : une fenêtre Win32 sous Windows, un affichage et une fenêtre X11 sous Linux, ou la couche Metal attachée sous macOS.'
 tutorial.surface.title: 'Surface native'
 tutorial.swapChain.context: 'La chaîne dépend du contexte et de la fenêtre. Remplacez {windowDispose} à la fin de {programCs} par cet ordre de libération :'
 tutorial.swapChain.description: 'Créez la chaîne d’échange immédiatement après la surface :'
@@ -473,7 +473,7 @@ tutorial.swapChain.title: 'Chaîne d’échange'
 tutorial.title: Premier triangle
 tutorial.window.description: 'Téléchargez {cocoaHelperCs} dans le projet. Cette classe auxiliaire attache la couche Metal à la fenêtre macOS.'
 tutorial.window.details: "Remplacez le contenu de {programCs} par le code suivant :"
-tutorial.window.guidance: '{graphicsAPINone} laisse à Zenith.NET la création du contexte graphique. {initialize} crée la fenêtre native et rend ses handles disponibles. {center} la place au centre de l’écran. {run} traite les événements jusqu’à sa fermeture, puis l’exécution passe à {dispose} pour la libérer.'
+tutorial.window.guidance: '{graphicsAPINone} empêche Silk.NET de créer son propre contexte graphique pour la fenêtre ; l’application créera ensuite un contexte Zenith.NET. {initialize} crée la fenêtre native et rend ses handles disponibles. {center} la place au centre de l’écran. {run} traite les événements jusqu’à sa fermeture, puis {dispose} libère la fenêtre.'
 tutorial.window.notes: 'Compilez et lancez l’application. Vérifiez que la fenêtre s’ouvre et se ferme correctement, et que vous pouvez la déplacer et la redimensionner. Son contenu n’est pas encore défini, car aucune commande de rendu n’a été soumise. Fermez la fenêtre avant de poursuivre.'
 tutorial.window.title: 'Création de la fenêtre'
 ui.action.copy: Copier

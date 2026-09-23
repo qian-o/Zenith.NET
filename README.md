@@ -25,15 +25,15 @@ Follow [First Triangle](https://qian-o.github.io/Zenith.NET/learn/first-triangle
 
 ## Packages
 
-### Core and backends
+### Graphics packages
 
 | Package | Purpose |
 | --- | --- |
 | [Zenith.NET](https://www.nuget.org/packages/Zenith.NET) | Shared graphics and compute API. |
-| [Zenith.NET.Compiler](https://www.nuget.org/packages/Zenith.NET.Compiler) | Compiles Slang shaders for the selected graphics backend. |
-| [Zenith.NET.DirectX12](https://www.nuget.org/packages/Zenith.NET.DirectX12) | DirectX 12 backend. |
-| [Zenith.NET.Metal](https://www.nuget.org/packages/Zenith.NET.Metal) | Metal 4 backend. |
-| [Zenith.NET.Vulkan](https://www.nuget.org/packages/Zenith.NET.Vulkan) | Vulkan 1.4 backend. |
+| [Zenith.NET.Compiler](https://www.nuget.org/packages/Zenith.NET.Compiler) | Compiles Slang shaders for the selected graphics API. |
+| [Zenith.NET.DirectX12](https://www.nuget.org/packages/Zenith.NET.DirectX12) | DirectX 12 implementation of the shared API. |
+| [Zenith.NET.Metal](https://www.nuget.org/packages/Zenith.NET.Metal) | Metal 4 implementation of the shared API. |
+| [Zenith.NET.Vulkan](https://www.nuget.org/packages/Zenith.NET.Vulkan) | Vulkan 1.4 implementation of the shared API. |
 
 ### Extensions
 

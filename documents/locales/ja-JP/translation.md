@@ -65,6 +65,8 @@ docfx serve documents/_site --hostname 127.0.0.1 --port 8080
 
 ## 用語
 
+DirectX 12、Metal、Vulkan は「グラフィックス API」と呼び、対応するコードやパッケージは「各 API 向けの実装」と表現します。
+
 | 英語             | 使用する表現                                                                                    |
 | ---------------- | ----------------------------------------------------------------------------------------------- |
 | API / GPU / RHI  | 略語を維持し、原文に従って説明する                                                              |
@@ -73,6 +75,7 @@ docfx serve documents/_site --hostname 127.0.0.1 --port 8080
 | command buffer   | コマンドバッファー                                                                              |
 | command queue    | コマンドキュー                                                                                  |
 | drawable         | 現在のフレームの出力テクスチャ。`Drawable` は変更せず、常にスワップチェーンの画像とは解釈しない |
+| graphics API     | グラフィックス API                                                                              |
 | graphics context | グラフィックスコンテキスト                                                                      |
 | pipeline         | パイプライン                                                                                    |
 | readback         | リードバック                                                                                    |
