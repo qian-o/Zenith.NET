@@ -9,6 +9,12 @@
 </p>
 
 <p align="center">
+  <a href="https://www.nuget.org/packages/Zenith.NET"><img src="https://img.shields.io/nuget/v/Zenith.NET?label=stable" alt="NuGet stable version"></a>
+  <a href="https://www.nuget.org/packages/Zenith.NET?prerelease=true"><img src="https://img.shields.io/nuget/vpre/Zenith.NET?label=prerelease" alt="NuGet prerelease version"></a>
+  <a href="https://github.com/qian-o/Zenith.NET/actions/workflows/continuous-integration.yml"><img src="https://github.com/qian-o/Zenith.NET/actions/workflows/continuous-integration.yml/badge.svg?branch=master" alt="Continuous Integration status"></a>
+</p>
+
+<p align="center">
   <a href="https://qian-o.github.io/Zenith.NET/">Documentation</a> ·
   <a href="https://qian-o.github.io/Zenith.NET/learn/samples.html">Samples</a> ·
   <a href="https://qian-o.github.io/Zenith.NET/api/">API Reference</a> ·
@@ -17,11 +23,19 @@
 
 Zenith.NET is a rendering hardware interface (RHI) for .NET, with a shared C# API for graphics and compute across **DirectX 12, Metal 4, and Vulkan 1.4**.
 
-It gives applications explicit control over GPU resources, command recording, and synchronization.
+## Features
+
+- Create buffers, textures, views, heaps, and pipelines for graphics and compute through the shared API.
+- Record graphics, compute, and transfer work in command buffers. Use barriers and texture transitions to order dependent accesses, and timelines to coordinate queue submissions.
+- Compile Slang shaders for the selected graphics API with `Zenith.NET.Compiler`.
+- Use ray queries and mesh shading when the device reports support.
+- Present through native swap chains or optional UI rendering controls.
 
 ## Getting started
 
 Follow [First Triangle](https://qian-o.github.io/Zenith.NET/learn/first-triangle.html) to create a .NET 10 console application and draw your first triangle.
+
+Continue with [Learn](https://qian-o.github.io/Zenith.NET/learn/index.html) for the core concepts, or browse [Samples](https://qian-o.github.io/Zenith.NET/learn/samples.html) for graphics and compute examples.
 
 ## Packages
 
@@ -54,6 +68,10 @@ Follow [First Triangle](https://qian-o.github.io/Zenith.NET/learn/first-triangle
 | [Zenith.NET.Views.WinForms](https://www.nuget.org/packages/Zenith.NET.Views.WinForms) | Windows Forms rendering control. |
 | [Zenith.NET.Views.WinUI](https://www.nuget.org/packages/Zenith.NET.Views.WinUI) | WinUI and Uno Platform rendering control. |
 | [Zenith.NET.Views.WPF](https://www.nuget.org/packages/Zenith.NET.Views.WPF) | WPF rendering control. |
+
+## Questions
+
+Ask usage questions in [GitHub Discussions](https://github.com/qian-o/Zenith.NET/discussions).
 
 ## License
 
