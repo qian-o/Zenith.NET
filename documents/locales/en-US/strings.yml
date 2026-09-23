@@ -100,10 +100,9 @@ concepts.platforms.integration.context: WinForms, WPF, and the Windows WinUI int
   {extensionsCs}.
 concepts.platforms.integration.description: 'The event interface is shared, but the presentation mechanism depends
   on the framework:'
-concepts.platforms.integration.details: These UI integrations differ in how the GPU image reaches the interface. Bitmap
-  readback copies pixels into CPU memory before display. Shared-texture interop avoids that CPU copy but can still
-  require GPU copies and synchronization. Consider this presentation path, as well as the shared {renderRequested}
-  event, when choosing an integration.
+concepts.platforms.integration.details: UI integrations present GPU images in different ways. Bitmap readback copies
+  pixels into CPU memory before display. Shared-texture interop avoids that copy but may still require GPU copies
+  and synchronization. Consider the presentation path alongside the shared {renderRequested} event.
 concepts.platforms.integration.table.avalonia.integration: Avalonia
 concepts.platforms.integration.table.avalonia.presentation:
   Renders to a texture and downloads pixels into a {writeableBitmap}.
@@ -160,7 +159,7 @@ concepts.platforms.surface.description: The {link} uses Silk.NET to create the w
   receives the native window handles and dimensions through a {surface} description, which it uses to create a {swapChain}.
   The application remains responsible for the operating-system window.
 concepts.platforms.surface.description.link: triangle tutorial
-concepts.platforms.surface.details: 'Surface handles must match the selected graphics API:'
+concepts.platforms.surface.details: 'Surface handles depend on the graphics API and window system. Common combinations are:'
 concepts.platforms.surface.guidance: The sample host in {appCs} supports Windows, macOS, and X11. Its Linux window
   supplies Xlib handles, so a Wayland session needs XWayland to run it. A native Wayland application supplies its
   display and surface handles through {surfaceWayland}.
@@ -184,8 +183,7 @@ concepts.resources.allocation.description: Use a {heap} when the application nee
 concepts.resources.allocation.details: For each resource, call {contextGetSizeAndAlignment} with the buffer or texture
   description that will be used to create it. Reserve the returned size at an offset that is a multiple of the returned
   alignment, within the heap's bounds and without overlapping another live allocation. Texture sizes may include
-  implementation-specific padding, so pixel count and bytes per pixel alone are insufficient to calculate their allocation
-  size.
+  padding, so pixel count and bytes per pixel alone are insufficient to calculate their allocation size.
 concepts.resources.allocation.guidance: A buffer placed in a heap must specify the same residency as that heap.
   For texture storage, use a GPU-only heap.
 concepts.resources.allocation.title: Heap allocation
@@ -270,15 +268,15 @@ concepts.resources.transfers.table.headings.transfer: Transfer behavior
 concepts.resources.transfers.table.textureTransfers.method: '{textureUpload} / {textureDownload}'
 concepts.resources.transfers.table.textureTransfers.transfer: Submits the copy and its texture transitions to the
   graphics queue, then waits for completion. The selected subresource is left in the requested final layout.
-concepts.resources.transfers.title: Immediate and recorded transfers
+concepts.resources.transfers.title: Immediate and command buffer transfers
 concepts.resources.usages.description: '{bufferUsages} and {textureUsages} are flag enums for declaring resource
   roles. Assign them to {bufferDescUsages} and {textureDescUsages}, respectively. When a resource serves several
   roles, combine the required members with {value}.'
 concepts.resources.usages.title: Resource usages
 concepts.resources.views.description: A {bufferView} describes a region of a buffer and how its data is interpreted.
   A {textureView} selects a subresource range and a compatible texture type and format. Both refer to existing storage,
-  with the usages declared when that storage was created. View ranges describe access; they do not provide consistent
-  shader bounds checking across graphics APIs.
+  with the usages declared when that storage was created. View ranges describe access; they do not guarantee consistent
+  shader bounds checking.
 concepts.resources.views.details: A resource's own handle provides its default view. Create a separate view to select
   a different region or compatible interpretation. Keep both the view and its backing resource alive until the GPU
   has finished using them; a resource handle does not retain either object. When replacing either one, update any
@@ -295,8 +293,8 @@ concepts.shaders.binding.details: 'With a command buffer, compute pipeline, popu
   counts ready, record the dispatch in this order. Select the pipeline first, because the constant-buffer binding
   applies to that pipeline:'
 concepts.shaders.binding.guidance: The constant buffer requires {bufferUsagesConstant} usage. If several constant
-  records share one buffer, each record's starting offset must meet the alignment required by the selected graphics API.
-  This is separate from the layout of fields within each record.
+  records share one buffer, each record's starting offset must meet the required binding alignment. This is separate
+  from the layout of fields within each record.
 concepts.shaders.binding.notes: '{resourceHandle} contains two 32-bit fields whose interpretation depends on the
   graphics API implementation. Its values are valid only within the context that created the resource.'
 concepts.shaders.binding.reference: Retain the resource and any view used to obtain its handle until the shader's
@@ -351,7 +349,7 @@ concepts.shaders.layout.notes: 'The matching declaration in {computeShaderSlang}
 concepts.shaders.layout.reference: 'The C# fields occupy the first 24 bytes: eight for the dimensions and eight
   for each handle. The 256-byte record leaves the remaining bytes as padding. For a different parameter block,
   match the field offsets to its shader layout. If multiple records share a buffer, include enough padding
-  between them to meet the alignment required by the selected graphics API.'
+  between them to meet the required binding alignment.'
 concepts.shaders.layout.title: Data layout
 concepts.shaders.matrices.description: The compiler selects row-major matrix storage, keeping each row contiguous.
   The {link} stores three {matrix4x4} values at offsets 0, 64, and 128. Its {detail} applies {mulVectorMatrix} in
@@ -388,9 +386,9 @@ concepts.synchronization.dependencies.description: For each resource, identify t
   layout and presentation requirements still apply. CPU updates and resource disposal also need to wait until the
   GPU has finished using the affected storage.
 concepts.synchronization.dependencies.details: 'The appropriate mechanism depends on where the operations execute:'
-concepts.synchronization.dependencies.guidance: A workload may need more than one mechanism. For example, when one
-  queue writes a texture and another uses it, the consumer needs both a submission dependency and the appropriate
-  layout. Neither step blocks the CPU unless it needs to access or release the data.
+concepts.synchronization.dependencies.guidance: When one queue writes a texture that another uses, submit the consumer
+  with a dependency and record any required layout transition. Neither blocks the CPU. Wait for completion before
+  the CPU accesses the data or releases the resource.
 concepts.synchronization.dependencies.table.cpuAccess.mechanism: Call {wait} on the relevant completion value.
 concepts.synchronization.dependencies.table.cpuAccess.situation: CPU access or resource release depends on GPU completion
 concepts.synchronization.dependencies.table.crossQueue.mechanism: Pass the producer's {timelineValue} to the consumer's
@@ -564,8 +562,8 @@ tutorial.context.description: A {graphicsContext} connects the application to th
   API and provides methods to create resources for rendering.
 tutorial.context.details: 'Insert the context initialization {emphasis}:'
 tutorial.context.details.emphasis: after the using directives, before {iWindowWindow}
-tutorial.context.guidance: Each branch selects a graphics API for the current platform and requests validation
-  to help diagnose incorrect API use. Messages from {validationMessage} are printed in the console.
+tutorial.context.guidance: Each branch requests validation for its graphics API. The handler prints any diagnostics
+  reported through {validationMessage}.
 tutorial.context.imports: 'Add the following using directives at the top of {programCs}:'
 tutorial.context.title: Graphics context
 tutorial.description: In this tutorial, you will build a .NET console application that opens a window and draws
@@ -609,9 +607,8 @@ tutorial.frame.commands.details: The collection contains one color attachment. {
 tutorial.frame.commands.guidance: '{beginRenderPass} sets the viewport and scissor to cover the whole attachment.
   The viewport maps rendering coordinates to pixel positions; the scissor limits which pixels drawing can affect.'
 tutorial.frame.commands.title: Clear, submission, and presentation
-tutorial.frame.description: Start by filling the window with a single background color. This operation is called
-  clearing. Once the background appears, the surface, command submission, and presentation are working together,
-  ready for the triangle's geometry and shaders.
+tutorial.frame.description: Start by filling the window with a solid color, an operation called clearing. If the
+  color appears, command submission and presentation are working. Then add the triangle's vertices and shaders.
 tutorial.frame.details: 'Silk.NET invokes the render callback when a frame is due. Register the callback {emphasis}:'
 tutorial.frame.details.emphasis: before {windowRun}
 tutorial.frame.target.description: A command queue receives recorded work for GPU execution. {graphicsQueueCommandBuffer}
@@ -681,9 +678,8 @@ tutorial.input.table.nextVertex.shaderInput: Next input record
 tutorial.input.table.vertexColor.format: '{float4} (16 bytes)'
 tutorial.input.table.vertexPosition.format: '{float3} (12 bytes)'
 tutorial.input.title: Vertex input layout
-tutorial.lifecycle.description: Each frame gets the current drawable, transitions it for use as a color attachment,
-  clears the background, and draws the triangle. The application then transitions the drawable for presentation,
-  submits the recorded commands, waits for completion, and presents the image.
+tutorial.lifecycle.description: For each frame, get the current drawable, transition it for use as a color attachment, clear
+  the background and draw the triangle, transition it for presentation, then submit, wait, and present.
 tutorial.lifecycle.details: 'When the window closes, {run} returns and execution continues to the cleanup code.
   The render callback has waited for every submitted frame to finish, so the resources used by those commands can now
   be released. The complete cleanup after {windowRun} is:'
@@ -712,22 +708,21 @@ tutorial.project.context: Enable {emphasis} ({allowUnsafeBlocks}) in the project
 tutorial.project.context.emphasis: Allow unsafe code
 tutorial.project.description: Create a C# console project named {firstTriangle} targeting .NET 10.
 tutorial.project.details: 'Add the following NuGet packages to the project:'
-tutorial.project.guidance: '{zenithNET} provides the shared graphics and compute API. The three API-specific packages
-  provide its DirectX 12, Metal 4, and Vulkan 1.4 implementations. {zenithNETCompiler} compiles the Slang shaders
-  introduced below for the selected graphics API.'
+tutorial.project.guidance: '{zenithNET} provides the shared graphics and compute API; the three graphics API packages
+  implement it. {zenithNETCompiler} compiles Slang shaders for the selected API.'
 tutorial.project.title: Project setup
-tutorial.requirements.description: 'You need the {emphasis} and basic C# knowledge. Your GPU and driver must
-  support the graphics API selected for your platform:'
+tutorial.requirements.description: 'You need the {emphasis} and basic C# knowledge. Your GPU and driver must support
+  these graphics capabilities for your platform:'
 tutorial.requirements.description.emphasis: .NET 10 SDK
 tutorial.requirements.guidance: Zenith.NET renders into a native surface provided by the application. Silk.NET.Windowing
   creates the window and processes its events.
-tutorial.requirements.table.headings.graphicsBackend: Graphics API
+tutorial.requirements.table.headings.graphicsBackend: Graphics support
 tutorial.requirements.table.headings.platform: Platform
-tutorial.requirements.table.linux.graphicsBackend: Vulkan 1.4
+tutorial.requirements.table.linux.graphicsBackend: Vulkan 1.4 with VK_EXT_descriptor_heap
 tutorial.requirements.table.linux.platform: Linux (X11 or XWayland)
 tutorial.requirements.table.macOS.graphicsBackend: Metal 4
 tutorial.requirements.table.macOS.platform: macOS
-tutorial.requirements.table.windows.graphicsBackend: DirectX 12
+tutorial.requirements.table.windows.graphicsBackend: DirectX 12 with Shader Model 6.6
 tutorial.requirements.table.windows.platform: Windows
 tutorial.requirements.title: Prerequisites
 tutorial.resize.context: Build and run the application again. The background should continue to fill the window
