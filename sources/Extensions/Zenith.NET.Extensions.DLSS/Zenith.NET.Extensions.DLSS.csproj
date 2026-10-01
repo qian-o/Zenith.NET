@@ -5,11 +5,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="NGX.NET" />
+        <ProjectReference Include="..\..\Zenith.NET\Zenith.NET.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Zenith.NET\Zenith.NET.csproj" />
+        <PackageReference Include="NGX.NET" />
     </ItemGroup>
 
     <Import Project="..\..\NuGet.Packaging.props" />
