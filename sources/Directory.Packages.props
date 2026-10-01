@@ -10,6 +10,7 @@
         <PackageVersion Include="Metal.NET" Version="2.4.0" />
         <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.110" />
         <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
+        <PackageVersion Include="NGX.NET" Version="310.9.1" />
         <PackageVersion Include="Roslynator.Analyzers" Version="5.0.0" />
         <PackageVersion Include="Silk.NET.Direct3D11" Version="2.23.0" />
         <PackageVersion Include="Silk.NET.Direct3D12" Version="2.23.0" />
@@ -19,8 +20,8 @@
         <PackageVersion Include="Silk.NET.Vulkan.Extensions.EXT" Version="2.23.0" />
         <PackageVersion Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.23.0" />
         <PackageVersion Include="SixLabors.ImageSharp" Version="4.1.2" />
-        <PackageVersion Include="SkiaSharp" Version="4.152.1" />
-        <PackageVersion Include="Slangc.NET" Version="2026.18.0" />
+        <PackageVersion Include="SkiaSharp" Version="4.153.1" />
+        <PackageVersion Include="Slangc.NET" Version="2026.19.0" />
         <PackageVersion Include="Uno.WinUI" Version="6.7.135" />
     </ItemGroup>
 
