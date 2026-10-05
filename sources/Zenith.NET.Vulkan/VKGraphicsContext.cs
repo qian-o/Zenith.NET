@@ -37,7 +37,6 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         KhrExternalMemoryFd.ExtensionName,
         KhrExternalMemoryWin32.ExtensionName,
         KhrFragmentShadingRate.ExtensionName,
-        KhrPushDescriptor.ExtensionName,
         KhrRayQuery.ExtensionName,
         KhrShaderUntypedPointers.ExtensionName,
         KhrSwapchain.ExtensionName,
