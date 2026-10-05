@@ -4,6 +4,7 @@ using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.ANDROID;
 using Silk.NET.Vulkan.Extensions.EXT;
 using Silk.NET.Vulkan.Extensions.KHR;
+using Silk.NET.Vulkan.Extensions.NVX;
 
 namespace Zenith.NET.Vulkan;
 
@@ -36,9 +37,12 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
         KhrExternalMemoryFd.ExtensionName,
         KhrExternalMemoryWin32.ExtensionName,
         KhrFragmentShadingRate.ExtensionName,
+        KhrPushDescriptor.ExtensionName,
         KhrRayQuery.ExtensionName,
         KhrShaderUntypedPointers.ExtensionName,
-        KhrSwapchain.ExtensionName
+        KhrSwapchain.ExtensionName,
+        NvxBinaryImport.ExtensionName,
+        NvxImageViewHandle.ExtensionName
     ];
 
     public Instance Instance;

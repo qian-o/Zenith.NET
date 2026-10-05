@@ -34,7 +34,11 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     public override nint GetNativeObject(NativeObjectType type)
     {
-        return 0;
+        return type switch
+        {
+            NativeObjectType.VulkanCommandBuffer => CommandBuffer.Handle,
+            _ => default
+        };
     }
 
     protected override void BarrierImpl(BarrierStages before, BarrierStages after)
