@@ -466,16 +466,70 @@ internal unsafe class VKCommandBuffer : CommandBuffer
 
     protected override void SetPipelineImpl(GraphicsPipeline pipeline)
     {
+        BindHeapInfoEXT resourceBindInfo = new()
+        {
+            SType = StructureType.BindHeapInfoExt(),
+            HeapRange = Context.ResourceHeap.Range,
+            ReservedRangeSize = Context.ResourceHeap.ReservedBytes
+        };
+
+        Context.DescriptorHeap?.CmdBindResourceHeap(CommandBuffer, &resourceBindInfo);
+
+        BindHeapInfoEXT samplerBindInfo = new()
+        {
+            SType = StructureType.BindHeapInfoExt(),
+            HeapRange = Context.SamplerHeap.Range,
+            ReservedRangeSize = Context.SamplerHeap.ReservedBytes
+        };
+
+        Context.DescriptorHeap?.CmdBindSamplerHeap(CommandBuffer, &samplerBindInfo);
+
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Graphics, pipeline.Vulkan().Pipeline);
     }
 
     protected override void SetPipelineImpl(ComputePipeline pipeline)
     {
+        BindHeapInfoEXT resourceBindInfo = new()
+        {
+            SType = StructureType.BindHeapInfoExt(),
+            HeapRange = Context.ResourceHeap.Range,
+            ReservedRangeSize = Context.ResourceHeap.ReservedBytes
+        };
+
+        Context.DescriptorHeap?.CmdBindResourceHeap(CommandBuffer, &resourceBindInfo);
+
+        BindHeapInfoEXT samplerBindInfo = new()
+        {
+            SType = StructureType.BindHeapInfoExt(),
+            HeapRange = Context.SamplerHeap.Range,
+            ReservedRangeSize = Context.SamplerHeap.ReservedBytes
+        };
+
+        Context.DescriptorHeap?.CmdBindSamplerHeap(CommandBuffer, &samplerBindInfo);
+
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Compute, pipeline.Vulkan().Pipeline);
     }
 
     protected override void SetPipelineImpl(MeshShadingPipeline pipeline)
     {
+        BindHeapInfoEXT resourceBindInfo = new()
+        {
+            SType = StructureType.BindHeapInfoExt(),
+            HeapRange = Context.ResourceHeap.Range,
+            ReservedRangeSize = Context.ResourceHeap.ReservedBytes
+        };
+
+        Context.DescriptorHeap?.CmdBindResourceHeap(CommandBuffer, &resourceBindInfo);
+
+        BindHeapInfoEXT samplerBindInfo = new()
+        {
+            SType = StructureType.BindHeapInfoExt(),
+            HeapRange = Context.SamplerHeap.Range,
+            ReservedRangeSize = Context.SamplerHeap.ReservedBytes
+        };
+
+        Context.DescriptorHeap?.CmdBindSamplerHeap(CommandBuffer, &samplerBindInfo);
+
         Context.Vk.CmdBindPipeline(CommandBuffer, PipelineBindPoint.Graphics, pipeline.Vulkan().Pipeline);
     }
 
@@ -663,29 +717,6 @@ internal unsafe class VKCommandBuffer : CommandBuffer
         };
 
         Context.Vk.BeginCommandBuffer(CommandBuffer, &beginInfo).Success();
-
-        if (Queue.Type is CommandQueueType.Transfer)
-        {
-            return;
-        }
-
-        BindHeapInfoEXT resourceBindInfo = new()
-        {
-            SType = StructureType.BindHeapInfoExt(),
-            HeapRange = Context.ResourceHeap.Range,
-            ReservedRangeSize = Context.ResourceHeap.ReservedBytes
-        };
-
-        Context.DescriptorHeap?.CmdBindResourceHeap(CommandBuffer, &resourceBindInfo);
-
-        BindHeapInfoEXT samplerBindInfo = new()
-        {
-            SType = StructureType.BindHeapInfoExt(),
-            HeapRange = Context.SamplerHeap.Range,
-            ReservedRangeSize = Context.SamplerHeap.ReservedBytes
-        };
-
-        Context.DescriptorHeap?.CmdBindSamplerHeap(CommandBuffer, &samplerBindInfo);
     }
 
     protected override void EndImpl()
