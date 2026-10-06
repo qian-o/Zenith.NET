@@ -2,17 +2,17 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 状态 | 草案第 6 版 |
-| 基线 | `feature/dlss-integration` @ `1a8f294` |
+| 状态 | 草案第 7 版 |
+| 基线 | `feature/dlss-integration` @ `752eb47` |
 | 依赖 | `Zenith.NET`、`NGX.NET` 310.9.1 |
-| 参照 | Upscaling 扩展（调用形式）、ImGui 扩展（纹理绑定）、Skia 扩展（每上下文原生状态及其释放）、Apple 为 MetalFX 帧插值提供的 [`PresentThread`](https://github.com/apple/game-porting-toolkit/blob/main/game-porting-skills/skills/using-metalfx-frame-interpolation/SKILL.md)、[NGX.NET Showcase](https://github.com/qian-o/NGX.NET/tree/master/Showcase) |
+| 参照 | Upscaling 扩展（调用形式）、ImGui 扩展（纹理绑定）、Skia 扩展（每上下文原生状态及其释放）、Apple 为 MetalFX 帧插值提供的 [`PresentThread`](https://github.com/apple/game-porting-toolkit/blob/main/game-porting-skills/skills/using-metalfx-frame-interpolation/references/present-thread.md)、[NGX.NET Showcase](https://github.com/qian-o/NGX.NET/tree/master/Showcase) |
 
 ## 1. 范围与原则
 
 - 三个公开对象：超分辨率（含 DLAA）`DLSSSuperResolution`、光线重建 `DLSSRayReconstruction`、帧生成 `DLSSFrameGeneration`。生成帧如何呈现由应用决定（2.7）。支持 DirectX 12 与 Vulkan，NGX 没有 Metal 实现。
 - 调用形式与 Upscaling 扩展相同：`context.CreateXxx(desc)` 创建，`xxx.Dispatch(commandBuffer, args)` 录制。纹理经 `texture.DLSSBinding` 传入，用法同 `texture.ImGuiBinding`。
 - 类型名为 `DLSS` 加 NVIDIA 功能名，之后新增的功能按同一规则命名。
-- 参数沿用 NGX 原义。扩展只做类型转换：纹理转为原生资源，枚举与格式转为 NGX 取值，按 NGX 的需要对矩阵求逆。不做数值换算，也不做兼容处理。
+- 参数沿用 NGX 原义。扩展只做类型转换：纹理转为原生资源，枚举与格式转为 NGX 取值，按 NGX 的需要对矩阵求逆；未公开的 NGX 参数取固定值（附录）。不做数值换算，也不做兼容处理。
 - 不验证参数，不抛出异常，NGX 调用失败只输出调试信息。NGX 的初始化选项不向应用公开。
 - RHI 只保留本分支已有的改动（第 5 节），不再为扩展修改 RHI。
 
@@ -35,6 +35,7 @@ public static class Extensions
 {
     private static readonly Lock @lock = new();
     private static readonly Dictionary<GraphicsContext, DLSSContext> contexts = [];
+    private static readonly Dictionary<(GraphicsApi, string), DLSSCapabilities> capabilities = [];
 
     extension(GraphicsContext context)
     {
@@ -42,13 +43,18 @@ public static class Extensions
         {
             get
             {
-                DLSSContext dlssContext = AcquireContext(context);
+                using Lock.Scope _ = @lock.EnterScope();
 
-                DLSSCapabilities capabilities = dlssContext.Capabilities;
+                if (!capabilities.TryGetValue((context.GraphicsApi, context.Capabilities.DeviceName), out DLSSCapabilities dlssCapabilities))
+                {
+                    DLSSContext dlssContext = AcquireContext(context);
 
-                ReleaseContext(dlssContext);
+                    dlssCapabilities = dlssContext.Capabilities;
 
-                return capabilities;
+                    ReleaseContext(dlssContext);
+                }
+
+                return dlssCapabilities;
             }
         }
 
@@ -75,6 +81,11 @@ public static class Extensions
         if (!contexts.TryGetValue(context, out DLSSContext? dlssContext))
         {
             contexts[context] = dlssContext = new(context);
+
+            if (dlssContext.IsInitialized)
+            {
+                capabilities.TryAdd((context.GraphicsApi, context.Capabilities.DeviceName), dlssContext.Capabilities);
+            }
         }
 
         dlssContext.AddReference();
@@ -85,7 +96,8 @@ public static class Extensions
 ```
 
 - 功能对象创建时取得一个引用，`Destroy` 中调用 `ReleaseContext`；最后一个引用释放时关闭 NGX。查询只在调用期间持有引用。
-- NGX 初始化在本机约 1 秒（第 5 节）。没有存活的功能对象时，每次查询都会初始化并关闭一次 NGX。重建功能对象时先创建新对象再释放旧对象，NGX 就不会重新初始化。
+- 能力按后端与设备名称（`context.Capabilities.DeviceName`）静态缓存到进程结束。只在新建的 `DLSSContext` 初始化 NGX 成功时写入；未加载 NGX 或初始化失败时不写入，下次查询重新尝试。键含后端，因为 NGX 的能力由各后端分别初始化得到，同一块 GPU 在两个后端上的结果不保证相同。
+- NGX 初始化在本机约 1 秒（第 5 节）。没有存活的功能对象时，缓存未命中的能力查询与每次最佳设置查询都会初始化并关闭一次 NGX。重建功能对象时先创建新对象再释放旧对象，NGX 就不会重新初始化。
 - 后端不是 DirectX 12 或 Vulkan、平台不在 NGX 支持范围内，或 NGX 初始化失败时：能力全部为 `false`，查询返回 0，`Dispatch` 不录制命令。
 - `NGXResult` 的 `Success()` 与后端的同名成员一致：失败时输出 `Debug.WriteLine`，继续执行。
 
@@ -144,13 +156,32 @@ public readonly struct DLSSOptimalSettings(uint inputWidth, uint inputHeight, ui
 }
 ```
 
+```csharp
+namespace Zenith.NET.Extensions.DLSS;
+
+public enum DLSSMode
+{
+    UltraPerformance,
+
+    Performance,
+
+    Balanced,
+
+    Quality,
+
+    UltraQuality,
+
+    DLAA
+}
+```
+
 | 类型或成员 | 取值 | NGX |
 | --- | --- | --- |
 | `SuperResolutionSupported`、`RayReconstructionSupported`、`FrameGenerationSupported` | | `SuperSampling.Available`、`SuperSamplingDenoising.Available`、`FrameGeneration.Available` |
 | `DLSSOptimalSettings` | 0 表示该档位或尺寸不受支持 | `DLSS.GetOptimalSettings`、`DLSSD.GetOptimalSettings` |
-| `DLSSMode` | `DLAA`、`UltraQuality`、`Quality`、`Balanced`、`Performance`、`UltraPerformance` | `NGXPerfQualityValue` 的 `DLAA`、`UltraQuality`、`MaxQuality`、`Balanced`、`MaxPerf`、`UltraPerformance` |
+| `DLSSMode` | `UltraPerformance`、`Performance`、`Balanced`、`Quality`、`UltraQuality`、`DLAA` | `NGXPerfQualityValue` 的 `UltraPerformance`、`MaxPerf`、`Balanced`、`MaxQuality`、`UltraQuality`、`DLAA` |
 
-- `DLSSMode` 由超分辨率与光线重建共用。
+- `DLSSMode` 由超分辨率与光线重建共用，与 `TemporalUpscalerMode` 一样按速度到画质排列。
 - 渲染预设决定 DLSS 使用哪个模型，不公开，固定为 `Default`：NGX 按档位选用 NVIDIA 推荐的模型，并随驱动更新。
 
 ### 2.4 超分辨率
@@ -172,7 +203,7 @@ public struct DLSSSuperResolutionDesc
 
     public DLSSMode Mode;
 
-    public bool IsHDR;
+    public bool IsHdr;
 
     public bool IsAutoExposureEnabled;
 
@@ -226,14 +257,14 @@ public struct DLSSSuperResolutionArgs
 | `InputWidth`、`InputHeight` | `InWidth`、`InHeight` | 渲染分辨率；使用动态分辨率时为上限 |
 | `OutputWidth`、`OutputHeight` | `InTargetWidth`、`InTargetHeight` | |
 | `Mode` | `InPerfQualityValue` | |
-| `IsHDR`、`IsAutoExposureEnabled`、`IsDepthReversed`、`IsMotionVectorJittered`、`IsAlphaUpscalingEnabled` | `IsHDR`、`AutoExposure`、`DepthInverted`、`MVJittered`、`AlphaUpscaling` 标志 | Alpha 取自 `Input` 的 A 通道 |
+| `IsHdr`、`IsAutoExposureEnabled`、`IsDepthReversed`、`IsMotionVectorJittered`、`IsAlphaUpscalingEnabled` | `IsHDR`、`AutoExposure`、`DepthInverted`、`MVJittered`、`AlphaUpscaling` 标志 | Alpha 取自 `Input` 的 A 通道 |
 | `Input`、`Depth`、`MotionVectors`、`Output` | `pInColor`、`pInDepth`、`pInMotionVectors`、`pInOutput` | 必需 |
 | `Exposure` | `pInExposureTexture` | 1×1 曝光纹理 |
 | `ReactiveMask` | `pInBiasCurrentColorMask` | 0 到 1，偏向当前帧的程度 |
-| `InputContentWidth`、`InputContentHeight` | `InRenderSubrectDimensions` | 动态分辨率下本帧的有效区域 |
+| `InputContentWidth`、`InputContentHeight` | `InRenderSubrectDimensions` | 必需；本帧的渲染尺寸，不使用动态分辨率时等于 `InputWidth`、`InputHeight` |
 | `JitterOffsetX`、`JitterOffsetY` | `InJitterOffsetX`、`InJitterOffsetY` | 输入像素 |
-| `MotionVectorScaleX`、`MotionVectorScaleY` | `InMVScaleX`、`InMVScaleY` | 把运动矢量换算到输入像素；0 按 1 |
-| `PreExposure`、`ExposureScale` | `InPreExposure`、`InExposureScale` | 0 按 1 |
+| `MotionVectorScaleX`、`MotionVectorScaleY` | `InMVScaleX`、`InMVScaleY` | 把运动矢量换算到输入像素；0 时 NGX 按 1 处理 |
+| `PreExposure`、`ExposureScale` | `InPreExposure`、`InExposureScale` | 0 时 NGX 按 1 处理 |
 | `Reset` | `InReset` | 丢弃历史 |
 
 扩展固定设置 `MVLowRes`：运动矢量与输入同分辨率。
@@ -333,7 +364,7 @@ public struct DLSSRayReconstructionArgs
 | 字段 | NGX | 说明 |
 | --- | --- | --- |
 | 尺寸、`Mode` | 同超分辨率 | |
-| `IsDepthReversed`、`IsMotionVectorJittered`、`IsAlphaUpscalingEnabled` | `DepthInverted`、`MVJittered`、`AlphaUpscaling` 标志 | |
+| `IsDepthReversed`、`IsMotionVectorJittered`、`IsAlphaUpscalingEnabled` | `DepthInverted`、`MVJittered`、`AlphaUpscaling` 标志 | Alpha 取自 `Input` 的 A 通道 |
 | `IsDepthLinear` | `InUseHWDepth`：`Linear` 或 `HW` | |
 | `IsRoughnessPacked` | `InRoughnessMode`：`Packed` 或 `Unpacked` | 打包时粗糙度在 `Normals` 的 A 通道 |
 | `Input`、`DiffuseAlbedo`、`SpecularAlbedo`、`Normals`、`Depth`、`MotionVectors`、`Output` | `pInColor`、`pInDiffuseAlbedo`、`pInSpecularAlbedo`、`pInNormals`、`pInDepth`、`pInMotionVectors`、`pInOutput` | 必需 |
@@ -356,6 +387,8 @@ namespace Zenith.NET.Extensions.DLSS;
 
 public struct DLSSFrameGenerationDesc
 {
+    public PixelFormat Format;
+
     public uint InputWidth;
 
     public uint InputHeight;
@@ -364,9 +397,7 @@ public struct DLSSFrameGenerationDesc
 
     public uint OutputHeight;
 
-    public PixelFormat Format;
-
-    public bool IsHDR;
+    public bool IsHdr;
 
     public bool IsDepthReversed;
 
@@ -445,10 +476,10 @@ public struct DLSSFrameGenerationArgs
 
 | 字段 | NGX | 说明 |
 | --- | --- | --- |
+| `Format` | `NativeBackbufferFormat` | `Color` 与 `Output` 的格式，转为 DXGI_FORMAT 或 VkFormat 的数值 |
 | `InputWidth`、`InputHeight` | `RenderWidth`、`RenderHeight` | 深度与运动矢量的分辨率；使用动态分辨率时为上限 |
 | `OutputWidth`、`OutputHeight` | `Width`、`Height` | 颜色与生成帧的分辨率 |
-| `Format` | `NativeBackbufferFormat` | `Color` 与 `Output` 的格式，转为 DXGI_FORMAT 或 VkFormat 的数值 |
-| `IsHDR`、`IsDepthReversed` | `ColorBuffersHDR`、`DepthInverted` | |
+| `IsHdr`、`IsDepthReversed` | `ColorBuffersHDR`、`DepthInverted` | |
 | `IsMotionVectorJittered` | `DLSSG.MvecJittered` | |
 | `IsDynamicResolutionEnabled` | `DynamicResolutionScaling` | |
 | `IsUIRecompositionEnabled` | `DLSSG.UserInterfaceRecompositionEnabled` | 需要 `HudlessColor`，以及 `UI` 或 `UIAlpha` |
@@ -456,9 +487,9 @@ public struct DLSSFrameGenerationArgs
 | `HudlessColor` | `pHudless` | 绘制 UI 之前的同一帧，强烈建议提供 |
 | `UI`、`UIAlpha` | `pUI`、`pUIAlpha` | 预乘 Alpha 的 UI，或单通道的 UI 不透明度，二选一 |
 | `DistortionField` | `pBidirectionalDistortionField` | 镜头畸变等后处理的双向畸变场 |
-| `InputContentWidth`、`InputContentHeight` | `MvecsSubrectSize`、`DepthSubrectSize` | 动态分辨率下本帧的有效区域 |
+| `InputContentWidth`、`InputContentHeight` | `MvecsSubrectSize`、`DepthSubrectSize` | 动态分辨率下本帧的有效区域；未启用动态分辨率时可为 0 |
 | `JitterOffsetX`、`JitterOffsetY` | `JitterOffset` | 裁剪空间 |
-| `MotionVectorScaleX`、`MotionVectorScaleY` | `MvecScale` | 把运动矢量归一化到 [-1, 1] |
+| `MotionVectorScaleX`、`MotionVectorScaleY` | `MvecScale` | 必需；把运动矢量归一化到 [-1, 1] |
 | `ViewToClip` | `CameraViewToClip`；其逆矩阵为 `ClipToCameraView` | 不含抖动 |
 | `ClipToPrevClip` | `ClipToPrevClip`；其逆矩阵为 `PrevClipToClip` | |
 | `CameraPosition`、`CameraUp`、`CameraRight`、`CameraForward` | `CameraPos`、`CameraUp`、`CameraRight`、`CameraFwd` | 世界空间 |
@@ -473,12 +504,12 @@ public struct DLSSFrameGenerationArgs
 
 扩展不负责呈现，做法与 MetalFX 相同：MetalFX 只提供插帧器，Apple 的 `PresentThread` 是放在应用侧的示例代码。生成帧何时呈现、是否丢弃、如何与真实帧交替，都由应用决定。
 
-参考做法，结构与 `PresentThread` 相同：
+参考做法，线程划分与呈现顺序同 `PresentThread`：
 
 - 交换链以 `UsePresentQueue = true` 创建。生成帧与真实帧都在 `swapChain.Queue` 上拷贝到 `Drawable` 并呈现，不排在 `GraphicsQueue` 的渲染工作之后。拷贝与呈现的写法见文档「平台集成」中的「使用呈现队列」。
 - 渲染线程：把本帧最终画面（含 UI）渲染到后缓冲，作为帧生成的 `Color`；`Dispatch` 输出到生成帧纹理，提交后把完成值交给呈现线程。
 - 呈现线程：帧生成完成后拷贝并呈现生成帧，拷贝以帧生成的完成值为等待条件；等到约半个帧间隔后，拷贝并呈现真实帧。帧间隔取最近几次真实帧呈现间隔的平均值，生成帧与真实帧各显示约半个间隔。第一帧与 `Reset` 为真时只呈现真实帧。
-- 后缓冲与生成帧纹理各两张交替使用。渲染线程开始使用某一张之前，等呈现线程用完它，即最多一帧在途。
+- 后缓冲与生成帧纹理各两张交替使用。渲染线程开始使用某一张之前，等呈现线程用完它，即最多一帧在途。这个等待用呈现线程的通知或 `IsCompleted` 判断，不对呈现队列的完成值调用 `Wait()`：`Timeline.Wait` 在等待期间持有该时间线的锁，会挡住呈现线程的 `Submit` 与 `Present`。
 - 交换链尺寸变化时，先停止呈现线程，再调用 `SwapChain.Resize`，然后重建帧生成对象与上述纹理。
 
 ### 2.8 示例
@@ -495,7 +526,7 @@ DLSSSuperResolution superResolution = context.CreateDLSSSuperResolution(new()
     OutputWidth = displayWidth,
     OutputHeight = displayHeight,
     Mode = DLSSMode.Quality,
-    IsHDR = true,
+    IsHdr = true,
     IsAutoExposureEnabled = true
 });
 
@@ -507,6 +538,8 @@ superResolution.Dispatch(commandBuffer, new()
     Depth = depth.DLSSBinding,
     MotionVectors = motionVectors.DLSSBinding,
     Output = output.DLSSBinding,
+    InputContentWidth = settings.InputWidth,
+    InputContentHeight = settings.InputHeight,
     JitterOffsetX = jitter.X,
     JitterOffsetY = jitter.Y,
     Reset = reset
@@ -527,11 +560,11 @@ SwapChain swapChain = context.CreateSwapChain(new()
 
 DLSSFrameGeneration frameGeneration = context.CreateDLSSFrameGeneration(new()
 {
+    Format = swapChain.Desc.Format,
     InputWidth = renderWidth,
     InputHeight = renderHeight,
     OutputWidth = swapChain.Desc.Surface.Width,
     OutputHeight = swapChain.Desc.Surface.Height,
-    Format = swapChain.Desc.Format,
     IsUIRecompositionEnabled = true
 });
 
@@ -579,7 +612,7 @@ TimelineValue generatedValue = commandBuffer.Submit();
 | `Extensions.cs` | 入口（2.1） |
 | `DLSSBinding.cs`、`DLSSCapabilities.cs`、`DLSSOptimalSettings.cs`、`DLSSMode.cs` | 2.2、2.3 |
 | `DLSSSuperResolution*.cs`、`DLSSRayReconstruction*.cs`、`DLSSFrameGeneration*.cs` | 各功能的类、Desc 与 Args，每个公共类型一个文件 |
-| `DLSSContext.cs` | 内部：NGX 初始化与关闭、能力、参数块、绑定解析 |
+| `DLSSContext.cs` | 内部：NGX 初始化与关闭、能力、参数块、绑定解析、Vulkan 空描述符集 |
 | `DLSSFormats.cs` | 内部：数值映射（3.4） |
 
 ### 3.2 DLSSContext
@@ -590,21 +623,23 @@ TimelineValue generatedValue = commandBuffer.Submit();
 | --- | --- | --- |
 | 初始化 | `D3D12.InitWithProjectID`，传入 `D3D12Device` | `Vulkan.InitWithProjectID`，传入 `VulkanInstance`、`VulkanPhysicalDevice`、`VulkanDevice`、`VulkanGetInstanceProcAddr`、`VulkanGetDeviceProcAddr` |
 | 命令列表 | `D3D12GraphicsCommandList` | `VulkanCommandBuffer` |
-| 纹理 | `D3D12Resource` | `NGXResourceVK`：`VulkanImage` 加绑定表中的 VkImageView |
+| 纹理 | `D3D12Resource` | `NGXResourceVK`：`VulkanImage` 加绑定表中的 VkImageView，输出设置 `ReadWrite` |
 | 关闭 | `D3D12.Shutdown1(device)` | `Vulkan.Shutdown1(device)` |
 
-- 初始化参数固定：项目标识为常量 GUID，引擎类型为 `CUSTOM`，引擎版本取 Zenith.NET 程序集版本，数据目录为临时目录。初始化后读取能力参数，得到 `Capabilities`。
+- 初始化参数固定：项目标识为常量 GUID，引擎类型为 `CUSTOM`，引擎版本取 Zenith.NET 程序集版本，数据目录为临时目录，`NGXFeatureCommonInfo` 的路径列表只含 `NGX.RuntimeDirectory`，日志级别保持默认的 `OFF`。初始化成功时 `IsInitialized` 为 `true`，并读取能力参数得到 `Capabilities`。
 - 只在 DirectX 12 与 Vulkan 后端、Windows 或 Linux 的 x64 与 arm64 上加载 NGX，因为 `NGX.RuntimeDirectory` 在其他平台抛出异常。其他情况下各方法直接返回默认值。
 - 绑定表与 ImGui 的 `ImGuiRenderer` 相同：`Dictionary<Texture, nint>` 记录 Vulkan 纹理的 VkImageView。纹理首次出现时用 `vkCreateImageView` 创建视图，函数经 `VulkanGetDeviceProcAddr` 加载，与 Skia 的 `SKRenderer` 相同。每次 `Dispatch` 先移除 `IsDisposed` 为真的纹理并销毁其视图；`DLSSContext` 销毁时销毁全部视图。DirectX 12 直接传资源，不需要绑定表。
-- 一把静态锁串行化全部 NGX 调用与绑定表访问，因为 NGX.NET 要求串行调用 SDK。`Extensions` 的锁只保护注册表，锁顺序固定为先注册表锁、后 NGX 锁。
-- 销毁顺序：销毁视图，`DestroyParameters(capabilities)`，`Shutdown1(device)`。
+- Vulkan 下另建一个空描述符集：没有绑定的描述符集布局、只含该布局的管线布局、容量为 1 的描述符池。函数同样经 `VulkanGetDeviceProcAddr` 加载，用途见 3.3。用到的 Vulkan 结构与函数指针由扩展自行声明，与 `DLSSFormats` 一样不依赖 Silk.NET。
+- 一把静态锁串行化全部 NGX 调用与绑定表访问，因为 NGX.NET 要求串行调用 SDK。`Extensions` 的锁只保护注册表与能力缓存，锁顺序固定为先注册表锁、后 NGX 锁。
+- 销毁顺序：销毁视图与空描述符集的相关对象，`DestroyParameters(capabilities)`，`Shutdown1(device)`。
 
 ### 3.3 功能类
 
 三个功能类的结构相同：
 
 - 构造：`AllocateParameters`，设置 `FreeMemOnReleaseFeature = 1`；帧生成另设 `MvecJittered` 与 `UserInterfaceRecompositionEnabled`。每个对象独占一个参数块，因为 NGX 求值前会把全部参数写入传入的参数块。
-- `Dispatch`：`BeginDebugEvent` 与 `Barrier(All, All)`；在 NGX 锁内移除已释放纹理的绑定，首次调用时在该命令缓冲中创建特性，再由 Args 构造求值参数并求值；最后 `Barrier(All, All)` 与 `EndDebugEvent`。首次 `Dispatch` 时创建特性，对应 `TemporalUpscaler` 首次 `Dispatch` 初始化内部资源。
+- `Dispatch`：`BeginDebugEvent` 与 `Barrier(All, All)`；Vulkan 下在计算绑定点绑定空描述符集；在 NGX 锁内移除已释放纹理的绑定，首次调用时在该命令缓冲中创建特性（失败时本次不求值，下次 `Dispatch` 再创建），再由 Args 构造求值参数并求值；最后 `Barrier(All, All)` 与 `EndDebugEvent`。首次 `Dispatch` 时创建特性，对应 `TemporalUpscaler` 首次 `Dispatch` 初始化内部资源。
+- 空描述符集：同一 VkQueue 上，特性第一次求值之前只要绑定过 Zenith 的描述符堆，之后的输出就一直为 0，NGX 与验证层都不报错（第 5 节）。在 NGX 调用前用 `vkCmdBindDescriptorSets` 绑定空描述符集即可避免。每次 `Dispatch` 都绑定，不区分是否首次。
 - `Destroy`：`ReleaseFeature`（已创建时）、`DestroyParameters`、`Extensions.ReleaseContext`。
 
 | | 超分辨率 | 光线重建 | 帧生成 |
@@ -619,18 +654,18 @@ TimelineValue generatedValue = commandBuffer.Submit();
 
 `DLSSFormats` 集中全部数值映射，与 Skia 的 `SKFormats` 一样不依赖 Silk.NET：
 
-- `PixelFormat` 到 VkFormat（Vulkan 视图与 `NGXVkFormat`）与 DXGI_FORMAT（帧生成的 `NativeBackbufferFormat`）；深度模板格式的 Vulkan 视图只取深度方面。
-- `DLSSMode` 到 `NGXPerfQualityValue`，Desc 的布尔字段到 `NGXDLSSFeatureFlags`。
+- `PixelFormat` 到 VkFormat（Vulkan 视图、`NGXResourceVK` 的 `NGXVkFormat`、Vulkan 下帧生成的 `NativeBackbufferFormat`）与 DXGI_FORMAT（DirectX 12 下帧生成的 `NativeBackbufferFormat`）；深度模板格式的 Vulkan 视图只取深度方面。
+- `DLSSMode` 到 `NGXPerfQualityValue`；超分辨率与光线重建 Desc 的布尔字段到 `NGXDLSSFeatureFlags`，光线重建的 `IsDepthLinear`、`IsRoughnessPacked` 到对应枚举（2.5）。
 
 ## 4. 使用约定
 
-- **命令缓冲**：可以使用任意队列，不在渲染通道内调用。调用前输入处于 `Sampled`、输出处于 `Storage`，调用后布局不变。`Dispatch` 在 NGX 求值前后各插入一次 `Barrier(All, All)`。
-- **状态**：NGX 会替换管线、描述符与描述符堆。DLSS 只出现在两段完整的命令之间，扩展不保存也不恢复命令缓冲状态；后续命令照常先 `SetPipeline`，后端在 `SetPipelineImpl` 中重新绑定描述符堆。
+- **命令缓冲**：使用图形队列或计算队列，不在渲染通道内调用；传输队列不能执行计算。调用前输入处于 `Sampled`、输出处于 `Storage`，调用后布局不变。`Dispatch` 在 NGX 求值前后各插入一次 `Barrier(All, All)`。
+- **状态**：NGX 会替换管线、描述符与描述符堆。DLSS 只出现在两段完整的命令之间，扩展不保存也不恢复命令缓冲状态；后续命令照常先 `SetPipeline`，即使是 DLSS 之前用过的同一管线，后端在 `SetPipelineImpl` 中重新绑定描述符堆。
 - **纹理用途**：输入需要 `Sampled`；输出需要 `Storage` 与 `TransferDst`。Vulkan 下 NGX 会用 `vkCmdClearColorImage` 清除输出：本机超分辨率使用预设 K（DLAA、Quality、Balanced 档位的默认预设）时出现，输出缺少 `TransferDst` 时验证层报错。
 - **单位**：按 NGX 原义。超分辨率与光线重建的抖动以输入像素为单位，运动矢量经 `MotionVectorScale` 换算到输入像素；帧生成的抖动在裁剪空间，运动矢量经 `MotionVectorScale` 归一化到 [-1, 1]。矩阵按 `System.Numerics` 原样传递，与 NGX 的行主序一致，且不含抖动。
-- **CornellBox**：运动矢量为当前帧减上一帧的 NDC 差值。超分辨率与光线重建的 `MotionVectorScale` 取 (−0.5·W, 0.5·H)，帧生成取 (−0.5, 0.5)，W、H 为渲染尺寸。
-- **重建**：Desc 不可变，尺寸、档位或格式变化时重建。先创建新对象再释放旧对象，避免 NGX 重新初始化（2.1）。交换链尺寸变化时重建帧生成对象（2.7）。
-- **生命周期与线程**：GPU 完成引用某对象的全部工作后再 `Dispose` 它；Args 中的纹理也要存活到相应工作完成。同一对象不可并发 `Dispatch`。
+- **CornellBox**：运动矢量按 Upscaling 扩展（SGSR2）的约定编码，存的是 0.2495 ×（当前帧 − 上一帧的 NDC）+ 0.5。NGX 只有缩放没有偏移，接入 DLSS 时需写入未编码的 NDC 差值；此时超分辨率与光线重建的 `MotionVectorScale` 取 (−0.5·W, 0.5·H)，帧生成取 (−0.5, 0.5)，W、H 为渲染尺寸。
+- **重建**：Desc 不可变，任一字段变化时重建。先创建新对象再释放旧对象，避免 NGX 重新初始化（2.1）。交换链尺寸变化时重建帧生成对象（2.7）。
+- **生命周期与线程**：GPU 完成引用某对象的全部工作后再 `Dispose` 它，且在 `GraphicsContext` 之前释放；Args 中的纹理也要存活到相应工作完成。同一对象不可并发 `Dispatch`。
 
 ## 5. RHI 依赖与验证
 
@@ -655,6 +690,15 @@ TimelineValue generatedValue = commandBuffer.Submit();
 
 帧生成另在 DirectX 12（RGBA8、BGRA8，D3D12 调试层）与 Vulkan（BGRA8，验证层）上验证：创建与求值成功，输出正确，没有验证消息。
 
+与 Zenith 命令混合录制在同一环境下验证（D3D12 调试层、Vulkan 验证层）：
+
+| 项 | 结果 |
+| --- | --- |
+| 覆盖范围 | DirectX 12 与 Vulkan，图形队列与计算队列，只含必需输入与含全部可选输入。每帧一个命令缓冲：Zenith 的计算管线写入 DLSS 的输入，NGX 求值（第一帧创建特性），再用同一计算管线复制输出、用图形管线绘制输出（计算队列上只复制），共 3 帧 |
+| 结果 | 三项功能的 NGX 调用全部成功，输出与输入一致；NGX 之后的复制与绘制结果与 NGX 输出逐字节相同；没有验证消息。Vulkan 的结果是在绑定空描述符集（3.3）之后得到的 |
+| Vulkan 输出为 0 | 不绑定空描述符集时，三项功能在图形队列与计算队列上输出都为 0，NGX 与验证层都不报错。触发条件是同一 VkQueue 上在特性第一次求值之前调用过 `SetPipeline`，只写描述符不会触发；第一次求值之后再调用，或第一次求值放在另一个 VkQueue 上，都不受影响。NGX 调用前绑定空描述符集或其他描述符集可以避免，只绑定不使用描述符堆的管线不行。DirectX 12 没有这个问题 |
+| 参数 | 超分辨率的 `InputContentWidth`、`InputContentHeight` 为 0 时求值返回 `FAIL_InvalidParameter`；帧生成未启用动态分辨率时为 0 可正常求值。启用 Alpha 放大且 `Input` 的 A 通道为 0.5 时，超分辨率与光线重建输出的 A 通道也为 0.5。两个后端结果相同 |
+
 呈现队列在同一环境下验证（D3D12 调试层、Vulkan 验证层）：
 
 | 项 | 结果 |
@@ -670,21 +714,22 @@ TimelineValue generatedValue = commandBuffer.Submit();
 | --- | --- | --- |
 | 全部 | `CreationNodeMask`、`VisibilityNodeMask` | 1 |
 | 全部 | `FreeMemOnReleaseFeature` | 1 |
-| 全部 | 项目标识、引擎类型与版本、数据目录、日志级别 | 见 3.2 |
+| 全部 | 项目标识、引擎类型与版本、数据目录、功能路径、日志级别 | 见 3.2 |
 | 超分辨率、光线重建 | 渲染预设提示 | `Default`，由 NGX 按档位选择 |
 | 超分辨率、光线重建 | `MVLowRes` 标志 | 设置 |
 | 超分辨率、光线重建 | `InEnableOutputSubrects`、各子矩形基点 | `false`、0 |
 | 超分辨率、光线重建 | `InSharpness`、`DoSharpening` | 0、不设置（锐化已从 DLSS 移除） |
-| 超分辨率、光线重建 | 研究、调试与保留用途的参数：`GBufferSurface`、`InToneMapperType`、`pInMotionVectors3D`、`pInIsParticleMask`、`pInAnimatedTextureMask`、`pInDepthHighRes`、`pInPositionViewSpace`、`pInRayTracingHitDistance`、`pInTransparencyMask`、指示器坐标轴翻转 | 默认值 |
-| 光线重建 | `IsHDR` 标志、`InDenoiseMode` | 设置、`DLUnified` |
-| 光线重建 | `pInAlpha`、`pInOutputAlpha` | `null`，Alpha 取自 `Input` |
-| 光线重建 | Streamline 指南未说明语义的引导：`pInReflectedAlbedo`，`ColorBeforeTransparency` 以外的各类 ColorBefore/After，射线方向，漫反射命中距离，`pInTransparencyLayerMvecs`、`pInDisocclusionMask`、`pInResponsivityMask` | `null` |
+| 超分辨率、光线重建 | 研究、调试与保留用途的参数：`GBufferSurface`、`InToneMapperType`、`pInMotionVectors3D`、`pInIsParticleMask`、`pInAnimatedTextureMask`、`pInDepthHighRes`、`pInPositionViewSpace`、`InFrameTimeDeltaInMsec`、`pInRayTracingHitDistance`、`pInTransparencyMask`、指示器坐标轴翻转，以及超分辨率的 `pInMotionVectorsReflections` | 默认值 |
+| 光线重建 | `IsHDR` 标志、`InDenoiseMode`、`InRenderSubrectDimensions` | 设置、`DLUnified`、Desc 的输入尺寸 |
+| 光线重建 | `pInAlpha`、`pInOutputAlpha` | `null` |
+| 光线重建 | Streamline 指南未说明语义的输入：`pInReflectedAlbedo`、`pInScreenSpaceRefractionGuide`，`ColorBeforeTransparency` 以外的各类 ColorBefore/After，各类射线方向，漫反射命中距离，`pInTransparencyLayerMvecs`、`pInDisocclusionMask`、`pInResponsivityMask` | `null` |
 | 帧生成 | `MultiFrameCount`、`MultiFrameIndex` | 1、1 |
 | 帧生成 | `ClipToLensClip` | 单位矩阵 |
 | 帧生成 | `CameraMotionIncluded` | `true` |
+| 帧生成 | `MinRelativeLinearDepthObjectSeparation` | 40，即 NGX 注明的默认值；求值时总会写入该字段，保持 0 会覆盖默认值 |
 | 帧生成 | `MotionVectorsDilated`、`MotionVectorsInvalidValue`、`BidirectionalDistFieldPrecisionInfo` | 默认值 |
 | 帧生成 | `NotRenderingGameFrames`、`MenuDetectionEnabled`、`AutomodeOverrideReset`、`pOutputDisableInterpolation` | `false`、`null` |
-| 帧生成 | `pOutputRealFrame`、`InvertXAxis`、`InvertYAxis`、`UserDebugText` | `null`、0 |
-| 帧生成 | `MinRelativeLinearDepthObjectSeparation`、`LinearizedDepth_Scale`、`LinearizedDepth_NearFarPartition` | NGX 默认值 |
-| 帧生成 | 颜色、生成帧、HUDless、UI、畸变场的子矩形 | 整张纹理 |
-| 帧生成 | `ResourceAlwaysProvidedFlags`、`ResourceNeverProvidedFlags`、`AsyncCreateEnabled`、`EvalFlags`、`BackbufferFrameID`、`FullscreenMode`、`TargetFrameRate` | 不设置 |
+| 帧生成 | `pOutputRealFrame` 及其子矩形、`InvertXAxis`、`InvertYAxis`、`UserDebugText` | `null`、0 |
+| 帧生成 | 运动矢量与深度的子矩形基点 | 0 |
+| 帧生成 | 颜色、生成帧、HUDless、UI、UI 不透明度、畸变场的子矩形 | 整张纹理 |
+| 帧生成 | `LinearizedDepth_Scale`、`LinearizedDepth_NearFarPartition`、`ResourceAlwaysProvidedFlags`、`ResourceNeverProvidedFlags`、`AsyncCreateEnabled`、`EvalFlags`、`BackbufferFrameID`、`FullscreenMode`、`TargetFrameRate` | 不设置 |
