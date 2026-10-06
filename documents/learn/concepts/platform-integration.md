@@ -143,7 +143,7 @@ title: '@concepts.platforms.title'
 <p>
     <resource key="concepts.platforms.presentQueue.description">
         <slot name="graphicsQueue"><a class="xref" href="xref:Zenith.NET.GraphicsContext.GraphicsQueue"><code>GraphicsQueue</code></a></slot>
-        <slot name="usePresentQueue"><a class="xref" href="xref:Zenith.NET.SwapChainDesc.UsePresentQueue"><code>SwapChainDesc.UsePresentQueue</code></a></slot>
+        <slot name="swapChainDescUsePresentQueue"><a class="xref" href="xref:Zenith.NET.SwapChainDesc.UsePresentQueue"><code>SwapChainDesc.UsePresentQueue</code></a></slot>
         <slot name="presentQueue"><a class="xref" href="xref:Zenith.NET.GraphicsContext.PresentQueue"><code>PresentQueue</code></a></slot>
     </resource>
 </p>
