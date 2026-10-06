@@ -8,12 +8,14 @@ public abstract class GraphicsContext : DisposableObject
 
         Initialize(useValidationLayer,
                    out Capabilities capabilities,
+                   out CommandQueue presentQueue,
                    out CommandQueue graphicsQueue,
                    out CommandQueue computeQueue,
                    out CommandQueue transferQueue,
                    out ValidationLayer? validationLayer);
 
         Capabilities = capabilities;
+        PresentQueue = presentQueue;
         GraphicsQueue = graphicsQueue;
         ComputeQueue = computeQueue;
         TransferQueue = transferQueue;
@@ -26,6 +28,8 @@ public abstract class GraphicsContext : DisposableObject
     public GraphicsApi GraphicsApi { get; }
 
     public Capabilities Capabilities { get; }
+
+    public CommandQueue PresentQueue { get; }
 
     public CommandQueue GraphicsQueue { get; }
 
@@ -120,6 +124,7 @@ public abstract class GraphicsContext : DisposableObject
 
     protected override void Destroy()
     {
+        PresentQueue.Dispose();
         GraphicsQueue.Dispose();
         ComputeQueue.Dispose();
         TransferQueue.Dispose();
@@ -131,6 +136,7 @@ public abstract class GraphicsContext : DisposableObject
 
     protected abstract void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
+                                       out CommandQueue presentQueue,
                                        out CommandQueue graphicsQueue,
                                        out CommandQueue computeQueue,
                                        out CommandQueue transferQueue,

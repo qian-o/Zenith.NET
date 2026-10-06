@@ -1,7 +1,7 @@
 ﻿### YamlMime:Resources
 concepts.execution.context.description:
   A {graphicsContext} connects the application to a GPU device through the selected graphics API and provides
-  graphics, compute, and transfer queues. Resources used together must belong to the same context; buffers,
+  present, graphics, compute, and transfer queues. Resources used together must belong to the same context; buffers,
   textures, shaders, pipelines, and their handles cannot be bound across contexts.
 concepts.execution.context.details:
   '{capabilities} reports the device name and supported features. Use {rayTracingSupported}
@@ -60,6 +60,8 @@ concepts.execution.queues.table.graphicsQueue.workToRecord: Render passes and dr
   operations used by the frame.
 concepts.execution.queues.table.headings.queue: Queue
 concepts.execution.queues.table.headings.workToRecord: Supported work
+concepts.execution.queues.table.presentQueue.workToRecord: Drawable writes and presentation for swap chains
+  that set {isIndependentPresentEnabled}, with the same operations as the graphics queue.
 concepts.execution.queues.table.transferQueue.workToRecord: Upload, download and copy work, without drawing or compute
   dispatches.
 concepts.execution.queues.title: Queue selection
@@ -95,6 +97,21 @@ concepts.platforms.frame.notes: The initial transition uses {undefined}, which a
   to be discarded. Draw or clear the full image on each frame. Keep accumulated or cached rendering in an application-owned
   texture, then draw that texture into the control's drawable.
 concepts.platforms.frame.title: Rendering through a UI control
+concepts.platforms.independentPresentation.context: Here, {rendered} is the completion value of the rendering submission
+  that left {frame} in {copySrc} layout, and {extent} matches the drawable's size. The wait covers only this copy;
+  the presenting thread does not wait for rendering work submitted later.
+concepts.platforms.independentPresentation.description: By default, a swap chain presents on {graphicsQueue}, so each
+  presentation follows the rendering work submitted before it. Setting {isIndependentPresentEnabled} moves presentation
+  to {presentQueue}. Presentation then no longer waits behind rendering work on the graphics queue, which lets a separate
+  thread present frames at its own pace, for example to space generated frames between rendered ones.
+concepts.platforms.independentPresentation.details: '{swapChainQueue} returns the queue that the swap chain presents
+  on. Record every write to {swapChainDrawable} on that queue: DirectX 12 requires work that writes a swap chain''s
+  images to run on the queue that presents them. Submit those writes with a dependency on the work that produced
+  the image, then present:'
+concepts.platforms.independentPresentation.guidance: '{swapChainPresent} waits only for {swapChainQueue}. Track the
+  completion of rendering work separately before reusing or releasing its resources, and stop presenting before
+  calling {swapChainResize} or releasing the swap chain.'
+concepts.platforms.independentPresentation.title: Independent presentation
 concepts.platforms.integration.context: WinForms, WPF, and the Windows WinUI integration run on Windows. For MAUI,
   install the workload for the target platform and register the control handler with {useZenithView}, as shown in
   {extensionsCs}.
@@ -438,9 +455,10 @@ concepts.synchronization.reuse.description: The triangle waits for each frame to
 concepts.synchronization.reuse.details: 'Resizing and shutdown follow the same rule: stop new uses, wait for existing
   uses to finish, then replace or release the resources. Establish this order before calling {swapChainResize} or
   disposing resources or the context. The triangle already waits for each frame, so it can resize between callbacks.'
-concepts.synchronization.reuse.guidance: '{swapChainPresent} signals and waits on the graphics queue after presentation.
-  The triangle therefore waits at presentation even if its explicit submission wait is removed. Work submitted independently
-  to other queues requires its own completion tracking.'
+concepts.synchronization.reuse.guidance: '{swapChainPresent} signals and waits on {swapChainQueue} after presentation.
+  Unless the swap chain enables independent presentation, that is the graphics queue, so the triangle waits at presentation
+  even if its explicit submission wait is removed. Work submitted to other queues, including rendering for a swap chain
+  that presents independently, requires its own completion tracking.'
 concepts.synchronization.reuse.title: Resource reuse
 concepts.synchronization.timelines.context: 'If the CPU needs to read the result, overwrite the shared data, or
   release the resources after the consumer finishes, wait for that submission:'

@@ -46,7 +46,7 @@ internal unsafe class VKSwapChain : SwapChain
                     PImageIndices = imageIndices
                 };
 
-                Context.Swapchain?.QueuePresent(Context.GraphicsQueue.Vulkan().Queue, &presentInfo).Success();
+                Context.Swapchain?.QueuePresent(Queue.Vulkan().Queue, &presentInfo).Success();
             }
         }
 

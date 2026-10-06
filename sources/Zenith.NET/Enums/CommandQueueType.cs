@@ -2,6 +2,8 @@
 
 public enum CommandQueueType
 {
+    Present,
+
     Graphics,
 
     Compute,

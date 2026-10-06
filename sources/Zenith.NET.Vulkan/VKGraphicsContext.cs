@@ -145,6 +145,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
     protected override void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
+                                       out CommandQueue presentQueue,
                                        out CommandQueue graphicsQueue,
                                        out CommandQueue computeQueue,
                                        out CommandQueue transferQueue,
@@ -209,7 +210,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             XlibSurface = enabledExtensions.Contains(KhrXlibSurface.ExtensionName) ? new(context) : null;
         }
 
-        (Queue GraphicsQueue, uint GraphicsQueueFamilyIndex, Queue ComputeQueue, uint ComputeQueueFamilyIndex, Queue TransferQueue, uint TransferQueueFamilyIndex) queues = default;
+        (Queue PresentQueue, uint PresentQueueFamilyIndex, Queue GraphicsQueue, uint GraphicsQueueFamilyIndex, Queue ComputeQueue, uint ComputeQueueFamilyIndex, Queue TransferQueue, uint TransferQueueFamilyIndex) queues = default;
 
         // Select physical device and create logical device
         {
@@ -343,10 +344,13 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             Action loadQueues;
             if (queueFamilyIndices.Count is 3)
             {
+                uint presentQueueIndex = graphicsQueueFamilyCount >= 2 ? 1u : 0u;
+
                 queueCreateInfoCount = 3;
 
-                float* queuePriorities = (float*)ZenithMarshal.Allocate<float>(scope, 1);
+                float* queuePriorities = (float*)ZenithMarshal.Allocate<float>(scope, 2);
                 queuePriorities[0] = 1.0f;
+                queuePriorities[1] = 1.0f;
 
                 queueCreateInfos = (DeviceQueueCreateInfo*)ZenithMarshal.Allocate<DeviceQueueCreateInfo>(scope, 3);
 
@@ -354,7 +358,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                 {
                     SType = StructureType.DeviceQueueCreateInfo,
                     QueueFamilyIndex = graphicsQueueFamilyIndex,
-                    QueueCount = 1,
+                    QueueCount = Math.Min(graphicsQueueFamilyCount, 2),
                     PQueuePriorities = queuePriorities
                 };
 
@@ -376,6 +380,9 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
                 loadQueues = () =>
                 {
+                    Queue presentQueue = default;
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, presentQueueIndex, &presentQueue);
+
                     Queue graphicsQueue = default;
                     Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
 
@@ -385,29 +392,35 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     Queue transferQueue = default;
                     Vk.GetDeviceQueue(Device, transferQueueFamilyIndex, 0, &transferQueue);
 
-                    queues = (graphicsQueue, graphicsQueueFamilyIndex, computeQueue, computeQueueFamilyIndex, transferQueue, transferQueueFamilyIndex);
+                    queues = (presentQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex, computeQueue, computeQueueFamilyIndex, transferQueue, transferQueueFamilyIndex);
                 };
             }
             else if (graphicsQueueFamilyCount >= 3)
             {
+                uint presentQueueIndex = graphicsQueueFamilyCount >= 4 ? 3u : 0u;
+
                 queueCreateInfoCount = 1;
 
-                float* queuePriorities = (float*)ZenithMarshal.Allocate<float>(scope, 3);
+                float* queuePriorities = (float*)ZenithMarshal.Allocate<float>(scope, 4);
                 queuePriorities[0] = 1.0f;
                 queuePriorities[1] = 1.0f;
                 queuePriorities[2] = 1.0f;
+                queuePriorities[3] = 1.0f;
 
                 queueCreateInfos = (DeviceQueueCreateInfo*)ZenithMarshal.Allocate<DeviceQueueCreateInfo>(scope, 1);
                 queueCreateInfos[0] = new()
                 {
                     SType = StructureType.DeviceQueueCreateInfo,
                     QueueFamilyIndex = graphicsQueueFamilyIndex,
-                    QueueCount = 3,
+                    QueueCount = Math.Min(graphicsQueueFamilyCount, 4),
                     PQueuePriorities = queuePriorities
                 };
 
                 loadQueues = () =>
                 {
+                    Queue presentQueue = default;
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, presentQueueIndex, &presentQueue);
+
                     Queue graphicsQueue = default;
                     Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
 
@@ -417,7 +430,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     Queue transferQueue = default;
                     Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 2, &transferQueue);
 
-                    queues = (graphicsQueue, graphicsQueueFamilyIndex, computeQueue, graphicsQueueFamilyIndex, transferQueue, graphicsQueueFamilyIndex);
+                    queues = (presentQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex, computeQueue, graphicsQueueFamilyIndex, transferQueue, graphicsQueueFamilyIndex);
                 };
             }
             else
@@ -441,7 +454,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                     Queue graphicsQueue = default;
                     Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
 
-                    queues = (graphicsQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex);
+                    queues = (graphicsQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex);
                 };
             }
 
@@ -518,10 +531,11 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
             loadQueues();
 
-            QueueFamilies = new([.. new HashSet<uint>() { queues.GraphicsQueueFamilyIndex, queues.ComputeQueueFamilyIndex, queues.TransferQueueFamilyIndex }]);
+            QueueFamilies = new([.. new HashSet<uint>() { queues.PresentQueueFamilyIndex, queues.GraphicsQueueFamilyIndex, queues.ComputeQueueFamilyIndex, queues.TransferQueueFamilyIndex }]);
         }
 
         capabilities = new VKCapabilities(this);
+        presentQueue = new VKCommandQueue(this, CommandQueueType.Present, queues.PresentQueue, queues.PresentQueueFamilyIndex);
         graphicsQueue = new VKCommandQueue(this, CommandQueueType.Graphics, queues.GraphicsQueue, queues.GraphicsQueueFamilyIndex);
         computeQueue = new VKCommandQueue(this, CommandQueueType.Compute, queues.ComputeQueue, queues.ComputeQueueFamilyIndex);
         transferQueue = new VKCommandQueue(this, CommandQueueType.Transfer, queues.TransferQueue, queues.TransferQueueFamilyIndex);

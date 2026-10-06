@@ -232,5 +232,6 @@ consumed.Wait();
 <p>
     <resource key="concepts.synchronization.reuse.guidance">
         <slot name="swapChainPresent"><a class="xref" href="xref:Zenith.NET.SwapChain.Present"><code>SwapChain.Present()</code></a></slot>
+        <slot name="swapChainQueue"><a class="xref" href="xref:Zenith.NET.SwapChain.Queue"><code>SwapChain.Queue</code></a></slot>
     </resource>
 </p>

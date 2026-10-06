@@ -135,6 +135,53 @@ title: '@concepts.platforms.title'
     </resource>
 </p>
 <p>
+    <a id="independent-presentation"></a>
+</p>
+<h2 id="present-on-a-queue-separate-from-rendering">
+    <resource key="concepts.platforms.independentPresentation.title"></resource>
+</h2>
+<p>
+    <resource key="concepts.platforms.independentPresentation.description">
+        <slot name="graphicsQueue"><a class="xref" href="xref:Zenith.NET.GraphicsContext.GraphicsQueue"><code>GraphicsQueue</code></a></slot>
+        <slot name="isIndependentPresentEnabled"><a class="xref" href="xref:Zenith.NET.SwapChainDesc.IsIndependentPresentEnabled"><code>SwapChainDesc.IsIndependentPresentEnabled</code></a></slot>
+        <slot name="presentQueue"><a class="xref" href="xref:Zenith.NET.GraphicsContext.PresentQueue"><code>PresentQueue</code></a></slot>
+    </resource>
+</p>
+<p>
+    <resource key="concepts.platforms.independentPresentation.details">
+        <slot name="swapChainQueue"><a class="xref" href="xref:Zenith.NET.SwapChain.Queue"><code>SwapChain.Queue</code></a></slot>
+        <slot name="swapChainDrawable"><a class="xref" href="xref:Zenith.NET.SwapChain.Drawable"><code>SwapChain.Drawable</code></a></slot>
+    </resource>
+</p>
+
+```csharp
+CommandBuffer commandBuffer = swapChain.Queue.CommandBuffer();
+
+commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.CopyDst);
+commandBuffer.CopyTexture(frame, default, default, swapChain.Drawable, default, default, extent);
+commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.CopyDst, TextureLayout.Present);
+
+commandBuffer.Submit(rendered).Wait();
+
+swapChain.Present();
+```
+
+<p>
+    <resource key="concepts.platforms.independentPresentation.context">
+        <slot name="rendered"><code>rendered</code></slot>
+        <slot name="frame"><code>frame</code></slot>
+        <slot name="copySrc"><a class="xref" href="xref:Zenith.NET.TextureLayout.CopySrc"><code>CopySrc</code></a></slot>
+        <slot name="extent"><code>extent</code></slot>
+    </resource>
+</p>
+<p>
+    <resource key="concepts.platforms.independentPresentation.guidance">
+        <slot name="swapChainPresent"><a class="xref" href="xref:Zenith.NET.SwapChain.Present"><code>SwapChain.Present()</code></a></slot>
+        <slot name="swapChainQueue"><a class="xref" href="xref:Zenith.NET.SwapChain.Queue"><code>SwapChain.Queue</code></a></slot>
+        <slot name="swapChainResize"><a class="xref" href="xref:Zenith.NET.SwapChain.Resize(System.UInt32,System.UInt32)"><code>SwapChain.Resize</code></a></slot>
+    </resource>
+</p>
+<p>
     <a id="ui-views"></a>
 </p>
 <h2 id="record-into-the-frame-supplied-by-a-ui-control">

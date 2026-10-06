@@ -50,6 +50,18 @@ title: '@concepts.execution.title'
     <tbody>
         <tr>
             <td>
+                <a class="xref" href="xref:Zenith.NET.GraphicsContext.PresentQueue">
+                    <code>PresentQueue</code>
+                </a>
+            </td>
+            <td>
+                <resource key="concepts.execution.queues.table.presentQueue.workToRecord">
+                    <slot name="isIndependentPresentEnabled"><a class="xref" href="xref:Zenith.NET.SwapChainDesc.IsIndependentPresentEnabled"><code>SwapChainDesc.IsIndependentPresentEnabled</code></a></slot>
+                </resource>
+            </td>
+        </tr>
+        <tr>
+            <td>
                 <a class="xref" href="xref:Zenith.NET.GraphicsContext.GraphicsQueue">
                     <code>GraphicsQueue</code>
                 </a>

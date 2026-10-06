@@ -5,4 +5,6 @@ public struct SwapChainDesc
     public Surface Surface;
 
     public PixelFormat Format;
+
+    public bool IsIndependentPresentEnabled;
 }

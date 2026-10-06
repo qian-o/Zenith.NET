@@ -1,5 +1,5 @@
 ﻿### YamlMime:Resources
-concepts.execution.context.description: '{graphicsContext}는 선택한 그래픽스 API를 통해 애플리케이션을 GPU 장치에 연결하고 그래픽스, 컴퓨트, 전송 큐를 제공합니다. 함께 사용하는 리소스는 같은 컨텍스트에 속해야 합니다. 버퍼, 텍스처, 셰이더, 파이프라인과 그 핸들은 서로 다른 컨텍스트 사이에서 바인딩할 수 없습니다.'
+concepts.execution.context.description: '{graphicsContext}는 선택한 그래픽스 API를 통해 애플리케이션을 GPU 장치에 연결하고 표시, 그래픽스, 컴퓨트, 전송 큐를 제공합니다. 함께 사용하는 리소스는 같은 컨텍스트에 속해야 합니다. 버퍼, 텍스처, 셰이더, 파이프라인과 그 핸들은 서로 다른 컨텍스트 사이에서 바인딩할 수 없습니다.'
 concepts.execution.context.details: '{capabilities}는 장치 이름과 지원 기능을 알려 줍니다. 해당 기능의 리소스를 만들기 전에 {rayTracingSupported}와 {meshShadingSupported}로 지원 여부를 확인합니다. {link} 및 {detail} 예제는 초기화 과정에서 이 검사를 수행합니다.'
 concepts.execution.context.details.detail: 메시 셰이딩
 concepts.execution.context.details.link: 레이 트레이싱
@@ -33,6 +33,7 @@ concepts.execution.queues.table.computeQueue.workToRecord: '그래픽스 렌더 
 concepts.execution.queues.table.graphicsQueue.workToRecord: '렌더 패스, 그리기, 컴퓨트 및 전송 작업.'
 concepts.execution.queues.table.headings.queue: 큐
 concepts.execution.queues.table.headings.workToRecord: '지원 작업'
+concepts.execution.queues.table.presentQueue.workToRecord: '{isIndependentPresentEnabled}를 설정한 스왑 체인의 출력 텍스처 쓰기와 화면 표시. 그래픽스 큐와 같은 작업을 지원합니다.'
 concepts.execution.queues.table.transferQueue.workToRecord: '업로드, 다운로드 및 복사 작업. 그리기나 컴퓨트 디스패치는 지원하지 않습니다.'
 concepts.execution.queues.title: '큐 선택'
 concepts.execution.recording.context: '큐는 완료된 명령 버퍼를 회수해 재사용합니다. 명령을 기록할 때마다 {queueCommandBuffer}로 버퍼를 가져오고, 한 번에 한 스레드에서 기록한 뒤 한 번만 제출합니다. 제출 후에는 큐가 버퍼를 관리하므로 수정하거나 다시 제출하거나 해제하지 않습니다.'
@@ -48,6 +49,11 @@ concepts.platforms.frame.details: '매 프레임 컨트롤은 출력 텍스처�
 concepts.platforms.frame.guidance: '파일에 {usingZenithNET} 구문을 추가합니다. {view}라는 {iZenithView} 인스턴스가 초기화되어 있고 그래픽스 컨텍스트가 할당되어 있다면, 다음 핸들러를 등록해 출력 텍스처를 지울 수 있습니다.'
 concepts.platforms.frame.notes: '초기 전환은 {undefined}를 사용하므로 이전 이미지의 내용은 버릴 수 있습니다. 매 프레임 이미지 전체를 그리거나 지웁니다. 누적 결과나 캐시한 렌더링 결과는 애플리케이션이 소유한 텍스처에 보관한 뒤 컨트롤의 출력 텍스처에 그립니다.'
 concepts.platforms.frame.title: 'UI 컨트롤에서 렌더링'
+concepts.platforms.independentPresentation.context: '여기서 {rendered}는 {frame}을 {copySrc} 레이아웃으로 남긴 렌더링 제출의 완료 값이고, {extent}는 출력 텍스처의 크기와 같습니다. 대기는 이 복사만 대상으로 하므로, 표시를 담당하는 스레드는 이후에 제출된 렌더링 작업을 기다리지 않습니다.'
+concepts.platforms.independentPresentation.description: '기본적으로 스왑 체인은 {graphicsQueue}에서 표시하므로, 각 표시는 그보다 먼저 제출된 렌더링 작업 뒤에 이루어집니다. {isIndependentPresentEnabled}를 설정하면 {presentQueue}에서 표시하며, 그래픽스 큐의 렌더링 작업을 더 이상 기다리지 않습니다. 따라서 별도 스레드가 자체 속도로 프레임을 표시할 수 있습니다. 예를 들어 생성된 프레임을 렌더링된 프레임 사이에 배치할 때 유용합니다.'
+concepts.platforms.independentPresentation.details: '{swapChainQueue}는 스왑 체인이 표시에 사용하는 큐를 반환합니다. {swapChainDrawable}에 대한 모든 쓰기는 이 큐에서 기록합니다. DirectX 12에서는 스왑 체인 이미지에 쓰는 작업을 그 이미지를 표시하는 큐에서 실행해야 합니다. 이 쓰기 작업을 이미지를 만든 작업에 대한 의존 관계와 함께 제출한 뒤 표시합니다.'
+concepts.platforms.independentPresentation.guidance: '{swapChainPresent}는 {swapChainQueue}만 기다립니다. 렌더링 작업의 리소스를 재사용하거나 해제하기 전에 그 완료를 별도로 추적하고, {swapChainResize}를 호출하거나 스왑 체인을 해제하기 전에 표시를 중단합니다.'
+concepts.platforms.independentPresentation.title: '독립 표시'
 concepts.platforms.integration.context: 'WinForms, WPF, Windows용 WinUI 통합은 Windows에서 실행됩니다. MAUI는 대상 플랫폼의 워크로드를 설치하고, {extensionsCs}에서처럼 {useZenithView}로 컨트롤 핸들러를 등록합니다.'
 concepts.platforms.integration.description: '이벤트 인터페이스는 공통이지만 표시 방식은 프레임워크마다 다릅니다.'
 concepts.platforms.integration.details: 'UI 통합마다 GPU 이미지를 화면에 표시하는 방식이 다릅니다. 비트맵 리드백은 표시 전에 픽셀을 CPU 메모리로 복사합니다. 공유 텍스처 상호 운용은 이 복사를 피하지만 GPU 복사와 동기화가 필요할 수 있습니다. 공통 {renderRequested} 이벤트와 함께 표시 경로도 고려합니다.'
@@ -236,7 +242,7 @@ concepts.synchronization.readback.guidance.link: 리소스 관리
 concepts.synchronization.readback.title: '리드백 완료'
 concepts.synchronization.reuse.description: '삼각형은 각 프레임이 끝난 뒤 데이터를 재사용합니다. 프레임을 겹쳐 실행하려면 진행 중인 프레임마다 별도의 수정 가능한 저장 공간을 두고 언제 다시 사용할 수 있는지 추적합니다. 데이터를 변경하기 전에는 해당 바이트에 아직 접근하는 GPU 작업을 기다리고, 리소스를 해제하기 전에는 그 리소스의 모든 사용이 끝날 때까지 기다립니다.'
 concepts.synchronization.reuse.details: '크기 변경과 종료에도 같은 원칙이 적용됩니다. 새 사용을 막고 기존 사용이 끝날 때까지 기다린 뒤 리소스를 교체하거나 해제합니다. {swapChainResize}를 호출하거나 리소스 또는 컨텍스트를 해제하기 전에 이 순서를 지켜야 합니다. 삼각형은 매 프레임 기다리므로 콜백 호출 사이에서 크기를 바꿀 수 있습니다.'
-concepts.synchronization.reuse.guidance: '{swapChainPresent}는 이미지를 표시한 뒤 그래픽스 큐에 신호를 보내고 완료를 기다립니다. 따라서 명시적인 제출 대기를 제거해도 삼각형은 화면 표시 단계에서 여전히 기다립니다. 다른 큐에 독립적으로 제출한 작업은 별도로 완료를 추적해야 합니다.'
+concepts.synchronization.reuse.guidance: '{swapChainPresent}는 이미지를 표시한 뒤 {swapChainQueue}에 신호를 보내고 완료를 기다립니다. 스왑 체인에서 독립 표시를 사용하지 않으면 이 큐는 그래픽스 큐입니다. 따라서 명시적인 제출 대기를 제거해도 삼각형은 화면 표시 단계에서 여전히 기다립니다. 독립적으로 표시하는 스왑 체인을 위한 렌더링을 포함해, 다른 큐에 제출한 작업은 별도로 완료를 추적해야 합니다.'
 concepts.synchronization.reuse.title: '리소스 재사용'
 concepts.synchronization.timelines.context: '소비자가 끝난 뒤 CPU에서 결과를 읽거나 공유 데이터를 덮어쓰거나 리소스를 해제하려면 해당 제출을 기다립니다.'
 concepts.synchronization.timelines.description: '타임라인은 증가하는 값으로 큐의 완료를 나타냅니다. {submit}은 타임라인과 제출 값을 담은 {timelineValue}를 반환합니다. 서로 다른 타임라인의 숫자 {value}를 직접 비교할 수는 없습니다.'

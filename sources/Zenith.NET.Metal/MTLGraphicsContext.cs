@@ -39,6 +39,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
 
     protected override void Initialize(bool useValidationLayer,
                                        out Capabilities capabilities,
+                                       out CommandQueue presentQueue,
                                        out CommandQueue graphicsQueue,
                                        out CommandQueue computeQueue,
                                        out CommandQueue transferQueue,
@@ -56,6 +57,7 @@ internal class MTLGraphicsContext(bool useValidationLayer) : GraphicsContext(Gra
         error.Success();
 
         capabilities = new MTLCapabilities(this);
+        presentQueue = new MTLCommandQueue(this, CommandQueueType.Present);
         graphicsQueue = new MTLCommandQueue(this, CommandQueueType.Graphics);
         computeQueue = new MTLCommandQueue(this, CommandQueueType.Compute);
         transferQueue = new MTLCommandQueue(this, CommandQueueType.Transfer);
