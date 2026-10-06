@@ -6,5 +6,5 @@ public struct SwapChainDesc
 
     public PixelFormat Format;
 
-    public bool IsIndependentPresentEnabled;
+    public bool UsePresentQueue;
 }

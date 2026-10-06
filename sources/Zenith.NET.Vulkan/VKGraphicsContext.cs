@@ -344,9 +344,9 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             Action loadQueues;
             if (queueFamilyIndices.Count is 3)
             {
-                uint presentQueueIndex = graphicsQueueFamilyCount >= 2 ? 1u : 0u;
-
                 queueCreateInfoCount = 3;
+
+                bool hasSpareQueue = graphicsQueueFamilyCount >= 2;
 
                 float* queuePriorities = (float*)ZenithMarshal.Allocate<float>(scope, 2);
                 queuePriorities[0] = 1.0f;
@@ -358,7 +358,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                 {
                     SType = StructureType.DeviceQueueCreateInfo,
                     QueueFamilyIndex = graphicsQueueFamilyIndex,
-                    QueueCount = Math.Min(graphicsQueueFamilyCount, 2),
+                    QueueCount = hasSpareQueue ? 2u : 1u,
                     PQueuePriorities = queuePriorities
                 };
 
@@ -381,10 +381,10 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                 loadQueues = () =>
                 {
                     Queue presentQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, presentQueueIndex, &presentQueue);
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &presentQueue);
 
                     Queue graphicsQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
+                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, hasSpareQueue ? 1u : 0u, &graphicsQueue);
 
                     Queue computeQueue = default;
                     Vk.GetDeviceQueue(Device, computeQueueFamilyIndex, 0, &computeQueue);
@@ -397,9 +397,9 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             }
             else if (graphicsQueueFamilyCount >= 3)
             {
-                uint presentQueueIndex = graphicsQueueFamilyCount >= 4 ? 3u : 0u;
-
                 queueCreateInfoCount = 1;
+
+                bool hasSpareQueue = graphicsQueueFamilyCount >= 4;
 
                 float* queuePriorities = (float*)ZenithMarshal.Allocate<float>(scope, 4);
                 queuePriorities[0] = 1.0f;
@@ -412,23 +412,31 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
                 {
                     SType = StructureType.DeviceQueueCreateInfo,
                     QueueFamilyIndex = graphicsQueueFamilyIndex,
-                    QueueCount = Math.Min(graphicsQueueFamilyCount, 4),
+                    QueueCount = hasSpareQueue ? 4u : 3u,
                     PQueuePriorities = queuePriorities
                 };
 
                 loadQueues = () =>
                 {
                     Queue presentQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, presentQueueIndex, &presentQueue);
-
                     Queue graphicsQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
-
                     Queue computeQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 1, &computeQueue);
-
                     Queue transferQueue = default;
-                    Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 2, &transferQueue);
+
+                    if (hasSpareQueue)
+                    {
+                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &presentQueue);
+                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 1, &graphicsQueue);
+                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 2, &computeQueue);
+                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 3, &transferQueue);
+                    }
+                    else
+                    {
+                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &presentQueue);
+                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
+                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 1, &computeQueue);
+                        Vk.GetDeviceQueue(Device, graphicsQueueFamilyIndex, 2, &transferQueue);
+                    }
 
                     queues = (presentQueue, graphicsQueueFamilyIndex, graphicsQueue, graphicsQueueFamilyIndex, computeQueue, graphicsQueueFamilyIndex, transferQueue, graphicsQueueFamilyIndex);
                 };

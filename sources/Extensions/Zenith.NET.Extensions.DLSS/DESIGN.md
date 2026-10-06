@@ -2,14 +2,14 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 状态 | 草案第 5 版 |
+| 状态 | 草案第 6 版 |
 | 基线 | `feature/dlss-integration` @ `1a8f294` |
 | 依赖 | `Zenith.NET`、`NGX.NET` 310.9.1 |
 | 参照 | Upscaling 扩展（调用形式）、ImGui 扩展（纹理绑定）、Skia 扩展（每上下文原生状态及其释放）、Apple 为 MetalFX 帧插值提供的 [`PresentThread`](https://github.com/apple/game-porting-toolkit/blob/main/game-porting-skills/skills/using-metalfx-frame-interpolation/SKILL.md)、[NGX.NET Showcase](https://github.com/qian-o/NGX.NET/tree/master/Showcase) |
 
 ## 1. 范围与原则
 
-- 四个公开对象：超分辨率（含 DLAA）`DLSSSuperResolution`、光线重建 `DLSSRayReconstruction`、帧生成 `DLSSFrameGeneration`、帧生成呈现器 `DLSSFrameGenerationPresenter`。支持 DirectX 12 与 Vulkan，NGX 没有 Metal 实现。
+- 三个公开对象：超分辨率（含 DLAA）`DLSSSuperResolution`、光线重建 `DLSSRayReconstruction`、帧生成 `DLSSFrameGeneration`。生成帧如何呈现由应用决定（2.7）。支持 DirectX 12 与 Vulkan，NGX 没有 Metal 实现。
 - 调用形式与 Upscaling 扩展相同：`context.CreateXxx(desc)` 创建，`xxx.Dispatch(commandBuffer, args)` 录制。纹理经 `texture.DLSSBinding` 传入，用法同 `texture.ImGuiBinding`。
 - 类型名为 `DLSS` 加 NVIDIA 功能名，之后新增的功能按同一规则命名。
 - 参数沿用 NGX 原义。扩展只做类型转换：纹理转为原生资源，枚举与格式转为 NGX 取值，按 NGX 的需要对矩阵求逆。不做数值换算，也不做兼容处理。
@@ -26,7 +26,6 @@
 | `context.GetDLSSSuperResolutionOptimalSettings(outputWidth, outputHeight, mode)` | 超分辨率的推荐输入尺寸 |
 | `context.GetDLSSRayReconstructionOptimalSettings(outputWidth, outputHeight, mode)` | 光线重建的推荐输入尺寸 |
 | `context.CreateDLSSSuperResolution(desc)`、`CreateDLSSRayReconstruction(desc)`、`CreateDLSSFrameGeneration(desc)` | 创建功能对象 |
-| `context.CreateDLSSFrameGenerationPresenter(desc)` | 创建帧生成呈现器（2.7） |
 | `texture.DLSSBinding` | 纹理绑定（2.2） |
 
 每个上下文的 NGX 状态由内部的 `DLSSContext` 持有，释放方式与 Skia 的 `SKRenderer` 相同。以下为 `Extensions` 的节选：
@@ -350,7 +349,7 @@ public struct DLSSRayReconstructionArgs
 
 ### 2.6 帧生成
 
-帧生成在相邻两个真实帧之间插入一帧。它处理即将呈现的最终画面（色调映射之后、含 UI），每个真实帧调用一次。通常由呈现器调用（2.7），应用也可以直接 `Dispatch` 并自行呈现。调试事件名为 `"DLSS Frame Generation"`。
+帧生成在相邻两个真实帧之间插入一帧。它处理即将呈现的最终画面（色调映射之后、含 UI），每个真实帧调用一次。生成帧写入 `Output`，如何呈现由应用决定（2.7）。调试事件名为 `"DLSS Frame Generation"`。
 
 ```csharp
 namespace Zenith.NET.Extensions.DLSS;
@@ -470,43 +469,17 @@ public struct DLSSFrameGenerationArgs
 - 第一次调用与 `Reset` 为真时没有上一帧，NGX 输出的是真实帧的拷贝。
 - 扩展固定 `MultiFrameCount = 1`、`MultiFrameIndex = 1`，即 2 倍帧率。
 
-### 2.7 帧生成呈现器
+### 2.7 呈现生成帧
 
-生成帧需要与真实帧交替、等间隔地呈现。`DLSSFrameGenerationPresenter` 参照 Apple 的 `PresentThread`，使用独立的呈现线程与 RHI 的独立呈现队列：应用把本帧最终画面渲染到 `BackBuffer`，然后调用 `Present`；呈现器录制帧生成，再由呈现线程按节奏呈现生成帧与真实帧。
+扩展不负责呈现，做法与 MetalFX 相同：MetalFX 只提供插帧器，Apple 的 `PresentThread` 是放在应用侧的示例代码。生成帧何时呈现、是否丢弃、如何与真实帧交替，都由应用决定。
 
-```csharp
-namespace Zenith.NET.Extensions.DLSS;
+参考做法，结构与 `PresentThread` 相同：
 
-public struct DLSSFrameGenerationPresenterDesc
-{
-    public SwapChain SwapChain;
-
-    public DLSSFrameGeneration FrameGeneration;
-}
-```
-
-| 成员 | `PresentThread` | 说明 |
-| --- | --- | --- |
-| `Desc` | 构造参数 | 交换链与帧生成对象都由应用持有。交换链须以 `IsIndependentPresentEnabled = true` 创建；帧生成对象的 `Format` 与输出尺寸等于交换链的格式与尺寸，且只由呈现器调用 |
-| `BackBuffer` | `GetBackBuffer()` | 本帧最终画面（含 UI）的渲染目标，即帧生成的 `Color`。交给应用时处于 `CopySrc`，应用在调用 `Present` 前把它转换到 `Sampled` |
-| `Present(CommandBuffer commandBuffer, DLSSFrameGenerationArgs args)` | `Present(interpolator, queue)` | 呈现器填写 `Color` 与 `Output`，其余字段由应用填写。`Present` 会提交 `commandBuffer`，应用不再提交它，也不再调用 `swapChain.Present()` |
-
-`Present` 在调用线程上完成：
-
-1. 在 `commandBuffer` 中录制帧生成，输出到呈现器的生成帧纹理；提交时由 GPU 等待上一次生成帧拷贝完成，不阻塞 CPU。
-2. 把本帧交给呈现线程。呈现线程还没取走上一帧时等待，最多一帧在途。
-3. 切换到另一张 `BackBuffer`；它仍被呈现线程占用时等待。
-
-呈现线程在 `swapChain.Queue`（即 `PresentQueue`）上拷贝并呈现，不排在 `GraphicsQueue` 的渲染工作之后：
-
-1. 帧生成完成后，拷贝并呈现生成帧。第一次调用与 `Reset` 为真时跳过。
-2. 等到半个帧间隔之后，拷贝并呈现真实帧，然后归还它的 `BackBuffer`。帧间隔取最近几次真实帧呈现间隔的平均值。
-
-生成帧与真实帧各显示约半个帧间隔，与 CPU、GPU 哪一侧受限无关。
-
-每个真实帧固定生成一帧。多帧生成以后按动态 MFG 的方式加入：由呈现线程根据目标帧率逐帧决定生成帧数，公开 API 不变。
-
-结构与 `PresentThread` 相同：独立的呈现线程、独立的队列与定时器。
+- 交换链以 `UsePresentQueue = true` 创建。生成帧与真实帧都在 `swapChain.Queue` 上拷贝到 `Drawable` 并呈现，不排在 `GraphicsQueue` 的渲染工作之后。拷贝与呈现的写法见文档「平台集成」中的「使用呈现队列」。
+- 渲染线程：把本帧最终画面（含 UI）渲染到后缓冲，作为帧生成的 `Color`；`Dispatch` 输出到生成帧纹理，提交后把完成值交给呈现线程。
+- 呈现线程：帧生成完成后拷贝并呈现生成帧，拷贝以帧生成的完成值为等待条件；等到约半个帧间隔后，拷贝并呈现真实帧。帧间隔取最近几次真实帧呈现间隔的平均值，生成帧与真实帧各显示约半个间隔。第一帧与 `Reset` 为真时只呈现真实帧。
+- 后缓冲与生成帧纹理各两张交替使用。渲染线程开始使用某一张之前，等呈现线程用完它，即最多一帧在途。
+- 交换链尺寸变化时，先停止呈现线程，再调用 `SwapChain.Resize`，然后重建帧生成对象与上述纹理。
 
 ### 2.8 示例
 
@@ -542,14 +515,14 @@ superResolution.Dispatch(commandBuffer, new()
 commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.Sampled);
 ```
 
-帧生成与呈现器。交换链开启独立呈现；应用把场景与 UI 渲染到 `presenter.BackBuffer` 并转换到 `Sampled`，另外保留不含 UI 的 `hudless` 与只含 UI 的 `ui`：
+帧生成。应用把场景与 UI 渲染到后缓冲 `backBuffer` 并转换到 `Sampled`，另外保留不含 UI 的 `hudless` 与只含 UI 的 `ui`；`generated` 是应用的生成帧纹理：
 
 ```csharp
 SwapChain swapChain = context.CreateSwapChain(new()
 {
     Surface = surface,
     Format = PixelFormat.B8G8R8A8UNorm,
-    IsIndependentPresentEnabled = true
+    UsePresentQueue = true
 });
 
 DLSSFrameGeneration frameGeneration = context.CreateDLSSFrameGeneration(new()
@@ -562,18 +535,16 @@ DLSSFrameGeneration frameGeneration = context.CreateDLSSFrameGeneration(new()
     IsUIRecompositionEnabled = true
 });
 
-DLSSFrameGenerationPresenter presenter = context.CreateDLSSFrameGenerationPresenter(new()
-{
-    SwapChain = swapChain,
-    FrameGeneration = frameGeneration
-});
+commandBuffer.Transition(generated, default, TextureLayout.CopySrc, TextureLayout.Storage);
 
-presenter.Present(commandBuffer, new()
+frameGeneration.Dispatch(commandBuffer, new()
 {
+    Color = backBuffer.DLSSBinding,
     HudlessColor = hudless.DLSSBinding,
     UI = ui.DLSSBinding,
     Depth = depth.DLSSBinding,
     MotionVectors = motionVectors.DLSSBinding,
+    Output = generated.DLSSBinding,
     JitterOffsetX = clipJitter.X,
     JitterOffsetY = clipJitter.Y,
     MotionVectorScaleX = 1.0f / renderWidth,
@@ -590,7 +561,14 @@ presenter.Present(commandBuffer, new()
     CameraAspectRatio = camera.AspectRatio,
     Reset = reset
 });
+
+commandBuffer.Transition(generated, default, TextureLayout.Storage, TextureLayout.CopySrc);
+commandBuffer.Transition(backBuffer, default, TextureLayout.Sampled, TextureLayout.CopySrc);
+
+TimelineValue generatedValue = commandBuffer.Submit();
 ```
+
+之后把 `generated`、`backBuffer` 与 `generatedValue` 交给呈现线程，按 2.7 呈现。
 
 ## 3. 内部设计
 
@@ -601,9 +579,8 @@ presenter.Present(commandBuffer, new()
 | `Extensions.cs` | 入口（2.1） |
 | `DLSSBinding.cs`、`DLSSCapabilities.cs`、`DLSSOptimalSettings.cs`、`DLSSMode.cs` | 2.2、2.3 |
 | `DLSSSuperResolution*.cs`、`DLSSRayReconstruction*.cs`、`DLSSFrameGeneration*.cs` | 各功能的类、Desc 与 Args，每个公共类型一个文件 |
-| `DLSSFrameGenerationPresenter.cs`、`DLSSFrameGenerationPresenterDesc.cs` | 呈现器（2.7） |
 | `DLSSContext.cs` | 内部：NGX 初始化与关闭、能力、参数块、绑定解析 |
-| `DLSSFormats.cs` | 内部：数值映射（3.5） |
+| `DLSSFormats.cs` | 内部：数值映射（3.4） |
 
 ### 3.2 DLSSContext
 
@@ -638,16 +615,7 @@ presenter.Present(commandBuffer, new()
 | 求值参数 | `NGXD3D12DLSSEvalParams`、`NGXVKDLSSEvalParams` | `NGXD3D12DLSSDEvalParams`、`NGXVKDLSSDEvalParams` | `NGXD3D12DLSSGEvalParams`、`NGXVKDLSSGEvalParams`，另有 `NGXDLSSGOptEvalParams` |
 | 求值 | `EvaluateDLSSExt` | `EvaluateDLSSDExt` | `EvaluateDLSSG` |
 
-### 3.4 呈现器
-
-- 资源：两个 `BackBuffer`，格式与尺寸取帧生成对象的 `Format` 与输出尺寸，用途为 `Sampled`、`Storage`、`ColorAttachment`、`TransferSrc`；一张生成帧纹理，用途为 `Sampled`、`Storage`、`TransferSrc`、`TransferDst`。创建后都转换到 `CopySrc`。
-- `Present` 的录制：把 `BackBuffer` 从 `Sampled` 转换到 `CopySrc`，把生成帧纹理转换到 `Storage`，帧生成后再转换回 `CopySrc`。提交时把上一次生成帧拷贝在呈现队列上的完成值作为等待条件。
-- 线程之间：一个容量为 1 的待呈现槽（真实帧的 `BackBuffer` 序号、帧生成的完成值、是否跳过生成帧），以及每张 `BackBuffer` 的归还信号。
-- 每次呈现：在 `swapChain.Queue` 上 `Transition(Drawable, Undefined, CopyDst)`、`CopyTexture`、`Transition(Drawable, CopyDst, Present)`，`Submit(waits).Wait()`，然后 `SwapChain.Present()`。生成帧的拷贝以帧生成的完成值为等待条件。DirectX 12 要求写入交换链图像的命令在其呈现队列上执行，所以拷贝不放在 `GraphicsQueue` 或 `TransferQueue`。
-- 定时：用 `Stopwatch` 计时，帧间隔取最近 8 次真实帧呈现间隔的平均值；先睡眠到目标时刻前约 1 ms，再自旋到目标时刻。
-- `Dispose`：通知呈现线程退出并等待它结束，尚未呈现的真实帧随之丢弃，然后释放纹理。
-
-### 3.5 格式
+### 3.4 格式
 
 `DLSSFormats` 集中全部数值映射，与 Skia 的 `SKFormats` 一样不依赖 Silk.NET：
 
@@ -656,13 +624,13 @@ presenter.Present(commandBuffer, new()
 
 ## 4. 使用约定
 
-- **命令缓冲**：可以使用任意队列，不在渲染通道内调用。调用前输入处于 `Sampled`、输出处于 `Storage`，调用后布局不变。`Dispatch` 在 NGX 求值前后各插入一次 `Barrier(All, All)`。呈现器 `Present` 的命令缓冲不能来自 `swapChain.Queue`，该队列由呈现线程独占。
+- **命令缓冲**：可以使用任意队列，不在渲染通道内调用。调用前输入处于 `Sampled`、输出处于 `Storage`，调用后布局不变。`Dispatch` 在 NGX 求值前后各插入一次 `Barrier(All, All)`。
 - **状态**：NGX 会替换管线、描述符与描述符堆。DLSS 只出现在两段完整的命令之间，扩展不保存也不恢复命令缓冲状态；后续命令照常先 `SetPipeline`，后端在 `SetPipelineImpl` 中重新绑定描述符堆。
 - **纹理用途**：输入需要 `Sampled`；输出需要 `Storage` 与 `TransferDst`。Vulkan 下 NGX 会用 `vkCmdClearColorImage` 清除输出：本机超分辨率使用预设 K（DLAA、Quality、Balanced 档位的默认预设）时出现，输出缺少 `TransferDst` 时验证层报错。
 - **单位**：按 NGX 原义。超分辨率与光线重建的抖动以输入像素为单位，运动矢量经 `MotionVectorScale` 换算到输入像素；帧生成的抖动在裁剪空间，运动矢量经 `MotionVectorScale` 归一化到 [-1, 1]。矩阵按 `System.Numerics` 原样传递，与 NGX 的行主序一致，且不含抖动。
 - **CornellBox**：运动矢量为当前帧减上一帧的 NDC 差值。超分辨率与光线重建的 `MotionVectorScale` 取 (−0.5·W, 0.5·H)，帧生成取 (−0.5, 0.5)，W、H 为渲染尺寸。
-- **重建**：Desc 不可变，尺寸、档位或格式变化时重建。先创建新对象再释放旧对象，避免 NGX 重新初始化（2.1）。交换链尺寸变化时，先释放呈现器以停止呈现线程，再调用 `SwapChain.Resize`，然后重建帧生成对象与呈现器。
-- **生命周期与线程**：GPU 完成引用某对象的全部工作后再 `Dispose` 它；Args 中的纹理也要存活到相应工作完成。同一对象不可并发 `Dispatch`。呈现器存在期间，应用不写入 `Drawable`，也不调用 `swapChain.Present()`。
+- **重建**：Desc 不可变，尺寸、档位或格式变化时重建。先创建新对象再释放旧对象，避免 NGX 重新初始化（2.1）。交换链尺寸变化时重建帧生成对象（2.7）。
+- **生命周期与线程**：GPU 完成引用某对象的全部工作后再 `Dispose` 它；Args 中的纹理也要存活到相应工作完成。同一对象不可并发 `Dispatch`。
 
 ## 5. RHI 依赖与验证
 
@@ -673,7 +641,7 @@ presenter.Present(commandBuffer, new()
 | `NativeObjectType.D3D12GraphicsCommandList`、`VulkanCommandBuffer` | 把命令列表传给 NGX |
 | 描述符堆在 `SetPipelineImpl` 中绑定 | NGX 替换描述符堆后，下一次 `SetPipeline` 恢复 |
 | Vulkan 设备扩展 `VK_NVX_binary_import`、`VK_NVX_image_view_handle` | NGX 的 Vulkan 实现所需 |
-| `CommandQueueType.Present`、`GraphicsContext.PresentQueue`、`SwapChainDesc.IsIndependentPresentEnabled`、`SwapChain.Queue` | 呈现器在独立的呈现队列上拷贝并呈现，不排在 `GraphicsQueue` 的渲染工作之后（2.7） |
+| `CommandQueueType.Present`、`GraphicsContext.PresentQueue`、`SwapChainDesc.UsePresentQueue`、`SwapChain.Queue` | 应用在呈现队列上拷贝并呈现生成帧与真实帧，不排在 `GraphicsQueue` 的渲染工作之后（2.7） |
 
 `VK_KHR_push_descriptor` 已从设备扩展列表移除。验证环境：RTX 4070 Ti SUPER，驱动 617.14，Vulkan SDK 1.4.357 的验证层，2026-10-06。
 
@@ -687,7 +655,7 @@ presenter.Present(commandBuffer, new()
 
 帧生成另在 DirectX 12（RGBA8、BGRA8，D3D12 调试层）与 Vulkan（BGRA8，验证层）上验证：创建与求值成功，输出正确，没有验证消息。
 
-独立呈现队列在同一环境下验证（D3D12 调试层、Vulkan 验证层）：
+呈现队列在同一环境下验证（D3D12 调试层、Vulkan 验证层）：
 
 | 项 | 结果 |
 | --- | --- |

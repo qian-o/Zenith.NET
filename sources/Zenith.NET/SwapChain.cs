@@ -6,7 +6,7 @@ public abstract class SwapChain(GraphicsContext context, SwapChainDesc desc) : G
 
     public ref readonly SwapChainDesc Desc => ref desc;
 
-    public CommandQueue Queue => desc.IsIndependentPresentEnabled ? Context.PresentQueue : Context.GraphicsQueue;
+    public CommandQueue Queue => desc.UsePresentQueue ? Context.PresentQueue : Context.GraphicsQueue;
 
     public abstract Texture Drawable { get; }
 
