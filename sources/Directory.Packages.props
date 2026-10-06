@@ -11,7 +11,7 @@
         <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.110" />
         <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
         <PackageVersion Include="NGX.NET" Version="310.9.1" />
-        <PackageVersion Include="Roslynator.Analyzers" Version="5.0.0" />
+        <PackageVersion Include="Roslynator.Analyzers" Version="5.0.1" />
         <PackageVersion Include="Silk.NET.Direct3D11" Version="2.23.0" />
         <PackageVersion Include="Silk.NET.Direct3D12" Version="2.23.0" />
         <PackageVersion Include="Silk.NET.Direct3D9" Version="2.23.0" />
