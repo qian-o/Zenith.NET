@@ -1,13 +1,12 @@
 ﻿using System.Numerics;
 using CornellBox.Handlers;
 using CornellBox.Helpers;
-using CornellBox.Models;
 using Hexa.NET.ImGui;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 using Zenith.NET;
 using Zenith.NET.DirectX12;
-using Zenith.NET.Extensions.ImGui;
+using Zenith.NET.Extensions.DLSS;
 using Zenith.NET.Metal;
 using Zenith.NET.Vulkan;
 
@@ -15,12 +14,21 @@ namespace CornellBox;
 
 internal static class App
 {
+    // A real frame is presented about half an interval after its generated frame, so a third slot keeps rendering busy.
+    public const int SlotCount = 3;
+
     private static readonly IWindow window;
     private static readonly IInputContext input;
     private static readonly SwapChain swapChain;
+    private static readonly FramePresenter presenter;
     private static readonly ImGuiHandler imGui;
     private static readonly CameraHandler camera;
     private static readonly Renderer renderer;
+    private static readonly Texture[] uiTextures = new Texture[SlotCount];
+    private static readonly Texture[] backBuffers = new Texture[SlotCount];
+    private static readonly Texture[] generatedFrames = new Texture[SlotCount];
+
+    private static int slot;
 
     static App()
     {
@@ -77,8 +85,11 @@ internal static class App
         swapChain = Context.CreateSwapChain(new()
         {
             Surface = surface,
-            Format = PixelFormat.B8G8R8A8UNorm
+            Format = PixelFormat.B8G8R8A8UNorm,
+            UsePresentQueue = true
         });
+
+        presenter = new(swapChain, SlotCount);
 
         imGui = new(input, new()
         {
@@ -93,6 +104,8 @@ internal static class App
         };
 
         renderer = new();
+
+        CreateTargets();
     }
 
     public static GraphicsContext Context { get; }
@@ -122,46 +135,38 @@ internal static class App
             {
                 ImGui.Text(Context.Capabilities.DeviceName);
                 ImGui.Text($"GraphicsApi: {Context.GraphicsApi}");
-                ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F1}");
+                ImGui.Text($"FPS: {presenter.Framerate:F1}");
             });
 
-            ImGuiHelper.Settings(static () =>
-            {
-                float renderPrecision = renderer.RenderPrecision;
-                if (ImGui.SliderFloat("Render Precision", ref renderPrecision, 0.5f, 1.0f, "%.2f"))
-                {
-                    renderer.RenderPrecision = renderPrecision;
-                    renderer.Resize(Width, Height);
-                }
-
-                int upscaleMode = (int)renderer.UpscaleMode;
-                if (ImGui.Combo("Upscale Mode", ref upscaleMode, "None\0Spatial\0Temporal\0"))
-                {
-                    renderer.UpscaleMode = (UpscaleMode)upscaleMode;
-                }
-            });
-
-            ImGui.GetBackgroundDrawList().AddImage(renderer.Color.ImGuiBinding, new(0, 0), new(Width / DpiScale.X, Height / DpiScale.Y));
+            ImGuiHelper.Settings(Settings);
         };
 
-        window.Render += static _ =>
+        window.Render += static delta =>
         {
             if (Width is 0 || Height is 0)
             {
                 return;
             }
 
+            presenter.Wait(slot);
+
             CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
-            renderer.Render(commandBuffer, camera);
+            commandBuffer.Transition(uiTextures[slot], default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
+            imGui.Render(commandBuffer, ColorAttachment.Clear(uiTextures[slot], default));
+            commandBuffer.Transition(uiTextures[slot], default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
 
-            commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-            imGui.Render(commandBuffer, ColorAttachment.Clear(swapChain.Drawable, default));
-            commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
+            renderer.Render(commandBuffer, camera, delta, slot, uiTextures[slot], backBuffers[slot], generatedFrames[slot]);
 
-            commandBuffer.Submit().Wait();
+            TimelineValue value = commandBuffer.Submit();
+            TimelineValue presentable = renderer.GenerateFrame(value);
 
-            swapChain.Present();
+            // Per-frame buffers are rewritten on the CPU, so the next frame waits for this one.
+            value.Wait();
+
+            presenter.Present(slot, backBuffers[slot], renderer.IsFrameGenerated ? generatedFrames[slot] : null, presentable);
+
+            slot = (slot + 1) % SlotCount;
         };
 
         window.Resize += static _ =>
@@ -171,11 +176,21 @@ internal static class App
                 return;
             }
 
-            renderer.Resize(Width, Height);
+            presenter.Drain();
+
             swapChain.Resize(Width, Height);
+
+            DestroyTargets();
+            CreateTargets();
+
+            renderer.Resize(Width, Height);
         };
 
         window.Run();
+
+        presenter.Dispose();
+
+        DestroyTargets();
 
         renderer.Dispose();
         imGui.Dispose();
@@ -184,5 +199,68 @@ internal static class App
         window.Dispose();
 
         Context.Dispose();
+    }
+
+    private static void Settings()
+    {
+        DLSSCapabilities capabilities = renderer.DLSSCapabilities;
+
+        bool rayReconstruction = renderer.RayReconstruction;
+
+        ImGui.BeginDisabled(!capabilities.RayReconstructionSupported);
+
+        if (ImGui.Checkbox("Ray Reconstruction", ref rayReconstruction))
+        {
+            renderer.RayReconstruction = rayReconstruction;
+        }
+
+        ImGui.EndDisabled();
+
+        ImGuiHelper.Tooltip(capabilities.RayReconstructionSupported ? null : "DLSS Ray Reconstruction is not available on this device.");
+
+        bool frameGeneration = renderer.FrameGeneration;
+
+        ImGui.BeginDisabled(!capabilities.FrameGenerationSupported);
+
+        if (ImGui.Checkbox("Frame Generation", ref frameGeneration))
+        {
+            renderer.FrameGeneration = frameGeneration;
+        }
+
+        ImGui.EndDisabled();
+
+        ImGuiHelper.Tooltip(capabilities.FrameGenerationSupported ? null : "DLSS Frame Generation is not available on this device.");
+    }
+
+    private static void CreateTargets()
+    {
+        for (int i = 0; i < SlotCount; i++)
+        {
+            uiTextures[i] = Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, Width, Height, 1, SampleCount.Count1) with
+            {
+                Usages = TextureUsages.Sampled | TextureUsages.ColorAttachment
+            });
+
+            backBuffers[i] = Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, Width, Height, 1, SampleCount.Count1) with
+            {
+                Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc
+            });
+
+            // NGX may clear its output with a transfer command.
+            generatedFrames[i] = Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, Width, Height, 1, SampleCount.Count1) with
+            {
+                Usages = TextureUsages.Storage | TextureUsages.TransferSrc | TextureUsages.TransferDst
+            });
+        }
+    }
+
+    private static void DestroyTargets()
+    {
+        for (int i = 0; i < SlotCount; i++)
+        {
+            generatedFrames[i].Dispose();
+            backBuffers[i].Dispose();
+            uiTextures[i].Dispose();
+        }
     }
 }

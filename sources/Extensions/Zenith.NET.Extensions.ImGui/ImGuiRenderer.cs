@@ -67,7 +67,13 @@ internal unsafe partial class ImGuiRenderer : DisposableObject
             {
                 Rasterizer = RasterizerState.CullNone(),
                 DepthStencil = DepthStencilState.DepthNone(),
-                Blend = BlendState.NonPremultiplied()
+                Blend = new()
+                {
+                    ColorAttachment0 = ColorAttachmentBlendState.NonPremultiplied() with
+                    {
+                        SrcAlphaFactor = BlendFactor.One
+                    }
+                }
             }
         });
 

@@ -3,71 +3,92 @@ using CornellBox.Handlers;
 using CornellBox.Models;
 using CornellBox.Passes;
 using Zenith.NET;
+using Zenith.NET.Extensions.DLSS;
 
 namespace CornellBox;
 
 internal class Renderer : DisposableObject
 {
+    private readonly Scene scene;
     private readonly PathTracingPass pathTracing;
-    private readonly DenoisePass denoise;
-    private readonly UpscalePass upscale;
+    private readonly RayReconstructionPass rayReconstruction;
     private readonly TonemapPass tonemap;
+    private readonly CompositePass composite;
+    private readonly FrameGenerationPass frameGeneration;
 
     private uint frameIndex;
     private Matrix4x4 previousViewProjection;
-    private Vector2 previousJitter;
     private bool history;
 
     public Renderer()
     {
-        uint renderWidth = Math.Max((uint)(App.Width * RenderPrecision), 1);
-        uint renderHeight = Math.Max((uint)(App.Height * RenderPrecision), 1);
+        scene = new();
+        pathTracing = new(App.Width, App.Height);
+        rayReconstruction = new(App.Width, App.Height);
+        tonemap = new(App.Width, App.Height);
+        composite = new(App.Width, App.Height);
+        frameGeneration = new(App.Width, App.Height);
 
-        pathTracing = new(renderWidth, renderHeight, App.Width, App.Height);
-        denoise = new(renderWidth, renderHeight, App.Width, App.Height);
-        upscale = new(renderWidth, renderHeight, App.Width, App.Height);
-        tonemap = new(renderWidth, renderHeight, App.Width, App.Height);
+        // Querying after the passes reuses the NGX instance the frame generation pass holds.
+        DLSSCapabilities = App.Context.DLSSCapabilities;
     }
 
-    public float RenderPrecision { get; set; } = 0.67f;
+    public DLSSCapabilities DLSSCapabilities { get; }
 
-    public UpscaleMode UpscaleMode { get; set; } = UpscaleMode.Temporal;
+    public bool RayReconstruction { get; set; }
 
-    public Texture Color => tonemap.Color;
+    public bool FrameGeneration { get; set; }
 
-    public void Render(CommandBuffer commandBuffer, CameraHandler camera)
+    public bool IsFrameGenerated => frameGeneration.IsGenerated;
+
+    public void Render(CommandBuffer commandBuffer, CameraHandler camera, double delta, int slot, Texture ui, Texture backBuffer, Texture generatedFrame)
     {
+        scene.Update(commandBuffer, delta);
+
         Matrix4x4 view = camera.View;
         Matrix4x4 projection = camera.Projection;
         Matrix4x4 viewProjection = view * projection;
         Matrix4x4.Invert(view, out Matrix4x4 inverseView);
         Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
 
-        Vector2 jitter = new(Halton(frameIndex + 1, 2) - 0.5f, Halton(frameIndex + 1, 3) - 0.5f);
+        bool reconstruct = RayReconstruction && DLSSCapabilities.RayReconstructionSupported;
+
+        // Only Ray Reconstruction accumulates jittered samples; the raw image stays steady without jitter.
+        Vector2 jitter = reconstruct ? new(Halton(frameIndex + 1, 2) - 0.5f, Halton(frameIndex + 1, 3) - 0.5f) : Vector2.Zero;
 
         if (!history)
         {
             previousViewProjection = viewProjection;
-            previousJitter = jitter;
         }
 
-        bool sameCamera = viewProjection == previousViewProjection;
-        Matrix4x4 clipToPrevClip = sameCamera ? Matrix4x4.Identity : inverseProjection * (inverseView * previousViewProjection);
+        Matrix4x4 clipToPrevClip = viewProjection == previousViewProjection ? Matrix4x4.Identity : inverseProjection * (inverseView * previousViewProjection);
 
         PassArgs args = new()
         {
+            Scene = scene,
+            UI = ui,
+            BackBuffer = backBuffer,
+            GeneratedFrame = generatedFrame,
+            View = view,
+            Projection = projection,
             InverseView = inverseView,
             InverseProjection = inverseProjection,
             ViewProjection = viewProjection,
             PreviousViewProjection = previousViewProjection,
             ClipToPrevClip = clipToPrevClip,
             CameraPosition = camera.Position,
-            CameraFovAngleHor = 2.0f * MathF.Atan(MathF.Tan(float.DegreesToRadians(camera.Fov) * 0.5f) * camera.AspectRatio),
+            CameraUp = camera.Up,
+            CameraRight = camera.Right,
+            CameraForward = camera.Forward,
+            CameraNear = camera.NearPlane,
+            CameraFar = camera.FarPlane,
+            CameraFovAngleVer = float.DegreesToRadians(camera.Fov),
+            CameraAspectRatio = camera.AspectRatio,
             Jitter = jitter,
-            PreviousJitter = previousJitter,
             FrameIndex = frameIndex,
-            SameCamera = sameCamera,
-            UpscaleMode = UpscaleMode
+            Slot = slot,
+            RayReconstruction = reconstruct,
+            FrameGeneration = FrameGeneration && DLSSCapabilities.FrameGenerationSupported
         };
 
         pathTracing.Record(commandBuffer, in args);
@@ -77,46 +98,52 @@ internal class Renderer : DisposableObject
             Color = pathTracing.Color,
             Normal = pathTracing.Normal,
             Depth = pathTracing.Depth,
-            MotionVectors = pathTracing.MotionVectors
+            MotionVectors = pathTracing.MotionVectors,
+            DiffuseAlbedo = pathTracing.DiffuseAlbedo,
+            SpecularAlbedo = pathTracing.SpecularAlbedo,
+            SpecularHitDistance = pathTracing.SpecularHitDistance
         };
-        denoise.Record(commandBuffer, in args);
 
-        args = args with
-        {
-            Color = denoise.Color,
-            ResolvedColor = denoise.ResolvedColor
-        };
-        upscale.Record(commandBuffer, in args);
+        rayReconstruction.Record(commandBuffer, in args);
 
-        args = args with { Color = upscale.Color };
+        args = args with { Color = rayReconstruction.Color };
         tonemap.Record(commandBuffer, in args);
 
+        args = args with { Color = tonemap.Color };
+        composite.Record(commandBuffer, in args);
+
+        frameGeneration.Record(commandBuffer, in args);
+
         previousViewProjection = viewProjection;
-        previousJitter = jitter;
         history = true;
 
         frameIndex++;
     }
 
+    public TimelineValue GenerateFrame(TimelineValue rendered)
+    {
+        return frameGeneration.Dispatch(rendered);
+    }
+
     public void Resize(uint width, uint height)
     {
-        uint renderWidth = Math.Max((uint)(App.Width * RenderPrecision), 1);
-        uint renderHeight = Math.Max((uint)(App.Height * RenderPrecision), 1);
-
-        pathTracing.Resize(renderWidth, renderHeight, width, height);
-        denoise.Resize(renderWidth, renderHeight, width, height);
-        upscale.Resize(renderWidth, renderHeight, width, height);
-        tonemap.Resize(renderWidth, renderHeight, width, height);
+        pathTracing.Resize(width, height);
+        rayReconstruction.Resize(width, height);
+        tonemap.Resize(width, height);
+        composite.Resize(width, height);
+        frameGeneration.Resize(width, height);
 
         history = false;
     }
 
     protected override void Destroy()
     {
+        frameGeneration.Dispose();
+        composite.Dispose();
         tonemap.Dispose();
-        upscale.Dispose();
-        denoise.Dispose();
+        rayReconstruction.Dispose();
         pathTracing.Dispose();
+        scene.Dispose();
     }
 
     private static float Halton(uint index, uint radix)

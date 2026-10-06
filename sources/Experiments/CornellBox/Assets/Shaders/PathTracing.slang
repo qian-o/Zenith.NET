@@ -2,6 +2,11 @@
 static const float3 LightMax = float3(343.0, 547.0, 332.0);
 static const float LightArea = (343.0 - 213.0) * (332.0 - 227.0);
 static const float3 LightNormal = float3(0.0, -1.0, 0.0);
+static const uint LightMaterial = 3;
+static const uint CheckerPattern = 1;
+static const uint GridPattern = 2;
+static const float RayOffset = 0.01;
+static const float MissDistance = 10000.0;
 static const float PI = 3.14159265;
 static const int MaxBounces = 8;
 
@@ -37,7 +42,7 @@ struct Material
 {
     private float4 AlbedoAndEmission;
 
-    private float4 MetallicRoughnessAndPadding;
+    private float4 MetallicRoughnessAndPattern;
 
     property float3 Albedo
     {
@@ -56,16 +61,79 @@ struct Material
     property float Metallic
     {
         get {
-            return MetallicRoughnessAndPadding.x;
+            return MetallicRoughnessAndPattern.x;
         }
     }
 
     property float Roughness
     {
         get {
-            return MetallicRoughnessAndPadding.y;
+            return MetallicRoughnessAndPattern.y;
         }
     }
+
+    property uint Pattern
+    {
+        get {
+            return asuint(MetallicRoughnessAndPattern.z);
+        }
+    }
+
+    property float PatternScale
+    {
+        get {
+            return MetallicRoughnessAndPattern.w;
+        }
+    }
+};
+
+struct Instance
+{
+    private float4x4 Transform;
+
+    private float4x4 PreviousTransform;
+
+    private uint4 FirstIndexAndPadding;
+
+    property float4x4 ObjectToWorld
+    {
+        get {
+            return Transform;
+        }
+    }
+
+    property float4x4 PreviousObjectToWorld
+    {
+        get {
+            return PreviousTransform;
+        }
+    }
+
+    property uint FirstIndex
+    {
+        get {
+            return FirstIndexAndPadding.x;
+        }
+    }
+};
+
+struct Surface
+{
+    float3 Position;
+
+    float3 PreviousPosition;
+
+    float3 Normal;
+
+    float3 GeometricNormal;
+
+    float3 Albedo;
+
+    float Emission;
+
+    float Metallic;
+
+    float Roughness;
 };
 
 struct Constants
@@ -82,6 +150,8 @@ struct Constants
 
     float4 RenderSizeJitter;
 
+    uint4 HitDistancePadding;
+
     DescriptorHandle<RaytracingAccelerationStructure> Scene;
 
     DescriptorHandle<StructuredBuffer<Vertex>> Vertices;
@@ -90,6 +160,8 @@ struct Constants
 
     DescriptorHandle<StructuredBuffer<Material>> Materials;
 
+    DescriptorHandle<StructuredBuffer<Instance>> Instances;
+
     DescriptorHandle<RWTexture2D<float4>> Color;
 
     DescriptorHandle<RWTexture2D<float>> Depth;
@@ -97,17 +169,15 @@ struct Constants
     DescriptorHandle<RWTexture2D<float4>> Normal;
 
     DescriptorHandle<RWTexture2D<float2>> MotionVectors;
+
+    DescriptorHandle<RWTexture2D<float4>> DiffuseAlbedo;
+
+    DescriptorHandle<RWTexture2D<float4>> SpecularAlbedo;
+
+    DescriptorHandle<RWTexture2D<float>> SpecularHitDistance;
 };
 
 ConstantBuffer<Constants> constants;
-
-float2 EncodeMotion(float4 currentClip, float4 previousClip)
-{
-    float2 motion = currentClip.xy / currentClip.w - previousClip.xy / previousClip.w;
-
-    // Keep neutral velocity exactly representable in the half texture.
-    return motion * (0.499 * 0.5) + 0.5;
-}
 
 float DistributionGGX(float NdotH, float roughness)
 {
@@ -136,16 +206,15 @@ float3 FresnelSchlick(float cosTheta, float3 F0)
     return F0 + (1.0 - F0) * pow(saturate(1.0 - cosTheta), 5.0);
 }
 
-float3 EvaluateBRDF(float3 N, float3 V, float3 L, Material mat)
+float3 EvaluateBRDF(float3 N, float3 V, float3 L, Surface surface, float roughness)
 {
-    float roughness = max(mat.Roughness, 0.04);
     float NdotL = max(dot(N, L), 0.0);
     float NdotV = max(dot(N, V), 0.001);
     float3 H = normalize(V + L);
     float NdotH = max(dot(N, H), 0.0);
     float HdotV = max(dot(H, V), 0.0);
 
-    float3 F0 = lerp(float3(0.04, 0.04, 0.04), mat.Albedo, mat.Metallic);
+    float3 F0 = lerp(float3(0.04, 0.04, 0.04), surface.Albedo, surface.Metallic);
 
     float D = DistributionGGX(NdotH, roughness);
     float G = GeometrySmith(NdotV, NdotL, roughness);
@@ -153,8 +222,8 @@ float3 EvaluateBRDF(float3 N, float3 V, float3 L, Material mat)
 
     float3 specular = D * G * F / (4.0 * NdotV * NdotL + 0.0001);
 
-    float3 kD = (1.0 - F) * (1.0 - mat.Metallic);
-    float3 diffuse = kD * mat.Albedo / PI;
+    float3 kD = (1.0 - F) * (1.0 - surface.Metallic);
+    float3 diffuse = kD * surface.Albedo / PI;
 
     return diffuse + specular;
 }
@@ -262,19 +331,18 @@ bool TraceShadowRay(float3 origin, float3 direction, float maxDist)
     return shadowQuery.CommittedStatus() != COMMITTED_NOTHING;
 }
 
-float3 SampleLightDirect(float3 hitPos, float3 hitNormal, float3 geoNormal, float3 V, Material mat, float roughness,
-                         float specProb, inout uint rng)
+float3 SampleLightDirect(Surface surface, float3 V, float roughness, float specProb, inout uint rng)
 {
     float r1 = RandomFloat(rng);
     float r2 = RandomFloat(rng);
 
     float3 lightPoint = float3(lerp(LightMin.x, LightMax.x, r1), LightMin.y, lerp(LightMin.z, LightMax.z, r2));
 
-    float3 toLight = lightPoint - hitPos;
+    float3 toLight = lightPoint - surface.Position;
     float dist = length(toLight);
     float3 L = toLight / dist;
 
-    float NdotL = dot(hitNormal, L);
+    float NdotL = dot(surface.Normal, L);
     if (NdotL <= 0.0)
     {
         return float3(0.0, 0.0, 0.0);
@@ -286,28 +354,166 @@ float3 SampleLightDirect(float3 hitPos, float3 hitNormal, float3 geoNormal, floa
         return float3(0.0, 0.0, 0.0);
     }
 
-    float3 shadowOrigin = dot(geoNormal, L) > 0.0 ? hitPos + geoNormal * 0.001 : hitPos - geoNormal * 0.001;
+    float3 shadowOrigin = surface.Position + surface.GeometricNormal * (dot(surface.GeometricNormal, L) > 0.0 ? RayOffset : -RayOffset);
     if (TraceShadowRay(shadowOrigin, L, dist))
     {
         return float3(0.0, 0.0, 0.0);
     }
 
-    Material lightMat = constants.Materials[3];
+    Material lightMat = constants.Materials[LightMaterial];
     float3 lightEmission = lightMat.Albedo * lightMat.Emission;
 
     float pdfLight = (dist * dist) / (lightCosine * LightArea);
-    float pdfBrdf = ComputeBRDFPDF(hitNormal, V, L, roughness, specProb);
+    float pdfBrdf = ComputeBRDFPDF(surface.Normal, V, L, roughness, specProb);
     float misWeight = PowerHeuristic(pdfLight, pdfBrdf);
 
-    float3 brdf = EvaluateBRDF(hitNormal, V, L, mat);
+    float3 brdf = EvaluateBRDF(surface.Normal, V, L, surface, roughness);
 
     return lightEmission * brdf * NdotL * misWeight / pdfLight;
+}
+
+float3 PatternAlbedo(Material material, float3 position, float3 normal)
+{
+    if (material.Pattern != CheckerPattern && material.Pattern != GridPattern)
+    {
+        return material.Albedo;
+    }
+
+    float3 axis = abs(normal);
+    float2 uv = axis.y >= max(axis.x, axis.z) ? position.xz : (axis.x >= axis.z ? position.zy : position.xy);
+    uv /= material.PatternScale;
+
+    if (material.Pattern == CheckerPattern)
+    {
+        int2 cell = int2(floor(uv));
+
+        return ((cell.x + cell.y) & 1) == 0 ? material.Albedo : material.Albedo * 0.08;
+    }
+
+    float2 tile = abs(frac(uv) - 0.5);
+
+    return max(tile.x, tile.y) > 0.47 ? material.Albedo * 0.15 : material.Albedo;
+}
+
+Surface GetSurface(uint instanceIndex, uint primitiveIndex, float2 barycentrics, float3 direction)
+{
+    Instance instance = constants.Instances[instanceIndex];
+    uint index = instance.FirstIndex + primitiveIndex * 3;
+
+    Vertex v0 = constants.Vertices[constants.Indices[index + 0]];
+    Vertex v1 = constants.Vertices[constants.Indices[index + 1]];
+    Vertex v2 = constants.Vertices[constants.Indices[index + 2]];
+
+    float3 weights = float3(1.0 - barycentrics.x - barycentrics.y, barycentrics.x, barycentrics.y);
+    float3 position = v0.Position * weights.x + v1.Position * weights.y + v2.Position * weights.z;
+    float3 normal = normalize(v0.Normal * weights.x + v1.Normal * weights.y + v2.Normal * weights.z);
+    float3 faceNormal = normalize(cross(v1.Position - v0.Position, v2.Position - v0.Position));
+
+    // Winding differs between meshes; vertex normals define the outside.
+    if (dot(faceNormal, normal) < 0.0)
+    {
+        faceNormal = -faceNormal;
+    }
+
+    Material material = constants.Materials[v0.MaterialId];
+
+    Surface surface;
+    surface.Position = mul(float4(position, 1.0), instance.ObjectToWorld).xyz;
+    surface.PreviousPosition = mul(float4(position, 1.0), instance.PreviousObjectToWorld).xyz;
+    surface.Normal = normalize(mul(float4(normal, 0.0), instance.ObjectToWorld).xyz);
+    surface.GeometricNormal = normalize(mul(float4(faceNormal, 0.0), instance.ObjectToWorld).xyz);
+    surface.Albedo = PatternAlbedo(material, position, normal);
+    surface.Emission = material.Emission;
+    surface.Metallic = material.Metallic;
+    surface.Roughness = material.Roughness;
+
+    if (dot(surface.GeometricNormal, direction) > 0.0)
+    {
+        surface.Normal = -surface.Normal;
+        surface.GeometricNormal = -surface.GeometricNormal;
+    }
+
+    return surface;
+}
+
+// Specular albedo approximation from the DLSS Ray Reconstruction integration guide.
+float3 EnvBRDFApprox2(float3 specularColor, float alpha, float NdotV)
+{
+    float4 x = float4(1.0, NdotV, NdotV * NdotV, NdotV * NdotV * NdotV);
+    float4 y = float4(1.0, alpha, alpha * alpha, alpha * alpha * alpha);
+
+    float2x2 m1 = float2x2(0.99044, -1.28514, 1.29678, -0.755907);
+    float3x3 m2 = float3x3(1.0, 2.92338, 59.4188, 20.3225, -27.0302, 222.592, 121.563, 626.13, 316.627);
+    float2x2 m3 = float2x2(0.0365463, 3.32707, 9.0632, -9.04756);
+    float3x3 m4 = float3x3(1.0, 3.59685, -1.36772, 9.04401, -16.3174, 9.22949, 5.56589, 19.7886, -20.2123);
+
+    float bias = dot(mul(m1, x.xy), y.xy) / dot(mul(m2, x.xyw), y.xyw);
+    float scale = dot(mul(m3, x.xy), y.xy) / dot(mul(m4, x.xzw), y.xyw);
+
+    // Surfaces without specular reflectance get no bias.
+    bias *= saturate(specularColor.g * 50.0);
+
+    return specularColor * max(scale, 0.0) + max(bias, 0.0);
+}
+
+float TraceHitDistance(Surface surface, float3 direction)
+{
+    RayDesc ray;
+    ray.Origin = surface.Position + surface.GeometricNormal * (dot(surface.GeometricNormal, direction) > 0.0 ? RayOffset : -RayOffset);
+    ray.Direction = direction;
+    ray.TMin = 0.001;
+    ray.TMax = MissDistance;
+
+    RayQuery<RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> query;
+    query.TraceRayInline(constants.Scene, RAY_FLAG_NONE, 0xFF, ray);
+
+    query.Proceed();
+
+    return query.CommittedStatus() == COMMITTED_NOTHING ? MissDistance : query.CommittedRayT();
+}
+
+void WriteGuides(uint2 pixel, Surface surface, float3 V, float3 F0)
+{
+    float4 currentClip = mul(float4(surface.Position, 1.0), constants.ViewProjection);
+    float4 previousClip = mul(float4(surface.PreviousPosition, 1.0), constants.PreviousViewProjection);
+    float2 motion = currentClip.xy / currentClip.w - previousClip.xy / previousClip.w;
+    float NdotV = saturate(dot(surface.Normal, V));
+
+    constants.Depth[pixel] = saturate(currentClip.z / currentClip.w);
+    constants.Normal[pixel] = float4(surface.Normal, surface.Roughness);
+    constants.MotionVectors[pixel] = motion;
+    constants.DiffuseAlbedo[pixel] = float4(surface.Albedo * (1.0 - surface.Metallic), 1.0);
+    constants.SpecularAlbedo[pixel] = float4(EnvBRDFApprox2(F0, surface.Roughness * surface.Roughness, NdotV), 1.0);
+
+    if (constants.HitDistancePadding.x != 0)
+    {
+        constants.SpecularHitDistance[pixel] = TraceHitDistance(surface, reflect(-V, surface.Normal));
+    }
+}
+
+void WriteSkyGuides(uint2 pixel, float3 direction)
+{
+    float4 currentClip = mul(float4(direction, 0.0), constants.ViewProjection);
+    float4 previousClip = mul(float4(direction, 0.0), constants.PreviousViewProjection);
+    float2 motion = currentClip.xy / currentClip.w - previousClip.xy / previousClip.w;
+
+    constants.Depth[pixel] = 1.0;
+    constants.Normal[pixel] = float4(0.0);
+    constants.MotionVectors[pixel] = motion;
+    constants.DiffuseAlbedo[pixel] = float4(0.0);
+    constants.SpecularAlbedo[pixel] = float4(0.0);
+
+    if (constants.HitDistancePadding.x != 0)
+    {
+        constants.SpecularHitDistance[pixel] = MissDistance;
+    }
 }
 
 float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng)
 {
     float3 throughput = float3(1.0, 1.0, 1.0);
     float3 radiance = float3(0.0, 0.0, 0.0);
+    float previousPdf = 0.0;
 
     for (int bounce = 0; bounce < MaxBounces; bounce++)
     {
@@ -326,11 +532,7 @@ float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng)
         {
             if (bounce == 0)
             {
-                constants.Depth[pixel] = 1.0;
-                constants.Normal[pixel] = float4(0.0);
-                constants.MotionVectors[pixel] =
-                    EncodeMotion(mul(float4(direction, 0.0), constants.ViewProjection),
-                                 mul(float4(direction, 0.0), constants.PreviousViewProjection));
+                WriteSkyGuides(pixel, direction);
             }
 
             float3 skyColor =
@@ -340,60 +542,45 @@ float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng)
             break;
         }
 
-        uint primIdx = query.CommittedPrimitiveIndex();
-        float2 bary = query.CommittedTriangleBarycentrics();
         float t = query.CommittedRayT();
-        float3 hitPos = origin + direction * t;
+        Surface surface = GetSurface(query.CommittedInstanceIndex(), query.CommittedPrimitiveIndex(),
+                                     query.CommittedTriangleBarycentrics(), direction);
 
-        uint i0 = constants.Indices[primIdx * 3 + 0];
-        uint i1 = constants.Indices[primIdx * 3 + 1];
-        uint i2 = constants.Indices[primIdx * 3 + 2];
+        float3 V = -direction;
 
-        Vertex v0 = constants.Vertices[i0];
-        Vertex v1 = constants.Vertices[i1];
-        Vertex v2 = constants.Vertices[i2];
-
-        float3 baryWeights = float3(1.0 - bary.x - bary.y, bary.x, bary.y);
-        float3 normal = normalize(v0.Normal * baryWeights.x + v1.Normal * baryWeights.y + v2.Normal * baryWeights.z);
-
-        float3 geoNormal = normal;
-        if (dot(normal, direction) > 0.0)
-        {
-            normal = -normal;
-        }
-
-        Material mat = constants.Materials[v0.MaterialId];
+        float3 F0 = lerp(float3(0.04, 0.04, 0.04), surface.Albedo, surface.Metallic);
+        float roughness = max(surface.Roughness, 0.04);
 
         if (bounce == 0)
         {
-            float4 currentClip = mul(float4(hitPos, 1.0), constants.ViewProjection);
-            float4 previousClip = mul(float4(hitPos, 1.0), constants.PreviousViewProjection);
-            float3 guideNormal = dot(v0.Normal, direction) > 0.0 ? -v0.Normal : v0.Normal;
-            constants.Depth[pixel] = saturate(currentClip.z / currentClip.w);
-            constants.Normal[pixel] = float4(guideNormal, dot(guideNormal, v0.Position));
-            constants.MotionVectors[pixel] = EncodeMotion(currentClip, previousClip);
+            WriteGuides(pixel, surface, V, F0);
         }
 
-        if (mat.Emission > 0.0)
+        if (surface.Emission > 0.0)
         {
+            float3 emission = surface.Albedo * surface.Emission;
+            float lightCosine = dot(LightNormal, V);
+
             if (bounce == 0)
             {
-                radiance += throughput * mat.Albedo * mat.Emission;
+                radiance += throughput * emission;
+            }
+            else if (lightCosine > 0.0)
+            {
+                // Next event estimation covers the rest of this light's contribution.
+                float pdfLight = (t * t) / (lightCosine * LightArea);
+                radiance += throughput * emission * PowerHeuristic(previousPdf, pdfLight);
             }
 
             break;
         }
 
-        float3 V = -direction;
-
-        float3 F0 = lerp(float3(0.04, 0.04, 0.04), mat.Albedo, mat.Metallic);
-        float roughness = max(mat.Roughness, 0.04);
         float specWeight = max(F0.r, max(F0.g, F0.b));
-        float diffWeight = (1.0 - specWeight) * (1.0 - mat.Metallic);
+        float diffWeight = (1.0 - specWeight) * (1.0 - surface.Metallic);
         float total = specWeight + diffWeight;
         float specProb = specWeight / total;
 
-        radiance += throughput * SampleLightDirect(hitPos, normal, geoNormal, V, mat, roughness, specProb, rng);
+        radiance += throughput * SampleLightDirect(surface, V, roughness, specProb, rng);
 
         if (bounce == MaxBounces - 1)
         {
@@ -401,20 +588,20 @@ float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng)
         }
 
         float3 newDir;
-        float NdotV = max(dot(normal, V), 0.001);
+        float NdotV = max(dot(surface.Normal, V), 0.001);
 
         if (RandomFloat(rng) < specProb)
         {
-            float3 H = SampleGGXHalfVector(normal, roughness, rng);
+            float3 H = SampleGGXHalfVector(surface.Normal, roughness, rng);
             newDir = reflect(-V, H);
 
-            float NdotL = dot(normal, newDir);
+            float NdotL = dot(surface.Normal, newDir);
             if (NdotL <= 0.0)
             {
                 break;
             }
 
-            float NdotH = max(dot(normal, H), 0.0);
+            float NdotH = max(dot(surface.Normal, H), 0.0);
             float HdotV = max(dot(H, V), 0.0);
 
             float3 F = FresnelSchlick(HdotV, F0);
@@ -425,18 +612,19 @@ float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng)
         }
         else
         {
-            newDir = CosineSampleHemisphere(normal, rng);
+            newDir = CosineSampleHemisphere(surface.Normal, rng);
 
             float3 H = normalize(V + newDir);
             float HdotV = max(dot(H, V), 0.0);
 
             float3 F = FresnelSchlick(HdotV, F0);
-            float3 kD = (1.0 - F) * (1.0 - mat.Metallic);
+            float3 kD = (1.0 - F) * (1.0 - surface.Metallic);
 
-            throughput *= kD * mat.Albedo / (1.0 - specProb + 0.0001);
+            throughput *= kD * surface.Albedo / (1.0 - specProb + 0.0001);
         }
 
-        origin = hitPos + normal * 0.001;
+        previousPdf = ComputeBRDFPDF(surface.Normal, V, newDir, roughness, specProb);
+        origin = surface.Position + surface.GeometricNormal * (dot(surface.GeometricNormal, newDir) > 0.0 ? RayOffset : -RayOffset);
         direction = newDir;
 
         if (bounce >= 2)

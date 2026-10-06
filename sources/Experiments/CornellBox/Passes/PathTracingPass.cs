@@ -6,17 +6,13 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Passes;
 
-internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
+internal unsafe class PathTracingPass(uint width, uint height) : Pass(width, height)
 {
     private const uint ThreadGroupSize = 8;
 
-    private Buffer vertexBuffer = null!;
-    private Buffer indexBuffer = null!;
     private Buffer constantBuffer = null!;
     private ComputePipeline pipeline = null!;
-    private BottomLevelAccelerationStructure blas = null!;
-    private TopLevelAccelerationStructure tlas = null!;
-    private Buffer materialBuffer = null!;
+    private Texture[] outputs = [];
 
     public Texture Color { get; private set; } = null!;
 
@@ -26,44 +22,14 @@ internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint 
 
     public Texture MotionVectors { get; private set; } = null!;
 
+    public Texture DiffuseAlbedo { get; private set; } = null!;
+
+    public Texture SpecularAlbedo { get; private set; } = null!;
+
+    public Texture SpecularHitDistance { get; private set; } = null!;
+
     protected override void Initialize()
     {
-        CornellBoxGeometry.Create(out Vertex[] vertices, out uint[] indices, out Material[] materials);
-
-        vertexBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length),
-            StrideInBytes = (uint)sizeof(Vertex),
-            Usages = BufferUsages.StorageReadOnly | BufferUsages.TransferDst,
-            Residency = MemoryResidency.GpuOnly
-        });
-
-        fixed (Vertex* pointer = vertices)
-        {
-            vertexBuffer.Upload(0, new()
-            {
-                Pointer = (nint)pointer,
-                SizeInBytes = (uint)(sizeof(Vertex) * vertices.Length)
-            });
-        }
-
-        indexBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(uint) * indices.Length),
-            StrideInBytes = sizeof(uint),
-            Usages = BufferUsages.StorageReadOnly | BufferUsages.TransferDst,
-            Residency = MemoryResidency.GpuOnly
-        });
-
-        fixed (uint* pointer = indices)
-        {
-            indexBuffer.Upload(0, new()
-            {
-                Pointer = (nint)pointer,
-                SizeInBytes = (uint)(sizeof(uint) * indices.Length)
-            });
-        }
-
         constantBuffer = App.Context.CreateBuffer(new()
         {
             SizeInBytes = (uint)sizeof(Constants),
@@ -75,71 +41,7 @@ internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint 
 
         pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = shader });
 
-        CommandBuffer commandBuffer = App.Context.ComputeQueue.CommandBuffer();
-
-        blas = commandBuffer.BuildAccelerationStructure(new BottomLevelAccelerationStructureDesc
-        {
-            Geometries =
-            [
-                new()
-                {
-                    Type = RayTracingGeometryType.Triangle,
-                    TriangleGeometry = new()
-                    {
-                        VertexBuffer = vertexBuffer,
-                        VertexFormat = PixelFormat.R32G32B32Float,
-                        VertexCount = (uint)vertices.Length,
-                        VertexStrideInBytes = (uint)sizeof(Vertex),
-                        IndexBuffer = indexBuffer,
-                        IndexFormat = IndexFormat.UInt32,
-                        IndexCount = (uint)indices.Length,
-                        Transform = Matrix4x4.Identity
-                    },
-                    IsOpaque = true
-                }
-            ],
-            BuildFlags = AccelerationStructureBuildFlags.PreferFastTrace
-        });
-
-        tlas = commandBuffer.BuildAccelerationStructure(new TopLevelAccelerationStructureDesc
-        {
-            Instances =
-            [
-                new()
-                {
-                    AccelerationStructure = blas,
-                    InstanceId = 0,
-                    VisibilityMask = 0xFF,
-                    Transform = Matrix4x4.Identity,
-                    Flags = RayTracingInstanceFlags.None
-                }
-            ],
-            BuildFlags = AccelerationStructureBuildFlags.PreferFastTrace
-        });
-
-        commandBuffer.Submit().Wait();
-
-        materialBuffer = App.Context.CreateBuffer(new()
-        {
-            SizeInBytes = (uint)(sizeof(Material) * materials.Length),
-            StrideInBytes = (uint)sizeof(Material),
-            Usages = BufferUsages.StorageReadOnly | BufferUsages.TransferDst,
-            Residency = MemoryResidency.GpuOnly
-        });
-
-        fixed (Material* pointer = materials)
-        {
-            materialBuffer.Upload(0, new()
-            {
-                Pointer = (nint)pointer,
-                SizeInBytes = (uint)(sizeof(Material) * materials.Length)
-            });
-        }
-
-        Color = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
-        Depth = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32Float);
-        Normal = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
-        MotionVectors = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16Float);
+        CreateTextures();
     }
 
     protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
@@ -151,15 +53,20 @@ internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint 
             ViewProjection = args.ViewProjection,
             PreviousViewProjection = args.PreviousViewProjection,
             PositionFrame = new(args.CameraPosition, BitConverter.UInt32BitsToSingle(args.FrameIndex)),
-            RenderSizeJitter = new(RenderWidth, RenderHeight, args.Jitter.X, args.Jitter.Y),
-            Scene = tlas.Handle,
-            Vertices = vertexBuffer.StorageReadOnlyHandle,
-            Indices = indexBuffer.StorageReadOnlyHandle,
-            Materials = materialBuffer.StorageReadOnlyHandle,
+            RenderSizeJitter = new(Width, Height, args.Jitter.X, args.Jitter.Y),
+            HitDistance = args.RayReconstruction ? 1u : 0u,
+            Scene = args.Scene.AccelerationStructure,
+            Vertices = args.Scene.Vertices,
+            Indices = args.Scene.Indices,
+            Materials = args.Scene.Materials,
+            Instances = args.Scene.Instances,
             Color = Color.StorageHandle,
             Depth = Depth.StorageHandle,
             Normal = Normal.StorageHandle,
-            MotionVectors = MotionVectors.StorageHandle
+            MotionVectors = MotionVectors.StorageHandle,
+            DiffuseAlbedo = DiffuseAlbedo.StorageHandle,
+            SpecularAlbedo = SpecularAlbedo.StorageHandle,
+            SpecularHitDistance = SpecularHitDistance.StorageHandle
         };
 
         constantBuffer.Upload(0, new()
@@ -168,54 +75,59 @@ internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint 
             SizeInBytes = (uint)sizeof(Constants)
         });
 
-        commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.Storage);
-        commandBuffer.Transition(Depth, default, TextureLayout.Undefined, TextureLayout.Storage);
-        commandBuffer.Transition(Normal, default, TextureLayout.Undefined, TextureLayout.Storage);
-        commandBuffer.Transition(MotionVectors, default, TextureLayout.Undefined, TextureLayout.Storage);
+        foreach (Texture output in outputs)
+        {
+            commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.Storage);
+        }
 
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(constantBuffer, 0);
-        commandBuffer.Dispatch((RenderWidth + ThreadGroupSize - 1) / ThreadGroupSize, (RenderHeight + ThreadGroupSize - 1) / ThreadGroupSize, 1);
+        commandBuffer.Dispatch((Width + ThreadGroupSize - 1) / ThreadGroupSize, (Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
-        commandBuffer.Transition(Color, default, TextureLayout.Storage, TextureLayout.Sampled);
-        commandBuffer.Transition(Depth, default, TextureLayout.Storage, TextureLayout.Sampled);
-        commandBuffer.Transition(Normal, default, TextureLayout.Storage, TextureLayout.Sampled);
-        commandBuffer.Transition(MotionVectors, default, TextureLayout.Storage, TextureLayout.Sampled);
+        foreach (Texture output in outputs)
+        {
+            commandBuffer.Transition(output, default, TextureLayout.Storage, TextureLayout.Sampled);
+        }
     }
 
     protected override void ResizeImpl()
     {
-        Color.Dispose();
-        Color = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
-
-        Depth.Dispose();
-        Depth = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32Float);
-
-        Normal.Dispose();
-        Normal = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
-
-        MotionVectors.Dispose();
-        MotionVectors = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16Float);
+        DestroyTextures();
+        CreateTextures();
     }
 
     protected override void Destroy()
     {
-        MotionVectors?.Dispose();
-        Normal?.Dispose();
-        Depth?.Dispose();
-        Color?.Dispose();
-        materialBuffer.Dispose();
-        tlas.Dispose();
-        blas.Dispose();
+        DestroyTextures();
+
         pipeline.Dispose();
         constantBuffer.Dispose();
-        indexBuffer.Dispose();
-        vertexBuffer.Dispose();
+    }
+
+    private void CreateTextures()
+    {
+        Color = CreateTexture(Width, Height, PixelFormat.R16G16B16A16Float);
+        Depth = CreateTexture(Width, Height, PixelFormat.R32Float, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc);
+        Normal = CreateTexture(Width, Height, PixelFormat.R16G16B16A16Float);
+        MotionVectors = CreateTexture(Width, Height, PixelFormat.R16G16Float, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc);
+        DiffuseAlbedo = CreateTexture(Width, Height, PixelFormat.R16G16B16A16Float);
+        SpecularAlbedo = CreateTexture(Width, Height, PixelFormat.R16G16B16A16Float);
+        SpecularHitDistance = CreateTexture(Width, Height, PixelFormat.R32Float);
+
+        outputs = [Color, Depth, Normal, MotionVectors, DiffuseAlbedo, SpecularAlbedo, SpecularHitDistance];
+    }
+
+    private void DestroyTextures()
+    {
+        foreach (Texture output in outputs)
+        {
+            output.Dispose();
+        }
     }
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 352)]
+[StructLayout(LayoutKind.Explicit, Size = 400)]
 file struct Constants
 {
     [FieldOffset(0)]
@@ -237,26 +149,41 @@ file struct Constants
     public Vector4 RenderSizeJitter;
 
     [FieldOffset(288)]
-    public ResourceHandle Scene;
-
-    [FieldOffset(296)]
-    public ResourceHandle Vertices;
+    public uint HitDistance;
 
     [FieldOffset(304)]
-    public ResourceHandle Indices;
+    public ResourceHandle Scene;
 
     [FieldOffset(312)]
-    public ResourceHandle Materials;
+    public ResourceHandle Vertices;
 
     [FieldOffset(320)]
-    public ResourceHandle Color;
+    public ResourceHandle Indices;
 
     [FieldOffset(328)]
-    public ResourceHandle Depth;
+    public ResourceHandle Materials;
 
     [FieldOffset(336)]
-    public ResourceHandle Normal;
+    public ResourceHandle Instances;
 
     [FieldOffset(344)]
+    public ResourceHandle Color;
+
+    [FieldOffset(352)]
+    public ResourceHandle Depth;
+
+    [FieldOffset(360)]
+    public ResourceHandle Normal;
+
+    [FieldOffset(368)]
     public ResourceHandle MotionVectors;
+
+    [FieldOffset(376)]
+    public ResourceHandle DiffuseAlbedo;
+
+    [FieldOffset(384)]
+    public ResourceHandle SpecularAlbedo;
+
+    [FieldOffset(392)]
+    public ResourceHandle SpecularHitDistance;
 }
