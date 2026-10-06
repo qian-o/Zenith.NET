@@ -409,7 +409,6 @@ Surface GetSurface(uint instanceIndex, uint primitiveIndex, float2 barycentrics,
     float3 normal = normalize(v0.Normal * weights.x + v1.Normal * weights.y + v2.Normal * weights.z);
     float3 faceNormal = normalize(cross(v1.Position - v0.Position, v2.Position - v0.Position));
 
-    // Winding differs between meshes; vertex normals define the outside.
     if (dot(faceNormal, normal) < 0.0)
     {
         faceNormal = -faceNormal;
@@ -436,7 +435,6 @@ Surface GetSurface(uint instanceIndex, uint primitiveIndex, float2 barycentrics,
     return surface;
 }
 
-// Specular albedo approximation from the DLSS Ray Reconstruction integration guide.
 float3 EnvBRDFApprox2(float3 specularColor, float alpha, float NdotV)
 {
     float4 x = float4(1.0, NdotV, NdotV * NdotV, NdotV * NdotV * NdotV);
@@ -450,7 +448,6 @@ float3 EnvBRDFApprox2(float3 specularColor, float alpha, float NdotV)
     float bias = dot(mul(m1, x.xy), y.xy) / dot(mul(m2, x.xyw), y.xyw);
     float scale = dot(mul(m3, x.xy), y.xy) / dot(mul(m4, x.xzw), y.xyw);
 
-    // Surfaces without specular reflectance get no bias.
     bias *= saturate(specularColor.g * 50.0);
 
     return specularColor * max(scale, 0.0) + max(bias, 0.0);
@@ -567,7 +564,6 @@ float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng)
             }
             else if (lightCosine > 0.0)
             {
-                // Next event estimation covers the rest of this light's contribution.
                 float pdfLight = (t * t) / (lightCosine * LightArea);
                 radiance += throughput * emission * PowerHeuristic(previousPdf, pdfLight);
             }

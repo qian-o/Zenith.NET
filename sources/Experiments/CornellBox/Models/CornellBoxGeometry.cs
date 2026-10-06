@@ -10,7 +10,6 @@ internal static class CornellBoxGeometry
         List<uint> indicesList = [];
         List<Mesh> meshesList = [];
 
-        // 0: Left wall (red)
         AddQuad(verticesList,
                 indicesList,
                 new(552.8f, 0.0f, 0.0f),
@@ -19,7 +18,6 @@ internal static class CornellBoxGeometry
                 new(556.0f, 548.8f, 0.0f),
                 0);
 
-        // 1: Right wall (green)
         AddQuad(verticesList,
                 indicesList,
                 new(0.0f, 0.0f, 559.2f),
@@ -28,7 +26,6 @@ internal static class CornellBoxGeometry
                 new(0.0f, 548.8f, 559.2f),
                 1);
 
-        // 2: Ceiling (white)
         AddQuad(verticesList,
                 indicesList,
                 new(556.0f, 548.8f, 0.0f),
@@ -37,7 +34,6 @@ internal static class CornellBoxGeometry
                 new(0.0f, 548.8f, 0.0f),
                 2);
 
-        // 3: Floor (glossy checker)
         AddQuad(verticesList,
                 indicesList,
                 new(552.8f, 0.0f, 0.0f),
@@ -46,7 +42,6 @@ internal static class CornellBoxGeometry
                 new(549.6f, 0.0f, 559.2f),
                 6);
 
-        // 4: Back wall (tiles)
         AddQuad(verticesList,
                 indicesList,
                 new(549.6f, 0.0f, 559.2f),
@@ -55,21 +50,18 @@ internal static class CornellBoxGeometry
                 new(556.0f, 548.8f, 559.2f),
                 7);
 
-        // 5-9: Short block
         AddQuad(verticesList, indicesList, new(130.0f, 165.0f, 65.0f), new(82.0f, 165.0f, 225.0f), new(240.0f, 165.0f, 272.0f), new(290.0f, 165.0f, 114.0f), 4);
         AddQuad(verticesList, indicesList, new(290.0f, 0.0f, 114.0f), new(290.0f, 165.0f, 114.0f), new(240.0f, 165.0f, 272.0f), new(240.0f, 0.0f, 272.0f), 4);
         AddQuad(verticesList, indicesList, new(130.0f, 0.0f, 65.0f), new(130.0f, 165.0f, 65.0f), new(290.0f, 165.0f, 114.0f), new(290.0f, 0.0f, 114.0f), 4);
         AddQuad(verticesList, indicesList, new(82.0f, 0.0f, 225.0f), new(82.0f, 165.0f, 225.0f), new(130.0f, 165.0f, 65.0f), new(130.0f, 0.0f, 65.0f), 4);
         AddQuad(verticesList, indicesList, new(240.0f, 0.0f, 272.0f), new(240.0f, 165.0f, 272.0f), new(82.0f, 165.0f, 225.0f), new(82.0f, 0.0f, 225.0f), 4);
 
-        // 10-14: Tall block
         AddQuad(verticesList, indicesList, new(423.0f, 330.0f, 247.0f), new(265.0f, 330.0f, 296.0f), new(314.0f, 330.0f, 456.0f), new(472.0f, 330.0f, 406.0f), 5);
         AddQuad(verticesList, indicesList, new(423.0f, 0.0f, 247.0f), new(423.0f, 330.0f, 247.0f), new(472.0f, 330.0f, 406.0f), new(472.0f, 0.0f, 406.0f), 5);
         AddQuad(verticesList, indicesList, new(472.0f, 0.0f, 406.0f), new(472.0f, 330.0f, 406.0f), new(314.0f, 330.0f, 456.0f), new(314.0f, 0.0f, 456.0f), 5);
         AddQuad(verticesList, indicesList, new(314.0f, 0.0f, 456.0f), new(314.0f, 330.0f, 456.0f), new(265.0f, 330.0f, 296.0f), new(265.0f, 0.0f, 296.0f), 5);
         AddQuad(verticesList, indicesList, new(265.0f, 0.0f, 296.0f), new(265.0f, 330.0f, 296.0f), new(423.0f, 330.0f, 247.0f), new(423.0f, 0.0f, 247.0f), 5);
 
-        // 15: Light
         AddQuad(verticesList,
                 indicesList,
                 new(343.0f, 547.0f, 227.0f),
@@ -78,12 +70,10 @@ internal static class CornellBoxGeometry
                 new(213.0f, 547.0f, 227.0f),
                 3);
 
-        // Gold sphere resting on the short block
         AddSphere(verticesList, indicesList, new(185.5f, 205.0f, 169.0f), 40.0f, 8);
 
         meshesList.Add(new(0, (uint)indicesList.Count));
 
-        // Moving objects are built around their own origin.
         uint firstIndex = (uint)indicesList.Count;
         AddSphere(verticesList, indicesList, Vector3.Zero, 45.0f, 9);
         meshesList.Add(new(firstIndex, (uint)indicesList.Count - firstIndex));
@@ -284,7 +274,6 @@ internal static class CornellBoxGeometry
                 uint top = startIndex + (uint)((y * (Segments + 1)) + x);
                 uint bottom = top + Segments + 1;
 
-                // Triangles touching a pole would collapse to zero area.
                 if (y > 0)
                 {
                     indices.AddRange([top, top + 1, bottom + 1]);

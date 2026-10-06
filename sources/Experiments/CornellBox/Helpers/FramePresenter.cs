@@ -1,10 +1,9 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using Zenith.NET;
 
 namespace CornellBox.Helpers;
 
-// Presents on its own thread so generated frames can be paced between real frames.
 internal sealed class FramePresenter : IDisposable
 {
     private const int IntervalCount = 8;
@@ -34,7 +33,6 @@ internal sealed class FramePresenter : IDisposable
         thread.Start();
     }
 
-    // Counts generated frames too.
     public double Framerate { get; private set; }
 
     public void Wait(int slot)
@@ -72,7 +70,6 @@ internal sealed class FramePresenter : IDisposable
 
                 long deadline = Stopwatch.GetTimestamp() + (interval / 2);
 
-                // Timed sleeps overshoot the half-interval spacing.
                 while (Stopwatch.GetTimestamp() < deadline)
                 {
                     Thread.Yield();
@@ -90,7 +87,6 @@ internal sealed class FramePresenter : IDisposable
                 timestamps.Dequeue();
             }
 
-            // Pauses such as a minimized window would otherwise stall the pacing.
             interval = Math.Min((now - timestamps.Peek()) / Math.Max(timestamps.Count - 1, 1), Stopwatch.Frequency / 10);
 
             batch.Completion.SetResult();

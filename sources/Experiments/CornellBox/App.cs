@@ -14,7 +14,6 @@ namespace CornellBox;
 
 internal static class App
 {
-    // A real frame is presented about half an interval after its generated frame, so a third slot keeps rendering busy.
     public const int SlotCount = 3;
 
     private static readonly IWindow window;
@@ -161,7 +160,6 @@ internal static class App
             TimelineValue value = commandBuffer.Submit();
             TimelineValue presentable = renderer.GenerateFrame(value);
 
-            // Per-frame buffers are rewritten on the CPU, so the next frame waits for this one.
             value.Wait();
 
             presenter.Present(slot, backBuffers[slot], renderer.IsFrameGenerated ? generatedFrames[slot] : null, presentable);
@@ -203,6 +201,15 @@ internal static class App
 
     private static void Settings()
     {
+        bool paused = renderer.Paused;
+
+        if (ImGui.Checkbox("Pause", ref paused))
+        {
+            renderer.Paused = paused;
+        }
+
+        ImGui.Separator();
+
         DLSSCapabilities capabilities = renderer.DLSSCapabilities;
 
         bool rayReconstruction = renderer.RayReconstruction;
@@ -246,7 +253,6 @@ internal static class App
                 Usages = TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc
             });
 
-            // NGX may clear its output with a transfer command.
             generatedFrames[i] = Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, Width, Height, 1, SampleCount.Count1) with
             {
                 Usages = TextureUsages.Storage | TextureUsages.TransferSrc | TextureUsages.TransferDst

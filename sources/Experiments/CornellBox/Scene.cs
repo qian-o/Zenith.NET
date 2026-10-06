@@ -160,7 +160,6 @@ internal unsafe class Scene : DisposableObject
     {
         Vector3 sphere = new(425.0f + (75.0f * MathF.Cos(0.8f * time)), 45.0f, 125.0f + (70.0f * MathF.Sin(0.8f * time)));
 
-        // Each gyroscope ring turns inside the previous one.
         Matrix4x4 outer = Matrix4x4.CreateRotationY(0.6f * time);
         Matrix4x4 middle = Matrix4x4.CreateRotationX(1.0f * time) * outer;
         Matrix4x4 inner = Matrix4x4.CreateRotationY(1.6f * time) * middle;

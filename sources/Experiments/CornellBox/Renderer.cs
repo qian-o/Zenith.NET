@@ -29,11 +29,12 @@ internal class Renderer : DisposableObject
         composite = new(App.Width, App.Height);
         frameGeneration = new(App.Width, App.Height);
 
-        // Querying after the passes reuses the NGX instance the frame generation pass holds.
         DLSSCapabilities = App.Context.DLSSCapabilities;
     }
 
     public DLSSCapabilities DLSSCapabilities { get; }
+
+    public bool Paused { get; set; }
 
     public bool RayReconstruction { get; set; }
 
@@ -43,7 +44,7 @@ internal class Renderer : DisposableObject
 
     public void Render(CommandBuffer commandBuffer, CameraHandler camera, double delta, int slot, Texture ui, Texture backBuffer, Texture generatedFrame)
     {
-        scene.Update(commandBuffer, delta);
+        scene.Update(commandBuffer, Paused ? 0.0 : delta);
 
         Matrix4x4 view = camera.View;
         Matrix4x4 projection = camera.Projection;
@@ -53,7 +54,6 @@ internal class Renderer : DisposableObject
 
         bool reconstruct = RayReconstruction && DLSSCapabilities.RayReconstructionSupported;
 
-        // Only Ray Reconstruction accumulates jittered samples; the raw image stays steady without jitter.
         Vector2 jitter = reconstruct ? new(Halton(frameIndex + 1, 2) - 0.5f, Halton(frameIndex + 1, 3) - 0.5f) : Vector2.Zero;
 
         if (!history)

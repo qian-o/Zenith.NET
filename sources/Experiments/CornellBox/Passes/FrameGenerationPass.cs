@@ -4,7 +4,6 @@ using Zenith.NET.Extensions.DLSS;
 
 namespace CornellBox.Passes;
 
-// Frame generation runs on the compute queue, overlapping the next frame's rendering.
 internal class FrameGenerationPass(uint width, uint height) : Pass(width, height)
 {
     private DLSSFrameGeneration frameGeneration = null!;
@@ -42,7 +41,6 @@ internal class FrameGenerationPass(uint width, uint height) : Pass(width, height
 
     protected override void Initialize()
     {
-        // A live DLSS object keeps NGX initialized, so toggling Ray Reconstruction stays fast.
         frameGeneration = App.Context.CreateDLSSFrameGeneration(Desc());
 
         CreateTextures();
@@ -61,7 +59,6 @@ internal class FrameGenerationPass(uint width, uint height) : Pass(width, height
             return;
         }
 
-        // The next frame overwrites these inputs while frame generation is still running.
         Snapshot(commandBuffer, args.Color, hudless[args.Slot]);
         Snapshot(commandBuffer, args.Depth, depth[args.Slot]);
         Snapshot(commandBuffer, args.MotionVectors, motionVectors[args.Slot]);
@@ -93,7 +90,6 @@ internal class FrameGenerationPass(uint width, uint height) : Pass(width, height
         pendingBackBuffer = args.BackBuffer;
         pendingFrame = args.GeneratedFrame;
 
-        // Without history the output is only a copy of the real frame.
         IsGenerated = history;
         history = true;
     }

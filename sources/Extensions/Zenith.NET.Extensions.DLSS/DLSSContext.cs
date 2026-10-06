@@ -264,7 +264,6 @@ internal unsafe class DLSSContext : DisposableObject
             return;
         }
 
-        // NGX outputs zeros if a descriptor heap was bound on the queue before the feature's first evaluation.
         nint set = descriptorSet;
 
         vkCmdBindDescriptorSets(commandList, 1, pipelineLayout, 0, 1, &set, 0, null);

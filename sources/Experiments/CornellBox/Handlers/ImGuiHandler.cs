@@ -56,7 +56,6 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
 
     public void SetImeData(ImGuiViewportPtr viewport, ImGuiPlatformImeDataPtr data)
     {
-        // IME not supported.
     }
 
     private void OnMouseDown(IMouse mouse, MouseButton button)

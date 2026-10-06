@@ -89,7 +89,6 @@ internal class RayReconstructionPass(uint width, uint height) : Pass(width, heig
 
     private Texture CreateOutput()
     {
-        // NGX may clear its output with a transfer command.
         return CreateTexture(Width, Height, PixelFormat.R16G16B16A16Float, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferDst);
     }
 }
