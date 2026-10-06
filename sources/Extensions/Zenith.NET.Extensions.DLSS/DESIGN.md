@@ -3,7 +3,6 @@
 | 项目 | 内容 |
 | --- | --- |
 | 状态 | 草案第 7 版 |
-| 基线 | `feature/dlss-integration` @ `752eb47` |
 | 依赖 | `Zenith.NET`、`NGX.NET` 310.9.1 |
 | 参照 | Upscaling 扩展（调用形式）、ImGui 扩展（纹理绑定）、Skia 扩展（每上下文原生状态及其释放）、Apple 为 MetalFX 帧插值提供的 [`PresentThread`](https://github.com/apple/game-porting-toolkit/blob/main/game-porting-skills/skills/using-metalfx-frame-interpolation/references/present-thread.md)、[NGX.NET Showcase](https://github.com/qian-o/NGX.NET/tree/master/Showcase) |
 
@@ -14,7 +13,7 @@
 - 类型名为 `DLSS` 加 NVIDIA 功能名，之后新增的功能按同一规则命名。
 - 参数沿用 NGX 原义。扩展只做类型转换：纹理转为原生资源，枚举与格式转为 NGX 取值，按 NGX 的需要对矩阵求逆；未公开的 NGX 参数取固定值（附录）。不做数值换算，也不做兼容处理。
 - 不验证参数，不抛出异常，NGX 调用失败只输出调试信息。NGX 的初始化选项不向应用公开。
-- RHI 只保留本分支已有的改动（第 5 节），不再为扩展修改 RHI。
+- RHI 只做第 5 节列出的改动，不再为扩展修改 RHI。
 
 ## 2. 公共 API
 
@@ -161,17 +160,17 @@ namespace Zenith.NET.Extensions.DLSS;
 
 public enum DLSSMode
 {
-    UltraPerformance,
-
-    Performance,
-
-    Balanced,
-
-    Quality,
+    DLAA,
 
     UltraQuality,
 
-    DLAA
+    Quality,
+
+    Balanced,
+
+    Performance,
+
+    UltraPerformance
 }
 ```
 
@@ -179,9 +178,9 @@ public enum DLSSMode
 | --- | --- | --- |
 | `SuperResolutionSupported`、`RayReconstructionSupported`、`FrameGenerationSupported` | | `SuperSampling.Available`、`SuperSamplingDenoising.Available`、`FrameGeneration.Available` |
 | `DLSSOptimalSettings` | 0 表示该档位或尺寸不受支持 | `DLSS.GetOptimalSettings`、`DLSSD.GetOptimalSettings` |
-| `DLSSMode` | `UltraPerformance`、`Performance`、`Balanced`、`Quality`、`UltraQuality`、`DLAA` | `NGXPerfQualityValue` 的 `UltraPerformance`、`MaxPerf`、`Balanced`、`MaxQuality`、`UltraQuality`、`DLAA` |
+| `DLSSMode` | `DLAA`、`UltraQuality`、`Quality`、`Balanced`、`Performance`、`UltraPerformance` | `NGXPerfQualityValue` 的 `DLAA`、`UltraQuality`、`MaxQuality`、`Balanced`、`MaxPerf`、`UltraPerformance` |
 
-- `DLSSMode` 由超分辨率与光线重建共用，与 `TemporalUpscalerMode` 一样按速度到画质排列。
+- `DLSSMode` 由超分辨率与光线重建共用，成员按画质从高到低排列。
 - 渲染预设决定 DLSS 使用哪个模型，不公开，固定为 `Default`：NGX 按档位选用 NVIDIA 推荐的模型，并随驱动更新。
 
 ### 2.4 超分辨率
@@ -669,7 +668,7 @@ TimelineValue generatedValue = commandBuffer.Submit();
 
 ## 5. RHI 依赖与验证
 
-本分支保留的 RHI 改动：
+为 DLSS 所做的 RHI 改动：
 
 | 改动 | 用途 |
 | --- | --- |
