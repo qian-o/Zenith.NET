@@ -138,7 +138,44 @@ internal static class App
                 ImGui.Text($"FPS: {presenter.Framerate:F1}");
             });
 
-            ImGuiHelper.Settings(Settings);
+            ImGuiHelper.Settings(static () =>
+            {
+                ImGui.SeparatorText("Scene");
+
+                bool paused = renderer.Paused;
+                if (ImGui.Checkbox("Pause", ref paused))
+                {
+                    renderer.Paused = paused;
+                }
+
+                ImGui.SeparatorText("DLSS");
+
+                DLSSCapabilities capabilities = renderer.DLSSCapabilities;
+
+                ImGui.BeginDisabled(!capabilities.RayReconstructionSupported);
+                ImGui.SetNextItemWidth(ImGui.CalcTextSize("Ultra Performance").X + ImGui.GetFrameHeight() + (ImGui.GetStyle().FramePadding.X * 2.0f));
+
+                int rayReconstruction = Array.IndexOf(rayReconstructionModes, renderer.RayReconstruction);
+                if (ImGui.Combo("Ray Reconstruction", ref rayReconstruction, "Off\0DLAA\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
+                {
+                    renderer.RayReconstruction = rayReconstructionModes[rayReconstruction];
+
+                    presenter.Drain();
+                    renderer.Resize(Width, Height);
+                }
+
+                ImGui.EndDisabled();
+
+                ImGui.BeginDisabled(!capabilities.FrameGenerationSupported);
+
+                bool frameGeneration = renderer.FrameGeneration;
+                if (ImGui.Checkbox("Frame Generation", ref frameGeneration))
+                {
+                    renderer.FrameGeneration = frameGeneration;
+                }
+
+                ImGui.EndDisabled();
+            });
         };
 
         window.Render += static delta =>
@@ -198,52 +235,6 @@ internal static class App
         window.Dispose();
 
         Context.Dispose();
-    }
-
-    private static void Settings()
-    {
-        ImGui.SeparatorText("Scene");
-
-        bool paused = renderer.Paused;
-
-        if (ImGui.Checkbox("Pause", ref paused))
-        {
-            renderer.Paused = paused;
-        }
-
-        ImGui.SeparatorText("DLSS");
-
-        DLSSCapabilities capabilities = renderer.DLSSCapabilities;
-
-        int rayReconstruction = Array.IndexOf(rayReconstructionModes, renderer.RayReconstruction);
-
-        ImGui.BeginDisabled(!capabilities.RayReconstructionSupported);
-        ImGui.SetNextItemWidth(ImGui.CalcTextSize("Ultra Performance").X + ImGui.GetFrameHeight() + (ImGui.GetStyle().FramePadding.X * 2.0f));
-
-        if (ImGui.Combo("Ray Reconstruction", ref rayReconstruction, "Off\0DLAA\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
-        {
-            renderer.RayReconstruction = rayReconstructionModes[rayReconstruction];
-
-            presenter.Drain();
-            renderer.Resize(Width, Height);
-        }
-
-        ImGui.EndDisabled();
-
-        ImGuiHelper.Tooltip(capabilities.RayReconstructionSupported ? null : "DLSS Ray Reconstruction is not available on this device.");
-
-        bool frameGeneration = renderer.FrameGeneration;
-
-        ImGui.BeginDisabled(!capabilities.FrameGenerationSupported);
-
-        if (ImGui.Checkbox("Frame Generation", ref frameGeneration))
-        {
-            renderer.FrameGeneration = frameGeneration;
-        }
-
-        ImGui.EndDisabled();
-
-        ImGuiHelper.Tooltip(capabilities.FrameGenerationSupported ? null : "DLSS Frame Generation is not available on this device.");
     }
 
     private static void CreateTargets()

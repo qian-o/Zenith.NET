@@ -29,12 +29,4 @@ internal static class ImGuiHelper
 
         ImGui.End();
     }
-
-    public static void Tooltip(string? text)
-    {
-        if (text is not null && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-        {
-            ImGui.SetTooltip(text);
-        }
-    }
 }

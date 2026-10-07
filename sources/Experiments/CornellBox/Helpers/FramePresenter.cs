@@ -4,7 +4,7 @@ using Zenith.NET;
 
 namespace CornellBox.Helpers;
 
-internal sealed class FramePresenter : IDisposable
+internal class FramePresenter : DisposableObject
 {
     private const int IntervalCount = 8;
 
@@ -53,7 +53,7 @@ internal sealed class FramePresenter : IDisposable
         Task.WaitAll(slots);
     }
 
-    public void Dispose()
+    protected override void Destroy()
     {
         batches.CompleteAdding();
         thread.Join();
@@ -127,5 +127,14 @@ internal sealed class FramePresenter : IDisposable
         }
     }
 
-    private sealed record Batch(Texture Real, Texture? Generated, TimelineValue Value, TaskCompletionSource Completion);
+    private readonly struct Batch(Texture real, Texture? generated, TimelineValue value, TaskCompletionSource completion)
+    {
+        public readonly Texture Real = real;
+
+        public readonly Texture? Generated = generated;
+
+        public readonly TimelineValue Value = value;
+
+        public readonly TaskCompletionSource Completion = completion;
+    }
 }

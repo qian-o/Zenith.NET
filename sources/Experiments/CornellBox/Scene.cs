@@ -14,6 +14,7 @@ internal unsafe class Scene : DisposableObject
     private readonly BottomLevelAccelerationStructure[] bottomLevels;
     private readonly TopLevelAccelerationStructure topLevel;
     private readonly Instance[] instances;
+    private readonly RayTracingInstance[] rayTracingInstances;
 
     private float time;
 
@@ -25,7 +26,8 @@ internal unsafe class Scene : DisposableObject
         indexBuffer = CreateBuffer(indices);
         materialBuffer = CreateBuffer(materials);
 
-        Matrix4x4[] transforms = Transforms(time);
+        Span<Matrix4x4> transforms = stackalloc Matrix4x4[meshes.Length];
+        Transforms(time, transforms);
 
         instances = new Instance[meshes.Length];
 
@@ -47,9 +49,10 @@ internal unsafe class Scene : DisposableObject
             Residency = MemoryResidency.CpuWriteOnly
         });
 
-        CommandBuffer commandBuffer = App.Context.GraphicsQueue.CommandBuffer();
+        CommandBuffer commandBuffer = App.Context.ComputeQueue.CommandBuffer();
 
         bottomLevels = new BottomLevelAccelerationStructure[meshes.Length];
+        rayTracingInstances = new RayTracingInstance[meshes.Length];
 
         for (int i = 0; i < meshes.Length; i++)
         {
@@ -77,6 +80,15 @@ internal unsafe class Scene : DisposableObject
                 ],
                 BuildFlags = AccelerationStructureBuildFlags.PreferFastTrace
             });
+
+            rayTracingInstances[i] = new()
+            {
+                AccelerationStructure = bottomLevels[i],
+                InstanceId = (uint)i,
+                VisibilityMask = 0xFF,
+                Transform = transforms[i],
+                Flags = RayTracingInstanceFlags.None
+            };
         }
 
         topLevel = commandBuffer.BuildAccelerationStructure(TopLevelDesc());
@@ -98,12 +110,14 @@ internal unsafe class Scene : DisposableObject
     {
         time += (float)delta;
 
-        Matrix4x4[] transforms = Transforms(time);
+        Span<Matrix4x4> transforms = stackalloc Matrix4x4[instances.Length];
+        Transforms(time, transforms);
 
         for (int i = 0; i < instances.Length; i++)
         {
             instances[i].PreviousObjectToWorld = instances[i].ObjectToWorld;
             instances[i].ObjectToWorld = transforms[i];
+            rayTracingInstances[i].Transform = transforms[i];
         }
 
         fixed (Instance* pointer = instances)
@@ -135,20 +149,6 @@ internal unsafe class Scene : DisposableObject
 
     private TopLevelAccelerationStructureDesc TopLevelDesc()
     {
-        RayTracingInstance[] rayTracingInstances = new RayTracingInstance[instances.Length];
-
-        for (int i = 0; i < instances.Length; i++)
-        {
-            rayTracingInstances[i] = new()
-            {
-                AccelerationStructure = bottomLevels[i],
-                InstanceId = (uint)i,
-                VisibilityMask = 0xFF,
-                Transform = instances[i].ObjectToWorld,
-                Flags = RayTracingInstanceFlags.None
-            };
-        }
-
         return new()
         {
             Instances = rayTracingInstances,
@@ -156,7 +156,7 @@ internal unsafe class Scene : DisposableObject
         };
     }
 
-    private static Matrix4x4[] Transforms(float time)
+    private static void Transforms(float time, Span<Matrix4x4> transforms)
     {
         Vector3 sphere = new(425.0f + (75.0f * MathF.Cos(0.8f * time)), 45.0f, 125.0f + (70.0f * MathF.Sin(0.8f * time)));
 
@@ -165,7 +165,11 @@ internal unsafe class Scene : DisposableObject
         Matrix4x4 inner = Matrix4x4.CreateRotationY(1.6f * time) * middle;
         Matrix4x4 gyroscope = Matrix4x4.CreateTranslation(185.5f, 350.0f, 169.0f);
 
-        return [Matrix4x4.Identity, Matrix4x4.CreateTranslation(sphere), outer * gyroscope, middle * gyroscope, inner * gyroscope];
+        transforms[0] = Matrix4x4.Identity;
+        transforms[1] = Matrix4x4.CreateTranslation(sphere);
+        transforms[2] = outer * gyroscope;
+        transforms[3] = middle * gyroscope;
+        transforms[4] = inner * gyroscope;
     }
 
     private static Buffer CreateBuffer<T>(T[] data) where T : unmanaged
