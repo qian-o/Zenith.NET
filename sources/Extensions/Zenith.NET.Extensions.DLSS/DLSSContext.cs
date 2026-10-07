@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using NGX.NET;
 using Ngx = NGX.NET.NGX;
 

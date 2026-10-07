@@ -1,4 +1,4 @@
-using NGX.NET;
+﻿using NGX.NET;
 using Ngx = NGX.NET.NGX;
 
 namespace Zenith.NET.Extensions.DLSS;

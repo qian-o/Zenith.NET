@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using CornellBox.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;

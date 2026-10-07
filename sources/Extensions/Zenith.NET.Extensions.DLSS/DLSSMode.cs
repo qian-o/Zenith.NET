@@ -1,4 +1,4 @@
-namespace Zenith.NET.Extensions.DLSS;
+﻿namespace Zenith.NET.Extensions.DLSS;
 
 public enum DLSSMode
 {

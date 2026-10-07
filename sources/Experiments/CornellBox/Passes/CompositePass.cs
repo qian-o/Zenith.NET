@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using CornellBox.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;

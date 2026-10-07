@@ -1,4 +1,4 @@
-namespace Zenith.NET.Extensions.DLSS;
+﻿namespace Zenith.NET.Extensions.DLSS;
 
 public readonly struct DLSSOptimalSettings(uint inputWidth, uint inputHeight, uint minInputWidth, uint minInputHeight, uint maxInputWidth, uint maxInputHeight)
 {

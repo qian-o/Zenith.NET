@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using NGX.NET;
 using Ngx = NGX.NET.NGX;
 

@@ -1,4 +1,4 @@
-using CornellBox.Models;
+﻿using CornellBox.Models;
 using Zenith.NET;
 using Zenith.NET.Extensions.DLSS;
 

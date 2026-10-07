@@ -1,4 +1,4 @@
-struct Constants
+﻿struct Constants
 {
     uint4 OutputSize;
 

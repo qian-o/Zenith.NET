@@ -1,4 +1,4 @@
-namespace CornellBox.Models;
+﻿namespace CornellBox.Models;
 
 internal readonly struct Mesh(uint firstIndex, uint indexCount)
 {
