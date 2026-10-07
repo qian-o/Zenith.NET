@@ -16,6 +16,7 @@ internal static class App
 {
     public const int SlotCount = 3;
 
+    private static readonly DLSSMode?[] rayReconstructionModes = [null, DLSSMode.DLAA, DLSSMode.Quality, DLSSMode.Balanced, DLSSMode.Performance, DLSSMode.UltraPerformance];
     private static readonly IWindow window;
     private static readonly IInputContext input;
     private static readonly SwapChain swapChain;
@@ -201,6 +202,8 @@ internal static class App
 
     private static void Settings()
     {
+        ImGui.SeparatorText("Scene");
+
         bool paused = renderer.Paused;
 
         if (ImGui.Checkbox("Pause", ref paused))
@@ -208,17 +211,21 @@ internal static class App
             renderer.Paused = paused;
         }
 
-        ImGui.Separator();
+        ImGui.SeparatorText("DLSS");
 
         DLSSCapabilities capabilities = renderer.DLSSCapabilities;
 
-        bool rayReconstruction = renderer.RayReconstruction;
+        int rayReconstruction = Array.IndexOf(rayReconstructionModes, renderer.RayReconstruction);
 
         ImGui.BeginDisabled(!capabilities.RayReconstructionSupported);
+        ImGui.SetNextItemWidth(ImGui.CalcTextSize("Ultra Performance").X + ImGui.GetFrameHeight() + (ImGui.GetStyle().FramePadding.X * 2.0f));
 
-        if (ImGui.Checkbox("Ray Reconstruction", ref rayReconstruction))
+        if (ImGui.Combo("Ray Reconstruction", ref rayReconstruction, "Off\0DLAA\0Quality\0Balanced\0Performance\0Ultra Performance\0"))
         {
-            renderer.RayReconstruction = rayReconstruction;
+            renderer.RayReconstruction = rayReconstructionModes[rayReconstruction];
+
+            presenter.Drain();
+            renderer.Resize(Width, Height);
         }
 
         ImGui.EndDisabled();

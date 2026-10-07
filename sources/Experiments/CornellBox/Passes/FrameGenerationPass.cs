@@ -4,7 +4,7 @@ using Zenith.NET.Extensions.DLSS;
 
 namespace CornellBox.Passes;
 
-internal class FrameGenerationPass(uint width, uint height) : Pass(width, height)
+internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
 {
     private DLSSFrameGeneration frameGeneration = null!;
     private Texture[] hudless = [];
@@ -71,8 +71,8 @@ internal class FrameGenerationPass(uint width, uint height) : Pass(width, height
             Depth = depth[args.Slot].DLSSBinding,
             MotionVectors = motionVectors[args.Slot].DLSSBinding,
             Output = args.GeneratedFrame.DLSSBinding,
-            JitterOffsetX = 2.0f * args.Jitter.X / Width,
-            JitterOffsetY = -2.0f * args.Jitter.Y / Height,
+            JitterOffsetX = 2.0f * args.Jitter.X / RenderWidth,
+            JitterOffsetY = -2.0f * args.Jitter.Y / RenderHeight,
             MotionVectorScaleX = -0.5f,
             MotionVectorScaleY = 0.5f,
             ViewToClip = args.Projection,
@@ -137,10 +137,10 @@ internal class FrameGenerationPass(uint width, uint height) : Pass(width, height
         return new()
         {
             Format = PixelFormat.B8G8R8A8UNorm,
-            InputWidth = Width,
-            InputHeight = Height,
-            OutputWidth = Width,
-            OutputHeight = Height,
+            InputWidth = RenderWidth,
+            InputHeight = RenderHeight,
+            OutputWidth = DisplayWidth,
+            OutputHeight = DisplayHeight,
             IsUIRecompositionEnabled = true
         };
     }
@@ -153,9 +153,9 @@ internal class FrameGenerationPass(uint width, uint height) : Pass(width, height
 
         for (int i = 0; i < App.SlotCount; i++)
         {
-            hudless[i] = CreateTexture(Width, Height, PixelFormat.B8G8R8A8UNorm, TextureUsages.Sampled | TextureUsages.TransferDst);
-            depth[i] = CreateTexture(Width, Height, PixelFormat.R32Float, TextureUsages.Sampled | TextureUsages.TransferDst);
-            motionVectors[i] = CreateTexture(Width, Height, PixelFormat.R16G16Float, TextureUsages.Sampled | TextureUsages.TransferDst);
+            hudless[i] = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.B8G8R8A8UNorm, TextureUsages.Sampled | TextureUsages.TransferDst);
+            depth[i] = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32Float, TextureUsages.Sampled | TextureUsages.TransferDst);
+            motionVectors[i] = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16Float, TextureUsages.Sampled | TextureUsages.TransferDst);
         }
     }
 

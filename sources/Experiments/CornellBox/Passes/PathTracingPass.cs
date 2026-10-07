@@ -6,7 +6,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Passes;
 
-internal unsafe class PathTracingPass(uint width, uint height) : Pass(width, height)
+internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
 {
     private const uint ThreadGroupSize = 8;
 
@@ -53,8 +53,8 @@ internal unsafe class PathTracingPass(uint width, uint height) : Pass(width, hei
             ViewProjection = args.ViewProjection,
             PreviousViewProjection = args.PreviousViewProjection,
             PositionFrame = new(args.CameraPosition, BitConverter.UInt32BitsToSingle(args.FrameIndex)),
-            RenderSizeJitter = new(Width, Height, args.Jitter.X, args.Jitter.Y),
-            HitDistance = args.RayReconstruction ? 1u : 0u,
+            RenderSizeJitter = new(RenderWidth, RenderHeight, args.Jitter.X, args.Jitter.Y),
+            HitDistance = args.RayReconstruction is not null ? 1u : 0u,
             Scene = args.Scene.AccelerationStructure,
             Vertices = args.Scene.Vertices,
             Indices = args.Scene.Indices,
@@ -82,7 +82,7 @@ internal unsafe class PathTracingPass(uint width, uint height) : Pass(width, hei
 
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(constantBuffer, 0);
-        commandBuffer.Dispatch((Width + ThreadGroupSize - 1) / ThreadGroupSize, (Height + ThreadGroupSize - 1) / ThreadGroupSize, 1);
+        commandBuffer.Dispatch((RenderWidth + ThreadGroupSize - 1) / ThreadGroupSize, (RenderHeight + ThreadGroupSize - 1) / ThreadGroupSize, 1);
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
         foreach (Texture output in outputs)
@@ -107,13 +107,13 @@ internal unsafe class PathTracingPass(uint width, uint height) : Pass(width, hei
 
     private void CreateTextures()
     {
-        Color = CreateTexture(Width, Height, PixelFormat.R16G16B16A16Float);
-        Depth = CreateTexture(Width, Height, PixelFormat.R32Float, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc);
-        Normal = CreateTexture(Width, Height, PixelFormat.R16G16B16A16Float);
-        MotionVectors = CreateTexture(Width, Height, PixelFormat.R16G16Float, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc);
-        DiffuseAlbedo = CreateTexture(Width, Height, PixelFormat.R16G16B16A16Float);
-        SpecularAlbedo = CreateTexture(Width, Height, PixelFormat.R16G16B16A16Float);
-        SpecularHitDistance = CreateTexture(Width, Height, PixelFormat.R32Float);
+        Color = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
+        Depth = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32Float, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc);
+        Normal = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
+        MotionVectors = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16Float, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc);
+        DiffuseAlbedo = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
+        SpecularAlbedo = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
+        SpecularHitDistance = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32Float);
 
         outputs = [Color, Depth, Normal, MotionVectors, DiffuseAlbedo, SpecularAlbedo, SpecularHitDistance];
     }

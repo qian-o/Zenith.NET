@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Zenith.NET;
+using Zenith.NET.Extensions.DLSS;
 
 namespace CornellBox.Models;
 
@@ -63,7 +64,7 @@ internal readonly struct PassArgs
 
     public int Slot { get; init; }
 
-    public bool RayReconstruction { get; init; }
+    public DLSSMode? RayReconstruction { get; init; }
 
     public bool FrameGeneration { get; init; }
 }

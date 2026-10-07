@@ -5,21 +5,27 @@ namespace CornellBox.Passes;
 
 internal abstract class Pass : DisposableObject
 {
-    protected Pass(uint width, uint height)
+    protected Pass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight)
     {
-        Width = width;
-        Height = height;
+        RenderWidth = renderWidth;
+        RenderHeight = renderHeight;
+        DisplayWidth = displayWidth;
+        DisplayHeight = displayHeight;
 
         Initialize();
     }
 
-    public uint Width { get; private set; }
+    public uint RenderWidth { get; private set; }
 
-    public uint Height { get; private set; }
+    public uint RenderHeight { get; private set; }
+
+    public uint DisplayWidth { get; private set; }
+
+    public uint DisplayHeight { get; private set; }
 
     public void Record(CommandBuffer commandBuffer, in PassArgs args)
     {
-        if (Width is 0 || Height is 0)
+        if (RenderWidth is 0 || RenderHeight is 0 || DisplayWidth is 0 || DisplayHeight is 0)
         {
             return;
         }
@@ -27,10 +33,12 @@ internal abstract class Pass : DisposableObject
         RecordImpl(commandBuffer, args);
     }
 
-    public void Resize(uint width, uint height)
+    public void Resize(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight)
     {
-        Width = width;
-        Height = height;
+        RenderWidth = renderWidth;
+        RenderHeight = renderHeight;
+        DisplayWidth = displayWidth;
+        DisplayHeight = displayHeight;
 
         ResizeImpl();
     }

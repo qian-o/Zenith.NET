@@ -4,7 +4,7 @@ using Zenith.NET.Extensions.DLSS;
 
 namespace CornellBox.Passes;
 
-internal class RayReconstructionPass(uint width, uint height) : Pass(width, height)
+internal class RayReconstructionPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
 {
     private DLSSRayReconstruction? rayReconstruction;
     private Texture output = null!;
@@ -19,7 +19,7 @@ internal class RayReconstructionPass(uint width, uint height) : Pass(width, heig
 
     protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
     {
-        if (!args.RayReconstruction)
+        if (args.RayReconstruction is not DLSSMode mode)
         {
             history = false;
             Color = args.Color;
@@ -29,11 +29,11 @@ internal class RayReconstructionPass(uint width, uint height) : Pass(width, heig
 
         DLSSRayReconstructionDesc desc = new()
         {
-            InputWidth = Width,
-            InputHeight = Height,
-            OutputWidth = Width,
-            OutputHeight = Height,
-            Mode = DLSSMode.DLAA,
+            InputWidth = RenderWidth,
+            InputHeight = RenderHeight,
+            OutputWidth = DisplayWidth,
+            OutputHeight = DisplayHeight,
+            Mode = mode,
             IsRoughnessPacked = true
         };
 
@@ -60,8 +60,8 @@ internal class RayReconstructionPass(uint width, uint height) : Pass(width, heig
             Output = output.DLSSBinding,
             JitterOffsetX = args.Jitter.X,
             JitterOffsetY = args.Jitter.Y,
-            MotionVectorScaleX = -0.5f * Width,
-            MotionVectorScaleY = 0.5f * Height,
+            MotionVectorScaleX = -0.5f * RenderWidth,
+            MotionVectorScaleY = 0.5f * RenderHeight,
             WorldToView = args.View,
             ViewToClip = args.Projection,
             Reset = !history
@@ -89,6 +89,6 @@ internal class RayReconstructionPass(uint width, uint height) : Pass(width, heig
 
     private Texture CreateOutput()
     {
-        return CreateTexture(Width, Height, PixelFormat.R16G16B16A16Float, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferDst);
+        return CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.R16G16B16A16Float, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferDst);
     }
 }

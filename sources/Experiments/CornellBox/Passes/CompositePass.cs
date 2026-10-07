@@ -5,7 +5,7 @@ using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Passes;
 
-internal unsafe class CompositePass(uint width, uint height) : Pass(width, height)
+internal unsafe class CompositePass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
 {
     private Buffer buffer = null!;
     private ComputePipeline pipeline = null!;
@@ -27,8 +27,8 @@ internal unsafe class CompositePass(uint width, uint height) : Pass(width, heigh
     {
         Constants constants = new()
         {
-            Width = Width,
-            Height = Height,
+            Width = DisplayWidth,
+            Height = DisplayHeight,
             Hudless = args.Color.SampledHandle,
             UI = args.UI.SampledHandle,
             Output = args.BackBuffer.StorageHandle
@@ -43,7 +43,7 @@ internal unsafe class CompositePass(uint width, uint height) : Pass(width, heigh
         commandBuffer.Transition(args.BackBuffer, default, TextureLayout.Undefined, TextureLayout.Storage);
         commandBuffer.SetPipeline(pipeline);
         commandBuffer.SetConstantBuffer(buffer, 0);
-        commandBuffer.Dispatch((Width + 7) / 8, (Height + 7) / 8, 1);
+        commandBuffer.Dispatch((DisplayWidth + 7) / 8, (DisplayHeight + 7) / 8, 1);
         commandBuffer.Transition(args.BackBuffer, default, TextureLayout.Storage, TextureLayout.Sampled);
     }
 

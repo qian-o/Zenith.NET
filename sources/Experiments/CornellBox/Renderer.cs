@@ -23,11 +23,11 @@ internal class Renderer : DisposableObject
     public Renderer()
     {
         scene = new();
-        pathTracing = new(App.Width, App.Height);
-        rayReconstruction = new(App.Width, App.Height);
-        tonemap = new(App.Width, App.Height);
-        composite = new(App.Width, App.Height);
-        frameGeneration = new(App.Width, App.Height);
+        pathTracing = new(App.Width, App.Height, App.Width, App.Height);
+        rayReconstruction = new(App.Width, App.Height, App.Width, App.Height);
+        tonemap = new(App.Width, App.Height, App.Width, App.Height);
+        composite = new(App.Width, App.Height, App.Width, App.Height);
+        frameGeneration = new(App.Width, App.Height, App.Width, App.Height);
 
         DLSSCapabilities = App.Context.DLSSCapabilities;
     }
@@ -36,7 +36,7 @@ internal class Renderer : DisposableObject
 
     public bool Paused { get; set; }
 
-    public bool RayReconstruction { get; set; }
+    public DLSSMode? RayReconstruction { get; set; }
 
     public bool FrameGeneration { get; set; }
 
@@ -52,9 +52,9 @@ internal class Renderer : DisposableObject
         Matrix4x4.Invert(view, out Matrix4x4 inverseView);
         Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
 
-        bool reconstruct = RayReconstruction && DLSSCapabilities.RayReconstructionSupported;
+        DLSSMode? reconstruction = DLSSCapabilities.RayReconstructionSupported ? RayReconstruction : null;
 
-        Vector2 jitter = reconstruct ? new(Halton(frameIndex + 1, 2) - 0.5f, Halton(frameIndex + 1, 3) - 0.5f) : Vector2.Zero;
+        Vector2 jitter = reconstruction is not null ? new(Halton(frameIndex + 1, 2) - 0.5f, Halton(frameIndex + 1, 3) - 0.5f) : Vector2.Zero;
 
         if (!history)
         {
@@ -87,7 +87,7 @@ internal class Renderer : DisposableObject
             Jitter = jitter,
             FrameIndex = frameIndex,
             Slot = slot,
-            RayReconstruction = reconstruct,
+            RayReconstruction = reconstruction,
             FrameGeneration = FrameGeneration && DLSSCapabilities.FrameGenerationSupported
         };
 
@@ -127,11 +127,30 @@ internal class Renderer : DisposableObject
 
     public void Resize(uint width, uint height)
     {
-        pathTracing.Resize(width, height);
-        rayReconstruction.Resize(width, height);
-        tonemap.Resize(width, height);
-        composite.Resize(width, height);
-        frameGeneration.Resize(width, height);
+        uint renderWidth = width;
+        uint renderHeight = height;
+
+        if (RayReconstruction is DLSSMode mode && DLSSCapabilities.RayReconstructionSupported)
+        {
+            DLSSOptimalSettings settings = App.Context.GetDLSSRayReconstructionOptimalSettings(width, height, mode);
+
+            if (settings.InputWidth is not 0 && settings.InputHeight is not 0)
+            {
+                renderWidth = settings.InputWidth;
+                renderHeight = settings.InputHeight;
+            }
+        }
+
+        if (pathTracing.RenderWidth == renderWidth && pathTracing.RenderHeight == renderHeight && pathTracing.DisplayWidth == width && pathTracing.DisplayHeight == height)
+        {
+            return;
+        }
+
+        pathTracing.Resize(renderWidth, renderHeight, width, height);
+        rayReconstruction.Resize(renderWidth, renderHeight, width, height);
+        tonemap.Resize(renderWidth, renderHeight, width, height);
+        composite.Resize(renderWidth, renderHeight, width, height);
+        frameGeneration.Resize(renderWidth, renderHeight, width, height);
 
         history = false;
     }
