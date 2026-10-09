@@ -6,7 +6,7 @@ using Zenith.NET.Extensions.ImGui;
 
 namespace FluidTank.Handlers;
 
-internal class ImGuiHandler : DisposableObject, IImGuiPlatform
+internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
 {
     private readonly IMouse mouse;
     private readonly IKeyboard keyboard;
@@ -29,12 +29,8 @@ internal class ImGuiHandler : DisposableObject, IImGuiPlatform
 
     public void Initialize(ImGuiIOPtr io)
     {
-        unsafe
-        {
-            io.Fonts.Clear();
-            io.Fonts.AddFontFromFileTTF(Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "msyh.ttf"));
-        }
-
+        io.Fonts.Clear();
+        io.Fonts.AddFontFromFileTTF(Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "msyh.ttf"));
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
         io.DisplayFramebufferScale = App.DpiScale;
     }

@@ -6,7 +6,7 @@ using Zenith.NET.Extensions.ImGui;
 
 namespace CornellBox.Handlers;
 
-internal class ImGuiHandler : DisposableObject, IImGuiPlatform
+internal unsafe class ImGuiHandler : DisposableObject, IImGuiPlatform
 {
     private readonly IMouse mouse;
     private readonly IKeyboard keyboard;
@@ -27,7 +27,7 @@ internal class ImGuiHandler : DisposableObject, IImGuiPlatform
 
     public event EventHandler<ImGuiInputArgs>? Input;
 
-    public unsafe void Initialize(ImGuiIOPtr io)
+    public void Initialize(ImGuiIOPtr io)
     {
         io.Fonts.Clear();
         io.Fonts.AddFontFromFileTTF(Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "msyh.ttf"));
