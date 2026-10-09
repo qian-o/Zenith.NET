@@ -2,8 +2,12 @@
 
 namespace Zenith.NET.Extensions.ImGui;
 
-public interface IImGuiPlatformBindings
+public interface IImGuiPlatform
 {
+    event EventHandler<ImGuiInputArgs>? Input;
+
+    void Initialize(ImGuiIOPtr io);
+
     void SetCursor(ImGuiMouseCursor cursor);
 
     string GetClipboardText();

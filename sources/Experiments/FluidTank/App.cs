@@ -53,7 +53,11 @@ internal static class App
         window.Initialize();
         window.Center();
 
-        input = window.CreateInput();
+        Context.InitializeImGui(imGui = new(input = window.CreateInput()), new()
+        {
+            ColorFormats = [PixelFormat.B8G8R8A8UNorm],
+            SampleCount = SampleCount.Count1
+        }, ImGuiColorSpace.Legacy);
 
         Surface surface;
         if (OperatingSystem.IsWindows())
@@ -73,12 +77,6 @@ internal static class App
         {
             Surface = surface,
             Format = PixelFormat.B8G8R8A8UNorm
-        });
-
-        imGui = new(input, new()
-        {
-            ColorFormats = [PixelFormat.B8G8R8A8UNorm],
-            SampleCount = SampleCount.Count1
         });
 
         camera = new(input, new(9.2f, 5.3f, -10.8f), new(0.0f, 1.45f, 0.0f))
@@ -112,9 +110,10 @@ internal static class App
             uint width = (uint)(Width / DpiScale.X);
             uint height = (uint)(Height / DpiScale.Y);
 
-            imGui.Update(delta, width, height);
             camera.Update(delta, width, height);
             renderer.Update(delta);
+
+            Context.BeginImGuiFrame(delta, width, height);
 
             if (camera.TryConsumeClickRay(out Vector3 origin, out Vector3 direction) && !ImGui.GetIO().WantCaptureMouse)
             {
@@ -170,7 +169,7 @@ internal static class App
             renderer.Render(commandBuffer, camera);
 
             commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-            imGui.Render(commandBuffer, ColorAttachment.Clear(swapChain.Drawable, default));
+            Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(swapChain.Drawable, default));
             commandBuffer.Transition(swapChain.Drawable, default, TextureLayout.ColorAttachment, TextureLayout.Present);
 
             commandBuffer.Submit(simulationReady).Wait();

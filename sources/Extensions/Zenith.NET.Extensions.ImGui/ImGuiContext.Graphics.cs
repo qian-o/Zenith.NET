@@ -5,31 +5,63 @@ using Hexa.NET.ImGui;
 
 namespace Zenith.NET.Extensions.ImGui;
 
-internal unsafe partial class ImGuiRenderer : DisposableObject
+internal unsafe partial class ImGuiContext
 {
-    private readonly Sampler sampler;
-    private readonly GraphicsPipeline graphicsPipeline;
     private readonly Dictionary<Texture, ImTextureID> textureBindings = [];
     private readonly Dictionary<TextureView, ImTextureID> textureViewBindings = [];
     private readonly SortedList<ImTextureID, ResourceHandle> resourceHandleBindings = new(Comparer<ImTextureID>.Create(static (x, y) => x.Handle.CompareTo(y.Handle)));
     private readonly Dictionary<ImTextureID, Texture> drawDataTextures = [];
 
+    private Sampler sampler = null!;
+    private GraphicsPipeline graphicsPipeline = null!;
     private Buffer? vertexBuffer;
     private Buffer? indexBuffer;
     private Buffer? constantBuffer;
 
-    public ImGuiRenderer(GraphicsContext context, AttachmentFormats attachmentFormats, ImGuiColorSpace colorSpace)
+    internal ImTextureRef Binding(Texture texture)
     {
-        sampler = context.CreateSampler(SamplerDesc.PointClamp());
+        if (!textureBindings.TryGetValue(texture, out ImTextureID textureID))
+        {
+            ulong id = 0;
+            while (resourceHandleBindings.ContainsKey(id))
+            {
+                id++;
+            }
 
-        using Shader vertex = context.CreateShader(context.GraphicsApi switch
+            resourceHandleBindings[textureBindings[texture] = textureID = id] = texture.SampledHandle;
+        }
+
+        return new(null, textureID);
+    }
+
+    internal ImTextureRef Binding(TextureView textureView)
+    {
+        if (!textureViewBindings.TryGetValue(textureView, out ImTextureID textureID))
+        {
+            ulong id = 0;
+            while (resourceHandleBindings.ContainsKey(id))
+            {
+                id++;
+            }
+
+            resourceHandleBindings[textureViewBindings[textureView] = textureID = id] = textureView.SampledHandle;
+        }
+
+        return new(null, textureID);
+    }
+
+    private void InitializeGraphics(AttachmentFormats attachmentFormats, ImGuiColorSpace colorSpace)
+    {
+        sampler = Context.CreateSampler(SamplerDesc.PointClamp());
+
+        using Shader vertex = Context.CreateShader(Context.GraphicsApi switch
         {
             GraphicsApi.DirectX12 => colorSpace is ImGuiColorSpace.Legacy ? DirectX12LegacyVSMain : DirectX12LinearVSMain,
             GraphicsApi.Metal => colorSpace is ImGuiColorSpace.Legacy ? MetalLegacyVSMain : MetalLinearVSMain,
             GraphicsApi.Vulkan => colorSpace is ImGuiColorSpace.Legacy ? VulkanLegacyVSMain : VulkanLinearVSMain,
             _ => default
         });
-        using Shader fragment = context.CreateShader(context.GraphicsApi switch
+        using Shader fragment = Context.CreateShader(Context.GraphicsApi switch
         {
             GraphicsApi.DirectX12 => colorSpace is ImGuiColorSpace.Legacy ? DirectX12LegacyFSMain : DirectX12LinearFSMain,
             GraphicsApi.Metal => colorSpace is ImGuiColorSpace.Legacy ? MetalLegacyFSMain : MetalLinearFSMain,
@@ -56,7 +88,7 @@ internal unsafe partial class ImGuiRenderer : DisposableObject
             Semantic = ElementSemantic.Color
         });
 
-        graphicsPipeline = context.CreateGraphicsPipeline(new()
+        graphicsPipeline = Context.CreateGraphicsPipeline(new()
         {
             VertexShader = vertex,
             FragmentShader = fragment,
@@ -76,45 +108,9 @@ internal unsafe partial class ImGuiRenderer : DisposableObject
                 }
             }
         });
-
-        Context = context;
     }
 
-    public GraphicsContext Context { get; }
-
-    public ImTextureID Binding(Texture texture)
-    {
-        if (!textureBindings.TryGetValue(texture, out ImTextureID textureID))
-        {
-            ulong id = 0;
-            while (resourceHandleBindings.ContainsKey(id))
-            {
-                id++;
-            }
-
-            resourceHandleBindings[textureBindings[texture] = textureID = id] = texture.SampledHandle;
-        }
-
-        return textureID;
-    }
-
-    public ImTextureID Binding(TextureView textureView)
-    {
-        if (!textureViewBindings.TryGetValue(textureView, out ImTextureID textureID))
-        {
-            ulong id = 0;
-            while (resourceHandleBindings.ContainsKey(id))
-            {
-                id++;
-            }
-
-            resourceHandleBindings[textureViewBindings[textureView] = textureID = id] = textureView.SampledHandle;
-        }
-
-        return textureID;
-    }
-
-    public void Render(CommandBuffer commandBuffer, ColorAttachment colorAttachment, ImDrawDataPtr drawData)
+    private void Render(CommandBuffer commandBuffer, ColorAttachment colorAttachment, ImDrawDataPtr drawData)
     {
         if (drawData.CmdListsCount is 0)
         {
@@ -173,7 +169,7 @@ internal unsafe partial class ImGuiRenderer : DisposableObject
                             commandBuffer.Transition(texture, default, TextureLayout.CopyDst, TextureLayout.Sampled);
                         }
 
-                        textureData.SetTexID(Binding(texture));
+                        textureData.SetTexID(Binding(texture).TexID);
                         textureData.SetStatus(ImTextureStatus.Ok);
 
                         drawDataTextures[textureData.TexID] = texture;
@@ -267,7 +263,35 @@ internal unsafe partial class ImGuiRenderer : DisposableObject
             }
         }
 
-        RemoveDestroyedBindings();
+        ImTextureID[] destroyedTextureIDs = [.. resourceHandleBindings.Keys.Where(textureID =>
+        {
+            if (textureBindings.FirstOrDefault(kv => kv.Value == textureID).Key is Texture texture)
+            {
+                return texture.IsDisposed;
+            }
+
+            if (textureViewBindings.FirstOrDefault(kv => kv.Value == textureID).Key is TextureView textureView)
+            {
+                return textureView.IsDisposed;
+            }
+
+            return false;
+        })];
+
+        foreach (ImTextureID textureID in destroyedTextureIDs)
+        {
+            resourceHandleBindings.Remove(textureID);
+
+            if (textureViewBindings.FirstOrDefault(kv => kv.Value == textureID).Key is TextureView textureView)
+            {
+                textureViewBindings.Remove(textureView);
+            }
+
+            if (textureBindings.FirstOrDefault(kv => kv.Value == textureID).Key is Texture texture)
+            {
+                textureBindings.Remove(texture);
+            }
+        }
 
         uint totalVertexSizeInBytes = (uint)(sizeof(ImDrawVert) * (int)(drawData.TotalVtxCount * 1.2));
         if (vertexBuffer is null || vertexBuffer.Desc.SizeInBytes < totalVertexSizeInBytes)
@@ -356,7 +380,6 @@ internal unsafe partial class ImGuiRenderer : DisposableObject
         ArrayPool<Constants>.Shared.Return(constants);
 
         commandBuffer.BeginDebugEvent("ImGui");
-
         commandBuffer.BeginRenderPass([colorAttachment], null);
 
         commandBuffer.SetPipeline(graphicsPipeline);
@@ -403,11 +426,10 @@ internal unsafe partial class ImGuiRenderer : DisposableObject
         }
 
         commandBuffer.EndRenderPass();
-
         commandBuffer.EndDebugEvent();
     }
 
-    protected override void Destroy()
+    private void DestroyGraphics()
     {
         constantBuffer?.Dispose();
         indexBuffer?.Dispose();
@@ -425,39 +447,6 @@ internal unsafe partial class ImGuiRenderer : DisposableObject
         textureBindings.Clear();
         graphicsPipeline.Dispose();
         sampler.Dispose();
-    }
-
-    private void RemoveDestroyedBindings()
-    {
-        ImTextureID[] destroyedTextureIDs = [.. resourceHandleBindings.Keys.Where(textureID =>
-        {
-            if (textureBindings.FirstOrDefault(kv => kv.Value == textureID).Key is Texture texture)
-            {
-                return texture.IsDisposed;
-            }
-
-            if (textureViewBindings.FirstOrDefault(kv => kv.Value == textureID).Key is TextureView textureView)
-            {
-                return textureView.IsDisposed;
-            }
-
-            return false;
-        })];
-
-        foreach (ImTextureID textureID in destroyedTextureIDs)
-        {
-            resourceHandleBindings.Remove(textureID);
-
-            if (textureViewBindings.FirstOrDefault(kv => kv.Value == textureID).Key is TextureView textureView)
-            {
-                textureViewBindings.Remove(textureView);
-            }
-
-            if (textureBindings.FirstOrDefault(kv => kv.Value == textureID).Key is Texture texture)
-            {
-                textureBindings.Remove(texture);
-            }
-        }
     }
 }
 

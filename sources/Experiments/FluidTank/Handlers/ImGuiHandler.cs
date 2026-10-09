@@ -6,12 +6,12 @@ using Zenith.NET.Extensions.ImGui;
 
 namespace FluidTank.Handlers;
 
-internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
+internal class ImGuiHandler : DisposableObject, IImGuiPlatform
 {
     private readonly IMouse mouse;
     private readonly IKeyboard keyboard;
 
-    public ImGuiHandler(IInputContext input, AttachmentFormats attachmentFormats) : base(App.Context, attachmentFormats, ImGuiColorSpace.Legacy, Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "msyh.ttf"), OtherSetup)
+    public ImGuiHandler(IInputContext input)
     {
         mouse = input.Mice[0];
         mouse.MouseDown += OnMouseDown;
@@ -23,8 +23,20 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
         keyboard.KeyDown += OnKeyDown;
         keyboard.KeyUp += OnKeyUp;
         keyboard.KeyChar += OnKeyChar;
+    }
 
-        PlatformBindings = this;
+    public event EventHandler<ImGuiInputArgs>? Input;
+
+    public void Initialize(ImGuiIOPtr io)
+    {
+        unsafe
+        {
+            io.Fonts.Clear();
+            io.Fonts.AddFontFromFileTTF(Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "msyh.ttf"));
+        }
+
+        io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
+        io.DisplayFramebufferScale = App.DpiScale;
     }
 
     public void SetCursor(ImGuiMouseCursor cursor)
@@ -59,53 +71,71 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
         // IME not supported.
     }
 
+    protected override void Destroy()
+    {
+        mouse.MouseDown -= OnMouseDown;
+        mouse.MouseUp -= OnMouseUp;
+        mouse.MouseMove -= OnMouseMove;
+        mouse.Scroll -= OnMouseScroll;
+
+        keyboard.KeyDown -= OnKeyDown;
+        keyboard.KeyUp -= OnKeyUp;
+        keyboard.KeyChar -= OnKeyChar;
+    }
+
     private void OnMouseDown(IMouse mouse, MouseButton button)
     {
-        MouseDown(button switch
+        Input?.Invoke(this, new(ImGuiInput.MouseDown)
         {
-            MouseButton.Left => ImGuiMouseButton.Left,
-            MouseButton.Right => ImGuiMouseButton.Right,
-            MouseButton.Middle => ImGuiMouseButton.Middle,
-            _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle
+            MouseButton = button switch
+            {
+                MouseButton.Left => ImGuiMouseButton.Left,
+                MouseButton.Right => ImGuiMouseButton.Right,
+                MouseButton.Middle => ImGuiMouseButton.Middle,
+                _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle
+            }
         });
     }
 
     private void OnMouseUp(IMouse mouse, MouseButton button)
     {
-        MouseUp(button switch
+        Input?.Invoke(this, new(ImGuiInput.MouseUp)
         {
-            MouseButton.Left => ImGuiMouseButton.Left,
-            MouseButton.Right => ImGuiMouseButton.Right,
-            MouseButton.Middle => ImGuiMouseButton.Middle,
-            _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle
+            MouseButton = button switch
+            {
+                MouseButton.Left => ImGuiMouseButton.Left,
+                MouseButton.Right => ImGuiMouseButton.Right,
+                MouseButton.Middle => ImGuiMouseButton.Middle,
+                _ => (int)ImGuiMouseButton.Count + (int)button - ImGuiMouseButton.Middle
+            }
         });
     }
 
     private void OnMouseMove(IMouse mouse, Vector2 position)
     {
-        MouseMove(position);
+        Input?.Invoke(this, new(ImGuiInput.MouseMove) { Position = position });
     }
 
     private void OnMouseScroll(IMouse mouse, ScrollWheel offset)
     {
-        MouseWheel(new(offset.X, offset.Y));
+        Input?.Invoke(this, new(ImGuiInput.MouseWheel) { Offset = new(offset.X, offset.Y) });
     }
 
     private void OnKeyDown(IKeyboard keyboard, Key key, int scanCode)
     {
-        KeyDown(TranslateInputKeyToImGuiKey(key));
-        KeyDown(TranslateInputKeyToImGuiModifier(key));
+        Input?.Invoke(this, new(ImGuiInput.KeyDown) { Key = TranslateInputKeyToImGuiKey(key) });
+        Input?.Invoke(this, new(ImGuiInput.KeyDown) { Key = TranslateInputKeyToImGuiModifier(key) });
     }
 
     private void OnKeyUp(IKeyboard keyboard, Key key, int scanCode)
     {
-        KeyUp(TranslateInputKeyToImGuiKey(key));
-        KeyUp(TranslateInputKeyToImGuiModifier(key));
+        Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = TranslateInputKeyToImGuiKey(key) });
+        Input?.Invoke(this, new(ImGuiInput.KeyUp) { Key = TranslateInputKeyToImGuiModifier(key) });
     }
 
     private void OnKeyChar(IKeyboard keyboard, char c)
     {
-        KeyChar(c);
+        Input?.Invoke(this, new(ImGuiInput.TextInput) { Character = c });
     }
 
     private static ImGuiKey TranslateInputKeyToImGuiKey(Key key)
@@ -188,9 +218,4 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
         };
     }
 
-    private static void OtherSetup(ImGuiIOPtr io)
-    {
-        io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
-        io.DisplayFramebufferScale = App.DpiScale;
-    }
 }

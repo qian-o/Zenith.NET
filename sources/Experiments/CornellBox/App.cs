@@ -7,6 +7,7 @@ using Silk.NET.Windowing;
 using Zenith.NET;
 using Zenith.NET.DirectX12;
 using Zenith.NET.Extensions.DLSS;
+using Zenith.NET.Extensions.ImGui;
 using Zenith.NET.Metal;
 using Zenith.NET.Vulkan;
 
@@ -16,7 +17,15 @@ internal static class App
 {
     public const int SlotCount = 3;
 
-    private static readonly DLSSMode?[] rayReconstructionModes = [null, DLSSMode.DLAA, DLSSMode.Quality, DLSSMode.Balanced, DLSSMode.Performance, DLSSMode.UltraPerformance];
+    private static readonly DLSSMode?[] rayReconstructionModes =
+    [
+        null,
+        DLSSMode.DLAA,
+        DLSSMode.Quality,
+        DLSSMode.Balanced,
+        DLSSMode.Performance,
+        DLSSMode.UltraPerformance
+    ];
     private static readonly IWindow window;
     private static readonly IInputContext input;
     private static readonly SwapChain swapChain;
@@ -66,7 +75,11 @@ internal static class App
         window.Initialize();
         window.Center();
 
-        input = window.CreateInput();
+        Context.InitializeImGui(imGui = new(input = window.CreateInput()), new()
+        {
+            ColorFormats = [PixelFormat.B8G8R8A8UNorm],
+            SampleCount = SampleCount.Count1
+        }, ImGuiColorSpace.Legacy);
 
         Surface surface;
         if (OperatingSystem.IsWindows())
@@ -90,12 +103,6 @@ internal static class App
         });
 
         presenter = new(swapChain, SlotCount);
-
-        imGui = new(input, new()
-        {
-            ColorFormats = [PixelFormat.B8G8R8A8UNorm],
-            SampleCount = SampleCount.Count1
-        });
 
         camera = new(input, Matrix4x4.CreateTranslation(278.0f, 273.0f, -800.0f))
         {
@@ -128,8 +135,9 @@ internal static class App
             uint width = (uint)(Width / DpiScale.X);
             uint height = (uint)(Height / DpiScale.Y);
 
-            imGui.Update(delta, width, height);
             camera.Update(delta, width, height);
+
+            Context.BeginImGuiFrame(delta, width, height);
 
             ImGuiHelper.Overlay(static () =>
             {
@@ -190,7 +198,7 @@ internal static class App
             CommandBuffer commandBuffer = Context.GraphicsQueue.CommandBuffer();
 
             commandBuffer.Transition(uiTextures[slot], default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
-            imGui.Render(commandBuffer, ColorAttachment.Clear(uiTextures[slot], default));
+            Context.EndImGuiFrame(commandBuffer, ColorAttachment.Clear(uiTextures[slot], default));
             commandBuffer.Transition(uiTextures[slot], default, TextureLayout.ColorAttachment, TextureLayout.Sampled);
 
             renderer.Render(commandBuffer, camera, delta, slot, uiTextures[slot], backBuffers[slot], generatedFrames[slot]);
