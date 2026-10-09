@@ -154,8 +154,8 @@ internal class Canvas : DisposableObject
         {
             stroke.Dispose();
         }
-
         strokes.Clear();
+
         activeStroke?.Dispose();
         cachedPicture?.Dispose();
 
@@ -228,8 +228,8 @@ internal class Canvas : DisposableObject
             {
                 stroke.Dispose();
             }
-
             strokes.Clear();
+
             activeStroke?.Dispose();
             activeStroke = null;
             eraserBuilder.Reset();
