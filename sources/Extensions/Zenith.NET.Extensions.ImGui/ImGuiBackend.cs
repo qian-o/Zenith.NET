@@ -18,7 +18,7 @@ internal unsafe partial class ImGuiBackend : DisposableObject
     private bool frameBegun;
     private ZenithMarshal.Scope? clipboardScope;
 
-    internal ImGuiBackend(GraphicsContext context, IImGuiPlatform platform, AttachmentFormats attachmentFormats, ImGuiColorSpace colorSpace)
+    public ImGuiBackend(GraphicsContext context, IImGuiPlatform platform, AttachmentFormats attachmentFormats, ImGuiColorSpace colorSpace)
     {
         Context = context;
         Platform = platform;
