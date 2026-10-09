@@ -61,8 +61,6 @@ public class SKTexture : DisposableObject
     {
         surface.Dispose();
         texture.Dispose();
-
-        Extensions.ReleaseRenderer(Renderer);
     }
 
     public static implicit operator Texture(SKTexture texture)

@@ -7,28 +7,36 @@ public static class Extensions
 
     extension(GraphicsContext context)
     {
-        public SKTexture CreateSKTexture(SKTextureDesc desc)
+        public void InitializeSkia()
         {
             using Lock.Scope _ = @lock.EnterScope();
 
             if (!renderers.TryGetValue(context, out SKRenderer? renderer))
             {
                 renderers[context] = renderer = new(context);
+
+                context.Disposing += (_, _) =>
+                {
+                    using Lock.Scope _ = @lock.EnterScope();
+
+                    if (renderers.Remove(context))
+                    {
+                        renderer.Dispose();
+                    }
+                };
+            }
+        }
+
+        public SKTexture CreateSKTexture(SKTextureDesc desc)
+        {
+            using Lock.Scope _ = @lock.EnterScope();
+
+            if (!renderers.TryGetValue(context, out SKRenderer? renderer))
+            {
+                throw new InvalidOperationException("The graphics context has not been initialized for Skia.");
             }
 
-            renderer.AddReference();
-
             return new(renderer, desc);
-        }
-    }
-
-    internal static void ReleaseRenderer(SKRenderer renderer)
-    {
-        using Lock.Scope _ = @lock.EnterScope();
-
-        if (renderer.RemoveReference() && renderers.Remove(renderer.Context))
-        {
-            renderer.Dispose();
         }
     }
 }

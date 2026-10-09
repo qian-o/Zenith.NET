@@ -5,6 +5,7 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 using Zenith.NET;
 using Zenith.NET.DirectX12;
+using Zenith.NET.Extensions.Skia;
 using Zenith.NET.Metal;
 using Zenith.NET.Vulkan;
 
@@ -49,6 +50,8 @@ internal static class App
 
             Console.WriteLine($"[{args.Severity}] {args.Message}");
         };
+
+        Context.InitializeSkia();
 
         window = Window.Create(WindowOptions.Default with
         {

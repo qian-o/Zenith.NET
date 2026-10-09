@@ -8,8 +8,6 @@ internal unsafe class SKRenderer : DisposableObject
     private readonly Lock @lock = new();
     private readonly nint commandQueue;
 
-    private uint referenceCount;
-
     public SKRenderer(GraphicsContext context)
     {
         Context = context;
@@ -93,16 +91,6 @@ internal unsafe class SKRenderer : DisposableObject
     public GraphicsContext Context { get; }
 
     public GRContext GRContext { get; }
-
-    public void AddReference()
-    {
-        referenceCount++;
-    }
-
-    public bool RemoveReference()
-    {
-        return --referenceCount is 0;
-    }
 
     public void Render(SKSurface surface, Action<SKCanvas> render)
     {
