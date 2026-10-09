@@ -16,31 +16,31 @@ public class FrameScheduler(IZenithView view)
 
     static FrameScheduler()
     {
-        const double minInterval = 1.0 / 120.0;
-        const double maxInterval = 1.0 / 30.0;
+        const double MinInterval = 1.0 / 120.0;
+        const double MaxInterval = 1.0 / 30.0;
 
-        const int iterations = 50;
-        const int bufferSize = 512 * 1024;
+        const int Iterations = 50;
+        const int BufferSize = 512 * 1024;
 
-        byte[] source = new byte[bufferSize];
-        byte[] destination = new byte[bufferSize];
+        byte[] source = new byte[BufferSize];
+        byte[] destination = new byte[BufferSize];
 
-        SystemBuffer.BlockCopy(source, 0, destination, 0, bufferSize);
+        SystemBuffer.BlockCopy(source, 0, destination, 0, BufferSize);
 
         Stopwatch stopwatch = Stopwatch.StartNew();
 
-        for (int i = 0; i < iterations; i++)
+        for (int i = 0; i < Iterations; i++)
         {
-            SystemBuffer.BlockCopy(source, 0, destination, 0, bufferSize);
+            SystemBuffer.BlockCopy(source, 0, destination, 0, BufferSize);
         }
 
         stopwatch.Stop();
 
-        double memoryThroughputMBps = iterations * bufferSize / (1024.0 * 1024.0) / stopwatch.Elapsed.TotalSeconds;
+        double memoryThroughputMBps = Iterations * BufferSize / (1024.0 * 1024.0) / stopwatch.Elapsed.TotalSeconds;
 
         double performanceScore = Math.Clamp(memoryThroughputMBps / 5000.0, 0.0, 1.0);
 
-        Interval = TimeSpan.FromSeconds(double.Lerp(maxInterval, minInterval, performanceScore));
+        Interval = TimeSpan.FromSeconds(double.Lerp(MaxInterval, MinInterval, performanceScore));
     }
 
     public double UpdateSeconds

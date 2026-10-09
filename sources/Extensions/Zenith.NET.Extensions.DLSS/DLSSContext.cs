@@ -153,11 +153,6 @@ internal unsafe class DLSSContext : DisposableObject
 
     public DLSSCapabilities Capabilities { get; }
 
-    public static nint D3D12Resource(DLSSBinding binding)
-    {
-        return binding.Texture?.GetNativeObject(NativeObjectType.D3D12Resource) ?? 0;
-    }
-
     public void AddReference()
     {
         referenceCount++;
@@ -363,6 +358,11 @@ internal unsafe class DLSSContext : DisposableObject
             NGXMarshal.Free(engineVersion);
             NGXMarshal.Free(projectId);
         }
+    }
+
+    public static nint D3D12Resource(DLSSBinding binding)
+    {
+        return binding.Texture?.GetNativeObject(NativeObjectType.D3D12Resource) ?? 0;
     }
 
     private static int GetI(NGXParameter* parameters, string name)

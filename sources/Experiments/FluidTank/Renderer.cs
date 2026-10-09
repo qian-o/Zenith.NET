@@ -34,13 +34,13 @@ internal class Renderer : DisposableObject
 
     public FluidViewMode ViewMode { get; set; }
 
-    public bool Paused { get; set; }
+    public bool IsPaused { get; set; }
 
     public Texture Color => outputPass.Color;
 
     public void Update(double delta)
     {
-        if (!Paused)
+        if (!IsPaused)
         {
             accumulator = Math.Min(accumulator + Math.Min(delta, SimulationStep), SimulationStep * 2.0);
         }
@@ -54,13 +54,13 @@ internal class Renderer : DisposableObject
     public void Reset()
     {
         simulation.Reset();
-        Paused = false;
+        IsPaused = false;
         accumulator = SimulationStep;
     }
 
     public TimelineValue Simulate()
     {
-        if (Paused)
+        if (IsPaused)
         {
             simulationReady = simulation.Step(SimulationStep, true);
         }
@@ -91,7 +91,7 @@ internal class Renderer : DisposableObject
             CameraUp = camera.Up,
             SunDirection = Vector3.Normalize(new(-0.38f, -0.83f, -0.42f)),
             LightIntensity = 2.7f,
-            InterpolationAlpha = Paused ? 1.0f : (float)Math.Clamp(accumulator / SimulationStep, 0.0, 1.0),
+            InterpolationAlpha = IsPaused ? 1.0f : (float)Math.Clamp(accumulator / SimulationStep, 0.0, 1.0),
             Particles = new()
             {
                 Particles = simulation.Particles,

@@ -186,6 +186,16 @@ public unsafe class ImGuiController : DisposableObject
         keyChars.Add(c);
     }
 
+    internal ImTextureRef Binding(Texture texture)
+    {
+        return new(null, renderer.Binding(texture));
+    }
+
+    internal ImTextureRef Binding(TextureView textureView)
+    {
+        return new(null, renderer.Binding(textureView));
+    }
+
     protected override void Destroy()
     {
         clipboardScope?.Dispose();
@@ -197,16 +207,6 @@ public unsafe class ImGuiController : DisposableObject
 
         HexaImGui.SetCurrentContext(null);
         HexaImGui.DestroyContext(Context);
-    }
-
-    internal ImTextureRef Binding(Texture texture)
-    {
-        return new(null, renderer.Binding(texture));
-    }
-
-    internal ImTextureRef Binding(TextureView textureView)
-    {
-        return new(null, renderer.Binding(textureView));
     }
 
     private byte* PlatformGetClipboardText(ImGuiContext* context)

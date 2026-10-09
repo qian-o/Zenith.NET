@@ -34,17 +34,17 @@ internal class Renderer : DisposableObject
 
     public DLSSCapabilities DLSSCapabilities { get; }
 
-    public bool Paused { get; set; }
+    public bool IsPaused { get; set; }
 
     public DLSSMode? RayReconstruction { get; set; }
 
-    public bool FrameGeneration { get; set; }
+    public bool IsFrameGenerationEnabled { get; set; }
 
     public bool IsFrameGenerated => frameGeneration.IsGenerated;
 
     public void Render(CommandBuffer commandBuffer, CameraHandler camera, double delta, int slot, Texture ui, Texture backBuffer, Texture generatedFrame)
     {
-        scene.Update(commandBuffer, Paused ? 0.0 : delta);
+        scene.Update(commandBuffer, IsPaused ? 0.0 : delta);
 
         Matrix4x4 view = camera.View;
         Matrix4x4 projection = camera.Projection;
@@ -88,7 +88,7 @@ internal class Renderer : DisposableObject
             FrameIndex = frameIndex,
             Slot = slot,
             RayReconstruction = reconstruction,
-            FrameGeneration = FrameGeneration && DLSSCapabilities.FrameGenerationSupported
+            FrameGeneration = IsFrameGenerationEnabled && DLSSCapabilities.FrameGenerationSupported
         };
 
         pathTracing.Record(commandBuffer, in args);

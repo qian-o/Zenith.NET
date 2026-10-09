@@ -27,6 +27,38 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
         PlatformBindings = this;
     }
 
+    public void SetCursor(ImGuiMouseCursor cursor)
+    {
+        mouse.Cursor.StandardCursor = cursor switch
+        {
+            ImGuiMouseCursor.Arrow => StandardCursor.Arrow,
+            ImGuiMouseCursor.TextInput => StandardCursor.IBeam,
+            ImGuiMouseCursor.ResizeAll => StandardCursor.ResizeAll,
+            ImGuiMouseCursor.ResizeNs => StandardCursor.VResize,
+            ImGuiMouseCursor.ResizeEw => StandardCursor.HResize,
+            ImGuiMouseCursor.ResizeNesw => StandardCursor.NeswResize,
+            ImGuiMouseCursor.ResizeNwse => StandardCursor.NwseResize,
+            ImGuiMouseCursor.Hand => StandardCursor.Hand,
+            ImGuiMouseCursor.NotAllowed => StandardCursor.NotAllowed,
+            _ => StandardCursor.Default
+        };
+    }
+
+    public string GetClipboardText()
+    {
+        return keyboard.ClipboardText;
+    }
+
+    public void SetClipboardText(string text)
+    {
+        keyboard.ClipboardText = text;
+    }
+
+    public void SetImeData(ImGuiViewportPtr viewport, ImGuiPlatformImeDataPtr data)
+    {
+        // IME not supported.
+    }
+
     private void OnMouseDown(IMouse mouse, MouseButton button)
     {
         MouseDown(button switch
@@ -160,37 +192,5 @@ internal class ImGuiHandler : ImGuiController, IImGuiPlatformBindings
     {
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
         io.DisplayFramebufferScale = App.DpiScale;
-    }
-
-    public void SetCursor(ImGuiMouseCursor cursor)
-    {
-        mouse.Cursor.StandardCursor = cursor switch
-        {
-            ImGuiMouseCursor.Arrow => StandardCursor.Arrow,
-            ImGuiMouseCursor.TextInput => StandardCursor.IBeam,
-            ImGuiMouseCursor.ResizeAll => StandardCursor.ResizeAll,
-            ImGuiMouseCursor.ResizeNs => StandardCursor.VResize,
-            ImGuiMouseCursor.ResizeEw => StandardCursor.HResize,
-            ImGuiMouseCursor.ResizeNesw => StandardCursor.NeswResize,
-            ImGuiMouseCursor.ResizeNwse => StandardCursor.NwseResize,
-            ImGuiMouseCursor.Hand => StandardCursor.Hand,
-            ImGuiMouseCursor.NotAllowed => StandardCursor.NotAllowed,
-            _ => StandardCursor.Default
-        };
-    }
-
-    public string GetClipboardText()
-    {
-        return keyboard.ClipboardText;
-    }
-
-    public void SetClipboardText(string text)
-    {
-        keyboard.ClipboardText = text;
-    }
-
-    public void SetImeData(ImGuiViewportPtr viewport, ImGuiPlatformImeDataPtr data)
-    {
-        // IME not supported.
     }
 }

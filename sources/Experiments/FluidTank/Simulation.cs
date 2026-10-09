@@ -226,6 +226,15 @@ internal unsafe class Simulation : DisposableObject
         constantBuffer.Dispose();
     }
 
+    private void Dispatch(CommandBuffer commandBuffer, ComputePipeline pipeline, uint count)
+    {
+        uint groupSize = pipeline.Desc.ComputeShader.Desc.ThreadGroupSize.X;
+
+        commandBuffer.SetPipeline(pipeline);
+        commandBuffer.SetConstantBuffer(constantBuffer, 0);
+        commandBuffer.Dispatch((count + groupSize - 1) / groupSize, 1, 1);
+    }
+
     private static Buffer CreateBuffer(uint count, uint strideInBytes, BufferUsages usages)
     {
         return App.Context.CreateBuffer(new()
@@ -242,15 +251,6 @@ internal unsafe class Simulation : DisposableObject
         using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "FluidSimulation.slang"), entryPoint));
 
         return App.Context.CreateComputePipeline(new() { ComputeShader = shader });
-    }
-
-    private void Dispatch(CommandBuffer commandBuffer, ComputePipeline pipeline, uint count)
-    {
-        uint groupSize = pipeline.Desc.ComputeShader.Desc.ThreadGroupSize.X;
-
-        commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetConstantBuffer(constantBuffer, 0);
-        commandBuffer.Dispatch((count + groupSize - 1) / groupSize, 1, 1);
     }
 }
 

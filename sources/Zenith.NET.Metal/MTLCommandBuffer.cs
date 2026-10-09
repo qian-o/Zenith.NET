@@ -5,6 +5,11 @@ namespace Zenith.NET.Metal;
 
 internal unsafe class MTLCommandBuffer : CommandBuffer
 {
+    private readonly Dictionary<VisibilityKey, uint> activeVisibilityIndices = [];
+    private readonly List<VisibilityBinding> beginVisibilityBindings = [];
+    private readonly List<VisibilityBinding> endVisibilityBindings = [];
+    private readonly List<ResolveTimestamp> resolveTimestamps = [];
+
     public MTL4CommandAllocator CommandAllocator;
 
     public MTL4CommandBuffer CommandBuffer;
@@ -14,11 +19,6 @@ internal unsafe class MTLCommandBuffer : CommandBuffer
     public MTL4RenderCommandEncoder? Render;
 
     public MTL4ComputeCommandEncoder? Compute;
-
-    private readonly Dictionary<VisibilityKey, uint> activeVisibilityIndices = [];
-    private readonly List<VisibilityBinding> beginVisibilityBindings = [];
-    private readonly List<VisibilityBinding> endVisibilityBindings = [];
-    private readonly List<ResolveTimestamp> resolveTimestamps = [];
 
     private uint visibilityIndex;
     private IndexBinding indexBinding;

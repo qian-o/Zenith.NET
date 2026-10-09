@@ -138,7 +138,7 @@ internal class CameraHandler
 
     private void OnMouseMove(IMouse mouse, Vector2 position)
     {
-        const float clipRadians = 89.0f * MathF.PI / 180.0f;
+        const float ClipRadians = 89.0f * MathF.PI / 180.0f;
 
         if (!lastMousePosition.HasValue)
         {
@@ -150,7 +150,7 @@ internal class CameraHandler
         Vector2 delta = position - lastMousePosition.Value;
         float yaw = -(delta.X * pixelToRadianX);
         float pitch = -(delta.Y * pixelToRadianY);
-        float newPitch = Math.Clamp(MathF.Asin(Forward.Y) + pitch, -clipRadians, clipRadians);
+        float newPitch = Math.Clamp(MathF.Asin(Forward.Y) + pitch, -ClipRadians, ClipRadians);
 
         pitch = newPitch - MathF.Asin(Forward.Y);
 

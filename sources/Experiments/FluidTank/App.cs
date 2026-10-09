@@ -130,10 +130,10 @@ internal static class App
 
             ImGuiHelper.Settings(static () =>
             {
-                bool paused = renderer.Paused;
+                bool paused = renderer.IsPaused;
                 if (ImGui.Checkbox("Pause", ref paused))
                 {
-                    renderer.Paused = paused;
+                    renderer.IsPaused = paused;
                 }
 
                 ImGui.SameLine();

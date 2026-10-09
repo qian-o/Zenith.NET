@@ -118,20 +118,6 @@ internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint dis
         frameGeneration?.Dispose();
     }
 
-    private static void Snapshot(CommandBuffer commandBuffer, Texture source, Texture destination)
-    {
-        commandBuffer.Transition(source, default, TextureLayout.Sampled, TextureLayout.CopySrc);
-        commandBuffer.Transition(destination, default, TextureLayout.Undefined, TextureLayout.CopyDst);
-        commandBuffer.CopyTexture(source, default, default, destination, default, default, new()
-        {
-            Width = source.Desc.Width,
-            Height = source.Desc.Height,
-            Depth = 1
-        });
-        commandBuffer.Transition(destination, default, TextureLayout.CopyDst, TextureLayout.Sampled);
-        commandBuffer.Transition(source, default, TextureLayout.CopySrc, TextureLayout.Sampled);
-    }
-
     private DLSSFrameGenerationDesc Desc()
     {
         return new()
@@ -167,5 +153,19 @@ internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint dis
             depth[i].Dispose();
             hudless[i].Dispose();
         }
+    }
+
+    private static void Snapshot(CommandBuffer commandBuffer, Texture source, Texture destination)
+    {
+        commandBuffer.Transition(source, default, TextureLayout.Sampled, TextureLayout.CopySrc);
+        commandBuffer.Transition(destination, default, TextureLayout.Undefined, TextureLayout.CopyDst);
+        commandBuffer.CopyTexture(source, default, default, destination, default, default, new()
+        {
+            Width = source.Desc.Width,
+            Height = source.Desc.Height,
+            Depth = 1
+        });
+        commandBuffer.Transition(destination, default, TextureLayout.CopyDst, TextureLayout.Sampled);
+        commandBuffer.Transition(source, default, TextureLayout.CopySrc, TextureLayout.Sampled);
     }
 }

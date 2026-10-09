@@ -11,7 +11,7 @@ internal class Toolbar : DisposableObject
     private const float SwatchSize = 30.0f;
     private const float SwatchGap = 12.0f;
     private const float CheckboxSize = 18.0f;
-    private const float MSAAWidth = 72.0f;
+    private const float MsaaWidth = 72.0f;
     private const float ButtonWidth = 64.0f;
 
     private static readonly SKColor Panel = new(31, 34, 43);
@@ -48,7 +48,20 @@ internal class Toolbar : DisposableObject
 
     public Toolbar()
     {
-        string family = OperatingSystem.IsMacOS() ? "SF Pro Text" : OperatingSystem.IsWindows() ? "Segoe UI" : "Noto Sans";
+        string family;
+
+        if (OperatingSystem.IsMacOS())
+        {
+            family = "SF Pro Text";
+        }
+        else if (OperatingSystem.IsWindows())
+        {
+            family = "Segoe UI";
+        }
+        else
+        {
+            family = "Noto Sans";
+        }
 
         using SKTypeface typeface = SKTypeface.FromFamilyName(family, SKFontStyle.Normal);
 
@@ -64,19 +77,19 @@ internal class Toolbar : DisposableObject
 
     public float SelectedStrokeWidth => StrokeWidths[strokeWidthIndex];
 
-    public bool MSAA { get; private set; } = true;
+    public bool IsMsaaEnabled { get; private set; } = true;
 
     public void Resize(float width, float height)
     {
-        const float top = (ToolbarHeight - SwatchSize) * 0.5f;
-        const float bottom = top + SwatchSize;
+        const float Top = (ToolbarHeight - SwatchSize) * 0.5f;
+        const float Bottom = Top + SwatchSize;
 
         size = new(width, height);
 
         for (int index = 0; index < swatchRects.Length; index++)
         {
             float left = SwatchGap + (index * (SwatchSize + SwatchGap));
-            swatchRects[index] = new(left, top, left + SwatchSize, bottom);
+            swatchRects[index] = new(left, Top, left + SwatchSize, Bottom);
         }
 
         float strokeWidthLeft = swatchRects[^1].Right + (SwatchGap * 2.0f);
@@ -84,14 +97,14 @@ internal class Toolbar : DisposableObject
         for (int index = 0; index < strokeWidthRects.Length; index++)
         {
             float left = strokeWidthLeft + (index * (SwatchSize + SwatchGap));
-            strokeWidthRects[index] = new(left, top, left + SwatchSize, bottom);
+            strokeWidthRects[index] = new(left, Top, left + SwatchSize, Bottom);
         }
 
         float msaaLeft = strokeWidthRects[^1].Right + (SwatchGap * 2.0f);
-        msaaRect = new(msaaLeft, top, msaaLeft + MSAAWidth, bottom);
+        msaaRect = new(msaaLeft, Top, msaaLeft + MsaaWidth, Bottom);
 
         float clearLeft = MathF.Max(msaaRect.Right + (SwatchGap * 2.0f), width - SwatchGap - ButtonWidth);
-        clearRect = new(clearLeft, top, clearLeft + ButtonWidth, bottom);
+        clearRect = new(clearLeft, Top, clearLeft + ButtonWidth, Bottom);
     }
 
     public void Draw(SKCanvas canvas, int strokeCount, int nodeCount, bool canClear)
@@ -115,7 +128,7 @@ internal class Toolbar : DisposableObject
         }
         else if (msaaRect.Contains(position.X, position.Y))
         {
-            MSAA = !MSAA;
+            IsMsaaEnabled = !IsMsaaEnabled;
         }
     }
 
@@ -133,7 +146,7 @@ internal class Toolbar : DisposableObject
 
     private void DrawToolbar(SKCanvas canvas, bool canClear)
     {
-        const float checkboxTop = (ToolbarHeight - CheckboxSize) * 0.5f;
+        const float CheckboxTop = (ToolbarHeight - CheckboxSize) * 0.5f;
 
         fillPaint.Color = Panel;
         canvas.DrawRect(0.0f, 0.0f, size.Width, ToolbarHeight, fillPaint);
@@ -167,16 +180,16 @@ internal class Toolbar : DisposableObject
             canvas.DrawCircle(slot.MidX, slot.MidY, StrokeWidths[index] * 0.5f, fillPaint);
         }
 
-        SKRect checkbox = new(msaaRect.Left, checkboxTop, msaaRect.Left + CheckboxSize, checkboxTop + CheckboxSize);
+        SKRect checkbox = new(msaaRect.Left, CheckboxTop, msaaRect.Left + CheckboxSize, CheckboxTop + CheckboxSize);
 
-        fillPaint.Color = MSAA ? Selected : Panel;
+        fillPaint.Color = IsMsaaEnabled ? Selected : Panel;
         canvas.DrawRoundRect(checkbox, 4.0f, 4.0f, fillPaint);
 
-        strokePaint.Color = MSAA ? Highlight : Label;
+        strokePaint.Color = IsMsaaEnabled ? Highlight : Label;
         strokePaint.StrokeWidth = 1.5f;
         canvas.DrawRoundRect(checkbox, 4.0f, 4.0f, strokePaint);
 
-        if (MSAA)
+        if (IsMsaaEnabled)
         {
             strokePaint.StrokeWidth = 2.0f;
             canvas.DrawLine(checkbox.Left + 4.0f, checkbox.MidY, checkbox.Left + 8.0f, checkbox.Bottom - 4.0f, strokePaint);

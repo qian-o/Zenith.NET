@@ -35,7 +35,7 @@ internal class Canvas : DisposableObject
     private SKRect drawingArea;
     private SKSize size;
 
-    public bool MSAA => toolbar.MSAA;
+    public bool IsMsaaEnabled => toolbar.IsMsaaEnabled;
 
     private bool CanClear => strokes.Count > 0 || activeStroke is not null || erasing || erasePending;
 
@@ -182,7 +182,7 @@ internal class Canvas : DisposableObject
 
     private SKPicture RecordCanvas()
     {
-        const float spacing = 32.0f;
+        const float Spacing = 32.0f;
 
         using SKPictureRecorder recorder = new();
         SKCanvas canvas = recorder.BeginRecording(drawingArea);
@@ -191,12 +191,12 @@ internal class Canvas : DisposableObject
         strokePaint.Color = Grid;
         strokePaint.StrokeWidth = 1.0f;
 
-        for (float x = drawingArea.Left + spacing; x < drawingArea.Right; x += spacing)
+        for (float x = drawingArea.Left + Spacing; x < drawingArea.Right; x += Spacing)
         {
             canvas.DrawLine(x, drawingArea.Top, x, drawingArea.Bottom, strokePaint);
         }
 
-        for (float y = drawingArea.Top + spacing; y < drawingArea.Bottom; y += spacing)
+        for (float y = drawingArea.Top + Spacing; y < drawingArea.Bottom; y += Spacing)
         {
             canvas.DrawLine(drawingArea.Left, y, drawingArea.Right, y, strokePaint);
         }

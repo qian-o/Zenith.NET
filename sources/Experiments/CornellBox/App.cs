@@ -142,10 +142,10 @@ internal static class App
             {
                 ImGui.SeparatorText("Scene");
 
-                bool paused = renderer.Paused;
+                bool paused = renderer.IsPaused;
                 if (ImGui.Checkbox("Pause", ref paused))
                 {
-                    renderer.Paused = paused;
+                    renderer.IsPaused = paused;
                 }
 
                 ImGui.SeparatorText("DLSS");
@@ -168,10 +168,10 @@ internal static class App
 
                 ImGui.BeginDisabled(!capabilities.FrameGenerationSupported);
 
-                bool frameGeneration = renderer.FrameGeneration;
+                bool frameGeneration = renderer.IsFrameGenerationEnabled;
                 if (ImGui.Checkbox("Frame Generation", ref frameGeneration))
                 {
-                    renderer.FrameGeneration = frameGeneration;
+                    renderer.IsFrameGenerationEnabled = frameGeneration;
                 }
 
                 ImGui.EndDisabled();

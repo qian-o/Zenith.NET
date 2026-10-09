@@ -122,6 +122,11 @@ public abstract class GraphicsContext : DisposableObject
 
     public abstract nint GetNativeObject(NativeObjectType type);
 
+    internal void OnValidationMessage(ValidationMessageEventArgs args)
+    {
+        ValidationMessage?.Invoke(this, args);
+    }
+
     protected override void Destroy()
     {
         PresentQueue.Dispose();
@@ -171,9 +176,4 @@ public abstract class GraphicsContext : DisposableObject
     protected abstract MeshShadingPipeline CreateMeshShadingPipelineImpl(MeshShadingPipelineDesc desc);
 
     protected abstract QueryHeap CreateQueryHeapImpl(QueryHeapDesc desc);
-
-    internal void OnValidationMessage(ValidationMessageEventArgs args)
-    {
-        ValidationMessage?.Invoke(this, args);
-    }
 }

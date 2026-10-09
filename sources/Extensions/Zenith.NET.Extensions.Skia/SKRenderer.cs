@@ -114,16 +114,6 @@ internal unsafe class SKRenderer : DisposableObject
         GRContext.Submit(true);
     }
 
-    protected override void Destroy()
-    {
-        GRContext.Dispose();
-
-        if (Context.GraphicsApi is GraphicsApi.Metal)
-        {
-            SKObjectiveC.Release(commandQueue);
-        }
-    }
-
     public GRBackendTexture CreateBackendTexture(Texture texture, bool isMultisamplingEnabled)
     {
         switch (Context.GraphicsApi)
@@ -168,6 +158,16 @@ internal unsafe class SKRenderer : DisposableObject
 
             default:
                 return default!;
+        }
+    }
+
+    protected override void Destroy()
+    {
+        GRContext.Dispose();
+
+        if (Context.GraphicsApi is GraphicsApi.Metal)
+        {
+            SKObjectiveC.Release(commandQueue);
         }
     }
 }

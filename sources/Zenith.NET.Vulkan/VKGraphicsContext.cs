@@ -524,7 +524,7 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
 
             Vk.CreateDevice(PhysicalDevice, &createInfo, default, out Device).Success();
 
-            LamdaNativeContext context = new((proc) => Vk.GetDeviceProcAddr(Device, (byte*)ZenithMarshal.StringToPointer(scope, proc, StringEncoding.UTF8)));
+            LamdaNativeContext context = new(proc => Vk.GetDeviceProcAddr(Device, (byte*)ZenithMarshal.StringToPointer(scope, proc, StringEncoding.UTF8)));
 
             ExternalMemoryAndroidHardwareBuffer = enabledExtensions.Contains(AndroidExternalMemoryAndroidHardwareBuffer.ExtensionName) ? new(context) : null;
             DescriptorHeap = enabledExtensions.Contains(ExtDescriptorHeap.ExtensionName) ? new(context) : null;

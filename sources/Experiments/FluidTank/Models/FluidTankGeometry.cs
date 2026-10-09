@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using System.Runtime.InteropServices;
 
 namespace FluidTank.Models;
 
@@ -15,12 +14,12 @@ internal static class FluidTankGeometry
         AddCylinder(verticesList, indicesList, new(1.15f, 0.0f, -0.85f), 0.62f, 1.84f, 32, 2);
         AddTransformedBox(verticesList, indicesList, new(3.45f, 0.62f, 0.55f), new(1.15f, 0.16f, 1.05f), Matrix4x4.CreateRotationZ(-0.35f), 3);
 
-        const float frameWidth = 0.075f;
+        const float FrameWidth = 0.075f;
 
-        AddBox(verticesList, indicesList, new(-6.10f, 0.0f, -3.10f), new(6.10f, frameWidth, -2.95f), 4);
-        AddBox(verticesList, indicesList, new(-6.10f, 0.0f, 2.95f), new(6.10f, frameWidth, 3.10f), 4);
-        AddBox(verticesList, indicesList, new(-6.10f, 0.0f, -2.95f), new(-5.95f, frameWidth, 2.95f), 4);
-        AddBox(verticesList, indicesList, new(5.95f, 0.0f, -2.95f), new(6.10f, frameWidth, 2.95f), 4);
+        AddBox(verticesList, indicesList, new(-6.10f, 0.0f, -3.10f), new(6.10f, FrameWidth, -2.95f), 4);
+        AddBox(verticesList, indicesList, new(-6.10f, 0.0f, 2.95f), new(6.10f, FrameWidth, 3.10f), 4);
+        AddBox(verticesList, indicesList, new(-6.10f, 0.0f, -2.95f), new(-5.95f, FrameWidth, 2.95f), 4);
+        AddBox(verticesList, indicesList, new(5.95f, 0.0f, -2.95f), new(6.10f, FrameWidth, 2.95f), 4);
 
         AddBox(verticesList, indicesList, new(-6.10f, 0.0f, -3.10f), new(-5.95f, 5.25f, -2.95f), 4);
         AddBox(verticesList, indicesList, new(5.95f, 0.0f, -3.10f), new(6.10f, 5.25f, -2.95f), 4);
@@ -153,33 +152,4 @@ internal static class FluidTankGeometry
         indices.Add(startIndex + 2);
         indices.Add(startIndex + 3);
     }
-}
-
-[StructLayout(LayoutKind.Explicit, Size = 32)]
-internal struct SceneVertex
-{
-    [FieldOffset(0)]
-    public Vector3 Position;
-
-    [FieldOffset(16)]
-    public Vector3 Normal;
-
-    [FieldOffset(28)]
-    public uint MaterialId;
-}
-
-[StructLayout(LayoutKind.Explicit, Size = 32)]
-internal struct SceneMaterial
-{
-    [FieldOffset(0)]
-    public Vector3 Albedo;
-
-    [FieldOffset(12)]
-    public float Roughness;
-
-    [FieldOffset(16)]
-    public float Metallic;
-
-    [FieldOffset(20)]
-    public float Emission;
 }

@@ -30,7 +30,7 @@ internal class CanvasController : DisposableObject
         float width = texture.Desc.Width / dpiScale.X;
         float height = texture.Desc.Height / dpiScale.Y;
 
-        texture.Render((skiaCanvas) =>
+        texture.Render(skiaCanvas =>
         {
             skiaCanvas.Save();
             skiaCanvas.Scale(dpiScale.X, dpiScale.Y);
@@ -69,7 +69,7 @@ internal class CanvasController : DisposableObject
             Format = PixelFormat.B8G8R8A8UNorm,
             Width = width,
             Height = height,
-            IsMultisamplingEnabled = canvas.MSAA
+            IsMultisamplingEnabled = canvas.IsMsaaEnabled
         });
     }
 
@@ -77,11 +77,11 @@ internal class CanvasController : DisposableObject
     {
         if (button is MouseButton.Left or MouseButton.Right)
         {
-            bool msaa = canvas.MSAA;
+            bool msaa = canvas.IsMsaaEnabled;
 
             canvas.PointerDown(new(mouse.Position.X, mouse.Position.Y), button is MouseButton.Right);
 
-            if (msaa != canvas.MSAA)
+            if (msaa != canvas.IsMsaaEnabled)
             {
                 Resize(texture.Desc.Width, texture.Desc.Height);
             }
