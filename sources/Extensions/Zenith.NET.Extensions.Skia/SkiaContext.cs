@@ -3,12 +3,12 @@ using SkiaSharp;
 
 namespace Zenith.NET.Extensions.Skia;
 
-internal unsafe class SKRenderer : DisposableObject
+internal unsafe class SkiaContext : DisposableObject
 {
     private readonly Lock @lock = new();
     private readonly nint commandQueue;
 
-    public SKRenderer(GraphicsContext context)
+    public SkiaContext(GraphicsContext context)
     {
         Context = context;
 
@@ -40,7 +40,7 @@ internal unsafe class SKRenderer : DisposableObject
                     using GRMtlBackendContext backendContext = new()
                     {
                         DeviceHandle = device,
-                        QueueHandle = commandQueue = SKObjectiveC.SendMessage(device, "newCommandQueue")
+                        QueueHandle = commandQueue = SkiaObjectiveC.SendMessage(device, "newCommandQueue")
                     };
 
                     GRContext = GRContext.CreateMetal(backendContext, options);
@@ -111,7 +111,7 @@ internal unsafe class SKRenderer : DisposableObject
                 {
                     Resource = texture.GetNativeObject(NativeObjectType.D3D12Resource),
                     ResourceState = isMultisamplingEnabled ? 0x1000u : 0x4u,
-                    Format = SKFormats.DirectX12(texture.Desc.Format),
+                    Format = SkiaFormats.DirectX12(texture.Desc.Format),
                     SampleCount = 1,
                     LevelCount = 1,
                     SampleQualityPattern = isMultisamplingEnabled ? uint.MaxValue : 0
@@ -136,8 +136,8 @@ internal unsafe class SKRenderer : DisposableObject
                         Size = Context.GetSizeAndAlignment(texture.Desc).SizeInBytes
                     },
                     ImageLayout = isMultisamplingEnabled ? 7u : 2u,
-                    Format = SKFormats.Vulkan(texture.Desc.Format),
-                    ImageUsageFlags = SKFormats.Vulkan(texture.Desc.Usages),
+                    Format = SkiaFormats.Vulkan(texture.Desc.Format),
+                    ImageUsageFlags = SkiaFormats.Vulkan(texture.Desc.Usages),
                     SampleCount = 1,
                     LevelCount = 1,
                     CurrentQueueFamily = concurrent ? uint.MaxValue : graphicsQueueFamily,
@@ -155,12 +155,12 @@ internal unsafe class SKRenderer : DisposableObject
 
         if (Context.GraphicsApi is GraphicsApi.Metal)
         {
-            SKObjectiveC.Release(commandQueue);
+            SkiaObjectiveC.Release(commandQueue);
         }
     }
 }
 
-internal static partial class SKObjectiveC
+internal static partial class SkiaObjectiveC
 {
     private const string LibObjC = "/usr/lib/libobjc.A.dylib";
 

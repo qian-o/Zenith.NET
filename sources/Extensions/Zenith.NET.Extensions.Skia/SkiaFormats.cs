@@ -2,7 +2,7 @@
 
 namespace Zenith.NET.Extensions.Skia;
 
-internal static class SKFormats
+internal static class SkiaFormats
 {
     public static SKColorType Skia(PixelFormat pixelFormat)
     {

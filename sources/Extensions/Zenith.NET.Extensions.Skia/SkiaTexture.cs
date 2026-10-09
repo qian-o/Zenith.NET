@@ -3,16 +3,17 @@ using SkiaSharp;
 
 namespace Zenith.NET.Extensions.Skia;
 
-public class SKTexture : DisposableObject
+public class SkiaTexture : DisposableObject
 {
+    private readonly SkiaContext skiaContext;
     private readonly Texture texture;
     private readonly SKSurface surface;
 
-    internal SKTexture(SKRenderer renderer, SKTextureDesc desc)
+    internal SkiaTexture(SkiaContext skiaContext, SkiaTextureDesc desc)
     {
-        Renderer = renderer;
+        this.skiaContext = skiaContext;
 
-        texture = renderer.Context.CreateTexture(new()
+        texture = skiaContext.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
             Format = desc.Format,
@@ -25,7 +26,7 @@ public class SKTexture : DisposableObject
             Usages = TextureUsages.Sampled | TextureUsages.ColorAttachment | TextureUsages.TransferSrc | TextureUsages.TransferDst
         });
 
-        CommandBuffer commandBuffer = renderer.Context.GraphicsQueue.CommandBuffer();
+        CommandBuffer commandBuffer = skiaContext.Context.GraphicsQueue.CommandBuffer();
 
         commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
 
@@ -39,22 +40,20 @@ public class SKTexture : DisposableObject
 
         commandBuffer.Submit().Wait();
 
-        using GRBackendTexture backendTexture = renderer.CreateBackendTexture(texture, desc.IsMultisamplingEnabled);
+        using GRBackendTexture backendTexture = skiaContext.CreateBackendTexture(texture, desc.IsMultisamplingEnabled);
 
-        surface = SKSurface.Create(renderer.GRContext, backendTexture, GRSurfaceOrigin.TopLeft, desc.IsMultisamplingEnabled ? 4 : 1, SKFormats.Skia(desc.Format));
+        surface = SKSurface.Create(skiaContext.GRContext, backendTexture, GRSurfaceOrigin.TopLeft, desc.IsMultisamplingEnabled ? 4 : 1, SkiaFormats.Skia(desc.Format));
 
         Desc = desc;
     }
 
-    public SKTextureDesc Desc { get; }
+    public SkiaTextureDesc Desc { get; }
 
     public TextureLayout RequiredLayout { get; }
 
-    internal SKRenderer Renderer { get; }
-
     public void Render(Action<SKCanvas> render)
     {
-        Renderer.Render(surface, render);
+        skiaContext.Render(surface, render);
     }
 
     protected override void Destroy()
@@ -63,7 +62,7 @@ public class SKTexture : DisposableObject
         texture.Dispose();
     }
 
-    public static implicit operator Texture(SKTexture texture)
+    public static implicit operator Texture(SkiaTexture texture)
     {
         return texture.texture;
     }

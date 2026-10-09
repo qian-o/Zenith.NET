@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET.Extensions.Skia;
 
-public struct SKTextureDesc
+public struct SkiaTextureDesc
 {
     public PixelFormat Format;
 

@@ -9,7 +9,7 @@ internal class CanvasController : DisposableObject
 {
     private readonly Canvas canvas = new();
 
-    private SKTexture texture;
+    private SkiaTexture texture;
 
     public CanvasController(GraphicsContext context, IInputContext input, uint width, uint height)
     {
@@ -62,9 +62,9 @@ internal class CanvasController : DisposableObject
         texture.Dispose();
     }
 
-    private SKTexture CreateTexture(uint width, uint height)
+    private SkiaTexture CreateTexture(uint width, uint height)
     {
-        return Context.CreateSKTexture(new()
+        return Context.CreateSkiaTexture(new()
         {
             Format = PixelFormat.B8G8R8A8UNorm,
             Width = width,
