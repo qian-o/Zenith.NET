@@ -1,11 +1,10 @@
 ﻿using System.Runtime.InteropServices;
 using Hexa.NET.ImGui;
 using HexaImGui = Hexa.NET.ImGui.ImGui;
-using HexaImGuiContext = Hexa.NET.ImGui.ImGuiContext;
 
 namespace Zenith.NET.Extensions.ImGui;
 
-internal unsafe partial class ImGuiContext : DisposableObject
+internal unsafe partial class ImGuiBackend : DisposableObject
 {
     private readonly ImGuiContextPtr imGui;
     private readonly PlatformGetClipboardTextFn platformGetClipboardText;
@@ -19,7 +18,7 @@ internal unsafe partial class ImGuiContext : DisposableObject
     private bool frameBegun;
     private ZenithMarshal.Scope? clipboardScope;
 
-    internal ImGuiContext(GraphicsContext context, IImGuiPlatform platform, AttachmentFormats attachmentFormats, ImGuiColorSpace colorSpace)
+    internal ImGuiBackend(GraphicsContext context, IImGuiPlatform platform, AttachmentFormats attachmentFormats, ImGuiColorSpace colorSpace)
     {
         Context = context;
         Platform = platform;
@@ -146,7 +145,7 @@ internal unsafe partial class ImGuiContext : DisposableObject
         inputs.Add(args);
     }
 
-    private byte* PlatformGetClipboardText(HexaImGuiContext* context)
+    private byte* PlatformGetClipboardText(ImGuiContext* context)
     {
         clipboardScope?.Dispose();
         clipboardScope = new();
@@ -154,12 +153,12 @@ internal unsafe partial class ImGuiContext : DisposableObject
         return (byte*)ZenithMarshal.StringToPointer(clipboardScope, Platform.GetClipboardText(), StringEncoding.UTF8);
     }
 
-    private void PlatformSetClipboardText(HexaImGuiContext* context, byte* text)
+    private void PlatformSetClipboardText(ImGuiContext* context, byte* text)
     {
         Platform.SetClipboardText(ZenithMarshal.StringFromPointer((nint)text, StringEncoding.UTF8));
     }
 
-    private void PlatformSetImeData(HexaImGuiContext* context, ImGuiViewport* viewport, ImGuiPlatformImeData* data)
+    private void PlatformSetImeData(ImGuiContext* context, ImGuiViewport* viewport, ImGuiPlatformImeData* data)
     {
         Platform.SetImeData((ImGuiViewportPtr)viewport, (ImGuiPlatformImeDataPtr)data);
     }

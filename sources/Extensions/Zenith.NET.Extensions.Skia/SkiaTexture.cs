@@ -5,15 +5,15 @@ namespace Zenith.NET.Extensions.Skia;
 
 public class SkiaTexture : DisposableObject
 {
-    private readonly SkiaContext skiaContext;
+    private readonly SkiaBackend backend;
     private readonly Texture texture;
     private readonly SKSurface surface;
 
-    internal SkiaTexture(SkiaContext skiaContext, SkiaTextureDesc desc)
+    internal SkiaTexture(SkiaBackend backend, SkiaTextureDesc desc)
     {
-        this.skiaContext = skiaContext;
+        this.backend = backend;
 
-        texture = skiaContext.Context.CreateTexture(new()
+        texture = backend.Context.CreateTexture(new()
         {
             Type = TextureType.Texture2D,
             Format = desc.Format,
@@ -26,7 +26,7 @@ public class SkiaTexture : DisposableObject
             Usages = TextureUsages.Sampled | TextureUsages.ColorAttachment | TextureUsages.TransferSrc | TextureUsages.TransferDst
         });
 
-        CommandBuffer commandBuffer = skiaContext.Context.GraphicsQueue.CommandBuffer();
+        CommandBuffer commandBuffer = backend.Context.GraphicsQueue.CommandBuffer();
 
         commandBuffer.Transition(texture, default, TextureLayout.Undefined, TextureLayout.ColorAttachment);
 
@@ -40,9 +40,9 @@ public class SkiaTexture : DisposableObject
 
         commandBuffer.Submit().Wait();
 
-        using GRBackendTexture backendTexture = skiaContext.CreateBackendTexture(texture, desc.IsMultisamplingEnabled);
+        using GRBackendTexture backendTexture = backend.CreateBackendTexture(texture, desc.IsMultisamplingEnabled);
 
-        surface = SKSurface.Create(skiaContext.GRContext, backendTexture, GRSurfaceOrigin.TopLeft, desc.IsMultisamplingEnabled ? 4 : 1, SkiaFormats.Skia(desc.Format));
+        surface = SKSurface.Create(backend.GRContext, backendTexture, GRSurfaceOrigin.TopLeft, desc.IsMultisamplingEnabled ? 4 : 1, SkiaFormats.Skia(desc.Format));
 
         Desc = desc;
     }
@@ -53,7 +53,7 @@ public class SkiaTexture : DisposableObject
 
     public void Render(Action<SKCanvas> render)
     {
-        skiaContext.Render(surface, render);
+        backend.Render(surface, render);
     }
 
     protected override void Destroy()

@@ -5,7 +5,7 @@ namespace Zenith.NET.Extensions.ImGui;
 public static class Extensions
 {
     private static readonly Lock @lock = new();
-    private static readonly Dictionary<GraphicsContext, ImGuiContext> contexts = [];
+    private static readonly Dictionary<GraphicsContext, ImGuiBackend> backends = [];
 
     extension(GraphicsContext context)
     {
@@ -13,17 +13,17 @@ public static class Extensions
         {
             using Lock.Scope _ = @lock.EnterScope();
 
-            if (!contexts.TryGetValue(context, out ImGuiContext? imGuiContext))
+            if (!backends.TryGetValue(context, out ImGuiBackend? backend))
             {
-                contexts[context] = imGuiContext = new(context, platform, attachmentFormats, colorSpace);
+                backends[context] = backend = new(context, platform, attachmentFormats, colorSpace);
 
                 context.Disposing += (_, _) =>
                 {
                     using Lock.Scope _ = @lock.EnterScope();
 
-                    if (contexts.Remove(context))
+                    if (backends.Remove(context))
                     {
-                        imGuiContext.Dispose();
+                        backend.Dispose();
                     }
                 };
             }
@@ -31,34 +31,34 @@ public static class Extensions
 
         public void BeginImGuiFrame(double delta, uint width, uint height)
         {
-            GetContext(context).Update(delta, width, height);
+            GetBackend(context).Update(delta, width, height);
         }
 
         public void EndImGuiFrame(CommandBuffer commandBuffer, ColorAttachment colorAttachment)
         {
-            GetContext(context).Render(commandBuffer, colorAttachment);
+            GetBackend(context).Render(commandBuffer, colorAttachment);
         }
     }
 
     extension(Texture texture)
     {
-        public ImTextureRef ImGuiBinding => GetContext(texture.Context).Binding(texture);
+        public ImTextureRef ImGuiBinding => GetBackend(texture.Context).Binding(texture);
     }
 
     extension(TextureView textureView)
     {
-        public ImTextureRef ImGuiBinding => GetContext(textureView.Context).Binding(textureView);
+        public ImTextureRef ImGuiBinding => GetBackend(textureView.Context).Binding(textureView);
     }
 
-    private static ImGuiContext GetContext(GraphicsContext context)
+    private static ImGuiBackend GetBackend(GraphicsContext context)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        if (!contexts.TryGetValue(context, out ImGuiContext? imGuiContext))
+        if (!backends.TryGetValue(context, out ImGuiBackend? backend))
         {
             throw new InvalidOperationException("The graphics context has not been initialized for ImGui.");
         }
 
-        return imGuiContext;
+        return backend;
     }
 }

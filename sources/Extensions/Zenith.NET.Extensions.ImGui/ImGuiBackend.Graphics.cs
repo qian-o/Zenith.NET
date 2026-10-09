@@ -5,7 +5,7 @@ using Hexa.NET.ImGui;
 
 namespace Zenith.NET.Extensions.ImGui;
 
-internal unsafe partial class ImGuiContext
+internal unsafe partial class ImGuiBackend
 {
     private readonly Dictionary<Texture, ImTextureID> textureBindings = [];
     private readonly Dictionary<TextureView, ImTextureID> textureViewBindings = [];

@@ -27,7 +27,7 @@
 | `context.CreateDLSSSuperResolution(desc)`、`CreateDLSSRayReconstruction(desc)`、`CreateDLSSFrameGeneration(desc)` | 创建功能对象 |
 | `texture.DLSSBinding` | 纹理绑定（2.2） |
 
-每个上下文的 NGX 状态由内部的 `DLSSContext` 持有，释放方式与 Skia 的 `SkiaContext` 相同。以下为 `Extensions` 的节选：
+每个上下文的 NGX 状态由内部的 `DLSSContext` 持有，释放方式与 Skia 的 `SkiaBackend` 相同。以下为 `Extensions` 的节选：
 
 ```csharp
 public static class Extensions
@@ -627,7 +627,7 @@ TimelineValue generatedValue = commandBuffer.Submit();
 
 - 初始化参数固定：项目标识为常量 GUID，引擎类型为 `CUSTOM`，引擎版本取 Zenith.NET 程序集版本，数据目录为临时目录，`NGXFeatureCommonInfo` 的路径列表只含 `NGX.RuntimeDirectory`，日志级别保持默认的 `OFF`。初始化成功时 `IsInitialized` 为 `true`，并读取能力参数得到 `Capabilities`。
 - 只在 DirectX 12 与 Vulkan 后端、Windows 或 Linux 的 x64 与 arm64 上加载 NGX，因为 `NGX.RuntimeDirectory` 在其他平台抛出异常。其他情况下各方法直接返回默认值。
-- 绑定表与 ImGui 的 `ImGuiContext` 相同：`Dictionary<Texture, nint>` 记录 Vulkan 纹理的 VkImageView。纹理首次出现时用 `vkCreateImageView` 创建视图，函数经 `VulkanGetDeviceProcAddr` 加载，与 Skia 的 `SkiaContext` 相同。每次 `Dispatch` 先移除 `IsDisposed` 为真的纹理并销毁其视图；`DLSSContext` 销毁时销毁全部视图。DirectX 12 直接传资源，不需要绑定表。
+- 绑定表与 ImGui 的 `ImGuiBackend` 相同：`Dictionary<Texture, nint>` 记录 Vulkan 纹理的 VkImageView。纹理首次出现时用 `vkCreateImageView` 创建视图，函数经 `VulkanGetDeviceProcAddr` 加载，与 Skia 的 `SkiaBackend` 相同。每次 `Dispatch` 先移除 `IsDisposed` 为真的纹理并销毁其视图；`DLSSContext` 销毁时销毁全部视图。DirectX 12 直接传资源，不需要绑定表。
 - Vulkan 下另建一个空描述符集：没有绑定的描述符集布局、只含该布局的管线布局、容量为 1 的描述符池。函数同样经 `VulkanGetDeviceProcAddr` 加载，用途见 3.3。用到的 Vulkan 结构与函数指针由扩展自行声明，与 `DLSSFormats` 一样不依赖 Silk.NET。
 - 一把静态锁串行化全部 NGX 调用与绑定表访问，因为 NGX.NET 要求串行调用 SDK。`Extensions` 的锁只保护注册表与能力缓存，锁顺序固定为先注册表锁、后 NGX 锁。
 - 销毁顺序：销毁视图与空描述符集的相关对象，`DestroyParameters(capabilities)`，`Shutdown1(device)`。

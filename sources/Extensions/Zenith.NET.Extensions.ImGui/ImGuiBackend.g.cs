@@ -1,6 +1,6 @@
 ﻿namespace Zenith.NET.Extensions.ImGui;
 
-internal partial class ImGuiContext
+internal partial class ImGuiBackend
 {
     #region DirectX12
     private static readonly ShaderDesc DirectX12LegacyVSMain = new()

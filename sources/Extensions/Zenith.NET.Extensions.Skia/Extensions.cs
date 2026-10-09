@@ -3,7 +3,7 @@
 public static class Extensions
 {
     private static readonly Lock @lock = new();
-    private static readonly Dictionary<GraphicsContext, SkiaContext> contexts = [];
+    private static readonly Dictionary<GraphicsContext, SkiaBackend> backends = [];
 
     extension(GraphicsContext context)
     {
@@ -11,17 +11,17 @@ public static class Extensions
         {
             using Lock.Scope _ = @lock.EnterScope();
 
-            if (!contexts.TryGetValue(context, out SkiaContext? skiaContext))
+            if (!backends.TryGetValue(context, out SkiaBackend? backend))
             {
-                contexts[context] = skiaContext = new(context);
+                backends[context] = backend = new(context);
 
                 context.Disposing += (_, _) =>
                 {
                     using Lock.Scope _ = @lock.EnterScope();
 
-                    if (contexts.Remove(context))
+                    if (backends.Remove(context))
                     {
-                        skiaContext.Dispose();
+                        backend.Dispose();
                     }
                 };
             }
@@ -31,12 +31,12 @@ public static class Extensions
         {
             using Lock.Scope _ = @lock.EnterScope();
 
-            if (!contexts.TryGetValue(context, out SkiaContext? skiaContext))
+            if (!backends.TryGetValue(context, out SkiaBackend? backend))
             {
                 throw new InvalidOperationException("The graphics context has not been initialized for Skia.");
             }
 
-            return new(skiaContext, desc);
+            return new(backend, desc);
         }
     }
 }
