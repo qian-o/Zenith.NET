@@ -102,6 +102,7 @@ public static class Extensions
 ```
 
 - 首次初始化注册后端并订阅 `context.Disposing`。重复调用直接复用，后传入的参数不生效，也不重新初始化 NGX。
+- `Extensions` 保留与 ImGui 相同的注册表锁，保护后端登记、查找与移除；它不承担 NGX 调用的线程同步职责。
 - 两个最佳设置查询、三个创建方法及 `Texture.DLSSBinding` 都通过 `GetBackend(context)` 转发。绑定属性通过 `texture.Context` 找到所属后端，在 `Binding(texture)` 中准备原生数据；功能对象直接使用绑定中的数据。
 - 移除 `AcquireContext`、`ReleaseContext`、引用计数及按设备名称保存的进程级能力缓存。能力实例由对应的 `DLSSBackend` 持有，不在进程级注册表中缓存。
 - 查询、创建和释放功能对象都不改变共享后端的生命周期。即使没有存活的功能对象，NGX 仍保持初始化，直到 `context.Disposing`。
@@ -736,13 +737,13 @@ Vulkan 的 file-local ABI 声明放在 `DLSSBackend.Vulkan.cs` 后部，不增�
 
 | 文件 | 负责内容 |
 | --- | --- |
-| `DLSSBackend.cs` | 构造函数、GraphicsContext、锁、能力与参数管理、绑定缓存、公共入口及 GraphicsApi 分派 |
+| `DLSSBackend.cs` | 构造函数、GraphicsContext、能力与参数管理、绑定缓存及其实例锁、公共入口及 GraphicsApi 分派 |
 | `DLSSBackend.DirectX12.cs` | D3D12 初始化、关闭、绑定、特性创建与求值的具体方法 |
 | `DLSSBackend.Vulkan.cs` | Vulkan 对应方法、函数指针、image view、空描述符集与局部 ABI 声明 |
 
-三个文件共享同一个实例的字段，操作方法统一采用实例方法；跨上下文串行化 NGX 调用的 `Lock` 保持静态属性。公共入口通过 `switch (Context.GraphicsApi)` 调用对应的私有实现方法。能力参数获取、参数分配/销毁、特性释放直接在公共流程的分支中调用 NGX，不另设一层纯转发方法。不增加后端派生类、接口或 API 子目录。初始化参数仍是 `project`、`version`、`dataDirectory`。
+三个文件共享同一个实例的字段，操作方法统一采用实例方法。公共入口通过 `switch (Context.GraphicsApi)` 调用对应的私有实现方法。能力参数获取、参数分配/销毁、特性释放直接在公共流程的分支中调用 NGX，不另设一层纯转发方法。不增加后端派生类、接口或 API 子目录。初始化参数仍是 `project`、`version`、`dataDirectory`。
 
-Create / Evaluate 在现有图形 API 分支中直接取得对应原生命令句柄，不另设一次 API 分派。后端初始化、能力查询、参数分配、纹理绑定与销毁，以及功能构造、Dispatch 与销毁各自持有外层 NGX 锁；内部的 `SetUI`、`ReleaseFeature`、`DestroyParameters` 沿用调用方已经持有的锁。Vulkan 辅助对象创建通过 `fixed` 直接向后端句柄字段写入原生结果。
+Create / Evaluate 在现有图形 API 分支中直接取得对应原生命令句柄，不另设一次 API 分派。扩展不提供全局 NGX 锁，初始化、能力与最佳设置查询、参数分配/设置/销毁、Create、Evaluate、Release、Shutdown 的调用同步均由调用方按 NGX 要求负责。功能构造、Dispatch 与销毁不自动串行化 NGX 调用。Vulkan 辅助对象创建通过 `fixed` 直接向后端句柄字段写入原生结果。
 
 初始化内存改为调用内作用域：
 
@@ -768,9 +769,9 @@ NGXFeatureCommonInfo featureInfo = new()
 
 能力参数块需要跨调用供最佳设置查询使用，由后端保存至销毁；设备、能力参数、Vulkan view 与辅助对象的原生生命周期不随临时字符串一起结束。NGX 初始化后，后端取得能力参数块，再调用 `new DLSSCapabilities(parameters)`，由能力类自己查询三项支持状态。
 
-绑定继续只用一个 `Dictionary<Texture, DLSSBinding>` 缓存完整原生数据。共享获取流程调用对应 API 的绑定创建方法；首次获取时内联订阅 `Texture.Disposing`，删除缓存并调用对应 API 的绑定销毁方法。DX12 只借用资源地址，Vulkan 释放自身创建的 view。Dispatch 直接使用绑定值，不查表，不新增独立的资源注册框架。
+绑定继续只用一个 `Dictionary<Texture, DLSSBinding>` 缓存完整原生数据。后端实例字段 `private readonly Lock @lock = new();` 只保护绑定获取、删除与退出时的缓存清理，不用于 NGX 调用同步。共享获取流程调用对应 API 的绑定创建方法；首次获取时内联订阅 `Texture.Disposing`，删除缓存并调用对应 API 的绑定销毁方法。DX12 只借用资源地址，Vulkan 释放自身创建的 view。Dispatch 直接使用绑定值，不查表，不新增独立的资源注册框架。
 
-后端退出时先销毁缓存中的原生绑定，清空缓存，再销毁该后端辅助对象、能力参数块并关闭 NGX。原生调用仍直接接 `.Success()`，不增加错误使用的兜底流程。
+后端退出时，在绑定缓存的实例锁内销毁缓存中的原生绑定并清空缓存；离开该锁后，再销毁后端辅助对象、能力参数块并关闭 NGX。原生调用仍直接接 `.Success()`，不增加错误使用的兜底流程。
 
 ### 3.3 DLSSFeature 与功能类
 
@@ -797,8 +798,6 @@ public abstract class DLSSFeature : DisposableObject
 
     protected override void Destroy()
     {
-        using Lock.Scope _ = DLSSBackend.Lock.EnterScope();
-
         Backend.ReleaseFeature(Handle);
         Backend.DestroyParameters(Parameters);
     }
@@ -813,8 +812,6 @@ public abstract class DLSSFeature : DisposableObject
 internal DLSSSuperResolution(DLSSBackend backend, DLSSSuperResolutionDesc desc) : base(backend)
 {
     Desc = desc;
-
-    using Lock.Scope _ = DLSSBackend.Lock.EnterScope();
 
     CommandBuffer commandBuffer = backend.Context.GraphicsQueue.CommandBuffer();
     backend.Create(commandBuffer, this);
@@ -908,7 +905,7 @@ NGXVKDLSSEvalParams evalParams = new()
 
 此处仅节选资源赋值，其余求值字段按 2.4 至 2.6 填写。删除后端的 `D3D12Resource`、`VulkanResource` 解析与 `Size` 查询。帧生成直接使用绑定中准备好的尺寸，例如 `args.Color.Size`、`args.HudlessColor?.Size ?? default`。矩阵继续直接传值或地址，不添加转置或数据换算。
 
-NGX 调用采用图形后端同样的局部结构、地址传参和尾部 `.Success()` 风格，参照 [DXComputePipeline](../../Zenith.NET.DirectX12/DXComputePipeline.cs)、[VKGraphicsContext](../../Zenith.NET.Vulkan/VKGraphicsContext.cs) 与 [VKShader](../../Zenith.NET.Vulkan/VKShader.cs)。以下为 DX12 后端的参数分配与参数键使用方式，位于对应的 NGX 锁内；后端辅助方法如接收参数键，使用 `ReadOnlySpan<byte> name` 并在调用处固定：
+NGX 调用采用图形后端同样的局部结构、地址传参和尾部 `.Success()` 风格，参照 [DXComputePipeline](../../Zenith.NET.DirectX12/DXComputePipeline.cs)、[VKGraphicsContext](../../Zenith.NET.Vulkan/VKGraphicsContext.cs) 与 [VKShader](../../Zenith.NET.Vulkan/VKShader.cs)。以下为 DX12 后端的参数分配与参数键使用方式；后端辅助方法如接收参数键，使用 `ReadOnlySpan<byte> name` 并在调用处固定：
 
 ```csharp
 NGXParameter parameters = default;
@@ -945,7 +942,8 @@ Vulkan 实现在 `DLSSBackend.Vulkan.cs` 中调用 `CreateDLSSExt1`；RR、FG �
 - **单位**：按 NGX 原义。超分辨率与光线重建的抖动以输入像素为单位，运动矢量经 `MotionVectorScale` 换算到输入像素；帧生成的抖动在裁剪空间，运动矢量经 `MotionVectorScale` 归一化到 [-1, 1]。矩阵按 `System.Numerics` 原样传递，与 NGX 的行主序一致，且不含抖动。
 - **CornellBox**：运动矢量按 Upscaling 扩展（SGSR2）的约定编码，存的是 0.2495 ×（当前帧 − 上一帧的 NDC）+ 0.5。NGX 只有缩放没有偏移，接入 DLSS 时需写入未编码的 NDC 差值；此时超分辨率与光线重建的 `MotionVectorScale` 取 (−0.5·W, 0.5·H)，帧生成取 (−0.5, 0.5)，W、H 为渲染尺寸。
 - **重建**：Desc 不可变，任一字段变化时重建。构造期间即提交创建命令并等待完成；旧对象仍需等 GPU 完成引用后释放。交换链尺寸变化时重建帧生成对象（2.7）。
-- **生命周期与线程**：相关 GPU 工作完成后再释放纹理和功能对象，并在 `GraphicsContext` 之前释放；绑定值不延长资源生命周期。纹理释放时内联清理绑定，后端退出时清理剩余 view。同一功能对象不可并发 `Dispatch`。
+- **生命周期**：相关 GPU 工作完成后再释放纹理和功能对象，并在 `GraphicsContext` 之前释放；绑定值不延长资源生命周期。纹理释放时内联清理绑定，后端退出时清理剩余 view。
+- **线程同步**：调用方按 NGX 要求协调初始化、查询、参数操作、创建、求值、释放和关闭，不并发调用同一功能对象的 `Dispatch`。扩展仅用 `Extensions` 的注册表锁保护后端登记，用后端实例锁保护纹理绑定缓存；这些锁不提供 NGX 调用的自动串行化，也不替代调用方的 GPU 同步。
 
 ## 5. RHI 依赖与验证
 

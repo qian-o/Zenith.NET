@@ -18,8 +18,6 @@ public abstract class DLSSFeature : DisposableObject
 
     protected override void Destroy()
     {
-        using Lock.Scope _ = DLSSBackend.Lock.EnterScope();
-
         Backend.ReleaseFeature(Handle);
         Backend.DestroyParameters(Parameters);
     }

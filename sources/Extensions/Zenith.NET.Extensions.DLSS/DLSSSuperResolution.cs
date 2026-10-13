@@ -6,8 +6,6 @@ public class DLSSSuperResolution : DLSSFeature
     {
         Desc = desc;
 
-        using Lock.Scope _ = DLSSBackend.Lock.EnterScope();
-
         CommandBuffer commandBuffer = backend.Context.GraphicsQueue.CommandBuffer();
         backend.Create(commandBuffer, this);
         commandBuffer.Submit().Wait();
@@ -17,8 +15,6 @@ public class DLSSSuperResolution : DLSSFeature
 
     public void Dispatch(CommandBuffer commandBuffer, DLSSSuperResolutionArgs args)
     {
-        using Lock.Scope _ = DLSSBackend.Lock.EnterScope();
-
         commandBuffer.BeginDebugEvent("DLSS Super Resolution");
         commandBuffer.Barrier(BarrierStages.All, BarrierStages.All);
 

@@ -6,8 +6,6 @@ public class DLSSFrameGeneration : DLSSFeature
     {
         Desc = desc;
 
-        using Lock.Scope _ = DLSSBackend.Lock.EnterScope();
-
         CommandBuffer commandBuffer = backend.Context.GraphicsQueue.CommandBuffer();
         backend.Create(commandBuffer, this);
         commandBuffer.Submit().Wait();
@@ -17,8 +15,6 @@ public class DLSSFrameGeneration : DLSSFeature
 
     public void Dispatch(CommandBuffer commandBuffer, DLSSFrameGenerationArgs args)
     {
-        using Lock.Scope _ = DLSSBackend.Lock.EnterScope();
-
         commandBuffer.BeginDebugEvent("DLSS Frame Generation");
         commandBuffer.Barrier(BarrierStages.All, BarrierStages.All);
 

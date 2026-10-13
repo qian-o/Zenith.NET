@@ -5,14 +5,13 @@ namespace Zenith.NET.Extensions.DLSS;
 
 internal unsafe partial class DLSSBackend : DisposableObject
 {
+    private readonly Lock @lock = new();
     private readonly Dictionary<Texture, DLSSBinding> bindings = [];
     private readonly NGXParameter capabilityParameters;
 
     public DLSSBackend(GraphicsContext context, Guid project, string version, string dataDirectory)
     {
         Context = context;
-
-        using Lock.Scope _ = Lock.EnterScope();
 
         Device = context.GraphicsApi switch
         {
@@ -72,8 +71,6 @@ internal unsafe partial class DLSSBackend : DisposableObject
         }
     }
 
-    public static Lock Lock { get; } = new();
-
     public GraphicsContext Context { get; }
 
     public nint Device { get; }
@@ -82,8 +79,6 @@ internal unsafe partial class DLSSBackend : DisposableObject
 
     public DLSSOptimalSettings GetOptimalSettings(NGXFeature feature, uint outputWidth, uint outputHeight, DLSSMode mode)
     {
-        using Lock.Scope _ = Lock.EnterScope();
-
         uint inputWidth = 0;
         uint inputHeight = 0;
         uint maxInputWidth = 0;
@@ -108,8 +103,6 @@ internal unsafe partial class DLSSBackend : DisposableObject
 
     public NGXParameter AllocateParameters()
     {
-        using Lock.Scope _ = Lock.EnterScope();
-
         NGXParameter parameters = default;
 
         switch (Context.GraphicsApi)
@@ -340,7 +333,7 @@ internal unsafe partial class DLSSBackend : DisposableObject
 
     public DLSSBinding Binding(Texture texture)
     {
-        using Lock.Scope _ = Lock.EnterScope();
+        using Lock.Scope _ = @lock.EnterScope();
 
         if (!bindings.TryGetValue(texture, out DLSSBinding binding))
         {
@@ -359,7 +352,7 @@ internal unsafe partial class DLSSBackend : DisposableObject
 
             texture.Disposing += (sender, _) =>
             {
-                using Lock.Scope scope = Lock.EnterScope();
+                using Lock.Scope scope = @lock.EnterScope();
 
                 Texture disposedTexture = (Texture)sender!;
 
@@ -380,18 +373,20 @@ internal unsafe partial class DLSSBackend : DisposableObject
 
     protected override void Destroy()
     {
-        using Lock.Scope _ = Lock.EnterScope();
-
-        foreach (DLSSBinding binding in bindings.Values)
         {
-            switch (Context.GraphicsApi)
+            using Lock.Scope _ = @lock.EnterScope();
+
+            foreach (DLSSBinding binding in bindings.Values)
             {
-                case GraphicsApi.Vulkan:
-                    DestroyVulkanBinding(binding);
-                    break;
+                switch (Context.GraphicsApi)
+                {
+                    case GraphicsApi.Vulkan:
+                        DestroyVulkanBinding(binding);
+                        break;
+                }
             }
+            bindings.Clear();
         }
-        bindings.Clear();
 
         switch (Context.GraphicsApi)
         {

@@ -6,8 +6,6 @@ public class DLSSRayReconstruction : DLSSFeature
     {
         Desc = desc;
 
-        using Lock.Scope _ = DLSSBackend.Lock.EnterScope();
-
         CommandBuffer commandBuffer = backend.Context.GraphicsQueue.CommandBuffer();
         backend.Create(commandBuffer, this);
         commandBuffer.Submit().Wait();
@@ -17,8 +15,6 @@ public class DLSSRayReconstruction : DLSSFeature
 
     public void Dispatch(CommandBuffer commandBuffer, DLSSRayReconstructionArgs args)
     {
-        using Lock.Scope _ = DLSSBackend.Lock.EnterScope();
-
         commandBuffer.BeginDebugEvent("DLSS Ray Reconstruction");
         commandBuffer.Barrier(BarrierStages.All, BarrierStages.All);
 
