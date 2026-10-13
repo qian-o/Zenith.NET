@@ -2,7 +2,7 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 状态 | 第 17 版：后端结构调整草案；当前实现仍为上一版 |
+| 状态 | 第 17 版：目录分组与后端 partial 拆分已落实；其余结构调整仍为草案 |
 | 依赖 | `Zenith.NET`、`NGX.NET` 310.9.1.1 |
 | 参照 | Upscaling 扩展（调用形式）、ImGui 扩展（纹理绑定）、Skia 扩展（每上下文原生状态及其释放）、Apple 为 MetalFX 帧插值提供的 [`PresentThread`](https://github.com/apple/game-porting-toolkit/blob/main/game-porting-skills/skills/using-metalfx-frame-interpolation/references/present-thread.md)、[NGX.NET Showcase](https://github.com/qian-o/NGX.NET/tree/master/Showcase) |
 
@@ -17,7 +17,7 @@
 - 内部按 DirectX 12、Vulkan 后端的方式组织不安全调用：直接构造原生结构、传入指针、显式管理所有权。使用 NGX.NET 的指针重载，不通过其 `string`、`in`、`out` 便利重载执行 NGX 调用。
 - 后端保持单个 `partial DLSSBackend`，公共入口按 `Context.GraphicsApi` 分派到对应实现文件。公开功能类不包含图形 API 分支。
 - 扩展仅依赖 `Zenith.NET` 与 `NGX.NET`。沿用现有 Vulkan 函数指针、局部 ABI 结构与数值映射，不新增 Vulkan NuGet 包、图形后端项目引用或原生桥接层。第 5 节记录的 RHI 改动已经存在，本次不再修改 RHI。
-- 本轮先修订设计，确认后再修改实现。当前代码是上一版已编译的实现；第 5 节的历史验证与上一版编译结果不覆盖本轮新结构。
+- 本轮目录分组与后端 partial 拆分已落实。其余配置类型与生命周期调整仍待确认；第 5 节分别记录已实现范围与尚未实现的设计。
 
 ## 2. 公共 API
 
@@ -696,7 +696,7 @@ TimelineValue generatedValue = commandBuffer.Submit();
 
 ### 3.1 文件
 
-按 RHI 的方式分组，分类目录不改变公共命名空间 `Zenith.NET.Extensions.DLSS`：
+按 RHI 的方式分组，分类目录不改变公共命名空间 `Zenith.NET.Extensions.DLSS`。现有文件已经移入对应目录；下列 `DLSSFeature`、`DLSSFeatureFlags`、`DLSSDepthType` 与 `DLSSRoughnessMode` 仍属于待实现类型：
 
 ```text
 Extensions.cs
@@ -976,9 +976,11 @@ Vulkan 实现在 `DLSSBackend.Vulkan.cs` 中调用 `CreateDLSSExt1`；RR、FG �
 
 ### 5.1 本次修订状态
 
-上一版实现已完成 `dotnet build sources/Experiments/CornellBox/CornellBox.csproj -c Release`，0 警告、0 错误；未做 NGX GPU 运行验证。
+本次文件分组与后端 partial 拆分后，`dotnet build sources/Experiments/CornellBox/CornellBox.csproj -c Release --no-restore --nologo` 已通过，0 警告、0 错误；未做 NGX GPU 运行验证。
 
-本轮只更新后端结构设计，枚举配置、DX12 / Vulkan partial 实现文件、能力构造查询、局部初始化内存、DLSSFeature 基类和构造期创建尚未实现。前述编译结果与第 5 节历史运行结果均不覆盖本轮草案。
+目录分组已落实到 `Enums`、`Structs`、`Backends`。现有后端的初始化、参数管理、绑定与销毁已拆入同目录的 `DLSSBackend.cs`、`DLSSBackend.DirectX12.cs`、`DLSSBackend.Vulkan.cs`，保持现有调用顺序与资源生命周期。
+
+枚举配置、能力构造查询、局部初始化内存、DLSSFeature 基类、构造期创建及 Create / Evaluate 向后端迁移尚未实现。编译结果与第 5 节历史运行结果均不覆盖这些草案内容。
 
 确认后同步修改扩展与 CornellBox。调用方的布尔 Desc 字段改为相应枚举；Metal 等不使用 NGX 的路径不构造假的能力对象，应用可用可空能力引用表示未启用 DLSS。公共命名空间、Dispatch 参数及绑定数据保持当前约定，不扩展 RHI 或新增 Vulkan 包。
 
