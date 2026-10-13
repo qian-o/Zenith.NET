@@ -92,16 +92,14 @@ internal unsafe partial class DLSSBackend : DisposableObject
         uint minInputHeight = 0;
         float sharpness = 0.0f;
 
-        NGXPerfQualityValue perfQualityValue = DLSSFormats.NGX(mode);
-
         switch (feature)
         {
             case NGXFeature.SuperSampling:
-                Ngx.DLSS.GetOptimalSettings(capabilityParameters, outputWidth, outputHeight, perfQualityValue, &inputWidth, &inputHeight, &maxInputWidth, &maxInputHeight, &minInputWidth, &minInputHeight, &sharpness).Success();
+                Ngx.DLSS.GetOptimalSettings(capabilityParameters, outputWidth, outputHeight, DLSSFormats.NGX(mode), &inputWidth, &inputHeight, &maxInputWidth, &maxInputHeight, &minInputWidth, &minInputHeight, &sharpness).Success();
                 break;
 
             case NGXFeature.RayReconstruction:
-                Ngx.DLSSD.GetOptimalSettings(capabilityParameters, outputWidth, outputHeight, perfQualityValue, &inputWidth, &inputHeight, &maxInputWidth, &maxInputHeight, &minInputWidth, &minInputHeight, &sharpness).Success();
+                Ngx.DLSSD.GetOptimalSettings(capabilityParameters, outputWidth, outputHeight, DLSSFormats.NGX(mode), &inputWidth, &inputHeight, &maxInputWidth, &maxInputHeight, &minInputWidth, &minInputHeight, &sharpness).Success();
                 break;
         }
 
