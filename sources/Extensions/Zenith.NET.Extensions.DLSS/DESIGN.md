@@ -735,10 +735,10 @@ Vulkan 的 file-local ABI 声明放在 `DLSSBackend.Vulkan.cs` 后部，不增�
 | 文件 | 负责内容 |
 | --- | --- |
 | `DLSSBackend.cs` | 构造函数、GraphicsContext、锁、能力与参数管理、绑定缓存、公共入口及 GraphicsApi 分派 |
-| `DLSSBackend.DirectX12.cs` | D3D12 初始化、分配、绑定、特性创建、求值与释放的具体方法 |
+| `DLSSBackend.DirectX12.cs` | D3D12 初始化、关闭、绑定、特性创建与求值的具体方法 |
 | `DLSSBackend.Vulkan.cs` | Vulkan 对应方法、函数指针、image view、空描述符集与局部 ABI 声明 |
 
-三个文件共享同一个实例的字段。公共入口通过 `switch (Context.GraphicsApi)` 调用对应的私有实现方法；不增加后端派生类、接口或 API 子目录。初始化参数仍是 `project`、`version`、`dataDirectory`。
+三个文件共享同一个实例的字段，操作方法统一采用实例方法；跨上下文串行化 NGX 调用的 `Lock` 保持静态属性。公共入口通过 `switch (Context.GraphicsApi)` 调用对应的私有实现方法。能力参数获取、参数分配/销毁、特性释放直接在公共流程的分支中调用 NGX，不另设一层纯转发方法。不增加后端派生类、接口或 API 子目录。初始化参数仍是 `project`、`version`、`dataDirectory`。
 
 初始化内存改为调用内作用域：
 
@@ -833,9 +833,18 @@ NGX 的 Create 需要正在录制的命令列表：[D3D12](https://github.com/NV
 
 ### 3.4 格式与配置映射
 
-`DLSSFormats` 保留 PixelFormat 到 DXGI_FORMAT / VkFormat 的数值映射，以及 `DLSSMode` 到 NGX 档位的映射，不依赖 Silk.NET。
+`DLSSFormats` 是独立的静态转换类，沿用图形后端以目标 API 命名重载的方式。PixelFormat 转换保留 `DirectX12(PixelFormat)` 与 `Vulkan(PixelFormat)`，NGX 枚举转换统一为：
 
-- `DLSSFeatureFlags` 按各功能实际使用的位逐项映射；SR / RR 的低分辨率运动矢量固定项、RR 的 HDR 固定项保持现有语义。
+```csharp
+public static NGXPerfQualityValue NGX(DLSSMode mode)
+public static NGXDLSSFeatureFlags NGX(DLSSFeatureFlags featureFlags)
+public static NGXDLSSDepthType NGX(DLSSDepthType depthType)
+public static NGXDLSSRoughnessMode NGX(DLSSRoughnessMode roughnessMode)
+```
+
+- 转换只接收对应枚举，不接收 Desc，也不读取后端状态。
+- Flags 转换从零开始逐项映射 Hdr、AutoExposure、DepthReversed、MotionVectorJittered、AlphaUpscaling；SR / RR 的 `MvLowRes` 与 RR 的 `IsHdr` 固定项在创建流程中添加。
+- RR 创建流程只传入 DepthReversed、MotionVectorJittered、AlphaUpscaling 三项，保持原有配置语义。
 - `DLSSDepthType.Hardware` / `Linear` 分别映射到 `NGXDLSSDepthType.Hw` / `Linear`；不能直接按数值强转。
 - `DLSSRoughnessMode.Unpacked` / `Packed` 分别映射到对应 NGX 枚举。
 - FG 的动态分辨率写入创建参数，HDR 与反转深度写入求值参数，运动矢量抖动与 UI 重组写入参数块；不引入另一组公开 FG flags 类型。

@@ -39,26 +39,6 @@ internal unsafe partial class DLSSBackend
                                      NGXVersion.Api).Success();
     }
 
-    private void GetVulkanCapabilityParameters(NGXParameter* parameters)
-    {
-        Ngx.Vulkan.GetCapabilityParameters(parameters).Success();
-    }
-
-    private void AllocateVulkanParameters(NGXParameter* parameters)
-    {
-        Ngx.Vulkan.AllocateParameters(parameters).Success();
-    }
-
-    private void DestroyVulkanParameters(NGXParameter parameters)
-    {
-        Ngx.Vulkan.DestroyParameters(parameters).Success();
-    }
-
-    private void ReleaseVulkanFeature(NGXHandle handle)
-    {
-        Ngx.Vulkan.ReleaseFeature(handle).Success();
-    }
-
     private void InitializeVulkanResources()
     {
         delegate* unmanaged<nint, byte*, nint> getDeviceProcAddr = (delegate* unmanaged<nint, byte*, nint>)Context.GetNativeObject(NativeObjectType.VulkanGetDeviceProcAddr);

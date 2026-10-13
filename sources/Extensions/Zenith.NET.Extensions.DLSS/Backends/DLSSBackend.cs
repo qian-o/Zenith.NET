@@ -53,11 +53,11 @@ internal unsafe partial class DLSSBackend : DisposableObject
             switch (context.GraphicsApi)
             {
                 case GraphicsApi.DirectX12:
-                    GetDirectX12CapabilityParameters(parameters);
+                    Ngx.D3D12.GetCapabilityParameters(parameters).Success();
                     break;
 
                 case GraphicsApi.Vulkan:
-                    GetVulkanCapabilityParameters(parameters);
+                    Ngx.Vulkan.GetCapabilityParameters(parameters).Success();
                     break;
             }
         }
@@ -92,7 +92,7 @@ internal unsafe partial class DLSSBackend : DisposableObject
         uint minInputHeight = 0;
         float sharpness = 0.0f;
 
-        NGXPerfQualityValue perfQualityValue = DLSSFormats.PerfQualityValue(mode);
+        NGXPerfQualityValue perfQualityValue = DLSSFormats.NGX(mode);
 
         switch (feature)
         {
@@ -117,11 +117,11 @@ internal unsafe partial class DLSSBackend : DisposableObject
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                AllocateDirectX12Parameters(&parameters);
+                Ngx.D3D12.AllocateParameters(&parameters).Success();
                 break;
 
             case GraphicsApi.Vulkan:
-                AllocateVulkanParameters(&parameters);
+                Ngx.Vulkan.AllocateParameters(&parameters).Success();
                 break;
         }
 
@@ -137,11 +137,11 @@ internal unsafe partial class DLSSBackend : DisposableObject
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                DestroyDirectX12Parameters(parameters);
+                Ngx.D3D12.DestroyParameters(parameters).Success();
                 break;
 
             case GraphicsApi.Vulkan:
-                DestroyVulkanParameters(parameters);
+                Ngx.Vulkan.DestroyParameters(parameters).Success();
                 break;
         }
     }
@@ -153,11 +153,11 @@ internal unsafe partial class DLSSBackend : DisposableObject
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                ReleaseDirectX12Feature(handle);
+                Ngx.D3D12.ReleaseFeature(handle).Success();
                 break;
 
             case GraphicsApi.Vulkan:
-                ReleaseVulkanFeature(handle);
+                Ngx.Vulkan.ReleaseFeature(handle).Success();
                 break;
         }
     }
@@ -174,9 +174,9 @@ internal unsafe partial class DLSSBackend : DisposableObject
                 Height = feature.Desc.InputHeight,
                 TargetWidth = feature.Desc.OutputWidth,
                 TargetHeight = feature.Desc.OutputHeight,
-                PerfQualityValue = DLSSFormats.PerfQualityValue(feature.Desc.Mode)
+                PerfQualityValue = DLSSFormats.NGX(feature.Desc.Mode)
             },
-            FeatureCreateFlags = (int)DLSSFormats.FeatureFlags(feature.Desc)
+            FeatureCreateFlags = (int)(DLSSFormats.NGX(feature.Desc.Flags) | NGXDLSSFeatureFlags.MvLowRes)
         };
 
         switch (Context.GraphicsApi)
@@ -198,14 +198,14 @@ internal unsafe partial class DLSSBackend : DisposableObject
         NGXDLSSDCreateParams createParams = new()
         {
             DenoiseMode = NGXDLSSDenoiseMode.DlUnified,
-            RoughnessMode = DLSSFormats.RoughnessMode(feature.Desc.RoughnessMode),
-            UseHWDepth = DLSSFormats.DepthType(feature.Desc.DepthType),
+            RoughnessMode = DLSSFormats.NGX(feature.Desc.RoughnessMode),
+            UseHWDepth = DLSSFormats.NGX(feature.Desc.DepthType),
             Width = feature.Desc.InputWidth,
             Height = feature.Desc.InputHeight,
             TargetWidth = feature.Desc.OutputWidth,
             TargetHeight = feature.Desc.OutputHeight,
-            PerfQualityValue = DLSSFormats.PerfQualityValue(feature.Desc.Mode),
-            FeatureCreateFlags = (int)DLSSFormats.FeatureFlags(feature.Desc)
+            PerfQualityValue = DLSSFormats.NGX(feature.Desc.Mode),
+            FeatureCreateFlags = (int)(DLSSFormats.NGX(feature.Desc.Flags & (DLSSFeatureFlags.DepthReversed | DLSSFeatureFlags.MotionVectorJittered | DLSSFeatureFlags.AlphaUpscaling)) | NGXDLSSFeatureFlags.IsHdr | NGXDLSSFeatureFlags.MvLowRes)
         };
 
         switch (Context.GraphicsApi)
