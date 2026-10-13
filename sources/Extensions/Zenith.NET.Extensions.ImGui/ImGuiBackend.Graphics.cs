@@ -29,6 +29,12 @@ internal unsafe partial class ImGuiBackend
             }
 
             resourceHandleBindings[textureBindings[texture] = textureID = id] = texture.SampledHandle;
+
+            texture.Disposing += (_, _) =>
+            {
+                resourceHandleBindings.Remove(textureID);
+                textureBindings.Remove(texture);
+            };
         }
 
         return new(null, textureID);
@@ -45,6 +51,12 @@ internal unsafe partial class ImGuiBackend
             }
 
             resourceHandleBindings[textureViewBindings[textureView] = textureID = id] = textureView.SampledHandle;
+
+            textureView.Disposing += (_, _) =>
+            {
+                resourceHandleBindings.Remove(textureID);
+                textureViewBindings.Remove(textureView);
+            };
         }
 
         return new(null, textureID);
@@ -260,36 +272,6 @@ internal unsafe partial class ImGuiBackend
                         textureData.SetStatus(ImTextureStatus.Destroyed);
                     }
                     break;
-            }
-        }
-
-        ImTextureID[] destroyedTextureIDs = [.. resourceHandleBindings.Keys.Where(textureID =>
-        {
-            if (textureBindings.FirstOrDefault(kv => kv.Value == textureID).Key is Texture texture)
-            {
-                return texture.IsDisposed;
-            }
-
-            if (textureViewBindings.FirstOrDefault(kv => kv.Value == textureID).Key is TextureView textureView)
-            {
-                return textureView.IsDisposed;
-            }
-
-            return false;
-        })];
-
-        foreach (ImTextureID textureID in destroyedTextureIDs)
-        {
-            resourceHandleBindings.Remove(textureID);
-
-            if (textureViewBindings.FirstOrDefault(kv => kv.Value == textureID).Key is TextureView textureView)
-            {
-                textureViewBindings.Remove(textureView);
-            }
-
-            if (textureBindings.FirstOrDefault(kv => kv.Value == textureID).Key is Texture texture)
-            {
-                textureBindings.Remove(texture);
             }
         }
 
