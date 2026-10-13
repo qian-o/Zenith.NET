@@ -8,9 +8,9 @@ public struct DLSSSuperResolutionArgs
 
     public DLSSBinding MotionVectors;
 
-    public DLSSBinding Exposure;
+    public DLSSBinding? Exposure;
 
-    public DLSSBinding ReactiveMask;
+    public DLSSBinding? ReactiveMask;
 
     public DLSSBinding Output;
 

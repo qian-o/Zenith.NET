@@ -1,20 +1,19 @@
 ﻿using NGX.NET;
-using Ngx = NGX.NET.NGX;
 
 namespace Zenith.NET.Extensions.DLSS;
 
 public unsafe class DLSSRayReconstruction : DisposableObject
 {
-    private readonly DLSSContext dlssContext;
-    private readonly NGXParameter* parameters;
+    private readonly DLSSBackend backend;
+    private readonly NGXParameter parameters;
 
-    private NGXHandle* handle;
+    private NGXHandle handle;
 
-    internal DLSSRayReconstruction(DLSSContext dlssContext, DLSSRayReconstructionDesc desc)
+    internal DLSSRayReconstruction(DLSSBackend backend, DLSSRayReconstructionDesc desc)
     {
-        this.dlssContext = dlssContext;
+        this.backend = backend;
 
-        parameters = dlssContext.AllocateParameters();
+        parameters = backend.AllocateParameters();
 
         Desc = desc;
     }
@@ -23,30 +22,21 @@ public unsafe class DLSSRayReconstruction : DisposableObject
 
     public void Dispatch(CommandBuffer commandBuffer, DLSSRayReconstructionArgs args)
     {
-        if (!dlssContext.IsInitialized)
-        {
-            return;
-        }
-
-        using Lock.Scope _ = DLSSContext.Lock.EnterScope();
+        using Lock.Scope _ = DLSSBackend.Lock.EnterScope();
 
         commandBuffer.BeginDebugEvent("DLSS Ray Reconstruction");
         commandBuffer.Barrier(BarrierStages.All, BarrierStages.All);
 
-        nint commandList = dlssContext.CommandList(commandBuffer);
+        nint commandList = backend.CommandList(commandBuffer);
 
-        dlssContext.BindEmptyDescriptorSet(commandList);
-        dlssContext.RemoveDestroyedBindings();
+        backend.BindEmptyDescriptorSet(commandList);
 
-        if (handle is null)
+        if (handle.IsNull)
         {
             Create(commandList);
         }
 
-        if (handle is not null)
-        {
-            Evaluate(commandList, args);
-        }
+        Evaluate(commandList, args);
 
         commandBuffer.Barrier(BarrierStages.All, BarrierStages.All);
         commandBuffer.EndDebugEvent();
@@ -54,118 +44,145 @@ public unsafe class DLSSRayReconstruction : DisposableObject
 
     protected override void Destroy()
     {
-        if (handle is not null)
+        if (!handle.IsNull)
         {
-            dlssContext.ReleaseFeature(handle);
+            backend.ReleaseFeature(handle);
         }
 
-        dlssContext.DestroyParameters(parameters);
-
-        Extensions.ReleaseContext(dlssContext);
+        backend.DestroyParameters(parameters);
     }
 
     private void Create(nint commandList)
     {
         NGXDLSSDCreateParams createParams = new()
         {
-            InDenoiseMode = NGXDLSSDenoiseMode.DLUnified,
-            InRoughnessMode = DLSSFormats.RoughnessMode(Desc),
-            InUseHWDepth = DLSSFormats.DepthType(Desc),
-            InWidth = Desc.InputWidth,
-            InHeight = Desc.InputHeight,
-            InTargetWidth = Desc.OutputWidth,
-            InTargetHeight = Desc.OutputHeight,
-            InPerfQualityValue = DLSSFormats.PerfQualityValue(Desc.Mode),
-            InFeatureCreateFlags = (int)DLSSFormats.FeatureFlags(Desc)
+            DenoiseMode = NGXDLSSDenoiseMode.DlUnified,
+            RoughnessMode = DLSSFormats.RoughnessMode(Desc),
+            UseHWDepth = DLSSFormats.DepthType(Desc),
+            Width = Desc.InputWidth,
+            Height = Desc.InputHeight,
+            TargetWidth = Desc.OutputWidth,
+            TargetHeight = Desc.OutputHeight,
+            PerfQualityValue = DLSSFormats.PerfQualityValue(Desc.Mode),
+            FeatureCreateFlags = (int)DLSSFormats.FeatureFlags(Desc)
         };
 
-        NGXHandle* createdHandle = null;
-
-        NGXResult result = dlssContext.IsVulkan ? Ngx.Vulkan.CreateDLSSDExt1(dlssContext.Device, commandList, 1, 1, &createdHandle, parameters, &createParams) : Ngx.D3D12.CreateDLSSDExt(commandList, 1, 1, &createdHandle, parameters, &createParams);
-
-        result.Success();
-
-        if (Ngx.Succeeded(result))
+        fixed (NGXHandle* pHandle = &handle)
         {
-            handle = createdHandle;
+            switch (backend.Context.GraphicsApi)
+            {
+                case GraphicsApi.DirectX12:
+                    Ngx.D3D12.CreateDLSSDExt(commandList, 1, 1, pHandle, parameters, &createParams).Success();
+                    break;
+
+                case GraphicsApi.Vulkan:
+                    Ngx.Vulkan.CreateDLSSDExt1(backend.Device, commandList, 1, 1, pHandle, parameters, &createParams).Success();
+                    break;
+            }
         }
     }
 
     private void Evaluate(nint commandList, DLSSRayReconstructionArgs args)
     {
-        NGXDimensions renderSubrectDimensions = new() { Width = Desc.InputWidth, Height = Desc.InputHeight };
-
-        if (dlssContext.IsVulkan)
+        NGXDimensions renderSubrectDimensions = new()
         {
-            NGXResourceVK* resources = stackalloc NGXResourceVK[17];
+            Width = Desc.InputWidth,
+            Height = Desc.InputHeight
+        };
 
-            NGXVKDLSSDEvalParams evalParams = new()
-            {
-                PInDiffuseAlbedo = dlssContext.VulkanResource(&resources[0], args.DiffuseAlbedo, false),
-                PInSpecularAlbedo = dlssContext.VulkanResource(&resources[1], args.SpecularAlbedo, false),
-                PInNormals = dlssContext.VulkanResource(&resources[2], args.Normals, false),
-                PInRoughness = dlssContext.VulkanResource(&resources[3], args.Roughness, false),
-                PInColor = dlssContext.VulkanResource(&resources[4], args.Input, false),
-                PInOutput = dlssContext.VulkanResource(&resources[5], args.Output, true),
-                PInDepth = dlssContext.VulkanResource(&resources[6], args.Depth, false),
-                PInMotionVectors = dlssContext.VulkanResource(&resources[7], args.MotionVectors, false),
-                InJitterOffsetX = args.JitterOffsetX,
-                InJitterOffsetY = args.JitterOffsetY,
-                InRenderSubrectDimensions = renderSubrectDimensions,
-                InReset = args.Reset ? 1 : 0,
-                InMVScaleX = args.MotionVectorScaleX,
-                InMVScaleY = args.MotionVectorScaleY,
-                PInExposureTexture = dlssContext.VulkanResource(&resources[8], args.Exposure, false),
-                PInBiasCurrentColorMask = dlssContext.VulkanResource(&resources[9], args.ReactiveMask, false),
-                PInColorBeforeTransparency = dlssContext.VulkanResource(&resources[10], args.ColorBeforeTransparency, false),
-                PInScreenSpaceSubsurfaceScatteringGuide = dlssContext.VulkanResource(&resources[11], args.SubsurfaceScatteringGuide, false),
-                PInDepthOfFieldGuide = dlssContext.VulkanResource(&resources[12], args.DepthOfFieldGuide, false),
-                PInSpecularHitDistance = dlssContext.VulkanResource(&resources[13], args.SpecularHitDistance, false),
-                PInWorldToViewMatrix = &args.WorldToView,
-                PInViewToClipMatrix = &args.ViewToClip,
-                InPreExposure = args.PreExposure,
-                InExposureScale = args.ExposureScale,
-                PInMotionVectorsReflections = dlssContext.VulkanResource(&resources[14], args.SpecularMotionVectors, false),
-                PInTransparencyLayer = dlssContext.VulkanResource(&resources[15], args.TransparencyLayer, false),
-                PInTransparencyLayerOpacity = dlssContext.VulkanResource(&resources[16], args.TransparencyLayerOpacity, false)
-            };
-
-            Ngx.Vulkan.EvaluateDLSSDExt(commandList, handle, parameters, &evalParams).Success();
-        }
-        else
+        switch (backend.Context.GraphicsApi)
         {
-            NGXD3D12DLSSDEvalParams evalParams = new()
-            {
-                PInDiffuseAlbedo = DLSSContext.D3D12Resource(args.DiffuseAlbedo),
-                PInSpecularAlbedo = DLSSContext.D3D12Resource(args.SpecularAlbedo),
-                PInNormals = DLSSContext.D3D12Resource(args.Normals),
-                PInRoughness = DLSSContext.D3D12Resource(args.Roughness),
-                PInColor = DLSSContext.D3D12Resource(args.Input),
-                PInOutput = DLSSContext.D3D12Resource(args.Output),
-                PInDepth = DLSSContext.D3D12Resource(args.Depth),
-                PInMotionVectors = DLSSContext.D3D12Resource(args.MotionVectors),
-                InJitterOffsetX = args.JitterOffsetX,
-                InJitterOffsetY = args.JitterOffsetY,
-                InRenderSubrectDimensions = renderSubrectDimensions,
-                InReset = args.Reset ? 1 : 0,
-                InMVScaleX = args.MotionVectorScaleX,
-                InMVScaleY = args.MotionVectorScaleY,
-                PInExposureTexture = DLSSContext.D3D12Resource(args.Exposure),
-                PInBiasCurrentColorMask = DLSSContext.D3D12Resource(args.ReactiveMask),
-                PInColorBeforeTransparency = DLSSContext.D3D12Resource(args.ColorBeforeTransparency),
-                PInScreenSpaceSubsurfaceScatteringGuide = DLSSContext.D3D12Resource(args.SubsurfaceScatteringGuide),
-                PInDepthOfFieldGuide = DLSSContext.D3D12Resource(args.DepthOfFieldGuide),
-                PInSpecularHitDistance = DLSSContext.D3D12Resource(args.SpecularHitDistance),
-                PInWorldToViewMatrix = &args.WorldToView,
-                PInViewToClipMatrix = &args.ViewToClip,
-                InPreExposure = args.PreExposure,
-                InExposureScale = args.ExposureScale,
-                PInMotionVectorsReflections = DLSSContext.D3D12Resource(args.SpecularMotionVectors),
-                PInTransparencyLayer = DLSSContext.D3D12Resource(args.TransparencyLayer),
-                PInTransparencyLayerOpacity = DLSSContext.D3D12Resource(args.TransparencyLayerOpacity)
-            };
+            case GraphicsApi.DirectX12:
+                {
+                    NGXD3D12DLSSDEvalParams evalParams = new()
+                    {
+                        DiffuseAlbedo = args.DiffuseAlbedo.DirectX12,
+                        SpecularAlbedo = args.SpecularAlbedo.DirectX12,
+                        Normals = args.Normals.DirectX12,
+                        Roughness = args.Roughness?.DirectX12 ?? 0,
+                        Color = args.Input.DirectX12,
+                        Output = args.Output.DirectX12,
+                        Depth = args.Depth.DirectX12,
+                        MotionVectors = args.MotionVectors.DirectX12,
+                        JitterOffsetX = args.JitterOffsetX,
+                        JitterOffsetY = args.JitterOffsetY,
+                        RenderSubrectDimensions = renderSubrectDimensions,
+                        Reset = args.Reset ? 1 : 0,
+                        MVScaleX = args.MotionVectorScaleX,
+                        MVScaleY = args.MotionVectorScaleY,
+                        ExposureTexture = args.Exposure?.DirectX12 ?? 0,
+                        BiasCurrentColorMask = args.ReactiveMask?.DirectX12 ?? 0,
+                        ColorBeforeTransparency = args.ColorBeforeTransparency?.DirectX12 ?? 0,
+                        ScreenSpaceSubsurfaceScatteringGuide = args.SubsurfaceScatteringGuide?.DirectX12 ?? 0,
+                        DepthOfFieldGuide = args.DepthOfFieldGuide?.DirectX12 ?? 0,
+                        SpecularHitDistance = args.SpecularHitDistance?.DirectX12 ?? 0,
+                        WorldToViewMatrix = &args.WorldToView,
+                        ViewToClipMatrix = &args.ViewToClip,
+                        PreExposure = args.PreExposure,
+                        ExposureScale = args.ExposureScale,
+                        MotionVectorsReflections = args.SpecularMotionVectors?.DirectX12 ?? 0,
+                        TransparencyLayer = args.TransparencyLayer?.DirectX12 ?? 0,
+                        TransparencyLayerOpacity = args.TransparencyLayerOpacity?.DirectX12 ?? 0
+                    };
 
-            Ngx.D3D12.EvaluateDLSSDExt(commandList, handle, parameters, &evalParams).Success();
+                    Ngx.D3D12.EvaluateDLSSDExt(commandList, handle, parameters, &evalParams).Success();
+                }
+                break;
+
+            case GraphicsApi.Vulkan:
+                {
+                    NGXResourceVK diffuseAlbedo = args.DiffuseAlbedo.Vulkan with { ReadWrite = false };
+                    NGXResourceVK specularAlbedo = args.SpecularAlbedo.Vulkan with { ReadWrite = false };
+                    NGXResourceVK normals = args.Normals.Vulkan with { ReadWrite = false };
+                    NGXResourceVK roughness = (args.Roughness?.Vulkan ?? default) with { ReadWrite = false };
+                    NGXResourceVK input = args.Input.Vulkan with { ReadWrite = false };
+                    NGXResourceVK output = args.Output.Vulkan with { ReadWrite = true };
+                    NGXResourceVK depth = args.Depth.Vulkan with { ReadWrite = false };
+                    NGXResourceVK motionVectors = args.MotionVectors.Vulkan with { ReadWrite = false };
+                    NGXResourceVK exposure = (args.Exposure?.Vulkan ?? default) with { ReadWrite = false };
+                    NGXResourceVK reactiveMask = (args.ReactiveMask?.Vulkan ?? default) with { ReadWrite = false };
+                    NGXResourceVK colorBeforeTransparency = (args.ColorBeforeTransparency?.Vulkan ?? default) with { ReadWrite = false };
+                    NGXResourceVK subsurfaceScatteringGuide = (args.SubsurfaceScatteringGuide?.Vulkan ?? default) with { ReadWrite = false };
+                    NGXResourceVK depthOfFieldGuide = (args.DepthOfFieldGuide?.Vulkan ?? default) with { ReadWrite = false };
+                    NGXResourceVK specularHitDistance = (args.SpecularHitDistance?.Vulkan ?? default) with { ReadWrite = false };
+                    NGXResourceVK specularMotionVectors = (args.SpecularMotionVectors?.Vulkan ?? default) with { ReadWrite = false };
+                    NGXResourceVK transparencyLayer = (args.TransparencyLayer?.Vulkan ?? default) with { ReadWrite = false };
+                    NGXResourceVK transparencyLayerOpacity = (args.TransparencyLayerOpacity?.Vulkan ?? default) with { ReadWrite = false };
+
+                    NGXVKDLSSDEvalParams evalParams = new()
+                    {
+                        DiffuseAlbedo = &diffuseAlbedo,
+                        SpecularAlbedo = &specularAlbedo,
+                        Normals = &normals,
+                        Roughness = args.Roughness.HasValue ? &roughness : null,
+                        Color = &input,
+                        Output = &output,
+                        Depth = &depth,
+                        MotionVectors = &motionVectors,
+                        JitterOffsetX = args.JitterOffsetX,
+                        JitterOffsetY = args.JitterOffsetY,
+                        RenderSubrectDimensions = renderSubrectDimensions,
+                        Reset = args.Reset ? 1 : 0,
+                        MVScaleX = args.MotionVectorScaleX,
+                        MVScaleY = args.MotionVectorScaleY,
+                        ExposureTexture = args.Exposure.HasValue ? &exposure : null,
+                        BiasCurrentColorMask = args.ReactiveMask.HasValue ? &reactiveMask : null,
+                        PreExposure = args.PreExposure,
+                        ExposureScale = args.ExposureScale,
+                        ColorBeforeTransparency = args.ColorBeforeTransparency.HasValue ? &colorBeforeTransparency : null,
+                        ScreenSpaceSubsurfaceScatteringGuide = args.SubsurfaceScatteringGuide.HasValue ? &subsurfaceScatteringGuide : null,
+                        DepthOfFieldGuide = args.DepthOfFieldGuide.HasValue ? &depthOfFieldGuide : null,
+                        SpecularHitDistance = args.SpecularHitDistance.HasValue ? &specularHitDistance : null,
+                        WorldToViewMatrix = &args.WorldToView,
+                        ViewToClipMatrix = &args.ViewToClip,
+                        MotionVectorsReflections = args.SpecularMotionVectors.HasValue ? &specularMotionVectors : null,
+                        TransparencyLayer = args.TransparencyLayer.HasValue ? &transparencyLayer : null,
+                        TransparencyLayerOpacity = args.TransparencyLayerOpacity.HasValue ? &transparencyLayerOpacity : null
+                    };
+
+                    Ngx.Vulkan.EvaluateDLSSDExt(commandList, handle, parameters, &evalParams).Success();
+                }
+                break;
         }
     }
 }

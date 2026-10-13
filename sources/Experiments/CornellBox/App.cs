@@ -17,6 +17,7 @@ internal static class App
 {
     public const int SlotCount = 3;
 
+    private static readonly Guid Project = new("b5b58279-25f8-4d7f-a9d1-e943a85c277c");
     private static readonly DLSSMode?[] rayReconstructionModes =
     [
         null,
@@ -80,6 +81,19 @@ internal static class App
             ColorFormats = [PixelFormat.B8G8R8A8UNorm],
             SampleCount = SampleCount.Count1
         }, ImGuiColorSpace.Legacy);
+
+        switch (Context.GraphicsApi)
+        {
+            case GraphicsApi.DirectX12:
+            case GraphicsApi.Vulkan:
+                {
+                    string dataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Zenith.NET", "CornellBox", "NGX");
+                    Directory.CreateDirectory(dataDirectory);
+
+                    Context.InitializeDLSS(Project, typeof(App).Assembly.GetName().Version!.ToString(), dataDirectory);
+                }
+                break;
+        }
 
         Surface surface;
         if (OperatingSystem.IsWindows())

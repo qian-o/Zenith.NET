@@ -142,7 +142,7 @@ internal static class DLSSFormats
     {
         return mode switch
         {
-            DLSSMode.DLAA => NGXPerfQualityValue.DLAA,
+            DLSSMode.DLAA => NGXPerfQualityValue.Dlaa,
             DLSSMode.UltraQuality => NGXPerfQualityValue.UltraQuality,
             DLSSMode.Quality => NGXPerfQualityValue.MaxQuality,
             DLSSMode.Balanced => NGXPerfQualityValue.Balanced,
@@ -154,11 +154,11 @@ internal static class DLSSFormats
 
     public static NGXDLSSFeatureFlags FeatureFlags(DLSSSuperResolutionDesc desc)
     {
-        NGXDLSSFeatureFlags result = NGXDLSSFeatureFlags.MVLowRes;
+        NGXDLSSFeatureFlags result = NGXDLSSFeatureFlags.MvLowRes;
 
         if (desc.IsHdr)
         {
-            result |= NGXDLSSFeatureFlags.IsHDR;
+            result |= NGXDLSSFeatureFlags.IsHdr;
         }
 
         if (desc.IsAutoExposureEnabled)
@@ -173,7 +173,7 @@ internal static class DLSSFormats
 
         if (desc.IsMotionVectorJittered)
         {
-            result |= NGXDLSSFeatureFlags.MVJittered;
+            result |= NGXDLSSFeatureFlags.MvJittered;
         }
 
         if (desc.IsAlphaUpscalingEnabled)
@@ -186,7 +186,7 @@ internal static class DLSSFormats
 
     public static NGXDLSSFeatureFlags FeatureFlags(DLSSRayReconstructionDesc desc)
     {
-        NGXDLSSFeatureFlags result = NGXDLSSFeatureFlags.IsHDR | NGXDLSSFeatureFlags.MVLowRes;
+        NGXDLSSFeatureFlags result = NGXDLSSFeatureFlags.IsHdr | NGXDLSSFeatureFlags.MvLowRes;
 
         if (desc.IsDepthReversed)
         {
@@ -195,7 +195,7 @@ internal static class DLSSFormats
 
         if (desc.IsMotionVectorJittered)
         {
-            result |= NGXDLSSFeatureFlags.MVJittered;
+            result |= NGXDLSSFeatureFlags.MvJittered;
         }
 
         if (desc.IsAlphaUpscalingEnabled)
@@ -208,7 +208,7 @@ internal static class DLSSFormats
 
     public static NGXDLSSDepthType DepthType(DLSSRayReconstructionDesc desc)
     {
-        return desc.IsDepthLinear ? NGXDLSSDepthType.Linear : NGXDLSSDepthType.HW;
+        return desc.IsDepthLinear ? NGXDLSSDepthType.Linear : NGXDLSSDepthType.Hw;
     }
 
     public static NGXDLSSRoughnessMode RoughnessMode(DLSSRayReconstructionDesc desc)

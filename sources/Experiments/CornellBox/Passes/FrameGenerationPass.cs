@@ -6,7 +6,7 @@ namespace CornellBox.Passes;
 
 internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
 {
-    private DLSSFrameGeneration frameGeneration = null!;
+    private DLSSFrameGeneration? frameGeneration;
     private Texture[] hudless = [];
     private Texture[] depth = [];
     private Texture[] motionVectors = [];
@@ -28,7 +28,7 @@ internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint dis
 
         commandBuffer.Transition(pendingFrame, default, TextureLayout.Undefined, TextureLayout.Storage);
 
-        frameGeneration.Dispatch(commandBuffer, pendingArgs);
+        frameGeneration!.Dispatch(commandBuffer, pendingArgs);
 
         commandBuffer.Transition(pendingFrame, default, TextureLayout.Storage, TextureLayout.CopySrc);
         commandBuffer.Transition(pendingBackBuffer, default, TextureLayout.Sampled, TextureLayout.CopySrc);
@@ -41,8 +41,6 @@ internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint dis
 
     protected override void Initialize()
     {
-        frameGeneration = App.Context.CreateDLSSFrameGeneration(Desc());
-
         CreateTextures();
     }
 
@@ -58,6 +56,8 @@ internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint dis
 
             return;
         }
+
+        frameGeneration ??= App.Context.CreateDLSSFrameGeneration(Desc());
 
         Snapshot(commandBuffer, args.Color, hudless[args.Slot]);
         Snapshot(commandBuffer, args.Depth, depth[args.Slot]);
@@ -98,7 +98,7 @@ internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint dis
     {
         DLSSFrameGenerationDesc desc = Desc();
 
-        if (!frameGeneration.Desc.Equals(desc))
+        if (frameGeneration is not null && !frameGeneration.Desc.Equals(desc))
         {
             DLSSFrameGeneration previous = frameGeneration;
             frameGeneration = App.Context.CreateDLSSFrameGeneration(desc);

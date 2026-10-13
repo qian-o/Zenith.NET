@@ -6,13 +6,13 @@ public struct DLSSFrameGenerationArgs
 {
     public DLSSBinding Color;
 
-    public DLSSBinding HudlessColor;
+    public DLSSBinding? HudlessColor;
 
-    public DLSSBinding UI;
+    public DLSSBinding? UI;
 
-    public DLSSBinding UIAlpha;
+    public DLSSBinding? UIAlpha;
 
-    public DLSSBinding DistortionField;
+    public DLSSBinding? DistortionField;
 
     public DLSSBinding Depth;
 

@@ -29,10 +29,16 @@ internal class Renderer : DisposableObject
         composite = new(App.Width, App.Height, App.Width, App.Height);
         frameGeneration = new(App.Width, App.Height, App.Width, App.Height);
 
-        DLSSCapabilities = App.Context.DLSSCapabilities;
+        switch (App.Context.GraphicsApi)
+        {
+            case GraphicsApi.DirectX12:
+            case GraphicsApi.Vulkan:
+                DLSSCapabilities = App.Context.DLSSCapabilities;
+                break;
+        }
     }
 
-    public DLSSCapabilities DLSSCapabilities { get; }
+    public DLSSCapabilities DLSSCapabilities { get; } = new(false, false, false);
 
     public bool IsPaused { get; set; }
 

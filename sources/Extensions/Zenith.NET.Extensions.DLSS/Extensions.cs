@@ -1,116 +1,99 @@
 ﻿using System.Diagnostics;
 using NGX.NET;
-using Ngx = NGX.NET.NGX;
 
 namespace Zenith.NET.Extensions.DLSS;
 
 public static class Extensions
 {
     private static readonly Lock @lock = new();
-    private static readonly Dictionary<GraphicsContext, DLSSContext> contexts = [];
-    private static readonly Dictionary<(GraphicsApi, string), DLSSCapabilities> capabilities = [];
+    private static readonly Dictionary<GraphicsContext, DLSSBackend> backends = [];
 
     extension(GraphicsContext context)
     {
-        public DLSSCapabilities DLSSCapabilities
+        public void InitializeDLSS(Guid project, string version, string dataDirectory)
         {
-            get
+            using Lock.Scope _ = @lock.EnterScope();
+
+            if (!backends.TryGetValue(context, out DLSSBackend? backend))
             {
-                using Lock.Scope _ = @lock.EnterScope();
+                backends[context] = backend = new(context, project, version, dataDirectory);
 
-                if (!capabilities.TryGetValue((context.GraphicsApi, context.Capabilities.DeviceName), out DLSSCapabilities dlssCapabilities))
+                context.Disposing += (_, _) =>
                 {
-                    DLSSContext dlssContext = AcquireContext(context);
+                    using Lock.Scope _ = @lock.EnterScope();
 
-                    dlssCapabilities = dlssContext.Capabilities;
-
-                    ReleaseContext(dlssContext);
-                }
-
-                return dlssCapabilities;
+                    if (backends.Remove(context))
+                    {
+                        backend.Dispose();
+                    }
+                };
             }
         }
 
+        public DLSSCapabilities DLSSCapabilities => GetBackend(context).Capabilities;
+
         public DLSSOptimalSettings GetDLSSSuperResolutionOptimalSettings(uint outputWidth, uint outputHeight, DLSSMode mode)
         {
-            DLSSContext dlssContext = AcquireContext(context);
-
-            DLSSOptimalSettings settings = dlssContext.GetOptimalSettings(NGXFeature.SuperSampling, outputWidth, outputHeight, mode);
-
-            ReleaseContext(dlssContext);
-
-            return settings;
+            return GetBackend(context).GetOptimalSettings(NGXFeature.SuperSampling, outputWidth, outputHeight, mode);
         }
 
         public DLSSOptimalSettings GetDLSSRayReconstructionOptimalSettings(uint outputWidth, uint outputHeight, DLSSMode mode)
         {
-            DLSSContext dlssContext = AcquireContext(context);
-
-            DLSSOptimalSettings settings = dlssContext.GetOptimalSettings(NGXFeature.RayReconstruction, outputWidth, outputHeight, mode);
-
-            ReleaseContext(dlssContext);
-
-            return settings;
+            return GetBackend(context).GetOptimalSettings(NGXFeature.RayReconstruction, outputWidth, outputHeight, mode);
         }
 
         public DLSSSuperResolution CreateDLSSSuperResolution(DLSSSuperResolutionDesc desc)
         {
-            return new(AcquireContext(context), desc);
+            return new(GetBackend(context), desc);
         }
 
         public DLSSRayReconstruction CreateDLSSRayReconstruction(DLSSRayReconstructionDesc desc)
         {
-            return new(AcquireContext(context), desc);
+            return new(GetBackend(context), desc);
         }
 
         public DLSSFrameGeneration CreateDLSSFrameGeneration(DLSSFrameGenerationDesc desc)
         {
-            return new(AcquireContext(context), desc);
+            return new(GetBackend(context), desc);
         }
     }
 
     extension(Texture texture)
     {
-        public DLSSBinding DLSSBinding => new(texture);
+        public DLSSBinding DLSSBinding => GetBackend(texture.Context).Binding(texture);
     }
 
     extension(NGXResult result)
     {
         internal void Success()
         {
-            if (Ngx.Failed(result))
+            if (Ngx.NVSDK_NGX_FAILED(result))
             {
                 Debug.WriteLine($"NGX call failed with error: {result}");
             }
         }
     }
 
-    internal static void ReleaseContext(DLSSContext dlssContext)
+    extension(int result)
     {
-        using Lock.Scope _ = @lock.EnterScope();
-
-        if (dlssContext.RemoveReference() && contexts.Remove(dlssContext.Context))
+        internal void Success()
         {
-            dlssContext.Dispose();
+            if (result is not 0)
+            {
+                Debug.WriteLine($"Vulkan call failed with error code: {result}");
+            }
         }
     }
 
-    private static DLSSContext AcquireContext(GraphicsContext context)
+    private static DLSSBackend GetBackend(GraphicsContext context)
     {
         using Lock.Scope _ = @lock.EnterScope();
 
-        if (!contexts.TryGetValue(context, out DLSSContext? dlssContext))
+        if (!backends.TryGetValue(context, out DLSSBackend? backend))
         {
-            contexts[context] = dlssContext = new(context);
-
-            if (dlssContext.IsInitialized)
-            {
-                capabilities.TryAdd((context.GraphicsApi, context.Capabilities.DeviceName), dlssContext.Capabilities);
-            }
+            throw new InvalidOperationException("The graphics context has not been initialized for DLSS.");
         }
 
-        dlssContext.AddReference();
-
-        return dlssContext;
+        return backend;
     }
 }

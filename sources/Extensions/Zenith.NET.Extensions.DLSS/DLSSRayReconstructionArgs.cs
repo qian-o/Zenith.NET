@@ -12,29 +12,29 @@ public struct DLSSRayReconstructionArgs
 
     public DLSSBinding Normals;
 
-    public DLSSBinding Roughness;
+    public DLSSBinding? Roughness;
 
     public DLSSBinding Depth;
 
     public DLSSBinding MotionVectors;
 
-    public DLSSBinding SpecularMotionVectors;
+    public DLSSBinding? SpecularMotionVectors;
 
-    public DLSSBinding SpecularHitDistance;
+    public DLSSBinding? SpecularHitDistance;
 
-    public DLSSBinding TransparencyLayer;
+    public DLSSBinding? TransparencyLayer;
 
-    public DLSSBinding TransparencyLayerOpacity;
+    public DLSSBinding? TransparencyLayerOpacity;
 
-    public DLSSBinding ColorBeforeTransparency;
+    public DLSSBinding? ColorBeforeTransparency;
 
-    public DLSSBinding SubsurfaceScatteringGuide;
+    public DLSSBinding? SubsurfaceScatteringGuide;
 
-    public DLSSBinding DepthOfFieldGuide;
+    public DLSSBinding? DepthOfFieldGuide;
 
-    public DLSSBinding Exposure;
+    public DLSSBinding? Exposure;
 
-    public DLSSBinding ReactiveMask;
+    public DLSSBinding? ReactiveMask;
 
     public DLSSBinding Output;
 

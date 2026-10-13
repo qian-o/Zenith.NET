@@ -1,20 +1,19 @@
 ﻿using NGX.NET;
-using Ngx = NGX.NET.NGX;
 
 namespace Zenith.NET.Extensions.DLSS;
 
 public unsafe class DLSSSuperResolution : DisposableObject
 {
-    private readonly DLSSContext dlssContext;
-    private readonly NGXParameter* parameters;
+    private readonly DLSSBackend backend;
+    private readonly NGXParameter parameters;
 
-    private NGXHandle* handle;
+    private NGXHandle handle;
 
-    internal DLSSSuperResolution(DLSSContext dlssContext, DLSSSuperResolutionDesc desc)
+    internal DLSSSuperResolution(DLSSBackend backend, DLSSSuperResolutionDesc desc)
     {
-        this.dlssContext = dlssContext;
+        this.backend = backend;
 
-        parameters = dlssContext.AllocateParameters();
+        parameters = backend.AllocateParameters();
 
         Desc = desc;
     }
@@ -23,30 +22,21 @@ public unsafe class DLSSSuperResolution : DisposableObject
 
     public void Dispatch(CommandBuffer commandBuffer, DLSSSuperResolutionArgs args)
     {
-        if (!dlssContext.IsInitialized)
-        {
-            return;
-        }
-
-        using Lock.Scope _ = DLSSContext.Lock.EnterScope();
+        using Lock.Scope _ = DLSSBackend.Lock.EnterScope();
 
         commandBuffer.BeginDebugEvent("DLSS Super Resolution");
         commandBuffer.Barrier(BarrierStages.All, BarrierStages.All);
 
-        nint commandList = dlssContext.CommandList(commandBuffer);
+        nint commandList = backend.CommandList(commandBuffer);
 
-        dlssContext.BindEmptyDescriptorSet(commandList);
-        dlssContext.RemoveDestroyedBindings();
+        backend.BindEmptyDescriptorSet(commandList);
 
-        if (handle is null)
+        if (handle.IsNull)
         {
             Create(commandList);
         }
 
-        if (handle is not null)
-        {
-            Evaluate(commandList, args);
-        }
+        Evaluate(commandList, args);
 
         commandBuffer.Barrier(BarrierStages.All, BarrierStages.All);
         commandBuffer.EndDebugEvent();
@@ -54,14 +44,12 @@ public unsafe class DLSSSuperResolution : DisposableObject
 
     protected override void Destroy()
     {
-        if (handle is not null)
+        if (!handle.IsNull)
         {
-            dlssContext.ReleaseFeature(handle);
+            backend.ReleaseFeature(handle);
         }
 
-        dlssContext.DestroyParameters(parameters);
-
-        Extensions.ReleaseContext(dlssContext);
+        backend.DestroyParameters(parameters);
     }
 
     private void Create(nint commandList)
@@ -70,82 +58,100 @@ public unsafe class DLSSSuperResolution : DisposableObject
         {
             Feature = new()
             {
-                InWidth = Desc.InputWidth,
-                InHeight = Desc.InputHeight,
-                InTargetWidth = Desc.OutputWidth,
-                InTargetHeight = Desc.OutputHeight,
-                InPerfQualityValue = DLSSFormats.PerfQualityValue(Desc.Mode)
+                Width = Desc.InputWidth,
+                Height = Desc.InputHeight,
+                TargetWidth = Desc.OutputWidth,
+                TargetHeight = Desc.OutputHeight,
+                PerfQualityValue = DLSSFormats.PerfQualityValue(Desc.Mode)
             },
-            InFeatureCreateFlags = (int)DLSSFormats.FeatureFlags(Desc)
+            FeatureCreateFlags = (int)DLSSFormats.FeatureFlags(Desc)
         };
 
-        NGXHandle* createdHandle = null;
-
-        NGXResult result = dlssContext.IsVulkan ? Ngx.Vulkan.CreateDLSSExt1(dlssContext.Device, commandList, 1, 1, &createdHandle, parameters, &createParams) : Ngx.D3D12.CreateDLSSExt(commandList, 1, 1, &createdHandle, parameters, &createParams);
-
-        result.Success();
-
-        if (Ngx.Succeeded(result))
+        fixed (NGXHandle* pHandle = &handle)
         {
-            handle = createdHandle;
+            switch (backend.Context.GraphicsApi)
+            {
+                case GraphicsApi.DirectX12:
+                    Ngx.D3D12.CreateDLSSExt(commandList, 1, 1, pHandle, parameters, &createParams).Success();
+                    break;
+
+                case GraphicsApi.Vulkan:
+                    Ngx.Vulkan.CreateDLSSExt1(backend.Device, commandList, 1, 1, pHandle, parameters, &createParams).Success();
+                    break;
+            }
         }
     }
 
     private void Evaluate(nint commandList, DLSSSuperResolutionArgs args)
     {
-        NGXDimensions renderSubrectDimensions = new() { Width = args.InputContentWidth, Height = args.InputContentHeight };
-
-        if (dlssContext.IsVulkan)
+        NGXDimensions renderSubrectDimensions = new()
         {
-            NGXResourceVK* resources = stackalloc NGXResourceVK[6];
+            Width = args.InputContentWidth,
+            Height = args.InputContentHeight
+        };
 
-            NGXVKDLSSEvalParams evalParams = new()
-            {
-                Feature = new()
-                {
-                    PInColor = dlssContext.VulkanResource(&resources[0], args.Input, false),
-                    PInOutput = dlssContext.VulkanResource(&resources[1], args.Output, true)
-                },
-                PInDepth = dlssContext.VulkanResource(&resources[2], args.Depth, false),
-                PInMotionVectors = dlssContext.VulkanResource(&resources[3], args.MotionVectors, false),
-                InJitterOffsetX = args.JitterOffsetX,
-                InJitterOffsetY = args.JitterOffsetY,
-                InRenderSubrectDimensions = renderSubrectDimensions,
-                InReset = args.Reset ? 1 : 0,
-                InMVScaleX = args.MotionVectorScaleX,
-                InMVScaleY = args.MotionVectorScaleY,
-                PInExposureTexture = dlssContext.VulkanResource(&resources[4], args.Exposure, false),
-                PInBiasCurrentColorMask = dlssContext.VulkanResource(&resources[5], args.ReactiveMask, false),
-                InPreExposure = args.PreExposure,
-                InExposureScale = args.ExposureScale
-            };
-
-            Ngx.Vulkan.EvaluateDLSSExt(commandList, handle, parameters, &evalParams).Success();
-        }
-        else
+        switch (backend.Context.GraphicsApi)
         {
-            NGXD3D12DLSSEvalParams evalParams = new()
-            {
-                Feature = new()
+            case GraphicsApi.DirectX12:
                 {
-                    PInColor = DLSSContext.D3D12Resource(args.Input),
-                    PInOutput = DLSSContext.D3D12Resource(args.Output)
-                },
-                PInDepth = DLSSContext.D3D12Resource(args.Depth),
-                PInMotionVectors = DLSSContext.D3D12Resource(args.MotionVectors),
-                InJitterOffsetX = args.JitterOffsetX,
-                InJitterOffsetY = args.JitterOffsetY,
-                InRenderSubrectDimensions = renderSubrectDimensions,
-                InReset = args.Reset ? 1 : 0,
-                InMVScaleX = args.MotionVectorScaleX,
-                InMVScaleY = args.MotionVectorScaleY,
-                PInExposureTexture = DLSSContext.D3D12Resource(args.Exposure),
-                PInBiasCurrentColorMask = DLSSContext.D3D12Resource(args.ReactiveMask),
-                InPreExposure = args.PreExposure,
-                InExposureScale = args.ExposureScale
-            };
+                    NGXD3D12DLSSEvalParams evalParams = new()
+                    {
+                        Feature = new()
+                        {
+                            Color = args.Input.DirectX12,
+                            Output = args.Output.DirectX12
+                        },
+                        Depth = args.Depth.DirectX12,
+                        MotionVectors = args.MotionVectors.DirectX12,
+                        JitterOffsetX = args.JitterOffsetX,
+                        JitterOffsetY = args.JitterOffsetY,
+                        RenderSubrectDimensions = renderSubrectDimensions,
+                        Reset = args.Reset ? 1 : 0,
+                        MVScaleX = args.MotionVectorScaleX,
+                        MVScaleY = args.MotionVectorScaleY,
+                        ExposureTexture = args.Exposure?.DirectX12 ?? 0,
+                        BiasCurrentColorMask = args.ReactiveMask?.DirectX12 ?? 0,
+                        PreExposure = args.PreExposure,
+                        ExposureScale = args.ExposureScale
+                    };
 
-            Ngx.D3D12.EvaluateDLSSExt(commandList, handle, parameters, &evalParams).Success();
+                    Ngx.D3D12.EvaluateDLSSExt(commandList, handle, parameters, &evalParams).Success();
+                }
+                break;
+
+            case GraphicsApi.Vulkan:
+                {
+                    NGXResourceVK input = args.Input.Vulkan with { ReadWrite = false };
+                    NGXResourceVK output = args.Output.Vulkan with { ReadWrite = true };
+                    NGXResourceVK depth = args.Depth.Vulkan with { ReadWrite = false };
+                    NGXResourceVK motionVectors = args.MotionVectors.Vulkan with { ReadWrite = false };
+                    NGXResourceVK exposure = (args.Exposure?.Vulkan ?? default) with { ReadWrite = false };
+                    NGXResourceVK reactiveMask = (args.ReactiveMask?.Vulkan ?? default) with { ReadWrite = false };
+
+                    NGXVKDLSSEvalParams evalParams = new()
+                    {
+                        Feature = new()
+                        {
+                            Color = &input,
+                            Output = &output
+                        },
+                        Depth = &depth,
+                        MotionVectors = &motionVectors,
+                        JitterOffsetX = args.JitterOffsetX,
+                        JitterOffsetY = args.JitterOffsetY,
+                        RenderSubrectDimensions = renderSubrectDimensions,
+                        Reset = args.Reset ? 1 : 0,
+                        MVScaleX = args.MotionVectorScaleX,
+                        MVScaleY = args.MotionVectorScaleY,
+                        ExposureTexture = args.Exposure.HasValue ? &exposure : null,
+                        BiasCurrentColorMask = args.ReactiveMask.HasValue ? &reactiveMask : null,
+                        PreExposure = args.PreExposure,
+                        ExposureScale = args.ExposureScale
+                    };
+
+                    Ngx.Vulkan.EvaluateDLSSExt(commandList, handle, parameters, &evalParams).Success();
+                }
+                break;
         }
     }
 }
