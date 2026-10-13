@@ -130,8 +130,6 @@ internal unsafe partial class DLSSBackend : DisposableObject
 
     public void DestroyParameters(NGXParameter parameters)
     {
-        using Lock.Scope _ = Lock.EnterScope();
-
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
@@ -146,8 +144,6 @@ internal unsafe partial class DLSSBackend : DisposableObject
 
     public void ReleaseFeature(NGXHandle handle)
     {
-        using Lock.Scope _ = Lock.EnterScope();
-
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
@@ -162,8 +158,6 @@ internal unsafe partial class DLSSBackend : DisposableObject
 
     public void Create(CommandBuffer commandBuffer, DLSSSuperResolution feature)
     {
-        nint commandList = CommandList(commandBuffer);
-
         NGXDLSSCreateParams createParams = new()
         {
             Feature = new()
@@ -180,19 +174,17 @@ internal unsafe partial class DLSSBackend : DisposableObject
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                CreateDirectX12(commandList, feature, &createParams);
+                CreateDirectX12(commandBuffer.GetNativeObject(NativeObjectType.D3D12GraphicsCommandList), feature, &createParams);
                 break;
 
             case GraphicsApi.Vulkan:
-                CreateVulkan(commandList, feature, &createParams);
+                CreateVulkan(commandBuffer.GetNativeObject(NativeObjectType.VulkanCommandBuffer), feature, &createParams);
                 break;
         }
     }
 
     public void Create(CommandBuffer commandBuffer, DLSSRayReconstruction feature)
     {
-        nint commandList = CommandList(commandBuffer);
-
         NGXDLSSDCreateParams createParams = new()
         {
             DenoiseMode = NGXDLSSDenoiseMode.DlUnified,
@@ -209,19 +201,17 @@ internal unsafe partial class DLSSBackend : DisposableObject
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                CreateDirectX12(commandList, feature, &createParams);
+                CreateDirectX12(commandBuffer.GetNativeObject(NativeObjectType.D3D12GraphicsCommandList), feature, &createParams);
                 break;
 
             case GraphicsApi.Vulkan:
-                CreateVulkan(commandList, feature, &createParams);
+                CreateVulkan(commandBuffer.GetNativeObject(NativeObjectType.VulkanCommandBuffer), feature, &createParams);
                 break;
         }
     }
 
     public void Create(CommandBuffer commandBuffer, DLSSFrameGeneration feature)
     {
-        nint commandList = CommandList(commandBuffer);
-
         SetUI(feature.Parameters, Ngx.DLSSGParameterMvecJittered, feature.Desc.Flags.HasFlag(DLSSFeatureFlags.MotionVectorJittered) ? 1u : 0u);
         SetUI(feature.Parameters, Ngx.DLSSGParameterUserInterfaceRecompositionEnabled, feature.Desc.Flags.HasFlag(DLSSFeatureFlags.UIRecomposition) ? 1u : 0u);
 
@@ -243,19 +233,17 @@ internal unsafe partial class DLSSBackend : DisposableObject
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                CreateDirectX12(commandList, feature, &createParams);
+                CreateDirectX12(commandBuffer.GetNativeObject(NativeObjectType.D3D12GraphicsCommandList), feature, &createParams);
                 break;
 
             case GraphicsApi.Vulkan:
-                CreateVulkan(commandList, feature, &createParams);
+                CreateVulkan(commandBuffer.GetNativeObject(NativeObjectType.VulkanCommandBuffer), feature, &createParams);
                 break;
         }
     }
 
     public void Evaluate(CommandBuffer commandBuffer, DLSSSuperResolution feature, DLSSSuperResolutionArgs args)
     {
-        nint commandList = CommandList(commandBuffer);
-
         NGXDimensions renderSubrectDimensions = new()
         {
             Width = args.InputContentWidth,
@@ -265,19 +253,17 @@ internal unsafe partial class DLSSBackend : DisposableObject
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                EvaluateDirectX12(commandList, feature, args, renderSubrectDimensions);
+                EvaluateDirectX12(commandBuffer.GetNativeObject(NativeObjectType.D3D12GraphicsCommandList), feature, args, renderSubrectDimensions);
                 break;
 
             case GraphicsApi.Vulkan:
-                EvaluateVulkan(commandList, feature, args, renderSubrectDimensions);
+                EvaluateVulkan(commandBuffer.GetNativeObject(NativeObjectType.VulkanCommandBuffer), feature, args, renderSubrectDimensions);
                 break;
         }
     }
 
     public void Evaluate(CommandBuffer commandBuffer, DLSSRayReconstruction feature, DLSSRayReconstructionArgs args)
     {
-        nint commandList = CommandList(commandBuffer);
-
         NGXDimensions renderSubrectDimensions = new()
         {
             Width = feature.Desc.InputWidth,
@@ -287,19 +273,17 @@ internal unsafe partial class DLSSBackend : DisposableObject
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                EvaluateDirectX12(commandList, feature, args, renderSubrectDimensions);
+                EvaluateDirectX12(commandBuffer.GetNativeObject(NativeObjectType.D3D12GraphicsCommandList), feature, args, renderSubrectDimensions);
                 break;
 
             case GraphicsApi.Vulkan:
-                EvaluateVulkan(commandList, feature, args, renderSubrectDimensions);
+                EvaluateVulkan(commandBuffer.GetNativeObject(NativeObjectType.VulkanCommandBuffer), feature, args, renderSubrectDimensions);
                 break;
         }
     }
 
     public void Evaluate(CommandBuffer commandBuffer, DLSSFrameGeneration feature, DLSSFrameGenerationArgs args)
     {
-        nint commandList = CommandList(commandBuffer);
-
         Matrix4x4.Invert(args.ViewToClip, out Matrix4x4 clipToView);
         Matrix4x4.Invert(args.ClipToPrevClip, out Matrix4x4 prevClipToClip);
 
@@ -345,11 +329,11 @@ internal unsafe partial class DLSSBackend : DisposableObject
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                EvaluateDirectX12(commandList, feature, args, &optEvalParams);
+                EvaluateDirectX12(commandBuffer.GetNativeObject(NativeObjectType.D3D12GraphicsCommandList), feature, args, &optEvalParams);
                 break;
 
             case GraphicsApi.Vulkan:
-                EvaluateVulkan(commandList, feature, args, &optEvalParams);
+                EvaluateVulkan(commandBuffer.GetNativeObject(NativeObjectType.VulkanCommandBuffer), feature, args, &optEvalParams);
                 break;
         }
     }
@@ -430,20 +414,8 @@ internal unsafe partial class DLSSBackend : DisposableObject
         }
     }
 
-    private nint CommandList(CommandBuffer commandBuffer)
-    {
-        return Context.GraphicsApi switch
-        {
-            GraphicsApi.DirectX12 => commandBuffer.GetNativeObject(NativeObjectType.D3D12GraphicsCommandList),
-            GraphicsApi.Vulkan => commandBuffer.GetNativeObject(NativeObjectType.VulkanCommandBuffer),
-            _ => default
-        };
-    }
-
     private void SetUI(NGXParameter parameters, ReadOnlySpan<byte> name, uint value)
     {
-        using Lock.Scope _ = Lock.EnterScope();
-
         fixed (byte* pointer = name)
         {
             Ngx.Parameter.SetUI(parameters, pointer, value);

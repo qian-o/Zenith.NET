@@ -742,6 +742,8 @@ Vulkan 的 file-local ABI 声明放在 `DLSSBackend.Vulkan.cs` 后部，不增�
 
 三个文件共享同一个实例的字段，操作方法统一采用实例方法；跨上下文串行化 NGX 调用的 `Lock` 保持静态属性。公共入口通过 `switch (Context.GraphicsApi)` 调用对应的私有实现方法。能力参数获取、参数分配/销毁、特性释放直接在公共流程的分支中调用 NGX，不另设一层纯转发方法。不增加后端派生类、接口或 API 子目录。初始化参数仍是 `project`、`version`、`dataDirectory`。
 
+Create / Evaluate 在现有图形 API 分支中直接取得对应原生命令句柄，不另设一次 API 分派。后端初始化、能力查询、参数分配、纹理绑定与销毁，以及功能构造、Dispatch 与销毁各自持有外层 NGX 锁；内部的 `SetUI`、`ReleaseFeature`、`DestroyParameters` 沿用调用方已经持有的锁。Vulkan 辅助对象创建通过 `fixed` 直接向后端句柄字段写入原生结果。
+
 初始化内存改为调用内作用域：
 
 ```csharp

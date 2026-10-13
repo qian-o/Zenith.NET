@@ -55,45 +55,38 @@ internal unsafe partial class DLSSBackend
         delegate* unmanaged<nint, void*, void*, nint*, int> vkCreateDescriptorPool = (delegate* unmanaged<nint, void*, void*, nint*, int>)GetProcedureAddress("vkCreateDescriptorPool");
         delegate* unmanaged<nint, void*, nint*, int> vkAllocateDescriptorSets = (delegate* unmanaged<nint, void*, nint*, int>)GetProcedureAddress("vkAllocateDescriptorSets");
 
-        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = new() { SType = DescriptorSetLayoutCreateInfoType };
-
-        nint setLayout;
-        vkCreateDescriptorSetLayout(Device, &descriptorSetLayoutCreateInfo, null, &setLayout).Success();
-
-        VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
+        fixed (nint* pDescriptorSetLayout = &descriptorSetLayout)
+        fixed (nint* pPipelineLayout = &pipelineLayout)
+        fixed (nint* pDescriptorPool = &descriptorPool)
+        fixed (nint* pDescriptorSet = &descriptorSet)
         {
-            SType = PipelineLayoutCreateInfoType,
-            SetLayoutCount = 1,
-            PSetLayouts = &setLayout
-        };
+            VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = new() { SType = DescriptorSetLayoutCreateInfoType };
+            vkCreateDescriptorSetLayout(Device, &descriptorSetLayoutCreateInfo, null, pDescriptorSetLayout).Success();
 
-        nint layout;
-        vkCreatePipelineLayout(Device, &pipelineLayoutCreateInfo, null, &layout).Success();
+            VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
+            {
+                SType = PipelineLayoutCreateInfoType,
+                SetLayoutCount = 1,
+                PSetLayouts = pDescriptorSetLayout
+            };
+            vkCreatePipelineLayout(Device, &pipelineLayoutCreateInfo, null, pPipelineLayout).Success();
 
-        VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = new()
-        {
-            SType = DescriptorPoolCreateInfoType,
-            MaxSets = 1
-        };
+            VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = new()
+            {
+                SType = DescriptorPoolCreateInfoType,
+                MaxSets = 1
+            };
+            vkCreateDescriptorPool(Device, &descriptorPoolCreateInfo, null, pDescriptorPool).Success();
 
-        nint pool;
-        vkCreateDescriptorPool(Device, &descriptorPoolCreateInfo, null, &pool).Success();
-
-        VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = new()
-        {
-            SType = DescriptorSetAllocateInfoType,
-            DescriptorPool = pool,
-            DescriptorSetCount = 1,
-            PSetLayouts = &setLayout
-        };
-
-        nint set;
-        vkAllocateDescriptorSets(Device, &descriptorSetAllocateInfo, &set).Success();
-
-        descriptorSetLayout = setLayout;
-        pipelineLayout = layout;
-        descriptorPool = pool;
-        descriptorSet = set;
+            VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = new()
+            {
+                SType = DescriptorSetAllocateInfoType,
+                DescriptorPool = descriptorPool,
+                DescriptorSetCount = 1,
+                PSetLayouts = pDescriptorSetLayout
+            };
+            vkAllocateDescriptorSets(Device, &descriptorSetAllocateInfo, pDescriptorSet).Success();
+        }
 
         nint GetProcedureAddress(string name)
         {
