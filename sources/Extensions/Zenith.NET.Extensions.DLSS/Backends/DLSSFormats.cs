@@ -156,27 +156,27 @@ internal static class DLSSFormats
     {
         NGXDLSSFeatureFlags result = NGXDLSSFeatureFlags.MvLowRes;
 
-        if (desc.IsHdr)
+        if (desc.Flags.HasFlag(DLSSFeatureFlags.Hdr))
         {
             result |= NGXDLSSFeatureFlags.IsHdr;
         }
 
-        if (desc.IsAutoExposureEnabled)
+        if (desc.Flags.HasFlag(DLSSFeatureFlags.AutoExposure))
         {
             result |= NGXDLSSFeatureFlags.AutoExposure;
         }
 
-        if (desc.IsDepthReversed)
+        if (desc.Flags.HasFlag(DLSSFeatureFlags.DepthReversed))
         {
             result |= NGXDLSSFeatureFlags.DepthInverted;
         }
 
-        if (desc.IsMotionVectorJittered)
+        if (desc.Flags.HasFlag(DLSSFeatureFlags.MotionVectorJittered))
         {
             result |= NGXDLSSFeatureFlags.MvJittered;
         }
 
-        if (desc.IsAlphaUpscalingEnabled)
+        if (desc.Flags.HasFlag(DLSSFeatureFlags.AlphaUpscaling))
         {
             result |= NGXDLSSFeatureFlags.AlphaUpscaling;
         }
@@ -188,17 +188,17 @@ internal static class DLSSFormats
     {
         NGXDLSSFeatureFlags result = NGXDLSSFeatureFlags.IsHdr | NGXDLSSFeatureFlags.MvLowRes;
 
-        if (desc.IsDepthReversed)
+        if (desc.Flags.HasFlag(DLSSFeatureFlags.DepthReversed))
         {
             result |= NGXDLSSFeatureFlags.DepthInverted;
         }
 
-        if (desc.IsMotionVectorJittered)
+        if (desc.Flags.HasFlag(DLSSFeatureFlags.MotionVectorJittered))
         {
             result |= NGXDLSSFeatureFlags.MvJittered;
         }
 
-        if (desc.IsAlphaUpscalingEnabled)
+        if (desc.Flags.HasFlag(DLSSFeatureFlags.AlphaUpscaling))
         {
             result |= NGXDLSSFeatureFlags.AlphaUpscaling;
         }
@@ -206,13 +206,23 @@ internal static class DLSSFormats
         return result;
     }
 
-    public static NGXDLSSDepthType DepthType(DLSSRayReconstructionDesc desc)
+    public static NGXDLSSDepthType DepthType(DLSSDepthType depthType)
     {
-        return desc.IsDepthLinear ? NGXDLSSDepthType.Linear : NGXDLSSDepthType.Hw;
+        return depthType switch
+        {
+            DLSSDepthType.Hardware => NGXDLSSDepthType.Hw,
+            DLSSDepthType.Linear => NGXDLSSDepthType.Linear,
+            _ => default
+        };
     }
 
-    public static NGXDLSSRoughnessMode RoughnessMode(DLSSRayReconstructionDesc desc)
+    public static NGXDLSSRoughnessMode RoughnessMode(DLSSRoughnessMode roughnessMode)
     {
-        return desc.IsRoughnessPacked ? NGXDLSSRoughnessMode.Packed : NGXDLSSRoughnessMode.Unpacked;
+        return roughnessMode switch
+        {
+            DLSSRoughnessMode.Unpacked => NGXDLSSRoughnessMode.Unpacked,
+            DLSSRoughnessMode.Packed => NGXDLSSRoughnessMode.Packed,
+            _ => default
+        };
     }
 }

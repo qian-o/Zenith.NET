@@ -12,13 +12,5 @@ public struct DLSSSuperResolutionDesc
 
     public DLSSMode Mode;
 
-    public bool IsHdr;
-
-    public bool IsAutoExposureEnabled;
-
-    public bool IsDepthReversed;
-
-    public bool IsMotionVectorJittered;
-
-    public bool IsAlphaUpscalingEnabled;
+    public DLSSFeatureFlags Flags;
 }

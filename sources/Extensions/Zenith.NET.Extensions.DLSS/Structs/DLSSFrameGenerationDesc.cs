@@ -12,13 +12,5 @@ public struct DLSSFrameGenerationDesc
 
     public uint OutputHeight;
 
-    public bool IsHdr;
-
-    public bool IsDepthReversed;
-
-    public bool IsMotionVectorJittered;
-
-    public bool IsDynamicResolutionEnabled;
-
-    public bool IsUIRecompositionEnabled;
+    public DLSSFeatureFlags Flags;
 }

@@ -172,9 +172,9 @@ internal static class App
 
                 ImGui.SeparatorText("DLSS");
 
-                DLSSCapabilities capabilities = renderer.DLSSCapabilities;
+                DLSSCapabilities? capabilities = renderer.DLSSCapabilities;
 
-                ImGui.BeginDisabled(!capabilities.RayReconstructionSupported);
+                ImGui.BeginDisabled(capabilities?.RayReconstructionSupported is not true);
                 ImGui.SetNextItemWidth(ImGui.CalcTextSize("Ultra Performance").X + ImGui.GetFrameHeight() + (ImGui.GetStyle().FramePadding.X * 2.0f));
 
                 int rayReconstruction = Array.IndexOf(rayReconstructionModes, renderer.RayReconstruction);
@@ -188,7 +188,7 @@ internal static class App
 
                 ImGui.EndDisabled();
 
-                ImGui.BeginDisabled(!capabilities.FrameGenerationSupported);
+                ImGui.BeginDisabled(capabilities?.FrameGenerationSupported is not true);
 
                 bool frameGeneration = renderer.IsFrameGenerationEnabled;
                 if (ImGui.Checkbox("Frame Generation", ref frameGeneration))

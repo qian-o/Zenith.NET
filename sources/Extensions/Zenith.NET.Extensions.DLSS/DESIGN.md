@@ -2,7 +2,7 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 状态 | 第 17 版：目录分组与后端 partial 拆分已落实；其余结构调整仍为草案 |
+| 状态 | 第 17 版设计已完成实现；Release 编译通过，NGX GPU 运行未验证 |
 | 依赖 | `Zenith.NET`、`NGX.NET` 310.9.1.1 |
 | 参照 | Upscaling 扩展（调用形式）、ImGui 扩展（纹理绑定）、Skia 扩展（每上下文原生状态及其释放）、Apple 为 MetalFX 帧插值提供的 [`PresentThread`](https://github.com/apple/game-porting-toolkit/blob/main/game-porting-skills/skills/using-metalfx-frame-interpolation/references/present-thread.md)、[NGX.NET Showcase](https://github.com/qian-o/NGX.NET/tree/master/Showcase) |
 
@@ -17,7 +17,7 @@
 - 内部按 DirectX 12、Vulkan 后端的方式组织不安全调用：直接构造原生结构、传入指针、显式管理所有权。使用 NGX.NET 的指针重载，不通过其 `string`、`in`、`out` 便利重载执行 NGX 调用。
 - 后端保持单个 `partial DLSSBackend`，公共入口按 `Context.GraphicsApi` 分派到对应实现文件。公开功能类不包含图形 API 分支。
 - 扩展仅依赖 `Zenith.NET` 与 `NGX.NET`。沿用现有 Vulkan 函数指针、局部 ABI 结构与数值映射，不新增 Vulkan NuGet 包、图形后端项目引用或原生桥接层。第 5 节记录的 RHI 改动已经存在，本次不再修改 RHI。
-- 本轮目录分组与后端 partial 拆分已落实。其余配置类型与生命周期调整仍待确认；第 5 节分别记录已实现范围与尚未实现的设计。
+- 本轮配置枚举、partial 后端、局部初始化内存、能力构造查询、功能基类与构造期创建均已实现。第 5 节将本次编译结果与历史 GPU 验证分开记录。
 
 ## 2. 公共 API
 
@@ -696,7 +696,7 @@ TimelineValue generatedValue = commandBuffer.Submit();
 
 ### 3.1 文件
 
-按 RHI 的方式分组，分类目录不改变公共命名空间 `Zenith.NET.Extensions.DLSS`。现有文件已经移入对应目录；下列 `DLSSFeature`、`DLSSFeatureFlags`、`DLSSDepthType` 与 `DLSSRoughnessMode` 仍属于待实现类型：
+按 RHI 的方式分组，分类目录不改变公共命名空间 `Zenith.NET.Extensions.DLSS`：
 
 ```text
 Extensions.cs
@@ -780,6 +780,7 @@ namespace Zenith.NET.Extensions.DLSS;
 public abstract class DLSSFeature : DisposableObject
 {
     internal readonly DLSSBackend Backend;
+
     internal readonly NGXParameter Parameters;
 
     internal NGXHandle Handle;
@@ -792,6 +793,8 @@ public abstract class DLSSFeature : DisposableObject
 
     protected override void Destroy()
     {
+        using Lock.Scope _ = DLSSBackend.Lock.EnterScope();
+
         Backend.ReleaseFeature(Handle);
         Backend.DestroyParameters(Parameters);
     }
@@ -800,7 +803,7 @@ public abstract class DLSSFeature : DisposableObject
 
 `DLSSFeature` 必须是 public，才能作为现有公开功能类的基类；其后端、参数与 Handle 均保持 internal。基类构造器只分配公共参数，不调用依赖派生 Desc 的虚方法。`FreeMemOnReleaseFeature = 1` 仍在参数分配时设置。
 
-具体功能构造器先保存 Desc；FG 还先设置运动矢量抖动与 UI 重组参数，然后创建原生 Handle。以超分辨率的构造流程为例：
+具体功能构造器先保存 Desc，再调用后端创建原生 Handle；FG 的后端创建入口先设置运动矢量抖动与 UI 重组参数。以超分辨率的构造流程为例：
 
 ```csharp
 internal DLSSSuperResolution(DLSSBackend backend, DLSSSuperResolutionDesc desc) : base(backend)
@@ -907,12 +910,12 @@ fixed (byte* name = Ngx.ParameterFreeMemOnReleaseFeature)
 
 `GetCapabilityParameters` 由对应 API 的实现取得能力参数块；`DLSSCapabilities` 在自身构造器中完成查询。两个 `GetOptimalSettings` 方法仍将能力句柄按值传入，各宽高和 sharpness 传局部变量地址。
 
-特性创建位于对应 partial 文件，例如 DX12 已准备好 `createParams` 后，直接填写基类持有的 Handle：
+公共创建入口准备原生参数结构，再将地址传给对应 partial 文件的方法。例如 DX12 收到 `NGXDLSSCreateParams* createParams` 后，直接填写基类持有的 Handle：
 
 ```csharp
 fixed (NGXHandle* handle = &feature.Handle)
 {
-    Ngx.D3D12.CreateDLSSExt(commandList, 1, 1, handle, feature.Parameters, &createParams).Success();
+    Ngx.D3D12.CreateDLSSExt(commandList, 1, 1, handle, feature.Parameters, createParams).Success();
 }
 ```
 
@@ -976,13 +979,18 @@ Vulkan 实现在 `DLSSBackend.Vulkan.cs` 中调用 `CreateDLSSExt1`；RR、FG �
 
 ### 5.1 本次修订状态
 
-本次文件分组与后端 partial 拆分后，`dotnet build sources/Experiments/CornellBox/CornellBox.csproj -c Release --no-restore --nologo` 已通过，0 警告、0 错误；未做 NGX GPU 运行验证。
+本次重构完成后，`dotnet build sources/Experiments/CornellBox/CornellBox.csproj -c Release --no-restore --nologo` 已通过，0 警告、0 错误。当前环境为 macOS，未做 DirectX 12 / Vulkan 的 NGX GPU 运行验证；上节历史验证不覆盖这次重构。
 
-目录分组已落实到 `Enums`、`Structs`、`Backends`。现有后端的初始化、参数管理、绑定与销毁已拆入同目录的 `DLSSBackend.cs`、`DLSSBackend.DirectX12.cs`、`DLSSBackend.Vulkan.cs`，保持现有调用顺序与资源生命周期。
+| 设计项 | 当前实现 |
+| --- | --- |
+| 配置枚举 | 三个 Desc 使用 `DLSSFeatureFlags`；RR 另用 `DLSSDepthType`、`DLSSRoughnessMode`，通过显式映射保持原有 NGX 语义 |
+| 后端与分组 | `Enums`、`Structs`、`Backends` 已分组；单个 partial 后端的三个文件位于同一目录，API 特定 Create / Evaluate 已迁入对应文件 |
+| 初始化内存 | `NGXStrings` 使用局部 using，搜索路径使用局部指针；移除长期持有的 strings / scope 字段 |
+| 能力查询 | `DLSSCapabilities` 构造函数查询三项支持状态，不再接收 bool |
+| 功能生命周期 | `DLSSFeature` 集中持有并释放参数与 `internal NGXHandle Handle`；三个具体功能在构造时创建、提交并等待，Dispatch 只求值 |
+| CornellBox | Desc 改用枚举；未启用 DLSS 时能力对象为 null |
 
-枚举配置、能力构造查询、局部初始化内存、DLSSFeature 基类、构造期创建及 Create / Evaluate 向后端迁移尚未实现。编译结果与第 5 节历史运行结果均不覆盖这些草案内容。
-
-确认后同步修改扩展与 CornellBox。调用方的布尔 Desc 字段改为相应枚举；Metal 等不使用 NGX 的路径不构造假的能力对象，应用可用可空能力引用表示未启用 DLSS。公共命名空间、Dispatch 参数及绑定数据保持当前约定，不扩展 RHI 或新增 Vulkan 包。
+已静态核对原生资源映射、16 个可空资源、Vulkan 创建与求值前的空描述符集绑定，以及 RHI 命令缓冲分配和提交路径。公共命名空间、Dispatch 参数及绑定数据保持原有约定，未扩展 RHI 或新增 Vulkan 包。
 
 ## 附录：NGX 初始化与固定参数
 

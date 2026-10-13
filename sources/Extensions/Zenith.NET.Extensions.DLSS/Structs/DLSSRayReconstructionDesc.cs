@@ -12,13 +12,9 @@ public struct DLSSRayReconstructionDesc
 
     public DLSSMode Mode;
 
-    public bool IsDepthReversed;
+    public DLSSDepthType DepthType;
 
-    public bool IsDepthLinear;
+    public DLSSRoughnessMode RoughnessMode;
 
-    public bool IsRoughnessPacked;
-
-    public bool IsMotionVectorJittered;
-
-    public bool IsAlphaUpscalingEnabled;
+    public DLSSFeatureFlags Flags;
 }

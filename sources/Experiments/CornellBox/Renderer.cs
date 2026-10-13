@@ -38,7 +38,7 @@ internal class Renderer : DisposableObject
         }
     }
 
-    public DLSSCapabilities DLSSCapabilities { get; } = new(false, false, false);
+    public DLSSCapabilities? DLSSCapabilities { get; }
 
     public bool IsPaused { get; set; }
 
@@ -58,7 +58,7 @@ internal class Renderer : DisposableObject
         Matrix4x4.Invert(view, out Matrix4x4 inverseView);
         Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
 
-        DLSSMode? reconstruction = DLSSCapabilities.RayReconstructionSupported ? RayReconstruction : null;
+        DLSSMode? reconstruction = DLSSCapabilities?.RayReconstructionSupported is true ? RayReconstruction : null;
 
         Vector2 jitter = reconstruction is not null ? new(Halton(frameIndex + 1, 2) - 0.5f, Halton(frameIndex + 1, 3) - 0.5f) : Vector2.Zero;
 
@@ -94,7 +94,7 @@ internal class Renderer : DisposableObject
             FrameIndex = frameIndex,
             Slot = slot,
             RayReconstruction = reconstruction,
-            FrameGeneration = IsFrameGenerationEnabled && DLSSCapabilities.FrameGenerationSupported
+            FrameGeneration = IsFrameGenerationEnabled && DLSSCapabilities?.FrameGenerationSupported is true
         };
 
         pathTracing.Record(commandBuffer, in args);
@@ -136,7 +136,7 @@ internal class Renderer : DisposableObject
         uint renderWidth = width;
         uint renderHeight = height;
 
-        if (RayReconstruction is DLSSMode mode && DLSSCapabilities.RayReconstructionSupported)
+        if (RayReconstruction is DLSSMode mode && DLSSCapabilities?.RayReconstructionSupported is true)
         {
             DLSSOptimalSettings settings = App.Context.GetDLSSRayReconstructionOptimalSettings(width, height, mode);
 

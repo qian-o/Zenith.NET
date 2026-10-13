@@ -1,12 +1,11 @@
-﻿using NGX.NET;
+﻿using System.Numerics;
+using NGX.NET;
 
 namespace Zenith.NET.Extensions.DLSS;
 
 internal unsafe partial class DLSSBackend : DisposableObject
 {
     private readonly Dictionary<Texture, DLSSBinding> bindings = [];
-    private readonly NGXStrings strings = new();
-    private readonly ZenithMarshal.Scope scope = new();
     private readonly NGXParameter capabilityParameters;
 
     public DLSSBackend(GraphicsContext context, Guid project, string version, string dataDirectory)
@@ -22,17 +21,18 @@ internal unsafe partial class DLSSBackend : DisposableObject
             _ => default
         };
 
+        using NGXStrings strings = new();
+
         byte* projectId = strings.AllocUtf8(project.ToString("D"));
         byte* engineVersion = strings.AllocUtf8(version);
         void* dataPath = strings.AllocWide(dataDirectory);
-        void** paths = (void**)ZenithMarshal.Allocate<nint>(scope, 1);
-        *paths = strings.AllocWide(Ngx.RuntimeDirectory);
+        void* path = strings.AllocWide(Ngx.RuntimeDirectory);
 
         NGXFeatureCommonInfo featureInfo = new()
         {
             PathListInfo = new()
             {
-                Path = paths,
+                Path = &path,
                 Length = 1
             }
         };
@@ -62,9 +62,7 @@ internal unsafe partial class DLSSBackend : DisposableObject
             }
         }
 
-        Capabilities = new(GetI(capabilityParameters, Ngx.ParameterSuperSamplingAvailable) is not 0,
-                           GetI(capabilityParameters, Ngx.ParameterSuperSamplingDenoisingAvailable) is not 0,
-                           GetI(capabilityParameters, Ngx.ParameterFrameGenerationAvailable) is not 0);
+        Capabilities = new(capabilityParameters);
 
         switch (context.GraphicsApi)
         {
@@ -132,16 +130,6 @@ internal unsafe partial class DLSSBackend : DisposableObject
         return parameters;
     }
 
-    public void SetUI(NGXParameter parameters, ReadOnlySpan<byte> name, uint value)
-    {
-        using Lock.Scope _ = Lock.EnterScope();
-
-        fixed (byte* pointer = name)
-        {
-            Ngx.Parameter.SetUI(parameters, pointer, value);
-        }
-    }
-
     public void DestroyParameters(NGXParameter parameters)
     {
         using Lock.Scope _ = Lock.EnterScope();
@@ -174,22 +162,196 @@ internal unsafe partial class DLSSBackend : DisposableObject
         }
     }
 
-    public nint CommandList(CommandBuffer commandBuffer)
+    public void Create(CommandBuffer commandBuffer, DLSSSuperResolution feature)
     {
-        return Context.GraphicsApi switch
-        {
-            GraphicsApi.DirectX12 => commandBuffer.GetNativeObject(NativeObjectType.D3D12GraphicsCommandList),
-            GraphicsApi.Vulkan => commandBuffer.GetNativeObject(NativeObjectType.VulkanCommandBuffer),
-            _ => default
-        };
-    }
+        nint commandList = CommandList(commandBuffer);
 
-    public void BindEmptyDescriptorSet(nint commandList)
-    {
+        NGXDLSSCreateParams createParams = new()
+        {
+            Feature = new()
+            {
+                Width = feature.Desc.InputWidth,
+                Height = feature.Desc.InputHeight,
+                TargetWidth = feature.Desc.OutputWidth,
+                TargetHeight = feature.Desc.OutputHeight,
+                PerfQualityValue = DLSSFormats.PerfQualityValue(feature.Desc.Mode)
+            },
+            FeatureCreateFlags = (int)DLSSFormats.FeatureFlags(feature.Desc)
+        };
+
         switch (Context.GraphicsApi)
         {
+            case GraphicsApi.DirectX12:
+                CreateDirectX12(commandList, feature, &createParams);
+                break;
+
             case GraphicsApi.Vulkan:
-                BindVulkanEmptyDescriptorSet(commandList);
+                CreateVulkan(commandList, feature, &createParams);
+                break;
+        }
+    }
+
+    public void Create(CommandBuffer commandBuffer, DLSSRayReconstruction feature)
+    {
+        nint commandList = CommandList(commandBuffer);
+
+        NGXDLSSDCreateParams createParams = new()
+        {
+            DenoiseMode = NGXDLSSDenoiseMode.DlUnified,
+            RoughnessMode = DLSSFormats.RoughnessMode(feature.Desc.RoughnessMode),
+            UseHWDepth = DLSSFormats.DepthType(feature.Desc.DepthType),
+            Width = feature.Desc.InputWidth,
+            Height = feature.Desc.InputHeight,
+            TargetWidth = feature.Desc.OutputWidth,
+            TargetHeight = feature.Desc.OutputHeight,
+            PerfQualityValue = DLSSFormats.PerfQualityValue(feature.Desc.Mode),
+            FeatureCreateFlags = (int)DLSSFormats.FeatureFlags(feature.Desc)
+        };
+
+        switch (Context.GraphicsApi)
+        {
+            case GraphicsApi.DirectX12:
+                CreateDirectX12(commandList, feature, &createParams);
+                break;
+
+            case GraphicsApi.Vulkan:
+                CreateVulkan(commandList, feature, &createParams);
+                break;
+        }
+    }
+
+    public void Create(CommandBuffer commandBuffer, DLSSFrameGeneration feature)
+    {
+        nint commandList = CommandList(commandBuffer);
+
+        SetUI(feature.Parameters, Ngx.DLSSGParameterMvecJittered, feature.Desc.Flags.HasFlag(DLSSFeatureFlags.MotionVectorJittered) ? 1u : 0u);
+        SetUI(feature.Parameters, Ngx.DLSSGParameterUserInterfaceRecompositionEnabled, feature.Desc.Flags.HasFlag(DLSSFeatureFlags.UIRecomposition) ? 1u : 0u);
+
+        NGXDLSSGCreateParams createParams = new()
+        {
+            Width = feature.Desc.OutputWidth,
+            Height = feature.Desc.OutputHeight,
+            NativeBackbufferFormat = Context.GraphicsApi switch
+            {
+                GraphicsApi.DirectX12 => DLSSFormats.DirectX12(feature.Desc.Format),
+                GraphicsApi.Vulkan => DLSSFormats.Vulkan(feature.Desc.Format).Format,
+                _ => default
+            },
+            RenderWidth = feature.Desc.InputWidth,
+            RenderHeight = feature.Desc.InputHeight,
+            DynamicResolutionScaling = feature.Desc.Flags.HasFlag(DLSSFeatureFlags.DynamicResolution)
+        };
+
+        switch (Context.GraphicsApi)
+        {
+            case GraphicsApi.DirectX12:
+                CreateDirectX12(commandList, feature, &createParams);
+                break;
+
+            case GraphicsApi.Vulkan:
+                CreateVulkan(commandList, feature, &createParams);
+                break;
+        }
+    }
+
+    public void Evaluate(CommandBuffer commandBuffer, DLSSSuperResolution feature, DLSSSuperResolutionArgs args)
+    {
+        nint commandList = CommandList(commandBuffer);
+
+        NGXDimensions renderSubrectDimensions = new()
+        {
+            Width = args.InputContentWidth,
+            Height = args.InputContentHeight
+        };
+
+        switch (Context.GraphicsApi)
+        {
+            case GraphicsApi.DirectX12:
+                EvaluateDirectX12(commandList, feature, args, renderSubrectDimensions);
+                break;
+
+            case GraphicsApi.Vulkan:
+                EvaluateVulkan(commandList, feature, args, renderSubrectDimensions);
+                break;
+        }
+    }
+
+    public void Evaluate(CommandBuffer commandBuffer, DLSSRayReconstruction feature, DLSSRayReconstructionArgs args)
+    {
+        nint commandList = CommandList(commandBuffer);
+
+        NGXDimensions renderSubrectDimensions = new()
+        {
+            Width = feature.Desc.InputWidth,
+            Height = feature.Desc.InputHeight
+        };
+
+        switch (Context.GraphicsApi)
+        {
+            case GraphicsApi.DirectX12:
+                EvaluateDirectX12(commandList, feature, args, renderSubrectDimensions);
+                break;
+
+            case GraphicsApi.Vulkan:
+                EvaluateVulkan(commandList, feature, args, renderSubrectDimensions);
+                break;
+        }
+    }
+
+    public void Evaluate(CommandBuffer commandBuffer, DLSSFrameGeneration feature, DLSSFrameGenerationArgs args)
+    {
+        nint commandList = CommandList(commandBuffer);
+
+        Matrix4x4.Invert(args.ViewToClip, out Matrix4x4 clipToView);
+        Matrix4x4.Invert(args.ClipToPrevClip, out Matrix4x4 prevClipToClip);
+
+        NGXDimensions inputContentSize = new()
+        {
+            Width = args.InputContentWidth,
+            Height = args.InputContentHeight
+        };
+
+        NGXDLSSGOptEvalParams optEvalParams = new()
+        {
+            CameraViewToClip = args.ViewToClip,
+            ClipToCameraView = clipToView,
+            ClipToLensClip = Matrix4x4.Identity,
+            ClipToPrevClip = args.ClipToPrevClip,
+            PrevClipToClip = prevClipToClip,
+            JitterOffset = new(args.JitterOffsetX, args.JitterOffsetY),
+            MvecScale = new(args.MotionVectorScaleX, args.MotionVectorScaleY),
+            CameraPinholeOffset = new(args.CameraPinholeOffsetX, args.CameraPinholeOffsetY),
+            CameraPos = args.CameraPosition,
+            CameraUp = args.CameraUp,
+            CameraRight = args.CameraRight,
+            CameraFwd = args.CameraForward,
+            CameraNear = args.CameraNear,
+            CameraFar = args.CameraFar,
+            CameraFOV = args.CameraFovAngleVer,
+            CameraAspectRatio = args.CameraAspectRatio,
+            ColorBuffersHDR = feature.Desc.Flags.HasFlag(DLSSFeatureFlags.Hdr),
+            DepthInverted = feature.Desc.Flags.HasFlag(DLSSFeatureFlags.DepthReversed),
+            CameraMotionIncluded = true,
+            Reset = args.Reset,
+            OrthoProjection = args.Orthographic,
+            MvecsSubrectSize = inputContentSize,
+            DepthSubrectSize = inputContentSize,
+            HudLessSubrectSize = args.HudlessColor?.Size ?? default,
+            UiSubrectSize = args.UI?.Size ?? default,
+            UiAlphaSubrectSize = args.UIAlpha?.Size ?? default,
+            BidirectionalDistFieldSubrectSize = args.DistortionField?.Size ?? default,
+            BackbufferSubrectSize = args.Color.Size,
+            OutputInterpSubrectSize = args.Output.Size
+        };
+
+        switch (Context.GraphicsApi)
+        {
+            case GraphicsApi.DirectX12:
+                EvaluateDirectX12(commandList, feature, args, &optEvalParams);
+                break;
+
+            case GraphicsApi.Vulkan:
+                EvaluateVulkan(commandList, feature, args, &optEvalParams);
                 break;
         }
     }
@@ -238,14 +400,23 @@ internal unsafe partial class DLSSBackend : DisposableObject
     {
         using Lock.Scope _ = Lock.EnterScope();
 
+        foreach (DLSSBinding binding in bindings.Values)
+        {
+            switch (Context.GraphicsApi)
+            {
+                case GraphicsApi.Vulkan:
+                    DestroyVulkanBinding(binding);
+                    break;
+            }
+        }
+        bindings.Clear();
+
         switch (Context.GraphicsApi)
         {
             case GraphicsApi.Vulkan:
                 DestroyVulkanResources();
                 break;
         }
-
-        bindings.Clear();
 
         DestroyParameters(capabilityParameters);
 
@@ -259,19 +430,25 @@ internal unsafe partial class DLSSBackend : DisposableObject
                 ShutdownVulkan();
                 break;
         }
-
-        scope.Dispose();
-        strings.Dispose();
     }
 
-    private static int GetI(NGXParameter parameters, ReadOnlySpan<byte> name)
+    private nint CommandList(CommandBuffer commandBuffer)
     {
+        return Context.GraphicsApi switch
+        {
+            GraphicsApi.DirectX12 => commandBuffer.GetNativeObject(NativeObjectType.D3D12GraphicsCommandList),
+            GraphicsApi.Vulkan => commandBuffer.GetNativeObject(NativeObjectType.VulkanCommandBuffer),
+            _ => default
+        };
+    }
+
+    private void SetUI(NGXParameter parameters, ReadOnlySpan<byte> name, uint value)
+    {
+        using Lock.Scope _ = Lock.EnterScope();
+
         fixed (byte* pointer = name)
         {
-            int value = 0;
-            Ngx.Parameter.GetI(parameters, pointer, &value).Success();
-
-            return value;
+            Ngx.Parameter.SetUI(parameters, pointer, value);
         }
     }
 }

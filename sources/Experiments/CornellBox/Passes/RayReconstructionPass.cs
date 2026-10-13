@@ -34,7 +34,7 @@ internal class RayReconstructionPass(uint renderWidth, uint renderHeight, uint d
             OutputWidth = DisplayWidth,
             OutputHeight = DisplayHeight,
             Mode = mode,
-            IsRoughnessPacked = true
+            RoughnessMode = DLSSRoughnessMode.Packed
         };
 
         if (rayReconstruction is null || !rayReconstruction.Desc.Equals(desc))

@@ -127,7 +127,7 @@ internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint dis
             InputHeight = RenderHeight,
             OutputWidth = DisplayWidth,
             OutputHeight = DisplayHeight,
-            IsUIRecompositionEnabled = true
+            Flags = DLSSFeatureFlags.UIRecomposition
         };
     }
 
