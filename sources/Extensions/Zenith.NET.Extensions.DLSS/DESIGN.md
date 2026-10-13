@@ -2,7 +2,7 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 状态 | 已按确认设计完成重构；Release 编译通过，GPU 运行未验证 |
+| 状态 | 第 17 版：后端结构调整草案；当前实现仍为上一版 |
 | 依赖 | `Zenith.NET`、`NGX.NET` 310.9.1.1 |
 | 参照 | Upscaling 扩展（调用形式）、ImGui 扩展（纹理绑定）、Skia 扩展（每上下文原生状态及其释放）、Apple 为 MetalFX 帧插值提供的 [`PresentThread`](https://github.com/apple/game-porting-toolkit/blob/main/game-porting-skills/skills/using-metalfx-frame-interpolation/references/present-thread.md)、[NGX.NET Showcase](https://github.com/qian-o/NGX.NET/tree/master/Showcase) |
 
@@ -12,16 +12,16 @@
 - 调用形式与 Upscaling 扩展相同：`context.CreateXxx(desc)` 创建，`xxx.Dispatch(commandBuffer, args)` 录制。纹理经 `texture.DLSSBinding` 传入，用法同 `texture.ImGuiBinding`。
 - 类型名为 `DLSS` 加 NVIDIA 功能名，之后新增的功能按同一规则命名。
 - 参数沿用 NGX 原义。扩展只做类型转换：纹理转为原生资源，枚举与格式转为 NGX 取值，按 NGX 的需要对矩阵求逆；未公开的 NGX 参数取固定值（附录）。不做数值换算，也不做兼容处理。
-- 现有功能框架与参数语义已定版。本次增加 `InitializeDLSS(Guid project, string version, string dataDirectory)`，将 `DLSSBinding` 调整为内部保存原生数据的只读主构函数结构体，按 NGX 的资源语义为可选或条件必需的绑定使用 `DLSSBinding?`，将 `DLSSCapabilities` 改为具有只读属性的类，并调整初始化前置条件、内部命名、生命周期与新版 NGX.NET 适配。绑定在纹理扩展属性访问时由后端建立，Vulkan image view 由后端持有，按纹理释放事件清理；其余公共类型、成员顺序、功能参数含义、子资源范围与呈现职责保持不变。
+- 本轮将 DLSS 按独立后端组织：Desc 的布尔配置改为 `DLSSFeatureFlags`、`DLSSDepthType`、`DLSSRoughnessMode`；增加 `DLSSFeature` 基类；DX12 与 Vulkan 分别实现后端；原生特性在具体功能对象构造期间创建。现有初始化签名、原生数据绑定、可空资源、Args 与呈现职责保持不变。
 - 调用方负责正确的平台、图形 API、参数和资源生命周期。初始化入口机制与其他扩展一致：`GetBackend` 未找到后端时抛出未初始化异常。原生调用保持单一流程，不另加失败或错误使用的兜底；`Success()` 仅输出调试信息。
 - 内部按 DirectX 12、Vulkan 后端的方式组织不安全调用：直接构造原生结构、传入指针、显式管理所有权。使用 NGX.NET 的指针重载，不通过其 `string`、`in`、`out` 便利重载执行 NGX 调用。
-- 图形 API 选择直接对 `GraphicsApi` 使用 `switch`，显式列出需要执行的 DirectX 12、Vulkan 分支。switch 语句不增加无操作的 `default` 或提前返回分支；值选择的 switch 表达式保留 `_ => default`。不单列 Metal，也不把其他 API 当作 DirectX 12。
+- 后端保持单个 `partial DLSSBackend`，公共入口按 `Context.GraphicsApi` 分派到对应实现文件。公开功能类不包含图形 API 分支。
 - 扩展仅依赖 `Zenith.NET` 与 `NGX.NET`。沿用现有 Vulkan 函数指针、局部 ABI 结构与数值映射，不新增 Vulkan NuGet 包、图形后端项目引用或原生桥接层。第 5 节记录的 RHI 改动已经存在，本次不再修改 RHI。
-- 实现范围为 DLSS 扩展、NGX.NET 依赖与 CornellBox 调用方。第 5 节保留旧版的 GPU 验证记录，本次编译结果与历史运行结果分开记录。
+- 本轮先修订设计，确认后再修改实现。当前代码是上一版已编译的实现；第 5 节的历史验证与上一版编译结果不覆盖本轮新结构。
 
 ## 2. 公共 API
 
-本节映射表与附录中的 `In*`、`pIn*` 等名称表示 NVIDIA SDK 的原生字段或参数键；新版 NGX.NET 的 C# 成员拼写见 3.5。NGX.NET 的命名调整不传播到本扩展已经定版的公共成员。
+本节映射表与附录中的 `In*`、`pIn*` 等名称表示 NVIDIA SDK 的原生字段或参数键；新版 NGX.NET 的 C# 成员拼写见 3.5。NGX.NET 的命名调整不传播到公开成员；本轮明确调整的 Desc 配置以 2.3 的公共枚举为准。
 
 ### 2.1 入口
 
@@ -31,7 +31,7 @@
 | `context.DLSSCapabilities` | 能力（2.3） |
 | `context.GetDLSSSuperResolutionOptimalSettings(outputWidth, outputHeight, mode)` | 超分辨率的推荐输入尺寸 |
 | `context.GetDLSSRayReconstructionOptimalSettings(outputWidth, outputHeight, mode)` | 光线重建的推荐输入尺寸 |
-| `context.CreateDLSSSuperResolution(desc)`、`CreateDLSSRayReconstruction(desc)`、`CreateDLSSFrameGeneration(desc)` | 创建功能对象 |
+| `context.CreateDLSSSuperResolution(desc)`、`CreateDLSSRayReconstruction(desc)`、`CreateDLSSFrameGeneration(desc)` | 创建功能对象，构造返回时原生特性已经创建 |
 | `texture.DLSSBinding` | 查找所属后端，准备或复用原生绑定数据（2.2） |
 
 初始化直接接收三个参数，不引入配置类型或类型组合重载：
@@ -153,19 +153,39 @@ public readonly struct DLSSBinding(nint directX12, NGXResourceVK vulkan, NGXDime
 ### 2.3 能力、档位与最佳设置
 
 ```csharp
+using NGX.NET;
+
 namespace Zenith.NET.Extensions.DLSS;
 
-public class DLSSCapabilities(bool superResolutionSupported, bool rayReconstructionSupported, bool frameGenerationSupported)
+public unsafe class DLSSCapabilities
 {
-    public bool SuperResolutionSupported { get; } = superResolutionSupported;
+    internal DLSSCapabilities(NGXParameter parameters)
+    {
+        SuperResolutionSupported = GetI(parameters, Ngx.ParameterSuperSamplingAvailable) is not 0;
+        RayReconstructionSupported = GetI(parameters, Ngx.ParameterSuperSamplingDenoisingAvailable) is not 0;
+        FrameGenerationSupported = GetI(parameters, Ngx.ParameterFrameGenerationAvailable) is not 0;
+    }
 
-    public bool RayReconstructionSupported { get; } = rayReconstructionSupported;
+    public bool SuperResolutionSupported { get; }
 
-    public bool FrameGenerationSupported { get; } = frameGenerationSupported;
+    public bool RayReconstructionSupported { get; }
+
+    public bool FrameGenerationSupported { get; }
+
+    private static int GetI(NGXParameter parameters, ReadOnlySpan<byte> name)
+    {
+        fixed (byte* pointer = name)
+        {
+            int value = 0;
+            Ngx.Parameter.GetI(parameters, pointer, &value).Success();
+
+            return value;
+        }
+    }
 }
 ```
 
-与 RHI 的 `Capabilities` 一样，以类和只读属性公开能力。每个后端保存一个能力实例，属性值来自 NGX 能力查询。
+与 RHI 的能力类一样，在构造函数内完成查询。后端在 NGX 初始化后取得能力参数块，将它交给此构造器；不再传入三个预先计算好的 bool。参数块仍由后端持有并释放，供最佳设置查询复用，能力对象只保存查询结果。
 
 ```csharp
 namespace Zenith.NET.Extensions.DLSS;
@@ -214,6 +234,56 @@ public enum DLSSMode
 - `DLSSMode` 由超分辨率与光线重建共用，成员按画质从高到低排列。
 - 渲染预设决定 DLSS 使用哪个模型，不公开，固定为 `Default`：NGX 按档位选用 NVIDIA 推荐的模型，并随驱动更新。
 
+创建配置统一使用以下枚举；`Reset` 等每帧参数仍留在 Args。
+
+```csharp
+[Flags]
+public enum DLSSFeatureFlags
+{
+    None = 0,
+
+    Hdr = 1 << 0,
+
+    AutoExposure = 1 << 1,
+
+    DepthReversed = 1 << 2,
+
+    MotionVectorJittered = 1 << 3,
+
+    AlphaUpscaling = 1 << 4,
+
+    DynamicResolution = 1 << 5,
+
+    UIRecomposition = 1 << 6
+}
+```
+
+```csharp
+public enum DLSSDepthType
+{
+    Hardware,
+
+    Linear
+}
+```
+
+```csharp
+public enum DLSSRoughnessMode
+{
+    Unpacked,
+
+    Packed
+}
+```
+
+| Desc | 配置字段 | 使用的 Flags |
+| --- | --- | --- |
+| 超分辨率 | `Mode`、`Flags` | Hdr、AutoExposure、DepthReversed、MotionVectorJittered、AlphaUpscaling |
+| 光线重建 | `Mode`、`DepthType`、`RoughnessMode`、`Flags` | DepthReversed、MotionVectorJittered、AlphaUpscaling；HDR 与低分辨率运动矢量仍由内部固定 |
+| 帧生成 | `Flags` | Hdr、DepthReversed、MotionVectorJittered、DynamicResolution、UIRecomposition |
+
+枚举取值遵循公共 API 的语义顺序，由 `DLSSFormats` 显式映射到 NGX。`Hardware = 0`、`Unpacked = 0` 保留原布尔字段为 false 时的语义。帧生成的 Flags 分别写入其创建结构、求值结构及参数键，不直接转换成 NGX 的 SR/RR 特性位掩码。
+
 ### 2.4 超分辨率
 
 `DLSSSuperResolution` 的公开成员与 `TemporalUpscaler` 相同：`Desc { get; }` 与 `Dispatch(CommandBuffer commandBuffer, DLSSSuperResolutionArgs args)`。调试事件名为 `"DLSS Super Resolution"`。
@@ -233,15 +303,7 @@ public struct DLSSSuperResolutionDesc
 
     public DLSSMode Mode;
 
-    public bool IsHdr;
-
-    public bool IsAutoExposureEnabled;
-
-    public bool IsDepthReversed;
-
-    public bool IsMotionVectorJittered;
-
-    public bool IsAlphaUpscalingEnabled;
+    public DLSSFeatureFlags Flags;
 }
 ```
 
@@ -287,7 +349,7 @@ public struct DLSSSuperResolutionArgs
 | `InputWidth`、`InputHeight` | `InWidth`、`InHeight` | 渲染分辨率；使用动态分辨率时为上限 |
 | `OutputWidth`、`OutputHeight` | `InTargetWidth`、`InTargetHeight` | |
 | `Mode` | `InPerfQualityValue` | |
-| `IsHdr`、`IsAutoExposureEnabled`、`IsDepthReversed`、`IsMotionVectorJittered`、`IsAlphaUpscalingEnabled` | `IsHDR`、`AutoExposure`、`DepthInverted`、`MVJittered`、`AlphaUpscaling` 标志 | Alpha 取自 `Input` 的 A 通道 |
+| `Flags` 中的 Hdr、AutoExposure、DepthReversed、MotionVectorJittered、AlphaUpscaling | `IsHDR`、`AutoExposure`、`DepthInverted`、`MVJittered`、`AlphaUpscaling` 标志 | Alpha 取自 `Input` 的 A 通道 |
 | `Input`、`Depth`、`MotionVectors`、`Output` | `pInColor`、`pInDepth`、`pInMotionVectors`、`pInOutput` | 必需 |
 | `Exposure` | `pInExposureTexture` | 1×1 曝光纹理 |
 | `ReactiveMask` | `pInBiasCurrentColorMask` | 0 到 1，偏向当前帧的程度 |
@@ -318,15 +380,11 @@ public struct DLSSRayReconstructionDesc
 
     public DLSSMode Mode;
 
-    public bool IsDepthReversed;
+    public DLSSDepthType DepthType;
 
-    public bool IsDepthLinear;
+    public DLSSRoughnessMode RoughnessMode;
 
-    public bool IsRoughnessPacked;
-
-    public bool IsMotionVectorJittered;
-
-    public bool IsAlphaUpscalingEnabled;
+    public DLSSFeatureFlags Flags;
 }
 ```
 
@@ -394,9 +452,9 @@ public struct DLSSRayReconstructionArgs
 | 字段 | NGX | 说明 |
 | --- | --- | --- |
 | 尺寸、`Mode` | 同超分辨率 | |
-| `IsDepthReversed`、`IsMotionVectorJittered`、`IsAlphaUpscalingEnabled` | `DepthInverted`、`MVJittered`、`AlphaUpscaling` 标志 | Alpha 取自 `Input` 的 A 通道 |
-| `IsDepthLinear` | `InUseHWDepth`：`Linear` 或 `HW` | |
-| `IsRoughnessPacked` | `InRoughnessMode`：`Packed` 或 `Unpacked` | 打包时粗糙度在 `Normals` 的 A 通道 |
+| `Flags` 中的 DepthReversed、MotionVectorJittered、AlphaUpscaling | `DepthInverted`、`MVJittered`、`AlphaUpscaling` 标志 | Alpha 取自 `Input` 的 A 通道 |
+| `DepthType` | `InUseHWDepth`：`Linear` 或 `HW` | |
+| `RoughnessMode` | `InRoughnessMode`：`Packed` 或 `Unpacked` | 打包时粗糙度在 `Normals` 的 A 通道 |
 | `Input`、`DiffuseAlbedo`、`SpecularAlbedo`、`Normals`、`Depth`、`MotionVectors`、`Output` | `pInColor`、`pInDiffuseAlbedo`、`pInSpecularAlbedo`、`pInNormals`、`pInDepth`、`pInMotionVectors`、`pInOutput` | 必需 |
 | `Roughness` | `pInRoughness` | 未打包时必需 |
 | `SpecularMotionVectors`、`SpecularHitDistance` | `pInMotionVectorsReflections`、`pInSpecularHitDistance` | 改善运动中的反射，提供其一即可 |
@@ -427,15 +485,7 @@ public struct DLSSFrameGenerationDesc
 
     public uint OutputHeight;
 
-    public bool IsHdr;
-
-    public bool IsDepthReversed;
-
-    public bool IsMotionVectorJittered;
-
-    public bool IsDynamicResolutionEnabled;
-
-    public bool IsUIRecompositionEnabled;
+    public DLSSFeatureFlags Flags;
 }
 ```
 
@@ -509,10 +559,10 @@ public struct DLSSFrameGenerationArgs
 | `Format` | `NativeBackbufferFormat` | `Color` 与 `Output` 的格式，转为 DXGI_FORMAT 或 VkFormat 的数值 |
 | `InputWidth`、`InputHeight` | `RenderWidth`、`RenderHeight` | 深度与运动矢量的分辨率；使用动态分辨率时为上限 |
 | `OutputWidth`、`OutputHeight` | `Width`、`Height` | 颜色与生成帧的分辨率 |
-| `IsHdr`、`IsDepthReversed` | `ColorBuffersHDR`、`DepthInverted` | |
-| `IsMotionVectorJittered` | `DLSSG.MvecJittered` | |
-| `IsDynamicResolutionEnabled` | `DynamicResolutionScaling` | |
-| `IsUIRecompositionEnabled` | `DLSSG.UserInterfaceRecompositionEnabled` | 需要 `HudlessColor`，以及 `UI` 或 `UIAlpha` |
+| `Flags` 中的 Hdr、DepthReversed | `ColorBuffersHDR`、`DepthInverted` | |
+| `Flags.MotionVectorJittered` | `DLSSG.MvecJittered` | |
+| `Flags.DynamicResolution` | `DynamicResolutionScaling` | |
+| `Flags.UIRecomposition` | `DLSSG.UserInterfaceRecompositionEnabled` | 需要 `HudlessColor`，以及 `UI` 或 `UIAlpha` |
 | `Color`、`Depth`、`MotionVectors`、`Output` | `pBackbuffer`、`pDepth`、`pMVecs`、`pOutputInterpFrame` | 必需；`Output` 与 `Color` 同格式 |
 | `HudlessColor` | `pHudless` | 绘制 UI 之前的同一帧，强烈建议提供 |
 | `UI`、`UIAlpha` | `pUI`、`pUIAlpha` | 预乘 Alpha 的 UI，或单通道的 UI 不透明度，二选一 |
@@ -566,8 +616,7 @@ DLSSSuperResolution superResolution = context.CreateDLSSSuperResolution(new()
     OutputWidth = displayWidth,
     OutputHeight = displayHeight,
     Mode = DLSSMode.Quality,
-    IsHdr = true,
-    IsAutoExposureEnabled = true
+    Flags = DLSSFeatureFlags.Hdr | DLSSFeatureFlags.AutoExposure
 });
 
 commandBuffer.Transition(output, default, TextureLayout.Sampled, TextureLayout.Storage);
@@ -605,7 +654,7 @@ DLSSFrameGeneration frameGeneration = context.CreateDLSSFrameGeneration(new()
     InputHeight = renderHeight,
     OutputWidth = swapChain.Desc.Surface.Width,
     OutputHeight = swapChain.Desc.Surface.Height,
-    IsUIRecompositionEnabled = true
+    Flags = DLSSFeatureFlags.UIRecomposition
 });
 
 commandBuffer.Transition(generated, default, TextureLayout.CopySrc, TextureLayout.Storage);
@@ -647,91 +696,146 @@ TimelineValue generatedValue = commandBuffer.Submit();
 
 ### 3.1 文件
 
-| 文件 | 内容 |
-| --- | --- |
-| `Extensions.cs` | 入口（2.1） |
-| `DLSSBinding.cs` | 内部保存 DX12 地址、Vulkan 资源描述及尺寸的结构体（2.2） |
-| `DLSSCapabilities.cs`、`DLSSOptimalSettings.cs`、`DLSSMode.cs` | 2.3 |
-| `DLSSSuperResolution*.cs`、`DLSSRayReconstruction*.cs`、`DLSSFrameGeneration*.cs` | 各功能的类、Desc 与 Args，每个公共类型一个文件 |
-| `DLSSBackend.cs` | 由 `DLSSContext.cs` 重命名；内部：NGX 初始化与关闭、能力、参数块、绑定准备与缓存、Vulkan 空描述符集 |
-| `DLSSFormats.cs` | 内部：数值映射（3.4） |
+按 RHI 的方式分组，分类目录不改变公共命名空间 `Zenith.NET.Extensions.DLSS`：
+
+```text
+Extensions.cs
+DLSSCapabilities.cs
+DLSSFeature.cs
+DLSSSuperResolution.cs
+DLSSRayReconstruction.cs
+DLSSFrameGeneration.cs
+Enums/
+    DLSSMode.cs
+    DLSSFeatureFlags.cs
+    DLSSDepthType.cs
+    DLSSRoughnessMode.cs
+Structs/
+    DLSSBinding.cs
+    DLSSOptimalSettings.cs
+    DLSSSuperResolutionDesc.cs
+    DLSSSuperResolutionArgs.cs
+    DLSSRayReconstructionDesc.cs
+    DLSSRayReconstructionArgs.cs
+    DLSSFrameGenerationDesc.cs
+    DLSSFrameGenerationArgs.cs
+Backends/
+    DLSSBackend.cs
+    DLSSBackend.DirectX12.cs
+    DLSSBackend.Vulkan.cs
+    DLSSFormats.cs
+```
+
+Vulkan 的 file-local ABI 声明放在 `DLSSBackend.Vulkan.cs` 后部，不增加 Vulkan NuGet 包或新的后端项目。
 
 ### 3.2 DLSSBackend
 
-`internal unsafe class DLSSBackend : DisposableObject`，构造器为 `DLSSBackend(GraphicsContext context, Guid project, string version, string dataDirectory)`。每个 `GraphicsContext` 一个，功能对象通过 `backend` 字段使用它。
+保持一个 `internal unsafe partial class DLSSBackend : DisposableObject`，按实现内容分成三个文件：
 
-图形 API 分支参照 [SkiaBackend](../Zenith.NET.Extensions.Skia/SkiaBackend.cs)：构造器使用 `context.GraphicsApi`，后端成员使用 `Context.GraphicsApi`，功能对象使用 `backend.Context.GraphicsApi`。switch 语句只列出需要执行的分支，执行后继续后续流程；switch 表达式的值选择使用 `_ => default`。移除 `IsVulkan`，也不再用 `IsInitialized` 为后续调用提供检查或静默返回。
+| 文件 | 负责内容 |
+| --- | --- |
+| `DLSSBackend.cs` | 构造函数、GraphicsContext、锁、能力与参数管理、绑定缓存、公共入口及 GraphicsApi 分派 |
+| `DLSSBackend.DirectX12.cs` | D3D12 初始化、分配、绑定、特性创建、求值与释放的具体方法 |
+| `DLSSBackend.Vulkan.cs` | Vulkan 对应方法、函数指针、image view、空描述符集与局部 ABI 声明 |
 
-后端只在获取绑定时使用一个缓存：
+三个文件共享同一个实例的字段。公共入口通过 `switch (Context.GraphicsApi)` 调用对应的私有实现方法；不增加后端派生类、接口或 API 子目录。初始化参数仍是 `project`、`version`、`dataDirectory`。
 
-```csharp
-private readonly Dictionary<Texture, DLSSBinding> bindings = [];
-```
-
-缓存值就是完整的 `DLSSBinding`。`Binding(texture)` 命中时直接返回值副本；求值阶段不再查表。
-
-| | DirectX 12 | Vulkan |
-| --- | --- | --- |
-| 初始化 | `D3D12.InitWithProjectID`，传入 `D3D12Device` | `Vulkan.InitWithProjectID`，传入实例、物理设备、设备及 GIPA/GDPA |
-| 命令列表 | `D3D12GraphicsCommandList` | `VulkanCommandBuffer` |
-| 纹理绑定 | 填入 `D3D12Resource` 地址 | 创建 `VkImageView` 并填入完整 `NGXResourceVK` 描述 |
-| 关闭 | `D3D12.Shutdown1(device)` | `Vulkan.Shutdown1(device)` |
-
-- 初始化使用 `project.ToString("D")`、`version`、`dataDirectory`；引擎类型为 `NGXEngineType.Custom`，SDK 版本为 `NGXVersion.Api`，路径列表只含 `Ngx.RuntimeDirectory`，日志使用默认配置。
-- NGX 的使用范围为 Windows / Linux 的 x64 / arm64、DirectX 12 / Vulkan，由调用方选择正确的运行环境。
-- 初始化 NGX 后读取能力参数，Vulkan 分支创建所需辅助对象，按顺序执行各原生调用并接 `.Success()`。
-- `Binding(texture)` 先查 `bindings`；未命中时准备尺寸，并按图形 API 取得 DX12 地址或创建 Vulkan view、准备资源描述，再通过主构函数构造绑定、写入缓存并内联订阅 `texture.Disposing`。所有纹理元信息均在这里准备。
-- Vulkan 沿用当前函数指针、`file unsafe struct Vk*` 和 `DLSSFormats` 数值映射；空描述符集的建立与绑定方式保持不变，不引入 Vulkan NuGet 包。
-- 一把静态 `DLSSBackend.Lock` 串行化 NGX 调用与绑定表访问；`Extensions` 的锁用于后端注册表。
-
-以下代码接在首次准备好 `binding` 后，采用内联事件写法。回调从 `sender` 取得纹理，不捕获方法局部变量，缓存命中时不会创建闭包：
+初始化内存改为调用内作用域：
 
 ```csharp
-bindings[texture] = binding;
+using NGXStrings strings = new();
 
-texture.Disposing += (sender, _) =>
+byte* projectId = strings.AllocUtf8(project.ToString("D"));
+byte* engineVersion = strings.AllocUtf8(version);
+void* applicationDataPath = strings.AllocWide(dataDirectory);
+void* path = strings.AllocWide(Ngx.RuntimeDirectory);
+
+NGXFeatureCommonInfo featureInfo = new()
 {
-    using Lock.Scope scope = Lock.EnterScope();
-
-    Texture disposedTexture = (Texture)sender!;
-
-    if (bindings.Remove(disposedTexture, out DLSSBinding disposedBinding))
+    PathListInfo = new()
     {
-        switch (Context.GraphicsApi)
-        {
-            case GraphicsApi.Vulkan:
-                vkDestroyImageView(Device, disposedBinding.Vulkan.Resource.ImageViewInfo.ImageView, null);
-                break;
-        }
+        Path = &path,
+        Length = 1
     }
 };
 ```
 
-后端销毁时，Vulkan 分支从缓存绑定中取得并销毁剩余 image view，再销毁辅助对象；随后清空缓存、释放能力参数、关闭 NGX，最后释放初始化使用的原生内存。DirectX 12 的资源地址仅作借用，不执行 COM `Release`。
+不保留实例级或 static 的 `NGXStrings`、`ZenithMarshal.Scope` 字段。项目、版本、数据目录和搜索路径缓冲区在 Init 调用后释放；Vulkan 函数名转换使用所在调用的局部 scope。NGX.NET 310.9.1.1 的字符串重载采用相同的局部 `NGXStrings` 用法；[NVIDIA Streamline 初始化实现](https://github.com/NVIDIA-RTX/Streamline/blob/2122257e0fce486f91b385aa63b9a09b0a34b363/source/plugins/sl.common/commonEntry.cpp#L1454-L1521) 也使用局部路径内容与指针数组。这里仍调用 unsafe 指针接口。
 
-### 3.3 功能类
+能力参数块需要跨调用供最佳设置查询使用，由后端保存至销毁；设备、能力参数、Vulkan view 与辅助对象的原生生命周期不随临时字符串一起结束。NGX 初始化后，后端取得能力参数块，再调用 `new DLSSCapabilities(parameters)`，由能力类自己查询三项支持状态。
 
-三个功能类的结构相同：
+绑定继续只用一个 `Dictionary<Texture, DLSSBinding>` 缓存完整原生数据。共享获取流程调用对应 API 的绑定创建方法；首次获取时内联订阅 `Texture.Disposing`，删除缓存并调用对应 API 的绑定销毁方法。DX12 只借用资源地址，Vulkan 释放自身创建的 view。Dispatch 直接使用绑定值，不查表，不新增独立的资源注册框架。
 
-- 构造：接收同一个 `DLSSBackend backend`，用指针重载分配参数块，设置 `FreeMemOnReleaseFeature = 1`；帧生成另设 `MvecJittered` 与 `UserInterfaceRecompositionEnabled`。每个对象独占一个参数块，因为 NGX 求值前会把全部参数写入传入的参数块。参数与特性分别使用值类型 `NGXParameter`、`NGXHandle`，按新版签名传值或地址。
-- `Dispatch`：录制 `BeginDebugEvent` 与 `Barrier(All, All)`，Vulkan 分支绑定空描述符集；在 NGX 锁内于首次调用时创建特性，随后直接使用 Args 中的原生绑定数据构造求值参数并求值；最后 `Barrier(All, All)` 与 `EndDebugEvent`。仅保留首次创建所需的句柄状态判断，不增加创建失败后的跳过或重试流程。纹理绑定与 image view 已在属性访问时建立。删除 `RemoveDestroyedBindings`，由纹理释放事件清理缓存。
-- 空描述符集：同一 VkQueue 上，特性第一次求值之前只要绑定过 Zenith 的描述符堆，之后的输出就一直为 0，NGX 与验证层都不报错（第 5 节）。在 NGX 调用前用 `vkCmdBindDescriptorSets` 绑定空描述符集即可避免。每次 `Dispatch` 都绑定，不区分是否首次。
-- `Destroy`：已创建特性时调用 `ReleaseFeature`，然后调用 `DestroyParameters`。不释放共享后端，不调用注册表，也不再减少引用计数。
+后端退出时先销毁缓存中的原生绑定，清空缓存，再销毁该后端辅助对象、能力参数块并关闭 NGX。原生调用仍直接接 `.Success()`，不增加错误使用的兜底流程。
+
+### 3.3 DLSSFeature 与功能类
+
+新增公共抽象基类，集中参数块与特性句柄的所有权。三个公开功能类都继承它，不再各自声明和释放一份重复的状态：
+
+```csharp
+using NGX.NET;
+
+namespace Zenith.NET.Extensions.DLSS;
+
+public abstract class DLSSFeature : DisposableObject
+{
+    internal readonly DLSSBackend Backend;
+    internal readonly NGXParameter Parameters;
+
+    internal NGXHandle Handle;
+
+    internal DLSSFeature(DLSSBackend backend)
+    {
+        Backend = backend;
+        Parameters = backend.AllocateParameters();
+    }
+
+    protected override void Destroy()
+    {
+        Backend.ReleaseFeature(Handle);
+        Backend.DestroyParameters(Parameters);
+    }
+}
+```
+
+`DLSSFeature` 必须是 public，才能作为现有公开功能类的基类；其后端、参数与 Handle 均保持 internal。基类构造器只分配公共参数，不调用依赖派生 Desc 的虚方法。`FreeMemOnReleaseFeature = 1` 仍在参数分配时设置。
+
+具体功能构造器先保存 Desc；FG 还先设置运动矢量抖动与 UI 重组参数，然后创建原生 Handle。以超分辨率的构造流程为例：
+
+```csharp
+internal DLSSSuperResolution(DLSSBackend backend, DLSSSuperResolutionDesc desc) : base(backend)
+{
+    Desc = desc;
+
+    using Lock.Scope _ = DLSSBackend.Lock.EnterScope();
+
+    CommandBuffer commandBuffer = backend.Context.GraphicsQueue.CommandBuffer();
+    backend.Create(commandBuffer, this);
+    commandBuffer.Submit().Wait();
+}
+```
+
+后端为三种 feature 提供对应的 Create / Evaluate 实现，Create 直接向 `feature.Handle` 写入原生结果。类字段取址仍用 `fixed`，不增加临时句柄或成功后接管流程。
+
+NGX 的 Create 需要正在录制的命令列表：[D3D12](https://github.com/NVIDIA/DLSS/blob/main/include/nvsdk_ngx.h#L473-L535)、[Vulkan](https://github.com/NVIDIA/DLSS/blob/main/include/nvsdk_ngx_vk.h#L466-L524)。为保留 `CreateXxx(desc)` 签名，构造过程采用与 [SkiaTexture](../Zenith.NET.Extensions.Skia/SkiaTexture.cs) 相同的 GraphicsQueue 录制、提交并等待方式。命令缓冲由 RHI 队列池管理，不新建原生命令池或手动销毁它。
+
+这会把创建命令及一次 GPU 等待移到构造阶段。构造返回后 Handle 已创建，`Dispatch` 只进行调试事件、屏障及 Evaluate，不再判断 Handle 是否需要首次创建。Vulkan 的空描述符集由 Vulkan 后端在调用 NGX 前绑定。
 
 | | 超分辨率 | 光线重建 | 帧生成 |
 | --- | --- | --- | --- |
 | 创建参数 | `NGXDLSSCreateParams` | `NGXDLSSDCreateParams` | `NGXDLSSGCreateParams` |
 | 创建（DirectX 12） | `D3D12.CreateDLSSExt` | `D3D12.CreateDLSSDExt` | `D3D12.CreateDLSSG` |
 | 创建（Vulkan） | `Vulkan.CreateDLSSExt1` | `Vulkan.CreateDLSSDExt1` | `Vulkan.CreateDLSSG` |
-| 求值参数 | `NGXD3D12DLSSEvalParams`、`NGXVKDLSSEvalParams` | `NGXD3D12DLSSDEvalParams`、`NGXVKDLSSDEvalParams` | `NGXD3D12DLSSGEvalParams`、`NGXVKDLSSGEvalParams`，另有 `NGXDLSSGOptEvalParams` |
 | 求值 | `EvaluateDLSSExt` | `EvaluateDLSSDExt` | `EvaluateDLSSG` |
 
-### 3.4 格式
+### 3.4 格式与配置映射
 
-`DLSSFormats` 集中全部数值映射，与 Skia 的 `SkiaFormats` 一样不依赖 Silk.NET：
+`DLSSFormats` 保留 PixelFormat 到 DXGI_FORMAT / VkFormat 的数值映射，以及 `DLSSMode` 到 NGX 档位的映射，不依赖 Silk.NET。
 
-- `PixelFormat` 到 VkFormat（Vulkan 视图、`NGXResourceVK` 的 `NGXVkFormat`、Vulkan 下帧生成的 `NativeBackbufferFormat`）与 DXGI_FORMAT（DirectX 12 下帧生成的 `NativeBackbufferFormat`）；深度模板格式的 Vulkan 视图只取深度方面。
-- `DLSSMode` 到 `NGXPerfQualityValue`；超分辨率与光线重建 Desc 的布尔字段到 `NGXDLSSFeatureFlags`，光线重建的 `IsDepthLinear`、`IsRoughnessPacked` 到对应枚举（2.5）。
+- `DLSSFeatureFlags` 按各功能实际使用的位逐项映射；SR / RR 的低分辨率运动矢量固定项、RR 的 HDR 固定项保持现有语义。
+- `DLSSDepthType.Hardware` / `Linear` 分别映射到 `NGXDLSSDepthType.Hw` / `Linear`；不能直接按数值强转。
+- `DLSSRoughnessMode.Unpacked` / `Packed` 分别映射到对应 NGX 枚举。
+- FG 的动态分辨率写入创建参数，HDR 与反转深度写入求值参数，运动矢量抖动与 UI 重组写入参数块；不引入另一组公开 FG flags 类型。
 
 ### 3.5 NGX.NET 310.9.1.1 与不安全调用
 
@@ -788,21 +892,12 @@ NGXVKDLSSEvalParams evalParams = new()
 
 此处仅节选资源赋值，其余求值字段按 2.4 至 2.6 填写。删除后端的 `D3D12Resource`、`VulkanResource` 解析与 `Size` 查询。帧生成直接使用绑定中准备好的尺寸，例如 `args.Color.Size`、`args.HudlessColor?.Size ?? default`。矩阵继续直接传值或地址，不添加转置或数据换算。
 
-NGX 调用采用图形后端同样的局部结构、地址传参和尾部 `.Success()` 风格，参照 [DXComputePipeline](../../Zenith.NET.DirectX12/DXComputePipeline.cs)、[VKGraphicsContext](../../Zenith.NET.Vulkan/VKGraphicsContext.cs) 与 [VKShader](../../Zenith.NET.Vulkan/VKShader.cs)。以下为参数分配与参数键使用方式，位于对应的 NGX 锁内；后端辅助方法如接收参数键，使用 `ReadOnlySpan<byte> name` 并在调用处固定：
+NGX 调用采用图形后端同样的局部结构、地址传参和尾部 `.Success()` 风格，参照 [DXComputePipeline](../../Zenith.NET.DirectX12/DXComputePipeline.cs)、[VKGraphicsContext](../../Zenith.NET.Vulkan/VKGraphicsContext.cs) 与 [VKShader](../../Zenith.NET.Vulkan/VKShader.cs)。以下为 DX12 后端的参数分配与参数键使用方式，位于对应的 NGX 锁内；后端辅助方法如接收参数键，使用 `ReadOnlySpan<byte> name` 并在调用处固定：
 
 ```csharp
 NGXParameter parameters = default;
 
-switch (Context.GraphicsApi)
-{
-    case GraphicsApi.DirectX12:
-        Ngx.D3D12.AllocateParameters(&parameters).Success();
-        break;
-
-    case GraphicsApi.Vulkan:
-        Ngx.Vulkan.AllocateParameters(&parameters).Success();
-        break;
-}
+Ngx.D3D12.AllocateParameters(&parameters).Success();
 
 fixed (byte* name = Ngx.ParameterFreeMemOnReleaseFeature)
 {
@@ -810,42 +905,18 @@ fixed (byte* name = Ngx.ParameterFreeMemOnReleaseFeature)
 }
 ```
 
-`GetCapabilityParameters` 同样传入目标句柄地址；`Parameter.GetI` 用 `fixed (byte* name = ...)` 与 `&value`。两个 `GetOptimalSettings` 方法将能力句柄按值传入，各宽高和 sharpness 仍传局部变量地址。功能对象创建时直接向 `handle` 写入结果；类字段取址使用 C# 所需的 `fixed` 固定内存：
+`GetCapabilityParameters` 由对应 API 的实现取得能力参数块；`DLSSCapabilities` 在自身构造器中完成查询。两个 `GetOptimalSettings` 方法仍将能力句柄按值传入，各宽高和 sharpness 传局部变量地址。
+
+特性创建位于对应 partial 文件，例如 DX12 已准备好 `createParams` 后，直接填写基类持有的 Handle：
 
 ```csharp
-NGXDLSSCreateParams createParams = new()
+fixed (NGXHandle* handle = &feature.Handle)
 {
-    Feature = new()
-    {
-        Width = Desc.InputWidth,
-        Height = Desc.InputHeight,
-        TargetWidth = Desc.OutputWidth,
-        TargetHeight = Desc.OutputHeight,
-        PerfQualityValue = DLSSFormats.PerfQualityValue(Desc.Mode)
-    },
-    FeatureCreateFlags = (int)DLSSFormats.FeatureFlags(Desc)
-};
-
-fixed (NGXHandle* pHandle = &handle)
-{
-    switch (backend.Context.GraphicsApi)
-    {
-        case GraphicsApi.DirectX12:
-            Ngx.D3D12.CreateDLSSExt(commandList, 1, 1, pHandle, parameters, &createParams).Success();
-            break;
-
-        case GraphicsApi.Vulkan:
-            Ngx.Vulkan.CreateDLSSExt1(backend.Device, commandList, 1, 1, pHandle, parameters, &createParams).Success();
-            break;
-    }
+    Ngx.D3D12.CreateDLSSExt(commandList, 1, 1, handle, feature.Parameters, &createParams).Success();
 }
 ```
 
-RR、FG 同样使用 3.3 列出的原生指针重载，并按 `backend.Context.GraphicsApi` 分支。三个功能的 Evaluate 使用 `switch`，在各 case 内分别构造 DirectX 12 / Vulkan 求值结构并传入地址，不增加默认返回分支。FG 的格式选择使用 `backend.Context.GraphicsApi switch`，DirectX 12 / Vulkan 分别调用 `DLSSFormats.DirectX12` / `DLSSFormats.Vulkan`，`_ => default`。
-
-Vulkan 初始化的 GIPA/GDPA 类型为 `delegate* unmanaged[Cdecl]<nint, byte*, delegate* unmanaged[Cdecl]<void>>`，从已有原生入口转换；不调用新版接收 `string` 与 `nint` 回调的便利重载。
-
-初始化使用的字符串与路径数组由后端持有至 NGX 关闭：`NGXStrings` 保存 `project.ToString("D")`、`version` 的 UTF-8 缓冲区，以及 `dataDirectory`、`Ngx.RuntimeDirectory` 的宽字符缓冲区；路径指针数组由后端持有的 `ZenithMarshal.Scope` 分配。`NGXStrings.AllocWide` 在 Windows 使用 UTF-16，在 Linux 使用 UTF-32。现有 `ZenithMarshal.StringToPointer` 只支持 UTF-8/UTF-16，不能把两种平台的宽字符路径统一写成 UTF-16，也不为此修改 RHI 的字符串工具。普通 Vulkan 函数名仍沿用调用内的 `ZenithMarshal.Scope` 和 UTF-8 转换。
+Vulkan 实现在 `DLSSBackend.Vulkan.cs` 中调用 `CreateDLSSExt1`；RR、FG 同理。Evaluate 仍构造各自原生求值结构并传地址，数据映射与 2.4 至 2.6 一致。Vulkan GIPA/GDPA 的指针类型仍为 `delegate* unmanaged[Cdecl]<nint, byte*, delegate* unmanaged[Cdecl]<void>>`。
 
 `NGXDLSSGOptEvalParams` 在新版有无参构造器，`new()` 已设置 `MultiFrameCount = 1`、`MultiFrameIndex = 1`、`MinRelativeLinearDepthObjectSeparation = 40.0f`。保持现有 2 倍帧率语义，使用 `new() { ... }` 并沿用这些默认值；不能改为 `default` 后只填写其余字段，也不在扩展中重复维护相同默认数值。该结构及 `NGXResourceVK.ReadWrite` 的 `Bool8` 字段直接赋 `bool`，与 SR / RR 的整数 `Reset` 区别处理。
 
@@ -857,7 +928,7 @@ Vulkan 初始化的 GIPA/GDPA 类型为 `delegate* unmanaged[Cdecl]<nint, byte*,
 - **纹理用途**：输入需要 `Sampled`；输出需要 `Storage` 与 `TransferDst`。Vulkan 下 NGX 会用 `vkCmdClearColorImage` 清除输出：本机超分辨率使用预设 K（DLAA、Quality、Balanced 档位的默认预设）时出现，输出缺少 `TransferDst` 时验证层报错。
 - **单位**：按 NGX 原义。超分辨率与光线重建的抖动以输入像素为单位，运动矢量经 `MotionVectorScale` 换算到输入像素；帧生成的抖动在裁剪空间，运动矢量经 `MotionVectorScale` 归一化到 [-1, 1]。矩阵按 `System.Numerics` 原样传递，与 NGX 的行主序一致，且不含抖动。
 - **CornellBox**：运动矢量按 Upscaling 扩展（SGSR2）的约定编码，存的是 0.2495 ×（当前帧 − 上一帧的 NDC）+ 0.5。NGX 只有缩放没有偏移，接入 DLSS 时需写入未编码的 NDC 差值；此时超分辨率与光线重建的 `MotionVectorScale` 取 (−0.5·W, 0.5·H)，帧生成取 (−0.5, 0.5)，W、H 为渲染尺寸。
-- **重建**：Desc 不可变，任一字段变化时重建。功能对象的重建顺序不再影响 NGX 初始化；旧对象仍需等 GPU 完成引用后释放。交换链尺寸变化时重建帧生成对象（2.7）。
+- **重建**：Desc 不可变，任一字段变化时重建。构造期间即提交创建命令并等待完成；旧对象仍需等 GPU 完成引用后释放。交换链尺寸变化时重建帧生成对象（2.7）。
 - **生命周期与线程**：相关 GPU 工作完成后再释放纹理和功能对象，并在 `GraphicsContext` 之前释放；绑定值不延长资源生命周期。纹理释放时内联清理绑定，后端退出时清理剩余 view。同一功能对象不可并发 `Dispatch`。
 
 ## 5. RHI 依赖与验证
@@ -905,9 +976,11 @@ Vulkan 初始化的 GIPA/GDPA 类型为 `delegate* unmanaged[Cdecl]<nint, byte*,
 
 ### 5.1 本次修订状态
 
-已完成初始化、原生数据绑定、可空资源、能力类、图形 API 分支及 NGX.NET 310.9.1.1 适配。CornellBox 在 DirectX 12 / Vulkan 下显式初始化，Metal 保持原有非 DLSS 路径。其余公共功能和 RHI 未修改。
+上一版实现已完成 `dotnet build sources/Experiments/CornellBox/CornellBox.csproj -c Release`，0 警告、0 错误；未做 NGX GPU 运行验证。
 
-`dotnet build sources/Experiments/CornellBox/CornellBox.csproj -c Release` 已通过，0 警告、0 错误。此结果覆盖 DLSS 扩展与调用方的托管编译；当前环境为 macOS，未执行 DirectX 12 / Vulkan 的 NGX GPU 运行验证。
+本轮只更新后端结构设计，枚举配置、DX12 / Vulkan partial 实现文件、能力构造查询、局部初始化内存、DLSSFeature 基类和构造期创建尚未实现。前述编译结果与第 5 节历史运行结果均不覆盖本轮草案。
+
+确认后同步修改扩展与 CornellBox。调用方的布尔 Desc 字段改为相应枚举；Metal 等不使用 NGX 的路径不构造假的能力对象，应用可用可空能力引用表示未启用 DLSS。公共命名空间、Dispatch 参数及绑定数据保持当前约定，不扩展 RHI 或新增 Vulkan 包。
 
 ## 附录：NGX 初始化与固定参数
 
