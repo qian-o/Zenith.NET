@@ -254,7 +254,9 @@ public enum DLSSFeatureFlags
 
     DynamicResolution = 1 << 5,
 
-    UIRecomposition = 1 << 6
+    UIRecomposition = 1 << 6,
+
+    MotionVectorLowResolution = 1 << 7
 }
 ```
 
@@ -278,11 +280,11 @@ public enum DLSSRoughnessMode
 
 | Desc | 配置字段 | 使用的 Flags |
 | --- | --- | --- |
-| 超分辨率 | `Mode`、`Flags` | Hdr、AutoExposure、DepthReversed、MotionVectorJittered、AlphaUpscaling |
-| 光线重建 | `Mode`、`DepthType`、`RoughnessMode`、`Flags` | DepthReversed、MotionVectorJittered、AlphaUpscaling；HDR 与低分辨率运动矢量仍由内部固定 |
+| 超分辨率 | `Mode`、`Flags` | Hdr、AutoExposure、DepthReversed、MotionVectorJittered、AlphaUpscaling、MotionVectorLowResolution |
+| 光线重建 | `Mode`、`DepthType`、`RoughnessMode`、`Flags` | Hdr、AutoExposure、DepthReversed、MotionVectorJittered、AlphaUpscaling、MotionVectorLowResolution |
 | 帧生成 | `Flags` | Hdr、DepthReversed、MotionVectorJittered、DynamicResolution、UIRecomposition |
 
-枚举取值遵循公共 API 的语义顺序，由 `DLSSFormats` 显式映射到 NGX。`Hardware = 0`、`Unpacked = 0` 保留原布尔字段为 false 时的语义。帧生成的 Flags 分别写入其创建结构、求值结构及参数键，不直接转换成 NGX 的 SR/RR 特性位掩码。
+枚举取值遵循公共 API 的语义顺序，由 `DLSSFormats` 显式映射到 NGX。`MotionVectorLowResolution` 追加在末尾，已有位值保持不变。`Hardware = 0`、`Unpacked = 0` 保留原布尔字段为 false 时的语义。超分辨率与光线重建使用同一创建标志转换，调用方负责让标志与输入资源符合 NGX 要求。帧生成的 Flags 分别写入其创建结构、求值结构及参数键，不直接转换成 NGX 的 SR/RR 特性位掩码。
 
 ### 2.4 超分辨率
 
@@ -349,7 +351,7 @@ public struct DLSSSuperResolutionArgs
 | `InputWidth`、`InputHeight` | `InWidth`、`InHeight` | 渲染分辨率；使用动态分辨率时为上限 |
 | `OutputWidth`、`OutputHeight` | `InTargetWidth`、`InTargetHeight` | |
 | `Mode` | `InPerfQualityValue` | |
-| `Flags` 中的 Hdr、AutoExposure、DepthReversed、MotionVectorJittered、AlphaUpscaling | `IsHDR`、`AutoExposure`、`DepthInverted`、`MVJittered`、`AlphaUpscaling` 标志 | Alpha 取自 `Input` 的 A 通道 |
+| `Flags` 中的 Hdr、AutoExposure、DepthReversed、MotionVectorJittered、AlphaUpscaling、MotionVectorLowResolution | `IsHDR`、`AutoExposure`、`DepthInverted`、`MVJittered`、`AlphaUpscaling`、`MVLowRes` 标志 | Alpha 取自 `Input` 的 A 通道 |
 | `Input`、`Depth`、`MotionVectors`、`Output` | `pInColor`、`pInDepth`、`pInMotionVectors`、`pInOutput` | 必需 |
 | `Exposure` | `pInExposureTexture` | 1×1 曝光纹理 |
 | `ReactiveMask` | `pInBiasCurrentColorMask` | 0 到 1，偏向当前帧的程度 |
@@ -359,11 +361,11 @@ public struct DLSSSuperResolutionArgs
 | `PreExposure`、`ExposureScale` | `InPreExposure`、`InExposureScale` | 0 时 NGX 按 1 处理 |
 | `Reset` | `InReset` | 丢弃历史 |
 
-扩展固定设置 `MVLowRes`：运动矢量与输入同分辨率。
+运动矢量与输入同分辨率时，由调用方显式设置 `MotionVectorLowResolution`。HDR 输入对应的 `Hdr` 等创建标志也由调用方提供。
 
 ### 2.5 光线重建
 
-光线重建一次完成降噪与超分辨率，启用后取代超分辨率与应用自己的降噪。它只接受 HDR 输入，不支持动态分辨率。公开成员的形态与超分辨率相同，调试事件名为 `"DLSS Ray Reconstruction"`。
+光线重建一次完成降噪与超分辨率，启用后取代超分辨率与应用自己的降噪。输入资源与创建标志由调用方按 NGX 要求匹配；本扩展的光线重建不支持动态分辨率。公开成员的形态与超分辨率相同，调试事件名为 `"DLSS Ray Reconstruction"`。
 
 ```csharp
 namespace Zenith.NET.Extensions.DLSS;
@@ -452,7 +454,7 @@ public struct DLSSRayReconstructionArgs
 | 字段 | NGX | 说明 |
 | --- | --- | --- |
 | 尺寸、`Mode` | 同超分辨率 | |
-| `Flags` 中的 DepthReversed、MotionVectorJittered、AlphaUpscaling | `DepthInverted`、`MVJittered`、`AlphaUpscaling` 标志 | Alpha 取自 `Input` 的 A 通道 |
+| `Flags` 中的 Hdr、AutoExposure、DepthReversed、MotionVectorJittered、AlphaUpscaling、MotionVectorLowResolution | `IsHDR`、`AutoExposure`、`DepthInverted`、`MVJittered`、`AlphaUpscaling`、`MVLowRes` 标志 | Alpha 取自 `Input` 的 A 通道 |
 | `DepthType` | `InUseHWDepth`：`Linear` 或 `HW` | |
 | `RoughnessMode` | `InRoughnessMode`：`Packed` 或 `Unpacked` | 打包时粗糙度在 `Normals` 的 A 通道 |
 | `Input`、`DiffuseAlbedo`、`SpecularAlbedo`、`Normals`、`Depth`、`MotionVectors`、`Output` | `pInColor`、`pInDiffuseAlbedo`、`pInSpecularAlbedo`、`pInNormals`、`pInDepth`、`pInMotionVectors`、`pInOutput` | 必需 |
@@ -464,7 +466,7 @@ public struct DLSSRayReconstructionArgs
 | `WorldToView`、`ViewToClip` | `pInWorldToViewMatrix`、`pInViewToClipMatrix` | 必需；不含抖动 |
 | 其余数值与 `Reset` | 同超分辨率 | |
 
-扩展固定设置 `IsHDR`、`MVLowRes` 标志与 `InDenoiseMode = DLUnified`，`InRenderSubrectDimensions` 取 Desc 的输入尺寸。
+创建标志直接取 `Flags` 的转换结果，`Hdr`、`MotionVectorLowResolution` 与 `AutoExposure` 均由调用方选择。`InDenoiseMode = DLUnified`，`InRenderSubrectDimensions` 取 Desc 的输入尺寸。
 
 ### 2.6 帧生成
 
@@ -616,7 +618,7 @@ DLSSSuperResolution superResolution = context.CreateDLSSSuperResolution(new()
     OutputWidth = displayWidth,
     OutputHeight = displayHeight,
     Mode = DLSSMode.Quality,
-    Flags = DLSSFeatureFlags.Hdr | DLSSFeatureFlags.AutoExposure
+    Flags = DLSSFeatureFlags.Hdr | DLSSFeatureFlags.AutoExposure | DLSSFeatureFlags.MotionVectorLowResolution
 });
 
 commandBuffer.Transition(output, default, TextureLayout.Sampled, TextureLayout.Storage);
@@ -843,8 +845,8 @@ public static NGXDLSSRoughnessMode NGX(DLSSRoughnessMode roughnessMode)
 ```
 
 - 转换只接收对应枚举，不接收 Desc，也不读取后端状态。
-- Flags 转换从零开始逐项映射 Hdr、AutoExposure、DepthReversed、MotionVectorJittered、AlphaUpscaling；SR / RR 的 `MvLowRes` 与 RR 的 `IsHdr` 固定项在创建流程中添加。
-- RR 创建流程只传入 DepthReversed、MotionVectorJittered、AlphaUpscaling 三项，保持原有配置语义。
+- Flags 转换从零开始逐项映射 Hdr、AutoExposure、DepthReversed、MotionVectorJittered、AlphaUpscaling、MotionVectorLowResolution；最后一项对应 `NGXDLSSFeatureFlags.MvLowRes`。
+- SR / RR 的创建参数都直接使用 `FeatureCreateFlags = (int)DLSSFormats.NGX(feature.Desc.Flags)`，不附加固定标志、不过滤调用方配置，也不为错误组合提供兜底；`None` 的转换结果为 0。调用方负责按 NGX 要求设置 HDR、运动矢量分辨率与曝光等配置。
 - `DLSSDepthType.Hardware` / `Linear` 分别映射到 `NGXDLSSDepthType.Hw` / `Linear`；不能直接按数值强转。
 - `DLSSRoughnessMode.Unpacked` / `Packed` 分别映射到对应 NGX 枚举。
 - FG 的动态分辨率写入创建参数，HDR 与反转深度写入求值参数，运动矢量抖动与 UI 重组写入参数块；不引入另一组公开 FG flags 类型。
@@ -992,12 +994,12 @@ Vulkan 实现在 `DLSSBackend.Vulkan.cs` 中调用 `CreateDLSSExt1`；RR、FG �
 
 | 设计项 | 当前实现 |
 | --- | --- |
-| 配置枚举 | 三个 Desc 使用 `DLSSFeatureFlags`；RR 另用 `DLSSDepthType`、`DLSSRoughnessMode`，通过显式映射保持原有 NGX 语义 |
+| 配置枚举 | 三个 Desc 使用 `DLSSFeatureFlags`；RR 另用 `DLSSDepthType`、`DLSSRoughnessMode`；SR / RR 的创建标志直接使用相同转换结果，由调用方显式配置 |
 | 后端与分组 | `Enums`、`Structs`、`Backends` 已分组；单个 partial 后端的三个文件位于同一目录，API 特定 Create / Evaluate 已迁入对应文件 |
 | 初始化内存 | `NGXStrings` 使用局部 using，搜索路径使用局部指针；移除长期持有的 strings / scope 字段 |
 | 能力查询 | `DLSSCapabilities` 构造函数查询三项支持状态，不再接收 bool |
 | 功能生命周期 | `DLSSFeature` 集中持有并释放参数与 `internal NGXHandle Handle`；三个具体功能在构造时创建、提交并等待，Dispatch 只求值 |
-| CornellBox | Desc 改用枚举；未启用 DLSS 时能力对象为 null |
+| CornellBox | Desc 改用枚举；RR 显式设置 `Hdr | MotionVectorLowResolution`，对应现有 HDR 与输入分辨率运动矢量；未启用 DLSS 时能力对象为 null |
 
 已静态核对原生资源映射、16 个可空资源、Vulkan 创建与求值前的空描述符集绑定，以及 RHI 命令缓冲分配和提交路径。公共命名空间、Dispatch 参数及绑定数据保持原有约定，未扩展 RHI 或新增 Vulkan 包。
 
@@ -1010,11 +1012,11 @@ Vulkan 实现在 `DLSSBackend.Vulkan.cs` 中调用 `CreateDLSSExt1`；RR、FG �
 | 全部 | Project ID、Engine Version、Application Data Path | 来自 `InitializeDLSS` 的 `project`、`version`、`dataDirectory`，见 2.1 |
 | 全部 | 引擎类型、SDK 版本、功能路径、日志配置 | 固定配置见 3.2 |
 | 超分辨率、光线重建 | 渲染预设提示 | `Default`，由 NGX 按档位选择 |
-| 超分辨率、光线重建 | `MVLowRes` 标志 | 设置 |
+| 超分辨率、光线重建 | `FeatureCreateFlags` | 直接使用 `DLSSFormats.NGX(Desc.Flags)`，由调用方显式提供 |
 | 超分辨率、光线重建 | `InEnableOutputSubrects`、各子矩形基点 | `false`、0 |
 | 超分辨率、光线重建 | `InSharpness`、`DoSharpening` | 0、不设置（锐化已从 DLSS 移除） |
 | 超分辨率、光线重建 | 研究、调试与保留用途的参数：`GBufferSurface`、`InToneMapperType`、`pInMotionVectors3D`、`pInIsParticleMask`、`pInAnimatedTextureMask`、`pInDepthHighRes`、`pInPositionViewSpace`、`InFrameTimeDeltaInMsec`、`pInRayTracingHitDistance`、`pInTransparencyMask`、指示器坐标轴翻转，以及超分辨率的 `pInMotionVectorsReflections` | 默认值 |
-| 光线重建 | `IsHDR` 标志、`InDenoiseMode`、`InRenderSubrectDimensions` | 设置、`DLUnified`、Desc 的输入尺寸 |
+| 光线重建 | `InDenoiseMode`、`InRenderSubrectDimensions` | `DLUnified`、Desc 的输入尺寸 |
 | 光线重建 | `pInAlpha`、`pInOutputAlpha` | `null` |
 | 光线重建 | Streamline 指南未说明语义的输入：`pInReflectedAlbedo`、`pInScreenSpaceRefractionGuide`，`ColorBeforeTransparency` 以外的各类 ColorBefore/After，各类射线方向，漫反射命中距离，`pInTransparencyLayerMvecs`、`pInDisocclusionMask`、`pInResponsivityMask` | `null` |
 | 帧生成 | `MultiFrameCount`、`MultiFrameIndex` | 新版 `NGXDLSSGOptEvalParams` 的 `new()` 默认值 1、1 |

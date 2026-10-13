@@ -34,7 +34,8 @@ internal class RayReconstructionPass(uint renderWidth, uint renderHeight, uint d
             OutputWidth = DisplayWidth,
             OutputHeight = DisplayHeight,
             Mode = mode,
-            RoughnessMode = DLSSRoughnessMode.Packed
+            RoughnessMode = DLSSRoughnessMode.Packed,
+            Flags = DLSSFeatureFlags.Hdr | DLSSFeatureFlags.MotionVectorLowResolution
         };
 
         if (rayReconstruction is null || !rayReconstruction.Desc.Equals(desc))

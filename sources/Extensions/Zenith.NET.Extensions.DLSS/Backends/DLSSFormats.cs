@@ -181,6 +181,11 @@ internal static class DLSSFormats
             result |= NGXDLSSFeatureFlags.AlphaUpscaling;
         }
 
+        if (featureFlags.HasFlag(DLSSFeatureFlags.MotionVectorLowResolution))
+        {
+            result |= NGXDLSSFeatureFlags.MvLowRes;
+        }
+
         return result;
     }
 

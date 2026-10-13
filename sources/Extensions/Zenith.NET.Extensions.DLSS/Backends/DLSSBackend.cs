@@ -174,7 +174,7 @@ internal unsafe partial class DLSSBackend : DisposableObject
                 TargetHeight = feature.Desc.OutputHeight,
                 PerfQualityValue = DLSSFormats.NGX(feature.Desc.Mode)
             },
-            FeatureCreateFlags = (int)(DLSSFormats.NGX(feature.Desc.Flags) | NGXDLSSFeatureFlags.MvLowRes)
+            FeatureCreateFlags = (int)DLSSFormats.NGX(feature.Desc.Flags)
         };
 
         switch (Context.GraphicsApi)
@@ -203,7 +203,7 @@ internal unsafe partial class DLSSBackend : DisposableObject
             TargetWidth = feature.Desc.OutputWidth,
             TargetHeight = feature.Desc.OutputHeight,
             PerfQualityValue = DLSSFormats.NGX(feature.Desc.Mode),
-            FeatureCreateFlags = (int)(DLSSFormats.NGX(feature.Desc.Flags & (DLSSFeatureFlags.DepthReversed | DLSSFeatureFlags.MotionVectorJittered | DLSSFeatureFlags.AlphaUpscaling)) | NGXDLSSFeatureFlags.IsHdr | NGXDLSSFeatureFlags.MvLowRes)
+            FeatureCreateFlags = (int)DLSSFormats.NGX(feature.Desc.Flags)
         };
 
         switch (Context.GraphicsApi)

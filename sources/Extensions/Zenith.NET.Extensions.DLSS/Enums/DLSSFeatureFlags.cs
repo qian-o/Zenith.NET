@@ -17,5 +17,7 @@ public enum DLSSFeatureFlags
 
     DynamicResolution = 1 << 5,
 
-    UIRecomposition = 1 << 6
+    UIRecomposition = 1 << 6,
+
+    MotionVectorLowResolution = 1 << 7
 }
