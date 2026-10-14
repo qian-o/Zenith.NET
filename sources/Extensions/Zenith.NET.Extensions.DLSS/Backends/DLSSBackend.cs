@@ -61,13 +61,6 @@ internal unsafe partial class DLSSBackend : DisposableObject
         }
 
         Capabilities = new(capabilityParameters);
-
-        switch (context.GraphicsApi)
-        {
-            case GraphicsApi.Vulkan:
-                InitializeVulkanResources();
-                break;
-        }
     }
 
     public GraphicsContext Context { get; }

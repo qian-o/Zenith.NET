@@ -9,16 +9,27 @@ internal unsafe partial class DLSSBackend
         Ngx.D3D12.InitWithProjectID(projectId, NGXEngineType.Custom, engineVersion, dataPath, Device, featureInfo, NGXVersion.Api).Success();
     }
 
-    private static DLSSBinding CreateDirectX12Binding(Texture texture, NGXDimensions size)
-    {
-        return new(texture.GetNativeObject(NativeObjectType.D3D12Resource), default, size);
-    }
-
     private void CreateDirectX12(nint commandList, DLSSSuperResolution feature, NGXDLSSCreateParams* createParams)
     {
         fixed (NGXHandle* handle = &feature.Handle)
         {
             Ngx.D3D12.CreateDLSSExt(commandList, 1, 1, handle, feature.Parameters, createParams).Success();
+        }
+    }
+
+    private void CreateDirectX12(nint commandList, DLSSRayReconstruction feature, NGXDLSSDCreateParams* createParams)
+    {
+        fixed (NGXHandle* handle = &feature.Handle)
+        {
+            Ngx.D3D12.CreateDLSSDExt(commandList, 1, 1, handle, feature.Parameters, createParams).Success();
+        }
+    }
+
+    private void CreateDirectX12(nint commandList, DLSSFrameGeneration feature, NGXDLSSGCreateParams* createParams)
+    {
+        fixed (NGXHandle* handle = &feature.Handle)
+        {
+            Ngx.D3D12.CreateDLSSG(commandList, 1, 1, handle, feature.Parameters, createParams).Success();
         }
     }
 
@@ -46,14 +57,6 @@ internal unsafe partial class DLSSBackend
         };
 
         Ngx.D3D12.EvaluateDLSSExt(commandList, feature.Handle, feature.Parameters, &evalParams).Success();
-    }
-
-    private void CreateDirectX12(nint commandList, DLSSRayReconstruction feature, NGXDLSSDCreateParams* createParams)
-    {
-        fixed (NGXHandle* handle = &feature.Handle)
-        {
-            Ngx.D3D12.CreateDLSSDExt(commandList, 1, 1, handle, feature.Parameters, createParams).Success();
-        }
     }
 
     private static void EvaluateDirectX12(nint commandList, DLSSRayReconstruction feature, DLSSRayReconstructionArgs args, NGXDimensions renderSubrectDimensions)
@@ -92,14 +95,6 @@ internal unsafe partial class DLSSBackend
         Ngx.D3D12.EvaluateDLSSDExt(commandList, feature.Handle, feature.Parameters, &evalParams).Success();
     }
 
-    private void CreateDirectX12(nint commandList, DLSSFrameGeneration feature, NGXDLSSGCreateParams* createParams)
-    {
-        fixed (NGXHandle* handle = &feature.Handle)
-        {
-            Ngx.D3D12.CreateDLSSG(commandList, 1, 1, handle, feature.Parameters, createParams).Success();
-        }
-    }
-
     private static void EvaluateDirectX12(nint commandList, DLSSFrameGeneration feature, DLSSFrameGenerationArgs args, NGXDLSSGOptEvalParams* optEvalParams)
     {
         NGXD3D12DLSSGEvalParams evalParams = new()
@@ -115,6 +110,11 @@ internal unsafe partial class DLSSBackend
         };
 
         Ngx.D3D12.EvaluateDLSSG(commandList, feature.Handle, feature.Parameters, &evalParams, optEvalParams).Success();
+    }
+
+    private static DLSSBinding CreateDirectX12Binding(Texture texture, NGXDimensions size)
+    {
+        return new(texture.GetNativeObject(NativeObjectType.D3D12Resource), default, size);
     }
 
     private void ShutdownDirectX12()

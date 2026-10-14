@@ -38,10 +38,7 @@ internal unsafe partial class DLSSBackend
                                      (delegate* unmanaged[Cdecl]<nint, byte*, delegate* unmanaged[Cdecl]<void>>)Context.GetNativeObject(NativeObjectType.VulkanGetDeviceProcAddr),
                                      featureInfo,
                                      NGXVersion.Api).Success();
-    }
 
-    private void InitializeVulkanResources()
-    {
         delegate* unmanaged<nint, byte*, nint> getDeviceProcAddr = (delegate* unmanaged<nint, byte*, nint>)Context.GetNativeObject(NativeObjectType.VulkanGetDeviceProcAddr);
 
         delegate* unmanaged<nint, void*, void*, nint*, int> vkCreateDescriptorSetLayout = (delegate* unmanaged<nint, void*, void*, nint*, int>)GetProcedureAddress("vkCreateDescriptorSetLayout");
@@ -103,65 +100,9 @@ internal unsafe partial class DLSSBackend
         }
     }
 
-    private void BindVulkanEmptyDescriptorSet(nint commandList)
-    {
-        nint set = descriptorSet;
-        vkCmdBindDescriptorSets(commandList, ComputeBindPoint, pipelineLayout, 0, 1, &set, 0, null);
-    }
-
-    private DLSSBinding CreateVulkanBinding(Texture texture, NGXDimensions size)
-    {
-        (uint format, uint aspectFlags) = DLSSFormats.Vulkan(texture.Desc.Format);
-
-        nint image = texture.GetNativeObject(NativeObjectType.VulkanImage);
-
-        NGXVkImageSubresourceRange subresourceRange = new()
-        {
-            AspectMask = aspectFlags,
-            LevelCount = 1,
-            LayerCount = 1
-        };
-
-        VkImageViewCreateInfo createInfo = new()
-        {
-            SType = ImageViewCreateInfoType,
-            Image = image,
-            ViewType = ImageViewType2D,
-            Format = format,
-            SubresourceRange = subresourceRange
-        };
-
-        nint view;
-        vkCreateImageView(Device, &createInfo, null, &view).Success();
-
-        NGXResourceVK vulkan = new()
-        {
-            Resource = new()
-            {
-                ImageViewInfo = new()
-                {
-                    ImageView = view,
-                    Image = image,
-                    SubresourceRange = subresourceRange,
-                    Format = (NGXVkFormat)format,
-                    Width = size.Width,
-                    Height = size.Height
-                }
-            },
-            Type = NGXResourceVKType.VkImageView
-        };
-
-        return new(default, vulkan, size);
-    }
-
-    private void DestroyVulkanBinding(DLSSBinding binding)
-    {
-        vkDestroyImageView(Device, binding.Vulkan.Resource.ImageViewInfo.ImageView, null);
-    }
-
     private void CreateVulkan(nint commandList, DLSSSuperResolution feature, NGXDLSSCreateParams* createParams)
     {
-        BindVulkanEmptyDescriptorSet(commandList);
+        BindDescriptorSet(commandList);
 
         fixed (NGXHandle* handle = &feature.Handle)
         {
@@ -169,9 +110,29 @@ internal unsafe partial class DLSSBackend
         }
     }
 
+    private void CreateVulkan(nint commandList, DLSSRayReconstruction feature, NGXDLSSDCreateParams* createParams)
+    {
+        BindDescriptorSet(commandList);
+
+        fixed (NGXHandle* handle = &feature.Handle)
+        {
+            Ngx.Vulkan.CreateDLSSDExt1(Device, commandList, 1, 1, handle, feature.Parameters, createParams).Success();
+        }
+    }
+
+    private void CreateVulkan(nint commandList, DLSSFrameGeneration feature, NGXDLSSGCreateParams* createParams)
+    {
+        BindDescriptorSet(commandList);
+
+        fixed (NGXHandle* handle = &feature.Handle)
+        {
+            Ngx.Vulkan.CreateDLSSG(commandList, 1, 1, handle, feature.Parameters, createParams).Success();
+        }
+    }
+
     private void EvaluateVulkan(nint commandList, DLSSSuperResolution feature, DLSSSuperResolutionArgs args, NGXDimensions renderSubrectDimensions)
     {
-        BindVulkanEmptyDescriptorSet(commandList);
+        BindDescriptorSet(commandList);
 
         NGXResourceVK input = args.Input.Vulkan with { ReadWrite = false };
         NGXResourceVK output = args.Output.Vulkan with { ReadWrite = true };
@@ -204,19 +165,9 @@ internal unsafe partial class DLSSBackend
         Ngx.Vulkan.EvaluateDLSSExt(commandList, feature.Handle, feature.Parameters, &evalParams).Success();
     }
 
-    private void CreateVulkan(nint commandList, DLSSRayReconstruction feature, NGXDLSSDCreateParams* createParams)
-    {
-        BindVulkanEmptyDescriptorSet(commandList);
-
-        fixed (NGXHandle* handle = &feature.Handle)
-        {
-            Ngx.Vulkan.CreateDLSSDExt1(Device, commandList, 1, 1, handle, feature.Parameters, createParams).Success();
-        }
-    }
-
     private void EvaluateVulkan(nint commandList, DLSSRayReconstruction feature, DLSSRayReconstructionArgs args, NGXDimensions renderSubrectDimensions)
     {
-        BindVulkanEmptyDescriptorSet(commandList);
+        BindDescriptorSet(commandList);
 
         NGXResourceVK diffuseAlbedo = args.DiffuseAlbedo.Vulkan with { ReadWrite = false };
         NGXResourceVK specularAlbedo = args.SpecularAlbedo.Vulkan with { ReadWrite = false };
@@ -270,19 +221,9 @@ internal unsafe partial class DLSSBackend
         Ngx.Vulkan.EvaluateDLSSDExt(commandList, feature.Handle, feature.Parameters, &evalParams).Success();
     }
 
-    private void CreateVulkan(nint commandList, DLSSFrameGeneration feature, NGXDLSSGCreateParams* createParams)
-    {
-        BindVulkanEmptyDescriptorSet(commandList);
-
-        fixed (NGXHandle* handle = &feature.Handle)
-        {
-            Ngx.Vulkan.CreateDLSSG(commandList, 1, 1, handle, feature.Parameters, createParams).Success();
-        }
-    }
-
     private void EvaluateVulkan(nint commandList, DLSSFrameGeneration feature, DLSSFrameGenerationArgs args, NGXDLSSGOptEvalParams* optEvalParams)
     {
-        BindVulkanEmptyDescriptorSet(commandList);
+        BindDescriptorSet(commandList);
 
         NGXResourceVK color = args.Color.Vulkan with { ReadWrite = false };
         NGXResourceVK depth = args.Depth.Vulkan with { ReadWrite = false };
@@ -308,6 +249,56 @@ internal unsafe partial class DLSSBackend
         Ngx.Vulkan.EvaluateDLSSG(commandList, feature.Handle, feature.Parameters, &evalParams, optEvalParams).Success();
     }
 
+    private DLSSBinding CreateVulkanBinding(Texture texture, NGXDimensions size)
+    {
+        (uint format, uint aspectFlags) = DLSSFormats.Vulkan(texture.Desc.Format);
+
+        nint image = texture.GetNativeObject(NativeObjectType.VulkanImage);
+
+        NGXVkImageSubresourceRange subresourceRange = new()
+        {
+            AspectMask = aspectFlags,
+            LevelCount = 1,
+            LayerCount = 1
+        };
+
+        VkImageViewCreateInfo createInfo = new()
+        {
+            SType = ImageViewCreateInfoType,
+            Image = image,
+            ViewType = ImageViewType2D,
+            Format = format,
+            SubresourceRange = subresourceRange
+        };
+
+        nint view;
+        vkCreateImageView(Device, &createInfo, null, &view).Success();
+
+        NGXResourceVK vulkan = new()
+        {
+            Resource = new()
+            {
+                ImageViewInfo = new()
+                {
+                    ImageView = view,
+                    Image = image,
+                    SubresourceRange = subresourceRange,
+                    Format = (NGXVkFormat)format,
+                    Width = size.Width,
+                    Height = size.Height
+                }
+            },
+            Type = NGXResourceVKType.VkImageView
+        };
+
+        return new(default, vulkan, size);
+    }
+
+    private void DestroyVulkanBinding(DLSSBinding binding)
+    {
+        vkDestroyImageView(Device, binding.Vulkan.Resource.ImageViewInfo.ImageView, null);
+    }
+
     private void ShutdownVulkan()
     {
         vkDestroyDescriptorPool(Device, descriptorPool, null);
@@ -315,6 +306,12 @@ internal unsafe partial class DLSSBackend
         vkDestroyDescriptorSetLayout(Device, descriptorSetLayout, null);
 
         Ngx.Vulkan.Shutdown1(Device).Success();
+    }
+
+    private void BindDescriptorSet(nint commandList)
+    {
+        nint set = descriptorSet;
+        vkCmdBindDescriptorSets(commandList, ComputeBindPoint, pipelineLayout, 0, 1, &set, 0, null);
     }
 }
 
