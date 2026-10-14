@@ -12,7 +12,7 @@
 - 调用形式与 Upscaling 扩展相同：`context.CreateXxx(desc)` 创建，`xxx.Dispatch(commandBuffer, args)` 录制。纹理经 `texture.DLSSBinding` 传入，用法同 `texture.ImGuiBinding`。
 - 类型名为 `DLSS` 加 NVIDIA 功能名，之后新增的功能按同一规则命名。
 - 参数沿用 NGX 原义。扩展只做类型转换：纹理转为原生资源，枚举与格式转为 NGX 取值，按 NGX 的需要对矩阵求逆；未公开的 NGX 参数取固定值（附录）。不做数值换算，也不做兼容处理。
-- 本轮将 DLSS 按独立后端组织：Desc 的布尔配置改为 `DLSSFeatureFlags`、`DLSSDepthType`、`DLSSRoughnessMode`；增加 `DLSSFeature` 基类；DX12 与 Vulkan 分别实现后端；原生特性在具体功能对象构造期间创建。现有初始化签名、原生数据绑定、可空资源、Args 与呈现职责保持不变。
+- 本轮将 DLSS 按独立后端组织：Desc 的布尔配置改为 `DLSSFeatureFlags`、`DLSSDepthType`、`DLSSRoughnessMode`；增加 `DLSSFeature` 基类；DX12 与 Vulkan 分别实现后端；原生特性在具体功能对象构造期间创建。初始化只接收数据目录，Project ID 与 Engine Version 使用扩展内置常量；原生数据绑定、可空资源、Args 与呈现职责保持不变。
 - 调用方负责正确的平台、图形 API、参数和资源生命周期。初始化入口机制与其他扩展一致：`GetBackend` 未找到后端时抛出未初始化异常。原生调用保持单一流程，不另加失败或错误使用的兜底；`Success()` 仅输出调试信息。
 - 内部按 DirectX 12、Vulkan 后端的方式组织不安全调用：直接构造原生结构、传入指针、显式管理所有权。使用 NGX.NET 的指针重载，不通过其 `string`、`in`、`out` 便利重载执行 NGX 调用。
 - 后端保持单个 `partial DLSSBackend`，公共入口按 `Context.GraphicsApi` 分派到对应实现文件。公开功能类不包含图形 API 分支。
@@ -27,22 +27,20 @@
 
 | 成员 | 说明 |
 | --- | --- |
-| `context.InitializeDLSS(project, version, dataDirectory)` | 显式初始化；每个 `GraphicsContext` 一次 |
+| `context.InitializeDLSS(dataPath)` | 显式初始化；每个 `GraphicsContext` 一次 |
 | `context.DLSSCapabilities` | 能力（2.3） |
 | `context.GetDLSSSuperResolutionOptimalSettings(outputWidth, outputHeight, mode)` | 超分辨率的推荐输入尺寸 |
 | `context.GetDLSSRayReconstructionOptimalSettings(outputWidth, outputHeight, mode)` | 光线重建的推荐输入尺寸 |
 | `context.CreateDLSSSuperResolution(desc)`、`CreateDLSSRayReconstruction(desc)`、`CreateDLSSFrameGeneration(desc)` | 创建功能对象，构造返回时原生特性已经创建 |
 | `texture.DLSSBinding` | 查找所属后端，准备或复用原生绑定数据（2.2） |
 
-初始化直接接收三个参数，不引入配置类型或类型组合重载：
+初始化只接收数据目录：
 
 | 参数 | 类型 | 约定 |
 | --- | --- | --- |
-| `project` | `Guid` | 应用项目的固定标识；内部以 `ToString("D")` 转为 NGX Project ID。每个应用独立保存，运行期间不重新生成 |
-| `version` | `string` | 宿主渲染引擎版本；已有 `System.Version` 的调用方传入 `ToString()`，保留自定义版本文本的表达能力 |
-| `dataDirectory` | `string` | NGX 写入日志和临时文件的目录；由应用准备并保证可写 |
+| `dataPath` | `string` | NGX 写入日志和临时文件的目录；由调用方创建并保证可写，首次初始化时生效 |
 
-三项均显式提供，不使用内置项目 GUID、程序集版本推断或临时目录默认值。这里的项目标识映射到 `InitWithProjectID`，不是 NVIDIA 分配的整数 Application ID。原生语义见 [NVIDIA 初始化接口](https://github.com/NVIDIA/DLSS/blob/main/include/nvsdk_ngx.h#L173-L223)。
+`DLSSBackend` 内置固定 `ProjectId = "b5b58279-25f8-4d7f-a9d1-e943a85c277c"` 与 `EngineVersion = "1.0"`，所有上下文共用，运行期间不重新生成。初始化继续使用 `InitWithProjectID`、`NGXEngineType.Custom` 与 `NGXVersion.Api`。这里的 Project ID 与 NVIDIA 分配的整数 Application ID 属于不同标识方式。原生语义见 [NVIDIA 初始化接口](https://github.com/NVIDIA/DLSS/blob/main/include/nvsdk_ngx.h#L173-L223)。
 
 每个上下文的 NGX 状态由内部的 `DLSSBackend` 持有，注册与释放方式与 Skia、ImGui 相同。以下为 `Extensions` 的节选：
 
@@ -54,13 +52,13 @@ public static class Extensions
 
     extension(GraphicsContext context)
     {
-        public void InitializeDLSS(Guid project, string version, string dataDirectory)
+        public void InitializeDLSS(string dataPath)
         {
             using Lock.Scope _ = @lock.EnterScope();
 
             if (!backends.TryGetValue(context, out DLSSBackend? backend))
             {
-                backends[context] = backend = new(context, project, version, dataDirectory);
+                backends[context] = backend = new(context, dataPath);
 
                 context.Disposing += static (sender, _) =>
                 {
@@ -101,7 +99,7 @@ public static class Extensions
 }
 ```
 
-- 首次初始化注册后端并订阅 `context.Disposing`。重复调用直接复用，后传入的参数不生效，也不重新初始化 NGX。
+- 首次初始化注册后端并订阅 `context.Disposing`。重复调用直接复用，后传入的 `dataPath` 不生效，也不重新初始化 NGX。
 - `Extensions` 保留与 ImGui 相同的注册表锁，保护后端登记、查找与移除；NGX 调用与纹理绑定操作的线程同步由调用方负责。
 - 两个最佳设置查询、三个创建方法及 `Texture.DLSSBinding` 都通过 `GetBackend(context)` 转发。绑定属性通过 `texture.Context` 找到所属后端，在 `Binding(texture)` 中准备原生数据；功能对象直接使用绑定中的数据。
 - 移除 `AcquireContext`、`ReleaseContext`、引用计数及按设备名称保存的进程级能力缓存。能力实例由对应的 `DLSSBackend` 持有，不在进程级注册表中缓存。
@@ -597,10 +595,11 @@ public struct DLSSFrameGenerationArgs
 
 ### 2.8 示例
 
-以下示例均在创建 `GraphicsContext` 后先初始化一次。`project` 是应用保存的固定 GUID，`version` 与 `dataDirectory` 由应用提供：
+以下示例均在创建 `GraphicsContext` 后先初始化一次。`dataPath` 由应用选择并创建：
 
 ```csharp
-context.InitializeDLSS(project, version, dataDirectory);
+Directory.CreateDirectory(dataPath);
+context.InitializeDLSS(dataPath);
 
 DLSSCapabilities capabilities = context.DLSSCapabilities;
 ```
@@ -741,18 +740,25 @@ Vulkan 的 file-local ABI 声明放在 `DLSSBackend.Vulkan.cs` 后部，不增�
 | `DLSSBackend.DirectX12.cs` | D3D12 初始化、关闭、绑定、特性创建与求值的具体方法 |
 | `DLSSBackend.Vulkan.cs` | Vulkan 对应方法、函数指针、image view、空描述符集与局部 ABI 声明 |
 
-三个文件共享同一个实例的字段。DirectX 12 的 `InitializeDirectX12`、`ShutdownDirectX12` 使用设备成员，保留为实例方法；三个 `CreateDirectX12`、三个 `EvaluateDirectX12` 与 `CreateDirectX12Binding` 只使用传入参数，采用静态方法。Vulkan 方法需要访问设备、函数指针和辅助对象，采用实例方法。公共入口通过 `switch (Context.GraphicsApi)` 调用对应的私有实现方法。能力参数获取、参数分配/销毁、特性释放直接在公共流程的分支中调用 NGX，不另设一层纯转发方法。不增加后端派生类、接口或 API 子目录。初始化参数仍是 `project`、`version`、`dataDirectory`。
+三个文件共享同一个实例的字段。DirectX 12 的 `InitializeDirectX12`、`ShutdownDirectX12` 使用设备成员，保留为实例方法；三个 `CreateDirectX12`、三个 `EvaluateDirectX12` 与 `CreateDirectX12Binding` 只使用传入参数，采用静态方法。Vulkan 方法需要访问设备、函数指针和辅助对象，采用实例方法。公共入口通过 `switch (Context.GraphicsApi)` 调用对应的私有实现方法。能力参数获取、参数分配/销毁、特性释放直接在公共流程的分支中调用 NGX，不另设一层纯转发方法。不增加后端派生类、接口或 API 子目录。后端构造函数为 `DLSSBackend(GraphicsContext context, string dataPath)`。
 
 Create / Evaluate 在现有图形 API 分支中直接取得对应原生命令句柄，不另设一次 API 分派。扩展不提供全局 NGX 锁，初始化、能力与最佳设置查询、参数分配/设置/销毁、Create、Evaluate、Release、Shutdown 的调用同步均由调用方按 NGX 要求负责。功能构造、Dispatch 与销毁不自动串行化 NGX 调用。Vulkan 辅助对象创建通过 `fixed` 直接向后端句柄字段写入原生结果。
 
-初始化内存改为调用内作用域：
+Project ID 与 Engine Version 保存在后端常量中：
+
+```csharp
+private const string ProjectId = "b5b58279-25f8-4d7f-a9d1-e943a85c277c";
+private const string EngineVersion = "1.0";
+```
+
+初始化内存使用调用内作用域：
 
 ```csharp
 using NGXStrings strings = new();
 
-byte* projectId = strings.AllocUtf8(project.ToString("D"));
-byte* engineVersion = strings.AllocUtf8(version);
-void* applicationDataPath = strings.AllocWide(dataDirectory);
+byte* projectId = strings.AllocUtf8(ProjectId);
+byte* engineVersion = strings.AllocUtf8(EngineVersion);
+void* applicationDataPath = strings.AllocWide(dataPath);
 void* path = strings.AllocWide(Ngx.RuntimeDirectory);
 
 NGXFeatureCommonInfo featureInfo = new()
@@ -935,7 +941,7 @@ Vulkan 实现在 `DLSSBackend.Vulkan.cs` 中调用 `CreateDLSSExt1`；RR、FG �
 
 ## 4. 使用约定
 
-- **初始化**：先调用 `InitializeDLSS(project, version, dataDirectory)`，再查询能力、最佳设置、创建功能对象或访问 `texture.DLSSBinding`。参数首次生效，NGX 是否可用由能力查询体现。
+- **初始化**：调用方先创建可写的 `dataPath` 目录，再调用 `InitializeDLSS(dataPath)`，随后查询能力、最佳设置、创建功能对象或访问 `texture.DLSSBinding`。路径首次生效，NGX 是否可用由能力查询体现。
 - **命令缓冲**：使用图形队列或计算队列，不在渲染通道内调用；传输队列不能执行计算。调用前输入处于 `Sampled`、输出处于 `Storage`，调用后布局不变。`Dispatch` 在 NGX 求值前后各插入一次 `Barrier(All, All)`。
 - **状态**：NGX 会替换管线、描述符与描述符堆。DLSS 只出现在两段完整的命令之间，扩展不保存也不恢复命令缓冲状态；后续命令照常先 `SetPipeline`，即使是 DLSS 之前用过的同一管线，后端在 `SetPipelineImpl` 中重新绑定描述符堆。
 - **纹理用途**：输入需要 `Sampled`；输出需要 `Storage` 与 `TransferDst`。Vulkan 下 NGX 会用 `vkCmdClearColorImage` 清除输出：本机超分辨率使用预设 K（DLAA、Quality、Balanced 档位的默认预设）时出现，输出缺少 `TransferDst` 时验证层报错。
@@ -994,6 +1000,7 @@ Vulkan 实现在 `DLSSBackend.Vulkan.cs` 中调用 `CreateDLSSExt1`；RR、FG �
 
 | 设计项 | 当前实现 |
 | --- | --- |
+| 初始化入口 | `InitializeDLSS(string dataPath)`；Project ID 与 Engine Version 由后端内置常量提供，目录由调用方创建 |
 | 配置枚举 | 三个 Desc 使用 `DLSSFeatureFlags`；RR 另用 `DLSSDepthType`、`DLSSRoughnessMode`；SR / RR 的创建标志直接使用相同转换结果，由调用方显式配置 |
 | 后端与分组 | `Enums`、`Structs`、`Backends` 已分组；单个 partial 后端的三个文件位于同一目录，API 特定 Create / Evaluate 已迁入对应文件 |
 | 初始化内存 | `NGXStrings` 使用局部 using，搜索路径使用局部指针；移除长期持有的 strings / scope 字段 |
@@ -1009,7 +1016,9 @@ Vulkan 实现在 `DLSSBackend.Vulkan.cs` 中调用 `CreateDLSSExt1`；RR、FG �
 | --- | --- | --- |
 | 全部 | `CreationNodeMask`、`VisibilityNodeMask` | 1 |
 | 全部 | `FreeMemOnReleaseFeature` | 1 |
-| 全部 | Project ID、Engine Version、Application Data Path | 来自 `InitializeDLSS` 的 `project`、`version`、`dataDirectory`，见 2.1 |
+| 全部 | Project ID | 后端常量 `ProjectId = "b5b58279-25f8-4d7f-a9d1-e943a85c277c"` |
+| 全部 | Engine Version | 后端常量 `EngineVersion = "1.0"` |
+| 全部 | Application Data Path | 来自 `InitializeDLSS` 的 `dataPath`，由调用方创建目录，见 2.1 |
 | 全部 | 引擎类型、SDK 版本、功能路径、日志配置 | 固定配置见 3.2 |
 | 超分辨率、光线重建 | 渲染预设提示 | `Default`，由 NGX 按档位选择 |
 | 超分辨率、光线重建 | `FeatureCreateFlags` | 直接使用 `DLSSFormats.NGX(Desc.Flags)`，由调用方显式提供 |

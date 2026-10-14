@@ -5,10 +5,13 @@ namespace Zenith.NET.Extensions.DLSS;
 
 internal unsafe partial class DLSSBackend : DisposableObject
 {
+    private const string ProjectId = "b5b58279-25f8-4d7f-a9d1-e943a85c277c";
+    private const string EngineVersion = "1.0";
+
     private readonly Dictionary<Texture, DLSSBinding> bindings = [];
     private readonly NGXParameter capabilityParameters;
 
-    public DLSSBackend(GraphicsContext context, Guid project, string version, string dataDirectory)
+    public DLSSBackend(GraphicsContext context, string dataPath)
     {
         Context = context;
 
@@ -21,9 +24,9 @@ internal unsafe partial class DLSSBackend : DisposableObject
 
         using NGXStrings strings = new();
 
-        byte* projectId = strings.AllocUtf8(project.ToString("D"));
-        byte* engineVersion = strings.AllocUtf8(version);
-        void* dataPath = strings.AllocWide(dataDirectory);
+        byte* projectId = strings.AllocUtf8(ProjectId);
+        byte* engineVersion = strings.AllocUtf8(EngineVersion);
+        void* applicationDataPath = strings.AllocWide(dataPath);
         void* path = strings.AllocWide(Ngx.RuntimeDirectory);
 
         NGXFeatureCommonInfo featureInfo = new()
@@ -38,11 +41,11 @@ internal unsafe partial class DLSSBackend : DisposableObject
         switch (context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                InitializeDirectX12(projectId, engineVersion, dataPath, &featureInfo);
+                InitializeDirectX12(projectId, engineVersion, applicationDataPath, &featureInfo);
                 break;
 
             case GraphicsApi.Vulkan:
-                InitializeVulkan(projectId, engineVersion, dataPath, &featureInfo);
+                InitializeVulkan(projectId, engineVersion, applicationDataPath, &featureInfo);
                 break;
         }
 

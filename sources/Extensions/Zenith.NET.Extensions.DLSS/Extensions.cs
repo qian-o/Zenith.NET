@@ -10,13 +10,13 @@ public static class Extensions
 
     extension(GraphicsContext context)
     {
-        public void InitializeDLSS(Guid project, string version, string dataDirectory)
+        public void InitializeDLSS(string dataPath)
         {
             using Lock.Scope _ = @lock.EnterScope();
 
             if (!backends.TryGetValue(context, out DLSSBackend? backend))
             {
-                backends[context] = backend = new(context, project, version, dataDirectory);
+                backends[context] = backend = new(context, dataPath);
 
                 context.Disposing += static (sender, _) =>
                 {

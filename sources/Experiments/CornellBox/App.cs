@@ -17,7 +17,6 @@ internal static class App
 {
     public const int SlotCount = 3;
 
-    private static readonly Guid Project = new("b5b58279-25f8-4d7f-a9d1-e943a85c277c");
     private static readonly DLSSMode?[] rayReconstructionModes =
     [
         null,
@@ -87,10 +86,10 @@ internal static class App
             case GraphicsApi.DirectX12:
             case GraphicsApi.Vulkan:
                 {
-                    string dataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Zenith.NET", "CornellBox", "NGX");
-                    Directory.CreateDirectory(dataDirectory);
+                    string dataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Zenith.NET", "CornellBox", "NGX");
+                    Directory.CreateDirectory(dataPath);
 
-                    Context.InitializeDLSS(Project, typeof(App).Assembly.GetName().Version!.ToString(), dataDirectory);
+                    Context.InitializeDLSS(dataPath);
                 }
                 break;
         }
