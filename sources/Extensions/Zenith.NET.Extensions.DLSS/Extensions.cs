@@ -18,7 +18,7 @@ public static class Extensions
             {
                 backends[context] = backend = new(context, project, version, dataDirectory);
 
-                context.Disposing += (sender, _) =>
+                context.Disposing += static (sender, _) =>
                 {
                     using Lock.Scope scope = @lock.EnterScope();
 
