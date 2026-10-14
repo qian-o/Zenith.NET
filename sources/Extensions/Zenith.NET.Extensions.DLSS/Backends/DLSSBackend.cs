@@ -5,8 +5,8 @@ namespace Zenith.NET.Extensions.DLSS;
 
 internal unsafe partial class DLSSBackend : DisposableObject
 {
+    private readonly NGXParameter parameters;
     private readonly Dictionary<Texture, DLSSBinding> bindings = [];
-    private readonly NGXParameter capabilityParameters;
 
     public DLSSBackend(GraphicsContext context, string dataPath)
     {
@@ -35,29 +35,35 @@ internal unsafe partial class DLSSBackend : DisposableObject
         switch (context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                InitializeDirectX12(strings.AllocUtf8(typeof(GraphicsContext).GUID.ToString()), strings.AllocUtf8(typeof(GraphicsContext).Assembly.GetName().Version!.ToString()), strings.AllocWide(dataPath), &featureInfo);
+                InitializeDirectX12(strings.AllocUtf8(typeof(GraphicsContext).GUID.ToString()),
+                                    strings.AllocUtf8(typeof(GraphicsContext).Assembly.GetName().Version!.ToString()),
+                                    strings.AllocWide(dataPath),
+                                    &featureInfo);
                 break;
 
             case GraphicsApi.Vulkan:
-                InitializeVulkan(strings.AllocUtf8(typeof(GraphicsContext).GUID.ToString()), strings.AllocUtf8(typeof(GraphicsContext).Assembly.GetName().Version!.ToString()), strings.AllocWide(dataPath), &featureInfo);
+                InitializeVulkan(strings.AllocUtf8(typeof(GraphicsContext).GUID.ToString()),
+                                 strings.AllocUtf8(typeof(GraphicsContext).Assembly.GetName().Version!.ToString()),
+                                 strings.AllocWide(dataPath),
+                                 &featureInfo);
                 break;
         }
 
-        fixed (NGXParameter* parameters = &capabilityParameters)
+        fixed (NGXParameter* pParameters = &parameters)
         {
             switch (context.GraphicsApi)
             {
                 case GraphicsApi.DirectX12:
-                    Ngx.D3D12.GetCapabilityParameters(parameters).Success();
+                    Ngx.D3D12.GetCapabilityParameters(pParameters).Success();
                     break;
 
                 case GraphicsApi.Vulkan:
-                    Ngx.Vulkan.GetCapabilityParameters(parameters).Success();
+                    Ngx.Vulkan.GetCapabilityParameters(pParameters).Success();
                     break;
             }
         }
 
-        Capabilities = new(capabilityParameters);
+        Capabilities = new(parameters);
     }
 
     public GraphicsContext Context { get; }
@@ -79,11 +85,31 @@ internal unsafe partial class DLSSBackend : DisposableObject
         switch (feature)
         {
             case NGXFeature.SuperSampling:
-                Ngx.DLSS.GetOptimalSettings(capabilityParameters, outputWidth, outputHeight, DLSSFormats.NGX(mode), &inputWidth, &inputHeight, &maxInputWidth, &maxInputHeight, &minInputWidth, &minInputHeight, &sharpness).Success();
+                Ngx.DLSS.GetOptimalSettings(parameters,
+                                            outputWidth,
+                                            outputHeight,
+                                            DLSSFormats.NGX(mode),
+                                            &inputWidth,
+                                            &inputHeight,
+                                            &maxInputWidth,
+                                            &maxInputHeight,
+                                            &minInputWidth,
+                                            &minInputHeight,
+                                            &sharpness).Success();
                 break;
 
             case NGXFeature.RayReconstruction:
-                Ngx.DLSSD.GetOptimalSettings(capabilityParameters, outputWidth, outputHeight, DLSSFormats.NGX(mode), &inputWidth, &inputHeight, &maxInputWidth, &maxInputHeight, &minInputWidth, &minInputHeight, &sharpness).Success();
+                Ngx.DLSSD.GetOptimalSettings(parameters,
+                                             outputWidth,
+                                             outputHeight,
+                                             DLSSFormats.NGX(mode),
+                                             &inputWidth,
+                                             &inputHeight,
+                                             &maxInputWidth,
+                                             &maxInputHeight,
+                                             &minInputWidth,
+                                             &minInputHeight,
+                                             &sharpness).Success();
                 break;
         }
 
@@ -359,7 +385,7 @@ internal unsafe partial class DLSSBackend : DisposableObject
             }
         }
 
-        DestroyParameters(capabilityParameters);
+        DestroyParameters(parameters);
 
         switch (Context.GraphicsApi)
         {
