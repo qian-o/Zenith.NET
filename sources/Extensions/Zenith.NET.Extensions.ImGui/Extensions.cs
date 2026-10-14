@@ -17,13 +17,13 @@ public static class Extensions
             {
                 backends[context] = backend = new(context, platform, attachmentFormats, colorSpace);
 
-                context.Disposing += (_, _) =>
+                context.Disposing += static (sender, _) =>
                 {
-                    using Lock.Scope _ = @lock.EnterScope();
+                    using Lock.Scope scope = @lock.EnterScope();
 
-                    if (backends.Remove(context))
+                    if (backends.Remove((GraphicsContext)sender!, out ImGuiBackend? disposedBackend))
                     {
-                        backend.Dispose();
+                        disposedBackend.Dispose();
                     }
                 };
             }

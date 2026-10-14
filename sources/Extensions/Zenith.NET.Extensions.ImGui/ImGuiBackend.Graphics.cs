@@ -30,10 +30,10 @@ internal unsafe partial class ImGuiBackend
 
             resourceHandleBindings[textureBindings[texture] = textureID = id] = texture.SampledHandle;
 
-            texture.Disposing += (_, _) =>
+            texture.Disposing += (sender, _) =>
             {
-                resourceHandleBindings.Remove(textureID);
-                textureBindings.Remove(texture);
+                textureBindings.Remove((Texture)sender!, out ImTextureID disposedTextureID);
+                resourceHandleBindings.Remove(disposedTextureID);
             };
         }
 
@@ -52,10 +52,10 @@ internal unsafe partial class ImGuiBackend
 
             resourceHandleBindings[textureViewBindings[textureView] = textureID = id] = textureView.SampledHandle;
 
-            textureView.Disposing += (_, _) =>
+            textureView.Disposing += (sender, _) =>
             {
-                resourceHandleBindings.Remove(textureID);
-                textureViewBindings.Remove(textureView);
+                textureViewBindings.Remove((TextureView)sender!, out ImTextureID disposedTextureID);
+                resourceHandleBindings.Remove(disposedTextureID);
             };
         }
 
