@@ -13,16 +13,17 @@ internal unsafe partial class DLSSBackend
     private const uint ImageViewType2D = 1;
     private const uint ComputeBindPoint = 1;
 
+    private readonly nint descriptorSetLayout;
+    private readonly nint pipelineLayout;
+    private readonly nint descriptorPool;
+    private readonly nint descriptorSet;
+
     private delegate* unmanaged<nint, void*, void*, nint*, int> vkCreateImageView;
     private delegate* unmanaged<nint, nint, void*, void> vkDestroyImageView;
     private delegate* unmanaged<nint, nint, void*, void> vkDestroyDescriptorSetLayout;
     private delegate* unmanaged<nint, nint, void*, void> vkDestroyPipelineLayout;
     private delegate* unmanaged<nint, nint, void*, void> vkDestroyDescriptorPool;
     private delegate* unmanaged<nint, uint, nint, uint, uint, nint*, uint, uint*, void> vkCmdBindDescriptorSets;
-    private nint descriptorSetLayout;
-    private nint pipelineLayout;
-    private nint descriptorPool;
-    private nint descriptorSet;
 
     private void InitializeVulkan(byte* projectId, byte* engineVersion, void* dataPath, NGXFeatureCommonInfo* featureInfo)
     {
@@ -43,50 +44,56 @@ internal unsafe partial class DLSSBackend
     {
         delegate* unmanaged<nint, byte*, nint> getDeviceProcAddr = (delegate* unmanaged<nint, byte*, nint>)Context.GetNativeObject(NativeObjectType.VulkanGetDeviceProcAddr);
 
-        vkCreateImageView = (delegate* unmanaged<nint, void*, void*, nint*, int>)GetProcedureAddress("vkCreateImageView");
-        vkDestroyImageView = (delegate* unmanaged<nint, nint, void*, void>)GetProcedureAddress("vkDestroyImageView");
-        vkDestroyDescriptorSetLayout = (delegate* unmanaged<nint, nint, void*, void>)GetProcedureAddress("vkDestroyDescriptorSetLayout");
-        vkDestroyPipelineLayout = (delegate* unmanaged<nint, nint, void*, void>)GetProcedureAddress("vkDestroyPipelineLayout");
-        vkDestroyDescriptorPool = (delegate* unmanaged<nint, nint, void*, void>)GetProcedureAddress("vkDestroyDescriptorPool");
-        vkCmdBindDescriptorSets = (delegate* unmanaged<nint, uint, nint, uint, uint, nint*, uint, uint*, void>)GetProcedureAddress("vkCmdBindDescriptorSets");
-
         delegate* unmanaged<nint, void*, void*, nint*, int> vkCreateDescriptorSetLayout = (delegate* unmanaged<nint, void*, void*, nint*, int>)GetProcedureAddress("vkCreateDescriptorSetLayout");
         delegate* unmanaged<nint, void*, void*, nint*, int> vkCreatePipelineLayout = (delegate* unmanaged<nint, void*, void*, nint*, int>)GetProcedureAddress("vkCreatePipelineLayout");
         delegate* unmanaged<nint, void*, void*, nint*, int> vkCreateDescriptorPool = (delegate* unmanaged<nint, void*, void*, nint*, int>)GetProcedureAddress("vkCreateDescriptorPool");
         delegate* unmanaged<nint, void*, nint*, int> vkAllocateDescriptorSets = (delegate* unmanaged<nint, void*, nint*, int>)GetProcedureAddress("vkAllocateDescriptorSets");
 
         fixed (nint* pDescriptorSetLayout = &descriptorSetLayout)
-        fixed (nint* pPipelineLayout = &pipelineLayout)
-        fixed (nint* pDescriptorPool = &descriptorPool)
-        fixed (nint* pDescriptorSet = &descriptorSet)
         {
-            VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = new() { SType = DescriptorSetLayoutCreateInfoType };
-            vkCreateDescriptorSetLayout(Device, &descriptorSetLayoutCreateInfo, null, pDescriptorSetLayout).Success();
-
-            VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
+            fixed (nint* pPipelineLayout = &pipelineLayout)
             {
-                SType = PipelineLayoutCreateInfoType,
-                SetLayoutCount = 1,
-                PSetLayouts = pDescriptorSetLayout
-            };
-            vkCreatePipelineLayout(Device, &pipelineLayoutCreateInfo, null, pPipelineLayout).Success();
+                fixed (nint* pDescriptorPool = &descriptorPool)
+                {
+                    fixed (nint* pDescriptorSet = &descriptorSet)
+                    {
+                        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = new() { SType = DescriptorSetLayoutCreateInfoType };
+                        vkCreateDescriptorSetLayout(Device, &descriptorSetLayoutCreateInfo, null, pDescriptorSetLayout).Success();
 
-            VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = new()
-            {
-                SType = DescriptorPoolCreateInfoType,
-                MaxSets = 1
-            };
-            vkCreateDescriptorPool(Device, &descriptorPoolCreateInfo, null, pDescriptorPool).Success();
+                        VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = new()
+                        {
+                            SType = PipelineLayoutCreateInfoType,
+                            SetLayoutCount = 1,
+                            PSetLayouts = pDescriptorSetLayout
+                        };
+                        vkCreatePipelineLayout(Device, &pipelineLayoutCreateInfo, null, pPipelineLayout).Success();
 
-            VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = new()
-            {
-                SType = DescriptorSetAllocateInfoType,
-                DescriptorPool = descriptorPool,
-                DescriptorSetCount = 1,
-                PSetLayouts = pDescriptorSetLayout
-            };
-            vkAllocateDescriptorSets(Device, &descriptorSetAllocateInfo, pDescriptorSet).Success();
+                        VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = new()
+                        {
+                            SType = DescriptorPoolCreateInfoType,
+                            MaxSets = 1
+                        };
+                        vkCreateDescriptorPool(Device, &descriptorPoolCreateInfo, null, pDescriptorPool).Success();
+
+                        VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = new()
+                        {
+                            SType = DescriptorSetAllocateInfoType,
+                            DescriptorPool = descriptorPool,
+                            DescriptorSetCount = 1,
+                            PSetLayouts = pDescriptorSetLayout
+                        };
+                        vkAllocateDescriptorSets(Device, &descriptorSetAllocateInfo, pDescriptorSet).Success();
+                    }
+                }
+            }
         }
+
+        vkCreateImageView = (delegate* unmanaged<nint, void*, void*, nint*, int>)GetProcedureAddress("vkCreateImageView");
+        vkDestroyImageView = (delegate* unmanaged<nint, nint, void*, void>)GetProcedureAddress("vkDestroyImageView");
+        vkDestroyDescriptorSetLayout = (delegate* unmanaged<nint, nint, void*, void>)GetProcedureAddress("vkDestroyDescriptorSetLayout");
+        vkDestroyPipelineLayout = (delegate* unmanaged<nint, nint, void*, void>)GetProcedureAddress("vkDestroyPipelineLayout");
+        vkDestroyDescriptorPool = (delegate* unmanaged<nint, nint, void*, void>)GetProcedureAddress("vkDestroyDescriptorPool");
+        vkCmdBindDescriptorSets = (delegate* unmanaged<nint, uint, nint, uint, uint, nint*, uint, uint*, void>)GetProcedureAddress("vkCmdBindDescriptorSets");
 
         nint GetProcedureAddress(string name)
         {
@@ -150,13 +157,6 @@ internal unsafe partial class DLSSBackend
     private void DestroyVulkanBinding(DLSSBinding binding)
     {
         vkDestroyImageView(Device, binding.Vulkan.Resource.ImageViewInfo.ImageView, null);
-    }
-
-    private void DestroyVulkanResources()
-    {
-        vkDestroyDescriptorPool(Device, descriptorPool, null);
-        vkDestroyPipelineLayout(Device, pipelineLayout, null);
-        vkDestroyDescriptorSetLayout(Device, descriptorSetLayout, null);
     }
 
     private void CreateVulkan(nint commandList, DLSSSuperResolution feature, NGXDLSSCreateParams* createParams)
@@ -310,6 +310,10 @@ internal unsafe partial class DLSSBackend
 
     private void ShutdownVulkan()
     {
+        vkDestroyDescriptorPool(Device, descriptorPool, null);
+        vkDestroyPipelineLayout(Device, pipelineLayout, null);
+        vkDestroyDescriptorSetLayout(Device, descriptorSetLayout, null);
+
         Ngx.Vulkan.Shutdown1(Device).Success();
     }
 }
