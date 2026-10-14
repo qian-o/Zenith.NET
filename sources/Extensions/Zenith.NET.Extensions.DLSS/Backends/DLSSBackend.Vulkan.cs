@@ -100,6 +100,15 @@ internal unsafe partial class DLSSBackend
         }
     }
 
+    private void ShutdownVulkan()
+    {
+        vkDestroyDescriptorPool(Device, descriptorPool, null);
+        vkDestroyPipelineLayout(Device, pipelineLayout, null);
+        vkDestroyDescriptorSetLayout(Device, descriptorSetLayout, null);
+
+        Ngx.Vulkan.Shutdown1(Device).Success();
+    }
+
     private void CreateVulkan(nint commandList, DLSSSuperResolution feature, NGXDLSSCreateParams* createParams)
     {
         BindDescriptorSet(commandList);
@@ -297,15 +306,6 @@ internal unsafe partial class DLSSBackend
     private void DestroyVulkanBinding(DLSSBinding binding)
     {
         vkDestroyImageView(Device, binding.Vulkan.Resource.ImageViewInfo.ImageView, null);
-    }
-
-    private void ShutdownVulkan()
-    {
-        vkDestroyDescriptorPool(Device, descriptorPool, null);
-        vkDestroyPipelineLayout(Device, pipelineLayout, null);
-        vkDestroyDescriptorSetLayout(Device, descriptorSetLayout, null);
-
-        Ngx.Vulkan.Shutdown1(Device).Success();
     }
 
     private void BindDescriptorSet(nint commandList)
