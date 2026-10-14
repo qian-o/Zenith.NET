@@ -102,7 +102,7 @@ public static class Extensions
 ```
 
 - 首次初始化注册后端并订阅 `context.Disposing`。重复调用直接复用，后传入的参数不生效，也不重新初始化 NGX。
-- `Extensions` 保留与 ImGui 相同的注册表锁，保护后端登记、查找与移除；它不承担 NGX 调用的线程同步职责。
+- `Extensions` 保留与 ImGui 相同的注册表锁，保护后端登记、查找与移除；NGX 调用与纹理绑定操作的线程同步由调用方负责。
 - 两个最佳设置查询、三个创建方法及 `Texture.DLSSBinding` 都通过 `GetBackend(context)` 转发。绑定属性通过 `texture.Context` 找到所属后端，在 `Binding(texture)` 中准备原生数据；功能对象直接使用绑定中的数据。
 - 移除 `AcquireContext`、`ReleaseContext`、引用计数及按设备名称保存的进程级能力缓存。能力实例由对应的 `DLSSBackend` 持有，不在进程级注册表中缓存。
 - 查询、创建和释放功能对象都不改变共享后端的生命周期。即使没有存活的功能对象，NGX 仍保持初始化，直到 `context.Disposing`。
@@ -737,11 +737,11 @@ Vulkan 的 file-local ABI 声明放在 `DLSSBackend.Vulkan.cs` 后部，不增�
 
 | 文件 | 负责内容 |
 | --- | --- |
-| `DLSSBackend.cs` | 构造函数、GraphicsContext、能力与参数管理、绑定缓存及其实例锁、公共入口及 GraphicsApi 分派 |
+| `DLSSBackend.cs` | 构造函数、GraphicsContext、能力与参数管理、绑定缓存、公共入口及 GraphicsApi 分派 |
 | `DLSSBackend.DirectX12.cs` | D3D12 初始化、关闭、绑定、特性创建与求值的具体方法 |
 | `DLSSBackend.Vulkan.cs` | Vulkan 对应方法、函数指针、image view、空描述符集与局部 ABI 声明 |
 
-三个文件共享同一个实例的字段，操作方法统一采用实例方法。公共入口通过 `switch (Context.GraphicsApi)` 调用对应的私有实现方法。能力参数获取、参数分配/销毁、特性释放直接在公共流程的分支中调用 NGX，不另设一层纯转发方法。不增加后端派生类、接口或 API 子目录。初始化参数仍是 `project`、`version`、`dataDirectory`。
+三个文件共享同一个实例的字段。DirectX 12 的 `InitializeDirectX12`、`ShutdownDirectX12` 使用设备成员，保留为实例方法；三个 `CreateDirectX12`、三个 `EvaluateDirectX12` 与 `CreateDirectX12Binding` 只使用传入参数，采用静态方法。Vulkan 方法需要访问设备、函数指针和辅助对象，采用实例方法。公共入口通过 `switch (Context.GraphicsApi)` 调用对应的私有实现方法。能力参数获取、参数分配/销毁、特性释放直接在公共流程的分支中调用 NGX，不另设一层纯转发方法。不增加后端派生类、接口或 API 子目录。初始化参数仍是 `project`、`version`、`dataDirectory`。
 
 Create / Evaluate 在现有图形 API 分支中直接取得对应原生命令句柄，不另设一次 API 分派。扩展不提供全局 NGX 锁，初始化、能力与最佳设置查询、参数分配/设置/销毁、Create、Evaluate、Release、Shutdown 的调用同步均由调用方按 NGX 要求负责。功能构造、Dispatch 与销毁不自动串行化 NGX 调用。Vulkan 辅助对象创建通过 `fixed` 直接向后端句柄字段写入原生结果。
 
@@ -767,11 +767,11 @@ NGXFeatureCommonInfo featureInfo = new()
 
 不保留实例级或 static 的 `NGXStrings`、`ZenithMarshal.Scope` 字段。项目、版本、数据目录和搜索路径缓冲区在 Init 调用后释放；Vulkan 函数名转换使用所在调用的局部 scope。NGX.NET 310.9.1.1 的字符串重载采用相同的局部 `NGXStrings` 用法；[NVIDIA Streamline 初始化实现](https://github.com/NVIDIA-RTX/Streamline/blob/2122257e0fce486f91b385aa63b9a09b0a34b363/source/plugins/sl.common/commonEntry.cpp#L1454-L1521) 也使用局部路径内容与指针数组。这里仍调用 unsafe 指针接口。
 
-能力参数块需要跨调用供最佳设置查询使用，由后端保存至销毁；设备、能力参数、Vulkan view 与辅助对象的原生生命周期不随临时字符串一起结束。NGX 初始化后，后端取得能力参数块，再调用 `new DLSSCapabilities(parameters)`，由能力类自己查询三项支持状态。
+能力参数块需要跨调用供最佳设置查询使用，由后端保存至销毁；设备、能力参数、Vulkan view 与辅助对象的原生生命周期不随临时字符串一起结束。`InitializeVulkan` 内部先初始化 NGX，再创建描述符集布局、管线布局、描述符池与描述符集。对应 API 的初始化方法返回后，后端取得能力参数块，再调用 `new DLSSCapabilities(parameters)`，由能力类自己查询三项支持状态。
 
-绑定继续只用一个 `Dictionary<Texture, DLSSBinding>` 缓存完整原生数据。后端实例字段 `private readonly Lock @lock = new();` 只保护绑定获取、删除与退出时的缓存清理，不用于 NGX 调用同步。共享获取流程调用对应 API 的绑定创建方法；首次获取时内联订阅 `Texture.Disposing`，删除缓存并调用对应 API 的绑定销毁方法。DX12 只借用资源地址，Vulkan 释放自身创建的 view。Dispatch 直接使用绑定值，不查表，不新增独立的资源注册框架。
+绑定继续只用一个 `Dictionary<Texture, DLSSBinding>` 缓存完整原生数据。缓存没有内部锁，绑定访问、纹理释放与后端销毁之间的同步由调用方负责。共享获取流程调用对应 API 的绑定创建方法；首次获取时内联订阅 `Texture.Disposing`，删除缓存并调用对应 API 的绑定销毁方法。DX12 只借用资源地址，Vulkan 释放自身创建的 view。Dispatch 直接使用绑定值，不查表，不新增独立的资源注册框架。
 
-后端退出时，在绑定缓存的实例锁内销毁缓存中的原生绑定并清空缓存；离开该锁后，再销毁后端辅助对象、能力参数块并关闭 NGX。原生调用仍直接接 `.Success()`，不增加错误使用的兜底流程。
+后端退出时，先销毁缓存中的 Vulkan view，再通过 `DestroyParameters(capabilityParameters)` 销毁能力参数块，然后调用对应 API 的关闭方法。`ShutdownVulkan` 内部依次销毁 `descriptorPool`、`pipelineLayout`、`descriptorSetLayout`，再关闭 NGX。对应 API 关闭后，最后执行 `bindings.Clear()`。原生调用仍直接接 `.Success()`，不增加错误使用的兜底流程。
 
 ### 3.3 DLSSFeature 与功能类
 
@@ -943,7 +943,7 @@ Vulkan 实现在 `DLSSBackend.Vulkan.cs` 中调用 `CreateDLSSExt1`；RR、FG �
 - **CornellBox**：运动矢量按 Upscaling 扩展（SGSR2）的约定编码，存的是 0.2495 ×（当前帧 − 上一帧的 NDC）+ 0.5。NGX 只有缩放没有偏移，接入 DLSS 时需写入未编码的 NDC 差值；此时超分辨率与光线重建的 `MotionVectorScale` 取 (−0.5·W, 0.5·H)，帧生成取 (−0.5, 0.5)，W、H 为渲染尺寸。
 - **重建**：Desc 不可变，任一字段变化时重建。构造期间即提交创建命令并等待完成；旧对象仍需等 GPU 完成引用后释放。交换链尺寸变化时重建帧生成对象（2.7）。
 - **生命周期**：相关 GPU 工作完成后再释放纹理和功能对象，并在 `GraphicsContext` 之前释放；绑定值不延长资源生命周期。纹理释放时内联清理绑定，后端退出时清理剩余 view。
-- **线程同步**：调用方按 NGX 要求协调初始化、查询、参数操作、创建、求值、释放和关闭，不并发调用同一功能对象的 `Dispatch`。扩展仅用 `Extensions` 的注册表锁保护后端登记，用后端实例锁保护纹理绑定缓存；这些锁不提供 NGX 调用的自动串行化，也不替代调用方的 GPU 同步。
+- **线程同步**：调用方按 NGX 要求协调初始化、查询、参数操作、创建、求值、释放和关闭，不并发调用同一功能对象的 `Dispatch`，并负责绑定缓存访问、纹理释放与后端销毁之间的同步。扩展仅保留 `Extensions` 的注册表锁，保护后端登记、查找与移除；NGX 调用、绑定缓存与 GPU 工作的同步均由调用方负责。
 
 ## 5. RHI 依赖与验证
 
