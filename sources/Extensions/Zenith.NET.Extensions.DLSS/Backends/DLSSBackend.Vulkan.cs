@@ -310,8 +310,10 @@ internal unsafe partial class DLSSBackend
 
     private void BindDescriptorSet(nint commandList)
     {
-        nint set = descriptorSet;
-        vkCmdBindDescriptorSets(commandList, ComputeBindPoint, pipelineLayout, 0, 1, &set, 0, null);
+        fixed (nint* pDescriptorSet = &descriptorSet)
+        {
+            vkCmdBindDescriptorSets(commandList, ComputeBindPoint, pipelineLayout, 0, 1, pDescriptorSet, 0, null);
+        }
     }
 }
 
