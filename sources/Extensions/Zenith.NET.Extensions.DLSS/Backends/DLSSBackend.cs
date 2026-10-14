@@ -37,11 +37,11 @@ internal unsafe partial class DLSSBackend : DisposableObject
         switch (context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                InitializeDirectX12(strings.AllocUtf8(typeof(DLSSBackend).GUID.ToString()), strings.AllocUtf8("1.0"), strings.AllocWide(dataPath), &featureInfo);
+                InitializeDirectX12(strings.AllocUtf8(typeof(DLSSBackend).GUID.ToString()), strings.AllocUtf8(typeof(GraphicsContext).Assembly.GetName().Version!.ToString()), strings.AllocWide(dataPath), &featureInfo);
                 break;
 
             case GraphicsApi.Vulkan:
-                InitializeVulkan(strings.AllocUtf8(typeof(DLSSBackend).GUID.ToString()), strings.AllocUtf8("1.0"), strings.AllocWide(dataPath), &featureInfo);
+                InitializeVulkan(strings.AllocUtf8(typeof(DLSSBackend).GUID.ToString()), strings.AllocUtf8(typeof(GraphicsContext).Assembly.GetName().Version!.ToString()), strings.AllocWide(dataPath), &featureInfo);
                 break;
         }
 
