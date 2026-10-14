@@ -340,13 +340,13 @@ internal unsafe partial class DLSSBackend : DisposableObject
                 _ => default
             };
 
-            texture.Disposing += (_, _) =>
+            texture.Disposing += (sender, _) =>
             {
-                bindings.Remove(texture);
+                bindings.Remove((Texture)sender!, out DLSSBinding disposedBinding);
 
                 if (Context.GraphicsApi is GraphicsApi.Vulkan)
                 {
-                    DestroyVulkanBinding(binding);
+                    DestroyVulkanBinding(disposedBinding);
                 }
             };
         }
