@@ -32,8 +32,10 @@ internal unsafe partial class ImGuiBackend
 
             texture.Disposing += (sender, _) =>
             {
-                textureBindings.Remove((Texture)sender!, out ImTextureID disposedTextureID);
-                resourceHandleBindings.Remove(disposedTextureID);
+                if (textureBindings.Remove((Texture)sender!, out ImTextureID disposedTextureID))
+                {
+                    resourceHandleBindings.Remove(disposedTextureID);
+                }
             };
         }
 
@@ -54,8 +56,10 @@ internal unsafe partial class ImGuiBackend
 
             textureView.Disposing += (sender, _) =>
             {
-                textureViewBindings.Remove((TextureView)sender!, out ImTextureID disposedTextureID);
-                resourceHandleBindings.Remove(disposedTextureID);
+                if (textureViewBindings.Remove((TextureView)sender!, out ImTextureID disposedTextureID))
+                {
+                    resourceHandleBindings.Remove(disposedTextureID);
+                }
             };
         }
 

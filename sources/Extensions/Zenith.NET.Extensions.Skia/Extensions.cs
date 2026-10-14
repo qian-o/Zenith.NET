@@ -15,13 +15,13 @@ public static class Extensions
             {
                 backends[context] = backend = new(context);
 
-                context.Disposing += (_, _) =>
+                context.Disposing += static (sender, _) =>
                 {
-                    using Lock.Scope _ = @lock.EnterScope();
+                    using Lock.Scope scope = @lock.EnterScope();
 
-                    if (backends.Remove(context))
+                    if (backends.Remove((GraphicsContext)sender!, out SkiaBackend? disposedBackend))
                     {
-                        backend.Dispose();
+                        disposedBackend.Dispose();
                     }
                 };
             }

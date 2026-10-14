@@ -18,13 +18,13 @@ public static class Extensions
             {
                 backends[context] = backend = new(context, project, version, dataDirectory);
 
-                context.Disposing += (_, _) =>
+                context.Disposing += (sender, _) =>
                 {
-                    using Lock.Scope _ = @lock.EnterScope();
+                    using Lock.Scope scope = @lock.EnterScope();
 
-                    if (backends.Remove(context))
+                    if (backends.Remove((GraphicsContext)sender!, out DLSSBackend? disposedBackend))
                     {
-                        backend.Dispose();
+                        disposedBackend.Dispose();
                     }
                 };
             }
