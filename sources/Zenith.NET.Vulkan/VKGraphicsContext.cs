@@ -169,8 +169,6 @@ internal unsafe class VKGraphicsContext(bool useValidationLayer) : GraphicsConte
             ApplicationInfo applicationInfo = new()
             {
                 SType = StructureType.ApplicationInfo,
-                PApplicationName = (byte*)ZenithMarshal.StringToPointer(scope, AppDomain.CurrentDomain.FriendlyName, StringEncoding.UTF8),
-                PEngineName = (byte*)ZenithMarshal.StringToPointer(scope, "Zenith.NET", StringEncoding.UTF8),
                 ApiVersion = apiVersion
             };
 
