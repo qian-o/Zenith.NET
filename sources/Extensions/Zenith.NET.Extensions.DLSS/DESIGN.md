@@ -12,11 +12,11 @@
 - 调用形式与 Upscaling 扩展相同：`context.CreateXxx(desc)` 创建，`xxx.Dispatch(commandBuffer, args)` 录制。纹理经 `texture.DLSSBinding` 传入，用法同 `texture.ImGuiBinding`。
 - 类型名为 `DLSS` 加 NVIDIA 功能名，之后新增的功能按同一规则命名。
 - 参数沿用 NGX 原义。扩展只做类型转换：纹理转为原生资源，枚举与格式转为 NGX 取值，按 NGX 的需要对矩阵求逆；未公开的 NGX 参数取固定值（附录）。不做数值换算，也不做兼容处理。
-- 本轮将 DLSS 按独立后端组织：Desc 的布尔配置改为 `DLSSFeatureFlags`、`DLSSDepthType`、`DLSSRoughnessMode`；增加 `DLSSFeature` 基类；DX12 与 Vulkan 分别实现后端；原生特性在具体功能对象构造期间创建。初始化只接收数据目录，Project ID 来自后端的 `Guid` 特性，Engine Version 来自 Zenith.NET 核心程序集版本；原生数据绑定、可空资源、Args 与呈现职责保持不变。
+- 本轮将 DLSS 按独立后端组织：Desc 的布尔配置改为 `DLSSFeatureFlags`、`DLSSDepthType`、`DLSSRoughnessMode`；增加 `DLSSFeature` 基类；DX12 与 Vulkan 分别实现后端；原生特性在具体功能对象构造期间创建。初始化只接收数据目录，Project ID 来自 `GraphicsContext` 的 `Guid` 特性，Engine Version 来自 Zenith.NET 核心程序集版本；原生数据绑定、可空资源、Args 与呈现职责保持不变。
 - 调用方负责正确的平台、图形 API、参数和资源生命周期。初始化入口机制与其他扩展一致：`GetBackend` 未找到后端时抛出未初始化异常。原生调用保持单一流程，不另加失败或错误使用的兜底；`Success()` 仅输出调试信息。
 - 内部按 DirectX 12、Vulkan 后端的方式组织不安全调用：直接构造原生结构、传入指针、显式管理所有权。使用 NGX.NET 的指针重载，不通过其 `string`、`in`、`out` 便利重载执行 NGX 调用。
 - 后端保持单个 `partial DLSSBackend`，公共入口按 `Context.GraphicsApi` 分派到对应实现文件。公开功能类不包含图形 API 分支。
-- 扩展仅依赖 `Zenith.NET` 与 `NGX.NET`。沿用现有 Vulkan 函数指针、局部 ABI 结构与数值映射，不新增 Vulkan NuGet 包、图形后端项目引用或原生桥接层。第 5 节记录的 RHI 改动已经存在，本次不再修改 RHI。
+- 扩展仅依赖 `Zenith.NET` 与 `NGX.NET`。沿用现有 Vulkan 函数指针、局部 ABI 结构与数值映射，不新增 Vulkan NuGet 包、图形后端项目引用或原生桥接层。第 5 节记录的 RHI 功能改动已经存在，本轮仅为 `GraphicsContext` 补充固定 `Guid` 元数据，作为 Project ID 的来源。
 - 本轮配置枚举、partial 后端、局部初始化内存、能力构造查询、功能基类与构造期创建均已实现。第 5 节将本次编译结果与历史 GPU 验证分开记录。
 
 ## 2. 公共 API
@@ -40,7 +40,7 @@
 | --- | --- | --- |
 | `dataPath` | `string` | NGX 写入日志和临时文件的目录；由调用方创建并保证可写，首次初始化时生效 |
 
-`DLSSBackend` 标注 `[Guid("6067F4F0-6123-43B9-B785-20663D8DB0F7")]`，通过 `typeof(DLSSBackend).GUID.ToString()` 取得 Project ID，所有上下文共用，运行期间不重新生成。Engine Version 通过 `typeof(GraphicsContext).Assembly.GetName().Version!.ToString()` 读取 Zenith.NET 核心程序集的 `AssemblyVersion`，随该程序集的构建版本更新。初始化继续使用 `InitWithProjectID`、`NGXEngineType.Custom` 与 `NGXVersion.Api`。这里的 Project ID 与 NVIDIA 分配的整数 Application ID 属于不同标识方式。原生语义见 [NVIDIA 初始化接口](https://github.com/NVIDIA/DLSS/blob/main/include/nvsdk_ngx.h#L173-L223)。
+[`GraphicsContext`](../../Zenith.NET/GraphicsContext.cs) 标注 `[Guid("6067F4F0-6123-43B9-B785-20663D8DB0F7")]`，通过 `typeof(GraphicsContext).GUID.ToString()` 取得 Project ID，所有上下文共用，运行期间不重新生成。Engine Version 通过 `typeof(GraphicsContext).Assembly.GetName().Version!.ToString()` 读取 Zenith.NET 核心程序集的 `AssemblyVersion`，随该程序集的构建版本更新。初始化继续使用 `InitWithProjectID`、`NGXEngineType.Custom` 与 `NGXVersion.Api`。这里的 Project ID 与 NVIDIA 分配的整数 Application ID 属于不同标识方式。原生语义见 [NVIDIA 初始化接口](https://github.com/NVIDIA/DLSS/blob/main/include/nvsdk_ngx.h#L173-L223)。
 
 每个上下文的 NGX 状态由内部的 `DLSSBackend` 持有，注册与释放方式与 Skia、ImGui 相同。以下为 `Extensions` 的节选：
 
@@ -744,7 +744,7 @@ Vulkan 的 file-local ABI 声明放在 `DLSSBackend.Vulkan.cs` 后部，不增�
 
 Create / Evaluate 在现有图形 API 分支中直接取得对应原生命令句柄，不另设一次 API 分派。扩展不提供全局 NGX 锁，初始化、能力与最佳设置查询、参数分配/设置/销毁、Create、Evaluate、Release、Shutdown 的调用同步均由调用方按 NGX 要求负责。功能构造、Dispatch 与销毁不自动串行化 NGX 调用。Vulkan 辅助对象创建通过 `fixed` 直接向后端句柄字段写入原生结果。
 
-Project ID 读取后端类型的 `Guid` 特性。Engine Version 归属于 `GraphicsContext` 所在的 Zenith.NET 核心程序集：[`Zenith.NET.csproj`](../../Zenith.NET/Zenith.NET.csproj) 导入 [`NuGet.Packaging.props`](../../NuGet.Packaging.props)，当前 `Version` 为 `1.1.0`，生成的 `AssemblyVersion` 为 `1.1.0.0`。`1.1.0.0` 仅是当前构建结果示例；实现始终在运行时读取已加载核心程序集的版本元数据。
+Project ID 读取 [`GraphicsContext`](../../Zenith.NET/GraphicsContext.cs) 类型的 `Guid` 特性。Engine Version 归属于 `GraphicsContext` 所在的 Zenith.NET 核心程序集：[`Zenith.NET.csproj`](../../Zenith.NET/Zenith.NET.csproj) 导入 [`NuGet.Packaging.props`](../../NuGet.Packaging.props)，当前 `Version` 为 `1.1.0`，生成的 `AssemblyVersion` 为 `1.1.0.0`。`1.1.0.0` 仅是当前构建结果示例；实现始终在运行时读取已加载核心程序集的版本元数据。
 
 初始化内存使用调用内作用域，在对应分支中直接转换并传入这些值：
 
@@ -765,11 +765,11 @@ NGXFeatureCommonInfo featureInfo = new()
 switch (context.GraphicsApi)
 {
     case GraphicsApi.DirectX12:
-        InitializeDirectX12(strings.AllocUtf8(typeof(DLSSBackend).GUID.ToString()), strings.AllocUtf8(typeof(GraphicsContext).Assembly.GetName().Version!.ToString()), strings.AllocWide(dataPath), &featureInfo);
+        InitializeDirectX12(strings.AllocUtf8(typeof(GraphicsContext).GUID.ToString()), strings.AllocUtf8(typeof(GraphicsContext).Assembly.GetName().Version!.ToString()), strings.AllocWide(dataPath), &featureInfo);
         break;
 
     case GraphicsApi.Vulkan:
-        InitializeVulkan(strings.AllocUtf8(typeof(DLSSBackend).GUID.ToString()), strings.AllocUtf8(typeof(GraphicsContext).Assembly.GetName().Version!.ToString()), strings.AllocWide(dataPath), &featureInfo);
+        InitializeVulkan(strings.AllocUtf8(typeof(GraphicsContext).GUID.ToString()), strings.AllocUtf8(typeof(GraphicsContext).Assembly.GetName().Version!.ToString()), strings.AllocWide(dataPath), &featureInfo);
         break;
 }
 ```
@@ -1003,7 +1003,7 @@ Vulkan 实现在 `DLSSBackend.Vulkan.cs` 中调用 `CreateDLSSExt1`；RR、FG �
 
 | 设计项 | 当前实现 |
 | --- | --- |
-| 初始化入口 | `InitializeDLSS(string dataPath)`；Project ID 来自后端类型的 `Guid` 特性，Engine Version 来自 Zenith.NET 核心程序集的 `AssemblyVersion`，目录由调用方创建 |
+| 初始化入口 | `InitializeDLSS(string dataPath)`；Project ID 来自 `GraphicsContext` 的 `Guid` 特性，Engine Version 来自 Zenith.NET 核心程序集的 `AssemblyVersion`，目录由调用方创建 |
 | 配置枚举 | 三个 Desc 使用 `DLSSFeatureFlags`；RR 另用 `DLSSDepthType`、`DLSSRoughnessMode`；SR / RR 的创建标志直接使用相同转换结果，由调用方显式配置 |
 | 后端与分组 | `Enums`、`Structs`、`Backends` 已分组；单个 partial 后端的三个文件位于同一目录，API 特定 Create / Evaluate 已迁入对应文件 |
 | 初始化内存 | `NGXStrings` 使用局部 using，搜索路径使用局部指针；移除长期持有的 strings / scope 字段 |
@@ -1011,7 +1011,7 @@ Vulkan 实现在 `DLSSBackend.Vulkan.cs` 中调用 `CreateDLSSExt1`；RR、FG �
 | 功能生命周期 | `DLSSFeature` 集中持有并释放参数与 `internal NGXHandle Handle`；三个具体功能在构造时创建、提交并等待，Dispatch 只求值 |
 | CornellBox | Desc 改用枚举；RR 显式设置 `Hdr | MotionVectorLowResolution`，对应现有 HDR 与输入分辨率运动矢量；未启用 DLSS 时能力对象为 null |
 
-已静态核对原生资源映射、16 个可空资源、Vulkan 创建与求值前的空描述符集绑定，以及 RHI 命令缓冲分配和提交路径。公共命名空间、Dispatch 参数及绑定数据保持原有约定，未扩展 RHI 或新增 Vulkan 包。
+已静态核对原生资源映射、16 个可空资源、Vulkan 创建与求值前的空描述符集绑定，以及 RHI 命令缓冲分配和提交路径。公共命名空间、Dispatch 参数及绑定数据保持原有约定；RHI 仅补充 `GraphicsContext` 的固定 `Guid` 元数据，未新增 Vulkan 包。
 
 ## 附录：NGX 初始化与固定参数
 
@@ -1019,7 +1019,7 @@ Vulkan 实现在 `DLSSBackend.Vulkan.cs` 中调用 `CreateDLSSExt1`；RR、FG �
 | --- | --- | --- |
 | 全部 | `CreationNodeMask`、`VisibilityNodeMask` | 1 |
 | 全部 | `FreeMemOnReleaseFeature` | 1 |
-| 全部 | Project ID | `typeof(DLSSBackend).GUID.ToString()`，后端类型标注 `[Guid("6067F4F0-6123-43B9-B785-20663D8DB0F7")]` |
+| 全部 | Project ID | `typeof(GraphicsContext).GUID.ToString()`，`GraphicsContext` 标注 `[Guid("6067F4F0-6123-43B9-B785-20663D8DB0F7")]` |
 | 全部 | Engine Version | `typeof(GraphicsContext).Assembly.GetName().Version!.ToString()`，取 Zenith.NET 核心程序集的构建版本，见 3.2 |
 | 全部 | Application Data Path | 来自 `InitializeDLSS` 的 `dataPath`，由调用方创建目录，见 2.1 |
 | 全部 | 引擎类型、SDK 版本、功能路径、日志配置 | 固定配置见 3.2 |

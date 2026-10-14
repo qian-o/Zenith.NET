@@ -1,5 +1,8 @@
-﻿namespace Zenith.NET;
+﻿using System.Runtime.InteropServices;
 
+namespace Zenith.NET;
+
+[Guid("6067F4F0-6123-43B9-B785-20663D8DB0F7")]
 public abstract class GraphicsContext : DisposableObject
 {
     protected GraphicsContext(GraphicsApi graphicsApi, bool useValidationLayer)

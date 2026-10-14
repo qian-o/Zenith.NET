@@ -1,10 +1,8 @@
 ﻿using System.Numerics;
-using System.Runtime.InteropServices;
 using NGX.NET;
 
 namespace Zenith.NET.Extensions.DLSS;
 
-[Guid("6067F4F0-6123-43B9-B785-20663D8DB0F7")]
 internal unsafe partial class DLSSBackend : DisposableObject
 {
     private readonly Dictionary<Texture, DLSSBinding> bindings = [];
@@ -37,11 +35,11 @@ internal unsafe partial class DLSSBackend : DisposableObject
         switch (context.GraphicsApi)
         {
             case GraphicsApi.DirectX12:
-                InitializeDirectX12(strings.AllocUtf8(typeof(DLSSBackend).GUID.ToString()), strings.AllocUtf8(typeof(GraphicsContext).Assembly.GetName().Version!.ToString()), strings.AllocWide(dataPath), &featureInfo);
+                InitializeDirectX12(strings.AllocUtf8(typeof(GraphicsContext).GUID.ToString()), strings.AllocUtf8(typeof(GraphicsContext).Assembly.GetName().Version!.ToString()), strings.AllocWide(dataPath), &featureInfo);
                 break;
 
             case GraphicsApi.Vulkan:
-                InitializeVulkan(strings.AllocUtf8(typeof(DLSSBackend).GUID.ToString()), strings.AllocUtf8(typeof(GraphicsContext).Assembly.GetName().Version!.ToString()), strings.AllocWide(dataPath), &featureInfo);
+                InitializeVulkan(strings.AllocUtf8(typeof(GraphicsContext).GUID.ToString()), strings.AllocUtf8(typeof(GraphicsContext).Assembly.GetName().Version!.ToString()), strings.AllocWide(dataPath), &featureInfo);
                 break;
         }
 
