@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using NGX.NET;
+﻿using NGX.NET;
 
 namespace Zenith.NET.Extensions.DLSS;
 
@@ -195,7 +194,6 @@ internal unsafe partial class DLSSBackend : DisposableObject
     {
         NGXDLSSDCreateParams createParams = new()
         {
-            DenoiseMode = NGXDLSSDenoiseMode.DlUnified,
             RoughnessMode = DLSSFormats.NGX(feature.Desc.RoughnessMode),
             UseHWDepth = DLSSFormats.NGX(feature.Desc.DepthType),
             Width = feature.Desc.InputWidth,
@@ -220,8 +218,7 @@ internal unsafe partial class DLSSBackend : DisposableObject
 
     public void Create(CommandBuffer commandBuffer, DLSSFrameGeneration feature)
     {
-        SetUI(feature.Parameters, Ngx.DLSSGParameterMvecJittered, feature.Desc.Flags.HasFlag(DLSSFeatureFlags.MotionVectorJittered) ? 1u : 0u);
-        SetUI(feature.Parameters, Ngx.DLSSGParameterUserInterfaceRecompositionEnabled, feature.Desc.Flags.HasFlag(DLSSFeatureFlags.UIRecomposition) ? 1u : 0u);
+        SetUI(feature.Parameters, Ngx.DLSSGParameterUserInterfaceRecompositionEnabled, feature.Desc.IsUIRecompositionEnabled ? 1u : 0u);
 
         NGXDLSSGCreateParams createParams = new()
         {
@@ -234,8 +231,7 @@ internal unsafe partial class DLSSBackend : DisposableObject
                 _ => default
             },
             RenderWidth = feature.Desc.InputWidth,
-            RenderHeight = feature.Desc.InputHeight,
-            DynamicResolutionScaling = feature.Desc.Flags.HasFlag(DLSSFeatureFlags.DynamicResolution)
+            RenderHeight = feature.Desc.InputHeight
         };
 
         switch (Context.GraphicsApi)
@@ -252,11 +248,7 @@ internal unsafe partial class DLSSBackend : DisposableObject
 
     public void Evaluate(CommandBuffer commandBuffer, DLSSSuperResolution feature, DLSSSuperResolutionArgs args)
     {
-        NGXDimensions renderSubrectDimensions = new()
-        {
-            Width = args.InputContentWidth,
-            Height = args.InputContentHeight
-        };
+        NGXDimensions renderSubrectDimensions = args.Color.Size;
 
         switch (Context.GraphicsApi)
         {
@@ -272,11 +264,7 @@ internal unsafe partial class DLSSBackend : DisposableObject
 
     public void Evaluate(CommandBuffer commandBuffer, DLSSRayReconstruction feature, DLSSRayReconstructionArgs args)
     {
-        NGXDimensions renderSubrectDimensions = new()
-        {
-            Width = feature.Desc.InputWidth,
-            Height = feature.Desc.InputHeight
-        };
+        NGXDimensions renderSubrectDimensions = args.Color.Size;
 
         switch (Context.GraphicsApi)
         {
@@ -292,25 +280,30 @@ internal unsafe partial class DLSSBackend : DisposableObject
 
     public void Evaluate(CommandBuffer commandBuffer, DLSSFrameGeneration feature, DLSSFrameGenerationArgs args)
     {
-        Matrix4x4.Invert(args.ViewToClip, out Matrix4x4 clipToView);
-        Matrix4x4.Invert(args.ClipToPrevClip, out Matrix4x4 prevClipToClip);
+        Ngx.Parameter.Reset(feature.Parameters);
 
-        NGXDimensions inputContentSize = new()
+        SetUI(feature.Parameters, Ngx.DLSSGParameterMvecJittered, args.IsMotionVectorJittered ? 1u : 0u);
+
+        if (args.FrameId is ulong frameId)
         {
-            Width = args.InputContentWidth,
-            Height = args.InputContentHeight
-        };
+            fixed (byte* name = Ngx.DLSSGParameterBackbufferFrameID)
+            {
+                Ngx.Parameter.SetULL(feature.Parameters, name, frameId);
+            }
+        }
 
         NGXDLSSGOptEvalParams optEvalParams = new()
         {
+            MultiFrameCount = args.MultiFrameCount,
+            MultiFrameIndex = args.MultiFrameIndex,
             CameraViewToClip = args.ViewToClip,
-            ClipToCameraView = clipToView,
-            ClipToLensClip = Matrix4x4.Identity,
+            ClipToCameraView = args.ClipToView,
+            ClipToLensClip = args.ClipToLensClip,
             ClipToPrevClip = args.ClipToPrevClip,
-            PrevClipToClip = prevClipToClip,
-            JitterOffset = new(args.JitterOffsetX, args.JitterOffsetY),
-            MvecScale = new(args.MotionVectorScaleX, args.MotionVectorScaleY),
-            CameraPinholeOffset = new(args.CameraPinholeOffsetX, args.CameraPinholeOffsetY),
+            PrevClipToClip = args.PrevClipToClip,
+            JitterOffset = args.JitterOffset,
+            MvecScale = args.MotionVectorScale,
+            CameraPinholeOffset = args.CameraPinholeOffset,
             CameraPos = args.CameraPosition,
             CameraUp = args.CameraUp,
             CameraRight = args.CameraRight,
@@ -319,17 +312,28 @@ internal unsafe partial class DLSSBackend : DisposableObject
             CameraFar = args.CameraFar,
             CameraFOV = args.CameraFovAngleVer,
             CameraAspectRatio = args.CameraAspectRatio,
-            ColorBuffersHDR = feature.Desc.Flags.HasFlag(DLSSFeatureFlags.Hdr),
-            DepthInverted = feature.Desc.Flags.HasFlag(DLSSFeatureFlags.DepthReversed),
-            CameraMotionIncluded = true,
+            ColorBuffersHDR = args.IsHdrDisplay,
+            DepthInverted = args.IsDepthReversed,
+            CameraMotionIncluded = args.IsCameraMotionIncluded,
             Reset = args.Reset,
-            OrthoProjection = args.Orthographic,
-            MvecsSubrectSize = inputContentSize,
-            DepthSubrectSize = inputContentSize,
+            AutomodeOverrideReset = args.IsAutomodeOverrideReset,
+            NotRenderingGameFrames = args.IsNotRenderingGameFrames,
+            OrthoProjection = args.IsOrthographic,
+            MotionVectorsInvalidValue = args.MotionVectorInvalidValue,
+            MotionVectorsDilated = args.IsMotionVectorDilated,
+            MenuDetectionEnabled = args.IsMenuDetectionEnabled,
+            MvecsSubrectSize = args.MotionVectors.Size,
+            DepthSubrectSize = args.Depth.Size,
             HudLessSubrectSize = args.HudlessColor?.Size ?? default,
             UiSubrectSize = args.UI?.Size ?? default,
             UiAlphaSubrectSize = args.UIAlpha?.Size ?? default,
             BidirectionalDistFieldSubrectSize = args.DistortionField?.Size ?? default,
+            BidirectionalDistFieldPrecisionInfo = new()
+            {
+                IsLowPrecision = args.IsDistortionFieldLowPrecision ? 1u : 0u,
+                Bias = args.DistortionFieldBias,
+                Scale = args.DistortionFieldScale
+            },
             BackbufferSubrectSize = args.Color.Size,
             OutputInterpSubrectSize = args.Output.Size
         };

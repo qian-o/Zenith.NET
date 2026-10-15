@@ -44,19 +44,19 @@ internal unsafe partial class DLSSBackend
         {
             Feature = new()
             {
-                Color = args.Input.DirectX12,
+                Color = args.Color.DirectX12,
                 Output = args.Output.DirectX12
             },
             Depth = args.Depth.DirectX12,
             MotionVectors = args.MotionVectors.DirectX12,
-            JitterOffsetX = args.JitterOffsetX,
-            JitterOffsetY = args.JitterOffsetY,
+            JitterOffsetX = args.JitterOffset.X,
+            JitterOffsetY = args.JitterOffset.Y,
             RenderSubrectDimensions = renderSubrectDimensions,
             Reset = args.Reset ? 1 : 0,
-            MVScaleX = args.MotionVectorScaleX,
-            MVScaleY = args.MotionVectorScaleY,
+            MVScaleX = args.MotionVectorScale.X,
+            MVScaleY = args.MotionVectorScale.Y,
             ExposureTexture = args.Exposure?.DirectX12 ?? 0,
-            BiasCurrentColorMask = args.ReactiveMask?.DirectX12 ?? 0,
+            BiasCurrentColorMask = args.BiasCurrentColorMask?.DirectX12 ?? 0,
             PreExposure = args.PreExposure,
             ExposureScale = args.ExposureScale
         };
@@ -72,29 +72,52 @@ internal unsafe partial class DLSSBackend
             SpecularAlbedo = args.SpecularAlbedo.DirectX12,
             Normals = args.Normals.DirectX12,
             Roughness = args.Roughness?.DirectX12 ?? 0,
-            Color = args.Input.DirectX12,
+            Color = args.Color.DirectX12,
+            Alpha = args.Alpha?.DirectX12 ?? 0,
             Output = args.Output.DirectX12,
+            OutputAlpha = args.OutputAlpha?.DirectX12 ?? 0,
             Depth = args.Depth.DirectX12,
             MotionVectors = args.MotionVectors.DirectX12,
-            JitterOffsetX = args.JitterOffsetX,
-            JitterOffsetY = args.JitterOffsetY,
+            JitterOffsetX = args.JitterOffset.X,
+            JitterOffsetY = args.JitterOffset.Y,
             RenderSubrectDimensions = renderSubrectDimensions,
             Reset = args.Reset ? 1 : 0,
-            MVScaleX = args.MotionVectorScaleX,
-            MVScaleY = args.MotionVectorScaleY,
+            MVScaleX = args.MotionVectorScale.X,
+            MVScaleY = args.MotionVectorScale.Y,
             ExposureTexture = args.Exposure?.DirectX12 ?? 0,
-            BiasCurrentColorMask = args.ReactiveMask?.DirectX12 ?? 0,
+            BiasCurrentColorMask = args.BiasCurrentColorMask?.DirectX12 ?? 0,
+            ReflectedAlbedo = args.ReflectedAlbedo?.DirectX12 ?? 0,
+            ColorBeforeParticles = args.ColorBeforeParticles?.DirectX12 ?? 0,
+            ColorAfterParticles = args.ColorAfterParticles?.DirectX12 ?? 0,
             ColorBeforeTransparency = args.ColorBeforeTransparency?.DirectX12 ?? 0,
-            ScreenSpaceSubsurfaceScatteringGuide = args.SubsurfaceScatteringGuide?.DirectX12 ?? 0,
+            ColorAfterTransparency = args.ColorAfterTransparency?.DirectX12 ?? 0,
+            ColorBeforeFog = args.ColorBeforeFog?.DirectX12 ?? 0,
+            ColorAfterFog = args.ColorAfterFog?.DirectX12 ?? 0,
+            ScreenSpaceSubsurfaceScatteringGuide = args.ScreenSpaceSubsurfaceScatteringGuide?.DirectX12 ?? 0,
+            ColorBeforeScreenSpaceSubsurfaceScattering = args.ColorBeforeScreenSpaceSubsurfaceScattering?.DirectX12 ?? 0,
+            ColorAfterScreenSpaceSubsurfaceScattering = args.ColorAfterScreenSpaceSubsurfaceScattering?.DirectX12 ?? 0,
+            ScreenSpaceRefractionGuide = args.ScreenSpaceRefractionGuide?.DirectX12 ?? 0,
+            ColorBeforeScreenSpaceRefraction = args.ColorBeforeScreenSpaceRefraction?.DirectX12 ?? 0,
+            ColorAfterScreenSpaceRefraction = args.ColorAfterScreenSpaceRefraction?.DirectX12 ?? 0,
             DepthOfFieldGuide = args.DepthOfFieldGuide?.DirectX12 ?? 0,
+            ColorBeforeDepthOfField = args.ColorBeforeDepthOfField?.DirectX12 ?? 0,
+            ColorAfterDepthOfField = args.ColorAfterDepthOfField?.DirectX12 ?? 0,
+            DiffuseHitDistance = args.DiffuseHitDistance?.DirectX12 ?? 0,
             SpecularHitDistance = args.SpecularHitDistance?.DirectX12 ?? 0,
+            DiffuseRayDirection = args.DiffuseRayDirection?.DirectX12 ?? 0,
+            SpecularRayDirection = args.SpecularRayDirection?.DirectX12 ?? 0,
+            DiffuseRayDirectionHitDistance = args.DiffuseRayDirectionHitDistance?.DirectX12 ?? 0,
+            SpecularRayDirectionHitDistance = args.SpecularRayDirectionHitDistance?.DirectX12 ?? 0,
             WorldToViewMatrix = &args.WorldToView,
             ViewToClipMatrix = &args.ViewToClip,
             PreExposure = args.PreExposure,
             ExposureScale = args.ExposureScale,
             MotionVectorsReflections = args.SpecularMotionVectors?.DirectX12 ?? 0,
             TransparencyLayer = args.TransparencyLayer?.DirectX12 ?? 0,
-            TransparencyLayerOpacity = args.TransparencyLayerOpacity?.DirectX12 ?? 0
+            TransparencyLayerOpacity = args.TransparencyLayerOpacity?.DirectX12 ?? 0,
+            TransparencyLayerMvecs = args.TransparencyLayerMotionVectors?.DirectX12 ?? 0,
+            DisocclusionMask = args.DisocclusionMask?.DirectX12 ?? 0,
+            ResponsivityMask = args.ResponsivityMask?.DirectX12 ?? 0
         };
 
         Ngx.D3D12.EvaluateDLSSDExt(commandList, feature.Handle, feature.Parameters, &evalParams).Success();
@@ -111,7 +134,8 @@ internal unsafe partial class DLSSBackend
             UI = args.UI?.DirectX12 ?? 0,
             UIAlpha = args.UIAlpha?.DirectX12 ?? 0,
             BidirectionalDistortionField = args.DistortionField?.DirectX12 ?? 0,
-            OutputInterpFrame = args.Output.DirectX12
+            OutputInterpFrame = args.Output.DirectX12,
+            OutputDisableInterpolation = args.OutputDisableInterpolation?.GetNativeObject(NativeObjectType.D3D12Resource) ?? 0
         };
 
         Ngx.D3D12.EvaluateDLSSG(commandList, feature.Handle, feature.Parameters, &evalParams, optEvalParams).Success();

@@ -6,6 +6,10 @@ public struct DLSSFrameGenerationArgs
 {
     public DLSSBinding Color;
 
+    public DLSSBinding Depth;
+
+    public DLSSBinding MotionVectors;
+
     public DLSSBinding? HudlessColor;
 
     public DLSSBinding? UI;
@@ -14,27 +18,35 @@ public struct DLSSFrameGenerationArgs
 
     public DLSSBinding? DistortionField;
 
-    public DLSSBinding Depth;
-
-    public DLSSBinding MotionVectors;
-
     public DLSSBinding Output;
 
-    public uint InputContentWidth;
+    public Buffer? OutputDisableInterpolation;
 
-    public uint InputContentHeight;
+    public uint MultiFrameCount;
 
-    public float JitterOffsetX;
+    public uint MultiFrameIndex;
 
-    public float JitterOffsetY;
+    public ulong? FrameId;
 
-    public float MotionVectorScaleX;
+    public Vector2 JitterOffset;
 
-    public float MotionVectorScaleY;
+    public Vector2 MotionVectorScale;
+
+    public float MotionVectorInvalidValue;
+
+    public float DistortionFieldBias;
+
+    public float DistortionFieldScale;
 
     public Matrix4x4 ViewToClip;
 
+    public Matrix4x4 ClipToView;
+
+    public Matrix4x4 ClipToLensClip;
+
     public Matrix4x4 ClipToPrevClip;
+
+    public Matrix4x4 PrevClipToClip;
 
     public Vector3 CameraPosition;
 
@@ -44,9 +56,7 @@ public struct DLSSFrameGenerationArgs
 
     public Vector3 CameraForward;
 
-    public float CameraPinholeOffsetX;
-
-    public float CameraPinholeOffsetY;
+    public Vector2 CameraPinholeOffset;
 
     public float CameraNear;
 
@@ -56,7 +66,25 @@ public struct DLSSFrameGenerationArgs
 
     public float CameraAspectRatio;
 
-    public bool Orthographic;
+    public bool IsHdrDisplay;
+
+    public bool IsDepthReversed;
+
+    public bool IsCameraMotionIncluded;
+
+    public bool IsMotionVectorJittered;
+
+    public bool IsMotionVectorDilated;
+
+    public bool IsDistortionFieldLowPrecision;
+
+    public bool IsOrthographic;
+
+    public bool IsMenuDetectionEnabled;
+
+    public bool IsNotRenderingGameFrames;
+
+    public bool IsAutomodeOverrideReset;
 
     public bool Reset;
 }

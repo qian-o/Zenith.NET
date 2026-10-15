@@ -12,5 +12,5 @@ public struct DLSSFrameGenerationDesc
 
     public uint OutputHeight;
 
-    public DLSSFeatureFlags Flags;
+    public bool IsUIRecompositionEnabled;
 }

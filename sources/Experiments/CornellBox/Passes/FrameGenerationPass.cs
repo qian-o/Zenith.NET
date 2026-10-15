@@ -1,4 +1,5 @@
-﻿using CornellBox.Models;
+﻿using System.Numerics;
+using CornellBox.Models;
 using Zenith.NET;
 using Zenith.NET.Extensions.DLSS;
 
@@ -63,20 +64,26 @@ internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint dis
         Snapshot(commandBuffer, args.Depth, depth[args.Slot]);
         Snapshot(commandBuffer, args.MotionVectors, motionVectors[args.Slot]);
 
+        Matrix4x4.Invert(args.ClipToPrevClip, out Matrix4x4 prevClipToClip);
+
         pendingArgs = new()
         {
             Color = args.BackBuffer.DLSSBinding,
-            HudlessColor = hudless[args.Slot].DLSSBinding,
-            UI = args.UI.DLSSBinding,
             Depth = depth[args.Slot].DLSSBinding,
             MotionVectors = motionVectors[args.Slot].DLSSBinding,
+            HudlessColor = hudless[args.Slot].DLSSBinding,
+            UI = args.UI.DLSSBinding,
             Output = args.GeneratedFrame.DLSSBinding,
-            JitterOffsetX = 2.0f * args.Jitter.X / RenderWidth,
-            JitterOffsetY = -2.0f * args.Jitter.Y / RenderHeight,
-            MotionVectorScaleX = -0.5f,
-            MotionVectorScaleY = 0.5f,
+            MultiFrameCount = 1,
+            MultiFrameIndex = 1,
+            FrameId = args.FrameIndex,
+            JitterOffset = new(2.0f * args.Jitter.X / RenderWidth, -2.0f * args.Jitter.Y / RenderHeight),
+            MotionVectorScale = new(-0.5f, 0.5f),
             ViewToClip = args.Projection,
+            ClipToView = args.InverseProjection,
+            ClipToLensClip = Matrix4x4.Identity,
             ClipToPrevClip = args.ClipToPrevClip,
+            PrevClipToClip = prevClipToClip,
             CameraPosition = args.CameraPosition,
             CameraUp = args.CameraUp,
             CameraRight = args.CameraRight,
@@ -85,6 +92,7 @@ internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint dis
             CameraFar = args.CameraFar,
             CameraFovAngleVer = args.CameraFovAngleVer,
             CameraAspectRatio = args.CameraAspectRatio,
+            IsCameraMotionIncluded = true,
             Reset = !history
         };
         pendingBackBuffer = args.BackBuffer;
@@ -127,7 +135,7 @@ internal class FrameGenerationPass(uint renderWidth, uint renderHeight, uint dis
             InputHeight = RenderHeight,
             OutputWidth = DisplayWidth,
             OutputHeight = DisplayHeight,
-            Flags = DLSSFeatureFlags.UIRecomposition
+            IsUIRecompositionEnabled = true
         };
     }
 

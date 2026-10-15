@@ -143,32 +143,32 @@ internal unsafe partial class DLSSBackend
     {
         BindDescriptorSet(commandList);
 
-        NGXResourceVK input = args.Input.Vulkan with { ReadWrite = false };
-        NGXResourceVK output = args.Output.Vulkan with { ReadWrite = true };
+        NGXResourceVK color = args.Color.Vulkan with { ReadWrite = false };
         NGXResourceVK depth = args.Depth.Vulkan with { ReadWrite = false };
         NGXResourceVK motionVectors = args.MotionVectors.Vulkan with { ReadWrite = false };
         NGXResourceVK exposure = (args.Exposure?.Vulkan ?? default) with { ReadWrite = false };
-        NGXResourceVK reactiveMask = (args.ReactiveMask?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK biasCurrentColorMask = (args.BiasCurrentColorMask?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK output = args.Output.Vulkan with { ReadWrite = true };
 
         NGXVKDLSSEvalParams evalParams = new()
         {
             Feature = new()
             {
-                Color = &input,
+                Color = &color,
                 Output = &output
             },
             Depth = &depth,
             MotionVectors = &motionVectors,
-            JitterOffsetX = args.JitterOffsetX,
-            JitterOffsetY = args.JitterOffsetY,
-            RenderSubrectDimensions = renderSubrectDimensions,
-            Reset = args.Reset ? 1 : 0,
-            MVScaleX = args.MotionVectorScaleX,
-            MVScaleY = args.MotionVectorScaleY,
             ExposureTexture = args.Exposure.HasValue ? &exposure : null,
-            BiasCurrentColorMask = args.ReactiveMask.HasValue ? &reactiveMask : null,
+            BiasCurrentColorMask = args.BiasCurrentColorMask.HasValue ? &biasCurrentColorMask : null,
+            JitterOffsetX = args.JitterOffset.X,
+            JitterOffsetY = args.JitterOffset.Y,
+            MVScaleX = args.MotionVectorScale.X,
+            MVScaleY = args.MotionVectorScale.Y,
             PreExposure = args.PreExposure,
-            ExposureScale = args.ExposureScale
+            ExposureScale = args.ExposureScale,
+            RenderSubrectDimensions = renderSubrectDimensions,
+            Reset = args.Reset ? 1 : 0
         };
 
         Ngx.Vulkan.EvaluateDLSSExt(commandList, feature.Handle, feature.Parameters, &evalParams).Success();
@@ -178,53 +178,99 @@ internal unsafe partial class DLSSBackend
     {
         BindDescriptorSet(commandList);
 
-        NGXResourceVK diffuseAlbedo = args.DiffuseAlbedo.Vulkan with { ReadWrite = false };
-        NGXResourceVK specularAlbedo = args.SpecularAlbedo.Vulkan with { ReadWrite = false };
-        NGXResourceVK normals = args.Normals.Vulkan with { ReadWrite = false };
-        NGXResourceVK roughness = (args.Roughness?.Vulkan ?? default) with { ReadWrite = false };
-        NGXResourceVK input = args.Input.Vulkan with { ReadWrite = false };
-        NGXResourceVK output = args.Output.Vulkan with { ReadWrite = true };
+        NGXResourceVK color = args.Color.Vulkan with { ReadWrite = false };
+        NGXResourceVK alpha = (args.Alpha?.Vulkan ?? default) with { ReadWrite = false };
         NGXResourceVK depth = args.Depth.Vulkan with { ReadWrite = false };
         NGXResourceVK motionVectors = args.MotionVectors.Vulkan with { ReadWrite = false };
-        NGXResourceVK exposure = (args.Exposure?.Vulkan ?? default) with { ReadWrite = false };
-        NGXResourceVK reactiveMask = (args.ReactiveMask?.Vulkan ?? default) with { ReadWrite = false };
-        NGXResourceVK colorBeforeTransparency = (args.ColorBeforeTransparency?.Vulkan ?? default) with { ReadWrite = false };
-        NGXResourceVK subsurfaceScatteringGuide = (args.SubsurfaceScatteringGuide?.Vulkan ?? default) with { ReadWrite = false };
-        NGXResourceVK depthOfFieldGuide = (args.DepthOfFieldGuide?.Vulkan ?? default) with { ReadWrite = false };
-        NGXResourceVK specularHitDistance = (args.SpecularHitDistance?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK diffuseAlbedo = args.DiffuseAlbedo.Vulkan with { ReadWrite = false };
+        NGXResourceVK specularAlbedo = args.SpecularAlbedo.Vulkan with { ReadWrite = false };
+        NGXResourceVK reflectedAlbedo = (args.ReflectedAlbedo?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK normals = args.Normals.Vulkan with { ReadWrite = false };
+        NGXResourceVK roughness = (args.Roughness?.Vulkan ?? default) with { ReadWrite = false };
         NGXResourceVK specularMotionVectors = (args.SpecularMotionVectors?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK diffuseHitDistance = (args.DiffuseHitDistance?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK specularHitDistance = (args.SpecularHitDistance?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK diffuseRayDirection = (args.DiffuseRayDirection?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK specularRayDirection = (args.SpecularRayDirection?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK diffuseRayDirectionHitDistance = (args.DiffuseRayDirectionHitDistance?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK specularRayDirectionHitDistance = (args.SpecularRayDirectionHitDistance?.Vulkan ?? default) with { ReadWrite = false };
         NGXResourceVK transparencyLayer = (args.TransparencyLayer?.Vulkan ?? default) with { ReadWrite = false };
         NGXResourceVK transparencyLayerOpacity = (args.TransparencyLayerOpacity?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK transparencyLayerMotionVectors = (args.TransparencyLayerMotionVectors?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK colorBeforeParticles = (args.ColorBeforeParticles?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK colorAfterParticles = (args.ColorAfterParticles?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK colorBeforeTransparency = (args.ColorBeforeTransparency?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK colorAfterTransparency = (args.ColorAfterTransparency?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK colorBeforeFog = (args.ColorBeforeFog?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK colorAfterFog = (args.ColorAfterFog?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK screenSpaceSubsurfaceScatteringGuide = (args.ScreenSpaceSubsurfaceScatteringGuide?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK colorBeforeScreenSpaceSubsurfaceScattering = (args.ColorBeforeScreenSpaceSubsurfaceScattering?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK colorAfterScreenSpaceSubsurfaceScattering = (args.ColorAfterScreenSpaceSubsurfaceScattering?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK screenSpaceRefractionGuide = (args.ScreenSpaceRefractionGuide?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK colorBeforeScreenSpaceRefraction = (args.ColorBeforeScreenSpaceRefraction?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK colorAfterScreenSpaceRefraction = (args.ColorAfterScreenSpaceRefraction?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK depthOfFieldGuide = (args.DepthOfFieldGuide?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK colorBeforeDepthOfField = (args.ColorBeforeDepthOfField?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK colorAfterDepthOfField = (args.ColorAfterDepthOfField?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK exposure = (args.Exposure?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK biasCurrentColorMask = (args.BiasCurrentColorMask?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK disocclusionMask = (args.DisocclusionMask?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK responsivityMask = (args.ResponsivityMask?.Vulkan ?? default) with { ReadWrite = false };
+        NGXResourceVK output = args.Output.Vulkan with { ReadWrite = true };
+        NGXResourceVK outputAlpha = (args.OutputAlpha?.Vulkan ?? default) with { ReadWrite = true };
 
         NGXVKDLSSDEvalParams evalParams = new()
         {
-            DiffuseAlbedo = &diffuseAlbedo,
-            SpecularAlbedo = &specularAlbedo,
-            Normals = &normals,
-            Roughness = args.Roughness.HasValue ? &roughness : null,
-            Color = &input,
-            Output = &output,
+            Color = &color,
+            Alpha = args.Alpha.HasValue ? &alpha : null,
             Depth = &depth,
             MotionVectors = &motionVectors,
-            JitterOffsetX = args.JitterOffsetX,
-            JitterOffsetY = args.JitterOffsetY,
-            RenderSubrectDimensions = renderSubrectDimensions,
-            Reset = args.Reset ? 1 : 0,
-            MVScaleX = args.MotionVectorScaleX,
-            MVScaleY = args.MotionVectorScaleY,
-            ExposureTexture = args.Exposure.HasValue ? &exposure : null,
-            BiasCurrentColorMask = args.ReactiveMask.HasValue ? &reactiveMask : null,
-            PreExposure = args.PreExposure,
-            ExposureScale = args.ExposureScale,
-            ColorBeforeTransparency = args.ColorBeforeTransparency.HasValue ? &colorBeforeTransparency : null,
-            ScreenSpaceSubsurfaceScatteringGuide = args.SubsurfaceScatteringGuide.HasValue ? &subsurfaceScatteringGuide : null,
-            DepthOfFieldGuide = args.DepthOfFieldGuide.HasValue ? &depthOfFieldGuide : null,
+            DiffuseAlbedo = &diffuseAlbedo,
+            SpecularAlbedo = &specularAlbedo,
+            ReflectedAlbedo = args.ReflectedAlbedo.HasValue ? &reflectedAlbedo : null,
+            Normals = &normals,
+            Roughness = args.Roughness.HasValue ? &roughness : null,
+            MotionVectorsReflections = args.SpecularMotionVectors.HasValue ? &specularMotionVectors : null,
+            DiffuseHitDistance = args.DiffuseHitDistance.HasValue ? &diffuseHitDistance : null,
             SpecularHitDistance = args.SpecularHitDistance.HasValue ? &specularHitDistance : null,
+            DiffuseRayDirection = args.DiffuseRayDirection.HasValue ? &diffuseRayDirection : null,
+            SpecularRayDirection = args.SpecularRayDirection.HasValue ? &specularRayDirection : null,
+            DiffuseRayDirectionHitDistance = args.DiffuseRayDirectionHitDistance.HasValue ? &diffuseRayDirectionHitDistance : null,
+            SpecularRayDirectionHitDistance = args.SpecularRayDirectionHitDistance.HasValue ? &specularRayDirectionHitDistance : null,
+            TransparencyLayer = args.TransparencyLayer.HasValue ? &transparencyLayer : null,
+            TransparencyLayerOpacity = args.TransparencyLayerOpacity.HasValue ? &transparencyLayerOpacity : null,
+            TransparencyLayerMvecs = args.TransparencyLayerMotionVectors.HasValue ? &transparencyLayerMotionVectors : null,
+            ColorBeforeParticles = args.ColorBeforeParticles.HasValue ? &colorBeforeParticles : null,
+            ColorAfterParticles = args.ColorAfterParticles.HasValue ? &colorAfterParticles : null,
+            ColorBeforeTransparency = args.ColorBeforeTransparency.HasValue ? &colorBeforeTransparency : null,
+            ColorAfterTransparency = args.ColorAfterTransparency.HasValue ? &colorAfterTransparency : null,
+            ColorBeforeFog = args.ColorBeforeFog.HasValue ? &colorBeforeFog : null,
+            ColorAfterFog = args.ColorAfterFog.HasValue ? &colorAfterFog : null,
+            ScreenSpaceSubsurfaceScatteringGuide = args.ScreenSpaceSubsurfaceScatteringGuide.HasValue ? &screenSpaceSubsurfaceScatteringGuide : null,
+            ColorBeforeScreenSpaceSubsurfaceScattering = args.ColorBeforeScreenSpaceSubsurfaceScattering.HasValue ? &colorBeforeScreenSpaceSubsurfaceScattering : null,
+            ColorAfterScreenSpaceSubsurfaceScattering = args.ColorAfterScreenSpaceSubsurfaceScattering.HasValue ? &colorAfterScreenSpaceSubsurfaceScattering : null,
+            ScreenSpaceRefractionGuide = args.ScreenSpaceRefractionGuide.HasValue ? &screenSpaceRefractionGuide : null,
+            ColorBeforeScreenSpaceRefraction = args.ColorBeforeScreenSpaceRefraction.HasValue ? &colorBeforeScreenSpaceRefraction : null,
+            ColorAfterScreenSpaceRefraction = args.ColorAfterScreenSpaceRefraction.HasValue ? &colorAfterScreenSpaceRefraction : null,
+            DepthOfFieldGuide = args.DepthOfFieldGuide.HasValue ? &depthOfFieldGuide : null,
+            ColorBeforeDepthOfField = args.ColorBeforeDepthOfField.HasValue ? &colorBeforeDepthOfField : null,
+            ColorAfterDepthOfField = args.ColorAfterDepthOfField.HasValue ? &colorAfterDepthOfField : null,
+            ExposureTexture = args.Exposure.HasValue ? &exposure : null,
+            BiasCurrentColorMask = args.BiasCurrentColorMask.HasValue ? &biasCurrentColorMask : null,
+            DisocclusionMask = args.DisocclusionMask.HasValue ? &disocclusionMask : null,
+            ResponsivityMask = args.ResponsivityMask.HasValue ? &responsivityMask : null,
+            Output = &output,
+            OutputAlpha = args.OutputAlpha.HasValue ? &outputAlpha : null,
+            JitterOffsetX = args.JitterOffset.X,
+            JitterOffsetY = args.JitterOffset.Y,
+            MVScaleX = args.MotionVectorScale.X,
+            MVScaleY = args.MotionVectorScale.Y,
             WorldToViewMatrix = &args.WorldToView,
             ViewToClipMatrix = &args.ViewToClip,
-            MotionVectorsReflections = args.SpecularMotionVectors.HasValue ? &specularMotionVectors : null,
-            TransparencyLayer = args.TransparencyLayer.HasValue ? &transparencyLayer : null,
-            TransparencyLayerOpacity = args.TransparencyLayerOpacity.HasValue ? &transparencyLayerOpacity : null
+            PreExposure = args.PreExposure,
+            ExposureScale = args.ExposureScale,
+            RenderSubrectDimensions = renderSubrectDimensions,
+            Reset = args.Reset ? 1 : 0
         };
 
         Ngx.Vulkan.EvaluateDLSSDExt(commandList, feature.Handle, feature.Parameters, &evalParams).Success();
@@ -242,6 +288,24 @@ internal unsafe partial class DLSSBackend
         NGXResourceVK uiAlpha = (args.UIAlpha?.Vulkan ?? default) with { ReadWrite = false };
         NGXResourceVK distortionField = (args.DistortionField?.Vulkan ?? default) with { ReadWrite = false };
         NGXResourceVK output = args.Output.Vulkan with { ReadWrite = true };
+        NGXResourceVK outputDisableInterpolation = default;
+
+        if (args.OutputDisableInterpolation is { } buffer)
+        {
+            outputDisableInterpolation = new()
+            {
+                Resource = new()
+                {
+                    BufferInfo = new()
+                    {
+                        Buffer = buffer.GetNativeObject(NativeObjectType.VulkanBuffer),
+                        SizeInBytes = buffer.Desc.SizeInBytes
+                    }
+                },
+                Type = NGXResourceVKType.VkBuffer,
+                ReadWrite = true
+            };
+        }
 
         NGXVKDLSSGEvalParams evalParams = new()
         {
@@ -252,7 +316,8 @@ internal unsafe partial class DLSSBackend
             UI = args.UI.HasValue ? &ui : null,
             UIAlpha = args.UIAlpha.HasValue ? &uiAlpha : null,
             BidirectionalDistortionField = args.DistortionField.HasValue ? &distortionField : null,
-            OutputInterpFrame = &output
+            OutputInterpFrame = &output,
+            OutputDisableInterpolation = args.OutputDisableInterpolation is not null ? &outputDisableInterpolation : null
         };
 
         Ngx.Vulkan.EvaluateDLSSG(commandList, feature.Handle, feature.Parameters, &evalParams, optEvalParams).Success();

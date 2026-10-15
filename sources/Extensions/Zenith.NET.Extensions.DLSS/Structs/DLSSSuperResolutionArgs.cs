@@ -1,8 +1,10 @@
-﻿namespace Zenith.NET.Extensions.DLSS;
+﻿using System.Numerics;
+
+namespace Zenith.NET.Extensions.DLSS;
 
 public struct DLSSSuperResolutionArgs
 {
-    public DLSSBinding Input;
+    public DLSSBinding Color;
 
     public DLSSBinding Depth;
 
@@ -10,21 +12,13 @@ public struct DLSSSuperResolutionArgs
 
     public DLSSBinding? Exposure;
 
-    public DLSSBinding? ReactiveMask;
+    public DLSSBinding? BiasCurrentColorMask;
 
     public DLSSBinding Output;
 
-    public uint InputContentWidth;
+    public Vector2 JitterOffset;
 
-    public uint InputContentHeight;
-
-    public float JitterOffsetX;
-
-    public float JitterOffsetY;
-
-    public float MotionVectorScaleX;
-
-    public float MotionVectorScaleY;
+    public Vector2 MotionVectorScale;
 
     public float PreExposure;
 

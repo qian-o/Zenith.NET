@@ -51,18 +51,16 @@ internal class RayReconstructionPass(uint renderWidth, uint renderHeight, uint d
 
         rayReconstruction.Dispatch(commandBuffer, new()
         {
-            Input = args.Color.DLSSBinding,
+            Color = args.Color.DLSSBinding,
+            Depth = args.Depth.DLSSBinding,
+            MotionVectors = args.MotionVectors.DLSSBinding,
             DiffuseAlbedo = args.DiffuseAlbedo.DLSSBinding,
             SpecularAlbedo = args.SpecularAlbedo.DLSSBinding,
             Normals = args.Normal.DLSSBinding,
-            Depth = args.Depth.DLSSBinding,
-            MotionVectors = args.MotionVectors.DLSSBinding,
             SpecularHitDistance = args.SpecularHitDistance.DLSSBinding,
             Output = output.DLSSBinding,
-            JitterOffsetX = args.Jitter.X,
-            JitterOffsetY = args.Jitter.Y,
-            MotionVectorScaleX = -0.5f * RenderWidth,
-            MotionVectorScaleY = 0.5f * RenderHeight,
+            JitterOffset = args.Jitter,
+            MotionVectorScale = new(-0.5f * RenderWidth, 0.5f * RenderHeight),
             WorldToView = args.View,
             ViewToClip = args.Projection,
             Reset = !history
