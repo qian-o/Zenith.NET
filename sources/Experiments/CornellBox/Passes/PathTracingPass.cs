@@ -1,18 +1,40 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
+using CornellBox.Handlers;
 using CornellBox.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Passes;
 
-internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
+internal unsafe class PathTracingPass : DisposableObject
 {
-    private const uint ThreadGroupSize = 8;
+    private readonly Buffer buffer;
+    private readonly ComputePipeline computePipeline;
+    private readonly Texture[] outputs = new Texture[8];
 
-    private Buffer constantBuffer = null!;
-    private ComputePipeline pipeline = null!;
-    private Texture[] outputs = [];
+    public PathTracingPass(uint width, uint height)
+    {
+        Width = width;
+        Height = height;
+
+        buffer = App.Context.CreateBuffer(new()
+        {
+            SizeInBytes = (uint)sizeof(PathTracingConstants),
+            Usages = BufferUsages.Constant,
+            Residency = MemoryResidency.CpuWriteOnly
+        });
+
+        using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "PathTracing.slang"), "PathTracingCS"));
+
+        computePipeline = App.Context.CreateComputePipeline(new() { ComputeShader = shader });
+
+        CreateTextures();
+    }
+
+    public uint Width { get; private set; }
+
+    public uint Height { get; private set; }
 
     public Texture Color { get; private set; } = null!;
 
@@ -30,38 +52,27 @@ internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint 
 
     public Texture SpecularHitDistance { get; private set; } = null!;
 
-    protected override void Initialize()
+    public void Record(CommandBuffer commandBuffer, SceneResources scene, CameraHandler camera, Matrix4x4 previousViewProjection, Vector2 jitter, uint frameIndex, bool useRayReconstruction)
     {
-        constantBuffer = App.Context.CreateBuffer(new()
+        Matrix4x4 view = camera.View;
+        Matrix4x4 projection = camera.Projection;
+        Matrix4x4.Invert(view, out Matrix4x4 inverseView);
+        Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
+
+        PathTracingConstants constants = new()
         {
-            SizeInBytes = (uint)sizeof(Constants),
-            Usages = BufferUsages.Constant,
-            Residency = MemoryResidency.CpuWriteOnly
-        });
-
-        using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("PathTracing.slang"), "CSMain"));
-
-        pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = shader });
-
-        CreateTextures();
-    }
-
-    protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
-    {
-        Constants constants = new()
-        {
-            InverseView = args.InverseView,
-            InverseProjection = args.InverseProjection,
-            ViewProjection = args.ViewProjection,
-            PreviousViewProjection = args.PreviousViewProjection,
-            PositionFrame = new(args.CameraPosition, BitConverter.UInt32BitsToSingle(args.FrameIndex)),
-            RenderSizeJitter = new(RenderWidth, RenderHeight, args.Jitter.X, args.Jitter.Y),
-            HitDistance = args.RayReconstruction is not null ? 1u : 0u,
-            Scene = args.Scene.AccelerationStructure,
-            Vertices = args.Scene.Vertices,
-            Indices = args.Scene.Indices,
-            Materials = args.Scene.Materials,
-            Instances = args.Scene.Instances,
+            InverseView = inverseView,
+            InverseProjection = inverseProjection,
+            ViewProjection = view * projection,
+            PreviousViewProjection = previousViewProjection,
+            PositionFrame = new(camera.Position, BitConverter.UInt32BitsToSingle(frameIndex)),
+            RenderSizeJitter = new(Width, Height, jitter.X, jitter.Y),
+            HitDistance = useRayReconstruction ? 1u : 0u,
+            Scene = scene.AccelerationStructure,
+            Vertices = scene.Vertices,
+            Indices = scene.Indices,
+            Materials = scene.Materials,
+            Instances = scene.Instances,
             Color = Color.StorageHandle,
             Depth = Depth.StorageHandle,
             Normal = Normal.StorageHandle,
@@ -72,10 +83,10 @@ internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint 
             SpecularHitDistance = SpecularHitDistance.StorageHandle
         };
 
-        constantBuffer.Upload(0, new()
+        buffer.Upload(0, new()
         {
             Pointer = (nint)(&constants),
-            SizeInBytes = (uint)sizeof(Constants)
+            SizeInBytes = (uint)sizeof(PathTracingConstants)
         });
 
         foreach (Texture output in outputs)
@@ -83,9 +94,11 @@ internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint 
             commandBuffer.Transition(output, default, TextureLayout.Undefined, TextureLayout.Storage);
         }
 
-        commandBuffer.SetPipeline(pipeline);
-        commandBuffer.SetConstantBuffer(constantBuffer, 0);
-        commandBuffer.Dispatch((RenderWidth + ThreadGroupSize - 1) / ThreadGroupSize, (RenderHeight + ThreadGroupSize - 1) / ThreadGroupSize, 1);
+        ThreadGroupSize group = computePipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
+
+        commandBuffer.SetPipeline(computePipeline);
+        commandBuffer.SetConstantBuffer(buffer, 0);
+        commandBuffer.Dispatch((Width + group.X - 1) / group.X, (Height + group.Y - 1) / group.Y, 1);
         commandBuffer.Barrier(BarrierStages.ComputeShading, BarrierStages.ComputeShading);
 
         foreach (Texture output in outputs)
@@ -94,45 +107,60 @@ internal unsafe class PathTracingPass(uint renderWidth, uint renderHeight, uint 
         }
     }
 
-    protected override void ResizeImpl()
+    public void Resize(uint width, uint height)
     {
+        if (Width == width && Height == height)
+        {
+            return;
+        }
+
         DestroyTextures();
+
+        Width = width;
+        Height = height;
+
         CreateTextures();
     }
 
     protected override void Destroy()
     {
         DestroyTextures();
-
-        pipeline.Dispose();
-        constantBuffer.Dispose();
+        computePipeline?.Dispose();
+        buffer?.Dispose();
     }
 
     private void CreateTextures()
     {
-        Color = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
-        Depth = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32Float, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc);
-        Normal = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
-        Roughness = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16Float);
-        MotionVectors = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16Float, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc);
-        DiffuseAlbedo = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
-        SpecularAlbedo = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R16G16B16A16Float);
-        SpecularHitDistance = CreateTexture(RenderWidth, RenderHeight, PixelFormat.R32Float);
-
-        outputs = [Color, Depth, Normal, Roughness, MotionVectors, DiffuseAlbedo, SpecularAlbedo, SpecularHitDistance];
+        Color = outputs[0] = CreateTexture(PixelFormat.R16G16B16A16Float);
+        Depth = outputs[1] = CreateTexture(PixelFormat.R32Float);
+        Normal = outputs[2] = CreateTexture(PixelFormat.R16G16B16A16Float);
+        Roughness = outputs[3] = CreateTexture(PixelFormat.R16Float);
+        MotionVectors = outputs[4] = CreateTexture(PixelFormat.R16G16Float);
+        DiffuseAlbedo = outputs[5] = CreateTexture(PixelFormat.R16G16B16A16Float);
+        SpecularAlbedo = outputs[6] = CreateTexture(PixelFormat.R16G16B16A16Float);
+        SpecularHitDistance = outputs[7] = CreateTexture(PixelFormat.R32Float);
     }
 
     private void DestroyTextures()
     {
         for (int i = outputs.Length - 1; i >= 0; i--)
         {
-            outputs[i].Dispose();
+            outputs[i]?.Dispose();
+            outputs[i] = null!;
         }
+    }
+
+    private Texture CreateTexture(PixelFormat format)
+    {
+        return App.Context.CreateTexture(TextureDesc.Texture2D(format, Width, Height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.Storage
+        });
     }
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 416)]
-file struct Constants
+file struct PathTracingConstants
 {
     [FieldOffset(0)]
     public Matrix4x4 InverseView;

@@ -136,7 +136,7 @@ struct Surface
     float Roughness;
 };
 
-struct Constants
+struct PathTracingConstants
 {
     float4x4 InverseView;
 
@@ -179,7 +179,7 @@ struct Constants
     DescriptorHandle<RWTexture2D<float>> SpecularHitDistance;
 };
 
-ConstantBuffer<Constants> constants;
+ConstantBuffer<PathTracingConstants> pathTracing;
 
 float DistributionGGX(float NdotH, float roughness)
 {
@@ -326,7 +326,7 @@ bool TraceShadowRay(float3 origin, float3 direction, float maxDist)
 
     RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES>
         shadowQuery;
-    shadowQuery.TraceRayInline(constants.Scene, RAY_FLAG_NONE, 0xFF, shadowRay);
+    shadowQuery.TraceRayInline(pathTracing.Scene, RAY_FLAG_NONE, 0xFF, shadowRay);
 
     shadowQuery.Proceed();
 
@@ -362,7 +362,7 @@ float3 SampleLightDirect(Surface surface, float3 V, float roughness, float specP
         return float3(0.0, 0.0, 0.0);
     }
 
-    Material lightMat = constants.Materials[LightMaterial];
+    Material lightMat = pathTracing.Materials[LightMaterial];
     float3 lightEmission = lightMat.Albedo * lightMat.Emission;
 
     float pdfLight = (dist * dist) / (lightCosine * LightArea);
@@ -399,12 +399,12 @@ float3 PatternAlbedo(Material material, float3 position, float3 normal)
 
 Surface GetSurface(uint instanceIndex, uint primitiveIndex, float2 barycentrics, float3 direction)
 {
-    Instance instance = constants.Instances[instanceIndex];
+    Instance instance = pathTracing.Instances[instanceIndex];
     uint index = instance.FirstIndex + primitiveIndex * 3;
 
-    Vertex v0 = constants.Vertices[constants.Indices[index + 0]];
-    Vertex v1 = constants.Vertices[constants.Indices[index + 1]];
-    Vertex v2 = constants.Vertices[constants.Indices[index + 2]];
+    Vertex v0 = pathTracing.Vertices[pathTracing.Indices[index + 0]];
+    Vertex v1 = pathTracing.Vertices[pathTracing.Indices[index + 1]];
+    Vertex v2 = pathTracing.Vertices[pathTracing.Indices[index + 2]];
 
     float3 weights = float3(1.0 - barycentrics.x - barycentrics.y, barycentrics.x, barycentrics.y);
     float3 position = v0.Position * weights.x + v1.Position * weights.y + v2.Position * weights.z;
@@ -416,7 +416,7 @@ Surface GetSurface(uint instanceIndex, uint primitiveIndex, float2 barycentrics,
         faceNormal = -faceNormal;
     }
 
-    Material material = constants.Materials[v0.MaterialId];
+    Material material = pathTracing.Materials[v0.MaterialId];
 
     Surface surface;
     surface.Position = mul(float4(position, 1.0), instance.ObjectToWorld).xyz;
@@ -464,7 +464,7 @@ float TraceHitDistance(Surface surface, float3 direction)
     ray.TMax = MissDistance;
 
     RayQuery<RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> query;
-    query.TraceRayInline(constants.Scene, RAY_FLAG_NONE, 0xFF, ray);
+    query.TraceRayInline(pathTracing.Scene, RAY_FLAG_NONE, 0xFF, ray);
 
     query.Proceed();
 
@@ -473,40 +473,40 @@ float TraceHitDistance(Surface surface, float3 direction)
 
 void WriteGuides(uint2 pixel, Surface surface, float3 V, float3 F0)
 {
-    float4 currentClip = mul(float4(surface.Position, 1.0), constants.ViewProjection);
-    float4 previousClip = mul(float4(surface.PreviousPosition, 1.0), constants.PreviousViewProjection);
+    float4 currentClip = mul(float4(surface.Position, 1.0), pathTracing.ViewProjection);
+    float4 previousClip = mul(float4(surface.PreviousPosition, 1.0), pathTracing.PreviousViewProjection);
     float2 motion = currentClip.xy / currentClip.w - previousClip.xy / previousClip.w;
     float NdotV = saturate(dot(surface.Normal, V));
 
-    constants.Depth[pixel] = saturate(currentClip.z / currentClip.w);
-    constants.Normal[pixel] = float4(surface.Normal, 0.0);
-    constants.Roughness[pixel] = surface.Roughness;
-    constants.MotionVectors[pixel] = motion;
-    constants.DiffuseAlbedo[pixel] = float4(surface.Albedo * (1.0 - surface.Metallic), 1.0);
-    constants.SpecularAlbedo[pixel] = float4(EnvBRDFApprox2(F0, surface.Roughness * surface.Roughness, NdotV), 1.0);
+    pathTracing.Depth[pixel] = saturate(currentClip.z / currentClip.w);
+    pathTracing.Normal[pixel] = float4(surface.Normal, 0.0);
+    pathTracing.Roughness[pixel] = surface.Roughness;
+    pathTracing.MotionVectors[pixel] = motion;
+    pathTracing.DiffuseAlbedo[pixel] = float4(surface.Albedo * (1.0 - surface.Metallic), 1.0);
+    pathTracing.SpecularAlbedo[pixel] = float4(EnvBRDFApprox2(F0, surface.Roughness * surface.Roughness, NdotV), 1.0);
 
-    if (constants.HitDistancePadding.x != 0)
+    if (pathTracing.HitDistancePadding.x != 0)
     {
-        constants.SpecularHitDistance[pixel] = TraceHitDistance(surface, reflect(-V, surface.Normal));
+        pathTracing.SpecularHitDistance[pixel] = TraceHitDistance(surface, reflect(-V, surface.Normal));
     }
 }
 
 void WriteSkyGuides(uint2 pixel, float3 direction)
 {
-    float4 currentClip = mul(float4(direction, 0.0), constants.ViewProjection);
-    float4 previousClip = mul(float4(direction, 0.0), constants.PreviousViewProjection);
+    float4 currentClip = mul(float4(direction, 0.0), pathTracing.ViewProjection);
+    float4 previousClip = mul(float4(direction, 0.0), pathTracing.PreviousViewProjection);
     float2 motion = currentClip.xy / currentClip.w - previousClip.xy / previousClip.w;
 
-    constants.Depth[pixel] = 1.0;
-    constants.Normal[pixel] = float4(0.0);
-    constants.Roughness[pixel] = 0.0;
-    constants.MotionVectors[pixel] = motion;
-    constants.DiffuseAlbedo[pixel] = float4(0.0);
-    constants.SpecularAlbedo[pixel] = float4(0.0);
+    pathTracing.Depth[pixel] = 1.0;
+    pathTracing.Normal[pixel] = float4(0.0);
+    pathTracing.Roughness[pixel] = 0.0;
+    pathTracing.MotionVectors[pixel] = motion;
+    pathTracing.DiffuseAlbedo[pixel] = float4(0.0);
+    pathTracing.SpecularAlbedo[pixel] = float4(0.0);
 
-    if (constants.HitDistancePadding.x != 0)
+    if (pathTracing.HitDistancePadding.x != 0)
     {
-        constants.SpecularHitDistance[pixel] = MissDistance;
+        pathTracing.SpecularHitDistance[pixel] = MissDistance;
     }
 }
 
@@ -525,7 +525,7 @@ float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng)
         ray.TMax = 100000.0;
 
         RayQuery<RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> query;
-        query.TraceRayInline(constants.Scene, RAY_FLAG_NONE, 0xFF, ray);
+        query.TraceRayInline(pathTracing.Scene, RAY_FLAG_NONE, 0xFF, ray);
 
         query.Proceed();
 
@@ -645,22 +645,22 @@ float3 TracePath(uint2 pixel, float3 origin, float3 direction, inout uint rng)
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void CSMain(uint3 dispatchThreadId: SV_DispatchThreadID)
+void PathTracingCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
-    uint2 pixel = dispatchThreadId.xy;
-    uint2 size = uint2(constants.RenderSizeJitter.xy);
+    uint2 pixel = dispatchThreadID.xy;
+    uint2 size = uint2(pathTracing.RenderSizeJitter.xy);
 
     if (any(pixel >= size))
     {
         return;
     }
 
-    uint seed = PCGHash(pixel.x + pixel.y * size.x + asuint(constants.PositionFrame.w) * size.x * size.y);
-    float2 uv = (float2(pixel) + 0.5 - constants.RenderSizeJitter.zw) / float2(size);
+    uint seed = PCGHash(pixel.x + pixel.y * size.x + asuint(pathTracing.PositionFrame.w) * size.x * size.y);
+    float2 uv = (float2(pixel) + 0.5 - pathTracing.RenderSizeJitter.zw) / float2(size);
     float2 ndc = float2(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0);
-    float4 target = mul(float4(ndc, 1.0, 1.0), constants.InverseProjection);
-    float3 direction = normalize(mul(float4(target.xyz / target.w, 0.0), constants.InverseView).xyz);
-    float3 color = TracePath(pixel, constants.PositionFrame.xyz, direction, seed);
+    float4 target = mul(float4(ndc, 1.0, 1.0), pathTracing.InverseProjection);
+    float3 direction = normalize(mul(float4(target.xyz / target.w, 0.0), pathTracing.InverseView).xyz);
+    float3 color = TracePath(pixel, pathTracing.PositionFrame.xyz, direction, seed);
 
-    constants.Color[pixel] = float4(min(color, float3(30.0)), 1.0);
+    pathTracing.Color[pixel] = float4(min(color, float3(30.0)), 1.0);
 }

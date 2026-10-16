@@ -1,30 +1,29 @@
 ﻿using System.Numerics;
-using CornellBox.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
-namespace CornellBox;
+namespace CornellBox.Models;
 
-internal unsafe class Scene : DisposableObject
+internal unsafe class SceneResources : DisposableObject
 {
     private readonly Buffer vertexBuffer;
     private readonly Buffer indexBuffer;
     private readonly Buffer materialBuffer;
     private readonly Buffer instanceBuffer;
-    private readonly BottomLevelAccelerationStructure[] bottomLevels;
+    private readonly BottomLevelAccelerationStructure[] bottomLevels = [];
     private readonly TopLevelAccelerationStructure topLevel;
     private readonly Instance[] instances;
     private readonly RayTracingInstance[] rayTracingInstances;
 
     private float elapsedSeconds;
 
-    public Scene()
+    public SceneResources()
     {
         CornellBoxGeometry.Create(out Vertex[] vertices, out uint[] indices, out Material[] materials, out Mesh[] meshes);
 
-        vertexBuffer = CreateBuffer<Vertex>(vertices);
-        indexBuffer = CreateBuffer<uint>(indices);
-        materialBuffer = CreateBuffer<Material>(materials);
+        vertexBuffer = CreateBuffer(vertices);
+        indexBuffer = CreateBuffer(indices);
+        materialBuffer = CreateBuffer(materials);
 
         Span<Matrix4x4> transforms = stackalloc Matrix4x4[meshes.Length];
         WriteTransforms(elapsedSeconds, transforms);
@@ -134,17 +133,17 @@ internal unsafe class Scene : DisposableObject
 
     protected override void Destroy()
     {
-        topLevel.Dispose();
+        topLevel?.Dispose();
 
         for (int i = bottomLevels.Length - 1; i >= 0; i--)
         {
-            bottomLevels[i].Dispose();
+            bottomLevels[i]?.Dispose();
         }
 
-        instanceBuffer.Dispose();
-        materialBuffer.Dispose();
-        indexBuffer.Dispose();
-        vertexBuffer.Dispose();
+        instanceBuffer?.Dispose();
+        materialBuffer?.Dispose();
+        indexBuffer?.Dispose();
+        vertexBuffer?.Dispose();
     }
 
     private TopLevelAccelerationStructureDesc CreateTopLevelDesc()

@@ -1,4 +1,4 @@
-﻿struct Constants
+﻿struct TonemapConstants
 {
     float4 OutputSizeFrame;
 
@@ -11,7 +11,7 @@
     uint2 Padding;
 };
 
-ConstantBuffer<Constants> constants;
+ConstantBuffer<TonemapConstants> tonemap;
 
 uint Hash(uint value)
 {
@@ -23,26 +23,26 @@ uint Hash(uint value)
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void CSMain(uint3 dispatchThreadId: SV_DispatchThreadID)
+void TonemapCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
-    uint2 pixel = dispatchThreadId.xy;
-    uint2 outputSize = uint2(constants.OutputSizeFrame.xy);
+    uint2 pixel = dispatchThreadID.xy;
+    uint2 outputSize = uint2(tonemap.OutputSizeFrame.xy);
 
     if (any(pixel >= outputSize))
     {
         return;
     }
 
-    float2 uv = (float2(pixel) + 0.5) / constants.OutputSizeFrame.xy;
-    float3 color = max(constants.Input.SampleLevel(constants.Sampler, uv, 0.0).rgb, 0.0);
+    float2 uv = (float2(pixel) + 0.5) / tonemap.OutputSizeFrame.xy;
+    float3 color = max(tonemap.Input.SampleLevel(tonemap.Sampler, uv, 0.0).rgb, 0.0);
     float3 numerator = color * (color * 2.51 + 0.03);
     float3 denominator = color * (color * 2.43 + 0.59) + 0.14;
     color = pow(saturate(numerator / denominator), 1.0 / 2.2);
 
-    uint seed = Hash(pixel.x + pixel.y * outputSize.x + asuint(constants.OutputSizeFrame.z) * 1664525u);
+    uint seed = Hash(pixel.x + pixel.y * outputSize.x + asuint(tonemap.OutputSizeFrame.z) * 1664525u);
     float first = float(seed >> 8u) * (1.0 / 16777216.0);
     float second = float(Hash(seed) >> 8u) * (1.0 / 16777216.0);
     color += (first - second) / 255.0;
 
-    constants.Output[pixel] = float4(saturate(color), 1.0);
+    tonemap.Output[pixel] = float4(saturate(color), 1.0);
 }

@@ -1,22 +1,25 @@
 ﻿using System.Numerics;
 using Silk.NET.Input;
+using Zenith.NET;
 
 namespace CornellBox.Handlers;
 
-internal class CameraHandler
+internal class CameraHandler : DisposableObject
 {
+    private readonly IMouse mouse;
+    private readonly IKeyboard keyboard;
     private readonly HashSet<Key> keyDowns = [];
 
     private Vector2? lastMousePosition;
 
     public CameraHandler(IInputContext input, Matrix4x4 initial)
     {
-        IMouse mouse = input.Mice[0];
+        mouse = input.Mice[0];
         mouse.MouseDown += OnMouseDown;
         mouse.MouseUp += OnMouseUp;
         mouse.MouseMove += OnMouseMove;
 
-        IKeyboard keyboard = input.Keyboards[0];
+        keyboard = input.Keyboards[0];
         keyboard.KeyDown += OnKeyDown;
         keyboard.KeyUp += OnKeyUp;
 
@@ -55,35 +58,49 @@ internal class CameraHandler
     {
         Size = new(width, height);
 
+        float distance = Speed * (float)deltaSeconds;
+
         if (keyDowns.Contains(Key.W))
         {
-            Position += Forward * Speed * (float)deltaSeconds;
+            Position += Forward * distance;
         }
 
         if (keyDowns.Contains(Key.S))
         {
-            Position -= Forward * Speed * (float)deltaSeconds;
+            Position -= Forward * distance;
         }
 
         if (keyDowns.Contains(Key.A))
         {
-            Position -= Right * Speed * (float)deltaSeconds;
+            Position -= Right * distance;
         }
 
         if (keyDowns.Contains(Key.D))
         {
-            Position += Right * Speed * (float)deltaSeconds;
+            Position += Right * distance;
         }
 
         if (keyDowns.Contains(Key.Q))
         {
-            Position -= Up * Speed * (float)deltaSeconds;
+            Position -= Up * distance;
         }
 
         if (keyDowns.Contains(Key.E))
         {
-            Position += Up * Speed * (float)deltaSeconds;
+            Position += Up * distance;
         }
+    }
+
+    protected override void Destroy()
+    {
+        mouse.MouseDown -= OnMouseDown;
+        mouse.MouseUp -= OnMouseUp;
+        mouse.MouseMove -= OnMouseMove;
+        keyboard.KeyDown -= OnKeyDown;
+        keyboard.KeyUp -= OnKeyUp;
+
+        keyDowns.Clear();
+        lastMousePosition = null;
     }
 
     private void OnMouseDown(IMouse mouse, MouseButton button)
@@ -106,37 +123,27 @@ internal class CameraHandler
     {
         const float ClipRadians = 89.0f * MathF.PI / 180.0f;
 
-        if (lastMousePosition.HasValue)
+        if (!lastMousePosition.HasValue)
         {
-            float pixelToRadianX = MathF.PI / Size.X;
-            float pixelToRadianY = MathF.PI / Size.Y;
-
-            Vector2 deltaPixels = mouse.Position - lastMousePosition.Value;
-
-            float yaw = -(deltaPixels.X * pixelToRadianX);
-            float pitch = -(deltaPixels.Y * pixelToRadianY);
-
-            float newPitch = MathF.Asin(Forward.Y) + pitch;
-
-            if (newPitch > ClipRadians)
-            {
-                newPitch = ClipRadians;
-            }
-            else if (newPitch < -ClipRadians)
-            {
-                newPitch = -ClipRadians;
-            }
-
-            pitch = newPitch - MathF.Asin(Forward.Y);
-
-            Forward = Vector3.TransformNormal(Forward, Matrix4x4.CreateFromAxisAngle(Up, yaw));
-            Forward = Vector3.TransformNormal(Forward, Matrix4x4.CreateFromAxisAngle(Right, pitch));
-
-            Right = Vector3.Normalize(Vector3.Cross(Forward, Vector3.UnitY));
-            Up = Vector3.Normalize(Vector3.Cross(Right, Forward));
-
-            lastMousePosition = mouse.Position;
+            return;
         }
+
+        float pixelToRadianX = MathF.PI / Size.X;
+        float pixelToRadianY = MathF.PI / Size.Y;
+        Vector2 delta = position - lastMousePosition.Value;
+        float yaw = -(delta.X * pixelToRadianX);
+        float pitch = -(delta.Y * pixelToRadianY);
+        float newPitch = Math.Clamp(MathF.Asin(Forward.Y) + pitch, -ClipRadians, ClipRadians);
+
+        pitch = newPitch - MathF.Asin(Forward.Y);
+
+        Forward = Vector3.TransformNormal(Forward, Matrix4x4.CreateFromAxisAngle(Up, yaw));
+        Forward = Vector3.TransformNormal(Forward, Matrix4x4.CreateFromAxisAngle(Right, pitch));
+        Forward = Vector3.Normalize(Forward);
+        Right = Vector3.Normalize(Vector3.Cross(Forward, Vector3.UnitY));
+        Up = Vector3.Normalize(Vector3.Cross(Right, Forward));
+
+        lastMousePosition = position;
     }
 
     private void OnKeyDown(IKeyboard keyboard, Key key, int scanCode)

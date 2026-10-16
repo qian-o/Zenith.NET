@@ -1,41 +1,49 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
-using CornellBox.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Passes;
 
-internal unsafe class TonemapPass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
+internal unsafe class TonemapPass : DisposableObject
 {
-    private Buffer buffer = null!;
-    private Sampler sampler = null!;
-    private ComputePipeline pipeline = null!;
+    private readonly Buffer buffer;
+    private readonly Sampler sampler;
+    private readonly ComputePipeline computePipeline;
+
     private bool isInitialized;
 
-    public Texture Color { get; private set; } = null!;
-
-    protected override void Initialize()
+    public TonemapPass(uint width, uint height)
     {
-        using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Tonemap.slang"), "CSMain"));
+        Width = width;
+        Height = height;
+
+        using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Tonemap.slang"), "TonemapCS"));
 
         buffer = App.Context.CreateBuffer(new()
         {
-            SizeInBytes = (uint)sizeof(Constants),
+            SizeInBytes = (uint)sizeof(TonemapConstants),
             Usages = BufferUsages.Constant,
             Residency = MemoryResidency.CpuWriteOnly
         });
         sampler = App.Context.CreateSampler(SamplerDesc.LinearClamp());
-        pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = shader });
-        Color = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.B8G8R8A8UNorm, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc);
+        computePipeline = App.Context.CreateComputePipeline(new() { ComputeShader = shader });
+
+        CreateTexture();
     }
 
-    protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
+    public uint Width { get; private set; }
+
+    public uint Height { get; private set; }
+
+    public Texture Color { get; private set; } = null!;
+
+    public void Record(CommandBuffer commandBuffer, Texture color, uint frameIndex)
     {
-        Constants constants = new()
+        TonemapConstants constants = new()
         {
-            OutputSizeFrame = new(DisplayWidth, DisplayHeight, BitConverter.UInt32BitsToSingle(args.FrameIndex), 0.0f),
-            Input = args.Color.SampledHandle,
+            OutputSizeFrame = new(Width, Height, BitConverter.UInt32BitsToSingle(frameIndex), 0.0f),
+            Input = color.SampledHandle,
             Output = Color.StorageHandle,
             Sampler = sampler.Handle
         };
@@ -43,42 +51,62 @@ internal unsafe class TonemapPass(uint renderWidth, uint renderHeight, uint disp
         buffer.Upload(0, new()
         {
             Pointer = (nint)(&constants),
-            SizeInBytes = (uint)sizeof(Constants)
+            SizeInBytes = (uint)sizeof(TonemapConstants)
         });
 
+        ThreadGroupSize group = computePipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
+
         commandBuffer.Transition(Color, default, isInitialized ? TextureLayout.Sampled : TextureLayout.Undefined, TextureLayout.Storage);
-        commandBuffer.SetPipeline(pipeline);
+        commandBuffer.SetPipeline(computePipeline);
         commandBuffer.SetConstantBuffer(buffer, 0);
-        commandBuffer.Dispatch((DisplayWidth + 7) / 8, (DisplayHeight + 7) / 8, 1);
+        commandBuffer.Dispatch((Width + group.X - 1) / group.X, (Height + group.Y - 1) / group.Y, 1);
         commandBuffer.Transition(Color, default, TextureLayout.Storage, TextureLayout.Sampled);
 
         isInitialized = true;
     }
 
-    protected override void ResizeImpl()
+    public void Resize(uint width, uint height)
     {
-        if (Color.Desc.Width == DisplayWidth && Color.Desc.Height == DisplayHeight)
+        if (Width == width && Height == height)
         {
             return;
         }
 
-        Color.Dispose();
-        Color = CreateTexture(DisplayWidth, DisplayHeight, PixelFormat.B8G8R8A8UNorm, TextureUsages.Sampled | TextureUsages.Storage | TextureUsages.TransferSrc);
+        DestroyTexture();
 
-        isInitialized = false;
+        Width = width;
+        Height = height;
+
+        CreateTexture();
     }
 
     protected override void Destroy()
     {
+        DestroyTexture();
+        computePipeline?.Dispose();
+        sampler?.Dispose();
+        buffer?.Dispose();
+    }
+
+    private void CreateTexture()
+    {
+        Color = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, Width, Height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Sampled | TextureUsages.Storage
+        });
+    }
+
+    private void DestroyTexture()
+    {
         Color?.Dispose();
-        pipeline.Dispose();
-        sampler.Dispose();
-        buffer.Dispose();
+        Color = null!;
+
+        isInitialized = false;
     }
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 48)]
-file struct Constants
+file struct TonemapConstants
 {
     [FieldOffset(0)]
     public Vector4 OutputSizeFrame;

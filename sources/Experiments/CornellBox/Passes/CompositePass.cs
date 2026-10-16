@@ -1,91 +1,157 @@
 ﻿using System.Runtime.InteropServices;
-using CornellBox.Helpers;
-using CornellBox.Models;
 using Zenith.NET;
 using Buffer = Zenith.NET.Buffer;
 
 namespace CornellBox.Passes;
 
-internal unsafe class CompositePass(uint renderWidth, uint renderHeight, uint displayWidth, uint displayHeight) : Pass(renderWidth, renderHeight, displayWidth, displayHeight)
+internal unsafe class CompositePass : DisposableObject
 {
-    private Buffer[] buffers = [];
-    private ComputePipeline pipeline = null!;
+    private readonly Buffer buffer;
+    private readonly ComputePipeline computePipeline;
 
-    protected override void Initialize()
+    public CompositePass(uint width, uint height)
     {
-        using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, ShaderPath("Composite.slang"), "CSMain"));
+        Width = width;
+        Height = height;
 
-        buffers = new Buffer[FramePresenter.FrameCount];
+        using Shader shader = App.Context.CreateShader(ZenithCompiler.CompileFromFile(App.Context.GraphicsApi, Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders", "Composite.slang"), "CompositeCS"));
 
-        for (int i = 0; i < buffers.Length; i++)
+        buffer = App.Context.CreateBuffer(new()
         {
-            buffers[i] = App.Context.CreateBuffer(new()
-            {
-                SizeInBytes = (uint)sizeof(Constants),
-                Usages = BufferUsages.Constant,
-                Residency = MemoryResidency.CpuWriteOnly
-            });
-        }
+            SizeInBytes = (uint)sizeof(CompositeConstants),
+            Usages = BufferUsages.Constant,
+            Residency = MemoryResidency.CpuWriteOnly
+        });
 
-        pipeline = App.Context.CreateComputePipeline(new() { ComputeShader = shader });
+        computePipeline = App.Context.CreateComputePipeline(new() { ComputeShader = shader });
+
+        CreateTextures();
     }
 
-    protected override void RecordImpl(CommandBuffer commandBuffer, in PassArgs args)
-    {
-        Constants constants = new()
-        {
-            Width = DisplayWidth,
-            Height = DisplayHeight,
-            Color = args.Color.SampledHandle,
-            GeneratedColor = args.GeneratedColor?.SampledHandle ?? default,
-            UI = args.UI.SampledHandle,
-            Output = args.BackBuffer.StorageHandle,
-            GeneratedOutput = args.GeneratedColor is not null ? args.GeneratedFrame!.StorageHandle : default
-        };
+    public uint Width { get; private set; }
 
-        Buffer buffer = buffers[args.Slot];
+    public uint Height { get; private set; }
+
+    public Texture UI { get; private set; } = null!;
+
+    public Texture Color { get; private set; } = null!;
+
+    public Texture? GeneratedColor { get; private set; }
+
+    public void Record(CommandBuffer commandBuffer, Texture color, Texture? generatedColor)
+    {
+        CompositeConstants constants = new()
+        {
+            Width = Width,
+            Height = Height,
+            Color = color.SampledHandle,
+            GeneratedColor = generatedColor?.SampledHandle ?? default,
+            UI = UI.SampledHandle,
+            Output = Color.StorageHandle,
+            GeneratedOutput = generatedColor is not null ? GeneratedColor!.StorageHandle : default
+        };
 
         buffer.Upload(0, new()
         {
             Pointer = (nint)(&constants),
-            SizeInBytes = (uint)sizeof(Constants)
+            SizeInBytes = (uint)sizeof(CompositeConstants)
         });
 
-        commandBuffer.Transition(args.BackBuffer, default, TextureLayout.Undefined, TextureLayout.Storage);
+        ThreadGroupSize group = computePipeline.Desc.ComputeShader.Desc.ThreadGroupSize;
+        uint depth = generatedColor is not null ? 2u : 1u;
 
-        if (args.GeneratedColor is not null)
+        commandBuffer.Transition(Color, default, TextureLayout.Undefined, TextureLayout.Storage);
+
+        if (generatedColor is not null)
         {
-            commandBuffer.Transition(args.GeneratedFrame!, default, TextureLayout.Undefined, TextureLayout.Storage);
+            commandBuffer.Transition(GeneratedColor!, default, TextureLayout.Undefined, TextureLayout.Storage);
         }
 
-        commandBuffer.SetPipeline(pipeline);
+        commandBuffer.SetPipeline(computePipeline);
         commandBuffer.SetConstantBuffer(buffer, 0);
-        commandBuffer.Dispatch((DisplayWidth + 7) / 8, (DisplayHeight + 7) / 8, args.GeneratedColor is not null ? 2u : 1u);
-        commandBuffer.Transition(args.BackBuffer, default, TextureLayout.Storage, TextureLayout.CopySrc);
+        commandBuffer.Dispatch((Width + group.X - 1) / group.X, (Height + group.Y - 1) / group.Y, (depth + group.Z - 1) / group.Z);
+        commandBuffer.Transition(Color, default, TextureLayout.Storage, TextureLayout.CopySrc);
 
-        if (args.GeneratedColor is not null)
+        if (generatedColor is not null)
         {
-            commandBuffer.Transition(args.GeneratedFrame!, default, TextureLayout.Storage, TextureLayout.CopySrc);
+            commandBuffer.Transition(GeneratedColor!, default, TextureLayout.Storage, TextureLayout.CopySrc);
         }
     }
 
-    protected override void ResizeImpl()
+    public void SetFrameGenerationEnabled(bool enabled)
     {
+        if (enabled)
+        {
+            GeneratedColor ??= CreateTexture();
+        }
+        else
+        {
+            GeneratedColor?.Dispose();
+            GeneratedColor = null;
+        }
+    }
+
+    public void Resize(uint width, uint height)
+    {
+        if (Width == width && Height == height)
+        {
+            return;
+        }
+
+        bool isFrameGenerationEnabled = GeneratedColor is not null;
+
+        DestroyTextures();
+
+        Width = width;
+        Height = height;
+
+        CreateTextures();
+
+        if (isFrameGenerationEnabled)
+        {
+            GeneratedColor = CreateTexture();
+        }
     }
 
     protected override void Destroy()
     {
-        pipeline.Dispose();
+        DestroyTextures();
+        computePipeline?.Dispose();
+        buffer?.Dispose();
+    }
 
-        for (int i = buffers.Length - 1; i >= 0; i--)
+    private void CreateTextures()
+    {
+        UI = App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, Width, Height, 1, SampleCount.Count1) with
         {
-            buffers[i].Dispose();
-        }
+            Usages = TextureUsages.Sampled | TextureUsages.ColorAttachment
+        });
+        Color = CreateTexture();
+    }
+
+    private Texture CreateTexture()
+    {
+        return App.Context.CreateTexture(TextureDesc.Texture2D(PixelFormat.B8G8R8A8UNorm, Width, Height, 1, SampleCount.Count1) with
+        {
+            Usages = TextureUsages.Storage | TextureUsages.TransferSrc
+        });
+    }
+
+    private void DestroyTextures()
+    {
+        GeneratedColor?.Dispose();
+        GeneratedColor = null;
+
+        Color?.Dispose();
+        Color = null!;
+
+        UI?.Dispose();
+        UI = null!;
     }
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 64)]
-file struct Constants
+file struct CompositeConstants
 {
     [FieldOffset(0)]
     public uint Width;

@@ -1,4 +1,4 @@
-﻿struct Constants
+﻿struct CompositeConstants
 {
     uint4 OutputSize;
 
@@ -15,28 +15,28 @@
     uint2 Padding;
 };
 
-ConstantBuffer<Constants> constants;
+ConstantBuffer<CompositeConstants> composite;
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void CSMain(uint3 dispatchThreadId: SV_DispatchThreadID)
+void CompositeCS(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
-    uint2 pixel = dispatchThreadId.xy;
+    uint2 pixel = dispatchThreadID.xy;
 
-    if (any(pixel >= constants.OutputSize.xy))
+    if (any(pixel >= composite.OutputSize.xy))
     {
         return;
     }
 
-    float4 ui = constants.UI.Load(int3(pixel, 0));
-    if (dispatchThreadId.z == 0)
+    float4 ui = composite.UI.Load(int3(pixel, 0));
+    if (dispatchThreadID.z == 0)
     {
-        float3 color = constants.Color.Load(int3(pixel, 0)).rgb;
-        constants.Output[pixel] = float4(ui.rgb + (1.0 - ui.a) * color, 1.0);
+        float3 color = composite.Color.Load(int3(pixel, 0)).rgb;
+        composite.Output[pixel] = float4(ui.rgb + (1.0 - ui.a) * color, 1.0);
     }
     else
     {
-        float3 color = constants.GeneratedColor.Load(int3(pixel, 0)).rgb;
-        constants.GeneratedOutput[pixel] = float4(ui.rgb + (1.0 - ui.a) * color, 1.0);
+        float3 color = composite.GeneratedColor.Load(int3(pixel, 0)).rgb;
+        composite.GeneratedOutput[pixel] = float4(ui.rgb + (1.0 - ui.a) * color, 1.0);
     }
 }
